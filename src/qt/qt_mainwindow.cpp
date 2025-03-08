@@ -1267,6 +1267,7 @@ void
 MainWindow::refreshMediaMenu()
 {
     mm->refresh(ui->menuMedia);
+    status->setSoundGainAction(ui->actionSound_gain);
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
     ui->actionACPI_Shutdown->setEnabled(!!acpi_enabled);
