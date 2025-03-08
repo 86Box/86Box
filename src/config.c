@@ -2681,7 +2681,7 @@ save_gl3_shaders(void)
     } else {
         for (i = 0; i < shaders; i++) {
             temp[0] = 0;
-            snprintf(temp, 512, "shader%d");
+            snprintf(temp, 512, "shader%d", i);
             ini_section_set_string(cat, temp, gl3_shader_file[i]);
         }
     }
