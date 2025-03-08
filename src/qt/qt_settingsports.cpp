@@ -74,22 +74,26 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
     this->machineId = machineId;
 
     for (int i = 0; i < PARALLEL_MAX; i++) {
-        auto *cbox        = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
-        auto *model       = cbox->model();
-        int   c           = 0;
-        int   selectedRow = 0;
+        auto *cbox            = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
+        auto *model           = cbox->model();
+        const auto removeRows = model->rowCount();
+        int   c               = 0;
+        int   selectedRow     = 0;
         while (true) {
             const char *lptName = lpt_device_get_name(c);
             if (lptName == nullptr) {
                 break;
             }
 
-            Models::AddEntry(model, tr(lptName), c);
+            int row = Models::AddEntry(model, tr(lptName), c);
             if (c == lpt_ports[i].device) {
-                selectedRow = c;
+                selectedRow = row - removeRows;
             }
             c++;
         }
+        model->removeRows(0, removeRows);
+        cbox->setEnabled(model->rowCount() > 0);
+        cbox->setCurrentIndex(-1);
         cbox->setCurrentIndex(selectedRow);
 
         auto *checkBox = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
