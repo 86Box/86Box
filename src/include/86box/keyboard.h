@@ -22,13 +22,6 @@
 #ifndef EMU_KEYBOARD_H
 #define EMU_KEYBOARD_H
 
-#ifdef __cplusplus
-#    include <atomic>
-using atomic_uint = std::atomic_uint;
-#else
-#    include <stdatomic.h>
-#endif
-
 enum {
     DEV_KBD = 0,
     DEV_AUX = 1
@@ -69,8 +62,8 @@ typedef struct atkbc_dev_t {
     uint8_t     rate;
     uint8_t     cmd_queue_start;
     uint8_t     cmd_queue_end;
-    atomic_uint queue_start;
-    atomic_uint queue_end;
+    uint8_t     queue_start;
+    uint8_t     queue_end;
 
     uint16_t flags;
 

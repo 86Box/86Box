@@ -88,9 +88,6 @@ kbc_at_dev_queue_add(atkbc_dev_t *dev, uint8_t val, uint8_t main)
 {
     if (main) {
         kbc_at_dev_log("%s: dev->queue[%02X]     = %02X;\n", dev->name, dev->queue_end, val);
-        if (!is_cpu_thread && kbc_at_dev_queue_pos(dev, 1) == dev->fifo_mask) {
-            while (kbc_at_dev_queue_pos(dev, 1) == dev->fifo_mask) {}
-        }
         dev->queue[dev->queue_end]         = val;
         dev->queue_end                     = (dev->queue_end + 1) & dev->fifo_mask;
     } else {
