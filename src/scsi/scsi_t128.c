@@ -95,7 +95,7 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
                         t128->status, scsi_bus->period, timer_is_enabled(&t128->timer), t128->block_loaded);
 
                 t128->status &= ~0x04;
-                timer_on_auto(&t128->timer, 1.0);
+                timer_on_auto(&t128->timer, 10.0);
             }
         }
     }
@@ -147,7 +147,7 @@ t128_read(uint32_t addr, void *priv)
                     scsi_bus->tx_mode = PIO_TX_BUS;
                     timer_stop(&t128->timer);
                 } else if (!timer_is_enabled(&t128->timer))
-                    timer_on_auto(&t128->timer, 1.0);
+                    timer_on_auto(&t128->timer, 10.0);
                 else
                     t128->status &= ~0x04;
             }
@@ -223,7 +223,7 @@ t128_dma_initiator_receive_ext(void *priv, void *ext_priv)
 
         t128->block_loaded = 1;
         t128->status &= ~0x04;
-        timer_on_auto(&t128->timer, 1.0);
+        timer_on_auto(&t128->timer, 10.0);
     }
     return 1;
 }
@@ -252,7 +252,7 @@ t128_callback(void *priv)
     uint8_t         status;
 
     if (scsi_bus->tx_mode != PIO_TX_BUS)
-        timer_on_auto(&t128->timer, scsi_bus->period / 65.0);
+        timer_on_auto(&t128->timer, scsi_bus->period / 60.0);
 
     if (scsi_bus->data_wait & 1) {
         scsi_bus->clear_req = 3;
@@ -350,6 +350,7 @@ t128_callback(void *priv)
                     if (!t128->block_count) {
                         t128->block_loaded = 0;
                         scsi_bus->bus_out |= BUS_REQ;
+                        timer_on_auto(&t128->timer, 10.0);
                         t128_log("IO End of read transfer\n");
                     }
                     break;
@@ -576,6 +577,10 @@ static const device_config_t t128_config[] = {
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 5", .value = 5 },
             { .description = "IRQ 7", .value = 7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = "IRQ 12", .value = 12 },
+            { .description = "IRQ 14", .value = 14 },
+            { .description = "IRQ 15", .value = 15 },
             { .description = ""                  }
         },
         .bios           = { { 0 } }
