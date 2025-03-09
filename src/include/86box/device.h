@@ -141,8 +141,7 @@ typedef struct device_config_bios_t {
     uint8_t     files_no;
     uint32_t    local;
     uint32_t    size;
-    void       *dev1;
-    void       *dev2;
+    void       *dev[2];
     const char *files[9];
 } device_config_bios_t;
 
