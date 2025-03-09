@@ -1699,6 +1699,8 @@ pipc_init(const device_t *info)
         acpi_set_nvr(dev->acpi, dev->nvr);
 
         acpi_init_gporeg(dev->acpi, 0xff, 0xbf, 0xff, 0x7f);
+
+        acpi_set_irq_mode(dev->acpi, 0);
     }
 
     return dev;
