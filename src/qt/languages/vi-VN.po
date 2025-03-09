@@ -688,10 +688,10 @@ msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video
 msgstr "Card đồ họa \"%hs\" không giả lập được do thiếu file ROM tương ứng trong thư mục roms/video. Hãy chọn card đồ họa khác."
 
 msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Card đồ họa 2 \"%hs\" không giả lập được do thiếu file ROM tương ứng trong thư mục roms/video. Sẽ vô hiệu hóa card đồ họa thứ hai."
+msgstr "Card đồ họa 2 \"%hs\" không giả lập được do thiếu file ROM tương ứng trong mục roms/video. Vô hiệu hóa card đồ họa thứ hai."
 
 msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Thiết bị \"%hs\" không giả lập được do thiếu file ROM. Thiết bị sẽ bị bỏ qua."
+msgstr "Thiết bị \"%hs\" không giả lập được do thiếu file ROM. Bỏ qua thiết bị."
 
 msgid "Machine"
 msgstr "Mẫu máy"
