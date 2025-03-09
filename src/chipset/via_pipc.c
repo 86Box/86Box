@@ -413,7 +413,9 @@ pipc_reset_hard(void *priv)
             dev->power_regs[0x34] = 0x68;
         dev->power_regs[0x40] = 0x20;
 
-        dev->power_regs[0x42] = 0x50;
+        dev->power_regs[0x42] = 0x00;
+        acpi_set_irq_line(dev->acpi, 0x00);
+
         dev->power_regs[0x48] = 0x01;
 
         if (dev->local == VIA_PIPC_686B) {
@@ -1592,6 +1594,9 @@ pipc_reset(void *priv)
     pipc_write(pm_func, 0x41, 0x00, priv);
     pipc_write(pm_func, 0x48, 0x01, priv);
     pipc_write(pm_func, 0x49, 0x00, priv);
+
+    dev->power_regs[0x42] = 0x00;
+    acpi_set_irq_line(dev->acpi, 0x00);
 
     pipc_write(1, 0x04, 0x80, priv);
     pipc_write(1, 0x09, 0x85, priv);
