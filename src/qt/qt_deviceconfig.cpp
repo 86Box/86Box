@@ -242,8 +242,12 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 int   currentIndex = -1;
 
                 q = 0;
-                for (auto *bios = config->bios; (bios != nullptr) && (bios->name != nullptr) &&
-                                                (strlen(bios->name) > 0); ++bios) {
+                for (auto *bios = config->bios; (bios != nullptr) &&
+                                                (bios->name != nullptr) &&
+                                                (bios->internal_name != nullptr) &&
+                                                (strlen(bios->name) > 0) &&
+                                                (strlen(bios->internal_name) > 0) &&
+                                                (bios->files_no > 0); ++bios) {
                     p = 0;
                     for (int d = 0; d < bios->files_no; d++)
                         p += !!rom_present(const_cast<char *>(bios->files[d]));

@@ -390,22 +390,21 @@ device_get_priv(const device_t *dev)
 int
 device_available(const device_t *dev)
 {
-    const device_config_t      *config       = NULL;
-    const device_config_bios_t *bios         = NULL;
-
     if (dev != NULL) {
-        config = dev->config;
+        const device_config_t *config = dev->config;
         if (config != NULL) {
             while (config->type != CONFIG_END) {
                 if (config->type == CONFIG_BIOS) {
                     int roms_present = 0;
-
-                    bios = (const device_config_bios_t *) config->bios;
+                    const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
 
                     /* Go through the ROM's in the device configuration. */
-                    while (bios->files_no != 0) {
+                    while ((bios != NULL) &&
+                           (bios->name != NULL) &&
+                           (bios->internal_name != NULL) &&
+                           (bios->files_no != 0)) {
                         int i = 0;
-                        for (int bf = 0; bf < bios->files_no; bf++)
+                        for (uint8_t bf = 0; bf < bios->files_no; bf++)
                             i += !!rom_present(bios->files[bf]);
                         if (i == bios->files_no)
                             roms_present++;
@@ -432,16 +431,16 @@ device_available(const device_t *dev)
 uint8_t
 device_get_bios_type(const device_t *dev, const char *internal_name)
 {
-    const device_config_t      *config = NULL;
-    const device_config_bios_t *bios   = NULL;
-
     if (dev != NULL) {
-        config = dev->config;
+        const device_config_t *config = dev->config;
         if (config != NULL) {
             while (config->type != CONFIG_END) {
                 if (config->type == CONFIG_BIOS) {
-                    bios = config->bios;
-                    while (bios->files_no != 0) {
+                    const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
+                    while ((bios != NULL) &&
+                           (bios->name != NULL) &&
+                           (bios->internal_name != NULL) &&
+                           (bios->files_no != 0)) {
                         if (!strcmp(internal_name, bios->internal_name))
                             return bios->bios_type;
                         bios++;
@@ -458,16 +457,16 @@ device_get_bios_type(const device_t *dev, const char *internal_name)
 uint8_t
 device_get_bios_num_files(const device_t *dev, const char *internal_name)
 {
-    const device_config_t      *config = NULL;
-    const device_config_bios_t *bios   = NULL;
-
     if (dev != NULL) {
-        config = dev->config;
+        const device_config_t *config = dev->config;
         if (config != NULL) {
             while (config->type != CONFIG_END) {
                 if (config->type == CONFIG_BIOS) {
-                    bios = config->bios;
-                    while (bios->files_no != 0) {
+                    const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
+                    while ((bios != NULL) &&
+                           (bios->name != NULL) &&
+                           (bios->internal_name != NULL) &&
+                           (bios->files_no != 0)) {
                         if (!strcmp(internal_name, bios->internal_name))
                             return bios->files_no;
                         bios++;
@@ -484,16 +483,16 @@ device_get_bios_num_files(const device_t *dev, const char *internal_name)
 uint32_t
 device_get_bios_local(const device_t *dev, const char *internal_name)
 {
-    const device_config_t      *config = NULL;
-    const device_config_bios_t *bios   = NULL;
-
     if (dev != NULL) {
-        config = dev->config;
+        const device_config_t *config = dev->config;
         if (config != NULL) {
             while (config->type != CONFIG_END) {
                 if (config->type == CONFIG_BIOS) {
-                    bios = config->bios;
-                    while (bios->files_no != 0) {
+                    const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
+                    while ((bios != NULL) &&
+                           (bios->name != NULL) &&
+                           (bios->internal_name != NULL) &&
+                           (bios->files_no != 0)) {
                         printf("Internal name was: %s", internal_name);
                         if (!strcmp(internal_name, bios->internal_name))
                             return bios->local;
@@ -511,18 +510,18 @@ device_get_bios_local(const device_t *dev, const char *internal_name)
 uint32_t
 device_get_bios_file_size(const device_t *dev, const char *internal_name)
 {
-    const device_config_t      *config = NULL;
-    const device_config_bios_t *bios   = NULL;
-
     if (dev != NULL) {
-        config = dev->config;
+        const device_config_t *config = dev->config;
         if (config != NULL) {
             while (config->type != CONFIG_END) {
                 if (config->type == CONFIG_BIOS) {
-                    bios = config->bios;
+                    const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
 
                     /* Go through the ROM's in the device configuration. */
-                    while (bios->files_no != 0) {
+                    while ((bios != NULL) &&
+                           (bios->name != NULL) &&
+                           (bios->internal_name != NULL) &&
+                           (bios->files_no != 0)) {
                         if (!strcmp(internal_name, bios->internal_name))
                             return bios->size;
                         bios++;
@@ -539,18 +538,20 @@ device_get_bios_file_size(const device_t *dev, const char *internal_name)
 const char *
 device_get_bios_file(const device_t *dev, const char *internal_name, int file_no)
 {
-    const device_config_t      *config = NULL;
     const device_config_bios_t *bios   = NULL;
 
     if (dev != NULL) {
-        config = dev->config;
+        const device_config_t *config = dev->config;
         if (config != NULL) {
             while (config->type != CONFIG_END) {
                 if (config->type == CONFIG_BIOS) {
-                    bios = config->bios;
+                    const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
 
                     /* Go through the ROM's in the device configuration. */
-                    while (bios->files_no != 0) {
+                    while ((bios != NULL) &&
+                           (bios->name != NULL) &&
+                           (bios->internal_name != NULL) &&
+                           (bios->files_no != 0)) {
                         if (!strcmp(internal_name, bios->internal_name)) {
                             if (file_no < bios->files_no)
                                 return bios->files[file_no];
