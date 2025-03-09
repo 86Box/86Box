@@ -770,7 +770,7 @@ OpenGLRendererPCem::OpenGLRendererPCem(QWidget *parent)
 
     parentWidget = parent;
 
-    source.setRect(0, 0, 2048, 2048);
+    source.setRect(0, 0, 100, 100);
     isInitialized = false;
     isFinalized = false;
 }
@@ -1075,11 +1075,18 @@ OpenGLRendererPCem::onBlit(int buf_idx, int x, int y, int w, int h)
         destination.width() * devicePixelRatio(),
         destination.height() * devicePixelRatio());
 #endif
+
+    if (source.width() != w || source.height() != h) {
+        glw.glBindTexture(GL_TEXTURE_2D, scene_texture.id);
+        glw.glTexImage2D(GL_TEXTURE_2D, 0, (GLenum) QOpenGLTexture::RGBA8_UNorm, w, h, 0, (GLenum) QOpenGLTexture::BGRA, (GLenum) QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
+        glw.glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
     source.setRect(x, y, w, h);
 
     glw.glBindTexture(GL_TEXTURE_2D, scene_texture.id);
     glw.glPixelStorei(GL_UNPACK_ROW_LENGTH, 2048);
-    glw.glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, (GLenum) QOpenGLTexture::BGRA, (GLenum) QOpenGLTexture::UInt32_RGBA8_Rev, (const void *) ((uintptr_t) imagebufs[buf_idx].get() + (uintptr_t) (2048 * 4 * y + x * 4)));
+    glw.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, (GLenum) QOpenGLTexture::BGRA, (GLenum) QOpenGLTexture::UInt32_RGBA8_Rev, (const void *) ((uintptr_t) imagebufs[buf_idx].get() + (uintptr_t) (2048 * 4 * y + x * 4)));
     glw.glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glw.glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -1369,10 +1376,10 @@ OpenGLRendererPCem::render()
         pass->state.tex_coords[7] = maxy;
 
         // create input tex coords
-        minx = video_rect.x / 2048.f;
-        miny = video_rect.y / 2048.f;
-        maxx = (video_rect.x + video_rect.w) / (float) 2048.f;
-        maxy = (video_rect.y + video_rect.h) / (float) 2048.f;
+        minx = 0;
+        miny = 0;
+        maxx = 1;
+        maxy = 1;
 
         GLfloat tex_coords[] = { minx, miny, minx, maxy, maxx, miny, maxx, maxy };
 
