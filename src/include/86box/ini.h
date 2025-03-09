@@ -31,6 +31,7 @@ typedef void *ini_section_t;
 
 extern ini_t ini_new(void);
 extern ini_t ini_read(const char *fn);
+extern void  ini_strip_quotes(ini_t ini);
 extern void  ini_write(ini_t ini, const char *fn);
 extern void  ini_dump(ini_t ini);
 extern void  ini_close(ini_t ini);
@@ -91,7 +92,7 @@ extern ini_section_t ini_find_or_create_section(ini_t ini, const char *name);
 extern void          ini_rename_section(ini_section_t section, const char *name);
 extern void          ini_delete_section_if_empty(ini_t ini, ini_section_t section);
 
-static inline void *wx_config_load(const char *path) { return (void*) ini_read(path); }
+static inline void *wx_config_load(const char *path) { ini_t ini = ini_read(path); if (ini) ini_strip_quotes(ini); return (void*)ini; }
 static inline int wx_config_get_string(void *config, const char *name, char *dst, int size, const char *defVal) {
     int res = ini_has_entry(ini_find_or_create_section((ini_t)config, ""), name);
     char* str = ini_get_string((ini_t)config, "", name, (char*)defVal);

@@ -197,6 +197,7 @@ add_library(ui STATIC
     qt_openglshadermanagerdialog.hpp
     qt_openglshadermanagerdialog.cpp
     qt_openglshadermanagerdialog.ui
+    qt_openglshaderconfig.hpp qt_openglshaderconfig.cpp qt_openglshaderconfig.ui
 )
 
 if(RTMIDI)

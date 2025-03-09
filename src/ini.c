@@ -254,9 +254,8 @@ ini_delete_section_if_empty(ini_t ini, ini_section_t section)
 static section_t *
 create_section(list_t *head, const char *name)
 {
-    section_t *ns = malloc(sizeof(section_t));
+    section_t *ns = calloc(1, sizeof(section_t));
 
-    memset(ns, 0x00, sizeof(section_t));
     memcpy(ns->name, name, strlen(name) + 1);
     list_add(&ns->list, head);
 
@@ -279,9 +278,8 @@ ini_find_or_create_section(ini_t ini, const char *name)
 static entry_t *
 create_entry(section_t *section, const char *name)
 {
-    entry_t *ne = malloc(sizeof(entry_t));
+    entry_t *ne = calloc(1, sizeof(entry_t));
 
-    memset(ne, 0x00, sizeof(entry_t));
     memcpy(ne->name, name, strlen(name) + 1);
     list_add(&ne->list, &section->entry_head);
 
@@ -390,11 +388,8 @@ ini_read(const char *fn)
     if (fp == NULL)
         return NULL;
 
-    head = malloc(sizeof(list_t));
-    memset(head, 0x00, sizeof(list_t));
-
-    sec = malloc(sizeof(section_t));
-    memset(sec, 0x00, sizeof(section_t));
+    head = calloc(1, sizeof(list_t));
+    sec = calloc(1, sizeof(section_t));
 
     list_add(&sec->list, head);
     if (bom)
@@ -475,7 +470,7 @@ ini_read(const char *fn)
         d = c;
 
         /* Allocate a new variable entry.. */
-        ne = malloc(sizeof(entry_t));
+        ne = calloc(1, sizeof(entry_t));
         memset(ne, 0x00, sizeof(entry_t));
         memcpy(ne->name, ename, 128);
         wcsncpy(ne->wdata, &buff[d], sizeof_w(ne->wdata) - 1);
@@ -549,6 +544,43 @@ ini_write(ini_t ini, const char *fn)
     }
 
     (void) fclose(fp);
+}
+
+void
+ini_strip_quotes(ini_t ini)
+{
+    list_t    *list = (list_t *) ini;
+    section_t *sec;
+
+    sec = (section_t *) list->next;
+
+    while (sec != NULL) {
+        entry_t *ent;
+
+        ent = (entry_t *) sec->entry_head.next;
+        while (ent != NULL) {
+            if (ent->name[0] != '\0') {
+                int i = 0;
+                if (ent->wdata[0] == L'\"') {
+                    memmove(ent->wdata, &ent->wdata[1], sizeof(ent->wdata) - sizeof(wchar_t));
+                }
+                if (ent->wdata[wcslen(ent->wdata) - 1] == L'\"') {
+                    ent->wdata[wcslen(ent->wdata) - 1] = 0;
+                }
+
+                if (ent->data[0] == '\"') {
+                    memmove(ent->data, &ent->data[1], sizeof(ent->data) - sizeof(char));
+                }
+                if (ent->data[strlen(ent->data) - 1] == '\"') {
+                    ent->data[strlen(ent->data) - 1] = 0;
+                }
+            }
+
+            ent = (entry_t *) ent->list.next;
+        }
+
+        sec = (section_t *) sec->list.next;
+    }
 }
 
 ini_t

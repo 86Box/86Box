@@ -1983,6 +1983,12 @@ MainWindow::changeEvent(QEvent *event)
 }
 
 void
+MainWindow::reloadAllRenderers()
+{
+    reload_renderers = true;
+}
+
+void
 MainWindow::on_actionRenderer_options_triggered()
 {
     if (const auto dlg = ui->stackedWidget->getOptions(this)) {
@@ -1999,6 +2005,16 @@ MainWindow::on_actionRenderer_options_triggered()
             } else for (int i = 1; i < MONITORS_NUM; i++) {
                 if (renderers[i] && renderers[i]->hasOptions())
                     renderers[i]->reloadOptions();
+            }
+        } else if (reload_renderers && ui->stackedWidget->reloadRendererOption()) {
+            reload_renderers = false;
+            ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
+            if (show_second_monitors) {
+                for (int i = 1; i < MONITORS_NUM; i++) {
+                    if (renderers[i] && renderers[i]->reloadRendererOption() && renderers[i]->hasOptions()) {
+                        ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
+                    }
+                }
             }
         }
     }

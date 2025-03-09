@@ -255,6 +255,8 @@ glslp_t *glslp_parse(const char *f) {
                         safe_strncpy(s, t + j, sublen);
                         s[511 < sublen ? 511 : sublen] = 0;
 
+                        if (s[strlen(s) - 1] == ';') s[strlen(s) - 1] = 0;
+
                         struct texture *tex = &glslp->textures[glslp->num_textures++];
 
                         strcpy(tex->name, s);

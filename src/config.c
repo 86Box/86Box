@@ -1725,11 +1725,15 @@ load_gl3_shaders(void)
     ini_section_t cat = ini_find_section(config, "GL3 Shaders");
     char         *p;
     char          temp[512];
-    int           i = 0;
+    int           i = 0, shaders = 0;
     memset(temp, 0, sizeof(temp));
     memset(gl3_shader_file, 0, sizeof(gl3_shader_file));
 
-    for (int i = 0; i < MAX_USER_SHADERS; i++) {
+    shaders = ini_section_get_int(cat, "shaders", 0);
+    if (shaders > MAX_USER_SHADERS)
+        shaders = MAX_USER_SHADERS;
+
+    for (int i = 0; i < shaders; i++) {
         temp[0] = 0;
         snprintf(temp, 512, "shader%d", i);
         p = ini_section_get_string(cat, temp, "");
@@ -2670,8 +2674,12 @@ save_gl3_shaders(void)
     int shaders = 0, i = 0;
 
     for (i = 0; i < MAX_USER_SHADERS; i++) {
-        if (gl3_shader_file[i][0] == 0)
+        if (gl3_shader_file[i][0] == 0) {
+            temp[0] = 0;
+            snprintf(temp, 512, "shader%d", i);
+            ini_section_delete_var(cat, temp);
             break;
+        }
         shaders++;
     }
 

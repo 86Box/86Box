@@ -33,6 +33,8 @@ private slots:
 
     void on_OpenGLShaderManagerDialog_accepted();
 
+    void on_buttonConfigure_clicked();
+
 private:
     Ui::OpenGLShaderManagerDialog *ui;
 };

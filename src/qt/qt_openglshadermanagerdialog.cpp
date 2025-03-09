@@ -1,6 +1,8 @@
 #include "qt_openglshadermanagerdialog.hpp"
 #include "ui_qt_openglshadermanagerdialog.h"
 
+#include "qt_openglshaderconfig.hpp"
+
 #include <QListWidgetItem>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -39,10 +41,21 @@ OpenGLShaderManagerDialog::OpenGLShaderManagerDialog(QWidget *parent)
     }
     if (ui->shaderListWidget->count()) {
         ui->shaderListWidget->setCurrentRow(ui->shaderListWidget->count() - 1);
+        auto current = ui->shaderListWidget->currentItem();
+        if (current) {
+            glslp_t* shader = (glslp_t*)current->data(Qt::UserRole + 2).toULongLong();
+            if (shader->num_parameters > 0)
+                ui->buttonConfigure->setEnabled(true);
+            else
+                ui->buttonConfigure->setEnabled(false);
+        } else {
+            ui->buttonConfigure->setEnabled(false);
+        }
     } else {
         ui->buttonRemove->setDisabled(true);
         ui->buttonMoveUp->setDisabled(true);
         ui->buttonMoveDown->setDisabled(true);
+        ui->buttonConfigure->setDisabled(true);
     }
 }
 
@@ -84,9 +97,16 @@ void OpenGLShaderManagerDialog::on_shaderListWidget_currentItemChanged(QListWidg
         ui->buttonRemove->setDisabled(true);
         ui->buttonMoveUp->setDisabled(true);
         ui->buttonMoveDown->setDisabled(true);
+        ui->buttonConfigure->setDisabled(true);
         return;
     } else {
         ui->buttonRemove->setDisabled(false);
+        ui->buttonConfigure->setDisabled(true);
+        if (current) {
+            glslp_t* shader = (glslp_t*)current->data(Qt::UserRole + 2).toULongLong();
+            if (shader->num_parameters > 0)
+                ui->buttonConfigure->setEnabled(true);
+        }
     }
     ui->buttonMoveUp->setDisabled(ui->shaderListWidget->currentRow() == 0);
     ui->buttonMoveDown->setDisabled(ui->shaderListWidget->currentRow() == (ui->shaderListWidget->count() - 1));
@@ -95,6 +115,22 @@ void OpenGLShaderManagerDialog::on_shaderListWidget_currentItemChanged(QListWidg
 
 void OpenGLShaderManagerDialog::on_shaderListWidget_currentRowChanged(int currentRow)
 {
+    auto current = ui->shaderListWidget->currentItem();
+    if (current == nullptr) {
+        ui->buttonRemove->setDisabled(true);
+        ui->buttonMoveUp->setDisabled(true);
+        ui->buttonMoveDown->setDisabled(true);
+        ui->buttonConfigure->setDisabled(true);
+        return;
+    } else {
+        ui->buttonRemove->setDisabled(false);
+        ui->buttonConfigure->setDisabled(true);
+        if (current) {
+            glslp_t* shader = (glslp_t*)current->data(Qt::UserRole + 2).toULongLong();
+            if (shader->num_parameters > 0)
+                ui->buttonConfigure->setEnabled(true);
+        }
+    }
     ui->buttonMoveUp->setDisabled(ui->shaderListWidget->currentRow() == 0);
     ui->buttonMoveDown->setDisabled(ui->shaderListWidget->currentRow() == (ui->shaderListWidget->count() - 1));
 }
@@ -143,6 +179,8 @@ void OpenGLShaderManagerDialog::on_buttonRemove_clicked()
             glslp_free((glslp_t*)item->data(Qt::UserRole + 2).toULongLong());
         }
         delete item;
+
+        on_shaderListWidget_currentRowChanged(ui->shaderListWidget->currentRow());
     }
 }
 
@@ -155,5 +193,17 @@ void OpenGLShaderManagerDialog::on_OpenGLShaderManagerDialog_accepted()
     startblit();
     config_save();
     endblit();
+}
+
+
+void OpenGLShaderManagerDialog::on_buttonConfigure_clicked()
+{
+    auto item = ui->shaderListWidget->currentItem();
+    if (item) {
+        glslp_t* shader = (glslp_t*)item->data(Qt::UserRole + 2).toULongLong();
+
+        auto configDialog = new OpenGLShaderConfig(this, shader);
+        configDialog->exec();
+    }
 }
 

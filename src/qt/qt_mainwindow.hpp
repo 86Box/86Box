@@ -32,6 +32,7 @@ public:
     QSize getRenderWidgetSize();
     void  setSendKeyboardInput(bool enabled);
     void  checkFullscreenHotkey();
+    void  reloadAllRenderers();
 
     std::array<std::unique_ptr<RendererStack>, 8> renderers;
 signals:
@@ -172,6 +173,9 @@ private:
     /* Full screen ON and OFF signals */
     bool fs_on_signal        = false;
     bool fs_off_signal       = false;
+
+    /* Reload the renderers after closing renderer options dialog. */
+    bool reload_renderers    = false;
 
     friend class SpecifyDimensions;
     friend class ProgSettings;
