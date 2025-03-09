@@ -782,7 +782,8 @@ svga_recalctimings(svga_t *svga)
 
             if (xga_active && (svga->xga != NULL)) {
                 if (xga->on) {
-                    if ((svga->mapping.base == 0xb8000) && (xga->aperture_cntl == 1)) /*Some operating systems reset themselves with ctrl-alt-del by going into text mode.*/
+                    svga_log("XGA on=%d, base=%05x, ap=%x.\n", xga->on, svga->mapping.base, xga->aperture_cntl);
+                    if ((svga->mapping.base == 0xb8000) && (xga->aperture_cntl >= 1)) /*Some operating systems reset themselves with ctrl-alt-del by going into text mode.*/
                         xga->on = 0;
                 }
             }
@@ -1541,7 +1542,7 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 32;
 
     svga->translate_address         = NULL;
-    
+
     svga->cable_connected = 1;
     svga->ksc5601_english_font_type = 0;
 
