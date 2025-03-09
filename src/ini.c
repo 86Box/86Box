@@ -561,6 +561,10 @@ ini_strip_quotes(ini_t ini)
         while (ent != NULL) {
             if (ent->name[0] != '\0') {
                 int i = 0;
+                int trailing_hash = strcspn(ent->data, "#");
+                int trailing_quote;
+                ent->wdata[trailing_hash] = 0;
+                ent->data[trailing_hash] = 0;
                 if (ent->wdata[0] == L'\"') {
                     memmove(ent->wdata, &ent->wdata[1], sizeof(ent->wdata) - sizeof(wchar_t));
                 }
@@ -574,6 +578,12 @@ ini_strip_quotes(ini_t ini)
                 if (ent->data[strlen(ent->data) - 1] == '\"') {
                     ent->data[strlen(ent->data) - 1] = 0;
                 }
+
+                trailing_quote = strcspn(ent->data, "\"");
+                ent->wdata[trailing_quote] = 0;
+                ent->data[trailing_quote] = 0;
+
+                pclog("Section %s, entry %s, value %ls\n", sec->name, ent->name, ent->wdata);
             }
 
             ent = (entry_t *) ent->list.next;
