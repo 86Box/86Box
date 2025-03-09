@@ -1,6 +1,7 @@
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
 
+#include <QCoreApplication>
 #include <QMessageBox>
 #include <QWindow>
 #include <QPainter>
@@ -131,6 +132,7 @@ OpenGLRendererPCem::create_program(struct shader_program *program)
         glw.glGetProgramiv(program->id, GL_INFO_LOG_LENGTH, &maxLength);
         char *log = (char *) malloc(maxLength);
         glw.glGetProgramInfoLog(program->id, maxLength, &length, log);
+        QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), tr("GLSL Error"), tr("Program not linked:\n%1").arg(log));
         // wx_simple_messagebox("GLSL Error", "Program not linked:\n%s", log);
         free(log);
         return 0;
@@ -175,6 +177,7 @@ OpenGLRendererPCem::compile_shader(GLenum shader_type, const char *prepend, cons
         glw.glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
         char *log = (char *) malloc(length);
         glw.glGetShaderInfoLog(shader, length, &length, log);
+        QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), tr("GLSL Error"), tr("Could not compile shader:\n%1").arg(log));
         // wx_simple_messagebox("GLSL Error", "Could not compile shader:\n%s", log);
 
         pclog("Could not compile shader: %s\n", log);
@@ -577,7 +580,7 @@ OpenGLRendererPCem::load_glslp(glsl_t *glsl, int num_shader, const char *f)
             pclog("Load texture %s...\n", file);
 
             if (!load_texture(file, &tex->texture)) {
-                // wx_simple_messagebox("GLSL Error", "Could not load texture: %s", file);
+                QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), tr("GLSL Error"), tr("Could not load texture: %s").arg(file));
                 pclog("Could not load texture %s!\n", file);
                 failed = 1;
                 break;
@@ -623,6 +626,7 @@ OpenGLRendererPCem::load_glslp(glsl_t *glsl, int num_shader, const char *f)
                 pclog("Creating pass %u (%s)\n", (i + 1), pass->alias);
                 pclog("Loading shader %s...\n", shader->shader_fn);
                 if (!shader->shader_program) {
+                    QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), tr("GLSL Error"), tr("Could not load shader: %1").arg(shader->shader_fn));
                     // wx_simple_messagebox("GLSL Error", "Could not load shader: %s", shader->shader_fn);
                     pclog("Could not load shader %s\n", shader->shader_fn);
                     failed = 1;
@@ -1337,10 +1341,10 @@ OpenGLRendererPCem::render()
         struct {
             uint32_t x, y, w, h;
         } rect, video_rect;
-        rect.x = destination.x();
-        rect.y = destination.y();
-        rect.w = destination.width();
-        rect.h = destination.height();
+        rect.x = 0;
+        rect.y = 0;
+        rect.w = source.width();
+        rect.h = source.height();
 
         video_rect.x = source.x();
         video_rect.y = source.y();

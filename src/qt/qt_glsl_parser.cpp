@@ -1,3 +1,10 @@
+#include "qt_mainwindow.hpp"
+#include <QMessageBox>
+#include <QWindow>
+#include <QCoreApplication>
+
+extern MainWindow* main_window;
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -137,6 +144,7 @@ static glslp_t *glsl_parse(const char *f) {
         strcpy(shader->shader_fn, f);
         shader->shader_program = load_file(f);
         if (!shader->shader_program) {
+                QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), QObject::tr("GLSL error"), QObject::tr("Could not load shader %s").arg(shader->shader_fn));
                 //wx_simple_messagebox("GLSL error", "Could not load shader %s\n", shader->shader_fn);
                 glslp_free(glslp);
                 return 0;
