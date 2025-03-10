@@ -784,6 +784,14 @@ MainWindow::closeEvent(QCloseEvent *event)
         ui->stackedWidget->mouse_exit_func();
 
     ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
+    for (int i = 1; i < MONITORS_NUM; i++) {
+        if (renderers[i] && renderers[i]->isHidden()) {
+            renderers[i]->show();
+            QApplication::processEvents();
+            renderers[i]->switchRenderer(RendererStack::Renderer::Software);
+            QApplication::processEvents();
+        }
+    }
 
     qt_nvr_save();
     config_save();
