@@ -77,6 +77,10 @@
 #include <86box/snd_opl.h>
 #include <86box/version.h>
 
+/* Deliberate to not make the 86box.h header kitchen-sink. */
+#include <86box/qt-glsl.h>
+extern char gl3_shader_file[MAX_USER_SHADERS][512];
+
 static int   cx;
 static int   cy;
 static int   cw;
@@ -196,7 +200,6 @@ load_general(void)
 
     video_framerate = ini_section_get_int(cat, "video_gl_framerate", -1);
     video_vsync     = ini_section_get_int(cat, "video_gl_vsync", 0);
-    strncpy(video_shader, ini_section_get_string(cat, "video_gl_shader", ""), sizeof(video_shader) - 1);
 
     window_remember = ini_section_get_int(cat, "window_remember", 0);
     if (window_remember) {
@@ -1714,6 +1717,46 @@ load_other_peripherals(void)
         ini_section_delete_var(cat, temp);
 }
 
+/* Load OpenGL 3.0 renderer options. */
+static void
+load_gl3_shaders(void)
+{
+    ini_section_t cat = ini_find_section(config, "GL3 Shaders");
+    char         *p;
+    char          temp[512];
+    int           i = 0, shaders = 0;
+    memset(temp, 0, sizeof(temp));
+    memset(gl3_shader_file, 0, sizeof(gl3_shader_file));
+
+    shaders = ini_section_get_int(cat, "shaders", 0);
+    if (shaders > MAX_USER_SHADERS)
+        shaders = MAX_USER_SHADERS;
+
+    if (shaders == 0) {
+        ini_section_t general = ini_find_section(config, "General");
+        if (general) {
+            p = ini_section_get_string(general, "video_gl_shader", NULL);
+            if (p) {
+                strncpy(gl3_shader_file[0], p, 512);
+                ini_delete_var(config, general, "video_gl_shader");
+                return;
+            }
+        }
+    }
+
+    for (i = 0; i < shaders; i++) {
+        temp[0] = 0;
+        snprintf(temp, 512, "shader%d", i);
+        p = ini_section_get_string(cat, temp, "");
+        if (p[0]) {
+            strncpy(gl3_shader_file[i], p, 512);
+        } else {
+            gl3_shader_file[i][0] = 0;
+            break;
+        }
+    }
+}
+
 /* Load the specified or a default configuration file. */
 void
 config_load(void)
@@ -1810,6 +1853,7 @@ config_load(void)
         load_floppy_and_cdrom_drives(); /* Floppy and CD-ROM drives */
         load_other_removable_devices(); /* Other removable devices */
         load_other_peripherals();       /* Other peripherals */
+        load_gl3_shaders();             /* GL3 Shaders */
 
         /* Migrate renamed device configurations. */
         c = ini_find_section(config, "MDA");
@@ -2002,10 +2046,6 @@ save_general(void)
         ini_section_set_int(cat, "video_gl_vsync", video_vsync);
     else
         ini_section_delete_var(cat, "video_gl_vsync");
-    if (strlen(video_shader) > 0)
-        ini_section_set_string(cat, "video_gl_shader", video_shader);
-    else
-        ini_section_delete_var(cat, "video_gl_shader");
 
     if (do_auto_pause)
         ini_section_set_int(cat, "do_auto_pause", do_auto_pause);
@@ -2632,6 +2672,38 @@ save_other_peripherals(void)
     ini_delete_section_if_empty(config, cat);
 }
 
+/* Save "GL3 Shaders" section. */
+static void
+save_gl3_shaders(void)
+{
+    ini_section_t cat = ini_find_or_create_section(config, "GL3 Shaders");
+    char          temp[512];
+    int shaders = 0, i = 0;
+
+    for (i = 0; i < MAX_USER_SHADERS; i++) {
+        if (gl3_shader_file[i][0] == 0) {
+            temp[0] = 0;
+            snprintf(temp, 512, "shader%d", i);
+            ini_section_delete_var(cat, temp);
+            break;
+        }
+        shaders++;
+    }
+
+    ini_section_set_int(cat, "shaders", shaders);
+    if (shaders == 0) {
+        ini_section_delete_var(cat, "shaders");
+    } else {
+        for (i = 0; i < shaders; i++) {
+            temp[0] = 0;
+            snprintf(temp, 512, "shader%d", i);
+            ini_section_set_string(cat, temp, gl3_shader_file[i]);
+        }
+    }
+
+    ini_delete_section_if_empty(config, cat);
+}
+
 /* Save "Hard Disks" section. */
 static void
 save_hard_disks(void)
@@ -2987,6 +3059,7 @@ config_save(void)
     save_floppy_and_cdrom_drives(); /* Floppy and CD-ROM drives */
     save_other_removable_devices(); /* Other removable devices */
     save_other_peripherals();       /* Other peripherals */
+    save_gl3_shaders();             /* GL3 Shaders */
 
     ini_write(config, cfg_path);
 }
