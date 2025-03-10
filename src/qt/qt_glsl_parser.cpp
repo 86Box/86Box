@@ -101,11 +101,11 @@ static char *load_file(const char *fn) {
 
 static void strip_lines(const char *program, const char *starts_with) {
         /* strip parameters */
-        char *ptr = strstr(program, starts_with);
-        while (ptr) {
+        char *ptr = (char *) strstr(program, starts_with);
+        while (ptr != nullptr) {
                 while (*ptr != '\n' && *ptr != '\0')
                         *ptr++ = ' ';
-                ptr = strstr(program, starts_with);
+                ptr = (char *) strstr(program, starts_with);
         }
 }
 
