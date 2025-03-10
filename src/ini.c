@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <wctype.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/ini.h>
