@@ -87,16 +87,9 @@ add_library(ui STATIC
     qt_softwarerenderer.hpp
     qt_hardwarerenderer.cpp
     qt_hardwarerenderer.hpp
-    qt_openglrenderer.cpp
-    qt_openglrenderer.hpp
     qt_openglrenderer_pcem.cpp
     qt_openglrenderer_pcem.hpp
     qt_glsl_parser.cpp
-    qt_opengloptions.cpp
-    qt_opengloptions.hpp
-    qt_opengloptionsdialog.cpp
-    qt_opengloptionsdialog.hpp
-    qt_opengloptionsdialog.ui
 
     qt_settings.cpp
     qt_settings.hpp
@@ -197,7 +190,10 @@ add_library(ui STATIC
     qt_openglshadermanagerdialog.hpp
     qt_openglshadermanagerdialog.cpp
     qt_openglshadermanagerdialog.ui
-    qt_openglshaderconfig.hpp qt_openglshaderconfig.cpp qt_openglshaderconfig.ui
+
+    qt_openglshaderconfig.hpp
+    qt_openglshaderconfig.cpp
+    qt_openglshaderconfig.ui
 )
 
 if(RTMIDI)

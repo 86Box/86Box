@@ -1,3 +1,26 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          OpenGL renderer for Qt, mostly ported over from PCem.
+ *
+ *
+ *
+ * Authors: Teemu Korhonen
+ *          Cacodemon345
+ *          bit
+ *          Sarah Walker
+ *
+ *          Copyright 2022 Teemu Korhonen
+ *          Copyright 2025 Cacodemon345
+ *          Copyright 2017 Bit
+ *          Copyright 2017-2020 Sarah Walker
+ */
+
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
 
@@ -114,7 +137,7 @@ next_pow2(unsigned int n)
 }
 
 int
-OpenGLRendererPCem::create_program(struct shader_program *program)
+OpenGLRenderer::create_program(struct shader_program *program)
 {
     GLint status;
     program->id = glw.glCreateProgram();
@@ -146,7 +169,7 @@ OpenGLRendererPCem::create_program(struct shader_program *program)
 }
 
 int
-OpenGLRendererPCem::compile_shader(GLenum shader_type, const char *prepend, const char *program, int *dst)
+OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const char *program, int *dst)
 {
     const char *source[3];
     char        version[50];
@@ -197,19 +220,19 @@ OpenGLRendererPCem::compile_shader(GLenum shader_type, const char *prepend, cons
 }
 
 GLuint
-OpenGLRendererPCem::get_uniform(GLuint program, const char *name)
+OpenGLRenderer::get_uniform(GLuint program, const char *name)
 {
     return glw.glGetUniformLocation(program, name);
 }
 
 GLuint
-OpenGLRendererPCem::get_attrib(GLuint program, const char *name)
+OpenGLRenderer::get_attrib(GLuint program, const char *name)
 {
     return glw.glGetAttribLocation(program, name);
 }
 
 void
-OpenGLRendererPCem::find_uniforms(struct glsl_shader *glsl, int num_pass)
+OpenGLRenderer::find_uniforms(struct glsl_shader *glsl, int num_pass)
 {
     int                 i;
     char                s[50];
@@ -294,7 +317,7 @@ setup_scale(struct shader *shader, struct shader_pass *pass)
 }
 
 void
-OpenGLRendererPCem::create_texture(struct shader_texture *tex)
+OpenGLRenderer::create_texture(struct shader_texture *tex)
 {
     if (tex->width > max_texture_size)
         tex->width = max_texture_size;
@@ -314,7 +337,7 @@ OpenGLRendererPCem::create_texture(struct shader_texture *tex)
 }
 
 void
-OpenGLRendererPCem::delete_texture(struct shader_texture *tex)
+OpenGLRenderer::delete_texture(struct shader_texture *tex)
 {
     if (tex->id > 0)
         glw.glDeleteTextures(1, (GLuint *) &tex->id);
@@ -322,7 +345,7 @@ OpenGLRendererPCem::delete_texture(struct shader_texture *tex)
 }
 
 void
-OpenGLRendererPCem::delete_fbo(struct shader_fbo *fbo)
+OpenGLRenderer::delete_fbo(struct shader_fbo *fbo)
 {
     if (fbo->id >= 0) {
         glw.glDeleteFramebuffers(1, (GLuint *) &fbo->id);
@@ -331,7 +354,7 @@ OpenGLRendererPCem::delete_fbo(struct shader_fbo *fbo)
 }
 
 void
-OpenGLRendererPCem::delete_program(struct shader_program *program)
+OpenGLRenderer::delete_program(struct shader_program *program)
 {
     if (program->vertex_shader)
         glw.glDeleteShader(program->vertex_shader);
@@ -341,7 +364,7 @@ OpenGLRendererPCem::delete_program(struct shader_program *program)
 }
 
 void
-OpenGLRendererPCem::delete_vbo(struct shader_vbo *vbo)
+OpenGLRenderer::delete_vbo(struct shader_vbo *vbo)
 {
     if (vbo->color >= 0)
         glw.glDeleteBuffers(1, (GLuint *) &vbo->color);
@@ -350,7 +373,7 @@ OpenGLRendererPCem::delete_vbo(struct shader_vbo *vbo)
 }
 
 void
-OpenGLRendererPCem::delete_pass(struct shader_pass *pass)
+OpenGLRenderer::delete_pass(struct shader_pass *pass)
 {
     delete_fbo(&pass->fbo);
     delete_vbo(&pass->vbo);
@@ -359,14 +382,14 @@ OpenGLRendererPCem::delete_pass(struct shader_pass *pass)
 }
 
 void
-OpenGLRendererPCem::delete_prev(struct shader_prev *prev)
+OpenGLRenderer::delete_prev(struct shader_prev *prev)
 {
     delete_fbo(&prev->fbo);
     delete_vbo(&prev->vbo);
 }
 
 void
-OpenGLRendererPCem::delete_shader(struct glsl_shader *glsl)
+OpenGLRenderer::delete_shader(struct glsl_shader *glsl)
 {
     int i;
     for (i = 0; i < glsl->num_passes; ++i)
@@ -381,7 +404,7 @@ OpenGLRendererPCem::delete_shader(struct glsl_shader *glsl)
 }
 
 void
-OpenGLRendererPCem::delete_glsl(glsl_t *glsl)
+OpenGLRenderer::delete_glsl(glsl_t *glsl)
 {
     int i;
     for (i = 0; i < glsl->num_shaders; ++i)
@@ -395,7 +418,7 @@ OpenGLRendererPCem::delete_glsl(glsl_t *glsl)
 }
 
 void
-OpenGLRendererPCem::create_fbo(struct shader_fbo *fbo)
+OpenGLRenderer::create_fbo(struct shader_fbo *fbo)
 {
     create_texture(&fbo->texture);
 
@@ -410,7 +433,7 @@ OpenGLRendererPCem::create_fbo(struct shader_fbo *fbo)
 }
 
 void
-OpenGLRendererPCem::setup_fbo(struct shader *shader, struct shader_fbo *fbo)
+OpenGLRenderer::setup_fbo(struct shader *shader, struct shader_fbo *fbo)
 {
     fbo->texture.internal_format = GL_RGBA8;
     fbo->texture.format          = GL_RGBA;
@@ -442,7 +465,7 @@ OpenGLRendererPCem::setup_fbo(struct shader *shader, struct shader_fbo *fbo)
 }
 
 void
-OpenGLRendererPCem::recreate_fbo(struct shader_fbo *fbo, int width, int height)
+OpenGLRenderer::recreate_fbo(struct shader_fbo *fbo, int width, int height)
 {
     if (width != fbo->texture.width || height != fbo->texture.height) {
         glw.glDeleteFramebuffers(1, (GLuint *) &fbo->id);
@@ -454,7 +477,7 @@ OpenGLRendererPCem::recreate_fbo(struct shader_fbo *fbo, int width, int height)
 }
 
 int
-OpenGLRendererPCem::create_default_shader_tex(struct shader_pass *pass)
+OpenGLRenderer::create_default_shader_tex(struct shader_pass *pass)
 {
     if (!compile_shader(GL_VERTEX_SHADER, 0, vertex_shader_default_tex_src, &pass->program.vertex_shader) || !compile_shader(GL_FRAGMENT_SHADER, 0, fragment_shader_default_tex_src, &pass->program.fragment_shader) || !create_program(&pass->program))
         return 0;
@@ -474,7 +497,7 @@ OpenGLRendererPCem::create_default_shader_tex(struct shader_pass *pass)
 }
 
 int
-OpenGLRendererPCem::create_default_shader_color(struct shader_pass *pass)
+OpenGLRenderer::create_default_shader_color(struct shader_pass *pass)
 {
     if (!compile_shader(GL_VERTEX_SHADER, 0, vertex_shader_default_color_src, &pass->program.vertex_shader) || !compile_shader(GL_FRAGMENT_SHADER, 0, fragment_shader_default_color_src, &pass->program.fragment_shader) || !create_program(&pass->program))
         return 0;
@@ -494,7 +517,7 @@ OpenGLRendererPCem::create_default_shader_color(struct shader_pass *pass)
 
 /* create the default scene shader */
 void
-OpenGLRendererPCem::create_scene_shader()
+OpenGLRenderer::create_scene_shader()
 {
     struct shader scene_shader_conf;
     memset(&scene_shader_conf, 0, sizeof(struct shader));
@@ -554,7 +577,7 @@ load_texture(const char *f, struct shader_texture *tex)
 }
 
 glsl_t *
-OpenGLRendererPCem::load_glslp(glsl_t *glsl, int num_shader, const char *f)
+OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
 {
     int      i, j;
     glslp_t *p = glslp_parse(f);
@@ -704,7 +727,7 @@ OpenGLRendererPCem::load_glslp(glsl_t *glsl, int num_shader, const char *f)
 }
 
 glsl_t *
-OpenGLRendererPCem::load_shaders(int num, char shaders[MAX_USER_SHADERS][512])
+OpenGLRenderer::load_shaders(int num, char shaders[MAX_USER_SHADERS][512])
 {
     int     i;
     glsl_t *glsl;
@@ -731,7 +754,7 @@ OpenGLRendererPCem::load_shaders(int num, char shaders[MAX_USER_SHADERS][512])
 }
 
 void
-OpenGLRendererPCem::read_shader_config()
+OpenGLRenderer::read_shader_config()
 {
     char s[512];
     int  i, j;
@@ -747,10 +770,9 @@ OpenGLRendererPCem::read_shader_config()
     }
 }
 
-OpenGLRendererPCem::OpenGLRendererPCem(QWidget *parent)
+OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     : QWindow(parent->windowHandle())
     , renderTimer(new QTimer(this))
-    , options(nullptr)
 {
     connect(renderTimer, &QTimer::timeout, this, [this]() { this->render(); } );
     imagebufs[0] = std::unique_ptr<uint8_t>(new uint8_t[2048 * 2048 * 4]);
@@ -785,10 +807,10 @@ OpenGLRendererPCem::OpenGLRendererPCem(QWidget *parent)
     isFinalized = false;
 }
 
-OpenGLRendererPCem::~OpenGLRendererPCem() { finalize(); }
+OpenGLRenderer::~OpenGLRenderer() { finalize(); }
 
 void
-OpenGLRendererPCem::initialize()
+OpenGLRenderer::initialize()
 {
     try {
         context = new QOpenGLContext(this);
@@ -796,15 +818,15 @@ OpenGLRendererPCem::initialize()
         context->setFormat(format());
 
         if (!context->create())
-            throw opengl_init_error_pcem(tr("Couldn't create OpenGL context."));
+            throw opengl_init_error(tr("Couldn't create OpenGL context."));
 
         if (!context->makeCurrent(this))
-            throw opengl_init_error_pcem(tr("Couldn't switch to OpenGL context."));
+            throw opengl_init_error(tr("Couldn't switch to OpenGL context."));
 
         auto version = context->format().version();
 
         if (version.first < 3)
-            throw opengl_init_error_pcem(tr("OpenGL version 3.0 or greater is required. Current version is %1.%2").arg(version.first).arg(version.second));
+            throw opengl_init_error(tr("OpenGL version 3.0 or greater is required. Current version is %1.%2").arg(version.first).arg(version.second));
 
         glw.initializeOpenGLFunctions();
 
@@ -813,7 +835,7 @@ OpenGLRendererPCem::initialize()
         glw.glGetIntegerv(GL_MAJOR_VERSION, &glsl_version[0]);
         glw.glGetIntegerv(GL_MINOR_VERSION, &glsl_version[1]);
         if (glsl_version[0] < 3) {
-            throw opengl_init_error_pcem(tr("OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2").arg(glsl_version[0]).arg(glsl_version[1]));
+            throw opengl_init_error(tr("OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2").arg(glsl_version[0]).arg(glsl_version[1]));
         }
         pclog("Using OpenGL %s\n", glw.glGetString(GL_VERSION));
         pclog("Using Shading Language %s\n", glw.glGetString(GL_SHADING_LANGUAGE_VERSION));
@@ -1035,7 +1057,7 @@ OpenGLRendererPCem::initialize()
         glw.glClear(GL_COLOR_BUFFER_BIT);
 
         context->swapBuffers(this);
-    } catch (const opengl_init_error_pcem &e) {
+    } catch (const opengl_init_error &e) {
         /* Mark all buffers as in use */
         for (auto &flag : buf_usage)
             flag.test_and_set();
@@ -1051,7 +1073,7 @@ OpenGLRendererPCem::initialize()
 }
 
 void
-OpenGLRendererPCem::finalize()
+OpenGLRenderer::finalize()
 {
     if (isFinalized)
         return;
@@ -1074,7 +1096,7 @@ OpenGLRendererPCem::finalize()
 }
 
 void
-OpenGLRendererPCem::onBlit(int buf_idx, int x, int y, int w, int h)
+OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 {
     if (notReady())
         return;
@@ -1112,7 +1134,7 @@ OpenGLRendererPCem::onBlit(int buf_idx, int x, int y, int w, int h)
 }
 
 std::vector<std::tuple<uint8_t *, std::atomic_flag *>>
-OpenGLRendererPCem::getBuffers()
+OpenGLRenderer::getBuffers()
 {
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> buffers;
 
@@ -1123,7 +1145,7 @@ OpenGLRendererPCem::getBuffers()
 }
 
 void
-OpenGLRendererPCem::exposeEvent(QExposeEvent *event)
+OpenGLRenderer::exposeEvent(QExposeEvent *event)
 {
     Q_UNUSED(event);
 
@@ -1134,7 +1156,7 @@ OpenGLRendererPCem::exposeEvent(QExposeEvent *event)
 }
 
 void
-OpenGLRendererPCem::resizeEvent(QResizeEvent *event)
+OpenGLRenderer::resizeEvent(QResizeEvent *event)
 {
     Q_UNUSED(event);
 
@@ -1153,7 +1175,7 @@ OpenGLRendererPCem::resizeEvent(QResizeEvent *event)
 }
 
 void
-OpenGLRendererPCem::render_pass(struct render_data *data)
+OpenGLRenderer::render_pass(struct render_data *data)
 {
     int    i;
     GLuint texture_unit = 0;
@@ -1298,7 +1320,7 @@ OpenGLRendererPCem::render_pass(struct render_data *data)
 }
 
 bool
-OpenGLRendererPCem::event(QEvent *event)
+OpenGLRenderer::event(QEvent *event)
 {
     Q_UNUSED(event);
 
@@ -1309,13 +1331,13 @@ OpenGLRendererPCem::event(QEvent *event)
 }
 
 QDialog*
-OpenGLRendererPCem::getOptions(QWidget *parent)
+OpenGLRenderer::getOptions(QWidget *parent)
 {
     return new OpenGLShaderManagerDialog(parent);
 }
 
 void
-OpenGLRendererPCem::render()
+OpenGLRenderer::render()
 {
     if (!context)
         return;
@@ -1353,16 +1375,11 @@ OpenGLRendererPCem::render()
 
         struct {
             uint32_t x, y, w, h;
-        } rect, video_rect;
+        } rect;
         rect.x = 0;
         rect.y = 0;
         rect.w = source.width();
         rect.h = source.height();
-
-        video_rect.x = source.x();
-        video_rect.y = source.y();
-        video_rect.w = source.width();
-        video_rect.h = source.height();
 
         pass->state.input_size[0] = pass->state.output_size[0] = rect.w;
         pass->state.input_size[1] = pass->state.output_size[1] = rect.h;

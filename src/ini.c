@@ -162,7 +162,6 @@ ini_has_entry(ini_section_t self, const char *name)
 {
     section_t     *section = (section_t *) self;
     const entry_t *entry;
-    int            value = 0;
 
     if (section == NULL)
         return 0;
@@ -546,6 +545,7 @@ ini_write(ini_t ini, const char *fn)
     (void) fclose(fp);
 }
 
+/* Wide-character version of "trim" */
 wchar_t *
 trim_w(wchar_t *str)
 {
@@ -609,7 +609,6 @@ ini_strip_quotes(ini_t ini)
         ent = (entry_t *) sec->entry_head.next;
         while (ent != NULL) {
             if (ent->name[0] != '\0') {
-                int i = 0;
                 int trailing_hash = strcspn(ent->data, "#");
                 int trailing_quote;
                 ent->wdata[trailing_hash] = 0;

@@ -200,7 +200,6 @@ load_general(void)
 
     video_framerate = ini_section_get_int(cat, "video_gl_framerate", -1);
     video_vsync     = ini_section_get_int(cat, "video_gl_vsync", 0);
-    strncpy(video_shader, ini_section_get_string(cat, "video_gl_shader", ""), sizeof(video_shader) - 1);
 
     window_remember = ini_section_get_int(cat, "window_remember", 0);
     if (window_remember) {
@@ -1733,7 +1732,19 @@ load_gl3_shaders(void)
     if (shaders > MAX_USER_SHADERS)
         shaders = MAX_USER_SHADERS;
 
-    for (int i = 0; i < shaders; i++) {
+    if (shaders == 0) {
+        ini_section_t general = ini_find_section(config, "General");
+        if (general) {
+            p = ini_section_get_string(general, "video_gl_shader", NULL);
+            if (p) {
+                strncpy(gl3_shader_file[0], p, 512);
+                ini_delete_var(config, general, "video_gl_shader");
+                return;
+            }
+        }
+    }
+
+    for (i = 0; i < shaders; i++) {
         temp[0] = 0;
         snprintf(temp, 512, "shader%d", i);
         p = ini_section_get_string(cat, temp, "");
@@ -2035,10 +2046,6 @@ save_general(void)
         ini_section_set_int(cat, "video_gl_vsync", video_vsync);
     else
         ini_section_delete_var(cat, "video_gl_vsync");
-    if (strlen(video_shader) > 0)
-        ini_section_set_string(cat, "video_gl_shader", video_shader);
-    else
-        ini_section_delete_var(cat, "video_gl_shader");
 
     if (do_auto_pause)
         ini_section_set_int(cat, "do_auto_pause", do_auto_pause);

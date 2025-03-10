@@ -11,12 +11,14 @@
  *
  *
  * Authors: Teemu Korhonen
+ *          Cacodemon345
  *
  *          Copyright 2022 Teemu Korhonen
+ *          Copyright 2025 Cacodemon345
  */
 
-#ifndef QT_OpenGLRendererPCem_HPP
-#define QT_OpenGLRendererPCem_HPP
+#ifndef QT_OpenGLRenderer_HPP
+#define QT_OpenGLRenderer_HPP
 
 #if defined Q_OS_MACOS || __arm__
 #    define NO_BUFFER_STORAGE
@@ -37,7 +39,6 @@
 #include <tuple>
 #include <vector>
 
-#include "qt_opengloptions.hpp"
 #include "qt_renderercommon.hpp"
 
 extern "C"
@@ -55,14 +56,14 @@ struct render_data {
     int                 frame_count;
 };
 
-class OpenGLRendererPCem : public QWindow, public RendererCommon {
+class OpenGLRenderer : public QWindow, public RendererCommon {
     Q_OBJECT
 
 public:
     QOpenGLContext *context;
 
-    OpenGLRendererPCem(QWidget *parent = nullptr);
-    ~OpenGLRendererPCem();
+    OpenGLRenderer(QWidget *parent = nullptr);
+    ~OpenGLRenderer();
 
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> getBuffers() override;
 
@@ -88,7 +89,6 @@ private:
     std::array<std::unique_ptr<uint8_t>, 2> imagebufs;
 
     QTimer        *renderTimer;
-    OpenGLOptions *options;
 
     QString glslVersion = "";
 
@@ -98,7 +98,6 @@ private:
     int max_texture_size = 65536;
     int frameCounter     = 0;
 
-    OpenGLOptions::FilterType currentFilter;
     QOpenGLExtraFunctions glw;
     struct shader_texture scene_texture;
     glsl_t *active_shader;
@@ -144,12 +143,11 @@ private:
 
 private slots:
     void render();
-    //void updateOptions(OpenGLOptions *newOptions);
 };
 
-class opengl_init_error_pcem : public std::runtime_error {
+class opengl_init_error : public std::runtime_error {
 public:
-    opengl_init_error_pcem(const QString &what)
+    opengl_init_error(const QString &what)
         : std::runtime_error(what.toStdString())
     {
     }
