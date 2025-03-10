@@ -546,6 +546,55 @@ ini_write(ini_t ini, const char *fn)
     (void) fclose(fp);
 }
 
+wchar_t *
+trim_w(wchar_t *str)
+{
+    size_t  len     = 0;
+    wchar_t *frontp = str;
+    wchar_t *endp   = NULL;
+
+    if (str == NULL) {
+        return NULL;
+    }
+    if (str[0] == L'\0') {
+        return str;
+    }
+
+    len  = wcslen(str);
+    endp = str + len;
+
+    /* Move the front and back pointers to address the first non-whitespace
+     * characters from each end.
+     */
+    while (iswspace((wint_t) *frontp)) {
+        ++frontp;
+    }
+    if (endp != frontp) {
+        while (iswspace((wint_t) *(--endp)) && endp != frontp) { }
+    }
+
+    if (frontp != str && endp == frontp)
+        *str = L'\0';
+    else if ((str + len - 1) != endp)
+        *(endp + 1) = L'\0';
+
+    /* Shift the string so that it starts at str so that if it's dynamically
+     * allocated, we can still free it on the returned pointer.  Note the reuse
+     * of endp to mean the front of the string buffer now.
+     */
+    endp = str;
+    if (frontp != str) {
+        while (*frontp) {
+            *endp++ = *frontp++;
+        }
+        *endp = L'\0';
+    }
+
+    return str;
+}
+
+extern char* trim(char* str);
+
 void
 ini_strip_quotes(ini_t ini)
 {
@@ -582,8 +631,9 @@ ini_strip_quotes(ini_t ini)
                 trailing_quote = strcspn(ent->data, "\"");
                 ent->wdata[trailing_quote] = 0;
                 ent->data[trailing_quote] = 0;
-
-                pclog("Section %s, entry %s, value %ls\n", sec->name, ent->name, ent->wdata);
+                
+                trim_w(ent->wdata);
+                trim(ent->data);
             }
 
             ent = (entry_t *) ent->list.next;
