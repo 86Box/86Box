@@ -244,6 +244,57 @@ rom_readl(uint32_t addr, void *priv)
     return (*(uint32_t *) &rom->rom[(addr - rom->mapping.base) & rom->mask]);
 }
 
+void
+rom_write(uint32_t addr, uint8_t val, void *priv)
+{
+    const rom_t *rom = (rom_t *) priv;
+
+#ifdef ROM_TRACE
+    if (rom->mapping.base == ROM_TRACE)
+        rom_log("ROM: write byte from BIOS at %06lX\n", addr);
+#endif
+
+    if (addr < rom->mapping.base)
+        return;
+    if (addr >= (rom->mapping.base + rom->sz))
+        return;
+    rom->rom[(addr - rom->mapping.base) & rom->mask] = val;
+}
+
+void
+rom_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    rom_t *rom = (rom_t *) priv;
+
+#ifdef ROM_TRACE
+    if (rom->mapping.base == ROM_TRACE)
+        rom_log("ROM: write word from BIOS at %06lX\n", addr);
+#endif
+
+    if (addr < (rom->mapping.base - 1))
+        return;
+    if (addr >= (rom->mapping.base + rom->sz))
+        return;
+    *(uint16_t *) &rom->rom[(addr - rom->mapping.base) & rom->mask] = val;
+}
+
+void
+rom_writel(uint32_t addr, uint32_t val, void *priv)
+{
+    rom_t *rom = (rom_t *) priv;
+
+#ifdef ROM_TRACE
+    if (rom->mapping.base == ROM_TRACE)
+        rom_log("ROM: write long from BIOS at %06lX\n", addr);
+#endif
+
+    if (addr < (rom->mapping.base - 3))
+        return;
+    if (addr >= (rom->mapping.base + rom->sz))
+        return;
+    *(uint32_t *) &rom->rom[(addr - rom->mapping.base) & rom->mask] = val;
+}
+
 int
 rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
