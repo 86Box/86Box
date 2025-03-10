@@ -126,7 +126,6 @@ extern int      video_filter_method;        /* (C) video */
 extern int      video_vsync;                /* (C) video */
 extern int      video_framerate;            /* (C) video */
 extern int      gfxcard[GFXCARD_MAX];       /* (C) graphics/video card */
-extern char     video_shader[512];          /* (C) video */
 extern int      bugger_enabled;             /* (C) enable ISAbugger */
 extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */
 extern int      postcard_enabled;           /* (C) enable POST card */
@@ -187,6 +186,8 @@ extern char uuid[MAX_UUID_LEN]; /* UUID or machine identifier */
 extern FILE *stdlog; /* file to log output to */
 #endif
 extern int config_changed; /* config has changed */
+
+extern __thread int is_cpu_thread; /* Is this the CPU thread? */
 
 /* Function prototypes. */
 #ifdef HAVE_STDARG_H

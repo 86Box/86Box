@@ -3101,7 +3101,7 @@ da2_loadfont(char *fname, void *p)
     }
     uint32_t j = 0;
     while (ftell(mfile) < fsize) {
-        fread(&buf, sizeof(uint8_t), 1, mfile);
+        (void) !fread(&buf, sizeof(uint8_t), 1, mfile);
         da2->mmio.font[j] = buf;
         j++;
     }

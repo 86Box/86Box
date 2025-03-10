@@ -5226,7 +5226,7 @@ mach32_ap_writeb(uint32_t addr, uint8_t val, void *priv)
     uint8_t port_dword     = addr & 0xfc;
 
     if (((mach->local_cntl & 0x20) || (mach->pci_cntl_reg & 0x80)) &&
-        (((addr - mach->linear_base) >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
+        (((addr - mach->linear_base) >= ((mach->ap_size << 20) - 0x200)) && ((addr - mach->linear_base) < (mach->ap_size << 20)))) {
         if (addr & 0x100) {
             mach_log("Port WORDB Write=%04x.\n", 0x02ee + (port_dword << 8));
             mach_accel_outb(0x02ee + (addr & 1) + (port_dword << 8), val, mach);
@@ -5279,6 +5279,9 @@ mach32_ap_writel(uint32_t addr, uint32_t val, void *priv)
     const ibm8514_t *dev   = (ibm8514_t *) svga->dev8514;
     uint8_t port_dword     = addr & 0xfc;
 
+    mach_log("Linear WORDL Write=%08x, val=%08x, ON=%x, dpconfig=%04x, apsize=%08x.\n",
+        addr - mach->linear_base, val, dev->on, mach->accel.dp_config, mach->ap_size << 20);
+
     if (((mach->local_cntl & 0x20) || (mach->pci_cntl_reg & 0x80)) &&
         (((addr - mach->linear_base) >= ((mach->ap_size << 20) - 0x200)) && ((addr - mach->linear_base) < (mach->ap_size << 20)))) {
         if (addr & 0x100) {
@@ -5291,8 +5294,6 @@ mach32_ap_writel(uint32_t addr, uint32_t val, void *priv)
             mach_accel_outw(0x02e8 + (port_dword << 8) + 4, val >> 16, mach);
         }
     } else {
-        mach_log("Linear WORDL Write=%08x, val=%08x, ON=%x, dpconfig=%04x, apsize=%08x.\n",
-                 addr - mach->linear_base, val, dev->on, mach->accel.dp_config, mach->ap_size << 20);
         if (dev->on)
             mach32_writel_linear(addr, val, mach);
         else

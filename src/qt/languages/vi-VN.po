@@ -682,10 +682,10 @@ msgid "Surface images"
 msgstr "Ảnh bề mặt"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Mẫu máy \"%hs\" không giả lập được do thiếu file ROM tương ứng trong mục roms/machines. Hãy chọn mẫu máy khác."
+msgstr "Mẫu máy \"%hs\" không giả lập được do thiếu file ROM tương ứng trong thư mục roms/machines. Hãy chọn mẫu máy khác."
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Card đồ họa \"%hs\" không giả lập được do thiếu file ROM tương ứng trong mục roms/video. Hãy chọn card đồ họa khác."
+msgstr "Card đồ họa \"%hs\" không giả lập được do thiếu file ROM tương ứng trong thư mục roms/video. Hãy chọn card đồ họa khác."
 
 msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
 msgstr "Card đồ họa 2 \"%hs\" không giả lập được do thiếu file ROM tương ứng trong mục roms/video. Vô hiệu hóa card đồ họa thứ hai."
@@ -1219,7 +1219,7 @@ msgid "Development of the WinBox manager stopped in 2022 due to a lack of mainta
 msgstr "Trình quản lý phiên WinBox đã bị dừng phát triển năm 2022 do thiếu nhân sự duy trì. Vì những quyết định để cho 86Box trở nên tốt hơn, chúng tôi đã không còn hỗ trợ trình quản lý WinBox.\n\n Sẽ không có bản cập nhật mới cho WinBox nữa, và nếu bạn tiếp tục sử dụng với các bản 86Box mới hơn có thể gặp lỗi. Bất kì các bản bug report liên quan đến lỗi của WinBox sẽ bị coi là không hợp lệ và bị đóng.\n\nTruy cập 86Box.net để tìm qua các trình quản lý phiên/manager khác cho phù hợp."
 
 msgid "Generate"
-msgstr "Phát ra"
+msgstr "Tạo"
 
 msgid "Joystick configuration"
 msgstr "Cấu hình cần điều khiển"
@@ -1240,7 +1240,7 @@ msgid "List of MCA devices:"
 msgstr "Danh sách các thiết bị MCA:"
 
 msgid "Tablet tool"
-msgstr "Công cụ máy tính bảng"
+msgstr "Công cụ bảng nhập liệu"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "QT (OpenGL &ES)"
@@ -1264,19 +1264,19 @@ msgid "Cursor/Puck"
 msgstr "Con trỏ/puck"
 
 msgid "Pen"
-msgstr "Cái bút"
+msgstr "Bút"
 
 msgid "Host CD/DVD Drive (%1:)"
 msgstr "Máy chủ CD/DVD ổ đĩa (%1 :)"
 
 msgid "&Connected"
-msgstr "& Kết nối"
+msgstr "&Đã kết nối"
 
 msgid "Clear image history"
 msgstr "Xóa lịch sử ảnh đĩa"
 
 msgid "Create..."
-msgstr "Tạo nên..."
+msgstr "Tạo..."
 
 msgid "previous image"
 msgstr "đĩa trước đó"
@@ -1309,7 +1309,7 @@ msgid "OpenGL 3.0 renderer options"
 msgstr "Tùy chọn kết xuất OpenGL 3.0"
 
 msgid "Render behavior"
-msgstr "Hiện ra hành vi"
+msgstr "Hành vi kết xuất"
 
 msgid "Use target framerate:"
 msgstr "Dùng số khung hình mục tiêu:"
@@ -1321,16 +1321,16 @@ msgid "VSync"
 msgstr "Vsync"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Kết xuất mỗi khung ngay lập tức, đồng bộ với màn hình mô phỏng.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Đây là tùy chọn được đề xuất nếu các shader đang sử dụng không sử dụng hình chữ nhật cho các hiệu ứng hoạt hình.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Kết xuất mỗi khung ngay lập tức, đồng bộ với màn hình mô phỏng.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Đây là tùy chọn được đề xuất nếu các shader đang sử dụng không tối ưu frametime cho các hiệu ứng động.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 
 msgid "Synchronize with video"
-msgstr "Đồng bộ hóa với video"
+msgstr "Đồng bộ với video"
 
 msgid "Shaders"
 msgstr "Shaders"
 
 msgid "Remove"
-msgstr "Di dời"
+msgstr "Loại bỏ"
 
 msgid "No shader selected"
 msgstr "Không có shader được chọn"
@@ -1363,19 +1363,19 @@ msgid "Error initializing OpenGL"
 msgstr "Lỗi khởi tạo OpenGL"
 
 msgid "Falling back to software rendering.\n"
-msgstr "Rơi trở lại kết xuất phần mềm.\n"
+msgstr "Quay trở lại kết xuất phần mềm.\n"
 
 msgid "Allocating memory for unpack buffer failed.\n"
 msgstr "Phân bổ bộ nhớ cho bộ đệm giải nén không thành công.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Khi chọn hình ảnh phương tiện (CD-ROM, FLOPPY, v.v.), hộp thoại mở sẽ bắt đầu trong cùng thư mục với tệp cấu hình 86box. Cài đặt này có thể sẽ chỉ tạo ra sự khác biệt trên macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Khi chọn hình ảnh phương tiện (CD-ROM, ổ mềm, v.v.), hộp thoại mở sẽ bắt đầu trong cùng thư mục với tệp cấu hình 86box. Cài đặt này có thể sẽ chỉ tạo ra sự khác biệt trên macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 
 msgid "This machine might have been moved or copied."
-msgstr "Máy này có thể đã được di chuyển hoặc sao chép."
+msgstr "Cấu hình máy này có thể đã được di chuyển hoặc sao chép."
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "Để đảm bảo chức năng kết nối mạng thích hợp, 86box cần biết liệu máy này có được di chuyển hay sao chép không.\n\nNếu bạn không chắc chắn, chọn \"Tôi đã sao chép nó\"."
+msgstr "Để đảm bảo chức năng kết nối mạng thích hợp, 86Box cần biết liệu máy này có được di chuyển hay sao chép không.\n\nNếu bạn không chắc chắn, chọn \"Tôi đã sao chép nó\"."
 
 msgid "I Moved It"
 msgstr "Tôi đã di chuyển nó"
@@ -1390,7 +1390,7 @@ msgid "No MCA devices."
 msgstr "Không có thiết bị MCA."
 
 msgid "MiB"
-msgstr "Mib"
+msgstr "MiB"
 
 msgid "Network Card #1"
 msgstr "Thẻ mạng 1"
@@ -1405,7 +1405,7 @@ msgid "Network Card #4"
 msgstr "Thẻ mạng 4"
 
 msgid "Mode"
-msgstr "Cách thức"
+msgstr "Chế độ"
 
 msgid "Interface"
 msgstr "Giao diện"
@@ -1417,7 +1417,7 @@ msgid "VDE Socket"
 msgstr "Ổ cắm VDE"
 
 msgid "86Box Unit Tester"
-msgstr "Người kiểm tra đơn vị 86box"
+msgstr "Trình kiểm tra đơn vị 86box"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Thẻ khóa Novell Netware 2.x"
@@ -1435,7 +1435,7 @@ msgid "Serial port passthrough 4"
 msgstr "Thông qua cổng serial 4"
 
 msgid "Vision Systems LBA Enhancer"
-msgstr "Hệ thống tầm nhìn LBA Enhancer"
+msgstr "Vision Systems LBA Enhancer"
 
 msgid "Renderer options..."
 msgstr "Tùy chọn kết xuất ..."
@@ -1477,7 +1477,7 @@ msgid "Roland CM-32LN Emulation"
 msgstr "Mô phỏng Roland CM-32LN"
 
 msgid "OPL4-ML Daughterboard"
-msgstr "Con gái OPL4-ML"
+msgstr "Bo mạch con OPL4-ML"
 
 msgid "System MIDI"
 msgstr "MIDI của hệ thống"
@@ -1489,7 +1489,7 @@ msgid "BIOS Address"
 msgstr "Địa chỉ BIOS"
 
 msgid "Enable BIOS extension ROM Writes"
-msgstr "Bật ROM mở rộng BIOS"
+msgstr "Kích hoạt ghi ROM mở rộng BIOS"
 
 msgid "Address"
 msgstr "Địa chỉ"
@@ -1516,22 +1516,22 @@ msgid "BIOS size"
 msgstr "Kích thước BIOS"
 
 msgid "Map C0000-C7FFF as UMB"
-msgstr "Bản đồ C0000-C7FFF dưới dạng UMB"
+msgstr "Map C0000-C7FFF dưới dạng UMB"
 
 msgid "Map C8000-CFFFF as UMB"
-msgstr "Bản đồ C8000-CFFFF dưới dạng UMB"
+msgstr "Map C8000-CFFFF dưới dạng UMB"
 
 msgid "Map D0000-D7FFF as UMB"
-msgstr "Bản đồ D0000-D7FFF dưới dạng UMB"
+msgstr "Map D0000-D7FFF dưới dạng UMB"
 
 msgid "Map D8000-DFFFF as UMB"
-msgstr "Bản đồ D8000-Dffff dưới dạng UMB"
+msgstr "Map D8000-Dffff dưới dạng UMB"
 
 msgid "Map E0000-E7FFF as UMB"
-msgstr "Bản đồ E0000-E7FFF dưới dạng UMB"
+msgstr "Map E0000-E7FFF dưới dạng UMB"
 
 msgid "Map E8000-EFFFF as UMB"
-msgstr "Bản đồ e8000-effff dưới dạng umb"
+msgstr "Map e8000-effff dưới dạng umb"
 
 msgid "JS9 Jumper (JIM)"
 msgstr "JS9 Jumper (Jim)"
@@ -1546,13 +1546,13 @@ msgid "MIDI Thru"
 msgstr "Thông qua đầu vào MIDI"
 
 msgid "MIDI Clockout"
-msgstr "MIDI đồng hồ"
+msgstr "MIDI Clockout"
 
 msgid "SoundFont"
-msgstr "Soundfont"
+msgstr "Font âm thanh"
 
 msgid "Output Gain"
-msgstr "Đầu ra tăng"
+msgstr "Tăng đầu ra"
 
 msgid "Chorus"
 msgstr "Điệp khúc"
@@ -1591,7 +1591,7 @@ msgid "Interpolation Method"
 msgstr "Phương pháp nội suy"
 
 msgid "Reverb Output Gain"
-msgstr "Gợi ý đầu ra hồi âm"
+msgstr "Tăng đầu ra hồi âm"
 
 msgid "Reversed stereo"
 msgstr "Đảo ngược âm thanh nổi"
@@ -1612,10 +1612,10 @@ msgid "RTS toggle"
 msgstr "RT chuyển đổi"
 
 msgid "Revision"
-msgstr "Ôn tập"
+msgstr "Bản sửa đổi"
 
 msgid "Controller"
-msgstr "Người điều khiển"
+msgstr "Bộ điều khiển"
 
 msgid "Show Crosshair"
 msgstr "Hiển thị hình chữ thập"
@@ -1627,7 +1627,7 @@ msgid "MAC Address"
 msgstr "Địa chỉ MAC"
 
 msgid "MAC Address OUI"
-msgstr " OUI địa chỉ MAC"
+msgstr "OUI địa chỉ MAC"
 
 msgid "Enable BIOS"
 msgstr "Bật BIOS"
@@ -1699,7 +1699,7 @@ msgid "Enable OPL"
 msgstr "Bật OPL"
 
 msgid "Receive MIDI input (MPU-401)"
-msgstr "Nhận nhập MIDI (MPU-401)"
+msgstr "Nhận đầu vào MIDI (MPU-401)"
 
 msgid "SB low DMA"
 msgstr "SB DMA thấp"
@@ -1711,7 +1711,7 @@ msgid "Enable CMS"
 msgstr "Bật CMS"
 
 msgid "Mixer"
-msgstr "Máy trộn"
+msgstr "Bộ trộn"
 
 msgid "High DMA"
 msgstr "DMA cao"
@@ -1747,13 +1747,13 @@ msgid "RGB type"
 msgstr "Loại RGB"
 
 msgid "Line doubling type"
-msgstr "Dòng nhân đôi"
+msgstr "Loại dòng kép"
 
 msgid "Snow emulation"
-msgstr "Đun tuyết"
+msgstr "Giả lập hiệu ứng tuyết"
 
 msgid "Monitor type"
-msgstr "Loại giám sát"
+msgstr "Loại màn hình"
 
 msgid "Character set"
 msgstr "Bộ ký tự"
@@ -1762,13 +1762,13 @@ msgid "XGA type"
 msgstr "Loại XGA"
 
 msgid "Instance"
-msgstr "Ví dụ"
+msgstr "Bản chạy"
 
 msgid "MMIO Address"
 msgstr "Địa chỉ MMIO"
 
 msgid "RAMDAC type"
-msgstr "Loại Ramdac"
+msgstr "Loại RAMDAC"
 
 msgid "Blend"
 msgstr "Trộn"
@@ -1792,13 +1792,13 @@ msgid "Texture memory size"
 msgstr "Kích thước bộ nhớ kết cấu"
 
 msgid "Dither subtraction"
-msgstr "Phân biệt trừ"
+msgstr "Giảm ngân tán"
 
 msgid "Screen Filter"
 msgstr "Bộ lọc màn hình"
 
 msgid "Render threads"
-msgstr "Kết xuất chủ đề"
+msgstr "Luồng kết xuất"
 
 msgid "SLI"
 msgstr "SLI"
@@ -1813,13 +1813,13 @@ msgid "I/O Width"
 msgstr "Chiều rộng I/O"
 
 msgid "Transfer Speed"
-msgstr "Tốc độ chuyển"
+msgstr "Tốc độ truyền tải"
 
 msgid "EMS mode"
 msgstr "Chế độ EMS"
 
 msgid "Address for > 2 MB"
-msgstr "Địa chỉ cho> 2 MB"
+msgstr "Địa chỉ cho > 2 MB"
 
 msgid "Frame Address"
 msgstr "Địa chỉ khung"
@@ -1834,7 +1834,7 @@ msgid "Always at selected speed"
 msgstr "Luôn ở tốc độ đã chọn"
 
 msgid "BIOS setting + Hotkeys (off during POST)"
-msgstr "Cài đặt BIOS + phím nóng (TẮT trong bài đăng)"
+msgstr "Cài đặt BIOS + phím nóng (TẮT trong POST)"
 
 msgid "64 kB starting from F0000"
 msgstr "64 kb bắt đầu từ f0000"
@@ -1861,7 +1861,7 @@ msgid "Non-timed (original)"
 msgstr "Không đúng lúc (bản gốc)"
 
 msgid "45 Hz (JMP2 not populated)"
-msgstr "45 Hz (JMP2 không dân cư)"
+msgstr "45 Hz (JMP2 không phổ cập)"
 
 msgid "Two"
 msgstr "Hai"
@@ -1870,10 +1870,10 @@ msgid "Three"
 msgstr "Ba"
 
 msgid "Wheel"
-msgstr "Bánh xe"
+msgstr "Con lăn"
 
 msgid "Five + Wheel"
-msgstr "Năm + bánh xe"
+msgstr "Năm + con lăn"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 Serial / SMT3(R)V"
@@ -2008,7 +2008,7 @@ msgid "Color"
 msgstr "Màu sắc"
 
 msgid "U.S. English"
-msgstr "Tiếng Anh Hoa Kỳ"
+msgstr "Tiếng Anh Mỹ"
 
 msgid "Scandinavian"
 msgstr "Scandinavia"
@@ -2020,13 +2020,13 @@ msgid "Bochs latest"
 msgstr "Bochs mới nhất"
 
 msgid "Mono Non-Interlaced"
-msgstr "Đơn sắc không được xen kẽ"
+msgstr "Đơn sắc không xen kẽ"
 
 msgid "Color Interlaced"
 msgstr "Màu sắc xen kẽ"
 
 msgid "Color Non-Interlaced"
-msgstr "Màu sắc không được xen kẽ"
+msgstr "Màu sắc không xen kẽ"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "Đồ họa 3Dfx Voodoo"
@@ -2074,7 +2074,7 @@ msgid "Parallel Line Internet Protocol"
 msgstr "Parallel Line Internet Protocol"
 
 msgid "Protection Dongle for Savage Quest"
-msgstr "Bảo vệ dongle cho Savage Quest"
+msgstr "Dongle bảo vệ cho Savage Quest"
 
 msgid "Serial Passthrough Device"
 msgstr "Thiết bị thông qua cổng serial"
@@ -2086,7 +2086,7 @@ msgid "Host Serial Device"
 msgstr "Thiết bị serial máy chủ"
 
 msgid "Name of pipe"
-msgstr "Tên của đường ống"
+msgstr "Tên đường ống"
 
 msgid "Data bits"
 msgstr "Bit dữ liệu"
@@ -2095,10 +2095,10 @@ msgid "Stop bits"
 msgstr "Dừng bit"
 
 msgid "Baud Rate of Passthrough"
-msgstr "Tốc độ baud của qua đường"
+msgstr "Tốc độ baud của đường thông"
 
 msgid "Named Pipe (Server)"
-msgstr "Đường ống được đặt tên (máy chủ)"
+msgstr "Đường ống có tên (máy chủ)"
 
 msgid "Host Serial Passthrough"
 msgstr "Thông qua cổng serial của máy chủ"
@@ -2107,19 +2107,19 @@ msgid "Eject %s"
 msgstr "Đẩy đĩa ra %s"
 
 msgid "&Unmute"
-msgstr "&Không quay được"
+msgstr "&Mở tiếng"
 
 msgid "Softfloat FPU"
 msgstr "Softfloat FPU"
 
 msgid "High performance impact"
-msgstr "Tác động cao đến hiệu suất"
+msgstr "Ảnh hưởng lớn đến hiệu suất"
 
 msgid "RAM Disk (max. speed)"
-msgstr "Đĩa RAM (Tối đa. Tốc độ)"
+msgstr "Đĩa RAM (tốc độ tối đa)"
 
 msgid "IBM 8514/A clone (ISA)"
-msgstr "IBM 8514/A dòng vô tính (ISA)"
+msgstr "IBM 8514/A bản nhái (ISA)"
 
 msgid "Vendor"
 msgstr "Nhà sản xuất"

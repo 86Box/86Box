@@ -385,12 +385,17 @@ plat_munmap(void *ptr, size_t size)
 #endif
 }
 
+extern bool cpu_thread_running;
 void
 plat_pause(int p)
 {
     static wchar_t oldtitle[512];
     wchar_t        title[1024];
     wchar_t        paused_msg[512];
+
+    if (!cpu_thread_running && p == 1) {
+        p = 2;
+    }
 
     if ((!!p) == dopause) {
 #ifdef Q_OS_WINDOWS

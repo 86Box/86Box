@@ -32,6 +32,7 @@ public:
     QSize getRenderWidgetSize();
     void  setSendKeyboardInput(bool enabled);
     void  checkFullscreenHotkey();
+    void  reloadAllRenderers();
 
     std::array<std::unique_ptr<RendererStack>, 8> renderers;
 signals:
@@ -173,11 +174,17 @@ private:
     bool fs_on_signal        = false;
     bool fs_off_signal       = false;
 
+    /* Reload the renderers after closing renderer options dialog. */
+    bool reload_renderers    = false;
+
     friend class SpecifyDimensions;
     friend class ProgSettings;
     friend class RendererCommon;
     friend class RendererStack; // For UI variable access by non-primary renderer windows.
     friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.
+
+    
+    bool isShowMessage = false;
 };
 
 #endif // QT_MAINWINDOW_HPP

@@ -373,7 +373,7 @@ scsi_cdrom_mode_sense_load(scsi_cdrom_t *dev)
     if (fp) {
         if (fread(dev->ms_pages_saved.pages[GPMODE_CDROM_AUDIO_PAGE], 1, 0x10, fp) != 0x10)
             log_fatal(dev->log, "scsi_cdrom_mode_sense_load(): Error reading data\n");
-        (void) fread(dev->ms_pages_saved.pages[GPMODE_CDROM_AUDIO_PAGE_SONY], 1,
+        (void) !fread(dev->ms_pages_saved.pages[GPMODE_CDROM_AUDIO_PAGE_SONY], 1,
                      0x10, fp);
         fclose(fp);
     }

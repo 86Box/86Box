@@ -388,6 +388,7 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
 {
     int masked = 0;
 
+    sb_dsp_log("SBIRQ8=%d, irqnum=%d, bit=%x, set=%x.\n", dsp->sb_irq8, dsp->sb_irqnum, bit, set);
     if (dsp->sb_irq8 || dsp->sb_irq16)
         return;
 
@@ -423,6 +424,7 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
         }
     }
 
+    sb_dsp_log("Masked=%02x.\n", masked);
     if (set && !masked)
         dsp->irq_update(dsp->irq_priv, 1);
     else if (!set)
@@ -1039,6 +1041,8 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
 {
     uint8_t chg;
 
+    sb_dsp_log("ESS Write reg=%02x, val=%02x.\n", reg, data);
+
     switch (reg) {
         case 0xA1: /* Extended Mode Sample Rate Generator */
             {
@@ -1110,6 +1114,7 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
                     dsp->sb_irqnum = 10;
                     break;
             }
+            sb_dsp_log("Legacy Audio IRQ control=%d.\n", dsp->sb_irqnum);
             sb_ess_update_irq_drq_readback_regs(dsp, false);
             break;
         case 0xB2: /* DRQ Control */
@@ -1131,6 +1136,7 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
                     dsp->sb_8_dmanum = 3;
                     break;
             }
+            sb_dsp_log("Legacy Audio DRQ control=%d, chg=%02x.\n", dsp->sb_8_dmanum, chg);
             sb_ess_update_irq_drq_readback_regs(dsp, false);
             if (chg & 0x40)
                 sb_ess_update_dma_status(dsp);
@@ -1876,11 +1882,11 @@ sb_write(uint16_t addr, uint8_t val, void *priv)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
-    sb_dsp_log("[%04X:%08X] DSP: [W] %04X = %02X\n", CS, cpu_state.pc, addr, val);
-
     /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
     if ((dsp->sb_type < SB16_DSP_404) && (IS_NOT_ESS(dsp) || ((addr & 0xF) != 0xE)))
         addr &= 0xfffe;
+
+    sb_dsp_log("[%04X:%08X] DSP: [W] %04X = %02X\n", CS, cpu_state.pc, addr, val);
 
     switch (addr & 0xF) {
         case 6: /* Reset */
@@ -1962,7 +1968,7 @@ sb_read(uint16_t addr, void *priv)
     uint8_t   ret = 0x00;
 
     /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
-    if ((dsp->sb_type < SB16_DSP_404) && (IS_NOT_ESS(dsp) || ((addr & 0xF) != 0xF)))
+    if ((dsp->sb_type < SB16_DSP_404) && (IS_NOT_ESS(dsp) || ((addr & 0xF) != 0xE)))
         /* Exception: ESS AudioDrive does not alias port base+0xf */
             addr &= 0xfffe;
 
@@ -2085,7 +2091,7 @@ sb_read(uint16_t addr, void *priv)
             break;
     }
 
-    sb_dsp_log("[%04X:%08X] DSP: [R] %04X = %02X\n", CS, cpu_state.pc, a, ret);
+    sb_dsp_log("[%04X:%08X] DSP: [R] %04X = %02X\n", CS, cpu_state.pc, addr, ret);
 
     return ret;
 }
@@ -2319,6 +2325,7 @@ pollsb(void *priv)
     if (dsp->sb_8_enable && dsp->sb_pausetime < 0 && dsp->sb_8_output) {
         sb_dsp_update(dsp);
 
+        sb_dsp_log("8-bit format=%02x, pause=%x, length=%d.\n", dsp->sb_8_format, dsp->sb_8_pause, dsp->sb_8_length);
         switch (dsp->sb_8_format) {
             case 0x00: /* Mono unsigned */
                 if (!dsp->sb_8_pause) {
