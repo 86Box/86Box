@@ -136,7 +136,7 @@ OpenGLRendererPCem::create_program(struct shader_program *program)
         glw.glGetProgramiv(program->id, GL_INFO_LOG_LENGTH, &maxLength);
         char *log = (char *) malloc(maxLength);
         glw.glGetProgramInfoLog(program->id, maxLength, &length, log);
-        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Program not linked:\n\n%1").arg(log));
+        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Program not linked:\n\n%1").arg(log).replace("\n", "<br>"));
         // wx_simple_messagebox("GLSL Error", "Program not linked:\n%s", log);
         free(log);
         return 0;
@@ -181,7 +181,7 @@ OpenGLRendererPCem::compile_shader(GLenum shader_type, const char *prepend, cons
         glw.glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
         char *log = (char *) malloc(length);
         glw.glGetShaderInfoLog(shader, length, &length, log);
-        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not compile shader:\n\n%1").arg(log));
+        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not compile shader:\n\n%1").arg(log).replace("\n", "<br>"));
         // wx_simple_messagebox("GLSL Error", "Could not compile shader:\n%s", log);
 
         pclog("Could not compile shader: %s\n", log);
