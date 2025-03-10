@@ -90,6 +90,8 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/nvr.h>
 extern int qt_nvr_save(void);
+
+bool cpu_thread_running = false;
 }
 
 void qt_set_sequence_auto_mnemonic(bool b);
@@ -444,6 +446,7 @@ main_thread_fn()
         }
     }
 
+    cpu_thread_running = false;
     is_quit = 1;
     for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
         if (gfxcard[i]) {
@@ -736,6 +739,7 @@ main(int argc, char *argv[])
 #endif
             plat_pause(0);
 
+        cpu_thread_running = true;
         main_thread = new std::thread(main_thread_fn);
     });
 

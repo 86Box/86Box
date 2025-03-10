@@ -1,6 +1,8 @@
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
 
+extern MainWindow* main_window;
+
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QWindow>
@@ -26,6 +28,7 @@
 extern "C" {
 #include <86box/86box.h>
 #include <86box/plat.h>
+#include <86box/ui.h>
 #include <86box/video.h>
 #include <86box/path.h>
 #include <86box/ini.h>
@@ -33,6 +36,7 @@ extern "C" {
 #include <86box/qt-glslp-parser.h>
 
 char gl3_shader_file[MAX_USER_SHADERS][512];
+extern bool cpu_thread_running;
 }
 
 #define SCALE_SOURCE   0
@@ -132,7 +136,7 @@ OpenGLRendererPCem::create_program(struct shader_program *program)
         glw.glGetProgramiv(program->id, GL_INFO_LOG_LENGTH, &maxLength);
         char *log = (char *) malloc(maxLength);
         glw.glGetProgramInfoLog(program->id, maxLength, &length, log);
-        QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), tr("GLSL Error"), tr("Program not linked:\n%1").arg(log));
+        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Program not linked:\n\n%1").arg(log));
         // wx_simple_messagebox("GLSL Error", "Program not linked:\n%s", log);
         free(log);
         return 0;
@@ -177,7 +181,7 @@ OpenGLRendererPCem::compile_shader(GLenum shader_type, const char *prepend, cons
         glw.glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
         char *log = (char *) malloc(length);
         glw.glGetShaderInfoLog(shader, length, &length, log);
-        QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), tr("GLSL Error"), tr("Could not compile shader:\n%1").arg(log));
+        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not compile shader:\n\n%1").arg(log));
         // wx_simple_messagebox("GLSL Error", "Could not compile shader:\n%s", log);
 
         pclog("Could not compile shader: %s\n", log);
@@ -580,7 +584,8 @@ OpenGLRendererPCem::load_glslp(glsl_t *glsl, int num_shader, const char *f)
             pclog("Load texture %s...\n", file);
 
             if (!load_texture(file, &tex->texture)) {
-                QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), tr("GLSL Error"), tr("Could not load texture: %s").arg(file));
+                //QMessageBox::critical(main_window, tr("GLSL Error"), tr("Could not load texture: %s").arg(file));
+                main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not load texture: %s").arg(file));
                 pclog("Could not load texture %s!\n", file);
                 failed = 1;
                 break;
@@ -626,7 +631,7 @@ OpenGLRendererPCem::load_glslp(glsl_t *glsl, int num_shader, const char *f)
                 pclog("Creating pass %u (%s)\n", (i + 1), pass->alias);
                 pclog("Loading shader %s...\n", shader->shader_fn);
                 if (!shader->shader_program) {
-                    QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), tr("GLSL Error"), tr("Could not load shader: %1").arg(shader->shader_fn));
+                    main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not load shader: %1").arg(shader->shader_fn));
                     // wx_simple_messagebox("GLSL Error", "Could not load shader: %s", shader->shader_fn);
                     pclog("Could not load shader %s\n", shader->shader_fn);
                     failed = 1;
@@ -764,8 +769,7 @@ OpenGLRendererPCem::OpenGLRendererPCem(QWidget *parent)
 #else
     format.setVersion(3, 2);
 #endif
-    format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
-    format.setOption(QSurfaceFormat::DebugContext);
+    format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
 
     if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES)
         format.setRenderableType(QSurfaceFormat::OpenGLES);
@@ -1031,7 +1035,7 @@ OpenGLRendererPCem::initialize()
         for (auto &flag : buf_usage)
             flag.test_and_set();
 
-        QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), tr("Error initializing OpenGL"), e.what() + tr("\nFalling back to software rendering."));
+        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("Error initializing OpenGL"), e.what() + tr("\nFalling back to software rendering."));
 
         context->doneCurrent();
         isFinalized   = true;

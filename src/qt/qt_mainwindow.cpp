@@ -62,6 +62,8 @@ extern int qt_nvr_save(void);
 #ifdef MTR_ENABLED
 #    include <minitrace/minitrace.h>
 #endif
+
+extern bool cpu_thread_running;
 };
 
 #include <QGuiApplication>
@@ -1256,7 +1258,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         static auto curdopause = dopause;
         if (event->type() == QEvent::WindowBlocked) {
             curdopause = dopause;
-            plat_pause(1);
+            plat_pause(isShowMessage ? 2 : 1);
             emit setMouseCapture(false);
         } else if (event->type() == QEvent::WindowUnblocked) {
             plat_pause(curdopause);
@@ -1279,7 +1281,11 @@ void
 MainWindow::showMessage(int flags, const QString &header, const QString &message)
 {
     if (QThread::currentThread() == this->thread()) {
-        showMessage_(flags, header, message);
+        if (!cpu_thread_running) {
+            showMessageForNonQtThread(flags, header, message, nullptr);
+        }
+        else
+            showMessage_(flags, header, message);
     } else {
         std::atomic_bool done = false;
         emit showMessageForNonQtThread(flags, header, message, &done);
@@ -1295,6 +1301,7 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
     if (done) {
         *done = false;
     }
+    isShowMessage = true;
     QMessageBox box(QMessageBox::Warning, header, message, QMessageBox::NoButton, this);
     if (flags & (MBX_FATAL)) {
         box.setIcon(QMessageBox::Critical);
@@ -1306,6 +1313,7 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
     if (done) {
         *done = true;
     }
+    isShowMessage = false;
     if (cpu_thread_run == 0)
         QApplication::exit(-1);
 }
