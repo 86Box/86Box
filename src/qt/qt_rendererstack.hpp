@@ -15,6 +15,8 @@
 
 #include "qt_renderercommon.hpp"
 
+#include <atomic>
+
 namespace Ui {
 class RendererStack;
 }
@@ -110,6 +112,8 @@ private:
 
     RendererCommon          *rendererWindow { nullptr };
     std::unique_ptr<QWidget> current;
+
+    std::atomic_bool rendererTakesScreenshots;
 };
 
 #endif // QT_RENDERERCONTAINER_HPP

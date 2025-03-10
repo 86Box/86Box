@@ -1612,95 +1612,35 @@ OpenGLRenderer::render()
         render_pass(&data);
     }
 
-    if (1) {
-        // if (video_focus_dim && !(SDL_GetWindowFlags(window) & SDL_WINDOW_INPUT_FOCUS)) {
-#if 0
-        if (0) {
-            struct shader_pass *pass = &active_shader->fs_color;
-            GLfloat             r    = 0;
-            GLfloat             g    = 0;
-            GLfloat             b    = 0;
-            GLfloat             a    = 0x80 / (float) 0xff;
+    if (monitors[r_monitor_index].mon_screenshots) {
+        int width = destination.width() * devicePixelRatio(), height = destination.height() * devicePixelRatio();
+        char path[1024];
+        char fn[256];
+    
+        memset(fn, 0, sizeof(fn));
+        memset(path, 0, sizeof(path));
+    
+        path_append_filename(path, usr_path, SCREENSHOT_PATH);
+    
+        if (!plat_dir_check(path))
+            plat_dir_create(path);
+    
+        path_slash(path);
+        strcat(path, "Monitor_");
+        snprintf(&path[strlen(path)], 42, "%d_", r_monitor_index + 1);
+    
+        plat_tempfile(fn, NULL, (char*)".png");
+        strcat(path, fn);
 
-            GLfloat colors[] = { r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a };
+        unsigned char *rgba = (unsigned char *)calloc(1, width * height * 4);
+        
+        glw.glFinish();
+        glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
 
-            glw.glBindVertexArray(pass->vertex_array);
-
-            glw.glBindBuffer(GL_ARRAY_BUFFER, pass->vbo.color);
-            glw.glBufferSubData(GL_ARRAY_BUFFER, 0, 16 * sizeof(GLfloat), colors);
-            glw.glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-            memset(&data, 0, sizeof(struct render_data));
-            data.pass        = -3;
-            data.shader_pass = pass;
-            data.texture     = 0;
-            data.output_size = orig_output_size;
-            data.orig_pass   = orig;
-
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glEnable(GL_BLEND);
-            render_pass(&data);
-            glDisable(GL_BLEND);
-        }
-
-                if (flash.enabled) {
-                        struct shader_pass *pass = &active_shader->fs_color;
-                        GLfloat r = (flash.color[0] & 0xff) / (float)0xff;
-                        GLfloat g = (flash.color[1] & 0xff) / (float)0xff;
-                        GLfloat b = (flash.color[2] & 0xff) / (float)0xff;
-                        GLfloat a = (flash.color[3] & 0xff) / (float)0xff;
-
-                        GLfloat colors[] = {r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a};
-
-                        glw.glBindVertexArray(pass->vertex_array);
-
-                        glw.glBindBuffer(GL_ARRAY_BUFFER, pass->vbo.color);
-                        glw.glBufferSubData(GL_ARRAY_BUFFER, 0, 16 * sizeof(GLfloat), colors);
-                        glw.glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-                        memset(&data, 0, sizeof(struct render_data));
-                        data.pass = -3;
-                        data.shader_pass = pass;
-                        data.texture = 0;
-                        data.output_size = orig_output_size;
-                        data.orig_pass = orig;
-
-                        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                        glEnable(GL_BLEND);
-                        render_pass(&data);
-                        glDisable(GL_BLEND);
-                }
-#endif
-    } else {
-#if 0
-                take_screenshot = 0;
-
-                int width = window_rect.w;
-                int height = window_rect.h;
-
-                SDL_GetWindowSize(window, &width, &height);
-
-                unsigned char *rgba = (unsigned char *)malloc(width * height * 4);
-
-                glFinish();
-                glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
-
-                int x, y;
-                unsigned char *rgb = (unsigned char *)malloc(width * height * 3);
-
-                for (x = 0; x < width; ++x) {
-                        for (y = 0; y < height; ++y) {
-                                rgb[(y * width + x) * 3 + 0] = rgba[((height - y - 1) * width + x) * 4 + 0];
-                                rgb[(y * width + x) * 3 + 1] = rgba[((height - y - 1) * width + x) * 4 + 1];
-                                rgb[(y * width + x) * 3 + 2] = rgba[((height - y - 1) * width + x) * 4 + 2];
-                        }
-                }
-
-                screenshot_taken(rgb, width, height);
-
-                free(rgb);
-                free(rgba);
-#endif
+        QImage image(rgba, width, height, QImage::Format_RGBA8888);
+        image.mirrored(false, true).save(path, "png");
+        monitors[r_monitor_index].mon_screenshots--;
+        free(rgba);
     }
 
     glw.glDisable(GL_FRAMEBUFFER_SRGB);
