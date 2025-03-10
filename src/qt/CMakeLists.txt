@@ -87,8 +87,8 @@ add_library(ui STATIC
     qt_softwarerenderer.hpp
     qt_hardwarerenderer.cpp
     qt_hardwarerenderer.hpp
-    qt_openglrenderer_pcem.cpp
-    qt_openglrenderer_pcem.hpp
+    qt_openglrenderer.cpp
+    qt_openglrenderer.hpp
     qt_glsl_parser.cpp
 
     qt_settings.cpp

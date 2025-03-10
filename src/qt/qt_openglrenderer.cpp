@@ -45,7 +45,7 @@ extern MainWindow* main_window;
 
 #include <cmath>
 
-#include "qt_openglrenderer_pcem.hpp"
+#include "qt_openglrenderer.hpp"
 #include "qt_openglshadermanagerdialog.hpp"
 
 extern "C" {

@@ -22,7 +22,7 @@
 #include "ui_qt_rendererstack.h"
 
 #include "qt_hardwarerenderer.hpp"
-#include "qt_openglrenderer_pcem.hpp"
+#include "qt_openglrenderer.hpp"
 #include "qt_softwarerenderer.hpp"
 #include "qt_vulkanwindowrenderer.hpp"
 
