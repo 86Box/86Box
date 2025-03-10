@@ -1159,7 +1159,7 @@ cdrom_get_from_name(const char *s)
             wchar_t tempmsg[2048];
             sprintf(n, "WARNING: CD-ROM \"%s\" not found - contact 86Box support\n", s);
             swprintf(tempmsg, sizeof_w(tempmsg), L"%hs", n);
-            pclog(n);
+            pclog("%s", n);
             ui_msgbox_header(MBX_INFO,
                              plat_get_string(STRING_HW_NOT_AVAILABLE_TITLE),
                              tempmsg);

@@ -34,6 +34,10 @@ public:
     virtual QDialog *getOptions(QWidget *parent) { return nullptr; }
     /* Reloads options of renderer */
     virtual void reloadOptions() { }
+    /* Make the renderer reload itself */
+    virtual bool reloadRendererOption() { return false; }
+    /* Should the renderer take screenshots itself? */
+    virtual bool rendererTakeScreenshot() { return false; }
 
     int      r_monitor_index = 0;
 

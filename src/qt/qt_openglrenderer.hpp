@@ -11,12 +11,14 @@
  *
  *
  * Authors: Teemu Korhonen
+ *          Cacodemon345
  *
  *          Copyright 2022 Teemu Korhonen
+ *          Copyright 2025 Cacodemon345
  */
 
-#ifndef QT_OPENGLRENDERER_HPP
-#define QT_OPENGLRENDERER_HPP
+#ifndef QT_OpenGLRenderer_HPP
+#define QT_OpenGLRenderer_HPP
 
 #if defined Q_OS_MACOS || __arm__
 #    define NO_BUFFER_STORAGE
@@ -37,12 +39,24 @@
 #include <tuple>
 #include <vector>
 
-#include "qt_opengloptions.hpp"
 #include "qt_renderercommon.hpp"
 
-typedef void(QOPENGLF_APIENTRYP PFNGLBUFFERSTORAGEEXTPROC_LOCAL)(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
+extern "C"
+{
+#include <86box/qt-glslp-parser.h>
+}
 
-class OpenGLRenderer : public QWindow, protected QOpenGLExtraFunctions, public RendererCommon {
+struct render_data {
+    int                 pass;
+    struct glsl_shader *shader;
+    struct shader_pass *shader_pass;
+    GLfloat            *output_size;
+    struct shader_pass *orig_pass;
+    GLint               texture;
+    int                 frame_count;
+};
+
+class OpenGLRenderer : public QWindow, public RendererCommon {
     Q_OBJECT
 
 public:
@@ -56,7 +70,7 @@ public:
     void     finalize() override final;
     bool     hasOptions() const override { return true; }
     QDialog *getOptions(QWidget *parent) override;
-    void     reloadOptions() override;
+    bool     reloadRendererOption() override { return true; }
 
 signals:
     void initialized();
@@ -71,47 +85,64 @@ protected:
     bool event(QEvent *event) override;
 
 private:
-    static constexpr int INIT_WIDTH   = 640;
-    static constexpr int INIT_HEIGHT  = 400;
-    static constexpr int ROW_LENGTH   = 2048;
-    static constexpr int BUFFERPIXELS = 4194304;
-    static constexpr int BUFFERBYTES  = 16777216; /* Pixel is 4 bytes. */
-    static constexpr int BUFFERCOUNT  = 3;        /* How many buffers to use for pixel transfer (2-3 is commonly recommended). */
+
+    std::array<std::unique_ptr<uint8_t>, 2> imagebufs;
 
     QTimer        *renderTimer;
-    OpenGLOptions *options;
 
-    QString glslVersion;
+    QString glslVersion = "";
 
     bool isInitialized = false;
     bool isFinalized   = false;
 
-    GLuint unpackBufferID = 0;
-    GLuint vertexArrayID  = 0;
-    GLuint vertexBufferID = 0;
-    GLuint textureID      = 0;
-    int    frameCounter   = 0;
+    int max_texture_size = 65536;
+    int frameCounter     = 0;
 
-    OpenGLOptions::FilterType currentFilter;
+    QOpenGLExtraFunctions glw;
+    struct shader_texture scene_texture;
+    glsl_t *active_shader;
 
     void *unpackBuffer = nullptr;
+
+    int glsl_version[2] = { 0, 0 };
 
     void initialize();
     void initializeExtensions();
     void initializeBuffers();
     void applyOptions();
-    void applyShader(const OpenGLShaderPass &shader);
-    bool notReady() const { return !isInitialized || isFinalized; }
+    
+    void create_scene_shader();
+    void create_texture(struct shader_texture *tex);
+    void create_fbo(struct shader_fbo *fbo);
+    void recreate_fbo(struct shader_fbo *fbo, int width, int height);
+    void setup_fbo(struct shader *shader, struct shader_fbo *fbo);
 
-    /* GL_ARB_buffer_storage */
-    bool hasBufferStorage = false;
-#ifndef NO_BUFFER_STORAGE
-    PFNGLBUFFERSTORAGEEXTPROC_LOCAL glBufferStorage = nullptr;
-#endif
+    bool notReady() const { return !isInitialized || isFinalized; }
+    glsl_t* load_glslp(glsl_t *glsl, int num_shader, const char *f);
+    glsl_t* load_shaders(int num, char shaders[MAX_USER_SHADERS][512]);
+    int compile_shader(GLenum shader_type, const char *prepend, const char *program, int *dst);
+    int create_default_shader_tex(struct shader_pass *pass);
+    int create_default_shader_color(struct shader_pass *pass);
+    int create_program(struct shader_program *program);
+
+    GLuint get_uniform(GLuint program, const char *name);
+    GLuint get_attrib(GLuint program, const char *name);
+
+    void find_uniforms(struct glsl_shader *glsl, int num_pass);
+    void delete_texture(struct shader_texture *tex);
+    void delete_fbo(struct shader_fbo *fbo);
+    void delete_program(struct shader_program *program);
+    void delete_vbo(struct shader_vbo *vbo);
+    void delete_pass(struct shader_pass *pass);
+    void delete_prev(struct shader_prev *prev);
+    void delete_shader(struct glsl_shader *glsl);
+    void delete_glsl(glsl_t *glsl);
+    void read_shader_config();
+
+    void render_pass(struct render_data *data);
 
 private slots:
     void render();
-    void updateOptions(OpenGLOptions *newOptions);
 };
 
 class opengl_init_error : public std::runtime_error {

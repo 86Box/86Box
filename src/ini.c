@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <wctype.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/ini.h>
@@ -157,6 +158,22 @@ find_entry(section_t *section, const char *name)
     return (NULL);
 }
 
+int
+ini_has_entry(ini_section_t self, const char *name)
+{
+    section_t     *section = (section_t *) self;
+    const entry_t *entry;
+
+    if (section == NULL)
+        return 0;
+
+    entry = find_entry(section, name);
+    if (entry == NULL)
+        return 0;
+    
+    return 1;
+}
+
 static int
 entries_num(section_t *section)
 {
@@ -237,9 +254,8 @@ ini_delete_section_if_empty(ini_t ini, ini_section_t section)
 static section_t *
 create_section(list_t *head, const char *name)
 {
-    section_t *ns = malloc(sizeof(section_t));
+    section_t *ns = calloc(1, sizeof(section_t));
 
-    memset(ns, 0x00, sizeof(section_t));
     memcpy(ns->name, name, strlen(name) + 1);
     list_add(&ns->list, head);
 
@@ -262,9 +278,8 @@ ini_find_or_create_section(ini_t ini, const char *name)
 static entry_t *
 create_entry(section_t *section, const char *name)
 {
-    entry_t *ne = malloc(sizeof(entry_t));
+    entry_t *ne = calloc(1, sizeof(entry_t));
 
-    memset(ne, 0x00, sizeof(entry_t));
     memcpy(ne->name, name, strlen(name) + 1);
     list_add(&ne->list, &section->entry_head);
 
@@ -373,11 +388,8 @@ ini_read(const char *fn)
     if (fp == NULL)
         return NULL;
 
-    head = malloc(sizeof(list_t));
-    memset(head, 0x00, sizeof(list_t));
-
-    sec = malloc(sizeof(section_t));
-    memset(sec, 0x00, sizeof(section_t));
+    head = calloc(1, sizeof(list_t));
+    sec = calloc(1, sizeof(section_t));
 
     list_add(&sec->list, head);
     if (bom)
@@ -458,7 +470,7 @@ ini_read(const char *fn)
         d = c;
 
         /* Allocate a new variable entry.. */
-        ne = malloc(sizeof(entry_t));
+        ne = calloc(1, sizeof(entry_t));
         memset(ne, 0x00, sizeof(entry_t));
         memcpy(ne->name, ename, 128);
         wcsncpy(ne->wdata, &buff[d], sizeof_w(ne->wdata) - 1);
@@ -534,6 +546,103 @@ ini_write(ini_t ini, const char *fn)
     (void) fclose(fp);
 }
 
+/* Wide-character version of "trim" */
+wchar_t *
+trim_w(wchar_t *str)
+{
+    size_t  len     = 0;
+    wchar_t *frontp = str;
+    wchar_t *endp   = NULL;
+
+    if (str == NULL) {
+        return NULL;
+    }
+    if (str[0] == L'\0') {
+        return str;
+    }
+
+    len  = wcslen(str);
+    endp = str + len;
+
+    /* Move the front and back pointers to address the first non-whitespace
+     * characters from each end.
+     */
+    while (iswspace((wint_t) *frontp)) {
+        ++frontp;
+    }
+    if (endp != frontp) {
+        while (iswspace((wint_t) *(--endp)) && endp != frontp) { }
+    }
+
+    if (frontp != str && endp == frontp)
+        *str = L'\0';
+    else if ((str + len - 1) != endp)
+        *(endp + 1) = L'\0';
+
+    /* Shift the string so that it starts at str so that if it's dynamically
+     * allocated, we can still free it on the returned pointer.  Note the reuse
+     * of endp to mean the front of the string buffer now.
+     */
+    endp = str;
+    if (frontp != str) {
+        while (*frontp) {
+            *endp++ = *frontp++;
+        }
+        *endp = L'\0';
+    }
+
+    return str;
+}
+
+extern char* trim(char* str);
+
+void
+ini_strip_quotes(ini_t ini)
+{
+    list_t    *list = (list_t *) ini;
+    section_t *sec;
+
+    sec = (section_t *) list->next;
+
+    while (sec != NULL) {
+        entry_t *ent;
+
+        ent = (entry_t *) sec->entry_head.next;
+        while (ent != NULL) {
+            if (ent->name[0] != '\0') {
+                int trailing_hash = strcspn(ent->data, "#");
+                int trailing_quote;
+                ent->wdata[trailing_hash] = 0;
+                ent->data[trailing_hash] = 0;
+                if (ent->wdata[0] == L'\"') {
+                    memmove(ent->wdata, &ent->wdata[1], sizeof(ent->wdata) - sizeof(wchar_t));
+                }
+                if (ent->wdata[wcslen(ent->wdata) - 1] == L'\"') {
+                    ent->wdata[wcslen(ent->wdata) - 1] = 0;
+                }
+
+                if (ent->data[0] == '\"') {
+                    memmove(ent->data, &ent->data[1], sizeof(ent->data) - sizeof(char));
+                }
+                if (ent->data[strlen(ent->data) - 1] == '\"') {
+                    ent->data[strlen(ent->data) - 1] = 0;
+                }
+
+                trailing_quote = strcspn(ent->data, "\"");
+                ent->wdata[trailing_quote] = 0;
+                ent->data[trailing_quote] = 0;
+                
+                trim_w(ent->wdata);
+                trim(ent->data);
+            }
+
+            ent = (entry_t *) ent->list.next;
+        }
+
+        sec = (section_t *) sec->list.next;
+    }
+}
+
 ini_t
 ini_new(void)
 {
@@ -592,6 +701,11 @@ ini_section_get_int(ini_section_t self, const char *name, int def)
     entry = find_entry(section, name);
     if (entry == NULL)
         return def;
+
+    if (stricmp(entry->data, "true") == 0)
+        return 1;
+    if (stricmp(entry->data, "false") == 0)
+        return 0;
 
     sscanf(entry->data, "%i", &value);
 
