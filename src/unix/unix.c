@@ -38,6 +38,7 @@
 #include <86box/device.h>
 #include <86box/gameport.h>
 #include <86box/unix_sdl.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/version.h>

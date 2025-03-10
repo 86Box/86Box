@@ -15,6 +15,7 @@
 #include <86box/nmi.h>
 #include <86box/pic.h>
 #include <86box/sound.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #ifdef USE_GUSMAX
 #    include <86box/snd_ad1848.h>

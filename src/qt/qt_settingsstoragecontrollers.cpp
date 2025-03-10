@@ -52,8 +52,8 @@ void
 SettingsStorageControllers::save()
 {
     /* Storage devices category */
-    for (int i = 0; i < SCSI_CARD_MAX; ++i) {
-        auto *cbox           = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
+    for (uint8_t i = 0; i < SCSI_CARD_MAX; ++i) {
+        QComboBox *cbox      = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
         scsi_card_current[i] = cbox->currentData().toInt();
     }
     hdc_current[0]          = ui->comboBoxHD->currentData().toInt();
@@ -71,10 +71,11 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     this->machineId = machineId;
 
     /*HD controller config*/
+    int   c           = 0;
     auto *model       = ui->comboBoxHD->model();
     auto  removeRows  = model->rowCount();
-    int   c           = 0;
     int   selectedRow = 0;
+
     while (true) {
         /* Skip "internal" if machine doesn't have it. */
         if ((c == 1) && (machine_has_flags(machineId, MACHINE_HDC) == 0)) {
@@ -88,7 +89,7 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
         }
 
         if (hdc_available(c)) {
-            auto *hdc_dev = hdc_get_device(c);
+            const device_t *hdc_dev = hdc_get_device(c);
 
             if (device_is_valid(hdc_dev, machineId)) {
                 int row = Models::AddEntry(model, name, c);
@@ -124,7 +125,7 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
         }
 
         if (fdc_card_available(c)) {
-            auto *fdc_dev = fdc_card_getdevice(c);
+            const device_t *fdc_dev = fdc_card_getdevice(c);
 
             if (device_is_valid(fdc_dev, machineId)) {
                 int row = Models::AddEntry(model, name, c);
@@ -141,10 +142,11 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     ui->comboBoxFD->setCurrentIndex(selectedRow);
 
     /*CD interface controller config*/
-    model      = ui->comboBoxCDInterface->model();
-    removeRows = model->rowCount();
-    c          = 0;
+    c           = 0;
+    model       = ui->comboBoxCDInterface->model();
+    removeRows  = model->rowCount();
     selectedRow = 0;
+
     while (true) {
         /* Skip "internal" if machine doesn't have it. */
         QString name = DeviceConfig::DeviceName(cdrom_interface_get_device(c), cdrom_interface_get_internal_name(c), 1);
@@ -153,7 +155,7 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
         }
 
         if (cdrom_interface_available(c)) {
-            auto *cdrom_interface_dev = cdrom_interface_get_device(c);
+            const device_t *cdrom_interface_dev = cdrom_interface_get_device(c);
 
             if (device_is_valid(cdrom_interface_dev, machineId)) {
                 int row = Models::AddEntry(model, name, c);
@@ -169,21 +171,21 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     ui->comboBoxCDInterface->setCurrentIndex(-1);
     ui->comboBoxCDInterface->setCurrentIndex(selectedRow);
 
-    for (int i = 0; i < SCSI_CARD_MAX; ++i) {
-        auto *cbox  = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
-        model       = cbox->model();
-        removeRows  = model->rowCount();
-        c           = 0;
-        selectedRow = 0;
+    for (uint8_t i = 0; i < SCSI_CARD_MAX; ++i) {
+        QComboBox *cbox = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
+        c               = 0;
+        model           = cbox->model();
+        removeRows      = model->rowCount();
+        selectedRow     = 0;
 
         while (true) {
-            auto name = DeviceConfig::DeviceName(scsi_card_getdevice(c), scsi_card_get_internal_name(c), 1);
+            QString name = DeviceConfig::DeviceName(scsi_card_getdevice(c), scsi_card_get_internal_name(c), 1);
             if (name.isEmpty()) {
                 break;
             }
 
             if (scsi_card_available(c)) {
-                auto *scsi_dev = scsi_card_getdevice(c);
+                const device_t *scsi_dev = scsi_card_getdevice(c);
                 if (device_is_valid(scsi_dev, machineId)) {
                     int row = Models::AddEntry(model, name, c);
                     if (c == scsi_card_current[i]) {
@@ -236,7 +238,8 @@ SettingsStorageControllers::on_comboBoxFD_currentIndexChanged(int index)
     ui->pushButtonFD->setEnabled(hdc_has_config(ui->comboBoxFD->currentData().toInt()) > 0);
 }
 
-void SettingsStorageControllers::on_comboBoxCDInterface_currentIndexChanged(int index)
+void
+SettingsStorageControllers::on_comboBoxCDInterface_currentIndexChanged(int index)
 {
     if (index < 0) {
         return;
@@ -346,14 +349,14 @@ SettingsStorageControllers::on_pushButtonSCSI4_clicked()
     DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI4->currentData().toInt()), 4, qobject_cast<Settings *>(Settings::settings));
 }
 
-void SettingsStorageControllers::on_checkBoxLbaEnhancer_stateChanged(int arg1)
+void
+SettingsStorageControllers::on_checkBoxLbaEnhancer_stateChanged(int arg1)
 {
     ui->pushButtonConfigureLbaEnhancer->setEnabled(arg1 != 0);
 }
 
-
-void SettingsStorageControllers::on_pushButtonConfigureLbaEnhancer_clicked()
+void
+SettingsStorageControllers::on_pushButtonConfigureLbaEnhancer_clicked()
 {
     DeviceConfig::ConfigureDevice(&lba_enhancer_device);
 }
-

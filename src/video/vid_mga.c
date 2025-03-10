@@ -23,6 +23,7 @@
 #include <stdatomic.h>
 #include <86box/86box.h>
 #include <86box/io.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
@@ -4677,6 +4678,7 @@ blit_trap(mystique_t *mystique)
     int       err_l = (int32_t)mystique->dwgreg.ar[1];
     int       err_r = (int32_t)mystique->dwgreg.ar[4];
     const int trans_sel = (mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANS_MASK) >> DWGCTRL_TRANS_SHIFT;
+    bool transc = !!(mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC);
 
     switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK) {
         case DWGCTRL_ATYPE_BLK:
@@ -4699,6 +4701,7 @@ blit_trap(mystique_t *mystique)
                         int      pattern = mystique->dwgreg.pattern[yoff][xoff];
                         uint32_t dst;
 
+                        if (!transc || (transc && pattern))
                         switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
                             case MACCESS_PWIDTH_8:
                                 svga->vram[(mystique->dwgreg.ydst_lin + x_l) & mystique->vram_mask]                = (pattern ? mystique->dwgreg.fcol : mystique->dwgreg.bcol) & 0xff;
@@ -4770,6 +4773,7 @@ blit_trap(mystique_t *mystique)
                         uint32_t dst;
                         uint32_t old_dst;
 
+                        if (!transc || (transc && pattern))
                         switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
                             case MACCESS_PWIDTH_8:
                                 dst = svga->vram[(mystique->dwgreg.ydst_lin + x_l) & mystique->vram_mask];

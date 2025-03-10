@@ -211,7 +211,10 @@ acpi_update_irq(acpi_t *dev)
 
     if ((dev->regs.pmcntrl & 0x01) && sci_level)  switch (dev->irq_mode) {
         default:
-            picintlevel(1 << dev->irq_line, &dev->irq_state);
+            if (dev->irq_line != 0)
+                picintlevel(1 << dev->irq_line, &dev->irq_state);
+            else
+                dev->irq_state = 1;
             break;
         case 1:
             pci_set_irq(dev->slot, dev->irq_pin, &dev->irq_state);
@@ -223,7 +226,10 @@ acpi_update_irq(acpi_t *dev)
             break;
     } else  switch (dev->irq_mode) {
         default:
-            picintclevel(1 << dev->irq_line, &dev->irq_state);
+            if (dev->irq_line != 0)
+                picintclevel(1 << dev->irq_line, &dev->irq_state);
+            else
+                dev->irq_state = 0;
             break;
         case 1:
             pci_clear_irq(dev->slot, dev->irq_pin, &dev->irq_state);

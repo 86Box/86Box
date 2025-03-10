@@ -366,7 +366,11 @@ machine_xt_init(const machine_t *model)
         fn = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
         (void) bios_load_aux_linear(fn, 0x000f8000, 24576, 0);
         fn = device_get_bios_file(model->device, device_get_config_bios("bios"), 1);
-        (void) bios_load_aux_linear(fn, 0x000f0000, 32768, 0);
+        /* On the real machine, the BASIC is repeated. */
+        (void) bios_load_aux_linear(fn, 0x000f0000, 8192, 0);
+        (void) bios_load_aux_linear(fn, 0x000f2000, 8192, 0);
+        (void) bios_load_aux_linear(fn, 0x000f4000, 8192, 0);
+        (void) bios_load_aux_linear(fn, 0x000f6000, 8192, 0);
     }
     device_context_restore();
 

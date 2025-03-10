@@ -19,9 +19,6 @@
 #include "qt_machinestatus.hpp"
 
 extern "C" {
-#define EMU_CPU_H // superhack - don't want timer.h to include cpu.h here, and some combo is preventing a compile
-extern uint64_t tsc;
-
 #include <86box/hdd.h>
 #include <86box/timer.h>
 #include <86box/86box.h>
@@ -42,6 +39,7 @@ extern uint64_t tsc;
 #include <86box/network.h>
 #include <86box/ui.h>
 #include <86box/machine_status.h>
+#include <86box/config.h>
 };
 
 #include <QIcon>
@@ -92,7 +90,7 @@ struct Pixmaps {
     PixmapSetEmptyActive mo;
     PixmapSetActive      hd;
     PixmapSetEmptyActive net;
-    QPixmap              sound;
+    QPixmap              sound, soundMuted;
 };
 
 struct StateActive {
@@ -218,6 +216,7 @@ struct MachineStatus::States {
         pixmaps.hd.load("/hard_disk%1.ico");
         pixmaps.net.load("/network%1.ico");
         pixmaps.sound = ProgSettings::loadIcon("/sound.ico").pixmap(pixmap_size);
+        pixmaps.soundMuted = ProgSettings::loadIcon("/sound_mute.ico").pixmap(pixmap_size);
 
         cartridge[0].pixmaps = &pixmaps.cartridge;
         cartridge[1].pixmaps = &pixmaps.cartridge;
@@ -259,11 +258,19 @@ MachineStatus::MachineStatus(QObject *parent)
     , refreshTimer(new QTimer(this))
 {
     d = std::make_unique<MachineStatus::States>(this);
+    muteUnmuteAction = nullptr;
+    soundMenu = nullptr;
     connect(refreshTimer, &QTimer::timeout, this, &MachineStatus::refreshIcons);
     refreshTimer->start(75);
 }
 
 MachineStatus::~MachineStatus() = default;
+
+void
+MachineStatus::setSoundGainAction(QAction* action)
+{
+    soundGainAction = action;
+}
 
 bool
 MachineStatus::hasCassette()
@@ -497,6 +504,28 @@ MachineStatus::refresh(QStatusBar *sbar)
     }
     sbar->removeWidget(d->sound.get());
 
+    if (!muteUnmuteAction) {
+        muteUnmuteAction = new QAction;
+        connect(muteUnmuteAction, &QAction::triggered, this, [this]() {
+            sound_muted ^= 1;
+            config_save();
+            if (d->sound)
+                d->sound->setPixmap(sound_muted ? d->pixmaps.soundMuted : d->pixmaps.sound);
+            
+            muteUnmuteAction->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
+        });
+    }
+
+    if (!soundMenu) {
+        soundMenu = new QMenu((QWidget*)parent());
+
+        soundMenu->addAction(muteUnmuteAction);
+        soundMenu->addSeparator();
+        soundMenu->addAction(soundGainAction);
+
+        muteUnmuteAction->setParent(soundMenu);
+    }
+
     if (cassette_enable) {
         d->cassette.label = std::make_unique<ClickableLabel>();
         d->cassette.setEmpty(QString(cassette_fname).isEmpty());
@@ -665,12 +694,14 @@ MachineStatus::refresh(QStatusBar *sbar)
     }
 
     d->sound = std::make_unique<ClickableLabel>();
-    d->sound->setPixmap(d->pixmaps.sound);
-
-    connect(d->sound.get(), &ClickableLabel::doubleClicked, d->sound.get(), [](QPoint pos) {
-        SoundGain gain(main_window);
-        gain.exec();
+    d->sound->setPixmap(sound_muted ? d->pixmaps.soundMuted : d->pixmaps.sound);
+    if (muteUnmuteAction)
+        muteUnmuteAction->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
+    
+    connect(d->sound.get(), &ClickableLabel::clicked, this, [this](QPoint pos) {
+        this->soundMenu->popup(pos - QPoint(0, this->soundMenu->sizeHint().height()));
     });
+
     d->sound->setToolTip(tr("Sound"));
     sbar->addWidget(d->sound.get());
     d->text = std::make_unique<QLabel>();

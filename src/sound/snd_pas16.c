@@ -789,6 +789,10 @@ pas16_in(uint16_t port, void *priv)
                 scsi_bus = &pas16->scsi->ncr.scsibus;
                 /* Bits 0-6 must absolutely be set for SCSI hard disk drivers to work. */
                 ret = (((scsi_bus->tx_mode != PIO_TX_BUS) && (pas16->scsi->status & 0x04)) << 7) | 0x7f;
+                if ((scsi_bus->tx_mode == PIO_TX_BUS) && !(ret & 0x80))
+                    ret |= 0x80;
+
+                pas16_log("5C01 read ret=%02x, status=%02x, txmode=%x.\n", ret, pas16->scsi->status & 0x06, scsi_bus->tx_mode);
             }
             break;
         case 0x5c03:
@@ -1190,6 +1194,7 @@ pas16_scsi_callback(void *priv)
 
     t128_callback(pas16->scsi);
 
+    pas16_log("TimeOutStatus=%02x, t128stat=%02x.\n", pas16->timeout_status, dev->status);
     if ((scsi_bus->tx_mode != PIO_TX_BUS) && (dev->status & 0x04)) {
         timer_stop(&pas16->scsi_timer);
         pas16->timeout_status &= 0x7f;

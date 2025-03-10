@@ -137,12 +137,11 @@ typedef struct device_config_spinner_t {
 typedef struct device_config_bios_t {
     const char *name;
     const char *internal_name;
-    int         bios_type;
-    int         files_no;
+    uint8_t     bios_type;
+    uint8_t     files_no;
     uint32_t    local;
     uint32_t    size;
-    void       *dev1;
-    void       *dev2;
+    void       *dev[2];
     const char *files[9];
 } device_config_bios_t;
 
@@ -154,7 +153,7 @@ typedef struct _device_config_ {
     int                              default_int;
     const char                      *file_filter;
     const device_config_spinner_t    spinner;
-    const device_config_selection_t  selection[32];
+    const device_config_selection_t  selection[64];
     const device_config_bios_t       bios[32];
 } device_config_t;
 
@@ -211,6 +210,11 @@ extern void  device_speed_changed(void);
 extern void  device_force_redraw(void);
 extern void  device_get_name(const device_t *dev, int bus, char *name);
 extern int   device_has_config(const device_t *dev);
+
+extern uint8_t     device_get_bios_type(const device_t *dev, const char *internal_name);
+extern uint8_t     device_get_bios_num_files(const device_t *dev, const char *internal_name);
+extern uint32_t    device_get_bios_local(const device_t *dev, const char *internal_name);
+extern uint32_t    device_get_bios_file_size(const device_t *dev, const char *internal_name);
 extern const char *device_get_bios_file(const device_t *dev, const char *internal_name, int file_no);
 
 extern int device_is_valid(const device_t *, int mch);

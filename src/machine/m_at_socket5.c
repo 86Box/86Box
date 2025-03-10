@@ -29,6 +29,7 @@
 #include <86box/fdc_ext.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>

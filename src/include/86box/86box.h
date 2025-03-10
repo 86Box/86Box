@@ -126,7 +126,6 @@ extern int      video_filter_method;        /* (C) video */
 extern int      video_vsync;                /* (C) video */
 extern int      video_framerate;            /* (C) video */
 extern int      gfxcard[GFXCARD_MAX];       /* (C) graphics/video card */
-extern char     video_shader[512];          /* (C) video */
 extern int      bugger_enabled;             /* (C) enable ISAbugger */
 extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */
 extern int      postcard_enabled;           /* (C) enable POST card */
@@ -158,6 +157,7 @@ extern int      other_scsi_present;         /* SCSI controllers from non-SCSI ca
 extern int    hard_reset_pending;
 extern int    fixed_size_x;
 extern int    fixed_size_y;
+extern int    sound_muted;                  /* (C) Is sound muted? */
 extern int    do_auto_pause;                /* (C) Auto-pause the emulator on focus loss */
 extern int    auto_paused;
 extern double mouse_sensitivity;            /* (C) Mouse sensitivity scale */
@@ -186,6 +186,8 @@ extern char uuid[MAX_UUID_LEN]; /* UUID or machine identifier */
 extern FILE *stdlog; /* file to log output to */
 #endif
 extern int config_changed; /* config has changed */
+
+extern __thread int is_cpu_thread; /* Is this the CPU thread? */
 
 /* Function prototypes. */
 #ifdef HAVE_STDARG_H
