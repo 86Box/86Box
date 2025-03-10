@@ -70,7 +70,7 @@ public:
     void     finalize() override final;
     bool     hasOptions() const override { return true; }
     QDialog *getOptions(QWidget *parent) override;
-    bool     reloadRendererOption() { return true; }
+    bool     reloadRendererOption() override { return true; }
 
 signals:
     void initialized();

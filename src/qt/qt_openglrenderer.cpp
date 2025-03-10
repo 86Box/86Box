@@ -174,7 +174,7 @@ OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const ch
     const char *source[3];
     char        version[50];
     int         ver         = 0;
-    char       *version_loc = strstr(program, "#version");
+    char       *version_loc = (char *) strstr(program, "#version");
     if (version_loc)
         ver = (int) strtol(version_loc + 8, (char **) &program, 10);
     else {

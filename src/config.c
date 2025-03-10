@@ -1740,7 +1740,10 @@ load_gl3_shaders(void)
         if (general) {
             p = ini_section_get_string(general, "video_gl_shader", NULL);
             if (p) {
-                strncpy(gl3_shader_file[0], p, 512);
+                if (strlen(p) > 511)
+                    fatal("Configuration: Length of video_gl_shadr is more than 511\n");
+                else
+                    strncpy(gl3_shader_file[0], p, 511);
                 ini_delete_var(config, general, "video_gl_shader");
                 return;
             }
