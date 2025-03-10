@@ -46,7 +46,7 @@ OpenGLShaderManagerDialog::OpenGLShaderManagerDialog(QWidget *parent)
                     QListWidgetItem* item = new QListWidgetItem(ui->shaderListWidget);
                     item->setText(filename);
                     item->setData(Qt::UserRole + 1, QString(gl3_shader_file[i]));
-                    item->setData(Qt::UserRole + 2, (uintptr_t)shaderfile);
+                    item->setData(Qt::UserRole + 2, (qulonglong)(uintptr_t)shaderfile);
                 }
             }
         }
@@ -174,7 +174,7 @@ void OpenGLShaderManagerDialog::on_buttonAdd_clicked()
             QListWidgetItem* item = new QListWidgetItem(ui->shaderListWidget);
             item->setText(filename);
             item->setData(Qt::UserRole + 1, res);
-            item->setData(Qt::UserRole + 2, (uintptr_t)shaderfile);
+            item->setData(Qt::UserRole + 2, (qulonglong)(uintptr_t)shaderfile);
             if (ui->shaderListWidget->count()) {
                 ui->shaderListWidget->setCurrentRow(ui->shaderListWidget->count() - 1);
             }
