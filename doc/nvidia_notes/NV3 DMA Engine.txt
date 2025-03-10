@@ -23,7 +23,7 @@ CACHE1_DMA3 - Bus address space (Area BAR0 mapped to? Or bar1?)
 
 TO START:
 To set up DMA for for Cache1 Puller: CACHE1_PULL0 -> 1, changes to 0 when done
-To set up DMA Cache1 Push: CACHE1_PULL0 -> 1, changes to 0 when done
+To set up DMA Cache1 Push: CACHE1_PUsh0 -> 1, changes to 0 when done
 Set CACHES to 1
 
 GO: Set DMA0 to 1

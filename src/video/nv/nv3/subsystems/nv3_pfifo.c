@@ -610,7 +610,7 @@ void nv3_pfifo_context_switch(uint32_t new_channel)
 
 // NV_USER writes go here!
 // Pushes graphics objects into cache1
-void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
+void nv3_pfifo_cache1_push(uint32_t addr, uint32_t object_name)
 {
     bool oh_shit = false;   // RAMRO needed
     nv3_ramin_ramro_reason oh_shit_reason = 0x00; // It's all good for now
@@ -648,7 +648,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
         new_address |= (nv3_runout_reason_free_count_overrun << NV3_PFIFO_RUNOUT_RAMIN_ERR);
     }
 
-    // 0x0 is used for the context
+    // 0x0 is used for creating the object.
     if (method_offset > 0 && method_offset < 0x100)
     {
         // Reserved NVIDIA Objects
@@ -685,7 +685,46 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
     uint32_t current_put_address = nv3->pfifo.cache1_settings.put_address >> 2;
     nv3->pfifo.cache1_entries[current_put_address].subchannel = subchannel;
     nv3->pfifo.cache1_entries[current_put_address].method = method_offset;
-    nv3->pfifo.cache1_entries[current_put_address].data = val;
+    nv3->pfifo.cache1_entries[current_put_address].data = object_name;
+
+    /*
+    // I think we have to do this on PIO submission. Maybe not?
+    uint32_t hash = nv3_ramht_hash(object_name, channel);
+    uint32_t bucket_entries = 2; 
+    uint32_t ramht_base = ((nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS) & 0x0F) << NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS;
+
+    uint8_t ramht_size = (nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_SIZE) & 0x03;
+
+    switch (ramht_size)
+    {
+        case NV3_PFIFO_CONFIG_RAMHT_SIZE_4K:
+            // stays as is
+            break;
+        case NV3_PFIFO_CONFIG_RAMHT_SIZE_8K:
+            bucket_entries = 4; 
+            break;
+        case NV3_PFIFO_CONFIG_RAMHT_SIZE_16K:
+            bucket_entries = 8;
+            break;
+        case NV3_PFIFO_CONFIG_RAMHT_SIZE_32K:
+            bucket_entries = 16;
+            break;
+        
+    }
+
+    uint32_t ramin_address = ramht_base + hash * bucket_entries * 8;
+    
+    if (method_offset == 0)
+    {
+        nv3_ramin_write32(ramin_address, object_name, nv3);
+        nv3_ramin_write32(ramin_address + 0x04, nv3->pfifo.cache1_settings.context[subchannel], nv3);
+    }
+    else
+    {
+        // MAYBE
+        nv3_ramin_write32(ramin_address + method_offset, object_name, nv3);
+    }
+*/
 
     // now we have to recalculate the cache1 put address
     uint32_t next_put_address = nv3_pfifo_cache1_gray2normal(current_put_address) + 1;
@@ -697,8 +736,8 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t val)
 
     nv3->pfifo.cache1_settings.put_address = nv3_pfifo_cache1_normal2gray(next_put_address) << 2;
 
-    nv_log("Submitted object [PIO]: Channel %d.%d, Method ID 0x%04x (Put Address is now %d)\n",
-         channel, subchannel, method_offset, nv3->pfifo.cache1_settings.put_address);
+    nv_log("Submitted object [PIO]: Channel %d.%d, Object Name 0x%08x, Method ID 0x%04x (Put Address is now %d)\n",
+         channel, subchannel, object_name, method_offset, nv3->pfifo.cache1_settings.put_address);
    
     // Now we're done. Phew!
 }
