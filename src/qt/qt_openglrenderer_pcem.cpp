@@ -774,6 +774,8 @@ OpenGLRendererPCem::OpenGLRendererPCem(QWidget *parent)
     if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES)
         format.setRenderableType(QSurfaceFormat::OpenGLES);
 
+    format.setSwapInterval(video_vsync ? 1 : 0);
+
     setFormat(format);
 
     parentWidget = parent;
@@ -822,6 +824,9 @@ OpenGLRendererPCem::initialize()
         glw.glEnable(GL_TEXTURE_2D);
 
         //renderTimer->start(75);
+        if (video_framerate != -1) {
+            renderTimer->start(ceilf(1000.f / (float)video_framerate));
+        }
 
         scene_texture.data            = NULL;
         scene_texture.width           = 2048;
@@ -1102,7 +1107,8 @@ OpenGLRendererPCem::onBlit(int buf_idx, int x, int y, int w, int h)
     source.setRect(x, y, w, h);
     onResize(this->width(), this->height());
 
-    render();
+    if (video_framerate == -1)
+        render();
 }
 
 std::vector<std::tuple<uint8_t *, std::atomic_flag *>>
@@ -1312,6 +1318,9 @@ void
 OpenGLRendererPCem::render()
 {
     if (!context)
+        return;
+
+    if (notReady())
         return;
 
     int s, i, j;

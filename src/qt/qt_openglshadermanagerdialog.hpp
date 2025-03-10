@@ -35,6 +35,14 @@ private slots:
 
     void on_buttonConfigure_clicked();
 
+    void on_radioButtonVideoSync_clicked();
+
+    void on_radioButtonTargetFramerate_clicked();
+
+    void on_horizontalSliderFramerate_sliderMoved(int position);
+
+    void on_targetFrameRate_valueChanged(int arg1);
+
 private:
     Ui::OpenGLShaderManagerDialog *ui;
 };

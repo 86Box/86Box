@@ -1,6 +1,9 @@
 #include "qt_openglshadermanagerdialog.hpp"
 #include "ui_qt_openglshadermanagerdialog.h"
 
+#include "qt_mainwindow.hpp"
+extern MainWindow* main_window;
+
 #include "qt_openglshaderconfig.hpp"
 
 #include <QListWidgetItem>
@@ -24,6 +27,15 @@ OpenGLShaderManagerDialog::OpenGLShaderManagerDialog(QWidget *parent)
     , ui(new Ui::OpenGLShaderManagerDialog)
 {
     ui->setupUi(this);
+
+    ui->checkBoxVSync->setChecked(!!video_vsync);
+    ui->radioButtonVideoSync->setChecked(video_framerate == -1);
+    ui->radioButtonTargetFramerate->setChecked(video_framerate != -1);
+    if (video_framerate != -1) {
+        ui->targetFrameRate->setValue(video_framerate);
+    } else {
+        ui->targetFrameRate->setDisabled(true);
+    }
 
     for (int i = 0; i < MAX_USER_SHADERS; i++) {
         if (gl3_shader_file[i][0] != 0) {
@@ -75,6 +87,9 @@ void OpenGLShaderManagerDialog::on_buttonBox_clicked(QAbstractButton *button)
         accept();
     } else if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::RejectRole) {
         reject();
+    } else if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::ApplyRole) {
+        on_OpenGLShaderManagerDialog_accepted();
+        main_window->reloadAllRenderers();
     }
 }
 
@@ -191,6 +206,12 @@ void OpenGLShaderManagerDialog::on_OpenGLShaderManagerDialog_accepted()
         strncpy(gl3_shader_file[i], ui->shaderListWidget->item(i)->data(Qt::UserRole + 1).toString().toUtf8(), 512);
     }
     startblit();
+    video_vsync = ui->checkBoxVSync->isChecked();
+    if (ui->radioButtonTargetFramerate->isChecked()) {
+        video_framerate = ui->horizontalSliderFramerate->value();
+    } else {
+        video_framerate = -1;
+    }
     config_save();
     endblit();
 }
@@ -205,5 +226,35 @@ void OpenGLShaderManagerDialog::on_buttonConfigure_clicked()
         auto configDialog = new OpenGLShaderConfig(this, shader);
         configDialog->exec();
     }
+}
+
+
+void OpenGLShaderManagerDialog::on_radioButtonVideoSync_clicked()
+{
+    ui->targetFrameRate->setDisabled(true);
+}
+
+
+void OpenGLShaderManagerDialog::on_radioButtonTargetFramerate_clicked()
+{
+    ui->targetFrameRate->setDisabled(false);
+}
+
+
+void OpenGLShaderManagerDialog::on_horizontalSliderFramerate_sliderMoved(int position)
+{
+    (void)position;
+
+    if (ui->horizontalSliderFramerate->value() != ui->targetFrameRate->value())
+        ui->targetFrameRate->setValue(ui->horizontalSliderFramerate->value());
+}
+
+
+void OpenGLShaderManagerDialog::on_targetFrameRate_valueChanged(int arg1)
+{
+    (void)arg1;
+
+    if (ui->horizontalSliderFramerate->value() != ui->targetFrameRate->value())
+        ui->horizontalSliderFramerate->setValue(ui->targetFrameRate->value());
 }
 
