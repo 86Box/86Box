@@ -538,8 +538,6 @@ device_get_bios_file_size(const device_t *dev, const char *internal_name)
 const char *
 device_get_bios_file(const device_t *dev, const char *internal_name, int file_no)
 {
-    const device_config_bios_t *bios   = NULL;
-
     if (dev != NULL) {
         const device_config_t *config = dev->config;
         if (config != NULL) {
