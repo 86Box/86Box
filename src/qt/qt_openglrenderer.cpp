@@ -1103,14 +1103,6 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
     context->makeCurrent(this);
 
-#ifdef Q_OS_MACOS
-    glViewport(
-        destination.x() * devicePixelRatio(),
-        destination.y() * devicePixelRatio(),
-        destination.width() * devicePixelRatio(),
-        destination.height() * devicePixelRatio());
-#endif
-
     if (source.width() != w || source.height() != h) {
         glw.glBindTexture(GL_TEXTURE_2D, scene_texture.id);
         glw.glTexImage2D(GL_TEXTURE_2D, 0, (GLenum) QOpenGLTexture::RGBA8_UNorm, w, h, 0, (GLenum) QOpenGLTexture::BGRA, (GLenum) QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
@@ -1128,6 +1120,14 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
     buf_usage[buf_idx].clear();
     source.setRect(x, y, w, h);
     onResize(this->width(), this->height());
+
+#ifdef Q_OS_MACOS
+    glw.glViewport(
+        destination.x() * devicePixelRatio(),
+        destination.y() * devicePixelRatio(),
+        destination.width() * devicePixelRatio(),
+        destination.height() * devicePixelRatio());
+#endif
 
     if (video_framerate == -1)
         render();
