@@ -368,6 +368,8 @@ plat_mmap(size_t size, uint8_t executable)
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE | (executable ? MAP_JIT : 0), -1, 0);
 #    elif defined(PROT_MPROTECT)
     void *ret = mmap(0, size, PROT_MPROTECT(PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0)), MAP_ANON | MAP_PRIVATE, -1, 0);
+    if (ret)
+        mprotect(ret, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0));
 #    else
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, -1, 0);
 #    endif
