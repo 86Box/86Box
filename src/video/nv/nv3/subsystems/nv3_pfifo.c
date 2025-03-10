@@ -687,45 +687,6 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t object_name)
     nv3->pfifo.cache1_entries[current_put_address].method = method_offset;
     nv3->pfifo.cache1_entries[current_put_address].data = object_name;
 
-    /*
-    // I think we have to do this on PIO submission. Maybe not?
-    uint32_t hash = nv3_ramht_hash(object_name, channel);
-    uint32_t bucket_entries = 2; 
-    uint32_t ramht_base = ((nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS) & 0x0F) << NV3_PFIFO_CONFIG_RAMHT_BASE_ADDRESS;
-
-    uint8_t ramht_size = (nv3->pfifo.ramht_config >> NV3_PFIFO_CONFIG_RAMHT_SIZE) & 0x03;
-
-    switch (ramht_size)
-    {
-        case NV3_PFIFO_CONFIG_RAMHT_SIZE_4K:
-            // stays as is
-            break;
-        case NV3_PFIFO_CONFIG_RAMHT_SIZE_8K:
-            bucket_entries = 4; 
-            break;
-        case NV3_PFIFO_CONFIG_RAMHT_SIZE_16K:
-            bucket_entries = 8;
-            break;
-        case NV3_PFIFO_CONFIG_RAMHT_SIZE_32K:
-            bucket_entries = 16;
-            break;
-        
-    }
-
-    uint32_t ramin_address = ramht_base + hash * bucket_entries * 8;
-    
-    if (method_offset == 0)
-    {
-        nv3_ramin_write32(ramin_address, object_name, nv3);
-        nv3_ramin_write32(ramin_address + 0x04, nv3->pfifo.cache1_settings.context[subchannel], nv3);
-    }
-    else
-    {
-        // MAYBE
-        nv3_ramin_write32(ramin_address + method_offset, object_name, nv3);
-    }
-*/
-
     // now we have to recalculate the cache1 put address
     uint32_t next_put_address = nv3_pfifo_cache1_gray2normal(current_put_address) + 1;
 
