@@ -217,6 +217,8 @@ block_free_list_get(void)
 void
 codegen_init(void)
 {
+    codegen_reg_check_ireg_types();
+
     codegen_allocator_init();
 
     codegen_backend_init();

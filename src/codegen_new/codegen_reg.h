@@ -422,4 +422,6 @@ void codegen_reg_rename(codeblock_t *block, ir_reg_t src, ir_reg_t dst);
 
 void codegen_reg_mark_as_required(void);
 void codegen_reg_process_dead_list(struct ir_data_t *ir);
+
+void codegen_reg_check_ireg_types(void);
 #endif
