@@ -647,7 +647,7 @@ ProgSettings::reloadStrings()
     translatedstrings[STRING_NET_ERROR]                 = QCoreApplication::translate("", "Failed to initialize network driver").toStdWString();
     translatedstrings[STRING_NET_ERROR_DESC]            = QCoreApplication::translate("", "The network configuration will be switched to the null driver").toStdWString();
     translatedstrings[STRING_ESCP_ERROR_TITLE]          = QCoreApplication::translate("", "Unable to find Dot-Matrix fonts").toStdWString();
-    translatedstrings[STRING_ESCP_ERROR_DESC]           = QCoreApplication::translate("", "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulatio of the Generic ESC/P Dot-Matrix Printer.").toStdWString();
+    translatedstrings[STRING_ESCP_ERROR_DESC]           = QCoreApplication::translate("", "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer.").toStdWString();
 }
 
 wchar_t *

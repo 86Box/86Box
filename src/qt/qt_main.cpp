@@ -665,7 +665,7 @@ main(int argc, char *argv[])
 
     /* Force raw input if a debugger is present. */
     if (IsDebuggerPresent()) {
-        pclog("WARNING: Debugged detected, forcing raw input\n");
+        pclog("WARNING: Debugger detected, forcing raw input\n");
         hook_enabled = 0;
     }
 
