@@ -593,14 +593,14 @@ VMManagerSystem::setupVars() {
             auto cdrom_parameters = QString(floppy_cdrom_config[cdrom_parameters_key]);
             auto cdrom_bus = cdrom_parameters.split(",").at(1).trimmed().toUpper();
 
-            if(auto cdromName = QString(cdrom_getname(cdrom_type)); !cdromName.isEmpty()) {
+            if(cdrom_type != -1) {
                 if(!cdrom_speed.isEmpty()) {
                     cdrom_speed = QString("%1x ").arg(cdrom_speed);
                 }
                 if(!cdrom_bus.isEmpty()) {
                     cdrom_bus = QString(" (%1)").arg(cdrom_bus);
                 }
-                cdromDevices.append(QString("%1%2%3").arg(cdrom_speed, cdromName, cdrom_bus));
+                cdromDevices.append(QString("%1%2 %3 %4%5").arg(cdrom_speed, cdrom_drive_types[cdrom_type].vendor, cdrom_drive_types[cdrom_type].model, cdrom_drive_types[cdrom_type].revision, cdrom_bus));
             }
         }
     }
