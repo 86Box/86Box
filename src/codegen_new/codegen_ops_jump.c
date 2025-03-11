@@ -62,7 +62,7 @@ ropJMP_far_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     uop_MOV_IMM(ir, IREG_pc, new_pc);
     uop_LOAD_FUNC_ARG_IMM(ir, 0, new_cs);
-    uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 4);
+    uop_LOAD_FUNC_ARG_IMM_NOBARRIER(ir, 1, op_pc + 4);
     uop_CALL_FUNC(ir, loadcsjmp);
 
     codegen_mark_code_present(block, cs + op_pc, 4);
@@ -77,7 +77,7 @@ ropJMP_far_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     uop_MOV_IMM(ir, IREG_pc, new_pc);
     uop_LOAD_FUNC_ARG_IMM(ir, 0, new_cs);
-    uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 4);
+    uop_LOAD_FUNC_ARG_IMM_NOBARRIER(ir, 1, op_pc + 4);
     uop_CALL_FUNC(ir, loadcsjmp);
 
     codegen_mark_code_present(block, cs + op_pc, 6);

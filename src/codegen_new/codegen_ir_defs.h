@@ -40,6 +40,12 @@
 #define UOP_LOAD_FUNC_ARG_1_IMM (UOP_TYPE_PARAMS_IMM | 0x09 | UOP_TYPE_BARRIER)
 #define UOP_LOAD_FUNC_ARG_2_IMM (UOP_TYPE_PARAMS_IMM | 0x0a | UOP_TYPE_BARRIER)
 #define UOP_LOAD_FUNC_ARG_3_IMM (UOP_TYPE_PARAMS_IMM | 0x0b | UOP_TYPE_BARRIER)
+
+#define UOP_LOAD_FUNC_ARG_0_IMM_NOBARRIER (UOP_TYPE_PARAMS_IMM | 0x08)
+#define UOP_LOAD_FUNC_ARG_1_IMM_NOBARRIER (UOP_TYPE_PARAMS_IMM | 0x09)
+#define UOP_LOAD_FUNC_ARG_2_IMM_NOBARRIER (UOP_TYPE_PARAMS_IMM | 0x0a)
+#define UOP_LOAD_FUNC_ARG_3_IMM_NOBARRIER (UOP_TYPE_PARAMS_IMM | 0x0b)
+
 #define UOP_CALL_FUNC           (UOP_TYPE_PARAMS_POINTER | 0x10 | UOP_TYPE_BARRIER)
 /*UOP_CALL_INSTRUCTION_FUNC - call instruction handler at p, check return value and exit block if non-zero*/
 #define UOP_CALL_INSTRUCTION_FUNC (UOP_TYPE_PARAMS_POINTER | 0x11 | UOP_TYPE_BARRIER)
@@ -626,6 +632,7 @@ uop_gen_reg_src2_pointer(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int sr
 #define uop_LOAD_FUNC_ARG_REG(ir, arg, reg)                      uop_gen_reg_src1(UOP_LOAD_FUNC_ARG_0 + arg, ir, reg)
 
 #define uop_LOAD_FUNC_ARG_IMM(ir, arg, imm)                      uop_gen_imm(UOP_LOAD_FUNC_ARG_0_IMM + arg, ir, imm)
+#define uop_LOAD_FUNC_ARG_IMM_NOBARRIER(ir, arg, imm)            uop_gen_imm(UOP_LOAD_FUNC_ARG_0_IMM_NOBARRIER + arg, ir, imm)
 
 #define uop_ADD(ir, dst_reg, src_reg_a, src_reg_b)               uop_gen_reg_dst_src2(UOP_ADD, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_ADD_IMM(ir, dst_reg, src_reg, imm)                   uop_gen_reg_dst_src_imm(UOP_ADD_IMM, ir, dst_reg, src_reg, imm)
