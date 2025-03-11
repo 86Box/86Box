@@ -54,7 +54,7 @@ uint8_t nv3_ramin_read8(uint32_t addr, void* priv)
     addr &= (nv3->nvbase.svga.vram_max - 1);
     uint32_t raw_addr = addr; // saved after and
 
-    addr ^= (nv3->nvbase.svga.vram_max- 0x10);
+    addr ^= (nv3->nvbase.svga.vram_max - 0x10);
 
     uint32_t val = 0x00;
 

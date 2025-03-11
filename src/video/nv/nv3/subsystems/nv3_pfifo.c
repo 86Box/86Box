@@ -193,14 +193,6 @@ uint32_t nv3_pfifo_read(uint32_t address)
                         ret |= 1 << NV3_PFIFO_CACHE1_STATUS_RANOUT;
 
                     break;
-                case NV3_PFIFO_CACHE0_METHOD:
-                    ret = ((nv3->pfifo.cache0_settings.method_subchannel << 13) & 0x07)
-                    | ((nv3->pfifo.cache0_settings.method_address << 2) & 0x7FF);
-                    break;
-                case NV3_PFIFO_CACHE1_METHOD:
-                    ret = ((nv3->pfifo.cache1_settings.method_subchannel << 13) & 0x07)
-                    | ((nv3->pfifo.cache1_settings.method_address << 2) & 0x7FF);
-                    break;
                 case NV3_PFIFO_CACHE0_PUT:
                     ret = nv3->pfifo.cache0_settings.put_address;
                     break;
@@ -294,6 +286,30 @@ uint32_t nv3_pfifo_read(uint32_t address)
         ret = nv3->pfifo.cache1_settings.context[ctx_entry_id];
 
         nv_log("PFIFO Cache1 CTX Read Entry=%d Value=0x%04x", ctx_entry_id, ret);
+    }
+    /* Direct cache read  stuff */
+    else if (address >= NV3_PFIFO_CACHE0_METHOD_START && address <= NV3_PFIFO_CACHE0_METHOD_END)
+    {
+        if (address & 4)
+            return nv3->pfifo.cache0_entry.data;
+        else
+            return nv3->pfifo.cache0_entry.method | (nv3->pfifo.cache0_entry.subchannel << NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL);
+    }
+    else if (address >= NV3_PFIFO_CACHE1_METHOD_START && address <= NV3_PFIFO_CACHE1_METHOD_END)
+    {       
+        // Not sure if REV C changes this. It should...
+        uint32_t slot = 0;
+        
+        if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00)
+            slot = (address >> 3) & 0x3F;
+        else 
+            slot = (address >> 3) & 0x1F; 
+
+        // See if we want the object name or the channel/subchannel information.
+        if (address & 4)
+            return nv3->pfifo.cache1_entries[slot].data;
+        else
+            return nv3->pfifo.cache1_entries[slot].method | (nv3->pfifo.cache1_entries[slot].subchannel << NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL);
     }
     else
     {
@@ -456,14 +472,6 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
                     nv3->pfifo.cache1_settings.channel = val;
                     break;
                 // CACHE0_STATUS and CACHE1_STATUS are not writable
-                case NV3_PFIFO_CACHE0_METHOD:
-                    nv3->pfifo.cache0_settings.method_subchannel = (val >> 13) & 0x07;
-                    nv3->pfifo.cache0_settings.method_address = (val >> 2) & 0x7FF;
-                    break;
-                case NV3_PFIFO_CACHE1_METHOD:
-                    nv3->pfifo.cache1_settings.method_subchannel = (val >> 13) & 0x07;
-                    nv3->pfifo.cache1_settings.method_address = (val >> 2) & 0x7FF;
-                    break;
                 case NV3_PFIFO_CACHE1_DMA_CONFIG_0:
                     nv3->pfifo.cache1_settings.dma_state = val;
                     break; 
@@ -525,6 +533,33 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
             nv_log(": %s\n", reg->friendly_name);
         else   
             nv_log("\n");
+    }
+    else if (address >= NV3_PFIFO_CACHE0_METHOD_START && address <= NV3_PFIFO_CACHE0_METHOD_END)
+    {
+        if (address & 4)
+            nv3->pfifo.cache0_entry.data = val;
+        else
+            nv3->pfifo.cache0_entry.method = (val & 0x1FFC);
+            nv3->pfifo.cache0_entry.subchannel = (val >> NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL) & 0x07;
+    }
+    else if (address >= NV3_PFIFO_CACHE1_METHOD_START && address <= NV3_PFIFO_CACHE1_METHOD_END)
+    {       
+        // Not sure if REV C changes this. It should...
+        uint32_t slot = 0;
+        
+        if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00)
+            slot = (address >> 3) & 0x3F;
+        else 
+            slot = (address >> 3) & 0x1F; 
+
+        uint32_t real_entry = nv3_pfifo_cache1_normal2gray(slot);
+
+        // See if we want the object name or the channel/subchannel information.
+        if (address & 4)
+            nv3->pfifo.cache1_entries[real_entry].data = val;
+        else
+            nv3->pfifo.cache1_entries[real_entry].method = (val & 0x1FFC);
+            nv3->pfifo.cache1_entries[real_entry].subchannel = (val >> NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL) & 0x07;
     }
     /* Handle some special memory areas */
     else if (address >= NV3_PFIFO_CACHE1_CTX_START && address <= NV3_PFIFO_CACHE1_CTX_END)
@@ -630,7 +665,7 @@ void nv3_pfifo_cache0_pull()
     #ifndef RELEASE_BUILD
     nv_log("***** SUBMITTING GRAPHICS COMMANDS CURRENTLY UNIMPLEMENTED - CACHE0 PULLED ****** Contextual information below\n");
             
-    nv3_debug_ramin_print_context_info(current_name, *(nv3_ramin_context_t*)current_context);
+    nv3_debug_ramin_print_context_info(current_name, *(nv3_ramin_context_t*)&current_context);
     #endif
 
 }

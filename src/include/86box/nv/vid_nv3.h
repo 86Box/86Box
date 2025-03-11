@@ -282,7 +282,8 @@ extern const device_config_t nv3_config[];
 // Current channel context - cache1
 #define NV3_PFIFO_CACHE0_CTX                            0x3080      
 
-#define NV3_PFIFO_CACHE0_METHOD                         0x3100
+#define NV3_PFIFO_CACHE0_METHOD_START                   0x3100
+#define NV3_PFIFO_CACHE0_METHOD_END                     0x3200
 #define NV3_PFIFO_CACHE0_METHOD_ADDRESS                 2           // 12:2
 #define NV3_PFIFO_CACHE0_METHOD_SUBCHANNEL              13          // 15:13
 #define NV3_PFIFO_CACHE1_DMA_PUSH0                      0x3200
@@ -320,9 +321,11 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_CTX_START                      0x3280      
 #define NV3_PFIFO_CACHE1_CTX_END                        0x32F0
 
-#define NV3_PFIFO_CACHE1_METHOD                         0x3300
+#define NV3_PFIFO_CACHE1_METHOD_START                   0x3300
+#define NV3_PFIFO_CACHE1_METHOD_END                     0x3400
 #define NV3_PFIFO_CACHE1_METHOD_ADDRESS                 2           // 12:2
 #define NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL              13          // 15:13
+
 
 #define NV3_PFIFO_END                                   0x3FFF
 #define NV3_PRM_START                                   0x4000      // Real-Mode Device Support Subsystem
