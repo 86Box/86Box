@@ -409,16 +409,16 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
         if (!cache_num)
         {
             nv3->pfifo.debug_0 |= NV3_PFIFO_CACHE0_ERROR_PENDING;
-            nv3->pfifo.cache0_settings.dma_pull0 |= NV3_PFIFO_CACHE0_DMA_PULL0_HASH_FAILURE;
+            nv3->pfifo.cache0_settings.pull0 |= NV3_PFIFO_CACHE0_PULL0_HASH_FAILURE;
             //It turns itself off on failure, the drivers turn it back on
-            nv3->pfifo.cache0_settings.dma_pull0 &= ~NV3_PFIFO_CACHE0_DMA_PULL0_ENABLED;
+            nv3->pfifo.cache0_settings.pull0 &= ~NV3_PFIFO_CACHE0_PULL0_ENABLED;
         } 
         else 
         {
             nv3->pfifo.debug_0 |= NV3_PFIFO_CACHE1_ERROR_PENDING;
-            nv3->pfifo.cache1_settings.dma_pull0 |= NV3_PFIFO_CACHE1_DMA_PULL0_HASH_FAILURE;
+            nv3->pfifo.cache1_settings.pull0 |= NV3_PFIFO_CACHE1_PULL0_HASH_FAILURE;
             //It turns itself off on failure, the drivers turn it back on
-            nv3->pfifo.cache1_settings.dma_pull0 &= ~NV3_PFIFO_CACHE1_DMA_PULL0_ENABLED;
+            nv3->pfifo.cache1_settings.pull0 &= ~NV3_PFIFO_CACHE1_PULL0_ENABLED;
         }
 
         nv3_pfifo_interrupt(NV3_PFIFO_INTR_CACHE_ERROR, true);
@@ -452,9 +452,9 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
 
     // By definition we can't have a cache error by here so take it off
     if (!cache_num)
-        nv3->pfifo.cache0_settings.dma_pull0 &= ~NV3_PFIFO_CACHE0_DMA_PULL0_HASH_FAILURE;
+        nv3->pfifo.cache0_settings.pull0 &= ~NV3_PFIFO_CACHE0_PULL0_HASH_FAILURE;
     else
-        nv3->pfifo.cache1_settings.dma_pull0 &= ~NV3_PFIFO_CACHE1_DMA_PULL0_HASH_FAILURE;
+        nv3->pfifo.cache1_settings.pull0 &= ~NV3_PFIFO_CACHE1_PULL0_HASH_FAILURE;
 
     // Caches store all the subchannels for our current dma channel and basically get stale every context switch
     // Also we have to check that a osftware object didn't end up in here...
@@ -471,13 +471,13 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
         // handle it as an error 
         if (!cache_num)
         {
-            nv3->pfifo.cache0_settings.dma_pull0 |= NV3_PFIFO_CACHE0_DMA_PULL0_SOFTWARE_METHOD;
-            nv3->pfifo.cache0_settings.dma_pull0 &= ~NV3_PFIFO_CACHE0_DMA_PULL0_ENABLED;
+            nv3->pfifo.cache0_settings.pull0 |= NV3_PFIFO_CACHE0_PULL0_SOFTWARE_METHOD;
+            nv3->pfifo.cache0_settings.pull0 &= ~NV3_PFIFO_CACHE0_PULL0_ENABLED;
         }
         else   
         {
-            nv3->pfifo.cache1_settings.dma_pull0 |= NV3_PFIFO_CACHE1_DMA_PULL0_SOFTWARE_METHOD;
-            nv3->pfifo.cache0_settings.dma_pull0 &= ~NV3_PFIFO_CACHE1_DMA_PULL0_ENABLED;
+            nv3->pfifo.cache1_settings.pull0 |= NV3_PFIFO_CACHE1_PULL0_SOFTWARE_METHOD;
+            nv3->pfifo.cache0_settings.pull0 &= ~NV3_PFIFO_CACHE1_PULL0_ENABLED;
         }
             
         // It's an error but it isn't lol   
@@ -488,9 +488,9 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
     {
         // obviously turn off the "is software" if it's not
         if (!cache_num)
-            nv3->pfifo.cache0_settings.dma_pull0 &= ~NV3_PFIFO_CACHE0_DMA_PULL0_SOFTWARE_METHOD;
+            nv3->pfifo.cache0_settings.pull0 &= ~NV3_PFIFO_CACHE0_PULL0_SOFTWARE_METHOD;
         else   
-            nv3->pfifo.cache1_settings.dma_pull0 &= ~NV3_PFIFO_CACHE1_DMA_PULL0_SOFTWARE_METHOD;
+            nv3->pfifo.cache1_settings.pull0 &= ~NV3_PFIFO_CACHE1_PULL0_SOFTWARE_METHOD;
     }
     
     // Ok we found it. Lol
