@@ -517,15 +517,33 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
     nv3_pfifo_trigger_dma_if_required();
 }
 
+
 /* 
 https://en.wikipedia.org/wiki/Gray_code
 WHY?????? IT'S NOT A TELEGRAPH IT'S A GPU?????
 
 Convert from a normal number to a total insanity number which is only used in PFIFO CACHE1 for ungodly and totally unknowable reasons 
+
+I decided to use a lookup table to save everyone's time, also the numbers generated from the function
+that existed here before didn't make any sense
 */
+
+#define NV3_GRAY_TABLE_NUM_ENTRIES 64
+
+uint8_t nv3_pfifo_cache1_gray_code_table[NV3_GRAY_TABLE_NUM_ENTRIES] = {
+    0b000000, 0b000001, 0b000011, 0b000010, 0b000110, 0b000111, 0b000101, 0b000100,
+    0b001100, 0b001101, 0b001111, 0b001110, 0b001010, 0b001011, 0b001001, 0b001000,
+    0b011000, 0b011001, 0b011011, 0b011010, 0b011110, 0b011111, 0b011101, 0b011100,
+    0b010100, 0b010101, 0b010111, 0b010110, 0b010010, 0b010011, 0b010001, 0b010000,
+    0b110000, 0b110001, 0b110011, 0b110010, 0b110110, 0b110111, 0b110101, 0b110100,
+    0b111100, 0b111101, 0b111111, 0b111110, 0b111010, 0b111011, 0b111001, 0b111000,
+    0b101000, 0b101001, 0b101011, 0b101010, 0b101110, 0b101111, 0b101101, 0b101100,
+    0b100100, 0b100101, 0b100111, 0b100110, 0b100010, 0b100011, 0b100001, 0b100000
+};
+
 uint32_t nv3_pfifo_cache1_normal2gray(uint32_t val)
 {
-    return (val) ^ (val >> 1);
+    return nv3_pfifo_cache1_gray_code_table[val];
 }
 
 /* 
@@ -533,17 +551,14 @@ Back to sanity
 */
 uint32_t nv3_pfifo_cache1_gray2normal(uint32_t val)
 {
-    uint32_t mask = val >> 1;
-
-    // shift right until we have our normla number again
-    while (mask)
+    /* Is this a good idea? */
+    for (uint32_t i = 0; i < NV3_GRAY_TABLE_NUM_ENTRIES; i++)
     {
-        // Algorithm from NT4 drivers, version 1.29
-        mask >>= 1; 
-        val ^= mask;
+        if (nv3_pfifo_cache1_gray_code_table[i] == val)
+            return i;
     }
 
-    return val;
+    return 0x00;
 }
 
 // Submits graphics objects INTO cache0
@@ -688,7 +703,8 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t object_name)
     nv3->pfifo.cache1_entries[current_put_address].data = object_name;
 
     // now we have to recalculate the cache1 put address
-    uint32_t next_put_address = nv3_pfifo_cache1_gray2normal(current_put_address) + 1;
+    uint32_t next_put_address = nv3_pfifo_cache1_gray2normal(current_put_address);
+    next_put_address++;
 
     if (nv3->nvbase.gpu_revision >= NV3_BOOT_REG_REV_C00) // RIVA 128ZX#
         next_put_address &= (NV3_PFIFO_CACHE1_SIZE_REV_C - 1);
@@ -754,7 +770,7 @@ void nv3_pfifo_cache1_pull()
     #ifndef RELEASE_BUILD
     nv_log("***** OBJECT PULLED, SUBMITTING GRAPHICS COMMANDS CURRENTLY UNIMPLEMENTED - ****** Contextual information below\n");
             
-    nv3_debug_ramin_print_context_info(current_name, *(nv3_ramin_context_t*)current_context);
+    nv3_debug_ramin_print_context_info(current_name, *(nv3_ramin_context_t*)&current_context);
     #endif
 
     //Todo: finish it

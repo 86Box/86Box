@@ -27,3 +27,19 @@ To set up DMA Cache1 Push: CACHE1_PUsh0 -> 1, changes to 0 when done
 Set CACHES to 1
 
 GO: Set DMA0 to 1
+
+***** Implementation in Driver ******
+
+You can dma to "localvidmem:", "sysvidmem:" or "sysmem:", this is represented by a driver
+
+CAUSE OF FAILURE: 
+the pfifo is never free because it never processes the submitted objects
+which means that the FIFO is never free
+which means that the drivers spin forever waiting for the fifo to be free
+
+DMA_OBJECT STRUCTURE IN RESOURCE MANAGER:
+0x328: Valid
+0x34c: base address?
+0x374: actually do the transfer
+
+
