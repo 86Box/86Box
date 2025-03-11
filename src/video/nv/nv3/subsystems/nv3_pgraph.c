@@ -468,16 +468,30 @@ void nv3_pgraph_vblank_start(svga_t* svga)
     nv3_pgraph_interrupt_valid(NV3_PGRAPH_INTR_EN_0_VBLANK);
 }
 
+void nv3_pgraph_arbitrate_method(uint8_t name, uint16_t method, uint8_t channel, uint8_t subchannel, uint8_t class_id, uint32_t context)
+{
+    switch (class_id)
+    {
+
+    }
+}
+
 /* Arbitrates graphics object submission to the right object types */
 void nv3_pgraph_submit(uint8_t name, uint16_t method, uint8_t channel, uint8_t subchannel, uint8_t class_id, uint32_t context)
 {
     // class id can be derived from the context but we debug log it before we get here
-
+    // Do we need to read grobj here?
+    
     switch (method)
     {
         // This method is how we figure out which methods exist.
         case NV3_ROOT_HI_IM_OBJECT_MCOBJECTYFACE:
-            nv_log("Hi, I'm an NVidia object :)\n");
+            nv_log("I'm an Nvidia Object! name=0x%08x channel=%d.%d class=0x%02x (%s) method=0x%04x, context=0x%08x\n",
+            name, channel, subchannel, class_id, nv3_class_names[class_id], method, context);
+            break;
+        default:
+            // Object Method orchestration
+            nv3_pgraph_arbitrate_method(name, method, channel, subchannel, class_id, context);
             break;
     }
 }

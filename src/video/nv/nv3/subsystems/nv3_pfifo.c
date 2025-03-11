@@ -43,19 +43,20 @@ nv_register_t pfifo_registers[] = {
     { NV3_PFIFO_CONFIG_RAMHT, "PFIFO - RAMIN RAMHT Config", NULL, NULL },
     { NV3_PFIFO_CONFIG_RAMRO, "PFIFO - RAMIN RAMRO Config", NULL, NULL },
     { NV3_PFIFO_CACHE_REASSIGNMENT, "PFIFO - Allow Cache Channel Reassignment", NULL, NULL },
-    { NV3_PFIFO_CACHE0_PULLER_CONTROL, "PFIFO - Cache0 Puller Control", NULL, NULL},
-    { NV3_PFIFO_CACHE1_PULL0, "PFIFO - Cache1 Puller Control"},
+    { NV3_PFIFO_CACHE0_DMA_PULL0, "PFIFO - Cache0 Puller Control", NULL, NULL},
+    { NV3_PFIFO_CACHE1_DMA_PULL0, "PFIFO - Cache1 Puller Control"},
     { NV3_PFIFO_CACHE0_PULLER_CTX_STATE, "PFIFO - Cache0 Puller State1 (Is context clean?)", NULL, NULL},
-    { NV3_PFIFO_CACHE1_PULL0, "PFIFO - Cache1 Puller State0", NULL, NULL},
+    { NV3_PFIFO_CACHE1_DMA_PULL0, "PFIFO - Cache1 Puller State0", NULL, NULL},
     { NV3_PFIFO_CACHE1_PULLER_CTX_STATE, "PFIFO - Cache1 Puller State1 (Is context clean?)", NULL, NULL},
     { NV3_PFIFO_CACHE0_DMA_PUSH0, "PFIFO - Cache0 Access", NULL, NULL, },
     { NV3_PFIFO_CACHE1_DMA_PUSH0, "PFIFO - Cache1 Access", NULL, NULL, },
-    { NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID, "PFIFO - Cache0 DMA Channel ID", NULL, NULL, },
-    { NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID, "PFIFO - Cache1 DMA Channel ID", NULL, NULL, },
+    { NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID, "PFIFO - Cache0 Push Channel ID", NULL, NULL, },
+    { NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID, "PFIFO - Cache1 Push Channel ID", NULL, NULL, },
     { NV3_PFIFO_CACHE0_ERROR_PENDING, "PFIFO - Cache0 DMA Error Pending?", NULL, NULL, },
     { NV3_PFIFO_CACHE0_STATUS, "PFIFO - Cache0 Status", NULL, NULL},
     { NV3_PFIFO_CACHE1_STATUS, "PFIFO - Cache1 Status", NULL, NULL}, 
     { NV3_PFIFO_CACHE0_GET, "PFIFO - Cache0 Get", NULL, NULL },
+    { NV3_PFIFO_CACHE0_CTX, "PFIFO - Cache0 Context", NULL, NULL },
     { NV3_PFIFO_CACHE1_GET, "PFIFO - Cache1 Get", NULL, NULL },
     { NV3_PFIFO_CACHE0_PUT, "PFIFO - Cache0 Put", NULL, NULL },
     { NV3_PFIFO_CACHE1_PUT, "PFIFO - Cache1 Put", NULL, NULL },
@@ -145,11 +146,11 @@ uint32_t nv3_pfifo_read(uint32_t address)
                 case NV3_PFIFO_CONFIG_RAMRO:
                     ret = nv3->pfifo.ramro_config;
                     break;
-                case NV3_PFIFO_CACHE0_PULLER_CONTROL:
-                    ret = nv3->pfifo.cache0_settings.puller_control;
+                case NV3_PFIFO_CACHE0_DMA_PULL0:
+                    ret = nv3->pfifo.cache0_settings.dma_pull0;
                     break;
-                case NV3_PFIFO_CACHE1_PULL0:
-                    ret = nv3->pfifo.cache1_settings.puller_control;
+                case NV3_PFIFO_CACHE1_DMA_PULL0:
+                    ret = nv3->pfifo.cache1_settings.dma_pull0;
                     break;
                 case NV3_PFIFO_CACHE0_PULLER_CTX_STATE:
                     ret = (nv3->pfifo.cache0_settings.context_is_dirty) ? (1 << NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY) : 0;
@@ -285,11 +286,13 @@ uint32_t nv3_pfifo_read(uint32_t address)
         uint32_t ctx_entry_id = ((address - NV3_PFIFO_CACHE1_CTX_START) / 16) % 8;
         ret = nv3->pfifo.cache1_settings.context[ctx_entry_id];
 
-        nv_log("PFIFO Cache1 CTX Read Entry=%d Value=0x%04x", ctx_entry_id, ret);
+        nv_log("PFIFO Cache1 CTX Read Entry=%d Value=0x%04x\n", ctx_entry_id, ret);
     }
     /* Direct cache read  stuff */
     else if (address >= NV3_PFIFO_CACHE0_METHOD_START && address <= NV3_PFIFO_CACHE0_METHOD_END)
     {
+        nv_log("PFIFO Cache0 Read\n");
+
         if (address & 4)
             return nv3->pfifo.cache0_entry.data;
         else
@@ -304,6 +307,8 @@ uint32_t nv3_pfifo_read(uint32_t address)
             slot = (address >> 3) & 0x3F;
         else 
             slot = (address >> 3) & 0x1F; 
+
+        nv_log("PFIFO Cache1 Read slot=%d\n", slot);
 
         // See if we want the object name or the channel/subchannel information.
         if (address & 4)
@@ -341,11 +346,15 @@ void nv3_pfifo_trigger_dma_if_required()
         /* PUSH - System to GPU (?) */
         if (nv3->pfifo.cache1_settings.dma_push0)
         {
-
+            /* PULL - GPU to System */
+            nv_log("Initiating System to NV DMA - Probably we are trying to notify\n");
+        }
+        else if (nv3->pfifo.cache1_settings.dma_pull0)
+        {
+            /* PULL - GPU to System */
+            nv_log("Initiating NV to System DMA - Probably we are trying to notify\n");
         }
 
-        /* PULL - GPU to System */
-        nv_log("Initiating NV to System DMA - Probably we are trying to notify");
     }
 }
 
@@ -447,11 +456,11 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
                     nv3->pfifo.cache_reassignment = val & 0x01; //1bit meaningful
                     break;
                 // Control
-                case NV3_PFIFO_CACHE0_PULLER_CONTROL:
-                    nv3->pfifo.cache0_settings.puller_control = val; // 8bits meaningful
+                case NV3_PFIFO_CACHE0_DMA_PULL0:
+                    nv3->pfifo.cache0_settings.dma_pull0 = val; // 8bits meaningful
                     break;
-                case NV3_PFIFO_CACHE1_PULL0:
-                    nv3->pfifo.cache1_settings.puller_control = val; // 8bits meaningful
+                case NV3_PFIFO_CACHE1_DMA_PULL0:
+                    nv3->pfifo.cache1_settings.dma_pull0 = val; // 8bits meaningful
                     break;
                 case NV3_PFIFO_CACHE0_PULLER_CTX_STATE:
                     nv3->pfifo.cache0_settings.context_is_dirty = (val >> NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY) & 0x01;
@@ -628,7 +637,7 @@ void nv3_pfifo_cache0_push()
 void nv3_pfifo_cache0_pull()
 {
     // Do nothing if PFIFO CACHE0 is disabled
-    if (!nv3->pfifo.cache0_settings.puller_control & (1 >> NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED))
+    if (!nv3->pfifo.cache0_settings.dma_pull0 & (1 >> NV3_PFIFO_CACHE0_DMA_PULL0_ENABLED))
         return; 
 
     // Do nothing if there is nothing in cache0 to pull
@@ -644,6 +653,9 @@ void nv3_pfifo_cache0_pull()
     // i.e. there is no method in cache0, so we have to find the object.
     if (!current_method)
     {
+        // flip the get address over
+        nv3->pfifo.cache0_settings.get_address ^= 0x04;
+
         if (!nv3_ramin_find_object(current_name, 0, current_channel, current_subchannel))
             return; // interrupt was fired, and we went to ramro
     }
@@ -654,8 +666,8 @@ void nv3_pfifo_cache0_pull()
     // Tell the CPU if we found a software method
     if (current_context & 0x800000)
     {
-        nv3->pfifo.cache0_settings.puller_control |= NV3_PFIFO_CACHE0_PULLER_CONTROL_SOFTWARE_METHOD;
-        nv3->pfifo.cache0_settings.puller_control &= ~NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED;
+        nv3->pfifo.cache0_settings.dma_pull0 |= NV3_PFIFO_CACHE0_DMA_PULL0_SOFTWARE_METHOD;
+        nv3->pfifo.cache0_settings.dma_pull0 &= ~NV3_PFIFO_CACHE0_DMA_PULL0_ENABLED;
         nv3_pfifo_interrupt(NV3_PFIFO_INTR_CACHE_ERROR, true);
     }
 
@@ -780,7 +792,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t object_name)
 void nv3_pfifo_cache1_pull()
 {
     // Do nothing if PFIFO CACHE1 is disabled
-    if (!nv3->pfifo.cache1_settings.puller_control & (1 >> NV3_PFIFO_CACHE1_PULL0_ENABLED))
+    if (!nv3->pfifo.cache1_settings.dma_pull0 & (1 >> NV3_PFIFO_CACHE1_DMA_PULL0_ENABLED))
         return; 
 
     // Do nothing if there is nothing in cache1 to pull
@@ -808,8 +820,8 @@ void nv3_pfifo_cache1_pull()
     // Tell the CPU if we found a software method
     if (current_context & 0x800000)
     {
-        nv3->pfifo.cache1_settings.puller_control |= NV3_PFIFO_CACHE0_PULLER_CONTROL_SOFTWARE_METHOD;
-        nv3->pfifo.cache1_settings.puller_control &= ~NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED;
+        nv3->pfifo.cache1_settings.dma_pull0 |= NV3_PFIFO_CACHE0_DMA_PULL0_SOFTWARE_METHOD;
+        nv3->pfifo.cache1_settings.dma_pull0 &= ~NV3_PFIFO_CACHE0_DMA_PULL0_ENABLED;
         nv3_pfifo_interrupt(NV3_PFIFO_INTR_CACHE_ERROR, true);
     }
 

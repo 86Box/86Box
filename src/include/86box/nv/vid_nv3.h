@@ -271,10 +271,10 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE0_STATUS_EMPTY                   4           // 1 if ramro is empty
 #define NV3_PFIFO_CACHE0_STATUS_FULL                    8
 #define NV3_PFIFO_CACHE0_PUT_ADDRESS                    2           // 1 bit
-#define NV3_PFIFO_CACHE0_PULLER_CONTROL                 0x3040
-#define NV3_PFIFO_CACHE0_PULLER_CONTROL_ENABLED         0
-#define NV3_PFIFO_CACHE0_PULLER_CONTROL_HASH_FAILURE    4
-#define NV3_PFIFO_CACHE0_PULLER_CONTROL_SOFTWARE_METHOD 8
+#define NV3_PFIFO_CACHE0_DMA_PULL0                      0x3040
+#define NV3_PFIFO_CACHE0_DMA_PULL0_ENABLED              0
+#define NV3_PFIFO_CACHE0_DMA_PULL0_HASH_FAILURE         4
+#define NV3_PFIFO_CACHE0_DMA_PULL0_SOFTWARE_METHOD      8
 #define NV3_PFIFO_CACHE0_PULLER_CTX_STATE               0x3050
 #define NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY         4           // 1=dirty 0=clean
 #define NV3_PFIFO_CACHE0_GET                            0x3070
@@ -307,11 +307,11 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_DMA_TLB_TAG                    0x3230
 #define NV3_PFIFO_CACHE1_DMA_TLB_PTE                    0x3234      // Base of pagetableor DMA
 #define NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE                0x3238      // Base of pagetable for DMA
-#define NV3_PFIFO_CACHE1_PULL0                          0x3240
+#define NV3_PFIFO_CACHE1_DMA_PULL0                      0x3240
 //todo: merge stuff
-#define NV3_PFIFO_CACHE1_PULL0_ENABLED                  0
-#define NV3_PFIFO_CACHE1_PULL0_HASH_FAILURE             4
-#define NV3_PFIFO_CACHE1_PULL0_SOFTWARE_METHOD          8           // 0=software, 1=hardware
+#define NV3_PFIFO_CACHE1_DMA_PULL0_ENABLED              0
+#define NV3_PFIFO_CACHE1_DMA_PULL0_HASH_FAILURE         4
+#define NV3_PFIFO_CACHE1_DMA_PULL0_SOFTWARE_METHOD      8           // 0=software, 1=hardware
 #define NV3_PFIFO_CACHE1_PULLER_CTX_STATE               0x3250
 #define NV3_PFIFO_CACHE1_PULLER_CTX_STATE_DIRTY         4
 #define NV3_PFIFO_CACHE1_GET                            0x3270
@@ -932,7 +932,7 @@ typedef struct nv3_pfifo_cache_s
     uint8_t get_address;                // Trigger a DMA from the value you put here into where you were going.
     uint8_t channel;                    // The DMA channel ID of this cache.
     uint32_t status;
-    uint32_t puller_control;
+    uint32_t dma_pull0;
     uint32_t context[NV3_DMA_SUBCHANNELS_PER_CHANNEL];  // Only one of these exists for cache0
 
     /* cache1 only 

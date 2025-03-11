@@ -21,7 +21,7 @@
  *          - People who prevented me from giving up (various)              
  * 
  * Authors: Connor Hyde / starfrost <mario64crashed@gmail.com>
- *
+ *      
  *          Copyright 2024-2025 Connor Hyde
  */
 #ifdef EMU_DEVICE_H // what
@@ -55,19 +55,19 @@ void nv_log(const char *fmt, ...);
 #define PCI_DEVICE_NV3T         0x0019  // Nvidia NV3T (Riva 128 ZX)
 #define PCI_DEVICE_NV4          0x0020  // Nvidia NV4 (RIVA TNT)
 
-#define CHIP_REVISION_NV1_A0    0x0000
-#define CHIP_REVISION_NV1_B0    0x0010
-#define CHIP_REVISION_NV1_C0    0x0020
+#define CHIP_REVISION_NV1_A0    0x0000  // 1994
+#define CHIP_REVISION_NV1_B0    0x0010  // 1995
+#define CHIP_REVISION_NV1_C0    0x0020  // 
 
 #define CHIP_REVISION_NV3_A0    0x0000  // January 1997
 #define CHIP_REVISION_NV3_B0    0x0010  // October 1997
 #define CHIP_REVISION_NV3_C0    0x0020  // 1998
 
 // Architecture IDs
-#define NV_ARCHITECTURE_NV1     1
-#define NV_ARCHITECTURE_NV2     2
-#define NV_ARCHITECTURE_NV3     3
-
+#define NV_ARCHITECTURE_NV1     1       // NV1/STG2000
+#define NV_ARCHITECTURE_NV2     2       // Nvidia 'Mutara V08' 
+#define NV_ARCHITECTURE_NV3     3       // Riva 128
+#define NV_ARCHITECTURE_NV4     4       // Riva TNT and later
 
 typedef enum nv_bus_generation_e
 {
@@ -119,7 +119,7 @@ typedef struct nv_base_s
     void* ddc;                                  // Display Data Channel for EDID
 } nv_base_t;
 
-#define NV_REG_LIST_END                 0xD15EA5E
+#define NV_REG_LIST_END                         0xD15EA5E
 
 // The NV architectures are very complex.
 // There are hundreds of registers at minimum, and implementing these in a standard way would lead to 
@@ -131,11 +131,11 @@ typedef struct nv_base_s
 // Typically, unless they are for a special purpose (and handled specially) e.g. vga all register reads and writes are also 32-bit aligned
 typedef struct nv_register_s
 {
-    int32_t     address;                    // MMIO Address
-    char*       friendly_name;              // Friendly name
+    int32_t     address;                        // MMIO Address
+    char*       friendly_name;                  // Friendly name
     // reg_ptr not needed as a parameter, because we implicitly know which register si being tiwddled
-    uint32_t    (*on_read)();               // Optional on-read function
-    void        (*on_write)(uint32_t value);// Optional on-write fucntion
+    uint32_t    (*on_read)();                   // Optional on-read function
+    void        (*on_write)(uint32_t value);    // Optional on-write fucntion
 } nv_register_t; 
 
 nv_register_t* nv_get_register(uint32_t address, nv_register_t* register_list, uint32_t num_regs);
