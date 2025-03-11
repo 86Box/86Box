@@ -175,7 +175,7 @@ uint32_t nv3_pfifo_read(uint32_t address)
                 case NV3_PFIFO_CACHE0_STATUS:  
                     // CACHE0 has only one entry so it can only ever be empty or full
 
-                    if (nv3->pfifo.cache0_settings.put_address == nv3->pfifo.cache1_settings.get_address)
+                    if (nv3->pfifo.cache0_settings.put_address == nv3->pfifo.cache0_settings.get_address)
                         ret |= 1 << NV3_PFIFO_CACHE0_STATUS_EMPTY;
                     else
                         ret |= 1 << NV3_PFIFO_CACHE0_STATUS_FULL;
@@ -491,6 +491,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
                     nv3->pfifo.cache1_settings.channel = val;
                     break;
                 // CACHE0_STATUS and CACHE1_STATUS are not writable
+                // DMA configuration
                 case NV3_PFIFO_CACHE1_DMA_CONFIG_0:
                     nv3->pfifo.cache1_settings.dma_state = val;
                     break; 
@@ -701,6 +702,7 @@ void nv3_pfifo_cache0_pull()
         nv3->pfifo.cache0_settings.pull0 |= NV3_PFIFO_CACHE0_PULL0_SOFTWARE_METHOD;
         nv3->pfifo.cache0_settings.pull0 &= ~NV3_PFIFO_CACHE0_PULL0_ENABLED;
         nv3_pfifo_interrupt(NV3_PFIFO_INTR_CACHE_ERROR, true);
+        return;
     }
 
     // Is this needed?
@@ -859,6 +861,7 @@ void nv3_pfifo_cache1_pull()
         nv3->pfifo.cache1_settings.pull0 |= NV3_PFIFO_CACHE0_PULL0_SOFTWARE_METHOD;
         nv3->pfifo.cache1_settings.pull0 &= ~NV3_PFIFO_CACHE0_PULL0_ENABLED;
         nv3_pfifo_interrupt(NV3_PFIFO_INTR_CACHE_ERROR, true);
+        return;
     }
 
     // start by incrementing
