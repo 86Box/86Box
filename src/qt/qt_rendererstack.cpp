@@ -63,6 +63,7 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     : QStackedWidget(parent)
     , ui(new Ui::RendererStack)
 {
+    rendererTakesScreenshots = false;
 #ifdef Q_OS_WINDOWS
     int raw = 1;
 #else
@@ -305,6 +306,7 @@ RendererStack::switchRenderer(Renderer renderer)
 void
 RendererStack::createRenderer(Renderer renderer)
 {
+    rendererTakesScreenshots = false;
     switch (renderer) {
         default:
         case Renderer::Software:
@@ -337,9 +339,30 @@ RendererStack::createRenderer(Renderer renderer)
                 current.reset(this->createWindowContainer(hw, this));
                 break;
             }
+        case Renderer::OpenGL3PCem:
+            {
+                this->createWinId();
+                auto hw        = new OpenGLRenderer(this);
+                rendererWindow = hw;
+                connect(this, &RendererStack::blitToRenderer, hw, &OpenGLRenderer::onBlit, Qt::QueuedConnection);
+                connect(hw, &OpenGLRenderer::initialized, [=]() {
+                    /* Buffers are available only after initialization. */
+                    imagebufs = rendererWindow->getBuffers();
+                    endblit();
+                    emit rendererChanged();
+                });
+                connect(hw, &OpenGLRenderer::errorInitializing, [=]() {
+                    /* Renderer not could initialize, fallback to software. */
+                    imagebufs = {};
+                    QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+                });
+                current.reset(this->createWindowContainer(hw, this));
+                break;
+            }
         case Renderer::OpenGL3:
             {
                 this->createWinId();
+                this->rendererTakesScreenshots = true;
                 auto hw        = new OpenGLRenderer(this);
                 rendererWindow = hw;
                 connect(this, &RendererStack::blitToRenderer, hw, &OpenGLRenderer::onBlit, Qt::QueuedConnection);
@@ -404,9 +427,11 @@ RendererStack::createRenderer(Renderer renderer)
 
     this->setStyleSheet("background-color: black");
 
+    rendererWindow->r_monitor_index = m_monitor_index;
+
     currentBuf = 0;
 
-    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan) {
+    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan && renderer != Renderer::OpenGL3PCem) {
         imagebufs = rendererWindow->getBuffers();
         endblit();
         emit rendererChanged();
@@ -434,7 +459,7 @@ RendererStack::blit(int x, int y, int w, int h)
         video_copy(scanline, &(monitors[m_monitor_index].target_buffer->line[y1][x]), w * 4);
     }
 
-    if (monitors[m_monitor_index].mon_screenshots) {
+    if (monitors[m_monitor_index].mon_screenshots && !rendererTakesScreenshots) {
         video_screenshot_monitor((uint32_t *) imagebits, x, y, 2048, m_monitor_index);
     }
     video_blit_complete_monitor(m_monitor_index);

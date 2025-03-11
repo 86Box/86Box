@@ -24,6 +24,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/apm.h>
 #include <86box/machine.h>

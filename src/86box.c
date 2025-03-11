@@ -172,7 +172,6 @@ int      force_43                               = 0;              /* (C) video *
 int      video_filter_method                    = 1;              /* (C) video */
 int      video_vsync                            = 0;              /* (C) video */
 int      video_framerate                        = -1;             /* (C) video */
-char     video_shader[512]                      = { '\0' };       /* (C) video */
 bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0, 0, 0, 0 }; /* (C) activation and kind of
                                                                                   pass-through for serial ports */
 int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
@@ -213,6 +212,7 @@ int      do_auto_pause                          = 0;              /* (C) Auto-pa
 int      hook_enabled                           = 1;              /* (C) Keyboard hook is enabled */
 int      test_mode                              = 0;              /* (C) Test mode */
 char     uuid[MAX_UUID_LEN]                     = { '\0' };       /* (C) UUID or machine identifier */
+int      sound_muted                            = 0;              /* (C) Is sound muted? */
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
                                                                      present */
@@ -250,6 +250,8 @@ int unscaled_size_x = SCREEN_RES_X; /* current unscaled size X */
 int unscaled_size_y = SCREEN_RES_Y; /* current unscaled size Y */
 int efscrnsz_y = SCREEN_RES_Y;
 #endif
+
+__thread int is_cpu_thread = 0;
 
 static wchar_t mouse_msg[3][200];
 

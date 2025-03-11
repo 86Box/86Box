@@ -61,6 +61,7 @@
 #define VIA_PIPC_586B         0x05864700
 #define VIA_PIPC_596A         0x05960900
 #define VIA_PIPC_596B         0x05962300
+#define VIA_PIPC_596          0x0596
 #define VIA_PIPC_686A         0x06861400
 #define VIA_PIPC_686B         0x06864000
 #define VIA_PIPC_8231         0x82311000
@@ -413,7 +414,9 @@ pipc_reset_hard(void *priv)
             dev->power_regs[0x34] = 0x68;
         dev->power_regs[0x40] = 0x20;
 
-        dev->power_regs[0x42] = 0x50;
+        dev->power_regs[0x42] = ((dev->local >> 16) == VIA_PIPC_596) ? 0x50 : 0x00;
+        acpi_set_irq_line(dev->acpi, 0x00);
+
         dev->power_regs[0x48] = 0x01;
 
         if (dev->local == VIA_PIPC_686B) {
@@ -1593,6 +1596,9 @@ pipc_reset(void *priv)
     pipc_write(pm_func, 0x48, 0x01, priv);
     pipc_write(pm_func, 0x49, 0x00, priv);
 
+    dev->power_regs[0x42] = ((dev->local >> 16) == VIA_PIPC_596) ? 0x50 : 0x00;
+    acpi_set_irq_line(dev->acpi, 0x00);
+
     pipc_write(1, 0x04, 0x80, priv);
     pipc_write(1, 0x09, 0x85, priv);
     pipc_write(1, 0x10, 0xf1, priv);
@@ -1694,6 +1700,8 @@ pipc_init(const device_t *info)
         acpi_set_nvr(dev->acpi, dev->nvr);
 
         acpi_init_gporeg(dev->acpi, 0xff, 0xbf, 0xff, 0x7f);
+
+        acpi_set_irq_mode(dev->acpi, 0);
     }
 
     return dev;

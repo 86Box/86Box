@@ -390,22 +390,21 @@ device_get_priv(const device_t *dev)
 int
 device_available(const device_t *dev)
 {
-    const device_config_t      *config       = NULL;
-    const device_config_bios_t *bios         = NULL;
-
     if (dev != NULL) {
-        config = dev->config;
+        const device_config_t *config = dev->config;
         if (config != NULL) {
             while (config->type != CONFIG_END) {
                 if (config->type == CONFIG_BIOS) {
                     int roms_present = 0;
-
-                    bios = (const device_config_bios_t *) config->bios;
+                    const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
 
                     /* Go through the ROM's in the device configuration. */
-                    while (bios->files_no != 0) {
+                    while ((bios != NULL) &&
+                           (bios->name != NULL) &&
+                           (bios->internal_name != NULL) &&
+                           (bios->files_no != 0)) {
                         int i = 0;
-                        for (int bf = 0; bf < bios->files_no; bf++)
+                        for (uint8_t bf = 0; bf < bios->files_no; bf++)
                             i += !!rom_present(bios->files[bf]);
                         if (i == bios->files_no)
                             roms_present++;
@@ -429,21 +428,128 @@ device_available(const device_t *dev)
     return 0;
 }
 
-const char *
-device_get_bios_file(const device_t *dev, const char *internal_name, int file_no)
+uint8_t
+device_get_bios_type(const device_t *dev, const char *internal_name)
 {
-    const device_config_t      *config = NULL;
-    const device_config_bios_t *bios   = NULL;
-
     if (dev != NULL) {
-        config = dev->config;
+        const device_config_t *config = dev->config;
         if (config != NULL) {
             while (config->type != CONFIG_END) {
                 if (config->type == CONFIG_BIOS) {
-                    bios = config->bios;
+                    const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
+                    while ((bios != NULL) &&
+                           (bios->name != NULL) &&
+                           (bios->internal_name != NULL) &&
+                           (bios->files_no != 0)) {
+                        if (!strcmp(internal_name, bios->internal_name))
+                            return bios->bios_type;
+                        bios++;
+                    }
+                }
+                config++;
+            }
+        }
+    }
+
+    return 0;
+}
+
+uint8_t
+device_get_bios_num_files(const device_t *dev, const char *internal_name)
+{
+    if (dev != NULL) {
+        const device_config_t *config = dev->config;
+        if (config != NULL) {
+            while (config->type != CONFIG_END) {
+                if (config->type == CONFIG_BIOS) {
+                    const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
+                    while ((bios != NULL) &&
+                           (bios->name != NULL) &&
+                           (bios->internal_name != NULL) &&
+                           (bios->files_no != 0)) {
+                        if (!strcmp(internal_name, bios->internal_name))
+                            return bios->files_no;
+                        bios++;
+                    }
+                }
+                config++;
+            }
+        }
+    }
+
+    return 0;
+}
+
+uint32_t
+device_get_bios_local(const device_t *dev, const char *internal_name)
+{
+    if (dev != NULL) {
+        const device_config_t *config = dev->config;
+        if (config != NULL) {
+            while (config->type != CONFIG_END) {
+                if (config->type == CONFIG_BIOS) {
+                    const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
+                    while ((bios != NULL) &&
+                           (bios->name != NULL) &&
+                           (bios->internal_name != NULL) &&
+                           (bios->files_no != 0)) {
+                        printf("Internal name was: %s", internal_name);
+                        if (!strcmp(internal_name, bios->internal_name))
+                            return bios->local;
+                        bios++;
+                    }
+                }
+                config++;
+            }
+        }
+    }
+
+    return 0;
+}
+
+uint32_t
+device_get_bios_file_size(const device_t *dev, const char *internal_name)
+{
+    if (dev != NULL) {
+        const device_config_t *config = dev->config;
+        if (config != NULL) {
+            while (config->type != CONFIG_END) {
+                if (config->type == CONFIG_BIOS) {
+                    const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
 
                     /* Go through the ROM's in the device configuration. */
-                    while (bios->files_no != 0) {
+                    while ((bios != NULL) &&
+                           (bios->name != NULL) &&
+                           (bios->internal_name != NULL) &&
+                           (bios->files_no != 0)) {
+                        if (!strcmp(internal_name, bios->internal_name))
+                            return bios->size;
+                        bios++;
+                    }
+                }
+                config++;
+            }
+        }
+    }
+
+    return 0;
+}
+
+const char *
+device_get_bios_file(const device_t *dev, const char *internal_name, int file_no)
+{
+    if (dev != NULL) {
+        const device_config_t *config = dev->config;
+        if (config != NULL) {
+            while (config->type != CONFIG_END) {
+                if (config->type == CONFIG_BIOS) {
+                    const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
+
+                    /* Go through the ROM's in the device configuration. */
+                    while ((bios != NULL) &&
+                           (bios->name != NULL) &&
+                           (bios->internal_name != NULL) &&
+                           (bios->files_no != 0)) {
                         if (!strcmp(internal_name, bios->internal_name)) {
                             if (file_no < bios->files_no)
                                 return bios->files[file_no];
@@ -660,13 +766,15 @@ device_get_config_string(const char *str)
 int
 device_get_config_int(const char *str)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_int((char *) device_current.name, (char *) str, cfg->default_int));
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name))
+                return (config_get_int((char *) device_current.name, (char *) str, cfg->default_int));
 
-        cfg++;
+            cfg++;
+        }
     }
 
     return 0;
@@ -675,13 +783,15 @@ device_get_config_int(const char *str)
 int
 device_get_config_int_ex(const char *str, int def)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_int((char *) device_current.name, (char *) str, def));
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name))
+                return (config_get_int((char *) device_current.name, (char *) str, def));
 
-        cfg++;
+            cfg++;
+        }
     }
 
     return def;
@@ -690,13 +800,15 @@ device_get_config_int_ex(const char *str, int def)
 int
 device_get_config_hex16(const char *str)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_hex16((char *) device_current.name, (char *) str, cfg->default_int));
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name))
+                return (config_get_hex16((char *) device_current.name, (char *) str, cfg->default_int));
 
-        cfg++;
+            cfg++;
+        }
     }
 
     return 0;
@@ -705,13 +817,15 @@ device_get_config_hex16(const char *str)
 int
 device_get_config_hex20(const char *str)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_hex20((char *) device_current.name, (char *) str, cfg->default_int));
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name))
+                return (config_get_hex20((char *) device_current.name, (char *) str, cfg->default_int));
 
-        cfg++;
+            cfg++;
+        }
     }
 
     return 0;
@@ -720,13 +834,15 @@ device_get_config_hex20(const char *str)
 int
 device_get_config_mac(const char *str, int def)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_mac((char *) device_current.name, (char *) str, def));
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name))
+                return (config_get_mac((char *) device_current.name, (char *) str, def));
 
-        cfg++;
+            cfg++;
+        }
     }
 
     return def;
@@ -735,60 +851,68 @@ device_get_config_mac(const char *str, int def)
 void
 device_set_config_int(const char *str, int val)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name)) {
-            config_set_int((char *) device_current.name, (char *) str, val);
-            break;
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                config_set_int((char *) device_current.name, (char *) str, val);
+                break;
+            }
+
+            cfg++;
         }
-
-        cfg++;
     }
 }
 
 void
 device_set_config_hex16(const char *str, int val)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name)) {
-            config_set_hex16((char *) device_current.name, (char *) str, val);
-            break;
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                config_set_hex16((char *) device_current.name, (char *) str, val);
+                break;
+            }
+
+            cfg++;
         }
-
-        cfg++;
     }
 }
 
 void
 device_set_config_hex20(const char *str, int val)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name)) {
-            config_set_hex20((char *) device_current.name, (char *) str, val);
-            break;
-        }
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                config_set_hex20((char *) device_current.name, (char *) str, val);
+                break;
+            }
 
         cfg++;
+        }
     }
 }
 
 void
 device_set_config_mac(const char *str, int val)
 {
-    const device_config_t *cfg = device_current.dev->config;
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
 
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name)) {
-            config_set_mac((char *) device_current.name, (char *) str, val);
-            break;
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                config_set_mac((char *) device_current.name, (char *) str, val);
+                break;
+            }
+
+            cfg++;
         }
-
-        cfg++;
     }
 }
 
@@ -806,20 +930,18 @@ device_is_valid(const device_t *device, int mch)
 int
 machine_get_config_int(char *str)
 {
-    const device_t        *dev = machine_get_device(machine);
-    const device_config_t *cfg;
+    const device_t *dev = machine_get_device(machine);
 
-    if (dev == NULL)
-        return 0;
+    if (dev != NULL) {
+        const device_config_t *cfg = dev->config;
 
-    cfg = dev->config;
-    while (cfg && cfg->type != CONFIG_END) {
-        if (!strcmp(str, cfg->name))
-            return (config_get_int((char *) dev->name, str, cfg->default_int));
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name))
+                return (config_get_int((char *) dev->name, str, cfg->default_int));
 
-        cfg++;
+            cfg++;
+        }
     }
-
     return 0;
 }
 
@@ -830,9 +952,8 @@ machine_get_config_string(char *str)
     const char     *ret = "";
 
     if (dev != NULL) {
-        const device_config_t *cfg;
+        const device_config_t *cfg = dev->config;
 
-        cfg = dev->config;
         while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
             if (!strcmp(str, cfg->name)) {
                 const char *s = config_get_string((char *) dev->name, str,

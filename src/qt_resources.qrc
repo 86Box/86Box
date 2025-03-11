@@ -43,6 +43,7 @@
         <file>qt/icons/other_removable_devices.ico</file>
         <file>qt/icons/ports.ico</file>
         <file>qt/icons/sound.ico</file>
+        <file>qt/icons/sound_mute.ico</file>
         <file>qt/icons/storage_controllers.ico</file>
         <file>qt/icons/zip.ico</file>
         <file>qt/icons/zip_active.ico</file>

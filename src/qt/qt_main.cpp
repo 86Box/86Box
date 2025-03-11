@@ -86,9 +86,12 @@ extern MainWindow   *main_window;
 
 extern "C" {
 #include <86box/keyboard.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/nvr.h>
 extern int qt_nvr_save(void);
+
+bool cpu_thread_running = false;
 }
 
 void qt_set_sequence_auto_mnemonic(bool b);
@@ -388,6 +391,7 @@ main_thread_fn()
     // title_update = 1;
     uint64_t old_time = elapsed_timer.elapsed();
     int drawits = frames = 0;
+    is_cpu_thread = 1;
     while (!is_quit && cpu_thread_run) {
         /* See if it is time to run a frame of code. */
         const uint64_t new_time = elapsed_timer.elapsed();
@@ -442,6 +446,7 @@ main_thread_fn()
         }
     }
 
+    cpu_thread_running = false;
     is_quit = 1;
     for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
         if (gfxcard[i]) {
@@ -660,7 +665,7 @@ main(int argc, char *argv[])
 
     /* Force raw input if a debugger is present. */
     if (IsDebuggerPresent()) {
-        pclog("WARNING: Debugged detected, forcing raw input\n");
+        pclog("WARNING: Debugger detected, forcing raw input\n");
         hook_enabled = 0;
     }
 
@@ -734,6 +739,7 @@ main(int argc, char *argv[])
 #endif
             plat_pause(0);
 
+        cpu_thread_running = true;
         main_thread = new std::thread(main_thread_fn);
     });
 

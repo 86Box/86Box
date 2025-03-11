@@ -425,8 +425,8 @@ ncr53c400_callback(void *priv)
 
     if (scsi_bus->tx_mode != PIO_TX_BUS) {
         if (ncr400->type == ROM_T130B) {
-            ncr53c400_log("PERIOD T130B DMA=%lf.\n", scsi_bus->period / 200.0);
-            timer_on_auto(&ncr400->timer, scsi_bus->period / 200.0);
+            ncr53c400_log("PERIOD T130B DMA=%lf.\n", scsi_bus->period / 225.0);
+            timer_on_auto(&ncr400->timer, scsi_bus->period / 225.0);
         } else
             timer_on_auto(&ncr400->timer, 1.0);
     }

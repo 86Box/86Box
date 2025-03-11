@@ -155,14 +155,22 @@ net_slirp_timer_mod(void *timer, int64_t expire_timer, UNUSED(void *opaque))
 }
 
 static void
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+net_slirp_register_poll_socket(slirp_os_socket fd, void *opaque)
+#else
 net_slirp_register_poll_fd(int fd, void *opaque)
+#endif
 {
     (void) fd;
     (void) opaque;
 }
 
 static void
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+net_slirp_unregister_poll_socket(slirp_os_socket fd, void *opaque)
+#else
 net_slirp_unregister_poll_fd(int fd, void *opaque)
+#endif
 {
     (void) fd;
     (void) opaque;
@@ -198,7 +206,11 @@ net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
 
 #ifdef _WIN32
 static int
+#    if SLIRP_CHECK_VERSION(4, 9, 0)
+net_slirp_add_poll(slirp_os_socket fd, int events, void *opaque)
+#    else
 net_slirp_add_poll(int fd, int events, void *opaque)
+#    endif
 {
     net_slirp_t *slirp   = (net_slirp_t *) opaque;
     long         bitmask = 0;
@@ -216,7 +228,11 @@ net_slirp_add_poll(int fd, int events, void *opaque)
 }
 #else
 static int
+#    if SLIRP_CHECK_VERSION(4, 9, 0)
+net_slirp_add_poll(slirp_os_socket fd, int events, void *opaque)
+#    else
 net_slirp_add_poll(int fd, int events, void *opaque)
+#    endif
 {
     net_slirp_t *slirp = (net_slirp_t *) opaque;
 
@@ -307,8 +323,13 @@ static const SlirpCb slirp_cb = {
     .timer_new          = net_slirp_timer_new,
     .timer_free         = net_slirp_timer_free,
     .timer_mod          = net_slirp_timer_mod,
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+    .register_poll_socket   = net_slirp_register_poll_socket,
+    .unregister_poll_socket = net_slirp_unregister_poll_socket,
+#else
     .register_poll_fd   = net_slirp_register_poll_fd,
     .unregister_poll_fd = net_slirp_unregister_poll_fd,
+#endif
     .notify             = net_slirp_notify
 };
 
@@ -362,7 +383,11 @@ net_slirp_thread(void *priv)
     bool run               = true;
     while (run) {
         uint32_t timeout = -1;
+#    if SLIRP_CHECK_VERSION(4, 9, 0)
+        slirp_pollfds_fill_socket(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
+#    else
         slirp_pollfds_fill(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
+#    endif
         if (timeout < 0)
             timeout = INFINITE;
 
@@ -409,7 +434,11 @@ net_slirp_thread(void *priv)
         net_slirp_add_poll(net_event_get_fd(&slirp->stop_event), SLIRP_POLL_IN, slirp);
         net_slirp_add_poll(net_event_get_fd(&slirp->tx_event), SLIRP_POLL_IN, slirp);
 
+#    if SLIRP_CHECK_VERSION(4, 9, 0)
+        slirp_pollfds_fill_socket(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
+#    else
         slirp_pollfds_fill(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
+#    endif
 
         int ret = poll(slirp->pfd, slirp->pfd_len, timeout);
 
@@ -460,10 +489,47 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
     struct in_addr  dhcp       = { .s_addr = htonl(0x0a00000f | (slirp_card_num << 8)) }; /* 10.0.x.15 */
     struct in_addr  dns        = { .s_addr = htonl(0x0a000003 | (slirp_card_num << 8)) }; /* 10.0.x.3 */
     struct in_addr  bind       = { .s_addr = htonl(0x00000000) };                         /* 0.0.0.0 */
-    struct in6_addr ipv6_dummy = { 0 };                                                   /* contents don't matter; we're not using IPv6 */
+
+    const SlirpConfig slirp_config = {
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+        .version = 6,
+#else
+        .version = 1,
+#endif
+        .restricted            = 0,
+        .in_enabled            = 1,
+        .vnetwork              = net,
+        .vnetmask              = mask,
+        .vhost                 = host,
+        .in6_enabled           = 0,
+        .vprefix_addr6         = { .s6_addr = { 0xfe, 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } }, /* fec0:: - unused */
+        .vprefix_len           = 64,
+        .vhost6                = { .s6_addr = { 0xfe, 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x02 } }, /* fec0::2 - unused */
+        .vhostname             = "86Box",
+        .tftp_server_name      = NULL,
+        .tftp_path             = NULL,
+        .bootfile              = NULL,
+        .vdhcp_start           = dhcp,
+        .vnameserver           = dns,
+        .vnameserver6          = { .s6_addr = { 0xfe, 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x03 } }, /* fec0::3 - unused */
+        .vdnssearch            = NULL,
+        .vdomainname           = NULL,
+        .if_mtu                = 0,
+        .if_mru                = 0,
+        .disable_host_loopback = 0,
+        .enable_emu            = 0,
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+        .outbound_addr         = NULL,
+        .outbound_addr6        = NULL,
+        .disable_dns           = 0,
+        .disable_dhcp          = 0,
+        .mfr_id                = 0,
+        .oob_eth_addr          = { 0, 0, 0, 0, 0, 0 }
+#endif
+    };
 
     /* Initialize SLiRP. */
-    slirp->slirp = slirp_init(0, 1, net, mask, host, 0, ipv6_dummy, 0, ipv6_dummy, NULL, NULL, NULL, NULL, dhcp, dns, ipv6_dummy, NULL, NULL, &slirp_cb, slirp);
+    slirp->slirp = slirp_new(&slirp_config, &slirp_cb, slirp);
     if (!slirp->slirp) {
         slirp_log("SLiRP: initialization failed\n");
         snprintf(netdrv_errbuf, NET_DRV_ERRBUF_SIZE, "SLiRP initialization failed");
