@@ -66,4 +66,8 @@ uint32_t nv3_user_read(uint32_t address)
 void nv3_user_write(uint32_t address, uint32_t value) 
 {
     nv3_pfifo_cache1_push(address, value);
+
+    // This isn't ideal, but otherwise, the dynarec causes the GPU to write so many objects into CACHE1, it starts overwriting the old objects
+    // This basically makes the fifo not a fifo, but oh well 
+    nv3_pfifo_cache1_pull();
 }

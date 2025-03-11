@@ -267,7 +267,7 @@ uint32_t nv3_pfifo_read(uint32_t address)
 
                     break;
                 
-                /* Cache1 is handled below */
+                /* Cache1 is handled below - cache0 only has one entry */
                 case NV3_PFIFO_CACHE0_CTX:
                     ret = nv3->pfifo.cache0_settings.context[0];
                     break;
@@ -293,7 +293,7 @@ uint32_t nv3_pfifo_read(uint32_t address)
     {
         nv_log("PFIFO Cache0 Read\n");
 
-        if (address & 4)
+        if (address & 4) 
             return nv3->pfifo.cache0_entry.data;
         else
             return nv3->pfifo.cache0_entry.method | (nv3->pfifo.cache0_entry.subchannel << NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL);
@@ -545,8 +545,12 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
     }
     else if (address >= NV3_PFIFO_CACHE0_METHOD_START && address <= NV3_PFIFO_CACHE0_METHOD_END)
     {
+        // 3104 always written after 3100
         if (address & 4)
+        {   
             nv3->pfifo.cache0_entry.data = val;
+            nv3_pfifo_cache0_pull(); // immediately pull out
+        }
         else
             nv3->pfifo.cache0_entry.method = (val & 0x1FFC);
             nv3->pfifo.cache0_entry.subchannel = (val >> NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL) & 0x07;

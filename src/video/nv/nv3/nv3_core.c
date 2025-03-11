@@ -127,7 +127,14 @@ uint32_t nv3_mmio_read32(uint32_t addr, void* priv)
     }
 
 
-    return nv3_mmio_arbitrate_read(addr);
+    ret = nv3_mmio_arbitrate_read(addr);
+
+    // This may get around the riva shredding its own cache 
+    //nv3_pfifo_cache0_pull();
+    //nv3_pfifo_cache1_pull();
+
+    return ret; 
+
 }
 
 // Write 8-bit MMIO
@@ -206,6 +213,10 @@ void nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv)
     }
 
     nv3_mmio_arbitrate_write(addr, val);
+
+    // This may get around the riva shredding its own cache 
+    //nv3_pfifo_cache0_pull();
+    //nv3_pfifo_cache1_pull();
 }
 
 // PCI stuff
