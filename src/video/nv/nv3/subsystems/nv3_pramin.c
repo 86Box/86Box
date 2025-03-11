@@ -502,15 +502,15 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
 // Prints out some informaiton about the object
 void nv3_debug_ramin_print_context_info(uint32_t name, nv3_ramin_context_t context)
 {
-    nv_log("Found object:");
-    nv_log("Name: 0x%04x", name);
+    nv_log("Found object:\n");
+    nv_log("Name: 0x%04x\n", name);
 
-    nv_log("Context:");
-    nv_log("DMA Channel %d (0-7 valid)", context.channel);
-    nv_log("Class ID: as repreesnted in ramin=%04x, Stupid 5 bit version (the actual id)=0x%04x (%s)", context.class_id, 
+    nv_log("Context:\n");
+    nv_log("DMA Channel %d (0-7 valid)\n", context.channel);
+    nv_log("Class ID: as repreesnted in ramin=%04x, Stupid 5 bit version (the actual id)=0x%04x (%s)\n", context.class_id, 
     context.class_id & 0x1F, nv3_class_names[context.class_id & 0x1F]);
-    nv_log("Render Engine %d (0=Software, also DMA? 1=Accelerated Renderer)", context.is_rendering);
-    nv_log("PRAMIN Offset 0x%08x", context.ramin_offset << 4);
+    nv_log("Render Engine %d (0=Software, also DMA? 1=Accelerated Renderer)\n", context.is_rendering);
+    nv_log("PRAMIN Offset 0x%08x\n", context.ramin_offset << 4);
 }
 
 #endif

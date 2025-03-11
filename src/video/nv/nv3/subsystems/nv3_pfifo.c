@@ -201,8 +201,17 @@ uint32_t nv3_pfifo_read(uint32_t address)
                     ret = ((nv3->pfifo.cache1_settings.method_subchannel << 13) & 0x07)
                     | ((nv3->pfifo.cache1_settings.method_address << 2) & 0x7FF);
                     break;
+                case NV3_PFIFO_CACHE0_PUT:
+                    ret = nv3->pfifo.cache0_settings.put_address;
+                    break;
                 case NV3_PFIFO_CACHE0_GET:
-                    //wa
+                    ret = nv3->pfifo.cache0_settings.get_address;
+                    break;
+                case NV3_PFIFO_CACHE1_PUT:
+                    ret = nv3->pfifo.cache1_settings.put_address;
+                    break; 
+                case NV3_PFIFO_CACHE1_GET: 
+                    ret = nv3->pfifo.cache1_settings.get_address;
                     break;
                 // Reassignment
                 case NV3_PFIFO_CACHE_REASSIGNMENT:
@@ -324,7 +333,7 @@ void nv3_pfifo_trigger_dma_if_required()
     }
 }
 
-void nv3_pfifo_write(uint32_t address, uint32_t value) 
+void nv3_pfifo_write(uint32_t address, uint32_t val) 
 {
     // before doing anything, check the subsystem enablement
 
@@ -337,14 +346,14 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
 
     nv_register_t* reg = nv_get_register(address, pfifo_registers, sizeof(pfifo_registers)/sizeof(pfifo_registers[0]));
 
-    nv_log("PFIFO Write 0x%08x -> 0x%08x", value, address);
+    nv_log("PFIFO Write 0x%08x -> 0x%08x", val, address);
 
     // if the register actually exists
     if (reg)
     {
         // on-read function
         if (reg->on_write)
-            reg->on_write(value);
+            reg->on_write(val);
         else
         {
             switch (reg->address)
@@ -356,7 +365,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                 // Bit 12 - DMA Pusher 
                 // Bit 16 - DMA Page Table Entry (pagefault?)
                 case NV3_PFIFO_INTR:
-                    nv3->pfifo.interrupt_status &= ~value;
+                    nv3->pfifo.interrupt_status &= ~val;
                     nv3_pmc_clear_interrupts();
 
                     // update the internal cache error state
@@ -364,21 +373,21 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                         nv3->pfifo.debug_0 &= ~NV3_PFIFO_INTR_CACHE_ERROR;
                     break;
                 case NV3_PFIFO_INTR_EN:
-                    nv3->pfifo.interrupt_enable = value & 0x00011111;
+                    nv3->pfifo.interrupt_enable = val & 0x00011111;
                     nv3_pmc_handle_interrupts(true);
                     break;
                 case NV3_PFIFO_DELAY_0:
-                    nv3->pfifo.dma_delay_retry = value;
+                    nv3->pfifo.dma_delay_retry = val;
                     break;
                 case NV3_PFIFO_CONFIG_0:
-                    nv3->pfifo.config_0 = value;
+                    nv3->pfifo.config_0 = val;
                     break;
 
                 case NV3_PFIFO_CONFIG_RAMHT:
-                    nv3->pfifo.ramht_config = value;
+                    nv3->pfifo.ramht_config = val;
 // This code sucks a bit fix it later
 #ifdef ENABLE_NV_LOG
-                    uint32_t new_size_ramht = ((value >> 16) & 0x03);
+                    uint32_t new_size_ramht = ((val >> 16) & 0x03);
 
                     if (new_size_ramht == 0)
                         new_size_ramht = 0x1000;
@@ -395,15 +404,15 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
 #endif
                     break;
                 case NV3_PFIFO_CONFIG_RAMFC:
-                    nv3->pfifo.ramfc_config = value;
+                    nv3->pfifo.ramfc_config = val;
 
                     nv_log("RAMFC Reconfiguration\n"
                     "Base Address in RAMIN: %d\n", ((nv3->pfifo.ramfc_config >> NV3_PFIFO_CONFIG_RAMFC_BASE_ADDRESS) & 0x7F) << 9); 
                     break;
                 case NV3_PFIFO_CONFIG_RAMRO:
-                    nv3->pfifo.ramro_config = value;
+                    nv3->pfifo.ramro_config = val;
 
-                    uint32_t new_size_ramro = ((value >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
+                    uint32_t new_size_ramro = ((val >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
 
                     if (new_size_ramro == 0)
                         new_size_ramro = 0x200;
@@ -415,86 +424,99 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
                     "Size: 0x%08x bytes\n", ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_BASE_ADDRESS) & 0x7F) << 9, new_size_ramro); 
                     break;
                 case NV3_PFIFO_DEBUG_0:
-                    nv3->pfifo.debug_0 = value;
+                    nv3->pfifo.debug_0 = val;
                     break;
                 // Reassignment
                 case NV3_PFIFO_CACHE_REASSIGNMENT:
-                    nv3->pfifo.cache_reassignment = value & 0x01; //1bit meaningful
+                    nv3->pfifo.cache_reassignment = val & 0x01; //1bit meaningful
                     break;
                 // Control
                 case NV3_PFIFO_CACHE0_PULLER_CONTROL:
-                    nv3->pfifo.cache0_settings.puller_control = value; // 8bits meaningful
+                    nv3->pfifo.cache0_settings.puller_control = val; // 8bits meaningful
                     break;
                 case NV3_PFIFO_CACHE1_PULL0:
-                    nv3->pfifo.cache1_settings.puller_control = value; // 8bits meaningful
+                    nv3->pfifo.cache1_settings.puller_control = val; // 8bits meaningful
                     break;
                 case NV3_PFIFO_CACHE0_PULLER_CTX_STATE:
-                    nv3->pfifo.cache0_settings.context_is_dirty = (value >> NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY) & 0x01;
+                    nv3->pfifo.cache0_settings.context_is_dirty = (val >> NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY) & 0x01;
                     break;
                 case NV3_PFIFO_CACHE1_PULLER_CTX_STATE:
-                    nv3->pfifo.cache1_settings.context_is_dirty = (value >> NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY) & 0x01;
+                    nv3->pfifo.cache1_settings.context_is_dirty = (val >> NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY) & 0x01;
                     break;
                 case NV3_PFIFO_CACHE0_DMA_PUSH0:
-                    nv3->pfifo.cache0_settings.dma_push0 = value;
+                    nv3->pfifo.cache0_settings.dma_push0 = val;
                     break;
                 case NV3_PFIFO_CACHE1_DMA_PUSH0:
-                    nv3->pfifo.cache1_settings.dma_push0 = value;
+                    nv3->pfifo.cache1_settings.dma_push0 = val;
                     break; 
                 case NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID:
-                    nv3->pfifo.cache0_settings.channel = value;
+                    nv3->pfifo.cache0_settings.channel = val;
                     break;
                 case NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID:
-                    nv3->pfifo.cache1_settings.channel = value;
+                    nv3->pfifo.cache1_settings.channel = val;
                     break;
                 // CACHE0_STATUS and CACHE1_STATUS are not writable
                 case NV3_PFIFO_CACHE0_METHOD:
-                    nv3->pfifo.cache0_settings.method_subchannel = (value >> 13) & 0x07;
-                    nv3->pfifo.cache0_settings.method_address = (value >> 2) & 0x7FF;
+                    nv3->pfifo.cache0_settings.method_subchannel = (val >> 13) & 0x07;
+                    nv3->pfifo.cache0_settings.method_address = (val >> 2) & 0x7FF;
                     break;
                 case NV3_PFIFO_CACHE1_METHOD:
-                    nv3->pfifo.cache1_settings.method_subchannel = (value >> 13) & 0x07;
-                    nv3->pfifo.cache1_settings.method_address = (value >> 2) & 0x7FF;
+                    nv3->pfifo.cache1_settings.method_subchannel = (val >> 13) & 0x07;
+                    nv3->pfifo.cache1_settings.method_address = (val >> 2) & 0x7FF;
                     break;
                 case NV3_PFIFO_CACHE1_DMA_CONFIG_0:
-                    nv3->pfifo.cache1_settings.dma_state = value;
+                    nv3->pfifo.cache1_settings.dma_state = val;
                     break; 
                 case NV3_PFIFO_CACHE1_DMA_CONFIG_1:
-                    nv3->pfifo.cache1_settings.dma_length = value;
+                    nv3->pfifo.cache1_settings.dma_length = val;
                     break;
                 case NV3_PFIFO_CACHE1_DMA_CONFIG_2:
-                    nv3->pfifo.cache1_settings.dma_address = value;
+                    nv3->pfifo.cache1_settings.dma_address = val;
                     break;
                 case NV3_PFIFO_CACHE1_DMA_STATUS:
-                    nv3->pfifo.cache1_settings.dma_status = value;
+                    nv3->pfifo.cache1_settings.dma_status = val;
                     break;
                 case NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE:
-                    nv3->pfifo.cache1_settings.dma_tlb_pt_base = value;
+                    nv3->pfifo.cache1_settings.dma_tlb_pt_base = val;
                     break;
                 case NV3_PFIFO_CACHE1_DMA_TLB_PTE:
-                    nv3->pfifo.cache1_settings.dma_tlb_pte = value;
+                    nv3->pfifo.cache1_settings.dma_tlb_pte = val;
                     break;
                 case NV3_PFIFO_CACHE1_DMA_TLB_TAG:
-                    nv3->pfifo.cache1_settings.dma_tlb_tag = value;
+                    nv3->pfifo.cache1_settings.dma_tlb_tag = val;
+                    break;
+                /* Put and Get addresses */
+                case NV3_PFIFO_CACHE0_PUT:
+                    nv3->pfifo.cache0_settings.put_address = val;
+                    break;
+                case NV3_PFIFO_CACHE0_GET:
+                    nv3->pfifo.cache0_settings.get_address = val;
+                    break;
+                case NV3_PFIFO_CACHE1_PUT:
+                    nv3->pfifo.cache1_settings.put_address = val;
+                    break; 
+                case NV3_PFIFO_CACHE1_GET: 
+                    nv3->pfifo.cache1_settings.get_address = val;
                     break;
                 case NV3_PFIFO_RUNOUT_GET:
                     uint32_t size_get = ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
 
                     if (size_get == 0) //512b
-                        nv3->pfifo.runout_get = ((value & 0x3F) << 3);
+                        nv3->pfifo.runout_get = ((val & 0x3F) << 3);
                     else 
-                        nv3->pfifo.runout_get = ((value & 0x3FF) << 3);
+                        nv3->pfifo.runout_get = ((val & 0x3FF) << 3);
                     break;
                 case NV3_PFIFO_RUNOUT_PUT:
                     uint32_t size_put = ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
 
                     if (size_put == 0) //512b
-                        nv3->pfifo.runout_put = ((value & 0x3F) << 3);
+                        nv3->pfifo.runout_put = ((val & 0x3F) << 3);
                     else 
-                        nv3->pfifo.runout_put = ((value & 0x3FF) << 3);
+                        nv3->pfifo.runout_put = ((val & 0x3FF) << 3);
                     break;
                 /* Cache1 is handled below */
                 case NV3_PFIFO_CACHE0_CTX:
-                    nv3->pfifo.cache0_settings.context[0] = value;
+                    nv3->pfifo.cache0_settings.context[0] = val;
                     break;
             }
         }
@@ -508,9 +530,9 @@ void nv3_pfifo_write(uint32_t address, uint32_t value)
     else if (address >= NV3_PFIFO_CACHE1_CTX_START && address <= NV3_PFIFO_CACHE1_CTX_END)
     {
         uint32_t ctx_entry_id = ((address - NV3_PFIFO_CACHE1_CTX_START) / 16) % 8;
-        nv3->pfifo.cache1_settings.context[ctx_entry_id] = value;
+        nv3->pfifo.cache1_settings.context[ctx_entry_id] = val;
 
-        nv_log("PFIFO Cache1 CTX Write Entry=%d value=0x%04x\n", ctx_entry_id, value);
+        nv_log("PFIFO Cache1 CTX Write Entry=%d value=0x%04x\n", ctx_entry_id, val);
     }
 
     /* Trigger DMA for notifications if we need to */

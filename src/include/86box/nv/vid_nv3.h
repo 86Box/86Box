@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   26 February 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   11 March 2025 (STILL WORKING ON IT!!!)
  *  
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -977,7 +977,7 @@ typedef struct nv3_pfifo_s
     uint32_t runout_get;                // 8:3 if RAMRO=512b, otherwise 12:3
 
     // Cache stuff
-    uint32_t cache_reassignment;        // Enable automatic reassignment into CACHE0?
+    uint32_t cache_reassignment;        // Allow context switching
     nv3_pfifo_cache_t cache0_settings;
     nv3_pfifo_cache_t cache1_settings;
 
@@ -1213,13 +1213,12 @@ typedef struct nv3_ramin_context_s
 
         struct
         {
-            bool reserved : 1;
-            uint8_t channel : 7;
-            bool is_rendering : 1;
-            uint8_t class_id : 7;
             uint16_t ramin_offset; 
+            uint8_t class_id : 7;
+            bool is_rendering : 1;
+            uint8_t channel : 7;
+            bool reserved : 1;
         };
-
     };
 } nv3_ramin_context_t;
 
