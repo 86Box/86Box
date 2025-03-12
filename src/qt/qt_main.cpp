@@ -370,7 +370,11 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     else if (last && (lpKdhs->scanCode == 0x00000036))
         last = 0;
 
-    win_keyboard_handle(lpKdhs->scanCode, lpKdhs->flags & LLKHF_UP, lpKdhs->flags & LLKHF_EXTENDED, 0);
+    if ((lpKdhs->scanCode == 0xf1) || (lpKdhs->scanCode == 0xf2))
+        /* Hanja and Han/Eng keys, suppress the extended flag. */
+        win_keyboard_handle(lpKdhs->scanCode, lpKdhs->flags & LLKHF_UP, 0, 0);
+    else
+        win_keyboard_handle(lpKdhs->scanCode, lpKdhs->flags & LLKHF_UP, lpKdhs->flags & LLKHF_EXTENDED, 0);
 
     return ret;
 }
