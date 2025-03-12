@@ -74,54 +74,74 @@ extern int video_vsync;
 extern int video_focus_dim;
 extern int video_refresh_rate;
 
-const char *vertex_shader_default_tex_src = "#version 130\n"
-                                            "\n"
-                                            "in vec4 VertexCoord;\n"
-                                            "in vec2 TexCoord;\n"
-                                            "\n"
-                                            "out vec2 texCoord;\n"
-                                            "\n"
-                                            "void main()\n"
-                                            "{\n"
-                                            "       gl_Position = VertexCoord;\n"
-                                            "       texCoord = TexCoord;\n"
-                                            "}\n";
+const char* vertex_shader_default_tex_src =
+#ifdef __APPLE__
+        "#version 150\n"
+#else
+        "#version 130\n"
+#endif
+        "\n"
+        "in vec4 VertexCoord;\n"
+        "in vec2 TexCoord;\n"
+        "\n"
+        "out vec2 texCoord;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "       gl_Position = VertexCoord;\n"
+        "       texCoord = TexCoord;\n"
+        "}\n";
 
-const char *fragment_shader_default_tex_src = "#version 130\n"
-                                              "\n"
-                                              "in vec2 texCoord;\n"
-                                              "uniform sampler2D Texture;\n"
-                                              "\n"
-                                              "out vec4 color;"
-                                              "\n"
-                                              "void main()\n"
-                                              "{\n"
-                                              "       color = texture(Texture, texCoord);\n"
-                                              "}\n";
+const char* fragment_shader_default_tex_src =
+#ifdef __APPLE__
+        "#version 150\n"
+#else
+        "#version 130\n"
+#endif
+        "\n"
+        "in vec2 texCoord;\n"
+        "uniform sampler2D Texture;\n"
+        "\n"
+        "out vec4 color;"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "       color = texture(Texture, texCoord);\n"
+        "}\n";
 
-const char *vertex_shader_default_color_src = "#version 130\n"
-                                              "\n"
-                                              "in vec4 VertexCoord;\n"
-                                              "in vec4 Color;\n"
-                                              "\n"
-                                              "out vec4 color;\n"
-                                              "\n"
-                                              "void main()\n"
-                                              "{\n"
-                                              "       gl_Position = VertexCoord;\n"
-                                              "       color = Color;\n"
-                                              "}\n";
+const char* vertex_shader_default_color_src =
+#ifdef __APPLE__
+        "#version 150\n"
+#else
+        "#version 130\n"
+#endif
+        "\n"
+        "in vec4 VertexCoord;\n"
+        "in vec4 Color;\n"
+        "\n"
+        "out vec4 color;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "       gl_Position = VertexCoord;\n"
+        "       color = Color;\n"
+        "}\n";
 
-const char *fragment_shader_default_color_src = "#version 130\n"
-                                                "\n"
-                                                "in vec4 color;\n"
-                                                "\n"
-                                                "out vec4 outColor;"
-                                                "\n"
-                                                "void main()\n"
-                                                "{\n"
-                                                "       outColor = color;\n"
-                                                "}\n";
+const char* fragment_shader_default_color_src =
+#ifdef __APPLE__
+        "#version 150\n"
+#else
+        "#version 130\n"
+#endif
+        "\n"
+        "in vec4 color;\n"
+        "\n"
+        "out vec4 outColor;"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "       outColor = color;\n"
+        "}\n";
 
 static inline int
 next_pow2(unsigned int n)
