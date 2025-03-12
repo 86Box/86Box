@@ -809,6 +809,7 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     source.setRect(0, 0, 100, 100);
     isInitialized = false;
     isFinalized = false;
+    context = nullptr;
 }
 
 OpenGLRenderer::~OpenGLRenderer() { finalize(); }
@@ -1088,7 +1089,7 @@ OpenGLRenderer::initialize()
 void
 OpenGLRenderer::finalize()
 {
-    if (isFinalized)
+    if (isFinalized || !context)
         return;
 
     context->makeCurrent(this);
