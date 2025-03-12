@@ -177,7 +177,6 @@ OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const ch
     QByteArray  finalSource = nullptr;
     const char *source[5];
     char        version[50];
-    int         ver         = 0;
     char       *version_loc = (char *) strstr(program, "#version");
     if (version_loc) {
         snprintf(version, 49, "%s\n", versionRegex.match(progSource).captured(1).toLatin1().data());
