@@ -27,7 +27,7 @@
 #include <86box/video.h>
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
-
+#include <86box/nv/classes/vid_nv3_classes.h>
 
 // Initialise the PGRAPH subsystem.
 void nv3_pgraph_init()
@@ -474,12 +474,15 @@ void nv3_pgraph_arbitrate_method(uint32_t name, uint16_t method, uint8_t channel
     /* Obtain the grobj information from the context in ramin */
     nv3_grobj_t grobj = {0};
 
-    grobj.grobj_0 = nv3_ramin_read32(context.ramin_offset, nv3);
-    grobj.grobj_1 = nv3_ramin_read32(context.ramin_offset + 4, nv3);
-    grobj.grobj_2 = nv3_ramin_read32(context.ramin_offset + 8, nv3);
-    grobj.grobj_3 = nv3_ramin_read32(context.ramin_offset + 12, nv3);
+    // we need to shift left by 4 to get the real address, something to do with the 16 byte unit of reversal 
+    uint32_t real_ramin_base = context.ramin_offset << 4;
 
-    nv_log("**** About to execute method **** obj name=0x%08x, method=0x%04x, channel=%d.%d, class=%s, grobj=0x%08x 0x%08x 0x%08x 0x%08x",
+    grobj.grobj_0 = nv3_ramin_read32(real_ramin_base, nv3);
+    grobj.grobj_1 = nv3_ramin_read32(real_ramin_base + 4, nv3);
+    grobj.grobj_2 = nv3_ramin_read32(real_ramin_base + 8, nv3);
+    grobj.grobj_3 = nv3_ramin_read32(real_ramin_base + 12, nv3);
+
+    nv_log("**** About to execute method **** obj name=0x%08x, method=0x%04x, channel=%d.%d, class=%s, grobj=0x%08x 0x%08x 0x%08x 0x%08x\n",
         name, method, channel, subchannel, nv3_class_names[class_id], grobj.grobj_0, grobj.grobj_1, grobj.grobj_2, grobj.grobj_3);
 
     // By this point, we already ANDed the class ID to 0x1F.
@@ -559,7 +562,7 @@ void nv3_pgraph_arbitrate_method(uint32_t name, uint16_t method, uint8_t channel
 }
 
 /* Arbitrates graphics object submission to the right object types */
-void nv3_pgraph_submit(uint32_t name, uint16_t method, uint8_t channel, uint8_t subchannel, uint8_t class_id, nv3_ramin_context_t  context)
+void nv3_pgraph_submit(uint32_t param, uint16_t method, uint8_t channel, uint8_t subchannel, uint8_t class_id, nv3_ramin_context_t  context)
 {
     // class id can be derived from the context but we debug log it before we get here
     // Do we need to read grobj here?
@@ -568,12 +571,12 @@ void nv3_pgraph_submit(uint32_t name, uint16_t method, uint8_t channel, uint8_t 
     {
         // This method is how we figure out which methods exist.
         case NV3_ROOT_HI_IM_OBJECT_MCOBJECTYFACE:
-            nv_log("I'm an Nvidia Object! name=0x%08x channel=%d.%d class=0x%02x (%s) method=0x%04x, context=0x%08x\n",
-            name, channel, subchannel, class_id, nv3_class_names[class_id], method, context);
+            nv_log("I'm an Nvidia Object!  channel=%d.%d class=0x%02x (%s) method=0x%04x parameter=0x%08x, context=0x%08x\n",
+            channel, subchannel, class_id, nv3_class_names[class_id], method, param, context);
             break;
         default:
             // Object Method orchestration
-            nv3_pgraph_arbitrate_method(name, method, channel, subchannel, class_id, context);
+            nv3_pgraph_arbitrate_method(param, method, channel, subchannel, class_id, context);
             break;
     }
 }

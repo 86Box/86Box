@@ -1142,30 +1142,7 @@ typedef struct nv3_grobj_s
 #define NV3_SUBCHANNEL_PIO_ALWAYS_ZERO_START            0x0012
 #define NV3_SUBCHANNEL_PIO_ALWAYS_ZERO_END              0x0017
 
-// Class methods
-void nv3_generic_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_001_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_002_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_003_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_004_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_005_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_006_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_007_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_008_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_009_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_00a_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_00b_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_00c_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_00d_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_00e_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_010_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_011_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_012_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_014_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_015_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_017_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_018_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void nv3_class_01c_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+
 
 // This area is used for holding universal representations of the U* registers...
 extern struct nv3_object_class_001 nv3_beta_factor;

@@ -678,7 +678,7 @@ void nv3_pfifo_cache0_pull()
     // There is only one entry for cache0 
     uint8_t current_channel = nv3->pfifo.cache0_settings.channel;
     uint8_t current_subchannel = nv3->pfifo.cache0_entry.subchannel;
-    uint32_t current_name = nv3->pfifo.cache0_entry.data;
+    uint32_t current_param = nv3->pfifo.cache0_entry.data;
     uint16_t current_method = nv3->pfifo.cache0_entry.method;
 
     // i.e. there is no method in cache0, so we have to find the object.
@@ -687,7 +687,7 @@ void nv3_pfifo_cache0_pull()
         // flip the get address over
         nv3->pfifo.cache0_settings.get_address ^= 0x04;
 
-        if (!nv3_ramin_find_object(current_name, 0, current_channel, current_subchannel))
+        if (!nv3_ramin_find_object(current_param, 0, current_channel, current_subchannel))
             return; // interrupt was fired, and we went to ramro
     }
 
@@ -713,9 +713,9 @@ void nv3_pfifo_cache0_pull()
             
     nv3_ramin_context_t context_structure = *(nv3_ramin_context_t*)&current_context;
 
-    nv3_debug_ramin_print_context_info(current_name, context_structure);
+    nv3_debug_ramin_print_context_info(current_param, context_structure);
     
-    nv3_pgraph_submit(current_name, current_method, current_channel, current_subchannel, class_id & 0x1F, context_structure);
+    nv3_pgraph_submit(current_param, current_method, current_channel, current_subchannel, class_id & 0x1F, context_structure);
     #endif
 
 }
@@ -841,13 +841,13 @@ void nv3_pfifo_cache1_pull()
 
     uint8_t current_channel = nv3->pfifo.cache1_settings.channel;
     uint8_t current_subchannel = nv3->pfifo.cache1_entries[get_index].subchannel;
-    uint32_t current_name = nv3->pfifo.cache1_entries[get_index].data;
+    uint32_t current_param = nv3->pfifo.cache1_entries[get_index].data;
     uint16_t current_method = nv3->pfifo.cache1_entries[get_index].method;
   
     // NV_ROOT
     if (!current_method)
     {
-        if (!nv3_ramin_find_object(current_name, 1, current_channel, current_subchannel))
+        if (!nv3_ramin_find_object(current_param, 1, current_channel, current_subchannel))
             return; // interrupt was fired, and we went to ramro
     }
 
@@ -882,9 +882,9 @@ void nv3_pfifo_cache1_pull()
     #ifndef RELEASE_BUILD
     nv3_ramin_context_t context_structure = *(nv3_ramin_context_t*)&current_context;
 
-    nv3_debug_ramin_print_context_info(current_name, context_structure);
+    nv3_debug_ramin_print_context_info(current_param, context_structure);
     
-    nv3_pgraph_submit(current_name, current_method, current_channel, current_subchannel, class_id & 0x1F, context_structure);
+    nv3_pgraph_submit(current_param, current_method, current_channel, current_subchannel, class_id & 0x1F, context_structure);
     #endif
 
     //Todo: finish it

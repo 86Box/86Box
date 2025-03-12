@@ -1142,6 +1142,7 @@ typedef struct nv3_pgraph_s
     uint32_t trapped_instance;
 } nv3_pgraph_t;
 
+
 // GPU Manufacturing Configuration (again)
 // In the future this will be configurable
 typedef struct nv3_pextdev_s
@@ -1455,8 +1456,33 @@ void        nv3_pgraph_init();
 uint32_t    nv3_pgraph_read(uint32_t address);
 void        nv3_pgraph_write(uint32_t address, uint32_t value);
 void        nv3_pgraph_vblank_start(svga_t* svga);
-void        nv3_pgraph_submit(uint32_t name, uint16_t method, uint8_t channel, uint8_t subchannel, uint8_t class_id, nv3_ramin_context_t context);
+void        nv3_pgraph_submit(uint32_t param, uint16_t method, uint8_t channel, uint8_t subchannel, uint8_t class_id, nv3_ramin_context_t context);
 
+// PGRAPH class methods
+// this should be in "vid_nv3_classes.h", but before that can happen, some things need to be rejigged
+void        nv3_generic_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_001_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_002_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_003_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_004_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_005_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_006_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_007_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_008_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_009_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_00a_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_00b_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_00c_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_00d_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_00e_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_010_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_011_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void         nv3_class_012_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_014_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_015_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_017_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_018_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_01c_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 
 // NV3 PFIFO
 void        nv3_pfifo_init();
