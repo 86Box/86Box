@@ -359,7 +359,7 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         } else if (!(lpKdhs->flags & LLKHF_EXTENDED) && (lpKdhs->vkCode == 0x00000013)) {
             /* Pause - send E1 1D. */
             win_keyboard_handle(0xe1, 0, 0, 0);
-            win_keyboard_handle(0x1d, LLKHF_UP, 0, 0);
+            win_keyboard_handle(0x1d, lpKdhs->flags & LLKHF_UP, 0, 0);
         }
     } else if (!last && (lpKdhs->scanCode == 0x00000036))
         /* Non-fake right shift. */
