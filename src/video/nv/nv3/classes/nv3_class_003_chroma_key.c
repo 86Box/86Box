@@ -31,7 +31,7 @@
 
 struct nv3_object_class_003 nv3_chroma_key; 
 
-void nv3_class_003_method(uint32_t method_id, nv3_grobj_t grobj)
+void nv3_class_003_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
 {
 
 }

@@ -29,7 +29,7 @@
 #include <86box/nv/vid_nv3.h>
 #include <86box/nv/classes/vid_nv3_classes.h>
 
-void nv3_generic_method(uint32_t method_id, nv3_grobj_t grobj)
+void nv3_generic_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
 {
 
 }

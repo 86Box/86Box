@@ -47,10 +47,10 @@ uint32_t nv3_ramht_hash(uint32_t name, uint32_t channel)
 
 uint32_t nv3_ramht_read(uint32_t address)
 {
-    nv_log("RAMHT (Graphics object storage hashtable) Read (0x%04x), UNIMPLEMENTED - RETURNING 0x00\n", address);
+    nv_log("RAMHT (Graphics object storage hashtable) Read (0x%04x), I DON'T BELIEVE THIS SHOULD EVER HAPPEN - RETURNING 0x00\n", address);
 }
 
 void nv3_ramht_write(uint32_t address, uint32_t value)
 {
-    nv_log("RAMHT (Graphics object storage hashtable) Write (0x%04x -> 0x%04x), UNIMPLEMENTED\n", value, address);
+    nv_log("RAMHT (Graphics object storage hashtable) Write (0x%04x -> 0x%04x), I DON'T BELIEVE THIS SHOULD EVER HAPPEN - UNIMPLEMENTED\n", value, address);
 }

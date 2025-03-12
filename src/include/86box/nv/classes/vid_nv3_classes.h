@@ -41,6 +41,33 @@
 // CLass names for debugging
 extern const char* nv3_class_names[];
 
+/* Defines valid classes. */
+typedef enum nv3_pgraph_class_e
+{
+    nv3_pgraph_class01_beta_factor = 0x01,
+    nv3_pgraph_class02_rop = 0x02,
+    nv3_pgraph_class03_chroma_key = 0x03,
+    nv3_pgraph_class04_plane_mask = 0x04,
+    nv3_pgraph_class05_clipping_rectangle = 0x05,
+    nv3_pgraph_class06_pattern = 0x06,
+    nv3_pgraph_class07_rectangle = 0x07,
+    nv3_pgraph_class08_point = 0x08,
+    nv3_pgraph_class09_line = 0x09,
+    nv3_pgraph_class0a_lin = 0x0a,
+    nv3_pgraph_class0b_triangle = 0x0b,
+    nv3_pgraph_class0c_w95txt = 0x0c,
+    nv3_pgraph_class0d_m2mf = 0x0d,
+    nv3_pgraph_class0e_scaled_image_from_memory = 0x0e,
+    nv3_pgraph_class10_blit = 0x10,
+    nv3_pgraph_class11_image = 0x11,
+    nv3_pgraph_class12_bitmap = 0x12,
+    nv3_pgraph_class14_transfer2memory = 0x14,
+    nv3_pgraph_class15_stretched_image_from_cpu = 0x15,
+    nv3_pgraph_class17_d3d5tri_zeta_buffer = 0x17,
+    nv3_pgraph_class18_point_zeta_buffer = 0x18, 
+    nv3_pgraph_class1c_image_in_memory = 0x1c,
+} nv3_pgraph_class;
+
 /* Class context switch method */
 typedef struct nv3_class_ctx_switch_method_s
 {
@@ -1116,29 +1143,29 @@ typedef struct nv3_grobj_s
 #define NV3_SUBCHANNEL_PIO_ALWAYS_ZERO_END              0x0017
 
 // Class methods
-void nv3_generic_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_001_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_002_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_003_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_004_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_005_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_006_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_007_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_008_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_009_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_00a_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_00b_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_00c_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_00d_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_00e_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_010_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_011_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_012_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_014_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_015_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_017_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_018_method(uint32_t method_id, nv3_grobj_t grobj);
-void nv3_class_01c_method(uint32_t method_id, nv3_grobj_t grobj);
+void nv3_generic_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_001_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_002_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_003_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_004_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_005_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_006_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_007_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_008_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_009_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_00a_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_00b_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_00c_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_00d_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_00e_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_010_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_011_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_012_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_014_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_015_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_017_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_018_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void nv3_class_01c_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 
 // This area is used for holding universal representations of the U* registers...
 extern struct nv3_object_class_001 nv3_beta_factor;

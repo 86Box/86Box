@@ -31,7 +31,7 @@
 
 struct nv3_object_class_00B nv3_triangle; 
 
-void nv3_class_00b_method(uint32_t method_id, nv3_grobj_t grobj)
+void nv3_class_00b_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
 {
 
 }

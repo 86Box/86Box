@@ -1086,6 +1086,7 @@ typedef struct nv3_pgraph_status_s
 
 } nv3_pgraph_status_t;
 
+
 // Graphics Subsystem
 typedef struct nv3_pgraph_s
 {
@@ -1454,7 +1455,7 @@ void        nv3_pgraph_init();
 uint32_t    nv3_pgraph_read(uint32_t address);
 void        nv3_pgraph_write(uint32_t address, uint32_t value);
 void        nv3_pgraph_vblank_start(svga_t* svga);
-void        nv3_pgraph_submit(uint8_t name, uint16_t method, uint8_t channel, uint8_t subchannel, uint8_t class_id, uint32_t context);
+void        nv3_pgraph_submit(uint32_t name, uint16_t method, uint8_t channel, uint8_t subchannel, uint8_t class_id, nv3_ramin_context_t context);
 
 
 // NV3 PFIFO

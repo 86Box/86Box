@@ -32,7 +32,7 @@
 
 struct nv3_object_class_014 nv3_transfer2memory; 
 
-void nv3_class_014_method(uint32_t method_id, nv3_grobj_t grobj)
+void nv3_class_014_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
 {
 
 }
