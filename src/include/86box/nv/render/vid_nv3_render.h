@@ -15,5 +15,5 @@
  *          Copyright 2024-2025 Connor Hyde
  */
 
- #pragma once
+#pragma once
 

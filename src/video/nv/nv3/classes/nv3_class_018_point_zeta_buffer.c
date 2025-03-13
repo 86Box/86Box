@@ -27,7 +27,6 @@
 #include <86box/video.h>
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
-#include <86box/nv/classes/vid_nv3_classes.h>
 
 struct nv3_object_class_018 nv3_d3d5_point_zeta_buffer;
 

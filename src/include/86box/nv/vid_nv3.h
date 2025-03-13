@@ -23,6 +23,7 @@
 
 #pragma once
 #include <86box/nv/classes/vid_nv3_classes.h>
+#include <86box/nv/render/vid_nv3_render.h>
 
 // The GPU base structure
 extern const device_config_t nv3_config[];
@@ -818,7 +819,6 @@ extern const device_config_t nv3_config[];
 #define NV3_CRTC_REGISTER_RMA_MODE_MAX                  0x0F
 
 
-
 /* 
     STRUCTURES FOR THE GPU START HERE
     OBJECT CLASS & RENDERING RELATED STUFF IS IN VID_NV3_CLASSES.H
@@ -1130,6 +1130,30 @@ typedef struct nv3_pgraph_s
     uint32_t trapped_address;
     uint32_t trapped_data;
     uint32_t trapped_instance;
+
+    /*  This area is used for holding universal representations of the U* registers, which are actually mapped into MMIO */
+    struct nv3_object_class_001 beta_factor;
+    struct nv3_object_class_002 rop;
+    struct nv3_object_class_003 chroma_key;
+    struct nv3_object_class_004 plane_mask;
+    struct nv3_object_class_005 clipping_rectangle;
+    struct nv3_object_class_006 pattern;
+    struct nv3_object_class_007 rectangle;
+    struct nv3_object_class_008 point;
+    struct nv3_object_class_009 line;
+    struct nv3_object_class_00A lin;
+    struct nv3_object_class_00B triangle;
+    struct nv3_object_class_00C win95_gdi_text;
+    struct nv3_object_class_00D m2mf;
+    struct nv3_object_class_00E scaled_image_from_memory;
+    struct nv3_object_class_010 blit;
+    struct nv3_object_class_011 image;
+    struct nv3_object_class_012 bitmap;
+    struct nv3_object_class_014 transfer2memory;
+    struct nv3_object_class_015 stretched_image_from_cpu;
+    struct nv3_object_class_017 d3d5_tri;
+    struct nv3_object_class_018 point_zeta_buffer;
+    struct nv3_object_class_01C image_in_memory;
 } nv3_pgraph_t;
 
 

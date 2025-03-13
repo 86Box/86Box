@@ -132,7 +132,9 @@ typedef struct nv3_color_16_a4r4g4b4_s
     uint8_t b : 4;
 } nv3_color_16_a4r4g4b4_t;
 
-/* A1R5G5B5 format */
+/* A1R5G5B5 format 
+   Can also be used for R5G5B5
+*/
 typedef struct nv3_color_16_a1r5g5b5_s
 {
     uint8_t a : 1;
@@ -233,6 +235,31 @@ typedef struct nv3_object_class_001
     // Put the rest of it here
 } nv3_beta_factor_t;
 
+/* Note: This is not used in the class, there are "special" rops that do certain things. So they need to be defined for code readability. It all gets optimised away
+by the compiler anyway */
+typedef enum nv3_render_operation_type_e
+{
+    // Black
+    nv3_rop_blackness = 0x00,
+    // dst = !src 
+    nv3_rop_dstinvert = 0x55,
+    // pattern invert
+    nv3_rop_patinvert = 0x5A,
+    // src ^ dst
+    nv3_rop_xor = 0x66,
+    // src & dst
+    nv3_rop_srcand = 0x88,
+    // dst = src (?)
+    nv3_rop_dstcopy = 0xAA,
+    // src = dst (?)
+    nv3_rop_srccopy = 0xCC,
+    // paint source
+    nv3_rop_srcpaint = 0xEE,
+    // pattern copy
+    nv3_rop_patcopy = 0xF0,
+    // White
+    nv3_rop_whiteness = 0xFF,
+} nv3_render_operation_type; 
 /* 
     Object class 0x02 (real hardware)
     0x14/0x43 (drivers)
@@ -1153,29 +1180,3 @@ typedef struct nv3_grobj_s
 #define NV3_SUBCHANNEL_PIO_IS_PFIFO_FREE                0x0010
 #define NV3_SUBCHANNEL_PIO_ALWAYS_ZERO_START            0x0012
 #define NV3_SUBCHANNEL_PIO_ALWAYS_ZERO_END              0x0017
-
-
-
-// This area is used for holding universal representations of the U* registers...
-extern struct nv3_object_class_001 nv3_beta_factor;
-extern struct nv3_object_class_002 nv3_rop;
-extern struct nv3_object_class_003 nv3_chroma_key;
-extern struct nv3_object_class_004 nv3_plane_mask;
-extern struct nv3_object_class_005 nv3_clipping_rectangle;
-extern struct nv3_object_class_006 nv3_pattern;
-extern struct nv3_object_class_007 nv3_rectangle;
-extern struct nv3_object_class_008 nv3_point;
-extern struct nv3_object_class_009 nv3_line;
-extern struct nv3_object_class_00A nv3_lin;
-extern struct nv3_object_class_00B nv3_triangle;
-extern struct nv3_object_class_00C nv3_win95_gdi_text;
-extern struct nv3_object_class_00D nv3_m2mf;
-extern struct nv3_object_class_00E nv3_scaled_image_from_memory;
-extern struct nv3_object_class_010 nv3_blit;
-extern struct nv3_object_class_011 nv3_image;
-extern struct nv3_object_class_012 nv3_bitmap;
-extern struct nv3_object_class_014 nv3_transfer2memory;
-extern struct nv3_object_class_015 nv3_stretched_image_from_cpu;
-extern struct nv3_object_class_017 nv3_d3d5_tri;
-extern struct nv3_object_class_018 nv3_point_zeta_buffer;
-extern struct nv3_object_class_01C nv3_image_in_memory;

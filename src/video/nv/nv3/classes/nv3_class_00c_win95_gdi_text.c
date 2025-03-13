@@ -27,9 +27,6 @@
 #include <86box/video.h>
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
-#include <86box/nv/classes/vid_nv3_classes.h>
-
-struct nv3_object_class_00C nv3_win95_gdi_text;
 
 void nv3_class_00c_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
 {
