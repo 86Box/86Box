@@ -270,7 +270,7 @@ RendererStack::leaveEvent(QEvent *event)
 {
     mousedata.mouse_tablet_in_proximity = 0;
 
-    if (mouse_input_mode == 1 && QApplication::overrideCursor()) {
+    if (mouse_input_mode >= 1 && QApplication::overrideCursor()) {
         while (QApplication::overrideCursor())
             QApplication::restoreOverrideCursor();
     }
