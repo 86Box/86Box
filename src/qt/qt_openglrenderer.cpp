@@ -1668,6 +1668,9 @@ OpenGLRenderer::render()
         unsigned char *rgba = (unsigned char *)calloc(1, width * height * 4);
         
         glw.glFinish();
+        glw.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glw.glReadBuffer(GL_BACK);
+        glw.glFinish();
         glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
 
         QImage image(rgba, width, height, QImage::Format_RGBA8888);
