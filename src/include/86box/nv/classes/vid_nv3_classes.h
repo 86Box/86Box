@@ -68,6 +68,18 @@ typedef enum nv3_pgraph_class_e
     nv3_pgraph_class1c_image_in_memory = 0x1c,
 } nv3_pgraph_class;
 
+/* 
+    OBJECT METHODS
+*/
+
+// Global stuff
+#define NV3_ROOT_HI_IM_OBJECT_MCOBJECTYFACE             0x0         // I'm going insane at 00:48 14/02/2025
+#define NV3_SET_NOTIFY_CONTEXT_FOR_DMA                  0x100       // Set object ctx for dma...see nv3_dma_context_t structure
+#define NV3_SET_NOTIFY                                  0x104
+
+#define NV3_IMAGE_IN_MEMORY_IN_MEMORY_DMA_CTX_TYPE      0x304
+#define NV3_W95TXT_COLORA                               0x3FC       // It's the colour of the text. This is used to submit a dummy object so the notifier can be used to sync in Win2000 DDraw6 drivers.
+
 /* Class context switch method */
 typedef struct nv3_class_ctx_switch_method_s
 {

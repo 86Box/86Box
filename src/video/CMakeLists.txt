@@ -124,6 +124,8 @@ add_library(vid OBJECT
     nv/nv3/classes/nv3_class_017_d3d5_tri_zeta_buffer.c
     nv/nv3/classes/nv3_class_018_point_zeta_buffer.c
     nv/nv3/classes/nv3_class_01c_image_in_memory.c
+
+    nv/nv3/render/nv3_render_core.c
     
 )
 

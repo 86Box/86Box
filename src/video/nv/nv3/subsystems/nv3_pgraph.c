@@ -469,7 +469,7 @@ void nv3_pgraph_vblank_start(svga_t* svga)
 }
 
 /* Sends off method execution to the right class */
-void nv3_pgraph_arbitrate_method(uint32_t name, uint16_t method, uint8_t channel, uint8_t subchannel, uint8_t class_id, nv3_ramin_context_t context)
+void nv3_pgraph_arbitrate_method(uint32_t param, uint16_t method, uint8_t channel, uint8_t subchannel, uint8_t class_id, nv3_ramin_context_t context)
 {
     /* Obtain the grobj information from the context in ramin */
     nv3_grobj_t grobj = {0};
@@ -482,78 +482,78 @@ void nv3_pgraph_arbitrate_method(uint32_t name, uint16_t method, uint8_t channel
     grobj.grobj_2 = nv3_ramin_read32(real_ramin_base + 8, nv3);
     grobj.grobj_3 = nv3_ramin_read32(real_ramin_base + 12, nv3);
 
-    nv_log("**** About to execute method **** obj name=0x%08x, method=0x%04x, channel=%d.%d, class=%s, grobj=0x%08x 0x%08x 0x%08x 0x%08x\n",
-        name, method, channel, subchannel, nv3_class_names[class_id], grobj.grobj_0, grobj.grobj_1, grobj.grobj_2, grobj.grobj_3);
+    nv_log("**** About to execute method **** method=0x%04x param=0x%08x, channel=%d.%d, class=%s, grobj=0x%08x 0x%08x 0x%08x 0x%08x\n",
+        method, param, channel, subchannel, nv3_class_names[class_id], grobj.grobj_0, grobj.grobj_1, grobj.grobj_2, grobj.grobj_3);
 
     // By this point, we already ANDed the class ID to 0x1F.
     // Send the grobj, the context, the method and the name off to actually be acted upon.
     switch (class_id)
     {
         case nv3_pgraph_class01_beta_factor:
-            nv3_class_001_method(name, method, context, grobj);
+            nv3_class_001_method(param, method, context, grobj);
             break; 
         case nv3_pgraph_class02_rop:
-            nv3_class_002_method(name, method, context, grobj);
+            nv3_class_002_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class03_chroma_key:
-            nv3_class_003_method(name, method, context, grobj);
+            nv3_class_003_method(param, method, context, grobj);
             break; 
         case nv3_pgraph_class04_plane_mask:
-            nv3_class_004_method(name, method, context, grobj);
+            nv3_class_004_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class05_clipping_rectangle:
-            nv3_class_005_method(name, method, context, grobj);
+            nv3_class_005_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class06_pattern:
-            nv3_class_006_method(name, method, context, grobj);
+            nv3_class_006_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class07_rectangle:
-            nv3_class_007_method(name, method, context, grobj);
+            nv3_class_007_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class08_point:
-            nv3_class_008_method(name, method, context, grobj);
+            nv3_class_008_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class09_line:
-            nv3_class_009_method(name, method, context, grobj);
+            nv3_class_009_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class0a_lin:
-            nv3_class_00a_method(name, method, context, grobj);
+            nv3_class_00a_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class0b_triangle:
-            nv3_class_00b_method(name, method, context, grobj);
+            nv3_class_00b_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class0c_w95txt:
-            nv3_class_00c_method(name, method, context, grobj);
+            nv3_class_00c_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class0d_m2mf:
-            nv3_class_00d_method(name, method, context, grobj);
+            nv3_class_00d_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class0e_scaled_image_from_memory:
-            nv3_class_00e_method(name, method, context, grobj);
+            nv3_class_00e_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class10_blit:
-            nv3_class_010_method(name, method, context, grobj);
+            nv3_class_010_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class11_image:
-            nv3_class_011_method(name, method, context, grobj);
+            nv3_class_011_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class12_bitmap:
-            nv3_class_012_method(name, method, context, grobj);
+            nv3_class_012_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class14_transfer2memory:
-            nv3_class_014_method(name, method, context, grobj);
+            nv3_class_014_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class15_stretched_image_from_cpu:
-            nv3_class_015_method(name, method, context, grobj);
+            nv3_class_015_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class17_d3d5tri_zeta_buffer:
-            nv3_class_017_method(name, method, context, grobj);
+            nv3_class_017_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class18_point_zeta_buffer:
-            nv3_class_018_method(name, method, context, grobj);
+            nv3_class_018_method(param, method, context, grobj);
             break;
         case nv3_pgraph_class1c_image_in_memory:
-            nv3_class_01c_method(name, method, context, grobj);
+            nv3_class_01c_method(param, method, context, grobj);
             break;             
         default:
             fatal("NV3 (nv3_pgraph_arbitrate_method): Attempted to execute method on invalid, or unimplemented, class ID %s", nv3_class_names[class_id]);
