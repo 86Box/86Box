@@ -1132,10 +1132,10 @@ typedef struct nv3_pgraph_s
     uint32_t trapped_instance;
 
     /*  This area is used for holding universal representations of the U* registers, which are actually mapped into MMIO */
-    struct nv3_object_class_001 beta_factor;
-    struct nv3_object_class_002 rop;
-    struct nv3_object_class_003 chroma_key;
-    struct nv3_object_class_004 plane_mask;
+    struct nv3_object_class_001 beta_factor_class;
+    struct nv3_object_class_002 rop_class;
+    struct nv3_object_class_003 chroma_key_class;
+    struct nv3_object_class_004 plane_mask_class;
     struct nv3_object_class_005 clipping_rectangle;
     struct nv3_object_class_006 pattern;
     struct nv3_object_class_007 rectangle;
