@@ -348,6 +348,9 @@ typedef struct cdrom {
 
     int32_t            c2_first;
     int32_t            cur_buf;
+
+    /* Only used on Windows hosts for disc change notifications. */
+    uint8_t            host_letter;
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];
@@ -442,6 +445,8 @@ extern void            cdrom_exit(const uint8_t id);
 extern int             cdrom_is_empty(const uint8_t id);
 extern void            cdrom_eject(const uint8_t id);
 extern void            cdrom_reload(const uint8_t id);
+
+extern int             cdrom_assigned_letters;
 
 #ifdef __cplusplus
 }

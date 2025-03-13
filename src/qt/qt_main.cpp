@@ -226,7 +226,30 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
            detection; rest can't be reliably detected. */
         DWORD vkCode = lpKdhs->vkCode;
         bool up = !!(lpKdhs->flags & LLKHF_UP);
-        ret = CallNextHookEx(NULL, nCode, wParam, lParam);;
+
+        if (inhibit_multimedia_keys
+            && (lpKdhs->vkCode == VK_MEDIA_PLAY_PAUSE
+            || lpKdhs->vkCode == VK_MEDIA_NEXT_TRACK
+            || lpKdhs->vkCode == VK_MEDIA_PREV_TRACK
+            || lpKdhs->vkCode == VK_VOLUME_DOWN
+            || lpKdhs->vkCode == VK_VOLUME_UP
+            || lpKdhs->vkCode == VK_VOLUME_MUTE
+            || lpKdhs->vkCode == VK_MEDIA_STOP
+            || lpKdhs->vkCode == VK_LAUNCH_MEDIA_SELECT
+            || lpKdhs->vkCode == VK_LAUNCH_MAIL
+            || lpKdhs->vkCode == VK_LAUNCH_APP1
+            || lpKdhs->vkCode == VK_LAUNCH_APP2
+            || lpKdhs->vkCode == VK_HELP
+            || lpKdhs->vkCode == VK_BROWSER_BACK
+            || lpKdhs->vkCode == VK_BROWSER_FORWARD
+            || lpKdhs->vkCode == VK_BROWSER_FAVORITES
+            || lpKdhs->vkCode == VK_BROWSER_HOME
+            || lpKdhs->vkCode == VK_BROWSER_REFRESH
+            || lpKdhs->vkCode == VK_BROWSER_SEARCH
+            || lpKdhs->vkCode == VK_BROWSER_STOP))
+            ret = TRUE;
+        else
+            ret = CallNextHookEx(NULL, nCode, wParam, lParam);
 
         switch (vkCode)
         {
@@ -349,6 +372,27 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         ret = TRUE;
     else if ((lpKdhs->scanCode >= 0x5b) && (lpKdhs->scanCode <= 0x5d) && (lpKdhs->flags & LLKHF_EXTENDED))
         ret = TRUE;
+    else if (inhibit_multimedia_keys
+        && (lpKdhs->vkCode == VK_MEDIA_PLAY_PAUSE
+        || lpKdhs->vkCode == VK_MEDIA_NEXT_TRACK
+        || lpKdhs->vkCode == VK_MEDIA_PREV_TRACK
+        || lpKdhs->vkCode == VK_VOLUME_DOWN
+        || lpKdhs->vkCode == VK_VOLUME_UP
+        || lpKdhs->vkCode == VK_VOLUME_MUTE
+        || lpKdhs->vkCode == VK_MEDIA_STOP
+        || lpKdhs->vkCode == VK_LAUNCH_MEDIA_SELECT
+        || lpKdhs->vkCode == VK_LAUNCH_MAIL
+        || lpKdhs->vkCode == VK_LAUNCH_APP1
+        || lpKdhs->vkCode == VK_LAUNCH_APP2
+        || lpKdhs->vkCode == VK_HELP
+        || lpKdhs->vkCode == VK_BROWSER_BACK
+        || lpKdhs->vkCode == VK_BROWSER_FORWARD
+        || lpKdhs->vkCode == VK_BROWSER_FAVORITES
+        || lpKdhs->vkCode == VK_BROWSER_HOME
+        || lpKdhs->vkCode == VK_BROWSER_REFRESH
+        || lpKdhs->vkCode == VK_BROWSER_SEARCH
+        || lpKdhs->vkCode == VK_BROWSER_STOP))
+        ret = TRUE;
     else
         ret = CallNextHookEx(NULL, nCode, wParam, lParam);
 
@@ -370,7 +414,11 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     else if (last && (lpKdhs->scanCode == 0x00000036))
         last = 0;
 
-    win_keyboard_handle(lpKdhs->scanCode, lpKdhs->flags & LLKHF_UP, lpKdhs->flags & LLKHF_EXTENDED, 0);
+    if ((lpKdhs->scanCode == 0xf1) || (lpKdhs->scanCode == 0xf2))
+        /* Hanja and Han/Eng keys, suppress the extended flag. */
+        win_keyboard_handle(lpKdhs->scanCode, lpKdhs->flags & LLKHF_UP, 0, 0);
+    else
+        win_keyboard_handle(lpKdhs->scanCode, lpKdhs->flags & LLKHF_UP, lpKdhs->flags & LLKHF_EXTENDED, 0);
 
     return ret;
 }

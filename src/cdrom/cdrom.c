@@ -46,6 +46,7 @@
 cdrom_t cdrom[CDROM_NUM] = { 0 };
 
 int cdrom_interface_current;
+int cdrom_assigned_letters = 0;
 
 #ifdef ENABLE_CDROM_LOG
 int cdrom_do_log = ENABLE_CDROM_LOG;
@@ -2913,6 +2914,8 @@ cdrom_global_init(void)
 void
 cdrom_hard_reset(void)
 {
+    cdrom_assigned_letters = 0;
+
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom_t *dev = &cdrom[i];
 
@@ -2958,6 +2961,8 @@ cdrom_hard_reset(void)
             }
 
             dev->cd_status     = CD_STATUS_EMPTY;
+            dev->host_letter = 0xff;
+
             dev->cached_sector = -1;
 
             if (strlen(dev->image_path) > 0) {
