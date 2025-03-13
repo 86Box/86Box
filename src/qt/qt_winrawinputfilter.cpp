@@ -160,7 +160,7 @@ notify_drives(ULONG unitmask, int empty)
     char p[1024] = { 0 };
 
     for (int i = 0; i < 26; ++i) {
-        if (unitmask & 0x1) {
+        if (unitmask & (1 << i)) {
             cdrom_t *dev = NULL;
 
             sprintf(p, "ioctl://\\\\.\\%c:", 'A' + i);
