@@ -18,6 +18,11 @@
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021-2022 Teemu Korhonen
  */
+
+#ifdef __HAIKU__
+#include <OS.h>
+#endif
+
 #include <cstdio>
 
 #include <mutex>
@@ -828,6 +833,8 @@ plat_set_thread_name(void *thread, const char *name)
     pthread_setname_np(truncated);
 #    elif defined(Q_OS_NETBSD)
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, "%s");
+#    elif defined(__HAIKU__)
+    rename_thread(find_thread(NULL), truncated);
 #    elif defined(Q_OS_OPENBSD)
     pthread_set_name_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
 #    else

@@ -3948,12 +3948,15 @@ pentium_invalid_wrmsr:
                 /* Test Data */
                 case 0x03:
                     msr.tr3 = EAX;
+                    break;
                 /* Test Address */
                 case 0x04:
                     msr.tr4 = EAX;
+                    break;
                 /* Test Command/Status */
                 case 0x05:
                     msr.tr5 = EAX & 0x008f0f3b;
+                    break;
                 /* Time Stamp Counter */
                 case 0x10:
                     timer_set_new_tsc(EAX | ((uint64_t) EDX << 32));
