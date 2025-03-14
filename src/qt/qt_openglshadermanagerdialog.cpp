@@ -63,6 +63,7 @@ OpenGLShaderManagerDialog::OpenGLShaderManagerDialog(QWidget *parent)
         } else {
             ui->buttonConfigure->setEnabled(false);
         }
+        ui->buttonAdd->setDisabled(ui->shaderListWidget->count() >= MAX_USER_SHADERS);
     } else {
         ui->buttonRemove->setDisabled(true);
         ui->buttonMoveUp->setDisabled(true);
@@ -177,6 +178,7 @@ void OpenGLShaderManagerDialog::on_buttonAdd_clicked()
             item->setData(Qt::UserRole + 2, (qulonglong)(uintptr_t)shaderfile);
             if (ui->shaderListWidget->count()) {
                 ui->shaderListWidget->setCurrentRow(ui->shaderListWidget->count() - 1);
+                ui->buttonAdd->setDisabled(ui->shaderListWidget->count() >= MAX_USER_SHADERS);
             }
         } else {
             QMessageBox::critical(this, tr("GLSL error"), tr("Could not load filename %1").arg(res));
@@ -197,6 +199,7 @@ void OpenGLShaderManagerDialog::on_buttonRemove_clicked()
 
         on_shaderListWidget_currentRowChanged(ui->shaderListWidget->currentRow());
     }
+    ui->buttonAdd->setDisabled(ui->shaderListWidget->count() >= MAX_USER_SHADERS);
 }
 
 void OpenGLShaderManagerDialog::on_OpenGLShaderManagerDialog_accepted()
