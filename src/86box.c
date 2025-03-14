@@ -213,6 +213,7 @@ int      hook_enabled                           = 1;              /* (C) Keyboar
 int      test_mode                              = 0;              /* (C) Test mode */
 char     uuid[MAX_UUID_LEN]                     = { '\0' };       /* (C) UUID or machine identifier */
 int      sound_muted                            = 0;              /* (C) Is sound muted? */
+int      inhibit_multimedia_keys;                                 /* (C) Inhibit multimedia keys on Windows. */
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
                                                                      present */

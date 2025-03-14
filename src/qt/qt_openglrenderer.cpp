@@ -74,54 +74,76 @@ extern int video_vsync;
 extern int video_focus_dim;
 extern int video_refresh_rate;
 
-const char *vertex_shader_default_tex_src = "#version 130\n"
-                                            "\n"
-                                            "in vec4 VertexCoord;\n"
-                                            "in vec2 TexCoord;\n"
-                                            "\n"
-                                            "out vec2 texCoord;\n"
-                                            "\n"
-                                            "void main()\n"
-                                            "{\n"
-                                            "       gl_Position = VertexCoord;\n"
-                                            "       texCoord = TexCoord;\n"
-                                            "}\n";
+const char* vertex_shader_default_tex_src =
+#ifdef __APPLE__
+        "#version 150\n"
+#else
+        "#version 130\n"
+#endif
+        "\n"
+        "in vec4 VertexCoord;\n"
+        "in vec2 TexCoord;\n"
+        "\n"
+        "out vec2 texCoord;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "       gl_Position = VertexCoord;\n"
+        "       texCoord = TexCoord;\n"
+        "}\n";
 
-const char *fragment_shader_default_tex_src = "#version 130\n"
-                                              "\n"
-                                              "in vec2 texCoord;\n"
-                                              "uniform sampler2D Texture;\n"
-                                              "\n"
-                                              "out vec4 color;"
-                                              "\n"
-                                              "void main()\n"
-                                              "{\n"
-                                              "       color = texture(Texture, texCoord);\n"
-                                              "}\n";
+const char* fragment_shader_default_tex_src =
+#ifdef __APPLE__
+        "#version 150\n"
+#else
+        "#version 130\n"
+#endif
+        "\n"
+        "in vec2 texCoord;\n"
+        "uniform sampler2D Texture;\n"
+        "\n"
+        "out vec4 color;"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "       color = texture(Texture, texCoord);\n"
+        "       color.a = 1.0;\n"
+        "}\n";
 
-const char *vertex_shader_default_color_src = "#version 130\n"
-                                              "\n"
-                                              "in vec4 VertexCoord;\n"
-                                              "in vec4 Color;\n"
-                                              "\n"
-                                              "out vec4 color;\n"
-                                              "\n"
-                                              "void main()\n"
-                                              "{\n"
-                                              "       gl_Position = VertexCoord;\n"
-                                              "       color = Color;\n"
-                                              "}\n";
+const char* vertex_shader_default_color_src =
+#ifdef __APPLE__
+        "#version 150\n"
+#else
+        "#version 130\n"
+#endif
+        "\n"
+        "in vec4 VertexCoord;\n"
+        "in vec4 Color;\n"
+        "\n"
+        "out vec4 color;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "       gl_Position = VertexCoord;\n"
+        "       color = Color;\n"
+        "}\n";
 
-const char *fragment_shader_default_color_src = "#version 130\n"
-                                                "\n"
-                                                "in vec4 color;\n"
-                                                "\n"
-                                                "out vec4 outColor;"
-                                                "\n"
-                                                "void main()\n"
-                                                "{\n"
-                                                "       outColor = color;\n"
-                                                "}\n";
+const char* fragment_shader_default_color_src =
+#ifdef __APPLE__
+        "#version 150\n"
+#else
+        "#version 130\n"
+#endif
+        "\n"
+        "in vec4 color;\n"
+        "\n"
+        "out vec4 outColor;"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "       outColor = color;\n"
+        "       outColor.a = 1.0;\n"
+        "}\n";
 
 static inline int
 next_pow2(unsigned int n)
@@ -177,7 +199,6 @@ OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const ch
     QByteArray  finalSource = nullptr;
     const char *source[5];
     char        version[50];
-    int         ver         = 0;
     char       *version_loc = (char *) strstr(program, "#version");
     if (version_loc) {
         snprintf(version, 49, "%s\n", versionRegex.match(progSource).captured(1).toLatin1().data());
@@ -809,6 +830,7 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     source.setRect(0, 0, 100, 100);
     isInitialized = false;
     isFinalized = false;
+    context = nullptr;
 }
 
 OpenGLRenderer::~OpenGLRenderer() { finalize(); }
@@ -1088,7 +1110,7 @@ OpenGLRenderer::initialize()
 void
 OpenGLRenderer::finalize()
 {
-    if (isFinalized)
+    if (isFinalized || !context)
         return;
 
     context->makeCurrent(this);
