@@ -34,6 +34,7 @@ extern MainWindow* main_window;
 #include <QEvent>
 #include <QApplication>
 #include <QString>
+#include <QByteArray>
 
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
@@ -73,54 +74,76 @@ extern int video_vsync;
 extern int video_focus_dim;
 extern int video_refresh_rate;
 
-const char *vertex_shader_default_tex_src = "#version 130\n"
-                                            "\n"
-                                            "in vec4 VertexCoord;\n"
-                                            "in vec2 TexCoord;\n"
-                                            "\n"
-                                            "out vec2 texCoord;\n"
-                                            "\n"
-                                            "void main()\n"
-                                            "{\n"
-                                            "       gl_Position = VertexCoord;\n"
-                                            "       texCoord = TexCoord;\n"
-                                            "}\n";
+const char* vertex_shader_default_tex_src =
+#ifdef __APPLE__
+        "#version 150\n"
+#else
+        "#version 130\n"
+#endif
+        "\n"
+        "in vec4 VertexCoord;\n"
+        "in vec2 TexCoord;\n"
+        "\n"
+        "out vec2 texCoord;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "       gl_Position = VertexCoord;\n"
+        "       texCoord = TexCoord;\n"
+        "}\n";
 
-const char *fragment_shader_default_tex_src = "#version 130\n"
-                                              "\n"
-                                              "in vec2 texCoord;\n"
-                                              "uniform sampler2D Texture;\n"
-                                              "\n"
-                                              "out vec4 color;"
-                                              "\n"
-                                              "void main()\n"
-                                              "{\n"
-                                              "       color = texture(Texture, texCoord);\n"
-                                              "}\n";
+const char* fragment_shader_default_tex_src =
+#ifdef __APPLE__
+        "#version 150\n"
+#else
+        "#version 130\n"
+#endif
+        "\n"
+        "in vec2 texCoord;\n"
+        "uniform sampler2D Texture;\n"
+        "\n"
+        "out vec4 color;"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "       color = texture(Texture, texCoord);\n"
+        "       color.a = 1.0;\n"
+        "}\n";
 
-const char *vertex_shader_default_color_src = "#version 130\n"
-                                              "\n"
-                                              "in vec4 VertexCoord;\n"
-                                              "in vec4 Color;\n"
-                                              "\n"
-                                              "out vec4 color;\n"
-                                              "\n"
-                                              "void main()\n"
-                                              "{\n"
-                                              "       gl_Position = VertexCoord;\n"
-                                              "       color = Color;\n"
-                                              "}\n";
+const char* vertex_shader_default_color_src =
+#ifdef __APPLE__
+        "#version 150\n"
+#else
+        "#version 130\n"
+#endif
+        "\n"
+        "in vec4 VertexCoord;\n"
+        "in vec4 Color;\n"
+        "\n"
+        "out vec4 color;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "       gl_Position = VertexCoord;\n"
+        "       color = Color;\n"
+        "}\n";
 
-const char *fragment_shader_default_color_src = "#version 130\n"
-                                                "\n"
-                                                "in vec4 color;\n"
-                                                "\n"
-                                                "out vec4 outColor;"
-                                                "\n"
-                                                "void main()\n"
-                                                "{\n"
-                                                "       outColor = color;\n"
-                                                "}\n";
+const char* fragment_shader_default_color_src =
+#ifdef __APPLE__
+        "#version 150\n"
+#else
+        "#version 130\n"
+#endif
+        "\n"
+        "in vec4 color;\n"
+        "\n"
+        "out vec4 outColor;"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "       outColor = color;\n"
+        "       outColor.a = 1.0;\n"
+        "}\n";
 
 static inline int
 next_pow2(unsigned int n)
@@ -171,30 +194,32 @@ OpenGLRenderer::create_program(struct shader_program *program)
 int
 OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const char *program, int *dst)
 {
-    const char *source[3];
+    QRegularExpression versionRegex("^\\s*(#version\\s+\\w+)", QRegularExpression::MultilineOption);
+    QString progSource = QString(program);
+    QByteArray  finalSource = nullptr;
+    const char *source[5];
     char        version[50];
-    int         ver         = 0;
     char       *version_loc = (char *) strstr(program, "#version");
-    if (version_loc)
-        ver = (int) strtol(version_loc + 8, (char **) &program, 10);
-    else {
-        ver = glsl_version[0] * 100 + glsl_version[1] * 10;
-        if (ver == 300)
-            ver = 130;
-        else if (ver == 310)
-            ver = 140;
-        else if (ver == 320)
-            ver = 150;
+    if (version_loc) {
+        snprintf(version, 49, "%s\n", versionRegex.match(progSource).captured(1).toLatin1().data());
+        progSource.remove(versionRegex);
+    } else {
+        snprintf(version, 49, "%s\n", this->glslVersion.toLatin1().data());
     }
-    sprintf(version, "#version %d\n", ver);
-    source[0] = version;
-    source[1] = prepend ? prepend : "";
-    source[2] = program;
+    
+    /* Remove parameter lines. */
+    progSource.remove(QRegularExpression("^\\s*#pragma parameter.*?\\n", QRegularExpression::MultilineOption));
 
-    pclog("GLSL version %d\n", ver);
+    finalSource = progSource.toLatin1();
+
+    source[0] = version;
+    source[1] = "\n#extension GL_ARB_shading_language_420pack : enable\n";
+    source[2] = prepend ? prepend : "";
+    source[3] = "\n#line 1\n";
+    source[4] = finalSource.data();
 
     GLuint shader = glw.glCreateShader(shader_type);
-    glw.glShaderSource(shader, 3, source, NULL);
+    glw.glShaderSource(shader, 5, source, NULL);
     glw.glCompileShader(shader);
 
     GLint status = 0;
@@ -805,6 +830,7 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     source.setRect(0, 0, 100, 100);
     isInitialized = false;
     isFinalized = false;
+    context = nullptr;
 }
 
 OpenGLRenderer::~OpenGLRenderer() { finalize(); }
@@ -839,6 +865,15 @@ OpenGLRenderer::initialize()
         }
         pclog("Using OpenGL %s\n", glw.glGetString(GL_VERSION));
         pclog("Using Shading Language %s\n", glw.glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+        glslVersion = reinterpret_cast<const char *>(glw.glGetString(GL_SHADING_LANGUAGE_VERSION));
+        glslVersion.truncate(4);
+        glslVersion.remove('.');
+        glslVersion.prepend("#version ");
+        if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES)
+            glslVersion.append(" es");
+        else if (context->format().profile() == QSurfaceFormat::CoreProfile)
+            glslVersion.append(" core");
 
         glw.glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
         pclog("Max texture size: %dx%d\n", max_texture_size, max_texture_size);
@@ -1075,7 +1110,7 @@ OpenGLRenderer::initialize()
 void
 OpenGLRenderer::finalize()
 {
-    if (isFinalized)
+    if (isFinalized || !context)
         return;
 
     context->makeCurrent(this);

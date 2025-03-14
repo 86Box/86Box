@@ -2141,3 +2141,6 @@ msgstr ""
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr ""
+
+msgid "Inhibit multimedia keys on Windows"
+msgstr ""

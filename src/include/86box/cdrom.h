@@ -335,6 +335,8 @@ typedef struct cdrom {
     uint8_t            subch_buffer[96];
 
     int                cdrom_sector_size;
+    /* Only used on Windows hosts for disc change notifications. */
+    uint8_t            host_letter;
 
     /* Needs some extra breathing space in case of overflows. */
     uint8_t            raw_buffer[4096];
@@ -436,6 +438,8 @@ extern void            cdrom_exit(const uint8_t id);
 extern int             cdrom_is_empty(const uint8_t id);
 extern void            cdrom_eject(const uint8_t id);
 extern void            cdrom_reload(const uint8_t id);
+
+extern int             cdrom_assigned_letters;
 
 #ifdef __cplusplus
 }
