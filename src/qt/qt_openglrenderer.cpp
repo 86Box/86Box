@@ -107,6 +107,7 @@ const char* fragment_shader_default_tex_src =
         "void main()\n"
         "{\n"
         "       color = texture(Texture, texCoord);\n"
+        "       color.a = 1.0;\n"
         "}\n";
 
 const char* vertex_shader_default_color_src =
@@ -141,6 +142,7 @@ const char* fragment_shader_default_color_src =
         "void main()\n"
         "{\n"
         "       outColor = color;\n"
+        "       outColor.a = 1.0;\n"
         "}\n";
 
 static inline int
