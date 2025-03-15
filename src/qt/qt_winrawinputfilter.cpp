@@ -157,27 +157,16 @@ WindowsRawInputFilter::~WindowsRawInputFilter()
 static void
 notify_drives(ULONG unitmask, int empty)
 {
-    char p[1024] = { 0 };
+    if (unitmask & cdrom_assigned_letters)  for (int i = 0; i < CDROM_NUM; i++) {
+        cdrom_t *dev = &(cdrom[i]);
 
-    for (int i = 0; i < 26; ++i) {
-        if (unitmask & 0x1) {
-            cdrom_t *dev = NULL;
-
-            sprintf(p, "ioctl://\\\\.\\%c:", 'A' + i);
-
-            for (int i = 0; i < CDROM_NUM; i++)
-                if (!stricmp(cdrom[i].image_path, p)) {
-                    dev = &(cdrom[i]);
-                    if (empty)
-                        cdrom_set_empty(dev);
-                    else
-                        cdrom_update_status(dev);
-                    // pclog("CD-ROM %i      : Drive notified of media %s\n",
-                          // dev->id, empty ? "removal" : "change");
-                }
+        if ((dev->host_letter != 0xff) &&
+            (unitmask & (1 << dev->host_letter))) {
+            if (empty)
+                cdrom_set_empty(dev);
+            else
+                cdrom_update_status(dev);
         }
-
-        unitmask = unitmask >> 1;
     }
 }
 
