@@ -115,14 +115,19 @@ ProgSettings::ProgSettings(QWidget *parent)
     mouseSensitivity = mouse_sensitivity;
     ui->horizontalSlider->setValue(mouseSensitivity * 100.);
     ui->openDirUsrPath->setChecked(open_dir_usr_path > 0);
+    ui->checkBoxMultimediaKeys->setChecked(inhibit_multimedia_keys);
+#ifndef Q_OS_WINDOWS
+    ui->checkBoxMultimediaKeys->setHidden(true);
+#endif
 }
 
 void
 ProgSettings::accept()
 {
     strcpy(icon_set, ui->comboBox->currentData().toString().toUtf8().data());
-    lang_id           = ui->comboBoxLanguage->currentData().toUInt();
-    open_dir_usr_path = ui->openDirUsrPath->isChecked() ? 1 : 0;
+    lang_id                 = ui->comboBoxLanguage->currentData().toUInt();
+    open_dir_usr_path       = ui->openDirUsrPath->isChecked() ? 1 : 0;
+    inhibit_multimedia_keys = ui->checkBoxMultimediaKeys->isChecked();
 
     loadTranslators(QCoreApplication::instance());
     reloadStrings();

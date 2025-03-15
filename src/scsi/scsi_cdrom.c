@@ -678,13 +678,8 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                 dev->callback += period;
                 scsi_cdrom_set_callback(dev);
                 return;
-            case 0x43:
-                dev->drv->seek_diff = dev->drv->seek_pos + 150;
-                dev->drv->seek_pos  = 0;
-                fallthrough;
             case 0x08:
             case 0x28:
-            case 0x42: case 0x44:
             case 0xa8:
                 /* Seek time is in us. */
                 period = cdrom_seek_time(dev->drv);
@@ -698,7 +693,7 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                 dev->callback += period;
                 fallthrough;
             case 0x25:
-            // case 0x42 ... 0x44:
+            case 0x42 ... 0x44:
             case 0x51 ... 0x52:
             case 0xad:
             case 0xb8 ... 0xb9:
@@ -707,11 +702,6 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                     dev->callback += 40.0;
                 /* Account for seek time. */
                 /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
-                /*
-                   TODO: This is a bit of a lie - the actual period is closer to
-                         75 * 2448 bytes per second, because the subchannel data
-                         has to be read as well.
-                 */
                 bytes_per_second = 176400.0;
                 bytes_per_second *= (double) dev->drv->cur_speed;
                 break;
@@ -740,19 +730,7 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
         period = 1000000.0 / bytes_per_second;
         scsi_cdrom_log(dev->log, "Byte transfer period: %" PRIu64 " us\n",
                        (uint64_t) period);
-        switch (cmd) {
-            default:
-                period = period * (double) (dev->packet_len);
-                break;
-            case 0x42: case 0x44:
-                /* READ SUBCHANNEL or READ HEADER - period of 1 entire sector. */
-                period = period * 2352.0;
-                break;
-            case 0x43:
-                /* READ TOC - period of 175 entire frames. */
-                period = period * 150.0 * 2352.0;
-                break;
-        }
+        period = period * (double) (dev->packet_len);
         scsi_cdrom_log(dev->log, "Sector transfer period: %" PRIu64 " us\n",
                        (uint64_t) period);
         dev->callback += period;

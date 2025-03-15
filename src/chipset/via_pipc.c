@@ -59,6 +59,7 @@
    listings on forums, as VIA's datasheets are not very helpful regarding those. */
 #define VIA_PIPC_586A         0x05862500
 #define VIA_PIPC_586B         0x05864700
+#define VIA_PIPC_586          0x0586
 #define VIA_PIPC_596A         0x05960900
 #define VIA_PIPC_596B         0x05962300
 #define VIA_PIPC_596          0x0596
@@ -414,7 +415,7 @@ pipc_reset_hard(void *priv)
             dev->power_regs[0x34] = 0x68;
         dev->power_regs[0x40] = 0x20;
 
-        dev->power_regs[0x42] = ((dev->local >> 16) == VIA_PIPC_596) ? 0x50 : 0x00;
+        dev->power_regs[0x42] = ((dev->local >> 16) == VIA_PIPC_586) ? 0x00 : 0x50;
         acpi_set_irq_line(dev->acpi, 0x00);
 
         dev->power_regs[0x48] = 0x01;
@@ -1596,7 +1597,7 @@ pipc_reset(void *priv)
     pipc_write(pm_func, 0x48, 0x01, priv);
     pipc_write(pm_func, 0x49, 0x00, priv);
 
-    dev->power_regs[0x42] = ((dev->local >> 16) == VIA_PIPC_596) ? 0x50 : 0x00;
+    dev->power_regs[0x42] = ((dev->local >> 16) == VIA_PIPC_586) ? 0x00 : 0x50;
     acpi_set_irq_line(dev->acpi, 0x00);
 
     pipc_write(1, 0x04, 0x80, priv);

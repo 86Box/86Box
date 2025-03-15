@@ -131,6 +131,8 @@ load_general(void)
 
     video_filter_method = ini_section_get_int(cat, "video_filter_method", 1);
 
+    inhibit_multimedia_keys = ini_section_get_int(cat, "inhibit_multimedia_keys", 0);
+
     force_43 = !!ini_section_get_int(cat, "force_43", 0);
     scale    = ini_section_get_int(cat, "scale", 1);
     if (scale > 9)
@@ -1899,6 +1901,10 @@ save_general(void)
     char          buffer[512] = { 0 };
 
     const char *va_name;
+
+    ini_section_set_int(cat, "inhibit_multimedia_keys", inhibit_multimedia_keys);
+    if (inhibit_multimedia_keys == 0)
+        ini_section_delete_var(cat, "inhibit_multimedia_keys");
 
     ini_section_set_int(cat, "sound_muted", sound_muted);
     if (sound_muted == 0)

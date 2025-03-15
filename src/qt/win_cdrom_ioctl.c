@@ -748,6 +748,11 @@ ioctl_close(void *local)
 
     log_close(ioctl->log);
     ioctl->log = NULL;
+
+    cdrom_assigned_letters &= ~(1 << ioctl->dev->host_letter);
+    ioctl->dev->host_letter = 0xff;
+
+    free(ioctl);
 }
 
 static void
@@ -788,19 +793,22 @@ ioctl_open(cdrom_t *dev, const char *drv)
     ioctl_t *ioctl = (ioctl_t *) calloc(1, sizeof(ioctl_t));
 
     if (ioctl != NULL) {
-        char n[1024]        = { 0 };
+        char n[1024]            = { 0 };
 
         sprintf(n, "CD-ROM %i IOCtl", dev->id + 1);
-        ioctl->log          = log_open(n);
+        ioctl->log              = log_open(n);
 
         memset(ioctl->path, 0x00, sizeof(ioctl->path));
 
         wsprintf(ioctl->path, L"%S", &(drv[8]));
         ioctl_log(ioctl->log, "Path is %S\n", ioctl->path);
 
-        ioctl->dev          = dev;
+        ioctl->dev              = dev;
 
-        dev->ops            = &ioctl_ops;
+        dev->ops                = &ioctl_ops;
+
+        dev->host_letter        = (drv[12] & 0xdf) - 0x41;
+        cdrom_assigned_letters |= (1 << dev->host_letter);
 
         ioctl_load(ioctl);
     }
