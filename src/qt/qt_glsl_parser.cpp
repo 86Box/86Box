@@ -21,6 +21,8 @@ extern "C"
 
 extern void startblit();
 extern void endblit();
+extern ssize_t local_getline(char **buf, size_t *bufsiz, FILE *fp);
+extern char* trim(char* str);
 }
 
 #define safe_strncpy(a, b, n)                                                                                                    \
@@ -156,7 +158,8 @@ static int get_parameters(glslp_t *glsl) {
         int i;
         struct parameter p;
         for (i = 0; i < glsl->num_shaders; ++i) {
-                char line[1024];
+                size_t size = 0;
+                char* line = NULL;
                 struct shader *shader = &glsl->shaders[i];
                 int bom = glsl_detect_bom(shader->shader_fn);
                 FILE *f = plat_fopen(shader->shader_fn, "rb");
@@ -165,7 +168,9 @@ static int get_parameters(glslp_t *glsl) {
                 if (bom) {
                         fseek(f, 3, SEEK_SET);
                 }
-                while (fgets(line, sizeof(line) - 1, f) && glsl->num_parameters < MAX_PARAMETERS) {
+                while (local_getline(&line, &size, f) != -1 && glsl->num_parameters < MAX_PARAMETERS) {
+                        line[strcspn(line, "\r\n")] = '\0';
+                        trim(line);
                         int num = sscanf(line, "#pragma parameter %63s \"%63[^\"]\" %f %f %f %f", p.id, p.description,
                                          &p.default_value, &p.min, &p.max, &p.step);
                         if (num < 5)
