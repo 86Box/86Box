@@ -40,7 +40,6 @@
 #define ROM_TVGA_8900DR           "roms/video/tvga/8900DR.VBI"
 #define ROM_TVGA_9000B            "roms/video/tvga/tvga9000b.bin"
 #define ROM_TVGA_9000B_NEC_SV9000 "roms/video/tvga/SV9000.VBI"
-#define BIOS_flytech_386_TVGA_8900D_PATH "roms/machines/flytech386/FLYTECHV.VBI"
 
 typedef struct tvga_t {
     mem_mapping_t linear_mapping;
@@ -474,11 +473,6 @@ tvga8900d_available(void)
 {
     return rom_present(ROM_TVGA_8900CLD);
 }
-static int
-tvga8900d_flytech386_available(void)
-{
-    return rom_present(BIOS_flytech_386_TVGA_8900D_PATH);
-}
 
 static int
 tvga8900dr_available(void)
@@ -570,20 +564,6 @@ const device_t tvga8900d_device = {
     .close         = tvga_close,
     .reset         = NULL,
     .available     = tvga8900d_available,
-    .speed_changed = tvga_speed_changed,
-    .force_redraw  = tvga_force_redraw,
-    .config        = tvga_config
-};
-
-const device_t tvga8900d_flytech386_device = {
-    .name          = "Trident TVGA 8900D (Flytech A36)",
-    .internal_name = "tvga8900d_flytech386",
-    .flags         = DEVICE_ISA,
-    .local         = TVGA8900CLD_ID,
-    .init          = tvga_init,
-    .close         = tvga_close,
-    .reset         = NULL,
-    .available     = tvga8900d_flytech386_available,
     .speed_changed = tvga_speed_changed,
     .force_redraw  = tvga_force_redraw,
     .config        = tvga_config
