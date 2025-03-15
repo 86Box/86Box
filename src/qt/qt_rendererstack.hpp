@@ -61,7 +61,6 @@ public:
         OpenGLES,
         OpenGL3,
         Vulkan,
-        OpenGL3PCem = 6,
         None = -1
     };
     void switchRenderer(Renderer renderer);
