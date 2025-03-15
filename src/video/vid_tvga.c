@@ -571,16 +571,16 @@ const device_t tvga8900d_device = {
 
 const device_t tvga8900d_flytech386_device = {
     .name          = "Trident TVGA 8900D (Flytech A36)",
-    .internal_name = "tvga8900d_flytech_a36",
+    .internal_name = "tvga8900d_flytech386",
     .flags         = DEVICE_ISA,
     .local         = TVGA8900CLD_ID,
     .init          = tvga_init,
     .close         = tvga_close,
     .reset         = NULL,
-    .available     = tvga8900d_flytech_a36_available,
+    .available     = tvga8900d_flytech386_available,
     .speed_changed = tvga_speed_changed,
     .force_redraw  = tvga_force_redraw,
-    .config        = tvga8900d_flytech_a36_config
+    .config        = tvga8900d_flytech386_device
 };
 
 const device_t tvga8900dr_device = {
