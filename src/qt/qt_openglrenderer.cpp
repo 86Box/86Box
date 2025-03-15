@@ -1393,6 +1393,10 @@ OpenGLRenderer::render()
 
     glw.glBindTexture(GL_TEXTURE_2D, scene_texture.id);
     scene_texture.min_filter = scene_texture.mag_filter = video_filter_method ? GL_LINEAR : GL_NEAREST;
+    active_shader->scene.fbo.texture.min_filter = active_shader->scene.fbo.texture.mag_filter = video_filter_method ? GL_LINEAR : GL_NEAREST;
+    glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
+    glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
+    glw.glBindTexture(GL_TEXTURE_2D, active_shader->scene.fbo.texture.id);
     glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
     glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
     glw.glBindTexture(GL_TEXTURE_2D, 0);
