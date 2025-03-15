@@ -475,7 +475,7 @@ tvga8900d_available(void)
     return rom_present(ROM_TVGA_8900CLD);
 }
 static int
-flytech386_tvga8900d_available(void)
+tvga8900d_flytech386_available(void)
 {
     return rom_present(BIOS_flytech_386_TVGA_8900D_PATH);
 }
@@ -575,7 +575,7 @@ const device_t tvga8900d_device = {
     .config        = tvga_config
 };
 
-const device_t flytech386_tvga8900d_device = {
+const device_t tvga8900d_flytech386_device = {
     .name          = "Trident TVGA 8900D (Flytech A36)",
     .internal_name = "flytech386_tvga8900d",
     .flags         = DEVICE_ISA,
@@ -583,7 +583,7 @@ const device_t flytech386_tvga8900d_device = {
     .init          = tvga_init,
     .close         = tvga_close,
     .reset         = NULL,
-    .available     = flytech386_tvga8900d_available,
+    .available     = tvga8900d_flytech386_available,
     .speed_changed = tvga_speed_changed,
     .force_redraw  = tvga_force_redraw,
     .config        = tvga_config
