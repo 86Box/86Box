@@ -821,8 +821,7 @@ machine_at_flytech386_init(const machine_t *model)
     device_add(&w83787f_ide_en_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&tvga8900d_flytech386_device);
-
+    device_add(&tvga8900d_flytech386_device);
     device_add(&keyboard_at_ami_device);
 
     return ret;
