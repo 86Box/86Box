@@ -454,9 +454,6 @@ MainWindow::MainWindow(QWidget *parent)
                     endblit();
                 }
 #endif
-            case 6:
-                newVidApi = RendererStack::Renderer::OpenGL3PCem;
-                break;
         }
         ui->stackedWidget->switchRenderer(newVidApi);
         if (!show_second_monitors)
@@ -468,7 +465,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(ui->stackedWidget, &RendererStack::rendererChanged, [this]() {
-        ui->actionRenderer_options->setVisible(ui->stackedWidget->hasOptions());
+        ui->actionRenderer_options->setEnabled(ui->stackedWidget->hasOptions());
     });
 
     /* Trigger initial renderer switch */
