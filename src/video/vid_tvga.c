@@ -40,6 +40,7 @@
 #define ROM_TVGA_8900DR           "roms/video/tvga/8900DR.VBI"
 #define ROM_TVGA_9000B            "roms/video/tvga/tvga9000b.bin"
 #define ROM_TVGA_9000B_NEC_SV9000 "roms/video/tvga/SV9000.VBI"
+#define BIOS_TVGA_8900DR_PATH "roms/machines/flytech386/FLYTECH.BIO"
 
 typedef struct tvga_t {
     mem_mapping_t linear_mapping;
