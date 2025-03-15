@@ -474,6 +474,11 @@ tvga8900d_available(void)
 {
     return rom_present(ROM_TVGA_8900CLD);
 }
+static int
+tvga8900d_flytech386_available(void)
+{
+    return rom_present(BIOS_flytech_386_TVGA_8900DR_PATH);
+}
 
 static int
 tvga8900dr_available(void)
