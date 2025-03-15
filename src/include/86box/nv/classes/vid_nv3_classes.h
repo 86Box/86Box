@@ -73,12 +73,16 @@ typedef enum nv3_pgraph_class_e
 */
 
 // Global stuff
-#define NV3_ROOT_HI_IM_OBJECT_MCOBJECTYFACE             0x0         // I'm going insane at 00:48 14/02/2025
-#define NV3_SET_NOTIFY_CONTEXT_FOR_DMA                  0x100       // Set object ctx for dma...see nv3_dma_context_t structure
-#define NV3_SET_NOTIFY                                  0x104
+#define NV3_ROOT_HI_IM_OBJECT_MCOBJECTYFACE             0x0     // I'm going insane at 00:48 14/02/2025
+#define NV3_SET_NOTIFY_CONTEXT_FOR_DMA                  0x0100  // Set object ctx for dma...see nv3_dma_context_t structure
+#define NV3_SET_NOTIFY                                  0x0104
 
-#define NV3_IMAGE_IN_MEMORY_IN_MEMORY_DMA_CTX_TYPE      0x304
-#define NV3_W95TXT_COLORA                               0x3FC       // It's the colour of the text. This is used to submit a dummy object so the notifier can be used to sync in Win2000 DDraw6 drivers.
+#define NV3_IMAGE_IN_MEMORY_COLOR_FORMAT                0x0300
+#define NV3_IMAGE_IN_MEMORY_IN_MEMORY_DMA_CTX_TYPE      0x0304
+#define NV3_IMAGE_IN_MEMORY_PITCH                       0x0308
+#define NV3_IMAGE_IN_MEMORY_TOP_LEFT_OFFSET             0x030C
+
+#define NV3_W95TXT_COLORA                               0x03FC  // It's the colour of the text. This is used to submit a dummy object so the notifier can be used to sync in Win2000 DDraw6 drivers.
 
 /* Class context switch method */
 typedef struct nv3_class_ctx_switch_method_s
@@ -1085,7 +1089,7 @@ typedef struct nv3_d3d5_coordinate_s
     float x;                     // X coordinate in 3d space of the triangle
     float y;                     // Y coordinate in 3d space of the triangle
     float z;                     // Z coordinate in 3d space of the triangle
-    float m;                     // "Measurement dimension" apparently, allows for more precise measurements. And curves
+    float m;                     // 1/W for projection
     float u;                     // U coordinate within texture for the (top left?) of the triangle where sampling starts.
     float v;                     // V coordinate within texture for the (top left?) of the triangle where sampling starts.
 } nv3_d3d5_coordinate_t;

@@ -30,7 +30,13 @@
 
 void nv3_generic_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
 {
-
+    switch (method_id)
+    {
+        default:
+            nv_log("Shared Generic Methods: Invalid or Unimplemented method 0x%04x", method_id);
+            nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_INVALID_METHOD);
+            return;
+    }
 }
 
 void nv3_notify()

@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   11 March 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   13 March 2025 (STILL WORKING ON IT!!!)
  *  
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -520,10 +520,16 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_DEBUG_3_ALPHA_CHECK                  24
 
 #define NV3_PGRAPH_INTR_0                               0x400100
+#define NV3_PGRAPH_INTR_0_VBLANK                        8           // Fired every frame
+#define NV3_PGRAPH_INTR_0_VBLANK_ENABLED                0x1         // Is the vblank interrupt enabled?
+
 #define NV3_PGRAPH_INTR_1                               0x400104
+#define NV3_PGRAPH_INTR_1_INVALID_METHOD                0           // Invalid method
+#define NV3_PGRAPH_INTR_1_INVALID_DATA                  4           // Invalid data. Not sure when this would be triggered.
+#define NV3_PGRAPH_INTR_1_DOUBLE_NOTIFY                 12          // Tried to notify while a notify was pending.
+#define NV3_PGRAPH_INTR_1_CTXSW_NOTIFY                  16          // Notify fired for software context
+
 #define NV3_PGRAPH_INTR_EN_0                            0x400140    // Interrupt Control for PGRAPH #1
-#define NV3_PGRAPH_INTR_EN_0_VBLANK                     8           // Fired every frame
-#define NV3_PGRAPH_INTR_EN_0_VBLANK_ENABLED             0x1         // Is the vblank interrupt enabled?
 //todo: add what this does
 #define NV3_PGRAPH_INTR_EN_1                            0x400144    // Interrupt Control for PGRAPH #2 (it can receive two at onc)
 #define NV3_PGRAPH_CONTEXT_SWITCH                       0x400180    // DMA context switcher
@@ -1470,6 +1476,8 @@ void        nv3_pgraph_init();
 uint32_t    nv3_pgraph_read(uint32_t address);
 void        nv3_pgraph_write(uint32_t address, uint32_t value);
 void        nv3_pgraph_vblank_start(svga_t* svga);
+void        nv3_pgraph_interrupt_valid(uint32_t num);
+void        nv3_pgraph_interrupt_invalid(uint32_t num);
 void        nv3_pgraph_submit(uint32_t param, uint16_t method, uint8_t channel, uint8_t subchannel, uint8_t class_id, nv3_ramin_context_t context);
 
 // PGRAPH class methods
@@ -1491,7 +1499,7 @@ void        nv3_class_00d_method(uint32_t name, uint32_t method_id, nv3_ramin_co
 void        nv3_class_00e_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 void        nv3_class_010_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 void        nv3_class_011_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void         nv3_class_012_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_012_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 void        nv3_class_014_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 void        nv3_class_015_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 void        nv3_class_017_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);

@@ -462,10 +462,19 @@ void nv3_pgraph_interrupt_valid(uint32_t num)
     nv3_pmc_handle_interrupts(true);
 }
 
+// Fire an INVALID pgraph interrupt
+void nv3_pgraph_interrupt_invalid(uint32_t num)
+{
+    nv3->pgraph.interrupt_status_1 |= (1 << num);
+
+    // Some code in pcbox hat enables the "reserved" bit HERE if it's set in intr 0. What???
+    nv3_pmc_handle_interrupts(true);
+}
+
 // VBlank. Fired every single frame.
 void nv3_pgraph_vblank_start(svga_t* svga)
 {
-    nv3_pgraph_interrupt_valid(NV3_PGRAPH_INTR_EN_0_VBLANK);
+    nv3_pgraph_interrupt_valid(NV3_PGRAPH_INTR_0_VBLANK);
 }
 
 /* Sends off method execution to the right class */
