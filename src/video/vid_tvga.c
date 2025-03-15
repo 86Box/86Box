@@ -581,7 +581,7 @@ const device_t tvga8900d_flytech386_device = {
     .available     = tvga8900d_flytech386_available,
     .speed_changed = tvga_speed_changed,
     .force_redraw  = tvga_force_redraw,
-    .config        = tvga8900d_flytech386_device
+    .config        = tvga_config
 };
 
 const device_t tvga8900dr_device = {
