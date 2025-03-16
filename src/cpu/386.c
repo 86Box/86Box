@@ -341,7 +341,7 @@ block_ended:
                     }
                 }
 
-                if (!x86_was_reset  && ins_fetch_fault)
+                if (is386 && !x86_was_reset  && ins_fetch_fault)
                     x86gen();
             } else if (new_ne) {
                 flags_rebuild();
