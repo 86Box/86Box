@@ -513,6 +513,7 @@ extern int is286;
 extern int is386;
 extern int is6117;
 extern int is486;
+extern int is586;
 extern int is_am486;
 extern int is_am486dxl;
 extern int is_pentium;
