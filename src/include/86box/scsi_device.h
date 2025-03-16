@@ -110,39 +110,40 @@
 #define GPCMD_MECHANISM_STATUS                        0xbd
 #define GPCMD_READ_CD                                 0xbe
 #define GPCMD_SEND_DVD_STRUCTURE                      0xbf /* This is for writing only, irrelevant to 86Box. */
-#define GPCMD_EJECT_CHINON                            0xc0 /* Chinon Vendor Unique command */
 #define GPCMD_AUDIO_TRACK_SEARCH_TOSHIBA              0xc0 /* Toshiba Vendor Unique command */
-#define GPCMD_SET_ADDRESS_FORMAT_SONY                 0xc0 /* Sony Vendor Unique command */
+#define GPCMD_EJECT_CHINON                            0xc0 /* Chinon Vendor Unique command */
 #define GPCMD_MAGAZINE_EJECT_PIONEER                  0xc0 /* Pioneer Vendor Unique command */
+#define GPCMD_SET_ADDRESS_FORMAT_SONY                 0xc0 /* Sony Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_TOSHIBA                      0xc1 /* Toshiba Vendor Unique command */
-#define GPCMD_READ_TOC_SONY                           0xc1 /* Sony Vendor Unique command */
 #define GPCMD_READ_TOC_PIONEER                        0xc1 /* Pioneer Vendor Unique command */
+#define GPCMD_READ_TOC_SONY                           0xc1 /* Sony Vendor Unique command */
 #define GPCMD_PAUSE_RESUME_ALT                        0xc2
 #define GPCMD_READ_SUBCHANNEL_MATSUSHITA              0xc2 /* Matsushita Vendor Unique command */
+#define GPCMD_READ_SUBCODEQ_PIONEER                   0xc2 /* Pioneer Vendor Unique command */
 #define GPCMD_READ_SUBCHANNEL_SONY                    0xc2 /* Sony Vendor Unique command */
 #define GPCMD_STILL_TOSHIBA                           0xc2 /* Toshiba Vendor Unique command */
-#define GPCMD_READ_SUBCODEQ_PIONEER                   0xc2 /* Pioneer Vendor Unique command */
 #define GPCMD_READ_TOC_MATSUSHITA                     0xc3 /* Matsushita Vendor Unique command */
 #define GPCMD_READ_HEADER_SONY                        0xc3 /* Sony Vendor Unique command */
 #define GPCMD_SET_STOP_TIME_TOSHIBA                   0xc3 /* Toshiba Vendor Unique command */
-#define GPCMD_READ_HEADER_MATSUSHITA                  0xc4 /* Matsushita Vendor Unique command */
-#define GPCMD_PLAYBACK_STATUS_SONY                    0xc4 /* Sony Vendor Unique command */
 #define GPCMD_CADDY_EJECT_TOSHIBA                     0xc4 /* Toshiba Vendor Unique command */
+#define GPCMD_PLAYBACK_STATUS_SONY                    0xc4 /* Sony Vendor Unique command */
+#define GPCMD_READ_HEADER_MATSUSHITA                  0xc4 /* Matsushita Vendor Unique command */
 #define GPCMD_PAUSE_SONY                              0xc5 /* Sony Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_MATSUSHITA                   0xc5 /* Matsushita Vendor Unique command */
 #define GPCMD_UNKNOWN_SCSI2_NEC                       0xc5 /* NEC Vendor Unique Command */
-#define GPCMD_STOP_CHINON                             0xc6 /* Chinon Vendor Unique command */
 #define GPCMD_PLAY_TRACK_SONY                         0xc6 /* Sony Vendor Unique command */
 #define GPCMD_READ_SUBCODEQ_PLAYING_STATUS_TOSHIBA    0xc6 /* Toshiba Vendor Unique command */
+#define GPCMD_STOP_CHINON                             0xc6 /* Chinon Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_MSF_MATSUSHITA               0xc7 /* Matsushita Vendor Unique command*/
 #define GPCMD_PLAY_MSF_SONY                           0xc7 /* Sony Vendor Unique command*/
 #define GPCMD_READ_DISC_INFORMATION_TOSHIBA           0xc7 /* Toshiba Vendor Unique command */
-#define GPCMD_PLAY_AUDIO_TRACK_INDEX_MATSUSHITA       0xc8 /* Matsushita Vendor Unique command */
-#define GPCMD_PLAY_AUDIO_SONY                         0xc8 /* Sony Vendor Unique command */
 #define GPCMD_AUDIO_TRACK_SEARCH_PIONEER              0xc8 /* Pioneer Vendor Unique command */
+#define GPCMD_PLAY_AUDIO_SONY                         0xc8 /* Sony Vendor Unique command */
+#define GPCMD_PLAY_AUDIO_TRACK_INDEX_MATSUSHITA       0xc8 /* Matsushita Vendor Unique command */
+#define GPCMD_READ_CDROM_MODE_TOSHIBA                 0xc8 /* Toshiba Vendor Unique command */
+#define GPCMD_PLAY_AUDIO_PIONEER                      0xc9 /* Pioneer Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10_MATSUSHITA 0xc9 /* Matsushita Vendor Unique command */
 #define GPCMD_PLAYBACK_CONTROL_SONY                   0xc9 /* Sony Vendor Unique command */
-#define GPCMD_PLAY_AUDIO_PIONEER                      0xc9 /* Pioneer Vendor Unique command */
 #define GPCMD_PAUSE_PIONEER                           0xca /* Pioneer Vendor Unique command */
 #define GPCMD_PAUSE_RESUME_MATSUSHITA                 0xcb /* Matsushita Vendor Unique command */
 #define GPCMD_STOP_PIONEER                            0xcb /* Pioneer Vendor Unique command */
@@ -151,8 +152,8 @@
 #define GPCMD_READ_CD_MSF_OLD                         0xd5 /* Should be equivalent to 0xb9 */
 #define GPCMD_AUDIO_TRACK_SEARCH_NEC                  0xd8 /* NEC Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_NEC                          0xd9 /* NEC Vendor Unique command */
-#define GPCMD_STILL_NEC                               0xda /* NEC Vendor Unique command */
 #define GPCMD_SET_SPEED_ALT                           0xda /* Should be equivalent to 0xbb */
+#define GPCMD_STILL_NEC                               0xda /* NEC Vendor Unique command */
 #define GPCMD_SET_STOP_TIME_NEC                       0xdb /* NEC Vendor Unique command */
 #define GPCMD_CADDY_EJECT_NEC                         0xdc /* NEC Vendor Unique command */
 #define GPCMD_READ_SUBCODEQ_PLAYING_STATUS_NEC        0xdd /* NEC Vendor Unique command */
@@ -409,12 +410,13 @@ typedef struct scsi_common_s {
     int                do_page_save;
     int                unit_attention;
     int                request_pos;
-    int                old_len;
-    int                media_status;
+    int                wait;
+    int                buffer_pos;
 
     uint32_t           sector_pos;
     uint32_t           sector_len;
     uint32_t           packet_len;
+    uint32_t           block_len;
 
     double             callback;
 
