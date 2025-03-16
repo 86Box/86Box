@@ -113,6 +113,7 @@ private:
     std::unique_ptr<QWidget> current;
 
     std::atomic_bool rendererTakesScreenshots;
+    std::atomic_bool switchInProgress{false};
 };
 
 #endif // QT_RENDERERCONTAINER_HPP

@@ -2025,8 +2025,8 @@ MainWindow::on_actionRenderer_options_triggered()
             ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
             if (show_second_monitors) {
                 for (int i = 1; i < MONITORS_NUM; i++) {
-                    if (renderers[i] && renderers[i]->reloadRendererOption() && renderers[i]->hasOptions()) {
-                        ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
+                    if (renderers[i]) {
+                        renderers[i]->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
                     }
                 }
             }
