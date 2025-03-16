@@ -264,11 +264,7 @@ exec386_2386(int32_t cycs)
             ol = opcode_length[fetchdat & 0xff];
             if ((ol == 3) && opcode_has_modrm[fetchdat & 0xff] && (((fetchdat >> 14) & 0x03) == 0x03))
                 ol = 2;
-            if (cpu_16bitbus) {
-                CHECK_READ_CS(MIN(ol, 2));
-            } else {
-                CHECK_READ_CS(MIN(ol, 4));
-            }
+
             if (is386)
                 ins_fetch_fault = cpu_386_check_instruction_fault();
 
@@ -276,6 +272,10 @@ exec386_2386(int32_t cycs)
             if (ins_fetch_fault) {
                 ins_fetch_fault = 0;
                 cpu_state.abrt = 1;
+            } else if (cpu_16bitbus) {
+                CHECK_READ_CS(MIN(ol, 2));
+            } else {
+                CHECK_READ_CS(MIN(ol, 4));
             }
 
             if (!cpu_state.abrt) {
