@@ -37,7 +37,7 @@ msgid "&Hide status bar"
 msgstr "&Masquer la barre de status"
 
 msgid "Hide &toolbar"
-msgstr "Hide &toolbar"
+msgstr "Masquer la &barre d'outils"
 
 msgid "&Resizeable window"
 msgstr "Fenètre &Retaillable"

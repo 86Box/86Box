@@ -288,7 +288,8 @@ RendererStack::leaveEvent(QEvent *event)
 void
 RendererStack::switchRenderer(Renderer renderer)
 {
-    startblit();
+    //startblit();
+    switchInProgress = true;
     if (current) {
         rendererWindow->finalize();
         removeWidget(current.get());
@@ -339,26 +340,6 @@ RendererStack::createRenderer(Renderer renderer)
                 current.reset(this->createWindowContainer(hw, this));
                 break;
             }
-        case Renderer::OpenGL3PCem:
-            {
-                this->createWinId();
-                auto hw        = new OpenGLRenderer(this);
-                rendererWindow = hw;
-                connect(this, &RendererStack::blitToRenderer, hw, &OpenGLRenderer::onBlit, Qt::QueuedConnection);
-                connect(hw, &OpenGLRenderer::initialized, [=]() {
-                    /* Buffers are available only after initialization. */
-                    imagebufs = rendererWindow->getBuffers();
-                    endblit();
-                    emit rendererChanged();
-                });
-                connect(hw, &OpenGLRenderer::errorInitializing, [=]() {
-                    /* Renderer not could initialize, fallback to software. */
-                    imagebufs = {};
-                    QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
-                });
-                current.reset(this->createWindowContainer(hw, this));
-                break;
-            }
         case Renderer::OpenGL3:
             {
                 this->createWinId();
@@ -369,7 +350,7 @@ RendererStack::createRenderer(Renderer renderer)
                 connect(hw, &OpenGLRenderer::initialized, [=]() {
                     /* Buffers are available only after initialization. */
                     imagebufs = rendererWindow->getBuffers();
-                    endblit();
+                    switchInProgress = false;
                     emit rendererChanged();
                 });
                 connect(hw, &OpenGLRenderer::errorInitializing, [=]() {
@@ -401,7 +382,7 @@ RendererStack::createRenderer(Renderer renderer)
                 connect(hw, &VulkanWindowRenderer::rendererInitialized, [=]() {
                     /* Buffers are available only after initialization. */
                     imagebufs = rendererWindow->getBuffers();
-                    endblit();
+                    switchInProgress = false;
                     emit rendererChanged();
                 });
                 connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
@@ -431,9 +412,9 @@ RendererStack::createRenderer(Renderer renderer)
 
     currentBuf = 0;
 
-    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan && renderer != Renderer::OpenGL3PCem) {
+    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan) {
         imagebufs = rendererWindow->getBuffers();
-        endblit();
+        switchInProgress = false;
         emit rendererChanged();
     }
 }
@@ -443,7 +424,7 @@ void
 RendererStack::blit(int x, int y, int w, int h)
 {
     if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) ||
-        (w > 2048) || (h > 2048) ||
+        (w > 2048) || (h > 2048) || (switchInProgress) ||
         (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() ||
         std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
         video_blit_complete_monitor(m_monitor_index);

@@ -2742,7 +2742,7 @@ static const device_config_t es1370_config[] = {
     // clang-format off
     {
         .name           = "receive_input",
-        .description    = "Receive input (MIDI)",
+        .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 1,

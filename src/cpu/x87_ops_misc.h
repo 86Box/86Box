@@ -585,10 +585,24 @@ opFXAM(UNUSED(uint32_t fetchdat))
     if (cpu_state.tag[cpu_state.TOP & 7] == 3)
         cpu_state.npxs |= (FPU_SW_C0 | FPU_SW_C3);
 #endif
-    else if (ST(0) == 0.0)
-        cpu_state.npxs |= FPU_SW_C3;
-    else
-        cpu_state.npxs |= FPU_SW_C2;
+    else switch (fpclassify(ST(0)))
+    {
+        case FP_SUBNORMAL:
+            cpu_state.npxs |= FPU_SW_C2 | FPU_SW_C3;
+            break;
+        case FP_NAN:
+            cpu_state.npxs |= FPU_SW_C0;
+            break;
+        case FP_INFINITE:
+            cpu_state.npxs |= FPU_SW_C0 | FPU_SW_C2;
+            break;
+        case FP_ZERO:
+            cpu_state.npxs |= FPU_SW_C3;
+            break;
+        case FP_NORMAL:
+            cpu_state.npxs |= FPU_SW_C2;
+            break;
+    }
     if (ST(0) < 0.0)
         cpu_state.npxs |= FPU_SW_C1;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fxam) : (x87_timings.fxam * cpu_multi));

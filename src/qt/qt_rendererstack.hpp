@@ -61,7 +61,6 @@ public:
         OpenGLES,
         OpenGL3,
         Vulkan,
-        OpenGL3PCem = 6,
         None = -1
     };
     void switchRenderer(Renderer renderer);
@@ -114,6 +113,7 @@ private:
     std::unique_ptr<QWidget> current;
 
     std::atomic_bool rendererTakesScreenshots;
+    std::atomic_bool switchInProgress{false};
 };
 
 #endif // QT_RENDERERCONTAINER_HPP

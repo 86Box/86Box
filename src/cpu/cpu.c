@@ -209,6 +209,7 @@ int is286;
 int is386;
 int is6117;
 int is486 = 1;
+int is586 = 0;
 int cpu_isintel;
 int cpu_iscyrix;
 int hascache;
@@ -551,6 +552,8 @@ cpu_set(void)
 
     cpu_16bitbus = (cpu_s->cpu_type == CPU_286) || (cpu_s->cpu_type == CPU_386SX) || (cpu_s->cpu_type == CPU_486SLC) || (cpu_s->cpu_type == CPU_IBM386SLC) || (cpu_s->cpu_type == CPU_IBM486SLC);
     cpu_64bitbus = (cpu_s->cpu_type >= CPU_WINCHIP);
+
+    is586    = cpu_64bitbus || (cpu_s->cpu_type == CPU_P24T);
 
     if (cpu_s->multi)
         cpu_busspeed = cpu_s->rspeed / cpu_s->multi;
@@ -4303,47 +4306,47 @@ cpu_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 static uint8_t
 cpu_read(uint16_t addr, UNUSED(void *priv))
 {
+    uint8_t ret = 0xff;
+
     if (addr == 0xf007)
-        return 0x7f;
+        ret = 0x7f;
+    else if ((addr < 0xf0) && (addr & 1))  switch (cyrix_addr) {
+        case 0xc0:
+            ret = ccr0;
+            break;
+        case 0xc1:
+            ret = ccr1;
+            break;
+        case 0xc2:
+            ret = ccr2;
+            break;
+        case 0xc3:
+            ret = ccr3;
+            break;
+        case 0xe8:
+            ret = ((ccr3 & 0xf0) == 0x10) ? ccr4 : 0xff;
+            break;
+        case 0xe9:
+            ret = ((ccr3 & 0xf0) == 0x10) ? ccr5 : 0xff;
+            break;
+        case 0xea:
+            ret = ((ccr3 & 0xf0) == 0x10) ? ccr6 : 0xff;
+            break;
+        case 0xeb:
+            ret = ccr7;
+            break;
+        case 0xfe:
+            ret = cpu_s->cyrix_id & 0xff;
+            break;
+        case 0xff:
+            ret = cpu_s->cyrix_id >> 8;
+            break;
 
-    if (addr >= 0xf0)
-        return 0xff; /* FPU stuff */
-
-    if (addr & 1) {
-        switch (cyrix_addr) {
-            case 0xc0:
-                return ccr0;
-            case 0xc1:
-                return ccr1;
-            case 0xc2:
-                return ccr2;
-            case 0xc3:
-                return ccr3;
-            case 0xe8:
-                return ((ccr3 & 0xf0) == 0x10) ? ccr4 : 0xff;
-            case 0xe9:
-                return ((ccr3 & 0xf0) == 0x10) ? ccr5 : 0xff;
-            case 0xea:
-                return ((ccr3 & 0xf0) == 0x10) ? ccr6 : 0xff;
-            case 0xeb:
-                return ccr7;
-            case 0xfe:
-                return cpu_s->cyrix_id & 0xff;
-            case 0xff:
-                return cpu_s->cyrix_id >> 8;
-
-            default:
-                break;
-        }
-
-        if ((cyrix_addr & 0xf0) == 0xc0)
-            return 0xff;
-
-        if (cyrix_addr == 0x20 && (cpu_s->cpu_type == CPU_Cx5x86))
-            return 0xff;
+        default:
+            break;
     }
-
-    return 0xff;
+ 
+    return ret;
 }
 
 void
