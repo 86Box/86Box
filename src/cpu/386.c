@@ -269,9 +269,11 @@ exec386_2386(int32_t cycs)
                 ins_fetch_fault = cpu_386_check_instruction_fault();
 
             /* Breakpoint fault has priority over other faults. */
-            if (ins_fetch_fault) {
+            if ((cpu_state.abrt == 0) & ins_fetch_fault) {
+                x86gen();
                 ins_fetch_fault = 0;
-                cpu_state.abrt = 1;
+                /* No instructions executed at this point. */
+                goto block_ended;
             } else if (cpu_16bitbus) {
                 CHECK_READ_CS(MIN(ol, 2));
             } else {
@@ -288,7 +290,6 @@ exec386_2386(int32_t cycs)
                 trap |= !!(cpu_state.flags & T_FLAG);
 
                 cpu_state.pc++;
-                cpu_state.eflags &= ~(RF_FLAG);
                 if (opcode == 0xf0)
                     in_lock = 1;
                 x86_2386_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
@@ -316,6 +317,7 @@ exec386_2386(int32_t cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
+block_ended:
             if (cpu_state.abrt) {
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
@@ -338,6 +340,9 @@ exec386_2386(int32_t cycs)
 #endif
                     }
                 }
+
+                if (!x86_was_reset  && ins_fetch_fault)
+                    x86gen();
             } else if (new_ne) {
                 flags_rebuild();
                 new_ne = 0;
