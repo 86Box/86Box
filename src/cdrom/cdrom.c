@@ -1796,11 +1796,8 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
                     position), the rest are stuff like ISRC etc., which can be all zeroes.
          */
         case 0x00:
-            if (dev->bus_type == CDROM_BUS_ATAPI) {
-                // pclog("Format 0 on ATAPI\n");
+            if (dev->bus_type == CDROM_BUS_ATAPI)
                 break;
-            }
-            // pclog("Format 0 on SCSI\n");
             diff = 0;
             fallthrough;
         case 0x01:
@@ -1847,9 +1844,6 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
                 b[10] = (dat >> 8) & 0xff;
                 b[11] = dat & 0xff;
             }
-            // pclog("%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
-                  // b[ 0], b[ 1], b[ 2], b[ 3], b[ 4], b[ 5], b[ 6], b[ 7],
-                  // b[ 8], b[ 9], b[10], b[11]);
             if (b[0] != 0x00)
                 break;
             base += 12;

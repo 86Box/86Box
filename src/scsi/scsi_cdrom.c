@@ -663,8 +663,6 @@ scsi_cdrom_bus_speed(scsi_cdrom_t *dev)
 static void
 scsi_cdrom_set_period(scsi_cdrom_t *dev)
 {
-    // const uint8_t cmd        = dev->current_cdb[0];
-
     scsi_cdrom_log(dev->log, "Current speed: %ix\n", dev->drv->cur_speed);
 
     dev->callback = 0;
@@ -689,7 +687,6 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
             /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
             bytes_per_second = 176400.0;
             bytes_per_second *= (double) dev->drv->cur_speed;
-            // pclog("Current speed: %ix\n", dev->drv->cur_speed);
         } else {
             bytes_per_second = scsi_cdrom_bus_speed(dev);
             if (bytes_per_second == 0.0) {
@@ -711,7 +708,6 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
                              (dev->packet_len  / dev->block_len));
 
             period *= ((double) num) * 2352.0;
-            // pclog("[%02X] Calculated period for %i * 2352 bytes\n", cmd, num);
         }
         scsi_cdrom_log(dev->log, "Sector transfer period: %" PRIu64 " us\n",
                        (uint64_t) period);
@@ -1082,7 +1078,6 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
 
                 dev->sector_len--;
 
-                // pclog("Sector read to buffer position %08X\n", dev->buffer_pos);
                 dev->buffer_pos += temp_len;
             }
         }
@@ -2470,7 +2465,6 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             break;
 
         case GPCMD_REZERO_UNIT:
-            // pclog("Rezero unit\n");
             dev->was_cached                   = 0;
             scsi_cdrom_stop(sc);
             dev->requested_blocks             = 0;
@@ -2505,7 +2499,6 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
         case GPCMD_SCAN_PIONEER:
         case GPCMD_AUDIO_SCAN:
-            // pclog("Audio scan\n");
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             dev->was_cached = 0;
 
@@ -2552,7 +2545,6 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             scsi_cdrom_buf_alloc(dev, 65536);
 
             toc_format = cdb[2] & 0xf;
-            // pclog("READ TOC format %1X\n", toc_format);
 
             if (toc_format == 0)
                 toc_format = (cdb[9] >> 6) & 3;
@@ -3170,20 +3162,16 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     msf = 0;
                     pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     len = (cdb[7] << 8) | cdb[8];
-                    // pclog("Play audio (10)\n");
                     break;
                 case GPCMD_PLAY_AUDIO_12:
                     msf = 0;
                     pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
-                    // pclog("Play audio (12)\n");
                     break;
                 case GPCMD_PLAY_AUDIO_MSF:
                     msf = 1;
                     pos = (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     len = (cdb[6] << 16) | (cdb[7] << 8) | cdb[8];
-                    // pclog("Play audio MSF: %2i:%02i.%02i-%2i:%02i.%02i\n",
-                          // cdb[3], cdb[4], cdb[5], cdb[6], cdb[7], cdb[8]);
                     break;
                 case GPCMD_PLAY_AUDIO_TRACK_INDEX:
                     msf = 2;
@@ -3192,19 +3180,16 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                         len = cdb[7];
                     } else
                         ret = 0;
-                    // pclog("Play audio track index\n");
                     break;
                 case GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10:
                     msf = 0x100 | cdb[6];
                     pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     len = (cdb[7] << 8) | cdb[8];
-                    // pclog("Play audio track relative (10)\n");
                     break;
                 case GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12:
                     msf = 0x100 | cdb[10];
                     pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
-                    // pclog("Play audio track relative (12)\n");
                     break;
 
                 default:
@@ -3505,7 +3490,6 @@ atapi_out:
 
         case GPCMD_SEEK_6:
         case GPCMD_SEEK_10:
-            // pclog("Seek\n");
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             dev->was_cached = 0;
 

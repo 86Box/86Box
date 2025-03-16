@@ -1091,7 +1091,6 @@ ide_atapi_callback(ide_t *ide)
             ide_irq_raise(ide);
             break;
         case PHASE_DATA_IN_DMA:
-            // pclog("Reading block %i (%i, %i)... ", ide->sc->sector_len + 1, ide->sc->block_len, ide->sc->packet_len);
             if (!IDE_ATAPI_IS_EARLY && !ide_boards[ide->board]->force_ata3 &&
                 (bm != NULL) && bm->dma) {
                 if (ide->sc->block_len == 0) {
@@ -1119,16 +1118,13 @@ ide_atapi_callback(ide_t *ide)
                 default:
                     break;
                 case 0:
-                    // pclog("ERROR\n");
                     if (ide->bus_master_error)
                         ide->bus_master_error(ide->sc);
                     break;
                 case 2:
-                    // pclog("WAIT\n");
                     ide_atapi_command_bus(ide);
                     break;
                 case 3:
-                    // pclog("DONE\n");
                     /* Reached EOT - terminate the command as there's nothing
                        more to transfer. */
                     ide->sc->packet_status = PHASE_COMPLETE;
@@ -1138,7 +1134,6 @@ ide_atapi_callback(ide_t *ide)
                         ide->command_stop(ide->sc);
                     fallthrough;
                 case 1:
-                    // pclog("NEXT\n");
                     if ((ide->sc->packet_status == PHASE_COMPLETE) &&
                         (ide->sc->callback == 0.0))
                         ide_atapi_callback(ide);
@@ -1214,7 +1209,6 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
         ide->tf->pos = dev->request_pos = 0;
 
         if (dev->block_len == 0) {
-            // pclog("ide_atapi_pio_request(): Processing instant command...\n");
             if (out && (ide->phase_data_out != NULL))
                 ide->phase_data_out(dev);
             else if (!out && (ide->command_stop != NULL))
@@ -1254,21 +1248,10 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
 
     if (dev->block_len != 0) {
         if (out) {
-            if (ide->write != NULL) {
-#if 0
-                pclog("ide_atapi_pio_request(): Continuing write command "
-                      "(dev->sector_len = %i)...\n", dev->sector_len);
-#endif
-    
+            if (ide->write != NULL)
                 ide->write(dev);
-            }
 
             if (dev->sector_len == 0) {
-#if 0
-                pclog("ide_atapi_pio_request(): Ending     write command "
-                      "(dev->sector_len = %i)...\n", dev->sector_len);
-#endif
-
                 ide->sc->packet_status = PHASE_COMPLETE;
                 ide->sc->callback      = 0.0;
 
@@ -1279,11 +1262,6 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
             }
         } else {
             if (dev->sector_len == 0) {
-#if 0
-                pclog("ide_atapi_pio_request(): Ending     read  command "
-                      "(dev->sector_len = %i)...\n", dev->sector_len);
-#endif
-
                 if (ide->command_stop != NULL)
                     ide->command_stop(dev);
 
@@ -1291,14 +1269,8 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
                 ide->sc->callback      = 0.0;
 
                 ide_atapi_callback(ide);
-            } else if (ide->read != NULL) {
-#if 0
-                pclog("ide_atapi_pio_request(): Continuing read  command "
-                      "(dev->sector_len = %i)...\n", dev->sector_len);
-#endif
-
+            } else if (ide->read != NULL)
                 ide->read(dev);
-            }
         }
     }
 }
@@ -1332,26 +1304,6 @@ ide_atapi_packet_read(ide_t *ide)
             /* Time for a DRQ. */
             ide_atapi_pio_request(ide, 0);
         }
-#if 0
-        else if ((dev->block_len != 0) &&
-                   (dev->sector_len != 0) &&
-                   ((dev->request_pos % dev->block_len) == 0)) {
-            if (dev->sector_len == 0) {
-                // pclog("ide_atapi_packet_read(): Ending read  command (dev->sector_len = %i)...\n", dev->sector_len);
-
-                if (ide->command_stop != NULL)
-                    ide->command_stop(ide->sc);
-
-                ide->sc->packet_status = PHASE_COMPLETE;
-                ide->sc->callback      = 0.0;
-
-                ide_atapi_callback(ide);
-            } else if (ide->read != NULL) {
-                // pclog("ide_atapi_packet_read(): Continuing read  command (dev->sector_len = %i)...\n", dev->sector_len);
-                ide->read(dev);
-            }
-        }
-#endif
     }
 
     return ret;
@@ -1386,15 +1338,6 @@ ide_atapi_packet_write(ide_t *ide, const uint16_t val)
                 /* Time for a DRQ. */
                 ide_atapi_pio_request(ide, 1);
             }
-#if 0
-            else if ((dev->block_len != 0) &&
-                       ((dev->request_pos % dev->block_len) == 0) &&
-                       (ide->write != NULL)) {
-                // pclog("ide_atapi_packet_write(): Continuing write command (dev->sector_len = %i)...\n", dev->sector_len);
-
-                ide->write(dev);
-           }
-#endif
         } else if (dev->packet_status == PHASE_IDLE) {
             if (ide->tf->pos >= 12) {
                 ide->tf->pos       = 0;
