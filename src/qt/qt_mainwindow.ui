@@ -353,6 +353,9 @@
    <property name="text">
     <string>Exit</string>
    </property>
+   <property name="menuRole">
+    <enum>QAction::QuitRole</enum>
+   </property>
   </action>
   <action name="actionSettings">
    <property name="icon">
@@ -814,6 +817,9 @@
   <action name="actionRenderer_options">
    <property name="text">
     <string>Renderer options...</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
    </property>
   </action>
   <action name="actionVulkan">

@@ -105,6 +105,8 @@ static fdc_cards_t fdc_cards[] = {
     // clang-format off
     { &device_none               },
     { &device_internal           },
+    { &fdc_xt_device             },
+    { &fdc_at_device             },
     { &fdc_b215_device           },
     { &fdc_pii151b_device        },
     { &fdc_pii158b_device        },

@@ -181,6 +181,7 @@ MainWindow::MainWindow(QWidget *parent)
     main_window = this;
     ui->setupUi(this);
     status->setSoundGainAction(ui->actionSound_gain);
+    ui->menuEGA_S_VGA_settings->menuAction()->setMenuRole(QAction::NoRole);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
 #ifdef Q_OS_WINDOWS
@@ -454,9 +455,6 @@ MainWindow::MainWindow(QWidget *parent)
                     endblit();
                 }
 #endif
-            case 6:
-                newVidApi = RendererStack::Renderer::OpenGL3PCem;
-                break;
         }
         ui->stackedWidget->switchRenderer(newVidApi);
         if (!show_second_monitors)
@@ -468,7 +466,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(ui->stackedWidget, &RendererStack::rendererChanged, [this]() {
-        ui->actionRenderer_options->setVisible(ui->stackedWidget->hasOptions());
+        ui->actionRenderer_options->setEnabled(ui->stackedWidget->hasOptions());
     });
 
     /* Trigger initial renderer switch */
@@ -1754,7 +1752,7 @@ MainWindow::on_actionAbout_86Box_triggered()
     versioninfo.append(QString(" [%1, %2]").arg(QSysInfo::buildCpuArchitecture(), tr(DYNAREC_STR)));
     msgBox.setText(QString("<b>%3%1%2</b>").arg(EMU_VERSION_FULL, versioninfo, tr("86Box v")));
     msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
-    msgBox.setWindowTitle("About 86Box");
+    msgBox.setWindowTitle(tr("About 86Box"));
     const auto closeButton = msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);
     msgBox.setEscapeButton(closeButton);
     const auto webSiteButton = msgBox.addButton(EMU_SITE, QMessageBox::ButtonRole::HelpRole);
@@ -2028,8 +2026,8 @@ MainWindow::on_actionRenderer_options_triggered()
             ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
             if (show_second_monitors) {
                 for (int i = 1; i < MONITORS_NUM; i++) {
-                    if (renderers[i] && renderers[i]->reloadRendererOption() && renderers[i]->hasOptions()) {
-                        ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
+                    if (renderers[i]) {
+                        renderers[i]->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
                     }
                 }
             }
