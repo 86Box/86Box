@@ -39,7 +39,7 @@ void nv3_generic_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t c
     }
 }
 
-void nv3_notify()
+void nv3_notify_if_needed(nv3_grobj_t grobj)
 {
     
 }

@@ -1549,6 +1549,9 @@ void        nv3_class_017_method(uint32_t name, uint32_t method_id, nv3_ramin_co
 void        nv3_class_018_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 void        nv3_class_01c_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 
+// Notification Engine
+void        nv3_notify_if_needed(nv3_grobj_t grobj);
+
 // NV3 PFIFO
 void        nv3_pfifo_init();
 uint32_t    nv3_pfifo_read(uint32_t address);

@@ -588,6 +588,8 @@ void nv3_pgraph_arbitrate_method(uint32_t param, uint16_t method, uint8_t channe
             fatal("NV3 (nv3_pgraph_arbitrate_method): Attempted to execute method on invalid, or unimplemented, class ID %s", nv3_class_names[class_id]);
             return;
     }
+
+    nv3_notify_if_needed(grobj);
 }
 
 /* Arbitrates graphics object submission to the right object types */
