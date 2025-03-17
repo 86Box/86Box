@@ -1197,7 +1197,8 @@ ide_atapi_callback(ide_t *ide)
 static void
 ide_atapi_pio_request(ide_t *ide, uint8_t out)
 {
-    scsi_common_t *dev = ide->sc;
+    scsi_common_t *dev  = ide->sc;
+    int            left = 0;
 
     ide_irq_lower(ide);
 
@@ -1220,6 +1221,8 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
     } else {
         ide_log("%i bytes %s, %i bytes are still left\n", ide->tf->pos,
                 out ? "written" : "read", dev->packet_len - ide->tf->pos);
+
+        left = 1;
 
         /*
            If less than (packet length) bytes are remaining, update packet length
@@ -1252,23 +1255,33 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
                 ide->write(dev);
 
             if (dev->sector_len == 0) {
-                ide->sc->packet_status = PHASE_COMPLETE;
-                ide->sc->callback      = 0.0;
+                if (left) {
+                    ide_atapi_callback(ide);
+                    ide_set_callback(ide, 0.0);
+                } else {
+                    ide->sc->packet_status = PHASE_COMPLETE;
+                    ide->sc->callback      = 0.0;
 
-                if (ide->phase_data_out != NULL)
-                    (void) ide->phase_data_out(dev);
+                    if (ide->phase_data_out != NULL)
+                        (void) ide->phase_data_out(dev);
 
-                ide_atapi_callback(ide);
+                    ide_atapi_callback(ide);
+                }
             }
         } else {
             if (dev->sector_len == 0) {
-                if (ide->command_stop != NULL)
-                    ide->command_stop(dev);
+                if (left) {
+                    ide_atapi_callback(ide);
+                    ide_set_callback(ide, 0.0);
+                } else {
+                    if (ide->command_stop != NULL)
+                        ide->command_stop(dev);
 
-                ide->sc->packet_status = PHASE_COMPLETE;
-                ide->sc->callback      = 0.0;
+                    ide->sc->packet_status = PHASE_COMPLETE;
+                    ide->sc->callback      = 0.0;
 
-                ide_atapi_callback(ide);
+                    ide_atapi_callback(ide);
+                }
             } else if (ide->read != NULL)
                 ide->read(dev);
         }
