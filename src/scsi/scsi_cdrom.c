@@ -1096,8 +1096,10 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
     int msf   = 0;
     int type  = dev->sector_type;
     int flags = dev->sector_flags;
+#ifdef ENABLE_SCSI_CDROM_LOG
     int num   = (dev->drv->bus_type == CDROM_BUS_SCSI) ?
                 dev->requested_blocks : 1;
+#endif
 
     switch (dev->current_cdb[0]) {
         case GPCMD_READ_CD_MSF_OLD:
