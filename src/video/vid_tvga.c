@@ -37,7 +37,7 @@
 
 #define ROM_TVGA_8900B            "roms/video/tvga/tvga8900b.vbi"
 #define ROM_TVGA_8900CLD          "roms/video/tvga/trident.bin"
-#define ROM_TVGA_8900D_FLYTECH_386 "roms/machines/flytech386/FLYTECHV.VBI
+#define ROM_TVGA_8900D_FLYTECH_386 "roms/machines/flytech386/FLYTECHV.VBI"
 #define ROM_TVGA_8900DR           "roms/video/tvga/8900DR.VBI"
 #define ROM_TVGA_9000B            "roms/video/tvga/tvga9000b.bin"
 #define ROM_TVGA_9000B_NEC_SV9000 "roms/video/tvga/SV9000.VBI"
