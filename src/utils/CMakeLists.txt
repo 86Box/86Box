@@ -23,4 +23,7 @@ add_library(utils OBJECT
     ini.c
     log.c
     random.c
+
+    # VIDEO 
+    video/video_rop.c
 )

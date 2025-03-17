@@ -42,4 +42,10 @@ DMA_OBJECT STRUCTURE IN RESOURCE MANAGER:
 0x34c: base address?
 0x374: actually do the transfer
 
+some objects don't actually need to do dma, for example, video patchcord, it just creates a structure in the driver, and rop just allocate ssome memory to put the data for the patchcord/rop thing
+
+dma start=nv3_mini dc67
+call of mthdCreate for ***DRIVER*** CLASS ID: a7b44, check ptr
+
+
 
