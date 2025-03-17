@@ -409,7 +409,7 @@ image_get_track_and_index(const cd_image_t *img, const uint32_t sector,
 
     for (int i = 0; i < img->tracks_num; i++) {
         track_t *ct = &(img->tracks[i]);
-        for (int j = 0; j < 3; j++) {
+        if ((ct->point >= 1) && (ct->point <= 99))  for (int j = 0; j < 3; j++) {
             track_index_t *ci = &(ct->idx[j]);
             if ((ci->type >= INDEX_ZERO) && (ci->length != 0ULL) &&
                 ((sector + 150) >= ci->start) && ((sector + 150) <= (ci->start + ci->length - 1))) {

@@ -23,8 +23,6 @@ endif()
 add_executable(86Box
     86box.c
     config.c
-    log.c
-    random.c
     timer.c
     io.c
     acpi.c
@@ -41,15 +39,11 @@ add_executable(86Box
     pci.c
     mca.c
     usb.c
-    fifo.c
-    fifo8.c
     device.c
     nvr.c
     nvr_at.c
     nvr_ps2.c
     machine_status.c
-    ini.c
-    cJSON.c
 )
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -106,7 +100,7 @@ if(INSTRUMENT)
 endif()
 
 target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom zip mo hdd
-    net print scsi sio snd vid voodoo plat ui)
+    net print scsi sio snd utils vid voodoo plat ui)
 
 if(HAIKU)
     target_link_libraries(86Box be)
@@ -256,7 +250,9 @@ add_subdirectory(printer)
 add_subdirectory(sio)
 add_subdirectory(scsi)
 add_subdirectory(sound)
+add_subdirectory(utils)
 add_subdirectory(video)
+
 if (APPLE)
     add_subdirectory(mac)
 endif()
