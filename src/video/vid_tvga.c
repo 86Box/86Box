@@ -545,6 +545,28 @@ static const device_config_t tvga_config[] = {
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
+
+static const device_config_t tvga_flytech386_config[] = {
+    // clang-format off
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            /*expandable to 1MB*/
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+
 // clang-format off
 };
 
@@ -586,7 +608,7 @@ const device_t tvga8900d_flytech386_device = {
     .available     = tvga8900d_flytech_386_available,
     .speed_changed = tvga_speed_changed,
     .force_redraw  = tvga_force_redraw,
-    .config        = tvga_config
+    .config        = tvga_flytech386_config
 };
 const device_t tvga8900dr_device = {
     .name          = "Trident TVGA 8900D-R",
