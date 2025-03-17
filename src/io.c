@@ -28,6 +28,7 @@
 #include <86box/io.h>
 #include <86box/timer.h>
 #include "cpu.h"
+#include "x86.h"
 #include <86box/m_amstrad.h>
 #include <86box/pci.h>
 
@@ -344,6 +345,8 @@ inb(uint16_t port)
     int     qfound = 0;
 #endif
 
+    io_port = port;
+
 #ifdef USE_DEBUG_REGS_486
     io_debug_check_addr(port);
 #endif
@@ -408,6 +411,9 @@ outb(uint16_t port, uint8_t val)
     int   qfound = 0;
 #endif
 
+    io_port = port;
+    io_val  = val;
+
 #ifdef USE_DEBUG_REGS_486
     io_debug_check_addr(port);
 #endif
@@ -463,6 +469,8 @@ inw(uint16_t port)
     int      qfound = 0;
 #endif
     uint8_t  ret8[2];
+
+    io_port = port;
 
 #ifdef USE_DEBUG_REGS_486
     io_debug_check_addr(port);
@@ -540,6 +548,9 @@ outw(uint16_t port, uint16_t val)
     int   qfound = 0;
 #endif
 
+    io_port = port;
+    io_val  = val;
+
 #ifdef USE_DEBUG_REGS_486
     io_debug_check_addr(port);
 #endif
@@ -611,6 +622,8 @@ inl(uint16_t port)
 #ifdef ENABLE_IO_LOG
     int      qfound = 0;
 #endif
+
+    io_port = port;
 
 #ifdef USE_DEBUG_REGS_486
     io_debug_check_addr(port);
@@ -719,6 +732,9 @@ outl(uint16_t port, uint32_t val)
     int   qfound = 0;
 #endif
     int   i      = 0;
+
+    io_port = port;
+    io_val  = val;
 
 #ifdef USE_DEBUG_REGS_486
     io_debug_check_addr(port);

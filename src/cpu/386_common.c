@@ -107,6 +107,12 @@ uint32_t backupregs[16];
 
 x86seg _oldds;
 
+uint8_t rep_op = 0x00;
+uint8_t is_smint = 0;
+
+uint16_t io_port = 0x0000;
+uint32_t io_val  = 0x00000000;
+
 int opcode_has_modrm[256] = {
     1, 1, 1, 1,  0, 0, 0, 0,  1, 1, 1, 1,  0, 0, 0, 0, /*00*/
     1, 1, 1, 1,  0, 0, 0, 0,  1, 1, 1, 1,  0, 0, 0, 0, /*10*/
@@ -1215,7 +1221,7 @@ smram_restore_state_amd_k(uint32_t *saved_state)
 }
 
 static void
-smram_save_state_cyrix(uint32_t *saved_state, UNUSED(int in_hlt))
+smram_save_state_cyrix(uint32_t *saved_state, int in_hlt)
 {
     saved_state[0] = dr[7];
     saved_state[1] = cpu_state.flags | (cpu_state.eflags << 16);
@@ -1224,6 +1230,35 @@ smram_save_state_cyrix(uint32_t *saved_state, UNUSED(int in_hlt))
     saved_state[4] = cpu_state.pc;
     saved_state[5] = CS | (CPL << 21);
     saved_state[6] = 0x00000000;
+    saved_state[7] = 0x00010000;
+
+    if (((opcode >= 0x6e) && (opcode <= 0x6f)) || ((opcode >= 0xe6) && (opcode <= 0xe7)) ||
+        ((opcode >= 0xee) && (opcode <= 0xef))) {
+        saved_state[6] |= 0x00000002;
+        saved_state[7] = (opcode & 0x01) ? (cpu_state.op32 ? 0x000f0000 : 0x00030000) : 0x00010000;
+    } else if (((opcode == 0xf2) || (opcode == 0xf3)) && (rep_op >= 0x6e) && (rep_op <= 0x6f)) {
+        saved_state[6] |= 0x00000006;
+        saved_state[7] = (rep_op & 0x01) ? (cpu_state.op32 ? 0x000f0000 : 0x00030000) : 0x00010000;
+    } else if (((opcode == 0xf2) || (opcode == 0xf3)) && (rep_op >= 0x6e) && (rep_op <= 0x6f)) {
+        saved_state[6] |= 0x00000004;
+        saved_state[7] = (rep_op & 0x01) ? (cpu_state.op32 ? 0x000f0000 : 0x00030000) : 0x00010000;
+    }
+
+    if (is_smint) {
+        saved_state[6] |= 0x00000008;
+        is_smint = 0;
+    }
+
+    if (in_hlt)
+        saved_state[6] |= 0x00000010;
+
+    saved_state[7] |= io_port;
+    saved_state[8] = io_val;
+
+    if (saved_state[6] & 0x00000002)
+        saved_state[9] = ESI;
+    else
+        saved_state[9] = EDI;
 }
 
 static void
@@ -1234,6 +1269,13 @@ smram_restore_state_cyrix(uint32_t *saved_state)
     cpu_state.eflags = saved_state[1] >> 16;
     cr0              = saved_state[2];
     cpu_state.pc     = saved_state[4];
+    /* Restore CPL. */
+    cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x9f) | (((saved_state[5] >> 21) & 0x03) << 5);
+
+    if (saved_state[6] & 0x00000002)
+        ESI = saved_state[9];
+    else
+        EDI = saved_state[9];
 }
 
 void
@@ -1368,6 +1410,9 @@ enter_smm(int in_hlt)
         writememl(0, smram_state - 0x14, saved_state[4]);
         writememl(0, smram_state - 0x18, saved_state[5]);
         writememl(0, smram_state - 0x24, saved_state[6]);
+        writememl(0, smram_state - 0x28, saved_state[7]);
+        writememl(0, smram_state - 0x2c, saved_state[8]);
+        writememl(0, smram_state - 0x30, saved_state[9]);
     } else {
         for (uint8_t n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
             smram_state -= 4;
@@ -1452,6 +1497,9 @@ leave_smm(void)
         else
             cyrix_load_seg_descriptor_2386(smram_state - 0x20, &cpu_state.seg_cs);
         saved_state[6] = readmeml(0, smram_state - 0x24);
+        saved_state[7] = readmeml(0, smram_state - 0x28);
+        saved_state[8] = readmeml(0, smram_state - 0x2c);
+        saved_state[9] = readmeml(0, smram_state - 0x30);
     } else {
         for (uint8_t n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
             smram_state -= 4;

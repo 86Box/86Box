@@ -2581,19 +2581,17 @@ cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg)
                 cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
             else
                 cpu_cur_status |= CPU_STATUS_NOTFLATDS;
-#ifdef USE_DYNAREC
-            codegen_flat_ds = 0;
-#endif
         }
+
+        if (seg == &cpu_state.seg_cs)
+            set_use32(segdat[3] & 0x40);
+
         if (seg == &cpu_state.seg_ss) {
             if (seg->base == 0 && seg->limit_low == 0 && seg->limit_high == 0xffffffff)
                 cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
             else
                 cpu_cur_status |= CPU_STATUS_NOTFLATSS;
             set_stack32((segdat[3] & 0x40) ? 1 : 0);
-#ifdef USE_DYNAREC
-            codegen_flat_ss = 0;
-#endif
         }
     }
 }

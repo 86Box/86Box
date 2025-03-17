@@ -63,18 +63,23 @@ opRSDC_common(uint32_t fetchdat)
     switch (rmdat & 0x38) {
         case 0x00: /*ES*/
             cyrix_load_seg_descriptor(easeg + cpu_state.eaaddr, &cpu_state.seg_es);
+            ES = readmemw(0, easeg + cpu_state.eaaddr + 8);
             break;
         case 0x18: /*DS*/
             cyrix_load_seg_descriptor(easeg + cpu_state.eaaddr, &cpu_state.seg_ds);
+            DS = readmemw(0, easeg + cpu_state.eaaddr + 8);
             break;
         case 0x10: /*SS*/
             cyrix_load_seg_descriptor(easeg + cpu_state.eaaddr, &cpu_state.seg_ss);
+            SS = readmemw(0, easeg + cpu_state.eaaddr + 8);
             break;
         case 0x20: /*FS*/
             cyrix_load_seg_descriptor(easeg + cpu_state.eaaddr, &cpu_state.seg_fs);
+            FS = readmemw(0, easeg + cpu_state.eaaddr + 8);
             break;
         case 0x28: /*GS*/
             cyrix_load_seg_descriptor(easeg + cpu_state.eaaddr, &cpu_state.seg_gs);
+            GS = readmemw(0, easeg + cpu_state.eaaddr + 8);
             break;
         default:
             x86illegal();
@@ -216,8 +221,10 @@ opSMINT(UNUSED(uint32_t fetchdat))
 {
     if (in_smm)
         fatal("opSMINT\n");
-    else
-        x86illegal();
+    else {
+        is_smint = 1;
+        enter_smm(0);
+    }
 
     return 1;
 }
