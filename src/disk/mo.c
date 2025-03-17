@@ -63,7 +63,7 @@ const uint8_t mo_command_flags[0x100] = {
     [0x0a]          = IMPLEMENTED | CHECK_READY,
     [0x0b]          = IMPLEMENTED | CHECK_READY,
     [0x12]          = IMPLEMENTED | ALLOW_UA,
-    [0x13]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0x13]          = IMPLEMENTED | CHECK_READY,
     [0x15]          = IMPLEMENTED,
     [0x16]          = IMPLEMENTED | SCSI_ONLY,
     [0x17]          = IMPLEMENTED | SCSI_ONLY,
@@ -74,8 +74,7 @@ const uint8_t mo_command_flags[0x100] = {
     [0x25]          = IMPLEMENTED | CHECK_READY,
     [0x28]          = IMPLEMENTED | CHECK_READY,
     [0x2a ... 0x2c] = IMPLEMENTED | CHECK_READY,
-    [0x2e]          = IMPLEMENTED | CHECK_READY,
-    [0x2f]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0x2e ... 0x2f] = IMPLEMENTED | CHECK_READY,
     [0x41]          = IMPLEMENTED | CHECK_READY,
     [0x55]          = IMPLEMENTED,
     [0x5a]          = IMPLEMENTED,
@@ -172,9 +171,9 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
         }
 
         if (ret) {
-            fseek(dev->drv->fp, 0, SEEK_END);
+            fseeko64(dev->drv->fp, 0, SEEK_END);
 
-            uint32_t     size  = (uint32_t) ftell(dev->drv->fp);
+            uint64_t     size  = (uint64_t) ftello64(dev->drv->fp);
             unsigned int found = 0;
 
             if (is_mdi) {
@@ -185,7 +184,7 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
                 dev->drv->base = 0;
 
             for (uint8_t i = 0; i < KNOWN_MO_TYPES; i++) {
-                if (size == (mo_types[i].sectors * mo_types[i].bytes_per_sector)) {
+                if (size == ((uint64_t) mo_types[i].sectors * mo_types[i].bytes_per_sector)) {
                     found                 = 1;
                     dev->drv->medium_size = mo_types[i].sectors;
                     dev->drv->sector_size = mo_types[i].bytes_per_sector;
@@ -194,7 +193,7 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
             }
 
             if (found) {
-                if (fseek(dev->drv->fp, dev->drv->base, SEEK_SET) == -1)
+                if (fseeko64(dev->drv->fp, (uint64_t) dev->drv->base, SEEK_SET) == -1)
                     log_fatal(dev->log, "mo_load(): Error seeking to the beginning of "
                               "the file\n");
 
@@ -799,21 +798,21 @@ mo_blocks(mo_t *dev, int32_t *len, int out)
 
     *len    = 0;
 
-    if (!dev->sector_len)
-        mo_command_complete(dev);
-    else {
+    if (dev->sector_len == 0) {
         mo_log(dev->log, "%sing %i blocks starting from %i...\n", out ? "Writ" : "Read",
                dev->requested_blocks, dev->sector_pos);
 
         if (dev->sector_pos >= dev->drv->medium_size) {
             mo_log(dev->log, "Trying to %s beyond the end of disk\n", out ? "write" : "read");
             mo_lba_out_of_range(dev);
+            ret  = 0;
         } else {
             *len = dev->requested_blocks * dev->drv->sector_size;
             ret  = 1;
 
             for (int i = 0; i < dev->requested_blocks; i++) {
-                if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos * dev->drv->sector_size) + (i * dev->drv->sector_size), SEEK_SET) == -1) {
+                if (fseeko64(dev->drv->fp, dev->drv->base +
+                             ((uint64_t) dev->sector_pos * dev->drv->sector_size), SEEK_SET) == -1) {
                     if (out)
                         mo_write_error(dev);
                     else
@@ -854,6 +853,9 @@ mo_blocks(mo_t *dev, int32_t *len, int out)
                 dev->sector_len -= dev->requested_blocks;
             }
         }
+    } else {
+        mo_command_complete(dev);
+        ret = 0;
     }
 
     return ret;
@@ -888,7 +890,7 @@ mo_format(mo_t *dev)
 
     mo_log(dev->log, "Formatting media...\n");
 
-    fseek(dev->drv->fp, 0, SEEK_END);
+    fseeko64(dev->drv->fp, 0, SEEK_END);
     long size = ftell(dev->drv->fp);
 
 #ifdef _WIN32
@@ -962,8 +964,9 @@ mo_erase(mo_t *dev)
     mo_buf_alloc(dev, dev->drv->sector_size);
     memset(dev->buffer, 0, dev->drv->sector_size);
 
-    fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos * dev->drv->sector_size),
-          SEEK_SET);
+    fseeko64(dev->drv->fp, dev->drv->base +
+             ((uint64_t) dev->sector_pos * dev->drv->sector_size),
+             SEEK_SET);
 
     for (i = 0; i < dev->requested_blocks; i++) {
         if (feof(dev->drv->fp))
@@ -1878,7 +1881,8 @@ mo_phase_data_out(scsi_common_t *sc)
                     dev->buffer[6] = (s >> 8) & 0xff;
                     dev->buffer[7] = s & 0xff;
                 }
-                if (fseek(dev->drv->fp, (i * dev->drv->sector_size), SEEK_SET) == -1)
+                if (fseeko64(dev->drv->fp,
+                             ((uint64_t) i * dev->drv->sector_size), SEEK_SET) == -1)
                     mo_write_error(dev);
                 if (feof(dev->drv->fp))
                     break;

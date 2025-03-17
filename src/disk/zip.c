@@ -53,7 +53,7 @@ const uint8_t zip_command_flags[0x100] = {
     [0x0c]          = IMPLEMENTED,
     [0x0d]          = IMPLEMENTED | ATAPI_ONLY,
     [0x12]          = IMPLEMENTED | ALLOW_UA,
-    [0x13]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0x13]          = IMPLEMENTED | CHECK_READY,
     [0x15]          = IMPLEMENTED,
     [0x16 ... 0x17] = IMPLEMENTED | SCSI_ONLY,
     [0x1a]          = IMPLEMENTED,
@@ -64,8 +64,7 @@ const uint8_t zip_command_flags[0x100] = {
     [0x25]          = IMPLEMENTED | CHECK_READY,
     [0x28]          = IMPLEMENTED | CHECK_READY,
     [0x2a ... 0x2b] = IMPLEMENTED | CHECK_READY,
-    [0x2e]          = IMPLEMENTED | CHECK_READY,
-    [0x2f]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0x2e ... 0x2f] = IMPLEMENTED | CHECK_READY,
     [0x41]          = IMPLEMENTED | CHECK_READY,
     [0x55]          = IMPLEMENTED,
     [0x5a]          = IMPLEMENTED,
@@ -898,9 +897,7 @@ zip_blocks(zip_t *dev, int32_t *len, const int out)
     int ret = 1;
     *len    = 0;
 
-    if (!dev->sector_len)
-        zip_command_complete(dev);
-    else {
+    if (dev->sector_len > 0) {
         zip_log(dev->log, "%sing %i blocks starting from %i...\n", out ? "Writ" : "Read",
                 dev->requested_blocks, dev->sector_pos);
 
@@ -908,12 +905,13 @@ zip_blocks(zip_t *dev, int32_t *len, const int out)
             zip_log(dev->log, "Trying to %s beyond the end of disk\n",
                     out ? "write" : "read");
             zip_lba_out_of_range(dev);
+            ret = 0;
         } else {
             *len    = dev->requested_blocks << 9;
 
             for (int i = 0; i < dev->requested_blocks; i++) {
-                if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos << 9) +
-                                              (i << 9), SEEK_SET) == -1) {
+                if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos << 9),
+                    SEEK_SET) == -1) {
                     if (out)
                         zip_write_error(dev);
                     else
@@ -952,6 +950,9 @@ zip_blocks(zip_t *dev, int32_t *len, const int out)
                 dev->sector_len -= dev->requested_blocks;
             }
         }
+    } else {
+        zip_command_complete(dev);
+        ret = 0;
     }
 
     return ret;
