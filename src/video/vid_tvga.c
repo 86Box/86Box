@@ -545,7 +545,7 @@ static const device_config_t tvga_config[] = {
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-
+};
 static const device_config_t tvga_flytech386_config[] = {
     // clang-format off
     {
