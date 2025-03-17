@@ -240,7 +240,7 @@ chips_69000_write_flat_panel(chips_69000_t* chips, uint8_t val)
 void
 chips_69000_interrupt(chips_69000_t* chips)
 {
-    pci_irq(chips->slot, PCI_INTA, 0, !!((chips->mem_regs[0] & chips->mem_regs[1]) & 0x80004040), &chips->irq_state);
+    pci_irq(chips->slot, PCI_INTA, 0, !!(chips->mem_regs[0] & chips->mem_regs[1] & 0x80004040), &chips->irq_state);
 }
 
 void
@@ -2416,7 +2416,7 @@ chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
                 {
                     chips->mem_regs_b[addr & 0xF] = val;
                     chips->mem_regs[(addr >> 2) & 0x3] &= 0x80004040;
-                    if (addr == 0x605 || addr == 0x607)
+                    if (addr == 0x601 || addr == 0x603)
                         chips_69000_interrupt(chips);
                     break;
                 }
