@@ -1042,7 +1042,9 @@ void
 chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t pattern, uint32_t src, uint8_t rop)
 {
     uint32_t orig_dst = *dst & 0xFF000000;
+
     ROPMIX(rop, *dst, pattern, src, *dst);
+
     *dst &= 0xFFFFFF;
     *dst |= orig_dst;
 }
@@ -1207,22 +1209,20 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
     switch (chips->bitblt_running.bytes_per_pixel) {
         case 1: /* 8 bits-per-pixel. */
             {
-                //dest_pixel = chips_69000_readb_linear(dest_addr, chips);
-                dest_pixel = chips->svga.vram[dest_addr & chips->svga.vram_mask];
+                dest_pixel = chips_69000_readb_linear(dest_addr, chips);
                 break;
             }
         case 2: /* 16 bits-per-pixel. */
             {
-                //dest_pixel = *(uint16_t*)&chips->svga.vram[dest_addr & chips->svga.vram_mask];
-                dest_pixel = chips->svga.vram[dest_addr & chips->svga.vram_mask];
-                dest_pixel |= chips->svga.vram[(dest_addr + 1) & chips->svga.vram_mask] << 8;
+                dest_pixel = chips_69000_readb_linear(dest_addr, chips);
+                dest_pixel |= chips_69000_readb_linear(dest_addr + 1, chips) << 8;
                 break;
             }
         case 3: /* 24 bits-per-pixel. */
             {
-                dest_pixel = chips->svga.vram[dest_addr & chips->svga.vram_mask];
-                dest_pixel |= chips->svga.vram[(dest_addr + 1) & chips->svga.vram_mask] << 8;
-                dest_pixel |= chips->svga.vram[(dest_addr + 2) & chips->svga.vram_mask] << 16;
+                dest_pixel = chips_69000_readb_linear(dest_addr, chips);
+                dest_pixel |= chips_69000_readb_linear(dest_addr + 1, chips) << 8;
+                dest_pixel |= chips_69000_readb_linear(dest_addr + 2, chips) << 16;
                 break;
             }
     }
@@ -1235,7 +1235,7 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
         if (chips->bitblt_running.bitblt.bitblt_control & (1 << 19))
             pattern_data = 0;
         else
-            pattern_data = chips->svga.vram[(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + (chips->bitblt_running.y & 7)) & 7)) & chips->svga.vram_mask]; //chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + (chips->bitblt_running.y & 7)) & 7), chips);
+            pattern_data = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + (chips->bitblt_running.y & 7)) & 7), chips);
 
         is_true = !!(pattern_data & (1 << (7 - ((chips->bitblt_running.bitblt.destination_addr + chips->bitblt_running.x) & 7))));
 
@@ -1251,30 +1251,32 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
 
         pattern_pixel &= (1 << (8 * (chips->bitblt_running.bytes_per_pixel))) - 1;
     } else {
-        uint32_t pattern_pixel_addr = 0;
         if (chips->bitblt_running.bytes_per_pixel == 1) {
-            pattern_pixel_addr = chips->bitblt_running.bitblt.pat_addr
-            + 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7)
-            + (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7);
-
-            pattern_pixel = chips->svga.vram[pattern_pixel_addr & chips->svga.vram_mask];
+            pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7)
+                                                        + (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7), chips);
         }
         if (chips->bitblt_running.bytes_per_pixel == 2) {
-            pattern_pixel_addr = chips->bitblt_running.bitblt.pat_addr
-            + (2 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
-            + (2 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7));
+            pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (2 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (2 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)), chips);
 
-            pattern_pixel = chips->svga.vram[pattern_pixel_addr & chips->svga.vram_mask];
-            pattern_pixel |= chips->svga.vram[(pattern_pixel_addr + 1) & chips->svga.vram_mask] << 8;
+            pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (2 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (2 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 1, chips) << 8;
         }
         if (chips->bitblt_running.bytes_per_pixel == 3) {
-            pattern_pixel_addr = chips->bitblt_running.bitblt.pat_addr
-            + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
-            + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7));
+            pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)), chips);
 
-            pattern_pixel = chips->svga.vram[pattern_pixel_addr & chips->svga.vram_mask];
-            pattern_pixel |= chips->svga.vram[(pattern_pixel_addr + 1) & chips->svga.vram_mask] << 8;
-            pattern_pixel |= chips->svga.vram[(pattern_pixel_addr + 2) & chips->svga.vram_mask] << 16;
+            pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 1, chips) << 8;
+
+            pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 2, chips) << 16;
         }
     }
     if (chips->bitblt_running.bytes_per_pixel == 2) {
@@ -1342,21 +1344,20 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
     switch (chips->bitblt_running.bytes_per_pixel) {
         case 1: /* 8 bits-per-pixel. */
             {
-                chips->svga.vram[dest_addr & chips->svga.vram_mask] = dest_pixel & 0xFF;
-                //chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
                 break;
             }
         case 2: /* 16 bits-per-pixel. */
             {
-                chips->svga.vram[dest_addr & chips->svga.vram_mask] = dest_pixel & 0xFF;
-                chips->svga.vram[(dest_addr + 1) & chips->svga.vram_mask] = (dest_pixel >> 8) & 0xFF;
+                chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr + 1, (dest_pixel >> 8) & 0xFF, chips);
                 break;
             }
         case 3: /* 24 bits-per-pixel. */
             {
-                chips->svga.vram[dest_addr & chips->svga.vram_mask] = dest_pixel & 0xFF;
-                chips->svga.vram[(dest_addr + 1) & chips->svga.vram_mask] = (dest_pixel >> 8) & 0xFF;
-                chips->svga.vram[(dest_addr + 2) & chips->svga.vram_mask] = (dest_pixel >> 16) & 0xFF;
+                chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr + 1, (dest_pixel >> 8) & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr + 2, (dest_pixel >> 16) & 0xFF, chips);
                 break;
             }
     }
@@ -1428,6 +1429,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
     chips->bitblt_running.bytes_skip = 0;
     chips->bitblt_running.mono_bytes_pitch = 0;
     chips->bitblt_running.mono_bits_skip_left = 0;
+    int orig_cycles = cycles;
 
     if (chips->bitblt.bitblt_control & (1 << 23)) {
         chips->bitblt_running.bytes_per_pixel = 1 + ((chips->bitblt.bitblt_control >> 24) & 3);
@@ -1523,8 +1525,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                         uint32_t orig_source_addr = chips->bitblt_running.bitblt.source_addr;
                         while (orig_count_y == chips->bitblt_running.count_y) {
                             int i = 0;
-                            //uint8_t data = chips_69000_readb_linear(orig_source_addr, chips);
-                            uint8_t data = chips->svga.vram[orig_source_addr & chips->svga.vram_mask];
+                            uint8_t data = chips_69000_readb_linear(orig_source_addr, chips);
                             orig_source_addr++;
                             for (i = 0; i < 8; i++) {
                                 chips_69000_process_mono_bit(chips, !!(data & (1 << (7 - i))));
@@ -1543,15 +1544,14 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                 case 1: /* Bit-aligned */
                 case 2: /* Byte-aligned */
                     {
-                        //uint32_t data = chips_69000_readb_linear(source_addr, chips);
-                        uint32_t data = chips->svga.vram[source_addr & chips->svga.vram_mask];
+                        uint32_t data = chips_69000_readb_linear(source_addr, chips);
                         chips_69000_bitblt_write(chips, data & 0xFF);
                         source_addr += 1;
                         break;
                     }
                 case 3: /* Word-aligned*/
                     {
-                        uint32_t data = chips->svga.vram[source_addr & chips->svga.vram_mask] | (chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8);
+                        uint32_t data = chips_69000_readw_linear(source_addr, chips);
                         chips_69000_bitblt_write(chips, data & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 8) & 0xFF);
                         source_addr += 2;
@@ -1559,8 +1559,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                     }
                 case 4: /* Doubleword-aligned*/
                     {
-                        uint32_t data = chips->svga.vram[source_addr & chips->svga.vram_mask] | (chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8)
-                                        | (chips->svga.vram[(source_addr + 2) & chips->svga.vram_mask] << 16) | (chips->svga.vram[(source_addr + 3) & chips->svga.vram_mask] << 24);
+                        uint32_t data = chips_69000_readl_linear(source_addr, chips);
                         chips_69000_bitblt_write(chips, data & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 8) & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 16) & 0xFF);
@@ -1570,15 +1569,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                     }
                 case 5: /* Quadword-aligned*/
                     {
-                        uint64_t data = chips->svga.vram[source_addr & chips->svga.vram_mask]
-                        | (chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8)
-                        | (chips->svga.vram[(source_addr + 2) & chips->svga.vram_mask] << 16)
-                        | (chips->svga.vram[(source_addr + 3) & chips->svga.vram_mask] << 24)
-                        | ((uint64_t)chips->svga.vram[(source_addr + 4) & chips->svga.vram_mask] << 32ULL)
-                        | ((uint64_t)chips->svga.vram[(source_addr + 5) & chips->svga.vram_mask] << 40ULL)
-                        | ((uint64_t)chips->svga.vram[(source_addr + 6) & chips->svga.vram_mask] << 48ULL)
-                        | ((uint64_t)chips->svga.vram[(source_addr + 7) & chips->svga.vram_mask] << 56ULL);
-                        //uint64_t data = (uint64_t)chips_69000_readl_linear(source_addr, chips) | ((uint64_t)chips_69000_readl_linear(source_addr + 4, chips) << 32ull);
+                        uint64_t data = (uint64_t)chips_69000_readl_linear(source_addr, chips) | ((uint64_t)chips_69000_readl_linear(source_addr + 4, chips) << 32ull);
                         chips_69000_bitblt_write(chips, data & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 8) & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 16) & 0xFF);
@@ -1603,21 +1594,20 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
             switch (chips->bitblt_running.bytes_per_pixel) {
                 case 1: /* 8 bits-per-pixel. */
                     {
-                        //pixel = chips_69000_readb_linear(source_addr, chips);
-                        pixel = chips->svga.vram[source_addr & chips->svga.vram_mask];
+                        pixel = chips_69000_readb_linear(source_addr, chips);
                         break;
                     }
                 case 2: /* 16 bits-per-pixel. */
                     {
-                        pixel = chips->svga.vram[source_addr & chips->svga.vram_mask];
-                        pixel |= chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8;
+                        pixel = chips_69000_readb_linear(source_addr, chips);
+                        pixel |= chips_69000_readb_linear(source_addr + 1, chips) << 8;
                         break;
                     }
                 case 3: /* 24 bits-per-pixel. */
                     {
-                        pixel = chips->svga.vram[source_addr & chips->svga.vram_mask];
-                        pixel |= chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8;
-                        pixel |= chips->svga.vram[(source_addr + 2) & chips->svga.vram_mask] << 16;
+                        pixel = chips_69000_readb_linear(source_addr, chips);
+                        pixel |= chips_69000_readb_linear(source_addr + 1, chips) << 8;
+                        pixel |= chips_69000_readb_linear(source_addr + 2, chips) << 16;
                         break;
                     }
             }
@@ -1631,6 +1621,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
         chips->bitblt_running.count_x = 0;
         chips->bitblt_running.x = 0;
     } while ((++chips->bitblt_running.count_y) < chips->bitblt_running.actual_destination_height);
+    cycles = orig_cycles;
     chips_69000_bitblt_interrupt(chips);
 }
 
@@ -1642,6 +1633,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
     }
 
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 12)) {
+        int orig_cycles = cycles;
         chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
         if (chips->bitblt_running.bitblt.monochrome_source_alignment == 1) {
             uint8_t val = chips->bitblt_running.bytes_port[0];
@@ -1659,6 +1651,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
                 for (i = 0; i < 8; i++) {
                     chips_69000_process_mono_bit(chips, !!(chips->bitblt_running.bytes_port[j] & (1 << (7 - i))));
                     if (orig_count_y != chips->bitblt_running.count_y) {
+                        cycles = orig_cycles;
                         return;
                     }
                 }
@@ -1674,6 +1667,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             for (i = 0; i < 8; i++) {
                 chips_69000_process_mono_bit(chips, !!(val & (1 << (7 - i))));
                 if (orig_count_y != chips->bitblt_running.count_y && chips->bitblt_running.bitblt.monochrome_source_alignment != 1) {
+                    cycles = orig_cycles;
                     return;
                 }
             }
@@ -1687,6 +1681,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             for (i = 0; i < 16; i++) {
                 chips_69000_process_mono_bit(chips, !!(val & (1 << (15 - i))));
                 if (orig_count_y != chips->bitblt_running.count_y) {
+                    cycles = orig_cycles;
                     return;
                 }
             }
@@ -1700,6 +1695,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             for (i = 0; i < 32; i++) {
                 chips_69000_process_mono_bit(chips, !!(val & (1 << (31 - i))));
                 if (orig_count_y != chips->bitblt_running.count_y) {
+                    cycles = orig_cycles;
                     return;
                 }
             }
@@ -1722,10 +1718,12 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             for (i = 0; i < 64; i++) {
                 chips_69000_process_mono_bit(chips, !!(val & (1 << (63 - i))));
                 if (orig_count_y != chips->bitblt_running.count_y) {
+                    cycles = orig_cycles;
                     return;
                 }
             }
         }
+        cycles = orig_cycles;
         return;
     }
 
@@ -1735,6 +1733,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
     }
     chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
     if (chips->bitblt_running.bytes_written == chips->bitblt_running.bytes_per_pixel) {
+        int orig_cycles = cycles;
         uint32_t source_pixel = chips->bitblt_running.bytes_port[0];
         chips->bitblt_running.bytes_written = 0;
         if (chips->bitblt_running.bytes_per_pixel >= 2)
@@ -1745,6 +1744,7 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
         chips->bitblt_running.bytes_in_line_written += chips->bitblt_running.bytes_per_pixel;
 
         chips_69000_process_pixel(chips, source_pixel);
+        cycles = orig_cycles;
         chips->bitblt_running.x += chips->bitblt_running.x_dir;
 
         if (chips->bitblt_running.bytes_in_line_written >= chips->bitblt_running.bitblt.destination_width) {
