@@ -28,27 +28,10 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
 #include <86box/nv/classes/vid_nv3_classes.h>
-
+#include <86box/utils/video_stdlib.h>
 
 /* Render Core: Performs a ROP */
 void nv3_perform_rop(uint32_t src, uint32_t dst, uint32_t pattern, uint32_t pen, nv3_render_operation_type rop)
 {
-    switch (rop)
-    {
-        case nv3_rop_blackness:
-            return 0;
-        case nv3_rop_srcand:
-
-        case nv3_rop_srccopy:
-            return src; 
-        case nv3_rop_dstcopy:
-            return dst; // do nothing
-        case nv3_rop_dstinvert:
-            return !dst;
-        case nv3_rop_xor:
-            return src ^ dst;
-        case nv3_rop_whiteness:
-            return 1; 
-        
-    }
+    return video_rop_gdi_ternary(rop, dst, pattern, src);
 }

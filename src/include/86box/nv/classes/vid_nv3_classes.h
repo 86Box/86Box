@@ -81,6 +81,7 @@ typedef enum nv3_pgraph_class_e
 #define NV3_IMAGE_IN_MEMORY_IN_MEMORY_DMA_CTX_TYPE      0x0304
 #define NV3_IMAGE_IN_MEMORY_PITCH                       0x0308
 #define NV3_IMAGE_IN_MEMORY_TOP_LEFT_OFFSET             0x030C
+#define NV3_IMAGE_IN_MEMORY_TOP_LEFT_OFFSET_END         22  
 
 #define NV3_W95TXT_COLORA                               0x03FC  // It's the colour of the text. This is used to submit a dummy object so the notifier can be used to sync in Win2000 DDraw6 drivers.
 
@@ -118,14 +119,14 @@ typedef struct nv3_color_argb_32_s
 } nv3_color_argb_32_t;
 
 /* 30-bit colour format for internal PGRAPH use */
-typedef struct nv3_color_x3a10g10b10_s
+typedef struct nv3_color_x2a10g10b10_s
 {
     uint8_t reserved : 1;
     bool alpha_if_chroma_key_otherwise_reserved2 : 1; // 1-bit ALPHA if chroma key, OTHERWISE USELESS and IGNORE
     uint16_t r : 10;
     uint16_t g : 10;
     uint16_t b : 10;
-} nv3_color_x3a10g10b10_t;
+} nv3_color_x2a10g10b10_t;
 
 /* 16-bit A4R4G4B4 colour format */
 typedef struct nv3_color_16_a4r4g4b4_s

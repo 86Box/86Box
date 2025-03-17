@@ -70,7 +70,7 @@ nv_register_t pgraph_registers[] = {
     { NV3_PGRAPH_PATTERN_BITMAP_HIGH, "PGRAPH Pattern Bitmap (High 32bits)", NULL, NULL},
     { NV3_PGRAPH_PATTERN_BITMAP_LOW, "PGRAPH Pattern Bitmap (Low 32bits)", NULL, NULL},
     { NV3_PGRAPH_PATTERN_SHAPE, "PGRAPH Pattern Shape (1:0 - 0=8x8, 1=64x1, 2=1x64)", NULL, NULL},
-    { NV3_PGRAPH_ROP3, "PGRAPH Render Operation ROP3 (2^3 bits = 256 possible operations)", NULL, NULL},
+    { NV3_PGRAPH_ROP3, "PGRAPH GDI Ternary Render Operation ROP3 (2^3 bits = 256 possible operations)", NULL, NULL},
     { NV3_PGRAPH_PLANE_MASK, "PGRAPH Current Plane Mask (7:0)", NULL, NULL},
     { NV3_PGRAPH_CHROMA_KEY, "PGRAPH Chroma Key (17:0) (Bit 30 = Alpha, 29:20 = Red, 19:10 = Green, 9:0 = Blue)", NULL, NULL},
     { NV3_PGRAPH_BETA, "PGRAPH Beta factor", NULL, NULL },
@@ -207,6 +207,16 @@ uint32_t nv3_pgraph_read(uint32_t address)
                 case NV3_PGRAPH_BETA:
                     ret = nv3->pgraph.beta_factor;
                     break; 
+                // Todo: Massive table of ROP IDs or at least known ones?
+                case NV3_PGRAPH_ROP3:
+                    ret = nv3->pgraph.rop;
+                    break; 
+                case NV3_PGRAPH_CHROMA_KEY:
+                    ret = *(uint32_t*)&nv3->pgraph.chroma_key;
+                    break;
+                case NV3_PGRAPH_PLANE_MASK:
+                    ret = nv3->pgraph.plane_mask;
+                    break;
                 // DMA
                 case NV3_PGRAPH_DMA:
                     ret = *(uint32_t*)&nv3->pgraph.dma_settings;
@@ -400,6 +410,16 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
                 case NV3_PGRAPH_BETA:
                     nv3->pgraph.beta_factor = value;
                     break; 
+                // Todo: Massive table of ROP IDs or at least known ones?
+                case NV3_PGRAPH_ROP3:
+                    nv3->pgraph.rop = value & 0xFF;
+                    break; 
+                case NV3_PGRAPH_CHROMA_KEY:
+                    nv3->pgraph.chroma_key = *(nv3_color_x2a10g10b10_t*)value;
+                    break;
+                case NV3_PGRAPH_PLANE_MASK:
+                    nv3->pgraph.plane_mask = value;
+                    break;
                 // DMA
                 case NV3_PGRAPH_DMA:
                     *(uint32_t*)&nv3->pgraph.dma_settings = value;

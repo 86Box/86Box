@@ -1114,17 +1114,18 @@ typedef struct nv3_pgraph_s
     nv3_position_16_bigy_t dst_canvas_min;
     nv3_position_16_bigy_t dst_canvas_max;
     // Pattern stuff
-    nv3_color_x3a10g10b10_t pattern_color_0_0;
+    nv3_color_x2a10g10b10_t pattern_color_0_0;
     uint32_t pattern_color_0_1;                             // only 7:0 relevant
-    nv3_color_x3a10g10b10_t pattern_color_1_0;
+    nv3_color_x2a10g10b10_t pattern_color_1_0;
     uint32_t pattern_color_1_1;                             // only 7:0 relevant
     uint32_t pattern_bitmap_high;                           // high part of pattern bitmap for blit
     uint32_t pattern_bitmap_low;
     uint32_t pattern_shape;                                 // may need to be an enum - 0=8x8, 1=64x1, 2=1x64
     uint32_t plane_mask;                                    // only 7:0 relevant
-    nv3_color_x3a10g10b10_t chroma_key;                     // color key
+    nv3_color_x2a10g10b10_t chroma_key;                     // color key
     uint32_t beta_factor;
     nv3_pgraph_dma_settings_t dma_settings;
+    uint8_t rop;                                            // Current GDI Ternary Render Operation
     nv3_pgraph_clip_misc_settings_t clip_misc_settings;
     nv3_notifier_t notifier;
     nv3_position_16_bigy_t clip0_min;
