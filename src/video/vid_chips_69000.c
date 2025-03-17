@@ -240,7 +240,7 @@ chips_69000_write_flat_panel(chips_69000_t* chips, uint8_t val)
 void
 chips_69000_interrupt(chips_69000_t* chips)
 {
-    pci_irq(chips->slot, PCI_INTA, 0, !!((chips->mem_regs[0] & chips->mem_regs[1]) & 0x80004040), &chips->irq_state);
+    pci_irq(chips->slot, PCI_INTA, 0, !!(chips->mem_regs[0] & chips->mem_regs[1] & 0x80004040), &chips->irq_state);
 }
 
 void
@@ -1428,7 +1428,6 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
     chips->bitblt_running.bytes_skip = 0;
     chips->bitblt_running.mono_bytes_pitch = 0;
     chips->bitblt_running.mono_bits_skip_left = 0;
-    int orig_cycles = cycles;
 
     if (chips->bitblt.bitblt_control & (1 << 23)) {
         chips->bitblt_running.bytes_per_pixel = 1 + ((chips->bitblt.bitblt_control >> 24) & 3);
@@ -1632,7 +1631,6 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
         chips->bitblt_running.count_x = 0;
         chips->bitblt_running.x = 0;
     } while ((++chips->bitblt_running.count_y) < chips->bitblt_running.actual_destination_height);
-    cycles = orig_cycles;
     chips_69000_bitblt_interrupt(chips);
 }
 
@@ -1644,7 +1642,6 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
     }
 
     if (chips->bitblt_running.bitblt.bitblt_control & (1 << 12)) {
-        int orig_cycles = cycles;
         chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
         if (chips->bitblt_running.bitblt.monochrome_source_alignment == 1) {
             uint8_t val = chips->bitblt_running.bytes_port[0];
@@ -1662,7 +1659,6 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
                 for (i = 0; i < 8; i++) {
                     chips_69000_process_mono_bit(chips, !!(chips->bitblt_running.bytes_port[j] & (1 << (7 - i))));
                     if (orig_count_y != chips->bitblt_running.count_y) {
-                        cycles = orig_cycles;
                         return;
                     }
                 }
@@ -1678,7 +1674,6 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             for (i = 0; i < 8; i++) {
                 chips_69000_process_mono_bit(chips, !!(val & (1 << (7 - i))));
                 if (orig_count_y != chips->bitblt_running.count_y && chips->bitblt_running.bitblt.monochrome_source_alignment != 1) {
-                    cycles = orig_cycles;
                     return;
                 }
             }
@@ -1692,7 +1687,6 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             for (i = 0; i < 16; i++) {
                 chips_69000_process_mono_bit(chips, !!(val & (1 << (15 - i))));
                 if (orig_count_y != chips->bitblt_running.count_y) {
-                    cycles = orig_cycles;
                     return;
                 }
             }
@@ -1706,7 +1700,6 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             for (i = 0; i < 32; i++) {
                 chips_69000_process_mono_bit(chips, !!(val & (1 << (31 - i))));
                 if (orig_count_y != chips->bitblt_running.count_y) {
-                    cycles = orig_cycles;
                     return;
                 }
             }
@@ -1729,12 +1722,10 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
             for (i = 0; i < 64; i++) {
                 chips_69000_process_mono_bit(chips, !!(val & (1 << (63 - i))));
                 if (orig_count_y != chips->bitblt_running.count_y) {
-                    cycles = orig_cycles;
                     return;
                 }
             }
         }
-        cycles = orig_cycles;
         return;
     }
 
@@ -1744,7 +1735,6 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
     }
     chips->bitblt_running.bytes_port[chips->bitblt_running.bytes_written++] = data;
     if (chips->bitblt_running.bytes_written == chips->bitblt_running.bytes_per_pixel) {
-        int orig_cycles = cycles;
         uint32_t source_pixel = chips->bitblt_running.bytes_port[0];
         chips->bitblt_running.bytes_written = 0;
         if (chips->bitblt_running.bytes_per_pixel >= 2)
@@ -1755,7 +1745,6 @@ chips_69000_bitblt_write(chips_69000_t* chips, uint8_t data) {
         chips->bitblt_running.bytes_in_line_written += chips->bitblt_running.bytes_per_pixel;
 
         chips_69000_process_pixel(chips, source_pixel);
-        cycles = orig_cycles;
         chips->bitblt_running.x += chips->bitblt_running.x_dir;
 
         if (chips->bitblt_running.bytes_in_line_written >= chips->bitblt_running.bitblt.destination_width) {
@@ -2427,7 +2416,7 @@ chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
                 {
                     chips->mem_regs_b[addr & 0xF] = val;
                     chips->mem_regs[(addr >> 2) & 0x3] &= 0x80004040;
-                    if (addr == 0x605 || addr == 0x607)
+                    if (addr == 0x601 || addr == 0x603)
                         chips_69000_interrupt(chips);
                     break;
                 }
@@ -2746,7 +2735,7 @@ chips_69000_getclock(int clock, void *priv)
     int pl = ((chips->ext_regs[0xcb] >> 4) & 7);
 
     float fvco = 14318181.0 * ((float)(m + 2) / (float)(n + 2));
-    if (chips->ext_regs[0xcb] & 4)
+    if (!(chips->ext_regs[0xcb] & 4))
         fvco *= 4.0;
     float fo   = fvco / (float)(1 << pl);
 
@@ -2846,7 +2835,7 @@ chips_69000_init(const device_t *info)
 
     chips->svga.bpp              = 8;
     chips->svga.miscout          = 1;
-    chips->svga.vblank_start     = chips_69000_vblank_start;
+    chips->svga.vsync_callback   = chips_69000_vblank_start;
     chips->svga.getclock         = chips_69000_getclock;
     chips->svga.conv_16to32      = chips_69000_conv_16to32;
     chips->svga.line_compare     = chips_69000_line_compare;
