@@ -117,7 +117,7 @@
 #define ROM_PATH_MCIDE                 "roms/hdd/xtide/ide_ps2 R1.1.bin"
 
 typedef struct ide_bm_t {
-    int (*dma)(uint8_t *data, int transfer_length, int out, void *priv);
+    int (*dma)(uint8_t *data, int transfer_length, int total_length, int out, void *priv);
     void (*set_irq)(uint8_t status, void *priv);
     void *priv;
 } ide_bm_t;
@@ -1094,7 +1094,7 @@ ide_atapi_callback(ide_t *ide)
             if (!IDE_ATAPI_IS_EARLY && !ide_boards[ide->board]->force_ata3 &&
                 (bm != NULL) && bm->dma) {
                 if (ide->sc->block_len == 0) {
-                    ret = bm->dma(ide->sc->temp_buffer, ide->sc->packet_len, 0, bm->priv);
+                    ret = bm->dma(ide->sc->temp_buffer, ide->sc->packet_len, 0, 0, bm->priv);
 
                     /* Underrun. */
                     if (ret == 1)
@@ -1102,6 +1102,7 @@ ide_atapi_callback(ide_t *ide)
                 } else {
                     ret = bm->dma(ide->sc->temp_buffer + ide->sc->buffer_pos -
                                   ide->sc->block_len, ide->sc->block_len,
+                                  ide->sc->sector_len * ide->sc->block_len,
                                   0, bm->priv);
 
                     if (ret == 1) {
@@ -1144,14 +1145,16 @@ ide_atapi_callback(ide_t *ide)
             if (!IDE_ATAPI_IS_EARLY && !ide_boards[ide->board]->force_ata3 &&
                 (bm != NULL) && bm->dma) {
                 if (ide->sc->block_len == 0) {
-                    ret = bm->dma(ide->sc->temp_buffer, ide->sc->packet_len, 1, bm->priv);
+                    ret = bm->dma(ide->sc->temp_buffer, ide->sc->packet_len, 0, 1, bm->priv);
 
                     /* Underrun. */
                     if (ret == 1)
                         ret = 3;
                 } else {
                     ret = bm->dma(ide->sc->temp_buffer + ide->sc->buffer_pos,
-                                  ide->sc->block_len, 1, bm->priv);
+                                  ide->sc->block_len,
+                                  ide->sc->sector_len * ide->sc->block_len,
+                                  1, bm->priv);
 
                     if (ret & 1) {
                         if (ide->write != NULL)
@@ -2392,7 +2395,7 @@ ide_callback(void *priv)
                     err = UNC_ERR;
                 } else if (!ide_boards[ide->board]->force_ata3 && bm->dma) {
                     /* We should not abort - we should simply wait for the host to start DMA. */
-                    ret = bm->dma(ide->sector_buffer, ide->sector_pos * 512, 0, bm->priv);
+                    ret = bm->dma(ide->sector_buffer, ide->sector_pos * 512, 0, 0, bm->priv);
                     if (ret == 2) {
                         /* Bus master DMA disabled, simply wait for the host to enable DMA. */
                         ide->tf->atastat = DRQ_STAT | DRDY_STAT | DSC_STAT;
@@ -2500,7 +2503,7 @@ ide_callback(void *priv)
                     else
                         ide->sector_pos = 256;
 
-                    ret = bm->dma(ide->sector_buffer, ide->sector_pos * 512, 1, bm->priv);
+                    ret = bm->dma(ide->sector_buffer, ide->sector_pos * 512, 0, 1, bm->priv);
 
                     if (ret == 2) {
                         /* Bus master DMA disabled, simply wait for the host to enable DMA. */
@@ -3127,7 +3130,7 @@ ide_xtide_close(void)
 
 void
 ide_set_bus_master(int board,
-                   int (*dma)(uint8_t *data, int transfer_length, int out, void *priv),
+                   int (*dma)(uint8_t *data, int transfer_length, int total_length, int out, void *priv),
                    void (*set_irq)(uint8_t status, void *priv), void *priv)
 {
     ide_bm_t *bm;
