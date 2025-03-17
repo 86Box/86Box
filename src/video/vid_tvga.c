@@ -576,7 +576,7 @@ const device_t tvga8900d_device = {
     .config        = tvga_config
 };
 const device_t tvga8900d_flytech386_device = {
-    .name          = "Trident TVGA 8900D",
+    .name          = "Trident TVGA 8900D (Flytech A36)",
     .internal_name = "tvga8900d_flytech386",
     .flags         = DEVICE_ISA,
     .local         = TVGA8900CLD_ID,
