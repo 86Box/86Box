@@ -252,797 +252,486 @@ chips_69000_bitblt_interrupt(chips_69000_t* chips)
     chips_69000_interrupt(chips);
 }
 
-#define ROPMIX(R, D, P, S, out)                    \
-    {                                              \
-        switch (R) {                               \
-            case 0x00:                             \
-                out = 0;                           \
-                break;                             \
-            case 0x01:                             \
-                out = ~(D | (P | S));              \
-                break;                             \
-            case 0x02:                             \
-                out = D & ~(P | S);                \
-                break;                             \
-            case 0x03:                             \
-                out = ~(P | S);                    \
-                break;                             \
-            case 0x04:                             \
-                out = S & ~(D | P);                \
-                break;                             \
-            case 0x05:                             \
-                out = ~(D | P);                    \
-                break;                             \
-            case 0x06:                             \
-                out = ~(P | ~(D ^ S));             \
-                break;                             \
-            case 0x07:                             \
-                out = ~(P | (D & S));              \
-                break;                             \
-            case 0x08:                             \
-                out = S & (D & ~P);                \
-                break;                             \
-            case 0x09:                             \
-                out = ~(P | (D ^ S));              \
-                break;                             \
-            case 0x0a:                             \
-                out = D & ~P;                      \
-                break;                             \
-            case 0x0b:                             \
-                out = ~(P | (S & ~D));             \
-                break;                             \
-            case 0x0c:                             \
-                out = S & ~P;                      \
-                break;                             \
-            case 0x0d:                             \
-                out = ~(P | (D & ~S));             \
-                break;                             \
-            case 0x0e:                             \
-                out = ~(P | ~(D | S));             \
-                break;                             \
-            case 0x0f:                             \
-                out = ~P;                          \
-                break;                             \
-            case 0x10:                             \
-                out = P & ~(D | S);                \
-                break;                             \
-            case 0x11:                             \
-                out = ~(D | S);                    \
-                break;                             \
-            case 0x12:                             \
-                out = ~(S | ~(D ^ P));             \
-                break;                             \
-            case 0x13:                             \
-                out = ~(S | (D & P));              \
-                break;                             \
-            case 0x14:                             \
-                out = ~(D | ~(P ^ S));             \
-                break;                             \
-            case 0x15:                             \
-                out = ~(D | (P & S));              \
-                break;                             \
-            case 0x16:                             \
-                out = P ^ (S ^ (D & ~(P & S)));    \
-                break;                             \
-            case 0x17:                             \
-                out = ~(S ^ ((S ^ P) & (D ^ S)));  \
-                break;                             \
-            case 0x18:                             \
-                out = (S ^ P) & (P ^ D);           \
-                break;                             \
-            case 0x19:                             \
-                out = ~(S ^ (D & ~(P & S)));       \
-                break;                             \
-            case 0x1a:                             \
-                out = P ^ (D | (S & P));           \
-                break;                             \
-            case 0x1b:                             \
-                out = ~(S ^ (D & (P ^ S)));        \
-                break;                             \
-            case 0x1c:                             \
-                out = P ^ (S | (D & P));           \
-                break;                             \
-            case 0x1d:                             \
-                out = ~(D ^ (S & (P ^ D)));        \
-                break;                             \
-            case 0x1e:                             \
-                out = P ^ (D | S);                 \
-                break;                             \
-            case 0x1f:                             \
-                out = ~(P & (D | S));              \
-                break;                             \
-            case 0x20:                             \
-                out = D & (P & ~S);                \
-                break;                             \
-            case 0x21:                             \
-                out = ~(S | (D ^ P));              \
-                break;                             \
-            case 0x22:                             \
-                out = D & ~S;                      \
-                break;                             \
-            case 0x23:                             \
-                out = ~(S | (P & ~D));             \
-                break;                             \
-            case 0x24:                             \
-                out = (S ^ P) & (D ^ S);           \
-                break;                             \
-            case 0x25:                             \
-                out = ~(P ^ (D & ~(S & P)));       \
-                break;                             \
-            case 0x26:                             \
-                out = S ^ (D | (P & S));           \
-                break;                             \
-            case 0x27:                             \
-                out = S ^ (D | ~(P ^ S));          \
-                break;                             \
-            case 0x28:                             \
-                out = D & (P ^ S);                 \
-                break;                             \
-            case 0x29:                             \
-                out = ~(P ^ (S ^ (D | (P & S))));  \
-                break;                             \
-            case 0x2a:                             \
-                out = D & ~(P & S);                \
-                break;                             \
-            case 0x2b:                             \
-                out = ~(S ^ ((S ^ P) & (P ^ D)));  \
-                break;                             \
-            case 0x2c:                             \
-                out = S ^ (P & (D | S));           \
-                break;                             \
-            case 0x2d:                             \
-                out = P ^ (S | ~D);                \
-                break;                             \
-            case 0x2e:                             \
-                out = P ^ (S | (D ^ P));           \
-                break;                             \
-            case 0x2f:                             \
-                out = ~(P & (S | ~D));             \
-                break;                             \
-            case 0x30:                             \
-                out = P & ~S;                      \
-                break;                             \
-            case 0x31:                             \
-                out = ~(S | (D & ~P));             \
-                break;                             \
-            case 0x32:                             \
-                out = S ^ (D | (P | S));           \
-                break;                             \
-            case 0x33:                             \
-                out = ~S;                          \
-                break;                             \
-            case 0x34:                             \
-                out = S ^ (P | (D & S));           \
-                break;                             \
-            case 0x35:                             \
-                out = S ^ (P | ~(D ^ S));          \
-                break;                             \
-            case 0x36:                             \
-                out = S ^ (D | P);                 \
-                break;                             \
-            case 0x37:                             \
-                out = ~(S & (D | P));              \
-                break;                             \
-            case 0x38:                             \
-                out = P ^ (S & (D | P));           \
-                break;                             \
-            case 0x39:                             \
-                out = S ^ (P | ~D);                \
-                break;                             \
-            case 0x3a:                             \
-                out = S ^ (P | (D ^ S));           \
-                break;                             \
-            case 0x3b:                             \
-                out = ~(S & (P | ~D));             \
-                break;                             \
-            case 0x3c:                             \
-                out = P ^ S;                       \
-                break;                             \
-            case 0x3d:                             \
-                out = S ^ (P | ~(D | S));          \
-                break;                             \
-            case 0x3e:                             \
-                out = S ^ (P | (D & ~S));          \
-                break;                             \
-            case 0x3f:                             \
-                out = ~(P & S);                    \
-                break;                             \
-            case 0x40:                             \
-                out = P & (S & ~D);                \
-                break;                             \
-            case 0x41:                             \
-                out = ~(D | (P ^ S));              \
-                break;                             \
-            case 0x42:                             \
-                out = (S ^ D) & (P ^ D);           \
-                break;                             \
-            case 0x43:                             \
-                out = ~(S ^ (P & ~(D & S)));       \
-                break;                             \
-            case 0x44:                             \
-                out = S & ~D;                      \
-                break;                             \
-            case 0x45:                             \
-                out = ~(D | (P & ~S));             \
-                break;                             \
-            case 0x46:                             \
-                out = D ^ (S | (P & D));           \
-                break;                             \
-            case 0x47:                             \
-                out = ~(P ^ (S & (D ^ P)));        \
-                break;                             \
-            case 0x48:                             \
-                out = S & (D ^ P);                 \
-                break;                             \
-            case 0x49:                             \
-                out = ~(P ^ (D ^ (S | (P & D))));  \
-                break;                             \
-            case 0x4a:                             \
-                out = D ^ (P & (S | D));           \
-                break;                             \
-            case 0x4b:                             \
-                out = P ^ (D | ~S);                \
-                break;                             \
-            case 0x4c:                             \
-                out = S & ~(D & P);                \
-                break;                             \
-            case 0x4d:                             \
-                out = ~(S ^ ((S ^ P) | (D ^ S)));  \
-                break;                             \
-            case 0x4e:                             \
-                out = P ^ (D | (S ^ P));           \
-                break;                             \
-            case 0x4f:                             \
-                out = ~(P & (D | ~S));             \
-                break;                             \
-            case 0x50:                             \
-                out = P & ~D;                      \
-                break;                             \
-            case 0x51:                             \
-                out = ~(D | (S & ~P));             \
-                break;                             \
-            case 0x52:                             \
-                out = D ^ (P | (S & D));           \
-                break;                             \
-            case 0x53:                             \
-                out = ~(S ^ (P & (D ^ S)));        \
-                break;                             \
-            case 0x54:                             \
-                out = ~(D | ~(P | S));             \
-                break;                             \
-            case 0x55:                             \
-                out = ~D;                          \
-                break;                             \
-            case 0x56:                             \
-                out = D ^ (P | S);                 \
-                break;                             \
-            case 0x57:                             \
-                out = ~(D & (P | S));              \
-                break;                             \
-            case 0x58:                             \
-                out = P ^ (D & (S | P));           \
-                break;                             \
-            case 0x59:                             \
-                out = D ^ (P | ~S);                \
-                break;                             \
-            case 0x5a:                             \
-                out = D ^ P;                       \
-                break;                             \
-            case 0x5b:                             \
-                out = D ^ (P | ~(S | D));          \
-                break;                             \
-            case 0x5c:                             \
-                out = D ^ (P | (S ^ D));           \
-                break;                             \
-            case 0x5d:                             \
-                out = ~(D & (P | ~S));             \
-                break;                             \
-            case 0x5e:                             \
-                out = D ^ (P | (S & ~D));          \
-                break;                             \
-            case 0x5f:                             \
-                out = ~(D & P);                    \
-                break;                             \
-            case 0x60:                             \
-                out = P & (D ^ S);                 \
-                break;                             \
-            case 0x61:                             \
-                out = ~(D ^ (S ^ (P | (D & S))));  \
-                break;                             \
-            case 0x62:                             \
-                out = D ^ (S & (P | D));           \
-                break;                             \
-            case 0x63:                             \
-                out = S ^ (D | ~P);                \
-                break;                             \
-            case 0x64:                             \
-                out = S ^ (D & (P | S));           \
-                break;                             \
-            case 0x65:                             \
-                out = D ^ (S | ~P);                \
-                break;                             \
-            case 0x66:                             \
-                out = D ^ S;                       \
-                break;                             \
-            case 0x67:                             \
-                out = S ^ (D | ~(P | S));          \
-                break;                             \
-            case 0x68:                             \
-                out = ~(D ^ (S ^ (P | ~(D | S)))); \
-                break;                             \
-            case 0x69:                             \
-                out = ~(P ^ (D ^ S));              \
-                break;                             \
-            case 0x6a:                             \
-                out = D ^ (P & S);                 \
-                break;                             \
-            case 0x6b:                             \
-                out = ~(P ^ (S ^ (D & (P | S))));  \
-                break;                             \
-            case 0x6c:                             \
-                out = S ^ (D & P);                 \
-                break;                             \
-            case 0x6d:                             \
-                out = ~(P ^ (D ^ (S & (P | D))));  \
-                break;                             \
-            case 0x6e:                             \
-                out = S ^ (D & (P | ~S));          \
-                break;                             \
-            case 0x6f:                             \
-                out = ~(P & ~(D ^ S));             \
-                break;                             \
-            case 0x70:                             \
-                out = P & ~(D & S);                \
-                break;                             \
-            case 0x71:                             \
-                out = ~(S ^ ((S ^ D) & (P ^ D)));  \
-                break;                             \
-            case 0x72:                             \
-                out = S ^ (D | (P ^ S));           \
-                break;                             \
-            case 0x73:                             \
-                out = ~(S & (D | ~P));             \
-                break;                             \
-            case 0x74:                             \
-                out = D ^ (S | (P ^ D));           \
-                break;                             \
-            case 0x75:                             \
-                out = ~(D & (S | ~P));             \
-                break;                             \
-            case 0x76:                             \
-                out = S ^ (D | (P & ~S));          \
-                break;                             \
-            case 0x77:                             \
-                out = ~(D & S);                    \
-                break;                             \
-            case 0x78:                             \
-                out = P ^ (D & S);                 \
-                break;                             \
-            case 0x79:                             \
-                out = ~(D ^ (S ^ (P & (D | S))));  \
-                break;                             \
-            case 0x7a:                             \
-                out = D ^ (P & (S | ~D));          \
-                break;                             \
-            case 0x7b:                             \
-                out = ~(S & ~(D ^ P));             \
-                break;                             \
-            case 0x7c:                             \
-                out = S ^ (P & (D | ~S));          \
-                break;                             \
-            case 0x7d:                             \
-                out = ~(D & ~(P ^ S));             \
-                break;                             \
-            case 0x7e:                             \
-                out = (S ^ P) | (D ^ S);           \
-                break;                             \
-            case 0x7f:                             \
-                out = ~(D & (P & S));              \
-                break;                             \
-            case 0x80:                             \
-                out = D & (P & S);                 \
-                break;                             \
-            case 0x81:                             \
-                out = ~((S ^ P) | (D ^ S));        \
-                break;                             \
-            case 0x82:                             \
-                out = D & ~(P ^ S);                \
-                break;                             \
-            case 0x83:                             \
-                out = ~(S ^ (P & (D | ~S)));       \
-                break;                             \
-            case 0x84:                             \
-                out = S & ~(D ^ P);                \
-                break;                             \
-            case 0x85:                             \
-                out = ~(P ^ (D & (S | ~P)));       \
-                break;                             \
-            case 0x86:                             \
-                out = D ^ (S ^ (P & (D | S)));     \
-                break;                             \
-            case 0x87:                             \
-                out = ~(P ^ (D & S));              \
-                break;                             \
-            case 0x88:                             \
-                out = D & S;                       \
-                break;                             \
-            case 0x89:                             \
-                out = ~(S ^ (D | (P & ~S)));       \
-                break;                             \
-            case 0x8a:                             \
-                out = D & (S | ~P);                \
-                break;                             \
-            case 0x8b:                             \
-                out = ~(D ^ (S | (P ^ D)));        \
-                break;                             \
-            case 0x8c:                             \
-                out = S & (D | ~P);                \
-                break;                             \
-            case 0x8d:                             \
-                out = ~(S ^ (D | (P ^ S)));        \
-                break;                             \
-            case 0x8e:                             \
-                out = S ^ ((S ^ D) & (P ^ D));     \
-                break;                             \
-            case 0x8f:                             \
-                out = ~(P & ~(D & S));             \
-                break;                             \
-            case 0x90:                             \
-                out = P & ~(D ^ S);                \
-                break;                             \
-            case 0x91:                             \
-                out = ~(S ^ (D & (P | ~S)));       \
-                break;                             \
-            case 0x92:                             \
-                out = D ^ (P ^ (S & (D | P)));     \
-                break;                             \
-            case 0x93:                             \
-                out = ~(S ^ (P & D));              \
-                break;                             \
-            case 0x94:                             \
-                out = P ^ (S ^ (D & (P | S)));     \
-                break;                             \
-            case 0x95:                             \
-                out = ~(D ^ (P & S));              \
-                break;                             \
-            case 0x96:                             \
-                out = D ^ (P ^ S);                 \
-                break;                             \
-            case 0x97:                             \
-                out = P ^ (S ^ (D | ~(P | S)));    \
-                break;                             \
-            case 0x98:                             \
-                out = ~(S ^ (D | ~(P | S)));       \
-                break;                             \
-            case 0x99:                             \
-                out = ~(D ^ S);                    \
-                break;                             \
-            case 0x9a:                             \
-                out = D ^ (P & ~S);                \
-                break;                             \
-            case 0x9b:                             \
-                out = ~(S ^ (D & (P | S)));        \
-                break;                             \
-            case 0x9c:                             \
-                out = S ^ (P & ~D);                \
-                break;                             \
-            case 0x9d:                             \
-                out = ~(D ^ (S & (P | D)));        \
-                break;                             \
-            case 0x9e:                             \
-                out = D ^ (S ^ (P | (D & S)));     \
-                break;                             \
-            case 0x9f:                             \
-                out = ~(P & (D ^ S));              \
-                break;                             \
-            case 0xa0:                             \
-                out = D & P;                       \
-                break;                             \
-            case 0xa1:                             \
-                out = ~(P ^ (D | (S & ~P)));       \
-                break;                             \
-            case 0xa2:                             \
-                out = D & (P | ~S);                \
-                break;                             \
-            case 0xa3:                             \
-                out = ~(D ^ (P | (S ^ D)));        \
-                break;                             \
-            case 0xa4:                             \
-                out = ~(P ^ (D | ~(S | P)));       \
-                break;                             \
-            case 0xa5:                             \
-                out = ~(P ^ D);                    \
-                break;                             \
-            case 0xa6:                             \
-                out = D ^ (S & ~P);                \
-                break;                             \
-            case 0xa7:                             \
-                out = ~(P ^ (D & (S | P)));        \
-                break;                             \
-            case 0xa8:                             \
-                out = D & (P | S);                 \
-                break;                             \
-            case 0xa9:                             \
-                out = ~(D ^ (P | S));              \
-                break;                             \
-            case 0xaa:                             \
-                out = D;                           \
-                break;                             \
-            case 0xab:                             \
-                out = D | ~(P | S);                \
-                break;                             \
-            case 0xac:                             \
-                out = S ^ (P & (D ^ S));           \
-                break;                             \
-            case 0xad:                             \
-                out = ~(D ^ (P | (S & D)));        \
-                break;                             \
-            case 0xae:                             \
-                out = D | (S & ~P);                \
-                break;                             \
-            case 0xaf:                             \
-                out = D | ~P;                      \
-                break;                             \
-            case 0xb0:                             \
-                out = P & (D | ~S);                \
-                break;                             \
-            case 0xb1:                             \
-                out = ~(P ^ (D | (S ^ P)));        \
-                break;                             \
-            case 0xb2:                             \
-                out = S ^ ((S ^ P) | (D ^ S));     \
-                break;                             \
-            case 0xb3:                             \
-                out = ~(S & ~(D & P));             \
-                break;                             \
-            case 0xb4:                             \
-                out = P ^ (S & ~D);                \
-                break;                             \
-            case 0xb5:                             \
-                out = ~(D ^ (P & (S | D)));        \
-                break;                             \
-            case 0xb6:                             \
-                out = D ^ (P ^ (S | (D & P)));     \
-                break;                             \
-            case 0xb7:                             \
-                out = ~(S & (D ^ P));              \
-                break;                             \
-            case 0xb8:                             \
-                out = P ^ (S & (D ^ P));           \
-                break;                             \
-            case 0xb9:                             \
-                out = ~(D ^ (S | (P & D)));        \
-                break;                             \
-            case 0xba:                             \
-                out = D | (P & ~S);                \
-                break;                             \
-            case 0xbb:                             \
-                out = D | ~S;                      \
-                break;                             \
-            case 0xbc:                             \
-                out = S ^ (P & ~(D & S));          \
-                break;                             \
-            case 0xbd:                             \
-                out = ~((S ^ D) & (P ^ D));        \
-                break;                             \
-            case 0xbe:                             \
-                out = D | (P ^ S);                 \
-                break;                             \
-            case 0xbf:                             \
-                out = D | ~(P & S);                \
-                break;                             \
-            case 0xc0:                             \
-                out = P & S;                       \
-                break;                             \
-            case 0xc1:                             \
-                out = ~(S ^ (P | (D & ~S)));       \
-                break;                             \
-            case 0xc2:                             \
-                out = ~(S ^ (P | ~(D | S)));       \
-                break;                             \
-            case 0xc3:                             \
-                out = ~(P ^ S);                    \
-                break;                             \
-            case 0xc4:                             \
-                out = S & (P | ~D);                \
-                break;                             \
-            case 0xc5:                             \
-                out = ~(S ^ (P | (D ^ S)));        \
-                break;                             \
-            case 0xc6:                             \
-                out = S ^ (D & ~P);                \
-                break;                             \
-            case 0xc7:                             \
-                out = ~(P ^ (S & (D | P)));        \
-                break;                             \
-            case 0xc8:                             \
-                out = S & (D | P);                 \
-                break;                             \
-            case 0xc9:                             \
-                out = ~(S ^ (P | D));              \
-                break;                             \
-            case 0xca:                             \
-                out = D ^ (P & (S ^ D));           \
-                break;                             \
-            case 0xcb:                             \
-                out = ~(S ^ (P | (D & S)));        \
-                break;                             \
-            case 0xcc:                             \
-                out = S;                           \
-                break;                             \
-            case 0xcd:                             \
-                out = S | ~(D | P);                \
-                break;                             \
-            case 0xce:                             \
-                out = S | (D & ~P);                \
-                break;                             \
-            case 0xcf:                             \
-                out = S | ~P;                      \
-                break;                             \
-            case 0xd0:                             \
-                out = P & (S | ~D);                \
-                break;                             \
-            case 0xd1:                             \
-                out = ~(P ^ (S | (D ^ P)));        \
-                break;                             \
-            case 0xd2:                             \
-                out = P ^ (D & ~S);                \
-                break;                             \
-            case 0xd3:                             \
-                out = ~(S ^ (P & (D | S)));        \
-                break;                             \
-            case 0xd4:                             \
-                out = S ^ ((S ^ P) & (P ^ D));     \
-                break;                             \
-            case 0xd5:                             \
-                out = ~(D & ~(P & S));             \
-                break;                             \
-            case 0xd6:                             \
-                out = P ^ (S ^ (D | (P & S)));     \
-                break;                             \
-            case 0xd7:                             \
-                out = ~(D & (P ^ S));              \
-                break;                             \
-            case 0xd8:                             \
-                out = P ^ (D & (S ^ P));           \
-                break;                             \
-            case 0xd9:                             \
-                out = ~(S ^ (D | (P & S)));        \
-                break;                             \
-            case 0xda:                             \
-                out = D ^ (P & ~(S & D));          \
-                break;                             \
-            case 0xdb:                             \
-                out = ~((S ^ P) & (D ^ S));        \
-                break;                             \
-            case 0xdc:                             \
-                out = S | (P & ~D);                \
-                break;                             \
-            case 0xdd:                             \
-                out = S | ~D;                      \
-                break;                             \
-            case 0xde:                             \
-                out = S | (D ^ P);                 \
-                break;                             \
-            case 0xdf:                             \
-                out = S | ~(D & P);                \
-                break;                             \
-            case 0xe0:                             \
-                out = P & (D | S);                 \
-                break;                             \
-            case 0xe1:                             \
-                out = ~(P ^ (D | S));              \
-                break;                             \
-            case 0xe2:                             \
-                out = D ^ (S & (P ^ D));           \
-                break;                             \
-            case 0xe3:                             \
-                out = ~(P ^ (S | (D & P)));        \
-                break;                             \
-            case 0xe4:                             \
-                out = S ^ (D & (P ^ S));           \
-                break;                             \
-            case 0xe5:                             \
-                out = ~(P ^ (D | (S & P)));        \
-                break;                             \
-            case 0xe6:                             \
-                out = S ^ (D & ~(P & S));          \
-                break;                             \
-            case 0xe7:                             \
-                out = ~((S ^ P) & (P ^ D));        \
-                break;                             \
-            case 0xe8:                             \
-                out = S ^ ((S ^ P) & (D ^ S));     \
-                break;                             \
-            case 0xe9:                             \
-                out = ~(D ^ (S ^ (P & ~(D & S)))); \
-                break;                             \
-            case 0xea:                             \
-                out = D | (P & S);                 \
-                break;                             \
-            case 0xeb:                             \
-                out = D | ~(P ^ S);                \
-                break;                             \
-            case 0xec:                             \
-                out = S | (D & P);                 \
-                break;                             \
-            case 0xed:                             \
-                out = S | ~(D ^ P);                \
-                break;                             \
-            case 0xee:                             \
-                out = D | S;                       \
-                break;                             \
-            case 0xef:                             \
-                out = S | (D | ~P);                \
-                break;                             \
-            case 0xf0:                             \
-                out = P;                           \
-                break;                             \
-            case 0xf1:                             \
-                out = P | ~(D | S);                \
-                break;                             \
-            case 0xf2:                             \
-                out = P | (D & ~S);                \
-                break;                             \
-            case 0xf3:                             \
-                out = P | ~S;                      \
-                break;                             \
-            case 0xf4:                             \
-                out = P | (S & ~D);                \
-                break;                             \
-            case 0xf5:                             \
-                out = P | ~D;                      \
-                break;                             \
-            case 0xf6:                             \
-                out = P | (D ^ S);                 \
-                break;                             \
-            case 0xf7:                             \
-                out = P | ~(D & S);                \
-                break;                             \
-            case 0xf8:                             \
-                out = P | (D & S);                 \
-                break;                             \
-            case 0xf9:                             \
-                out = P | ~(D ^ S);                \
-                break;                             \
-            case 0xfa:                             \
-                out = D | P;                       \
-                break;                             \
-            case 0xfb:                             \
-                out = D | (P | ~S);                \
-                break;                             \
-            case 0xfc:                             \
-                out = P | S;                       \
-                break;                             \
-            case 0xfd:                             \
-                out = P | (S | ~D);                \
-                break;                             \
-            case 0xfe:                             \
-                out = D | (P | S);                 \
-                break;                             \
-            case 0xff:                             \
-                out = ~0;                          \
-                break;                             \
-        }                                          \
+void
+chips_69000_do_rop_8bpp(uint8_t *dst, uint8_t src, uint8_t rop)
+{
+    switch (rop) {
+        case 0x00:
+            *dst = 0;
+            break;
+        case 0x11:
+            *dst = ~(*dst) & ~src;
+            break;
+        case 0x22:
+            *dst &= ~src;
+            break;
+        case 0x33:
+            *dst = ~src;
+            break;
+        case 0x44:
+            *dst = src & ~(*dst);
+            break;
+        case 0x55:
+            *dst = ~*dst;
+            break;
+        case 0x66:
+            *dst ^= src;
+            break;
+        case 0x77:
+            *dst = ~src | ~(*dst);
+            break;
+        case 0x88:
+            *dst &= src;
+            break;
+        case 0x99:
+            *dst ^= ~src;
+            break;
+        case 0xAA:
+            break; /* No-op. */
+        case 0xBB:
+            *dst |= ~src;
+            break;
+        case 0xCC:
+            *dst = src;
+            break;
+        case 0xDD:
+            *dst = src | ~(*dst);
+            break;
+        case 0xEE:
+            *dst |= src;
+            break;
+        case 0xFF:
+            *dst = 0xFF;
+            break;
     }
+}
+
+void
+chips_69000_do_rop_16bpp(uint16_t *dst, uint16_t src, uint8_t rop)
+{
+    switch (rop) {
+        case 0x00:
+            *dst = 0;
+            break;
+        case 0x11:
+            *dst = ~(*dst) & ~src;
+            break;
+        case 0x22:
+            *dst &= ~src;
+            break;
+        case 0x33:
+            *dst = ~src;
+            break;
+        case 0x44:
+            *dst = src & ~(*dst);
+            break;
+        case 0x55:
+            *dst = ~*dst;
+            break;
+        case 0x66:
+            *dst ^= src;
+            break;
+        case 0x77:
+            *dst = ~src | ~(*dst);
+            break;
+        case 0x88:
+            *dst &= src;
+            break;
+        case 0x99:
+            *dst ^= ~src;
+            break;
+        case 0xAA:
+            break; /* No-op. */
+        case 0xBB:
+            *dst |= ~src;
+            break;
+        case 0xCC:
+            *dst = src;
+            break;
+        case 0xDD:
+            *dst = src | ~(*dst);
+            break;
+        case 0xEE:
+            *dst |= src;
+            break;
+        case 0xFF:
+            *dst = 0xFFFF;
+            break;
+    }
+}
+
+void
+chips_69000_do_rop_24bpp(uint32_t *dst, uint32_t src, uint8_t rop)
+{
+    switch (rop) {
+        case 0x00:
+            *dst = 0;
+            break;
+        case 0x11:
+            *dst = ~(*dst) & ~src;
+            break;
+        case 0x22:
+            *dst &= ~src;
+            break;
+        case 0x33:
+            *dst = ~src;
+            break;
+        case 0x44:
+            *dst = src & ~(*dst);
+            break;
+        case 0x55:
+            *dst = ~*dst;
+            break;
+        case 0x66:
+            *dst ^= src;
+            break;
+        case 0x77:
+            *dst = ~src | ~(*dst);
+            break;
+        case 0x88:
+            *dst &= src;
+            break;
+        case 0x99:
+            *dst ^= ~src;
+            break;
+        case 0xAA:
+            break; /* No-op. */
+        case 0xBB:
+            *dst |= ~src;
+            break;
+        case 0xCC:
+            *dst = src;
+            break;
+        case 0xDD:
+            *dst = src | ~(*dst);
+            break;
+        case 0xEE:
+            *dst |= src;
+            break;
+        case 0xFF:
+            *dst = 0xFFFFFF;
+            break;
+    }
+}
 
 void
 chips_69000_do_rop_8bpp_patterned(uint8_t *dst, uint8_t pattern, uint8_t src, uint8_t rop)
 {
-    ROPMIX(rop, *dst, pattern, src, *dst);
+    if ((rop & 0xF) == ((rop >> 4) & 0xF)) {
+        return chips_69000_do_rop_8bpp(dst, src, rop);
+    }
+
+    switch (rop) {
+        case 0x00:
+            *dst = 0;
+            break;
+        case 0x05:
+            *dst = ~(*dst) & ~pattern;
+            break;
+        case 0x0A:
+            *dst &= ~pattern;
+            break;
+        case 0x0F:
+            *dst = ~pattern;
+            break;
+        case 0x1A:
+            *dst = pattern ^ (*dst | (pattern & src));
+            break;
+        case 0x2A:
+            *dst = *dst & (~(src & pattern));
+            break;
+        case 0x3A:
+            *dst = src ^ (pattern | (*dst ^ src));
+            break;
+        case 0x4A:
+            *dst = *dst ^ (pattern & (src | *dst));
+            break;
+        case 0x50:
+            *dst = pattern & ~(*dst);
+            break;
+        case 0x55:
+            *dst = ~*dst;
+            break;
+        case 0x5A:
+            *dst ^= pattern;
+            break;
+        case 0x5F:
+            *dst = ~pattern | ~(*dst);
+            break;
+        case 0x6A:
+            *dst = *dst ^ (pattern & src);
+            break;
+        case 0x7A:
+            *dst = *dst ^ (pattern & (src | (~*dst)));
+            break;
+        case 0x8A:
+            *dst = *dst & (src | (~pattern));
+            break;
+        case 0x9A:
+            *dst = *dst ^ (pattern & (~src));
+            break;
+        case 0xB8:
+            *dst = (((pattern ^ *dst) & src) ^ pattern);
+            break;
+        case 0xA0:
+            *dst &= pattern;
+            break;
+        case 0xA5:
+            *dst ^= ~pattern;
+            break;
+        case 0xAA:
+            break; /* No-op. */
+        case 0xAC:
+            *dst = src ^ (pattern & (*dst ^ src));
+            break;
+        case 0xAF:
+            *dst |= ~pattern;
+            break;
+        case 0xBA:
+            *dst |= (pattern & ~src);
+            break;
+        case 0xCA:
+            *dst ^= (pattern & (src ^ *dst));
+            break;
+        case 0xE2:
+            *dst ^= (src & (pattern ^ *dst));
+            break;
+        case 0xDA:
+            *dst ^= pattern & (~(src & *dst));
+            break;
+        case 0xEA:
+            *dst |= pattern & src;
+            break;
+        case 0xF0:
+            *dst = pattern;
+            break;
+        case 0xF5:
+            *dst = pattern | ~(*dst);
+            break;
+        case 0xFA:
+            *dst |= pattern;
+            break;
+        case 0xFF:
+            *dst = 0xFF;
+            break;
+        default:
+            pclog("Unknown ROP 0x%X\n", rop);
+            break;
+    }
 }
 
 void
 chips_69000_do_rop_16bpp_patterned(uint16_t *dst, uint16_t pattern, uint16_t src, uint8_t rop)
 {
-    ROPMIX(rop, *dst, pattern, src, *dst);
+    if ((rop & 0xF) == ((rop >> 4) & 0xF)) {
+        return chips_69000_do_rop_16bpp(dst, src, rop);
+    }
+
+    switch (rop) {
+        default:
+            pclog("Unknown ROP 0x%X\n", rop);
+            break;
+        case 0x00:
+            *dst = 0;
+            break;
+        case 0x05:
+            *dst = ~(*dst) & ~pattern;
+            break;
+        case 0x0A:
+            *dst &= ~pattern;
+            break;
+        case 0x0F:
+            *dst = ~pattern;
+            break;
+        case 0x1A:
+            *dst = pattern ^ (*dst | (pattern & src));
+            break;
+        case 0x2A:
+            *dst = *dst & (~(src & pattern));
+            break;
+        case 0x3A:
+            *dst = src ^ (pattern | (*dst ^ src));
+            break;
+        case 0x4A:
+            *dst = *dst ^ (pattern & (src | *dst));
+            break;
+        case 0x50:
+            *dst = pattern & ~(*dst);
+            break;
+        case 0x55:
+            *dst = ~*dst;
+            break;
+        case 0x5A:
+            *dst ^= pattern;
+            break;
+        case 0x5F:
+            *dst = ~pattern | ~(*dst);
+            break;
+        case 0x6A:
+            *dst = *dst ^ (pattern & src);
+            break;
+        case 0x7A:
+            *dst = *dst ^ (pattern & (src | (~*dst)));
+            break;
+        case 0x8A:
+            *dst = *dst & (src | (~pattern));
+            break;
+        case 0x9A:
+            *dst = *dst ^ (pattern & (~src));
+            break;
+        case 0xB8:
+            *dst = (((pattern ^ *dst) & src) ^ pattern);
+            break;
+        case 0xA0:
+            *dst &= pattern;
+            break;
+        case 0xA5:
+            *dst ^= ~pattern;
+            break;
+        case 0xAA:
+            break; /* No-op. */
+        case 0xAC:
+            *dst = src ^ (pattern & (*dst ^ src));
+            break;
+        case 0xAF:
+            *dst |= ~pattern;
+            break;
+        case 0xBA:
+            *dst |= (pattern & ~src);
+            break;
+        case 0xCA:
+            *dst ^= (pattern & (src ^ *dst));
+            break;
+        case 0xE2:
+            *dst ^= (src & (pattern ^ *dst));
+            break;
+        case 0xDA:
+            *dst ^= pattern & (~(src & *dst));
+            break;
+        case 0xEA:
+            *dst |= pattern & src;
+            break;
+        case 0xF0:
+            *dst = pattern;
+            break;
+        case 0xF5:
+            *dst = pattern | ~(*dst);
+            break;
+        case 0xFA:
+            *dst |= pattern;
+            break;
+        case 0xFF:
+            *dst = 0xFF;
+            break;
+    }
 }
 
 void
 chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t pattern, uint32_t src, uint8_t rop)
 {
     uint32_t orig_dst = *dst & 0xFF000000;
-    ROPMIX(rop, *dst, pattern, src, *dst);
+
+    if ((rop & 0xF) == ((rop >> 4) & 0xF)) {
+        return chips_69000_do_rop_24bpp(dst, src, rop);
+    }
+
+    switch (rop) {
+        default:
+            pclog("Unknown ROP 0x%X\n", rop);
+            break;
+        case 0x00:
+            *dst = 0;
+            break;
+        case 0x05:
+            *dst = ~(*dst) & ~pattern;
+            break;
+        case 0x0A:
+            *dst &= ~pattern;
+            break;
+        case 0x0F:
+            *dst = ~pattern;
+            break;
+        case 0x1A:
+            *dst = pattern ^ (*dst | (pattern & src));
+            break;
+        case 0x2A:
+            *dst = *dst & (~(src & pattern));
+            break;
+        case 0x3A:
+            *dst = src ^ (pattern | (*dst ^ src));
+            break;
+        case 0x4A:
+            *dst = *dst ^ (pattern & (src | *dst));
+            break;
+        case 0x50:
+            *dst = pattern & ~(*dst);
+            break;
+        case 0x55:
+            *dst = ~*dst;
+            break;
+        case 0x5A:
+            *dst ^= pattern;
+            break;
+        case 0x5F:
+            *dst = ~pattern | ~(*dst);
+            break;
+        case 0x6A:
+            *dst = *dst ^ (pattern & src);
+            break;
+        case 0x7A:
+            *dst = *dst ^ (pattern & (src | (~*dst)));
+            break;
+        case 0x8A:
+            *dst = *dst & (src | (~pattern));
+            break;
+        case 0x9A:
+            *dst = *dst ^ (pattern & (~src));
+            break;
+        case 0xB8:
+            *dst = (((pattern ^ *dst) & src) ^ pattern);
+            break;
+        case 0xA0:
+            *dst &= pattern;
+            break;
+        case 0xA5:
+            *dst ^= ~pattern;
+            break;
+        case 0xAA:
+            break; /* No-op. */
+        case 0xAC:
+            *dst = src ^ (pattern & (*dst ^ src));
+            break;
+        case 0xAF:
+            *dst |= ~pattern;
+            break;
+        case 0xBA:
+            *dst |= (pattern & ~src);
+            break;
+        case 0xCA:
+            *dst ^= (pattern & (src ^ *dst));
+            break;
+        case 0xDA:
+            *dst ^= pattern & (~(src & *dst));
+            break;
+        case 0xE2:
+            *dst ^= (src & (pattern ^ *dst));
+            break;
+        case 0xEA:
+            *dst |= pattern & src;
+            break;
+        case 0xF0:
+            *dst = pattern;
+            break;
+        case 0xF5:
+            *dst = pattern | ~(*dst);
+            break;
+        case 0xFA:
+            *dst |= pattern;
+            break;
+        case 0xFF:
+            *dst = 0xFF;
+            break;
+    }
     *dst &= 0xFFFFFF;
     *dst |= orig_dst;
 }
@@ -1207,22 +896,20 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
     switch (chips->bitblt_running.bytes_per_pixel) {
         case 1: /* 8 bits-per-pixel. */
             {
-                //dest_pixel = chips_69000_readb_linear(dest_addr, chips);
-                dest_pixel = chips->svga.vram[dest_addr & chips->svga.vram_mask];
+                dest_pixel = chips_69000_readb_linear(dest_addr, chips);
                 break;
             }
         case 2: /* 16 bits-per-pixel. */
             {
-                //dest_pixel = *(uint16_t*)&chips->svga.vram[dest_addr & chips->svga.vram_mask];
-                dest_pixel = chips->svga.vram[dest_addr & chips->svga.vram_mask];
-                dest_pixel |= chips->svga.vram[(dest_addr + 1) & chips->svga.vram_mask] << 8;
+                dest_pixel = chips_69000_readb_linear(dest_addr, chips);
+                dest_pixel |= chips_69000_readb_linear(dest_addr + 1, chips) << 8;
                 break;
             }
         case 3: /* 24 bits-per-pixel. */
             {
-                dest_pixel = chips->svga.vram[dest_addr & chips->svga.vram_mask];
-                dest_pixel |= chips->svga.vram[(dest_addr + 1) & chips->svga.vram_mask] << 8;
-                dest_pixel |= chips->svga.vram[(dest_addr + 2) & chips->svga.vram_mask] << 16;
+                dest_pixel = chips_69000_readb_linear(dest_addr, chips);
+                dest_pixel |= chips_69000_readb_linear(dest_addr + 1, chips) << 8;
+                dest_pixel |= chips_69000_readb_linear(dest_addr + 2, chips) << 16;
                 break;
             }
     }
@@ -1235,7 +922,7 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
         if (chips->bitblt_running.bitblt.bitblt_control & (1 << 19))
             pattern_data = 0;
         else
-            pattern_data = chips->svga.vram[(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + (chips->bitblt_running.y & 7)) & 7)) & chips->svga.vram_mask]; //chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + (chips->bitblt_running.y & 7)) & 7), chips);
+            pattern_data = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + (chips->bitblt_running.y & 7)) & 7), chips);
 
         is_true = !!(pattern_data & (1 << (7 - ((chips->bitblt_running.bitblt.destination_addr + chips->bitblt_running.x) & 7))));
 
@@ -1251,30 +938,32 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
 
         pattern_pixel &= (1 << (8 * (chips->bitblt_running.bytes_per_pixel))) - 1;
     } else {
-        uint32_t pattern_pixel_addr = 0;
         if (chips->bitblt_running.bytes_per_pixel == 1) {
-            pattern_pixel_addr = chips->bitblt_running.bitblt.pat_addr
-            + 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7)
-            + (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7);
-
-            pattern_pixel = chips->svga.vram[pattern_pixel_addr & chips->svga.vram_mask];
+            pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7)
+                                                        + (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7), chips);
         }
         if (chips->bitblt_running.bytes_per_pixel == 2) {
-            pattern_pixel_addr = chips->bitblt_running.bitblt.pat_addr
-            + (2 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
-            + (2 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7));
+            pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (2 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (2 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)), chips);
 
-            pattern_pixel = chips->svga.vram[pattern_pixel_addr & chips->svga.vram_mask];
-            pattern_pixel |= chips->svga.vram[(pattern_pixel_addr + 1) & chips->svga.vram_mask] << 8;
+            pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (2 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (2 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 1, chips) << 8;
         }
         if (chips->bitblt_running.bytes_per_pixel == 3) {
-            pattern_pixel_addr = chips->bitblt_running.bitblt.pat_addr
-            + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
-            + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7));
+            pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)), chips);
 
-            pattern_pixel = chips->svga.vram[pattern_pixel_addr & chips->svga.vram_mask];
-            pattern_pixel |= chips->svga.vram[(pattern_pixel_addr + 1) & chips->svga.vram_mask] << 8;
-            pattern_pixel |= chips->svga.vram[(pattern_pixel_addr + 2) & chips->svga.vram_mask] << 16;
+            pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 1, chips) << 8;
+
+            pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 2, chips) << 16;
         }
     }
     if (chips->bitblt_running.bytes_per_pixel == 2) {
@@ -1292,7 +981,7 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
                 : chips->bitblt_running.bitblt.pattern_source_key_bg;
                 color_key &= (1 << (8 * (chips->bitblt_running.bytes_per_pixel))) - 1;
 
-                if (!!(color_key == dest_pixel) == !(chips->bitblt_running.bitblt.bitblt_control & (1 << 16))) {
+                if (!!(color_key == dest_pixel) == !!(chips->bitblt_running.bitblt.bitblt_control & (1 << 16))) {
                     return;
                 }
 
@@ -1330,7 +1019,7 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
                 color_key &= (1 << (8 * (chips->bitblt_running.bytes_per_pixel))) - 1;
                 dest_pixel &= (1 << (8 * (chips->bitblt_running.bytes_per_pixel))) - 1;
 
-                if (!!(color_key == dest_pixel) == !(chips->bitblt_running.bitblt.bitblt_control & (1 << 16))) {
+                if (!!(color_key == dest_pixel) == !!(chips->bitblt_running.bitblt.bitblt_control & (1 << 16))) {
                     return;
                 }
 
@@ -1342,21 +1031,20 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
     switch (chips->bitblt_running.bytes_per_pixel) {
         case 1: /* 8 bits-per-pixel. */
             {
-                chips->svga.vram[dest_addr & chips->svga.vram_mask] = dest_pixel & 0xFF;
-                //chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
                 break;
             }
         case 2: /* 16 bits-per-pixel. */
             {
-                chips->svga.vram[dest_addr & chips->svga.vram_mask] = dest_pixel & 0xFF;
-                chips->svga.vram[(dest_addr + 1) & chips->svga.vram_mask] = (dest_pixel >> 8) & 0xFF;
+                chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr + 1, (dest_pixel >> 8) & 0xFF, chips);
                 break;
             }
         case 3: /* 24 bits-per-pixel. */
             {
-                chips->svga.vram[dest_addr & chips->svga.vram_mask] = dest_pixel & 0xFF;
-                chips->svga.vram[(dest_addr + 1) & chips->svga.vram_mask] = (dest_pixel >> 8) & 0xFF;
-                chips->svga.vram[(dest_addr + 2) & chips->svga.vram_mask] = (dest_pixel >> 16) & 0xFF;
+                chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr + 1, (dest_pixel >> 8) & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr + 2, (dest_pixel >> 16) & 0xFF, chips);
                 break;
             }
     }
@@ -1524,8 +1212,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                         uint32_t orig_source_addr = chips->bitblt_running.bitblt.source_addr;
                         while (orig_count_y == chips->bitblt_running.count_y) {
                             int i = 0;
-                            //uint8_t data = chips_69000_readb_linear(orig_source_addr, chips);
-                            uint8_t data = chips->svga.vram[orig_source_addr & chips->svga.vram_mask];
+                            uint8_t data = chips_69000_readb_linear(orig_source_addr, chips);
                             orig_source_addr++;
                             for (i = 0; i < 8; i++) {
                                 chips_69000_process_mono_bit(chips, !!(data & (1 << (7 - i))));
@@ -1544,15 +1231,14 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                 case 1: /* Bit-aligned */
                 case 2: /* Byte-aligned */
                     {
-                        //uint32_t data = chips_69000_readb_linear(source_addr, chips);
-                        uint32_t data = chips->svga.vram[source_addr & chips->svga.vram_mask];
+                        uint32_t data = chips_69000_readb_linear(source_addr, chips);
                         chips_69000_bitblt_write(chips, data & 0xFF);
                         source_addr += 1;
                         break;
                     }
                 case 3: /* Word-aligned*/
                     {
-                        uint32_t data = chips->svga.vram[source_addr & chips->svga.vram_mask] | (chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8);
+                        uint32_t data = chips_69000_readw_linear(source_addr, chips);
                         chips_69000_bitblt_write(chips, data & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 8) & 0xFF);
                         source_addr += 2;
@@ -1560,8 +1246,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                     }
                 case 4: /* Doubleword-aligned*/
                     {
-                        uint32_t data = chips->svga.vram[source_addr & chips->svga.vram_mask] | (chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8)
-                                        | (chips->svga.vram[(source_addr + 2) & chips->svga.vram_mask] << 16) | (chips->svga.vram[(source_addr + 3) & chips->svga.vram_mask] << 24);
+                        uint32_t data = chips_69000_readl_linear(source_addr, chips);
                         chips_69000_bitblt_write(chips, data & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 8) & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 16) & 0xFF);
@@ -1571,15 +1256,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                     }
                 case 5: /* Quadword-aligned*/
                     {
-                        uint64_t data = chips->svga.vram[source_addr & chips->svga.vram_mask]
-                        | (chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8)
-                        | (chips->svga.vram[(source_addr + 2) & chips->svga.vram_mask] << 16)
-                        | (chips->svga.vram[(source_addr + 3) & chips->svga.vram_mask] << 24)
-                        | ((uint64_t)chips->svga.vram[(source_addr + 4) & chips->svga.vram_mask] << 32ULL)
-                        | ((uint64_t)chips->svga.vram[(source_addr + 5) & chips->svga.vram_mask] << 40ULL)
-                        | ((uint64_t)chips->svga.vram[(source_addr + 6) & chips->svga.vram_mask] << 48ULL)
-                        | ((uint64_t)chips->svga.vram[(source_addr + 7) & chips->svga.vram_mask] << 56ULL);
-                        //uint64_t data = (uint64_t)chips_69000_readl_linear(source_addr, chips) | ((uint64_t)chips_69000_readl_linear(source_addr + 4, chips) << 32ull);
+                        uint64_t data = (uint64_t)chips_69000_readl_linear(source_addr, chips) | ((uint64_t)chips_69000_readl_linear(source_addr + 4, chips) << 32ull);
                         chips_69000_bitblt_write(chips, data & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 8) & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 16) & 0xFF);
@@ -1604,21 +1281,20 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
             switch (chips->bitblt_running.bytes_per_pixel) {
                 case 1: /* 8 bits-per-pixel. */
                     {
-                        //pixel = chips_69000_readb_linear(source_addr, chips);
-                        pixel = chips->svga.vram[source_addr & chips->svga.vram_mask];
+                        pixel = chips_69000_readb_linear(source_addr, chips);
                         break;
                     }
                 case 2: /* 16 bits-per-pixel. */
                     {
-                        pixel = chips->svga.vram[source_addr & chips->svga.vram_mask];
-                        pixel |= chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8;
+                        pixel = chips_69000_readb_linear(source_addr, chips);
+                        pixel |= chips_69000_readb_linear(source_addr + 1, chips) << 8;
                         break;
                     }
                 case 3: /* 24 bits-per-pixel. */
                     {
-                        pixel = chips->svga.vram[source_addr & chips->svga.vram_mask];
-                        pixel |= chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8;
-                        pixel |= chips->svga.vram[(source_addr + 2) & chips->svga.vram_mask] << 16;
+                        pixel = chips_69000_readb_linear(source_addr, chips);
+                        pixel |= chips_69000_readb_linear(source_addr + 1, chips) << 8;
+                        pixel |= chips_69000_readb_linear(source_addr + 2, chips) << 16;
                         break;
                     }
             }
