@@ -27,11 +27,10 @@
 #include <86box/video.h>
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
-#include <86box/nv/classes/vid_nv3_classes.h>
 #include <86box/utils/video_stdlib.h>
 
 /* Render Core: Performs a ROP */
-void nv3_perform_rop(uint32_t src, uint32_t dst, uint32_t pattern, uint32_t pen, nv3_render_operation_type rop)
+uint32_t nv3_perform_rop(uint32_t src, uint32_t dst, uint32_t pattern, nv3_render_operation_type rop)
 {
     return video_rop_gdi_ternary(rop, dst, pattern, src);
 }

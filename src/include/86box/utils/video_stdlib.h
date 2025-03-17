@@ -17,4 +17,4 @@
 
  
 /* ROP */
-int32_t video_rop_gdi_ternary(int32_t rop, int32_t dst, int32_t pattern, int32_t src, int32_t out);
+int32_t video_rop_gdi_ternary(int32_t rop, int32_t dst, int32_t pattern, int32_t src);

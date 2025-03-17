@@ -1145,17 +1145,17 @@ typedef enum nv3_object_class_01C_pixel_format_e
 {
     // Y8P4
     // 12-bits (Y8 - Planar YUV 8 bits (Y value only), 4 bits of indexed colour too?
-    nv3_m2mt_pixel_format_le_y8_p4 = 0x1010000,
+    nv3_image_in_memory_pixel_format_le_y8_p4 = 0x1010000,
 
     // Y16P2
     // 16-bits (Y16) - Planar YUV 16 bits (Y value only), 2 bits of indexed colour too?
-    nv3_m2mt_pixel_format_le_y16_p2 = 0x1010101,
+    nv3_image_in_memory_pixel_format_le_y16_p2 = 0x1010101,
 
     /* 1 unused bit, 555 15-bit format, p2(?) */
-    nv3_m2mt_pixel_format_x1r5g5b5_p2 = 0x1000000,
+    nv3_image_in_memory_pixel_format_x1r5g5b5_p2 = 0x1000000,
 
     // X8G8B8R8, 24-bit colour (or 24-bit colour with alpha)
-    nv3_m2mt_pixel_format_x8g8b8r8 = 0x1,
+    nv3_image_in_memory_pixel_format_x8g8b8r8 = 0x1,
 } nv3_object_class_01C_pixel_format; 
 
 typedef struct nv3_object_class_01C

@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   13 March 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   17 March 2025 (STILL WORKING ON IT!!!)
  *  
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -454,6 +454,8 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_START                                0x400000    // Scene graph for 2d/3d rendering...the most important part
 // PGRAPH Core
 
+#define NV3_PGRAPH_MAX_BUFFERS                          4
+
 // For these debug registers, 0=Disabled, 1=Enabled
 
 // Debug 0: General
@@ -532,7 +534,25 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_INTR_EN_0                            0x400140    // Interrupt Control for PGRAPH #1
 //todo: add what this does
 #define NV3_PGRAPH_INTR_EN_1                            0x400144    // Interrupt Control for PGRAPH #2 (it can receive two at onc)
-#define NV3_PGRAPH_CONTEXT_SWITCH                       0x400180    // DMA context switcher
+#define NV3_PGRAPH_CONTEXT_SWITCH                       0x400180    // Holds the current PGRAPH context, switched by context switching
+
+/* Contextual information for pgraph */
+#define NV3_PGRAPH_CONTEXT_SWITCH_COLOR_FORMAT          2           // Holds the current color format used for drawing operations.
+#define NV3_PGRAPH_CONTEXT_SWITCH_ALPHA                 3           // Holds a boolean if alpha transparency is currently enabled in drawing operations.
+#define NV3_PGRAPH_CONTEXT_SWITCH_MONO_FORMAT           8           // Holds the current color format used for monochome drawing operations.  
+#define NV3_PGRAPH_CONTEXT_SWITCH_DAC_BYPASS            9           // Holds if PRAMDAC should be bypassed, and an external DAC drawn.
+#define NV3_PGRAPH_CONTEXT_SWITCH_Z_WRITE               12          // Holds if we should write back to the zbuffer.
+#define NV3_PGRAPH_CONTEXT_SWITCH_CHROMA_KEY            13          // Holds the current chroma mask used for drawing operations.
+#define NV3_PGRAPH_CONTEXT_SWITCH_PLANE_MASK            14          // Holds the current plane mask used for drawing operations.
+#define NV3_PGRAPH_CONTEXT_SWITCH_USER_CLIP             15          // Holds the user-specified clipping information used for drawing operations.
+#define NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER            16          // Holds the buffer ID used for drawing operation (i.e. which bpixel/bpitch/boffset index to use)
+#define NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER0_ENABLED   20          // Holds a boolean indicating if buffer 0 can be used as the destination for a drawing operation.
+#define NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER1_ENABLED   21          // Holds a boolean indicating if buffer 1 can be used as the destination for a drawing operation.
+#define NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER2_ENABLED   22          // Holds a boolean indicating if buffer 2 can be used as the destination for a drawing operation.
+#define NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER3_ENABLED   23          // Holds a boolean indicating if buffer 3 can be used as the destination for a drawing operation.
+#define NV3_PGRAPH_CONTEXT_SWITCH_PATCH_CONFIG          24          // Something to do with an operation to do during a patchcord?
+#define NV3_PGRAPH_CONTEXT_SWITCH_VOLATILE              31          // HUH
+
 #define NV3_PGRAPH_CONTEXT_CONTROL                      0x400190    // DMA context control
 #define NV3_PGRAPH_CONTEXT_USER                         0x400194    // Current DMA context state, may rename
 #define NV3_PGRAPH_CONTEXT_CACHE(i)                     0x4001A0+(i*4)  // Context Cache
@@ -1082,6 +1102,23 @@ typedef struct nv3_pgraph_status_s
 
 } nv3_pgraph_status_t;
 
+/* All of this B* stuff is registers at 400630..40065c and 4006a8 in reality, easier to implement it like this 
+   BPixel = Internal Binary Representation of the pixel within the architecture
+*/
+#define NV3_BPIXEL_FORMAT               0
+#define NV3_BPIXEL_FORMAT_IS_VALID             2
+
+typedef enum nv3_pgraph_bpixel_format_e
+{
+    // Y16
+    bpixel_fmt_y16 = 0,
+    // 8-bit colour
+    bpixel_fmt_8bit = 1,
+    // 16-bit colour
+    bpixel_fmt_16bit = 2,
+    // 32-bit colour (BGRA/ARGB)
+    bpixel_fmt_32bit = 3,
+} nv3_pgraph_bpixel_format;
 
 // Graphics Subsystem
 typedef struct nv3_pgraph_s
@@ -1126,14 +1163,19 @@ typedef struct nv3_pgraph_s
     uint32_t beta_factor;
     nv3_pgraph_dma_settings_t dma_settings;
     uint8_t rop;                                            // Current GDI Ternary Render Operation
+    // SURFACE STUFF - PGRAPH CAN OPERATE ON 4 SURFACES/BUFFERS AT A TIME
+    uint32_t boffset[NV3_PGRAPH_MAX_BUFFERS];               // 22-bit linear VRAM offset for the start of a surface.
+    uint16_t bpitch[NV3_PGRAPH_MAX_BUFFERS];                // 12-bit linear VRAM offset for the pitch of a surfac.e
+    uint32_t bpixel[NV3_PGRAPH_MAX_BUFFERS];                // Pixel format for each possible surfaces.
+    // CLIP
     nv3_pgraph_clip_misc_settings_t clip_misc_settings;
     nv3_notifier_t notifier;
     nv3_position_16_bigy_t clip0_min;
     nv3_position_16_bigy_t clip0_max;
     nv3_position_16_bigy_t clip1_min;
     nv3_position_16_bigy_t clip1_max;
-    uint32_t fifo_access;
-    nv3_pgraph_status_t status;
+    uint32_t fifo_access;                                   // Determines if PGRAPH can access PFIFO.
+    nv3_pgraph_status_t status;                             // Current status of the 3D engine.
     uint32_t trapped_address;
     uint32_t trapped_data;
     uint32_t trapped_instance;
