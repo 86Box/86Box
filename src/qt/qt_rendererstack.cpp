@@ -549,6 +549,9 @@ RendererStack::event(QEvent* event)
             return true;
 #endif
         }
+
+        default:
+            return QStackedWidget::event(event);
     }
 
     return QStackedWidget::event(event);
