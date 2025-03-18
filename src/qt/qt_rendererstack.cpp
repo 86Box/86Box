@@ -203,19 +203,17 @@ RendererStack::mousePressEvent(QMouseEvent *event)
 void
 RendererStack::wheelEvent(QWheelEvent *event)
 {
-#if defined(Q_OS_WINDOWS) || defined(__APPLE__)
-    event->ignore();
-#else
     if (!mouse_capture) {
         event->ignore();
         return;
     }
 
+#if !defined(Q_OS_WINDOWS) && !defined(__APPLE__)
     double numSteps = (double) event->angleDelta().y() / 120.0;
 
     mouse_set_z((int) numSteps);
-    event->accept();
 #endif
+    event->accept();
 }
 
 void
