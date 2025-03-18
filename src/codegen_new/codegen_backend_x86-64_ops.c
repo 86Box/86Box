@@ -533,7 +533,7 @@ host_x86_MOV16_ABS_IMM(codeblock_t *block, void *p, uint16_t imm_data)
         codegen_addbyte4(block, 0x66, 0xc7, 0x45, offset); /*MOV offset[RBP], imm_data*/
         codegen_addword(block, imm_data);
     } else if (offset < (1ULL << 32)) {
-        codegen_alloc_bytes(block, 8);
+        codegen_alloc_bytes(block, 9);
         codegen_addbyte3(block, 0x66, 0xc7, 0x85); /*MOV offset[RBP], imm_data*/
         codegen_addlong(block, offset);
         codegen_addword(block, imm_data);
