@@ -798,7 +798,7 @@ mo_blocks(mo_t *dev, int32_t *len, int out)
 
     *len    = 0;
 
-    if (dev->sector_len == 0) {
+    if (dev->sector_len > 0) {
         mo_log(dev->log, "%sing %i blocks starting from %i...\n", out ? "Writ" : "Read",
                dev->requested_blocks, dev->sector_pos);
 
@@ -891,7 +891,7 @@ mo_format(mo_t *dev)
     mo_log(dev->log, "Formatting media...\n");
 
     fseeko64(dev->drv->fp, 0, SEEK_END);
-    long size = ftell(dev->drv->fp);
+    int64_t size = ftello64(dev->drv->fp);
 
 #ifdef _WIN32
     LARGE_INTEGER liSize;
