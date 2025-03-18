@@ -17,6 +17,7 @@
  *          Copyright 2020-2025 Miran Grca.
  *          Copyright 2020-2025 Fred N. van Kempen
  */
+#define _GNU_SOURCE
 #ifdef ENABLE_MO_LOG
 #include <stdarg.h>
 #endif
@@ -432,7 +433,8 @@ mo_update_request_length(mo_t *dev, int len, int block_len)
         case 0xa8:
         case 0xaa:
             /* Round it to the nearest 2048 bytes. */
-            dev->max_transfer_len = (dev->max_transfer_len >> 9) << 9;
+            dev->max_transfer_len = (dev->max_transfer_len / dev->drv->sector_size) *
+                                    dev->drv->sector_size;
 
             /*
                Make sure total length is not bigger than sum of the lengths of
@@ -792,10 +794,9 @@ mo_invalid_field_pl(mo_t *dev, const uint32_t field)
 }
 
 static int
-mo_blocks(mo_t *dev, int32_t *len, int out)
+mo_blocks(mo_t *dev, int32_t *len, const int out)
 {
-    int ret = 0;
-
+    int ret = 1;
     *len    = 0;
 
     if (dev->sector_len > 0) {
@@ -803,41 +804,39 @@ mo_blocks(mo_t *dev, int32_t *len, int out)
                dev->requested_blocks, dev->sector_pos);
 
         if (dev->sector_pos >= dev->drv->medium_size) {
-            mo_log(dev->log, "Trying to %s beyond the end of disk\n", out ? "write" : "read");
+            mo_log(dev->log, "Trying to %s beyond the end of disk\n",
+                   out ? "write" : "read");
             mo_lba_out_of_range(dev);
-            ret  = 0;
+            ret = 0;
         } else {
-            *len = dev->requested_blocks * dev->drv->sector_size;
-            ret  = 1;
+            *len    = dev->requested_blocks * dev->drv->sector_size;
 
             for (int i = 0; i < dev->requested_blocks; i++) {
-                if (fseeko64(dev->drv->fp, dev->drv->base +
-                             ((uint64_t) dev->sector_pos * dev->drv->sector_size), SEEK_SET) == -1) {
+                if (fseeko64(dev->drv->fp, (uint64_t) dev->drv->base +
+                             (uint64_t) (dev->sector_pos * dev->drv->sector_size),
+                    SEEK_SET) == -1) {
                     if (out)
                         mo_write_error(dev);
                     else
                         mo_read_error(dev);
-
                     ret = -1;
                 } else {
-                    if (!feof(dev->drv->fp))
+                    if (feof(dev->drv->fp))
                         break;
 
                     if (out) {
                         if (fwrite(dev->buffer + (i * dev->drv->sector_size), 1,
-                                  dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size) {
+                                   dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size) {
                             mo_log(dev->log, "mo_blocks(): Error writing data\n");
                             mo_write_error(dev);
                             ret = -1;
                         } else
                             fflush(dev->drv->fp);
-                    } else {
-                        if (fread(dev->buffer + (i * dev->drv->sector_size), 1,
-                                  dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size) {
-                            mo_log(dev->log, "mo_blocks(): Error reading data\n");
-                            mo_read_error(dev);
-                            ret = -1;
-                        }
+                    } else if (fread(dev->buffer + (i * dev->drv->sector_size), 1,
+                                     dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size) {
+                        mo_log(dev->log, "mo_blocks(): Error reading data\n");
+                        mo_read_error(dev);
+                        ret = -1;
                     }
                 }
 
@@ -848,7 +847,8 @@ mo_blocks(mo_t *dev, int32_t *len, int out)
             }
 
             if (ret == 1) {
-                mo_log(dev->log, "%s %i bytes of blocks...\n", out ? "Written" : "Read", *len);
+                mo_log(dev->log, "%s %i bytes of blocks...\n", out ? "Written" :
+                       "Read", *len);
 
                 dev->sector_len -= dev->requested_blocks;
             }
@@ -1394,7 +1394,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_WRITE_12:
         case GPCMD_WRITE_AND_VERIFY_12:
             mo_set_phase(dev, SCSI_PHASE_DATA_OUT);
-            alloc_length = 512;
+            alloc_length = dev->drv->sector_size;
 
             switch (cdb[0]) {
                 case GPCMD_VERIFY_6:
@@ -1444,11 +1444,11 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                     mo_buf_alloc(dev, dev->packet_len);
 
                     dev->requested_blocks = max_len;
-                    dev->packet_len       = max_len << 9;
+                    dev->packet_len       = max_len * dev->drv->sector_size;
 
                     mo_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
 
-                    mo_data_command_finish(dev, dev->packet_len, 512,
+                    mo_data_command_finish(dev, dev->packet_len, dev->drv->sector_size,
                                            dev->packet_len, 1);
 
                     ui_sb_update_icon(SB_MO | dev->id,
@@ -1465,7 +1465,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
 
         case GPCMD_WRITE_SAME_10:
             mo_set_phase(dev, SCSI_PHASE_DATA_OUT);
-            alloc_length = 512;
+            alloc_length = dev->drv->sector_size;
 
             if ((cdb[1] & 6) == 6)
                 mo_invalid_field(dev, cdb[1]);
@@ -1484,7 +1484,8 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
 
                     mo_set_phase(dev, SCSI_PHASE_DATA_OUT);
 
-                    mo_data_command_finish(dev, 512, 512,
+                    mo_data_command_finish(dev, dev->drv->sector_size,
+                                           dev->drv->sector_size,
                                            alloc_length, 1);
 
                     ui_sb_update_icon(SB_MO | dev->id,
@@ -1916,6 +1917,9 @@ mo_phase_data_out(scsi_common_t *sc)
                 block_desc_len = 0;
 
             pos = hdr_len + block_desc_len;
+            mo_log(dev->log, "Block descriptor: %08X %08X %08X %08X %08X %08X %08X %08X\n",
+                   dev->buffer[hdr_len], dev->buffer[hdr_len + 1], dev->buffer[hdr_len + 2], dev->buffer[hdr_len + 3],
+                   dev->buffer[hdr_len + 4], dev->buffer[hdr_len + 5], dev->buffer[hdr_len + 6], dev->buffer[hdr_len + 7]);
 
             while (1) {
                 if (pos >= param_list_len) {
