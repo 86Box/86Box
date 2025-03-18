@@ -203,6 +203,9 @@ RendererStack::mousePressEvent(QMouseEvent *event)
 void
 RendererStack::wheelEvent(QWheelEvent *event)
 {
+#if defined(Q_OS_WINDOWS) || defined(__APPLE__)
+    event->ignore();
+#else
     if (!mouse_capture) {
         event->ignore();
         return;
@@ -212,6 +215,7 @@ RendererStack::wheelEvent(QWheelEvent *event)
 
     mouse_set_z((int) numSteps);
     event->accept();
+#endif
 }
 
 void
