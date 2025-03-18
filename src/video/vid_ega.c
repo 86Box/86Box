@@ -45,21 +45,6 @@ void ega_doblit(int wx, int wy, ega_t *ega);
 #define BIOS_ISKRA_PATH  "roms/video/ega/143-02.bin", "roms/video/ega/143-03.bin"
 #define BIOS_TSENG_PATH  "roms/video/ega/EGA ET2000.BIN"
 
-enum {
-    EGA_IBM = 0,
-    EGA_COMPAQ,
-    EGA_SUPEREGA,
-    EGA_ATI800P,
-    EGA_ISKRA,
-    EGA_TSENG
-};
-
-enum {
-    EGA_TYPE_IBM    = 0,
-    EGA_TYPE_OTHER  = 1,
-    EGA_TYPE_COMPAQ = 2
-};
-
 static video_timings_t timing_ega = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 static uint8_t         ega_rotate[8][256];
 static int             active             = 0;
@@ -107,6 +92,8 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
 
         case 0x3c0:
         case 0x3c1:
+            if (ega->actual_type == EGA_SUPEREGA)
+                val &= 0x7f; /* Bit 7 indicates the flipflop status (read only) */
             if (!ega->attrff) {
                 ega->attraddr = val & 31;
                 if ((val & 0x20) != ega->attr_palette_enable) {
@@ -325,6 +312,8 @@ ega_in(uint16_t addr, void *priv)
         case 0x3c0:
             if (ega_type == EGA_TYPE_OTHER)
                 ret = ega->attraddr | ega->attr_palette_enable;
+            if (ega->actual_type == EGA_SUPEREGA && ega->attrff)
+                    ret |= 0x80; /* Bit 7 indicates the flipflop status (read only) */
             break;
         case 0x3c1:
             if (ega_type == EGA_TYPE_OTHER)
@@ -754,7 +743,10 @@ ega_poll(void *priv)
             ega->y_add *= ega->vres + 1;
             for (y = 0; y <= ega->vres; y++) {
                 /* Render scanline */
-                ega->render(ega);
+                if(ega->render_override)
+                    ega->render_override(ega->priv_parent);
+                else
+                    ega->render(ega);
 
                 /* Render overscan */
                 ega->x_add = (overscan_x >> 1);
@@ -1428,6 +1420,8 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
 
     ega->crtc[0] = 63;
     ega->crtc[6] = 255;
+
+    ega->render_override = NULL;
 
     timer_add(&ega->timer, ega_poll, ega, 1);
     if (ega_type == EGA_TYPE_COMPAQ)
