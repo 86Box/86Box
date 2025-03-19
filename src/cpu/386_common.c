@@ -1449,26 +1449,44 @@ enter_smm(int in_hlt)
 void
 enter_smm_check(int in_hlt)
 {
-    if ((in_smm == 0) && smi_line) {
-#ifdef ENABLE_386_COMMON_LOG
-        x386_common_log("SMI while not in SMM\n");
-#endif
-        enter_smm(in_hlt);
-    } else if ((in_smm == 1) && smi_line) {
-        /* Mark this so that we don't latch more than one SMI. */
-#ifdef ENABLE_386_COMMON_LOG
-        x386_common_log("SMI while in unlatched SMM\n");
-#endif
-        smi_latched = 1;
-    } else if ((in_smm == 2) && smi_line) {
-        /* Mark this so that we don't latch more than one SMI. */
-#ifdef ENABLE_386_COMMON_LOG
-        x386_common_log("SMI while in latched SMM\n");
-#endif
-    }
+    uint8_t ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) ==
+                          (CCR1_USE_SMI | CCR1_SM3)) && (cyrix.arr[3].size > 0);
 
-    if (smi_line)
+    if (smi_line) {
+        if (!is_cxsmm || ccr1_check)  switch (in_smm) {
+            default:
+#ifdef ENABLE_386_COMMON_LOG
+                fatal("SMI while in_smm = %i\n", in_smm);
+                break;
+#endif
+            case 0:
+#ifdef ENABLE_386_COMMON_LOG
+                x386_common_log("SMI while not in SMM\n");
+#endif
+                enter_smm(in_hlt);
+                break;
+            case 1:
+                /* Mark this so that we don't latch more than one SMI. */
+#ifdef ENABLE_386_COMMON_LOG
+                x386_common_log("SMI while in unlatched SMM\n");
+#endif
+                smi_latched = 1;
+                break;
+            case 2:
+#ifdef ENABLE_386_COMMON_LOG
+                x386_common_log("SMI while in latched SMM\n");
+#endif
+                break;
+        }
+#ifdef ENABLE_386_COMMON_LOG
+        else {
+            x386_common_log("SMI while in Cyrix disabled mode\n");
+            x386_common_log("lol\n");
+        }
+#endif
+
         smi_line = 0;
+    }
 }
 
 void
@@ -2186,6 +2204,12 @@ cpu_fast_off_reset(void)
 void
 smi_raise(void)
 {
+    uint8_t ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) ==
+                          (CCR1_USE_SMI | CCR1_SM3)) && (cyrix.arr[3].size > 0);
+
+    if (is_cxsmm && !ccr1_check)
+        return;
+
     if (is486 && (cpu_fast_off_flags & 0x80000000))
         cpu_fast_off_advance();
 

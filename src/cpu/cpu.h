@@ -120,6 +120,13 @@ enum {
 #define CPU_ALTERNATE_XTAL   4
 #define CPU_FIXED_MULTIPLIER 8
 
+#define CCR1_USE_SMI  (1 << 1)
+#define CCR1_SMAC     (1 << 2)
+#define CCR1_SM3      (1 << 7)
+
+#define CCR3_SMI_LOCK (1 << 0)
+#define CCR3_NMI_EN   (1 << 1)
+
 #if (defined __amd64__ || defined _M_X64)
 #    define LOOKUP_INV -1LL
 #else
