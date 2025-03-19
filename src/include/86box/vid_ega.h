@@ -140,6 +140,11 @@ typedef struct ega_t {
 
     uint32_t   (*remap_func)(struct ega_t *ega, uint32_t in_addr);
     void       (*render)(struct ega_t *svga);
+
+    /*If set then another device is driving the monitor output and the EGA
+      card should not attempt to display anything */
+      void (*render_override)(void *priv);
+      void *priv_parent;
 } ega_t;
 #endif
 
@@ -150,6 +155,7 @@ extern const device_t sega_device;
 extern const device_t atiega800p_device;
 extern const device_t iskra_ega_device;
 extern const device_t et2000_device;
+extern const device_t jega_device;
 #endif
 
 extern int update_overscan;
@@ -198,5 +204,20 @@ void ega_render_overscan_right(ega_t *ega);
 void ega_render_text(ega_t *ega);
 void ega_render_graphics(ega_t *ega);
 #endif
+
+enum {
+  EGA_IBM = 0,
+  EGA_COMPAQ,
+  EGA_SUPEREGA,
+  EGA_ATI800P,
+  EGA_ISKRA,
+  EGA_TSENG
+};
+
+enum {
+  EGA_TYPE_IBM    = 0,
+  EGA_TYPE_OTHER  = 1,
+  EGA_TYPE_COMPAQ = 2
+};
 
 #endif /*VIDEO_EGA_H*/
