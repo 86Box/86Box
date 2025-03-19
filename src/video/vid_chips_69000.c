@@ -107,6 +107,7 @@ typedef struct chips_69000_t {
     uint8_t mm_regs[256], mm_index;
     uint8_t flat_panel_regs[256], flat_panel_index;
     uint8_t ext_regs[256], ext_index;
+    uint8_t pci_regs[256];
 
     union {
         uint32_t mem_regs[4];
@@ -239,7 +240,7 @@ chips_69000_write_flat_panel(chips_69000_t* chips, uint8_t val)
 void
 chips_69000_interrupt(chips_69000_t* chips)
 {
-    pci_irq(chips->slot, PCI_INTA, 0, !!((chips->mem_regs[0] & chips->mem_regs[1]) & 0x80004040), &chips->irq_state);
+    pci_irq(chips->slot, PCI_INTA, 0, !!(chips->mem_regs[0] & chips->mem_regs[1] & 0x80004040), &chips->irq_state);
 }
 
 void
@@ -1041,7 +1042,9 @@ void
 chips_69000_do_rop_24bpp_patterned(uint32_t *dst, uint32_t pattern, uint32_t src, uint8_t rop)
 {
     uint32_t orig_dst = *dst & 0xFF000000;
+
     ROPMIX(rop, *dst, pattern, src, *dst);
+
     *dst &= 0xFFFFFF;
     *dst |= orig_dst;
 }
@@ -1206,22 +1209,20 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
     switch (chips->bitblt_running.bytes_per_pixel) {
         case 1: /* 8 bits-per-pixel. */
             {
-                //dest_pixel = chips_69000_readb_linear(dest_addr, chips);
-                dest_pixel = chips->svga.vram[dest_addr & chips->svga.vram_mask];
+                dest_pixel = chips_69000_readb_linear(dest_addr, chips);
                 break;
             }
         case 2: /* 16 bits-per-pixel. */
             {
-                //dest_pixel = *(uint16_t*)&chips->svga.vram[dest_addr & chips->svga.vram_mask];
-                dest_pixel = chips->svga.vram[dest_addr & chips->svga.vram_mask];
-                dest_pixel |= chips->svga.vram[(dest_addr + 1) & chips->svga.vram_mask] << 8;
+                dest_pixel = chips_69000_readb_linear(dest_addr, chips);
+                dest_pixel |= chips_69000_readb_linear(dest_addr + 1, chips) << 8;
                 break;
             }
         case 3: /* 24 bits-per-pixel. */
             {
-                dest_pixel = chips->svga.vram[dest_addr & chips->svga.vram_mask];
-                dest_pixel |= chips->svga.vram[(dest_addr + 1) & chips->svga.vram_mask] << 8;
-                dest_pixel |= chips->svga.vram[(dest_addr + 2) & chips->svga.vram_mask] << 16;
+                dest_pixel = chips_69000_readb_linear(dest_addr, chips);
+                dest_pixel |= chips_69000_readb_linear(dest_addr + 1, chips) << 8;
+                dest_pixel |= chips_69000_readb_linear(dest_addr + 2, chips) << 16;
                 break;
             }
     }
@@ -1234,7 +1235,7 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
         if (chips->bitblt_running.bitblt.bitblt_control & (1 << 19))
             pattern_data = 0;
         else
-            pattern_data = chips->svga.vram[(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + (chips->bitblt_running.y & 7)) & 7)) & chips->svga.vram_mask]; //chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + (chips->bitblt_running.y & 7)) & 7), chips);
+            pattern_data = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr + ((vert_pat_alignment + (chips->bitblt_running.y & 7)) & 7), chips);
 
         is_true = !!(pattern_data & (1 << (7 - ((chips->bitblt_running.bitblt.destination_addr + chips->bitblt_running.x) & 7))));
 
@@ -1250,30 +1251,32 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
 
         pattern_pixel &= (1 << (8 * (chips->bitblt_running.bytes_per_pixel))) - 1;
     } else {
-        uint32_t pattern_pixel_addr = 0;
         if (chips->bitblt_running.bytes_per_pixel == 1) {
-            pattern_pixel_addr = chips->bitblt_running.bitblt.pat_addr
-            + 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7)
-            + (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7);
-
-            pattern_pixel = chips->svga.vram[pattern_pixel_addr & chips->svga.vram_mask];
+            pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7)
+                                                        + (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7), chips);
         }
         if (chips->bitblt_running.bytes_per_pixel == 2) {
-            pattern_pixel_addr = chips->bitblt_running.bitblt.pat_addr
-            + (2 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
-            + (2 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7));
+            pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (2 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (2 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)), chips);
 
-            pattern_pixel = chips->svga.vram[pattern_pixel_addr & chips->svga.vram_mask];
-            pattern_pixel |= chips->svga.vram[(pattern_pixel_addr + 1) & chips->svga.vram_mask] << 8;
+            pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (2 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (2 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 1, chips) << 8;
         }
         if (chips->bitblt_running.bytes_per_pixel == 3) {
-            pattern_pixel_addr = chips->bitblt_running.bitblt.pat_addr
-            + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
-            + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7));
+            pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)), chips);
 
-            pattern_pixel = chips->svga.vram[pattern_pixel_addr & chips->svga.vram_mask];
-            pattern_pixel |= chips->svga.vram[(pattern_pixel_addr + 1) & chips->svga.vram_mask] << 8;
-            pattern_pixel |= chips->svga.vram[(pattern_pixel_addr + 2) & chips->svga.vram_mask] << 16;
+            pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 1, chips) << 8;
+
+            pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
+                                                        + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
+                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 2, chips) << 16;
         }
     }
     if (chips->bitblt_running.bytes_per_pixel == 2) {
@@ -1341,21 +1344,20 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
     switch (chips->bitblt_running.bytes_per_pixel) {
         case 1: /* 8 bits-per-pixel. */
             {
-                chips->svga.vram[dest_addr & chips->svga.vram_mask] = dest_pixel & 0xFF;
-                //chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
                 break;
             }
         case 2: /* 16 bits-per-pixel. */
             {
-                chips->svga.vram[dest_addr & chips->svga.vram_mask] = dest_pixel & 0xFF;
-                chips->svga.vram[(dest_addr + 1) & chips->svga.vram_mask] = (dest_pixel >> 8) & 0xFF;
+                chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr + 1, (dest_pixel >> 8) & 0xFF, chips);
                 break;
             }
         case 3: /* 24 bits-per-pixel. */
             {
-                chips->svga.vram[dest_addr & chips->svga.vram_mask] = dest_pixel & 0xFF;
-                chips->svga.vram[(dest_addr + 1) & chips->svga.vram_mask] = (dest_pixel >> 8) & 0xFF;
-                chips->svga.vram[(dest_addr + 2) & chips->svga.vram_mask] = (dest_pixel >> 16) & 0xFF;
+                chips_69000_writeb_linear(dest_addr, dest_pixel & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr + 1, (dest_pixel >> 8) & 0xFF, chips);
+                chips_69000_writeb_linear(dest_addr + 2, (dest_pixel >> 16) & 0xFF, chips);
                 break;
             }
     }
@@ -1523,8 +1525,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                         uint32_t orig_source_addr = chips->bitblt_running.bitblt.source_addr;
                         while (orig_count_y == chips->bitblt_running.count_y) {
                             int i = 0;
-                            //uint8_t data = chips_69000_readb_linear(orig_source_addr, chips);
-                            uint8_t data = chips->svga.vram[orig_source_addr & chips->svga.vram_mask];
+                            uint8_t data = chips_69000_readb_linear(orig_source_addr, chips);
                             orig_source_addr++;
                             for (i = 0; i < 8; i++) {
                                 chips_69000_process_mono_bit(chips, !!(data & (1 << (7 - i))));
@@ -1543,15 +1544,14 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                 case 1: /* Bit-aligned */
                 case 2: /* Byte-aligned */
                     {
-                        //uint32_t data = chips_69000_readb_linear(source_addr, chips);
-                        uint32_t data = chips->svga.vram[source_addr & chips->svga.vram_mask];
+                        uint32_t data = chips_69000_readb_linear(source_addr, chips);
                         chips_69000_bitblt_write(chips, data & 0xFF);
                         source_addr += 1;
                         break;
                     }
                 case 3: /* Word-aligned*/
                     {
-                        uint32_t data = chips->svga.vram[source_addr & chips->svga.vram_mask] | (chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8);
+                        uint32_t data = chips_69000_readw_linear(source_addr, chips);
                         chips_69000_bitblt_write(chips, data & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 8) & 0xFF);
                         source_addr += 2;
@@ -1559,8 +1559,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                     }
                 case 4: /* Doubleword-aligned*/
                     {
-                        uint32_t data = chips->svga.vram[source_addr & chips->svga.vram_mask] | (chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8)
-                                        | (chips->svga.vram[(source_addr + 2) & chips->svga.vram_mask] << 16) | (chips->svga.vram[(source_addr + 3) & chips->svga.vram_mask] << 24);
+                        uint32_t data = chips_69000_readl_linear(source_addr, chips);
                         chips_69000_bitblt_write(chips, data & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 8) & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 16) & 0xFF);
@@ -1570,15 +1569,7 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
                     }
                 case 5: /* Quadword-aligned*/
                     {
-                        uint64_t data = chips->svga.vram[source_addr & chips->svga.vram_mask]
-                        | (chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8)
-                        | (chips->svga.vram[(source_addr + 2) & chips->svga.vram_mask] << 16)
-                        | (chips->svga.vram[(source_addr + 3) & chips->svga.vram_mask] << 24)
-                        | ((uint64_t)chips->svga.vram[(source_addr + 4) & chips->svga.vram_mask] << 32ULL)
-                        | ((uint64_t)chips->svga.vram[(source_addr + 5) & chips->svga.vram_mask] << 40ULL)
-                        | ((uint64_t)chips->svga.vram[(source_addr + 6) & chips->svga.vram_mask] << 48ULL)
-                        | ((uint64_t)chips->svga.vram[(source_addr + 7) & chips->svga.vram_mask] << 56ULL);
-                        //uint64_t data = (uint64_t)chips_69000_readl_linear(source_addr, chips) | ((uint64_t)chips_69000_readl_linear(source_addr + 4, chips) << 32ull);
+                        uint64_t data = (uint64_t)chips_69000_readl_linear(source_addr, chips) | ((uint64_t)chips_69000_readl_linear(source_addr + 4, chips) << 32ull);
                         chips_69000_bitblt_write(chips, data & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 8) & 0xFF);
                         chips_69000_bitblt_write(chips, (data >> 16) & 0xFF);
@@ -1603,21 +1594,20 @@ chips_69000_setup_bitblt(chips_69000_t* chips)
             switch (chips->bitblt_running.bytes_per_pixel) {
                 case 1: /* 8 bits-per-pixel. */
                     {
-                        //pixel = chips_69000_readb_linear(source_addr, chips);
-                        pixel = chips->svga.vram[source_addr & chips->svga.vram_mask];
+                        pixel = chips_69000_readb_linear(source_addr, chips);
                         break;
                     }
                 case 2: /* 16 bits-per-pixel. */
                     {
-                        pixel = chips->svga.vram[source_addr & chips->svga.vram_mask];
-                        pixel |= chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8;
+                        pixel = chips_69000_readb_linear(source_addr, chips);
+                        pixel |= chips_69000_readb_linear(source_addr + 1, chips) << 8;
                         break;
                     }
                 case 3: /* 24 bits-per-pixel. */
                     {
-                        pixel = chips->svga.vram[source_addr & chips->svga.vram_mask];
-                        pixel |= chips->svga.vram[(source_addr + 1) & chips->svga.vram_mask] << 8;
-                        pixel |= chips->svga.vram[(source_addr + 2) & chips->svga.vram_mask] << 16;
+                        pixel = chips_69000_readb_linear(source_addr, chips);
+                        pixel |= chips_69000_readb_linear(source_addr + 1, chips) << 8;
+                        pixel |= chips_69000_readb_linear(source_addr + 2, chips) << 16;
                         break;
                     }
             }
@@ -2156,57 +2146,74 @@ static uint8_t
 chips_69000_pci_read(UNUSED(int func), int addr, void *priv)
 {
     chips_69000_t *chips = (chips_69000_t *) priv;
+    uint8_t        ret   = 0x00;
 
-    {
-        switch (addr) {
-            case 0x00:
-                return 0x2C;
-            case 0x01:
-                return 0x10;
-            case 0x02:
-                return 0xC0;
-            case 0x03:
-                return 0x00;
-            case 0x04:
-                return (chips->pci_conf_status & 0b11100011) | 0x80;
-            case 0x06:
-                return 0x80;
-            case 0x07:
-                return 0x02;
-            case 0x08:
-            case 0x09:
-            case 0x0a:
-                return 0x00;
-            case 0x0b:
-                return 0x03;
-            case 0x13:
-                return chips->linear_mapping.base >> 24;
-            case 0x30:
-                return chips->pci_rom_enable & 0x1;
-            case 0x31:
-                return 0x0;
-            case 0x32:
-                return chips->rom_addr & 0xFF;
-            case 0x33:
-                return (chips->rom_addr & 0xFF00) >> 8;
-            case 0x3c:
-                return chips->pci_line_interrupt;
-            case 0x3d:
-                return 0x01;
-            case 0x2C:
-            case 0x2D:
-            case 0x6C:
-            case 0x6D:
-                return (chips->subsys_vid >> ((addr & 1) * 8)) & 0xFF;
-            case 0x2E:
-            case 0x2F:
-            case 0x6E:
-            case 0x6F:
-                return (chips->subsys_pid >> ((addr & 1) * 8)) & 0xFF;
-            default:
-                return 0x00;
-        }
+    switch (addr) {
+        case 0x00:
+            ret = 0x2c;
+            break;
+        case 0x01:
+            ret = 0x10;
+            break;
+        case 0x02:
+            ret = 0xc0;
+            break;
+        case 0x03:
+            ret = 0x00;
+            break;
+
+        case 0x04:
+            ret = (chips->pci_conf_status & 0x73) | 0x80;
+            break;
+        case 0x05:
+            ret = chips->pci_regs[addr] & 0x01;
+            break;
+        case 0x06:
+            ret = 0x80;
+            break;
+        case 0x07:
+            ret = chips->pci_regs[addr] | 0x02;
+            break;
+
+        case 0x0b:
+            ret = 0x03;
+            break;
+
+        case 0x13:
+            ret = chips->linear_mapping.base >> 24;
+            break;
+
+        case 0x2c ... 0x2d:
+        case 0x6c ... 0x6d:
+            ret = chips->subsys_vid_b[addr & 1];
+            break;
+        case 0x2e ... 0x2f:
+        case 0x6e ... 0x6f:
+            ret = chips->subsys_pid_b[addr & 1];
+            break;
+
+        case 0x30:
+            ret = chips->pci_rom_enable & 0x1;
+            break;
+        case 0x32:
+            ret = chips->rom_addr & 0xff;
+            break;
+        case 0x33:
+            ret = (chips->rom_addr & 0xff00) >> 8;
+            break;
+
+        case 0x3c:
+            ret = chips->pci_line_interrupt;
+            break;
+        case 0x3d:
+            ret = 0x01;
+            break;
+
+        default:
+            break;
     }
+
+    return ret;
 }
 
 static void
@@ -2214,67 +2221,77 @@ chips_69000_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     chips_69000_t *chips = (chips_69000_t *) priv;
 
-    {
-        switch (addr) {
-            case 0x04:
-                {
-                    chips->pci_conf_status = val;
-                    io_removehandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
-                    mem_mapping_disable(&chips->linear_mapping);
-                    mem_mapping_disable(&chips->svga.mapping);
-                    if (chips->pci_conf_status & PCI_COMMAND_IO) {
-                        io_sethandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
-                    }
-                    if (chips->pci_conf_status & PCI_COMMAND_MEM) {
-                        mem_mapping_enable(&chips->svga.mapping);
-                        if (chips->linear_mapping.base)
-                            mem_mapping_set_addr(&chips->linear_mapping, chips->linear_mapping.base, (1 << 24));
-                    }
-                    break;
-                }
-            case 0x13:
-                {
-                    chips->linear_mapping.base = val << 24;
-                    if (chips->linear_mapping.base)
-                        mem_mapping_set_addr(&chips->linear_mapping, chips->linear_mapping.base, (1 << 24));
-                    break;
-                }
-            case 0x3c:
-                chips->pci_line_interrupt = val;
-                break;
-            case 0x30:
-                if (chips->on_board) break;
+    switch (addr) {
+        case 0x04:
+            chips->pci_conf_status = val;
+            io_removehandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
+            mem_mapping_disable(&chips->linear_mapping);
+            mem_mapping_disable(&chips->svga.mapping);
+            if (!chips->on_board)
+                mem_mapping_disable(&chips->bios_rom.mapping);
+            if (val & PCI_COMMAND_IO)
+                io_sethandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
+            if (val & PCI_COMMAND_MEM) {
+                if (!chips->on_board && (chips->pci_rom_enable & 1))
+                    mem_mapping_set_addr(&chips->bios_rom.mapping, chips->rom_addr << 16, 0x10000);
+                mem_mapping_enable(&chips->svga.mapping);
+                if (chips->linear_mapping.base > 0x00000000)
+                    mem_mapping_set_addr(&chips->linear_mapping, chips->linear_mapping.base, (1 << 24));
+            }
+            break;
+        case 0x05:
+            chips->pci_regs[addr] = val & 0x01;
+            break;
+        case 0x07:
+            chips->pci_regs[addr] &= ~(val & 0xc8);
+            break;
+
+        case 0x13:
+            chips->linear_mapping.base = val << 24;
+            mem_mapping_disable(&chips->linear_mapping);
+            if ((chips->pci_conf_status & PCI_COMMAND_MEM) &&
+                (chips->linear_mapping.base > 0x00000000))
+                mem_mapping_set_addr(&chips->linear_mapping, chips->linear_mapping.base, (1 << 24));
+            break;
+
+        case 0x30:
+            if (!chips->on_board) {
                 chips->pci_rom_enable = val & 0x1;
                 mem_mapping_disable(&chips->bios_rom.mapping);
-                if (chips->pci_rom_enable & 1) {
+                if ((chips->pci_conf_status & PCI_COMMAND_MEM) &&
+                    (chips->pci_rom_enable & 1))
                     mem_mapping_set_addr(&chips->bios_rom.mapping, chips->rom_addr << 16, 0x10000);
-                }
-                break;
-            case 0x32:
-                if (chips->on_board) break;
-                chips->rom_addr &= ~0xFF;
-                chips->rom_addr |= val & 0xFC;
-                if (chips->pci_rom_enable & 1) {
+            }
+            break;
+        case 0x32:
+            if (!chips->on_board) {
+                chips->rom_addr &= ~0xff;
+                chips->rom_addr |= val & 0xfc;
+                if ((chips->pci_conf_status & PCI_COMMAND_MEM) &&
+                    (chips->pci_rom_enable & 1))
                     mem_mapping_set_addr(&chips->bios_rom.mapping, chips->rom_addr << 16, 0x10000);
-                }
-                break;
-            case 0x33:
-                if (chips->on_board) break;
-                chips->rom_addr &= ~0xFF00;
+            }
+            break;
+        case 0x33:
+            if (!chips->on_board) {
+                chips->rom_addr &= ~0xff00;
                 chips->rom_addr |= (val << 8);
-                if (chips->pci_rom_enable & 1) {
+                if ((chips->pci_conf_status & PCI_COMMAND_MEM) &&
+                    (chips->pci_rom_enable & 1))
                     mem_mapping_set_addr(&chips->bios_rom.mapping, chips->rom_addr << 16, 0x10000);
-                }
-                break;
-            case 0x6C:
-            case 0x6D:
-                chips->subsys_vid_b[addr & 1] = val;
-                break;
-            case 0x6E:
-            case 0x6F:
-                chips->subsys_pid_b[addr & 1] = val;
-                break;
-        }
+            }
+            break;
+
+        case 0x3c:
+            chips->pci_line_interrupt = val;
+            break;
+
+        case 0x6c ... 0x6d:
+            chips->subsys_vid_b[addr & 1] = val;
+            break;
+        case 0x6e ... 0x6f:
+            chips->subsys_pid_b[addr & 1] = val;
+            break;
     }
 }
 
@@ -2399,7 +2416,7 @@ chips_69000_writeb_mmio(uint32_t addr, uint8_t val, chips_69000_t* chips)
                 {
                     chips->mem_regs_b[addr & 0xF] = val;
                     chips->mem_regs[(addr >> 2) & 0x3] &= 0x80004040;
-                    if (addr == 0x605 || addr == 0x607)
+                    if (addr == 0x601 || addr == 0x603)
                         chips_69000_interrupt(chips);
                     break;
                 }
@@ -2718,7 +2735,7 @@ chips_69000_getclock(int clock, void *priv)
     int pl = ((chips->ext_regs[0xcb] >> 4) & 7);
 
     float fvco = 14318181.0 * ((float)(m + 2) / (float)(n + 2));
-    if (chips->ext_regs[0xcb] & 4)
+    if (!(chips->ext_regs[0xcb] & 4))
         fvco *= 4.0;
     float fo   = fvco / (float)(1 << pl);
 
@@ -2818,7 +2835,7 @@ chips_69000_init(const device_t *info)
 
     chips->svga.bpp              = 8;
     chips->svga.miscout          = 1;
-    chips->svga.vblank_start     = chips_69000_vblank_start;
+    chips->svga.vsync_callback   = chips_69000_vblank_start;
     chips->svga.getclock         = chips_69000_getclock;
     chips->svga.conv_16to32      = chips_69000_conv_16to32;
     chips->svga.line_compare     = chips_69000_line_compare;
@@ -2838,6 +2855,18 @@ chips_69000_init(const device_t *info)
     chips->ddc = ddc_init(i2c_gpio_get_bus(chips->i2c));
 
     chips->flat_panel_regs[0x01] = 1;
+
+    chips->pci_conf_status = 0x00;
+    chips->pci_rom_enable  = 0x00;
+    chips->rom_addr        = 0x0000;
+    chips->subsys_vid      = 0x102c;
+    chips->subsys_pid      = 0x00c0;
+
+    io_removehandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
+    mem_mapping_disable(&chips->linear_mapping);
+    mem_mapping_disable(&chips->svga.mapping);
+    if (!chips->on_board)
+        mem_mapping_disable(&chips->bios_rom.mapping);
 
     *reset_state = *chips;
 

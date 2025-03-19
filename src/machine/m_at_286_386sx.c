@@ -750,9 +750,6 @@ machine_at_acer100t_init(const machine_t *model)
 
     machine_at_ps2_ide_init(model);
 
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-    
     device_add(&ali1409_device);
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&oti077_acer100t_device);

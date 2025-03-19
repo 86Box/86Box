@@ -122,6 +122,8 @@ typedef struct mo_drive_t {
     uint32_t           medium_size;
     uint32_t           base;
     uint16_t           sector_size;
+
+    int                supported;
 } mo_drive_t;
 
 typedef struct mo_t {

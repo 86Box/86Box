@@ -38,6 +38,7 @@
 
 #include <QScreen>
 #include <QMessageBox>
+#include <QTouchEvent>
 
 #ifdef __APPLE__
 #    include <CoreGraphics/CoreGraphics.h>
@@ -63,6 +64,7 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     : QStackedWidget(parent)
     , ui(new Ui::RendererStack)
 {
+    setAttribute(Qt::WA_AcceptTouchEvents, true);
     rendererTakesScreenshots = false;
 #ifdef Q_OS_WINDOWS
     int raw = 1;
@@ -206,9 +208,11 @@ RendererStack::wheelEvent(QWheelEvent *event)
         return;
     }
 
+#if !defined(Q_OS_WINDOWS) && !defined(__APPLE__)
     double numSteps = (double) event->angleDelta().y() / 120.0;
 
     mouse_set_z((int) numSteps);
+#endif
     event->accept();
 }
 
@@ -477,8 +481,8 @@ RendererStack::event(QEvent* event)
 
         if (m_monitor_index >= 1) {
             if (mouse_input_mode >= 1) {
-                mouse_x_abs       = (mouse_event->localPos().x()) / (long double)width();
-                mouse_y_abs       = (mouse_event->localPos().y()) / (long double)height();
+                mouse_x_abs       = (mouse_event->localPos().x()) / (double)width();
+                mouse_y_abs       = (mouse_event->localPos().y()) / (double)height();
                 if (!mouse_tablet_in_proximity)
                     mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
             }
@@ -487,15 +491,69 @@ RendererStack::event(QEvent* event)
 
 #ifdef Q_OS_WINDOWS
         if (mouse_input_mode == 0) {
-            mouse_x_abs           = (mouse_event->localPos().x()) / (long double)width();
-            mouse_y_abs           = (mouse_event->localPos().y()) / (long double)height();
+            mouse_x_abs           = (mouse_event->localPos().x()) / (double)width();
+            mouse_y_abs           = (mouse_event->localPos().y()) / (double)height();
             return QStackedWidget::event(event);
         }
 #endif
 
-        mouse_x_abs               = (mouse_event->localPos().x()) / (long double)width();
-        mouse_y_abs               = (mouse_event->localPos().y()) / (long double)height();
+        mouse_x_abs               = (mouse_event->localPos().x()) / (double)width();
+        mouse_y_abs               = (mouse_event->localPos().y()) / (double)height();
         mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+    } else switch (event->type()) {
+        case QEvent::TouchBegin:
+        case QEvent::TouchUpdate:
+        {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+            QTouchEvent* touchevent = (QTouchEvent*)event;
+            if (mouse_input_mode == 0) break;
+            if (touchevent->touchPoints().count()) {
+                mouse_x_abs = (touchevent->touchPoints()[0].pos().x()) / (double)width();
+                mouse_y_abs = (touchevent->touchPoints()[0].pos().y()) / (double)height();
+            }
+            mouse_set_buttons_ex(mouse_get_buttons_ex() | 1);
+            touchevent->accept();
+            return true;
+#else
+            QTouchEvent* touchevent = (QTouchEvent*)event;
+            if (mouse_input_mode == 0) break;
+            if (touchevent->pointCount()) {
+                mouse_x_abs = (touchevent->point(0).position().x()) / (double)width();
+                mouse_y_abs = (touchevent->point(0).position().y()) / (double)height();
+            }
+            mouse_set_buttons_ex(mouse_get_buttons_ex() | 1);
+            touchevent->accept();
+            return true;
+#endif
+        }
+        case QEvent::TouchEnd:
+        case QEvent::TouchCancel:
+        {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+            QTouchEvent* touchevent = (QTouchEvent*)event;
+            if (mouse_input_mode == 0) break;
+            if (touchevent->touchPoints().count()) {
+                mouse_x_abs = (touchevent->touchPoints()[0].pos().x()) / (double)width();
+                mouse_y_abs = (touchevent->touchPoints()[0].pos().y()) / (double)height();
+            }
+            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~1);
+            touchevent->accept();
+            return true;
+#else
+            QTouchEvent* touchevent = (QTouchEvent*)event;
+            if (mouse_input_mode == 0) break;
+            if (touchevent->pointCount()) {
+                mouse_x_abs = (touchevent->point(0).position().x()) / (double)width();
+                mouse_y_abs = (touchevent->point(0).position().y()) / (double)height();
+            }
+            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~1);
+            touchevent->accept();
+            return true;
+#endif
+        }
+
+        default:
+            return QStackedWidget::event(event);
     }
 
     return QStackedWidget::event(event);
