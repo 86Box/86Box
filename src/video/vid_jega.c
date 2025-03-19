@@ -186,7 +186,7 @@ jega_render_text(void *priv)
         // const bool doublewidth   = ((jega->ega.seqregs[1] & 8) != 0);
         const bool attrblink = ((jega->regs[RMOD2] & 0x20) == 0); /* JEGA specific */
         // const bool attrlinechars = (jega->ega.attrregs[0x10] & 4);
-        const bool crtcreset = ((jega->ega.crtc[0x17] & 0x80) == 0) || (jega->regs[RMOD1] & 0x80 == 0);
+        const bool crtcreset = ((jega->ega.crtc[0x17] & 0x80) == 0) || ((jega->regs[RMOD1] & 0x80) == 0);
         const int  charwidth = 8;
         const bool blinked   = jega->ega.blink & 0x10;
         uint32_t  *p         = &buffer32->line[jega->ega.displine + jega->ega.y_add][jega->ega.x_add];
@@ -345,7 +345,6 @@ jega_render_text(void *priv)
 static void
 jega_out(uint16_t addr, uint8_t val, void *priv)
 {
-    uint8_t o;
     jega_t *jega = (jega_t *) priv;
     uint16_t chr;
     // jega_log("JEGA Out %04X %02X(%d) %04X:%04X\n", addr, val, val, cs >> 4, cpu_state.pc);
@@ -362,7 +361,6 @@ jega_out(uint16_t addr, uint8_t val, void *priv)
                     jega_recalctimings(jega);
                 }
             } else {
-                o                                   = jega->attrregs[jega->attraddr & 31];
                 jega->attrregs[jega->attraddr & 31] = val;
                 if (jega->attraddr < 0x10) {
                     for (uint8_t c = 0; c < 16; c++) {
@@ -641,6 +639,8 @@ jega_init(const device_t *info)
     io_sethandler(0x03b0, 0x0030, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
 
     jega->regs[RMOD1] = 0x48;
+
+    return jega;
 }
 
 static void
