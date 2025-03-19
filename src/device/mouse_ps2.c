@@ -34,13 +34,15 @@ enum {
     MODE_ECHO
 };
 
-#define FLAG_EXPLORER 0x200  /* Has 5 buttons */
-#define FLAG_5BTN     0x100  /* using Intellimouse Optical mode */
-#define FLAG_INTELLI   0x80  /* device is IntelliMouse */
-#define FLAG_INTMODE   0x40  /* using Intellimouse mode */
-#define FLAG_SCALED    0x20  /* enable delta scaling */
-#define FLAG_ENABLED   0x10  /* dev is enabled for use */
-#define FLAG_CTRLDAT   0x08  /* ctrl or data mode */
+#define FLAG_HWHL          0x800  /* Report horizontal wheel movements. */
+#define FLAG_EXPLORER_HWHL 0x400  /* Has tilt-wheel/horizontal scroll wheel */
+#define FLAG_EXPLORER      0x200  /* Has 5 buttons */
+#define FLAG_5BTN          0x100  /* using Intellimouse Optical mode */
+#define FLAG_INTELLI        0x80  /* device is IntelliMouse */
+#define FLAG_INTMODE        0x40  /* using Intellimouse mode */
+#define FLAG_SCALED         0x20  /* enable delta scaling */
+#define FLAG_ENABLED        0x10  /* dev is enabled for use */
+#define FLAG_CTRLDAT        0x08  /* ctrl or data mode */
 
 #define FIFO_SIZE      16
 
@@ -82,10 +84,16 @@ ps2_report_coordinates(atkbc_dev_t *dev, int main)
     int overflow_y;
     int b = mouse_get_buttons_ex();
     int delta_z;
+    int delta_w;
 
     mouse_subtract_coords(&delta_x, &delta_y, &overflow_x, &overflow_y,
                           -256, 255, 1, 0);
-    mouse_subtract_z(&delta_z, -8, 7, 1);
+
+    if (dev->flags & FLAG_5BTN)
+        mouse_subtract_z(&delta_z, -32, 31, 1);
+    else
+        mouse_subtract_z(&delta_z, -8, 7, 1);
+    mouse_subtract_w(&delta_w, -1, 1, 0);
 
     buff[0] |= (overflow_y << 7) | (overflow_x << 6) |
               ((delta_y & 0x0100) >> 3) | ((delta_x & 0x0100) >> 4) |
@@ -97,10 +105,21 @@ ps2_report_coordinates(atkbc_dev_t *dev, int main)
     kbc_at_dev_queue_add(dev, buff[1], main);
     kbc_at_dev_queue_add(dev, buff[2], main);
     if (dev->flags & FLAG_INTMODE) {
-        delta_z &= 0x0f;
+        delta_z &= (dev->flags & FLAG_HWHL) ? 0x3f : 0x0f;
 
         if (dev->flags & FLAG_5BTN) {
-            if (b & 8)
+            if ((dev->flags & FLAG_HWHL) && (delta_z || delta_w))
+            {
+                if (delta_w) {
+                    delta_z = delta_w;
+                    delta_z &= 0x3f;
+                    delta_z |= 0x40;
+                } else {
+                    delta_z &= 0x3f;
+                    delta_z |= 0x80;
+                }
+            }
+            else if (b & 8)
                 delta_z |= 0x10;
             if (b & 16)
                 delta_z |= 0x20;
@@ -120,7 +139,7 @@ ps2_set_defaults(atkbc_dev_t *dev)
     dev->rate = 100;
     mouse_set_sample_rate(100.0);
     dev->resolution = 2;
-    dev->flags &= 0x188;
+    dev->flags &= 0x688;
     mouse_scan = 0;
 }
 
@@ -298,6 +317,13 @@ ps2_write(void *priv)
             (last_data[2] == 0xf3) && (last_data[3] == 0xc8) &&
             (last_data[4] == 0xf3) && (last_data[5] == 0x50))
             dev->flags |= FLAG_5BTN;
+
+        if ((dev->flags & FLAG_5BTN) && (dev->flags & FLAG_EXPLORER_HWHL) &&
+            (last_data[0] == 0xf3) && (last_data[1] == 0xc8) &&
+            (last_data[2] == 0xf3) && (last_data[3] == 0x50) &&
+            (last_data[4] == 0xf3) && (last_data[5] == 0x28))
+            dev->flags |= FLAG_HWHL;
+
     }
 }
 
@@ -336,6 +362,8 @@ mouse_ps2_init(const device_t *info)
         dev->flags |= FLAG_INTELLI;
     if (i > 4)
         dev->flags |= FLAG_EXPLORER;
+    if (i > 5)
+        dev->flags |= FLAG_EXPLORER_HWHL;
 
     mouse_ps2_log("%s: buttons=%d\n", dev->name, i);
 
@@ -377,11 +405,12 @@ static const device_config_t ps2_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "Two",          .value = 2 },
-            { .description = "Three",        .value = 3 },
-            { .description = "Wheel",        .value = 4 },
-            { .description = "Five + Wheel", .value = 5 },
-            { .description = ""                         }
+            { .description = "Two",             .value = 2 },
+            { .description = "Three",           .value = 3 },
+            { .description = "Wheel",           .value = 4 },
+            { .description = "Five + Wheel",    .value = 5 },
+            { .description = "Five + 2 Wheels", .value = 6 },
+            { .description = ""                              }
         },
         .bios           = { { 0 } }
     },

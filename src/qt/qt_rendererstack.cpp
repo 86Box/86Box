@@ -210,8 +210,10 @@ RendererStack::wheelEvent(QWheelEvent *event)
 
 #if !defined(Q_OS_WINDOWS) && !defined(__APPLE__)
     double numSteps = (double) event->angleDelta().y() / 120.0;
+    double numStepsW = (double) event->angleDelta().x() / 120.0;
 
     mouse_set_z((int) numSteps);
+    mouse_set_w((int) numStepsW);
 #endif
     event->accept();
 }
