@@ -347,6 +347,7 @@ jega_out(uint16_t addr, uint8_t val, void *priv)
 {
     uint8_t o;
     jega_t *jega = (jega_t *) priv;
+    uint16_t chr;
     // jega_log("JEGA Out %04X %02X(%d) %04X:%04X\n", addr, val, val, cs >> 4, cpu_state.pc);
     switch (addr) {
         case 0x3c0:
@@ -449,7 +450,7 @@ jega_out(uint16_t addr, uint8_t val, void *priv)
                             jega->start_scan_upper = (val - 64) + 4;
                         break;
                     case RDFAP:
-                        uint16_t chr = jega->regs[RDFFB];
+                        chr = jega->regs[RDFFB];
                         if (is_SJIS_1(chr) && chr >= 0xf0 && chr <= 0xf3) {
                             chr <<= 8;
                             chr |= jega->regs[RDFSB];
@@ -477,13 +478,14 @@ jega_in(uint16_t addr, void *priv)
 {
     jega_t *jega = (jega_t *) priv;
     uint8_t ret  = INVALIDACCESS8;
+    uint16_t chr;
     switch (addr) {
         case 0x3b5:
         case 0x3d5:
             if (jega->regs_index >= 0x20 && jega->regs_index <= 0x2F) {
                 switch (jega->regs_index) {
                     case RDFAP:
-                        uint16_t chr = jega->regs[RDFFB];
+                        chr = jega->regs[RDFFB];
                         /* DBCS or SBCS */
                         if (is_SJIS_1(chr)) {
                             chr <<= 8;
