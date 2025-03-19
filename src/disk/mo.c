@@ -18,6 +18,7 @@
  *          Copyright 2020-2025 Fred N. van Kempen
  */
 #define _GNU_SOURCE
+#include <inttypes.h>
 #ifdef ENABLE_MO_LOG
 #include <stdarg.h>
 #endif
@@ -184,11 +185,14 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
             } else
                 dev->drv->base = 0;
 
+            dev->drv->supported = 0;
+
             for (uint8_t i = 0; i < KNOWN_MO_TYPES; i++) {
                 if (size == ((uint64_t) mo_types[i].sectors * mo_types[i].bytes_per_sector)) {
                     found                 = 1;
                     dev->drv->medium_size = mo_types[i].sectors;
                     dev->drv->sector_size = mo_types[i].bytes_per_sector;
+                    dev->drv->supported   = mo_drive_types[dev->drv->type].supported_media[i];
                     break;
                 }
             }
@@ -803,7 +807,12 @@ mo_blocks(mo_t *dev, int32_t *len, const int out)
         mo_log(dev->log, "%sing %i blocks starting from %i...\n", out ? "Writ" : "Read",
                dev->requested_blocks, dev->sector_pos);
 
-        if (dev->sector_pos >= dev->drv->medium_size) {
+        if (!dev->drv->supported) {
+            mo_log(dev->log, "Trying to %s an unsupported medium\n",
+                   out ? "write" : "read");
+            out ? mo_write_error(dev) : mo_read_error(dev);
+            ret = 0;
+        } else if (dev->sector_pos >= dev->drv->medium_size) {
             mo_log(dev->log, "Trying to %s beyond the end of disk\n",
                    out ? "write" : "read");
             mo_lba_out_of_range(dev);
@@ -955,7 +964,11 @@ mo_erase(mo_t *dev)
     mo_log(dev->log, "Erasing %i blocks starting from %i...\n",
            dev->sector_len, dev->sector_pos);
 
-    if (dev->sector_pos >= dev->drv->medium_size) {
+    if (!dev->drv->supported) {
+        mo_log(dev->log, "Trying to erase an unsupported medium\n");
+        mo_write_error(dev);
+        return 0;
+    } else if (dev->sector_pos >= dev->drv->medium_size) {
         mo_log(dev->log, "Trying to erase beyond the end of disk\n");
         mo_lba_out_of_range(dev);
         return 0;
@@ -1386,6 +1399,9 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                 mo_set_phase(dev, SCSI_PHASE_STATUS);
                 mo_command_complete(dev);
                 break;
+            } else if (!dev->drv->supported) {
+                mo_read_error(dev);
+                break;
             }
             fallthrough;
         case GPCMD_WRITE_6:
@@ -1433,7 +1449,9 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                     break;
             }
 
-            if (dev->sector_pos > (mo_types[dev->drv->type].sectors - 1))
+            if (!dev->drv->supported)
+                mo_write_error(dev);
+            else if (dev->sector_pos >= dev->drv->medium_size)
                 mo_lba_out_of_range(dev);
             else {
                 if (dev->sector_len) {
@@ -1473,7 +1491,9 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                 dev->sector_len = (cdb[7] << 8) | cdb[8];
                 dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
 
-                if (dev->sector_pos > (mo_types[dev->drv->type].sectors - 1))
+                if (!dev->drv->supported)
+                    mo_write_error(dev);
+                else if (dev->sector_pos >= dev->drv->medium_size)
                     mo_lba_out_of_range(dev);
                 else if (dev->sector_len) {
                     mo_buf_alloc(dev, alloc_length);
@@ -1834,7 +1854,7 @@ static uint8_t
 mo_phase_data_out(scsi_common_t *sc)
 {
     mo_t *         dev         = (mo_t *) sc;
-    const uint32_t last_sector = mo_types[dev->drv->type].sectors - 1;
+    const uint32_t last_sector = dev->drv->medium_size - 1;
     int            len         = 0;
     uint8_t        error       = 0;
     uint32_t       last_to_write;
