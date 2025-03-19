@@ -1334,6 +1334,12 @@ pmoderetf(int is32, uint16_t off)
     if (CPL == (seg & 0x0003)) {
         x86seg_log("RETF CPL = RPL  %04X\n", segdat[2]);
         switch (segdat[2] & 0x1f00) {
+            case 0x1000:
+            case 0x1100:
+            case 0x1200:
+            case 0x1300:
+                 /* Data segment, apparently valid when CPL is the same, used by MS LINK for DOS. */
+                 fallthrough;
             case 0x1800:
             case 0x1900:
             case 0x1a00:
@@ -1384,6 +1390,12 @@ pmoderetf(int is32, uint16_t off)
         cycles -= timing_retf_pm;
     } else {
         switch (segdat[2] & 0x1f00) {
+            case 0x1000:
+            case 0x1100:
+            case 0x1200:
+            case 0x1300:
+                 /* Data segment, apparently valid when CPL is the same, used by MS LINK for DOS. */
+                 fallthrough;
             case 0x1800:
             case 0x1900:
             case 0x1a00:
@@ -1605,6 +1617,12 @@ pmodeint(int num, int soft)
                 return;
             }
             switch (segdat2[2] & 0x1f00) {
+                case 0x1000:
+                case 0x1100:
+                case 0x1200:
+                case 0x1300:
+                     /* Data segment, apparently valid when CPL is the same, used by MS CodeView for DOS. */
+                     fallthrough;
                 case 0x1800:
                 case 0x1900:
                 case 0x1a00:
@@ -1983,6 +2001,12 @@ pmodeiret(int is32)
     }
 
     switch (segdat[2] & 0x1f00) {
+        case 0x1000:
+        case 0x1100:
+        case 0x1200:
+        case 0x1300:
+             /* Data segment, apparently valid when CPL is the same, used by MS CodeView for DOS. */
+             fallthrough;
         case 0x1800:
         case 0x1900:
         case 0x1a00:
