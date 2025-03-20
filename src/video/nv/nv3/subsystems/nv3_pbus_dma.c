@@ -29,3 +29,8 @@
 #include <86box/nv/vid_nv3.h>
 
 /* Nvidia DMA Engine */
+
+void nv3_dma_translate_address()
+{
+    
+}

@@ -589,7 +589,7 @@ void nv3_pgraph_arbitrate_method(uint32_t param, uint16_t method, uint8_t channe
             return;
     }
 
-    nv3_notify_if_needed(grobj);
+    nv3_notify_if_needed(param, method, context, grobj);
 }
 
 /* Arbitrates graphics object submission to the right object types */

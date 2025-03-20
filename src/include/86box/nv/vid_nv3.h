@@ -845,6 +845,8 @@ extern const device_config_t nv3_config[];
 #define NV3_CRTC_REGISTER_RMA_MODE_MAX                  0x0F
 
 
+
+
 /* 
     STRUCTURES FOR THE GPU START HERE
     OBJECT CLASS & RENDERING RELATED STUFF IS IN VID_NV3_CLASSES.H
@@ -906,6 +908,7 @@ typedef struct nv3_pfb_s
 
 //
 // DMA & Notifier Engine
+// All singing all dancing all happy happy bullshit to send dma transfers literally anywhere in your computer
 //
 
 // Not a notification status, because it's a 16-bit enum
@@ -913,6 +916,21 @@ typedef struct nv3_pfb_s
 #define NV3_NOTIFICATION_STATUS_DONE_OK         0x0
 #define NV3_NOTIFICATION_STATUS_IN_PROGRESS     0xFF
 #define NV3_NOTIFICATION_STATUS_ERROR           0x100
+
+#define NV3_NOTIFICATION_INFO_ADJUST            0       // Wut
+#define NV3_NOTIFICATION_PT_PRESENT             16      // Determines if the pagetable exists.
+#define NV3_NOTIFICATION_TARGET                 24      // Determines where this notification goes
+#define NV3_NOTIFICATION_TARGET_NVM             0       // VRAM target for DMA
+#define NV3_NOTIFICATION_TARGET_CART            1       // "Cartridge" target for dma, only mentioned in a few places, !!! NV2 LEFTOVER !!!
+#define NV3_NOTIFICATION_TARGET_PCI             2       // Send the data to the host system over PCI
+#define NV3_NOTIFICATION_TARGET_AGP             3       // Send the data to the host system over AGP
+
+#define NV3_NOTIFICATION_PAGE_IS_PRESENT        0       // Determines if the page really exists
+#define NV3_NOTIFICATION_PAGE_ACCESS            1       // Determines the page access type
+#define NV3_NOTIFICATION_PAGE_ACCESS_READ       0x0     // If this is set, the page is read only
+#define NV3_NOTIFICATION_PAGE_ACCESS_READ_WRITE 0x1     // If this is set, the page is read/write
+#define NV3_NOTIFICATION_PAGE_FRAME_ADDRESS     12      // The pageframe to use 
+
 
 // Core notification structure
 typedef struct nv3_notification_s
@@ -1170,6 +1188,7 @@ typedef struct nv3_pgraph_s
     // CLIP
     nv3_pgraph_clip_misc_settings_t clip_misc_settings;
     nv3_notifier_t notifier;
+    bool notify_pending;                                    // Determines if a notification is pending.
     nv3_position_16_bigy_t clip0_min;
     nv3_position_16_bigy_t clip0_max;
     nv3_position_16_bigy_t clip1_min;
@@ -1550,7 +1569,7 @@ void        nv3_class_018_method(uint32_t name, uint32_t method_id, nv3_ramin_co
 void        nv3_class_01c_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 
 // Notification Engine
-void        nv3_notify_if_needed(nv3_grobj_t grobj);
+void        nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t context,nv3_grobj_t grobj);
 
 // NV3 PFIFO
 void        nv3_pfifo_init();
