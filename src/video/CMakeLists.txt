@@ -81,6 +81,8 @@ add_library(vid OBJECT
     vid_xga.c
     vid_bochs_vbe.c
     vid_ps55da2.c
+    vid_jega.c
+
     nv/nv_base.c nv/nv_rivatimer.c
     
     nv/nv3/nv3_core.c 
