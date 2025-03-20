@@ -1386,10 +1386,8 @@ zip_command(scsi_common_t *sc, const uint8_t *cdb)
                 dev->packet_len = max_len * alloc_length;
                 zip_buf_alloc(dev, dev->packet_len);
 
-                int ret = 0;
-
-                if (dev->sector_len > 0)
-                    ret = zip_blocks(dev, &alloc_length, 0);
+                const int ret = zip_blocks(dev, &alloc_length, 0);
+                alloc_length  = dev->requested_blocks * 512;
 
                 if (ret > 0) {
                     dev->requested_blocks = max_len;

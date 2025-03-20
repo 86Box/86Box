@@ -1363,6 +1363,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                 mo_buf_alloc(dev, dev->packet_len);
 
                 const int ret = mo_blocks(dev, &alloc_length, 0);
+                alloc_length  = dev->requested_blocks * 512;
 
                 if (ret > 0) {
                     dev->requested_blocks = max_len;
