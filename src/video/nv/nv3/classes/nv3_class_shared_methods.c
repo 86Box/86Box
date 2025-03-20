@@ -69,13 +69,14 @@ void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t
         return; 
 
     uint32_t current_notification_object = nv3->pgraph.notifier;
+    uint32_t notification_type = ((current_notification_object >> NV3_PGRAPH_NOTIFY_REQUEST_TYPE) & 0x07);
 
     // check for a software method (0 = hardware, 1 = software)
-    if (((current_notification_object >> NV3_PGRAPH_NOTIFY_REQUEST_TYPE) & 0x07) != 0)
+    if (notification_type != 0)
     {  
         nv_log("Software Notification, firing interrupt");
         nv3_pgraph_interrupt_valid(NV3_PGRAPH_INTR_0_SOFTWARE_NOTIFY);
-        return;
+        //return;
     }
         
     // set up the NvNotification structure
@@ -101,8 +102,7 @@ void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t
     /* paging information */
     bool page_is_present = notify_obj_page & 0x01;
     bool page_is_readwrite = (notify_obj_page >> NV3_NOTIFICATION_PAGE_ACCESS);
-    //uint32_t frame_value = (notify_obj_page >> NV3_NOTIFICATION_PAGE_FRAME_ADDRESS) & 0xFFFFF;
-    uint32_t frame_value = (notify_obj_page >> NV3_NOTIFICATION_PAGE_FRAME_ADDRESS) & 0xFFFFF000;
+    uint32_t frame_base = notify_obj_page & 0xFFFFF000;
 
     // This code is temporary and will probably be moved somewhere else
     // Print torns of debug info
@@ -133,8 +133,44 @@ void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t
     nv_log("Limit: 0x%08x\n", notify_obj_limit);
     (page_is_present) ? nv_log("Page is present\n") : nv_log("Page is not present\n"); 
     (page_is_readwrite) ? nv_log("Page is read-write\n") : nv_log("Page is read-only\n");
-    nv_log("Pageframe Address: 0x%08x\n", frame_value);
+    nv_log("Pageframe Address: 0x%08x\n", frame_base);
     #endif
 
     // set up the dma transfer. we need to translate to a physical address.
+    
+    uint32_t final_address = 0;
+
+    /* Simple case: hardware notification, we can just take the pte since it's based on the type */
+    if (notification_type == 0)
+    {
+        final_address = frame_base + info_adjust;
+    }
+    else
+    {
+        // for software we have to calculate the pte index
+        uint32_t pte_num = ((notification_type << 4) + info_adjust) >> 12;
+        
+        /* ramin entries are sorted - 1 object for each pte entry...*/
+        final_address = nv3_ramin_read32(notify_obj_base + (0x10 * pte_num) + 8, nv3);
+        final_address += (info_adjust & 0xFFF); 
+    }
+
+    /* send the notification off */
+    nv_log("About to send the notification to 0x%08x (Check target)", final_address);
+    switch (info_notification_target)
+    {
+        case NV3_NOTIFICATION_TARGET_NVM:
+            svga_writel_linear(final_address, (notify.nanoseconds & 0xFFFFFFFF), nv3);
+            svga_writel_linear(final_address + 4, (notify.nanoseconds >> 32), nv3);
+            svga_writel_linear(final_address + 8, notify.info32, nv3);
+            svga_writel_linear(final_address + 0x0C, (notify.info16 | notify.status), nv3);
+            break;
+        case NV3_NOTIFICATION_TARGET_PCI:
+        case NV3_NOTIFICATION_TARGET_AGP:
+            dma_bm_write(final_address, (uint8_t*)&notify, sizeof(nv3_notification_t), 4);
+            break;
+    }
+
+    // we're done
+    nv3->pgraph.notify_pending = false;
 }

@@ -434,14 +434,14 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
 
     // Perform more validation 
 
-    if (obj_context_struct.class_id > NV3_PFIFO_FIRST_VALID_GRAPHICS_OBJECT_ID
-    || obj_context_struct.class_id < NV3_PFIFO_LAST_VALID_GRAPHICS_OBJECT_ID)
+    if (obj_context_struct.class_id < NV3_PFIFO_FIRST_VALID_GRAPHICS_OBJECT_ID
+    || obj_context_struct.class_id > NV3_PFIFO_LAST_VALID_GRAPHICS_OBJECT_ID)
     {
         fatal("NV3: Invalid graphics object class ID name=0x%04x type=%04x, interpreted by pgraph as: %04x (Contact starfrost)", 
             name, obj_context_struct.class_id, obj_context_struct.class_id & 0x1F);
     }   
     else if (obj_context_struct.channel > NV3_DMA_CHANNELS)
-        fatal("NV3: Super fucked up graphics object. Contact starfrost with the error string: DMA Channel ID=%d, it should be 0-8", obj_context_struct.channel);
+        fatal("NV3: Super fucked up graphics object. Contact starfrost with the error string: DMA Channel ID=%d, it should be 0-7", obj_context_struct.channel);
     
     // Illegal accesses sent to RAMRO, so ignore here
     // TODO: SEND THESE TO RAMRO!!!!!

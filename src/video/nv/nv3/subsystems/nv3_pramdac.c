@@ -194,7 +194,10 @@ nv_register_t pramdac_registers[] =
     { NV3_PRAMDAC_GENERAL_CONTROL, "PRAMDAC - General Control", NULL, NULL },
     { NV3_PRAMDAC_VSERR_WIDTH, "PRAMDAC - Vertical Sync Error Width", NULL, NULL},
     { NV3_PRAMDAC_VEQU_END, "PRAMDAC - VEqu End", NULL, NULL},
+    { NV3_PRAMDAC_VBBLANK_START, "PRAMDAC - VBBlank Start", NULL, NULL},
     { NV3_PRAMDAC_VBBLANK_END, "PRAMDAC - VBBlank End", NULL, NULL},
+    { NV3_PRAMDAC_HBLANK_END, "PRAMDAC - Horizontal Blanking Interval End", NULL, NULL},
+    { NV3_PRAMDAC_HBLANK_START, "PRAMDAC - Horizontal Blanking Interval Start", NULL, NULL},
     { NV3_PRAMDAC_VBLANK_END, "PRAMDAC - Vertical Blanking Interval End", NULL, NULL},
     { NV3_PRAMDAC_VBLANK_START, "PRAMDAC - Vertical Blanking Interval Start", NULL, NULL},
     { NV3_PRAMDAC_VEQU_START, "PRAMDAC - VEqu Start", NULL, NULL},
@@ -220,7 +223,7 @@ uint32_t nv3_pramdac_read(uint32_t address)
 
     // todo: friendly logging
 
-    nv_log("PRAMDAC Read from 0x%08x", address);
+    nv_log("PRAMDAC Read from 0x%08x\n", address);
 
     // if the register actually exists
     if (reg)
@@ -301,7 +304,7 @@ void nv3_pramdac_write(uint32_t address, uint32_t value)
 {
     nv_register_t* reg = nv_get_register(address, pramdac_registers, sizeof(pramdac_registers)/sizeof(pramdac_registers[0]));
 
-    nv_log("PRAMDAC Write 0x%08x -> 0x%08x", value, address);
+    nv_log("PRAMDAC Write 0x%08x -> 0x%08x\n", value, address);
 
     // if the register actually exists
     if (reg)
