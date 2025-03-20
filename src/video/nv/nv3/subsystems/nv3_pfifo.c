@@ -824,7 +824,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t object_name)
 
     nv3->pfifo.cache1_settings.put_address = nv3_pfifo_cache1_normal2gray(next_put_address) << 2;
 
-    nv_log("Submitted object [PIO]: Channel %d.%d, Object Name 0x%08x, Method ID 0x%04x (Put Address is now %d)\n",
+    nv_log("Submitted object [PIO]: Channel %d.%d, Parameter 0x%08x, Method ID 0x%04x (Put Address is now %d)\n",
          channel, subchannel, object_name, method_offset, nv3->pfifo.cache1_settings.put_address);
    
     // Now we're done. Phew!

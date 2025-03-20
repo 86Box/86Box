@@ -440,7 +440,7 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
         fatal("NV3: Invalid graphics object class ID name=0x%04x type=%04x, interpreted by pgraph as: %04x (Contact starfrost)", 
             name, obj_context_struct.class_id, obj_context_struct.class_id & 0x1F);
     }   
-    else if (obj_context_struct.channel > NV3_DMA_CHANNELS)
+    else if (obj_context_struct.channel > (NV3_DMA_CHANNELS - 1))
         fatal("NV3: Super fucked up graphics object. Contact starfrost with the error string: DMA Channel ID=%d, it should be 0-7", obj_context_struct.channel);
     
     // Illegal accesses sent to RAMRO, so ignore here

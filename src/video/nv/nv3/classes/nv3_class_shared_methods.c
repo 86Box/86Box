@@ -84,8 +84,8 @@ void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t
     notify.nanoseconds = nv3->ptimer.time;
     notify.status = NV3_NOTIFICATION_STATUS_DONE_OK; // it should be fine to just signal that it's ok
     
-    // this is completely speculative and i have no idea 
-    notify.info32 = grobj.grobj_0;
+    // these are only nonzero when there is an error
+    notify.info32 = notify.info16 = 0; 
 
     // notify object base=grobj_1 >> 12
     uint32_t notify_obj_base = grobj.grobj_1 >> 12; 
@@ -156,7 +156,7 @@ void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t
     }
 
     /* send the notification off */
-    nv_log("About to send the notification to 0x%08x (Check target)", final_address);
+    nv_log("About to send hardware notification to 0x%08x (Check target)\n", final_address);
     switch (info_notification_target)
     {
         case NV3_NOTIFICATION_TARGET_NVM:

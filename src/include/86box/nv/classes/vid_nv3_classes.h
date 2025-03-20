@@ -100,22 +100,13 @@ typedef struct nv3_class_ctx_switch_method_s
 
 } nv3_class_ctx_switch_method_t;
 
-/* 32-bit BGRA format colour for 2D acceleration */
-typedef struct nv3_color_bgra_32_s
-{
-    uint8_t b;
-    uint8_t g;
-    uint8_t r;
-    uint8_t a;
-} nv3_color_bgra_32_t; 
-
 /* 32-bit ARGB format colour for internal D3D5 stuff */
 typedef struct nv3_color_argb_32_s
 {
+    uint8_t a;
     uint8_t r;
     uint8_t g;
     uint8_t b;
-    uint8_t a;
 } nv3_color_argb_32_t;
 
 /* 30-bit colour format for internal PGRAPH use */
@@ -375,7 +366,7 @@ typedef struct nv3_object_class_007
 /* In case your points weren't colourful enough */
 typedef struct nv3_object_class_008_cpoint_s
 {
-    nv3_color_argb_32_t color;                              // BGRA-format 32-bit color
+    nv3_color_argb_32_t color;                              // argb-format 32-bit color
     nv3_position_16_t position;                             //
 } nv3_object_class_008_cpoint_t;
 
@@ -1083,7 +1074,7 @@ typedef struct nv3_d3d5_alpha_control_s
 typedef struct nv3_d3d5_coordinate_s
 {
     nv3_d3d5_specular_t specular_reflection_parameters;     
-    nv3_color_bgra_32_t color;                              // YOU HAVE TO FLIP THE ENDIANNESS. NVIDIA??? WHAT???
+    nv3_color_argb_32_t color;                              // YOU HAVE TO FLIP THE ENDIANNESS. NVIDIA??? WHAT???
 
     // Seems more plausible for these specifically to be floats.
     // Also makes my life easier...

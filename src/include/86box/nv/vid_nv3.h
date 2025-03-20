@@ -35,10 +35,9 @@ extern const device_config_t nv3_config[];
 #define NV3_LFB_RAMIN_START                             0xC00000        // RAMIN mapping start
 #define NV3_LFB_MAPPING_SIZE                            0x400000        // Size of RAMIN
 
-// DMA channels are basically the number of contexts that the gpu can deal with at once.
+// THere are 64 DMA channels grouped into 8 "channels" with 8 "subchannels" each. You can only use one channel at a time. An arbitrary number of 8 objects can be submitted.
 // Channel 0 is always taken up by NV drivers.
 
-// Subchannels deal with specific parts of the GPU and are manipulated by the driver to manipulate the gpu.
 #define NV3_DMA_CHANNELS                                8
 #define NV3_DMA_SUBCHANNELS_PER_CHANNEL                 8
 

@@ -69,13 +69,13 @@ void nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv3->pgraph.image_in_memory.pitch = param & 0x1FF0; 
             nv3->pgraph.bpitch[src_buffer_id] = param & 0x1FF0; // 12:0
 
-            nv_log("Image in Memory BUFL%d PITCH=0x%04x", src_buffer_id, nv3->pgraph.bpitch[src_buffer_id]);
+            nv_log("Image in Memory BUF%d PITCH=0x%04x", src_buffer_id, nv3->pgraph.bpitch[src_buffer_id]);
             break;  
         /* Byte offset in GPU VRAM of top left pixel (22:0) */
         case NV3_IMAGE_IN_MEMORY_TOP_LEFT_OFFSET:
             nv3->pgraph.boffset[src_buffer_id] = param & ((1 << NV3_IMAGE_IN_MEMORY_TOP_LEFT_OFFSET_END) - 0x10);
 
-            nv_log("Image in Memory BUF%d TOP_LEFT_OFFSET=0x%08x", src_buffer_id, nv3->pgraph.image_in_memory.linear_address);
+            nv_log("Image in Memory BUF%d TOP_LEFT_OFFSET=0x%08x", src_buffer_id, nv3->pgraph.boffset[src_buffer_id]);
             break;
         default:
             nv_log("%s: Invalid or Unimplemented method 0x%04x", nv3_class_names[context.class_id & 0x1F], method_id);

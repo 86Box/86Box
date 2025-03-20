@@ -34,3 +34,4 @@ uint32_t nv3_perform_rop(uint32_t src, uint32_t dst, uint32_t pattern, nv3_rende
 {
     return video_rop_gdi_ternary(rop, dst, pattern, src);
 }
+
