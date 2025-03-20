@@ -1095,7 +1095,9 @@ scsi_disk_command(scsi_common_t *sc, const uint8_t *cdb)
                     dev->drv->seek_pos = dev->sector_pos;
                     dev->drv->seek_len = dev->sector_len;
 
-                    ret = scsi_disk_blocks(dev, &alloc_length, 1, 0);
+                    ret          = scsi_disk_blocks(dev, &alloc_length, 1, 0);
+                    alloc_length = dev->requested_blocks * 512;
+
                     if (ret > 0) {
                         dev->requested_blocks = max_len;
                         dev->packet_len       = alloc_length;
