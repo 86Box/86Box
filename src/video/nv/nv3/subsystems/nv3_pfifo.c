@@ -599,7 +599,6 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
             nv3->pfifo.cache1_entries[real_entry].subchannel = (val >> NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL) & 0x07;
             nv_log("Subchannel = 0x%08x, method = 0x%04x\n", nv3->pfifo.cache1_entries[real_entry].subchannel, nv3->pfifo.cache1_entries[real_entry].method);
         }
-
     }
     /* Handle some special memory areas */
     else if (address >= NV3_PFIFO_CACHE1_CTX_START && address <= NV3_PFIFO_CACHE1_CTX_END)
@@ -608,6 +607,10 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
         nv3->pfifo.cache1_settings.context[ctx_entry_id] = val;
 
         nv_log("PFIFO Cache1 CTX Write Entry=%d value=0x%04x\n", ctx_entry_id, val);
+    }
+    else /* Completely unknown */
+    {
+        nv_log(": Unknown register write (address=0x%08x)\n", address);
     }
 
     /* Trigger DMA for notifications if we need to */
@@ -620,6 +623,7 @@ https://en.wikipedia.org/wiki/Gray_code
 WHY?????? IT'S NOT A TELEGRAPH IT'S A GPU?????
 
 Convert from a normal number to a total insanity number which is only used in PFIFO CACHE1 for ungodly and totally unknowable reasons 
+(Possibly it just makes it easier to implement in logic)
 
 I decided to use a lookup table to save everyone's time, also the numbers generated from the function
 that existed here before didn't make any sense

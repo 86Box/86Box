@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   17 March 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   20 March 2025 (STILL WORKING ON IT!!!)
  *  
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -521,9 +521,11 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_DEBUG_3_FORMAT_CHECK                 22
 #define NV3_PGRAPH_DEBUG_3_ALPHA_CHECK                  24
 
+// Interrupt stuff
 #define NV3_PGRAPH_INTR_0                               0x400100
 #define NV3_PGRAPH_INTR_0_VBLANK                        8           // Fired every frame
 #define NV3_PGRAPH_INTR_0_VBLANK_ENABLED                0x1         // Is the vblank interrupt enabled?
+#define NV3_PGRAPH_INTR_0_SOFTWARE_NOTIFY               28          // Fired on software notification
 
 #define NV3_PGRAPH_INTR_1                               0x400104
 #define NV3_PGRAPH_INTR_1_INVALID_METHOD                0           // Invalid method
@@ -578,7 +580,14 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_CHROMA_KEY                           0x40062C
 #define NV3_PGRAPH_BETA                                 0x400640    // Beta factor (30:23 fractional, 22:0 before fraction)
 #define NV3_PGRAPH_DMA                                  0x400680
-#define NV3_PGRAPH_NOTIFY                               0x400684    // Notifier for PGRAPH      
+
+// Current notification object for pgraph
+#define NV3_PGRAPH_NOTIFY                               0x400684    // Notifier for PGRAPH    
+#define NV3_PGRAPH_NOTIFY_INSTANCE                      0
+#define NV3_PGRAPH_NOTIFY_REQUEST_PENDING               16
+#define NV3_PGRAPH_NOTIFY_REQUEST_TYPE                  20
+#define NV3_PGRAPH_NOTIFY_REQUEST_TYPE_HARDWARE         0x0         // anything else is software
+
 #define NV3_PGRAPH_CLIP0_MIN                            0x400690    // Clip for Blitting 0 Min
 #define NV3_PGRAPH_CLIP0_MAX                            0x400694    // Clip for Blitting 0 Max
 #define NV3_PGRAPH_CLIP1_MIN                            0x400698    // Clip for Blitting 1 Min
@@ -882,11 +891,6 @@ typedef struct nv3_pci_config_s
     uint8_t int_line;
 } nv3_pci_config_t;
 
-/* Notifier Engine */
-typedef struct nv3_notifier_s
-{
-    /* TODO */
-} nv3_notifier_t;
 
 // add enums for eac
 // Chip configuration
@@ -1187,7 +1191,7 @@ typedef struct nv3_pgraph_s
     uint32_t bpixel[NV3_PGRAPH_MAX_BUFFERS];                // Pixel format for each possible surfaces.
     // CLIP
     nv3_pgraph_clip_misc_settings_t clip_misc_settings;
-    nv3_notifier_t notifier;
+    uint32_t notifier;
     bool notify_pending;                                    // Determines if a notification is pending.
     nv3_position_16_bigy_t clip0_min;
     nv3_position_16_bigy_t clip0_max;

@@ -269,4 +269,8 @@ void nv3_pmc_write(uint32_t address, uint32_t value)
             nv_log("\n");
 
     }
+    else /* Completely unknown */
+    {
+        nv_log(": Unknown register write (address=0x%08x)\n", address);
+    }
 }

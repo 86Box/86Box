@@ -1525,7 +1525,7 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
         default:
             break;
     }
-    emu8k_log("EMU8K WRITE: Unknown register write: %04X-%02X(%d/%d): %04X \n", addr, (emu8k->cur_reg) << 5 | emu8k->cur_voice,
+    emu8k_log("EMU8K WRITE: : Unknown register write: %04X-%02X(%d/%d): %04X \n", addr, (emu8k->cur_reg) << 5 | emu8k->cur_voice,
               emu8k->cur_reg, emu8k->cur_voice, val);
 }
 

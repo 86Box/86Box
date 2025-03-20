@@ -676,7 +676,7 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
 
             default:
                 if (voodoo->fbiInit7 & FBIINIT7_CMDFIFO_ENABLE) {
-                    voodoo_log("Unknown register write in CMDFIFO mode %08x %08x\n", addr, val);
+                    voodoo_log(": Unknown register write in CMDFIFO mode %08x %08x\n", addr, val);
                 } else {
                     voodoo_queue_command(voodoo, addr | FIFO_WRITEL_REG, val);
                 }

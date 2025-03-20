@@ -152,5 +152,8 @@ void nv3_pvideo_write(uint32_t address, uint32_t value)
             }
         }
     }
-
+    else /* Completely unknown */
+    {
+        nv_log(": Unknown register write (address=0x%08x)\n", address);
+    }
 }

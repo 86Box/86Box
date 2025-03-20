@@ -29,10 +29,31 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
 
-void nv3_generic_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
+void nv3_generic_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
 {
     switch (method_id)
     {
+        // set up the current notification request/object]
+        // check for double notifiers.
+        case NV3_SET_NOTIFY:
+            if (nv3->pgraph.notify_pending)
+            {
+                nv_log("Executed method NV3_SET_NOTIFY with nv3->pgraph.notify_pending already set. param=0x%08x, method=0x%04x, grobj=0x%08x 0x%08x 0x%08x 0x%08x\n");
+                nv_log("IF THIS IS A DEBUG BUILD, YOU SHOULD SEE A CONTEXT BELOW");
+                nv3_debug_ramin_print_context_info(param, context);
+                nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_DOUBLE_NOTIFY);
+                
+                // disable
+                nv3->pgraph.notify_pending = false;
+                nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_DOUBLE_NOTIFY);
+                /* may need to disable fifo in this state */
+                return; 
+            }
+
+            // set a notify as pending.
+            nv3->pgraph.notifier = param; 
+            nv3->pgraph.notify_pending = true; 
+            break;
         default:
             nv_log("Shared Generic Methods: Invalid or Unimplemented method 0x%04x", method_id);
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_INVALID_METHOD);
@@ -44,18 +65,19 @@ void nv3_generic_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t c
 /* Sees if any notification is required after an object method is executed. If so, executes it... */
 void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
 {
-    if (nv3->pgraph.notify_pending)
-    {
-        nv_log("Called nv3_notify_if_needed with nv3->pgraph.notify_pending already set. name=0x%08x, method=0x%04x, grobj=0x%08x 0x%08x 0x%08x 0x%08x\n");
-        nv_log("IF THIS IS A DEBUG BUILD, YOU SHOULD SEE A CONTEXT BELOW");
-        nv3_debug_ramin_print_context_info(name, context);
-        nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_DOUBLE_NOTIFY);
-        
-        // disable
-        nv3->pgraph.notify_pending = false; 
+    if (!nv3->pgraph.notify_pending)
         return; 
-    }
 
+    uint32_t current_notification_object = nv3->pgraph.notifier;
+
+    // check for a software method (0 = hardware, 1 = software)
+    if (((current_notification_object >> NV3_PGRAPH_NOTIFY_REQUEST_TYPE) & 0x07) != 0)
+    {  
+        nv_log("Software Notification, firing interrupt");
+        nv3_pgraph_interrupt_valid(NV3_PGRAPH_INTR_0_SOFTWARE_NOTIFY);
+        return;
+    }
+        
     // set up the NvNotification structure
     nv3_notification_t notify = {0}; 
     notify.nanoseconds = nv3->ptimer.time;
@@ -79,7 +101,8 @@ void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t
     /* paging information */
     bool page_is_present = notify_obj_page & 0x01;
     bool page_is_readwrite = (notify_obj_page >> NV3_NOTIFICATION_PAGE_ACCESS);
-    uint32_t frame_value = (notify_obj_page >> NV3_NOTIFICATION_PAGE_FRAME_ADDRESS) & 0xFFFFF;
+    //uint32_t frame_value = (notify_obj_page >> NV3_NOTIFICATION_PAGE_FRAME_ADDRESS) & 0xFFFFF;
+    uint32_t frame_value = (notify_obj_page >> NV3_NOTIFICATION_PAGE_FRAME_ADDRESS) & 0xFFFFF000;
 
     // This code is temporary and will probably be moved somewhere else
     // Print torns of debug info
@@ -99,18 +122,18 @@ void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t
             nv_log("VERY BAD WARNING: Notification detected with Notification Target: Cartridge. THIS SHOULD NEVER HAPPEN!!!!!\n");
             break;
         case NV3_NOTIFICATION_TARGET_PCI: 
-            (nv3->nvbase.bus_generation == nv_bus_pci) ? nv_log("Notification Target: PCI Bus\n") : nv_log("Notification Target: PCI Bus (On AGP card???)\n");
+            (nv3->nvbase.bus_generation == nv_bus_pci) ? nv_log("Notification Target: PCI Bus\n") : nv_log("Notification Target: PCI Bus (On AGP card?)\n");
             break;
         case NV3_NOTIFICATION_TARGET_AGP: 
             (nv3->nvbase.bus_generation == nv_bus_agp_1x
-                || nv3->nvbase.bus_generation == nv_bus_agp_2x) ? nv_log("Notification Target: AGP Bus\n") : nv_log("Notification Target: AGP Bus (On PCI card???)\n");
+                || nv3->nvbase.bus_generation == nv_bus_agp_2x) ? nv_log("Notification Target: AGP Bus\n") : nv_log("Notification Target: AGP Bus (On PCI card?)\n");
             break;
     }
 
-    nv_log("Limit: 0x%08x", notify_obj_limit);
+    nv_log("Limit: 0x%08x\n", notify_obj_limit);
     (page_is_present) ? nv_log("Page is present\n") : nv_log("Page is not present\n"); 
     (page_is_readwrite) ? nv_log("Page is read-write\n") : nv_log("Page is read-only\n");
-    nv_log("Pageframe Address: 0x%08x", frame_value);
+    nv_log("Pageframe Address: 0x%08x\n", frame_value);
     #endif
 
     // set up the dma transfer. we need to translate to a physical address.

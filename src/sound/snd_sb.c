@@ -798,7 +798,7 @@ sb_ct1335_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 default:
-                    sb_log("sb_ct1335: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                    sb_log("sb_ct1335: : Unknown register write: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                     break;
             }
         }
@@ -899,7 +899,7 @@ sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 default:
-                    sb_log("sb_ct1345: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                    sb_log("sb_ct1345: : Unknown register write: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                     break;
             }
         }
