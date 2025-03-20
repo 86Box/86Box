@@ -1060,7 +1060,9 @@ void nv3_close(void* priv)
 {
     // Shut down logging
     log_close(nv3->nvbase.log);
+#ifdef ENABLE_NV_LOG
     nv_log_set_device(NULL);
+#endif
 
     // Shut down I2C and the DDC
     ddc_close(nv3->nvbase.ddc);
