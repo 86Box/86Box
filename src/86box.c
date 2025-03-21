@@ -32,6 +32,7 @@
 #include <wchar.h>
 #include <stdatomic.h>
 #include <unistd.h>
+#include <math.h>
 
 #ifndef _WIN32
 #    include <pwd.h>
@@ -232,6 +233,8 @@ int framecount;
 extern int CPUID;
 extern int output;
 int        atfullspeed;
+
+extern double exp_pow_table[0x800];
 
 char  exe_path[2048]; /* path (dir) of executable */
 char  usr_path[1024]; /* path (dir) of user data */
@@ -1085,6 +1088,11 @@ pc_init_modules(void)
     video_reset_close();
 
     machine_status_init();
+
+    for (c = 0; c <= 0x7ff; c++) {
+        int64_t exp = c - 1023; /* 1023 = BIAS64 */
+        exp_pow_table[c] = pow(2.0, (double) exp);
+    }
 
     if (do_nothing) {
         do_nothing = 0;

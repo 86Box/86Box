@@ -46,7 +46,7 @@ opFXTRACT(UNUSED(uint32_t fetchdat))
     test.eind.d = ST(0);
     exp80       = test.eind.ll & 0x7ff0000000000000LL;
     exp80final  = (exp80 >> 52) - BIAS64;
-    mant        = test.eind.d / (pow(2.0, (double) exp80final));
+    mant        = test.eind.d / exp_pow_table[exp80 >> 52];
     ST(0)       = (double) exp80final;
     FP_TAG_VALID;
     x87_push(mant);
