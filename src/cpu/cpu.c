@@ -287,6 +287,9 @@ uint8_t reg_30 = 0x00;
 uint8_t arr[24] = { 0 };
 uint8_t rcr[8] = { 0 };
 
+/* Table for FXTRACT. */
+double exp_pow_table[0x800];
+
 static int cyrix_addr;
 
 static void    cpu_write(uint16_t addr, uint8_t val, void *priv);
