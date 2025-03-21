@@ -60,6 +60,7 @@ void nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             /* Set the format */
             
             nv3->pgraph.bpixel[src_buffer_id] = ((real_format & 0x03) | NV3_BPIXEL_FORMAT_IS_VALID);
+            
             nv_log("Image in Memory BUF%d COLOR_FORMAT=0x%04x", src_buffer_id, param);
 
             break;

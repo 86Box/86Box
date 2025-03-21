@@ -157,6 +157,7 @@ void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t
 
     /* send the notification off */
     nv_log("About to send hardware notification to 0x%08x (Check target)\n", final_address);
+    
     switch (info_notification_target)
     {
         case NV3_NOTIFICATION_TARGET_NVM:

@@ -10,7 +10,7 @@
     This is currently used in the following graphics cards: Tseng Labs ET4000/32p, Cirrus Logic CL-GD54xx, 3dfx Voodoo Banshee/Voodoo 3, Trident TGUI9440, 
     S3 ViRGE, C&T 69000, ATI Mach64, and NVidia RIVA 128
 */
-int32_t video_rop_gdi_ternary(int32_t rop, int32_t dst, int32_t pattern, int32_t src)                    
+int32_t video_rop_gdi_ternary(int32_t rop, int32_t src, int32_t dst, int32_t pattern)                    
 {                
     uint32_t out = 0x00;
 

@@ -27,10 +27,20 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
 
-void nv3_class_005_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
+void nv3_class_005_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
 {
     switch (method_id)
     {
+        case NV3_CLIP_POSITION:
+            nv3->pgraph.clip_start.x = (param >> 16) & 0xFFFF;
+            nv3->pgraph.clip_start.y = (param) & 0xFFFF;
+            nv_log("Clip Position: %d,%d", nv3->pgraph.clip_start.x, nv3->pgraph.clip_start.y);
+            break; 
+        case NV3_CLIP_SIZE:
+            nv3->pgraph.clip_size.x = (param >> 16) & 0xFFFF;
+            nv3->pgraph.clip_size.y = (param) & 0xFFFF;
+            nv_log("Clip Size: %d,%d", nv3->pgraph.clip_start.x, nv3->pgraph.clip_start.y);
+            break;
         default:
             nv_log("%s: Invalid or Unimplemented method 0x%04x", nv3_class_names[context.class_id & 0x1F], method_id);
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_INVALID_METHOD);

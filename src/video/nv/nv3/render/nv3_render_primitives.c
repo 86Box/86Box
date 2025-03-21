@@ -6,10 +6,10 @@
 *
 *          This file is part of the 86Box distribution.
 *
-*          NV3: Methods for class 0x17 (Direct3D 5.0 accelerated triangle with zeta buffer)
+*          NV3 code to render basic objects.
 *
-*
-*
+* 
+* 
 * Authors: Connor Hyde, <mario64crashed@gmail.com> I need a better email address ;^)
 *
 *          Copyright 2024-2025 Connor Hyde
@@ -27,14 +27,20 @@
 #include <86box/video.h>
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
+#include <86box/utils/video_stdlib.h>
 
-void nv3_class_017_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
+void nv3_render_rect(nv3_position_16_t position, nv3_size_16_t size, uint32_t color, nv3_grobj_t grobj)
 {
-    switch (method_id)
+    nv3_position_16_t current_pos = {0};
+
+    for (int32_t y = position.y; y < (position.y + size.h); y++)
     {
-        default:
-            nv_log("%s: Invalid or Unimplemented method 0x%04x", nv3_class_names[context.class_id & 0x1F], method_id);
-            nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_INVALID_METHOD);
-            return;
+        current_pos.y = y; 
+        for (int32_t x = position.x; x < (position.x + size.w); x++)
+        {
+            current_pos.x = x;
+
+            nv3_render_pixel(current_pos, color, grobj);
+        }
     }
 }

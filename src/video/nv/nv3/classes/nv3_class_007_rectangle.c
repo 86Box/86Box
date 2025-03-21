@@ -28,12 +28,41 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
 
-void nv3_class_007_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
+void nv3_class_007_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
 {
     switch (method_id)
     {
+        case NV3_RECTANGLE_COLOR:
+            nv3->pgraph.rectangle.color = param;
+            break; 
         default:
-            nv_log("%s: Invalid or Unimplemented method 0x%04x", nv3_class_names[context.class_id & 0x1F], method_id);
+            /* Check for any rectangle point or size method. */
+            if (method_id >= NV3_RECTANGLE_START && method_id <= NV3_RECTNAGLE_END)
+            {
+                uint32_t index = (method_id - NV3_RECTANGLE_START) / 8;
+
+                // If the size is submitted, render it.
+                if (method_id & 0x04)
+                {
+                    nv3->pgraph.rectangle.size[index].w = (param >> 16) & 0xFFFF;
+                    nv3->pgraph.rectangle.size[index].h = param & 0xFFFF;
+                    
+                    nv_log("Rect%d Size=%d,%d\n", index, nv3->pgraph.rectangle.size[index].w, nv3->pgraph.rectangle.size[index].h);
+
+                    nv3_render_rect(nv3->pgraph.rectangle.position[index], nv3->pgraph.rectangle.size[index], nv3->pgraph.rectangle.color, grobj);
+                }
+                else // position
+                {
+                    nv3->pgraph.rectangle.position[index].x = (param >> 16) & 0xFFFF;
+                    nv3->pgraph.rectangle.position[index].y = param & 0xFFFF;
+                    
+                    nv_log("Rect%d Position=%d,%d\n", index, nv3->pgraph.rectangle.position[index].x, nv3->pgraph.rectangle.position[index].y);
+                }
+
+                return;
+            }
+
+            nv_log("%s: Invalid or Unimplemented method 0x%04x\n", nv3_class_names[context.class_id & 0x1F], method_id);
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_INVALID_METHOD);
             return;
     }

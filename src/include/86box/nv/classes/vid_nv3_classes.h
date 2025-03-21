@@ -77,6 +77,19 @@ typedef enum nv3_pgraph_class_e
 #define NV3_SET_NOTIFY_CONTEXT_FOR_DMA                  0x0100  // Set object ctx for dma...see nv3_dma_context_t structure
 #define NV3_SET_NOTIFY                                  0x0104
 
+#define NV3_ROP_SET_ROP                                 0x0300  // Set GDI standard rop
+
+#define NV3_CLIP_POSITION                               0x0300  // S16:S16, 0=topleft
+#define NV3_CLIP_SIZE                                   0x0304  // U16:U16
+
+#define NV3_RECTANGLE_COLOR                             0x0304
+
+// 16 possible rectangles. 8 byte structure, first 4 bytes = position, second 2 = size.
+#define NV3_RECTANGLE_START                             0x0400
+
+#define NV3_RECTANGLE_MAX                               16
+#define NV3_RECTNAGLE_END                               0x0480
+
 #define NV3_IMAGE_IN_MEMORY_COLOR_FORMAT                0x0300
 #define NV3_IMAGE_IN_MEMORY_IN_MEMORY_DMA_CTX_TYPE      0x0304
 #define NV3_IMAGE_IN_MEMORY_PITCH                       0x0308
@@ -100,20 +113,59 @@ typedef struct nv3_class_ctx_switch_method_s
 
 } nv3_class_ctx_switch_method_t;
 
-/* 32-bit ARGB format colour for internal D3D5 stuff */
-typedef struct nv3_color_argb_32_s
+/* 
+enumerates color formats
+there are some other colour formats that are only used in certain areas which are defined below
+*/
+typedef enum nv3_pgraph_pixel_format_e
+{
+    nv3_pgraph_pixel_format_r5g5b5 = 0,
+    nv3_pgraph_pixel_format_r8g8b8 = 1,
+    nv3_pgraph_pixel_format_r10g10b10 = 2,
+    nv3_pgraph_pixel_format_y8 = 3,
+    nv3_pgraph_pixel_format_y16 = 4,
+    nv3_pgraph_pixel_format_v8y8u8y18 = 5, // "18"? NV wtf?
+    nv3_pgraph_pixel_format_y18v8y8u8 = 6, // "18"? NV wtf?
+    nv3_pgraph_pixel_format_y420 = 7, // YUV 420
+} nv3_pgraph_pixel_format;
+
+/* Main color format */
+typedef struct nv3_color_expanded_s
+{
+    uint8_t a;
+
+    /* WARNING: The internal format is 10-bit RGB! */
+    uint16_t r : 10;
+    uint16_t g : 10;
+    uint16_t b : 10;
+
+    // Indexed colour
+    union 
+    {
+        uint16_t i16;
+
+        uint8_t i16_high;
+        uint8_t i8;
+    };
+    
+    // the pixel format
+    nv3_pgraph_pixel_format pixel_format; 
+} nv3_color_expanded_t;
+
+/* A simple ARGB format colour */
+typedef struct nv3_color_argb_s
 {
     uint8_t a;
     uint8_t r;
     uint8_t g;
     uint8_t b;
-} nv3_color_argb_32_t;
+} nv3_color_argb_t;
 
 /* 30-bit colour format for internal PGRAPH use */
 typedef struct nv3_color_x2a10g10b10_s
 {
     uint8_t reserved : 1;
-    bool alpha_if_chroma_key_otherwise_reserved2 : 1; // 1-bit ALPHA if chroma key, OTHERWISE USELESS and IGNORE
+    bool a : 1; // 1-bit ALPHA if chroma key, OTHERWISE USELESS and IGNORE
     uint16_t r : 10;
     uint16_t g : 10;
     uint16_t b : 10;
@@ -150,17 +202,8 @@ typedef struct nv3_color_16_r5g6b5_s
 /* Generic 16-bit position*/
 typedef struct nv3_position_16_s
 {
-    union 
-    {
-        uint32_t pos;
-
-        struct
-        {
-            uint16_t y;
-            uint16_t x;
-        };
-    
-    } position;
+    uint16_t y;
+    uint16_t x;
 } nv3_position_16_t;
 
 /* A big position format with 30:16 = y, 15:11 = nothing, 10:0 = x */
@@ -176,23 +219,14 @@ typedef struct nv3_position_16_bigy_s
 /* Generic 16-bit size */
 typedef struct nv3_size_16_s
 {
-    union
-    {
-        uint32_t size;
-
-        struct 
-        {
-            uint16_t h;
-            uint16_t w;
-        };
-
-    } size;
+    uint16_t h;
+    uint16_t w;
 } nv3_size_16_t;
 
 /* Generic 32-bit colour + 16-bit position */
 typedef struct nv3_color_and_position_16_s
 {
-    nv3_color_argb_32_t color;
+    nv3_color_expanded_t color;
     nv3_position_16_t points;
 } nv3_color_and_position_16_t;
 
@@ -355,7 +389,7 @@ typedef struct nv3_object_class_007
     uint8_t reserved[0x100];
     uint32_t set_notify;                                    // Set notifier         
     uint8_t reserved2[0x1FC];
-    nv3_color_argb_32_t color;                              // The colour
+    uint32_t color;                                         // The colour of the object.
     uint8_t reserved3[0xF8];
     nv3_position_16_t position[16];
     nv3_size_16_t size[16];
@@ -366,7 +400,7 @@ typedef struct nv3_object_class_007
 /* In case your points weren't colourful enough */
 typedef struct nv3_object_class_008_cpoint_s
 {
-    nv3_color_argb_32_t color;                              // argb-format 32-bit color
+    nv3_color_expanded_t color;                              // argb-format 32-bit color
     nv3_position_16_t position;                             //
 } nv3_object_class_008_cpoint_t;
 
@@ -382,7 +416,7 @@ typedef struct nv3_object_class_008
     uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
     uint8_t reserved2[0x1FC];
-    nv3_color_argb_32_t color;                                 // argb?
+    nv3_color_expanded_t color;                                 // argb?
     nv3_position_16_t point[16];                    // Boring points 
     nv3_position_32_t point32[16];                  // Allows you to have points with full 32-bit precision 
     nv3_object_class_008_cpoint_t cpoint[16];       // Allows you to have c o l o r f u l points! 
@@ -422,7 +456,7 @@ typedef struct nv3_object_class_009
     uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
     uint8_t reserved2[0x1FC];
-    nv3_color_argb_32_t color;                                 // argb?
+    nv3_color_expanded_t color;                                 // argb?
     nv3_object_class_009_line_t line[16];           // List of line points (...)
     nv3_object_class_009_line32_t line32[8];
     nv3_object_class_009_line_t polyline[32];
@@ -446,7 +480,7 @@ typedef struct nv3_object_class_00A
     uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
     uint8_t reserved2[0x1FC];
-    nv3_color_argb_32_t color;                                 // argb?
+    nv3_color_expanded_t color;                                 // argb?
     nv3_object_class_009_line_t line[16];           // List of line points (...)
     nv3_object_class_009_line32_t line32[8];
     nv3_object_class_009_line_t polyline[32];
@@ -469,7 +503,7 @@ typedef struct nv3_object_class_00B
     uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
     uint8_t reserved2[0x1FC];
-    nv3_color_argb_32_t color;                                 // argb?
+    nv3_color_expanded_t color;                                 // argb?
     uint8_t reserved3[0x8];                     
     // The points of the triangle.
     nv3_position_16_t points[3];
@@ -639,7 +673,7 @@ typedef struct nv3_object_class_011
     nv3_size_16_t size;
     nv3_size_16_t size_in;
     uint8_t reserved3[0xF0];
-    nv3_color_argb_32_t color[32];                           // The colour to use
+    nv3_color_expanded_t color[32];                           // The colour to use
     uint8_t reserved4[0x1B7F];
 } nv3_image_t;
 
@@ -657,8 +691,8 @@ typedef struct nv3_object_class_012
     uint8_t reserved[0x100];
     uint32_t set_notify;
     uint8_t reserved2[0x200];
-    nv3_color_argb_32_t color_0;
-    nv3_color_argb_32_t color_1;
+    nv3_color_expanded_t color_0;
+    nv3_color_expanded_t color_1;
     nv3_position_16_t point;                        // Top left(?) of the bitmap
     nv3_size_16_t size;
     nv3_size_16_t size_in;
@@ -1074,7 +1108,7 @@ typedef struct nv3_d3d5_alpha_control_s
 typedef struct nv3_d3d5_coordinate_s
 {
     nv3_d3d5_specular_t specular_reflection_parameters;     
-    nv3_color_argb_32_t color;                              // YOU HAVE TO FLIP THE ENDIANNESS. NVIDIA??? WHAT???
+    nv3_color_expanded_t color;                              // YOU HAVE TO FLIP THE ENDIANNESS. NVIDIA??? WHAT???
 
     // Seems more plausible for these specifically to be floats.
     // Also makes my life easier...
@@ -1095,7 +1129,7 @@ typedef struct nv3_object_class_017
     uint32_t texture_offset;
     nv3_d3d5_texture_format_t texture_format;
     nv3_d3d5_texture_filter_t texture_filter;
-    nv3_color_argb_32_t fog_color;                          // Alpha is ignored here!
+    nv3_color_expanded_t fog_color;                          // Alpha is ignored here!
     nv3_d3d5_control_out_t control_out;
     nv3_d3d5_alpha_control_t alpha_control;
 
@@ -1108,7 +1142,7 @@ typedef struct nv3_object_class_017
 // Color and Zeta Buffer algorithm 
 typedef struct nv3_zeta_buffer_s
 {
-    nv3_color_argb_32_t color;
+    nv3_color_expanded_t color;
     uint32_t zeta;                                            // 16 bits z, 8 bits stenciul
 } nv3_zeta_buffer_t;
 

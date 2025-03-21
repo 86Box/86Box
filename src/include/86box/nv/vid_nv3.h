@@ -1127,7 +1127,8 @@ typedef struct nv3_pgraph_status_s
    BPixel = Internal Binary Representation of the pixel within the architecture
 */
 #define NV3_BPIXEL_FORMAT               0
-#define NV3_BPIXEL_FORMAT_IS_VALID             2
+#define NV3_BPIXEL_FORMAT_IS_VALID      2
+#define NV3_BPIXEL_DEPTH                4
 
 typedef enum nv3_pgraph_bpixel_format_e
 {
@@ -1137,7 +1138,7 @@ typedef enum nv3_pgraph_bpixel_format_e
     bpixel_fmt_8bit = 1,
     // 16-bit colour
     bpixel_fmt_16bit = 2,
-    // 32-bit colour (BGRA/ARGB)
+    // 32-bit colour (ARGB)
     bpixel_fmt_32bit = 3,
 } nv3_pgraph_bpixel_format;
 
@@ -1192,11 +1193,15 @@ typedef struct nv3_pgraph_s
     nv3_pgraph_clip_misc_settings_t clip_misc_settings;
     uint32_t notifier;
     bool notify_pending;                                    // Determines if a notification is pending.
+    /* Are these even used */
     nv3_position_16_bigy_t clip0_min;
     nv3_position_16_bigy_t clip0_max;
     nv3_position_16_bigy_t clip1_min;
     nv3_position_16_bigy_t clip1_max;
-    uint32_t fifo_access;                                   // Determines if PGRAPH can access PFIFO.
+    /* idk */
+    nv3_position_16_t clip_start;                           // Start of the clipping region
+    nv3_position_16_t clip_size;                            // Size of the clipping region.
+    bool fifo_access;                                       // Determines if PGRAPH can access PFIFO.
     nv3_pgraph_status_t status;                             // Current status of the 3D engine.
     uint32_t trapped_address;
     uint32_t trapped_data;
@@ -1547,29 +1552,29 @@ void        nv3_pgraph_submit(uint32_t param, uint16_t method, uint8_t channel, 
 
 // PGRAPH class methods
 // this should be in "vid_nv3_classes.h", but before that can happen, some things need to be rejigged
-void        nv3_generic_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_001_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_002_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_003_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_004_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_005_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_006_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_007_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_008_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_009_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_00a_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_00b_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_00c_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_00d_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_00e_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_010_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_011_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_012_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_014_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_015_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_017_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_018_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
-void        nv3_class_01c_method(uint32_t name, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_generic_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_001_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_002_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_003_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_004_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_005_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_006_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_007_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_008_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_009_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_00a_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_00b_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_00d_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_00e_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_010_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_011_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_012_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_014_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_015_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_017_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_018_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
+void        nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj);
 
 // Notification Engine
 void        nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t context,nv3_grobj_t grobj);

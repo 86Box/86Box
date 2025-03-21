@@ -17,3 +17,8 @@
 
 #pragma once
 
+/* Core */
+void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t grobj);
+
+/* Primitives */
+void nv3_render_rect(nv3_position_16_t position, nv3_size_16_t size, uint32_t color, nv3_grobj_t grobj);
