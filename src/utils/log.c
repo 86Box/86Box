@@ -294,6 +294,31 @@ log_fatal(void *priv, const char *fmt, ...)
     exit(-1);
 }
 
+void
+log_warning(void *priv, const char *fmt, ...)
+{
+    log_t  *log = (log_t *) priv;
+    char    temp[1024];
+    char    fmt2[1024];
+    va_list ap;
+
+    if (log == NULL)
+        return;
+
+    if (log->cyclic_buff != NULL) {
+        for (int i = 0; i < LOG_SIZE_BUFFER_CYCLIC_LINES; i++)
+            if (log->cyclic_buff[i] != NULL)
+                free(log->cyclic_buff[i]);
+        free(log->cyclic_buff);
+    }
+
+    va_start(ap, fmt);
+    log_copy(log, fmt2, fmt, 1024);
+    vsprintf(temp, fmt2, ap);
+    warning_ex(fmt2, ap);
+    va_end(ap);
+}
+
 static void *
 log_open_common(const char *dev_name, const int cyclic)
 {

@@ -440,6 +440,75 @@ fatal_ex(const char *fmt, va_list ap)
     fflush(stdlog);
 }
 
+/* Log a warning error, and display a UI message without exiting. */
+void
+warning(const char *fmt, ...)
+{
+    char    temp[1024];
+    va_list ap;
+    char   *sp;
+
+    va_start(ap, fmt);
+
+    if (stdlog == NULL) {
+        if (log_path[0] != '\0') {
+            stdlog = plat_fopen(log_path, "w");
+            if (stdlog == NULL)
+                stdlog = stdout;
+        } else
+            stdlog = stdout;
+    }
+
+    vsprintf(temp, fmt, ap);
+    fprintf(stdlog, "%s", temp);
+    fflush(stdlog);
+    va_end(ap);
+
+    /* Make sure the message does not have a trailing newline. */
+    if ((sp = strchr(temp, '\n')) != NULL)
+        *sp = '\0';
+
+    do_pause(2);
+
+    ui_msgbox(MBX_ERROR | MBX_ANSI, temp);
+
+    fflush(stdlog);
+
+    do_pause(0);
+}
+
+void
+warning_ex(const char *fmt, va_list ap)
+{
+    char  temp[1024];
+    char *sp;
+
+    if (stdlog == NULL) {
+        if (log_path[0] != '\0') {
+            stdlog = plat_fopen(log_path, "w");
+            if (stdlog == NULL)
+                stdlog = stdout;
+        } else
+            stdlog = stdout;
+    }
+
+    vsprintf(temp, fmt, ap);
+    fprintf(stdlog, "%s", temp);
+    fflush(stdlog);
+
+    /* Make sure the message does not have a trailing newline. */
+    if ((sp = strchr(temp, '\n')) != NULL)
+        *sp = '\0';
+
+    do_pause(2);
+
+    ui_msgbox(MBX_ERROR | MBX_ANSI, temp);
+
+    fflush(stdlog);
+
+    do_pause(0);
+}
+
 #ifdef ENABLE_PC_LOG
 int pc_do_log = ENABLE_PC_LOG;
 

@@ -842,3 +842,13 @@ plat_set_thread_name(void *thread, const char *name)
 #    endif
 #endif
 }
+
+void
+plat_break(void)
+{
+#ifdef Q_OS_WINDOWS
+    DebugBreak();
+#else
+    raise(SIGTRAP);
+#endif
+}

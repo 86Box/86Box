@@ -164,6 +164,7 @@ extern uint32_t plat_language_code(char *langcode);
 extern void     plat_language_code_r(uint32_t lcid, char *outbuf, int len);
 extern void     plat_get_cpu_string(char *outbuf, uint8_t len);
 extern void     plat_set_thread_name(void *thread, const char *name);
+extern void     plat_break(void);
 
 /* Resource management. */
 extern wchar_t *plat_get_string(int id);
