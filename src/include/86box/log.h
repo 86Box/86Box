@@ -36,6 +36,7 @@ extern void log_out(void *priv, const char *fmt, va_list);
 extern void log_out_cyclic(void* priv, const char *fmt, va_list);
 #endif /*RELEASE_BUILD*/
 extern void log_fatal(void *priv, const char *fmt, ...);
+extern void log_warning(void *priv, const char *fmt, ...);
 extern void *log_open(const char *dev_name);
 extern void *log_open_cyclic(const char *dev_name);
 extern void  log_close(void *priv);

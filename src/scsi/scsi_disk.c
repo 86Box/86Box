@@ -400,7 +400,8 @@ scsi_disk_bus_speed(scsi_disk_t *dev)
                 dev->callback = -1.0;
             return 0.0;
         } else
-            return ret * 1000000.0;
+            /* We get bytes per µs, so divide 1000000.0 by it. */
+            return 1000000.0 / ret;
     }
 }
 
@@ -484,6 +485,10 @@ scsi_disk_command_common(scsi_disk_t *dev)
                 break;
         }
 
+        /*
+           For ATAPI, this will be 1000000.0 / µs_per_byte, and this will
+           convert it back to µs_per_byte.
+         */
         period = 1000000.0 / bytes_per_second;
         scsi_disk_log(dev->log, "Byte transfer period: %" PRIu64 " us\n",
                       (uint64_t) period);

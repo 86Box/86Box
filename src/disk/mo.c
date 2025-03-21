@@ -486,19 +486,16 @@ mo_bus_speed(mo_t *dev)
 {
     double ret = -1.0;
 
-    if (dev && dev->drv && (dev->drv->bus_type == MO_BUS_SCSI)) {
-        dev->callback = -1.0; /* Speed depends on SCSI controller */
-        return 0.0;
-    } else {
-        if (dev && dev->drv)
-            ret = ide_atapi_get_period(dev->drv->ide_channel);
-        if (ret == -1.0) {
-            if (dev)
-                dev->callback = -1.0;
-            return 0.0;
-        } else
-            return ret * 1000000.0;
+    if (dev && dev->drv)
+        ret = ide_atapi_get_period(dev->drv->ide_channel);
+
+    if (ret == -1.0) {
+        if (dev)
+            dev->callback = -1.0;
+        ret = 0.0;
     }
+
+    return ret;
 }
 
 static void
@@ -509,18 +506,10 @@ mo_command_common(mo_t *dev)
     dev->tf->pos    = 0;
     if (dev->packet_status == PHASE_COMPLETE)
         dev->callback = 0.0;
-    else {
-        double bytes_per_second;
-
-        if (dev->drv->bus_type == MO_BUS_SCSI) {
-            dev->callback = -1.0; /* Speed depends on SCSI controller */
-            return;
-        } else
-            bytes_per_second = mo_bus_speed(dev);
-
-        const double period = 1000000.0 / bytes_per_second;
-        dev->callback       = period * (double) (dev->packet_len);
-    }
+    else if (dev->drv->bus_type == MO_BUS_SCSI)
+        dev->callback = -1.0; /* Speed depends on SCSI controller */
+    else
+        dev->callback = mo_bus_speed(dev) * (double) (dev->packet_len);
 
     mo_set_callback(dev);
 }
