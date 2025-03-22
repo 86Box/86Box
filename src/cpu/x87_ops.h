@@ -36,6 +36,8 @@ extern void fpu_log(const char *fmt, ...);
 #    endif
 #endif
 
+extern double exp_pow_table[0x800];
+
 static int rounding_modes[4] = { FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO };
 
 #define ST(x)             cpu_state.ST[((cpu_state.TOP + (x)) & 7)]

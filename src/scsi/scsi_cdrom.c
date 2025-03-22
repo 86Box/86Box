@@ -656,7 +656,7 @@ scsi_cdrom_bus_speed(scsi_cdrom_t *dev)
                 dev->callback = -1.0;
             return 0.0;
         } else
-            return ret * 1000000.0;
+            return 1000000.0 / ret;
     }
 }
 
@@ -1069,8 +1069,9 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
                     dev->block_len = temp_len;
 
                     if ((dev->drv->bus_type != CDROM_BUS_SCSI) &&
-                        (scsi_cdrom_current_mode(dev) != 2))
+                        (scsi_cdrom_current_mode(dev) != 2)) {
                         num = (dev->packet_len / dev->block_len);
+                    }
                 }
 
                 dev->sector_pos++;
@@ -1126,7 +1127,7 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
     }
 
     if (ret) {
-        if (!dev->sector_len) {
+        if (dev->sector_len == 0) {
             scsi_cdrom_command_complete(dev);
             return -1;
         }

@@ -567,19 +567,16 @@ zip_bus_speed(zip_t *dev)
 {
     double ret = -1.0;
 
-    if (dev && dev->drv && (dev->drv->bus_type == ZIP_BUS_SCSI)) {
-        dev->callback = -1.0; /* Speed depends on SCSI controller */
-        return 0.0;
-    } else {
-        if (dev && dev->drv)
-            ret = ide_atapi_get_period(dev->drv->ide_channel);
-        if (ret == -1.0) {
-            if (dev)
-                dev->callback = -1.0;
-            return 0.0;
-        } else
-            return ret * 1000000.0;
+    if (dev && dev->drv)
+        ret = ide_atapi_get_period(dev->drv->ide_channel);
+
+    if (ret == -1.0) {
+        if (dev)
+            dev->callback = -1.0;
+        ret = 0.0;
     }
+
+    return ret;
 }
 
 static void
@@ -590,18 +587,10 @@ zip_command_common(zip_t *dev)
     dev->tf->pos    = 0;
     if (dev->packet_status == PHASE_COMPLETE)
         dev->callback = 0.0;
-    else {
-        double bytes_per_second;
-
-        if (dev->drv->bus_type == ZIP_BUS_SCSI) {
-            dev->callback = -1.0; /* Speed depends on SCSI controller */
-            return;
-        } else
-            bytes_per_second = zip_bus_speed(dev);
-
-        double period        = 1000000.0 / bytes_per_second;
-        dev->callback        = period * (double) (dev->packet_len);
-    }
+    else if (dev->drv->bus_type == ZIP_BUS_SCSI)
+        dev->callback = -1.0; /* Speed depends on SCSI controller */
+    else
+        dev->callback = zip_bus_speed(dev) * (double) (dev->packet_len);
 
     zip_set_callback(dev);
 }
@@ -1386,10 +1375,8 @@ zip_command(scsi_common_t *sc, const uint8_t *cdb)
                 dev->packet_len = max_len * alloc_length;
                 zip_buf_alloc(dev, dev->packet_len);
 
-                int ret = 0;
-
-                if (dev->sector_len > 0)
-                    ret = zip_blocks(dev, &alloc_length, 0);
+                const int ret = zip_blocks(dev, &alloc_length, 0);
+                alloc_length  = dev->requested_blocks * 512;
 
                 if (ret > 0) {
                     dev->requested_blocks = max_len;

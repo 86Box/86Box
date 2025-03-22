@@ -2370,7 +2370,7 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
             for (i_c = i_s; i_c <= i_e; i_c += i_a) {
                 for (c = (start + i_c); c < (end + i_c); c += MEM_GRANULARITY_SIZE) {
                     /* CPU */
-                    n = !!in_smm;
+                    n = (!!in_smm) || (is_cxsmm && (ccr1 & CCR1_SMAC));
                     wp = _mem_wp[c >> MEM_GRANULARITY_BITS];
 
                     if (map->exec && mem_mapping_access_allowed(map->flags,
