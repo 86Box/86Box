@@ -556,20 +556,22 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
                     nv3->pfifo.cache1_settings.get_address = val;
                     break;
                 case NV3_PFIFO_RUNOUT_GET:
+                    
                     uint32_t size_get = ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
 
                     if (size_get == 0) //512b
-                        nv3->pfifo.runout_get = ((val & 0x3F) << 3);
+                        nv3->pfifo.runout_get = val & (NV3_RAMIN_RAMRO_SIZE_0 - 0x07);
                     else 
-                        nv3->pfifo.runout_get = ((val & 0x3FF) << 3);
+                        nv3->pfifo.runout_get = val & (NV3_RAMIN_RAMRO_SIZE_1 - 0x07);
                     break;
                 case NV3_PFIFO_RUNOUT_PUT:
                     uint32_t size_put = ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
 
                     if (size_put == 0) //512b
-                        nv3->pfifo.runout_put = ((val & 0x3F) << 3);
+                        nv3->pfifo.runout_put = val & (NV3_RAMIN_RAMRO_SIZE_0 - 0x07);
                     else 
-                        nv3->pfifo.runout_put = ((val & 0x3FF) << 3);
+                        nv3->pfifo.runout_put = val & (NV3_RAMIN_RAMRO_SIZE_1 - 0x07);
+
                     break;
                 /* Cache1 is handled below */
                 case NV3_PFIFO_CACHE0_CTX:
@@ -833,6 +835,31 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
     if (oh_shit)
     {
         nv_log("WE ARE FUCKED Runout Error=%d Channel=%d Subchannel=%d Method=0x%04x IMPLEMENT THIS OR DIE!!!", oh_shit_reason, channel, subchannel, method_offset);
+        
+        nv3_ramro_write(nv3->pfifo.runout_put, new_address);
+        nv3_ramro_write(nv3->pfifo.runout_put + 4, param);
+
+        nv3->pfifo.runout_put += 0x08;
+
+        uint32_t ramro_size = (nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01;
+
+        /* Make sure it's valid */
+        switch (ramro_size)
+        {
+            case 0:
+                nv3->pfifo.runout_put &= (NV3_RAMIN_RAMRO_SIZE_0 - 0x07);
+                break; 
+            case 1:
+                nv3->pfifo.runout_put &= (NV3_RAMIN_RAMRO_SIZE_1 - 0x07);
+                break; 
+        }
+
+        /* Fire the interrupt. Also the very bad interrupt...*/
+        if (nv3->pfifo.runout_get == nv3->pfifo.runout_put)
+            nv3_pfifo_interrupt(NV3_PFIFO_INTR_RUNOUT_OVERFLOW, true);
+        else    
+            nv3_pfifo_interrupt(NV3_PFIFO_INTR_RUNOUT, true);
+
         return;
     }
 

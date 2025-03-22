@@ -128,6 +128,10 @@ uint32_t nv3_render_downconvert(nv3_grobj_t grobj, nv3_color_expanded_t color)
     switch (format)
     {
         case nv3_pgraph_pixel_format_r5g5b5:
+            packed_color = (color.r / 0x20) << 10 | 
+                           (color.g / 0x20) << 5 |
+                           (color.b / 0x20);
+
             break;
         case nv3_pgraph_pixel_format_r8g8b8:
             break;
@@ -144,6 +148,12 @@ uint32_t nv3_render_downconvert(nv3_grobj_t grobj, nv3_color_expanded_t color)
     }
 
     return packed_color;
+}
+
+/* Runs the chroma key test */
+void nv3_render_chroma_test(nv3_grobj_t grobj)
+{
+
 }
 
 /* Convert expanded colour format to chroma key format */
@@ -200,10 +210,10 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
         case 8:
             break;
         case 16:
-            vram_x = position.x * 2;
+            vram_x = position.x << 1;
             break;
         case 32:
-            vram_x = position.x * 4;
+            vram_x = position.x << 2;
             break;
     }
 
