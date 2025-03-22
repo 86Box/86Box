@@ -303,15 +303,11 @@ uint32_t nv3_pfifo_read(uint32_t address)
         }
         else
         {
-            uint32_t method = nv3->pfifo.cache0_entry.method;
-            uint32_t subchannel = nv3->pfifo.cache0_entry.subchannel;
             uint32_t final = nv3->pfifo.cache0_entry.method | (nv3->pfifo.cache0_entry.subchannel << NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL);
 
-            nv_log("Method=0x%08x, ", nv3->pfifo.cache0_entry.method);
-            nv_log("Subchannel=0x%08x\n", nv3->pfifo.cache0_entry.subchannel);
-            nv_log("Final=0x%08x\n", final);
+            nv_log("Param (subchannel=15:13, method=12:2)=0x%08x\n", final);
 
-            return nv3->pfifo.cache0_entry.method | (nv3->pfifo.cache0_entry.subchannel << NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL);
+            return final;
         }
     }
     else if (address >= NV3_PFIFO_CACHE1_METHOD_START && address <= NV3_PFIFO_CACHE1_METHOD_END)
@@ -335,15 +331,9 @@ uint32_t nv3_pfifo_read(uint32_t address)
         }
         else
         {
-            uint32_t method = nv3->pfifo.cache1_entries[slot].method;
-            uint32_t subchannel = nv3->pfifo.cache1_entries[slot].subchannel;
             uint32_t final = nv3->pfifo.cache1_entries[slot].method | (nv3->pfifo.cache1_entries[slot].subchannel << NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL);
-
-            nv_log("Method=0x%08x, ", nv3->pfifo.cache1_entries[slot].method);
-            nv_log("Subchannel=0x%08x\n", nv3->pfifo.cache1_entries[slot].subchannel);
-            nv_log("Final=0x%08x\n", final);
-
-            return nv3->pfifo.cache1_entries[slot].method | (nv3->pfifo.cache1_entries[slot].subchannel << NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL);
+            nv_log("Param (subchannel=15:13, method=12:2)=0x%08x\n", final);
+            return final;
         }
             
     }
@@ -835,7 +825,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
     if (oh_shit)
     {
         nv_log("WE ARE FUCKED Runout Error=%d Channel=%d Subchannel=%d Method=0x%04x IMPLEMENT THIS OR DIE!!!", oh_shit_reason, channel, subchannel, method_offset);
-        
+         
         nv3_ramro_write(nv3->pfifo.runout_put, new_address);
         nv3_ramro_write(nv3->pfifo.runout_put + 4, param);
 
@@ -854,7 +844,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
                 break; 
         }
 
-        /* Fire the interrupt. Also the very bad interrupt...*/
+        //Fire the interrupt. Also the very bad interrupt...
         if (nv3->pfifo.runout_get == nv3->pfifo.runout_put)
             nv3_pfifo_interrupt(NV3_PFIFO_INTR_RUNOUT_OVERFLOW, true);
         else    
@@ -953,9 +943,13 @@ void nv3_pfifo_cache1_pull()
 // THIS IS PER SUBCHANNEL!
 uint32_t nv3_pfifo_cache1_num_free_spaces()
 {
-    // convert to gray code
-    uint32_t real_get_address = nv3_pfifo_cache1_normal2gray(nv3->pfifo.cache1_settings.get_address);
-    uint32_t real_put_address = nv3_pfifo_cache1_normal2gray(nv3->pfifo.cache1_settings.put_address);
+    // get the index
+
+    uint32_t get_index = nv3->pfifo.cache1_settings.get_address >> 2;
+    uint32_t put_index = nv3->pfifo.cache1_settings.put_address >> 2;
+    
+    uint32_t real_get_address = nv3_pfifo_cache1_gray2normal(get_index) << 2;
+    uint32_t real_put_address = nv3_pfifo_cache1_gray2normal(put_index) << 2;
     
     // There is no hope of being able to understand it. Nobody can understand
     return (real_get_address - real_put_address - 4) & 0x7C; // there are 64 entries what
