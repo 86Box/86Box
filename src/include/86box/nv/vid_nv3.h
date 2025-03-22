@@ -1442,6 +1442,7 @@ extern nv3_t* nv3;
 void*       nv3_init(const device_t *info);
 void        nv3_close(void* priv);
 void        nv3_speed_changed(void *priv);
+void        nv3_recalc_timings(svga_t* svga);
 void        nv3_force_redraw(void* priv);
 
 // Memory Mapping

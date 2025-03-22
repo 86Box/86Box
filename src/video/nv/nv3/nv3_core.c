@@ -488,11 +488,13 @@ void nv3_recalc_timings(svga_t* svga)
     // i don't we should force the top 2 bits to 1...
 
     // required for VESA resolutions, force parameters higher
+
     if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDT10)) svga->vtotal += 0x400;
     if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDE10)) svga->dispend += 0x400;
     if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VRS10)) svga->vblankstart += 0x400;
     if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VBS10)) svga->vsyncstart += 0x400;
     if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_HBE6)) svga->hdisp += 0x400;  
+
 
     if (svga->crtc[NV3_CRTC_REGISTER_HEB] & 0x01)
         svga->hdisp += 0x100; // large screen bit
@@ -500,10 +502,10 @@ void nv3_recalc_timings(svga_t* svga)
     // Set the pixel mode
     switch (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 0x03)
     {
-        ///0x0 is VGA textmode
         case NV3_CRTC_REGISTER_PIXELMODE_8BPP:
             svga->bpp = 8;
             svga->lowres = 0;
+            svga->map8 = svga->pallook;
             svga->render = svga_render_8bpp_highres;
             break;
         case NV3_CRTC_REGISTER_PIXELMODE_16BPP:
@@ -703,14 +705,14 @@ void nv3_svga_out(uint16_t addr, uint8_t val, void* priv)
             Additionally only do it if the value actually changed*/
             if (old_value != val)
             {
-                // Thx to Fuel who basically wrote all the SVGA compatibility code already (although I fixed some issues), because VGA is boring 
+                // Thx to Fuel who basically wrote most of the SVGA compatibility code already (although I fixed some issues), because VGA is boring 
                 // and in the words of an ex-Rendition/3dfx/NVIDIA engineer, "VGA was basically an undocumented bundle of steaming you-know-what.   
                 // And it was essential that any cores the PC 3D startups acquired had to work with all the undocumented modes and timing tweaks (mode X, etc.)"
                 if (nv3->nvbase.svga.crtcreg < 0xE
                 && nv3->nvbase.svga.crtcreg > 0x10)
                 {
                     nv3->nvbase.svga.fullchange = changeframecount;
-                    svga_recalctimings(&nv3->nvbase.svga);
+                    nv3_recalc_timings(&nv3->nvbase.svga);
                 }
             }
 

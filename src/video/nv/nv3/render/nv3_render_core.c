@@ -172,7 +172,7 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
 
         TODO: MOVE TO BPIXEL DEPTH or GROBJ0 to determine this, once we figure out how to get the bpixel depth.
     */
-   
+
     uint32_t src = 0, dst = 0;
 
     switch (framebuffer_bpp)
