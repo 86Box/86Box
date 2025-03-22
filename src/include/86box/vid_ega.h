@@ -47,8 +47,8 @@ typedef struct ega_t {
     uint8_t ctl_mode;
     uint8_t color_mux;
     uint8_t dot;
-    uint8_t crtc[32];
-    uint8_t gdcreg[16];
+    uint8_t crtc[256];
+    uint8_t gdcreg[256];
     uint8_t attrregs[32];
     uint8_t seqregs[64];
     uint8_t egapal[16];
