@@ -64,6 +64,10 @@ void nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv_log("Image in Memory BUF%d COLOR_FORMAT=0x%04x", src_buffer_id, param);
 
             break;
+        /* DOn't log invalid */
+        case NV3_IMAGE_IN_MEMORY_IN_MEMORY_DMA_CTX_TYPE:
+            nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
+            break; 
         /* Pitch - length between scanlines */
         case NV3_IMAGE_IN_MEMORY_PITCH:
 
@@ -80,7 +84,7 @@ void nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             break;
         default:
             nv_log("%s: Invalid or Unimplemented method 0x%04x", nv3_class_names[context.class_id & 0x1F], method_id);
-            nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_INVALID_METHOD);
+            nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
             return;
     }
 }

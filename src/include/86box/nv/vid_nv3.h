@@ -210,6 +210,8 @@ extern const device_config_t nv3_config[];
 #define NV3_PBUS_END                                    0x1FFF
 #define NV3_PFIFO_START                                 0x2000      // FIFO for DMA Object Submission (uses hashtable to store the objects)
 
+#define NV3_PFIFO_MINIMUM_GUARANTEED_DEPTH                             0x7C
+
 #define NV3_PFIFO_DELAY_0                               0x2040      // PFIFO Config Register
 #define NV3_PFIFO_DEBUG_0                               0x2080      // PFIFO Debug Register
 #define NV3_PFIFO_CACHE0_ERROR_PENDING                  0
@@ -286,7 +288,7 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE0_METHOD_END                     0x3200
 #define NV3_PFIFO_CACHE0_METHOD_ADDRESS                 2           // 12:2
 #define NV3_PFIFO_CACHE0_METHOD_SUBCHANNEL              13          // 15:13
-#define NV3_PFIFO_CACHE1_PUSH0                      0x3200
+#define NV3_PFIFO_CACHE1_PUSH0                          0x3200
 #define NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID                0x3204
 #define NV3_PFIFO_CACHE1_PUT                            0x3210
 #define NV3_PFIFO_CACHE1_PUT_ADDRESS                    2           // 6:2
@@ -527,7 +529,7 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_INTR_0_SOFTWARE_NOTIFY               28          // Fired on software notification
 
 #define NV3_PGRAPH_INTR_1                               0x400104
-#define NV3_PGRAPH_INTR_1_INVALID_METHOD                0           // Invalid method
+#define NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING       0           // Software or invalid method
 #define NV3_PGRAPH_INTR_1_INVALID_DATA                  4           // Invalid data. Not sure when this would be triggered.
 #define NV3_PGRAPH_INTR_1_DOUBLE_NOTIFY                 12          // Tried to notify while a notify was pending.
 #define NV3_PGRAPH_INTR_1_CTXSW_NOTIFY                  16          // Notify fired for software context

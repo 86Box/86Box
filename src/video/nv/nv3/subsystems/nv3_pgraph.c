@@ -602,8 +602,6 @@ void nv3_pgraph_arbitrate_method(uint32_t param, uint16_t method, uint8_t channe
         }
     }
 
-    
-
     nv3_notify_if_needed(param, method, context, grobj);
 }
 
