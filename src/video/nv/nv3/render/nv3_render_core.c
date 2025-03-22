@@ -29,12 +29,6 @@
 #include <86box/nv/vid_nv3.h>
 #include <86box/utils/video_stdlib.h>
 
-/* Render Core: Performs a ROP */
-uint32_t nv3_perform_rop(uint32_t src, uint32_t dst, uint32_t pattern, nv3_render_operation_type rop)
-{
-    return video_rop_gdi_ternary(rop, dst, pattern, src);
-}
-
 /* Expand a colour.
    NOTE: THE GPU INTERNALLY OPERATES ON RGB10!!!!!!!!!!!
 */
@@ -108,6 +102,8 @@ nv3_color_expanded_t nv3_render_expand_color(nv3_grobj_t grobj, uint32_t color)
             color_final.r = color_final.g = color_final.b = (color & 0xFFFF) * 4; // convert to rgb10
             break;
         default:
+            warning("nv3_render_expand_color unknown format %d", format);
+            break;
         
     }
 
@@ -115,6 +111,39 @@ nv3_color_expanded_t nv3_render_expand_color(nv3_grobj_t grobj, uint32_t color)
     color_final.i16 = (color & 0xFFFF);
 
     return color_final;
+}
+
+/* Used for chroma test */
+uint32_t nv3_render_downconvert(nv3_grobj_t grobj, nv3_color_expanded_t color)
+{
+    uint8_t format = (grobj.grobj_0 & 0x07);
+    bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_ALPHA) & 0x01;
+
+    #ifdef ENABLE_NV_LOG
+    nv_log("Downconverting Colour 0x%08x using pgraph_pixel_format 0x%x alpha enabled=%d", color, format, alpha_enabled);
+    #endif
+
+    uint32_t packed_color = 0x00;
+
+    switch (format)
+    {
+        case nv3_pgraph_pixel_format_r5g5b5:
+            break;
+        case nv3_pgraph_pixel_format_r8g8b8:
+            break;
+        case nv3_pgraph_pixel_format_r10g10b10:
+            break;
+        case nv3_pgraph_pixel_format_y8:
+            break;
+        case nv3_pgraph_pixel_format_y16:
+            break;
+        default:
+            warning("nv3_render_downconvert_color unknown format %d", format);
+            break;
+
+    }
+
+    return packed_color;
 }
 
 /* Convert expanded colour format to chroma key format */
@@ -162,7 +191,23 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
     /* TODO: Chroma Key, Pattern, Plane Mask...*/
 
     /* Combine the current buffer with the pitch to get the address in the framebuffer to draw from. */
-    uint32_t pixel_addr_vram = position.x + (nv3->pgraph.bpitch[current_buffer]) * position.y + nv3->pgraph.boffset[current_buffer];
+
+    uint32_t vram_x = position.x;
+
+    // we have to multiply the x position by the number of bytes per pixel
+    switch (framebuffer_bpp)
+    {
+        case 8:
+            break;
+        case 16:
+            vram_x = position.x * 2;
+            break;
+        case 32:
+            vram_x = position.x * 4;
+            break;
+    }
+
+    uint32_t pixel_addr_vram = vram_x + (nv3->pgraph.bpitch[current_buffer] * position.y) + nv3->pgraph.boffset[current_buffer];
 
     pixel_addr_vram &= nv3->nvbase.svga.vram_mask;
 
@@ -180,7 +225,9 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
         case 8:
             src = color & 0xFF;
             dst = nv3->nvbase.svga.vram[pixel_addr_vram];
-            nv3->nvbase.svga.vram[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, src, dst, 0x00);
+            nv3->nvbase.svga.vram[pixel_addr_vram] = (int8_t)video_rop_gdi_ternary(nv3->pgraph.rop, src, dst, 0x00);
+
+            nv3->nvbase.svga.changedvram[pixel_addr_vram >> 12] = changeframecount;
 
             break;
         case 16:
@@ -189,7 +236,9 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
 
             src = color & 0xFFFF;
             dst = vram_16[pixel_addr_vram];
-            nv3->nvbase.svga.vram[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, src, dst, 0x00);
+            vram_16[pixel_addr_vram] = (int16_t)video_rop_gdi_ternary(nv3->pgraph.rop, src, dst, 0x00);
+
+            nv3->nvbase.svga.changedvram[pixel_addr_vram >> 11] = changeframecount;
 
             break;
         case 32:
@@ -198,11 +247,13 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
 
             src = color;
             dst = vram_32[pixel_addr_vram];
-            nv3->nvbase.svga.vram[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, src, dst, 0x00);
+            vram_32[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, src, dst, 0x00);
+
+            nv3->nvbase.svga.changedvram[pixel_addr_vram >> 10] = changeframecount;
 
             break;
     }
 
-    nv3->nvbase.svga.changedvram[pixel_addr_vram >> 12] = changeframecount;
     
 }
+

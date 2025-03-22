@@ -32,6 +32,12 @@ void nv3_class_003_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
 {
     switch (method_id)
     {
+        case NV3_CHROMA_KEY:
+            nv3_color_expanded_t expanded_color = nv3_render_expand_color(grobj, param);
+
+            uint32_t color = nv3_render_to_chroma(expanded_color);
+            nv3->pgraph.chroma_key = *(nv3_color_x2a10g10b10_t*)&color;
+            break; 
         default:
             nv_log("%s: Invalid or Unimplemented method 0x%04x", nv3_class_names[context.class_id & 0x1F], method_id);
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);

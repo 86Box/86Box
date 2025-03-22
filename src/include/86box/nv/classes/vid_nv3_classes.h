@@ -81,6 +81,8 @@ typedef enum nv3_pgraph_class_e
 
 #define NV3_BETA_FACTOR                                 0x0300
 
+#define NV3_CHROMA_KEY                                  0x0304
+
 #define NV3_CLIP_POSITION                               0x0300  // S16:S16, 0=topleft
 #define NV3_CLIP_SIZE                                   0x0304  // U16:U16
 

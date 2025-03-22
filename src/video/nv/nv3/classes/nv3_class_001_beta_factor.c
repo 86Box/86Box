@@ -32,6 +32,14 @@ void nv3_class_001_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
 {
     switch (method_id)
     {
+        /* even if we don't do anything with this yet... */
+        case NV3_BETA_FACTOR:
+            if (param & 0x80000000) /* bit0 */
+                nv3->pgraph.beta_factor = 0;
+            else 
+                nv3->pgraph.beta_factor = param & 0x7F800000;
+
+            break;
         default:
             nv_log("%s: Invalid or Unimplemented method 0x%04x", nv3_class_names[context.class_id & 0x1F], method_id);
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
