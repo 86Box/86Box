@@ -26,6 +26,7 @@
 #endif
 #ifdef __NetBSD__
 #    define _NETBSD_VISIBLE 1
+#    define _NETBSD_SOURCE 1
 #endif
 #include <stdio.h>
 #include <fcntl.h>
@@ -149,8 +150,11 @@ plat_serpt_set_params(void *priv)
         BAUDRATE_RANGE(dev->baudrate, 9600, 19200, B9600);
         BAUDRATE_RANGE(dev->baudrate, 19200, 38400, B19200);
         BAUDRATE_RANGE(dev->baudrate, 38400, 57600, B38400);
+#ifndef __NetBSD__
+	/* nonexistent on NetBSD */
         BAUDRATE_RANGE(dev->baudrate, 57600, 115200, B57600);
         BAUDRATE_RANGE(dev->baudrate, 115200, 0xFFFFFFFF, B115200);
+#endif
 
         term_attr.c_cflag &= ~CSIZE;
         switch (dev->data_bits) {

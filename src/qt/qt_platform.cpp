@@ -836,7 +836,7 @@ plat_set_thread_name(void *thread, const char *name)
 #    if defined(Q_OS_DARWIN)
     pthread_setname_np(truncated);
 #    elif defined(Q_OS_NETBSD)
-    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, "%s");
+    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, (void*)"%s");
 #    elif defined(__HAIKU__)
     rename_thread(find_thread(NULL), truncated);
 #    elif defined(Q_OS_OPENBSD)
