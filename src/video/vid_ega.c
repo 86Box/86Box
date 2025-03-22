@@ -486,19 +486,19 @@ ega_recalctimings(ega_t *ega)
 
     if (ega->crtc[7] & 1)
         ega->vtotal |= 0x100;
-    if (ega->crtc[7] & 32)
+    if ((ega->actual_type != EGA_SUPEREGA) && (ega->crtc[7] & 32))
         ega->vtotal |= 0x200;
     ega->vtotal += 2;
 
     if (ega->crtc[7] & 2)
         ega->dispend |= 0x100;
-    if (ega->crtc[7] & 64)
+    if ((ega->actual_type != EGA_SUPEREGA) && (ega->crtc[7] & 64))
         ega->dispend |= 0x200;
     ega->dispend++;
 
     if (ega->crtc[7] & 4)
         ega->vsyncstart |= 0x100;
-    if (ega->crtc[7] & 128)
+    if ((ega->actual_type != EGA_SUPEREGA) && (ega->crtc[7] & 128))
         ega->vsyncstart |= 0x200;
     ega->vsyncstart++;
 
