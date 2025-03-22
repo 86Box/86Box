@@ -263,3 +263,7 @@ else()
     add_compile_definitions(USE_SDL_UI)
     add_subdirectory(unix)
 endif()
+
+if(CMAKE_SYSTEM_NAME MATCHES "NetBSD")
+    add_custom_command(TARGET 86Box POST_BUILD COMMAND paxctl ARGS +m $<TARGET_FILE:86Box> COMMENT "Disable PaX MPROTECT")
+endif()

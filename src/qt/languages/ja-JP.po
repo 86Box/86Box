@@ -868,7 +868,7 @@ msgid "Hardware not available"
 msgstr "ハードウェアが利用できません"
 
 msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "がインストールされてるか、%1に対応したネットワークに接続されてるか確認してください。"
+msgstr "%1がインストールされていてかつ、%1に対応したネットワークに接続されてるか確認してください。"
 
 msgid "Invalid configuration"
 msgstr "不正な設定です"
@@ -910,10 +910,10 @@ msgid "OpenGL options"
 msgstr "OpenGL設定"
 
 msgid "You are loading an unsupported configuration"
-msgstr "読み込んでいる設定がサポートされません"
+msgstr "サポートされていないコンフィグを読み込んでいます"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "選択したマシンに基づくCPUタイプのフィルター機能は、使用中のマシンでは無効になっています。\n\nこれにより、選択したマシンと互換性のないCPUが選択できます。しかし、マシンのBIOSや他のソフトウェアと互換性がない場合があります。\n\nこの設定を有効にすることは公式にはサポートされておらず、バグレポートは無効として中止される可能性があります。"
+msgstr "選択したマシンに基づくCPUタイプのフィルター機能は、使用中のマシンでは無効になっています。\n\nこれにより、選択したマシンと互換性のないCPUが選択できます。しかし、マシンのBIOSや他のソフトウェアと互換性がない場合があります。\n\nこの設定を有効にすることは公式にはサポートされておらず、バグレポートは無効としてクローズされる可能性があります。"
 
 msgid "Continue"
 msgstr "続行"
@@ -1015,7 +1015,7 @@ msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "選択したファイルは上書きされます。よろしいですか？"
 
 msgid "Unsupported disk image"
-msgstr "非対応のディスクイメージジ"
+msgstr "非対応のディスクイメージ"
 
 msgid "Overwrite"
 msgstr "上書き"
@@ -1285,7 +1285,7 @@ msgid "Host CD/DVD Drive (%1)"
 msgstr "ホスト CD/DVD ドライブ (%1)"
 
 msgid "Unknown Bus"
-msgstr "不明バス"
+msgstr "不明なバス"
 
 msgid "Null Driver"
 msgstr "ヌル・ドライバー"
@@ -1294,7 +1294,7 @@ msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
 msgid "Error opening \"%1\": %2"
-msgstr "エラー・オープニング\"%1\": %2"
+msgstr "\"%1\"を開く際にエラーが発生しました: %2"
 
 msgid "Error compiling vertex shader in file \"%1\""
 msgstr "ファイル\"%1\"の頂点シェーダのコンパイルエラー。"
