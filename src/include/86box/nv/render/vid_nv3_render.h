@@ -24,4 +24,5 @@ nv3_color_expanded_t nv3_render_expand_color(nv3_grobj_t grobj, uint32_t color);
 
 /* Primitives */
 void nv3_render_rect(nv3_position_16_t position, nv3_size_16_t size, uint32_t color, nv3_grobj_t grobj);
+
 void nv3_render_chroma_test(nv3_grobj_t grobj);

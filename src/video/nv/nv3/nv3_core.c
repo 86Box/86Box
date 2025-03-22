@@ -481,8 +481,10 @@ void nv3_recalc_timings(svga_t* svga)
 
     nv3_t* nv3 = (nv3_t*)svga->priv;
 
+   
     svga->ma_latch += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0x1F) << 16;
-    svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 3;
+    
+    svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 2;
 
     // should these actually use separate values?
     // i don't we should force the top 2 bits to 1...
@@ -494,7 +496,6 @@ void nv3_recalc_timings(svga_t* svga)
     if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VRS10)) svga->vblankstart += 0x400;
     if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VBS10)) svga->vsyncstart += 0x400;
     if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_HBE6)) svga->hdisp += 0x400;  
-
 
     if (svga->crtc[NV3_CRTC_REGISTER_HEB] & 0x01)
         svga->hdisp += 0x100; // large screen bit
@@ -509,9 +510,20 @@ void nv3_recalc_timings(svga_t* svga)
             svga->render = svga_render_8bpp_highres;
             break;
         case NV3_CRTC_REGISTER_PIXELMODE_16BPP:
-            svga->bpp = 16;
-            svga->lowres = 0;
-            svga->render = svga_render_16bpp_highres;
+        /* sometimes it really renders in 15bpp, so you need to do this */
+            if ((nv3->pramdac.general_control >> NV3_PRAMDAC_GENERAL_CONTROL_565_MODE) & 0x01)
+            {
+                svga->bpp = 16;
+                svga->lowres = 0;
+                svga->render = svga_render_16bpp_highres;
+            }
+            else
+            {
+                svga->bpp = 16; // HACK: DO NOT change this
+                svga->lowres = 0;
+                svga->render = svga_render_15bpp_highres;
+            }
+        
             break;
         case NV3_CRTC_REGISTER_PIXELMODE_32BPP:
             svga->bpp = 32;

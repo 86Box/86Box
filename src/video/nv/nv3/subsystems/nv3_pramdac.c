@@ -328,6 +328,7 @@ void nv3_pramdac_write(uint32_t address, uint32_t value)
                     break;
                 case NV3_PRAMDAC_GENERAL_CONTROL:
                     nv3->pramdac.general_control = value;
+                    nv3_recalc_timings(&nv3->nvbase.svga);
                     break;
                 case NV3_PRAMDAC_VSERR_WIDTH:
                     //vslines?

@@ -23,6 +23,7 @@
 #include <86box/device.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
+#include <86box/plat.h>
 #include <86box/rom.h>
 #include <86box/video.h>
 #include <86box/nv/vid_nv.h>
@@ -175,6 +176,8 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
     #ifdef DEBUG
     uint8_t color_format_object = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_COLOR_FORMAT) & 0x07;
     #endif
+    bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_ALPHA) & 0x01;
+
     uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp; // maybe y16 too?
     uint32_t current_buffer = (nv3->pgraph.context_switch >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03; 
 
@@ -235,7 +238,7 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
         case 8:
             src = color & 0xFF;
             dst = nv3->nvbase.svga.vram[pixel_addr_vram];
-            nv3->nvbase.svga.vram[pixel_addr_vram] = (int8_t)video_rop_gdi_ternary(nv3->pgraph.rop, src, dst, 0x00);
+            nv3->nvbase.svga.vram[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, src, dst, 0x00) & 0xFF;
 
             nv3->nvbase.svga.changedvram[pixel_addr_vram >> 12] = changeframecount;
 
@@ -244,9 +247,18 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
             uint16_t* vram_16 = (uint16_t*)(nv3->nvbase.svga.vram);
             pixel_addr_vram >>= 1; 
 
-            src = color & 0xFFFF;
+            // mask off the alpha bit. Even though the drivers should send this. What!
+            if (!alpha_enabled)
+                src = ((color & (~0x8000)) & 0xFFFF);
+            else 
+                src = color & 0xFFFF;
+
+            // convert to 16bpp
+            // forcing it to render in 15bpp fixes it, 
+
+            
             dst = vram_16[pixel_addr_vram];
-            vram_16[pixel_addr_vram] = (int16_t)video_rop_gdi_ternary(nv3->pgraph.rop, src, dst, 0x00);
+            vram_16[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, src, dst, 0x00) & 0xFFFF;
 
             nv3->nvbase.svga.changedvram[pixel_addr_vram >> 11] = changeframecount;
 
@@ -263,7 +275,4 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
 
             break;
     }
-
-    
 }
-
