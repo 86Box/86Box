@@ -178,6 +178,7 @@ extern uint8_t ega_in(uint16_t addr, void *priv);
 extern void    ega_poll(void *priv);
 extern void    ega_write(uint32_t addr, uint8_t val, void *priv);
 extern uint8_t ega_read(uint32_t addr, void *priv);
+extern void    ega_set_type(void *priv, uint32_t local);
 
 extern int firstline_draw;
 extern int lastline_draw;

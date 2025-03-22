@@ -67,6 +67,8 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
     ega_t  *ega = (ega_t *) priv;
     uint8_t o;
     uint8_t old;
+    uint8_t gdcmask  = (ega->actual_type == EGA_SUPEREGA) ? 0xff : 0x0f;
+    uint8_t crtcmask = (ega->actual_type == EGA_SUPEREGA) ? 0xff : 0x1f;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1))
         addr ^= 0x60;
@@ -200,8 +202,8 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
             ega->gdcaddr = val;
             break;
         case 0x3cf:
-            ega->gdcreg[ega->gdcaddr & 15] = val;
-            switch (ega->gdcaddr & 15) {
+            ega->gdcreg[ega->gdcaddr & gdcmask] = val;
+            switch (ega->gdcaddr & gdcmask) {
                 case 2:
                     ega->colourcompare = val;
                     break;
@@ -238,6 +240,19 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                     ega->colournocare = val;
                     break;
 
+                case 0xf8:
+                    ega->la = val;
+                    break;
+                case 0xf9:
+                    ega->lb = val;
+                    break;
+                case 0xfa:
+                    ega->lc = val;
+                    break;
+                case 0xfb:
+                    ega->ld = val;
+                    break;
+
                 default:
                     break;
             }
@@ -247,7 +262,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
             if (ega->chipset)
                 ega->crtcreg = val & 0x3f;
             else
-                ega->crtcreg = val & 0x1f;
+                ega->crtcreg = val & crtcmask;
             return;
         case 0x3d1:
         case 0x3d5:
@@ -286,7 +301,8 @@ uint8_t
 ega_in(uint16_t addr, void *priv)
 {
     ega_t  *ega = (ega_t *) priv;
-    uint8_t ret = 0xff;
+    uint8_t gdcmask = (ega->actual_type == EGA_SUPEREGA) ? 0xff : 0x0f;
+    uint8_t ret     = 0xff;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1))
         addr ^= 0x60;
@@ -347,8 +363,25 @@ ega_in(uint16_t addr, void *priv)
                 ret = ega->gdcaddr;
             break;
         case 0x3cf:
-            if (ega_type == EGA_TYPE_OTHER)
-                ret = ega->gdcreg[ega->gdcaddr & 0xf];
+            if (ega_type == EGA_TYPE_OTHER) {
+                switch (ega->gdcaddr & gdcmask) {
+                    default:
+                        ret = ega->gdcreg[ega->gdcaddr & gdcmask];
+                        break;
+                    case 0xf8:
+                        ret = ega->la;
+                        break;
+                    case 0xf9:
+                        ret = ega->lb;
+                        break;
+                    case 0xfa:
+                        ret = ega->lc;
+                        break;
+                    case 0xfb:
+                        ret = ega->ld;
+                        break;
+                }
+            }
             break;
         case 0x3d0:
         case 0x3d4:
@@ -1426,6 +1459,30 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
     timer_add(&ega->timer, ega_poll, ega, 1);
     if (ega_type == EGA_TYPE_COMPAQ)
         timer_add(&ega->dot_timer, ega_dot_poll, ega, 1);
+}
+
+void
+ega_set_type(void *priv, uint32_t local)
+{
+    ega_t *ega = (ega_t *) priv;
+
+    if ((local == EGA_IBM) || (local == EGA_ISKRA) || (local == EGA_TSENG))
+        ega_type = EGA_TYPE_IBM;
+    else if (local == EGA_COMPAQ)
+        ega_type = EGA_TYPE_COMPAQ;
+    else
+        ega_type = EGA_TYPE_OTHER;
+
+    ega->actual_type = local;
+    ega->chipset = 0;
+
+    switch (local) {
+        default:
+            break;
+        case EGA_ATI800P:
+            ega->chipset = 1;
+            break;
+    }
 }
 
 static void *
