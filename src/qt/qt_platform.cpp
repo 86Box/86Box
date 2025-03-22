@@ -54,6 +54,10 @@
 #include "qt_progsettings.hpp"
 #include "qt_util.hpp"
 
+#ifndef Q_OS_WINDOWS
+#    include <signal.h>
+#endif
+
 #ifdef Q_OS_UNIX
 #    include <pthread.h>
 #    include <sys/mman.h>
