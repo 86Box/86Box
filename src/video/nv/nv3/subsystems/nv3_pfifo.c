@@ -295,28 +295,57 @@ uint32_t nv3_pfifo_read(uint32_t address)
     {
         nv_log("PFIFO Cache0 Read\n");
 
-        if (address & 4) 
+        // See if we want the object name or the channel/subchannel information.
+        if (address & 4)
+        {
+            nv_log("Data=0x%08x\n", nv3->pfifo.cache0_entry.data);
             return nv3->pfifo.cache0_entry.data;
+        }
         else
+        {
+            uint32_t method = nv3->pfifo.cache0_entry.method;
+            uint32_t subchannel = nv3->pfifo.cache0_entry.subchannel;
+            uint32_t final = nv3->pfifo.cache0_entry.method | (nv3->pfifo.cache0_entry.subchannel << NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL);
+
+            nv_log("Method=0x%08x, ", nv3->pfifo.cache0_entry.method);
+            nv_log("Subchannel=0x%08x\n", nv3->pfifo.cache0_entry.subchannel);
+            nv_log("Final=0x%08x\n", final);
+
             return nv3->pfifo.cache0_entry.method | (nv3->pfifo.cache0_entry.subchannel << NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL);
+        }
     }
     else if (address >= NV3_PFIFO_CACHE1_METHOD_START && address <= NV3_PFIFO_CACHE1_METHOD_END)
     {       
         // Not sure if REV C changes this. It should...
         uint32_t slot = 0;
         
+        // shift right by 3, convert from address, to slot.
         if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00)
             slot = (address >> 3) & 0x3F;
         else 
             slot = (address >> 3) & 0x1F; 
 
-        nv_log("PFIFO Cache1 Read slot=%d\n", slot);
+        nv_log("PFIFO Cache1 Read slot=%d", slot);
 
         // See if we want the object name or the channel/subchannel information.
         if (address & 4)
+        {
+            nv_log("Data=0x%08x\n", nv3->pfifo.cache1_entries[slot].data);
             return nv3->pfifo.cache1_entries[slot].data;
+        }
         else
+        {
+            uint32_t method = nv3->pfifo.cache1_entries[slot].method;
+            uint32_t subchannel = nv3->pfifo.cache1_entries[slot].subchannel;
+            uint32_t final = nv3->pfifo.cache1_entries[slot].method | (nv3->pfifo.cache1_entries[slot].subchannel << NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL);
+
+            nv_log("Method=0x%08x, ", nv3->pfifo.cache1_entries[slot].method);
+            nv_log("Subchannel=0x%08x\n", nv3->pfifo.cache1_entries[slot].subchannel);
+            nv_log("Final=0x%08x\n", final);
+
             return nv3->pfifo.cache1_entries[slot].method | (nv3->pfifo.cache1_entries[slot].subchannel << NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL);
+        }
+            
     }
     else
     {
@@ -556,7 +585,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
     }
     else if (address >= NV3_PFIFO_CACHE0_METHOD_START && address <= NV3_PFIFO_CACHE0_METHOD_END)
     {
-        nv_log("PFIFO Cache0 Write");
+        nv_log("PFIFO Cache0 Write\n");
 
         // 3104 always written after 3100
         if (address & 4)
@@ -736,7 +765,7 @@ void nv3_pfifo_context_switch(uint32_t new_channel)
 
 // NV_USER writes go here!
 // Pushes graphics objects into cache1
-void nv3_pfifo_cache1_push(uint32_t addr, uint32_t object_name)
+void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
 {
     bool oh_shit = false;   // RAMRO needed
     nv3_ramin_ramro_reason oh_shit_reason = 0x00; // It's all good for now
@@ -811,7 +840,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t object_name)
     uint32_t current_put_address = nv3->pfifo.cache1_settings.put_address >> 2;
     nv3->pfifo.cache1_entries[current_put_address].subchannel = subchannel;
     nv3->pfifo.cache1_entries[current_put_address].method = method_offset;
-    nv3->pfifo.cache1_entries[current_put_address].data = object_name;
+    nv3->pfifo.cache1_entries[current_put_address].data = param;
 
     // now we have to recalculate the cache1 put address
     uint32_t next_put_address = nv3_pfifo_cache1_gray2normal(current_put_address);
@@ -825,7 +854,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t object_name)
     nv3->pfifo.cache1_settings.put_address = nv3_pfifo_cache1_normal2gray(next_put_address) << 2;
 
     nv_log("Submitted object [PIO]: Channel %d.%d, Parameter 0x%08x, Method ID 0x%04x (Put Address is now %d)\n",
-         channel, subchannel, object_name, method_offset, nv3->pfifo.cache1_settings.put_address);
+         channel, subchannel, param, method_offset, nv3->pfifo.cache1_settings.put_address);
    
     // Now we're done. Phew!
 }

@@ -32,7 +32,6 @@
 It is used to get the offset within RAMHT of a graphics object.
  */
 
-
 uint32_t nv3_ramht_hash(uint32_t name, uint32_t channel)
 {
     // the official nvidia hash algorithm, tweaked for readability

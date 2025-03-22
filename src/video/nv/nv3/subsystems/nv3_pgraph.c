@@ -613,11 +613,6 @@ void nv3_pgraph_submit(uint32_t param, uint16_t method, uint8_t channel, uint8_t
     
     switch (method)
     {
-        // This method is how we figure out which methods exist.
-        case NV3_ROOT_HI_IM_OBJECT_MCOBJECTYFACE:
-            nv_log("I'm an Nvidia Object!  channel=%d.%d class=0x%02x (%s) method=0x%04x parameter=0x%08x, context=0x%08x\n",
-            channel, subchannel, class_id, nv3_class_names[class_id], method, param, context);
-            break;
         default:
             // Object Method orchestration
             nv3_pgraph_arbitrate_method(param, method, channel, subchannel, class_id, context);

@@ -33,8 +33,13 @@ void nv3_generic_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t 
 {
     switch (method_id)
     {
-        // set up the current notification request/object]
-        // check for double notifiers.
+        /* mthdCreate in software(?)*/
+        case NV3_ROOT_HI_IM_OBJECT_MCOBJECTYFACE:
+            nv_log("mthdCreate\n");
+            nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
+            break;
+        // set up the current notification request/object
+        // and check for double notifiers.
         case NV3_SET_NOTIFY:
             if (nv3->pgraph.notify_pending)
             {

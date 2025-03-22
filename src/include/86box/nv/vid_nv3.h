@@ -266,7 +266,7 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_SIZE_MAX                       NV3_PFIFO_CACHE1_SIZE_REV_C
 #define NV3_PFIFO_CACHE_REASSIGNMENT                    0x2500        
 
-#define NV3_PFIFO_CACHE0_PUSH0                      0x3000
+#define NV3_PFIFO_CACHE0_PUSH0                          0x3000
 #define NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID                0x3004
 #define NV3_PFIFO_CACHE0_PUT                            0x3010
 #define NV3_PFIFO_CACHE0_STATUS                         0x3014
@@ -309,11 +309,11 @@ extern const device_config_t nv3_config[];
 #define NV3_PFIFO_CACHE1_DMA_TLB_TAG                    0x3230
 #define NV3_PFIFO_CACHE1_DMA_TLB_PTE                    0x3234      // Base of pagetableor DMA
 #define NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE                0x3238      // Base of pagetable for DMA
-#define NV3_PFIFO_CACHE1_PULL0                      0x3240
+#define NV3_PFIFO_CACHE1_PULL0                          0x3240
 //todo: merge stuff
-#define NV3_PFIFO_CACHE1_PULL0_ENABLED              0
-#define NV3_PFIFO_CACHE1_PULL0_HASH_FAILURE         4
-#define NV3_PFIFO_CACHE1_PULL0_SOFTWARE_METHOD      8           // 0=software, 1=hardware
+#define NV3_PFIFO_CACHE1_PULL0_ENABLED                  0
+#define NV3_PFIFO_CACHE1_PULL0_HASH_FAILURE             4   
+#define NV3_PFIFO_CACHE1_PULL0_SOFTWARE_METHOD          8           // 0=software, 1=hardware
 #define NV3_PFIFO_CACHE1_PULLER_CTX_STATE               0x3250
 #define NV3_PFIFO_CACHE1_PULLER_CTX_STATE_DIRTY         4
 #define NV3_PFIFO_CACHE1_GET                            0x3270
@@ -997,8 +997,8 @@ typedef struct nv3_pfifo_cache_s
 
 typedef struct nv3_pfifo_cache_entry_s
 {
-    uint8_t subchannel : 3;
-    uint16_t method : 11;               // method id depending on class (offset from entry channel start in ramin)
+    uint16_t method;                    // method id depending on class (offset from entry channel start in ramin)
+    uint8_t subchannel;
     uint32_t data;                      // is this the context
 
 } nv3_pfifo_cache_entry_t; 
