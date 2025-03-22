@@ -24,6 +24,11 @@
 extern "C" {
 #    endif
 
+#ifdef __NetBSD__
+/* Doesn't compile on NetBSD without this include */
+#include <stdarg.h>
+#endif
+
 #define LOG_SIZE_BUFFER                 1024            /* Log size buffer */
 #define LOG_SIZE_BUFFER_CYCLIC_LINES    32              /* Cyclic log size buffer (number of lines that should be cehcked) */
 #define LOG_MINIMUM_REPEAT_ORDER        4               /* Minimum repeat size */

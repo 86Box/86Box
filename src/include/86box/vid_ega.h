@@ -47,8 +47,8 @@ typedef struct ega_t {
     uint8_t ctl_mode;
     uint8_t color_mux;
     uint8_t dot;
-    uint8_t crtc[32];
-    uint8_t gdcreg[16];
+    uint8_t crtc[256];
+    uint8_t gdcreg[256];
     uint8_t attrregs[32];
     uint8_t seqregs[64];
     uint8_t egapal[16];
@@ -178,6 +178,7 @@ extern uint8_t ega_in(uint16_t addr, void *priv);
 extern void    ega_poll(void *priv);
 extern void    ega_write(uint32_t addr, uint8_t val, void *priv);
 extern uint8_t ega_read(uint32_t addr, void *priv);
+extern void    ega_set_type(void *priv, uint32_t local);
 
 extern int firstline_draw;
 extern int lastline_draw;

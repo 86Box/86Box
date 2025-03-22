@@ -20,6 +20,11 @@
 #ifndef EMU_86BOX_H
 #define EMU_86BOX_H
 
+#ifdef __NetBSD__
+/* Doesn't compile on NetBSD without this include */
+#include <stdarg.h>
+#endif
+
 /* Configuration values. */
 #define GFXCARD_MAX  2
 #define SERIAL_MAX   7
