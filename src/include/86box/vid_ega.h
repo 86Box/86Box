@@ -73,6 +73,7 @@ typedef struct ega_t {
     int oddeven_page;
     int oddeven_chain;
     int vc;
+    int real_vc;
     int sc;
     int dispon;
     int hdisp_on;

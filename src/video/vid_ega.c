@@ -620,11 +620,15 @@ ega_recalctimings(ega_t *ega)
         ega->y_add >>= 1;
 
     if (ega->seqregs[1] & 8) {
-        disptime    = (double) ((ega->crtc[0] + 2) << 1);
-        _dispontime = (double) ((ega->crtc[1] + 1) << 1);
+        disptime     = (double) ((ega->crtc[0] + 2) << 1);
+        _dispontime  = (double) ((ega->crtc[1] + 1) << 1);
     } else {
-        disptime    = (double) (ega->crtc[0] + 2);
-        _dispontime = (double) (ega->crtc[1] + 1);
+        disptime     = (double) (ega->crtc[0] + 2);
+        _dispontime  = (double) (ega->crtc[1] + 1);
+    }
+    if ((ega->actual_type == EGA_SUPEREGA) && (ega->crtc[0xf9] & 0x01)) {
+        disptime    *= 2.0;
+        _dispontime *= 2.0;
     }
     _dispofftime = disptime - _dispontime;
     _dispontime *= crtcconst;
@@ -852,7 +856,10 @@ ega_poll(void *priv)
                 ega->cca = ega->maback;
             }
         }
-        ega->vc++;
+        ega->real_vc++;
+        if ((ega->actual_type != EGA_SUPEREGA) || !(ega->crtc[0xf9] & 0x02) ||
+            !(ega->real_vc & 1))
+            ega->vc++;
         if (ega->chipset) {
             if (ega->hdisp > 640)
                 ega->vc &= 1023;
@@ -905,9 +912,13 @@ ega_poll(void *priv)
 
             if (ega->vres) {
                 wy = (ega->lastline - ega->firstline) << 1;
+                if ((ega->actual_type == EGA_SUPEREGA) && (ega->crtc[0xf9] & 0x02))
+                    wy >>= 1;
                 ega_doblit(wx, wy, ega);
             } else {
                 wy = ega->lastline - ega->firstline;
+                if ((ega->actual_type == EGA_SUPEREGA) && (ega->crtc[0xf9] & 0x02))
+                    wy >>= 1;
                 ega_doblit(wx, wy, ega);
             }
 
