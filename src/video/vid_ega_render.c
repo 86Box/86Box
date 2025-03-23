@@ -177,7 +177,7 @@ ega_render_text(ega_t *ega)
 
             for (int xx = 0; xx < charwidth; xx++) {
                 if (monoattrs) {
-                    if ((ega->sc == (ega->crtc[0x14] + 1)) && ((attr & 7) == 1))
+                    if ((ega->sc == ega->crtc[0x14]) && ((attr & 7) == 1))
                         p[xx] = ega->mdacols[attr][attrblink][1];
                     else
                         p[xx] = ega->mdacols[attr][attrblink][dat & (0x100 >> (xx >> dwshift))];
