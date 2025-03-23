@@ -226,6 +226,21 @@ flushmmucache(void)
 }
 
 void
+flushmmucache_write(void)
+{
+    for (uint16_t c = 0; c < 256; c++) {
+        if (writelookup[c] != (int) 0xffffffff) {
+            page_lookup[writelookup[c]]  = NULL;
+            page_lookupp[writelookup[c]] = 4;
+            writelookup2[writelookup[c]] = LOOKUP_INV;
+            writelookupp[writelookup[c]] = 4;
+            writelookup[c]               = 0xffffffff;
+        }
+    }
+    mmuflush++;
+}
+
+void
 flushmmucache_pc(void)
 {
     mmuflush++;
