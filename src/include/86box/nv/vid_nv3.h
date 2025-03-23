@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   20 March 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   22 March 2025 (STILL WORKING ON IT!!!)
  *  
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -1227,6 +1227,7 @@ typedef struct nv3_pgraph_s
     struct nv3_object_class_00E scaled_image_from_memory;
     struct nv3_object_class_010 blit;
     struct nv3_object_class_011 image;
+    nv3_position_16_t image_current_position;                /* This is here so we can hold the current state of the image */
     struct nv3_object_class_012 bitmap;
     struct nv3_object_class_014 transfer2memory;
     struct nv3_object_class_015 stretched_image_from_cpu;

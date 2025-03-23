@@ -92,7 +92,15 @@ typedef enum nv3_pgraph_class_e
 #define NV3_RECTANGLE_START                             0x0400
 
 #define NV3_RECTANGLE_MAX                               16
-#define NV3_RECTNAGLE_END                               0x0480
+#define NV3_RECTANGLE_END                               0x0480
+
+// image_from_cpu
+#define NV3_IMAGE_START_POSITION                        0x0304  // starting position of image from cpu
+#define NV3_IMAGE_SIZE                                  0x0308
+#define NV3_IMAGE_SIZE_IN                               0x030C
+#define NV3_IMAGE_COLOR_START                           0x0400
+#define NV3_IMAGE_COLOR_MAX                             32
+#define NV3_IMAGE_COLOR_END                             0x0480
 
 #define NV3_IMAGE_IN_MEMORY_COLOR_FORMAT                0x0300
 #define NV3_IMAGE_IN_MEMORY_IN_MEMORY_DMA_CTX_TYPE      0x0304
