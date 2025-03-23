@@ -189,6 +189,9 @@ ega_render_text(ega_t *ega)
             p += charwidth;
         }
         ega->ma &= 0x3ffff;
+
+        if (monoattrs)
+            video_process_8(ega->hdisp + ega->scrollcache, ega->displine);
     }
 }
 
