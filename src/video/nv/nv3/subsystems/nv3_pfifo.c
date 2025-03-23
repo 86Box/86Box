@@ -653,14 +653,27 @@ that existed here before didn't make any sense
 #define NV3_GRAY_TABLE_NUM_ENTRIES 64
 
 uint8_t nv3_pfifo_cache1_gray_code_table[NV3_GRAY_TABLE_NUM_ENTRIES] = {
-    0b000000, 0b000001, 0b000011, 0b000010, 0b000110, 0b000111, 0b000101, 0b000100,
-    0b001100, 0b001101, 0b001111, 0b001110, 0b001010, 0b001011, 0b001001, 0b001000,
-    0b011000, 0b011001, 0b011011, 0b011010, 0b011110, 0b011111, 0b011101, 0b011100,
-    0b010100, 0b010101, 0b010111, 0b010110, 0b010010, 0b010011, 0b010001, 0b010000,
-    0b110000, 0b110001, 0b110011, 0b110010, 0b110110, 0b110111, 0b110101, 0b110100,
-    0b111100, 0b111101, 0b111111, 0b111110, 0b111010, 0b111011, 0b111001, 0b111000,
-    0b101000, 0b101001, 0b101011, 0b101010, 0b101110, 0b101111, 0b101101, 0b101100,
-    0b100100, 0b100101, 0b100111, 0b100110, 0b100010, 0b100011, 0b100001, 0b100000
+    0b000000, 0b000001, 0b000011, 0b000010, 0b000110, 0b000111, 0b000101, 0b000100, //0x07
+    0b001100, 0b001101, 0b001111, 0b001110, 0b001010, 0b001011, 0b001001, 0b001000, //0x0F
+    0b011000, 0b011001, 0b011011, 0b011010, 0b011110, 0b011111, 0b011101, 0b011100, //0x17
+    0b010100, 0b010101, 0b010111, 0b010110, 0b010010, 0b010011, 0b010001, 0b010000, //0x1F
+    0b110000, 0b110001, 0b110011, 0b110010, 0b110110, 0b110111, 0b110101, 0b110100, //0x27
+    0b111100, 0b111101, 0b111111, 0b111110, 0b111010, 0b111011, 0b111001, 0b111000, //0x2F
+    0b101000, 0b101001, 0b101011, 0b101010, 0b101110, 0b101111, 0b101101, 0b101100, //0x37
+    0b100100, 0b100101, 0b100111, 0b100110, 0b100010, 0b100011, 0b100001, 0b100000  //0x3F
+};
+
+/* The function is called up to hundreds of thousands of times per second, it's too slow to do anything else */
+uint8_t nv3_pfifo_cache1_binary_code_table[NV3_GRAY_TABLE_NUM_ENTRIES] =
+{
+    0x00, 0x01, 0x03, 0x02, 0x07, 0x06, 0x04, 0x05, // 0x07 (0)
+    0x0F, 0x0E, 0x0C, 0x0D, 0x08, 0x09, 0x0B, 0x0A, // 0x0F (1000)
+    0x1F, 0x1E, 0x1C, 0x1D, 0x18, 0x19, 0x1B, 0x1A, // 0x17 (10000)
+    0x10, 0x11, 0x13, 0x12, 0x17, 0x16, 0x14, 0x15, // 0x1F (11000)
+    0x3F, 0x3E, 0x3C, 0x3D, 0x38, 0x39, 0x3B, 0x3A, // 0x27 (100000)
+    0x30, 0x31, 0x33, 0x32, 0x37, 0x36, 0x34, 0x35, // 0x2F (101000)
+    0x20, 0x21, 0x23, 0x22, 0x27, 0x26, 0x24, 0x25, // 0x37 (110000)
+    0x2F, 0x2E, 0x2C, 0x2D, 0x28, 0x29, 0x2B, 0x2A, // 0X3f (111000)
 };
 
 uint32_t nv3_pfifo_cache1_normal2gray(uint32_t val)
@@ -673,14 +686,7 @@ Back to sanity
 */
 uint32_t nv3_pfifo_cache1_gray2normal(uint32_t val)
 {
-    /* Is this a good idea? */
-    for (uint32_t i = 0; i < NV3_GRAY_TABLE_NUM_ENTRIES; i++)
-    {
-        if (nv3_pfifo_cache1_gray_code_table[i] == val)
-            return i;
-    }
-
-    return 0x00;
+    return nv3_pfifo_cache1_binary_code_table[val];
 }
 
 // Submits graphics objects INTO cache0
@@ -854,13 +860,13 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
     }
 
     // We didn't. Let's put it in CACHE1
-    uint32_t current_put_address = nv3->pfifo.cache1_settings.put_address >> 2;
-    nv3->pfifo.cache1_entries[current_put_address].subchannel = subchannel;
-    nv3->pfifo.cache1_entries[current_put_address].method = method_offset;
-    nv3->pfifo.cache1_entries[current_put_address].data = param;
+    uint32_t current_put_index = nv3->pfifo.cache1_settings.put_address >> 2;
+    nv3->pfifo.cache1_entries[current_put_index].subchannel = subchannel;
+    nv3->pfifo.cache1_entries[current_put_index].method = method_offset;
+    nv3->pfifo.cache1_entries[current_put_index].data = param;
 
     // now we have to recalculate the cache1 put address
-    uint32_t next_put_address = nv3_pfifo_cache1_gray2normal(current_put_address);
+    uint32_t next_put_address = nv3_pfifo_cache1_gray2normal(current_put_index);
     next_put_address++;
 
     if (nv3->nvbase.gpu_revision >= NV3_BOOT_REG_REV_C00) // RIVA 128ZX#

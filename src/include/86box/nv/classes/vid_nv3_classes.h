@@ -133,6 +133,8 @@ typedef enum nv3_pgraph_class_e
 #define NV3_IMAGE_IN_MEMORY_TOP_LEFT_OFFSET_END         22  
 
 #define NV3_W95TXT_COLORA                               0x03FC  // It's the colour of the text. This is used to submit a dummy object so the notifier can be used to sync in Win2000 DDraw6 drivers.
+#define NV3_W95TXT_COLORA_RECT_START                    0x0400
+#define NV3_W95TXT_COLORA_RECT_END                      0x05FF
 
 /* Class context switch method */
 typedef struct nv3_class_ctx_switch_method_s
