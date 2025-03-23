@@ -632,7 +632,7 @@ jega_init(const device_t *info)
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ega);
     jega->pallook = pallook64;
     ega_init(&jega->ega, 9, 0);
-    jega->ega.actual_type = EGA_SUPEREGA;
+    ega_set_type(&jega->ega, EGA_SUPEREGA);
     jega->ega.priv_parent = jega;
     mem_mapping_add(&jega->ega.mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, &jega->ega);
 
