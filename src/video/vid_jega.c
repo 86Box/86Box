@@ -60,8 +60,8 @@
 #define RINVALID_INDEX 0x30
 
 #define JEGA_PATH_BIOS     "roms/video/jega/JEGABIOS.BIN"
-#define IF386_PATH_VBIOS   "roms/video/jega/OKI_IF386SX_VBIOS.bin"
 #define JEGA_PATH_FONTDBCS "roms/video/jega/JPNZN16X.FNT"
+#define IF386_PATH_VBIOS   "roms/machines/if386sx/OKI_IF386SX_VBIOS.bin"
 #define SBCS19_FILESIZE    (256 * 19 * 2) /* 8 x 19 x 256 chr x 2 pages */
 #define DBCS16_CHARS       0x2c10
 #define DBCS16_FILESIZE    (DBCS16_CHARS * 16 * 2)
