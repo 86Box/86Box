@@ -53,7 +53,6 @@ typedef struct ega_t {
     uint8_t seqregs[64];
     uint8_t egapal[16];
     uint8_t regs[256];
-
     uint8_t *vram;
 
     uint16_t light_pen;
@@ -114,6 +113,9 @@ typedef struct ega_t {
     int remap_required;
     int actual_type;
     int chipset;
+    int mono_display;
+
+    int mdacols[256][2][2];
 
     uint32_t charseta;
     uint32_t charsetb;
