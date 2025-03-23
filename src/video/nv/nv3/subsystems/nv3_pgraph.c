@@ -63,10 +63,10 @@ nv_register_t pgraph_registers[] = {
     { NV3_PGRAPH_SRC_CANVAS_MAX, "PGRAPH Source Canvas Maximum Coordinates (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
     { NV3_PGRAPH_DST_CANVAS_MIN, "PGRAPH Destination Canvas Minimum Coordinates (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
     { NV3_PGRAPH_DST_CANVAS_MAX, "PGRAPH Destination Canvas Maximum Coordinates (Bits 30:16 = Y, Bits 10:0 = X)", NULL, NULL},
-    { NV3_PGRAPH_pattern_color_0_rgb, "PGRAPH Pattern Color 0_0 (Bits 29:20 = Red, Bits 19:10 = Green, Bits 9:0 = Blue)", NULL, NULL, },
-    { NV3_PGRAPH_pattern_color_0_alpha, "PGRAPH Pattern Color 0_1 (Bits 7:0 = Alpha)", NULL, NULL, },
-    { NV3_PGRAPH_pattern_color_1_rgb, "PGRAPH Pattern Color 1_0 (Bits 29:20 = Red, Bits 19:10 = Green, Bits 9:0 = Blue)", NULL, NULL, },
-    { NV3_PGRAPH_pattern_color_1_alpha, "PGRAPH Pattern Color 1_1 (Bits 7:0 = Alpha)", NULL, NULL, },
+    { NV3_PGRAPH_PATTERN_COLOR_0_RGB, "PGRAPH Pattern Color 0_0 (Bits 29:20 = Red, Bits 19:10 = Green, Bits 9:0 = Blue)", NULL, NULL, },
+    { NV3_PGRAPH_PATTERN_COLOR_0_ALPHA, "PGRAPH Pattern Color 0_1 (Bits 7:0 = Alpha)", NULL, NULL, },
+    { NV3_PGRAPH_PATTERN_COLOR_1_RGB, "PGRAPH Pattern Color 1_0 (Bits 29:20 = Red, Bits 19:10 = Green, Bits 9:0 = Blue)", NULL, NULL, },
+    { NV3_PGRAPH_PATTERN_COLOR_1_ALPHA, "PGRAPH Pattern Color 1_1 (Bits 7:0 = Alpha)", NULL, NULL, },
     { NV3_PGRAPH_PATTERN_BITMAP_HIGH, "PGRAPH Pattern Bitmap (High 32bits)", NULL, NULL},
     { NV3_PGRAPH_PATTERN_BITMAP_LOW, "PGRAPH Pattern Bitmap (Low 32bits)", NULL, NULL},
     { NV3_PGRAPH_PATTERN_SHAPE, "PGRAPH Pattern Shape (1:0 - 0=8x8, 1=64x1, 2=1x64)", NULL, NULL},
@@ -185,16 +185,16 @@ uint32_t nv3_pgraph_read(uint32_t address)
                     ret = *(uint32_t*)&nv3->pgraph.src_canvas_max;
                     break;
                 // Pattern
-                case NV3_PGRAPH_pattern_color_0_rgb:
+                case NV3_PGRAPH_PATTERN_COLOR_0_RGB:
                     ret = *(uint32_t*)&nv3->pgraph.pattern_color_0_rgb;
                     break;
-                case NV3_PGRAPH_pattern_color_0_alpha:
+                case NV3_PGRAPH_PATTERN_COLOR_0_ALPHA:
                     ret = *(uint32_t*)&nv3->pgraph.pattern_color_0_alpha;
                     break;
-                case NV3_PGRAPH_pattern_color_1_rgb:
+                case NV3_PGRAPH_PATTERN_COLOR_1_RGB:
                     ret = *(uint32_t*)&nv3->pgraph.pattern_color_1_rgb;
                     break;
-                case NV3_PGRAPH_pattern_color_1_alpha:
+                case NV3_PGRAPH_PATTERN_COLOR_1_ALPHA:
                     ret = *(uint32_t*)&nv3->pgraph.pattern_color_1_alpha;
                     break;
                 case NV3_PGRAPH_PATTERN_BITMAP_HIGH:
@@ -388,16 +388,16 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
                     *(uint32_t*)&nv3->pgraph.src_canvas_max = value;
                     break;
                 // Pattern
-                case NV3_PGRAPH_pattern_color_0_rgb:
+                case NV3_PGRAPH_PATTERN_COLOR_0_RGB:
                     *(uint32_t*)&nv3->pgraph.pattern_color_0_rgb = value;
                     break;
-                case NV3_PGRAPH_pattern_color_0_alpha:
+                case NV3_PGRAPH_PATTERN_COLOR_0_ALPHA:
                     *(uint32_t*)&nv3->pgraph.pattern_color_0_alpha = value;
                     break;
-                case NV3_PGRAPH_pattern_color_1_rgb:
+                case NV3_PGRAPH_PATTERN_COLOR_1_RGB:
                     *(uint32_t*)&nv3->pgraph.pattern_color_1_rgb = value;
                     break;
-                case NV3_PGRAPH_pattern_color_1_alpha:
+                case NV3_PGRAPH_PATTERN_COLOR_1_ALPHA:
                     *(uint32_t*)&nv3->pgraph.pattern_color_1_alpha = value;
                     break;
                 case NV3_PGRAPH_PATTERN_BITMAP_HIGH:

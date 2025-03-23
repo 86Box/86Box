@@ -113,6 +113,11 @@ typedef enum nv3_pgraph_class_e
 #define NV3_RECTANGLE_MAX                               16
 #define NV3_RECTANGLE_END                               0x0480
 
+// blit
+#define NV3_BLIT_POSITION_IN                            0x0300
+#define NV3_BLIT_POSITION_OUT                           0x0304
+#define NV3_BLIT_SIZE                                   0x0308
+
 // image_from_cpu
 #define NV3_IMAGE_START_POSITION                        0x0304  // starting position of image from cpu
 #define NV3_IMAGE_SIZE                                  0x0308

@@ -128,7 +128,9 @@ add_library(vid OBJECT
     nv/nv3/classes/nv3_class_01c_image_in_memory.c
 
     nv/nv3/render/nv3_render_core.c
-    nv/nv3/render/nv3_render_primitives.c    
+    nv/nv3/render/nv3_render_primitives.c   
+    nv/nv3/render/nv3_render_blit.c    
+ 
 )
 
 if(G100)

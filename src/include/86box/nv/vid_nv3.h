@@ -569,10 +569,10 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_SRC_CANVAS_MAX                       0x400554    // Maximum Source Canvas for Blit, Y=30:16, X=10:0
 #define NV3_PGRAPH_DST_CANVAS_MIN                       0x400558    // Minimum Destination Canvas for Blit, Y=30:16, X=10:0
 #define NV3_PGRAPH_DST_CANVAS_MAX                       0x40055C    // Maximum Destination Canvas for Blit, Y=30:16, X=10:0
-#define NV3_PGRAPH_pattern_color_0_rgb                    0x400600    
-#define NV3_PGRAPH_pattern_color_0_alpha                    0x400604
-#define NV3_PGRAPH_pattern_color_1_rgb                    0x400608    
-#define NV3_PGRAPH_pattern_color_1_alpha                    0x40060C    // pattern color 
+#define NV3_PGRAPH_PATTERN_COLOR_0_RGB                    0x400600    
+#define NV3_PGRAPH_PATTERN_COLOR_0_ALPHA                    0x400604
+#define NV3_PGRAPH_PATTERN_COLOR_1_RGB                    0x400608    
+#define NV3_PGRAPH_PATTERN_COLOR_1_ALPHA                    0x40060C    // pattern color 
 #define NV3_PGRAPH_PATTERN_BITMAP_HIGH                  0x400610    // pattern bitmap [31:0]
 #define NV3_PGRAPH_PATTERN_BITMAP_LOW                   0x400614    // pattern bitmap [63:32]
 #define NV3_PGRAPH_PATTERN_SHAPE                        0x400618
@@ -1183,7 +1183,7 @@ typedef struct nv3_pgraph_s
     uint64_t pattern_bitmap;                                // pattern bitmap for blit. it's alwaus 64 bits to simplify pixel rendering code
     uint32_t pattern_shape;                                 // may need to be an enum - 0=8x8, 1=64x1, 2=1x64
     uint32_t plane_mask;                                    // only 7:0 relevant
-    uint32_t chroma_key;                     // color key
+    uint32_t chroma_key;                                    // color key
     uint32_t beta_factor;
     nv3_pgraph_dma_settings_t dma_settings;
     uint8_t rop;                                            // Current GDI Ternary Render Operation

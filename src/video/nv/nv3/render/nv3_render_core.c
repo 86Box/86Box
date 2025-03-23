@@ -194,13 +194,71 @@ uint32_t nv3_render_set_pattern_color(nv3_color_expanded_t pattern_colour, bool 
         nv3->pgraph.pattern_color_1_rgb.g = pattern_colour.g;
         nv3->pgraph.pattern_color_1_rgb.b = pattern_colour.b;
     }
-        
-    
     
 }
 
+/*     /* Combine the current buffer with the pitch to get the address in the framebuffer to draw from for a given position. */
+uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t grobj)
+{
+    uint32_t vram_x = position.x;
+    uint32_t current_buffer = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03; 
+    uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp;
+
+    // we have to multiply the x position by the number of bytes per pixel
+    switch (framebuffer_bpp)
+    {
+        case 8:
+            break;
+        case 16:
+            vram_x = position.x << 1;
+            break;
+        case 32:
+            vram_x = position.x << 2;
+            break;
+    }
+
+    uint32_t pixel_addr_vram = vram_x + (nv3->pgraph.bpitch[current_buffer] * position.y) + nv3->pgraph.boffset[current_buffer];
+
+    pixel_addr_vram &= nv3->nvbase.svga.vram_mask;
+
+    return pixel_addr_vram;
+}
+
+/* Read an 8bpp pixel from the framebuffer. */
+uint8_t nv3_render_read_pixel_8(nv3_position_16_t position, nv3_grobj_t grobj)
+{ 
+    // hope you call it with the right bit
+    uint32_t vram_address = nv3_render_get_vram_address(position, grobj);
+
+    return nv3->nvbase.svga.vram[vram_address];
+}
+
+/* Read an 16bpp pixel from the framebuffer. */
+uint16_t nv3_render_read_pixel_16(nv3_position_16_t position, nv3_grobj_t grobj)
+{ 
+    // hope you call it with the right bit
+    uint32_t vram_address = nv3_render_get_vram_address(position, grobj);
+
+    uint16_t* vram_16 = (uint16_t*)(nv3->nvbase.svga.vram);
+    vram_address >>= 1; //convert to 16bit pointer
+
+    return vram_16[vram_address];
+}
+
+/* Read an 16bpp pixel from the framebuffer. */
+uint32_t nv3_render_read_pixel_32(nv3_position_16_t position, nv3_grobj_t grobj)
+{ 
+    // hope you call it with the right bit
+    uint32_t vram_address = nv3_render_get_vram_address(position, grobj);
+
+    uint32_t* vram_32 = (uint32_t*)(nv3->nvbase.svga.vram);
+    vram_address >>= 1; //convert to 16bit pointer
+
+    return vram_32[vram_address];
+}
+
 /* Plots a pixel. */
-void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t grobj)
+void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t grobj)
 {
     uint8_t alpha = 0xFF;
 
@@ -213,7 +271,7 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
     #endif
     bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_ALPHA) & 0x01;
 
-    uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp; // maybe y16 too?
+    uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp; // maybe y16 too?z
     uint32_t current_buffer = (nv3->pgraph.context_switch >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03; 
 
     /* doesn't seem*/
@@ -238,26 +296,7 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
 
     /* TODO: Chroma Key, Pattern, Plane Mask...*/
 
-    /* Combine the current buffer with the pitch to get the address in the framebuffer to draw from. */
-
-    uint32_t vram_x = position.x;
-
-    // we have to multiply the x position by the number of bytes per pixel
-    switch (framebuffer_bpp)
-    {
-        case 8:
-            break;
-        case 16:
-            vram_x = position.x << 1;
-            break;
-        case 32:
-            vram_x = position.x << 2;
-            break;
-    }
-
-    uint32_t pixel_addr_vram = vram_x + (nv3->pgraph.bpitch[current_buffer] * position.y) + nv3->pgraph.boffset[current_buffer];
-
-    pixel_addr_vram &= nv3->nvbase.svga.vram_mask;
+    uint32_t pixel_addr_vram = nv3_render_get_vram_address(position, grobj);
 
     uint32_t rop_src = 0, rop_dst = 0, rop_pattern = 0;
     uint8_t bit = 0x00; 

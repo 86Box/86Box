@@ -32,6 +32,22 @@ void nv3_class_010_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
 {
     switch (method_id)
     {
+        case NV3_BLIT_POSITION_IN:
+            nv3->pgraph.blit.point_in.x = (param & 0xFFFF);
+            nv3->pgraph.blit.point_in.y = ((param >> 16) & 0xFFFF);
+            break;
+        case NV3_BLIT_POSITION_OUT:
+            nv3->pgraph.blit.point_out.x = (param & 0xFFFF);
+            nv3->pgraph.blit.point_out.y = ((param >> 16) & 0xFFFF);
+            break; 
+        case NV3_BLIT_SIZE:
+            /* This is the last one*/
+            nv3->pgraph.blit.size.w = (param & 0xFFFF);
+            nv3->pgraph.blit.size.h = ((param >> 16) & 0xFFFF);
+            
+            nv3_render_blit_screen2screen(grobj);
+
+            break; 
         default:
             nv_log("%s: Invalid or Unimplemented method 0x%04x", nv3_class_names[context.class_id & 0x1F], method_id);
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);

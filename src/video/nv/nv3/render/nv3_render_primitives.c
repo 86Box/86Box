@@ -40,7 +40,7 @@ void nv3_render_rect(nv3_position_16_t position, nv3_size_16_t size, uint32_t co
         {
             current_pos.x = x;
 
-            nv3_render_pixel(current_pos, color, grobj);
+            nv3_render_write_pixel(current_pos, color, grobj);
         }
     }
 }
