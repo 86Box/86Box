@@ -35,7 +35,7 @@ void nv3_generic_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t 
     {
         /* mthdCreate in software(?)*/
         case NV3_ROOT_HI_IM_OBJECT_MCOBJECTYFACE:
-            nv_log("mthdCreate\n");
+            nv_log("mthdCreate obj_name=0x%08x\n", param);
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
             break;
         // set up the current notification request/object

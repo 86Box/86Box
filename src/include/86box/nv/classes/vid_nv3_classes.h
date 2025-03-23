@@ -77,14 +77,33 @@ typedef enum nv3_pgraph_class_e
 #define NV3_SET_NOTIFY_CONTEXT_FOR_DMA                  0x0100  // Set object ctx for dma...see nv3_dma_context_t structure
 #define NV3_SET_NOTIFY                                  0x0104
 
+// Render OPeration
 #define NV3_ROP_SET_ROP                                 0x0300  // Set GDI standard rop
 
+// Beta Factor
 #define NV3_BETA_FACTOR                                 0x0300
 
+// Chroma Key
 #define NV3_CHROMA_KEY                                  0x0304
 
+// Clip
 #define NV3_CLIP_POSITION                               0x0300  // S16:S16, 0=topleft
 #define NV3_CLIP_SIZE                                   0x0304  // U16:U16
+
+// Blit Pattern
+#define NV3_PATTERN_FORMAT                              0x0304
+#define NV3_PATTERN_SHAPE                               0x0308
+#define NV3_PATTERN_SHAPE_8X8                           0
+#define NV3_PATTERN_SHAPE_64X1                          1
+#define NV3_PATTERN_SHAPE_1X64                          2
+#define NV3_PATTERN_SHAPE_LAST_VALID                    NV3_PATTERN_SHAPE_1X64
+
+#define NV3_PATTERN_COLOR0                              0x0310
+#define NV3_PATTERN_COLOR1                              0x0314
+#define NV3_PATTERN_BITMAP_HIGH                         0x0318
+#define NV3_PATTERN_BITMAP_LOW                          0x031C
+
+// Rect
 
 #define NV3_RECTANGLE_COLOR                             0x0304
 
@@ -172,44 +191,6 @@ typedef struct nv3_color_argb_s
     uint8_t g;
     uint8_t b;
 } nv3_color_argb_t;
-
-/* 30-bit colour format for internal PGRAPH use */
-typedef struct nv3_color_x2a10g10b10_s
-{
-    uint8_t reserved : 1;
-    bool a : 1; // 1-bit ALPHA if chroma key, OTHERWISE USELESS and IGNORE
-    uint16_t r : 10;
-    uint16_t g : 10;
-    uint16_t b : 10;
-} nv3_color_x2a10g10b10_t;
-
-/* 16-bit A4R4G4B4 colour format */
-typedef struct nv3_color_16_a4r4g4b4_s
-{
-    uint8_t a : 4;
-    uint8_t r : 4;
-    uint8_t g : 4;
-    uint8_t b : 4;
-} nv3_color_16_a4r4g4b4_t;
-
-/* A1R5G5B5 format 
-   Can also be used for R5G5B5
-*/
-typedef struct nv3_color_16_a1r5g5b5_s
-{
-    uint8_t a : 1;
-    uint8_t r : 5;
-    uint8_t g : 5;
-    uint8_t b : 5;
-} nv3_color_16_a1r5g5b5_t;
-
-/* 565 format - NV3Tweak */
-typedef struct nv3_color_16_r5g6b5_s
-{
-    uint8_t r : 5;
-    uint8_t g : 6;
-    uint8_t b : 5;
-} nv3_color_16_r5g6b5_t;
 
 /* Generic 16-bit position*/
 typedef struct nv3_position_16_s
@@ -384,8 +365,8 @@ typedef struct nv3_object_class_006
     uint8_t reserved2[0x200];
     uint32_t shape;                 // 0 = 8x8, 1 = 64x1, 2 = 1x64
     uint32_t color0;                // Some 32-bit format (argb?)
-    uint32_t color1;                // argb?  
-    uint32_t pattern[2];            // argb?
+    uint32_t color1;                // bit0=color0, bit1=color1
+    uint32_t pattern[2];            // bit0=color0, bit1=color1
     uint8_t reserved3[0x1CDF];      // needs to be 0x2000 bytes     
 } nv3_pattern_t;
 

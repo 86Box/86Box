@@ -32,9 +32,48 @@ void nv3_class_006_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
 {
     switch (method_id)
     {
+        /* Valid software method, suppress logging */
+        case NV3_PATTERN_FORMAT:
+            nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
+            break; 
+        case NV3_PATTERN_SHAPE:
+            /* If the shape is not valid, tell the software that it's invalid */
+
+            /* 
+            Technically you are meant to do this: 
+
+            But in practice, I don't know, because it always submits 0x20 or 0x40, which are valid when param & 0x03,
+            and appear to be deliberate behaviour in the drivers rather than bugs. What
+            if (param > NV3_PATTERN_SHAPE_LAST_VALID)
+            {
+                warning("NV3 class 0x06 (Pattern) invalid shape %d (This is a bug)", param);
+                nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_INVALID_DATA);
+                return; 
+            }
+            
+            */
+            nv3->pgraph.pattern_shape = param & 0x03;
+
+            break;
+        case NV3_PATTERN_COLOR0:
+            nv3_color_expanded_t expanded_colour0 = nv3_render_expand_color(grobj, param);
+            nv3_render_set_pattern_color(expanded_colour0, false);
+            break;
+        case NV3_PATTERN_COLOR1:
+            nv3_color_expanded_t expanded_colour1 = nv3_render_expand_color(grobj, param);
+            nv3_render_set_pattern_color(expanded_colour1, true);
+            break;
+        case NV3_PATTERN_BITMAP_HIGH:
+            nv3->pgraph.pattern_bitmap = 0; //reset
+            nv3->pgraph.pattern_bitmap |= ((uint64_t)param << 32); 
+            break;
+        case NV3_PATTERN_BITMAP_LOW:
+            nv3->pgraph.pattern_bitmap |= param;
+
+            break;
         default:
             nv_log("%s: Invalid or Unimplemented method 0x%04x", nv3_class_names[context.class_id & 0x1F], method_id);
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
-            return;
+            break;
     }
 }

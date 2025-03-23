@@ -57,14 +57,12 @@ nv3_color_expanded_t nv3_render_expand_color(nv3_grobj_t grobj, uint32_t color)
 
         // 555
         case nv3_pgraph_pixel_format_r5g5b5:
-            nv3_color_16_a1r5g5b5_t new_color = *(nv3_color_16_a1r5g5b5_t*)&color;
             // "stretch out" the colour
-            color_final.r = new_color.r * 0x20;
-            color_final.g = new_color.g * 0x20;
-            color_final.b = new_color.b * 0x20;
 
-            if (alpha_enabled)
-                color_final.a = new_color.a;
+            color_final.a = (color >> 15) & 0x01;       // will be ignored if alpha_enabled isn't used 
+            color_final.r = ((color >> 10) & 0x1F) << 5;
+            color_final.g = ((color >> 5) & 0x1F) << 5;
+            color_final.b = (color & 0x1F) << 5;
 
             break;
         // 888 (standard colour + 8-bit alpha)
@@ -76,18 +74,12 @@ nv3_color_expanded_t nv3_render_expand_color(nv3_grobj_t grobj, uint32_t color)
             color_final.g = ((color >> 8) & 0xFF) * 4;
             color_final.b = (color & 0xFF) * 4;
 
-            if (alpha_enabled)
-                color_final.a = new_color.a;
             break;
         case nv3_pgraph_pixel_format_r10g10b10:
-            nv3_color_x2a10g10b10_t new_color_rgb10 = *(nv3_color_x2a10g10b10_t*)&color;
-
-            color_final.r = new_color_rgb10.r;
-            color_final.g = new_color_rgb10.g;
-            color_final.b = new_color_rgb10.b;
-
-            if (alpha_enabled)
-                color_final.a = new_color.a;
+            color_final.a = (color << 31) & 0x01;
+            color_final.r = (color << 30) & 0x3FF;
+            color_final.g = (color << 20) & 0x1FF;
+            color_final.b = (color << 10);
 
             break;
         case nv3_pgraph_pixel_format_y8:
@@ -115,7 +107,7 @@ nv3_color_expanded_t nv3_render_expand_color(nv3_grobj_t grobj, uint32_t color)
 }
 
 /* Used for chroma test */
-uint32_t nv3_render_downconvert(nv3_grobj_t grobj, nv3_color_expanded_t color)
+uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t color)
 {
     uint8_t format = (grobj.grobj_0 & 0x07);
     bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_ALPHA) & 0x01;
@@ -129,18 +121,30 @@ uint32_t nv3_render_downconvert(nv3_grobj_t grobj, nv3_color_expanded_t color)
     switch (format)
     {
         case nv3_pgraph_pixel_format_r5g5b5:
-            packed_color = (color.r / 0x20) << 10 | 
-                           (color.g / 0x20) << 5 |
-                           (color.b / 0x20);
+            packed_color = (color.r >> 5) << 10 | 
+                           (color.g >> 5) << 5 |
+                           (color.b >> 5);
 
             break;
         case nv3_pgraph_pixel_format_r8g8b8:
+            packed_color = (color.a) << 24 | // is this a thing?
+                           (color.r >> 2) << 16 |
+                           (color.g >> 2) << 8 |
+                           color.b;
             break;
         case nv3_pgraph_pixel_format_r10g10b10:
+            /* sometimes alpha isn't used but we should incorporate it anyway */
+            if (color.a > 0x00) packed_color | (1 << 31);
+
+            packed_color |= (color.r << 30);
+            packed_color |= (color.g << 20);
+            packed_color |= (color.b << 10);
             break;
         case nv3_pgraph_pixel_format_y8:
+            nv_log("nv3_render_downconvert: Y8 not implemented");
             break;
         case nv3_pgraph_pixel_format_y16:
+            nv_log("nv3_render_downconvert: Y16 not implemented");
             break;
         default:
             warning("nv3_render_downconvert_color unknown format %d", format);
@@ -162,6 +166,37 @@ uint32_t nv3_render_to_chroma(nv3_color_expanded_t expanded)
 {
     // convert the alpha to 1 bit. then return packed rgb10
     return !!expanded.a | (expanded.r << 30) | (expanded.b << 20) | (expanded.a << 10);
+}
+
+/* Convert a rgb10 colour to a pattern colour */
+uint32_t nv3_render_set_pattern_color(nv3_color_expanded_t pattern_colour, bool use_color1)
+{
+    /* reset the colour */
+    if (!use_color1)
+        nv3->pgraph.pattern_color_0_rgb.r = nv3->pgraph.pattern_color_0_rgb.g = nv3->pgraph.pattern_color_0_rgb.b = 0x00;
+    else 
+        nv3->pgraph.pattern_color_1_rgb.r = nv3->pgraph.pattern_color_1_rgb.g = nv3->pgraph.pattern_color_1_rgb.b = 0x00;
+   
+    /* select the right pattern colour, _rgb is already in RGB10 format, so we don't need to do any conversion */
+
+    if (!use_color1)
+    {
+        nv3->pgraph.pattern_color_0_alpha = (pattern_colour.a) & 0xFF;
+        nv3->pgraph.pattern_color_0_rgb.r = pattern_colour.r;
+        nv3->pgraph.pattern_color_0_rgb.g = pattern_colour.g;
+        nv3->pgraph.pattern_color_0_rgb.b = pattern_colour.b;
+
+    }
+    else 
+    {
+        nv3->pgraph.pattern_color_1_alpha = (pattern_colour.a) & 0xFF;
+        nv3->pgraph.pattern_color_1_rgb.r = pattern_colour.r;
+        nv3->pgraph.pattern_color_1_rgb.g = pattern_colour.g;
+        nv3->pgraph.pattern_color_1_rgb.b = pattern_colour.b;
+    }
+        
+    
+    
 }
 
 /* Plots a pixel. */
@@ -224,6 +259,46 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
 
     pixel_addr_vram &= nv3->nvbase.svga.vram_mask;
 
+    uint32_t rop_src = 0, rop_dst = 0, rop_pattern = 0;
+    uint8_t bit = 0x00; 
+
+    /* Get our pattern data, may move to another function */
+    switch (nv3->pgraph.pattern.shape)
+    {
+
+        /* This logic is from NV1 envytoos docs, but seems to be same on NV3*/
+        case NV3_PATTERN_SHAPE_8X8:
+            bit = (position.x & 7) | (position.y & 7) << 3;
+            break; 
+        case NV3_PATTERN_SHAPE_1X64:
+            bit = (position.x & 0x3f);
+            break;
+        case NV3_PATTERN_SHAPE_64X1:
+            bit = (position.y & 0x3f);
+            break;
+    }
+
+    // pull out the actual bit and see which colour we need to use
+
+    bool use_color1 = (nv3->pgraph.pattern_bitmap >> bit) & 0x01;
+
+    if (!use_color1)
+    {
+        if (!nv3->pgraph.pattern_color_0_alpha)
+            return; 
+
+        /* This is stupid */
+        rop_pattern = nv3_render_downconvert_color(grobj, nv3->pgraph.pattern_color_0_rgb);
+    }
+    else
+    {
+        if (!nv3->pgraph.pattern_color_1_alpha)
+            return;
+
+        rop_pattern = nv3_render_downconvert_color(grobj, nv3->pgraph.pattern_color_1_rgb);
+    }
+    
+
     /*  Go to vram and do the final ROP for a basic bitblit.
         It seems we can skip the downconversion step *for now*, since (framebuffer bits per pixel) == (object bits per pixel) 
         I'm not sure how games will react. But it depends on how the D3D drivers operate, we may need ro convert texture formats to the current bpp internally.
@@ -231,14 +306,12 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
         TODO: MOVE TO BPIXEL DEPTH or GROBJ0 to determine this, once we figure out how to get the bpixel depth.
     */
 
-    uint32_t src = 0, dst = 0;
-
     switch (framebuffer_bpp)
     {
         case 8:
-            src = color & 0xFF;
-            dst = nv3->nvbase.svga.vram[pixel_addr_vram];
-            nv3->nvbase.svga.vram[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, src, dst, 0x00) & 0xFF;
+            rop_src = color & 0xFF;
+            rop_dst = nv3->nvbase.svga.vram[pixel_addr_vram];
+            nv3->nvbase.svga.vram[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, rop_src, rop_dst, rop_pattern) & 0xFF;
 
             nv3->nvbase.svga.changedvram[pixel_addr_vram >> 12] = changeframecount;
 
@@ -246,19 +319,28 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
         case 16:
             uint16_t* vram_16 = (uint16_t*)(nv3->nvbase.svga.vram);
             pixel_addr_vram >>= 1; 
+  
+            // mask to 16bit 
 
-            // mask off the alpha bit. Even though the drivers should send this. What!
-            if (!alpha_enabled)
-                src = ((color & (~0x8000)) & 0xFFFF);
-            else 
-                src = color & 0xFFFF;
+            rop_src = color & 0xFFFF; 
+
+            /* if alpha is turned on and we aren't in 565 mode, reject transparent pixels */
+            bool is_16bpp = (nv3->pramdac.general_control >> NV3_PRAMDAC_GENERAL_CONTROL_565_MODE) & 0x01;
+
+            // a1r5g5b5
+            if (!is_16bpp)
+            {
+                if (alpha_enabled && 
+                    !(color & 0x8000))
+                    return;
+            }
 
             // convert to 16bpp
             // forcing it to render in 15bpp fixes it, 
 
-            
-            dst = vram_16[pixel_addr_vram];
-            vram_16[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, src, dst, 0x00) & 0xFFFF;
+            rop_dst = vram_16[pixel_addr_vram];
+
+            vram_16[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, rop_src, rop_dst, rop_pattern) & 0xFFFF;
 
             nv3->nvbase.svga.changedvram[pixel_addr_vram >> 11] = changeframecount;
 
@@ -267,9 +349,9 @@ void nv3_render_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t gr
             uint32_t* vram_32 = (uint32_t*)(nv3->nvbase.svga.vram);
             pixel_addr_vram >>= 2; 
 
-            src = color;
-            dst = vram_32[pixel_addr_vram];
-            vram_32[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, src, dst, 0x00);
+            rop_src = color;
+            rop_dst = vram_32[pixel_addr_vram];
+            vram_32[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, rop_src, rop_dst, rop_pattern);
 
             nv3->nvbase.svga.changedvram[pixel_addr_vram >> 10] = changeframecount;
 
