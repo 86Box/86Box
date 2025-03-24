@@ -47,9 +47,9 @@ void ega_doblit(int wx, int wy, ega_t *ega);
 
 static video_timings_t timing_ega = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 static uint8_t         ega_rotate[8][256];
-static int             active             = 0;
-static uint32_t        pallook16[256];
-static uint32_t        pallook64[256];
+static int             active = 0;
+uint32_t               pallook16[256];
+uint32_t               pallook64[256];
 static int             ega_type           = EGA_TYPE_IBM;
 static int             old_overscan_color = 0;
 
