@@ -117,45 +117,11 @@ void nv3_render_gdi_type_d(nv3_grobj_t grobj, uint32_t param)
 
     // is this clip or point?
 
-
-    /* set up our packed pixels */
-    uint32_t pixel0 = param & 0xFF;
-    uint32_t pixel1 = (param >> 8) & 0xFF;
-    uint32_t pixel2 = (param >> 16) & 0xFF;
-    uint32_t pixel3 = (param >> 24) & 0xFF;
-
-    /* small stuff */
-
     /* Go through the bitmap that was sent, bit by bit. */
-    for (int32_t bit_num = 0; bit_num <= 7; bit_num++)
+    for (int32_t bit_num = 0; bit_num <= 31; bit_num++)
     {
-        bool bit = (pixel0 >> bit_num) & 0x01;
+        bool bit = (param >> bit_num) & 0x01;
 
         nv3_render_text_1bpp(bit, grobj);
     }
-
-    /* Go through the bitmap that was sent, bit by bit. */
-    for (int32_t bit_num = 0; bit_num <= 7; bit_num++)
-    {
-        bool bit = (pixel1 >> bit_num) & 0x01;
-
-        nv3_render_text_1bpp(bit, grobj);
-    }
-    
-    /* Go through the bitmap that was sent, bit by bit. */
-    for (int32_t bit_num = 0; bit_num <= 7; bit_num++)
-    {
-        bool bit = (pixel2 >> bit_num) & 0x01;
-
-        nv3_render_text_1bpp(bit, grobj);
-    }
-
-    /* Go through the bitmap that was sent, bit by bit. */
-    for (int32_t bit_num = 0; bit_num <= 7; bit_num++)
-    {
-        bool bit = (pixel3 >> bit_num) & 0x01;
-
-        nv3_render_text_1bpp(bit, grobj);
-    }
-
 }
