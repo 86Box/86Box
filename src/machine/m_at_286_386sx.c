@@ -654,9 +654,9 @@ machine_at_if386sx_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&keyboard_at_device);
+    device_add(&keyboard_at_phoenix_device);
 
-    device_add(&neat_device);
+    device_add(&neat_sx_device);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&if386jega_device);

@@ -115,7 +115,9 @@ const machine_filter_t machine_chipsets[] = {
     { "ALi ALADDiN V",              MACHINE_CHIPSET_ALI_ALADDIN_V       },
     { "ALi ALADDiN-PRO II",         MACHINE_CHIPSET_ALI_ALADDIN_PRO_II  },
     { "C&T 82C235 SCAT",            MACHINE_CHIPSET_SCAT                },
-    { "C&T CS8121 NEAT",            MACHINE_CHIPSET_NEAT                },
+    { "C&T 82C236 SCATsx",          MACHINE_CHIPSET_SCAT_SX             },
+    { "C&T CS8221 NEAT",            MACHINE_CHIPSET_NEAT                },
+    { "C&T CS8281 NEATsx",          MACHINE_CHIPSET_NEAT_SX             },
     { "C&T 386",                    MACHINE_CHIPSET_CT_386              },
     { "C&T CS4031",                 MACHINE_CHIPSET_CT_CS4031           },
     { "Contaq 82C596",              MACHINE_CHIPSET_CONTAQ_82C596       },
@@ -4746,10 +4748,10 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    { .name = "[NEAT] OKI if386AX30L",
+    { .name = "[NEATsx] OKI if386AX30L",
         .internal_name = "if386sx",
         .type = MACHINE_TYPE_386SX,
-        .chipset = MACHINE_CHIPSET_NEAT,
+        .chipset = MACHINE_CHIPSET_NEAT_SX,
         .init = machine_at_if386sx_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
@@ -4951,10 +4953,10 @@ const machine_t machines[] = {
     /* Has an unknown AMI KBC firmware, I'm going to assume 'F' until a
        photo or real hardware BIOS string is found. */
     {
-        .name = "[SCAT] Kaimei KMX-C-02",
+        .name = "[SCATsx] Kaimei KMX-C-02",
         .internal_name = "kmxc02",
         .type = MACHINE_TYPE_386SX,
-        .chipset = MACHINE_CHIPSET_SCAT,
+        .chipset = MACHINE_CHIPSET_SCAT_SX,
         .init = machine_at_kmxc02_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
