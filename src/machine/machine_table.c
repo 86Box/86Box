@@ -2758,9 +2758,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_XTA | MACHINE_VIDEO_FIXED,
         .ram = {
-            .min = 1024,
+            .min = 512,
             .max = 16384,
-            .step = 1024
+            .step = 512
         },
         .nvrmask = 127,
         .kbc_device = NULL,
