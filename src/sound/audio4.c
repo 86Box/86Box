@@ -7,7 +7,6 @@
  *           This file is part of the 86Box distribution.
  *
  *           Interface to audio(4) for NetBSD/OpenBSD.
- *           TODO: Test on OpenBSD
  *
  *
  * Authors:  Nishi
