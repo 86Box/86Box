@@ -71,7 +71,7 @@ void givealbuffer_common(const void *buf, const uint8_t src, const int size){
 	int i;
         double gain;
 	int target_rate;
-	if(audio[src] == -1) return;
+	if(audio[src] == NULL) return;
 
 	gain = sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0);
 
