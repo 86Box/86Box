@@ -51,14 +51,23 @@ void inital(void){
 	for(i = 0; i < sizeof(audio) / sizeof(audio[0]); i++){
 		audio[i] = sio_open(SIO_DEVANY, SIO_PLAY, 0);
 		if(audio[i] != NULL){
-			sio_initpar(&info[i]);
+			int rate;
+			int max_frames;
 			sio_getpar(audio[i], &info[i]);
+			rate = info[i].rate;
+			max_frames = info[i].bufsz;
+			sio_initpar(&info[i]);
 			info[i].sig = 1;
 			info[i].bits = 16;
 			info[i].pchan = 2;
+			info[i].rate = rate;
+			info[i].appbufsz = max_frames;
 			sio_setpar(audio[i], &info[i]);
 			sio_getpar(audio[i], &info[i]);
-			sio_start(audio[i]);
+			if(!sio_start(audio[i])){
+				sio_close(audio[i]);
+				audio[i] = NULL;
+			}
 		}
 	}
 }
