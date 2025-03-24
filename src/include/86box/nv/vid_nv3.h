@@ -1228,6 +1228,7 @@ typedef struct nv3_pgraph_s
     struct nv3_object_class_00A lin;
     struct nv3_object_class_00B triangle;
     struct nv3_object_class_00C win95_gdi_text;
+    nv3_position_16_t win95_gdi_text_current_position;      /* This is here so we can hold the current state of the image draw */
     struct nv3_object_class_00D m2mf;
     struct nv3_object_class_00E scaled_image_from_memory;
     struct nv3_object_class_010 blit;

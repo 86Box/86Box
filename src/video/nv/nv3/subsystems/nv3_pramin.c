@@ -477,7 +477,7 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
         else   
         {
             nv3->pfifo.cache1_settings.pull0 |= NV3_PFIFO_CACHE1_PULL0_SOFTWARE_METHOD;
-            nv3->pfifo.cache0_settings.pull0 &= ~NV3_PFIFO_CACHE1_PULL0_ENABLED;
+            nv3->pfifo.cache1_settings.pull0 &= ~NV3_PFIFO_CACHE1_PULL0_ENABLED;
         }
             
         // It's an error but it isn't lol   
@@ -504,7 +504,7 @@ void nv3_debug_ramin_print_context_info(uint32_t name, nv3_ramin_context_t conte
 {
     #ifndef RELEASE_BUILD
     nv_log("Found object:\n");
-    nv_log("Name: 0x%04x\n", name);
+    nv_log("Param: 0x%04x\n", name);
 
     nv_log("Context:\n");
     nv_log("DMA Channel %d (0-7 valid)\n", context.channel);

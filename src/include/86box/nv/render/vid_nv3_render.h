@@ -38,3 +38,6 @@ bool nv3_render_chroma_test(nv3_grobj_t grobj, uint32_t color);
 
 /* Blit */
 void nv3_render_blit_screen2screen(nv3_grobj_t grobj);
+
+/* GDI */
+void nv3_render_gdi_type_d(nv3_grobj_t grobj, uint32_t param);

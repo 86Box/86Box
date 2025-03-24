@@ -939,9 +939,10 @@ void nv3_pfifo_cache1_pull()
     nv3_ramin_context_t context_structure = *(nv3_ramin_context_t*)&current_context;
 
     nv3_debug_ramin_print_context_info(current_param, context_structure);
+    #endif
     
     nv3_pgraph_submit(current_param, current_method, current_channel, current_subchannel, class_id & 0x1F, context_structure);
-    #endif
+    
 
     //Todo: finish it
 }

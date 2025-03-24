@@ -38,8 +38,35 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
         case NV3_W95TXT_A_COLOR:
             nv3->pgraph.win95_gdi_text.color_a = param;
             break;
+        /* Type B and C not implemented YET, as they are not used by NT GDI driver */
+        case NV3_W95TXT_D_CLIP_TOPLEFT: 
+            nv3->pgraph.win95_gdi_text.clip_d.left = (param & 0xFFFF);
+            nv3->pgraph.win95_gdi_text.clip_d.top = ((param >> 16) & 0xFFFF);
+            break; 
+        case NV3_W95TXT_D_CLIP_BOTTOMRIGHT:
+            nv3->pgraph.win95_gdi_text.clip_d.right = (param & 0xFFFF);
+            nv3->pgraph.win95_gdi_text.clip_d.bottom = ((param >> 16) & 0xFFFF);
+            /* is it "only if we are out of the top left or the bottom right or is it "all of them"*/
+            break;
+        case NV3_W95TXT_D_CLIP_COLOR:
+            nv3->pgraph.win95_gdi_text.color1_d = param;
+            break;
+        case NV3_W95TXT_D_CLIP_SIZE_IN:
+            nv3->pgraph.win95_gdi_text.size_in_d.w = (param & 0xFFFF);
+            nv3->pgraph.win95_gdi_text.size_in_d.h = ((param >> 16) & 0xFFFF);
+            break;
+        case NV3_W95TXT_D_CLIP_SIZE_OUT:
+            nv3->pgraph.win95_gdi_text.size_out_d.w = (param & 0xFFFF);
+            nv3->pgraph.win95_gdi_text.size_out_d.h = ((param >> 16) & 0xFFFF);
+            break; 
+        case NV3_W95TXT_D_CLIP_POSITION:
+            nv3->pgraph.win95_gdi_text.point_d.x = (param & 0xFFFF);
+            nv3->pgraph.win95_gdi_text.point_d.y = ((param >> 16) & 0xFFFF);
+            
+            nv3->pgraph.win95_gdi_text_current_position = nv3->pgraph.win95_gdi_text.point_d;
+            break;
         default:
-            /* These are the same things as rectangles */
+            /* Type A submission: these are the same things as rectangles */
             if (method_id >= NV3_W95TXT_A_RECT_START && method_id <= NV3_W95TXT_A_RECT_END)
             {
                 uint32_t index = (method_id - NV3_RECTANGLE_START) >> 3;
@@ -65,6 +92,24 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                          nv3->pgraph.win95_gdi_text.rect_a_position[index].x, nv3->pgraph.win95_gdi_text.rect_a_position[index].y);
                 }
                 return;
+            }
+            else if (method_id >= NV3_W95TXT_D_CLIP_CLIPRECT_START && method_id <= NV3_W95TXT_D_CLIP_CLIPRECT_END)
+            {
+                /* lol */
+                uint32_t index = (method_id - NV3_W95TXT_D_CLIP_CLIPRECT_START) >> 3;
+
+                nv3->pgraph.win95_gdi_text.mono_color1_d[index] = param;
+
+                /* Mammoth logger! */
+                nv_log("Rect GDI-D%d Data=%08x SizeIn%04x,%04x SizeOut%04x,%04x Point%04x,%04x Color=%08x Clip Left=0x%04x Right=0x%04x Top=0x%04x Bottom=0x%04x",
+                index, param, nv3->pgraph.win95_gdi_text.size_in_d.w, nv3->pgraph.win95_gdi_text.size_in_d.h,
+                nv3->pgraph.win95_gdi_text.size_out_d.w, nv3->pgraph.win95_gdi_text.size_out_d.h,
+                nv3->pgraph.win95_gdi_text.point_d.x, nv3->pgraph.win95_gdi_text.point_d.y, 
+                nv3->pgraph.win95_gdi_text.color1_d, 
+                nv3->pgraph.win95_gdi_text.clip_d.left, nv3->pgraph.win95_gdi_text.clip_d.right, nv3->pgraph.win95_gdi_text.clip_d.top, nv3->pgraph.win95_gdi_text.clip_d.bottom);
+                
+                nv3_render_gdi_type_d(grobj, nv3->pgraph.win95_gdi_text.mono_color1_d[index]);
+                
             }
 
             nv_log("%s: Invalid or Unimplemented method 0x%04x", nv3_class_names[context.class_id & 0x1F], method_id);
