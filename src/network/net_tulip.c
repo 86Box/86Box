@@ -971,7 +971,8 @@ tulip_write(uint32_t addr, uint32_t data, void *opaque)
 
         case CSR(7):
             s->csr[7] = data;
-            tulip_update_int(s);
+            if (s->device_info->local)
+                tulip_update_int(s);
             break;
 
         case CSR(8):
@@ -1006,7 +1007,7 @@ tulip_write(uint32_t addr, uint32_t data, void *opaque)
 
         case CSR(13):
             s->csr[13] = data;
-            if (s->device_info->local == 3 && (data & 0x4)) {
+            if ((s->device_info->local == 3) && (data & 0x4)) {
                 s->csr[13] = 0x8f01;
                 s->csr[14] = 0xfffd;
                 s->csr[15] = 0;
@@ -1407,7 +1408,7 @@ nic_init(const device_t *info)
     if (!s)
         return NULL;
 
-    if (info->local && info->local != 3) {
+    if (info->local && (info->local != 3)) {
         s->bios_addr = 0xD0000;
         s->has_bios  = device_get_config_int("bios");
     } else {
@@ -1434,7 +1435,7 @@ nic_init(const device_t *info)
             s->eeprom_data[2] = 0x14;
             s->eeprom_data[3] = 0x21;
         } else {
-           /*Subsystem Vendor ID*/
+            /*Subsystem Vendor ID*/
             s->eeprom_data[0] = info->local ? 0x25 : 0x11;
             s->eeprom_data[1] = 0x10;
 
@@ -1549,23 +1550,40 @@ nic_init(const device_t *info)
             /*Block Count*/
             s->eeprom_data[32] = 0x01;
 
-            /*Extended Format - Block Type 2 for 21142/21143*/
+            /*Extended Format - Block Type 3 for 21142/21143*/
             /*Length (0:6) and Format Indicator (7)*/
-            s->eeprom_data[33] = 0x86;
+            s->eeprom_data[33] = 0x8d;
 
             /*Block Type*/
-            s->eeprom_data[34] = 0x02;
+            s->eeprom_data[34] = 0x03;
 
-            /*Media Code (0:5), EXT (6), Reserved (7)*/
-            s->eeprom_data[35] = 0x01;
+            /*PHY Number*/
+            s->eeprom_data[35] = 0x00;
 
-            /*General Purpose Control*/
-            s->eeprom_data[36] = 0xff;
-            s->eeprom_data[37] = 0xff;
+            /*GPR Length*/
+            s->eeprom_data[36] = 0x00;
 
-            /*General Purpose Data*/
+            /*Reset Length*/
+            s->eeprom_data[37] = 0x00;
+
+            /*Media Capabilities*/
             s->eeprom_data[38] = 0x00;
-            s->eeprom_data[39] = 0x00;
+            s->eeprom_data[39] = 0x78;
+
+            /*Nway Advertisement*/
+            s->eeprom_data[40] = 0xe0;
+            s->eeprom_data[41] = 0x01;
+
+            /*FDX Bit Map*/
+            s->eeprom_data[42] = 0x00;
+            s->eeprom_data[43] = 0x50;
+
+            /*TTM Bit Map*/
+            s->eeprom_data[44] = 0x00;
+            s->eeprom_data[45] = 0x18;
+
+            /*MII PHY Insertion/removal Indication*/
+            s->eeprom_data[46] = 0x00;
         }
 
         s->eeprom_data[126] = tulip_srom_crc(s->eeprom_data) & 0xff;
@@ -1608,7 +1626,7 @@ nic_init(const device_t *info)
         checksum *= 2;
         if (checksum > 65535)
             checksum = checksum % 65535;
-        
+
         /* 3rd pair. */
         checksum += (s->eeprom_data[4] * 256) | s->eeprom_data[5];
         if (checksum > 65535)
@@ -1616,7 +1634,7 @@ nic_init(const device_t *info)
 
         if (checksum >= 65535)
             checksum = 0;
-        
+
         s->eeprom_data[6] = (checksum >> 8) & 0xFF;
         s->eeprom_data[7] = checksum & 0xFF;
     }
