@@ -63,8 +63,20 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv3->pgraph.win95_gdi_text.point_d.x = (param & 0xFFFF);
             nv3->pgraph.win95_gdi_text.point_d.y = ((param >> 16) & 0xFFFF);
             
-            nv3->pgraph.win95_gdi_text_current_position.x = (nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_in_d.w);
-            nv3->pgraph.win95_gdi_text_current_position.y = (nv3->pgraph.win95_gdi_text.point_d.y);
+            /* small case*/
+            if (nv3->pgraph.win95_gdi_text.size_in_d.w < 0x0010)
+            {
+                nv3->pgraph.win95_gdi_text_current_position.x = (nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_in_d.w);
+                nv3->pgraph.win95_gdi_text_current_position.y = (nv3->pgraph.win95_gdi_text.point_d.y);
+            }
+            /* large case: draw (7-0) (15-8)*/
+            else 
+            {
+                uint16_t large_start = (nv3->pgraph.win95_gdi_text.size_in_d.w >> 1) ; 
+                nv3->pgraph.win95_gdi_text_current_position.x = (nv3->pgraph.win95_gdi_text.point_d.x + large_start);
+                nv3->pgraph.win95_gdi_text_current_position.y = (nv3->pgraph.win95_gdi_text.point_d.y);
+            }
+
             break;
         default:
             /* Type A submission: these are the same things as rectangles */
@@ -110,7 +122,7 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                 nv3->pgraph.win95_gdi_text.clip_d.left, nv3->pgraph.win95_gdi_text.clip_d.right, nv3->pgraph.win95_gdi_text.clip_d.top, nv3->pgraph.win95_gdi_text.clip_d.bottom);
                 
                 nv3_render_gdi_type_d(grobj, nv3->pgraph.win95_gdi_text.mono_color1_d[index]);
-                
+                return;
             }
 
             nv_log("%s: Invalid or Unimplemented method 0x%04x", nv3_class_names[context.class_id & 0x1F], method_id);
