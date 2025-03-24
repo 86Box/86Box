@@ -126,7 +126,6 @@ void givealbuffer_common(const void *buf, const uint8_t src, const int size){
 	
 	for(i = 0; i < output_size / sizeof(int16_t) / 2; i++){
 		int ind = i * freq / target_rate * 2;
-		ind -= ind % 2;
 		output[i * 2 + 0] = conv[ind + 0] * gain;
 		output[i * 2 + 1] = conv[ind + 1] * gain;
 	}
