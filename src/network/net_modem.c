@@ -1177,9 +1177,15 @@ modem_process_telnet(modem_t *modem, uint8_t *data, uint32_t size)
         uint8_t c = data[i];
         if (modem->telClient.inIAC) {
             if (modem->telClient.recCommand) {
+                modem_log("modem_process_telnet: received command %i, option %i\n", modem->telClient.command, c);
+
                 if ((c != 0) && (c != 1) && (c != 3)) {
-                    if (modem->telClient.command > 250) {
-                        /* Reject anything we don't recognize */
+                    /* Reject anything we don't recognize */
+                    if (modem->telClient.command == 251 || modem->telClient.command == 252) {
+                        modem_data_mode_process_byte(modem, 0xff);
+                        modem_data_mode_process_byte(modem, 254);
+                        modem_data_mode_process_byte(modem, c); /* Don't do crap! */
+                    } else if (modem->telClient.command == 253 || modem->telClient.command == 254) {
                         modem_data_mode_process_byte(modem, 0xff);
                         modem_data_mode_process_byte(modem, 252);
                         modem_data_mode_process_byte(modem, c); /* We won't do crap! */
