@@ -29,6 +29,10 @@
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
 
+#if defined(OpenBSD) && OpenBSD >= 201709
+#define USE_NEW_API
+#endif
+
 #define I_NORMAL 0
 #define I_MUSIC 1
 #define I_WT 2
@@ -36,8 +40,11 @@
 #define I_MIDI 4
 
 static int audio[5] = {-1, -1, -1, -1, -1};
-static audio_offset_t offset[5];
+#ifdef USE_NEW_API
+static struct audio_swpar info[5];
+#else
 static audio_info_t info[5];
+#endif
 static int freqs[5] = {SOUND_FREQ, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0};
 
 void closeal(void){
@@ -55,6 +62,14 @@ void inital(void){
 	for(i = 0; i < sizeof(audio) / sizeof(audio[0]); i++){
 		audio[i] = open("/dev/audio", O_WRONLY);
 		if(audio[i] != -1){
+#ifdef USE_NEW_API
+			AUDIO_INITPAR(&info[i]);
+			ioctl(audio[i], AUDIO_GETPAR, &info[i]);
+			info[i].pchan = 2;
+			info[i].bits = 16;
+			info[i].bps = 2;
+			ioctl(audio[i], AUDIO_SETPAR, &info[i]);
+#else
 			AUDIO_INITINFO(&info[i]);
 #if defined(__NetBSD__) && (__NetBSD_Version__ >= 900000000)
 			ioctl(audio[i], AUDIO_GETFORMAT, &info[i]);
@@ -67,6 +82,7 @@ void inital(void){
 			info[i].hiwat = 5;
 			info[i].lowat = 3;
 			ioctl(audio[i], AUDIO_SETINFO, &info[i]);
+#endif
 		}
 	}
 }
