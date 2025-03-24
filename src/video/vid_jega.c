@@ -733,9 +733,9 @@ const device_t jega_device = {
 };
 
 static uint8_t p65idx = 0;
-static uint8_t p3de_idx = 0;
+// static uint8_t p3de_idx = 0;
 static uint8_t p65[6];
-static uint8_t p3de[0x30];
+// static uint8_t p3de[0x30];
 
 
 static uint8_t
