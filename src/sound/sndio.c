@@ -6,7 +6,7 @@
  *
  *           This file is part of the 86Box distribution.
  *
- *           Interface to audio(4) for NetBSD/OpenBSD.
+ *           Interface to sndio
  *
  *
  * Authors:  Nishi
@@ -14,24 +14,17 @@
  *           Copyright 2025 Nishi.
  */
 #include <stdint.h>
-#include <fcntl.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
-#include <sys/audioio.h>
-#include <sys/param.h>
+#include <sndio.h>
 
 #include <86box/86box.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
-
-#if defined(OpenBSD) && OpenBSD >= 201709
-#define USE_NEW_API
-#endif
 
 #define I_NORMAL 0
 #define I_MUSIC 1
@@ -39,52 +32,42 @@
 #define I_CD 3
 #define I_MIDI 4
 
-static int audio[5] = {-1, -1, -1, -1, -1};
-#ifdef USE_NEW_API
-static struct audio_swpar info[5];
-#else
-static audio_info_t info[5];
-#endif
+static struct sio_hdl* audio[5] = {NULL, NULL, NULL, NULL, NULL};
+static struct sio_par info[5];
 static int freqs[5] = {SOUND_FREQ, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0};
 
 void closeal(void){
 	int i;
 	for(i = 0; i < sizeof(audio) / sizeof(audio[0]); i++){
-		if(audio[i] != -1){
-			close(audio[i]);
+		if(audio[i] != NULL){
+			sio_close(audio[i]);
 		}
-		audio[i] = -1;
+		audio[i] = NULL;
 	}
 }
 
 void inital(void){
 	int i;
 	for(i = 0; i < sizeof(audio) / sizeof(audio[0]); i++){
-		audio[i] = open("/dev/audio", O_WRONLY);
-		if(audio[i] == -1) audio[i] = open("/dev/audio0", O_WRONLY);
-		if(audio[i] != -1){
-#ifdef USE_NEW_API
-			AUDIO_INITPAR(&info[i]);
-			ioctl(audio[i], AUDIO_GETPAR, &info[i]);
+		audio[i] = sio_open(SIO_DEVANY, SIO_PLAY, 0);
+		if(audio[i] != NULL){
+			int rate;
+			int max_frames;
+			sio_getpar(audio[i], &info[i]);
+			rate = info[i].rate;
+			max_frames = info[i].bufsz;
+			sio_initpar(&info[i]);
 			info[i].sig = 1;
 			info[i].bits = 16;
 			info[i].pchan = 2;
-			info[i].bps = 2;
-			ioctl(audio[i], AUDIO_SETPAR, &info[i]);
-#else
-			AUDIO_INITINFO(&info[i]);
-#if defined(__NetBSD__) && (__NetBSD_Version__ >= 900000000)
-			ioctl(audio[i], AUDIO_GETFORMAT, &info[i]);
-#else
-			ioctl(audio[i], AUDIO_GETINFO, &info[i]);
-#endif
-			info[i].play.channels = 2;
-			info[i].play.precision = 16;
-			info[i].play.encoding = AUDIO_ENCODING_SLINEAR;
-			info[i].hiwat = 5;
-			info[i].lowat = 3;
-			ioctl(audio[i], AUDIO_SETINFO, &info[i]);
-#endif
+			info[i].rate = rate;
+			info[i].appbufsz = max_frames;
+			sio_setpar(audio[i], &info[i]);
+			sio_getpar(audio[i], &info[i]);
+			if(!sio_start(audio[i])){
+				sio_close(audio[i]);
+				audio[i] = NULL;
+			}
 		}
 	}
 }
@@ -98,7 +81,7 @@ void givealbuffer_common(const void *buf, const uint8_t src, const int size){
 	int i;
         double gain;
 	int target_rate;
-	if(audio[src] == -1) return;
+	if(audio[src] == NULL) return;
 
 	gain = sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0);
 
@@ -115,11 +98,7 @@ void givealbuffer_common(const void *buf, const uint8_t src, const int size){
 		memcpy(conv, buf, conv_size);
 	}
 
-#ifdef USE_NEW_API
 	target_rate = info[src].rate;
-#else
-	target_rate = info[src].play.sample_rate;
-#endif
 
 	output_size = (double)conv_size * target_rate / freq;
 	output_size -= output_size % 4;
@@ -131,7 +110,7 @@ void givealbuffer_common(const void *buf, const uint8_t src, const int size){
 		output[i * 2 + 1] = conv[ind + 1] * gain;
 	}
 
-	write(audio[src], output, output_size);
+	sio_write(audio[src], output, output_size);
 
 	free(conv);
 	free(output);
