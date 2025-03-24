@@ -62,7 +62,7 @@ void inital(void){
 	int i;
 	for(i = 0; i < sizeof(audio) / sizeof(audio[0]); i++){
 		audio[i] = open("/dev/audio", O_WRONLY);
-		if(audio[i] != -1) audio[i] = open("/dev/audio0", O_WRONLY);
+		if(audio[i] == -1) audio[i] = open("/dev/audio0", O_WRONLY);
 		if(audio[i] != -1){
 #ifdef USE_NEW_API
 			AUDIO_INITPAR(&info[i]);
