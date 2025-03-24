@@ -63,7 +63,8 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv3->pgraph.win95_gdi_text.point_d.x = (param & 0xFFFF);
             nv3->pgraph.win95_gdi_text.point_d.y = ((param >> 16) & 0xFFFF);
             
-            nv3->pgraph.win95_gdi_text_current_position = nv3->pgraph.win95_gdi_text.point_d;
+            nv3->pgraph.win95_gdi_text_current_position.x = (nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_in_d.w);
+            nv3->pgraph.win95_gdi_text_current_position.y = (nv3->pgraph.win95_gdi_text.point_d.y);
             break;
         default:
             /* Type A submission: these are the same things as rectangles */

@@ -65,28 +65,9 @@ void nv3_render_gdi_type_d(nv3_grobj_t grobj, uint32_t param)
         bool bit = (param >> bit_num) & 0x01;
         //bool bit = true; // debug test
 
-        nv3->pgraph.win95_gdi_text_current_position.x++;
 
-        /* let's hope NV never overflow the y */
-        if (nv3->pgraph.win95_gdi_text_current_position.x >= end_x)
-        {
-            nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_d.x;
-            nv3->pgraph.win95_gdi_text_current_position.y++;
-        }
-
-        /* check if we are in the clipping rectangle */
-        if (nv3->pgraph.win95_gdi_text_current_position.x < nv3->pgraph.win95_gdi_text.clip_d.left
-        || nv3->pgraph.win95_gdi_text_current_position.x > nv3->pgraph.win95_gdi_text.clip_d.right
-        || nv3->pgraph.win95_gdi_text_current_position.y < nv3->pgraph.win95_gdi_text.clip_d.top
-        || nv3->pgraph.win95_gdi_text_current_position.y > nv3->pgraph.win95_gdi_text.clip_d.bottom)
-        {
-            return;
-        }
-
-        // if it's 0 we don't need to do anything
-        if (!bit)
-            continue;
-        else
+        // if it's a 0 bit we don't need to do anything
+        if (bit)
         {
             switch (nv3->nvbase.svga.bpp)
             {
@@ -103,6 +84,25 @@ void nv3_render_gdi_type_d(nv3_grobj_t grobj, uint32_t param)
                     nv3_render_write_pixel(nv3->pgraph.win95_gdi_text_current_position, final_color32, grobj);
                     break;
             }
+        }
+
+        /* increment the position - the bitmap is stored horizontally backward */
+        nv3->pgraph.win95_gdi_text_current_position.x--;
+
+        /* let's hope NV never overflow the y */
+        if (nv3->pgraph.win95_gdi_text_current_position.x <= nv3->pgraph.win95_gdi_text.point_d.x)
+        {
+            nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_in_d.w;
+            nv3->pgraph.win95_gdi_text_current_position.y++;
+        }
+
+        /* check if we are in the clipping rectangle */
+        if (nv3->pgraph.win95_gdi_text_current_position.x < nv3->pgraph.win95_gdi_text.clip_d.left
+        || nv3->pgraph.win95_gdi_text_current_position.x > nv3->pgraph.win95_gdi_text.clip_d.right
+        || nv3->pgraph.win95_gdi_text_current_position.y < nv3->pgraph.win95_gdi_text.clip_d.top
+        || nv3->pgraph.win95_gdi_text_current_position.y > nv3->pgraph.win95_gdi_text.clip_d.bottom)
+        {
+            return;
         }
 
     }
