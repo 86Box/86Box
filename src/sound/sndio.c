@@ -57,6 +57,7 @@ void inital(void){
 			info[i].bits = 16;
 			info[i].pchan = 2;
 			sio_setpar(audio[i], &info[i]);
+			sio_getpar(audio[i], &info[i]);
 			sio_start(audio[i]);
 		}
 	}

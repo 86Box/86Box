@@ -66,8 +66,9 @@ void inital(void){
 #ifdef USE_NEW_API
 			AUDIO_INITPAR(&info[i]);
 			ioctl(audio[i], AUDIO_GETPAR, &info[i]);
-			info[i].pchan = 2;
+			info[i].sig = 1;
 			info[i].bits = 16;
+			info[i].pchan = 2;
 			info[i].bps = 2;
 			ioctl(audio[i], AUDIO_SETPAR, &info[i]);
 #else
