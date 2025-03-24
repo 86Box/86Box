@@ -144,6 +144,12 @@ else()
     option(NEW_DYNAREC "Use the PCem v15 (\"new\") dynamic recompiler" OFF)
 endif()
 
+if((CMAKE_SYSTEM_NAME STREQUAL "NetBSD") OR (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD"))
+    option(AUDIO4 "Use audio(4) as sound backend" ON)
+else()
+    set(AUDIO4 OFF)
+endif()
+
 if(WIN32)
     set(QT ON)
     option(CPPTHREADS "C++11 threads" OFF)

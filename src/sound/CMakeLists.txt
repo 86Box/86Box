@@ -53,7 +53,10 @@ add_library(snd OBJECT
     snd_opl_esfm.c
 )
 
-if(OPENAL)
+# TODO: Should platform-specific audio driver be here?
+if(AUDIO4)
+    target_sources(snd PRIVATE audio4.c)
+elseif(OPENAL)
     if(VCPKG_TOOLCHAIN)
         find_package(OpenAL CONFIG REQUIRED)
     elseif(MINGW)
