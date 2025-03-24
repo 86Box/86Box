@@ -96,6 +96,7 @@ void givealbuffer_common(const void *buf, const uint8_t src, const int size){
 	int conv_size;
 	int i;
         double gain;
+	int target_rate;
 	if(audio[src] == -1) return;
 
 	gain = sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0);
@@ -114,18 +115,18 @@ void givealbuffer_common(const void *buf, const uint8_t src, const int size){
 	}
 
 #ifdef USE_NEW_API
-	output_size = (double)conv_size * info[src].rate / freq;
+	target_rate = info[src].rate;
 #else
-	output_size = (double)conv_size * info[src].play.sample_rate / freq;
+	target_rate = info[src].play.sample_rate;
 #endif
+
+	output_size = (double)conv_size * target_rate / freq;
+	output_size -= output_size % 2;
 	output = malloc(output_size);
 	
 	for(i = 0; i < output_size / sizeof(int16_t) / 2; i++){
-#ifdef USE_NEW_API
-		int ind = i * freq / info[src].rate * 2;
-#else
-		int ind = i * freq / info[src].play.sample_rate * 2;
-#endif
+		int ind = i * freq / target_rate * 2;
+		ind -= ind % 2;
 		output[i * 2 + 0] = conv[ind + 0] * gain;
 		output[i * 2 + 1] = conv[ind + 1] * gain;
 	}
