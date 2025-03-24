@@ -121,7 +121,7 @@ void givealbuffer_common(const void *buf, const uint8_t src, const int size){
 #endif
 
 	output_size = (double)conv_size * target_rate / freq;
-	output_size -= output_size % 2;
+	output_size -= output_size % 4;
 	output = malloc(output_size);
 	
 	for(i = 0; i < output_size / sizeof(int16_t) / 2; i++){
