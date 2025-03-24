@@ -145,7 +145,9 @@ else()
 endif()
 
 if((CMAKE_SYSTEM_NAME STREQUAL "NetBSD") OR (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD"))
-    set(AUDIO4 ON)
+    option(AUDIO4 "Use audio(4) as sound backend" ON)
+else()
+    set(AUDIO4 OFF)
 endif()
 
 if(WIN32)
