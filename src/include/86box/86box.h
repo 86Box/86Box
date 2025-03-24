@@ -20,8 +20,8 @@
 #ifndef EMU_86BOX_H
 #define EMU_86BOX_H
 
-#ifdef __NetBSD__
-/* Doesn't compile on NetBSD without this include */
+#if defined(__NetBSD__) || defined(__OpenBSD__)
+/* Doesn't compile on NetBSD/OpenBSD without this include */
 #include <stdarg.h>
 #endif
 
