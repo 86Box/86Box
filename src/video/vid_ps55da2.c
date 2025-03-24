@@ -253,7 +253,7 @@
 #define LG_SET_RESET_2          0x10
 
 #ifndef RELEASE_BUILD
-// #define ENABLE_DA2_LOG 1
+#define ENABLE_DA2_LOG 1
 #endif
 
 #ifdef ENABLE_DA2_LOG
@@ -1850,12 +1850,13 @@ da2_render_text(da2_t *da2)
         int       fg, bg;
         uint32_t  chr_dbcs;
         int       chr_wide = 0;
+        int       colormode = ((da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) == 0x80);
         // da2_log("\nda2ma: %x, da2sc: %x\n", da2->ma, da2->sc);
         for (x = 0; x < da2->hdisp; x += 13) {
             chr  = da2->cram[(da2->ma) & DA2_MASK_CRAM];
             attr = da2->cram[(da2->ma + 1) & DA2_MASK_CRAM];
             // if(chr!=0x20) da2_log("chr: %x, attr: %x    ", chr, attr);
-            if (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) /* IO 3E8h, Index 1Dh */
+            if (colormode) /* IO 3E8h, Index 1Dh */
             {                                           /* --Parse attribute byte in color mode-- */
                 bg = 0;                                 /* bg color is always black (the only way to change background color is programming PAL) */
                 fg = getPS55ForeColor(attr, da2);
@@ -1932,24 +1933,24 @@ da2_render_text(da2_t *da2)
                 chr_wide = 0;
             }
             /* Line 28 (Underscore) Note: Draw this first to display blink + vertical + underline correctly. */
-            if (da2->sc == 27 && attr & 0x40 && ~da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) { /* Underscore only in monochrome mode */
+            if (da2->sc == da2->crtc[LC_UNDERLINE_LOCATION] && attr & 0x40 && !colormode) { /* Underscore only in monochrome mode */
                 for (uint32_t n = 0; n < 13; n++)
                     p[n] = da2->pallook[da2->egapal[fg]]; /* under line (white) */
             }
             /* Column 1 (Vertical Line) */
             if (attr & 0x10) {
-                p[0] = da2->pallook[da2->egapal[(da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? IRGBtoBGRI(da2->attrc[LV_GRID_COLOR_0]) : 2]]; /* vertical line (white) */
+                p[0] = da2->pallook[da2->egapal[(colormode) ? IRGBtoBGRI(da2->attrc[LV_GRID_COLOR_0]) : 2]]; /* vertical line (white) */
             }
             if (da2->sc == 0 && attr & 0x20 && ~da2->attrc[LV_PAS_STATUS_CNTRL]) { /* HGrid */
                 for (uint32_t n = 0; n < 13; n++)
-                    p[n] = da2->pallook[da2->egapal[(da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? IRGBtoBGRI(da2->attrc[LV_GRID_COLOR_0]) : 2]]; /* horizontal line (white) */
+                    p[n] = da2->pallook[da2->egapal[(colormode) ? IRGBtoBGRI(da2->attrc[LV_GRID_COLOR_0]) : 2]]; /* horizontal line (white) */
             }
             /* Drawing text cursor */
             drawcursor = ((da2->ma == da2->ca) && da2->con && da2->cursoron);
             if (drawcursor && da2->sc >= da2->crtc[LC_CURSOR_ROW_START] && da2->sc <= da2->crtc[LC_CURSOR_ROW_END]) {
                 int cursorwidth = (da2->crtc[LC_COMPATIBILITY] & 0x20 ? 26 : 13);
-                int cursorcolor = (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? IRGBtoBGRI(da2->attrc[LV_CURSOR_COLOR]) : 2; /* Choose color 2 if mode 8 */
-                fg              = (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? getPS55ForeColor(attr, da2) : ((attr & 0x08) ? 3 : 2);
+                int cursorcolor = (colormode) ? IRGBtoBGRI(da2->attrc[LV_CURSOR_COLOR]) : 2; /* Choose color 2 if mode 8 */
+                fg              = (colormode) ? getPS55ForeColor(attr, da2) : ((attr & 0x08) ? 3 : 2);
                 bg              = 0;
                 if (attr & 0x04) { /* Color 0 if reverse */
                     bg = fg;
@@ -2048,8 +2049,8 @@ da2_render_textm3(da2_t *da2)
             drawcursor = ((da2->ma == da2->ca) && da2->con && da2->cursoron);
             if (drawcursor && da2->sc >= da2->crtc[LC_CURSOR_ROW_START] && da2->sc <= da2->crtc[LC_CURSOR_ROW_END]) {
                 // int cursorwidth = (da2->crtc[0x1f] & 0x20 ? 26 : 13);
-                // int cursorcolor = (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? IRGBtoBGRI(da2->attrc[0x1a]) : 2;/* Choose color 2 if mode 8 */
-                // fg = (da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) ? getPS55ForeColor(attr, da2) : (attr & 0x08) ? 3 : 2;
+                // int cursorcolor = (colormode) ? IRGBtoBGRI(da2->attrc[0x1a]) : 2;/* Choose color 2 if mode 8 */
+                // fg = (colormode) ? getPS55ForeColor(attr, da2) : (attr & 0x08) ? 3 : 2;
                 // bg = 0;
                 // if (attr & 0x04) {/* Color 0 if reverse */
                 //     bg = fg;
@@ -2217,10 +2218,10 @@ da2_recalctimings(da2_t *da2)
     da2->vblankstart = da2->crtc[LC_START_VERTICAL_BLANK] & 0xfff;
     da2->hdisp       = da2->crtc[LC_H_DISPLAY_ENABLE_END];
 
-    if (da2->crtc[LC_START_H_DISPLAY_ENAB] & 1) {
-        da2->hdisp--;
-        da2->dispend -= 29;
-    } 
+    da2->hdisp -= da2->crtc[LC_START_H_DISPLAY_ENAB];
+    /* In the J-DOS setup, you'll see the blank below the screen. It's NOT a bug. */
+    da2->dispend -= da2->crtc[LC_START_V_DISPLAY_ENAB];
+    da2->dispend++;
 
     da2->htotal = da2->crtc[LC_HORIZONTAL_TOTAL];
     da2->htotal += 1;
