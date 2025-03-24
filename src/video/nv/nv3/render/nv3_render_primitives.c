@@ -78,25 +78,10 @@ void nv3_render_text_1bpp(bool bit, nv3_grobj_t grobj)
     /* increment the position - the bitmap is stored horizontally backward */
     nv3->pgraph.win95_gdi_text_current_position.x--;
 
-    if (nv3->pgraph.win95_gdi_text.size_in_d.w < 0x0010)
+    if (nv3->pgraph.win95_gdi_text_current_position.x <= nv3->pgraph.win95_gdi_text.point_d.x)
     {
-        if (nv3->pgraph.win95_gdi_text_current_position.x <= nv3->pgraph.win95_gdi_text.point_d.x)
-        {
-            nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_in_d.w;
-            nv3->pgraph.win95_gdi_text_current_position.y++;
-        }
-    }  
-    /* dumb hack but it never seems to be any other sizes. draw lines (7-0) and then (15-8) */ 
-    else 
-    {
-        uint16_t midpoint_x = nv3->pgraph.win95_gdi_text.point_d.x + (nv3->pgraph.win95_gdi_text.size_in_d.w << 1);
-
-        /* let's hope NV never overflow the y */
-        if (nv3->pgraph.win95_gdi_text_current_position.x <= nv3->pgraph.win95_gdi_text.point_d.x)
-        {
-            nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_in_d.w;
-            nv3->pgraph.win95_gdi_text_current_position.y++;
-        }
+        nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_in_d.w;
+        nv3->pgraph.win95_gdi_text_current_position.y++;
     }
 
     /* check if we are in the clipping rectangle */
