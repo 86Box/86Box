@@ -60,7 +60,6 @@ elseif(SNDIO)
     target_sources(snd PRIVATE sndio.c)
     find_package(PkgConfig REQUIRED)
 
-    # Use FAudio, a reimplementation of XAudio2
     pkg_check_modules(SNDIO IMPORTED_TARGET sndio)
     if(SNDIO_FOUND)
         target_link_libraries(86Box PkgConfig::SNDIO)
