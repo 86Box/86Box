@@ -112,11 +112,19 @@ void givealbuffer_common(const void *buf, const uint8_t src, const int size){
 		memcpy(conv, buf, conv_size);
 	}
 
+#ifdef USE_NEW_API
+	output_size = (double)conv_size * info[src].rate / freq;
+#else
 	output_size = (double)conv_size * info[src].play.sample_rate / freq;
+#endif
 	output = malloc(output_size);
 	
 	for(i = 0; i < output_size / sizeof(int16_t) / 2; i++){
+#ifdef USE_NEW_API
+		int ind = i * freq / info[src].rate * 2;
+#else
 		int ind = i * freq / info[src].play.sample_rate * 2;
+#endif
 		output[i * 2 + 0] = conv[ind + 0] * gain;
 		output[i * 2 + 1] = conv[ind + 1] * gain;
 	}
