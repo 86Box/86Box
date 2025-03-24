@@ -208,7 +208,9 @@ enum {
     MACHINE_CHIPSET_ALI_ALADDIN_V,
     MACHINE_CHIPSET_ALI_ALADDIN_PRO_II,
     MACHINE_CHIPSET_SCAT,
+    MACHINE_CHIPSET_SCAT_SX,
     MACHINE_CHIPSET_NEAT,
+    MACHINE_CHIPSET_NEAT_SX,
     MACHINE_CHIPSET_CT_386,
     MACHINE_CHIPSET_CT_CS4031,
     MACHINE_CHIPSET_CONTAQ_82C596,
@@ -483,6 +485,7 @@ extern int machine_at_adi386sx_init(const machine_t *);
 extern int machine_at_cmdsl386sx16_init(const machine_t *);
 extern int machine_at_cmdsl386sx25_init(const machine_t *);
 extern int machine_at_dataexpert386sx_init(const machine_t *);
+extern int machine_at_if386sx_init(const machine_t *);
 extern int machine_at_spc6033p_init(const machine_t *);
 extern int machine_at_wd76c10_init(const machine_t *);
 extern int machine_at_arb1374_init(const machine_t *);
