@@ -6,7 +6,7 @@
  *
  *           This file is part of the 86Box distribution.
  *
- *           Interface to audio(4) for NetBSD/OpenBSD.
+ *           Interface to sndio
  *
  *
  * Authors:  Nishi
@@ -14,15 +14,13 @@
  *           Copyright 2025 Nishi.
  */
 #include <stdint.h>
-#include <fcntl.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
-#include <sys/sndio.h>
+#include <sndio.h>
 
 #include <86box/86box.h>
 #include <86box/sound.h>
