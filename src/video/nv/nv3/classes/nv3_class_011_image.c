@@ -76,7 +76,7 @@ void nv3_class_011_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                 /* the reverse order is due to the endianness */
                 switch (nv3->nvbase.svga.bpp)
                 {
-                    // 4pixels packed into one
+                    // 4pixels packed into one param
                     case 8:
                     
                         //pixel3
@@ -101,7 +101,7 @@ void nv3_class_011_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                         nv3_class_011_check_line_bounds();
 
                         break;
-                    //2pixels packed into 1
+                    //2pixels packed into one param
                     case 16:
                         pixel1 = (param) & 0xFFFF;
                         nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel1, grobj);
@@ -114,7 +114,7 @@ void nv3_class_011_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                         nv3_class_011_check_line_bounds();
                             
                         break;
-                    // just one
+                    // just one pixel in 32bpp
                     case 32: 
                         pixel0 = param;
                         nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel0, grobj);

@@ -155,10 +155,28 @@ uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t co
     return packed_color;
 }
 
-/* Runs the chroma key test */
-void nv3_render_chroma_test(nv3_grobj_t grobj)
+/* Runs the chroma key/color key test */
+bool nv3_render_chroma_test(nv3_grobj_t grobj, uint32_t color)
 {
+    bool chroma_enabled = ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_CHROMA_KEY) & 0x01);
 
+    if (!chroma_enabled)
+        return true;
+    
+    bool alpha = ((nv3->pgraph.chroma_key >> 31) & 0x01);
+
+    if (!alpha)
+        return true;
+
+    /* this is dumb but i'm lazy, if it kills perf, fix it later - we need to do some format shuffling */
+    nv3_grobj_t grobj_fake = {0};
+    grobj_fake.grobj_0 = 0x02; /* we don't care about any other bits */
+
+    nv3_color_expanded_t chroma_expanded = nv3_render_expand_color(grobj_fake, nv3->pgraph.chroma_key);
+   
+    uint32_t chroma_downconverted = nv3_render_downconvert_color(grobj, chroma_expanded);
+
+    return !(chroma_downconverted == color);
 }
 
 /* Convert expanded colour format to chroma key format */
@@ -295,6 +313,8 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
         }
 
     /* TODO: Chroma Key, Pattern, Plane Mask...*/
+    if (!nv3_render_chroma_test(grobj, color))
+        return;
 
     uint32_t pixel_addr_vram = nv3_render_get_vram_address(position, grobj);
 

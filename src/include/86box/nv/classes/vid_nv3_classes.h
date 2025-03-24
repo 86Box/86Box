@@ -132,9 +132,54 @@ typedef enum nv3_pgraph_class_e
 #define NV3_IMAGE_IN_MEMORY_TOP_LEFT_OFFSET             0x030C
 #define NV3_IMAGE_IN_MEMORY_TOP_LEFT_OFFSET_END         22  
 
-#define NV3_W95TXT_COLORA                               0x03FC  // It's the colour of the text. This is used to submit a dummy object so the notifier can be used to sync in Win2000 DDraw6 drivers.
-#define NV3_W95TXT_COLORA_RECT_START                    0x0400
-#define NV3_W95TXT_COLORA_RECT_END                      0x05FF
+/* GDI */
+
+/* Type A: Unclipped Rectangle */
+#define NV3_W95TXT_A_COLOR                              0x03FC  // It's the colour of the text. This is used to submit a dummy object so the notifier can be used to sync in Win2000 DDraw6 drivers.
+#define NV3_W95TXT_A_RECT_START                         0x0400
+#define NV3_W95TXT_A_RECT_SIZE                          64      // Number of rects
+#define NV3_W95TXT_A_RECT_END                           0x05FF
+
+/* Type B: Clipped Rectangle */
+#define NV3_W95TXT_B_CLIP_TOPLEFT                       0x07F4
+#define NV3_W95TXT_B_CLIP_BOTTOMRIGHT                   0x07F8
+#define NV3_W95TXT_B_CLIP_CLIPRECT_START                0x0800
+#define NV3_W95TXT_B_CLIP_CLIPRECT_SIZE                 128     // Number of rects
+#define NV3_W95TXT_B_CLIP_CLIPRECT_END                  0x09FF
+
+/* Type C: Unscaled Single-Colour Text (filled in from mono bitmap) */
+#define NV3_W95TXT_C_CLIP_TOPLEFT                       0x0BEC
+#define NV3_W95TXT_C_CLIP_BOTTOMRIGHT                   0x0BF0
+#define NV3_W95TXT_C_CLIP_COLOR                         0x0BF4
+#define NV3_W95TXT_C_CLIP_SIZE                          0x0BF8
+#define NV3_W95TXT_C_CLIP_POSITION                      0x0BFC  /* TOP LEFT */
+#define NV3_W95TXT_C_CLIP_CLIPRECT_START                0x0C00
+#define NV3_W95TXT_C_CLIP_CLIPRECT_SIZE                 64      // Number of rects
+#define NV3_W95TXT_C_CLIP_CLIPRECT_END                  0x0DFF
+
+/* Type D: Scaled Single-Colour Text (filled in from mono bitmap) */
+#define NV3_W95TXT_D_CLIP_TOPLEFT                       0x0FE8
+#define NV3_W95TXT_D_CLIP_BOTTOMRIGHT                   0x0FEC
+#define NV3_W95TXT_D_CLIP_COLOR                         0x0FF0
+#define NV3_W95TXT_D_CLIP_SIZE_IN                       0x0FF4
+#define NV3_W95TXT_D_CLIP_SIZE_OUT                      0x0FF8
+#define NV3_W95TXT_D_CLIP_POSITION                      0x0FFC  /* TOP LEFT */
+#define NV3_W95TXT_D_CLIP_CLIPRECT_START                0x1000
+#define NV3_W95TXT_D_CLIP_CLIPRECT_SIZE                 128     // Number of rects
+#define NV3_W95TXT_D_CLIP_CLIPRECT_END                  0x11FF
+
+/* Type E: Scaled Pattern-type Bitmap Text (filled) */
+#define NV3_W95TXT_E_CLIP_TOPLEFT                       0x13E4
+#define NV3_W95TXT_E_CLIP_BOTTOMRIGHT                   0x13E8
+#define NV3_W95TXT_E_CLIP_COLOR_0                       0x13EC
+#define NV3_W95TXT_E_CLIP_COLOR_1                       0x13F0
+#define NV3_W95TXT_E_CLIP_SIZE_IN                       0x13F4
+#define NV3_W95TXT_E_CLIP_SIZE_OUT                      0x13F8
+#define NV3_W95TXT_E_CLIP_POSITION                      0x13FC  /* TOP LEFT */
+#define NV3_W95TXT_E_CLIP_CLIPRECT_START                0x1400
+#define NV3_W95TXT_E_CLIP_CLIPRECT_SIZE                 128     // Number of rects
+#define NV3_W95TXT_E_CLIP_CLIPRECT_END                  0x15FF
+
 
 /* Class context switch method */
 typedef struct nv3_class_ctx_switch_method_s
@@ -523,12 +568,6 @@ typedef struct nv3_object_class_00B
     uint8_t reserved4[0x19FB];
 } nv3_triangle_t;
 
-typedef struct nv3_object_class_00C_nclip_s
-{
-    nv3_position_16_t position;
-    nv3_size_16_t size;
-} nv3_object_class_00C_nclip_t;
-
 /* 
     Object Class 0x0C (real hardware)
     0x0C (drivers)
@@ -544,7 +583,8 @@ typedef struct nv3_object_class_00C
     uint32_t set_notify;                            // Set notifier
     uint8_t reserved2[0x2F4];                       
     uint32_t color_a;                               // Color for Clip A
-    nv3_object_class_00C_nclip_t rect_nclip[64];    
+    nv3_position_16_t rect_a_position[64];
+    nv3_size_16_t rect_a_size[64];  
     uint8_t reserved3[0x1F0];   
     nv3_clip_16_t clip_b;
     uint32_t color_b;                               // Color for Clip B

@@ -202,6 +202,7 @@ extern const device_config_t nv3_config[];
 #define NV3_CIO_START                                   0x3b0       // Legacy SVGA Emulation Subsystem
 #define NV3_CIO_END                                     0x3df
 #define NV3_PBUS_START                                  0x1000      // Bus Control Subsystem
+#define NV3_PBUS_DEBUG_0                                0x1084      // Bus Control Debug
 #define NV3_PBUS_INTR                                   0x1100      // Bus Control - Interrupt Status
 
 #define NV3_PBUS_INTR_EN                                0x1140      // Bus Control - Interrupt Enable
@@ -375,6 +376,7 @@ extern const device_config_t nv3_config[];
 #define NV3_PFB_BOOT_RAM_EXTENSION_8MB                  0x1
 
 #define NV3_PFB_DELAY                                   0x100044
+#define NV3_PFB_DEBUG_0                                 0x100080    // Debug register for pfb
 #define NV3_PFB_GREEN_0                                 0x1000C0
 
 #define NV3_PFB_CONFIG_0                                0x100200    // Framebuffer interface config register 0
@@ -569,10 +571,10 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_SRC_CANVAS_MAX                       0x400554    // Maximum Source Canvas for Blit, Y=30:16, X=10:0
 #define NV3_PGRAPH_DST_CANVAS_MIN                       0x400558    // Minimum Destination Canvas for Blit, Y=30:16, X=10:0
 #define NV3_PGRAPH_DST_CANVAS_MAX                       0x40055C    // Maximum Destination Canvas for Blit, Y=30:16, X=10:0
-#define NV3_PGRAPH_PATTERN_COLOR_0_RGB                    0x400600    
-#define NV3_PGRAPH_PATTERN_COLOR_0_ALPHA                    0x400604
-#define NV3_PGRAPH_PATTERN_COLOR_1_RGB                    0x400608    
-#define NV3_PGRAPH_PATTERN_COLOR_1_ALPHA                    0x40060C    // pattern color 
+#define NV3_PGRAPH_PATTERN_COLOR_0_RGB                  0x400600    
+#define NV3_PGRAPH_PATTERN_COLOR_0_ALPHA                0x400604
+#define NV3_PGRAPH_PATTERN_COLOR_1_RGB                  0x400608    
+#define NV3_PGRAPH_PATTERN_COLOR_1_ALPHA                0x40060C    // pattern color 
 #define NV3_PGRAPH_PATTERN_BITMAP_HIGH                  0x400610    // pattern bitmap [31:0]
 #define NV3_PGRAPH_PATTERN_BITMAP_LOW                   0x400614    // pattern bitmap [63:32]
 #define NV3_PGRAPH_PATTERN_SHAPE                        0x400618
@@ -581,6 +583,7 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_CHROMA_KEY                           0x40062C
 #define NV3_PGRAPH_BETA                                 0x400640    // Beta factor (30:23 fractional, 22:0 before fraction)
 #define NV3_PGRAPH_DMA                                  0x400680
+#define NV3_PGRAPH_INSTANCE                             0x400688    // Current instance (?)
 
 // Current notification object for pgraph
 #define NV3_PGRAPH_NOTIFY                               0x400684    // Notifier for PGRAPH    
@@ -905,6 +908,7 @@ typedef struct nv3_straps_s
 typedef struct nv3_pfb_s
 {
     uint32_t boot;
+    uint32_t debug_0;                   // debug stuff
     uint32_t config_0;                  // Framebuffer width, etc.
     uint32_t config_1;
     uint32_t green;
@@ -960,6 +964,7 @@ typedef struct nv3_pbus_rma_s
 // Bus Configuration
 typedef struct nv3_pbus_s
 {
+    uint32_t debug_0;
     uint32_t interrupt_status;          // Interrupt status
     uint32_t interrupt_enable;          // Interrupt enable
     nv3_pbus_rma_t rma;
@@ -1207,6 +1212,7 @@ typedef struct nv3_pgraph_s
     nv3_pgraph_status_t status;                             // Current status of the 3D engine.
     uint32_t trapped_address;
     uint32_t trapped_data;
+    uint32_t instance;                                      // no idea what this is but possibly an object context
     uint32_t trapped_instance;
 
     /*  This area is used for holding universal representations of the U* registers, which are actually mapped into MMIO */

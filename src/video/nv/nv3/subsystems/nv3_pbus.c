@@ -33,6 +33,7 @@
 // Putting this in pbus because imo it makes the most sense (related to memory access/memory interface)
 
 nv_register_t pbus_registers[] = {
+    { NV3_PBUS_DEBUG_0, "PBUS - Debug Register", NULL, NULL},
     { NV3_PBUS_INTR, "PBUS - Interrupt Status", NULL, NULL},
     { NV3_PBUS_INTR_EN, "PBUS - Interrupt Enable", NULL, NULL,},
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
@@ -65,6 +66,9 @@ uint32_t nv3_pbus_read(uint32_t address)
         {
             switch (reg->address)
             {
+                case NV3_PBUS_DEBUG_0:
+                    ret = nv3->pbus.debug_0;
+                    break;
                 case NV3_PBUS_INTR:
                     ret = nv3->pbus.interrupt_status;
                     break;
@@ -108,6 +112,9 @@ void nv3_pbus_write(uint32_t address, uint32_t value)
         {
             switch (reg->address)
             {
+                case NV3_PBUS_DEBUG_0:
+                    nv3->pbus.debug_0 = value;
+                    break;
                 // Interrupt registers
                 // Interrupt state:
                 // Bit 0 - PCI Bus Error

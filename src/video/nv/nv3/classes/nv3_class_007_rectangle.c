@@ -39,14 +39,13 @@ void nv3_class_007_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             /* Check for any rectangle point or size method. */
             if (method_id >= NV3_RECTANGLE_START && method_id <= NV3_RECTANGLE_END)
             {
-                uint32_t index = (method_id - NV3_RECTANGLE_START) / 8;
+                uint32_t index = (method_id - NV3_RECTANGLE_START) >> 3;
 
                 // If the size is submitted, render it.
                 if (method_id & 0x04)
                 {
                     nv3->pgraph.rectangle.size[index].w = param & 0xFFFF;
-                    nv3->pgraph.rectangle.size[index].h = (param >> 16) & 0xFFFF;
-                    
+                    nv3->pgraph.rectangle.size[index].h = (param >> 16) & 0xFFFF;   
                     
                     nv_log("Rect%d Size=%d,%d Color=0x%08x\n", index, nv3->pgraph.rectangle.size[index].w, nv3->pgraph.rectangle.size[index].h, nv3->pgraph.rectangle.color);
 
@@ -56,7 +55,6 @@ void nv3_class_007_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                 {
                     nv3->pgraph.rectangle.position[index].x = param & 0xFFFF;
                     nv3->pgraph.rectangle.position[index].y = (param >> 16) & 0xFFFF;
-                    
                     
                     nv_log("Rect%d Position=%d,%d\n", index, nv3->pgraph.rectangle.position[index].x, nv3->pgraph.rectangle.position[index].y);
                 }

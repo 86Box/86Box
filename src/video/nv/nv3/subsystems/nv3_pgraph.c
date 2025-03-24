@@ -240,6 +240,7 @@ uint32_t nv3_pgraph_read(uint32_t address)
                 case NV3_PGRAPH_CLIP_MISC:
                     ret = *(uint32_t*)&nv3->pgraph.clip_misc_settings;
                     break;
+                
                 // Overall Status
                 case NV3_PGRAPH_STATUS:
                     ret = *(uint32_t*)&nv3->pgraph.status;
@@ -250,6 +251,9 @@ uint32_t nv3_pgraph_read(uint32_t address)
                     break;
                 case NV3_PGRAPH_TRAPPED_DATA:
                     ret = nv3->pgraph.trapped_data;
+                    break;
+                case NV3_PGRAPH_INSTANCE:
+                    ret = nv3->pgraph.instance;
                     break;
                 case NV3_PGRAPH_TRAPPED_INSTANCE:
                     ret = nv3->pgraph.trapped_instance;
@@ -454,9 +458,13 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
                 case NV3_PGRAPH_TRAPPED_DATA:
                     nv3->pgraph.trapped_data = value;
                     break;
+                case NV3_PGRAPH_INSTANCE:
+                    nv3->pgraph.instance = value;
+                    break;
                 case NV3_PGRAPH_TRAPPED_INSTANCE:
                     nv3->pgraph.trapped_instance = value;
                     break;
+
             }
         }
     }

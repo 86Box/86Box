@@ -35,6 +35,7 @@ void nv3_pfb_config0_write(uint32_t val);
 nv_register_t pfb_registers[] = {
     { NV3_PFB_BOOT, "PFB Boot Config", NULL, NULL},
     { NV3_PFB_DELAY, "PFB Delay", NULL, NULL},
+    { NV3_PFB_DEBUG_0, "PFB Debug", NULL, NULL },
     { NV3_PFB_GREEN_0, "PFB Green / Power Saving", NULL, NULL,},
     { NV3_PFB_CONFIG_0, "PFB Framebuffer Config 0", nv3_pfb_config0_read, nv3_pfb_config0_write },
     { NV3_PFB_CONFIG_1, "PFB Framebuffer Config 1", NULL, NULL },
@@ -84,6 +85,9 @@ uint32_t nv3_pfb_read(uint32_t address)
             {
                 case NV3_PFB_BOOT:
                     ret = nv3->pfb.boot;
+                    break;
+                case NV3_PFB_DEBUG_0:
+                    ret = nv3->pfb.debug_0;
                     break;
                 // Config 0 has a read/write function
                 case NV3_PFB_CONFIG_1:
@@ -136,6 +140,10 @@ void nv3_pfb_write(uint32_t address, uint32_t value)
         {
             switch (reg->address)
             {
+                // Boot is read only
+                case NV3_PFB_DEBUG_0:
+                    nv3->pfb.debug_0 = value;
+                    break;
                 // Config 0 has a read/write function
                 case NV3_PFB_CONFIG_1:              // Config Register 1
                     nv3->pfb.config_1 = value;
