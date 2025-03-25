@@ -61,6 +61,7 @@
 
 #define JEGA_PATH_BIOS     "roms/video/jega/JEGABIOS.BIN"
 #define JEGA_PATH_FONTDBCS "roms/video/jega/JPNZN16X.FNT"
+#define IF386_PATH_VBIOS   "roms/machines/if386sx/OKI_IF386SX_VBIOS.bin"
 #define SBCS19_FILESIZE    (256 * 19 * 2) /* 8 x 19 x 256 chr x 2 pages */
 #define DBCS16_CHARS       0x2c10
 #define DBCS16_FILESIZE    (DBCS16_CHARS * 16 * 2)
@@ -137,7 +138,8 @@ typedef struct {
 	uint16_t end;
 } fontx_tbl;
 
-static uint32_t        pallook64[256];
+extern uint32_t        pallook16[256];
+extern uint32_t        pallook64[256];
 static bool is_SJIS_1(uint8_t chr) { return (chr >= 0x81 && chr <= 0x9f) || (chr >= 0xe0 && chr <= 0xfc); }
 static bool is_SJIS_2(uint8_t chr) { return (chr >= 0x40 && chr <= 0x7e) || (chr >= 0x80 && chr <= 0xfc); }
 
@@ -615,8 +617,27 @@ LoadFontxFile(const char *fn, void *priv)
     return 0;
 }
 
+static void
+jega_commoninit(void *priv)
+{
+    jega_t *jega = (jega_t *) priv;
+    for (int c = 0; c < 256; c++) {
+        pallook64[c] = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
+        pallook64[c] += makecol32(((c >> 5) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 3) & 1) * 0x55);
+    }
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ega);
+    jega->pallook = pallook64;
+    ega_init(&jega->ega, 9, 0);
+    ega_set_type(&jega->ega, EGA_SUPEREGA);
+    jega->ega.priv_parent = jega;
+    mem_mapping_add(&jega->ega.mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, &jega->ega);
+    /* I/O 3DD and 3DE are used by Oki if386 */
+    io_sethandler(0x03b0, 0x002c, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
+    jega->regs[RMOD1] = 0x48;
+}
+
 static void *
-jega_init(const device_t *info)
+jega_standalone_init(const device_t *info)
 {
     jega_t *jega = calloc(1, sizeof(jega_t));
 
@@ -624,21 +645,7 @@ jega_init(const device_t *info)
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
     LoadFontxFile(JEGA_PATH_FONTDBCS, jega);
 
-    for (int c = 0; c < 256; c++) {
-        pallook64[c] = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
-        pallook64[c] += makecol32(((c >> 5) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 3) & 1) * 0x55);
-    }
-
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ega);
-    jega->pallook = pallook64;
-    ega_init(&jega->ega, 9, 0);
-    ega_set_type(&jega->ega, EGA_SUPEREGA);
-    jega->ega.priv_parent = jega;
-    mem_mapping_add(&jega->ega.mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, &jega->ega);
-
-    io_sethandler(0x03b0, 0x0030, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
-
-    jega->regs[RMOD1] = 0x48;
+    jega_commoninit(jega);
 
     return jega;
 }
@@ -665,10 +672,10 @@ jega_close(void *priv)
             fprintf(f, "Regs %02X: %4X\n", i, jega->regs[i]);
         for (int i = 0; i < 32; i++)
             fprintf(f, "Attr %02X: %4X\n", i, jega->attrregs[i]);
-            for (int i = 0; i < 16; i++)
-                fprintf(f, "JEGAPal %02X: %4X\n", i, jega->egapal[i]);
-                for (int i = 0; i < 16; i++)
-                    fprintf(f, "EGAPal %02X: %4X\n", i, jega->ega.egapal[i]);
+        for (int i = 0; i < 16; i++)
+            fprintf(f, "JEGAPal %02X: %4X\n", i, jega->egapal[i]);
+        for (int i = 0; i < 16; i++)
+            fprintf(f, "EGAPal %02X: %4X\n", i, jega->ega.egapal[i]);
         for (int i = 0; i < 64; i++)
         fprintf(f, "RealPal %02X: %4X\n", i, jega->pallook[i]);
         fclose(f);
@@ -683,7 +690,7 @@ jega_close(void *priv)
         fwrite(&ram[0x0], 0x500, 1, f);
         fclose(f);
     }
-    // jega_log("jeclosed %04X:%04X DS %04X\n", cs >> 4, cpu_state.pc, DS);
+    pclog("jeclosed %04X:%04X DS %04X\n", cs >> 4, cpu_state.pc, DS);
 #endif
     if (jega->ega.eeprom)
         free(jega->ega.eeprom);
@@ -706,7 +713,7 @@ jega_speed_changed(void *priv)
 }
 
 static int
-jega_available(void)
+jega_standalone_available(void)
 {
     return (rom_present(JEGA_PATH_BIOS) && rom_present(JEGA_PATH_FONTDBCS));
 }
@@ -716,10 +723,124 @@ const device_t jega_device = {
     .internal_name = "jega",
     .flags         = DEVICE_ISA,
     .local         = 0,
-    .init          = jega_init,
+    .init          = jega_standalone_init,
     .close         = jega_close,
     .reset         = NULL,
-    .available     = jega_available,
+    .available     = jega_standalone_available,
+    .speed_changed = jega_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+static uint8_t p65idx = 0;
+// static uint8_t p3de_idx = 0;
+static uint8_t p65[6];
+// static uint8_t p3de[0x30];
+
+
+static uint8_t
+if386_p6x_read(uint16_t port, void *priv)
+{
+    uint8_t ret = INVALIDACCESS8;
+    if (port == 0x63) {
+        ret = p65idx;
+    } else if (port == 0x65) {
+        ret = p65[p65idx];
+    }
+    // pclog("p%x_r: [%04x:%04x] [%02x]%02x\n", port, cs >> 4, cpu_state.pc , p65idx, ret);
+    return ret;
+}
+
+/*
+    OKi if386AX/SX Power management and Miscellaneous
+    I/O 63h: Index 0-5, I/O 65h: Data
+    Index 2: 
+        Bit 3: Caps Lock enabled
+        Bit 2: Num Lock enabled
+        Bit 1: Scrl Lock enabled
+        Bit 0: Kana Lock enabled
+    Index 3
+        Bit 2: External monitor output enabled
+        Bit 1: Floppy drive 1 active
+        Bit 0: Floppy drive 0 active
+    Index 5
+        Bit 8: ? (1=Disabled, 0=Enabled)
+        Bit 7: Screen Off? (enabled by Ctrl + Alt + [1] and disabled by any key)
+        Bit 4: Shutdown? (caused by POST rebooting and POWER OFF command in DOS 3.21)
+        Bit 3: ?
+*/
+static void
+if386_p6x_write(uint16_t port, uint8_t val, void *priv)
+{
+    jega_t *jega = (jega_t *) priv;
+    // pclog("p%x_w: [%04x:%04x] val=%02x\n", port, cs >> 4, cpu_state.pc, val);
+    if (port == 0x63 && val < 6)
+        p65idx = val;
+    if (port == 0x65) {
+        // pclog("p65_w: [%04x:%04x] idx=%02x, val=%02x\n", cs >> 4, cpu_state.pc, p65idx, val);
+        p65[p65idx] = val;
+        if (p65idx == 0x03) {
+            if (val & 0x04) { /* Color monitor */
+                for (int c = 0; c < 256; c++) {
+                    pallook64[c] = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
+                    pallook64[c] += makecol32(((c >> 5) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 3) & 1) * 0x55);
+                    pallook16[c] = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
+                    pallook16[c] += makecol32(((c >> 4) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 4) & 1) * 0x55);
+                    if ((c & 0x17) == 6)
+                        pallook16[c] = makecol32(0xaa, 0x55, 0);
+                }
+            } else { /* Monochrome LCD */
+                for (int c = 0; c < 256; c++) {
+                    int cval = 0;
+                    if (c & 0x0f)
+                        cval = ((c & 0x0e) * 0x10) + 0x1f;
+                    pallook64[c] = makecol32(cval, cval, cval);
+                    pallook16[c] = makecol32(cval, cval, cval);
+                }
+            }
+            jega_recalctimings(jega);
+        } else if (p65idx == 0x05) {
+            if (val & 0x10) { /* Power off (instead this call hardware reset here) */
+                resetx86();
+            }
+        }
+    }
+    return;
+}
+
+static void *
+if386jega_init(const device_t *info)
+{
+    jega_t *jega = calloc(1, sizeof(jega_t));
+
+    rom_init(&jega->bios_rom, IF386_PATH_VBIOS, 0xc0000, 0x8000, 0x7fff, 0, 0);
+    memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
+    LoadFontxFile(JEGA_PATH_FONTDBCS, jega);
+
+    jega_commoninit(jega);
+
+    io_sethandler(0x0063, 1, if386_p6x_read, NULL, NULL, if386_p6x_write, NULL, NULL, jega);
+    io_sethandler(0x0065, 1, if386_p6x_read, NULL, NULL, if386_p6x_write, NULL, NULL, jega);
+    // io_sethandler(0x03dd, 2, if386_p6x_read, NULL, NULL, if386_p6x_write, NULL, NULL, jega);
+
+    return jega;
+}
+
+static int
+if386jega_available(void)
+{
+    return (rom_present(IF386_PATH_VBIOS) && rom_present(JEGA_PATH_FONTDBCS));
+}
+
+const device_t if386jega_device = {
+    .name          = "JEGA (if386AX)",
+    .internal_name = "if386jega",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = if386jega_init,
+    .close         = jega_close,
+    .reset         = NULL,
+    .available     = if386jega_available,
     .speed_changed = jega_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL

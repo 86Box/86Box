@@ -234,6 +234,7 @@ extern const device_t keyboard_xtclone_device;
 extern const device_t keyboard_at_device;
 extern const device_t keyboard_at_ami_device;
 extern const device_t keyboard_at_compaq_device;
+extern const device_t keyboard_at_phoenix_device;
 extern const device_t keyboard_at_ncr_device;
 extern const device_t keyboard_at_olivetti_device;
 extern const device_t keyboard_at_siemens_device;
