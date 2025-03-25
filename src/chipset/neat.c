@@ -688,7 +688,7 @@ remap_update(neat_t *dev, uint8_t val)
     if (dev->remap_base > 1024) {
         uint32_t base = (val & RB7_EMSEN) ? (0x00100000 + (dev->ems_size << 10)) : 0x00100000;
 
-        mem_mapping_set_addr(&ram_high_mapping, base, (dev->remap_base << 10) - 0x00100000);
+        mem_mapping_set_addr(&ram_high_mapping, 0x00100000, (dev->remap_base << 10) - 0x00100000);
         mem_mapping_set_exec(&ram_high_mapping, &(ram[base]));
     } else
         mem_mapping_disable(&ram_high_mapping);
@@ -941,6 +941,13 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                         default:
                             break;
                     }
+
+                    if (mem_size < 1024)
+                        /* No RAM left for EMS at all. */
+                        dev->ems_size = 0;
+                    else if (mem_size < (dev->ems_size + 1024))
+                        /* Limit EMS size to the entirety of the remaining extended memory. */
+                        dev->ems_size = mem_size - 1024;
 
                     if (dev->regs[REG_RB7] & RB7_EMSEN) {
                         remap_update(dev, dev->regs[REG_RB7]);
