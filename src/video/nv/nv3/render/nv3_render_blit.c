@@ -56,6 +56,7 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
                 }
             }
             break;
+        case 15:
         case 16: //16bpp
             for (int32_t y = nv3->pgraph.blit.point_out.y; y < end_y; y++)
             {

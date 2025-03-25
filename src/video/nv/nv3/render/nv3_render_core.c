@@ -227,6 +227,7 @@ uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t gro
     {
         case 8:
             break;
+        case 15:
         case 16:
             vram_x = position.x << 1;
             break;
@@ -375,6 +376,7 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
             nv3->nvbase.svga.changedvram[pixel_addr_vram >> 12] = changeframecount;
 
             break;
+        case 15:
         case 16:
             uint16_t* vram_16 = (uint16_t*)(nv3->nvbase.svga.vram);
             pixel_addr_vram >>= 1; 

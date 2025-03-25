@@ -519,7 +519,7 @@ void nv3_recalc_timings(svga_t* svga)
             }
             else
             {
-                svga->bpp = 16; // HACK: DO NOT change this
+                svga->bpp = 15; // HACK: DO NOT change this
                 svga->lowres = 0;
                 svga->render = svga_render_15bpp_highres;
             }

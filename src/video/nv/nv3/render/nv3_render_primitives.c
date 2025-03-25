@@ -65,6 +65,7 @@ void nv3_render_text_1bpp(bool bit, nv3_grobj_t grobj)
             case 8:
                 final_color = (nv3->pgraph.win95_gdi_text.color1_d & 0xFF); /* do we need to add anything? mul blend perhaps? */
                 break;
+            case 15:
             case 16:
                 final_color = (nv3->pgraph.win95_gdi_text.color1_d & 0xFFFF); /* do we need to add anything? mul blend perhaps? */
                 break;
@@ -114,7 +115,7 @@ void nv3_render_gdi_type_d(nv3_grobj_t grobj, uint32_t param)
 }
 
 /* 2-colour 1bpp color-expanded text from [7-0] */
-void nv3_render_text_1bpp_2color(uint8_t byte, nv3_grobj_t grobj)
+void nv3_render_text_1bpp_2color(uint32_t byte, nv3_grobj_t grobj)
 {
     for (int32_t bit_num = 0; bit_num <= 7; bit_num++)
     {
@@ -122,10 +123,6 @@ void nv3_render_text_1bpp_2color(uint8_t byte, nv3_grobj_t grobj)
 
         uint16_t clip_x = nv3->pgraph.win95_gdi_text.point_e.x + nv3->pgraph.win95_gdi_text.size_out_e.w;
         uint16_t clip_y = nv3->pgraph.win95_gdi_text.point_e.y + nv3->pgraph.win95_gdi_text.size_out_e.h;
-    
-        /* they send more data than they need */
-        if (nv3->pgraph.win95_gdi_text_current_position.y >= clip_y)
-            bit = false;
     
         // if it's a 0 bit we don't need to do anything
     
@@ -136,6 +133,7 @@ void nv3_render_text_1bpp_2color(uint8_t byte, nv3_grobj_t grobj)
             case 8:
                 final_color = (bit) ? (nv3->pgraph.win95_gdi_text.color1_e & 0xFF) : (nv3->pgraph.win95_gdi_text.color0_e & 0xFF); /* do we need to add anything? mul blend perhaps? */
                 break;
+            case 15:
             case 16:
                 final_color = (bit) ? (nv3->pgraph.win95_gdi_text.color1_e & 0xFFFF) : (nv3->pgraph.win95_gdi_text.color0_e & 0xFFFF); /* do we need to add anything? mul blend perhaps? */
                 break;
@@ -143,7 +141,7 @@ void nv3_render_text_1bpp_2color(uint8_t byte, nv3_grobj_t grobj)
                 final_color = (bit) ? nv3->pgraph.win95_gdi_text.color1_e : nv3->pgraph.win95_gdi_text.color0_e;  /* do we need to add anything? mul blend perhaps? */
                 break;
         }
-    
+
         nv3_render_write_pixel(nv3->pgraph.win95_gdi_text_current_position, final_color, grobj);
     
         /* increment the position - the bitmap is stored horizontally backward */
@@ -152,7 +150,7 @@ void nv3_render_text_1bpp_2color(uint8_t byte, nv3_grobj_t grobj)
         /* see if we need to go to the next line */
         if (nv3->pgraph.win95_gdi_text_current_position.x < nv3->pgraph.win95_gdi_text.point_e.x)
         {
-            nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_e.x + (nv3->pgraph.win95_gdi_text.size_in_e.w - 1);
+            nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_e.x + (nv3->pgraph.win95_gdi_text.size_out_e.w - 1);
             nv3->pgraph.win95_gdi_text_current_position.y++;
         }
     
