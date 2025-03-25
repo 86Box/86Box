@@ -799,6 +799,30 @@ MainWindow::closeEvent(QCloseEvent *event)
 }
 
 void
+MainWindow::resizeEvent(QResizeEvent *event)
+{
+    //qDebug() << pos().x() + event->size().width();
+    //qDebug() << pos().y() + event->size().height();
+    if (vid_resize == 1)
+        return;
+
+    int newX = pos().x();
+    int newY = pos().y();
+
+    if (((frameGeometry().x() + event->size().width() + 1) > util::screenOfWidget(this)->availableGeometry().right())) {
+        //move(util::screenOfWidget(this)->availableGeometry().right() - size().width() - 1, pos().y());
+        newX = util::screenOfWidget(this)->availableGeometry().right() - frameGeometry().width() - 1;
+        if (newX < 1) newX = 1;
+    }
+
+    if (((frameGeometry().y() + event->size().height() + 1) > util::screenOfWidget(this)->availableGeometry().bottom())) {
+        newY = util::screenOfWidget(this)->availableGeometry().bottom() - frameGeometry().height() - 1;
+        if (newY < 1) newY = 1;
+    }
+    move(newX, newY);
+}
+
+void
 MainWindow::initRendererMonitorSlot(int monitor_index)
 {
     auto &secondaryRenderer = this->renderers[monitor_index];
