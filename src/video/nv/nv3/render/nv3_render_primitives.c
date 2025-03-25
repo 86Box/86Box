@@ -55,32 +55,37 @@ void nv3_render_text_1bpp(bool bit, nv3_grobj_t grobj)
     if (nv3->pgraph.win95_gdi_text_current_position.y >= clip_y)
         bit = false;
 
+    uint32_t final_color;
+
     // if it's a 0 bit we don't need to do anything
     if (bit)
     {
         switch (nv3->nvbase.svga.bpp)
         {
             case 8:
-                uint32_t final_color8 = (nv3->pgraph.win95_gdi_text.color1_d & 0xFF); /* do we need to add anything? mul blend perhaps? */
-                nv3_render_write_pixel(nv3->pgraph.win95_gdi_text_current_position, final_color8, grobj);
+                final_color = (nv3->pgraph.win95_gdi_text.color1_d & 0xFF); /* do we need to add anything? mul blend perhaps? */
                 break;
             case 16:
-                uint32_t final_color16 = (nv3->pgraph.win95_gdi_text.color1_d & 0xFFFF); /* do we need to add anything? mul blend perhaps? */
-                nv3_render_write_pixel(nv3->pgraph.win95_gdi_text_current_position, final_color16, grobj);
+                final_color = (nv3->pgraph.win95_gdi_text.color1_d & 0xFFFF); /* do we need to add anything? mul blend perhaps? */
                 break;
             case 32:
-                uint32_t final_color32 = (nv3->pgraph.win95_gdi_text.color1_d); /* do we need to add anything? mul blend perhaps? */
-                nv3_render_write_pixel(nv3->pgraph.win95_gdi_text_current_position, final_color32, grobj);
+                final_color = (nv3->pgraph.win95_gdi_text.color1_d); /* do we need to add anything? mul blend perhaps? */
                 break;
         }
     }
 
+    /* in type d colour0 is always transparent */
+    if (bit)
+        nv3_render_write_pixel(nv3->pgraph.win95_gdi_text_current_position, final_color, grobj);
+
     /* increment the position - the bitmap is stored horizontally backward */
     nv3->pgraph.win95_gdi_text_current_position.x--;
 
-    if (nv3->pgraph.win95_gdi_text_current_position.x <= nv3->pgraph.win95_gdi_text.point_d.x)
+    /* check if we need to go down a line */
+    if (nv3->pgraph.win95_gdi_text_current_position.x < nv3->pgraph.win95_gdi_text.point_d.x)
     {
-        nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_in_d.w;
+        nv3->pgraph.win95_gdi_text_current_position.x = (nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_in_d.w - 1);
+        
         nv3->pgraph.win95_gdi_text_current_position.y++;
     }
 
@@ -92,15 +97,12 @@ void nv3_render_text_1bpp(bool bit, nv3_grobj_t grobj)
     {
         return;
     }
-
 }
 
 void nv3_render_gdi_type_d(nv3_grobj_t grobj, uint32_t param)
 {
     // reset when a position is submitted
     nv3_position_16_t start_position = nv3->pgraph.win95_gdi_text_current_position;
-
-    // is this clip or point?
 
     /* Go through the bitmap that was sent, bit by bit. */
     for (int32_t bit_num = 0; bit_num <= 31; bit_num++)
@@ -109,4 +111,77 @@ void nv3_render_gdi_type_d(nv3_grobj_t grobj, uint32_t param)
 
         nv3_render_text_1bpp(bit, grobj);
     }
+}
+
+/* 2-colour 1bpp color-expanded text from [7-0] */
+void nv3_render_text_1bpp_2color(uint8_t byte, nv3_grobj_t grobj)
+{
+    for (int32_t bit_num = 0; bit_num <= 7; bit_num++)
+    {
+        bool bit = (byte >> bit_num) & 0x01;
+
+        uint16_t clip_x = nv3->pgraph.win95_gdi_text.point_e.x + nv3->pgraph.win95_gdi_text.size_out_e.w;
+        uint16_t clip_y = nv3->pgraph.win95_gdi_text.point_e.y + nv3->pgraph.win95_gdi_text.size_out_e.h;
+    
+        /* they send more data than they need */
+        if (nv3->pgraph.win95_gdi_text_current_position.y >= clip_y)
+            bit = false;
+    
+        // if it's a 0 bit we don't need to do anything
+    
+        uint32_t final_color;
+    
+        switch (nv3->nvbase.svga.bpp)
+        {
+            case 8:
+                final_color = (bit) ? (nv3->pgraph.win95_gdi_text.color1_e & 0xFF) : (nv3->pgraph.win95_gdi_text.color0_e & 0xFF); /* do we need to add anything? mul blend perhaps? */
+                break;
+            case 16:
+                final_color = (bit) ? (nv3->pgraph.win95_gdi_text.color1_e & 0xFFFF) : (nv3->pgraph.win95_gdi_text.color0_e & 0xFFFF); /* do we need to add anything? mul blend perhaps? */
+                break;
+            case 32:
+                final_color = (bit) ? nv3->pgraph.win95_gdi_text.color1_e : nv3->pgraph.win95_gdi_text.color0_e;  /* do we need to add anything? mul blend perhaps? */
+                break;
+        }
+    
+        nv3_render_write_pixel(nv3->pgraph.win95_gdi_text_current_position, final_color, grobj);
+    
+        /* increment the position - the bitmap is stored horizontally backward */
+        nv3->pgraph.win95_gdi_text_current_position.x--;
+    
+        /* see if we need to go to the next line */
+        if (nv3->pgraph.win95_gdi_text_current_position.x < nv3->pgraph.win95_gdi_text.point_e.x)
+        {
+            nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_e.x + (nv3->pgraph.win95_gdi_text.size_in_e.w - 1);
+            nv3->pgraph.win95_gdi_text_current_position.y++;
+        }
+    
+        /* check if we are in the clipping rectangle */
+        if (nv3->pgraph.win95_gdi_text_current_position.x < nv3->pgraph.win95_gdi_text.clip_e.left
+        || nv3->pgraph.win95_gdi_text_current_position.x > nv3->pgraph.win95_gdi_text.clip_e.right
+        || nv3->pgraph.win95_gdi_text_current_position.y < nv3->pgraph.win95_gdi_text.clip_e.top
+        || nv3->pgraph.win95_gdi_text_current_position.y > nv3->pgraph.win95_gdi_text.clip_e.bottom)
+        {
+            return;
+        }
+    }
+    
+
+}
+
+void nv3_render_gdi_type_e(nv3_grobj_t grobj, uint32_t param)
+{
+    // reset when a position is submitted
+    nv3_position_16_t start_position = nv3->pgraph.win95_gdi_text_current_position;
+
+    /* we have to interpret every bit in reverse order but in the right bit order */
+    uint8_t byte0 = ((param & 0xFF000000) >> 24);
+    uint8_t byte1 = ((param & 0xFF0000) >> 16);
+    uint8_t byte2 = ((param & 0xFF00) >> 8);
+    uint8_t byte3 = (param & 0xFF);
+
+    nv3_render_text_1bpp_2color(byte0, grobj);
+    nv3_render_text_1bpp_2color(byte1, grobj);
+    nv3_render_text_1bpp_2color(byte2, grobj);
+    nv3_render_text_1bpp_2color(byte3, grobj);
 }

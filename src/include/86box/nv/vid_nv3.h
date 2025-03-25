@@ -1233,7 +1233,7 @@ typedef struct nv3_pgraph_s
     struct nv3_object_class_00E scaled_image_from_memory;
     struct nv3_object_class_010 blit;
     struct nv3_object_class_011 image;
-    nv3_position_16_t image_current_position;                /* This is here so we can hold the current state of the image */
+    nv3_position_16_t image_current_position;               /* This is here so we can hold the current state of the image */
     struct nv3_object_class_012 bitmap;
     struct nv3_object_class_014 transfer2memory;
     struct nv3_object_class_015 stretched_image_from_cpu;
