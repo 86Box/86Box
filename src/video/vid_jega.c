@@ -803,9 +803,9 @@ if386_p6x_write(uint16_t port, uint8_t val, void *priv)
         } else if (p65idx == 0x05) {
             if (val & 0x10)
                 /* Power off (instead this call hardware reset here) */
-                // resetx86();
+                resetx86();
                 /* Actually, power off - we have a function for that! */
-                plat_power_off();
+                // plat_power_off();
         }
     }
     return;
