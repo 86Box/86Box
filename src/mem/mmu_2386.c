@@ -102,8 +102,8 @@ mem_readw_map(uint32_t addr)
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->read_w))
         ret = map->read_w(addr, map->priv);
     else {
-        ret = mem_readb_phys(addr + 1) << 8;
-        ret |= mem_readb_phys(addr);
+        ret = mem_readb_map(addr);
+        ret |= ((uint16_t) mem_readb_map(addr + 1)) << 8;
     }
 
     return ret;
@@ -120,8 +120,8 @@ mem_readl_map(uint32_t addr)
     if (!cpu_16bitbus && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->read_l))
         ret = map->read_l(addr, map->priv);
     else {
-        ret = mem_readw_phys(addr + 2) << 16;
-        ret |= mem_readw_phys(addr);
+        ret = mem_readw_map(addr);
+        ret |= ((uint32_t) mem_readw_map(addr + 2)) << 16;
     }
 
     return ret;
@@ -148,8 +148,8 @@ mem_writew_map(uint32_t addr, uint16_t val)
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->write_w))
         map->write_w(addr, val, map->priv);
     else {
-        mem_writeb_phys(addr, val & 0xff);
-        mem_writeb_phys(addr + 1, val >> 8);
+        mem_writeb_map(addr, val & 0xff);
+        mem_writeb_map(addr + 1, val >> 8);
     }
 }
 
@@ -161,10 +161,10 @@ mem_writel_map(uint32_t addr, uint32_t val)
     mem_logical_addr = 0xffffffff;
 
     if (!cpu_16bitbus && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->write_l))
-         map->write_l(addr, val, map->priv);
+        map->write_l(addr, val, map->priv);
     else {
-        mem_writew_phys(addr, val & 0xffff);
-        mem_writew_phys(addr + 2, val >> 16);
+        mem_writew_map(addr, val & 0xffff);
+        mem_writew_map(addr + 2, val >> 16);
     }
 }
 
@@ -649,7 +649,7 @@ readmemll_2386(uint32_t addr)
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
             return readmemwl_no_mmut_2386(addr, addr64a) |
-                   (((uint32_t) readmemwl_no_mmut(addr + 2, &(addr64a[2]))) << 16);
+                   (((uint32_t) readmemwl_no_mmut_2386(addr + 2, &(addr64a[2]))) << 16);
         }
     }
 
@@ -925,10 +925,28 @@ readmemql_2386(uint32_t addr)
     addr = addr64a[0] & rammask;
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
-    if (map && map->read_l)
-        return map->read_l(addr, map->priv) | ((uint64_t) map->read_l(addr + 4, map->priv) << 32);
 
-    return readmemll(addr) | ((uint64_t) readmemll(addr + 4) << 32);
+    if (map && map->read_l)
+        return map->read_l(addr, map->priv) |
+               ((uint64_t) map->read_l(addr + 4, map->priv) << 32);
+
+    if (map && map->read_w)
+        return map->read_w(addr, map->priv) |
+               ((uint64_t) map->read_w(addr + 2, map->priv) << 16) |
+               ((uint64_t) map->read_w(addr + 4, map->priv) << 32) |
+               ((uint64_t) map->read_w(addr + 6, map->priv) << 48);
+
+    if (map && map->read_b)
+        return map->read_b(addr, map->priv) |
+               ((uint64_t) map->read_b(addr + 1, map->priv) << 8) |
+               ((uint64_t) map->read_b(addr + 2, map->priv) << 16) |
+               ((uint64_t) map->read_b(addr + 3, map->priv) << 24) |
+               ((uint64_t) map->read_b(addr + 4, map->priv) << 32) |
+               ((uint64_t) map->read_b(addr + 5, map->priv) << 40) |
+               ((uint64_t) map->read_b(addr + 6, map->priv) << 48) |
+               ((uint64_t) map->read_b(addr + 7, map->priv) << 56);
+
+    return 0xffffffffffffffffULL;
 }
 
 void
