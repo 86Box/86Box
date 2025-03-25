@@ -1877,15 +1877,15 @@ dma_bm_read(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize, int Tra
     n2 = TotalSize - n;
 
     /* Do the divisible block, if there is one. */
-    if (n2) {
-        for (uint32_t i = 0; i < n2; i += TransferSize)
+    if (n) {
+        for (uint32_t i = 0; i < n; i += TransferSize)
             mem_read_phys((void *) &(DataRead[i]), PhysAddress + i, TransferSize);
     }
 
     /* Do the non-divisible block, if there is one. */
-    if (n) {
-        mem_read_phys((void *) bytes, PhysAddress + n2, TransferSize);
-        memcpy((void *) &(DataRead[n2]), bytes, n);
+    if (n2) {
+        mem_read_phys((void *) bytes, PhysAddress + n, TransferSize);
+        memcpy((void *) &(DataRead[n]), bytes, n2);
     }
 }
 
@@ -1900,16 +1900,16 @@ dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize,
     n2 = TotalSize - n;
 
     /* Do the divisible block, if there is one. */
-    if (n2) {
-        for (uint32_t i = 0; i < n2; i += TransferSize)
+    if (n) {
+        for (uint32_t i = 0; i < n; i += TransferSize)
             mem_write_phys((void *) &(DataWrite[i]), PhysAddress + i, TransferSize);
     }
 
     /* Do the non-divisible block, if there is one. */
-    if (n) {
-        mem_read_phys((void *) bytes, PhysAddress + n2, TransferSize);
-        memcpy(bytes, (void *) &(DataWrite[n2]), n);
-        mem_write_phys((void *) bytes, PhysAddress + n2, TransferSize);
+    if (n2) {
+        mem_read_phys((void *) bytes, PhysAddress + n, TransferSize);
+        memcpy(bytes, (void *) &(DataWrite[n]), n2);
+        mem_write_phys((void *) bytes, PhysAddress + n, TransferSize);
     }
 
     if (dma_at)
