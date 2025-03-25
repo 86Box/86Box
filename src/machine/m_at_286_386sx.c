@@ -658,8 +658,8 @@ machine_at_if386sx_init(const machine_t *model)
 
     device_add(&neat_sx_device);
 
-    if (gfxcard[0] == VID_INTERNAL)
-        device_add(&if386jega_device);
+    device_add(&if386jega_device);
+
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
