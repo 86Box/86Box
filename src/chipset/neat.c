@@ -686,9 +686,10 @@ remap_update(neat_t *dev, uint8_t val)
         mem_mapping_set_addr(&ram_low_mapping, 0x00000000, dev->remap_base << 10);
 
     if (dev->remap_base > 1024) {
-        mem_mapping_set_addr(&ram_high_mapping, 0x00100000, (dev->remap_base << 10) - 0x00100000);
-        mem_mapping_set_exec(&ram_high_mapping, &(ram[(val & RB7_EMSEN) ? 0x00100000 :
-                             (0x00100000 + (dev->ems_size << 10))]));
+        uint32_t base = (val & RB7_EMSEN) ? (0x00100000 + (dev->ems_size << 10)) : 0x00100000;
+
+        mem_mapping_set_addr(&ram_high_mapping, base, (dev->remap_base << 10) - 0x00100000);
+        mem_mapping_set_exec(&ram_high_mapping, &(ram[base]));
     } else
         mem_mapping_disable(&ram_high_mapping);
 
