@@ -88,18 +88,20 @@ static const joystick_if_t joystick_none = {
 static const struct {
     const joystick_if_t *joystick;
 } joysticks[] = {
-    { &joystick_none               },
-    { &joystick_2axis_2button      },
-    { &joystick_2axis_4button      },
-    { &joystick_2axis_6button      },
-    { &joystick_2axis_8button      },
-    { &joystick_3axis_2button      },
-    { &joystick_3axis_4button      },
-    { &joystick_4axis_4button      },
-    { &joystick_ch_flightstick_pro },
-    { &joystick_sw_pad             },
-    { &joystick_tm_fcs             },
-    { NULL                         }
+    { &joystick_none                         },
+    { &joystick_2axis_2button                },
+    { &joystick_2axis_4button                },
+    { &joystick_2axis_6button                },
+    { &joystick_2axis_8button                },
+    { &joystick_3axis_2button                },
+    { &joystick_3axis_4button                },
+    { &joystick_4axis_4button                },
+    { &joystick_ch_flightstick_pro           },
+    { &joystick_ch_flightstick_pro_ch_pedals },
+    { &joystick_sw_pad                       },
+    { &joystick_tm_fcs                       },
+    { &joystick_tm_fcs_rcs                   },
+    { NULL                                   }
 };
 
 static joystick_instance_t *joystick_instance[GAMEPORT_MAX] = { NULL, NULL };
