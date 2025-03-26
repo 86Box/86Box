@@ -229,6 +229,8 @@ sync_from_i8080(void)
 void
 sync_to_i8080(void)
 {
+    if (!is_nec)
+        return;
     emulated_processor.a  = AL;
     emulated_processor.h  = BH;
     emulated_processor.l  = BL;
@@ -1085,7 +1087,7 @@ interrupt(uint16_t addr)
 
     if (!(cpu_state.flags & MD_FLAG) && is_nec) {
         sync_from_i8080();
-        pclog("CALLN/INT#/NMI#\n");
+        x808x_log("CALLN/INT#/NMI#\n");
     }
 
     addr <<= 2;
@@ -1150,7 +1152,7 @@ interrupt_brkem(uint16_t addr)
     access(41, 16);
     push(&old_ip);
     sync_to_i8080();
-    pclog("BRKEM mode\n");
+    x808x_log("BRKEM mode\n");
 }
 
 void
@@ -1172,7 +1174,7 @@ retem_i8080(void)
     noint      = 1;
     nmi_enable = 1;
 
-    pclog("RETEM mode\n");
+    x808x_log("RETEM mode\n");
 }
 
 void
