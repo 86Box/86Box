@@ -137,6 +137,7 @@ protected:
     void showEvent(QShowEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
     void changeEvent(QEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private slots:
     void on_actionPen_triggered();

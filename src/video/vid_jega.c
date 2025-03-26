@@ -28,6 +28,7 @@
 #include <86box/timer.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
+#include <86box/plat.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/device.h>
@@ -800,9 +801,11 @@ if386_p6x_write(uint16_t port, uint8_t val, void *priv)
             }
             jega_recalctimings(jega);
         } else if (p65idx == 0x05) {
-            if (val & 0x10) { /* Power off (instead this call hardware reset here) */
+            if (val & 0x10)
+                /* Power off (instead this call hardware reset here) */
                 resetx86();
-            }
+                /* Actually, power off - we have a function for that! */
+                // plat_power_off();
         }
     }
     return;

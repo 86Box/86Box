@@ -116,6 +116,11 @@ ProgSettings::ProgSettings(QWidget *parent)
     ui->horizontalSlider->setValue(mouseSensitivity * 100.);
     ui->openDirUsrPath->setChecked(open_dir_usr_path > 0);
     ui->checkBoxMultimediaKeys->setChecked(inhibit_multimedia_keys);
+    ui->checkBoxConfirmExit->setChecked(confirm_exit);
+    ui->checkBoxConfirmSave->setChecked(confirm_save);
+    ui->checkBoxConfirmHardReset->setChecked(confirm_reset);
+    ui->checkBoxFullscreenFirst->setChecked(video_fullscreen_first);
+
 #ifndef Q_OS_WINDOWS
     ui->checkBoxMultimediaKeys->setHidden(true);
 #endif
@@ -127,6 +132,10 @@ ProgSettings::accept()
     strcpy(icon_set, ui->comboBox->currentData().toString().toUtf8().data());
     lang_id                 = ui->comboBoxLanguage->currentData().toUInt();
     open_dir_usr_path       = ui->openDirUsrPath->isChecked() ? 1 : 0;
+    confirm_exit            = ui->checkBoxConfirmExit->isChecked() ? 1 : 0;
+    confirm_save            = ui->checkBoxConfirmSave->isChecked() ? 1 : 0;
+    confirm_reset           = ui->checkBoxConfirmHardReset->isChecked() ? 1 : 0;
+    video_fullscreen_first  = ui->checkBoxFullscreenFirst->isChecked() ? 1 : 0;
     inhibit_multimedia_keys = ui->checkBoxMultimediaKeys->isChecked();
 
     loadTranslators(QCoreApplication::instance());
