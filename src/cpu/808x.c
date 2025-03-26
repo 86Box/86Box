@@ -1158,11 +1158,20 @@ retem_i8080(void)
 {
     sync_from_i8080();
 
-    cpu_state.pc    = pop();
-    CS              = pop();
-    cpu_state.flags = pop() | MD_FLAG;
+    prefetching = 0;
+    pfq_clear();
+
+    set_ip(pop());
+    load_cs(pop());
+    cpu_state.flags = pop();
+
+    emulated_processor.iff = !!(cpu_state.flags & I_FLAG);
 
     cpu_md_write_disable = 1;
+
+    noint      = 1;
+    nmi_enable = 1;
+
     pclog("RETEM mode\n");
 }
 
@@ -3298,7 +3307,7 @@ execx86(int cycs)
                     noint      = 1;
                     nmi_enable = 1;
                     if (is_nec && !(cpu_state.flags & MD_FLAG))
-                    sync_to_i8080();
+                        sync_to_i8080();
                     break;
 
                 case 0xD0:
