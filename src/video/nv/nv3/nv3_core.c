@@ -129,9 +129,6 @@ uint32_t nv3_mmio_read32(uint32_t addr, void* priv)
 
     ret = nv3_mmio_arbitrate_read(addr);
 
-    // This may get around the riva shredding its own cache 
-    //nv3_pfifo_cache0_pull();
-    //nv3_pfifo_cache1_pull();
 
     return ret; 
 
@@ -261,7 +258,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
         // 66Mhz FSB        capable
 
         case PCI_REG_COMMAND_L:
-            ret = nv3->pci_config.pci_regs[PCI_REG_COMMAND_L]; // we actually respond to the fucking 
+            ret = nv3->pci_config.pci_regs[PCI_REG_COMMAND_L] ; // we actually respond to the fucking 
             break;
         
         case PCI_REG_COMMAND_H:
@@ -395,6 +392,11 @@ void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
             nv3->pci_config.pci_regs[PCI_REG_COMMAND_L] = val;
             // actually update the mappings
             nv3_update_mappings();
+            break;
+        case PCI_REG_COMMAND_H:
+            nv3->pci_config.pci_regs[PCI_REG_COMMAND_H] = val;
+            // actually update the mappings
+            nv3_update_mappings();          
             break;
         // pci status register
         case PCI_REG_STATUS_L:
@@ -736,13 +738,57 @@ void nv3_svga_out(uint16_t addr, uint8_t val, void* priv)
 
 }
 
+/* DFB, sets up a dumb framebuffer */
+uint8_t nv3_dfb_read8(uint32_t addr, void* priv)
+{
+    addr &= (nv3->nvbase.svga.vram_mask);
+    return nv3->nvbase.svga.vram[addr];
+}
+
+uint16_t nv3_dfb_read16(uint32_t addr, void* priv)
+{
+    addr &= (nv3->nvbase.svga.vram_mask);
+    return (nv3->nvbase.svga.vram[addr + 1] << 8) | nv3->nvbase.svga.vram[addr];
+}
+
+uint32_t nv3_dfb_read32(uint32_t addr, void* priv)
+{
+    addr &= (nv3->nvbase.svga.vram_mask);
+    return (nv3->nvbase.svga.vram[addr + 3] << 24) | (nv3->nvbase.svga.vram[addr + 2] << 16) +
+    (nv3->nvbase.svga.vram[addr + 1] << 8) | nv3->nvbase.svga.vram[addr];
+}
+
+void nv3_dfb_write8(uint32_t addr, uint8_t val, void* priv)
+{
+    addr &= (nv3->nvbase.svga.vram_mask);
+    nv3->nvbase.svga.vram[addr] = val;
+}
+
+void nv3_dfb_write16(uint32_t addr, uint16_t val, void* priv)
+{
+    addr &= (nv3->nvbase.svga.vram_mask);
+    nv3->nvbase.svga.vram[addr + 1] = (val >> 8) & 0xFF;
+    nv3->nvbase.svga.vram[addr] = (val) & 0xFF;
+}
+
+void nv3_dfb_write32(uint32_t addr, uint32_t val, void* priv)
+{
+    addr &= (nv3->nvbase.svga.vram_mask);
+    nv3->nvbase.svga.vram[addr + 3] = (val >> 24) & 0xFF;
+    nv3->nvbase.svga.vram[addr + 2] = (val >> 16) & 0xFF;
+    nv3->nvbase.svga.vram[addr + 1] = (val >> 8) & 0xFF;
+    nv3->nvbase.svga.vram[addr] = (val) & 0xFF;
+}
+
+/* Cursor shit */
 void nv3_draw_cursor(svga_t* svga, int32_t drawline)
 {
     // sanity check
     if (!nv3)
         return; 
     
-    // this is a 2kb bitmap in vram...somewhere...
+    // On windows, this shows up using NV_IMAGE_IN_MEMORY.
+    // Do we need to emulate it?
 
     nv_log("nv3_draw_cursor drawline=0x%04x", drawline);
 }
@@ -829,25 +875,26 @@ void nv3_init_mappings_svga()
 {
     nv_log("Initialising SVGA core memory mapping\n");
 
+    
     // setup the svga mappings
-    mem_mapping_set(&nv3->nvbase.framebuffer_mapping, 0, 0,
-        svga_read_linear,
-        svga_readw_linear,
-        svga_readl_linear,
-        svga_write_linear,
-        svga_writew_linear,
-        svga_writel_linear,
-        NULL, 0, &nv3->nvbase.svga);
+    mem_mapping_add(&nv3->nvbase.framebuffer_mapping, 0, 0,
+        nv3_dfb_read8,
+        nv3_dfb_read16,
+        nv3_dfb_read32,
+        nv3_dfb_write8,
+        nv3_dfb_write16,
+        nv3_dfb_write32,
+        nv3->nvbase.svga.vram, 0, &nv3->nvbase.svga);
 
     // the SVGA/LFB mapping is also mirrored
-    mem_mapping_set(&nv3->nvbase.framebuffer_mapping_mirror, 0, 0, 
-        svga_read_linear,
-        svga_readw_linear,
-        svga_readl_linear,
-        svga_write_linear,
-        svga_writew_linear,
-        svga_writel_linear,
-        NULL, 0, &nv3->nvbase.svga);
+    mem_mapping_add(&nv3->nvbase.framebuffer_mapping_mirror, 0, 0, 
+        nv3_dfb_read8,
+        nv3_dfb_read16,
+        nv3_dfb_read32,
+        nv3_dfb_write8,
+        nv3_dfb_write16,
+        nv3_dfb_write32,
+        nv3->nvbase.svga.vram, 0, &nv3->nvbase.svga);
 
     io_sethandler(0x03c0, 0x0020, 
     nv3_svga_in, NULL, NULL, 
@@ -885,6 +932,12 @@ void nv3_update_mappings()
         nv3_svga_out, NULL, NULL, 
         nv3);   
     
+    if (!(nv3->pci_config.pci_regs[PCI_REG_COMMAND]) & PCI_COMMAND_MEM)
+    {
+        nv_log("The memory was turned off, not much is going to happen.\n");
+        return;
+    }
+
     // turn off bar0 and bar1 by defualt
     mem_mapping_disable(&nv3->nvbase.mmio_mapping);
     mem_mapping_disable(&nv3->nvbase.framebuffer_mapping);
@@ -892,50 +945,56 @@ void nv3_update_mappings()
     mem_mapping_disable(&nv3->nvbase.ramin_mapping);
     mem_mapping_disable(&nv3->nvbase.ramin_mapping_mirror);
 
-    if (!(nv3->pci_config.pci_regs[PCI_REG_COMMAND]) & PCI_COMMAND_MEM)
-    {
-        nv_log("The memory was turned off, not much is going to happen.\n");
-        return;
-    }
-
-    mem_mapping_enable(&nv3->nvbase.mmio_mapping);
-    mem_mapping_enable(&nv3->nvbase.framebuffer_mapping);
-    mem_mapping_enable(&nv3->nvbase.framebuffer_mapping_mirror);
-    mem_mapping_enable(&nv3->nvbase.ramin_mapping);
-    mem_mapping_enable(&nv3->nvbase.ramin_mapping_mirror);
-
-    // first map bar0
+    // Setup BAR0 (MMIO)
 
     nv_log("BAR0 (MMIO Base) = 0x%08x\n", nv3->nvbase.bar0_mmio_base);
 
-    //mem_mapping_enable(&nv3->nvbase.mmio_mapping); // should have no effect if already enabled
-
-    mem_mapping_set_addr(&nv3->nvbase.mmio_mapping, nv3->nvbase.bar0_mmio_base, NV3_MMIO_SIZE);
-
+    
+    if (nv3->nvbase.bar0_mmio_base)
+        mem_mapping_set_addr(&nv3->nvbase.mmio_mapping, nv3->nvbase.bar0_mmio_base, NV3_MMIO_SIZE);
 
     // if this breaks anything, remove it
-    // skeptical that 0 is used to disable...
     nv_log("BAR1 (Linear Framebuffer / NV_USER Base & RAMIN) = 0x%08x\n", nv3->nvbase.bar1_lfb_base);
 
     // this is likely mirrored 
     // 4x on 2mb cards
     // 2x on 4mb cards
     // and not at all on 8mb
-    mem_mapping_enable(&nv3->nvbase.framebuffer_mapping);
-    mem_mapping_enable(&nv3->nvbase.framebuffer_mapping_mirror);
-    mem_mapping_enable(&nv3->nvbase.ramin_mapping);
-    mem_mapping_enable(&nv3->nvbase.ramin_mapping_mirror);
 
-    mem_mapping_set_addr(&nv3->nvbase.framebuffer_mapping, nv3->nvbase.bar1_lfb_base, NV3_MMIO_SIZE);
+    /* TODO: 2MB */
+
     // 4MB VRAM memory map:
     // LFB_BASE+VRAM_SIZE=RAMIN Mirror(?)                                                   0x1400000 (VERIFY PCBOX)
     // LFB_BASE+VRAM_SIZE*2=LFB Mirror(?)                                                   0x1800000            
     // LFB_BASE+VRAM_SIZE*3=Definitely RAMIN (then it ends, the total ram space is 16mb)    0x1C00000
 
-    mem_mapping_set_addr(&nv3->nvbase.ramin_mapping_mirror, nv3->nvbase.bar1_lfb_base + NV3_LFB_RAMIN_MIRROR_START, NV3_LFB_MAPPING_SIZE);
-    mem_mapping_set_addr(&nv3->nvbase.framebuffer_mapping_mirror, nv3->nvbase.bar1_lfb_base + NV3_LFB_2NDHALF_START, NV3_LFB_MAPPING_SIZE);
-    mem_mapping_set_addr(&nv3->nvbase.ramin_mapping, nv3->nvbase.bar1_lfb_base + NV3_LFB_RAMIN_START, NV3_LFB_MAPPING_SIZE);
-            // TODO: RAMIN and its mirror
+    // 8MB VRAM memory map:
+    // LFB_BASE->LFB_BASE+VRAM_SIZE=LFB
+    // What is in 800000-c00000?
+    // LFB_BASE+0xC00000 = RAMIN
+
+    if (nv3->nvbase.bar1_lfb_base)
+    {
+        if (nv3->nvbase.vram_amount == NV3_VRAM_SIZE_4MB)
+        {    
+            mem_mapping_set_addr(&nv3->nvbase.framebuffer_mapping, nv3->nvbase.bar1_lfb_base, NV3_VRAM_SIZE_4MB);
+            mem_mapping_set_addr(&nv3->nvbase.ramin_mapping_mirror, nv3->nvbase.bar1_lfb_base + NV3_LFB_RAMIN_MIRROR_START, NV3_LFB_MAPPING_SIZE);
+            mem_mapping_set_addr(&nv3->nvbase.framebuffer_mapping_mirror, nv3->nvbase.bar1_lfb_base + NV3_LFB_MIRROR_START, NV3_VRAM_SIZE_4MB);
+            mem_mapping_set_addr(&nv3->nvbase.ramin_mapping, nv3->nvbase.bar1_lfb_base + NV3_LFB_RAMIN_START, NV3_LFB_MAPPING_SIZE);
+        }
+        else if (nv3->nvbase.vram_amount == NV3_VRAM_SIZE_8MB)
+        {
+            // we don't need this one in the case of 8mb, because regular mapping is 8mb
+            mem_mapping_disable(&nv3->nvbase.ramin_mapping_mirror);
+            mem_mapping_set_addr(&nv3->nvbase.framebuffer_mapping, nv3->nvbase.bar1_lfb_base, NV3_VRAM_SIZE_8MB);
+            mem_mapping_set_addr(&nv3->nvbase.framebuffer_mapping_mirror, nv3->nvbase.bar1_lfb_base + NV3_LFB_MIRROR_START, NV3_LFB_MAPPING_SIZE);
+            mem_mapping_set_addr(&nv3->nvbase.ramin_mapping, nv3->nvbase.bar1_lfb_base + NV3_LFB_RAMIN_START, NV3_LFB_MAPPING_SIZE);
+        }
+        else
+        {
+            fatal("NV3-2MB not implemented yet (It never existed anyway)"); 
+        }
+    }
 
     // Did we change the banked SVGA mode?
     switch (nv3->nvbase.svga.gdcreg[0x06] & 0x0c)
@@ -977,7 +1036,7 @@ void* nv3_init(const device_t *info)
     // Allows nv_log to be used for multiple nvidia devices
     nv_log_set_device(nv3->nvbase.log); 
 #endif   
-    nv_log("initialising core\n");
+    nv_log("Initialising core\n");
 
     // Figure out which vbios the user selected
     const char* vbios_id = device_get_config_bios("vbios");
@@ -1001,7 +1060,7 @@ void* nv3_init(const device_t *info)
         nv_log("Successfully loaded VBIOS %s located at %s\n", vbios_id, vbios_file);
 
     // set the vram amount and gpu revision
-    uint32_t vram_amount = device_get_config_int("vram_size");
+    nv3->nvbase.vram_amount = device_get_config_int("vram_size");
     nv3->nvbase.gpu_revision = device_get_config_int("chip_revision");
     
     // set up the bus and start setting up SVGA core
@@ -1011,7 +1070,7 @@ void* nv3_init(const device_t *info)
 
         pci_add_card(PCI_ADD_NORMAL, nv3_pci_read, nv3_pci_write, NULL, &nv3->nvbase.pci_slot);
 
-        svga_init(&nv3_device_pci, &nv3->nvbase.svga, nv3, vram_amount, 
+        svga_init(&nv3_device_pci, &nv3->nvbase.svga, nv3, nv3->nvbase.vram_amount, 
         nv3_recalc_timings, nv3_svga_in, nv3_svga_out, nv3_draw_cursor, NULL);
     }
     else if (nv3->nvbase.bus_generation == nv_bus_agp_1x)
@@ -1020,7 +1079,7 @@ void* nv3_init(const device_t *info)
 
         pci_add_card(PCI_ADD_AGP, nv3_pci_read, nv3_pci_write, NULL, &nv3->nvbase.pci_slot);
 
-        svga_init(&nv3_device_agp, &nv3->nvbase.svga, nv3, vram_amount, 
+        svga_init(&nv3_device_agp, &nv3->nvbase.svga, nv3, nv3->nvbase.vram_amount, 
         nv3_recalc_timings, nv3_svga_in, nv3_svga_out, nv3_draw_cursor, NULL);
     }
 

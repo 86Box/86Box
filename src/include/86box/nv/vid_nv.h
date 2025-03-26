@@ -93,6 +93,7 @@ typedef struct nv_base_s
     rom_t vbios;                                // NVIDIA/OEm VBIOS
     // move to nv3_cio_t?
     svga_t svga;                                // SVGA core (separate to nv3) - Weitek licensed
+    uint32_t vram_amount;                       // The amount of VRAM
     void* log;                                  // new logging engine
     // stuff that doesn't fit in the svga structure
     uint32_t cio_read_bank;                     // SVGA read bank

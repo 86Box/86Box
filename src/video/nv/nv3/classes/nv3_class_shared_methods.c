@@ -166,10 +166,10 @@ void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t
     switch (info_notification_target)
     {
         case NV3_NOTIFICATION_TARGET_NVM:
-            svga_writel_linear(final_address, (notify.nanoseconds & 0xFFFFFFFF), nv3);
-            svga_writel_linear(final_address + 4, (notify.nanoseconds >> 32), nv3);
-            svga_writel_linear(final_address + 8, notify.info32, nv3);
-            svga_writel_linear(final_address + 0x0C, (notify.info16 | notify.status), nv3);
+            svga_writel_linear(final_address, (notify.nanoseconds & 0xFFFFFFFF), &nv3->nvbase.svga);
+            svga_writel_linear(final_address + 4, (notify.nanoseconds >> 32), &nv3->nvbase.svga);
+            svga_writel_linear(final_address + 8, notify.info32, &nv3->nvbase.svga);
+            svga_writel_linear(final_address + 0x0C, (notify.info16 | notify.status), &nv3->nvbase.svga);
             break;
         case NV3_NOTIFICATION_TARGET_PCI:
         case NV3_NOTIFICATION_TARGET_AGP:

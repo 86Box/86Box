@@ -31,7 +31,7 @@ extern const device_config_t nv3_config[];
 #define NV3_MMIO_SIZE                                   0x1000000       // Max MMIO size
 
 #define NV3_LFB_RAMIN_MIRROR_START                      0x400000        // Mirror of ramin (VERIFY ON HARDWARE)
-#define NV3_LFB_2NDHALF_START                           0x800000        // The second half of LFB(?)
+#define NV3_LFB_MIRROR_START                            0x800000        // The second half of LFB(?)
 #define NV3_LFB_RAMIN_START                             0xC00000        // RAMIN mapping start
 #define NV3_LFB_MAPPING_SIZE                            0x400000        // Size of RAMIN
 
@@ -78,9 +78,9 @@ extern const device_config_t nv3_config[];
 #define NV3_VBIOS_DEFAULT                               NV3_VBIOS_ERAZOR_V15403
 
 // Temporary, will be loaded from settings
-#define VRAM_SIZE_2MB                                   0x200000 // 2MB
-#define VRAM_SIZE_4MB                                   0x400000 // 4MB
-#define VRAM_SIZE_8MB                                   0x800000 // NV3T only
+#define NV3_VRAM_SIZE_2MB                                   0x200000 // 2MB
+#define NV3_VRAM_SIZE_4MB                                   0x400000 // 4MB
+#define NV3_VRAM_SIZE_8MB                                   0x800000 // NV3T only
 // There is also 1mb supported by the card but it was never used
 
 // PCI config
@@ -1421,7 +1421,7 @@ typedef struct nv3_s
     nv3_pmc_t pmc;              // Master Control
     nv3_pfb_t pfb;              // Framebuffer/VRAM
     nv3_pbus_t pbus;            // Bus Control
-    nv3_pfifo_t pfifo;          // FIFO for command submisison
+    nv3_pfifo_t pfifo;          // FIFO for command submission
 
     nv3_pramdac_t pramdac;      // RAMDAC (CLUT etc)
     nv3_pgraph_t pgraph;        // 2D/3D Graphics
@@ -1461,6 +1461,14 @@ uint32_t    nv3_mmio_read32(uint32_t addr, void* priv);                         
 void        nv3_mmio_write8(uint32_t addr, uint8_t val, void* priv);            // Write 8-bit MMIO
 void        nv3_mmio_write16(uint32_t addr, uint16_t val, void* priv);          // Write 16-bit MMIO
 void        nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv);          // Write 32-bit MMIO
+
+/* BAR1 Dumb Framebuffer Read */
+uint8_t     nv3_dfb_read8(uint32_t addr, void* priv);                           // Write 8-bit DFB
+uint16_t    nv3_dfb_read16(uint32_t addr, void* priv);                          // Write 16-bit DFB
+uint32_t    nv3_dfb_read32(uint32_t addr, void* priv);                          // Write 32-bit DFB
+void        nv3_dfb_write8(uint32_t addr, uint8_t val, void* priv);             // Write 8-bit DFB
+void        nv3_dfb_write16(uint32_t addr, uint16_t val, void* priv);           // Write 16-bit DFB
+void        nv3_dfb_write32(uint32_t addr, uint32_t val, void* priv);           // Write 32-bit DFB
 
 uint8_t     nv3_svga_in(uint16_t addr, void* priv);                             // Read SVGA compatibility registers
 void        nv3_svga_out(uint16_t addr, uint8_t val, void* priv);               // Write SVGA registers

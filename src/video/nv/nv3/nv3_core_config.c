@@ -140,23 +140,23 @@ const device_config_t nv3_config[] =
         .name = "vram_size",
         .description = "VRAM Size",
         .type = CONFIG_SELECTION,
-        .default_int = VRAM_SIZE_4MB,
+        .default_int = NV3_VRAM_SIZE_4MB,
         .selection = 
         {
 #ifndef RELEASE_BUILD
             // This never existed officially but was planned. Debug only
             {
                 .description = "2 MB (Never officially sold)",
-                .value = VRAM_SIZE_2MB,
+                .value = NV3_VRAM_SIZE_2MB,
             },
 #endif
             {
                 .description = "4 MB",
-                .value = VRAM_SIZE_4MB,
+                .value = NV3_VRAM_SIZE_4MB,
             },
             {
                 .description = "8 MB",
-                .value = VRAM_SIZE_8MB,
+                .value = NV3_VRAM_SIZE_8MB,
             },
         }
 

@@ -218,7 +218,7 @@ uint32_t nv3_pfifo_read(uint32_t address)
                     ret = nv3->pfifo.cache1_settings.dma_state;
                     break; 
                 case NV3_PFIFO_CACHE1_DMA_CONFIG_1:
-                    ret = nv3->pfifo.cache1_settings.dma_length & (VRAM_SIZE_8MB) - 4; //MAX vram size
+                    ret = nv3->pfifo.cache1_settings.dma_length & (NV3_VRAM_SIZE_8MB) - 4; //MAX vram size
                     break;
                 case NV3_PFIFO_CACHE1_DMA_CONFIG_2:
                     ret = nv3->pfifo.cache1_settings.dma_address;
