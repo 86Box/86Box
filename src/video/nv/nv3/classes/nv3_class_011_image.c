@@ -72,6 +72,9 @@ void nv3_class_011_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
 
                 uint32_t pixel0 = 0, pixel1 = 0, pixel2 = 0, pixel3 = 0;
 
+                /* Some extra data is sent as padding, we need to clip it off using size_out */
+
+                uint16_t clip_x = nv3->pgraph.image_current_position.x + nv3->pgraph.image.size.w;
                 /* we need to unpack them - IF THIS IS USED SOMEWHERE ELSE, DO SOMETHING ELSE WITH IT */
                 /* the reverse order is due to the endianness */
                 switch (nv3->nvbase.svga.bpp)
@@ -81,22 +84,22 @@ void nv3_class_011_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                     
                         //pixel3
                         pixel3 = param & 0xFF;
-                        nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel3, grobj);
+                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel3, grobj);
                         nv3->pgraph.image_current_position.x++;
                         nv3_class_011_check_line_bounds();
 
                         pixel2 = (param >> 8) & 0xFF;
-                        nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel2, grobj);
+                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel2, grobj);
                         nv3->pgraph.image_current_position.x++;
                         nv3_class_011_check_line_bounds();
                         
                         pixel1 = (param >> 16) & 0xFF;
-                        nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel1, grobj);
+                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel1, grobj);
                         nv3->pgraph.image_current_position.x++;
                         nv3_class_011_check_line_bounds();
 
                         pixel0 = (param >> 24) & 0xFF;
-                        nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel0, grobj);
+                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel0, grobj);
                         nv3->pgraph.image_current_position.x++;
                         nv3_class_011_check_line_bounds();
 
@@ -105,12 +108,12 @@ void nv3_class_011_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                     case 15:
                     case 16:
                         pixel1 = (param) & 0xFFFF;
-                        nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel1, grobj);
+                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel1, grobj);
                         nv3->pgraph.image_current_position.x++;
                         nv3_class_011_check_line_bounds();
 
                         pixel0 = (param >> 16) & 0xFFFF;
-                        nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel0, grobj);
+                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel0, grobj);
                         nv3->pgraph.image_current_position.x++;
                         nv3_class_011_check_line_bounds();
                             
@@ -118,7 +121,7 @@ void nv3_class_011_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                     // just one pixel in 32bpp
                     case 32: 
                         pixel0 = param;
-                        nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel0, grobj);
+                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel0, grobj);
                         nv3->pgraph.image_current_position.x++;
                         nv3_class_011_check_line_bounds();
 

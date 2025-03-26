@@ -219,6 +219,7 @@ uint32_t nv3_render_set_pattern_color(nv3_color_expanded_t pattern_colour, bool 
 uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t grobj)
 {
     uint32_t vram_x = position.x;
+    uint32_t vram_y = position.y;
     uint32_t current_buffer = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03; 
     uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp;
 
@@ -236,7 +237,7 @@ uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t gro
             break;
     }
 
-    uint32_t pixel_addr_vram = vram_x + (nv3->pgraph.bpitch[current_buffer] * position.y) + nv3->pgraph.boffset[current_buffer];
+    uint32_t pixel_addr_vram = vram_x + (nv3->pgraph.bpitch[current_buffer] * vram_y) + nv3->pgraph.boffset[current_buffer];
 
     pixel_addr_vram &= nv3->nvbase.svga.vram_mask;
 
@@ -313,7 +314,7 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
             return;
         }
 
-    /* TODO: Chroma Key, Pattern, Plane Mask...*/
+    /* TODO: Plane Mask...*/
     if (!nv3_render_chroma_test(grobj, color))
         return;
 

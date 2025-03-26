@@ -740,7 +740,9 @@ void nv3_pfifo_cache0_pull()
     nv3->pfifo.cache0_settings.get_address ^= 0x04;
 
     #ifndef RELEASE_BUILD
+    #ifdef ENABLE_NV_LOG_ULTRA
     nv_log("***** DEBUG: CACHE0 PULLED ****** Contextual information below\n");
+    #endif
             
     nv3_ramin_context_t context_structure = *(nv3_ramin_context_t*)&current_context;
 
@@ -936,6 +938,11 @@ void nv3_pfifo_cache1_pull()
     nv3->pfifo.cache1_settings.get_address = nv3_pfifo_cache1_normal2gray(next_get_address) << 2;
 
     #ifndef RELEASE_BUILD
+
+    #ifdef ENABLE_NV_LOG_ULTRA
+    nv_log("***** DEBUG: CACHE1 PULLED ****** Contextual information below\n");
+    #endif
+
     nv3_ramin_context_t context_structure = *(nv3_ramin_context_t*)&current_context;
 
     nv3_debug_ramin_print_context_info(current_param, context_structure);

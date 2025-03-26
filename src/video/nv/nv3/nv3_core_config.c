@@ -144,9 +144,10 @@ const device_config_t nv3_config[] =
         .selection = 
         {
 #ifndef RELEASE_BUILD
-            // This never existed officially but was planned. Debug only
+            // I thought this was never released, but it seems that at least one was released:
+            // The card was called the "NEC G7AGK"
             {
-                .description = "2 MB (Never officially sold)",
+                .description = "2 MB",
                 .value = NV3_VRAM_SIZE_2MB,
             },
 #endif
