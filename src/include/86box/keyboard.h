@@ -54,16 +54,16 @@ typedef struct kbc_at_port_t {
 typedef struct atkbc_dev_t {
     const char *name; /* name of this device */
 
-    uint8_t type;
-    uint8_t command;
-    uint8_t last_scan_code;
-    uint8_t state;
-    uint8_t resolution;
-    uint8_t rate;
-    uint8_t cmd_queue_start;
-    uint8_t cmd_queue_end;
-    uint8_t queue_start;
-    uint8_t queue_end;
+    uint8_t     type;
+    uint8_t     command;
+    uint8_t     last_scan_code;
+    uint8_t     state;
+    uint8_t     resolution;
+    uint8_t     rate;
+    uint8_t     cmd_queue_start;
+    uint8_t     cmd_queue_end;
+    uint8_t     queue_start;
+    uint8_t     queue_end;
 
     uint16_t flags;
 
@@ -234,6 +234,7 @@ extern const device_t keyboard_xtclone_device;
 extern const device_t keyboard_at_device;
 extern const device_t keyboard_at_ami_device;
 extern const device_t keyboard_at_compaq_device;
+extern const device_t keyboard_at_phoenix_device;
 extern const device_t keyboard_at_ncr_device;
 extern const device_t keyboard_at_olivetti_device;
 extern const device_t keyboard_at_siemens_device;

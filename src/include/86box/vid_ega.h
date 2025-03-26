@@ -47,13 +47,12 @@ typedef struct ega_t {
     uint8_t ctl_mode;
     uint8_t color_mux;
     uint8_t dot;
-    uint8_t crtc[32];
-    uint8_t gdcreg[16];
+    uint8_t crtc[256];
+    uint8_t gdcreg[256];
     uint8_t attrregs[32];
     uint8_t seqregs[64];
     uint8_t egapal[16];
     uint8_t regs[256];
-
     uint8_t *vram;
 
     uint16_t light_pen;
@@ -73,6 +72,7 @@ typedef struct ega_t {
     int oddeven_page;
     int oddeven_chain;
     int vc;
+    int real_vc;
     int sc;
     int dispon;
     int hdisp_on;
@@ -113,6 +113,9 @@ typedef struct ega_t {
     int remap_required;
     int actual_type;
     int chipset;
+    int mono_display;
+
+    int mdacols[256][2][2];
 
     uint32_t charseta;
     uint32_t charsetb;
@@ -140,6 +143,11 @@ typedef struct ega_t {
 
     uint32_t   (*remap_func)(struct ega_t *ega, uint32_t in_addr);
     void       (*render)(struct ega_t *svga);
+
+    /*If set then another device is driving the monitor output and the EGA
+      card should not attempt to display anything */
+      void (*render_override)(void *priv);
+      void *priv_parent;
 } ega_t;
 #endif
 
@@ -150,6 +158,7 @@ extern const device_t sega_device;
 extern const device_t atiega800p_device;
 extern const device_t iskra_ega_device;
 extern const device_t et2000_device;
+extern const device_t jega_device;
 #endif
 
 extern int update_overscan;
@@ -172,6 +181,7 @@ extern uint8_t ega_in(uint16_t addr, void *priv);
 extern void    ega_poll(void *priv);
 extern void    ega_write(uint32_t addr, uint8_t val, void *priv);
 extern uint8_t ega_read(uint32_t addr, void *priv);
+extern void    ega_set_type(void *priv, uint32_t local);
 
 extern int firstline_draw;
 extern int lastline_draw;
@@ -198,5 +208,20 @@ void ega_render_overscan_right(ega_t *ega);
 void ega_render_text(ega_t *ega);
 void ega_render_graphics(ega_t *ega);
 #endif
+
+enum {
+  EGA_IBM = 0,
+  EGA_COMPAQ,
+  EGA_SUPEREGA,
+  EGA_ATI800P,
+  EGA_ISKRA,
+  EGA_TSENG
+};
+
+enum {
+  EGA_TYPE_IBM    = 0,
+  EGA_TYPE_OTHER  = 1,
+  EGA_TYPE_COMPAQ = 2
+};
 
 #endif /*VIDEO_EGA_H*/

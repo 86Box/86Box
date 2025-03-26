@@ -28,6 +28,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
+#include <86box/crc.h>
 #include <86box/dma.h>
 #include <86box/nvr.h>
 #include <86box/random.h>
@@ -223,6 +224,7 @@ typedef struct d86f_t {
     uint8_t    *filebuf;
     uint8_t    *outbuf;
     sector_t   *last_side_sector[2];
+    uint16_t    crc_table[256];
 } d86f_t;
 
 static const uint8_t encoded_fm[64] = {
@@ -247,7 +249,6 @@ static const uint8_t encoded_mfm[64] = {
 };
 
 static d86f_t  *d86f[FDD_NUM];
-static uint16_t CRCTable[256];
 static fdc_t   *d86f_fdc;
 uint64_t        poly = 0x42F0E1EBA9EA3693LL; /* ECMA normal */
 
@@ -275,28 +276,6 @@ d86f_log(const char *fmt, ...)
 #else
 #    define d86f_log(fmt, ...)
 #endif
-
-static void
-setup_crc(uint16_t poly)
-{
-    int      c = 256;
-    int      bc;
-    uint16_t temp;
-
-    while (c--) {
-        temp = c << 8;
-        bc   = 8;
-
-        while (bc--) {
-            if (temp & 0x8000)
-                temp = (temp << 1) ^ poly;
-            else
-                temp <<= 1;
-
-            CRCTable[c] = temp;
-        }
-    }
-}
 
 void
 d86f_destroy_linked_lists(int drive, int side)
@@ -1237,16 +1216,10 @@ decodefm(UNUSED(int drive), uint16_t dat)
     return temp;
 }
 
-void
-fdd_calccrc(uint8_t byte, crc_t *crc_var)
-{
-    crc_var->word = (crc_var->word << 8) ^ CRCTable[(crc_var->word >> 8) ^ byte];
-}
-
 static void
 d86f_calccrc(d86f_t *dev, uint8_t byte)
 {
-    fdd_calccrc(byte, &(dev->calc_crc));
+    crc16_calc(dev->crc_table, byte, &(dev->calc_crc));
 }
 
 int
@@ -1274,7 +1247,9 @@ d86f_word_is_aligned(int drive, int side, uint32_t base_pos)
 
 /* State 1: Find sector ID */
 void
-d86f_find_address_mark_fm(int drive, int side, find_t *find, uint16_t req_am, uint16_t other_am, uint16_t wrong_am, uint16_t ignore_other_am)
+d86f_find_address_mark_fm(int drive, int side, find_t *find, uint16_t req_am,
+                          uint16_t other_am, uint16_t wrong_am,
+                          uint16_t ignore_other_am)
 {
     d86f_t *dev = d86f[drive];
 
@@ -1282,7 +1257,8 @@ d86f_find_address_mark_fm(int drive, int side, find_t *find, uint16_t req_am, ui
 
     if (dev->last_word[side] == req_am) {
         dev->calc_crc.word = 0xFFFF;
-        fdd_calccrc(decodefm(drive, dev->last_word[side]), &(dev->calc_crc));
+        crc16_calc(dev->crc_table, decodefm(drive, dev->last_word[side]),
+                   &(dev->calc_crc));
         find->sync_marks = find->bits_obtained =
         find->bytes_obtained                   = 0;
         find->sync_pos                         = 0xFFFFFFFF;
@@ -1302,7 +1278,8 @@ d86f_find_address_mark_fm(int drive, int side, find_t *find, uint16_t req_am, ui
 
     if ((ignore_other_am & 2) && (dev->last_word[side] == other_am)) {
         dev->calc_crc.word = 0xFFFF;
-        fdd_calccrc(decodefm(drive, dev->last_word[side]), &(dev->calc_crc));
+        crc16_calc(dev->crc_table, decodefm(drive, dev->last_word[side]),
+                   &(dev->calc_crc));
         find->sync_marks = find->bits_obtained = find->bytes_obtained = 0;
         find->sync_pos                                                = 0xFFFFFFFF;
         if (ignore_other_am & 1) {
@@ -1378,7 +1355,8 @@ d86f_find_address_mark_mfm(int drive, int side, find_t *find, uint16_t req_am, u
     if ((dev->last_word[side] == req_am) && (find->sync_marks >= 3)) {
         if (d86f_word_is_aligned(drive, side, find->sync_pos)) {
             dev->calc_crc.word = 0xCDB4;
-            fdd_calccrc(decodefm(drive, dev->last_word[side]), &(dev->calc_crc));
+            crc16_calc(dev->crc_table, decodefm(drive, dev->last_word[side]),
+                       &(dev->calc_crc));
             find->sync_marks = find->bits_obtained = find->bytes_obtained = 0;
             find->sync_pos                                                = 0xFFFFFFFF;
             dev->preceding_bit[side]                                      = dev->last_word[side] & 1;
@@ -1390,7 +1368,8 @@ d86f_find_address_mark_mfm(int drive, int side, find_t *find, uint16_t req_am, u
     if ((ignore_other_am & 2) && (dev->last_word[side] == other_am) && (find->sync_marks >= 3)) {
         if (d86f_word_is_aligned(drive, side, find->sync_pos)) {
             dev->calc_crc.word = 0xCDB4;
-            fdd_calccrc(decodefm(drive, dev->last_word[side]), &(dev->calc_crc));
+            crc16_calc(dev->crc_table, decodefm(drive, dev->last_word[side]),
+                       &(dev->calc_crc));
             find->sync_marks = find->bits_obtained = find->bytes_obtained = 0;
             find->sync_pos                                                = 0xFFFFFFFF;
             if (ignore_other_am & 1) {
@@ -1464,8 +1443,11 @@ d86f_read_sector_id(int drive, int side, int match)
             if (dev->id_find.bytes_obtained < 4) {
                 dev->last_sector.byte_array[dev->id_find.bytes_obtained] =
                 decodefm(drive, dev->last_word[side]);
-                fdd_calccrc(dev->last_sector.byte_array[dev->id_find.bytes_obtained], &(dev->calc_crc));
-            } else if ((dev->id_find.bytes_obtained >= 4) && (dev->id_find.bytes_obtained < 6)) {
+                crc16_calc(dev->crc_table,
+                           dev->last_sector.byte_array[dev->id_find.bytes_obtained],
+                           &(dev->calc_crc));
+            } else if ((dev->id_find.bytes_obtained >= 4) &&
+                       (dev->id_find.bytes_obtained < 6)) {
                 dev->track_crc.bytes[(dev->id_find.bytes_obtained & 1) ^ 1] =
                 decodefm(drive, dev->last_word[side]);
             }
@@ -1643,7 +1625,7 @@ d86f_read_sector_data(int drive, int side)
                         }
                     }
                 }
-                fdd_calccrc(data, &(dev->calc_crc));
+                crc16_calc(dev->crc_table, data, &(dev->calc_crc));
             } else if (dev->data_find.bytes_obtained < crc_pos)
                 dev->track_crc.bytes[(dev->data_find.bytes_obtained - sector_len) ^ 1] =
                 decodefm(drive, dev->last_word[side]);
@@ -1730,11 +1712,12 @@ d86f_write_sector_data(int drive, int side, int mfm, uint16_t am)
 
             if (dev->data_find.bytes_obtained < sector_len) {
                 /* This is a data byte, so CRC it. */
-                if (!dev->data_find.bytes_obtained) {
-                    fdd_calccrc(decodefm(drive, am), &(dev->calc_crc));
-                } else {
-                    fdd_calccrc(dev->current_byte[side], &(dev->calc_crc));
-                }
+                if (!dev->data_find.bytes_obtained)
+                    crc16_calc(dev->crc_table, decodefm(drive, am),
+                               &(dev->calc_crc));
+                else
+                    crc16_calc(dev->crc_table, dev->current_byte[side],
+                               &(dev->calc_crc));
             }
         }
     } else {
@@ -3861,8 +3844,6 @@ d86f_load(int drive, char *fn)
 void
 d86f_init(void)
 {
-    setup_crc(0x1021);
-
     for (uint8_t i = 0; i < FDD_NUM; i++)
         d86f[i] = NULL;
 }
@@ -3925,6 +3906,8 @@ d86f_setup(int drive)
 
     dev->last_side_sector[0] = NULL;
     dev->last_side_sector[1] = NULL;
+
+    crc16_setup(dev->crc_table, 0x1021);
 
     /* Set the drive as active. */
     d86f[drive] = dev;

@@ -90,6 +90,8 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/nvr.h>
 extern int qt_nvr_save(void);
+
+bool cpu_thread_running = false;
 }
 
 void qt_set_sequence_auto_mnemonic(bool b);
@@ -224,7 +226,30 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
            detection; rest can't be reliably detected. */
         DWORD vkCode = lpKdhs->vkCode;
         bool up = !!(lpKdhs->flags & LLKHF_UP);
-        ret = CallNextHookEx(NULL, nCode, wParam, lParam);;
+
+        if (inhibit_multimedia_keys
+            && (lpKdhs->vkCode == VK_MEDIA_PLAY_PAUSE
+            || lpKdhs->vkCode == VK_MEDIA_NEXT_TRACK
+            || lpKdhs->vkCode == VK_MEDIA_PREV_TRACK
+            || lpKdhs->vkCode == VK_VOLUME_DOWN
+            || lpKdhs->vkCode == VK_VOLUME_UP
+            || lpKdhs->vkCode == VK_VOLUME_MUTE
+            || lpKdhs->vkCode == VK_MEDIA_STOP
+            || lpKdhs->vkCode == VK_LAUNCH_MEDIA_SELECT
+            || lpKdhs->vkCode == VK_LAUNCH_MAIL
+            || lpKdhs->vkCode == VK_LAUNCH_APP1
+            || lpKdhs->vkCode == VK_LAUNCH_APP2
+            || lpKdhs->vkCode == VK_HELP
+            || lpKdhs->vkCode == VK_BROWSER_BACK
+            || lpKdhs->vkCode == VK_BROWSER_FORWARD
+            || lpKdhs->vkCode == VK_BROWSER_FAVORITES
+            || lpKdhs->vkCode == VK_BROWSER_HOME
+            || lpKdhs->vkCode == VK_BROWSER_REFRESH
+            || lpKdhs->vkCode == VK_BROWSER_SEARCH
+            || lpKdhs->vkCode == VK_BROWSER_STOP))
+            ret = TRUE;
+        else
+            ret = CallNextHookEx(NULL, nCode, wParam, lParam);
 
         switch (vkCode)
         {
@@ -347,6 +372,27 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         ret = TRUE;
     else if ((lpKdhs->scanCode >= 0x5b) && (lpKdhs->scanCode <= 0x5d) && (lpKdhs->flags & LLKHF_EXTENDED))
         ret = TRUE;
+    else if (inhibit_multimedia_keys
+        && (lpKdhs->vkCode == VK_MEDIA_PLAY_PAUSE
+        || lpKdhs->vkCode == VK_MEDIA_NEXT_TRACK
+        || lpKdhs->vkCode == VK_MEDIA_PREV_TRACK
+        || lpKdhs->vkCode == VK_VOLUME_DOWN
+        || lpKdhs->vkCode == VK_VOLUME_UP
+        || lpKdhs->vkCode == VK_VOLUME_MUTE
+        || lpKdhs->vkCode == VK_MEDIA_STOP
+        || lpKdhs->vkCode == VK_LAUNCH_MEDIA_SELECT
+        || lpKdhs->vkCode == VK_LAUNCH_MAIL
+        || lpKdhs->vkCode == VK_LAUNCH_APP1
+        || lpKdhs->vkCode == VK_LAUNCH_APP2
+        || lpKdhs->vkCode == VK_HELP
+        || lpKdhs->vkCode == VK_BROWSER_BACK
+        || lpKdhs->vkCode == VK_BROWSER_FORWARD
+        || lpKdhs->vkCode == VK_BROWSER_FAVORITES
+        || lpKdhs->vkCode == VK_BROWSER_HOME
+        || lpKdhs->vkCode == VK_BROWSER_REFRESH
+        || lpKdhs->vkCode == VK_BROWSER_SEARCH
+        || lpKdhs->vkCode == VK_BROWSER_STOP))
+        ret = TRUE;
     else
         ret = CallNextHookEx(NULL, nCode, wParam, lParam);
 
@@ -357,7 +403,7 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         } else if (!(lpKdhs->flags & LLKHF_EXTENDED) && (lpKdhs->vkCode == 0x00000013)) {
             /* Pause - send E1 1D. */
             win_keyboard_handle(0xe1, 0, 0, 0);
-            win_keyboard_handle(0x1d, LLKHF_UP, 0, 0);
+            win_keyboard_handle(0x1d, lpKdhs->flags & LLKHF_UP, 0, 0);
         }
     } else if (!last && (lpKdhs->scanCode == 0x00000036))
         /* Non-fake right shift. */
@@ -368,7 +414,11 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     else if (last && (lpKdhs->scanCode == 0x00000036))
         last = 0;
 
-    win_keyboard_handle(lpKdhs->scanCode, lpKdhs->flags & LLKHF_UP, lpKdhs->flags & LLKHF_EXTENDED, 0);
+    if ((lpKdhs->scanCode == 0xf1) || (lpKdhs->scanCode == 0xf2))
+        /* Hanja and Han/Eng keys, suppress the extended flag. */
+        win_keyboard_handle(lpKdhs->scanCode, lpKdhs->flags & LLKHF_UP, 0, 0);
+    else
+        win_keyboard_handle(lpKdhs->scanCode, lpKdhs->flags & LLKHF_UP, lpKdhs->flags & LLKHF_EXTENDED, 0);
 
     return ret;
 }
@@ -389,6 +439,7 @@ main_thread_fn()
     // title_update = 1;
     uint64_t old_time = elapsed_timer.elapsed();
     int drawits = frames = 0;
+    is_cpu_thread = 1;
     while (!is_quit && cpu_thread_run) {
         /* See if it is time to run a frame of code. */
         const uint64_t new_time = elapsed_timer.elapsed();
@@ -443,6 +494,7 @@ main_thread_fn()
         }
     }
 
+    cpu_thread_running = false;
     is_quit = 1;
     for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
         if (gfxcard[i]) {
@@ -661,7 +713,7 @@ main(int argc, char *argv[])
 
     /* Force raw input if a debugger is present. */
     if (IsDebuggerPresent()) {
-        pclog("WARNING: Debugged detected, forcing raw input\n");
+        pclog("WARNING: Debugger detected, forcing raw input\n");
         hook_enabled = 0;
     }
 
@@ -735,6 +787,7 @@ main(int argc, char *argv[])
 #endif
             plat_pause(0);
 
+        cpu_thread_running = true;
         main_thread = new std::thread(main_thread_fn);
     });
 

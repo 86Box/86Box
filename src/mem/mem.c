@@ -226,6 +226,21 @@ flushmmucache(void)
 }
 
 void
+flushmmucache_write(void)
+{
+    for (uint16_t c = 0; c < 256; c++) {
+        if (writelookup[c] != (int) 0xffffffff) {
+            page_lookup[writelookup[c]]  = NULL;
+            page_lookupp[writelookup[c]] = 4;
+            writelookup2[writelookup[c]] = LOOKUP_INV;
+            writelookupp[writelookup[c]] = 4;
+            writelookup[c]               = 0xffffffff;
+        }
+    }
+    mmuflush++;
+}
+
+void
 flushmmucache_pc(void)
 {
     mmuflush++;
@@ -1518,10 +1533,28 @@ readmemql(uint32_t addr)
     addr = addr64a[0] & rammask;
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
-    if (map && map->read_l)
-        return map->read_l(addr, map->priv) | ((uint64_t) map->read_l(addr + 4, map->priv) << 32);
 
-    return readmemll(addr) | ((uint64_t) readmemll(addr + 4) << 32);
+    if (map && map->read_l)
+        return map->read_l(addr, map->priv) |
+               ((uint64_t) map->read_l(addr + 4, map->priv) << 32);
+
+    if (map && map->read_w)
+        return map->read_w(addr, map->priv) |
+               ((uint64_t) map->read_w(addr + 2, map->priv) << 16) |
+               ((uint64_t) map->read_w(addr + 4, map->priv) << 32) |
+               ((uint64_t) map->read_w(addr + 6, map->priv) << 48);
+
+    if (map && map->read_b)
+        return map->read_b(addr, map->priv) |
+               ((uint64_t) map->read_b(addr + 1, map->priv) << 8) |
+               ((uint64_t) map->read_b(addr + 2, map->priv) << 16) |
+               ((uint64_t) map->read_b(addr + 3, map->priv) << 24) |
+               ((uint64_t) map->read_b(addr + 4, map->priv) << 32) |
+               ((uint64_t) map->read_b(addr + 5, map->priv) << 40) |
+               ((uint64_t) map->read_b(addr + 6, map->priv) << 48) |
+               ((uint64_t) map->read_b(addr + 7, map->priv) << 56);
+
+    return 0xffffffffffffffffULL;
 }
 
 void
@@ -2370,7 +2403,7 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
             for (i_c = i_s; i_c <= i_e; i_c += i_a) {
                 for (c = (start + i_c); c < (end + i_c); c += MEM_GRANULARITY_SIZE) {
                     /* CPU */
-                    n = !!in_smm;
+                    n = (!!in_smm) || (is_cxsmm && (ccr1 & CCR1_SMAC));
                     wp = _mem_wp[c >> MEM_GRANULARITY_BITS];
 
                     if (map->exec && mem_mapping_access_allowed(map->flags,

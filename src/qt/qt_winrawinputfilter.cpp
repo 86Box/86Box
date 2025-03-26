@@ -157,27 +157,16 @@ WindowsRawInputFilter::~WindowsRawInputFilter()
 static void
 notify_drives(ULONG unitmask, int empty)
 {
-    char p[1024] = { 0 };
+    if (unitmask & cdrom_assigned_letters)  for (int i = 0; i < CDROM_NUM; i++) {
+        cdrom_t *dev = &(cdrom[i]);
 
-    for (int i = 0; i < 26; ++i) {
-        if (unitmask & 0x1) {
-            cdrom_t *dev = NULL;
-
-            sprintf(p, "ioctl://\\\\.\\%c:", 'A' + i);
-
-            for (int i = 0; i < CDROM_NUM; i++)
-                if (!stricmp(cdrom[i].image_path, p)) {
-                    dev = &(cdrom[i]);
-                    if (empty)
-                        cdrom_set_empty(dev);
-                    else
-                        cdrom_update_status(dev);
-                    // pclog("CD-ROM %i      : Drive notified of media %s\n",
-                          // dev->id, empty ? "removal" : "change");
-                }
+        if ((dev->host_letter != 0xff) &&
+            (unitmask & (1 << dev->host_letter))) {
+            if (empty)
+                cdrom_set_empty(dev);
+            else
+                cdrom_update_status(dev);
         }
-
-        unitmask = unitmask >> 1;
     }
 }
 
@@ -341,6 +330,7 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
     static int x, delta_x;
     static int y, delta_y;
     static int b, delta_z;
+    static int delta_w;
 
     b = mouse_get_buttons_ex();
 
@@ -377,6 +367,12 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
         mouse_set_z(delta_z);
     } else
         delta_z = 0;
+
+    if (state.usButtonFlags & RI_MOUSE_HWHEEL) {
+        delta_w = (SHORT) state.usButtonData / 120;
+        mouse_set_w(delta_w);
+    } else
+        delta_w = 0;
 
     if (state.usFlags & MOUSE_MOVE_ABSOLUTE) {
         /* absolute mouse, i.e. RDP or VNC

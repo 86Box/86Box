@@ -106,6 +106,7 @@ static mouse_t mouse_devices[] = {
 static _Atomic double  mouse_x;
 static _Atomic double  mouse_y;
 static atomic_int      mouse_z;
+static atomic_int      mouse_w;
 static atomic_int      mouse_buttons;
 
 static int             mouse_delta_b;
@@ -156,6 +157,7 @@ mouse_clear_coords(void)
     mouse_clear_y();
 
     mouse_z = 0;
+    mouse_w = 0;
 }
 
 void
@@ -356,6 +358,14 @@ mouse_wheel_moved(void)
 }
 
 int
+mouse_hwheel_moved(void)
+{
+    int ret = !!(atomic_load(&mouse_w));
+
+    return ret;
+}
+
+int
 mouse_moved(void)
 {
     int moved_x = !!((int) floor(ABSD(mouse_scale_coord_x(atomic_load(&mouse_x), 1))));
@@ -373,13 +383,14 @@ mouse_state_changed(void)
     int b;
     int b_mask    = (1 << mouse_nbut) - 1;
     int wheel     = (mouse_nbut >= 4);
+    int hwheel    = (mouse_nbut >= 6);
     int ret;
 
     b = atomic_load(&mouse_buttons);
     mouse_delta_b = (b ^ mouse_old_b);
     mouse_old_b   = b;
 
-    ret = mouse_moved() || ((atomic_load(&mouse_z) != 0) && wheel) || (mouse_delta_b & b_mask);
+    ret = mouse_moved() || ((atomic_load(&mouse_z) != 0) && wheel) || ((atomic_load(&mouse_w) != 0) && hwheel) || (mouse_delta_b & b_mask);
 
     return ret;
 }
@@ -476,6 +487,18 @@ mouse_clear_z(void)
 }
 
 void
+mouse_set_w(int w)
+{
+    atomic_fetch_add(&mouse_w, w);
+}
+
+void
+mouse_clear_w(void)
+{
+    atomic_store(&mouse_w, 0);
+}
+
+void
 mouse_subtract_z(int *delta_z, int min, int max, int invert)
 {
     int z = atomic_load(&mouse_z);
@@ -493,6 +516,26 @@ mouse_subtract_z(int *delta_z, int min, int max, int invert)
     }
 
     atomic_store(&mouse_z, invert ? -real_z : real_z);
+}
+
+void
+mouse_subtract_w(int *delta_w, int min, int max, int invert)
+{
+    int w = atomic_load(&mouse_w);
+    int real_w = invert ? -w : w;
+
+    if (real_w > max) {
+        *delta_w = max;
+        real_w -= max;
+    } else if (real_w < min) {
+        *delta_w = min;
+        real_w += ABS(min);
+    } else {
+        *delta_w = real_w;
+        real_w = 0;
+    }
+
+    atomic_store(&mouse_w, invert ? -real_w : real_w);
 }
 
 void

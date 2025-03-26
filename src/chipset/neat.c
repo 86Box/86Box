@@ -53,6 +53,7 @@
 
 #define REG_RA1        0x61 /* Command Delay */
 #define RA1_MASK       0xff /* 1111 1111 */
+#define RA1_MASK_SX    0xbf /* 1X11 1111 */
 #define RA1_BUSDLY     0x03 /*  AT BUS command delay */
 #define RA1_BUSDLY_SH  0
 #define RA1_BUS8DLY    0x0c /*  AT BUS 8bit command delay */
@@ -81,6 +82,7 @@
 #define ATWS_3         1 /*  3 wait states */
 #define ATWS_4         2 /*  4 wait states */
 #define ATWS_5         4 /*  5 wait states */
+#define RA2_387SX      0x80
 
 /* CS8221 82C212 controller registers. */
 #define REG_RB0        0x64 /* Version ID */
@@ -103,6 +105,9 @@
 
 #define REG_RB2        0x66 /* Memory Enable 1 */
 #define RB2_MASK       0x80 /* 1XXX XXXX */
+#define RB2_MASK_SX    0xe0 /* 111X XXXX */
+#define RB2_BOT256     0x20 /*  bottom 256K is on sysboard (1) */
+#define RB2_MID256     0x40 /*  middle 256K is on sysboard (1) */
 #define RB2_TOP128     0x80 /*  top 128K is on sysboard (1) */
 
 #define REG_RB3        0x67 /* Memory Enable 2 */
@@ -198,6 +203,7 @@
 
 #define REG_RB12       0x6f /* Miscellaneous */
 #define RB12_MASK      0xe6 /* 111R R11R */
+#define RB12_MASK_SX   0xf6 /* 1111 R11R */
 #define RB12_GA20      0x02 /*  gate for A20 */
 #define RB12_RASTMO    0x04 /*  enable RAS timeout counter */
 #define RB12_EMSLEN    0xe0 /*  EMS memory chunk size */
@@ -221,11 +227,10 @@ typedef struct ram_page_t {
 } ram_page_t;
 
 typedef struct neat_t {
-    uint8_t       mem_flags[32];
+    uint8_t       mem_flags[64];
     uint8_t       regs[128];           /* all the CS8221 registers */
     uint8_t       indx;                /* programmed index into registers */
-
-    char          pad;
+    uint8_t       sx;
 
     uint16_t      ems_base;            /* configured base address */
     uint32_t      ems_frame;           /* configured frame address */
@@ -238,8 +243,19 @@ typedef struct neat_t {
     ram_page_t    shadow[32];          /* Shadow RAM pages */
 } neat_t;
 
-static uint8_t defaults[16] = { 0x0a, 0x45, 0xfc, 0x00, 0x00, 0xfe, 0x00, 0x00,
-                                0x00, 0x00, 0xa0, 0x63, 0x10, 0x00, 0x00, 0x12 };
+static uint8_t defaults[2][16] = { { 0x0a, 0x45, 0xfc, 0x00, 0x00, 0x0e, 0x00, 0x00,
+                                     0x00, 0x00, 0x80, 0x43, 0x10, 0x00, 0x00, 0x12 },
+                                   { 0x0a, 0x45, 0x7c, 0x00, 0x00, 0x0e, 0x00, 0x00,
+                                     0x00, 0x00, 0x80, 0x43, 0x00, 0x00, 0x00, 0x08 } };
+
+static uint8_t reg_masks[2][16] = { {     RA0_MASK,     RA1_MASK,     RA2_MASK,         0x00,
+                                          RB0_MASK,     RB1_MASK,     RB2_MASK,     RB3_MASK,
+                                          RB4_MASK,     RB4_MASK,     RB4_MASK,     RB4_MASK,
+                                          RB8_MASK,     RB9_MASK,    RB10_MASK,    RB12_MASK },
+                                    {     RA0_MASK,  RA1_MASK_SX,     RA2_MASK,         0x00,
+                                          RB0_MASK,     RB1_MASK,  RB2_MASK_SX,     RB3_MASK,
+                                          RB4_MASK,     RB4_MASK,     RB4_MASK,     RB4_MASK,
+                                          RB8_MASK,     RB9_MASK,    RB10_MASK, RB12_MASK_SX } };
 
 static uint8_t masks[4]     = { RB10_P0EXT, RB10_P1EXT, RB10_P2EXT, RB10_P3EXT };
 static uint8_t shifts[4]    = { RB10_P0EXT_SH, RB10_P1EXT_SH, RB10_P2EXT_SH, RB10_P3EXT_SH };
@@ -405,12 +421,12 @@ ems_writew(uint32_t addr, uint16_t val, void *priv)
 static void
 neat_mem_update_state(neat_t *dev, uint32_t addr, uint32_t size, uint8_t new_flags, uint8_t mask)
 {
-    if ((addr >= 0x00080000) && (addr < 0x00100000) &&
-        ((new_flags ^ dev->mem_flags[(addr - 0x00080000) / EMS_PGSIZE]) & mask)) {
-        dev->mem_flags[(addr - 0x00080000) / EMS_PGSIZE] &= ~mask;
-        dev->mem_flags[(addr - 0x00080000) / EMS_PGSIZE] |= new_flags;
+    if ((addr < 0x00100000) &&
+        ((new_flags ^ dev->mem_flags[addr / EMS_PGSIZE]) & mask)) {
+        dev->mem_flags[addr / EMS_PGSIZE] &= ~mask;
+        dev->mem_flags[addr / EMS_PGSIZE] |= new_flags;
 
-        new_flags = dev->mem_flags[(addr - 0x00080000) / EMS_PGSIZE];
+        new_flags = dev->mem_flags[addr / EMS_PGSIZE];
 
         if (new_flags & MEM_FLAG_ROMCS) {
             neat_log("neat_mem_update_state(): %08X-%08X: %02X (ROMCS)\n", addr, addr + size - 1, new_flags);
@@ -670,9 +686,10 @@ remap_update(neat_t *dev, uint8_t val)
         mem_mapping_set_addr(&ram_low_mapping, 0x00000000, dev->remap_base << 10);
 
     if (dev->remap_base > 1024) {
+        uint32_t base = (val & RB7_EMSEN) ? (0x00100000 + (dev->ems_size << 10)) : 0x00100000;
+
         mem_mapping_set_addr(&ram_high_mapping, 0x00100000, (dev->remap_base << 10) - 0x00100000);
-        mem_mapping_set_exec(&ram_high_mapping, &(ram[(val & RB7_EMSEN) ? 0x00100000 :
-                             (0x00100000 + (dev->ems_size << 10))]));
+        mem_mapping_set_exec(&ram_high_mapping, &(ram[base]));
     } else
         mem_mapping_disable(&ram_high_mapping);
 
@@ -691,6 +708,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
     uint8_t  xval;
     uint8_t j;
     uint8_t *reg;
+    uint8_t  mask;
     int      i;
 
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
@@ -705,10 +723,11 @@ neat_write(uint16_t port, uint8_t val, void *priv)
         case 0x23:
             reg  = &dev->regs[dev->indx];
             xval = *reg ^ val;
+            mask = reg_masks[dev->sx][dev->indx & REG_MASK];
             switch (dev->indx) {
                 case REG_RA0:
-                    val &= RA0_MASK;
-                    *reg = (*reg & ~RA0_MASK) | val | (RA0_REV_ID << RA0_REV_SH);
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val | (RA0_REV_ID << RA0_REV_SH);
                     if ((xval & 0x20) && (val & 0x20))
                         outb(0x64, 0xfe);
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
@@ -717,32 +736,32 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     break;
 
                 case REG_RA1:
-                    val &= RA1_MASK;
-                    *reg = (*reg & ~RA1_MASK) | val;
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val;
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RA1=%02x(%02x)\n", val, *reg);
 #endif
                     break;
 
                 case REG_RA2:
-                    val &= RA2_MASK;
-                    *reg = (*reg & ~RA2_MASK) | val;
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val;
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RA2=%02x(%02x)\n", val, *reg);
 #endif
                     break;
 
                 case REG_RB0:
-                    val &= RB0_MASK;
-                    *reg = (*reg & ~RB0_MASK) | val | (RB0_REV_ID << RB0_REV_SH);
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val | (RB0_REV_ID << RB0_REV_SH);
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB0=%02x(%02x)\n", val, *reg);
 #endif
                     break;
 
                 case REG_RB1:
-                    val &= RB1_MASK;
-                    *reg = (*reg & ~RB1_MASK) | val;
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val;
                     shadow_recalc(dev);
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB1=%02x(%02x)\n", val, *reg);
@@ -750,20 +769,37 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     break;
 
                 case REG_RB2:
-                    val &= RB2_MASK;
-                    *reg = (*reg & ~RB2_MASK) | val;
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val;
+                    if (dev->sx) {
+                        if (val & RB2_BOT256)
+                            neat_mem_update_state(dev, 0x00000000, 0x00040000,
+                                                  MEM_FLAG_READ | MEM_FLAG_WRITE, MEM_FMASK_SHADOW);
+                        else
+                            neat_mem_update_state(dev, 0x00000000, 0x00040000,
+                                                  0x00, MEM_FMASK_SHADOW);
+
+                        if (val & RB2_MID256)
+                            neat_mem_update_state(dev, 0x00040000, 0x00040000,
+                                                  MEM_FLAG_READ | MEM_FLAG_WRITE, MEM_FMASK_SHADOW);
+                        else
+                            neat_mem_update_state(dev, 0x00040000, 0x00040000,
+                                                  0x00, MEM_FMASK_SHADOW);
+                    }
                     if (val & RB2_TOP128)
-                        neat_mem_update_state(dev, 0x00080000, 0x00020000, MEM_FLAG_READ | MEM_FLAG_WRITE, MEM_FMASK_SHADOW);
+                        neat_mem_update_state(dev, 0x00080000, 0x00020000,
+                                              MEM_FLAG_READ | MEM_FLAG_WRITE, MEM_FMASK_SHADOW);
                     else
-                        neat_mem_update_state(dev, 0x00080000, 0x00020000, 0x00, MEM_FMASK_SHADOW);
+                        neat_mem_update_state(dev, 0x00080000, 0x00020000,
+                                              0x00, MEM_FMASK_SHADOW);
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB2=%02x(%02x)\n", val, *reg);
 #endif
                     break;
 
                 case REG_RB3:
-                    val &= RB3_MASK;
-                    *reg = (*reg & ~RB3_MASK) | val;
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val;
                     shadow_recalc(dev);
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB3=%02x(%02x)\n", val, *reg);
@@ -771,8 +807,8 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     break;
 
                 case REG_RB4:
-                    val &= RB4_MASK;
-                    *reg = (*reg & ~RB4_MASK) | val;
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val;
                     shadow_recalc(dev);
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB4=%02x(%02x)\n", val, *reg);
@@ -780,8 +816,8 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     break;
 
                 case REG_RB5:
-                    val &= RB5_MASK;
-                    *reg = (*reg & ~RB5_MASK) | val;
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val;
                     shadow_recalc(dev);
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB5=%02x(%02x)\n", val, *reg);
@@ -789,20 +825,20 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     break;
 
                 case REG_RB6:
-                    val &= RB6_MASK;
-                    *reg = (*reg & ~RB6_MASK) | val;
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val;
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB6=%02x(%02x)\n", val, *reg);
 #endif
                     break;
 
                 case REG_RB7:
-                    val &= RB7_MASK;
+                    val &= mask;
 
                     if (xval & (RB7_EMSEN | RB7_UMAREL))
                         remap_update(dev, val);
 
-                    dev->regs[REG_RB7] = val;
+                    *reg = (*reg & ~mask) | val;
 
                     if (xval & RB7_EMSEN)
                         ems_remove_handlers(dev);
@@ -816,16 +852,16 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     break;
 
                 case REG_RB8:
-                    val &= RB8_MASK;
-                    *reg = (*reg & ~RB8_MASK) | val;
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val;
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB8=%02x(%02x)\n", val, *reg);
 #endif
                     break;
 
                 case REG_RB9:
-                    val &= RB9_MASK;
-                    *reg = (*reg & ~RB9_MASK) | val;
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val;
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB9=%02x(%02x)\n", val, *reg);
 #endif
@@ -847,8 +883,8 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     break;
 
                 case REG_RB10:
-                    val &= RB10_MASK;
-                    *reg = (*reg & ~RB10_MASK) | val;
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val;
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB10=%02x(%02x)\n", val, *reg);
 #endif
@@ -882,8 +918,8 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                     break;
 
                 case REG_RB12:
-                    val &= RB12_MASK;
-                    *reg = (*reg & ~RB12_MASK) | val;
+                    val &= mask;
+                    *reg = (*reg & ~mask) | val;
 #if defined(ENABLE_NEAT_LOG) && (ENABLE_NEAT_LOG == 2)
                     neat_log("NEAT: RB12=%02x(%02x)\n", val, *reg);
 #endif
@@ -905,6 +941,13 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                         default:
                             break;
                     }
+
+                    if (mem_size < 1024)
+                        /* No RAM left for EMS at all. */
+                        dev->ems_size = 0;
+                    else if (mem_size < (dev->ems_size + 1024))
+                        /* Limit EMS size to the entirety of the remaining extended memory. */
+                        dev->ems_size = mem_size - 1024;
 
                     if (dev->regs[REG_RB7] & RB7_EMSEN) {
                         remap_update(dev, dev->regs[REG_RB7]);
@@ -976,6 +1019,8 @@ neat_init(UNUSED(const device_t *info))
     /* Create an instance. */
     dev = (neat_t *) calloc(1, sizeof(neat_t));
 
+    dev->sx = info->local;
+
     if (mem_size > 1024) {
         mem_mapping_set_handler(&ram_high_mapping, neat_read_ram, neat_read_ramw, NULL,
                                 neat_write_ram, neat_write_ramw, NULL);
@@ -1002,7 +1047,7 @@ neat_init(UNUSED(const device_t *info))
            neat_mem_update_state(dev, 0x000a0000 + (i * EMS_PGSIZE), EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_SHADOW);
        else {
            /* This is needed to actually trigger an update. */
-           dev->mem_flags[i + 8] = MEM_FLAG_ROMCS;
+           dev->mem_flags[i + 40] = MEM_FLAG_ROMCS;
            neat_mem_update_state(dev, 0x000a0000 + (i * EMS_PGSIZE), EMS_PGSIZE, 0x00, MEM_FMASK_SHADOW);
        }
     }
@@ -1045,7 +1090,10 @@ neat_init(UNUSED(const device_t *info))
     /* Initialize some of the registers to specific defaults. */
     for (uint8_t i = REG_RA0; i <= REG_RB12; i++) {
         dev->indx = i;
-        neat_write(0x0023, defaults[i & REG_MASK], dev);
+        uint8_t def = defaults[dev->sx][i & REG_MASK];
+        if ((i == REG_RA2) && (fpu_type == FPU_387))
+            def |= RA2_387SX;
+        neat_write(0x0023, def, dev);
     }
 
     /*
@@ -1190,10 +1238,24 @@ neat_init(UNUSED(const device_t *info))
 }
 
 const device_t neat_device = {
-    .name          = "C&T CS8121 (NEAT)",
+    .name          = "C&T CS8221 (NEAT)",
     .internal_name = "neat",
     .flags         = 0,
     .local         = 0,
+    .init          = neat_init,
+    .close         = neat_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t neat_sx_device = {
+    .name          = "C&T CS8281 (NEATsx)",
+    .internal_name = "neat_sx",
+    .flags         = 0,
+    .local         = 1,
     .init          = neat_init,
     .close         = neat_close,
     .reset         = NULL,

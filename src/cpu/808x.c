@@ -18,9 +18,12 @@
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
+
+#include "i8080.h"
 
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -69,6 +72,9 @@ static int       prefetching = 1, completed = 1;
 static int       in_rep = 0, repeating = 0, rep_c_flag = 0;
 static int       oldc, clear_lock = 0;
 static int       refresh = 0, cycdiff;
+
+static i8080 emulated_processor;
+static bool cpu_md_write_disable = 1;
 
 /* Various things needed for 8087. */
 #define OP_TABLE(name) ops_##name
@@ -195,6 +201,56 @@ prefetch_queue_get_size(void)
 {
     return pfq_size;
 }
+static void set_if(int cond);
+
+void
+sync_from_i8080(void)
+{
+    AL = emulated_processor.a;
+    BH = emulated_processor.h;
+    BL = emulated_processor.l;
+    CH = emulated_processor.b;
+    CL = emulated_processor.c;
+    DH = emulated_processor.d;
+    DL = emulated_processor.e;
+    BP = emulated_processor.sp;
+    
+    cpu_state.pc = emulated_processor.pc;
+    cpu_state.flags &= 0xFF00;
+    cpu_state.flags |= emulated_processor.sf << 7;
+    cpu_state.flags |= emulated_processor.zf << 6;
+    cpu_state.flags |= emulated_processor.hf << 4;
+    cpu_state.flags |= emulated_processor.pf << 2;
+    cpu_state.flags |= 1 << 1;
+    cpu_state.flags |= emulated_processor.cf << 0;
+    set_if(emulated_processor.iff);
+}
+
+void
+sync_to_i8080(void)
+{
+    if (!is_nec)
+        return;
+    emulated_processor.a  = AL;
+    emulated_processor.h  = BH;
+    emulated_processor.l  = BL;
+    emulated_processor.b  = CH;
+    emulated_processor.c  = CL;
+    emulated_processor.d  = DH;
+    emulated_processor.e  = DL;
+    emulated_processor.sp = BP;
+    emulated_processor.pc = cpu_state.pc;
+    emulated_processor.iff = !!(cpu_state.flags & I_FLAG);
+
+    emulated_processor.sf = (cpu_state.flags >> 7) & 1;
+    emulated_processor.zf = (cpu_state.flags >> 6) & 1;
+    emulated_processor.hf = (cpu_state.flags >> 4) & 1;
+    emulated_processor.pf = (cpu_state.flags >> 2) & 1;
+    emulated_processor.cf = (cpu_state.flags >> 0) & 1;
+
+    emulated_processor.interrupt_delay = noint;
+}
+
 
 uint16_t
 get_last_addr(void)
@@ -582,6 +638,33 @@ load_seg(uint16_t seg, x86seg *s)
     s->seg  = seg & 0xffff;
 }
 
+uint8_t fetch_i8080_opcode(UNUSED(void* priv), uint16_t addr)
+{
+    return readmemb(cs + addr);
+}
+
+uint8_t fetch_i8080_data(UNUSED(void* priv), uint16_t addr)
+{
+    return readmemb(ds + addr);
+}
+
+void put_i8080_data(UNUSED(void* priv), uint16_t addr, uint8_t val)
+{
+    writememb(ds, addr, val);
+}
+
+static uint8_t i8080_port_in(UNUSED(void* priv), uint8_t port)
+{
+    cpu_io(8, 0, port);
+    return AL;
+}
+
+static void i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
+{
+    AL = val;
+    cpu_io(8, 1, port);
+}
+
 void
 reset_808x(int hard)
 {
@@ -619,6 +702,14 @@ reset_808x(int hard)
 
     use_custom_nmi_vector = 0x00;
     custom_nmi_vector     = 0x00000000;
+
+    cpu_md_write_disable = 1;
+    i8080_init(&emulated_processor);
+    emulated_processor.write_byte    = put_i8080_data;
+    emulated_processor.read_byte     = fetch_i8080_data;
+    emulated_processor.read_byte_seg = fetch_i8080_opcode;
+    emulated_processor.port_in       = i8080_port_in;
+    emulated_processor.port_out      = i8080_port_out;
 }
 
 static void
@@ -994,6 +1085,11 @@ interrupt(uint16_t addr)
     uint16_t new_cs, new_ip;
     uint16_t tempf;
 
+    if (!(cpu_state.flags & MD_FLAG) && is_nec) {
+        sync_from_i8080();
+        x808x_log("CALLN/INT#/NMI#\n");
+    }
+
     addr <<= 2;
     cpu_state.eaaddr = addr;
     old_cs           = CS;
@@ -1010,6 +1106,8 @@ interrupt(uint16_t addr)
     tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
+    if (is_nec)
+        cpu_state.flags |= MD_FLAG;
     access(40, 16);
     push(&old_cs);
     old_ip = cpu_state.pc;
@@ -1018,6 +1116,65 @@ interrupt(uint16_t addr)
     set_ip(new_ip);
     access(41, 16);
     push(&old_ip);
+}
+
+/* Ditto, but for breaking into emulation mode. */
+static void
+interrupt_brkem(uint16_t addr)
+{
+    uint16_t old_cs, old_ip;
+    uint16_t new_cs, new_ip;
+    uint16_t tempf;
+
+    addr <<= 2;
+    cpu_state.eaaddr = addr;
+    old_cs           = CS;
+    access(5, 16);
+    new_ip = readmemw(0, cpu_state.eaaddr);
+    wait(1, 0);
+    cpu_state.eaaddr = (cpu_state.eaaddr + 2) & 0xffff;
+    access(6, 16);
+    new_cs      = readmemw(0, cpu_state.eaaddr);
+    prefetching = 0;
+    pfq_clear();
+    ovr_seg = NULL;
+    access(39, 16);
+    tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
+    push(&tempf);
+    cpu_state.flags      &= ~(MD_FLAG);
+    cpu_md_write_disable  = 0;
+    access(40, 16);
+    push(&old_cs);
+    old_ip = cpu_state.pc;
+    load_cs(new_cs);
+    access(68, 16);
+    set_ip(new_ip);
+    access(41, 16);
+    push(&old_ip);
+    sync_to_i8080();
+    x808x_log("BRKEM mode\n");
+}
+
+void
+retem_i8080(void)
+{
+    sync_from_i8080();
+
+    prefetching = 0;
+    pfq_clear();
+
+    set_ip(pop());
+    load_cs(pop());
+    cpu_state.flags = pop();
+
+    emulated_processor.iff = !!(cpu_state.flags & I_FLAG);
+
+    cpu_md_write_disable = 1;
+
+    noint      = 1;
+    nmi_enable = 1;
+
+    x808x_log("RETEM mode\n");
 }
 
 void
@@ -1032,6 +1189,11 @@ custom_nmi(void)
     uint16_t old_cs, old_ip;
     uint16_t new_cs, new_ip;
     uint16_t tempf;
+
+    if (!(cpu_state.flags & MD_FLAG) && is_nec) {
+        sync_from_i8080();
+        pclog("NMI# (CUTSOM)\n");
+    }
 
     cpu_state.eaaddr = 0x0002;
     old_cs           = CS;
@@ -1050,6 +1212,8 @@ custom_nmi(void)
     tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
+    if (is_nec)
+        cpu_state.flags |= MD_FLAG;
     access(40, 16);
     push(&old_cs);
     old_ip = cpu_state.pc;
@@ -1771,6 +1935,15 @@ execx86(int cycs)
     while (cycles > 0) {
         clock_start();
 
+        if (is_nec && !(cpu_state.flags & MD_FLAG)) {
+            i8080_step(&emulated_processor);
+            set_if(emulated_processor.iff);
+            cycles -= emulated_processor.cyc;
+            emulated_processor.cyc = 0;
+            completed = 1;
+            goto exec_completed;
+        }
+
         if (!repeating) {
             cpu_state.oldpc = cpu_state.pc;
             opcode          = pfq_fetchb();
@@ -2344,8 +2517,8 @@ execx86(int cycs)
                                 break;
 
                             case 0xFF: /* BRKEM */
-                                /* Unimplemented for now. */
-                                fatal("808x: Unsupported 8080 emulation mode attempted to enter into!");
+                                interrupt_brkem(pfq_fetchb());
+                                handled = 1;
                                 break;
 
                             default:
@@ -2857,11 +3030,12 @@ execx86(int cycs)
                     break;
                 case 0x9D: /*POPF*/
                     access(25, 16);
-                    if (is_nec)
+                    if (is_nec && cpu_md_write_disable)
                         cpu_state.flags = pop() | 0x8002;
                     else
                         cpu_state.flags = pop() | 0x0002;
                     wait(1, 0);
+                    sync_to_i8080();
                     break;
                 case 0x9E: /*SAHF*/
                     wait(1, 0);
@@ -3127,13 +3301,15 @@ execx86(int cycs)
                     access(62, 8);
                     set_ip(new_ip);
                     access(45, 8);
-                    if (is_nec)
+                    if (is_nec && cpu_md_write_disable)
                         cpu_state.flags = pop() | 0x8002;
                     else
                         cpu_state.flags = pop() | 0x0002;
                     wait(5, 0);
                     noint      = 1;
                     nmi_enable = 1;
+                    if (is_nec && !(cpu_state.flags & MD_FLAG))
+                        sync_to_i8080();
                     break;
 
                 case 0xD0:
@@ -3659,7 +3835,7 @@ execx86(int cycs)
                     break;
             }
         }
-
+exec_completed:
         if (completed) {
             repeating  = 0;
             ovr_seg    = NULL;

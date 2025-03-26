@@ -78,6 +78,7 @@ add_library(vid OBJECT
     vid_xga.c
     vid_bochs_vbe.c
     vid_ps55da2.c
+    vid_jega.c
     nv/nv_rivatimer.c
 )
 

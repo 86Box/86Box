@@ -54,18 +54,24 @@ typedef struct scsi_cdrom_t {
     int                do_page_save;
     int                unit_attention;
     int                request_pos;
-    int                old_len;
-    int                media_status;
+    int                wait;
+    int                buffer_pos;
 
     uint32_t           sector_pos;
     uint32_t           sector_len;
     uint32_t           packet_len;
+    uint32_t           block_len;
 
     double             callback;
 
-    int                is_sony;
-    int                use_cdb_9;
+    uint8_t            (*ven_cmd)(void *sc, const uint8_t *cdb, int32_t *BufLen);
 
+    int                use_cdb_9;
+    int                was_cached;
+    int                toc_cached;
+    int                media_access;
+
+    uint8_t            vendor_type;
     uint8_t            ven_cmd_is_data[256];
 
     mode_sense_pages_t ms_drive_status_pages_saved;
@@ -74,8 +80,6 @@ typedef struct scsi_cdrom_t {
 
     mode_sense_pages_t ms_pages_default;
     mode_sense_pages_t ms_pages_changeable;
-
-    uint8_t            (*ven_cmd)(void *sc, const uint8_t *cdb, int32_t *BufLen);
 } scsi_cdrom_t;
 #endif
 

@@ -53,7 +53,25 @@ add_library(snd OBJECT
     snd_opl_esfm.c
 )
 
-if(OPENAL)
+# TODO: Should platform-specific audio driver be here?
+if(AUDIO4)
+    target_sources(snd PRIVATE audio4.c)
+elseif(SNDIO)
+    target_sources(snd PRIVATE sndio.c)
+    find_package(PkgConfig REQUIRED)
+
+    pkg_check_modules(SNDIO IMPORTED_TARGET sndio)
+    if(SNDIO_FOUND)
+        target_link_libraries(86Box PkgConfig::SNDIO)
+    else()
+        find_path(SNDIO_INCLUDE_DIR NAMES "sndio.h")
+        find_library(SNDIO_LIBRARY sndio)
+
+        target_link_libraries(86Box ${SNDIO_LIBRARY})
+    endif()
+
+    include_directories(${SNDIO_INCLUDE_DIRS})
+elseif(OPENAL)
     if(VCPKG_TOOLCHAIN)
         find_package(OpenAL CONFIG REQUIRED)
     elseif(MINGW)

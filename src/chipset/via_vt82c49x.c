@@ -275,8 +275,8 @@ vt82c49x_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x71:
                     if (dev->has_ide) {
                         ide_pri_disable();
-                        ide_set_base(0, (val & 0x40) ? 0x170 : 0x1f0);
-                        ide_set_side(0, (val & 0x40) ? 0x376 : 0x3f6);
+                        ide_set_base(0, (val & 0x40) ? HDC_SECONDARY_BASE : HDC_PRIMARY_BASE);
+                        ide_set_side(0, (val & 0x40) ? HDC_SECONDARY_SIDE : HDC_PRIMARY_SIDE);
                         if (val & 0x01)
                             ide_pri_enable();
                         vt82c49x_log("VT82C496 IDE now %sabled as %sary\n", (val & 0x01) ? "en" : "dis",

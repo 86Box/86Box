@@ -118,6 +118,7 @@ ega_render_text(ega_t *ega)
         const bool doublewidth   = ((ega->seqregs[1] & 8) != 0);
         const bool attrblink     = ((ega->attrregs[0x10] & 8) != 0);
         const bool attrlinechars = (ega->attrregs[0x10] & 4);
+        const bool monoattrs     = (ega->attrregs[0x10] & 2);
         const bool crtcreset     = ((ega->crtc[0x17] & 0x80) == 0);
         const bool seq9dot       = ((ega->seqregs[1] & 1) == 0);
         const int  dwshift       = doublewidth ? 1 : 0;
@@ -174,13 +175,23 @@ ega_render_text(ega_t *ega)
             if ((chr & ~0x1F) == 0xC0 && attrlinechars)
                 dat |= (dat >> 1) & 1;
 
-            for (int xx = 0; xx < charwidth; xx++)
-                p[xx] = (dat & (0x100 >> (xx >> dwshift))) ? fg : bg;
+            for (int xx = 0; xx < charwidth; xx++) {
+                if (monoattrs) {
+                    if ((ega->sc == ega->crtc[0x14]) && ((attr & 7) == 1))
+                        p[xx] = ega->mdacols[attr][attrblink][1];
+                    else
+                        p[xx] = ega->mdacols[attr][attrblink][dat & (0x100 >> (xx >> dwshift))];
+                } else
+                    p[xx] = (dat & (0x100 >> (xx >> dwshift))) ? fg : bg;
+            }
 
             ega->ma += 4;
             p += charwidth;
         }
         ega->ma &= 0x3ffff;
+
+        if (monoattrs)
+            video_process_8(ega->hdisp + ega->scrollcache, ega->displine);
     }
 }
 

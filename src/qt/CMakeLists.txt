@@ -89,11 +89,7 @@ add_library(ui STATIC
     qt_hardwarerenderer.hpp
     qt_openglrenderer.cpp
     qt_openglrenderer.hpp
-    qt_opengloptions.cpp
-    qt_opengloptions.hpp
-    qt_opengloptionsdialog.cpp
-    qt_opengloptionsdialog.hpp
-    qt_opengloptionsdialog.ui
+    qt_glsl_parser.cpp
 
     qt_settings.cpp
     qt_settings.hpp
@@ -190,6 +186,14 @@ add_library(ui STATIC
 
     ../qt_resources.qrc
     ./qdarkstyle/dark/darkstyle.qrc
+
+    qt_openglshadermanagerdialog.hpp
+    qt_openglshadermanagerdialog.cpp
+    qt_openglshadermanagerdialog.ui
+
+    qt_openglshaderconfig.hpp
+    qt_openglshaderconfig.cpp
+    qt_openglshaderconfig.ui
 )
 
 if(RTMIDI)

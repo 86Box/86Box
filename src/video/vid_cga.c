@@ -442,7 +442,7 @@ cga_interpolate_linear(uint8_t co1, uint8_t co2, double fraction)
     r2 = pow((r1 >= 0.0) ? r1 : -r1, 1.0 / 2.19921875);
     if (r1 <= 0.0)
         r2 = -r2;
-    ret = (uint8_t) (r2 * 255.0);
+    ret = (uint8_t) round(r2 * 255.0);
 
     return ret;
 }

@@ -32,6 +32,7 @@
 #include <wchar.h>
 #include <stdatomic.h>
 #include <unistd.h>
+#include <math.h>
 
 #ifndef _WIN32
 #    include <pwd.h>
@@ -172,7 +173,6 @@ int      force_43                               = 0;              /* (C) video *
 int      video_filter_method                    = 1;              /* (C) video */
 int      video_vsync                            = 0;              /* (C) video */
 int      video_framerate                        = -1;             /* (C) video */
-char     video_shader[512]                      = { '\0' };       /* (C) video */
 bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0, 0, 0, 0 }; /* (C) activation and kind of
                                                                                   pass-through for serial ports */
 int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
@@ -214,6 +214,7 @@ int      hook_enabled                           = 1;              /* (C) Keyboar
 int      test_mode                              = 0;              /* (C) Test mode */
 char     uuid[MAX_UUID_LEN]                     = { '\0' };       /* (C) UUID or machine identifier */
 int      sound_muted                            = 0;              /* (C) Is sound muted? */
+int      inhibit_multimedia_keys;                                 /* (C) Inhibit multimedia keys on Windows. */
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
                                                                      present */
@@ -233,6 +234,8 @@ extern int CPUID;
 extern int output;
 int        atfullspeed;
 
+extern double exp_pow_table[0x800];
+
 char  exe_path[2048]; /* path (dir) of executable */
 char  usr_path[1024]; /* path (dir) of user data */
 char  cfg_path[1024]; /* full path of config file */
@@ -251,6 +254,8 @@ int unscaled_size_x = SCREEN_RES_X; /* current unscaled size X */
 int unscaled_size_y = SCREEN_RES_Y; /* current unscaled size Y */
 int efscrnsz_y = SCREEN_RES_Y;
 #endif
+
+__thread int is_cpu_thread = 0;
 
 static wchar_t mouse_msg[3][200];
 
@@ -433,6 +438,75 @@ fatal_ex(const char *fmt, va_list ap)
     do_stop();
 
     fflush(stdlog);
+}
+
+/* Log a warning error, and display a UI message without exiting. */
+void
+warning(const char *fmt, ...)
+{
+    char    temp[1024];
+    va_list ap;
+    char   *sp;
+
+    va_start(ap, fmt);
+
+    if (stdlog == NULL) {
+        if (log_path[0] != '\0') {
+            stdlog = plat_fopen(log_path, "w");
+            if (stdlog == NULL)
+                stdlog = stdout;
+        } else
+            stdlog = stdout;
+    }
+
+    vsprintf(temp, fmt, ap);
+    fprintf(stdlog, "%s", temp);
+    fflush(stdlog);
+    va_end(ap);
+
+    /* Make sure the message does not have a trailing newline. */
+    if ((sp = strchr(temp, '\n')) != NULL)
+        *sp = '\0';
+
+    do_pause(2);
+
+    ui_msgbox(MBX_ERROR | MBX_ANSI, temp);
+
+    fflush(stdlog);
+
+    do_pause(0);
+}
+
+void
+warning_ex(const char *fmt, va_list ap)
+{
+    char  temp[1024];
+    char *sp;
+
+    if (stdlog == NULL) {
+        if (log_path[0] != '\0') {
+            stdlog = plat_fopen(log_path, "w");
+            if (stdlog == NULL)
+                stdlog = stdout;
+        } else
+            stdlog = stdout;
+    }
+
+    vsprintf(temp, fmt, ap);
+    fprintf(stdlog, "%s", temp);
+    fflush(stdlog);
+
+    /* Make sure the message does not have a trailing newline. */
+    if ((sp = strchr(temp, '\n')) != NULL)
+        *sp = '\0';
+
+    do_pause(2);
+
+    ui_msgbox(MBX_ERROR | MBX_ANSI, temp);
+
+    fflush(stdlog);
+
+    do_pause(0);
 }
 
 #ifdef ENABLE_PC_LOG
@@ -1083,6 +1157,11 @@ pc_init_modules(void)
     video_reset_close();
 
     machine_status_init();
+
+    for (c = 0; c <= 0x7ff; c++) {
+        int64_t exp = c - 1023; /* 1023 = BIAS64 */
+        exp_pow_table[c] = pow(2.0, (double) exp);
+    }
 
     if (do_nothing) {
         do_nothing = 0;

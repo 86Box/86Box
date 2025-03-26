@@ -2738,7 +2738,7 @@ xga_write_test(uint32_t addr, uint8_t val, void *priv)
     xga_t  *xga        = (xga_t *) svga->xga;
 
     if (xga_active && xga) {
-        if (((xga->op_mode & 7) >= 1) && xga->aperture_cntl) {
+        if (((xga->op_mode & 7) >= 1) && xga->aperture_cntl && (svga->mapping.base == 0xb8000)) {
             xga_log("WriteAddr=%05x.\n", addr);
             if (val == 0xa5) { /*Memory size test of XGA*/
                 xga->test    = val;
@@ -2843,7 +2843,7 @@ xga_read_test(uint32_t addr, void *priv)
     uint8_t ret = 0x00;
 
     if (xga_active && xga) {
-        if (((xga->op_mode & 7) >= 1) && xga->aperture_cntl) {
+        if (((xga->op_mode & 7) >= 1) && xga->aperture_cntl && (svga->mapping.base == 0xb8000)) {
             if (xga->test == 0xa5) { /*Memory size test of XGA*/
                 if (addr == 0xa0001) {
                     ret = xga->test;

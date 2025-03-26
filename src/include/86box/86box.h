@@ -20,6 +20,11 @@
 #ifndef EMU_86BOX_H
 #define EMU_86BOX_H
 
+#if defined(__NetBSD__) || defined(__OpenBSD__)
+/* Doesn't compile on NetBSD/OpenBSD without this include */
+#include <stdarg.h>
+#endif
+
 /* Configuration values. */
 #define GFXCARD_MAX  2
 #define SERIAL_MAX   7
@@ -107,6 +112,7 @@ extern uint64_t instru_run_ms;
 #define window_y monitor_settings[0].mon_window_y
 #define window_w monitor_settings[0].mon_window_w
 #define window_h monitor_settings[0].mon_window_h
+extern int      inhibit_multimedia_keys;    /* (C) Inhibit multimedia keys on Windows. */
 extern int      window_remember;
 extern int      vid_resize;                 /* (C) allow resizing */
 extern int      invert_display;             /* (C) invert the display */
@@ -126,7 +132,6 @@ extern int      video_filter_method;        /* (C) video */
 extern int      video_vsync;                /* (C) video */
 extern int      video_framerate;            /* (C) video */
 extern int      gfxcard[GFXCARD_MAX];       /* (C) graphics/video card */
-extern char     video_shader[512];          /* (C) video */
 extern int      bugger_enabled;             /* (C) enable ISAbugger */
 extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */
 extern int      postcard_enabled;           /* (C) enable POST card */
@@ -188,19 +193,18 @@ extern FILE *stdlog; /* file to log output to */
 #endif
 extern int config_changed; /* config has changed */
 
+extern __thread int is_cpu_thread; /* Is this the CPU thread? */
+
 /* Function prototypes. */
 #ifdef HAVE_STDARG_H
 extern void pclog_ex(const char *fmt, va_list ap);
 extern void fatal_ex(const char *fmt, va_list ap);
+extern void warning_ex(const char *fmt, va_list ap);
 #endif
 extern void pclog_toggle_suppr(void);
-#ifdef _MSC_VER
-extern void pclog(const char *fmt, ...);
-extern void fatal(const char *fmt, ...);
-#else
 extern void pclog(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void fatal(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
-#endif
+extern void warning(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void set_screen_size(int x, int y);
 extern void set_screen_size_monitor(int x, int y, int monitor_index);
 extern void reset_screen_size(void);

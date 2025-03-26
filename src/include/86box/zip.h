@@ -108,6 +108,7 @@ typedef struct zip_t {
     uint32_t           sector_pos;
     uint32_t           sector_len;
     uint32_t           packet_len;
+    uint32_t           block_len;
 
     double             callback;
 

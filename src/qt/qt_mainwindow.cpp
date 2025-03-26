@@ -62,6 +62,8 @@ extern int qt_nvr_save(void);
 #ifdef MTR_ENABLED
 #    include <minitrace/minitrace.h>
 #endif
+
+extern bool cpu_thread_running;
 };
 
 #include <QGuiApplication>
@@ -179,6 +181,7 @@ MainWindow::MainWindow(QWidget *parent)
     main_window = this;
     ui->setupUi(this);
     status->setSoundGainAction(ui->actionSound_gain);
+    ui->menuEGA_S_VGA_settings->menuAction()->setMenuRole(QAction::NoRole);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
 #ifdef Q_OS_WINDOWS
@@ -463,7 +466,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(ui->stackedWidget, &RendererStack::rendererChanged, [this]() {
-        ui->actionRenderer_options->setVisible(ui->stackedWidget->hasOptions());
+        ui->actionRenderer_options->setEnabled(ui->stackedWidget->hasOptions());
     });
 
     /* Trigger initial renderer switch */
@@ -779,12 +782,44 @@ MainWindow::closeEvent(QCloseEvent *event)
         ui->stackedWidget->mouse_exit_func();
 
     ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
+    for (int i = 1; i < MONITORS_NUM; i++) {
+        if (renderers[i] && renderers[i]->isHidden()) {
+            renderers[i]->show();
+            QApplication::processEvents();
+            renderers[i]->switchRenderer(RendererStack::Renderer::Software);
+            QApplication::processEvents();
+        }
+    }
 
     qt_nvr_save();
     config_save();
     QApplication::processEvents();
     cpu_thread_run = 0;
     event->accept();
+}
+
+void
+MainWindow::resizeEvent(QResizeEvent *event)
+{
+    //qDebug() << pos().x() + event->size().width();
+    //qDebug() << pos().y() + event->size().height();
+    if (vid_resize == 1)
+        return;
+
+    int newX = pos().x();
+    int newY = pos().y();
+
+    if (((frameGeometry().x() + event->size().width() + 1) > util::screenOfWidget(this)->availableGeometry().right())) {
+        //move(util::screenOfWidget(this)->availableGeometry().right() - size().width() - 1, pos().y());
+        newX = util::screenOfWidget(this)->availableGeometry().right() - frameGeometry().width() - 1;
+        if (newX < 1) newX = 1;
+    }
+
+    if (((frameGeometry().y() + event->size().height() + 1) > util::screenOfWidget(this)->availableGeometry().bottom())) {
+        newY = util::screenOfWidget(this)->availableGeometry().bottom() - frameGeometry().height() - 1;
+        if (newY < 1) newY = 1;
+    }
+    move(newX, newY);
 }
 
 void
@@ -1253,7 +1288,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         static auto curdopause = dopause;
         if (event->type() == QEvent::WindowBlocked) {
             curdopause = dopause;
-            plat_pause(1);
+            plat_pause(isShowMessage ? 2 : 1);
             emit setMouseCapture(false);
         } else if (event->type() == QEvent::WindowUnblocked) {
             plat_pause(curdopause);
@@ -1267,6 +1302,7 @@ void
 MainWindow::refreshMediaMenu()
 {
     mm->refresh(ui->menuMedia);
+    status->setSoundGainAction(ui->actionSound_gain);
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
     ui->actionACPI_Shutdown->setEnabled(!!acpi_enabled);
@@ -1276,7 +1312,11 @@ void
 MainWindow::showMessage(int flags, const QString &header, const QString &message)
 {
     if (QThread::currentThread() == this->thread()) {
-        showMessage_(flags, header, message);
+        if (!cpu_thread_running) {
+            showMessageForNonQtThread(flags, header, message, nullptr);
+        }
+        else
+            showMessage_(flags, header, message);
     } else {
         std::atomic_bool done = false;
         emit showMessageForNonQtThread(flags, header, message, &done);
@@ -1292,6 +1332,7 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
     if (done) {
         *done = false;
     }
+    isShowMessage = true;
     QMessageBox box(QMessageBox::Warning, header, message, QMessageBox::NoButton, this);
     if (flags & (MBX_FATAL)) {
         box.setIcon(QMessageBox::Critical);
@@ -1303,6 +1344,7 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
     if (done) {
         *done = true;
     }
+    isShowMessage = false;
     if (cpu_thread_run == 0)
         QApplication::exit(-1);
 }
@@ -1734,7 +1776,7 @@ MainWindow::on_actionAbout_86Box_triggered()
     versioninfo.append(QString(" [%1, %2]").arg(QSysInfo::buildCpuArchitecture(), tr(DYNAREC_STR)));
     msgBox.setText(QString("<b>%3%1%2</b>").arg(EMU_VERSION_FULL, versioninfo, tr("86Box v")));
     msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
-    msgBox.setWindowTitle("About 86Box");
+    msgBox.setWindowTitle(tr("About 86Box"));
     const auto closeButton = msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);
     msgBox.setEscapeButton(closeButton);
     const auto webSiteButton = msgBox.addButton(EMU_SITE, QMessageBox::ButtonRole::HelpRole);
@@ -1980,13 +2022,38 @@ MainWindow::changeEvent(QEvent *event)
 }
 
 void
+MainWindow::reloadAllRenderers()
+{
+    reload_renderers = true;
+}
+
+void
 MainWindow::on_actionRenderer_options_triggered()
 {
     if (const auto dlg = ui->stackedWidget->getOptions(this)) {
         if (dlg->exec() == QDialog::Accepted) {
-            for (int i = 1; i < MONITORS_NUM; i++) {
+            if (ui->stackedWidget->reloadRendererOption()) {
+                ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
+                if (show_second_monitors) {
+                    for (int i = 1; i < MONITORS_NUM; i++) {
+                        if (renderers[i] && renderers[i]->reloadRendererOption() && renderers[i]->hasOptions()) {
+                            ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
+                        }
+                    }
+                }
+            } else for (int i = 1; i < MONITORS_NUM; i++) {
                 if (renderers[i] && renderers[i]->hasOptions())
                     renderers[i]->reloadOptions();
+            }
+        } else if (reload_renderers && ui->stackedWidget->reloadRendererOption()) {
+            reload_renderers = false;
+            ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
+            if (show_second_monitors) {
+                for (int i = 1; i < MONITORS_NUM; i++) {
+                    if (renderers[i]) {
+                        renderers[i]->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
+                    }
+                }
             }
         }
     }

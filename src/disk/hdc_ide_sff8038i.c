@@ -316,14 +316,14 @@ sff_bus_master_readl(uint16_t port, void *priv)
 }
 
 int
-sff_bus_master_dma(uint8_t *data, int transfer_length, int out, void *priv)
+sff_bus_master_dma(uint8_t *data, int transfer_length, int total_length, int out, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
 #ifdef ENABLE_SFF_LOG
     char *sop;
 #endif
 
-    int force_end = 0;
+    int force_end  = 0;
     int buffer_pos = 0;
 
 #ifdef ENABLE_SFF_LOG
@@ -365,9 +365,15 @@ sff_bus_master_dma(uint8_t *data, int transfer_length, int out, void *priv)
             return 1; /* This block has exhausted the data to transfer and it was smaller than the count, break. */
         } else {
             if (!transfer_length && !dev->eot) {
-                sff_log("Total transfer length smaller than sum of all blocks, full block\n");
-                dev->status &= ~2;
-                return 1; /* We have exhausted the data to transfer but there's more blocks left, break. */
+                if (total_length) {
+                    sff_log("Total transfer length smaller than sum of all blocks, partial transfer\n");
+                    sff_bus_master_next_addr(dev);
+                    return 1; /* We have exhausted the data to transfer but there's more blocks left, break. */
+                } else {
+                    sff_log("Total transfer length smaller than sum of all blocks, full block\n");
+                    dev->status &= ~2;
+                    return 1; /* We have exhausted the data to transfer but there's more blocks left, break. */
+                }
             } else if (transfer_length && dev->eot) {
                 sff_log("Total transfer length greater than sum of all blocks\n");
                 dev->status |= 2;
@@ -375,7 +381,7 @@ sff_bus_master_dma(uint8_t *data, int transfer_length, int out, void *priv)
             } else if (dev->eot) {
                 sff_log("Regular EOT\n");
                 dev->status &= ~3;
-                return 1; /* We have regularly reached EOT - clear status and break. */
+                return 3; /* We have regularly reached EOT - clear status and break. */
             } else {
                 /* We have more to transfer and there are blocks left, get next block. */
                 sff_bus_master_next_addr(dev);

@@ -1577,21 +1577,35 @@ write64_phoenix(void *priv, uint8_t val)
                  revision level and proper CPU bits. */
         case 0xd5: /* Read MultiKey code revision level */
             kbc_at_log("ATkbc: Phoenix - Read MultiKey code revision level\n");
-            kbc_at_queue_add(dev, 0x04);
-            kbc_at_queue_add(dev, 0x16);
+            if (dev->misc_flags & FLAG_PS2) {
+                kbc_at_queue_add(dev, 0x04);
+                kbc_at_queue_add(dev, 0x16);
+            } else {
+                kbc_at_queue_add(dev, 0x01);
+                kbc_at_queue_add(dev, 0x29);
+            }
             return 0;
 
         case 0xd6: /* Read Version Information */
             kbc_at_log("ATkbc: Phoenix - Read Version Information\n");
             kbc_at_queue_add(dev, 0x81);
-            kbc_at_queue_add(dev, 0xac);
+            if (dev->misc_flags & FLAG_PS2)
+                kbc_at_queue_add(dev, 0xac);
+            else
+                kbc_at_queue_add(dev, 0xaa);
             return 0;
 
         case 0xd7: /* Read MultiKey model numbers */
             kbc_at_log("ATkbc: Phoenix - Read MultiKey model numbers\n");
-            kbc_at_queue_add(dev, 0x02);
-            kbc_at_queue_add(dev, 0x87);
-            kbc_at_queue_add(dev, 0x02);
+            if (dev->misc_flags & FLAG_PS2) {
+                kbc_at_queue_add(dev, 0x02);
+                kbc_at_queue_add(dev, 0x87);
+                kbc_at_queue_add(dev, 0x02);
+            } else {
+                kbc_at_queue_add(dev, 0x90);
+                kbc_at_queue_add(dev, 0x88);
+                kbc_at_queue_add(dev, 0xd0);
+            }
             return 0;
 
         default:
@@ -2501,6 +2515,20 @@ const device_t keyboard_at_compaq_device = {
     .internal_name = "keyboard_at_compaq",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_ISA | KBC_VEN_COMPAQ,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_at_phoenix_device = {
+    .name          = "PC/AT Keyboard (Phoenix)",
+    .internal_name = "keyboard_at_phoenix",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_TYPE_ISA | KBC_VEN_PHOENIX,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,

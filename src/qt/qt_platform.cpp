@@ -18,6 +18,11 @@
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021-2022 Teemu Korhonen
  */
+
+#ifdef __HAIKU__
+#include <OS.h>
+#endif
+
 #include <cstdio>
 
 #include <mutex>
@@ -48,6 +53,10 @@
 #include "qt_mainwindow.hpp"
 #include "qt_progsettings.hpp"
 #include "qt_util.hpp"
+
+#ifndef Q_OS_WINDOWS
+#    include <signal.h>
+#endif
 
 #ifdef Q_OS_UNIX
 #    include <pthread.h>
@@ -368,6 +377,8 @@ plat_mmap(size_t size, uint8_t executable)
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE | (executable ? MAP_JIT : 0), -1, 0);
 #    elif defined(PROT_MPROTECT)
     void *ret = mmap(0, size, PROT_MPROTECT(PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0)), MAP_ANON | MAP_PRIVATE, -1, 0);
+    if (ret)
+        mprotect(ret, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0));
 #    else
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, -1, 0);
 #    endif
@@ -385,12 +396,17 @@ plat_munmap(void *ptr, size_t size)
 #endif
 }
 
+extern bool cpu_thread_running;
 void
 plat_pause(int p)
 {
     static wchar_t oldtitle[512];
     wchar_t        title[1024];
     wchar_t        paused_msg[512];
+
+    if (!cpu_thread_running && p == 1) {
+        p = 2;
+    }
 
     if ((!!p) == dopause) {
 #ifdef Q_OS_WINDOWS
@@ -640,7 +656,7 @@ ProgSettings::reloadStrings()
     translatedstrings[STRING_NET_ERROR]                 = QCoreApplication::translate("", "Failed to initialize network driver").toStdWString();
     translatedstrings[STRING_NET_ERROR_DESC]            = QCoreApplication::translate("", "The network configuration will be switched to the null driver").toStdWString();
     translatedstrings[STRING_ESCP_ERROR_TITLE]          = QCoreApplication::translate("", "Unable to find Dot-Matrix fonts").toStdWString();
-    translatedstrings[STRING_ESCP_ERROR_DESC]           = QCoreApplication::translate("", "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulatio of the Generic ESC/P Dot-Matrix Printer.").toStdWString();
+    translatedstrings[STRING_ESCP_ERROR_DESC]           = QCoreApplication::translate("", "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer.").toStdWString();
 }
 
 wchar_t *
@@ -820,11 +836,23 @@ plat_set_thread_name(void *thread, const char *name)
 #    if defined(Q_OS_DARWIN)
     pthread_setname_np(truncated);
 #    elif defined(Q_OS_NETBSD)
-    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, "%s");
+    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, (void*)"%s");
+#    elif defined(__HAIKU__)
+    rename_thread(find_thread(NULL), truncated);
 #    elif defined(Q_OS_OPENBSD)
     pthread_set_name_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
 #    else
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
 #    endif
+#endif
+}
+
+void
+plat_break(void)
+{
+#ifdef Q_OS_WINDOWS
+    DebugBreak();
+#else
+    raise(SIGTRAP);
 #endif
 }

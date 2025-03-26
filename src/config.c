@@ -77,6 +77,12 @@
 #include <86box/snd_opl.h>
 #include <86box/version.h>
 
+#ifndef USE_SDL_UI
+/* Deliberate to not make the 86box.h header kitchen-sink. */
+#include <86box/qt-glsl.h>
+extern char gl3_shader_file[MAX_USER_SHADERS][512];
+#endif
+
 static int   cx;
 static int   cy;
 static int   cw;
@@ -124,6 +130,8 @@ load_general(void)
     video_fullscreen_first = ini_section_get_int(cat, "video_fullscreen_first", 1);
 
     video_filter_method = ini_section_get_int(cat, "video_filter_method", 1);
+
+    inhibit_multimedia_keys = ini_section_get_int(cat, "inhibit_multimedia_keys", 0);
 
     force_43 = !!ini_section_get_int(cat, "force_43", 0);
     scale    = ini_section_get_int(cat, "scale", 1);
@@ -196,7 +204,6 @@ load_general(void)
 
     video_framerate = ini_section_get_int(cat, "video_gl_framerate", -1);
     video_vsync     = ini_section_get_int(cat, "video_gl_vsync", 0);
-    strncpy(video_shader, ini_section_get_string(cat, "video_gl_shader", ""), sizeof(video_shader) - 1);
 
     window_remember = ini_section_get_int(cat, "window_remember", 0);
     if (window_remember) {
@@ -1714,6 +1721,51 @@ load_other_peripherals(void)
         ini_section_delete_var(cat, temp);
 }
 
+#ifndef USE_SDL_UI
+/* Load OpenGL 3.0 renderer options. */
+static void
+load_gl3_shaders(void)
+{
+    ini_section_t cat = ini_find_section(config, "GL3 Shaders");
+    char         *p;
+    char          temp[512];
+    int           i = 0, shaders = 0;
+    memset(temp, 0, sizeof(temp));
+    memset(gl3_shader_file, 0, sizeof(gl3_shader_file));
+
+    shaders = ini_section_get_int(cat, "shaders", 0);
+    if (shaders > MAX_USER_SHADERS)
+        shaders = MAX_USER_SHADERS;
+
+    if (shaders == 0) {
+        ini_section_t general = ini_find_section(config, "General");
+        if (general) {
+            p = ini_section_get_string(general, "video_gl_shader", NULL);
+            if (p) {
+                if (strlen(p) > 511)
+                    fatal("Configuration: Length of video_gl_shadr is more than 511\n");
+                else
+                    strncpy(gl3_shader_file[0], p, 511);
+                ini_delete_var(config, general, "video_gl_shader");
+                return;
+            }
+        }
+    }
+
+    for (i = 0; i < shaders; i++) {
+        temp[0] = 0;
+        snprintf(temp, 512, "shader%d", i);
+        p = ini_section_get_string(cat, temp, "");
+        if (p[0]) {
+            strncpy(gl3_shader_file[i], p, 512);
+        } else {
+            gl3_shader_file[i][0] = 0;
+            break;
+        }
+    }
+}
+#endif
+
 /* Load the specified or a default configuration file. */
 void
 config_load(void)
@@ -1810,6 +1862,9 @@ config_load(void)
         load_floppy_and_cdrom_drives(); /* Floppy and CD-ROM drives */
         load_other_removable_devices(); /* Other removable devices */
         load_other_peripherals();       /* Other peripherals */
+#ifndef USE_SDL_UI
+        load_gl3_shaders();             /* GL3 Shaders */
+#endif
 
         /* Migrate renamed device configurations. */
         c = ini_find_section(config, "MDA");
@@ -1846,6 +1901,10 @@ save_general(void)
     char          buffer[512] = { 0 };
 
     const char *va_name;
+
+    ini_section_set_int(cat, "inhibit_multimedia_keys", inhibit_multimedia_keys);
+    if (inhibit_multimedia_keys == 0)
+        ini_section_delete_var(cat, "inhibit_multimedia_keys");
 
     ini_section_set_int(cat, "sound_muted", sound_muted);
     if (sound_muted == 0)
@@ -2002,10 +2061,6 @@ save_general(void)
         ini_section_set_int(cat, "video_gl_vsync", video_vsync);
     else
         ini_section_delete_var(cat, "video_gl_vsync");
-    if (strlen(video_shader) > 0)
-        ini_section_set_string(cat, "video_gl_shader", video_shader);
-    else
-        ini_section_delete_var(cat, "video_gl_shader");
 
     if (do_auto_pause)
         ini_section_set_int(cat, "do_auto_pause", do_auto_pause);
@@ -2632,6 +2687,40 @@ save_other_peripherals(void)
     ini_delete_section_if_empty(config, cat);
 }
 
+#ifndef USE_SDL_UI
+/* Save "GL3 Shaders" section. */
+static void
+save_gl3_shaders(void)
+{
+    ini_section_t cat = ini_find_or_create_section(config, "GL3 Shaders");
+    char          temp[512];
+    int shaders = 0, i = 0;
+
+    for (i = 0; i < MAX_USER_SHADERS; i++) {
+        if (gl3_shader_file[i][0] == 0) {
+            temp[0] = 0;
+            snprintf(temp, 512, "shader%d", i);
+            ini_section_delete_var(cat, temp);
+            break;
+        }
+        shaders++;
+    }
+
+    ini_section_set_int(cat, "shaders", shaders);
+    if (shaders == 0) {
+        ini_section_delete_var(cat, "shaders");
+    } else {
+        for (i = 0; i < shaders; i++) {
+            temp[0] = 0;
+            snprintf(temp, 512, "shader%d", i);
+            ini_section_set_string(cat, temp, gl3_shader_file[i]);
+        }
+    }
+
+    ini_delete_section_if_empty(config, cat);
+}
+#endif
+
 /* Save "Hard Disks" section. */
 static void
 save_hard_disks(void)
@@ -2922,6 +3011,19 @@ save_other_removable_devices(void)
             else
                 ini_section_set_string(cat, temp, zip_drives[c].image_path);
         }
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            sprintf(temp, "zip_%02i_image_history_%02i", c + 1, i + 1);
+            if ((zip_drives[c].image_history[i] == 0) || strlen(zip_drives[c].image_history[i]) == 0)
+                ini_section_delete_var(cat, temp);
+            else {
+                path_normalize(zip_drives[c].image_history[i]);
+                if (!strnicmp(zip_drives[c].image_history[i], usr_path, strlen(usr_path)))
+                    ini_section_set_string(cat, temp, &zip_drives[c].image_history[i][strlen(usr_path)]);
+                else
+                    ini_section_set_string(cat, temp, zip_drives[c].image_history[i]);
+            }
+        }
     }
 
     for (c = 0; c < MO_NUM; c++) {
@@ -2965,6 +3067,19 @@ save_other_removable_devices(void)
             else
                 ini_section_set_string(cat, temp, mo_drives[c].image_path);
         }
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            sprintf(temp, "mo_%02i_image_history_%02i", c + 1, i + 1);
+            if ((mo_drives[c].image_history[i] == 0) || strlen(mo_drives[c].image_history[i]) == 0)
+                ini_section_delete_var(cat, temp);
+            else {
+                path_normalize(mo_drives[c].image_history[i]);
+                if (!strnicmp(mo_drives[c].image_history[i], usr_path, strlen(usr_path)))
+                    ini_section_set_string(cat, temp, &mo_drives[c].image_history[i][strlen(usr_path)]);
+                else
+                    ini_section_set_string(cat, temp, mo_drives[c].image_history[i]);
+            }
+        }
     }
 
     ini_delete_section_if_empty(config, cat);
@@ -2987,6 +3102,9 @@ config_save(void)
     save_floppy_and_cdrom_drives(); /* Floppy and CD-ROM drives */
     save_other_removable_devices(); /* Other removable devices */
     save_other_peripherals();       /* Other peripherals */
+#ifndef USE_SDL_UI
+    save_gl3_shaders();             /* GL3 Shaders */
+#endif
 
     ini_write(config, cfg_path);
 }
