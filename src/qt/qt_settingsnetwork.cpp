@@ -35,25 +35,58 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
     for (int i = 0; i < NET_CARD_MAX; ++i) {
         auto *nic_cbox      = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         auto *net_type_cbox = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
+
+        auto *intf_label    = findChild<QLabel *>(QString("interfaceLabel%1").arg(i + 1));
         auto *intf_cbox     = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
+
         auto *conf_btn      = findChild<QPushButton *>(QString("pushButtonConf%1").arg(i + 1));
+//        auto *net_type_conf_btn      = findChild<QPushButton *>(QString("pushButtonNetTypeConf%1").arg(i + 1));
+
+        auto *vde_socket_label = findChild<QLabel *>(QString("socketVDELabel%1").arg(i + 1));
         auto *socket_line   = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
 
-        int  netType         = net_type_cbox->currentData().toInt();
-        bool adaptersEnabled =  netType == NET_TYPE_NONE
-                            ||  netType == NET_TYPE_SLIRP
-                            ||  netType == NET_TYPE_VDE
-                            || (netType == NET_TYPE_PCAP && intf_cbox->currentData().toInt() > 0);
+        auto *option_list_label = findChild<QLabel *>(QString("optionListLabel%1").arg(i + 1));
+        auto *option_list_line = findChild<QWidget *>(QString("optionListLine%1").arg(i + 1));
 
         intf_cbox->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_PCAP);
-        nic_cbox->setEnabled(adaptersEnabled);
-        int netCard = nic_cbox->currentData().toInt();
-        if ((i == 0) && (netCard == NET_INTERNAL))
-            conf_btn->setEnabled(adaptersEnabled && machine_has_flags(machineId, MACHINE_NIC) &&
-                                 device_has_config(machine_get_net_device(machineId)));
-        else
-            conf_btn->setEnabled(adaptersEnabled && network_card_has_config(nic_cbox->currentData().toInt()));
-        socket_line->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_VDE);
+        conf_btn->setEnabled(network_card_has_config(nic_cbox->currentData().toInt()));
+//        net_type_conf_btn->setEnabled(network_type_has_config(netType));
+
+        // Option list label and line
+        option_list_label->setVisible(false);
+        option_list_line->setVisible(false);
+
+
+        // VDE
+        vde_socket_label->setVisible(false);
+        socket_line->setVisible(false);
+
+        // PCAP
+        intf_cbox->setVisible(false);
+        intf_label->setVisible(false);
+
+        // Don't enable anything unless there's a nic selected
+        if(nic_cbox->currentData().toInt() != 0) {
+            // Then only enable as needed based on network type
+            switch (net_type_cbox->currentData().toInt()) {
+                case NET_TYPE_VDE:
+                    //                option_list_label->setText("VDE Options");
+                    option_list_label->setVisible(true);
+                    option_list_line->setVisible(true);
+
+                    vde_socket_label->setVisible(true);
+                    socket_line->setVisible(true);
+                    break;
+                case NET_TYPE_PCAP:
+                    //                option_list_label->setText("PCAP Options");
+                    option_list_label->setVisible(true);
+                    option_list_line->setVisible(true);
+
+                    intf_cbox->setVisible(true);
+                    intf_label->setVisible(true);
+                    break;
+            }
+        }
     }
 }
 
@@ -154,7 +187,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         }
         
         model->removeRows(0, removeRows);
-        cbox->setCurrentIndex(net_cards_conf[i].net_type);
+        cbox->setCurrentIndex(cbox->findData(net_cards_conf[i].net_type));
 
         selectedRow = 0;
 
