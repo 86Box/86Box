@@ -1179,6 +1179,11 @@ custom_nmi(void)
     uint16_t new_cs, new_ip;
     uint16_t tempf;
 
+    if (!(cpu_state.flags & MD_FLAG) && is_nec) {
+        sync_from_i8080();
+        pclog("NMI# (CUTSOM)\n");
+    }
+
     cpu_state.eaaddr = 0x0002;
     old_cs           = CS;
     access(5, 16);
@@ -1196,6 +1201,8 @@ custom_nmi(void)
     tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
+    if (is_nec)
+        cpu_state.flags |= MD_FLAG;
     access(40, 16);
     push(&old_cs);
     old_ip = cpu_state.pc;
