@@ -1242,7 +1242,8 @@ da2_out(uint16_t addr, uint16_t val, void *p)
                 case LC_VERTICAL_SYNC_START:
                 case LC_V_DISPLAY_ENABLE_END:
                 case LC_START_VERTICAL_BLANK:
-                case LC_END_VERTICAL_BLANK:
+                case LC_START_H_DISPLAY_ENAB:
+                case LC_START_V_DISPLAY_ENAB:
                 case LC_VIEWPORT_PRIORITY:
                     da2->fullchange = changeframecount;
                     da2_recalctimings(da2);
@@ -2158,10 +2159,12 @@ da2_updatevidselector_tick(void *priv)
     if (da2->ioctl[LS_MODE] & 0x02) {
         /* VGA passthrough mode */
         da2->override = 1;
+        timer_disable(&da2->timer);
         svga_set_override(da2->mb_vga, 0);
         da2_log("DA2 selector: VGA\n");
     } else {
         svga_set_override(da2->mb_vga, 1);
+        timer_enable(&da2->timer);
         da2->override = 0;
         da2_log("DA2 selector: DA2\n");
     }
@@ -2310,12 +2313,10 @@ da2_mapping_update(da2_t *da2)
         io_sethandler(0x03d0, 0x000b, da2_in_ISR, NULL, NULL, da2_out_ISR, NULL, NULL, da2);
         mem_mapping_enable(&da2->cmapping);
         mem_mapping_enable(&da2->mmio.mapping);
-        timer_enable(&da2->timer);
         timer_enable(&da2->bitblt.timer);
     } else {
         da2_log("DA2 disable registers\n");
         timer_disable(&da2->bitblt.timer);
-        timer_disable(&da2->timer);
         mem_mapping_disable(&da2->cmapping);
         mem_mapping_disable(&da2->mmio.mapping);
         io_removehandler(0x03c0, 0x000a, da2_inb, da2_inw, NULL, da2_outb, da2_outw, NULL, da2);
