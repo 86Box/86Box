@@ -1293,6 +1293,8 @@ pc_reset_hard_init(void)
      * modules that are.
      */
 
+    keyboard_init();
+
     /* Reset the IDE and SCSI presences */
     other_ide_present = other_scsi_present = 0;
 
