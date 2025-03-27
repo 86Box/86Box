@@ -29,7 +29,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <stdatomic.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -40,7 +39,6 @@
 #include <86box/mca.h>
 #include <86box/rom.h>
 #include <86box/plat.h>
-#include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/vid_ps55da2.h>
 #include <86box/vid_svga.h>
@@ -256,8 +254,9 @@
 #endif
 
 #ifdef ENABLE_DA2_LOG
+// #    define ENABLE_DA2_DEBUGIO 1
 // #    define ENABLE_DA2_DEBUGBLT 1
-#    define ENABLE_DA2_DEBUGVRAM 1
+// #    define ENABLE_DA2_DEBUGVRAM 1
 // #    define ENABLE_DA2_DEBUGFULLSCREEN 1
 // #    define ENABLE_DA2_DEBUGMONWAIT 1
 int da2_do_log = ENABLE_DA2_LOG;
@@ -275,6 +274,11 @@ da2_log(const char *fmt, ...)
 }
 #else
 #    define da2_log(fmt, ...)
+#endif
+#ifdef ENABLE_DA2_DEBUGIO
+#    define da2_iolog da2_log
+#else
+#    define da2_iolog(fmt, ...)
 #endif
 #ifdef ENABLE_DA2_DEBUGBLT
 #    define da2_bltlog da2_log
@@ -302,9 +306,6 @@ typedef struct da2_t {
     int fctladdr;
     int crtcaddr;
 
-    uint32_t decode_mask;
-    uint32_t vram_max;
-
     uint32_t gdcla[8];
     uint32_t gdcinput[8];
     uint32_t gdcsrc[8];
@@ -317,13 +318,8 @@ typedef struct da2_t {
 
     uint8_t plane_mask;
 
-    int fb_only;
-
-    int      fast;
-    uint8_t  colourcompare, colournocare;
-    int      readmode, writemode, readplane;
+    int      writemode, readplane;
     uint8_t  planemask;
-    uint32_t charseta, charsetb;
 
     uint8_t  egapal[16];
     uint32_t pallook[512];
@@ -357,13 +353,9 @@ typedef struct da2_t {
 
     /* Attribute Buffer E0000-E0FFFh (4 KB) */
     uint8_t *cram;
-    /* (cram size - 1) >> 3 = 0xFFF */
-    // uint32_t cram_display_mask;
     /* APA Buffer A0000-BFFFFh (128 KB) */
     uint8_t *vram;
-    /* xxh */
     uint8_t *changedvram;
-    /* (vram size - 1) >> 3 = 0x1FFFF */
     uint32_t vram_display_mask;
 
     int fullchange;
@@ -374,7 +366,6 @@ typedef struct da2_t {
       card should not attempt to display anything */
     int override;
 
-    /* end VGA compatible regs*/
     struct
     {
         int           enable;
@@ -431,13 +422,13 @@ typedef struct da2_t {
     int old_pos2;
 } da2_t;
 
-void        da2_recalctimings(da2_t *da2);
-static void da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p);
-void        da2_bitblt_exec(void *p);
-void        da2_updatevidselector(da2_t *da2);
-void        da2_reset_ioctl(da2_t *da2);
-static void da2_reset(void *priv);
-uint16_t    rightRotate(uint16_t data, uint8_t count);
+static void     da2_recalctimings(da2_t *da2);
+static void     da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p);
+static void     da2_bitblt_exec(void *p);
+static void     da2_updatevidselector(da2_t *da2);
+static void     da2_reset_ioctl(da2_t *da2);
+static void     da2_reset(void *priv);
+static uint16_t rightRotate(uint16_t data, uint8_t count);
 
 typedef union {
     uint32_t d;
@@ -449,7 +440,7 @@ typedef struct {
 } pixel32;
 
 /* safety read for internal functions */
-uint32_t
+static uint32_t
 DA2_vram_r(uint32_t addr, da2_t *da2)
 {
     if (addr & ~DA2_MASK_VRAM)
@@ -457,7 +448,7 @@ DA2_vram_r(uint32_t addr, da2_t *da2)
     return da2->vram[addr];
 }
 /* safety write for internal functions */
-void
+static void
 DA2_vram_w(uint32_t addr, uint8_t val, da2_t *da2)
 {
     if (addr & ~DA2_MASK_VRAM)
@@ -466,7 +457,7 @@ DA2_vram_w(uint32_t addr, uint8_t val, da2_t *da2)
     return;
 }
 /* write pixel data with rop (Note: bitmask must be in big endian) */
-void
+static void
 DA2_WritePlaneDataWithBitmask(uint32_t destaddr, const uint16_t mask, pixel32 *srcpx, da2_t *da2)
 {
     uint32_t writepx[8];
@@ -516,7 +507,7 @@ DA2_WritePlaneDataWithBitmask(uint32_t destaddr, const uint16_t mask, pixel32 *s
     }
 }
 
-void
+static void
 DA2_DrawColorWithBitmask(uint32_t destaddr, uint8_t color, uint16_t mask, da2_t *da2)
 {
     pixel32 srcpx;
@@ -554,7 +545,7 @@ Param   Desc
 33      Size W
 35      Size H
 */
-void
+static void
 DA2_CopyPlaneDataWithBitmask(uint32_t srcaddr, uint32_t destaddr, uint16_t mask, da2_t *da2)
 {
     pixel32 srcpx;
@@ -568,7 +559,7 @@ DA2_CopyPlaneDataWithBitmask(uint32_t srcaddr, uint32_t destaddr, uint16_t mask,
 
     DA2_WritePlaneDataWithBitmask(destaddr, mask, &srcpx, da2);
 }
-void
+static void
 DA2_PutcharWithBitmask(uint32_t srcaddr, uint32_t destaddr, uint16_t mask, da2_t *da2)
 {
     pixel32 srcpx;
@@ -655,7 +646,7 @@ IBMJtoSJIS(uint16_t knj)
     return knj;
 }
 #endif
-void
+static void
 da2_bitblt_load(da2_t *da2)
 {
     uint32_t value32;
@@ -892,7 +883,7 @@ da2_bitblt_load(da2_t *da2)
         }
     }
 }
-void
+static void
 da2_bitblt_exec(void *p)
 {
     da2_t *da2 = (da2_t *) p;
@@ -1099,7 +1090,7 @@ da2_bitblt_exec(void *p)
             break;
     }
 }
-void
+static void
 da2_bitblt_dopayload(void *priv)
 {
     da2_t *da2 = (da2_t *) priv;
@@ -1116,7 +1107,7 @@ da2_bitblt_dopayload(void *priv)
     }
 }
 
-void
+static void
 da2_out(uint16_t addr, uint16_t val, void *p)
 {
     da2_t *da2 = (da2_t *) p;
@@ -1142,7 +1133,7 @@ da2_out(uint16_t addr, uint16_t val, void *p)
             da2->dac_pos   = 0;
             break;
         case 0x3C9: /* Data */
-            // da2_log("DA2 Out addr %03X idx %d:%d val %02X %04X:%04X esdi %04X:%04X\n", addr, da2->dac_write, da2->dac_pos, val, cs >> 4, cpu_state.pc, ES, DI);
+            // da2_iolog("DA2 Out addr %03X idx %d:%d val %02X %04X:%04X esdi %04X:%04X\n", addr, da2->dac_write, da2->dac_pos, val, cs >> 4, cpu_state.pc, ES, DI);
             da2->dac_status = 0;
             da2->fullchange = changeframecount;
             switch (da2->dac_pos) {
@@ -1171,11 +1162,11 @@ da2_out(uint16_t addr, uint16_t val, void *p)
             da2->ioctladdr = val;
             break;
         case LS_DATA:
-            // da2_log("DA2 Out addr %03X idx %02X val %02X %04X:%04X\n", addr, da2->ioctladdr, val, cs >> 4, cpu_state.pc);
+            // da2_iolog("DA2 Out addr %03X idx %02X val %02X %04X:%04X\n", addr, da2->ioctladdr, val, cs >> 4, cpu_state.pc);
             if (da2->ioctladdr > 0xf)
                 return;
             if (da2->ioctl[da2->ioctladdr & 15] != val)
-                da2_log("ioctl changed %x: %x -> %x  %04X:%04X\n", da2->ioctladdr & 15, da2->ioctl[da2->ioctladdr & 15], val, cs >> 4, cpu_state.pc);
+                da2_iolog("ioctl changed %x: %x -> %x  %04X:%04X\n", da2->ioctladdr & 15, da2->ioctl[da2->ioctladdr & 15], val, cs >> 4, cpu_state.pc);
             oldval                     = da2->ioctl[da2->ioctladdr];
             da2->ioctl[da2->ioctladdr] = val;
             if (oldval != val) {
@@ -1192,15 +1183,15 @@ da2_out(uint16_t addr, uint16_t val, void *p)
             da2->fctladdr = val;
             break;
         case LF_DATA:
-            // da2_log("DA2 Out addr %03X idx %02X val %02X %04X:%04X\n", addr, da2->fctladdr, val, cs >> 4, cpu_state.pc);
+            // da2_iolog("DA2 Out addr %03X idx %02X val %02X %04X:%04X\n", addr, da2->fctladdr, val, cs >> 4, cpu_state.pc);
             if (da2->fctladdr > 0x1f)
                 return;
             if (da2->fctl[da2->fctladdr & 0x1f] != val)
-                da2_log("fctl changed %x: %x -> %x  %04X:%04X\n", da2->fctladdr & 0x1f, da2->fctl[da2->fctladdr & 0x1f], val, cs >> 4, cpu_state.pc);
+                da2_iolog("fctl changed %x: %x -> %x  %04X:%04X\n", da2->fctladdr & 0x1f, da2->fctl[da2->fctladdr & 0x1f], val, cs >> 4, cpu_state.pc);
             oldval                   = da2->fctl[da2->fctladdr];
             da2->fctl[da2->fctladdr] = val;
             if (da2->fctladdr == 0 && oldval != val) {
-                da2_log("DA2 Out FCTL addr %03X idx %02X val %02X %04X:%04X\n", addr, da2->fctladdr, val, cs >> 4, cpu_state.pc);
+                da2_iolog("DA2 Out FCTL addr %03X idx %02X val %02X %04X:%04X\n", addr, da2->fctladdr, val, cs >> 4, cpu_state.pc);
             }
             break;
         case LC_INDEX:
@@ -1210,7 +1201,7 @@ da2_out(uint16_t addr, uint16_t val, void *p)
             if (da2->crtcaddr > 0x1f)
                 return;
             if (!(da2->crtcaddr == LC_CURSOR_LOC_HIGH || da2->crtcaddr == LC_CURSOR_LOC_LOWJ))
-                da2_log("DA2 Out addr %03X idx %02X val %02X %04X:%04X\n", addr, da2->crtcaddr, val, cs >> 4, cpu_state.pc);
+                da2_iolog("DA2 Out addr %03X idx %02X val %02X %04X:%04X\n", addr, da2->crtcaddr, val, cs >> 4, cpu_state.pc);
             if (!(da2->crtc[da2->crtcaddr] ^ val))
                 return;
             switch (da2->crtcaddr) {
@@ -1261,7 +1252,7 @@ da2_out(uint16_t addr, uint16_t val, void *p)
             }
             break;
         case LV_PORT:
-            // da2_log("DA2 Out addr %03X val %02X ff %d %04X:%04X\n", addr, val, da2->attrff,cs >> 4, cpu_state.pc);
+            // da2_iolog("DA2 Out addr %03X val %02X ff %d %04X:%04X\n", addr, val, da2->attrff,cs >> 4, cpu_state.pc);
             if (!da2->attrff) {
                 // da2->attraddr = val & 31;
                 da2->attraddr = val & 0x3f;
@@ -1270,14 +1261,14 @@ da2_out(uint16_t addr, uint16_t val, void *p)
                     da2->attr_palette_enable = val & 0x20;
                     da2_recalctimings(da2);
                 }
-                // da2_log("set attraddr: %X\n", da2->attraddr);
+                // da2_iolog("set attraddr: %X\n", da2->attraddr);
             } else {
                 if ((da2->attraddr == LV_PANNING) && (da2->attrc[LV_PANNING] != val))
                     da2->fullchange = changeframecount;
                 if (da2->attrc[da2->attraddr & 0x3f] != val)
-                    da2_log("attr changed %x: %x -> %x\n", da2->attraddr & 0x3f, da2->attrc[da2->attraddr & 0x3f], val);
+                    da2_iolog("attr changed %x: %x -> %x\n", da2->attraddr & 0x3f, da2->attrc[da2->attraddr & 0x3f], val);
                 da2->attrc[da2->attraddr & 0x3f] = val;
-                // da2_log("set attrc %x: %x\n", da2->attraddr & 31, val);
+                // da2_iolog("set attrc %x: %x\n", da2->attraddr & 31, val);
                 if (da2->attraddr < 16)
                     da2->fullchange = changeframecount;
                 if (da2->attraddr == LV_MODE_CONTROL || da2->attraddr < 0x10) {
@@ -1325,12 +1316,12 @@ da2_out(uint16_t addr, uint16_t val, void *p)
             da2->attrc[da2->attraddr & 0x3f] = val;
             break;
         case LG_INDEX:
-            da2_log("DA2 Out addr %03X val %02X\n", addr, val);
+            da2_iolog("DA2 Out addr %03X val %02X\n", addr, val);
             da2->gdcaddr = val;
             break;
         case LG_DATA:
-        // if(da2->gdcaddr != 8 && da2->gdcaddr != 9) da2_log("DA2 GCOut idx %X val %02X %04X:%04X esdi %04X:%04X\n", da2->gdcaddr, val, cs >> 4, cpu_state.pc, ES, DI);
-            da2_log("DA2 Out addr %03X idx %02X val %02X\n", addr, da2->gdcaddr, val);
+        // if(da2->gdcaddr != 8 && da2->gdcaddr != 9) da2_iolog("DA2 GCOut idx %X val %02X %04X:%04X esdi %04X:%04X\n", da2->gdcaddr, val, cs >> 4, cpu_state.pc, ES, DI);
+            da2_iolog("DA2 Out addr %03X idx %02X val %02X\n", addr, da2->gdcaddr, val);
             da2->gdcreg[da2->gdcaddr & 0x0f] = val & 0xff;
             switch (da2->gdcaddr & 0x1f) {
                 case LG_READ_MAP_SELECT:
@@ -1350,7 +1341,7 @@ da2_out(uint16_t addr, uint16_t val, void *p)
                 case LG_COMMAND:
                     break;
                 case LG_SET_RESET_2:
-                    da2_log("!!!DA2 GC Out addr %03X idx 10 val %02X\n", addr, val);
+                    da2_iolog("!!!DA2 GC Out addr %03X idx 10 val %02X\n", addr, val);
                     return;
             }
             break;
@@ -1358,12 +1349,12 @@ da2_out(uint16_t addr, uint16_t val, void *p)
         //     da2->gdcreg[5] = val & 0xff;
         //     break;
         default:
-            da2_log("DA2? Out addr %03X val %02X\n", addr, val);
+            da2_iolog("DA2? Out addr %03X val %02X\n", addr, val);
             break;
     }
 }
 
-uint16_t
+static uint16_t
 da2_in(uint16_t addr, void *p)
 {
     da2_t   *da2  = (da2_t *) p;
@@ -1431,17 +1422,17 @@ da2_in(uint16_t addr, void *p)
                 // if (da2->bitblt.indata) /* for OS/2 J1.3 command prompt scrolling  */
                 //     da2_bitblt_dopayload(da2);
                 if (da2->bitblt.exec != DA2_BLT_CIDLE) {
-                    // da2_log("exec:%x\n", da2->bitblt.exec);
+                    // da2_iolog("exec:%x\n", da2->bitblt.exec);
                     temp |= 0x01; /* wait (bit 3 + bit 0) ? need verify */
                     // if (!da2->bitblt.timer.enabled)
                     //{
-                    //     da2_log("bitblt timer restarted!! %04X:%04X\n", cs >> 4, cpu_state.pc);
+                    //     da2_iolog("bitblt timer restarted!! %04X:%04X\n", cs >> 4, cpu_state.pc);
                     //     timer_advance_u64(&da2->bitblt.timer, da2->bitblt.timerspeed);
                     // }
                 }
                 if (da2->bitblt.indata) temp |= 0x08;
 #ifdef ENABLE_DA2_DEBUGMONWAIT
-                da2_log("DA2 In %04X(%02X) %04X %04X:%04X\n", addr, da2->ioctladdr, temp, cs >> 4, cpu_state.pc);
+                da2_iolog("DA2 In %04X(%02X) %04X %04X:%04X\n", addr, da2->ioctladdr, temp, cs >> 4, cpu_state.pc);
 #endif
             }
             break;
@@ -1474,7 +1465,7 @@ da2_in(uint16_t addr, void *p)
                 temp = da2->cgastat;
             } else
                 temp = da2->attrc[da2->attraddr];
-            // da2_log("DA2 In %04X(%02X) %04X %04X:%04X\n", addr, da2->attraddr, temp, cs >> 4, cpu_state.pc);
+            // da2_iolog("DA2 In %04X(%02X) %04X %04X:%04X\n", addr, da2->attraddr, temp, cs >> 4, cpu_state.pc);
             da2->attrff = 0; /* reset flipflop (VGA does not reset flipflop) */
             break;
         case LG_INDEX:
@@ -1482,10 +1473,10 @@ da2_in(uint16_t addr, void *p)
             break;
         case LG_DATA:
             temp = da2->gdcreg[da2->gdcaddr & 0x1f];
-            // da2_log("DA2 In %04X(%02X) %04X %04X:%04X\n", addr, da2->gdcaddr, temp, cs >> 4, cpu_state.pc);
+            // da2_iolog("DA2 In %04X(%02X) %04X %04X:%04X\n", addr, da2->gdcaddr, temp, cs >> 4, cpu_state.pc);
             break;
     }
-    // da2_log("DA2 In %04X %04X %04X:%04X\n", addr, temp, cs >> 4, cpu_state.pc);
+    // da2_iolog("DA2 In %04X %04X %04X:%04X\n", addr, temp, cs >> 4, cpu_state.pc);
     return temp;
 }
 /*
@@ -1499,11 +1490,11 @@ da2_in(uint16_t addr, void *p)
  * out b(idx), in b, in b(data)
  * out b(idx), in w(data)
  */
-void
+static void
 da2_outb(uint16_t addr, uint8_t val, void *p)
 {
     da2_t *da2 = (da2_t *) p;
-    // da2_log("DA2 Outb addr %03X val %02X %04X:%04X es:di=%x:%x ds:si=%x:%x\n", addr, val, cs >> 4, cpu_state.pc, ES, DI, DS, SI);
+    // da2_iolog("DA2 Outb addr %03X val %02X %04X:%04X es:di=%x:%x ds:si=%x:%x\n", addr, val, cs >> 4, cpu_state.pc, ES, DI, DS, SI);
     da2->inflipflop = 0;
     switch (addr) {
         case LS_DATA:
@@ -1533,7 +1524,7 @@ da2_outb(uint16_t addr, uint8_t val, void *p)
 void
 da2_outw(uint16_t addr, uint16_t val, void *p)
 {
-    da2_log("DA2 Outw addr %03X val %04X\n", addr, val);
+    da2_iolog("DA2 Outw addr %03X val %04X\n", addr, val);
     da2_t *da2      = (da2_t *) p;
     da2->inflipflop = 0;
     switch (addr) {
@@ -1553,8 +1544,8 @@ da2_outw(uint16_t addr, uint16_t val, void *p)
             da2->outflipflop = 0;
             break;
         case 0x3EC:
-            // da2_log("DA2 Outw addr %03X val %04X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
-            da2_log("  ");
+            // da2_iolog("DA2 Outw addr %03X val %04X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
+            da2_iolog("  ");
             // val = rightRotate(val, 8);
             // da2_out(LG_DATA, val, da2);
             da2_out(LG_DATA, val >> 8, da2);
@@ -1580,12 +1571,12 @@ da2_outw(uint16_t addr, uint16_t val, void *p)
             break;
         case AC_REG:
             /* no register is revealed */
-            da2_log("DA2 Outw addr %03X val %04X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
+            da2_iolog("DA2 Outw addr %03X val %04X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
             da2->reg3ee[val & 0x0f] = val >> 8;
             break;
     }
 }
-uint8_t
+static uint8_t
 da2_inb(uint16_t addr, void *p)
 {
     uint8_t temp;
@@ -1615,10 +1606,10 @@ da2_inb(uint16_t addr, void *p)
             da2->inflipflop = 0;
             break;
     }
-    // da2_log("DA2 Inb %04X %02X %04X:%04X\n", addr, temp, cs >> 4, cpu_state.pc);
+    // da2_iolog("DA2 Inb %04X %02X %04X:%04X\n", addr, temp, cs >> 4, cpu_state.pc);
     return temp;
 }
-uint16_t
+static uint16_t
 da2_inw(uint16_t addr, void *p)
 {
     uint16_t temp;
@@ -1626,11 +1617,11 @@ da2_inw(uint16_t addr, void *p)
     da2->inflipflop  = 0;
     da2->outflipflop = 0;
     temp = da2_in(addr, da2);
-    da2_log("DA2 Inw addr %03X val %04X\n", addr, temp);
+    da2_iolog("DA2 Inw addr %03X val %04X\n", addr, temp);
     return temp;
 }
 /* IO 03DAh : Input Status Register 2 for DOSSHELL used by DOS J4.0 */
-uint8_t
+static uint8_t
 da2_in_ISR(uint16_t addr, void *p)
 {
     da2_t  *da2  = (da2_t *) p;
@@ -1642,15 +1633,15 @@ da2_in_ISR(uint16_t addr, void *p)
             da2->cgastat ^= 0x30;
         temp = da2->cgastat;
     }
-    // da2_log("DA2D In %04X %04X %04X:%04X\n", addr, temp, cs >> 4, cpu_state.pc);
+    // da2_iolog("DA2D In %04X %04X %04X:%04X\n", addr, temp, cs >> 4, cpu_state.pc);
     return temp;
 }
 
-void
+static void
 da2_out_ISR(uint16_t addr, uint8_t val, void *p)
 {
     // da2_t* da2 = (da2_t*)p;
-    da2_log("DA2D Out %04X %04X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
+    da2_iolog("DA2D Out %04X %04X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
 }
 
 /*
@@ -1754,7 +1745,7 @@ The Font ROM can be accessed via 128 KB memory window located at A0000-BFFFFh.
 */
 
 /* Get character line pattern from jfont rom or gaiji volatile memory */
-uint32_t
+static uint32_t
 getfont_ps55dbcs(int32_t code, int32_t line, void *p)
 {
     da2_t   *da2   = (da2_t *) p;
@@ -1792,14 +1783,14 @@ getfont_ps55dbcs(int32_t code, int32_t line, void *p)
 }
 
 /* Reverse the bit order of attribute code IRGB to BGRI(used in Mode 3 and Cursor Color) */
-uint8_t
+static int8_t
 IRGBtoBGRI(uint8_t attr)
 {
     attr = ((attr & 0x01) << 7) | ((attr & 0x02) << 5) | ((attr & 0x04) << 3) | ((attr & 0x08) << 1);
     return attr >>= 4;
 }
 /* Get the foreground color from the attribute byte */
-uint8_t
+static uint8_t
 getPS55ForeColor(uint8_t attr, da2_t *da2)
 {
     uint8_t foreground = ~attr & 0x08; /* 0000 1000 */
@@ -1811,7 +1802,7 @@ getPS55ForeColor(uint8_t attr, da2_t *da2)
     return foreground;
 }
 
-void
+static void
 da2_render_blank(da2_t *da2)
 {
     int x, xx;
@@ -2062,7 +2053,7 @@ da2_render_textm3(da2_t *da2)
     }
 }
 
-void
+static void
 da2_render_color_4bpp(da2_t *da2)
 {
     int changed_offset = da2->ma >> 9;
@@ -2111,7 +2102,7 @@ da2_render_color_4bpp(da2_t *da2)
     }
 }
 
-void
+static void
 da2_render_color_8bpp(da2_t *da2)
 {
     int changed_offset = da2->ma >> 9;
@@ -2160,7 +2151,7 @@ da2_render_color_8bpp(da2_t *da2)
     }
 }
 
-void
+static void
 da2_updatevidselector_tick(void *priv)
 {
     da2_t *da2 = (da2_t *) priv;
@@ -2176,7 +2167,7 @@ da2_updatevidselector_tick(void *priv)
     }
 }
 
-void
+static void
 da2_updatevidselector(da2_t *da2)
 {
     timer_set_delay_u64(&da2->timer_vidupd, 100000ull * TIMER_USEC);
@@ -2194,7 +2185,7 @@ da2_updatevidselector(da2_t *da2)
     45h(undoc)  APA     16      NA      A0000h          1040 x 768  color_4bpp
     46h(undoc)  APA     16      ?       A0000h          1040 x 768  color_4bpp
 */
-void
+static void
 da2_recalctimings(da2_t *da2)
 {
     double crtcconst;
@@ -2298,8 +2289,7 @@ da2_recalctimings(da2_t *da2)
         da2->dispofftime = TIMER_USEC;
     da2_log("da2 horiz total %i display end %i vidclock %f\n", da2->crtc[0], da2->crtc[1], da2->clock);
     da2_log("da2 vert total %i display end %i max row %i vsync %i\n",da2->vtotal,da2->dispend,(da2->crtc[9]&31)+1,da2->vsyncstart);
-    da2_log("total %f on %i cycles off %i cycles frame %i sec %i\n",disptime*crtcconst,da2->dispontime,da2->dispofftime,(da2->dispontime+da2->dispofftime)*da2->vtotal,(da2->dispontime+da2->dispofftime)*da2->vtotal*70);
-
+    da2_log("da2 dispon %lu dispoff %lu on(us) %f off(us) %f\n",da2->dispontime, da2->dispofftime, (double)da2->dispontime / (double)cpuclock /  (double) (1ULL << 32) * 1000000.0, (double)da2->dispofftime / (double)cpuclock /  (double) (1ULL << 32) * 1000000.0);
     // da2_log("da2->render %08X\n", da2->render);
 }
 
@@ -2334,14 +2324,14 @@ da2_mapping_update(da2_t *da2)
     }
 }
 
-uint8_t
+static uint8_t
 da2_mca_read(int port, void *p)
 {
     da2_t *da2 = (da2_t *) p;
     return da2->pos_regs[port & 7];
 }
 
-void
+static void
 da2_mca_write(int port, uint8_t val, void *p)
 {
     da2_t *da2 = (da2_t *) p;
@@ -2702,7 +2692,7 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
         da2->fullchange = 2;
     }
 }
-uint16_t
+static uint16_t
 rightRotate(uint16_t data, uint8_t count)
 {
     return (data >> count) | (data << (sizeof(data) * 8 - count));
@@ -2875,7 +2865,7 @@ da2_code_readw(uint32_t addr, void *p)
     return da2_code_read(addr, da2) | (da2_code_read(addr + 1, da2) << 8);
 }
 
-void
+static void
 da2_doblit(int y1, int y2, int wx, int wy, da2_t *da2)
 {
     if (wx != xsize || wy != ysize) {
@@ -2894,7 +2884,7 @@ da2_doblit(int y1, int y2, int wx, int wy, da2_t *da2)
     video_bpp   = 8;
 }
 
-void
+static void
 da2_poll(void *priv)
 {
     da2_t *da2 = (da2_t *) priv;
@@ -3090,7 +3080,7 @@ static uint8_t ps55_palette_color[64][3] = {
     { 0x3F, 0x15, 0x15 },    { 0x3F, 0x15, 0x3F },    { 0x3F, 0x3F, 0x15 },    { 0x3F, 0x3F, 0x3F }
 };
 
-void
+static void
 da2_reset_ioctl(da2_t *da2)
 {
     da2->ioctl[LS_RESET] = 0x00;     /* Bit 0: Reset sequencer */
@@ -3204,7 +3194,7 @@ da2_available(void)
     return (rom_present(DA2_FONTROM_PATH_HANT) || rom_present(DA2_FONTROM_PATH_JPAN));
 }
 
-void
+static void
 da2_close(void *p)
 {
     da2_t *da2 = (da2_t *) p;
@@ -3292,7 +3282,7 @@ da2_close(void *p)
     free(da2);
 }
 
-void
+static void
 da2_speed_changed(void *p)
 {
     da2_t *da2    = (da2_t *) p;
@@ -3300,7 +3290,7 @@ da2_speed_changed(void *p)
     da2_recalctimings(da2);
 }
 
-void
+static void
 da2_force_redraw(void *p)
 {
     da2_t *da2      = (da2_t *) p;
