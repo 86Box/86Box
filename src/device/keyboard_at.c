@@ -3764,12 +3764,12 @@ keyboard_at_init(const device_t *info)
 
     if (dev->port != NULL) {
         kbc_at_dev_reset(dev, 0);
-        keyboard_update_states(0, 0, 0);
         bat_counter = 0x0000;
     }
 
     keyboard_send = add_data_kbd;
     SavedKbd = dev;
+    keyboard_update_states(0, 0, 0);
 
     inv_cmd_response = (dev->type & FLAG_PS2) ? 0xfe : 0xfa;
 
@@ -3787,6 +3787,8 @@ keyboard_at_close(void *priv)
 
     /* Disable the scancode maps. */
     keyboard_set_table(NULL);
+
+    keyboard_update_states(0, 0, 0);
 
     SavedKbd = NULL;
 

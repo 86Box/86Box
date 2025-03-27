@@ -75,7 +75,7 @@ static scancode *scan_table; /* scancode table for keyboard */
 static volatile uint8_t caps_lock   = 0;
 static volatile uint8_t num_lock    = 0;
 static volatile uint8_t scroll_lock = 0;
-static uint8_t shift       = 0;
+static uint8_t shift                = 0;
 
 static int key5576mode = 0;
 
