@@ -5,6 +5,7 @@
 #include <QLabel>
 #include <QEvent>
 #include <QFocusEvent>
+#include <QLabel>
 
 #include <memory>
 #include <array>
@@ -183,6 +184,8 @@ private:
     friend class RendererCommon;
     friend class RendererStack; // For UI variable access by non-primary renderer windows.
     friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.
+
+    QLabel *caps_label, *scroll_label, *num_label;
 
     
     bool isShowMessage = false;

@@ -184,6 +184,32 @@ MainWindow::MainWindow(QWidget *parent)
     ui->menuEGA_S_VGA_settings->menuAction()->setMenuRole(QAction::NoRole);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
+
+    num_label = new QLabel;
+    num_label->setText(" NUM ");
+    statusBar()->addPermanentWidget(num_label);
+
+    scroll_label = new QLabel;
+    scroll_label->setText(" SCRL ");
+    statusBar()->addPermanentWidget(scroll_label);
+
+    caps_label = new QLabel;
+    caps_label->setText(" CAPS ");
+    statusBar()->addPermanentWidget(caps_label);
+
+    QTimer* ledKeyboardTimer = new QTimer(this);
+    ledKeyboardTimer->setTimerType(Qt::CoarseTimer);
+    ledKeyboardTimer->setInterval(1);
+    connect(ledKeyboardTimer, &QTimer::timeout, this, [this] () {
+        uint8_t caps, num, scroll;
+        keyboard_get_states(&caps, &num, &scroll);
+        
+        num_label->setStyleSheet(num ? "QLabel { background: green; }" : "");
+        caps_label->setStyleSheet(caps ? "QLabel { background: green; }" : "");
+        scroll_label->setStyleSheet(scroll ? "QLabel { background: green; }" : "");
+    });
+    ledKeyboardTimer->start();
+
 #ifdef Q_OS_WINDOWS
     util::setWin11RoundedCorners(this->winId(), (hide_status_bar ? false : true));
 #endif
@@ -211,6 +237,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this, &MainWindow::hardResetCompleted, this, [this]() {
         ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
+        num_label->setVisible(machine_has_bus(machine, MACHINE_AT) > 0);
+        scroll_label->setVisible(machine_has_bus(machine, MACHINE_AT) > 0);
+        caps_label->setVisible(machine_has_bus(machine, MACHINE_AT) > 0);
         while (QApplication::overrideCursor())
             QApplication::restoreOverrideCursor();
 #ifdef USE_WACOM
@@ -1306,6 +1335,10 @@ MainWindow::refreshMediaMenu()
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
     ui->actionACPI_Shutdown->setEnabled(!!acpi_enabled);
+
+    num_label->setVisible(machine_has_bus(machine, MACHINE_AT) > 0);
+    scroll_label->setVisible(machine_has_bus(machine, MACHINE_AT) > 0);
+    caps_label->setVisible(machine_has_bus(machine, MACHINE_AT) > 0);
 }
 
 void
