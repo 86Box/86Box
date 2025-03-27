@@ -189,13 +189,13 @@ MainWindow::MainWindow(QWidget *parent)
     num_label->setText(" NUM ");
     statusBar()->addPermanentWidget(num_label);
 
-    scroll_label = new QLabel;
-    scroll_label->setText(" SCRL ");
-    statusBar()->addPermanentWidget(scroll_label);
-
     caps_label = new QLabel;
     caps_label->setText(" CAPS ");
     statusBar()->addPermanentWidget(caps_label);
+
+    scroll_label = new QLabel;
+    scroll_label->setText(" SCRL ");
+    statusBar()->addPermanentWidget(scroll_label);
 
     QTimer* ledKeyboardTimer = new QTimer(this);
     ledKeyboardTimer->setTimerType(Qt::CoarseTimer);
