@@ -3476,6 +3476,7 @@ keyboard_at_bat(void *priv)
 
         keyboard_scan = 1;
 
+        keyboard_update_states(0, 0, 0);
         kbc_at_dev_queue_add(dev, 0xaa, 0);
     } else {
         bat_counter--;
@@ -3510,6 +3511,7 @@ keyboard_at_write(void *priv)
         switch (dev->command) {
             case 0xed: /* Set/reset LEDs */
                 kbc_at_dev_queue_add(dev, 0xfa, 0);
+                keyboard_update_states(!!(val & 0x4), !!(val & 0x2), val & 0x1);
                 keyboard_at_log("%s: Set/reset LEDs [%02X]\n", dev->name, val);
                 break;
 
@@ -3762,6 +3764,7 @@ keyboard_at_init(const device_t *info)
 
     if (dev->port != NULL) {
         kbc_at_dev_reset(dev, 0);
+        keyboard_update_states(0, 0, 0);
         bat_counter = 0x0000;
     }
 
