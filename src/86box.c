@@ -1301,9 +1301,6 @@ pc_reset_hard_init(void)
     /* Mark ACPI as unavailable */
     acpi_enabled = 0;
 
-    /* Reset all keyboard indicators */
-    keyboard_update_states(0, 0, 0);
-
     /* Reset the general machine support modules. */
     io_init();
 
