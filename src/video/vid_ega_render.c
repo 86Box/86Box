@@ -181,6 +181,7 @@ ega_render_text(ega_t *ega)
                         p[xx] = ega->mdacols[attr][attrblink][1];
                     else
                         p[xx] = ega->mdacols[attr][attrblink][dat & (0x100 >> (xx >> dwshift))];
+                    p[xx] = ega->pallook[ega->egapal[p[xx] & 0x0f]];
                 } else
                     p[xx] = (dat & (0x100 >> (xx >> dwshift))) ? fg : bg;
             }
@@ -189,9 +190,6 @@ ega_render_text(ega_t *ega)
             p += charwidth;
         }
         ega->ma &= 0x3ffff;
-
-        if (monoattrs)
-            video_process_8(ega->hdisp + ega->scrollcache, ega->displine);
     }
 }
 
