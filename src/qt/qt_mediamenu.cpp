@@ -154,10 +154,10 @@ MediaMenu::refresh(QMenu *parentMenu)
     MachineStatus::iterateCDROM([this, parentMenu](int i) {
         auto *menu   = parentMenu->addMenu("");
         cdromMutePos = menu->children().count();
-        menu->addAction(ProgSettings::loadIcon("/cdrom_mute.ico"), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
+        menu->addAction(QIcon(":/settings/qt/icons/cdrom_mute.ico"), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
         menu->addSeparator();
-        menu->addAction(ProgSettings::loadIcon("/cdrom_image.ico"), tr("&Image..."), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
-        menu->addAction(ProgSettings::loadIcon("/cdrom_folder.ico"), tr("&Folder..."), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
+        menu->addAction(QIcon(":/settings/qt/icons/cdrom_image.ico"), tr("&Image..."), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
+        menu->addAction(QIcon(":/settings/qt/icons/cdrom_folder.ico"), tr("&Folder..."), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             cdromImageHistoryPos[slot] = menu->children().count();
@@ -170,7 +170,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         for (const auto &letter : driveLetters) {
             auto drive = QString("%1:\\").arg(letter);
             if (GetDriveType(drive.toUtf8().constData()) == DRIVE_CDROM)
-                menu->addAction(ProgSettings::loadIcon("/cdrom_host.ico"), tr("Host CD/DVD Drive (%1:)").arg(letter), [this, i, letter] { cdromMount(i, 2, QString(R"(\\.\%1:)").arg(letter)); })->setCheckable(false);
+                menu->addAction(QIcon(":/settings/qt/icons/cdrom_host.ico"), tr("Host CD/DVD Drive (%1:)").arg(letter), [this, i, letter] { cdromMount(i, 2, QString(R"(\\.\%1:)").arg(letter)); })->setCheckable(false);
         }
         menu->addSeparator();
 #endif // Q_OS_WINDOWS
@@ -666,7 +666,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             children              = menu->children();
             imageHistoryUpdatePos = dynamic_cast<QAction *>(children[cdromImageHistoryPos[slot]]);
             if (fn.left(8) == "ioctl://") {
-                menu_icon = ProgSettings::loadIcon("/cdrom_host.ico");
+                menu_icon = QIcon(":/settings/qt/icons/cdrom_host.ico");
 #ifdef Q_OS_WINDOWS
                 menu_item_name = tr("Host CD/DVD Drive (%1)").arg(fn.right(2)).toUtf8().constData();
 #else
@@ -674,7 +674,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
 #endif
             } else {
                 fi.setFile(fn);
-                menu_icon = fi.isDir() ? ProgSettings::loadIcon("/cdrom_folder.ico") : ProgSettings::loadIcon("/cdrom_image.ico");
+                menu_icon = fi.isDir() ? QIcon(":/settings/qt/icons/cdrom_folder.ico") : QIcon(":/settings/qt/icons/cdrom_image.ico");
                 menu_item_name = fn.isEmpty() ? tr("previous image").toUtf8().constData() : fn.toUtf8().constData();
             }
             imageHistoryUpdatePos->setIcon(menu_icon);
@@ -727,7 +727,7 @@ MediaMenu::cdromUpdateMenu(int i)
     auto  childs = menu->children();
 
     auto *muteMenu = dynamic_cast<QAction *>(childs[cdromMutePos]);
-    muteMenu->setIcon(ProgSettings::loadIcon((cdrom[i].sound_on == 0) ? "/cdrom_unmute.ico" : "/cdrom_mute.ico"));
+    muteMenu->setIcon(QIcon((cdrom[i].sound_on == 0) ? ":/settings/qt/icons/cdrom_unmute.ico" : ":/settings/qt/icons/cdrom_mute.ico"));
     muteMenu->setText((cdrom[i].sound_on == 0) ? tr("&Unmute") : tr("&Mute"));
 
     auto *imageMenu = dynamic_cast<QAction *>(childs[cdromImagePos]);
@@ -740,13 +740,13 @@ MediaMenu::cdromUpdateMenu(int i)
         menu_item_name = tr("Host CD/DVD Drive (%1)").arg(name.right(name.length() - 8));
 #endif
         name2          = menu_item_name;
-        menu_icon      = ProgSettings::loadIcon("/cdrom_host.ico");
+        menu_icon      = QIcon(":/settings/qt/icons/cdrom_host.ico");
     } else {
         QFileInfo fi(cdrom[i].image_path);
 
         menu_item_name = name.isEmpty() ? QString().toUtf8().constData() : name.toUtf8().constData();
         name2          = name;
-        menu_icon      = fi.isDir() ? ProgSettings::loadIcon("/cdrom_folder.ico") : ProgSettings::loadIcon("/cdrom_image.ico");
+        menu_icon      = fi.isDir() ? QIcon(":/settings/qt/icons/cdrom_folder.ico") : QIcon(":/settings/qt/icons/cdrom_image.ico");
     }
     imageMenu->setIcon(menu_icon);
     imageMenu->setText(QString::asprintf(tr("Eject %s").toUtf8().constData(), menu_item_name.toUtf8().constData()));

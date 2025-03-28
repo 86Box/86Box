@@ -176,24 +176,24 @@ static const QString pixmap_empty_active = QStringLiteral("_empty_active");
 void
 PixmapSetEmpty::load(const QString &basePath)
 {
-    normal = ProgSettings::loadIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
-    empty  = ProgSettings::loadIcon(basePath.arg(pixmap_empty)).pixmap(pixmap_size);
+    normal = QIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
+    empty  = QIcon(basePath.arg(pixmap_empty)).pixmap(pixmap_size);
 }
 
 void
 PixmapSetActive::load(const QString &basePath)
 {
-    normal = ProgSettings::loadIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
-    active = ProgSettings::loadIcon(basePath.arg(pixmap_active)).pixmap(pixmap_size);
+    normal = QIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
+    active = QIcon(basePath.arg(pixmap_active)).pixmap(pixmap_size);
 }
 
 void
 PixmapSetEmptyActive::load(QString basePath)
 {
-    normal       = ProgSettings::loadIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
-    active       = ProgSettings::loadIcon(basePath.arg(pixmap_active)).pixmap(pixmap_size);
-    empty        = ProgSettings::loadIcon(basePath.arg(pixmap_empty)).pixmap(pixmap_size);
-    empty_active = ProgSettings::loadIcon(basePath.arg(pixmap_empty_active)).pixmap(pixmap_size);
+    normal       = QIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
+    active       = QIcon(basePath.arg(pixmap_active)).pixmap(pixmap_size);
+    empty        = QIcon(basePath.arg(pixmap_empty)).pixmap(pixmap_size);
+    empty_active = QIcon(basePath.arg(pixmap_empty_active)).pixmap(pixmap_size);
 }
 }
 
@@ -202,21 +202,21 @@ struct MachineStatus::States {
 
     States(QObject *parent)
     {
-        pixmaps.cartridge.load("/cartridge%1.ico");
-        pixmaps.cassette.load("/cassette%1.ico");
-        pixmaps.floppy_disabled.normal       = ProgSettings::loadIcon(QStringLiteral("/floppy_disabled.ico")).pixmap(pixmap_size);
+        pixmaps.cartridge.load(":/settings/qt/icons/cartridge%1.ico");
+        pixmaps.cassette.load(":/settings/qt/icons/cassette%1.ico");
+        pixmaps.floppy_disabled.normal       = QIcon(":/settings/qt/icons/floppy_disabled.ico").pixmap(pixmap_size);
         pixmaps.floppy_disabled.active       = pixmaps.floppy_disabled.normal;
         pixmaps.floppy_disabled.empty        = pixmaps.floppy_disabled.normal;
         pixmaps.floppy_disabled.empty_active = pixmaps.floppy_disabled.normal;
-        pixmaps.floppy_525.load("/floppy_525%1.ico");
-        pixmaps.floppy_35.load("/floppy_35%1.ico");
-        pixmaps.cdrom.load("/cdrom%1.ico");
-        pixmaps.zip.load("/zip%1.ico");
-        pixmaps.mo.load("/mo%1.ico");
-        pixmaps.hd.load("/hard_disk%1.ico");
-        pixmaps.net.load("/network%1.ico");
-        pixmaps.sound = ProgSettings::loadIcon("/sound.ico").pixmap(pixmap_size);
-        pixmaps.soundMuted = ProgSettings::loadIcon("/sound_mute.ico").pixmap(pixmap_size);
+        pixmaps.floppy_525.load(":/settings/qt/icons/floppy_525%1.ico");
+        pixmaps.floppy_35.load(":/settings/qt/icons/floppy_35%1.ico");
+        pixmaps.cdrom.load(":/settings/qt/icons/cdrom%1.ico");
+        pixmaps.zip.load(":/settings/qt/icons/zip%1.ico");
+        pixmaps.mo.load(":/settings/qt/icons/mo%1.ico");
+        pixmaps.hd.load(":/settings/qt/icons/hard_disk%1.ico");
+        pixmaps.net.load(":/settings/qt/icons/network%1.ico");
+        pixmaps.sound = QIcon(":/settings/qt/icons/sound.ico").pixmap(pixmap_size);
+        pixmaps.soundMuted = QIcon(":/settings/qt/icons/sound_mute.ico").pixmap(pixmap_size);
 
         cartridge[0].pixmaps = &pixmaps.cartridge;
         cartridge[1].pixmaps = &pixmaps.cartridge;
@@ -511,7 +511,7 @@ MachineStatus::refresh(QStatusBar *sbar)
             config_save();
             if (d->sound)
                 d->sound->setPixmap(sound_muted ? d->pixmaps.soundMuted : d->pixmaps.sound);
-            
+
             muteUnmuteAction->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
         });
     }
@@ -697,7 +697,7 @@ MachineStatus::refresh(QStatusBar *sbar)
     d->sound->setPixmap(sound_muted ? d->pixmaps.soundMuted : d->pixmaps.sound);
     if (muteUnmuteAction)
         muteUnmuteAction->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
-    
+
     connect(d->sound.get(), &ClickableLabel::clicked, this, [this](QPoint pos) {
         this->soundMenu->popup(pos - QPoint(0, this->soundMenu->sizeHint().height()));
     });
