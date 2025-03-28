@@ -54,6 +54,7 @@ extern "C" {
 #include "qt_mainwindow.hpp"
 #include "qt_soundgain.hpp"
 #include "qt_progsettings.hpp"
+#include "qt_iconindicators.hpp"
 
 #include <array>
 
@@ -65,19 +66,24 @@ namespace {
 struct PixmapSetActive {
     QPixmap normal;
     QPixmap active;
-    void    load(const QString &basePath);
+    void    load(const QIcon &icon);
+};
+struct PixmapSetDisabled {
+    QPixmap normal;
+    QPixmap disabled;
+    void    load(const QIcon &icon);
 };
 struct PixmapSetEmpty {
     QPixmap normal;
     QPixmap empty;
-    void    load(const QString &basePath);
+    void    load(const QIcon &icon);
 };
 struct PixmapSetEmptyActive {
     QPixmap normal;
     QPixmap active;
     QPixmap empty;
     QPixmap empty_active;
-    void    load(QString basePath);
+    void    load(const QIcon &icon);
 };
 struct Pixmaps {
     PixmapSetEmpty       cartridge;
@@ -90,7 +96,7 @@ struct Pixmaps {
     PixmapSetEmptyActive mo;
     PixmapSetActive      hd;
     PixmapSetEmptyActive net;
-    QPixmap              sound, soundMuted;
+    PixmapSetDisabled    sound;
 };
 
 struct StateActive {
@@ -170,30 +176,35 @@ struct StateEmptyActive {
 };
 
 static QSize         pixmap_size(16, 16);
-static const QString pixmap_empty        = QStringLiteral("_empty");
-static const QString pixmap_active       = QStringLiteral("_active");
-static const QString pixmap_empty_active = QStringLiteral("_empty_active");
+
 void
-PixmapSetEmpty::load(const QString &basePath)
+PixmapSetEmpty::load(const QIcon &icon)
 {
-    normal = QIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
-    empty  = QIcon(basePath.arg(pixmap_empty)).pixmap(pixmap_size);
+    normal = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, None);
+    empty  = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, None);
 }
 
 void
-PixmapSetActive::load(const QString &basePath)
+PixmapSetActive::load(const QIcon &icon)
 {
-    normal = QIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
-    active = QIcon(basePath.arg(pixmap_active)).pixmap(pixmap_size);
+    normal = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, None);
+    active = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Active);
 }
 
 void
-PixmapSetEmptyActive::load(QString basePath)
+PixmapSetDisabled::load(const QIcon &icon)
 {
-    normal       = QIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
-    active       = QIcon(basePath.arg(pixmap_active)).pixmap(pixmap_size);
-    empty        = QIcon(basePath.arg(pixmap_empty)).pixmap(pixmap_size);
-    empty_active = QIcon(basePath.arg(pixmap_empty_active)).pixmap(pixmap_size);
+    normal   = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, None);
+    disabled = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, Disabled);
+}
+
+void
+PixmapSetEmptyActive::load(const QIcon &icon)
+{
+    normal       = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, None);
+    active       = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Active);
+    empty        = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, None);
+    empty_active = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, Active);
 }
 }
 
@@ -202,21 +213,20 @@ struct MachineStatus::States {
 
     States(QObject *parent)
     {
-        pixmaps.cartridge.load(":/settings/qt/icons/cartridge%1.ico");
-        pixmaps.cassette.load(":/settings/qt/icons/cassette%1.ico");
+        pixmaps.cartridge.load(QIcon(":/settings/qt/icons/cartridge.ico"));
+        pixmaps.cassette.load(QIcon(":/settings/qt/icons/cassette.ico"));
         pixmaps.floppy_disabled.normal       = QIcon(":/settings/qt/icons/floppy_disabled.ico").pixmap(pixmap_size);
         pixmaps.floppy_disabled.active       = pixmaps.floppy_disabled.normal;
         pixmaps.floppy_disabled.empty        = pixmaps.floppy_disabled.normal;
         pixmaps.floppy_disabled.empty_active = pixmaps.floppy_disabled.normal;
-        pixmaps.floppy_525.load(":/settings/qt/icons/floppy_525%1.ico");
-        pixmaps.floppy_35.load(":/settings/qt/icons/floppy_35%1.ico");
-        pixmaps.cdrom.load(":/settings/qt/icons/cdrom%1.ico");
-        pixmaps.zip.load(":/settings/qt/icons/zip%1.ico");
-        pixmaps.mo.load(":/settings/qt/icons/mo%1.ico");
-        pixmaps.hd.load(":/settings/qt/icons/hard_disk%1.ico");
-        pixmaps.net.load(":/settings/qt/icons/network%1.ico");
-        pixmaps.sound = QIcon(":/settings/qt/icons/sound.ico").pixmap(pixmap_size);
-        pixmaps.soundMuted = QIcon(":/settings/qt/icons/sound_mute.ico").pixmap(pixmap_size);
+        pixmaps.floppy_525.load(QIcon(":/settings/qt/icons/floppy_525.ico"));
+        pixmaps.floppy_35.load(QIcon(":/settings/qt/icons/floppy_35.ico"));
+        pixmaps.cdrom.load(QIcon(":/settings/qt/icons/cdrom.ico"));
+        pixmaps.zip.load(QIcon(":/settings/qt/icons/zip.ico"));
+        pixmaps.mo.load(QIcon(":/settings/qt/icons/mo.ico"));
+        pixmaps.hd.load(QIcon(":/settings/qt/icons/hard_disk.ico"));
+        pixmaps.net.load(QIcon(":/settings/qt/icons/network.ico"));
+        pixmaps.sound.load(QIcon(":/settings/qt/icons/sound.ico"));
 
         cartridge[0].pixmaps = &pixmaps.cartridge;
         cartridge[1].pixmaps = &pixmaps.cartridge;
@@ -510,7 +520,7 @@ MachineStatus::refresh(QStatusBar *sbar)
             sound_muted ^= 1;
             config_save();
             if (d->sound)
-                d->sound->setPixmap(sound_muted ? d->pixmaps.soundMuted : d->pixmaps.sound);
+                d->sound->setPixmap(sound_muted ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
 
             muteUnmuteAction->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
         });
@@ -694,7 +704,7 @@ MachineStatus::refresh(QStatusBar *sbar)
     }
 
     d->sound = std::make_unique<ClickableLabel>();
-    d->sound->setPixmap(sound_muted ? d->pixmaps.soundMuted : d->pixmaps.sound);
+    d->sound->setPixmap(sound_muted ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
     if (muteUnmuteAction)
         muteUnmuteAction->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
 
