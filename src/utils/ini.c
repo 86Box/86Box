@@ -756,8 +756,9 @@ double
 ini_section_get_double(ini_section_t self, const char *name, double def)
 {
     section_t     *section = (section_t *) self;
-    const entry_t *entry;
-    double         value = 0;
+    entry_t *entry;
+    double   value = 0;
+    int      res = 0;
 
     if (section == NULL)
         return def;
@@ -766,7 +767,17 @@ ini_section_get_double(ini_section_t self, const char *name, double def)
     if (entry == NULL)
         return def;
 
-    sscanf(entry->data, "%lg", &value);
+    res = sscanf(entry->data, "%lg", &value);
+    if (res == EOF || res <= 0) {
+        int i = 0;
+        for (i = 0; i < strlen(entry->data); i++) {
+            if (entry->data[i] == ',') {
+                entry->data[i] = '.';
+                entry->wdata[i] = L'.';
+            }
+        }
+        (void)sscanf(entry->data, "%lg", &value);
+    }
 
     return value;
 }

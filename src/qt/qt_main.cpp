@@ -94,6 +94,8 @@ extern int qt_nvr_save(void);
 bool cpu_thread_running = false;
 }
 
+#include <locale.h>
+
 void qt_set_sequence_auto_mnemonic(bool b);
 
 #ifdef Q_OS_WINDOWS
@@ -525,6 +527,7 @@ main(int argc, char *argv[])
 
     QApplication app(argc, argv);
     QLocale::setDefault(QLocale::C);
+    setlocale(LC_NUMERIC, "C");
 
 #ifdef Q_OS_WINDOWS
     Q_INIT_RESOURCE(darkstyle);
