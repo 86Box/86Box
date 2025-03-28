@@ -430,14 +430,15 @@ jega_out(uint16_t addr, uint8_t val, void *priv)
                 jega->attrregs[jega->attraddr & 31] = val;
                 if (jega->attraddr < 0x10) {
                     for (uint8_t c = 0; c < 16; c++) {
-                        if (!jega->is_vga)
+                        if (jega->is_vga) {
+                            if (jega->attrregs[0x10] & 0x80)
+                                jega->egapal[c] = (jega->attrregs[c] & 0xf) | ((jega->attrregs[0x14] & 0xf) << 4);
+                            else if (jega->vga.svga.ati_4color)
+                                jega->egapal[c] = pal4to16[(c & 0x03) | ((val >> 2) & 0xc)];
+                            else
+                                jega->egapal[c] = (jega->attrregs[c] & 0x3f) | ((jega->attrregs[0x14] & 0xc) << 4);
+                        } else
                             jega->egapal[c] = jega->attrregs[c] & 0x3f;
-                        else if (jega->attrregs[0x10] & 0x80)
-                            jega->egapal[c] = (jega->attrregs[c] & 0xf) | ((jega->attrregs[0x14] & 0xf) << 4);
-                        else if (jega->vga.svga.ati_4color)
-                            jega->egapal[c] = pal4to16[(c & 0x03) | ((val >> 2) & 0xc)];
-                        else
-                            jega->egapal[c] = (jega->attrregs[c] & 0x3f) | ((jega->attrregs[0x14] & 0xc) << 4);
                     }
                     if (jega->is_vga)
                         jega->vga.svga.fullchange = changeframecount;

@@ -172,15 +172,19 @@ ega_render_text(ega_t *ega)
 
             uint32_t dat = ega->vram[charaddr + (ega->sc << 2)];
             dat <<= 1;
-            if ((chr & ~0x1F) == 0xC0 && attrlinechars)
+            if (((chr & ~0x1f) == 0xc0) && attrlinechars)
                 dat |= (dat >> 1) & 1;
 
             for (int xx = 0; xx < charwidth; xx++) {
                 if (monoattrs) {
+                    int bit   = (dat & (0x100 >> (xx >> dwshift))) ? 1 : 0;
+                    int blink = (!drawcursor && (attr & 0x80) && attrblink && blinked);
                     if ((ega->sc == ega->crtc[0x14]) && ((attr & 7) == 1))
-                        p[xx] = ega->mdacols[attr][attrblink][1];
+                        p[xx] = ega->mdacols[attr][blink][1];
                     else
-                        p[xx] = ega->mdacols[attr][attrblink][dat & (0x100 >> (xx >> dwshift))];
+                        p[xx] = ega->mdacols[attr][blink][bit];
+                    if (drawcursor)
+                        p[xx] ^= ega->mdacols[attr][0][1];
                     p[xx] = ega->pallook[ega->egapal[p[xx] & 0x0f]];
                 } else
                     p[xx] = (dat & (0x100 >> (xx >> dwshift))) ? fg : bg;
