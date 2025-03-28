@@ -770,6 +770,8 @@ if386_p6x_read(uint16_t port, void *priv)
         Bit 4: Shutdown? (caused by POST rebooting and POWER OFF command in DOS 3.21)
         Bit 3: ?
 */
+static uint32_t lcd_cols[8] = { 0x001024, 0x747d8a, 0x8c96a4, 0xa0abbb,
+                                0xb1bece, 0xc0cee0, 0xceddf0, 0xdbebff };
 static void
 if386_p6x_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -793,19 +795,31 @@ if386_p6x_write(uint16_t port, uint8_t val, void *priv)
             } else { /* Monochrome LCD */
                 for (int c = 0; c < 256; c++) {
                     int cval = 0;
+#ifdef SIMPLE_BW
                     if (c & 0x0f)
                         cval = ((c & 0x0e) * 0x10) + 0x1f;
                     pallook64[c] = makecol32(cval, cval, cval);
                     pallook16[c] = makecol32(cval, cval, cval);
+#else
+                    if (c & 0x3f) {
+                        cval = (c & 0x10) >> 2;
+                        cval |= (c & 0x06) >> 1;
+                    }
+                    pallook64[c] = lcd_cols[cval];
+                    cval = 0;
+                    if (c & 0x0f)
+                        cval = (c & 0x0e) >> 1;
+                    pallook16[c] = lcd_cols[cval];
+#endif
                 }
             }
             jega_recalctimings(jega);
         } else if (p65idx == 0x05) {
-            if (val & 0x10)
+            if (val & 0x10) {
                 /* Power off (instead this call hardware reset here) */
+                device_reset_all(DEVICE_ALL);
                 resetx86();
-                /* Actually, power off - we have a function for that! */
-                // plat_power_off();
+            }
         }
     }
     return;
