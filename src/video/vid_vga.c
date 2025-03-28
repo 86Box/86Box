@@ -154,8 +154,7 @@ vga_init(const device_t *info, vga_t *vga, int enabled)
 static void *
 vga_standalone_init(const device_t *info)
 {
-    vga_t *vga = malloc(sizeof(vga_t));
-    memset(vga, 0, sizeof(vga_t));
+    vga_t *vga = calloc(1, sizeof(vga_t));
 
     rom_init(&vga->bios_rom, "roms/video/vga/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
 
@@ -163,6 +162,8 @@ vga_standalone_init(const device_t *info)
 
     vga_init(info, vga, 0);
 
+    io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
+ 
     return vga;
 }
 
@@ -170,8 +171,7 @@ vga_standalone_init(const device_t *info)
 void *
 ps1vga_init(const device_t *info)
 {
-    vga_t *vga = malloc(sizeof(vga_t));
-    memset(vga, 0, sizeof(vga_t));
+    vga_t *vga = calloc(1, sizeof(vga_t));
 
     if (info->flags & DEVICE_MCA)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ps1_svga_mca);
@@ -179,6 +179,8 @@ ps1vga_init(const device_t *info)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ps1_svga_isa);
 
     vga_init(info, vga, 1);
+
+    io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
 
     return vga;
 }
