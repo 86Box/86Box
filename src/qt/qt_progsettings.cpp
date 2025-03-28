@@ -36,71 +36,16 @@ extern "C" {
 #include <86box/rom.h>
 }
 
-static QMap<QString, QString> iconset_to_qt;
 extern MainWindow            *main_window;
 
 ProgSettings::CustomTranslator *ProgSettings::translator   = nullptr;
 QTranslator                    *ProgSettings::qtTranslator = nullptr;
-QString
-ProgSettings::getIconSetPath()
-{
-    if (iconset_to_qt.isEmpty()) {
-        // Always include default bundled icons
-        iconset_to_qt.insert("", ":/settings/qt/icons");
-        // Walk rom_paths to get the candidates
-        for (rom_path_t *emu_rom_path = &rom_paths; emu_rom_path != nullptr; emu_rom_path = emu_rom_path->next) {
-            // Check for icons subdir in each candidate
-            QDir roms_icons_dir(QString(emu_rom_path->path) + "/icons");
-            if (roms_icons_dir.isReadable()) {
-                auto dirList = roms_icons_dir.entryList(QDir::AllDirs | QDir::Executable | QDir::Readable);
-                for (auto &curIconSet : dirList) {
-                    if (curIconSet == "." || curIconSet == "..") {
-                        continue;
-                    }
-                    iconset_to_qt.insert(curIconSet, (roms_icons_dir.canonicalPath() + '/') + curIconSet);
-                }
-            }
-        }
-    }
-    return iconset_to_qt[icon_set];
-}
-
-QIcon
-ProgSettings::loadIcon(QString file)
-{
-    (void) getIconSetPath();
-    if (!QFile::exists(iconset_to_qt[icon_set] + file))
-        return QIcon(iconset_to_qt[""] + file);
-    return QIcon(iconset_to_qt[icon_set] + file);
-}
 
 ProgSettings::ProgSettings(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::ProgSettings)
 {
     ui->setupUi(this);
-    (void) getIconSetPath();
-    ui->comboBox->setItemData(0, "");
-    ui->comboBox->setCurrentIndex(0);
-    for (auto i = iconset_to_qt.begin(); i != iconset_to_qt.end(); i++) {
-        if (i.key() == "")
-            continue;
-        QFile iconfile(i.value() + "/iconinfo.txt");
-        iconfile.open(QFile::ReadOnly);
-        QString friendlyName;
-        QString iconsetinfo(iconfile.readAll());
-        iconfile.close();
-        if (iconsetinfo.isEmpty())
-            friendlyName = i.key();
-        else
-            friendlyName = iconsetinfo.split('\n')[0];
-        ui->comboBox->addItem(friendlyName, i.key());
-        if (strcmp(icon_set, i.key().toUtf8().data()) == 0) {
-            ui->comboBox->setCurrentIndex(ui->comboBox->findData(i.key()));
-        }
-    }
-    ui->comboBox->setItemData(0, '(' + tr("Default") + ')', Qt::DisplayRole);
-
     ui->comboBoxLanguage->setItemData(0, 0xFFFF);
     for (auto i = lcid_langcode.begin(); i != lcid_langcode.end(); i++) {
         if (i.key() == 0xFFFF)
@@ -129,7 +74,6 @@ ProgSettings::ProgSettings(QWidget *parent)
 void
 ProgSettings::accept()
 {
-    strcpy(icon_set, ui->comboBox->currentData().toString().toUtf8().data());
     lang_id                 = ui->comboBoxLanguage->currentData().toUInt();
     open_dir_usr_path       = ui->openDirUsrPath->isChecked() ? 1 : 0;
     confirm_exit            = ui->checkBoxConfirmExit->isChecked() ? 1 : 0;
@@ -159,12 +103,6 @@ ProgSettings::accept()
 ProgSettings::~ProgSettings()
 {
     delete ui;
-}
-
-void
-ProgSettings::on_pushButton_released()
-{
-    ui->comboBox->setCurrentIndex(0);
 }
 
 #ifdef Q_OS_WINDOWS
