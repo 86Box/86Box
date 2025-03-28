@@ -29,6 +29,7 @@
 #include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/plat.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/device.h>
@@ -592,12 +593,18 @@ jega_in(uint16_t addr, void *priv)
                         break;
                 }
                 jega_log("JEGA In %04X(%02X) %02X %04X:%04X\n", addr, jega->regs_index, ret, cs >> 4, cpu_state.pc);
-            } else if (jega->regs[RMOD1] & 0x0C) /* Accessing to Slave EGA is redirected to Master in AX-1. */
-                ret = ega_in(addr, &jega->ega);
+            } else if (jega->regs[RMOD1] & 0x0c) {
+                /* Accessing to Slave EGA is redirected to Master in AX-1. */
+                if (jega->is_vga)
+                    ret = vga_in(addr, &jega->vga);
+                else
+                    ret = ega_in(addr, &jega->ega);
+            }
             break;
         case 0x3ba:
         case 0x3da:
             jega->attrff = 0;
+            fallthrough;
         default:
             /* Accessing to Slave is redirected to Master in AX-1. */
             if (jega->regs[RMOD1] & 0x0c) {
