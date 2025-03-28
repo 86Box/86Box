@@ -49,6 +49,7 @@ extern "C" {
 #include <QStatusBar>
 #include <QMenu>
 #include <QScreen>
+#include <QPainter>
 
 #include "qt_mediamenu.hpp"
 #include "qt_mainwindow.hpp"
@@ -60,6 +61,7 @@ extern "C" {
 extern MainWindow *main_window;
 
 static bool sbar_initialized = false;
+static QPixmap* activePixmap;
 
 namespace {
 struct PixmapSetActive {
@@ -171,8 +173,17 @@ struct StateEmptyActive {
 
 static QSize         pixmap_size(16, 16);
 static const QString pixmap_empty        = QStringLiteral("_empty");
-static const QString pixmap_active       = QStringLiteral("_active");
-static const QString pixmap_empty_active = QStringLiteral("_empty_active");
+
+static QPixmap
+pixmap_get_active(QPixmap& base)
+{
+    QPixmap active = base.copy();
+    QPainter painter(&active);
+    painter.drawPixmap(0, 0, *activePixmap);
+    painter.end();
+    return active;
+}
+
 void
 PixmapSetEmpty::load(const QString &basePath)
 {
@@ -184,16 +195,16 @@ void
 PixmapSetActive::load(const QString &basePath)
 {
     normal = ProgSettings::loadIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
-    active = ProgSettings::loadIcon(basePath.arg(pixmap_active)).pixmap(pixmap_size);
+    active = pixmap_get_active(normal);
 }
 
 void
 PixmapSetEmptyActive::load(QString basePath)
 {
     normal       = ProgSettings::loadIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
-    active       = ProgSettings::loadIcon(basePath.arg(pixmap_active)).pixmap(pixmap_size);
+    active       = pixmap_get_active(normal);
     empty        = ProgSettings::loadIcon(basePath.arg(pixmap_empty)).pixmap(pixmap_size);
-    empty_active = ProgSettings::loadIcon(basePath.arg(pixmap_empty_active)).pixmap(pixmap_size);
+    active       = pixmap_get_active(empty);
 }
 }
 
@@ -202,6 +213,8 @@ struct MachineStatus::States {
 
     States(QObject *parent)
     {
+        activePixmap = new QPixmap;
+        *activePixmap = ProgSettings::loadIcon("/indicator.ico").pixmap(pixmap_size);
         pixmaps.cartridge.load("/cartridge%1.ico");
         pixmaps.cassette.load("/cassette%1.ico");
         pixmaps.floppy_disabled.normal       = ProgSettings::loadIcon(QStringLiteral("/floppy_disabled.ico")).pixmap(pixmap_size);
