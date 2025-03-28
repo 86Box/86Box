@@ -250,9 +250,9 @@ jega_render_text(void *priv)
         int        sc_wide       = *sc - jega->start_scan_count;
         const bool cursoron      = (blinked || jega->cursorblink_disable) &&
                                    (*sc >= jega->regs[RCCSL]) && (*sc <= jega->regs[RCCEL]);
+        uint32_t   attr_basic    = 0;
         uint32_t   chr_first;
-        uint32_t   attr_basic;
-        int        fg;
+        int        fg            = 0;
         int        bg;
 
         for (int x = 0; x < (*hdisp + *scrollcache); x += charwidth) {
