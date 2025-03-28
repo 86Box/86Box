@@ -780,7 +780,7 @@ ega_poll(void *priv)
             ega->y_add *= ega->vres + 1;
             for (y = 0; y <= ega->vres; y++) {
                 /* Render scanline */
-                if(ega->render_override)
+                if (ega->render_override)
                     ega->render_override(ega->priv_parent);
                 else
                     ega->render(ega);

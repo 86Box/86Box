@@ -96,6 +96,7 @@ video_cards[] = {
     { .device = &genius_device,                                 .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &nga_device,                                    .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &ogc_device,                                    .flags = VIDEO_FLAG_TYPE_NONE },
+    { .device = &jvga_device,                                   .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &oti037c_device,                                .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &oti067_device,                                 .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &oti077_device,                                 .flags = VIDEO_FLAG_TYPE_NONE },

@@ -31,7 +31,8 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_vga.h>
 
-static video_timings_t timing_vga = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
+video_timings_t        timing_vga = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
+
 static video_timings_t timing_ps1_svga_isa = { .type = VIDEO_ISA, .write_b = 6, .write_w = 8, .write_l = 16, .read_b = 6, .read_w = 8, .read_l = 16 };
 static video_timings_t timing_ps1_svga_mca = { .type = VIDEO_MCA, .write_b = 6, .write_w = 8, .write_l = 16, .read_b = 6, .read_w = 8, .read_l = 16 };
 
@@ -135,8 +136,23 @@ int vga_isenabled(void* p)
     return svga->vga_enabled;
 }
 
+void
+vga_init(const device_t *info, vga_t *vga, int enabled)
+{
+    svga_init(info, &vga->svga, vga, 1 << 18, /*256kb*/
+              NULL,
+              vga_in, vga_out,
+              NULL,
+              NULL);
+
+    vga->svga.bpp     = 8;
+    vga->svga.miscout = 1;
+
+    vga->svga.vga_enabled = enabled;
+}
+
 static void *
-vga_init(const device_t *info)
+vga_standalone_init(const device_t *info)
 {
     vga_t *vga = malloc(sizeof(vga_t));
     memset(vga, 0, sizeof(vga_t));
@@ -145,16 +161,7 @@ vga_init(const device_t *info)
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga);
 
-    svga_init(info, &vga->svga, vga, 1 << 18, /*256kb*/
-              NULL,
-              vga_in, vga_out,
-              NULL,
-              NULL);
-
-    io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
-
-    vga->svga.bpp     = 8;
-    vga->svga.miscout = 1;
+    vga_init(info, vga, 0);
 
     return vga;
 }
@@ -171,17 +178,7 @@ ps1vga_init(const device_t *info)
     else
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ps1_svga_isa);
 
-    svga_init(info, &vga->svga, vga, 1 << 18, /*256kb*/
-              NULL,
-              vga_in, vga_out,
-              NULL,
-              NULL);
-
-    io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
-
-    vga->svga.bpp     = 8;
-    vga->svga.miscout = 1;
-    vga->svga.vga_enabled = 1;
+    vga_init(info, vga, 1);
 
     return vga;
 }
@@ -223,7 +220,7 @@ const device_t vga_device = {
     .internal_name = "vga",
     .flags         = DEVICE_ISA,
     .local         = 0,
-    .init          = vga_init,
+    .init          = vga_standalone_init,
     .close         = vga_close,
     .reset         = NULL,
     .available     = vga_available,
