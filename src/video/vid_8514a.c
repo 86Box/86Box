@@ -3846,10 +3846,7 @@ ibm8514_recalctimings(svga_t *svga)
             else
                 svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
 
-            if (dev->dispend == 766)
-                dev->dispend += 2;
-
-            if (dev->dispend == 478)
+            if ((dev->dispend == 478) || (dev->dispend == 766))
                 dev->dispend += 2;
 
             if (dev->interlace)
