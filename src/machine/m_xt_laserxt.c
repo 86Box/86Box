@@ -179,13 +179,8 @@ machine_xt_lxt3_init(const machine_t *model)
 {
     int ret;
 
-#if 0
     ret = bios_load_linear("roms/machines/lxt3/27c64d.bin",
                            0x000fe000, 8192, 0);
-#else
-    ret = bios_load_linear("roms/machines/lxt3/vtech-laser-xt3-bios-v1-26-27c64-637cfbe96dfa1809192278.bin",
-                           0x000fe000, 8192, 0);
-#endif
 
     if (bios_only || !ret)
         return ret;
