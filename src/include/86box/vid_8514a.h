@@ -18,6 +18,12 @@
 #ifndef VIDEO_8514A_H
 #define VIDEO_8514A_H
 
+#define INT_VSY         (1 << 0)
+#define INT_GE_BSY      (1 << 1)
+#define INT_FIFO_OVR    (1 << 2)
+#define INT_FIFO_EMP    (1 << 3)
+#define INT_MASK        0xf
+
 typedef struct hwcursor8514_t {
     int      ena;
     int      x;
@@ -61,6 +67,7 @@ typedef struct ibm8514_t {
     uint32_t vram_mask;
     uint32_t pallook[512];
     uint32_t bios_addr;
+    uint32_t ma_latch;
 
     PALETTE   vgapal;
     uint8_t   hwcursor_oddeven;
@@ -85,8 +92,8 @@ typedef struct ibm8514_t {
         uint16_t advfunc_cntl;
         uint16_t cur_y;
         uint16_t cur_x;
-        int16_t  destx;
-        int16_t  desty;
+        uint16_t destx;
+        uint16_t desty;
         int16_t  desty_axstp;
         int16_t  destx_distp;
         int16_t  err_term;
@@ -117,6 +124,8 @@ typedef struct ibm8514_t {
         int      y1;
         int      y2;
         int      temp_cnt;
+        int16_t  dx_ibm;
+        int16_t  dy_ibm;
         int16_t  cx;
         int16_t  cx_back;
         int16_t  cy;
@@ -216,10 +225,9 @@ typedef struct ibm8514_t {
     uint16_t subsys_cntl;
     uint8_t subsys_stat;
 
-    atomic_int fifo_idx;
-    atomic_int ext_fifo_idx;
     atomic_int force_busy;
     atomic_int force_busy2;
+    atomic_int fifo_idx;
 
     int      blitter_busy;
     uint64_t blitter_time;
@@ -235,6 +243,11 @@ typedef struct ibm8514_t {
     PALETTE  _8514pal;
 
     latch8514_t latch;
+
+    void (*vblank_start)(void *priv);
+    void (*accel_out_fifo)(void *priv, uint16_t port, uint16_t val, int len);
+    void (*update_irqs)(void *priv);
+
 } ibm8514_t;
 
 #endif /*VIDEO_8514A_H*/
