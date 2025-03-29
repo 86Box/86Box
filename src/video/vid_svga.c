@@ -739,7 +739,8 @@ svga_recalctimings(svga_t *svga)
     svga->vblankstart++;
 
     svga->hdisp = svga->crtc[1];
-    svga->hdisp++;
+    if (svga->crtc[1] & 1)
+        svga->hdisp++;
 
     svga->htotal = svga->crtc[0];
     /* +5 has been verified by Sergi to be correct - +6 must have been an off by one error. */
@@ -944,7 +945,7 @@ svga_recalctimings(svga_t *svga)
         if (dev->on) {
             uint32_t dot8514 = dev->h_blankstart;
             uint32_t adj_dot8514 = dev->h_blankstart;
-            uint32_t eff_mask8514 = 0x0000003f;
+            uint32_t eff_mask8514 = 0x0000001f;
             dev->hblank_sub = 0;
 
             while (adj_dot8514 < (dev->h_total << 1)) {
@@ -1029,8 +1030,9 @@ svga_recalctimings(svga_t *svga)
 
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (dev->on) {
-            disptime8514 = dev->h_total ? dev->h_total : TIMER_USEC;
-            _dispontime8514 = dev->hdisped;
+            disptime8514 = dev->h_total;
+            _dispontime8514 = (dev->hdisped + 1) * 8;
+            svga_log("HDISPED 8514=%d, htotal=%02x.\n", (dev->hdisped + 1) << 3, dev->h_total);
         }
     }
 
@@ -1174,7 +1176,10 @@ svga_do_render(svga_t *svga)
     }
 
     if (!svga->override) {
-        svga->render(svga);
+        if (svga->render_override)
+            svga->render_override(svga->priv_parent);
+        else
+            svga->render(svga);
 
         svga->x_add = (svga->monitor->mon_overscan_x >> 1);
         svga_render_overscan_left(svga);

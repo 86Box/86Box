@@ -29,11 +29,14 @@
 #include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/plat.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/video.h>
 #include <86box/vid_ega.h>
+#include <86box/vid_svga.h>
+#include <86box/vid_vga.h>
 
 /* JEGA internal registers */
 #define RPESL 0x09 /* End Scan Line */
@@ -63,6 +66,8 @@
 #define JEGA_PATH_BIOS     "roms/video/jega/JEGABIOS.BIN"
 #define JEGA_PATH_FONTDBCS "roms/video/jega/JPNZN16X.FNT"
 #define IF386_PATH_VBIOS   "roms/machines/if386sx/OKI_IF386SX_VBIOS.bin"
+#define JVGA_PATH_BIOS     "roms/video/jega/OKI_JVGT(AXVGAH)_BIOS_011993.BIN"
+#define JVGA_PATH_FONTDBCS "roms/video/jega/JWPCE.FNT"
 #define SBCS19_FILESIZE    (256 * 19 * 2) /* 8 x 19 x 256 chr x 2 pages */
 #define DBCS16_CHARS       0x2c10
 #define DBCS16_FILESIZE    (DBCS16_CHARS * 16 * 2)
@@ -96,29 +101,31 @@ jega_log(const char *fmt, ...)
 static video_timings_t timing_ega = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
 typedef struct jega_t {
-    rom_t    bios_rom;
-    ega_t    ega;
-    uint8_t  regs_index; /* 3D4/3D5 index B9-BF, D9-DF */
-    uint8_t  regs[0x31];
-    uint8_t egapal[16];
-    uint8_t attrregs[32];
-    uint8_t attraddr;
-    uint8_t attrff;
-    uint8_t attr_palette_enable;
+    rom_t     bios_rom;
+    ega_t     ega;
+    vga_t     vga;
+    uint8_t   regs_index; /* 3D4/3D5 index B9-BF, D9-DF */
+    uint8_t   regs[0x31];
+    uint8_t   egapal[16];
+    uint8_t   attrregs[32];
+    uint8_t   attraddr;
+    uint8_t   attrff;
+    uint8_t   attr_palette_enable;
     uint32_t *pallook;
-    int con;
-    int cursoron;
-    int cursorblink_disable;
-    int ca;
-    int      font_index;
-    int     sbcsbank_inv;
-    int     attr3_sbcsbank;
-    int     start_scan_lower;
-    int     start_scan_upper;
-    int     start_scan_count;
-    uint8_t *vram;
-    uint8_t  jfont_sbcs_19[SBCS19_FILESIZE]; /* 8 x 19 font */
-    uint8_t  jfont_dbcs_16[DBCS16_FILESIZE]; /* 16 x 16 font. Use dbcs_read/write to access it. */
+    int       is_vga;
+    int       con;
+    int       cursoron;
+    int       cursorblink_disable;
+    int       ca;
+    int       font_index;
+    int       sbcsbank_inv;
+    int       attr3_sbcsbank;
+    int       start_scan_lower;
+    int       start_scan_upper;
+    int       start_scan_count;
+    uint8_t * vram;
+    uint8_t   jfont_sbcs_19[SBCS19_FILESIZE]; /* 8 x 19 font */
+    uint8_t   jfont_dbcs_16[DBCS16_FILESIZE]; /* 16 x 16 font. Use dbcs_read/write to access it. */
 } jega_t;
 
 static void jega_recalctimings(void *priv);
@@ -127,16 +134,16 @@ static void jega_recalctimings(void *priv);
 #define FONTX_LEN_FN 8
 
 typedef struct {
-    char id[FONTX_LEN_ID];
-    char name[FONTX_LEN_FN];
-    unsigned char width;
-    unsigned char height;
-    unsigned char type;
+    char      id[FONTX_LEN_ID];
+    char      name[FONTX_LEN_FN];
+    uint8_t   width;
+    uint8_t   height;
+    uint8_t   type;
 } fontx_h;
 
 typedef struct {
-    uint16_t start;
-	uint16_t end;
+    uint16_t  start;
+    uint16_t  end;
 } fontx_tbl;
 
 extern uint32_t        pallook16[256];
@@ -147,22 +154,32 @@ static bool is_SJIS_2(uint8_t chr) { return (chr >= 0x40 && chr <= 0x7e) || (chr
 static uint16_t
 SJIS_to_SEQ(uint16_t sjis)
 {
-	uint32_t chr1 = (sjis >> 8) & 0xff;
-	uint32_t  chr2 = sjis & 0xff;
-	if (!is_SJIS_1(chr1) || !is_SJIS_2(chr2)) return INVALIDACCESS16;
-	chr1 -= 0x81;
-	if (chr1 > 0x5E) chr1 -= 0x40;
-	chr2 -= 0x40;
-	if (chr2 > 0x3F) chr2--;
-	chr1 *= 0xBC;
-	return (chr1 + chr2);
+    uint32_t chr1 = (sjis >> 8) & 0xff;
+    uint32_t  chr2 = sjis & 0xff;
+
+    if (!is_SJIS_1(chr1) || !is_SJIS_2(chr2))
+        return INVALIDACCESS16;
+
+    chr1 -= 0x81;
+
+    if (chr1 > 0x5e)
+        chr1 -= 0x40;
+
+    chr2 -= 0x40;
+
+    if (chr2 > 0x3f)
+        chr2--;
+
+    chr1 *= 0xbc;
+
+    return (chr1 + chr2);
 }
 
 static uint8_t
 dbcs_read(uint16_t sjis, int index, void *priv) {
     jega_t  *jega = (jega_t *) priv;
     int seq = SJIS_to_SEQ(sjis);
-    if (seq >= DBCS16_CHARS || index >= 32)
+    if ((seq >= DBCS16_CHARS) || (index >= 32))
         return INVALIDACCESS8;
     return jega->jfont_dbcs_16[seq * 32 + index];
 }
@@ -171,7 +188,7 @@ static void
 dbcs_write(uint16_t sjis, int index, uint8_t val, void *priv) {
     jega_t  *jega = (jega_t *) priv;
     int seq = SJIS_to_SEQ(sjis);
-    if (seq >= DBCS16_CHARS || index >= 32)
+    if ((seq >= DBCS16_CHARS) || (index >= 32))
         return;
     jega->jfont_dbcs_16[seq * 32 + index] = val;
 }
@@ -180,38 +197,81 @@ dbcs_write(uint16_t sjis, int index, uint8_t val, void *priv) {
 void
 jega_render_text(void *priv)
 {
-    jega_t *jega = (jega_t *) priv;
-    if (jega->ega.firstline_draw == 2000)
-        jega->ega.firstline_draw = jega->ega.displine;
-    jega->ega.lastline_draw = jega->ega.displine;
+    jega_t *  jega           = (jega_t *) priv;
+#ifdef USE_DOUBLE_WIDTH_AND_LINE_CHARS
+    uint8_t * seqregs        = jega->is_vga ? jega->vga.svga.seqregs :
+                                              jega->ega.seqregs;
+    uint8_t * attrregs       = jega->is_vga ? jega->vga.svga.attrregs :
+                                              jega->ega.attrregs;
+#endif
+    uint8_t * crtc           = jega->is_vga ? jega->vga.svga.crtc :
+                                              jega->ega.crtc;
+    uint8_t * vram           = jega->is_vga ? jega->vga.svga.vram :
+                                              jega->ega.vram;
+    int *     firstline_draw = jega->is_vga ? &jega->vga.svga.firstline_draw :
+                                              &jega->ega.firstline_draw;
+    int *     lastline_draw  = jega->is_vga ? &jega->vga.svga.lastline_draw :
+                                              &jega->ega.lastline_draw;
+    int *     displine       = jega->is_vga ? &jega->vga.svga.displine :
+                                              &jega->ega.displine;
+    int *     fullchange     = jega->is_vga ? &jega->vga.svga.fullchange :
+                                              &jega->ega.fullchange;
+    int *     blink          = jega->is_vga ? &jega->vga.svga.blink :
+                                              &jega->ega.blink;
+    int *     x_add          = jega->is_vga ? &jega->vga.svga.x_add :
+                                              &jega->ega.x_add;
+    int *     y_add          = jega->is_vga ? &jega->vga.svga.y_add :
+                                              &jega->ega.y_add;
+    int *     sc             = jega->is_vga ? &jega->vga.svga.sc :
+                                              &jega->ega.sc;
+    int *     hdisp          = jega->is_vga ? &jega->vga.svga.hdisp :
+                                              &jega->ega.hdisp;
+    int *     scrollcache    = jega->is_vga ? &jega->vga.svga.scrollcache :
+                                              &jega->ega.scrollcache;
+    uint32_t *ma             = jega->is_vga ? &jega->vga.svga.ma :
+                                              &jega->ega.ma;
+    uint8_t   mask           = jega->is_vga ? jega->vga.svga.dac_mask : 0xff;
 
-    if (jega->ega.fullchange) {
-        // const bool doublewidth   = ((jega->ega.seqregs[1] & 8) != 0);
-        const bool attrblink = ((jega->regs[RMOD2] & 0x20) == 0); /* JEGA specific */
-        // const bool attrlinechars = (jega->ega.attrregs[0x10] & 4);
-        const bool crtcreset = ((jega->ega.crtc[0x17] & 0x80) == 0) || ((jega->regs[RMOD1] & 0x80) == 0);
-        const int  charwidth = 8;
-        const bool blinked   = jega->ega.blink & 0x10;
-        uint32_t  *p         = &buffer32->line[jega->ega.displine + jega->ega.y_add][jega->ega.x_add];
-        bool       chr_wide  = false;
-        int        sc_wide   = jega->ega.sc - jega->start_scan_count;
-        const bool cursoron  = (blinked || jega->cursorblink_disable)
-            && (jega->ega.sc >= jega->regs[RCCSL]) && (jega->ega.sc <= jega->regs[RCCEL]);
-        uint32_t chr_first;
-        uint32_t attr_basic;
-        int      fg;
-        int      bg;
+    if (*firstline_draw == 2000)
+        *firstline_draw = *displine;
+    *lastline_draw = *displine;
 
-        for (int x = 0; x < (jega->ega.hdisp + jega->ega.scrollcache); x += charwidth) {
-            uint32_t addr = jega->ega.remap_func(&jega->ega, jega->ega.ma) & jega->ega.vrammask;
+    if (*fullchange) {
+#ifdef USE_DOUBLE_WIDTH_AND_LINE_CHARS
+        const bool doublewidth   = ((seqregs[1] & 8) != 0);
+        const bool attrlinechars = (attrregs[0x10] & 4);
+#endif
+        const bool attrblink     = ((jega->regs[RMOD2] & 0x20) == 0); /* JEGA specific */
+        const bool crtcreset     = ((crtc[0x17] & 0x80) == 0) || ((jega->regs[RMOD1] & 0x80) == 0);
+        const int  charwidth     = 8;
+        const bool blinked       = *blink & 0x10;
+        uint32_t  *p             = &buffer32->line[*displine + *y_add][*x_add];
+        bool       chr_wide      = false;
+        int        sc_wide       = *sc - jega->start_scan_count;
+        const bool cursoron      = (blinked || jega->cursorblink_disable) &&
+                                   (*sc >= jega->regs[RCCSL]) && (*sc <= jega->regs[RCCEL]);
+        uint32_t   attr_basic    = 0;
+        uint32_t   chr_first;
+        int        fg            = 0;
+        int        bg;
 
-            int drawcursor = ((jega->ega.ma == jega->ca) && cursoron);
+        for (int x = 0; x < (*hdisp + *scrollcache); x += charwidth) {
+            uint32_t addr = 0;
+
+            if (jega->is_vga) {
+                if (!jega->vga.svga.force_old_addr)
+                    addr = jega->vga.svga.remap_func(&jega->vga.svga, jega->vga.svga.ma) &
+                                                     jega->vga.svga.vram_display_mask;
+            } else
+                addr = jega->ega.remap_func(&jega->ega, *ma) & jega->ega.vrammask;
+
+            int drawcursor = ((*ma == jega->ca) && cursoron);
 
             uint32_t chr;
             uint32_t attr;
             if (!crtcreset) {
-                chr  = jega->ega.vram[addr];
-                attr = jega->ega.vram[addr + 1];
+                chr  = vram[addr];
+                attr = vram[addr + 1];
             } else
                 chr = attr = 0;
             if (chr_wide) {
@@ -222,13 +282,13 @@ jega_render_text(void *priv)
                     /* Bold | 2x width | 2x height | U/L select | R/L select | - | - | - */
                     attr_ext = attr;
                     if ((attr_ext & 0x30) == 0x30)
-                        sc_wide = jega->ega.sc - jega->start_scan_lower; /* Set top padding of lower 2x character */
+                        sc_wide = *sc - jega->start_scan_lower; /* Set top padding of lower 2x character */
                     else if ((attr_ext & 0x30) == 0x20)
-                        sc_wide = jega->ega.sc - jega->start_scan_upper; /* Set top padding of upper 2x character */
+                        sc_wide = *sc - jega->start_scan_upper; /* Set top padding of upper 2x character */
                     else
-                        sc_wide = jega->ega.sc - jega->start_scan_count;
+                        sc_wide = *sc - jega->start_scan_count;
                 }
-                if (is_SJIS_2(chr) && sc_wide >= 0 && sc_wide < 16 && jega->ega.sc <= jega->regs[RPESL]) {
+                if (is_SJIS_2(chr) && sc_wide >= 0 && sc_wide < 16 && *sc <= jega->regs[RPESL]) {
                     chr_first <<= 8;
                     chr |= chr_first;
                     /* Vertical wide font (Extended Attribute) */
@@ -269,7 +329,7 @@ jega_render_text(void *priv)
                 if (attr_basic & 0x20) { /* vertical line */
                     p[0] = fg;
                 }
-                if ((jega->ega.sc == jega->regs[RPULP]) && (attr_basic & 0x10)) { /* underline */
+                if ((*sc == jega->regs[RPULP]) && (attr_basic & 0x10)) { /* underline */
                     for (int xx = 0; xx < charwidth * 2; xx++)
                         p[xx] = fg;
                 }
@@ -298,13 +358,13 @@ jega_render_text(void *priv)
                     /* Parse attribute as EGA */
                     /* BInt/Blink | BR | BG | BB | Int/Group | R | G | B */
                     if (drawcursor) {
-                        bg = jega->pallook[jega->egapal[attr & 0x0f]];
-                        fg = jega->pallook[jega->egapal[attr >> 4]];
+                        bg = jega->pallook[jega->egapal[attr & 0x0f] & mask];
+                        fg = jega->pallook[jega->egapal[attr >> 4] & mask];
                     } else {
-                        fg = jega->pallook[jega->egapal[attr & 0x0f]];
-                        bg = jega->pallook[jega->egapal[attr >> 4]];
+                        fg = jega->pallook[jega->egapal[attr & 0x0f] & mask];
+                        bg = jega->pallook[jega->egapal[attr >> 4] & mask];
                         if ((attr & 0x80) && attrblink) {
-                            bg = jega->pallook[jega->egapal[(attr >> 4) & 7]];
+                            bg = jega->pallook[jega->egapal[(attr >> 4) & 7] & mask];
                             if (blinked)
                                 fg = bg;
                         }
@@ -325,32 +385,35 @@ jega_render_text(void *priv)
                     //     charaddr ^= 0x100;
                     charaddr *= 19;
 
-                    uint32_t dat = jega->jfont_sbcs_19[charaddr + jega->ega.sc];
+                    uint32_t dat = jega->jfont_sbcs_19[charaddr + *sc];
                     for (int xx = 0; xx < charwidth; xx++)
                         p[xx] = (dat & (0x80 >> xx)) ? fg : bg;
 
                     if (attr_basic & 0x20) { /* vertical line */
                         p[0] = fg;
                     }
-                    if ((jega->ega.sc == jega->regs[RPULP]) && (attr_basic & 0x10)) { /* underline */
+                    if ((*sc == jega->regs[RPULP]) && (attr_basic & 0x10)) { /* underline */
                         for (int xx = 0; xx < charwidth; xx++)
                             p[xx] = fg;
                     }
                     p += charwidth;
                 }
             }
-            jega->ega.ma += 4;
+            *ma += 4;
         }
-        jega->ega.ma &= 0x3ffff;
+        *ma &= 0x3ffff;
     }
 }
 
 static void
 jega_out(uint16_t addr, uint8_t val, void *priv)
 {
-    jega_t *jega = (jega_t *) priv;
-    uint16_t chr;
+    jega_t   *jega         = (jega_t *) priv;
+    uint8_t   pal4to16[16] = { 0, 7, 0x38, 0x3f, 0, 3, 4, 0x3f, 0, 2, 4, 0x3e, 0, 3, 5, 0x3f };
+    uint16_t  chr;
+
     // jega_log("JEGA Out %04X %02X(%d) %04X:%04X\n", addr, val, val, cs >> 4, cpu_state.pc);
+
     switch (addr) {
         case 0x3c0:
         case 0x3c1:
@@ -367,9 +430,20 @@ jega_out(uint16_t addr, uint8_t val, void *priv)
                 jega->attrregs[jega->attraddr & 31] = val;
                 if (jega->attraddr < 0x10) {
                     for (uint8_t c = 0; c < 16; c++) {
+                        if (jega->is_vga) {
+                            if (jega->attrregs[0x10] & 0x80)
+                                jega->egapal[c] = (jega->attrregs[c] & 0xf) | ((jega->attrregs[0x14] & 0xf) << 4);
+                            else if (jega->vga.svga.ati_4color)
+                                jega->egapal[c] = pal4to16[(c & 0x03) | ((val >> 2) & 0xc)];
+                            else
+                                jega->egapal[c] = (jega->attrregs[c] & 0x3f) | ((jega->attrregs[0x14] & 0xc) << 4);
+                        } else
                             jega->egapal[c] = jega->attrregs[c] & 0x3f;
                     }
-                    jega->ega.fullchange = changeframecount;
+                    if (jega->is_vga)
+                        jega->vga.svga.fullchange = changeframecount;
+                    else
+                        jega->ega.fullchange = changeframecount;
                 }
             }
             jega->attrff ^= 1;
@@ -395,12 +469,17 @@ jega_out(uint16_t addr, uint8_t val, void *priv)
                 switch (jega->regs_index) {
                     case RMOD1:
                         /* if the value is changed */
-                        // if (jega->regs[jega->regs_index] != val) {
-                        if (val & 0x40)
-                            jega->ega.render_override = NULL;
-                        else
-                            jega->ega.render_override = jega_render_text;
-                        // }
+                        if (jega->is_vga) {
+                            if (val & 0x40)
+                                jega->vga.svga.render_override = NULL;
+                            else
+                                jega->vga.svga.render_override = jega_render_text;
+                        } else {
+                            if (val & 0x40)
+                                jega->ega.render_override = NULL;
+                            else
+                                jega->ega.render_override = jega_render_text;
+                        }
                         break;
                     case RDAGS:
                         switch (val & 0x03) {
@@ -470,8 +549,14 @@ jega_out(uint16_t addr, uint8_t val, void *priv)
         default:
             break;
     }
-    if (jega->regs[RMOD1] & 0x0C) /* Accessing to Slave EGA is redirected to Master in AX-1. */
-        ega_out(addr, val, &jega->ega);
+
+    /* Accessing to Slave EGA is redirected to Master in AX-1. */
+    if (jega->regs[RMOD1] & 0x0c) {
+        if (jega->is_vga)
+            vga_out(addr, val, &jega->vga);
+        else
+            ega_out(addr, val, &jega->ega);
+    }
 }
 
 static uint8_t
@@ -480,6 +565,7 @@ jega_in(uint16_t addr, void *priv)
     jega_t *jega = (jega_t *) priv;
     uint8_t ret  = INVALIDACCESS8;
     uint16_t chr;
+
     switch (addr) {
         case 0x3b5:
         case 0x3d5:
@@ -508,15 +594,26 @@ jega_in(uint16_t addr, void *priv)
                         break;
                 }
                 jega_log("JEGA In %04X(%02X) %02X %04X:%04X\n", addr, jega->regs_index, ret, cs >> 4, cpu_state.pc);
-            } else if (jega->regs[RMOD1] & 0x0C) /* Accessing to Slave EGA is redirected to Master in AX-1. */
-                ret = ega_in(addr, &jega->ega);
+            } else if (jega->regs[RMOD1] & 0x0c) {
+                /* Accessing to Slave EGA is redirected to Master in AX-1. */
+                if (jega->is_vga)
+                    ret = vga_in(addr, &jega->vga);
+                else
+                    ret = ega_in(addr, &jega->ega);
+            }
             break;
         case 0x3ba:
         case 0x3da:
             jega->attrff = 0;
+            fallthrough;
         default:
-            if (jega->regs[RMOD1] & 0x0C) /* Accessing to Slave is redirected to Master in AX-1. */
-                ret = ega_in(addr, &jega->ega);
+            /* Accessing to Slave is redirected to Master in AX-1. */
+            if (jega->regs[RMOD1] & 0x0c) {
+                if (jega->is_vga)
+                    ret = vga_in(addr, &jega->vga);
+                else
+                    ret = ega_in(addr, &jega->ega);
+            }
             break;
     }
     // jega_log("JEGA In %04X(%02X) %02X %04X:%04X\n", addr, jega->regs_index, ret, cs >> 4, cpu_state.pc);
@@ -619,19 +716,29 @@ LoadFontxFile(const char *fn, void *priv)
 }
 
 static void
-jega_commoninit(void *priv)
+jega_commoninit(const device_t *info, void *priv, int vga)
 {
     jega_t *jega = (jega_t *) priv;
-    for (int c = 0; c < 256; c++) {
-        pallook64[c] = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
-        pallook64[c] += makecol32(((c >> 5) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 3) & 1) * 0x55);
+    jega->is_vga = vga;
+    if (vga) {
+        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga);
+        vga_init(info, &jega->vga, 1);
+        jega->vga.svga.priv_parent = jega;
+        jega->pallook = jega->vga.svga.pallook;
+    } else {
+        for (int c = 0; c < 256; c++) {
+            pallook64[c] = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
+            pallook64[c] += makecol32(((c >> 5) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 3) & 1) * 0x55);
+        }
+        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ega);
+        jega->pallook = pallook64;
+        ega_init(&jega->ega, 9, 0);
+        ega_set_type(&jega->ega, EGA_SUPEREGA);
+        jega->ega.priv_parent = jega;
+        mem_mapping_add(&jega->ega.mapping, 0xa0000, 0x20000,
+                        ega_read, NULL, NULL, ega_write, NULL, NULL,
+                        NULL, MEM_MAPPING_EXTERNAL, &jega->ega);
     }
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ega);
-    jega->pallook = pallook64;
-    ega_init(&jega->ega, 9, 0);
-    ega_set_type(&jega->ega, EGA_SUPEREGA);
-    jega->ega.priv_parent = jega;
-    mem_mapping_add(&jega->ega.mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, &jega->ega);
     /* I/O 3DD and 3DE are used by Oki if386 */
     io_sethandler(0x03b0, 0x002c, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
     jega->regs[RMOD1] = 0x48;
@@ -646,7 +753,21 @@ jega_standalone_init(const device_t *info)
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
     LoadFontxFile(JEGA_PATH_FONTDBCS, jega);
 
-    jega_commoninit(jega);
+    jega_commoninit(info, jega, 0);
+
+    return jega;
+}
+
+static void *
+jvga_standalone_init(const device_t *info)
+{
+    jega_t *jega = calloc(1, sizeof(jega_t));
+
+    rom_init(&jega->bios_rom, JVGA_PATH_BIOS, 0xc0000, 0x8000, 0x7fff, 0, 0);
+    memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
+    LoadFontxFile(JVGA_PATH_FONTDBCS, jega);
+
+    jega_commoninit(info, jega, 1);
 
     return jega;
 }
@@ -693,9 +814,15 @@ jega_close(void *priv)
     }
     pclog("jeclosed %04X:%04X DS %04X\n", cs >> 4, cpu_state.pc, DS);
 #endif
-    if (jega->ega.eeprom)
-        free(jega->ega.eeprom);
-    free(jega->ega.vram);
+
+    if (jega->is_vga)
+        svga_close(&jega->vga.svga);
+    else {
+        if (jega->ega.eeprom)
+            free(jega->ega.eeprom);
+        free(jega->ega.vram);
+    }
+
     free(jega);
 }
 
@@ -703,8 +830,13 @@ static void
 jega_recalctimings(void *priv)
 {
     jega_t *jega = (jega_t *) priv;
-    ega_recalctimings(&jega->ega);
+
+    if (jega->is_vga)
+        svga_recalctimings(&jega->vga.svga);
+    else
+        ega_recalctimings(&jega->ega);
 }
+
 static void
 jega_speed_changed(void *priv)
 {
@@ -725,6 +857,20 @@ const device_t jega_device = {
     .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = jega_standalone_init,
+    .close         = jega_close,
+    .reset         = NULL,
+    .available     = jega_standalone_available,
+    .speed_changed = jega_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t jvga_device = {
+    .name          = "OKIVGA/H-2 (JVGA/H)",
+    .internal_name = "jvga",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = jvga_standalone_init,
     .close         = jega_close,
     .reset         = NULL,
     .available     = jega_standalone_available,
@@ -770,6 +916,8 @@ if386_p6x_read(uint16_t port, void *priv)
         Bit 4: Shutdown? (caused by POST rebooting and POWER OFF command in DOS 3.21)
         Bit 3: ?
 */
+static uint32_t lcd_cols[8] = { 0x001024, 0x747d8a, 0x8c96a4, 0xa0abbb,
+                                0xb1bece, 0xc0cee0, 0xceddf0, 0xdbebff };
 static void
 if386_p6x_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -793,19 +941,31 @@ if386_p6x_write(uint16_t port, uint8_t val, void *priv)
             } else { /* Monochrome LCD */
                 for (int c = 0; c < 256; c++) {
                     int cval = 0;
+#ifdef SIMPLE_BW
                     if (c & 0x0f)
                         cval = ((c & 0x0e) * 0x10) + 0x1f;
                     pallook64[c] = makecol32(cval, cval, cval);
                     pallook16[c] = makecol32(cval, cval, cval);
+#else
+                    if (c & 0x3f) {
+                        cval = (c & 0x10) >> 2;
+                        cval |= (c & 0x06) >> 1;
+                    }
+                    pallook64[c] = lcd_cols[cval];
+                    cval = 0;
+                    if (c & 0x0f)
+                        cval = (c & 0x0e) >> 1;
+                    pallook16[c] = lcd_cols[cval];
+#endif
                 }
             }
             jega_recalctimings(jega);
         } else if (p65idx == 0x05) {
-            if (val & 0x10)
+            if (val & 0x10) {
                 /* Power off (instead this call hardware reset here) */
+                device_reset_all(DEVICE_ALL);
                 resetx86();
-                /* Actually, power off - we have a function for that! */
-                // plat_power_off();
+            }
         }
     }
     return;
@@ -820,7 +980,7 @@ if386jega_init(const device_t *info)
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
     LoadFontxFile(JEGA_PATH_FONTDBCS, jega);
 
-    jega_commoninit(jega);
+    jega_commoninit(info, jega, 0);
 
     io_sethandler(0x0063, 1, if386_p6x_read, NULL, NULL, if386_p6x_write, NULL, NULL, jega);
     io_sethandler(0x0065, 1, if386_p6x_read, NULL, NULL, if386_p6x_write, NULL, NULL, jega);

@@ -88,20 +88,31 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     ui->comboBoxPitMode->setCurrentIndex(-1);
     ui->comboBoxPitMode->setCurrentIndex(pit_mode + 1);
 
-    int   selectedMachineType = 0;
-    auto *machineTypesModel   = ui->comboBoxMachineType->model();
-    for (int i = 1; i < MACHINE_TYPE_MAX; ++i) {
-        int j = 0;
-        while (machine_get_internal_name_ex(j) != nullptr) {
-            if (machine_available(j) && (machine_get_type(j) == i)) {
+    int         selectedMachineType = 0;
+    auto *      machineTypesModel   = ui->comboBoxMachineType->model();
+    int         i                   = -1;
+    int         j                   = 0;
+    int         cur_j               = 0;
+    const void *miname;
+    do {
+        miname = machine_get_internal_name_ex(j);
+
+        if ((miname == nullptr) || (machine_get_type(j) != i)) {
+            if ((i != -1) && (cur_j != 0)) {
                 int row = Models::AddEntry(machineTypesModel, machine_types[i].name, machine_types[i].id);
                 if (machine_types[i].id == machine_get_type(machine))
                     selectedMachineType = row;
-                break;
             }
-            j++;
+
+            i = machine_get_type(j);
+            cur_j = 0;
         }
-    }
+
+        if (machine_available(j))
+            cur_j++;
+
+        j++;
+    } while (miname != nullptr);
 
     ui->comboBoxMachineType->setCurrentIndex(-1);
     ui->comboBoxMachineType->setCurrentIndex(selectedMachineType);

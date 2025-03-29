@@ -192,12 +192,6 @@ load_general(void)
     else if (mouse_sensitivity > 2.0)
         mouse_sensitivity = 2.0;
 
-    p = ini_section_get_string(cat, "iconset", NULL);
-    if (p != NULL)
-        strcpy(icon_set, p);
-    else
-        strcpy(icon_set, "");
-
     enable_discord = !!ini_section_get_int(cat, "enable_discord", 0);
 
     open_dir_usr_path = ini_section_get_int(cat, "open_dir_usr_path", 0);
@@ -2037,11 +2031,6 @@ save_general(void)
         plat_language_code_r(lang_id, buffer, 511);
         ini_section_set_string(cat, "language", buffer);
     }
-
-    if (!strcmp(icon_set, ""))
-        ini_section_delete_var(cat, "iconset");
-    else
-        ini_section_set_string(cat, "iconset", icon_set);
 
     if (enable_discord)
         ini_section_set_int(cat, "enable_discord", enable_discord);

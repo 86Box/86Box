@@ -14,8 +14,6 @@ class ProgSettings : public QDialog {
 public:
     explicit ProgSettings(QWidget *parent = nullptr);
     ~ProgSettings();
-    static QString getIconSetPath();
-    static QIcon   loadIcon(QString file);
 #ifdef Q_OS_WINDOWS
     static QString getFontName(uint32_t lcid);
 #endif
@@ -56,7 +54,6 @@ public:
 protected slots:
     void accept() override;
 private slots:
-    void on_pushButton_released();
     void on_pushButtonLanguage_released();
 
     void on_horizontalSlider_valueChanged(int value);

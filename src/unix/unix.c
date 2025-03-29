@@ -73,7 +73,6 @@ static int      exit_event         = 0;
 static int      fullscreen_pending = 0;
 uint32_t        lang_id  = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
 uint32_t        lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
-char            icon_set[256] = "";                  /* name of the iconset to be used */
 
 static const uint16_t sdl_to_xt[0x200] = {
     [SDL_SCANCODE_ESCAPE]       = 0x01,

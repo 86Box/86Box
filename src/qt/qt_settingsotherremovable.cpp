@@ -46,11 +46,11 @@ setMOBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t
     QIcon icon;
     switch (bus) {
         case MO_BUS_DISABLED:
-            icon = ProgSettings::loadIcon("/mo_disabled.ico");
+            icon = QIcon(":/settings/qt/icons/mo_disabled.ico");
             break;
         case MO_BUS_ATAPI:
         case MO_BUS_SCSI:
-            icon = ProgSettings::loadIcon("/mo.ico");
+            icon = QIcon(":/settings/qt/icons/mo.ico");
             break;
 
         default:
@@ -81,11 +81,11 @@ setZIPBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_
     QIcon icon;
     switch (bus) {
         case ZIP_BUS_DISABLED:
-            icon = ProgSettings::loadIcon("/zip_disabled.ico");
+            icon = QIcon(":/settings/qt/icons/zip_disabled.ico");
             break;
         case ZIP_BUS_ATAPI:
         case ZIP_BUS_SCSI:
-            icon = ProgSettings::loadIcon("/zip.ico");
+            icon = QIcon(":/settings/qt/icons/zip.ico");
             break;
 
         default:
