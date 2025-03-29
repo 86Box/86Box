@@ -357,13 +357,13 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
 
         case 0xae8:
             WRITE8(port, dev->hsync_start, val);
-            pclog("IBM 8514/A compatible: (0x%04x): val=0x%02x, hsync_start=%d.\n", port, val, (val + 1) << 3);
+            ibm8514_log("IBM 8514/A compatible: (0x%04x): val=0x%02x, hsync_start=%d.\n", port, val, (val + 1) << 3);
             svga_recalctimings(svga);
             break;
 
         case 0xee8:
             WRITE8(port, dev->hsync_width, val);
-            pclog("IBM 8514/A compatible: (0x%04x): val=0x%02x, hsync_width=%d, hsyncpol=%02x.\n", port, val & 0x1f, ((val & 0x1f) + 1) << 3, val & 0x20);
+            ibm8514_log("IBM 8514/A compatible: (0x%04x): val=0x%02x, hsync_width=%d, hsyncpol=%02x.\n", port, val & 0x1f, ((val & 0x1f) + 1) << 3, val & 0x20);
             svga_recalctimings(svga);
             break;
 
@@ -3846,10 +3846,7 @@ ibm8514_recalctimings(svga_t *svga)
             else
                 svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
 
-            if (dev->dispend == 766)
-                dev->dispend += 2;
-
-            if (dev->dispend == 478)
+            if ((dev->dispend == 478) || (dev->dispend == 766))
                 dev->dispend += 2;
 
             if (dev->interlace)
