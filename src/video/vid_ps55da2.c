@@ -112,17 +112,18 @@
     EFD8h	*		Display Adapter/J [Atlas-SP2]
 
      [Japanese DOS and Display Adapter compatibility]
-    | POS ID     | Adapter Name                | K3.31 | J4.04 | J4.08 | OS2 J1.3 | Win3 |
-    |------------|-----------------------------|:-----:|:-----:|:-----:|:--------:|:----:|
-    | EFFFh      | Display Adapter             | X     |       |       |          |      |
-    | FFEDh      | ? [Atlas EVT]               | X     |       |       |          |      |
-    | FFFDh      | ? [LDT EVT]                 | X     |       |       |          |      |
-    | EFFEh      | Display Adapter II,III,V,B2 | X     | X     | X     | X        | X    |
-    | E013h      | ? [LDT]                     | X     | X     | X     | X        |      |
-    | ECCEh      | Display Adapter IV          |       | X     | X     | X        |      |
-    | ECECh      | Display Adapter IV,B1       |       | X     | X     | X        | X    |
-    | 9000-901Fh | Display Adapter A1,A2       |       | X     | X     |          | X    |
-    | EFD8h      | Display Adapter /J          |       |       | X     | X        | X    |
+    |            |                             | K3.31   | J4.04   | J4.08   | OS2J1.3 | Win3.02 | DOSVExt |
+    | POS ID     | Adapter Name                | 5605JBK | 5605PAA | 5605PCA | 5605PDE | 5605PAW | 5605PXA |
+    |------------|-----------------------------|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|
+    | EFFFh      | Display Adapter             |    X    |         |         |         |         |         |
+    | FFEDh      | ? [Atlas EVT]               |    X    |         |         |         |         |         |
+    | FFFDh      | ? [LDT EVT]                 |    X    |         |         |         |         |         |
+    | EFFEh      | Display Adapter II,III,V,B2 |    X    |    X    |    X    |    X    |    X    |    X    |
+    | E013h      | ? [LDT]                     |    X    |    X    |    X    |    X    |         |    X    |
+    | ECCEh      | Display Adapter IV          |         |    X    |    X    |    X    |         |    X    |
+    | ECECh      | Display Adapter IV,B1       |         |    X    |    X    |    X    |    X    |    X    |
+    | 9000-901Fh | Display Adapter A1,A2       |         |    X    |    X    |         |    X    |    X    |
+    | EFD8h      | Display Adapter /J          |         |         |    X    |    X    |    X    |    X    |
 */
 /* IO 3E0/3E1:0Ah Hardware Configuration Value L (imported from OS/2 DDK) */
 #define OldLSI 0x20 /* 1 = DA-2, 0 = DA-3 */
