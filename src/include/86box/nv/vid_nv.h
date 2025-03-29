@@ -48,20 +48,20 @@ void nv_log(const char *fmt, ...);
 #define NV_PCI_NUM_CFG_REGS     256     // number of pci config registers
 
 // 0x0000 was probably the NV0 'Nvidia Hardware Simulator'
-#define PCI_DEVICE_NV1          0x0008  // Nvidia NV1
-#define PCI_DEVICE_NV1_VGA      0x0009  // Nvidia NV1 VGA core
-#define PCI_DEVICE_NV2          0x0010  // Nvidia NV2 / Mutara V08 (cancelled)
-#define PCI_DEVICE_NV3          0x0018  // Nvidia NV3 (Riva 128)
-#define PCI_DEVICE_NV3T         0x0019  // Nvidia NV3T (Riva 128 ZX)
-#define PCI_DEVICE_NV4          0x0020  // Nvidia NV4 (RIVA TNT)
+#define NV_PCI_DEVICE_NV1       0x0008  // Nvidia NV1
+#define NV_PCI_DEVICE_NV1_VGA   0x0009  // Nvidia NV1 VGA core
+#define NV_PCI_DEVICE_NV2       0x0010  // Nvidia NV2 / Mutara V08 (cancelled)
+#define NV_PCI_DEVICE_NV3       0x0018  // Nvidia NV3 (Riva 128)
+#define NV_PCI_DEVICE_NV3T      0x0019  // Nvidia NV3T (Riva 128 ZX)
+#define NV_PCI_DEVICE_NV4       0x0020  // Nvidia NV4 (RIVA TNT)
 
-#define CHIP_REVISION_NV1_A0    0x0000  // 1994
-#define CHIP_REVISION_NV1_B0    0x0010  // 1995
-#define CHIP_REVISION_NV1_C0    0x0020  // 
+#define NV_CHIP_REVISION_NV1_A0 0x0000  // 1994
+#define NV_CHIP_REVISION_NV1_B0 0x0010  // 1995
+#define NV_CHIP_REVISION_NV1_C0 0x0020  // 1995-96?
 
-#define CHIP_REVISION_NV3_A0    0x0000  // January 1997
-#define CHIP_REVISION_NV3_B0    0x0010  // October 1997
-#define CHIP_REVISION_NV3_C0    0x0020  // 1998
+#define NV_CHIP_REVISION_NV3_A0 0x0000  // January 1997
+#define NV_CHIP_REVISION_NV3_B0 0x0010  // October 1997
+#define NV_CHIP_REVISION_NV3_C0 0x0020  // 1998
 
 // Architecture IDs
 #define NV_ARCHITECTURE_NV1     1       // NV1/STG2000

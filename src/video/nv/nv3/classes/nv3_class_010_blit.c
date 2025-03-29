@@ -54,7 +54,7 @@ void nv3_class_010_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             && nv3->pgraph.blit.point_in.y == nv3->pgraph.blit.point_out.y)
                 return;
 
-            nv3_render_blit_screen2screen(grobj);
+            //nv3_render_blit_screen2screen(grobj);
 
             break; 
         default:

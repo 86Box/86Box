@@ -131,11 +131,13 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             {
                 uint32_t index = (method_id - NV3_RECTANGLE_START) >> 3;
 
+                
+                // IN THIS ONE SPECIFIC PLACE, ****AND ONLY THIS ONE SPECIFIC PLACE****, X AND Y ARE SWAPPED???? */
                 // If the size is submitted, render it.
                 if (method_id & 0x04)
                 {
-                    nv3->pgraph.win95_gdi_text.rect_a_size[index].w = param & 0xFFFF;
-                    nv3->pgraph.win95_gdi_text.rect_a_size[index].h = (param >> 16) & 0xFFFF;
+                    nv3->pgraph.win95_gdi_text.rect_a_size[index].w = (param >> 16) & 0xFFFF;
+                    nv3->pgraph.win95_gdi_text.rect_a_size[index].h = param & 0xFFFF;
                     
                     nv_log("Method Execution: Rect GDI-A%d Size=%d,%d Color=0x%08x\n", index, nv3->pgraph.win95_gdi_text.rect_a_size[index].w, 
                         nv3->pgraph.win95_gdi_text.rect_a_size[index].h, nv3->pgraph.win95_gdi_text.color_a);
@@ -145,8 +147,8 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                 }
                 else // position
                 {
-                    nv3->pgraph.win95_gdi_text.rect_a_position[index].x = param & 0xFFFF;
-                    nv3->pgraph.win95_gdi_text.rect_a_position[index].y = (param >> 16) & 0xFFFF;
+                    nv3->pgraph.win95_gdi_text.rect_a_position[index].x = (param >> 16) & 0xFFFF;
+                    nv3->pgraph.win95_gdi_text.rect_a_position[index].y = param & 0xFFFF;
                     
                     nv_log("Method Execution: Rect GDI-A%d Position=%d,%d\n", index,
                          nv3->pgraph.win95_gdi_text.rect_a_position[index].x, nv3->pgraph.win95_gdi_text.rect_a_position[index].y);

@@ -27,6 +27,7 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
 
+/* Main device object pointer */
 nv3_t* nv3;
 
 /* These are a ****PLACEHOLDER**** and are copied from 3dfx VoodooBanshee/Voodoo3*/
@@ -257,11 +258,11 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
         // device id
 
         case NV3_PCI_CFG_DEVICE_ID:
-            ret = (PCI_DEVICE_NV3 & 0xFF);
+            ret = (NV_PCI_DEVICE_NV3 & 0xFF);
             break;
         
         case NV3_PCI_CFG_DEVICE_ID+1:
-            ret = (PCI_DEVICE_NV3 >> 8);
+            ret = (NV_PCI_DEVICE_NV3 >> 8);
             break;
         
         // various capabilities
@@ -498,6 +499,7 @@ void nv3_recalc_timings(svga_t* svga)
         return; 
 
     nv3_t* nv3 = (nv3_t*)svga->priv;
+    uint32_t pixel_mode = svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 0x03;
 
     svga->ma_latch += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0x1F) << 16;
     svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 2;
@@ -506,18 +508,22 @@ void nv3_recalc_timings(svga_t* svga)
     // i don't we should force the top 2 bits to 1...
 
     // required for VESA resolutions, force parameters higher
+    // only fuck around with any of this in VGAmode?
 
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDT10)) svga->vtotal += 0x400;
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDE10)) svga->dispend += 0x400;
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VRS10)) svga->vblankstart += 0x400;
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VBS10)) svga->vsyncstart += 0x400;
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_HBE6)) svga->hdisp += 0x400;  
+    if (pixel_mode == NV3_CRTC_REGISTER_PIXELMODE_VGA)
+    {
+        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDT10)) svga->vtotal += 0x400;
+        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDE10)) svga->dispend += 0x400;
+        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VRS10)) svga->vblankstart += 0x400;
+        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VBS10)) svga->vsyncstart += 0x400;
+        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_HBE6)) svga->hdisp += 0x400; 
 
-    if (svga->crtc[NV3_CRTC_REGISTER_HEB] & 0x01)
-        svga->hdisp += 0x100; // large screen bit
-
+        if (svga->crtc[NV3_CRTC_REGISTER_HEB] & 0x01)
+            svga->hdisp += 0x100; // large screen bit
+    }
+ 
     // Set the pixel mode
-    switch (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 0x03)
+    switch (pixel_mode)
     {
         case NV3_CRTC_REGISTER_PIXELMODE_8BPP:
             svga->bpp = 8;

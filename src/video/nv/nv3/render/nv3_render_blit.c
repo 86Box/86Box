@@ -55,7 +55,7 @@ void nv3_render_blit_image(uint32_t color, nv3_grobj_t grobj)
 
     /* Some extra data is sent as padding, we need to clip it off using size_out */
 
-    uint16_t clip_x = nv3->pgraph.image_current_position.x + nv3->pgraph.image.size.w;
+    uint16_t clip_x = nv3->pgraph.image.point.x + nv3->pgraph.image.size.w;
     /* we need to unpack them - IF THIS IS USED SOMEWHERE ELSE, DO SOMETHING ELSE WITH IT */
     /* the reverse order is due to the endianness */
     switch (nv3->nvbase.svga.bpp)
@@ -89,12 +89,12 @@ void nv3_render_blit_image(uint32_t color, nv3_grobj_t grobj)
         case 15:
         case 16:
             pixel1 = (color) & 0xFFFF;
-            if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel1, grobj);
+            if (nv3->pgraph.image_current_position.x < (clip_x)) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel1, grobj);
             nv3->pgraph.image_current_position.x++;
             nv3_class_011_check_line_bounds();
 
             pixel0 = (color >> 16) & 0xFFFF;
-            if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel0, grobj);
+            if (nv3->pgraph.image_current_position.x < (clip_x)) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel0, grobj);
             nv3->pgraph.image_current_position.x++;
             nv3_class_011_check_line_bounds();
                 
