@@ -29,11 +29,11 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/io.h>
-#include <86box/timer.h>
 #include <86box/dma.h>
 #include <86box/pic.h>
 #include <86box/mca.h>
 #include <86box/mem.h>
+#include <86box/timer.h>
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/nvr.h>
@@ -41,6 +41,7 @@
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_ncr5380.h>
+#include "cpu.h"
 
 #define LCS6821N_ROM            "roms/scsi/ncr5380/Longshine LCS-6821N - BIOS version 1.04.bin"
 #define COREL_LS2000_ROM        "roms/scsi/ncr5380/Corel LS2000 - BIOS ROM - Ver 1.65.bin"
@@ -80,6 +81,7 @@ typedef struct ncr53c400_t {
     int buffer_host_pos;
 
     int     busy;
+    int     reset;
     uint8_t pos_regs[8];
 
     pc_timer_t timer;
@@ -126,6 +128,9 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
 
     addr &= 0x3fff;
 
+    if (addr >= 0x3880)
+        ncr53c400_log("%04X:%08X: memio_write(%04x)=%02x\n", CS, cpu_state.pc, addr, val);
+
     if (addr >= 0x3a00)
         ncr400->ext_ram[addr - 0x3a00] = val;
     else {
@@ -147,6 +152,8 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                     if (ncr400->buffer_host_pos == MIN(128, dev->buffer_length)) {
                         ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
                         ncr400->busy = 1;
+                        if (ncr400->type != ROM_T130B)
+                            timer_on_auto(&ncr400->timer, 1.0);
                     }
                 } else
                     ncr53c400_log("No Write.\n");
@@ -155,6 +162,19 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
             case 0x3980:
                 switch (addr) {
                     case 0x3980: /* Control */
+                        /*Parity bits*/
+                        /*This is to avoid RTBios 8.10R BIOS problems with the hard disk and detection.*/
+                        /*If the parity bits are set, bit 0 of the 53c400 status port should be set as well.*/
+                        /*Required by RTASPI10.SYS otherwise it won't initialize.*/
+                        if (val & 0x80) {
+                            if (ncr->mode & 0x30) {
+                                if (!(ncr->mode & MODE_DMA)) {
+                                    ncr->mode = 0x00;
+                                    ncr400->reset = 1;
+                                }
+                            }
+                        }
+
                         ncr53c400_log("NCR 53c400 control=%02x, mode=%02x.\n", val, ncr->mode);
                         if ((val & CTRL_DATA_DIR) && !(ncr400->status_ctrl & CTRL_DATA_DIR)) {
                             ncr400->buffer_host_pos = MIN(128, dev->buffer_length);
@@ -180,10 +200,7 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                         }
                         if ((ncr->mode & MODE_DMA) && (dev->buffer_length > 0)) {
                             memset(ncr400->buffer, 0, MIN(128, dev->buffer_length));
-                            if (ncr400->type == ROM_T130B)
-                                timer_on_auto(&ncr400->timer, 10.0);
-                            else
-                                timer_on_auto(&ncr400->timer, scsi_bus->period);
+                            timer_on_auto(&ncr400->timer, 10.0);
                             ncr53c400_log("DMA timer on=%02x, callback=%lf, scsi buflen=%d, waitdata=%d, waitcomplete=%d, clearreq=%d, p=%lf enabled=%d.\n",
                                   ncr->mode & MODE_MONITOR_BUSY, scsi_device_get_callback(dev), dev->buffer_length, scsi_bus->wait_data, scsi_bus->wait_complete, scsi_bus->clear_req, scsi_bus->period, timer_is_enabled(&ncr400->timer));
                         } else
@@ -241,6 +258,20 @@ ncr53c400_read(uint32_t addr, void *priv)
 
                     if (ncr400->buffer_host_pos == MIN(128, dev->buffer_length)) {
                         ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
+                        if (ncr400->type != ROM_T130B) {
+                            if (!ncr400->block_count_loaded) {
+                                scsi_bus->tx_mode = PIO_TX_BUS;
+                                ncr53c400_log("IO End of read transfer\n");
+                                ncr->isr |= STATUS_END_OF_DMA;
+                                if (ncr->mode & MODE_ENA_EOP_INT) {
+                                    ncr53c400_log("NCR read irq\n");
+                                    ncr5380_irq(ncr, 1);
+                                }
+                            } else if (!timer_is_enabled(&ncr400->timer)) {
+                                ncr53c400_log("Timer re-enabled.\n");
+                                timer_on_auto(&ncr400->timer, 1.0);
+                            }
+                        }
                     }
                 }
                 break;
@@ -252,11 +283,10 @@ ncr53c400_read(uint32_t addr, void *priv)
                         ncr53c400_log("NCR status ctrl read=%02x.\n", ncr400->status_ctrl & STATUS_BUFFER_NOT_READY);
                         if (!ncr400->busy)
                             ret |= STATUS_5380_ACCESSIBLE;
-                        if (ncr->mode & 0x30) {            /*Parity bits*/
-                            if (!(ncr->mode & MODE_DMA)) { /*This is to avoid RTBios 8.10R BIOS problems with the hard disk and detection.*/
-                                ret |= 0x01;               /*If the parity bits are set, bit 0 of the 53c400 status port should be set as well.*/
-                                ncr->mode = 0x00;          /*Required by RTASPI10.SYS otherwise it won't initialize.*/
-                            }
+
+                        if (ncr400->reset) {
+                            ncr400->reset = 0;
+                            ret |= 0x01;
                         }
                         ncr53c400_log("NCR 53c400 status=%02x.\n", ret);
                         break;
@@ -267,7 +297,10 @@ ncr53c400_read(uint32_t addr, void *priv)
                         break;
 
                     case 0x3982: /* switch register read */
-                        ret = 0xff;
+                        if (ncr->irq != -1) {
+                            ret = 0xf8;
+                            ret += ncr->irq;
+                        }
                         ncr53c400_log("Switches read=%02x.\n", ret);
                         break;
 
@@ -282,7 +315,7 @@ ncr53c400_read(uint32_t addr, void *priv)
     }
 
     if (addr >= 0x3880)
-        ncr53c400_log("memio_read(%08x)=%02x\n", addr, ret);
+        ncr53c400_log("%04X:%08X: memio_read(%04x)=%02x\n", CS, cpu_state.pc, addr, ret);
 
     return ret;
 }
@@ -424,11 +457,8 @@ ncr53c400_callback(void *priv)
     uint8_t        status;
 
     if (scsi_bus->tx_mode != PIO_TX_BUS) {
-        if (ncr400->type == ROM_T130B) {
-            ncr53c400_log("PERIOD T130B DMA=%lf.\n", scsi_bus->period / 225.0);
-            timer_on_auto(&ncr400->timer, scsi_bus->period / 225.0);
-        } else
-            timer_on_auto(&ncr400->timer, 1.0);
+        ncr53c400_log("PERIOD T130B DMA=%lf.\n", scsi_bus->period / 225.0);
+        timer_on_auto(&ncr400->timer, scsi_bus->period / 225.0);
     }
 
     if (scsi_bus->data_wait & 1) {
@@ -538,14 +568,17 @@ ncr53c400_callback(void *priv)
                     ncr400->block_count = (ncr400->block_count - 1) & 0xff;
                     ncr53c400_log("NCR 53c400 Remaining blocks to be read=%d\n", ncr400->block_count);
                     if (!ncr400->block_count) {
-                        scsi_bus->tx_mode = PIO_TX_BUS;
                         ncr400->block_count_loaded = 0;
-                        ncr53c400_log("IO End of read transfer\n");
-                        ncr->isr |= STATUS_END_OF_DMA;
-                        if (ncr->mode & MODE_ENA_EOP_INT) {
-                            ncr53c400_log("NCR read irq\n");
-                            ncr5380_irq(ncr, 1);
-                        }
+                        if (ncr400->type == ROM_T130B) {
+                            scsi_bus->tx_mode = PIO_TX_BUS;
+                            ncr53c400_log("IO End of read transfer\n");
+                            ncr->isr |= STATUS_END_OF_DMA;
+                            if (ncr->mode & MODE_ENA_EOP_INT) {
+                                ncr53c400_log("NCR read irq\n");
+                                ncr5380_irq(ncr, 1);
+                            }
+                        } else
+                            timer_on_auto(&ncr400->timer, 1.0);
                     }
                     break;
                 }
@@ -732,8 +765,17 @@ ncr53c400_init(const device_t *info)
 
     scsi_bus_set_speed(ncr->bus, 5000000.0);
     scsi_bus->speed = 0.2;
-    scsi_bus->divider = 2.0;
-    scsi_bus->multi = 1.750;
+    if (ncr400->type == ROM_T130B) {
+        scsi_bus->divider = 2.0;
+        scsi_bus->multi = 1.750;
+    } else {
+        scsi_bus->divider = 1.0;
+        scsi_bus->multi = 1.0;
+    }
+
+    for (int i = 0; i < 8; i++)
+        scsi_device_reset(&scsi_devices[ncr->bus][i]);
+
     return ncr400;
 }
 
