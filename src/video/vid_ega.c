@@ -112,10 +112,13 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                     ega->fullchange = changeframecount;
                 if (ega->attraddr == 0x10 || ega->attraddr == 0x14 || ega->attraddr < 0x10) {
                     for (uint8_t c = 0; c < 16; c++) {
-                        if (ega->attrregs[0x10] & 0x80)
-                            ega->egapal[c] = (ega->attrregs[c] & 0xf) | ((ega->attrregs[0x14] & 0xf) << 4);
-                        else
-                            ega->egapal[c] = (ega->attrregs[c] & 0x3f) | ((ega->attrregs[0x14] & 0xc) << 4);
+                        if (ega->chipset) {
+                            if (ega->attrregs[0x10] & 0x80)
+                                ega->egapal[c] = (ega->attrregs[c] & 0xf) | ((ega->attrregs[0x14] & 0xf) << 4);
+                            else
+                                ega->egapal[c] = (ega->attrregs[c] & 0x3f) | ((ega->attrregs[0x14] & 0xc) << 4);
+                        } else
+                            ega->egapal[c] = ega->attrregs[c] & 0x3f;
                     }
                     ega->fullchange = changeframecount;
                 }
@@ -780,7 +783,7 @@ ega_poll(void *priv)
             ega->y_add *= ega->vres + 1;
             for (y = 0; y <= ega->vres; y++) {
                 /* Render scanline */
-                if(ega->render_override)
+                if (ega->render_override)
                     ega->render_override(ega->priv_parent);
                 else
                     ega->render(ega);

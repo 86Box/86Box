@@ -144,10 +144,10 @@ typedef struct ega_t {
     uint32_t   (*remap_func)(struct ega_t *ega, uint32_t in_addr);
     void       (*render)(struct ega_t *svga);
 
-    /*If set then another device is driving the monitor output and the EGA
-      card should not attempt to display anything */
-      void (*render_override)(void *priv);
-      void *priv_parent;
+    /* If set then another device is driving the monitor output and the EGA
+      card should not attempt to display anything. */
+    void       (*render_override)(void *priv);
+    void *     priv_parent;
 } ega_t;
 #endif
 
@@ -159,6 +159,7 @@ extern const device_t atiega800p_device;
 extern const device_t iskra_ega_device;
 extern const device_t et2000_device;
 extern const device_t jega_device;
+extern const device_t jvga_device;
 #endif
 
 extern int update_overscan;

@@ -1,16 +1,9 @@
 <RCC>
     <qresource prefix="/settings">
         <file>qt/icons/cartridge.ico</file>
-        <file>qt/icons/cartridge_empty.ico</file>
         <file>qt/icons/cassette.ico</file>
-        <file>qt/icons/cassette_active.ico</file>
-        <file>qt/icons/cassette_empty.ico</file>
-        <file>qt/icons/cassette_empty_active.ico</file>
         <file>qt/icons/cdrom.ico</file>
-        <file>qt/icons/cdrom_active.ico</file>
         <file>qt/icons/cdrom_disabled.ico</file>
-        <file>qt/icons/cdrom_empty.ico</file>
-        <file>qt/icons/cdrom_empty_active.ico</file>
         <file>qt/icons/cdrom_mute.ico</file>
         <file>qt/icons/cdrom_unmute.ico</file>
         <file>qt/icons/cdrom_image.ico</file>
@@ -18,38 +11,24 @@
         <file>qt/icons/cdrom_host.ico</file>
         <file>qt/icons/display.ico</file>
         <file>qt/icons/floppy_35.ico</file>
-        <file>qt/icons/floppy_35_active.ico</file>
-        <file>qt/icons/floppy_35_empty.ico</file>
-        <file>qt/icons/floppy_35_empty_active.ico</file>
         <file>qt/icons/floppy_525.ico</file>
-        <file>qt/icons/floppy_525_active.ico</file>
-        <file>qt/icons/floppy_525_empty.ico</file>
-        <file>qt/icons/floppy_525_empty_active.ico</file>
         <file>qt/icons/floppy_and_cdrom_drives.ico</file>
         <file>qt/icons/floppy_disabled.ico</file>
         <file>qt/icons/hard_disk.ico</file>
-        <file>qt/icons/hard_disk_active.ico</file>
         <file>qt/icons/input_devices.ico</file>
         <file>qt/icons/machine.ico</file>
         <file>qt/icons/mo.ico</file>
-        <file>qt/icons/mo_active.ico</file>
         <file>qt/icons/mo_disabled.ico</file>
-        <file>qt/icons/mo_empty.ico</file>
-        <file>qt/icons/mo_empty_active.ico</file>
         <file>qt/icons/network.ico</file>
-        <file>qt/icons/network_active.ico</file>
-        <file>qt/icons/network_empty.ico</file>
         <file>qt/icons/other_peripherals.ico</file>
         <file>qt/icons/other_removable_devices.ico</file>
         <file>qt/icons/ports.ico</file>
         <file>qt/icons/sound.ico</file>
-        <file>qt/icons/sound_mute.ico</file>
         <file>qt/icons/storage_controllers.ico</file>
         <file>qt/icons/zip.ico</file>
-        <file>qt/icons/zip_active.ico</file>
         <file>qt/icons/zip_disabled.ico</file>
-        <file>qt/icons/zip_empty.ico</file>
-        <file>qt/icons/zip_empty_active.ico</file>
+        <file>qt/icons/active.ico</file>
+        <file>qt/icons/disabled.ico</file>
         <file>qt/icons/86Box-gray.ico</file>
         <file>qt/icons/86Box-green.ico</file>
         <file>qt/icons/86Box-red.ico</file>

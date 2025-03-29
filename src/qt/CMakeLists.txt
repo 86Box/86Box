@@ -194,6 +194,9 @@ add_library(ui STATIC
     qt_openglshaderconfig.hpp
     qt_openglshaderconfig.cpp
     qt_openglshaderconfig.ui
+
+    qt_iconindicators.hpp
+    qt_iconindicators.cpp
 )
 
 if(RTMIDI)

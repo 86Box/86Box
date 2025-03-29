@@ -6981,46 +6981,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* has a Phoenix PLCC Multikey copyrighted 1993, version unknown. */
-    {
-        .name = "[OPTi 895] Packard Bell PB450",
-        .internal_name = "pb450",
-        .type = MACHINE_TYPE_486_S3_PCI,
-        .chipset = MACHINE_CHIPSET_OPTI_895_802G,
-        .init = machine_at_pb450_init,
-        .p1_handler = NULL,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_SOCKET3,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_VIDEO,
-        .ram = {
-            .min = 1024,
-            .max = 65536,
-            .step = 1024
-        },
-        .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = &pb450_device,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = &gd5428_vlb_onboard_device,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
     /* Uses an NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware. */
     {
         .name = "[SiS 461] Acer V10",
@@ -7912,6 +7872,46 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &gd5430_onboard_vlb_device,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* has a Phoenix PLCC Multikey copyrighted 1993, version unknown. */
+    {
+        .name = "[OPTi 895] Packard Bell PB450",
+        .internal_name = "pb450",
+        .type = MACHINE_TYPE_486_S3_PCI,
+        .chipset = MACHINE_CHIPSET_OPTI_895_802G,
+        .init = machine_at_pb450_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = &pb450_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5428_vlb_onboard_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -8902,7 +8902,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCI,
+        .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM,
         .ram = {
             .min = 1024,
@@ -9358,7 +9358,7 @@ const machine_t machines[] = {
             .min_multi = MACHINE_MULTIPLIER_FIXED,
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
-        .bus_flags = MACHINE_PCI,
+        .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 2048,

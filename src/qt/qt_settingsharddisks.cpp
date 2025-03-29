@@ -81,7 +81,7 @@ addRow(QAbstractItemModel *model, hard_disk_t *hd)
 
     QString busName = Harddrives::BusChannelName(hd->bus_type, hd->channel);
     model->setData(model->index(row, ColumnBus), busName);
-    model->setData(model->index(row, ColumnBus), ProgSettings::loadIcon("/hard_disk.ico"), Qt::DecorationRole);
+    model->setData(model->index(row, ColumnBus), QIcon(":/settings/qt/icons/hard_disk.ico"), Qt::DecorationRole);
     model->setData(model->index(row, ColumnBus), hd->bus_type, DataBus);
     model->setData(model->index(row, ColumnBus), hd->bus_type, DataBusPrevious);
     model->setData(model->index(row, ColumnBus), hd->channel, DataBusChannel);
