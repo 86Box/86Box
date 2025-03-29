@@ -154,6 +154,8 @@ machine_xt_laserxt_common_init(const machine_t *model,int is_lxt3)
     standalone_gameport_type = &gameport_device;
 
     laserxt_init(is_lxt3);
+
+    device_add(&keyboard_xt_lxt3_device);
 }
 
 int
@@ -167,8 +169,6 @@ machine_xt_laserxt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt_device);
-
     machine_xt_laserxt_common_init(model, 0);
 
     return ret;
@@ -179,13 +179,16 @@ machine_xt_lxt3_init(const machine_t *model)
 {
     int ret;
 
+#if 0
     ret = bios_load_linear("roms/machines/lxt3/27c64d.bin",
                            0x000fe000, 8192, 0);
+#else
+    ret = bios_load_linear("roms/machines/lxt3/vtech-laser-xt3-bios-v1-26-27c64-637cfbe96dfa1809192278.bin",
+                           0x000fe000, 8192, 0);
+#endif
 
     if (bios_only || !ret)
         return ret;
-
-    device_add(&keyboard_xt_lxt3_device);
 
     machine_xt_laserxt_common_init(model, 1);
 
