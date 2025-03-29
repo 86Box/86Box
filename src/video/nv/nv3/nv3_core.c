@@ -502,8 +502,7 @@ void nv3_recalc_timings(svga_t* svga)
     uint32_t pixel_mode = svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 0x03;
 
     svga->ma_latch += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0x1F) << 16;
-    svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 2;
-
+    
     // should these actually use separate values?
     // i don't we should force the top 2 bits to 1...
 
@@ -526,13 +525,15 @@ void nv3_recalc_timings(svga_t* svga)
     switch (pixel_mode)
     {
         case NV3_CRTC_REGISTER_PIXELMODE_8BPP:
+            svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 1; // ?????
             svga->bpp = 8;
             svga->lowres = 0;
             svga->map8 = svga->pallook;
             svga->render = svga_render_8bpp_highres;
             break;
         case NV3_CRTC_REGISTER_PIXELMODE_16BPP:
-        /* sometimes it really renders in 15bpp, so you need to do this */
+            /* sometimes it really renders in 15bpp, so you need to do this */
+            svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 2;
             if ((nv3->pramdac.general_control >> NV3_PRAMDAC_GENERAL_CONTROL_565_MODE) & 0x01)
             {
                 svga->bpp = 16;
@@ -548,6 +549,7 @@ void nv3_recalc_timings(svga_t* svga)
         
             break;
         case NV3_CRTC_REGISTER_PIXELMODE_32BPP:
+            svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 3;
             svga->bpp = 32;
             svga->lowres = 0;
             svga->render = svga_render_32bpp_highres;
