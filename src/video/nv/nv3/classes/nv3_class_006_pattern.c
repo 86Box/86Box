@@ -55,6 +55,10 @@ void nv3_class_006_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv3->pgraph.pattern_shape = param & 0x03;
 
             break;
+        /* Seems to be "SetPatternSelect" on Riva TNT and later, but possibly called by accident on Riva 128. There is no hardware equivalent for this. So let's just suppress
+        the warnings. */
+        case NV3_PATTERN_UNUSED_DRIVER_BUG:
+            break;
         case NV3_PATTERN_COLOR0:
             nv3_color_expanded_t expanded_colour0 = nv3_render_expand_color(grobj, param);
             nv3_render_set_pattern_color(expanded_colour0, false);
@@ -69,10 +73,9 @@ void nv3_class_006_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             break;
         case NV3_PATTERN_BITMAP_LOW:
             nv3->pgraph.pattern_bitmap |= param;
-
             break;
         default:
-            nv_log("%s: Invalid or Unimplemented method 0x%04x\n", nv3_class_names[context.class_id & 0x1F], method_id);
+            warning("%s: Invalid or unimplemented method 0x%04x\n", nv3_class_names[context.class_id & 0x1F], method_id);
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
             break;
     }

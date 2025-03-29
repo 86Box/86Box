@@ -42,7 +42,7 @@ void nv3_class_005_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv_log("Method Execution: Clip Size: %d,%d\n", nv3->pgraph.clip_start.x, nv3->pgraph.clip_start.y);
             break;
         default:
-            nv_log("%s: Invalid or Unimplemented method 0x%04x\n", nv3_class_names[context.class_id & 0x1F], method_id);
+            warning("%s: Invalid or unimplemented method 0x%04x\n", nv3_class_names[context.class_id & 0x1F], method_id);
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
             return;
     }

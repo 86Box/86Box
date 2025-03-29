@@ -98,6 +98,7 @@ typedef enum nv3_pgraph_class_e
 #define NV3_PATTERN_SHAPE_1X64                          2
 #define NV3_PATTERN_SHAPE_LAST_VALID                    NV3_PATTERN_SHAPE_1X64
 
+#define NV3_PATTERN_UNUSED_DRIVER_BUG                   0x030C
 #define NV3_PATTERN_COLOR0                              0x0310
 #define NV3_PATTERN_COLOR1                              0x0314
 #define NV3_PATTERN_BITMAP_HIGH                         0x0318
