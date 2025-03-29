@@ -37,7 +37,7 @@ uint32_t nv3_user_read(uint32_t address)
     //todo: print out the subchannel 
     uint8_t method_offset = (address & 0x1FFC);
 
-#ifndef RELEASE_BUILD
+#ifdef ENABLE_NV_LOG_ULTRA
     uint8_t channel = (address - NV3_USER_START) / 0x10000;
     uint8_t subchannel = ((address - NV3_USER_START)) / 0x2000 % NV3_DMA_SUBCHANNELS_PER_CHANNEL;
 

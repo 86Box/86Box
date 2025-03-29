@@ -84,7 +84,7 @@ void nv3_ptimer_tick(double real_time)
     // Check if the alarm has actually triggered...
     if (nv3->ptimer.time >= nv3->ptimer.alarm)
     {
-        nv_log("PTIMER alarm interrupt fired because we reached TIME value 0x%08x\n", nv3->ptimer.alarm);
+        nv_log("PTIMER alarm interrupt fired (if interrupts enabled) because we reached TIME value 0x%08x\n", nv3->ptimer.alarm);
         nv3_ptimer_interrupt(NV3_PTIMER_INTR_ALARM);
     }
 }

@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   22 March 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   26 March 2025 (STILL WORKING ON IT!!!)
  *  
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -671,9 +671,10 @@ extern const device_config_t nv3_config[];
 #define NV3_PGRAPH_REGISTER_END                         0x401FFF    // end of pgraph registers
 #define NV3_PGRAPH_REAL_END                             0x5C1FFF
 
+// PRMCIO is redirected to SVGA subsystem
 #define NV3_PRMCIO_START                                0x601000
-// Following four are CRTC+I2C access registers
-// and get redirected to VGA
+
+
 #define NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_MONO         0x6013B4    // Current CRTC Register Index - Monochrome
 #define NV3_PRMCIO_CRTC_REGISTER_CUR_MONO               0x6013B5    // Currently Selected CRTC Register - Monochrome
 #define NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_COLOR        0x6013D4    // Current CRTC Register Index - Colour

@@ -41,13 +41,9 @@ void nv3_svga_out(uint16_t addr, uint8_t val, void* priv);
 
 bool nv3_is_svga_redirect_address(uint32_t addr)
 {
-    return (addr >= NV3_PRMVIO_START
-    && addr <= NV3_PRMVIO_END
-    || addr == NV3_PRMCIO_CRTC_REGISTER_CUR_COLOR
-    || addr == NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_COLOR
-    || addr == NV3_PRMCIO_CRTC_REGISTER_CUR_MONO
-    || addr == NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_MONO
-    || (addr >= NV3_VGA_DAC_START && addr <= NV3_VGA_DAC_END));
+    return (addr >= NV3_PRMVIO_START && addr <= NV3_PRMVIO_END)     // VGA
+    || (addr >= NV3_PRMCIO_START && addr <= NV3_PRMCIO_END)         // CRTC
+    || (addr >= NV3_VGA_DAC_START && addr <= NV3_VGA_DAC_END);      // Legacy RAMDAC support(?)
 }
 
 // All MMIO regs are 32-bit i believe internally

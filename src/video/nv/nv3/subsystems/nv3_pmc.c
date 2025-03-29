@@ -88,11 +88,11 @@ uint32_t nv3_pmc_handle_interrupts(bool send_now)
     if (nv3->pfifo.interrupt_status & nv3->pfifo.interrupt_enable)
         new_intr_value |= (NV3_PMC_INTERRUPT_PFIFO_PENDING << NV3_PMC_INTERRUPT_PFIFO);
 
-    // PFB interrupt is VBLANK PGRAPH interrupt...what nvidia...clean this up once we verify it
+    // PFB interrupt is VBLANK PGRAPH interrupt...what nvidia...
     if (nv3->pgraph.interrupt_status_0 & (1 << 8)
     && nv3->pgraph.interrupt_enable_0 & (1 << 8))
         new_intr_value |= (NV3_PMC_INTERRUPT_PFB_PENDING << NV3_PMC_INTERRUPT_PFB);
-    
+
     if (nv3->pgraph.interrupt_status_0 & ~(1 << 8)
     && nv3->pgraph.interrupt_enable_0 & ~(1 << 8)) // otherwise PGRAPH-0 interurpt
         new_intr_value |= (NV3_PMC_INTERRUPT_PGRAPH0_PENDING << NV3_PMC_INTERRUPT_PGRAPH0);
