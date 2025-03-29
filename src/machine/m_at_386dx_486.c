@@ -691,12 +691,12 @@ static const device_config_t pb450_config[] = {
         .name = "bios",
         .description = "BIOS Version",
         .type = CONFIG_BIOS,
-        .default_string = "pci10a",
+        .default_string = "pb450a",
         .default_int = 0,
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "PCI 1.0A", .internal_name = "pb450" /*"pci10a"*/, .bios_type = BIOS_NORMAL, 
+            { .name = "PCI 1.0A", .internal_name = "pb450a" /*"pci10a"*/, .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/OPTI802.bin", "" } },
             { .name = "PNP 1.1A", .internal_name = "pnp11a", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/PNP11A.bin", "" } },
@@ -708,7 +708,7 @@ static const device_config_t pb450_config[] = {
 };
 
 const device_t pb450_device = {
-    .name          = "Packard Bell PB450 Devices",
+    .name          = "Packard Bell PB450",
     .internal_name = "pb450_device",
     .flags         = 0,
     .local         = 0,
@@ -732,7 +732,7 @@ machine_at_pb450_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    fn = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
     

@@ -1624,6 +1624,8 @@ set_screen_size_monitor(int x, int y, int monitor_index)
 {
     int    temp_overscan_x = monitors[monitor_index].mon_overscan_x;
     int    temp_overscan_y = monitors[monitor_index].mon_overscan_y;
+    int    is_svga         = (video_get_type_monitor(monitor_index) == VIDEO_FLAG_TYPE_SPECIAL) ||
+                             (video_get_type_monitor(monitor_index) == VIDEO_FLAG_TYPE_8514);
     double dx;
     double dy;
     double dtx;
@@ -1657,19 +1659,19 @@ set_screen_size_monitor(int x, int y, int monitor_index)
         dty = (double) temp_overscan_y;
 
         /* Account for possible overscan. */
-        if (video_get_type_monitor(monitor_index) != VIDEO_FLAG_TYPE_SPECIAL && (temp_overscan_y == 16)) {
+        if (!is_svga && (temp_overscan_y == 16)) {
             /* CGA */
             dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-        } else if (video_get_type_monitor(monitor_index) != VIDEO_FLAG_TYPE_SPECIAL && (temp_overscan_y < 16)) {
+        } else if (!is_svga && (temp_overscan_y < 16)) {
             /* MDA/Hercules */
-            dy = (x / 4.0) * 3.0;
+            dy = (dx / 4.0) * 3.0;
         } else {
             if (enable_overscan) {
                 /* EGA/(S)VGA with overscan */
                 dy = (((dx - dtx) / 4.0) * 3.0) + dty;
             } else {
                 /* EGA/(S)VGA without overscan */
-                dy = (x / 4.0) * 3.0;
+                dy = (dx / 4.0) * 3.0;
             }
         }
         monitors[monitor_index].mon_unscaled_size_y = (int) dy;
