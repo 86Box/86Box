@@ -84,6 +84,8 @@ typedef enum nv3_pgraph_class_e
 #define NV3_BETA_FACTOR                                 0x0300
 
 // Chroma Key
+// Can't figure out what this is, used in 9x but certainly software, can't find anywhere...
+#define NV3_CHROMA_UNKNOWN_0200                         0x0200
 #define NV3_CHROMA_KEY                                  0x0304
 
 // Clip
@@ -113,6 +115,25 @@ typedef enum nv3_pgraph_class_e
 
 #define NV3_RECTANGLE_MAX                               16
 #define NV3_RECTANGLE_END                               0x0480
+
+// M2MF
+#define NV3_M2MF_IN_CTXDMA_OFFSET                       0x030C
+#define NV3_M2MF_OUT_CTXDMA_OFFSET                      0x0310
+#define NV3_M2MF_IN_PITCH                               0x0314
+#define NV3_M2MF_OUT_PITCH                              0x0318
+#define NV3_M2MF_SCANLINE_LENGTH_IN_BYTES               0x031C
+#define NV3_M2MF_NUM_SCANLINES                          0x0320
+#define NV3_M2MF_FORMAT                                 0x0324
+
+// M2MF formats (IN and OUT ORed together)
+#define NV3_M2MF_FORMAT_INPUT_INC_1                     0x1
+#define NV3_M2MF_FORMAT_INPUT_INC_2                     0x2
+#define NV3_M2MF_FORMAT_INPUT_INC_4                     0x4
+#define NV3_M2MF_FORMAT_OUTPUT_INC_1                    0x100
+#define NV3_M2MF_FORMAT_OUTPUT_INC_2                    0x200
+#define NV3_M2MF_FORMAT_OUTPUT_INC_4                    0x400
+
+#define NV3_M2MF_NOTIFY                                 0x0328
 
 // blit
 #define NV3_BLIT_POSITION_IN                            0x0300
@@ -634,8 +655,7 @@ typedef struct nv3_object_class_00D
     uint32_t pitch_out;
     uint32_t line_length_in;                        // Stride?
     uint32_t line_count;
-    uint8_t format_input_bits;                      // 1 2 or 4 to increment by bits
-    uint8_t format_output_bits;                     // 1 2 to 4 to increment by bits
+    uint8_t format;                                 // input increment 1 2 or 4, output increment 1 2 or 4 (represented by << 8)
     uint8_t reserved3[2];
     uint32_t buffer_notify;                         // Notify the Buffedr
     uint8_t reserved4[0x1CD3];  
