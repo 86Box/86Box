@@ -192,12 +192,6 @@ load_general(void)
     else if (mouse_sensitivity > 2.0)
         mouse_sensitivity = 2.0;
 
-    p = ini_section_get_string(cat, "iconset", NULL);
-    if (p != NULL)
-        strcpy(icon_set, p);
-    else
-        strcpy(icon_set, "");
-
     enable_discord = !!ini_section_get_int(cat, "enable_discord", 0);
 
     open_dir_usr_path = ini_section_get_int(cat, "open_dir_usr_path", 0);
@@ -2038,11 +2032,6 @@ save_general(void)
         ini_section_set_string(cat, "language", buffer);
     }
 
-    if (!strcmp(icon_set, ""))
-        ini_section_delete_var(cat, "iconset");
-    else
-        ini_section_set_string(cat, "iconset", icon_set);
-
     if (enable_discord)
         ini_section_set_int(cat, "enable_discord", enable_discord);
     else
@@ -3011,6 +3000,19 @@ save_other_removable_devices(void)
             else
                 ini_section_set_string(cat, temp, zip_drives[c].image_path);
         }
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            sprintf(temp, "zip_%02i_image_history_%02i", c + 1, i + 1);
+            if ((zip_drives[c].image_history[i] == 0) || strlen(zip_drives[c].image_history[i]) == 0)
+                ini_section_delete_var(cat, temp);
+            else {
+                path_normalize(zip_drives[c].image_history[i]);
+                if (!strnicmp(zip_drives[c].image_history[i], usr_path, strlen(usr_path)))
+                    ini_section_set_string(cat, temp, &zip_drives[c].image_history[i][strlen(usr_path)]);
+                else
+                    ini_section_set_string(cat, temp, zip_drives[c].image_history[i]);
+            }
+        }
     }
 
     for (c = 0; c < MO_NUM; c++) {
@@ -3053,6 +3055,19 @@ save_other_removable_devices(void)
                 ini_section_set_string(cat, temp, &mo_drives[c].image_path[strlen(usr_path)]);
             else
                 ini_section_set_string(cat, temp, mo_drives[c].image_path);
+        }
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            sprintf(temp, "mo_%02i_image_history_%02i", c + 1, i + 1);
+            if ((mo_drives[c].image_history[i] == 0) || strlen(mo_drives[c].image_history[i]) == 0)
+                ini_section_delete_var(cat, temp);
+            else {
+                path_normalize(mo_drives[c].image_history[i]);
+                if (!strnicmp(mo_drives[c].image_history[i], usr_path, strlen(usr_path)))
+                    ini_section_set_string(cat, temp, &mo_drives[c].image_history[i][strlen(usr_path)]);
+                else
+                    ini_section_set_string(cat, temp, mo_drives[c].image_history[i]);
+            }
         }
     }
 

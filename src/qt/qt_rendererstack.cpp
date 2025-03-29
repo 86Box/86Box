@@ -38,6 +38,7 @@
 
 #include <QScreen>
 #include <QMessageBox>
+#include <QTouchEvent>
 
 #ifdef __APPLE__
 #    include <CoreGraphics/CoreGraphics.h>
@@ -63,6 +64,7 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     : QStackedWidget(parent)
     , ui(new Ui::RendererStack)
 {
+    setAttribute(Qt::WA_AcceptTouchEvents, true);
     rendererTakesScreenshots = false;
 #ifdef Q_OS_WINDOWS
     int raw = 1;
@@ -206,9 +208,13 @@ RendererStack::wheelEvent(QWheelEvent *event)
         return;
     }
 
+#if !defined(Q_OS_WINDOWS) && !defined(__APPLE__)
     double numSteps = (double) event->angleDelta().y() / 120.0;
+    double numStepsW = (double) event->angleDelta().x() / 120.0;
 
     mouse_set_z((int) numSteps);
+    mouse_set_w((int) numStepsW);
+#endif
     event->accept();
 }
 
@@ -288,7 +294,8 @@ RendererStack::leaveEvent(QEvent *event)
 void
 RendererStack::switchRenderer(Renderer renderer)
 {
-    startblit();
+    //startblit();
+    switchInProgress = true;
     if (current) {
         rendererWindow->finalize();
         removeWidget(current.get());
@@ -339,26 +346,6 @@ RendererStack::createRenderer(Renderer renderer)
                 current.reset(this->createWindowContainer(hw, this));
                 break;
             }
-        case Renderer::OpenGL3PCem:
-            {
-                this->createWinId();
-                auto hw        = new OpenGLRenderer(this);
-                rendererWindow = hw;
-                connect(this, &RendererStack::blitToRenderer, hw, &OpenGLRenderer::onBlit, Qt::QueuedConnection);
-                connect(hw, &OpenGLRenderer::initialized, [=]() {
-                    /* Buffers are available only after initialization. */
-                    imagebufs = rendererWindow->getBuffers();
-                    endblit();
-                    emit rendererChanged();
-                });
-                connect(hw, &OpenGLRenderer::errorInitializing, [=]() {
-                    /* Renderer not could initialize, fallback to software. */
-                    imagebufs = {};
-                    QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
-                });
-                current.reset(this->createWindowContainer(hw, this));
-                break;
-            }
         case Renderer::OpenGL3:
             {
                 this->createWinId();
@@ -369,7 +356,7 @@ RendererStack::createRenderer(Renderer renderer)
                 connect(hw, &OpenGLRenderer::initialized, [=]() {
                     /* Buffers are available only after initialization. */
                     imagebufs = rendererWindow->getBuffers();
-                    endblit();
+                    switchInProgress = false;
                     emit rendererChanged();
                 });
                 connect(hw, &OpenGLRenderer::errorInitializing, [=]() {
@@ -401,7 +388,7 @@ RendererStack::createRenderer(Renderer renderer)
                 connect(hw, &VulkanWindowRenderer::rendererInitialized, [=]() {
                     /* Buffers are available only after initialization. */
                     imagebufs = rendererWindow->getBuffers();
-                    endblit();
+                    switchInProgress = false;
                     emit rendererChanged();
                 });
                 connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
@@ -431,9 +418,9 @@ RendererStack::createRenderer(Renderer renderer)
 
     currentBuf = 0;
 
-    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan && renderer != Renderer::OpenGL3PCem) {
+    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan) {
         imagebufs = rendererWindow->getBuffers();
-        endblit();
+        switchInProgress = false;
         emit rendererChanged();
     }
 }
@@ -443,7 +430,7 @@ void
 RendererStack::blit(int x, int y, int w, int h)
 {
     if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) ||
-        (w > 2048) || (h > 2048) ||
+        (w > 2048) || (h > 2048) || (switchInProgress) ||
         (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() ||
         std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
         video_blit_complete_monitor(m_monitor_index);
@@ -496,8 +483,8 @@ RendererStack::event(QEvent* event)
 
         if (m_monitor_index >= 1) {
             if (mouse_input_mode >= 1) {
-                mouse_x_abs       = (mouse_event->localPos().x()) / (long double)width();
-                mouse_y_abs       = (mouse_event->localPos().y()) / (long double)height();
+                mouse_x_abs       = (mouse_event->localPos().x()) / (double)width();
+                mouse_y_abs       = (mouse_event->localPos().y()) / (double)height();
                 if (!mouse_tablet_in_proximity)
                     mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
             }
@@ -506,15 +493,69 @@ RendererStack::event(QEvent* event)
 
 #ifdef Q_OS_WINDOWS
         if (mouse_input_mode == 0) {
-            mouse_x_abs           = (mouse_event->localPos().x()) / (long double)width();
-            mouse_y_abs           = (mouse_event->localPos().y()) / (long double)height();
+            mouse_x_abs           = (mouse_event->localPos().x()) / (double)width();
+            mouse_y_abs           = (mouse_event->localPos().y()) / (double)height();
             return QStackedWidget::event(event);
         }
 #endif
 
-        mouse_x_abs               = (mouse_event->localPos().x()) / (long double)width();
-        mouse_y_abs               = (mouse_event->localPos().y()) / (long double)height();
+        mouse_x_abs               = (mouse_event->localPos().x()) / (double)width();
+        mouse_y_abs               = (mouse_event->localPos().y()) / (double)height();
         mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+    } else switch (event->type()) {
+        case QEvent::TouchBegin:
+        case QEvent::TouchUpdate:
+        {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+            QTouchEvent* touchevent = (QTouchEvent*)event;
+            if (mouse_input_mode == 0) break;
+            if (touchevent->touchPoints().count()) {
+                mouse_x_abs = (touchevent->touchPoints()[0].pos().x()) / (double)width();
+                mouse_y_abs = (touchevent->touchPoints()[0].pos().y()) / (double)height();
+            }
+            mouse_set_buttons_ex(mouse_get_buttons_ex() | 1);
+            touchevent->accept();
+            return true;
+#else
+            QTouchEvent* touchevent = (QTouchEvent*)event;
+            if (mouse_input_mode == 0) break;
+            if (touchevent->pointCount()) {
+                mouse_x_abs = (touchevent->point(0).position().x()) / (double)width();
+                mouse_y_abs = (touchevent->point(0).position().y()) / (double)height();
+            }
+            mouse_set_buttons_ex(mouse_get_buttons_ex() | 1);
+            touchevent->accept();
+            return true;
+#endif
+        }
+        case QEvent::TouchEnd:
+        case QEvent::TouchCancel:
+        {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+            QTouchEvent* touchevent = (QTouchEvent*)event;
+            if (mouse_input_mode == 0) break;
+            if (touchevent->touchPoints().count()) {
+                mouse_x_abs = (touchevent->touchPoints()[0].pos().x()) / (double)width();
+                mouse_y_abs = (touchevent->touchPoints()[0].pos().y()) / (double)height();
+            }
+            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~1);
+            touchevent->accept();
+            return true;
+#else
+            QTouchEvent* touchevent = (QTouchEvent*)event;
+            if (mouse_input_mode == 0) break;
+            if (touchevent->pointCount()) {
+                mouse_x_abs = (touchevent->point(0).position().x()) / (double)width();
+                mouse_y_abs = (touchevent->point(0).position().y()) / (double)height();
+            }
+            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~1);
+            touchevent->accept();
+            return true;
+#endif
+        }
+
+        default:
+            return QStackedWidget::event(event);
     }
 
     return QStackedWidget::event(event);

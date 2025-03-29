@@ -95,9 +95,10 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
                         t128->status, scsi_bus->period, timer_is_enabled(&t128->timer), t128->block_loaded);
 
                 t128->status &= ~0x04;
-                timer_on_auto(&t128->timer, 10.0);
+                timer_on_auto(&t128->timer, 1.0);
             }
-        }
+        } else
+            t128_log("Write not allowed.\n");
     }
 }
 
@@ -136,20 +137,18 @@ t128_read(uint32_t addr, void *priv)
                 t128_log("T128 Transfer busy read, status=%02x, period=%lf, enabled=%d.\n",
                         t128->status, scsi_bus->period, timer_is_enabled(&t128->timer));
 
+                t128->status &= ~0x04;
                 if (!t128->block_loaded) {
                     ncr->isr |= STATUS_END_OF_DMA;
                     if (ncr->mode & MODE_ENA_EOP_INT) {
                         t128_log("T128 read irq\n");
                         ncr5380_irq(ncr, 1);
                     }
-                    t128->status &= ~0x04;
                     scsi_bus->bus_out |= BUS_CD;
                     scsi_bus->tx_mode = PIO_TX_BUS;
                     timer_stop(&t128->timer);
                 } else if (!timer_is_enabled(&t128->timer))
-                    timer_on_auto(&t128->timer, 10.0);
-                else
-                    t128->status &= ~0x04;
+                    timer_on_auto(&t128->timer, 1.0);
             }
         } else {
             /*According to the WinNT DDK sources, just get the status timeout bit from here.*/
@@ -522,6 +521,10 @@ t128_init(const device_t *info)
     scsi_bus->speed = 0.2;
     scsi_bus->divider = 1.0;
     scsi_bus->multi = 1.0;
+
+    for (int i = 0; i < 8; i++)
+        scsi_device_reset(&scsi_devices[ncr->bus][i]);
+
     return t128;
 }
 

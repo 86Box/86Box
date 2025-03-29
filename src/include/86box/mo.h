@@ -51,10 +51,10 @@ static const mo_type_t mo_types[KNOWN_MO_TYPES] = {
 };
 
 typedef struct mo_drive_type_t {
-    const char vendor[9];
-    const char model[16];
-    const char revision[5];
-    int8_t     supported_media[KNOWN_MO_TYPES];
+    const char *vendor;
+    const char *model;
+    const char *revision;
+    int8_t      supported_media[KNOWN_MO_TYPES];
 } mo_drive_type_t;
 
 #define KNOWN_MO_DRIVE_TYPES 22
@@ -122,6 +122,8 @@ typedef struct mo_drive_t {
     uint32_t           medium_size;
     uint32_t           base;
     uint16_t           sector_size;
+
+    int                supported;
 } mo_drive_t;
 
 typedef struct mo_t {
@@ -161,6 +163,7 @@ typedef struct mo_t {
     uint32_t           sector_pos;
     uint32_t           sector_len;
     uint32_t           packet_len;
+    uint32_t           block_len;
 
     double             callback;
 

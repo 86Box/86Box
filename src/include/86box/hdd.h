@@ -138,55 +138,63 @@ typedef struct hdd_zone_t {
 
 /* Define the virtual Hard Disk. */
 typedef struct hard_disk_t {
-    uint8_t id;
+    uint8_t           id;
+
     union {
-        uint8_t channel; /* Needed for Settings to reduce the number of if's */
+        /* Needed for Settings to reduce the number of if's */
+        uint8_t           channel;
 
-        uint8_t mfm_channel; /* Should rename and/or unionize */
-        uint8_t esdi_channel;
-        uint8_t xta_channel;
-        uint8_t ide_channel;
-        uint8_t scsi_id;
+        uint8_t           mfm_channel;
+        uint8_t           esdi_channel;
+        uint8_t           xta_channel;
+        uint8_t           ide_channel;
+        uint8_t           scsi_id;
     };
-    uint8_t bus_type;
-    uint8_t bus_mode;  /* Bit 0 = PIO suported;
-                          Bit 1 = DMA supportd. */
-    uint8_t wp; /* Disk has been mounted READ-ONLY */
-    uint8_t pad;
-    uint8_t pad0;
 
-    void *priv;
+    uint8_t            bus_type;
+    uint8_t            bus_mode;     /* Bit 0 = PIO suported;
+                                        Bit 1 = DMA supportd. */
+    uint8_t            wp;           /* Disk has been mounted
+                                        READ-ONLY */
+    uint8_t            pad;
+    uint8_t            pad0;
 
-    char fn[1024];         /* Name of current image file */
-    char vhd_parent[1041]; /* Differential VHD parent file */
+    void *             priv;
 
-    uint32_t seek_pos;
-    uint32_t seek_len;
-    uint32_t base;
-    uint32_t spt;
-    uint32_t hpc; /* Physical geometry parameters */
-    uint32_t tracks;
-    const char *model;
+    char               fn[1024];     /* Name of current image file */
+    /* Differential VHD parent file */
+    char               vhd_parent[1280];
 
-    hdd_zone_t  zones[HDD_MAX_ZONES];
-    uint32_t    num_zones;
-    hdd_cache_t cache;
-    uint32_t    phy_cyl;
-    uint32_t    phy_heads;
-    uint32_t    rpm;
-    uint8_t     max_multiple_block;
+    uint32_t           seek_pos;
+    uint32_t           seek_len;
+    uint32_t           base;
+    uint32_t           spt;          /* Physical geometry parameters */
+    uint32_t           hpc;
+    uint32_t           tracks;
+    uint32_t           speed_preset;
 
-    uint32_t cur_cylinder;
-    uint32_t cur_track;
-    uint32_t cur_addr;
+    uint32_t           num_zones;
+    uint32_t           phy_cyl;
+    uint32_t           phy_heads;
+    uint32_t           rpm;
+    uint32_t           cur_cylinder;
+    uint32_t           cur_track;
+    uint32_t           cur_addr;
+    uint32_t           vhd_blocksize;
 
-    uint32_t speed_preset;
-    uint32_t vhd_blocksize;
+    uint8_t            max_multiple_block;
+    uint8_t            pad1[3];
 
-    double avg_rotation_lat_usec;
-    double full_stroke_usec;
-    double head_switch_usec;
-    double cyl_switch_usec;
+    const char *       model;
+
+    hdd_zone_t         zones[HDD_MAX_ZONES];
+
+    hdd_cache_t        cache;
+
+    double             avg_rotation_lat_usec;
+    double             full_stroke_usec;
+    double             head_switch_usec;
+    double             cyl_switch_usec;
 } hard_disk_t;
 
 extern hard_disk_t  hdd[HDD_NUM];

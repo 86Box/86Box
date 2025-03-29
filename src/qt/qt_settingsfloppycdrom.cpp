@@ -46,11 +46,11 @@ setFloppyType(QAbstractItemModel *model, const QModelIndex &idx, int type)
 {
     QIcon icon;
     if (type == 0)
-        icon = ProgSettings::loadIcon("/floppy_disabled.ico");
+        icon = QIcon(":/settings/qt/icons/floppy_disabled.ico");
     else if (type >= 1 && type <= 6)
-        icon = ProgSettings::loadIcon("/floppy_525.ico");
+        icon = QIcon(":/settings/qt/icons/floppy_525.ico");
     else
-        icon = ProgSettings::loadIcon("/floppy_35.ico");
+        icon = QIcon(":/settings/qt/icons/floppy_35.ico");
 
     model->setData(idx, QObject::tr(fdd_getname(type)));
     model->setData(idx, type, Qt::UserRole);
@@ -64,12 +64,12 @@ setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint
 
     switch (bus) {
         case CDROM_BUS_DISABLED:
-            icon = ProgSettings::loadIcon("/cdrom_disabled.ico");
+            icon = QIcon(":/settings/qt/icons/cdrom_disabled.ico");
             break;
         case CDROM_BUS_ATAPI:
         case CDROM_BUS_SCSI:
         case CDROM_BUS_MITSUMI:
-            icon = ProgSettings::loadIcon("/cdrom.ico");
+            icon = QIcon(":/settings/qt/icons/cdrom.ico");
             break;
     }
 

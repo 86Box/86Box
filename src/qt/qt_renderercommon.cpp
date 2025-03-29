@@ -144,6 +144,10 @@ RendererCommon::eventDelegate(QEvent *event, bool &result)
         case QEvent::MouseButtonPress:
         case QEvent::MouseMove:
         case QEvent::MouseButtonRelease:
+        case QEvent::TouchBegin:
+        case QEvent::TouchEnd:
+        case QEvent::TouchCancel:
+        case QEvent::TouchUpdate:
         case QEvent::Wheel:
         case QEvent::Enter:
         case QEvent::Leave:

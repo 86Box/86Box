@@ -54,6 +54,10 @@
 #include "qt_progsettings.hpp"
 #include "qt_util.hpp"
 
+#ifndef Q_OS_WINDOWS
+#    include <signal.h>
+#endif
+
 #ifdef Q_OS_UNIX
 #    include <pthread.h>
 #    include <sys/mman.h>
@@ -832,7 +836,7 @@ plat_set_thread_name(void *thread, const char *name)
 #    if defined(Q_OS_DARWIN)
     pthread_setname_np(truncated);
 #    elif defined(Q_OS_NETBSD)
-    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, "%s");
+    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, (void*)"%s");
 #    elif defined(__HAIKU__)
     rename_thread(find_thread(NULL), truncated);
 #    elif defined(Q_OS_OPENBSD)
@@ -840,5 +844,15 @@ plat_set_thread_name(void *thread, const char *name)
 #    else
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
 #    endif
+#endif
+}
+
+void
+plat_break(void)
+{
+#ifdef Q_OS_WINDOWS
+    DebugBreak();
+#else
+    raise(SIGTRAP);
 #endif
 }

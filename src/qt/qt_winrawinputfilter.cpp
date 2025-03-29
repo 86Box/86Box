@@ -330,6 +330,7 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
     static int x, delta_x;
     static int y, delta_y;
     static int b, delta_z;
+    static int delta_w;
 
     b = mouse_get_buttons_ex();
 
@@ -366,6 +367,12 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
         mouse_set_z(delta_z);
     } else
         delta_z = 0;
+
+    if (state.usButtonFlags & RI_MOUSE_HWHEEL) {
+        delta_w = (SHORT) state.usButtonData / 120;
+        mouse_set_w(delta_w);
+    } else
+        delta_w = 0;
 
     if (state.usFlags & MOUSE_MOVE_ABSOLUTE) {
         /* absolute mouse, i.e. RDP or VNC

@@ -179,10 +179,12 @@ extern const joystick_if_t joystick_2axis_6button;
 extern const joystick_if_t joystick_2axis_8button;
 
 extern const joystick_if_t joystick_ch_flightstick_pro;
+extern const joystick_if_t joystick_ch_flightstick_pro_ch_pedals;
 
 extern const joystick_if_t joystick_sw_pad;
 
 extern const joystick_if_t joystick_tm_fcs;
+extern const joystick_if_t joystick_tm_fcs_rcs;
 
 extern int             gameport_available(int);
 extern int             gameport_has_config(int);

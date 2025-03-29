@@ -28,8 +28,9 @@
 #define CD_STATUS_PLAYING           5
 #define CD_STATUS_STOPPED           6
 #define CD_STATUS_PLAYING_COMPLETED 7
-#define CD_STATUS_HAS_AUDIO         4
-#define CD_STATUS_MASK              7
+#define CD_STATUS_HOLD              8
+#define CD_STATUS_HAS_AUDIO         0xc
+#define CD_STATUS_MASK              0xf
 
 /* Medium changed flag. */
 #define CD_STATUS_TRANSITION     0x40
@@ -50,8 +51,6 @@
 
 #define CD_IMAGE_HISTORY         10
 
-#define BUF_SIZE                 32768
-
 #define CDROM_IMAGE              200
 
 /* This is so that if/when this is changed to something else,
@@ -62,6 +61,8 @@
 
 #define RAW_SECTOR_SIZE          2352
 #define COOKED_SECTOR_SIZE       2048
+
+#define CD_BUF_SIZE              (16 * RAW_SECTOR_SIZE)
 
 #define DATA_TRACK               0x14
 #define AUDIO_TRACK              0x10
@@ -105,9 +106,9 @@ enum {
 #define CDV                         EMU_VERSION_EX
 
 static const struct cdrom_drive_types_s {
-    const char    vendor[9];
-    const char    model[17];
-    const char    revision[5];
+    const char *  vendor;
+    const char *  model;
+    const char *  revision;
     const char *  internal_name;
     const int     bus_type;
     /* SCSI standard for SCSI (or both) devices, early for IDE. */
@@ -298,9 +299,7 @@ typedef struct cdrom {
     void *             priv;
 
     char               image_path[1024];
-    char               prev_image_path[1024];
-
-    char *             image_history[CD_IMAGE_HISTORY];
+    char               prev_image_path[1280];
 
     uint32_t           sound_on;
     uint32_t           cdrom_capacity;
@@ -310,17 +309,20 @@ typedef struct cdrom {
     uint32_t           type;
     uint32_t           sector_size;
 
-    int                cd_buflen;
-    int                audio_op;
-    int                audio_muted_soft;
-    int                sony_msf;
-    int                real_speed;
-    int                is_early;
-    int                is_nec;
-
     uint32_t           inv_field;
+    int32_t            cached_sector;
+    int32_t            cd_buflen;
+    int32_t            sony_msf;
+    int32_t            real_speed;
+    int32_t            is_early;
+    int32_t            is_nec;
+    int32_t            is_bcd;
+
+    int32_t            cdrom_sector_size;
 
     const cdrom_ops_t *ops;
+
+    char *             image_history[CD_IMAGE_HISTORY];
 
     void *             local;
     void *             log;
@@ -330,24 +332,29 @@ typedef struct cdrom {
     uint32_t           (*get_volume)(void *p, int channel);
     uint32_t           (*get_channel)(void *p, int channel);
 
-    int16_t            cd_buffer[BUF_SIZE];
+    int16_t            cd_buffer[CD_BUF_SIZE];
 
     uint8_t            subch_buffer[96];
 
-    int                cdrom_sector_size;
+    /* Needs some extra breathing space in case of overflows. */
+    uint8_t            raw_buffer[2][4096];
+    uint8_t            extra_buffer[296];
+
+    int32_t            is_chinon;
+    int32_t            is_pioneer;
+    int32_t            is_plextor;
+    int32_t            is_sony;
+    int32_t            is_toshiba;
+
+    int32_t            c2_first;
+    int32_t            cur_buf;
+
     /* Only used on Windows hosts for disc change notifications. */
     uint8_t            host_letter;
-
-    /* Needs some extra breathing space in case of overflows. */
-    uint8_t            raw_buffer[4096];
-    uint8_t            extra_buffer[296];
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];
 
-/* The addresses sent from the guest are absolute, ie. a LBA of 0 corresponds to a MSF of 00:00:00. Otherwise, the counter displayed by the guest is wrong:
-   there is a seeming 2 seconds in which audio plays but counter does not move, while a data track before audio jumps to 2 seconds before the actual start
-   of the audio while audio still plays. With an absolute conversion, the counter is fine. */
 #define MSFtoLBA(m, s, f)  ((((m * 60) + s) * 75) + f)
 
 static __inline int
@@ -368,8 +375,6 @@ extern char           *cdrom_get_revision(const int type);
 extern int             cdrom_get_scsi_std(const int type);
 extern int             cdrom_is_early(const int type);
 extern int             cdrom_is_generic(const int type);
-extern int             cdrom_has_date(const int type);
-extern int             cdrom_is_sony(const int type);
 extern int             cdrom_is_caddy(const int type);
 extern int             cdrom_get_speed(const int type);
 extern int             cdrom_get_inquiry_len(const int type);
@@ -386,6 +391,7 @@ extern void            cdrom_set_type(const int model, const int type);
 extern int             cdrom_get_type(const int model);
 
 extern int             cdrom_lba_to_msf_accurate(const int lba);
+extern void            cdrom_interleave_subch(uint8_t *d, const uint8_t *s);
 extern double          cdrom_seek_time(const cdrom_t *dev);
 extern void            cdrom_stop(cdrom_t *dev);
 extern void            cdrom_seek(cdrom_t *dev, const uint32_t pos, const uint8_t vendor_type);
@@ -398,7 +404,7 @@ extern uint8_t         cdrom_audio_track_search(cdrom_t *dev, const uint32_t pos
 extern uint8_t         cdrom_audio_track_search_pioneer(cdrom_t *dev, const uint32_t pos, const uint8_t playbit);
 extern uint8_t         cdrom_audio_play_pioneer(cdrom_t *dev, const uint32_t pos);
 extern uint8_t         cdrom_audio_play_toshiba(cdrom_t *dev, const uint32_t pos, const int type);
-extern uint8_t         cdrom_audio_scan(cdrom_t *dev, const uint32_t pos, const int type);
+extern uint8_t         cdrom_audio_scan(cdrom_t *dev, const uint32_t pos);
 extern void            cdrom_audio_pause_resume(cdrom_t *dev, const uint8_t resume);
 
 extern uint8_t         cdrom_get_current_status(const cdrom_t *dev);
@@ -426,6 +432,7 @@ extern int             cdrom_read_dvd_structure(const cdrom_t *dev, const uint8_
                                                 uint8_t *buffer, uint32_t *info);
 extern void            cdrom_read_disc_information(const cdrom_t *dev, uint8_t *buffer);
 extern int             cdrom_read_track_information(cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer);
+extern uint8_t         cdrom_get_current_mode(cdrom_t *dev);
 extern void            cdrom_set_empty(cdrom_t *dev);
 extern void            cdrom_update_status(cdrom_t *dev);
 extern int             cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert);

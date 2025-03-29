@@ -53,7 +53,7 @@ const uint8_t zip_command_flags[0x100] = {
     [0x0c]          = IMPLEMENTED,
     [0x0d]          = IMPLEMENTED | ATAPI_ONLY,
     [0x12]          = IMPLEMENTED | ALLOW_UA,
-    [0x13]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0x13]          = IMPLEMENTED | CHECK_READY,
     [0x15]          = IMPLEMENTED,
     [0x16 ... 0x17] = IMPLEMENTED | SCSI_ONLY,
     [0x1a]          = IMPLEMENTED,
@@ -64,8 +64,7 @@ const uint8_t zip_command_flags[0x100] = {
     [0x25]          = IMPLEMENTED | CHECK_READY,
     [0x28]          = IMPLEMENTED | CHECK_READY,
     [0x2a ... 0x2b] = IMPLEMENTED | CHECK_READY,
-    [0x2e]          = IMPLEMENTED | CHECK_READY,
-    [0x2f]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0x2e ... 0x2f] = IMPLEMENTED | CHECK_READY,
     [0x41]          = IMPLEMENTED | CHECK_READY,
     [0x55]          = IMPLEMENTED,
     [0x5a]          = IMPLEMENTED,
@@ -568,19 +567,16 @@ zip_bus_speed(zip_t *dev)
 {
     double ret = -1.0;
 
-    if (dev && dev->drv && (dev->drv->bus_type == ZIP_BUS_SCSI)) {
-        dev->callback = -1.0; /* Speed depends on SCSI controller */
-        return 0.0;
-    } else {
-        if (dev && dev->drv)
-            ret = ide_atapi_get_period(dev->drv->ide_channel);
-        if (ret == -1.0) {
-            if (dev)
-                dev->callback = -1.0;
-            return 0.0;
-        } else
-            return ret * 1000000.0;
+    if (dev && dev->drv)
+        ret = ide_atapi_get_period(dev->drv->ide_channel);
+
+    if (ret == -1.0) {
+        if (dev)
+            dev->callback = -1.0;
+        ret = 0.0;
     }
+
+    return ret;
 }
 
 static void
@@ -591,18 +587,10 @@ zip_command_common(zip_t *dev)
     dev->tf->pos    = 0;
     if (dev->packet_status == PHASE_COMPLETE)
         dev->callback = 0.0;
-    else {
-        double bytes_per_second;
-
-        if (dev->drv->bus_type == ZIP_BUS_SCSI) {
-            dev->callback = -1.0; /* Speed depends on SCSI controller */
-            return;
-        } else
-            bytes_per_second = zip_bus_speed(dev);
-
-        double period        = 1000000.0 / bytes_per_second;
-        dev->callback        = period * (double) (dev->packet_len);
-    }
+    else if (dev->drv->bus_type == ZIP_BUS_SCSI)
+        dev->callback = -1.0; /* Speed depends on SCSI controller */
+    else
+        dev->callback = zip_bus_speed(dev) * (double) (dev->packet_len);
 
     zip_set_callback(dev);
 }
@@ -898,9 +886,7 @@ zip_blocks(zip_t *dev, int32_t *len, const int out)
     int ret = 1;
     *len    = 0;
 
-    if (!dev->sector_len)
-        zip_command_complete(dev);
-    else {
+    if (dev->sector_len > 0) {
         zip_log(dev->log, "%sing %i blocks starting from %i...\n", out ? "Writ" : "Read",
                 dev->requested_blocks, dev->sector_pos);
 
@@ -908,12 +894,13 @@ zip_blocks(zip_t *dev, int32_t *len, const int out)
             zip_log(dev->log, "Trying to %s beyond the end of disk\n",
                     out ? "write" : "read");
             zip_lba_out_of_range(dev);
+            ret = 0;
         } else {
             *len    = dev->requested_blocks << 9;
 
             for (int i = 0; i < dev->requested_blocks; i++) {
-                if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos << 9) +
-                                              (i << 9), SEEK_SET) == -1) {
+                if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos << 9),
+                    SEEK_SET) == -1) {
                     if (out)
                         zip_write_error(dev);
                     else
@@ -952,6 +939,9 @@ zip_blocks(zip_t *dev, int32_t *len, const int out)
                 dev->sector_len -= dev->requested_blocks;
             }
         }
+    } else {
+        zip_command_complete(dev);
+        ret = 0;
     }
 
     return ret;
@@ -1385,10 +1375,8 @@ zip_command(scsi_common_t *sc, const uint8_t *cdb)
                 dev->packet_len = max_len * alloc_length;
                 zip_buf_alloc(dev, dev->packet_len);
 
-                int ret = 0;
-
-                if (dev->sector_len > 0)
-                    ret = zip_blocks(dev, &alloc_length, 0);
+                const int ret = zip_blocks(dev, &alloc_length, 0);
+                alloc_length  = dev->requested_blocks * 512;
 
                 if (ret > 0) {
                     dev->requested_blocks = max_len;

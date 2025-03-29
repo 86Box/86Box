@@ -95,7 +95,7 @@ SettingsModel::data(const QModelIndex &index, int role) const
         case Qt::DisplayRole:
             return tr(pages.at(index.row()).toUtf8().data());
         case Qt::DecorationRole:
-            return QIcon(QString("%1/%2.ico").arg(ProgSettings::getIconSetPath(), page_icons[index.row()]));
+            return QIcon(QString(":/settings/qt/icons/%1.ico").arg(page_icons[index.row()]));
         case Qt::SizeHintRole:
             return QSize(-1, fontHeight * 2);
         default:

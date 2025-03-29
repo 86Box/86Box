@@ -24,6 +24,11 @@
 extern "C" {
 #    endif
 
+#ifdef __NetBSD__
+/* Doesn't compile on NetBSD without this include */
+#include <stdarg.h>
+#endif
+
 #define LOG_SIZE_BUFFER                 1024            /* Log size buffer */
 #define LOG_SIZE_BUFFER_CYCLIC_LINES    32              /* Cyclic log size buffer (number of lines that should be cehcked) */
 #define LOG_MINIMUM_REPEAT_ORDER        4               /* Minimum repeat size */
@@ -36,6 +41,7 @@ extern void log_out(void *priv, const char *fmt, va_list);
 extern void log_out_cyclic(void* priv, const char *fmt, va_list);
 #endif /*RELEASE_BUILD*/
 extern void log_fatal(void *priv, const char *fmt, ...);
+extern void log_warning(void *priv, const char *fmt, ...);
 extern void *log_open(const char *dev_name);
 extern void *log_open_cyclic(const char *dev_name);
 extern void  log_close(void *priv);

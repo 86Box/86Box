@@ -20,6 +20,11 @@
 #ifndef EMU_86BOX_H
 #define EMU_86BOX_H
 
+#if defined(__NetBSD__) || defined(__OpenBSD__)
+/* Doesn't compile on NetBSD/OpenBSD without this include */
+#include <stdarg.h>
+#endif
+
 /* Configuration values. */
 #define GFXCARD_MAX  2
 #define SERIAL_MAX   7
@@ -113,7 +118,6 @@ extern int      vid_resize;                 /* (C) allow resizing */
 extern int      invert_display;             /* (C) invert the display */
 extern int      suppress_overscan;          /* (C) suppress overscans */
 extern uint32_t lang_id;                    /* (C) language code identifier */
-extern char     icon_set[256];              /* (C) iconset identifier */
 extern int      scale;                      /* (C) screen scale factor */
 extern int      dpi_scale;                  /* (C) DPI scaling of the emulated screen */
 extern int      vid_api;                    /* (C) video renderer */
@@ -194,15 +198,12 @@ extern __thread int is_cpu_thread; /* Is this the CPU thread? */
 #ifdef HAVE_STDARG_H
 extern void pclog_ex(const char *fmt, va_list ap);
 extern void fatal_ex(const char *fmt, va_list ap);
+extern void warning_ex(const char *fmt, va_list ap);
 #endif
 extern void pclog_toggle_suppr(void);
-#ifdef _MSC_VER
-extern void pclog(const char *fmt, ...);
-extern void fatal(const char *fmt, ...);
-#else
 extern void pclog(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void fatal(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
-#endif
+extern void warning(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void set_screen_size(int x, int y);
 extern void set_screen_size_monitor(int x, int y, int monitor_index);
 extern void reset_screen_size(void);

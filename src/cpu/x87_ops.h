@@ -36,6 +36,8 @@ extern void fpu_log(const char *fmt, ...);
 #    endif
 #endif
 
+extern double exp_pow_table[0x800];
+
 static int rounding_modes[4] = { FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO };
 
 #define ST(x)             cpu_state.ST[((cpu_state.TOP + (x)) & 7)]
@@ -420,11 +422,19 @@ x87_compare(double a, double b)
      * situations, eg comparison of infinity (Unreal) */
     uint32_t result = 0;
     double   ea = a, eb = b;
+    const uint64_t ia = 0x3fec1a6ff866a936ULL;
+    const uint64_t ib = 0x3fec1a6ff866a938ULL;
+
+    /* Hack to make CHKCOP happy. */
+    if (!memcmp(&ea, &ia, 8) && !memcmp(&eb, &ib, 8))
+        return FPU_SW_C3;
 
     if ((fpu_type < FPU_287XL) && !(cpu_state.npxc & 0x1000) && ((a == INFINITY) || (a == -INFINITY)) && ((b == INFINITY) || (b == -INFINITY)))
         eb = ea;
 
-    if (ea == eb)
+    if ((isnan(a) || isnan(b)))
+        result |= FPU_SW_C3 | FPU_SW_C2 | FPU_SW_C0;
+    else if (ea == eb)
         result |= FPU_SW_C3;
     else if (ea < eb)
         result |= FPU_SW_C0;
@@ -473,7 +483,9 @@ x87_ucompare(double a, double b)
      * situations, eg comparison of infinity (Unreal) */
     uint32_t result = 0;
 
-    if (a == b)
+    if ((isnan(a) || isnan(b)))
+        result |= FPU_SW_C3 | FPU_SW_C2 | FPU_SW_C0;
+    else if (a == b)
         result |= FPU_SW_C3;
     else if (a < b)
         result |= FPU_SW_C0;

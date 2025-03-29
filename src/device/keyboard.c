@@ -113,7 +113,17 @@ static scconvtbl scconv55_8a[18 + 1] =
 void
 keyboard_init(void)
 {
+    num_lock    = 0;
+    caps_lock   = 0;
+    scroll_lock = 0;
+    shift       = 0;
+
     memset(recv_key, 0x00, sizeof(recv_key));
+    memset(recv_key_ui, 0x00, sizeof(recv_key));
+    memset(oldkey, 0x00, sizeof(recv_key));
+#if 0
+    memset(key_delay, 0x00, sizeof(recv_key));
+#endif
 
     keyboard_scan = 1;
     scan_table    = NULL;

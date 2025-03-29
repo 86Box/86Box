@@ -17,9 +17,12 @@ extern "C"
 #include <86box/config.h>
 #include <86box/qt-glslp-parser.h>
 #include <86box/path.h>
+#include <86box/plat.h>
 
 extern void startblit();
 extern void endblit();
+extern ssize_t local_getline(char **buf, size_t *bufsiz, FILE *fp);
+extern char* trim(char* str);
 }
 
 #define safe_strncpy(a, b, n)                                                                                                    \
@@ -81,13 +84,37 @@ static int endswith(const char *str, const char *ext) {
         return 0;
 }
 
+static int
+glsl_detect_bom(const char *fn)
+{
+    FILE         *fp;
+    unsigned char bom[4] = { 0, 0, 0, 0 };
+
+    fp = plat_fopen(fn, "rb");
+    if (fp == NULL)
+        return 0;
+    (void) !fread(bom, 1, 3, fp);
+    if (bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF) {
+        fclose(fp);
+        return 1;
+    }
+    fclose(fp);
+    return 0;
+}
+
 static char *load_file(const char *fn) {
-        FILE *f = fopen(fn, "rb");
+        int bom = glsl_detect_bom(fn);
+        FILE *f = plat_fopen(fn, "rb");
         if (!f)
                 return 0;
         fseek(f, 0, SEEK_END);
         long fsize = ftell(f);
         fseek(f, 0, SEEK_SET);
+
+        if (bom) {
+                fsize -= 3;
+                fseek(f, 3, SEEK_SET);
+        }
 
         char *data = (char*)malloc(fsize + 1);
 
@@ -131,13 +158,19 @@ static int get_parameters(glslp_t *glsl) {
         int i;
         struct parameter p;
         for (i = 0; i < glsl->num_shaders; ++i) {
+                size_t size = 0;
+                char* line = NULL;
                 struct shader *shader = &glsl->shaders[i];
-                FILE *f = fopen(shader->shader_fn, "rb");
+                int bom = glsl_detect_bom(shader->shader_fn);
+                FILE *f = plat_fopen(shader->shader_fn, "rb");
                 if (!f)
                         return 0;
-
-                char line[1024];
-                while (fgets(line, sizeof(line) - 1, f) && glsl->num_parameters < MAX_PARAMETERS) {
+                if (bom) {
+                        fseek(f, 3, SEEK_SET);
+                }
+                while (local_getline(&line, &size, f) != -1 && glsl->num_parameters < MAX_PARAMETERS) {
+                        line[strcspn(line, "\r\n")] = '\0';
+                        trim(line);
                         int num = sscanf(line, "#pragma parameter %63s \"%63[^\"]\" %f %f %f %f", p.id, p.description,
                                          &p.default_value, &p.min, &p.max, &p.step);
                         if (num < 5)

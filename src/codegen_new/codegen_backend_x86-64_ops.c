@@ -533,7 +533,7 @@ host_x86_MOV16_ABS_IMM(codeblock_t *block, void *p, uint16_t imm_data)
         codegen_addbyte4(block, 0x66, 0xc7, 0x45, offset); /*MOV offset[RBP], imm_data*/
         codegen_addword(block, imm_data);
     } else if (offset < (1ULL << 32)) {
-        codegen_alloc_bytes(block, 8);
+        codegen_alloc_bytes(block, 9);
         codegen_addbyte3(block, 0x66, 0xc7, 0x85); /*MOV offset[RBP], imm_data*/
         codegen_addlong(block, offset);
         codegen_addword(block, imm_data);
@@ -723,7 +723,11 @@ host_x86_MOV8_REG_ABS(codeblock_t *block, int dst_reg, void *p)
         codegen_addbyte4(block, 0x41, 0x8a, 0x84 | ((dst_reg & 7) << 3), 0x24); /*MOV dst_reg, ram_offset[R12]*/
         codegen_addlong(block, ram_offset);
     } else {
-        fatal("host_x86_MOV8_REG_ABS - out of range\n");
+        codegen_alloc_bytes(block, 10);
+        codegen_addbyte2(block, 0x49, 0xb9); /*MOV R9, p*/
+        codegen_addquad(block, (uintptr_t) p);
+        codegen_alloc_bytes(block, 3);
+        codegen_addbyte3(block, 0x41, 0x8a, 0x01 | ((dst_reg & 7) << 3)); /*MOV dst_reg, [R9]*/
     }
 }
 void

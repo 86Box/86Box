@@ -29,7 +29,7 @@ add_library(cpu OBJECT
     x86seg_2386.c
     x87.c
     x87_timings.c
-    8080.c
+    i8080.c
 )
 
 if(AMD_K5)

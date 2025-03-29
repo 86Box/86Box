@@ -456,6 +456,9 @@ extern const device_t millennium_ii_device;
 extern const device_t productiva_g100_device;
 #endif /* USE_G100 */
 
+/* JEGA */
+extern const device_t if386jega_device;
+
 /* Oak OTI-0x7 */
 extern const device_t oti037c_device;
 extern const device_t oti067_device;
