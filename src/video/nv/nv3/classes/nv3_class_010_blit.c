@@ -49,6 +49,11 @@ void nv3_class_010_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv3->pgraph.blit.size.h = ((param >> 16) & 0xFFFF);
             nv_log("Method Execution: S2SB Size %04x,%04x\n", nv3->pgraph.blit.point_in.x, nv3->pgraph.blit.point_in.y);
 
+            /* Some blits have (point_in == point_out) ???? */
+            if (nv3->pgraph.blit.point_in.x == nv3->pgraph.blit.point_out.x
+            && nv3->pgraph.blit.point_in.y == nv3->pgraph.blit.point_out.y)
+                return;
+
             nv3_render_blit_screen2screen(grobj);
 
             break; 

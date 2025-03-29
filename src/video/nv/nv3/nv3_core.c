@@ -29,6 +29,13 @@
 
 nv3_t* nv3;
 
+/* These are a ****PLACEHOLDER**** and are copied from 3dfx VoodooBanshee/Voodoo3*/
+static video_timings_t timing_nv3_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+static video_timings_t timing_nv3_agp = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+// Revision C
+static video_timings_t timing_nv3t_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+static video_timings_t timing_nv3t_agp = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+
 // Prototypes for functions only used in this translation unit
 void nv3_init_mappings_mmio();
 void nv3_init_mappings_svga();
@@ -492,9 +499,7 @@ void nv3_recalc_timings(svga_t* svga)
 
     nv3_t* nv3 = (nv3_t*)svga->priv;
 
-   
     svga->ma_latch += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0x1F) << 16;
-    
     svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 2;
 
     // should these actually use separate values?
@@ -530,7 +535,7 @@ void nv3_recalc_timings(svga_t* svga)
             }
             else
             {
-                svga->bpp = 15; // HACK: DO NOT change this
+                svga->bpp = 15;
                 svga->lowres = 0;
                 svga->render = svga_render_15bpp_highres;
             }
@@ -1085,6 +1090,12 @@ void* nv3_init(const device_t *info)
 
         svga_init(&nv3_device_pci, &nv3->nvbase.svga, nv3, nv3->nvbase.vram_amount, 
         nv3_recalc_timings, nv3_svga_in, nv3_svga_out, nv3_draw_cursor, NULL);
+
+        if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00)
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_nv3t_pci);
+        else 
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_nv3_pci);
+
     }
     else if (nv3->nvbase.bus_generation == nv_bus_agp_1x)
     {
@@ -1094,6 +1105,11 @@ void* nv3_init(const device_t *info)
 
         svga_init(&nv3_device_agp, &nv3->nvbase.svga, nv3, nv3->nvbase.vram_amount, 
         nv3_recalc_timings, nv3_svga_in, nv3_svga_out, nv3_draw_cursor, NULL);
+
+        if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00)
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_nv3t_agp);
+        else 
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_nv3_agp);
     }
 
     // set vram

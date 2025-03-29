@@ -341,14 +341,14 @@ void nv3_pramdac_write(uint32_t address, uint32_t value)
                     nv3->pramdac.vblank_end = value;
                     break;
                 case NV3_PRAMDAC_VBLANK_START:
-                    nv3->nvbase.svga.vblankstart = value;
+                    //nv3->nvbase.svga.vblankstart = value;
                     nv3->pramdac.vblank_start = value;
                     break;
                 case NV3_PRAMDAC_VEQU_START:
                     nv3->pramdac.vequ_start = value;
                     break;
                 case NV3_PRAMDAC_VTOTAL:
-                    nv3->pramdac.vtotal = value;
+                    //nv3->pramdac.vtotal = value;
                     nv3->nvbase.svga.vtotal = value;
                     break;
                 case NV3_PRAMDAC_HSYNC_WIDTH:
@@ -361,21 +361,22 @@ void nv3_pramdac_write(uint32_t address, uint32_t value)
                     nv3->pramdac.hburst_end = value;
                     break;
                 case NV3_PRAMDAC_HBLANK_START:
-                    nv3->nvbase.svga.hblankstart = value;
+                    //nv3->nvbase.svga.hblankstart = value;
                     nv3->pramdac.hblank_start = value;
                     break;
                 case NV3_PRAMDAC_HBLANK_END:
-                    nv3->nvbase.svga.hblank_end_val = value;
+                    //nv3->nvbase.svga.hblank_end_val = value;
                     nv3->pramdac.hblank_end = value;
                     break;
                 case NV3_PRAMDAC_HTOTAL:
                     nv3->pramdac.htotal = value;
-                    nv3->nvbase.svga.htotal = value;
+                    //nv3->nvbase.svga.htotal = value;
                     break;
                 case NV3_PRAMDAC_HEQU_WIDTH:
                     nv3->pramdac.hequ_width = value;
                     break;
                 case NV3_PRAMDAC_HSERR_WIDTH:
+                
                     nv3->pramdac.hserr_width = value;
                     break;
             }

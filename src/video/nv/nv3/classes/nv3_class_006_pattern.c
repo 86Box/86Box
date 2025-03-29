@@ -60,11 +60,11 @@ void nv3_class_006_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
         case NV3_PATTERN_UNUSED_DRIVER_BUG:
             break;
         case NV3_PATTERN_COLOR0:
-            nv3_color_expanded_t expanded_colour0 = nv3_render_expand_color(grobj, param);
+            nv3_color_expanded_t expanded_colour0 = nv3_render_expand_color(param, grobj);
             nv3_render_set_pattern_color(expanded_colour0, false);
             break;
         case NV3_PATTERN_COLOR1:
-            nv3_color_expanded_t expanded_colour1 = nv3_render_expand_color(grobj, param);
+            nv3_color_expanded_t expanded_colour1 = nv3_render_expand_color(param, grobj);
             nv3_render_set_pattern_color(expanded_colour1, true);
             break;
         case NV3_PATTERN_BITMAP_HIGH:

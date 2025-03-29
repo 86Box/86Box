@@ -28,19 +28,7 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
 
-/* Check the line bounds */
-void nv3_class_011_check_line_bounds()
-{                
-    uint32_t relative_x = nv3->pgraph.image_current_position.x - nv3->pgraph.image.point.x;
-    //uint32_t relative_y = nv3->pgraph.image_current_position.y - nv3->pgraph.image.point.y;
 
-    /* In theory, relative_y should never be exceeded...because it only submits enough pixels to render the image*/
-    if (relative_x >= nv3->pgraph.image.size_in.w)
-    {   
-        nv3->pgraph.image_current_position.y++;
-        nv3->pgraph.image_current_position.x = nv3->pgraph.image.point.x;
-    }
-}
 
 void nv3_class_011_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
 {
@@ -65,71 +53,10 @@ void nv3_class_011_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             break;
         default:
             if (method_id >= NV3_IMAGE_COLOR_START && method_id <= NV3_IMAGE_COLOR_END)
-            {
-                // shift left by 2 because it's 4 bits per si\e..
+            {    
                 uint32_t pixel_slot = (method_id - NV3_IMAGE_COLOR_START) >> 2;
-                uint32_t current_buffer = (nv3->pgraph.context_switch >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03; 
                 nv_log("Method Execution: Pixel%d Colour%08x Format%x\n", pixel_slot, param, (grobj.grobj_0) & 0x07);
-
-                /* todo: a lot of stuff */
-
-                uint32_t pixel0 = 0, pixel1 = 0, pixel2 = 0, pixel3 = 0;
-
-                /* Some extra data is sent as padding, we need to clip it off using size_out */
-
-                uint16_t clip_x = nv3->pgraph.image_current_position.x + nv3->pgraph.image.size.w;
-                /* we need to unpack them - IF THIS IS USED SOMEWHERE ELSE, DO SOMETHING ELSE WITH IT */
-                /* the reverse order is due to the endianness */
-                switch (nv3->nvbase.svga.bpp)
-                {
-                    // 4pixels packed into one param
-                    case 8:
-                    
-                        //pixel3
-                        pixel3 = param & 0xFF;
-                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel3, grobj);
-                        nv3->pgraph.image_current_position.x++;
-                        nv3_class_011_check_line_bounds();
-
-                        pixel2 = (param >> 8) & 0xFF;
-                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel2, grobj);
-                        nv3->pgraph.image_current_position.x++;
-                        nv3_class_011_check_line_bounds();
-                        
-                        pixel1 = (param >> 16) & 0xFF;
-                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel1, grobj);
-                        nv3->pgraph.image_current_position.x++;
-                        nv3_class_011_check_line_bounds();
-
-                        pixel0 = (param >> 24) & 0xFF;
-                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel0, grobj);
-                        nv3->pgraph.image_current_position.x++;
-                        nv3_class_011_check_line_bounds();
-
-                        break;
-                    //2pixels packed into one param
-                    case 15:
-                    case 16:
-                        pixel1 = (param) & 0xFFFF;
-                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel1, grobj);
-                        nv3->pgraph.image_current_position.x++;
-                        nv3_class_011_check_line_bounds();
-
-                        pixel0 = (param >> 16) & 0xFFFF;
-                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel0, grobj);
-                        nv3->pgraph.image_current_position.x++;
-                        nv3_class_011_check_line_bounds();
-                            
-                        break;
-                    // just one pixel in 32bpp
-                    case 32: 
-                        pixel0 = param;
-                        if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel0, grobj);
-                        nv3->pgraph.image_current_position.x++;
-                        nv3_class_011_check_line_bounds();
-
-                        break;
-                }
+                nv3_render_blit_image(param, grobj);
             }
             else
             {

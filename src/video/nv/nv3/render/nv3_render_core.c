@@ -33,7 +33,7 @@
 /* Expand a colour.
    NOTE: THE GPU INTERNALLY OPERATES ON RGB10!!!!!!!!!!!
 */
-nv3_color_expanded_t nv3_render_expand_color(nv3_grobj_t grobj, uint32_t color)
+nv3_color_expanded_t nv3_render_expand_color(uint32_t color, nv3_grobj_t grobj)
 {
     // grobj0 = seems to share the format of PGRAPH_CONTEXT_SWITCH register.
 
@@ -113,7 +113,7 @@ uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t co
     bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_ALPHA) & 0x01;
 
     #ifdef ENABLE_NV_LOG
-    nv_log("Downconverting Colour 0x%08x using pgraph_pixel_format 0x%x alpha enabled=%d", color, format, alpha_enabled);
+    nv_log("Downconverting Colour 0x%08x using pgraph_pixel_format 0x%x alpha enabled=%d\n", color, format, alpha_enabled);
     #endif
 
     uint32_t packed_color = 0x00;
@@ -156,7 +156,7 @@ uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t co
 }
 
 /* Runs the chroma key/color key test */
-bool nv3_render_chroma_test(nv3_grobj_t grobj, uint32_t color)
+bool nv3_render_chroma_test(uint32_t color, nv3_grobj_t grobj)
 {
     bool chroma_enabled = ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_CHROMA_KEY) & 0x01);
 
@@ -172,7 +172,7 @@ bool nv3_render_chroma_test(nv3_grobj_t grobj, uint32_t color)
     nv3_grobj_t grobj_fake = {0};
     grobj_fake.grobj_0 = 0x02; /* we don't care about any other bits */
 
-    nv3_color_expanded_t chroma_expanded = nv3_render_expand_color(grobj_fake, nv3->pgraph.chroma_key);
+    nv3_color_expanded_t chroma_expanded = nv3_render_expand_color(nv3->pgraph.chroma_key, grobj_fake);
    
     uint32_t chroma_downconverted = nv3_render_downconvert_color(grobj, chroma_expanded);
 
@@ -315,7 +315,7 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
         }
 
     /* TODO: Plane Mask...*/
-    if (!nv3_render_chroma_test(grobj, color))
+    if (!nv3_render_chroma_test(color, grobj))
         return;
 
     uint32_t pixel_addr_vram = nv3_render_get_vram_address(position, grobj);
