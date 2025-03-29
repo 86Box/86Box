@@ -290,7 +290,7 @@ const device_t ps1_2011_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = &ps1_2011_config
+    .config        = ps1_2011_config
 };
 
 static void
