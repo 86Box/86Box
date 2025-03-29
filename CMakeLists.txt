@@ -137,10 +137,16 @@ option(GDBSTUB      "Enable GDB stub server for debugging"                      
 option(DEV_BRANCH   "Development branch"                                         OFF)
 option(DISCORD      "Discord Rich Presence support"                              ON)
 option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
+# Remove when merged, should just be -D
 option(NV_LOG       "NVidia RIVA 128 debug logging"                              OFF)
+option(NV_LOG_ULTRA "Even more NVidia RIVA 128 debug logging"                    OFF)
 
 if (NV_LOG)
     add_compile_definitions(ENABLE_NV_LOG)
+endif()
+
+if (NV_LOG_ULTRA)
+    add_compile_definitions(ENABLE_NV_LOG_ULTRA)
 endif()
 
 if((ARCH STREQUAL "arm64") OR (ARCH STREQUAL "arm"))
@@ -193,6 +199,7 @@ cmake_dependent_option(PCL            "Generic PCL5e Printer"                   
 cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"               ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(WACOM          "Wacom Input Devices"                      ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"        ON    "DEV_BRANCH"  OFF)
+cmake_dependent_option(NV3            "NVidia RIVA 128/128ZX (NV3/NV3T)"         ON    "DEV_BRANCH"  OFF)
 
 # Ditto but for Qt
 if(QT)

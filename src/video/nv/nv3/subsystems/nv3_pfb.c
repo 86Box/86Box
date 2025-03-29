@@ -187,6 +187,9 @@ void nv3_pfb_config0_write(uint32_t val)
     uint32_t new_pfb_vtotal = new_pfb_htotal * (3.0/4.0); 
     uint32_t new_bit_depth = (nv3->pfb.config_0 >> 8) & 0x03;
 
+    
+    // This doesn't actually seem very useful
+    #ifdef ENABLE_NV_LOG_ULTRA
     nv_log("Framebuffer Config Change\n");
     nv_log("Horizontal Size=%d pixels\n", new_pfb_htotal); 
     nv_log("Vertical Size @ 4:3=%d pixels\n", new_pfb_vtotal); 
@@ -197,5 +200,6 @@ void nv3_pfb_config0_write(uint32_t val)
         nv_log("Bit Depth=16bpp\n");
     else if (new_bit_depth == NV3_PFB_CONFIG_0_DEPTH_32BPP)
         nv_log("Bit Depth=32bpp\n");
+    #endif
         
 }

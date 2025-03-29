@@ -100,12 +100,12 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t address)
     else if (address >= NV3_PRAMDAC_START && address <= NV3_PRAMDAC_END)
         ret = nv3_pramdac_read(address);
     else if (address >= NV3_VRAM_START && address <= NV3_VRAM_END)
-        ret = nv3_vram_read(address);
+        ret = nv3_dfb_read32(address & nv3->nvbase.svga.vram_mask, &nv3->nvbase.svga);
     else if (address >= NV3_USER_START && address <= NV3_USER_END)
         ret = nv3_user_read(address);
     else 
     {
-        nv_log("MMIO read arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning 0x00]\n", address);
+        warning("MMIO read arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning 0x00]\n", address);
         return 0x00;
     }
 
@@ -161,13 +161,13 @@ void nv3_mmio_arbitrate_write(uint32_t address, uint32_t value)
     else if (address >= NV3_PRAMDAC_START && address <= NV3_PRAMDAC_END)
         nv3_pramdac_write(address, value);
     else if (address >= NV3_VRAM_START && address <= NV3_VRAM_END)
-        nv3_vram_write(address, value);
+        nv3_dfb_write32(address, value, &nv3->nvbase.svga);
     else if (address >= NV3_USER_START && address <= NV3_USER_END)
         nv3_user_write(address, value);
     //RAMIN is its own thing
     else 
     {
-        nv_log("MMIO write arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x\n", address);
+        warning("MMIO write arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x\n", address);
         return;
     }
 }
@@ -192,6 +192,3 @@ void        nv3_palt_write(uint32_t address, uint32_t value) {};
 // TODO: PGRAPH class registers
 uint32_t    nv3_prmcio_read(uint32_t address) { return 0; };
 void        nv3_prmcio_write(uint32_t address, uint32_t value) {};
-
-uint32_t    nv3_vram_read(uint32_t address) { return 0; };
-void        nv3_vram_write(uint32_t address, uint32_t value) {};

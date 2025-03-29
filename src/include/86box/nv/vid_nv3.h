@@ -1454,7 +1454,7 @@ void        nv3_speed_changed(void *priv);
 void        nv3_recalc_timings(svga_t* svga);
 void        nv3_force_redraw(void* priv);
 
-// Memory Mapping
+/* BAR0 GPU MMIO read */
 void        nv3_update_mappings();                                              // Update memory mappings
 uint8_t     nv3_mmio_read8(uint32_t addr, void* priv);                          // Read 8-bit MMIO
 uint16_t    nv3_mmio_read16(uint32_t addr, void* priv);                         // Read 16-bit MMIO
@@ -1544,10 +1544,7 @@ uint32_t    nv3_pvideo_read(uint32_t address);
 void        nv3_pvideo_write(uint32_t address, uint32_t value);
 uint32_t    nv3_pramdac_read(uint32_t address);
 void        nv3_pramdac_write(uint32_t address, uint32_t value);
-uint32_t    nv3_vram_read(uint32_t address);
-void        nv3_vram_write(uint32_t address, uint32_t value);
-#define nv3_nvm_read nv3_vram_read
-#define nv3_nvm_write nv3_vram_write
+
 uint32_t    nv3_user_read(uint32_t address);
 void        nv3_user_write(uint32_t address, uint32_t value);
 #define nv3_object_submit_start nv3_user_read
@@ -1641,5 +1638,5 @@ void        nv3_ptimer_tick(double real_time);
 // NV3 PVIDEO
 void        nv3_pvideo_init();
 
-// NV3 PMEDIA (Mediaport)
+// NV3 PME (Mediaport)
 void        nv3_pmedia_init();

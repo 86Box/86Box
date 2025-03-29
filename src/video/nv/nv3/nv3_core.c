@@ -92,9 +92,9 @@ uint16_t nv3_mmio_read16(uint32_t addr, void* priv)
         ret = nv3_svga_in(real_address, nv3)
         | (nv3_svga_in(real_address + 1, nv3) << 8);
         
-        #ifdef ENABLE_NV_LOG_ULTRA
+        //#ifdef ENABLE_NV_LOG_ULTRA
         nv_log("Redirected MMIO read16 to SVGA: addr=0x%04x returned 0x%04x\n", addr, ret);
-        #endif
+        //#endif
         return ret; 
     }
 
@@ -120,9 +120,9 @@ uint32_t nv3_mmio_read32(uint32_t addr, void* priv)
         | (nv3_svga_in(real_address + 2, nv3) << 16)
         | (nv3_svga_in(real_address + 3, nv3) << 24);
 
-        #ifdef ENABLE_NV_LOG_ULTRA
+        //#ifdef ENABLE_NV_LOG_ULTRA
         nv_log("Redirected MMIO read32 to SVGA: addr=0x%04x returned 0x%04x\n", addr, ret);
-        #endif
+        //#endif
 
         return ret; 
     }
@@ -147,9 +147,9 @@ void nv3_mmio_write8(uint32_t addr, uint8_t val, void* priv)
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
-        #ifdef ENABLE_NV_LOG_ULTRA
+        //#ifdef ENABLE_NV_LOG_ULTRA
         nv_log("Redirected MMIO write8 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
-        #endif
+        //#endif
 
         nv3_svga_out(real_address, val & 0xFF, nv3);
 
@@ -176,9 +176,9 @@ void nv3_mmio_write16(uint32_t addr, uint16_t val, void* priv)
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
-        #ifdef ENABLE_NV_LOG_ULTRA
+        //#ifdef ENABLE_NV_LOG_ULTRA
         nv_log("Redirected MMIO write16 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
-        #endif
+        //#endif
 
         nv3_svga_out(real_address, val & 0xFF, nv3);
         nv3_svga_out(real_address + 1, (val >> 8) & 0xFF, nv3);
@@ -206,9 +206,9 @@ void nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv)
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
-        #ifdef ENABLE_NV_LOG_ULTRA
+        //#ifdef ENABLE_NV_LOG_ULTRA
         nv_log("Redirected MMIO write32 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
-        #endif
+        //#endif
 
         nv3_svga_out(real_address, val & 0xFF, nv3);
         nv3_svga_out(real_address + 1, (val >> 8) & 0xFF, nv3);
@@ -842,7 +842,7 @@ void nv3_prom_write(uint32_t address, uint32_t value)
 // Initialise the MMIO mappings
 void nv3_init_mappings_mmio()
 {
-    nv_log("Initialising 32MB MMIO area\n");
+    nv_log("Initialising MMIO mapping\n");
 
     // 0x0 - 1000000: regs
     // 0x1000000-2000000
@@ -1107,6 +1107,7 @@ void* nv3_init(const device_t *info)
     nv3->pci_config.pci_regs[PCI_REG_COMMAND] = PCI_COMMAND_IO | PCI_COMMAND_MEM;
 
     // svga is done, so now initialise the real gpu
+
     nv_log("Initialising GPU core...\n");
 
     nv3_pextdev_init();             // Initialise Straps

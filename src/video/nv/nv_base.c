@@ -72,8 +72,12 @@ void nv_log(const char *fmt, ...)
     }
 }
 #else
-void
-nv_log(const char *fmt, ...)
+void nv_log(const char *fmt, ...)
+{
+
+}
+
+void nv_log_set_device(void* device)
 {
 
 }

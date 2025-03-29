@@ -37,12 +37,11 @@ uint32_t nv3_user_read(uint32_t address)
     //todo: print out the subchannel 
     uint8_t method_offset = (address & 0x1FFC);
 
-#ifdef ENABLE_NV_LOG_ULTRA
     uint8_t channel = (address - NV3_USER_START) / 0x10000;
     uint8_t subchannel = ((address - NV3_USER_START)) / 0x2000 % NV3_DMA_SUBCHANNELS_PER_CHANNEL;
 
     nv_log("User Submission Area PIO Channel %d.%d method_offset=0x%04x\n", channel, subchannel, method_offset);
-#endif
+
 
     // 0x10 is free CACHE1 object
     // TODO: THERE ARE OTHER STUFF!
@@ -55,7 +54,7 @@ uint32_t nv3_user_read(uint32_t address)
         
     }
 
-    nv_log("IT'S NOT IMPLEMENTED!!!!\n", method_offset);
+    nv_log("IT'S NOT IMPLEMENTED!!!! offset=0x%04x\n", method_offset);
 
 
     return 0x00;
