@@ -61,37 +61,15 @@ int update_overscan = 0;
 
 uint8_t ega_in(uint16_t addr, void *priv);
 
-static int
-ega_get_type(ega_t *ega)
-{
-    int ret = ega_type;
-
-    if (ega->actual_type == EGA_SUPEREGA)
-        ret = (ega->crtc[0x17] & 0x10) ? EGA_TYPE_OTHER : EGA_TYPE_IBM;
-
-    return ret;
-}
-
-static int
-ega_get_actual_type(ega_t *ega)
-{
-    int ret = ega->actual_type;
-
-    if (ega->actual_type == EGA_SUPEREGA)
-        ret = (ega->crtc[0x17] & 0x10) ? EGA_SUPEREGA : EGA_IBM;
-
-    return ret;
-}
-
 void
 ega_out(uint16_t addr, uint8_t val, void *priv)
 {
     ega_t  *ega = (ega_t *) priv;
     uint8_t o;
     uint8_t old;
-    int     type     = ega_get_type(ega);
-    int     atype    = ega_get_actual_type(ega);
-    uint8_t gdcmask  = (atype == EGA_SUPEREGA) ? 0xff : 0x0f;
+    int     type     = ega_type;
+    int     atype    = ega->actual_type;
+    uint8_t gdcmask  = (ega_type == EGA_SUPEREGA) ? 0xff : 0x0f;
     uint8_t crtcmask = (atype == EGA_SUPEREGA) ? 0xff : 0x1f;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1))
@@ -168,7 +146,8 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
             ega->pallook        = ega->vres ? pallook16 : pallook64;
             ega->vidclock       = val & 4;
             ega->miscout        = val;
-            ega->overscan_color = ega->vres ? pallook16[ega->attrregs[0x11] & 0x0f] : pallook64[ega->attrregs[0x11] & 0x3f];
+            ega->overscan_color = ega->vres ? pallook16[ega->attrregs[0x11] & 0x0f] :
+                                              pallook64[ega->attrregs[0x11] & 0x3f];
             io_removehandler(0x03a0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
             if (!(val & 1))
                 io_sethandler(0x03a0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
@@ -290,28 +269,34 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
             if (ega->chipset)
                 ega->crtcreg = val & 0x3f;
             else
-                ega->crtcreg = val & crtcmask;
+                ega->crtcreg = val;
             return;
         case 0x3d1:
         case 0x3d5:
+            int idx = ega->crtcreg;
+
             if (ega->chipset) {
                 if ((ega->crtcreg < 7) && (ega->crtc[0x11] & 0x80) && !(ega->regs[0xb4] & 0x80))
                     return;
                 if ((ega->crtcreg == 7) && (ega->crtc[0x11] & 0x80) && !(ega->regs[0xb4] & 0x80))
                     val = (ega->crtc[7] & ~0x10) | (val & 0x10);
             } else {
-                if ((ega->crtcreg < 7) && (ega->crtc[0x11] & 0x80))
+                idx &= crtcmask;
+                if ((idx >= 0x19) & (idx <= 0xf6))
                     return;
-                if ((ega->crtcreg == 7) && (ega->crtc[0x11] & 0x80))
+                if ((idx < 7) && (ega->crtc[0x11] & 0x80))
+                    return;
+                if ((idx == 7) && (ega->crtc[0x11] & 0x80))
                     val = (ega->crtc[7] & ~0x10) | (val & 0x10);
             }
-            old                     = ega->crtc[ega->crtcreg];
-            ega->crtc[ega->crtcreg] = val;
+            old                     = ega->crtc[idx];
+            ega->crtc[idx] = val;
             if (old != val) {
-                if (ega->crtcreg < 0xe || ega->crtcreg > 0x10) {
-                    if ((ega->crtcreg == 0xc) || (ega->crtcreg == 0xd)) {
+                if ((idx < 0xe) || (idx > 0x10)) {
+                    if ((idx == 0xc) || (idx == 0xd)) {
                         ega->fullchange = 3;
-                        ega->ma_latch   = ((ega->crtc[0xc] << 8) | ega->crtc[0xd]) + ((ega->crtc[8] & 0x60) >> 5);
+                        ega->ma_latch   = ((ega->crtc[0xc] << 8) | ega->crtc[0xd]) +
+                                          ((ega->crtc[8] & 0x60) >> 5);
                     } else {
                         ega->fullchange = changeframecount;
                         ega_recalctimings(ega);
@@ -329,10 +314,11 @@ uint8_t
 ega_in(uint16_t addr, void *priv)
 {
     ega_t  *ega = (ega_t *) priv;
-    uint8_t gdcmask = (ega->actual_type == EGA_SUPEREGA) ? 0xff : 0x0f;
-    uint8_t ret     = 0xff;
-    int     type    = ega_get_type(ega);
-    int     atype   = ega_get_actual_type(ega);
+    uint8_t ret      = 0xff;
+    int     type     = ega_type;
+    int     atype    = ega->actual_type;
+    uint8_t gdcmask  = (atype == EGA_SUPEREGA) ? 0xff : 0x0f;
+    uint8_t crtcmask = (atype == EGA_SUPEREGA) ? 0xff : 0x1f;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1))
         addr ^= 0x60;
@@ -372,8 +358,12 @@ ega_in(uint16_t addr, void *priv)
             ret = (egaswitches & (8 >> egaswitchread)) ? 0x10 : 0x00;
             break;
         case 0x3c4:
-            if (type == EGA_TYPE_OTHER)
-                ret = ega->seqaddr;
+            if (type == EGA_TYPE_OTHER) {
+                if (atype == EGA_SUPEREGA)
+                    ret = 0x1f | ((ega->miscout & 0x01) << 5);
+                else
+                    ret = ega->seqaddr;
+            }
             break;
         case 0x3c5:
             if (type == EGA_TYPE_OTHER) {
@@ -396,8 +386,14 @@ ega_in(uint16_t addr, void *priv)
                 ret = ega->miscout;
             break;
         case 0x3ce:
-            if (type == EGA_TYPE_OTHER)
+            if (ega_type == EGA_TYPE_OTHER) {
                 ret = ega->gdcaddr;
+                if (atype == EGA_SUPEREGA) {
+                    ret = (ret & 0x0f) | 0xe0;
+                    if ((ega->gdcaddr & 0xe0) == 0xe0)
+                        ret |= 0x10;
+                }
+            }
             break;
         case 0x3cf:
             if (type == EGA_TYPE_OTHER) {
@@ -425,7 +421,7 @@ ega_in(uint16_t addr, void *priv)
             break;
         case 0x3d0:
         case 0x3d4:
-            if (type == EGA_TYPE_OTHER) {
+            if (ega_type == EGA_TYPE_OTHER) {
                 ret = ega->crtcreg;
                 if (atype == EGA_SUPEREGA) {
                     ret = (ret & 0x1f) | 0xc0;
@@ -436,7 +432,7 @@ ega_in(uint16_t addr, void *priv)
             break;
         case 0x3d1:
         case 0x3d5:
-            switch (ega->crtcreg) {
+            switch (ega->crtcreg & crtcmask) {
                 case 0xc:
                 case 0xd:
                 case 0xe:
@@ -456,6 +452,11 @@ ega_in(uint16_t addr, void *priv)
                         ret = ega->crtc[ega->crtcreg];
                     else
                         ret = ega->light_pen & 0xff;
+                    break;
+
+                case 0x19 ... 0xf6:
+                    if (type == EGA_TYPE_OTHER)
+                        ret = ega->chipset ? ega->crtc[ega->crtcreg] : 0xff;
                     break;
 
                 default:
@@ -672,7 +673,8 @@ ega_recalctimings(ega_t *ega)
         disptime     = (double) (ega->crtc[0] + 2);
         _dispontime  = (double) (ega->crtc[1] + 1);
     }
-    if ((ega->actual_type == EGA_SUPEREGA) && (ega->crtc[0xf9] & 0x01)) {
+    if ((ega->actual_type == EGA_SUPEREGA) && (ega->crtc[0x17] & 0x10) &&
+        (ega->crtc[0xf9] & 0x01)) {
         disptime    *= 2.0;
         _dispontime *= 2.0;
     }
