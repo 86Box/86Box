@@ -147,6 +147,11 @@ svga_render_text_40(svga_t *svga)
     int       bg;
     uint32_t  addr = 0;
 
+    if (svga->render_override) {
+        svga->render_override(svga->priv_parent);
+        return;
+    }
+
     if ((svga->displine + svga->y_add) < 0)
         return;
 
@@ -224,6 +229,11 @@ svga_render_text_80(svga_t *svga)
     int       fg;
     int       bg;
     uint32_t  addr = 0;
+
+    if (svga->render_override) {
+        svga->render_override(svga->priv_parent);
+        return;
+    }
 
     if ((svga->displine + svga->y_add) < 0)
         return;

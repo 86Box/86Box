@@ -107,6 +107,11 @@ ega_render_overscan_right(ega_t *ega)
 void
 ega_render_text(ega_t *ega)
 {
+    if (ega->render_override) {
+        ega->render_override(ega->priv_parent);
+        return;
+    }
+
     if ((ega->displine + ega->y_add) < 0)
         return;
 
