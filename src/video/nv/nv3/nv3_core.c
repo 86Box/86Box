@@ -502,7 +502,7 @@ void nv3_recalc_timings(svga_t* svga)
     uint32_t pixel_mode = svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 0x03;
 
     svga->ma_latch += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0x1F) << 16;
-    
+
     // should these actually use separate values?
     // i don't we should force the top 2 bits to 1...
 
@@ -532,8 +532,18 @@ void nv3_recalc_timings(svga_t* svga)
             svga->render = svga_render_8bpp_highres;
             break;
         case NV3_CRTC_REGISTER_PIXELMODE_16BPP:
+            /* This is some sketchy shit that is an attempt at an educated guess
+            at pixel clock differences between 9x and NT only in 16bpp. If there is ever an error on 9x with "interlaced" looking graphics, this is what's causing it */
+            if ((svga->crtc[NV3_CRTC_REGISTER_VRETRACESTART] >> 1) & 0x01)
+            {
+                svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 2;
+            }
+            else 
+            {
+                svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 3;
+            }
+
             /* sometimes it really renders in 15bpp, so you need to do this */
-            svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 2;
             if ((nv3->pramdac.general_control >> NV3_PRAMDAC_GENERAL_CONTROL_565_MODE) & 0x01)
             {
                 svga->bpp = 16;
@@ -545,11 +555,14 @@ void nv3_recalc_timings(svga_t* svga)
                 svga->bpp = 15;
                 svga->lowres = 0;
                 svga->render = svga_render_15bpp_highres;
+                
+                // fixes win2000, but breaks 9x?!
             }
         
             break;
         case NV3_CRTC_REGISTER_PIXELMODE_32BPP:
             svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 3;
+            
             svga->bpp = 32;
             svga->lowres = 0;
             svga->render = svga_render_32bpp_highres;

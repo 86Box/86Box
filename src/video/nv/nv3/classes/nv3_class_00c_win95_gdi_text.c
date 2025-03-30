@@ -39,6 +39,16 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv3->pgraph.win95_gdi_text.color_a = param;
             nv_log("Method Execution: GDI-A Color 0x%08x\n", nv3->pgraph.win95_gdi_text.color_a);
             break;
+        case NV3_W95TXT_B_CLIP_TOPLEFT:
+            nv3->pgraph.win95_gdi_text.clip_b.left = (param & 0xFFFF);
+            nv3->pgraph.win95_gdi_text.clip_b.top = ((param >> 16) & 0xFFFF);
+            nv_log("Method Execution: GDI-B Clip Left,Top %04x,%04x", nv3->pgraph.win95_gdi_text.clip_b.left, nv3->pgraph.win95_gdi_text.clip_b.top);
+            break;
+        case NV3_W95TXT_B_CLIP_BOTTOMRIGHT:
+            nv3->pgraph.win95_gdi_text.clip_b.bottom = (param & 0xFFFF);
+            nv3->pgraph.win95_gdi_text.clip_b.right = ((param >> 16) & 0xFFFF);
+            nv_log("Method Execution: GDI-B Clip Bottom,Right %04x,%04x", nv3->pgraph.win95_gdi_text.clip_b.left, nv3->pgraph.win95_gdi_text.clip_b.top);
+            break;
         /* Type B and C not implemented YET, as they are not used by NT GDI driver */
         case NV3_W95TXT_D_CLIP_TOPLEFT: 
             nv3->pgraph.win95_gdi_text.clip_d.left = (param & 0xFFFF);
