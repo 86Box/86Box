@@ -59,6 +59,9 @@ RendererCommon::onResize(int width, int height)
     bool main_max = main_window->isMaximized();
     bool main_is_max = (main_is_ancestor && main_max == false);
 
+    width = round(pixelRatio * width);
+    height = round(pixelRatio * height);
+
     if (is_fs && (video_fullscreen_scale_maximized ? (parent_max && main_is_max) : 1))
         destination.setRect(0, 0, width, height);
     else {

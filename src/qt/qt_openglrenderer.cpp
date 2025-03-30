@@ -1154,14 +1154,15 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
     buf_usage[buf_idx].clear();
     source.setRect(x, y, w, h);
+    this->pixelRatio = devicePixelRatio();
     onResize(this->width(), this->height());
 
 #ifdef Q_OS_MACOS
     glw.glViewport(
-        destination.x() * devicePixelRatio(),
-        destination.y() * devicePixelRatio(),
-        destination.width() * devicePixelRatio(),
-        destination.height() * devicePixelRatio());
+        destination.x(),
+        destination.y(),
+        destination.width(),
+        destination.height());
 #endif
 
     if (video_framerate == -1)
@@ -1187,6 +1188,7 @@ OpenGLRenderer::exposeEvent(QExposeEvent *event)
     if (!isInitialized)
         initialize();
 
+    this->pixelRatio = devicePixelRatio();
     onResize(size().width(), size().height());
 }
 
@@ -1195,6 +1197,7 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
 {
     Q_UNUSED(event);
 
+    this->pixelRatio = devicePixelRatio();
     onResize(event->size().width(), event->size().height());
 
     if (notReady())
@@ -1203,10 +1206,10 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
     context->makeCurrent(this);
 
     glw.glViewport(
-        destination.x() * devicePixelRatio(),
-        destination.y() * devicePixelRatio(),
-        destination.width() * devicePixelRatio(),
-        destination.height() * devicePixelRatio());
+        destination.x(),
+        destination.y(),
+        destination.width(),
+        destination.height());
 }
 
 void
@@ -1386,10 +1389,10 @@ OpenGLRenderer::render()
         uint32_t x, y, w, h;
     } window_rect;
 
-    window_rect.x = destination.x() * devicePixelRatio();
-    window_rect.y = destination.y() * devicePixelRatio();
-    window_rect.w = destination.width() * devicePixelRatio();
-    window_rect.h = destination.height() * devicePixelRatio();
+    window_rect.x = destination.x();
+    window_rect.y = destination.y();
+    window_rect.w = destination.width();
+    window_rect.h = destination.height();
 
     glw.glBindTexture(GL_TEXTURE_2D, scene_texture.id);
     scene_texture.min_filter = scene_texture.mag_filter = video_filter_method ? GL_LINEAR : GL_NEAREST;
@@ -1652,7 +1655,7 @@ OpenGLRenderer::render()
     }
 
     if (monitors[r_monitor_index].mon_screenshots) {
-        int width = destination.width() * devicePixelRatio(), height = destination.height() * devicePixelRatio();
+        int width = destination.width(), height = destination.height();
         char path[1024];
         char fn[256];
     

@@ -37,7 +37,7 @@ void
 HardwareRenderer::resizeGL(int w, int h)
 {
     m_context->makeCurrent(this);
-    glViewport(0, 0, qRound(w * devicePixelRatio()), qRound(h * devicePixelRatio()));
+    glViewport(0, 0, qRound(w * devicePixelRatioF()), qRound(h * devicePixelRatioF()));
 }
 
 #define PROGRAM_VERTEX_ATTRIBUTE   0
@@ -220,14 +220,17 @@ HardwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 #endif
     buf_usage[buf_idx].clear();
     source.setRect(x, y, w, h);
-    if (origSource != source)
+    if (origSource != source) {
+        this->pixelRatio = devicePixelRatioF();
         onResize(this->width(), this->height());
+    }
     update();
 }
 
 void
 HardwareRenderer::resizeEvent(QResizeEvent *event)
 {
+    this->pixelRatio = devicePixelRatioF();
     onResize(width(), height());
 
     QOpenGLWindow::resizeEvent(event);
