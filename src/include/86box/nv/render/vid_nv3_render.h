@@ -31,7 +31,8 @@ uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t co
 uint32_t nv3_render_set_pattern_color(nv3_color_expanded_t pattern_colour, bool use_color1);
 
 /* Primitives */
-void nv3_render_rect(nv3_position_16_t position, nv3_size_16_t size, uint32_t color, nv3_grobj_t grobj);
+void nv3_render_rect(nv3_position_16_t position, nv3_size_16_t size, uint32_t color, nv3_grobj_t grobj);                    // Render an A (unclipped) GDI rect
+void nv3_render_rect_clipped(nv3_clip_16_t clip, uint32_t color, nv3_grobj_t grobj);                                        // Render a B (clipped) GDI rect.
 
 /* Chroma */
 bool nv3_render_chroma_test(uint32_t color, nv3_grobj_t grobj);
@@ -41,5 +42,5 @@ void nv3_render_blit_image(uint32_t color, nv3_grobj_t grobj);
 void nv3_render_blit_screen2screen(nv3_grobj_t grobj);
 
 /* GDI */
-void nv3_render_gdi_type_d(nv3_grobj_t grobj, uint32_t param);                              /* GDI Type-D: Clipped 1bpp text */
-void nv3_render_gdi_type_e(nv3_grobj_t grobj, uint32_t param);                              /* GDI Type-E: Clipped 1bpp two-colour text */
+void nv3_render_gdi_transparent_bitmap(bool clip, uint32_t color, uint32_t bitmap_data, nv3_grobj_t grobj);
+void nv3_render_gdi_1bpp_bitmap(uint32_t color0, uint32_t color1, uint32_t bitmap_data, nv3_grobj_t grobj);                               /* GDI Type-E: Clipped 1bpp colour-expanded bitmap */

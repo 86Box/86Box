@@ -165,6 +165,7 @@ typedef enum nv3_pgraph_class_e
 /* Type B: Clipped Rectangle */
 #define NV3_W95TXT_B_CLIP_TOPLEFT                       0x07F4
 #define NV3_W95TXT_B_CLIP_BOTTOMRIGHT                   0x07F8
+#define NV3_W95TXT_B_COLOR                              0x07FC
 #define NV3_W95TXT_B_CLIP_CLIPRECT_START                0x0800
 #define NV3_W95TXT_B_CLIP_CLIPRECT_SIZE                 128     // Number of rects
 #define NV3_W95TXT_B_CLIP_CLIPRECT_END                  0x09FF
@@ -610,20 +611,20 @@ typedef struct nv3_object_class_00C
     uint8_t reserved3[0x1F0];   
     nv3_clip_16_t clip_b;
     uint32_t color_b;                               // Color for Clip B
-    nv3_clip_16_t rect_clip[64];
+    nv3_clip_16_t clipped_rect[64];
     uint8_t reserved4[0x1E8];
     nv3_clip_16_t clip_c;
     uint32_t color1_c;
     nv3_size_16_t size_c;
     nv3_position_16_t point_c;
-    uint32_t color1_c_bitmap[128];
+    uint32_t bitmap_c[128];
     uint8_t reserved5[0x368];
     nv3_clip_16_t clip_d;
     uint32_t color1_d;
     nv3_size_16_t size_in_d;
     nv3_size_16_t size_out_d;
     nv3_position_16_t point_d;
-    uint32_t mono_color1_d[128];
+    uint32_t bitmap_d[128];
     uint8_t reserved6[0x364];
     nv3_clip_16_t clip_e;
     uint32_t color0_e;
@@ -631,7 +632,7 @@ typedef struct nv3_object_class_00C
     nv3_size_16_t size_in_e;
     nv3_size_16_t size_out_e;
     nv3_position_16_t point_e;
-    uint32_t mono_color1_e[128];
+    uint32_t bitmap_e[128];
     uint8_t reserved7[0xB7F];
 } nv3_win95_text_t;
 

@@ -46,140 +46,307 @@ void nv3_render_rect(nv3_position_16_t position, nv3_size_16_t size, uint32_t co
     }
 }
 
-void nv3_render_text_1bpp(bool bit, nv3_grobj_t grobj)
+/* Render GDI-B clipped rectangle */
+void nv3_render_rect_clipped(nv3_clip_16_t clip, uint32_t color, nv3_grobj_t grobj)
 {
-    uint16_t clip_x = nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_out_d.w;
-    uint16_t clip_y = nv3->pgraph.win95_gdi_text.point_d.y + nv3->pgraph.win95_gdi_text.size_out_d.h;
+    nv3_position_16_t current_pos = {0};
 
-    /* they send more data than they need */
-    if (nv3->pgraph.win95_gdi_text_current_position.y >= clip_y)
-        bit = false;
-
-    uint32_t final_color;
-
-    // if it's a 0 bit we don't need to do anything
-    if (bit)
+    for (int32_t y = clip.top; y < clip.bottom; y++)
     {
-        switch (nv3->nvbase.svga.bpp)
+        current_pos.y = y; 
+
+        for (int32_t x = clip.left; x < clip.right; x++)
         {
-            case 8:
-                final_color = (nv3->pgraph.win95_gdi_text.color1_d & 0xFF); /* do we need to add anything? mul blend perhaps? */
-                break;
-            case 15:
-            case 16:
-                final_color = (nv3->pgraph.win95_gdi_text.color1_d & 0xFFFF); /* do we need to add anything? mul blend perhaps? */
-                break;
-            case 32:
-                final_color = (nv3->pgraph.win95_gdi_text.color1_d); /* do we need to add anything? mul blend perhaps? */
-                break;
+            current_pos.x = x;
+
+            /* compare against the global clip too */
+            if (current_pos.x >= nv3->pgraph.win95_gdi_text.clip_b.left
+            && current_pos.x <= nv3->pgraph.win95_gdi_text.clip_b.right
+            && current_pos.y >= nv3->pgraph.win95_gdi_text.clip_b.top
+            && current_pos.y <= nv3->pgraph.win95_gdi_text.clip_b.bottom)
+            {
+                nv3_render_write_pixel(current_pos, color, grobj);
+            }
         }
     }
+}
 
-    /* in type d colour0 is always transparent */
-    if (bit)
-        nv3_render_write_pixel(nv3->pgraph.win95_gdi_text_current_position, final_color, grobj);
-
-    /* increment the position - the bitmap is stored horizontally backward */
-    nv3->pgraph.win95_gdi_text_current_position.x--;
-
-    /* check if we need to go down a line */
-    if (nv3->pgraph.win95_gdi_text_current_position.x < nv3->pgraph.win95_gdi_text.point_d.x)
+void nv3_render_gdi_transparent_bitmap_blit(bool bit, bool clip, uint32_t color, nv3_grobj_t grobj)
+{
+    /* If the bit is set, and cliping is enabled (Type D) tru and lcip */
+    if (bit && clip)
     {
-        nv3->pgraph.win95_gdi_text_current_position.x = (nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_in_d.w - 1);
-        
-        nv3->pgraph.win95_gdi_text_current_position.y++;
+        /* Turn the bit off if we need to clip (Type D ) */
+        if (nv3->pgraph.win95_gdi_text_current_position.x < nv3->pgraph.win95_gdi_text.clip_d.left
+        || nv3->pgraph.win95_gdi_text_current_position.x > nv3->pgraph.win95_gdi_text.clip_d.right
+        || nv3->pgraph.win95_gdi_text_current_position.y < nv3->pgraph.win95_gdi_text.clip_d.top
+        || nv3->pgraph.win95_gdi_text_current_position.y > nv3->pgraph.win95_gdi_text.clip_d.bottom)
+        {
+            bit = false; 
+        }   
+
+        /* 
+           Also clip if we are outside of the SIZE_OUT range 
+           We only need to do this in one direction just to get rid of the crud sent by NV
+        */
+        uint32_t clip_x = nv3->pgraph.win95_gdi_text.point_d.x + (nv3->pgraph.win95_gdi_text.size_out_d.w);
+        uint32_t clip_y = nv3->pgraph.win95_gdi_text.point_d.y + (nv3->pgraph.win95_gdi_text.size_out_d.h);
+
+        if (nv3->pgraph.win95_gdi_text_current_position.x >= clip_x
+        || nv3->pgraph.win95_gdi_text_current_position.y >= clip_y)
+            bit = false; 
     }
 
-    /* check if we are in the clipping rectangle */
-    if (nv3->pgraph.win95_gdi_text_current_position.x < nv3->pgraph.win95_gdi_text.clip_d.left
-    || nv3->pgraph.win95_gdi_text_current_position.x > nv3->pgraph.win95_gdi_text.clip_d.right
-    || nv3->pgraph.win95_gdi_text_current_position.y < nv3->pgraph.win95_gdi_text.clip_d.top
-    || nv3->pgraph.win95_gdi_text_current_position.y > nv3->pgraph.win95_gdi_text.clip_d.bottom)
+    /* We don't need to and it, because it seems the Riva only uses non-packed bpp formats for this class */
+    if (bit)
+        nv3_render_write_pixel(nv3->pgraph.win95_gdi_text_current_position, color, grobj);
+
+    /* 
+       Check if we've reached the bottom
+       Because we check the bits in reverse, we go forward (bits 7,6,5 were set for a 1x3 bitmap)
+    */
+
+    uint32_t end_x = (clip) ? nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_in_d.w : nv3->pgraph.win95_gdi_text.point_c.x + nv3->pgraph.win95_gdi_text.size_c.w;
+
+    nv3->pgraph.win95_gdi_text_current_position.x++;
+
+    if (nv3->pgraph.win95_gdi_text_current_position.x >= end_x)
     {
+        nv3->pgraph.win95_gdi_text_current_position.y++; 
+
+        if (!clip)
+            nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_c.x;
+        else 
+            nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_d.x;
+    }
+}
+
+/* Originally written 23 March 2025, but then, redone, properly, on 30 March 2025 */
+void nv3_render_gdi_transparent_bitmap(bool clip, uint32_t color, uint32_t bitmap_data, nv3_grobj_t grobj)
+{
+    /* 
+        First, we need to figure out how many bits we have left.
+        If we have less than 32, don't process all of the bits. 
+
+        Bits are processed in the following order: [7-0] [15-8] [23-16] [31-24]
+        TODO: Store this somewhere, so it doesn't need to be recalculated.
+
+        We store a global bit count for this purpose.
+    */
+
+    uint32_t bitmap_size = (clip) ? nv3->pgraph.win95_gdi_text.size_in_d.w * nv3->pgraph.win95_gdi_text.size_in_d.h : nv3->pgraph.win95_gdi_text.size_c.w * nv3->pgraph.win95_gdi_text.size_c.h;
+    uint32_t bits_remaining_in_bitmap = bitmap_size - nv3->pgraph.win95_gdi_text_bit_count;
+
+    /* we have to interpret every bit in reverse bit order but in the right byte order */
+
+    bool current_bit = false;
+
+    /* Start by rendering bits 7 through 0 */
+    for (int32_t bit = 7; bit >= 0; bit--)
+    {
+        current_bit = (bitmap_data >> bit) & 0x01;
+
+        nv3_render_gdi_transparent_bitmap_blit(current_bit, clip, color, grobj);
+        nv3->pgraph.win95_gdi_text_bit_count++;
+        bits_remaining_in_bitmap--;
+
+        if (!bits_remaining_in_bitmap)
+            break;
+    }
+
+    /* IF we're done, let's return */
+    if (!bits_remaining_in_bitmap)
         return;
-    }
-}
 
-void nv3_render_gdi_type_d(nv3_grobj_t grobj, uint32_t param)
-{
-    // reset when a position is submitted
-    nv3_position_16_t start_position = nv3->pgraph.win95_gdi_text_current_position;
-
-    /* Go through the bitmap that was sent, bit by bit. */
-    for (int32_t bit_num = 0; bit_num <= 31; bit_num++)
+    /* Now for 15 through 8 */
+    for (int32_t bit = 15; bit >= 8; bit--)
     {
-        bool bit = (param >> bit_num) & 0x01;
+        current_bit = (bitmap_data >> bit) & 0x01;
 
-        nv3_render_text_1bpp(bit, grobj);
+        nv3_render_gdi_transparent_bitmap_blit(current_bit, clip, color, grobj);
+        nv3->pgraph.win95_gdi_text_bit_count++;
+        bits_remaining_in_bitmap--;
+
+        if (!bits_remaining_in_bitmap)
+            break;
     }
-}
 
-/* 2-colour 1bpp color-expanded text from [7-0] */
-void nv3_render_text_1bpp_2color(uint32_t byte, nv3_grobj_t grobj)
-{
-    for (int32_t bit_num = 0; bit_num <= 7; bit_num++)
+    /* IF we're done, let's return */
+    if (!bits_remaining_in_bitmap)
+        return;
+
+    /* Now for 23 through 16 */
+    for (int32_t bit = 23; bit >= 16; bit--)
     {
-        bool bit = (byte >> bit_num) & 0x01;
+        current_bit = (bitmap_data >> bit) & 0x01;
 
-        uint16_t clip_x = nv3->pgraph.win95_gdi_text.point_e.x + nv3->pgraph.win95_gdi_text.size_out_e.w;
-        uint16_t clip_y = nv3->pgraph.win95_gdi_text.point_e.y + nv3->pgraph.win95_gdi_text.size_out_e.h;
-    
-        // if it's a 0 bit we don't need to do anything
-    
-        uint32_t final_color;
-    
-        switch (nv3->nvbase.svga.bpp)
-        {
-            case 8:
-                final_color = (bit) ? (nv3->pgraph.win95_gdi_text.color1_e & 0xFF) : (nv3->pgraph.win95_gdi_text.color0_e & 0xFF); /* do we need to add anything? mul blend perhaps? */
-                break;
-            case 15:
-            case 16:
-                final_color = (bit) ? (nv3->pgraph.win95_gdi_text.color1_e & 0xFFFF) : (nv3->pgraph.win95_gdi_text.color0_e & 0xFFFF); /* do we need to add anything? mul blend perhaps? */
-                break;
-            case 32:
-                final_color = (bit) ? nv3->pgraph.win95_gdi_text.color1_e : nv3->pgraph.win95_gdi_text.color0_e;  /* do we need to add anything? mul blend perhaps? */
-                break;
-        }
+        nv3_render_gdi_transparent_bitmap_blit(current_bit, clip, color, grobj);
+        nv3->pgraph.win95_gdi_text_bit_count++;
+        bits_remaining_in_bitmap--;
 
-        nv3_render_write_pixel(nv3->pgraph.win95_gdi_text_current_position, final_color, grobj);
-    
-        /* increment the position - the bitmap is stored horizontally backward */
-        nv3->pgraph.win95_gdi_text_current_position.x--;
-    
-        /* see if we need to go to the next line */
-        if (nv3->pgraph.win95_gdi_text_current_position.x < nv3->pgraph.win95_gdi_text.point_e.x)
-        {
-            nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_e.x + (nv3->pgraph.win95_gdi_text.size_out_e.w - 1);
-            nv3->pgraph.win95_gdi_text_current_position.y++;
-        }
-    
-        /* check if we are in the clipping rectangle */
-        if (nv3->pgraph.win95_gdi_text_current_position.x < nv3->pgraph.win95_gdi_text.clip_e.left
-        || nv3->pgraph.win95_gdi_text_current_position.x > nv3->pgraph.win95_gdi_text.clip_e.right
-        || nv3->pgraph.win95_gdi_text_current_position.y < nv3->pgraph.win95_gdi_text.clip_e.top
-        || nv3->pgraph.win95_gdi_text_current_position.y > nv3->pgraph.win95_gdi_text.clip_e.bottom)
-        {
-            return;
-        }
+        if (!bits_remaining_in_bitmap)
+            break;
     }
-    
 
+    /* IF we're done, let's return */
+    if (!bits_remaining_in_bitmap)
+        return;
+
+    /* Now for 31 through 24 */
+    for (int32_t bit = 31; bit >= 24; bit--)
+    {
+        current_bit = (bitmap_data >> bit) & 0x01;
+
+        nv3_render_gdi_transparent_bitmap_blit(current_bit, clip, color, grobj);
+        nv3->pgraph.win95_gdi_text_bit_count++;
+        bits_remaining_in_bitmap--;
+
+        if (!bits_remaining_in_bitmap)
+            break;
+    }
+
+    /* IF we're done, let's return */
+    if (!bits_remaining_in_bitmap)
+        return;
 }
 
-void nv3_render_gdi_type_e(nv3_grobj_t grobj, uint32_t param)
+void nv3_render_gdi_1bpp_bitmap_blit(bool bit, uint32_t color0, uint32_t color1, nv3_grobj_t grobj)
 {
-    // reset when a position is submitted
-    nv3_position_16_t start_position = nv3->pgraph.win95_gdi_text_current_position;
+    /* We can't force the bit off because this is a 1bpp bitmap */
+    bool skip = false; 
 
-    /* we have to interpret every bit in reverse order but in the right bit order */
-    uint8_t byte0 = ((param & 0xFF000000) >> 24);
-    uint8_t byte1 = ((param & 0xFF0000) >> 16);
-    uint8_t byte2 = ((param & 0xFF00) >> 8);
-    uint8_t byte3 = (param & 0xFF);
+    /* For Type E, always clip */
+        /* Turn the bit off if we need to clip (Type D ) */
+    if (nv3->pgraph.win95_gdi_text_current_position.x < nv3->pgraph.win95_gdi_text.clip_e.left
+    || nv3->pgraph.win95_gdi_text_current_position.x > nv3->pgraph.win95_gdi_text.clip_e.right
+    || nv3->pgraph.win95_gdi_text_current_position.y < nv3->pgraph.win95_gdi_text.clip_e.top
+    || nv3->pgraph.win95_gdi_text_current_position.y > nv3->pgraph.win95_gdi_text.clip_e.bottom)
+    {
+        skip = true; 
+    }   
 
-    nv3_render_text_1bpp_2color(byte0, grobj);
-    nv3_render_text_1bpp_2color(byte1, grobj);
-    nv3_render_text_1bpp_2color(byte2, grobj);
-    nv3_render_text_1bpp_2color(byte3, grobj);
+    /* 
+        Also clip if we are outside of the SIZE_OUT range 
+        We only need to do this in one direction just to get rid of the crud sent by NV
+    */
+    uint32_t clip_x = nv3->pgraph.win95_gdi_text.point_e.x + (nv3->pgraph.win95_gdi_text.size_out_e.w);
+    uint32_t clip_y = nv3->pgraph.win95_gdi_text.point_e.y + (nv3->pgraph.win95_gdi_text.size_out_e.h);
+
+    if (nv3->pgraph.win95_gdi_text_current_position.x >= clip_x
+    || nv3->pgraph.win95_gdi_text_current_position.y >= clip_y)
+        skip = true;
+
+    /* We don't need to and it, because it seems the Riva only uses non-packed bpp formats for this class */
+    if (!skip)
+    {
+        if (bit)
+            nv3_render_write_pixel(nv3->pgraph.win95_gdi_text_current_position, nv3->pgraph.win95_gdi_text.color1_e, grobj);
+        else 
+            nv3_render_write_pixel(nv3->pgraph.win95_gdi_text_current_position, nv3->pgraph.win95_gdi_text.color0_e, grobj);
+    }
+       
+
+    /* 
+       Check if we've reached the bottom, if so, advance to the next horizontal lin
+       Because we check the bits in reverse, we go forward (bits 7,6,5 were set for a 1x3 bitmap)
+    */
+
+    uint32_t end_x = nv3->pgraph.win95_gdi_text.point_e.x + nv3->pgraph.win95_gdi_text.size_in_e.w;
+
+    nv3->pgraph.win95_gdi_text_current_position.x++;
+
+    if (nv3->pgraph.win95_gdi_text_current_position.x >= end_x)
+    {
+        nv3->pgraph.win95_gdi_text_current_position.y++; 
+        nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_e.x;
+    }
+}
+
+/* Originally written 23 March 2025, but then, redone, properly, on 30 March 2025 */
+void nv3_render_gdi_1bpp_bitmap(uint32_t color0, uint32_t color1, uint32_t bitmap_data, nv3_grobj_t grobj)
+{
+    /* 
+        First, we need to figure out how many bits we have left.
+        If we have less than 32, don't process all of the bits. 
+
+        Bits are processed in the following order: [7-0] [15-8] [23-16] [31-24]
+        TODO: Store this somewhere, so it doesn't need to be recalculated.
+
+        We store a global bit count for this purpose.
+    */
+
+    uint32_t bitmap_size = nv3->pgraph.win95_gdi_text.size_in_e.w * nv3->pgraph.win95_gdi_text.size_in_e.h;
+    uint32_t bits_remaining_in_bitmap = bitmap_size - nv3->pgraph.win95_gdi_text_bit_count;
+
+    /* we have to interpret every bit in reverse bit order but in the right byte order */
+
+    bool current_bit = false;
+
+    /* Start by rendering bits 7 through 0 */
+    for (int32_t bit = 7; bit >= 0; bit--)
+    {
+        current_bit = (bitmap_data >> bit) & 0x01;
+
+        nv3_render_gdi_1bpp_bitmap_blit(current_bit, color0, color1, grobj);
+        nv3->pgraph.win95_gdi_text_bit_count++;
+        bits_remaining_in_bitmap--;
+
+        if (!bits_remaining_in_bitmap)
+            break;
+    }
+
+    /* IF we're done, let's return */
+    if (!bits_remaining_in_bitmap)
+        return;
+
+    /* Now for 15 through 8 */
+    for (int32_t bit = 15; bit >= 8; bit--)
+    {
+        current_bit = (bitmap_data >> bit) & 0x01;
+
+        nv3_render_gdi_1bpp_bitmap_blit(current_bit, color0, color1, grobj);
+        nv3->pgraph.win95_gdi_text_bit_count++;
+        bits_remaining_in_bitmap--;
+
+        if (!bits_remaining_in_bitmap)
+            break;
+    }
+
+    /* IF we're done, let's return */
+    if (!bits_remaining_in_bitmap)
+        return;
+
+    /* Now for 23 through 16 */
+    for (int32_t bit = 23; bit >= 16; bit--)
+    {
+        current_bit = (bitmap_data >> bit) & 0x01;
+
+        nv3_render_gdi_1bpp_bitmap_blit(current_bit, color0, color1, grobj);
+        nv3->pgraph.win95_gdi_text_bit_count++;
+        bits_remaining_in_bitmap--;
+
+        if (!bits_remaining_in_bitmap)
+            break;
+    }
+
+    /* IF we're done, let's return */
+    if (!bits_remaining_in_bitmap)
+        return;
+
+    /* Now for 31 through 24 */
+    for (int32_t bit = 31; bit >= 24; bit--)
+    {
+        current_bit = (bitmap_data >> bit) & 0x01;
+
+        nv3_render_gdi_1bpp_bitmap_blit(current_bit, color0, color1, grobj);
+        nv3->pgraph.win95_gdi_text_bit_count++;
+        bits_remaining_in_bitmap--;
+
+        if (!bits_remaining_in_bitmap)
+            break;
+    }
+
+    /* IF we're done, let's return */
+    if (!bits_remaining_in_bitmap)
+        return;
 }
