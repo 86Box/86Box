@@ -3768,6 +3768,9 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
         case 0x6aee:
         case 0x6aef:
             WRITE8(port, mach64->config_cntl, val);
+            if (!mach64->pci)
+                mach64->linear_base = (mach64->config_cntl & 0x3ff0) << 18;
+
             mach64_updatemapping(mach64);
             break;
 
