@@ -2016,7 +2016,6 @@ svga_doblit(int wx, int wy, svga_t *svga)
 
         /* Block resolution changes while in DPMS mode to avoid getting a bogus
            screen width (320). We're already rendering a blank screen anyway. */
-        pclog("%i + %i, %i + %i\n", svga->monitor->mon_xsize, x_add, svga->monitor->mon_ysize, y_add);
         if (!svga->dpms)
             set_screen_size_monitor(svga->monitor->mon_xsize + x_add, svga->monitor->mon_ysize + y_add, svga->monitor_index);
 
