@@ -904,7 +904,7 @@ svga_recalctimings(svga_t *svga)
         svga->recalctimings_ex(svga);
 
     if (ibm8514_active && (svga->dev8514 != NULL)) {
-        if ((dev->local & 0xff) == 0x00)
+        if (IBM_8514A || ATI_8514A_ULTRA)
             ibm8514_recalctimings(svga);
     }
 
@@ -1031,8 +1031,8 @@ svga_recalctimings(svga_t *svga)
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (dev->on) {
             disptime8514 = dev->h_total;
-            _dispontime8514 = (dev->hdisped + 1) * 8;
-            svga_log("HDISPED 8514=%d, htotal=%02x.\n", (dev->hdisped + 1) << 3, dev->h_total);
+            _dispontime8514 = dev->h_disp;
+            svga_log("HTOTAL=%d, HDISP=%d.\n", dev->h_total, dev->h_disp);
         }
     }
 
@@ -1176,10 +1176,7 @@ svga_do_render(svga_t *svga)
     }
 
     if (!svga->override) {
-        if (svga->render_override)
-            svga->render_override(svga->priv_parent);
-        else
-            svga->render(svga);
+        svga->render(svga);
 
         svga->x_add = (svga->monitor->mon_overscan_x >> 1);
         svga_render_overscan_left(svga);

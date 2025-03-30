@@ -653,7 +653,9 @@ machine_at_if386sx_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
+
     device_add(&keyboard_at_phoenix_device);
 
     device_add(&neat_sx_device);
@@ -662,6 +664,12 @@ machine_at_if386sx_init(const machine_t *model)
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
+
+    /*
+       One serial port - on the real hardware IF386AX, it is on the VL 16C451,
+       alognside the bidirectional parallel port.
+     */
+    device_add_inst(&ns16450_device, 1);
 
     return ret;
 }
