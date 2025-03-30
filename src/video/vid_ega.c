@@ -272,7 +272,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                 ega->crtcreg = val;
             return;
         case 0x3d1:
-        case 0x3d5:
+        case 0x3d5: {
             int idx = ega->crtcreg;
 
             if (ega->chipset) {
@@ -305,7 +305,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
             }
             break;
 
-        default:
+        } default:
             break;
     }
 }
