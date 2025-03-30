@@ -83,31 +83,45 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
     ui->comboBoxRTC->setCurrentIndex(selectedRow);
     ui->pushButtonConfigureRTC->setEnabled((isartc_type != 0) && isartc_has_config(isartc_type) && machineHasIsa);
 
-    for (int c = 0; c < ISAMEM_MAX; c++) {
-        auto *cbox  = findChild<QComboBox *>(QString("comboBoxCard%1").arg(c + 1));
-        model       = cbox->model();
-        d           = 0;
-        selectedRow = 0;
-        while (true) {
-            QString name = DeviceConfig::DeviceName(isamem_get_device(d), isamem_get_internal_name(d), 0);
-            if (name.isEmpty()) {
-                break;
-            }
+    // ISA Memory Expansion Card
+    QComboBox *         cbox[ISAMEM_MAX]         = { 0 };
+    QAbstractItemModel *models[ISAMEM_MAX]       = { 0 };
+    int                 removeRows_[ISAMEM_MAX]  = { 0 };
+    int                 selectedRows[ISAMEM_MAX] = { 0 };
 
-            if (!device_is_valid(isamem_get_device(d), machineId)) {
-                break;
-            }
+    for (uint8_t c = 0; c < ISAMEM_MAX; ++c) {
+        cbox[c]        = findChild<QComboBox *>(QString("comboBoxCard%1").arg(c + 1));
+        models[c]      = cbox[c]->model();
+        removeRows_[c] = models[c]->rowCount();
+    }
 
-            int row = Models::AddEntry(model, name, d);
-            if (d == isamem_type[c]) {
-                selectedRow = row;
+    d = 0;
+    while (true) {
+        const QString name = DeviceConfig::DeviceName(isamem_get_device(d),
+                                                      isamem_get_internal_name(d), 0);
+
+        if (name.isEmpty())
+            break;
+
+        if (device_is_valid(isamem_get_device(d), machineId)) {
+            for (uint8_t c = 0; c < ISAMEM_MAX; ++c) {
+                int row = Models::AddEntry(models[c], name, d);
+
+                if (d == isamem_type[c])
+                    selectedRows[c] = row - removeRows_[c];
             }
-            ++d;
         }
-        cbox->setCurrentIndex(-1);
-        cbox->setCurrentIndex(selectedRow);
-        cbox->setEnabled(machineHasIsa);
-        findChild<QPushButton *>(QString("pushButtonConfigureCard%1").arg(c + 1))->setEnabled((isamem_type[c] != 0) && isamem_has_config(isamem_type[c]) && machineHasIsa);
+
+       d++;
+    }
+
+    for (uint8_t c = 0; c < ISAMEM_MAX; ++c) {
+        models[c]->removeRows(0, removeRows_[c]);
+        cbox[c]->setEnabled(models[c]->rowCount() > 1);
+        cbox[c]->setCurrentIndex(-1);
+        cbox[c]->setCurrentIndex(selectedRows[c]);
+        findChild<QPushButton *>(QString("pushButtonConfigureCard%1").arg(c + 1))->setEnabled((isamem_type[c] != 0) &&
+                                isamem_has_config(isamem_type[c]) && machineHasIsa);
     }
 }
 
