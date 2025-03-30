@@ -428,7 +428,8 @@ jega_out(uint16_t addr, uint8_t val, void *priv)
                 }
             } else {
                 jega->attrregs[jega->attraddr & 31] = val;
-                if (jega->attraddr < 0x10) {
+                int is_attr14 = jega->is_vga ? (jega->attraddr == 0x14) : 0;
+                if (is_attr14 || (jega->attraddr < 0x10)) {
                     for (uint8_t c = 0; c < 16; c++) {
                         if (jega->is_vga) {
                             if (jega->attrregs[0x10] & 0x80)
