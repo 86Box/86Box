@@ -92,8 +92,8 @@ typedef struct ibm8514_t {
         uint16_t advfunc_cntl;
         uint16_t cur_y;
         uint16_t cur_x;
-        uint16_t destx;
-        uint16_t desty;
+        int16_t  destx;
+        int16_t  desty;
         int16_t  desty_axstp;
         int16_t  destx_distp;
         int16_t  err_term;
