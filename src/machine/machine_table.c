@@ -1713,7 +1713,7 @@ const machine_t machines[] = {
     {
         .name = "[8088] VTech Laser Turbo XT",
         .internal_name = "ltxt",
-        .type = MACHINE_TYPE_8088_VTECH,
+        .type = MACHINE_TYPE_8088,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_xt_laserxt_init,
         .p1_handler = NULL,
@@ -1721,7 +1721,7 @@ const machine_t machines[] = {
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
         .cpu = {
-            .package = CPU_PKG_8088,
+            .package = CPU_PKG_8088_VTECH,
             .block = CPU_BLOCK_NONE,
             .min_bus = 0,
             .max_bus = 0,
