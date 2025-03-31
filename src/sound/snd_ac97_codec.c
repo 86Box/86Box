@@ -539,8 +539,9 @@ ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
             *l = codec_attn[0x3f - (l_val & 0x3f)];
             *r = codec_attn[0x3f - (r_val & 0x3f)];
         } else { /* 5-bit gain */
-            *l = codec_attn[0x47 - (l_val & 0x1f)];
-            *r = codec_attn[0x47 - (r_val & 0x1f)];
+            /* Yes, 0x3f is correct, the 0x47 was most likely a decimal-hex mix-up. */
+            *l = codec_attn[0x3f - (l_val & 0x1f)];
+            *r = codec_attn[0x3f - (r_val & 0x1f)];
         }
 
         /* Apply per-channel mute and center/LFE powerdowns where applicable. */
