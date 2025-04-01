@@ -803,7 +803,7 @@ MainWindow::resizeEvent(QResizeEvent *event)
 {
     //qDebug() << pos().x() + event->size().width();
     //qDebug() << pos().y() + event->size().height();
-    if (vid_resize == 1)
+    if (vid_resize == 1 || video_fullscreen)
         return;
 
     int newX = pos().x();
