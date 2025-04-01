@@ -79,6 +79,8 @@ int floppyrate[4];
 
 int fdc_current[FDC_MAX] = { 0, 0 };
 
+volatile int fdcinited = 0;
+
 #ifdef ENABLE_FDC_LOG
 int fdc_do_log = ENABLE_FDC_LOG;
 
@@ -2337,6 +2339,8 @@ fdc_close(void *priv)
 
     fifo_close(fdc->fifo_p);
 
+    fdcinited = 0;
+
     free(fdc);
 }
 
@@ -2381,6 +2385,8 @@ fdc_init(const device_t *info)
     mfm_set_fdc(fdc);
 
     fdc_reset(fdc);
+
+    fdcinited = 1;
 
     return fdc;
 }
