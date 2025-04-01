@@ -296,7 +296,13 @@ ropMOV_b_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
 
         imm = fastreadb(cs + op_pc + 1);
         uop_MOV_IMM(ir, IREG_8(dest_reg), imm);
-    } else {
+    }
+/* TODO: Fix the recompilation of that specific case so it no longer breaks NT 3.x NTVDM. */
+#ifndef RECOMPILE_MOVB_IMM_MEM_ALWAYS
+    else if (((fetchdat & 0xfc) == 0x80) && (op_32 & 0x200))
+        return 0;
+#endif
+    else {
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         codegen_check_seg_write(block, ir, target_seg);

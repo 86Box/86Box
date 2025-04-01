@@ -152,7 +152,13 @@ ropMOV_b_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t
 {
     if ((fetchdat & 0xc0) == 0xc0) {
         STORE_IMM_REG_B(fetchdat & 7, (fetchdat >> 8) & 0xff);
-    } else {
+    }
+/* TODO: Fix the recompilation of that specific case so it no longer breaks NT 3.x NTVDM. */
+#ifndef RECOMPILE_MOVB_IMM_MEM_ALWAYS
+    else if (((fetchdat & 0xfc) == 0x80) && (op_32 & 0x200))
+        return 0;
+#endif
+    else {
         x86seg  *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
         uint32_t imm        = fastreadb(cs + op_pc + 1);
         int      host_reg   = LOAD_REG_IMM(imm);
