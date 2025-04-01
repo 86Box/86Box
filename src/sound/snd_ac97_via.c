@@ -536,8 +536,13 @@ ac97_via_remap_modem_codec(void *priv, uint16_t new_io_base, uint8_t enable)
 static void
 ac97_via_update_stereo(ac97_via_t *dev, ac97_via_sgd_t *sgd)
 {
+#ifdef OLD_CODE
     int32_t l = (((sgd->out_l * sgd->vol_l) >> 15) * dev->master_vol_l) >> 15;
     int32_t r = (((sgd->out_r * sgd->vol_r) >> 15) * dev->master_vol_r) >> 15;
+#else
+    int32_t l = (((sgd->out_l * sgd->vol_l) / 208925) * dev->master_vol_l) >> 15;
+    int32_t r = (((sgd->out_r * sgd->vol_r) / 208925) * dev->master_vol_r) >> 15;
+#endif
 
     if (l < -32768)
         l = -32768;
