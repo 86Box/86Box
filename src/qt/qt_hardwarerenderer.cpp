@@ -145,7 +145,7 @@ HardwareRenderer::paintGL()
     QVector<QVector2D> texcoords;
     QMatrix4x4         mat;
     mat.setToIdentity();
-    mat.ortho(QRectF(0, 0, (qreal) width(), (qreal) height()));
+    mat.ortho(QRectF(0, 0, (qreal) width() * (qreal) devicePixelRatioF(), (qreal) height() * (qreal) devicePixelRatioF()));
     verts.push_back(QVector2D((float) destination.x(), (float) destination.y()));
     verts.push_back(QVector2D((float) destination.x(), (float) destination.y() + (float) destination.height()));
     verts.push_back(QVector2D((float) destination.x() + (float) destination.width(), (float) destination.y() + (float) destination.height()));
