@@ -84,7 +84,7 @@ static uint8_t bug_spcfg; /* serial port configuration */
 #define FIFO_LEN 256
 static uint8_t  bug_buff[FIFO_LEN]; /* serial port data buffer */
 static uint8_t *bug_bptr;
-#define UISTR_LEN 24
+#define UISTR_LEN 91
 static char bug_str[UISTR_LEN]; /* UI output string */
 
 extern void ui_sb_bugui(char *__str);
@@ -112,7 +112,7 @@ static void
 bug_setui(void)
 {
     /* Format all current info in a string. */
-    sprintf(bug_str, "%02X:%02X %c%c%c%c%c%c%c%c-%c%c%c%c%c%c%c%c",
+    sprintf(bug_str, "<tt>%02X:%02X <font color=\"#00CC00\">%c%c%c%c%c%c%c%c</font>-<font color=\"#EE0000\">%c%c%c%c%c%c%c%c</font></tt>",
             bug_seg2, bug_seg1,
             (bug_ledg & 0x80) ? 'G' : 'g', (bug_ledg & 0x40) ? 'G' : 'g',
             (bug_ledg & 0x20) ? 'G' : 'g', (bug_ledg & 0x10) ? 'G' : 'g',
