@@ -32,11 +32,18 @@ const int INITIAL_LEVEL = 1;
 
 CSAAFreq::CSAAFreq(CSAANoise * const NoiseGenerator, CSAAEnv * const EnvGenerator)
 :
-m_nCounter(0), m_nCounter_low(0), m_nAdd(0),
+m_nCounter(0),
+m_nAdd(0),
+m_nCounter_low(0),
+m_nOversample(0),
+m_nCounterLimit_low(1),
 m_nLevel(INITIAL_LEVEL),
-m_nOversample(0), m_nCounterLimit_low(1),
-m_nCurrentOffset(0), m_nCurrentOctave(0), m_nNextOffset(0), m_nNextOctave(0),
-m_bIgnoreOffsetData(false), m_bNewData(false), 
+m_nCurrentOffset(0),
+m_nCurrentOctave(0),
+m_nNextOffset(0),
+m_nNextOctave(0),
+m_bIgnoreOffsetData(false),
+m_bNewData(false), 
 m_bSync(false),
 m_nSampleRate(SAMPLE_RATE_HZ),
 m_pcConnectedNoiseGenerator(NoiseGenerator),
@@ -194,7 +201,7 @@ void CSAAFreq::_SetClockRate(int nClockRate)
 	// Finally, note that the standard formula corresponds to a 8MHz base clock
 	// so we rescale the final result by the ratio nClockRate/8000000
 
-	if (nClockRate != m_nClockRate)
+	if (((unsigned long) nClockRate) != m_nClockRate)
 	{
 		m_nClockRate = nClockRate;
 		int ix = 0;

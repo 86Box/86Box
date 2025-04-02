@@ -40,12 +40,12 @@ const ENVDATA CSAAEnv::cs_EnvData[8] =
 CSAAEnv::CSAAEnv()
 :
 m_bEnabled(false),
-m_bNewData(false),
-m_nNextData(0),
-m_bEnvelopeEnded(true),
 m_nPhase(0),
 m_nPhasePosition(0),
-m_nResolution(1)
+m_bEnvelopeEnded(true),
+m_nResolution(1),
+m_bNewData(false),
+m_nNextData(0)
 {
 	// initialise itself with the value 'zero'
 	SetEnvControl(0);

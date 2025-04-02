@@ -56,8 +56,6 @@ void
 cms_write(uint16_t addr, uint8_t val, void *priv)
 {
     cms_t *cms = (cms_t *) priv;
-    int    voice;
-    int    chip = (addr & 2) >> 1;
 
     switch (addr & 0xf) {
         case 0x1: /* SAA #1 Register Select Port */

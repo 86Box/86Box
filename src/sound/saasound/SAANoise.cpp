@@ -25,8 +25,8 @@ CSAANoise::CSAANoise()
 :
 m_nCounter(0),
 m_nCounter_low(0),
-m_nCounterLimit_low(1),
 m_nOversample(0),
+m_nCounterLimit_low(1),
 m_bSync(false),
 m_nSampleRate(SAMPLE_RATE_HZ),
 m_nSourceMode(0),
@@ -40,8 +40,8 @@ CSAANoise::CSAANoise(unsigned long seed)
 :
 m_nCounter(0),
 m_nCounter_low(0),
-m_nCounterLimit_low(1),
 m_nOversample(0),
+m_nCounterLimit_low(1),
 m_bSync(false),
 m_nSampleRate(SAMPLE_RATE_HZ),
 m_nSourceMode(0),

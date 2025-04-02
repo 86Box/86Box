@@ -107,7 +107,7 @@ void CSAADevice::_SetSampleRate(unsigned int nSampleRate)
 
 void CSAADevice::_SetOversample(unsigned int nOversample)
 {
-	if (nOversample != m_nOversample)
+	if (((int) nOversample) != m_nOversample)
 	{
 		m_nOversample = nOversample;
 		m_Osc0._SetOversample(nOversample);
