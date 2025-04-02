@@ -2651,8 +2651,9 @@ cpu_ven_reset(void)
             msr.mtrr_cap = 0x00000508ULL;
 
             /* 4 GB cacheable space on Deschutes 651h and later (including the 1632h
-               Overdrive) according to the Pentium II Processor Specification Update. */
-            if (cpu_s->cpuid_model >= 0x651)
+               Overdrive) according to the Pentium II Processor Specification Update.
+               Covington 651h (no L2 cache) reports the same 512 MB value as Klamath. */
+            if (CPUID >= (!strncmp(cpu_f->internal_name, "celeron", 7) ? 0x660 : 0x651))
                 msr.bbl_cr_ctl3 |= 0x00300000;
             break;
 
