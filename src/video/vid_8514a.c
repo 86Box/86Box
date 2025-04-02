@@ -334,6 +334,13 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
+    if (port & 0x8000) {
+        if ((port != 0xe2e8) && (port != 0xe2e9) && (port != 0xe6e8) && (port != 0xe6e9)) {
+            if (port & 0x4000)
+                port &= ~0x4000;
+        }
+    }
+
     switch (port) {
         case 0x2e8:
             WRITE8(port, dev->htotal, val);
@@ -499,19 +506,16 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             break;
 
         case 0x82e8:
-        case 0xc2e8:
             if (len == 2)
                 dev->accel.cur_y = val & 0x7ff;
             break;
 
         case 0x86e8:
-        case 0xc6e8:
             if (len == 2)
                 dev->accel.cur_x = val & 0x7ff;
             break;
 
         case 0x8ae8:
-        case 0xcae8:
             if (len == 2) {
                 dev->accel.desty       = val & 0x7ff;
                 dev->accel.desty_axstp = val & 0x3fff;
@@ -521,7 +525,6 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             break;
 
         case 0x8ee8:
-        case 0xcee8:
             if (len == 2) {
                 dev->accel.destx       = val & 0x7ff;
                 dev->accel.destx_distp = val & 0x3fff;
@@ -531,12 +534,8 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             break;
 
         case 0x92e8:
-            if (len == 2)
-                dev->test = val;
-            fallthrough;
-
-        case 0xd2e8:
             if (len == 2) {
+                dev->test = val;
                 dev->accel.err_term = val & 0x3fff;
                 if (val & 0x2000)
                     dev->accel.err_term |= ~0x1fff;
@@ -544,7 +543,6 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             break;
 
         case 0x96e8:
-        case 0xd6e8:
             if (len == 2) {
                 dev->accel.maj_axis_pcnt = val & 0x7ff;
                 dev->accel.maj_axis_pcnt_no_limit = val;
@@ -552,7 +550,6 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             break;
 
         case 0x9ae8:
-        case 0xdae8:
             dev->accel.ssv_state = 0;
             if (len == 2) {
                 dev->data_available  = 0;
@@ -562,13 +559,12 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
                 if (dev->accel.cmd & 0x100)
                     dev->accel.cmd_back = 0;
 
-                ibm8514_log("8514/A CMD=%04x, back=%d, frgd color=%04x, frgdmix=%02x, pixcntl=%02x.\n", dev->accel.cmd, dev->accel.cmd_back, dev->accel.frgd_color, dev->accel.frgd_mix, dev->accel.multifunc[0x0a]);
+                ibm8514_log("8514/A CMD=%04x, frgd color=%04x, frgdmix=%02x, pixcntl=%02x.\n", dev->accel.cmd, dev->accel.frgd_color, dev->accel.frgd_mix, dev->accel.multifunc[0x0a]);
                 ibm8514_accel_start(-1, 0, -1, 0, svga, len);
             }
             break;
 
         case 0x9ee8:
-        case 0xdee8:
             dev->accel.ssv_state = 1;
             if (len == 2) {
                 dev->accel.short_stroke = val;
@@ -628,35 +624,29 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             break;
 
         case 0xaae8:
-        case 0xeae8:
             if (len == 2)
                 dev->accel.wrt_mask = val;
             break;
 
         case 0xaee8:
-        case 0xeee8:
             if (len == 2)
                 dev->accel.rd_mask = val;
             break;
 
         case 0xb2e8:
-        case 0xf2e8:
             if (len == 2)
                 dev->accel.color_cmp = val;
             break;
 
         case 0xb6e8:
-        case 0xf6e8:
             dev->accel.bkgd_mix = val & 0xff;
             break;
 
         case 0xbae8:
-        case 0xfae8:
             dev->accel.frgd_mix = val & 0xff;
             break;
 
         case 0xbee8:
-        case 0xfee8:
             if (len == 2) {
                 dev->accel.multifunc_cntl                             = val;
                 dev->accel.multifunc[dev->accel.multifunc_cntl >> 12] = dev->accel.multifunc_cntl & 0xfff;
@@ -765,10 +755,12 @@ ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
-    if (dev->accel.cmd_back) {
-        dev->fifo_idx++;
-        if (dev->fifo_idx > 8)
-            dev->fifo_idx = 8;
+    if (port & 0x8000) {
+        if (dev->accel.cmd_back) {
+            dev->fifo_idx++;
+            if (dev->fifo_idx > 8)
+                dev->fifo_idx = 8;
+        }
     }
 
     ibm8514_accel_out_fifo(svga, port, val, len);
@@ -799,13 +791,11 @@ ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len)
 
     switch (port) {
         case 0x82e8:
-        case 0xc2e8:
             if (len == 2)
                 temp = dev->accel.cur_y;
             break;
 
         case 0x86e8:
-        case 0xc6e8:
             if (len == 2)
                 temp = dev->accel.cur_x;
             break;
@@ -821,7 +811,6 @@ ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len)
             break;
 
         case 0x9ae8:
-        case 0xdae8:
             if (len == 2) {
                 if (dev->fifo_idx <= 8) {
                     for (int i = 1; i <= dev->fifo_idx; i++)
@@ -834,9 +823,6 @@ ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len)
 
                 if (dev->force_busy)
                     temp |= 0x0200; /*Hardware busy*/
-
-                if (dev->accel.cmd_back)
-                    dev->force_busy = 0;
 
                 if (dev->data_available) {
                     temp |= 0x0100; /*Read Data available*/
@@ -857,7 +843,6 @@ ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len)
             }
             break;
         case 0x9ae9:
-        case 0xdae9:
             if (len == 1) {
                 dev->fifo_idx = 0;
 
@@ -974,7 +959,7 @@ ibm8514_accel_in(uint16_t port, svga_t *svga)
                         temp |= INT_GE_BSY;
                 }
 
-                if (dev->accel.cmd_back) {
+                if (!dev->fifo_idx) {
                     dev->force_busy = 0;
                     dev->force_busy2 = 0;
                     dev->data_available = 0;
@@ -1033,6 +1018,8 @@ ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t 
         dev->accel.ssv_len_back = dev->accel.ssv_len;
 
         if (ibm8514_cpu_src(svga)) {
+            dev->force_busy = 1;
+            dev->force_busy2 = 1;
             dev->data_available  = 0;
             dev->data_available2 = 0;
             return; /*Wait for data from CPU*/
@@ -1077,11 +1064,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
         rd_mask = ((dev->accel.rd_mask & 0x01) << 7) | ((dev->accel.rd_mask & 0xfe) >> 1);
         rd_mask &= 0xff;
         rd_mask_polygon &= 0xff;
-    }
-
-    if (!dev->accel.cmd_back) {
-        dev->force_busy  = 1;
-        dev->force_busy2 = 1;
     }
 
     frgd_mix = (dev->accel.frgd_mix >> 5) & 3;
@@ -1251,8 +1233,12 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         cpu_dat >>= 8;
 
                     if (!dev->accel.ssv_len) {
-                        dev->accel.cmd_back = 1;
+                        if (cpu_input) {
+                            dev->force_busy = 0;
+                            dev->force_busy2 = 0;
+                        }
                         dev->fifo_idx = 0;
+                        dev->accel.cmd_back = 1;
                         break;
                     }
 
@@ -1348,8 +1334,12 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         cpu_dat >>= 8;
 
                     if (!dev->accel.ssv_len) {
-                        dev->accel.cmd_back = 1;
+                        if (cpu_input) {
+                            dev->force_busy = 0;
+                            dev->force_busy2 = 0;
+                        }
                         dev->fifo_idx = 0;
+                        dev->accel.cmd_back = 1;
                         break;
                     }
 
@@ -1413,10 +1403,14 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                 dev->accel.output = 1;
                         }
                     }
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
                     dev->data_available  = 0;
                     dev->data_available2 = 0;
                     return; /*Wait for data from CPU*/
                 } else if (ibm8514_cpu_dest(svga)) {
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
                     dev->data_available  = 1;
                     dev->data_available2 = 1;
                     return;
@@ -1524,8 +1518,12 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                     }
 
                     if (!dev->accel.sy) {
-                        dev->accel.cmd_back = 1;
+                        if (cpu_input) {
+                            dev->force_busy = 0;
+                            dev->force_busy2 = 0;
+                        }
                         dev->fifo_idx = 0;
+                        dev->accel.cmd_back = 1;
                         if (!cpu_input) {
                             dev->accel.cur_x = dev->accel.cx;
                             dev->accel.cur_y = dev->accel.cy;
@@ -1645,8 +1643,12 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             cpu_dat >>= 8;
 
                         if (!dev->accel.sy) {
-                            dev->accel.cmd_back = 1;
+                            if (cpu_input) {
+                                dev->force_busy = 0;
+                                dev->force_busy2 = 0;
+                            }
                             dev->fifo_idx = 0;
+                            dev->accel.cmd_back = 1;
                             break;
                         }
 
@@ -1749,8 +1751,12 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             cpu_dat >>= 8;
 
                         if (!dev->accel.sy) {
-                            dev->accel.cmd_back = 1;
+                            if (cpu_input) {
+                                dev->force_busy = 0;
+                                dev->force_busy2 = 0;
+                            }
                             dev->fifo_idx = 0;
+                            dev->accel.cmd_back = 1;
                             if (!cpu_input) {
                                 dev->accel.cur_x = dev->accel.cx;
                                 dev->accel.cur_y = dev->accel.cy;
@@ -1855,6 +1861,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             }
                         }
                     }
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
                     dev->data_available  = 0;
                     dev->data_available2 = 0;
                     return; /*Wait for data from CPU*/
@@ -1872,6 +1880,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         }
                     }
                     ibm8514_log("INPUT=%d.\n", dev->accel.input);
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
                     dev->data_available  = 1;
                     dev->data_available2 = 1;
                     return; /*Wait for data from CPU*/
@@ -2031,8 +2041,10 @@ skip_vector_rect_write:
                                 dev->accel.x_count = 0;
 
                                 if (dev->accel.sy < 0) {
-                                    dev->accel.cmd_back = 1;
+                                    dev->force_busy = 0;
+                                    dev->force_busy2 = 0;
                                     dev->fifo_idx = 0;
+                                    dev->accel.cmd_back = 1;
                                 }
                                 return;
                             }
@@ -2043,6 +2055,7 @@ skip_vector_rect_write:
                     ibm8514_log("Vectored Rectangle with normal processing (TODO).\n");
             } else { /*Normal Rectangle*/
                 if (cpu_input) {
+                    ibm8514_log("Normal Pixel Rectangle Fill Transfer SY=%d.\n", dev->accel.sy);
                     while (count-- && (dev->accel.sy >= 0)) {
                         if ((dev->accel.cx >= clip_l) &&
                             (dev->accel.cx <= clip_r) &&
@@ -2192,9 +2205,11 @@ skip_nibble_rect_write:
                             dev->accel.x_count = 0;
 
                             if (dev->accel.sy < 0) {
-                                dev->accel.cmd_back = 1;
                                 dev->fifo_idx = 0;
+                                dev->accel.cmd_back = 1;
                             }
+                            dev->force_busy = 0;
+                            dev->force_busy2 = 0;
                             return;
                         }
                     }
@@ -2280,8 +2295,8 @@ skip_nibble_rect_write:
                                     dev->accel.sy--;
 
                                     if (dev->accel.sy < 0) {
-                                        dev->accel.cmd_back = 1;
                                         dev->fifo_idx = 0;
+                                        dev->accel.cmd_back = 1;
                                     }
                                     return;
                                 }
@@ -2366,8 +2381,8 @@ skip_nibble_rect_write:
                                             dev->accel.cur_x = dev->accel.cx;
                                             dev->accel.cur_y = dev->accel.cy;
                                         }
-                                        dev->accel.cmd_back = 1;
                                         dev->fifo_idx = 0;
+                                        dev->accel.cmd_back = 1;
                                         return;
                                     }
                                 }
@@ -2478,10 +2493,10 @@ skip_nibble_rect_write:
 
                                 if (dev->accel.sy < 0) {
                                     ibm8514_log(".\n");
-                                    dev->accel.cmd_back = 1;
                                     dev->fifo_idx = 0;
                                     dev->accel.cur_x = dev->accel.cx;
                                     dev->accel.cur_y = dev->accel.cy;
+                                    dev->accel.cmd_back = 1;
                                     return;
                                 }
                             }
@@ -2568,8 +2583,8 @@ skip_nibble_rect_write:
                                         dev->accel.cur_x = dev->accel.cx;
                                         dev->accel.cur_y = dev->accel.cy;
                                     }
-                                    dev->accel.cmd_back = 1;
                                     dev->fifo_idx = 0;
+                                    dev->accel.cmd_back = 1;
                                     return;
                                 }
                             }
@@ -2599,10 +2614,14 @@ skip_nibble_rect_write:
                 ibm8514_log("Polygon Boundary activated=%04x, len=%d, cur(%d,%d), frgdmix=%02x, err=%d, clipping: l=%d, r=%d, t=%d, b=%d, pixcntl=%02x.\n", dev->accel.cmd, dev->accel.sy, dev->accel.cx, dev->accel.cy, dev->accel.frgd_mix & 0x1f, dev->accel.err_term, clip_l, clip_r, clip_t, clip_b, dev->accel.multifunc[0x0a]);
 
                 if (ibm8514_cpu_src(svga)) {
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
                     dev->data_available  = 0;
                     dev->data_available2 = 0;
                     return; /*Wait for data from CPU*/
                 } else if (ibm8514_cpu_dest(svga)) {
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
                     dev->data_available  = 1;
                     dev->data_available2 = 1;
                     return;
@@ -2671,8 +2690,12 @@ skip_nibble_rect_write:
                         cpu_dat >>= 8;
 
                     if (!dev->accel.sy) {
-                        dev->accel.cmd_back = 1;
+                        if (cpu_input) {
+                            dev->force_busy = 0;
+                            dev->force_busy2 = 0;
+                        }
                         dev->fifo_idx = 0;
+                        dev->accel.cmd_back = 1;
                         break;
                     }
 
@@ -2776,8 +2799,12 @@ skip_nibble_rect_write:
                         cpu_dat >>= 8;
 
                     if (!dev->accel.sy) {
-                        dev->accel.cmd_back = 1;
+                        if (cpu_input) {
+                            dev->force_busy = 0;
+                            dev->force_busy2 = 0;
+                        }
                         dev->fifo_idx = 0;
+                        dev->accel.cmd_back = 1;
                         break;
                     }
 
@@ -2869,10 +2896,14 @@ skip_nibble_rect_write:
                             }
                         }
                     }
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
                     dev->data_available  = 0;
                     dev->data_available2 = 0;
                     return; /*Wait for data from CPU*/
                 } else if (ibm8514_cpu_dest(svga)) {
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
                     dev->data_available  = 1;
                     dev->data_available2 = 1;
                     return; /*Wait for data from CPU*/
@@ -3036,6 +3067,8 @@ skip_nibble_bitblt_write:
 
                         if (dev->accel.sy < 0) {
                             dev->accel.cmd_back = 1;
+                            dev->force_busy = 0;
+                            dev->force_busy2 = 0;
                             dev->fifo_idx = 0;
                         }
                         return;
@@ -3234,8 +3267,8 @@ skip_nibble_bitblt_write:
                                 if (dev->accel.sy < 0) {
                                     dev->accel.destx = dev->accel.dx;
                                     dev->accel.desty = dev->accel.dy;
-                                    dev->accel.cmd_back = 1;
                                     dev->fifo_idx = 0;
+                                    dev->accel.cmd_back = 1;
                                     return;
                                 }
                             }
@@ -3254,9 +3287,29 @@ skip_nibble_bitblt_write:
                                 (dx <= (((uint64_t)clip_r) * 3)) &&
                                 (dev->accel.dy >= (clip_t << 1)) &&
                                 (dev->accel.dy <= (clip_b << 1))) {
+                                switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
+                                        src_dat = 0;
+                                        break;
+                                    case 3:
+                                        READ(dev->accel.src + cx, src_dat);
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
                                 READ(dev->accel.src + cx, src_dat);
                                 READ(dev->accel.dest + dx, dest_dat);
-                                dest_dat = (src_dat & wrt_mask) | (dest_dat & ~wrt_mask);
+                                old_dest_dat = dest_dat;
+                                MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                                 WRITE(dev->accel.dest + dx, dest_dat);
                             }
 
@@ -3265,8 +3318,8 @@ skip_nibble_bitblt_write:
 
                             dev->accel.sx--;
                             if (dev->accel.sx < 0) {
-                                dev->accel.cmd_back = 1;
                                 dev->fifo_idx = 0;
+                                dev->accel.cmd_back = 1;
                                 return;
                             }
                         }
@@ -3321,15 +3374,8 @@ skip_nibble_bitblt_write:
                                     old_dest_dat = dest_dat;
                                     MIX(mix_dat & mix_mask, dest_dat, src_dat);
                                     dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
-
-                                    if (dev->accel.cmd & 0x04) {
-                                        if (dev->accel.sx) {
-                                            WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
-                                        }
-                                    } else {
-                                        WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
-                                        ibm8514_log("BitBLT DX=%d, DY=%d, data=%02x, old=%02x, src=%02x, frmix=%02x, bkmix=%02x, pixcntl=%d.\n", dev->accel.dx, dev->accel.dy, dest_dat, old_dest_dat, src_dat, dev->accel.frgd_mix & 0x1f, dev->accel.bkgd_mix & 0x1f, pixcntl);
-                                    }
+                                    WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
+                                    ibm8514_log("BitBLT DX=%d, DY=%d, data=%02x, old=%02x, src=%02x, frmix=%02x, bkmix=%02x, pixcntl=%d.\n", dev->accel.dx, dev->accel.dy, dest_dat, old_dest_dat, src_dat, dev->accel.frgd_mix & 0x1f, dev->accel.bkgd_mix & 0x1f, pixcntl);
                                 }
                             }
 
@@ -3380,8 +3426,8 @@ skip_nibble_bitblt_write:
                                 if (dev->accel.sy < 0) {
                                     dev->accel.destx = dev->accel.dx;
                                     dev->accel.desty = dev->accel.dy;
-                                    dev->accel.cmd_back = 1;
                                     dev->fifo_idx = 0;
+                                    dev->accel.cmd_back = 1;
                                     return;
                                 }
                             }
@@ -4020,6 +4066,7 @@ ibm8514_init(const device_t *info)
         default:
             dev->extensions = 0;
             ibm8514_io_set(svga);
+            dev->accel.cmd_back = 1;
 
             if (dev->type & DEVICE_MCA) {
                 dev->pos_regs[0] = 0x7f;
