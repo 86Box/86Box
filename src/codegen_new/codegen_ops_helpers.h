@@ -87,6 +87,14 @@ CHECK_SEG_LIMITS(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg, int add
 static inline void
 LOAD_IMMEDIATE_FROM_RAM_8(UNUSED(codeblock_t *block), ir_data_t *ir, int dest_reg, uint32_t addr)
 {
+    if (UNLIKELY(!get_ram_ptr(addr))) {
+        uop_MOV_IMM(ir, IREG_temp1, 0);
+        uop_LOAD_FUNC_ARG_IMM(ir, 0, addr);
+        uop_CALL_FUNC_RESULT(ir, IREG_temp1, fastreadb);
+        uop_AND_IMM(ir, IREG_temp1, IREG_temp1, 0xFF);
+        uop_MOV(ir, dest_reg, IREG_temp1_B);
+        return;
+    }
     uop_MOVZX_REG_PTR_8(ir, dest_reg, get_ram_ptr(addr));
 }
 
@@ -96,6 +104,13 @@ LOAD_IMMEDIATE_FROM_RAM_16(codeblock_t *block, ir_data_t *ir, int dest_reg, uint
 {
     if ((addr & 0xfff) == 0xfff)
         LOAD_IMMEDIATE_FROM_RAM_16_unaligned(block, ir, dest_reg, addr);
+    else if (UNLIKELY(!get_ram_ptr(addr))) {
+        uop_MOV_IMM(ir, IREG_temp1, 0);
+        uop_LOAD_FUNC_ARG_IMM(ir, 0, addr);
+        uop_CALL_FUNC_RESULT(ir, IREG_temp1, fastreadw_fetch);
+        uop_AND_IMM(ir, IREG_temp1, IREG_temp1, 0xFFFF);
+        uop_MOVZX(ir, dest_reg, IREG_temp1_W);
+    }
     else
         uop_MOVZX_REG_PTR_16(ir, dest_reg, get_ram_ptr(addr));
 }
@@ -106,6 +121,13 @@ LOAD_IMMEDIATE_FROM_RAM_32(codeblock_t *block, ir_data_t *ir, int dest_reg, uint
 {
     if ((addr & 0xfff) >= 0xffd)
         LOAD_IMMEDIATE_FROM_RAM_32_unaligned(block, ir, dest_reg, addr);
+    else if (UNLIKELY(!get_ram_ptr(addr))) {
+        uop_MOV_IMM(ir, IREG_temp1, 0);
+        uop_LOAD_FUNC_ARG_IMM(ir, 0, addr);
+        uop_CALL_FUNC_RESULT(ir, IREG_temp1, fastreadl_fetch);
+        uop_AND_IMM(ir, IREG_temp1, IREG_temp1, 0xFFFFFFFF);
+        uop_MOV(ir, dest_reg, IREG_32(IREG_temp1));
+    }
     else
         uop_MOV_REG_PTR(ir, dest_reg, get_ram_ptr(addr));
 }

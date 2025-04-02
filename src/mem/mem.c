@@ -80,8 +80,8 @@ uint8_t *rom; /* the virtual ROM */
 uint32_t biosmask;
 uint32_t biosaddr;
 
-uint32_t pccache;
-uint8_t *pccache2;
+uint32_t pccache = 0xffffffff;
+uint8_t *pccache2 = NULL;
 
 int        readlnext;
 int        readlookup[256];
@@ -195,6 +195,7 @@ resetreadlookup(void)
     readlnext  = 0;
     writelnext = 0;
     pccache    = 0xffffffff;
+    pccache2   = NULL;
     high_page  = 0;
 }
 
@@ -218,7 +219,7 @@ flushmmucache(void)
     mmuflush++;
 
     pccache  = (uint32_t) 0xffffffff;
-    pccache2 = (uint8_t *) 0xffffffff;
+    pccache2 = (uint8_t *) 0;
 
 #ifdef USE_DYNAREC
     codegen_flush();
@@ -246,7 +247,7 @@ flushmmucache_pc(void)
     mmuflush++;
 
     pccache  = (uint32_t) 0xffffffff;
-    pccache2 = (uint8_t *) 0xffffffff;
+    pccache2 = (uint8_t *) 0;
 
 #ifdef USE_DYNAREC
     codegen_flush();
@@ -729,7 +730,7 @@ getpccache(uint32_t a)
 
     mem_log("Bad getpccache %08X%08X\n", (uint32_t) (a64 >> 32), (uint32_t) (a64 & 0xffffffffULL));
 
-    return (uint8_t *) &ff_pccache;
+    return (uint8_t *) 0;
 }
 
 uint8_t
