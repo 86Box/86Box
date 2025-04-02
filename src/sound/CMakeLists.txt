@@ -180,6 +180,9 @@ endif()
 add_subdirectory(ymfm)
 target_link_libraries(86Box ymfm)
 
+add_subdirectory(saasound)
+target_link_libraries(86Box saasound)
+
 if(GUSMAX)
     target_compile_definitions(snd PRIVATE USE_GUSMAX)
 endif()

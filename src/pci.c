@@ -419,6 +419,8 @@ pci_trc_reset(uint8_t val)
         mem_a20_recalc();
 
         flushmmucache();
+
+        mem_zero();
     }
 
 #ifdef USE_DYNAREC

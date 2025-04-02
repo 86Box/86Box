@@ -187,7 +187,7 @@ static const device_config_t ibmat_config[] = {
 };
 
 const device_t ibmat_device = {
-    .name          = " IBM AT Devices",
+    .name          = "IBM AT",
     .internal_name = "ibmat_device",
     .flags         = 0,
     .local         = 0,
@@ -294,7 +294,7 @@ static const device_config_t ibmxt286_config[] = {
 };
 
 const device_t ibmxt286_device = {
-    .name          = "IBM XT Model 286 Devices",
+    .name          = "IBM XT Model 286",
     .internal_name = "ibmxt286_device",
     .flags         = 0,
     .local         = 0,

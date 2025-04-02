@@ -41,6 +41,7 @@
 #include <86box/sound.h>
 #include "cpu.h"
 #include <86box/timer.h>
+#include "saasound/SAASound.h"
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
 
@@ -145,6 +146,42 @@ sb_log(const char *fmt, ...)
 #    define sb_log(fmt, ...)
 #endif
 
+void
+sb_cms_get_buffer(int32_t *buffer, int len, void *priv)
+{
+    sb_t *sb = (sb_t *) priv;
+
+    cms_update(&sb->cms);
+
+    for (int c = 0; c < len * 2; c++) {
+        if (sb->mixer_enabled) {
+            buffer[c] += sb->cms.buffer[c] * sb->mixer_sb2.fm;
+        }
+        else
+            buffer[c] += sb->cms.buffer[c];
+    }
+
+    sb->cms.pos = 0;
+}
+
+void
+sb_cms_get_buffer_2(int32_t *buffer, int len, void *priv)
+{
+    sb_t *sb = (sb_t *) priv;
+
+    cms_update(&sb->cms);
+
+    for (int c = 0; c < len * 2; c++) {
+        if (sb->mixer_enabled) {
+            buffer[c] += sb->cms.buffer2[c] * sb->mixer_sb2.fm;
+        }
+        else
+            buffer[c] += sb->cms.buffer2[c];
+    }
+
+    sb->cms.pos2 = 0;
+}
+
 /* SB 1, 1.5, MCV, and 2 do not have a mixer, so signal is hardwired. */
 static void
 sb_get_buffer_sb2(int32_t *buffer, int len, void *priv)
@@ -155,22 +192,9 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *priv)
 
     sb_dsp_update(&sb->dsp);
 
-    if (sb->cms_enabled)
-        cms_update(&sb->cms);
-
     for (int c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
         double out_r = 0.0;
-
-        if (sb->cms_enabled) {
-            out_l += sb->cms.buffer[c];
-            out_r += sb->cms.buffer[c + 1];
-        }
-
-        if (sb->cms_enabled && sb->mixer_enabled) {
-            out_l *= mixer->fm;
-            out_r *= mixer->fm;
-        }
 
         /* TODO: Recording: I assume it has direct mic and line in like SB2.
                  It is unclear from the docs if it has a filter, but it probably does. */
@@ -192,9 +216,6 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *priv)
     }
 
     sb->dsp.pos = 0;
-
-    if (sb->cms_enabled)
-        sb->cms.pos = 0;
 }
 
 static void
@@ -2890,6 +2911,13 @@ sb_init(UNUSED(const device_t *info))
                       cms_read, NULL, NULL,
                       cms_write, NULL, NULL,
                       &sb->cms);
+
+        sb->cms.saasound = newSAASND();
+        SAASNDSetSoundParameters(sb->cms.saasound, SAAP_44100 | SAAP_16BIT | SAAP_NOFILTER | SAAP_STEREO);
+        sb->cms.saasound2 = newSAASND();
+        SAASNDSetSoundParameters(sb->cms.saasound2, SAAP_44100 | SAAP_16BIT | SAAP_NOFILTER | SAAP_STEREO);
+        wavetable_add_handler(sb_cms_get_buffer, sb);
+        wavetable_add_handler(sb_cms_get_buffer_2, sb);
     }
 
     if (mixer_addr > 0x000) {
@@ -4043,6 +4071,11 @@ sb_close(void *priv)
 {
     sb_t *sb = (sb_t *) priv;
     sb_dsp_close(&sb->dsp);
+
+    if (sb->cms_enabled) {
+        deleteSAASND(sb->cms.saasound);
+        deleteSAASND(sb->cms.saasound2);
+    }
 
     free(sb);
 }

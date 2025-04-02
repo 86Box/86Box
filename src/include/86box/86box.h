@@ -118,7 +118,6 @@ extern int      vid_resize;                 /* (C) allow resizing */
 extern int      invert_display;             /* (C) invert the display */
 extern int      suppress_overscan;          /* (C) suppress overscans */
 extern uint32_t lang_id;                    /* (C) language code identifier */
-extern char     icon_set[256];              /* (C) iconset identifier */
 extern int      scale;                      /* (C) screen scale factor */
 extern int      dpi_scale;                  /* (C) DPI scaling of the emulated screen */
 extern int      vid_api;                    /* (C) video renderer */

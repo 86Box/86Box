@@ -79,6 +79,8 @@ int floppyrate[4];
 
 int fdc_current[FDC_MAX] = { 0, 0 };
 
+volatile int fdcinited = 0;
+
 #ifdef ENABLE_FDC_LOG
 int fdc_do_log = ENABLE_FDC_LOG;
 
@@ -2268,10 +2270,21 @@ fdc_reset(void *priv)
     fdc_update_rwc(fdc, 1, default_rwc);
     fdc_update_rwc(fdc, 2, default_rwc);
     fdc_update_rwc(fdc, 3, default_rwc);
-    fdc_update_drvrate(fdc, 0, 0);
-    fdc_update_drvrate(fdc, 1, 0);
-    fdc_update_drvrate(fdc, 2, 0);
-    fdc_update_drvrate(fdc, 3, 0);
+    /*
+       The OKI IF386SX natively supports the Japanese 1.25 MB floppy format,
+       since it can read such images just fine, it also attempts to use data
+       rate 01 on a 3.5" MB drive (which is the only kind it can physically
+       take, anyway), and rate 01 on a 3.5" MB drive is usually used by 3-mode
+       drives to switch to 360 RPM. Hence why I'm switching DRVDEN to 1, so
+       rate 01 becomes 500 kbps, so on a 3-mode 3.5" drive, 1.25 MB floppies
+       can be read. The side effect is that to read 5.25" 360k drives, you
+       need to use a dual-RPM 5.25" drive - but hey, that finally gets those
+       drives some usage as well.
+     */
+    fdc_update_drvrate(fdc, 0, !strcmp(machine_get_internal_name(),  "if386sx"));
+    fdc_update_drvrate(fdc, 1, !strcmp(machine_get_internal_name(),  "if386sx"));
+    fdc_update_drvrate(fdc, 2, !strcmp(machine_get_internal_name(),  "if386sx"));
+    fdc_update_drvrate(fdc, 3, !strcmp(machine_get_internal_name(),  "if386sx"));
     fdc_update_drv2en(fdc, 1);
     fdc_update_rates(fdc);
 
@@ -2337,6 +2350,8 @@ fdc_close(void *priv)
 
     fifo_close(fdc->fifo_p);
 
+    fdcinited = 0;
+
     free(fdc);
 }
 
@@ -2381,6 +2396,8 @@ fdc_init(const device_t *info)
     mfm_set_fdc(fdc);
 
     fdc_reset(fdc);
+
+    fdcinited = 1;
 
     return fdc;
 }

@@ -49,5 +49,7 @@ protected:
     QRect    destination;
     QWidget *parentWidget { nullptr };
 
+    double pixelRatio = 1.0;
+
     std::vector<std::atomic_flag> buf_usage;
 };

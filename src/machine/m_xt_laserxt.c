@@ -154,6 +154,8 @@ machine_xt_laserxt_common_init(const machine_t *model,int is_lxt3)
     standalone_gameport_type = &gameport_device;
 
     laserxt_init(is_lxt3);
+
+    device_add(&keyboard_xt_lxt3_device);
 }
 
 int
@@ -166,8 +168,6 @@ machine_xt_laserxt_init(const machine_t *model)
 
     if (bios_only || !ret)
         return ret;
-
-    device_add(&keyboard_xt_device);
 
     machine_xt_laserxt_common_init(model, 0);
 
@@ -184,8 +184,6 @@ machine_xt_lxt3_init(const machine_t *model)
 
     if (bios_only || !ret)
         return ret;
-
-    device_add(&keyboard_xt_lxt3_device);
 
     machine_xt_laserxt_common_init(model, 1);
 
