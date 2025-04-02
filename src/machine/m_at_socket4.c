@@ -44,7 +44,7 @@
 void
 machine_at_premiere_common_init(const machine_t *model, int pci_switch)
 {
-    machine_at_common_init_ex(model);
+    machine_at_common_init_ex(model, 2);
 
     device_add(&amstrad_megapc_nvr_device);
     device_add(&ide_pci_device);
