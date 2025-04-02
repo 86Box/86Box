@@ -8,6 +8,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
+#include "saasound/SAASound.h"
 #include <86box/snd_cms.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
@@ -15,62 +16,13 @@
 void
 cms_update(cms_t *cms)
 {
-    for (; cms->pos < sound_pos_global; cms->pos++) {
-        int16_t out_l = 0;
-        int16_t out_r = 0;
-
-        for (uint8_t c = 0; c < 4; c++) {
-            switch (cms->noisetype[c >> 1][c & 1]) {
-                case 0:
-                    cms->noisefreq[c >> 1][c & 1] = MASTER_CLOCK / 256;
-                    break;
-                case 1:
-                    cms->noisefreq[c >> 1][c & 1] = MASTER_CLOCK / 512;
-                    break;
-                case 2:
-                    cms->noisefreq[c >> 1][c & 1] = MASTER_CLOCK / 1024;
-                    break;
-                case 3:
-                    cms->noisefreq[c >> 1][c & 1] = cms->freq[c >> 1][(c & 1) * 3];
-                    break;
-
-                default:
-                    break;
-            }
-        }
-        for (uint8_t c = 0; c < 2; c++) {
-            if (cms->regs[c][0x1C] & 1) {
-                for (uint8_t d = 0; d < 6; d++) {
-                    if (cms->regs[c][0x14] & (1 << d)) {
-                        if (cms->stat[c][d])
-                            out_l += (cms->vol[c][d][0] * 90);
-                        if (cms->stat[c][d])
-                            out_r += (cms->vol[c][d][1] * 90);
-                        cms->count[c][d] += cms->freq[c][d];
-                        if (cms->count[c][d] >= 24000) {
-                            cms->count[c][d] -= 24000;
-                            cms->stat[c][d] ^= 1;
-                        }
-                    } else if (cms->regs[c][0x15] & (1 << d)) {
-                        if (cms->noise[c][d / 3] & 1)
-                            out_l += (cms->vol[c][d][0] * 90);
-                        if (cms->noise[c][d / 3] & 1)
-                            out_r += (cms->vol[c][d][0] * 90);
-                    }
-                }
-                for (uint8_t d = 0; d < 2; d++) {
-                    cms->noisecount[c][d] += cms->noisefreq[c][d];
-                    while (cms->noisecount[c][d] >= 24000) {
-                        cms->noisecount[c][d] -= 24000;
-                        cms->noise[c][d] <<= 1;
-                        if (!(((cms->noise[c][d] & 0x4000) >> 8) ^ (cms->noise[c][d] & 0x40)))
-                            cms->noise[c][d] |= 1;
-                    }
-                }
-            }
-        }
-        cms->buffer[cms->pos << 1]       = out_l;
-        cms->buffer[(cms->pos << 1) + 1] = out_r;
+    if (cms->pos < wavetable_pos_global) {
+        SAASNDGenerateMany(cms->saasound, (unsigned char*)&cms->buffer[cms->pos], wavetable_pos_global - cms->pos);
+        cms->pos = wavetable_pos_global;
+    }
+    if (cms->pos2 < wavetable_pos_global) {
+        SAASNDGenerateMany(cms->saasound2, (unsigned char*)&cms->buffer2[cms->pos2], wavetable_pos_global - cms->pos2);
+        cms->pos2 = wavetable_pos_global;
     }
 }
 
@@ -88,62 +40,38 @@ cms_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 void
+cms_get_buffer_2(int32_t *buffer, int len, void *priv)
+{
+    cms_t *cms = (cms_t *) priv;
+
+    cms_update(cms);
+
+    for (int c = 0; c < len * 2; c++)
+        buffer[c] += cms->buffer2[c];
+
+    cms->pos2 = 0;
+}
+
+void
 cms_write(uint16_t addr, uint8_t val, void *priv)
 {
     cms_t *cms = (cms_t *) priv;
-    int    voice;
-    int    chip = (addr & 2) >> 1;
 
     switch (addr & 0xf) {
         case 0x1: /* SAA #1 Register Select Port */
-            cms->addrs[0] = val & 31;
+            SAASNDWriteAddress(cms->saasound, val & 31);
             break;
         case 0x3: /* SAA #2 Register Select Port */
-            cms->addrs[1] = val & 31;
+            SAASNDWriteAddress(cms->saasound2, val & 31);
             break;
 
         case 0x0: /* SAA #1 Data Port */
+            cms_update(cms);
+            SAASNDWriteData(cms->saasound, val);
+            break;
         case 0x2: /* SAA #2 Data Port */
             cms_update(cms);
-            cms->regs[chip][cms->addrs[chip] & 31] = val;
-            switch (cms->addrs[chip] & 31) {
-                case 0x00:
-                case 0x01:
-                case 0x02: /*Volume*/
-                case 0x03:
-                case 0x04:
-                case 0x05:
-                    voice                    = cms->addrs[chip] & 7;
-                    cms->vol[chip][voice][0] = val & 0xf;
-                    cms->vol[chip][voice][1] = val >> 4;
-                    break;
-                case 0x08:
-                case 0x09:
-                case 0x0A: /*Frequency*/
-                case 0x0B:
-                case 0x0C:
-                case 0x0D:
-                    voice                   = cms->addrs[chip] & 7;
-                    cms->latch[chip][voice] = (cms->latch[chip][voice] & 0x700) | val;
-                    cms->freq[chip][voice]  = (MASTER_CLOCK / 512 << (cms->latch[chip][voice] >> 8)) / (511 - (cms->latch[chip][voice] & 255));
-                    break;
-                case 0x10:
-                case 0x11:
-                case 0x12: /*Octave*/
-                    voice                       = (cms->addrs[chip] & 3) << 1;
-                    cms->latch[chip][voice]     = (cms->latch[chip][voice] & 0xFF) | ((val & 7) << 8);
-                    cms->latch[chip][voice + 1] = (cms->latch[chip][voice + 1] & 0xFF) | ((val & 0x70) << 4);
-                    cms->freq[chip][voice]      = (MASTER_CLOCK / 512 << (cms->latch[chip][voice] >> 8)) / (511 - (cms->latch[chip][voice] & 255));
-                    cms->freq[chip][voice + 1]  = (MASTER_CLOCK / 512 << (cms->latch[chip][voice + 1] >> 8)) / (511 - (cms->latch[chip][voice + 1] & 255));
-                    break;
-                case 0x16: /*Noise*/
-                    cms->noisetype[chip][0] = val & 3;
-                    cms->noisetype[chip][1] = (val >> 4) & 3;
-                    break;
-
-                default:
-                    break;
-            }
+            SAASNDWriteData(cms->saasound2, val);
             break;
 
         case 0x6: /* GameBlaster Write Port */
@@ -163,9 +91,9 @@ cms_read(uint16_t addr, void *priv)
 
     switch (addr & 0xf) {
         case 0x1: /* SAA #1 Register Select Port */
-            return cms->addrs[0];
+            return SAASNDReadAddress(cms->saasound);
         case 0x3: /* SAA #2 Register Select Port */
-            return cms->addrs[1];
+            return SAASNDReadAddress(cms->saasound2);
         case 0x4: /* GameBlaster Read port (Always returns 0x7F) */
             return 0x7f;
         case 0xa: /* GameBlaster Read Port */
@@ -185,7 +113,12 @@ cms_init(UNUSED(const device_t *info))
 
     uint16_t addr = device_get_config_hex16("base");
     io_sethandler(addr, 0x0010, cms_read, NULL, NULL, cms_write, NULL, NULL, cms);
-    sound_add_handler(cms_get_buffer, cms);
+    cms->saasound = newSAASND();
+    SAASNDSetSoundParameters(cms->saasound, SAAP_44100 | SAAP_16BIT | SAAP_NOFILTER | SAAP_STEREO);
+    cms->saasound2 = newSAASND();
+    SAASNDSetSoundParameters(cms->saasound2, SAAP_44100 | SAAP_16BIT | SAAP_NOFILTER | SAAP_STEREO);
+    wavetable_add_handler(cms_get_buffer, cms);
+    wavetable_add_handler(cms_get_buffer_2, cms);
     return cms;
 }
 
@@ -193,6 +126,9 @@ void
 cms_close(void *priv)
 {
     cms_t *cms = (cms_t *) priv;
+
+    deleteSAASND(cms->saasound);
+    deleteSAASND(cms->saasound2);
 
     free(cms);
 }

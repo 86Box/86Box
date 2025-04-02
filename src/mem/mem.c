@@ -2792,6 +2792,17 @@ mem_init_ram_mapping(mem_mapping_t *mapping, uint32_t base, uint32_t size)
     mem_add_ram_mapping(mapping, base, size);
 }
 
+void
+mem_zero(void)
+{
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+    if (mem_size > 1048576)
+        memset(ram2, 0x00, ram2_size + 16);
+#endif
+
+    memset(ram, 0x00, ram_size + 16);
+}
+
 /* Reset the memory state. */
 void
 mem_reset(void)
@@ -2867,8 +2878,10 @@ mem_reset(void)
             return;
         }
         memset(ram, 0x00, ram_size + 16);
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
         if (mem_size > 1048576)
             ram2 = &(ram[1 << 30]);
+#endif
     }
 
     /*
