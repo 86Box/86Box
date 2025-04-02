@@ -40,8 +40,6 @@ extern "C" {
 #include <86box/ui.h>
 #include <86box/machine_status.h>
 #include <86box/config.h>
-
-extern volatile int fdcinited;
 };
 
 #include <QIcon>
@@ -305,9 +303,6 @@ MachineStatus::hasSCSI()
 void
 MachineStatus::iterateFDD(const std::function<void(int)> &cb)
 {
-    if (!fdcinited)
-        return;
-
     for (int i = 0; i < FDD_NUM; ++i) {
         if (fdd_get_type(i) != 0) {
             cb(i);
