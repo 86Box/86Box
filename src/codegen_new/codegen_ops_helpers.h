@@ -92,7 +92,7 @@ LOAD_IMMEDIATE_FROM_RAM_8(UNUSED(codeblock_t *block), ir_data_t *ir, int dest_re
         uop_LOAD_FUNC_ARG_IMM(ir, 0, addr);
         uop_CALL_FUNC_RESULT(ir, IREG_temp1, fastreadb);
         uop_AND_IMM(ir, IREG_temp1, IREG_temp1, 0xFF);
-        uop_MOV(ir, dest_reg, IREG_temp1_B);
+        uop_MOVZX(ir, dest_reg, IREG_temp1_B);
         return;
     }
     uop_MOVZX_REG_PTR_8(ir, dest_reg, get_ram_ptr(addr));
