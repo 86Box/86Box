@@ -490,20 +490,6 @@ getFontIBMJ(int32_t code, int line, int x, void *p)
         font <<= 8;
         font |= da2->mmio.ram[code + 1];
         font <<= 16;
-        return font;
-    }
-    if ((code >= 0x8000) && (code <= 0x8183))
-        code -= 0x6000;                            /* shift for IBM extended characters */
-    if ((code < (DA2_FONTROM_SIZE / 72)) && (fline >= 0) && (fline < 24)) { /* DBCS 24x24  */
-        code = (code * 72) + (fline * 3) + x;
-        // font = da2->mmio.font[code];               /* 0000 0000 0000 0000 0000 0000 1111 1111 */
-        // font <<= 8;                                /* 0000 0000 0000 0000 1111 1111 0000 0000 */
-        // font |= da2->mmio.font[code + 1] & 0xf0;   /* 0000 0000 0000 0000 1111 1111 2222 0000 */
-        // font <<= 3;                                /* 0000 0000 0000 0111 1111 1222 2000 0000 */
-        // font |= da2->mmio.font[code + 1] & 0x0f;   /* 0000 0000 0000 0111 1111 1222 2000 2222 */
-        // font <<= 8;                                /* 0000 0111 1111 1222 2000 2222 0000 0000 */
-        // font |= da2->mmio.font[code + 2];          /* 0000 0111 1111 1222 2000 2222 3333 3333 */
-        // font <<= 4;                                /* 0111 1111 1222 2000 2222 3333 3333 0000 */
     } else if ((code >= 0xb000) && (code <= 0xb75f)) { /* DBCS 26x29  */
         /* convert code->address in gaiji memory */
         code -= 0xb000;
@@ -515,9 +501,7 @@ getFontIBMJ(int32_t code, int line, int x, void *p)
         font |= da2->mmio.ram[code + 2];
         font <<= 8;
         font |= da2->mmio.ram[code + 3];
-        // font <<= 16;
-    } else if (code > (DA2_FONTROM_SIZE / 72))
-        font = 0xffffffffu;
+    } 
     else
         font = 0;
     return font;
@@ -594,7 +578,7 @@ Param   Desc
 01      Color
 03      Bit Shift
 04      Select plane?
-05      Dir(1000h or 1100h) + Command?(40 or 48)
+05      Direction (1000h or 1100h) + Command? (40 or 48)
 08      Mask Left
 09      Mask Right
 0A      Plane Mask?
@@ -607,15 +591,19 @@ Param   Desc
             0-3  Bit op (0 None, 1 AND, 2 OR, 3 XOR)
 0D
 20      Exec (1) or Exec without reset regs? (21h)
-21      ?
-22      ?
+21      Dest Pitch
+22      Src Pitch
 23      Tile W
 28      Tile H
 29      Dest Addr
 2A      Src Addr
 2B      Tile Addr
-33      Size W
-35      Size H
+2D      Octant for line drawing
+2F      Dest Write Option
+32      wx1, Dest X
+33      wx2, Size W
+34      wy1, Dest Y
+35      wy2, Size H
 */
 static void
 DA2_CopyPlaneDataWithBitmask(uint32_t srcaddr, uint32_t destaddr, uint16_t mask, da2_t *da2)
@@ -642,55 +630,42 @@ static void
 DA2_PutcharWithBitmask(uint32_t codeIBMJ, int width, uint16_t attr, int line, uint32_t destaddr, uint16_t maskl, uint16_t maskr, da2_t *da2)
 {
     pixel32 srcpx;
-    // if (codeIBMJ >= DA2_FONTROM_SIZE / 72) {
-    //     da2_log("DA2 Putchar Addr Error %x\n", srcaddr);
-    //     return;
-    // }
-    uint8_t color = (~attr >> 8) & 0x0f;
-    // color = IBGRtoIRGB(color);
+    uint8_t fg = (~attr >> 8) & 0x0f;
     uint8_t bg = (~attr >> 12) & 0x0f;
-    // bg = 0x00;
-    // bg = IBGRtoIRGB(bg);
     uint32_t font = getFontIBMJ(codeIBMJ, line, 0, da2);
     uint32_t fontinv;
     if (width <= 2) {
         fontinv = ~font;
         for (int i = 0; i < 8; i++) {
-            srcpx.p8[i] = (color & (1 << i)) ? font >> 16 : 0;
+            srcpx.p8[i] = (fg & (1 << i)) ? font >> 16 : 0;
             srcpx.p8[i] |= (bg & (1 << i)) ? fontinv >> 16 : 0;
         }
-        // pclog("putchar: %08X mask %04X %04X\n", srcpx.p8[0], maskl, maskr);
         DA2_WritePlaneDataWithBitmask(destaddr, maskl, &srcpx, da2);
         for (int i = 0; i < 8; i++) {
-            srcpx.p8[i] = (color & (1 << i)) ? font : 0;
+            srcpx.p8[i] = (fg & (1 << i)) ? font : 0;
             srcpx.p8[i] |= (bg & (1 << i)) ? fontinv : 0;
         }
-        // pclog("putchar: %08X mask %04X %04X\n", srcpx.p8[0], maskl, maskr);
         DA2_WritePlaneDataWithBitmask(destaddr + 2, maskr, &srcpx, da2);
     } else {
         font = (font & 0xfff80000) | ((font & 0x0000ffff) << 3);
         fontinv = ~font;
-        // pclog("putchar: ft %08X shftr %X\n", font, da2->bitblt.bitshift_destr);
         for (int i = 0; i < 8; i++) {
-            srcpx.p8[i] = (color & (1 << i)) ? font >> 16 : 0;
+            srcpx.p8[i] = (fg & (1 << i)) ? font >> 16 : 0;
             srcpx.p8[i] |= (bg & (1 << i)) ? fontinv >> 16 : 0;
         }
-        // pclog("putchar: %08X mask %04X\n", srcpx.p8[3], maskl);
         DA2_WritePlaneDataWithBitmask(destaddr, maskl, &srcpx, da2);
         for (int i = 0; i < 8; i++) {
-            srcpx.p8[i] = (color & (1 << i)) ? font : 0;
+            srcpx.p8[i] = (fg & (1 << i)) ? font : 0;
             srcpx.p8[i] |= (bg & (1 << i)) ? fontinv : 0;
         }
-        // pclog("putchar: %08X mask %04X\n", srcpx.p8[3], maskr);
         if (da2->bitblt.destoption & 0x20) {
             DA2_WritePlaneDataWithBitmask(destaddr + 2,  maskr, &srcpx, da2);
         } else {
             DA2_WritePlaneDataWithBitmask(destaddr + 2, 0xffff, &srcpx, da2);
             for (int i = 0; i < 8; i++) {
-                srcpx.p8[i] = (color & (1 << i)) ? font << 16 : 0;
+                srcpx.p8[i] = (fg & (1 << i)) ? font << 16 : 0;
                 srcpx.p8[i] |= (bg & (1 << i)) ? fontinv << 16 : 0;
             }
-            // pclog("putchar: %08X mask %04X %04X\n", srcpx.p8[3], maskl, maskr);
             DA2_WritePlaneDataWithBitmask(destaddr + 4, maskr, &srcpx, da2);
         }
     }
@@ -772,16 +747,6 @@ da2_bitblt_parse(da2_t *da2)
 {
     uint32_t value32;
     uint64_t value64;
-#ifdef ENABLE_DA2_DEBUGBLT
-    // da2_log("bltload: loading params\n");
-    // da2_log("BitBlt memory:\n");
-    // if (da2->bitblt.payload[0] != 0)
-    //     for (int j = 0; j < DA2_BLT_MEMSIZE / 8; j++) {
-    //         int i = j * 8;
-    //         da2_log("%02x %02x %02x %02x %02x %02x %02x %02x \n", da2->bitblt.payload[i], da2->bitblt.payload[1], da2->bitblt.payload[2], da2->bitblt.payload[3],
-    //                 da2->bitblt.payload[4], da2->bitblt.payload[5], da2->bitblt.payload[6], da2->bitblt.payload[7]);
-    //     }
-#endif
         switch (da2->bitblt.payload[0]) {
             case 0x88:
             case 0x89:
@@ -858,8 +823,6 @@ da2_bitblt_parse(da2_t *da2)
 static void
 da2_bitblt_load(da2_t *da2)
 {
-    /* [89] 20: 0001 (1) then execute payload */
-    // if (da2->bitblt.reg[0x20] & 0x1) {
         da2->bitblt.reg[0x20] = 0; /* need to stop execution */
 #ifdef ENABLE_DA2_DEBUGBLT
         for (int i = 0; i < DA2_DEBUG_BLTLOG_SIZE; i++) {
@@ -878,10 +841,8 @@ da2_bitblt_load(da2_t *da2)
         da2->bitblt.size_y    = da2->bitblt.reg[0x35];
         da2->bitblt.destpitch = da2->bitblt.reg[0x21];
         da2->bitblt.srcpitch  = da2->bitblt.reg[0x22];
-        /* 80h = 128d = 10000000b, 90h = 144d = 10010000b, B0h = 176d = 10110000 */
         /*
             DOS/V Extension 1040x725 some DBCS uses 0xB0 others 0x90
-                B0: BitShift is 1-6
         */
        da2->bitblt.destoption = da2->bitblt.reg[0x2F];
         if (da2->bitblt.destoption & 0x10) /* destaddr -= 2, length += 1; */
@@ -898,21 +859,12 @@ da2_bitblt_load(da2_t *da2)
         da2->bitblt.y      = 0;
         da2->bitblt.exec   = DA2_BLT_CDONE;
 
-        /* Put DBCS char used by OS/2 (i'm not sure what the condition is) */
+        /* Put DBCS char used by OS/2 and DOS/V Extension */
         if (!(da2->bitblt.reg[0xb] & 0x08)) {
             da2->bitblt.exec = DA2_BLT_CPUTCHAR;
-            /* Todo: addressing */
-            // if (da2->bitblt.reg[0x2F] == 0x90) /* destaddr -= 2, length += 1; */
-            //{
-            //     da2->bitblt.destaddr += 2;
-            //     da2->bitblt.size_x -= 1;
-            //     da2->bitblt.destpitch += 2;
-            //     da2->bitblt.srcpitch += 2;
-            // }
             da2->bitblt.fcolor = da2->bitblt.reg[0x1];
             da2->bitblt.srcaddr = da2->bitblt.reg[0x12];
             da2->bitblt.destaddr += 2;
-            // da2->bitblt.srcpitch  = 0;
 #ifdef ENABLE_DA2_DEBUGBLT
             uint8_t sjis_h = IBMJtoSJIS(da2->bitblt.reg[0x12]) >> 8;
             uint8_t sjis_l = IBMJtoSJIS(da2->bitblt.reg[0x12]) & 0xff;
@@ -1020,9 +972,7 @@ da2_log("put char src=%x, dest=%x, x=%d, y=%d, w=%d, h=%d\n",
                     da2->bitblt.reg[0x2A] % (da2->rowoffset * 2), da2->bitblt.reg[0x2A] / (da2->rowoffset * 2),
                     da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
                     da2->bitblt.size_x, da2->bitblt.size_y);
-            // da2_log("            mask8=%x, mask9=%x\n", da2->bitblt.reg[0x8], da2->bitblt.reg[0x9]);
         }
-    // }
 }
 static void
 da2_bitblt_exec(void *p)
@@ -1046,7 +996,6 @@ da2_bitblt_exec(void *p)
             break;
         case DA2_BLT_CLINE:
             /* Draw a dot */
-            // outb(0x680, da2->bitblt.octdir);
             da2_bltlog("point: %d %d %d %d %d\n", da2->bitblt.x, da2->bitblt.y, da2->bitblt.d, da2->bitblt.x, da2->bitblt.y);
             int destaddr = da2->bitblt.y * (da2->rowoffset * 2) + da2->bitblt.x / 8;
             int pixelmask = da2->bitblt.x % 16;
@@ -1061,7 +1010,6 @@ da2_bitblt_exec(void *p)
                 ;
             else
                 DA2_DrawColorWithBitmask(destaddr, da2->bitblt.fcolor, pixelmask, da2);
-            // da2_log("draw: %x %x %x\n", destaddr, da2->bitblt.fcolor, pixelmask);
             da2->bitblt.count++;
 
             /* calculate the next position with Bresenham's line algorithm */
@@ -1182,26 +1130,14 @@ da2_bitblt_exec(void *p)
             da2->bitblt.srcaddr -= 2;
             break;
         case DA2_BLT_CPUTCHAR: /* used in OS/2 J1.3 wo ROM patch. TODO: still not work */
-            // da2->bitblt.destaddr = da2->bitblt.reg[0x29] + da2->bitblt.y * 130;
-            // da2->bitblt.srcaddr += 2;
-            // if (da2->bitblt.reg[0x12] < 0x100)
-            //     da2->bitblt.srcaddr = DA2_FONTROM_BASESBCS + da2->bitblt.reg[0x12] * 64 + (da2->bitblt.x * 2) + (da2->bitblt.y * 2) - 2;
-            // else
-            //     da2->bitblt.srcaddr = da2->bitblt.reg[0x12] * 72 + (da2->bitblt.x * 2) + (da2->bitblt.y * 3) - 2;
-            // da2->bitblt.srcaddr = da2->bitblt.reg[0x12];
-            // da2->bitblt.size_x    = da2->bitblt.reg[0x33];
             // pclog("scr %x dest %x x %x y %x\n", da2->bitblt.srcaddr, da2->bitblt.destaddr, da2->bitblt.x, da2->bitblt.y);
             if (da2->bitblt.y >= da2->bitblt.size_y) {
                 da2->bitblt.exec = DA2_BLT_CDONE;
             } else {
-                    DA2_PutcharWithBitmask(da2->bitblt.srcaddr, da2->bitblt.size_x, da2->bitblt.fcolor, da2->bitblt.y, da2->bitblt.destaddr, da2->bitblt.maskl, da2->bitblt.maskr, da2);
+                DA2_PutcharWithBitmask(da2->bitblt.srcaddr, da2->bitblt.size_x, da2->bitblt.fcolor, da2->bitblt.y, da2->bitblt.destaddr, da2->bitblt.maskl, da2->bitblt.maskr, da2);
             }
-                da2->bitblt.y++;
-                da2->bitblt.destaddr += da2->bitblt.size_x * 2 + da2->bitblt.destpitch + 2;
-            // }
-            // da2->bitblt.destaddr = da2->bitblt.reg[0x29] + da2->bitblt.x + da2->bitblt.y * 130 + 2;
-            ////da2->bitblt.srcaddr += 2;
-            // da2->bitblt.srcaddr = da2->bitblt.reg[0x12] * 72 + (da2->bitblt.x * 2 ) + (da2->bitblt.y * 3) + 2;
+            da2->bitblt.y++;
+            da2->bitblt.destaddr += da2->bitblt.size_x * 2 + da2->bitblt.destpitch + 2;
             break;
         case DA2_BLT_CDONE:
             // if (!(da2->bitblt.reg[0x20] & 0x20)) {
@@ -1352,12 +1288,6 @@ da2_out(uint16_t addr, uint16_t val, void *p)
                     val = 0x400; /* for debugging bitblt in Win 3.x */
 #endif
                     break;
-                // case LC_START_ADDRESS_HIGH:
-                    // if (val == 0xff) /* adjust (need to confirm) */
-                    //     val = 0;
-                // case LC_START_ADDRESS_LOW:
-                    // val = 0;
-                    // break;
             }
             da2->crtc[da2->crtcaddr] = val;
             switch (da2->crtcaddr) {
@@ -1406,7 +1336,6 @@ da2_out(uint16_t addr, uint16_t val, void *p)
         case LV_PORT:
             // da2_iolog("DA2 Out addr %03X val %02X ff %d %04X:%04X\n", addr, val, da2->attrff,cs >> 4, cpu_state.pc);
             if (!da2->attrff) {
-                // da2->attraddr = val & 31;
                 da2->attraddr = val & 0x3f;
                 if ((val & 0x20) != (da2->attr_palette_enable & 0x20)) {
                     da2->fullchange          = 3;
@@ -1596,11 +1525,7 @@ da2_in(uint16_t addr, void *p)
         case LC_DATA:
             if (da2->crtcaddr > 0x1f)
                 return DA2_INVALIDACCESS16;
-            // if ((da2->crtcaddr == LC_START_ADDRESS_HIGH || da2->crtcaddr == LC_START_ADDRESS_LOW)
-            //     & (da2->crtc[LC_VIEWPORT_SELECT] & 0x80))
-            //     temp = 0;
-            // else
-                temp = da2->crtc[da2->crtcaddr];
+            temp = da2->crtc[da2->crtcaddr];
             break;
         case LV_PORT:
             temp = da2->attraddr | da2->attr_palette_enable;
@@ -1699,9 +1624,6 @@ da2_outw(uint16_t addr, uint16_t val, void *p)
             break;
         case 0x3EC:
             // da2_iolog("DA2 Outw addr %03X val %04X %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc);
-            da2_iolog("  ");
-            // val = rightRotate(val, 8);
-            // da2_out(LG_DATA, val, da2);
             da2_out(LG_DATA, val >> 8, da2);
             /* reset masks for compatibility with Win 3.1 solitaire */
             if (da2->gdcaddr == LG_MODE) {
@@ -2347,18 +2269,11 @@ da2_recalctimings(da2_t *da2)
     double crtcconst;
     double _dispontime, _dispofftime, disptime;
     
-    // /* if output disabled or VGA passthrough */
-    // if (da2->ioctl[LS_MODE] & 0x02 || !(da2->attrc[LV_COMPATIBILITY] & 0x08)) {
-    //     da2->render = da2_render_blank;
-    //     return;
-    // }
-
     da2->vtotal      = da2->crtc[LC_VERTICAL_TOTALJ] & 0xfff;
     da2->dispend     = da2->crtc[LC_V_DISPLAY_ENABLE_END] & 0xfff;
     da2->vsyncstart  = da2->crtc[LC_VERTICAL_SYNC_START] & 0xfff;
     da2->split       = da2->crtc[LC_LINE_COMPAREJ] & 0xfff;
     da2->split -= 1;
-    // da2->split       = 0xfff;
     da2->vblankstart = da2->crtc[LC_START_VERTICAL_BLANK] & 0xfff;
     da2->hdisp       = da2->crtc[LC_H_DISPLAY_ENABLE_END];
 
@@ -2374,21 +2289,16 @@ da2_recalctimings(da2_t *da2)
 
     da2->clock = da2->da2const;
 
-    // da2->lowres = da2->attrc[LV_MODE_CONTROL] & 0x40;
-
-    // da2->interlace = 0;
-
-    // if (da2->crtc[LC_VIEWPORT_SELECT] & 0x80 || da2->split == 0)
     if (da2->vtotal == 0)
         da2->vtotal = da2->vsyncstart = da2->vblankstart = 256;
     if (da2->htotal == 0)
         da2->htotal = da2->dispend = da2->hdisp = 64;
     if (da2->rowoffset == 0)
         da2->rowoffset = 64 * 2; /* To avoid causing a DBZ error */
-    if (da2->split == 0)
+    if (da2->split == 0) /* To avoid a glitch in MODE 1 of OS/2 J1.3 DOSBox. */
         da2->ma_latch = 0;
     else
-        da2->ma_latch = ((da2->crtc[LC_START_ADDRESS_HIGH] & 0x3ff) << 8) | da2->crtc[LC_START_ADDRESS_LOW]; // w + b
+        da2->ma_latch = ((da2->crtc[LC_START_ADDRESS_HIGH] & 0x3ff) << 8) | da2->crtc[LC_START_ADDRESS_LOW];
 
     da2->ca_adj = 0;
     da2->rowcount = da2->crtc[LC_MAXIMUM_SCAN_LINE];
@@ -2427,15 +2337,6 @@ da2_recalctimings(da2_t *da2)
         da2->hdisp *= 13;
         da2->char_width = 13;
     }
-    // if (!da2->scrblank && da2->attr_palette_enable)
-    //{
-    // da2->render = da2_draw_text;
-    //}
-
-    // da2_log("da2_render %08X : %08X %08X %08X %08X %08X  %i %i %02X %i %i\n", da2_render, da2_render_text_40, da2_render_text_80, da2_render_8bpp_lowres, da2_render_8bpp_highres, da2_render_blank, scrblank,gdcreg[6]&1,gdcreg[5]&0x60,bpp,seqregs[1]&8);
-
-    // if (da2->recalctimings_ex)
-    //     da2->recalctimings_ex(da2);
 
     if (da2->vblankstart < da2->dispend)
         da2->dispend = da2->vblankstart;
@@ -2446,7 +2347,7 @@ da2_recalctimings(da2_t *da2)
     _dispontime = da2->hdisp_time;
 
     da2_log("Disptime %f dispontime %f hdisp %i\n", disptime, _dispontime, da2->hdisp);
-    // if (da2->seqregs[1] & 8) { disptime *= 2; _dispontime *= 2; }
+
     _dispofftime = disptime - _dispontime;
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
@@ -2785,10 +2686,8 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
             index = da2->fctl[LF_MMIO_MODE] & 0x0f;
             index <<= 8;
             index |= da2->fctl[LF_MMIO_ADDR];
-            // addr += index * 0x40;
-            // addr += index * 0x80;
-    da2_log("da2_mmio_w io %x, sl %x, 09 %x, ad %x, mm %x, addr %x, val %x\n", da2->ioctl[LS_MMIO],da2->fctl[LF_MMIO_SEL], 
-        da2->fctl[LF_MMIO_09],da2->fctl[LF_MMIO_ADDR], da2->fctl[LF_MMIO_MODE], addr, val);
+        // da2_log("da2_mmio_w io %x, sl %x, 09 %x, ad %x, mm %x, addr %x, val %x\n", da2->ioctl[LS_MMIO],da2->fctl[LF_MMIO_SEL], 
+        // da2->fctl[LF_MMIO_09],da2->fctl[LF_MMIO_ADDR], da2->fctl[LF_MMIO_MODE], addr, val);
         }
         switch (da2->fctl[LF_MMIO_MODE] & 0xf0) {
             case 0xb0: /* Gaiji RAM 1011 0000 */
@@ -2802,12 +2701,6 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
                 addr += index * 0x40;
                 da2->mmio.ram[(DA2_GAIJIRAM_SBCS + addr) & DA2_MASK_GAIJIRAM] = val;
                 // da2_log("da2_mmio_write %x %x %04X:%04X\n", addr, val, CS, cpu_state.pc);
-                // addr &= 0x7f;/* OS/2 write addr 1cf80-1cfc3, val xx */
-                // if (addr >= DA2_BLT_MEMSIZE)
-                //{
-                //     da2_log("da2_mmio_write failed mem %x, addr %x, val %x\n", da2->fctl[LF_MMIO_MODE], addr, val);
-                //     return;
-                // }
                 break;
             default:
                 da2_log("da2_mmio_write failed io %x, mm %x, addr %x, val %x\n", da2->ioctl[LS_MMIO] ,da2->fctl[LF_MMIO_MODE], addr, val);
@@ -3138,8 +3031,6 @@ da2_poll(void *priv)
 
         // da2_log("%03i %06X %06X\n", da2->displine, da2->ma,da2->vram_display_mask);
         da2->displine++;
-        // if (da2->interlace)
-        //     da2->displine++;
         if ((da2->cgastat & 8) && ((da2->displine & 0xf) == (da2->crtc[LC_VERTICAL_SYNC_END] & 0xf)) && da2->vslines) {
             // da2_log("Vsync off at line %i\n",displine);
             da2->cgastat &= ~8;
@@ -3153,7 +3044,6 @@ da2_poll(void *priv)
         // da2_log("VC %i ma %05X\n", da2->vc, da2->ma);
         timer_advance_u64(&da2->timer, da2->dispontime);
 
-        // if (output) printf("Display on %f\n",vidtime);
         if (da2->dispon)
             da2->cgastat &= ~1;
         da2->hdisp_on = 0;
