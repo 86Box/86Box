@@ -75,7 +75,7 @@ uint32_t nv3_pfb_read(uint32_t address)
 
     // todo: friendly logging
 
-    nv_log("PFB Read from 0x%08x", address);
+    nv_log_verbose_only("PFB Read from 0x%08x", address);
 
     // if the register actually exists
     if (reg)
@@ -111,9 +111,9 @@ uint32_t nv3_pfb_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": 0x%08x <- %s\n", ret, reg->friendly_name);
+            nv_log_verbose_only(": 0x%08x <- %s\n", ret, reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
     }
     else
     {
@@ -127,15 +127,15 @@ void nv3_pfb_write(uint32_t address, uint32_t value)
 {
     nv_register_t* reg = nv_get_register(address, pfb_registers, sizeof(pfb_registers)/sizeof(pfb_registers[0]));
 
-    nv_log("PFB Write 0x%08x -> 0x%08x", value, address);
+    nv_log_verbose_only("PFB Write 0x%08x -> 0x%08x", value, address);
 
     // if the register actually exists
     if (reg)
     {
         if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
+            nv_log_verbose_only(": %s\n", reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
 
         // on-read function
         if (reg->on_write)
@@ -189,17 +189,16 @@ void nv3_pfb_config0_write(uint32_t val)
 
     
     // This doesn't actually seem very useful
-    #ifdef ENABLE_NV_LOG_ULTRA
-    nv_log("Framebuffer Config Change\n");
-    nv_log("Horizontal Size=%d pixels\n", new_pfb_htotal); 
-    nv_log("Vertical Size @ 4:3=%d pixels\n", new_pfb_vtotal); 
+
+    nv_log_verbose_only("Framebuffer Config Change\n");
+    nv_log_verbose_only("Horizontal Size=%d pixels\n", new_pfb_htotal); 
+    nv_log_verbose_only("Vertical Size @ 4:3=%d pixels\n", new_pfb_vtotal); 
     
     if (new_bit_depth == NV3_PFB_CONFIG_0_DEPTH_8BPP)
-        nv_log("Bit Depth=8bpp\n");
+        nv_log_verbose_only("Bit Depth=8bpp\n");
     else if (new_bit_depth == NV3_PFB_CONFIG_0_DEPTH_16BPP)
-        nv_log("Bit Depth=16bpp\n");
+        nv_log_verbose_only("Bit Depth=16bpp\n");
     else if (new_bit_depth == NV3_PFB_CONFIG_0_DEPTH_32BPP)
-        nv_log("Bit Depth=32bpp\n");
-    #endif
-        
+        nv_log_verbose_only("Bit Depth=32bpp\n");
+
 }

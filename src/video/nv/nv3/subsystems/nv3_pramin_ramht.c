@@ -39,17 +39,17 @@ uint32_t nv3_ramht_hash(uint32_t name, uint32_t channel)
 
 
     // is this the right endianness?
-    nv_log("Generated RAMHT hash 0x%04x (RAMHT slot=0x%04x (from name 0x%08x for DMA channel 0x%04x)\n)\n", hash, (hash/8), name, channel);
+    nv_log_verbose_only("Generated RAMHT hash 0x%04x (RAMHT slot=0x%04x (from name 0x%08x for DMA channel 0x%04x)\n)\n", hash, (hash/8), name, channel);
     return hash;
 }
 
 
 uint32_t nv3_ramht_read(uint32_t address)
 {
-    nv_log("RAMHT (Graphics object storage hashtable) Read (0x%04x), I DON'T BELIEVE THIS SHOULD EVER HAPPEN - RETURNING 0x00\n", address);
+    nv_log_verbose_only("RAMHT (Graphics object storage hashtable) Read (0x%04x), I DON'T BELIEVE THIS SHOULD EVER HAPPEN - RETURNING 0x00\n", address);
 }
 
 void nv3_ramht_write(uint32_t address, uint32_t value)
 {
-    nv_log("RAMHT (Graphics object storage hashtable) Write (0x%04x -> 0x%04x), I DON'T BELIEVE THIS SHOULD EVER HAPPEN - UNIMPLEMENTED\n", value, address);
+    nv_log_verbose_only("RAMHT (Graphics object storage hashtable) Write (0x%04x -> 0x%04x), I DON'T BELIEVE THIS SHOULD EVER HAPPEN - UNIMPLEMENTED\n", value, address);
 }

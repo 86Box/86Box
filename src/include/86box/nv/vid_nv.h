@@ -38,6 +38,9 @@
 void nv_log_set_device(void* device);
 void nv_log(const char *fmt, ...);
 
+// Verbose logging level.
+void nv_log_verbose_only(const char *fmt, ...);
+
 // Defines common to all NV chip architectural generations
 
 // PCI IDs

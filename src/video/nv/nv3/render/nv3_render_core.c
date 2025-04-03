@@ -44,9 +44,8 @@ nv3_color_expanded_t nv3_render_expand_color(uint32_t color, nv3_grobj_t grobj)
     // set the pixel format
     color_final.pixel_format = format;
 
-    #ifdef ENABLE_NV_LOG
-    nv_log("Expanding Colour 0x%08x using pgraph_pixel_format 0x%x alpha enabled=%d", color, format, alpha_enabled);
-    #endif
+    nv_log_verbose_only("Expanding Colour 0x%08x using pgraph_pixel_format 0x%x alpha enabled=%d\n", color, format, alpha_enabled);
+
     
     // default to fully opaque in case alpha is disabled
     color_final.a = 0xFF;
@@ -112,9 +111,7 @@ uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t co
     uint8_t format = (grobj.grobj_0 & 0x07);
     bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_ALPHA) & 0x01;
 
-    #ifdef ENABLE_NV_LOG
-    nv_log("Downconverting Colour 0x%08x using pgraph_pixel_format 0x%x alpha enabled=%d\n", color, format, alpha_enabled);
-    #endif
+    nv_log_verbose_only("Downconverting Colour 0x%08x using pgraph_pixel_format 0x%x alpha enabled=%d\n", color, format, alpha_enabled);
 
     uint32_t packed_color = 0x00;
 
@@ -141,10 +138,10 @@ uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t co
             packed_color |= (color.b << 10);
             break;
         case nv3_pgraph_pixel_format_y8:
-            nv_log("nv3_render_downconvert: Y8 not implemented");
+            warning("nv3_render_downconvert: Y8 not implemented");
             break;
         case nv3_pgraph_pixel_format_y16:
-            nv_log("nv3_render_downconvert: Y16 not implemented");
+            warning("nv3_render_downconvert: Y16 not implemented");
             break;
         default:
             warning("nv3_render_downconvert_color unknown format %d", format);

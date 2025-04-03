@@ -55,15 +55,15 @@ uint32_t nv3_pvideo_read(uint32_t address)
     
     // todo: friendly logging
     
-    nv_log("PVIDEO Read from 0x%08x", address);
+    nv_log_verbose_only("PVIDEO Read from 0x%08x", address);
 
     // if the register actually exists
     if (reg)
     {
         if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
+            nv_log_verbose_only(": %s\n", reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
 
         // on-read function
         if (reg->on_read)
@@ -95,9 +95,9 @@ uint32_t nv3_pvideo_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": 0x%08x <- %s\n", ret, reg->friendly_name);
+            nv_log_verbose_only(": 0x%08x <- %s\n", ret, reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
     }
     else
     {
@@ -112,15 +112,15 @@ void nv3_pvideo_write(uint32_t address, uint32_t value)
     // before doing anything, check the subsystem enablement
     nv_register_t* reg = nv_get_register(address, pvideo_registers, sizeof(pvideo_registers)/sizeof(pvideo_registers[0]));
 
-    nv_log("PVIDEO Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log_verbose_only("PVIDEO Write 0x%08x -> 0x%08x\n", value, address);
 
     // if the register actually exists
     if (reg)
     {
         if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
+            nv_log_verbose_only(": %s\n", reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
 
         // on-read function
         if (reg->on_write)

@@ -101,7 +101,7 @@ uint32_t nv3_pfifo_read(uint32_t address)
 
     // todo: friendly logging
     
-    nv_log("PFIFO Read from 0x%08x", address);
+    nv_log_verbose_only("PFIFO Read from 0x%08x", address);
 
     // if the register actually exists
     if (reg)
@@ -278,9 +278,9 @@ uint32_t nv3_pfifo_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": 0x%08x <- %s\n", ret, reg->friendly_name);
+            nv_log_verbose_only(": 0x%08x <- %s\n", ret, reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
     }
     /* Handle some special memory areas */
     else if (address >= NV3_PFIFO_CACHE1_CTX_START && address <= NV3_PFIFO_CACHE1_CTX_END)
@@ -288,24 +288,26 @@ uint32_t nv3_pfifo_read(uint32_t address)
         uint32_t ctx_entry_id = ((address - NV3_PFIFO_CACHE1_CTX_START) / 16) % 8;
         ret = nv3->pfifo.cache1_settings.context[ctx_entry_id];
 
-        nv_log("PFIFO Cache1 CTX Read Entry=%d Value=0x%04x\n", ctx_entry_id, ret);
+        nv_log_verbose_only("PFIFO Cache1 CTX Read Entry=%d Value=0x%04x\n", ctx_entry_id, ret);
     }
     /* Direct cache read  stuff */
     else if (address >= NV3_PFIFO_CACHE0_METHOD_START && address <= NV3_PFIFO_CACHE0_METHOD_END)
     {
-        nv_log("PFIFO Cache0 Read\n");
+        nv_log_verbose_only("PFIFO Cache0 Read\n");
 
         // See if we want the object name or the channel/subchannel information.
         if (address & 4)
         {
-            nv_log("Data=0x%08x\n", nv3->pfifo.cache0_entry.data);
+            nv_log_verbose_only("Data=0x%08x\n", nv3->pfifo.cache0_entry.data);
+
             return nv3->pfifo.cache0_entry.data;
         }
         else
         {
             uint32_t final = nv3->pfifo.cache0_entry.method | (nv3->pfifo.cache0_entry.subchannel << NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL);
 
-            nv_log("Param (subchannel=15:13, method=12:2)=0x%08x\n", final);
+            nv_log_verbose_only("Param (subchannel=15:13, method=12:2)=0x%08x\n", final);
+
 
             return final;
         }
@@ -320,19 +322,19 @@ uint32_t nv3_pfifo_read(uint32_t address)
             slot = (address >> 3) & 0x3F;
         else 
             slot = (address >> 3) & 0x1F; 
-
-        nv_log("PFIFO Cache1 Read slot=%d", slot);
+            
+        nv_log_verbose_only("PFIFO Cache1 Read slot=%d", slot);
 
         // See if we want the object name or the channel/subchannel information.
         if (address & 4)
         {
-            nv_log("Data=0x%08x\n", nv3->pfifo.cache1_entries[slot].data);
+            nv_log_verbose_only("Data=0x%08x\n", nv3->pfifo.cache1_entries[slot].data);
             return nv3->pfifo.cache1_entries[slot].data;
         }
         else
         {
             uint32_t final = nv3->pfifo.cache1_entries[slot].method | (nv3->pfifo.cache1_entries[slot].subchannel << NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL);
-            nv_log("Param (subchannel=15:13, method=12:2)=0x%08x\n", final);
+            nv_log_verbose_only("Param (subchannel=15:13, method=12:2)=0x%08x\n", final);
             return final;
         }
             
@@ -392,7 +394,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
 
     nv_register_t* reg = nv_get_register(address, pfifo_registers, sizeof(pfifo_registers)/sizeof(pfifo_registers[0]));
 
-    nv_log("PFIFO Write 0x%08x -> 0x%08x", val, address);
+    nv_log_verbose_only("PFIFO Write 0x%08x -> 0x%08x", val, address);
 
     // if the register actually exists
     if (reg)
@@ -571,18 +573,18 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
         }
 
         if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
+            nv_log_verbose_only(": %s\n", reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
     }
     else if (address >= NV3_PFIFO_CACHE0_METHOD_START && address <= NV3_PFIFO_CACHE0_METHOD_END)
     {
-        nv_log("PFIFO Cache0 Write\n");
+        nv_log_verbose_only("PFIFO Cache0 Write\n");
 
         // 3104 always written after 3100
         if (address & 4)
         {   
-            nv_log("Name = 0x%08x\n", val);
+            nv_log_verbose_only("Name = 0x%08x\n", val);
             nv3->pfifo.cache0_entry.data = val;
             nv3_pfifo_cache0_pull(); // immediately pull out
         }
@@ -590,7 +592,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
         {
             nv3->pfifo.cache0_entry.method = (val & 0x1FFC);
             nv3->pfifo.cache0_entry.subchannel = (val >> NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL) & 0x07;
-            nv_log("Subchannel = 0x%08x, method = 0x%04x\n", nv3->pfifo.cache0_entry.subchannel, nv3->pfifo.cache0_entry.method);
+            nv_log_verbose_only("Subchannel = 0x%08x, method = 0x%04x\n", nv3->pfifo.cache0_entry.subchannel, nv3->pfifo.cache0_entry.method);
         }
 
     }
@@ -606,19 +608,19 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
 
         uint32_t real_entry = nv3_pfifo_cache1_normal2gray(slot);
 
-        nv_log("Cache1 Write Slot %d (Gray code)", real_entry);
+        nv_log_verbose_only("Cache1 Write Slot %d (Gray code)", real_entry);
 
         // See if we want the object name or the channel/subchannel information.
         if (address & 4)
         {
-            nv_log("Name = 0x%08x\n", val);
+            nv_log_verbose_only("Name = 0x%08x\n", val);
             nv3->pfifo.cache1_entries[real_entry].data = val;
         }
         else
         {
             nv3->pfifo.cache1_entries[real_entry].method = (val & 0x1FFC);
             nv3->pfifo.cache1_entries[real_entry].subchannel = (val >> NV3_PFIFO_CACHE1_METHOD_SUBCHANNEL) & 0x07;
-            nv_log("Subchannel = 0x%08x, method = 0x%04x\n", nv3->pfifo.cache1_entries[real_entry].subchannel, nv3->pfifo.cache1_entries[real_entry].method);
+            nv_log_verbose_only("Subchannel = 0x%08x, method = 0x%04x\n", nv3->pfifo.cache1_entries[real_entry].subchannel, nv3->pfifo.cache1_entries[real_entry].method);
         }
     }
     /* Handle some special memory areas */
@@ -627,7 +629,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
         uint32_t ctx_entry_id = ((address - NV3_PFIFO_CACHE1_CTX_START) / 16) % 8;
         nv3->pfifo.cache1_settings.context[ctx_entry_id] = val;
 
-        nv_log("PFIFO Cache1 CTX Write Entry=%d value=0x%04x\n", ctx_entry_id, val);
+        nv_log_verbose_only("PFIFO Cache1 CTX Write Entry=%d value=0x%04x\n", ctx_entry_id, val);
     }
     else /* Completely unknown */
     {
@@ -689,11 +691,10 @@ uint32_t nv3_pfifo_cache1_gray2normal(uint32_t val)
     return nv3_pfifo_cache1_binary_code_table[val];
 }
 
-// Submits graphics objects INTO cache0
-void nv3_pfifo_cache0_push()
-{
-    
-}
+/* 
+You can't push into cache0 on the real hardware, but it's not practically done because Cache0 is meant to be reserved for software objects,
+NV_USER writes always go to CACHE1
+*/
 
 // Pulls graphics objects OUT of cache0
 void nv3_pfifo_cache0_pull()
@@ -740,9 +741,9 @@ void nv3_pfifo_cache0_pull()
     nv3->pfifo.cache0_settings.get_address ^= 0x04;
 
     #ifndef RELEASE_BUILD
-    #ifdef ENABLE_NV_LOG_ULTRA
-    nv_log("***** DEBUG: CACHE0 PULLED ****** Contextual information below\n");
-    #endif
+
+    nv_log_verbose_only("***** DEBUG: CACHE0 PULLED ****** Contextual information below\n");
+
             
     nv3_ramin_context_t context_structure = *(nv3_ramin_context_t*)&current_context;
 
@@ -757,7 +758,7 @@ void nv3_pfifo_context_switch(uint32_t new_channel)
 {
     /* Send our contexts to RAMFC. Load the new ones from RAMFC. */
     if (new_channel >= NV3_DMA_CHANNELS)
-        fatal("Tried to switch to invalid dma channel");
+        fatal("nv3_pfifo_context_switch: Tried to switch to invalid dma channel");
 
     uint16_t ramfc_base = nv3->pfifo.ramfc_config >> NV3_PFIFO_CONFIG_RAMFC_BASE_ADDRESS & 0xF;
 
@@ -832,7 +833,8 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
     // Did we fuck up?
     if (oh_shit)
     {
-        nv_log("WE ARE FUCKED Runout Error=%d Channel=%d Subchannel=%d Method=0x%04x IMPLEMENT THIS OR DIE!!!", oh_shit_reason, channel, subchannel, method_offset);
+        nv_log("OH CRAP: Runout Error=%d Channel=%d Subchannel=%d Method=0x%04x", 
+            oh_shit_reason, channel, subchannel, method_offset);
          
         nv3_ramro_write(nv3->pfifo.runout_put, new_address);
         nv3_ramro_write(nv3->pfifo.runout_put + 4, param);
@@ -878,7 +880,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
 
     nv3->pfifo.cache1_settings.put_address = nv3_pfifo_cache1_normal2gray(next_put_address) << 2;
 
-    nv_log("Submitted object [PIO]: Channel %d.%d, Parameter 0x%08x, Method ID 0x%04x (Put Address is now %d)\n",
+    nv_log_verbose_only("Submitted object [PIO]: Channel %d.%d, Parameter 0x%08x, Method ID 0x%04x (Put Address is now %d)\n",
          channel, subchannel, param, method_offset, nv3->pfifo.cache1_settings.put_address);
    
     // Now we're done. Phew!
@@ -918,7 +920,7 @@ void nv3_pfifo_cache1_pull()
     //bit23 set=hardware
     if (!(current_context & 0x800000))
     {
-        nv_log("The object in CACHE1 is a software object\n");
+        nv_log_verbose_only("The object in CACHE1 is a software object\n");
 
         nv3->pfifo.cache1_settings.pull0 |= NV3_PFIFO_CACHE0_PULL0_SOFTWARE_METHOD;
         nv3->pfifo.cache1_settings.pull0 &= ~NV3_PFIFO_CACHE0_PULL0_ENABLED;
@@ -939,9 +941,8 @@ void nv3_pfifo_cache1_pull()
 
     #ifndef RELEASE_BUILD
 
-    #ifdef ENABLE_NV_LOG_ULTRA
-    nv_log("***** DEBUG: CACHE1 PULLED ****** Contextual information below\n");
-    #endif
+    nv_log_verbose_only("***** DEBUG: CACHE1 PULLED ****** Contextual information below\n");
+
 
     nv3_ramin_context_t context_structure = *(nv3_ramin_context_t*)&current_context;
 

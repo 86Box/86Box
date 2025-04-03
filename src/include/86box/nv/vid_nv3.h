@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   26 March 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   2 April 2025 (STILL WORKING ON IT!!!)
  *  
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -1605,7 +1605,7 @@ void        nv3_pfifo_write(uint32_t address, uint32_t value);
 void        nv3_pfifo_interrupt(uint32_t id, bool fire_now);
 
 // NV3 PFIFO - Caches
-void        nv3_pfifo_cache0_push();
+//cache0_push not a thing
 void        nv3_pfifo_cache0_pull();
 void        nv3_pfifo_cache1_push(uint32_t addr, uint32_t val);
 void        nv3_pfifo_cache1_pull();
@@ -1641,4 +1641,4 @@ void        nv3_ptimer_tick(double real_time);
 void        nv3_pvideo_init();
 
 // NV3 PME (Mediaport)
-void        nv3_pmedia_init();
+void        nv3_pme_init();

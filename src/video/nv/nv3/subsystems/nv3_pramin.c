@@ -61,7 +61,7 @@ uint8_t nv3_ramin_read8(uint32_t addr, void* priv)
     if (!nv3_ramin_arbitrate_read(addr, &val)) // Oh well
     {
         val = (uint8_t)nv3->nvbase.svga.vram[addr];
-        nv_log("Read byte from PRAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
+        nv_log_verbose_only("Read byte from PRAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
     }
 
     return (uint8_t)val;
@@ -87,7 +87,7 @@ uint16_t nv3_ramin_read16(uint32_t addr, void* priv)
     if (!nv3_ramin_arbitrate_read(addr, &val))
     {
         val = (uint16_t)vram_16bit[addr];
-        nv_log("Read word from PRAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
+        nv_log_verbose_only("Read word from PRAMIN addr=0x%08x (raw address=0x%08x)\n", addr, raw_addr);
     }
 
     return val;
@@ -114,7 +114,7 @@ uint32_t nv3_ramin_read32(uint32_t addr, void* priv)
     {
         val = vram_32bit[addr];
 
-        nv_log("Read dword from PRAMIN 0x%08x <- 0x%08x (raw address=0x%08x)\n", val, addr, raw_addr);
+        nv_log_verbose_only("Read dword from PRAMIN 0x%08x <- 0x%08x (raw address=0x%08x)\n", val, addr, raw_addr);
     }
 
     return val;
@@ -139,7 +139,7 @@ void nv3_ramin_write8(uint32_t addr, uint8_t val, void* priv)
     if (!nv3_ramin_arbitrate_write(addr, val32))
     {
         nv3->nvbase.svga.vram[addr] = val;
-        nv_log("Write byte to PRAMIN addr=0x%08x val=0x%02x (raw address=0x%08x)\n", addr, val, raw_addr);
+        nv_log_verbose_only("Write byte to PRAMIN addr=0x%08x val=0x%02x (raw address=0x%08x)\n", addr, val, raw_addr);
     }
 
 
@@ -165,7 +165,7 @@ void nv3_ramin_write16(uint32_t addr, uint16_t val, void* priv)
     if (!nv3_ramin_arbitrate_write(addr, val32))
     {
         vram_16bit[addr] = val;
-        nv_log("Write word to PRAMIN addr=0x%08x val=0x%04x (raw address=0x%08x)\n", addr, val, raw_addr);
+        nv_log_verbose_only("Write word to PRAMIN addr=0x%08x val=0x%04x (raw address=0x%08x)\n", addr, val, raw_addr);
     }
 
 
@@ -189,7 +189,7 @@ void nv3_ramin_write32(uint32_t addr, uint32_t val, void* priv)
     if (!nv3_ramin_arbitrate_write(addr, val))
     {
         vram_32bit[addr] = val;
-        nv_log("Write dword to PRAMIN addr=0x%08x val=0x%08x (raw address=0x%08x)\n", addr, val, raw_addr);
+        nv_log_verbose_only("Write dword to PRAMIN addr=0x%08x val=0x%08x (raw address=0x%08x)\n", addr, val, raw_addr);
     }
 
 }
@@ -378,7 +378,7 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
     // Why does this work?
     uint32_t ramht_cur_address = ramht_base + (nv3_ramht_hash(name, channel) * bucket_entries * 8);
 
-    nv_log("Beginning search for graphics object at RAMHT base=0x%04x, name=0x%08x, Cache%d, channel=%d.%d)\n",
+    nv_log_verbose_only("Beginning search for graphics object at RAMHT base=0x%04x, name=0x%08x, Cache%d, channel=%d.%d)\n",
         ramht_cur_address, name, cache_num, channel, subchannel);
 
     bool found_object = false;
@@ -503,13 +503,13 @@ bool nv3_ramin_find_object(uint32_t name, uint32_t cache_num, uint8_t channel, u
 void nv3_debug_ramin_print_context_info(uint32_t name, nv3_ramin_context_t context)
 {
     #ifndef RELEASE_BUILD
-    nv_log("Found object:\n");
-    nv_log("Param: 0x%04x\n", name);
+    nv_log_verbose_only("Found object:\n");
+    nv_log_verbose_only("Param: 0x%04x\n", name);
 
-    nv_log("Context:\n");
-    nv_log("DMA Channel %d (0-7 valid)\n", context.channel);
-    nv_log("Class ID: =0x%04x (%s)\n", context.class_id & 0x1F, nv3_class_names[context.class_id & 0x1F]);
-    nv_log("Render Engine %d (0=Software, also DMA? 1=Accelerated Renderer)\n", context.is_rendering);
-    nv_log("PRAMIN Offset 0x%08x\n", context.ramin_offset << 4);
+    nv_log_verbose_only("Context:\n");
+    nv_log_verbose_only("DMA Channel %d (0-7 valid)\n", context.channel);
+    nv_log_verbose_only("Class ID: =0x%04x (%s)\n", context.class_id & 0x1F, nv3_class_names[context.class_id & 0x1F]);
+    nv_log_verbose_only("Render Engine %d (0=Software, also DMA? 1=Accelerated Renderer)\n", context.is_rendering);
+    nv_log_verbose_only("PRAMIN Offset 0x%08x\n", context.ramin_offset << 4);
     #endif
 }

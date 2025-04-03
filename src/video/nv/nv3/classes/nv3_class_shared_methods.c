@@ -112,33 +112,33 @@ void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t
     // This code is temporary and will probably be moved somewhere else
     // Print torns of debug info
     #ifdef DEBUG
-    nv_log("******* WARNING: IF THIS OPERATION FUCKS UP, RANDOM MEMORY WILL BE CORRUPTED, YOUR ENTIRE SYSTEM MAY BE HOSED *******\n");
+    nv_log_verbose_only("******* WARNING: IF THIS OPERATION FUCKS UP, RANDOM MEMORY WILL BE CORRUPTED, YOUR ENTIRE SYSTEM MAY BE HOSED *******\n");
 
-    nv_log("Notification Information:\n");
-    nv_log("Adjust Value: 0x%08x\n", info_adjust);
-    (info_pt_present) ? nv_log("Pagetable Present: True\n") : nv_log("Pagetable Present: False\n");
+    nv_log_verbose_only("Notification Information:\n");
+    nv_log_verbose_only("Adjust Value: 0x%08x\n", info_adjust);
+    (info_pt_present) ? nv_log_verbose_only("Pagetable Present: True\n") : nv_log_verbose_only("Pagetable Present: False\n");
 
     switch (info_notification_target)
     {
         case NV3_NOTIFICATION_TARGET_NVM: 
-            nv_log("Notification Target: VRAM\n");
+            nv_log_verbose_only("Notification Target: VRAM\n");
             break;
         case NV3_NOTIFICATION_TARGET_CART: 
-            nv_log("VERY BAD WARNING: Notification detected with Notification Target: Cartridge. THIS SHOULD NEVER HAPPEN!!!!!\n");
+            nv_log_verbose_only("VERY BAD WARNING: Notification detected with Notification Target: Cartridge. THIS SHOULD NEVER HAPPEN!!!!!\n");
             break;
         case NV3_NOTIFICATION_TARGET_PCI: 
-            (nv3->nvbase.bus_generation == nv_bus_pci) ? nv_log("Notification Target: PCI Bus\n") : nv_log("Notification Target: PCI Bus (On AGP card?)\n");
+            (nv3->nvbase.bus_generation == nv_bus_pci) ? nv_log_verbose_only("Notification Target: PCI Bus\n") : nv_log_verbose_only("Notification Target: PCI Bus (On AGP card?)\n");
             break;
         case NV3_NOTIFICATION_TARGET_AGP: 
             (nv3->nvbase.bus_generation == nv_bus_agp_1x
-                || nv3->nvbase.bus_generation == nv_bus_agp_2x) ? nv_log("Notification Target: AGP Bus\n") : nv_log("Notification Target: AGP Bus (On PCI card?)\n");
+                || nv3->nvbase.bus_generation == nv_bus_agp_2x) ? nv_log_verbose_only("Notification Target: AGP Bus\n") : nv_log_verbose_only("Notification Target: AGP Bus (On PCI card?)\n");
             break;
     }
 
-    nv_log("Limit: 0x%08x\n", notify_obj_limit);
-    (page_is_present) ? nv_log("Page is present\n") : nv_log("Page is not present\n"); 
-    (page_is_readwrite) ? nv_log("Page is read-write\n") : nv_log("Page is read-only\n");
-    nv_log("Pageframe Address: 0x%08x\n", frame_base);
+    nv_log_verbose_only("Limit: 0x%08x\n", notify_obj_limit);
+    (page_is_present) ? nv_log_verbose_only("Page is present\n") : nv_log_verbose_only("Page is not present\n"); 
+    (page_is_readwrite) ? nv_log_verbose_only("Page is read-write\n") : nv_log_verbose_only("Page is read-only\n");
+    nv_log_verbose_only("Pageframe Address: 0x%08x\n", frame_base);
     #endif
 
     // set up the dma transfer. we need to translate to a physical address.

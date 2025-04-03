@@ -82,7 +82,7 @@ void nv3_ptimer_tick(double real_time)
     // Only log on ptimer alarm. Otherwise, it's too much spam.
     if (nv3->ptimer.time >= nv3->ptimer.alarm)
     {
-        nv_log("PTIMER alarm interrupt fired (if interrupts enabled) because we reached TIME value 0x%08x\n", nv3->ptimer.alarm);
+        nv_log_verbose_only("PTIMER alarm interrupt fired (if interrupts enabled) because we reached TIME value 0x%08x\n", nv3->ptimer.alarm);
         nv3_ptimer_interrupt(NV3_PTIMER_INTR_ALARM);
     }
 }
@@ -97,7 +97,7 @@ uint32_t nv3_ptimer_read(uint32_t address)
     if (address != NV3_PTIMER_TIME_0_NSEC
     && address != NV3_PTIMER_TIME_1_NSEC)
     {
-        nv_log("PTIMER Read from 0x%08x", address);
+        nv_log_verbose_only("PTIMER Read from 0x%08x", address);
     }
 
     uint32_t ret = 0x00;
@@ -147,9 +147,9 @@ uint32_t nv3_ptimer_read(uint32_t address)
         && reg->address != NV3_PTIMER_TIME_1_NSEC)
         {
             if (reg->friendly_name)
-            nv_log(": 0x%08x <- %s\n", ret, reg->friendly_name);
+                nv_log_verbose_only(": 0x%08x <- %s\n", ret, reg->friendly_name);
             else   
-                nv_log("\n");
+                nv_log_verbose_only("\n");
         }
     }
     else
@@ -165,15 +165,15 @@ void nv3_ptimer_write(uint32_t address, uint32_t value)
     // before doing anything, check the subsystem enablement
     nv_register_t* reg = nv_get_register(address, ptimer_registers, sizeof(ptimer_registers)/sizeof(ptimer_registers[0]));
 
-    nv_log("PTIMER Write 0x%08x -> 0x%08x", value, address);
+    nv_log_verbose_only("PTIMER Write 0x%08x -> 0x%08x", value, address);
 
     // if the register actually exists
     if (reg)
     {
         if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
+            nv_log_verbose_only(": %s\n", reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
 
         // on-read function
         if (reg->on_write)

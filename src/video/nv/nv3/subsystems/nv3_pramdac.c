@@ -223,7 +223,7 @@ uint32_t nv3_pramdac_read(uint32_t address)
 
     // todo: friendly logging
 
-    nv_log("PRAMDAC Read from 0x%08x\n", address);
+    nv_log_verbose_only("PRAMDAC Read from 0x%08x\n", address);
 
     // if the register actually exists
     if (reg)
@@ -288,9 +288,9 @@ uint32_t nv3_pramdac_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": 0x%08x <- %s\n", ret, reg->friendly_name);
+            nv_log_verbose_only(": 0x%08x <- %s\n", ret, reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
     }
     else
     {
@@ -304,15 +304,12 @@ void nv3_pramdac_write(uint32_t address, uint32_t value)
 {
     nv_register_t* reg = nv_get_register(address, pramdac_registers, sizeof(pramdac_registers)/sizeof(pramdac_registers[0]));
 
-    nv_log("PRAMDAC Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log_verbose_only("PRAMDAC Write 0x%08x -> 0x%08x\n", value, address);
 
     // if the register actually exists
     if (reg)
     {
-        if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
-        else   
-            nv_log("\n");
+
 
         // on-read function
         if (reg->on_write)
@@ -381,6 +378,11 @@ void nv3_pramdac_write(uint32_t address, uint32_t value)
                     break;
             }
         }
+
+        if (reg->friendly_name)
+            nv_log_verbose_only(": %s\n", reg->friendly_name);
+        else   
+            nv_log_verbose_only("\n");
     }
     else /* Completely unknown */
     {

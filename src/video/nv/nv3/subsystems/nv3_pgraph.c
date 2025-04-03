@@ -108,7 +108,7 @@ uint32_t nv3_pgraph_read(uint32_t address)
 
     // todo: friendly logging
     
-    nv_log("PGRAPH Read from 0x%08x", address);
+    nv_log_verbose_only("PGRAPH Read from 0x%08x", address);
 
     // if the register actually exists
     if (reg)
@@ -262,9 +262,9 @@ uint32_t nv3_pgraph_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": 0x%08x <- %s\n", ret, reg->friendly_name);
+            nv_log_verbose_only(": 0x%08x <- %s\n", ret, reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
     }
     else
     {
@@ -275,7 +275,7 @@ uint32_t nv3_pgraph_read(uint32_t address)
             // Addresses should be aligned to 4 bytes.
             uint32_t entry = (address - NV3_PGRAPH_CONTEXT_CACHE(0));
 
-            nv_log("PGRAPH Context Cache Read (Entry=%04x Value=%04x)\n", entry, nv3->pgraph.context_cache[entry]);
+            nv_log_verbose_only("PGRAPH Context Cache Read (Entry=%04x Value=%04x)\n", entry, nv3->pgraph.context_cache[entry]);
         }
         else /* Completely unknown */
         {
@@ -297,15 +297,11 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
 
     nv_register_t* reg = nv_get_register(address, pgraph_registers, sizeof(pgraph_registers)/sizeof(pgraph_registers[0]));
 
-    nv_log("PGRAPH Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log_verbose_only("PGRAPH Write 0x%08x -> 0x%08x\n", value, address);
 
     // if the register actually exists
     if (reg)
     {
-        if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
-        else   
-            nv_log("\n");
 
         // on-read function
         if (reg->on_write)
@@ -467,6 +463,12 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
 
             }
         }
+
+        if (reg->friendly_name)
+            nv_log_verbose_only(": %s\n", reg->friendly_name);
+        else   
+            nv_log_verbose_only("\n");
+
     }
     else
     {
@@ -477,7 +479,7 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
             // Addresses should be aligned to 4 bytes.
             uint32_t entry = (address - NV3_PGRAPH_CONTEXT_CACHE(0));
 
-            nv_log("PGRAPH Context Cache Write (Entry=%04x Value=0x%08x)\n", entry, value);
+            nv_log_verbose_only("PGRAPH Context Cache Write (Entry=%04x Value=0x%08x)\n", entry, value);
             nv3->pgraph.context_cache[entry] = value;
         }
         else /* Completely unknown */
@@ -524,7 +526,7 @@ void nv3_pgraph_arbitrate_method(uint32_t param, uint16_t method, uint8_t channe
     grobj.grobj_2 = nv3_ramin_read32(real_ramin_base + 8, nv3);
     grobj.grobj_3 = nv3_ramin_read32(real_ramin_base + 12, nv3);
 
-    nv_log("**** About to execute method **** method=0x%04x param=0x%08x, channel=%d.%d, class=%s, grobj=0x%08x 0x%08x 0x%08x 0x%08x\n",
+    nv_log_verbose_only("**** About to execute method **** method=0x%04x param=0x%08x, channel=%d.%d, class=%s, grobj=0x%08x 0x%08x 0x%08x 0x%08x\n",
         method, param, channel, subchannel, nv3_class_names[class_id], grobj.grobj_0, grobj.grobj_1, grobj.grobj_2, grobj.grobj_3);
 
     /* Methods below 0x104 are shared across all classids, so call generic_method for that*/

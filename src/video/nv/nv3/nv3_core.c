@@ -72,9 +72,7 @@ uint8_t nv3_mmio_read8(uint32_t addr, void* priv)
 
         ret = nv3_svga_in(real_address, nv3);
 
-        #ifdef ENABLE_NV_LOG_ULTRA
-        nv_log("Redirected MMIO read8 to SVGA: addr=0x%04x returned 0x%04x\n", addr, ret);
-        #endif
+        nv_log_verbose_only("Redirected MMIO read8 to SVGA: addr=0x%04x returned 0x%04x\n", addr, ret);
 
         return ret; 
     }
@@ -100,9 +98,8 @@ uint16_t nv3_mmio_read16(uint32_t addr, void* priv)
         ret = nv3_svga_in(real_address, nv3)
         | (nv3_svga_in(real_address + 1, nv3) << 8);
         
-        //#ifdef ENABLE_NV_LOG_ULTRA
-        nv_log("Redirected MMIO read16 to SVGA: addr=0x%04x returned 0x%04x\n", addr, ret);
-        //#endif
+        nv_log_verbose_only("Redirected MMIO read16 to SVGA: addr=0x%04x returned 0x%04x\n", addr, ret);
+
         return ret; 
     }
 
@@ -128,9 +125,7 @@ uint32_t nv3_mmio_read32(uint32_t addr, void* priv)
         | (nv3_svga_in(real_address + 2, nv3) << 16)
         | (nv3_svga_in(real_address + 3, nv3) << 24);
 
-        //#ifdef ENABLE_NV_LOG_ULTRA
-        nv_log("Redirected MMIO read32 to SVGA: addr=0x%04x returned 0x%04x\n", addr, ret);
-        //#endif
+        nv_log_verbose_only("Redirected MMIO read32 to SVGA: addr=0x%04x returned 0x%04x\n", addr, ret);
 
         return ret; 
     }
@@ -155,9 +150,7 @@ void nv3_mmio_write8(uint32_t addr, uint8_t val, void* priv)
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
-        //#ifdef ENABLE_NV_LOG_ULTRA
-        nv_log("Redirected MMIO write8 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
-        //#endif
+        nv_log_verbose_only("Redirected MMIO write8 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
 
         nv3_svga_out(real_address, val & 0xFF, nv3);
 
@@ -184,9 +177,8 @@ void nv3_mmio_write16(uint32_t addr, uint16_t val, void* priv)
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
-        //#ifdef ENABLE_NV_LOG_ULTRA
-        nv_log("Redirected MMIO write16 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
-        //#endif
+        nv_log_verbose_only("Redirected MMIO write16 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
+
 
         nv3_svga_out(real_address, val & 0xFF, nv3);
         nv3_svga_out(real_address + 1, (val >> 8) & 0xFF, nv3);
@@ -214,9 +206,7 @@ void nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv)
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
-        //#ifdef ENABLE_NV_LOG_ULTRA
-        nv_log("Redirected MMIO write32 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
-        //#endif
+        nv_log_verbose_only("Redirected MMIO write32 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
 
         nv3_svga_out(real_address, val & 0xFF, nv3);
         nv3_svga_out(real_address + 1, (val >> 8) & 0xFF, nv3);
@@ -1073,9 +1063,9 @@ void* nv3_init(const device_t *info)
 #endif   
     nv_log("Initialising core\n");
 
-#ifdef ENABLE_NV_LOG_ULTRA
-    nv_log("ULTRA LOGGING enabled");
-#endif
+    // this will only be logged if ENABLE_NV_LOG_ULTRA is defined
+    nv_log_verbose_only("ULTRA LOGGING enabled");
+
 
     // Figure out which vbios the user selected
     const char* vbios_id = device_get_config_bios("vbios");

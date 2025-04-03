@@ -64,8 +64,8 @@ void nv3_class_00d_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             /* This is technically its own thing, but I don't know if it's ever a problem with how we've designed it */
             if (nv3->pgraph.notify_pending)
             {
-                nv_log("M2MF notification with notify_pending already set. param=0x%08x, method=0x%04x, grobj=0x%08x 0x%08x 0x%08x 0x%08x\n");
-                nv_log("IF THIS IS A DEBUG BUILD, YOU SHOULD SEE A CONTEXT BELOW");
+                nv_log("WARNING: M2MF notification with notify_pending already set. param=0x%08x, method=0x%04x, grobj=0x%08x 0x%08x 0x%08x 0x%08x\n");
+                nv_log("IF THIS BUILD WAS COMPILED WITH NV_LOG_ENABLE_ULTRA, YOU SHOULD SEE A CONTEXT BELOW");
                 nv3_debug_ramin_print_context_info(param, context);
                 nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_DOUBLE_NOTIFY);
                 

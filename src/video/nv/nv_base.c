@@ -50,31 +50,52 @@ void nv_log_set_device(void* device)
     nv_log_device = device;
 }
 
-void nv_log(const char *fmt, ...)
+void nv_log_internal(const char* fmt, va_list arg)
 {
     if (!nv_log_device)
         return;
 
-    va_list ap;
-
-    if (nv_do_log) {
-        va_start(ap, fmt);
-
     // If our debug config option is configured, full log. Otherwise log with cyclical detection.
-    #ifndef RELEASE_BUILD
-        if (nv_log_full)   
-            log_out(nv_log_device, fmt, ap);
-        else
-    #endif
-            log_out_cyclic(nv_log_device, fmt, ap);
-        
-        va_end(ap);
-    }
+    if (nv_log_full)   
+        log_out(nv_log_device, fmt, arg);
+    else
+        log_out_cyclic(nv_log_device, fmt, arg);
+    
 }
+
+void nv_log(const char *fmt, ...)
+{
+    va_list arg; 
+
+    if (!nv_do_log)
+        return; 
+
+    va_start(arg, fmt);
+    nv_log_internal(fmt, arg);
+    va_end(arg);
+}
+
+void nv_log_verbose_only(const char *fmt, ...)
+{
+    #ifdef ENABLE_NV_LOG_ULTRA
+    if (!nv_do_log)
+        return; 
+
+    va_start(arg, fmt);
+    nv_log_internal(fmt, arg);
+    va_end(arg);
+    #endif
+}
+
 #else
 void nv_log(const char *fmt, ...)
 {
+    
+}
 
+void nv_log_verbose_only(const char *fmt, ...)
+{
+    
 }
 
 void nv_log_set_device(void* device)

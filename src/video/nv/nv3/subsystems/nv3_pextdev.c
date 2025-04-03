@@ -89,11 +89,11 @@ uint32_t nv3_pextdev_read(uint32_t address)
     // special consideration for straps
     if (address == NV3_PSTRAPS)
     {
-        nv_log("Straps Read (current value=0x%08x)\n", nv3->pextdev.straps);
+        nv_log_verbose_only("Straps Read (current value=0x%08x)\n", nv3->pextdev.straps);
     }
     else
     {
-        nv_log("PEXTDEV Read from 0x%08x", address);
+        nv_log_verbose_only("PEXTDEV Read from 0x%08x", address);
     }
     
     // if the register actually exists
@@ -113,9 +113,9 @@ uint32_t nv3_pextdev_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": 0x%08x <- %s\n", ret, reg->friendly_name);
+            nv_log_verbose_only(": 0x%08x <- %s\n", ret, reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
     }
     else
     {
@@ -129,12 +129,12 @@ void nv3_pextdev_write(uint32_t address, uint32_t value)
 {
     nv_register_t* reg = nv_get_register(address, pextdev_registers, sizeof(pextdev_registers)/sizeof(pextdev_registers[0]));
 
-    nv_log("PEXTDEV Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log_verbose_only("PEXTDEV Write 0x%08x -> 0x%08x\n", value, address);
 
     // special consideration for straps
     if (address == NV3_PSTRAPS)
     {
-        nv_log("Huh? Tried to write to the straps. Something is wrong...\n", nv3->pextdev.straps);
+        warning("Huh? Tried to write to the straps. Something is wrong...\n", nv3->pextdev.straps);
         return;
     }
 
@@ -142,9 +142,9 @@ void nv3_pextdev_write(uint32_t address, uint32_t value)
     if (reg)
     {
         if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
+            nv_log_verbose_only(": %s\n", reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
 
         // on-read function
         if (reg->on_write)

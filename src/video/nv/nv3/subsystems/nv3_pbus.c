@@ -54,7 +54,7 @@ uint32_t nv3_pbus_read(uint32_t address)
 
     // todo: friendly logging
     
-    nv_log("PBUS Read from 0x%08x", address);
+    nv_log_verbose_only("PBUS Read from 0x%08x", address);
 
     // if the register actually exists
     if (reg)
@@ -79,9 +79,9 @@ uint32_t nv3_pbus_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": 0x%08x <- %s\n", ret, reg->friendly_name);
+            nv_log_verbose_only(": 0x%08x <- %s\n", ret, reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
     }
     else
     {
@@ -95,15 +95,15 @@ void nv3_pbus_write(uint32_t address, uint32_t value)
 {
     nv_register_t* reg = nv_get_register(address, pbus_registers, sizeof(pbus_registers)/sizeof(pbus_registers[0]));
 
-    nv_log("PBUS Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log_verbose_only("PBUS Write 0x%08x -> 0x%08x\n", value, address);
 
     // if the register actually exists
     if (reg)
     {
         if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
+            nv_log_verbose_only(": %s\n", reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
 
         // on-read function
         if (reg->on_write)
@@ -174,7 +174,7 @@ uint8_t nv3_pbus_rma_read(uint16_t addr)
             }
 
             // log current location for vbios RE
-            nv_log("MMIO Real Mode Access read, initial address=0x%04x final RMA MMIO address=0x%08x data=0x%08x\n",
+            nv_log_verbose_only("MMIO Real Mode Access read, initial address=0x%04x final RMA MMIO address=0x%08x data=0x%08x\n",
                 addr, real_final_address, ret);
 
             break;
@@ -239,7 +239,7 @@ void nv3_pbus_rma_write(uint16_t addr, uint8_t val)
                 nv3->pbus.rma.data &= ~0xff000000;
                 nv3->pbus.rma.data |= (val << 24);
 
-                nv_log("MMIO Real Mode Access write transaction complete, initial address=0x%04x final RMA MMIO address=0x%08x data=0x%08x\n",
+                nv_log_verbose_only("MMIO Real Mode Access write transaction complete, initial address=0x%04x final RMA MMIO address=0x%08x data=0x%08x\n",
                 addr, nv3->pbus.rma.addr, nv3->pbus.rma.data);
 
                 if (nv3->pbus.rma.addr < NV3_MMIO_SIZE) 

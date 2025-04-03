@@ -49,7 +49,7 @@ uint32_t nv3_pme_read(uint32_t address)
 
     // todo: friendly logging
 
-    nv_log("PME Read from 0x%08x", address);
+    nv_log_verbose_only("PME Read from 0x%08x", address);
 
     // if the register actually exists
     if (reg)
@@ -77,9 +77,9 @@ uint32_t nv3_pme_read(uint32_t address)
         }
 
         if (reg->friendly_name)
-            nv_log(": 0x%08x <- %s\n", ret, reg->friendly_name);
+            nv_log_verbose_only(": 0x%08x <- %s\n", ret, reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
     }
     else
     {
@@ -93,15 +93,15 @@ void nv3_pme_write(uint32_t address, uint32_t value)
 {
     nv_register_t* reg = nv_get_register(address, pme_registers, sizeof(pme_registers)/sizeof(pme_registers[0]));
 
-    nv_log("PME Write 0x%08x -> 0x%08x\n", value, address);
+    nv_log_verbose_only("PME Write 0x%08x -> 0x%08x\n", value, address);
 
     // if the register actually exists
     if (reg)
     {
         if (reg->friendly_name)
-            nv_log(": %s\n", reg->friendly_name);
+            nv_log_verbose_only(": %s\n", reg->friendly_name);
         else   
-            nv_log("\n");
+            nv_log_verbose_only("\n");
 
         // on-read function
         if (reg->on_write)
