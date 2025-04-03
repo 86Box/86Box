@@ -176,7 +176,6 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     QAbstractItemModel *models[SCSI_CARD_MAX]       = { 0 };
     int                 removeRows_[SCSI_CARD_MAX]  = { 0 };
     int                 selectedRows[SCSI_CARD_MAX] = { 0 };
-    int                 m_has_scsi                  = machine_has_flags(machineId, MACHINE_SCSI);
 
     for (uint8_t i = 0; i < SCSI_CARD_MAX; ++i) {
         cbox[i]        = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
