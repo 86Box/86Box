@@ -307,7 +307,9 @@ typedef struct da2_t {
 
     uint8_t  ioctl[16];
     uint8_t  fctl[32];
-    uint16_t crtc[128];
+    uint16_t crtc[32];
+    uint16_t crtc_vpreg[128];
+    uint8_t crtc_vpsel;
     uint8_t  gdcreg[64];
     uint8_t  reg3ee[16];
     int      gdcaddr;
@@ -420,6 +422,7 @@ typedef struct da2_t {
         int32_t    maskl, maskr;
         int32_t    count;
         int32_t    d;
+        int8_t     destoption;
         int        octdir;
         int        x, y, wx1, wx2, wy1, wy2;
     } bitblt;
@@ -679,13 +682,17 @@ DA2_PutcharWithBitmask(uint32_t codeIBMJ, int width, uint16_t attr, int line, ui
             srcpx.p8[i] |= (bg & (1 << i)) ? fontinv : 0;
         }
         // pclog("putchar: %08X mask %04X\n", srcpx.p8[3], maskr);
-        DA2_WritePlaneDataWithBitmask(destaddr + 2, 0xffff, &srcpx, da2);
-        for (int i = 0; i < 8; i++) {
-            srcpx.p8[i] = (color & (1 << i)) ? font << 16 : 0;
-            srcpx.p8[i] |= (bg & (1 << i)) ? fontinv << 16 : 0;
+        if (da2->bitblt.destoption & 0x20) {
+            DA2_WritePlaneDataWithBitmask(destaddr + 2,  maskr, &srcpx, da2);
+        } else {
+            DA2_WritePlaneDataWithBitmask(destaddr + 2, 0xffff, &srcpx, da2);
+            for (int i = 0; i < 8; i++) {
+                srcpx.p8[i] = (color & (1 << i)) ? font << 16 : 0;
+                srcpx.p8[i] |= (bg & (1 << i)) ? fontinv << 16 : 0;
+            }
+            // pclog("putchar: %08X mask %04X %04X\n", srcpx.p8[3], maskl, maskr);
+            DA2_WritePlaneDataWithBitmask(destaddr + 4, maskr, &srcpx, da2);
         }
-        // pclog("putchar: %08X mask %04X %04X\n", srcpx.p8[3], maskl, maskr);
-        DA2_WritePlaneDataWithBitmask(destaddr + 4, maskr, &srcpx, da2);
     }
 }
 #ifdef ENABLE_DA2_DEBUGBLT
@@ -876,7 +883,8 @@ da2_bitblt_load(da2_t *da2)
             DOS/V Extension 1040x725 some DBCS uses 0xB0 others 0x90
                 B0: BitShift is 1-6
         */
-        if (da2->bitblt.reg[0x2F] & 0x10) /* destaddr -= 2, length += 1; */
+       da2->bitblt.destoption = da2->bitblt.reg[0x2F];
+        if (da2->bitblt.destoption & 0x10) /* destaddr -= 2, length += 1; */
         {
             da2->bitblt.destaddr -= 2;
             da2->bitblt.size_x += 1;
@@ -1336,14 +1344,6 @@ da2_out(uint16_t addr, uint16_t val, void *p)
                     if (!(da2->ioctl[LS_MODE] & 0x01)) /* 16 or 256 color graphics mode */
                         val = 0;
                     break;
-                case LC_START_ADDRESS_HIGH:
-                    // if (val == 0xff) /* adjust (need to confirm) */
-                    //     val = 0;
-                case LC_START_ADDRESS_LOW:
-                /* The DOS J4.0 MODE 4 command and OS/2 driver write 0xFF00.
-                   OS/2 DOS MODE 1 setup reads this to set the base line, but it causes the screen glitch. */
-                    // val = 0;
-                    break;
                 case LC_VERTICAL_TOTALJ:      /* Vertical Total */
                 case LC_VERTICAL_SYNC_START:  /* Vertical Retrace Start Register */
                 case LC_V_DISPLAY_ENABLE_END: /* Vertical Display End Register */
@@ -1352,8 +1352,36 @@ da2_out(uint16_t addr, uint16_t val, void *p)
                     val = 0x400; /* for debugging bitblt in Win 3.x */
 #endif
                     break;
+                // case LC_START_ADDRESS_HIGH:
+                    // if (val == 0xff) /* adjust (need to confirm) */
+                    //     val = 0;
+                // case LC_START_ADDRESS_LOW:
+                    // val = 0;
+                    // break;
             }
             da2->crtc[da2->crtcaddr] = val;
+            switch (da2->crtcaddr) {
+                case LC_START_ADDRESS_HIGH:
+                case LC_START_ADDRESS_LOW:
+                /* The DOS J4.0 MODE 4 command and OS/2 driver write 0xFF00.
+                   OS/2 DOS MODE 1 setup reads this to set the base line, but it causes the screen glitch. */
+                    outb(0x680, da2->crtc[LC_START_ADDRESS_LOW]);
+                    outb(0x680, da2->crtc[LC_START_ADDRESS_HIGH]);
+                break;
+                case LC_VIEWPORT_SELECT:
+                    /* backup some current crtc regs */
+                    for (int i = LC_START_ADDRESS_HIGH; i <= LC_START_ADDRESS_LOW; i++) {
+                        da2->crtc_vpreg[(da2->crtc_vpsel * 0x20) + i] = da2->crtc[i];
+                    }
+                    da2->crtc_vpsel = (val >> 6) & 3;
+                    /* restore crtc regs */
+                    for (int i = LC_START_ADDRESS_HIGH; i <= LC_START_ADDRESS_LOW; i++) {
+                        da2->crtc[i] = da2->crtc_vpreg[(da2->crtc_vpsel * 0x20) + i];
+                    }
+                    break;
+                default:
+                    break;
+            }
             switch (da2->crtcaddr) {
                 case LC_H_DISPLAY_ENABLE_END:
                 case LC_VERTICAL_TOTALJ:
@@ -1363,10 +1391,11 @@ da2_out(uint16_t addr, uint16_t val, void *p)
                 case LC_VERTICAL_SYNC_START:
                 case LC_V_DISPLAY_ENABLE_END:
                 case LC_START_VERTICAL_BLANK:
+                case LC_LINE_COMPAREJ:
                 case LC_START_H_DISPLAY_ENAB:
                 case LC_START_V_DISPLAY_ENAB:
+                case LC_VIEWPORT_SELECT:
                 case LC_VIEWPORT_PRIORITY:
-                case LC_LINE_COMPAREJ:
                     da2->fullchange = changeframecount;
                     da2_recalctimings(da2);
                     break;
@@ -1567,7 +1596,11 @@ da2_in(uint16_t addr, void *p)
         case LC_DATA:
             if (da2->crtcaddr > 0x1f)
                 return DA2_INVALIDACCESS16;
-            temp = da2->crtc[da2->crtcaddr];
+            // if ((da2->crtcaddr == LC_START_ADDRESS_HIGH || da2->crtcaddr == LC_START_ADDRESS_LOW)
+            //     & (da2->crtc[LC_VIEWPORT_SELECT] & 0x80))
+            //     temp = 0;
+            // else
+                temp = da2->crtc[da2->crtcaddr];
             break;
         case LV_PORT:
             temp = da2->attraddr | da2->attr_palette_enable;
@@ -2345,7 +2378,14 @@ da2_recalctimings(da2_t *da2)
 
     // da2->interlace = 0;
 
-    if (da2->crtc[LC_VIEWPORT_SELECT] & 0x80 || da2->split == 0)
+    // if (da2->crtc[LC_VIEWPORT_SELECT] & 0x80 || da2->split == 0)
+    if (da2->vtotal == 0)
+        da2->vtotal = da2->vsyncstart = da2->vblankstart = 256;
+    if (da2->htotal == 0)
+        da2->htotal = da2->dispend = da2->hdisp = 64;
+    if (da2->rowoffset == 0)
+        da2->rowoffset = 64 * 2; /* To avoid causing a DBZ error */
+    if (da2->split == 0)
         da2->ma_latch = 0;
     else
         da2->ma_latch = ((da2->crtc[LC_START_ADDRESS_HIGH] & 0x3ff) << 8) | da2->crtc[LC_START_ADDRESS_LOW]; // w + b
@@ -2568,6 +2608,7 @@ static uint8_t
 da2_mmio_read(uint32_t addr, void *p)
 {
     da2_t *da2 = (da2_t *) p;
+    uint32_t index = 0;
     addr &= DA2_MASK_MMIO;
     if (da2->ioctl[LS_MMIO] & 0x10) {
         if (da2->fctl[LF_MMIO_SEL] == 0x80)
@@ -2575,14 +2616,14 @@ da2_mmio_read(uint32_t addr, void *p)
             addr |= ((uint32_t) da2->fctl[LF_MMIO_ADDR] << 17);
         else {
             /* 64k bank switch access */
-            uint32_t index = da2->fctl[LF_MMIO_MODE] & 0x0f;
+            index = da2->fctl[LF_MMIO_MODE] & 0x0f;
             index <<= 8;
             index |= da2->fctl[LF_MMIO_ADDR];
-            addr += index * 0x80;
         }
         // da2_log("PS55_MemHnd: Read from mem %x, bank %x, addr %x\n", da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr);
         switch (da2->fctl[LF_MMIO_MODE] & 0xf0) {
             case 0xb0:                     /* Gaiji RAM */
+                addr += index * 0x80;
                 addr &= DA2_MASK_GAIJIRAM; /* safety access */
                 // da2_log("PS55_MemHnd_G: Read from mem %x, bank %x, chr %x (%x), val %x\n", da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr / 128, addr, da2->mmio.font[addr]);
                 return da2->mmio.ram[addr];
@@ -2599,6 +2640,11 @@ da2_mmio_read(uint32_t addr, void *p)
                     return DA2_INVALIDACCESS8;
                 // da2_log("PS55_MemHnd: Read from mem %x, bank %x, chr %x (%x), val %x\n", da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr / 72, addr, da2->mmio.font[addr]);
                 return da2->mmio.font[addr];
+                break;
+            case 0x00: /* SBCS in Gaiji RAM (used in the downward writing mode of DOS/V Extension) */
+                addr += DA2_GAIJIRAM_SBCS + index * 0x40;
+                addr &= DA2_MASK_GAIJIRAM;
+                return da2->mmio.ram[addr];
                 break;
             default:
                 da2_log("PS55_MemHnd: Invalid read mem %x, bank %x, chr %x (%x), val %x\n", da2->fctl[LF_MMIO_MODE], da2->fctl[LF_MMIO_ADDR], addr / 72, addr, da2->mmio.font[addr]);
@@ -2741,8 +2787,8 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
             index |= da2->fctl[LF_MMIO_ADDR];
             // addr += index * 0x40;
             // addr += index * 0x80;
-    // da2_log("da2_mmio_w io %x, sl %x, 09 %x, ad %x, mm %x, addr %x, val %x\n", da2->ioctl[LS_MMIO],da2->fctl[LF_MMIO_SEL], 
-    //     da2->fctl[LF_MMIO_09],da2->fctl[LF_MMIO_ADDR], da2->fctl[LF_MMIO_MODE], addr, val);
+    da2_log("da2_mmio_w io %x, sl %x, 09 %x, ad %x, mm %x, addr %x, val %x\n", da2->ioctl[LS_MMIO],da2->fctl[LF_MMIO_SEL], 
+        da2->fctl[LF_MMIO_09],da2->fctl[LF_MMIO_ADDR], da2->fctl[LF_MMIO_MODE], addr, val);
         }
         switch (da2->fctl[LF_MMIO_MODE] & 0xf0) {
             case 0xb0: /* Gaiji RAM 1011 0000 */
@@ -3421,6 +3467,10 @@ da2_close(void *p)
             fprintf(f, "3eb(gcr)   %02X: %4X\n", i, da2->gdcreg[i]);
         for (int i = 0; i < 0x10; i++)
             fprintf(f, "3ee(?)     %02X: %4X\n", i, da2->reg3ee[i]);
+        for (int i = 0; i < 0x20; i++) {
+            fprintf(f, "vp         %02X: %4X %4X %4X %4X\n", i, 
+                da2->crtc_vpreg[0 + i], da2->crtc_vpreg[0x20 + i], da2->crtc_vpreg[0x40 + i], da2->crtc_vpreg[0x60 + i]);
+        }
         fclose(f);
     }
     f = fopen("ram_low.dmp", "wb");
