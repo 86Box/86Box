@@ -34,7 +34,7 @@ cms_get_buffer(int32_t *buffer, int len, void *priv)
     cms_update(cms);
 
     for (int c = 0; c < len * 2; c++)
-        buffer[c] += cms->buffer[c];
+        buffer[c] += (cms->buffer[c] / 2);
 
     cms->pos = 0;
 }
@@ -47,7 +47,7 @@ cms_get_buffer_2(int32_t *buffer, int len, void *priv)
     cms_update(cms);
 
     for (int c = 0; c < len * 2; c++)
-        buffer[c] += cms->buffer2[c];
+        buffer[c] += (cms->buffer2[c] / 2);
 
     cms->pos2 = 0;
 }
