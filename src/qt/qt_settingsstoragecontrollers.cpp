@@ -195,12 +195,10 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
         if (scsi_card_available(c)) {
             if (device_is_valid(scsi_card_getdevice(c), machineId)) {
                 for (uint8_t i = 0; i < SCSI_CARD_MAX; ++i) {
-                    if ((c != 1) || ((i == 0) && m_has_scsi)) {
-                        int row = Models::AddEntry(models[i], name, c);
+                    int row = Models::AddEntry(models[i], name, c);
 
-                        if (c == scsi_card_current[i])
-                            selectedRows[i] = row - removeRows_[i];
-                    }
+                    if (c == scsi_card_current[i])
+                        selectedRows[i] = row - removeRows_[i];
                 }
             }
         }
