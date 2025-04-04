@@ -260,7 +260,7 @@
 #define LG_SET_RESET_2          0x10
 
 #ifndef RELEASE_BUILD
-#define ENABLE_DA2_LOG 1
+// #define ENABLE_DA2_LOG 1
 #endif
 
 #ifdef ENABLE_DA2_LOG
@@ -300,6 +300,7 @@ da2_log(const char *fmt, ...)
 #    endif
 #else
 #    define da2_bltlog(fmt, ...)
+#    define da2_bltreglog(fmt, ...)
 #endif
 
 typedef struct da2_t {
@@ -1291,13 +1292,13 @@ da2_out(uint16_t addr, uint16_t val, void *p)
             }
             da2->crtc[da2->crtcaddr] = val;
             switch (da2->crtcaddr) {
-                case LC_START_ADDRESS_HIGH:
-                case LC_START_ADDRESS_LOW:
+                // case LC_START_ADDRESS_HIGH:
+                // case LC_START_ADDRESS_LOW:
                 /* The DOS J4.0 MODE 4 command and OS/2 driver write 0xFF00.
                    OS/2 DOS MODE 1 setup reads this to set the base line, but it causes the screen glitch. */
-                    outb(0x680, da2->crtc[LC_START_ADDRESS_LOW]);
-                    outb(0x680, da2->crtc[LC_START_ADDRESS_HIGH]);
-                break;
+                    // outb(0x680, da2->crtc[LC_START_ADDRESS_LOW]);
+                    // outb(0x680, da2->crtc[LC_START_ADDRESS_HIGH]);
+                // break;
                 case LC_VIEWPORT_SELECT:
                     /* backup some current crtc regs */
                     for (int i = LC_START_ADDRESS_HIGH; i <= LC_START_ADDRESS_LOW; i++) {
