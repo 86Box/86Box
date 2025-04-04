@@ -1070,10 +1070,14 @@ write64_generic(void *priv, uint8_t val)
                     fixed_bits |= 8;
                 /* (B0 or F0) | (0x04 or 0x0c) */
                 kbc_delay_to_ob(dev, dev->p1 | fixed_bits, 0, 0x00);
-            } else if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_GREEN))
+            } else if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_GREEN)) {
                 /* (B0 or F0) | (0x08 or 0x0c) */
-                kbc_delay_to_ob(dev, ((dev->p1 | fixed_bits) & 0xf0) | (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0x08 : 0x0c), 0, 0x00);
-            else if (kbc_ven == KBC_VEN_COMPAQ)
+                uint8_t p1_out = ((dev->p1 | fixed_bits) & 0xf0) |
+                                 (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0x08 : 0x0c);
+                if (!strcmp(machine_get_internal_name(), "alfredo"))
+                    p1_out &= 0xef;
+                kbc_delay_to_ob(dev, p1_out, 0, 0x00);
+            } else if (kbc_ven == KBC_VEN_COMPAQ)
                 kbc_delay_to_ob(dev, dev->p1 | (hasfpu ? 0x00 : 0x04), 0, 0x00);
             else
                 /* (B0 or F0) | (0x04 or 0x44) */
@@ -1578,8 +1582,13 @@ write64_phoenix(void *priv, uint8_t val)
         case 0xd5: /* Read MultiKey code revision level */
             kbc_at_log("ATkbc: Phoenix - Read MultiKey code revision level\n");
             if (dev->misc_flags & FLAG_PS2) {
-                kbc_at_queue_add(dev, 0x04);
-                kbc_at_queue_add(dev, 0x16);
+                if (dev->flags & DEVICE_PCI) {
+                    kbc_at_queue_add(dev, 0x04);
+                    kbc_at_queue_add(dev, 0x16);
+                } else {
+                    kbc_at_queue_add(dev, 0x01);
+                    kbc_at_queue_add(dev, 0x38);
+                }
             } else {
                 kbc_at_queue_add(dev, 0x01);
                 kbc_at_queue_add(dev, 0x29);
@@ -1598,9 +1607,15 @@ write64_phoenix(void *priv, uint8_t val)
         case 0xd7: /* Read MultiKey model numbers */
             kbc_at_log("ATkbc: Phoenix - Read MultiKey model numbers\n");
             if (dev->misc_flags & FLAG_PS2) {
-                kbc_at_queue_add(dev, 0x02);
-                kbc_at_queue_add(dev, 0x87);
-                kbc_at_queue_add(dev, 0x02);
+                if (dev->flags & DEVICE_PCI) {
+                    kbc_at_queue_add(dev, 0x02);
+                    kbc_at_queue_add(dev, 0x87);
+                    kbc_at_queue_add(dev, 0x02);
+                } else {
+                    kbc_at_queue_add(dev, 0x99);
+                    kbc_at_queue_add(dev, 0x75);
+                    kbc_at_queue_add(dev, 0x01);
+                }
             } else {
                 kbc_at_queue_add(dev, 0x90);
                 kbc_at_queue_add(dev, 0x88);
@@ -2608,6 +2623,20 @@ const device_t keyboard_ps2_ami_device = {
     .config        = NULL
 };
 
+const device_t keyboard_ps2_compaq_device = {
+    .name          = "PS/2 Keyboard (Compaq)",
+    .internal_name = "keyboard_at_compaq",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_COMPAQ,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t keyboard_ps2_holtek_device = {
     .name          = "PS/2 Keyboard (Holtek)",
     .internal_name = "keyboard_ps2_holtek",
@@ -2767,6 +2796,20 @@ const device_t keyboard_ps2_acer_pci_device = {
     .internal_name = "keyboard_ps2_acer_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_ACER,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_ps2_phoenix_pci_device = {
+    .name          = "PS/2 Keyboard (Phoenix)",
+    .internal_name = "keyboard_ps2_acer_pci",
+    .flags         = DEVICE_KBC | DEVICE_PCI,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_PHOENIX,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
