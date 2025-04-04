@@ -996,60 +996,62 @@ da2_bitblt_exec(void *p)
             // da2->bitblt.indata = 0;
             break;
         case DA2_BLT_CLINE:
-            /* Draw a dot */
-            da2_bltlog("point: %d %d %d %d %d\n", da2->bitblt.x, da2->bitblt.y, da2->bitblt.d, da2->bitblt.x, da2->bitblt.y);
-            int destaddr  = da2->bitblt.y * (da2->rowoffset * 2) + da2->bitblt.x / 8;
-            int pixelmask = da2->bitblt.x % 16;
-            if (pixelmask >= 8)
-                pixelmask = (0x8000 >> (pixelmask - 8));
-            else
-                pixelmask = (0x80 >> pixelmask);
+            {
+                /* Draw a dot */
+                da2_bltlog("point: %d %d %d %d %d\n", da2->bitblt.x, da2->bitblt.y, da2->bitblt.d, da2->bitblt.x, da2->bitblt.y);
+                int destaddr  = da2->bitblt.y * (da2->rowoffset * 2) + da2->bitblt.x / 8;
+                int pixelmask = da2->bitblt.x % 16;
+                if (pixelmask >= 8)
+                    pixelmask = (0x8000 >> (pixelmask - 8));
+                else
+                    pixelmask = (0x80 >> pixelmask);
 
-            /* check the current position is inside the window */
-            if (da2->bitblt.x < da2->bitblt.wx1 || da2->bitblt.x > da2->bitblt.wx2
-                || da2->bitblt.y < da2->bitblt.wy1 || da2->bitblt.y > da2->bitblt.wy2)
-                ;
-            else
-                da2_DrawColorWithBitmask(destaddr, da2->bitblt.fcolor, pixelmask, da2);
-            da2->bitblt.count++;
+                /* check the current position is inside the window */
+                if (da2->bitblt.x < da2->bitblt.wx1 || da2->bitblt.x > da2->bitblt.wx2
+                    || da2->bitblt.y < da2->bitblt.wy1 || da2->bitblt.y > da2->bitblt.wy2)
+                    ;
+                else
+                    da2_DrawColorWithBitmask(destaddr, da2->bitblt.fcolor, pixelmask, da2);
+                da2->bitblt.count++;
 
-            /* calculate the next position with Bresenham's line algorithm */
-            if (da2->bitblt.octdir & 0x04) { /* dX > dY */
-                if (da2->bitblt.octdir & 0x02) {
-                    da2->bitblt.x++;
-                } else {
-                    da2->bitblt.x--;
-                }
-                if (da2->bitblt.d >= 0) {
-                    da2->bitblt.d -= (2 * da2->bitblt.size_x);
-                    if (da2->bitblt.octdir & 0x01) {
-                        da2->bitblt.y++;
-                    } else {
-                        da2->bitblt.y--;
-                    }
-                }
-                da2->bitblt.d += (2 * da2->bitblt.size_y);
-                if (da2->bitblt.count >= da2->bitblt.size_x)
-                    da2->bitblt.exec = DA2_BLT_CDONE;
-            } else {
-                if (da2->bitblt.octdir & 0x01) {
-                    da2->bitblt.y++;
-                } else {
-                    da2->bitblt.y--;
-                }
-                if (da2->bitblt.d >= 0) {
-                    da2->bitblt.d -= (2 * da2->bitblt.size_y);
+                /* calculate the next position with Bresenham's line algorithm */
+                if (da2->bitblt.octdir & 0x04) { /* dX > dY */
                     if (da2->bitblt.octdir & 0x02) {
                         da2->bitblt.x++;
                     } else {
                         da2->bitblt.x--;
                     }
+                    if (da2->bitblt.d >= 0) {
+                        da2->bitblt.d -= (2 * da2->bitblt.size_x);
+                        if (da2->bitblt.octdir & 0x01) {
+                            da2->bitblt.y++;
+                        } else {
+                            da2->bitblt.y--;
+                        }
+                    }
+                    da2->bitblt.d += (2 * da2->bitblt.size_y);
+                    if (da2->bitblt.count >= da2->bitblt.size_x)
+                        da2->bitblt.exec = DA2_BLT_CDONE;
+                } else {
+                    if (da2->bitblt.octdir & 0x01) {
+                        da2->bitblt.y++;
+                    } else {
+                        da2->bitblt.y--;
+                    }
+                    if (da2->bitblt.d >= 0) {
+                        da2->bitblt.d -= (2 * da2->bitblt.size_y);
+                        if (da2->bitblt.octdir & 0x02) {
+                            da2->bitblt.x++;
+                        } else {
+                            da2->bitblt.x--;
+                        }
+                    }
+                    da2->bitblt.d += (2 * da2->bitblt.size_x);
+                    if (da2->bitblt.count >= da2->bitblt.size_y)
+                        da2->bitblt.exec = DA2_BLT_CDONE;
                 }
-                da2->bitblt.d += (2 * da2->bitblt.size_x);
-                if (da2->bitblt.count >= da2->bitblt.size_y)
-                    da2->bitblt.exec = DA2_BLT_CDONE;
+                break;
             }
-            break;
         case DA2_BLT_CFILLRECT:
             // da2_log("%x %x %x\n", da2->bitblt.destaddr, da2->bitblt.x, da2->bitblt.y);
             if (da2->bitblt.x >= da2->bitblt.size_x - 1) {
