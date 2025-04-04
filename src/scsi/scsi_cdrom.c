@@ -1055,7 +1055,7 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
         ret = -1;
     } else {
         ret = 1;
-        for (int i = 0; (i < num) && (ret > 0); i++) {
+        for (int i = 0; (i < num) && (ret > 0) && (dev->sector_len > 0); i++) {
             ret = cdrom_readsector_raw(dev->drv, dev->buffer + dev->buffer_pos,
                                        dev->sector_pos, msf, type,
                                        flags, &temp_len, vendor_type);
@@ -1070,7 +1070,11 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
 
                     if ((dev->drv->bus_type != CDROM_BUS_SCSI) &&
                         (scsi_cdrom_current_mode(dev) != 2)) {
-                        num = (dev->packet_len / dev->block_len);
+                        num = (dev->tf->request_length < dev->block_len) ?
+                              dev->block_len : dev->tf->request_length;
+                        num = (num / dev->block_len) * dev->block_len;
+                        if (num > dev->sector_len)
+                            num = dev->sector_len;
                     }
                 }
 
