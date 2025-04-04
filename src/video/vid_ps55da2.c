@@ -596,7 +596,9 @@ getRAMFont(int32_t code, int line, int x, void *p)
 {
     da2_t   *da2   = (da2_t *) p;
     uint32_t font  = 0;
+#ifdef RESERVED_FOR_FUTURE_USE
     int      fline = line - 2; /* Start line of drawing character (line >= 1 AND line < 24 + 1 ) */
+#endif
     if (code < 0x100) {        /* SBCS 13x29 */
         code *= 0x40;
         code += DA2_GAIJIRAM_SBCS + (line * 2) + x;
@@ -620,6 +622,7 @@ getRAMFont(int32_t code, int line, int x, void *p)
         font = 0;
     return font;
 }
+#ifdef RESERVED_FOR_FUTURE_USE
 /* Reverse the bit order of attribute code IBGR to IRGB(used in Mode 3 and Cursor Color) */
 static int8_t
 IBGRtoIRGB(uint8_t attr)
@@ -627,6 +630,7 @@ IBGRtoIRGB(uint8_t attr)
     attr = ((attr & 0x01) << 6) | ((attr & 0x02) << 4) | ((attr & 0x04) << 2) | ((attr & 0x08) << 4);
     return attr >>= 4;
 }
+#endif
 static void
 da2_PutcharWithBitmask(uint32_t codeIBMJ, int width, uint16_t attr, int line, uint32_t destaddr, uint16_t maskl, uint16_t maskr, da2_t *da2)
 {
