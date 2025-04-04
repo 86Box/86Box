@@ -449,12 +449,12 @@ static void     da2_bitblt_exec(void *p);
 static void     da2_updatevidselector(da2_t *da2);
 static void     da2_reset_ioctl(da2_t *da2);
 static void     da2_reset(void *priv);
-static uint16_t rightRotate(uint16_t data, uint8_t count);
+static uint16_t da2_rightrotate(uint16_t data, uint8_t count);
 
 typedef union {
     uint32_t d;
     uint8_t  b[4];
-} DA2_VidSeq32;
+} vidseq32;
 
 typedef struct {
     uint32_t p8[8];
@@ -462,7 +462,7 @@ typedef struct {
 
 /* safety read for internal functions */
 static uint32_t
-DA2_vram_r(uint32_t addr, da2_t *da2)
+da2_vram_r(uint32_t addr, da2_t *da2)
 {
     if (addr & ~DA2_MASK_VRAM)
         return DA2_INVALIDACCESS32;
@@ -470,110 +470,14 @@ DA2_vram_r(uint32_t addr, da2_t *da2)
 }
 /* safety write for internal functions */
 static void
-DA2_vram_w(uint32_t addr, uint8_t val, da2_t *da2)
+da2_vram_w(uint32_t addr, uint8_t val, da2_t *da2)
 {
     if (addr & ~DA2_MASK_VRAM)
         return;
     da2->vram[addr] = val;
     return;
 }
-/* get font data for bitblt operation */
-static uint32_t
-getFontIBMJ(int32_t code, int line, int x, void *p)
-{
-    da2_t   *da2   = (da2_t *) p;
-    uint32_t font  = 0;
-    int      fline = line - 2; /* Start line of drawing character (line >= 1 AND line < 24 + 1 ) */
-    if (code < 0x100) {        /* SBCS 13x29 */
-        code *= 0x40;
-        code += DA2_GAIJIRAM_SBCS + (line * 2) + x;
-        font = da2->mmio.ram[code];
-        font <<= 8;
-        font |= da2->mmio.ram[code + 1];
-        font <<= 16;
-    } else if ((code >= 0xb000) && (code <= 0xb75f)) { /* DBCS 26x29  */
-        /* convert code->address in gaiji memory */
-        code -= 0xb000;
-        code = (code * 0x80) + (line * 4) + x;
-        font = da2->mmio.ram[code];
-        font <<= 8;
-        font |= da2->mmio.ram[code + 1];
-        font <<= 8;
-        font |= da2->mmio.ram[code + 2];
-        font <<= 8;
-        font |= da2->mmio.ram[code + 3];
-    } 
-    else
-        font = 0;
-    return font;
-}
 
-/* write pixel data with rop (Note: bitmask must be in big endian) */
-static void
-DA2_WritePlaneDataWithBitmask(uint32_t destaddr, const uint16_t mask, pixel32 *srcpx, da2_t *da2)
-{
-    uint32_t writepx[8];
-    destaddr &= 0xfffffffe; /* align to word address to work bit shift correctly */
-    // da2_log("DA2_WPDWB addr %x mask %x rop %x shift %d\n", destaddr, mask, da2->bitblt.raster_op, da2->bitblt.bitshift_destr);
-    da2->changedvram[(DA2_MASK_VRAMPLANE & destaddr) >> 9]       = changeframecount;
-    destaddr <<= 3;
-    /* read destination data with big endian order */
-    for (int i = 0; i < 8; i++)
-        writepx[i] = DA2_vram_r((destaddr + 24) | i, da2)
-            | (DA2_vram_r((destaddr + 16) | i, da2) << 8)
-            | (DA2_vram_r((destaddr + 8) | i, da2) << 16)
-            | (DA2_vram_r((destaddr + 0) | i, da2) << 24);
-
-    DA2_VidSeq32 mask32in;
-    mask32in.d = (uint32_t) mask;
-    DA2_VidSeq32 mask32;
-    mask32.b[3] = mask32in.b[0];
-    mask32.b[2] = mask32in.b[1];
-    mask32.d &= 0xffff0000;
-    for (int i = 0; i < 8; i++) {
-        if (da2->bitblt.bitshift_destr > 0)
-            srcpx->p8[i] <<= 16 - da2->bitblt.bitshift_destr;
-// #ifdef ENABLE_DA2_DEBUGBLT
-//         if (i == 0) {
-//             pclog("writeplane: src %08X mask %08X dest %08X\n", srcpx->p8[i], mask32.d, writepx[i]);
-//         }
-// #endif
-        if (da2->bitblt.raster_op & 0x2010) /* NOT Src or NOT Pattern */
-            srcpx->p8[i] = ~srcpx->p8[i] & mask32.d;
-        if (da2->bitblt.raster_op & 0x20) /* Dest NOT */
-            writepx[i] = (~writepx[i] & mask32.d) | (writepx[i] & ~mask32.d);
-        switch (da2->bitblt.raster_op & 0x03) {
-            case 0x00: /* None */
-                writepx[i] &= ~mask32.d;
-                writepx[i] |= srcpx->p8[i] & mask32.d;
-                break;
-            case 0x01: /* AND */
-                writepx[i] &= srcpx->p8[i] | ~mask32.d;
-                break;
-            case 0x02: /* OR */
-                writepx[i] |= srcpx->p8[i] & mask32.d;
-                break;
-            case 0x03: /* XOR */
-                writepx[i] ^= srcpx->p8[i] & mask32.d;
-                break;
-        }
-    }
-    for (int i = 0; i < 8; i++) {
-        DA2_vram_w(destaddr | i, (writepx[i] >> 24) & 0xff, da2);
-        DA2_vram_w((destaddr + 8) | i, (writepx[i] >> 16) & 0xff, da2);
-    }
-}
-
-static void
-DA2_DrawColorWithBitmask(uint32_t destaddr, uint8_t color, uint16_t mask, da2_t *da2)
-{
-    pixel32 srcpx;
-    /* fill data with input color */
-    for (int i = 0; i < 8; i++)
-        srcpx.p8[i] = (color & (1 << i)) ? 0xffffffff : 0; /* read in word */
-
-    DA2_WritePlaneDataWithBitmask(destaddr, mask, &srcpx, da2);
-}
 /*
 Param   Desc
 01      Color
@@ -606,19 +510,115 @@ Param   Desc
 34      wy1, Dest Y
 35      wy2, Size H
 */
+/* write pixel data with rop (Note: bitmask must be in big endian) */
 static void
-DA2_CopyPlaneDataWithBitmask(uint32_t srcaddr, uint32_t destaddr, uint16_t mask, da2_t *da2)
+da2_WritePlaneDataWithBitmask(uint32_t destaddr, const uint16_t mask, pixel32 *srcpx, da2_t *da2)
+{
+    uint32_t writepx[8];
+    destaddr &= 0xfffffffe; /* align to word address to work bit shift correctly */
+    // da2_log("DA2_WPDWB addr %x mask %x rop %x shift %d\n", destaddr, mask, da2->bitblt.raster_op, da2->bitblt.bitshift_destr);
+    da2->changedvram[(DA2_MASK_VRAMPLANE & destaddr) >> 9]       = changeframecount;
+    destaddr <<= 3;
+    /* read destination data with big endian order */
+    for (int i = 0; i < 8; i++)
+        writepx[i] = da2_vram_r((destaddr + 24) | i, da2)
+            | (da2_vram_r((destaddr + 16) | i, da2) << 8)
+            | (da2_vram_r((destaddr + 8) | i, da2) << 16)
+            | (da2_vram_r((destaddr + 0) | i, da2) << 24);
+
+    vidseq32 mask32in;
+    mask32in.d = (uint32_t) mask;
+    vidseq32 mask32;
+    mask32.b[3] = mask32in.b[0];
+    mask32.b[2] = mask32in.b[1];
+    mask32.d &= 0xffff0000;
+    for (int i = 0; i < 8; i++) {
+        if (da2->bitblt.bitshift_destr > 0)
+            srcpx->p8[i] <<= 16 - da2->bitblt.bitshift_destr;
+// #ifdef ENABLE_DA2_DEBUGBLT
+//         if (i == 0) {
+//             pclog("writeplane: src %08X mask %08X dest %08X\n", srcpx->p8[i], mask32.d, writepx[i]);
+//         }
+// #endif
+        if (da2->bitblt.raster_op & 0x2010) /* NOT Src or NOT Pattern */
+            srcpx->p8[i] = ~srcpx->p8[i] & mask32.d;
+        if (da2->bitblt.raster_op & 0x20) /* Dest NOT */
+            writepx[i] = (~writepx[i] & mask32.d) | (writepx[i] & ~mask32.d);
+        switch (da2->bitblt.raster_op & 0x03) {
+            case 0x00: /* None */
+                writepx[i] &= ~mask32.d;
+                writepx[i] |= srcpx->p8[i] & mask32.d;
+                break;
+            case 0x01: /* AND */
+                writepx[i] &= srcpx->p8[i] | ~mask32.d;
+                break;
+            case 0x02: /* OR */
+                writepx[i] |= srcpx->p8[i] & mask32.d;
+                break;
+            case 0x03: /* XOR */
+                writepx[i] ^= srcpx->p8[i] & mask32.d;
+                break;
+        }
+    }
+    for (int i = 0; i < 8; i++) {
+        da2_vram_w(destaddr | i, (writepx[i] >> 24) & 0xff, da2);
+        da2_vram_w((destaddr + 8) | i, (writepx[i] >> 16) & 0xff, da2);
+    }
+}
+
+static void
+da2_DrawColorWithBitmask(uint32_t destaddr, uint8_t color, uint16_t mask, da2_t *da2)
+{
+    pixel32 srcpx;
+    /* fill data with input color */
+    for (int i = 0; i < 8; i++)
+        srcpx.p8[i] = (color & (1 << i)) ? 0xffffffff : 0; /* read in word */
+
+    da2_WritePlaneDataWithBitmask(destaddr, mask, &srcpx, da2);
+}
+static void
+da2_CopyPlaneDataWithBitmask(uint32_t srcaddr, uint32_t destaddr, uint16_t mask, da2_t *da2)
 {
     pixel32 srcpx;
     srcaddr &= 0xfffffffe;
     srcaddr <<= 3;
     for (int i = 0; i < 8; i++)
-        srcpx.p8[i] = DA2_vram_r((srcaddr + 24) | i, da2)
-            | (DA2_vram_r((srcaddr + 16) | i, da2) << 8)
-            | (DA2_vram_r((srcaddr + 8) | i, da2) << 16)
-            | (DA2_vram_r((srcaddr + 0) | i, da2) << 24);
+        srcpx.p8[i] = da2_vram_r((srcaddr + 24) | i, da2)
+            | (da2_vram_r((srcaddr + 16) | i, da2) << 8)
+            | (da2_vram_r((srcaddr + 8) | i, da2) << 16)
+            | (da2_vram_r((srcaddr + 0) | i, da2) << 24);
 
-    DA2_WritePlaneDataWithBitmask(destaddr, mask, &srcpx, da2);
+    da2_WritePlaneDataWithBitmask(destaddr, mask, &srcpx, da2);
+}
+/* get font data for bitblt operation */
+static uint32_t
+getRAMFont(int32_t code, int line, int x, void *p)
+{
+    da2_t   *da2   = (da2_t *) p;
+    uint32_t font  = 0;
+    int      fline = line - 2; /* Start line of drawing character (line >= 1 AND line < 24 + 1 ) */
+    if (code < 0x100) {        /* SBCS 13x29 */
+        code *= 0x40;
+        code += DA2_GAIJIRAM_SBCS + (line * 2) + x;
+        font = da2->mmio.ram[code];
+        font <<= 8;
+        font |= da2->mmio.ram[code + 1];
+        font <<= 16;
+    } else if ((code >= 0xb000) && (code <= 0xb75f)) { /* DBCS 26x29  */
+        /* convert code->address in gaiji memory */
+        code -= 0xb000;
+        code = (code * 0x80) + (line * 4) + x;
+        font = da2->mmio.ram[code];
+        font <<= 8;
+        font |= da2->mmio.ram[code + 1];
+        font <<= 8;
+        font |= da2->mmio.ram[code + 2];
+        font <<= 8;
+        font |= da2->mmio.ram[code + 3];
+    } 
+    else
+        font = 0;
+    return font;
 }
 /* Reverse the bit order of attribute code IBGR to IRGB(used in Mode 3 and Cursor Color) */
 static int8_t
@@ -628,12 +628,12 @@ IBGRtoIRGB(uint8_t attr)
     return attr >>= 4;
 }
 static void
-DA2_PutcharWithBitmask(uint32_t codeIBMJ, int width, uint16_t attr, int line, uint32_t destaddr, uint16_t maskl, uint16_t maskr, da2_t *da2)
+da2_PutcharWithBitmask(uint32_t codeIBMJ, int width, uint16_t attr, int line, uint32_t destaddr, uint16_t maskl, uint16_t maskr, da2_t *da2)
 {
     pixel32 srcpx;
     uint8_t fg = (~attr >> 8) & 0x0f;
     uint8_t bg = (~attr >> 12) & 0x0f;
-    uint32_t font = getFontIBMJ(codeIBMJ, line, 0, da2);
+    uint32_t font = getRAMFont(codeIBMJ, line, 0, da2);
     uint32_t fontinv;
     if (width <= 2) {
         fontinv = ~font;
@@ -641,12 +641,12 @@ DA2_PutcharWithBitmask(uint32_t codeIBMJ, int width, uint16_t attr, int line, ui
             srcpx.p8[i] = (fg & (1 << i)) ? font >> 16 : 0;
             srcpx.p8[i] |= (bg & (1 << i)) ? fontinv >> 16 : 0;
         }
-        DA2_WritePlaneDataWithBitmask(destaddr, maskl, &srcpx, da2);
+        da2_WritePlaneDataWithBitmask(destaddr, maskl, &srcpx, da2);
         for (int i = 0; i < 8; i++) {
             srcpx.p8[i] = (fg & (1 << i)) ? font : 0;
             srcpx.p8[i] |= (bg & (1 << i)) ? fontinv : 0;
         }
-        DA2_WritePlaneDataWithBitmask(destaddr + 2, maskr, &srcpx, da2);
+        da2_WritePlaneDataWithBitmask(destaddr + 2, maskr, &srcpx, da2);
     } else {
         font = (font & 0xfff80000) | ((font & 0x0000ffff) << 3);
         fontinv = ~font;
@@ -654,20 +654,20 @@ DA2_PutcharWithBitmask(uint32_t codeIBMJ, int width, uint16_t attr, int line, ui
             srcpx.p8[i] = (fg & (1 << i)) ? font >> 16 : 0;
             srcpx.p8[i] |= (bg & (1 << i)) ? fontinv >> 16 : 0;
         }
-        DA2_WritePlaneDataWithBitmask(destaddr, maskl, &srcpx, da2);
+        da2_WritePlaneDataWithBitmask(destaddr, maskl, &srcpx, da2);
         for (int i = 0; i < 8; i++) {
             srcpx.p8[i] = (fg & (1 << i)) ? font : 0;
             srcpx.p8[i] |= (bg & (1 << i)) ? fontinv : 0;
         }
         if (da2->bitblt.destoption & 0x20) {
-            DA2_WritePlaneDataWithBitmask(destaddr + 2,  maskr, &srcpx, da2);
+            da2_WritePlaneDataWithBitmask(destaddr + 2,  maskr, &srcpx, da2);
         } else {
-            DA2_WritePlaneDataWithBitmask(destaddr + 2, 0xffff, &srcpx, da2);
+            da2_WritePlaneDataWithBitmask(destaddr + 2, 0xffff, &srcpx, da2);
             for (int i = 0; i < 8; i++) {
                 srcpx.p8[i] = (fg & (1 << i)) ? font << 16 : 0;
                 srcpx.p8[i] |= (bg & (1 << i)) ? fontinv << 16 : 0;
             }
-            DA2_WritePlaneDataWithBitmask(destaddr + 4, maskr, &srcpx, da2);
+            da2_WritePlaneDataWithBitmask(destaddr + 4, maskr, &srcpx, da2);
         }
     }
 }
@@ -677,7 +677,7 @@ pixel1tohex(uint32_t addr, int index, da2_t *da2)
 {
     uint8_t pixeldata = 0;
     for (int j = 0; j < 8; j++) {
-        if (DA2_vram_r(((addr << 3) | j) & (1 << (7 - index)), da2))
+        if (da2_vram_r(((addr << 3) | j) & (1 << (7 - index)), da2))
             pixeldata++;
     }
     return pixeldata;
@@ -748,69 +748,69 @@ da2_bitblt_parse(da2_t *da2)
 {
     uint32_t value32;
     uint64_t value64;
-        switch (da2->bitblt.payload[0]) {
-            case 0x88:
-            case 0x89:
-            case 0x95:
-                value32 = da2->bitblt.payload[3];
-                value32 <<= 8;
-                value32 |= da2->bitblt.payload[2];
-                da2_bltreglog("[%02x] %02x: %04x (%d)\n", da2->bitblt.payload[0], da2->bitblt.payload[1], value32, value32);
-                da2->bitblt.reg[da2->bitblt.payload[1]] = value32;
-                break;
-            case 0x91:
-                value32 = da2->bitblt.payload[5];
-                value32 <<= 8;
-                value32 |= da2->bitblt.payload[4];
-                value32 <<= 8;
-                value32 |= da2->bitblt.payload[3];
-                value32 <<= 8;
-                value32 |= da2->bitblt.payload[2];
-                da2_bltreglog("[%02x] %02x: %08x (%d)\n", da2->bitblt.payload[0], da2->bitblt.payload[1], value32, value32);
-                da2->bitblt.reg[da2->bitblt.payload[1]] = value32;
-                break;
-            case 0x99:
-                value64 = da2->bitblt.payload[7];
-                value64 <<= 8;
-                value64 = da2->bitblt.payload[6];
-                value64 <<= 8;
-                value64 = da2->bitblt.payload[5];
-                value64 <<= 8;
-                value64 |= da2->bitblt.payload[4];
-                value64 <<= 8;
-                value64 |= da2->bitblt.payload[3];
-                value64 <<= 8;
-                value64 |= da2->bitblt.payload[2];
-                da2_bltreglog("[%02x] %02x: %02x %02x %02x %02x %02x %02x\n", da2->bitblt.payload[0], da2->bitblt.payload[1], da2->bitblt.payload[2], da2->bitblt.payload[3],
-                           da2->bitblt.payload[4], da2->bitblt.payload[5], da2->bitblt.payload[6], da2->bitblt.payload[7]);
-                da2->bitblt.reg[da2->bitblt.payload[1]] = value64;
-                break;
-            case 0xa1:
-                value64 = da2->bitblt.payload[9];
-                value64 <<= 8;
-                value64 |= da2->bitblt.payload[8];
-                value64 <<= 8;
-                value64 |= da2->bitblt.payload[7];
-                value64 <<= 8;
-                value64 |= da2->bitblt.payload[6];
-                value64 <<= 8;
-                value64 |= da2->bitblt.payload[5];
-                value64 <<= 8;
-                value64 |= da2->bitblt.payload[4];
-                value64 <<= 8;
-                value64 |= da2->bitblt.payload[3];
-                value64 <<= 8;
-                value64 |= da2->bitblt.payload[2];
-                da2_bltreglog("[%02x] %02x: %02x %02x %02x %02x %02x %02x %02x %02x\n", da2->bitblt.payload[0], da2->bitblt.payload[1], da2->bitblt.payload[2], da2->bitblt.payload[3],
-                           da2->bitblt.payload[4], da2->bitblt.payload[5], da2->bitblt.payload[6], da2->bitblt.payload[7], da2->bitblt.payload[8], da2->bitblt.payload[9]);
-                da2->bitblt.reg[da2->bitblt.payload[1]] = value64;
-                break;
-            case 0x00: /* Win 3.0 Clock writes invalid zero data. */
-                break;
-            default:
-                da2_log("bltload: Unknown PreOP!\n");
-                break;
-        }
+    switch (da2->bitblt.payload[0]) {
+        case 0x88:
+        case 0x89:
+        case 0x95:
+            value32 = da2->bitblt.payload[3];
+            value32 <<= 8;
+            value32 |= da2->bitblt.payload[2];
+            da2_bltreglog("[%02x] %02x: %04x (%d)\n", da2->bitblt.payload[0], da2->bitblt.payload[1], value32, value32);
+            da2->bitblt.reg[da2->bitblt.payload[1]] = value32;
+            break;
+        case 0x91:
+            value32 = da2->bitblt.payload[5];
+            value32 <<= 8;
+            value32 |= da2->bitblt.payload[4];
+            value32 <<= 8;
+            value32 |= da2->bitblt.payload[3];
+            value32 <<= 8;
+            value32 |= da2->bitblt.payload[2];
+            da2_bltreglog("[%02x] %02x: %08x (%d)\n", da2->bitblt.payload[0], da2->bitblt.payload[1], value32, value32);
+            da2->bitblt.reg[da2->bitblt.payload[1]] = value32;
+            break;
+        case 0x99:
+            value64 = da2->bitblt.payload[7];
+            value64 <<= 8;
+            value64 = da2->bitblt.payload[6];
+            value64 <<= 8;
+            value64 = da2->bitblt.payload[5];
+            value64 <<= 8;
+            value64 |= da2->bitblt.payload[4];
+            value64 <<= 8;
+            value64 |= da2->bitblt.payload[3];
+            value64 <<= 8;
+            value64 |= da2->bitblt.payload[2];
+            da2_bltreglog("[%02x] %02x: %02x %02x %02x %02x %02x %02x\n", da2->bitblt.payload[0], da2->bitblt.payload[1], da2->bitblt.payload[2], da2->bitblt.payload[3],
+                          da2->bitblt.payload[4], da2->bitblt.payload[5], da2->bitblt.payload[6], da2->bitblt.payload[7]);
+            da2->bitblt.reg[da2->bitblt.payload[1]] = value64;
+            break;
+        case 0xa1:
+            value64 = da2->bitblt.payload[9];
+            value64 <<= 8;
+            value64 |= da2->bitblt.payload[8];
+            value64 <<= 8;
+            value64 |= da2->bitblt.payload[7];
+            value64 <<= 8;
+            value64 |= da2->bitblt.payload[6];
+            value64 <<= 8;
+            value64 |= da2->bitblt.payload[5];
+            value64 <<= 8;
+            value64 |= da2->bitblt.payload[4];
+            value64 <<= 8;
+            value64 |= da2->bitblt.payload[3];
+            value64 <<= 8;
+            value64 |= da2->bitblt.payload[2];
+            da2_bltreglog("[%02x] %02x: %02x %02x %02x %02x %02x %02x %02x %02x\n", da2->bitblt.payload[0], da2->bitblt.payload[1], da2->bitblt.payload[2], da2->bitblt.payload[3],
+                          da2->bitblt.payload[4], da2->bitblt.payload[5], da2->bitblt.payload[6], da2->bitblt.payload[7], da2->bitblt.payload[8], da2->bitblt.payload[9]);
+            da2->bitblt.reg[da2->bitblt.payload[1]] = value64;
+            break;
+        case 0x00: /* Win 3.0 Clock writes invalid zero data. */
+            break;
+        default:
+            da2_log("bltload: Unknown PreOP!\n");
+            break;
+    }
     if (da2->bitblt.reg[0x20] & 0x01) { /* Execute Bitblt immediately (for OS/2 J1.3) */
         da2->bitblt.exec = DA2_BLT_CLOAD;
         da2_bitblt_exec(da2);
@@ -818,162 +818,162 @@ da2_bitblt_parse(da2_t *da2)
     /* clear payload memory */
     memset(da2->bitblt.payload, 0x00, DA2_BLT_MEMSIZE);
     da2->bitblt.payload_addr = 0;
-    da2->bitblt.indata = 0;
+    da2->bitblt.indata       = 0;
 }
 
 static void
 da2_bitblt_load(da2_t *da2)
 {
-        da2->bitblt.reg[0x20] = 0; /* need to stop execution */
+    da2->bitblt.reg[0x20] = 0; /* need to stop execution */
 #ifdef ENABLE_DA2_DEBUGBLT
-        for (int i = 0; i < DA2_DEBUG_BLTLOG_SIZE; i++) {
-            da2->bitblt.debug_reg[DA2_DEBUG_BLTLOG_SIZE * da2->bitblt.debug_reg_ip + i] = da2->bitblt.reg[i];
-        }
-        da2->bitblt.debug_reg[DA2_DEBUG_BLTLOG_SIZE * (da2->bitblt.debug_reg_ip + 1) - 1] = 0;
-        da2->bitblt.debug_reg_ip++;
-        if ((DA2_DEBUG_BLTLOG_SIZE * da2->bitblt.debug_reg_ip) >= DA2_DEBUG_BLTLOG_MAX)
-            da2->bitblt.debug_reg_ip = 0;
-        da2->bitblt.debug_exesteps = 0;
+    for (int i = 0; i < DA2_DEBUG_BLTLOG_SIZE; i++) {
+        da2->bitblt.debug_reg[DA2_DEBUG_BLTLOG_SIZE * da2->bitblt.debug_reg_ip + i] = da2->bitblt.reg[i];
+    }
+    da2->bitblt.debug_reg[DA2_DEBUG_BLTLOG_SIZE * (da2->bitblt.debug_reg_ip + 1) - 1] = 0;
+    da2->bitblt.debug_reg_ip++;
+    if ((DA2_DEBUG_BLTLOG_SIZE * da2->bitblt.debug_reg_ip) >= DA2_DEBUG_BLTLOG_MAX)
+        da2->bitblt.debug_reg_ip = 0;
+    da2->bitblt.debug_exesteps = 0;
 #endif
-        da2->bitblt.bitshift_destr = ((da2->bitblt.reg[0x03] >> 4) & 0x0f); /* set bit shift */
-        da2->bitblt.raster_op      = da2->bitblt.reg[0x0b];
-        da2->bitblt.destaddr  = da2->bitblt.reg[0x29];
-        da2->bitblt.size_x    = da2->bitblt.reg[0x33];
-        da2->bitblt.size_y    = da2->bitblt.reg[0x35];
-        da2->bitblt.destpitch = da2->bitblt.reg[0x21];
-        da2->bitblt.srcpitch  = da2->bitblt.reg[0x22];
-        /*
-            DOS/V Extension 1040x725 some DBCS uses 0xB0 others 0x90
-        */
-       da2->bitblt.destoption = da2->bitblt.reg[0x2F];
-        if (da2->bitblt.destoption & 0x10) /* destaddr -= 2, length += 1; */
-        {
-            da2->bitblt.destaddr -= 2;
-            da2->bitblt.size_x += 1;
-            da2->bitblt.destpitch -= 2;
-            da2->bitblt.srcpitch -= 2;
-        }
-        da2->bitblt.fcolor = da2->bitblt.reg[0x0];
-        da2->bitblt.maskl  = da2->bitblt.reg[0x8];
-        da2->bitblt.maskr  = da2->bitblt.reg[0x9];
-        da2->bitblt.x      = 0;
-        da2->bitblt.y      = 0;
-        da2->bitblt.exec   = DA2_BLT_CDONE;
+    da2->bitblt.bitshift_destr = ((da2->bitblt.reg[0x03] >> 4) & 0x0f); /* set bit shift */
+    da2->bitblt.raster_op      = da2->bitblt.reg[0x0b];
+    da2->bitblt.destaddr       = da2->bitblt.reg[0x29];
+    da2->bitblt.size_x         = da2->bitblt.reg[0x33];
+    da2->bitblt.size_y         = da2->bitblt.reg[0x35];
+    da2->bitblt.destpitch      = da2->bitblt.reg[0x21];
+    da2->bitblt.srcpitch       = da2->bitblt.reg[0x22];
+    /*
+        DOS/V Extension 1040x725 some DBCS uses 0xB0 others 0x90
+    */
+    da2->bitblt.destoption = da2->bitblt.reg[0x2F];
+    if (da2->bitblt.destoption & 0x10) /* destaddr -= 2, length += 1; */
+    {
+        da2->bitblt.destaddr -= 2;
+        da2->bitblt.size_x += 1;
+        da2->bitblt.destpitch -= 2;
+        da2->bitblt.srcpitch -= 2;
+    }
+    da2->bitblt.fcolor = da2->bitblt.reg[0x0];
+    da2->bitblt.maskl  = da2->bitblt.reg[0x8];
+    da2->bitblt.maskr  = da2->bitblt.reg[0x9];
+    da2->bitblt.x      = 0;
+    da2->bitblt.y      = 0;
+    da2->bitblt.exec   = DA2_BLT_CDONE;
 
-        /* Put DBCS char used by OS/2 and DOS/V Extension */
-        if (!(da2->bitblt.reg[0xb] & 0x08)) {
-            da2->bitblt.exec = DA2_BLT_CPUTCHAR;
-            da2->bitblt.fcolor = da2->bitblt.reg[0x1];
-            da2->bitblt.srcaddr = da2->bitblt.reg[0x12];
-            da2->bitblt.destaddr += 2;
+    /* Put DBCS char used by OS/2 and DOS/V Extension */
+    if (!(da2->bitblt.reg[0xb] & 0x08)) {
+        da2->bitblt.exec    = DA2_BLT_CPUTCHAR;
+        da2->bitblt.fcolor  = da2->bitblt.reg[0x1];
+        da2->bitblt.srcaddr = da2->bitblt.reg[0x12];
+        da2->bitblt.destaddr += 2;
 #ifdef ENABLE_DA2_DEBUGBLT
-            uint8_t sjis_h = IBMJtoSJIS(da2->bitblt.reg[0x12]) >> 8;
-            uint8_t sjis_l = IBMJtoSJIS(da2->bitblt.reg[0x12]) & 0xff;
-            if (da2->bitblt.reg[0x12] < 0x100) {
-                sjis_h = 0x20;
-                sjis_l = da2->bitblt.reg[0x12];
-            } else {
-                if (!(isKanji1(sjis_h)))
-                    sjis_h = 0x3f;
-                if (!(isKanji2(sjis_l)))
-                    sjis_l = 0x3f;
-            }
-            da2_log("put char src=%x, dest=%x, x=%d, y=%d, w=%d, h=%d, c=%c%c\n",
-                    da2->bitblt.srcaddr, da2->bitblt.destaddr,
-                    da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
-                    da2->bitblt.size_x, da2->bitblt.size_y, sjis_h, sjis_l);
+        uint8_t sjis_h = IBMJtoSJIS(da2->bitblt.reg[0x12]) >> 8;
+        uint8_t sjis_l = IBMJtoSJIS(da2->bitblt.reg[0x12]) & 0xff;
+        if (da2->bitblt.reg[0x12] < 0x100) {
+            sjis_h = 0x20;
+            sjis_l = da2->bitblt.reg[0x12];
+        } else {
+            if (!(isKanji1(sjis_h)))
+                sjis_h = 0x3f;
+            if (!(isKanji2(sjis_l)))
+                sjis_l = 0x3f;
+        }
+        da2_log("put char src=%x, dest=%x, x=%d, y=%d, w=%d, h=%d, c=%c%c\n",
+                da2->bitblt.srcaddr, da2->bitblt.destaddr,
+                da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
+                da2->bitblt.size_x, da2->bitblt.size_y, sjis_h, sjis_l);
 #else
-da2_log("put char src=%x, dest=%x, x=%d, y=%d, w=%d, h=%d\n",
-        da2->bitblt.srcaddr, da2->bitblt.destaddr,
-        da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
-        da2->bitblt.size_x, da2->bitblt.size_y);
+        da2_log("put char src=%x, dest=%x, x=%d, y=%d, w=%d, h=%d\n",
+                da2->bitblt.srcaddr, da2->bitblt.destaddr,
+                da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
+                da2->bitblt.size_x, da2->bitblt.size_y);
 #endif
-        }
-        /* Draw a line */
-        else if (da2->bitblt.reg[0x5] == 0x43) {
-            da2->bitblt.exec = DA2_BLT_CLINE;
-            da2->bitblt.dest_x    = (da2->bitblt.reg[0x32] & 0xffff);
-            da2->bitblt.dest_y    = (da2->bitblt.reg[0x34] & 0xffff);
-            da2->bitblt.wx1 = (da2->bitblt.reg[0x32]) >> 16;
-            da2->bitblt.wx2 = (da2->bitblt.reg[0x33]) >> 16;
-            da2->bitblt.wy1       = (da2->bitblt.reg[0x34]) >> 16;
-            da2->bitblt.wy2       = (da2->bitblt.reg[0x35]) >> 16;
-            da2->bitblt.size_x    = abs((int16_t)(da2->bitblt.reg[0x33] & 0xffff) - da2->bitblt.dest_x);
-            da2->bitblt.size_y    = abs((int16_t)(da2->bitblt.reg[0x35] & 0xffff) - da2->bitblt.dest_y);
-            da2->bitblt.count     = 0;
-            da2->bitblt.octdir         = da2->bitblt.reg[0x2D];
-            da2->bitblt.bitshift_destr = 0;
-            if (da2->bitblt.octdir & 0x04) /* dX > dY */
-                da2->bitblt.d = 2 * da2->bitblt.size_y - da2->bitblt.size_x;
-            else
-                da2->bitblt.d = 2 * da2->bitblt.size_x - da2->bitblt.size_y;
-            da2->bitblt.x = da2->bitblt.dest_x;
-            da2->bitblt.y = da2->bitblt.dest_y;
-            da2_log("drawline x=%d, y=%d, dx=%d, dy=%d, oct=%dn",
-                    da2->bitblt.dest_x, da2->bitblt.dest_y,
-                    da2->bitblt.size_x, da2->bitblt.size_y, da2->bitblt.octdir);
-            da2_log("         x1=%d, x2=%d, y1=%d, y2=%d\n",
-                    da2->bitblt.reg[0x32] & 0x7ff, da2->bitblt.reg[0x33] & 0x7ff,
-                    da2->bitblt.reg[0x34] & 0x7ff, da2->bitblt.reg[0x35] & 0x7ff);
-            da2_log("        ux1=%d,ux2=%d,uy1=%d,uy2=%d\n",
-                    (da2->bitblt.reg[0x32] >> 16) & 0x7ff, (da2->bitblt.reg[0x33] >> 16) & 0x7ff,
-                    (da2->bitblt.reg[0x34] >> 16) & 0x7ff, (da2->bitblt.reg[0x35] >> 16) & 0x7ff);
-        }
-        /* Fill a rectangle (or draw a horizontal / vertical line) */
-        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x40 && da2->bitblt.reg[0x3D] == 0) {
-            da2_log("fillrect x=%d, y=%d, w=%d, h=%d, c=%d, 2f=%x, rowcount=%x\n",
-                    da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
-                    da2->bitblt.size_x, da2->bitblt.size_y, da2->bitblt.reg[0x0], da2->bitblt.reg[0x2F], da2->rowoffset * 2);
-            da2->bitblt.exec = DA2_BLT_CFILLRECT;
-            da2->bitblt.destaddr += 2;
-        }
-        /* Tiling a rectangle ??(transfer tile data multiple times) os/2 only */
-        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x0040 && da2->bitblt.reg[0x3D] == 0x40) {
-            da2->bitblt.exec = DA2_BLT_CFILLTILE;
-            da2->bitblt.destaddr += 2;
-            da2->bitblt.srcaddr = da2->bitblt.reg[0x2B];
-            da2->bitblt.tile_w  = da2->bitblt.reg[0x28];
-            da2_log("copy tile src=%x, dest=%x, x1=%d, y1=%d, x2=%d, y2=%d, w=%d, h=%d\n",
-                    da2->bitblt.srcaddr, da2->bitblt.destaddr,
-                    da2->bitblt.reg[0x2B] % (da2->rowoffset * 2), da2->bitblt.reg[0x2B] / (da2->rowoffset * 2),
-                    da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
-                    da2->bitblt.size_x, da2->bitblt.size_y);
-        }
-        /* Tiling a rectangle (transfer tile data multiple times) */
-        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x1040 && da2->bitblt.reg[0x3D] == 0x40) {
-            da2->bitblt.exec = DA2_BLT_CFILLTILE;
-            da2->bitblt.destaddr += 2;
-            da2->bitblt.srcaddr = da2->bitblt.reg[0x2B];
-            da2->bitblt.tile_w  = da2->bitblt.reg[0x28];
-            da2_log("copy tile src=%x, dest=%x, x1=%d, y1=%d, x2=%d, y2=%d, w=%d, h=%d\n",
-                    da2->bitblt.srcaddr, da2->bitblt.destaddr,
-                    da2->bitblt.reg[0x2B] % (da2->rowoffset * 2), da2->bitblt.reg[0x2B] / (da2->rowoffset * 2),
-                    da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
-                    da2->bitblt.size_x, da2->bitblt.size_y);
-        }
-        /* Block copy */
-        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x1040 && da2->bitblt.reg[0x3D] == 0x00) {
-            da2->bitblt.exec    = DA2_BLT_CCOPYF;
-            da2->bitblt.srcaddr = da2->bitblt.reg[0x2A];
-            da2->bitblt.destaddr += 2;
-            da2_log("copy block src=%x, dest=%x, x1=%d, y1=%d, x2=%d, y2=%d, w=%d, h=%d\n",
-                    da2->bitblt.srcaddr, da2->bitblt.destaddr,
-                    da2->bitblt.reg[0x2A] % (da2->rowoffset * 2), da2->bitblt.reg[0x2A] / (da2->rowoffset * 2),
-                    da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
-                    da2->bitblt.size_x, da2->bitblt.size_y);
-        }
-        /* Block copy but reversed direction */
-        else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x1140 && da2->bitblt.reg[0x3D] == 0x00) {
-            da2->bitblt.exec    = DA2_BLT_CCOPYR;
-            da2->bitblt.srcaddr = da2->bitblt.reg[0x2A];
-            da2->bitblt.destaddr -= 2;
-            da2->bitblt.srcaddr -= 2;
-            da2_log("copy blockR src=%x, dest=%x, x1=%d, y1=%d, x2=%d, y2=%d, w=%d, h=%d\n",
-                    da2->bitblt.srcaddr, da2->bitblt.destaddr,
-                    da2->bitblt.reg[0x2A] % (da2->rowoffset * 2), da2->bitblt.reg[0x2A] / (da2->rowoffset * 2),
-                    da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
-                    da2->bitblt.size_x, da2->bitblt.size_y);
-        }
+    }
+    /* Draw a line */
+    else if (da2->bitblt.reg[0x5] == 0x43) {
+        da2->bitblt.exec           = DA2_BLT_CLINE;
+        da2->bitblt.dest_x         = (da2->bitblt.reg[0x32] & 0xffff);
+        da2->bitblt.dest_y         = (da2->bitblt.reg[0x34] & 0xffff);
+        da2->bitblt.wx1            = (da2->bitblt.reg[0x32]) >> 16;
+        da2->bitblt.wx2            = (da2->bitblt.reg[0x33]) >> 16;
+        da2->bitblt.wy1            = (da2->bitblt.reg[0x34]) >> 16;
+        da2->bitblt.wy2            = (da2->bitblt.reg[0x35]) >> 16;
+        da2->bitblt.size_x         = abs((int16_t) (da2->bitblt.reg[0x33] & 0xffff) - da2->bitblt.dest_x);
+        da2->bitblt.size_y         = abs((int16_t) (da2->bitblt.reg[0x35] & 0xffff) - da2->bitblt.dest_y);
+        da2->bitblt.count          = 0;
+        da2->bitblt.octdir         = da2->bitblt.reg[0x2D];
+        da2->bitblt.bitshift_destr = 0;
+        if (da2->bitblt.octdir & 0x04) /* dX > dY */
+            da2->bitblt.d = 2 * da2->bitblt.size_y - da2->bitblt.size_x;
+        else
+            da2->bitblt.d = 2 * da2->bitblt.size_x - da2->bitblt.size_y;
+        da2->bitblt.x = da2->bitblt.dest_x;
+        da2->bitblt.y = da2->bitblt.dest_y;
+        da2_log("drawline x=%d, y=%d, dx=%d, dy=%d, oct=%dn",
+                da2->bitblt.dest_x, da2->bitblt.dest_y,
+                da2->bitblt.size_x, da2->bitblt.size_y, da2->bitblt.octdir);
+        da2_log("         x1=%d, x2=%d, y1=%d, y2=%d\n",
+                da2->bitblt.reg[0x32] & 0x7ff, da2->bitblt.reg[0x33] & 0x7ff,
+                da2->bitblt.reg[0x34] & 0x7ff, da2->bitblt.reg[0x35] & 0x7ff);
+        da2_log("        ux1=%d,ux2=%d,uy1=%d,uy2=%d\n",
+                (da2->bitblt.reg[0x32] >> 16) & 0x7ff, (da2->bitblt.reg[0x33] >> 16) & 0x7ff,
+                (da2->bitblt.reg[0x34] >> 16) & 0x7ff, (da2->bitblt.reg[0x35] >> 16) & 0x7ff);
+    }
+    /* Fill a rectangle (or draw a horizontal / vertical line) */
+    else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x40 && da2->bitblt.reg[0x3D] == 0) {
+        da2_log("fillrect x=%d, y=%d, w=%d, h=%d, c=%d, 2f=%x, rowcount=%x\n",
+                da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
+                da2->bitblt.size_x, da2->bitblt.size_y, da2->bitblt.reg[0x0], da2->bitblt.reg[0x2F], da2->rowoffset * 2);
+        da2->bitblt.exec = DA2_BLT_CFILLRECT;
+        da2->bitblt.destaddr += 2;
+    }
+    /* Tiling a rectangle ??(transfer tile data multiple times) os/2 only */
+    else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x0040 && da2->bitblt.reg[0x3D] == 0x40) {
+        da2->bitblt.exec = DA2_BLT_CFILLTILE;
+        da2->bitblt.destaddr += 2;
+        da2->bitblt.srcaddr = da2->bitblt.reg[0x2B];
+        da2->bitblt.tile_w  = da2->bitblt.reg[0x28];
+        da2_log("copy tile src=%x, dest=%x, x1=%d, y1=%d, x2=%d, y2=%d, w=%d, h=%d\n",
+                da2->bitblt.srcaddr, da2->bitblt.destaddr,
+                da2->bitblt.reg[0x2B] % (da2->rowoffset * 2), da2->bitblt.reg[0x2B] / (da2->rowoffset * 2),
+                da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
+                da2->bitblt.size_x, da2->bitblt.size_y);
+    }
+    /* Tiling a rectangle (transfer tile data multiple times) */
+    else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x1040 && da2->bitblt.reg[0x3D] == 0x40) {
+        da2->bitblt.exec = DA2_BLT_CFILLTILE;
+        da2->bitblt.destaddr += 2;
+        da2->bitblt.srcaddr = da2->bitblt.reg[0x2B];
+        da2->bitblt.tile_w  = da2->bitblt.reg[0x28];
+        da2_log("copy tile src=%x, dest=%x, x1=%d, y1=%d, x2=%d, y2=%d, w=%d, h=%d\n",
+                da2->bitblt.srcaddr, da2->bitblt.destaddr,
+                da2->bitblt.reg[0x2B] % (da2->rowoffset * 2), da2->bitblt.reg[0x2B] / (da2->rowoffset * 2),
+                da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
+                da2->bitblt.size_x, da2->bitblt.size_y);
+    }
+    /* Block copy */
+    else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x1040 && da2->bitblt.reg[0x3D] == 0x00) {
+        da2->bitblt.exec    = DA2_BLT_CCOPYF;
+        da2->bitblt.srcaddr = da2->bitblt.reg[0x2A];
+        da2->bitblt.destaddr += 2;
+        da2_log("copy block src=%x, dest=%x, x1=%d, y1=%d, x2=%d, y2=%d, w=%d, h=%d\n",
+                da2->bitblt.srcaddr, da2->bitblt.destaddr,
+                da2->bitblt.reg[0x2A] % (da2->rowoffset * 2), da2->bitblt.reg[0x2A] / (da2->rowoffset * 2),
+                da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
+                da2->bitblt.size_x, da2->bitblt.size_y);
+    }
+    /* Block copy but reversed direction */
+    else if ((da2->bitblt.reg[0x5] & 0xfff0) == 0x1140 && da2->bitblt.reg[0x3D] == 0x00) {
+        da2->bitblt.exec    = DA2_BLT_CCOPYR;
+        da2->bitblt.srcaddr = da2->bitblt.reg[0x2A];
+        da2->bitblt.destaddr -= 2;
+        da2->bitblt.srcaddr -= 2;
+        da2_log("copy blockR src=%x, dest=%x, x1=%d, y1=%d, x2=%d, y2=%d, w=%d, h=%d\n",
+                da2->bitblt.srcaddr, da2->bitblt.destaddr,
+                da2->bitblt.reg[0x2A] % (da2->rowoffset * 2), da2->bitblt.reg[0x2A] / (da2->rowoffset * 2),
+                da2->bitblt.reg[0x29] % (da2->rowoffset * 2), da2->bitblt.reg[0x29] / (da2->rowoffset * 2),
+                da2->bitblt.size_x, da2->bitblt.size_y);
+    }
 }
 static void
 da2_bitblt_exec(void *p)
@@ -981,7 +981,7 @@ da2_bitblt_exec(void *p)
     da2_t *da2 = (da2_t *) p;
     // timer_set_delay_u64(&da2->bitblt.timer, da2->bitblt.timerspeed);
 #ifdef ENABLE_DA2_DEBUGBLT_DETAIL
-    if(!(da2->bitblt.debug_exesteps & 0xff))
+    if (!(da2->bitblt.debug_exesteps & 0xff))
         da2_log("bitblt_exec: %d %d\n", da2->bitblt.exec, da2->bitblt.debug_exesteps);
     da2->bitblt.debug_exesteps++;
 #else
@@ -998,19 +998,19 @@ da2_bitblt_exec(void *p)
         case DA2_BLT_CLINE:
             /* Draw a dot */
             da2_bltlog("point: %d %d %d %d %d\n", da2->bitblt.x, da2->bitblt.y, da2->bitblt.d, da2->bitblt.x, da2->bitblt.y);
-            int destaddr = da2->bitblt.y * (da2->rowoffset * 2) + da2->bitblt.x / 8;
+            int destaddr  = da2->bitblt.y * (da2->rowoffset * 2) + da2->bitblt.x / 8;
             int pixelmask = da2->bitblt.x % 16;
             if (pixelmask >= 8)
                 pixelmask = (0x8000 >> (pixelmask - 8));
             else
                 pixelmask = (0x80 >> pixelmask);
-                
+
             /* check the current position is inside the window */
             if (da2->bitblt.x < da2->bitblt.wx1 || da2->bitblt.x > da2->bitblt.wx2
                 || da2->bitblt.y < da2->bitblt.wy1 || da2->bitblt.y > da2->bitblt.wy2)
                 ;
             else
-                DA2_DrawColorWithBitmask(destaddr, da2->bitblt.fcolor, pixelmask, da2);
+                da2_DrawColorWithBitmask(destaddr, da2->bitblt.fcolor, pixelmask, da2);
             da2->bitblt.count++;
 
             /* calculate the next position with Bresenham's line algorithm */
@@ -1053,7 +1053,7 @@ da2_bitblt_exec(void *p)
         case DA2_BLT_CFILLRECT:
             // da2_log("%x %x %x\n", da2->bitblt.destaddr, da2->bitblt.x, da2->bitblt.y);
             if (da2->bitblt.x >= da2->bitblt.size_x - 1) {
-                DA2_DrawColorWithBitmask(da2->bitblt.destaddr, da2->bitblt.fcolor, da2->bitblt.maskr, da2);
+                da2_DrawColorWithBitmask(da2->bitblt.destaddr, da2->bitblt.fcolor, da2->bitblt.maskr, da2);
                 if (da2->bitblt.y >= da2->bitblt.size_y - 1) {
                     da2->bitblt.exec = DA2_BLT_CDONE;
                 }
@@ -1061,36 +1061,38 @@ da2_bitblt_exec(void *p)
                 da2->bitblt.y++;
                 da2->bitblt.destaddr += da2->bitblt.destpitch + 2;
             } else if (da2->bitblt.x == 0) {
-                DA2_DrawColorWithBitmask(da2->bitblt.destaddr, da2->bitblt.fcolor, da2->bitblt.maskl, da2);
+                da2_DrawColorWithBitmask(da2->bitblt.destaddr, da2->bitblt.fcolor, da2->bitblt.maskl, da2);
                 da2->bitblt.x++;
             } else {
-                DA2_DrawColorWithBitmask(da2->bitblt.destaddr, da2->bitblt.fcolor, 0xffff, da2);
+                da2_DrawColorWithBitmask(da2->bitblt.destaddr, da2->bitblt.fcolor, 0xffff, da2);
                 da2->bitblt.x++;
             }
             da2->bitblt.destaddr += 2;
             break;
-        case DA2_BLT_CFILLTILE: {
-            int32_t tileaddr = da2->bitblt.srcaddr + (da2->bitblt.y % da2->bitblt.tile_w) * 2;
-            if (da2->bitblt.x >= da2->bitblt.size_x - 1) {
-                DA2_CopyPlaneDataWithBitmask(tileaddr, da2->bitblt.destaddr, da2->bitblt.maskr, da2);
-                if (da2->bitblt.y >= da2->bitblt.size_y - 1) {
-                    da2->bitblt.exec = DA2_BLT_CDONE;
+        case DA2_BLT_CFILLTILE:
+            {
+                int32_t tileaddr = da2->bitblt.srcaddr + (da2->bitblt.y % da2->bitblt.tile_w) * 2;
+                if (da2->bitblt.x >= da2->bitblt.size_x - 1) {
+                    da2_CopyPlaneDataWithBitmask(tileaddr, da2->bitblt.destaddr, da2->bitblt.maskr, da2);
+                    if (da2->bitblt.y >= da2->bitblt.size_y - 1) {
+                        da2->bitblt.exec = DA2_BLT_CDONE;
+                    }
+                    da2->bitblt.x = 0;
+                    da2->bitblt.y++;
+                    da2->bitblt.destaddr += da2->bitblt.destpitch + 2;
+                } else if (da2->bitblt.x == 0) {
+                    da2_CopyPlaneDataWithBitmask(tileaddr, da2->bitblt.destaddr, da2->bitblt.maskl, da2);
+                    da2->bitblt.x++;
+                } else {
+                    da2_CopyPlaneDataWithBitmask(tileaddr, da2->bitblt.destaddr, 0xffff, da2);
+                    da2->bitblt.x++;
                 }
-                da2->bitblt.x = 0;
-                da2->bitblt.y++;
-                da2->bitblt.destaddr += da2->bitblt.destpitch + 2;
-            } else if (da2->bitblt.x == 0) {
-                DA2_CopyPlaneDataWithBitmask(tileaddr, da2->bitblt.destaddr, da2->bitblt.maskl, da2);
-                da2->bitblt.x++;
-            } else {
-                DA2_CopyPlaneDataWithBitmask(tileaddr, da2->bitblt.destaddr, 0xffff, da2);
-                da2->bitblt.x++;
+                da2->bitblt.destaddr += 2;
+                break;
             }
-            da2->bitblt.destaddr += 2;
-            break;
-        } case DA2_BLT_CCOPYF:
+        case DA2_BLT_CCOPYF:
             if (da2->bitblt.x >= da2->bitblt.size_x - 1) {
-                DA2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, da2->bitblt.maskr, da2);
+                da2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, da2->bitblt.maskr, da2);
                 if (da2->bitblt.y >= da2->bitblt.size_y - 1) {
                     da2->bitblt.exec = DA2_BLT_CDONE;
                 }
@@ -1099,10 +1101,10 @@ da2_bitblt_exec(void *p)
                 da2->bitblt.destaddr += da2->bitblt.destpitch + 2;
                 da2->bitblt.srcaddr += da2->bitblt.srcpitch + 2;
             } else if (da2->bitblt.x == 0) {
-                DA2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, da2->bitblt.maskl, da2);
+                da2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, da2->bitblt.maskl, da2);
                 da2->bitblt.x++;
             } else {
-                DA2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, 0xffff, da2);
+                da2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, 0xffff, da2);
                 da2->bitblt.x++;
             }
             da2->bitblt.destaddr += 2;
@@ -1110,7 +1112,7 @@ da2_bitblt_exec(void *p)
             break;
         case DA2_BLT_CCOPYR:
             if (da2->bitblt.x >= da2->bitblt.size_x - 1) {
-                DA2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, da2->bitblt.maskr, da2);
+                da2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, da2->bitblt.maskr, da2);
                 if (da2->bitblt.y >= da2->bitblt.size_y - 1) {
                     da2->bitblt.exec = DA2_BLT_CDONE;
                 }
@@ -1121,10 +1123,10 @@ da2_bitblt_exec(void *p)
                 da2->bitblt.destaddr -= 2;
                 da2->bitblt.srcaddr -= 2;
             } else if (da2->bitblt.x == 0) {
-                DA2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, da2->bitblt.maskl, da2);
+                da2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, da2->bitblt.maskl, da2);
                 da2->bitblt.x++;
             } else {
-                DA2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, 0xffff, da2);
+                da2_CopyPlaneDataWithBitmask(da2->bitblt.srcaddr, da2->bitblt.destaddr, 0xffff, da2);
                 da2->bitblt.x++;
             }
             da2->bitblt.destaddr -= 2;
@@ -1135,7 +1137,7 @@ da2_bitblt_exec(void *p)
             if (da2->bitblt.y >= da2->bitblt.size_y) {
                 da2->bitblt.exec = DA2_BLT_CDONE;
             } else {
-                DA2_PutcharWithBitmask(da2->bitblt.srcaddr, da2->bitblt.size_x, da2->bitblt.fcolor, da2->bitblt.y, da2->bitblt.destaddr, da2->bitblt.maskl, da2->bitblt.maskr, da2);
+                da2_PutcharWithBitmask(da2->bitblt.srcaddr, da2->bitblt.size_x, da2->bitblt.fcolor, da2->bitblt.y, da2->bitblt.destaddr, da2->bitblt.maskl, da2->bitblt.maskr, da2);
             }
             da2->bitblt.y++;
             da2->bitblt.destaddr += da2->bitblt.size_x * 2 + da2->bitblt.destpitch + 2;
@@ -1151,7 +1153,7 @@ da2_bitblt_exec(void *p)
             // if (da2->bitblt.indata)
             //     da2->bitblt.exec = DA2_BLT_CLOAD;
             // else
-                da2->bitblt.exec = DA2_BLT_CIDLE;
+            da2->bitblt.exec = DA2_BLT_CIDLE;
             break;
     }
 }
@@ -1169,6 +1171,47 @@ da2_bitblt_dopayload(void *priv)
         da2_bitblt_exec(da2);
     } else {
         // timer_disable(&da2->bitblt.timer);
+    }
+}
+static void
+da2_bitblt_addpayload(uint8_t val, void *p)
+{
+    da2_t *da2 = (da2_t *) p;
+    da2->bitblt.indata = 1;
+    if (da2->bitblt.payload_addr >= DA2_BLT_MEMSIZE)
+        da2_log("da2_mmio_write payload overflow! addr %x, val %x\n", da2->bitblt.payload_addr, val);
+    else {
+        if (da2->bitblt.payload_addr == 0) {
+            da2->bitblt.payload[da2->bitblt.payload_addr] = val;
+            da2->bitblt.payload_addr++;
+            switch (val) {
+                case 0x88:
+                case 0x89:
+                case 0x95:
+                    da2->bitblt.payload_opsize = 3;
+                    break;
+                case 0x91:
+                    da2->bitblt.payload_opsize = 5;
+                    break;
+                case 0x99:
+                    da2->bitblt.payload_opsize = 7;
+                    break;
+                case 0xa1:
+                    da2->bitblt.payload_opsize = 9;
+                    break;
+                default:
+                    da2_log("addpayload: Unknown PreOP! %x\n", val);
+                    da2->bitblt.payload_addr = 0; /* ignore input */
+                    break;
+            }
+        } else if (da2->bitblt.payload_addr < da2->bitblt.payload_opsize) {
+            da2->bitblt.payload[da2->bitblt.payload_addr] = val;
+            da2->bitblt.payload_addr++;
+        } else if (da2->bitblt.payload_addr == da2->bitblt.payload_opsize) {
+            da2->bitblt.payload[da2->bitblt.payload_addr] = val;
+            da2->bitblt.payload_opsize = 0; /* reset */
+            da2_bitblt_parse(da2);
+        }
     }
 }
 
@@ -2052,9 +2095,9 @@ da2_render_textm3(da2_t *da2)
         int       chr_wide = 0;
         // da2_log("\nda2ma: %x, da2sc: %x\n", da2->ma, da2->sc);
         for (x = 0; x < da2->hdisp; x += 13) {
-            chr     = DA2_vram_r(DA2_VM03_BASECHR + da2->ma, da2);
-            attr    = DA2_vram_r(DA2_VM03_BASECHR + da2->ma + 1, da2);
-            extattr = DA2_vram_r(DA2_VM03_BASEEXATTR + da2->ma + 1, da2);
+            chr     = da2_vram_r(DA2_VM03_BASECHR + da2->ma, da2);
+            attr    = da2_vram_r(DA2_VM03_BASECHR + da2->ma + 1, da2);
+            extattr = da2_vram_r(DA2_VM03_BASEEXATTR + da2->ma + 1, da2);
             // if(chr!=0x20) da2_log("addr: %x, chr: %x, attr: %x    ", (DA2_VM03_BASECHR + da2->ma << 1) & da2->vram_mask, chr, attr);
             bg = attr >> 4;
             // if (da2->blink) bg &= ~0x8;
@@ -2072,7 +2115,7 @@ da2_render_textm3(da2_t *da2)
                 /* Stay drawing if the char code is DBCS and not at last column. */
                 if (chr_wide) {
                     /* Get high DBCS code from the next video address */
-                    chr_dbcs = DA2_vram_r(DA2_VM03_BASECHR + da2->ma + 2, da2);
+                    chr_dbcs = da2_vram_r(DA2_VM03_BASECHR + da2->ma + 2, da2);
                     chr_dbcs <<= 8;
                     chr_dbcs |= chr;
                     /* Get the font pattern */
@@ -2443,19 +2486,19 @@ da2_gdcropB(uint32_t addr,uint8_t bitmask, da2_t *da2)
                 case 0: /*Set*/
                     // da2->vram[addr | i] = (da2->gdcinput[i] & bitmask) | (da2->gdcsrc[i] & ~bitmask);
                     // da2->vram[addr | i] = (da2->gdcinput[i] & bitmask) | (da2->vram[addr | i] & ~bitmask);
-                    DA2_vram_w(addr | i, (da2->gdcinput[i] & bitmask) | (da2->vram[addr | i] & ~bitmask), da2);
+                    da2_vram_w(addr | i, (da2->gdcinput[i] & bitmask) | (da2->vram[addr | i] & ~bitmask), da2);
                     break;
                 case 1: /*AND*/
                     // da2->vram[addr | i] = (da2->gdcinput[i] | ~bitmask) & da2->gdcsrc[i];
-                    DA2_vram_w(addr | i, ((da2->gdcinput[i] & da2->gdcsrc[i]) & bitmask) | (da2->vram[addr | i] & ~bitmask), da2);
+                    da2_vram_w(addr | i, ((da2->gdcinput[i] & da2->gdcsrc[i]) & bitmask) | (da2->vram[addr | i] & ~bitmask), da2);
                     break;
                 case 2: /*OR*/
                     // da2->vram[addr | i] = (da2->gdcinput[i] & bitmask) | da2->gdcsrc[i];
-                    DA2_vram_w(addr | i,  ((da2->gdcinput[i] | da2->gdcsrc[i]) & bitmask) | (da2->vram[addr | i] & ~bitmask), da2);
+                    da2_vram_w(addr | i,  ((da2->gdcinput[i] | da2->gdcsrc[i]) & bitmask) | (da2->vram[addr | i] & ~bitmask), da2);
                     break;
                 case 3: /*XOR*/
                     // da2->vram[addr | i] = (da2->gdcinput[i] & bitmask) ^ da2->gdcsrc[i];
-                    DA2_vram_w(addr | i,  ((da2->gdcinput[i] ^ da2->gdcsrc[i]) & bitmask) | (da2->vram[addr | i] & ~bitmask), da2);
+                    da2_vram_w(addr | i,  ((da2->gdcinput[i] ^ da2->gdcsrc[i]) & bitmask) | (da2->vram[addr | i] & ~bitmask), da2);
                     break;
             }
         }
@@ -2465,8 +2508,8 @@ da2_gdcropB(uint32_t addr,uint8_t bitmask, da2_t *da2)
 static void
 da2_gdcropW(uint32_t addr, uint16_t bitmask, da2_t *da2)
 {
-    if((addr & 8) && !(da2->gdcreg[LG_COMMAND] & 0x08)) bitmask = rightRotate(bitmask, 8);
-    // if((addr & 8)) bitmask = rightRotate(bitmask, 8);
+    if((addr & 8) && !(da2->gdcreg[LG_COMMAND] & 0x08)) bitmask = da2_rightrotate(bitmask, 8);
+    // if((addr & 8)) bitmask = da2_rightrotate(bitmask, 8);
     uint8_t bitmask_l = bitmask & 0xff;
     uint8_t bitmask_h = bitmask >> 8;
     for (int i = 0; i < 8; i++) {
@@ -2476,29 +2519,29 @@ da2_gdcropW(uint32_t addr, uint16_t bitmask, da2_t *da2)
                 case 0: /*Set*/
                     // da2->vram[addr | i]       = (da2->gdcinput[i] & bitmask_l) | (da2->gdcsrc[i] & ~bitmask_l);
                     // da2->vram[(addr + 8) | i] = ((da2->gdcinput[i] >> 8) & bitmask_h) | ((da2->gdcsrc[i] >> 8) & ~bitmask_h);
-                    DA2_vram_w(addr | i, (da2->gdcinput[i] & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l), da2);
-                    DA2_vram_w((addr + 8) | i, ((da2->gdcinput[i] >> 8) & bitmask_h)
+                    da2_vram_w(addr | i, (da2->gdcinput[i] & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l), da2);
+                    da2_vram_w((addr + 8) | i, ((da2->gdcinput[i] >> 8) & bitmask_h)
                         | (da2->vram[(addr + 8) | i] & ~bitmask_h), da2);
                     break;
                 case 1: /*AND*/
                     // da2->vram[addr | i]       = (da2->gdcinput[i] | ~bitmask_l) & da2->gdcsrc[i];
                     // da2->vram[(addr + 8) | i] = ((da2->gdcinput[i] >> 8) | ~bitmask_h) & (da2->gdcsrc[i] >> 8);
-                    DA2_vram_w(addr | i, ((da2->gdcinput[i] & da2->gdcsrc[i]) & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l), da2);
-                    DA2_vram_w((addr + 8) | i, (((da2->gdcinput[i] >> 8) & (da2->gdcsrc[i] >> 8)) & bitmask_h)
+                    da2_vram_w(addr | i, ((da2->gdcinput[i] & da2->gdcsrc[i]) & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l), da2);
+                    da2_vram_w((addr + 8) | i, (((da2->gdcinput[i] >> 8) & (da2->gdcsrc[i] >> 8)) & bitmask_h)
                         | (da2->vram[(addr + 8) | i] & ~bitmask_h), da2);
                     break;
                 case 2: /*OR*/
                     // da2->vram[addr | i]       = (da2->gdcinput[i] & bitmask_l) | da2->gdcsrc[i];
                     // da2->vram[(addr + 8) | i] = ((da2->gdcinput[i] >> 8) & bitmask_h) | (da2->gdcsrc[i] >> 8);
-                    DA2_vram_w(addr | i, ((da2->gdcinput[i] | da2->gdcsrc[i]) & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l), da2);
-                    DA2_vram_w((addr + 8) | i, (((da2->gdcinput[i] >> 8) | (da2->gdcsrc[i] >> 8)) & bitmask_h)
+                    da2_vram_w(addr | i, ((da2->gdcinput[i] | da2->gdcsrc[i]) & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l), da2);
+                    da2_vram_w((addr + 8) | i, (((da2->gdcinput[i] >> 8) | (da2->gdcsrc[i] >> 8)) & bitmask_h)
                         | (da2->vram[(addr + 8) | i] & ~bitmask_h), da2);
                     break;
                 case 3: /*XOR*/
                     // da2->vram[addr | i]       = (da2->gdcinput[i] & bitmask_l) ^ da2->gdcsrc[i];
                     // da2->vram[(addr + 8) | i] = ((da2->gdcinput[i] >> 8) & bitmask_h) ^ (da2->gdcsrc[i] >> 8);
-                    DA2_vram_w(addr | i, ((da2->gdcinput[i] ^ da2->gdcsrc[i]) & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l), da2);
-                    DA2_vram_w((addr + 8) | i, (((da2->gdcinput[i] >> 8) ^ (da2->gdcsrc[i] >> 8)) & bitmask_h)
+                    da2_vram_w(addr | i, ((da2->gdcinput[i] ^ da2->gdcsrc[i]) & bitmask_l) | (da2->vram[addr | i] & ~bitmask_l), da2);
+                    da2_vram_w((addr + 8) | i, (((da2->gdcinput[i] >> 8) ^ (da2->gdcsrc[i] >> 8)) & bitmask_h)
                         | (da2->vram[(addr + 8) | i] & ~bitmask_h), da2);
                     break;
             }
@@ -2625,47 +2668,6 @@ da2_mmio_readw(uint32_t addr, void *p)
     }
 }
 static void
-da2_bitblt_addpayload(uint8_t val, void *p)
-{
-    da2_t *da2 = (da2_t *) p;
-    da2->bitblt.indata = 1;
-    if (da2->bitblt.payload_addr >= DA2_BLT_MEMSIZE)
-        da2_log("da2_mmio_write payload overflow! addr %x, val %x\n", da2->bitblt.payload_addr, val);
-    else {
-        if (da2->bitblt.payload_addr == 0) {
-            da2->bitblt.payload[da2->bitblt.payload_addr] = val;
-            da2->bitblt.payload_addr++;
-            switch (val) {
-                case 0x88:
-                case 0x89:
-                case 0x95:
-                    da2->bitblt.payload_opsize = 3;
-                    break;
-                case 0x91:
-                    da2->bitblt.payload_opsize = 5;
-                    break;
-                case 0x99:
-                    da2->bitblt.payload_opsize = 7;
-                    break;
-                case 0xa1:
-                    da2->bitblt.payload_opsize = 9;
-                    break;
-                default:
-                    da2_log("addpayload: Unknown PreOP! %x\n", val);
-                    da2->bitblt.payload_addr = 0; /* ignore input */
-                    break;
-            }
-        } else if (da2->bitblt.payload_addr < da2->bitblt.payload_opsize) {
-            da2->bitblt.payload[da2->bitblt.payload_addr] = val;
-            da2->bitblt.payload_addr++;
-        } else if (da2->bitblt.payload_addr == da2->bitblt.payload_opsize) {
-            da2->bitblt.payload[da2->bitblt.payload_addr] = val;
-            da2->bitblt.payload_opsize = 0; /* reset */
-            da2_bitblt_parse(da2);
-        }
-    }
-}
-static void
 da2_mmio_write(uint32_t addr, uint8_t val, void *p)
 {
     da2_t *da2 = (da2_t *) p;
@@ -2765,7 +2767,7 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
             case 2: /* equiv to vga write mode 1 */
                 for (int i = 0; i < 8; i++)
                     if (da2->planemask & (1 << i))
-                        DA2_vram_w(addr | i, da2->gdcsrc[i], da2);
+                        da2_vram_w(addr | i, da2->gdcsrc[i], da2);
                 break;
             case 0:/* equiv to vga write mode 0 */
                 if (da2->gdcreg[LG_DATA_ROTATION] & 7)
@@ -2773,7 +2775,7 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
                 if (bitmask == 0xff && !(da2->gdcreg[LG_COMMAND] & 0x03) && (!da2->gdcreg[LG_ENABLE_SRJ])) {
                     for (int i = 0; i < 8; i++)
                         if (da2->planemask & (1 << i))
-                            DA2_vram_w(addr | i, val, da2);
+                            da2_vram_w(addr | i, val, da2);
                 } else {
                     for (int i = 0; i < 8; i++)
                         if (da2->gdcreg[LG_ENABLE_SRJ] & (1 << i))
@@ -2800,12 +2802,12 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *p)
         }
     } else { /*  mode 3h text */
         cycles -= video_timing_write_b;
-        DA2_vram_w(addr, val, da2);
+        da2_vram_w(addr, val, da2);
         da2->fullchange = 2;
     }
 }
 static uint16_t
-rightRotate(uint16_t data, uint8_t count)
+da2_rightrotate(uint16_t data, uint8_t count)
 {
     return (data >> count) | (data << (sizeof(data) * 8 - count));
 }
@@ -2863,18 +2865,18 @@ da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p)
         case 2:
             for (int i = 0; i < 8; i++)
                 if (da2->planemask & (1 << i)) {
-                    DA2_vram_w(addr | i, da2->gdcsrc[i] & 0xff, da2);
-                    DA2_vram_w((addr + 8) | i, da2->gdcsrc[i] >> 8, da2);
+                    da2_vram_w(addr | i, da2->gdcsrc[i] & 0xff, da2);
+                    da2_vram_w((addr + 8) | i, da2->gdcsrc[i] >> 8, da2);
                 }
             break;
         case 0:
             if (da2->gdcreg[LG_DATA_ROTATION] & 15)
-                val = rightRotate(val, da2->gdcreg[LG_DATA_ROTATION] & 15);
+                val = da2_rightrotate(val, da2->gdcreg[LG_DATA_ROTATION] & 15);
             if (bitmask == 0xffff && !(da2->gdcreg[LG_COMMAND] & 0x03) && (!da2->gdcreg[LG_ENABLE_SRJ])) {
                 for (int i = 0; i < 8; i++)
                     if (da2->planemask & (1 << i)) {
-                        DA2_vram_w(addr | i, val & 0xff, da2);
-                        DA2_vram_w((addr + 8) | i, val >> 8, da2);
+                        da2_vram_w(addr | i, val & 0xff, da2);
+                        da2_vram_w((addr + 8) | i, val >> 8, da2);
                     }
             } else {
                 for (int i = 0; i < 8; i++)
@@ -2893,7 +2895,7 @@ da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p)
             break;
         case 3:
             if (da2->gdcreg[LG_DATA_ROTATION] & 15)
-                val = rightRotate(val, da2->gdcreg[LG_DATA_ROTATION] & 15);
+                val = da2_rightrotate(val, da2->gdcreg[LG_DATA_ROTATION] & 15);
             bitmask &= val;
 
             for (int i = 0; i < 8; i++)
