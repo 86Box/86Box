@@ -2976,6 +2976,7 @@ mem_reset(void)
         else if (cpu_16bitbus && is6117 && mem_size > 65408)
             mem_init_ram_mapping(&ram_high_mapping, 0x100000, (65408 - 1024) * 1024);
         else {
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
             if (mem_size > 1048576) {
                 mem_init_ram_mapping(&ram_high_mapping, 0x100000, (1048576 - 1024) * 1024);
 
@@ -2988,6 +2989,9 @@ mem_reset(void)
                                 ram2, MEM_MAPPING_INTERNAL, NULL);
             } else
                 mem_init_ram_mapping(&ram_high_mapping, 0x100000, (mem_size - 1024) * 1024);
+#else
+            mem_init_ram_mapping(&ram_high_mapping, 0x100000, (mem_size - 1024) * 1024);
+#endif
         }
     }
 

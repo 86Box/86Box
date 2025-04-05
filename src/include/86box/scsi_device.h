@@ -467,9 +467,10 @@ typedef struct scsi_bus_t {
     int                msgout_pos;
     int                is_msgout;
     int                state;
-    int                dma_on_pio_enabled;
 
     uint32_t           bus_phase;
+    uint32_t           total_len;
+    uint32_t           data_repeat;
 
     double             period;
     double             speed;
