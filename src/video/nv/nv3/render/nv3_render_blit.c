@@ -113,66 +113,37 @@ void nv3_render_blit_image(uint32_t color, nv3_grobj_t grobj)
 
 void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
 {
-    //nv3_position_16_t old_position = nv3->pgraph.blit.point_in + nv3->pgraph.blit.size.w;
-    nv3_position_16_t old_position = {0};
-    old_position.x = nv3->pgraph.blit.point_in.x + nv3->pgraph.blit.size.w;
-    old_position.y = nv3->pgraph.blit.point_in.y + nv3->pgraph.blit.size.h;
+    nv3_position_16_t old_position = nv3->pgraph.blit.point_in;
     nv3_position_16_t new_position = nv3->pgraph.blit.point_out;
 
     uint16_t end_x = (nv3->pgraph.blit.point_out.x + nv3->pgraph.blit.size.w);
     uint16_t end_y = (nv3->pgraph.blit.point_out.y + nv3->pgraph.blit.size.h);
 
-    /* Read the old pixel */
-    switch (nv3->nvbase.svga.bpp)
+    uint32_t pixel_to_copy = 0x00;
+
+    /* Read the old pixel and rewrite it to the new position */
+    for (int32_t y = nv3->pgraph.blit.point_out.y; y <= end_y; y++)
     {
-        case 8: //8bpp
-            for (int32_t y = nv3->pgraph.blit.point_out.y; y < end_y; y++)
+        old_position.y = new_position.y = y;
+
+        for (int32_t x = nv3->pgraph.blit.point_out.x; x <= end_x; x++)
+        {
+            old_position.x = new_position.x = x;
+
+            switch (nv3->nvbase.svga.bpp)
             {
-                old_position.y++;
-                new_position.y++;
-
-                for (int32_t x = nv3->pgraph.blit.point_out.x; x < end_x; x++)
-                {
-                    old_position.x++;
-                    new_position.x++;
-
-                    uint32_t pixel_to_copy = nv3_render_read_pixel_8(old_position, grobj) & 0xFF;
-                    nv3_render_write_pixel(new_position, pixel_to_copy, grobj);
-                }
+                case 8:
+                    pixel_to_copy = nv3_render_read_pixel_8(old_position, grobj, false) & 0xFF;
+                    break;
+                case 15 ... 16: //15bpp and 16bpp modes are considered as identical
+                    pixel_to_copy = nv3_render_read_pixel_16(old_position, grobj, false) & 0xFFFF;
+                    break; 
+                case 32: 
+                    pixel_to_copy = nv3_render_read_pixel_32(old_position, grobj, false);
+                    break;
             }
-            break;
-        case 15:
-        case 16: //16bpp
-            for (int32_t y = nv3->pgraph.blit.point_out.y; y < end_y; y++)
-            {
-                old_position.y++;
-                new_position.y++;
 
-                for (int32_t x = nv3->pgraph.blit.point_out.x; x >= end_x; x++)
-                {
-                    old_position.x++;
-                    new_position.x++;
-
-                    uint32_t pixel_to_copy = nv3_render_read_pixel_16(old_position, grobj) & 0xFFFF;
-                    nv3_render_write_pixel(new_position, pixel_to_copy, grobj);
-                }
-            }
-            break;
-        case 32: //32bpp
-            for (int32_t y = nv3->pgraph.blit.point_out.y; y < end_y; y++)
-            {
-                old_position.y++;
-                new_position.y++;
-
-                for (int32_t x = nv3->pgraph.blit.point_out.x; x >= end_x; x++)
-                {
-                    old_position.x++;
-                    new_position.x++;
-
-                    uint32_t pixel_to_copy = nv3_render_read_pixel_32(old_position, grobj);
-                    nv3_render_write_pixel(new_position, pixel_to_copy, grobj);
-                }
-            }
-            break;
-    }
+            nv3_render_write_pixel(new_position, pixel_to_copy, grobj);
+        }
+   }
 }

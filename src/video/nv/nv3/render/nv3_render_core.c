@@ -213,11 +213,31 @@ uint32_t nv3_render_set_pattern_color(nv3_color_expanded_t pattern_colour, bool 
 }
 
 /*     /* Combine the current buffer with the pitch to get the address in the framebuffer to draw from for a given position. */
-uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t grobj)
+uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination)
 {
     uint32_t vram_x = position.x;
     uint32_t vram_y = position.y;
     uint32_t current_buffer = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03; 
+
+    /* test DST_BUFFER code
+    I assume for 2d at least only one is allowed at a time
+    */
+
+    if (use_destination)
+    {
+        uint32_t destination_buffer = 5; // 5 = just use the source buffer
+
+        if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER0_ENABLED) & 0x01) destination_buffer = 0;
+        if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER1_ENABLED) & 0x01) destination_buffer = 1;
+        if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER2_ENABLED) & 0x01) destination_buffer = 2;
+        if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER3_ENABLED) & 0x01) destination_buffer = 3;
+    
+        if (destination_buffer != current_buffer
+        && destination_buffer != 5)
+            current_buffer = destination_buffer;
+    
+    }
+
     uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp;
 
     // we have to multiply the x position by the number of bytes per pixel
@@ -242,19 +262,19 @@ uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t gro
 }
 
 /* Read an 8bpp pixel from the framebuffer. */
-uint8_t nv3_render_read_pixel_8(nv3_position_16_t position, nv3_grobj_t grobj)
+uint8_t nv3_render_read_pixel_8(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination)
 { 
     // hope you call it with the right bit
-    uint32_t vram_address = nv3_render_get_vram_address(position, grobj);
+    uint32_t vram_address = nv3_render_get_vram_address(position, grobj, use_destination);
 
     return nv3->nvbase.svga.vram[vram_address];
 }
 
 /* Read an 16bpp pixel from the framebuffer. */
-uint16_t nv3_render_read_pixel_16(nv3_position_16_t position, nv3_grobj_t grobj)
+uint16_t nv3_render_read_pixel_16(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination)
 { 
     // hope you call it with the right bit
-    uint32_t vram_address = nv3_render_get_vram_address(position, grobj);
+    uint32_t vram_address = nv3_render_get_vram_address(position, grobj, use_destination);
 
     uint16_t* vram_16 = (uint16_t*)(nv3->nvbase.svga.vram);
     vram_address >>= 1; //convert to 16bit pointer
@@ -263,10 +283,10 @@ uint16_t nv3_render_read_pixel_16(nv3_position_16_t position, nv3_grobj_t grobj)
 }
 
 /* Read an 16bpp pixel from the framebuffer. */
-uint32_t nv3_render_read_pixel_32(nv3_position_16_t position, nv3_grobj_t grobj)
+uint32_t nv3_render_read_pixel_32(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination)
 { 
     // hope you call it with the right bit
-    uint32_t vram_address = nv3_render_get_vram_address(position, grobj);
+    uint32_t vram_address = nv3_render_get_vram_address(position, grobj, use_destination);
 
     uint32_t* vram_32 = (uint32_t*)(nv3->nvbase.svga.vram);
     vram_address >>= 1; //convert to 16bit pointer
@@ -315,7 +335,7 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
     if (!nv3_render_chroma_test(color, grobj))
         return;
 
-    uint32_t pixel_addr_vram = nv3_render_get_vram_address(position, grobj);
+    uint32_t pixel_addr_vram = nv3_render_get_vram_address(position, grobj, true);
 
     uint32_t rop_src = 0, rop_dst = 0, rop_pattern = 0;
     uint8_t bit = 0x00; 
