@@ -15,6 +15,7 @@
  */
 #include <inttypes.h>
 #include <math.h>
+#define ENABLE_SCSI_CDROM_LOG 2
 #ifdef ENABLE_SCSI_CDROM_LOG
 #include <stdarg.h>
 #endif
@@ -689,6 +690,7 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
             bytes_per_second *= (double) dev->drv->cur_speed;
         } else {
             bytes_per_second = scsi_cdrom_bus_speed(dev);
+            pclog("%lf bytes per second\n", bytes_per_second);
             if (bytes_per_second == 0.0) {
                 dev->callback = -1; /* Speed depends on SCSI controller */
                 return;
@@ -698,19 +700,24 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
         period = 1000000.0 / bytes_per_second;
         scsi_cdrom_log(dev->log, "Byte transfer period: %" PRIu64 " us\n",
                        (uint64_t) period);
+        pclog("Byte transfer period: %lf us (%i bytes)\n", period, dev->packet_len);
         if (dev->was_cached == -1)
             period *= (double) dev->packet_len;
         else {
+            int atapi_num = (dev->tf->request_length < dev->block_len) ?
+                             dev->block_len : dev->tf->request_length;
+            atapi_num     = (atapi_num / dev->block_len) * dev->block_len;
+            if (atapi_num > dev->sector_len)
+                atapi_num = dev->sector_len;
             const int num = ((dev->drv->bus_type == CDROM_BUS_SCSI) ||
-                             (dev->block_len == 0)) ?
-                            dev->requested_blocks :
-                            ((scsi_cdrom_current_mode(dev) == 2) ? 1 :
-                             (dev->packet_len  / dev->block_len));
+                             (dev->block_len == 0)) ? dev->requested_blocks :
+                            ((scsi_cdrom_current_mode(dev) == 2) ? 1 : atapi_num);
 
             period *= ((double) num) * 2352.0;
         }
         scsi_cdrom_log(dev->log, "Sector transfer period: %" PRIu64 " us\n",
                        (uint64_t) period);
+        pclog("Data transfer period: %lf us\n", period);
         dev->callback += period;
     }
     scsi_cdrom_set_callback(dev);
@@ -800,7 +807,10 @@ scsi_cdrom_data_command_finish(scsi_cdrom_t *dev, int len, int block_len, int al
                 scsi_cdrom_command_write_dma(dev);
         } else {
             scsi_cdrom_update_request_length(dev, len, block_len);
-            if (direction == 0)
+            if ((dev->drv->bus_type != CDROM_BUS_SCSI) &&
+                (dev->tf->request_length == 0))
+                scsi_cdrom_command_complete(dev);
+            else if (direction == 0)
                 scsi_cdrom_command_read(dev);
             else
                 scsi_cdrom_command_write(dev);
