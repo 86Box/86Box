@@ -212,7 +212,7 @@ uint32_t nv3_render_set_pattern_color(nv3_color_expanded_t pattern_colour, bool 
     
 }
 
-/*     /* Combine the current buffer with the pitch to get the address in the framebuffer to draw from for a given position. */
+/* Combine the current buffer with the pitch to get the address in the framebuffer to draw from for a given position. */
 uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination)
 {
     uint32_t vram_x = position.x;
@@ -309,7 +309,6 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
     bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_ALPHA) & 0x01;
 
     uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp; // maybe y16 too?z
-    uint32_t current_buffer = (nv3->pgraph.context_switch >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03; 
 
     /* doesn't seem*/
     nv3_color_argb_t color_data = *(nv3_color_argb_t*)&color;

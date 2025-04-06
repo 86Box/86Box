@@ -22,6 +22,7 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
 uint8_t nv3_render_read_pixel_8(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination);
 uint16_t nv3_render_read_pixel_16(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination);
 uint32_t nv3_render_read_pixel_32(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination);
+uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination);
 
 uint32_t nv3_render_to_chroma(nv3_color_expanded_t expanded);
 nv3_color_expanded_t nv3_render_expand_color(uint32_t color, nv3_grobj_t grobj);            // Convert a colour to full RGB10 format from the current working format.

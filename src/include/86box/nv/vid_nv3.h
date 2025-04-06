@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   2 April 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   6 April 2025 (STILL WORKING ON IT!!!)
  *  
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *

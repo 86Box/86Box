@@ -138,51 +138,38 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
 
     uint32_t pixel_to_copy = 0x00;
 
-    /* Prevents overwriting pixels we've already modified*/
-    uint32_t xdiff = 0, ydiff = 0;
+    /* Coordinates for copying an entire line at a time */
+    uint32_t buf_position = 0, vram_position = 0, size_x = nv3->pgraph.blit.size.w;
 
-    /* Read the old pixel into the line buffer */
+    /* Read the old pixel into the line buffer
+       Assumption: All data is sent in an unpacked format. In the case of an NVIDIA GPU this means that all data is sent 32 bits at a time regardless of if
+       the actual source data is 32 bits in size or not. For pixel data, the upper bits are left as 0 in 8bpp/16bpp mode. For 86box purposes, the data is written
+       8/16 bits at a time.
+
+       TODO: CHECK FOR PACKED FORMAT!!!!!
+    */
+
+    if (nv3->nvbase.svga.bpp == 15
+    || nv3->nvbase.svga.bpp == 16)
+        size_x <<= 1;
+    else if (nv3->nvbase.svga.bpp == 32)
+        size_x <<= 2;
+
     for (int32_t y = 0; y < nv3->pgraph.blit.size.h; y++)
     {
         old_position.y = nv3->pgraph.blit.point_in.y + y;
+        /* 32bit buffer */
+        buf_position = (nv3->pgraph.blit.size.w * y);
+        vram_position = nv3_render_get_vram_address(old_position, grobj, false);
 
-        for (int32_t x = 0; x < nv3->pgraph.blit.size.w; x++)
-        {
-            old_position.x = nv3->pgraph.blit.point_in.x + x;
-
-            switch (nv3->nvbase.svga.bpp)
-            {
-                case 8:
-                    pixel_to_copy = nv3_render_read_pixel_8(old_position, grobj, false) & 0xFF;
-                    break;
-                case 15 ... 16: //15bpp and 16bpp modes are considered as identical
-                    pixel_to_copy = nv3_render_read_pixel_16(old_position, grobj, false) & 0xFFFF;
-                    break; 
-                case 32: 
-                    pixel_to_copy = nv3_render_read_pixel_32(old_position, grobj, false);
-                    break;
-            }
-
-            uint32_t buf_position = (y * nv3->pgraph.blit.size.w) + x;
-            nv3_s2sb_line_buffer[buf_position] = pixel_to_copy;
-        }
-
-
+        memcpy(&nv3_s2sb_line_buffer[buf_position], &nv3->nvbase.svga.vram[vram_position], size_x);
     }
     /* simply write it all back to vram */
     for (int32_t y = 0; y < nv3->pgraph.blit.size.h; y++)
-    {
+    {        
+        buf_position = (nv3->pgraph.blit.size.w * y);
         new_position.y = nv3->pgraph.blit.point_out.y + y;
-
-        for (int32_t x = 0; x < nv3->pgraph.blit.size.w; x++)
-        {
-            new_position.x = nv3->pgraph.blit.point_out.x + x;
-    
-            uint32_t buf_position = (y * nv3->pgraph.blit.size.w) + x;
-    
-            nv3_render_write_pixel(new_position, nv3_s2sb_line_buffer[buf_position], grobj);
-        }
+        vram_position = nv3_render_get_vram_address(new_position, grobj, false);
+        memcpy(&nv3->nvbase.svga.vram[vram_position], &nv3_s2sb_line_buffer[buf_position], size_x);
     }
-    
-
 }
