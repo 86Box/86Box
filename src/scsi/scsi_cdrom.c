@@ -15,7 +15,6 @@
  */
 #include <inttypes.h>
 #include <math.h>
-#define ENABLE_SCSI_CDROM_LOG 2
 #ifdef ENABLE_SCSI_CDROM_LOG
 #include <stdarg.h>
 #endif
@@ -681,8 +680,7 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
 
             /* Seek time is in us. */
             period = cdrom_seek_time(dev->drv);
-            scsi_cdrom_log(dev->log, "Seek period: %" PRIu64 " us\n",
-                           (uint64_t) period);
+            scsi_cdrom_log(dev->log, "Seek period: %lf us\n", period);
             dev->callback += period;
 
             /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
@@ -690,7 +688,6 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
             bytes_per_second *= (double) dev->drv->cur_speed;
         } else {
             bytes_per_second = scsi_cdrom_bus_speed(dev);
-            pclog("%lf bytes per second\n", bytes_per_second);
             if (bytes_per_second == 0.0) {
                 dev->callback = -1; /* Speed depends on SCSI controller */
                 return;
@@ -698,9 +695,7 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
         }
 
         period = 1000000.0 / bytes_per_second;
-        scsi_cdrom_log(dev->log, "Byte transfer period: %" PRIu64 " us\n",
-                       (uint64_t) period);
-        pclog("Byte transfer period: %lf us (%i bytes)\n", period, dev->packet_len);
+        scsi_cdrom_log(dev->log, "Byte transfer period: %lf us\n", period);
         if (dev->was_cached == -1)
             period *= (double) dev->packet_len;
         else {
@@ -715,9 +710,7 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
 
             period *= ((double) num) * 2352.0;
         }
-        scsi_cdrom_log(dev->log, "Sector transfer period: %" PRIu64 " us\n",
-                       (uint64_t) period);
-        pclog("Data transfer period: %lf us\n", period);
+        scsi_cdrom_log(dev->log, "Sector transfer period: %lf us\n", period);
         dev->callback += period;
     }
     scsi_cdrom_set_callback(dev);
