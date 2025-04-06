@@ -686,7 +686,7 @@ bochs_vbe_pci_read(const int func, const int addr, void *priv)
             ret = dev->pci_rom_enable & 0x01;
             break;
         case 0x32:
-            ret = dev->rom_addr & 0xff;
+            ret = dev->rom_addr & 0xfc;
             break;
         case 0x33:
             ret = (dev->rom_addr & 0xff00) >> 8;
@@ -743,6 +743,7 @@ bochs_vbe_pci_write(const int func, const int addr, const uint8_t val, void *pri
             mem_mapping_disable(&dev->linear_mapping_2);
             mem_mapping_disable(&dev->linear_mapping);
             mem_mapping_disable(&dev->svga.mapping);
+            mem_mapping_disable(&dev->bios_rom.mapping);
             if (dev->pci_conf_status & PCI_COMMAND_IO) {
                 io_sethandler(0x03c0, 0x0020, bochs_vbe_in, NULL, NULL,
                               bochs_vbe_out, NULL, NULL, dev);
@@ -751,11 +752,13 @@ bochs_vbe_pci_write(const int func, const int addr, const uint8_t val, void *pri
             }
             if (dev->pci_conf_status & PCI_COMMAND_MEM) {
                 mem_mapping_enable(&dev->svga.mapping);
-                if (dev->pci_regs[0x13] != 0x00) {
+                if ((dev->pci_regs[0x13] != 0x00) && (dev->pci_regs[0x13] != 0xff)) {
                     mem_mapping_enable(&dev->linear_mapping);
                     if (dev->pci_regs[0x13] != 0xe0)
                         mem_mapping_enable(&dev->linear_mapping_2);
                 }
+                if (dev->pci_rom_enable && (dev->rom_addr != 0x0000) && (dev->rom_addr < 0xfff8))
+                    mem_mapping_set_addr(&dev->bios_rom.mapping, dev->rom_addr << 16, 0x10000);
             }
             break;
         case 0x13:
@@ -764,7 +767,7 @@ bochs_vbe_pci_write(const int func, const int addr, const uint8_t val, void *pri
             mem_mapping_disable(&dev->linear_mapping_2);
             mem_mapping_disable(&dev->linear_mapping);
 
-            if ((dev->pci_conf_status & PCI_COMMAND_MEM) && (val != 0x00)) {
+            if ((dev->pci_conf_status & PCI_COMMAND_MEM) && (val != 0x00) && (val != 0xff)) {
                 mem_mapping_set_addr(&dev->linear_mapping, val << 24, 0x01000000);
                 if (val != 0xe0)
                     mem_mapping_set_addr(&dev->linear_mapping_2, 0xe0000000, 0x01000000);
@@ -776,18 +779,26 @@ bochs_vbe_pci_write(const int func, const int addr, const uint8_t val, void *pri
         case 0x30:
             dev->pci_rom_enable = val & 0x01;
             mem_mapping_disable(&dev->bios_rom.mapping);
-            if (dev->pci_rom_enable)
+            if (dev->pci_rom_enable && (dev->pci_conf_status & PCI_COMMAND_MEM) &&
+                (dev->rom_addr != 0x0000) && (dev->rom_addr < 0xfff8)) {
                 mem_mapping_set_addr(&dev->bios_rom.mapping, dev->rom_addr << 16, 0x10000);
+            }
             break;
         case 0x32:
             dev->rom_addr = (dev->rom_addr & 0xff00) | (val & 0xfc);
-            if (dev->pci_rom_enable)
+            mem_mapping_disable(&dev->bios_rom.mapping);
+            if (dev->pci_rom_enable && (dev->pci_conf_status & PCI_COMMAND_MEM) &&
+                (dev->rom_addr != 0x0000) && (dev->rom_addr < 0xfff8)) {
                 mem_mapping_set_addr(&dev->bios_rom.mapping, dev->rom_addr << 16, 0x10000);
+            }
             break;
          case 0x33:
             dev->rom_addr = (dev->rom_addr & 0x00ff) | (val << 8);
-            if (dev->pci_rom_enable)
+            mem_mapping_disable(&dev->bios_rom.mapping);
+            if (dev->pci_rom_enable && (dev->pci_conf_status & PCI_COMMAND_MEM) &&
+                (dev->rom_addr != 0x0000) && (dev->rom_addr < 0xfff8)) {
                 mem_mapping_set_addr(&dev->bios_rom.mapping, dev->rom_addr << 16, 0x10000);
+            }
             break;
     }
 }
