@@ -47,7 +47,7 @@ void nv3_class_010_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             /* This is the last one*/
             nv3->pgraph.blit.size.w = (param & 0xFFFF);
             nv3->pgraph.blit.size.h = ((param >> 16) & 0xFFFF);
-            nv_log("Method Execution: S2SB Size %04x,%04x\n", nv3->pgraph.blit.point_in.x, nv3->pgraph.blit.point_in.y);
+            nv_log("Method Execution: S2SB Size %04x,%04x grobj_0=0x%08x\n", nv3->pgraph.blit.point_in.x, nv3->pgraph.blit.point_in.y, grobj.grobj_0);
 
             /* Some blits have (point_in == point_out) ???? */
             if (nv3->pgraph.blit.point_in.x == nv3->pgraph.blit.point_out.x

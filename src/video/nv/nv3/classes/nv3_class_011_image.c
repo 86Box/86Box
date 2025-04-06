@@ -28,8 +28,6 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
 
-
-
 void nv3_class_011_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
 {
     switch (method_id)
@@ -55,7 +53,7 @@ void nv3_class_011_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             if (method_id >= NV3_IMAGE_COLOR_START && method_id <= NV3_IMAGE_COLOR_END)
             {    
                 uint32_t pixel_slot = (method_id - NV3_IMAGE_COLOR_START) >> 2;
-                nv_log("Method Execution: Pixel%d Colour%08x Format%x\n", pixel_slot, param, (grobj.grobj_0) & 0x07);
+                nv_log("Method Execution: Image Pixel%d Colour%08x Format%x\n", pixel_slot, param, (grobj.grobj_0) & 0x07);
                 nv3_render_blit_image(param, grobj);
             }
             else

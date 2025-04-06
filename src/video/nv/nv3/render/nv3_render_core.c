@@ -289,7 +289,7 @@ uint32_t nv3_render_read_pixel_32(nv3_position_16_t position, nv3_grobj_t grobj,
     uint32_t vram_address = nv3_render_get_vram_address(position, grobj, use_destination);
 
     uint32_t* vram_32 = (uint32_t*)(nv3->nvbase.svga.vram);
-    vram_address >>= 1; //convert to 16bit pointer
+    vram_address >>= 2; //convert to 32bit pointer
 
     return vram_32[vram_address];
 }

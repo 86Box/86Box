@@ -108,27 +108,47 @@ void nv3_render_blit_image(uint32_t color, nv3_grobj_t grobj)
 
             break;
     }
-                
 }
+
+
+#define NV3_MAX_HORIZONTAL_SIZE     1920
+#define NV3_MAX_VERTICAL_SIZE       1200
+
+/* 1920 for margin. Holds a buffer of the old screen we want to hold so we don't overwrite things we already overwtote
+We only need to clear it once per blit, because the blits are always the same size, and then only for the size of our new blit 
+
+Extremely not crazy about this...Surely a better way to do it without buffering the ENTIRE SCREEN. I only update the parts that are needed, but still...
+
+This is LUDICROUSLY INEFFICIENT (2*O(n^2)) and COMPLETELY TERRIBLE code, but it's currently 2:48am so I can't think of a better approach... 
+*/
+uint32_t nv3_s2sb_line_buffer[NV3_MAX_HORIZONTAL_SIZE*NV3_MAX_VERTICAL_SIZE] = {0};
 
 void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
 {
+    if (nv3->pgraph.blit.size.w < NV3_MAX_HORIZONTAL_SIZE
+    && nv3->pgraph.blit.size.h < NV3_MAX_VERTICAL_SIZE)
+        memset(&nv3_s2sb_line_buffer, 0x00, (sizeof(uint32_t) * nv3->pgraph.blit.size.h) * (sizeof(uint32_t) * nv3->pgraph.blit.size.w));
+
     nv3_position_16_t old_position = nv3->pgraph.blit.point_in;
     nv3_position_16_t new_position = nv3->pgraph.blit.point_out;
 
-    uint16_t end_x = (nv3->pgraph.blit.point_out.x + nv3->pgraph.blit.size.w);
+    uint16_t end_x_in = (nv3->pgraph.blit.point_in.x + nv3->pgraph.blit.size.w); /* needed for bounds checking */
+    uint16_t end_x_out = (nv3->pgraph.blit.point_out.x + nv3->pgraph.blit.size.w);
     uint16_t end_y = (nv3->pgraph.blit.point_out.y + nv3->pgraph.blit.size.h);
 
     uint32_t pixel_to_copy = 0x00;
 
-    /* Read the old pixel and rewrite it to the new position */
-    for (int32_t y = nv3->pgraph.blit.point_out.y; y <= end_y; y++)
-    {
-        old_position.y = new_position.y = y;
+    /* Prevents overwriting pixels we've already modified*/
+    uint32_t xdiff = 0, ydiff = 0;
 
-        for (int32_t x = nv3->pgraph.blit.point_out.x; x <= end_x; x++)
+    /* Read the old pixel into the line buffer */
+    for (int32_t y = 0; y < nv3->pgraph.blit.size.h; y++)
+    {
+        old_position.y = nv3->pgraph.blit.point_in.y + y;
+
+        for (int32_t x = 0; x < nv3->pgraph.blit.size.w; x++)
         {
-            old_position.x = new_position.x = x;
+            old_position.x = nv3->pgraph.blit.point_in.x + x;
 
             switch (nv3->nvbase.svga.bpp)
             {
@@ -143,7 +163,26 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
                     break;
             }
 
-            nv3_render_write_pixel(new_position, pixel_to_copy, grobj);
+            uint32_t buf_position = (y * nv3->pgraph.blit.size.w) + x;
+            nv3_s2sb_line_buffer[buf_position] = pixel_to_copy;
         }
-   }
+
+
+    }
+    /* simply write it all back to vram */
+    for (int32_t y = 0; y < nv3->pgraph.blit.size.h; y++)
+    {
+        new_position.y = nv3->pgraph.blit.point_out.y + y;
+
+        for (int32_t x = 0; x < nv3->pgraph.blit.size.w; x++)
+        {
+            new_position.x = nv3->pgraph.blit.point_out.x + x;
+    
+            uint32_t buf_position = (y * nv3->pgraph.blit.size.w) + x;
+    
+            nv3_render_write_pixel(new_position, nv3_s2sb_line_buffer[buf_position], grobj);
+        }
+    }
+    
+
 }
