@@ -338,20 +338,13 @@ bochs_vbe_recalctimings(svga_t* svga)
             svga->rowoffset = (dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] / 2) >> 3;
             svga->ma_latch  = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
                               (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] >> 3);
+
+            svga->fullchange = 3;
         } else {
             svga->rowoffset = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8));
             svga->ma_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
-                             (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));            
-        }
-        if (svga->ma_latch != dev->ma_latch_old) {
-            if (svga->bpp == 4) {
-                svga->maback = (svga->maback - (dev->ma_latch_old << 2)) +
-                               (svga->ma_latch << 2);
-            } else {
-                svga->maback = (svga->maback - (dev->ma_latch_old)) +
-                                (svga->ma_latch);
-                dev->ma_latch_old = svga->ma_latch;
-            }
+                             (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));
+            svga->fullchange = 3;     
         }
 
         if (svga->bpp == 4)
@@ -482,18 +475,10 @@ bochs_vbe_outw(const uint16_t addr, const uint16_t val, void *priv)
                 } else {
                     svga->rowoffset = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8));
                     svga->ma_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
-                                    (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));            
+                                    (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));
                 }
-                if (svga->ma_latch != dev->ma_latch_old) {
-                    if (svga->bpp == 4) {
-                        svga->maback = (svga->maback - (dev->ma_latch_old << 2)) +
-                                    (svga->ma_latch << 2);
-                    } else {
-                        svga->maback = (svga->maback - (dev->ma_latch_old)) +
-                                        (svga->ma_latch);
-                        dev->ma_latch_old = svga->ma_latch;
-                    }
-                }
+
+                svga->fullchange = 3;
             }
             else
                 svga_recalctimings(&dev->svga);
