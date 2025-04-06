@@ -270,8 +270,8 @@ typedef struct nv3_color_argb_s
 /* Generic 16-bit position*/
 typedef struct nv3_position_16_s
 {
-    uint16_t y;
     uint16_t x;
+    uint16_t y;
 } nv3_position_16_t;
 
 /* A big position format with 30:16 = y, 15:11 = nothing, 10:0 = x */
@@ -287,8 +287,8 @@ typedef struct nv3_position_16_bigy_s
 /* Generic 16-bit size */
 typedef struct nv3_size_16_s
 {
-    uint16_t h;
     uint16_t w;
+    uint16_t h;
 } nv3_size_16_t;
 
 /* Generic 32-bit colour + 16-bit position */

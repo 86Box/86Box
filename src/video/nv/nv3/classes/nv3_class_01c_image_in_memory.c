@@ -77,8 +77,13 @@ void nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             break;  
         /* Byte offset in GPU VRAM of top left pixel (22:0) */
         case NV3_IMAGE_IN_MEMORY_TOP_LEFT_OFFSET:
-            nv3->pgraph.boffset[src_buffer_id] = param & ((1 << NV3_IMAGE_IN_MEMORY_TOP_LEFT_OFFSET_END) - 0x10);
-
+            if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00) // RIVA 128ZX
+                nv3->pgraph.boffset[src_buffer_id] = param & 0x7FFFFF;
+            else
+                nv3->pgraph.boffset[src_buffer_id] = param & 0x3FFFFF;
+                
+            nv3->nvbase.last_buffer_address = nv3->pgraph.boffset[src_buffer_id];
+            
             nv_log("Method Execution: Image in Memory BUF%d TOP_LEFT_OFFSET=0x%08x\n", src_buffer_id, nv3->pgraph.boffset[src_buffer_id]);
             break;
         default:

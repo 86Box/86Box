@@ -18,6 +18,9 @@
 #pragma once
 
 /* Core */
+void nv3_render_15bpp(svga_t *svga);
+void nv3_render_16bpp(svga_t *svga);
+void nv3_render_32bpp(svga_t *svga);
 void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t grobj);
 uint8_t nv3_render_read_pixel_8(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination);
 uint16_t nv3_render_read_pixel_16(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination);

@@ -873,7 +873,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
     uint32_t next_put_address = nv3_pfifo_cache1_gray2normal(current_put_index);
     next_put_address++;
 
-    if (nv3->nvbase.gpu_revision >= NV3_BOOT_REG_REV_C00) // RIVA 128ZX#
+    if (nv3->nvbase.gpu_revision >= NV3_PCI_CFG_REVISION_C00) // RIVA 128ZX#
         next_put_address &= (NV3_PFIFO_CACHE1_SIZE_REV_C - 1);
     else 
         next_put_address &= (NV3_PFIFO_CACHE1_SIZE_REV_AB - 1);
@@ -931,7 +931,7 @@ void nv3_pfifo_cache1_pull()
     // start by incrementing
     uint32_t next_get_address = nv3_pfifo_cache1_gray2normal(get_index) + 1;
     
-    if (nv3->nvbase.gpu_revision >= NV3_BOOT_REG_REV_C00) // RIVA 128ZX#
+    if (nv3->nvbase.gpu_revision >= NV3_PCI_CFG_REVISION_C00) // RIVA 128ZX
         next_get_address &= (NV3_PFIFO_CACHE1_SIZE_REV_C - 1);
     else 
         next_get_address &= (NV3_PFIFO_CACHE1_SIZE_REV_AB - 1);

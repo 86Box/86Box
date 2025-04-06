@@ -436,3 +436,164 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
             break;
     }
 }
+
+
+/* 
+    Modified SVGA Core functions 
+    Done, to facilitate the buffer changing around stuff.
+
+    TODO: Do we need a custom 8bpp function?
+*/
+
+void nv3_render_15bpp(svga_t *svga)
+{
+    int       x;
+    uint32_t *p;
+    uint32_t  dat;
+    uint32_t  changed_addr;
+    uint32_t  addr;
+
+    /* "force_old_addr" code path removed, since we don't need it */
+
+    if ((svga->displine + svga->y_add) < 0)
+        return;
+
+    changed_addr = svga->remap_func(svga, svga->ma);
+
+    if (svga->changedvram[changed_addr >> 12] || svga->changedvram[(changed_addr >> 12) + 1] || svga->fullchange) {
+        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+
+        if (svga->firstline_draw == 2000)
+            svga->firstline_draw = svga->displine;
+        svga->lastline_draw = svga->displine;
+
+        if (!svga->remap_required) {
+            for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 8) {
+                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1)) & svga->vram_display_mask]);
+                *p++ = svga->conv_16to32(svga, dat & 0xffff, 15);
+                *p++ = svga->conv_16to32(svga, dat >> 16, 15);
+
+                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1) + 4) & svga->vram_display_mask]);
+                *p++ = svga->conv_16to32(svga, dat & 0xffff, 15);
+                *p++ = svga->conv_16to32(svga, dat >> 16, 15);
+
+                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1) + 8) & svga->vram_display_mask]);
+                *p++ = svga->conv_16to32(svga, dat & 0xffff, 15);
+                *p++ = svga->conv_16to32(svga, dat >> 16, 15);
+
+                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1) + 12) & svga->vram_display_mask]);
+                *p++ = svga->conv_16to32(svga, dat & 0xffff, 15);
+                *p++ = svga->conv_16to32(svga, dat >> 16, 15);
+            }
+            svga->ma += x << 1;
+        } else {
+            for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 2) {
+                addr = svga->remap_func(svga, svga->ma);
+                dat  = *(uint32_t *) (&svga->vram[(addr) & svga->vram_display_mask]);
+
+                *p++ = svga->conv_16to32(svga, dat & 0xffff, 15);
+                *p++ = svga->conv_16to32(svga, dat >> 16, 15);
+                svga->ma += 4;
+            }
+        }
+        svga->ma &= svga->vram_display_mask;
+    }
+}
+
+
+void nv3_render_16bpp(svga_t *svga)
+{
+    int       x;
+    uint32_t *p;
+    uint32_t  dat;
+    uint32_t  changed_addr;
+    uint32_t  addr;
+
+    if ((svga->displine + svga->y_add) < 0)
+        return;
+
+    changed_addr = svga->remap_func(svga, svga->ma);
+
+    /* "force_old_addr" code path removed, since we don't need it */
+    if (svga->changedvram[changed_addr >> 12] || svga->changedvram[(changed_addr >> 12) + 1] || svga->fullchange) {
+        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+
+        if (svga->firstline_draw == 2000)
+            svga->firstline_draw = svga->displine;
+        svga->lastline_draw = svga->displine;
+
+        if (!svga->remap_required) {
+            for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 8) {
+                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1)) & svga->vram_display_mask]);
+                *p++ = svga->conv_16to32(svga, dat & 0xffff, 16);
+                *p++ = svga->conv_16to32(svga, dat >> 16, 16);
+
+                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1) + 4) & svga->vram_display_mask]);
+                *p++ = svga->conv_16to32(svga, dat & 0xffff, 16);
+                *p++ = svga->conv_16to32(svga, dat >> 16, 16);
+
+                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1) + 8) & svga->vram_display_mask]);
+                *p++ = svga->conv_16to32(svga, dat & 0xffff, 16);
+                *p++ = svga->conv_16to32(svga, dat >> 16, 16);
+
+                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1) + 12) & svga->vram_display_mask]);
+                *p++ = svga->conv_16to32(svga, dat & 0xffff, 16);
+                *p++ = svga->conv_16to32(svga, dat >> 16, 16);
+            }
+            svga->ma += x << 1;
+        } else {
+            for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 2) {
+                addr = svga->remap_func(svga, svga->ma);
+                dat  = *(uint32_t *) (&svga->vram[(addr) & svga->vram_display_mask]);
+
+                *p++ = svga->conv_16to32(svga, dat & 0xffff, 16);
+                *p++ = svga->conv_16to32(svga, dat >> 16, 16);
+
+                svga->ma += 4;
+            }
+        }
+        svga->ma &= svga->vram_display_mask;
+    }
+}
+
+
+void nv3_render_32bpp(svga_t *svga)
+{
+    int       x;
+    uint32_t *p;
+    uint32_t  dat;
+    uint32_t  changed_addr;
+    uint32_t  addr;
+
+    if ((svga->displine + svga->y_add) < 0)
+        return;
+
+    /* "force_old_addr" code path removed, since we don't need it */
+
+    changed_addr = svga->remap_func(svga, svga->ma);
+
+    if (svga->changedvram[changed_addr >> 12] || svga->changedvram[(changed_addr >> 12) + 1] || svga->fullchange) {
+        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+
+        if (svga->firstline_draw == 2000)
+            svga->firstline_draw = svga->displine;
+        svga->lastline_draw = svga->displine;
+
+        if (!svga->remap_required) {
+            for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
+                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 2)) & svga->vram_display_mask]);
+                *p++ = svga_lookup_lut_ram(svga, dat & 0xffffff);
+            }
+            svga->ma += (x * 4);
+        } else {
+            for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
+                addr = svga->remap_func(svga, svga->ma);
+                dat  = *(uint32_t *) (&svga->vram[addr & svga->vram_display_mask]);
+                *p++ = svga_lookup_lut_ram(svga, dat & 0xffffff);
+
+                svga->ma += 4;
+            }
+        }
+        svga->ma &= svga->vram_display_mask;
+    }
+}

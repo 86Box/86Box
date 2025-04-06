@@ -164,12 +164,13 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
 
         memcpy(&nv3_s2sb_line_buffer[buf_position], &nv3->nvbase.svga.vram[vram_position], size_x);
     }
+    
     /* simply write it all back to vram */
     for (int32_t y = 0; y < nv3->pgraph.blit.size.h; y++)
     {        
         buf_position = (nv3->pgraph.blit.size.w * y);
         new_position.y = nv3->pgraph.blit.point_out.y + y;
-        vram_position = nv3_render_get_vram_address(new_position, grobj, false);
+        vram_position = nv3_render_get_vram_address(new_position, grobj, true);
         memcpy(&nv3->nvbase.svga.vram[vram_position], &nv3_s2sb_line_buffer[buf_position], size_x);
     }
 }

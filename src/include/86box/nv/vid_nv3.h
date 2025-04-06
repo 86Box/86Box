@@ -1194,8 +1194,8 @@ typedef struct nv3_pgraph_s
     nv3_pgraph_dma_settings_t dma_settings;
     uint8_t rop;                                            // Current GDI Ternary Render Operation
     // SURFACE STUFF - PGRAPH CAN OPERATE ON 4 SURFACES/BUFFERS AT A TIME
-    uint32_t boffset[NV3_PGRAPH_MAX_BUFFERS];               // 22-bit linear VRAM offset for the start of a surface.
-    uint16_t bpitch[NV3_PGRAPH_MAX_BUFFERS];                // 12-bit linear VRAM offset for the pitch of a surfac.e
+    uint32_t boffset[NV3_PGRAPH_MAX_BUFFERS];               // 22-bit linear VRAM offset for the start of a buffer.
+    uint16_t bpitch[NV3_PGRAPH_MAX_BUFFERS];                // 12-bit linear VRAM offset for the pitch of a buffer
     uint32_t bpixel[NV3_PGRAPH_MAX_BUFFERS];                // Pixel format for each possible surfaces.
     // CLIP
     nv3_pgraph_clip_misc_settings_t clip_misc_settings;
