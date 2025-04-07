@@ -789,7 +789,7 @@ MEM_LOAD_ADDR_EA_W(x86seg *seg)
     host_reg_mapping[0] = 8;
 }
 static __inline void
-MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset)
+MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset, int op_32)
 {
     if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
         addbyte(0x31); /*XOR EDX, EDX*/

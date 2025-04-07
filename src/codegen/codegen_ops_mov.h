@@ -600,12 +600,12 @@ ropMOV_seg_w(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t
             MEM_LOAD_ADDR_EA_L(target_seg);                                                                          \
             STORE_HOST_REG_ADDR((uintptr_t) &codegen_temp, 0);                                                       \
             LOAD_EA();                                                                                               \
-            MEM_LOAD_ADDR_EA_W_OFFSET(target_seg, 4);                                                                \
+            MEM_LOAD_ADDR_EA_W_OFFSET(target_seg, 4, op_32);                                                         \
         } else {                                                                                                     \
             MEM_LOAD_ADDR_EA_W(target_seg);                                                                          \
             STORE_HOST_REG_ADDR_W((uintptr_t) &codegen_temp, 0);                                                     \
             LOAD_EA();                                                                                               \
-            MEM_LOAD_ADDR_EA_W_OFFSET(target_seg, 2);                                                                \
+            MEM_LOAD_ADDR_EA_W_OFFSET(target_seg, 2, op_32);                                                         \
         }                                                                                                            \
         LOAD_SEG(0, &rseg);                                                                                          \
         if (op_32 & 0x100) {                                                                                         \
