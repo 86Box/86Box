@@ -894,8 +894,8 @@ msgstr "Конфігурація пристрою %1"
 msgid "Monitor in sleep mode"
 msgstr "Монітор у сплячому режимі"
 
-msgid "OpenGL Shaders"
-msgstr "Шейдери OpenGL"
+msgid "GLSL shaders"
+msgstr "Шейдери GLSL"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Ви завантажуєте непідтримувану конфігурацію"

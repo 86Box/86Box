@@ -894,8 +894,8 @@ msgstr "Configuració de Dispositiu %1"
 msgid "Monitor in sleep mode"
 msgstr "Monitor en mode estalvi"
 
-msgid "OpenGL Shaders"
-msgstr "Shaders OpenGL"
+msgid "GLSL shaders"
+msgstr "Shaders GLSL"
 
 msgid "You are loading an unsupported configuration"
 msgstr "S'està carregant una configuració no suportada"

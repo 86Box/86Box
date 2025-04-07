@@ -894,8 +894,8 @@ msgstr "%1 裝置設定"
 msgid "Monitor in sleep mode"
 msgstr "顯示器處在睡眠狀態"
 
-msgid "OpenGL Shaders"
-msgstr "OpenGL 著色器"
+msgid "GLSL shaders"
+msgstr "GLSL 著色器"
 
 msgid "You are loading an unsupported configuration"
 msgstr "正在載入一個不受支援的設定"

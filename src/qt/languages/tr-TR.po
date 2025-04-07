@@ -894,8 +894,8 @@ msgstr "%1 cihaz konfigürasyonu"
 msgid "Monitor in sleep mode"
 msgstr "Monitör uyku modunda"
 
-msgid "OpenGL Shaders"
-msgstr "OpenGL gölgelendiricileri"
+msgid "GLSL shaders"
+msgstr "GLSL gölgelendiricileri"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Desteklenmeyen bir konfigürasyon kullanıyorsunuz"

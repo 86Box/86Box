@@ -894,8 +894,8 @@ msgstr "%1 Apparaatconfiguratie"
 msgid "Monitor in sleep mode"	
 msgstr "Monitor in slaapstand"
 
-msgid "OpenGL Shaders"	
-msgstr "OpenGL Shaders"
+msgid "GLSL shaders"	
+msgstr "GLSL Shaders"
 
 msgid "You are loading an unsupported configuration"	
 msgstr "U laadt een configuratie die niet wordt ondersteund"

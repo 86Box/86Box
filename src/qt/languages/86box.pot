@@ -894,7 +894,7 @@ msgstr ""
 msgid "Monitor in sleep mode"
 msgstr ""
 
-msgid "OpenGL Shaders"
+msgid "GLSL shaders"
 msgstr ""
 
 msgid "You are loading an unsupported configuration"

@@ -2,6 +2,7 @@
 #include "ui_qt_openglshadermanagerdialog.h"
 
 #include "qt_mainwindow.hpp"
+#include "qt_util.hpp"
 extern MainWindow* main_window;
 
 #include "qt_openglshaderconfig.hpp"
@@ -9,6 +10,7 @@ extern MainWindow* main_window;
 #include <QListWidgetItem>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QStringBuilder>
 
 extern "C" {
 #include <86box/86box.h>
@@ -166,7 +168,8 @@ void OpenGLShaderManagerDialog::on_buttonMoveDown_clicked()
 
 void OpenGLShaderManagerDialog::on_buttonAdd_clicked()
 {
-    auto res = QFileDialog::getOpenFileName(this, QString(), QString(), "GLSL Shaders (*.glslp *.glsl);;All files (*.*)");
+    auto res = QFileDialog::getOpenFileName(this, QString(), QString(),
+                                            tr("GLSL shaders") % util::DlgFilter({ "glslp", "glsl" }) % tr("All files") % util::DlgFilter({ "*" }, true));
     if (!res.isEmpty()) {
         auto glslp_file = res.toUtf8();
         glslp_t* shaderfile = glslp_parse(glslp_file.data());

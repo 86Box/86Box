@@ -894,8 +894,8 @@ msgstr "%1 - Laitteen määritykset"
 msgid "Monitor in sleep mode"
 msgstr "Näyttö lepotilassa"
 
-msgid "OpenGL Shaders"
-msgstr "OpenGL-varjostinohjelmat"
+msgid "GLSL shaders"
+msgstr "GLSL-varjostinohjelmat"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Olet lataamassa ei-tuettuja määrittelyjä"

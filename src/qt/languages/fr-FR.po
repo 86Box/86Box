@@ -894,8 +894,8 @@ msgstr "Configuration du dispositif %1"
 msgid "Monitor in sleep mode"
 msgstr "Moniteur en mode veille"
 
-msgid "OpenGL Shaders"
-msgstr "Shaders OpenGL"
+msgid "GLSL shaders"
+msgstr "Shaders GLSL"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Vous chargez une configuration non prise en charge"

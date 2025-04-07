@@ -894,8 +894,8 @@ msgstr "Configuração de dispositivo %1"
 msgid "Monitor in sleep mode"
 msgstr "Ecrã em modo de sono"
 
-msgid "OpenGL Shaders"
-msgstr "Shaders OpenGL"
+msgid "GLSL shaders"
+msgstr "Shaders GLSL"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Está a carregar uma configuração sem suporte!"

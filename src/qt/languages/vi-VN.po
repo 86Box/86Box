@@ -894,8 +894,8 @@ msgstr "Tinh chỉnh thiết bị %1"
 msgid "Monitor in sleep mode"
 msgstr "Màn hình chế độ chờ/ngủ"
 
-msgid "OpenGL Shaders"
-msgstr "Shader OpenGL"
+msgid "GLSL shaders"
+msgstr "Shader GLSL"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Bạn đang load tinh chỉnh không được hỗ trợ."
