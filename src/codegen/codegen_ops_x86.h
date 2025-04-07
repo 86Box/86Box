@@ -803,7 +803,7 @@ MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset)
     addbyte(0xc0);
     addbyte(offset);
     if (!(op_32 & 0x200)) {
-        addbyte(0x25) /* AND EAX, ffffh */
+        addbyte(0x25); /* AND EAX, ffffh */
         addbyte(0xff);
         addbyte(0xff);
         addbyte(0x00);
