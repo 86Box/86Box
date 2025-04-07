@@ -335,7 +335,10 @@ typedef struct {
     uint8_t tag[8];
 
     x86seg  *ea_seg;
-    uint32_t eaaddr;
+    union {
+        uint32_t eaaddr;
+        uint16_t eaa16[2];
+    };
 
     int      flags_op;
     uint32_t flags_res;
