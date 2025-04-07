@@ -70,6 +70,7 @@ typedef struct scsi_cdrom_t {
     int                was_cached;
     int                toc_cached;
     int                media_access;
+    int                sectors_num;
 
     uint8_t            vendor_type;
     uint8_t            ven_cmd_is_data[256];

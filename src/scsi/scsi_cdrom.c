@@ -699,14 +699,9 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
         if (dev->was_cached == -1)
             period *= (double) dev->packet_len;
         else {
-            int atapi_num = (dev->tf->request_length < dev->block_len) ?
-                             dev->block_len : dev->tf->request_length;
-            atapi_num     = (atapi_num / dev->block_len) * dev->block_len;
-            if (atapi_num > dev->sector_len)
-                atapi_num = dev->sector_len;
             const int num = ((dev->drv->bus_type == CDROM_BUS_SCSI) ||
-                             (dev->block_len == 0)) ? dev->requested_blocks :
-                            ((scsi_cdrom_current_mode(dev) == 2) ? 1 : atapi_num);
+                             (dev->block_len == 0)) ? dev->sectors_num :
+                            ((scsi_cdrom_current_mode(dev) == 2) ? 1 : dev->sectors_num);
 
             period *= ((double) num) * 2352.0;
         }
@@ -1051,6 +1046,8 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
     int       num      = (dev->drv->bus_type == CDROM_BUS_SCSI) ?
                          dev->requested_blocks : 1;
 
+    dev->sectors_num   = 0;
+
     if (dev->drv->cd_status == CD_STATUS_EMPTY)
         scsi_cdrom_not_ready(dev);
     else if (dev->sector_pos > dev->drv->cdrom_capacity) {
@@ -1085,6 +1082,7 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
                 dev->drv->seek_pos = dev->sector_pos;
 
                 dev->sector_len--;
+                dev->sectors_num++;
 
                 dev->buffer_pos += temp_len;
             }
@@ -2423,6 +2421,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
     int32_t      *BufLen;
 
     dev->was_cached  = -1;
+    dev->sectors_num = 1;
 
     if (dev->drv->bus_type == CDROM_BUS_SCSI) {
         BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
