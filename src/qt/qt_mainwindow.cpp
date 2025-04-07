@@ -674,7 +674,11 @@ MainWindow::MainWindow(QWidget *parent)
     /* Remove default Shift+F10 handler, which unfocuses keyboard input even with no context menu. */
     connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, [](){});
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    auto windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_PageDown), this);
+#else
     auto windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_PageDown), this);
+#endif
     windowedShortcut->setContext(Qt::ShortcutContext::ApplicationShortcut);
     connect(windowedShortcut, &QShortcut::activated, this, [this] () {
         if (video_fullscreen)
