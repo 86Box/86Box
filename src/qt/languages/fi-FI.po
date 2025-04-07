@@ -306,17 +306,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "Peruuta"
 
-msgid "Save these settings as &global defaults"
-msgstr "Tallenna nämä asetukset &globaaleiksi oletuksiksi"
-
 msgid "&Default"
 msgstr "&Oletus"
 
 msgid "Language:"
 msgstr "Kieli:"
-
-msgid "Icon set:"
-msgstr "Kuvakkeet:"
 
 msgid "Gain"
 msgstr "Taso"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "Kt"
 
-msgid "Could not initialize the video renderer."
-msgstr "Videorenderöijän alustus epäonnistui"
-
 msgid "Default"
 msgstr "Oletus"
 
@@ -906,9 +897,6 @@ msgstr "Näyttö lepotilassa"
 msgid "OpenGL Shaders"
 msgstr "OpenGL-varjostinohjelmat"
 
-msgid "OpenGL options"
-msgstr "OpenGL-asetukset"
-
 msgid "You are loading an unsupported configuration"
 msgstr "Olet lataamassa ei-tuettuja määrittelyjä"
 
@@ -929,12 +917,6 @@ msgstr "ROM-moduuli %i: %ls"
 
 msgid "Cartridge images"
 msgstr "ROM-moduulikuvat"
-
-msgid "Error initializing renderer"
-msgstr "Virhe renderöijän alustuksessa"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core)-renderöijän alustus epäonnistui. Käytä toista renderöijää."
 
 msgid "Resume execution"
 msgstr "Jatka suoritusta"
@@ -1293,21 +1275,6 @@ msgstr "Nolla-ajuri"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "Virhe \"%1\" avaamisessa: %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Virhe vertex-shaderin kääntämisessä tiedostossa  \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Virhe fragmenttivarjostimen kääntämisessä tiedostossa \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Virhe varjostinohjelman linkittämisessä tiedostoon \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "OpenGL 3.0-alustusasetukset"
-
 msgid "Render behavior"
 msgstr "Renderöintikäyttäytyminen"
 
@@ -1319,9 +1286,6 @@ msgstr " ruutua/s"
 
 msgid "VSync"
 msgstr "VSync"
-
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Renderöi jokainen ruutu välittömästi synkronoidusti emuloidun näytön kanssa.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Tämä on suositeltava vaihtoehto, jos käytössä olevat varjostimet eivät käytä frametimeä animaatioefekteihin.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 
 msgid "Synchronize with video"
 msgstr "Synkronisoi videoon"
@@ -1338,15 +1302,6 @@ msgstr "Ei valittu varjostinohjelmatta"
 msgid "Browse..."
 msgstr "Selaa..."
 
-msgid "Shader error"
-msgstr "Varjostinohjelmatvirhe"
-
-msgid "Could not load shaders."
-msgstr "Varjostinohjelmateita ei voitu ladata."
-
-msgid "More information in details."
-msgstr "Lisätietoja yksityiskohtaisesti."
-
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGL-kontekstia ei voitu luoda."
 
@@ -1356,17 +1311,11 @@ msgstr "Ei voitu siirtyä OpenGL-kontekstiin."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Tarvitaan OpenGL-versio 3.0 tai uudempi. Nykyinen versio on %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "OpenGL:n alustaminen epäonnistui. Virhe %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Virhe OpenGL:n alustamisessa"
 
 msgid "Falling back to software rendering.\n"
 msgstr "Paluu ohjelmistoalustusöintiin.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Pakkauspuskurin muistin varaaminen epäonnistui.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Kun valitset mediakuvia (CD-ROM, levykkeet jne.), avausikkuna käynnistyy samaan hakemistoon kuin 86Boxin konfigurointitiedosto. Tällä asetuksella on todennäköisesti merkitystä vain macOS-käyttöjärjestelmässä.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

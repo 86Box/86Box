@@ -306,17 +306,11 @@ msgstr "Aceptar"
 msgid "Cancel"
 msgstr "Cancelar"
 
-msgid "Save these settings as &global defaults"
-msgstr "Salvar estos configuraciones como por &defecto globalmente"
-
 msgid "&Default"
 msgstr "&Por defecto"
 
 msgid "Language:"
 msgstr "Idioma:"
-
-msgid "Icon set:"
-msgstr "Juego de iconos:"
 
 msgid "Gain"
 msgstr "Ganancia"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "No fué posible inicializar el renderizador de vídeo."
-
 msgid "Default"
 msgstr "Por defecto"
 
@@ -906,9 +897,6 @@ msgstr "Monitor en modo ahorro"
 msgid "OpenGL Shaders"
 msgstr "Shaders OpenGL"
 
-msgid "OpenGL options"
-msgstr "Opciones OpenGL"
-
 msgid "You are loading an unsupported configuration"
 msgstr "Está cargando una configuración no soportada"
 
@@ -929,12 +917,6 @@ msgstr "Cartucho %i: %ls"
 
 msgid "Cartridge images"
 msgstr "Imágenes de Cartucho"
-
-msgid "Error initializing renderer"
-msgstr "Error al inicializar el renderizador"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "No fué posible inicializar el renderizador OpenGL (3.0 Core). Utilice otro renderizador."
 
 msgid "Resume execution"
 msgstr "Retomar la ejecución"
@@ -1292,21 +1274,6 @@ msgstr "Controlador nulo"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "Error al abrir \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Error al compilar el vertex shader en el archivo \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Error al compilar el fragmentshader en el archivo \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Error al enlazar el programa shader en el archivo \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Opciones del renderizador OpenGL 3.0"
-
 msgid "Render behavior"
 msgstr "Comportamiento del renderizador"
 
@@ -1319,9 +1286,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Renderiza cada fotograma inmediatamente, en sincronía con la pantalla emulada.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Esta es la opción recomendada si los shaders en uso no utilizan frametime para efectos animados.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Sincronizar con los gráficos"
 
@@ -1331,20 +1295,8 @@ msgstr "Shaders"
 msgid "Remove"
 msgstr "Eliminar"
 
-msgid "No shader selected"
-msgstr "Ningun shader seleccionado"
-
 msgid "Browse..."
 msgstr "Buscar..."
-
-msgid "Shader error"
-msgstr "Error del shader"
-
-msgid "Could not load shaders."
-msgstr "No ha sido posible carregar los shaders."
-
-msgid "More information in details."
-msgstr "Más informaciones en los detalles."
 
 msgid "Couldn't create OpenGL context."
 msgstr "No ha sido posible crear el contexto OpenGL."
@@ -1355,17 +1307,11 @@ msgstr "No ha sido posible cambiar al contexto OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Es requerida la versión 3.0 o más alta de OpenGL. La versión actual es %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "La inicialización de OpenGL no tuvo éxito. Error %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Error al inicializar OpenGL"
 
 msgid "Falling back to software rendering.\n"
 msgstr "Recurrir al renderizado por software.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "La allocación de memoria para el búfer de desempaquetado no tuvo éxito.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Al seleccionar imágenes multimedia (CD-ROM, disquete, etc.), el diálogo de apertura se iniciará en el mismo directorio que el archivo de configuración de 86Box. Es probable que este ajuste sólo suponga una diferencia en macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

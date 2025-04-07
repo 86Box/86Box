@@ -306,17 +306,11 @@ msgstr "확인"
 msgid "Cancel"
 msgstr "취소"
 
-msgid "Save these settings as &global defaults"
-msgstr "이 설정들을 전역 기본값으로 저장하기(&G)"
-
 msgid "&Default"
 msgstr "기본값(&D)"
 
 msgid "Language:"
 msgstr "언어:"
-
-msgid "Icon set:"
-msgstr "아이콘셋:"
 
 msgid "Gain"
 msgstr "증가값"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "비디오 렌더러를 초기화할 수 없습니다."
-
 msgid "Default"
 msgstr "기본값"
 
@@ -906,9 +897,6 @@ msgstr "모니터 절전 모드"
 msgid "OpenGL Shaders"
 msgstr "OpenGL 쉐이더"
 
-msgid "OpenGL options"
-msgstr "OpenGL 설정"
-
 msgid "You are loading an unsupported configuration"
 msgstr "지원하지 않는 설정입니다"
 
@@ -929,12 +917,6 @@ msgstr "카트리지 %i: %ls"
 
 msgid "Cartridge images"
 msgstr "카트리지 이미지"
-
-msgid "Error initializing renderer"
-msgstr "렌더러 초기화 오류"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) 렌더러를 초기화할 수 없습니다. 다른 렌더러를 사용하십시오."
 
 msgid "Resume execution"
 msgstr "실행 재개"
@@ -1293,21 +1275,6 @@ msgstr "Null 드라이버"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "열기 오류 \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "파일 \"%1\"에서 버텍스 셰이더를 컴파일하는 동안 오류가 발생했습니다."
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "파일에서 조각 셰이더 컴파일 중 오류 발생 \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "파일에서 셰이더 프로그램 연결 중 오류 \"%1\"\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "OpenGL 3.0 렌더러 옵션"
-
 msgid "Render behavior"
 msgstr "렌더링 동작"
 
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;;에뮬레이트된 디스플레이와 동기화하여 각 프레임을 즉시 렌더링합니다.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;사용 중인 셰이더가 애니메이션 효과에 프레임 시간을 활용하지 않는 경우 권장되는 옵션입니다.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "비디오와 동기"
 
@@ -1332,20 +1296,8 @@ msgstr "셰이더"
 msgid "Remove"
 msgstr "제거"
 
-msgid "No shader selected"
-msgstr "셰이더를 선택하지 않음"
-
 msgid "Browse..."
 msgstr "찾아보기..."
-
-msgid "Shader error"
-msgstr "셰이더 오류"
-
-msgid "Could not load shaders."
-msgstr "셰이더를 로드할 수 없습니다."
-
-msgid "More information in details."
-msgstr "자세한 내용은 자세히 알아보세요."
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGL 컨텍스트를 만들 수 없습니다."
@@ -1356,17 +1308,11 @@ msgstr "OpenGL 컨텍스트로 전환할 수 없습니다."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGL 버전 3.0 이상이 필요합니다. 현재 버전은 %1.%2입니다."
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "OpenGL 초기화에 실패했습니다. 오류 %1입니다."
-
 msgid "Error initializing OpenGL"
 msgstr "OpenGL 초기화 중 오류 발생"
 
 msgid "Falling back to software rendering.\n"
 msgstr "소프트웨어 렌더링으로 돌아가기.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "압축 해제 버퍼에 메모리를 할당하지 못했습니다.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;미디어 이미지(CD-ROM, 플로피 등)를 선택하면 86Box 구성 파일과 동일한 디렉터리에서 열기 대화 상자가 시작됩니다. 이 설정은 macOS에서만 차이가 있을 수 있습니다.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

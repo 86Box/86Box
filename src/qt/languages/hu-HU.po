@@ -306,17 +306,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "Mégse"
 
-msgid "Save these settings as &global defaults"
-msgstr "Beállítások mentése &globális alapértékként"
-
 msgid "&Default"
 msgstr "&Alapértelmezett"
 
 msgid "Language:"
 msgstr "Nyelv:"
-
-msgid "Icon set:"
-msgstr "Ikonkészlet:"
 
 msgid "Gain"
 msgstr "Hangerő"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Nem sikerült inicializálni a videó megjelenítőt."
-
 msgid "Default"
 msgstr "Alapértelmezett"
 
@@ -906,9 +897,6 @@ msgstr "Képernyő alvó módban"
 msgid "OpenGL Shaders"
 msgstr "OpenGL Shaderek"
 
-msgid "OpenGL options"
-msgstr "OpenGL beállítások"
-
 msgid "You are loading an unsupported configuration"
 msgstr "Egy nem támogatott konfigurációt tölt be"
 
@@ -929,12 +917,6 @@ msgstr "ROM-kazetta %i: %ls"
 
 msgid "Cartridge images"
 msgstr "ROM-kazetta képek"
-
-msgid "Error initializing renderer"
-msgstr "Hiba történt a renderelő inicializálásakor"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Az OpenGL (3.0 Core) megjelenítő-motort nem sikerült inicializálni. Kérem használjon másik renderelőt."
 
 msgid "Resume execution"
 msgstr "Folytassa a végrehajtást"
@@ -1293,21 +1275,6 @@ msgstr "Null Driver"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "Hiba a \"%1\" megnyitásakor: %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Hiba a vertex shader fordításában a \"%1\" fájlban"
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Hiba a fragment shader fordításában a \"%1\" fájlban"
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Hiba a shader program összekapcsolásában a \"%1\" fájlban"
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "OpenGL 3.0 renderelési beállítások"
-
 msgid "Render behavior"
 msgstr "Renderelési viselkedés"
 
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Az egyes képkockák azonnali, az emulált kijelzővel szinkronizált megjelenítése.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&quot;&gt;Ez az ajánlott opció, ha a használt shaderek nem használják a frametime-ot az animált effektusokhoz.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Szinkronizálás a videóval"
 
@@ -1332,20 +1296,8 @@ msgstr "Shaderek"
 msgid "Remove"
 msgstr "Távolítsa el a"
 
-msgid "No shader selected"
-msgstr "Nincs shader kiválasztva"
-
 msgid "Browse..."
 msgstr "Böngésszen..."
-
-msgid "Shader error"
-msgstr "Shader hiba"
-
-msgid "Could not load shaders."
-msgstr "Nem sikerült betölteni a shadereket."
-
-msgid "More information in details."
-msgstr "További információ a részletekről."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nem sikerült OpenGL-kontextust létrehozni."
@@ -1356,17 +1308,11 @@ msgstr "Nem tudott OpenGL-kontextusra váltani."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Az OpenGL 3.0 vagy magasabb verziója szükséges. Az aktuális verzió %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Az OpenGL inicializálása sikertelen. Hiba %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Hiba az OpenGL inicializálásában"
 
 msgid "Falling back to software rendering.\n"
 msgstr "Visszatérés a szoftveres rendereléshez.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "A memória kiosztása a kicsomagolási pufferhez sikertelen.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;A médiaképek (CD-ROM, floppy stb.) kiválasztásakor a megnyitási párbeszédpanel ugyanabban a könyvtárban indul, mint a 86Box konfigurációs fájl. Ez a beállítás valószínűleg csak a macOS rendszerben jelent különbséget.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

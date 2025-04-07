@@ -306,17 +306,11 @@ msgstr "确定"
 msgid "Cancel"
 msgstr "取消"
 
-msgid "Save these settings as &global defaults"
-msgstr "将以上设置存储为全局默认值(&G)"
-
 msgid "&Default"
 msgstr "默认(&D)"
 
 msgid "Language:"
 msgstr "语言:"
-
-msgid "Icon set:"
-msgstr "图标集:"
 
 msgid "Gain"
 msgstr "增益"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "无法初始化视频渲染器。"
-
 msgid "Default"
 msgstr "默认"
 
@@ -906,9 +897,6 @@ msgstr "显示器处在睡眠状态"
 msgid "OpenGL Shaders"
 msgstr "OpenGL 着色器"
 
-msgid "OpenGL options"
-msgstr "OpenGL 选项"
-
 msgid "You are loading an unsupported configuration"
 msgstr "正在载入一个不受支持的配置"
 
@@ -929,12 +917,6 @@ msgstr "卡带 %i: %ls"
 
 msgid "Cartridge images"
 msgstr "卡带映像"
-
-msgid "Error initializing renderer"
-msgstr "初始化渲染器时出错"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "无法初始化 OpenGL (3.0 Core) 渲染器。请使用其他渲染器。"
 
 msgid "Resume execution"
 msgstr "恢复执行"
@@ -1293,21 +1275,6 @@ msgstr "空驱动程序"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "打开 \"%1\": %2 时出错"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "文件 \"%1\" 中的顶点着色器编译出错"
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "文件 \"%1\" 中的片段着色器编译出错"
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "文件 \"%1\" 中的着色器程序链接出错"
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "OpenGL 3.0 渲染器选项"
-
 msgid "Render behavior"
 msgstr "渲染行为"
 
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;与模拟显示同步，即时渲染每一帧。&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;如果使用的着色器不使用帧时间来产生动画效果，则建议使用此选项。&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "与视频同步"
 
@@ -1332,20 +1296,8 @@ msgstr "着色器"
 msgid "Remove"
 msgstr "移除"
 
-msgid "No shader selected"
-msgstr "未选择着色器"
-
 msgid "Browse..."
 msgstr "浏览..."
-
-msgid "Shader error"
-msgstr "着色器错误"
-
-msgid "Could not load shaders."
-msgstr "无法加载着色器。"
-
-msgid "More information in details."
-msgstr "更多详细信息。"
 
 msgid "Couldn't create OpenGL context."
 msgstr "无法创建 OpenGL 上下文。"
@@ -1356,17 +1308,11 @@ msgstr "无法切换到 OpenGL 上下文。"
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "需要 OpenGL 3.0 或更高版本。当前版本为 %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "OpenGL 初始化失败。错误 %1."
-
 msgid "Error initializing OpenGL"
 msgstr "初始化 OpenGL 时出错"
 
 msgid "Falling back to software rendering.\n"
 msgstr "回到软件渲染。"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "为解包缓冲区分配内存失败.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;选择媒体图像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt；"

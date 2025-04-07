@@ -306,17 +306,11 @@ msgstr "Đồng ý"
 msgid "Cancel"
 msgstr "Thôi"
 
-msgid "Save these settings as &global defaults"
-msgstr "Lưu cài đặt làm mặc định chung"
-
 msgid "&Default"
 msgstr "&Mặc định"
 
 msgid "Language:"
 msgstr "Ngôn ngữ:"
-
-msgid "Icon set:"
-msgstr "Bộ biểu tượng:"
 
 msgid "Gain"
 msgstr "Tăng"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Không thể khởi tạo trình kết xuất (renderer) video ."
-
 msgid "Default"
 msgstr "Mặc định"
 
@@ -906,9 +897,6 @@ msgstr "Màn hình chế độ chờ/ngủ"
 msgid "OpenGL Shaders"
 msgstr "Shader OpenGL"
 
-msgid "OpenGL options"
-msgstr "Tùy chọn OpenGL"
-
 msgid "You are loading an unsupported configuration"
 msgstr "Bạn đang load tinh chỉnh không được hỗ trợ."
 
@@ -929,12 +917,6 @@ msgstr "Băng cartridge %i: %ls"
 
 msgid "Cartridge images"
 msgstr "Ảnh đĩa băng cartridge"
-
-msgid "Error initializing renderer"
-msgstr "Lỗi khởi tạo renderer (trình kết xuất)"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Không khởi tạo được renderer OpenGL (3.0 Core). Hãy dùng renderer khác."
 
 msgid "Resume execution"
 msgstr "Tiếp tục chạy thực thi"
@@ -1293,21 +1275,6 @@ msgstr "Trình điều khiển NULL"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i ( %ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "Mở lỗi \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Lỗi biên dịch shader đỉnh trong tệp \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Lỗi biên dịch shader fragment trong tệp \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Lỗi liên kết chương trình shader trong tệp \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Tùy chọn kết xuất OpenGL 3.0"
-
 msgid "Render behavior"
 msgstr "Hành vi kết xuất"
 
@@ -1320,9 +1287,6 @@ msgstr " khung hình / giây"
 msgid "VSync"
 msgstr "Vsync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Kết xuất mỗi khung ngay lập tức, đồng bộ với màn hình mô phỏng.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Đây là tùy chọn được đề xuất nếu các shader đang sử dụng không tối ưu frametime cho các hiệu ứng động.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Đồng bộ với video"
 
@@ -1332,20 +1296,8 @@ msgstr "Shaders"
 msgid "Remove"
 msgstr "Loại bỏ"
 
-msgid "No shader selected"
-msgstr "Không có shader được chọn"
-
 msgid "Browse..."
 msgstr "Duyệt..."
-
-msgid "Shader error"
-msgstr "Lỗi shader"
-
-msgid "Could not load shaders."
-msgstr "Không thể tải shader."
-
-msgid "More information in details."
-msgstr "Thêm thông tin chi tiết."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Không thể tạo bối cảnh OpenGL."
@@ -1356,17 +1308,11 @@ msgstr "Không thể chuyển sang bối cảnh OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGL phiên bản 3.0 trở lên là bắt buộc. Phiên bản hiện tại là %1. %2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Khởi tạo OpenGL không thành công. Lỗi %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Lỗi khởi tạo OpenGL"
 
 msgid "Falling back to software rendering.\n"
 msgstr "Quay trở lại kết xuất phần mềm.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Phân bổ bộ nhớ cho bộ đệm giải nén không thành công.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Khi chọn hình ảnh phương tiện (CD-ROM, ổ mềm, v.v.), hộp thoại mở sẽ bắt đầu trong cùng thư mục với tệp cấu hình 86box. Cài đặt này có thể sẽ chỉ tạo ra sự khác biệt trên macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

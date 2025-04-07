@@ -306,17 +306,11 @@ msgstr "D'acord"
 msgid "Cancel"
 msgstr "Anuŀlació"
 
-msgid "Save these settings as &global defaults"
-msgstr "Salvar aquests paràmetres com per &defecte globalment"
-
 msgid "&Default"
 msgstr "&Per defecte"
 
 msgid "Language:"
 msgstr "Idioma:"
-
-msgid "Icon set:"
-msgstr "Conjunt d'icones:"
 
 msgid "Gain"
 msgstr "Guany"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "No has estat possible inicialitzar el renderitzador de vídeo."
-
 msgid "Default"
 msgstr "Per defecte"
 
@@ -906,9 +897,6 @@ msgstr "Monitor en mode estalvi"
 msgid "OpenGL Shaders"
 msgstr "Shaders OpenGL"
 
-msgid "OpenGL options"
-msgstr "Opcions OpenGL"
-
 msgid "You are loading an unsupported configuration"
 msgstr "S'està carregant una configuració no suportada"
 
@@ -929,12 +917,6 @@ msgstr "Cartutx %i: %ls"
 
 msgid "Cartridge images"
 msgstr "Imatges de cartutx"
-
-msgid "Error initializing renderer"
-msgstr "Error en inicialitzar el renderitzador"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "No has estat possible inicialitzar el renderitzador OpenGL (3.0 Core). Utilitzar un altre renderitzador."
 
 msgid "Resume execution"
 msgstr "Reprendre l'execució"
@@ -1293,21 +1275,6 @@ msgstr "Controlador nul"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "Error d'obertura \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Error en recopilar el vertex shader al fitxer \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Error en recopilar el fragment shader al fitxer \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Error en enllaçar el programa de shader al fitxer \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Opcions del renderitzador OpenGL 3.0"
-
 msgid "Render behavior"
 msgstr "Comportament del renderitzador"
 
@@ -1320,9 +1287,6 @@ msgstr " fotogrames/s"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Feu que cada fotograma sigui immediatament, en sincronització amb la pantalla emulada.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Aquesta és l’opció recomanada si els shaders en ús no utilitzen FrameTime per a efectes animats.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Sincronitzar amb vídeo"
 
@@ -1332,20 +1296,8 @@ msgstr "Shaders"
 msgid "Remove"
 msgstr "Supressió"
 
-msgid "No shader selected"
-msgstr "Cap shader seleccionat"
-
 msgid "Browse..."
 msgstr "Navegació..."
-
-msgid "Shader error"
-msgstr "Error del shader"
-
-msgid "Could not load shaders."
-msgstr "No has estat possible carregar els shaders."
-
-msgid "More information in details."
-msgstr "Més informació en els detalls."
 
 msgid "Couldn't create OpenGL context."
 msgstr "No has estat possible crear un context d'OpenGL."
@@ -1356,17 +1308,11 @@ msgstr "No has estat possible canviar al context d'OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Es requereix la versió 3.0 o superior d'OpenGL. La versió actual és %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "No has estat possible inicialitzar OpenGL. Error %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Error en inicialitzar OpenGL"
 
 msgid "Falling back to software rendering.\n"
 msgstr "Tornant al renderitzador software.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "No has estat possible assignar la memòria per a un buffer de desempaquetament.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Quan seleccioneu imatges de suports (CD-ROM, disquet, etc.), el diàleg obert s’iniciarà al mateix directori que el fitxer de configuració 86Box. Aquesta configuració només farà una diferència en les macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

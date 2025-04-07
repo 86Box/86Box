@@ -306,16 +306,10 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
-msgid "Save these settings as &global defaults"
-msgstr ""
-
 msgid "&Default"
 msgstr ""
 
 msgid "Language:"
-msgstr ""
-
-msgid "Icon set:"
 msgstr ""
 
 msgid "Gain"
@@ -753,9 +747,6 @@ msgstr ""
 msgid "KB"
 msgstr ""
 
-msgid "Could not initialize the video renderer."
-msgstr ""
-
 msgid "Default"
 msgstr ""
 
@@ -906,9 +897,6 @@ msgstr ""
 msgid "OpenGL Shaders"
 msgstr ""
 
-msgid "OpenGL options"
-msgstr ""
-
 msgid "You are loading an unsupported configuration"
 msgstr ""
 
@@ -928,12 +916,6 @@ msgid "Cartridge %i: %ls"
 msgstr ""
 
 msgid "Cartridge images"
-msgstr ""
-
-msgid "Error initializing renderer"
-msgstr ""
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
 msgstr ""
 
 msgid "Resume execution"
@@ -1293,21 +1275,6 @@ msgstr ""
 msgid "NIC %02i (%ls) %ls"
 msgstr ""
 
-msgid "Error opening \"%1\": %2"
-msgstr ""
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr ""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr ""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr ""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr ""
-
 msgid "Render behavior"
 msgstr ""
 
@@ -1320,9 +1287,6 @@ msgstr ""
 msgid "VSync"
 msgstr ""
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr ""
-
 msgid "Synchronize with video"
 msgstr ""
 
@@ -1332,19 +1296,7 @@ msgstr ""
 msgid "Remove"
 msgstr ""
 
-msgid "No shader selected"
-msgstr ""
-
 msgid "Browse..."
-msgstr ""
-
-msgid "Shader error"
-msgstr ""
-
-msgid "Could not load shaders."
-msgstr ""
-
-msgid "More information in details."
 msgstr ""
 
 msgid "Couldn't create OpenGL context."
@@ -1356,16 +1308,10 @@ msgstr ""
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr ""
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr ""
-
 msgid "Error initializing OpenGL"
 msgstr ""
 
 msgid "Falling back to software rendering.\n"
-msgstr ""
-
-msgid "Allocating memory for unpack buffer failed.\n"
 msgstr ""
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

@@ -306,17 +306,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "Storno"
 
-msgid "Save these settings as &global defaults"
-msgstr "Uložiť toto nastavenie ako &globálny východiskový stav"
-
 msgid "&Default"
 msgstr "&Východiskové"
 
 msgid "Language:"
 msgstr "Jazyk:"
-
-msgid "Icon set:"
-msgstr "Súprava ikon:"
 
 msgid "Gain"
 msgstr "Zosilnenie"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Nastala chyba pri inicializácii video renderera."
-
 msgid "Default"
 msgstr "Východiskové"
 
@@ -906,9 +897,6 @@ msgstr "Monitor je v režime spánku"
 msgid "OpenGL Shaders"
 msgstr "Shadery OpenGL"
 
-msgid "OpenGL options"
-msgstr "Možnosti OpenGL"
-
 msgid "You are loading an unsupported configuration"
 msgstr "Pokúšate sa spustiť nepodporovanú konfiguráciu"
 
@@ -929,12 +917,6 @@ msgstr "Cartridge %i: %ls"
 
 msgid "Cartridge images"
 msgstr "Obrazy cartridge"
-
-msgid "Error initializing renderer"
-msgstr "Chyba pri inicializácii vykresľovača"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Vykresľovač OpenGL (3.0 Core) sa nepodarilo inicializovať. Použite iný renderer."
 
 msgid "Resume execution"
 msgstr "Obnoviť"
@@ -1293,20 +1275,6 @@ msgstr "Nulový ovládač"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "Chyba pri otváraní \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Chyba kompilácie vertex shadera v súbore \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Chyba kompilácie fragment shadera v súbore \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Chyba pri prepojení shader programu v súbore \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Možnosti vykresľovania OpenGL 3.0"
 
 msgid "Render behavior"
 msgstr "Správanie pri vykresľovaní"
@@ -1320,9 +1288,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Okamžite vykresliť každú snímku v synchronizácii s emulovaným displejom.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Toto je odporúčaná možnosť, ak používané shadery nevyužívajú frametime pre animované efekty.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Synchronizovať s obrazom"
 
@@ -1332,20 +1297,8 @@ msgstr "Shadery"
 msgid "Remove"
 msgstr "Odstránenie stránky"
 
-msgid "No shader selected"
-msgstr "Nie je vybraný žiadny tieňovač"
-
 msgid "Browse..."
 msgstr "Prehľadávať..."
-
-msgid "Shader error"
-msgstr "Chyba shadera"
-
-msgid "Could not load shaders."
-msgstr "Nepodarilo sa načítať shadery."
-
-msgid "More information in details."
-msgstr "Viac informácií v detailoch."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nepodarilo sa vytvoriť kontext OpenGL."
@@ -1356,17 +1309,11 @@ msgstr "Nepodarilo sa prepnúť na kontext OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Vyžaduje sa verzia OpenGL 3.0 alebo vyššia. Aktuálna verzia je %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Inicializácia OpenGL zlyhala. Chyba %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Chyba pri inicializácii OpenGL"
 
 msgid "Falling back to software rendering.\n"
 msgstr "Návrat k softvérovému vykresľovaniu.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Alokácia pamäte pre rozbaľovaciu vyrovnávaciu pamäť zlyhala.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pri výbere multimediálnych obrazov (CD-ROM, disketa atď.) sa dialógové okno otvorenia spustí v rovnakom adresári ako konfiguračný súbor 86Box. Toto nastavenie bude mať pravdepodobne význam len v systéme MacOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

@@ -306,17 +306,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "キャンセル"
 
-msgid "Save these settings as &global defaults"
-msgstr "これらの設定をグローバル既定値として保存(&G)"
-
 msgid "&Default"
 msgstr "既定値(&D)"
 
 msgid "Language:"
 msgstr "言語:"
-
-msgid "Icon set:"
-msgstr "アイコンセット:"
 
 msgid "Gain"
 msgstr "音量"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "ビデオレンダラーが初期化できません。"
-
 msgid "Default"
 msgstr "既定値"
 
@@ -906,9 +897,6 @@ msgstr "モニターのスリープモード"
 msgid "OpenGL Shaders"
 msgstr "OpenGLシェーダー"
 
-msgid "OpenGL options"
-msgstr "OpenGL設定"
-
 msgid "You are loading an unsupported configuration"
 msgstr "サポートされていないコンフィグを読み込んでいます"
 
@@ -929,12 +917,6 @@ msgstr "カートリッジ %i: %ls"
 
 msgid "Cartridge images"
 msgstr "カートリッジイメージ"
-
-msgid "Error initializing renderer"
-msgstr "レンダラーの初期化エラー"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) レンダラーが初期化できません。別のレンダラーを使用してください。"
 
 msgid "Resume execution"
 msgstr "実行を再開"
@@ -1293,21 +1275,6 @@ msgstr "ヌル・ドライバー"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "\"%1\"を開く際にエラーが発生しました: %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "ファイル\"%1\"の頂点シェーダのコンパイルエラー。"
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "ファイル\"%1\"のフラグメント・シェーダのコンパイル・エラー。"
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "ファイル\"%1\"のシェーダープログラムのリンクエラー。"
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "OpenGL 3.0レンダラー設定"
-
 msgid "Render behavior"
 msgstr "レンダリング動作"
 
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSシンク"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;エミュレートされたディスプレイと同期して、各フレームを即座にレンダリングします。&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;これは、使用中のシェーダがアニメーション効果のためにフレームタイムを利用しない場合に推奨されるオプションです。&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "ビデオと同期"
 
@@ -1332,20 +1296,8 @@ msgstr "シェーダー"
 msgid "Remove"
 msgstr "削除"
 
-msgid "No shader selected"
-msgstr "シェーダーが選択されていない"
-
 msgid "Browse..."
 msgstr "ブラウズ..."
-
-msgid "Shader error"
-msgstr "シェーダーエラー"
-
-msgid "Could not load shaders."
-msgstr "シェーダーをロードできませんでした。"
-
-msgid "More information in details."
-msgstr "詳細はこちら。"
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGLコンテキストを作成できませんでした。"
@@ -1356,17 +1308,11 @@ msgstr "OpenGLコンテキストに切り替えられなかった。"
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGLのバージョン3.0以上が必要です。現在のバージョンは %1.%2 です。"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "OpenGL の初期化に失敗しました。エラー %1。"
-
 msgid "Error initializing OpenGL"
 msgstr "OpenGLの初期化エラー"
 
 msgid "Falling back to software rendering.\n"
 msgstr "ソフトウェアレンダリングに逆戻り。"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "アンパックバッファのメモリ確保に失敗しました。"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;メディアイメージ（CD-ROM、フロッピーなど）を選択するとき、オープンダイアログは86Box設定ファイルと同じディレクトリで開始します。この設定は、おそらく macOS でのみ違いがあります。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

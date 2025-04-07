@@ -306,17 +306,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "Отмена"
 
-msgid "Save these settings as &global defaults"
-msgstr "Сохранить эти параметры как &глобальные по умолчанию"
-
 msgid "&Default"
 msgstr "&По умолчанию"
 
 msgid "Language:"
 msgstr "Язык:"
-
-msgid "Icon set:"
-msgstr "Набор иконок:"
 
 msgid "Gain"
 msgstr "Усиление"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "КБ"
 
-msgid "Could not initialize the video renderer."
-msgstr "Не удалось инициализировать рендерер видео."
-
 msgid "Default"
 msgstr "По умолчанию"
 
@@ -906,9 +897,6 @@ msgstr "Монитор в спящем режиме"
 msgid "OpenGL Shaders"
 msgstr "Шейдеры OpenGL"
 
-msgid "OpenGL options"
-msgstr "Параметры OpenGL"
-
 msgid "You are loading an unsupported configuration"
 msgstr "Вы загружаете неподдерживаемую конфигурацию"
 
@@ -929,12 +917,6 @@ msgstr "Картридж %i: %ls"
 
 msgid "Cartridge images"
 msgstr "Образы картриджей"
-
-msgid "Error initializing renderer"
-msgstr "Ошибка инициализации рендерера"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Невозможно инициализировать рендерер OpenGL (3.0). Пожалуйста, используйте другой рендерер."
 
 msgid "Resume execution"
 msgstr "Возобновить выполнение"
@@ -1293,21 +1275,6 @@ msgstr "Нулевой драйвер"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "Ошибка при открытии \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Ошибка компиляции вершинного шейдера в файле \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Ошибка компиляции фрагментного шейдера в файле \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Ошибка компоновки программы шейдера в файле \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Параметры рендеринга OpenGL 3.0"
-
 msgid "Render behavior"
 msgstr "Режим рендеринга"
 
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "Вертикальная синхронизация"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Рендерить каждый кадр немедленно, синхронно с эмулируемым дисплеем.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-style:italic;&quot;&gt;Это рекомендуемый вариант, если используемые шейдеры не используют время кадров для анимированных эффектов.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Синхронизация с видео"
 
@@ -1332,20 +1296,8 @@ msgstr "Шейдеры"
 msgid "Remove"
 msgstr "Удалить"
 
-msgid "No shader selected"
-msgstr "Шейдер не выбран"
-
 msgid "Browse..."
 msgstr "Обзор..."
-
-msgid "Shader error"
-msgstr "Ошибка шейдера"
-
-msgid "Could not load shaders."
-msgstr "Не удалось загрузить шейдеры."
-
-msgid "More information in details."
-msgstr "Более подробная информация в деталях."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Не удалось создать контекст OpenGL."
@@ -1356,17 +1308,11 @@ msgstr "Не удалось переключиться на контекст Ope
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Требуется OpenGL версии 3.0 или выше. Текущая версия %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Не удалось выполнить инициализацию OpenGL. Ошибка %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Ошибка инициализации OpenGL"
 
 msgid "Falling back to software rendering.\n"
 msgstr "Переключение на программный рендеринг.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Выделение памяти для буфера распаковки не удалось.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;При выборе образов носителей (CD-ROM, дискет и т. д.) диалог открытия будет запускаться в том же каталоге, что и файл конфигурации 86Box. Эта настройка, скорее всего, будет иметь значение только на macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

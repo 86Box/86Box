@@ -306,17 +306,11 @@ msgstr "U redu"
 msgid "Cancel"
 msgstr "Otkaži"
 
-msgid "Save these settings as &global defaults"
-msgstr "Spremite ove postavke kao &globalne zadane postavke"
-
 msgid "&Default"
 msgstr "Zadano"
 
 msgid "Language:"
 msgstr "Jezik:"
-
-msgid "Icon set:"
-msgstr "Paket ikona:"
 
 msgid "Gain"
 msgstr "Pojačavanje"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Nije moguće inicijalizirati renderer."
-
 msgid "Default"
 msgstr "Standard"
 
@@ -906,9 +897,6 @@ msgstr "Ekran u stanju mirovanja"
 msgid "OpenGL Shaders"
 msgstr "OpenGL shaderi"
 
-msgid "OpenGL options"
-msgstr "OpenGL opcije"
-
 msgid "You are loading an unsupported configuration"
 msgstr "Učitavate nepodržanu konfiguraciju"
 
@@ -929,12 +917,6 @@ msgstr "Kaseta %i: %ls"
 
 msgid "Cartridge images"
 msgstr "Slike kasete"
-
-msgid "Error initializing renderer"
-msgstr "Nije moguće inicijalizirati renderer"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Nije moguće inicijalizirati OpenGL (3.0 jezgra) renderer. Molimte koristite drugi renderer."
 
 msgid "Resume execution"
 msgstr "Nastavi"
@@ -1293,21 +1275,6 @@ msgstr "Nulti upravljački program"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "Nije moguće otvoriti \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Nije moguće sastaviti vertex shader u datoteci \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Nije moguće sastaviti framgent shader u datoteci \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Nije moguće povezati program shader u datoteci \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Opcije renderera OpenGL 3.0"
-
 msgid "Render behavior"
 msgstr "Ponašanje rendera"
 
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Odmah napravi svaki okvir, sinkronizirano s emuliranim zaslonom.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Ovo je preporučena opcija, ako korišćeni shader ne koristi vreme okvira za animirane efekte.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Sinkroniziraj s videom"
 
@@ -1332,20 +1296,8 @@ msgstr "Shaderi"
 msgid "Remove"
 msgstr "Ukloni"
 
-msgid "No shader selected"
-msgstr "Bez odabranog shadera"
-
 msgid "Browse..."
 msgstr "Pregledajte..."
-
-msgid "Shader error"
-msgstr "Greška shadera"
-
-msgid "Could not load shaders."
-msgstr "Nije moguće učitati shadere."
-
-msgid "More information in details."
-msgstr "Više informacija u detaljima."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nije moguće stvoriti kontekst OpenGL."
@@ -1356,17 +1308,11 @@ msgstr "Nije se moguće prebaciti na kontekst OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Potrebna je OpenGL verzija 3.0 ili više. Trenutna verzija je %1. %2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Nije moguće inicijalizirati OpenGL. Greška %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Nije moguće inicijalizirati OpenGL"
 
 msgid "Falling back to software rendering.\n"
 msgstr "Vraća se na softverski renderer.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Nije moguće idodijeliti memoriju za međuspremnik za raspakiranje.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Prilikom odabira medijskih slika (CD-ROM, diskete itd.), otvoreni dijalog zopočet će u istom direktoriju kao i konfiguracijska datoteka 86Box-a. Razlika će vjerojatno biti primjetna samo na macOS-u.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

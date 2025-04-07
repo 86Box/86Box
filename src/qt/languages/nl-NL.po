@@ -306,17 +306,11 @@ msgstr "OK"
 msgid "Cancel"	
 msgstr "Annuleren"
 
-msgid "Save these settings as &global defaults"	
-msgstr "Sla deze instellingen op als &globale standaardinstellingen"
-
 msgid "&Default"	
 msgstr "&Standaard"
 
 msgid "Language:"	
 msgstr "Taal:"
-
-msgid "Icon set:"	
-msgstr "Pictogrammenset:"
 
 msgid "Gain"	
 msgstr "Versterking"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"	
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."	
-msgstr "Kan de videorenderer niet initialiseren."
-
 msgid "Default"	
 msgstr "Standaard"
 
@@ -906,9 +897,6 @@ msgstr "Monitor in slaapstand"
 msgid "OpenGL Shaders"	
 msgstr "OpenGL Shaders"
 
-msgid "OpenGL options"	
-msgstr "OpenGL-opties"
-
 msgid "You are loading an unsupported configuration"	
 msgstr "U laadt een configuratie die niet wordt ondersteund"
 
@@ -929,12 +917,6 @@ msgstr "Cartridge %i: %ls"
 
 msgid "Cartridge images"	
 msgstr "Cartridge-images"
-
-msgid "Error initializing renderer"	
-msgstr "Fout bij het initialiseren van renderer"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."	
-msgstr "OpenGL (3.0 Core) renderer kon niet worden geïnitialiseerd. Gebruik een andere renderer."
 
 msgid "Resume execution"	
 msgstr "Hervat executie"
@@ -1293,21 +1275,6 @@ msgstr "Null Driver"
 msgid "NIC %02i (%ls) %ls"	
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"	
-msgstr "Fout bij het openen van \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""	
-msgstr "Fout bij het compileren van vertex shader in bestand \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""	
-msgstr "Fout bij het compileren van fragment shader in bestand \"%1\""
-
-msgid "Error linking shader program in file \"%1\""	
-msgstr "Fout bij koppelen shaderprogramma in bestand \"%1\""
-
-msgid "OpenGL 3.0 renderer options"	
-msgstr "OpenGL 3.0 renderer opties"
-
 msgid "Render behavior"	
 msgstr "Rendergedrag"
 
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"	
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"	
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Onmiddellijk elk frame synchroon met het geëmuleerde beeldscherm renderen.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Dit is de aanbevolen optie als de gebruikte shaders geen frametime gebruiken voor geanimeerde effecten.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"	
 msgstr "Synchroniseren met video"
 
@@ -1332,20 +1296,8 @@ msgstr "Shaders"
 msgid "Remove"	
 msgstr "Verwijderen"
 
-msgid "No shader selected"	
-msgstr "Geen shader geselecteerd"
-
 msgid "Browse..."	
 msgstr "Bladeren..."
-
-msgid "Shader error"	
-msgstr "Shader-fout"
-
-msgid "Could not load shaders."	
-msgstr "Kan shaders niet laden."
-
-msgid "More information in details."	
-msgstr "Meer informatie in details."
 
 msgid "Couldn't create OpenGL context."	
 msgstr "Kan OpenGL context niet maken."
@@ -1356,17 +1308,11 @@ msgstr "Kan niet overschakelen naar OpenGL context."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"	
 msgstr "OpenGL versie 3.0 of hoger is vereist. De huidige versie is %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."	
-msgstr "OpenGL initialisatie mislukt. Fout %1."
-
 msgid "Error initializing OpenGL"	
 msgstr "Fout bij het initialiseren van OpenGL"
 
 msgid "Falling back to software rendering.\n"	
 msgstr "Terugvallen op software rendering.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"	
-msgstr "Toewijzen van geheugen voor uitpakbuffer mislukt.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"	
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Bij het selecteren van media-images (CD-ROM, floppy, etc.) zal de \"open dialoog\" starten in dezelfde map als het 86Box configuratiebestand. Deze instelling is doet er waarschijnlijk alleen toe op macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

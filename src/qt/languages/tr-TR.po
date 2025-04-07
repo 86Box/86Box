@@ -306,17 +306,11 @@ msgstr "Tamam"
 msgid "Cancel"
 msgstr "İptal"
 
-msgid "Save these settings as &global defaults"
-msgstr "Ayarları &varsayılan olarak kaydet"
-
 msgid "&Default"
 msgstr "&Varsayılan"
 
 msgid "Language:"
 msgstr "Dil:"
-
-msgid "Icon set:"
-msgstr "Simge seti:"
 
 msgid "Gain"
 msgstr "Artış"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Video işleyici başlatılamadı."
-
 msgid "Default"
 msgstr "Varsayılan"
 
@@ -906,9 +897,6 @@ msgstr "Monitör uyku modunda"
 msgid "OpenGL Shaders"
 msgstr "OpenGL gölgelendiricileri"
 
-msgid "OpenGL options"
-msgstr "OpenGL ayarları"
-
 msgid "You are loading an unsupported configuration"
 msgstr "Desteklenmeyen bir konfigürasyon kullanıyorsunuz"
 
@@ -929,12 +917,6 @@ msgstr "Kartuş %i: %ls"
 
 msgid "Cartridge images"
 msgstr "Kartuş imajları"
-
-msgid "Error initializing renderer"
-msgstr "İşleyici başlatılırken hata oluştu"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) işleyici başlatılamadı. Başka bir görüntüleyici kullanın."
 
 msgid "Resume execution"
 msgstr "Çalıştırmaya devam et"
@@ -1293,21 +1275,6 @@ msgstr "Null sürücü"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "\"%1\": %2 açılırken hata oluştu"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "\"%1\" dosyasında tepe gölgelendirici derlenirken hata oluştu"
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "\"%1\" dosyasında parça gölgelendirici derlenirken hata oluştu"
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "\"%1\" dosyasında gölgelendirici programı bağlanırken hata oluştu"
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "OpenGL 3.0 işleyici seçenekleri"
-
 msgid "Render behavior"
 msgstr "İşleyiş davranışı"
 
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Emüle edilen ekranla senkronize olarak her kareyi hemen işleyin.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Kullanılan gölgelendiriciler animasyonlu efektler için kare zamanını kullanmıyorsa bu önerilen seçenektir.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Video ile senkronize et"
 
@@ -1332,20 +1296,8 @@ msgstr "Gölgelendiriciler"
 msgid "Remove"
 msgstr "Kaldır"
 
-msgid "No shader selected"
-msgstr "Gölgelendirici seçili değil"
-
 msgid "Browse..."
 msgstr "Göz at..."
-
-msgid "Shader error"
-msgstr "Gölgelendirici hatası"
-
-msgid "Could not load shaders."
-msgstr "Gölgelendiriciler yüklenemedi."
-
-msgid "More information in details."
-msgstr "Daha fazla bilgi detaylardadır."
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGL bağlamı oluşturulamadı."
@@ -1356,17 +1308,11 @@ msgstr "OpenGL bağlamına geçilemedi."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGL sürüm 3.0 veya üstü gereklidir. Geçerli sürüm %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "OpenGL başlatılamadı. Hata %1."
-
 msgid "Error initializing OpenGL"
 msgstr "OpenGL başlatılırken hata oluştu"
 
 msgid "Falling back to software rendering.\n"
 msgstr "Yazılım işleyicisine geri dönülüyor.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Paket açma arabelleği için bellek ayırma başarısız oldu.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Medya görüntüsü (CD-ROM, disket, vb.) seçme diyaloğu 86Box yapılandırma dosyasıyla aynı dizinde başlayacaktır. Bu ayar muhtemelen sadece macOS üzerinde bir fark meydana getirecektir.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

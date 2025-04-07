@@ -306,17 +306,11 @@ msgstr "V redu"
 msgid "Cancel"
 msgstr "Prekliči"
 
-msgid "Save these settings as &global defaults"
-msgstr "Shrani te nastavitve kot globalne privzete"
-
 msgid "&Default"
 msgstr "Privzeto"
 
 msgid "Language:"
 msgstr "Jezik:"
-
-msgid "Icon set:"
-msgstr "Komplet ikon:"
 
 msgid "Gain"
 msgstr "Ojačanje"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Ne morem inicializirati sistema za upodabljanje."
-
 msgid "Default"
 msgstr "Privzeto"
 
@@ -906,9 +897,6 @@ msgstr "Zaslon v načinu spanja"
 msgid "OpenGL Shaders"
 msgstr "Senčilniki OpenGL"
 
-msgid "OpenGL options"
-msgstr "Možnosti OpenGL"
-
 msgid "You are loading an unsupported configuration"
 msgstr "Nalagate nepodprto konfiguracijo"
 
@@ -929,12 +917,6 @@ msgstr "Spominski vložek %i: %ls"
 
 msgid "Cartridge images"
 msgstr "Slike spominskega vložka"
-
-msgid "Error initializing renderer"
-msgstr "Napaka pri zagonu sistema za upodabljanje"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Sistema za upodabljanje OpenGL (3.0 Core) ni bilo mogoče zagnati. Uporabite drug sistem za upodabljanje."
 
 msgid "Resume execution"
 msgstr "Nadaljuj izvajanje"
@@ -1293,21 +1275,6 @@ msgstr "Ničelni gonilnik"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "Napaka pri odpiranju \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Napaka pri sestavljanju senčilnika vrhov v datoteki \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Napaka pri sestavljanju shaderja fragmentov v datoteki \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Napaka pri povezovanju programa shader v datoteki \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Možnosti sistema za upodabljanje OpenGL 3.0"
-
 msgid "Render behavior"
 msgstr "Obnašanje pri upodabljanju"
 
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Vsako sličico prikažite takoj, sinhronizirano z emuliranim zaslonom.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;To je priporočljiva možnost, če uporabljeni senčilniki ne uporabljajo časa okvirja za animirane učinke.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Sinhroniziraj z videom"
 
@@ -1332,20 +1296,8 @@ msgstr "Senčilniki"
 msgid "Remove"
 msgstr "Odstrani"
 
-msgid "No shader selected"
-msgstr "Ni izbran noben senčnik"
-
 msgid "Browse..."
 msgstr "Brskaj..."
-
-msgid "Shader error"
-msgstr "Napaka senčilnika"
-
-msgid "Could not load shaders."
-msgstr "Ni bilo mogoče naložiti senčilnikov."
-
-msgid "More information in details."
-msgstr "Več informacij v podrobnostih."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Ni bilo mogoče ustvariti konteksta OpenGL."
@@ -1356,17 +1308,11 @@ msgstr "Ni bilo mogoče preklopiti na kontekst OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Zahteva se različica OpenGL 3.0 ali novejša. Trenutna različica je %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Inicializacija OpenGL ni uspela. Napaka %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Napaka pri inicializaciji OpenGL"
 
 msgid "Falling back to software rendering.\n"
 msgstr "Vrnitev k programskemu upodabljanju.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Dodelitev pomnilnika za razpakirni predpomnilnik ni uspela.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pri izbiri medijskih slik (CD-ROM, disketa itd.) se bo odprto pogovorno okno začelo v istem imeniku kot konfiguracijska datoteka 86Box. Ta nastavitev bo verjetno imela pomen le v operacijskem sistemu MacOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

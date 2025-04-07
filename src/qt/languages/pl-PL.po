@@ -306,17 +306,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "Anuluj"
 
-msgid "Save these settings as &global defaults"
-msgstr "Zapisz ustawienia jako &globalne ustawienia domyślne"
-
 msgid "&Default"
 msgstr "&Domyślny"
 
 msgid "Language:"
 msgstr "Język:"
-
-msgid "Icon set:"
-msgstr "Zestaw ikon:"
 
 msgid "Gain"
 msgstr "Wzmacniacz"
@@ -753,9 +747,6 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Nie można zainicjować renderera wideo."
-
 msgid "Default"
 msgstr "Domyślny"
 
@@ -906,9 +897,6 @@ msgstr "Monitor w trybie czuwania"
 msgid "OpenGL Shaders"
 msgstr "Shadery OpenGL"
 
-msgid "OpenGL options"
-msgstr "Opcje OpenGL"
-
 msgid "You are loading an unsupported configuration"
 msgstr "Ładujesz nieobsługiwaną konfigurację"
 
@@ -929,12 +917,6 @@ msgstr "Kartrydż %i: %ls"
 
 msgid "Cartridge images"
 msgstr "Obrazy kartrydżu"
-
-msgid "Error initializing renderer"
-msgstr "Błąd inicjalizacji renderera"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Nie można zainicjować renderera OpenGL (3.0 Core). Użyj innego."
 
 msgid "Resume execution"
 msgstr "Wznów wykonywanie"
@@ -1293,21 +1275,6 @@ msgstr "Null Driver"
 msgid "NIC %02i (%ls) %ls"
 msgstr "NIC %02i (%ls) %ls"
 
-msgid "Error opening \"%1\": %2"
-msgstr "Błąd otwarcia \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Błąd kompilacji shadera wierzchołków w pliku \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Błąd kompilacji shadera fragmentów w pliku \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Błąd łączenia programu shader w pliku \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Opcje renderowania OpenGL 3.0"
-
 msgid "Render behavior"
 msgstr "Zachowanie renderowania"
 
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Renderuj każdą klatkę natychmiast, w synchronizacji z emulowanym wyświetlaczem.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Jest to zalecana opcja, jeśli używane shadery nie wykorzystują frametime do animowanych efektów.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Zsynchronizuj z wideo"
 
@@ -1332,20 +1296,8 @@ msgstr "Shadery"
 msgid "Remove"
 msgstr "Usuń"
 
-msgid "No shader selected"
-msgstr "Nie wybrano shadera"
-
 msgid "Browse..."
 msgstr "Przeglądaj..."
-
-msgid "Shader error"
-msgstr "Błąd shadera"
-
-msgid "Could not load shaders."
-msgstr "Nie można załadować shaderów."
-
-msgid "More information in details."
-msgstr "Więcej informacji w szczegółach."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nie można utworzyć kontekstu OpenGL."
@@ -1356,17 +1308,11 @@ msgstr "Nie można przełączyć na kontekst OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Wymagana jest wersja OpenGL 3.0 lub wyższa. Aktualna wersja to %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Inicjalizacja OpenGL nie powiodła się. Błąd %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Błąd inicjalizacji OpenGL"
 
 msgid "Falling back to software rendering.\n"
 msgstr "Powrót do renderowania oprogramowania.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Przydzielenie pamięci dla bufora rozpakowywania nie powiodło się.\n"
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Podczas wybierania obrazów nośników (CD-ROM, dyskietka itp.) otwarte okno dialogowe rozpocznie się w tym samym katalogu, co plik konfiguracyjny 86Box. To ustawienie prawdopodobnie będzie miało znaczenie tylko na macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
