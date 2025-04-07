@@ -18,8 +18,8 @@ msgstr "右CTRLを左ALTへ変換(&R)"
 msgid "&Hard Reset..."
 msgstr "ハード リセット(&H)..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "Ctrl+Alt+Del(&C)\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del(&C)"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+Esc(&E)"
@@ -111,8 +111,8 @@ msgstr "線形補間(&L)"
 msgid "Hi&DPI scaling"
 msgstr "HiDPIスケーリング(&D)"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "全画面表示(&F)\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "全画面表示(&F)"
 
 msgid "Fullscreen &stretch mode"
 msgstr "全画面の拡大表示モード(&S)"
@@ -186,8 +186,8 @@ msgstr "設定(&S)..."
 msgid "&Update status bar icons"
 msgstr "ステータスバーのアイコンを更新(&U)"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "スクリーンショットを撮る(&C)\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "スクリーンショットを撮る(&C)"
 
 msgid "&Preferences..."
 msgstr "環境設定(&P)..."
@@ -198,11 +198,11 @@ msgstr "Discord連携機能(&D)"
 msgid "Sound &gain..."
 msgstr "音量調整(&G)..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "トレース開始\tCtrl+T"
+msgid "Begin trace"
+msgstr "トレース開始"
 
-msgid "End trace\tCtrl+T"
-msgstr "トレース終了\tCtrl+T"
+msgid "End trace"
+msgstr "トレース終了"
 
 msgid "&Help"
 msgstr "ヘルプ(&H)"

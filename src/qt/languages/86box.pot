@@ -18,7 +18,7 @@ msgstr ""
 msgid "&Hard Reset..."
 msgstr ""
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
 msgstr ""
 
 msgid "Ctrl+Alt+&Esc"
@@ -111,7 +111,7 @@ msgstr ""
 msgid "Hi&DPI scaling"
 msgstr ""
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
 msgstr ""
 
 msgid "Fullscreen &stretch mode"
@@ -186,7 +186,7 @@ msgstr ""
 msgid "&Update status bar icons"
 msgstr ""
 
-msgid "Take s&creenshot\tCtrl+F11"
+msgid "Take s&creenshot"
 msgstr ""
 
 msgid "&Preferences..."
@@ -198,10 +198,10 @@ msgstr ""
 msgid "Sound &gain..."
 msgstr ""
 
-msgid "Begin trace\tCtrl+T"
+msgid "Begin trace"
 msgstr ""
 
-msgid "End trace\tCtrl+T"
+msgid "End trace"
 msgstr ""
 
 msgid "&Help"

@@ -18,8 +18,8 @@ msgstr "Gắn ALT trái vào CTRL ph&ải"
 msgid "&Hard Reset..."
 msgstr "Buộc khởi độn&g lại"
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "Tu&yến tính"
 msgid "Hi&DPI scaling"
 msgstr "Tỷ lệ hinh ảnh phân giải cao"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "Toàn màn &hình\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "Toàn màn &hình"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Chế độ kéo giãn hình"
@@ -186,8 +186,8 @@ msgstr "&Cài đặt..."
 msgid "&Update status bar icons"
 msgstr "Cậ&p nhật biểu tượng thanh trạng thái"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Chụp &màn hình\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Chụp &màn hình"
 
 msgid "&Preferences..."
 msgstr "&Tùy biến..."
@@ -198,11 +198,11 @@ msgstr "Bật trình trạng thái cho Discord"
 msgid "Sound &gain..."
 msgstr "Bộ &tăng âm..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Bắt đầu dò\tCtrl+T"
+msgid "Begin trace"
+msgstr "Bắt đầu dò"
 
-msgid "End trace\tCtrl+T"
-msgstr "Ngưng dò\tCtrl+T"
+msgid "End trace"
+msgstr "Ngưng dò"
 
 msgid "&Help"
 msgstr "&Trợ giúp"

@@ -18,8 +18,8 @@ msgstr "&Oikea CTRL on vasen ALT"
 msgid "&Hard Reset..."
 msgstr "&Uudelleenkäynnistys (kylmä)..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "Li&neaarinen interpolaatio"
 msgid "Hi&DPI scaling"
 msgstr "&Suuri DPI-skaalaus"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Koko näytön tila\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Koko näytön tila"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Koko näytön &skaalaustila"
@@ -186,8 +186,8 @@ msgstr "&Kokoonpano..."
 msgid "&Update status bar icons"
 msgstr "&Päivitä tilapalkin kuvakkeita"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Ota &kuvakaappaus\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Ota &kuvakaappaus"
 
 msgid "&Preferences..."
 msgstr "&Sovellusasetukset..."
@@ -198,11 +198,11 @@ msgstr "Käytä &Discord-integraatiota"
 msgid "Sound &gain..."
 msgstr "&Äänitasot..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Aloita jäljitys\tCtrl+T"
+msgid "Begin trace"
+msgstr "Aloita jäljitys"
 
-msgid "End trace\tCtrl+T"
-msgstr "Lopeta jäljitys\tCtrl+T"
+msgid "End trace"
+msgstr "Lopeta jäljitys"
 
 msgid "&Help"
 msgstr "&Ohje"

@@ -18,8 +18,8 @@ msgstr "&Die rechte Strg-Taste ist die Linke Alt-Taste"
 msgid "&Hard Reset..."
 msgstr "&Kaltstart..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Strg+Alt+Entf\tStrg+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Strg+Alt+Entf"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Strg+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Linear"
 msgid "Hi&DPI scaling"
 msgstr "Hi&DPI-Skalierung"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Vollbild\tStrg+Alt+Bild auf"
+msgid "&Fullscreen"
+msgstr "&Vollbild"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Vollbild-Skalierungsmodus"
@@ -186,8 +186,8 @@ msgstr "&Optionen..."
 msgid "&Update status bar icons"
 msgstr "&Statusleistenicons aktualisieren"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "S&creenshot aufnehmen\tStrg+F11"
+msgid "Take s&creenshot"
+msgstr "S&creenshot aufnehmen"
 
 msgid "&Preferences..."
 msgstr "&Einstellungen..."
@@ -198,11 +198,11 @@ msgstr "&Discord-Integration einschalten"
 msgid "Sound &gain..."
 msgstr "&Klangverstärkung..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Tracing starten\tStrg+T"
+msgid "Begin trace"
+msgstr "Tracing starten"
 
-msgid "End trace\tCtrl+T"
-msgstr "Tracing beenden\tStrg+T"
+msgid "End trace"
+msgstr "Tracing beenden"
 
 msgid "&Help"
 msgstr "&Hilfe"

@@ -18,8 +18,8 @@ msgstr "CTRL &dret és ALT esquerre"
 msgid "&Hard Reset..."
 msgstr "&Reinicialització completa ..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Lineal"
 msgid "Hi&DPI scaling"
 msgstr "&Escalat alta densitat"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Pantalla completa\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Pantalla completa"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Escalat pantalla completa"
@@ -186,8 +186,8 @@ msgstr "&Ajustaments ..."
 msgid "&Update status bar icons"
 msgstr "&Actualitzar icones a la barra d'estat"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Prendre c&aptura\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Prendre c&aptura"
 
 msgid "&Preferences..."
 msgstr "&Preferències ..."
@@ -198,11 +198,11 @@ msgstr "Activar la integració amb el &Discord"
 msgid "Sound &gain..."
 msgstr "&Guany de so ..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Començar traça\tCtrl+T"
+msgid "Begin trace"
+msgstr "Començar traça"
 
-msgid "End trace\tCtrl+T"
-msgstr "Acabar traça\tCtrl+T"
+msgid "End trace"
+msgstr "Acabar traça"
 
 msgid "&Help"
 msgstr "&Ajuda"

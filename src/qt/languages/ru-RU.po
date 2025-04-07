@@ -18,8 +18,8 @@ msgstr "&Правый CTRL - это левый ALT"
 msgid "&Hard Reset..."
 msgstr "&Холодная перезагрузка..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Линейный"
 msgid "Hi&DPI scaling"
 msgstr "Масштабирование Hi&DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Полноэкранный режим\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Полноэкранный режим"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Растягивание в полноэкранном режиме"
@@ -186,8 +186,8 @@ msgstr "&Настройки машины..."
 msgid "&Update status bar icons"
 msgstr "&Обновление значков строки состояния"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Сделать с&криншот\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Сделать с&криншот"
 
 msgid "&Preferences..."
 msgstr "&Параметры..."
@@ -198,11 +198,11 @@ msgstr "Включить интеграцию &Discord"
 msgid "Sound &gain..."
 msgstr "&Усиление звука..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Начать трассировку\tCtrl+T"
+msgid "Begin trace"
+msgstr "Начать трассировку"
 
-msgid "End trace\tCtrl+T"
-msgstr "Завершить трассировку\tCtrl+T"
+msgid "End trace"
+msgstr "Завершить трассировку"
 
 msgid "&Help"
 msgstr "&Помощь"

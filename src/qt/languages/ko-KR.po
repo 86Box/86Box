@@ -18,8 +18,8 @@ msgstr "우측CTRL로 좌측ALT 입력(&R)"
 msgid "&Hard Reset..."
 msgstr "재시작(&H)..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "Ctrl+Alt+Del(&C)\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del(&C)"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+Esc(&E)"
@@ -111,8 +111,8 @@ msgstr "선형 보간법(&L)"
 msgid "Hi&DPI scaling"
 msgstr "HiDPI 스케일링(&D)"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "전체 화면(&F)\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "전체 화면(&F)"
 
 msgid "Fullscreen &stretch mode"
 msgstr "전체 화면 비율(&S)"
@@ -186,8 +186,8 @@ msgstr "설정(&S)..."
 msgid "&Update status bar icons"
 msgstr "상태 바 아이콘 갱신하기(&U)"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "스크린샷 찍기(&C)\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "스크린샷 찍기(&C)"
 
 msgid "&Preferences..."
 msgstr "환경설정(&P)..."
@@ -198,11 +198,11 @@ msgstr "디스코드 연동 활성화하기(&D)"
 msgid "Sound &gain..."
 msgstr "음량 증폭(&G)..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "추적 시작하기\tCtrl+T"
+msgid "Begin trace"
+msgstr "추적 시작하기"
 
-msgid "End trace\tCtrl+T"
-msgstr "추적 끝내기\tCtrl+T"
+msgid "End trace"
+msgstr "추적 끝내기"
 
 msgid "&Help"
 msgstr "도움말(&H)"

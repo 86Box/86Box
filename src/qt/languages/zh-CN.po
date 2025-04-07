@@ -18,8 +18,8 @@ msgstr "将右 CTRL 键映射为左 ALT 键(&R)"
 msgid "&Hard Reset..."
 msgstr "硬重置(&H)..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "Ctrl+Alt+Del(&C)\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del(&C)"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+Esc(&E)"
@@ -111,8 +111,8 @@ msgstr "线性(&L)"
 msgid "Hi&DPI scaling"
 msgstr "HiDPI 缩放(&D)"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "全屏(&F)\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "全屏(&F)"
 
 msgid "Fullscreen &stretch mode"
 msgstr "全屏拉伸模式(&S)"
@@ -186,8 +186,8 @@ msgstr "设置(&S)..."
 msgid "&Update status bar icons"
 msgstr "更新状态栏图标(&U)"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "截图(&C)\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "截图(&C)"
 
 msgid "&Preferences..."
 msgstr "首选项(&P)..."
@@ -198,11 +198,11 @@ msgstr "启用 Discord 集成(&D)"
 msgid "Sound &gain..."
 msgstr "音量增益(&G)..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "开始追踪\tCtrl+T"
+msgid "Begin trace"
+msgstr "开始追踪"
 
-msgid "End trace\tCtrl+T"
-msgstr "结束追踪\tCtrl+T"
+msgid "End trace"
+msgstr "结束追踪"
 
 msgid "&Help"
 msgstr "帮助(&H)"

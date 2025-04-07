@@ -18,8 +18,8 @@ msgstr "&CTRL direito é o ALT esquerdo"
 msgid "&Hard Reset..."
 msgstr "&Reinicialização completa..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Linear"
 msgid "Hi&DPI scaling"
 msgstr "Escala Hi&DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Tela cheia\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Tela cheia"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Modo de &redimensionamento da tela cheia"
@@ -186,8 +186,8 @@ msgstr "&Configurações..."
 msgid "&Update status bar icons"
 msgstr "&Atualizar ícones da barra de status"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Capturar &tela\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Capturar &tela"
 
 msgid "&Preferences..."
 msgstr "&Preferências..."
@@ -198,11 +198,11 @@ msgstr "Ativar integração com o &Discord"
 msgid "Sound &gain..."
 msgstr "&Ganho de som..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Inicio do rastreamento\tCtrl+T"
+msgid "Begin trace"
+msgstr "Inicio do rastreamento"
 
-msgid "End trace\tCtrl+T"
-msgstr "Finalizar rastreamento\tCtrl+T"
+msgid "End trace"
+msgstr "Finalizar rastreamento"
 
 msgid "&Help"
 msgstr "&Ajuda"

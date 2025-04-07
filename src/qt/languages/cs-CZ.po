@@ -18,8 +18,8 @@ msgstr "&Pravý Ctrl je levý Alt"
 msgid "&Hard Reset..."
 msgstr "&Resetovat"
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Lineární"
 msgid "Hi&DPI scaling"
 msgstr "Š&kálování HiDPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Celá obrazovka\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Celá obrazovka"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Režím roztá&hnutí při celé obrazovce"
@@ -186,8 +186,8 @@ msgstr "&Nastavení..."
 msgid "&Update status bar icons"
 msgstr "&Aktualizovat ikony stavového řádku"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Pořídit &screenshot\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Pořídit &screenshot"
 
 msgid "&Preferences..."
 msgstr "&Předvolby..."
@@ -198,11 +198,11 @@ msgstr "Povolit integraci s &Discordem"
 msgid "Sound &gain..."
 msgstr "&Zesílení zvuku"
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Začít trace\tCtrl+T"
+msgid "Begin trace"
+msgstr "Začít trace"
 
-msgid "End trace\tCtrl+T"
-msgstr "Zastavit trace\tCtrl+T"
+msgid "End trace"
+msgstr "Zastavit trace"
 
 msgid "&Help"
 msgstr "Ná&pověda"

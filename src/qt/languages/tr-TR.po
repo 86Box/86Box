@@ -18,8 +18,8 @@ msgstr "&Sağ CTRL tuşunu sol ALT tuşu olarak ayarla"
 msgid "&Hard Reset..."
 msgstr "Yeniden başlamaya &zorla"
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+&Alt+Esc"
@@ -111,8 +111,8 @@ msgstr "Doğ&rusal"
 msgid "Hi&DPI scaling"
 msgstr "HiDPI ölçekle&mesi"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "Tam ekran\tCtrl+Alt+Pg&Up"
+msgid "&Fullscreen"
+msgstr "Tam ekran"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Tam e&kran germe modu"
@@ -186,8 +186,8 @@ msgstr "&Ayarlar..."
 msgid "&Update status bar icons"
 msgstr "Durum &çubuğu simgelerini güncelle"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "&Ekran görüntüsü al\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "&Ekran görüntüsü al"
 
 msgid "&Preferences..."
 msgstr "&Tercihler..."
@@ -198,11 +198,11 @@ msgstr "&Discord entegrasyonunu etkinleştir"
 msgid "Sound &gain..."
 msgstr "&Ses düzeyi artışı..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "İzlemeyi başlat\tCtrl+T"
+msgid "Begin trace"
+msgstr "İzlemeyi başlat"
 
-msgid "End trace\tCtrl+T"
-msgstr "İzlemeyi bitir\tCtrl+T"
+msgid "End trace"
+msgstr "İzlemeyi bitir"
 
 msgid "&Help"
 msgstr "&Yardım"

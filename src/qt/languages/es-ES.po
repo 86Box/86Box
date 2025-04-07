@@ -18,8 +18,8 @@ msgstr "CTRL &derecho es ALT izquierdo"
 msgid "&Hard Reset..."
 msgstr "&Hard Reset..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Lineal"
 msgid "Hi&DPI scaling"
 msgstr "&Escalado alta densidad"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Pantalla completa\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Pantalla completa"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Escalado pantalla completa"
@@ -186,8 +186,8 @@ msgstr "&Configuraciones..."
 msgid "&Update status bar icons"
 msgstr "&Actualizar iconos en barra de estado"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Tomar c&aptura\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Tomar c&aptura"
 
 msgid "&Preferences..."
 msgstr "&Preferencias..."
@@ -198,11 +198,11 @@ msgstr "Habilitar integración con &Discord"
 msgid "Sound &gain..."
 msgstr "&Ganancia de sonido..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Comenzar traza\tCtrl+T"
+msgid "Begin trace"
+msgstr "Comenzar traza"
 
-msgid "End trace\tCtrl+T"
-msgstr "Terminar traza\tCtrl+T"
+msgid "End trace"
+msgstr "Terminar traza"
 
 msgid "&Help"
 msgstr "&Ayuda"

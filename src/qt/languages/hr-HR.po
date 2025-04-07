@@ -18,8 +18,8 @@ msgstr "&Desni CTRL je lijevi ALT"
 msgid "&Hard Reset..."
 msgstr "&Ponovno pokretanje..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Linearna"
 msgid "Hi&DPI scaling"
 msgstr "&HiDPI skaliranje"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Cijelozaslonski način\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Cijelozaslonski način"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Način cijelozaslonskog rastezanja"
@@ -186,8 +186,8 @@ msgstr "&Opcije..."
 msgid "&Update status bar icons"
 msgstr "&Ažuriraj ikone statusnog redka"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Napravi &snimku zaslona\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Napravi &snimku zaslona"
 
 msgid "&Preferences..."
 msgstr "&Postavke..."
@@ -198,11 +198,11 @@ msgstr "Omogući integraciju sa programom &Discord"
 msgid "Sound &gain..."
 msgstr "&Pojačavanje zvuka..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Z&apočni praćenje\tCtrl+T"
+msgid "Begin trace"
+msgstr "Z&apočni praćenje"
 
-msgid "End trace\tCtrl+T"
-msgstr "&Svrši praćenje\tCtrl+T"
+msgid "End trace"
+msgstr "&Svrši praćenje"
 
 msgid "&Help"
 msgstr "&Pomoć"

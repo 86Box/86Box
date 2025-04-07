@@ -18,8 +18,8 @@ msgstr "&Правий CTRL - це лівий ALT"
 msgid "&Hard Reset..."
 msgstr "&Холодне перезавантаження..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Лінійний"
 msgid "Hi&DPI scaling"
 msgstr "Масштабування Hi&DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Повноекранний режим\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Повноекранний режим"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Розстягування у повноекранному режимі"
@@ -186,8 +186,8 @@ msgstr "&Налаштування машини..."
 msgid "&Update status bar icons"
 msgstr "&Обновлення значків рядка стану"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Зробити &знімок\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Зробити &знімок"
 
 msgid "&Preferences..."
 msgstr "&Параметри..."
@@ -198,11 +198,11 @@ msgstr "Увімкнути інтеграцію &Discord"
 msgid "Sound &gain..."
 msgstr "&Посилення звуку..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Почати трасування\tCtrl+T"
+msgid "Begin trace"
+msgstr "Почати трасування"
 
-msgid "End trace\tCtrl+T"
-msgstr "Завершити трасування\tCtrl+T"
+msgid "End trace"
+msgstr "Завершити трасування"
 
 msgid "&Help"
 msgstr "&Допомога"
