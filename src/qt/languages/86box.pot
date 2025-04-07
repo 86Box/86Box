@@ -1380,9 +1380,6 @@ msgstr ""
 msgid "Serial port passthrough 4"
 msgstr ""
 
-msgid "Vision Systems LBA Enhancer"
-msgstr ""
-
 msgid "Renderer options..."
 msgstr ""
 

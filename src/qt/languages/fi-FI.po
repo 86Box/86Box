@@ -1383,9 +1383,6 @@ msgstr "Sarjaportin läpivienti 3"
 msgid "Serial port passthrough 4"
 msgstr "Sarjaportin läpivienti 4"
 
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
-
 msgid "Renderer options..."
 msgstr "Alustusasetukset..."
 

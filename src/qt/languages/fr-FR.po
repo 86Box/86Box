@@ -1380,9 +1380,6 @@ msgstr "Passage du port série 3"
 msgid "Serial port passthrough 4"
 msgstr "Passage du port série 4"
 
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
-
 msgid "Renderer options..."
 msgstr "Options de rendu..."
 

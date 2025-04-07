@@ -1380,9 +1380,6 @@ msgstr "Prepust za serijska vrata 3"
 msgid "Serial port passthrough 4"
 msgstr "Prepust za serijska vrata 4"
 
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
-
 msgid "Renderer options..."
 msgstr "Možnosti sistema za upodabljanje..."
 

@@ -1383,9 +1383,6 @@ msgstr "Durchreichung der Serielle Schnittstelle 3"
 msgid "Serial port passthrough 4"
 msgstr "Durchreichung der Serielle Schnittstelle 4"
 
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
-
 msgid "Renderer options..."
 msgstr "Renderer-Optionen..."
 

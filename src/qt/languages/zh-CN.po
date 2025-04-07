@@ -1380,9 +1380,6 @@ msgstr "串行端口直通 3"
 msgid "Serial port passthrough 4"
 msgstr "串行端口直通 4"
 
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA 增强器"
-
 msgid "Renderer options..."
 msgstr "渲染器选项..."
 

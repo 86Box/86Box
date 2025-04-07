@@ -1380,9 +1380,6 @@ msgstr "직렬 포트 패스스루 3"
 msgid "Serial port passthrough 4"
 msgstr "직렬 포트 패스스루 4"
 
-msgid "Vision Systems LBA Enhancer"
-msgstr "비전 시스템 LBA 인핸서"
-
 msgid "Renderer options..."
 msgstr "렌더러 옵션..."
 
