@@ -2087,3 +2087,6 @@ msgstr ""
 
 msgid "Inhibit multimedia keys on Windows"
 msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""

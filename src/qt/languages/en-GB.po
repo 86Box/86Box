@@ -71,3 +71,6 @@ msgstr "Grey"
 
 msgid "Color"
 msgstr "Colour"
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr "Failed to initialise Vulkan renderer."
