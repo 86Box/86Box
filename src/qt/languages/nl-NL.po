@@ -750,8 +750,8 @@ msgstr "KB"
 msgid "Default"	
 msgstr "Standaard"
 
-msgid "%i estat(s) d'espera"	
-msgstr "%i estat(s) d'espera"
+msgid "%i Wait state(s)"	
+msgstr "%i Wachttoestand(en)"
 
 msgid "Type"	
 msgstr "Type"

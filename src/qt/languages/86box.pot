@@ -750,7 +750,7 @@ msgstr ""
 msgid "Default"
 msgstr ""
 
-msgid "%i estat(s) d'espera"
+msgid "%i Wait state(s)"
 msgstr ""
 
 msgid "Type"
