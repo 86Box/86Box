@@ -184,7 +184,7 @@ void OpenGLShaderManagerDialog::on_buttonAdd_clicked()
                 ui->buttonAdd->setDisabled(ui->shaderListWidget->count() >= MAX_USER_SHADERS);
             }
         } else {
-            QMessageBox::critical(this, tr("GLSL error"), tr("Could not load filename %1").arg(res));
+            QMessageBox::critical(this, tr("GLSL error"), tr("Could not load file %1").arg(res));
         }
     }
 }
