@@ -1311,8 +1311,8 @@ msgstr "OpenGL phiên bản 3.0 trở lên là bắt buộc. Phiên bản hiện
 msgid "Error initializing OpenGL"
 msgstr "Lỗi khởi tạo OpenGL"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Quay trở lại kết xuất phần mềm.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nQuay trở lại kết xuất phần mềm."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Khi chọn hình ảnh phương tiện (CD-ROM, ổ mềm, v.v.), hộp thoại mở sẽ bắt đầu trong cùng thư mục với tệp cấu hình 86box. Cài đặt này có thể sẽ chỉ tạo ra sự khác biệt trên macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

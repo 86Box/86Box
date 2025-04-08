@@ -1312,8 +1312,8 @@ msgstr "Vyžaduje sa verzia OpenGL 3.0 alebo vyššia. Aktuálna verzia je %1.%2
 msgid "Error initializing OpenGL"
 msgstr "Chyba pri inicializácii OpenGL"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Návrat k softvérovému vykresľovaniu.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nNávrat k softvérovému vykresľovaniu."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pri výbere multimediálnych obrazov (CD-ROM, disketa atď.) sa dialógové okno otvorenia spustí v rovnakom adresári ako konfiguračný súbor 86Box. Toto nastavenie bude mať pravdepodobne význam len v systéme MacOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

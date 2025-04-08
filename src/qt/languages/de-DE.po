@@ -1314,8 +1314,8 @@ msgstr "OpenGL-Version 3.0 oder höher ist erforderlich. Die aktuelle Version is
 msgid "Error initializing OpenGL"
 msgstr "Fehler beim Initialisieren von OpenGL"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Rückgriff auf Software-Rendering.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nRückgriff auf Software-Rendering."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Bei der Auswahl von Medien-Abbildern (CD-ROM, Diskette usw.) wird der Öffnungsdialog im selben Verzeichnis wie die 86Box-Konfigurationsdatei gestartet. Diese Einstellung macht wahrscheinlich nur unter macOS einen Unterschied.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

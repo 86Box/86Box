@@ -1311,8 +1311,8 @@ msgstr "Потрібна версія OpenGL 3.0 або новіша. Поточ
 msgid "Error initializing OpenGL"
 msgstr "Помилка ініціалізації OpenGL"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Повернення до програмного рендерингу.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nПовернення до програмного рендерингу."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;При виборі медіа-образів (CD-ROM, дискета і т.д.) діалогове вікно буде відкриватися в тому ж каталозі, що і файл конфігурації 86Box. Цей параметр, швидше за все, матиме значення лише на macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

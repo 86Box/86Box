@@ -1314,8 +1314,8 @@ msgstr "Tarvitaan OpenGL-versio 3.0 tai uudempi. Nykyinen versio on %1.%2"
 msgid "Error initializing OpenGL"
 msgstr "Virhe OpenGL:n alustamisessa"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Paluu ohjelmistoalustusöintiin.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nPaluu ohjelmistoalustusöintiin."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Kun valitset mediakuvia (CD-ROM, levykkeet jne.), avausikkuna käynnistyy samaan hakemistoon kuin 86Boxin konfigurointitiedosto. Tällä asetuksella on todennäköisesti merkitystä vain macOS-käyttöjärjestelmässä.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

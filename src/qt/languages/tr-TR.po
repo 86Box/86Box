@@ -1311,8 +1311,8 @@ msgstr "OpenGL sürüm 3.0 veya üstü gereklidir. Geçerli sürüm %1.%2"
 msgid "Error initializing OpenGL"
 msgstr "OpenGL başlatılırken hata oluştu"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Yazılım işleyicisine geri dönülüyor.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nYazılım işleyicisine geri dönülüyor."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Medya görüntüsü (CD-ROM, disket, vb.) seçme diyaloğu 86Box yapılandırma dosyasıyla aynı dizinde başlayacaktır. Bu ayar muhtemelen sadece macOS üzerinde bir fark meydana getirecektir.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

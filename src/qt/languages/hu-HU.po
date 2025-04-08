@@ -1311,8 +1311,8 @@ msgstr "Az OpenGL 3.0 vagy magasabb verziója szükséges. Az aktuális verzió 
 msgid "Error initializing OpenGL"
 msgstr "Hiba az OpenGL inicializálásában"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Visszatérés a szoftveres rendereléshez.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nVisszatérés a szoftveres rendereléshez."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;A médiaképek (CD-ROM, floppy stb.) kiválasztásakor a megnyitási párbeszédpanel ugyanabban a könyvtárban indul, mint a 86Box konfigurációs fájl. Ez a beállítás valószínűleg csak a macOS rendszerben jelent különbséget.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

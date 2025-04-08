@@ -1311,8 +1311,8 @@ msgstr "OpenGL 버전 3.0 이상이 필요합니다. 현재 버전은 %1.%2입�
 msgid "Error initializing OpenGL"
 msgstr "OpenGL 초기화 중 오류 발생"
 
-msgid "Falling back to software rendering.\n"
-msgstr "소프트웨어 렌더링으로 돌아가기.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\n소프트웨어 렌더링으로 돌아가기."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;미디어 이미지(CD-ROM, 플로피 등)를 선택하면 86Box 구성 파일과 동일한 디렉터리에서 열기 대화 상자가 시작됩니다. 이 설정은 macOS에서만 차이가 있을 수 있습니다.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"

@@ -1311,7 +1311,7 @@ msgstr ""
 msgid "Error initializing OpenGL"
 msgstr ""
 
-msgid "Falling back to software rendering.\n"
+msgid "\nFalling back to software rendering."
 msgstr ""
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
