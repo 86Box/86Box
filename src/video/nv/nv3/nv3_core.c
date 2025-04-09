@@ -534,7 +534,6 @@ void nv3_recalc_timings(svga_t* svga)
             svga->bpp = 8;
             svga->lowres = 0;
             svga->map8 = svga->pallook;
-            //svga->render = nv3_render_8bpp;
             break;
         case NV3_CRTC_REGISTER_PIXELMODE_16BPP:
             /* This is some sketchy shit that is an attempt at an educated guess
@@ -545,19 +544,16 @@ void nv3_recalc_timings(svga_t* svga)
             else 
                 svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 3;
 
-
             /* sometimes it really renders in 15bpp, so you need to do this */
             if ((nv3->pramdac.general_control >> NV3_PRAMDAC_GENERAL_CONTROL_565_MODE) & 0x01)
             {
                 svga->bpp = 16;
                 svga->lowres = 0;
-                //svga->render = nv3_render_16bpp;
             }
             else
             {
                 svga->bpp = 15;
                 svga->lowres = 0;
-                //svga->render = nv3_render_15bpp;
                 
             }
         
