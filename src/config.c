@@ -185,6 +185,8 @@ load_general(void)
     p = ini_section_get_string(cat, "language", NULL);
     if (p != NULL)
         lang_id = plat_language_code(p);
+    else
+        lang_id = 0xffff;
 
     mouse_sensitivity = ini_section_get_double(cat, "mouse_sensitivity", 1.0);
     if (mouse_sensitivity < 0.1)
