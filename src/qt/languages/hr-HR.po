@@ -642,8 +642,8 @@ msgstr "Pritisnite Ctrl+Alt+PgDn za povratak u prozorski način rada."
 msgid "Speed"
 msgstr "Brzina"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIP slike"
@@ -750,8 +750,8 @@ msgstr "KB"
 msgid "Default"
 msgstr "Standard"
 
-msgid "%i Wait state(s)"
-msgstr "%i stanje čekanja"
+msgid "%1 Wait state(s)"
+msgstr "%1 stanje čekanja"
 
 msgid "Type"
 msgstr "Tip"
@@ -795,11 +795,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Bez"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Disketa %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Disketa %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Napredne sektorske slike"
@@ -819,8 +819,8 @@ msgstr "Nije moguće inicijalizirati GhostScript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Nije moguće inicijalizirati GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "MO %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "MO slike"
@@ -906,14 +906,14 @@ msgstr "Filtriranje tipa CPU-a na temelju odabranog sistema onemogućeno je za o
 msgid "Continue"
 msgstr "Nastavi"
 
-msgid "Cassette: %s"
-msgstr "Audio kaseta: %s"
+msgid "Cassette: %1"
+msgstr "Audio kaseta: %1"
 
 msgid "Cassette images"
 msgstr "Slike audio kasete"
 
-msgid "Cartridge %i: %ls"
-msgstr "Kaseta %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Kaseta %1: %2"
 
 msgid "Cartridge images"
 msgstr "Slike kasete"
@@ -1080,8 +1080,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1272,8 +1272,8 @@ msgstr "Nepoznata sabirnica"
 msgid "Null Driver"
 msgstr "Nulti upravljački program"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Ponašanje rendera"
@@ -2046,8 +2046,8 @@ msgstr "Imenovani vod (server)"
 msgid "Host Serial Passthrough"
 msgstr "Prolaz serijskih vrata nositelja"
 
-msgid "Eject %s"
-msgstr "Izbaci %s"
+msgid "E&ject %1"
+msgstr "&Izbaci %1"
 
 msgid "&Unmute"
 msgstr "&Uključi zvuk"

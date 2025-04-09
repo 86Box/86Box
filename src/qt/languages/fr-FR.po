@@ -642,8 +642,8 @@ msgstr "Appuyez sur Ctrl+Alt+PgDn pour revenir au mode fenêtré."
 msgid "Speed"
 msgstr "Vitesse"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "Images ZIP"
@@ -750,8 +750,8 @@ msgstr "Ko"
 msgid "Default"
 msgstr "Défaut"
 
-msgid "%i Wait state(s)"
-msgstr "%i état(s) d'attente"
+msgid "%1 Wait state(s)"
+msgstr "%1 état(s) d'attente"
 
 msgid "Type"
 msgstr "Type"
@@ -795,11 +795,11 @@ msgstr "Système de contrôle de vol Thrustmaster"
 msgid "None"
 msgstr "Aucun"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u Mo (CTS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 Mo (CTS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Disquette %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Disquette %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Images du secteur avancés"
@@ -819,8 +819,8 @@ msgstr "Impossible d'initialiser Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Impossible d'initialiser GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "Magnéto-optique %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "Magnéto-optique %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Images magnéto-optiques"
@@ -906,14 +906,14 @@ msgstr "La filtrage du type du processeur sur la base de la machine sélectionn�
 msgid "Continue"
 msgstr "Continuer"
 
-msgid "Cassette: %s"
-msgstr "Cassette: %s"
+msgid "Cassette: %1"
+msgstr "Cassette: %1"
 
 msgid "Cassette images"
 msgstr "Images cassette"
 
-msgid "Cartridge %i: %ls"
-msgstr "Cartouche %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Cartouche %1: %2"
 
 msgid "Cartridge images"
 msgstr "Images cartouche"
@@ -1080,8 +1080,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 Ko"
@@ -1272,8 +1272,8 @@ msgstr "Bus inconnu"
 msgid "Null Driver"
 msgstr "Pilote nul"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Comportement de rendu"
@@ -2046,8 +2046,8 @@ msgstr "Tuyau nommé (serveur)"
 msgid "Host Serial Passthrough"
 msgstr "Passage du port série de l'hôte"
 
-msgid "Eject %s"
-msgstr "Éjecter %s"
+msgid "E&ject %1"
+msgstr "É&jecter %1"
 
 msgid "&Unmute"
 msgstr "&Réactiver son"

@@ -642,8 +642,8 @@ msgstr "Bấm Ctrl+Alt+PgDn để quay lại chế độ cửa sổ."
 msgid "Speed"
 msgstr "Vận tốc"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "Ảnh đĩa ZIP"
@@ -750,8 +750,8 @@ msgstr "KB"
 msgid "Default"
 msgstr "Mặc định"
 
-msgid "%i Wait state(s)"
-msgstr "%i trạng thái chờ"
+msgid "%1 Wait state(s)"
+msgstr "%1 trạng thái chờ"
 
 msgid "Type"
 msgstr "Loại"
@@ -795,11 +795,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Không có"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Đĩa mềm %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Đĩa mềm %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Ảnh (đĩa) sector nâng cao"
@@ -819,8 +819,8 @@ msgstr "Không thể khởi tạo Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Không thể khởi tạo GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "MO %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Ảnh đĩa MO"
@@ -906,14 +906,14 @@ msgstr "Phần chọn loại CPU dựa trên mẫu máy đã chọn bị vô hi�
 msgid "Continue"
 msgstr "Tiếp tục"
 
-msgid "Cassette: %s"
-msgstr "Cassette: %s"
+msgid "Cassette: %1"
+msgstr "Cassette: %1"
 
 msgid "Cassette images"
 msgstr "Ảnh đĩa Cassette"
 
-msgid "Cartridge %i: %ls"
-msgstr "Băng cartridge %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Băng cartridge %1: %2"
 
 msgid "Cartridge images"
 msgstr "Ảnh đĩa băng cartridge"
@@ -1080,8 +1080,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1272,8 +1272,8 @@ msgstr "Bus không xác định"
 msgid "Null Driver"
 msgstr "Trình điều khiển NULL"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i ( %ls) %ls"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Hành vi kết xuất"
@@ -2046,8 +2046,8 @@ msgstr "Đường ống có tên (máy chủ)"
 msgid "Host Serial Passthrough"
 msgstr "Thông qua cổng serial của máy chủ"
 
-msgid "Eject %s"
-msgstr "Đẩy đĩa ra %s"
+msgid "E&ject %1"
+msgstr "Đẩy đĩ&a ra %1"
 
 msgid "&Unmute"
 msgstr "&Mở tiếng"

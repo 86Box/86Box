@@ -642,8 +642,8 @@ msgstr "Pencere moduna geri dönmek için Ctrl+Alt+PgDn tuşlarına basın."
 msgid "Speed"
 msgstr "Hız"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIP imajları"
@@ -750,8 +750,8 @@ msgstr "KB"
 msgid "Default"
 msgstr "Varsayılan"
 
-msgid "%i Wait state(s)"
-msgstr "%i Bekleme durumları"
+msgid "%1 Wait state(s)"
+msgstr "%1 Bekleme durumları"
 
 msgid "Type"
 msgstr "Tür"
@@ -795,11 +795,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Hiçbiri"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Disket %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Disket %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Gelişmiş sektör imajları"
@@ -819,8 +819,8 @@ msgstr "Ghostscript başlatılamadı"
 msgid "Unable to initialize GhostPCL"
 msgstr "GhostPCL başlatılamadı"
 
-msgid "MO %i (%ls): %ls"
-msgstr "MO %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "MO imajları"
@@ -906,14 +906,14 @@ msgstr "Seçtiğiniz makineye uygun işlemci türü filtrelemesi bu emüle edile
 msgid "Continue"
 msgstr "Devam et"
 
-msgid "Cassette: %s"
-msgstr "Kaset: %s"
+msgid "Cassette: %1"
+msgstr "Kaset: %1"
 
 msgid "Cassette images"
 msgstr "Kaset imajları"
 
-msgid "Cartridge %i: %ls"
-msgstr "Kartuş %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Kartuş %1: %2"
 
 msgid "Cartridge images"
 msgstr "Kartuş imajları"
@@ -1080,8 +1080,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1272,8 +1272,8 @@ msgstr "Bilinmeyen veri yolu"
 msgid "Null Driver"
 msgstr "Null sürücü"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "İşleyiş davranışı"
@@ -2046,8 +2046,8 @@ msgstr "Adlandırılmış boru (Sunucu)"
 msgid "Host Serial Passthrough"
 msgstr "Ana bilgisayar seri port geçişi"
 
-msgid "Eject %s"
-msgstr "%s diskini çıkar"
+msgid "E&ject %1"
+msgstr "%1 diskini &çıkar"
 
 msgid "&Unmute"
 msgstr "&Sesi aç"

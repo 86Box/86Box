@@ -642,8 +642,8 @@ msgstr "Ctrl+Alt+PgDn 키를 누르면 창 모드로 전환합니다."
 msgid "Speed"
 msgstr "속도"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIP 이미지"
@@ -750,8 +750,8 @@ msgstr "KB"
 msgid "Default"
 msgstr "기본값"
 
-msgid "%i Wait state(s)"
-msgstr "%i 대기 상태"
+msgid "%1 Wait state(s)"
+msgstr "%1 대기 상태"
 
 msgid "Type"
 msgstr "형식"
@@ -795,11 +795,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "없음"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "플로피 %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "플로피 %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "어드밴스드 섹터 이미지"
@@ -819,8 +819,8 @@ msgstr "Ghostscript를 초기화할 수 없습니다"
 msgid "Unable to initialize GhostPCL"
 msgstr "GhostPCL를 초기화할 수 없습니다"
 
-msgid "MO %i (%ls): %ls"
-msgstr "광자기 %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "광자기 %1 (%2): %3"
 
 msgid "MO images"
 msgstr "광자기 이미지"
@@ -906,14 +906,14 @@ msgstr "이 에뮬레이트된 기종에 대해 선택한 기종을 기반으로
 msgid "Continue"
 msgstr "계속"
 
-msgid "Cassette: %s"
-msgstr "카세트: %s"
+msgid "Cassette: %1"
+msgstr "카세트: %1"
 
 msgid "Cassette images"
 msgstr "카세트 이미지"
 
-msgid "Cartridge %i: %ls"
-msgstr "카트리지 %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "카트리지 %1: %2"
 
 msgid "Cartridge images"
 msgstr "카트리지 이미지"
@@ -1080,8 +1080,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1272,8 +1272,8 @@ msgstr "알 수 없는 버스"
 msgid "Null Driver"
 msgstr "Null 드라이버"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "렌더링 동작"
@@ -2046,8 +2046,8 @@ msgstr "네임드 파이프(서버)"
 msgid "Host Serial Passthrough"
 msgstr "호스트 직렬 포트 패스스루"
 
-msgid "Eject %s"
-msgstr "%s 꺼내기"
+msgid "E&ject %1"
+msgstr "%1 꺼내기(&J)"
 
 msgid "&Unmute"
 msgstr "음소거 해제(&U)"

@@ -642,8 +642,8 @@ msgstr "Натисніть Ctrl+Alt+PgDn для повернення у віко
 msgid "Speed"
 msgstr "Швидкість"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "Образи ZIP"
@@ -750,8 +750,8 @@ msgstr "КБ"
 msgid "Default"
 msgstr "За замовчуванням"
 
-msgid "%i Wait state(s)"
-msgstr "%i WS"
+msgid "%1 Wait state(s)"
+msgstr "%1 WS"
 
 msgid "Type"
 msgstr "Тип"
@@ -795,11 +795,11 @@ msgstr "Система управління польотом Thrustmaster"
 msgid "None"
 msgstr "Ні"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u МБ (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 МБ (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Дисковод %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Дисковод %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Розширені образи секторів"
@@ -819,8 +819,8 @@ msgstr "Неможливо ініціалізувати Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Неможливо ініціалізувати GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "Магнітооптичний %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "Магнітооптичний %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Образи магнітооптичних дисків"
@@ -906,14 +906,14 @@ msgstr "Вибір типів ЦП для цієї системної плати
 msgid "Continue"
 msgstr "Продовжити"
 
-msgid "Cassette: %s"
-msgstr "Касета: %s"
+msgid "Cassette: %1"
+msgstr "Касета: %1"
 
 msgid "Cassette images"
 msgstr "Образи касет"
 
-msgid "Cartridge %i: %ls"
-msgstr "Картридж %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Картридж %1: %2"
 
 msgid "Cartridge images"
 msgstr "Образи картриджів"
@@ -1080,8 +1080,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 КБ"
@@ -1272,8 +1272,8 @@ msgstr "Невідома шина"
 msgid "Null Driver"
 msgstr "Нульовий драйвер"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Поведінка рендерингу"
@@ -2046,8 +2046,8 @@ msgstr "Іменований пайп (сервер)"
 msgid "Host Serial Passthrough"
 msgstr "Пропуск послідовного порту хоста"
 
-msgid "Eject %s"
-msgstr "Вилучити %s"
+msgid "E&ject %1"
+msgstr "&Вилучити %1"
 
 msgid "&Unmute"
 msgstr "&Увімкнути звук"

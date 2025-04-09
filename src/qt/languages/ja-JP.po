@@ -642,8 +642,8 @@ msgstr "Ctrl+Alt+PgDnでウィンドウ モードに戻ります。"
 msgid "Speed"
 msgstr "速度"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIPイメージ"
@@ -750,8 +750,8 @@ msgstr "KB"
 msgid "Default"
 msgstr "既定値"
 
-msgid "%i Wait state(s)"
-msgstr "%iつのウェイト ステート"
+msgid "%1 Wait state(s)"
+msgstr "%1つのウェイト ステート"
 
 msgid "Type"
 msgstr "タイプ"
@@ -795,11 +795,11 @@ msgstr "Thrustmaster飛行制御システム"
 msgid "None"
 msgstr "なし"
 
-msgid "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
 msgstr "%u MB (CHS値: %i、%i、%i)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "フロッピー %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "フロッピー %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "アドバンスドセクターイメージ"
@@ -819,8 +819,8 @@ msgstr "Ghostscriptが初期化できません"
 msgid "Unable to initialize GhostPCL"
 msgstr "GhostPCLが初期化できません"
 
-msgid "MO %i (%ls): %ls"
-msgstr "光磁気 %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "光磁気 %1 (%2): %3"
 
 msgid "MO images"
 msgstr "光磁気イメージ"
@@ -906,14 +906,14 @@ msgstr "選択したマシンに基づくCPUタイプのフィルター機能は
 msgid "Continue"
 msgstr "続行"
 
-msgid "Cassette: %s"
-msgstr "カセット: %s"
+msgid "Cassette: %1"
+msgstr "カセット: %1"
 
 msgid "Cassette images"
 msgstr "カセットイメージ"
 
-msgid "Cartridge %i: %ls"
-msgstr "カートリッジ %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "カートリッジ %1: %2"
 
 msgid "Cartridge images"
 msgstr "カートリッジイメージ"
@@ -1080,8 +1080,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1272,8 +1272,8 @@ msgstr "不明なバス"
 msgid "Null Driver"
 msgstr "ヌル・ドライバー"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "レンダリング動作"
@@ -2046,8 +2046,8 @@ msgstr "名前付きパイプ（サーバー）"
 msgid "Host Serial Passthrough"
 msgstr "ホストシリアルポートのパススルー"
 
-msgid "Eject %s"
-msgstr "%sを取り出す"
+msgid "E&ject %1"
+msgstr "%1を取り出す(&J)"
 
 msgid "&Unmute"
 msgstr "ミュート解除(&U)"

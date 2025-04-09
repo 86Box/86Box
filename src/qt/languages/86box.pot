@@ -642,7 +642,7 @@ msgstr ""
 msgid "Speed"
 msgstr ""
 
-msgid "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
 msgstr ""
 
 msgid "ZIP images"
@@ -750,7 +750,7 @@ msgstr ""
 msgid "Default"
 msgstr ""
 
-msgid "%i Wait state(s)"
+msgid "%1 Wait state(s)"
 msgstr ""
 
 msgid "Type"
@@ -795,10 +795,10 @@ msgstr ""
 msgid "None"
 msgstr ""
 
-msgid "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
 msgstr ""
 
-msgid "Floppy %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
 msgstr ""
 
 msgid "Advanced sector images"
@@ -819,7 +819,7 @@ msgstr ""
 msgid "Unable to initialize GhostPCL"
 msgstr ""
 
-msgid "MO %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
 msgstr ""
 
 msgid "MO images"
@@ -906,13 +906,13 @@ msgstr ""
 msgid "Continue"
 msgstr ""
 
-msgid "Cassette: %s"
+msgid "Cassette: %1"
 msgstr ""
 
 msgid "Cassette images"
 msgstr ""
 
-msgid "Cartridge %i: %ls"
+msgid "Cartridge %1: %2"
 msgstr ""
 
 msgid "Cartridge images"
@@ -1080,7 +1080,7 @@ msgstr ""
 msgid "ATAPI"
 msgstr ""
 
-msgid "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
 msgstr ""
 
 msgid "160 KB"
@@ -1272,7 +1272,7 @@ msgstr ""
 msgid "Null Driver"
 msgstr ""
 
-msgid "NIC %02i (%ls) %ls"
+msgid "NIC %1 (%2) %3"
 msgstr ""
 
 msgid "Render behavior"
@@ -2046,7 +2046,7 @@ msgstr ""
 msgid "Host Serial Passthrough"
 msgstr ""
 
-msgid "Eject %s"
+msgid "E&ject %1"
 msgstr ""
 
 msgid "&Unmute"

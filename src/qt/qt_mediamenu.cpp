@@ -93,7 +93,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         cassetteMenu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             cassetteImageHistoryPos[slot] = cassetteMenu->children().count();
-            cassetteMenu->addAction(QString::asprintf(tr("Image %i").toUtf8().constData(), slot), [this, slot]() { cassetteMenuSelect(slot); })->setCheckable(false);
+            cassetteMenu->addAction(tr("Image %1").arg(slot), [this, slot]() { cassetteMenuSelect(slot); })->setCheckable(false);
         }
         cassetteMenu->addSeparator();
         cassetteRecordPos = cassetteMenu->children().count();
@@ -118,7 +118,7 @@ MediaMenu::refresh(QMenu *parentMenu)
             menu->addSeparator();
             for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
                 cartridgeImageHistoryPos[slot] = menu->children().count();
-                menu->addAction(QString::asprintf(tr("Image %i").toUtf8().constData(), slot), [this, i, slot]() { cartridgeMenuSelect(i, slot); })->setCheckable(false);
+                menu->addAction(tr("Image %1").arg(slot), [this, i, slot]() { cartridgeMenuSelect(i, slot); })->setCheckable(false);
             }
             menu->addSeparator();
             cartridgeEjectPos = menu->children().count();
@@ -138,7 +138,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             floppyImageHistoryPos[slot] = menu->children().count();
-            menu->addAction(QString::asprintf(tr("Image %i").toUtf8().constData(), slot), [this, i, slot]() { floppyMenuSelect(i, slot); })->setCheckable(false);
+            menu->addAction(tr("Image %1").arg(slot), [this, i, slot]() { floppyMenuSelect(i, slot); })->setCheckable(false);
         }
         menu->addSeparator();
         floppyExportPos = menu->children().count();
@@ -161,7 +161,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             cdromImageHistoryPos[slot] = menu->children().count();
-            menu->addAction(QString::asprintf(tr("Image %i").toUtf8().constData(), slot), [this, i, slot]() { cdromReload(i, slot); })->setCheckable(false);
+            menu->addAction(tr("Image %1").arg(slot), [this, i, slot]() { cdromReload(i, slot); })->setCheckable(false);
         }
         menu->addSeparator();
 #ifdef Q_OS_WINDOWS
@@ -191,7 +191,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             zipImageHistoryPos[slot] = menu->children().count();
-            menu->addAction(QString::asprintf(tr("Image %i").toUtf8().constData(), slot), [this, i, slot]() { zipReload(i, slot); })->setCheckable(false);
+            menu->addAction(tr("Image %1").arg(slot), [this, i, slot]() { zipReload(i, slot); })->setCheckable(false);
         }
         menu->addSeparator();
         zipEjectPos = menu->children().count();
@@ -210,7 +210,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             moImageHistoryPos[slot] = menu->children().count();
-            menu->addAction(QString::asprintf(tr("Image %i").toUtf8().constData(), slot), [this, i, slot]() { moReload(i, slot); })->setCheckable(false);
+            menu->addAction(tr("Image %1").arg(slot), [this, i, slot]() { moReload(i, slot); })->setCheckable(false);
         }
         menu->addSeparator();
         moEjectPos = menu->children().count();
@@ -323,8 +323,7 @@ MediaMenu::cassetteUpdateMenu()
     recordMenu->setChecked(isSaving);
     playMenu->setChecked(!isSaving);
 
-    cassetteMenu->setTitle(QString::asprintf(tr("Cassette: %s").toUtf8().constData(),
-                           (name.isEmpty() ? tr("(empty)") : name).toUtf8().constData()));
+    cassetteMenu->setTitle(tr("Cassette: %1").arg(name.isEmpty() ? tr("(empty)") : name));
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
         updateImageHistory(0, slot, ui::MediaType::Cassette);
@@ -389,8 +388,7 @@ MediaMenu::cartridgeUpdateMenu(int i)
     auto    childs    = menu->children();
     auto   *ejectMenu = dynamic_cast<QAction *>(childs[cartridgeEjectPos]);
     ejectMenu->setEnabled(!name.isEmpty());
-    // menu->setTitle(tr("Cartridge %1: %2").arg(QString::number(i+1), name.isEmpty() ? tr("(empty)") : name));
-    menu->setTitle(QString::asprintf(tr("Cartridge %i: %ls").toUtf8().constData(), i + 1, name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
+    menu->setTitle(tr("Cartridge %1: %2").arg(QString::number(i + 1), name.isEmpty() ? tr("(empty)") : name));
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
         updateImageHistory(i, slot, ui::MediaType::Cartridge);
@@ -491,7 +489,7 @@ MediaMenu::floppyUpdateMenu(int i)
     auto *ejectMenu  = dynamic_cast<QAction *>(childs[floppyEjectPos]);
     auto *exportMenu = dynamic_cast<QAction *>(childs[floppyExportPos]);
     ejectMenu->setEnabled(!name.isEmpty());
-    ejectMenu->setText(QString::asprintf(tr("Eject %s").toUtf8().constData(), name.isEmpty() ? QString().toUtf8().constData() : fi.fileName().toUtf8().constData()));
+    ejectMenu->setText(name.isEmpty() ? tr("E&ject") : tr("E&ject %1").arg(fi.fileName()));
     exportMenu->setEnabled(!name.isEmpty());
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
@@ -499,8 +497,8 @@ MediaMenu::floppyUpdateMenu(int i)
     }
 
     int type = fdd_get_type(i);
-    // floppyMenus[i]->setTitle(tr("Floppy %1 (%2): %3").arg(QString::number(i+1), fdd_getname(type), name.isEmpty() ? tr("(empty)") : name));
-    floppyMenus[i]->setTitle(QString::asprintf(tr("Floppy %i (%s): %ls").toUtf8().constData(), i + 1, fdd_getname(type), name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
+    floppyMenus[i]->setTitle(tr("Floppy %1 (%2): %3").arg(QString::number(i + 1), fdd_getname(type), name.isEmpty() ? tr("(empty)") : name));
+
 }
 
 void
@@ -749,7 +747,7 @@ MediaMenu::cdromUpdateMenu(int i)
         menu_icon      = fi.isDir() ? QIcon(":/settings/qt/icons/cdrom_folder.ico") : QIcon(":/settings/qt/icons/cdrom_image.ico");
     }
     imageMenu->setIcon(menu_icon);
-    imageMenu->setText(QString::asprintf(tr("Eject %s").toUtf8().constData(), menu_item_name.toUtf8().constData()));
+    imageMenu->setText(name.isEmpty() ? tr("E&ject") : tr("E&ject %1").arg(menu_item_name));
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
         updateImageHistory(i, slot, ui::MediaType::Optical);
@@ -769,8 +767,7 @@ MediaMenu::cdromUpdateMenu(int i)
 	    break;
     }
 
-    // menu->setTitle(tr("CD-ROM %1 (%2): %3").arg(QString::number(i+1), busName, name.isEmpty() ? tr("(empty)") : name));
-    menu->setTitle(QString::asprintf(tr("CD-ROM %i (%s): %s").toUtf8().constData(), i + 1, busName.toUtf8().data(), name.isEmpty() ? tr("(empty)").toUtf8().data() : name2.toUtf8().data()));
+    menu->setTitle(tr("CD-ROM %1 (%2): %3").arg(QString::number(i+1), busName, name.isEmpty() ? tr("(empty)") : name2));
 }
 
 void
@@ -899,8 +896,7 @@ MediaMenu::zipUpdateMenu(int i)
             break;
     }
 
-    // menu->setTitle(tr("ZIP %1 %2 (%3): %4").arg((zip_drives[i].is_250 > 0) ? "250" : "100", QString::number(i+1), busName, name.isEmpty() ? tr("(empty)") : name));
-    menu->setTitle(QString::asprintf(tr("ZIP %03i %i (%s): %ls").toUtf8().constData(), (zip_drives[i].is_250 > 0) ? 250 : 100, i + 1, busName.toUtf8().data(), name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
+    menu->setTitle(tr("ZIP %1 %2 (%3): %4").arg((zip_drives[i].is_250 > 0) ? QString("250") : QString("100"), QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
         updateImageHistory(i, slot, ui::MediaType::Zip);
@@ -1035,7 +1031,7 @@ MediaMenu::moUpdateMenu(int i)
             break;
     }
 
-    menu->setTitle(QString::asprintf(tr("MO %i (%ls): %ls").toUtf8().constData(), i + 1, busName.toStdU16String().data(), name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
+    menu->setTitle(tr("MO %1 (%2): %3").arg(QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
         updateImageHistory(i, slot, ui::MediaType::Mo);
@@ -1087,7 +1083,7 @@ MediaMenu::nicUpdateMenu(int i)
     auto *connectedAction = dynamic_cast<QAction *>(childs[netDisconnPos]);
     connectedAction->setChecked(network_is_connected(i));
 
-    menu->setTitle(QString::asprintf(tr("NIC %02i (%ls) %ls").toUtf8().constData(), i + 1, netType.toStdU16String().data(), devName.toStdU16String().data()));
+    menu->setTitle(tr("NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
 }
 
 QString

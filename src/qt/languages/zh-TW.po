@@ -642,8 +642,8 @@ msgstr "按下 Ctrl+Alt+PgDn 返回到視窗模式。"
 msgid "Speed"
 msgstr "速度"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIP 映像"
@@ -750,8 +750,8 @@ msgstr "KB"
 msgid "Default"
 msgstr "預設"
 
-msgid "%i Wait state(s)"
-msgstr "%i 等待狀態 (WS)"
+msgid "%1 Wait state(s)"
+msgstr "%1 等待狀態 (WS)"
 
 msgid "Type"
 msgstr "類型"
@@ -795,11 +795,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "無"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "軟碟 %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "軟碟 %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "進階磁區映像"
@@ -819,8 +819,8 @@ msgstr "無法初始化 Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "無法初始化 GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "磁光碟 %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "磁光碟 %1 (%2): %3"
 
 msgid "MO images"
 msgstr "磁光碟映像"
@@ -906,14 +906,14 @@ msgstr "此模擬電腦停用了基於選定電腦的 CPU 類型過濾。\n\n能
 msgid "Continue"
 msgstr "繼續"
 
-msgid "Cassette: %s"
-msgstr "磁帶: %s"
+msgid "Cassette: %1"
+msgstr "磁帶: %1"
 
 msgid "Cassette images"
 msgstr "磁帶映像"
 
-msgid "Cartridge %i: %ls"
-msgstr "卡帶 %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "卡帶 %1: %2"
 
 msgid "Cartridge images"
 msgstr "卡帶映像"
@@ -1080,8 +1080,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "光碟 %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "光碟 %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1272,8 +1272,8 @@ msgstr "未知匯流排"
 msgid "Null Driver"
 msgstr "空驅動程式"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "網路卡 %02i (%ls) %ls"
+msgid "NIC %1 (%2) %3"
+msgstr "網路卡 %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "渲染行為"
@@ -2046,8 +2046,8 @@ msgstr "已命名管道 (伺服器)"
 msgid "Host Serial Passthrough"
 msgstr "主機序列埠的直通"
 
-msgid "Eject %s"
-msgstr "退出 %s"
+msgid "E&ject %1"
+msgstr "退出 %1(&J)"
 
 msgid "&Unmute"
 msgstr "解除靜音(&U)"

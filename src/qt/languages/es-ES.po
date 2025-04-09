@@ -642,8 +642,8 @@ msgstr "Pulsa Ctrl+Alt+PgDn para volver a modo ventana."
 msgid "Speed"
 msgstr "Velocidad"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "Imagenes ZIP"
@@ -750,8 +750,8 @@ msgstr "KB"
 msgid "Default"
 msgstr "Por defecto"
 
-msgid "%i Wait state(s)"
-msgstr "%i estado(s) de Espera"
+msgid "%1 Wait state(s)"
+msgstr "%1 estado(s) de Espera"
 
 msgid "Type"
 msgstr "Tipo"
@@ -795,11 +795,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Ninguno"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Disquete %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Disquete %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Imágenes avanzadas de sector"
@@ -819,8 +819,8 @@ msgstr "No fué posible inicializar Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "No fué posible inicializar GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "MO %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Imágenes de MO"
@@ -906,14 +906,14 @@ msgstr "El Filtrado de tipo de CPU basado en máquina seleccionada está deshabi
 msgid "Continue"
 msgstr "Continuar"
 
-msgid "Cassette: %s"
-msgstr "Cassette: %s"
+msgid "Cassette: %1"
+msgstr "Cassette: %1"
 
 msgid "Cassette images"
 msgstr "Imágenes de Cassette"
 
-msgid "Cartridge %i: %ls"
-msgstr "Cartucho %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Cartucho %1: %2"
 
 msgid "Cartridge images"
 msgstr "Imágenes de Cartucho"
@@ -1080,8 +1080,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1271,8 +1271,8 @@ msgstr "Bus desconocido"
 msgid "Null Driver"
 msgstr "Controlador nulo"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Comportamiento del renderizador"
@@ -2045,8 +2045,8 @@ msgstr "Tubería con nombre (servidor)"
 msgid "Host Serial Passthrough"
 msgstr "Paso del puerto serie del host"
 
-msgid "Eject %s"
-msgstr "Extraer %s"
+msgid "E&ject %1"
+msgstr "E&xtraer %1"
 
 msgid "&Unmute"
 msgstr "&Reactivar sonido"

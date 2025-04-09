@@ -642,8 +642,8 @@ msgstr "Нажмите Ctrl+Alt+PgDn для возврата в оконный �
 msgid "Speed"
 msgstr "Скорость"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "Образы ZIP"
@@ -750,8 +750,8 @@ msgstr "КБ"
 msgid "Default"
 msgstr "По умолчанию"
 
-msgid "%i Wait state(s)"
-msgstr "%i WS"
+msgid "%1 Wait state(s)"
+msgstr "%1 WS"
 
 msgid "Type"
 msgstr "Тип"
@@ -795,11 +795,11 @@ msgstr "Система управления полётом Thrustmaster"
 msgid "None"
 msgstr "Нет"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u МБ (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 МБ (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Дисковод %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Дисковод %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Расширенные образы секторов"
@@ -819,8 +819,8 @@ msgstr "Невозможно инициализировать Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Невозможно инициализировать GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "Магнитооптический %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "Магнитооптический %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Образы магнитооптических дисков"
@@ -906,14 +906,14 @@ msgstr "Выбор типов ЦП для этой системной платы
 msgid "Continue"
 msgstr "Продолжить"
 
-msgid "Cassette: %s"
-msgstr "Кассета: %s"
+msgid "Cassette: %1"
+msgstr "Кассета: %1"
 
 msgid "Cassette images"
 msgstr "Образы кассет"
 
-msgid "Cartridge %i: %ls"
-msgstr "Картридж %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Картридж %1: %2"
 
 msgid "Cartridge images"
 msgstr "Образы картриджей"
@@ -1080,8 +1080,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 КБ"
@@ -1272,8 +1272,8 @@ msgstr "Неизвестная шина"
 msgid "Null Driver"
 msgstr "Нулевой драйвер"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Режим рендеринга"
@@ -2046,8 +2046,8 @@ msgstr "Именованный пайп (Сервер)"
 msgid "Host Serial Passthrough"
 msgstr "Последовательный порт хоста"
 
-msgid "Eject %s"
-msgstr "Извлечь %s"
+msgid "E&ject %1"
+msgstr "И&звлечь %1"
 
 msgid "&Unmute"
 msgstr "В&ключить звук"
