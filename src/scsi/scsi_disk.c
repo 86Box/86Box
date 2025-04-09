@@ -570,7 +570,10 @@ scsi_disk_data_command_finish(scsi_disk_t *dev, int len, const int block_len,
                 scsi_disk_command_write_dma(dev);
         } else {
             scsi_disk_update_request_length(dev, len, block_len);
-            if (direction == 0)
+            if ((dev->drv->bus_type != HDD_BUS_SCSI) &&
+                (dev->tf->request_length == 0))
+                scsi_disk_command_complete(dev);
+            else if (direction == 0)
                 scsi_disk_command_read(dev);
             else
                 scsi_disk_command_write(dev);

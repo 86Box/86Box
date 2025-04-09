@@ -375,7 +375,7 @@ sis_85c4xx_init(const device_t *info)
     dev->reg_base = info->local & 0xff;
 
     if (dev->is_471) {
-        dev->reg_last = dev->reg_base + 0x76;
+        dev->reg_last = 0x76;
 
         dev->smram = smram_add();
 

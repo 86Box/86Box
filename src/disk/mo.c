@@ -584,7 +584,10 @@ mo_data_command_finish(mo_t *dev, int len, const int block_len,
                 mo_command_write_dma(dev);
         } else {
             mo_update_request_length(dev, len, block_len);
-            if (direction == 0)
+            if ((dev->drv->bus_type != MO_BUS_SCSI) &&
+                (dev->tf->request_length == 0))
+                mo_command_complete(dev);
+            else if (direction == 0)
                 mo_command_read(dev);
             else
                 mo_command_write(dev);

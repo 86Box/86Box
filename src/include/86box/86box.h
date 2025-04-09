@@ -45,7 +45,7 @@
 #define MAX_UUID_LEN 64
 
 /* Default language 0xFFFF = from system, 0x409 = en-US */
-#define DEFAULT_LANGUAGE 0x0409
+#define DEFAULT_LANGUAGE 0xffff
 
 #define POSTCARDS_NUM 4
 #define POSTCARD_MASK (POSTCARDS_NUM - 1)

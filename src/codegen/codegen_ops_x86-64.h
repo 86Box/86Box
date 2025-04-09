@@ -1049,11 +1049,18 @@ MEM_LOAD_ADDR_EA_W(x86seg *seg)
     /*done:*/
 }
 static __inline void
-MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset)
+MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset, int op_32)
 {
     addbyte(0x83); /*ADD EAX, offset*/
     addbyte(0xc0);
     addbyte(offset);
+    if (!(op_32 & 0x200)) {
+        addbyte(0x25); /* AND EAX, ffffh */
+        addbyte(0xff);
+        addbyte(0xff);
+        addbyte(0x00);
+        addbyte(0x00);
+    }
     MEM_LOAD_ADDR_EA_W(seg);
 }
 static __inline void
