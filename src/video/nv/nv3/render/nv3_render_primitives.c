@@ -119,6 +119,7 @@ void nv3_render_gdi_transparent_bitmap_blit(bool bit, bool clip, uint32_t color,
         else 
             nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_d.x;
     }
+
 }
 
 /* Originally written 23 March 2025, but then, redone, properly, on 30 March 2025 */
@@ -208,6 +209,7 @@ void nv3_render_gdi_transparent_bitmap(bool clip, uint32_t color, uint32_t bitma
     /* IF we're done, let's return */
     if (!bits_remaining_in_bitmap)
         return;
+
 }
 
 void nv3_render_gdi_1bpp_bitmap_blit(bool bit, uint32_t color0, uint32_t color1, nv3_grobj_t grobj)
@@ -261,6 +263,7 @@ void nv3_render_gdi_1bpp_bitmap_blit(bool bit, uint32_t color0, uint32_t color1,
         nv3->pgraph.win95_gdi_text_current_position.x = nv3->pgraph.win95_gdi_text.point_e.x;
     }
 }
+
 
 /* Originally written 23 March 2025, but then, redone, properly, on 30 March 2025 */
 void nv3_render_gdi_1bpp_bitmap(uint32_t color0, uint32_t color1, uint32_t bitmap_data, nv3_grobj_t grobj)

@@ -511,6 +511,21 @@ void nv3_recalc_timings(svga_t* svga)
             svga->hdisp += 0x100; // large screen bit
     }
  
+    /* Turn off override if we are in VGA mode */
+    svga->override = !(pixel_mode == NV3_CRTC_REGISTER_PIXELMODE_VGA);
+
+    /* NOTE: The RIVA 128 draws in a way almost completely separate to any other 86Box GPU.
+    
+    Basically, we only blit to buffer32 when something changes and we don't even bother using a timer. We only render when there is something to actually render.
+
+    This is because there is no linear relationship between the contents of VRAM and the contents of the display which 86box's SVGA subsystem cannot tolerate.
+    In fact, the position in VRAM and pitch can be changed at any time via an NV_IMAGE_IN_MEMORY object.
+
+    Therefore, we need to completely bypass it using svga->override and draw our own rendering functions. This allows us to use a neat optimisation trick
+    to only ever actually draw when we need to do something. This shouldn't be a problem in games, because the drivers will read the current refresh rate from 
+    the Windows settings, and then, just submit objects at that pace for anything that changes on the screen.
+    */
+
     // Set the pixel mode
     switch (pixel_mode)
     {
@@ -519,7 +534,7 @@ void nv3_recalc_timings(svga_t* svga)
             svga->bpp = 8;
             svga->lowres = 0;
             svga->map8 = svga->pallook;
-            svga->render = svga_render_8bpp_highres;
+            //svga->render = nv3_render_8bpp;
             break;
         case NV3_CRTC_REGISTER_PIXELMODE_16BPP:
             /* This is some sketchy shit that is an attempt at an educated guess
@@ -536,13 +551,13 @@ void nv3_recalc_timings(svga_t* svga)
             {
                 svga->bpp = 16;
                 svga->lowres = 0;
-                svga->render = nv3_render_16bpp;
+                //svga->render = nv3_render_16bpp;
             }
             else
             {
                 svga->bpp = 15;
                 svga->lowres = 0;
-                svga->render = nv3_render_15bpp;
+                //svga->render = nv3_render_15bpp;
                 
             }
         
@@ -552,7 +567,7 @@ void nv3_recalc_timings(svga_t* svga)
             
             svga->bpp = 32;
             svga->lowres = 0;
-            svga->render = nv3_render_32bpp;
+            //svga->render = nv3_render_32bpp;
             break;
     }
 
@@ -784,6 +799,8 @@ void nv3_dfb_write8(uint32_t addr, uint8_t val, void* priv)
 {
     addr &= (nv3->nvbase.svga.vram_mask);
     nv3->nvbase.svga.vram[addr] = val;
+    nv3->nvbase.svga.changedvram[addr >> 12] = val;
+    nv3_render_current_bpp_dfb_8(addr);
 }
 
 void nv3_dfb_write16(uint32_t addr, uint16_t val, void* priv)
@@ -791,6 +808,9 @@ void nv3_dfb_write16(uint32_t addr, uint16_t val, void* priv)
     addr &= (nv3->nvbase.svga.vram_mask);
     nv3->nvbase.svga.vram[addr + 1] = (val >> 8) & 0xFF;
     nv3->nvbase.svga.vram[addr] = (val) & 0xFF;
+    nv3->nvbase.svga.changedvram[addr >> 12] = val;
+    nv3_render_current_bpp_dfb_16(addr);
+
 }
 
 void nv3_dfb_write32(uint32_t addr, uint32_t val, void* priv)
@@ -800,6 +820,10 @@ void nv3_dfb_write32(uint32_t addr, uint32_t val, void* priv)
     nv3->nvbase.svga.vram[addr + 2] = (val >> 16) & 0xFF;
     nv3->nvbase.svga.vram[addr + 1] = (val >> 8) & 0xFF;
     nv3->nvbase.svga.vram[addr] = (val) & 0xFF;
+    nv3->nvbase.svga.changedvram[addr >> 12] = val;
+
+    nv3_render_current_bpp_dfb_32(addr);
+
 }
 
 /* Cursor shit */

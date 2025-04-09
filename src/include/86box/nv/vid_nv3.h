@@ -1457,7 +1457,7 @@ void        nv3_recalc_timings(svga_t* svga);
 void        nv3_force_redraw(void* priv);
 
 /* BAR0 GPU MMIO read */
-void        nv3_update_mappings();                                              // Update memory mappings
+void        nv3_update_mappings(void);                                          // Update memory mappings
 uint8_t     nv3_mmio_read8(uint32_t addr, void* priv);                          // Read 8-bit MMIO
 uint16_t    nv3_mmio_read16(uint32_t addr, void* priv);                         // Read 16-bit MMIO
 uint32_t    nv3_mmio_read32(uint32_t addr, void* priv);                         // Read 32-bit MMIO
@@ -1556,12 +1556,12 @@ void        nv3_user_write(uint32_t address, uint32_t value);
 // GPU subsystems
 
 // NV3 PMC
-void        nv3_pmc_init();
-uint32_t    nv3_pmc_clear_interrupts();
+void        nv3_pmc_init(void);
+uint32_t    nv3_pmc_clear_interrupts(void);
 uint32_t    nv3_pmc_handle_interrupts(bool send_now);
 
 // NV3 PGRAPH
-void        nv3_pgraph_init();
+void        nv3_pgraph_init(void);
 uint32_t    nv3_pgraph_read(uint32_t address);
 void        nv3_pgraph_write(uint32_t address, uint32_t value);
 void        nv3_pgraph_vblank_start(svga_t* svga);
@@ -1599,46 +1599,46 @@ void        nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_c
 void        nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t context,nv3_grobj_t grobj);
 
 // NV3 PFIFO
-void        nv3_pfifo_init();
+void        nv3_pfifo_init(void);
 uint32_t    nv3_pfifo_read(uint32_t address);
 void        nv3_pfifo_write(uint32_t address, uint32_t value);
 void        nv3_pfifo_interrupt(uint32_t id, bool fire_now);
 
 // NV3 PFIFO - Caches
 //cache0_push not a thing
-void        nv3_pfifo_cache0_pull();
+void        nv3_pfifo_cache0_pull(void);
 void        nv3_pfifo_cache1_push(uint32_t addr, uint32_t val);
-void        nv3_pfifo_cache1_pull();
+void        nv3_pfifo_cache1_pull(void);
 uint32_t    nv3_pfifo_cache1_normal2gray(uint32_t val);
 uint32_t    nv3_pfifo_cache1_gray2normal(uint32_t val);
-uint32_t    nv3_pfifo_cache1_num_free_spaces();
+uint32_t    nv3_pfifo_cache1_num_free_spaces(void);
 
 // NV3 PFB
-void        nv3_pfb_init();
+void        nv3_pfb_init(void);
 
 // NV3 PEXTDEV/PSTRAPS
-void        nv3_pextdev_init();
+void        nv3_pextdev_init(void);
 
 // NV3 PBUS
-void        nv3_pbus_init();
+void        nv3_pbus_init(void);
 
 // NV3 PBUS RMA - Real Mode Access for VBIOS
 uint8_t     nv3_pbus_rma_read(uint16_t addr);
 void        nv3_pbus_rma_write(uint16_t addr, uint8_t val);
 
 // NV3 PRAMDAC (Final presentation)
-void        nv3_pramdac_init();
-void        nv3_pramdac_set_vram_clock();
-void        nv3_pramdac_set_pixel_clock();
+void        nv3_pramdac_init(void);
+void        nv3_pramdac_set_vram_clock(void);
+void        nv3_pramdac_set_pixel_clock(void);
 void        nv3_pramdac_pixel_clock_poll(double real_time);
 void        nv3_pramdac_memory_clock_poll(double real_time);
 
 // NV3 PTIMER
-void        nv3_ptimer_init();
+void        nv3_ptimer_init(void);
 void        nv3_ptimer_tick(double real_time);
 
 // NV3 PVIDEO
-void        nv3_pvideo_init();
+void        nv3_pvideo_init(void);
 
 // NV3 PME (Mediaport)
-void        nv3_pme_init();
+void        nv3_pme_init(void); 

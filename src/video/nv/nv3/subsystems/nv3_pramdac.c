@@ -51,6 +51,23 @@ void nv3_pramdac_init()
 // Polls the pixel clock.
 void nv3_pramdac_pixel_clock_poll(double real_time)
 {
+    /* Ignore in VGA mode */
+    if (!nv3->nvbase.svga.override)
+        return; 
+
+    /* Figure out our refresh time. */
+    if (!nv3->nvbase.refresh_time)
+        nv3->nvbase.refresh_time = (1/60.0); // rivatimers count in microseconds but present the info as seconds
+        
+    nv3->nvbase.refresh_clock += real_time;
+
+    if (nv3->nvbase.refresh_clock > nv3->nvbase.refresh_time)
+    {
+        /* Update the screen because something changed */
+        video_blit_memtoscreen(0, 0, xsize, ysize);
+        nv3->nvbase.refresh_clock = 0;
+    }
+
     // TODO: ????
 }
 

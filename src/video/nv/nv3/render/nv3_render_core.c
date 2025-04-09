@@ -30,6 +30,12 @@
 #include <86box/nv/vid_nv3.h>
 #include <86box/utils/video_stdlib.h>
 
+/* Functions only used in this translation unit */
+void nv3_render_8bpp(nv3_position_16_t position, nv3_size_16_t size, nv3_grobj_t grobj);
+void nv3_render_15bpp(nv3_position_16_t position, nv3_size_16_t size, nv3_grobj_t grobj);
+void nv3_render_16bpp(nv3_position_16_t position, nv3_size_16_t size, nv3_grobj_t grobj);
+void nv3_render_32bpp(nv3_position_16_t position, nv3_size_16_t size, nv3_grobj_t grobj);
+
 /* Expand a colour.
    NOTE: THE GPU INTERNALLY OPERATES ON RGB10!!!!!!!!!!!
 */
@@ -261,6 +267,38 @@ uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t gro
     return pixel_addr_vram;
 }
 
+/* Convert a dumb framebuffer address to a position. No buffer setup or anything, but just start at 0,0 for address 0. */
+nv3_position_16_t nv3_render_get_dfb_position(uint32_t vram_address)
+{
+    nv3_position_16_t pos = {0};
+
+    uint32_t pitch = nv3->nvbase.svga.hdisp;
+
+    if (nv3->nvbase.svga.bpp == 15
+    || nv3->nvbase.svga.bpp == 16)
+        pitch <<= 1;
+    else if (nv3->nvbase.svga.bpp == 32)
+        pitch <<= 2;
+
+    //vram_address -= nv3->pgraph.boffset[0];
+
+    pos.y = (vram_address / pitch);
+    pos.x = (vram_address % pitch);
+
+    /* Fixup our x position */
+    if (nv3->nvbase.svga.bpp == 15
+    || nv3->nvbase.svga.bpp == 16)
+        pos.x >>= 1; 
+    else if (nv3->nvbase.svga.bpp == 32)
+        pos.x >>= 2; 
+    
+
+    /* there is some strange behaviour where it writes long past the end of the fb */
+    if (pos.y >= nv3->nvbase.svga.monitor->target_buffer->h) pos.y = nv3->nvbase.svga.monitor->target_buffer->h - 1;
+
+    return pos; 
+}
+
 /* Read an 8bpp pixel from the framebuffer. */
 uint8_t nv3_render_read_pixel_8(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination)
 { 
@@ -435,165 +473,250 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
 
             break;
     }
+    
+    /* Go write the pixel */
+    nv3_size_16_t size = {0};
+    size.w = size.h = 1; 
+    nv3_render_current_bpp(&nv3->nvbase.svga, position, size, grobj);
 }
 
+/* Ensure the correct monitor size */
+void nv3_render_ensure_mode()
+{
+    bool changed = false; //doesn't check if the res is the same?
+
+    if (nv3->nvbase.svga.hdisp != nv3->nvbase.svga.monitor->mon_xsize)
+    {
+        changed = true;  
+        nv3->nvbase.svga.monitor->mon_xsize = nv3->nvbase.svga.hdisp;
+    }
+
+    if (nv3->nvbase.svga.dispend != nv3->nvbase.svga.monitor->mon_ysize)
+    {
+        changed = true; 
+        nv3->nvbase.svga.monitor->mon_ysize = nv3->nvbase.svga.dispend;
+    }
+    
+    if (changed)
+    {
+        /* set refresh rate - this is just a rough estimation right now. we need it as we only blit what changes */
+        nv3->nvbase.refresh_time = 1 / (nv3->nvbase.pixel_clock_frequency / (double)ysize / (double)xsize); // rivatimers count in microseconds
+        set_screen_size(xsize, ysize);
+    }
+        
+}
+
+
+/* Blit to the monitor from DFB, 8bpp */
+void nv3_render_current_bpp_dfb_8(uint32_t address)
+{
+
+}
+
+/* Blit to the monitor from DFB, 15/16bpp */
+void nv3_render_current_bpp_dfb_16(uint32_t address)
+{
+    nv3_size_16_t size = {0};
+    size.w = size.h = 1; 
+
+    nv3_position_16_t pos = nv3_render_get_dfb_position(address);
+
+    //pos.x >>= 1; 
+
+    uint32_t* p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
+    uint32_t data = *(uint32_t*)&(nv3->nvbase.svga.vram[address]);
+        
+    if ((nv3->pramdac.general_control >> NV3_PRAMDAC_GENERAL_CONTROL_565_MODE) & 0x01)
+        /* should just "tip over" to the next line */
+        *p = nv3->nvbase.svga.conv_16to32(&nv3->nvbase.svga, data & 0xFFFF, 16);
+    else
+        /* should just "tip over" to the next line */
+        *p = nv3->nvbase.svga.conv_16to32(&nv3->nvbase.svga, data & 0xFFFF, 15);
+
+    /*does 8bpp packed into 16 occur/ i would be surprised*/
+}
+
+/* Blit to the monitor from DFB, 32bpp */
+void nv3_render_current_bpp_dfb_32(uint32_t address)
+{
+    nv3_size_16_t size = {0};
+    size.w = size.h = 1; 
+
+    nv3_position_16_t pos = nv3_render_get_dfb_position(address);
+
+    uint32_t data = *(uint32_t*)&(nv3->nvbase.svga.vram[address]);
+
+    if (nv3->nvbase.svga.bpp == 32)
+    {
+        uint32_t* p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
+        *p = data;
+    }
+    /* Packed format */
+    else if (nv3->nvbase.svga.bpp == 15
+    || nv3->nvbase.svga.bpp == 16)
+    {
+        //pos.x >>= 1;
+
+        uint32_t* p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
+
+        *p = nv3->nvbase.svga.conv_16to32(&nv3->nvbase.svga, data & 0xFFFF, nv3->nvbase.svga.bpp);
+        *p++;
+        *p = nv3->nvbase.svga.conv_16to32(&nv3->nvbase.svga, (data >> 16) & 0xFFFF, nv3->nvbase.svga.bpp);
+    }
+}
+
+
+/* Blit to the monitor from GPU, current bpp */
+void nv3_render_current_bpp(svga_t *svga, nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grobj)
+{
+    /* Ensure that we are in the correct mode. Modified SVGA core code */
+    nv3_render_ensure_mode();
+
+    switch (nv3->nvbase.svga.bpp)
+    {
+        case 4:
+            /* Uh we should never be here because we're in the SVGA mode */
+            fatal("NV3 - Tried to render 4bpp in NV mode");
+            break; 
+        case 8:
+            nv3_render_8bpp(pos, size, grobj);
+            break; 
+        case 15:
+            nv3_render_15bpp(pos, size, grobj);
+            break; 
+        case 16:
+            nv3_render_16bpp(pos, size, grobj);
+            break;
+        case 32:
+            nv3_render_32bpp(pos, size, grobj);
+            break; 
+    }
+    
+}
 
 /* 
-    Modified SVGA Core functions 
-    Done, to facilitate the buffer changing around stuff.
-
-    TODO: Do we need a custom 8bpp function?
+    Blit a certain region from the (destination buffer base + (position in vram)) to the 86Box monitor, indexed 8 bits per pixel format
 */
 
-void nv3_render_15bpp(svga_t *svga)
+void nv3_render_8bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grobj)
 {
-    int       x;
-    uint32_t *p;
-    uint32_t  dat;
-    uint32_t  changed_addr;
-    uint32_t  addr;
+    
+}
 
-    /* "force_old_addr" code path removed, since we don't need it */
+/* 
+    Blit a certain region from the (destination buffer base + (position in vram)) to the 86Box monitor, 15 bits per pixel format
+*/
 
-    if ((svga->displine + svga->y_add) < 0)
-        return;
+void nv3_render_15bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grobj)
+{
+    if (!nv3)
+        return; 
 
-    changed_addr = svga->remap_func(svga, svga->ma);
+    uint32_t vram_base; //acquired for the start of each line
+    uint32_t* p;
+    uint32_t data; 
+    uint32_t start_x = pos.x;
 
-    if (svga->changedvram[changed_addr >> 12] || svga->changedvram[(changed_addr >> 12) + 1] || svga->fullchange) {
-        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+    p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
 
-        if (svga->firstline_draw == 2000)
-            svga->firstline_draw = svga->displine;
-        svga->lastline_draw = svga->displine;
+    for (uint32_t y = 0; y < size.h; y++)
+    {
+        /* re-set the vram address because we are basically "jumping" halfway across a line here */
+        vram_base = nv3_render_get_vram_address(pos, grobj, true) & nv3->nvbase.svga.vram_display_mask;
 
-        if (!svga->remap_required) {
-            for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 8) {
-                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1)) & svga->vram_display_mask]);
-                *p++ = svga->conv_16to32(svga, dat & 0xffff, 15);
-                *p++ = svga->conv_16to32(svga, dat >> 16, 15);
+        for (uint32_t x = 0; x < size.w; x++)
+        {
+            p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
 
-                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1) + 4) & svga->vram_display_mask]);
-                *p++ = svga->conv_16to32(svga, dat & 0xffff, 15);
-                *p++ = svga->conv_16to32(svga, dat >> 16, 15);
-
-                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1) + 8) & svga->vram_display_mask]);
-                *p++ = svga->conv_16to32(svga, dat & 0xffff, 15);
-                *p++ = svga->conv_16to32(svga, dat >> 16, 15);
-
-                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1) + 12) & svga->vram_display_mask]);
-                *p++ = svga->conv_16to32(svga, dat & 0xffff, 15);
-                *p++ = svga->conv_16to32(svga, dat >> 16, 15);
-            }
-            svga->ma += x << 1;
-        } else {
-            for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 2) {
-                addr = svga->remap_func(svga, svga->ma);
-                dat  = *(uint32_t *) (&svga->vram[(addr) & svga->vram_display_mask]);
-
-                *p++ = svga->conv_16to32(svga, dat & 0xffff, 15);
-                *p++ = svga->conv_16to32(svga, dat >> 16, 15);
-                svga->ma += 4;
-            }
+            data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_base];
+            
+            /* should just "tip over" to the next line */
+            *p = nv3->nvbase.svga.conv_16to32(&nv3->nvbase.svga, data & 0xFFFF, 15);
+            
+            vram_base += 2; 
+            pos.x++; 
         }
-        svga->ma &= svga->vram_display_mask;
+        
+        pos.x = start_x; 
+        pos.y++; 
     }
 }
 
+/* 
+    Blit a certain region from the (destination buffer base + (position in vram)) to the 86Box monitor, 16 bits per pixel format
+*/
 
-void nv3_render_16bpp(svga_t *svga)
-{
-    int       x;
-    uint32_t *p;
-    uint32_t  dat;
-    uint32_t  changed_addr;
-    uint32_t  addr;
+void nv3_render_16bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grobj)
+{    
+    if (!nv3)
+        return; 
 
-    if ((svga->displine + svga->y_add) < 0)
-        return;
+    uint32_t vram_base; //acquired for the start of each line
+    uint32_t* p;
+    uint32_t data; 
+    uint32_t start_x = pos.x;
 
-    changed_addr = svga->remap_func(svga, svga->ma);
+    p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
 
-    /* "force_old_addr" code path removed, since we don't need it */
-    if (svga->changedvram[changed_addr >> 12] || svga->changedvram[(changed_addr >> 12) + 1] || svga->fullchange) {
-        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+    for (uint32_t y = 0; y < size.h; y++)
+    {
+        /* re-get the vram address because we are basically "jumping" halfway across a line here */
+        vram_base = nv3_render_get_vram_address(pos, grobj, true) & nv3->nvbase.svga.vram_display_mask;
 
-        if (svga->firstline_draw == 2000)
-            svga->firstline_draw = svga->displine;
-        svga->lastline_draw = svga->displine;
+        for (uint32_t x = 0; x < size.w; x++)
+        {
+            p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
 
-        if (!svga->remap_required) {
-            for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 8) {
-                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1)) & svga->vram_display_mask]);
-                *p++ = svga->conv_16to32(svga, dat & 0xffff, 16);
-                *p++ = svga->conv_16to32(svga, dat >> 16, 16);
-
-                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1) + 4) & svga->vram_display_mask]);
-                *p++ = svga->conv_16to32(svga, dat & 0xffff, 16);
-                *p++ = svga->conv_16to32(svga, dat >> 16, 16);
-
-                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1) + 8) & svga->vram_display_mask]);
-                *p++ = svga->conv_16to32(svga, dat & 0xffff, 16);
-                *p++ = svga->conv_16to32(svga, dat >> 16, 16);
-
-                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1) + 12) & svga->vram_display_mask]);
-                *p++ = svga->conv_16to32(svga, dat & 0xffff, 16);
-                *p++ = svga->conv_16to32(svga, dat >> 16, 16);
-            }
-            svga->ma += x << 1;
-        } else {
-            for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 2) {
-                addr = svga->remap_func(svga, svga->ma);
-                dat  = *(uint32_t *) (&svga->vram[(addr) & svga->vram_display_mask]);
-
-                *p++ = svga->conv_16to32(svga, dat & 0xffff, 16);
-                *p++ = svga->conv_16to32(svga, dat >> 16, 16);
-
-                svga->ma += 4;
-            }
+            data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_base];
+            
+            /* should just "tip over" to the next line */
+            *p = nv3->nvbase.svga.conv_16to32(&nv3->nvbase.svga, data & 0xFFFF, 15);
+            
+            vram_base += 2;
+            pos.x++; 
         }
-        svga->ma &= svga->vram_display_mask;
-    }
+
+        pos.x = start_x; 
+        pos.y++; 
+    } 
 }
 
+/* 
+    Blit a certain region from the (destination buffer base + (position in vram)) to the 86Box monitor, 32 bits per pixel format
+*/
 
-void nv3_render_32bpp(svga_t *svga)
+void nv3_render_32bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grobj)
 {
-    int       x;
-    uint32_t *p;
-    uint32_t  dat;
-    uint32_t  changed_addr;
-    uint32_t  addr;
+    if (!nv3)
+        return; 
 
-    if ((svga->displine + svga->y_add) < 0)
-        return;
+    uint32_t vram_base;
+    uint32_t* p;
+    uint32_t data; 
+    uint32_t start_x = pos.x;
 
-    /* "force_old_addr" code path removed, since we don't need it */
+    p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
 
-    changed_addr = svga->remap_func(svga, svga->ma);
+    for (uint32_t y = 0; y < size.h; y++)
+    {
+        /* re-get the vram address because we are basically "jumping" halfway across a line here */
+        vram_base = nv3_render_get_vram_address(pos, grobj, true) & nv3->nvbase.svga.vram_display_mask;
+        
 
-    if (svga->changedvram[changed_addr >> 12] || svga->changedvram[(changed_addr >> 12) + 1] || svga->fullchange) {
-        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+        for (uint32_t x = 0; x < size.w; x++)
+        {
+            p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
 
-        if (svga->firstline_draw == 2000)
-            svga->firstline_draw = svga->displine;
-        svga->lastline_draw = svga->displine;
-
-        if (!svga->remap_required) {
-            for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
-                dat  = *(uint32_t *) (&svga->vram[(svga->ma + (x << 2)) & svga->vram_display_mask]);
-                *p++ = svga_lookup_lut_ram(svga, dat & 0xffffff);
-            }
-            svga->ma += (x * 4);
-        } else {
-            for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
-                addr = svga->remap_func(svga, svga->ma);
-                dat  = *(uint32_t *) (&svga->vram[addr & svga->vram_display_mask]);
-                *p++ = svga_lookup_lut_ram(svga, dat & 0xffffff);
-
-                svga->ma += 4;
-            }
+            data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_base];
+            
+            /* should just "tip over" to the next line */
+            *p = data; 
+            
+            vram_base += 4; 
+            pos.x++;
         }
-        svga->ma &= svga->vram_display_mask;
+
+        pos.y++; 
+        pos.x = start_x; 
     }
 }

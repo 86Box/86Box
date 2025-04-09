@@ -18,13 +18,17 @@
 #pragma once
 
 /* Core */
-void nv3_render_15bpp(svga_t *svga);
-void nv3_render_16bpp(svga_t *svga);
-void nv3_render_32bpp(svga_t *svga);
+void nv3_render_current_bpp(svga_t *svga, nv3_position_16_t position, nv3_size_16_t size, nv3_grobj_t grobj);
+void nv3_render_current_bpp_dfb_8(uint32_t address);
+void nv3_render_current_bpp_dfb_16(uint32_t address);
+void nv3_render_current_bpp_dfb_32(uint32_t address);
+
 void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t grobj);
 uint8_t nv3_render_read_pixel_8(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination);
 uint16_t nv3_render_read_pixel_16(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination);
 uint32_t nv3_render_read_pixel_32(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination);
+
+
 uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t grobj, bool use_destination);
 
 uint32_t nv3_render_to_chroma(nv3_color_expanded_t expanded);

@@ -72,6 +72,9 @@ void nv_log_verbose_only(const char *fmt, ...);
 #define NV_ARCHITECTURE_NV3     3       // Riva 128
 #define NV_ARCHITECTURE_NV4     4       // Riva TNT and later
 
+#define NV_MAX_BUF_SIZE_X       1920    // Maximum buffer size, X
+#define NV_MAX_BUF_SIZE_Y       1200    // Maximum buffer size, Y
+
 typedef enum nv_bus_generation_e
 {
     // NV1 - Prototype version
@@ -113,7 +116,9 @@ typedef struct nv_base_s
     uint32_t bar1_lfb_base;                     // PCI Base Address Register 1 - Linear Framebuffer (NV_BASE)
     nv_bus_generation bus_generation;           // current bus (see nv_bus_generation documentation)
     uint32_t gpu_revision;                      // GPU Stepping
-    double pixel_clock_frequency;               // Frequency used for pixel clock
+    double pixel_clock_frequency;               // Frequency used for pixel clock#
+    double refresh_time;                        // Rough estimation of refresh rate, for when we can present the screen
+    double refresh_clock;                       // Time since the last refresh
     rivatimer_t* pixel_clock_timer;             // Timer for measuring pixel clock
     bool pixel_clock_enabled;                   // Pixel Clock Enabled - stupid crap used to prevent us enabling the timer multiple times
     double memory_clock_frequency;              // Source Frequency for PTIMER
@@ -139,7 +144,7 @@ typedef struct nv_register_s
     int32_t     address;                        // MMIO Address
     char*       friendly_name;                  // Friendly name
     // reg_ptr not needed as a parameter, because we implicitly know which register si being tiwddled
-    uint32_t    (*on_read)();                   // Optional on-read function
+    uint32_t    (*on_read)(void);               // Optional on-read function
     void        (*on_write)(uint32_t value);    // Optional on-write fucntion
 } nv_register_t; 
 
