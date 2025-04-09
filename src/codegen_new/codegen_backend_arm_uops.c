@@ -995,6 +995,8 @@ codegen_MEM_LOAD_REG(codeblock_t *block, uop_t *uop)
     host_arm_ADD_REG(block, REG_R0, seg_reg, addr_reg);
     if (uop->imm_data)
         host_arm_ADD_IMM(block, REG_R0, REG_R0, uop->imm_data);
+    if (uop->is_a16)
+        host_arm_AND_IMM(block, REG_R0, REG_R0, 0xffff);
     if (REG_IS_B(dest_size) || REG_IS_BH(dest_size)) {
         host_arm_BL(block, (uintptr_t) codegen_mem_load_byte);
     } else if (REG_IS_W(dest_size)) {

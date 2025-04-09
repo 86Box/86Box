@@ -1840,6 +1840,8 @@ config_load(void)
         cassette_pcm          = 0;
         cassette_ui_writeprot = 0;
 
+        lang_id = DEFAULT_LANGUAGE;
+
         config_log("Config file not present or invalid!\n");
     } else {
         load_general();                 /* General */

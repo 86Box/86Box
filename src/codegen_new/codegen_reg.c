@@ -169,6 +169,8 @@ struct
     [IREG_GS_limit_high] = { REG_DWORD,         &cpu_state.seg_gs.limit_high,       REG_INTEGER, REG_PERMANENT},
     [IREG_SS_limit_high] = { REG_DWORD,         &cpu_state.seg_ss.limit_high,       REG_INTEGER, REG_PERMANENT},
 
+    [IREG_eaa16] = { REG_WORD,         &cpu_state.eaaddr,                  REG_INTEGER, REG_PERMANENT},
+
  /*Temporary registers are stored on the stack, and are not guaranteed to
   be preserved across uOPs. They will not be written back if they will
   not be read again.*/

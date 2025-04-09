@@ -665,7 +665,10 @@ zip_data_command_finish(zip_t *dev, int len, const int block_len,
                 zip_command_write_dma(dev);
         } else {
             zip_update_request_length(dev, len, block_len);
-            if (direction == 0)
+            if ((dev->drv->bus_type != ZIP_BUS_SCSI) &&
+                (dev->tf->request_length == 0))
+                zip_command_complete(dev);
+            else if (direction == 0)
                 zip_command_read(dev);
             else
                 zip_command_write(dev);

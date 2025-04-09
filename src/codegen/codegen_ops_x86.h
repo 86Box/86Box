@@ -789,7 +789,7 @@ MEM_LOAD_ADDR_EA_W(x86seg *seg)
     host_reg_mapping[0] = 8;
 }
 static __inline void
-MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset)
+MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset, int op_32)
 {
     if ((seg == &cpu_state.seg_ds && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) || (seg == &cpu_state.seg_ss && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS))) {
         addbyte(0x31); /*XOR EDX, EDX*/
@@ -802,6 +802,13 @@ MEM_LOAD_ADDR_EA_W_OFFSET(x86seg *seg, int offset)
     addbyte(0x83); /*ADD EAX, offset*/
     addbyte(0xc0);
     addbyte(offset);
+    if (!(op_32 & 0x200)) {
+        addbyte(0x25); /* AND EAX, ffffh */
+        addbyte(0xff);
+        addbyte(0xff);
+        addbyte(0x00);
+        addbyte(0x00);
+    }
     addbyte(0xe8); /*CALL mem_load_addr_ea_w*/
     addlong(mem_load_addr_ea_w - (uint32_t) (&codeblock[block_current].data[block_pos + 4]));
 
