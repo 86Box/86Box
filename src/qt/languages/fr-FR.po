@@ -220,7 +220,7 @@ msgid "&Existing image..."
 msgstr "Image &Existante..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "Image Existante(&Lecture seule)..."
+msgstr "Image Existante (&Lecture seule)..."
 
 msgid "&Record"
 msgstr "En&registrer"
@@ -235,7 +235,7 @@ msgid "&Fast forward to the end"
 msgstr "Aller à la &Fin"
 
 msgid "E&ject"
-msgstr "E&jecter"
+msgstr "É&jecter"
 
 msgid "&Image..."
 msgstr "&Image..."

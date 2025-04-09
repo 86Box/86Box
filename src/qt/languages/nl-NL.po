@@ -235,7 +235,7 @@ msgid "&Fast forward to the end"
 msgstr "&Snel vooruit naar het einde"
 
 msgid "E&ject"	
-msgstr "E&ject"
+msgstr "&Uitwerpen"
 
 msgid "&Image..."	
 msgstr "&Image..."

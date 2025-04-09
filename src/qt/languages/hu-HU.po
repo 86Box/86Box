@@ -1252,7 +1252,7 @@ msgid "Host CD/DVD Drive (%1:)"
 msgstr "Gazdag CD/DVD-meghajtó (%1:)"
 
 msgid "&Connected"
-msgstr "&Connected"
+msgstr ""
 
 msgid "Clear image history"
 msgstr "Törölje a kép előzményeit"

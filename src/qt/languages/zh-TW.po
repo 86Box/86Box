@@ -2050,7 +2050,7 @@ msgid "Eject %s"
 msgstr "退出 %s"
 
 msgid "&Unmute"
-msgstr "解除靜音 (&U)"
+msgstr "解除靜音(&U)"
 
 msgid "Softfloat FPU"
 msgstr "Softfloat FPU"

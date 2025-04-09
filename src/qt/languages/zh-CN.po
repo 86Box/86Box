@@ -1252,7 +1252,7 @@ msgid "Host CD/DVD Drive (%1:)"
 msgstr "主机 CD/DVD 驱动器 (%1:)"
 
 msgid "&Connected"
-msgstr "&Connected"
+msgstr ""
 
 msgid "Clear image history"
 msgstr "清除映像历史记录"

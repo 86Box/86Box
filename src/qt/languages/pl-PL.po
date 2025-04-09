@@ -1252,7 +1252,7 @@ msgid "Host CD/DVD Drive (%1:)"
 msgstr "Napęd CD/DVD hosta (%1:)"
 
 msgid "&Connected"
-msgstr "&Connected"
+msgstr ""
 
 msgid "Clear image history"
 msgstr "Wyczyść historię obrazów"
