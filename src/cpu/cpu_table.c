@@ -7793,7 +7793,7 @@ const cpu_family_t cpu_families[] = {
     {
         .package       = CPU_PKG_SOCKET370,
         .manufacturer  = "VIA",
-        .name          = "Cyrix III",
+        .name          = "Cyrix III (Samuel)",
         .internal_name = "c3_samuel",
         .cpus          = (const CPU[]) {
             { /* out of multiplier range */
