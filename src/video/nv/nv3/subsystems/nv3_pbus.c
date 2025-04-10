@@ -39,7 +39,7 @@ nv_register_t pbus_registers[] = {
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
-void nv3_pbus_init()
+void nv3_pbus_init(void)
 {
     nv_log("Initialising PBUS...");
 

@@ -38,8 +38,8 @@ static video_timings_t timing_nv3t_pci = { .type = VIDEO_PCI, .write_b = 2, .wri
 static video_timings_t timing_nv3t_agp = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
 // Prototypes for functions only used in this translation unit
-void nv3_init_mappings_mmio();
-void nv3_init_mappings_svga();
+void nv3_init_mappings_mmio(void);
+void nv3_init_mappings_svga(void);
 bool nv3_is_svga_redirect_address(uint32_t addr);
 
 uint8_t nv3_svga_in(uint16_t addr, void* priv);
@@ -873,7 +873,7 @@ void nv3_prom_write(uint32_t address, uint32_t value)
 }
 
 // Initialise the MMIO mappings
-void nv3_init_mappings_mmio()
+void nv3_init_mappings_mmio(void)
 {
     nv_log("Initialising MMIO mapping\n");
 
@@ -913,7 +913,7 @@ void nv3_init_mappings_mmio()
 
 }
 
-void nv3_init_mappings_svga()
+void nv3_init_mappings_svga(void)
 {
     nv_log("Initialising SVGA core memory mapping\n");
 
@@ -944,14 +944,14 @@ void nv3_init_mappings_svga()
     nv3);
 }
 
-void nv3_init_mappings()
+void nv3_init_mappings(void)
 {
     nv3_init_mappings_mmio();
     nv3_init_mappings_svga();
 }
 
 // Updates the mappings after initialisation. 
-void nv3_update_mappings()
+void nv3_update_mappings(void)
 {
     // sanity check
     if (!nv3)
@@ -1177,6 +1177,7 @@ void* nv3_init_pci(const device_t* info)
     nv3 = (nv3_t*)calloc(1, sizeof(nv3_t));
     nv3->nvbase.bus_generation = nv_bus_pci;
     nv3_init(info);
+    return nv3;
 }
 
 // This function simply allocates ram and sets the bus to agp before initialising.
@@ -1185,6 +1186,7 @@ void* nv3_init_agp(const device_t* info)
     nv3 = (nv3_t*)calloc(1, sizeof(nv3_t));
     nv3->nvbase.bus_generation = nv_bus_agp_1x;
     nv3_init(info);
+    return nv3;
 }
 
 void nv3_close(void* priv)
@@ -1210,7 +1212,7 @@ void nv3_close(void* priv)
 }
 
 // See if the bios rom is available.
-int32_t nv3_available()
+int32_t nv3_available(void)
 {
     return rom_present(NV3_VBIOS_ASUS_V3000_V151)
     || rom_present(NV3_VBIOS_DIAMOND_V330_V162)

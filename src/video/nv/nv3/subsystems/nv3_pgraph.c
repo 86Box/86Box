@@ -30,7 +30,7 @@
 #include <86box/nv/classes/vid_nv3_classes.h>
 
 // Initialise the PGRAPH subsystem.
-void nv3_pgraph_init()
+void nv3_pgraph_init(void)
 {
     nv_log("Initialising PGRAPH...");
     // Set up the vblank interrupt

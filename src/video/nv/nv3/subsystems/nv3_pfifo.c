@@ -77,7 +77,7 @@ nv_register_t pfifo_registers[] = {
 };
 
 // PFIFO init code
-void nv3_pfifo_init()
+void nv3_pfifo_init(void)
 {
     nv_log("Initialising PFIFO...");
 
@@ -347,7 +347,7 @@ uint32_t nv3_pfifo_read(uint32_t address)
     return ret; 
 }
 
-void nv3_pfifo_trigger_dma_if_required()
+void nv3_pfifo_trigger_dma_if_required(void)
 {
     // Not a thing for cache0
     
@@ -697,7 +697,7 @@ NV_USER writes always go to CACHE1
 */
 
 // Pulls graphics objects OUT of cache0
-void nv3_pfifo_cache0_pull()
+void nv3_pfifo_cache0_pull(void)
 {
     // Do nothing if PFIFO CACHE0 is disabled
     if (!nv3->pfifo.cache0_settings.pull0 & (1 >> NV3_PFIFO_CACHE0_PULL0_ENABLED))
@@ -887,7 +887,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
 }
 
 // Pulls graphics objects OUT of cache1
-void nv3_pfifo_cache1_pull()
+void nv3_pfifo_cache1_pull(void)
 {
     // Do nothing if PFIFO CACHE1 is disabled
     if (!nv3->pfifo.cache1_settings.pull0 & (1 >> NV3_PFIFO_CACHE1_PULL0_ENABLED))
@@ -956,7 +956,7 @@ void nv3_pfifo_cache1_pull()
 }
 
 // THIS IS PER SUBCHANNEL!
-uint32_t nv3_pfifo_cache1_num_free_spaces()
+uint32_t nv3_pfifo_cache1_num_free_spaces(void)
 {
     // get the index
 

@@ -30,7 +30,7 @@
 
 /* Nvidia DMA Engine */
 
-void nv3_dma_translate_address()
+void nv3_dma_translate_address(void)
 {
     
 }

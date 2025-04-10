@@ -43,7 +43,7 @@ nv_register_t pfb_registers[] = {
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
-void nv3_pfb_init()
+void nv3_pfb_init(void)
 {  
     nv_log("Initialising PFB...");
 

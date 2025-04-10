@@ -41,7 +41,7 @@ nv_register_t ptimer_registers[] = {
 };
 
 // ptimer init code
-void nv3_ptimer_init()
+void nv3_ptimer_init(void)
 {
     nv_log("Initialising PTIMER...");
 

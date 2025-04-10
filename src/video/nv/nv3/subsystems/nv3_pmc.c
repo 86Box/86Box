@@ -28,9 +28,7 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
 
-
-
-void nv3_pmc_init()
+void nv3_pmc_init(void)
 {
     nv_log("Initialising PMC....\n");
 
@@ -58,7 +56,7 @@ nv_register_t pmc_registers[] = {
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
-uint32_t nv3_pmc_clear_interrupts()
+uint32_t nv3_pmc_clear_interrupts(void)
 {
     nv_log_verbose_only("Clearing IRQs\n");
     pci_clear_irq(nv3->nvbase.pci_slot, PCI_INTA, &nv3->nvbase.pci_irq_state);

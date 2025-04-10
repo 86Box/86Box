@@ -31,7 +31,7 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
 
-void nv3_pramdac_init()
+void nv3_pramdac_init(void)
 {
     nv_log("Initialising PRAMDAC\n");
 
@@ -83,7 +83,7 @@ void nv3_pramdac_memory_clock_poll(double real_time)
 }
 
 // Gets the vram clock register.
-uint32_t nv3_pramdac_get_vram_clock_register()
+uint32_t nv3_pramdac_get_vram_clock_register(void)
 {
     // the clock format is packed into 19 bits
     // M divisor            [7-0]
@@ -94,7 +94,7 @@ uint32_t nv3_pramdac_get_vram_clock_register()
     + (nv3->pramdac.memory_clock_p << 16); // 0-3
 }
 
-uint32_t nv3_pramdac_get_pixel_clock_register()
+uint32_t nv3_pramdac_get_pixel_clock_register(void)
 {
     return (nv3->pramdac.pixel_clock_m)
     + (nv3->pramdac.pixel_clock_n << 8)
@@ -119,7 +119,7 @@ void nv3_pramdac_set_pixel_clock_register(uint32_t value)
     nv3_pramdac_set_pixel_clock();
 }
 
-void nv3_pramdac_set_vram_clock()
+void nv3_pramdac_set_vram_clock(void)
 {
     // from driver and vbios source
     float frequency = 13500000.0f;
@@ -150,7 +150,7 @@ void nv3_pramdac_set_vram_clock()
     rivatimer_set_period(nv3->nvbase.memory_clock_timer, time);
 }
 
-void nv3_pramdac_set_pixel_clock()
+void nv3_pramdac_set_pixel_clock(void)
 {
     // frequency divider algorithm from old varcem/86box/pcbox riva driver,
     // verified by reversing NT drivers v1.50e CalcMNP [symbols] function

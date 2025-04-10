@@ -30,7 +30,7 @@
 #include <86box/nv/vid_nv3.h>
 
 /* Check the line bounds */
-void nv3_class_011_check_line_bounds()
+void nv3_class_011_check_line_bounds(void)
 {                
     uint32_t relative_x = nv3->pgraph.image_current_position.x - nv3->pgraph.image.point.x;
     //uint32_t relative_y = nv3->pgraph.image_current_position.y - nv3->pgraph.image.point.y;
@@ -174,7 +174,7 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
         old_position.y = nv3->pgraph.blit.point_in.y + y;
         /* 32bit buffer */
         buf_position = (nv3->pgraph.blit.size.w * y);
-        vram_position = nv3_render_get_vram_address(old_position, grobj, false);
+        vram_position = nv3_render_get_vram_address(old_position, grobj);
 
         memcpy(&nv3_s2sb_line_buffer[buf_position], &nv3->nvbase.svga.vram[vram_position], size_x);
     }
@@ -184,7 +184,7 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     {        
         buf_position = (nv3->pgraph.blit.size.w * y);
         new_position.y = nv3->pgraph.blit.point_out.y + y;
-        vram_position = nv3_render_get_vram_address(new_position, grobj, true);
+        vram_position = nv3_render_get_vram_address(new_position, grobj);
         memcpy(&nv3->nvbase.svga.vram[vram_position], &nv3_s2sb_line_buffer[buf_position], size_x);
     }
 
@@ -221,6 +221,8 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     else if (nv3->pgraph.blit.point_out.y <= nv3->pgraph.blit.point_in.y) // equals case, just use out 
         blit_position.y = nv3->pgraph.blit.point_out.y;
 
+    uint32_t buf_end = ((nv3->nvbase.svga.bpp + 1) >> 3) * xsize * ysize;
 
-    nv3_render_current_bpp(&nv3->nvbase.svga, blit_position, blit_size, grobj);
+    //if (nv3->pgraph.boffset[dst_buffer] <= buf_end)
+        //nv3_render_current_bpp(&nv3->nvbase.svga, blit_position, blit_size, grobj);
 }

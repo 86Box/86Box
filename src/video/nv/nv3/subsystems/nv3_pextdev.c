@@ -29,7 +29,7 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv3.h>
 
-void nv3_pextdev_init()
+void nv3_pextdev_init(void)
 {
     nv_log("Initialising PEXTDEV....\n");
 

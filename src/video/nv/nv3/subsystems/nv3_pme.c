@@ -34,7 +34,7 @@ nv_register_t pme_registers[] = {
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
-void nv3_pme_init()
+void nv3_pme_init(void)
 {  
     nv_log("Initialising PME...");
 
