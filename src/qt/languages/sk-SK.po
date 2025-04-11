@@ -189,6 +189,9 @@ msgstr "&Aktualizovať ikony na stavovom riadku"
 msgid "Take s&creenshot"
 msgstr "Urobiť snímku &obrazovky"
 
+msgid "S&ound"
+msgstr "&Zvuk"
+
 msgid "&Preferences..."
 msgstr "&Predvoľby..."
 

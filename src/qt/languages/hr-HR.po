@@ -189,6 +189,9 @@ msgstr "&Ažuriraj ikone statusnog redka"
 msgid "Take s&creenshot"
 msgstr "Napravi &snimku zaslona"
 
+msgid "S&ound"
+msgstr "&Zvuk"
+
 msgid "&Preferences..."
 msgstr "&Postavke..."
 

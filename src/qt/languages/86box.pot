@@ -189,6 +189,9 @@ msgstr ""
 msgid "Take s&creenshot"
 msgstr ""
 
+msgid "S&ound"
+msgstr ""
+
 msgid "&Preferences..."
 msgstr ""
 

@@ -189,6 +189,9 @@ msgstr "&Statusleistenicons aktualisieren"
 msgid "Take s&creenshot"
 msgstr "S&creenshot aufnehmen"
 
+msgid "S&ound"
+msgstr "S&ound"
+
 msgid "&Preferences..."
 msgstr "&Einstellungen..."
 

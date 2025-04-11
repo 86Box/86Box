@@ -189,6 +189,9 @@ msgstr "&Aktualizuj ikony na pasku statusu"
 msgid "Take s&creenshot"
 msgstr "Zrób &zrzut ekranu"
 
+msgid "S&ound"
+msgstr "Dź&więk"
+
 msgid "&Preferences..."
 msgstr "&Preferencje..."
 

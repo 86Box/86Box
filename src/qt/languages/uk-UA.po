@@ -189,6 +189,9 @@ msgstr "&Обновлення значків рядка стану"
 msgid "Take s&creenshot"
 msgstr "Зробити &знімок"
 
+msgid "S&ound"
+msgstr "&Звук"
+
 msgid "&Preferences..."
 msgstr "&Параметри..."
 

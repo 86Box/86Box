@@ -189,6 +189,9 @@ msgstr "Cậ&p nhật biểu tượng thanh trạng thái"
 msgid "Take s&creenshot"
 msgstr "Chụp &màn hình"
 
+msgid "S&ound"
+msgstr "&Thanh âm"
+
 msgid "&Preferences..."
 msgstr "&Tùy biến..."
 

@@ -189,6 +189,9 @@ msgstr "&Statusbalkpictogrammen bijwerken"
 msgid "Take s&creenshot"	
 msgstr "Maak een schermafbeelding"
 
+msgid "S&ound"	
+msgstr "&Geluid"
+
 msgid "&Preferences..."	
 msgstr "&Voorkeuren..."
 

@@ -189,6 +189,9 @@ msgstr "&Päivitä tilapalkin kuvakkeita"
 msgid "Take s&creenshot"
 msgstr "Ota &kuvakaappaus"
 
+msgid "S&ound"
+msgstr "&Ääni"
+
 msgid "&Preferences..."
 msgstr "&Sovellusasetukset..."
 

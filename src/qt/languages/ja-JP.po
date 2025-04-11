@@ -189,6 +189,9 @@ msgstr "ステータスバーのアイコンを更新(&U)"
 msgid "Take s&creenshot"
 msgstr "スクリーンショットを撮る(&C)"
 
+msgid "S&ound"
+msgstr "サウンド(&O)"
+
 msgid "&Preferences..."
 msgstr "環境設定(&P)..."
 

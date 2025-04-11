@@ -189,6 +189,9 @@ msgstr "更新状态栏图标(&U)"
 msgid "Take s&creenshot"
 msgstr "截图(&C)"
 
+msgid "S&ound"
+msgstr "声音(&O)"
+
 msgid "&Preferences..."
 msgstr "首选项(&P)..."
 

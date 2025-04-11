@@ -189,6 +189,9 @@ msgstr "Mettre à jour la barre de stat&us"
 msgid "Take s&creenshot"
 msgstr "Copie &Ecran"
 
+msgid "S&ound"
+msgstr "S&on"
+
 msgid "&Preferences..."
 msgstr "&Préférences..."
 

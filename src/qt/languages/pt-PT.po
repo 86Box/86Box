@@ -189,6 +189,9 @@ msgstr "&Atualizar ícones da barra de estado"
 msgid "Take s&creenshot"
 msgstr "Gravar imagem de ecrã"
 
+msgid "S&ound"
+msgstr "&Som"
+
 msgid "&Preferences..."
 msgstr "&Preferências..."
 

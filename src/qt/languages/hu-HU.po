@@ -189,6 +189,9 @@ msgstr "Állapotsori ikonok &frissítése"
 msgid "Take s&creenshot"
 msgstr "&Képernyőkép készítése"
 
+msgid "S&ound"
+msgstr "&Hang"
+
 msgid "&Preferences..."
 msgstr "&Beállítások..."
 

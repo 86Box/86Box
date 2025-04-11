@@ -189,6 +189,9 @@ msgstr "상태 바 아이콘 갱신하기(&U)"
 msgid "Take s&creenshot"
 msgstr "스크린샷 찍기(&C)"
 
+msgid "S&ound"
+msgstr "사운드(&O)"
+
 msgid "&Preferences..."
 msgstr "환경설정(&P)..."
 

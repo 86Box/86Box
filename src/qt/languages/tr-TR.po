@@ -195,6 +195,9 @@ msgstr "&Tercihler..."
 msgid "Enable &Discord integration"
 msgstr "&Discord entegrasyonunu etkinleştir"
 
+msgid "S&ound"
+msgstr "&Ses"
+
 msgid "Sound &gain..."
 msgstr "&Ses düzeyi artışı..."
 
