@@ -270,7 +270,6 @@ MachineStatus::MachineStatus(QObject *parent)
     , refreshTimer(new QTimer(this))
 {
     d = std::make_unique<MachineStatus::States>(this);
-    muteUnmuteAction = nullptr;
     soundMenu = nullptr;
     connect(refreshTimer, &QTimer::timeout, this, &MachineStatus::refreshIcons);
     refreshTimer->start(75);
@@ -279,9 +278,9 @@ MachineStatus::MachineStatus(QObject *parent)
 MachineStatus::~MachineStatus() = default;
 
 void
-MachineStatus::setSoundGainAction(QAction* action)
+MachineStatus::setSoundMenu(QMenu* menu)
 {
-    soundGainAction = action;
+    soundMenu = menu;
 }
 
 bool
@@ -519,28 +518,6 @@ MachineStatus::refresh(QStatusBar *sbar)
     }
     sbar->removeWidget(d->sound.get());
 
-    if (!muteUnmuteAction) {
-        muteUnmuteAction = new QAction;
-        connect(muteUnmuteAction, &QAction::triggered, this, [this]() {
-            sound_muted ^= 1;
-            config_save();
-            if (d->sound)
-                d->sound->setPixmap(sound_muted ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
-
-            muteUnmuteAction->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
-        });
-    }
-
-    if (!soundMenu) {
-        soundMenu = new QMenu((QWidget*)parent());
-
-        soundMenu->addAction(muteUnmuteAction);
-        soundMenu->addSeparator();
-        soundMenu->addAction(soundGainAction);
-
-        muteUnmuteAction->setParent(soundMenu);
-    }
-
     if (cassette_enable) {
         d->cassette.label = std::make_unique<ClickableLabel>();
         d->cassette.setEmpty(QString(cassette_fname).isEmpty());
@@ -710,8 +687,6 @@ MachineStatus::refresh(QStatusBar *sbar)
 
     d->sound = std::make_unique<ClickableLabel>();
     d->sound->setPixmap(sound_muted ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
-    if (muteUnmuteAction)
-        muteUnmuteAction->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
 
     connect(d->sound.get(), &ClickableLabel::clicked, this, [this](QPoint pos) {
         this->soundMenu->popup(pos - QPoint(0, this->soundMenu->sizeHint().height()));
@@ -725,6 +700,13 @@ MachineStatus::refresh(QStatusBar *sbar)
     sbar_initialized = true;
 
     refreshEmptyIcons();
+}
+
+void
+MachineStatus::updateSoundIcon()
+{
+    if (d->sound)
+        d->sound->setPixmap(sound_muted ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
 }
 
 void

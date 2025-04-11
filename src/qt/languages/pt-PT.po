@@ -18,8 +18,8 @@ msgstr "&CTRL direito é ALT esquerdo"
 msgid "&Hard Reset..."
 msgstr "&Reinicialização completa..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Linear"
 msgid "Hi&DPI scaling"
 msgstr "Escala Hi&DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "E&crã cheio\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "E&crã cheio"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Modo &de estiramento na tela cheia"
@@ -186,8 +186,11 @@ msgstr "&Definições..."
 msgid "&Update status bar icons"
 msgstr "&Atualizar ícones da barra de estado"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Gravar imagem de ecrã\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Gravar imagem de ecrã"
+
+msgid "S&ound"
+msgstr "&Som"
 
 msgid "&Preferences..."
 msgstr "&Preferências..."
@@ -198,11 +201,11 @@ msgstr "Ativar integração com &Discord"
 msgid "Sound &gain..."
 msgstr "&Ganho de som..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Iniciar o rastreio\tCtrl+T"
+msgid "Begin trace"
+msgstr "Iniciar o rastreio"
 
-msgid "End trace\tCtrl+T"
-msgstr "Terminar o rastreio\tCtrl+T"
+msgid "End trace"
+msgstr "Terminar o rastreio"
 
 msgid "&Help"
 msgstr "&Ajuda"
@@ -249,8 +252,8 @@ msgstr "&Desativar som"
 msgid "E&mpty"
 msgstr "&CDROM vazio"
 
-msgid "&Reload previous image"
-msgstr "&Recarregar imagem anterior"
+msgid "Reload previous image"
+msgstr "Recarregar imagem anterior"
 
 msgid "&Folder..."
 msgstr "&Pasta..."
@@ -306,17 +309,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "Cancelar"
 
-msgid "Save these settings as &global defaults"
-msgstr "Guardar estas definições como padrões &globais"
-
 msgid "&Default"
 msgstr "&Padrão"
 
 msgid "Language:"
 msgstr "Idioma:"
-
-msgid "Icon set:"
-msgstr "Pacote de ícones:"
 
 msgid "Gain"
 msgstr "Ganho"
@@ -648,8 +645,8 @@ msgstr "Pressione Ctrl+Alt+PgDn para voltar ao modo de janela."
 msgid "Speed"
 msgstr "Velocidade"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "Imagens ZIP"
@@ -753,14 +750,11 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Não foi possível inicializar o renderizador vídeo."
-
 msgid "Default"
 msgstr "Padrão"
 
-msgid "%i Wait state(s)"
-msgstr "%i estado(s) de espera"
+msgid "%1 Wait state(s)"
+msgstr "%1 estado(s) de espera"
 
 msgid "Type"
 msgstr "Tipo"
@@ -804,11 +798,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Nenhum"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CCS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CCS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Disquete %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Disquete %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Imagens avançadas de sector"
@@ -828,8 +822,8 @@ msgstr "Não foi possível inicializar o Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Não foi possível inicializar o GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "Magneto-óptico %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "Magneto-óptico %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Imagens magneto-ópticas"
@@ -903,11 +897,8 @@ msgstr "Configuração de dispositivo %1"
 msgid "Monitor in sleep mode"
 msgstr "Ecrã em modo de sono"
 
-msgid "OpenGL Shaders"
-msgstr "Shaders OpenGL"
-
-msgid "OpenGL options"
-msgstr "Opções de OpenGL"
+msgid "GLSL shaders"
+msgstr "Shaders GLSL"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Está a carregar uma configuração sem suporte!"
@@ -918,23 +909,17 @@ msgstr "A filtragem do tipo de CPU baseada na máquina escolhida está desativad
 msgid "Continue"
 msgstr "Continuar"
 
-msgid "Cassette: %s"
-msgstr "Cassete: %s"
+msgid "Cassette: %1"
+msgstr "Cassete: %1"
 
 msgid "Cassette images"
 msgstr "Imagens de cassete"
 
-msgid "Cartridge %i: %ls"
-msgstr "Cartucho %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Cartucho %1: %2"
 
 msgid "Cartridge images"
 msgstr "Imagens de cartucho"
-
-msgid "Error initializing renderer"
-msgstr "Erro na inicialização do renderizador"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Não foi possível inicializar o renderizador OpenGL (3.0 Core). Utilize outro renderizador."
 
 msgid "Resume execution"
 msgstr "Retomar execução"
@@ -1098,8 +1083,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1278,9 +1263,6 @@ msgstr "Limpar o histórico de imagens"
 msgid "Create..."
 msgstr "Criar..."
 
-msgid "previous image"
-msgstr "imagem anterior"
-
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Unidade de CD/DVD do anfitrião (%1)"
 
@@ -1290,23 +1272,8 @@ msgstr "Autocarro desconhecido"
 msgid "Null Driver"
 msgstr "Condutor nulo"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "Erro ao abrir \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Erro ao compilar o sombreador de vértice no ficheiro \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Erro ao compilar o shader de fragmento no ficheiro \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Erro ao ligar o programa de shader no ficheiro \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Opções do renderizador OpenGL 3.0"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Comportamento de renderização"
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Renderiza cada frame imediatamente, em sincronia com o ecrã emulado.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Esta é a opção recomendada se os shaders em uso não utilizam frametime para efeitos animados.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Sincronizar com vídeo"
 
@@ -1332,20 +1296,8 @@ msgstr "Shaders"
 msgid "Remove"
 msgstr "Remover"
 
-msgid "No shader selected"
-msgstr "Nenhum sombreador selecionado"
-
 msgid "Browse..."
 msgstr "Navegar..."
-
-msgid "Shader error"
-msgstr "Erro de shader"
-
-msgid "Could not load shaders."
-msgstr "Não foi possível carregar os shaders."
-
-msgid "More information in details."
-msgstr "Mais informações em pormenor."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Não foi possível criar o contexto OpenGL."
@@ -1356,17 +1308,11 @@ msgstr "Não foi possível mudar para o contexto OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "É necessária a versão 3.0 ou superior do OpenGL. A versão atual é %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Falha na inicialização do OpenGL. Erro %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Erro ao inicializar o OpenGL"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Recuando para a renderização de software."
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Falha na atribuição de memória para a memória intermédia de descompactação.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nRecuando para a renderização de software."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Ao selecionar imagens multimédia (CD-ROM, disquete, etc.) a caixa de diálogo de abertura irá começar no mesmo diretório que o ficheiro de configuração da 86Box. Esta configuração provavelmente só fará diferença no macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
@@ -1433,9 +1379,6 @@ msgstr "Passagem da porta de série 3"
 
 msgid "Serial port passthrough 4"
 msgstr "Passagem da porta de série 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "Sistemas de visão Melhorador LBA"
 
 msgid "Renderer options..."
 msgstr "Opções do renderizador..."
@@ -2103,8 +2046,8 @@ msgstr "Tubo nomeado (servidor)"
 msgid "Host Serial Passthrough"
 msgstr "Passagem da porta de série do anfitrião"
 
-msgid "Eject %s"
-msgstr "Ejetar %s"
+msgid "E&ject %1"
+msgstr "E&jetar %1"
 
 msgid "&Unmute"
 msgstr "&Reativar som"
@@ -2115,8 +2058,29 @@ msgstr "FPU Softfloat"
 msgid "High performance impact"
 msgstr "Elevado impacto no desempenho"
 
-msgid "RAM Disk (max. speed)"
-msgstr "Disco RAM (velocidade máxima)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] Disco RAM (velocidade máxima)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Clone IBM 8514/A (ISA)"
@@ -2135,3 +2099,63 @@ msgstr "Não foi possível encontrar os fontes matriciais de pontos"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial de pontos ESC/P genérica"
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Display hotkey message when entering full-screen mode"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
+msgstr ""

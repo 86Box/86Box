@@ -77,8 +77,7 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
     for (int i = 0; i < 127; i++) {
         uint64_t size    = ((uint64_t) hdd_table[i][0]) * hdd_table[i][1] * hdd_table[i][2];
         uint32_t size_mb = size >> 11LL;
-        // QString text = QString("%1 MiB (CHS: %2, %3, %4)").arg(size_mb).arg(hdd_table[i][0]).arg(hdd_table[i][1]).arg(hdd_table[i][2]);
-        QString text = QString::asprintf(tr("%u MB (CHS: %i, %i, %i)").toUtf8().constData(), size_mb, (hdd_table[i][0]), (hdd_table[i][1]), (hdd_table[i][2]));
+        QString text = tr("%1 MB (CHS: %2, %3, %4)").arg(size_mb).arg(hdd_table[i][0]).arg(hdd_table[i][1]).arg(hdd_table[i][2]);
         Models::AddEntry(model, text, i);
     }
     Models::AddEntry(model, tr("Custom..."), 127);
