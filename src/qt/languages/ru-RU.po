@@ -1252,19 +1252,19 @@ msgid "Pen"
 msgstr "Ручка"
 
 msgid "Host CD/DVD Drive (%1:)"
-msgstr "Главный CD/DVD-привод (%1:)"
+msgstr "CD/DVD-привод хоста (%1:)"
 
 msgid "&Connected"
-msgstr "&Connected"
+msgstr "&Кабель подключен"
 
 msgid "Clear image history"
 msgstr "Очистить историю образов"
 
 msgid "Create..."
-msgstr "Создайте..."
+msgstr "Создать..."
 
 msgid "Host CD/DVD Drive (%1)"
-msgstr "Главный CD/DVD-привод (%1)"
+msgstr "CD/DVD-привод хоста (%1)"
 
 msgid "Unknown Bus"
 msgstr "Неизвестная шина"
@@ -1288,7 +1288,7 @@ msgid "VSync"
 msgstr "Вертикальная синхронизация"
 
 msgid "Synchronize with video"
-msgstr "Синхронизация с видео"
+msgstr "Синхронизировать с видео"
 
 msgid "Shaders"
 msgstr "Шейдеры"
@@ -1384,25 +1384,25 @@ msgid "Renderer options..."
 msgstr "Параметры рендеринга..."
 
 msgid "Logitech/Microsoft Bus Mouse"
-msgstr "Шинная мышь Logitech/Microsoft"
+msgstr "Bus-мышь Logitech/Microsoft"
 
 msgid "Microsoft Bus Mouse (InPort)"
-msgstr "Шинная мышь Microsoft (InPort)"
+msgstr "Bus-мышь Microsoft (InPort)"
 
 msgid "Mouse Systems Serial Mouse"
-msgstr "Последовательная мышь Mouse Systems"
+msgstr "COM-мышь Mouse Systems"
 
 msgid "Microsoft Serial Mouse"
-msgstr "Последовательная мышь Microsoft"
+msgstr "COM-мышь Microsoft"
 
 msgid "Logitech Serial Mouse"
-msgstr "Последовательная мышь Logitech"
+msgstr "COM-мышь Logitech"
 
 msgid "PS/2 Mouse"
 msgstr "Мышь PS/2"
 
 msgid "3M MicroTouch (Serial)"
-msgstr "3M MicroTouch (последовательная)"
+msgstr "3M MicroTouch (последовательный)"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Стандартный Hayes-совместимый модем"
@@ -2062,25 +2062,25 @@ msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Стандартный] RAM-диск (макс. скорость)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr ""
+msgstr "[Стандартный] 1989 (3500 RPM)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr ""
+msgstr "[Стандартный] 1989 (3500 RPM)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr ""
+msgstr "[Стандартный] 1989 (3500 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr ""
+msgstr "[Стандартный] 1989 (3500 RPM)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr ""
+msgstr "[Стандартный] 1989 (3500 RPM)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr ""
+msgstr "[Стандартный] 1989 (3500 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr ""
+msgstr "[Стандартный] 1989 (3500 RPM)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Клон IBM 8514/A (ISA)"
@@ -2107,61 +2107,61 @@ msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for t
 msgstr "Шрифты TrueType в каталоге \"roms/printer/fonts\" необходимы для эмуляции стандартного матричного принтера ESC/P."
 
 msgid "Inhibit multimedia keys"
-msgstr ""
+msgstr "Перехватывать мультимедиа-клавиши"
 
 msgid "Ask for confirmation before saving settings"
-msgstr ""
+msgstr "Спрашивать подтверждения перед сохранением настроек"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr ""
+msgstr "Спрашивать подтверждения перед холодной перезагрузкой"
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
+msgstr "Спрашивать подтвержждения перед выходом"
 
 msgid "Display hotkey message when entering full-screen mode"
-msgstr ""
+msgstr "Показывать сообщение о горячих клавишах при включении полноэкранного режима"
 
 msgid "Options"
-msgstr ""
+msgstr "Параметры"
 
 msgid "Model:"
 msgstr "Модель:"
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr ""
+msgstr "Не удалось инициализировать рендерер Vulkan."
 
 msgid "GLSL Error"
-msgstr ""
+msgstr "Ошибка GLSL"
 
 msgid "Could not load shader: %1"
-msgstr ""
+msgstr "Не удалось загрузить шейдер: %1"
 
 msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr ""
+msgstr "Требуется OpenGL версии 3.0 или выше. Текущая версия GLSL %1.%2"
 
 msgid "Could not load texture: %1"
-msgstr ""
+msgstr "Не удалось загрузить текстуру: %1"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr ""
+msgstr "Не удалось скомпилировать шейдер:\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr ""
+msgstr "Не удалось скомпоновать шейдер:\n\n%1"
 
 msgid "Shader Manager"
-msgstr ""
+msgstr "Управление шейдерами"
 
 msgid "Shader Configuration"
-msgstr ""
+msgstr "Конфигурация шейдера"
 
 msgid "Add"
-msgstr ""
+msgstr "Добавить"
 
 msgid "Move up"
-msgstr ""
+msgstr "Вверх"
 
 msgid "Move down"
-msgstr ""
+msgstr "Вниз"
 
 msgid "Could not load file %1"
-msgstr ""
+msgstr "Не удалось загрузить файл %1"
