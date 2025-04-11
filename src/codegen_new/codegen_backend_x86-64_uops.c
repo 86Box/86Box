@@ -998,10 +998,9 @@ codegen_MEM_LOAD_REG(codeblock_t *block, uop_t *uop)
 
     host_x86_LEA_REG_REG(block, REG_ESI, seg_reg, addr_reg);
     if (uop->imm_data) {
+        host_x86_ADD32_REG_IMM(block, REG_ESI, uop->imm_data);
         if (uop->is_a16) {
-            host_x86_ADD16_REG_IMM(block, REG_SI, uop->imm_data);
-        } else {
-            host_x86_ADD32_REG_IMM(block, REG_ESI, uop->imm_data);
+            host_x86_AND32_REG_IMM(block, REG_ESI, 0x0000ffff);
         }
     }
     if (REG_IS_B(dest_size)) {

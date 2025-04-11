@@ -1025,10 +1025,8 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
                         nvr_reg_write(0x000f, 0xff, dev->nvr);
                     }
 
-                    if (sus_typ & SUS_RESET_PCI) {
+                    if (sus_typ & SUS_RESET_PCI)
                         device_reset_all(DEVICE_PCI);
-                        mem_zero();
-                    }
 
                     if (sus_typ & SUS_RESET_CPU)
                         cpu_alt_reset = 0;

@@ -18,8 +18,8 @@ msgstr "&Правий CTRL - це лівий ALT"
 msgid "&Hard Reset..."
 msgstr "&Холодне перезавантаження..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Лінійний"
 msgid "Hi&DPI scaling"
 msgstr "Масштабування Hi&DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Повноекранний режим\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Повноекранний режим"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Розстягування у повноекранному режимі"
@@ -186,8 +186,11 @@ msgstr "&Налаштування машини..."
 msgid "&Update status bar icons"
 msgstr "&Обновлення значків рядка стану"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Зробити &знімок\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Зробити &знімок"
+
+msgid "S&ound"
+msgstr "&Звук"
 
 msgid "&Preferences..."
 msgstr "&Параметри..."
@@ -198,11 +201,11 @@ msgstr "Увімкнути інтеграцію &Discord"
 msgid "Sound &gain..."
 msgstr "&Посилення звуку..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Почати трасування\tCtrl+T"
+msgid "Begin trace"
+msgstr "Почати трасування"
 
-msgid "End trace\tCtrl+T"
-msgstr "Завершити трасування\tCtrl+T"
+msgid "End trace"
+msgstr "Завершити трасування"
 
 msgid "&Help"
 msgstr "&Допомога"
@@ -249,8 +252,8 @@ msgstr "&Відключити звук"
 msgid "E&mpty"
 msgstr "&Пустий"
 
-msgid "&Reload previous image"
-msgstr "&Знову завантажити попередній образ"
+msgid "Reload previous image"
+msgstr "Знову завантажити попередній образ"
 
 msgid "&Folder..."
 msgstr "&Тека..."
@@ -306,17 +309,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "Відміна"
 
-msgid "Save these settings as &global defaults"
-msgstr "Зберегти ці параметри як &глобальні за замовчуванням"
-
 msgid "&Default"
 msgstr "&За замовчуванням"
 
 msgid "Language:"
 msgstr "Мова:"
-
-msgid "Icon set:"
-msgstr "Набір іконок:"
 
 msgid "Gain"
 msgstr "Посилення"
@@ -648,8 +645,8 @@ msgstr "Натисніть Ctrl+Alt+PgDn для повернення у віко
 msgid "Speed"
 msgstr "Швидкість"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "Образи ZIP"
@@ -753,14 +750,11 @@ msgstr "S"
 msgid "KB"
 msgstr "КБ"
 
-msgid "Could not initialize the video renderer."
-msgstr "Не вдалося ініціалізувати рендер відео."
-
 msgid "Default"
 msgstr "За замовчуванням"
 
-msgid "%i Wait state(s)"
-msgstr "%i WS"
+msgid "%1 Wait state(s)"
+msgstr "%1 WS"
 
 msgid "Type"
 msgstr "Тип"
@@ -804,11 +798,11 @@ msgstr "Система управління польотом Thrustmaster"
 msgid "None"
 msgstr "Ні"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u МБ (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 МБ (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Дисковод %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Дисковод %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Розширені образи секторів"
@@ -828,8 +822,8 @@ msgstr "Неможливо ініціалізувати Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Неможливо ініціалізувати GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "Магнітооптичний %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "Магнітооптичний %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Образи магнітооптичних дисків"
@@ -903,11 +897,8 @@ msgstr "Конфігурація пристрою %1"
 msgid "Monitor in sleep mode"
 msgstr "Монітор у сплячому режимі"
 
-msgid "OpenGL Shaders"
-msgstr "Шейдери OpenGL"
-
-msgid "OpenGL options"
-msgstr "Параметри OpenGL"
+msgid "GLSL shaders"
+msgstr "Шейдери GLSL"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Ви завантажуєте непідтримувану конфігурацію"
@@ -918,23 +909,17 @@ msgstr "Вибір типів ЦП для цієї системної плати
 msgid "Continue"
 msgstr "Продовжити"
 
-msgid "Cassette: %s"
-msgstr "Касета: %s"
+msgid "Cassette: %1"
+msgstr "Касета: %1"
 
 msgid "Cassette images"
 msgstr "Образи касет"
 
-msgid "Cartridge %i: %ls"
-msgstr "Картридж %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Картридж %1: %2"
 
 msgid "Cartridge images"
 msgstr "Образи картриджів"
-
-msgid "Error initializing renderer"
-msgstr "Помилка ініціалізації рендерера"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Неможливо ініціалізувати рендерер OpenGL (3.0). Будь ласка, використовуйте інший рендерер."
 
 msgid "Resume execution"
 msgstr "Відновити виконання"
@@ -1098,8 +1083,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 КБ"
@@ -1278,9 +1263,6 @@ msgstr "Очистити історію образів"
 msgid "Create..."
 msgstr "Створити..."
 
-msgid "previous image"
-msgstr "попередній образ"
-
 msgid "Host CD/DVD Drive (%1)"
 msgstr "CD/DVD привід хоста (%1)"
 
@@ -1290,23 +1272,8 @@ msgstr "Невідома шина"
 msgid "Null Driver"
 msgstr "Нульовий драйвер"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "Помилка відкриття \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Помилка компіляції вершинного шейдера у файлі \"%1\"."
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Помилка компіляції фрагментного шейдера у файлі \"%1\"."
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Помилка зв'язування шейдерної програми у файлі \"%1\"."
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Параметри рендерингу OpenGL 3.0"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Поведінка рендерингу"
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Відображати кожен кадр миттєво, синхронно з емульованим дисплеєм.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Це рекомендований варіант, якщо використовувані шейдери не використовують час кадру для анімованих ефектів.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Синхронізація з відео"
 
@@ -1332,20 +1296,8 @@ msgstr "Шейдери"
 msgid "Remove"
 msgstr "Видалити"
 
-msgid "No shader selected"
-msgstr "Не вибрано шейдер"
-
 msgid "Browse..."
 msgstr "Переглянути..."
-
-msgid "Shader error"
-msgstr "Помилка шейдеру"
-
-msgid "Could not load shaders."
-msgstr "Не вдалося завантажити шейдери."
-
-msgid "More information in details."
-msgstr "Більше інформації в деталях."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Не вдалося створити контекст OpenGL."
@@ -1356,17 +1308,11 @@ msgstr "Не вдалося переключитися на контекст Ope
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Потрібна версія OpenGL 3.0 або новіша. Поточна версія %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Не вдалося ініціалізувати OpenGL. Помилка %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Помилка ініціалізації OpenGL"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Повернення до програмного рендерингу.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Не вдалося виділити пам'ять для буфера розпакування.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nПовернення до програмного рендерингу."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;При виборі медіа-образів (CD-ROM, дискета і т.д.) діалогове вікно буде відкриватися в тому ж каталозі, що і файл конфігурації 86Box. Цей параметр, швидше за все, матиме значення лише на macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
@@ -1433,9 +1379,6 @@ msgstr "Пропуск послідовного порту 3"
 
 msgid "Serial port passthrough 4"
 msgstr "Пропуск послідовного порту 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
 
 msgid "Renderer options..."
 msgstr "Параметри рендерингу..."
@@ -2103,8 +2046,8 @@ msgstr "Іменований пайп (сервер)"
 msgid "Host Serial Passthrough"
 msgstr "Пропуск послідовного порту хоста"
 
-msgid "Eject %s"
-msgstr "Вилучити %s"
+msgid "E&ject %1"
+msgstr "&Вилучити %1"
 
 msgid "&Unmute"
 msgstr "&Увімкнути звук"
@@ -2115,8 +2058,29 @@ msgstr "FPU Softfloat"
 msgid "High performance impact"
 msgstr "Високий вплив на продуктивність"
 
-msgid "RAM Disk (max. speed)"
-msgstr "Диск оперативної пам'яті (макс. швидкість)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] Диск оперативної пам'яті (макс. швидкість)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Клон IBM 8514/A (ISA)"
@@ -2141,3 +2105,63 @@ msgstr "Неможливо знайти матричні шрифти"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "Шрифти TrueType у каталозі \"roms/printer/fonts\" потрібні для емуляції загального матричного принтера Generic ESC/P."
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Display hotkey message when entering full-screen mode"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
+msgstr ""

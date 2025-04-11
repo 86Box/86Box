@@ -18,8 +18,8 @@ msgstr "CTRL &Droite devient ALT Gauche"
 msgid "&Hard Reset..."
 msgstr "&Hard Reset..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Lineaire"
 msgid "Hi&DPI scaling"
 msgstr "Mise à l'échelle Hi&DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Plein Ecran\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Plein Ecran"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Mode &Elargi plein écran"
@@ -186,8 +186,11 @@ msgstr "&Réglages..."
 msgid "&Update status bar icons"
 msgstr "Mettre à jour la barre de stat&us"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Copie &Ecran\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Copie &Ecran"
+
+msgid "S&ound"
+msgstr "S&on"
 
 msgid "&Preferences..."
 msgstr "&Préférences..."
@@ -198,11 +201,11 @@ msgstr "Activer intégration &Discord"
 msgid "Sound &gain..."
 msgstr "&Gain Son..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Démarrer traces\tCtrl+T"
+msgid "Begin trace"
+msgstr "Démarrer traces"
 
-msgid "End trace\tCtrl+T"
-msgstr "Finir traces\tCtrl+T"
+msgid "End trace"
+msgstr "Finir traces"
 
 msgid "&Help"
 msgstr "&Aide"
@@ -220,7 +223,7 @@ msgid "&Existing image..."
 msgstr "Image &Existante..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "Image Existante(&Lecture seule)..."
+msgstr "Image Existante (&Lecture seule)..."
 
 msgid "&Record"
 msgstr "En&registrer"
@@ -235,7 +238,7 @@ msgid "&Fast forward to the end"
 msgstr "Aller à la &Fin"
 
 msgid "E&ject"
-msgstr "E&jecter"
+msgstr "É&jecter"
 
 msgid "&Image..."
 msgstr "&Image..."
@@ -249,8 +252,8 @@ msgstr "&Couper"
 msgid "E&mpty"
 msgstr "E&jecter"
 
-msgid "&Reload previous image"
-msgstr "&Recharger image précedente"
+msgid "Reload previous image"
+msgstr "Recharger image précedente"
 
 msgid "&Folder..."
 msgstr "&Dossier..."
@@ -306,17 +309,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "Annuler"
 
-msgid "Save these settings as &global defaults"
-msgstr "Sauvegarder ces paramètres comme valeurs par défaut &globales"
-
 msgid "&Default"
 msgstr "&Défaut"
 
 msgid "Language:"
 msgstr "Langue:"
-
-msgid "Icon set:"
-msgstr "Ensemble d'icônes:"
 
 msgid "Gain"
 msgstr "Gain"
@@ -648,8 +645,8 @@ msgstr "Appuyez sur Ctrl+Alt+PgDn pour revenir au mode fenêtré."
 msgid "Speed"
 msgstr "Vitesse"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "Images ZIP"
@@ -753,14 +750,11 @@ msgstr "S"
 msgid "KB"
 msgstr "Ko"
 
-msgid "Could not initialize the video renderer."
-msgstr "Impossible d'initialiser le moteur de rendu vidéo."
-
 msgid "Default"
 msgstr "Défaut"
 
-msgid "%i Wait state(s)"
-msgstr "%i état(s) d'attente"
+msgid "%1 Wait state(s)"
+msgstr "%1 état(s) d'attente"
 
 msgid "Type"
 msgstr "Type"
@@ -804,11 +798,11 @@ msgstr "Système de contrôle de vol Thrustmaster"
 msgid "None"
 msgstr "Aucun"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u Mo (CTS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 Mo (CTS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Disquette %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Disquette %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Images du secteur avancés"
@@ -828,8 +822,8 @@ msgstr "Impossible d'initialiser Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Impossible d'initialiser GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "Magnéto-optique %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "Magnéto-optique %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Images magnéto-optiques"
@@ -903,11 +897,8 @@ msgstr "Configuration du dispositif %1"
 msgid "Monitor in sleep mode"
 msgstr "Moniteur en mode veille"
 
-msgid "OpenGL Shaders"
-msgstr "Shaders OpenGL"
-
-msgid "OpenGL options"
-msgstr "Options OpenGL"
+msgid "GLSL shaders"
+msgstr "Shaders GLSL"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Vous chargez une configuration non prise en charge"
@@ -918,23 +909,17 @@ msgstr "La filtrage du type du processeur sur la base de la machine sélectionn�
 msgid "Continue"
 msgstr "Continuer"
 
-msgid "Cassette: %s"
-msgstr "Cassette: %s"
+msgid "Cassette: %1"
+msgstr "Cassette: %1"
 
 msgid "Cassette images"
 msgstr "Images cassette"
 
-msgid "Cartridge %i: %ls"
-msgstr "Cartouche %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Cartouche %1: %2"
 
 msgid "Cartridge images"
 msgstr "Images cartouche"
-
-msgid "Error initializing renderer"
-msgstr "Erreur d'initialisation du moteur de rendu"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Le moteur de rendu OpenGL (3.0 Core) n'a pas pu être initialisé. Utilisez un autre moteur de rendu."
 
 msgid "Resume execution"
 msgstr "Reprendre l'exécution"
@@ -1098,8 +1083,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 Ko"
@@ -1278,9 +1263,6 @@ msgstr "Effacer l'historique de l'image"
 msgid "Create..."
 msgstr "Créer..."
 
-msgid "previous image"
-msgstr "image précedente"
-
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Lecteur CD/DVD hôte (%1)"
 
@@ -1290,23 +1272,8 @@ msgstr "Bus inconnu"
 msgid "Null Driver"
 msgstr "Pilote nul"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "Erreur d'ouverture de \"%1\" : %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Erreur de compilation du vertex shader dans le fichier \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Erreur de compilation du fragment shader dans le fichier \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Erreur de liaison du programme shader dans le fichier \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Options de rendu OpenGL 3.0"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Comportement de rendu"
@@ -1320,9 +1287,6 @@ msgstr " mages par seconde"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Rendre chaque image immédiatement, en synchronisation avec l'affichage émulé.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;C'est l'option recommandée si les shaders utilisés n'utilisent pas le frametime pour les effets animés.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Synchronisation avec la vidéo"
 
@@ -1332,20 +1296,8 @@ msgstr "Shaders"
 msgid "Remove"
 msgstr "Retirer"
 
-msgid "No shader selected"
-msgstr "Pas de shader sélectionné"
-
 msgid "Browse..."
 msgstr "Parcourir..."
-
-msgid "Shader error"
-msgstr "Erreur de shader"
-
-msgid "Could not load shaders."
-msgstr "Impossible de charger les shaders."
-
-msgid "More information in details."
-msgstr "Plus d'informations dans les détails."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Impossible de créer un contexte OpenGL."
@@ -1356,17 +1308,11 @@ msgstr "Impossible de passer au contexte OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "La version 3.0 ou supérieure d'OpenGL est requise. La version actuelle est %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "L'initialisation d'OpenGL a échoué. Erreur %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Erreur d'initialisation d'OpenGL"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Se rabattre sur le rendu logiciel.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "L'allocation de mémoire pour le tampon de décompression a échoué.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nSe rabattre sur le rendu logiciel."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Lors de la sélection d'images multimédia (CD-ROM, disquette, etc.), la boîte de dialogue d'ouverture démarrera dans le même répertoire que le fichier de configuration de 86Box. Ce paramètre ne fera probablement une différence que sur macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
@@ -1433,9 +1379,6 @@ msgstr "Passage du port série 3"
 
 msgid "Serial port passthrough 4"
 msgstr "Passage du port série 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
 
 msgid "Renderer options..."
 msgstr "Options de rendu..."
@@ -2103,8 +2046,8 @@ msgstr "Tuyau nommé (serveur)"
 msgid "Host Serial Passthrough"
 msgstr "Passage du port série de l'hôte"
 
-msgid "Eject %s"
-msgstr "Éjecter %s"
+msgid "E&ject %1"
+msgstr "É&jecter %1"
 
 msgid "&Unmute"
 msgstr "&Réactiver son"
@@ -2115,8 +2058,29 @@ msgstr "FPU Softfloat"
 msgid "High performance impact"
 msgstr "Impact important sur la performance"
 
-msgid "RAM Disk (max. speed)"
-msgstr "Disque RAM (vitesse maximale)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] Disque RAM (vitesse maximale)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Clon IBM 8514/A (ISA)"
@@ -2135,3 +2099,63 @@ msgstr "Impossible de trouver les polices à matrice à points"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "Les polices TrueType dans le répertoire \"roms/printer/fonts\" sont nécessaires à l'émulation de l'imprimante générique ESC/P à matrice à points."
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Display hotkey message when entering full-screen mode"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
+msgstr ""
