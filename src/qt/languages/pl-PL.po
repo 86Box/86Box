@@ -249,8 +249,8 @@ msgstr "&Ścisz"
 msgid "E&mpty"
 msgstr "P&usty"
 
-msgid "&Reload previous image"
-msgstr "&Przeładuj poprzedni obraz"
+msgid "Reload previous image"
+msgstr "Przeładuj poprzedni obraz"
 
 msgid "&Folder..."
 msgstr "&Teczka..."
@@ -1259,9 +1259,6 @@ msgstr "Wyczyść historię obrazów"
 
 msgid "Create..."
 msgstr "Stwórz..."
-
-msgid "previous image"
-msgstr "poprzedni obraz"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Napęd CD/DVD hosta (%1)"

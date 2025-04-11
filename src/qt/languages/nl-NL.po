@@ -249,8 +249,8 @@ msgstr "&Mute"
 msgid "E&mpty"	
 msgstr "E&mpty"
 
-msgid "&Reload previous image"	
-msgstr "&Herlaad vorige image"
+msgid "Reload previous image"	
+msgstr "Herlaad vorige image"
 
 msgid "&Folder..."	
 msgstr "&Map..."
@@ -1259,9 +1259,6 @@ msgstr "Imagegeschiedenis verwijderen"
 
 msgid "Create..."	
 msgstr "Creëer..."
-
-msgid "previous image"	
-msgstr "vorige image"
 
 msgid "Host CD/DVD Drive (%1)"	
 msgstr "Host CD/DVD-station (%1)"

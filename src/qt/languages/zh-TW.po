@@ -249,8 +249,8 @@ msgstr "靜音(&M)"
 msgid "E&mpty"
 msgstr "空置光碟機(&M)"
 
-msgid "&Reload previous image"
-msgstr "載入上一個映像(&R)"
+msgid "Reload previous image"
+msgstr "載入上一個映像"
 
 msgid "&Folder..."
 msgstr "資料夾(&F)..."
@@ -1259,9 +1259,6 @@ msgstr "清除映像歷史記錄"
 
 msgid "Create..."
 msgstr "建立..."
-
-msgid "previous image"
-msgstr "上一個映像"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "主機 CD/DVD 光碟機 (%1)"

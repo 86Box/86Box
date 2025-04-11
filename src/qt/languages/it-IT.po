@@ -249,8 +249,8 @@ msgstr "&Muto"
 msgid "E&mpty"
 msgstr "&Espelli"
 
-msgid "&Reload previous image"
-msgstr "&Ricarica l'immagine precedente"
+msgid "Reload previous image"
+msgstr "Ricarica l'immagine precedente"
 
 msgid "&Folder..."
 msgstr "&Cartella..."
@@ -1259,9 +1259,6 @@ msgstr "Cancella la cronologia delle immagini"
 
 msgid "Create..."
 msgstr "Creare..."
-
-msgid "previous image"
-msgstr "immagine precedente"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Unità CD/DVD host (%1)"

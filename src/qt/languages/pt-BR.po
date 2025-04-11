@@ -249,8 +249,8 @@ msgstr "&Silenciar"
 msgid "E&mpty"
 msgstr "&Vazio"
 
-msgid "&Reload previous image"
-msgstr "&Recarregar imagem anterior"
+msgid "Reload previous image"
+msgstr "Recarregar imagem anterior"
 
 msgid "&Folder..."
 msgstr "&Pasta..."
@@ -1259,9 +1259,6 @@ msgstr "Limpar histórico de imagens"
 
 msgid "Create..."
 msgstr "Criar..."
-
-msgid "previous image"
-msgstr "imagem anterior"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Unidade de CD/DVD do anfitrião (%1)"

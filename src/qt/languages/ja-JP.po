@@ -249,8 +249,8 @@ msgstr "ミュート(&M)"
 msgid "E&mpty"
 msgstr "なし(&M)"
 
-msgid "&Reload previous image"
-msgstr "前のイメージを再読み込み(&R)"
+msgid "Reload previous image"
+msgstr "前のイメージを再読み込み"
 
 msgid "&Folder..."
 msgstr "フォルダ(&F)..."
@@ -1259,9 +1259,6 @@ msgstr "クリア画像履歴"
 
 msgid "Create..."
 msgstr "作成..."
-
-msgid "previous image"
-msgstr "前の画像"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "ホスト CD/DVD ドライブ (%1)"

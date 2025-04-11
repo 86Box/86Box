@@ -249,8 +249,8 @@ msgstr "&Némítás"
 msgid "E&mpty"
 msgstr "&Kiadás"
 
-msgid "&Reload previous image"
-msgstr "Előző képfájl &újratöltése"
+msgid "Reload previous image"
+msgstr "Előző képfájl újratöltése"
 
 msgid "&Folder..."
 msgstr "&Mappa..."
@@ -1259,9 +1259,6 @@ msgstr "Törölje a kép előzményeit"
 
 msgid "Create..."
 msgstr "Hozzon létre..."
-
-msgid "previous image"
-msgstr "előző képfájl"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Gazdag CD/DVD-meghajtó (%1)"

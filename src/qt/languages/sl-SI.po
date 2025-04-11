@@ -249,8 +249,8 @@ msgstr "&Utišaj"
 msgid "E&mpty"
 msgstr "&Prazen"
 
-msgid "&Reload previous image"
-msgstr "&Naloži zadnjo sliko"
+msgid "Reload previous image"
+msgstr "Naloži zadnjo sliko"
 
 msgid "&Folder..."
 msgstr "&Mapa..."
@@ -1259,9 +1259,6 @@ msgstr "Jasna zgodovina slik"
 
 msgid "Create..."
 msgstr "Ustvari..."
-
-msgid "previous image"
-msgstr "zadnja slika"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Pogon CD/DVD gostitelja (%1)"

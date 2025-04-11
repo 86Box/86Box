@@ -249,8 +249,8 @@ msgstr "&Couper"
 msgid "E&mpty"
 msgstr "E&jecter"
 
-msgid "&Reload previous image"
-msgstr "&Recharger image précedente"
+msgid "Reload previous image"
+msgstr "Recharger image précedente"
 
 msgid "&Folder..."
 msgstr "&Dossier..."
@@ -1259,9 +1259,6 @@ msgstr "Effacer l'historique de l'image"
 
 msgid "Create..."
 msgstr "Créer..."
-
-msgid "previous image"
-msgstr "image précedente"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Lecteur CD/DVD hôte (%1)"

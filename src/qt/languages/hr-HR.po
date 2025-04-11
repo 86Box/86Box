@@ -249,8 +249,8 @@ msgstr "&Isključi zvuk"
 msgid "E&mpty"
 msgstr "&Prazno"
 
-msgid "&Reload previous image"
-msgstr "&Ponovo učitaj prethodnu sliku"
+msgid "Reload previous image"
+msgstr "Ponovo učitaj prethodnu sliku"
 
 msgid "&Folder..."
 msgstr "&Mapa..."
@@ -1259,9 +1259,6 @@ msgstr "Očisti povijest slika"
 
 msgid "Create..."
 msgstr "Stvori..."
-
-msgid "previous image"
-msgstr "prethodna slika"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "CD/DVD pogon nositelja (%1)"

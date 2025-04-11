@@ -249,8 +249,8 @@ msgstr "&Stíšiť"
 msgid "E&mpty"
 msgstr "&Vystrihnúť"
 
-msgid "&Reload previous image"
-msgstr "&Načítať znova predchádzajúci obraz"
+msgid "Reload previous image"
+msgstr "Načítať znova predchádzajúci obraz"
 
 msgid "&Folder..."
 msgstr "&Zložka..."
@@ -1259,9 +1259,6 @@ msgstr "Vymazanie histórie obrázkov"
 
 msgid "Create..."
 msgstr "Vytvorte..."
-
-msgid "previous image"
-msgstr "predchádzajúca snímka"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Hostiteľská jednotka CD/DVD (%1)"

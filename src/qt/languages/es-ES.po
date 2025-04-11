@@ -249,8 +249,8 @@ msgstr "&Silenciar"
 msgid "E&mpty"
 msgstr "E&xtraer disco"
 
-msgid "&Reload previous image"
-msgstr "&Recargar imagen previa"
+msgid "Reload previous image"
+msgstr "Recargar imagen previa"
 
 msgid "&Folder..."
 msgstr "&Carpeta..."
@@ -1258,9 +1258,6 @@ msgstr "Eliminar historia de imágenes"
 
 msgid "Create..."
 msgstr "Crear..."
-
-msgid "previous image"
-msgstr "imagen previa"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Unidad de CD/DVD anfitriona (%1)"

@@ -249,8 +249,8 @@ msgstr "Tắt tiến&g"
 msgid "E&mpty"
 msgstr "Làm trố&ng đĩa"
 
-msgid "&Reload previous image"
-msgstr "Load đĩ&a trước đó"
+msgid "Reload previous image"
+msgstr "Load đĩa trước đó"
 
 msgid "&Folder..."
 msgstr "Thư mụ&c"
@@ -1259,9 +1259,6 @@ msgstr "Xóa lịch sử ảnh đĩa"
 
 msgid "Create..."
 msgstr "Tạo..."
-
-msgid "previous image"
-msgstr "đĩa trước đó"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Máy chủ CD/DVD Drive (%1)"

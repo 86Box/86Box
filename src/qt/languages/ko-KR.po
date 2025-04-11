@@ -249,8 +249,8 @@ msgstr "음소거(&M)"
 msgid "E&mpty"
 msgstr "비었음(&M)"
 
-msgid "&Reload previous image"
-msgstr "이전 이미지 다시 불러오기(&R)"
+msgid "Reload previous image"
+msgstr "이전 이미지 다시 불러오기"
 
 msgid "&Folder..."
 msgstr "폴더(&F)..."
@@ -1259,9 +1259,6 @@ msgstr "이미지 기록 지우기"
 
 msgid "Create..."
 msgstr "만들기..."
-
-msgid "previous image"
-msgstr "이전 이미지"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "호스트 CD/DVD 드라이브 (%1)"

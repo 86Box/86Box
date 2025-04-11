@@ -249,7 +249,7 @@ msgstr ""
 msgid "E&mpty"
 msgstr ""
 
-msgid "&Reload previous image"
+msgid "Reload previous image"
 msgstr ""
 
 msgid "&Folder..."
@@ -1258,9 +1258,6 @@ msgid "Clear image history"
 msgstr ""
 
 msgid "Create..."
-msgstr ""
-
-msgid "previous image"
 msgstr ""
 
 msgid "Host CD/DVD Drive (%1)"

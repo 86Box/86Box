@@ -249,8 +249,8 @@ msgstr "&Silenciar"
 msgid "E&mpty"
 msgstr "E&xtreure disc"
 
-msgid "&Reload previous image"
-msgstr "&Recarregar imatge anterior"
+msgid "Reload previous image"
+msgstr "Recarregar imatge anterior"
 
 msgid "&Folder..."
 msgstr "&Carpeta ..."
@@ -1259,9 +1259,6 @@ msgstr "Esborrar la història de imatges"
 
 msgid "Create..."
 msgstr "Crear ..."
-
-msgid "previous image"
-msgstr "imatge anterior"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Unitat CD/DVD d'amfitrió (%1)"

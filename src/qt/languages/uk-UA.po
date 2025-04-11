@@ -249,8 +249,8 @@ msgstr "&Відключити звук"
 msgid "E&mpty"
 msgstr "&Пустий"
 
-msgid "&Reload previous image"
-msgstr "&Знову завантажити попередній образ"
+msgid "Reload previous image"
+msgstr "Знову завантажити попередній образ"
 
 msgid "&Folder..."
 msgstr "&Тека..."
@@ -1259,9 +1259,6 @@ msgstr "Очистити історію образів"
 
 msgid "Create..."
 msgstr "Створити..."
-
-msgid "previous image"
-msgstr "попередній образ"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "CD/DVD привід хоста (%1)"

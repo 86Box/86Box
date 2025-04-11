@@ -249,8 +249,8 @@ msgstr "&Mykistä"
 msgid "E&mpty"
 msgstr "&Tyhjä"
 
-msgid "&Reload previous image"
-msgstr "&Lataa edellinen levykuva uudelleen"
+msgid "Reload previous image"
+msgstr "Lataa edellinen levykuva uudelleen"
 
 msgid "&Folder..."
 msgstr "&Kansio..."
@@ -1259,9 +1259,6 @@ msgstr "Tyhjennä kuvahistoria"
 
 msgid "Create..."
 msgstr "Luo..."
-
-msgid "previous image"
-msgstr "edellinen levykuva"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Isäntä CD/DVD-asema (%1)"

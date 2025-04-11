@@ -249,8 +249,8 @@ msgstr "静音(&M)"
 msgid "E&mpty"
 msgstr "空置驱动器(&M)"
 
-msgid "&Reload previous image"
-msgstr "载入上一个映像(&R)"
+msgid "Reload previous image"
+msgstr "载入上一个映像"
 
 msgid "&Folder..."
 msgstr "文件夹(&F)..."
@@ -1259,9 +1259,6 @@ msgstr "清除映像历史记录"
 
 msgid "Create..."
 msgstr "创建..."
-
-msgid "previous image"
-msgstr "上一张"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "主机 CD/DVD 驱动器 (%1)"

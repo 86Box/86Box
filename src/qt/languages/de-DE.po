@@ -249,8 +249,8 @@ msgstr "&Stummschalten"
 msgid "E&mpty"
 msgstr "L&eer"
 
-msgid "&Reload previous image"
-msgstr "&Voriges Abbild neu laden"
+msgid "Reload previous image"
+msgstr "Voriges Abbild neu laden"
 
 msgid "&Folder..."
 msgstr "&Verzeichnis..."
@@ -1262,9 +1262,6 @@ msgstr "Abbildverlauf löschen"
 
 msgid "Create..."
 msgstr "Erstellen..."
-
-msgid "previous image"
-msgstr "Vorheriges Abbild"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Host-CD/DVD-Laufwerk (%1)"

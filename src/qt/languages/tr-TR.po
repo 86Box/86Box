@@ -249,8 +249,8 @@ msgstr "&Sesi kapat"
 msgid "E&mpty"
 msgstr "İmajı &çıkar"
 
-msgid "&Reload previous image"
-msgstr "&Önceki imajı yeniden seç"
+msgid "Reload previous image"
+msgstr "Önceki imajı yeniden seç"
 
 msgid "&Folder..."
 msgstr "&Klasör..."
@@ -1259,9 +1259,6 @@ msgstr "İmaj geçmişini temizleyin"
 
 msgid "Create..."
 msgstr "Oluştur..."
-
-msgid "previous image"
-msgstr "önceki imaj"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Ana bilgisayar CD/DVD sürücüsü (%1)"
