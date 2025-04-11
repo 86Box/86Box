@@ -1557,7 +1557,7 @@ void        nv3_user_write(uint32_t address, uint32_t value);
 
 // NV3 PMC
 void        nv3_pmc_init(void);
-uint32_t    nv3_pmc_clear_interrupts(void);
+void        nv3_pmc_clear_interrupts(void);
 uint32_t    nv3_pmc_handle_interrupts(bool send_now);
 
 // NV3 PGRAPH

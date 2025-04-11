@@ -134,7 +134,7 @@ void nv3_pextdev_write(uint32_t address, uint32_t value)
     // special consideration for straps
     if (address == NV3_PSTRAPS)
     {
-        warning("Huh? Tried to write to the straps. Something is wrong...\n", nv3->pextdev.straps);
+        warning("Huh? Tried to write to the straps (value=%d). Something is wrong...\n", nv3->pextdev.straps);
         return;
     }
 

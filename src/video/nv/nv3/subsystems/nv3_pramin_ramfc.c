@@ -30,7 +30,8 @@
 
 uint32_t nv3_ramfc_read(uint32_t address)
 {
-    nv_log_verbose_only("RAMFC (Unused DMA channel context) Read (0x%04x)\n", address);
+    nv_log_verbose_only("RAMFC (Unused DMA channel context) Read (0x%04x) (UNIMPLEMENTED returning 0x00)\n", address);
+    return 0x00; //temp
 }
 
 void nv3_ramfc_write(uint32_t address, uint32_t value)

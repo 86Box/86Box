@@ -29,7 +29,7 @@
 #include <86box/nv/vid_nv3.h>
 
 // Functions only used in this translation unit
-uint32_t nv3_pfb_config0_read();
+uint32_t nv3_pfb_config0_read(void);
 void nv3_pfb_config0_write(uint32_t val);
 
 nv_register_t pfb_registers[] = {
@@ -170,7 +170,7 @@ void nv3_pfb_write(uint32_t address, uint32_t value)
     }
 }
 
-uint32_t nv3_pfb_config0_read()
+uint32_t nv3_pfb_config0_read(void)
 {
     return nv3->pfb.config_0;
 }

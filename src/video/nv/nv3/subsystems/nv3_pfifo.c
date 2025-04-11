@@ -760,8 +760,7 @@ void nv3_pfifo_context_switch(uint32_t new_channel)
     if (new_channel >= NV3_DMA_CHANNELS)
         fatal("nv3_pfifo_context_switch: Tried to switch to invalid dma channel");
 
-    uint16_t ramfc_base = nv3->pfifo.ramfc_config >> NV3_PFIFO_CONFIG_RAMFC_BASE_ADDRESS & 0xF;
-
+    //uint16_t ramfc_base = nv3->pfifo.ramfc_config >> NV3_PFIFO_CONFIG_RAMFC_BASE_ADDRESS & 0xF;
 }
 
 // NV_USER writes go here!
@@ -820,7 +819,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
     {
         // Cache reassignment required
         if (!nv3->pfifo.cache_reassignment 
-        || (nv3->pfifo.cache1_settings.get_address != nv3->pfifo.cache1_settings.get_address))
+        || (nv3->pfifo.cache1_settings.get_address != nv3->pfifo.cache1_settings.put_address))
         {
             oh_shit = true;
             oh_shit_reason = nv3_runout_reason_no_cache_available;

@@ -616,7 +616,7 @@ uint8_t nv3_svga_in(uint16_t addr, void* priv)
             return ret;
 
         // must be dword aligned
-        uint32_t real_rma_read_addr = ((nv3->pbus.rma.mode & NV3_CRTC_REGISTER_RMA_MODE_MAX - 1) << 1) + (addr & 0x03); 
+        uint32_t real_rma_read_addr = (((nv3->pbus.rma.mode & NV3_CRTC_REGISTER_RMA_MODE_MAX) - 1) << 1) + (addr & 0x03); 
         ret = nv3_pbus_rma_read(real_rma_read_addr);
         return ret;
     }
@@ -869,7 +869,7 @@ uint8_t nv3_prom_read(uint32_t address)
 void nv3_prom_write(uint32_t address, uint32_t value)
 {
     uint32_t real_addr = address & 0x1FFFF;
-    nv_log("What's going on here? Tried to write to the Video BIOS ROM? (Address=0x%05x, value=0x%02x)", address, value);
+    nv_log("What's going on here? Tried to write to the Video BIOS ROM? (Address=0x%05x, value=0x%02x)", real_addr, value);
 }
 
 // Initialise the MMIO mappings
@@ -974,7 +974,7 @@ void nv3_update_mappings(void)
         nv3_svga_out, NULL, NULL, 
         nv3);   
     
-    if (!(nv3->pci_config.pci_regs[PCI_REG_COMMAND]) & PCI_COMMAND_MEM)
+    if (!(nv3->pci_config.pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))
     {
         nv_log("The memory was turned off, not much is going to happen.\n");
         return;

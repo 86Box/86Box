@@ -31,6 +31,7 @@
 uint32_t nv3_ramro_read(uint32_t address)
 {
     nv_log("BIG Problem: RAM Runout (invalid dma object submission) Read (0x%04x)\n", address);
+    return 0x00; 
 }
 
 void nv3_ramro_write(uint32_t address, uint32_t value)
