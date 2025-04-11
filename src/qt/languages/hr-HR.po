@@ -18,8 +18,8 @@ msgstr "&Desni CTRL je lijevi ALT"
 msgid "&Hard Reset..."
 msgstr "&Ponovno pokretanje..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Linearna"
 msgid "Hi&DPI scaling"
 msgstr "&HiDPI skaliranje"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Cijelozaslonski način\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Cijelozaslonski način"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Način cijelozaslonskog rastezanja"
@@ -186,8 +186,11 @@ msgstr "&Opcije..."
 msgid "&Update status bar icons"
 msgstr "&Ažuriraj ikone statusnog redka"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Napravi &snimku zaslona\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Napravi &snimku zaslona"
+
+msgid "S&ound"
+msgstr "&Zvuk"
 
 msgid "&Preferences..."
 msgstr "&Postavke..."
@@ -198,11 +201,11 @@ msgstr "Omogući integraciju sa programom &Discord"
 msgid "Sound &gain..."
 msgstr "&Pojačavanje zvuka..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Z&apočni praćenje\tCtrl+T"
+msgid "Begin trace"
+msgstr "Z&apočni praćenje"
 
-msgid "End trace\tCtrl+T"
-msgstr "&Svrši praćenje\tCtrl+T"
+msgid "End trace"
+msgstr "&Svrši praćenje"
 
 msgid "&Help"
 msgstr "&Pomoć"
@@ -249,8 +252,8 @@ msgstr "&Isključi zvuk"
 msgid "E&mpty"
 msgstr "&Prazno"
 
-msgid "&Reload previous image"
-msgstr "&Ponovo učitaj prethodnu sliku"
+msgid "Reload previous image"
+msgstr "Ponovo učitaj prethodnu sliku"
 
 msgid "&Folder..."
 msgstr "&Mapa..."
@@ -306,17 +309,11 @@ msgstr "U redu"
 msgid "Cancel"
 msgstr "Otkaži"
 
-msgid "Save these settings as &global defaults"
-msgstr "Spremite ove postavke kao &globalne zadane postavke"
-
 msgid "&Default"
 msgstr "Zadano"
 
 msgid "Language:"
 msgstr "Jezik:"
-
-msgid "Icon set:"
-msgstr "Paket ikona:"
 
 msgid "Gain"
 msgstr "Pojačavanje"
@@ -648,8 +645,8 @@ msgstr "Pritisnite Ctrl+Alt+PgDn za povratak u prozorski način rada."
 msgid "Speed"
 msgstr "Brzina"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIP slike"
@@ -753,14 +750,11 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Nije moguće inicijalizirati renderer."
-
 msgid "Default"
 msgstr "Standard"
 
-msgid "%i Wait state(s)"
-msgstr "%i stanje čekanja"
+msgid "%1 Wait state(s)"
+msgstr "%1 stanje čekanja"
 
 msgid "Type"
 msgstr "Tip"
@@ -804,11 +798,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Bez"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Disketa %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Disketa %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Napredne sektorske slike"
@@ -828,8 +822,8 @@ msgstr "Nije moguće inicijalizirati GhostScript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Nije moguće inicijalizirati GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "MO %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "MO slike"
@@ -903,11 +897,8 @@ msgstr "Konfiguracija uređaja %1"
 msgid "Monitor in sleep mode"
 msgstr "Ekran u stanju mirovanja"
 
-msgid "OpenGL Shaders"
-msgstr "OpenGL shaderi"
-
-msgid "OpenGL options"
-msgstr "OpenGL opcije"
+msgid "GLSL shaders"
+msgstr "GLSL shaderi"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Učitavate nepodržanu konfiguraciju"
@@ -918,23 +909,17 @@ msgstr "Filtriranje tipa CPU-a na temelju odabranog sistema onemogućeno je za o
 msgid "Continue"
 msgstr "Nastavi"
 
-msgid "Cassette: %s"
-msgstr "Audio kaseta: %s"
+msgid "Cassette: %1"
+msgstr "Audio kaseta: %1"
 
 msgid "Cassette images"
 msgstr "Slike audio kasete"
 
-msgid "Cartridge %i: %ls"
-msgstr "Kaseta %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Kaseta %1: %2"
 
 msgid "Cartridge images"
 msgstr "Slike kasete"
-
-msgid "Error initializing renderer"
-msgstr "Nije moguće inicijalizirati renderer"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Nije moguće inicijalizirati OpenGL (3.0 jezgra) renderer. Molimte koristite drugi renderer."
 
 msgid "Resume execution"
 msgstr "Nastavi"
@@ -1098,8 +1083,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1278,9 +1263,6 @@ msgstr "Očisti povijest slika"
 msgid "Create..."
 msgstr "Stvori..."
 
-msgid "previous image"
-msgstr "prethodna slika"
-
 msgid "Host CD/DVD Drive (%1)"
 msgstr "CD/DVD pogon nositelja (%1)"
 
@@ -1290,23 +1272,8 @@ msgstr "Nepoznata sabirnica"
 msgid "Null Driver"
 msgstr "Nulti upravljački program"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "Nije moguće otvoriti \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Nije moguće sastaviti vertex shader u datoteci \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Nije moguće sastaviti framgent shader u datoteci \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Nije moguće povezati program shader u datoteci \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Opcije renderera OpenGL 3.0"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Ponašanje rendera"
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Odmah napravi svaki okvir, sinkronizirano s emuliranim zaslonom.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Ovo je preporučena opcija, ako korišćeni shader ne koristi vreme okvira za animirane efekte.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Sinkroniziraj s videom"
 
@@ -1332,20 +1296,8 @@ msgstr "Shaderi"
 msgid "Remove"
 msgstr "Ukloni"
 
-msgid "No shader selected"
-msgstr "Bez odabranog shadera"
-
 msgid "Browse..."
 msgstr "Pregledajte..."
-
-msgid "Shader error"
-msgstr "Greška shadera"
-
-msgid "Could not load shaders."
-msgstr "Nije moguće učitati shadere."
-
-msgid "More information in details."
-msgstr "Više informacija u detaljima."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nije moguće stvoriti kontekst OpenGL."
@@ -1356,17 +1308,11 @@ msgstr "Nije se moguće prebaciti na kontekst OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Potrebna je OpenGL verzija 3.0 ili više. Trenutna verzija je %1. %2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Nije moguće inicijalizirati OpenGL. Greška %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Nije moguće inicijalizirati OpenGL"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Vraća se na softverski renderer.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Nije moguće idodijeliti memoriju za međuspremnik za raspakiranje.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nVraća se na softverski renderer."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Prilikom odabira medijskih slika (CD-ROM, diskete itd.), otvoreni dijalog zopočet će u istom direktoriju kao i konfiguracijska datoteka 86Box-a. Razlika će vjerojatno biti primjetna samo na macOS-u.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
@@ -1433,9 +1379,6 @@ msgstr "Prolaz serijskih vrata 3"
 
 msgid "Serial port passthrough 4"
 msgstr "Prolaz serijskih vrata 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
 
 msgid "Renderer options..."
 msgstr "Opcije rendera..."
@@ -2103,8 +2046,8 @@ msgstr "Imenovani vod (server)"
 msgid "Host Serial Passthrough"
 msgstr "Prolaz serijskih vrata nositelja"
 
-msgid "Eject %s"
-msgstr "Izbaci %s"
+msgid "E&ject %1"
+msgstr "&Izbaci %1"
 
 msgid "&Unmute"
 msgstr "&Uključi zvuk"
@@ -2115,8 +2058,29 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "Visoki učinak na brzinu izvršavanja"
 
-msgid "RAM Disk (max. speed)"
-msgstr "Disk RAM (najviša brzina)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] Disk RAM (najviša brzina)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Klon IBM 8514/A (ISA)"
@@ -2135,3 +2099,63 @@ msgstr "Nije moguće pronaći matrične fontove"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "TrueType fontovi u mapi \"roms/printer/fonts\" potrebni su za emulaciju generičnog matričnog pisača ESC/P."
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Display hotkey message when entering full-screen mode"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
+msgstr ""

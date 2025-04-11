@@ -18,8 +18,8 @@ msgstr "A &jobb oldali CTRL a bal ALT"
 msgid "&Hard Reset..."
 msgstr "Hardveres &újraindítás..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Lineáris"
 msgid "Hi&DPI scaling"
 msgstr "Hi&DPI méretezés"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Teljes képernyő\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Teljes képernyő"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Teljes képernyős &méretezés"
@@ -186,8 +186,11 @@ msgstr "&Konfigurálás..."
 msgid "&Update status bar icons"
 msgstr "Állapotsori ikonok &frissítése"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "&Képernyőkép készítése\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "&Képernyőkép készítése"
+
+msgid "S&ound"
+msgstr "&Hang"
 
 msgid "&Preferences..."
 msgstr "&Beállítások..."
@@ -198,11 +201,11 @@ msgstr "&Discord integráció engedélyezése"
 msgid "Sound &gain..."
 msgstr "&Hangerőszabályzó..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Nyomkövetés megkezdése\tCtrl+T"
+msgid "Begin trace"
+msgstr "Nyomkövetés megkezdése"
 
-msgid "End trace\tCtrl+T"
-msgstr "Nyomkövetés befejezése\tCtrl+T"
+msgid "End trace"
+msgstr "Nyomkövetés befejezése"
 
 msgid "&Help"
 msgstr "&Súgó"
@@ -249,8 +252,8 @@ msgstr "&Némítás"
 msgid "E&mpty"
 msgstr "&Kiadás"
 
-msgid "&Reload previous image"
-msgstr "Előző képfájl &újratöltése"
+msgid "Reload previous image"
+msgstr "Előző képfájl újratöltése"
 
 msgid "&Folder..."
 msgstr "&Mappa..."
@@ -306,17 +309,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "Mégse"
 
-msgid "Save these settings as &global defaults"
-msgstr "Beállítások mentése &globális alapértékként"
-
 msgid "&Default"
 msgstr "&Alapértelmezett"
 
 msgid "Language:"
 msgstr "Nyelv:"
-
-msgid "Icon set:"
-msgstr "Ikonkészlet:"
 
 msgid "Gain"
 msgstr "Hangerő"
@@ -648,8 +645,8 @@ msgstr "Használja a Ctrl+Alt+PgDn gombokat az ablakhoz való visszatéréshez."
 msgid "Speed"
 msgstr "Sebesség"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIP-lemezképek"
@@ -753,14 +750,11 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Nem sikerült inicializálni a videó megjelenítőt."
-
 msgid "Default"
 msgstr "Alapértelmezett"
 
-msgid "%i Wait state(s)"
-msgstr "%i várakozási ciklus(ok)"
+msgid "%1 Wait state(s)"
+msgstr "%1 várakozási ciklus(ok)"
 
 msgid "Type"
 msgstr "Típus"
@@ -804,11 +798,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Nincs"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Floppy %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Floppy %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Továbbfejlesztett szektor képek"
@@ -828,8 +822,8 @@ msgstr "Nem sikerült inicializálni a Ghostscript-et"
 msgid "Unable to initialize GhostPCL"
 msgstr "Nem sikerült inicializálni a GhostPCL-et"
 
-msgid "MO %i (%ls): %ls"
-msgstr "MO %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "MO-képfájlok"
@@ -903,11 +897,8 @@ msgstr "%1 eszközkonfiguráció"
 msgid "Monitor in sleep mode"
 msgstr "Képernyő alvó módban"
 
-msgid "OpenGL Shaders"
-msgstr "OpenGL Shaderek"
-
-msgid "OpenGL options"
-msgstr "OpenGL beállítások"
+msgid "GLSL shaders"
+msgstr "GLSL shaderek"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Egy nem támogatott konfigurációt tölt be"
@@ -918,23 +909,17 @@ msgstr "A kiválasztott gépen alapuló CPU-típusszűrés le van tiltva ezen az
 msgid "Continue"
 msgstr "Folytatás"
 
-msgid "Cassette: %s"
-msgstr "Magnókazetta: %s"
+msgid "Cassette: %1"
+msgstr "Magnókazetta: %1"
 
 msgid "Cassette images"
 msgstr "Magnókazetta-képek"
 
-msgid "Cartridge %i: %ls"
-msgstr "ROM-kazetta %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "ROM-kazetta %1: %2"
 
 msgid "Cartridge images"
 msgstr "ROM-kazetta képek"
-
-msgid "Error initializing renderer"
-msgstr "Hiba történt a renderelő inicializálásakor"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Az OpenGL (3.0 Core) megjelenítő-motort nem sikerült inicializálni. Kérem használjon másik renderelőt."
 
 msgid "Resume execution"
 msgstr "Folytassa a végrehajtást"
@@ -1098,8 +1083,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1270,16 +1255,13 @@ msgid "Host CD/DVD Drive (%1:)"
 msgstr "Gazdag CD/DVD-meghajtó (%1:)"
 
 msgid "&Connected"
-msgstr "&Connected"
+msgstr ""
 
 msgid "Clear image history"
 msgstr "Törölje a kép előzményeit"
 
 msgid "Create..."
 msgstr "Hozzon létre..."
-
-msgid "previous image"
-msgstr "előző képfájl"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Gazdag CD/DVD-meghajtó (%1)"
@@ -1290,23 +1272,8 @@ msgstr "Ismeretlen busz"
 msgid "Null Driver"
 msgstr "Null Driver"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "Hiba a \"%1\" megnyitásakor: %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Hiba a vertex shader fordításában a \"%1\" fájlban"
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Hiba a fragment shader fordításában a \"%1\" fájlban"
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Hiba a shader program összekapcsolásában a \"%1\" fájlban"
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "OpenGL 3.0 renderelési beállítások"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Renderelési viselkedés"
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Az egyes képkockák azonnali, az emulált kijelzővel szinkronizált megjelenítése.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&quot;&gt;Ez az ajánlott opció, ha a használt shaderek nem használják a frametime-ot az animált effektusokhoz.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Szinkronizálás a videóval"
 
@@ -1332,20 +1296,8 @@ msgstr "Shaderek"
 msgid "Remove"
 msgstr "Távolítsa el a"
 
-msgid "No shader selected"
-msgstr "Nincs shader kiválasztva"
-
 msgid "Browse..."
 msgstr "Böngésszen..."
-
-msgid "Shader error"
-msgstr "Shader hiba"
-
-msgid "Could not load shaders."
-msgstr "Nem sikerült betölteni a shadereket."
-
-msgid "More information in details."
-msgstr "További információ a részletekről."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nem sikerült OpenGL-kontextust létrehozni."
@@ -1356,17 +1308,11 @@ msgstr "Nem tudott OpenGL-kontextusra váltani."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Az OpenGL 3.0 vagy magasabb verziója szükséges. Az aktuális verzió %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Az OpenGL inicializálása sikertelen. Hiba %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Hiba az OpenGL inicializálásában"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Visszatérés a szoftveres rendereléshez.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "A memória kiosztása a kicsomagolási pufferhez sikertelen.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nVisszatérés a szoftveres rendereléshez."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;A médiaképek (CD-ROM, floppy stb.) kiválasztásakor a megnyitási párbeszédpanel ugyanabban a könyvtárban indul, mint a 86Box konfigurációs fájl. Ez a beállítás valószínűleg csak a macOS rendszerben jelent különbséget.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
@@ -1433,9 +1379,6 @@ msgstr "Soros port áthaladás 3"
 
 msgid "Serial port passthrough 4"
 msgstr "Soros port áthaladás 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
 
 msgid "Renderer options..."
 msgstr "Renderer opciók..."
@@ -2103,8 +2046,8 @@ msgstr "Megnevezett cső (kiszolgáló)"
 msgid "Host Serial Passthrough"
 msgstr "Az állomás soros portjának áthaladása"
 
-msgid "Eject %s"
-msgstr "%s kiadás"
+msgid "E&ject %1"
+msgstr "%1 &kiadás"
 
 msgid "&Unmute"
 msgstr "&Hang újra bekapcsolása"
@@ -2115,8 +2058,29 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "Nagy hatással van a teljesítményre"
 
-msgid "RAM Disk (max. speed)"
-msgstr "RAM lemez (max. sebesség)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] RAM lemez (max. sebesség)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A klón (ISA)"
@@ -2135,3 +2099,63 @@ msgstr "Nem találja a Dot-Matrix betűtípusokat"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "Az általános ESC/P pontmátrixnyomtató emulációjához a \"roms/printer/fonts\" könyvtárban található TrueType betűtípusok szükségesek."
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Display hotkey message when entering full-screen mode"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
+msgstr ""

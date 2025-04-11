@@ -18,8 +18,8 @@ msgstr "&Sağ CTRL tuşunu sol ALT tuşu olarak ayarla"
 msgid "&Hard Reset..."
 msgstr "Yeniden başlamaya &zorla"
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+&Alt+Esc"
@@ -111,8 +111,8 @@ msgstr "Doğ&rusal"
 msgid "Hi&DPI scaling"
 msgstr "HiDPI ölçekle&mesi"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "Tam ekran\tCtrl+Alt+Pg&Up"
+msgid "&Fullscreen"
+msgstr "Tam ekran"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Tam e&kran germe modu"
@@ -186,8 +186,8 @@ msgstr "&Ayarlar..."
 msgid "&Update status bar icons"
 msgstr "Durum &çubuğu simgelerini güncelle"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "&Ekran görüntüsü al\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "&Ekran görüntüsü al"
 
 msgid "&Preferences..."
 msgstr "&Tercihler..."
@@ -195,14 +195,17 @@ msgstr "&Tercihler..."
 msgid "Enable &Discord integration"
 msgstr "&Discord entegrasyonunu etkinleştir"
 
+msgid "S&ound"
+msgstr "&Ses"
+
 msgid "Sound &gain..."
 msgstr "&Ses düzeyi artışı..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "İzlemeyi başlat\tCtrl+T"
+msgid "Begin trace"
+msgstr "İzlemeyi başlat"
 
-msgid "End trace\tCtrl+T"
-msgstr "İzlemeyi bitir\tCtrl+T"
+msgid "End trace"
+msgstr "İzlemeyi bitir"
 
 msgid "&Help"
 msgstr "&Yardım"
@@ -249,8 +252,8 @@ msgstr "&Sesi kapat"
 msgid "E&mpty"
 msgstr "İmajı &çıkar"
 
-msgid "&Reload previous image"
-msgstr "&Önceki imajı yeniden seç"
+msgid "Reload previous image"
+msgstr "Önceki imajı yeniden seç"
 
 msgid "&Folder..."
 msgstr "&Klasör..."
@@ -306,17 +309,11 @@ msgstr "Tamam"
 msgid "Cancel"
 msgstr "İptal"
 
-msgid "Save these settings as &global defaults"
-msgstr "Ayarları &varsayılan olarak kaydet"
-
 msgid "&Default"
 msgstr "&Varsayılan"
 
 msgid "Language:"
 msgstr "Dil:"
-
-msgid "Icon set:"
-msgstr "Simge seti:"
 
 msgid "Gain"
 msgstr "Artış"
@@ -648,8 +645,8 @@ msgstr "Pencere moduna geri dönmek için Ctrl+Alt+PgDn tuşlarına basın."
 msgid "Speed"
 msgstr "Hız"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIP imajları"
@@ -753,14 +750,11 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Video işleyici başlatılamadı."
-
 msgid "Default"
 msgstr "Varsayılan"
 
-msgid "%i Wait state(s)"
-msgstr "%i Bekleme durumları"
+msgid "%1 Wait state(s)"
+msgstr "%1 Bekleme durumları"
 
 msgid "Type"
 msgstr "Tür"
@@ -804,11 +798,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Hiçbiri"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Disket %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Disket %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Gelişmiş sektör imajları"
@@ -828,8 +822,8 @@ msgstr "Ghostscript başlatılamadı"
 msgid "Unable to initialize GhostPCL"
 msgstr "GhostPCL başlatılamadı"
 
-msgid "MO %i (%ls): %ls"
-msgstr "MO %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "MO imajları"
@@ -903,11 +897,8 @@ msgstr "%1 cihaz konfigürasyonu"
 msgid "Monitor in sleep mode"
 msgstr "Monitör uyku modunda"
 
-msgid "OpenGL Shaders"
-msgstr "OpenGL gölgelendiricileri"
-
-msgid "OpenGL options"
-msgstr "OpenGL ayarları"
+msgid "GLSL shaders"
+msgstr "GLSL gölgelendiricileri"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Desteklenmeyen bir konfigürasyon kullanıyorsunuz"
@@ -918,23 +909,17 @@ msgstr "Seçtiğiniz makineye uygun işlemci türü filtrelemesi bu emüle edile
 msgid "Continue"
 msgstr "Devam et"
 
-msgid "Cassette: %s"
-msgstr "Kaset: %s"
+msgid "Cassette: %1"
+msgstr "Kaset: %1"
 
 msgid "Cassette images"
 msgstr "Kaset imajları"
 
-msgid "Cartridge %i: %ls"
-msgstr "Kartuş %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Kartuş %1: %2"
 
 msgid "Cartridge images"
 msgstr "Kartuş imajları"
-
-msgid "Error initializing renderer"
-msgstr "İşleyici başlatılırken hata oluştu"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) işleyici başlatılamadı. Başka bir görüntüleyici kullanın."
 
 msgid "Resume execution"
 msgstr "Çalıştırmaya devam et"
@@ -1098,8 +1083,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1278,9 +1263,6 @@ msgstr "İmaj geçmişini temizleyin"
 msgid "Create..."
 msgstr "Oluştur..."
 
-msgid "previous image"
-msgstr "önceki imaj"
-
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Ana bilgisayar CD/DVD sürücüsü (%1)"
 
@@ -1290,23 +1272,8 @@ msgstr "Bilinmeyen veri yolu"
 msgid "Null Driver"
 msgstr "Null sürücü"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "\"%1\": %2 açılırken hata oluştu"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "\"%1\" dosyasında tepe gölgelendirici derlenirken hata oluştu"
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "\"%1\" dosyasında parça gölgelendirici derlenirken hata oluştu"
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "\"%1\" dosyasında gölgelendirici programı bağlanırken hata oluştu"
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "OpenGL 3.0 işleyici seçenekleri"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "İşleyiş davranışı"
@@ -1320,9 +1287,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Emüle edilen ekranla senkronize olarak her kareyi hemen işleyin.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Kullanılan gölgelendiriciler animasyonlu efektler için kare zamanını kullanmıyorsa bu önerilen seçenektir.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Video ile senkronize et"
 
@@ -1332,20 +1296,8 @@ msgstr "Gölgelendiriciler"
 msgid "Remove"
 msgstr "Kaldır"
 
-msgid "No shader selected"
-msgstr "Gölgelendirici seçili değil"
-
 msgid "Browse..."
 msgstr "Göz at..."
-
-msgid "Shader error"
-msgstr "Gölgelendirici hatası"
-
-msgid "Could not load shaders."
-msgstr "Gölgelendiriciler yüklenemedi."
-
-msgid "More information in details."
-msgstr "Daha fazla bilgi detaylardadır."
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGL bağlamı oluşturulamadı."
@@ -1356,17 +1308,11 @@ msgstr "OpenGL bağlamına geçilemedi."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGL sürüm 3.0 veya üstü gereklidir. Geçerli sürüm %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "OpenGL başlatılamadı. Hata %1."
-
 msgid "Error initializing OpenGL"
 msgstr "OpenGL başlatılırken hata oluştu"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Yazılım işleyicisine geri dönülüyor.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Paket açma arabelleği için bellek ayırma başarısız oldu.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nYazılım işleyicisine geri dönülüyor."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Medya görüntüsü (CD-ROM, disket, vb.) seçme diyaloğu 86Box yapılandırma dosyasıyla aynı dizinde başlayacaktır. Bu ayar muhtemelen sadece macOS üzerinde bir fark meydana getirecektir.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
@@ -1433,9 +1379,6 @@ msgstr "Seri port geçişi 3"
 
 msgid "Serial port passthrough 4"
 msgstr "Seri port geçişi 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
 
 msgid "Renderer options..."
 msgstr "İşleyici seçenekleri..."
@@ -2103,8 +2046,8 @@ msgstr "Adlandırılmış boru (Sunucu)"
 msgid "Host Serial Passthrough"
 msgstr "Ana bilgisayar seri port geçişi"
 
-msgid "Eject %s"
-msgstr "%s diskini çıkar"
+msgid "E&ject %1"
+msgstr "%1 diskini &çıkar"
 
 msgid "&Unmute"
 msgstr "&Sesi aç"
@@ -2115,8 +2058,29 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "Ciddi performans düşüklüğüne neden olabilir"
 
-msgid "RAM Disk (max. speed)"
-msgstr "RAM Disk (maks. hız)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] RAM Disk (maks. hız)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A klonu (ISA)"
@@ -2135,3 +2099,63 @@ msgstr "Dot Matrix yazı tipleri bulunamıyor"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "Sıradan ESC/P Dot Matrix Yazıcının emülasyonu için \"roms/printer/fonts\" dizinindeki TrueType yazı tipleri gereklidir."
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Display hotkey message when entering full-screen mode"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
+msgstr ""

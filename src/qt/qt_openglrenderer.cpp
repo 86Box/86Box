@@ -633,7 +633,7 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
 
             if (!load_texture(file, &tex->texture)) {
                 //QMessageBox::critical(main_window, tr("GLSL Error"), tr("Could not load texture: %s").arg(file));
-                main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not load texture: %s").arg(file));
+                main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not load texture: %1").arg(file));
                 pclog("Could not load texture %s!\n", file);
                 failed = 1;
                 break;
