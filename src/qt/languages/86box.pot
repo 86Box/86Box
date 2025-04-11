@@ -2058,7 +2058,28 @@ msgstr ""
 msgid "High performance impact"
 msgstr ""
 
-msgid "RAM Disk (max. speed)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr ""
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
 msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
@@ -2086,6 +2107,9 @@ msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for t
 msgstr ""
 
 msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Model:"
 msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."

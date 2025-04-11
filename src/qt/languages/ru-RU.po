@@ -2058,8 +2058,8 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "Сильное влияние на производительность"
 
-msgid "RAM Disk (max. speed)"
-msgstr "RAM-диск (макс. скорость)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Стандартный] RAM-диск (макс. скорость)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Клон IBM 8514/A (ISA)"
@@ -2084,3 +2084,6 @@ msgstr "Невозможно найти матричные шрифты"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "Шрифты TrueType в каталоге \"roms/printer/fonts\" необходимы для эмуляции стандартного матричного принтера ESC/P."
+
+msgid "Model:"
+msgstr "Модель:"

@@ -2058,8 +2058,8 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "對效能影響大"
 
-msgid "RAM Disk (max. speed)"
-msgstr "RAM 磁碟 (最大速度)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] RAM 磁碟 (最大速度)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A 克隆 (ISA)"

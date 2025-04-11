@@ -2058,8 +2058,8 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"	
 msgstr "Hoge prestatie-impact"
 
-msgid "RAM Disk (max. speed)"	
-msgstr "RAM-schijf (max. snelheid)"
+msgid "[Generic] RAM Disk (max. speed)"	
+msgstr "[Generic] RAM-schijf (max. snelheid)"
 
 msgid "IBM 8514/A clone (ISA)"	
 msgstr "IBM 8514/A-kloon (ISA)"
