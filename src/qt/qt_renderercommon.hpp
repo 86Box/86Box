@@ -4,6 +4,7 @@
 #include <QEvent>
 #include <QImage>
 #include <QRect>
+#include <QRectF>
 #include <QWidget>
 
 #include <atomic>
@@ -40,6 +41,7 @@ public:
     virtual bool rendererTakeScreenshot() { return false; }
 
     int      r_monitor_index = 0;
+    QRectF   destinationF = QRectF(0, 0, 1, 1); /* normalized to 0.0-1.0 range. */
 
 protected:
     bool     eventDelegate(QEvent *event, bool &result);

@@ -73,20 +73,19 @@ public:
 
     QString getMessage();
     void    clearActivity();
-    void    setSoundGainAction(QAction* action);
+    void    setSoundMenu(QMenu* menu);
 public slots:
     void refresh(QStatusBar *sbar);
     void message(const QString &msg);
     void updateTip(int tag);
     void refreshEmptyIcons();
     void refreshIcons();
+    void updateSoundIcon();
 
 private:
     struct States;
     std::unique_ptr<States> d;
     QTimer                 *refreshTimer;
-    QAction                *soundGainAction;
-    QAction                *muteUnmuteAction;
     QMenu                  *soundMenu;
 };
 

@@ -80,7 +80,7 @@ ProgSettings::accept()
     confirm_save            = ui->checkBoxConfirmSave->isChecked() ? 1 : 0;
     confirm_reset           = ui->checkBoxConfirmHardReset->isChecked() ? 1 : 0;
     video_fullscreen_first  = ui->checkBoxFullscreenFirst->isChecked() ? 1 : 0;
-    inhibit_multimedia_keys = ui->checkBoxMultimediaKeys->isChecked();
+    inhibit_multimedia_keys = ui->checkBoxMultimediaKeys->isChecked() ? 1 : 0;
 
     loadTranslators(QCoreApplication::instance());
     reloadStrings();

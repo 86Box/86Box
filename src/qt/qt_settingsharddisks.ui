@@ -78,7 +78,7 @@
      <item>
       <widget class="QLabel" name="labelSpeed">
        <property name="text">
-        <string>Speed:</string>
+        <string>Model:</string>
        </property>
       </widget>
      </item>
