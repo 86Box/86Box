@@ -42,8 +42,8 @@ void nv3_init_mappings_mmio(void);
 void nv3_init_mappings_svga(void);
 bool nv3_is_svga_redirect_address(uint32_t addr);
 
-uint8_t nv3_svga_in(uint16_t addr, void* priv);
-void nv3_svga_out(uint16_t addr, uint8_t val, void* priv);
+uint8_t nv3_svga_read(uint16_t addr, void* priv);
+void nv3_svga_write(uint16_t addr, uint8_t val, void* priv);
 
 // Determine if this address needs to be redirected to the SVGA subsystem.
 
@@ -70,7 +70,7 @@ uint8_t nv3_mmio_read8(uint32_t addr, void* priv)
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
-        ret = nv3_svga_in(real_address, nv3);
+        ret = nv3_svga_read(real_address, nv3);
 
         nv_log_verbose_only("Redirected MMIO read8 to SVGA: addr=0x%04x returned 0x%04x\n", addr, ret);
 
@@ -95,8 +95,8 @@ uint16_t nv3_mmio_read16(uint32_t addr, void* priv)
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
-        ret = nv3_svga_in(real_address, nv3)
-        | (nv3_svga_in(real_address + 1, nv3) << 8);
+        ret = nv3_svga_read(real_address, nv3)
+        | (nv3_svga_read(real_address + 1, nv3) << 8);
         
         nv_log_verbose_only("Redirected MMIO read16 to SVGA: addr=0x%04x returned 0x%04x\n", addr, ret);
 
@@ -120,10 +120,10 @@ uint32_t nv3_mmio_read32(uint32_t addr, void* priv)
         // svga writes are not logged anyway rn
         uint32_t real_address = addr & 0x3FF;
 
-        ret = nv3_svga_in(real_address, nv3)
-        | (nv3_svga_in(real_address + 1, nv3) << 8)
-        | (nv3_svga_in(real_address + 2, nv3) << 16)
-        | (nv3_svga_in(real_address + 3, nv3) << 24);
+        ret = nv3_svga_read(real_address, nv3)
+        | (nv3_svga_read(real_address + 1, nv3) << 8)
+        | (nv3_svga_read(real_address + 2, nv3) << 16)
+        | (nv3_svga_read(real_address + 3, nv3) << 24);
 
         nv_log_verbose_only("Redirected MMIO read32 to SVGA: addr=0x%04x returned 0x%04x\n", addr, ret);
 
@@ -152,7 +152,7 @@ void nv3_mmio_write8(uint32_t addr, uint8_t val, void* priv)
 
         nv_log_verbose_only("Redirected MMIO write8 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
 
-        nv3_svga_out(real_address, val & 0xFF, nv3);
+        nv3_svga_write(real_address, val & 0xFF, nv3);
 
         return; 
     }
@@ -180,8 +180,8 @@ void nv3_mmio_write16(uint32_t addr, uint16_t val, void* priv)
         nv_log_verbose_only("Redirected MMIO write16 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
 
 
-        nv3_svga_out(real_address, val & 0xFF, nv3);
-        nv3_svga_out(real_address + 1, (val >> 8) & 0xFF, nv3);
+        nv3_svga_write(real_address, val & 0xFF, nv3);
+        nv3_svga_write(real_address + 1, (val >> 8) & 0xFF, nv3);
         
         return; 
     }
@@ -208,10 +208,10 @@ void nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv)
 
         nv_log_verbose_only("Redirected MMIO write32 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
 
-        nv3_svga_out(real_address, val & 0xFF, nv3);
-        nv3_svga_out(real_address + 1, (val >> 8) & 0xFF, nv3);
-        nv3_svga_out(real_address + 2, (val >> 16) & 0xFF, nv3);
-        nv3_svga_out(real_address + 3, (val >> 24) & 0xFF, nv3);
+        nv3_svga_write(real_address, val & 0xFF, nv3);
+        nv3_svga_write(real_address + 1, (val >> 8) & 0xFF, nv3);
+        nv3_svga_write(real_address + 2, (val >> 16) & 0xFF, nv3);
+        nv3_svga_write(real_address + 3, (val >> 24) & 0xFF, nv3);
         
         return; 
     }
@@ -597,7 +597,7 @@ void nv3_force_redraw(void* priv)
 }
 
 // Read from SVGA core memory
-uint8_t nv3_svga_in(uint16_t addr, void* priv)
+uint8_t nv3_svga_read(uint16_t addr, void* priv)
 {
 
     nv3_t* nv3 = (nv3_t*)priv;
@@ -662,7 +662,7 @@ uint8_t nv3_svga_in(uint16_t addr, void* priv)
 }
 
 // Write to SVGA core memory
-void nv3_svga_out(uint16_t addr, uint8_t val, void* priv)
+void nv3_svga_write(uint16_t addr, uint8_t val, void* priv)
 {
     // sanity check
     if (!nv3)
@@ -939,8 +939,8 @@ void nv3_init_mappings_svga(void)
         nv3->nvbase.svga.vram, 0, &nv3->nvbase.svga);
 
     io_sethandler(0x03c0, 0x0020, 
-    nv3_svga_in, NULL, NULL, 
-    nv3_svga_out, NULL, NULL, 
+    nv3_svga_read, NULL, NULL, 
+    nv3_svga_write, NULL, NULL, 
     nv3);
 }
 
@@ -964,14 +964,14 @@ void nv3_update_mappings(void)
     (nv3->pci_config.pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO) ? nv_log("Enable I/O\n") : nv_log("Disable I/O\n");
 
     io_removehandler(0x03c0, 0x0020, 
-        nv3_svga_in, NULL, NULL, 
-        nv3_svga_out, NULL, NULL, 
+        nv3_svga_read, NULL, NULL, 
+        nv3_svga_write, NULL, NULL, 
         nv3);
 
     if (nv3->pci_config.pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
         io_sethandler(0x03c0, 0x0020, 
-        nv3_svga_in, NULL, NULL, 
-        nv3_svga_out, NULL, NULL, 
+        nv3_svga_read, NULL, NULL, 
+        nv3_svga_write, NULL, NULL, 
         nv3);   
     
     if (!(nv3->pci_config.pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))
@@ -1117,7 +1117,7 @@ void* nv3_init(const device_t *info)
         pci_add_card(PCI_ADD_NORMAL, nv3_pci_read, nv3_pci_write, NULL, &nv3->nvbase.pci_slot);
 
         svga_init(&nv3_device_pci, &nv3->nvbase.svga, nv3, nv3->nvbase.vram_amount, 
-        nv3_recalc_timings, nv3_svga_in, nv3_svga_out, nv3_draw_cursor, NULL);
+        nv3_recalc_timings, nv3_svga_read, nv3_svga_write, nv3_draw_cursor, NULL);
 
         if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00)
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_nv3t_pci);
@@ -1132,7 +1132,7 @@ void* nv3_init(const device_t *info)
         pci_add_card(PCI_ADD_AGP, nv3_pci_read, nv3_pci_write, NULL, &nv3->nvbase.pci_slot);
 
         svga_init(&nv3_device_agp, &nv3->nvbase.svga, nv3, nv3->nvbase.vram_amount, 
-        nv3_recalc_timings, nv3_svga_in, nv3_svga_out, nv3_draw_cursor, NULL);
+        nv3_recalc_timings, nv3_svga_read, nv3_svga_write, nv3_draw_cursor, NULL);
 
         if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00)
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_nv3t_agp);

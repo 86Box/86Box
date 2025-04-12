@@ -77,6 +77,10 @@ typedef enum nv3_pgraph_class_e
 #define NV3_SET_NOTIFY_CONTEXT_FOR_DMA                  0x0100  // Set object ctx for dma...see nv3_dma_context_t structure
 #define NV3_SET_NOTIFY                                  0x0104
 
+// Crap e.g. "OS name", that sometimes gets submitted, for some reason. So we just suppress the warning messages for them
+#define NV3_NVCLASS_CRAP_START                          0x0310
+#define NV3_NVCLASS_CRAP_END                            0x0324
+
 // Render OPeration
 #define NV3_ROP_SET_ROP                                 0x0300  // Set GDI standard rop
 

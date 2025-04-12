@@ -86,6 +86,10 @@ void nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             
             nv_log("Method Execution: Image in Memory BUF%d TOP_LEFT_OFFSET=0x%08x\n", src_buffer_id, nv3->pgraph.boffset[src_buffer_id]);
             break;
+        case NV3_NVCLASS_CRAP_START ... NV3_NVCLASS_CRAP_END:
+            /* Suppress but don't do anything */
+            nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
+            break;
         default:
             warning("%s: Invalid or unimplemented method 0x%04x\n", nv3_class_names[context.class_id & 0x1F], method_id);
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);

@@ -1473,8 +1473,8 @@ void        nv3_dfb_write8(uint32_t addr, uint8_t val, void* priv);             
 void        nv3_dfb_write16(uint32_t addr, uint16_t val, void* priv);           // Write 16-bit DFB
 void        nv3_dfb_write32(uint32_t addr, uint32_t val, void* priv);           // Write 32-bit DFB
 
-uint8_t     nv3_svga_in(uint16_t addr, void* priv);                             // Read SVGA compatibility registers
-void        nv3_svga_out(uint16_t addr, uint8_t val, void* priv);               // Write SVGA registers
+uint8_t     nv3_svga_read(uint16_t addr, void* priv);                           // Read SVGA compatibility registers
+void        nv3_svga_write(uint16_t addr, uint8_t val, void* priv);             // Write SVGA registers
 uint8_t     nv3_pci_read(int32_t func, int32_t addr, void* priv);               // Read PCI configuration registers
 void        nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv); // Write PCI configuration registers
 

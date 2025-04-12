@@ -130,14 +130,10 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     && nv3->pgraph.blit.size.h < NV3_MAX_VERTICAL_SIZE)
         memset(&nv3_s2sb_line_buffer, 0x00, (sizeof(uint32_t) * nv3->pgraph.blit.size.h) * (sizeof(uint32_t) * nv3->pgraph.blit.size.w));
 
-    nv3_position_16_t old_position = nv3->pgraph.blit.point_in;
-    nv3_position_16_t new_position = nv3->pgraph.blit.point_out;
-
+    /* First calculate our source and destination buffer */
     uint32_t src_buffer = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03; 
 
-    /* test DST_BUFFER code
-    I assume for 2d at least only one is allowed at a time
-    */
+    bool wtf_nvidia = false; 
 
     uint32_t dst_buffer = 0; // 5 = just use the source buffer
 
@@ -145,13 +141,23 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER1_ENABLED) & 0x01) dst_buffer = 1;
     if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER2_ENABLED) & 0x01) dst_buffer = 2;
     if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER3_ENABLED) & 0x01) dst_buffer = 3;
+    
+    nv3_position_16_t old_position;
+    nv3_position_16_t new_position; 
 
-
-    uint16_t end_x_in = (nv3->pgraph.blit.point_in.x + nv3->pgraph.blit.size.w); /* needed for bounds checking */
-    uint16_t end_x_out = (nv3->pgraph.blit.point_out.x + nv3->pgraph.blit.size.w);
-    uint16_t end_y = (nv3->pgraph.blit.point_out.y + nv3->pgraph.blit.size.h);
-
-    uint32_t pixel_to_copy = 0x00;
+    /* If src_buffer != dst_buffer, the positions and src/dst buffer seem to be swapped.
+    Some kind of hardware errata (?), otherwise, I have no explanation for this behaviour. */
+    if (nv3->pgraph.boffset[src_buffer] == nv3->pgraph.boffset[dst_buffer])
+    {
+        old_position = nv3->pgraph.blit.point_in;
+        new_position = nv3->pgraph.blit.point_out;
+    }
+    else
+    {
+        old_position = nv3->pgraph.blit.point_out;
+        new_position = nv3->pgraph.blit.point_in;
+        wtf_nvidia = true; 
+    }
 
     /* Coordinates for copying an entire line at a time */
     uint32_t buf_position = 0, vram_position = 0, size_x = nv3->pgraph.blit.size.w;
@@ -170,23 +176,35 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     else if (nv3->nvbase.svga.bpp == 32)
         size_x <<= 2;
 
+        
     for (int32_t y = 0; y < nv3->pgraph.blit.size.h; y++)
     {
-        old_position.y = nv3->pgraph.blit.point_in.y + y;
-        /* 32bit buffer */
         buf_position = (nv3->pgraph.blit.size.w * y);
-        vram_position = nv3_render_get_vram_address(old_position, grobj);
+        /* shouldn't matter in non-wtf mode */
+        vram_position = nv3_render_get_vram_address_for_buffer(old_position, grobj, dst_buffer);
 
         memcpy(&nv3_s2sb_line_buffer[buf_position], &nv3->nvbase.svga.vram[vram_position], size_x);
+        old_position.y++;
+        /* 32bit buffer */
     }
     
     /* simply write it all back to vram */
     for (int32_t y = 0; y < nv3->pgraph.blit.size.h; y++)
     {        
         buf_position = (nv3->pgraph.blit.size.w * y);
-        new_position.y = nv3->pgraph.blit.point_out.y + y;
-        vram_position = nv3_render_get_vram_address(new_position, grobj);
+
+        /* Trying to avoid making the above function more complex. It seems, src is used most of th etime...But this is bad... */
+        if (wtf_nvidia)
+        {
+            /* Use the parameters of our dst buffer with the position of our source buffer, seriously, who was thinking of this */
+            vram_position = nv3_render_get_vram_address_for_buffer(new_position, grobj, src_buffer);
+            //vram_position = vram_position - nv3->pgraph.boffset[dst_buffer] + nv3->pgraph.boffset[src_buffer];
+        }
+        else
+            vram_position = nv3_render_get_vram_address(new_position, grobj);
+
         memcpy(&nv3->nvbase.svga.vram[vram_position], &nv3_s2sb_line_buffer[buf_position], size_x);
+        new_position.y++;
     }
 
     /* 
@@ -222,8 +240,26 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     else if (nv3->pgraph.blit.point_out.y <= nv3->pgraph.blit.point_in.y) // equals case, just use out 
         blit_position.y = nv3->pgraph.blit.point_out.y;
 
-    uint32_t buf_end = ((nv3->nvbase.svga.bpp + 1) >> 3) * xsize * ysize;
 
-    //if (nv3->pgraph.boffset[dst_buffer] <= buf_end)
-        //nv3_render_current_bpp(&nv3->nvbase.svga, blit_position, blit_size, grobj);
+    /* Figure out the Display Buffer Address from the CRTCs */
+    uint32_t dba = ((nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_RPC0] & 0x1F) << 16)
+                    + (nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_STARTADDR_HIGH] << 8)
+                    + nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_STARTADDR_LOW];
+
+    /* If the BUFFER_ADDRESS of the last buffer is not the DBA, we don't *actually* want to draw this, so let's not
+    Apply stupid hack */
+
+    if (wtf_nvidia)
+    {
+        if (nv3->pgraph.boffset[src_buffer] != dba)
+            return;
+    }   
+    else 
+    {
+        if (nv3->pgraph.boffset[dst_buffer] != dba)
+            return;
+    }          
+
+
+    nv3_render_current_bpp(&nv3->nvbase.svga, blit_position, blit_size, grobj, false);
 }

@@ -225,6 +225,7 @@ uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t gro
     uint32_t vram_y = position.y;
     uint32_t current_buffer = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03; 
 
+    /*
     uint32_t destination_buffer = 5; // 5 = just use the source buffer
 
     // src is hardcoded to 1, dst to 0. Hmm...
@@ -236,7 +237,7 @@ uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t gro
     if (destination_buffer != current_buffer
     && destination_buffer != 5)
         current_buffer = destination_buffer;
-
+*/
     uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp;
 
     // we have to multiply the x position by the number of bytes per pixel
@@ -254,6 +255,36 @@ uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t gro
     }
 
     uint32_t pixel_addr_vram = vram_x + (nv3->pgraph.bpitch[current_buffer] * vram_y) + nv3->pgraph.boffset[current_buffer];
+
+    pixel_addr_vram &= nv3->nvbase.svga.vram_mask;
+
+    return pixel_addr_vram;
+}
+
+
+/* Combine the current buffer with the pitch to get the address in the video ram for a specific position relative to a specific framebuffer */
+uint32_t nv3_render_get_vram_address_for_buffer(nv3_position_16_t position, nv3_grobj_t grobj, uint32_t buffer)
+{
+    uint32_t vram_x = position.x;
+    uint32_t vram_y = position.y;
+
+    uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp;
+
+    // we have to multiply the x position by the number of bytes per pixel
+    switch (framebuffer_bpp)
+    {
+        case 8:
+            break;
+        case 15:
+        case 16:
+            vram_x = position.x << 1;
+            break;
+        case 32:
+            vram_x = position.x << 2;
+            break;
+    }
+
+    uint32_t pixel_addr_vram = vram_x + (nv3->pgraph.bpitch[buffer] * vram_y) + nv3->pgraph.boffset[buffer];
 
     pixel_addr_vram &= nv3->nvbase.svga.vram_mask;
 
@@ -470,7 +501,7 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
     /* Go write the pixel */
     nv3_size_16_t size = {0};
     size.w = size.h = 1; 
-    nv3_render_current_bpp(&nv3->nvbase.svga, position, size, grobj);
+    nv3_render_current_bpp(&nv3->nvbase.svga, position, size, grobj, true);
 }
 
 /* Ensure the correct monitor size */
@@ -560,14 +591,34 @@ void nv3_render_current_bpp_dfb_32(uint32_t address)
 
 
 /* Blit to the monitor from GPU, current bpp */
-void nv3_render_current_bpp(svga_t *svga, nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grobj)
+void nv3_render_current_bpp(svga_t *svga, nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grobj, bool run_render_check)
 {
     /* Ensure that we are in the correct mode. Modified SVGA core code */
     nv3_render_ensure_screen_size();
 
-    /* Don't try and draw stuff that is past the buffer, but, leave it in Video RAM */
-    //if (nv3->nvbase.last_buffer_address > (((nv3->nvbase.svga.bpp + 1) >> 3) * xsize * ysize))
-        //return;
+    /* Don't try and draw stuff that is past the buffer, but, leave it in Video RAM, so it can be used for s2sb's etc */
+
+    /* Not needed for s2sb*/
+    if (run_render_check)
+    {
+        /* Figure out the Display Buffer Address from the CRTCs */
+        uint32_t dba = ((nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_RPC0] & 0x1F) << 16)
+                        + (nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_STARTADDR_HIGH] << 8)
+                        + nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_STARTADDR_LOW];
+
+        /* Check our destination(?) buffer */   
+        uint32_t dst_buffer = 0; // 5 = just use the source buffer
+
+        if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER0_ENABLED) & 0x01) dst_buffer = 0;
+        if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER1_ENABLED) & 0x01) dst_buffer = 1;
+        if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER2_ENABLED) & 0x01) dst_buffer = 2;
+        if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER3_ENABLED) & 0x01) dst_buffer = 3;
+
+        /* If the BUFFER_ADDRESS of the last buffer is not the DBA, we don't *actually* want to draw this, so let's not */                
+        if (nv3->pgraph.boffset[dst_buffer] != dba)
+            return;
+    }
+
 
     switch (nv3->nvbase.svga.bpp)
     {
