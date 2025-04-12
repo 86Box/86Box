@@ -956,8 +956,9 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                                  dev->ems_size);
                     }
 
-                    mem_a20_key = !(val & RB12_GA20);
+                    mem_a20_alt = !(val & RB12_GA20);
                     mem_a20_recalc();
+                    flushmmucache();
                     break;
 
                 default:
@@ -987,7 +988,7 @@ neat_read(uint16_t port, void *priv)
             if ((dev->indx >= 0x60) && (dev->indx <= 0x6e))
                 ret = dev->regs[dev->indx];
             else if (dev->indx == 0x6f)
-                ret = (dev->regs[dev->indx] & 0xfd) | (mem_a20_key & 2);
+                ret = (dev->regs[dev->indx] & 0xfd) | ~(mem_a20_alt & 0x02);
             break;
 
         default:
