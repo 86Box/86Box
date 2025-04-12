@@ -406,3 +406,8 @@ void nv3_pramdac_write(uint32_t address, uint32_t value)
         nv_log(": Unknown register write (address=0x%08x)\n", address);
     }
 }
+
+uint32_t nv3_pramdac_read_clut(void) //4bpp/8bpp
+{
+
+}
