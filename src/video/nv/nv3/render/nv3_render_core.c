@@ -147,7 +147,7 @@ uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t co
             warning("nv3_render_downconvert: Y8 not implemented");
             break;
         case nv3_pgraph_pixel_format_y16:
-            warning("nv3_render_downconvert: Y16 not implemented");
+            //warning("nv3_render_downconvert: Y16 not implemented");
             break;
         default:
             warning("nv3_render_downconvert_color unknown format %d", format);

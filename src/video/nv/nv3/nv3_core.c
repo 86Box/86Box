@@ -499,18 +499,25 @@ void nv3_recalc_timings(svga_t* svga)
     // required for VESA resolutions, force parameters higher
     // only fuck around with any of this in VGAmode?
 
+    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDT10)) svga->vtotal += 0x400;
+    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VRS10)) svga->vblankstart += 0x400;
+    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VBS10)) svga->vsyncstart += 0x400;
+    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_HBE6)) svga->hdisp += 0x400; 
+    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDE10)) svga->dispend += 0x400;
+
+    if (svga->crtc[NV3_CRTC_REGISTER_HEB] & 0x01)
+    svga->hdisp += 0x100; // large screen bit
+
+    /*
     if (pixel_mode == NV3_CRTC_REGISTER_PIXELMODE_VGA)
     {
         if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDT10)) svga->vtotal += 0x400;
-        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDE10)) svga->dispend += 0x400;
         if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VRS10)) svga->vblankstart += 0x400;
         if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VBS10)) svga->vsyncstart += 0x400;
         if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_HBE6)) svga->hdisp += 0x400; 
 
-        if (svga->crtc[NV3_CRTC_REGISTER_HEB] & 0x01)
-            svga->hdisp += 0x100; // large screen bit
     }
- 
+ */
     /* Turn off override if we are in VGA mode */
     svga->override = !(pixel_mode == NV3_CRTC_REGISTER_PIXELMODE_VGA);
 
