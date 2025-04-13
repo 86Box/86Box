@@ -225,6 +225,10 @@ nv_register_t pramdac_registers[] =
     { NV3_PRAMDAC_HTOTAL, "PRAMDAC - Total Horizontal Lines", NULL, NULL},
     { NV3_PRAMDAC_HEQU_WIDTH, "PRAMDAC - HEqu End", NULL, NULL},
     { NV3_PRAMDAC_HSERR_WIDTH, "PRAMDAC - Horizontal Sync Error", NULL, NULL},
+    { NV3_USER_DAC_PIXEL_MASK, "PRAMDAC - User DAC Pixel Mask", NULL, NULL},
+    { NV3_USER_DAC_READ_MODE_ADDRESS, "PRAMDAC - User DAC Read Mode Address", NULL, NULL},
+    { NV3_USER_DAC_WRITE_MODE_ADDRESS, "PRAMDAC - User DAC Write Mode Address", NULL, NULL},
+    { NV3_USER_DAC_PALETTE_DATA, "PRAMDAC - User DAC Palette Data", NULL, NULL},
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 
@@ -300,6 +304,21 @@ uint32_t nv3_pramdac_read(uint32_t address)
                     break;
                 case NV3_PRAMDAC_HSERR_WIDTH:
                     ret = nv3->pramdac.hserr_width;
+                    break;
+                case NV3_USER_DAC_PIXEL_MASK:
+                    ret = nv3->pramdac.user_pixel_mask;
+                    break;
+                case NV3_USER_DAC_READ_MODE_ADDRESS:
+                    ret = nv3->pramdac.user_read_mode_address;
+                    break; 
+                case NV3_USER_DAC_WRITE_MODE_ADDRESS:
+                    ret = nv3->pramdac.user_write_mode_address;
+                    break; 
+                case NV3_USER_DAC_PALETTE_DATA:  
+                    /* I doubt NV actually read this in their drivers, but it's worth doing anyway */
+                    /* Bit 1 is listed as "read or write mode" and 7:0 as "Write-only address", but NV only ever set this to 0 too, so i think this should be fine for now */
+                    ret = nv3->pramdac.palette[nv3->pramdac.user_read_mode_address];
+                    nv3->pramdac.user_read_mode_address++; 
                     break;
             }
         }
@@ -390,8 +409,31 @@ void nv3_pramdac_write(uint32_t address, uint32_t value)
                     nv3->pramdac.hequ_width = value;
                     break;
                 case NV3_PRAMDAC_HSERR_WIDTH:
-                
                     nv3->pramdac.hserr_width = value;
+                    break;
+                case NV3_USER_DAC_PIXEL_MASK:
+                    nv3->pramdac.user_pixel_mask = value;
+                    break;
+                case NV3_USER_DAC_READ_MODE_ADDRESS:
+                    nv3->pramdac.user_read_mode_address = value;
+                    break; 
+                case NV3_USER_DAC_WRITE_MODE_ADDRESS:
+
+                    /* 
+                        This seems to get reset to 0 after 256 writes, but, the palette is 768 bytes in size. 
+                        Clearly there's some mechanism here, but I'm not sure what it is. So let's just reset if we reach 768.
+                    */
+                    if (nv3->pramdac.user_write_mode_address >= NV3_USER_DAC_PALETTE_SIZE)
+                        nv3->pramdac.user_write_mode_address = value;
+                        
+                    break; 
+                case NV3_USER_DAC_PALETTE_DATA:  
+                    /* I doubt NV actually read this in their drivers, but it's worth doing anyway */
+                    /* Bit 1 is listed as "read or write mode" and 7:0 as "Write-only address", but NV only ever set this to 0 too, so i think this should be fine for now */
+                    nv3->pramdac.palette[nv3->pramdac.user_write_mode_address] = value;
+
+                    nv3->pramdac.user_write_mode_address++; 
+                    
                     break;
             }
         }
@@ -407,7 +449,3 @@ void nv3_pramdac_write(uint32_t address, uint32_t value)
     }
 }
 
-uint32_t nv3_pramdac_read_clut(void) //4bpp/8bpp
-{
-
-}

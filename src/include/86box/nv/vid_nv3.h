@@ -14,7 +14,7 @@
  *          Also check the doc folder for some more notres
  * 
  *          vid_nv3.h:      NV3 Architecture Hardware Reference (open-source)
- *          Last updated:   6 April 2025 (STILL WORKING ON IT!!!)
+ *          Last updated:   12 April 2025 (STILL WORKING ON IT!!!)
  *  
  * Authors: Connor Hyde <mario64crashed@gmail.com>
  *
@@ -727,8 +727,16 @@ extern const device_config_t nv3_config[];
 #define NV3_PRAMDAC_END                                 0x680FFF
 #define NV3_PDAC_END                                    0x680FFF    // OPTIONAL external DAC
 
-#define NV3_VGA_DAC_START                               0x6813C6
-#define NV3_VGA_DAC_END                                 0x6813C9
+
+#define NV3_USER_DAC_START                              0x681200
+#define NV3_USER_DAC_PALETTE_START                      0x6813C6
+#define NV3_USER_DAC_PIXEL_MASK                         0x6813C6
+#define NV3_USER_DAC_READ_MODE_ADDRESS                  0x6813C7    //bit0=read/write mode?
+#define NV3_USER_DAC_WRITE_MODE_ADDRESS                 0x6813C8
+#define NV3_USER_DAC_PALETTE_DATA                       0x6813C9
+#define NV3_USER_DAC_PALETTE_SIZE                       768
+#define NV3_USER_DAC_PALETTE_END                        0x6813C9
+#define NV3_USER_DAC_END                                0x681FFF
 
 #define NV3_USER_START                                  0x800000    // Mapping for the area where objects are submitted into the FIFO (up to 0x880000?)
 #define NV3_USER_END                                    0xFFFFFF
@@ -1065,6 +1073,11 @@ typedef struct nv3_pramdac_s
     uint32_t htotal;            // horizontal total lines
     uint32_t hequ_width;        // horizontal equ width (not sure what this is)
     uint32_t hserr_width;       // horizontal sync error width
+
+    uint8_t user_pixel_mask;                        // pixel mask for DAC lookup
+    uint32_t user_read_mode_address;                 // user read mode address
+    uint32_t user_write_mode_address;                // user write mode address
+    uint8_t palette[NV3_USER_DAC_PALETTE_SIZE];     // Palette Info/CLUT - 256 entriesxr,g,b = 768 bytes
 } nv3_pramdac_t;
 
 /* Holds DMA channel context information */
@@ -1133,7 +1146,7 @@ typedef struct nv3_pgraph_status_s
 } nv3_pgraph_status_t;
 
 /* All of this B* stuff is registers at 400630..40065c and 4006a8 in reality, easier to implement it like this 
-   BPixel = Internal Binary Representation of the pixel within the architecture
+   BPixel = Buffer Pixel Format
 */
 #define NV3_BPIXEL_FORMAT               0
 #define NV3_BPIXEL_FORMAT_IS_VALID      2

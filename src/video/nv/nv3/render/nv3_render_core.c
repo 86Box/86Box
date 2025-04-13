@@ -88,6 +88,7 @@ nv3_color_expanded_t nv3_render_expand_color(uint32_t color, nv3_grobj_t grobj)
 
             break;
         case nv3_pgraph_pixel_format_y8:
+            /* Indexed mode */
             color_final.a = (color >> 8) & 0xFF;
 
             // yuv
@@ -143,11 +144,11 @@ uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t co
             packed_color |= (color.g << 20);
             packed_color |= (color.b << 10);
             break;
-        case nv3_pgraph_pixel_format_y8:
-            warning("nv3_render_downconvert: Y8 not implemented");
+        case nv3_pgraph_pixel_format_y8: /* i think this is just indexed mode. since r=g=b we can just take the indexed from the r */
+            packed_color = nv3_render_get_palette_index((color.r >> 2) & 0xFF);
             break;
         case nv3_pgraph_pixel_format_y16:
-            //warning("nv3_render_downconvert: Y16 not implemented");
+            warning("nv3_render_downconvert: Y16 not implemented");
             break;
         default:
             warning("nv3_render_downconvert_color unknown format %d", format);
@@ -189,15 +190,24 @@ uint32_t nv3_render_to_chroma(nv3_color_expanded_t expanded)
     return !!expanded.a | (expanded.r << 30) | (expanded.b << 20) | (expanded.a << 10);
 }
 
-/* Convert a rgb10 colour to a pattern colour */
-uint32_t nv3_render_set_pattern_color(nv3_color_expanded_t pattern_colour, bool use_color1)
+/* Get a colour for a palette index. (The colours are 24 bit RGB888 with a 0xFF alpha added for some purposes.) */
+uint32_t nv3_render_get_palette_index(uint8_t index)
 {
-    /* reset the colour */
-    if (!use_color1)
-        nv3->pgraph.pattern_color_0_rgb.r = nv3->pgraph.pattern_color_0_rgb.g = nv3->pgraph.pattern_color_0_rgb.b = 0x00;
-    else 
-        nv3->pgraph.pattern_color_1_rgb.r = nv3->pgraph.pattern_color_1_rgb.g = nv3->pgraph.pattern_color_1_rgb.b = 0x00;
-   
+    uint32_t red_index = index * 3;
+    uint32_t green_index = red_index + 1; 
+    uint32_t blue_index = red_index + 2; 
+
+    uint8_t red_colour = nv3->pramdac.palette[red_index];
+    uint8_t green_colour = nv3->pramdac.palette[green_index];
+    uint8_t blue_colour = nv3->pramdac.palette[blue_index];
+    
+    /* Alpha is always 0xFF */
+    return (0xFF << 24) | ((red_colour) << 16) | ((green_colour) << 8) | blue_colour; 
+}
+
+/* Convert a rgb10 colour to a pattern colour */
+void nv3_render_set_pattern_color(nv3_color_expanded_t pattern_colour, bool use_color1)
+{
     /* select the right pattern colour, _rgb is already in RGB10 format, so we don't need to do any conversion */
 
     if (!use_color1)
@@ -359,7 +369,6 @@ uint32_t nv3_render_read_pixel_32(nv3_position_16_t position, nv3_grobj_t grobj)
 /* Plots a pixel. */
 void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t grobj)
 {
-    uint8_t alpha = 0xFF;
 
     // PFB_0 is always set to hardcoded "NO_TILING" value of 0x1114.
     // It seems, you are meant to 
@@ -372,12 +381,6 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
 
     uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp; // maybe y16 too?z
 
-    /* doesn't seem*/
-    nv3_color_argb_t color_data = *(nv3_color_argb_t*)&color;
-
-    if (framebuffer_bpp == 32)
-        alpha = color_data.a;
-    
     int32_t clip_end_x = nv3->pgraph.clip_start.x + nv3->pgraph.clip_size.x;
     int32_t clip_end_y = nv3->pgraph.clip_start.y + nv3->pgraph.clip_size.y;
     
@@ -507,7 +510,8 @@ void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grob
 /* Ensure the correct monitor size */
 void nv3_render_ensure_screen_size(void)
 {
-    bool changed = false; //doesn't check if the res is the same?
+    /* First check if hdisp == xsize and dispend == ysize. */
+    bool changed = false; 
 
     if (nv3->nvbase.svga.hdisp != nv3->nvbase.svga.monitor->mon_xsize)
     {
@@ -521,9 +525,13 @@ void nv3_render_ensure_screen_size(void)
         nv3->nvbase.svga.monitor->mon_ysize = nv3->nvbase.svga.dispend;
     }
     
+    /* 
+        if either changed:  
+        -> set resolution
+        -> set refresh rate - this is just a rough estimation right now. we need it as we only blit what changes 
+    */
     if (changed)
     {
-        /* set refresh rate - this is just a rough estimation right now. we need it as we only blit what changes */
         nv3->nvbase.refresh_time = 1 / (nv3->nvbase.pixel_clock_frequency / (double)ysize / (double)xsize); // rivatimers count in microseconds
         set_screen_size(xsize, ysize);
     }
@@ -534,7 +542,15 @@ void nv3_render_ensure_screen_size(void)
 /* Blit to the monitor from DFB, 8bpp */
 void nv3_render_current_bpp_dfb_8(uint32_t address)
 {
+    nv3_size_16_t size = {0};
+    size.w = size.h = 1; 
 
+    nv3_position_16_t pos = nv3_render_get_dfb_position(address);
+
+    uint32_t* p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
+    uint32_t data = *(uint32_t*)&(nv3->nvbase.svga.vram[address]);
+
+    *p = nv3_render_get_palette_index(data & 0xFF);
 }
 
 /* Blit to the monitor from DFB, 15/16bpp */
@@ -544,8 +560,6 @@ void nv3_render_current_bpp_dfb_16(uint32_t address)
     size.w = size.h = 1; 
 
     nv3_position_16_t pos = nv3_render_get_dfb_position(address);
-
-    //pos.x >>= 1; 
 
     uint32_t* p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
     uint32_t data = *(uint32_t*)&(nv3->nvbase.svga.vram[address]);
@@ -623,8 +637,8 @@ void nv3_render_current_bpp(svga_t *svga, nv3_position_16_t pos, nv3_size_16_t s
     switch (nv3->nvbase.svga.bpp)
     {
         case 4:
-            /* Uh we should never be here because we're in the SVGA mode */
-            fatal("NV3 - Tried to render 4bpp in NV mode");
+            /* Uh we should never be here because we're in the SVGA mode(?) */
+            fatal("NV3 - 4bpp not implemented (not even sure if it's SVGA only)");
             break; 
         case 8:
             nv3_render_8bpp(pos, size, grobj);
@@ -648,7 +662,36 @@ void nv3_render_current_bpp(svga_t *svga, nv3_position_16_t pos, nv3_size_16_t s
 
 void nv3_render_8bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t grobj)
 {
-    
+    if (!nv3)
+        return; 
+
+    uint32_t vram_base; //acquired for the start of each line
+    uint32_t* p;
+    uint32_t data; 
+    uint32_t start_x = pos.x;
+
+    p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
+
+    for (uint32_t y = 0; y < size.h; y++)
+    {
+        /* re-set the vram address because we are basically "jumping" halfway across a line here */
+        vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
+
+        for (uint32_t x = 0; x < size.w; x++)
+        {
+            p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
+            data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_base];
+            
+            /* should just "tip over" to the next line */
+            *p = nv3_render_get_palette_index(data & 0xFF);
+            
+            vram_base++; 
+            pos.x++; 
+        }
+        
+        pos.x = start_x; 
+        pos.y++; 
+    }
 }
 
 /* 
@@ -675,7 +718,6 @@ void nv3_render_15bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t gro
         for (uint32_t x = 0; x < size.w; x++)
         {
             p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
-
             data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_base];
             
             /* should just "tip over" to the next line */
@@ -714,7 +756,6 @@ void nv3_render_16bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t gro
         for (uint32_t x = 0; x < size.w; x++)
         {
             p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
-
             data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_base];
             
             /* should just "tip over" to the next line */
@@ -750,11 +791,9 @@ void nv3_render_32bpp(nv3_position_16_t pos, nv3_size_16_t size, nv3_grobj_t gro
         /* re-get the vram address because we are basically "jumping" halfway across a line here */
         vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
         
-
         for (uint32_t x = 0; x < size.w; x++)
         {
             p = &nv3->nvbase.svga.monitor->target_buffer->line[pos.y][pos.x];
-
             data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_base];
             
             /* should just "tip over" to the next line */

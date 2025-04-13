@@ -49,9 +49,9 @@ void nv3_svga_write(uint16_t addr, uint8_t val, void* priv);
 
 bool nv3_is_svga_redirect_address(uint32_t addr)
 {
-    return (addr >= NV3_PRMVIO_START && addr <= NV3_PRMVIO_END)     // VGA
-    || (addr >= NV3_PRMCIO_START && addr <= NV3_PRMCIO_END)         // CRTC
-    || (addr >= NV3_VGA_DAC_START && addr <= NV3_VGA_DAC_END);      // Legacy RAMDAC support(?)
+    return (addr >= NV3_PRMVIO_START && addr <= NV3_PRMVIO_END)                     // VGA
+    || (addr >= NV3_PRMCIO_START && addr <= NV3_PRMCIO_END)                         // CRTC
+    || (addr >= NV3_USER_DAC_START && addr <= NV3_USER_DAC_END);                  // Note: 6813c6-6813c9 are ignored somewhere else
 }
 
 // All MMIO regs are 32-bit i believe internally
@@ -65,6 +65,14 @@ uint8_t nv3_mmio_read8(uint32_t addr, void* priv)
     // Some of these addresses are Weitek VGA stuff and we need to mask it to this first because the weitek addresses are 8-bit aligned.
     addr &= 0xFFFFFF;
 
+    // We need to specifically exclude this particular set of registers
+    // so we can write the 4/8bpp CLUT
+    if (addr >= NV3_USER_DAC_PALETTE_START && addr <= NV3_USER_DAC_PALETTE_END) 
+    {
+        // Throw directly into PRAMDAC
+        return nv3_mmio_arbitrate_read(addr);
+    }
+        
     if (nv3_is_svga_redirect_address(addr))
     {
         // svga writes are not logged anyway rn
@@ -142,6 +150,15 @@ uint32_t nv3_mmio_read32(uint32_t addr, void* priv)
 void nv3_mmio_write8(uint32_t addr, uint8_t val, void* priv)
 {
     addr &= 0xFFFFFF;
+
+    // We need to specifically exclude this particular set of registers
+    // so we can write the 4/8bpp CLUT
+    if (addr >= NV3_USER_DAC_PALETTE_START && addr <= NV3_USER_DAC_PALETTE_END) 
+    {
+        // Throw directly into PRAMDAC
+        nv3_mmio_arbitrate_write(addr, val);
+        return; 
+    }
 
     // This is weitek vga stuff
     // If we need to add more of these we can convert these to a switch statement
@@ -474,7 +491,7 @@ void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
             break;
 
         default:
-
+            break;
     }
 }
 
@@ -493,31 +510,6 @@ void nv3_recalc_timings(svga_t* svga)
 
     svga->ma_latch += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0x1F) << 16;
 
-    // should these actually use separate values?
-    // i don't we should force the top 2 bits to 1...
-
-    // required for VESA resolutions, force parameters higher
-    // only fuck around with any of this in VGAmode?
-
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDT10)) svga->vtotal += 0x400;
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VRS10)) svga->vblankstart += 0x400;
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VBS10)) svga->vsyncstart += 0x400;
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_HBE6)) svga->hdisp += 0x400; 
-    if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDE10)) svga->dispend += 0x400;
-
-    if (svga->crtc[NV3_CRTC_REGISTER_HEB] & 0x01)
-    svga->hdisp += 0x100; // large screen bit
-
-    /*
-    if (pixel_mode == NV3_CRTC_REGISTER_PIXELMODE_VGA)
-    {
-        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDT10)) svga->vtotal += 0x400;
-        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VRS10)) svga->vblankstart += 0x400;
-        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VBS10)) svga->vsyncstart += 0x400;
-        if (svga->crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_HBE6)) svga->hdisp += 0x400; 
-
-    }
- */
     /* Turn off override if we are in VGA mode */
     svga->override = !(pixel_mode == NV3_CRTC_REGISTER_PIXELMODE_VGA);
 
@@ -698,7 +690,7 @@ void nv3_svga_write(uint16_t addr, uint8_t val, void* priv)
         addr ^= 0x60;
 
     uint8_t crtcreg = nv3->nvbase.svga.crtcreg;
-    uint8_t old_value;
+    uint8_t old_value = 0x00;
 
     // todo:
     // Pixel formats (8bit vs 555 vs 565)
@@ -747,12 +739,33 @@ void nv3_svga_write(uint16_t addr, uint8_t val, void* priv)
                 case NV3_CRTC_REGISTER_RMA:
                     nv3->pbus.rma.mode = val & NV3_CRTC_REGISTER_RMA_MODE_MAX;
                     break;
+                /* Handle some large screen stuff */
+                case NV3_CRTC_REGISTER_PIXELMODE:
+                    if (val & 1 << (NV3_CRTC_REGISTER_FORMAT_VDT10)) 
+                        nv3->nvbase.svga.vtotal += 0x400;
+                    if (val & 1 << (NV3_CRTC_REGISTER_FORMAT_VRS10))  
+                        nv3->nvbase.svga.vblankstart += 0x400;
+                    if (val & 1 << (NV3_CRTC_REGISTER_FORMAT_VBS10)) 
+                        nv3->nvbase.svga.vsyncstart += 0x400;
+                    if (val & 1 << (NV3_CRTC_REGISTER_FORMAT_HBE6)) 
+                        nv3->nvbase.svga.hdisp += 0x400; 
+                
+                    /* Make sure dispend and vblankstart are right if we are displaying above 1024 vert */
+                    if (nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_PIXELMODE] & 1 << (NV3_CRTC_REGISTER_FORMAT_VDE10)) 
+                        nv3->nvbase.svga.dispend += 0x400;
+
+                    break;
+                case NV3_CRTC_REGISTER_HEB:
+                    if (val & 0x01)
+                        nv3->nvbase.svga.hdisp += 0x100;
+                    break;
                 case NV3_CRTC_REGISTER_I2C_GPIO:
                     uint8_t scl = !!(val & 0x20);
                     uint8_t sda = !!(val & 0x10);
                     // Set an I2C GPIO register
                     i2c_gpio_set(nv3->nvbase.i2c, scl, sda);
                     break;
+
             }
 
             /* Recalculate the timings if we actually changed them 
@@ -763,7 +776,7 @@ void nv3_svga_write(uint16_t addr, uint8_t val, void* priv)
                 // and in the words of an ex-Rendition/3dfx/NVIDIA engineer, "VGA was basically an undocumented bundle of steaming you-know-what.   
                 // And it was essential that any cores the PC 3D startups acquired had to work with all the undocumented modes and timing tweaks (mode X, etc.)"
                 if (nv3->nvbase.svga.crtcreg < 0xE
-                && nv3->nvbase.svga.crtcreg > 0x10)
+                || nv3->nvbase.svga.crtcreg > 0x10)
                 {
                     nv3->nvbase.svga.fullchange = changeframecount;
                     nv3_recalc_timings(&nv3->nvbase.svga);

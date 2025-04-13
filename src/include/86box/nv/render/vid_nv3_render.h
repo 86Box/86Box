@@ -23,21 +23,24 @@ void nv3_render_current_bpp_dfb_8(uint32_t address);
 void nv3_render_current_bpp_dfb_16(uint32_t address);
 void nv3_render_current_bpp_dfb_32(uint32_t address);
 
+/* Pixel */
 void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t grobj);
 uint8_t nv3_render_read_pixel_8(nv3_position_16_t position, nv3_grobj_t grobj);
 uint16_t nv3_render_read_pixel_16(nv3_position_16_t position, nv3_grobj_t grobj);
 uint32_t nv3_render_read_pixel_32(nv3_position_16_t position, nv3_grobj_t grobj);
 
-
+/* Address */
 uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t grobj);
 uint32_t nv3_render_get_vram_address_for_buffer(nv3_position_16_t position, nv3_grobj_t grobj, uint32_t buffer);
 
-uint32_t nv3_render_to_chroma(nv3_color_expanded_t expanded);
+/* Colour Conversion */
+uint32_t nv3_render_get_palette_index(uint8_t index);                                       // Get a colour for a palette index. (The colours are 24 bit RGB888 with a 0xFF alpha added for some purposes.)
+uint32_t nv3_render_to_chroma(nv3_color_expanded_t expanded);                               // Convert a colour to A1R10G10B10 for chroma key purposes.
 nv3_color_expanded_t nv3_render_expand_color(uint32_t color, nv3_grobj_t grobj);            // Convert a colour to full RGB10 format from the current working format.
 uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t color);       // Convert a colour from the current working format to RGB10 format.
 
 /* Pattern */
-uint32_t nv3_render_set_pattern_color(nv3_color_expanded_t pattern_colour, bool use_color1);
+void nv3_render_set_pattern_color(nv3_color_expanded_t pattern_colour, bool use_color1);
 
 /* Primitives */
 void nv3_render_rect(nv3_position_16_t position, nv3_size_16_t size, uint32_t color, nv3_grobj_t grobj);                    // Render an A (unclipped) GDI rect

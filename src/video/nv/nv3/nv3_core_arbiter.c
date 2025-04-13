@@ -58,9 +58,10 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t address)
 
     uint32_t ret = 0x00;
 
-    // note: some registers are byte aligned not dword aligned
-    // only very few are though, so they can be handled specially, using the register list most likely
-    address &= 0xFFFFFC;
+    // Ensure the addresses are dword aligned.
+    // I don't know why this is needed because writepriv32 is always to dword align, but it crashes if you don't do this.
+    if (!(address >= NV3_USER_DAC_PALETTE_START && address <= NV3_USER_DAC_PALETTE_END))
+        address &= 0xFFFFFC;
 
     // gigantic set of if statements to send the write to the right subsystem
     if (address >= NV3_PMC_START && address <= NV3_PMC_END)
@@ -97,7 +98,8 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t address)
         ret = nv3_prmcio_read(address);    
     else if (address >= NV3_PVIDEO_START && address <= NV3_PVIDEO_END)
         ret = nv3_pvideo_read(address);
-    else if (address >= NV3_PRAMDAC_START && address <= NV3_PRAMDAC_END)
+    else if ((address >= NV3_PRAMDAC_START && address <= NV3_PRAMDAC_END)
+    || (address >= NV3_USER_DAC_PALETTE_START && address <= NV3_USER_DAC_PALETTE_END)) //clut
         ret = nv3_pramdac_read(address);
     else if (address >= NV3_VRAM_START && address <= NV3_VRAM_END)
         ret = nv3_dfb_read32(address & nv3->nvbase.svga.vram_mask, &nv3->nvbase.svga);
@@ -121,9 +123,12 @@ void nv3_mmio_arbitrate_write(uint32_t address, uint32_t value)
     // Some of these addresses are Weitek VGA stuff and we need to mask it to this first because the weitek addresses are 8-bit aligned.
     address &= 0xFFFFFF;
 
-    // note: some registers are byte aligned not dword aligned
-    // only very few are though, so they can be handled specially, using the register list most likely
-    address &= 0xFFFFFC;
+
+    // Ensure the addresses are dword aligned.
+    // I don't know why this is needed because writepriv32 is always to dword align, but it crashes if you don't do this.
+    // Exclude the 4bpp/8bpp CLUT for this purpose
+    if (!(address >= NV3_USER_DAC_PALETTE_START && address <= NV3_USER_DAC_PALETTE_END))
+        address &= 0xFFFFFC;
 
     // gigantic set of if statements to send the write to the right subsystem
     if (address >= NV3_PMC_START && address <= NV3_PMC_END)
@@ -158,7 +163,8 @@ void nv3_mmio_arbitrate_write(uint32_t address, uint32_t value)
         nv3_prmcio_write(address, value);
     else if (address >= NV3_PVIDEO_START && address <= NV3_PVIDEO_END)
         nv3_pvideo_write(address, value);
-    else if (address >= NV3_PRAMDAC_START && address <= NV3_PRAMDAC_END)
+    else if ((address >= NV3_PRAMDAC_START && address <= NV3_PRAMDAC_END)
+        || (address >= NV3_USER_DAC_PALETTE_START && address <= NV3_USER_DAC_PALETTE_END)) //clut
         nv3_pramdac_write(address, value);
     else if (address >= NV3_VRAM_START && address <= NV3_VRAM_END)
         nv3_dfb_write32(address, value, &nv3->nvbase.svga);

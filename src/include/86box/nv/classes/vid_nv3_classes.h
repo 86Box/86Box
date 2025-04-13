@@ -329,11 +329,8 @@ typedef struct nv3_position_32_s
 typedef struct nv3_object_class_001
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];        // Required for NV_CLASS Core Functionality
     uint32_t set_notify;
-    uint8_t reserved2[0x1F8];
     uint8_t set_beta_factor_1d31;   // 31:31 (?) value, 30:21 fraction
-    uint8_t reserved3[0x1CFB];      // needs to be 0x2000 bytes 
     // Put the rest of it here
 } nv3_beta_factor_t;
 
@@ -371,11 +368,8 @@ typedef enum nv3_render_operation_type_e
 typedef struct nv3_object_class_002
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];
     uint32_t set_notify;            // Set notifier
-    uint8_t reserved2[0x1F8];
     uint8_t rop;                    // ROP3 (ID = ????????)
-    uint8_t reserved3[0x1CFB];      // needs to be 0x2000 bytes 
 } nv3_render_operation_t;
 
 /* 
@@ -387,11 +381,8 @@ typedef struct nv3_object_class_002
 typedef struct nv3_object_class_003
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];
     uint32_t set_notify;            // Set notifier
-    uint8_t reserved2[0x1F8];
     uint8_t color;                  // ROP3 (ID = ????????)
-    uint8_t reserved3[0x1CFB];      // needs to be 0x2000 bytes     
 } nv3_chroma_key_t;
 
 /* 
@@ -403,11 +394,8 @@ typedef struct nv3_object_class_003
 typedef struct nv3_object_class_004
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];
     uint32_t set_notify;            // Set notifier
-    uint8_t reserved2[0x1F8];
     uint8_t color;                  // ROP3 (ID = ????????)
-    uint8_t reserved3[0x1CFB];      // needs to be 0x2000 bytes     
 } nv3_plane_mask_t;
 
 /* 
@@ -419,14 +407,11 @@ typedef struct nv3_object_class_004
 typedef struct nv3_object_class_005
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0X100];
     uint32_t set_notify;            // Set notifier
-    uint8_t reserved2[0x1F4];
 
     /* 16-bit precision */
     nv3_position_16_t position;
     nv3_size_16_t size;
-    uint8_t reserved3[0x1CFB];      // needs to be 0x2000 bytes     
 
 } nv3_clipping_rectangle_t;
 
@@ -439,14 +424,11 @@ typedef struct nv3_object_class_005
 typedef struct nv3_object_class_006
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];
     uint32_t set_notify;            // Set notifier
-    uint8_t reserved2[0x200];
     uint32_t shape;                 // 0 = 8x8, 1 = 64x1, 2 = 1x64
     uint32_t color0;                // Some 32-bit format (argb?)
     uint32_t color1;                // bit0=color0, bit1=color1
     uint32_t pattern[2];            // bit0=color0, bit1=color1
-    uint8_t reserved3[0x1CDF];      // needs to be 0x2000 bytes     
 } nv3_pattern_t;
 
 /* 
@@ -458,22 +440,18 @@ typedef struct nv3_object_class_006
 typedef struct nv3_object_class_007
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;       // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];
     uint32_t set_notify;                                    // Set notifier         
-    uint8_t reserved2[0x1FC];
     uint32_t color;                                         // The colour of the object.
-    uint8_t reserved3[0xF8];
-    nv3_position_16_t position[16];
-    nv3_size_16_t size[16];
-    uint8_t reserved4[0x1B7F];
+    nv3_position_16_t position[16];                         // The positions of up to 16 rectangles.
+    nv3_size_16_t size[16];                                 // The sizes of up to 16 rectangles
 } nv3_rectangle_t;
 
 
 /* In case your points weren't colourful enough */
 typedef struct nv3_object_class_008_cpoint_s
 {
-    nv3_color_expanded_t color;                              // argb-format 32-bit color
-    nv3_position_16_t position;                             //
+    nv3_color_expanded_t color;                             // argb-format 32-bit color
+    nv3_position_16_t position;                             // position
 } nv3_object_class_008_cpoint_t;
 
 /* 
@@ -485,14 +463,11 @@ typedef struct nv3_object_class_008_cpoint_s
 typedef struct nv3_object_class_008
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
-    uint8_t reserved2[0x1FC];
     nv3_color_expanded_t color;                                 // argb?
     nv3_position_16_t point[16];                    // Boring points 
     nv3_position_32_t point32[16];                  // Allows you to have points with full 32-bit precision 
     nv3_object_class_008_cpoint_t cpoint[16];       // Allows you to have c o l o r f u l points! 
-    uint8_t reserved3[0x1A7B];
 } nv3_point_t; 
 
 /* Normal line... */
@@ -525,17 +500,13 @@ typedef struct nv3_object_class_009_line32_s
 typedef struct nv3_object_class_009
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
-    uint8_t reserved2[0x1FC];
     nv3_color_expanded_t color;                                 // argb?
     nv3_object_class_009_line_t line[16];           // List of line points (...)
     nv3_object_class_009_line32_t line32[8];
     nv3_object_class_009_line_t polyline[32];
     nv3_object_class_009_line32_t polyline32[16];
     nv3_color_and_position_16_t cpolyline[16]; // List of line points and colours.
-
-    uint8_t reserved3[0x197b];
 } nv3_line_t;
 
 /* 
@@ -549,9 +520,9 @@ typedef struct nv3_object_class_009
 typedef struct nv3_object_class_00A
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];
+
     uint32_t set_notify;                            // Set notifier
-    uint8_t reserved2[0x1FC];
+
     nv3_color_expanded_t color;                                 // argb?
     nv3_object_class_009_line_t line[16];           // List of line points (...)
     nv3_object_class_009_line32_t line32[8];
@@ -559,7 +530,6 @@ typedef struct nv3_object_class_00A
     nv3_object_class_009_line32_t polyline32[16];
     nv3_color_and_position_16_t cpolyline[16]; // List of line points and colours.
 
-    uint8_t reserved3[0x197b];
 } nv3_lin_t;
 
 /* 
@@ -572,11 +542,8 @@ typedef struct nv3_object_class_00A
 typedef struct nv3_object_class_00B
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
-    uint8_t reserved2[0x1FC];
     nv3_color_expanded_t color;                                 // argb?
-    uint8_t reserved3[0x8];                     
     // The points of the triangle.
     nv3_position_16_t points[3];
 
@@ -592,7 +559,6 @@ typedef struct nv3_object_class_00B
     nv3_position_32_t mesh32[16];               
     nv3_color_and_position_16_t ctriangle[3];       // Triangle with colour
     nv3_color_and_position_16_t ctrimesh[16];       // Some kind of mesh format. I guess a list of vertex positions? with colours
-    uint8_t reserved4[0x19FB];
 } nv3_triangle_t;
 
 /* 
@@ -605,31 +571,30 @@ typedef struct nv3_object_class_00B
 */
 typedef struct nv3_object_class_00C
 {
+    /* Unclipped rect (basically class 0x07 )*/
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
-    uint8_t reserved2[0x2F4];                       
     uint32_t color_a;                               // Color for Clip A
     nv3_position_16_t rect_a_position[64];
     nv3_size_16_t rect_a_size[64];  
-    uint8_t reserved3[0x1F0];   
+    /* Clipped rect */
     nv3_clip_16_t clip_b;
     uint32_t color_b;                               // Color for Clip B
     nv3_clip_16_t clipped_rect[64];
-    uint8_t reserved4[0x1E8];
+    /* Unclipped transparent bitmap */
     nv3_clip_16_t clip_c;
     uint32_t color1_c;
     nv3_size_16_t size_c;
     nv3_position_16_t point_c;
     uint32_t bitmap_c[128];
-    uint8_t reserved5[0x368];
+    /* Clipped transparent bitmap */
     nv3_clip_16_t clip_d;
     uint32_t color1_d;
     nv3_size_16_t size_in_d;
     nv3_size_16_t size_out_d;
     nv3_position_16_t point_d;
     uint32_t bitmap_d[128];
-    uint8_t reserved6[0x364];
+    /* Clipped 1bpp bitmap */
     nv3_clip_16_t clip_e;
     uint32_t color0_e;
     uint32_t color1_e;
@@ -637,7 +602,6 @@ typedef struct nv3_object_class_00C
     nv3_size_16_t size_out_e;
     nv3_position_16_t point_e;
     uint32_t bitmap_e[128];
-    uint8_t reserved7[0xB7F];
 } nv3_win95_text_t;
 
 
@@ -651,9 +615,7 @@ typedef struct nv3_object_class_00C
 typedef struct nv3_object_class_00D
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];
     uint32_t set_notify;                            // Set notifier
-    uint8_t reserved2[0x204];
     uint32_t offset_in;
     uint32_t offset_out;
     uint32_t pitch_in;
@@ -661,9 +623,7 @@ typedef struct nv3_object_class_00D
     uint32_t line_length_in;                        // Stride?
     uint32_t line_count;
     uint8_t format;                                 // input increment 1 2 or 4, output increment 1 2 or 4 (represented by << 8)
-    uint8_t reserved3[2];
     uint32_t buffer_notify;                         // Notify the Buffedr
-    uint8_t reserved4[0x1CD3];  
 } nv3_memory_to_memory_format_t;
 
 /* 
@@ -676,9 +636,7 @@ typedef struct nv3_object_class_00D
 typedef struct nv3_object_class_00E
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;
-    uint8_t reserved[0x100];
     uint32_t set_notify;
-    uint8_t reserved2[0x200];
     nv3_position_16_t clip_0;
     nv3_size_16_t clip_1;
     nv3_position_16_t rectangle_out_0;
@@ -686,7 +644,6 @@ typedef struct nv3_object_class_00E
     // Calculus in a graphics card
     uint32_t delta_du_dx;
     uint32_t delta_dv_dy;
-    uint8_t reserved3[0xE0];
     nv3_size_16_t size; // can be size_y if YUV420
     uint32_t pitch;
     uint32_t offset;
@@ -697,7 +654,6 @@ typedef struct nv3_object_class_00E
     uint32_t offset_u;
     uint32_t offset_v;
     uint32_t point_yuv420;
-    uint8_t reserved4[0x1BE7];  // pad to 0x2000
 } nv3_scaled_image_from_memory_t;
 
 // (0x0F does not exist)
@@ -713,13 +669,10 @@ typedef struct nv3_object_class_00E
 typedef struct nv3_object_class_010
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;
-    uint8_t reserved[0x100];
     uint32_t set_notify;
-    uint8_t reserved2[0x1F8];
     nv3_position_16_t point_in;
     nv3_position_16_t point_out;
     nv3_size_16_t size;
-    uint8_t reserved3[0x1CF3];
 } nv3_blit_t;
 
 /* 
@@ -732,15 +685,11 @@ typedef struct nv3_object_class_010
 typedef struct nv3_object_class_011
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;
-    uint8_t reserved[0x100];
     uint32_t set_notify;
-    uint8_t reserved2[0x1FC];
     nv3_position_16_t point;
     nv3_size_16_t size;
     nv3_size_16_t size_in;
-    uint8_t reserved3[0xF0];
     nv3_color_expanded_t color[32];                           // The colour to use
-    uint8_t reserved4[0x1B7F];
 } nv3_image_t;
 
 /* 
@@ -754,16 +703,13 @@ typedef struct nv3_object_class_011
 typedef struct nv3_object_class_012
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;
-    uint8_t reserved[0x100];
     uint32_t set_notify;
-    uint8_t reserved2[0x200];
     nv3_color_expanded_t color_0;
     nv3_color_expanded_t color_1;
     nv3_position_16_t point;                        // Top left(?) of the bitmap
     nv3_size_16_t size;
     nv3_size_16_t size_in;
     uint32_t monochrome_bitmap[32];
-    uint8_t reserved4[0x1B7F];
 } nv3_bitmap_t;
 
 // 0x13 doesn't exist
@@ -779,14 +725,11 @@ typedef struct nv3_object_class_012
 typedef struct nv3_object_class_014
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;
-    uint8_t reserved[0x100];
     uint32_t set_notify;
-    uint8_t reserved2[0x200];
     nv3_position_16_t point;
     nv3_size_16_t size;
     uint32_t image_pitch;               // bytes per row
     uint32_t image_start;
-    uint8_t reserved3[0x1C37];
 } nv3_image_to_memory_t;
 
 /* 
@@ -800,17 +743,13 @@ typedef struct nv3_object_class_014
 typedef struct nv3_object_class_015
 {    
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;
-    uint8_t reserved[0x100];
     uint32_t set_notify;
-    uint8_t reserved2[0x1FC];
     nv3_size_16_t size_in;
     uint32_t delta_dx_du;
     uint32_t delta_dy_dv;
     nv3_position_16_t clip_0;
     nv3_size_16_t clip_1;
     uint32_t point12d4; /* todo: fraction struct */
-    uint8_t reserved3[0xE4];
-    uint32_t color[1792];
     // no reserve needed
 } nv3_stretched_image_from_cpu_t; 
 
@@ -1189,9 +1128,7 @@ typedef struct nv3_d3d5_coordinate_s
 typedef struct nv3_object_class_017
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;       // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];
     uint32_t set_notify;                                    // Set notifier         
-    uint8_t reserved2[0x1FC];
     uint32_t texture_offset;
     nv3_d3d5_texture_format_t texture_format;
     nv3_d3d5_texture_filter_t texture_filter;
@@ -1199,7 +1136,6 @@ typedef struct nv3_object_class_017
     nv3_d3d5_control_out_t control_out;
     nv3_d3d5_alpha_control_t alpha_control;
 
-    uint8_t reserved3[0xCE4];
     nv3_d3d5_coordinate_t coordinate_points[128];           // The points we are rendering.
     /* No placeholder needed, it really is that long. */
 } nv3_d3d5_accelerated_triangle_with_zeta_buffer_t;
@@ -1215,12 +1151,9 @@ typedef struct nv3_zeta_buffer_s
 typedef struct nv3_object_class_018
 {  
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;
-    uint8_t reserved[0x100];
     uint32_t set_notify;
-    uint8_t reserved2[0x1FC];
     nv3_d3d5_control_out_t control_out; 
     nv3_d3d5_alpha_control_t alpha_control;
-    uint8_t reserved3[0x4F0];
     nv3_position_16_t point;
     nv3_zeta_buffer_t zeta[8];
 } nv3_point_with_zeta_buffer_t;
@@ -1252,13 +1185,10 @@ typedef enum nv3_object_class_01C_pixel_format_e
 typedef struct nv3_object_class_01C
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;   // Set notifier context for DMA (context switch)
-    uint8_t reserved[0x100];
     uint32_t set_notify;                                // Set notifier
-    uint8_t reserved2[0x1F8];
     nv3_object_class_01C_pixel_format format;           // Completely different from everything else
     uint32_t pitch;                                     // 16-bit
     uint32_t linear_address;                            // 22-bit: Linear address in vram.
-    uint8_t reserved3[0x1C3F];
 } nv3_image_in_memory_t;
 
 // See envytools. This is where we finally end up after this mess, it allows parameters to be passed to the methods.
