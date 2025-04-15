@@ -40,8 +40,9 @@ jobs:
       fail-fast: true
       matrix:
         build:
-          - name: Regular
-            preset: regular
+          - name: Debug
+            preset: debug
+            slug: -Debug
           - name: Dev
             preset: dev_debug
             slug: -Dev
