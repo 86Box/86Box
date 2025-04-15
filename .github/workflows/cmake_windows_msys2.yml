@@ -40,11 +40,10 @@ jobs:
       fail-fast: true
       matrix:
         build:
-          - name: Debug
-            preset: dev_debug
-            slug: -Debug
+          - name: Regular
+            preset: regular
           - name: Dev
-            preset: development
+            preset: dev_debug
             slug: -Dev
         dynarec:
           - name: ODR
@@ -60,14 +59,19 @@ jobs:
             runner: windows-2022
           - msystem: CLANGARM64
             toolchain: ./cmake/flags-gcc-aarch64.cmake
-            slug: -ARM64
+            slug: -arm64
             runner: windows-11-arm
+        exclude:
+          - dynarec:
+              new: off
+            environment:
+              msystem: CLANGARM64
 
     steps:
       - name: Prepare MSYS2 environment
         uses: msys2/setup-msys2@v2
         with:
-          release: false
+          release: true
           update: true
           msystem: ${{ matrix.environment.msystem }}
           pacboy: >-
