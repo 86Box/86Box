@@ -18,7 +18,6 @@ on:
       - cmake/**
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
-      - .github/workflows/**
       - .github/workflows/cmake_windows_msys2.yml
       - vcpkg.json
       - "!**/Makefile*"
@@ -26,9 +25,9 @@ on:
 jobs:
 
   msys2:
-    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }}"
+    name: "${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }}"
 
-    runs-on: windows-2022
+    runs-on: ${{ matrix.environment.runner }}
 
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
@@ -41,8 +40,6 @@ jobs:
       fail-fast: true
       matrix:
         build:
-#          - name: Regular
-#            preset: regular
           - name: Debug
             preset: dev_debug
             slug: -Debug
@@ -56,26 +53,15 @@ jobs:
           - name: NDR
             new: on
             slug: -NDR
-        ui:
-          - name: Qt GUI
-            qt: on
-            static: on
-            slug: -Qt
-            packages: >-
-              qt5-static:p
-              vulkan-headers:p
         environment:
-#          - msystem: MSYS
-#            toolchain: ./cmake/flags-gcc-x86_64.cmake
           - msystem: MINGW64
-            prefix: mingw-w64-x86_64
             toolchain: ./cmake/flags-gcc-x86_64.cmake
-#          - msystem: CLANG64
-#            prefix: mingw-w64-clang-x86_64
-#            toolchain: ./cmake/llvm-win32-x86_64.cmake
-#          - msystem: UCRT64
-#            prefix: mingw-w64-ucrt-x86_64
-#            toolchain: ./cmake/flags-gcc-x86_64.cmake
+            slug: -x64
+            runner: windows-2022
+          - msystem: CLANGARM64
+            toolchain: ./cmake/flags-gcc-aarch64.cmake
+            slug: -ARM64
+            runner: windows-11-arm
 
     steps:
       - name: Prepare MSYS2 environment
@@ -98,7 +84,8 @@ jobs:
             libslirp:p
             fluidsynth:p
             libserialport:p
-            ${{ matrix.ui.packages }}
+            qt5-static:p
+            vulkan-headers:p
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -114,8 +101,6 @@ jobs:
           --toolchain ${{ matrix.environment.toolchain }}
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
-          -D QT=${{ matrix.ui.qt }}
-          -D STATIC_BUILD=${{ matrix.ui.static }}
 
       - name: Build
         run: |
