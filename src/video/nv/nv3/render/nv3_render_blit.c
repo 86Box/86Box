@@ -142,8 +142,8 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER2_ENABLED) & 0x01) dst_buffer = 2;
     if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER3_ENABLED) & 0x01) dst_buffer = 3;
     
-    nv3_position_16_t old_position;
-    nv3_position_16_t new_position; 
+    nv3_position_16_t old_position = {0};
+    nv3_position_16_t new_position = {0}; 
 
     /* If src_buffer != dst_buffer, the positions and src/dst buffer seem to be swapped.
     Some kind of hardware errata (?), otherwise, I have no explanation for this behaviour. */

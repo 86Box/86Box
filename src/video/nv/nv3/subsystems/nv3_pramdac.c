@@ -418,14 +418,13 @@ void nv3_pramdac_write(uint32_t address, uint32_t value)
                     nv3->pramdac.user_read_mode_address = value;
                     break; 
                 case NV3_USER_DAC_WRITE_MODE_ADDRESS:
-
                     /* 
                         This seems to get reset to 0 after 256 writes, but, the palette is 768 bytes in size. 
                         Clearly there's some mechanism here, but I'm not sure what it is. So let's just reset if we reach 768.
                     */
                     if (nv3->pramdac.user_write_mode_address >= NV3_USER_DAC_PALETTE_SIZE)
                         nv3->pramdac.user_write_mode_address = value;
-                        
+
                     break; 
                 case NV3_USER_DAC_PALETTE_DATA:  
                     /* I doubt NV actually read this in their drivers, but it's worth doing anyway */

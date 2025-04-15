@@ -35,19 +35,19 @@ void nv3_class_010_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
         case NV3_BLIT_POSITION_IN:
             nv3->pgraph.blit.point_in.x = (param & 0xFFFF);
             nv3->pgraph.blit.point_in.y = ((param >> 16) & 0xFFFF);
-            nv_log("Method Execution: S2SB POINT_IN %04x,%04x\n", nv3->pgraph.blit.point_in.x, nv3->pgraph.blit.point_in.y);
+            nv_log("Method Execution: S2SB POINT_IN %d,%d\n", nv3->pgraph.blit.point_in.x, nv3->pgraph.blit.point_in.y);
             break;
         case NV3_BLIT_POSITION_OUT:
             nv3->pgraph.blit.point_out.x = (param & 0xFFFF);
             nv3->pgraph.blit.point_out.y = ((param >> 16) & 0xFFFF);
-            nv_log("Method Execution: S2SB POINT_OUT %04x,%04x\n", nv3->pgraph.blit.point_out.x, nv3->pgraph.blit.point_out.y);
+            nv_log("Method Execution: S2SB POINT_OUT %d,%d\n", nv3->pgraph.blit.point_out.x, nv3->pgraph.blit.point_out.y);
 
             break; 
         case NV3_BLIT_SIZE:
             /* This is the last one*/
             nv3->pgraph.blit.size.w = (param & 0xFFFF);
             nv3->pgraph.blit.size.h = ((param >> 16) & 0xFFFF);
-            nv_log("Method Execution: S2SB Size %04x,%04x grobj_0=0x%08x\n", nv3->pgraph.blit.size.w, nv3->pgraph.blit.size.h, grobj.grobj_0);
+            nv_log("Method Execution: S2SB Size %d,%d grobj_0=0x%08x\n", nv3->pgraph.blit.size.w, nv3->pgraph.blit.size.h, grobj.grobj_0);
 
             /* Some of these seem to have sizes of 0, so skip */
             if (nv3->pgraph.blit.size.h == 0
