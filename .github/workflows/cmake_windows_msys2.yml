@@ -90,6 +90,7 @@ jobs:
             libserialport:p
             qt5-static:p
             vulkan-headers:p
+            openmp:p
 
       - name: Checkout repository
         uses: actions/checkout@v4
