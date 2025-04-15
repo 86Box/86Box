@@ -48,14 +48,13 @@ jobs:
         dynarec:
           - name: ODR
             new: off
-            slug: -ODR
           - name: NDR
             new: on
             slug: -NDR
         environment:
           - msystem: MINGW64
             toolchain: ./cmake/flags-gcc-x86_64.cmake
-            slug: -x64
+            slug: "-64"
             runner: windows-2022
           - msystem: CLANGARM64
             toolchain: ./cmake/flags-gcc-aarch64.cmake
@@ -127,5 +126,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
+          name: '86Box${{ matrix.dynarec.slug }}${{ matrix.build.slug }}${{ matrix.environment.slug }}-gha${{ github.run_number }}'
           path: build/artifacts/**
