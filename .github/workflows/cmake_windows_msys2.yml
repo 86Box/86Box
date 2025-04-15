@@ -41,7 +41,7 @@ jobs:
       matrix:
         build:
           - name: Dev Debug
-            preset: debug
+            preset: dev_debug
             slug: -Dev-Debug
           - name: Dev
             preset: development
