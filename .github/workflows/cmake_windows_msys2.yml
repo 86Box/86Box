@@ -40,11 +40,11 @@ jobs:
       fail-fast: true
       matrix:
         build:
-          - name: Debug
+          - name: Dev Debug
             preset: debug
-            slug: -Debug
+            slug: -Dev-Debug
           - name: Dev
-            preset: dev_debug
+            preset: development
             slug: -Dev
         dynarec:
           - name: ODR
