@@ -450,15 +450,6 @@ msgstr "Nuked (更準確)"
 msgid "YMFM (faster)"
 msgstr "YMFM (更快)"
 
-msgid "Network type:"
-msgstr "網路類型:"
-
-msgid "PCap device:"
-msgstr "PCap 裝置:"
-
-msgid "Network adapter:"
-msgstr "網路配接器:"
-
 msgid "COM1 Device:"
 msgstr "COM1 裝置:"
 

@@ -450,15 +450,6 @@ msgstr "Nuked (genauer)"
 msgid "YMFM (faster)"
 msgstr "YMFM (schneller)"
 
-msgid "Network type:"
-msgstr "Netzwerktyp:"
-
-msgid "PCap device:"
-msgstr "PCap-Gerät:"
-
-msgid "Network adapter:"
-msgstr "Netzwerkadapter:"
-
 msgid "COM1 Device:"
 msgstr "COM1-Gerät:"
 

@@ -450,15 +450,6 @@ msgstr "Nuked (precizniji)"
 msgid "YMFM (faster)"
 msgstr "YMFM (brži)"
 
-msgid "Network type:"
-msgstr "Tip mreže:"
-
-msgid "PCap device:"
-msgstr "Uređaj PCap:"
-
-msgid "Network adapter:"
-msgstr "Mrežna kartica:"
-
 msgid "COM1 Device:"
 msgstr "Uređaj COM1:"
 

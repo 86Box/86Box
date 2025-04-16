@@ -450,15 +450,6 @@ msgstr "Nuked (přesnější)"
 msgid "YMFM (faster)"
 msgstr "YMFM (rychlejší)"
 
-msgid "Network type:"
-msgstr "Druh sítě:"
-
-msgid "PCap device:"
-msgstr "PCap zařízení:"
-
-msgid "Network adapter:"
-msgstr "Síťový adaptér:"
-
 msgid "COM1 Device:"
 msgstr "Zařízení na COM1:"
 

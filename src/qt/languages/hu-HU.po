@@ -450,15 +450,6 @@ msgstr "Nuked (pontosabb)"
 msgid "YMFM (faster)"
 msgstr "YMFM (gyorsabb)"
 
-msgid "Network type:"
-msgstr "Hálózati típusa:"
-
-msgid "PCap device:"
-msgstr "PCap eszköz:"
-
-msgid "Network adapter:"
-msgstr "Hálózati kártya:"
-
 msgid "COM1 Device:"
 msgstr "COM1 eszköz:"
 

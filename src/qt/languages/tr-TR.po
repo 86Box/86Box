@@ -450,15 +450,6 @@ msgstr "Nuked (daha doğru)"
 msgid "YMFM (faster)"
 msgstr "YMFM (daha hızlı)"
 
-msgid "Network type:"
-msgstr "Ağ türü:"
-
-msgid "PCap device:"
-msgstr "PCap cihazı:"
-
-msgid "Network adapter:"
-msgstr "Ağ cihazı:"
-
 msgid "COM1 Device:"
 msgstr "COM1 cihazı:"
 

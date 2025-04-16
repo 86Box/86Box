@@ -450,15 +450,6 @@ msgstr ""
 msgid "YMFM (faster)"
 msgstr ""
 
-msgid "Network type:"
-msgstr ""
-
-msgid "PCap device:"
-msgstr ""
-
-msgid "Network adapter:"
-msgstr ""
-
 msgid "COM1 Device:"
 msgstr ""
 
