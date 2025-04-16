@@ -378,7 +378,6 @@ sermouse_report(mouse_t *dev)
             break;
 
         default:
-            pclog("unknown dev->format = %02X\n", dev->format);
             break;
     }
 
