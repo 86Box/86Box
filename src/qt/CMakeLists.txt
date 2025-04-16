@@ -207,6 +207,10 @@ if(WACOM)
     target_compile_definitions(ui PRIVATE USE_WACOM)
 endif()
 
+if(CDROM_MITSUMI)
+    target_compile_definitions(ui PRIVATE USE_CDROM_MITSUMI)
+endif()
+
 if(WIN32)
     enable_language(RC)
     target_sources(86Box PUBLIC 86Box-qt.rc)
