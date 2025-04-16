@@ -2338,8 +2338,9 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
                      int cdrom_sector_type, const int cdrom_sector_flags,
                      int *len, const uint8_t vendor_type)
 {
-    int      pos    = sector;
-    int      ret    = 0;
+    int       pos      = sector;
+    int       ret      = 0;
+    const int old_type = cdrom_sector_type;
 
     if ((cdrom_sector_type & 0x0f) >= 0x08) {
         mult               = cdrom_sector_type >> 4;
@@ -2358,7 +2359,7 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
         uint8_t *b      = temp_b = buffer;
         int      audio  = 0;
         uint32_t lba    = cdrom_msf_to_lba(sector, ismsf,
-                                           cdrom_sector_type, vendor_type);
+                                           old_type, vendor_type);
         int      mode2  = 0;
 
         *len = 0;
