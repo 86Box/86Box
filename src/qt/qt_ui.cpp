@@ -142,11 +142,10 @@ ui_msgbox_header(int flags, void *header, void *message)
     // any error in early init
     if (main_window == nullptr) {
         QMessageBox msgBox(QMessageBox::Icon::Critical, hdr, msg);
-        msgBox.setTextFormat(Qt::TextFormat::RichText);
         msgBox.exec();
     } else {
         // else scope it to main_window
-        main_window->showMessage(flags, hdr, msg);
+        main_window->showMessage(flags, hdr, msg, false);
     }
     return 0;
 }

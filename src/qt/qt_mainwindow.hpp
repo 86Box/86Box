@@ -26,7 +26,7 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-    void  showMessage(int flags, const QString &header, const QString &message);
+    void  showMessage(int flags, const QString &header, const QString &message, bool richText);
     void  getTitle(wchar_t *title);
     void  blitToWidget(int x, int y, int w, int h, int monitor_index);
     QSize getRenderWidgetSize();
@@ -55,7 +55,7 @@ signals:
     void setFullscreen(bool state);
     void setMouseCapture(bool state);
 
-    void showMessageForNonQtThread(int flags, const QString &header, const QString &message, std::atomic_bool* done);
+    void showMessageForNonQtThread(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool* done);
     void getTitleForNonQtThread(wchar_t *title);
 public slots:
     void showSettings();
@@ -123,7 +123,7 @@ private slots:
     void on_actionRenderer_options_triggered();
 
     void refreshMediaMenu();
-    void showMessage_(int flags, const QString &header, const QString &message, std::atomic_bool* done = nullptr);
+    void showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool* done = nullptr);
     void getTitle_(wchar_t *title);
 
     void on_actionMCA_devices_triggered();

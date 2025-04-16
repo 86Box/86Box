@@ -1342,17 +1342,17 @@ MainWindow::refreshMediaMenu()
 }
 
 void
-MainWindow::showMessage(int flags, const QString &header, const QString &message)
+MainWindow::showMessage(int flags, const QString &header, const QString &message, bool richText)
 {
     if (QThread::currentThread() == this->thread()) {
         if (!cpu_thread_running) {
-            showMessageForNonQtThread(flags, header, message, nullptr);
+            showMessageForNonQtThread(flags, header, message, richText, nullptr);
         }
         else
-            showMessage_(flags, header, message);
+            showMessage_(flags, header, message, richText);
     } else {
         std::atomic_bool done = false;
-        emit showMessageForNonQtThread(flags, header, message, &done);
+        emit showMessageForNonQtThread(flags, header, message, richText, &done);
         while (!done) {
             QThread::msleep(1);
         }
@@ -1360,7 +1360,7 @@ MainWindow::showMessage(int flags, const QString &header, const QString &message
 }
 
 void
-MainWindow::showMessage_(int flags, const QString &header, const QString &message, std::atomic_bool *done)
+MainWindow::showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool *done)
 {
     if (done) {
         *done = false;
@@ -1372,7 +1372,8 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
     } else if (!(flags & (MBX_ERROR | MBX_WARNING))) {
         box.setIcon(QMessageBox::Warning);
     }
-    box.setTextFormat(Qt::TextFormat::RichText);
+    if (richText)
+        box.setTextFormat(Qt::TextFormat::RichText);
     box.exec();
     if (done) {
         *done = true;
