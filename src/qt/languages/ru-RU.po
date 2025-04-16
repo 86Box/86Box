@@ -55,7 +55,7 @@ msgid "Qt (&OpenGL)"
 msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0)"
+msgstr "Open&GL (3.0 Core)"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -214,7 +214,7 @@ msgid "&Documentation..."
 msgstr "&Документация..."
 
 msgid "&About 86Box..."
-msgstr "&О программе 86Box..."
+msgstr "&О 86Box..."
 
 msgid "&New image..."
 msgstr "&Новый образ..."
@@ -253,7 +253,7 @@ msgid "E&mpty"
 msgstr "П&устой"
 
 msgid "Reload previous image"
-msgstr "Загрузить предыдущий образ"
+msgstr "Перезагрузить предыдущий образ"
 
 msgid "&Folder..."
 msgstr "&Папка..."
@@ -430,10 +430,10 @@ msgid "Sound card #4:"
 msgstr "Звуковая карта 4:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI Out устройство:"
+msgstr "Устройство вывода MIDI:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI In устройство:"
+msgstr "Устройство ввода MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "Отдельный MPU-401"
@@ -1252,7 +1252,7 @@ msgid "Pen"
 msgstr "Ручка"
 
 msgid "Host CD/DVD Drive (%1:)"
-msgstr "CD/DVD-привод хоста (%1:)"
+msgstr "Хост CD/DVD Привод (%1:)"
 
 msgid "&Connected"
 msgstr "&Кабель подключен"
@@ -1264,7 +1264,7 @@ msgid "Create..."
 msgstr "Создать..."
 
 msgid "Host CD/DVD Drive (%1)"
-msgstr "CD/DVD-привод хоста (%1)"
+msgstr "Хост CD/DVD Привод (%1)"
 
 msgid "Unknown Bus"
 msgstr "Неизвестная шина"
@@ -1339,16 +1339,16 @@ msgid "MiB"
 msgstr "МиБ"
 
 msgid "Network Card #1"
-msgstr "Сетевая карта 1"
+msgstr "Сетевая карта 1:"
 
 msgid "Network Card #2"
-msgstr "Сетевая карта 2"
+msgstr "Сетевая карта 2:"
 
 msgid "Network Card #3"
-msgstr "Сетевая карта 3"
+msgstr "Сетевая карта 3:"
 
 msgid "Network Card #4"
-msgstr "Сетевая карта 4"
+msgstr "Сетевая карта 4:"
 
 msgid "Mode"
 msgstr "Режим"
@@ -1366,7 +1366,7 @@ msgid "86Box Unit Tester"
 msgstr "Модульный Тестер 86Box"
 
 msgid "Novell NetWare 2.x Key Card"
-msgstr "Карта ключей Novell NetWare 2.x"
+msgstr "Ключ-Карта Novell NetWare 2.x"
 
 msgid "Serial port passthrough 1"
 msgstr "Сквозной последовательный порт COM1"
@@ -1402,7 +1402,7 @@ msgid "PS/2 Mouse"
 msgstr "Мышь PS/2"
 
 msgid "3M MicroTouch (Serial)"
-msgstr "3M MicroTouch (последовательный)"
+msgstr "3M MicroTouch (Последовательный)"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Стандартный Hayes-совместимый модем"
@@ -1444,7 +1444,7 @@ msgid "BIOS Revision"
 msgstr "Версия BIOS"
 
 msgid "Translate 26 -> 17"
-msgstr "Перевести 26 -> 17"
+msgstr "Переводить 26 -> 17"
 
 msgid "Language"
 msgstr "Язык"
@@ -1540,7 +1540,7 @@ msgid "Reversed stereo"
 msgstr "Реверс стерео"
 
 msgid "Nice ramp"
-msgstr "Nice ramp"
+msgstr "Улучшение рампы"
 
 msgid "Hz"
 msgstr "Гц"
@@ -1591,7 +1591,7 @@ msgid "RAM Address"
 msgstr "Адрес оперативной памяти"
 
 msgid "RAM size"
-msgstr "Объем оперативной памяти"
+msgstr "Размер оперативной памяти"
 
 msgid "Initial RAM size"
 msgstr "Начальный размер оперативной памяти"
@@ -1609,7 +1609,7 @@ msgid "MPU-401 Address"
 msgstr "Адрес MPU-401"
 
 msgid "MPU-401 IRQ"
-msgstr "IRQ MPU-401"
+msgstr "MPU-401 IRQ"
 
 msgid "Receive MIDI input"
 msgstr "Включить MIDI-вход"
@@ -1624,19 +1624,19 @@ msgid "Surround module"
 msgstr "Модуль объемного звучания"
 
 msgid "CODEC"
-msgstr "КОДЕК"
+msgstr "Кодек"
 
 msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Поднимать прерывание CODEC при настройке CODEC (необходимо некоторым драйверам)."
+msgstr "Поднимать прерывание кодека при настройке кодека (необходимо некоторым драйверам)"
 
 msgid "SB Address"
 msgstr "Адрес SB"
 
 msgid "WSS IRQ"
-msgstr "IRQ WSS"
+msgstr "WSS IRQ"
 
 msgid "WSS DMA"
-msgstr "DMA WSS"
+msgstr "WSS DMA"
 
 msgid "Enable OPL"
 msgstr "Включить OPL"
@@ -1654,7 +1654,7 @@ msgid "Enable CMS"
 msgstr "Включить CMS"
 
 msgid "Mixer"
-msgstr "Смеситель"
+msgstr "Микшер"
 
 msgid "High DMA"
 msgstr "Высокий DMA"
@@ -1663,7 +1663,7 @@ msgid "Control PC speaker"
 msgstr "Управление динамиком ПК"
 
 msgid "Memory size"
-msgstr "Объем памяти"
+msgstr "Размер памяти"
 
 msgid "EMU8000 Address"
 msgstr "Адрес EMU8000"
@@ -1678,7 +1678,7 @@ msgid "GUS type"
 msgstr "Тип GUS"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr "Включить команду 0x04 \"Выход 86Box\"."
+msgstr "Включить команду 0x04 \"Выход 86Box\""
 
 msgid "Display type"
 msgstr "Тип дисплея"
@@ -1720,13 +1720,13 @@ msgid "Bilinear filtering"
 msgstr "Билинейная фильтрация"
 
 msgid "Dithering"
-msgstr "Dithering"
+msgstr "Дизеринг"
 
 msgid "Enable NMI for CGA emulation"
 msgstr "Включение NMI для эмуляции CGA"
 
 msgid "Voodoo type"
-msgstr "Тип Вуду"
+msgstr "Тип Voodoo"
 
 msgid "Framebuffer memory size"
 msgstr "Размер памяти фреймбуфера"
@@ -1735,10 +1735,10 @@ msgid "Texture memory size"
 msgstr "Размер памяти текстур"
 
 msgid "Dither subtraction"
-msgstr "Вычитание с вычитанием"
+msgstr "Вычитание дизеринга"
 
 msgid "Screen Filter"
-msgstr "Фильтр экрана"
+msgstr "Экранный фильтр"
 
 msgid "Render threads"
 msgstr "Потоки рендеринга"
@@ -1747,7 +1747,7 @@ msgid "SLI"
 msgstr "SLI"
 
 msgid "Start Address"
-msgstr "Стартовый адрес"
+msgstr "Начальный адрес"
 
 msgid "Contiguous Size"
 msgstr "Смежный размер"
@@ -1816,13 +1816,16 @@ msgid "Wheel"
 msgstr "Колесо"
 
 msgid "Five + Wheel"
-msgstr "Пять + колесо"
+msgstr "Пять + Колесо"
+
+msgid "Five + 2 Wheels"
+msgstr "Пять + 2 Колеса"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
-msgstr "A3 - SMT2 последовательная / SMT3(R)V"
+msgstr "A3 - SMT2 Последовательный / SMT3(R)V"
 
 msgid "Q1 - SMT3(R) Serial"
-msgstr "Q1 - SMT3(R) последовательная"
+msgstr "Q1 - SMT3(R) Последовательный"
 
 msgid "8 KB"
 msgstr "8 КБ"
@@ -1891,7 +1894,7 @@ msgid "Color (generic)"
 msgstr "Цветной (стандартный)"
 
 msgid "Green Monochrome"
-msgstr "Зеленый монохромный"
+msgstr "Зелёный монохромный"
 
 msgid "Amber Monochrome"
 msgstr "Янтарный монохромный"
@@ -1921,7 +1924,7 @@ msgid "Monochrome (5151/MDA) (white)"
 msgstr "Монохромный (5151/MDA) (белый)"
 
 msgid "Monochrome (5151/MDA) (green)"
-msgstr "Монохромный (5151/MDA) (зеленый)"
+msgstr "Монохромный (5151/MDA) (зелёный)"
 
 msgid "Monochrome (5151/MDA) (amber)"
 msgstr "Монохромный (5151/MDA) (янтарный)"
@@ -1939,7 +1942,7 @@ msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Улучшенный цветной - улучшенный режим (5154/ECD)"
 
 msgid "Green"
-msgstr "Зеленый"
+msgstr "Зелёный"
 
 msgid "Amber"
 msgstr "Янтарный"
@@ -1963,19 +1966,19 @@ msgid "Bochs latest"
 msgstr "Bochs последний"
 
 msgid "Mono Non-Interlaced"
-msgstr "Монохромный без чересстрочной развертки"
+msgstr "Монохромный без чересстрочной развёртки"
 
 msgid "Color Interlaced"
-msgstr "Цветной с чересстрочной разверткой"
+msgstr "Цветной с чересстрочной развёрткой"
 
 msgid "Color Non-Interlaced"
-msgstr "Цветной без чересстрочной развертки"
+msgstr "Цветной без чересстрочной развёртки"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "Ускоритель 3Dfx Voodoo"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
-msgstr "Obsidian SB50 + Amethyst (2 TMU)"
+msgstr "Obsidian SB50 + Amethyst (2 TMUs)"
 
 msgid "8-bit"
 msgstr "8-бит"
@@ -2020,10 +2023,10 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Защитный донгл для Savage Quest"
 
 msgid "Serial Passthrough Device"
-msgstr "Устройство прохода через последовательный порт"
+msgstr "Устройство проброса через последовательный порт"
 
 msgid "Passthrough Mode"
-msgstr "Проходной режим"
+msgstr "Режим проброса"
 
 msgid "Host Serial Device"
 msgstr "Последовательное устройство хоста"
@@ -2107,19 +2110,19 @@ msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for t
 msgstr "Шрифты TrueType в каталоге \"roms/printer/fonts\" необходимы для эмуляции стандартного матричного принтера ESC/P."
 
 msgid "Inhibit multimedia keys"
-msgstr "Перехватывать мультимедиа-клавиши"
+msgstr "Запретить мультимедийные клавиши"
 
 msgid "Ask for confirmation before saving settings"
-msgstr "Спрашивать подтверждения перед сохранением настроек"
-
-msgid "Ask for confirmation before hard resetting"
-msgstr "Спрашивать подтверждения перед холодной перезагрузкой"
+msgstr "Запрашивать подтверждение перед сохранением настроек"
 
 msgid "Ask for confirmation before quitting"
-msgstr "Спрашивать подтвержждения перед выходом"
+msgstr "Запрашивать подтверждение перед выходом"
+
+msgid "Ask for confirmation before hard resetting"
+msgstr "Запрашивать подтверждение перед холодной перезагрузкой"
 
 msgid "Display hotkey message when entering full-screen mode"
-msgstr "Показывать сообщение о горячих клавишах при включении полноэкранного режима"
+msgstr "Показывать сообщение о горячей клавише при входе в полноэкранный режим"
 
 msgid "Options"
 msgstr "Параметры"
