@@ -1341,16 +1341,16 @@ msgstr ""
 msgid "Network Card #4"
 msgstr ""
 
-msgid "Mode"
+msgid "Mode:"
 msgstr ""
 
-msgid "Interface"
+msgid "Interface:"
 msgstr ""
 
-msgid "Adapter"
+msgid "Adapter:"
 msgstr ""
 
-msgid "VDE Socket"
+msgid "VDE Socket:"
 msgstr ""
 
 msgid "86Box Unit Tester"

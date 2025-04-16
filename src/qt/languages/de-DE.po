@@ -1344,17 +1344,17 @@ msgstr "Netzwerkkarte 3"
 msgid "Network Card #4"
 msgstr "Netzwerkkarte 4"
 
-msgid "Mode"
-msgstr "Modus"
+msgid "Mode:"
+msgstr "Modus:"
 
-msgid "Interface"
-msgstr "Schnittstelle"
+msgid "Interface:"
+msgstr "Schnittstelle:"
 
-msgid "Adapter"
-msgstr "Adapter"
+msgid "Adapter:"
+msgstr "Adapter:"
 
-msgid "VDE Socket"
-msgstr "VDE Port"
+msgid "VDE Socket:"
+msgstr "VDE Port:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box-Gerätetester"

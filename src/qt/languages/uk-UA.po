@@ -1341,17 +1341,17 @@ msgstr "Мережева карта 3"
 msgid "Network Card #4"
 msgstr "Мережева карта 4"
 
-msgid "Mode"
-msgstr "Режим"
+msgid "Mode:"
+msgstr "Режим:"
 
-msgid "Interface"
-msgstr "Інтерфейс"
+msgid "Interface:"
+msgstr "Інтерфейс:"
 
-msgid "Adapter"
-msgstr "Адаптер"
+msgid "Adapter:"
+msgstr "Адаптер:"
 
-msgid "VDE Socket"
-msgstr "VDE сокет"
+msgid "VDE Socket:"
+msgstr "VDE сокет:"
 
 msgid "86Box Unit Tester"
 msgstr "Тестер блоків 86Box"

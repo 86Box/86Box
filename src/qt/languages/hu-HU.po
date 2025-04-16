@@ -1341,17 +1341,17 @@ msgstr "Hálózati kártya 3"
 msgid "Network Card #4"
 msgstr "Hálózati kártya 4"
 
-msgid "Mode"
-msgstr "Mód"
+msgid "Mode:"
+msgstr "Mód:"
 
-msgid "Interface"
-msgstr "Interfész"
+msgid "Interface:"
+msgstr "Interfész:"
 
-msgid "Adapter"
-msgstr "Adapter"
+msgid "Adapter:"
+msgstr "Adapter:"
 
-msgid "VDE Socket"
-msgstr "VDE aljzat"
+msgid "VDE Socket:"
+msgstr "VDE aljzat:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"

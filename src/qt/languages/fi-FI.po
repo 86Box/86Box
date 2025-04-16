@@ -1344,17 +1344,17 @@ msgstr "Verkkokortti 3"
 msgid "Network Card #4"
 msgstr "Verkkokortti 4"
 
-msgid "Mode"
-msgstr "Tila"
+msgid "Mode:"
+msgstr "Tila:"
 
-msgid "Interface"
-msgstr "Liitäntä"
+msgid "Interface:"
+msgstr "Liitäntä:"
 
-msgid "Adapter"
-msgstr "Sovitin"
+msgid "Adapter:"
+msgstr "Sovitin:"
 
-msgid "VDE Socket"
-msgstr "VDE-pistorasia"
+msgid "VDE Socket:"
+msgstr "VDE-pistorasia:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"

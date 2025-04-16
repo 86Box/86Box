@@ -1341,17 +1341,17 @@ msgstr "網路卡 3"
 msgid "Network Card #4"
 msgstr "網路卡 4"
 
-msgid "Mode"
-msgstr "模式"
+msgid "Mode:"
+msgstr "模式:"
 
-msgid "Interface"
-msgstr "介面"
+msgid "Interface:"
+msgstr "介面:"
 
-msgid "Adapter"
-msgstr "配接器"
+msgid "Adapter:"
+msgstr "配接器:"
 
-msgid "VDE Socket"
-msgstr "VDE 插座"
+msgid "VDE Socket:"
+msgstr "VDE 插座:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box 單元測試器"

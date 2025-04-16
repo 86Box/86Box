@@ -1341,17 +1341,17 @@ msgstr "Omrežna kartica 3"
 msgid "Network Card #4"
 msgstr "Omrežna kartica 4"
 
-msgid "Mode"
-msgstr "Način"
+msgid "Mode:"
+msgstr "Način:"
 
-msgid "Interface"
-msgstr "Vmesnik"
+msgid "Interface:"
+msgstr "Vmesnik:"
 
-msgid "Adapter"
-msgstr "Adapter"
+msgid "Adapter:"
+msgstr "Adapter:"
 
-msgid "VDE Socket"
-msgstr "Vtičnica VDE"
+msgid "VDE Socket:"
+msgstr "Vtičnica VDE:"
 
 msgid "86Box Unit Tester"
 msgstr "Tester enote 86Box"

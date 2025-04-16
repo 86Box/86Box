@@ -1341,17 +1341,17 @@ msgstr "Ağ kartı 3"
 msgid "Network Card #4"
 msgstr "Ağ kartı 4"
 
-msgid "Mode"
-msgstr "Mod"
+msgid "Mode:"
+msgstr "Mod:"
 
-msgid "Interface"
-msgstr "Arayüz"
+msgid "Interface:"
+msgstr "Arayüz:"
 
-msgid "Adapter"
-msgstr "Adaptör"
+msgid "Adapter:"
+msgstr "Adaptör:"
 
-msgid "VDE Socket"
-msgstr "VDE soketi"
+msgid "VDE Socket:"
+msgstr "VDE soketi:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box birim test cihazı"

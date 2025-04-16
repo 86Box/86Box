@@ -1341,17 +1341,17 @@ msgstr "Thẻ mạng 3"
 msgid "Network Card #4"
 msgstr "Thẻ mạng 4"
 
-msgid "Mode"
-msgstr "Chế độ"
+msgid "Mode:"
+msgstr "Chế độ:"
 
-msgid "Interface"
-msgstr "Giao diện"
+msgid "Interface:"
+msgstr "Giao diện:"
 
-msgid "Adapter"
-msgstr "Bộ chuyển đổi"
+msgid "Adapter:"
+msgstr "Bộ chuyển đổi:"
 
-msgid "VDE Socket"
-msgstr "Ổ cắm VDE"
+msgid "VDE Socket:"
+msgstr "Ổ cắm VDE:"
 
 msgid "86Box Unit Tester"
 msgstr "Trình kiểm tra đơn vị 86box"

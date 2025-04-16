@@ -1341,17 +1341,17 @@ msgstr "Placa de rede 3"
 msgid "Network Card #4"
 msgstr "Placa de rede 4"
 
-msgid "Mode"
-msgstr "Modo"
+msgid "Mode:"
+msgstr "Modo:"
 
-msgid "Interface"
-msgstr "Interface"
+msgid "Interface:"
+msgstr "Interface:"
 
-msgid "Adapter"
-msgstr "Adaptador"
+msgid "Adapter:"
+msgstr "Adaptador:"
 
-msgid "VDE Socket"
-msgstr "Soquete VDE"
+msgid "VDE Socket:"
+msgstr "Soquete VDE:"
 
 msgid "86Box Unit Tester"
 msgstr "Testador de unidade 86Box"

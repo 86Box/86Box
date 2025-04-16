@@ -1341,17 +1341,17 @@ msgstr "네트워크 카드 3"
 msgid "Network Card #4"
 msgstr "네트워크 카드 4"
 
-msgid "Mode"
-msgstr "모드"
+msgid "Mode:"
+msgstr "모드:"
 
-msgid "Interface"
-msgstr "인터페이스"
+msgid "Interface:"
+msgstr "인터페이스:"
 
-msgid "Adapter"
-msgstr "어댑터"
+msgid "Adapter:"
+msgstr "어댑터:"
 
-msgid "VDE Socket"
-msgstr "VDE 소켓"
+msgid "VDE Socket:"
+msgstr "VDE 소켓:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box 유닛 테스터"

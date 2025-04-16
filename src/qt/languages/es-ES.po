@@ -1340,17 +1340,17 @@ msgstr "Tarjeta de red 3"
 msgid "Network Card #4"
 msgstr "Tarjeta de red 4"
 
-msgid "Mode"
-msgstr "Modalidad"
+msgid "Mode:"
+msgstr "Modalidad:"
 
-msgid "Interface"
-msgstr "Interfaz"
+msgid "Interface:"
+msgstr "Interfaz:"
 
-msgid "Adapter"
-msgstr "Adaptador"
+msgid "Adapter:"
+msgstr "Adaptador:"
 
-msgid "VDE Socket"
-msgstr "Toma VDE"
+msgid "VDE Socket:"
+msgstr "Toma VDE:"
 
 msgid "86Box Unit Tester"
 msgstr "Comprobador de unidad 86Box"

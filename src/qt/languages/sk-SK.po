@@ -1342,17 +1342,17 @@ msgstr "Sieťová karta 3"
 msgid "Network Card #4"
 msgstr "Sieťová karta 4"
 
-msgid "Mode"
-msgstr "Režim"
+msgid "Mode:"
+msgstr "Režim:"
 
-msgid "Interface"
-msgstr "Rozhranie"
+msgid "Interface:"
+msgstr "Rozhranie:"
 
-msgid "Adapter"
-msgstr "Adaptér"
+msgid "Adapter:"
+msgstr "Adaptér:"
 
-msgid "VDE Socket"
-msgstr "Zásuvka VDE"
+msgid "VDE Socket:"
+msgstr "Zásuvka VDE:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"
