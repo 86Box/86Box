@@ -2610,6 +2610,11 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                         dev->sector_len = 256;
                     dev->sector_pos = ((((uint32_t) cdb[1]) & 0x1f) << 16) |
                                       (((uint32_t) cdb[2]) << 8) | ((uint32_t) cdb[3]);
+                    if (cdrom_is_track_audio(dev->drv, dev->sector_pos, msf,
+                                             dev->sector_type, 0x00)) {
+                        scsi_cdrom_illegal_mode(dev);
+                        ret = 0;
+                    }                        
                     scsi_cdrom_log(dev->log, "READ (6):  Length: %i, LBA: %i\n",
                                    dev->sector_len, dev->sector_pos);
                     break;
@@ -2617,6 +2622,12 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     dev->sector_len = (cdb[7] << 8) | cdb[8];
                     dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) |
                                       (cdb[4] << 8) | cdb[5];
+                    if (cdrom_is_track_audio(dev->drv, dev->sector_pos, msf,
+                                             dev->sector_type, dev->use_cdb_9 ?
+                                             (cdb[9] & 0xc0) : 0x00)) {
+                        scsi_cdrom_illegal_mode(dev);
+                        ret = 0;
+                    }                        
                     scsi_cdrom_log(dev->log, "READ (10): Length: %i, LBA: %i\n",
                                    dev->sector_len, dev->sector_pos);
                     break;
@@ -2627,6 +2638,12 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     dev->sector_pos = (((uint32_t) cdb[2]) << 24) |
                                       (((uint32_t) cdb[3]) << 16) |
                                       (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
+                    if (cdrom_is_track_audio(dev->drv, dev->sector_pos, msf,
+                                             dev->sector_type, dev->use_cdb_9 ?
+                                             (cdb[9] & 0xc0) : 0x00)) {
+                        scsi_cdrom_illegal_mode(dev);
+                        ret = 0;
+                    }                        
                     scsi_cdrom_log(dev->log, "READ (12): Length: %i, LBA: %i\n",
                                    dev->sector_len, dev->sector_pos);
                     break;
