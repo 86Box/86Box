@@ -2124,6 +2124,9 @@ msgstr "Показывать сообщение о горячих клавиша
 msgid "Options"
 msgstr "Параметры"
 
+msgid "Model"
+msgstr "Модель"
+
 msgid "Model:"
 msgstr "Модель:"
 

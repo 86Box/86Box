@@ -2118,6 +2118,9 @@ msgstr "Afficher Raccourcis Clavier avant de passer en plein écran"
 msgid "Options"
 msgstr "Options"
 
+msgid "Model"
+msgstr "Modèle"
+
 msgid "Model:"
 msgstr "Modèle:"
 
