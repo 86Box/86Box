@@ -31,7 +31,6 @@ public:
     void  blitToWidget(int x, int y, int w, int h, int monitor_index);
     QSize getRenderWidgetSize();
     void  setSendKeyboardInput(bool enabled);
-    void  checkFullscreenHotkey();
     void  reloadAllRenderers();
 
     std::array<std::unique_ptr<RendererStack>, 8> renderers;
@@ -117,6 +116,7 @@ private slots:
     void on_actionHide_tool_bar_triggered();
     void on_actionUpdate_status_bar_icons_triggered();
     void on_actionTake_screenshot_triggered();
+    void on_actionMute_Unmute_triggered();
     void on_actionSound_gain_triggered();
     void on_actionPreferences_triggered();
     void on_actionEnable_Discord_integration_triggered(bool checked);

@@ -1050,7 +1050,7 @@ spock_callback(void *priv)
             spock_execute_cmd(scsi, scb);
     }
 
-    if (scsi->attention_wait) {
+    if (scsi->attention_wait && ((scsi->scb_state == 0) || (scsi->attention_pending & 0xf0) == 0xe0)) {
         scsi->attention_wait--;
         if (!scsi->attention_wait) {
             scsi->attention = scsi->attention_pending;

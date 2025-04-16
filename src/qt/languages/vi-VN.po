@@ -18,8 +18,8 @@ msgstr "Gắn ALT trái vào CTRL ph&ải"
 msgid "&Hard Reset..."
 msgstr "Buộc khởi độn&g lại"
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "Tu&yến tính"
 msgid "Hi&DPI scaling"
 msgstr "Tỷ lệ hinh ảnh phân giải cao"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "Toàn màn &hình\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "Toàn màn &hình"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Chế độ kéo giãn hình"
@@ -186,8 +186,11 @@ msgstr "&Cài đặt..."
 msgid "&Update status bar icons"
 msgstr "Cậ&p nhật biểu tượng thanh trạng thái"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Chụp &màn hình\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Chụp &màn hình"
+
+msgid "S&ound"
+msgstr "&Thanh âm"
 
 msgid "&Preferences..."
 msgstr "&Tùy biến..."
@@ -198,11 +201,11 @@ msgstr "Bật trình trạng thái cho Discord"
 msgid "Sound &gain..."
 msgstr "Bộ &tăng âm..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Bắt đầu dò\tCtrl+T"
+msgid "Begin trace"
+msgstr "Bắt đầu dò"
 
-msgid "End trace\tCtrl+T"
-msgstr "Ngưng dò\tCtrl+T"
+msgid "End trace"
+msgstr "Ngưng dò"
 
 msgid "&Help"
 msgstr "&Trợ giúp"
@@ -249,8 +252,8 @@ msgstr "Tắt tiến&g"
 msgid "E&mpty"
 msgstr "Làm trố&ng đĩa"
 
-msgid "&Reload previous image"
-msgstr "Load đĩ&a trước đó"
+msgid "Reload previous image"
+msgstr "Load đĩa trước đó"
 
 msgid "&Folder..."
 msgstr "Thư mụ&c"
@@ -306,17 +309,11 @@ msgstr "Đồng ý"
 msgid "Cancel"
 msgstr "Thôi"
 
-msgid "Save these settings as &global defaults"
-msgstr "Lưu cài đặt làm mặc định chung"
-
 msgid "&Default"
 msgstr "&Mặc định"
 
 msgid "Language:"
 msgstr "Ngôn ngữ:"
-
-msgid "Icon set:"
-msgstr "Bộ biểu tượng:"
 
 msgid "Gain"
 msgstr "Tăng"
@@ -648,8 +645,8 @@ msgstr "Bấm Ctrl+Alt+PgDn để quay lại chế độ cửa sổ."
 msgid "Speed"
 msgstr "Vận tốc"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "Ảnh đĩa ZIP"
@@ -753,14 +750,11 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Không thể khởi tạo trình kết xuất (renderer) video ."
-
 msgid "Default"
 msgstr "Mặc định"
 
-msgid "%i Wait state(s)"
-msgstr "%i trạng thái chờ"
+msgid "%1 Wait state(s)"
+msgstr "%1 trạng thái chờ"
 
 msgid "Type"
 msgstr "Loại"
@@ -804,11 +798,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Không có"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Đĩa mềm %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Đĩa mềm %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Ảnh (đĩa) sector nâng cao"
@@ -828,8 +822,8 @@ msgstr "Không thể khởi tạo Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Không thể khởi tạo GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "MO %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Ảnh đĩa MO"
@@ -903,11 +897,8 @@ msgstr "Tinh chỉnh thiết bị %1"
 msgid "Monitor in sleep mode"
 msgstr "Màn hình chế độ chờ/ngủ"
 
-msgid "OpenGL Shaders"
-msgstr "Shader OpenGL"
-
-msgid "OpenGL options"
-msgstr "Tùy chọn OpenGL"
+msgid "GLSL shaders"
+msgstr "Shader GLSL"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Bạn đang load tinh chỉnh không được hỗ trợ."
@@ -918,23 +909,17 @@ msgstr "Phần chọn loại CPU dựa trên mẫu máy đã chọn bị vô hi�
 msgid "Continue"
 msgstr "Tiếp tục"
 
-msgid "Cassette: %s"
-msgstr "Cassette: %s"
+msgid "Cassette: %1"
+msgstr "Cassette: %1"
 
 msgid "Cassette images"
 msgstr "Ảnh đĩa Cassette"
 
-msgid "Cartridge %i: %ls"
-msgstr "Băng cartridge %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Băng cartridge %1: %2"
 
 msgid "Cartridge images"
 msgstr "Ảnh đĩa băng cartridge"
-
-msgid "Error initializing renderer"
-msgstr "Lỗi khởi tạo renderer (trình kết xuất)"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Không khởi tạo được renderer OpenGL (3.0 Core). Hãy dùng renderer khác."
 
 msgid "Resume execution"
 msgstr "Tiếp tục chạy thực thi"
@@ -1098,8 +1083,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1278,9 +1263,6 @@ msgstr "Xóa lịch sử ảnh đĩa"
 msgid "Create..."
 msgstr "Tạo..."
 
-msgid "previous image"
-msgstr "đĩa trước đó"
-
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Máy chủ CD/DVD Drive (%1)"
 
@@ -1290,23 +1272,8 @@ msgstr "Bus không xác định"
 msgid "Null Driver"
 msgstr "Trình điều khiển NULL"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i ( %ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "Mở lỗi \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Lỗi biên dịch shader đỉnh trong tệp \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Lỗi biên dịch shader fragment trong tệp \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Lỗi liên kết chương trình shader trong tệp \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Tùy chọn kết xuất OpenGL 3.0"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Hành vi kết xuất"
@@ -1320,9 +1287,6 @@ msgstr " khung hình / giây"
 msgid "VSync"
 msgstr "Vsync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Kết xuất mỗi khung ngay lập tức, đồng bộ với màn hình mô phỏng.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Đây là tùy chọn được đề xuất nếu các shader đang sử dụng không tối ưu frametime cho các hiệu ứng động.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Đồng bộ với video"
 
@@ -1332,20 +1296,8 @@ msgstr "Shaders"
 msgid "Remove"
 msgstr "Loại bỏ"
 
-msgid "No shader selected"
-msgstr "Không có shader được chọn"
-
 msgid "Browse..."
 msgstr "Duyệt..."
-
-msgid "Shader error"
-msgstr "Lỗi shader"
-
-msgid "Could not load shaders."
-msgstr "Không thể tải shader."
-
-msgid "More information in details."
-msgstr "Thêm thông tin chi tiết."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Không thể tạo bối cảnh OpenGL."
@@ -1356,17 +1308,11 @@ msgstr "Không thể chuyển sang bối cảnh OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGL phiên bản 3.0 trở lên là bắt buộc. Phiên bản hiện tại là %1. %2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Khởi tạo OpenGL không thành công. Lỗi %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Lỗi khởi tạo OpenGL"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Quay trở lại kết xuất phần mềm.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Phân bổ bộ nhớ cho bộ đệm giải nén không thành công.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nQuay trở lại kết xuất phần mềm."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Khi chọn hình ảnh phương tiện (CD-ROM, ổ mềm, v.v.), hộp thoại mở sẽ bắt đầu trong cùng thư mục với tệp cấu hình 86box. Cài đặt này có thể sẽ chỉ tạo ra sự khác biệt trên macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
@@ -1433,9 +1379,6 @@ msgstr "Thông qua cổng serial 3"
 
 msgid "Serial port passthrough 4"
 msgstr "Thông qua cổng serial 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
 
 msgid "Renderer options..."
 msgstr "Tùy chọn kết xuất ..."
@@ -2103,8 +2046,8 @@ msgstr "Đường ống có tên (máy chủ)"
 msgid "Host Serial Passthrough"
 msgstr "Thông qua cổng serial của máy chủ"
 
-msgid "Eject %s"
-msgstr "Đẩy đĩa ra %s"
+msgid "E&ject %1"
+msgstr "Đẩy đĩ&a ra %1"
 
 msgid "&Unmute"
 msgstr "&Mở tiếng"
@@ -2115,8 +2058,29 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "Ảnh hưởng lớn đến hiệu suất"
 
-msgid "RAM Disk (max. speed)"
-msgstr "Đĩa RAM (tốc độ tối đa)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] Đĩa RAM (tốc độ tối đa)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A bản nhái (ISA)"
@@ -2135,3 +2099,63 @@ msgstr "Không tìm thấy phông chữ ma trận chấm"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "Cần có phông chữ TrueType trong thư mục \"roms/printer/fonts\" để mô phỏng máy in generic ESC/P ma trận chấm."
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Display hotkey message when entering full-screen mode"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
+msgstr ""

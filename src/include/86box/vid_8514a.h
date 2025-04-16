@@ -92,8 +92,8 @@ typedef struct ibm8514_t {
         uint16_t advfunc_cntl;
         uint16_t cur_y;
         uint16_t cur_x;
-        uint16_t destx;
-        uint16_t desty;
+        int16_t  destx;
+        int16_t  desty;
         int16_t  desty_axstp;
         int16_t  destx_distp;
         int16_t  err_term;
@@ -249,5 +249,10 @@ typedef struct ibm8514_t {
     void (*update_irqs)(void *priv);
 
 } ibm8514_t;
+
+#define IBM_8514A (((dev->local & 0xff) == 0x00) && (dev->extensions == 0x00))
+#define ATI_8514A_ULTRA (((dev->local & 0xff) == 0x00) && (dev->extensions == 0x01))
+#define ATI_GRAPHICS_ULTRA ((dev->local & 0xff) == 0x01)
+#define ATI_MACH32 ((dev->local & 0xff) == 0x02)
 
 #endif /*VIDEO_8514A_H*/

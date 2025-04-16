@@ -18,8 +18,8 @@ msgstr "&Oikea CTRL on vasen ALT"
 msgid "&Hard Reset..."
 msgstr "&Uudelleenkäynnistys (kylmä)..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "Li&neaarinen interpolaatio"
 msgid "Hi&DPI scaling"
 msgstr "&Suuri DPI-skaalaus"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Koko näytön tila\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Koko näytön tila"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Koko näytön &skaalaustila"
@@ -186,8 +186,11 @@ msgstr "&Kokoonpano..."
 msgid "&Update status bar icons"
 msgstr "&Päivitä tilapalkin kuvakkeita"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Ota &kuvakaappaus\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Ota &kuvakaappaus"
+
+msgid "S&ound"
+msgstr "&Ääni"
 
 msgid "&Preferences..."
 msgstr "&Sovellusasetukset..."
@@ -198,11 +201,11 @@ msgstr "Käytä &Discord-integraatiota"
 msgid "Sound &gain..."
 msgstr "&Äänitasot..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Aloita jäljitys\tCtrl+T"
+msgid "Begin trace"
+msgstr "Aloita jäljitys"
 
-msgid "End trace\tCtrl+T"
-msgstr "Lopeta jäljitys\tCtrl+T"
+msgid "End trace"
+msgstr "Lopeta jäljitys"
 
 msgid "&Help"
 msgstr "&Ohje"
@@ -249,8 +252,8 @@ msgstr "&Mykistä"
 msgid "E&mpty"
 msgstr "&Tyhjä"
 
-msgid "&Reload previous image"
-msgstr "&Lataa edellinen levykuva uudelleen"
+msgid "Reload previous image"
+msgstr "Lataa edellinen levykuva uudelleen"
 
 msgid "&Folder..."
 msgstr "&Kansio..."
@@ -306,17 +309,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "Peruuta"
 
-msgid "Save these settings as &global defaults"
-msgstr "Tallenna nämä asetukset &globaaleiksi oletuksiksi"
-
 msgid "&Default"
 msgstr "&Oletus"
 
 msgid "Language:"
 msgstr "Kieli:"
-
-msgid "Icon set:"
-msgstr "Kuvakkeet:"
 
 msgid "Gain"
 msgstr "Taso"
@@ -648,8 +645,8 @@ msgstr "Paina Ctrl+Alt+PgDn palataksesi ikkunoituun tilaan."
 msgid "Speed"
 msgstr "Nopeus"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIP-levykuvat"
@@ -753,14 +750,11 @@ msgstr "S"
 msgid "KB"
 msgstr "Kt"
 
-msgid "Could not initialize the video renderer."
-msgstr "Videorenderöijän alustus epäonnistui"
-
 msgid "Default"
 msgstr "Oletus"
 
-msgid "%i Wait state(s)"
-msgstr "%i odotustilaa"
+msgid "%1 Wait state(s)"
+msgstr "%1 odotustilaa"
 
 msgid "Type"
 msgstr "Tyyppi"
@@ -804,11 +798,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Ei mikään"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u Mt (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 Mt (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Levyke %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Levyke %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Kehittyneet sektorilevykuvat"
@@ -828,8 +822,8 @@ msgstr "Ghostscriptin alustus epäonnistui"
 msgid "Unable to initialize GhostPCL"
 msgstr "GhostPCLin alustus epäonnistui"
 
-msgid "MO %i (%ls): %ls"
-msgstr "MO %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "MO-levykuvat"
@@ -903,11 +897,8 @@ msgstr "%1 - Laitteen määritykset"
 msgid "Monitor in sleep mode"
 msgstr "Näyttö lepotilassa"
 
-msgid "OpenGL Shaders"
-msgstr "OpenGL-varjostinohjelmat"
-
-msgid "OpenGL options"
-msgstr "OpenGL-asetukset"
+msgid "GLSL shaders"
+msgstr "GLSL-varjostinohjelmat"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Olet lataamassa ei-tuettuja määrittelyjä"
@@ -918,23 +909,17 @@ msgstr "Valittuun tietokoneeseen perustuva suoritintyypin suodatus ei ole käyt�
 msgid "Continue"
 msgstr "Jatka"
 
-msgid "Cassette: %s"
-msgstr "Kasetti: %s"
+msgid "Cassette: %1"
+msgstr "Kasetti: %1"
 
 msgid "Cassette images"
 msgstr "Kasettitiedostot"
 
-msgid "Cartridge %i: %ls"
-msgstr "ROM-moduuli %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "ROM-moduuli %1: %2"
 
 msgid "Cartridge images"
 msgstr "ROM-moduulikuvat"
-
-msgid "Error initializing renderer"
-msgstr "Virhe renderöijän alustuksessa"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core)-renderöijän alustus epäonnistui. Käytä toista renderöijää."
 
 msgid "Resume execution"
 msgstr "Jatka suoritusta"
@@ -1098,8 +1083,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 Kt"
@@ -1278,9 +1263,6 @@ msgstr "Tyhjennä kuvahistoria"
 msgid "Create..."
 msgstr "Luo..."
 
-msgid "previous image"
-msgstr "edellinen levykuva"
-
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Isäntä CD/DVD-asema (%1)"
 
@@ -1290,23 +1272,8 @@ msgstr "Tuntematon väylä"
 msgid "Null Driver"
 msgstr "Nolla-ajuri"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "Virhe \"%1\" avaamisessa: %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Virhe vertex-shaderin kääntämisessä tiedostossa  \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Virhe fragmenttivarjostimen kääntämisessä tiedostossa \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Virhe varjostinohjelman linkittämisessä tiedostoon \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "OpenGL 3.0-alustusasetukset"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Renderöintikäyttäytyminen"
@@ -1319,9 +1286,6 @@ msgstr " ruutua/s"
 
 msgid "VSync"
 msgstr "VSync"
-
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Renderöi jokainen ruutu välittömästi synkronoidusti emuloidun näytön kanssa.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Tämä on suositeltava vaihtoehto, jos käytössä olevat varjostimet eivät käytä frametimeä animaatioefekteihin.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 
 msgid "Synchronize with video"
 msgstr "Synkronisoi videoon"
@@ -1338,15 +1302,6 @@ msgstr "Ei valittu varjostinohjelmatta"
 msgid "Browse..."
 msgstr "Selaa..."
 
-msgid "Shader error"
-msgstr "Varjostinohjelmatvirhe"
-
-msgid "Could not load shaders."
-msgstr "Varjostinohjelmateita ei voitu ladata."
-
-msgid "More information in details."
-msgstr "Lisätietoja yksityiskohtaisesti."
-
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGL-kontekstia ei voitu luoda."
 
@@ -1356,17 +1311,11 @@ msgstr "Ei voitu siirtyä OpenGL-kontekstiin."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Tarvitaan OpenGL-versio 3.0 tai uudempi. Nykyinen versio on %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "OpenGL:n alustaminen epäonnistui. Virhe %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Virhe OpenGL:n alustamisessa"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Paluu ohjelmistoalustusöintiin.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Pakkauspuskurin muistin varaaminen epäonnistui.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nPaluu ohjelmistoalustusöintiin."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Kun valitset mediakuvia (CD-ROM, levykkeet jne.), avausikkuna käynnistyy samaan hakemistoon kuin 86Boxin konfigurointitiedosto. Tällä asetuksella on todennäköisesti merkitystä vain macOS-käyttöjärjestelmässä.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
@@ -1433,9 +1382,6 @@ msgstr "Sarjaportin läpivienti 3"
 
 msgid "Serial port passthrough 4"
 msgstr "Sarjaportin läpivienti 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
 
 msgid "Renderer options..."
 msgstr "Alustusasetukset..."
@@ -2103,8 +2049,8 @@ msgstr "Nimetty putki (palvelin)"
 msgid "Host Serial Passthrough"
 msgstr "Isännän sarjaportin läpivienti"
 
-msgid "Eject %s"
-msgstr "Poista kasettipesästä %s"
+msgid "E&ject %1"
+msgstr "&Poista kasettipesästä %1"
 
 msgid "&Unmute"
 msgstr "&Poista mykistys"
@@ -2115,8 +2061,29 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "Suuri vaikutus suorituskykyyn"
 
-msgid "RAM Disk (max. speed)"
-msgstr "RAM-levy (maksiminopeus)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] RAM-levy (maksiminopeus)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A-klooni (ISA)"
@@ -2135,3 +2102,63 @@ msgstr "Pistematriisifontteja ei löydy"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "TrueType-fontteja kansiossa \"roms/printer/fonts\"-hakemistoon yleinen ESC/P pistematriisitulostin emulointiin."
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Display hotkey message when entering full-screen mode"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
+msgstr ""

@@ -180,7 +180,8 @@ MainWindow::MainWindow(QWidget *parent)
     extern MainWindow *main_window;
     main_window = this;
     ui->setupUi(this);
-    status->setSoundGainAction(ui->actionSound_gain);
+    status->setSoundMenu(ui->menuSound);
+    ui->actionMute_Unmute->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
     ui->menuEGA_S_VGA_settings->menuAction()->setMenuRole(QAction::NoRole);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
@@ -674,6 +675,17 @@ MainWindow::MainWindow(QWidget *parent)
     /* Remove default Shift+F10 handler, which unfocuses keyboard input even with no context menu. */
     connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, [](){});
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    auto windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_PageDown), this);
+#else
+    auto windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_PageDown), this);
+#endif
+    windowedShortcut->setContext(Qt::ShortcutContext::ApplicationShortcut);
+    connect(windowedShortcut, &QShortcut::activated, this, [this] () {
+        if (video_fullscreen)
+            ui->actionFullscreen->trigger();
+    });
+
     connect(this, &MainWindow::initRendererMonitor, this, &MainWindow::initRendererMonitorSlot);
     connect(this, &MainWindow::initRendererMonitorForNonQtThread, this, &MainWindow::initRendererMonitorSlot, Qt::BlockingQueuedConnection);
     connect(this, &MainWindow::destroyRendererMonitor, this, &MainWindow::destroyRendererMonitorSlot);
@@ -695,6 +707,22 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 #endif
+
+    QTimer::singleShot(0, this, [this]() {
+        for (auto curObj : this->menuBar()->children()) {
+            if (qobject_cast<QMenu *>(curObj)) {
+                auto menu = qobject_cast<QMenu *>(curObj);
+                for (auto curObj2 : menu->children()) {
+                    if (qobject_cast<QAction *>(curObj2)) {
+                        auto action = qobject_cast<QAction *>(curObj2);
+                        if (!action->shortcut().isEmpty()) {
+                            this->insertAction(nullptr, action);
+                        }
+                    }
+                }
+            }
+        }
+    });
 
     actGroup = new QActionGroup(this);
     actGroup->addAction(ui->actionCursor_Puck);
@@ -803,7 +831,7 @@ MainWindow::resizeEvent(QResizeEvent *event)
 {
     //qDebug() << pos().x() + event->size().width();
     //qDebug() << pos().y() + event->size().height();
-    if (vid_resize == 1)
+    if (vid_resize == 1 || video_fullscreen)
         return;
 
     int newX = pos().x();
@@ -833,6 +861,11 @@ MainWindow::initRendererMonitorSlot(int monitor_index)
         });
         secondaryRenderer->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
         secondaryRenderer->setWindowTitle(QObject::tr("86Box Monitor #") + QString::number(monitor_index + 1));
+        secondaryRenderer->setContextMenuPolicy(Qt::PreventContextMenu);
+
+        for (int i = 0; i < this->actions().size(); i++) {
+            secondaryRenderer->addAction(this->actions()[i]);
+        }
 
         if (vid_resize == 2)
             secondaryRenderer->setFixedSize(fixed_size_x, fixed_size_y);
@@ -1302,7 +1335,7 @@ void
 MainWindow::refreshMediaMenu()
 {
     mm->refresh(ui->menuMedia);
-    status->setSoundGainAction(ui->actionSound_gain);
+    status->setSoundMenu(ui->menuSound);
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
     ui->actionACPI_Shutdown->setEnabled(!!acpi_enabled);
@@ -1360,17 +1393,8 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 #endif
     }
 
-    checkFullscreenHotkey();
-
     if (keyboard_ismsexit())
         plat_mouse_capture(0);
-
-    if ((video_fullscreen > 0) && (keyboard_recv_ui(0x1D) || keyboard_recv_ui(0x11D))) {
-        if (keyboard_recv_ui(0x57))
-            ui->actionTake_screenshot->trigger();
-        else if (keyboard_recv_ui(0x58))
-            pc_send_cad();
-    }
 
     event->accept();
 }
@@ -1402,28 +1426,6 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
 #else
         processKeyboardInput(false, event->nativeScanCode());
 #endif
-    }
-
-    checkFullscreenHotkey();
-}
-
-void
-MainWindow::checkFullscreenHotkey()
-{
-    if (!fs_off_signal && video_fullscreen && keyboard_isfsexit()) {
-        /* Signal "exit fullscreen mode". */
-        fs_off_signal = true;
-    } else if (fs_off_signal && video_fullscreen && keyboard_isfsexit_up()) {
-        ui->actionFullscreen->trigger();
-        fs_off_signal = false;
-    }
-
-    if (!fs_on_signal && !video_fullscreen && keyboard_isfsenter()) {
-        /* Signal "enter fullscreen mode". */
-        fs_on_signal = true;
-    } else if (fs_on_signal && !video_fullscreen && keyboard_isfsenter_up()) {
-        ui->actionFullscreen->trigger();
-        fs_on_signal = false;
     }
 }
 
@@ -1934,6 +1936,15 @@ MainWindow::on_actionTake_screenshot_triggered()
         ++monitor.mon_screenshots;
     endblit();
     device_force_redraw();
+}
+
+void
+MainWindow::on_actionMute_Unmute_triggered()
+{
+    sound_muted ^= 1;
+    config_save();
+    status->updateSoundIcon();
+    ui->actionMute_Unmute->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
 }
 
 void

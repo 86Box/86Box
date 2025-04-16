@@ -18,8 +18,8 @@ msgstr "&Pravý Ctrl je ľavý Alt"
 msgid "&Hard Reset..."
 msgstr "&Resetovať"
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Lineárny"
 msgid "Hi&DPI scaling"
 msgstr "Š&kálovanie HiDPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Celá obrazovka\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Celá obrazovka"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Režim roztia&hnutia na celú obrazovku"
@@ -186,8 +186,11 @@ msgstr "&Nastavenia..."
 msgid "&Update status bar icons"
 msgstr "&Aktualizovať ikony na stavovom riadku"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Urobiť snímku &obrazovky\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Urobiť snímku &obrazovky"
+
+msgid "S&ound"
+msgstr "&Zvuk"
 
 msgid "&Preferences..."
 msgstr "&Predvoľby..."
@@ -198,11 +201,11 @@ msgstr "Povolenie integrácie s &Discordem"
 msgid "Sound &gain..."
 msgstr "&Zosilnenie zvuku"
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Začať trace\tCtrl+T"
+msgid "Begin trace"
+msgstr "Začať trace"
 
-msgid "End trace\tCtrl+T"
-msgstr "Zastaviť trace\tCtrl+T"
+msgid "End trace"
+msgstr "Zastaviť trace"
 
 msgid "&Help"
 msgstr "&Pomoc"
@@ -249,8 +252,8 @@ msgstr "&Stíšiť"
 msgid "E&mpty"
 msgstr "&Vystrihnúť"
 
-msgid "&Reload previous image"
-msgstr "&Načítať znova predchádzajúci obraz"
+msgid "Reload previous image"
+msgstr "Načítať znova predchádzajúci obraz"
 
 msgid "&Folder..."
 msgstr "&Zložka..."
@@ -306,17 +309,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "Storno"
 
-msgid "Save these settings as &global defaults"
-msgstr "Uložiť toto nastavenie ako &globálny východiskový stav"
-
 msgid "&Default"
 msgstr "&Východiskové"
 
 msgid "Language:"
 msgstr "Jazyk:"
-
-msgid "Icon set:"
-msgstr "Súprava ikon:"
 
 msgid "Gain"
 msgstr "Zosilnenie"
@@ -648,8 +645,8 @@ msgstr "Stlačte Ctrl+Alt+PgDn pre návrat z režimu celej obrazovky."
 msgid "Speed"
 msgstr "Rýchlosť"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "Obrazy ZIP diskov"
@@ -753,14 +750,11 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Nastala chyba pri inicializácii video renderera."
-
 msgid "Default"
 msgstr "Východiskové"
 
-msgid "%i Wait state(s)"
-msgstr "%i čakací stav(y)"
+msgid "%1 Wait state(s)"
+msgstr "%1 čakací stav(y)"
 
 msgid "Type"
 msgstr "Typ"
@@ -804,11 +798,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Žiadne"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Disketová mechanika %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Disketová mechanika %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Rozšírené sektorové obrazy"
@@ -828,8 +822,8 @@ msgstr "Nastala chyba pri inicializácii knižnice Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Nastala chyba pri inicializácii knižnice GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "MO %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Obrazy MO"
@@ -903,11 +897,8 @@ msgstr "Konfigurácia zariadenia %1"
 msgid "Monitor in sleep mode"
 msgstr "Monitor je v režime spánku"
 
-msgid "OpenGL Shaders"
-msgstr "Shadery OpenGL"
-
-msgid "OpenGL options"
-msgstr "Možnosti OpenGL"
+msgid "GLSL shaders"
+msgstr "Shadery GLSL"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Pokúšate sa spustiť nepodporovanú konfiguráciu"
@@ -918,23 +909,17 @@ msgstr "Pre túto konfiguráciu bolo vypnuté filtrovanie procesorov podľa zvol
 msgid "Continue"
 msgstr "Pokračovať"
 
-msgid "Cassette: %s"
-msgstr "Kazeta: %s"
+msgid "Cassette: %1"
+msgstr "Kazeta: %1"
 
 msgid "Cassette images"
 msgstr "Kazetové nahrávky"
 
-msgid "Cartridge %i: %ls"
-msgstr "Cartridge %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Cartridge %1: %2"
 
 msgid "Cartridge images"
 msgstr "Obrazy cartridge"
-
-msgid "Error initializing renderer"
-msgstr "Chyba pri inicializácii vykresľovača"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Vykresľovač OpenGL (3.0 Core) sa nepodarilo inicializovať. Použite iný renderer."
 
 msgid "Resume execution"
 msgstr "Obnoviť"
@@ -1098,8 +1083,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1270,16 +1255,13 @@ msgid "Host CD/DVD Drive (%1:)"
 msgstr "Hostiteľská jednotka CD/DVD (%1:)"
 
 msgid "&Connected"
-msgstr "&Connected"
+msgstr ""
 
 msgid "Clear image history"
 msgstr "Vymazanie histórie obrázkov"
 
 msgid "Create..."
 msgstr "Vytvorte..."
-
-msgid "previous image"
-msgstr "predchádzajúca snímka"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Hostiteľská jednotka CD/DVD (%1)"
@@ -1290,23 +1272,9 @@ msgstr "Neznáma zbernica"
 msgid "Null Driver"
 msgstr "Nulový ovládač"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
-msgid "Error opening \"%1\": %2"
-msgstr "Chyba pri otváraní \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Chyba kompilácie vertex shadera v súbore \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Chyba kompilácie fragment shadera v súbore \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Chyba pri prepojení shader programu v súbore \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Možnosti vykresľovania OpenGL 3.0"
 
 msgid "Render behavior"
 msgstr "Správanie pri vykresľovaní"
@@ -1320,9 +1288,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Okamžite vykresliť každú snímku v synchronizácii s emulovaným displejom.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Toto je odporúčaná možnosť, ak používané shadery nevyužívajú frametime pre animované efekty.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Synchronizovať s obrazom"
 
@@ -1332,20 +1297,8 @@ msgstr "Shadery"
 msgid "Remove"
 msgstr "Odstránenie stránky"
 
-msgid "No shader selected"
-msgstr "Nie je vybraný žiadny tieňovač"
-
 msgid "Browse..."
 msgstr "Prehľadávať..."
-
-msgid "Shader error"
-msgstr "Chyba shadera"
-
-msgid "Could not load shaders."
-msgstr "Nepodarilo sa načítať shadery."
-
-msgid "More information in details."
-msgstr "Viac informácií v detailoch."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nepodarilo sa vytvoriť kontext OpenGL."
@@ -1356,17 +1309,11 @@ msgstr "Nepodarilo sa prepnúť na kontext OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Vyžaduje sa verzia OpenGL 3.0 alebo vyššia. Aktuálna verzia je %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Inicializácia OpenGL zlyhala. Chyba %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Chyba pri inicializácii OpenGL"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Návrat k softvérovému vykresľovaniu.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Alokácia pamäte pre rozbaľovaciu vyrovnávaciu pamäť zlyhala.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nNávrat k softvérovému vykresľovaniu."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pri výbere multimediálnych obrazov (CD-ROM, disketa atď.) sa dialógové okno otvorenia spustí v rovnakom adresári ako konfiguračný súbor 86Box. Toto nastavenie bude mať pravdepodobne význam len v systéme MacOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
@@ -1433,9 +1380,6 @@ msgstr "Priechod sériového portu 3"
 
 msgid "Serial port passthrough 4"
 msgstr "Priechod cez sériový port 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
 
 msgid "Renderer options..."
 msgstr "Možnosti vykresľovača..."
@@ -2103,8 +2047,8 @@ msgstr "Pomenované potrubie (server)"
 msgid "Host Serial Passthrough"
 msgstr "Priechod sériového portu hostiteľa"
 
-msgid "Eject %s"
-msgstr "Vystrihnúť %s"
+msgid "E&ject %1"
+msgstr "&Vystrihnúť %1"
 
 msgid "&Unmute"
 msgstr "&Roztíšiť"
@@ -2115,8 +2059,29 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "Vysoký vplyv na výkon"
 
-msgid "RAM Disk (max. speed)"
-msgstr "Disk RAM (max. rýchlosť)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] Disk RAM (max. rýchlosť)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Klon IBM 8514/A (ISA)"
@@ -2135,3 +2100,63 @@ msgstr "Nastala chyba pri hľadaní ihličkových písem"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "Písma TrueType v adresári \"roms/printer/fonts\" sú potrebné na emuláciu generickej ihličkovej tlačiarne ESC/P."
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Display hotkey message when entering full-screen mode"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
+msgstr ""

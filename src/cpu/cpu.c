@@ -2448,11 +2448,6 @@ cpu_CPUID(void)
                 EAX = CPUID;
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_CMOV | CPUID_MMX;
-                /*
-                   Return anything non-zero in bits 32-63 of the BIOS signature MSR
-                   to indicate there has been an update.
-                 */
-                msr.bbl_cr_dx[3] = 0xffffffff00000000ULL;
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2467,6 +2462,11 @@ cpu_CPUID(void)
                 EAX = CPUID;
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+                /*
+                   Return anything non-zero in bits 32-63 of the BIOS signature MSR
+                   to indicate there has been an update.
+                 */
+                msr.bbl_cr_dx[3] = 0xffffffff00000000ULL;
             } else if (EAX == 2) {
                 EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
                                      Instruction TLB: 4 MB pages, fully associative, 2 entries
@@ -2649,6 +2649,12 @@ cpu_ven_reset(void)
         case CPU_PENTIUM2:
         case CPU_PENTIUM2D:
             msr.mtrr_cap = 0x00000508ULL;
+
+            /* 4 GB cacheable space on Deschutes 651h and later (including the 1632h
+               Overdrive) according to the Pentium II Processor Specification Update.
+               Covington 651h (no L2 cache) reports the same 512 MB value as Klamath. */
+            if (CPUID >= (!strncmp(cpu_f->internal_name, "celeron", 7) ? 0x660 : 0x651))
+                msr.bbl_cr_ctl3 |= 0x00300000;
             break;
 
         case CPU_CYRIX3S:
@@ -3295,7 +3301,6 @@ pentium_invalid_rdmsr:
                 case 0x88 ... 0x8b:
                     EAX = msr.bbl_cr_dx[ECX - 0x88] & 0xffffffff;
                     EDX = msr.bbl_cr_dx[ECX - 0x88] >> 32;
-                    // EDX |= 0xffffffff;
                     break;
                 /* Unknown */
                 case 0xae:
@@ -4103,7 +4108,7 @@ pentium_invalid_wrmsr:
                     break;
                 /* BBL_CR_CTL3 - L2 Cache Control Register 3 */
                 case 0x11e:
-                    msr.bbl_cr_ctl3 = EAX | ((uint64_t) EDX << 32);
+                    msr.bbl_cr_ctl3 = (msr.bbl_cr_ctl3 & 0x02f00000) | (EAX & ~0x02f00000) | ((uint64_t) EDX << 32);
                     break;
                 /* Unknown */
                 case 0x131:

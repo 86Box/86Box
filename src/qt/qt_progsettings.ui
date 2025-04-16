@@ -140,7 +140,7 @@
    <item row="7" column="0">
     <widget class="QCheckBox" name="checkBoxMultimediaKeys">
      <property name="text">
-      <string>Inhibit multimedia keys on Windows</string>
+      <string>Inhibit multimedia keys</string>
      </property>
     </widget>
    </item>

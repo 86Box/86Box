@@ -691,12 +691,12 @@ static const device_config_t pb450_config[] = {
         .name = "bios",
         .description = "BIOS Version",
         .type = CONFIG_BIOS,
-        .default_string = "pci10a",
+        .default_string = "pb450a",
         .default_int = 0,
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "PCI 1.0A", .internal_name = "pb450" /*"pci10a"*/, .bios_type = BIOS_NORMAL, 
+            { .name = "PCI 1.0A", .internal_name = "pb450a" /*"pci10a"*/, .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/OPTI802.bin", "" } },
             { .name = "PNP 1.1A", .internal_name = "pnp11a", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/PNP11A.bin", "" } },
@@ -708,7 +708,7 @@ static const device_config_t pb450_config[] = {
 };
 
 const device_t pb450_device = {
-    .name          = "Packard Bell PB450 Devices",
+    .name          = "Packard Bell PB450",
     .internal_name = "pb450_device",
     .flags         = 0,
     .local         = 0,
@@ -732,7 +732,7 @@ machine_at_pb450_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    fn = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
     
@@ -1248,7 +1248,9 @@ machine_at_alfredo_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&amstrad_megapc_nvr_device);
     device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
@@ -1258,7 +1260,7 @@ machine_at_alfredo_init(const machine_t *model)
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 1, 3, 4);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 3, 2, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&keyboard_ps2_phoenix_device);
     device_add(&sio_device);
     device_add(&fdc37c663_device);
     device_add(&intel_flash_bxt_ami_device);
@@ -1279,14 +1281,15 @@ machine_at_ninja_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&amstrad_megapc_nvr_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 1, 2);
     pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 1, 2, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 1, 2, 1);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&keyboard_ps2_phoenix_device);
     device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i420ex_device);

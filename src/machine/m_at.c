@@ -187,7 +187,7 @@ static const device_config_t ibmat_config[] = {
 };
 
 const device_t ibmat_device = {
-    .name          = " IBM AT Devices",
+    .name          = "IBM AT",
     .internal_name = "ibmat_device",
     .flags         = 0,
     .local         = 0,
@@ -294,7 +294,7 @@ static const device_config_t ibmxt286_config[] = {
 };
 
 const device_t ibmxt286_device = {
-    .name          = "IBM XT Model 286 Devices",
+    .name          = "IBM XT Model 286",
     .internal_name = "ibmxt286_device",
     .flags         = 0,
     .local         = 0,
@@ -328,6 +328,23 @@ machine_at_ibmxt286_init(const machine_t *model)
 
     if (enable_5161)
         device_add(&ibm_5161_device);
+
+    return ret;
+}
+
+int
+machine_at_pb286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/pb286/LB_V332P.BIN",
+                                "roms/machines/pb286/HB_V332P.BIN",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ibm_common_init(model);
 
     return ret;
 }
