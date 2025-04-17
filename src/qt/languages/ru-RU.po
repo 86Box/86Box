@@ -55,7 +55,7 @@ msgid "Qt (&OpenGL)"
 msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0)"
+msgstr "Open&GL (3.0 Core)"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -214,7 +214,7 @@ msgid "&Documentation..."
 msgstr "&Документация..."
 
 msgid "&About 86Box..."
-msgstr "&О программе 86Box..."
+msgstr "&О 86Box..."
 
 msgid "&New image..."
 msgstr "&Новый образ..."
@@ -253,7 +253,7 @@ msgid "E&mpty"
 msgstr "П&устой"
 
 msgid "Reload previous image"
-msgstr "Загрузить предыдущий образ"
+msgstr "Перезагрузить предыдущий образ"
 
 msgid "&Folder..."
 msgstr "&Папка..."
@@ -430,10 +430,10 @@ msgid "Sound card #4:"
 msgstr "Звуковая карта 4:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI Out устройство:"
+msgstr "Устройство вывода MIDI:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI In устройство:"
+msgstr "Устройство ввода MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "Отдельный MPU-401"
@@ -1435,7 +1435,7 @@ msgid "BIOS Revision"
 msgstr "Версия BIOS"
 
 msgid "Translate 26 -> 17"
-msgstr "Перевести 26 -> 17"
+msgstr "Переводить 26 -> 17"
 
 msgid "Language"
 msgstr "Язык"
@@ -1531,7 +1531,7 @@ msgid "Reversed stereo"
 msgstr "Реверс стерео"
 
 msgid "Nice ramp"
-msgstr "Nice ramp"
+msgstr "Улучшение рампы"
 
 msgid "Hz"
 msgstr "Гц"
@@ -1582,7 +1582,7 @@ msgid "RAM Address"
 msgstr "Адрес оперативной памяти"
 
 msgid "RAM size"
-msgstr "Объем оперативной памяти"
+msgstr "Размер оперативной памяти"
 
 msgid "Initial RAM size"
 msgstr "Начальный размер оперативной памяти"
@@ -1615,10 +1615,10 @@ msgid "Surround module"
 msgstr "Модуль объемного звучания"
 
 msgid "CODEC"
-msgstr "КОДЕК"
+msgstr "Кодек"
 
 msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Поднимать прерывание CODEC при настройке CODEC (необходимо некоторым драйверам)."
+msgstr "Поднимать прерывание кодека при настройке кодека (необходимо некоторым драйверам)."
 
 msgid "SB Address"
 msgstr "Адрес SB"
@@ -1645,7 +1645,7 @@ msgid "Enable CMS"
 msgstr "Включить CMS"
 
 msgid "Mixer"
-msgstr "Смеситель"
+msgstr "Микшер"
 
 msgid "High DMA"
 msgstr "Высокий DMA"
@@ -1654,7 +1654,7 @@ msgid "Control PC speaker"
 msgstr "Управление динамиком ПК"
 
 msgid "Memory size"
-msgstr "Объем памяти"
+msgstr "Размер памяти"
 
 msgid "EMU8000 Address"
 msgstr "Адрес EMU8000"
@@ -1669,7 +1669,7 @@ msgid "GUS type"
 msgstr "Тип GUS"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr "Включить команду 0x04 \"Выход 86Box\"."
+msgstr "Включить команду 0x04 \"Выход из 86Box\""
 
 msgid "Display type"
 msgstr "Тип дисплея"
@@ -1711,13 +1711,13 @@ msgid "Bilinear filtering"
 msgstr "Билинейная фильтрация"
 
 msgid "Dithering"
-msgstr "Dithering"
+msgstr "Дизеринг"
 
 msgid "Enable NMI for CGA emulation"
 msgstr "Включение NMI для эмуляции CGA"
 
 msgid "Voodoo type"
-msgstr "Тип Вуду"
+msgstr "Тип Voodoo"
 
 msgid "Framebuffer memory size"
 msgstr "Размер памяти фреймбуфера"
@@ -1726,10 +1726,10 @@ msgid "Texture memory size"
 msgstr "Размер памяти текстур"
 
 msgid "Dither subtraction"
-msgstr "Вычитание с вычитанием"
+msgstr "Вычитание дизеринга"
 
 msgid "Screen Filter"
-msgstr "Фильтр экрана"
+msgstr "Экранный фильтр"
 
 msgid "Render threads"
 msgstr "Потоки рендеринга"
@@ -1912,7 +1912,7 @@ msgid "Monochrome (5151/MDA) (white)"
 msgstr "Монохромный (5151/MDA) (белый)"
 
 msgid "Monochrome (5151/MDA) (green)"
-msgstr "Монохромный (5151/MDA) (зеленый)"
+msgstr "Монохромный (5151/MDA) (зелёный)"
 
 msgid "Monochrome (5151/MDA) (amber)"
 msgstr "Монохромный (5151/MDA) (янтарный)"
@@ -1930,7 +1930,7 @@ msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Улучшенный цветной - улучшенный режим (5154/ECD)"
 
 msgid "Green"
-msgstr "Зеленый"
+msgstr "Зелёный"
 
 msgid "Amber"
 msgstr "Янтарный"
@@ -1954,13 +1954,13 @@ msgid "Bochs latest"
 msgstr "Bochs последний"
 
 msgid "Mono Non-Interlaced"
-msgstr "Монохромный без чересстрочной развертки"
+msgstr "Монохромный без чересстрочной развёртки"
 
 msgid "Color Interlaced"
-msgstr "Цветной с чересстрочной разверткой"
+msgstr "Цветной с чересстрочной развёрткой"
 
 msgid "Color Non-Interlaced"
-msgstr "Цветной без чересстрочной развертки"
+msgstr "Цветной без чересстрочной развёртки"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "Ускоритель 3Dfx Voodoo"
@@ -2011,10 +2011,10 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Защитный донгл для Savage Quest"
 
 msgid "Serial Passthrough Device"
-msgstr "Устройство прохода через последовательный порт"
+msgstr "Устройство проброса через последовательный порт"
 
 msgid "Passthrough Mode"
-msgstr "Проходной режим"
+msgstr "Режим проброса"
 
 msgid "Host Serial Device"
 msgstr "Последовательное устройство хоста"
@@ -2101,16 +2101,16 @@ msgid "Inhibit multimedia keys"
 msgstr "Перехватывать мультимедиа-клавиши"
 
 msgid "Ask for confirmation before saving settings"
-msgstr "Спрашивать подтверждения перед сохранением настроек"
+msgstr "Запрашивать подтверждение перед сохранением настроек"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr "Спрашивать подтверждения перед холодной перезагрузкой"
+msgstr "Запрашивать подтверждение перед холодной перезагрузкой"
 
 msgid "Ask for confirmation before quitting"
-msgstr "Спрашивать подтвержждения перед выходом"
+msgstr "Запрашивать подтверждение перед выходом"
 
 msgid "Display hotkey message when entering full-screen mode"
-msgstr "Показывать сообщение о горячих клавишах при включении полноэкранного режима"
+msgstr "Показывать сообщение о горячей клавише при входе в полноэкранный режим"
 
 msgid "Options"
 msgstr "Параметры"
