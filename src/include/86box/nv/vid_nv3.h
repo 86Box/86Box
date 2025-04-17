@@ -26,7 +26,8 @@
 #include <86box/nv/render/vid_nv3_render.h>
 
 // The GPU base structure
-extern const device_config_t nv3_config[];
+extern const device_config_t nv3_config[];                              // Config for RIVA 128 (revision A/B)
+extern const device_config_t nv3t_config[];                             // Config for RIVA 128 ZX (revision C)
 
 #define NV3_MMIO_SIZE                                   0x1000000       // Max MMIO size
 

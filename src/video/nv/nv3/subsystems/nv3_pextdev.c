@@ -134,8 +134,12 @@ void nv3_pextdev_write(uint32_t address, uint32_t value)
     // special consideration for straps
     if (address == NV3_PSTRAPS)
     {
-        warning("Huh? Tried to write to the straps (value=%d). Something is wrong...\n", nv3->pextdev.straps);
-        return;
+        /* For some reason, all RIVA 128 ZX VBIOSes try to write to the straps. So only indicate this as a problem and return on Rev A/B */
+        if (nv3->nvbase.gpu_revision != NV3_PCI_CFG_REVISION_C00)
+        {
+            warning("Huh? Tried to write to the straps (value=%d). Something is wrong...\n", nv3->pextdev.straps);
+            return;
+        }
     }
 
     // if the register actually exists
