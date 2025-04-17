@@ -44,8 +44,8 @@
 /* Max UUID Length */
 #define MAX_UUID_LEN 64
 
-/* Default language 0xFFFF = from system, 0x409 = en-US */
-#define DEFAULT_LANGUAGE 0xffff
+/* Default language code */
+#define DEFAULT_LANGUAGE "system"
 
 #define POSTCARDS_NUM 4
 #define POSTCARD_MASK (POSTCARDS_NUM - 1)
@@ -84,8 +84,6 @@ extern "C" {
 #endif
 
 /* Global variables. */
-extern uint32_t lang_sys; /* (-) system language code */
-
 extern int dump_on_exit;        /* (O) dump regs on exit*/
 extern int start_in_fullscreen; /* (O) start in fullscreen */
 #ifdef _WIN32
@@ -117,7 +115,7 @@ extern int      window_remember;
 extern int      vid_resize;                 /* (C) allow resizing */
 extern int      invert_display;             /* (C) invert the display */
 extern int      suppress_overscan;          /* (C) suppress overscans */
-extern uint32_t lang_id;                    /* (C) language code identifier */
+extern int      lang_id;                    /* (C) language id */
 extern int      scale;                      /* (C) screen scale factor */
 extern int      dpi_scale;                  /* (C) DPI scaling of the emulated screen */
 extern int      vid_api;                    /* (C) video renderer */

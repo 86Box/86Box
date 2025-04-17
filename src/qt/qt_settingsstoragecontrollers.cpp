@@ -142,6 +142,15 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     ui->comboBoxFD->setCurrentIndex(selectedRow);
 
     /*CD interface controller config*/
+#ifdef USE_CDROM_MITSUMI
+    ui->label_7->setVisible(true);
+    ui->comboBoxCDInterface->setVisible(true);
+    ui->pushButtonCDInterface->setVisible(true);
+#else
+    ui->label_7->setVisible(false);
+    ui->comboBoxCDInterface->setVisible(false);
+    ui->pushButtonCDInterface->setVisible(false);
+#endif
     c           = 0;
     model       = ui->comboBoxCDInterface->model();
     removeRows  = model->rowCount();

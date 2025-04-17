@@ -29,6 +29,9 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_interface.h>
+#ifdef USE_CDROM_MITSUMI
+#include <86box/cdrom_mitsumi.h>
+#endif
 #include <86box/log.h>
 #include <86box/plat.h>
 #include <86box/plat_cdrom_ioctl.h>
@@ -117,6 +120,9 @@ static const struct {
 } controllers[] = {
     // clang-format off
     { &cdrom_interface_none_device  },
+#ifdef USE_CDROM_MITSUMI
+    { &mitsumi_cdrom_device },
+#endif
     { NULL                          }
     // clang-format on
 };
