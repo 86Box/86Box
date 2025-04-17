@@ -450,15 +450,6 @@ msgstr "Nuked (presnejší)"
 msgid "YMFM (faster)"
 msgstr "YMFM (rýchlejší)"
 
-msgid "Network type:"
-msgstr "Druh siete:"
-
-msgid "PCap device:"
-msgstr "PCap zariadenia:"
-
-msgid "Network adapter:"
-msgstr "Sieťový adaptér:"
-
 msgid "COM1 Device:"
 msgstr "Zariadenie na COM1:"
 
@@ -1351,17 +1342,17 @@ msgstr "Sieťová karta 3"
 msgid "Network Card #4"
 msgstr "Sieťová karta 4"
 
-msgid "Mode"
-msgstr "Režim"
+msgid "Mode:"
+msgstr "Režim:"
 
-msgid "Interface"
-msgstr "Rozhranie"
+msgid "Interface:"
+msgstr "Rozhranie:"
 
-msgid "Adapter"
-msgstr "Adaptér"
+msgid "Adapter:"
+msgstr "Adaptér:"
 
-msgid "VDE Socket"
-msgstr "Zásuvka VDE"
+msgid "VDE Socket:"
+msgstr "Zásuvka VDE:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"
@@ -1819,6 +1810,9 @@ msgstr "Koleso"
 msgid "Five + Wheel"
 msgstr "Päť + koleso"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 sériová / SMT3(R)V"
 
@@ -2117,6 +2111,9 @@ msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"
+msgstr ""
+
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

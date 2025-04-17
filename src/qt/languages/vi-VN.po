@@ -450,15 +450,6 @@ msgstr "Nuked (chính xác hơn)"
 msgid "YMFM (faster)"
 msgstr "YMFM (nhanh hơn)"
 
-msgid "Network type:"
-msgstr "Kiểu loại mạng:"
-
-msgid "PCap device:"
-msgstr "Thiết bị PCap:"
-
-msgid "Network adapter:"
-msgstr "Bộ thích ứng (adapter) mạng:"
-
 msgid "COM1 Device:"
 msgstr "Thiết bị COM1:"
 
@@ -1350,17 +1341,17 @@ msgstr "Thẻ mạng 3"
 msgid "Network Card #4"
 msgstr "Thẻ mạng 4"
 
-msgid "Mode"
-msgstr "Chế độ"
+msgid "Mode:"
+msgstr "Chế độ:"
 
-msgid "Interface"
-msgstr "Giao diện"
+msgid "Interface:"
+msgstr "Giao diện:"
 
-msgid "Adapter"
-msgstr "Bộ chuyển đổi"
+msgid "Adapter:"
+msgstr "Bộ chuyển đổi:"
 
-msgid "VDE Socket"
-msgstr "Ổ cắm VDE"
+msgid "VDE Socket:"
+msgstr "Ổ cắm VDE:"
 
 msgid "86Box Unit Tester"
 msgstr "Trình kiểm tra đơn vị 86box"
@@ -1818,6 +1809,9 @@ msgstr "Con lăn"
 msgid "Five + Wheel"
 msgstr "Năm + con lăn"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 Serial / SMT3(R)V"
 
@@ -2116,6 +2110,9 @@ msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"
+msgstr ""
+
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

@@ -450,15 +450,6 @@ msgstr "Nuked (genauer)"
 msgid "YMFM (faster)"
 msgstr "YMFM (schneller)"
 
-msgid "Network type:"
-msgstr "Netzwerktyp:"
-
-msgid "PCap device:"
-msgstr "PCap-Gerät:"
-
-msgid "Network adapter:"
-msgstr "Netzwerkadapter:"
-
 msgid "COM1 Device:"
 msgstr "COM1-Gerät:"
 
@@ -1353,17 +1344,17 @@ msgstr "Netzwerkkarte 3"
 msgid "Network Card #4"
 msgstr "Netzwerkkarte 4"
 
-msgid "Mode"
-msgstr "Modus"
+msgid "Mode:"
+msgstr "Modus:"
 
-msgid "Interface"
-msgstr "Schnittstelle"
+msgid "Interface:"
+msgstr "Schnittstelle:"
 
-msgid "Adapter"
-msgstr "Adapter"
+msgid "Adapter:"
+msgstr "Adapter:"
 
-msgid "VDE Socket"
-msgstr "VDE Port"
+msgid "VDE Socket:"
+msgstr "VDE Port:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box-Gerätetester"
@@ -1821,6 +1812,9 @@ msgstr "Rad"
 msgid "Five + Wheel"
 msgstr "Fünf + Rad"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 Seriell / SMT3(R)V"
 
@@ -2119,6 +2113,9 @@ msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"
+msgstr ""
+
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

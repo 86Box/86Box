@@ -450,15 +450,6 @@ msgstr "Nuked (precizniji)"
 msgid "YMFM (faster)"
 msgstr "YMFM (brži)"
 
-msgid "Network type:"
-msgstr "Tip mreže:"
-
-msgid "PCap device:"
-msgstr "Uređaj PCap:"
-
-msgid "Network adapter:"
-msgstr "Mrežna kartica:"
-
 msgid "COM1 Device:"
 msgstr "Uređaj COM1:"
 
@@ -1350,17 +1341,17 @@ msgstr "Mrežna kartica 3"
 msgid "Network Card #4"
 msgstr "Mrežna kartica 4"
 
-msgid "Mode"
-msgstr "Način"
+msgid "Mode:"
+msgstr "Način:"
 
-msgid "Interface"
-msgstr "Sučelje"
+msgid "Interface:"
+msgstr "Sučelje:"
 
-msgid "Adapter"
-msgstr "Adapter"
+msgid "Adapter:"
+msgstr "Adapter:"
 
-msgid "VDE Socket"
-msgstr "VDE utičnica"
+msgid "VDE Socket:"
+msgstr "VDE utičnica:"
 
 msgid "86Box Unit Tester"
 msgstr "Jedinični ispitivač 86Box-a"
@@ -1818,6 +1809,9 @@ msgstr "Kotač"
 msgid "Five + Wheel"
 msgstr "Pet + kotač"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 serijski / SMT3(R)V"
 
@@ -2116,6 +2110,9 @@ msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"
+msgstr ""
+
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

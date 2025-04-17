@@ -450,15 +450,6 @@ msgstr "Nuked (tarkempi)"
 msgid "YMFM (faster)"
 msgstr "YMFM (nopeampi)"
 
-msgid "Network type:"
-msgstr "Verkon tyyppi:"
-
-msgid "PCap device:"
-msgstr "PCap-laite:"
-
-msgid "Network adapter:"
-msgstr "Verkkokortti:"
-
 msgid "COM1 Device:"
 msgstr "COM1-laite:"
 
@@ -1353,17 +1344,17 @@ msgstr "Verkkokortti 3"
 msgid "Network Card #4"
 msgstr "Verkkokortti 4"
 
-msgid "Mode"
-msgstr "Tila"
+msgid "Mode:"
+msgstr "Tila:"
 
-msgid "Interface"
-msgstr "Liitäntä"
+msgid "Interface:"
+msgstr "Liitäntä:"
 
-msgid "Adapter"
-msgstr "Sovitin"
+msgid "Adapter:"
+msgstr "Sovitin:"
 
-msgid "VDE Socket"
-msgstr "VDE-pistorasia"
+msgid "VDE Socket:"
+msgstr "VDE-pistorasia:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"
@@ -1821,6 +1812,9 @@ msgstr "Pyörä"
 msgid "Five + Wheel"
 msgstr "Viisi + pyörä"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 sarja / SMT3(R)V"
 
@@ -2119,6 +2113,9 @@ msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"
+msgstr ""
+
+msgid "Model"
 msgstr ""
 
 msgid "Model:"
