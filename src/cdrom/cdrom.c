@@ -2274,13 +2274,73 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
     return ret;
 }
 
+static uint32_t
+cdrom_msf_to_lba(const int sector, const int ismsf,
+                 int cdrom_sector_type, const uint8_t vendor_type)
+{
+    int      pos = sector;
+    uint32_t lba;
+
+    if ((cdrom_sector_type & 0x0f) >= 0x08) {
+        mult               = cdrom_sector_type >> 4;
+        pos               /= mult;
+    }
+
+    if (ismsf) {
+        const int m = (pos >> 16) & 0xff;
+        const int s = (pos >> 8) & 0xff;
+        const int f = pos & 0xff;
+
+        lba = MSFtoLBA(m, s, f) - 150;
+    } else {
+        switch (vendor_type) {
+            case 0x00:
+                lba = pos;
+                break;
+            case 0x40: {
+                const int m = bcd2bin((pos >> 24) & 0xff);
+                const int s = bcd2bin((pos >> 16) & 0xff);
+                const int f = bcd2bin((pos >> 8) & 0xff);
+
+                lba = MSFtoLBA(m, s, f) - 150;
+                break;
+            } case 0x80:
+                lba = bcd2bin((pos >> 24) & 0xff);
+                break;
+            /* Never used values but the compiler complains. */
+            default:
+                lba = 0;
+        }
+    }
+
+    return lba;
+}
+
+int
+cdrom_is_track_audio(cdrom_t *dev, const int sector,
+                     const int ismsf, int cdrom_sector_type,
+                     const uint8_t vendor_type)
+{
+    int      audio = 0;
+    uint32_t lba   = cdrom_msf_to_lba(sector, ismsf,
+                                      cdrom_sector_type, vendor_type);
+
+    if (dev->ops->get_track_type)
+        audio = dev->ops->get_track_type(dev->local, lba);
+
+    audio        &= CD_TRACK_AUDIO;
+
+    return audio;
+}
+
 int
 cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int ismsf,
                      int cdrom_sector_type, const int cdrom_sector_flags,
                      int *len, const uint8_t vendor_type)
 {
-    int      pos    = sector;
-    int      ret    = 0;
+    int       pos      = sector;
+    int       ret      = 0;
+    const int old_type = cdrom_sector_type;
 
     if ((cdrom_sector_type & 0x0f) >= 0x08) {
         mult               = cdrom_sector_type >> 4;
@@ -2298,37 +2358,11 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
         uint8_t *temp_b;
         uint8_t *b      = temp_b = buffer;
         int      audio  = 0;
-        uint32_t lba;
+        uint32_t lba    = cdrom_msf_to_lba(sector, ismsf,
+                                           old_type, vendor_type);
         int      mode2  = 0;
 
         *len = 0;
-
-        if (ismsf) {
-            const int m = (pos >> 16) & 0xff;
-            const int s = (pos >> 8) & 0xff;
-            const int f = pos & 0xff;
-
-            lba = MSFtoLBA(m, s, f) - 150;
-        } else {
-            switch (vendor_type) {
-                case 0x00:
-                    lba = pos;
-                    break;
-                case 0x40: {
-                    const int m = bcd2bin((pos >> 24) & 0xff);
-                    const int s = bcd2bin((pos >> 16) & 0xff);
-                    const int f = bcd2bin((pos >> 8) & 0xff);
-
-                    lba = MSFtoLBA(m, s, f) - 150;
-                    break;
-                } case 0x80:
-                    lba = bcd2bin((pos >> 24) & 0xff);
-                    break;
-                /* Never used values but the compiler complains. */
-                default:
-                    lba = 0;
-            }
-        }
 
         if (dev->ops->get_track_type)
             audio = dev->ops->get_track_type(dev->local, lba);
