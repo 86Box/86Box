@@ -1808,6 +1808,9 @@ msgstr "Rueda"
 msgid "Five + Wheel"
 msgstr "Cinco + rueda"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 serie / SMT3(R)V"
 

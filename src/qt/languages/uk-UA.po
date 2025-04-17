@@ -1809,6 +1809,9 @@ msgstr "Колесо"
 msgid "Five + Wheel"
 msgstr "П'ять + колесо"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 послідовна / SMT3(R)V"
 

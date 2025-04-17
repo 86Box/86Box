@@ -1810,6 +1810,9 @@ msgstr "Koleso"
 msgid "Five + Wheel"
 msgstr "Päť + koleso"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 sériová / SMT3(R)V"
 
