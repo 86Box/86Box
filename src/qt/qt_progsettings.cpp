@@ -26,6 +26,10 @@
 #include <QDir>
 #include <QFile>
 #include <QLibraryInfo>
+#ifdef Q_OS_WINDOWS
+#    include <QSysInfo>
+#    include <QVersionNumber>
+#endif
 
 extern "C" {
 #include <86box/86box.h>
@@ -115,7 +119,11 @@ ProgSettings::getFontName(uint32_t lcid)
         case 0x0404: /* zh-TW */
             return "Microsoft JhengHei";
         case 0x0411: /* ja-JP */
-            return "Meiryo UI";
+            /* Check for Windows 10 or later to choose the appropriate system font */
+            if (QVersionNumber::fromString(QSysInfo::kernelVersion()).majorVersion() >= 10)
+                return "Yu Gothic UI";
+            else
+                return "Meiryo UI";
         case 0x0412: /* ko-KR */
             return "Malgun Gothic";
         case 0x0804: /* zh-CN */
