@@ -146,7 +146,11 @@ sermouse_transmit_byte(mouse_t *dev, int do_next)
         serial_write_fifo(dev->serial, dev->buf[dev->buf_pos]);
 
     if (do_next) {
-        dev->buf_pos = (dev->buf_pos + 1) % dev->buf_len;
+        /* If we have a buffer length of 0, pretend the state is STATE_SKIP_PACKET. */
+        if (dev->buf_len == 0)
+            dev->buf_pos = 0;
+        else
+            dev->buf_pos = (dev->buf_pos + 1) % dev->buf_len;
 
         if (dev->buf_pos != 0)
             sermouse_set_period(dev, dev->transmit_period);
@@ -747,7 +751,7 @@ sermouse_timer(void *priv)
             if (!dev->prompt && !dev->continuous)
                 sermouse_transmit_report(dev, (dev->state == STATE_TRANSMIT_REPORT));
             else
-                 dev->state = STATE_IDLE;
+                dev->state = STATE_IDLE;
             break;
         case STATE_TRANSMIT_REPORT:
         case STATE_TRANSMIT:

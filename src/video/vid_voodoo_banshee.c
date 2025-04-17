@@ -52,6 +52,7 @@
 
 #define ROM_BANSHEE                 "roms/video/voodoo/Pci_sg.rom"
 #define ROM_CREATIVE_BANSHEE        "roms/video/voodoo/BlasterPCI.rom"
+#define ROM_QUANTUM3D_RAVEN         "roms/video/voodoo/RVPD0224.rom"
 #define ROM_VOODOO3_1000            "roms/video/voodoo/1k11sg.rom"
 #define ROM_VOODOO3_2000            "roms/video/voodoo/2k11sd.rom"
 #define ROM_VOODOO3_3000            "roms/video/voodoo/3k12sd.rom"
@@ -78,6 +79,7 @@ static uint8_t vb_filter_bx_g[256][256];
 
 enum {
     TYPE_BANSHEE = 0,
+    TYPE_QUANTUM3D_RAVEN,
     TYPE_V3_1000,
     TYPE_V3_2000,
     TYPE_V3_3000,
@@ -3374,6 +3376,16 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
             }
             break;
 
+        case TYPE_QUANTUM3D_RAVEN:
+            /* This case basically exists only to set the subsystem ID correctly for SF: Rush, a vendor-locked game. */
+            /*  We set the type back to TYPE_BANSHEE so the card behaves as a regular Banshee (no 3D glasses emulation). */
+            banshee->pci_regs[0x2c] = 0x9c;
+            banshee->pci_regs[0x2d] = 0x13;
+            banshee->pci_regs[0x2e] = banshee->agp ? 0x16 : 0x17;
+            banshee->pci_regs[0x2f] = 0x00;
+            banshee->type = TYPE_BANSHEE;
+            break;
+
         case TYPE_V3_1000:
             banshee->pci_regs[0x2c] = 0x1a;
             banshee->pci_regs[0x2d] = 0x12;
@@ -3449,6 +3461,12 @@ static void *
 creative_banshee_init(const device_t *info)
 {
     return banshee_init_common(info, ROM_CREATIVE_BANSHEE, 0, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
+}
+
+static void *
+quantum3d_raven_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_QUANTUM3D_RAVEN, 0, TYPE_QUANTUM3D_RAVEN, VOODOO_BANSHEE, 0);
 }
 
 static void *
@@ -3545,6 +3563,12 @@ static int
 creative_banshee_available(void)
 {
     return rom_present(ROM_CREATIVE_BANSHEE);
+}
+
+static int
+quantum3d_raven_available(void)
+{
+    return rom_present(ROM_QUANTUM3D_RAVEN);
 }
 
 static int
@@ -3878,6 +3902,20 @@ const device_t creative_voodoo_banshee_device = {
     .close         = banshee_close,
     .reset         = NULL,
     .available     = creative_banshee_available,
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    .config        = banshee_sdram_config
+};
+
+const device_t quantum3d_raven_device = {
+    .name          = "Quantum3D Raven",
+    .internal_name = "q3d_raven_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = quantum3d_raven_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    .available     = quantum3d_raven_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sdram_config
