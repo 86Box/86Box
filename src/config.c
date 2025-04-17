@@ -186,7 +186,7 @@ load_general(void)
     if (p != NULL)
         lang_id = plat_language_code(p);
     else
-        lang_id = 0xffff;
+        lang_id = plat_language_code(DEFAULT_LANGUAGE);
 
     mouse_sensitivity = ini_section_get_double(cat, "mouse_sensitivity", 1.0);
     if (mouse_sensitivity < 0.1)
@@ -1842,7 +1842,7 @@ config_load(void)
         cassette_pcm          = 0;
         cassette_ui_writeprot = 0;
 
-        lang_id = DEFAULT_LANGUAGE;
+        lang_id = plat_language_code(DEFAULT_LANGUAGE);
 
         config_log("Config file not present or invalid!\n");
     } else {
@@ -2029,7 +2029,7 @@ save_general(void)
     else
         ini_section_delete_var(cat, "mouse_sensitivity");
 
-    if (lang_id == DEFAULT_LANGUAGE)
+    if (lang_id == plat_language_code(DEFAULT_LANGUAGE))
         ini_section_delete_var(cat, "language");
     else {
         plat_language_code_r(lang_id, buffer, 511);
