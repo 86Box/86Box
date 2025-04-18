@@ -18,7 +18,7 @@
 #pragma once
 
 /* Core */
-void nv3_render_current_bpp(svga_t *svga, nv3_position_16_t position, nv3_size_16_t size, nv3_grobj_t grobj, bool run_render_check);
+void nv3_render_current_bpp(svga_t *svga, nv3_position_16_t position, nv3_size_16_t size, nv3_grobj_t grobj, bool run_render_check, bool use_destination_buffer);
 void nv3_render_current_bpp_dfb_8(uint32_t address);
 void nv3_render_current_bpp_dfb_16(uint32_t address);
 void nv3_render_current_bpp_dfb_32(uint32_t address);

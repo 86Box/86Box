@@ -79,9 +79,9 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_VBIOS_DEFAULT                               NV3_VBIOS_ERAZOR_V15403
 
 // Temporary, will be loaded from settings
-#define NV3_VRAM_SIZE_2MB                                   0x200000 // 2MB
-#define NV3_VRAM_SIZE_4MB                                   0x400000 // 4MB
-#define NV3_VRAM_SIZE_8MB                                   0x800000 // NV3T only
+#define NV3_VRAM_SIZE_2MB                               0x200000 // 2MB
+#define NV3_VRAM_SIZE_4MB                               0x400000 // 4MB
+#define NV3_VRAM_SIZE_8MB                               0x800000 // NV3T only
 // There is also 1mb supported by the card but it was never used
 
 // PCI config
@@ -676,10 +676,7 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_PRMCIO_START                                0x601000
 
 
-#define NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_MONO         0x6013B4    // Current CRTC Register Index - Monochrome
-#define NV3_PRMCIO_CRTC_REGISTER_CUR_MONO               0x6013B5    // Currently Selected CRTC Register - Monochrome
-#define NV3_PRMCIO_CRTC_REGISTER_CUR_INDEX_COLOR        0x6013D4    // Current CRTC Register Index - Colour
-#define NV3_PRMCIO_CRTC_REGISTER_CUR_COLOR              0x6013D5    
+
 #define NV3_PRMCIO_END                                  0x601FFF
 
 #define NV3_PDAC_START                                  0x680000    // OPTIONAL external DAC
@@ -787,6 +784,9 @@ extern const device_config_t nv3t_config[];                             // Confi
 
 // CRTC/CIO (0x3b0-0x3df)
 
+#define NV3_CRTC_REGISTER_INDEX_MONO                    0x3B4    
+#define NV3_CRTC_REGISTER_MONO                          0x3B5    // Currently Selected CRTC Register - Monochrome 
+
 #define NV3_CRTC_DATA_OUT                               0x3C0
 #define NV3_CRTC_MISCOUT                                0x3C2
 
@@ -795,6 +795,8 @@ extern const device_config_t nv3t_config[];                             // Confi
 
 #define NV3_CRTC_REGISTER_INDEX                         0x3D4 
 #define NV3_CRTC_REGISTER_CURRENT                       0x3D5
+
+#define NV3_CRTC_REGISTER_WTF                           0x3D8
 
 // These are standard (0-18h)
 #define NV3_CRTC_REGISTER_HTOTAL                        0x00
@@ -1076,8 +1078,8 @@ typedef struct nv3_pramdac_s
     uint32_t hserr_width;       // horizontal sync error width
 
     uint8_t user_pixel_mask;                        // pixel mask for DAC lookup
-    uint32_t user_read_mode_address;                 // user read mode address
-    uint32_t user_write_mode_address;                // user write mode address
+    uint32_t user_read_mode_address;                // user read mode address
+    uint32_t user_write_mode_address;               // user write mode address
     uint8_t palette[NV3_USER_DAC_PALETTE_SIZE];     // Palette Info/CLUT - 256 entriesxr,g,b = 768 bytes
 } nv3_pramdac_t;
 

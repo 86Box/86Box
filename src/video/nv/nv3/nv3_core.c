@@ -196,7 +196,6 @@ void nv3_mmio_write16(uint32_t addr, uint16_t val, void* priv)
 
         nv_log_verbose_only("Redirected MMIO write16 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
 
-
         nv3_svga_write(real_address, val & 0xFF, nv3);
         nv3_svga_write(real_address + 1, (val >> 8) & 0xFF, nv3);
         
@@ -632,6 +631,9 @@ uint8_t nv3_svga_read(uint16_t addr, void* priv)
         case NV3_CRTC_REGISTER_INDEX:
             ret = nv3->nvbase.svga.crtcreg;
             break;
+        case NV3_CRTC_REGISTER_WTF:
+            ret = 0x08; // Required to not freeze in certain situations on v3.xx drivers
+            break; 
         case NV3_CRTC_REGISTER_CURRENT:
             // Support the extended NVIDIA CRTC register range
             switch (nv3->nvbase.svga.crtcreg)
