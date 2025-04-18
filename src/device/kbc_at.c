@@ -2807,7 +2807,7 @@ const device_t keyboard_ps2_acer_pci_device = {
 
 const device_t keyboard_ps2_phoenix_pci_device = {
     .name          = "PS/2 Keyboard (Phoenix)",
-    .internal_name = "keyboard_ps2_acer_pci",
+    .internal_name = "keyboard_ps2_phoenix_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_PHOENIX,
     .init          = kbc_at_init,
