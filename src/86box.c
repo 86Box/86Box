@@ -654,7 +654,7 @@ usage:
 #ifdef USE_INSTRUMENT
             printf("-J or --instrument name - set 'name' to be the profiling instrument\n");
 #endif
-            printf("-K or --keycodes codes  - set 'codes' to be the uncapture combination\n");
+            printf("-K or --keycodes codes  - set the uncapture combination (leave codes blank for instructions)\n");
             printf("-L or --logfile path    - set 'path' to be the logfile\n");
             printf("-M or --missing         - dump missing machines and video cards\n");
             printf("-N or --noconfirm       - do not ask for confirmation on quit\n");
@@ -728,7 +728,7 @@ usage:
             temp2 = NULL;
         } else if (!strcasecmp(argv[c], "--vmname") || !strcasecmp(argv[c], "-V")) {
             if ((c + 1) == argc)
-                goto usage;
+				goto usage;
 
             strcpy(vm_name, argv[++c]);
 #ifndef USE_SDL_UI
@@ -747,11 +747,17 @@ usage:
             hook_enabled = 0;
         } else if (!strcasecmp(argv[c], "--keycodes") || !strcasecmp(argv[c], "-K")) {
             if ((c + 1) == argc)
-                goto usage;
-
-            sscanf(argv[++c], "%03hX,%03hX,%03hX,%03hX,%03hX,%03hX",
-                   &key_prefix_1_1, &key_prefix_1_2, &key_prefix_2_1, &key_prefix_2_2,
-                   &key_uncapture_1, &key_uncapture_2);
+			{
+				// user didn't enter keycodes; print usage and exit.
+                printf("Enter codes in the format 0xNNN,0xNNN\n");
+				printf("Each value is a keyboard scancode in hexadecimal format.\n\n");
+				printf("\tFor F8+F12: --keycodes 0x042,0x058\n\n");
+				printf("Special keys are often shifted, adding 0x100. This includes Ctrl.\n\n");
+				printf("\tFor Ctrl+End: --keycodes 0x01d,0x14f\n\n");
+				return 0; // exit
+			}
+			
+            sscanf(argv[++c], "0x%03hX,0x%03hX", &key_uncapture_1_1, &key_uncapture_1_2);
         } else if (!strcasecmp(argv[c], "--clearboth") || !strcasecmp(argv[c], "-X")) {
             if ((c + 1) == argc)
                 goto usage;
