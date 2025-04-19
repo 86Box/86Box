@@ -56,22 +56,13 @@ jobs:
           - name: SDL GUI
             qt: off
             static: on
-            src-packages: >-
-              libsndfile
           - name: Qt GUI
             qt: on
             slug: -Qt
             packages: >-
               qt@5
-            src-packages: >-
-              libsndfile
 
     steps:
-      - name: Install source dependencies
-        run: >-
-          brew reinstall -s
-          ${{ matrix.ui.src-packages }}
-
       - name: Install dependencies
         run: >-
           brew install
@@ -158,22 +149,13 @@ jobs:
           - name: SDL GUI
             qt: off
             static: on
-            src-packages: >-
-              libsndfile
           - name: Qt GUI
             qt: on
             slug: -Qt
             packages: >-
               qt@5
-            src-packages: >-
-              libsndfile
 
     steps:
-      - name: Install source dependencies
-        run: >-
-          brew reinstall -s
-          ${{ matrix.ui.src-packages }}
-
       - name: Install dependencies
         run: >-
           brew install
