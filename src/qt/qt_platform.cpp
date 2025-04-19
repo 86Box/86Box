@@ -571,7 +571,7 @@ c16stombs(char dst[], const uint16_t src[], int len)
 }
 #endif
 
-#    define MOUSE_CAPTURE_KEYSEQ "F8+F12"
+QString MOUSE_CAPTURE_KEYSEQ;
 
 #ifdef _WIN32
 #    if defined(__amd64__) || defined(_M_X64) || defined(__aarch64__) || defined(_M_ARM64)
@@ -595,9 +595,21 @@ ProgSettings::reloadStrings()
 {
     translatedstrings.clear();
     translatedstrings[STRING_MOUSE_CAPTURE]             = QCoreApplication::translate("", "Click to capture mouse").toStdWString();
-    translatedstrings[STRING_MOUSE_RELEASE]             = QCoreApplication::translate("", "Press %1 to release mouse").arg(QCoreApplication::translate("", MOUSE_CAPTURE_KEYSEQ)).toStdWString();
-    translatedstrings[STRING_MOUSE_RELEASE_MMB]         = QCoreApplication::translate("", "Press %1 or middle button to release mouse").arg(QCoreApplication::translate("", MOUSE_CAPTURE_KEYSEQ)).toStdWString();
-    translatedstrings[STRING_INVALID_CONFIG]            = QCoreApplication::translate("", "Invalid configuration").toStdWString();
+	
+	// Switch the mouse uncapture combo string based on config directive
+	if (key_uncapture_1_1 == 0x042 && key_uncapture_1_2 == 0x058)
+	{
+		MOUSE_CAPTURE_KEYSEQ = "F8+F12";
+	} else if (key_uncapture_1_1 == 0x01d && key_uncapture_1_2 == 0x14f) {
+		MOUSE_CAPTURE_KEYSEQ = "Ctrl+End";
+	} else {
+		MOUSE_CAPTURE_KEYSEQ = "custom key combo";
+	}
+	
+    translatedstrings[STRING_MOUSE_RELEASE]             = QCoreApplication::translate("", "Press %1 to release mouse").arg(QCoreApplication::translate("", qPrintable(MOUSE_CAPTURE_KEYSEQ))).toStdWString();
+    translatedstrings[STRING_MOUSE_RELEASE_MMB]         = QCoreApplication::translate("", "Press %1 or middle button to release mouse").arg(QCoreApplication::translate("", qPrintable(MOUSE_CAPTURE_KEYSEQ))).toStdWString();
+    
+	translatedstrings[STRING_INVALID_CONFIG]            = QCoreApplication::translate("", "Invalid configuration").toStdWString();
     translatedstrings[STRING_NO_ST506_ESDI_CDROM]       = QCoreApplication::translate("", "MFM/RLL or ESDI CD-ROM drives never existed").toStdWString();
     translatedstrings[STRING_PCAP_ERROR_NO_DEVICES]     = QCoreApplication::translate("", "No PCap devices found").toStdWString();
     translatedstrings[STRING_PCAP_ERROR_INVALID_DEVICE] = QCoreApplication::translate("", "Invalid PCap device").toStdWString();

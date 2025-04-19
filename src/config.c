@@ -182,6 +182,31 @@ load_general(void)
     confirm_exit  = ini_section_get_int(cat, "confirm_exit", 1);
     confirm_save  = ini_section_get_int(cat, "confirm_save", 1);
 
+	p = ini_section_get_string(cat, "escape_combo", NULL);
+	if (p == NULL) p = "f8_f12";
+	// If the keys are already defined, it means the user passed
+	// --keycodes, so don't override.
+	if (key_uncapture_1_1 == 0x000) {
+		// Check if escape_combo can be parsed as a pair of scancodes
+		if(sscanf(p, "0x%03hX,0x%03hX", &key_uncapture_1_1, &key_uncapture_1_2) == 2)
+		{
+			// Yep. Parse it again and this time update the capture codes.
+			sscanf(p, "0x%03hX,0x%03hX", &key_uncapture_1_1, &key_uncapture_1_2);
+		}
+		else if(!stricmp(p, "ctrl_end"))
+		{
+			// User chose the ctrl_end shorthand.
+			key_uncapture_1_1 = 0x01d;
+			key_uncapture_1_2 = 0x14f;
+		}
+		else
+		{
+			// Default; F8+F12
+			key_uncapture_1_1 = 0x042;
+			key_uncapture_1_2 = 0x058;
+		}
+	}
+
     p = ini_section_get_string(cat, "language", NULL);
     if (p != NULL)
         lang_id = plat_language_code(p);

@@ -354,7 +354,44 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     ui->actionEnable_Discord_integration->setChecked(enable_discord);
     ui->actionApply_fullscreen_stretch_mode_when_maximized->setChecked(video_fullscreen_scale_maximized);
+	
+	auto actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->actionRelease_F8_F12);
+    actGroup->addAction(ui->actionRelease_Ctrl_End);	
+	actGroup->setExclusive(true);
+    connect(actGroup, &QActionGroup::triggered, [this](QAction *action) {
+        if (action->property("release_combo").toInt() == 1)
+		{
+			// User chose the ctrl_end shorthand.
+			key_uncapture_1_1 = 0x01d;
+			key_uncapture_1_2 = 0x14f;
+		}
+		else
+		{
+			// Default; F8+F12
+			key_uncapture_1_1 = 0x042;
+			key_uncapture_1_2 = 0x058;
+		}
+	});
 
+	// Set mouse capture combo menu option
+	if (key_uncapture_1_1 == 0x042 && key_uncapture_1_2 == 0x058)
+	{
+		// F8+F12
+		ui->actionRelease_F8_F12->setChecked(true);
+		emit actGroup->triggered(ui->actionRelease_F8_F12);
+	} else if (key_uncapture_1_1 == 0x01d && key_uncapture_1_2 == 0x14f) {
+		// Ctrl+End
+		ui->actionRelease_Ctrl_End->setChecked(true);
+		emit actGroup->triggered(ui->actionRelease_Ctrl_End);
+	} else {
+		// Disable menu
+		ui->menuCombo->setEnabled(false);
+		ui->menuCombo->setTitle("Mouse release key (overridden)");
+	}
+
+	
+	
 #ifndef DISCORD
     ui->actionEnable_Discord_integration->setVisible(false);
 #else
@@ -408,7 +445,7 @@ MainWindow::MainWindow(QWidget *parent)
         ui->actionVulkan->setVisible(false);
     }
 
-    auto actGroup = new QActionGroup(this);
+	actGroup = new QActionGroup(this);
     actGroup->addAction(ui->actionSoftware_Renderer);
     actGroup->addAction(ui->actionHardware_Renderer_OpenGL);
     actGroup->addAction(ui->actionHardware_Renderer_OpenGL_ES);

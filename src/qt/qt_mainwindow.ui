@@ -72,6 +72,14 @@
     <addaction name="separator"/>
     <addaction name="actionKeyboard_requires_capture"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
+	<widget class="QMenu" name="menuCombo">
+     <property name="title">
+      <string>Mouse release key</string>
+     </property>
+     <addaction name="actionRelease_F8_F12"/>
+     <addaction name="actionRelease_Ctrl_End"/>
+    </widget>
+	<addaction name="menuCombo"/>
     <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
     <addaction name="actionPause"/>
@@ -410,6 +418,30 @@
     <number>1</number>
    </property>
   </action>
+  
+   <action name="actionRelease_F8_F12">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>F8 + F12</string>
+   </property>
+   <property name="release_combo" stdset="0">
+    <number>0</number>
+   </property>
+  </action>
+    <action name="actionRelease_Ctrl_End">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Ctrl + End</string>
+   </property>
+   <property name="release_combo" stdset="0">
+    <number>1</number>
+   </property>
+  </action>
+  
   <action name="actionHardware_Renderer_OpenGL_ES">
    <property name="checkable">
     <bool>true</bool>

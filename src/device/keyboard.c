@@ -36,13 +36,9 @@ uint16_t     scancode_map[768] = { 0 };
 
 int          keyboard_scan;
 
-/* F8+F12 */
-uint16_t key_prefix_1_1 = 0x042;     /* F8 */
-uint16_t key_prefix_1_2 = 0x000;     /* Invalid */
-uint16_t key_prefix_2_1 = 0x000;     /* Invalid */
-uint16_t key_prefix_2_2 = 0x000;     /* Invalid */
-uint16_t key_uncapture_1 = 0x058;    /* F12 */
-uint16_t key_uncapture_2 = 0x000;    /* Invalid */
+/* "Uncapture mouse" key combos (defined from config, overriden by --keycodes) */
+uint16_t key_uncapture_1_1 = 0x000;
+uint16_t key_uncapture_1_2 = 0x000;
 
 #ifdef ENABLE_KBC_AT_LOG
 int kbc_at_do_log = ENABLE_KBC_AT_LOG;
@@ -485,13 +481,7 @@ keyboard_isfsexit_up(void)
 int
 keyboard_ismsexit(void)
 {
-    if ((key_prefix_2_1 != 0x000) || (key_prefix_2_2 != 0x000))
-        return ((recv_key_ui[key_prefix_1_1] || recv_key_ui[key_prefix_1_2]) &&
-                (recv_key_ui[key_prefix_2_1] || recv_key_ui[key_prefix_2_2]) &&
-                (recv_key_ui[key_uncapture_1] || recv_key_ui[key_uncapture_2]));
-    else
-        return ((recv_key_ui[key_prefix_1_1] || recv_key_ui[key_prefix_1_2]) &&
-                (recv_key_ui[key_uncapture_1] || recv_key_ui[key_uncapture_2]));
+	return (recv_key_ui[key_uncapture_1_1] && recv_key_ui[key_uncapture_1_2]);
 }
 
 /* This is so we can disambiguate scan codes that would otherwise conflict and get
