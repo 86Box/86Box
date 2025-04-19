@@ -450,15 +450,6 @@ msgstr ""
 msgid "YMFM (faster)"
 msgstr ""
 
-msgid "Network type:"
-msgstr ""
-
-msgid "PCap device:"
-msgstr ""
-
-msgid "Network adapter:"
-msgstr ""
-
 msgid "COM1 Device:"
 msgstr ""
 
@@ -1350,16 +1341,16 @@ msgstr ""
 msgid "Network Card #4"
 msgstr ""
 
-msgid "Mode"
+msgid "Mode:"
 msgstr ""
 
-msgid "Interface"
+msgid "Interface:"
 msgstr ""
 
-msgid "Adapter"
+msgid "Adapter:"
 msgstr ""
 
-msgid "VDE Socket"
+msgid "VDE Socket:"
 msgstr ""
 
 msgid "86Box Unit Tester"
@@ -1818,6 +1809,9 @@ msgstr ""
 msgid "Five + Wheel"
 msgstr ""
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr ""
 
@@ -2122,6 +2116,9 @@ msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"
+msgstr ""
+
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

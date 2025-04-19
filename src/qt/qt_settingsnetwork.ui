@@ -58,7 +58,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Adapter</string>
+          <string>Adapter:</string>
          </property>
         </widget>
        </item>
@@ -84,7 +84,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Mode</string>
+          <string>Mode:</string>
          </property>
         </widget>
        </item>
@@ -124,14 +124,14 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Interface</string>
+          <string>Interface:</string>
          </property>
         </widget>
        </item>
        <item row="5" column="0">
         <widget class="QLabel" name="socketVDELabel1">
          <property name="text">
-          <string>VDE Socket</string>
+          <string>VDE Socket:</string>
          </property>
         </widget>
        </item>
@@ -197,7 +197,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Interface</string>
+          <string>Interface:</string>
          </property>
         </widget>
        </item>
@@ -217,7 +217,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Mode</string>
+          <string>Mode:</string>
          </property>
         </widget>
        </item>
@@ -237,7 +237,7 @@
        <item row="5" column="0">
         <widget class="QLabel" name="socketVDELabel2">
          <property name="text">
-          <string>VDE Socket</string>
+          <string>VDE Socket:</string>
          </property>
         </widget>
        </item>
@@ -257,7 +257,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Adapter</string>
+          <string>Adapter:</string>
          </property>
         </widget>
        </item>
@@ -326,7 +326,7 @@
        <item row="5" column="0">
         <widget class="QLabel" name="socketVDELabel3">
          <property name="text">
-          <string>VDE Socket</string>
+          <string>VDE Socket:</string>
          </property>
         </widget>
        </item>
@@ -362,7 +362,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Interface</string>
+          <string>Interface:</string>
          </property>
         </widget>
        </item>
@@ -382,7 +382,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Mode</string>
+          <string>Mode:</string>
          </property>
         </widget>
        </item>
@@ -408,7 +408,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Adapter</string>
+          <string>Adapter:</string>
          </property>
         </widget>
        </item>
@@ -461,7 +461,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Mode</string>
+          <string>Mode:</string>
          </property>
         </widget>
        </item>
@@ -481,7 +481,7 @@
        <item row="5" column="0">
         <widget class="QLabel" name="socketVDELabel4">
          <property name="text">
-          <string>VDE Socket</string>
+          <string>VDE Socket:</string>
          </property>
         </widget>
        </item>
@@ -494,7 +494,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Adapter</string>
+          <string>Adapter:</string>
          </property>
         </widget>
        </item>
@@ -514,7 +514,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Interface</string>
+          <string>Interface:</string>
          </property>
         </widget>
        </item>

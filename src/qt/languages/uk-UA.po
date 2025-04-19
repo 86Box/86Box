@@ -450,15 +450,6 @@ msgstr "Nuked (більш точний)"
 msgid "YMFM (faster)"
 msgstr "YMFM (швидший)"
 
-msgid "Network type:"
-msgstr "Тип мережі:"
-
-msgid "PCap device:"
-msgstr "Пристрій PCap:"
-
-msgid "Network adapter:"
-msgstr "Мережевий адаптер:"
-
 msgid "COM1 Device:"
 msgstr "Пристрій COM1:"
 
@@ -1350,17 +1341,17 @@ msgstr "Мережева карта 3"
 msgid "Network Card #4"
 msgstr "Мережева карта 4"
 
-msgid "Mode"
-msgstr "Режим"
+msgid "Mode:"
+msgstr "Режим:"
 
-msgid "Interface"
-msgstr "Інтерфейс"
+msgid "Interface:"
+msgstr "Інтерфейс:"
 
-msgid "Adapter"
-msgstr "Адаптер"
+msgid "Adapter:"
+msgstr "Адаптер:"
 
-msgid "VDE Socket"
-msgstr "VDE сокет"
+msgid "VDE Socket:"
+msgstr "VDE сокет:"
 
 msgid "86Box Unit Tester"
 msgstr "Тестер блоків 86Box"
@@ -1818,6 +1809,9 @@ msgstr "Колесо"
 msgid "Five + Wheel"
 msgstr "П'ять + колесо"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 послідовна / SMT3(R)V"
 
@@ -2122,6 +2116,9 @@ msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"
+msgstr ""
+
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

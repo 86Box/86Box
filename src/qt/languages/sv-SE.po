@@ -3,20 +3,20 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Language: pt_BR\n"
+"X-Language: sv_SE\n"
 "X-Source-Language: en_US\n"
 
 msgid "&Action"
-msgstr "&Ação"
+msgstr ""
 
 msgid "&Keyboard requires capture"
-msgstr "&Teclado requer captura"
+msgstr "Tangentbord behöver uppfångas"
 
 msgid "&Right CTRL is left ALT"
-msgstr "&CTRL direito é o ALT esquerdo"
+msgstr "&Höger CTRL är vänster ALT"
 
 msgid "&Hard Reset..."
-msgstr "&Reinicialização completa..."
+msgstr "&Hård omstart..."
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -25,58 +25,58 @@ msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
 
 msgid "&Pause"
-msgstr "&Pausar"
+msgstr "&Pausa"
 
 msgid "E&xit..."
-msgstr "&Sair..."
+msgstr "A&vsluta..."
 
 msgid "&View"
-msgstr "&Exibir"
+msgstr "&Visa"
 
 msgid "&Hide status bar"
-msgstr "&Ocultar barra de status"
+msgstr "&Dölj statusfältet"
 
 msgid "Hide &toolbar"
-msgstr "Ocultar &barra de ferramenta"
+msgstr "Dölj &verktygsfältet"
 
 msgid "&Resizeable window"
-msgstr "&Janela redimensionável"
+msgstr "&Ändringsbar fönsterstorlek"
 
 msgid "R&emember size && position"
-msgstr "&Lembrar tamanho e posição"
+msgstr "K&om ihåg storlek && position"
 
 msgid "Re&nderer"
-msgstr "&Renderizador"
+msgstr "Re&nderare"
 
 msgid "&Qt (Software)"
-msgstr "&Qt (Software)"
+msgstr "&Qt (Mjukvara)"
 
 msgid "Qt (&OpenGL)"
 msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (Núcleo 3.0)"
+msgstr "Open&GL (3.0 Core)"
 
 msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify dimensions..."
-msgstr "Especificar as dimensões..."
+msgstr "Ange mått..."
 
 msgid "F&orce 4:3 display ratio"
-msgstr "F&orçar proporção de tela em 4:3"
+msgstr "T&vinga 4:3 bildförhållande"
 
 msgid "&Window scale factor"
-msgstr "&Fator de redimensionamento da janela"
+msgstr "&Skalningsfaktor för fönster"
 
 msgid "&0.5x"
-msgstr "&0,5x"
+msgstr "&0.5x"
 
 msgid "&1x"
 msgstr "&1x"
 
 msgid "1.&5x"
-msgstr "1,&5x"
+msgstr "1.&5x"
 
 msgid "&2x"
 msgstr "&2x"
@@ -100,64 +100,64 @@ msgid "&8x"
 msgstr "&8x"
 
 msgid "Filter method"
-msgstr "Método de filtragem"
+msgstr "Filtermetod"
 
 msgid "&Nearest"
-msgstr "&Mais próximo"
+msgstr "&Närmsta"
 
 msgid "&Linear"
-msgstr "&Linear"
+msgstr "&Linjär"
 
 msgid "Hi&DPI scaling"
-msgstr "Escala Hi&DPI"
+msgstr "Hög&DPI-skalning"
 
 msgid "&Fullscreen"
-msgstr "&Tela cheia"
+msgstr "&Helskärm"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Modo de &redimensionamento da tela cheia"
+msgstr "Sträckningsläge för &helskärm"
 
 msgid "&Full screen stretch"
-msgstr "&Tela cheia redimensionada"
+msgstr "&Sträck till helskärm"
 
 msgid "&4:3"
 msgstr "&4:3"
 
 msgid "&Square pixels (Keep ratio)"
-msgstr "Píxeis &quadrados (manter proporção)"
+msgstr "&Fyrkantiga pixlar (Behåll bildförhållande)"
 
 msgid "&Integer scale"
-msgstr "&Redimensionamento com valores inteiros"
+msgstr "&Skala till heltal"
 
 msgid "4:&3 Integer scale"
-msgstr "Redimensionamento com valores inteiros 4:&3"
+msgstr "Skala till heltal i 4:&3"
 
 msgid "E&GA/(S)VGA settings"
-msgstr "Configurações de E&GA/(S)VGA"
+msgstr "E&GA/(S)VGA-inställningar"
 
 msgid "&Inverted VGA monitor"
-msgstr "Monitor VGA &invertido"
+msgstr "&Inverterad VGA-skärm"
 
 msgid "VGA screen &type"
-msgstr "&Tipo de tela VGA"
+msgstr "Skärmtyp för &VGA"
 
 msgid "RGB &Color"
-msgstr "&Cor RGB"
+msgstr "RGB &färg"
 
 msgid "&RGB Grayscale"
-msgstr "Tons de cinza &RGB"
+msgstr "&RGB gråskala"
 
 msgid "&Amber monitor"
-msgstr "Monitor &âmbar"
+msgstr "&Bärnstensfärgad skärm"
 
 msgid "&Green monitor"
-msgstr "Monitor &verde"
+msgstr "&Grön skärm"
 
 msgid "&White monitor"
-msgstr "Monitor &branco"
+msgstr "&Vit skärm"
 
 msgid "Grayscale &conversion type"
-msgstr "Tipo de &conversão de tons de cinza"
+msgstr "Konverteringstyp till &gråskala"
 
 msgid "BT&601 (NTSC/PAL)"
 msgstr "BT&601 (NTSC/PAL)"
@@ -166,616 +166,616 @@ msgid "BT&709 (HDTV)"
 msgstr "BT&709 (HDTV)"
 
 msgid "&Average"
-msgstr "&Média"
+msgstr "&Genomsnittlig"
 
 msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "Overscan do CGA/PCjr/Tandy/E&GA/(S)VGA"
+msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA överskanning"
 
 msgid "Change contrast for &monochrome display"
-msgstr "Alterar contraste para exibição &monocromática"
+msgstr "Ändra kontrast för &svartvita skärmar"
 
 msgid "&Media"
-msgstr "&Mídia"
+msgstr "&Media"
 
 msgid "&Tools"
-msgstr "&Ferramentas"
+msgstr "&Verktyg"
 
 msgid "&Settings..."
-msgstr "&Configurações..."
+msgstr "&Inställningar..."
 
 msgid "&Update status bar icons"
-msgstr "&Atualizar ícones da barra de status"
+msgstr "&Uppdatera statusfältets ikoner"
 
 msgid "Take s&creenshot"
-msgstr "Capturar &tela"
+msgstr "Tag s&kärmbild"
 
 msgid "S&ound"
-msgstr "&Som"
+msgstr "L&jud"
 
 msgid "&Preferences..."
-msgstr "&Preferências..."
+msgstr "&Preferenser..."
 
 msgid "Enable &Discord integration"
-msgstr "Ativar integração com o &Discord"
+msgstr "Aktivera &integration med Discord"
 
 msgid "Sound &gain..."
-msgstr "&Ganho de som..."
+msgstr "Ljud&förstärkning..."
 
 msgid "Begin trace"
-msgstr "Inicio do rastreamento"
+msgstr "Börja spårning"
 
 msgid "End trace"
-msgstr "Finalizar rastreamento"
+msgstr "Avsluta spårning"
 
 msgid "&Help"
-msgstr "&Ajuda"
+msgstr "&Hjälp"
 
 msgid "&Documentation..."
-msgstr "&Documentação..."
+msgstr "&Dokumentation..."
 
 msgid "&About 86Box..."
-msgstr "&Sobre o 86Box..."
+msgstr "&Om 86Box..."
 
 msgid "&New image..."
-msgstr "&Nova imagem..."
+msgstr "&Ny avbildning..."
 
 msgid "&Existing image..."
-msgstr "&Imagem existente..."
+msgstr "&Befintlig avbildning..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "Imagem existente (&protegida contra gravação)..."
+msgstr "Befintlig avbildning (&skrivskyddad)..."
 
 msgid "&Record"
-msgstr "&Gravar"
+msgstr "&Spela in"
 
 msgid "&Play"
-msgstr "&Reproduzir"
+msgstr "&Spela upp"
 
 msgid "&Rewind to the beginning"
-msgstr "Re&troceder até o começo"
+msgstr "&Spola tillbaka till början"
 
 msgid "&Fast forward to the end"
-msgstr "&Avançar até o fim"
+msgstr "&Spola fram till slutet"
 
 msgid "E&ject"
-msgstr "E&jetar"
+msgstr "M&ata ut"
 
 msgid "&Image..."
-msgstr "&Imagem..."
+msgstr "&Avbildning..."
 
 msgid "E&xport to 86F..."
-msgstr "E&xportar para 86F..."
+msgstr "E&xportera till 86F..."
 
 msgid "&Mute"
-msgstr "&Silenciar"
+msgstr "&Tysta"
 
 msgid "E&mpty"
-msgstr "&Vazio"
+msgstr "T&om"
 
 msgid "Reload previous image"
-msgstr "Recarregar imagem anterior"
+msgstr "Ladda om föregående avbildning"
 
 msgid "&Folder..."
-msgstr "&Pasta..."
+msgstr "&Mapp..."
 
 msgid "Target &framerate"
-msgstr "&Taxa de quadros pretendida"
+msgstr "Mål för &bildhastighet"
 
 msgid "&Sync with video"
-msgstr "&Sincronizar com vídeo"
+msgstr "&Synkronisera med bild"
 
 msgid "&25 fps"
-msgstr "&25 qps"
+msgstr "&25 fps"
 
 msgid "&30 fps"
-msgstr "&30 qps"
+msgstr "&30 fps"
 
 msgid "&50 fps"
-msgstr "&50 qps"
+msgstr "&50 fps"
 
 msgid "&60 fps"
-msgstr "&60 qps"
+msgstr "&60 fps"
 
 msgid "&75 fps"
-msgstr "&75 qps"
+msgstr "&75 fps"
 
 msgid "&VSync"
-msgstr "Sincronização &vertical"
+msgstr "&VSync"
 
 msgid "&Select shader..."
-msgstr "&Selecionar shader..."
+msgstr "&Välj shader..."
 
 msgid "&Remove shader"
-msgstr "&Remover shader"
+msgstr "&Ta bort shader"
 
 msgid "Preferences"
-msgstr "Preferências"
+msgstr "Preferenser"
 
 msgid "Sound Gain"
-msgstr "Ganho de som"
+msgstr "Ljudförstärkning"
 
 msgid "New Image"
-msgstr "Nova imagem de disquete"
+msgstr "Ny avbildning"
 
 msgid "Settings"
-msgstr "Configurações"
+msgstr "Inställningar"
 
 msgid "Specify Main Window Dimensions"
-msgstr "Especificar dimensões da janela principal"
+msgstr "Ange mått för huvudfönster"
 
 msgid "OK"
-msgstr "OK"
+msgstr "Okej"
 
 msgid "Cancel"
-msgstr "Cancelar"
+msgstr "Avbryt"
 
 msgid "&Default"
-msgstr "&Padrão"
+msgstr "&Standard"
 
 msgid "Language:"
-msgstr "Idioma:"
+msgstr "Språk:"
 
 msgid "Gain"
-msgstr "Ganho"
+msgstr "Förstärkning"
 
 msgid "File name:"
-msgstr "Nome:"
+msgstr "Filnamn:"
 
 msgid "Disk size:"
-msgstr "Tamanho:"
+msgstr "Storlek på disk:"
 
 msgid "RPM mode:"
-msgstr "Modo RPM:"
+msgstr "Varvtalsläge:"
 
 msgid "Progress:"
-msgstr "Progresso:"
+msgstr "Framsteg:"
 
 msgid "Width:"
-msgstr "Largura:"
+msgstr "Bredd:"
 
 msgid "Height:"
-msgstr "Altura:"
+msgstr "Höjd:"
 
 msgid "Lock to this size"
-msgstr "Travar nesse tamanho"
+msgstr "Lås till denna storlek"
 
 msgid "Machine type:"
-msgstr "Tipo de máquina:"
+msgstr "Maskintyp:"
 
 msgid "Machine:"
-msgstr "Máquina:"
+msgstr "Maskin:"
 
 msgid "Configure"
-msgstr "Configurar"
+msgstr "Konfigurera"
 
 msgid "CPU type:"
-msgstr "Tipo de CPU:"
+msgstr "Processortyp:"
 
 msgid "Speed:"
-msgstr "Veloc.:"
+msgstr "Hastighet:"
 
 msgid "Frequency:"
-msgstr "Frequência:"
+msgstr "Frekvens:"
 
 msgid "FPU:"
-msgstr "FPU:"
+msgstr "Flyttalsprocessor:"
 
 msgid "Wait states:"
-msgstr "Estados de espera:"
+msgstr "Väntcykler:"
 
 msgid "MB"
 msgstr "MB"
 
 msgid "Memory:"
-msgstr "Memória:"
+msgstr "Minne:"
 
 msgid "Time synchronization"
-msgstr "Sincronização de hora"
+msgstr "Synkronisera tid"
 
 msgid "Disabled"
-msgstr "Desativar"
+msgstr "Inaktiverad"
 
 msgid "Enabled (local time)"
-msgstr "Ativar (hora local)"
+msgstr "Aktiverad (lokal tid)"
 
 msgid "Enabled (UTC)"
-msgstr "Ativar (UTC)"
+msgstr "Aktiverad (UTC)"
 
 msgid "Dynamic Recompiler"
-msgstr "Recompilador dinâmico"
+msgstr "Dynamisk omkompilering"
 
 msgid "Video:"
-msgstr "Vídeo:"
+msgstr "Bildskärmskort:"
 
 msgid "Video #2:"
-msgstr "Vídeo 2:"
+msgstr "Bildskärmskort #2:"
 
 msgid "Voodoo 1 or 2 Graphics"
-msgstr "Gráficos Voodoo 1 ou 2"
+msgstr "Voodoo 1 eller 2-grafik"
 
 msgid "IBM 8514/A Graphics"
-msgstr "Gráficos IBM 8514/A"
+msgstr "IBM 8514/A-grafik"
 
 msgid "XGA Graphics"
-msgstr "Gráficos XGA"
+msgstr "XGA-grafik"
 
 msgid "Mouse:"
-msgstr "Mouse:"
+msgstr "Mus:"
 
 msgid "Joystick:"
-msgstr "Joystick:"
+msgstr "Styrspak:"
 
 msgid "Joystick 1..."
-msgstr "Joystick 1..."
+msgstr "Styrspak 1..."
 
 msgid "Joystick 2..."
-msgstr "Joystick 2..."
+msgstr "Styrspak 2..."
 
 msgid "Joystick 3..."
-msgstr "Joystick 3..."
+msgstr "Styrspak 3..."
 
 msgid "Joystick 4..."
-msgstr "Joystick 4..."
+msgstr "Styrspak 4..."
 
 msgid "Sound card #1:"
-msgstr "Placa de som 1:"
+msgstr "Ljudkort #1:"
 
 msgid "Sound card #2:"
-msgstr "Placa de som 2:"
+msgstr "Ljudkort #2:"
 
 msgid "Sound card #3:"
-msgstr "Placa de som 3:"
+msgstr "Ljudkort #3:"
 
 msgid "Sound card #4:"
-msgstr "Placa de som 4:"
+msgstr "Ljudkort #4:"
 
 msgid "MIDI Out Device:"
-msgstr "Disp. de saída MIDI:"
+msgstr "Enhet för MIDI-utdata:"
 
 msgid "MIDI In Device:"
-msgstr "Disp. de entrada MIDI:"
+msgstr "Enhet för MIDI-indata:"
 
 msgid "Standalone MPU-401"
-msgstr "MPU-401 independente"
+msgstr "Fristående MPU-401"
 
 msgid "Use FLOAT32 sound"
-msgstr "Usar som FLOAT32"
+msgstr "Använd FLOAT32-ljud"
 
 msgid "FM synth driver"
-msgstr "Controlador de sint. FM"
+msgstr "Drivrutin för FM-synt"
 
 msgid "Nuked (more accurate)"
-msgstr "Nuked (mais preciso)"
+msgstr "Nuked (mer exakt)"
 
 msgid "YMFM (faster)"
-msgstr "YMFM (mais rápido)"
+msgstr "YMFM (snabbare)"
 
 msgid "COM1 Device:"
-msgstr "Dispositivo COM1:"
+msgstr "COM1-enhet:"
 
 msgid "COM2 Device:"
-msgstr "Dispositivo COM2:"
+msgstr "COM2-enhet:"
 
 msgid "COM3 Device:"
-msgstr "Dispositivo COM3:"
+msgstr "COM3-enhet:"
 
 msgid "COM4 Device:"
-msgstr "Dispositivo COM4:"
+msgstr "COM4-enhet:"
 
 msgid "LPT1 Device:"
-msgstr "Dispositivo LPT1:"
+msgstr "LPT1-enhet:"
 
 msgid "LPT2 Device:"
-msgstr "Dispositivo LPT2:"
+msgstr "LPT2-enhet:"
 
 msgid "LPT3 Device:"
-msgstr "Dispositivo LPT3:"
+msgstr "LPT3-enhet:"
 
 msgid "LPT4 Device:"
-msgstr "Dispositivo LPT4:"
+msgstr "LPT4-enhet:"
 
 msgid "Serial port 1"
-msgstr "Porta serial 1"
+msgstr "Serieport 1"
 
 msgid "Serial port 2"
-msgstr "Porta serial 2"
+msgstr "Serieport 2"
 
 msgid "Serial port 3"
-msgstr "Porta serial 3"
+msgstr "Serieport 3"
 
 msgid "Serial port 4"
-msgstr "Porta serial 4"
+msgstr "Serieport 4"
 
 msgid "Parallel port 1"
-msgstr "Porta paralela 1"
+msgstr "Parallellport 1"
 
 msgid "Parallel port 2"
-msgstr "Porta paralela 2"
+msgstr "Parallellport 2"
 
 msgid "Parallel port 3"
-msgstr "Porta paralela 3"
+msgstr "Parallellport 3"
 
 msgid "Parallel port 4"
-msgstr "Porta paralela 4"
+msgstr "Parallellport 4"
 
 msgid "HD Controller:"
-msgstr "Controlador HD:"
+msgstr "Styrenhet för hårddisk:"
 
 msgid "FD Controller:"
-msgstr "Controlador FD:"
+msgstr "Styrenhet för diskett:"
 
 msgid "Tertiary IDE Controller"
-msgstr "Controlador IDE terciário"
+msgstr "Tertiär IDE-kontroller"
 
 msgid "Quaternary IDE Controller"
-msgstr "Controlador IDE quaternário"
+msgstr "Kvartär IDE-kontroller"
 
 msgid "SCSI"
 msgstr "SCSI"
 
 msgid "Controller 1:"
-msgstr "Controlador 1:"
+msgstr "Styrenhet 1:"
 
 msgid "Controller 2:"
-msgstr "Controlador 2:"
+msgstr "Styrenhet 2:"
 
 msgid "Controller 3:"
-msgstr "Controlador 3:"
+msgstr "Styrenhet 3:"
 
 msgid "Controller 4:"
-msgstr "Controlador 4:"
+msgstr "Styrenhet 4:"
 
 msgid "Cassette"
-msgstr "Cassete"
+msgstr "Kassettband"
 
 msgid "Hard disks:"
-msgstr "Discos rígidos:"
+msgstr "Hårddiskar:"
 
 msgid "&New..."
-msgstr "&Novo..."
+msgstr "&Ny..."
 
 msgid "&Existing..."
-msgstr "&Existente..."
+msgstr "&Befintlig..."
 
 msgid "&Remove"
-msgstr "&Remover"
+msgstr "&Ta bort"
 
 msgid "Bus:"
-msgstr "Barramento:"
+msgstr "Buss:"
 
 msgid "Channel:"
-msgstr "Canal:"
+msgstr "Kanal:"
 
 msgid "ID:"
 msgstr "ID:"
 
 msgid "&Specify..."
-msgstr "&Especificar..."
+msgstr "&Specificera..."
 
 msgid "Sectors:"
-msgstr "Setores:"
+msgstr "Sektorer:"
 
 msgid "Heads:"
-msgstr "Cabeças:"
+msgstr "Läshuvuden:"
 
 msgid "Cylinders:"
-msgstr "Cilindros:"
+msgstr "Cylindrar:"
 
 msgid "Size (MB):"
-msgstr "Tamanho (MB):"
+msgstr "Storlek (MB):"
 
 msgid "Type:"
-msgstr "Tipo:"
+msgstr "Typ:"
 
 msgid "Image Format:"
-msgstr "Formato:"
+msgstr "Avbildningsformat:"
 
 msgid "Block Size:"
-msgstr "Blocos:"
+msgstr "Blockstorlek:"
 
 msgid "Floppy drives:"
-msgstr "Unidades de disquete:"
+msgstr "Diskettenhet:"
 
 msgid "Turbo timings"
-msgstr "Turbo"
+msgstr "Turbo timings"
 
 msgid "Check BPB"
-msgstr "Verificar BPB"
+msgstr "Kontrollera BPB"
 
 msgid "CD-ROM drives:"
-msgstr "Unidades de CD-ROM:"
+msgstr "CD-ROM-enheter:"
 
 msgid "MO drives:"
-msgstr "Unidades magneto-ópticas:"
+msgstr "MO-enheter:"
 
 msgid "ZIP drives:"
-msgstr "Unidades ZIP:"
+msgstr "Zip-enheter:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
 
 msgid "ISA RTC:"
-msgstr "RTC ISA:"
+msgstr "ISA realtidsklocka:"
 
 msgid "ISA Memory Expansion"
-msgstr "Expansão de memória ISA"
+msgstr "ISA minnesexpansion"
 
 msgid "Card 1:"
-msgstr "Placa 1:"
+msgstr "Kort 1:"
 
 msgid "Card 2:"
-msgstr "Placa 2:"
+msgstr "Kort 2:"
 
 msgid "Card 3:"
-msgstr "Placa 3:"
+msgstr "Kort 3:"
 
 msgid "Card 4:"
-msgstr "Placa 4:"
+msgstr "Kort 4:"
 
 msgid "ISABugger device"
-msgstr "Dispositivo ISABugger"
+msgstr "ISABugger-enhet"
 
 msgid "POST card"
-msgstr "Placa de diagnóstico"
+msgstr "POST-kort"
 
 msgid "86Box"
 msgstr "86Box"
 
 msgid "Error"
-msgstr "Erro"
+msgstr "Fel"
 
 msgid "Fatal error"
-msgstr "Erro fatal"
+msgstr "Allvarligt fel"
 
 msgid " - PAUSED"
-msgstr " - PAUSADO"
+msgstr " - PAUSAD"
 
 msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Use Ctrl+Alt+PgDn para retornar ao modo janela"
+msgstr "Tryck på Ctrl+Alt+PgDn för att återvända till fönsterläge."
 
 msgid "Speed"
-msgstr "Velocidade"
+msgstr "Hastighet"
 
 msgid "ZIP %1 %2 (%3): %4"
 msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
-msgstr "Imagens ZIP"
+msgstr "Zip-avbildningar"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "O 86Box não conseguiu encontrar nenhuma imagem de ROM utilizável.\n\nPor favor, <a href=\"https://github.com/86Box/roms/releases/latest\">baixe</a> um conjunto de ROM e extraia no diretório \"roms\"."
+msgstr "86Box kunde inte hitta några användbara ROM-avbildningar.\n\nVänligen <a href=\"https://github.com/86Box/roms/releases/latest\">ladda ner</a> en ROM-uppsättning och extrahera den till mappen \"roms\"."
 
 msgid "(empty)"
-msgstr "(vazio)"
+msgstr "(tom)"
 
 msgid "All files"
-msgstr "Todos os arquivos"
+msgstr "Alla filer"
 
 msgid "Turbo"
 msgstr "Turbo"
 
 msgid "On"
-msgstr "Lig."
+msgstr "På"
 
 msgid "Off"
-msgstr "Desl."
+msgstr "Av"
 
 msgid "All images"
-msgstr "Todas as imagens"
+msgstr "Alla avbildningar"
 
 msgid "Basic sector images"
-msgstr "Imagens de setores básicos"
+msgstr "Grundläggande sektoravbildningar"
 
 msgid "Surface images"
-msgstr "Imagens de superfície"
+msgstr "Ytavbildningar"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "A máquina \"%hs\" não está disponível devido à falta de ROMs no diretório roms/machines. Mudando para uma máquina disponível."
+msgstr "Maskinen \"%hs\" är inte tillgänglig på grund av saknade ROM-avbildningar i mappen roms/machines. Byter till en tillgänglig maskin."
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "A placa de vídeo \"%hs\" não está disponível devido à falta de ROMs no diretório roms/video. Mudando para uma placa de vídeo disponível."
+msgstr "Bildskärmskortet \"%hs\" är inte tillgängligt på grund av saknade ROM-avbildningar i mappen roms/video. Byter till ett tillgängligt bildskärmskort."
 
 msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "A placa de vídeo 2 \"%hs\" não está disponível devido à falta de ROMs no diretório roms/video. Desativando a segunda placa vídeo."
+msgstr "Bildskärmskort #2 \"%hs\" är inte tillgängligt på grund av saknade ROM-avbildningar i mappen roms/video. Avaktiverar det andra bildskärmskortet."
 
 msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "O dispositivo \"%hs\" não está disponível devido à falta de ROMs. Ignorando o dispositivo."
+msgstr "Enheten \"%hs\" är inte tillgänglig på grund av saknade ROM-avbildningar. Ignorerar enheten."
 
 msgid "Machine"
-msgstr "Máquina"
+msgstr "Maskin"
 
 msgid "Display"
-msgstr "Vídeo"
+msgstr "Bildskärm"
 
 msgid "Input devices"
-msgstr "Dispositivos de entrada"
+msgstr "Inmatningsenheter"
 
 msgid "Sound"
-msgstr "Som"
+msgstr "Ljud"
 
 msgid "Network"
-msgstr "Rede"
+msgstr "Nätverk"
 
 msgid "Ports (COM & LPT)"
-msgstr "Portas (COM & LPT)"
+msgstr "Portar (COM & LPT)"
 
 msgid "Storage controllers"
-msgstr "Controladores de armaz."
+msgstr "Styrenheter för lagring"
 
 msgid "Hard disks"
-msgstr "Discos rígidos"
+msgstr "Hårddiskar"
 
 msgid "Floppy & CD-ROM drives"
-msgstr "Disquete & CD-ROM"
+msgstr "Diskett- och CD-ROM-enheter"
 
 msgid "Other removable devices"
-msgstr "Dispos. removíveis"
+msgstr "Andra flyttbara enheter"
 
 msgid "Other peripherals"
-msgstr "Outros periféricos"
+msgstr "Andra tillbehör"
 
 msgid "Click to capture mouse"
-msgstr "Clique para capturar o mouse"
+msgstr "Klicka för att fånga upp musen"
 
 msgid "Press %1 to release mouse"
-msgstr "Aperte %1 para liberar o mouse"
+msgstr "Tryck på %1 för att släppa musen"
 
 msgid "Press %1 or middle button to release mouse"
-msgstr "Aperte %1 ou botão do meio para liberar o mouse"
+msgstr "Tryck på %1 eller mellersta musknappen för att släppa musen"
 
 msgid "Bus"
-msgstr "Barramento"
+msgstr "Buss"
 
 msgid "File"
-msgstr "Arquivo"
+msgstr "Fil"
 
 msgid "C"
-msgstr "CI"
+msgstr "C"
 
 msgid "H"
-msgstr "CA"
+msgstr "H"
 
 msgid "S"
-msgstr "SE"
+msgstr "S"
 
 msgid "KB"
 msgstr "KB"
 
 msgid "Default"
-msgstr "Padrão"
+msgstr "Standard"
 
 msgid "%1 Wait state(s)"
-msgstr "%1 estado(s) de espera"
+msgstr ""
 
 msgid "Type"
-msgstr "Tipo"
+msgstr "Typ"
 
 msgid "No PCap devices found"
-msgstr "Nenhum dispositivo PCap encontrado"
+msgstr "Inga PCap-enheter hittade"
 
 msgid "Invalid PCap device"
-msgstr "Dispositivo PCap inválido"
+msgstr "Ogiltig PCap-enhet"
 
 msgid "2-axis, 2-button joystick(s)"
-msgstr "Joystick(s) de 2 eixos, 2 botões"
+msgstr "Styrspak med 2 axlar och 2 knappar"
 
 msgid "2-axis, 4-button joystick"
-msgstr "Joystick de 2 eixos, 4 botões"
+msgstr "Styrspak med 2 axlar och 4 knappar"
 
 msgid "2-axis, 6-button joystick"
-msgstr "Joystick de 2 eixos, 6 botões"
+msgstr "Styrspak med 2 axlar och 6 knappar"
 
 msgid "2-axis, 8-button joystick"
-msgstr "Joystick de 2 eixos, 8 botões"
+msgstr "Styrspak med 2 axlar och 8 knappar"
 
 msgid "3-axis, 2-button joystick"
-msgstr "Joystick padrão de 3 eixos, 2 botões"
+msgstr "Styrspak med 3 axlar och 2 knappar"
 
 msgid "3-axis, 4-button joystick"
-msgstr "Joystick padrão de 3 eixos, 4 botões"
+msgstr "Styrspak med 3 axlar och 4 knappar"
 
 msgid "4-axis, 4-button joystick"
-msgstr "Joystick padrão de 4 eixos, 4 botões"
+msgstr "Styrspak med 4 axlar och 4 knappar"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
@@ -784,280 +784,280 @@ msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
-msgstr "Sistema de Controle de Voo Thrustmaster"
+msgstr "Thrustmaster Flight Control System"
 
 msgid "None"
-msgstr "Nenhum"
+msgstr "Ingen"
 
 msgid "%1 MB (CHS: %2, %3, %4)"
-msgstr "%1 MB (CCS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
-msgstr "Disquete %1 (%2): %3"
+msgstr "Diskett %1 (%2): %3"
 
 msgid "Advanced sector images"
-msgstr "Imagens de setor avançado"
+msgstr "Avancerade sektoravbildningar"
 
 msgid "Flux images"
-msgstr "Imagens de fluxo"
+msgstr "Flux-avbildningar"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
-msgstr "Tem certeza de que deseja reiniciar completamente a máquina emulada?"
+msgstr "Är du säker på att du vill göra en hård omstart av den emulerade maskinen?"
 
 msgid "Are you sure you want to exit 86Box?"
-msgstr "Tem certeza de que deseja sair do 86Box?"
+msgstr "Är du säker på att du vill avsluta 86Box?"
 
 msgid "Unable to initialize Ghostscript"
-msgstr "Não foi possível inicializar o Ghostscript"
+msgstr "Ej möjligt att initialisera Ghostscript"
 
 msgid "Unable to initialize GhostPCL"
-msgstr "Não foi possível inicializar o GhostPCL"
+msgstr "Ej möjligt att initialisera GhostPCL"
 
 msgid "MO %1 (%2): %3"
-msgstr "Magneto-óptico %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
 
 msgid "MO images"
-msgstr "Imagens magneto-ópticas"
+msgstr "MO-avbildningar"
 
 msgid "Welcome to 86Box!"
-msgstr "Bem-vindo ao 86Box!"
+msgstr "Välkommen till 86Box!"
 
 msgid "Internal device"
-msgstr "Dispositivo interno"
+msgstr "Intern enhet"
 
 msgid "Exit"
-msgstr "Sair"
+msgstr "Avsluta"
 
 msgid "No ROMs found"
-msgstr "Nenhuma ROM encontrada"
+msgstr "Inga ROM-avbildningar hittades"
 
 msgid "Do you want to save the settings?"
-msgstr "Você deseja salvar as configurações?"
+msgstr "Vill du spara inställningarna?"
 
 msgid "This will hard reset the emulated machine."
-msgstr "Isto fará com que a máquina emulada seja reinicializada."
+msgstr "Detta kommer att göra en hård omstart av den emulerade maskinen."
 
 msgid "Save"
-msgstr "Salvar"
+msgstr "Spara"
 
 msgid "About 86Box"
-msgstr "Sobre o 86Box"
+msgstr "Om 86Box"
 
 msgid "86Box v"
-msgstr "86Box versão"
+msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, e outros.\n\nCom contribuições anteriores de Sarah Walker, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU, versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
+msgstr "En emulator av gamla datorer\n\nUpphovsmän: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, med flera.\n\nMed tidigare grundbidrag från Sarah Walker, leilei, JohnElliott, greatpsycho, med flera.\n\nSläppt under GNU General Public License upplaga 2 eller senare. Se LICENSE för mer information."
 
 msgid "Hardware not available"
-msgstr "Hardware não disponível"
+msgstr "Hårdvara ej tillgänglig"
 
 msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Certifique-se de que %1 esteja instalado e que você tenha uma conexão de rede compatível com %1."
+msgstr "Säkerställ att %1 är installerad och att du använder en %1-kompatibel nätverksanslutning."
 
 msgid "Invalid configuration"
-msgstr "Configuração inválida"
+msgstr "Ogiltig konfiguration"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 é necessário para a conversão automática de arquivos PostScript para PDF.\n\nQualquer documento enviado para a impressora genérica PostScript será salvo como arquivos PostScript (.ps)."
+msgstr "%1 krävs för automatisk omvandling av PostScript-filer till PDF.\n\nAlla dokument som skickats till den allmänna PostScript-skrivaren kommer att sparas som PostScript-filer (.ps)."
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 é necessário para a conversão automática de arquivos PCL para PDF.\n\nQualquer documento enviado para a impressora genérica PCL será salvo como arquivos Printer Command Language (.pcl)."
+msgstr "%1 krävs för automatisk omvandling av PCL-filer till PDF.\n\nAlla dokument som skickas till den allmänna PCL-skrivaren kommer att sparas som Printer Command Language-filer (.pcl)."
 
 msgid "Entering fullscreen mode"
-msgstr "Entrando no modo de tela cheia"
+msgstr "Startar helskärmsläge"
 
 msgid "Don't show this message again"
-msgstr "Não exibir esta mensagem novamente"
+msgstr "Visa inte detta meddelande igen"
 
 msgid "Don't exit"
-msgstr "Não sair"
+msgstr "Avsluta inte"
 
 msgid "Reset"
-msgstr "Reiniciar"
+msgstr "Starta om"
 
 msgid "Don't reset"
-msgstr "Não reiniciar"
+msgstr "Starta inte om"
 
 msgid "CD-ROM images"
-msgstr "Imagens de CD-ROM"
+msgstr "CD-ROM-avbildningar"
 
 msgid "%1 Device Configuration"
-msgstr "Configuração do dispositivo %1"
+msgstr "%1 Enhetskonfiguration"
 
 msgid "Monitor in sleep mode"
-msgstr "Monitor em modo de suspensão"
+msgstr "Skärm i viloläge"
 
 msgid "GLSL shaders"
-msgstr "Shaders GLSL"
+msgstr "GLSL shaders"
 
 msgid "You are loading an unsupported configuration"
-msgstr "Você está carregando uma configuração não suportada"
+msgstr "Du laddar en konfiguration som inte stöds"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "A filtragem do tipo de CPU baseada na máquina selecionada está desativada para esta máquina emulada.\n\nIsto torna possível escolher uma CPU que, de outra forma, seria incompatível com a máquina selecionada. No entanto, você pode encontrar incompatibilidades com a BIOS da máquina ou outro software.\n\nA ativação desta configuração não é oficialmente suportada, e qualquer relatório de erro arquivado pode ser fechado como inválido."
+msgstr "Filtrering av processortyp grundat på den valda maskinen är avaktiverat för denna emulerade maskin.\n\nDetta gör det möjligt att välja en processor som annars är oförenlig med den valda maskinen. Detta kan dock leda till oförenligheter med maskinens BIOS eller annan mjukvara\n\nAtt aktivera denna inställning stöds inte officiellt, och alla felrapporter som lämnas in kan komma att stängas som ogiltiga."
 
 msgid "Continue"
-msgstr "Continuar"
+msgstr "Fortsätt"
 
 msgid "Cassette: %1"
-msgstr "Cassete: %1"
+msgstr "Kassettband: %1"
 
 msgid "Cassette images"
-msgstr "Imagens de cassete"
+msgstr "Kassettbandsavbildningar"
 
 msgid "Cartridge %1: %2"
-msgstr "Cartucho %1: %2"
+msgstr "Kassett %1: %2"
 
 msgid "Cartridge images"
-msgstr "Imagens de cartucho"
+msgstr "Kassettavbildningar"
 
 msgid "Resume execution"
-msgstr "Continuar a execução"
+msgstr "Fortsätt exekvering"
 
 msgid "Pause execution"
-msgstr "Pausar a execução"
+msgstr "Pausa exekvering"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Pressionar Ctrl+Alt+Del"
+msgstr "Tryck på Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Pressionar Ctrl+Alt+Esc"
+msgstr "Tryck på Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Reinicialização completa"
+msgstr "Hård omstart"
 
 msgid "ACPI shutdown"
-msgstr "Desligamento por ACPI"
+msgstr "ACPI-avstängning"
 
 msgid "Hard disk (%1)"
-msgstr "Disco rígido (%1)"
+msgstr "Hårddisk (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "As unidades de CD-ROM MFM/RLL ou ESDI nunca existiram"
+msgstr "MFM/RLL eller ESDI CD-ROM-enheter fanns aldrig"
 
 msgid "Custom..."
-msgstr "Personalizado..."
+msgstr "Egen..."
 
 msgid "Custom (large)..."
-msgstr "Personalizado (grande)..."
+msgstr "Egen (stor)..."
 
 msgid "Add New Hard Disk"
-msgstr "Adicionar novo disco rígido"
+msgstr "Lägg till ny hårddisk"
 
 msgid "Add Existing Hard Disk"
-msgstr "Adicionar disco rígido existente"
+msgstr "Lägg till befintlig hårddisk"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "As imagens de disco HDI não podem ser maiores do que 4GB."
+msgstr "Avbildningar i HDI-format kan inte vara större än 4 GB."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "As imagens de disco não podem ser maiores do que 127GB."
+msgstr "Avbildningar kan inte vara större än 127 GB."
 
 msgid "Hard disk images"
-msgstr "Imagens de disco rígido"
+msgstr "Hårddiskavbilningar"
 
 msgid "Unable to read file"
-msgstr "Não foi possível ler o arquivo"
+msgstr "Kan inte läsa fil"
 
 msgid "Unable to write file"
-msgstr "Não foi possível escrever o arquivo"
+msgstr "Kan inte skriva till fil"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "Imagens HDI ou HDX com um tamanho de setor que não seja 512 não são suportadas."
+msgstr "HDI- eller HDX-avbildningar med en sektorstorlek annat än 512 stöds inte."
 
 msgid "Disk image file already exists"
-msgstr "Esta imagem existe"
+msgstr "Avbildningsfil finns redan"
 
 msgid "Please specify a valid file name."
-msgstr "Digite um nome de arquivo válido."
+msgstr "Vänligen ange ett giltigt filnamn."
 
 msgid "Disk image created"
-msgstr "A imagem foi criada com sucesso"
+msgstr "Avbildning skapad"
 
 msgid "Make sure the file exists and is readable."
-msgstr "Certifique-se de que o arquivo existe e é legível."
+msgstr "Säkerställ att filen finns och är läsbar."
 
 msgid "Make sure the file is being saved to a writable directory."
-msgstr "Certifique-se de que o arquivo está sendo salvo em um diretório gravável."
+msgstr "Säkerställ att filen sparas till en skrivbar mapp."
 
 msgid "Disk image too large"
-msgstr "A imagem do disco é muito grande"
+msgstr "Avbildning för stor"
 
 msgid "Remember to partition and format the newly-created drive."
-msgstr "Lembre-se de particionar e formatar a unidade recém-criada."
+msgstr "Kom ihåg att partitionera och formatera den skapade enheten."
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
-msgstr "O arquivo selecionado será sobrescrito. Você tem certeza de que deseja usá-lo?"
+msgstr "Den valda filen kommer att skrivas över. Är du säker på att du vill använda den?"
 
 msgid "Unsupported disk image"
-msgstr "Imagem de disco sem suporte"
+msgstr "Avbildning stöds inte"
 
 msgid "Overwrite"
-msgstr "Sobrescrever"
+msgstr "Skriv över"
 
 msgid "Don't overwrite"
-msgstr "Não sobrescrever"
+msgstr "Skriv inte över"
 
 msgid "Raw image"
-msgstr "Imagem bruta"
+msgstr "Rå avbildning"
 
 msgid "HDI image"
-msgstr "Imagem HDI"
+msgstr "HDI-avbildning"
 
 msgid "HDX image"
-msgstr "Imagem HDX"
+msgstr "HDX-avbildning"
 
 msgid "Fixed-size VHD"
-msgstr "VHD de tamanho fixo"
+msgstr "VHD med fastställd storlek"
 
 msgid "Dynamic-size VHD"
-msgstr "VHD de tamanho dinâmico"
+msgstr "VHD med dynamisk storlek"
 
 msgid "Differencing VHD"
-msgstr "VHD diferencial"
+msgstr "Differencing-avbildning av VHD"
 
 msgid "(N/A)"
-msgstr "(N/D)"
+msgstr "(ej)"
 
 msgid "Raw image (.img)"
-msgstr "Imagem bruta (.img)"
+msgstr "Rå avbildning (.img)"
 
 msgid "HDI image (.hdi)"
-msgstr "Imagem HDI (.hdi)"
+msgstr "HDI-avbildning (.hdi)"
 
 msgid "HDX image (.hdx)"
-msgstr "Imagem HDX (.hdx)"
+msgstr "HDX-avbildning (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
-msgstr "VHD de tamanho fixo (.vhd)"
+msgstr "VHD med fastställd storlek (.vhd)"
 
 msgid "Dynamic-size VHD (.vhd)"
-msgstr "VHD de tamanho dinâmico (.vhd)"
+msgstr "VHD med dynamisk storlek (.vhd)"
 
 msgid "Differencing VHD (.vhd)"
-msgstr "VHD diferencial (.vhd)"
+msgstr "Differencing-avbildning av VHD (.vhd)"
 
 msgid "Large blocks (2 MB)"
-msgstr "Blocos grandes (2 MB)"
+msgstr "Stora block (2 MB)"
 
 msgid "Small blocks (512 KB)"
-msgstr "Blocos pequenos (512 KB)"
+msgstr "Små block (512 KB)"
 
 msgid "VHD files"
-msgstr "Arquivos VHD"
+msgstr "VHD-filer"
 
 msgid "Select the parent VHD"
-msgstr "Selecione o VHD pai"
+msgstr "Välj moders-VHDn"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Isto pode significar que a imagem original foi modificada após a criação da imagem diferencial.\n\nIsso também pode ocorrer se os arquivos de imagem tiverem sido movidos ou copiados, ou por um erro no programa que criou este disco.\n\nVocê deseja corrigir os marcadores de tempo?"
+msgstr "Detta kan betyda att modersavbildningen har ändrats efter att skillnadsavbildningen skapades.\n\nDet kan också hända om avbildningarna har flyttats eller kopierats, eller av en bugg i programmet som skapade denna disk.\n\nVill du laga tidsstämplarna?"
 
 msgid "Parent and child disk timestamps do not match"
-msgstr "Os marcadores de tempo do disco pai e do disco filho não coincidem"
+msgstr "Tidsstämpeln på moders- och dotterdisken stämmer inte överens"
 
 msgid "Could not fix VHD timestamp."
-msgstr "Não foi possível corrigir o marcador de tempo do VHD."
+msgstr "Kunde inte laga tidsstämpeln på VHDn."
 
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
@@ -1105,10 +1105,10 @@ msgid "1.44 MB"
 msgstr "1.44 MB"
 
 msgid "DMF (cluster 1024)"
-msgstr "DMF (cluster 1024)"
+msgstr "DMF (kluster 1024)"
 
 msgid "DMF (cluster 2048)"
-msgstr "DMF (cluster 2048)"
+msgstr "DMF (kluster 2048)"
 
 msgid "2.88 MB"
 msgstr "2.88 MB"
@@ -1147,481 +1147,481 @@ msgid "5.25\" 1.3 GB"
 msgstr "5.25\" 1.3 GB"
 
 msgid "Perfect RPM"
-msgstr "Rotação ideal"
+msgstr "Perfekt varv/min"
 
 msgid "1% below perfect RPM"
-msgstr "1% abaixo da rotação ideal"
+msgstr "1% under perfekt varv/min"
 
 msgid "1.5% below perfect RPM"
-msgstr "1.5% abaixo da rotação ideal"
+msgstr "1.5% under perfekt varv/min"
 
 msgid "2% below perfect RPM"
-msgstr "2% abaixo da rotação ideal"
+msgstr "2& under perfekt varm/min"
 
 msgid "(System Default)"
-msgstr "(Padrão do sistema)"
+msgstr "(Systemstandard)"
 
 msgid "Failed to initialize network driver"
-msgstr "Falha ao inicializar o driver de rede"
+msgstr "Kunde inte initialisera drivrutiner för nätverk"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "A configuração de rede será alterada para o driver nulo"
+msgstr "Nätverkskonfigurationen kommer att bytas till den tomma drivrutinen"
 
 msgid "Mouse sensitivity:"
-msgstr "Sensibilidade do mouse:"
+msgstr "Muskänslighet:"
 
 msgid "Select media images from program working directory"
-msgstr "Selecione imagens de mídia do diretório de trabalho do programa"
+msgstr "Välj medieavbildningar från programmets arbetsmapp"
 
 msgid "PIT mode:"
-msgstr "Modo PIT:"
+msgstr "PIT-läge:"
 
 msgid "Auto"
-msgstr "Automático"
+msgstr "Automatisk"
 
 msgid "Slow"
-msgstr "Lento"
+msgstr "Långsam"
 
 msgid "Fast"
-msgstr "Rápido"
+msgstr "Snabb"
 
 msgid "&Auto-pause on focus loss"
-msgstr "Pausa &automática ao perder o foco"
+msgstr "&Pausa automatiskt när fokus tappas"
 
 msgid "WinBox is no longer supported"
-msgstr "O WinBox não é mais suportado"
+msgstr "WinBox stöds inte längre"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "O desenvolvimento do gerenciador WinBox foi interrompido em 2022 devido à falta de mantenedores. À medida que direcionamos nossos esforços para tornar o 86Box ainda melhor, tomamos a decisão de não oferecer mais suporte ao WinBox como gerenciador.\n\nNão serão mais fornecidas atualizações através do WinBox, e você poderá encontrar comportamentos incorretos caso continue a usá-lo com versões mais recentes do 86Box. Quaisquer relatórios de erros relacionados ao comportamento do WinBox serão fechados como inválidos.\n\nAcesse 86box.net para obter uma lista de outros gerenciadores que você pode usar."
+msgstr "Utvecklingen av hanteraren WinBox stoppades under 2022 på grund av avsaknad av underhållare. När vi nu riktar våra ansträngningar till att göra 86Box ännu bättre så har vi fattat beslutet att inte längre stödja WinBox som en hanterare.\n\nInga framtida uppdateringar kommer att tillhandahållas genom WinBox, och du kan stöta på felaktiga beteenden om du skulle fortsätta att använda det med nyare versioner av 86Box. Alla felrapporter som har att göra med WinBox kommer att stängas som ogiltiga.\n\nGå till 86Box.net för en lista med andra hanterare som du kan använda."
 
 msgid "Generate"
-msgstr "Gerar"
+msgstr "Generera"
 
 msgid "Joystick configuration"
-msgstr "Configuração do joystick"
+msgstr "Konfiguration av styrspak"
 
 msgid "Device"
-msgstr "Dispositivo"
+msgstr "Enhet"
 
 msgid "%1 (X axis)"
-msgstr "%1 (eixo X)"
+msgstr "%1 (X-axeln)"
 
 msgid "%1 (Y axis)"
-msgstr "%1 (eixo Y)"
+msgstr "%1 (Y-axeln)"
 
 msgid "MCA devices"
-msgstr "Dispositivos MCA"
+msgstr "MCA-enheter"
 
 msgid "List of MCA devices:"
-msgstr "Lista de dispositivos MCA:"
+msgstr "Lista på MCA-enheter:"
 
 msgid "Tablet tool"
-msgstr "Ferramenta para tablet"
+msgstr "Plattverktyg"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
 msgid "About Qt"
-msgstr "Sobre o Qt"
+msgstr "Om Qt"
 
 msgid "MCA devices..."
-msgstr "Dispositivos MCA..."
+msgstr "MCA-enheter..."
 
 msgid "Show non-primary monitors"
-msgstr "Mostrar monitores não primários"
+msgstr "Visa icke-primära skärmar"
 
 msgid "Open screenshots folder..."
-msgstr "Abrir pasta de capturas de tela..."
+msgstr "Öppna skärmbildsmappen..."
 
 msgid "Apply fullscreen stretch mode when maximized"
-msgstr "Aplicar modo de ampliação em tela cheia quando maximizado"
+msgstr "Tillämpa sträckläge för helskärm när den är maximerad"
 
 msgid "Cursor/Puck"
-msgstr "Cursor/Puck"
+msgstr "Pekare/puck"
 
 msgid "Pen"
-msgstr "Caneta"
+msgstr "Penna"
 
 msgid "Host CD/DVD Drive (%1:)"
-msgstr "Unidade de CD/DVD do anfitrião (%1:)"
+msgstr "Värdenhet för CD/DVD (%1:)"
 
 msgid "&Connected"
-msgstr "&Conectado"
+msgstr "&Ansluten"
 
 msgid "Clear image history"
-msgstr "Limpar histórico de imagens"
+msgstr "Rensa historik för avbildningar"
 
 msgid "Create..."
-msgstr "Criar..."
+msgstr "Skapa..."
 
 msgid "Host CD/DVD Drive (%1)"
-msgstr "Unidade de CD/DVD do anfitrião (%1)"
+msgstr "Värdenhet för CD/DVD (%1)"
 
 msgid "Unknown Bus"
-msgstr "Barramento desconhecido"
+msgstr "Okänd buss"
 
 msgid "Null Driver"
-msgstr "Driver nulo"
+msgstr "Tom drivrutin"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
-msgstr "Comportamento de renderização"
+msgstr "Renderingsbeteende"
 
 msgid "Use target framerate:"
-msgstr "Usar taxa de quadros pretendida:"
+msgstr "Använd målbildhatighet:"
 
 msgid " fps"
-msgstr " fps"
+msgstr " Bildhastighet"
 
 msgid "VSync"
 msgstr "VSync"
 
 msgid "Synchronize with video"
-msgstr "Sincronizar com o vídeo"
+msgstr "Synkronisera med bild"
 
 msgid "Shaders"
-msgstr "Shaders"
+msgstr ""
 
 msgid "Remove"
-msgstr "Remover"
+msgstr "Ta bort"
 
 msgid "Browse..."
-msgstr "Procurar..."
+msgstr "Bläddra..."
 
 msgid "Couldn't create OpenGL context."
-msgstr "Não foi possível criar o contexto OpenGL."
+msgstr "Kunde inte skapa OpenGL-sammanhang."
 
 msgid "Couldn't switch to OpenGL context."
-msgstr "Não foi possível alternar para o contexto OpenGL."
+msgstr "Kunde inte växla till OpenGL-sammanhang."
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
-msgstr "É necessária a versão 3.0 ou superior do OpenGL. A versão atual é %1.%2"
+msgstr "OpenGL version 3.0 eller högre krävs. Nuvarande version är %1.%2"
 
 msgid "Error initializing OpenGL"
-msgstr "Erro ao inicializar o OpenGL"
+msgstr "Fel vid initialisering av OpenGL"
 
 msgid "\nFalling back to software rendering."
-msgstr "\nVoltando à renderização de software."
+msgstr "\nFaller tillbaka på mjukvarurendering."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Ao selecionar imagens de mídia (CD-ROM, disquete, etc.), a caixa de diálogo de abertura será iniciada no mesmo diretório do arquivo de configuração do 86Box. Essa configuração provavelmente só fará diferença no macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Vid val av medieavbildningar (CD-ROM, diskett, osv.) så kommer fönstret att börja i samma mapp som 86Box konfigurationsfil. Denna inställning kommer troligtvis endast göra en skillnad på macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 
 msgid "This machine might have been moved or copied."
-msgstr "Essa máquina pode ter sido movida ou copiada."
+msgstr "Denna maskin kan ha flyttats eller kopierats."
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "Para garantir a funcionalidade adequada da rede, o 86Box precisa saber se essa máquina foi movida ou copiada.\n\nSelecione \"A copiei\" se não tiver certeza."
+msgstr "För att säkerställa korrekt funktionalitet av nätverk så behöver 86Box veta om denna maskin har flyttats eller kopierats.\n\nVälj \"Jag kopierade den\" om du är osäker."
 
 msgid "I Moved It"
-msgstr "O movi"
+msgstr "Jag flyttade den"
 
 msgid "I Copied It"
-msgstr "A copiei"
+msgstr "Jag kopierade den"
 
 msgid "86Box Monitor #"
-msgstr "Monitor 86Box "
+msgstr "86Box skärm #"
 
 msgid "No MCA devices."
-msgstr "Nenhum dispositivo MCA."
+msgstr "Inga MCA-enheter."
 
 msgid "MiB"
 msgstr "MiB"
 
 msgid "Network Card #1"
-msgstr "Placa de rede 1"
+msgstr "Nätverkskort #1"
 
 msgid "Network Card #2"
-msgstr "Placa de rede 2"
+msgstr "Nätverkskort #2"
 
 msgid "Network Card #3"
-msgstr "Placa de rede 3"
+msgstr "Nätverkskort #3"
 
 msgid "Network Card #4"
-msgstr "Placa de rede 4"
+msgstr "Nätverkskort #4"
 
 msgid "Mode:"
-msgstr "Modo:"
+msgstr "Läge:"
 
 msgid "Interface:"
-msgstr "Interface:"
+msgstr "Gränssnitt:"
 
 msgid "Adapter:"
-msgstr "Adaptador:"
+msgstr "Adapter:"
 
 msgid "VDE Socket:"
-msgstr "Soquete VDE:"
+msgstr "VDE-sockel:"
 
 msgid "86Box Unit Tester"
-msgstr "Testador de unidade 86Box"
+msgstr "86Box enhetsprövare"
 
 msgid "Novell NetWare 2.x Key Card"
-msgstr "Cartão de Autenticação Novell NetWare 2.x"
+msgstr "Novell NetWare 2.x nyckelkort"
 
 msgid "Serial port passthrough 1"
-msgstr "Passagem de porta serial 1"
+msgstr "Serieport passthrough 1"
 
 msgid "Serial port passthrough 2"
-msgstr "Passagem de porta serial 2"
+msgstr "Serieport passthrough 2"
 
 msgid "Serial port passthrough 3"
-msgstr "Passagem de porta serial 3"
+msgstr "Serieport passthrough 3"
 
 msgid "Serial port passthrough 4"
-msgstr "Passagem de porta serial 4"
+msgstr "Serieport passthrough 4"
 
 msgid "Renderer options..."
-msgstr "Opções do renderizador..."
+msgstr "Renderingsalternativ..."
 
 msgid "Logitech/Microsoft Bus Mouse"
-msgstr "Mouse de barramento Logitech/Microsoft"
+msgstr "Logitech/Microsoft-buss-mus"
 
 msgid "Microsoft Bus Mouse (InPort)"
-msgstr "Mouse de barramento Microsoft (InPort)"
+msgstr "Microsoft-buss-mus (InPort)"
 
 msgid "Mouse Systems Serial Mouse"
-msgstr "Mouse serial Mouse Systems"
+msgstr "Mouse Systems seriemus"
 
 msgid "Microsoft Serial Mouse"
-msgstr "Mouse serial Microsoft"
+msgstr "Microsoft seriemus"
 
 msgid "Logitech Serial Mouse"
-msgstr "Mouse serial Logitech"
+msgstr "Logitech seriemus"
 
 msgid "PS/2 Mouse"
-msgstr "Mouse PS/2"
+msgstr "PS/2-mus"
 
 msgid "3M MicroTouch (Serial)"
-msgstr "3M MicroTouch (serial)"
+msgstr "3M MicroTouch (serie)"
 
 msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Modem padrão compatível com Hayes"
+msgstr "[COM] Standard Hayes-kompatibelt modem"
 
 msgid "Roland MT-32 Emulation"
-msgstr "Emulação do Roland MT-32"
+msgstr "Roland MT-32 emulering"
 
 msgid "Roland MT-32 (New) Emulation"
-msgstr "Emulação do Roland MT-32 (novo)"
+msgstr "Roland MT-32 (ny) emulering"
 
 msgid "Roland CM-32L Emulation"
-msgstr "Emulação do Roland CM-32L"
+msgstr "Roland CM-32L emulering"
 
 msgid "Roland CM-32LN Emulation"
-msgstr "Emulação do Roland CM-32LN"
+msgstr "Roland CM-32LN emulering"
 
 msgid "OPL4-ML Daughterboard"
-msgstr "Placa Filha OPL4-ML"
+msgstr "OPL4-ML dotterkort"
 
 msgid "System MIDI"
-msgstr "Sistema MIDI"
+msgstr "System-MIDI"
 
 msgid "MIDI Input Device"
-msgstr "Dispositivo de entrada MIDI"
+msgstr "Indataenhet för MIDI"
 
 msgid "BIOS Address"
-msgstr "Endereço do BIOS"
+msgstr "BIOS-adress"
 
 msgid "Enable BIOS extension ROM Writes"
-msgstr "Habilitar gravações na ROM de extensão do BIOS"
+msgstr "Aktivera ROM-skrivningar för utökat BIOS"
 
 msgid "Address"
-msgstr "Endereço"
+msgstr "Adress"
 
 msgid "IRQ"
 msgstr "IRQ"
 
 msgid "BIOS Revision"
-msgstr "Revisão do BIOS"
+msgstr "BIOS revision"
 
 msgid "Translate 26 -> 17"
-msgstr "Traduzir 26 -> 17"
+msgstr "Översätt 26 -> 17"
 
 msgid "Language"
-msgstr "Idioma"
+msgstr "Språk"
 
 msgid "Enable backlight"
-msgstr "Ativar luz de fundo"
+msgstr "Aktivera bakgrundsbelysning"
 
 msgid "Invert colors"
-msgstr "Inverter cores"
+msgstr "Invertera färger"
 
 msgid "BIOS size"
-msgstr "Tamanho do BIOS"
+msgstr "Storlek på BIOS"
 
 msgid "Map C0000-C7FFF as UMB"
-msgstr "Mapear C0000-C7FFF como UMB"
+msgstr "Kartlägg C0000-C7FFF som UMB"
 
 msgid "Map C8000-CFFFF as UMB"
-msgstr "Mapear C8000-CFFFF como UMB"
+msgstr "Kartlägg C8000-CFFFF som UMB"
 
 msgid "Map D0000-D7FFF as UMB"
-msgstr "Mapear D0000-D7FFF como UMB"
+msgstr "Kartlägg D0000-D7FFF som UMB"
 
 msgid "Map D8000-DFFFF as UMB"
-msgstr "Mapear D8000-DFFFF como UMB"
+msgstr "Kartlägg D8000-DFFFF som UMB"
 
 msgid "Map E0000-E7FFF as UMB"
-msgstr "Mapear E0000-E7FFF como UMB"
+msgstr "Kartlägg E0000-E7FFF som UMB"
 
 msgid "Map E8000-EFFFF as UMB"
-msgstr "Mapear E8000-EFFFF como UMB"
+msgstr "Kartlägg E8000-EFFFF som UMB"
 
 msgid "JS9 Jumper (JIM)"
-msgstr "Jumper JS9 (JIM)"
+msgstr "JS9-bygel (JIM)"
 
 msgid "MIDI Output Device"
-msgstr "Dispositivo de saída MIDI"
+msgstr "Utdataenhet för MIDI"
 
 msgid "MIDI Real time"
-msgstr "MIDI em tempo real"
+msgstr "Realtid för MIDI"
 
 msgid "MIDI Thru"
-msgstr "Passagem da entrada MIDI"
+msgstr "MIDI genom"
 
 msgid "MIDI Clockout"
-msgstr "Saída do relógio MIDI"
+msgstr "MIDI utklockning"
 
 msgid "SoundFont"
-msgstr "Fonte de som"
+msgstr "Ljudsnitt"
 
 msgid "Output Gain"
-msgstr "Ganho de saída"
+msgstr "Förstärkning av utmatning"
 
 msgid "Chorus"
-msgstr "Coro"
+msgstr "Chorus"
 
 msgid "Chorus Voices"
-msgstr "Vozes do coro"
+msgstr "Chorus voices"
 
 msgid "Chorus Level"
-msgstr "Nível do coro"
+msgstr "Chorus nivå"
 
 msgid "Chorus Speed"
-msgstr "Velocidade do coro"
+msgstr "Chorus hastighet"
 
 msgid "Chorus Depth"
-msgstr "Profundidade do coro"
+msgstr "Chorus djup"
 
 msgid "Chorus Waveform"
-msgstr "Forma de onda do coro"
+msgstr "Chorus vågform"
 
 msgid "Reverb"
-msgstr "Reverberação"
+msgstr "Reverb"
 
 msgid "Reverb Room Size"
-msgstr "Tamanho da sala de reverberação"
+msgstr "Reverb rumsstorlek"
 
 msgid "Reverb Damping"
-msgstr "Amortecimento de reverberação"
+msgstr "Reverb dämpning"
 
 msgid "Reverb Width"
-msgstr "Largura de reverberação"
+msgstr "Reverb bredd"
 
 msgid "Reverb Level"
-msgstr "Nível de reverberação"
+msgstr "Reverb nivå"
 
 msgid "Interpolation Method"
-msgstr "Método de interpolação"
+msgstr "Interpoleringsmetod"
 
 msgid "Reverb Output Gain"
-msgstr "Ganho da saída da reverberação"
+msgstr "Reverb utmatningsförstärkning"
 
 msgid "Reversed stereo"
-msgstr "Estéreo invertido"
+msgstr "Omvänd stereo"
 
 msgid "Nice ramp"
-msgstr "Bela rampa"
+msgstr "Nice ramp"
 
 msgid "Hz"
 msgstr "Hz"
 
 msgid "Buttons"
-msgstr "Botões"
+msgstr "Knappar"
 
 msgid "Serial Port"
-msgstr "Porta serial"
+msgstr "Serieport"
 
 msgid "RTS toggle"
-msgstr "Alternância de RTS"
+msgstr "RTS-brytare"
 
 msgid "Revision"
-msgstr "Revisão"
+msgstr "Revision"
 
 msgid "Controller"
-msgstr "Controlador"
+msgstr "Styrenhet"
 
 msgid "Show Crosshair"
-msgstr "Mostrar mira"
+msgstr "Visa hårkors"
 
 msgid "DMA"
 msgstr "DMA"
 
 msgid "MAC Address"
-msgstr "Endereço MAC"
+msgstr "MAC-adress"
 
 msgid "MAC Address OUI"
-msgstr "OUI do Endereço MAC"
+msgstr "MAC-adress OUI"
 
 msgid "Enable BIOS"
-msgstr "Habilitar BIOS"
+msgstr "Aktivera BIOS"
 
 msgid "Baud Rate"
-msgstr "Taxa de transmissão"
+msgstr "Baudhastighet"
 
 msgid "TCP/IP listening port"
-msgstr "Porta de escuta TCP/IP"
+msgstr "TCP/IP lyssningsport"
 
 msgid "Phonebook File"
-msgstr "Arquivo de lista telefônica"
+msgstr "Telefonsboksfil"
 
 msgid "Telnet emulation"
-msgstr "Emulação Telnet"
+msgstr "Telnet-emulering"
 
 msgid "RAM Address"
-msgstr "Endereço da RAM"
+msgstr "RAM-adress"
 
 msgid "RAM size"
-msgstr "Tamanho da RAM"
+msgstr "RAM-storlek"
 
 msgid "Initial RAM size"
-msgstr "Tamanho inicial da RAM"
+msgstr "Ursprunglig RAM-storlek"
 
 msgid "Serial Number"
-msgstr "Número de série"
+msgstr "Serienummer"
 
 msgid "Host ID"
-msgstr "ID do host"
+msgstr "Värd-ID"
 
 msgid "FDC Address"
-msgstr "Endereço da FDC"
+msgstr "Adress till diskettstyrenhet"
 
 msgid "MPU-401 Address"
-msgstr "Endereço da MPU-401"
+msgstr "Adress till MPU-401"
 
 msgid "MPU-401 IRQ"
-msgstr "IRQ MPU-401"
+msgstr "MPU-401 IRQ"
 
 msgid "Receive MIDI input"
-msgstr "Receber entrada MIDI"
+msgstr "Ta emot MIDI-indata"
 
 msgid "Low DMA"
-msgstr "DMA baixo"
+msgstr "Låg DMA"
 
 msgid "Enable Game port"
-msgstr "Ativar a porta do jogo"
+msgstr "Aktivera spelport"
 
 msgid "Surround module"
-msgstr "Módulo surround"
+msgstr "Sorround-modul"
 
 msgid "CODEC"
 msgstr "CODEC"
 
 msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Aumentar a interrupção do CODEC na configuração do CODEC (necessário para alguns drivers)"
+msgstr "Öka avbrottsnummer för CODEC vid CODEC-installation (krävs av vissa drivrutiner)"
 
 msgid "SB Address"
-msgstr "Endereço do SB"
+msgstr "Adress för SB"
 
 msgid "WSS IRQ"
 msgstr "WSS IRQ"
@@ -1630,193 +1630,193 @@ msgid "WSS DMA"
 msgstr "WSS DMA"
 
 msgid "Enable OPL"
-msgstr "Ativar OPL"
+msgstr "Aktivera OPL"
 
 msgid "Receive MIDI input (MPU-401)"
-msgstr "Receber entrada MIDI (MPU-401)"
+msgstr "Ta emot MIDI-indata (MPU-401)"
 
 msgid "SB low DMA"
-msgstr "DMA baixo SB"
+msgstr "Låg DMA för SB"
 
 msgid "6CH variant (6-channel)"
-msgstr "Variante 6CH (6 canais)"
+msgstr "6CH-variant (6-kanals)"
 
 msgid "Enable CMS"
-msgstr "Ativar o CMS"
+msgstr "Aktivera CMS"
 
 msgid "Mixer"
-msgstr "Misturador"
+msgstr "Mixer"
 
 msgid "High DMA"
-msgstr "DMA alto"
+msgstr "Hög DMA"
 
 msgid "Control PC speaker"
-msgstr "Controlar alto-falante do PC"
+msgstr "Styr PC-speaker"
 
 msgid "Memory size"
-msgstr "Tamanho da memória"
+msgstr "Minnesstorlek"
 
 msgid "EMU8000 Address"
-msgstr "Endereço da EMU8000"
+msgstr "Adress till EMU8000"
 
 msgid "IDE Controller"
-msgstr "Controlador IDE"
+msgstr "IDE-styrenhet"
 
 msgid "Codec"
-msgstr "Codec"
+msgstr "Kodek"
 
 msgid "GUS type"
-msgstr "Tipo de GUS"
+msgstr "GUS-typ"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr "Ativar o comando 0x04 \"Sair do 86Box\""
+msgstr "Aktivera kommandot 0x04 \"Avsluta 86Box\""
 
 msgid "Display type"
-msgstr "Tipo de tela"
+msgstr "Skärmtyp"
 
 msgid "Composite type"
-msgstr "Tipo de composto"
+msgstr "Komposittyp"
 
 msgid "RGB type"
-msgstr "Tipo de RGB"
+msgstr "RGB-typ"
 
 msgid "Line doubling type"
-msgstr "Tipo de duplicação de linha"
+msgstr "Linjefördubblingstyp"
 
 msgid "Snow emulation"
-msgstr "Emulação de neve"
+msgstr "Snöemulering"
 
 msgid "Monitor type"
-msgstr "Tipo de monitor"
+msgstr "Bildskärmstyp"
 
 msgid "Character set"
-msgstr "Conjunto de caracteres"
+msgstr "Teckenuppsättning"
 
 msgid "XGA type"
-msgstr "Tipo de XGA"
+msgstr "XGA-typ"
 
 msgid "Instance"
-msgstr "Instância"
+msgstr "Instans"
 
 msgid "MMIO Address"
-msgstr "Endereço da MMIO"
+msgstr "Adress för MMIO"
 
 msgid "RAMDAC type"
-msgstr "Tipo de RAMDAC"
+msgstr "RAMDAC-typ"
 
 msgid "Blend"
-msgstr "Mistura"
+msgstr "Blanda"
 
 msgid "Bilinear filtering"
-msgstr "Filtragem bilinear"
+msgstr "Bilinjär filtrering"
 
 msgid "Dithering"
-msgstr "Pontilhamento"
+msgstr "Dithering"
 
 msgid "Enable NMI for CGA emulation"
-msgstr "Ativar NMI para emulação CGA"
+msgstr "Aktivera NMI till CGA-emulering"
 
 msgid "Voodoo type"
-msgstr "Tipo de Voodoo"
+msgstr "Voodoo-typ"
 
 msgid "Framebuffer memory size"
-msgstr "Tamanho da memória do framebuffer"
+msgstr "Minnesstorlek för videobuffert"
 
 msgid "Texture memory size"
-msgstr "Tamanho da memória da textura"
+msgstr "Minnesstorlek för texturer"
 
 msgid "Dither subtraction"
-msgstr "Subtração de pontilhado"
+msgstr "Dither subtraktion"
 
 msgid "Screen Filter"
-msgstr "Filtro de tela"
+msgstr "Skärmfilter"
 
 msgid "Render threads"
-msgstr "Threads de renderização"
+msgstr "Renderingstrådar"
 
 msgid "SLI"
 msgstr "SLI"
 
 msgid "Start Address"
-msgstr "Endereço inicial"
+msgstr "Startadress"
 
 msgid "Contiguous Size"
-msgstr "Tamanho contíguo"
+msgstr "Angränsande storlek"
 
 msgid "I/O Width"
-msgstr "Largura de E/S"
+msgstr "I/O-bredd"
 
 msgid "Transfer Speed"
-msgstr "Velocidade de transferência"
+msgstr "Överföringshastighet"
 
 msgid "EMS mode"
-msgstr "Modo EMS"
+msgstr "EMS-läge"
 
 msgid "Address for > 2 MB"
-msgstr "Endereço para > 2 MB"
+msgstr "Adress till > 2 MB"
 
 msgid "Frame Address"
-msgstr "Endereço do quadro"
+msgstr "Bildadress"
 
 msgid "USA"
-msgstr "EUA"
+msgstr "Förenta staterna"
 
 msgid "Danish"
-msgstr "Dinamarquês"
+msgstr "Danska"
 
 msgid "Always at selected speed"
-msgstr "Sempre na velocidade selecionada"
+msgstr "Alltid vid den valda hastigheten"
 
 msgid "BIOS setting + Hotkeys (off during POST)"
-msgstr "Configuração do BIOS + teclas de atalho (desativadas durante o POST)"
+msgstr "BIOS-inställningar + Snabbtangenter (av under POST)"
 
 msgid "64 kB starting from F0000"
-msgstr "64 kB a partir de F0000"
+msgstr "64 kB som börjar från F0000"
 
 msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB a partir de E0000 (endereço MSB invertido, os últimos 64 kB primeiro)"
+msgstr "128 kB som börjar från E0000 (adress MSB inverterad, de sista 64KB först)"
 
 msgid "Sine"
-msgstr "Senoidal"
+msgstr "Sinus"
 
 msgid "Triangle"
-msgstr "Triangular"
+msgstr "Triangel"
 
 msgid "Linear"
-msgstr "Linear"
+msgstr "Linjär"
 
 msgid "4th Order"
-msgstr "De 4ª ordem"
+msgstr "Fjärde ordningen"
 
 msgid "7th Order"
-msgstr "De 7º order"
+msgstr "Sjunde ordningen"
 
 msgid "Non-timed (original)"
-msgstr "Sem cronômetro (original)"
+msgstr "Ej tajmad (ursprunglig)"
 
 msgid "45 Hz (JMP2 not populated)"
-msgstr "45 Hz (sem jumper em JMP2)"
+msgstr "45 Hz (JMP2 ej byglad)"
 
 msgid "Two"
-msgstr "Dois"
+msgstr "Två"
 
 msgid "Three"
-msgstr "Três"
+msgstr "Tre"
 
 msgid "Wheel"
-msgstr "Roda"
+msgstr "Hjul"
 
 msgid "Five + Wheel"
-msgstr "Cinco + roda"
+msgstr "Fem med hjul"
 
 msgid "Five + 2 Wheels"
 msgstr ""
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
-msgstr "A3 - SMT2 Serial / SMT3(R)V"
+msgstr "A3 - SMT2 serie / SMT3(R)V"
 
 msgid "Q1 - SMT3(R) Serial"
-msgstr "Q1 - SMT3(R) Serial"
+msgstr "Q1 - SMT3(R) serie"
 
 msgid "8 KB"
 msgstr "8 KB"
@@ -1831,7 +1831,7 @@ msgid "64 KB"
 msgstr "64 KB"
 
 msgid "Disable BIOS"
-msgstr "Desativar o BIOS"
+msgstr "Avaktivera BIOS"
 
 msgid "512 KB"
 msgstr "512 KB"
@@ -1864,295 +1864,301 @@ msgid "24 MB"
 msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
-msgstr "SigmaTel STAC9721T (estéreo)"
+msgstr "SigmaTel STAC9721T (stereo)"
 
 msgid "Classic"
-msgstr "Clássico"
+msgstr "Klassisk"
 
 msgid "256 KB"
 msgstr "256 KB"
 
 msgid "Composite"
-msgstr "Composto"
+msgstr "Komposit"
 
 msgid "Old"
-msgstr "Antiga"
+msgstr "Gammal"
 
 msgid "New"
-msgstr "Novo"
+msgstr "Ny"
 
 msgid "Color (generic)"
-msgstr "Colorido (genérico)"
+msgstr "Färg (allmän)"
 
 msgid "Green Monochrome"
-msgstr "Monocromático verde"
+msgstr "Grön monokrom"
 
 msgid "Amber Monochrome"
-msgstr "Monocromático âmbar"
+msgstr "Bärnstensfärgad monokrom"
 
 msgid "Gray Monochrome"
-msgstr "Monocromático cinza"
+msgstr "Grå monokrom"
 
 msgid "Color (no brown)"
-msgstr "Colorido (sem marrom)"
+msgstr "Färg (utan brun)"
 
 msgid "Color (IBM 5153)"
-msgstr "Colorido (IBM 5153)"
+msgstr "Färg (IBM 5153)"
 
 msgid "Simple doubling"
-msgstr "Duplicação simples"
+msgstr "Enkel fördubbling"
 
 msgid "sRGB interpolation"
-msgstr "Interpolação sRGB"
+msgstr "sRGB-interpolering"
 
 msgid "Linear interpolation"
-msgstr "Interpolação linear"
+msgstr "Linjär interpolering"
 
 msgid "128 KB"
 msgstr "128 KB"
 
 msgid "Monochrome (5151/MDA) (white)"
-msgstr "Monocromático (5151/MDA) (branco)"
+msgstr "Monokrom (5151/MDA) (vit)"
 
 msgid "Monochrome (5151/MDA) (green)"
-msgstr "Monocromático (5151/MDA) (verde)"
+msgstr "Monokrom (5151/MDA) (grön)"
 
 msgid "Monochrome (5151/MDA) (amber)"
-msgstr "Monocromático (5151/MDA) (âmbar)"
+msgstr "Monokrom (5151/MDA) (bärnstensfärgad)"
 
 msgid "Color 40x25 (5153/CGA)"
-msgstr "Colorido 40x25 (5153/CGA)"
+msgstr "Färg 40x25 (5153/CGA)"
 
 msgid "Color 80x25 (5153/CGA)"
-msgstr "Colorido 80x25 (5153/CGA)"
+msgstr "Färg 80x25 (5153/CGA)"
 
 msgid "Enhanced Color - Normal Mode (5154/ECD)"
-msgstr "Colorido aprimorado - Modo normal (5154/ECD)"
+msgstr "Utökad färg - normalt läge (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
-msgstr "Colorido aprimorado - Modo aprimorado (5154/ECD)"
+msgstr "Utökad färg - utökat läge (5154/ECD)"
 
 msgid "Green"
-msgstr "Verde"
+msgstr "Grön"
 
 msgid "Amber"
-msgstr "Âmbar"
+msgstr "Bärnstensfärgad"
 
 msgid "Gray"
-msgstr "Cinza"
+msgstr "Grå"
 
 msgid "Color"
-msgstr "Colorido"
+msgstr "Färg"
 
 msgid "U.S. English"
-msgstr "Inglês Americano"
+msgstr "Amerikansk engelska"
 
 msgid "Scandinavian"
-msgstr "Escandinavo"
+msgstr "Skandinaviska"
 
 msgid "Other languages"
-msgstr "Outros idiomas"
+msgstr "Andra språk"
 
 msgid "Bochs latest"
-msgstr "Bochs mais recente"
+msgstr "Bochs senaste"
 
 msgid "Mono Non-Interlaced"
-msgstr "Monocromático não entrelaçado"
+msgstr "Ej sammanflätad monokrom"
 
 msgid "Color Interlaced"
-msgstr "Colorido entrelaçado"
+msgstr "Sammanflätad färg"
 
 msgid "Color Non-Interlaced"
-msgstr "Colorido não entrelaçado"
+msgstr "Ej sammanflätad färg"
 
 msgid "3Dfx Voodoo Graphics"
-msgstr "Gráficos 3Dfx Voodoo"
+msgstr "3Dfx Voodoo-grafik"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
-msgstr "Obsidian SB50 + Amethyst (2 unidades TMU)"
+msgstr "Obsidian SB50 + Amethyst (2 TMUs)"
 
 msgid "8-bit"
-msgstr "8 bits"
+msgstr "8-bitar"
 
 msgid "16-bit"
-msgstr "16 bits"
+msgstr "16-bitar"
 
 msgid "Standard (150ns)"
-msgstr "Padrão (150ns)"
+msgstr "Standard (150ns)"
 
 msgid "High-Speed (120ns)"
-msgstr "Alta velocidade (120 ns)"
+msgstr "Höghastighet (120ns)"
 
 msgid "Enabled"
-msgstr "Ativado"
+msgstr "Aktiverad"
 
 msgid "Standard"
-msgstr "Padrão"
+msgstr "Standard"
 
 msgid "High-Speed"
-msgstr "Alta velocidade"
+msgstr "Höghastighet"
 
 msgid "Stereo LPT DAC"
-msgstr "DAC LPT estéreo"
+msgstr "Stereo LPT DAC"
 
 msgid "Generic Text Printer"
-msgstr "Impressora de texto genérica"
+msgstr "Allmän textskrivare"
 
 msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "Impressora matricial de pontos ESC/P genérica"
+msgstr "Allmän ESC/P punktmatrisskrivare"
 
 msgid "Generic PostScript Printer"
-msgstr "Impressora PostScript genérica"
+msgstr "Allmän PostScript-skrivare"
 
 msgid "Generic PCL5e Printer"
-msgstr "Impressora PCL5e genérica"
+msgstr "Allmän PCL5e-skrivare"
 
 msgid "Parallel Line Internet Protocol"
-msgstr "Protocolo de Internet de linha paralela"
+msgstr "Parallel Line Internet Protocol"
 
 msgid "Protection Dongle for Savage Quest"
-msgstr "Dongle de proteção para Savage Quest"
+msgstr "Skyddsdongel till Savage Quest"
 
 msgid "Serial Passthrough Device"
-msgstr "Dispositivo de passagem de porta serial"
+msgstr "Seriepassthrough-enhet"
 
 msgid "Passthrough Mode"
-msgstr "Modo de passagem"
+msgstr "Passthrough-läge"
 
 msgid "Host Serial Device"
-msgstr "Dispositivo serial host"
+msgstr "Värd-serieenhet"
 
 msgid "Name of pipe"
-msgstr "Nome do tubo"
+msgstr "Namn på pipe"
 
 msgid "Data bits"
-msgstr "Bits de dados"
+msgstr "Databitar"
 
 msgid "Stop bits"
-msgstr "Bits de parada"
+msgstr "Stopbitar"
 
 msgid "Baud Rate of Passthrough"
-msgstr "Taxa de transmissão de passagem"
+msgstr "Passthroughns Baudhastighet"
 
 msgid "Named Pipe (Server)"
-msgstr "Tubo nomeado (servidor)"
+msgstr "Namngiven pipe (server)"
 
 msgid "Host Serial Passthrough"
-msgstr "Passagem da porta serial do host"
+msgstr "Värd-seriepassthrough"
 
 msgid "E&ject %1"
-msgstr "E&jetar %1"
+msgstr "M&ata ut %1"
 
 msgid "&Unmute"
-msgstr "&Reativar som"
+msgstr "&Avtysta"
 
 msgid "Softfloat FPU"
-msgstr "FPU Softfloat"
+msgstr "Softfloat flyttalsprocessor"
 
 msgid "High performance impact"
-msgstr "Alto impacto no desempenho"
+msgstr "Hög påverkan på prestanda"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] Disco RAM (velocidade máxima)"
+msgstr "[Allmän] RAM-disk (max hastighet)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr ""
+msgstr "[Allmän] 1989 (3500 varv/min)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr ""
+msgstr "[Allmän] 1992 (3600 varv/min)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr ""
+msgstr "[Allmän] 1994 (4500 varv/min)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr ""
+msgstr "[Allmän] 1996 (5400 varv/min)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr ""
+msgstr "[Allmän] 1997 (5400 varv/min)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr ""
+msgstr "[Allmän] 1998 (5400 varv/min)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr ""
+msgstr "[Allmän] 2000 (7200 varv/min)"
 
 msgid "IBM 8514/A clone (ISA)"
-msgstr "Clone IBM 8514/A (ISA)"
+msgstr "IBM 8514/A-klon (ISA)"
 
 msgid "Vendor"
-msgstr "Fabricante"
+msgstr "Leverantör"
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr "30 Hz (JMP2 = 1)"
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr "60 Hz (JMP2 = 2)"
 
 msgid "Generic PC/XT Memory Expansion"
-msgstr "Expansão de memória genérica PC/XT"
+msgstr "Allmän minnesexpansion för PC/XT"
 
 msgid "Generic PC/AT Memory Expansion"
-msgstr "Expansão de memória genérica PC/AT"
+msgstr "Allmän minnesexpansion PC/AT"
 
 msgid "Unable to find Dot-Matrix fonts"
-msgstr "Não foi possível localizar os fontes matriciais de pontos"
+msgstr "Kunde inte hitta typsnitt för punktmatris"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial de pontos ESC/P genérica."
+msgstr "TrueType-typsnitt i mappen \"roms/printer/fonts\" krävs för emulering av den allmänna ESC/P punktmatrisskrivaren."
 
 msgid "Inhibit multimedia keys"
-msgstr ""
+msgstr "Hindra multimediatangenter"
 
 msgid "Ask for confirmation before saving settings"
-msgstr ""
+msgstr "Bekräfta innan inställningarna sparas"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr ""
+msgstr "Bekräfta innan hård omstart"
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
+msgstr "Bekräfta innan avslut"
 
 msgid "Display hotkey message when entering full-screen mode"
-msgstr ""
+msgstr "Visa meddelande om snabbtangenter när helskärmsläget startas"
 
 msgid "Options"
-msgstr ""
+msgstr "Alternativ"
 
 msgid "Model"
-msgstr ""
+msgstr "Modell"
 
 msgid "Model:"
-msgstr ""
+msgstr "Modell:"
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr ""
+msgstr "Kunde inte initialisera Vulkan-renderaren"
 
 msgid "GLSL Error"
-msgstr ""
+msgstr "GLSL-fel"
 
 msgid "Could not load shader: %1"
-msgstr ""
+msgstr "Kunde inte ladda shader: %1"
 
 msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr ""
+msgstr "OpenGL version 3.0 eller högre krävs. Nuvarande GLSL-version är %1.%2"
 
 msgid "Could not load texture: %1"
-msgstr ""
+msgstr "Kunde inte ladda textur: %1"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr ""
+msgstr "Kunde inte kompilera shader:\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr ""
+msgstr "Program inte länkat:\n\n%1"
 
 msgid "Shader Manager"
-msgstr ""
+msgstr "Shader-hanterare"
 
 msgid "Shader Configuration"
-msgstr ""
+msgstr "Shader-inställningar"
 
 msgid "Add"
-msgstr ""
+msgstr "Lägg till"
 
 msgid "Move up"
-msgstr ""
+msgstr "Flytta upp"
 
 msgid "Move down"
-msgstr ""
+msgstr "Flytta ner"
 
 msgid "Could not load file %1"
-msgstr ""
+msgstr "Kunde inte ladda fil %1"

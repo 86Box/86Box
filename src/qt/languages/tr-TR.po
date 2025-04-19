@@ -450,15 +450,6 @@ msgstr "Nuked (daha doğru)"
 msgid "YMFM (faster)"
 msgstr "YMFM (daha hızlı)"
 
-msgid "Network type:"
-msgstr "Ağ türü:"
-
-msgid "PCap device:"
-msgstr "PCap cihazı:"
-
-msgid "Network adapter:"
-msgstr "Ağ cihazı:"
-
 msgid "COM1 Device:"
 msgstr "COM1 cihazı:"
 
@@ -1350,17 +1341,17 @@ msgstr "Ağ kartı 3"
 msgid "Network Card #4"
 msgstr "Ağ kartı 4"
 
-msgid "Mode"
-msgstr "Mod"
+msgid "Mode:"
+msgstr "Mod:"
 
-msgid "Interface"
-msgstr "Arayüz"
+msgid "Interface:"
+msgstr "Arayüz:"
 
-msgid "Adapter"
-msgstr "Adaptör"
+msgid "Adapter:"
+msgstr "Adaptör:"
 
-msgid "VDE Socket"
-msgstr "VDE soketi"
+msgid "VDE Socket:"
+msgstr "VDE soketi:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box birim test cihazı"
@@ -1818,6 +1809,9 @@ msgstr "Tekerlek"
 msgid "Five + Wheel"
 msgstr "Beş + tekerlek"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 seri / SMT3(R)V"
 
@@ -2116,6 +2110,9 @@ msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"
+msgstr ""
+
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

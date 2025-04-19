@@ -140,7 +140,6 @@ int          update_icons    = 1;
 int          kbd_req_capture = 0;
 int          hide_status_bar = 0;
 int          hide_tool_bar   = 0;
-uint32_t     lang_id = 0x0409, lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
 
 int
 stricmp(const char *s1, const char *s2)
@@ -461,58 +460,18 @@ plat_power_off(void)
     QTimer::singleShot(0, (const QWidget *) main_window, &QMainWindow::close);
 }
 
-extern "C++" {
-QMap<uint32_t, QPair<QString, QString>> ProgSettings::lcid_langcode = {
-    { 0x0403, { "ca-ES", "Catalan (Spain)" }         },
-    { 0x0804, { "zh-CN", "Chinese (Simplified)" }    },
-    { 0x0404, { "zh-TW", "Chinese (Traditional)" }   },
-    { 0x041A, { "hr-HR", "Croatian (Croatia)" }      },
-    { 0x0405, { "cs-CZ", "Czech (Czech Republic)" }  },
-    { 0x0407, { "de-DE", "German (Germany)" }        },
-    { 0x0809, { "en-GB", "English (United Kingdom)" }},
-    { 0x0409, { "en-US", "English (United States)" } },
-    { 0x040B, { "fi-FI", "Finnish (Finland)" }       },
-    { 0x040C, { "fr-FR", "French (France)" }         },
-    { 0x040E, { "hu-HU", "Hungarian (Hungary)" }     },
-    { 0x0410, { "it-IT", "Italian (Italy)" }         },
-    { 0x0411, { "ja-JP", "Japanese (Japan)" }        },
-    { 0x0412, { "ko-KR", "Korean (Korea)" }          },
-    { 0x0413, { "nl-NL", "Dutch (Netherlands)" }     },
-    { 0x0415, { "pl-PL", "Polish (Poland)" }         },
-    { 0x0416, { "pt-BR", "Portuguese (Brazil)" }     },
-    { 0x0816, { "pt-PT", "Portuguese (Portugal)" }   },
-    { 0x0419, { "ru-RU", "Russian (Russia)" }        },
-    { 0x041B, { "sk-SK", "Slovak (Slovakia)" }       },
-    { 0x0424, { "sl-SI", "Slovenian (Slovenia)" }    },
-    { 0x0C0A, { "es-ES", "Spanish (Spain, Modern Sort)" } },
-    { 0x041F, { "tr-TR", "Turkish (Turkey)" }        },
-    { 0x0422, { "uk-UA", "Ukrainian (Ukraine)" }     },
-    { 0x042A, { "vi-VN", "Vietnamese (Vietnam)" }    },
-    { 0xFFFF, { "system", "(System Default)" }       },
-};
-}
-
-/* Sets up the program language before initialization. */
-uint32_t
+/* Converts the language code string to a numeric language ID */
+int
 plat_language_code(char *langcode)
 {
-    for (auto &curKey : ProgSettings::lcid_langcode.keys()) {
-        if (ProgSettings::lcid_langcode[curKey].first == langcode) {
-            return curKey;
-        }
-    }
-    return 0xFFFF;
+    return ProgSettings::languageCodeToId(QString(langcode));
 }
 
-/* Converts back the language code to LCID */
+/* Converts the numeric language ID to a language code string */
 void
-plat_language_code_r(uint32_t lcid, char *outbuf, int len)
+plat_language_code_r(int id, char *outbuf, int len)
 {
-    if (!ProgSettings::lcid_langcode.contains(lcid)) {
-        qstrncpy(outbuf, "system", len);
-        return;
-    }
-    qstrncpy(outbuf, ProgSettings::lcid_langcode[lcid].first.toUtf8().constData(), len);
+    qstrncpy(outbuf, ProgSettings::languageIdToCode(id).toUtf8().constData(), len);
     return;
 }
 

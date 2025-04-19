@@ -450,15 +450,6 @@ msgstr "Nuked (更准确)"
 msgid "YMFM (faster)"
 msgstr "YMFM (更快)"
 
-msgid "Network type:"
-msgstr "网络类型:"
-
-msgid "PCap device:"
-msgstr "PCap 设备:"
-
-msgid "Network adapter:"
-msgstr "网络适配器:"
-
 msgid "COM1 Device:"
 msgstr "COM1 设备:"
 
@@ -1350,17 +1341,17 @@ msgstr "网卡 3"
 msgid "Network Card #4"
 msgstr "网卡 4"
 
-msgid "Mode"
-msgstr "模式"
+msgid "Mode:"
+msgstr "模式:"
 
-msgid "Interface"
-msgstr "界面"
+msgid "Interface:"
+msgstr "界面:"
 
-msgid "Adapter"
-msgstr "适配器"
+msgid "Adapter:"
+msgstr "适配器:"
 
-msgid "VDE Socket"
-msgstr "VDE 套接字"
+msgid "VDE Socket:"
+msgstr "VDE 套接字:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box 装置测试仪"
@@ -1818,6 +1809,9 @@ msgstr "滚轮"
 msgid "Five + Wheel"
 msgstr "五键+滚轮"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 串行 / SMT3（R）V"
 
@@ -2116,6 +2110,9 @@ msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"
+msgstr ""
+
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

@@ -450,15 +450,6 @@ msgstr "Nuked (pontosabb)"
 msgid "YMFM (faster)"
 msgstr "YMFM (gyorsabb)"
 
-msgid "Network type:"
-msgstr "Hálózati típusa:"
-
-msgid "PCap device:"
-msgstr "PCap eszköz:"
-
-msgid "Network adapter:"
-msgstr "Hálózati kártya:"
-
 msgid "COM1 Device:"
 msgstr "COM1 eszköz:"
 
@@ -1350,17 +1341,17 @@ msgstr "Hálózati kártya 3"
 msgid "Network Card #4"
 msgstr "Hálózati kártya 4"
 
-msgid "Mode"
-msgstr "Mód"
+msgid "Mode:"
+msgstr "Mód:"
 
-msgid "Interface"
-msgstr "Interfész"
+msgid "Interface:"
+msgstr "Interfész:"
 
-msgid "Adapter"
-msgstr "Adapter"
+msgid "Adapter:"
+msgstr "Adapter:"
 
-msgid "VDE Socket"
-msgstr "VDE aljzat"
+msgid "VDE Socket:"
+msgstr "VDE aljzat:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"
@@ -1818,6 +1809,9 @@ msgstr "Kerék"
 msgid "Five + Wheel"
 msgstr "Öt + kerék"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 soros / SMT3(R)V"
 
@@ -2116,6 +2110,9 @@ msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"
+msgstr ""
+
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

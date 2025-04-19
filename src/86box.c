@@ -160,6 +160,7 @@ int      window_remember;
 int      vid_resize;                                              /* (C) allow resizing */
 int      invert_display                         = 0;              /* (C) invert the display */
 int      suppress_overscan                      = 0;              /* (C) suppress overscans */
+int      lang_id                                = 0;              /* (C) language id */
 int      scale                                  = 0;              /* (C) screen scale factor */
 int      dpi_scale                              = 0;              /* (C) DPI scaling of the emulated
                                                                          screen */
@@ -584,7 +585,7 @@ pc_init(int argc, char *argv[])
     uint32_t *uid;
     uint32_t *shwnd;
 #endif
-    uint32_t lang_init = 0;
+    int lang_init = 0;
 
     /* Grab the executable's full path. */
     plat_get_exe_name(exe_path, sizeof(exe_path) - 1);
