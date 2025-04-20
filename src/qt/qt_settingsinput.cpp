@@ -17,6 +17,7 @@
 #include "qt_settingsinput.hpp"
 #include "ui_qt_settingsinput.h"
 #include "qt_mainwindow.hpp"
+#include "qt_progsettings.hpp"
 
 #include <QDebug>
 #include <QKeySequence>
@@ -109,7 +110,7 @@ SettingsInput::save()
 		strcpy(acc_keys[x].desc, acc_keys_t[x].desc);
 		strcpy(acc_keys[x].seq, acc_keys_t[x].seq);
 	}
-	// ProgSettings::reloadStrings();
+	ProgSettings::reloadStrings();
 }
 	
 void
