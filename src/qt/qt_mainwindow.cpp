@@ -821,9 +821,13 @@ MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::updateShortcuts()
 {
-	// Update menu shortcuts from accelerator table
-	// Note that the "Release mouse" shortcut is hardcoded elsewhere
-	// This section only applies to shortcuts anchored to UI elements
+	/* 
+	 Update menu shortcuts from accelerator table
+	 Note that the "Release mouse" shortcut is hardcoded elsewhere
+	 This section only applies to shortcuts anchored to UI elements
+	 
+	 MainWindow::eventFilter
+	 */
 	
 	// First we need to wipe all existing accelerators, otherwise Qt will
 	// run into conflicts with old ones.
@@ -831,6 +835,7 @@ void MainWindow::updateShortcuts()
 	ui->actionCtrl_Alt_Del->setShortcut(QKeySequence());
 	ui->actionCtrl_Alt_Esc->setShortcut(QKeySequence());
 	ui->actionHard_Reset->setShortcut(QKeySequence());
+	ui->actionPause->setShortcut(QKeySequence());
 	
 	int accID;
 	QKeySequence seq;
@@ -854,6 +859,10 @@ void MainWindow::updateShortcuts()
 	accID = FindAccelerator("fullscreen");
 	seq = QKeySequence::fromString(acc_keys[accID].seq);
 	ui->actionFullscreen->setShortcut(seq);
+	
+	accID = FindAccelerator("pause");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionPause->setShortcut(seq);
 }
 		
 void
@@ -1341,6 +1350,54 @@ MainWindow::FindAcceleratorSeq(const char *name)
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
+	// Detect shortcuts when menubar is hidden
+	// TODO: Could this be simplified by proxying the event and manually
+	// shoving it into the menubar?
+	
+	// Note: This section should ONLY contain shortcuts that are valid
+	// when the emulator 
+	if (event->type() == QEvent::KeyPress)
+	{
+		this->keyPressEvent((QKeyEvent *) event);
+
+		if (event->type() == QEvent::KeyPress && video_fullscreen != 0)
+		{
+			QKeyEvent *ke = (QKeyEvent *) event;
+			
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse"))
+			{
+				qDebug() << ke;
+				plat_mouse_capture(0);
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot"))
+			{
+				ui->actionTake_screenshot->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen"))
+			{
+				ui->actionFullscreen->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset"))
+			{
+				ui->actionHard_Reset->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_del"))
+			{
+				ui->actionCtrl_Alt_Del->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_esc"))
+			{
+				ui->actionCtrl_Alt_Esc->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("pause"))
+			{
+				ui->actionPause->trigger();
+			}
+			return true;
+		}
+	}
+	
+
     if (!dopause) {
         if (event->type() == QEvent::Shortcut) {
             auto shortcutEvent = (QShortcutEvent *) event;
@@ -1350,40 +1407,8 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             }
         }
         if (event->type() == QEvent::KeyPress) {
-            this->keyPressEvent((QKeyEvent *) event);
-			
-			// Detect shortcuts when menubar is hidden
-			// TODO: Could this be simplified by proxying the event and manually
-			// shoving it into the menubar?
-			QKeySequence accKey;
-
-			if (event->type() == QEvent::KeyPress && video_fullscreen != 0)
-			{
-				QKeyEvent *ke = (QKeyEvent *) event;
-				
-				if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot"))
-				{
-						ui->actionTake_screenshot->trigger();
-				}
-				if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_del"))
-				{
-						ui->actionCtrl_Alt_Del->trigger();
-				}
-				if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_esc"))
-				{
-						ui->actionCtrl_Alt_Esc->trigger();
-				}
-				if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset"))
-				{
-						ui->actionHard_Reset->trigger();
-				}
-				if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen"))
-				{
-						ui->actionFullscreen->trigger();
-				}
-			}
-			
 			event->accept();
+			
             return true;
         }
         if (event->type() == QEvent::KeyRelease) {
@@ -1471,14 +1496,6 @@ MainWindow::keyPressEvent(QKeyEvent *event)
         processKeyboardInput(true, event->nativeScanCode());
 #endif
     }
-
-	// Check if mouse release combo has been entered
-	int accID = FindAccelerator("release_mouse");
-	QKeySequence seq = QKeySequence::fromString(acc_keys[accID].seq);
-	if (seq[0] == (event->key() | event->modifiers()))
-		plat_mouse_capture(0);
-	
-	// TODO: Other accelerators should probably be here?
 	
     event->accept();
 }

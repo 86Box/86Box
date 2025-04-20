@@ -243,7 +243,10 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
 		.seq="Ctrl+End" },
 		
 	{	.name="hard_reset", 		.desc="Hard reset", 				
-		.seq="Ctrl+Alt+F12" }
+		.seq="Ctrl+Alt+F12" },
+		
+	{	.name="pause", 				.desc="Toggle pause", 				
+		.seq="Ctrl+Alt+F1" }
 };
 
 
