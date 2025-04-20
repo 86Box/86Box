@@ -630,8 +630,8 @@ msgstr "致命的なエラー"
 msgid " - PAUSED"
 msgstr " - 一時停止"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Ctrl+Alt+PgDnでウィンドウ モードに戻ります。"
+msgid "Press %s to return to windowed mode."
+msgstr "%sでウィンドウ モードに戻ります。"
 
 msgid "Speed"
 msgstr "速度"
@@ -717,11 +717,11 @@ msgstr "他の周辺デバイス"
 msgid "Click to capture mouse"
 msgstr "左クリックでマウスをキャプチャします"
 
-msgid "Press %1 to release mouse"
-msgstr "%1キーでマウスを解放します"
+msgid "Press %s to release mouse"
+msgstr "%sキーでマウスを解放します"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "%1キーまたは中クリックでマウスを解放します"
+msgid "Press %s or middle button to release mouse"
+msgstr "%sキーまたは中クリックでマウスを解放します"
 
 msgid "Bus"
 msgstr "バス"

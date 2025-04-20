@@ -630,8 +630,8 @@ msgstr "치명적인 오류"
 msgid " - PAUSED"
 msgstr " - 일시 중지됨"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Ctrl+Alt+PgDn 키를 누르면 창 모드로 전환합니다."
+msgid "Press %s to return to windowed mode."
+msgstr "%s 키를 누르면 창 모드로 전환합니다."
 
 msgid "Speed"
 msgstr "속도"
@@ -717,11 +717,11 @@ msgstr "기타 주변기기"
 msgid "Click to capture mouse"
 msgstr "이 창을 클릭하면 마우스를 사용합니다"
 
-msgid "Press %1 to release mouse"
-msgstr "%1키를 누르면 마우스를 해제합니다"
+msgid "Press %s to release mouse"
+msgstr "%s키를 누르면 마우스를 해제합니다"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "%1키 또는 가운데 버튼을 클릭하면 마우스를 해제합니다"
+msgid "Press %s or middle button to release mouse"
+msgstr "%s키 또는 가운데 버튼을 클릭하면 마우스를 해제합니다"
 
 msgid "Bus"
 msgstr "버스"

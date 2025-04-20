@@ -630,8 +630,8 @@ msgstr "Fatalna greška"
 msgid " - PAUSED"
 msgstr " - ZASTAO"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Pritisnite Ctrl+Alt+PgDn za povratak u prozorski način rada."
+msgid "Press %s to return to windowed mode."
+msgstr "Pritisnite %s za povratak u prozorski način rada."
 
 msgid "Speed"
 msgstr "Brzina"
@@ -717,11 +717,11 @@ msgstr "Ostali periferni uređaji"
 msgid "Click to capture mouse"
 msgstr "Kliknite da uhvatite miš"
 
-msgid "Press %1 to release mouse"
-msgstr "Pritisnite %1 za otpustanje miša"
+msgid "Press %s to release mouse"
+msgstr "Pritisnite %s za otpustanje miša"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "Pritisnite %1 ili srednji gumb miša za otpuštanje miša"
+msgid "Press %s or middle button to release mouse"
+msgstr "Pritisnite %s ili srednji gumb miša za otpuštanje miša"
 
 msgid "Bus"
 msgstr "Bus"

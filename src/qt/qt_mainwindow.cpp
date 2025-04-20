@@ -1295,7 +1295,7 @@ MainWindow::on_actionFullscreen_triggered()
             bool wasCaptured = mouse_capture == 1;
 
 			char strFullscreen[100];
-			sprintf(strFullscreen, qPrintable(tr("To return to windowed mode, press %s")), acc_keys[FindAccelerator("fullscreen")].seq);
+			sprintf(strFullscreen, qPrintable(tr("Press %s to return to windowed mode.")), acc_keys[FindAccelerator("fullscreen")].seq);
 
             QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), QString(strFullscreen), QMessageBox::Ok, this);
             QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));

@@ -630,8 +630,8 @@ msgstr "Erreur fatale"
 msgid " - PAUSED"
 msgstr " - EN PAUSE"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Appuyez sur Ctrl+Alt+PgDn pour revenir au mode fenêtré."
+msgid "Press %s to return to windowed mode."
+msgstr "Appuyez sur %s pour revenir au mode fenêtré."
 
 msgid "Speed"
 msgstr "Vitesse"

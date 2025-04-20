@@ -630,8 +630,8 @@ msgstr "Error fatal"
 msgid " - PAUSED"
 msgstr " - EN PAUSA"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Premeu Ctrl+Alt+PgDn per tornar al mode de finestra."
+msgid "Press %s to return to windowed mode."
+msgstr "Premeu %s per tornar al mode de finestra."
 
 msgid "Speed"
 msgstr "Velocitat"
@@ -717,11 +717,11 @@ msgstr "Altres perifèrics"
 msgid "Click to capture mouse"
 msgstr "Feu clic per capturar el ratolí"
 
-msgid "Press %1 to release mouse"
-msgstr "Premeu %1 per alliberar el ratolí"
+msgid "Press %s to release mouse"
+msgstr "Premeu %s per alliberar el ratolí"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "Premeu %1 o el botó central per alliberar el ratolí"
+msgid "Press %s or middle button to release mouse"
+msgstr "Premeu %s o el botó central per alliberar el ratolí"
 
 msgid "Bus"
 msgstr "Bus"

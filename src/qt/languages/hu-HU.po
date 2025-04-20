@@ -630,8 +630,8 @@ msgstr "Végzetes hiba"
 msgid " - PAUSED"
 msgstr " - SZÜNETELT"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Használja a Ctrl+Alt+PgDn gombokat az ablakhoz való visszatéréshez."
+msgid "Press %s to return to windowed mode."
+msgstr "Használja a %s gombokat az ablakhoz való visszatéréshez."
 
 msgid "Speed"
 msgstr "Sebesség"
@@ -717,11 +717,11 @@ msgstr "Egyéb perifériák"
 msgid "Click to capture mouse"
 msgstr "Kattintson az egér elfogásához"
 
-msgid "Press %1 to release mouse"
-msgstr "Nyomja meg az %1-t az egér elengédéséhez"
+msgid "Press %s to release mouse"
+msgstr "Nyomja meg az %s-t az egér elengédéséhez"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "Nyomja meg az %1-t vagy a középső gombot az egér elengédéséhez"
+msgid "Press %s or middle button to release mouse"
+msgstr "Nyomja meg az %s-t vagy a középső gombot az egér elengédéséhez"
 
 msgid "Bus"
 msgstr "Busz"
