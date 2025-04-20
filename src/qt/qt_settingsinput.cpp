@@ -68,9 +68,6 @@ SettingsInput::SettingsInput(QWidget *parent)
 	keyTable->setSelectionBehavior(QAbstractItemView::SelectRows);
 	keyTable->setSelectionMode(QAbstractItemView::SingleSelection);
 	keyTable->setShowGrid(true);
-	keyTable->setStyleSheet("QTableWidget::item:hover { }");
-	keyTable->setFocusPolicy(Qt::NoFocus);
-	keyTable->setSelectionMode(QAbstractItemView::NoSelection);
 	
 	// Make a working copy of acc_keys so we can check for dupes later without getting
 	// confused
@@ -224,7 +221,7 @@ SettingsInput::on_tableKeys_doubleClicked(int row, int col)
 		
 		// Find the correct accelerator key entry
 		int accKeyID = FindAccelerator(qPrintable(ui->tableKeys->item(row,2)->text()));
-		if (!accKeyID) return; // this should never happen
+		if (accKeyID < 0) return; // this should never happen
 		
 		// Make the change
 		cell->setText(keyseq.toString(QKeySequence::NativeText));
@@ -254,7 +251,7 @@ SettingsInput::on_pushButtonClearBind_Clicked()
 	cell->setText("");
 	// Find the correct accelerator key entry
 	int accKeyID = FindAccelerator(qPrintable(ui->tableKeys->item(cell->row(),2)->text()));
-	if (!accKeyID) return; // this should never happen
+	if (accKeyID < 0) return; // this should never happen
 	
 	// Make the change
 	cell->setText("");

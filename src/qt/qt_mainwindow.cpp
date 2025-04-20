@@ -859,7 +859,6 @@ void MainWindow::updateShortcuts()
 	
 	accID = FindAccelerator("fullscreen");
 	seq = QKeySequence::fromString(acc_keys[accID].seq);
-	//printf("shortcut: %s\n", qPrintable(ui->actionFullscreen->shortcut().toString()));
 	ui->actionFullscreen->setShortcut(seq);
 	
 	accID = FindAccelerator("hard_reset");
