@@ -139,6 +139,7 @@ namespace IOKit {
 #    include "be_keyboard.hpp"
 
 extern MainWindow *main_window;
+QShortcut *windowedShortcut;
 
 filter_result
 keyb_filter(BMessage *message, BHandler **target, BMessageFilter *filter)
@@ -676,9 +677,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, [](){});
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    auto windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_PageDown), this);
+    windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_PageDown), this);
 #else
-    auto windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_PageDown), this);
+    windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_PageDown), this);
 #endif
     windowedShortcut->setContext(Qt::ShortcutContext::ApplicationShortcut);
     connect(windowedShortcut, &QShortcut::activated, this, [this] () {
@@ -761,6 +762,8 @@ MainWindow::MainWindow(QWidget *parent)
         });
     }
 #endif
+
+	updateShortcuts();
 }
 
 void
@@ -826,6 +829,56 @@ MainWindow::closeEvent(QCloseEvent *event)
     event->accept();
 }
 
+
+void MainWindow::updateShortcuts()
+{
+	// Update menu shortcuts from accelerator table
+	// Note that the "Release mouse" shortcut is hardcoded elsewhere
+	// This section only applies to shortcuts anchored to UI elements
+	
+	ui->actionTake_screenshot->setShortcut(QKeySequence());
+	ui->actionCtrl_Alt_Del->setShortcut(QKeySequence());
+	ui->actionCtrl_Alt_Esc->setShortcut(QKeySequence());
+	ui->actionFullscreen->setShortcut(QKeySequence());
+	ui->actionHard_Reset->setShortcut(QKeySequence());
+	
+	int accID;
+	QKeySequence seq;
+	
+	accID = FindAccelerator("screenshot");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionTake_screenshot->setShortcut(seq);
+	
+	accID = FindAccelerator("send_ctrl_alt_del");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionCtrl_Alt_Del->setShortcut(seq);
+	
+	accID = FindAccelerator("send_ctrl_alt_esc");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionCtrl_Alt_Esc->setShortcut(seq);
+	
+	accID = FindAccelerator("fullscreen");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	//printf("shortcut: %s\n", qPrintable(ui->actionFullscreen->shortcut().toString()));
+	ui->actionFullscreen->setShortcut(seq);
+	
+	accID = FindAccelerator("hard_reset");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionHard_Reset->setShortcut(seq);
+	
+	// To rebind leave_fullscreen we have to disconnect the existing signal,
+	// build a new shortcut, then connect it.
+	accID = FindAccelerator("leave_fullscreen");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	disconnect(windowedShortcut,0,0,0);
+	windowedShortcut = new QShortcut(seq, this);
+	windowedShortcut->setContext(Qt::ShortcutContext::ApplicationShortcut);
+    connect(windowedShortcut, &QShortcut::activated, this, [this] () {
+        if (video_fullscreen)
+            ui->actionFullscreen->trigger();
+    });
+}
+		
 void
 MainWindow::resizeEvent(QResizeEvent *event)
 {
@@ -1026,6 +1079,8 @@ MainWindow::on_actionSettings_triggered()
         case QDialog::Accepted:
             settings.save();
             config_changed = 2;
+			printf("about to try\n");
+			updateShortcuts();
             pc_reset_hard();
             break;
         case QDialog::Rejected:
@@ -1394,9 +1449,14 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 #endif
     }
 
-    if (keyboard_ismsexit())
-        plat_mouse_capture(0);
-
+	// Check if mouse release combo has been entered
+	int accID = FindAccelerator("release_mouse");
+	QKeySequence seq = QKeySequence::fromString(acc_keys[accID].seq);
+	if (seq[0] == (event->key() | event->modifiers()))
+		plat_mouse_capture(0);
+	
+	// TODO: Other accelerators should probably be here?
+	
     event->accept();
 }
 

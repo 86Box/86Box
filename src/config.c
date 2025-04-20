@@ -107,6 +107,30 @@ config_log(const char *fmt, ...)
 #    define config_log(fmt, ...)
 #endif
 
+// Default accelerator key values
+struct accelKey def_acc_keys[NUM_ACCELS] = {
+	{	.name="send_ctrl_alt_del", 	.desc="Send Control+Alt+Del",
+		.seq="Ctrl+F12" },
+		
+	{	.name="send_ctrl_alt_esc", 	.desc="Send Control+Alt+Escape", 	
+		.seq="Ctrl+F10" },
+		
+	{	.name="fullscreen", 		.desc="Fullscreen", 				
+		.seq="Ctrl+Alt+PgUp" },
+		
+	{	.name="screenshot", 		.desc="Screenshot", 				
+		.seq="Ctrl+F11" },
+		
+	{	.name="release_mouse", 		.desc="Release mouse pointer", 		
+		.seq="Ctrl+End" },
+		
+	{	.name="hard_reset", 		.desc="Hard reset", 				
+		.seq="Ctrl+Alt+F12" },
+		
+	{	.name="leave_fullscreen", 		.desc="Leave fullscreen", 				
+		.seq="Ctrl+Alt+PgDn" }
+};
+
 /* Load "General" section. */
 static void
 load_general(void)
@@ -1762,6 +1786,41 @@ load_gl3_shaders(void)
 }
 #endif
 
+/* Load "Keybinds" section. */
+static void
+load_keybinds(void)
+{
+    ini_section_t cat = ini_find_section(config, "Keybinds");
+    char         *p;
+    char          temp[512];
+    memset(temp, 0, sizeof(temp));
+
+	// Initialize the bind list with the defaults
+	for(int x=0;x<NUM_ACCELS;x++) {
+		strcpy(acc_keys[x].name, def_acc_keys[x].name);
+		strcpy(acc_keys[x].desc, def_acc_keys[x].desc);
+		strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
+	}
+
+	// Now load values from config
+	for(int x=0;x<NUM_ACCELS;x++)
+	{
+		p = ini_section_get_string(cat, acc_keys[x].name, "none");
+		// If there's no binding in the file, leave it alone.
+		if (p != "none")
+		{
+			// It would be ideal to validate whether the user entered a
+			// valid combo at this point, but the Qt method for testing that is
+			// not available from C. Fortunately, if you feed Qt an invalid
+			// keysequence string it just assigns nothing, so this won't blow up.
+			// However, to improve the user experience, we should validate keys
+			// and erase any bad combos from config on mainwindow load.
+			
+			strcpy(acc_keys[x].seq, p);
+		}
+	}
+}
+
 /* Load the specified or a default configuration file. */
 void
 config_load(void)
@@ -1863,6 +1922,7 @@ config_load(void)
 #ifndef USE_SDL_UI
         load_gl3_shaders();             /* GL3 Shaders */
 #endif
+		load_keybinds();				/* Load shortcut keybinds */
 
         /* Migrate renamed device configurations. */
         c = ini_find_section(config, "MDA");
@@ -2488,6 +2548,29 @@ save_ports(void)
     ini_delete_section_if_empty(config, cat);
 }
 
+/* Save "Keybinds" section. */
+static void
+save_keybinds(void)
+{
+    ini_section_t cat = ini_find_or_create_section(config, "Keybinds");
+    char          temp[512];
+
+	for(int x=0;x<NUM_ACCELS;x++)
+	{
+		// Has accelerator been changed from default?
+		printf("%s, %s\n", def_acc_keys[x].seq, acc_keys[x].seq);
+		if (strcmp(def_acc_keys[x].seq, acc_keys[x].seq) == 0)
+		{
+			printf("...was equal.\n");
+			ini_section_delete_var(cat, acc_keys[x].name);
+		} else {
+			ini_section_set_string(cat, acc_keys[x].name, acc_keys[x].seq);
+		}
+	}
+
+    ini_delete_section_if_empty(config, cat);
+}
+
 /* Save "Storage Controllers" section. */
 static void
 save_storage_controllers(void)
@@ -3098,6 +3181,7 @@ config_save(void)
 #ifndef USE_SDL_UI
     save_gl3_shaders();             /* GL3 Shaders */
 #endif
+	save_keybinds();				/* Key bindings */
 
     ini_write(config, cfg_path);
 }
