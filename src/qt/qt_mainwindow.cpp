@@ -1397,7 +1397,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
 			}
 			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("mute"))
 			{
-				ui->actionMute_Unmute->setShortcut(seq);
+				ui->actionMute_Unmute->trigger();
 			}
 
 			return true;
