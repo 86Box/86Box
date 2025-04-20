@@ -51,8 +51,8 @@ SettingsInput::SettingsInput(QWidget *parent)
 	QStringList horizontalHeader;
 	QStringList verticalHeader;
 	
-	horizontalHeader.append("Action");
-    horizontalHeader.append("Keybind");
+	horizontalHeader.append(tr("Action"));
+    horizontalHeader.append(tr("Keybind"));
 
 	QTableWidget *keyTable = ui->tableKeys;
 	keyTable->setRowCount(10);
@@ -61,7 +61,7 @@ SettingsInput::SettingsInput(QWidget *parent)
 	keyTable->setColumnWidth(0, 200);
 	keyTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	QStringList headers;
-	headers << "Action" << "Bound key";
+	//headers << "Action" << "Bound key";
 	keyTable->setHorizontalHeaderLabels(headers);
 	keyTable->verticalHeader()->setVisible(false);
 	keyTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -109,6 +109,7 @@ SettingsInput::save()
 		strcpy(acc_keys[x].desc, acc_keys_t[x].desc);
 		strcpy(acc_keys[x].seq, acc_keys_t[x].seq);
 	}
+	// ProgSettings::reloadStrings();
 }
 	
 void
@@ -169,7 +170,7 @@ SettingsInput::refreshInputList()
 {
 
 	for (int x=0;x<NUM_ACCELS;x++) {
-		ui->tableKeys->setItem(x, 0, new QTableWidgetItem(acc_keys_t[x].desc));
+		ui->tableKeys->setItem(x, 0, new QTableWidgetItem(tr(acc_keys_t[x].desc)));
 		ui->tableKeys->setItem(x, 1, new QTableWidgetItem(acc_keys_t[x].seq));
 		ui->tableKeys->setItem(x, 2, new QTableWidgetItem(acc_keys_t[x].name));
 	}

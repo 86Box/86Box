@@ -823,10 +823,9 @@ void MainWindow::updateShortcuts()
 {
 	/* 
 	 Update menu shortcuts from accelerator table
-	 Note that the "Release mouse" shortcut is hardcoded elsewhere
-	 This section only applies to shortcuts anchored to UI elements
 	 
-	 MainWindow::eventFilter
+	 Note that these only work in windowed mode. If you add any new shortcuts,
+	 you have to go duplicate them in MainWindow::eventFilter()
 	 */
 	
 	// First we need to wipe all existing accelerators, otherwise Qt will
@@ -1295,7 +1294,10 @@ MainWindow::on_actionFullscreen_triggered()
         if (video_fullscreen_first) {
             bool wasCaptured = mouse_capture == 1;
 
-            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press Ctrl+Alt+PgDn to return to windowed mode."), QMessageBox::Ok, this);
+			char strFullscreen[100];
+			sprintf(strFullscreen, qPrintable(tr("To return to windowed mode, press %s")), acc_keys[FindAccelerator("fullscreen")].seq);
+
+            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), QString(strFullscreen), QMessageBox::Ok, this);
             QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));
             questionbox.setCheckBox(chkbox);
             chkbox->setChecked(!video_fullscreen_first);
@@ -1362,15 +1364,21 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
 	{
 		this->keyPressEvent((QKeyEvent *) event);
 
+		// We check for mouse release even if we aren't fullscreen,
+		// because it's not a menu accelerator.
+		if (event->type() == QEvent::KeyPress)
+		{
+			QKeyEvent *ke = (QKeyEvent *) event;
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse"))
+			{
+				plat_mouse_capture(0);
+			}
+		}
+
 		if (event->type() == QEvent::KeyPress && video_fullscreen != 0)
 		{
 			QKeyEvent *ke = (QKeyEvent *) event;
 			
-			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse"))
-			{
-				qDebug() << ke;
-				plat_mouse_capture(0);
-			}
 			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot"))
 			{
 				ui->actionTake_screenshot->trigger();
