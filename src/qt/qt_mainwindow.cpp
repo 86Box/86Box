@@ -836,6 +836,7 @@ void MainWindow::updateShortcuts()
 	ui->actionCtrl_Alt_Esc->setShortcut(QKeySequence());
 	ui->actionHard_Reset->setShortcut(QKeySequence());
 	ui->actionPause->setShortcut(QKeySequence());
+	ui->actionMute_Unmute->setShortcut(QKeySequence());
 	
 	int accID;
 	QKeySequence seq;
@@ -863,6 +864,10 @@ void MainWindow::updateShortcuts()
 	accID = FindAccelerator("pause");
 	seq = QKeySequence::fromString(acc_keys[accID].seq);
 	ui->actionPause->setShortcut(seq);
+	
+	accID = FindAccelerator("mute");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionMute_Unmute->setShortcut(seq);
 }
 		
 void
@@ -1353,9 +1358,6 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
 	// Detect shortcuts when menubar is hidden
 	// TODO: Could this be simplified by proxying the event and manually
 	// shoving it into the menubar?
-	
-	// Note: This section should ONLY contain shortcuts that are valid
-	// when the emulator 
 	if (event->type() == QEvent::KeyPress)
 	{
 		this->keyPressEvent((QKeyEvent *) event);
@@ -1393,6 +1395,11 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
 			{
 				ui->actionPause->trigger();
 			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("mute"))
+			{
+				ui->actionMute_Unmute->setShortcut(seq);
+			}
+
 			return true;
 		}
 	}
@@ -1429,8 +1436,6 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         }
     }
 	
-
-
     return QMainWindow::eventFilter(receiver, event);
 }
 

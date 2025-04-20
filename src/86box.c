@@ -246,7 +246,10 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
 		.seq="Ctrl+Alt+F12" },
 		
 	{	.name="pause", 				.desc="Toggle pause", 				
-		.seq="Ctrl+Alt+F1" }
+		.seq="Ctrl+Alt+F1" },
+	
+	{	.name="mute", 				.desc="Toggle mute", 				
+		.seq="Ctrl+Alt+M" }	
 };
 
 
