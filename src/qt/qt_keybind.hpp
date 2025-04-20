@@ -27,6 +27,7 @@ public:
 private:
     Ui::KeyBinder *ui;
 	bool eventFilter(QObject *obj, QEvent *event);
+	void showEvent( QShowEvent* event );
 };
 
 #endif // QT_KeyBinder_HPP

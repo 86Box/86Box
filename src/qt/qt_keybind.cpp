@@ -65,6 +65,7 @@ KeyBinder::KeyBinder(QWidget *parent)
 	singleKeySequenceEdit *seq = new singleKeySequenceEdit();
 	ui->formLayout->addRow(seq);
 	seq->setObjectName("keySequence");
+	this->setTabOrder(seq, ui->buttonBox);
 }
 
 KeyBinder::~KeyBinder()
@@ -72,6 +73,11 @@ KeyBinder::~KeyBinder()
     delete ui;
 }
 
+void
+KeyBinder::showEvent( QShowEvent* event ) {
+    QWidget::showEvent( event );
+    this->findChild<QKeySequenceEdit*>()->setFocus();
+} 
 
 bool KeyBinder::eventFilter(QObject *obj, QEvent *event)
 {

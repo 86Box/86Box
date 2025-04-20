@@ -2558,10 +2558,8 @@ save_keybinds(void)
 	for(int x=0;x<NUM_ACCELS;x++)
 	{
 		// Has accelerator been changed from default?
-		printf("%s, %s\n", def_acc_keys[x].seq, acc_keys[x].seq);
 		if (strcmp(def_acc_keys[x].seq, acc_keys[x].seq) == 0)
 		{
-			printf("...was equal.\n");
 			ini_section_delete_var(cat, acc_keys[x].name);
 		} else {
 			ini_section_set_string(cat, acc_keys[x].name, acc_keys[x].seq);

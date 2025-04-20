@@ -74,7 +74,6 @@ SettingsInput::SettingsInput(QWidget *parent)
 	
 	// Make a working copy of acc_keys so we can check for dupes later without getting
 	// confused
-	printf("Instantiating list\n");
 	for(int x=0;x<NUM_ACCELS;x++) {
 		strcpy(acc_keys_t[x].name, acc_keys[x].name);
 		strcpy(acc_keys_t[x].desc, acc_keys[x].desc);

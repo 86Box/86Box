@@ -1079,7 +1079,6 @@ MainWindow::on_actionSettings_triggered()
         case QDialog::Accepted:
             settings.save();
             config_changed = 2;
-			printf("about to try\n");
 			updateShortcuts();
             pc_reset_hard();
             break;
