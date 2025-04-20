@@ -676,17 +676,6 @@ MainWindow::MainWindow(QWidget *parent)
     /* Remove default Shift+F10 handler, which unfocuses keyboard input even with no context menu. */
     connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, [](){});
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_PageDown), this);
-#else
-    windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_PageDown), this);
-#endif
-    windowedShortcut->setContext(Qt::ShortcutContext::ApplicationShortcut);
-    connect(windowedShortcut, &QShortcut::activated, this, [this] () {
-        if (video_fullscreen)
-            ui->actionFullscreen->trigger();
-    });
-
     connect(this, &MainWindow::initRendererMonitor, this, &MainWindow::initRendererMonitorSlot);
     connect(this, &MainWindow::initRendererMonitorForNonQtThread, this, &MainWindow::initRendererMonitorSlot, Qt::BlockingQueuedConnection);
     connect(this, &MainWindow::destroyRendererMonitor, this, &MainWindow::destroyRendererMonitorSlot);
@@ -836,10 +825,11 @@ void MainWindow::updateShortcuts()
 	// Note that the "Release mouse" shortcut is hardcoded elsewhere
 	// This section only applies to shortcuts anchored to UI elements
 	
+	// First we need to wipe all existing accelerators, otherwise Qt will
+	// run into conflicts with old ones.
 	ui->actionTake_screenshot->setShortcut(QKeySequence());
 	ui->actionCtrl_Alt_Del->setShortcut(QKeySequence());
 	ui->actionCtrl_Alt_Esc->setShortcut(QKeySequence());
-	ui->actionFullscreen->setShortcut(QKeySequence());
 	ui->actionHard_Reset->setShortcut(QKeySequence());
 	
 	int accID;
@@ -857,25 +847,13 @@ void MainWindow::updateShortcuts()
 	seq = QKeySequence::fromString(acc_keys[accID].seq);
 	ui->actionCtrl_Alt_Esc->setShortcut(seq);
 	
-	accID = FindAccelerator("fullscreen");
-	seq = QKeySequence::fromString(acc_keys[accID].seq);
-	ui->actionFullscreen->setShortcut(seq);
-	
 	accID = FindAccelerator("hard_reset");
 	seq = QKeySequence::fromString(acc_keys[accID].seq);
 	ui->actionHard_Reset->setShortcut(seq);
 	
-	// To rebind leave_fullscreen we have to disconnect the existing signal,
-	// build a new shortcut, then connect it.
-	accID = FindAccelerator("leave_fullscreen");
+	accID = FindAccelerator("fullscreen");
 	seq = QKeySequence::fromString(acc_keys[accID].seq);
-	disconnect(windowedShortcut,0,0,0);
-	windowedShortcut = new QShortcut(seq, this);
-	windowedShortcut->setContext(Qt::ShortcutContext::ApplicationShortcut);
-    connect(windowedShortcut, &QShortcut::activated, this, [this] () {
-        if (video_fullscreen)
-            ui->actionFullscreen->trigger();
-    });
+	ui->actionFullscreen->setShortcut(seq);
 }
 		
 void
@@ -1361,6 +1339,20 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         if (event->type() == QEvent::KeyPress) {
             event->accept();
             this->keyPressEvent((QKeyEvent *) event);
+			
+			// Detect fullscreen shortcut when menubar is hidden
+			int accID = FindAccelerator("fullscreen");
+			QKeySequence seq = QKeySequence::fromString(acc_keys[accID].seq);
+
+			if (event->type() == QEvent::KeyPress)
+			{
+				QKeyEvent *ke = (QKeyEvent *) event;
+				if ((QKeySequence)(ke->key() | ke->modifiers()) == seq && video_fullscreen != 0)
+				{
+					ui->actionFullscreen->trigger();
+				}
+			}
+			
             return true;
         }
         if (event->type() == QEvent::KeyRelease) {
@@ -1380,6 +1372,8 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             plat_pause(curdopause);
         }
     }
+	
+
 
     return QMainWindow::eventFilter(receiver, event);
 }

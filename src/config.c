@@ -107,29 +107,6 @@ config_log(const char *fmt, ...)
 #    define config_log(fmt, ...)
 #endif
 
-// Default accelerator key values
-struct accelKey def_acc_keys[NUM_ACCELS] = {
-	{	.name="send_ctrl_alt_del", 	.desc="Send Control+Alt+Del",
-		.seq="Ctrl+F12" },
-		
-	{	.name="send_ctrl_alt_esc", 	.desc="Send Control+Alt+Escape", 	
-		.seq="Ctrl+F10" },
-		
-	{	.name="fullscreen", 		.desc="Fullscreen", 				
-		.seq="Ctrl+Alt+PgUp" },
-		
-	{	.name="screenshot", 		.desc="Screenshot", 				
-		.seq="Ctrl+F11" },
-		
-	{	.name="release_mouse", 		.desc="Release mouse pointer", 		
-		.seq="Ctrl+End" },
-		
-	{	.name="hard_reset", 		.desc="Hard reset", 				
-		.seq="Ctrl+Alt+F12" },
-		
-	{	.name="leave_fullscreen", 		.desc="Leave fullscreen", 				
-		.seq="Ctrl+Alt+PgDn" }
-};
 
 /* Load "General" section. */
 static void
@@ -1794,13 +1771,6 @@ load_keybinds(void)
     char         *p;
     char          temp[512];
     memset(temp, 0, sizeof(temp));
-
-	// Initialize the bind list with the defaults
-	for(int x=0;x<NUM_ACCELS;x++) {
-		strcpy(acc_keys[x].name, def_acc_keys[x].name);
-		strcpy(acc_keys[x].desc, def_acc_keys[x].desc);
-		strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
-	}
 
 	// Now load values from config
 	for(int x=0;x<NUM_ACCELS;x++)

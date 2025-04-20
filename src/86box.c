@@ -225,6 +225,28 @@ int      other_scsi_present = 0;                                  /* SCSI contro
 // Accelerator key array
 struct accelKey acc_keys[NUM_ACCELS];
 
+// Default accelerator key values
+struct accelKey def_acc_keys[NUM_ACCELS] = {
+	{	.name="send_ctrl_alt_del", 	.desc="Send Control+Alt+Del",
+		.seq="Ctrl+F12" },
+		
+	{	.name="send_ctrl_alt_esc", 	.desc="Send Control+Alt+Escape", 	
+		.seq="Ctrl+F10" },
+		
+	{	.name="fullscreen", 		.desc="Toggle fullscreen", 				
+		.seq="Ctrl+Alt+PgUp" },
+		
+	{	.name="screenshot", 		.desc="Screenshot", 				
+		.seq="Ctrl+F11" },
+		
+	{	.name="release_mouse", 		.desc="Release mouse pointer", 		
+		.seq="Ctrl+End" },
+		
+	{	.name="hard_reset", 		.desc="Hard reset", 				
+		.seq="Ctrl+Alt+F12" }
+};
+
+
 /* Statistics. */
 extern int mmuflush;
 extern int readlnum;
@@ -997,6 +1019,14 @@ usage:
         lang_id = lang_init;
 
     gdbstub_init();
+
+	// Initialize the keyboard accelerator list with default values
+	for(int x=0;x<NUM_ACCELS;x++) {
+		strcpy(acc_keys[x].name, def_acc_keys[x].name);
+		strcpy(acc_keys[x].desc, def_acc_keys[x].desc);
+		strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
+	}
+
 
     /* All good! */
     return 1;
