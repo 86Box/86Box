@@ -34,6 +34,8 @@ public:
     void  setSendKeyboardInput(bool enabled);
     void  reloadAllRenderers();
 	QShortcut	*windowedShortcut;
+	QKeySequence FindAcceleratorSeq(const char *name);
+	
 	
     std::array<std::unique_ptr<RendererStack>, 8> renderers;
 signals:

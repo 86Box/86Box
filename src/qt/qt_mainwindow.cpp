@@ -1325,6 +1325,19 @@ MainWindow::getTitle(wchar_t *title)
     }
 }
 
+
+// Helper to find an accelerator key and return it's sequence
+// TODO: Is there a more central place to put this?
+QKeySequence
+MainWindow::FindAcceleratorSeq(const char *name)
+{
+	int accID = FindAccelerator(name);
+	if(accID == -1)
+		return false;
+	
+	return(QKeySequence::fromString(acc_keys[accID].seq));
+}
+
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
@@ -1337,22 +1350,40 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             }
         }
         if (event->type() == QEvent::KeyPress) {
-            event->accept();
             this->keyPressEvent((QKeyEvent *) event);
 			
-			// Detect fullscreen shortcut when menubar is hidden
-			int accID = FindAccelerator("fullscreen");
-			QKeySequence seq = QKeySequence::fromString(acc_keys[accID].seq);
+			// Detect shortcuts when menubar is hidden
+			// TODO: Could this be simplified by proxying the event and manually
+			// shoving it into the menubar?
+			QKeySequence accKey;
 
-			if (event->type() == QEvent::KeyPress)
+			if (event->type() == QEvent::KeyPress && video_fullscreen != 0)
 			{
 				QKeyEvent *ke = (QKeyEvent *) event;
-				if ((QKeySequence)(ke->key() | ke->modifiers()) == seq && video_fullscreen != 0)
+				
+				if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot"))
 				{
-					ui->actionFullscreen->trigger();
+						ui->actionTake_screenshot->trigger();
+				}
+				if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_del"))
+				{
+						ui->actionCtrl_Alt_Del->trigger();
+				}
+				if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_esc"))
+				{
+						ui->actionCtrl_Alt_Esc->trigger();
+				}
+				if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset"))
+				{
+						ui->actionHard_Reset->trigger();
+				}
+				if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen"))
+				{
+						ui->actionFullscreen->trigger();
 				}
 			}
 			
+			event->accept();
             return true;
         }
         if (event->type() == QEvent::KeyRelease) {
