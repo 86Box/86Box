@@ -1807,7 +1807,7 @@ load_keybinds(void)
 	{
 		p = ini_section_get_string(cat, acc_keys[x].name, "none");
 		// If there's no binding in the file, leave it alone.
-		if (p != "none")
+		if (strcmp(p, "none") != 0)
 		{
 			// It would be ideal to validate whether the user entered a
 			// valid combo at this point, but the Qt method for testing that is
@@ -2553,7 +2553,6 @@ static void
 save_keybinds(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Keybinds");
-    char          temp[512];
 
 	for(int x=0;x<NUM_ACCELS;x++)
 	{

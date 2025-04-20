@@ -1338,9 +1338,6 @@ main(int argc, char **argv)
                     }
             }
         }
-        if (mouse_capture && keyboard_ismsexit()) {
-            plat_mouse_capture(0);
-        }
         if (blitreq) {
             extern void sdl_blit(int x, int y, int w, int h);
             sdl_blit(params.x, params.y, params.w, params.h);
