@@ -141,7 +141,14 @@ ui_msgbox_header(int flags, void *header, void *message)
 
     // any error in early init
     if (main_window == nullptr) {
-        QMessageBox msgBox(QMessageBox::Icon::Critical, hdr, msg);
+        auto msgicon = QMessageBox::Icon::Critical;
+        if (flags & MBX_INFO)
+            msgicon = QMessageBox::Icon::Information;
+        else if (flags & MBX_QUESTION)
+            msgicon = QMessageBox::Icon::Question;
+        else if (flags & MBX_WARNING)
+            msgicon = QMessageBox::Icon::Warning;
+        QMessageBox msgBox(msgicon, hdr, msg);
         msgBox.exec();
     } else {
         // else scope it to main_window
