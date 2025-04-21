@@ -630,8 +630,8 @@ msgstr "Fatalny błąd"
 msgid " - PAUSED"
 msgstr " - PAUSED"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Naciśnij klawisze Ctrl+Alt+PgDn aby wrócić to trybu okna."
+msgid "Press %s to return to windowed mode."
+msgstr "Naciśnij klawisze %s aby wrócić to trybu okna."
 
 msgid "Speed"
 msgstr "Szybkość"
@@ -717,11 +717,11 @@ msgstr "Inne urządzenia peryferyjne"
 msgid "Click to capture mouse"
 msgstr "Kliknij w celu przechwycenia myszy"
 
-msgid "Press %1 to release mouse"
-msgstr "Naciśnij klawisze %1 w celu uwolnienia myszy"
+msgid "Press %s to release mouse"
+msgstr "Naciśnij klawisze %s w celu uwolnienia myszy"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "Naciśnij klawisze %1 lub środkowy przycisk w celu uwolnienia myszy"
+msgid "Press %s or middle button to release mouse"
+msgstr "Naciśnij klawisze %s lub środkowy przycisk w celu uwolnienia myszy"
 
 msgid "Bus"
 msgstr "Magistrala"

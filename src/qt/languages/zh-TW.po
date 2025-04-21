@@ -717,11 +717,11 @@ msgstr "其他周邊裝置"
 msgid "Click to capture mouse"
 msgstr "點擊視窗捕捉滑鼠"
 
-msgid "Press %1 to release mouse"
-msgstr "按下 %1 釋放滑鼠"
+msgid "Press %s to release mouse"
+msgstr "按下 %s 釋放滑鼠"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "按下 %1 或滑鼠中鍵釋放滑鼠"
+msgid "Press %s or middle button to release mouse"
+msgstr "按下 %s 或滑鼠中鍵釋放滑鼠"
 
 msgid "Bus"
 msgstr "匯流排"

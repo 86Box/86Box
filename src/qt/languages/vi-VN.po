@@ -630,8 +630,8 @@ msgstr "Lỗi nghiêm trọng"
 msgid " - PAUSED"
 msgstr " - TẠM DỪNG"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Bấm Ctrl+Alt+PgDn để quay lại chế độ cửa sổ."
+msgid "Press %s to return to windowed mode."
+msgstr "Bấm %s để quay lại chế độ cửa sổ."
 
 msgid "Speed"
 msgstr "Vận tốc"
@@ -717,11 +717,11 @@ msgstr "Thiết bị ngoại vi khác"
 msgid "Click to capture mouse"
 msgstr "Nhấp vào khung hình để 'nhốt' chuột vào"
 
-msgid "Press %1 to release mouse"
-msgstr "Nhấn %1 để thả chuột"
+msgid "Press %s to release mouse"
+msgstr "Nhấn %s để thả chuột"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "Nhấn %1 hoặc nhấp chuột giữa để thả chuột"
+msgid "Press %s or middle button to release mouse"
+msgstr "Nhấn %s hoặc nhấp chuột giữa để thả chuột"
 
 msgid "Bus"
 msgstr "Bus"

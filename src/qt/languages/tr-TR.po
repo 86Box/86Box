@@ -630,8 +630,8 @@ msgstr "Kritik hata"
 msgid " - PAUSED"
 msgstr " - DURAKLATILDI"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Pencere moduna geri dönmek için Ctrl+Alt+PgDn tuşlarına basın."
+msgid "Press %s to return to windowed mode."
+msgstr "Pencere moduna geri dönmek için %s tuşlarına basın."
 
 msgid "Speed"
 msgstr "Hız"
@@ -717,11 +717,11 @@ msgstr "Diğer cihazlar"
 msgid "Click to capture mouse"
 msgstr "Farenin yakalanması için tıklayın"
 
-msgid "Press %1 to release mouse"
-msgstr "Farenin bırakılması için %1 tuşlarına basın"
+msgid "Press %s to release mouse"
+msgstr "Farenin bırakılması için %s tuşlarına basın"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "Farenin bırakılması için %1 tuşlarına veya tekerlek tuşuna basın"
+msgid "Press %s or middle button to release mouse"
+msgstr "Farenin bırakılması için %s tuşlarına veya tekerlek tuşuna basın"
 
 msgid "Bus"
 msgstr "Veri yolu"

@@ -630,8 +630,8 @@ msgstr "Kritična napaka"
 msgid " - PAUSED"
 msgstr " - ZAUSTAVLJEN"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Pritisnite Ctrl+Alt+PgDn za povratek iz celozaslonskega načina."
+msgid "Press %s to return to windowed mode."
+msgstr "Pritisnite %s za povratek iz celozaslonskega načina."
 
 msgid "Speed"
 msgstr "Hitrost"
@@ -717,11 +717,11 @@ msgstr "Druga periferija"
 msgid "Click to capture mouse"
 msgstr "Kliknite za zajem miške"
 
-msgid "Press %1 to release mouse"
-msgstr "Pritisnite %1 za izpust miške"
+msgid "Press %s to release mouse"
+msgstr "Pritisnite %s za izpust miške"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "Pritisnite %1 ali srednji gumb za izpust miške"
+msgid "Press %s or middle button to release mouse"
+msgstr "Pritisnite %s ali srednji gumb za izpust miške"
 
 msgid "Bus"
 msgstr "Vodilo"

@@ -630,8 +630,8 @@ msgstr "Неустранимая ошибка"
 msgid " - PAUSED"
 msgstr " - ПАУЗА"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Нажмите Ctrl+Alt+PgDn для возврата в оконный режим."
+msgid "Press %s to return to windowed mode."
+msgstr "Нажмите %s для возврата в оконный режим."
 
 msgid "Speed"
 msgstr "Скорость"
@@ -717,11 +717,11 @@ msgstr "Другая периферия"
 msgid "Click to capture mouse"
 msgstr "Щёлкните мышью для захвата курсора"
 
-msgid "Press %1 to release mouse"
-msgstr "Нажмите %1, чтобы освободить курсор"
+msgid "Press %s to release mouse"
+msgstr "Нажмите %s, чтобы освободить курсор"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "Нажмите %1 или среднюю кнопку мыши, чтобы освободить курсор"
+msgid "Press %s or middle button to release mouse"
+msgstr "Нажмите %s или среднюю кнопку мыши, чтобы освободить курсор"
 
 msgid "Bus"
 msgstr "Шина"

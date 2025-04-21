@@ -139,6 +139,7 @@ namespace IOKit {
 #    include "be_keyboard.hpp"
 
 extern MainWindow *main_window;
+QShortcut *windowedShortcut;
 
 filter_result
 keyb_filter(BMessage *message, BHandler **target, BMessageFilter *filter)
@@ -675,17 +676,6 @@ MainWindow::MainWindow(QWidget *parent)
     /* Remove default Shift+F10 handler, which unfocuses keyboard input even with no context menu. */
     connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, [](){});
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    auto windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_PageDown), this);
-#else
-    auto windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_PageDown), this);
-#endif
-    windowedShortcut->setContext(Qt::ShortcutContext::ApplicationShortcut);
-    connect(windowedShortcut, &QShortcut::activated, this, [this] () {
-        if (video_fullscreen)
-            ui->actionFullscreen->trigger();
-    });
-
     connect(this, &MainWindow::initRendererMonitor, this, &MainWindow::initRendererMonitorSlot);
     connect(this, &MainWindow::initRendererMonitorForNonQtThread, this, &MainWindow::initRendererMonitorSlot, Qt::BlockingQueuedConnection);
     connect(this, &MainWindow::destroyRendererMonitor, this, &MainWindow::destroyRendererMonitorSlot);
@@ -761,6 +751,8 @@ MainWindow::MainWindow(QWidget *parent)
         });
     }
 #endif
+
+	updateShortcuts();
 }
 
 void
@@ -826,6 +818,57 @@ MainWindow::closeEvent(QCloseEvent *event)
     event->accept();
 }
 
+
+void MainWindow::updateShortcuts()
+{
+	/* 
+	 Update menu shortcuts from accelerator table
+	 
+	 Note that these only work in windowed mode. If you add any new shortcuts,
+	 you have to go duplicate them in MainWindow::eventFilter()
+	 */
+	
+	// First we need to wipe all existing accelerators, otherwise Qt will
+	// run into conflicts with old ones.
+	ui->actionTake_screenshot->setShortcut(QKeySequence());
+	ui->actionCtrl_Alt_Del->setShortcut(QKeySequence());
+	ui->actionCtrl_Alt_Esc->setShortcut(QKeySequence());
+	ui->actionHard_Reset->setShortcut(QKeySequence());
+	ui->actionPause->setShortcut(QKeySequence());
+	ui->actionMute_Unmute->setShortcut(QKeySequence());
+	
+	int accID;
+	QKeySequence seq;
+	
+	accID = FindAccelerator("screenshot");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionTake_screenshot->setShortcut(seq);
+	
+	accID = FindAccelerator("send_ctrl_alt_del");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionCtrl_Alt_Del->setShortcut(seq);
+	
+	accID = FindAccelerator("send_ctrl_alt_esc");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionCtrl_Alt_Esc->setShortcut(seq);
+	
+	accID = FindAccelerator("hard_reset");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionHard_Reset->setShortcut(seq);
+	
+	accID = FindAccelerator("fullscreen");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionFullscreen->setShortcut(seq);
+	
+	accID = FindAccelerator("pause");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionPause->setShortcut(seq);
+	
+	accID = FindAccelerator("mute");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionMute_Unmute->setShortcut(seq);
+}
+		
 void
 MainWindow::resizeEvent(QResizeEvent *event)
 {
@@ -1026,6 +1069,7 @@ MainWindow::on_actionSettings_triggered()
         case QDialog::Accepted:
             settings.save();
             config_changed = 2;
+			updateShortcuts();
             pc_reset_hard();
             break;
         case QDialog::Rejected:
@@ -1250,7 +1294,10 @@ MainWindow::on_actionFullscreen_triggered()
         if (video_fullscreen_first) {
             bool wasCaptured = mouse_capture == 1;
 
-            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press Ctrl+Alt+PgDn to return to windowed mode."), QMessageBox::Ok, this);
+			char strFullscreen[100];
+			sprintf(strFullscreen, qPrintable(tr("Press %s to return to windowed mode.")), acc_keys[FindAccelerator("fullscreen")].seq);
+
+            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), QString(strFullscreen), QMessageBox::Ok, this);
             QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));
             questionbox.setCheckBox(chkbox);
             chkbox->setChecked(!video_fullscreen_first);
@@ -1294,9 +1341,78 @@ MainWindow::getTitle(wchar_t *title)
     }
 }
 
+
+// Helper to find an accelerator key and return it's sequence
+// TODO: Is there a more central place to put this?
+QKeySequence
+MainWindow::FindAcceleratorSeq(const char *name)
+{
+	int accID = FindAccelerator(name);
+	if(accID == -1)
+		return false;
+	
+	return(QKeySequence::fromString(acc_keys[accID].seq));
+}
+
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
+	// Detect shortcuts when menubar is hidden
+	// TODO: Could this be simplified by proxying the event and manually
+	// shoving it into the menubar?
+	if (event->type() == QEvent::KeyPress)
+	{
+		this->keyPressEvent((QKeyEvent *) event);
+
+		// We check for mouse release even if we aren't fullscreen,
+		// because it's not a menu accelerator.
+		if (event->type() == QEvent::KeyPress)
+		{
+			QKeyEvent *ke = (QKeyEvent *) event;
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse"))
+			{
+				plat_mouse_capture(0);
+			}
+		}
+
+		if (event->type() == QEvent::KeyPress && video_fullscreen != 0)
+		{
+			QKeyEvent *ke = (QKeyEvent *) event;
+			
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot"))
+			{
+				ui->actionTake_screenshot->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen"))
+			{
+				ui->actionFullscreen->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset"))
+			{
+				ui->actionHard_Reset->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_del"))
+			{
+				ui->actionCtrl_Alt_Del->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_esc"))
+			{
+				ui->actionCtrl_Alt_Esc->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("pause"))
+			{
+				ui->actionPause->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("mute"))
+			{
+				ui->actionMute_Unmute->trigger();
+			}
+
+			return true;
+		}
+	}
+	
+
     if (!dopause) {
         if (event->type() == QEvent::Shortcut) {
             auto shortcutEvent = (QShortcutEvent *) event;
@@ -1306,8 +1422,8 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             }
         }
         if (event->type() == QEvent::KeyPress) {
-            event->accept();
-            this->keyPressEvent((QKeyEvent *) event);
+			event->accept();
+			
             return true;
         }
         if (event->type() == QEvent::KeyRelease) {
@@ -1327,7 +1443,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             plat_pause(curdopause);
         }
     }
-
+	
     return QMainWindow::eventFilter(receiver, event);
 }
 
@@ -1393,10 +1509,7 @@ MainWindow::keyPressEvent(QKeyEvent *event)
         processKeyboardInput(true, event->nativeScanCode());
 #endif
     }
-
-    if (keyboard_ismsexit())
-        plat_mouse_capture(0);
-
+	
     event->accept();
 }
 

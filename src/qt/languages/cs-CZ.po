@@ -630,8 +630,8 @@ msgstr "Kritická chyba"
 msgid " - PAUSED"
 msgstr " - POZASTAVENO"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Stiskněte Ctrl+Alt+PgDn pro návrat z režimu celé obrazovky."
+msgid "Press %s to return to windowed mode."
+msgstr "Stiskněte %s pro návrat z režimu celé obrazovky."
 
 msgid "Speed"
 msgstr "Rychlost"
@@ -717,11 +717,11 @@ msgstr "Jiné příslušenství"
 msgid "Click to capture mouse"
 msgstr "Klikněte pro zabraní myši"
 
-msgid "Press %1 to release mouse"
-msgstr "Stiskněte %1 pro uvolnění myši"
+msgid "Press %s to release mouse"
+msgstr "Stiskněte %s pro uvolnění myši"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "Stiskněte %1 nebo prostřední tlačítko pro uvolnění myši"
+msgid "Press %s or middle button to release mouse"
+msgstr "Stiskněte %s nebo prostřední tlačítko pro uvolnění myši"
 
 msgid "Bus"
 msgstr "Sběrnice"

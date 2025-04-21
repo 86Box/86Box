@@ -595,8 +595,14 @@ ProgSettings::reloadStrings()
 {
     translatedstrings.clear();
     translatedstrings[STRING_MOUSE_CAPTURE]             = QCoreApplication::translate("", "Click to capture mouse").toStdWString();
-    translatedstrings[STRING_MOUSE_RELEASE]             = QCoreApplication::translate("", "Press %1 to release mouse").arg(QCoreApplication::translate("", MOUSE_CAPTURE_KEYSEQ)).toStdWString();
-    translatedstrings[STRING_MOUSE_RELEASE_MMB]         = QCoreApplication::translate("", "Press %1 or middle button to release mouse").arg(QCoreApplication::translate("", MOUSE_CAPTURE_KEYSEQ)).toStdWString();
+	
+	char mouseCaptureKeyseq[100];
+	sprintf(mouseCaptureKeyseq, qPrintable(QCoreApplication::translate("", "Press %s to release mouse")), acc_keys[FindAccelerator("release_mouse")].seq);
+	translatedstrings[STRING_MOUSE_RELEASE]             = QString(mouseCaptureKeyseq).toStdWString();
+	
+	sprintf(mouseCaptureKeyseq, qPrintable(QCoreApplication::translate("", "Press %s or middle button to release mouse")), acc_keys[FindAccelerator("release_mouse")].seq);
+	translatedstrings[STRING_MOUSE_RELEASE_MMB]         = QString(mouseCaptureKeyseq).toStdWString(); 
+	
     translatedstrings[STRING_INVALID_CONFIG]            = QCoreApplication::translate("", "Invalid configuration").toStdWString();
     translatedstrings[STRING_NO_ST506_ESDI_CDROM]       = QCoreApplication::translate("", "MFM/RLL or ESDI CD-ROM drives never existed").toStdWString();
     translatedstrings[STRING_PCAP_ERROR_NO_DEVICES]     = QCoreApplication::translate("", "No PCap devices found").toStdWString();

@@ -630,8 +630,8 @@ msgstr "Vakava virhe"
 msgid " - PAUSED"
 msgstr " - TAUKO"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Paina Ctrl+Alt+PgDn palataksesi ikkunoituun tilaan."
+msgid "Press %s to return to windowed mode."
+msgstr "Paina %s palataksesi ikkunoituun tilaan."
 
 msgid "Speed"
 msgstr "Nopeus"
@@ -717,11 +717,11 @@ msgstr "Muut oheislaitteet"
 msgid "Click to capture mouse"
 msgstr "Kaappaa hiiri klikkaamalla"
 
-msgid "Press %1 to release mouse"
-msgstr "Paina %1 vapauttaaksesi hiiren"
+msgid "Press %s to release mouse"
+msgstr "Paina %s vapauttaaksesi hiiren"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "Paina %1 tai keskipainiketta vapauttaaksesi hiiren"
+msgid "Press %s or middle button to release mouse"
+msgstr "Paina %s tai keskipainiketta vapauttaaksesi hiiren"
 
 msgid "Bus"
 msgstr "Väylä"

@@ -172,14 +172,6 @@ extern int    pit_mode;                     /* (C) force setting PIT mode */
 extern int    fm_driver;                    /* (C) select FM sound driver */
 extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
 
-/* Keyboard variables for future key combination redefinition. */
-extern uint16_t key_prefix_1_1;
-extern uint16_t key_prefix_1_2;
-extern uint16_t key_prefix_2_1;
-extern uint16_t key_prefix_2_2;
-extern uint16_t key_uncapture_1;
-extern uint16_t key_uncapture_2;
-
 extern char exe_path[2048];     /* path (dir) of executable */
 extern char usr_path[1024];     /* path (dir) of user data */
 extern char cfg_path[1024];     /* full path of config file */
@@ -243,6 +235,17 @@ extern int    framecountx;
 
 extern volatile int     cpu_thread_run;
 extern          uint8_t postcard_codes[POSTCARDS_NUM];
+
+// Accelerator key structure, defines, helper functions
+struct accelKey {
+	char name[64];
+	char desc[64];
+	char seq[64];
+};
+#define NUM_ACCELS 8
+extern struct accelKey acc_keys[NUM_ACCELS];
+extern struct accelKey def_acc_keys[NUM_ACCELS];
+extern int FindAccelerator(const char *name);
 
 #ifdef __cplusplus
 }
