@@ -48,7 +48,6 @@ SettingsInput::SettingsInput(QWidget *parent)
 {
     ui->setupUi(this);
 
-	QStandardItemModel *model;
 	QStringList horizontalHeader;
 	QStringList verticalHeader;
 	
