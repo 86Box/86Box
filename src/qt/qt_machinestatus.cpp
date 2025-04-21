@@ -644,7 +644,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         tooltip.append("\n");
         for (int i = 0; i < HDD_NUM; i++) {
             if (hdd[i].bus_type == HDD_BUS_MFM && hdd[i].fn[0] != 0) {
-                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 MB)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull)));
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
             }
         }
         d->hdds[HDD_BUS_MFM].label->setToolTip(tooltip);
@@ -659,7 +659,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         tooltip.append("\n");
         for (int i = 0; i < HDD_NUM; i++) {
             if (hdd[i].bus_type == HDD_BUS_ESDI && hdd[i].fn[0] != 0) {
-                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 MB)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull)));
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
             }
         }
         d->hdds[HDD_BUS_ESDI].label->setToolTip(tooltip);
@@ -674,7 +674,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         tooltip.append("\n");
         for (int i = 0; i < HDD_NUM; i++) {
             if (hdd[i].bus_type == HDD_BUS_XTA && hdd[i].fn[0] != 0) {
-                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 MB)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull)));
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
             }
         }
         d->hdds[HDD_BUS_XTA].label->setToolTip(tooltip);
@@ -692,7 +692,7 @@ MachineStatus::refresh(QStatusBar *sbar)
             tooltip.append("\n");
             for (int i = 0; i < HDD_NUM; i++) {
                 if (hdd[i].bus_type == HDD_BUS_IDE && hdd[i].fn[0] != 0) {
-                    tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 MB)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull)));
+                    tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
                 }
             }
             d->hdds[HDD_BUS_IDE].label->setToolTip(tooltip);
@@ -707,7 +707,7 @@ MachineStatus::refresh(QStatusBar *sbar)
             tooltip.append("\n");
             for (int i = 0; i < HDD_NUM; i++) {
                 if (hdd[i].bus_type == HDD_BUS_ATAPI && hdd[i].fn[0] != 0) {
-                    tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 MB)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull)));
+                    tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
                 }
             }
             d->hdds[HDD_BUS_ATAPI].label->setToolTip(tooltip);
@@ -726,7 +726,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         tooltip.append("\n");
         for (int i = 0; i < HDD_NUM; i++) {
             if (hdd[i].bus_type == HDD_BUS_SCSI && hdd[i].fn[0] != 0) {
-                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 MB)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 4), QString::asprintf("%02d", hdd[i].channel & 15), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull)));
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 4), QString::asprintf("%02d", hdd[i].channel & 15), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
             }
         }
         d->hdds[HDD_BUS_SCSI].label->setToolTip(tooltip);
