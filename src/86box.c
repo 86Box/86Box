@@ -222,6 +222,37 @@ int      other_ide_present = 0;                                   /* IDE control
 int      other_scsi_present = 0;                                  /* SCSI controllers from non-SCSI cards are
                                                                      present */
 
+// Accelerator key array
+struct accelKey acc_keys[NUM_ACCELS];
+
+// Default accelerator key values
+struct accelKey def_acc_keys[NUM_ACCELS] = {
+	{	.name="send_ctrl_alt_del", 	.desc="Send Control+Alt+Del",
+		.seq="Ctrl+F12" },
+		
+	{	.name="send_ctrl_alt_esc", 	.desc="Send Control+Alt+Escape", 	
+		.seq="Ctrl+F10" },
+		
+	{	.name="fullscreen", 		.desc="Toggle fullscreen", 				
+		.seq="Ctrl+Alt+PgUp" },
+		
+	{	.name="screenshot", 		.desc="Screenshot", 				
+		.seq="Ctrl+F11" },
+		
+	{	.name="release_mouse", 		.desc="Release mouse pointer", 		
+		.seq="Ctrl+End" },
+		
+	{	.name="hard_reset", 		.desc="Hard reset", 				
+		.seq="Ctrl+Alt+F12" },
+		
+	{	.name="pause", 				.desc="Toggle pause", 				
+		.seq="Ctrl+Alt+F1" },
+	
+	{	.name="mute", 				.desc="Toggle mute", 				
+		.seq="Ctrl+Alt+M" }	
+};
+
+
 /* Statistics. */
 extern int mmuflush;
 extern int readlnum;
@@ -654,7 +685,6 @@ usage:
 #ifdef USE_INSTRUMENT
             printf("-J or --instrument name - set 'name' to be the profiling instrument\n");
 #endif
-            printf("-K or --keycodes codes  - set 'codes' to be the uncapture combination\n");
             printf("-L or --logfile path    - set 'path' to be the logfile\n");
             printf("-M or --missing         - dump missing machines and video cards\n");
             printf("-N or --noconfirm       - do not ask for confirmation on quit\n");
@@ -745,13 +775,6 @@ usage:
             do_nothing = 1;
         } else if (!strcasecmp(argv[c], "--nohook") || !strcasecmp(argv[c], "-W")) {
             hook_enabled = 0;
-        } else if (!strcasecmp(argv[c], "--keycodes") || !strcasecmp(argv[c], "-K")) {
-            if ((c + 1) == argc)
-                goto usage;
-
-            sscanf(argv[++c], "%03hX,%03hX,%03hX,%03hX,%03hX,%03hX",
-                   &key_prefix_1_1, &key_prefix_1_2, &key_prefix_2_1, &key_prefix_2_2,
-                   &key_uncapture_1, &key_uncapture_2);
         } else if (!strcasecmp(argv[c], "--clearboth") || !strcasecmp(argv[c], "-X")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -1002,6 +1025,14 @@ usage:
         lang_id = lang_init;
 
     gdbstub_init();
+
+	// Initialize the keyboard accelerator list with default values
+	for(int x=0;x<NUM_ACCELS;x++) {
+		strcpy(acc_keys[x].name, def_acc_keys[x].name);
+		strcpy(acc_keys[x].desc, def_acc_keys[x].desc);
+		strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
+	}
+
 
     /* All good! */
     return 1;
@@ -1788,4 +1819,17 @@ do_pause(int p)
             ;
     }
     atomic_store(&pause_ack, 0);
+}
+
+// Helper to find an accelerator key and return it's index in acc_keys
+int FindAccelerator(const char *name) {
+	for(int x=0;x<NUM_ACCELS;x++)
+	{
+		if(strcmp(acc_keys[x].name, name) == 0)
+		{
+			return(x);
+		}
+	}
+	// No key was found
+	return -1;
 }

@@ -256,6 +256,8 @@ buslogic_log(const char *fmt, ...)
 #    define buslogic_log(fmt, ...)
 #endif
 
+static x54x_t reset_state = { 0 };
+
 static char *
 BuslogicGetNVRFileName(buslogic_data_t *bl)
 {
@@ -1084,7 +1086,7 @@ buslogic_interrupt_type(void *priv)
 }
 
 static void
-buslogic_reset(void *priv)
+buslogic_ven_reset(void *priv)
 {
     x54x_t          *dev = (x54x_t *) priv;
     buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
@@ -1525,6 +1527,39 @@ BuslogicDeviceReset(void *priv)
     BuslogicInitializeAutoSCSIRam(dev);
 }
 
+static void
+buslogic_reset(void *priv)
+{
+    x54x_t          *dev = (x54x_t *) priv;
+    buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
+
+    x54x_io_remove(dev, dev->Base, 4);
+
+    if (bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30) {
+        x54x_mem_init(dev, 0xfffd0000);
+        x54x_mem_disable(dev);
+    }
+
+    timer_disable(&dev->timer);
+    timer_disable(&dev->ResetCB);
+
+    reset_state.mmio_mapping     = dev->mmio_mapping;
+
+    reset_state.bios.mapping     = dev->bios.mapping;
+    reset_state.uppersck.mapping = dev->uppersck.mapping;
+
+    reset_state.timer            = dev->timer;
+    reset_state.ResetCB          = dev->ResetCB;
+
+    memcpy(dev, &reset_state, sizeof(x54x_t));
+
+    dev->timer.period            = 10.0;
+    timer_set_delay_u64(&dev->timer, (uint64_t) (dev->timer.period * ((double) TIMER_USEC)));
+
+    if ((dev->Base != 0) && !(dev->card_bus & DEVICE_MCA) && !(dev->card_bus & DEVICE_PCI))
+        x54x_io_set(dev, dev->Base, 4);
+}
+
 static void *
 buslogic_init(const device_t *info)
 {
@@ -1586,7 +1621,7 @@ buslogic_init(const device_t *info)
     dev->interrupt_type     = buslogic_interrupt_type;
     dev->is_aggressive_mode = buslogic_is_aggressive_mode;
     dev->get_ven_data       = buslogic_setup_data;
-    dev->ven_reset          = buslogic_reset;
+    dev->ven_reset          = buslogic_ven_reset;
 
     strcpy(dev->vendor, "BusLogic");
 
@@ -1774,6 +1809,8 @@ buslogic_init(const device_t *info)
         BuslogicInitializeAutoSCSIRam(dev);
     }
 
+    memcpy(&reset_state, dev, sizeof(x54x_t));
+
     return dev;
 }
 
@@ -1876,7 +1913,7 @@ const device_t buslogic_542b_device = {
     .local         = CHIP_BUSLOGIC_ISA_542B_1991_12_14,
     .init          = buslogic_init,
     .close         = x54x_close,
-    .reset         = NULL,
+    .reset         = buslogic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -1890,7 +1927,7 @@ const device_t buslogic_545s_device = {
     .local         = CHIP_BUSLOGIC_ISA_545S_1992_10_05,
     .init          = buslogic_init,
     .close         = x54x_close,
-    .reset         = NULL,
+    .reset         = buslogic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -1904,7 +1941,7 @@ const device_t buslogic_542bh_device = {
     .local         = CHIP_BUSLOGIC_ISA_542BH_1993_05_23,
     .init          = buslogic_init,
     .close         = x54x_close,
-    .reset         = NULL,
+    .reset         = buslogic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -1918,7 +1955,7 @@ const device_t buslogic_545c_device = {
     .local         = CHIP_BUSLOGIC_ISA_545C_1994_12_01,
     .init          = buslogic_init,
     .close         = x54x_close,
-    .reset         = NULL,
+    .reset         = buslogic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -1932,7 +1969,7 @@ const device_t buslogic_640a_device = {
     .local         = CHIP_BUSLOGIC_MCA_640A_1993_05_23,
     .init          = buslogic_init,
     .close         = x54x_close,
-    .reset         = NULL,
+    .reset         = buslogic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -1946,7 +1983,7 @@ const device_t buslogic_445s_device = {
     .local         = CHIP_BUSLOGIC_VLB_445S_1993_11_16,
     .init          = buslogic_init,
     .close         = x54x_close,
-    .reset         = NULL,
+    .reset         = buslogic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -1960,7 +1997,7 @@ const device_t buslogic_445c_device = {
     .local         = CHIP_BUSLOGIC_VLB_445C_1994_12_01,
     .init          = buslogic_init,
     .close         = x54x_close,
-    .reset         = NULL,
+    .reset         = buslogic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -1974,7 +2011,7 @@ const device_t buslogic_958d_pci_device = {
     .local         = CHIP_BUSLOGIC_PCI_958D_1995_12_30,
     .init          = buslogic_init,
     .close         = x54x_close,
-    .reset         = NULL,
+    .reset         = buslogic_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,

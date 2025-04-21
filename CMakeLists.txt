@@ -73,7 +73,7 @@ if(WIN32)
 
     # Default value for the `WIN32` target property, which specifies whether
     # to build the application for the Windows GUI or console subsystem
-    option(CMAKE_WIN32_EXECUTABLE "Build a Windows GUI executable" ON)
+    option(CMAKE_WIN32_EXECUTABLE "Build a Windows GUI executable" OFF)
 else()
     # Prefer dynamic builds everywhere else
     set(PREFER_STATIC OFF)

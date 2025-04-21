@@ -5,6 +5,7 @@
 #include <QLabel>
 #include <QEvent>
 #include <QFocusEvent>
+#include <QShortcut>
 
 #include <memory>
 #include <array>
@@ -32,7 +33,10 @@ public:
     QSize getRenderWidgetSize();
     void  setSendKeyboardInput(bool enabled);
     void  reloadAllRenderers();
-
+	QShortcut	*windowedShortcut;
+	QKeySequence FindAcceleratorSeq(const char *name);
+	
+	
     std::array<std::unique_ptr<RendererStack>, 8> renderers;
 signals:
     void paint(const QImage &image);
@@ -159,6 +163,7 @@ private:
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
 
+	void updateShortcuts();
     void     processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
     uint32_t last_modifiers = 0;
@@ -184,7 +189,6 @@ private:
     friend class RendererStack; // For UI variable access by non-primary renderer windows.
     friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.
 
-    
     bool isShowMessage = false;
 };
 

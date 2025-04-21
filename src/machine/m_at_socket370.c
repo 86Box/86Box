@@ -561,7 +561,7 @@ machine_at_7sbb_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&sis_5600_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&it8661f_device);

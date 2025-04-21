@@ -87,13 +87,13 @@ public:
     CharPointer &operator=(const QByteArray &ba)
     {
         if (s > 0) {
+            // If the size is known, copy up to s - 1 bytes
+            // and null-terminate the string.
             strncpy(b, ba.data(), s - 1);
-            b[s] = 0;
-        } else {
-            // if we haven't been told the length of b, just assume enough
-            // because we didn't get it from emulator code
+            b[s - 1] = 0;
+        } else if (ba.size() > 0) {
+            // If the size is unknown, copy the whole QByteArray
             strcpy(b, ba.data());
-            b[ba.size()] = 0;
         }
         return *this;
     }
@@ -595,8 +595,14 @@ ProgSettings::reloadStrings()
 {
     translatedstrings.clear();
     translatedstrings[STRING_MOUSE_CAPTURE]             = QCoreApplication::translate("", "Click to capture mouse").toStdWString();
-    translatedstrings[STRING_MOUSE_RELEASE]             = QCoreApplication::translate("", "Press %1 to release mouse").arg(QCoreApplication::translate("", MOUSE_CAPTURE_KEYSEQ)).toStdWString();
-    translatedstrings[STRING_MOUSE_RELEASE_MMB]         = QCoreApplication::translate("", "Press %1 or middle button to release mouse").arg(QCoreApplication::translate("", MOUSE_CAPTURE_KEYSEQ)).toStdWString();
+	
+	char mouseCaptureKeyseq[100];
+	sprintf(mouseCaptureKeyseq, qPrintable(QCoreApplication::translate("", "Press %s to release mouse")), acc_keys[FindAccelerator("release_mouse")].seq);
+	translatedstrings[STRING_MOUSE_RELEASE]             = QString(mouseCaptureKeyseq).toStdWString();
+	
+	sprintf(mouseCaptureKeyseq, qPrintable(QCoreApplication::translate("", "Press %s or middle button to release mouse")), acc_keys[FindAccelerator("release_mouse")].seq);
+	translatedstrings[STRING_MOUSE_RELEASE_MMB]         = QString(mouseCaptureKeyseq).toStdWString(); 
+	
     translatedstrings[STRING_INVALID_CONFIG]            = QCoreApplication::translate("", "Invalid configuration").toStdWString();
     translatedstrings[STRING_NO_ST506_ESDI_CDROM]       = QCoreApplication::translate("", "MFM/RLL or ESDI CD-ROM drives never existed").toStdWString();
     translatedstrings[STRING_PCAP_ERROR_NO_DEVICES]     = QCoreApplication::translate("", "No PCap devices found").toStdWString();
