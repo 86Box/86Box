@@ -63,7 +63,7 @@ SettingsInput::SettingsInput(QWidget *parent)
 	keyTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	QStringList headers;
 	//headers << "Action" << "Bound key";
-	keyTable->setHorizontalHeaderLabels(headers);
+	keyTable->setHorizontalHeaderLabels(horizontalHeader);
 	keyTable->verticalHeader()->setVisible(false);
 	keyTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 	keyTable->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -201,7 +201,7 @@ SettingsInput::on_tableKeys_doubleClicked(int row, int col)
 	QTableWidgetItem *cell = ui->tableKeys->item(row,1);
 	if (!cell) return;
 	
-	QKeySequence keyseq = KeyBinder::BindKey(cell->text());
+	QKeySequence keyseq = KeyBinder::BindKey(this, cell->text());
 	if (keyseq != false) {
 		// If no change was made, don't change anything.
 		if (keyseq.toString(QKeySequence::NativeText) == cell->text()) return;
@@ -247,7 +247,7 @@ void
 SettingsInput::on_pushButtonClearBind_Clicked()
 {
 	// Wipe bind
-	QTableWidgetItem *cell = ui->tableKeys->currentItem();
+	QTableWidgetItem *cell = ui->tableKeys->item(ui->tableKeys->currentRow(), 1);
 	if (!cell) return;
 	
 	cell->setText("");
