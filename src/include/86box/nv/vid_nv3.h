@@ -299,6 +299,9 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_PFIFO_CACHE1_STATUS_EMPTY                   4           // 1 if ramro is empty
 #define NV3_PFIFO_CACHE1_STATUS_FULL                    8
 #define NV3_PFIFO_CACHE1_DMA_STATUS                     0x3218
+#define NV3_PFIFO_CACHE1_DMA_STATUS_STATE               0
+#define NV3_PFIFO_CACHE1_DMA_STATUS_STATE_IDLE          0x00
+#define NV3_PFIFO_CACHE1_DMA_STATUS_STATE_RUNNING       0x01
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_0                   0x3220
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_1                   0x3224
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_2                   0x3228
@@ -308,8 +311,11 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_PFIFO_CACHE1_DMA_CONFIG_3_TARGET_NODE_AGP   0x03        // The type of bus we are sending over
 
 // Why does a gpu need its own translation lookaside buffer and pagetable format. Are they crazy
+// Seems to be the same format as the notifier engine
 #define NV3_PFIFO_CACHE1_DMA_TLB_TAG                    0x3230
-#define NV3_PFIFO_CACHE1_DMA_TLB_PTE                    0x3234      // Base of pagetableor DMA
+#define NV3_PFIFO_CACHE1_DMA_TLB_PTE                    0x3234      // pagetable entry for dma
+#define NV3_PFIFO_CACHE1_DMA_TLB_PTE_IS_PRESENT         1
+#define NV3_PFIFO_CACHE1_DMA_TLB_FRAME_ADDRESS          12          // 31:12 
 #define NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE                0x3238      // Base of pagetable for DMA
 #define NV3_PFIFO_CACHE1_PULL0                          0x3240
 //todo: merge stuff

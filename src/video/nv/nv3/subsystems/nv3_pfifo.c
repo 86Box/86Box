@@ -61,14 +61,14 @@ nv_register_t pfifo_registers[] = {
     { NV3_PFIFO_CACHE0_PUT, "PFIFO - Cache0 Put", NULL, NULL },
     { NV3_PFIFO_CACHE1_PUT, "PFIFO - Cache1 Put", NULL, NULL },
     //Cache1 exclusive stuff
-    { NV3_PFIFO_CACHE1_DMA_CONFIG_0, "PFIFO - Cache1 DMA Config0"},
-    { NV3_PFIFO_CACHE1_DMA_CONFIG_1, "PFIFO - Cache1 DMA Config1"},
-    { NV3_PFIFO_CACHE1_DMA_CONFIG_2, "PFIFO - Cache1 DMA Config2"},
-    { NV3_PFIFO_CACHE1_DMA_CONFIG_3, "PFIFO - Cache1 DMA Config3"},
-    { NV3_PFIFO_CACHE1_DMA_STATUS, "PFIFO - Cache1 DMA Status - PROBABLY TRIGGERING DMA"},
-    { NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE, "PFIFO - Cache1 DMA Translation Lookaside Buffer - Pagetable Base"},
-    { NV3_PFIFO_CACHE1_DMA_TLB_PTE, "PFIFO - Cache1 DMA Status"},
-    { NV3_PFIFO_CACHE1_DMA_TLB_TAG, "PFIFO - Cache1 DMA Status"},
+    { NV3_PFIFO_CACHE1_DMA_CONFIG_0, "PFIFO - Cache1 DMA Access (bit 0: is running, bit 4: is busy)"},
+    { NV3_PFIFO_CACHE1_DMA_CONFIG_1, "PFIFO - Cache1 DMA Length"},
+    { NV3_PFIFO_CACHE1_DMA_CONFIG_2, "PFIFO - Cache1 DMA Address"},
+    { NV3_PFIFO_CACHE1_DMA_CONFIG_3, "PFIFO - Cache1 DMA Target Node"},
+    { NV3_PFIFO_CACHE1_DMA_STATUS, "PFIFO - Cache1 DMA Status"},
+    { NV3_PFIFO_CACHE1_DMA_TLB_PT_BASE, "PFIFO - Cache1 DMA TLB - Pagetable Base"},
+    { NV3_PFIFO_CACHE1_DMA_TLB_PTE, "PFIFO - Cache1 DMA TLB - Pagetable Entry (31:12 - Frame Address; bit 0 - Is Present)"},
+    { NV3_PFIFO_CACHE1_DMA_TLB_TAG, "PFIFO - Cache1 DMA TLB - Tag"},
     //Runout
     { NV3_PFIFO_RUNOUT_GET, "PFIFO Runout Get Address [8:3 if 512b, otherwise 12:3]"},
     { NV3_PFIFO_RUNOUT_PUT, "PFIFO Runout Put Address [8:3 if 512b, otherwise 12:3]"},
@@ -354,31 +354,42 @@ void nv3_pfifo_trigger_dma_if_required(void)
     bool cache1_dma = false;
 
     /* Check that DMA is enabled */
-    if (nv3->pfifo.cache1_settings.dma_state
+    if ((nv3->pfifo.cache1_settings.dma_state & NV3_PFIFO_CACHE1_DMA_STATUS_STATE_RUNNING)
     && nv3->pfifo.cache1_settings.dma_enabled)
     {
         uint32_t bytes_to_send = nv3->pfifo.cache1_settings.dma_length;
         uint32_t where_to_send = nv3->pfifo.cache1_settings.dma_address;
-        uint32_t target_node = nv3->pfifo.cache1_settings.dma_target_node; //2=pci, 3=agp. What does this even do
+        uint32_t target_node = nv3->pfifo.cache1_settings.dma_target_node; //2=pci, 3=agp. 
 
         /* Pagetable information */
-        uint32_t tlb_pt_base = nv3->pfifo.cache1_settings.dma_tlb_pt_base;
-        uint32_t tlb_pt_entry = nv3->pfifo.cache1_settings.dma_tlb_pte;
+        uint32_t tlb_pt_base = nv3->pfifo.cache1_settings.dma_tlb_pt_base;                      
+        uint32_t tlb_pt_entry = nv3->pfifo.cache1_settings.dma_tlb_pte;                         // notify_obj_page
         uint32_t tlb_pt_tag = nv3->pfifo.cache1_settings.dma_tlb_tag; // 0xFFFFFFFF usually?
+    
+        /* 
+            going to treat the format the same as notifiers
+        */
+        if (!(tlb_pt_entry & NV3_PFIFO_CACHE1_DMA_TLB_PTE_IS_PRESENT))
+        {
+            warning("NV3: Tried to DMA to a non-existent page! Big Problem!");
+            return; 
+        }
 
-        /* PUSH - System to GPU (?) */
-        if (nv3->pfifo.cache1_settings.push0)
-        {
-            /* PULL - GPU to System */
-            nv_log("Initiating System to NV DMA - Probably we are trying to notify\n");
-        }
-        else if (nv3->pfifo.cache1_settings.pull0)
-        {
-            /* PULL - GPU to System */
-            nv_log("Initiating NV to System DMA - Probably we are trying to notify\n");
-        }
+        uint32_t final_page_base = tlb_pt_entry & 0xFFFFF000; /* pull out 31:12 */
+
+        /* 
+            page size is 0x1000 
+        */
+        uint32_t final_address = final_page_base + (tlb_pt_entry << 10); //x86 page size is 0x1000
+
+        nv_log_verbose_only("DMA Engine: DMA to %08x length=%08x", final_address, bytes_to_send);
+
+        dma_bm_write()
 
     }
+
+    //we're done
+    nv3->pfifo.cache1_settings.dma_state &= ~NV3_PFIFO_CACHE1_DMA_STATUS_STATE_RUNNING;
 }
 
 void nv3_pfifo_write(uint32_t address, uint32_t val) 
