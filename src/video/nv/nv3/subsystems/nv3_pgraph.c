@@ -478,7 +478,7 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
         && address <= NV3_PGRAPH_CONTEXT_CACHE(NV3_PGRAPH_CONTEXT_CACHE_SIZE))
         {
             // Addresses should be aligned to 4 bytes.
-            uint32_t entry = (address - NV3_PGRAPH_CONTEXT_CACHE(0));
+            uint32_t entry = (address - NV3_PGRAPH_CONTEXT_CACHE(0)) >> 2;
 
             nv_log_verbose_only("PGRAPH Context Cache Write (Entry=%04x Value=0x%08x)\n", entry, value);
             nv3->pgraph.context_cache[entry] = value;
