@@ -22,7 +22,7 @@ public:
     explicit KeyBinder(QWidget *parent = nullptr);
     ~KeyBinder() override;
 
-    static QKeySequence BindKey(QString CurValue);
+    static QKeySequence BindKey(QWidget* widget, QString CurValue);
 
 private:
     Ui::KeyBinder *ui;

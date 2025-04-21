@@ -6,15 +6,15 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Device configuration UI code.
+ *          Keybind dialog
  *
  *
  *
- * Authors: Joakim L. Gilje <jgilje@jgilje.net>
+ * Authors: Cathode Ray Dude
  *          Cacodemon345
  *
- *          Copyright 2021 Joakim L. Gilje
- *          Copyright 2022 Cacodemon345
+ *          Copyright 2025 Cathode Ray Dude
+ *          Copyright 2025 Cacodemon345
  */
 #include "qt_keybind.hpp"
 #include "ui_qt_keybind.h"
@@ -85,12 +85,13 @@ bool KeyBinder::eventFilter(QObject *obj, QEvent *event)
 }
 
 QKeySequence
-KeyBinder::BindKey(QString CurValue)
+KeyBinder::BindKey(QWidget* widget, QString CurValue)
 {
-	KeyBinder kb;
+	KeyBinder kb(widget);
 	kb.setWindowTitle("Bind Key");
     kb.setFixedSize(kb.minimumSizeHint());
 	kb.findChild<QKeySequenceEdit*>()->setKeySequence(QKeySequence::fromString(CurValue));
+	kb.setEnabled(true);
 	
     if (kb.exec() == QDialog::Accepted) {
 		QKeySequenceEdit *seq = kb.findChild<QKeySequenceEdit*>();
