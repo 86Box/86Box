@@ -87,13 +87,13 @@ public:
     CharPointer &operator=(const QByteArray &ba)
     {
         if (s > 0) {
+            // If the size is known, copy up to s - 1 bytes
+            // and null-terminate the string.
             strncpy(b, ba.data(), s - 1);
-            b[s] = 0;
-        } else {
-            // if we haven't been told the length of b, just assume enough
-            // because we didn't get it from emulator code
+            b[s - 1] = 0;
+        } else if (ba.size() > 0) {
+            // If the size is unknown, copy the whole QByteArray
             strcpy(b, ba.data());
-            b[ba.size()] = 0;
         }
         return *this;
     }
