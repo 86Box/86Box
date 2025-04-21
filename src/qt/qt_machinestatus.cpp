@@ -640,6 +640,14 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->hdds[HDD_BUS_MFM].setActive(false);
         d->hdds[HDD_BUS_MFM].refresh();
         d->hdds[HDD_BUS_MFM].label->setToolTip(tr("Hard disk (%1)").arg("MFM/RLL"));
+        auto tooltip = d->hdds[HDD_BUS_MFM].label->toolTip();
+        tooltip.append("\n");
+        for (int i = 0; i < HDD_NUM; i++) {
+            if (hdd[i].bus_type == HDD_BUS_MFM && hdd[i].fn[0] != 0) {
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 MB)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull)));
+            }
+        }
+        d->hdds[HDD_BUS_MFM].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_MFM].label.get());
     }
     if ((has_esdi || (hdc_name.left(4) == QStringLiteral("esdi"))) && (c_esdi > 0)) {
@@ -647,6 +655,14 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->hdds[HDD_BUS_ESDI].setActive(false);
         d->hdds[HDD_BUS_ESDI].refresh();
         d->hdds[HDD_BUS_ESDI].label->setToolTip(tr("Hard disk (%1)").arg("ESDI"));
+        auto tooltip = d->hdds[HDD_BUS_ESDI].label->toolTip();
+        tooltip.append("\n");
+        for (int i = 0; i < HDD_NUM; i++) {
+            if (hdd[i].bus_type == HDD_BUS_ESDI && hdd[i].fn[0] != 0) {
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 MB)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull)));
+            }
+        }
+        d->hdds[HDD_BUS_ESDI].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_ESDI].label.get());
     }
     if ((has_xta || (hdc_name.left(3) == QStringLiteral("xta"))) && (c_xta > 0)) {
@@ -654,6 +670,14 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->hdds[HDD_BUS_XTA].setActive(false);
         d->hdds[HDD_BUS_XTA].refresh();
         d->hdds[HDD_BUS_XTA].label->setToolTip(tr("Hard disk (%1)").arg("XTA"));
+        auto tooltip = d->hdds[HDD_BUS_XTA].label->toolTip();
+        tooltip.append("\n");
+        for (int i = 0; i < HDD_NUM; i++) {
+            if (hdd[i].bus_type == HDD_BUS_XTA && hdd[i].fn[0] != 0) {
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 MB)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull)));
+            }
+        }
+        d->hdds[HDD_BUS_XTA].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_XTA].label.get());
     }
     if (hasIDE() || (hdc_name.left(5) == QStringLiteral("xtide")) ||
@@ -664,6 +688,14 @@ MachineStatus::refresh(QStatusBar *sbar)
             d->hdds[HDD_BUS_IDE].setActive(false);
             d->hdds[HDD_BUS_IDE].refresh();
             d->hdds[HDD_BUS_IDE].label->setToolTip(tr("Hard disk (%1)").arg("IDE"));
+            auto tooltip = d->hdds[HDD_BUS_IDE].label->toolTip();
+            tooltip.append("\n");
+            for (int i = 0; i < HDD_NUM; i++) {
+                if (hdd[i].bus_type == HDD_BUS_IDE && hdd[i].fn[0] != 0) {
+                    tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 MB)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull)));
+                }
+            }
+            d->hdds[HDD_BUS_IDE].label->setToolTip(tooltip);
             sbar->addWidget(d->hdds[HDD_BUS_IDE].label.get());
         }
         if (c_atapi > 0) {
@@ -671,6 +703,14 @@ MachineStatus::refresh(QStatusBar *sbar)
             d->hdds[HDD_BUS_ATAPI].setActive(false);
             d->hdds[HDD_BUS_ATAPI].refresh();
             d->hdds[HDD_BUS_ATAPI].label->setToolTip(tr("Hard disk (%1)").arg("ATAPI"));
+            auto tooltip = d->hdds[HDD_BUS_ATAPI].label->toolTip();
+            tooltip.append("\n");
+            for (int i = 0; i < HDD_NUM; i++) {
+                if (hdd[i].bus_type == HDD_BUS_ATAPI && hdd[i].fn[0] != 0) {
+                    tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 MB)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull)));
+                }
+            }
+            d->hdds[HDD_BUS_ATAPI].label->setToolTip(tooltip);
             sbar->addWidget(d->hdds[HDD_BUS_ATAPI].label.get());
         }
     }
@@ -682,6 +722,14 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->hdds[HDD_BUS_SCSI].setActive(false);
         d->hdds[HDD_BUS_SCSI].refresh();
         d->hdds[HDD_BUS_SCSI].label->setToolTip(tr("Hard disk (%1)").arg("SCSI"));
+        auto tooltip = d->hdds[HDD_BUS_SCSI].label->toolTip();
+        tooltip.append("\n");
+        for (int i = 0; i < HDD_NUM; i++) {
+            if (hdd[i].bus_type == HDD_BUS_SCSI && hdd[i].fn[0] != 0) {
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 MB)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 4), QString::asprintf("%02d", hdd[i].channel & 15), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull)));
+            }
+        }
+        d->hdds[HDD_BUS_SCSI].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_SCSI].label.get());
     }
 
