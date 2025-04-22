@@ -615,7 +615,10 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
         }
     }
 
-    ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
+    if (fdc->processed_cmd == 0x05 || fdc->processed_cmd == 0x09)
+        ui_sb_update_icon_write(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
+    else
+        ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
     fdc->stat = out ? 0x10 : 0x50;
     if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma) {
         fdc->stat |= 0x20;
@@ -671,8 +674,10 @@ fdc_soft_reset(fdc_t *fdc)
 
         fdc->perp &= 0xfc;
 
-        for (int i = 0; i < FDD_NUM; i++)
-             ui_sb_update_icon(SB_FLOPPY | i, 0);
+        for (int i = 0; i < FDD_NUM; i++) {
+            ui_sb_update_icon(SB_FLOPPY | i, 0);
+            ui_sb_update_icon_write(SB_FLOPPY | i, 0);
+        }
 
         fdc_ctrl_reset(fdc);
    }
@@ -706,6 +711,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
                     fdc->interrupt = -1;
                     ui_sb_update_icon(SB_FLOPPY | 0, 0);
+                    ui_sb_update_icon_write(SB_FLOPPY | 0, 0);
                     fdc_ctrl_reset(fdc);
                 }
                 if (!fdd_get_flags(0))
@@ -1502,6 +1508,7 @@ fdc_poll_common_finish(fdc_t *fdc, int compare, int st5)
     fdc->res[10] = fdc->params[4];
     fdc_log("Read/write finish (%02X %02X %02X %02X %02X %02X %02X)\n", fdc->res[4], fdc->res[5], fdc->res[6], fdc->res[7], fdc->res[8], fdc->res[9], fdc->res[10]);
     ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 0);
+    ui_sb_update_icon_write(SB_FLOPPY | real_drive(fdc, fdc->drive), 0);
     fdc->paramstogo = 7;
     dma_set_drq(fdc->dma_ch, 0);
 }
@@ -1545,8 +1552,10 @@ fdc_callback(void *priv)
         case -5: /*Reset in power down mode */
             fdc->perp &= 0xfc;
 
-            for (uint8_t i = 0; i < FDD_NUM; i++)
+            for (uint8_t i = 0; i < FDD_NUM; i++) {
                 ui_sb_update_icon(SB_FLOPPY | i, 0);
+                ui_sb_update_icon_write(SB_FLOPPY | i, 0);
+            }
 
             fdc_ctrl_reset(fdc);
 
@@ -1694,7 +1703,10 @@ fdc_callback(void *priv)
                 fdc->sector++;
             else if (fdc->params[5] == 0)
                 fdc->sector++;
-            ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
+            if (fdc->interrupt == 0x05 || fdc->interrupt == 0x09)
+                ui_sb_update_icon_write(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
+            else
+                ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
             switch (fdc->interrupt) {
                 case 5:
                 case 9:
@@ -1885,6 +1897,7 @@ fdc_error(fdc_t *fdc, int st5, int st6)
             break;
     }
     ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 0);
+    ui_sb_update_icon_write(SB_FLOPPY | real_drive(fdc, fdc->drive), 0);
     fdc->paramstogo = 7;
 }
 
@@ -2333,8 +2346,10 @@ fdc_reset(void *priv)
 
     current_drive = 0;
 
-    for (uint8_t i = 0; i < FDD_NUM; i++)
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
         ui_sb_update_icon(SB_FLOPPY | i, 0);
+        ui_sb_update_icon_write(SB_FLOPPY | i, 0);
+    }
 
     fdc->power_down = 0;
 }

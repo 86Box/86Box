@@ -7,6 +7,8 @@
 enum IconIndicator {
     None,
     Active,
+    WriteActive,
+    ReadWriteActive,
     Disabled,
 };
 
