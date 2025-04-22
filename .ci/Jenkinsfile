@@ -20,7 +20,7 @@ def repository = ['https://github.com/86Box/86Box.git', scm.userRemoteConfigs[0]
 def commitBrowser = ['https://github.com/86Box/86Box/commit/%s', null]
 def branch = ['master', scm.branches[0].name]
 def buildType = ['beta', 'alpha']
-def tarballFlags = ['', '-s']
+def tarballFlags = ['', '-t']
 def buildBranch = env.JOB_BASE_NAME.contains('-') ? 1 : 0
 
 def osArchs = [
