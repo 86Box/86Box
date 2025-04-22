@@ -384,7 +384,7 @@ void nv3_pfifo_trigger_dma_if_required(void)
 
         nv_log_verbose_only("DMA Engine: DMA to %08x length=%08x", final_address, bytes_to_send);
 
-        dma_bm_write()
+        //dma_bm_write()
 
     }
 
