@@ -171,11 +171,11 @@ typedef struct svga_t {
     latch_t  latch;
 
     pc_timer_t timer;
-    pc_timer_t timer8514;
+    pc_timer_t timer_8514;
     pc_timer_t timer_xga;
 
     double clock;
-    double clock8514;
+    double clock_8514;
     double clock_xga;
 
     double multiplier;

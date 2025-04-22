@@ -124,7 +124,7 @@ CLAMP(int16_t in, int16_t min, int16_t max)
 
 #define MIX(mixmode, dest_dat, src_dat)                                                               \
     {                                                                                                 \
-        switch ((mixmode) ? (dev->accel.frgd_mix & 0x1f) : (dev->accel.bkgd_mix & 0x1f)) {            \
+        switch ((mixmode) ? dev->accel.frgd_mix : dev->accel.bkgd_mix) {                              \
             case 0x00:                                                                                \
                 dest_dat = ~dest_dat;                                                                 \
                 break;                                                                                \
@@ -268,8 +268,8 @@ ibm8514_accel_out_pixtrans(svga_t *svga, UNUSED(uint16_t port), uint32_t val, in
     uint32_t   monoxfer  = 0xffffffff;
     int        pixcnt    = 0;
     int        pixcntl   = (dev->accel.multifunc[0x0a] >> 6) & 3;
-    int        frgd_mix  = (dev->accel.frgd_mix >> 5) & 3;
-    int        bkgd_mix  = (dev->accel.bkgd_mix >> 5) & 3;
+    int        frgd_mix  = dev->accel.frgd_sel;
+    int        bkgd_mix  = dev->accel.bkgd_sel;
     int        cmd       = dev->accel.cmd >> 13;
 
     if (!dev->accel.cmd_back) {
@@ -351,13 +351,12 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
         case 0x6e8:
             /*In preparation to switch from VGA to 8514/A mode*/
             WRITE8(port, dev->hdisped, val);
-            dev->hdisp = (dev->hdisped + 1) << 3;
             ibm8514_log("[%04X:%08X]: IBM 8514/A: (0x%04x): hdisp=0x%02x.\n", CS, cpu_state.pc, port, val);
             svga_recalctimings(svga);
             break;
 
         case 0x6e9:
-            WRITE8(port, dev->htotal, val);
+            WRITE8(port - 1, dev->htotal, val);
             ibm8514_log("IBM 8514/A compatible: (0x%04x): htotal=0x%02x.\n", port, val);
             svga_recalctimings(svga);
             break;
@@ -379,10 +378,6 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             if (len == 2) {
                 dev->v_total_reg = val;
                 dev->v_total_reg &= 0x1fff;
-                dev->v_total = dev->v_total_reg + 1;
-                if (dev->interlace)
-                    dev->v_total >>= 1;
-
                 ibm8514_log("IBM 8514/A compatible: (0x%04x): vtotal=0x%02x.\n", port, val);
                 svga_recalctimings(svga);
             } else {
@@ -392,12 +387,8 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
         case 0x12e9:
             /*In preparation to switch from VGA to 8514/A mode*/
             if (len == 1) {
-                WRITE8(port, dev->v_total_reg, val);
+                WRITE8(port, dev->v_total_reg, val >> 8);
                 dev->v_total_reg &= 0x1fff;
-                dev->v_total = dev->v_total_reg + 1;
-                if (dev->interlace)
-                    dev->v_total >>= 1;
-
                 ibm8514_log("IBM 8514/A compatible: (0x%04x): vtotal=0x%02x.\n", port, val);
                 svga_recalctimings(svga);
             }
@@ -408,7 +399,6 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             if (len == 2) {
                 dev->v_disp = val;
                 dev->v_disp &= 0x1fff;
-                dev->vdisp = (dev->v_disp + 1) >> 1;
                 ibm8514_log("IBM 8514/A: V_DISP write 16E8 = %d\n", dev->v_disp);
                 ibm8514_log("IBM 8514/A: (0x%04x): vdisp=0x%02x.\n", port, val);
                 svga_recalctimings(svga);
@@ -419,9 +409,8 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
         case 0x16e9:
             /*In preparation to switch from VGA to 8514/A mode*/
             if (len == 1) {
-                WRITE8(port, dev->v_disp, val);
+                WRITE8(port, dev->v_disp, val >> 8);
                 dev->v_disp &= 0x1fff;
-                dev->vdisp = (dev->v_disp + 1) >> 1;
                 ibm8514_log("IBM 8514/A: V_DISP write 16E8 = %d\n", dev->v_disp);
                 ibm8514_log("IBM 8514/A: (0x%04x): vdisp=0x%02x.\n", port, val);
                 svga_recalctimings(svga);
@@ -433,10 +422,6 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             if (len == 2) {
                 dev->v_sync_start = val;
                 dev->v_sync_start &= 0x1fff;
-                dev->v_syncstart = dev->v_sync_start + 1;
-                if (dev->interlace)
-                    dev->v_syncstart >>= 1;
-
                 ibm8514_log("IBM 8514/A compatible: V_SYNCSTART write 1AE8 = %d\n", dev->v_syncstart);
                 ibm8514_log("IBM 8514/A compatible: (0x%04x): vsyncstart=0x%02x.\n", port, val);
                 svga_recalctimings(svga);
@@ -447,7 +432,7 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
         case 0x1ae9:
             /*In preparation to switch from VGA to 8514/A mode*/
             if (len == 1) {
-                WRITE8(port, dev->v_sync_start, val);
+                WRITE8(port, dev->v_sync_start, val >> 8);
                 dev->v_sync_start &= 0x1fff;
                 dev->v_syncstart = dev->v_sync_start + 1;
                 if (dev->interlace)
@@ -639,11 +624,15 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             break;
 
         case 0xb6e8:
-            dev->accel.bkgd_mix = val & 0xff;
+            dev->accel.bkgd_mix = val & 0x1f;
+            dev->accel.bkgd_sel = (val >> 5) & 3;
+            ibm8514_log("Background Mix reg=%02x.\n", val);
             break;
 
         case 0xbae8:
-            dev->accel.frgd_mix = val & 0xff;
+            dev->accel.frgd_mix = val & 0x1f;
+            dev->accel.frgd_sel = (val >> 5) & 3;
+            ibm8514_log("Foreground Mix reg=%02x.\n", val);
             break;
 
         case 0xbee8:
@@ -667,7 +656,6 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
 
                 if ((dev->accel.multifunc_cntl >> 12) == 4)
                     dev->accel.clip_right = dev->accel.multifunc[4] & 0x7ff;
-
             }
             break;
 
@@ -821,8 +809,22 @@ ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len)
                 if (dev->fifo_idx > 0)
                     dev->fifo_idx--;
 
-                if (dev->force_busy)
+                if (dev->force_busy) {
                     temp |= 0x0200; /*Hardware busy*/
+                    switch (dev->accel.cmd >> 13) {
+                        case 2:
+                        case 3:
+                        case 4:
+                        case 6:
+                            if (dev->accel.sy < 0)
+                                dev->force_busy = 0;
+                            break;
+                        default:
+                            if (!dev->accel.sy)
+                                dev->force_busy = 0;
+                            break;
+                    }
+                }
 
                 if (dev->data_available) {
                     temp |= 0x0100; /*Read Data available*/
@@ -1066,8 +1068,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
         rd_mask_polygon &= 0xff;
     }
 
-    frgd_mix = (dev->accel.frgd_mix >> 5) & 3;
-    bkgd_mix = (dev->accel.bkgd_mix >> 5) & 3;
+    frgd_mix = dev->accel.frgd_sel;
+    bkgd_mix = dev->accel.bkgd_sel;
 
     if (cpu_input) {
         if ((dev->accel.cmd & 0x02) || (pixcntl == 2)) {
@@ -1821,12 +1823,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                 dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
                 dev->accel.sy = dev->accel.multifunc[0] & 0x7ff;
 
-                if ((dev->accel_bpp == 24) || (dev->accel_bpp <= 8))
-                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                else if (dev->bpp)
-                    dev->accel.dest = (dev->accel.ge_offset << 1) + (dev->accel.cy * dev->pitch);
-                else
-                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
 
                 if (cmd == 4)
                     dev->accel.cmd |= 0x02;
@@ -2030,12 +2027,7 @@ skip_vector_rect_write:
                                         break;
                                 }
 
-                                if ((dev->accel_bpp == 24) || (dev->accel_bpp <= 8))
-                                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                                else if (dev->bpp)
-                                    dev->accel.dest = (dev->accel.ge_offset << 1) + (dev->accel.cy * dev->pitch);
-                                else
-                                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
 
                                 dev->accel.sy--;
                                 dev->accel.x_count = 0;
@@ -2194,12 +2186,7 @@ skip_nibble_rect_write:
                             else
                                 dev->accel.cy--;
 
-                            if ((dev->accel_bpp == 24) || (dev->accel_bpp <= 8))
-                                dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                            else if (dev->bpp)
-                                dev->accel.dest = (dev->accel.ge_offset << 1) + (dev->accel.cy * dev->pitch);
-                            else
-                                dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                            dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
 
                             dev->accel.sy--;
                             dev->accel.x_count = 0;
@@ -2285,12 +2272,7 @@ skip_nibble_rect_write:
                                     else
                                         dev->accel.cy--;
 
-                                    if ((dev->accel_bpp == 24) || (dev->accel_bpp <= 8))
-                                        dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                                    else if (dev->bpp)
-                                        dev->accel.dest = (dev->accel.ge_offset << 1) + (dev->accel.cy * dev->pitch);
-                                    else
-                                        dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                    dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
 
                                     dev->accel.sy--;
 
@@ -2367,12 +2349,7 @@ skip_nibble_rect_write:
                                     else
                                         dev->accel.cy--;
 
-                                    if ((dev->accel_bpp == 24) || (dev->accel_bpp <= 8))
-                                        dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                                    else if (dev->bpp)
-                                        dev->accel.dest = (dev->accel.ge_offset << 1) + (dev->accel.cy * dev->pitch);
-                                    else
-                                        dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                    dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
 
                                     dev->accel.sy--;
 
@@ -2482,12 +2459,7 @@ skip_nibble_rect_write:
                                 else
                                     dev->accel.cy--;
 
-                                if ((dev->accel_bpp == 24) || (dev->accel_bpp <= 8))
-                                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                                else if (dev->bpp)
-                                    dev->accel.dest = (dev->accel.ge_offset << 1) + (dev->accel.cy * dev->pitch);
-                                else
-                                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
 
                                 dev->accel.sy--;
 
@@ -2512,8 +2484,6 @@ skip_nibble_rect_write:
                                 switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
                                     case 0:
                                         src_dat = bkgd_color;
-                                        if (!bkgd_mix && (dev->accel.cmd & 0x40) && ((dev->accel.frgd_mix & 0x1f) == 7) && ((dev->accel.bkgd_mix & 0x1f) == 3) && !dev->bpp && (bkgd_color == 0x00)) /*For some reason, the September 1992 Mach8/32 drivers for Win3.x don't set the background colors properly.*/
-                                            src_dat = frgd_color;
                                         break;
                                     case 1:
                                         src_dat = frgd_color;
@@ -2570,12 +2540,7 @@ skip_nibble_rect_write:
                                 else
                                     dev->accel.cy--;
 
-                                if ((dev->accel_bpp == 24) || (dev->accel_bpp <= 8))
-                                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                                else if (dev->bpp)
-                                    dev->accel.dest = (dev->accel.ge_offset << 1) + (dev->accel.cy * dev->pitch);
-                                else
-                                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
 
                                 dev->accel.sy--;
                                 if (dev->accel.sy < 0) {
@@ -2870,16 +2835,8 @@ skip_nibble_rect_write:
                 dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
                 dev->accel.sy = dev->accel.multifunc[0] & 0x7ff;
 
-                if ((dev->accel_bpp == 24) || (dev->accel_bpp <= 8)) {
-                    dev->accel.src  = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.dy * dev->pitch);
-                } else if (dev->bpp) {
-                    dev->accel.src  = (dev->accel.ge_offset << 1) + (dev->accel.cy * dev->pitch);
-                    dev->accel.dest = (dev->accel.ge_offset << 1) + (dev->accel.dy * dev->pitch);
-                } else {
-                    dev->accel.src  = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.dy * dev->pitch);
-                }
+                dev->accel.src  = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+                dev->accel.dest = dev->accel.ge_offset + (dev->accel.dy * dev->pitch);
                 dev->accel.fill_state = 0;
 
                 if (ibm8514_cpu_src(svga)) {
@@ -3051,16 +3008,8 @@ skip_nibble_bitblt_write:
                             dev->accel.cy--;
                         }
 
-                        if ((dev->accel_bpp == 24) || (dev->accel_bpp <= 8)) {
-                            dev->accel.src  = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                            dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.dy * dev->pitch);
-                        } else if (dev->bpp) {
-                            dev->accel.src  = (dev->accel.ge_offset << 1) + (dev->accel.cy * dev->pitch);
-                            dev->accel.dest = (dev->accel.ge_offset << 1) + (dev->accel.dy * dev->pitch);
-                        } else {
-                            dev->accel.src  = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                            dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.dy * dev->pitch);
-                        }
+                        dev->accel.src  = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+                        dev->accel.dest = dev->accel.ge_offset + (dev->accel.dy * dev->pitch);
 
                         dev->accel.sy--;
                         dev->accel.x_count = 0;
@@ -3156,16 +3105,8 @@ skip_nibble_bitblt_write:
                                     dev->accel.cy--;
                                 }
 
-                                if ((dev->accel_bpp == 24) || (dev->accel_bpp <= 8)) {
-                                    dev->accel.src  = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.dy * dev->pitch);
-                                } else if (dev->bpp) {
-                                    dev->accel.src  = (dev->accel.ge_offset << 1) + (dev->accel.cy * dev->pitch);
-                                    dev->accel.dest = (dev->accel.ge_offset << 1) + (dev->accel.dy * dev->pitch);
-                                } else {
-                                    dev->accel.src  = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.dy * dev->pitch);
-                                }
+                                dev->accel.src  = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+                                dev->accel.dest = dev->accel.ge_offset + (dev->accel.dy * dev->pitch);
 
                                 dev->accel.sy--;
 
@@ -3252,16 +3193,9 @@ skip_nibble_bitblt_write:
                                     dev->accel.cy--;
                                 }
 
-                                if ((dev->accel_bpp == 24) || (dev->accel_bpp <= 8)) {
-                                    dev->accel.src  = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.dy * dev->pitch);
-                                } else if (dev->bpp) {
-                                    dev->accel.src  = (dev->accel.ge_offset << 1) + (dev->accel.cy * dev->pitch);
-                                    dev->accel.dest = (dev->accel.ge_offset << 1) + (dev->accel.dy * dev->pitch);
-                                } else {
-                                    dev->accel.src  = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.dy * dev->pitch);
-                                }
+                                dev->accel.src  = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+                                dev->accel.dest = dev->accel.ge_offset + (dev->accel.dy * dev->pitch);
+
                                 dev->accel.sy--;
 
                                 if (dev->accel.sy < 0) {
@@ -3282,29 +3216,14 @@ skip_nibble_bitblt_write:
                         cx = (int64_t) dev->accel.cx;
                         dx = (int64_t) dev->accel.dx;
 
+                        dev->accel.src  = dev->accel.src_ge_offset + (dev->accel.cy * dev->accel.src_pitch);
+                        dev->accel.dest = dev->accel.dst_ge_offset + (dev->accel.dy * dev->accel.dst_pitch);
+
                         while (1) {
                             if ((dx >= (((int64_t)clip_l) * 3)) &&
                                 (dx <= (((uint64_t)clip_r) * 3)) &&
                                 (dev->accel.dy >= (clip_t << 1)) &&
                                 (dev->accel.dy <= (clip_b << 1))) {
-                                switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
-                                    case 0:
-                                        src_dat = bkgd_color;
-                                        break;
-                                    case 1:
-                                        src_dat = frgd_color;
-                                        break;
-                                    case 2:
-                                        src_dat = 0;
-                                        break;
-                                    case 3:
-                                        READ(dev->accel.src + cx, src_dat);
-                                        break;
-
-                                    default:
-                                        break;
-                                }
-
                                 READ(dev->accel.src + cx, src_dat);
                                 READ(dev->accel.dest + dx, dest_dat);
                                 old_dest_dat = dest_dat;
@@ -3411,16 +3330,9 @@ skip_nibble_bitblt_write:
                                     dev->accel.cy--;
                                 }
 
-                                if ((dev->accel_bpp == 24) || (dev->accel_bpp <= 8)) {
-                                    dev->accel.src  = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.dy * dev->pitch);
-                                } else if (dev->bpp) {
-                                    dev->accel.src  = (dev->accel.ge_offset << 1) + (dev->accel.cy * dev->pitch);
-                                    dev->accel.dest = (dev->accel.ge_offset << 1) + (dev->accel.dy * dev->pitch);
-                                } else {
-                                    dev->accel.src  = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
-                                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.dy * dev->pitch);
-                                }
+                                dev->accel.src  = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+                                dev->accel.dest = dev->accel.ge_offset + (dev->accel.dy * dev->pitch);
+
                                 dev->accel.sy--;
 
                                 if (dev->accel.sy < 0) {
@@ -3804,7 +3716,7 @@ ibm8514_poll(void *priv)
             if ((svga->cgastat & 8) && ((dev->displine & 0x0f) == (svga->crtc[0x11] & 0x0f)) && svga->vslines)
                 svga->cgastat &= ~8;
             svga->vslines++;
-            if (dev->displine > 1500)
+            if (dev->displine > 2000)
                 dev->displine = 0;
         } else {
             timer_advance_u64(&svga->timer, dev->dispontime);
@@ -3871,9 +3783,9 @@ ibm8514_poll(void *priv)
                 svga->vslines    = 0;
 
                 if (dev->interlace && dev->oddeven)
-                    dev->ma = dev->maback = dev->ma_latch + (dev->rowoffset << 1);
+                    dev->ma = dev->maback = (dev->rowoffset << 1);
                 else
-                    dev->ma = dev->maback = dev->ma_latch;
+                    dev->ma = dev->maback = 0;
 
                 dev->ma     = (dev->ma << 2);
                 dev->maback = (dev->maback << 2);
@@ -3904,26 +3816,43 @@ ibm8514_recalctimings(svga_t *svga)
             ati8514_recalctimings(svga);
     } else {
         if (dev->on) {
+            dev->hdisp = (dev->hdisped + 1) << 3;
             dev->h_total = dev->htotal + 1;
+
+            if (dev->h_total == 1) /*Default to 1024x768 87hz 8514/A htotal timings if it goes to 0.*/
+                dev->h_total = 0x9e;
+
+            dev->vdisp = (dev->v_disp + 1) >> 1;
+            if ((dev->vdisp == 478) || (dev->vdisp == 766))
+                dev->vdisp += 2;
+
+            dev->v_total = dev->v_total_reg + 1;
+            if (dev->interlace)
+                dev->v_total >>= 1;
+
+            dev->v_syncstart = dev->v_sync_start + 1;
+            if (dev->interlace)
+                dev->v_syncstart >>= 1;
+
             dev->rowcount = !!(dev->disp_cntl & 0x08);
 
-            if (dev->accel.advfunc_cntl & 0x01) {
+            if ((dev->hdisp != 640) && (dev->hdisp != 1024)) {
                 if (dev->accel.advfunc_cntl & 0x04) {
-                    dev->h_disp = dev->hdisp;
-                    dev->dispend = dev->vdisp;
+                    dev->hdisp = 1024;
+                    dev->vdisp = 768;
                 } else {
-                    dev->h_disp = 640;
-                    dev->dispend = 480;
+                    dev->hdisp = 640;
+                    dev->vdisp = 480;
                 }
-            } else {
-                dev->h_disp = dev->hdisp;
-                dev->dispend = dev->vdisp;
             }
 
+            dev->h_disp = dev->hdisp;
+            dev->dispend = dev->vdisp;
+
             if (dev->accel.advfunc_cntl & 0x04)
-                svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
+                svga->clock_8514 = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
             else
-                svga->clock8514 = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
+                svga->clock_8514 = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
 
             if ((dev->dispend == 478) || (dev->dispend == 766))
                 dev->dispend += 2;
@@ -4026,6 +3955,7 @@ ibm8514_init(const device_t *info)
     dev->map8        = dev->pallook;
     dev->local       = 0;
     dev->accel_bpp   = 8;
+    dev->on          = 0;
 
     dev->type     = info->flags;
     dev->bpp      = 0;
