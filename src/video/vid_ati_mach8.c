@@ -5829,7 +5829,7 @@ mach32_read(uint32_t addr, void *priv)
     mach_t *mach = (mach_t *) priv;
     svga_t *svga = &mach->svga;
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
-    uint8_t ret;
+    uint8_t ret = 0x00;
 
     (void) xga_read_test(addr, svga);
     addr = (addr & svga->banked_mask) + svga->read_bank;
