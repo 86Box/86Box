@@ -819,7 +819,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     int          pc_off          = 0;
     int          test_modrm      = 1;
     int          c;
-    uint16_t     op87            = 0x0000;
+    uint32_t     op87            = 0x00000000;
 
     op_ea_seg = &cpu_state.seg_ds;
     op_ssegs  = 0;
@@ -1010,7 +1010,7 @@ generate_call:
     }
 
     if (op87 != 0x0000) {
-        STORE_IMM_ADDR_W((uintptr_t) &x87_op, op87);
+        STORE_IMM_ADDR_L((uintptr_t) &x87_op, op87);
     }
 
     if (recomp_op_table && recomp_op_table[(opcode | op_32) & 0x1ff]) {
