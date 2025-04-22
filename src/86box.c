@@ -1000,6 +1000,13 @@ usage:
     zip_global_init();
     mo_global_init();
 
+    /* Initialize the keyboard accelerator list with default values */
+    for (int x = 0; x < NUM_ACCELS; x++) {
+        strcpy(acc_keys[x].name, def_acc_keys[x].name);
+        strcpy(acc_keys[x].desc, def_acc_keys[x].desc);
+        strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
+    }
+
     /* Load the configuration file. */
     config_load();
 
@@ -1029,14 +1036,6 @@ usage:
         lang_id = lang_init;
 
     gdbstub_init();
-
-	// Initialize the keyboard accelerator list with default values
-	for(int x=0;x<NUM_ACCELS;x++) {
-		strcpy(acc_keys[x].name, def_acc_keys[x].name);
-		strcpy(acc_keys[x].desc, def_acc_keys[x].desc);
-		strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
-	}
-
 
     /* All good! */
     return 1;
