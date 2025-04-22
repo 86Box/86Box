@@ -776,9 +776,9 @@ svga_recalctimings(svga_t *svga)
         }
 
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-            if (svga->seqregs[1] & 8) {                             /*40 column*/
+            if (svga->seqregs[1] & 8)                               /*40 column*/
                 svga->render = svga_render_text_40;
-            } else
+            else
                 svga->render = svga_render_text_80;
 
             if (xga_active && (svga->xga != NULL)) {
@@ -981,7 +981,7 @@ svga_recalctimings(svga_t *svga)
     crtcconst = svga->clock * svga->char_width;
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (dev->on)
-            crtcconst8514 = svga->clock8514;
+            crtcconst8514 = svga->clock_8514;
     }
     if (xga_active && (svga->xga != NULL)) {
         if (xga->on)
