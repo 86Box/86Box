@@ -146,7 +146,7 @@ if(FLUIDSYNTH)
     pkg_check_modules(FLUIDSYNTH REQUIRED IMPORTED_TARGET fluidsynth)
     target_link_libraries(86Box PkgConfig::FLUIDSYNTH)
     if(STATIC_BUILD)
-        target_link_libraries(86Box -static ${FLUIDSYNTH_STATIC_LIBRARIES} -fopenmp -lgomp)
+        target_link_libraries(86Box -static ${FLUIDSYNTH_STATIC_LIBRARIES} -fopenmp)
         if(WIN32)
             add_compile_definitions(FLUIDSYNTH_NOT_A_DLL)
 
