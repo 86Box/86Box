@@ -28,6 +28,7 @@
         <file>qt/icons/zip.ico</file>
         <file>qt/icons/zip_disabled.ico</file>
         <file>qt/icons/active.ico</file>
+        <file>qt/icons/write_active.ico</file>
         <file>qt/icons/disabled.ico</file>
         <file>qt/icons/86Box-gray.ico</file>
         <file>qt/icons/86Box-green.ico</file>
