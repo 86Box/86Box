@@ -260,6 +260,8 @@ typedef struct gd54xx_t {
 
     uint8_t pos_regs[8];
 
+    uint32_t vlb_lfb_base;
+
     uint32_t lfb_base;
     uint32_t vgablt_base;
 
@@ -1750,7 +1752,8 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
         } else
             mem_mapping_disable(&gd54xx->mmio_mapping);
     } else {
-        if ((svga->crtc[0x27] <= CIRRUS_ID_CLGD5429) || (!gd54xx->pci && !gd54xx->vlb)) {
+        if ((svga->crtc[0x27] <= CIRRUS_ID_CLGD5429) ||
+            (!gd54xx->pci && !gd54xx->vlb)) {
             if (svga->gdcreg[0x0b] & CIRRUS_BANKING_GRANULARITY_16K) {
                 base = (svga->seqregs[0x07] & 0xf0) << 16;
                 size = 1 * 1024 * 1024;
@@ -1770,7 +1773,10 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
             else
                 size = 4 * 1024 * 1024;
         } else { /*VLB/ISA/MCA*/
-            base = 128 * 1024 * 1024;
+            if (gd54xx->vlb_lfb_base != 0x00000000)
+                base = gd54xx->vlb_lfb_base;
+            else
+                base = 128 * 1024 * 1024;
             if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5436)
                 size = 16 * 1024 * 1024;
             else
@@ -4224,6 +4230,12 @@ gd54xx_init(const device_t *info)
 
     gd54xx->id = id;
 
+    if (gd54xx->vlb && ((gd54xx->id == CIRRUS_ID_CLGD5430) ||
+                        (gd54xx->id == CIRRUS_ID_CLGD5434) ||
+                        (gd54xx->id == CIRRUS_ID_CLGD5434_4) ||
+                        (gd54xx->id == CIRRUS_ID_CLGD5440)))
+        gd54xx->vlb_lfb_base = device_get_config_int("lfb_base") << 20;
+
     switch (id) {
         case CIRRUS_ID_CLGD5401:
             romfn = BIOS_GD5401_PATH;
@@ -4777,6 +4789,41 @@ static const device_config_t gd5429_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t gd5430_vlb_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "lfb_base",
+        .description    = "Linear framebuffer base",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "32 MB", .value = 32 },
+            { .description = "64 MB", .value = 64 },
+            { .description = "2048 MB", .value = 2048 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t gd5440_onboard_config[] = {
     {
         .name           = "memory",
@@ -4809,6 +4856,42 @@ static const device_config_t gd5434_config[] = {
             { .description = "1 MB", .value = 1 },
             { .description = "2 MB", .value = 2 },
             { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t gd5434_vlb_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "lfb_base",
+        .description    = "Linear framebuffer base",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "32 MB", .value = 32 },
+            { .description = "64 MB", .value = 64 },
+            { .description = "2048 MB", .value = 2048 },
             { .description = ""                 }
         },
         .bios           = { { 0 } }
@@ -5150,7 +5233,7 @@ const device_t gd5430_diamond_speedstar_pro_se_a8_vlb_device = {
     .available     = gd5430_diamond_a8_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5429_config
+    .config        = gd5430_vlb_config
 };
 
 const device_t gd5430_vlb_device = {
@@ -5164,7 +5247,7 @@ const device_t gd5430_vlb_device = {
     .available     = gd5430_orchid_vlb_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5429_config
+    .config        = gd5430_vlb_config
 };
 
 const device_t gd5430_onboard_vlb_device = {
@@ -5178,7 +5261,7 @@ const device_t gd5430_onboard_vlb_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5429_config
+    .config        = gd5430_vlb_config
 };
 
 const device_t gd5430_pci_device = {
@@ -5263,7 +5346,7 @@ const device_t gd5434_vlb_device = {
     .available     = gd5430_orchid_vlb_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5434_config
+    .config        = gd5434_vlb_config
 };
 
 const device_t gd5434_pci_device = {
