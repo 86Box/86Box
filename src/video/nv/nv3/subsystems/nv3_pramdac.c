@@ -134,7 +134,7 @@ void nv3_pramdac_set_vram_clock(void)
     // Convert to microseconds
     frequency = (frequency * nv3->pramdac.memory_clock_n) / (nv3->pramdac.memory_clock_m << nv3->pramdac.memory_clock_p); 
 
-    double time = (1000000.0 * NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT) / (double)frequency; // needs to be a double for 86box
+    double time = 1000000.0  / (double)frequency; // needs to be a double for 86box
 
     nv_log("Memory clock = %.2f MHz\n", frequency / 1000000.0f);    
 
@@ -182,7 +182,7 @@ void nv3_pramdac_set_pixel_clock(void)
 
     nv3->nvbase.svga.clock = cpuclock / frequency;
 
-    double time = (1000000.0 * NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT) / (double)frequency; // needs to be a double for 86box
+    double time = 1000000.0  / (double)frequency; // needs to be a double for 86box
 
     nv_log("Pixel clock = %.2f MHz\n", frequency / 1000000.0f);
 

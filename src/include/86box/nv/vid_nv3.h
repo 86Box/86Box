@@ -44,8 +44,6 @@ extern const device_config_t nv3t_config[];                             // Confi
 
 #define NV3_DMA_CHANNELS_TOTAL                          0x7F            // This is also used somewhere despite there only being 8*8 = 64 channels
 
-#define NV3_86BOX_TIMER_SYSTEM_FIX_QUOTIENT             1               // The amount by which we have to ration out the memory clock because it's not fast enough...
-                                                                        // Multiply by this value to get the real clock speed.
 #define NV3_LAST_VALID_GRAPHICS_OBJECT_ID               0x1F
 
 // The class ids are represented with 5 bits in PGRAPH, but 7 bits in PFIFO!
