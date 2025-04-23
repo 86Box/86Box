@@ -57,8 +57,8 @@ def dynarecNames = [
 ]
 
 def dynarecArchs = [
-	'32': ['ODR', 'NDR'],
-	'x86': ['ODR', 'NDR'],
+	'32': ['ODR'],
+	'x86': ['ODR'],
 	'64': ['ODR', 'NDR'],
 	'x86_64': ['ODR', 'NDR'],
 	'arm32': ['NDR'],
