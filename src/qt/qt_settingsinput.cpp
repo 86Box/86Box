@@ -79,15 +79,6 @@ SettingsInput::SettingsInput(QWidget *parent)
 
 	refreshInputList();
 
- 	connect(ui->tableKeys, &QTableWidget::cellDoubleClicked,
-        this, &SettingsInput::on_tableKeys_doubleClicked);
-		
-	connect(ui->pushButtonBind, &QPushButton::clicked,
-        this, &SettingsInput::on_pushButtonBind_Clicked);
-		
-	connect(ui->pushButtonClearBind, &QPushButton::clicked,
-        this, &SettingsInput::on_pushButtonClearBind_Clicked);
-
     onCurrentMachineChanged(machine);
 }
 
@@ -194,7 +185,7 @@ SettingsInput::on_tableKeys_currentCellChanged(int currentRow, int currentColumn
 }
 
 void
-SettingsInput::on_tableKeys_doubleClicked(int row, int col)
+SettingsInput::on_tableKeys_cellDoubleClicked(int row, int col)
 {
 	// Edit bind
 	QTableWidgetItem *cell = ui->tableKeys->item(row,1);
@@ -233,17 +224,17 @@ SettingsInput::on_tableKeys_doubleClicked(int row, int col)
 }
 
 void
-SettingsInput::on_pushButtonBind_Clicked()
+SettingsInput::on_pushButtonBind_clicked()
 {
 	// Edit bind
 	QTableWidgetItem *cell = ui->tableKeys->currentItem();
 	if (!cell) return;
 	
-	on_tableKeys_doubleClicked(cell->row(), cell->column());
+	on_tableKeys_cellDoubleClicked(cell->row(), cell->column());
 }
 
 void
-SettingsInput::on_pushButtonClearBind_Clicked()
+SettingsInput::on_pushButtonClearBind_clicked()
 {
 	// Wipe bind
 	QTableWidgetItem *cell = ui->tableKeys->item(ui->tableKeys->currentRow(), 1);

@@ -33,10 +33,10 @@ private slots:
     void on_pushButtonJoystick2_clicked();
     void on_pushButtonJoystick3_clicked();
     void on_pushButtonJoystick4_clicked();
-	void on_tableKeys_doubleClicked(int row, int col);
+	void on_tableKeys_cellDoubleClicked(int row, int col);
 	void on_tableKeys_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn);
-	void on_pushButtonBind_Clicked();
-	void on_pushButtonClearBind_Clicked();
+	void on_pushButtonBind_clicked();
+	void on_pushButtonClearBind_clicked();
 
 private:
     Ui::SettingsInput *ui;
