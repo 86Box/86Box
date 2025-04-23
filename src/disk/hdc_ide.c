@@ -2514,6 +2514,7 @@ ide_callback(void *priv)
                         return;
                     } else if (ret & 1) {
                         /* DMA successful */
+                        ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
                         ret = hdd_image_write(ide->hdd_num, ide_get_sector(ide),
                                               ide->sector_pos, ide->sector_buffer);
 
@@ -2524,7 +2525,6 @@ ide_callback(void *priv)
                             err = UNC_ERR;
 
                         ide_irq_raise(ide);
-                        ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
                     } else {
                         /* Bus master DMA error, abort the command. */
                         ide_log("IDE %i: DMA read aborted (failed)\n", ide->channel);
