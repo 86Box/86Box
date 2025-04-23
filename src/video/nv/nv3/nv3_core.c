@@ -271,7 +271,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
             ret = (NV_PCI_DEVICE_NV3 >> 8);
             break;
         
-        // various capabilities
+        // various capabilities enabled by default 
         // IO space         enabled
         // Memory space     enabled
         // Bus master       enabled
@@ -281,7 +281,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
         // 66Mhz FSB        capable
 
         case PCI_REG_COMMAND_L:
-            ret = nv3->pci_config.pci_regs[PCI_REG_COMMAND_L] ; // we actually respond to the fucking 
+            ret = nv3->pci_config.pci_regs[PCI_REG_COMMAND_L]; 
             break;
         
         case PCI_REG_COMMAND_H:
@@ -536,7 +536,7 @@ void nv3_recalc_timings(svga_t* svga)
         case NV3_CRTC_REGISTER_PIXELMODE_16BPP:
             /* This is some sketchy shit that is an attempt at an educated guess
             at pixel clock differences between 9x and NT only in 16bpp. If there is ever an error on 9x with "interlaced" looking graphics,
-            this is what's causing it. Possibly fucking *ReactOS* of all things */
+            this is what's causing it. Possibly fucking up *ReactOS* of all things */
             if ((svga->crtc[NV3_CRTC_REGISTER_VRETRACESTART] >> 1) & 0x01)
                 svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 2;
             else 

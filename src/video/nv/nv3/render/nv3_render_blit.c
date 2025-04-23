@@ -34,10 +34,9 @@
 void nv3_class_011_check_line_bounds(void)
 {                
     uint32_t relative_x = nv3->pgraph.image_current_position.x - nv3->pgraph.image.point.x;
-    //uint32_t relative_y = nv3->pgraph.image_current_position.y - nv3->pgraph.image.point.y;
 
-    /* In theory, relative_y should never be exceeded...because it only submits enough pixels to render the image*/
-    if (relative_x >= nv3->pgraph.image.size_in.w)
+    /* In the case of class 0x11 there is no requirement to check for relative_y because we have exceeded the size of the image */
+    if (relative_x >= nv3->pgraph.image.size_in.x)
     {   
         nv3->pgraph.image_current_position.y++;
         nv3->pgraph.image_current_position.x = nv3->pgraph.image.point.x;
@@ -47,16 +46,13 @@ void nv3_class_011_check_line_bounds(void)
 /* Renders an image from cpu */
 void nv3_render_blit_image(uint32_t color, nv3_grobj_t grobj)
 {
-    // shift left by 2 because it's 4 bits per size..
-    uint32_t current_buffer = (nv3->pgraph.context_switch >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03; 
-
     /* todo: a lot of stuff */
 
     uint32_t pixel0 = 0, pixel1 = 0, pixel2 = 0, pixel3 = 0;
 
     /* Some extra data is sent as padding, we need to clip it off using size_out */
 
-    uint16_t clip_x = nv3->pgraph.image.point.x + nv3->pgraph.image.size.w;
+    uint16_t clip_x = nv3->pgraph.image.point.x + nv3->pgraph.image.size.x;
     /* we need to unpack them - IF THIS IS USED SOMEWHERE ELSE, DO SOMETHING ELSE WITH IT */
     /* the reverse order is due to the endianness */
     switch (nv3->nvbase.svga.bpp)
@@ -126,9 +122,9 @@ uint32_t nv3_s2sb_line_buffer[NV3_MAX_HORIZONTAL_SIZE*NV3_MAX_VERTICAL_SIZE] = {
 
 void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
 {
-    if (nv3->pgraph.blit.size.w < NV3_MAX_HORIZONTAL_SIZE
-    && nv3->pgraph.blit.size.h < NV3_MAX_VERTICAL_SIZE)
-        memset(&nv3_s2sb_line_buffer, 0x00, (sizeof(uint32_t) * nv3->pgraph.blit.size.h) * (sizeof(uint32_t) * nv3->pgraph.blit.size.w));
+    if (nv3->pgraph.blit.size.x < NV3_MAX_HORIZONTAL_SIZE
+    && nv3->pgraph.blit.size.y < NV3_MAX_VERTICAL_SIZE)
+        memset(&nv3_s2sb_line_buffer, 0x00, (sizeof(uint32_t) * nv3->pgraph.blit.size.y) * (sizeof(uint32_t) * nv3->pgraph.blit.size.x));
 
     /* First calculate our source and destination buffer */
     uint32_t src_buffer = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03;
@@ -141,11 +137,11 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     
     bool cross_buffer_blit = (nv3->pgraph.boffset[src_buffer] != nv3->pgraph.boffset[dst_buffer]);
 
-    nv3_position_16_t old_position = nv3->pgraph.blit.point_in;
-    nv3_position_16_t new_position = nv3->pgraph.blit.point_out;
+    nv3_coord_16_t old_position = nv3->pgraph.blit.point_in;
+    nv3_coord_16_t new_position = nv3->pgraph.blit.point_out;
 
     /* Coordinates for copying an entire line at a time */
-    uint32_t buf_position = 0, vram_position = 0, size_x = nv3->pgraph.blit.size.w;
+    uint32_t buf_position = 0, vram_position = 0, size_x = nv3->pgraph.blit.size.x;
 
     /* Read the old pixel into the line buffer
        Assumption: All data is sent in an unpacked format. In the case of an NVIDIA GPU this means that all data is sent 32 bits at a time regardless of if
@@ -161,9 +157,9 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     else if (nv3->nvbase.svga.bpp == 32)
         size_x <<= 2;
         
-    for (int32_t y = 0; y < nv3->pgraph.blit.size.h; y++)
+    for (int32_t y = 0; y < nv3->pgraph.blit.size.y; y++)
     {
-        buf_position = (nv3->pgraph.blit.size.w * y);
+        buf_position = (nv3->pgraph.blit.size.x * y);
         /* shouldn't matter in non-wtf mode */
         vram_position = nv3_render_get_vram_address_for_buffer(old_position, grobj, src_buffer);
 
@@ -173,9 +169,9 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     }
     
     /* simply write it all back to vram */
-    for (int32_t y = 0; y < nv3->pgraph.blit.size.h; y++)
+    for (int32_t y = 0; y < nv3->pgraph.blit.size.y; y++)
     {        
-        buf_position = (nv3->pgraph.blit.size.w * y);
+        buf_position = (nv3->pgraph.blit.size.x * y);
         vram_position = nv3_render_get_vram_address_for_buffer(new_position, grobj, dst_buffer);
 
         memcpy(&nv3->nvbase.svga.vram[vram_position], &nv3_s2sb_line_buffer[buf_position], size_x);
@@ -187,8 +183,8 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
         We also need to update all of the areas of the screen that moved. 
     */
 
-    nv3_position_16_t blit_position = {0};
-    nv3_size_16_t blit_size = {0};
+    nv3_coord_16_t blit_position = {0};
+    nv3_coord_16_t blit_size = {0};
 
     /* Change the smallest area of the screen that moved */
 
@@ -200,18 +196,18 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     else
     {
         if (nv3->pgraph.blit.point_out.x > nv3->pgraph.blit.point_in.x)
-            blit_size.w = (nv3->pgraph.blit.point_out.x - nv3->pgraph.blit.point_in.x) + nv3->pgraph.blit.size.w;
+            blit_size.x = (nv3->pgraph.blit.point_out.x - nv3->pgraph.blit.point_in.x) + nv3->pgraph.blit.size.x;
         else if (nv3->pgraph.blit.point_out.x < nv3->pgraph.blit.point_in.x)
-            blit_size.w = (nv3->pgraph.blit.point_in.x - nv3->pgraph.blit.point_out.x) + nv3->pgraph.blit.size.w;
+            blit_size.x = (nv3->pgraph.blit.point_in.x - nv3->pgraph.blit.point_out.x) + nv3->pgraph.blit.size.x;
         else
-            blit_size.w = nv3->pgraph.blit.size.w;
+            blit_size.x = nv3->pgraph.blit.size.x;
 
         if (nv3->pgraph.blit.point_out.y > nv3->pgraph.blit.point_in.y)
-            blit_size.h = (nv3->pgraph.blit.point_out.y - nv3->pgraph.blit.point_in.y) + nv3->pgraph.blit.size.h;
+            blit_size.y = (nv3->pgraph.blit.point_out.y - nv3->pgraph.blit.point_in.y) + nv3->pgraph.blit.size.y;
         else if (nv3->pgraph.blit.point_out.y < nv3->pgraph.blit.point_in.y)
-            blit_size.h = (nv3->pgraph.blit.point_in.y - nv3->pgraph.blit.point_out.y) + nv3->pgraph.blit.size.h;
+            blit_size.y = (nv3->pgraph.blit.point_in.y - nv3->pgraph.blit.point_out.y) + nv3->pgraph.blit.size.y;
         else
-            blit_size.h = nv3->pgraph.blit.size.h; 
+            blit_size.y = nv3->pgraph.blit.size.y; 
 
         if (nv3->pgraph.blit.point_out.x > nv3->pgraph.blit.point_in.x)
             blit_position.x = nv3->pgraph.blit.point_in.x;

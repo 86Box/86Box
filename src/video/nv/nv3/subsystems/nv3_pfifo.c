@@ -380,12 +380,11 @@ void nv3_pfifo_trigger_dma_if_required(void)
         /* 
             page size is 0x1000 
         */
-        uint32_t final_address = final_page_base + (tlb_pt_entry << 10); //x86 page size is 0x1000
+        uint32_t final_address = final_page_base + (tlb_pt_entry << 10) + where_to_send; //x86 page size is 0x1000 (maybe rsh where_to_send by 2)
 
         nv_log_verbose_only("DMA Engine: DMA to %08x length=%08x", final_address, bytes_to_send);
 
-        //dma_bm_write()
-
+        //-dma_bm_write()
     }
 
     //we're done
@@ -576,7 +575,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
                         nv3->pfifo.runout_put = val & (NV3_RAMIN_RAMRO_SIZE_1 - 0x07);
 
                     break;
-                /* Cache1 is handled below */
+                /* Cache1 Context is handled below */
                 case NV3_PFIFO_CACHE0_CTX:
                     nv3->pfifo.cache0_settings.context[0] = val;
                     break;

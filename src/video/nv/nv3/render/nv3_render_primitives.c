@@ -29,15 +29,15 @@
 #include <86box/nv/vid_nv3.h>
 #include <86box/utils/video_stdlib.h>
 
-void nv3_render_rect(nv3_position_16_t position, nv3_size_16_t size, uint32_t color, nv3_grobj_t grobj)
+void nv3_render_rect(nv3_coord_16_t position, nv3_coord_16_t size, uint32_t color, nv3_grobj_t grobj)
 {
-    nv3_position_16_t current_pos = {0};
+    nv3_coord_16_t current_pos = {0};
 
-    for (int32_t y = position.y; y < (position.y + size.h); y++)
+    for (int32_t y = position.y; y < (position.y + size.y); y++)
     {
         current_pos.y = y; 
 
-        for (int32_t x = position.x; x < (position.x + size.w); x++)
+        for (int32_t x = position.x; x < (position.x + size.x); x++)
         {
             current_pos.x = x;
 
@@ -49,7 +49,7 @@ void nv3_render_rect(nv3_position_16_t position, nv3_size_16_t size, uint32_t co
 /* Render GDI-B clipped rectangle */
 void nv3_render_rect_clipped(nv3_clip_16_t clip, uint32_t color, nv3_grobj_t grobj)
 {
-    nv3_position_16_t current_pos = {0};
+    nv3_coord_16_t current_pos = {0};
 
     for (int32_t y = clip.top; y < clip.bottom; y++)
     {
@@ -89,8 +89,8 @@ void nv3_render_gdi_transparent_bitmap_blit(bool bit, bool clip, uint32_t color,
            Also clip if we are outside of the SIZE_OUT range 
            We only need to do this in one direction just to get rid of the crud sent by NV
         */
-        uint32_t clip_x = nv3->pgraph.win95_gdi_text.point_d.x + (nv3->pgraph.win95_gdi_text.size_out_d.w);
-        uint32_t clip_y = nv3->pgraph.win95_gdi_text.point_d.y + (nv3->pgraph.win95_gdi_text.size_out_d.h);
+        uint32_t clip_x = nv3->pgraph.win95_gdi_text.point_d.x + (nv3->pgraph.win95_gdi_text.size_out_d.x);
+        uint32_t clip_y = nv3->pgraph.win95_gdi_text.point_d.y + (nv3->pgraph.win95_gdi_text.size_out_d.y);
 
         if (nv3->pgraph.win95_gdi_text_current_position.x >= clip_x
         || nv3->pgraph.win95_gdi_text_current_position.y >= clip_y)
@@ -106,7 +106,7 @@ void nv3_render_gdi_transparent_bitmap_blit(bool bit, bool clip, uint32_t color,
        Because we check the bits in reverse, we go forward (bits 7,6,5 were set for a 1x3 bitmap)
     */
 
-    uint32_t end_x = (clip) ? nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_in_d.w : nv3->pgraph.win95_gdi_text.point_c.x + nv3->pgraph.win95_gdi_text.size_c.w;
+    uint32_t end_x = (clip) ? nv3->pgraph.win95_gdi_text.point_d.x + nv3->pgraph.win95_gdi_text.size_in_d.x : nv3->pgraph.win95_gdi_text.point_c.x + nv3->pgraph.win95_gdi_text.size_c.x;
 
     nv3->pgraph.win95_gdi_text_current_position.x++;
 
@@ -135,7 +135,7 @@ void nv3_render_gdi_transparent_bitmap(bool clip, uint32_t color, uint32_t bitma
         We store a global bit count for this purpose.
     */
 
-    uint32_t bitmap_size = (clip) ? nv3->pgraph.win95_gdi_text.size_in_d.w * nv3->pgraph.win95_gdi_text.size_in_d.h : nv3->pgraph.win95_gdi_text.size_c.w * nv3->pgraph.win95_gdi_text.size_c.h;
+    uint32_t bitmap_size = (clip) ? nv3->pgraph.win95_gdi_text.size_in_d.x * nv3->pgraph.win95_gdi_text.size_in_d.y : nv3->pgraph.win95_gdi_text.size_c.x * nv3->pgraph.win95_gdi_text.size_c.y;
     uint32_t bits_remaining_in_bitmap = bitmap_size - nv3->pgraph.win95_gdi_text_bit_count;
 
     /* we have to interpret every bit in reverse bit order but in the right byte order */
@@ -231,8 +231,8 @@ void nv3_render_gdi_1bpp_bitmap_blit(bool bit, uint32_t color0, uint32_t color1,
         Also clip if we are outside of the SIZE_OUT range 
         We only need to do this in one direction just to get rid of the crud sent by NV
     */
-    uint32_t clip_x = nv3->pgraph.win95_gdi_text.point_e.x + (nv3->pgraph.win95_gdi_text.size_out_e.w);
-    uint32_t clip_y = nv3->pgraph.win95_gdi_text.point_e.y + (nv3->pgraph.win95_gdi_text.size_out_e.h);
+    uint32_t clip_x = nv3->pgraph.win95_gdi_text.point_e.x + (nv3->pgraph.win95_gdi_text.size_out_e.x);
+    uint32_t clip_y = nv3->pgraph.win95_gdi_text.point_e.y + (nv3->pgraph.win95_gdi_text.size_out_e.y);
 
     if (nv3->pgraph.win95_gdi_text_current_position.x >= clip_x
     || nv3->pgraph.win95_gdi_text_current_position.y >= clip_y)
@@ -253,7 +253,7 @@ void nv3_render_gdi_1bpp_bitmap_blit(bool bit, uint32_t color0, uint32_t color1,
        Because we check the bits in reverse, we go forward (bits 7,6,5 were set for a 1x3 bitmap)
     */
 
-    uint32_t end_x = nv3->pgraph.win95_gdi_text.point_e.x + nv3->pgraph.win95_gdi_text.size_in_e.w;
+    uint32_t end_x = nv3->pgraph.win95_gdi_text.point_e.x + nv3->pgraph.win95_gdi_text.size_in_e.x;
 
     nv3->pgraph.win95_gdi_text_current_position.x++;
 
@@ -278,7 +278,7 @@ void nv3_render_gdi_1bpp_bitmap(uint32_t color0, uint32_t color1, uint32_t bitma
         We store a global bit count for this purpose.
     */
 
-    uint32_t bitmap_size = nv3->pgraph.win95_gdi_text.size_in_e.w * nv3->pgraph.win95_gdi_text.size_in_e.h;
+    uint32_t bitmap_size = nv3->pgraph.win95_gdi_text.size_in_e.x * nv3->pgraph.win95_gdi_text.size_in_e.y;
     uint32_t bits_remaining_in_bitmap = bitmap_size - nv3->pgraph.win95_gdi_text_bit_count;
 
     /* we have to interpret every bit in reverse bit order but in the right byte order */

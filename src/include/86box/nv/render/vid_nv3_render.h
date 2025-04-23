@@ -18,20 +18,20 @@
 #pragma once
 
 /* Core */
-void nv3_render_current_bpp(svga_t *svga, nv3_position_16_t position, nv3_size_16_t size, nv3_grobj_t grobj, bool run_render_check, bool use_destination_buffer);
+void nv3_render_current_bpp(svga_t *svga, nv3_coord_16_t position, nv3_coord_16_t size, nv3_grobj_t grobj, bool run_render_check, bool use_destination_buffer);
 void nv3_render_current_bpp_dfb_8(uint32_t address);
 void nv3_render_current_bpp_dfb_16(uint32_t address);
 void nv3_render_current_bpp_dfb_32(uint32_t address);
 
 /* Pixel */
-void nv3_render_write_pixel(nv3_position_16_t position, uint32_t color, nv3_grobj_t grobj);
-uint8_t nv3_render_read_pixel_8(nv3_position_16_t position, nv3_grobj_t grobj);
-uint16_t nv3_render_read_pixel_16(nv3_position_16_t position, nv3_grobj_t grobj);
-uint32_t nv3_render_read_pixel_32(nv3_position_16_t position, nv3_grobj_t grobj);
+void nv3_render_write_pixel(nv3_coord_16_t position, uint32_t color, nv3_grobj_t grobj);
+uint8_t nv3_render_read_pixel_8(nv3_coord_16_t position, nv3_grobj_t grobj);
+uint16_t nv3_render_read_pixel_16(nv3_coord_16_t position, nv3_grobj_t grobj);
+uint32_t nv3_render_read_pixel_32(nv3_coord_16_t position, nv3_grobj_t grobj);
 
 /* Address */
-uint32_t nv3_render_get_vram_address(nv3_position_16_t position, nv3_grobj_t grobj);
-uint32_t nv3_render_get_vram_address_for_buffer(nv3_position_16_t position, nv3_grobj_t grobj, uint32_t buffer);
+uint32_t nv3_render_get_vram_address(nv3_coord_16_t position, nv3_grobj_t grobj);
+uint32_t nv3_render_get_vram_address_for_buffer(nv3_coord_16_t position, nv3_grobj_t grobj, uint32_t buffer);
 
 /* Colour Conversion */
 uint32_t nv3_render_get_palette_index(uint8_t index);                                       // Get a colour for a palette index. (The colours are 24 bit RGB888 with a 0xFF alpha added for some purposes.)
@@ -43,7 +43,7 @@ uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t co
 void nv3_render_set_pattern_color(nv3_color_expanded_t pattern_colour, bool use_color1);
 
 /* Primitives */
-void nv3_render_rect(nv3_position_16_t position, nv3_size_16_t size, uint32_t color, nv3_grobj_t grobj);                    // Render an A (unclipped) GDI rect
+void nv3_render_rect(nv3_coord_16_t position, nv3_coord_16_t size, uint32_t color, nv3_grobj_t grobj);                    // Render an A (unclipped) GDI rect
 void nv3_render_rect_clipped(nv3_clip_16_t clip, uint32_t color, nv3_grobj_t grobj);                                        // Render a B (clipped) GDI rect.
 
 /* Chroma */

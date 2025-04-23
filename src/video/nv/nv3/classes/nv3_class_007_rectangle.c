@@ -44,10 +44,10 @@ void nv3_class_007_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                 // If the size is submitted, render it.
                 if (method_id & 0x04)
                 {
-                    nv3->pgraph.rectangle.size[index].w = param & 0xFFFF;
-                    nv3->pgraph.rectangle.size[index].h = (param >> 16) & 0xFFFF;   
+                    nv3->pgraph.rectangle.size[index].x = param & 0xFFFF;
+                    nv3->pgraph.rectangle.size[index].y = (param >> 16) & 0xFFFF;   
                     
-                    nv_log("Method Execution: Rect%d Size=%d,%d Color=0x%08x\n", index, nv3->pgraph.rectangle.size[index].w, nv3->pgraph.rectangle.size[index].h, nv3->pgraph.rectangle.color);
+                    nv_log("Method Execution: Rect%d Size=%d,%d Color=0x%08x\n", index, nv3->pgraph.rectangle.size[index].x, nv3->pgraph.rectangle.size[index].y, nv3->pgraph.rectangle.color);
 
                     nv3_render_rect(nv3->pgraph.rectangle.position[index], nv3->pgraph.rectangle.size[index], nv3->pgraph.rectangle.color, grobj);
                 }

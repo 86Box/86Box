@@ -39,15 +39,15 @@ void nv3_class_011_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             break; 
         /* Seems to allow scaling of the bitblt. */
         case NV3_IMAGE_SIZE:
-            nv3->pgraph.image.size.w = (param & 0xFFFF);
-            nv3->pgraph.image.size.h = (param >> 16);
-            nv_log("Method Execution: Image Size (Clip)=%d,%d\n", nv3->pgraph.image.size.w, nv3->pgraph.image.size.h);
+            nv3->pgraph.image.size.x = (param & 0xFFFF);
+            nv3->pgraph.image.size.y = (param >> 16);
+            nv_log("Method Execution: Image Size (Clip)=%d,%d\n", nv3->pgraph.image.size.x, nv3->pgraph.image.size.y);
             break;
         case NV3_IMAGE_SIZE_IN:
-            nv3->pgraph.image.size_in.w = (param & 0xFFFF);
-            nv3->pgraph.image.size_in.h = (param >> 16);
+            nv3->pgraph.image.size_in.x = (param & 0xFFFF);
+            nv3->pgraph.image.size_in.y = (param >> 16);
             nv3->pgraph.image_current_position = nv3->pgraph.image.point;
-            nv_log("Method Execution: Image SizeIn=%d,%d\n", nv3->pgraph.image.size_in.w, nv3->pgraph.image.size_in.h);
+            nv_log("Method Execution: Image SizeIn=%d,%d\n", nv3->pgraph.image.size_in.x, nv3->pgraph.image.size_in.y);
             break;
         default:
             if (method_id >= NV3_IMAGE_COLOR_START && method_id <= NV3_IMAGE_COLOR_END)

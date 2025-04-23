@@ -45,14 +45,9 @@ void nv3_class_010_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             break; 
         case NV3_BLIT_SIZE:
             /* This is the last one*/
-            nv3->pgraph.blit.size.w = (param & 0xFFFF);
-            nv3->pgraph.blit.size.h = ((param >> 16) & 0xFFFF);
-            nv_log("Method Execution: S2SB Size %d,%d grobj_0=0x%08x\n", nv3->pgraph.blit.size.w, nv3->pgraph.blit.size.h, grobj.grobj_0);
-
-            /* Some of these seem to have sizes of 0, so skip */
-            if (nv3->pgraph.blit.size.h == 0
-            && nv3->pgraph.blit.size.w == 0)
-                return;
+            nv3->pgraph.blit.size.x = (param & 0xFFFF);
+            nv3->pgraph.blit.size.y = ((param >> 16) & 0xFFFF);
+            nv_log("Method Execution: S2SB Size %d,%d grobj_0=0x%08x\n", nv3->pgraph.blit.size.x, nv3->pgraph.blit.size.y, grobj.grobj_0);
 
             nv3_render_blit_screen2screen(grobj);
 

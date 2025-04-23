@@ -60,11 +60,11 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv_log("Method Execution: GDI-C Color 0x%08x\n", nv3->pgraph.win95_gdi_text.color1_c);
             break;
         case NV3_W95TXT_C_CLIP_SIZE:
-            nv3->pgraph.win95_gdi_text.size_c.w = (param & 0xFFFF);
-            nv3->pgraph.win95_gdi_text.size_c.h = ((param >> 16) & 0xFFFF);
+            nv3->pgraph.win95_gdi_text.size_c.x = (param & 0xFFFF);
+            nv3->pgraph.win95_gdi_text.size_c.y = ((param >> 16) & 0xFFFF);
 
             nv3->pgraph.win95_gdi_text_bit_count = 0;
-            nv_log("Method Execution: GDI-C Size In %04x,%04x\n", nv3->pgraph.win95_gdi_text.size_c.w,  nv3->pgraph.win95_gdi_text.size_c.h);
+            nv_log("Method Execution: GDI-C Size In %04x,%04x\n", nv3->pgraph.win95_gdi_text.size_c.x,  nv3->pgraph.win95_gdi_text.size_c.y);
             break;
         case NV3_W95TXT_C_CLIP_POSITION:
             nv3->pgraph.win95_gdi_text.point_c.x = (param & 0xFFFF);
@@ -104,14 +104,14 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv_log("Method Execution: GDI-D Color 0x%08x\n", nv3->pgraph.win95_gdi_text.color_a);
             break;
         case NV3_W95TXT_D_CLIP_SIZE_IN:
-            nv3->pgraph.win95_gdi_text.size_in_d.w = (param & 0xFFFF);
-            nv3->pgraph.win95_gdi_text.size_in_d.h = ((param >> 16) & 0xFFFF);
-            nv_log("Method Execution: GDI-D Size In %04x,%04x\n", nv3->pgraph.win95_gdi_text.size_in_d.w,  nv3->pgraph.win95_gdi_text.size_in_d.h);
+            nv3->pgraph.win95_gdi_text.size_in_d.x = (param & 0xFFFF);
+            nv3->pgraph.win95_gdi_text.size_in_d.y = ((param >> 16) & 0xFFFF);
+            nv_log("Method Execution: GDI-D Size In %04x,%04x\n", nv3->pgraph.win95_gdi_text.size_in_d.x, nv3->pgraph.win95_gdi_text.size_in_d.y);
             break;
         case NV3_W95TXT_D_CLIP_SIZE_OUT:
-            nv3->pgraph.win95_gdi_text.size_out_d.w = (param & 0xFFFF);
-            nv3->pgraph.win95_gdi_text.size_out_d.h = ((param >> 16) & 0xFFFF);
-            nv_log("Method Execution: GDI-D Size Out %04x,%04x\n", nv3->pgraph.win95_gdi_text.size_out_d.w,  nv3->pgraph.win95_gdi_text.size_out_d.h);
+            nv3->pgraph.win95_gdi_text.size_out_d.x = (param & 0xFFFF);
+            nv3->pgraph.win95_gdi_text.size_out_d.y = ((param >> 16) & 0xFFFF);
+            nv_log("Method Execution: GDI-D Size Out %04x,%04x\n", nv3->pgraph.win95_gdi_text.size_out_d.x, nv3->pgraph.win95_gdi_text.size_out_d.y);
             break; 
         case NV3_W95TXT_D_CLIP_POSITION:
             nv3->pgraph.win95_gdi_text.point_d.x = (param & 0xFFFF);
@@ -144,14 +144,14 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv_log("Method Execution: GDI-E Color1 0x%08x\n", nv3->pgraph.win95_gdi_text.color_a);
             break;
         case NV3_W95TXT_E_CLIP_SIZE_IN:
-            nv3->pgraph.win95_gdi_text.size_in_e.w = (param & 0xFFFF);
-            nv3->pgraph.win95_gdi_text.size_in_e.h = ((param >> 16) & 0xFFFF);
-            nv_log("Method Execution: GDI-E Size In %04x,%04x\n", nv3->pgraph.win95_gdi_text.size_in_e.w,  nv3->pgraph.win95_gdi_text.size_in_e.h);
+            nv3->pgraph.win95_gdi_text.size_in_e.x = (param & 0xFFFF);
+            nv3->pgraph.win95_gdi_text.size_in_e.y = ((param >> 16) & 0xFFFF);
+            nv_log("Method Execution: GDI-E Size In %04x,%04x\n", nv3->pgraph.win95_gdi_text.size_in_e.x,  nv3->pgraph.win95_gdi_text.size_in_e.y);
             break;
         case NV3_W95TXT_E_CLIP_SIZE_OUT:
-            nv3->pgraph.win95_gdi_text.size_out_e.w = (param & 0xFFFF);
-            nv3->pgraph.win95_gdi_text.size_out_e.h = ((param >> 16) & 0xFFFF);
-            nv_log("Method Execution: GDI-E Size Out %04x,%04x\n", nv3->pgraph.win95_gdi_text.size_out_e.w,  nv3->pgraph.win95_gdi_text.size_out_e.h);
+            nv3->pgraph.win95_gdi_text.size_out_e.x = (param & 0xFFFF);
+            nv3->pgraph.win95_gdi_text.size_out_e.y = ((param >> 16) & 0xFFFF);
+            nv_log("Method Execution: GDI-E Size Out %04x,%04x\n", nv3->pgraph.win95_gdi_text.size_out_e.x,  nv3->pgraph.win95_gdi_text.size_out_e.y);
             break; 
         case NV3_W95TXT_E_CLIP_POSITION:
             nv3->pgraph.win95_gdi_text.point_e.x = (param & 0xFFFF);
@@ -173,11 +173,11 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
                 // If the size is submitted, render it.
                 if (method_id & 0x04)
                 {
-                    nv3->pgraph.win95_gdi_text.rect_a_size[index].w = (param >> 16) & 0xFFFF;
-                    nv3->pgraph.win95_gdi_text.rect_a_size[index].h = param & 0xFFFF;
+                    nv3->pgraph.win95_gdi_text.rect_a_size[index].x = (param >> 16) & 0xFFFF;
+                    nv3->pgraph.win95_gdi_text.rect_a_size[index].y = param & 0xFFFF;
                     
-                    nv_log("Method Execution: Rect GDI-A%d Size=%d,%d", index, nv3->pgraph.win95_gdi_text.rect_a_size[index].w, 
-                        nv3->pgraph.win95_gdi_text.rect_a_size[index].h);
+                    nv_log("Method Execution: Rect GDI-A%d Size=%d,%d", index, nv3->pgraph.win95_gdi_text.rect_a_size[index].x, 
+                        nv3->pgraph.win95_gdi_text.rect_a_size[index].y);
 
                     nv3_render_rect(nv3->pgraph.win95_gdi_text.rect_a_position[index], 
                         nv3->pgraph.win95_gdi_text.rect_a_size[index], nv3->pgraph.win95_gdi_text.color_a, grobj);
@@ -231,7 +231,7 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
 
                 /* Mammoth logger! */
                 nv_log("Method Execution: Rect GDI-C%d Data=%08x Size%04x,%04x Point%04x,%04x Color=%08x Clip Left=0x%04x Right=0x%04x Top=0x%04x Bottom=0x%04x",
-                index, param, nv3->pgraph.win95_gdi_text.size_c.w, nv3->pgraph.win95_gdi_text.size_c.h,
+                index, param, nv3->pgraph.win95_gdi_text.size_c.x, nv3->pgraph.win95_gdi_text.size_c.y,
                 nv3->pgraph.win95_gdi_text.point_c.x, nv3->pgraph.win95_gdi_text.point_c.y, 
                 nv3->pgraph.win95_gdi_text.color1_c, 
                 nv3->pgraph.win95_gdi_text.clip_c.left, nv3->pgraph.win95_gdi_text.clip_c.right, 
@@ -249,8 +249,8 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
 
                 /* Mammoth logger! */
                 nv_log("Method Execution: Rect GDI-D%d Data=%08x SizeIn%04x,%04x SizeOut%04x,%04x Point%04x,%04x Color=%08x Clip Left=0x%04x Right=0x%04x Top=0x%04x Bottom=0x%04x",
-                index, param, nv3->pgraph.win95_gdi_text.size_in_d.w, nv3->pgraph.win95_gdi_text.size_in_d.h,
-                nv3->pgraph.win95_gdi_text.size_out_d.w, nv3->pgraph.win95_gdi_text.size_out_d.h,
+                index, param, nv3->pgraph.win95_gdi_text.size_in_d.x, nv3->pgraph.win95_gdi_text.size_in_d.y,
+                nv3->pgraph.win95_gdi_text.size_out_d.x, nv3->pgraph.win95_gdi_text.size_out_d.y,
                 nv3->pgraph.win95_gdi_text.point_d.x, nv3->pgraph.win95_gdi_text.point_d.y, 
                 nv3->pgraph.win95_gdi_text.color1_d, 
                 nv3->pgraph.win95_gdi_text.clip_d.left, nv3->pgraph.win95_gdi_text.clip_d.right, 
@@ -268,8 +268,8 @@ void nv3_class_00c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
 
                 /* Mammoth logger! */
                 nv_log("Method Execution: Rect GDI-E%d Data=%08x SizeIn%04x,%04x SizeOut%04x,%04x Point%04x,%04x Color=%08x Clip Left=0x%04x Right=0x%04x Top=0x%04x Bottom=0x%04x",
-                index, param, nv3->pgraph.win95_gdi_text.size_in_e.w, nv3->pgraph.win95_gdi_text.size_in_e.h,
-                nv3->pgraph.win95_gdi_text.size_out_e.w, nv3->pgraph.win95_gdi_text.size_out_e.h,
+                index, param, nv3->pgraph.win95_gdi_text.size_in_e.x, nv3->pgraph.win95_gdi_text.size_in_e.y,
+                nv3->pgraph.win95_gdi_text.size_out_e.x, nv3->pgraph.win95_gdi_text.size_out_e.y,
                 nv3->pgraph.win95_gdi_text.point_e.x, nv3->pgraph.win95_gdi_text.point_e.y, 
                 nv3->pgraph.win95_gdi_text.color1_e, 
                 nv3->pgraph.win95_gdi_text.clip_e.left, nv3->pgraph.win95_gdi_text.clip_e.right, nv3->pgraph.win95_gdi_text.clip_e.top, nv3->pgraph.win95_gdi_text.clip_e.bottom);
