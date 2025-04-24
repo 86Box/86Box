@@ -558,7 +558,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
                     nv3->pfifo.cache1_settings.get_address = val;
                     break;
                 case NV3_PFIFO_RUNOUT_GET:
-                    
+                {
                     uint32_t size_get = ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
 
                     if (size_get == 0) //512b
@@ -566,7 +566,9 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
                     else 
                         nv3->pfifo.runout_get = val & (NV3_RAMIN_RAMRO_SIZE_1 - 0x07);
                     break;
+                }
                 case NV3_PFIFO_RUNOUT_PUT:
+                {
                     uint32_t size_put = ((nv3->pfifo.ramro_config >> NV3_PFIFO_CONFIG_RAMRO_SIZE) & 0x01);
 
                     if (size_put == 0) //512b
@@ -575,6 +577,7 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
                         nv3->pfifo.runout_put = val & (NV3_RAMIN_RAMRO_SIZE_1 - 0x07);
 
                     break;
+                }
                 /* Cache1 Context is handled below */
                 case NV3_PFIFO_CACHE0_CTX:
                     nv3->pfifo.cache0_settings.context[0] = val;
