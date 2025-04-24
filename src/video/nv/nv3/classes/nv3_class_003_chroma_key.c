@@ -38,12 +38,14 @@ void nv3_class_003_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
 
             break;
         case NV3_CHROMA_KEY:
+        {
             nv3_color_expanded_t expanded_color = nv3_render_expand_color(param, grobj);
             
             nv3->pgraph.chroma_key = nv3_render_to_chroma(expanded_color);
             
             nv_log("Method Execution: Chroma = 0x%08x", nv3->pgraph.chroma_key);
-            break; 
+            break;
+        }
         default:
             warning("%s: Invalid or unimplemented method 0x%04x\n", nv3_class_names[context.class_id & 0x1F], method_id);
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
