@@ -762,11 +762,13 @@ void nv3_svga_write(uint16_t addr, uint8_t val, void* priv)
                         nv3->nvbase.svga.hdisp += 0x100;
                     break;
                 case NV3_CRTC_REGISTER_I2C_GPIO:
+                {
                     uint8_t scl = !!(val & 0x20);
                     uint8_t sda = !!(val & 0x10);
                     // Set an I2C GPIO register
                     i2c_gpio_set(nv3->nvbase.i2c, scl, sda);
                     break;
+                }
 
             }
 
