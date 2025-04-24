@@ -88,7 +88,7 @@ QKeySequence
 KeyBinder::BindKey(QWidget* widget, QString CurValue)
 {
 	KeyBinder kb(widget);
-	kb.setWindowTitle("Bind Key");
+	kb.setWindowTitle(tr("Bind Key"));
     kb.setFixedSize(kb.minimumSizeHint());
 	kb.findChild<QKeySequenceEdit*>()->setKeySequence(QKeySequence::fromString(CurValue));
 	kb.setEnabled(true);
