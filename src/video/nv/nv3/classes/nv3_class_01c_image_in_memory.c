@@ -38,6 +38,7 @@ void nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
     {
         /* Color format of the image */
         case NV3_IMAGE_IN_MEMORY_COLOR_FORMAT:
+        {
             // convert to how the bpixel registers represent surface 
             uint32_t real_format = 1; 
 
@@ -65,6 +66,7 @@ void nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv_log("Method Execution: Image in Memory BUF%d COLOR_FORMAT=0x%04x\n", src_buffer_id, param);
 
             break;
+        }
         /* DOn't log invalid */
         case NV3_IMAGE_IN_MEMORY_IN_MEMORY_DMA_CTX_TYPE:
             nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
