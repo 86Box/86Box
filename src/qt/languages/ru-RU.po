@@ -1618,7 +1618,7 @@ msgid "CODEC"
 msgstr "Кодек"
 
 msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Поднимать прерывание кодека при настройке кодека (необходимо некоторым драйверам)."
+msgstr "Поднимать прерывание кодека при настройке кодека (необходимо некоторым драйверам)"
 
 msgid "SB Address"
 msgstr "Адрес SB"
@@ -1885,7 +1885,7 @@ msgid "Color (generic)"
 msgstr "Цветной (стандартный)"
 
 msgid "Green Monochrome"
-msgstr "Зеленый монохромный"
+msgstr "Зелёный монохромный"
 
 msgid "Amber Monochrome"
 msgstr "Янтарный монохромный"
