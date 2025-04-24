@@ -443,6 +443,7 @@ void nv3_render_write_pixel(nv3_coord_16_t position, uint32_t color, nv3_grobj_t
             break;
         case 15:
         case 16:
+        {
             uint16_t* vram_16 = (uint16_t*)(nv3->nvbase.svga.vram);
             pixel_addr_vram >>= 1; 
   
@@ -471,7 +472,9 @@ void nv3_render_write_pixel(nv3_coord_16_t position, uint32_t color, nv3_grobj_t
             nv3->nvbase.svga.changedvram[pixel_addr_vram >> 11] = changeframecount;
 
             break;
+        }
         case 32:
+        {
             uint32_t* vram_32 = (uint32_t*)(nv3->nvbase.svga.vram);
             pixel_addr_vram >>= 2; 
 
@@ -482,6 +485,7 @@ void nv3_render_write_pixel(nv3_coord_16_t position, uint32_t color, nv3_grobj_t
             nv3->nvbase.svga.changedvram[pixel_addr_vram >> 10] = changeframecount;
 
             break;
+        }
     }
     
     /* Go write the pixel */
