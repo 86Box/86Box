@@ -631,7 +631,7 @@ msgid " - PAUSED"
 msgstr " - PAUSADO"
 
 msgid "Press %s to return to windowed mode."
-msgstr "Use %s para retornar ao modo janela"
+msgstr "Use %s para retornar ao modo janela."
 
 msgid "Speed"
 msgstr "Velocidade"
@@ -847,7 +847,7 @@ msgid "86Box v"
 msgstr "86Box versão"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, e outros.\n\nCom contribuições anteriores de Sarah Walker, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU, versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
+msgstr "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, e outros.\n\nCom contribuições anteriores de Sarah Walker, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva, Nelson K. Hennemann Filho\n\nLançado sob a Licença Pública Geral GNU, versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
 
 msgid "Hardware not available"
 msgstr "Hardware não disponível"
@@ -967,13 +967,13 @@ msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "Imagens HDI ou HDX com um tamanho de setor que não seja 512 não são suportadas."
 
 msgid "Disk image file already exists"
-msgstr "Esta imagem existe"
+msgstr "A imagem de disco já existe"
 
 msgid "Please specify a valid file name."
 msgstr "Digite um nome de arquivo válido."
 
 msgid "Disk image created"
-msgstr "A imagem foi criada com sucesso"
+msgstr "A imagem de disco foi criada"
 
 msgid "Make sure the file exists and is readable."
 msgstr "Certifique-se de que o arquivo existe e é legível."
@@ -982,7 +982,7 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "Certifique-se de que o arquivo está sendo salvo em um diretório gravável."
 
 msgid "Disk image too large"
-msgstr "A imagem do disco é muito grande"
+msgstr "A imagem de disco é muito grande"
 
 msgid "Remember to partition and format the newly-created drive."
 msgstr "Lembre-se de particionar e formatar a unidade recém-criada."
@@ -1312,16 +1312,16 @@ msgid "This machine might have been moved or copied."
 msgstr "Essa máquina pode ter sido movida ou copiada."
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "Para garantir a funcionalidade adequada da rede, o 86Box precisa saber se essa máquina foi movida ou copiada.\n\nSelecione \"A copiei\" se não tiver certeza."
+msgstr "Para garantir a funcionalidade adequada da rede, o 86Box precisa saber se essa máquina foi movida ou copiada.\n\nSelecione \"Copiei\" se não tiver certeza."
 
 msgid "I Moved It"
-msgstr "O movi"
+msgstr "Movi"
 
 msgid "I Copied It"
-msgstr "A copiei"
+msgstr "Copiei"
 
 msgid "86Box Monitor #"
-msgstr "Monitor 86Box "
+msgstr "Monitor 86Box #"
 
 msgid "No MCA devices."
 msgstr "Nenhum dispositivo MCA."
@@ -1483,7 +1483,7 @@ msgid "MIDI Clockout"
 msgstr "Saída do relógio MIDI"
 
 msgid "SoundFont"
-msgstr "Fonte de som"
+msgstr "SoundFont"
 
 msgid "Output Gain"
 msgstr "Ganho de saída"
@@ -1789,7 +1789,7 @@ msgid "4th Order"
 msgstr "De 4ª ordem"
 
 msgid "7th Order"
-msgstr "De 7º order"
+msgstr "De 7ª ordem"
 
 msgid "Non-timed (original)"
 msgstr "Sem cronômetro (original)"
@@ -1807,10 +1807,10 @@ msgid "Wheel"
 msgstr "Roda"
 
 msgid "Five + Wheel"
-msgstr "Cinco + roda"
+msgstr "Cinco + Roda"
 
 msgid "Five + 2 Wheels"
-msgstr ""
+msgstr "Cinco + 2 Rodas"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 Serial / SMT3(R)V"
@@ -2035,7 +2035,7 @@ msgid "Baud Rate of Passthrough"
 msgstr "Taxa de transmissão de passagem"
 
 msgid "Named Pipe (Server)"
-msgstr "Tubo nomeado (servidor)"
+msgstr "Pipe nomeado (servidor)"
 
 msgid "Host Serial Passthrough"
 msgstr "Passagem da porta serial do host"
@@ -2053,28 +2053,28 @@ msgid "High performance impact"
 msgstr "Alto impacto no desempenho"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] Disco RAM (velocidade máxima)"
+msgstr "[Genérico] Disco RAM (velocidade máxima)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr ""
+msgstr "[Genérico] 1989 (3500 RPM)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr ""
+msgstr "[Genérico] 1992 (3600 RPM)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr ""
+msgstr "[Genérico] 1994 (4500 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr ""
+msgstr "[Genérico] 1996 (5400 RPM)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr ""
+msgstr "[Genérico] 1997 (5400 RPM)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr ""
+msgstr "[Genérico] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr ""
+msgstr "[Genérico] 2000 (7200 RPM)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Clone IBM 8514/A (ISA)"
@@ -2095,64 +2095,106 @@ msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for t
 msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial de pontos ESC/P genérica."
 
 msgid "Inhibit multimedia keys"
-msgstr ""
+msgstr "Inibir teclas multimídia"
 
 msgid "Ask for confirmation before saving settings"
-msgstr ""
+msgstr "Perguntar antes de salvar configurações"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr ""
+msgstr "Perguntar antes de reinicialização completa"
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
+msgstr "Perguntar antes de sair"
 
 msgid "Display hotkey message when entering full-screen mode"
-msgstr ""
+msgstr "Mostrar mensagem de atalho quando entrar em tela cheia"
 
 msgid "Options"
-msgstr ""
+msgstr "Opções"
 
 msgid "Model"
-msgstr ""
+msgstr "Modelo"
 
 msgid "Model:"
-msgstr ""
+msgstr "Modelo:"
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr ""
+msgstr "Falha ao inicializar o renderizador Vulkan."
 
 msgid "GLSL Error"
-msgstr ""
+msgstr "Erro GLSL"
 
 msgid "Could not load shader: %1"
-msgstr ""
+msgstr "Impossível carregar o shader: %1"
 
 msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr ""
+msgstr "OpenGL versão 3.0 ou superior é exigido. Versão atual GLSL é %1.%2"
 
 msgid "Could not load texture: %1"
-msgstr ""
+msgstr "Impossível carregar a textura: %1"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr ""
+msgstr "Impossível compilar o shader:\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr ""
+msgstr "Programa não linkado:\n\n%1"
 
 msgid "Shader Manager"
-msgstr ""
+msgstr "Gerenciador de Shader"
 
 msgid "Shader Configuration"
-msgstr ""
+msgstr "Configuração de Shader"
 
 msgid "Add"
-msgstr ""
+msgstr "Adicionar"
 
 msgid "Move up"
-msgstr ""
+msgstr "Mover para cima"
 
 msgid "Move down"
-msgstr ""
+msgstr "Mover para baixo"
 
 msgid "Could not load file %1"
-msgstr ""
+msgstr "Impossível carregar arquivo %1"
+
+msgid "Key Bindings:"
+msgstr "Atalhos:"
+
+msgid "Action"
+msgstr "Ação"
+
+msgid "Keybind"
+msgstr "Atalho"
+
+msgid "Clear binding"
+msgstr "Limpar atalho"
+
+msgid "Bind"
+msgstr "Vincular"
+
+msgid "Bind Key"
+msgstr "Vincular tecla"
+
+msgid "Enter key combo:"
+msgstr "Pressione combinação de teclas:"
+
+msgid "Send Control+Alt+Del"
+msgstr "Enviar Control+Alt+Del"
+
+msgid "Send Control+Alt+Escape"
+msgstr "Enviar Control+Alt+Escape"
+
+msgid "Toggle fullscreen"
+msgstr "Alternar tela cheia"
+
+msgid "Screenshot"
+msgstr "Captura de tela"
+
+msgid "Release mouse pointer"
+msgstr "Liberar ponteiro do mouse"
+
+msgid "Toggle pause"
+msgstr "Alternar pausa"
+
+msgid "Toggle mute"
+msgstr "Alternar mudo"
