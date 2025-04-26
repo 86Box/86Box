@@ -227,6 +227,20 @@ reg_is_native_size(ir_reg_t ir_reg)
 }
 
 void
+codegen_check_regs(void)
+{
+    int i = 0;
+    for (i = 0; i < IREG_COUNT; i++) {
+        if (ireg_data[i].is_volatile == REG_VOLATILE)
+            continue;
+
+        if (ireg_data[i].p && ((uintptr_t)ireg_data[i].p - (uintptr_t)&cpu_state) >= sizeof(cpu_state)) {
+            fatal("Register number %d outside cpu_state!\n", i);
+        }
+    }
+}
+
+void
 codegen_reg_reset(void)
 {
     int c;
