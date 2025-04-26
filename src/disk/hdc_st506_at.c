@@ -557,6 +557,7 @@ do_callback(void *priv)
         mfm->reset = 0;
 
         ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+        ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
 
         return;
     }
@@ -627,9 +628,9 @@ write_error:
                 mfm->status |= STAT_DRQ;
                 mfm->pos = 0;
                 next_sector(mfm);
-                ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
+                ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 1);
             } else
-                ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+                ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
             break;
 
         case CMD_VERIFY:
@@ -657,7 +658,7 @@ write_error:
 
             mfm->status = STAT_READY | STAT_DSC;
             irq_raise(mfm);
-            ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
+            ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 1);
             break;
 
         case CMD_DIAGNOSE:
@@ -772,6 +773,7 @@ mfm_init(UNUSED(const device_t *info))
     timer_add(&mfm->callback_timer, do_callback, mfm, 0);
 
     ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
 
     return mfm;
 }
@@ -790,6 +792,7 @@ mfm_close(void *priv)
     free(mfm);
 
     ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
 }
 
 const device_t st506_at_wd1003_device = {

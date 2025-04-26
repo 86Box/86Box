@@ -1618,7 +1618,7 @@ msgid "CODEC"
 msgstr "Кодек"
 
 msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Поднимать прерывание кодека при настройке кодека (необходимо некоторым драйверам)."
+msgstr "Поднимать прерывание кодека при настройке кодека (необходимо некоторым драйверам)"
 
 msgid "SB Address"
 msgstr "Адрес SB"
@@ -1885,7 +1885,7 @@ msgid "Color (generic)"
 msgstr "Цветной (стандартный)"
 
 msgid "Green Monochrome"
-msgstr "Зеленый монохромный"
+msgstr "Зелёный монохромный"
 
 msgid "Amber Monochrome"
 msgstr "Янтарный монохромный"
@@ -2059,22 +2059,22 @@ msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Стандартный] 1989 (3500 RPM)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr "[Стандартный] 1989 (3500 RPM)"
+msgstr "[Стандартный] 1992 (3600 RPM)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr "[Стандартный] 1989 (3500 RPM)"
+msgstr "[Стандартный] 1994 (4500 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr "[Стандартный] 1989 (3500 RPM)"
+msgstr "[Стандартный] 1996 (5400 RPM)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr "[Стандартный] 1989 (3500 RPM)"
+msgstr "[Стандартный] 1997 (5400 RPM)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr "[Стандартный] 1989 (3500 RPM)"
+msgstr "[Стандартный] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr "[Стандартный] 1989 (3500 RPM)"
+msgstr "[Стандартный] 2000 (7200 RPM)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Клон IBM 8514/A (ISA)"
@@ -2162,3 +2162,45 @@ msgstr "Вниз"
 
 msgid "Could not load file %1"
 msgstr "Не удалось загрузить файл %1"
+
+msgid "Key Bindings:"
+msgstr "Привязки клавиш:"
+
+msgid "Action"
+msgstr "Действие"
+
+msgid "Keybind"
+msgstr "Привязка клавиш"
+
+msgid "Clear binding"
+msgstr "Очистить привязку"
+
+msgid "Bind"
+msgstr "Привязка"
+
+msgid "Bind Key"
+msgstr "Привязать клавишу"
+
+msgid "Enter key combo:"
+msgstr "Введите комбинацию клавиш:"
+
+msgid "Send Control+Alt+Del"
+msgstr "Отправить Control+Alt+Del"
+
+msgid "Send Control+Alt+Escape"
+msgstr "Отправить Control+Alt+Escape"
+
+msgid "Toggle fullscreen"
+msgstr "Переключить на полноэкранный режим"
+
+msgid "Screenshot"
+msgstr "Скриншот"
+
+msgid "Release mouse pointer"
+msgstr "Отпустить указатель мыши"
+
+msgid "Toggle pause"
+msgstr "Переключить паузу"
+
+msgid "Toggle mute"
+msgstr "Переключить беззвучный режим"

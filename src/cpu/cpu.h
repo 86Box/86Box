@@ -784,6 +784,8 @@ typedef struct {
     uint32_t smhr;
 } cyrix_t;
 
+extern uint32_t x87_op;
+
 extern uint32_t addr64;
 extern uint32_t addr64_2;
 extern uint32_t addr64a[8];

@@ -432,7 +432,8 @@ network_rx_queue(void *priv)
     bool activity = rx_bytes || tx_bytes;
     bool led_on   = card->led_timer & 0x80000000;
     if ((activity && !led_on) || (card->led_timer & 0x7fffffff) >= 150000) {
-        ui_sb_update_icon(SB_NETWORK | card->card_num, activity);
+        ui_sb_update_icon(SB_NETWORK | card->card_num, !!(rx_bytes));
+        ui_sb_update_icon_write(SB_NETWORK | card->card_num, !!(tx_bytes));
         card->led_timer = 0 | (activity << 31);
     }
 
@@ -577,6 +578,7 @@ void
 network_reset(void)
 {
     ui_sb_update_icon(SB_NETWORK, 0);
+    ui_sb_update_icon_write(SB_NETWORK, 0);
 
 #ifdef ENABLE_NETWORK_LOG
     network_dump_mutex = thread_create_mutex();

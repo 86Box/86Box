@@ -472,6 +472,12 @@ ui_sb_update_icon(UNUSED(int tag), UNUSED(int active))
 }
 
 void
+ui_sb_update_icon_write(UNUSED(int tag), UNUSED(int active))
+{
+    /* No-op. */
+}
+
+void
 plat_delay_ms(uint32_t count)
 {
     SDL_Delay(count);
