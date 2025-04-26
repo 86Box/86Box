@@ -1789,7 +1789,7 @@ msgid "4th Order"
 msgstr "De 4ª ordem"
 
 msgid "7th Order"
-msgstr "De 7ª order"
+msgstr "De 7ª ordem"
 
 msgid "Non-timed (original)"
 msgstr "Sem cronômetro (original)"
