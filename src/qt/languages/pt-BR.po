@@ -2156,3 +2156,45 @@ msgstr "Mover para baixo"
 
 msgid "Could not load file %1"
 msgstr "Impossível carregar arquivo %1"
+
+msgid "Key Bindings:"
+msgstr "Atalhos:"
+
+msgid "Action"
+msgstr "Ação"
+
+msgid "Keybind"
+msgstr "Atalho"
+
+msgid "Clear binding"
+msgstr "Limpar atalho"
+
+msgid "Bind"
+msgstr "Vincular"
+
+msgid "Bind Key"
+msgstr "Vincular tecla"
+
+msgid "Enter key combo:"
+msgstr "Pressione combinação de teclas:"
+
+msgid "Send Control+Alt+Del"
+msgstr "Enviar Control+Alt+Del"
+
+msgid "Send Control+Alt+Escape"
+msgstr "Enviar Control+Alt+Escape"
+
+msgid "Toggle fullscreen"
+msgstr "Alternar tela cheia"
+
+msgid "Screenshot"
+msgstr "Captura de tela"
+
+msgid "Release mouse pointer"
+msgstr "Liberar ponteiro do mouse"
+
+msgid "Toggle pause"
+msgstr "Alternar pausa"
+
+msgid "Toggle mute"
+msgstr "Alternar mudo"
