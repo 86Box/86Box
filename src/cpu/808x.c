@@ -38,6 +38,7 @@
 #include <86box/ppi.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 /* Is the CPU 8088 or 8086. */
