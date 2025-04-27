@@ -260,7 +260,7 @@ uint32_t nv3_render_get_vram_address(nv3_coord_16_t position, nv3_grobj_t grobj)
 
 
 /* Combine the current buffer with the pitch to get the address in the video ram for a specific position relative to a specific framebuffer */
-uint32_t nv3_render_get_vram_address_for_buffer(nv3_coord_16_t position, nv3_grobj_t grobj, uint32_t buffer)
+uint32_t nv3_render_get_vram_address_for_buffer(nv3_coord_16_t position, uint32_t buffer)
 {
     uint32_t vram_x = position.x;
     uint32_t vram_y = position.y;
@@ -663,7 +663,7 @@ void nv3_render_8bpp(nv3_coord_16_t pos, nv3_coord_16_t size, nv3_grobj_t grobj,
     {
         /* re-set the vram address because we are basically "jumping" halfway across a line here */
         if (use_destination_buffer)
-            vram_base = nv3_render_get_vram_address_for_buffer(pos, grobj, 0); // hardcode to zero for now
+            vram_base = nv3_render_get_vram_address_for_buffer(pos, 0); // hardcode to zero for now
         else
             vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
 
@@ -704,7 +704,7 @@ void nv3_render_15bpp(nv3_coord_16_t pos, nv3_coord_16_t size, nv3_grobj_t grobj
     {
         /* re-set the vram address because we are basically "jumping" halfway across a line here */
         if (use_destination_buffer)
-            vram_base = nv3_render_get_vram_address_for_buffer(pos, grobj, 0); // hardcode to zero for now
+            vram_base = nv3_render_get_vram_address_for_buffer(pos, 0); // hardcode to zero for now
         else
             vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
 
@@ -745,7 +745,7 @@ void nv3_render_16bpp(nv3_coord_16_t pos, nv3_coord_16_t size, nv3_grobj_t grobj
     {
         /* re-set the vram address because we are basically "jumping" halfway across a line here */
         if (use_destination_buffer)
-            vram_base = nv3_render_get_vram_address_for_buffer(pos, grobj, 0); // hardcode to zero for now
+            vram_base = nv3_render_get_vram_address_for_buffer(pos, 0); // hardcode to zero for now
         else
             vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
 
@@ -786,7 +786,7 @@ void nv3_render_32bpp(nv3_coord_16_t pos, nv3_coord_16_t size, nv3_grobj_t grobj
     {
         /* re-set the vram address because we are basically "jumping" halfway across a line here */
         if (use_destination_buffer)
-            vram_base = nv3_render_get_vram_address_for_buffer(pos, grobj, 0); // hardcode to zero for now
+            vram_base = nv3_render_get_vram_address_for_buffer(pos, 0); // hardcode to zero for now
         else
             vram_base = nv3_render_get_vram_address(pos, grobj) & nv3->nvbase.svga.vram_display_mask;
 

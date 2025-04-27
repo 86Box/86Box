@@ -161,7 +161,7 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     {
         buf_position = (nv3->pgraph.blit.size.x * y);
         /* shouldn't matter in non-wtf mode */
-        vram_position = nv3_render_get_vram_address_for_buffer(old_position, grobj, src_buffer);
+        vram_position = nv3_render_get_vram_address_for_buffer(old_position, src_buffer);
 
         memcpy(&nv3_s2sb_line_buffer[buf_position], &nv3->nvbase.svga.vram[vram_position], size_x);
         old_position.y++;
@@ -172,7 +172,7 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     for (int32_t y = 0; y < nv3->pgraph.blit.size.y; y++)
     {        
         buf_position = (nv3->pgraph.blit.size.x * y);
-        vram_position = nv3_render_get_vram_address_for_buffer(new_position, grobj, dst_buffer);
+        vram_position = nv3_render_get_vram_address_for_buffer(new_position, dst_buffer);
 
         memcpy(&nv3->nvbase.svga.vram[vram_position], &nv3_s2sb_line_buffer[buf_position], size_x);
         new_position.y++;

@@ -697,6 +697,11 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_PVIDEO_END                                  0x6802FF
 #define NV3_PRAMDAC_START                               0x680300
 
+#define NV3_PRAMDAC_CURSOR_START                        0x680300
+
+#define NV3_PRAMDAC_CURSOR_SIZE_X                       32
+#define NV3_PRAMDAC_CURSOR_SIZE_Y                       32
+
 #define NV3_PRAMDAC_CLOCK_MEMORY                        0x680504
 #define NV3_PRAMDAC_CLOCK_MEMORY_VDIV                   7:0
 #define NV3_PRAMDAC_CLOCK_MEMORY_NDIV                   15:8
@@ -759,30 +764,30 @@ extern const device_config_t nv3t_config[];                             // Confi
 
 // control structures for dma'd in graphics objects from pfifo
 // these all have configurable sizes, define them here
-#define NV3_RAMIN_START                                0x1C00000
+#define NV3_RAMIN_START                                 0x1C00000
 
-#define NV3_RAMIN_RAMHT_START                          0x1C00000   // Hashtable for storing submitted objects
-#define NV3_RAMIN_RAMHT_END                            0x1C00FFF
-#define NV3_RAMIN_RAMHT_SIZE_0                         0xFFF
-#define NV3_RAMIN_RAMHT_SIZE_1                         0x1FFF
-#define NV3_RAMIN_RAMHT_SIZE_2                         0x3FFF
-#define NV3_RAMIN_RAMHT_SIZE_3                         0x7FFF
+#define NV3_RAMIN_RAMHT_START                           0x1C00000   // Hashtable for storing submitted objects
+#define NV3_RAMIN_RAMHT_END                             0x1C00FFF
+#define NV3_RAMIN_RAMHT_SIZE_0                          0xFFF
+#define NV3_RAMIN_RAMHT_SIZE_1                          0x1FFF
+#define NV3_RAMIN_RAMHT_SIZE_2                          0x3FFF
+#define NV3_RAMIN_RAMHT_SIZE_3                          0x7FFF
 
 /* OBSOLETE AREA for AUDIO probably. DO NOT USE! */
-#define NV3_RAMIN_RAMAU_START                          0x1C01000   
-#define NV3_RAMIN_RAMAU_END                            0x1C01BFF
-#define NV3_RAMIN_RAMFC_START                          0x1C01C00   // context for unused PFIFO DMA channels
-#define NV3_RAMIN_RAMFC_END                            0x1C01DFF
-#define NV3_RAMIN_RAMFC_SIZE_0                         0x1FF
-#define NV3_RAMIN_RAMFC_SIZE_1                         0xFFF
-#define NV3_RAMIN_RAMRO_START                          0x1C01E00   // Runout area for invalid submissions
-#define NV3_RAMIN_RAMRO_SIZE_0                         0x1FF
-#define NV3_RAMIN_RAMRO_SIZE_1                         0x1FFF
-#define NV3_RAMIN_RAMRO_END                            0x1C01FFF
-#define NV3_RAMIN_RAMRM_START                          0x1C02000
-#define NV3_RAMIN_RAMRM_END                            0x1C02FFF
+#define NV3_RAMIN_RAMAU_START                           0x1C01000   
+#define NV3_RAMIN_RAMAU_END                             0x1C01BFF
+#define NV3_RAMIN_RAMFC_START                           0x1C01C00   // context for unused PFIFO DMA channels
+#define NV3_RAMIN_RAMFC_END                             0x1C01DFF
+#define NV3_RAMIN_RAMFC_SIZE_0                          0x1FF
+#define NV3_RAMIN_RAMFC_SIZE_1                          0xFFF
+#define NV3_RAMIN_RAMRO_START                           0x1C01E00   // Runout area for invalid submissions
+#define NV3_RAMIN_RAMRO_SIZE_0                          0x1FF
+#define NV3_RAMIN_RAMRO_SIZE_1                          0x1FFF
+#define NV3_RAMIN_RAMRO_END                             0x1C01FFF
+#define NV3_RAMIN_RAMRM_START                           0x1C02000
+#define NV3_RAMIN_RAMRM_END                             0x1C02FFF
 
-#define NV3_RAMIN_END                                  0x1FFFFFF
+#define NV3_RAMIN_END                                   0x1FFFFFF
 
 // not done
 
@@ -814,6 +819,7 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_CRTC_REGISTER_PRESETROWSCAN                 0x08
 #define NV3_CRTC_REGISTER_MAXSCAN                       0x09
 #define NV3_CRTC_REGISTER_CURSOR_START                  0x0A
+#define NV3_CRTC_REGISTER_CURSOR_START_DISABLED         5
 #define NV3_CRTC_REGISTER_CURSOR_END                    0x0B
 #define NV3_CRTC_REGISTER_STARTADDR_HIGH                0x0C
 #define NV3_CRTC_REGISTER_STARTADDR_LOW                 0x0D
@@ -845,6 +851,9 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_CRTC_REGISTER_PIXELMODE                     0x28
 
 #define NV3_CRTC_REGISTER_HEB                           0x2D        // HRS most significant bit
+
+#define NV3_CRTC_REGISTER_CURSOR_ADDR0                  0x30        // Cursor high 
+#define NV3_CRTC_REGISTER_CURSOR_ADDR1                  0x31        // Cursor low (1:0 = enable)
 
 #define NV3_CRTC_REGISTER_PIXELMODE_VGA                 0x00        // vga textmode
 #define NV3_CRTC_REGISTER_PIXELMODE_8BPP                0x01
@@ -1084,7 +1093,10 @@ typedef struct nv3_pramdac_s
     uint8_t user_pixel_mask;                        // pixel mask for DAC lookup
     uint32_t user_read_mode_address;                // user read mode address
     uint32_t user_write_mode_address;               // user write mode address
-    uint8_t palette[NV3_USER_DAC_PALETTE_SIZE];     // Palette Info/CLUT - 256 entriesxr,g,b = 768 bytes
+    uint8_t palette[NV3_USER_DAC_PALETTE_SIZE];     // Palette Info/CLUT - 256 entries, 1 byte for r,g,b = 768 bytes
+
+    uint32_t cursor_address;    // cursor address start
+    nv3_coord_16_t cursor_start; 
 } nv3_pramdac_t;
 
 /* Holds DMA channel context information */
@@ -1473,6 +1485,7 @@ extern nv3_t* nv3;
 void*       nv3_init(const device_t *info);
 void        nv3_close(void* priv);
 void        nv3_speed_changed(void *priv);
+void        nv3_draw_cursor(svga_t* svga, int32_t drawline);
 void        nv3_recalc_timings(svga_t* svga);
 void        nv3_force_redraw(void* priv);
 

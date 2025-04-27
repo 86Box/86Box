@@ -151,7 +151,11 @@ add_library(ui STATIC
     qt_newfloppydialog.ui
     qt_harddiskdialog.cpp
     qt_harddiskdialog.hpp
-    qt_harddiskdialog.ui
+    qt_harddiskdialog.ui 
+    
+    qt_gpudebug_vram.cpp 
+    qt_gpudebug_vram.hpp 
+    qt_gpudebug_vram.ui 
 
     qt_harddrive_common.cpp
     qt_harddrive_common.hpp

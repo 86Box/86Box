@@ -306,11 +306,11 @@ typedef struct nv3_clip_16_s
 } nv3_clip_16_t; 
 
 /* In case your positions weren't HIGH PRECISION enough */
-typedef struct nv3_position_32_s
+typedef struct nv3_coord_32_s
 {
     uint32_t x;
     uint32_t y;
-} nv3_position_32_t;
+} nv3_coord_32_t;
 
 // COLOUR FORMATS
 
@@ -459,7 +459,7 @@ typedef struct nv3_object_class_008
     uint32_t set_notify;                            // Set notifier
     nv3_color_expanded_t color;                                 // argb?
     nv3_coord_16_t point[16];                    // Boring points 
-    nv3_position_32_t point32[16];                  // Allows you to have points with full 32-bit precision 
+    nv3_coord_32_t point32[16];                  // Allows you to have points with full 32-bit precision 
     nv3_object_class_008_cpoint_t cpoint[16];       // Allows you to have c o l o r f u l points! 
 } nv3_point_t; 
 
@@ -549,7 +549,7 @@ typedef struct nv3_object_class_00B
     uint32_t x2; 
 
     nv3_coord_16_t mesh[32];                     // Some kind of mesh format. I guess a list of vertex positions?
-    nv3_position_32_t mesh32[16];               
+    nv3_coord_32_t mesh32[16];               
     nv3_color_and_coord_16_t ctriangle[3];       // Triangle with colour
     nv3_color_and_coord_16_t ctrimesh[16];       // Some kind of mesh format. I guess a list of vertex positions? with colours
 } nv3_triangle_t;

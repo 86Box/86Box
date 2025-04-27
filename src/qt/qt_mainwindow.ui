@@ -222,11 +222,19 @@
     <addaction name="actionAbout_86Box"/>
     <addaction name="actionAbout_Qt"/>
    </widget>
+   <widget class="QMenu" name="menuDebug">
+    <property name="title">
+      <string>&amp;Debugging Tools</string>
+    </property>
+    <addaction name="actionDebug_GPUDebug_VRAM"/>
+    <addaction name="actionDebug_GPUDebug_VisualNv"/>
+   </widget>
    <addaction name="menuAction"/>
    <addaction name="menuView"/>
    <addaction name="menuMedia"/>
    <addaction name="menuTools"/>
    <addaction name="menuAbout"/>
+   <addaction name="menuDebug"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -898,6 +906,16 @@
    <property name="text">
     <string>Pen</string>
    </property>
+  </action>
+  <action name="actionDebug_GPUDebug_VRAM">
+    <property name="text">
+      <string>GPU Debug - VRAM Viewer</string>
+    </property>
+  </action>
+  <action name="actionDebug_GPUDebug_VisualNv">
+    <property name="text">
+      <string>GPU Debug - NV3 Visual Debugger</string>
+    </property>
   </action>
  </widget>
  <customwidgets>
