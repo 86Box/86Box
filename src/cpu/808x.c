@@ -3438,10 +3438,13 @@ execx86(int cycs)
                     set_pzs(8);
                     break;
                 case 0xD6: /*SALC*/
-                    wait(1, 0);
-                    AL = (cpu_state.flags & C_FLAG) ? 0xff : 0x00;
-                    wait(1, 0);
-                    break;
+                    if (!is_nec) {
+                        wait(1, 0);
+                        AL = (cpu_state.flags & C_FLAG) ? 0xff : 0x00;
+                        wait(1, 0);
+                        break;
+                    }
+                    fallthrough;
                 case 0xD7: /*XLATB*/
                     cpu_state.eaaddr = (BX + AL) & 0xffff;
                     access(4, 8);
