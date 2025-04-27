@@ -344,7 +344,7 @@ bochs_vbe_recalctimings(svga_t* svga)
             svga->rowoffset = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8));
             svga->ma_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
                              (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));
-            svga->fullchange = 3;     
+            svga->fullchange = 3;
         }
 
         if (svga->bpp == 4)
@@ -708,7 +708,7 @@ bochs_vbe_disable_handlers(bochs_vbe_t *dev)
     reset_state->bios_rom.mapping = dev->bios_rom.mapping;
 
     reset_state->svga.timer       = dev->svga.timer;
-    reset_state->svga.timer8514   = dev->svga.timer8514;
+    reset_state->svga.timer_8514  = dev->svga.timer_8514;
 }
 
 static void

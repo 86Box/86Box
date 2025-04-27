@@ -580,14 +580,14 @@ st506_callback(void *priv)
                     (void) get_chs(dev, drive);
                     st506_xt_log("ST506: FORMAT_DRIVE(%i) interleave=%i\n",
                                  dev->drive_sel, dev->command[4]);
-                    ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
+                    ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 1);
                     timer_advance_u64(&dev->timer, ST506_TIME);
                     dev->state = STATE_SEND_DATA;
                     break;
 
                 case STATE_SEND_DATA: /* wrong, but works */
                     if (!get_sector(dev, drive, &addr)) {
-                        ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+                        ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
                         st506_error(dev, dev->error);
                         st506_complete(dev);
                         return;
@@ -604,7 +604,7 @@ st506_callback(void *priv)
                     break;
 
                 case STATE_SENT_DATA:
-                    ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+                    ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
                     st506_complete(dev);
                     break;
 
@@ -663,14 +663,14 @@ st506_callback(void *priv)
                     st506_xt_log("ST506: FORMAT_%sTRACK(%i, %i/%i)\n",
                                  (dev->command[0] == CMD_FORMAT_BAD_TRACK) ? "BAD_" : "",
                                  dev->drive_sel, dev->cylinder, dev->head);
-                    ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
+                    ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 1);
                     timer_advance_u64(&dev->timer, ST506_TIME);
                     dev->state = STATE_SEND_DATA;
                     break;
 
                 case STATE_SEND_DATA: /* wrong, but works */
                     if (!get_sector(dev, drive, &addr)) {
-                        ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+                        ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
                         st506_error(dev, dev->error);
                         st506_complete(dev);
                         return;
@@ -686,7 +686,7 @@ st506_callback(void *priv)
                     break;
 
                 case STATE_SENT_DATA:
-                    ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+                    ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
                     st506_complete(dev);
                     break;
 
@@ -828,7 +828,7 @@ read_error_sent:
                         return;
                     }
 
-                    ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
+                    ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 1);
 
                     /* Set up the data transfer. */
                     dev->buff_pos = 0;
@@ -865,7 +865,7 @@ read_error_sent:
                 case STATE_RECEIVED_DATA:
                     if (!get_sector(dev, drive, &addr)) {
 write_error:
-                        ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+                        ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
                         st506_error(dev, dev->error);
                         st506_complete(dev);
                         return;
@@ -879,7 +879,7 @@ write_error:
                     }
 
                     if (--dev->count == 0) {
-                        ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+                        ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
                         st506_complete(dev);
                         break;
                     }

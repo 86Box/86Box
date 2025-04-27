@@ -709,6 +709,7 @@ zip_cmd_error(zip_t *dev)
     dev->callback      = 50.0 * ZIP_TIME;
     zip_set_callback(dev);
     ui_sb_update_icon(SB_ZIP | dev->id, 0);
+    ui_sb_update_icon_write(SB_ZIP | dev->id, 0);
     zip_log(dev->log, "[%02X] ERROR: %02X/%02X/%02X\n", dev->current_cdb[0], zip_sense_key,
             zip_asc, zip_ascq);
 }
@@ -725,6 +726,7 @@ zip_unit_attention(zip_t *dev)
     dev->callback      = 50.0 * ZIP_TIME;
     zip_set_callback(dev);
     ui_sb_update_icon(SB_ZIP | dev->id, 0);
+    ui_sb_update_icon_write(SB_ZIP | dev->id, 0);
     zip_log(dev->log, "UNIT ATTENTION\n", dev->id);
 }
 
@@ -1485,7 +1487,7 @@ zip_command(scsi_common_t *sc, const uint8_t *cdb)
                 zip_data_command_finish(dev, dev->packet_len, 512,
                                         dev->packet_len, 1);
 
-                ui_sb_update_icon(SB_ZIP | dev->id,
+                ui_sb_update_icon_write(SB_ZIP | dev->id,
                                   dev->packet_status != PHASE_COMPLETE);
             } else {
                 zip_set_phase(dev, SCSI_PHASE_STATUS);
@@ -1526,7 +1528,7 @@ zip_command(scsi_common_t *sc, const uint8_t *cdb)
                         zip_data_command_finish(dev, 512, 512,
                                                 alloc_length, 1);
 
-                        ui_sb_update_icon(SB_ZIP | dev->id,
+                        ui_sb_update_icon_write(SB_ZIP | dev->id,
                                           dev->packet_status != PHASE_COMPLETE);
                     } else {
                         zip_set_phase(dev, SCSI_PHASE_STATUS);
