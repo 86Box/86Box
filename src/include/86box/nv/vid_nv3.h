@@ -61,7 +61,10 @@ extern const device_config_t nv3t_config[];                             // Confi
 // Coming soon: MIROmagic Premium BIOS (when I get mine dumped)
 //todo: move to hash system
 
-// Oldest one of these - September 6, 1997
+// Oldest one of these - August 8, 1997
+
+// This particular VBIOS is very early and has certain bugs
+#define NV3_VBIOS_STB_V128_V160                         "roms/video/nvidia/nv3/stb-velocity128-1.6.bin" // STB Velocity 128 3D (Riva 128) Ver.1.60
 #define NV3_VBIOS_ERAZOR_V14700                         "roms/video/nvidia/nv3/OLD_0000.BIN"            // ELSA VICTORY Erazor VBE 3.0 DDC2B DPMS Video BIOS  Ver. 1.47.01 (ZZ/ A/00)
 #define NV3_VBIOS_ERAZOR_V15403                         "roms/video/nvidia/nv3/VCERAZOR.BIN"            // ELSA VICTORY Erazor Ver. 1.54.03    [WD/VBE30/DDC2B/DPMS]
 #define NV3_VBIOS_ERAZOR_V15500                         "roms/video/nvidia/nv3/Ver15500.rv_"            // ELSA VICTORY Erazor Ver. 1.55.00    [WD/VBE30/DDC2B/DPMS]
@@ -72,7 +75,7 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3T_VBIOS_ASUS_V170                            "roms/video/nvidia/nv3/A170D03T.rom"            // ASUS AGP-V3000 ZXTV BIOS - V1.70D.03 (C) 1996-98 Nvidia Corporation
 #define NV3T_VBIOS_REFERENCE_CEK_V171                   "roms/video/nvidia/nv3/BIOS_49_Riva 128"        // Reference BIOS: RIVA 128 ZX BIOS - V1.71B-N (C) 1996-98 NVidia Corporation
 #define NV3T_VBIOS_REFERENCE_CEK_V172                   "roms/video/nvidia/nv3/vgasgram.rom"            // Reference(?) BIOS: RIVA 128 ZX BIOS - V1.72B (C) 1996-98 NVidia Corporation
-
+#
 // The default VBIOS to use
 #define NV3_VBIOS_DEFAULT                               NV3_VBIOS_ERAZOR_V15403
 

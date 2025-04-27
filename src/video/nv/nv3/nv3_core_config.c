@@ -38,6 +38,7 @@ const device_config_t nv3_config[] =
         .default_int = 0,
         .bios = 
         {
+
            { 
                 .name = "ELSA VICTORY Erazor - Version 1.47.00", .files_no = 1,
                 .internal_name = "NV3_VBIOS_ERAZOR_V14700",
@@ -63,6 +64,11 @@ const device_config_t nv3_config[] =
                 .internal_name = "NV3_VBIOS_ASUS_V3000_V151",
                 .files = {NV3_VBIOS_ASUS_V3000_V151, ""},
            },
+           {    
+                .name = "STB Velocity 128 - Version 1.60 [BUGGY]", .files_no = 1,
+                .internal_name = "NV3_VBIOS_STB_V128_V160",
+                .files = {NV3_VBIOS_STB_V128_V160, ""},
+            },
            {
                 .name = "STB Velocity 128 - Version 1.82", .files_no = 1,
                 .internal_name = "NV3_VBIOS_STB_V128_V182",
