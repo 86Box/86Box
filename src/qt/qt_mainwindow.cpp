@@ -23,6 +23,7 @@
 #include <QDebug>
 
 #include "qt_mainwindow.hpp"
+#include "qt_gpudebug_vram.hpp"
 #include "ui_qt_mainwindow.h"
 
 #include "qt_specifydimensions.h"
@@ -99,6 +100,8 @@ extern bool cpu_thread_running;
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
 #include "qt_util.hpp"
+
+#include "qt_gpudebug_vram.hpp"
 
 #if defined __unix__ && !defined __HAIKU__
 #    ifndef Q_OS_MACOS
@@ -2266,4 +2269,13 @@ void MainWindow::on_actionPen_triggered()
 void MainWindow::on_actionACPI_Shutdown_triggered()
 {
     acpi_pwrbut_pressed = 1;
+}
+
+void MainWindow::on_actionDebug_GPUDebug_VRAM_triggered()
+{
+    GPUDebugVRAMDialog debugVramDialog(this);
+    debugVramDialog.setWindowFlag(Qt::CustomizeWindowHint, true);
+    debugVramDialog.setWindowFlag(Qt::WindowTitleHint, true);
+    debugVramDialog.setWindowFlag(Qt::WindowSystemMenuHint, false);
+    debugVramDialog.exec();
 }
