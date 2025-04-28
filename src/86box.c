@@ -632,7 +632,14 @@ pc_show_usage(char *s)
             "\nA config file can be specified. If none is, the default file will be used.\n",
             (s == NULL) ? "" : s);
 
+#ifdef _WIN32
     ui_msgbox(MBX_ANSI | ((s == NULL) ? MBX_INFO : MBX_WARNING), p);
+#else
+    if (s == NULL)
+        pclog(p);
+    else
+        ui_msgbox(MBX_ANSI | MBX_WARNING, p);
+#endif
 }
 
 /*
