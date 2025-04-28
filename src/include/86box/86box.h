@@ -27,7 +27,7 @@
 
 /* Configuration values. */
 #define GFXCARD_MAX  2
-#define SERIAL_MAX   7
+#define SERIAL_MAX   8
 #define PARALLEL_MAX 4
 #define SCREEN_RES_X 640
 #define SCREEN_RES_Y 480

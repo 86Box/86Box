@@ -58,7 +58,7 @@ SettingsPorts::save()
             lpt_ports[i].enabled = checkBox->isChecked() ? 1 : 0;
     }
 
-    for (int i = 0; i < SERIAL_MAX; i++) {
+    for (int i = 0; i < (SERIAL_MAX - 1); i++) {
         auto *checkBox     = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
         auto *checkBoxPass = findChild<QCheckBox *>(QString("checkBoxSerialPassThru%1").arg(i + 1));
         if (checkBox != NULL)
@@ -118,7 +118,7 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
             cbox[i]->setEnabled(lpt_ports[i].enabled > 0);
     }
 
-    for (int i = 0; i < SERIAL_MAX; i++) {
+    for (int i = 0; i < (SERIAL_MAX - 1); i++) {
         auto *checkBox     = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
         auto *checkBoxPass = findChild<QCheckBox *>(QString("checkBoxSerialPassThru%1").arg(i + 1));
         auto *buttonPass   = findChild<QPushButton *>(QString("pushButtonSerialPassThru%1").arg(i + 1));

@@ -843,10 +843,13 @@ sermouse_init(const device_t *info)
     mouse_t *dev;
     void (*rcr_callback)(struct serial_s *serial, void *priv);
     void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data);
-    void (*transmit_period_callback)(struct serial_s *serial, void *priv, double transmit_period);
+    void (*transmit_period_callback)(struct serial_s *serial, void *priv,
+                                     double transmit_period);
 
     if (info->local == MOUSE_TYPE_MSYSTEMSB) {
-        uintptr_t irqbase = ((device_get_config_int("irq") << 16) | (device_get_config_hex16("addr") << 20)) | ns16450_device.local;
+        uintptr_t irqbase = ((device_get_config_int("irq") << 16) |
+                             (device_get_config_hex16("addr") << 20)) |
+                             ns16450_device.local;
         device_add_params(&ns16450_device, (void*)irqbase);
     }
 
@@ -894,7 +897,7 @@ sermouse_init(const device_t *info)
         }
     }
 
-    dev->port = (info->local == MOUSE_TYPE_MSYSTEMSB) ? SERIAL_MAX : device_get_config_int("port");
+    dev->port = (info->local == MOUSE_TYPE_MSYSTEMSB) ? (SERIAL_MAX - 1) : device_get_config_int("port");
 
     /* Attach a serial port to the mouse. */
     rcr_callback = dev->rts_toggle ? sermouse_callback : NULL;
@@ -982,6 +985,8 @@ static const device_config_t mssbusmouse_config[] = {
         .selection      = {
             { .description = "0x338", .value = 0x338 },
             { .description = "0x238", .value = 0x238 },
+            { .description = "0x3f8", .value = 0x3f8 },
+            { .description = "0x2f8", .value = 0x2f8 },
             { .description = ""                      }
         },
         .bios           = { { 0 } }

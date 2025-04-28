@@ -38,7 +38,7 @@
 #include <86box/serial.h>
 #include <86box/mouse.h>
 
-serial_port_t com_ports[SERIAL_MAX + 1];
+serial_port_t com_ports[SERIAL_MAX];
 
 enum {
     SERIAL_INT_LSR       = 1,
@@ -53,7 +53,7 @@ enum {
 void    serial_update_ints(serial_t *dev);
 
 static int             next_inst = 0;
-static serial_device_t serial_devices[SERIAL_MAX + 1];
+static serial_device_t serial_devices[SERIAL_MAX];
 
 static void            serial_xmit_d_empty_evt(void *priv);
 
@@ -932,9 +932,8 @@ serial_init(const device_t *info)
     serial_t *dev = (serial_t *) calloc(1, sizeof(serial_t));
     int orig_inst = next_inst;
 
-    if (info->local & 0xFFF00000) {
-        next_inst = SERIAL_MAX;
-    }
+    if (info->local & 0xFFF00000)
+        next_inst = SERIAL_MAX - 1;
 
     dev->inst = next_inst;
 
@@ -945,13 +944,12 @@ serial_init(const device_t *info)
         dev->sd         = &(serial_devices[next_inst]);
         dev->sd->serial = dev;
 
-        if (info->local & 0xFFF00000) {
+        if (info->local & 0xfff00000) {
             dev->base_address = info->local >> 20;
             dev->irq          = (info->local >> 16) & 0xF;
             io_sethandler(dev->base_address, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, dev);
             next_inst = orig_inst;
-        }
-        else if (next_inst == 6)
+        } else if (next_inst == 6)
             serial_setup(dev, COM7_ADDR, COM7_IRQ);
         else if (next_inst == 5)
             serial_setup(dev, COM6_ADDR, COM6_IRQ);
@@ -996,7 +994,7 @@ serial_init(const device_t *info)
         serial_reset_port(dev);
     }
 
-    if (!(info->local & 0xFFF00000))
+    if (!(info->local & 0xfff00000))
         next_inst++;
 
     return dev;
@@ -1011,7 +1009,7 @@ serial_set_next_inst(int ni)
 void
 serial_standalone_init(void)
 {
-    while (next_inst < SERIAL_MAX)
+    while (next_inst < (SERIAL_MAX - 1))
         device_add_inst(&ns8250_device, next_inst + 1);
 };
 
