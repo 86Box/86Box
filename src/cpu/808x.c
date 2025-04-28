@@ -38,6 +38,7 @@
 #include <86box/ppi.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 /* Is the CPU 8088 or 8086. */
@@ -3438,10 +3439,13 @@ execx86(int cycs)
                     set_pzs(8);
                     break;
                 case 0xD6: /*SALC*/
-                    wait(1, 0);
-                    AL = (cpu_state.flags & C_FLAG) ? 0xff : 0x00;
-                    wait(1, 0);
-                    break;
+                    if (!is_nec) {
+                        wait(1, 0);
+                        AL = (cpu_state.flags & C_FLAG) ? 0xff : 0x00;
+                        wait(1, 0);
+                        break;
+                    }
+                    fallthrough;
                 case 0xD7: /*XLATB*/
                     cpu_state.eaaddr = (BX + AL) & 0xffff;
                     access(4, 8);
