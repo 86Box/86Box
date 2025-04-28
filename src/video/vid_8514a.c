@@ -961,7 +961,7 @@ ibm8514_accel_in(uint16_t port, svga_t *svga)
                         temp |= INT_GE_BSY;
                 }
 
-                if (!dev->fifo_idx) {
+                if (!dev->fifo_idx && !dev->on) {
                     dev->force_busy = 0;
                     dev->force_busy2 = 0;
                     dev->data_available = 0;
