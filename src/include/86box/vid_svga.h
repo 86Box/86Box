@@ -315,6 +315,8 @@ typedef struct svga_t {
       card should not attempt to display anything. */
     void       (*render_override)(void *priv);
     void *     priv_parent;
+
+    void *     local;
 } svga_t;
 
 extern void     ibm8514_set_poll(svga_t *svga);
