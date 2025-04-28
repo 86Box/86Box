@@ -2761,9 +2761,9 @@ ati8514_recalctimings(svga_t *svga)
 
     mach_log("ON=%d, vgahdisp=%d.\n", dev->on, svga->hdisp);
     if (dev->on) {
-        mach_log("8514/A ON.\n");
-        dev->pitch                      = ((mach->accel.ge_pitch & 0xff) << 3);
+        mach_log("8514/A ON, pitch=%d.\n", dev->ext_pitch);
         dev->interlace                  = !!(dev->disp_cntl & 0x10);
+        dev->pitch                      = dev->ext_pitch;
         dev->rowoffset                  = dev->ext_crt_pitch;
         dev->rowcount                   = !!(dev->disp_cntl & 0x08);
         dev->accel.ge_offset            = (mach->accel.ge_offset_lo | (mach->accel.ge_offset_hi << 16)) << 2;
@@ -2865,7 +2865,7 @@ mach_recalctimings(svga_t *svga)
     if (dev->on) {
         dev->ma_latch                   = 0; /*(mach->accel.crt_offset_lo | (mach->accel.crt_offset_hi << 16)) << 2;*/
         dev->interlace                  = !!(dev->disp_cntl & 0x10);
-        dev->pitch                      = ((mach->accel.ge_pitch & 0xff) << 3);
+        dev->pitch                      = dev->ext_pitch;
         dev->rowoffset                  = dev->ext_crt_pitch;
         dev->rowcount                   = !!(dev->disp_cntl & 0x08);
         dev->accel.ge_offset            = (mach->accel.ge_offset_lo | (mach->accel.ge_offset_hi << 16));
@@ -3321,6 +3321,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                 mach_set_resolution(mach, svga);
                 mach32_updatemapping(mach, svga);
             } else {
+                dev->ext_pitch = 1024;
                 dev->ext_crt_pitch = 128;
                 mach_set_resolution(mach, svga);
             }
@@ -3515,8 +3516,11 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             ibm8514_accel_out_fifo(svga, port, val, len);
             if (len == 2) {
                 if ((dev->accel.multifunc_cntl >> 12) == 5) {
-                    if (!ATI_MACH32)
+                    if (!ATI_MACH32) {
+                        dev->ext_pitch = 1024;
                         dev->ext_crt_pitch = 128;
+                        svga_recalctimings(svga);
+                    }
                 }
             }
             break;
@@ -3847,6 +3851,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             else {
                 WRITE8(port, mach->accel.ge_pitch, val);
             }
+            dev->ext_pitch = ((mach->accel.ge_pitch & 0xff) << 3);
             mach_log("ATI 8514/A: (0x%04x) GE Pitch val=0x%02x.\n", port, val);
             svga_recalctimings(svga);
             break;
