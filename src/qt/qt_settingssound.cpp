@@ -232,7 +232,7 @@ SettingsSound::on_pushButtonConfigureSoundCard1_clicked()
 
     if (sndCard == SOUND_INTERNAL)
         device = machine_get_snd_device(machineId);
-    DeviceConfig::ConfigureDevice(device, 1, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
@@ -252,7 +252,7 @@ SettingsSound::on_pushButtonConfigureSoundCard2_clicked()
 {
     int             sndCard = ui->comboBoxSoundCard2->currentData().toInt();
     const device_t *device  = sound_card_getdevice(sndCard);
-    DeviceConfig::ConfigureDevice(device, 2, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device, 2);
 }
 
 void
@@ -273,7 +273,7 @@ SettingsSound::on_pushButtonConfigureSoundCard3_clicked()
     int             sndCard = ui->comboBoxSoundCard3->currentData().toInt();
     const device_t *device  = sound_card_getdevice(sndCard);
 
-    DeviceConfig::ConfigureDevice(device, 3, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device, 3);
 }
 
 void
@@ -294,7 +294,7 @@ SettingsSound::on_pushButtonConfigureSoundCard4_clicked()
     int             sndCard = ui->comboBoxSoundCard4->currentData().toInt();
     const device_t *device  = sound_card_getdevice(sndCard);
 
-    DeviceConfig::ConfigureDevice(device, 4, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device, 4);
 }
 
 void
@@ -312,8 +312,7 @@ SettingsSound::on_comboBoxMidiOut_currentIndexChanged(int index)
 void
 SettingsSound::on_pushButtonConfigureMidiOut_clicked()
 {
-    DeviceConfig::ConfigureDevice(midi_out_device_getdevice(ui->comboBoxMidiOut->currentData().toInt()), 0,
-                                  qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(midi_out_device_getdevice(ui->comboBoxMidiOut->currentData().toInt()));
 }
 
 void
@@ -331,8 +330,7 @@ SettingsSound::on_comboBoxMidiIn_currentIndexChanged(int index)
 void
 SettingsSound::on_pushButtonConfigureMidiIn_clicked()
 {
-    DeviceConfig::ConfigureDevice(midi_in_device_getdevice(ui->comboBoxMidiIn->currentData().toInt()), 0,
-                                  qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(midi_in_device_getdevice(ui->comboBoxMidiIn->currentData().toInt()));
 }
 
 void
@@ -345,7 +343,7 @@ void
 SettingsSound::on_pushButtonConfigureMPU401_clicked()
 {
     if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0)
-        DeviceConfig::ConfigureDevice(&mpu401_mca_device, 0, qobject_cast<Settings *>(Settings::settings));
+        DeviceConfig::ConfigureDevice(&mpu401_mca_device);
     else
-        DeviceConfig::ConfigureDevice(&mpu401_device, 0, qobject_cast<Settings *>(Settings::settings));
+        DeviceConfig::ConfigureDevice(&mpu401_device);
 }

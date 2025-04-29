@@ -55,7 +55,7 @@ typedef struct serial_passthrough_s {
     void *backend_priv;                        /* Private platform backend data */
 } serial_passthrough_t;
 
-extern bool           serial_passthrough_enabled[SERIAL_MAX];
+extern bool           serial_passthrough_enabled[SERIAL_MAX - 1];
 extern const device_t serial_passthrough_device;
 
 extern void serial_passthrough_init(void);

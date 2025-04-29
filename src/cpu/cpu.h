@@ -416,6 +416,8 @@ typedef struct {
     uint16_t eflags;
 
     uint32_t _smbase;
+
+    uint32_t x87_op;
 } cpu_state_t;
 
 #define in_smm   cpu_state._in_smm
@@ -784,7 +786,7 @@ typedef struct {
     uint32_t smhr;
 } cyrix_t;
 
-extern uint32_t x87_op;
+#define x87_op cpu_state.x87_op
 
 extern uint32_t addr64;
 extern uint32_t addr64_2;

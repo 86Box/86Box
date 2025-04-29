@@ -746,7 +746,7 @@ load_ports(void)
     char          temp[512];
     memset(temp, 0, sizeof(temp));
 
-    for (int c = 0; c < SERIAL_MAX; c++) {
+    for (int c = 0; c < (SERIAL_MAX - 1); c++) {
         sprintf(temp, "serial%d_enabled", c + 1);
         com_ports[c].enabled = !!ini_section_get_int(cat, temp, (c >= 2) ? 0 : 1);
 
@@ -1839,7 +1839,7 @@ config_load(void)
 
         com_ports[0].enabled = 1;
         com_ports[1].enabled = 1;
-        for (i = 2; i < SERIAL_MAX; i++)
+        for (i = 2; i < (SERIAL_MAX - 1); i++)
             com_ports[i].enabled = 0;
 
         lpt_ports[0].enabled = 1;
@@ -2459,7 +2459,7 @@ save_ports(void)
     ini_section_t cat = ini_find_or_create_section(config, "Ports (COM & LPT)");
     char          temp[512];
 
-    for (int c = 0; c < SERIAL_MAX; c++) {
+    for (int c = 0; c < (SERIAL_MAX - 1); c++) {
         sprintf(temp, "serial%d_enabled", c + 1);
         if (((c < 2) && com_ports[c].enabled) || ((c >= 2) && !com_ports[c].enabled))
             ini_section_delete_var(cat, temp);

@@ -240,7 +240,7 @@ SettingsNetwork::on_pushButtonConf1_clicked()
     auto *device = network_card_getdevice(netCard);
     if (netCard == NET_INTERNAL)
         device = machine_get_net_device(machineId);
-    DeviceConfig::ConfigureDevice(device, 1, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
@@ -248,7 +248,7 @@ SettingsNetwork::on_pushButtonConf2_clicked()
 {
     int netCard = ui->comboBoxNIC2->currentData().toInt();
     auto *device = network_card_getdevice(netCard);
-    DeviceConfig::ConfigureDevice(device, 2, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device, 2);
 }
 
 void
@@ -256,7 +256,7 @@ SettingsNetwork::on_pushButtonConf3_clicked()
 {
     int netCard = ui->comboBoxNIC3->currentData().toInt();
     auto *device = network_card_getdevice(netCard);
-    DeviceConfig::ConfigureDevice(device, 3, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device, 3);
 }
 
 void
@@ -264,5 +264,5 @@ SettingsNetwork::on_pushButtonConf4_clicked()
 {
     int netCard = ui->comboBoxNIC4->currentData().toInt();
     auto *device = network_card_getdevice(netCard);
-    DeviceConfig::ConfigureDevice(device, 4, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device, 4);
 }

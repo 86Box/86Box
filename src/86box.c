@@ -174,7 +174,7 @@ int      force_43                               = 0;              /* (C) video *
 int      video_filter_method                    = 1;              /* (C) video */
 int      video_vsync                            = 0;              /* (C) video */
 int      video_framerate                        = -1;             /* (C) video */
-bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0, 0, 0, 0 }; /* (C) activation and kind of
+bool     serial_passthrough_enabled[SERIAL_MAX - 1] = { 0, 0, 0, 0, 0, 0, 0 }; /* (C) activation and kind of
                                                                                   pass-through for serial ports */
 int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
 int      novell_keycard_enabled                 = 0;              /* (C) enable Novell NetWare 2.x key card emulation. */
@@ -586,6 +586,62 @@ delete_nvr_file(uint8_t flash)
 
 extern void  device_find_all_descs(void);
 
+static void
+pc_show_usage(char *s)
+{
+    char p[4096] = { 0 };
+
+    sprintf(p,
+            "\n%sUsage: 86box [options] [cfg-file]\n\n"
+            "Valid options are:\n\n"
+            "-? or --help\t\t\t- show this information\n"
+            "-C or --config path\t\t- set 'path' to be config file\n"
+#ifdef _WIN32
+            "-D or --debug\t\t\t- force debug output logging\n"
+#endif
+#if 0
+            "-E or --nographic\t\t- forces the old behavior\n"
+#endif
+            "-F or --fullscreen\t\t- start in fullscreen mode\n"
+            "-G or --lang langid\t\t- start with specified language\n"
+            "\t\t\t\t   (e.g. en-US, or system)\n"
+#ifdef _WIN32
+            "-H or --hwnd id,hwnd\t\t- sends back the main dialog's hwnd\n"
+#endif
+            "-I or --image d:path\t\t- load 'path' as floppy image on drive d\n"
+#ifdef USE_INSTRUMENT
+            "-J or --instrument name\t- set 'name' to be the profiling instrument\n"
+#endif
+            "-L or --logfile pat\t\t- set 'path' to be the logfile\n"
+            "-M or --missing\t\t- dump missing machines and video cards\n"
+            "-N or --noconfirm\t\t- do not ask for confirmation on quit\n"
+            "-P or --vmpath path\t\t- set 'path' to be root for vm\n"
+            "-R or --rompath path\t\t- set 'path' to be ROM path\n"
+#ifndef USE_SDL_UI
+            "-S or --settings\t\t\t- show only the settings dialog\n"
+#endif
+            "-T or --testmode\t\t- test mode: execute the test mode entry\n"
+            "\t\t\t\t   point on init/hard reset\n"
+            "-V or --vmname name\t\t- overrides the name of the running VM\n"
+            "-W or --nohook\t\t- disables keyboard hook\n"
+            "\t\t\t\t   (compatibility-only outside Windows)\n"
+            "-X or --clear what\t\t- clears the 'what' (cmos/flash/both)\n"
+            "-Y or --donothing\t\t- do not show any UI or run the emulation\n"
+            "-Z or --lastvmpath\t\t- the last parameter is VM path rather\n"
+            "\t\t\t\t  than config\n"
+            "\nA config file can be specified. If none is, the default file will be used.\n",
+            (s == NULL) ? "" : s);
+
+#ifdef _WIN32
+    ui_msgbox(MBX_ANSI | ((s == NULL) ? MBX_INFO : MBX_WARNING), p);
+#else
+    if (s == NULL)
+        pclog(p);
+    else
+        ui_msgbox(MBX_ANSI | MBX_WARNING, p);
+#endif
+}
+
 /*
  * Perform initial startup of the PC.
  *
@@ -609,6 +665,7 @@ pc_init(int argc, char *argv[])
     time_t           now;
     int              c;
     int              lvmp = 0;
+    int              deprecated = 1;
 #ifdef ENABLE_NG
     int ng = 0;
 #endif
@@ -666,44 +723,7 @@ usage:
                 }
             }
 
-            ui_msgbox(MBX_INFO, L"\nUsage: 86box [options] [cfg-file]\n\n"
-                   "Valid options are:\n\n"
-                   "-? or --help\t\t\t- show this information\n"
-                   "-C or --config path\t\t- set 'path' to be config file\n"
-#ifdef _WIN32
-                   "-D or --debug\t\t\t- force debug output logging\n"
-#endif
-#if 0
-                   "-E or --nographic\t\t- forces the old behavior\n"
-#endif
-                   "-F or --fullscreen\t\t- start in fullscreen mode\n"
-                   "-G or --lang langid\t\t- start with specified language\n"
-                   "\t\t\t\t   (e.g. en-US, or system)\n"
-#ifdef _WIN32
-                   "-H or --hwnd id,hwnd\t\t- sends back the main dialog's hwnd\n"
-#endif
-                   "-I or --image d:path\t\t- load 'path' as floppy image on drive d\n"
-#ifdef USE_INSTRUMENT
-                   "-J or --instrument name\t- set 'name' to be the profiling instrument\n"
-#endif
-                   "-L or --logfile pat\t\t- set 'path' to be the logfile\n"
-                   "-M or --missing\t\t- dump missing machines and video cards\n"
-                   "-N or --noconfirm\t\t- do not ask for confirmation on quit\n"
-                   "-P or --vmpath path\t\t- set 'path' to be root for vm\n"
-                   "-R or --rompath path\t\t- set 'path' to be ROM path\n"
-#ifndef USE_SDL_UI
-                   "-S or --settings\t\t\t- show only the settings dialog\n"
-#endif
-                   "-T or --testmode\t\t- test mode: execute the test mode entry\n"
-                   "\t\t\t\t   point on init/hard reset\n"
-                   "-V or --vmname name\t\t- overrides the name of the running VM\n"
-                   "-W or --nohook\t\t- disables keyboard hook\n"
-                   "\t\t\t\t   (compatibility-only outside Windows)\n"
-                   "-X or --clear what\t\t- clears the 'what' (cmos/flash/both)\n"
-                   "-Y or --donothing\t\t- do not show any UI or run the emulation\n"
-                   "-Z or --lastvmpath\t\t- the last parameter is VM path rather\n"
-                   "\t\t\t\t  than config\n"
-                   "\nA config file can be specified. If none is, the default file will be used.\n");
+            pc_show_usage(NULL);
             return 0;
         } else if (!strcasecmp(argv[c], "--lastvmpath") || !strcasecmp(argv[c], "-Z")) {
             lvmp = 1;
@@ -730,6 +750,7 @@ usage:
                 goto usage;
 
             ppath = argv[++c];
+            deprecated = 0;
         } else if (!strcasecmp(argv[c], "--rompath") || !strcasecmp(argv[c], "-R")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -741,6 +762,7 @@ usage:
                 goto usage;
 
             cfg = argv[++c];
+            deprecated = 0;
         } else if (!strcasecmp(argv[c], "--image") || !strcasecmp(argv[c], "-I")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -839,10 +861,17 @@ usage:
             ppath = argv[c++];
         else
             cfg = argv[c++];
+
+        deprecated = 0;
     }
 
     if (c != argc)
         goto usage;
+
+    if (deprecated)
+        pc_show_usage("Running 86Box without a specified VM path and/or configuration\n"
+                      "file has been deprected. Please specify one or use a manager\n"
+                      "(Avalonia 86 is recommended).\n\n");
 
     path_slash(usr_path);
     path_slash(rom_path);

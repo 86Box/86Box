@@ -347,7 +347,7 @@ SettingsMachine::on_pushButtonConfigure_clicked()
     // deviceconfig_inst_open
     int         machineId = ui->comboBoxMachine->currentData().toInt();
     const auto *device    = machine_get_device(machineId);
-    DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device);
 }
 
 void SettingsMachine::on_checkBoxFPUSoftfloat_stateChanged(int state) {
