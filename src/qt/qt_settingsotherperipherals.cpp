@@ -159,7 +159,7 @@ SettingsOtherPeripherals::on_comboBoxRTC_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureRTC_clicked()
 {
-    DeviceConfig::ConfigureDevice(isartc_get_device(ui->comboBoxRTC->currentData().toInt()), 0, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(isartc_get_device(ui->comboBoxRTC->currentData().toInt()));
 }
 
 void
@@ -174,7 +174,7 @@ SettingsOtherPeripherals::on_comboBoxCard1_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureCard1_clicked()
 {
-    DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxCard1->currentData().toInt()), 1, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxCard1->currentData().toInt()), 1);
 }
 
 void
@@ -189,7 +189,7 @@ SettingsOtherPeripherals::on_comboBoxCard2_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureCard2_clicked()
 {
-    DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxCard2->currentData().toInt()), 2, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxCard2->currentData().toInt()), 2);
 }
 
 void
@@ -204,7 +204,7 @@ SettingsOtherPeripherals::on_comboBoxCard3_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureCard3_clicked()
 {
-    DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxCard3->currentData().toInt()), 3, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxCard3->currentData().toInt()), 3);
 }
 
 void
@@ -219,7 +219,7 @@ SettingsOtherPeripherals::on_comboBoxCard4_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureCard4_clicked()
 {
-    DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxCard4->currentData().toInt()), 4, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxCard4->currentData().toInt()), 4);
 }
 
 void

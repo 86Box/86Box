@@ -174,7 +174,7 @@ int      force_43                               = 0;              /* (C) video *
 int      video_filter_method                    = 1;              /* (C) video */
 int      video_vsync                            = 0;              /* (C) video */
 int      video_framerate                        = -1;             /* (C) video */
-bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0, 0, 0, 0 }; /* (C) activation and kind of
+bool     serial_passthrough_enabled[SERIAL_MAX - 1] = { 0, 0, 0, 0, 0, 0, 0 }; /* (C) activation and kind of
                                                                                   pass-through for serial ports */
 int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
 int      novell_keycard_enabled                 = 0;              /* (C) enable Novell NetWare 2.x key card emulation. */
@@ -632,7 +632,14 @@ pc_show_usage(char *s)
             "\nA config file can be specified. If none is, the default file will be used.\n",
             (s == NULL) ? "" : s);
 
+#ifdef _WIN32
     ui_msgbox(MBX_ANSI | ((s == NULL) ? MBX_INFO : MBX_WARNING), p);
+#else
+    if (s == NULL)
+        pclog(p);
+    else
+        ui_msgbox(MBX_ANSI | MBX_WARNING, p);
+#endif
 }
 
 /*
