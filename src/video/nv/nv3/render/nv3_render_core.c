@@ -301,8 +301,6 @@ nv3_coord_16_t nv3_render_get_dfb_position(uint32_t vram_address)
     else if (nv3->nvbase.svga.bpp == 32)
         pitch <<= 2;
 
-    //vram_address -= nv3->pgraph.boffset[0];
-
     pos.y = (vram_address / pitch);
     pos.x = (vram_address % pitch);
 
@@ -529,6 +527,10 @@ void nv3_render_ensure_screen_size(void)
 /* Blit to the monitor from DFB, 8bpp */
 void nv3_render_current_bpp_dfb_8(uint32_t address)
 {
+    /* Broken as fuck early vbios does this. Wtf? */
+    if (!nv3->nvbase.svga.hdisp)
+        return;
+
     nv3_coord_16_t size = {0};
     size.x = size.y = 1; 
 
@@ -543,6 +545,10 @@ void nv3_render_current_bpp_dfb_8(uint32_t address)
 /* Blit to the monitor from DFB, 15/16bpp */
 void nv3_render_current_bpp_dfb_16(uint32_t address)
 {
+    /* Broken as fuck early vbios does this. Wtf? */
+    if (!nv3->nvbase.svga.hdisp)
+        return;
+    
     nv3_coord_16_t size = {0};
     size.x = size.y = 1; 
 
@@ -564,6 +570,10 @@ void nv3_render_current_bpp_dfb_16(uint32_t address)
 /* Blit to the monitor from DFB, 32bpp */
 void nv3_render_current_bpp_dfb_32(uint32_t address)
 {
+    /* Broken as fuck early vbios does this. Wtf? */
+    if (!nv3->nvbase.svga.hdisp)
+        return;
+        
     nv3_coord_16_t size = {0};
     size.x = size.y = 1; 
 

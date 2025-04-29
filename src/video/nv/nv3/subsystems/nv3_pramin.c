@@ -96,14 +96,14 @@ uint16_t nv3_ramin_read16(uint32_t addr, void* priv)
 // Read 32-bit ramin
 uint32_t nv3_ramin_read32(uint32_t addr, void* priv)
 {
-    if (!nv3) return 0x00;
+    if (!nv3) 
+        return 0x00;
 
     addr &= (nv3->nvbase.svga.vram_max - 1);
 
     // why does this not work in one line
-    svga_t* svga = &nv3->nvbase.svga;
-    uint32_t* vram_32bit = (uint32_t*)svga->vram;
-    uint32_t raw_addr = addr; // saved after and
+    uint32_t* vram_32bit = (uint32_t*)nv3->nvbase.svga.vram;
+    uint32_t raw_addr = addr; // saved after and logged
 
     addr ^= (nv3->nvbase.svga.vram_max - 0x10);
     addr >>= 2; // what
