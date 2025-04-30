@@ -665,7 +665,9 @@ pc_init(int argc, char *argv[])
     time_t           now;
     int              c;
     int              lvmp = 0;
+#ifdef DEPRECATE_USAGE
     int              deprecated = 1;
+#endif
 #ifdef ENABLE_NG
     int ng = 0;
 #endif
@@ -750,7 +752,9 @@ usage:
                 goto usage;
 
             ppath = argv[++c];
+#ifdef DEPRECATE_USAGE
             deprecated = 0;
+#endif
         } else if (!strcasecmp(argv[c], "--rompath") || !strcasecmp(argv[c], "-R")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -762,7 +766,9 @@ usage:
                 goto usage;
 
             cfg = argv[++c];
+#ifdef DEPRECATE_USAGE
             deprecated = 0;
+#endif
         } else if (!strcasecmp(argv[c], "--image") || !strcasecmp(argv[c], "-I")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -862,16 +868,20 @@ usage:
         else
             cfg = argv[c++];
 
+#ifdef DEPRECATE_USAGE
         deprecated = 0;
+#endif
     }
 
     if (c != argc)
         goto usage;
 
+#ifdef DEPRECATE_USAGE
     if (deprecated)
         pc_show_usage("Running 86Box without a specified VM path and/or configuration\n"
                       "file has been deprected. Please specify one or use a manager\n"
                       "(Avalonia 86 is recommended).\n\n");
+#endif
 
     path_slash(usr_path);
     path_slash(rom_path);
