@@ -2283,10 +2283,7 @@ machine_at_tg486gp_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&amstrad_megapc_nvr_device);
-
-    device_add(&ide_isa_device);
+    machine_at_common_ide_init(model);
 
     device_add(&ali1429g_device);
 
@@ -2319,7 +2316,8 @@ machine_at_tg486g_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&amstrad_megapc_nvr_device);
     device_add(&sis_85c471_device);
     device_add(&ide_isa_device);
     device_add(&fdc37c651_ide_device);
