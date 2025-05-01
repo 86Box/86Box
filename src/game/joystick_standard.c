@@ -62,13 +62,18 @@ joystick_standard_read(UNUSED(void *priv))
 {
     uint8_t ret = 0xf0;
 
-    for (int js = 0; js < 2; js++) {
-        if (JOYSTICK_PRESENT(0, js)) {
-            if (joystick_state[0][js].button[0])
-                ret &= ~0x10;
-            if (joystick_state[0][js].button[1])
-                ret &= ~0x20;
-        }
+    if (JOYSTICK_PRESENT(0, 0)) {
+        if (joystick_state[0][0].button[0])
+            ret &= ~0x10;
+        if (joystick_state[0][0].button[1])
+            ret &= ~0x20;
+    }
+
+    if (JOYSTICK_PRESENT(0, 1)) {
+        if (joystick_state[0][1].button[0])
+            ret &= ~0x40;
+        if (joystick_state[0][1].button[1])
+            ret &= ~0x80;
     }
 
     return ret;
