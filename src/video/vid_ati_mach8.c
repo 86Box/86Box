@@ -4264,9 +4264,12 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
                 if (dev->force_busy) {
                     temp |= 0x0200; /*Hardware busy*/
                     if (mach->accel.cmd_type >= 0) {
+                        mono_src = (mach->accel.dp_config >> 5) & 3;
                         switch (mach->accel.cmd_type) {
                             case 2:
                                 if (dev->accel.sy >= mach->accel.height)
+                                    dev->force_busy = 0;
+                                else if (mono_src == 2)
                                     dev->force_busy = 0;
                                 break;
                             case 5:
