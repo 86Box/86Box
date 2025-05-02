@@ -652,6 +652,7 @@ extern int cpu_cache_ext_enabled;
 extern int cpu_isa_speed;
 extern int cpu_pci_speed;
 extern int cpu_agp_speed;
+extern int cpu_agp_rate;
 
 extern int timing_rr;
 extern int timing_mr;
@@ -713,6 +714,7 @@ extern void cpu_set_isa_speed(int speed);
 extern void cpu_set_pci_speed(int speed);
 extern void cpu_set_isa_pci_div(int div);
 extern void cpu_set_agp_speed(int speed);
+extern void cpu_set_agp_rate(int rate);
 
 extern void cpu_CPUID(void);
 extern void cpu_RDMSR(void);

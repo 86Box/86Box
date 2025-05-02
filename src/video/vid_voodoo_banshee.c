@@ -3654,6 +3654,10 @@ banshee_speed_changed(void *priv)
     banshee_t *banshee = (banshee_t *) priv;
 
     svga_recalctimings(&banshee->svga);
+
+    banshee->voodoo->read_time  = (banshee->agp ? agp_nonburst_time : pci_nonburst_time) + (banshee->agp ? agp_burst_time : pci_burst_time) * ((banshee->pciInit0 & 0x100) ? 2 : 1);
+    banshee->voodoo->burst_time = (banshee->agp ? agp_burst_time : pci_burst_time) * ((banshee->pciInit0 & 0x200) ? 1 : 0);
+    banshee->voodoo->write_time = (banshee->agp ? agp_nonburst_time : pci_nonburst_time) + banshee->voodoo->burst_time;
 }
 
 static void

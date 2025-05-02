@@ -180,28 +180,34 @@ via_apollo_setup(via_apollo_t *dev)
         if (cpu_busspeed < 95000000) { /* 66 MHz */
             cpu_set_pci_speed(cpu_busspeed / 2);
             cpu_set_agp_speed(cpu_busspeed);
+            cpu_set_agp_rate(1);
             dev->pci_conf[0x68] |= 0x00;
         } else if (cpu_busspeed < 124000000) { /* 100 MHz */
             cpu_set_pci_speed(cpu_busspeed / 3);
             cpu_set_agp_speed(cpu_busspeed / 1.5);
+            cpu_set_agp_rate(1);
             dev->pci_conf[0x68] |= 0x01;
         } else { /* 133 MHz */
             cpu_set_pci_speed(cpu_busspeed / 4);
             cpu_set_agp_speed(cpu_busspeed / 2);
+            cpu_set_agp_rate(1);
             dev->pci_conf[0x68] |= (dev->id == VIA_8601) ? 0x03 : 0x02;
         }
     } else if (dev->id >= VIA_598) {
         if (cpu_busspeed < ((dev->id >= VIA_691) ? 100000000 : 75000000)) { /* 66 MHz */
             cpu_set_pci_speed(cpu_busspeed / 2);
             cpu_set_agp_speed(cpu_busspeed);
+            cpu_set_agp_rate(1);
             dev->pci_conf[0x68] |= 0x00;
         } else if (cpu_busspeed < 100000000) { /* 75/83 MHz (not available on 691) */
             cpu_set_pci_speed(cpu_busspeed / 2.5);
             cpu_set_agp_speed(cpu_busspeed / 1.25);
+            cpu_set_agp_rate(1);
             dev->pci_conf[0x68] |= 0x03;
         } else { /* 100 MHz */
             cpu_set_pci_speed(cpu_busspeed / 3);
             cpu_set_agp_speed(cpu_busspeed / 1.5);
+            cpu_set_agp_rate(1);
             dev->pci_conf[0x68] |= 0x01;
         }
     }
@@ -651,6 +657,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[0xa8] = (dev->pci_conf[0xa8] & ~0x33) | (val & 0x33);
             else
                 dev->pci_conf[0xa8] = (dev->pci_conf[0xa8] & ~0x03) | (val & 0x03);
+            cpu_set_agp_rate((dev->pci_conf[0xa8] & 0x2) ? 2 : 1);
             break;
         case 0xa9:
             dev->pci_conf[0xa9] = (dev->pci_conf[0xa9] & ~0x03) | (val & 0x03);

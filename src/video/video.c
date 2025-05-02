@@ -675,12 +675,12 @@ video_update_timing(void)
             *vid_timing_write_w = (int) (pci_timing * monitor_vid_timings->write_w);
             *vid_timing_write_l = (int) (pci_timing * monitor_vid_timings->write_l);
         } else if (monitor_vid_timings->type == VIDEO_AGP) {
-            *vid_timing_read_b  = (int) (agp_timing * monitor_vid_timings->read_b);
-            *vid_timing_read_w  = (int) (agp_timing * monitor_vid_timings->read_w);
-            *vid_timing_read_l  = (int) (agp_timing * monitor_vid_timings->read_l);
-            *vid_timing_write_b = (int) (agp_timing * monitor_vid_timings->write_b);
-            *vid_timing_write_w = (int) (agp_timing * monitor_vid_timings->write_w);
-            *vid_timing_write_l = (int) (agp_timing * monitor_vid_timings->write_l);
+            *vid_timing_read_b  = MAX((int) (agp_timing * monitor_vid_timings->read_b) / cpu_agp_rate, 1);
+            *vid_timing_read_w  = MAX((int) (agp_timing * monitor_vid_timings->read_w) / cpu_agp_rate, 1);
+            *vid_timing_read_l  = MAX((int) (agp_timing * monitor_vid_timings->read_l) / cpu_agp_rate, 1);
+            *vid_timing_write_b = MAX((int) (agp_timing * monitor_vid_timings->write_b) / cpu_agp_rate, 1);
+            *vid_timing_write_w = MAX((int) (agp_timing * monitor_vid_timings->write_w) / cpu_agp_rate, 1);
+            *vid_timing_write_l = MAX((int) (agp_timing * monitor_vid_timings->write_l) / cpu_agp_rate, 1);
         } else {
             *vid_timing_read_b  = (int) (bus_timing * monitor_vid_timings->read_b);
             *vid_timing_read_w  = (int) (bus_timing * monitor_vid_timings->read_w);

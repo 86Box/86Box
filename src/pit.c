@@ -1237,7 +1237,7 @@ pit_set_clock(uint32_t clock)
 
     /* PCICLK in us for use with timer_on_auto(). */
     PCICLK = pci_timing / (cpuclock / 1000000.0);
-    AGPCLK = agp_timing / (cpuclock / 1000000.0);
+    AGPCLK = (agp_timing / (cpuclock / 1000000.0)) * (double)cpu_agp_rate;
 
     if (cpu_busspeed >= 30000000)
         SYSCLK = bus_timing * 4.0;

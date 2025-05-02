@@ -1298,6 +1298,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440ZX:
                     case INTEL_440GX:
                         regs[addr] = (val & 0x03);
+                        if (addr == 0xa8)
+                            cpu_set_agp_rate((val & 0x2) ? 2 : 1);
                         break;
                     default:
                         break;
@@ -1919,10 +1921,14 @@ i4x0_init(const device_t *info)
     if ((dev->type <= INTEL_440FX) && (cpu_busspeed >= 66666666))
         cpu_set_pci_speed(cpu_busspeed / 2);
 
-    if ((dev->type >= INTEL_440BX) && (cpu_busspeed >= 100000000))
+    if ((dev->type >= INTEL_440BX) && (cpu_busspeed >= 100000000)) {
         cpu_set_agp_speed(cpu_busspeed / 1.5);
-    else if (dev->type >= INTEL_440LX)
+        cpu_set_agp_rate(1);
+    }
+    else if (dev->type >= INTEL_440LX) {
         cpu_set_agp_speed(cpu_busspeed);
+        cpu_set_agp_rate(1);
+    }
 
     i4x0_write(regs[0x59], 0x59, 0x00, dev);
     i4x0_write(regs[0x5a], 0x5a, 0x00, dev);

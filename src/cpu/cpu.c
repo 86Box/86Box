@@ -183,6 +183,7 @@ int cpu_isa_speed;
 int cpu_pci_speed;
 int cpu_isa_pci_div;
 int cpu_agp_speed;
+int cpu_agp_rate;
 int cpu_alt_reset;
 
 int cpu_override;
@@ -585,6 +586,7 @@ cpu_set(void)
     cpu_set_isa_pci_div(0);
     cpu_set_pci_speed(0);
     cpu_set_agp_speed(0);
+    cpu_set_agp_rate(1);
 
     io_handler(cpu_iscyrix, 0x0022, 0x0002, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
 
@@ -1932,6 +1934,9 @@ cpu_set_isa_pci_div(int div)
 void
 cpu_set_agp_speed(int speed)
 {
+    if (!cpu_agp_rate)
+        cpu_agp_rate = 1;
+
     if (speed) {
         cpu_agp_speed = speed;
         pc_speed_changed();
@@ -1942,10 +1947,17 @@ cpu_set_agp_speed(int speed)
     else
         cpu_agp_speed = cpu_busspeed / 2;
 
-    agp_burst_time    = cpu_s->rspeed / cpu_agp_speed;
-    agp_nonburst_time = 4 * agp_burst_time;
+    agp_burst_time    = MAX((cpu_s->rspeed / cpu_agp_speed) / cpu_agp_rate, 1);
+    agp_nonburst_time = MAX((4 * agp_burst_time) / cpu_agp_rate, 1);
 
     cpu_log("cpu_set_agp_speed(%d) = %d\n", speed, cpu_agp_speed);
+}
+
+void
+cpu_set_agp_rate(int rate)
+{
+    cpu_agp_rate = rate;
+    cpu_set_agp_speed(cpu_agp_speed);
 }
 
 char *
