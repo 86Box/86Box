@@ -33,6 +33,7 @@
 #include <86box/mem.h>
 #include <86box/smram.h>
 #include <86box/pic.h>
+#include <86box/keyboard.h>
 #include <86box/machine.h>
 #include <86box/chipset.h>
 
@@ -79,8 +80,8 @@ static uint8_t ram_471[64] = { 0x00, 0x00, 0x01, 0x01, 0x02, 0x20, 0x09, 0x09,
                                0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e,
                                0x1b, 0x1b, 0x1b, 0x1b, 0x0f, 0x0f, 0x0f, 0x0f,
                                0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17,
-                               0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e,
-                               0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e };
+                               0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,
+                               0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d };
 static uint8_t ram_tg486g[64] = { 0x10, 0x10, 0x10, 0x10, 0x10, 0x11, 0x11, 0x11,
                                   0x11, 0x12, 0x12, 0x12, 0x12, 0x13, 0x13, 0x13,
                                   0x13, 0x14, 0x14, 0x14, 0x14, 0x15, 0x15, 0x15,
@@ -544,12 +545,23 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
         case 0x23:
             if ((dev->cur_reg >= dev->reg_base) && (dev->cur_reg <= dev->reg_last)) {
                 valxor = val ^ dev->regs[rel_reg];
-                if (rel_reg == 0x00)
+
+                if (!dev->is_471 && (rel_reg == 0x00))
                     dev->regs[rel_reg] = (dev->regs[rel_reg] & 0x1f) | (val & 0xe0);
                 else
                     dev->regs[rel_reg] = val;
 
                 switch (rel_reg) {
+                    case 0x00:
+                        if (val & 0x01) {
+                            kbc_at_set_fast_reset(0);
+                            cpu_cpurst_on_sr = 1;
+                        } else {
+                            kbc_at_set_fast_reset(1);
+                            cpu_cpurst_on_sr = 0;
+                        }
+                        break;
+
                     case 0x01:
                         cpu_cache_ext_enabled = ((val & 0x84) == 0x84);
                         cpu_update_waitstates();
@@ -560,6 +572,8 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
                     case 0x08:
                         if (valxor)
                             sis_85c4xx_recalcmapping(dev);
+                        if (rel_reg == 0x08)
+                            flushmmucache();
                         break;
 
                     case 0x09:
@@ -681,10 +695,16 @@ sis_85c4xx_reset(void *priv)
     if (dev->is_471) {
         dev->regs[0x09] = 0x40;
         if (mem_size_mb >= 64) {
-            if ((mem_size_mb >= 65) && (mem_size_mb < 68))
-                dev->regs[0x09] |= 0x22;
+            if ((mem_size_mb >= 64) && (mem_size_mb < 68))
+                dev->regs[0x09] |= 0x33;
+            if ((mem_size_mb >= 68) && (mem_size_mb < 72))
+                dev->regs[0x09] |= 0x2b;
+            if ((mem_size_mb >= 72) && (mem_size_mb < 80))
+                dev->regs[0x09] |= 0x2d;
+            if ((mem_size_mb >= 80) && (mem_size_mb < 96))
+                dev->regs[0x09] |= 0x2f;
             else
-                dev->regs[0x09] |= 0x24;
+                dev->regs[0x09] |= 0x29;
         } else if (!strcmp(machine_get_internal_name(), "tg486g"))
             dev->regs[0x09] |= ram_tg486g[mem_size_mb];
         else
@@ -718,6 +738,9 @@ sis_85c4xx_reset(void *priv)
         soft_reset_mask = 0;
 
         sis_85c471_banks_recalc(dev);
+
+        kbc_at_set_fast_reset(1);
+        cpu_cpurst_on_sr = 0;
     } else {
         /* Bits 6 and 7 must be clear on the SiS 40x. */
         if (dev->reg_base == 0x60)

@@ -1689,9 +1689,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
             addr &= ~3;
         addr = ((addr & 0xfffc) << 2) | ((addr & 0x30000) >> 14) | (addr & ~0x3ffff);
     } else if (svga->chain2_write) {
-        writemask2 &= ~0xa;
-        if (addr & 1)
-            writemask2 <<= 1;
+        writemask2 &= 0x5 << (addr & 1);
         addr &= ~1;
         addr <<= 2;
     } else
