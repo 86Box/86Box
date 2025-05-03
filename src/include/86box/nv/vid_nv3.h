@@ -622,6 +622,8 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_PGRAPH_DMA_INTR_NOTIFY                      16
 #define NV3_PGRAPH_DMA_INTR_EN_0                        0x401140    // PGRAPH DMA Interrupt Enable 0
 
+#define NV3_PGRAPH_DPRAM_SIZE                           12288       // Size of the internal texture cache
+
 // not sure about the class ids
 // these are NOT what each class is, just uSed to manipulate it (there isn't a one to one class->reg mapping anyway)
 #define NV3_PGRAPH_CLASS01_BETA_START                   0x410000    // Beta blending factor
@@ -1242,14 +1244,15 @@ typedef struct nv3_pgraph_s
     nv3_coord_16_bigy_t clip1_min;
     nv3_coord_16_bigy_t clip1_max;
     /* idk */
-    nv3_coord_16_t clip_start;                           // Start of the clipping region
-    nv3_coord_16_t clip_size;                            // Size of the clipping region.
+    nv3_coord_16_t clip_start;                              // Start of the clipping region
+    nv3_coord_16_t clip_size;                               // Size of the clipping region.
     bool fifo_access;                                       // Determines if PGRAPH can access PFIFO.
     nv3_pgraph_status_t status;                             // Current status of the 3D engine.
     uint32_t trapped_address;
     uint32_t trapped_data;
     uint32_t instance;                                      // no idea what this is but possibly an object context
     uint32_t trapped_instance;
+    uint8_t dpram[NV3_PGRAPH_DPRAM_SIZE];                   // Internal vertex/texturea cache.
 
     /*  This area is used for holding universal representations of the U* registers, which are actually mapped into MMIO */
     struct nv3_object_class_001 beta_factor_class;
