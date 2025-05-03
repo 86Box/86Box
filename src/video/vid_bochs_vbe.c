@@ -811,22 +811,22 @@ bochs_vbe_init(const device_t *info)
     dev->vram_size = device_get_config_int("memory") * (1 << 20);
 
     rom_init(&dev->bios_rom, "roms/video/bochs/VGABIOS-lgpl-latest.bin",
-             0xc0000, 0x10000, 0xffff, 0x0000,
+             0xc0000, 0x8000, 0x7fff, 0x0000,
              MEM_MAPPING_EXTERNAL);
 
     if (dev->id5_val == VBE_DISPI_ID4) {
         /* Patch the BIOS to match the PCI ID. */
         dev->bios_rom.rom[0x010c] = 0xee;
-        dev->bios_rom.rom[0x8dff] -= (0xee - 0x34);
+        dev->bios_rom.rom[0x7fff] -= (0xee - 0x34);
 
         dev->bios_rom.rom[0x010d] = 0x80;
-        dev->bios_rom.rom[0x8dff] -= (0x80 - 0x12);
+        dev->bios_rom.rom[0x7fff] -= (0x80 - 0x12);
 
         dev->bios_rom.rom[0x010e] = 0xef;
-        dev->bios_rom.rom[0x8dff] -= (0xef - 0x11);
+        dev->bios_rom.rom[0x7fff] -= (0xef - 0x11);
 
         dev->bios_rom.rom[0x010f] = 0xbe;
-        dev->bios_rom.rom[0x8dff] -= (0xbe - 0x11);
+        dev->bios_rom.rom[0x7fff] -= (0xbe - 0x11);
     }
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_bochs);
