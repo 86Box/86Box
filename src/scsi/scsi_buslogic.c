@@ -1551,6 +1551,8 @@ buslogic_reset(void *priv)
     reset_state.timer            = dev->timer;
     reset_state.ResetCB          = dev->ResetCB;
 
+    reset_state.pci_slot         = dev->pci_slot;
+
     memcpy(dev, &reset_state, sizeof(x54x_t));
 
     dev->timer.period            = 10.0;

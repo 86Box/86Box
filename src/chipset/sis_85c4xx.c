@@ -33,26 +33,343 @@
 #include <86box/mem.h>
 #include <86box/smram.h>
 #include <86box/pic.h>
+#include <86box/keyboard.h>
 #include <86box/machine.h>
 #include <86box/chipset.h>
 
+typedef struct ram_bank_t {
+    uint32_t      virt_base;
+    uint32_t      virt_size;
+    uint32_t      phys_base;
+    uint32_t      phys_size;
+
+    mem_mapping_t mapping;
+} ram_bank_t;
+
 typedef struct sis_85c4xx_t {
-    uint8_t    cur_reg;
-    uint8_t    tries;
-    uint8_t    reg_base;
-    uint8_t    reg_last;
-    uint8_t    reg_00;
-    uint8_t    is_471;
-    uint8_t    force_flush;
-    uint8_t    shadowed;
-    uint8_t    smram_enabled;
-    uint8_t    pad;
-    uint8_t    regs[39];
-    uint8_t    scratch[2];
-    uint32_t   mem_state[8];
-    smram_t   *smram;
-    port_92_t *port_92;
+    uint8_t       cur_reg;
+    uint8_t       tries;
+    uint8_t       reg_base;
+    uint8_t       reg_last;
+    uint8_t       reg_00;
+    uint8_t       is_471;
+    uint8_t       ram_banks_val;
+    uint8_t       force_flush;
+    uint8_t       shadowed;
+    uint8_t       smram_enabled;
+    uint8_t       pad;
+    uint8_t       regs[39];
+    uint8_t       scratch[2];
+    uint32_t      mem_state[8];
+    ram_bank_t    ram_banks[8];
+    smram_t *     smram;
+    port_92_t *   port_92;
 } sis_85c4xx_t;
+
+static uint8_t ram_4xx[64] = { 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00,
+                               0x04, 0x00, 0x05, 0x00, 0x0b, 0x00, 0x00, 0x00,
+                               0x19, 0x00, 0x06, 0x00, 0x14, 0x00, 0x00, 0x00,
+                               0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                               0x1b, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00,
+                               0x17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                               0x1e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+static uint8_t ram_471[64] = { 0x00, 0x00, 0x01, 0x01, 0x02, 0x20, 0x09, 0x09,
+                               0x04, 0x04, 0x05, 0x05, 0x0b, 0x0b, 0x0b, 0x0b,
+                               0x13, 0x21, 0x06, 0x06, 0x0d, 0x0d, 0x0d, 0x0d,
+                               0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e,
+                               0x1b, 0x1b, 0x1b, 0x1b, 0x0f, 0x0f, 0x0f, 0x0f,
+                               0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17,
+                               0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,
+                               0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d };
+static uint8_t ram_tg486g[64] = { 0x10, 0x10, 0x10, 0x10, 0x10, 0x11, 0x11, 0x11,
+                                  0x11, 0x12, 0x12, 0x12, 0x12, 0x13, 0x13, 0x13,
+                                  0x13, 0x14, 0x14, 0x14, 0x14, 0x15, 0x15, 0x15,
+                                  0x15, 0x1d, 0x1d, 0x1d, 0x1d, 0x1d, 0x1d, 0x1d,
+                                  0x1d, 0x16, 0x16, 0x16, 0x16, 0x17, 0x17, 0x17,
+                                  0x17, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e,
+                                  0x1e, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f,
+                                  0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f };
+
+static uint32_t banks_471[64][4] = { { 0x00100000, 0x00000000, 0x00000000, 0x00000000 }, /* 0x00 */
+                                     { 0x00100000, 0x00100000, 0x00000000, 0x00000000 },
+                                     { 0x00100000, 0x00100000, 0x00200000, 0x00000000 },
+                                     { 0x00100000, 0x00100000, 0x00400000, 0x00000000 },
+                                     { 0x00100000, 0x00100000, 0x00200000, 0x00400000 },
+                                     { 0x00100000, 0x00100000, 0x00400000, 0x00400000 },
+                                     { 0x00100000, 0x00100000, 0x01000000, 0x00000000 },
+                                     { 0x00200000, 0x00000000, 0x00000000, 0x00000000 },
+                                     { 0x00200000, 0x00200000, 0x00000000, 0x00000000 }, /* 0x08 */
+                                     { 0x00200000, 0x00400000, 0x00000000, 0x00000000 },
+                                     { 0x00200000, 0x00200000, 0x00400000, 0x00000000 },
+                                     { 0x00200000, 0x00200000, 0x00400000, 0x00400000 },
+                                     { 0x00200000, 0x01000000, 0x00000000, 0x00000000 },
+                                     { 0x00200000, 0x00200000, 0x01000000, 0x00000000 },
+                                     { 0x00200000, 0x00200000, 0x00400000, 0x01000000 },
+                                     { 0x00200000, 0x00200000, 0x01000000, 0x01000000 },
+                                     { 0x00400000, 0x00000000, 0x00000000, 0x00000000 }, /* 0x10 */
+                                     { 0x00400000, 0x00400000, 0x00000000, 0x00000000 },
+                                     { 0x00400000, 0x00400000, 0x00400000, 0x00000000 },
+                                     { 0x00400000, 0x00400000, 0x00400000, 0x00400000 },
+                                     { 0x00400000, 0x01000000, 0x00000000, 0x00000000 },
+                                     { 0x00400000, 0x00400000, 0x01000000, 0x00000000 },
+                                     { 0x00400000, 0x01000000, 0x01000000, 0x00000000 },
+                                     { 0x00400000, 0x00400000, 0x01000000, 0x01000000 },
+                                     { 0x00800000, 0x00000000, 0x00000000, 0x00000000 }, /* 0x18 */
+                                     { 0x00800000, 0x00800000, 0x00000000, 0x00000000 },
+                                     { 0x00800000, 0x00800000, 0x00800000, 0x00000000 },
+                                     { 0x00800000, 0x00800000, 0x00800000, 0x00800000 },
+                                     { 0x01000000, 0x00000000, 0x00000000, 0x00000000 },
+                                     { 0x01000000, 0x01000000, 0x00000000, 0x00000000 },
+                                     { 0x01000000, 0x01000000, 0x01000000, 0x00000000 },
+                                     { 0x01000000, 0x01000000, 0x01000000, 0x01000000 },
+                                     { 0x00100000, 0x00400000, 0x00000000, 0x00000000 }, /* 0x20 */
+                                     { 0x00100000, 0x01000000, 0x00000000, 0x00000000 },
+                                     { 0x00100000, 0x04000000, 0x00000000, 0x00000000 },
+                                     { 0x00400000, 0x00800000, 0x00000000, 0x00000000 },
+                                     { 0x00400000, 0x04000000, 0x00000000, 0x00000000 },
+                                     { 0x00400000, 0x00400000, 0x04000000, 0x00000000 },
+                                     { 0x01000000, 0x04000000, 0x00000000, 0x00000000 },
+                                     { 0x01000000, 0x01000000, 0x04000000, 0x00000000 },
+                                     { 0x04000000, 0x00000000, 0x00000000, 0x00000000 }, /* 0x28 */
+                                     { 0x04000000, 0x04000000, 0x00000000, 0x00000000 },
+                                     { 0x00400000, 0x02000000, 0x00000000, 0x00000000 },
+                                     { 0x00400000, 0x02000000, 0x02000000, 0x00000000 },
+                                     { 0x00400000, 0x00400000, 0x02000000, 0x00000000 },
+                                     { 0x00400000, 0x00400000, 0x02000000, 0x02000000 },
+                                     { 0x01000000, 0x02000000, 0x00000000, 0x00000000 },
+                                     { 0x01000000, 0x02000000, 0x02000000, 0x00000000 },
+                                     { 0x01000000, 0x01000000, 0x02000000, 0x00000000 }, /* 0x30 */
+                                     { 0x01000000, 0x01000000, 0x02000000, 0x02000000 },
+                                     { 0x02000000, 0x00000000, 0x00000000, 0x00000000 },
+                                     { 0x02000000, 0x02000000, 0x00000000, 0x00000000 },
+                                     { 0x02000000, 0x02000000, 0x02000000, 0x00000000 },
+                                     { 0x02000000, 0x02000000, 0x02000000, 0x02000000 },
+                                     { 0x00400000, 0x00800000, 0x00800000, 0x00000000 },
+                                     { 0x00400000, 0x00800000, 0x00800000, 0x00800000 },
+                                     { 0x00400000, 0x00400000, 0x00800000, 0x00000000 }, /* 0x38 */
+                                     { 0x00400000, 0x00400000, 0x00800000, 0x00800000 },
+                                     { 0x00800000, 0x01000000, 0x00000000, 0x00000000 },
+                                     { 0x00800000, 0x00800000, 0x00800000, 0x01000000 },
+                                     { 0x00800000, 0x00800000, 0x01000000, 0x00000000 },
+                                     { 0x00800000, 0x00800000, 0x01000000, 0x01000000 },
+                                     { 0x00800000, 0x00800000, 0x02000000, 0x00000000 },
+                                     { 0x00800000, 0x00800000, 0x02000000, 0x02000000 } };
+
+static uint32_t
+sis_85c471_get_row(ram_bank_t *dev, uint32_t addr)
+{
+    uint32_t ret = 0x00000000;
+
+    switch (dev->virt_size) {
+        case 0x04000000:
+            ret = (addr >> 14) & 0x00000fff;
+            break;
+        case 0x01000000:
+            ret = (addr >> 13) & 0x000007ff;
+            break;
+        case 0x00400000:
+            ret = (addr >> 12) & 0x000003ff;
+            break;
+        case 0x00100000:
+            ret = (addr >> 11) & 0x000001ff;
+            break;
+    }
+
+    return ret;
+}
+
+static uint32_t
+sis_85c471_get_col(ram_bank_t *dev, uint32_t addr)
+{
+    uint32_t ret = 0x00000000;
+
+    switch (dev->virt_size) {
+        case 0x04000000:
+            ret = (addr >> 2) & 0x00000fff;
+            break;
+        case 0x01000000:
+            ret = (addr >> 2) & 0x000007ff;
+            break;
+        case 0x00400000:
+            ret = (addr >> 2) & 0x000003ff;
+            break;
+        case 0x00100000:
+            ret = (addr >> 2) & 0x000001ff;
+            break;
+    }
+
+    return ret;
+}
+
+static uint32_t
+sis_85c471_set_row(ram_bank_t *dev, uint32_t addr)
+{
+    uint32_t ret = 0x00000000;
+
+    switch (dev->phys_size) {
+        case 0x04000000:
+            ret = (addr & 0x00000fff) << 14;
+            break;
+        case 0x01000000:
+            ret = (addr & 0x000007ff) << 13;
+            break;
+        case 0x00400000:
+            ret = (addr & 0x000003ff) << 12;
+            break;
+        case 0x00100000:
+            ret = (addr & 0x000002ff) << 11;
+            break;
+    }
+
+    return ret;
+}
+
+static uint32_t
+sis_85c471_set_col(ram_bank_t *dev, uint32_t addr)
+{
+    uint32_t ret = 0x00000000;
+
+    switch (dev->phys_size) {
+        case 0x04000000:
+            ret = (addr & 0x00000fff) << 2;
+            break;
+        case 0x01000000:
+            ret = (addr & 0x000007ff) << 2;
+            break;
+        case 0x00400000:
+            ret = (addr & 0x000003ff) << 2;
+            break;
+        case 0x00100000:
+            ret = (addr & 0x000002ff) << 2;
+            break;
+    }
+
+    return ret;
+}
+
+static uint8_t
+sis_85c471_read_ram(uint32_t addr, void *priv)
+{
+    ram_bank_t *dev = (ram_bank_t *) priv;
+    uint32_t    rel = addr - dev->virt_base;
+    uint8_t     ret = 0xff;
+
+    if ((dev->virt_size == 0x01000000) && (dev->phys_size == 0x00400000)) {
+        uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
+        uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
+        uint32_t dw  = rel & 0x00000003;
+        rel = row | col | dw;
+    }
+
+    addr = (rel + dev->phys_base);
+
+    if ((addr < (mem_size << 10)) && (rel < dev->phys_size))
+        ret = ram[addr];
+
+    return ret;
+}
+
+static uint16_t
+sis_85c471_read_ramw(uint32_t addr, void *priv)
+{
+    ram_bank_t *dev = (ram_bank_t *) priv;
+    uint32_t    rel = addr - dev->virt_base;
+    uint16_t    ret = 0xffff;
+
+    if ((dev->virt_size == 0x01000000) && (dev->phys_size == 0x00400000)) {
+        uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
+        uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
+        uint32_t dw  = rel & 0x00000003;
+        rel = row | col | dw;
+    }
+
+    addr = (rel + dev->phys_base);
+
+    if ((addr < (mem_size << 10)) && (rel < dev->phys_size))
+        ret = *(uint16_t *) &(ram[addr]);
+
+    return ret;
+}
+
+static uint32_t
+sis_85c471_read_raml(uint32_t addr, void *priv)
+{
+    ram_bank_t *dev = (ram_bank_t *) priv;
+    uint32_t    rel = addr - dev->virt_base;
+    uint32_t    ret = 0xffffffff;
+
+    if ((dev->virt_size == 0x01000000) && (dev->phys_size == 0x00400000)) {
+        uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
+        uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
+        uint32_t dw  = rel & 0x00000003;
+        rel = row | col | dw;
+    }
+
+    addr = (rel + dev->phys_base);
+
+    if ((addr < (mem_size << 10)) && (rel < dev->phys_size))
+        ret = *(uint32_t *) &(ram[addr]);
+
+    return ret;
+}
+
+static void
+sis_85c471_write_ram(uint32_t addr, uint8_t val, void *priv)
+{
+    ram_bank_t *dev = (ram_bank_t *) priv;
+    uint32_t    rel = addr - dev->virt_base;
+
+    if ((dev->virt_size == 0x01000000) && (dev->phys_size == 0x00400000)) {
+        uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
+        uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
+        uint32_t dw  = rel & 0x00000003;
+        rel = row | col | dw;
+    }
+
+    addr = (rel + dev->phys_base);
+
+    if ((addr < (mem_size << 10)) && (rel < dev->phys_size))
+        ram[addr] = val;
+}
+
+static void
+sis_85c471_write_ramw(uint32_t addr, uint16_t val, void *priv)
+{
+    ram_bank_t *dev = (ram_bank_t *) priv;
+    uint32_t    rel = addr - dev->virt_base;
+
+    if ((dev->virt_size == 0x01000000) && (dev->phys_size == 0x00400000)) {
+        uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
+        uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
+        uint32_t dw  = rel & 0x00000003;
+        rel = row | col | dw;
+    }
+
+    addr = (rel + dev->phys_base);
+
+    if ((addr < (mem_size << 10)) && (rel < dev->phys_size))
+        *(uint16_t *) &(ram[addr]) = val;
+}
+
+static void
+sis_85c471_write_raml(uint32_t addr, uint32_t val, void *priv)
+{
+    ram_bank_t *dev = (ram_bank_t *) priv;
+    uint32_t    rel = addr - dev->virt_base;
+
+    if ((dev->virt_size == 0x01000000) && (dev->phys_size == 0x00400000)) {
+        uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
+        uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
+        uint32_t dw  = rel & 0x00000003;
+        rel = row | col | dw;
+    }
+
+    addr = (rel + dev->phys_base);
+
+    if ((addr < (mem_size << 10)) && (rel < dev->phys_size))
+        *(uint32_t *) &(ram[addr]) = val;
+}
 
 static void
 sis_85c4xx_recalcremap(sis_85c4xx_t *dev)
@@ -159,6 +476,60 @@ sis_85c4xx_sw_smi_handler(sis_85c4xx_t *dev)
 }
 
 static void
+sis_85c471_banks_split(uint32_t *b_ex, uint32_t *banks)
+{
+    for (uint8_t i = 0; i < 4; i++) {
+        if ((banks[i] == 0x00200000) || (banks[i] == 0x00800000) ||
+            (banks[i] == 0x02000000))
+            b_ex[i << 1] = b_ex[(i << 1) + 1] = banks[i] >> 1;
+        else {
+            b_ex[i << 1] = banks[i];
+            b_ex[(i << 1) + 1] = 0x00000000;
+        }
+    }
+}
+
+static void
+sis_85c471_banks_recalc(sis_85c4xx_t *dev)
+{
+    for (uint8_t i = 0; i < 8; i++)
+        mem_mapping_disable(&dev->ram_banks[i].mapping);
+
+    mem_mapping_disable(&ram_low_mapping);
+    mem_mapping_disable(&ram_high_mapping);
+    mem_set_mem_state_both(1 << 20, 127 << 20, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+
+    if ((dev->regs[0x09] & 0x3f) == dev->ram_banks_val) {
+        if (mem_size > 1024) {
+            mem_mapping_enable(&ram_low_mapping);
+            mem_mapping_enable(&ram_high_mapping);
+            mem_set_mem_state_both(1 << 20, (mem_size << 10) - (1 << 20),
+                                   MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+        }
+    } else {
+        uint8_t   banks_val = dev->regs[0x09] & 0x3f;
+        uint32_t *banks     = banks_471[banks_val];
+        uint32_t  b_ex[8]   = { 0x00000000 };
+        uint32_t  size      = 0x00000000;
+
+        sis_85c471_banks_split(b_ex, banks);
+
+        for (uint8_t i = 0; i < 8; i++)  if (b_ex[i] != 0x00000000) {
+            dev->ram_banks[i].virt_base = size;
+            dev->ram_banks[i].virt_size = b_ex[i];
+
+            mem_mapping_set_addr(&dev->ram_banks[i].mapping, size, b_ex[i]);
+
+            size += b_ex[i];
+        }
+
+        mem_set_mem_state_both(1 << 20, 127 << 20, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    }
+
+    flushmmucache_nopc();
+}
+
+static void
 sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
 {
     sis_85c4xx_t *dev       = (sis_85c4xx_t *) priv;
@@ -174,12 +545,23 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
         case 0x23:
             if ((dev->cur_reg >= dev->reg_base) && (dev->cur_reg <= dev->reg_last)) {
                 valxor = val ^ dev->regs[rel_reg];
-                if (rel_reg == 0x00)
+
+                if (!dev->is_471 && (rel_reg == 0x00))
                     dev->regs[rel_reg] = (dev->regs[rel_reg] & 0x1f) | (val & 0xe0);
                 else
                     dev->regs[rel_reg] = val;
 
                 switch (rel_reg) {
+                    case 0x00:
+                        if (val & 0x01) {
+                            kbc_at_set_fast_reset(0);
+                            cpu_cpurst_on_sr = 1;
+                        } else {
+                            kbc_at_set_fast_reset(1);
+                            cpu_cpurst_on_sr = 0;
+                        }
+                        break;
+
                     case 0x01:
                         cpu_cache_ext_enabled = ((val & 0x84) == 0x84);
                         cpu_update_waitstates();
@@ -190,6 +572,13 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
                     case 0x08:
                         if (valxor)
                             sis_85c4xx_recalcmapping(dev);
+                        if (rel_reg == 0x08)
+                            flushmmucache();
+                        break;
+
+                    case 0x09:
+                        if (dev->is_471)
+                            sis_85c471_banks_recalc(dev);
                         break;
 
                     case 0x0b:
@@ -297,14 +686,6 @@ sis_85c4xx_reset(void *priv)
 {
     sis_85c4xx_t  *dev         = (sis_85c4xx_t *) priv;
     int            mem_size_mb = mem_size >> 10;
-    static uint8_t ram_4xx[64] = { 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x04, 0x00, 0x05, 0x00, 0x0b, 0x00, 0x00, 0x00,
-                                   0x19, 0x00, 0x06, 0x00, 0x14, 0x00, 0x00, 0x00, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                   0x1b, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                   0x1e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-    static uint8_t ram_471[64] = { 0x00, 0x00, 0x01, 0x01, 0x02, 0x20, 0x09, 0x09, 0x04, 0x04, 0x05, 0x05, 0x0b, 0x0b, 0x0b, 0x0b,
-                                   0x13, 0x21, 0x06, 0x06, 0x0d, 0x0d, 0x0d, 0x0d, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e,
-                                   0x1b, 0x1b, 0x1b, 0x1b, 0x0f, 0x0f, 0x0f, 0x0f, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17,
-                                   0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e };
 
     memset(dev->regs, 0x00, sizeof(dev->regs));
 
@@ -314,12 +695,35 @@ sis_85c4xx_reset(void *priv)
     if (dev->is_471) {
         dev->regs[0x09] = 0x40;
         if (mem_size_mb >= 64) {
-            if ((mem_size_mb >= 65) && (mem_size_mb < 68))
-                dev->regs[0x09] |= 0x22;
+            if ((mem_size_mb >= 64) && (mem_size_mb < 68))
+                dev->regs[0x09] |= 0x33;
+            if ((mem_size_mb >= 68) && (mem_size_mb < 72))
+                dev->regs[0x09] |= 0x2b;
+            if ((mem_size_mb >= 72) && (mem_size_mb < 80))
+                dev->regs[0x09] |= 0x2d;
+            if ((mem_size_mb >= 80) && (mem_size_mb < 96))
+                dev->regs[0x09] |= 0x2f;
             else
-                dev->regs[0x09] |= 0x24;
-        } else
+                dev->regs[0x09] |= 0x29;
+        } else if (!strcmp(machine_get_internal_name(), "tg486g"))
+            dev->regs[0x09] |= ram_tg486g[mem_size_mb];
+        else
             dev->regs[0x09] |= ram_471[mem_size_mb];
+        dev->ram_banks_val = dev->regs[0x09] & 0x3f;
+        dev->regs[0x09] = 0x00;
+
+        uint32_t *banks   = banks_471[dev->ram_banks_val];
+        uint32_t  b_ex[8] = { 0x00000000 };
+        uint32_t  size    = 0x00000000;
+
+        sis_85c471_banks_split(b_ex, banks);
+
+        for (uint8_t i = 0; i < 8; i++) {
+            dev->ram_banks[i].phys_base = size;
+            dev->ram_banks[i].phys_size = b_ex[i];
+
+            size += b_ex[i];
+        }
 
         dev->regs[0x11] = 0x09;
         dev->regs[0x12] = 0xff;
@@ -332,6 +736,11 @@ sis_85c4xx_reset(void *priv)
         port_92_remove(dev->port_92);
 
         soft_reset_mask = 0;
+
+        sis_85c471_banks_recalc(dev);
+
+        kbc_at_set_fast_reset(1);
+        cpu_cpurst_on_sr = 0;
     } else {
         /* Bits 6 and 7 must be clear on the SiS 40x. */
         if (dev->reg_base == 0x60)
@@ -380,6 +789,14 @@ sis_85c4xx_init(const device_t *info)
         dev->smram = smram_add();
 
         dev->port_92 = device_add(&port_92_device);
+
+        for (uint8_t i = 0; i < 8; i++) {
+            mem_mapping_add(&dev->ram_banks[i].mapping, 0x00000000, 0x00000000,
+                            sis_85c471_read_ram, sis_85c471_read_ramw, sis_85c471_read_raml,
+                            sis_85c471_write_ram, sis_85c471_write_ramw, sis_85c471_write_raml,
+                            NULL, MEM_MAPPING_INTERNAL, &(dev->ram_banks[i]));
+            mem_mapping_disable(&dev->ram_banks[i].mapping);
+        }
     } else
         dev->reg_last = dev->reg_base + 0x11;
 

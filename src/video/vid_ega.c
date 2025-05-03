@@ -1180,9 +1180,7 @@ ega_write(uint32_t addr, uint8_t val, void *priv)
     cycles -= video_timing_write_b;
 
     if (ega->chain2_write) {
-        writemask2 &= ~0xa;
-        if (addr & 1)
-            writemask2 <<= 1;
+        writemask2 &= 0x5 << (addr & 1);
     }
 
     addr = ega_remap_cpu_addr(addr, ega);
