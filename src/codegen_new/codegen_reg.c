@@ -187,10 +187,12 @@ struct
 void
 codegen_reg_mark_as_required(void)
 {
-    for (uint8_t reg = 0; reg < IREG_COUNT; reg++) {
+    /* This used to start from IREG_EAX, now only starts from IREG_ESP since the first 4 registers are never optimized out. */
+    /* It also no longer iterates through volatile registers unnecessarily. */
+    for (uint8_t reg = IREG_ESP; reg < IREG_temp0; reg++) {
         int last_version = reg_last_version[reg];
 
-        if (last_version > 0 && ireg_data[reg].is_volatile == REG_PERMANENT)
+        if (last_version > 0)
             reg_version[reg][last_version].flags |= REG_FLAGS_REQUIRED;
     }
 }
