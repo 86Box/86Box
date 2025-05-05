@@ -180,7 +180,6 @@ cmake_dependent_option(GUSMAX         "Gravis UltraSound MAX"                   
 cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                              ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                        ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(ISAMEM_BRAT    "BocaRAM/AT"                               ON    "DEV_BRANCH"  OFF)
-cmake_dependent_option(LASERXT        "VTech Laser XT"                           ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(OLIVETTI       "Olivetti M290"                            ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(OPEN_AT        "OpenAT"                                   ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(OPL4ML         "OPL4-ML daughterboard"                    ON    "DEV_BRANCH"  OFF)
