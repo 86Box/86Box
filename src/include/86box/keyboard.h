@@ -224,9 +224,7 @@ extern const device_t keyboard_xt86_device;
 extern const device_t keyboard_xt_compaq_device;
 extern const device_t keyboard_xt_t1x00_device;
 extern const device_t keyboard_tandy_device;
-#    ifdef USE_LASERXT
 extern const device_t keyboard_xt_lxt3_device;
-#    endif /* USE_LASERXT */
 extern const device_t keyboard_xt_olivetti_device;
 extern const device_t keyboard_xt_zenith_device;
 extern const device_t keyboard_xt_hyundai_device;
