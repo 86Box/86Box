@@ -39,6 +39,7 @@
 #include <86box/video.h>
 #include <86box/machine.h>
 #include <86box/isamem.h>
+#include <86box/isarom.h>
 #include <86box/pci.h>
 #include <86box/plat_unused.h>
 
@@ -110,6 +111,11 @@ machine_init_ex(int m)
 
         /* Reset any ISA memory cards. */
         isamem_reset();
+
+#if 0
+        /* Reset any ISA ROM cards. */
+        isarom_reset();
+#endif
 
         /* Reset the fast off stuff. */
         cpu_fast_off_reset();
