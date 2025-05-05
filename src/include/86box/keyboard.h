@@ -285,6 +285,7 @@ extern int      keyboard_isfsexit(void);
 extern int      keyboard_isfsexit_up(void);
 extern void     keyboard_set_is_amstrad(int ams);
 extern void     kbc_at_set_ps2(void *priv, uint8_t ps2);
+extern uint8_t  kbc_at_read_p(void *priv, uint8_t port, uint8_t mask);
 extern void     kbc_at_write_p(void *priv, uint8_t port, uint8_t mask, uint8_t val);
 
 extern void         kbc_at_set_fast_reset(uint8_t new_fast_reset);
