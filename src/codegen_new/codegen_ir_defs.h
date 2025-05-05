@@ -41,8 +41,8 @@
 #define UOP_LOAD_FUNC_ARG_2_IMM (UOP_TYPE_PARAMS_IMM | 0x0a | UOP_TYPE_BARRIER)
 #define UOP_LOAD_FUNC_ARG_3_IMM (UOP_TYPE_PARAMS_IMM | 0x0b | UOP_TYPE_BARRIER)
 #define UOP_CALL_FUNC           (UOP_TYPE_PARAMS_POINTER | 0x10 | UOP_TYPE_BARRIER)
-/*UOP_CALL_INSTRUCTION_FUNC - call instruction handler at p, check return value and exit block if non-zero*/
-#define UOP_CALL_INSTRUCTION_FUNC (UOP_TYPE_PARAMS_POINTER | 0x11 | UOP_TYPE_BARRIER)
+/*UOP_CALL_INSTRUCTION_FUNC - call instruction handler at p with fetchdat, check return value and exit block if non-zero*/
+#define UOP_CALL_INSTRUCTION_FUNC (UOP_TYPE_PARAMS_POINTER | UOP_TYPE_PARAMS_IMM | 0x11 | UOP_TYPE_BARRIER)
 #define UOP_STORE_P_IMM           (UOP_TYPE_PARAMS_IMM | 0x12)
 #define UOP_STORE_P_IMM_8         (UOP_TYPE_PARAMS_IMM | 0x13)
 /*UOP_LOAD_SEG - load segment in src_reg_a to segment p via loadseg(), check return value and exit block if non-zero*/
@@ -662,7 +662,7 @@ uop_gen_reg_src2_pointer(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int sr
 
 #define uop_CALL_FUNC(ir, p)                                     uop_gen_pointer(UOP_CALL_FUNC, ir, p)
 #define uop_CALL_FUNC_RESULT(ir, dst_reg, p)                     uop_gen_reg_dst_pointer(UOP_CALL_FUNC_RESULT, ir, dst_reg, p)
-#define uop_CALL_INSTRUCTION_FUNC(ir, p)                         uop_gen_pointer(UOP_CALL_INSTRUCTION_FUNC, ir, p)
+#define uop_CALL_INSTRUCTION_FUNC(ir, p, imm)                    uop_gen_pointer_imm(UOP_CALL_INSTRUCTION_FUNC, ir, p, imm)
 
 #define uop_CMP_IMM_JZ(ir, src_reg, imm, p)                      uop_gen_reg_src_pointer_imm(UOP_CMP_IMM_JZ, ir, src_reg, p, imm)
 
