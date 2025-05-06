@@ -14016,7 +14016,7 @@ const machine_t machines[] = {
     /* Has the VIA VT82C596A southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
     {
-        .name = "[VIA MVP3] TriGem Delhi-III",
+        .name = "[VIA MVP3] eMachines eTower 3xxc",
         .internal_name = "delhi3",
         .type = MACHINE_TYPE_SOCKETS7,
         .chipset = MACHINE_CHIPSET_VIA_APOLLO_MVP3,
