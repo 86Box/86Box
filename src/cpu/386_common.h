@@ -277,6 +277,19 @@ int checkio(uint32_t port, int mask);
 #define CHECK_WRITE(chseg, low, high) \
     CHECK_WRITE_COMMON(chseg, low, high)
 
+#define CHECK_WRITE_2OP(chseg, low, high, low2, high2)                                                                                                                             \
+    if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high) || (low2 < (chseg)->limit_low) || (high2 > (chseg)->limit_high) || !((chseg)->access & 2) || ((msw & 1) && !(cpu_state.eflags & VM_FLAG) && ((chseg)->access & 8))) { \
+        x86gpf("Limit check (WRITE)", 0);                                                                                                                                \
+        return 1;                                                                                                                                                        \
+    }                                                                                                                                                                    \
+    if (msw & 1 && !(cpu_state.eflags & VM_FLAG) && !((chseg)->access & 0x80)) {                                                                                         \
+        if ((chseg) == &cpu_state.seg_ss)                                                                                                                                \
+            x86ss(NULL, (chseg)->seg & 0xfffc);                                                                                                                          \
+        else                                                                                                                                                             \
+            x86np("Write to seg not present", (chseg)->seg & 0xfffc);                                                                                                    \
+        return 1;                                                                                                                                                        \
+    }
+
 #define CHECK_WRITE_REP(chseg, low, high)                                        \
     if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high)) {            \
         x86gpf("Limit check (WRITE REP)", 0);                                    \

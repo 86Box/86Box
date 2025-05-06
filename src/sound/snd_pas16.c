@@ -792,7 +792,14 @@ pas16_in(uint16_t port, void *priv)
                 if ((scsi_bus->tx_mode == PIO_TX_BUS) && !(ret & 0x80))
                     ret |= 0x80;
 
-                pas16_log("5C01 read ret=%02x, status=%02x, txmode=%x.\n", ret, pas16->scsi->status & 0x06, scsi_bus->tx_mode);
+                if (ret & 0x80) {
+                    if (scsi_bus->data_repeat < MIN(511, scsi_bus->total_len))
+                        scsi_bus->data_repeat++;
+                } else {
+                    if (scsi_bus->data_repeat == MIN(511, scsi_bus->total_len))
+                        ret = 0x00;
+                }
+                pas16_log("%04X:%08X: Port %04x read ret=%02x, status=%02x, txmode=%x, repeat=%d.\n", CS, cpu_state.pc, port + pas16->base, ret, pas16->scsi->status & 0x06, scsi_bus->tx_mode, scsi_bus->data_repeat);
             }
             break;
         case 0x5c03:
@@ -1749,7 +1756,7 @@ static uint16_t
 pas16_readdmaw_stereo(pas16_t *pas16)
 {
     uint16_t ret;
-    uint16_t ticks = (pas16->sys_conf_1 & 0x02) ? (1 + (pas16->dma < 5)) : 2;
+    uint16_t ticks = (pas16->sys_conf_1 & 0x02) ? (1 + (pas16->dma < 5)) : 1;
 
     ret = pas16_dma_readw(pas16, ticks);
 

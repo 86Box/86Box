@@ -22,12 +22,12 @@
     }
 
 #define MMX_ENTER()                          \
-    if (!cpu_has_feature(CPU_FEATURE_MMX)) { \
+    if (!cpu_has_feature(CPU_FEATURE_MMX) || (cr0 & 0x4)) { \
         cpu_state.pc = cpu_state.oldpc;      \
         x86illegal();                        \
         return 1;                            \
     }                                        \
-    if (cr0 & 0xc) {                         \
+    if (cr0 & 0x8) {                         \
         x86_int(7);                          \
         return 1;                            \
     }                                        \

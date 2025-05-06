@@ -48,14 +48,22 @@ extern const device_t fdc37c669_370_device;
 
 extern const device_t fdc37c67x_device;
 
-extern const device_t fdc37c931apm_device;
-extern const device_t fdc37c931apm_compaq_device;
-extern const device_t fdc37c932fr_device;
-extern const device_t fdc37c932qf_device;
-extern const device_t fdc37c932_device;
-extern const device_t fdc37c935_device;
-extern const device_t fdc37c935_370_device;
-extern const device_t fdc37c935_no_nvr_device;
+#define FDC37C93X_NORMAL     0x0002
+#define FDC37C93X_FR         0x0003
+#define FDC37C93X_APM        0x0030
+#define FDC37C93X_CHIP_ID    0x00ff
+
+#define FDC37C931            0x0100    /* Compaq KBC firmware and configuration registers on GPIO ports. */
+#define FDC37C932            0x0200    /* AMI '5' Megakey KBC firmware. */
+#define FDC37C933            0x0300    /* IBM KBC firmware. */
+#define FDC37C935            0x0500    /* Phoenix Multikey/42 1.38 KBC firmware. */
+#define FDC37C937            0x0700    /* Phoenix Multikey/42i 4.16 KBC firmware. */
+#define FDC37C93X_KBC        0x0f00
+
+#define FDC37C93X_NO_NVR     0x1000
+#define FDC37C93X_370        0x2000
+
+extern const device_t fdc37c93x_device;
 
 extern const device_t fdc37m60x_device;
 extern const device_t fdc37m60x_370_device;

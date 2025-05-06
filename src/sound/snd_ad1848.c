@@ -19,11 +19,12 @@
  *           Copyright 2021-2025 RichardG.
  */
 #include <math.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
-
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/dma.h>
 #include <86box/pic.h>
@@ -36,6 +37,24 @@
 #define CS4232 0x02
 #define CS4236 0x03
 
+#ifdef ENABLE_AD1848_LOG
+int ad1848_do_log = ENABLE_AD1848_LOG;
+
+static void
+ad1848_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (ad1848_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define ad1848_log(fmt, ...)
+#endif
+
 static int    ad1848_vols_7bits[128];
 static double ad1848_vols_5bits_aux_gain[32];
 
@@ -46,12 +65,14 @@ extern uint8_t adjustMap4[64];
 void
 ad1848_setirq(ad1848_t *ad1848, int irq)
 {
+    ad1848_log("AD1848: setirq(%d)\n", irq);
     ad1848->irq = irq;
 }
 
 void
 ad1848_setdma(ad1848_t *ad1848, int newdma)
 {
+    ad1848_log("AD1848: setdma(%d)\n", newdma);
     ad1848->dma = newdma;
 }
 
@@ -62,6 +83,7 @@ ad1848_updatevolmask(ad1848_t *ad1848)
         ad1848->wave_vol_mask = 0x7f;
     else
         ad1848->wave_vol_mask = 0x3f;
+    ad1848_log("AD1848: updatevolmask(%02X)\n", ad1848->wave_vol_mask);
 }
 
 static double
@@ -98,6 +120,8 @@ ad1848_get_default_freq(ad1848_t *ad1848)
             freq /= 2560.0;
             break;
     }
+
+    ad1848_log("AD1848: Frequency %f through default path\n", freq);
 
     return freq;
 }
@@ -136,6 +160,8 @@ ad1848_updatefreq(ad1848_t *ad1848)
                     freq /= 2558.0;
                     break;
             }
+
+            ad1848_log("AD1848: Frequency %f through CS4236B+ path\n", freq);
         } else if (ad1848->regs[22] & 0x80) {
             const uint8_t set = (ad1848->regs[22] >> 1) & 0x3f;
             freq = (ad1848->regs[22] & 1) ? 33868800.0 : 49152000.0;
@@ -153,6 +179,8 @@ ad1848_updatefreq(ad1848_t *ad1848)
                     freq /= 256 * set;
                     break;
             }
+
+            ad1848_log("AD1848: Frequency %f through CS4232+ path\n", freq);
         } else
             freq = ad1848_get_default_freq(ad1848);
     } else
@@ -182,18 +210,16 @@ ad1848_read(uint16_t addr, void *priv)
                     ad1848->regs[ad1848->index] = ret;
                     break;
 
-                case 18:
-                case 19:
+                case 18 ... 19:
                     if (ad1848->type >= AD1848_TYPE_CS4236B) {
                         if ((ad1848->xregs[4] & 0x14) == 0x14)               /* FM remapping */
-                            ret = ad1848->xregs[ad1848->index - 12];         /* real FM volume on registers 6 and 7 */
+                            ret = ad1848->xregs[6 | (ad1848->index & 1)];    /* real FM volume on registers 6 and 7 */
                         else if (ad1848->wten && !(ad1848->xregs[4] & 0x08)) /* wavetable remapping */
-                            ret = ad1848->xregs[ad1848->index - 2];          /* real wavetable volume on registers 16 and 17 */
+                            ret = ad1848->xregs[16 | (ad1848->index & 1)];   /* real wavetable volume on registers 16 and 17 */
                     }
                     break;
 
-                case 20:
-                case 21:
+                case 20 ... 21:
                     /* Backdoor to the Control/RAM registers on CS4235+. */
                     if ((ad1848->type >= AD1848_TYPE_CS4235) && (ad1848->xregs[18] & 0x80))
                         ret = ad1848->cram_read(ad1848->index - 15, ad1848->cram_priv);
@@ -229,13 +255,16 @@ ad1848_read(uint16_t addr, void *priv)
                             default:
                                 break;
                         }
+                        ad1848_log("AD1848: read(X%d) = %02X\n", ad1848->xindex, ret);
+                        return ret;
                     }
                     break;
 
                 default:
                     break;
             }
-            break;
+            ad1848_log("AD1848: read(I%d) = %02X\n", ad1848->index, ret);
+            return ret;
 
         case 2:
             ret = ad1848->status;
@@ -244,6 +273,8 @@ ad1848_read(uint16_t addr, void *priv)
         default:
             break;
     }
+
+    ad1848_log("AD1848: read(%04X) = %02X\n", addr, ret);
 
     return ret;
 }
@@ -295,7 +326,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 11:
-                    return;
+                    goto readonly_i;
 
                 case 12:
                     if (ad1848->type >= AD1848_TYPE_CS4248) {
@@ -307,19 +338,19 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                                 ad1848->fmt_mask &= ~0x80;
                         }
                     }
-                    return;
+                    goto readonly_i;
 
                 case 14:
                     ad1848->count = ad1848->regs[15] | (val << 8);
                     break;
 
-                case 18:
-                case 19:
+                case 18 ... 19:
                     if (ad1848->type >= AD1848_TYPE_CS4236B) {
                         if (ad1848->type >= AD1848_TYPE_CS4235) {
                             if (ad1848->xregs[18] & 0x20)              /* AUX1 remapping */
                                 ad1848->regs[ad1848->index & 3] = val; /* also controls AUX1 on registers 2 and 3 */
                         } else {
+                            temp = 0;
                             if ((ad1848->xregs[4] & 0x14) == 0x14) {          /* FM remapping */
                                 ad1848->xregs[6 | (ad1848->index & 1)] = val; /* real FM volume on extended registers 6 and 7 */
                                 temp                                   = 1;
@@ -343,7 +374,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                             /* Stop here if any remapping is enabled. */
                             if (temp)
-                                return;
+                                goto readonly_i;
                         }
 
                         /* HACK: the Windows 9x driver's "Synth" control writes to this
@@ -362,8 +393,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                     }
                     break;
 
-                case 20:
-                case 21:
+                case 20 ... 21:
                     /* Backdoor to the Control/RAM registers on CS4235+. */
                     if ((ad1848->type >= AD1848_TYPE_CS4235) && (ad1848->xregs[18] & 0x80)) {
                         ad1848->cram_write(ad1848->index - 15, val, ad1848->cram_priv);
@@ -421,7 +451,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                                 break;
 
                             case 25:
-                                return;
+                                goto readonly_x;
 
                             case 26 ... 28:
                             case 30:
@@ -438,6 +468,8 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                         if (updatefreq)
                             ad1848_updatefreq(ad1848);
 
+readonly_x:
+                        ad1848_log("AD1848: write(X%d, %02X)\n", ad1848->xindex, val);
                         return;
                     }
                     break;
@@ -451,14 +483,14 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 25:
-                    return;
+                    goto readonly_i;
                 case 27:
                     if ((ad1848->type != AD1848_TYPE_CS4232) && (ad1848->type != AD1848_TYPE_CS4236))
-                        return;
+                        goto readonly_i;
                     break;
                 case 29:
                     if ((ad1848->type != AD1848_TYPE_CS4232) && (ad1848->type != AD1848_TYPE_CS4236))
-                        return;
+                        goto readonly_i;
                     break;
 
                 default:
@@ -480,7 +512,9 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
             else
                 ad1848->cd_vol_r = ad1848_vols_5bits_aux_gain[ad1848->regs[temp] & 0x1f];
 
-            break;
+readonly_i:
+            ad1848_log("AD1848: write(I%d, %02X)\n", ad1848->index, val);
+            return;
 
         case 2:
             ad1848->status &= 0xfe;
@@ -490,6 +524,8 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
         default:
             break;
     }
+
+    ad1848_log("AD1848: write(%04X, %02X)\n", addr, val);
 }
 
 void
@@ -742,6 +778,8 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
 {
     uint8_t c;
     double  attenuation;
+
+    ad1848_log("AD1848: init(%02X)\n", type);
 
     ad1848->status = 0xcc;
     ad1848->index = ad1848->trd = 0;

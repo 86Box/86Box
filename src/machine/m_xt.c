@@ -108,7 +108,7 @@ static const device_config_t ibmpc_config[] = {
 };
 
 const device_t ibmpc_device = {
-    .name          = "IBM PC (1981) Device",
+    .name          = "IBM PC (1981)",
     .internal_name = "ibmpc_device",
     .flags         = 0,
     .local         = 0,
@@ -218,7 +218,7 @@ static const device_config_t ibmpc82_config[] = {
 };
 
 const device_t ibmpc82_device = {
-    .name          = "IBM PC (1982) Devices",
+    .name          = "IBM PC (1982)",
     .internal_name = "ibmpc82_device",
     .flags         = 0,
     .local         = 0,
@@ -331,7 +331,7 @@ static const device_config_t ibmxt_config[] = {
 };
 
 const device_t ibmxt_device = {
-    .name          = "IBM XT (1982) Device",
+    .name          = "IBM XT (1982)",
     .internal_name = "ibmxt_device",
     .flags         = 0,
     .local         = 0,
@@ -451,7 +451,7 @@ static const device_config_t ibmxt86_config[] = {
 };
 
 const device_t ibmxt86_device = {
-    .name          = "IBM XT (1986) Device",
+    .name          = "IBM XT (1986)",
     .internal_name = "ibmxt86_device",
     .flags         = 0,
     .local         = 0,
@@ -624,7 +624,7 @@ static const device_config_t jukopc_config[] = {
 };
 
 const device_t jukopc_device = {
-    .name          = "Juko ST Devices",
+    .name          = "Juko ST",
     .internal_name = "jukopc_device",
     .flags         = 0,
     .local         = 0,
@@ -949,7 +949,7 @@ static const device_config_t vendex_config[] = {
 };
 
 const device_t vendex_device = {
-    .name          = "Vendex 888T Devices",
+    .name          = "Vendex 888T",
     .internal_name = "vendex_device",
     .flags         = 0,
     .local         = 0,

@@ -169,8 +169,8 @@ machine_at_tek932_init(const machine_t *model)
     device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&i430nx_device);
     device_add(&sio_zb_device);
-    device_add(&fdc37c665_ide_device);
     device_add(&ide_vlb_device);
+    device_add(&fdc37c665_ide_pri_device);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;

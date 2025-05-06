@@ -584,7 +584,10 @@ mo_data_command_finish(mo_t *dev, int len, const int block_len,
                 mo_command_write_dma(dev);
         } else {
             mo_update_request_length(dev, len, block_len);
-            if (direction == 0)
+            if ((dev->drv->bus_type != MO_BUS_SCSI) &&
+                (dev->tf->request_length == 0))
+                mo_command_complete(dev);
+            else if (direction == 0)
                 mo_command_read(dev);
             else
                 mo_command_write(dev);
@@ -625,6 +628,7 @@ mo_cmd_error(mo_t *dev)
     dev->callback          = 50.0 * MO_TIME;
     mo_set_callback(dev);
     ui_sb_update_icon(SB_MO | dev->id, 0);
+    ui_sb_update_icon_write(SB_MO | dev->id, 0);
     mo_log(dev->log, "[%02X] ERROR: %02X/%02X/%02X\n", dev->current_cdb[0], mo_sense_key,
            mo_asc, mo_ascq);
 }
@@ -641,6 +645,7 @@ mo_unit_attention(mo_t *dev)
     dev->callback      = 50.0 * MO_TIME;
     mo_set_callback(dev);
     ui_sb_update_icon(SB_MO | dev->id, 0);
+    ui_sb_update_icon_write(SB_MO | dev->id, 0);
     mo_log(dev->log, "UNIT ATTENTION\n");
 }
 
@@ -1459,7 +1464,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                     mo_data_command_finish(dev, dev->packet_len, dev->drv->sector_size,
                                            dev->packet_len, 1);
 
-                    ui_sb_update_icon(SB_MO | dev->id,
+                    ui_sb_update_icon_write(SB_MO | dev->id,
                                       dev->packet_status != PHASE_COMPLETE);
                 } else {
                     mo_set_phase(dev, SCSI_PHASE_STATUS);
@@ -1498,7 +1503,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                                            dev->drv->sector_size,
                                            alloc_length, 1);
 
-                    ui_sb_update_icon(SB_MO | dev->id,
+                    ui_sb_update_icon_write(SB_MO | dev->id,
                                       dev->packet_status != PHASE_COMPLETE);
                 } else {
                     mo_set_phase(dev, SCSI_PHASE_STATUS);

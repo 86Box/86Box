@@ -680,8 +680,7 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
 
             /* Seek time is in us. */
             period = cdrom_seek_time(dev->drv);
-            scsi_cdrom_log(dev->log, "Seek period: %" PRIu64 " us\n",
-                           (uint64_t) period);
+            scsi_cdrom_log(dev->log, "Seek period: %lf us\n", period);
             dev->callback += period;
 
             /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
@@ -696,21 +695,17 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
         }
 
         period = 1000000.0 / bytes_per_second;
-        scsi_cdrom_log(dev->log, "Byte transfer period: %" PRIu64 " us\n",
-                       (uint64_t) period);
+        scsi_cdrom_log(dev->log, "Byte transfer period: %lf us\n", period);
         if (dev->was_cached == -1)
             period *= (double) dev->packet_len;
         else {
             const int num = ((dev->drv->bus_type == CDROM_BUS_SCSI) ||
-                             (dev->block_len == 0)) ?
-                            dev->requested_blocks :
-                            ((scsi_cdrom_current_mode(dev) == 2) ? 1 :
-                             (dev->packet_len  / dev->block_len));
+                             (dev->block_len == 0)) ? dev->sectors_num :
+                            ((scsi_cdrom_current_mode(dev) == 2) ? 1 : dev->sectors_num);
 
             period *= ((double) num) * 2352.0;
         }
-        scsi_cdrom_log(dev->log, "Sector transfer period: %" PRIu64 " us\n",
-                       (uint64_t) period);
+        scsi_cdrom_log(dev->log, "Sector transfer period: %lf us\n", period);
         dev->callback += period;
     }
     scsi_cdrom_set_callback(dev);
@@ -800,7 +795,10 @@ scsi_cdrom_data_command_finish(scsi_cdrom_t *dev, int len, int block_len, int al
                 scsi_cdrom_command_write_dma(dev);
         } else {
             scsi_cdrom_update_request_length(dev, len, block_len);
-            if (direction == 0)
+            if ((dev->drv->bus_type != CDROM_BUS_SCSI) &&
+                (dev->tf->request_length == 0))
+                scsi_cdrom_command_complete(dev);
+            else if (direction == 0)
                 scsi_cdrom_command_read(dev);
             else
                 scsi_cdrom_command_write(dev);
@@ -1048,6 +1046,8 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
     int       num      = (dev->drv->bus_type == CDROM_BUS_SCSI) ?
                          dev->requested_blocks : 1;
 
+    dev->sectors_num   = 0;
+
     if (dev->drv->cd_status == CD_STATUS_EMPTY)
         scsi_cdrom_not_ready(dev);
     else if (dev->sector_pos > dev->drv->cdrom_capacity) {
@@ -1055,7 +1055,7 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
         ret = -1;
     } else {
         ret = 1;
-        for (int i = 0; (i < num) && (ret > 0); i++) {
+        for (int i = 0; (i < num) && (ret > 0) && (dev->sector_len > 0); i++) {
             ret = cdrom_readsector_raw(dev->drv, dev->buffer + dev->buffer_pos,
                                        dev->sector_pos, msf, type,
                                        flags, &temp_len, vendor_type);
@@ -1070,7 +1070,11 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
 
                     if ((dev->drv->bus_type != CDROM_BUS_SCSI) &&
                         (scsi_cdrom_current_mode(dev) != 2)) {
-                        num = (dev->packet_len / dev->block_len);
+                        num = (dev->tf->request_length < dev->block_len) ?
+                              dev->block_len : dev->tf->request_length;
+                        num = (num / dev->block_len) * dev->block_len;
+                        if (num > dev->sector_len)
+                            num = dev->sector_len;
                     }
                 }
 
@@ -1078,6 +1082,7 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
                 dev->drv->seek_pos = dev->sector_pos;
 
                 dev->sector_len--;
+                dev->sectors_num++;
 
                 dev->buffer_pos += temp_len;
             }
@@ -2416,6 +2421,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
     int32_t      *BufLen;
 
     dev->was_cached  = -1;
+    dev->sectors_num = 1;
 
     if (dev->drv->bus_type == CDROM_BUS_SCSI) {
         BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
@@ -2604,6 +2610,11 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                         dev->sector_len = 256;
                     dev->sector_pos = ((((uint32_t) cdb[1]) & 0x1f) << 16) |
                                       (((uint32_t) cdb[2]) << 8) | ((uint32_t) cdb[3]);
+                    if (cdrom_is_track_audio(dev->drv, dev->sector_pos, msf,
+                                             dev->sector_type, 0x00)) {
+                        scsi_cdrom_illegal_mode(dev);
+                        ret = 0;
+                    }                        
                     scsi_cdrom_log(dev->log, "READ (6):  Length: %i, LBA: %i\n",
                                    dev->sector_len, dev->sector_pos);
                     break;
@@ -2611,6 +2622,12 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     dev->sector_len = (cdb[7] << 8) | cdb[8];
                     dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) |
                                       (cdb[4] << 8) | cdb[5];
+                    if (cdrom_is_track_audio(dev->drv, dev->sector_pos, msf,
+                                             dev->sector_type, dev->use_cdb_9 ?
+                                             (cdb[9] & 0xc0) : 0x00)) {
+                        scsi_cdrom_illegal_mode(dev);
+                        ret = 0;
+                    }                        
                     scsi_cdrom_log(dev->log, "READ (10): Length: %i, LBA: %i\n",
                                    dev->sector_len, dev->sector_pos);
                     break;
@@ -2621,6 +2638,12 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     dev->sector_pos = (((uint32_t) cdb[2]) << 24) |
                                       (((uint32_t) cdb[3]) << 16) |
                                       (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
+                    if (cdrom_is_track_audio(dev->drv, dev->sector_pos, msf,
+                                             dev->sector_type, dev->use_cdb_9 ?
+                                             (cdb[9] & 0xc0) : 0x00)) {
+                        scsi_cdrom_illegal_mode(dev);
+                        ret = 0;
+                    }                        
                     scsi_cdrom_log(dev->log, "READ (12): Length: %i, LBA: %i\n",
                                    dev->sector_len, dev->sector_pos);
                     break;

@@ -441,6 +441,8 @@ extern int machine_at_ibmatquadtel_init(const machine_t *); // IBM AT with Quadt
 
 extern int machine_at_ibmxt286_init(const machine_t *);
 
+extern int machine_at_pb286_init(const machine_t *);
+
 extern int machine_at_siemens_init(const machine_t *); // Siemens PCD-2L. N82330 discrete machine. It segfaults in some places
 
 extern int machine_at_wellamerastar_init(const machine_t *); // Wells American A*Star with custom award BIOS 
@@ -569,6 +571,7 @@ extern int machine_at_r418_init(const machine_t *);
 extern int machine_at_ls486e_init(const machine_t *);
 extern int machine_at_4dps_init(const machine_t *);
 extern int machine_at_ms4144_init(const machine_t *);
+extern int machine_at_acerp3_init(const machine_t *);
 extern int machine_at_4saw2_init(const machine_t *);
 extern int machine_at_m4li_init(const machine_t *);
 extern int machine_at_alfredo_init(const machine_t *);
@@ -779,6 +782,7 @@ extern int machine_at_ax59pro_init(const machine_t *);
 extern int machine_at_mvp3_init(const machine_t *);
 extern int machine_at_ficva503a_init(const machine_t *);
 extern int machine_at_5emapro_init(const machine_t *);
+extern int machine_at_delhi3_init(const machine_t *);
 
 extern int machine_at_5sg100_init(const machine_t *);
 
@@ -803,6 +807,7 @@ extern int machine_at_p65up5_cp6nd_init(const machine_t *);
 /* m_at_slot1.c */
 extern int machine_at_m729_init(const machine_t *);
 
+extern int machine_at_acerv62x_init(const machine_t *);
 extern int machine_at_p65up5_cpknd_init(const machine_t *);
 extern int machine_at_kn97_init(const machine_t *);
 
@@ -966,10 +971,14 @@ extern int machine_xt_compaq_deskpro_init(const machine_t *);
 extern int machine_xt_compaq_portable_init(const machine_t *);
 
 /* m_xt_laserxt.c */
-#ifdef USE_LASERXT
 extern int machine_xt_laserxt_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t laserxt_device;
+#endif
 extern int machine_xt_lxt3_init(const machine_t *);
-#endif /* USE_LASERXT */
+#ifdef EMU_DEVICE_H
+extern const device_t lxt3_device;
+#endif
 
 /* m_xt_philips.c */
 extern int machine_xt_p3105_init(const machine_t *);

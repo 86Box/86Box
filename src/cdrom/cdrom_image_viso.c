@@ -782,9 +782,8 @@ viso_close(void *priv)
     if (viso->entry_map)
         free(viso->entry_map);
 
-    if (tf->log != NULL) {
-
-    }
+    if (tf->log != NULL)
+        log_close(tf->log);
 
     free(viso);
 }
@@ -1607,10 +1606,12 @@ end:
 
         return &viso->tf;
     } else {
-        image_viso_log(viso->tf.log, "Initialization failed\n");
-        if (data)
-            free(data);
-        viso_close(&viso->tf);
+        if (viso != NULL) {
+            image_viso_log(viso->tf.log, "Initialization failed\n");
+            if (data)
+                free(data);
+            viso_close(&viso->tf);
+        }
         return NULL;
     }
 }

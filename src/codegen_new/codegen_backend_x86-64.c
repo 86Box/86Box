@@ -329,7 +329,7 @@ codegen_backend_init(void)
     host_x86_POP(block, REG_RSI);
 #endif
     host_x86_POP(block, REG_RBP);
-    host_x86_POP(block, REG_RDX);
+    host_x86_POP(block, REG_RBX);
     host_x86_RET(block);
 
     block_write_data = NULL;
@@ -392,7 +392,7 @@ codegen_backend_epilogue(codeblock_t *block)
     host_x86_POP(block, REG_RSI);
 #endif
     host_x86_POP(block, REG_RBP);
-    host_x86_POP(block, REG_RDX);
+    host_x86_POP(block, REG_RBX);
     host_x86_RET(block);
 }
 #endif

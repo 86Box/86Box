@@ -116,7 +116,7 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
     model->setHeaderData(ColumnHeads, Qt::Horizontal, tr("H"));
     model->setHeaderData(ColumnSectors, Qt::Horizontal, tr("S"));
     model->setHeaderData(ColumnSize, Qt::Horizontal, tr("MiB"));
-    model->setHeaderData(ColumnSpeed, Qt::Horizontal, tr("Speed"));
+    model->setHeaderData(ColumnSpeed, Qt::Horizontal, tr("Model"));
     ui->tableView->setModel(model);
 
     for (int i = 0; i < HDD_NUM; i++) {

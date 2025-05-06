@@ -493,14 +493,28 @@ pipc_reset_hard(void *priv)
             }
             dev->ac97_regs[i][0x1c] = 0x01;
 
+            if (i == 0) {
+                dev->ac97_regs[i][0x34] = 0xc0;
+
+                dev->ac97_regs[i][0xc0] = 0x01;
+                dev->ac97_regs[i][0xc1] = 0x00;
+                dev->ac97_regs[i][0xc2] = 0x03;
+                dev->ac97_regs[i][0xc3] = 0x00;
+
+                dev->ac97_regs[i][0xc4] = 0x00;
+                dev->ac97_regs[i][0xc5] = 0x00;
+                dev->ac97_regs[i][0xc6] = 0x00;
+                dev->ac97_regs[i][0xc7] = 0x00;
+            }
+
             dev->ac97_regs[i][0x3d] = 0x03;
 
-            if (i == 0)
+            if (i == 0) {
                 dev->ac97_regs[i][0x40] = 0x01;
-
-            dev->ac97_regs[i][0x43] = 0x1c;
-            dev->ac97_regs[i][0x48] = 0x01;
-            dev->ac97_regs[i][0x4b] = 0x02;
+                dev->ac97_regs[i][0x43] = 0x1c;
+                dev->ac97_regs[i][0x48] = 0x01;
+                dev->ac97_regs[i][0x4b] = 0x00;
+            }
 
             pipc_sgd_handlers(dev, i);
             pipc_codec_handlers(dev, i);
@@ -742,10 +756,12 @@ pipc_codec_handlers(pipc_t *dev, uint8_t modem)
     if (!dev->ac97)
         return;
 
+    uint32_t base = (dev->ac97_regs[modem][0x1d] << 8);
+
     if (modem)
-        ac97_via_remap_modem_codec(dev->ac97, dev->ac97_regs[1][0x1d] << 8, dev->ac97_regs[1][0x04] & PCI_COMMAND_IO);
+        ac97_via_remap_modem_codec(dev->ac97, base, dev->ac97_regs[1][0x04] & PCI_COMMAND_IO);
     else
-        ac97_via_remap_audio_codec(dev->ac97, dev->ac97_regs[0][0x1d] << 8, dev->ac97_regs[0][0x04] & PCI_COMMAND_IO);
+        ac97_via_remap_audio_codec(dev->ac97, base, dev->ac97_regs[0][0x04] & PCI_COMMAND_IO);
 }
 
 static uint8_t
@@ -1204,7 +1220,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x77:
                 if ((dev->local >= VIA_PIPC_686A) && (val & 0x10))
-                    pclog("PIPC: Warning: Internal I/O APIC enabled.\n");
+                    warning("PIPC: Warning: Internal I/O APIC enabled.\n");
                 nvr_via_wp_set(!!(val & 0x04), 0x32, dev->nvr);
                 nvr_via_wp_set(!!(val & 0x02), 0x0d, dev->nvr);
                 break;
@@ -1488,36 +1504,39 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
                 break;
         }
     } else if (func <= pm_func + 2) { /* AC97 / MC97 */
-        /* Read-only addresses. */
-        if ((addr < 0x4) || ((addr >= 0x6) && (addr < 0x9)) || ((addr >= 0xc) && (addr < 0x11)) || (addr == 0x16) || (addr == 0x17) || (addr == 0x1a) || (addr == 0x1b) || ((addr >= 0x1e) && (addr < 0x2c)) || ((addr >= 0x30) && (addr < 0x34)) || ((addr >= 0x35) && (addr < 0x3c)) || ((addr >= 0x3d) && (addr < 0x41)) || ((addr >= 0x45) && (addr < 0x4a)) || (addr >= 0x4c))
-            return;
-
         /* Small shortcut. */
         func = func - pm_func - 1;
 
-        /* Check disable bits and specific read-only addresses for both controllers. */
-        if ((func == 0) && (((addr >= 0x09) && (addr < 0xc)) || (addr == 0x44) || (dev->pci_isa_regs[0x85] & 0x04)))
+        /* Check disable bits. */
+        if ((func == 0) && (dev->pci_isa_regs[0x85] & 0x04))
             return;
 
-        if ((func == 1) && ((addr == 0x14) || (addr == 0x15) || (addr == 0x18) || (addr == 0x19) || (addr == 0x42) || (addr == 0x43) || (addr == 0x48) || (addr == 0x4a) || (addr == 0x4b) || (dev->pci_isa_regs[0x85] & 0x08)))
+        if ((func == 1) && (dev->pci_isa_regs[0x85] & 0x08))
             return;
 
         switch (addr) {
             case 0x04:
-                dev->ac97_regs[func][addr] = val;
+                dev->ac97_regs[func][addr] = val & 0x01;
                 pipc_sgd_handlers(dev, func);
+                if (func == 0) {
+                    pipc_fmnmi_handlers(dev, func);
+                    pipc_sb_handlers(dev, func);
+                }
                 pipc_codec_handlers(dev, func);
-                pipc_fmnmi_handlers(dev, func);
                 break;
 
             case 0x09:
             case 0x0a:
             case 0x0b:
-                if (dev->ac97_regs[func][0x44] & 0x20)
+                /* Not writable on audio, only on modem. */
+                if ((func == 1) && (dev->ac97_regs[func][0x44] & 0x20))
                     dev->ac97_regs[func][addr] = val;
                 break;
 
-            case 0x10:
+            /*
+               The lowest 10 bytes are always 0x01, indicating
+               a 256-byte I/O space.
+             */
             case 0x11:
                 dev->ac97_regs[func][addr] = val;
                 pipc_sgd_handlers(dev, func);
@@ -1525,21 +1544,26 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x14:
             case 0x15:
-                if (addr == 0x14)
-                    val = (val & 0xfc) | 1;
-                dev->ac97_regs[func][addr] = val;
-                pipc_fmnmi_handlers(dev, func);
+                /* Not present on modem. */
+                if (func == 0) {
+                    if (addr == 0x14)
+                        val = (val & 0xfc) | 1;
+                    dev->ac97_regs[func][addr] = val;
+                    pipc_fmnmi_handlers(dev, func);
+                }
                 break;
 
             case 0x18:
             case 0x19:
-                if (addr == 0x18)
-                    val = (val & 0xfc) | 1;
-                dev->ac97_regs[func][addr] = val;
-                pipc_sb_handlers(dev, func);
+                /* Not present on modem. */
+                if (func == 0) {
+                    if (addr == 0x18)
+                        val = (val & 0xfc) | 1;
+                    dev->ac97_regs[func][addr] = val;
+                    pipc_sb_handlers(dev, func);
+                }
                 break;
 
-            case 0x1c:
             case 0x1d:
                 dev->ac97_regs[func][addr] = val;
                 pipc_codec_handlers(dev, func);
@@ -1549,8 +1573,13 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
             case 0x2d:
             case 0x2e:
             case 0x2f:
-                if ((func == 0) && (dev->ac97_regs[func][0x42] & 0x20))
+                if (((func == 0) && (dev->ac97_regs[func][0x42] & 0x20)) ||
+                    ((func == 1) && (dev->ac97_regs[func][0x44] & 0x10)))
                     dev->ac97_regs[func][addr] = val;
+                break;
+
+            case 0x3c:
+                dev->ac97_regs[func][addr] = val & 0x0f;
                 break;
 
             case 0x41:
@@ -1559,29 +1588,69 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
                 break;
 
             case 0x42:
-            case 0x4a:
-            case 0x4b:
-                dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val;
-                gameport_remap(dev->gameport, (dev->ac97_regs[0][0x42] & 0x08) ? ((dev->ac97_regs[0][0x4b] << 8) | (dev->ac97_regs[0][0x4a] & 0xf8)) : 0);
-                if (addr == 0x42)
-                    pipc_sb_handlers(dev, func);
+            case 0x4a ... 0x4b:
+                if (func == 0) {
+                    dev->ac97_regs[func][addr] = val;
+                    gameport_remap(dev->gameport, (dev->ac97_regs[func][0x42] & 0x08) ?
+                                                  ((dev->ac97_regs[func][0x4b] << 8) |
+                                                  (dev->ac97_regs[func][0x4a] & 0xf8)) : 0);
+
+                    if (addr == 0x42)
+                        pipc_sb_handlers(dev, func);
+                }
                 break;
 
             case 0x43:
-                dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val;
+                if (func == 0)
+                    dev->ac97_regs[func][addr] = val;
                 break;
 
             case 0x44:
-                dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val & 0xf0;
+                if (func == 1)
+                    dev->ac97_regs[func][addr] = val & 0xf0;
                 break;
 
-            case 0x45:
             case 0x48:
-                dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val & 0x0f;
+                if (func == 0)
+                    dev->ac97_regs[func][addr] = val & 0x0f;
+                break;
+
+            case 0x80:
+            case 0x81:
+            case 0x82:
+                dev->ac97_regs[func][addr] = val;
+                break;
+            case 0x83:
+                dev->ac97_regs[func][addr] = ((dev->ac97_regs[func][addr] & 0x01) |
+                                              (val & 0xc0)) & ~(val & 0x0a);
+                break;
+
+            case 0x88:
+            case 0x89:
+                dev->ac97_regs[func][addr] = val;
+                break;
+            case 0x8a:
+            case 0x8b:
+                dev->ac97_regs[func][addr] &= ~val;
+                break;
+
+            case 0x8e:
+            case 0x8f:
+                dev->ac97_regs[func][addr] = val;
+                break;
+
+            case 0xc4:
+                if (func == 0)
+                    dev->ac97_regs[func][addr] = (dev->ac97_regs[func][addr] & 0x0c) |
+                                                 (val & 0x03);
+                break;
+            case 0xc5:
+                if (func == 0)
+                    dev->ac97_regs[func][addr] = (dev->ac97_regs[func][addr] & 0x60) |
+                                                 (val & 0x9f);
                 break;
 
             default:
-                dev->ac97_regs[func][addr] = val;
                 break;
         }
     }

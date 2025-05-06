@@ -145,6 +145,24 @@ const char* fragment_shader_default_color_src =
         "       outColor.a = 1.0;\n"
         "}\n";
 
+#ifdef ENABLE_OGL3_LOG
+int ogl3_do_log = ENABLE_OGL3_LOG;
+
+static void
+ogl3_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (ogl3_do_log) {
+        va_start(ap, fmt);
+        ogl3_log_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define ogl3_log(fmt, ...)
+#endif
+
 static inline int
 next_pow2(unsigned int n)
 {
@@ -182,7 +200,7 @@ OpenGLRenderer::create_program(struct shader_program *program)
         glw.glGetProgramiv(program->id, GL_INFO_LOG_LENGTH, &maxLength);
         char *log = (char *) malloc(maxLength);
         glw.glGetProgramInfoLog(program->id, maxLength, &length, log);
-        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Program not linked:\n\n%1").arg(log).replace("\n", "<br>"));
+        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Program not linked:\n\n%1").arg(log), false);
         // wx_simple_messagebox("GLSL Error", "Program not linked:\n%s", log);
         free(log);
         return 0;
@@ -229,11 +247,11 @@ OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const ch
         glw.glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
         char *log = (char *) malloc(length);
         glw.glGetShaderInfoLog(shader, length, &length, log);
-        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not compile shader:\n\n%1").arg(log).replace("\n", "<br>"));
+        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not compile shader:\n\n%1").arg(log), false);
         // wx_simple_messagebox("GLSL Error", "Could not compile shader:\n%s", log);
 
-        pclog("Could not compile shader: %s\n", log);
-        //                pclog("Shader: %s\n", program);
+        ogl3_log("Could not compile shader: %s\n", log);
+        //                ogl3_log("Shader: %s\n", program);
 
         free(log);
         return 0;
@@ -348,7 +366,7 @@ OpenGLRenderer::create_texture(struct shader_texture *tex)
         tex->width = max_texture_size;
     if (tex->height > max_texture_size)
         tex->height = max_texture_size;
-    pclog("Create texture with size %dx%d\n", tex->width, tex->height);
+    ogl3_log("Create texture with size %dx%d\n", tex->width, tex->height);
     glw.glGenTextures(1, (GLuint *) &tex->id);
     glw.glBindTexture(GL_TEXTURE_2D, tex->id);
     glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, tex->wrap_mode);
@@ -452,7 +470,7 @@ OpenGLRenderer::create_fbo(struct shader_fbo *fbo)
     glw.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo->texture.id, 0);
 
     if (glw.glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        pclog("Could not create framebuffer!\n");
+        ogl3_log("Could not create framebuffer!\n");
 
     glw.glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -629,12 +647,12 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
             struct shader_lut_texture *tex = &gshader->lut_textures[i];
             strcpy(tex->name, texture->name);
 
-            pclog("Load texture %s...\n", file);
+            ogl3_log("Load texture %s...\n", file);
 
             if (!load_texture(file, &tex->texture)) {
                 //QMessageBox::critical(main_window, tr("GLSL Error"), tr("Could not load texture: %s").arg(file));
-                main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not load texture: %s").arg(file));
-                pclog("Could not load texture %s!\n", file);
+                main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not load texture: %1").arg(file), false);
+                ogl3_log("Could not load texture %s!\n", file);
                 failed = 1;
                 break;
             }
@@ -676,16 +694,16 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
                 if (!strlen(pass->alias))
                     sprintf(pass->alias, "Pass %u", (i + 1));
 
-                pclog("Creating pass %u (%s)\n", (i + 1), pass->alias);
-                pclog("Loading shader %s...\n", shader->shader_fn);
+                ogl3_log("Creating pass %u (%s)\n", (i + 1), pass->alias);
+                ogl3_log("Loading shader %s...\n", shader->shader_fn);
                 if (!shader->shader_program) {
-                    main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not load shader: %1").arg(shader->shader_fn));
+                    main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not load shader: %1").arg(shader->shader_fn), false);
                     // wx_simple_messagebox("GLSL Error", "Could not load shader: %s", shader->shader_fn);
-                    pclog("Could not load shader %s\n", shader->shader_fn);
+                    ogl3_log("Could not load shader %s\n", shader->shader_fn);
                     failed = 1;
                     break;
                 } else
-                    pclog("Shader %s loaded\n", shader->shader_fn);
+                    ogl3_log("Shader %s loaded\n", shader->shader_fn);
                 failed = !compile_shader(GL_VERTEX_SHADER, "#define VERTEX\n#define PARAMETER_UNIFORM\n",
                                          shader->shader_program, &pass->program.vertex_shader)
                     || !compile_shader(GL_FRAGMENT_SHADER, "#define FRAGMENT\n#define PARAMETER_UNIFORM\n",
@@ -856,15 +874,15 @@ OpenGLRenderer::initialize()
 
         glw.initializeOpenGLFunctions();
 
-        pclog("OpenGL information: [%s] %s (%s)\n", glw.glGetString(GL_VENDOR), glw.glGetString(GL_RENDERER), glw.glGetString(GL_VERSION));
+        ogl3_log("OpenGL information: [%s] %s (%s)\n", glw.glGetString(GL_VENDOR), glw.glGetString(GL_RENDERER), glw.glGetString(GL_VERSION));
         glsl_version[0] = glsl_version[1] = -1;
         glw.glGetIntegerv(GL_MAJOR_VERSION, &glsl_version[0]);
         glw.glGetIntegerv(GL_MINOR_VERSION, &glsl_version[1]);
         if (glsl_version[0] < 3) {
             throw opengl_init_error(tr("OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2").arg(glsl_version[0]).arg(glsl_version[1]));
         }
-        pclog("Using OpenGL %s\n", glw.glGetString(GL_VERSION));
-        pclog("Using Shading Language %s\n", glw.glGetString(GL_SHADING_LANGUAGE_VERSION));
+        ogl3_log("Using OpenGL %s\n", glw.glGetString(GL_VERSION));
+        ogl3_log("Using Shading Language %s\n", glw.glGetString(GL_SHADING_LANGUAGE_VERSION));
 
         glslVersion = reinterpret_cast<const char *>(glw.glGetString(GL_SHADING_LANGUAGE_VERSION));
         glslVersion.truncate(4);
@@ -876,7 +894,7 @@ OpenGLRenderer::initialize()
             glslVersion.append(" core");
 
         glw.glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-        pclog("Max texture size: %dx%d\n", max_texture_size, max_texture_size);
+        ogl3_log("Max texture size: %dx%d\n", max_texture_size, max_texture_size);
 
         glw.glEnable(GL_TEXTURE_2D);
 
@@ -1097,7 +1115,7 @@ OpenGLRenderer::initialize()
         for (auto &flag : buf_usage)
             flag.test_and_set();
 
-        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("Error initializing OpenGL"), e.what() + tr("\nFalling back to software rendering."));
+        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("Error initializing OpenGL"), e.what() + tr("\nFalling back to software rendering."), false);
 
         context->doneCurrent();
         isFinalized   = true;
@@ -1154,14 +1172,15 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
     buf_usage[buf_idx].clear();
     source.setRect(x, y, w, h);
+    this->pixelRatio = devicePixelRatio();
     onResize(this->width(), this->height());
 
 #ifdef Q_OS_MACOS
     glw.glViewport(
-        destination.x() * devicePixelRatio(),
-        destination.y() * devicePixelRatio(),
-        destination.width() * devicePixelRatio(),
-        destination.height() * devicePixelRatio());
+        destination.x(),
+        destination.y(),
+        destination.width(),
+        destination.height());
 #endif
 
     if (video_framerate == -1)
@@ -1187,6 +1206,7 @@ OpenGLRenderer::exposeEvent(QExposeEvent *event)
     if (!isInitialized)
         initialize();
 
+    this->pixelRatio = devicePixelRatio();
     onResize(size().width(), size().height());
 }
 
@@ -1195,6 +1215,7 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
 {
     Q_UNUSED(event);
 
+    this->pixelRatio = devicePixelRatio();
     onResize(event->size().width(), event->size().height());
 
     if (notReady())
@@ -1203,10 +1224,10 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
     context->makeCurrent(this);
 
     glw.glViewport(
-        destination.x() * devicePixelRatio(),
-        destination.y() * devicePixelRatio(),
-        destination.width() * devicePixelRatio(),
-        destination.height() * devicePixelRatio());
+        destination.x(),
+        destination.y(),
+        destination.width(),
+        destination.height());
 }
 
 void
@@ -1215,7 +1236,7 @@ OpenGLRenderer::render_pass(struct render_data *data)
     int    i;
     GLuint texture_unit = 0;
 
-    //        pclog("pass %d: %gx%g, %gx%g -> %gx%g, %gx%g, %gx%g\n", num_pass, pass->state.input_size[0],
+    //        ogl3_log("pass %d: %gx%g, %gx%g -> %gx%g, %gx%g, %gx%g\n", num_pass, pass->state.input_size[0],
     //        pass->state.input_size[1], pass->state.input_texture_size[0], pass->state.input_texture_size[1],
     //        pass->state.output_size[0], pass->state.output_size[1], pass->state.output_texture_size[0],
     //        pass->state.output_texture_size[1], output_size[0], output_size[1]);
@@ -1386,10 +1407,10 @@ OpenGLRenderer::render()
         uint32_t x, y, w, h;
     } window_rect;
 
-    window_rect.x = destination.x() * devicePixelRatio();
-    window_rect.y = destination.y() * devicePixelRatio();
-    window_rect.w = destination.width() * devicePixelRatio();
-    window_rect.h = destination.height() * devicePixelRatio();
+    window_rect.x = destination.x();
+    window_rect.y = destination.y();
+    window_rect.w = destination.width();
+    window_rect.h = destination.height();
 
     glw.glBindTexture(GL_TEXTURE_2D, scene_texture.id);
     scene_texture.min_filter = scene_texture.mag_filter = video_filter_method ? GL_LINEAR : GL_NEAREST;
@@ -1652,7 +1673,7 @@ OpenGLRenderer::render()
     }
 
     if (monitors[r_monitor_index].mon_screenshots) {
-        int width = destination.width() * devicePixelRatio(), height = destination.height() * devicePixelRatio();
+        int width = destination.width(), height = destination.height();
         char path[1024];
         char fn[256];
     

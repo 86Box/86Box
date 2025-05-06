@@ -653,7 +653,7 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
         case STATE_FINIT:
 do_fmt:
             /* Activate the status icon. */
-            ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 1);
+            ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 1);
 
             /* Seek to cylinder. */
             if (do_seek(dev, drive, start_cyl)) {
@@ -691,7 +691,7 @@ do_fmt:
             }
 
             /* De-activate the status icon. */
-            ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+            ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 
             /* This saves us a LOT of code. */
             dev->state = STATE_FINIT;
@@ -705,6 +705,7 @@ do_fmt:
     if (intr) {
         /* De-activate the status icon. */
         ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+        ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 
         do_finish(dev);
     }
@@ -970,7 +971,7 @@ do_send:
 
                 case STATE_RECV:
                     /* Activate the status icon. */
-                    ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 1);
+                    ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 1);
 do_recv:
                     /* Ready to transfer the data in. */
                     dev->state   = STATE_RDATA;
@@ -1000,7 +1001,7 @@ do_recv:
                                 ps1_hdc_log("HDC: CMD_WRITE_SECTORS out of data (idx=%d, len=%d)!\n", dev->buf_idx, dev->buf_len);
 
                                 /* De-activate the status icon. */
-                                ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+                                ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 
                                 dev->intstat |= ISR_EQUIP_CHECK;
                                 dev->ssb.need_reset = 1;
@@ -1025,7 +1026,7 @@ do_recv:
                     /* Get address of sector to write. */
                     if (get_sector(dev, drive, &addr)) {
                         /* De-activate the status icon. */
-                        ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+                        ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 
                         do_finish(dev);
                         return;
@@ -1038,7 +1039,7 @@ do_recv:
                     dev->buf_idx = 0;
                     if (--dev->count == 0) {
                         /* De-activate the status icon. */
-                        ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+                        ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 
                         if (!(dev->ctrl & ACR_DMA_EN))
                             dev->status &= ~ASR_DATA_REQ;

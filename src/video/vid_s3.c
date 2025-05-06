@@ -234,6 +234,8 @@ typedef struct s3_t {
         uint8_t  advfunc_cntl;
         uint16_t cur_y, cur_y2;
         uint16_t cur_x, cur_x2;
+        uint16_t cur_x_overflow;
+        uint16_t destx_overflow;
         uint16_t x2, ropmix;
         uint16_t pat_x, pat_y;
         int16_t  desty_axstp, desty_axstp2;
@@ -245,6 +247,8 @@ typedef struct s3_t {
         uint32_t pat_bg_color, pat_fg_color;
         uint32_t bkgd_color;
         uint32_t frgd_color;
+        uint16_t bkgd_color_back;
+        uint16_t frgd_color_back;
         uint32_t wrt_mask;
         uint32_t rd_mask;
         uint32_t color_cmp;
@@ -253,7 +257,8 @@ typedef struct s3_t {
         uint16_t multifunc_cntl;
         uint16_t multifunc[16];
         uint8_t  pix_trans[4];
-        uint16_t pix_trans_val;
+        uint8_t  pix_trans_val[2048][2048];
+        int      pix_trans_inc;
         int      ssv_state;
 
         int16_t  cx, cy;
@@ -281,7 +286,11 @@ typedef struct s3_t {
         uint8_t  bkgd_color_actual[2];
         uint8_t  wrt_mask_actual[2];
         int      color_16bit_check;
+        int      color_16bit_check_pixtrans;
         int16_t  minus;
+        int      rd_mask_16bit_check;
+        int      start;
+        int      mix_dat_upper;
 
         /*For non-threaded FIFO*/
         int setup_fifo_slot;
@@ -611,18 +620,34 @@ s3_accel_out_pixtrans_w(s3_t *s3, uint16_t val)
                     if (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40)) {
                         if (s3->accel.cmd & 0x1000)
                             val = (val >> 8) | (val << 8);
+
                         s3->accel_start(8, 1, val | (val << 16), 0, s3);
                     } else {
-                        if ((s3->bpp == 0) && s3->color_16bit)
+                        if ((s3->bpp == 0) && s3->color_16bit) {
+                            if (s3->accel.rd_mask_16bit_check) {
+                                if (s3->accel.cur_x & 0x400)
+                                    val = (val >> 8) | (val << 8);
+                            } else {
+                                if (s3->accel.cur_x & 0x400)
+                                    s3->accel.color_16bit_check_pixtrans = 1;
+                                else
+                                    s3->accel.color_16bit_check_pixtrans = 0;
+                            }
                             s3->accel_start(2, 1, 0xffffffff, val | (val << 16), s3);
-                        else
+                        } else
                             s3->accel_start(1, 1, 0xffffffff, val | (val << 16), s3);
                     }
                 } else {
                     if ((s3->bpp == 0) && s3->color_16bit) {
-                        if (s3->accel.cur_x & 0x400)
-                            val = (val >> 8) | (val << 8);
-
+                        if (s3->accel.rd_mask_16bit_check) {
+                            if (s3->accel.cur_x & 0x400)
+                                val = (val >> 8) | (val << 8);
+                        } else {
+                            if (s3->accel.cur_x & 0x400)
+                                s3->accel.color_16bit_check_pixtrans = 1;
+                            else
+                                s3->accel.color_16bit_check_pixtrans = 0;
+                        }
                         s3->accel_start(2, 1, 0xffffffff, val | (val << 16), s3);
                     } else
                         s3->accel_start(1, 1, 0xffffffff, val | (val << 16), s3);
@@ -635,12 +660,27 @@ s3_accel_out_pixtrans_w(s3_t *s3, uint16_t val)
                             val = (val >> 8) | (val << 8);
 
                         s3->accel_start(16, 1, val | (val << 16), 0, s3);
-                    } else
-                        s3->accel_start(2, 1, 0xffffffff, val | (val << 16), s3);
-                } else {
-                    if ((s3->bpp == 0) && s3->color_16bit) {
-                        if (s3->accel.cur_x & 0x400)
+                    } else {
+                        if ((s3->accel.cmd == 0x53f1) || (s3->accel.cmd == 0x53b1)) {
+                            if (s3->accel.cur_x & 0x400)
+                                val = (val >> 8) | (val << 8);
+
+                            s3->accel_start(2, 1, 0xffffffff, val | (val << 16), s3);
+
                             val = (val >> 8) | (val << 8);
+                        }
+                        s3->accel_start(2, 1, 0xffffffff, val | (val << 16), s3);
+                    }
+                } else {
+                    if (s3->accel.rd_mask_16bit_check) {
+                        if ((s3->accel.cmd == 0x53f1) || (s3->accel.cmd == 0x53b1)) {
+                            if (s3->accel.cur_x & 0x400)
+                                val = (val >> 8) | (val << 8);
+
+                            s3->accel_start(2, 1, 0xffffffff, val | (val << 16), s3);
+
+                            val = (val >> 8) | (val << 8);
+                        }
                     }
                     s3->accel_start(2, 1, 0xffffffff, val | (val << 16), s3);
                 }
@@ -778,12 +818,14 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
         case 0x8548:
         case 0x86e8:
             s3->accel.cur_x        = (s3->accel.cur_x & 0xf00) | val;
+            s3->accel.cur_x_overflow = (s3->accel.cur_x_overflow & 0xff00) | val;
             s3->accel.poly_cx      = s3->accel.cur_x << 20;
             s3->accel.poly_x       = s3->accel.poly_cx >> 20;
             break;
         case 0x8549:
         case 0x86e9:
             s3->accel.cur_x        = (s3->accel.cur_x & 0xff) | ((val & 0x0f) << 8);
+            s3->accel.cur_x_overflow = (s3->accel.cur_x_overflow & 0xff) | (val << 8);
             s3->accel.poly_cx = s3->accel.poly_x = s3->accel.cur_x << 20;
             s3->accel.poly_x                     = s3->accel.poly_cx >> 20;
             s3_log("[%04X:%08X] OUT PORTB=%04x, val=%04x.\n", CS, cpu_state.pc, port - 1, s3->accel.cur_x);
@@ -829,11 +871,13 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
         case 0x8d48:
         case 0x8ee8:
             s3->accel.destx_distp     = (s3->accel.destx_distp & 0x3f00) | val;
+            s3->accel.destx_overflow  = (s3->accel.destx_overflow & 0xff00) | val;
             s3->accel.point_1_updated = 1;
             break;
         case 0x8d49:
         case 0x8ee9:
             s3->accel.destx_distp = (s3->accel.destx_distp & 0xff) | ((val & 0x3f) << 8);
+            s3->accel.destx_overflow  = (s3->accel.destx_overflow & 0xff) | (val << 8);
             if (val & 0x20)
                 s3->accel.destx_distp |= ~0x3fff;
             s3->accel.point_1_updated = 1;
@@ -1037,7 +1081,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
             break;
         case 0xa549:
         case 0xa6e9:
-            s3_log("[%04X:%08X] OUT PORTB=%04x (Foreground Color), val=%02x.\n", CS, cpu_state.pc, port, val);
             if (s3->bpp == 3) {
                 if ((s3->chip >= S3_86C928) && (s3->chip < S3_VISION964)) {
                     if (s3->accel.multifunc[0xe] & 0x10)
@@ -1450,6 +1493,8 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
         case 0xbee9:
             s3->accel.multifunc_cntl                            = (s3->accel.multifunc_cntl & 0xff) | (val << 8);
             s3->accel.multifunc[s3->accel.multifunc_cntl >> 12] = s3->accel.multifunc_cntl & 0xfff;
+            if ((s3->accel.multifunc_cntl >> 12) == 5)
+                s3_log("S3 multifunc_cntl = %d, val = %03x.\n", s3->accel.multifunc_cntl >> 12, s3->accel.multifunc_cntl & 0xfff);
             break;
 
         case 0xd148:
@@ -1589,13 +1634,36 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
                                 s3->accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
                         } else {
                             if ((s3->bpp == 0) && s3->color_16bit) {
-                                s3->accel.pix_trans[1] = svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx - s3->accel.minus)) & s3->vram_mask];
-                                if (s3->accel.cur_x & 0x400) {
-                                    s3_log("Last Pixel Written=%02x (1024).\n", s3->accel.pix_trans[1]);
-                                    s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[1] | (s3->accel.pix_trans[0] << 8), s3);
+                                if (s3->accel.rd_mask_16bit_check) {
+                                    s3->accel.pix_trans[1] = svga->vram[dword_remap(svga, (s3->accel.dest + s3->accel.cx - s3->accel.minus)) & s3->vram_mask];
+                                    if (s3->accel.cmd & 0x1000) {
+                                        if (s3->accel.cur_x & 0x400) {
+                                            s3_log("Last Pixel Written=%02x (1024) reverse.\n", s3->accel.pix_trans[1]);
+                                            s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), s3);
+                                        } else {
+                                            s3_log("Last Pixel Written=%02x (0) reverse, cx=%d.\n", s3->accel.pix_trans[1], s3->accel.cx, s3->accel.cur_x);
+                                            s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[1] | (s3->accel.pix_trans[0] << 8), s3);
+                                        }
+                                    } else {
+                                        if (s3->accel.cur_x & 0x400) {
+                                            s3_log("Last Pixel Written=%02x (1024) normal, cx=%d, curx=%d.\n", s3->accel.pix_trans[1], s3->accel.cx, s3->accel.cur_x);
+                                            s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[1] | (s3->accel.pix_trans[0] << 8), s3);
+                                        } else {
+                                            s3_log("Last Pixel Written=%02x (0) normal, cx=%d, curx=%d.\n", s3->accel.pix_trans[1], s3->accel.cx, s3->accel.cur_x);
+                                            s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), s3);
+                                        }
+                                    }
                                 } else {
-                                    s3_log("Last Pixel Written=%02x (0).\n", s3->accel.pix_trans[1]);
-                                    s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), s3);
+                                    s3->accel.pix_trans_val[s3->accel.cy][s3->accel.cx] = val;
+
+                                    if (s3->accel.cur_x & 0x400) {
+                                        s3->accel.color_16bit_check_pixtrans = 0;
+                                        s3_log("%04X:%08X: Last Pixel Written=%04x (1024) normal, cx=%d, cy=%d.\n", CS, cpu_state.pc, s3->accel.pix_trans_val[s3->accel.cy][s3->accel.cx - s3->accel.minus] | (s3->accel.pix_trans_val[s3->accel.cy][s3->accel.cx] << 8), s3->accel.cx, s3->accel.cy);
+                                        s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans_val[s3->accel.cy][s3->accel.cx - s3->accel.minus] | (s3->accel.pix_trans_val[s3->accel.cy][s3->accel.cx] << 8), s3);
+                                    } else {
+                                        s3->accel.color_16bit_check_pixtrans = 1;
+                                        s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
+                                    }
                                 }
                             } else
                                 s3->accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
@@ -2164,7 +2232,7 @@ s3_hwcursor_draw(svga_t *svga, int displine)
     const s3_t *s3 = (s3_t *) svga->priv;
     int         shift = 1;
     int         width = 16;
-    uint16_t    dat[2] = { 0, 0 };
+    uint16_t    dat[4] = { 0, 0, 0, 0 };
     int         xx;
     int         offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
     uint32_t    fg;
@@ -2176,30 +2244,53 @@ s3_hwcursor_draw(svga_t *svga, int displine)
         case 15:
             fg = video_15to32[s3->hwc_fg_col & 0xffff];
             bg = video_15to32[s3->hwc_bg_col & 0xffff];
-            if (s3->chip >= S3_86C928 && s3->chip <= S3_86C805) {
-                if (s3->card_type != S3_MIROCRYSTAL10SD_805 && s3->card_type != S3_MIROCRYSTAL8S_805) {
-                    if (!(svga->crtc[0x45] & 0x04)) {
-                        shift = 2;
-                        width = 8;
+            if ((s3->chip >= S3_86C928) && (s3->chip <= S3_86C805)) {
+                if (!s3->color_16bit) {
+                    if ((s3->card_type != S3_MIROCRYSTAL10SD_805) && (s3->card_type != S3_MIROCRYSTAL8S_805)) {
+                        if (!(svga->crtc[0x45] & 0x04)) {
+                            shift = 2;
+                            width = 8;
+                        }
                     }
+                } else {
+                    shift = 2;
+                    width = 8;
+                    fg = svga->pallook[svga->crtc[0xe]];
+                    bg = svga->pallook[svga->crtc[0xf]];
                 }
+            } else if (s3->chip <= S3_86C924) {
+                shift = 2;
+                width = 8;
+                fg = svga->pallook[svga->crtc[0xe]];
+                bg = svga->pallook[svga->crtc[0xf]];
             }
             break;
 
         case 16:
             fg = video_16to32[s3->hwc_fg_col & 0xffff];
             bg = video_16to32[s3->hwc_bg_col & 0xffff];
-            if (s3->chip >= S3_86C928 && s3->chip <= S3_86C805) {
-                if ((s3->card_type != S3_MIROCRYSTAL10SD_805) && (s3->card_type != S3_MIROCRYSTAL8S_805)) {
-                    if (!(svga->crtc[0x45] & 0x04)) {
-                        shift = 2;
-                        width = 8;
+            if ((s3->chip >= S3_86C928) && (s3->chip <= S3_86C805)) {
+                if (!s3->color_16bit) {
+                    if ((s3->card_type != S3_MIROCRYSTAL10SD_805) && (s3->card_type != S3_MIROCRYSTAL8S_805)) {
+                        if (!(svga->crtc[0x45] & 0x04)) {
+                            shift = 2;
+                            width = 8;
+                        }
+                    } else if (s3->card_type == S3_MIROCRYSTAL10SD_805) {
+                        if (!(svga->crtc[0x45] & 0x04))
+                            offset <<= 1;
                     }
-                } else if (s3->card_type == S3_MIROCRYSTAL10SD_805) {
-                    if (!(svga->crtc[0x45] & 0x04)) {
-                        offset <<= 1;
-                    }
+                } else {
+                    shift = 2;
+                    width = 8;
+                    fg = svga->pallook[svga->crtc[0xe]];
+                    bg = svga->pallook[svga->crtc[0xf]];
                 }
+            } else if (s3->chip <= S3_86C924) {
+                shift = 2;
+                width = 8;
+                fg = svga->pallook[svga->crtc[0xe]];
+                bg = svga->pallook[svga->crtc[0xf]];
             }
             break;
 
@@ -2236,40 +2327,62 @@ s3_hwcursor_draw(svga_t *svga, int displine)
 
     for (uint8_t x = 0; x < 64; x += 16) {
         remapped_addr = dword_remap(svga, real_addr);
+        if (((svga->bpp == 15) || (svga->bpp == 16)) && s3->color_16bit) {
+            dat[0] = svga->vram[remapped_addr & s3->vram_mask];
+            dat[1] = svga->vram[(remapped_addr + 1) & s3->vram_mask];
+            dat[2] = svga->vram[(remapped_addr + 2) & s3->vram_mask];
+            dat[3] = svga->vram[(remapped_addr + 3) & s3->vram_mask];
 
-        dat[0] = (svga->vram[remapped_addr & s3->vram_mask] << 8) | svga->vram[(remapped_addr + 1) & s3->vram_mask];
-        dat[1] = (svga->vram[(remapped_addr + 2) & s3->vram_mask] << 8) | svga->vram[(remapped_addr + 3) & s3->vram_mask];
-
-        if (svga->crtc[0x55] & 0x10) {
-            /*X11*/
-            for (xx = 0; xx < 16; xx++) {
-                if (offset >= 0) {
-                    if (dat[0] & 0x8000)
-                        buffer32->line[displine][offset + svga->x_add] = (dat[1] & 0x8000) ? fg : bg;
-                }
-
-                offset++;
-                dat[0] <<= shift;
-                dat[1] <<= shift;
-            }
-        } else {
             /*Windows*/
-            for (xx = 0; xx < width; xx++) {
+            for (xx = 0; xx < 8; xx++) {
                 if (offset >= 0) {
-                    if (!(dat[0] & 0x8000))
-                        buffer32->line[displine][offset + svga->x_add] = (dat[1] & 0x8000) ? fg : bg;
-                    else if (dat[1] & 0x8000)
+                    if (!(dat[(xx & 4) ? 2 : 0] & 0x80))
+                        buffer32->line[displine][offset + svga->x_add] = (dat[(xx & 4) ? 3 : 1] & 0x80) ? fg : bg;
+                    else if (dat[(xx & 4) ? 3 : 1] & 0x80)
                         buffer32->line[displine][offset + svga->x_add] ^= 0xffffff;
                 }
 
                 offset++;
-                dat[0] <<= shift;
-                dat[1] <<= shift;
+                s3_log("Up: Data0=%04x, Data1=%04x, Data2=%04x, Data3=%04x, xx=%d addr=%06x.\n", dat[0], dat[1], dat[2], dat[3], xx, remapped_addr);
+                dat[(xx & 4) ? 2 : 0] <<= 2;
+                dat[(xx & 4) ? 3 : 1] <<= 2;
+            }
+        } else {
+            dat[0] = (svga->vram[remapped_addr & s3->vram_mask] << 8) | svga->vram[(remapped_addr + 1) & s3->vram_mask];
+            dat[1] = (svga->vram[(remapped_addr + 2) & s3->vram_mask] << 8) | svga->vram[(remapped_addr + 3) & s3->vram_mask];
+
+            if (svga->crtc[0x55] & 0x10) {
+                /*X11*/
+                for (xx = 0; xx < 16; xx++) {
+                    if (offset >= 0) {
+                        if (dat[0] & 0x8000)
+                            buffer32->line[displine][offset + svga->x_add] = (dat[1] & 0x8000) ? fg : bg;
+                    }
+
+                    offset++;
+                    dat[0] <<= shift;
+                    dat[1] <<= shift;
+                }
+            } else {
+                /*Windows*/
+                for (xx = 0; xx < width; xx++) {
+                    if (offset >= 0) {
+                        if (!(dat[0] & 0x8000))
+                            buffer32->line[displine][offset + svga->x_add] = (dat[1] & 0x8000) ? fg : bg;
+                        else if (dat[1] & 0x8000)
+                            buffer32->line[displine][offset + svga->x_add] ^= 0xffffff;
+                    }
+
+                    offset++;
+                    dat[0] <<= shift;
+                    dat[1] <<= shift;
+                }
             }
         }
         svga->hwcursor_latch.addr += 4;
         real_addr = s3_hwcursor_convert_addr(svga);
     }
+
     if (svga->interlace && !svga->hwcursor_oddeven)
         svga->hwcursor_latch.addr += 16;
 }
@@ -2812,10 +2925,10 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
             else if (s3->chip == S3_VISION968 && (s3->card_type == S3_SPEA_MERCURY_P64V || s3->card_type == S3_MIROVIDEO40SV_ERGO_968)) {
                 rs3 = !!(svga->crtc[0x55] & 0x02);
                 tvp3026_ramdac_out(addr, rs2, rs3, val, svga->ramdac, svga);
-            } else if (((s3->chip == S3_86C801) || (s3->chip == S3_86C805) || (s3->chip == S3_86C924)) &&
+            } else if (((s3->chip == S3_86C801) || (s3->chip == S3_86C805)) &&
                 ((s3->card_type != S3_MIROCRYSTAL10SD_805) && (s3->card_type != S3_MIROCRYSTAL8S_805)))
                 att49x_ramdac_out(addr, rs2, val, svga->ramdac, svga);
-            else if (s3->chip == S3_86C911) {
+            else if (s3->chip <= S3_86C924) {
                 sc1148x_ramdac_out(addr, rs2, val, svga->ramdac, svga);
             } else if (s3->card_type == S3_NUMBER9_9FX_531)
                 att498_ramdac_out(addr, rs2, val, svga->ramdac, svga);
@@ -2916,7 +3029,7 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x45:
-                    if (s3->chip == S3_VISION964 || s3->chip == S3_VISION968)
+                    if ((s3->chip == S3_VISION964) || (s3->chip == S3_VISION968))
                         break;
                     svga->hwcursor.ena = val & 1;
                     break;
@@ -2928,7 +3041,7 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                 case 0x4d:
                 case 0x4e:
                 case 0x4f:
-                    if (s3->chip == S3_VISION964 || s3->chip == S3_VISION968)
+                    if ((s3->chip == S3_VISION964) || (s3->chip == S3_VISION968))
                         break;
                     svga->hwcursor.x = ((svga->crtc[0x46] << 8) | svga->crtc[0x47]) & 0x7ff;
                     if (svga->bpp == 32)
@@ -2937,14 +3050,14 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     svga->hwcursor.xoff = svga->crtc[0x4e] & 0x3f;
                     svga->hwcursor.yoff = svga->crtc[0x4f] & 0x3f;
                     svga->hwcursor.addr = ((((svga->crtc[0x4c] << 8) | svga->crtc[0x4d]) & 0xfff) * 1024) + (svga->hwcursor.yoff * 16);
-                    if ((s3->chip >= S3_TRIO32) && svga->bpp == 32)
+                    if ((s3->chip >= S3_TRIO32) && (svga->bpp == 32))
                         svga->hwcursor.x <<= 1;
-                    else if ((s3->chip >= S3_86C928 && s3->chip <= S3_86C805) && (svga->bpp == 15 || svga->bpp == 16)) {
-                        if ((s3->card_type == S3_MIROCRYSTAL10SD_805) && !(svga->crtc[0x45] & 0x04) && svga->bpp == 16)
+                    else if ((s3->chip >= S3_86C928 && s3->chip <= S3_86C805) && ((svga->bpp == 15) || (svga->bpp == 16))) {
+                        if ((s3->card_type == S3_MIROCRYSTAL10SD_805) && !(svga->crtc[0x45] & 0x04) && (svga->bpp == 16))
                             svga->hwcursor.x >>= 2;
                         else
                             svga->hwcursor.x >>= 1;
-                    } else if ((s3->chip >= S3_86C928 && s3->chip <= S3_86C805) && (svga->bpp == 24))
+                    } else if ((s3->chip >= S3_86C928) && (s3->chip <= S3_86C805) && (svga->bpp == 24))
                         svga->hwcursor.x /= 3;
                     else if ((s3->chip <= S3_86C805) && s3->color_16bit)
                         svga->hwcursor.x >>= 1;
@@ -3137,10 +3250,10 @@ s3_in(uint16_t addr, void *priv)
             else if (s3->chip == S3_VISION968 && (s3->card_type == S3_SPEA_MERCURY_P64V || s3->card_type == S3_MIROVIDEO40SV_ERGO_968)) {
                 rs3 = !!(svga->crtc[0x55] & 0x02);
                 return tvp3026_ramdac_in(addr, rs2, rs3, svga->ramdac, svga);
-            } else if (((s3->chip == S3_86C801) || (s3->chip == S3_86C805) || (s3->chip == S3_86C924)) &&
+            } else if (((s3->chip == S3_86C801) || (s3->chip == S3_86C805)) &&
                 ((s3->card_type != S3_MIROCRYSTAL10SD_805) && (s3->card_type != S3_MIROCRYSTAL8S_805)))
                 return att49x_ramdac_in(addr, rs2, svga->ramdac, svga);
-            else if (s3->chip == S3_86C911)
+            else if (s3->chip <= S3_86C924)
                 return sc1148x_ramdac_in(addr, rs2, svga->ramdac, svga);
             else if (s3->card_type == S3_NUMBER9_9FX_531)
                 return att498_ramdac_in(addr, rs2, svga->ramdac, svga);
@@ -3449,7 +3562,8 @@ s3_recalctimings(svga_t *svga)
 
     if (s3->chip <= S3_86C805) {
         s3->color_16bit = !!(svga->crtc[0x43] & 0x08);
-        if (svga->bpp == 24)
+        s3_log("Color 16bit=%x, bpp=%d, 256color=%x.\n", s3->color_16bit, svga->bpp, (svga->attrregs[0x10] & 0x40));
+        if ((svga->bpp == 24) || (svga->bpp == 8))
             s3->color_16bit = 0;
 
         if (s3->color_16bit)
@@ -3518,34 +3632,6 @@ s3_recalctimings(svga_t *svga)
             svga->hblank_end_mask  = 0x7f;
         }
     }
-
-#ifdef OLD_CODE_REFERENCE
-    if (s3->card_type == S3_MIROCRYSTAL10SD_805 || s3->card_type == S3_MIROCRYSTAL20SD_864 || s3->card_type == S3_MIROCRYSTAL20SV_964 || s3->card_type == S3_SPEA_MIRAGE_86C801 || s3->card_type == S3_SPEA_MIRAGE_86C805 || s3->card_type == S3_MIROCRYSTAL8S_805 || s3->card_type == S3_NUMBER9_9FX_531 || s3->card_type == S3_SPEA_MERCURY_LITE_PCI) {
-        if (!(svga->crtc[0x5e] & 0x04))
-            svga->vblankstart = svga->dispend;
-        if (svga->bpp != 32) {
-            if (svga->crtc[0x31] & 2)
-                s3->width = 2048;
-            else {
-                if (s3->card_type == S3_MIROCRYSTAL10SD_805) {
-                    if (svga->hdisp == 1280 && s3->width == 1024) {
-                        s3->width = 1280;
-                    }
-                }
-            }
-        } else {
-            if (s3->card_type == S3_NUMBER9_9FX_531) {
-                if ((svga->hdisp == 1600) && (s3->width == 1600))
-                    s3->width = 800;
-            }
-        }
-    } else if (s3->chip == S3_86C928) {
-        if (svga->bpp == 15) {
-            if (s3->width == 800)
-                s3->width = 1024;
-        }
-    }
-#endif
 
     if ((svga->crtc[0x3a] & 0x10) && !svga->lowres) {
         s3_log("BPP=%d, pitch=%d, width=%02x, double?=%x, 16bit?=%d, highres?=%d, "
@@ -3665,29 +3751,6 @@ s3_recalctimings(svga_t *svga)
                     default:
                         break;
                 }
-#ifdef OLD_CODE_REFERENCE
-                if (s3->chip != S3_VISION868) {
-                    if (s3->chip == S3_86C928) {
-                        if (s3->width == 2048 || s3->width == 1280 || s3->width == 1600) {
-                            if ((s3->width != 1600) && (svga->dispend == 1024) && (svga->hdisp != 1280))
-                                svga->hdisp <<= 2;
-                            else
-                                svga->hdisp <<= 1;
-                        }
-                    } else if ((s3->chip != S3_86C801) && (s3->chip != S3_86C805) && (s3->chip != S3_TRIO32) && (s3->chip != S3_TRIO64) && (s3->chip != S3_VISION964) && (s3->chip != S3_VISION968)) {
-                        if (s3->width == 1280 || s3->width == 1600)
-                            svga->hdisp <<= 1;
-                    } else if ((s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->card_type == S3_ELSAWIN2KPROX)) {
-                        if (s3->width == 1280 || s3->width == 1600)
-                            svga->hdisp <<= 1;
-                    } else if (s3->card_type == S3_SPEA_MERCURY_P64V) {
-                        if (s3->width == 1280 || s3->width == 1600)
-                            svga->hdisp <<= 1;
-                        }
-                    } else if (s3->card_type == S3_NUMBER9_9FX_771)
-                        svga->hdisp <<= 1;
-                }
-#endif
                 break;
             case 15:
                 svga->render = svga_render_15bpp_highres;
@@ -3856,29 +3919,6 @@ s3_recalctimings(svga_t *svga)
                     default:
                         break;
                 }
-#ifdef OLD_CODE_REFERENCE
-                if ((s3->chip != S3_VISION964) && (s3->card_type != S3_SPEA_MIRAGE_86C801) && (s3->card_type != S3_SPEA_MIRAGE_86C805)) {
-                    if (s3->chip == S3_86C928)
-                        svga->hdisp <<= 1;
-                    else if (s3->chip != S3_VISION968)
-                        svga->hdisp >>= 1;
-                }
-                if ((s3->chip != S3_VISION868) && (s3->chip != S3_TRIO32) && (s3->chip != S3_TRIO64) && (s3->chip != S3_VISION964)) {
-                    if (s3->width == 1280 || s3->width == 1600)
-                        svga->hdisp <<= 1;
-                    else if (s3->card_type == S3_NUMBER9_9FX_771)
-                        svga->hdisp <<= 1;
-                }
-                if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968 || s3->card_type == S3_PHOENIX_VISION968 || s3->card_type == S3_SPEA_MERCURY_P64V) {
-                    if (svga->hdisp == (1408 * 2))
-                        svga->hdisp >>= 1;
-                    else
-                        svga->hdisp = s3->width;
-                }
-
-                if (s3->card_type == S3_SPEA_MIRAGE_86C801 || s3->card_type == S3_SPEA_MIRAGE_86C805 || s3->card_type == S3_SPEA_MERCURY_LITE_PCI)
-                    svga->hdisp = s3->width;
-#endif
                 break;
             case 16:
                 svga->render = svga_render_16bpp_highres;
@@ -4044,35 +4084,6 @@ s3_recalctimings(svga_t *svga)
                     default:
                         break;
                 }
-
-#ifdef OLD_CODE_REFERENCE
-                if ((s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->card_type == S3_ELSAWIN2KPROX)) {
-                    if (s3->width == 1280 || s3->width == 1600)
-                        svga->hdisp <<= 1;
-                }
-                if ((s3->chip != S3_VISION964) && (s3->card_type != S3_SPEA_MIRAGE_86C801) && (s3->card_type != S3_SPEA_MIRAGE_86C805)) {
-                    if (s3->chip == S3_86C928)
-                        svga->hdisp <<= 1;
-                    else if (s3->chip != S3_VISION968)
-                        svga->hdisp >>= 1;
-                } else if ((s3->card_type == S3_SPEA_MIRAGE_86C801) || (s3->card_type == S3_SPEA_MIRAGE_86C805))
-                    svga->hdisp >>= 1;
-                if ((s3->chip != S3_VISION868) && (s3->chip != S3_TRIO32) && (s3->chip != S3_TRIO64) && (s3->chip != S3_VISION964)) {
-                    if (s3->width == 1280 || s3->width == 1600)
-                        svga->hdisp <<= 1;
-                    else if (s3->card_type == S3_NUMBER9_9FX_771)
-                        svga->hdisp <<= 1;
-                }
-                if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968 || s3->card_type == S3_PHOENIX_VISION968 || s3->card_type == S3_SPEA_MERCURY_P64V) {
-                    if (svga->hdisp == (1408 << 1))
-                        svga->hdisp >>= 1;
-                    else
-                        svga->hdisp = s3->width;
-                }
-
-                if (s3->card_type == S3_SPEA_MIRAGE_86C801 || s3->card_type == S3_SPEA_MIRAGE_86C805 || s3->card_type == S3_SPEA_MERCURY_LITE_PCI)
-                    svga->hdisp = s3->width;
-#endif
                 break;
             case 24:
                 svga->render = svga_render_24bpp_highres;
@@ -4150,34 +4161,6 @@ s3_recalctimings(svga_t *svga)
                     default:
                         break;
                 }
-#ifdef OLD_CODE_REFERENCE
-                if (s3->chip != S3_VISION968) {
-                    if (s3->chip != S3_86C928 && s3->chip != S3_86C801 && s3->chip != S3_86C805)
-                        svga->hdisp /= 3;
-                    else
-                        svga->hdisp = (svga->hdisp * 2) / 3;
-
-                    if (s3->card_type == S3_SPEA_MERCURY_LITE_PCI) {
-                        if (s3->width == 2048) {
-                            switch (svga->dispend) {
-                                case 480:
-                                    svga->hdisp = 640;
-                                    break;
-
-                                default:
-                                    break;
-                            }
-                        }
-                    } else if (s3->chip == S3_86C924) {
-                        if (svga->dispend == 480)
-                            svga->hdisp = 640;
-                    }
-                } else {
-                    if ((s3->card_type == S3_MIROVIDEO40SV_ERGO_968) ||
-                        (s3->card_type == S3_PHOENIX_VISION968) || (s3->card_type == S3_SPEA_MERCURY_P64V))
-                        svga->hdisp = s3->width;
-                }
-#endif
                 break;
             case 32:
                 svga->render = svga_render_32bpp_highres;
@@ -4262,48 +4245,6 @@ s3_recalctimings(svga_t *svga)
                     default:
                         break;
                 }
-#ifdef OLD_CODE_REFERENCE
-                if ((s3->chip < S3_TRIO32) && (s3->chip != S3_VISION964) && (s3->chip != S3_VISION968) && (s3->chip != S3_86C928)) {
-                    if (s3->chip == S3_VISION868)
-                        svga->hdisp >>= 1;
-                    else
-                        svga->hdisp >>= 2;
-                }
-                if (s3->width == 1280 || s3->width == 1600 || (s3->card_type == S3_SPEA_MERCURY_P64V || s3->card_type == S3_NUMBER9_9FX_771))
-                    svga->hdisp <<= 1;
-                if (s3->card_type == S3_NUMBER9_9FX_771) {
-                    if (svga->hdisp == 832)
-                        svga->hdisp -= 32;
-                }
-                if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968 || s3->card_type == S3_MIROCRYSTAL20SV_964 || s3->card_type == S3_MIROCRYSTAL20SD_864 || s3->card_type == S3_PHOENIX_VISION968 || s3->card_type == S3_SPEA_MERCURY_P64V) {
-                    svga->hdisp = s3->width;
-                    if (s3->card_type == S3_MIROCRYSTAL20SD_864 || s3->card_type == S3_MIROCRYSTAL20SV_964) {
-                        if (s3->width == 800 || s3->width == 1024 || s3->width == 1600) {
-                            switch (svga->dispend) {
-                                case 400:
-                                case 480:
-                                    svga->hdisp = 640;
-                                    break;
-
-                                case 576:
-                                    if (s3->width == 1600)
-                                        s3->width = 800;
-                                    svga->hdisp = 768;
-                                    break;
-
-                                case 600:
-                                    if (s3->width == 1600)
-                                        s3->width = 800;
-                                    svga->hdisp = 800;
-                                    break;
-
-                                default:
-                                    break;
-                            }
-                        }
-                    }
-                }
-#endif
                 break;
 
             default:
@@ -4362,7 +4303,7 @@ s3_trio64v_recalctimings(svga_t *svga)
         svga->htotal |= 0x100;
     if (svga->crtc[0x5d] & 0x02) {
         svga->hdisp_time |= 0x100;
-        svga->hdisp |= 0x100 * svga->dots_per_clock;
+        svga->hdisp |= (0x100 * svga->dots_per_clock);
     }
     if (svga->crtc[0x5e] & 0x01)
         svga->vtotal |= 0x400;
@@ -4681,6 +4622,7 @@ s3_trio64_getclock(int clock, void *priv)
         return 25175000.0;
     if (clock == 1)
         return 28322000.0;
+
     m  = svga->seqregs[0x13] + 2;
     n1 = (svga->seqregs[0x12] & 0x1f) + 2;
     n2 = ((svga->seqregs[0x12] >> 5) & 0x07);
@@ -5835,6 +5777,8 @@ s3_accel_in_w(uint16_t port, void *priv)
     s3_t           *s3     = (s3_t *) priv;
     svga_t         *svga   = &s3->svga;
     uint16_t        temp   = 0x0000;
+    uint16_t        temp1  = 0x0000;
+    uint16_t        temp2  = 0x0000;
     const uint16_t *vram_w = (uint16_t *) svga->vram;
 
     if (!s3->enable_8514)
@@ -5846,15 +5790,19 @@ s3_accel_in_w(uint16_t port, void *priv)
 
             switch (s3->accel.cmd & 0x600) {
                 case 0x000:
-                    if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
+                    if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 0x02)) {
                         if (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40)) {
                             if (s3->accel.cmd & 0x1000)
                                 temp = (temp >> 8) | (temp << 8);
+
                             s3->accel_start(8, 1, temp | (temp << 16), 0, s3);
                         } else {
-                            if ((s3->bpp == 0) && s3->color_16bit)
+                            if ((s3->bpp == 0) && s3->color_16bit) {
+                                if (s3->accel.cur_x & 0x400)
+                                    temp = ((temp >> 8) | (temp << 8)) & 0xffff;
+
                                 s3->accel_start(2, 1, 0xffffffff, temp | (temp << 16), s3);
-                            else
+                            } else
                                 s3->accel_start(1, 1, 0xffffffff, temp | (temp << 16), s3);
                         }
                     } else {
@@ -5868,15 +5816,31 @@ s3_accel_in_w(uint16_t port, void *priv)
                     }
                     break;
                 case 0x200:
-                    if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
+                    if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 0x02)) {
                         if (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40)) {
                             if (s3->accel.cmd & 0x1000)
                                 temp = (temp >> 8) | (temp << 8);
+
                             s3->accel_start(16, 1, temp | (temp << 16), 0, s3);
                         } else
                             s3->accel_start(2, 1, 0xffffffff, temp | (temp << 16), s3);
                     } else {
-                        s3->accel_start(2, 1, 0xffffffff, temp | (temp << 16), s3);
+                        if (s3->accel.rd_mask_16bit_check) {
+                            if (s3->accel.cmd == 0x53b0) {
+                                temp1 = vram_w[dword_remap_w(svga, s3->accel.dest + s3->accel.cx - s3->accel.minus) & (s3->vram_mask >> 1)];
+                                temp2 = vram_w[dword_remap_w(svga, s3->accel.dest + s3->accel.cx - s3->accel.minus + 1) & (s3->vram_mask >> 1)];
+                                if (s3->accel.cur_x & 0x400) {
+                                    temp = temp1 >> 8;
+                                    temp |= (temp2 >> 8) << 8;
+                                } else {
+                                    temp = temp1 & 0xff;
+                                    temp |= ((temp2 & 0xff) << 8);
+                                }
+                                s3->accel_start(4, 1, 0xffffffff, temp | (temp << 16), s3);
+                            } else
+                                s3->accel_start(2, 1, 0xffffffff, temp | (temp << 16), s3);
+                        } else
+                            s3->accel_start(2, 1, 0xffffffff, temp | (temp << 16), s3);
                     }
                     break;
 
@@ -5887,6 +5851,7 @@ s3_accel_in_w(uint16_t port, void *priv)
     } else {
         if (s3_enable_fifo(s3))
             s3_wait_fifo_idle(s3);
+
         temp = s3->accel.short_stroke;
     }
 
@@ -6644,7 +6609,6 @@ polygon_setup(s3_t *s3)
 
 #define MIX                                                            \
     {                                                                  \
-        old_dest_dat = dest_dat;                                       \
         MIX_READ                                                       \
         dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask); \
     }
@@ -7867,6 +7831,9 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
     uint32_t  srcbase;
     uint32_t  dstbase;
 
+    frgd_mix = (s3->accel.frgd_mix >> 5) & 3;
+    bkgd_mix = (s3->accel.bkgd_mix >> 5) & 3;
+
     if (((s3->chip >= S3_TRIO64) || (s3->chip == S3_VISION968) || (s3->chip == S3_VISION868)) && (s3->accel.cmd & (1 << 11)))
         cmd |= 0x08;
 
@@ -7891,32 +7858,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
     if ((s3->accel.cmd & 0x100) && (s3_cpu_src(s3) || (s3_cpu_dest(s3))) && (!cpu_input || (s3_enable_fifo(s3) == 0)))
         s3->force_busy = 1;
-
-    if ((s3->bpp == 0) && s3->color_16bit && !s3->accel.b2e8_pix) {
-        if (cmd <= 2) {
-            if (s3->accel.cur_x & 0x400) {
-                if (s3->accel.cmd != 0x41b3)
-                    wrt_mask = (wrt_mask << 8) & 0xff00;
-                else
-                    wrt_mask &= 0xff;
-
-                frgd_color = (frgd_color << 8) & 0xff00;
-                bkgd_color = (bkgd_color << 8) & 0xff00;
-            } else {
-                if (clip_r >= 0x400) {
-                    wrt_mask &= 0xff;
-                    frgd_color &= 0xff;
-                    bkgd_color &= 0xff;
-                }
-            }
-        } else if (cmd == 6) {
-            if (s3->accel.destx_distp & 0x400) {
-                wrt_mask = (wrt_mask << 8) & 0xff00;
-                frgd_color = (frgd_color << 8) & 0xff00;
-                bkgd_color = (bkgd_color << 8) & 0xff00;
-            }
-        }
-    }
 
     if (!cpu_input)
         s3->accel.dat_count = 0;
@@ -7966,13 +7907,10 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
             break;
     }
 
-    frgd_mix = (s3->accel.frgd_mix >> 5) & 3;
-    bkgd_mix = (s3->accel.bkgd_mix >> 5) & 3;
-
     /*Bit 4 of the Command register is the draw yes bit, which enables writing to memory/reading from memory when enabled.
       When this bit is disabled, no writing to memory/reading from memory is allowed. (This bit is almost meaningless on
       the NOP command)*/
-    s3_log("CMD=%d, full=%04x, s3bpp=%x, multifuncE=%03x, sourcedisplay=%x, mmio=%02x, srcbase=%08x, dstbase=%08x, cpu=%04x, mix=%04x, count=%d, rd_mask=%04x, wrt_mask=%04x, width=%d, s=%d,%d, c=%d,%d, d=%d,%d, 16bitcolor=%x, frgdcolor=%04x, bkgdcolor=%04x, frgdsel=%d, bkgdsel=%d, frgdmix=%02x, svgabpp=%d.\n", cmd, s3->accel.cmd, s3->bpp, s3->accel.multifunc[0x0e], vram_mask, svga->crtc[0x53] & 0x18, srcbase, dstbase, cpu_dat & 0xffff, mix_dat & 0xffff, count, rd_mask, wrt_mask, s3->width, s3->accel.sx, s3->accel.sy, s3->accel.cx, s3->accel.cy, s3->accel.dx, s3->accel.dy, s3->color_16bit, frgd_color, bkgd_color, frgd_mix, bkgd_mix, s3->accel.frgd_mix & 0x0f, svga->bpp);
+    s3_log("CMD=%d, full=%04x, s3bpp=%x, clr=%d, clb=%d, sourcedisplay=%02x, mmio=%02x, srcbase=%08x, dstbase=%08x, cpu=%04x, mix=%04x, count=%d, rd_mask=%04x, wrt_mask=%04x, width=%d, s=%d,%d, c=%d,%d, d=%d,%d, 16bitcolor=%x, frgdcolor=%04x, bkgdcolor=%04x, frgdsel=%d, bkgdsel=%d, frgdmix=%02x, curx=%d, cury=%d, cll=%d, b2e8pix=%x.\n", cmd, s3->accel.cmd, s3->bpp, clip_r, clip_b, s3->accel.multifunc[0x0a] & 0xc4, svga->crtc[0x53] & 0x18, srcbase, dstbase, cpu_dat & 0xffff, mix_dat & 0xffff, count, rd_mask, wrt_mask, s3->width, s3->accel.sx, s3->accel.sy, s3->accel.cx, s3->accel.cy, s3->accel.dx, s3->accel.dy, s3->color_16bit, frgd_color, bkgd_color, frgd_mix, bkgd_mix, s3->accel.frgd_mix & 0x0f, s3->accel.cur_x, s3->accel.cur_y, clip_l, s3->accel.b2e8_pix);
 
     switch (cmd) {
         case 0: /*NOP (Short Stroke Vectors)*/
@@ -8018,6 +7956,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                         if (update) {
                             READ((s3->accel.cy * s3->width) + s3->accel.cx, dest_dat);
 
+                            old_dest_dat = dest_dat;
                             MIX
 
                             if (s3->accel.ssv_draw) {
@@ -8083,10 +8022,16 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
         case 1: /*Draw line*/
             if (!cpu_input) {
                 s3->accel.minus = 0;
+                s3->accel.color_16bit_check_pixtrans = 0;
                 s3->accel.cx = s3->accel.cur_x & 0xfff;
                 s3->accel.cy = s3->accel.cur_y & 0xfff;
                 s3->accel.sy = s3->accel.maj_axis_pcnt;
-                if ((s3->bpp == 0) && s3->color_16bit && (s3->accel.cur_x & 0x400))
+                if ((s3->bpp == 0) && s3->color_16bit)
+                    s3->accel.rd_mask_16bit_check = ((rd_mask & 0xff00) != 0xff00);
+                else
+                    s3->accel.rd_mask_16bit_check = 0;
+
+                if ((s3->bpp == 0) && s3->color_16bit && (s3->accel.cur_x & 0x400) && s3->accel.rd_mask_16bit_check)
                     s3->accel.minus = 0x400;
 
                 if (s3_cpu_src(s3))
@@ -8094,6 +8039,22 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
             }
 
             if (s3->accel.cmd & 0x08) { /*Radial*/
+                if ((s3->bpp == 0) && s3->color_16bit) {
+                    if (s3->accel.rd_mask_16bit_check) {
+                        if (s3->accel.cur_x & 0x400) {
+                            wrt_mask = (s3->accel.wrt_mask_actual[1] << 8);
+                            frgd_color = (s3->accel.frgd_color_actual[1] << 8);
+                            bkgd_color = (s3->accel.bkgd_color_actual[1] << 8);
+                        } else {
+                            wrt_mask = s3->accel.wrt_mask_actual[0];
+                            frgd_color = s3->accel.frgd_color_actual[0];
+                            bkgd_color = s3->accel.bkgd_color_actual[0];
+                        }
+                        rd_mask &= 0x00ff;
+                    } else if (!s3->accel.rd_mask_16bit_check && (s3->accel.cur_x & 0x400))
+                        break;
+                }
+
                 while (count-- && s3->accel.sy >= 0) {
                     if ((s3->accel.cx & 0xfff) >= clip_l && (s3->accel.cx & 0xfff) <= clip_r && (s3->accel.cy & 0xfff) >= clip_t && (s3->accel.cy & 0xfff) <= clip_b) {
                         switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
@@ -8132,6 +8093,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                         if (update) {
                             READ((s3->accel.cy * s3->width) + s3->accel.cx - s3->accel.minus, dest_dat);
 
+                            old_dest_dat = dest_dat;
                             MIX
 
                             WRITE((s3->accel.cy * s3->width) + s3->accel.cx - s3->accel.minus, dest_dat);
@@ -8145,8 +8107,15 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                     else
                         cpu_dat >>= 16;
 
-                    if (!s3->accel.sy)
+                    if (!s3->accel.sy) {
+                        if ((s3->bpp == 0) && s3->color_16bit)  {
+                            if (!(s3->accel.cur_x & 0x400))
+                                s3->accel.color_16bit_check = 1;
+                            else
+                                s3->accel.color_16bit_check = 0;
+                        }
                         break;
+                    }
 
                     switch (s3->accel.cmd & 0xe0) {
                         case 0x00:
@@ -8188,9 +8157,40 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                 s3->accel.cur_x = s3->accel.cx & 0xfff;
                 s3->accel.cur_y = s3->accel.cy & 0xfff;
             } else { /*Bresenham*/
-                if (s3->accel.b2e8_pix && s3_cpu_src(s3) && (count == 16)) { /*Stupid undocumented 0xB2E8 on 911/924*/
+                if (s3->accel.b2e8_pix && s3_cpu_src(s3) && (count == 16)) { /*Pattern on pixtrans (911/924)*/
                     count              = s3->accel.maj_axis_pcnt + 1;
                     s3->accel.temp_cnt = 16;
+                    if ((s3->bpp == 0) && s3->color_16bit) {
+                        if (s3->accel.rd_mask_16bit_check) {
+                            if (s3->accel.cur_x & 0x400) {
+                                wrt_mask = (s3->accel.wrt_mask_actual[1] << 8);
+                                frgd_color = (s3->accel.frgd_color_actual[1] << 8);
+                                bkgd_color = (s3->accel.bkgd_color_actual[1] << 8);
+                            } else {
+                                wrt_mask = s3->accel.wrt_mask_actual[0];
+                                frgd_color = s3->accel.frgd_color_actual[0];
+                                bkgd_color = s3->accel.bkgd_color_actual[0];
+                            }
+                            rd_mask &= 0x00ff;
+                        } else if (!s3->accel.rd_mask_16bit_check && (s3->accel.cur_x & 0x400))
+                            break;
+                    }
+                } else {
+                    if ((s3->bpp == 0) && s3->color_16bit) {
+                        if (s3->accel.rd_mask_16bit_check) {
+                            if (s3->accel.cur_x & 0x400) {
+                                wrt_mask = (s3->accel.wrt_mask_actual[1] << 8);
+                                frgd_color = (s3->accel.frgd_color_actual[1] << 8);
+                                bkgd_color = (s3->accel.bkgd_color_actual[1] << 8);
+                            } else {
+                                wrt_mask = s3->accel.wrt_mask_actual[0];
+                                frgd_color = s3->accel.frgd_color_actual[0];
+                                bkgd_color = s3->accel.bkgd_color_actual[0];
+                            }
+                            rd_mask &= 0x00ff;
+                        } else if (!s3->accel.rd_mask_16bit_check && (s3->accel.cur_x & 0x400))
+                            break;
+                    }
                 }
 
                 while (count-- && s3->accel.sy >= 0) {
@@ -8236,6 +8236,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                         if (update) {
                             READ((s3->accel.cy * s3->width) + s3->accel.cx - s3->accel.minus, dest_dat);
 
+                            old_dest_dat = dest_dat;
                             MIX
 
                             WRITE((s3->accel.cy * s3->width) + s3->accel.cx - s3->accel.minus, dest_dat);
@@ -8258,8 +8259,15 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                     else
                         cpu_dat >>= 16;
 
-                    if (!s3->accel.sy)
+                    if (!s3->accel.sy) {
+                        if ((s3->bpp == 0) && s3->color_16bit)  {
+                            if (!(s3->accel.cur_x & 0x400))
+                                s3->accel.color_16bit_check = 1;
+                            else
+                                s3->accel.color_16bit_check = 0;
+                        }
                         break;
+                    }
 
                     if (s3->accel.cmd & 0x40) {
                         if (s3->accel.cmd & 0x80)
@@ -8304,19 +8312,67 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
             if (!cpu_input) /*!cpu_input is trigger to start operation*/
             {
                 s3->accel.minus = 0;
+                s3->accel.mix_dat_upper = 0;
+                s3->accel.color_16bit_check_pixtrans = 0;
                 s3->accel.sx = s3->accel.maj_axis_pcnt & 0xfff;
                 s3->accel.sy = s3->accel.multifunc[0] & 0xfff;
                 s3->accel.cx = s3->accel.cur_x & 0xfff;
                 s3->accel.cy = s3->accel.cur_y & 0xfff;
-                if ((s3->bpp == 0) && s3->color_16bit && (s3->accel.cur_x & 0x400))
-                    s3->accel.minus = 0x400;
-
-                if (s3->accel.cur_x & 0x400)
-                    s3_log("Rectangle Fill + 1024 FULLCMD=%04x: frgdcolor=%04x, s(%d,%d), c(%d,%d).\n", s3->accel.cmd, frgd_color, s3->accel.sx, s3->accel.sy, s3->accel.cx, s3->accel.cy);
-                else
-                    s3_log("Rectangle Fill + 0 FULLCMD=%04x: frgdcolor=%04x, s(%d,%d), c(%d,%d).\n", s3->accel.cmd, frgd_color, s3->accel.sx, s3->accel.sy, s3->accel.cx, s3->accel.cy);
 
                 s3->accel.dest = dstbase + s3->accel.cy * s3->width;
+
+                if ((s3->bpp == 0) && s3->color_16bit) {
+                    s3->accel.rd_mask_16bit_check = ((rd_mask & 0xff00) != 0xff00);
+                    if (s3->accel.rd_mask_16bit_check) {
+                        if (s3->accel.cmd == 0x41b3) {
+                            if (frgd_mix == 0) {
+                                if (!(s3->accel.cur_x & 0x400))
+                                    s3->accel.color_16bit_check = 0;
+                            } else {
+                                if ((s3->accel.cur_x_overflow & 0xc00) == 0xc00)
+                                    s3->accel.start = 1;
+                                else {
+                                    if (s3->accel.start) {
+                                        s3->accel.start = 0;
+                                        s3->accel.minus = 0x400;
+                                    } else {
+                                        s3->accel.start = 0;
+                                        if (s3->accel.cur_x_overflow & 0x400)
+                                            s3->accel.minus = 0x400;
+                                    }
+                                }
+                            }
+                        } else {
+                            if ((s3->accel.cur_x_overflow & 0xc00) == 0xc00)
+                                s3->accel.start = 1;
+                            else {
+                                if (s3->accel.start) {
+                                    s3->accel.start = 0;
+                                    s3->accel.minus = 0x400;
+                                } else {
+                                    s3->accel.start = 0;
+                                    if (s3->accel.cur_x_overflow & 0x400)
+                                        s3->accel.minus = 0x400;
+                                }
+                            }
+                        }
+                    } else {
+                        if (s3->accel.cmd & 0x100) {
+                            if (!(s3->accel.cmd & 0x200)) {
+                                if (s3->accel.cur_x & 0x400)
+                                    s3->accel.minus = 0x400;
+                                else
+                                    s3->accel.minus = 0;
+                            }
+                        }
+                    }
+                } else
+                    s3->accel.rd_mask_16bit_check = 0;
+
+                if (s3->accel.cur_x & 0x400)
+                    s3_log("Rectangle Fill + 1024 FULLCMD=%04x: frgdcolor=%04x, s=%d,%d, c=%d,%d, frmix=%x, bkmix=%x, pixcntl=%02x, m2=%d, m4=%d.\n", s3->accel.cmd, s3->accel.frgd_color_actual[1] << 8, s3->accel.sx, s3->accel.sy, s3->accel.cx, s3->accel.cy, frgd_mix, bkgd_mix, s3->accel.multifunc[0xa] & 0xc0, s3->accel.multifunc[2], s3->accel.multifunc[4]);
+                else
+                    s3_log("Rectangle Fill + 0 FULLCMD=%04x: frgdcolor=%04x, s=%d,%d, c=%d,%d, frmix=%x, bkmix=%x, pixcntl=%02x, m2=%d, m4=%d.\n", s3->accel.cmd, s3->accel.frgd_color_actual[0], s3->accel.sx, s3->accel.sy, s3->accel.cx, s3->accel.cy, frgd_mix, bkgd_mix, s3->accel.multifunc[0xa] & 0xc0, s3->accel.multifunc[2], s3->accel.multifunc[4]);
 
                 if (s3_cpu_src(s3)) {
                     s3->data_available = 0;
@@ -8327,10 +8383,83 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                 }
             }
 
-            if (s3->accel.b2e8_pix && s3_cpu_src(s3) && (count == 16)) { /*Stupid undocumented 0xB2E8 on 911/924*/
+
+            if (s3->accel.b2e8_pix && s3_cpu_src(s3) && (count == 16)) { /*Pattern on pixtrans (911/924)*/
                 count              = s3->accel.maj_axis_pcnt + 1;
                 s3->accel.temp_cnt = 16;
+                if (s3->accel.rd_mask_16bit_check) {
+                    if (s3->accel.minus) {
+                        wrt_mask = (s3->accel.wrt_mask_actual[1] << 8);
+                        frgd_color = (s3->accel.frgd_color_actual[1] << 8);
+                        bkgd_color = (s3->accel.bkgd_color_actual[1] << 8);
+                    } else {
+                        wrt_mask = s3->accel.wrt_mask_actual[0];
+                        frgd_color = s3->accel.frgd_color_actual[0];
+                        bkgd_color = s3->accel.bkgd_color_actual[0];
+                    }
+                    rd_mask &= 0x00ff;
+                } else if (!s3->accel.rd_mask_16bit_check && (s3->accel.cur_x & 0x400))
+                    break;
+            } else {
+                if ((s3->bpp == 0) && s3->color_16bit) {
+                    if (s3->accel.cmd == 0x41b3) {
+                        if (frgd_mix != 0) {
+                            if (s3->accel.rd_mask_16bit_check) {
+                                if (s3->accel.minus) {
+                                    wrt_mask = (s3->accel.wrt_mask_actual[1] << 8);
+                                    frgd_color = (s3->accel.frgd_color_actual[1] << 8);
+                                    bkgd_color = (s3->accel.bkgd_color_actual[1] << 8);
+                                } else {
+                                    wrt_mask = s3->accel.wrt_mask_actual[0];
+                                    frgd_color = s3->accel.frgd_color_actual[0];
+                                    bkgd_color = s3->accel.bkgd_color_actual[0];
+                                }
+                                rd_mask &= 0x00ff;
+                            } else if (!s3->accel.rd_mask_16bit_check && (s3->accel.cur_x & 0x400))
+                                break;
+                        } else {
+                            if (s3->accel.rd_mask_16bit_check) {
+                                if (s3->accel.minus) {
+                                    wrt_mask = (s3->accel.wrt_mask_actual[1] << 8);
+                                    frgd_color = (s3->accel.frgd_color_actual[1] << 8);
+                                    bkgd_color = (s3->accel.bkgd_color_actual[1] << 8);
+                                } else {
+                                    wrt_mask = s3->accel.wrt_mask_actual[0];
+                                    frgd_color = s3->accel.frgd_color_actual[0];
+                                    bkgd_color = s3->accel.bkgd_color_actual[0];
+                                    s3->accel.mix_dat_upper = !!(mix_dat & 0xff00);
+                                }
+                                rd_mask &= 0x00ff;
+                            }
+                        }
+                    } else {
+                        if (s3->accel.rd_mask_16bit_check) {
+                            if (s3->accel.minus) {
+                                wrt_mask = (s3->accel.wrt_mask_actual[1] << 8);
+                                frgd_color = (s3->accel.frgd_color_actual[1] << 8);
+                                bkgd_color = (s3->accel.bkgd_color_actual[1] << 8);
+                            } else {
+                                wrt_mask = s3->accel.wrt_mask_actual[0];
+                                frgd_color = s3->accel.frgd_color_actual[0];
+                                bkgd_color = s3->accel.bkgd_color_actual[0];
+                            }
+                            rd_mask &= 0x00ff;
+                        } else {
+                            if ((s3_cpu_src(s3)) && !(s3->accel.cmd & 0x200)) {
+                                s3_log("FIXME: S3 911/924 15/16bpp documentation needed.\n");
+                            } else {
+                                if (!cpu_input && (s3->accel.cur_x & 0x400))
+                                    break;
+                                else if (cpu_input && (s3->accel.cmd == 0x53b3) && (s3->accel.cur_x & 0x400))
+                                    break;
+                            }
+                        }
+                    }
+                }
             }
+
+            if (s3->accel.mix_dat_upper)
+                s3_log("CMDFULL=%04x, FRGDMIX=%x, BKGDCOLR=%04x, RDMASK=%04x, MINUS=%d, WRTMASK=%04X, MIX=%04x, CX=%d, CY=%d, SX=%d, SY=%d, PIXCNTL=%02x, 16BITCOLOR=%x, RDCHECK=%x, OVERFLOW=%d.\n", s3->accel.cmd, s3->accel.frgd_mix & 0x0f, s3->accel.bkgd_color, rd_mask, s3->accel.minus, wrt_mask, mix_dat & 0xffff, s3->accel.cx, s3->accel.cy, s3->accel.sx, s3->accel.sy, s3->accel.multifunc[0x0a] & 0xc4, s3->accel.color_16bit_check, s3->accel.rd_mask_16bit_check, (s3->accel.cur_x_overflow & 0xc00) == 0xc00);
 
             while (count-- && (s3->accel.sy >= 0)) {
                 if (s3->accel.b2e8_pix && s3_cpu_src(s3) && !s3->accel.temp_cnt) {
@@ -8349,7 +8478,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                         mix_dat = mix_dat ? mix_mask : 0;
                     }
 
-                    if (s3_cpu_dest(s3) || ((s3_cpu_src(s3)) && s3->color_16bit && (s3->bpp == 0) && (s3->accel.cmd == 0x41b3))) {
+                    if (s3_cpu_dest(s3)) {
                         READ(s3->accel.dest + s3->accel.cx - s3->accel.minus, src_dat);
                         if (vram_mask)
                             src_dat = ((src_dat & rd_mask) == rd_mask);
@@ -8393,17 +8522,18 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
                         if (s3_cpu_dest(s3)) {
                             if (vram_mask) {
+                                old_dest_dat = dest_dat;
                                 MIX
                             }
                         } else {
+                            old_dest_dat = dest_dat;
                             MIX
                         }
 
                         if (s3->accel.cmd & 0x10) {
-                            if (s3->accel.cmd == 0x41b3)
-                                s3_log("Full=%04x: Destination=%04x, OldDest=%04x, c=%d,%d.\n", s3->accel.cmd, dest_dat, old_dest_dat, s3->accel.cx, s3->accel.cy);
-
-                            WRITE(s3->accel.dest + s3->accel.cx - s3->accel.minus, dest_dat);
+                            if (!s3->accel.color_16bit_check_pixtrans) {
+                                WRITE(s3->accel.dest + s3->accel.cx - s3->accel.minus, dest_dat);
+                            }
                         }
                     }
                 }
@@ -8446,9 +8576,23 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
                     s3->accel.cy &= 0xfff;
                     s3->accel.dest = dstbase + s3->accel.cy * s3->width;
+
                     s3->accel.sy--;
 
                     if (cpu_input) {
+                        if (s3->accel.sy < 0) {
+                            if ((s3->bpp == 0) && s3->color_16bit)  {
+                                if (s3->accel.rd_mask_16bit_check) {
+                                    if (s3->accel.minus)
+                                        s3->accel.color_16bit_check = 0;
+                                    else
+                                        s3->accel.color_16bit_check = 1;
+
+                                    if ((s3->accel.cmd == 0x41b3) && (frgd_mix == 0))
+                                        s3->accel.color_16bit_check = 0;
+                                }
+                            }
+                        }
                         if (s3->accel.b2e8_pix) {
                             s3->accel.cur_x = s3->accel.cx;
                             s3->accel.cur_y = s3->accel.cy;
@@ -8456,6 +8600,14 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                         return;
                     }
                     if (s3->accel.sy < 0) {
+                        if ((s3->bpp == 0) && s3->color_16bit)  {
+                            if (s3->accel.rd_mask_16bit_check) {
+                                if (s3->accel.minus)
+                                    s3->accel.color_16bit_check = 0;
+                                else
+                                    s3->accel.color_16bit_check = 1;
+                            }
+                        }
                         s3->accel.cur_x = s3->accel.cx;
                         s3->accel.cur_y = s3->accel.cy;
                         return;
@@ -8524,6 +8676,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                             if (update) {
                                 READ(s3->accel.dest + s3->accel.poly_x, dest_dat);
 
+                                old_dest_dat = dest_dat;
                                 MIX
 
                                 if (s3->accel.cmd & 0x10) {
@@ -8569,8 +8722,29 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                 s3->accel.dx = s3->accel.destx_distp & 0xfff;
                 s3->accel.dy = s3->accel.desty_axstp & 0xfff;
 
-                if ((s3->bpp == 0) && s3->color_16bit && (clip_r > 0x3ff) && (s3->accel.destx_distp & 0x400))
-                    s3->accel.minus = 0x400;
+                if ((s3->bpp == 0) && s3->color_16bit) {
+                    s3->accel.rd_mask_16bit_check = ((rd_mask & 0xff00) != 0xff00);
+                    if (s3->accel.rd_mask_16bit_check) {
+                        if (!(s3->accel.cmd & 0x40) && !(clip_r & 0x400))
+                            s3->accel.start = 1;
+                        else {
+                            if (s3->accel.start) {
+                                s3->accel.start = 0;
+                                s3->accel.minus = 0x400;
+                            } else {
+                                s3->accel.start = 0;
+                                if (s3->accel.destx_distp & 0x400)
+                                    s3->accel.minus = 0x400;
+                            }
+                        }
+                    }
+                }
+
+                if (s3->accel.destx_distp & 0x400) {
+                    s3_log("BitBLT + 1024 FULLCMD=%04x: frgdcolor=%04x, s=%d,%d, d=%d,%d, frmix=%x, bkmix=%x, pixcntl=%02x.\n", s3->accel.cmd, frgd_color, s3->accel.sx, s3->accel.sy, s3->accel.dx, s3->accel.dy, frgd_mix, bkgd_mix, s3->accel.multifunc[0xa] & 0xc0);
+                } else {
+                    s3_log("BitBLT + 0 FULLCMD=%04x: frgdcolor=%04x, s=%d,%d, d=%d,%d, frmix=%x, bkmix=%x, pixcntl=%02x.\n", s3->accel.cmd, frgd_color, s3->accel.sx, s3->accel.sy, s3->accel.dx, s3->accel.dy, frgd_mix, bkgd_mix, s3->accel.multifunc[0xa] & 0xc0);
+                }
 
                 s3->accel.cx = s3->accel.cur_x & 0xfff;
                 s3->accel.cy = s3->accel.cur_y & 0xfff;
@@ -8582,6 +8756,25 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
             if ((s3->accel.cmd & 0x100) && !cpu_input)
                 return; /*Wait for data from CPU*/
+
+            if ((s3->bpp == 0) && s3->color_16bit) {
+                if (s3->accel.rd_mask_16bit_check) {
+                    if (s3->accel.minus) {
+                        wrt_mask = (s3->accel.wrt_mask_actual[1] << 8);
+                        frgd_color = (s3->accel.frgd_color_actual[1] << 8);
+                        bkgd_color = (s3->accel.bkgd_color_actual[1] << 8);
+                    } else {
+                        wrt_mask = s3->accel.wrt_mask_actual[0];
+                        frgd_color = s3->accel.frgd_color_actual[0];
+                        bkgd_color = s3->accel.bkgd_color_actual[0];
+                    }
+                    rd_mask &= 0x00ff;
+                } else if (!s3->accel.rd_mask_16bit_check && (s3->accel.destx_distp & 0x400))
+                    break;
+            }
+
+            if (!vram_mask && (frgd_mix == 3))
+                s3_log("CMDFULL=%04x, FRGDMIX=%x, BKGDMIX=%x, RDMASK=%04x, MINUS=%d, WRTMASK=%04X, MIX=%04x, CX=%d, CY=%d, DX=%d, DY=%d, SX=%d, SY=%d, PIXCNTL=%02x, 16BITCOLOR=%x, RDCHECK=%x, CLIPL=%d, CLIPR=%d, OVERFLOW=%d.\n", s3->accel.cmd, frgd_mix, bkgd_mix, rd_mask, s3->accel.minus, wrt_mask, mix_dat & 0xffff, s3->accel.cx, s3->accel.cy, s3->accel.dx, s3->accel.dy, s3->accel.sx, s3->accel.sy, s3->accel.multifunc[0x0a] & 0xc4, s3->accel.color_16bit_check, s3->accel.rd_mask_16bit_check, clip_l, clip_r, (s3->accel.destx_overflow & 0xc00) == 0xc00);
 
             if (!cpu_input && (frgd_mix == 3) && !vram_mask && !(s3->accel.multifunc[0xe] & 0x100) && ((s3->accel.cmd & 0xa0) == 0xa0) && ((s3->accel.frgd_mix & 0xf) == 7) && ((s3->accel.bkgd_mix & 0xf) == 7)) {
                 while (1) {
@@ -8599,6 +8792,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                     s3->accel.dx++;
                     s3->accel.sx--;
                     s3->accel.dx &= 0xfff;
+
                     if (s3->accel.sx < 0) {
                         s3->accel.cx -= (s3->accel.maj_axis_pcnt & 0xfff) + 1;
                         s3->accel.dx -= (s3->accel.maj_axis_pcnt & 0xfff) + 1;
@@ -8613,6 +8807,12 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                         s3->accel.sy--;
 
                         if (s3->accel.sy < 0) {
+                            if (s3->accel.rd_mask_16bit_check)  {
+                                if (s3->accel.minus)
+                                    s3->accel.color_16bit_check = 0;
+                                else
+                                    s3->accel.color_16bit_check = 1;
+                            }
                             s3->accel.destx_distp = s3->accel.dx;
                             s3->accel.desty_axstp = s3->accel.dy;
                             return;
@@ -8665,6 +8865,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                         if (update) {
                             READ(s3->accel.dest + s3->accel.dx - s3->accel.minus, dest_dat);
 
+                            old_dest_dat = dest_dat;
                             MIX
 
                             if ((!(s3->accel.cmd & 0x10) && vram_mask) || (s3->accel.cmd & 0x10)) {
@@ -8688,7 +8889,11 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                         s3->accel.cx--;
                         s3->accel.dx--;
                     }
-                    s3->accel.dx &= 0xfff;
+                    if (s3->accel.rd_mask_16bit_check)
+                        s3->accel.dx &= 0x7ff;
+                    else
+                        s3->accel.dx &= 0xfff;
+
                     s3->accel.sx--;
                     if (s3->accel.sx < 0) {
                         if (s3->accel.cmd & 0x20) {
@@ -8712,10 +8917,28 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
                         s3->accel.sy--;
 
-                        if (cpu_input)
+                        if (cpu_input) {
+                            if (s3->accel.sy < 0) {
+                                if (s3->accel.rd_mask_16bit_check)  {
+                                    if (s3->accel.minus)
+                                        s3->accel.color_16bit_check = 0;
+                                    else
+                                        s3->accel.color_16bit_check = 1;
+                                }
+                            }
                             return;
+                        }
 
                         if (s3->accel.sy < 0) {
+                            if (s3->accel.rd_mask_16bit_check)  {
+                                if (s3->accel.minus)
+                                    s3->accel.color_16bit_check = 0;
+                                else
+                                    s3->accel.color_16bit_check = 1;
+
+                                if (s3->accel.mix_dat_upper && !vram_mask && (frgd_mix == 3))
+                                    s3->accel.color_16bit_check = 0;
+                            }
                             s3->accel.destx_distp = s3->accel.dx;
                             s3->accel.desty_axstp = s3->accel.dy;
                             return;
@@ -8795,6 +9018,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                     if (update) {
                         READ(s3->accel.dest + s3->accel.dx, dest_dat);
 
+                        old_dest_dat = dest_dat;
                         MIX
 
                         if (s3->accel.cmd & 0x10) {
@@ -8900,6 +9124,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                             if (update) {
                                 READ((s3->accel.cy * s3->width) + s3->accel.cx, dest_dat);
 
+                                old_dest_dat = dest_dat;
                                 MIX
 
                                 if (s3->accel.cmd & 0x10) {
@@ -8949,6 +9174,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                             if (update) {
                                 READ((s3->accel.cy * s3->width) + s3->accel.cx, dest_dat);
 
+                                old_dest_dat = dest_dat;
                                 MIX
 
                                 if (s3->accel.cmd & 0x10) {
@@ -9050,6 +9276,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                             if (update) {
                                 READ(s3->accel.dest + s3->accel.poly_x, dest_dat);
 
+                                old_dest_dat = dest_dat;
                                 MIX
 
                                 if (s3->accel.cmd & 0x10) {
@@ -9523,7 +9750,6 @@ s3_disable_handlers(s3_t *s3)
     reset_state->bios_rom.mapping = s3->bios_rom.mapping;
 
     reset_state->svga.timer       = s3->svga.timer;
-    reset_state->svga.timer8514   = s3->svga.timer8514;
 
     memset(s3->svga.vram, 0x00, s3->svga.vram_max + 8);
     memset(s3->svga.changedvram, 0x00, (s3->svga.vram_max >> 12) + 1);
@@ -10011,7 +10237,7 @@ s3_init(const device_t *info)
             s3->id_ext_pci    = 0;
             s3->packed_mmio   = 0;
 
-            svga->ramdac    = device_add(&att490_ramdac_device);
+            svga->ramdac    = device_add(&sc11483_ramdac_device);
             svga->clock_gen = device_add(&ics2494an_305_device);
             svga->getclock  = ics2494_getclock;
             break;

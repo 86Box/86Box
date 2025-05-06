@@ -59,7 +59,6 @@ typedef struct piix_io_trap_t {
 } piix_io_trap_t;
 
 typedef struct _piix_ {
-    uint8_t        cur_readout_reg;
     uint8_t        rev;
     uint8_t        type;
     uint8_t        func_shift;
@@ -67,7 +66,6 @@ typedef struct _piix_ {
     uint8_t        pci_slot;
     uint8_t        no_mirq0;
     uint8_t        regs[4][256];
-    uint8_t        readout_regs[256];
     uint16_t       func0_id;
     uint16_t       nvr_io_base;
     uint16_t       acpi_io_base;
@@ -1186,31 +1184,6 @@ piix_read(int func, int addr, void *priv)
 }
 
 static void
-board_write(uint16_t port, uint8_t val, void *priv)
-{
-    piix_t *dev = (piix_t *) priv;
-
-    if (port == 0x00e0)
-        dev->cur_readout_reg = val;
-    else if (port == 0x00e1)
-        dev->readout_regs[dev->cur_readout_reg] = val;
-}
-
-static uint8_t
-board_read(uint16_t port, void *priv)
-{
-    const piix_t *dev = (piix_t *) priv;
-    uint8_t       ret = 0x64;
-
-    if (port == 0x00e0)
-        ret = dev->cur_readout_reg;
-    else if (port == 0x00e1)
-        ret = dev->readout_regs[dev->cur_readout_reg];
-
-    return ret;
-}
-
-static void
 piix_reset_hard(piix_t *dev)
 {
     uint8_t *fregs;
@@ -1623,40 +1596,6 @@ piix_init(const device_t *info)
         pci_enable_mirq(0);
     if (dev->type < 3)
         pci_enable_mirq(1);
-
-    dev->readout_regs[0] = 0xff;
-    dev->readout_regs[1] = 0x40;
-    dev->readout_regs[2] = 0xff;
-
-    /* Port E1 register 01 (TODO: Find how multipliers > 3.0 are defined):
-
-        Bit 6: 1 = can boot, 0 = no;
-        Bit 7, 1 = multiplier (00 = 2.5, 01 = 2.0, 10 = 3.0, 11 = 1.5);
-        Bit 5, 4 = bus speed (00 = 50 MHz, 01 = 66 MHz, 10 = 60 MHz, 11 = ????):
-        Bit 7, 5, 4, 1: 0000 = 125 MHz, 0010 = 166 MHz, 0100 = 150 MHz, 0110 = ??? MHz;
-                        0001 = 100 MHz, 0011 = 133 MHz, 0101 = 120 MHz, 0111 = ??? MHz;
-                        1000 = 150 MHz, 1010 = 200 MHz, 1100 = 180 MHz, 1110 = ??? MHz;
-                        1001 =  75 MHz, 1011 = 100 MHz, 1101 =  90 MHz, 1111 = ??? MHz */
-
-    if (cpu_busspeed <= 40000000)
-        dev->readout_regs[1] |= 0x30;
-    else if ((cpu_busspeed > 40000000) && (cpu_busspeed <= 50000000))
-        dev->readout_regs[1] |= 0x00;
-    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
-        dev->readout_regs[1] |= 0x20;
-    else if (cpu_busspeed > 60000000)
-        dev->readout_regs[1] |= 0x10;
-
-    if (cpu_dmulti <= 1.5)
-        dev->readout_regs[1] |= 0x82;
-    else if ((cpu_dmulti > 1.5) && (cpu_dmulti <= 2.0))
-        dev->readout_regs[1] |= 0x02;
-    else if ((cpu_dmulti > 2.0) && (cpu_dmulti <= 2.5))
-        dev->readout_regs[1] |= 0x00;
-    else if (cpu_dmulti > 2.5)
-        dev->readout_regs[1] |= 0x80;
-
-    io_sethandler(0x00e0, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL, dev);
 
 #if 0
     device_add(&i8254_sec_device);

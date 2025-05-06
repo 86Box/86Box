@@ -385,7 +385,7 @@ do_format(hdc_t *dev, drive_t *drive, dcb_t *dcb)
             dev->sector = 0;
 
             /* Activate the status icon. */
-            ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 1);
+            ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 1);
 
 do_fmt:
             /*
@@ -426,7 +426,7 @@ do_fmt:
     }
 
     /* De-activate the status icon. */
-    ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 }
 
 /* Execute the DCB we just received. */
@@ -631,7 +631,7 @@ read_error:
 
                 case STATE_RECV:
                     /* Activate the status icon. */
-                    ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 1);
+                    ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 1);
 do_recv:
                     /* Ready to transfer the data in. */
                     dev->state   = STATE_RDATA;
@@ -680,7 +680,7 @@ do_recv:
                     if (get_sector(dev, drive, &addr)) {
 write_error:
                         /* De-activate the status icon. */
-                        ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+                        ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 
                         dev->comp |= COMP_ERR;
                         set_intr(dev);
@@ -697,7 +697,7 @@ write_error:
                     dev->buf_idx = 0;
                     if (--dev->count == 0) {
                         /* De-activate the status icon. */
-                        ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+                        ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 
                         set_intr(dev);
                         return;

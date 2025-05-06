@@ -18,8 +18,8 @@ msgstr "&Desni CTRL je levi ALT"
 msgid "&Hard Reset..."
 msgstr "&Ponovni zagon..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -37,7 +37,7 @@ msgid "&Hide status bar"
 msgstr "&Skrij statusno vrstico"
 
 msgid "Hide &toolbar"
-msgstr "Hide &toolbar"
+msgstr "Skrij &orodno vrstico"
 
 msgid "&Resizeable window"
 msgstr "S&premenljiva velikost okna"
@@ -55,7 +55,7 @@ msgid "Qt (&OpenGL)"
 msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (Jedro 3.0)"
+msgstr "Open&GL (jedro 3.0)"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -64,10 +64,10 @@ msgid "Specify dimensions..."
 msgstr "&Določi velikost..."
 
 msgid "F&orce 4:3 display ratio"
-msgstr "&Vsili 4:3 razmerje zaslona"
+msgstr "&Vsili razmerje zaslona 4:3"
 
 msgid "&Window scale factor"
-msgstr "&Faktor velikosti okna"
+msgstr "&Faktor povečave okna"
 
 msgid "&0.5x"
 msgstr "&0.5x"
@@ -100,7 +100,7 @@ msgid "&8x"
 msgstr "&8x"
 
 msgid "Filter method"
-msgstr "&Metoda filtriranja"
+msgstr "&Vrsta filtriranja"
 
 msgid "&Nearest"
 msgstr "&Najbližja"
@@ -111,8 +111,8 @@ msgstr "&Linearna"
 msgid "Hi&DPI scaling"
 msgstr "&Raztezanje za visok DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Celozaslonski način\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Celozaslonski način"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Način celozaslonskega raztezanja"
@@ -186,8 +186,11 @@ msgstr "&Nastavitve..."
 msgid "&Update status bar icons"
 msgstr "&Posodabljaj ikone statusne vrstice"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "&Zajemi posnetek zaslona\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "&Zajemi posnetek zaslona"
+
+msgid "S&ound"
+msgstr "Z&vok"
 
 msgid "&Preferences..."
 msgstr "&Možnosti..."
@@ -198,11 +201,11 @@ msgstr "Omogoči integracijo s programom &Discord"
 msgid "Sound &gain..."
 msgstr "&Ojačanje zvoka..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Z&ačni sledenje\tCtrl+T"
+msgid "Begin trace"
+msgstr "Z&ačni sledenje"
 
-msgid "End trace\tCtrl+T"
-msgstr "&Končaj sledenje\tCtrl+T"
+msgid "End trace"
+msgstr "&Končaj sledenje"
 
 msgid "&Help"
 msgstr "&Pomoč"
@@ -238,7 +241,7 @@ msgid "E&ject"
 msgstr "I&zvrzi"
 
 msgid "&Image..."
-msgstr "Slika..."
+msgstr "S&lika..."
 
 msgid "E&xport to 86F..."
 msgstr "&Izvozi v 86F..."
@@ -249,8 +252,8 @@ msgstr "&Utišaj"
 msgid "E&mpty"
 msgstr "&Prazen"
 
-msgid "&Reload previous image"
-msgstr "&Naloži zadnjo sliko"
+msgid "Reload previous image"
+msgstr "Naloži zadnjo sliko"
 
 msgid "&Folder..."
 msgstr "&Mapa..."
@@ -306,17 +309,11 @@ msgstr "V redu"
 msgid "Cancel"
 msgstr "Prekliči"
 
-msgid "Save these settings as &global defaults"
-msgstr "Shrani te nastavitve kot globalne privzete"
-
 msgid "&Default"
 msgstr "Privzeto"
 
 msgid "Language:"
 msgstr "Jezik:"
-
-msgid "Icon set:"
-msgstr "Komplet ikon:"
 
 msgid "Gain"
 msgstr "Ojačanje"
@@ -358,7 +355,7 @@ msgid "Speed:"
 msgstr "Hitrost:"
 
 msgid "Frequency:"
-msgstr "Pogostost:"
+msgstr "Takt:"
 
 msgid "FPU:"
 msgstr "Procesor plavajoče vejice:"
@@ -370,7 +367,7 @@ msgid "MB"
 msgstr "MB"
 
 msgid "Memory:"
-msgstr "Spomin:"
+msgstr "Pomnilnik:"
 
 msgid "Time synchronization"
 msgstr "Sinhronizacija časa"
@@ -448,19 +445,10 @@ msgid "FM synth driver"
 msgstr "Gonilnik sintetizacije FM"
 
 msgid "Nuked (more accurate)"
-msgstr "Nuked (točnejši)"
+msgstr "Nuked (natančnejši)"
 
 msgid "YMFM (faster)"
 msgstr "YMFM (hitrejši)"
-
-msgid "Network type:"
-msgstr "Vrsta omrežja:"
-
-msgid "PCap device:"
-msgstr "Naprava PCap:"
-
-msgid "Network adapter:"
-msgstr "Omrežna kartica:"
 
 msgid "COM1 Device:"
 msgstr "Naprava COM1:"
@@ -499,22 +487,22 @@ msgid "Serial port 4"
 msgstr "Serijska vrata 4"
 
 msgid "Parallel port 1"
-msgstr "Paralelna vrata 1"
+msgstr "Vzporedna vrata 1"
 
 msgid "Parallel port 2"
-msgstr "Paralelna vrata 2"
+msgstr "Vzporedna vrata 2"
 
 msgid "Parallel port 3"
-msgstr "Paralelna vrata 3"
+msgstr "Vzporedna vrata 3"
 
 msgid "Parallel port 4"
-msgstr "Paralelna vrata 4"
+msgstr "Vzporedna vrata 4"
 
 msgid "HD Controller:"
 msgstr "Krmilnik trdega diska:"
 
 msgid "FD Controller:"
-msgstr "Krmilnik disketnika:"
+msgstr "Disketni krmilnik:"
 
 msgid "Tertiary IDE Controller"
 msgstr "Terciarni krmilnik IDE"
@@ -562,7 +550,7 @@ msgid "ID:"
 msgstr "ID:"
 
 msgid "&Specify..."
-msgstr "Določi..."
+msgstr "&Določi..."
 
 msgid "Sectors:"
 msgstr "Sektorji:"
@@ -607,7 +595,7 @@ msgid "ZIP 250"
 msgstr "ZIP 250"
 
 msgid "ISA RTC:"
-msgstr "Ura v realnem času ISA:"
+msgstr "Ura realnega časa ISA:"
 
 msgid "ISA Memory Expansion"
 msgstr "Razširitev pomnilnika ISA"
@@ -642,20 +630,20 @@ msgstr "Kritična napaka"
 msgid " - PAUSED"
 msgstr " - ZAUSTAVLJEN"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Pritisnite Ctrl+Alt+PgDn za povratek iz celozaslonskega načina."
+msgid "Press %s to return to windowed mode."
+msgstr "Pritisnite %s za povratek iz celozaslonskega načina."
 
 msgid "Speed"
 msgstr "Hitrost"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIP slike"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box ni našel nobenih uporabnih ROM slik.\n\nProsim <a href=\"https://github.com/86Box/roms/releases/latest\">prenesite</a> set ROM-ov in ga razširite v mapo \"roms\"."
+msgstr "86Box ni našel nobenih uporabnih ROM slik.\n\nProsim <a href=\"https://github.com/86Box/roms/releases/latest\">prenesite</a> komplet ROM-ov in ga razširite v mapo \"roms\"."
 
 msgid "(empty)"
 msgstr "(prazno)"
@@ -729,11 +717,11 @@ msgstr "Druga periferija"
 msgid "Click to capture mouse"
 msgstr "Kliknite za zajem miške"
 
-msgid "Press %1 to release mouse"
-msgstr "Pritisnite %1 za izpust miške"
+msgid "Press %s to release mouse"
+msgstr "Pritisnite %s za izpust miške"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "Pritisnite %1 ali srednji gumb za izpust miške"
+msgid "Press %s or middle button to release mouse"
+msgstr "Pritisnite %s ali srednji gumb za izpust miške"
 
 msgid "Bus"
 msgstr "Vodilo"
@@ -753,20 +741,17 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Ne morem inicializirati sistema za upodabljanje."
-
 msgid "Default"
 msgstr "Privzeto"
 
-msgid "%i Wait state(s)"
-msgstr "%i stanj čakanja"
+msgid "%1 Wait state(s)"
+msgstr "%1 stanj čakanja"
 
 msgid "Type"
 msgstr "Vrsta"
 
 msgid "No PCap devices found"
-msgstr "Nobena naprava PCap ni bila najdena"
+msgstr "Najdena ni bila nobena naprava PCap"
 
 msgid "Invalid PCap device"
 msgstr "Neveljavna naprava PCap"
@@ -804,11 +789,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "Brez"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Disketa %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Disketa %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Napredne sektorske slike"
@@ -828,8 +813,8 @@ msgstr "Ghostscript-a ni bilo mogoče inicializirati"
 msgid "Unable to initialize GhostPCL"
 msgstr "GhostPCL-ja ni bilo mogoče inicializirati"
 
-msgid "MO %i (%ls): %ls"
-msgstr "MO %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Slike MO"
@@ -889,25 +874,22 @@ msgid "Don't exit"
 msgstr "Prekliči izhod"
 
 msgid "Reset"
-msgstr "Resetiraj"
+msgstr "Znova zaženi"
 
 msgid "Don't reset"
-msgstr "Ne resetiraj"
+msgstr "Ne zaženi znova"
 
 msgid "CD-ROM images"
 msgstr "Slike CD-ROM"
 
 msgid "%1 Device Configuration"
-msgstr "Konfiguracija naprave %1"
+msgstr "Nastavitev naprave %1"
 
 msgid "Monitor in sleep mode"
 msgstr "Zaslon v načinu spanja"
 
-msgid "OpenGL Shaders"
-msgstr "Senčilniki OpenGL"
-
-msgid "OpenGL options"
-msgstr "Možnosti OpenGL"
+msgid "GLSL shaders"
+msgstr "Senčilniki GLSL"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Nalagate nepodprto konfiguracijo"
@@ -918,23 +900,17 @@ msgstr "Filtriranje vrste procesorja glede na izbran sistem je onemogočeno za t
 msgid "Continue"
 msgstr "Nadaljuj"
 
-msgid "Cassette: %s"
-msgstr "Kaseta: %s"
+msgid "Cassette: %1"
+msgstr "Kaseta: %1"
 
 msgid "Cassette images"
 msgstr "Slike kaset"
 
-msgid "Cartridge %i: %ls"
-msgstr "Spominski vložek %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Spominski vložek %1: %2"
 
 msgid "Cartridge images"
 msgstr "Slike spominskega vložka"
-
-msgid "Error initializing renderer"
-msgstr "Napaka pri zagonu sistema za upodabljanje"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Sistema za upodabljanje OpenGL (3.0 Core) ni bilo mogoče zagnati. Uporabite drug sistem za upodabljanje."
 
 msgid "Resume execution"
 msgstr "Nadaljuj izvajanje"
@@ -970,7 +946,7 @@ msgid "Add New Hard Disk"
 msgstr "Dodaj nov trdi disk"
 
 msgid "Add Existing Hard Disk"
-msgstr "Dodaj obstoječ trdi disk"
+msgstr "Dodaj obstoječi trdi disk"
 
 msgid "HDI disk images cannot be larger than 4 GB."
 msgstr "Slike diska HDI ne morejo biti večje od 4 GB."
@@ -1072,13 +1048,13 @@ msgid "VHD files"
 msgstr "Datoteke VHD"
 
 msgid "Select the parent VHD"
-msgstr "Izberite starševsko sliko VHD"
+msgstr "Izberite nadrejeno sliko VHD"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "To lahko pomeni, da je bila starševska slika spremenjena potem, ko je že bila ustvarjena diferencialna slika.\n\nDo tega lahko pride tudi kadar so datoteke slik diska premaknjene ali kopirane, ali pa gre za hrošča v programu, ki je ustvaril ta disk.\n\nŽelite popraviti časovni žig?"
+msgstr "To lahko pomeni, da je bila nadrejena slika spremenjena po ustvaritvi diferencialne slike.\n\nDo tega lahko pride tudi kadar so datoteke slik diska premaknjene ali kopirane, ali pa gre za hrošča v programu, ki je ustvaril ta disk.\n\nŽelite popraviti časovni žig?"
 
 msgid "Parent and child disk timestamps do not match"
-msgstr "Časovna žiga starševske slike diska in slike diska otroka se ne ujemata"
+msgstr "Časovna žiga nadrejene in podrejene slike diska se ne ujemata"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Ne morem popraviti časovnega žiga slike VHD."
@@ -1098,8 +1074,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1129,10 +1105,10 @@ msgid "1.44 MB"
 msgstr "1.44 MB"
 
 msgid "DMF (cluster 1024)"
-msgstr "DMF (grozd 1024)"
+msgstr "DMF (gruča 1024)"
 
 msgid "DMF (cluster 2048)"
-msgstr "DMF (grozd 2048)"
+msgstr "DMF (gruča 2048)"
 
 msgid "2.88 MB"
 msgstr "2.88 MB"
@@ -1186,7 +1162,7 @@ msgid "(System Default)"
 msgstr "(Sistemsko privzeto)"
 
 msgid "Failed to initialize network driver"
-msgstr "Ni uspelo inicializirati omrežnega gonilnika"
+msgstr "Inicializacija omrežnega gonilnika ni uspela"
 
 msgid "The network configuration will be switched to the null driver"
 msgstr "Omrežne nastavitve bodo preklopljene na ničelni gonilnik"
@@ -1258,7 +1234,7 @@ msgid "Open screenshots folder..."
 msgstr "Odprite mapo s posnetki zaslona..."
 
 msgid "Apply fullscreen stretch mode when maximized"
-msgstr "Uporabi način celozaslonskega raztezanja v povečanem stanju"
+msgstr "Uporabi način celozaslonskega raztezanja v maksimiranem stanju"
 
 msgid "Cursor/Puck"
 msgstr "Kazalec/ključ"
@@ -1267,22 +1243,19 @@ msgid "Pen"
 msgstr "Pisalo"
 
 msgid "Host CD/DVD Drive (%1:)"
-msgstr "Pogon CD/DVD gostitelja (%1:)"
+msgstr "Gostiteljski pogon CD/DVD (%1:)"
 
 msgid "&Connected"
 msgstr "&Povezan"
 
 msgid "Clear image history"
-msgstr "Jasna zgodovina slik"
+msgstr "Počisti zgodovino slik"
 
 msgid "Create..."
 msgstr "Ustvari..."
 
-msgid "previous image"
-msgstr "zadnja slika"
-
 msgid "Host CD/DVD Drive (%1)"
-msgstr "Pogon CD/DVD gostitelja (%1)"
+msgstr "Gostiteljski pogon CD/DVD (%1)"
 
 msgid "Unknown Bus"
 msgstr "Neznano vodilo"
@@ -1290,23 +1263,8 @@ msgstr "Neznano vodilo"
 msgid "Null Driver"
 msgstr "Ničelni gonilnik"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "Napaka pri odpiranju \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Napaka pri sestavljanju senčilnika vrhov v datoteki \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Napaka pri sestavljanju shaderja fragmentov v datoteki \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Napaka pri povezovanju programa shader v datoteki \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Možnosti sistema za upodabljanje OpenGL 3.0"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Obnašanje pri upodabljanju"
@@ -1320,9 +1278,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Vsako sličico prikažite takoj, sinhronizirano z emuliranim zaslonom.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;To je priporočljiva možnost, če uporabljeni senčilniki ne uporabljajo časa okvirja za animirane učinke.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Sinhroniziraj z videom"
 
@@ -1332,20 +1287,8 @@ msgstr "Senčilniki"
 msgid "Remove"
 msgstr "Odstrani"
 
-msgid "No shader selected"
-msgstr "Ni izbran noben senčnik"
-
 msgid "Browse..."
-msgstr "Brskaj..."
-
-msgid "Shader error"
-msgstr "Napaka senčilnika"
-
-msgid "Could not load shaders."
-msgstr "Ni bilo mogoče naložiti senčilnikov."
-
-msgid "More information in details."
-msgstr "Več informacij v podrobnostih."
+msgstr "Prerskaj..."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Ni bilo mogoče ustvariti konteksta OpenGL."
@@ -1354,19 +1297,13 @@ msgid "Couldn't switch to OpenGL context."
 msgstr "Ni bilo mogoče preklopiti na kontekst OpenGL."
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
-msgstr "Zahteva se različica OpenGL 3.0 ali novejša. Trenutna različica je %1.%2"
-
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Inicializacija OpenGL ni uspela. Napaka %1."
+msgstr "Potrebna je OpenGL različica 3.0 ali novejša. Trenutna različica je %1.%2"
 
 msgid "Error initializing OpenGL"
 msgstr "Napaka pri inicializaciji OpenGL"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Vrnitev k programskemu upodabljanju.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Dodelitev pomnilnika za razpakirni predpomnilnik ni uspela.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nVrnitev na programsko upodabljanje."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pri izbiri medijskih slik (CD-ROM, disketa itd.) se bo odprto pogovorno okno začelo v istem imeniku kot konfiguracijska datoteka 86Box. Ta nastavitev bo verjetno imela pomen le v operacijskem sistemu MacOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
@@ -1375,7 +1312,7 @@ msgid "This machine might have been moved or copied."
 msgstr "Ta naprava je bila morda premeščena ali kopirana."
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "Da bi zagotovili pravilno delovanje omrežja, mora 86Box vedeti, ali je bil ta stroj prestavljen ali kopiran.\n\nČe niste prepričani, izberite \"Kopiral sem jo\"."
+msgstr "Da bi zagotovili pravilno delovanje omrežja, mora 86Box vedeti, ali je bil ta virtualna naprava prestavljena ali kopirana.\n\nČe niste prepričani, izberite \"Kopiral sem jo\"."
 
 msgid "I Moved It"
 msgstr "Premaknil sem jo"
@@ -1404,17 +1341,17 @@ msgstr "Omrežna kartica 3"
 msgid "Network Card #4"
 msgstr "Omrežna kartica 4"
 
-msgid "Mode"
-msgstr "Način"
+msgid "Mode:"
+msgstr "Način:"
 
-msgid "Interface"
-msgstr "Vmesnik"
+msgid "Interface:"
+msgstr "Vmesnik:"
 
-msgid "Adapter"
-msgstr "Adapter"
+msgid "Adapter:"
+msgstr "Mrežna kartica:"
 
-msgid "VDE Socket"
-msgstr "Vtičnica VDE"
+msgid "VDE Socket:"
+msgstr "Vtičnica VDE:"
 
 msgid "86Box Unit Tester"
 msgstr "Tester enote 86Box"
@@ -1433,9 +1370,6 @@ msgstr "Prepust za serijska vrata 3"
 
 msgid "Serial port passthrough 4"
 msgstr "Prepust za serijska vrata 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
 
 msgid "Renderer options..."
 msgstr "Možnosti sistema za upodabljanje..."
@@ -1462,7 +1396,7 @@ msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serijska)"
 
 msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standardni modem v skladu s standardom Hayes"
+msgstr "[COM] Standardni modem v skladen s Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Emulacija Roland MT-32"
@@ -1477,10 +1411,10 @@ msgid "Roland CM-32LN Emulation"
 msgstr "Emulacija Roland CM-32LN"
 
 msgid "OPL4-ML Daughterboard"
-msgstr "Hčerinska plošča OPL4-ML"
+msgstr "Dodatna kartica OPL4-ML"
 
 msgid "System MIDI"
-msgstr "Sistem MIDI"
+msgstr "Sistemski MIDI"
 
 msgid "MIDI Input Device"
 msgstr "Vhodna naprava MIDI"
@@ -1489,7 +1423,7 @@ msgid "BIOS Address"
 msgstr "Naslov BIOS-a"
 
 msgid "Enable BIOS extension ROM Writes"
-msgstr "Omogočanje razširitve BIOS-a ROM piše"
+msgstr "Omogoči zapisovanje razširitev BIOS ROM-a"
 
 msgid "Address"
 msgstr "Naslov"
@@ -1501,7 +1435,7 @@ msgid "BIOS Revision"
 msgstr "Revizija BIOS-a"
 
 msgid "Translate 26 -> 17"
-msgstr "Prevesti 26 -> 17"
+msgstr "Prevedi 26 -> 17"
 
 msgid "Language"
 msgstr "Jezik"
@@ -1516,25 +1450,25 @@ msgid "BIOS size"
 msgstr "Velikost BIOS-a"
 
 msgid "Map C0000-C7FFF as UMB"
-msgstr "Zemljevid C0000-C7FFF kot UMB"
+msgstr "Preslikaj C0000-C7FFF kot UMB"
 
 msgid "Map C8000-CFFFF as UMB"
-msgstr "Zemljevid C8000-CFFFF kot UMB"
+msgstr "Preslikaj C8000-CFFFF kot UMB"
 
 msgid "Map D0000-D7FFF as UMB"
-msgstr "Zemljevid D0000-D7FFF kot UMB"
+msgstr "Preslikaj D0000-D7FFF kot UMB"
 
 msgid "Map D8000-DFFFF as UMB"
-msgstr "Zemljevid D8000-DFFFF kot UMB"
+msgstr "Preslikaj D8000-DFFFF kot UMB"
 
 msgid "Map E0000-E7FFF as UMB"
-msgstr "Zemljevid E0000-E7FFF kot UMB"
+msgstr "Preslikaj E0000-E7FFF kot UMB"
 
 msgid "Map E8000-EFFFF as UMB"
-msgstr "Zemljevid E8000-EFFFF kot UMB"
+msgstr "Preslikaj E8000-EFFFF kot UMB"
 
 msgid "JS9 Jumper (JIM)"
-msgstr "JS9 Jumper (JIM)"
+msgstr "JS9 mostiček (JIM)"
 
 msgid "MIDI Output Device"
 msgstr "Izhodna naprava MIDI"
@@ -1648,10 +1582,10 @@ msgid "RAM Address"
 msgstr "Naslov RAM"
 
 msgid "RAM size"
-msgstr "Velikost pomnilnika RAM"
+msgstr "Velikost pomnilnika"
 
 msgid "Initial RAM size"
-msgstr "Začetna velikost pomnilnika RAM"
+msgstr "Začetna velikost pomnilnika"
 
 msgid "Serial Number"
 msgstr "Serijska številka"
@@ -1663,7 +1597,7 @@ msgid "FDC Address"
 msgstr "Naslov FDC"
 
 msgid "MPU-401 Address"
-msgstr "MPU-401 Naslov"
+msgstr "Naslov MPU-401"
 
 msgid "MPU-401 IRQ"
 msgstr "MPU-401 IRQ"
@@ -1699,7 +1633,7 @@ msgid "Enable OPL"
 msgstr "Omogoči OPL"
 
 msgid "Receive MIDI input (MPU-401)"
-msgstr "Sprejemaj vhod MIDI (MPU-401)"
+msgstr "Vhod MIDI za sprejem (MPU-401)"
 
 msgid "SB low DMA"
 msgstr "Nizki DMA SB"
@@ -1732,7 +1666,7 @@ msgid "Codec"
 msgstr "Kodek"
 
 msgid "GUS type"
-msgstr "Tip GUS"
+msgstr "Vrsta GUS"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
 msgstr "Omogoči ukaz 0x04 \"Zapusti 86Box\""
@@ -1747,7 +1681,7 @@ msgid "RGB type"
 msgstr "Vrsta RGB zaslona"
 
 msgid "Line doubling type"
-msgstr "Vrsta podvojitve črt"
+msgstr "Vrsta podvojevanja črt"
 
 msgid "Snow emulation"
 msgstr "Emulacija snega"
@@ -1759,16 +1693,16 @@ msgid "Character set"
 msgstr "Nabor znakov"
 
 msgid "XGA type"
-msgstr "Tip kartice XGA"
+msgstr "Vrsta kartice XGA"
 
 msgid "Instance"
-msgstr "Primer"
+msgstr "Primerek"
 
 msgid "MMIO Address"
 msgstr "Naslov MMIO"
 
 msgid "RAMDAC type"
-msgstr "Vrsta čipa RAMDAC"
+msgstr "Vrsta RAMDAC"
 
 msgid "Blend"
 msgstr "Mešanica"
@@ -1780,13 +1714,13 @@ msgid "Dithering"
 msgstr "Barvno stresanje"
 
 msgid "Enable NMI for CGA emulation"
-msgstr "Omogočite NMI za emulacijo CGA"
+msgstr "Omogoči NMI za emulacijo CGA"
 
 msgid "Voodoo type"
-msgstr "Tip kartice Voodoo"
+msgstr "Vrsta kartice Voodoo"
 
 msgid "Framebuffer memory size"
-msgstr "Velikost pomnilnika predpomnilnika okvirja"
+msgstr "Velikost videopomnilnika"
 
 msgid "Texture memory size"
 msgstr "Velikost pomnilnika tekstur"
@@ -1798,7 +1732,7 @@ msgid "Screen Filter"
 msgstr "Filter zaslona"
 
 msgid "Render threads"
-msgstr "Nitke za upodabljanje"
+msgstr "Niti za upodabljanje"
 
 msgid "SLI"
 msgstr "SLI"
@@ -1861,7 +1795,7 @@ msgid "Non-timed (original)"
 msgstr "Brez časovnika (izvirnik)"
 
 msgid "45 Hz (JMP2 not populated)"
-msgstr "45 Hz (brez mostička na JMP2)"
+msgstr "45 Hz (brez mostička JMP2)"
 
 msgid "Two"
 msgstr "Dva"
@@ -1870,10 +1804,13 @@ msgid "Three"
 msgstr "Tri"
 
 msgid "Wheel"
-msgstr "Kolesa"
+msgstr "Kolesce"
 
 msgid "Five + Wheel"
-msgstr "Pet + kolo"
+msgstr "Pet + kolesce"
+
+msgid "Five + 2 Wheels"
+msgstr "Pet + 2 kolesci"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 serijska / SMT3(R)V"
@@ -1948,13 +1885,13 @@ msgid "Color (generic)"
 msgstr "Barvni (generični)"
 
 msgid "Green Monochrome"
-msgstr "Zeleni enobvarni"
+msgstr "Zeleni monokromatski"
 
 msgid "Amber Monochrome"
-msgstr "Jantarni enobarvni"
+msgstr "Jantarni monokromatski"
 
 msgid "Gray Monochrome"
-msgstr "Sivi enobarvni"
+msgstr "Sivi monokromatski"
 
 msgid "Color (no brown)"
 msgstr "Barvni (brez rjave)"
@@ -1975,13 +1912,13 @@ msgid "128 KB"
 msgstr "128 KB"
 
 msgid "Monochrome (5151/MDA) (white)"
-msgstr "Enobarvni (5151/MDA) (beli)"
+msgstr "Monokromatski (5151/MDA) (beli)"
 
 msgid "Monochrome (5151/MDA) (green)"
-msgstr "Enobarvni (5151/MDA) (zeleni)"
+msgstr "Monokromatski (5151/MDA) (zeleni)"
 
 msgid "Monochrome (5151/MDA) (amber)"
-msgstr "Enobarvni (5151/MDA) (jantarni)"
+msgstr "Monokromatski (5151/MDA) (jantarni)"
 
 msgid "Color 40x25 (5153/CGA)"
 msgstr "Barvni 40x25 (5153/CGA)"
@@ -1993,7 +1930,7 @@ msgid "Enhanced Color - Normal Mode (5154/ECD)"
 msgstr "Izboljšani barvni - običajni način (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
-msgstr "Izboljšani barvni - Izboljšani način (5154/ECD)"
+msgstr "Izboljšani barvni - izboljšani način (5154/ECD)"
 
 msgid "Green"
 msgstr "Zeleni"
@@ -2071,7 +2008,7 @@ msgid "Generic PCL5e Printer"
 msgstr "Generični tiskalnik PCL5e"
 
 msgid "Parallel Line Internet Protocol"
-msgstr "Internetni protokol za paralelno linijo"
+msgstr "Internetni protokol za vzporedno linijo"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Zaščitni ključek za Savage Quest"
@@ -2092,7 +2029,7 @@ msgid "Data bits"
 msgstr "Podatkovni biti"
 
 msgid "Stop bits"
-msgstr "Stop biti"
+msgstr "Zaključni biti"
 
 msgid "Baud Rate of Passthrough"
 msgstr "Baudna hitrost prepusta"
@@ -2101,10 +2038,10 @@ msgid "Named Pipe (Server)"
 msgstr "Poimenovana cev (Strežnik)"
 
 msgid "Host Serial Passthrough"
-msgstr "Prepustno serijskih vrat gostitelja"
+msgstr "Prepust serijskih vrat gostitelja"
 
-msgid "Eject %s"
-msgstr "Izvrzi %s"
+msgid "E&ject %1"
+msgstr "I&zvrzi %1"
 
 msgid "&Unmute"
 msgstr "&Vklopi zvok"
@@ -2115,8 +2052,29 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "Visok učinek na hitrost delovanja"
 
-msgid "RAM Disk (max. speed)"
-msgstr "Pogon RAM (največja hitrost)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] Pomnilniški disk (največja hitrost)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Klon IBM 8514/A (ISA)"
@@ -2131,7 +2089,70 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Generična razširitev pomnilnika PC/AT"
 
 msgid "Unable to find Dot-Matrix fonts"
-msgstr "Matričnih pisav ni bilo mogoče najti"
+msgstr "Ni bilo mogoče najti matričnih pisav"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "Matrične pisave v imeniku \"roms/printer/fonts\" so potrebne za emulacijo generičnega matričnega tiskalnika ESC/P."
+msgstr "Za emulacijo generičnega ESC/P matričnega tiskalnika so potrebne TrueType pisave v imeniku \"roms/printer/fonts\"."
+
+msgid "Inhibit multimedia keys"
+msgstr "Blokiraj multimedijske tipke"
+
+msgid "Ask for confirmation before saving settings"
+msgstr "Vprašaj za potrditev pred shranjevanjem nastavitev"
+
+msgid "Ask for confirmation before hard resetting"
+msgstr "Vprašaj za potrditev pred ponovnim zagonom"
+
+msgid "Ask for confirmation before quitting"
+msgstr "Vprašaj za potrditev pred izhodom"
+
+msgid "Display hotkey message when entering full-screen mode"
+msgstr "Prikaži obvestilo o bližnjični tipki pri prehodu v celozaslonski način"
+
+msgid "Options"
+msgstr "Možnosti"
+
+msgid "Model"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr "Inicializacija upodobljevalnika Vulkan ni uspela."
+
+msgid "GLSL Error"
+msgstr "Napaka GLSL"
+
+msgid "Could not load shader: %1"
+msgstr "Ni bilo mogoče naložiti senčilnika: %1"
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr "Potrebna je OpenGL različica 3.0 ali novejša. Trenutna različica GLSL je %1.%2"
+
+msgid "Could not load texture: %1"
+msgstr "Ni bilo mogoče naložiti teksture: %1"
+
+msgid "Could not compile shader:\n\n%1"
+msgstr "Ni bilo mogoče prevesti senčilnika:\n\n%1"
+
+msgid "Program not linked:\n\n%1"
+msgstr "Program ni povezan:\n\n%1"
+
+msgid "Shader Manager"
+msgstr "Upravljalnik senčilnikov"
+
+msgid "Shader Configuration"
+msgstr "Nastavitve senčilnikov"
+
+msgid "Add"
+msgstr "Dodaj"
+
+msgid "Move up"
+msgstr "Premakni gor"
+
+msgid "Move down"
+msgstr "Premakni dol"
+
+msgid "Could not load file %1"
+msgstr "Ni bilo mogoče naložiti datoteke %1"

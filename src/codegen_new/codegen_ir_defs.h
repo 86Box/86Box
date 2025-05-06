@@ -340,6 +340,7 @@ typedef struct uop_t {
     void         *p;
     ir_host_reg_t dest_reg_a_real;
     ir_host_reg_t src_reg_a_real, src_reg_b_real, src_reg_c_real;
+    int           is_a16;
     int           jump_dest_uop;
     int           jump_list_next;
     void         *jump_dest;
@@ -363,6 +364,8 @@ uop_alloc(ir_data_t *ir, uint32_t uop_type)
         fatal("Exceeded uOP max\n");
 
     uop = &ir->uops[ir->wr_pos++];
+
+    uop->is_a16     = 0;
 
     uop->dest_reg_a = invalid_ir_reg;
     uop->src_reg_a  = invalid_ir_reg;
@@ -488,8 +491,14 @@ uop_gen_reg_dst_src2_imm(uint32_t uop_type, ir_data_t *ir, int dest_reg, int src
     uop_t *uop = uop_alloc(ir, uop_type);
 
     uop->type       = uop_type;
+    uop->is_a16     = 0;    
     uop->src_reg_a  = codegen_reg_read(src_reg_a);
-    uop->src_reg_b  = codegen_reg_read(src_reg_b);
+    if (src_reg_b == IREG_eaa16) {
+        uop->src_reg_b  = codegen_reg_read(IREG_eaaddr);
+        uop->is_a16     = 1;
+    } else
+        uop->src_reg_b  = codegen_reg_read(src_reg_b);
+    uop->is_a16     = 0;    
     uop->dest_reg_a = codegen_reg_write(dest_reg, ir->wr_pos - 1);
     uop->imm_data   = imm;
 }

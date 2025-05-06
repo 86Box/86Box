@@ -119,6 +119,8 @@ typedef struct fdc_t {
     uint8_t lock;
     uint8_t dsr;
 
+    uint8_t media_id;
+
     uint8_t params[15];
     uint8_t specify[2];
     uint8_t res[11];
@@ -165,6 +167,9 @@ extern void fdc_set_dskchg_activelow(fdc_t *fdc);
 extern void fdc_3f1_enable(fdc_t *fdc, int enable);
 extern int  fdc_get_bit_rate(fdc_t *fdc);
 extern int  fdc_get_bitcell_period(fdc_t *fdc);
+
+extern uint8_t fdc_get_media_id(fdc_t *fdc, int id);
+extern void    fdc_set_media_id(fdc_t *fdc, int id, int set);
 
 /* A few functions to communicate between Super I/O chips and the FDC. */
 extern void    fdc_update_enh_mode(fdc_t *fdc, int enh_mode);

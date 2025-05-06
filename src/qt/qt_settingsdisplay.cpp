@@ -122,22 +122,22 @@ SettingsDisplay::on_pushButtonConfigure_clicked()
     auto *device = video_card_getdevice(videoCard);
     if (videoCard == VID_INTERNAL)
         device = machine_get_vid_device(machineId);
-    DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device);
 }
 
 void
 SettingsDisplay::on_pushButtonConfigureVoodoo_clicked()
 {
-    DeviceConfig::ConfigureDevice(&voodoo_device, 0, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(&voodoo_device);
 }
 
 void
 SettingsDisplay::on_pushButtonConfigure8514_clicked()
 {
     if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0) {
-        DeviceConfig::ConfigureDevice(&ibm8514_mca_device, 0, qobject_cast<Settings *>(Settings::settings));
+        DeviceConfig::ConfigureDevice(&ibm8514_mca_device);
     } else {
-        DeviceConfig::ConfigureDevice(&gen8514_isa_device, 0, qobject_cast<Settings *>(Settings::settings));
+        DeviceConfig::ConfigureDevice(&gen8514_isa_device);
     }
 }
 
@@ -145,16 +145,16 @@ void
 SettingsDisplay::on_pushButtonConfigureXga_clicked()
 {
     if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0) {
-        DeviceConfig::ConfigureDevice(&xga_device, 0, qobject_cast<Settings *>(Settings::settings));
+        DeviceConfig::ConfigureDevice(&xga_device);
     } else {
-        DeviceConfig::ConfigureDevice(&xga_isa_device, 0, qobject_cast<Settings *>(Settings::settings));
+        DeviceConfig::ConfigureDevice(&xga_isa_device);
     }
 }
 
 void
 SettingsDisplay::on_pushButtonConfigureDa2_clicked()
 {
-    DeviceConfig::ConfigureDevice(&ps55da2_device, 0, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(&ps55da2_device);
 }
 
 void
@@ -298,5 +298,5 @@ void
 SettingsDisplay::on_pushButtonConfigureSecondary_clicked()
 {
     auto *device = video_card_getdevice(ui->comboBoxVideoSecondary->currentData().toInt());
-    DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device);
 }

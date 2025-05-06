@@ -15,7 +15,7 @@
         op_loadcs(readmemw(ss, ESP + 2));             \
     } else {                                          \
         cpu_state.pc = readmemw(ss, SP);              \
-        op_loadcs(readmemw(ss, SP + 2));              \
+        op_loadcs(readmemw(ss, (SP + 2) & 0xffff));   \
     }                                                 \
     if (cpu_state.abrt)                               \
         return 1;                                     \

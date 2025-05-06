@@ -211,7 +211,6 @@ mmutranslatereal_2386(uint32_t addr, int rw)
             return 0xffffffffffffffffULL;
         }
 
-        mmu_perm = temp & 4;
         mem_writel_map(addr2, mem_readl_map(addr2) | (rw ? 0x60 : 0x20));
 
         return (temp & ~0x3fffff) + (addr & 0x3fffff);
@@ -231,7 +230,6 @@ mmutranslatereal_2386(uint32_t addr, int rw)
         return 0xffffffffffffffffULL;
     }
 
-    mmu_perm = temp & 4;
     mem_writel_map(addr2, mem_readl_map(addr2) | 0x20);
     mem_writel_map((temp2 & ~0xfff) + ((addr >> 10) & 0xffc),
                    mem_readl_map((temp2 & ~0xfff) + ((addr >> 10) & 0xffc)) | (rw ? 0x60 : 0x20));

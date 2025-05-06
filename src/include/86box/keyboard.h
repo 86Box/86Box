@@ -224,9 +224,7 @@ extern const device_t keyboard_xt86_device;
 extern const device_t keyboard_xt_compaq_device;
 extern const device_t keyboard_xt_t1x00_device;
 extern const device_t keyboard_tandy_device;
-#    ifdef USE_LASERXT
 extern const device_t keyboard_xt_lxt3_device;
-#    endif /* USE_LASERXT */
 extern const device_t keyboard_xt_olivetti_device;
 extern const device_t keyboard_xt_zenith_device;
 extern const device_t keyboard_xt_hyundai_device;
@@ -245,6 +243,7 @@ extern const device_t keyboard_ps2_ps1_device;
 extern const device_t keyboard_ps2_ps1_pci_device;
 extern const device_t keyboard_ps2_xi8088_device;
 extern const device_t keyboard_ps2_ami_device;
+extern const device_t keyboard_ps2_compaq_device;
 extern const device_t keyboard_ps2_holtek_device;
 extern const device_t keyboard_ps2_mca_1_device;
 extern const device_t keyboard_ps2_mca_2_device;
@@ -258,6 +257,7 @@ extern const device_t keyboard_ps2_ami_pci_device;
 extern const device_t keyboard_ps2_intel_ami_pci_device;
 extern const device_t keyboard_ps2_acer_pci_device;
 extern const device_t keyboard_ps2_ali_pci_device;
+extern const device_t keyboard_ps2_phoenix_pci_device;
 extern const device_t keyboard_ps2_tg_ami_pci_device;
 
 extern const device_t keyboard_at_generic_device;
@@ -281,9 +281,10 @@ extern int      keyboard_isfsenter(void);
 extern int      keyboard_isfsenter_up(void);
 extern int      keyboard_isfsexit(void);
 extern int      keyboard_isfsexit_up(void);
-extern int      keyboard_ismsexit(void);
 extern void     keyboard_set_is_amstrad(int ams);
 extern void     kbc_at_set_ps2(void *priv, uint8_t ps2);
+extern uint8_t  kbc_at_read_p(void *priv, uint8_t port, uint8_t mask);
+extern void     kbc_at_write_p(void *priv, uint8_t port, uint8_t mask, uint8_t val);
 
 extern void         kbc_at_set_fast_reset(uint8_t new_fast_reset);
 extern void         kbc_at_handler(int set, void *priv);

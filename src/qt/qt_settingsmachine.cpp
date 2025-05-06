@@ -69,7 +69,7 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     waitStatesModel->setData(idx, 0, Qt::UserRole);
     for (int i = 0; i < 8; ++i) {
         idx = waitStatesModel->index(i + 1, 0);
-        waitStatesModel->setData(idx, QString::asprintf(tr("%i Wait state(s)").toUtf8().constData(), i), Qt::DisplayRole);
+        waitStatesModel->setData(idx, tr("%1 Wait state(s)").arg(i), Qt::DisplayRole);
         waitStatesModel->setData(idx, i + 1, Qt::UserRole);
     }
 
@@ -347,7 +347,7 @@ SettingsMachine::on_pushButtonConfigure_clicked()
     // deviceconfig_inst_open
     int         machineId = ui->comboBoxMachine->currentData().toInt();
     const auto *device    = machine_get_device(machineId);
-    DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device);
 }
 
 void SettingsMachine::on_checkBoxFPUSoftfloat_stateChanged(int state) {

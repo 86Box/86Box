@@ -87,13 +87,21 @@
     <property name="title">
      <string>&amp;Tools</string>
     </property>
+    <widget class="QMenu" name="menuSound">
+     <property name="title">
+      <string>S&amp;ound</string>
+     </property>
+     <addaction name="actionMute_Unmute"/>
+     <addaction name="separator"/>
+     <addaction name="actionSound_gain"/>
+    </widget>
     <addaction name="actionSettings"/>
     <addaction name="actionUpdate_status_bar_icons"/>
     <addaction name="separator"/>
     <addaction name="actionEnable_Discord_integration"/>
     <addaction name="separator"/>
     <addaction name="actionTake_screenshot"/>
-    <addaction name="actionSound_gain"/>
+    <addaction name="menuSound"/>
     <addaction name="separator"/>
     <addaction name="actionPreferences"/>
     <addaction name="separator"/>
@@ -723,6 +731,11 @@
    </property>
    <property name="shortcutVisibleInContextMenu">
     <bool>false</bool>
+   </property>
+  </action>
+  <action name="actionMute_Unmute">
+   <property name="text">
+    <string>&amp;Mute</string>
    </property>
   </action>
   <action name="actionSound_gain">

@@ -194,8 +194,6 @@ win_keyboard_handle(uint32_t scancode, int up, int e0, int e1)
            it's not an invalid scan code. */
         if (scancode != 0xFFFF)
             keyboard_input(!up, scancode);
-
-        main_window->checkFullscreenHotkey();
     }
 }
 
@@ -369,8 +367,6 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         ret = TRUE;
     else if ((lpKdhs->scanCode == 0x3e) && (lpKdhs->flags & LLKHF_ALTDOWN) &&
              !(lpKdhs->flags & (LLKHF_UP | LLKHF_EXTENDED)))
-        ret = TRUE;
-    else if ((lpKdhs->scanCode == 0x49) && bCtrlDown && !(lpKdhs->flags & LLKHF_UP))
         ret = TRUE;
     else if ((lpKdhs->scanCode >= 0x5b) && (lpKdhs->scanCode <= 0x5d) && (lpKdhs->flags & LLKHF_EXTENDED))
         ret = TRUE;

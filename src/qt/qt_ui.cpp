@@ -141,12 +141,18 @@ ui_msgbox_header(int flags, void *header, void *message)
 
     // any error in early init
     if (main_window == nullptr) {
-        QMessageBox msgBox(QMessageBox::Icon::Critical, hdr, msg);
-        msgBox.setTextFormat(Qt::TextFormat::RichText);
+        auto msgicon = QMessageBox::Icon::Critical;
+        if (flags & MBX_INFO)
+            msgicon = QMessageBox::Icon::Information;
+        else if (flags & MBX_QUESTION)
+            msgicon = QMessageBox::Icon::Question;
+        else if (flags & MBX_WARNING)
+            msgicon = QMessageBox::Icon::Warning;
+        QMessageBox msgBox(msgicon, hdr, msg);
         msgBox.exec();
     } else {
         // else scope it to main_window
-        main_window->showMessage(flags, hdr, msg);
+        main_window->showMessage(flags, hdr, msg, false);
     }
     return 0;
 }
@@ -308,4 +314,41 @@ ui_sb_update_icon(int tag, int active)
             break;
     }
 }
+
+void
+ui_sb_update_icon_write(int tag, int write)
+{
+    const auto temp    = static_cast<unsigned int>(tag);
+    const int category = static_cast<int>(temp & 0xfffffff0);
+    const int item     = tag & 0xf;
+
+    switch (category) {
+        default:
+        case SB_CASSETTE:
+        case SB_CARTRIDGE:
+            break;
+        case SB_FLOPPY:
+            machine_status.fdd[item].write_active = write > 0 ? true : false;
+            break;
+        case SB_CDROM:
+            machine_status.cdrom[item].write_active = write > 0 ? true : false;
+            break;
+        case SB_ZIP:
+            machine_status.zip[item].write_active = write > 0 ? true : false;
+            break;
+        case SB_MO:
+            machine_status.mo[item].write_active = write > 0 ? true : false;
+            break;
+        case SB_HDD:
+            machine_status.hdd[item].write_active = write > 0 ? true : false;
+            break;
+        case SB_NETWORK:
+            machine_status.net[item].write_active = write > 0 ? true : false;
+            break;
+        case SB_SOUND:
+        case SB_TEXT:
+            break;
+    }
+}
+
 }

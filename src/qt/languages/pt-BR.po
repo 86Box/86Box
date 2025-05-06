@@ -18,8 +18,8 @@ msgstr "&CTRL direito é o ALT esquerdo"
 msgid "&Hard Reset..."
 msgstr "&Reinicialização completa..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -111,8 +111,8 @@ msgstr "&Linear"
 msgid "Hi&DPI scaling"
 msgstr "Escala Hi&DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Tela cheia\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Tela cheia"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Modo de &redimensionamento da tela cheia"
@@ -186,8 +186,11 @@ msgstr "&Configurações..."
 msgid "&Update status bar icons"
 msgstr "&Atualizar ícones da barra de status"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Capturar &tela\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Capturar &tela"
+
+msgid "S&ound"
+msgstr "&Som"
 
 msgid "&Preferences..."
 msgstr "&Preferências..."
@@ -198,11 +201,11 @@ msgstr "Ativar integração com o &Discord"
 msgid "Sound &gain..."
 msgstr "&Ganho de som..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Inicio do rastreamento\tCtrl+T"
+msgid "Begin trace"
+msgstr "Inicio do rastreamento"
 
-msgid "End trace\tCtrl+T"
-msgstr "Finalizar rastreamento\tCtrl+T"
+msgid "End trace"
+msgstr "Finalizar rastreamento"
 
 msgid "&Help"
 msgstr "&Ajuda"
@@ -249,8 +252,8 @@ msgstr "&Silenciar"
 msgid "E&mpty"
 msgstr "&Vazio"
 
-msgid "&Reload previous image"
-msgstr "&Recarregar imagem anterior"
+msgid "Reload previous image"
+msgstr "Recarregar imagem anterior"
 
 msgid "&Folder..."
 msgstr "&Pasta..."
@@ -306,17 +309,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "Cancelar"
 
-msgid "Save these settings as &global defaults"
-msgstr "Salvar estas configurações como &padrões globais"
-
 msgid "&Default"
 msgstr "&Padrão"
 
 msgid "Language:"
 msgstr "Idioma:"
-
-msgid "Icon set:"
-msgstr "Conjunto de ícones:"
 
 msgid "Gain"
 msgstr "Ganho"
@@ -452,15 +449,6 @@ msgstr "Nuked (mais preciso)"
 
 msgid "YMFM (faster)"
 msgstr "YMFM (mais rápido)"
-
-msgid "Network type:"
-msgstr "Tipo de rede:"
-
-msgid "PCap device:"
-msgstr "Dispositivo PCap:"
-
-msgid "Network adapter:"
-msgstr "Adaptador de rede:"
 
 msgid "COM1 Device:"
 msgstr "Dispositivo COM1:"
@@ -642,14 +630,14 @@ msgstr "Erro fatal"
 msgid " - PAUSED"
 msgstr " - PAUSADO"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Use Ctrl+Alt+PgDn para retornar ao modo janela"
+msgid "Press %s to return to windowed mode."
+msgstr "Use %s para retornar ao modo janela."
 
 msgid "Speed"
 msgstr "Velocidade"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "Imagens ZIP"
@@ -729,11 +717,11 @@ msgstr "Outros periféricos"
 msgid "Click to capture mouse"
 msgstr "Clique para capturar o mouse"
 
-msgid "Press %1 to release mouse"
-msgstr "Aperte %1 para liberar o mouse"
+msgid "Press %s to release mouse"
+msgstr "Aperte %s para liberar o mouse"
 
-msgid "Press %1 or middle button to release mouse"
-msgstr "Aperte %1 ou botão do meio para liberar o mouse"
+msgid "Press %s or middle button to release mouse"
+msgstr "Aperte %s ou botão do meio para liberar o mouse"
 
 msgid "Bus"
 msgstr "Barramento"
@@ -753,14 +741,11 @@ msgstr "SE"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "Não foi possível inicializar o renderizador de vídeo."
-
 msgid "Default"
 msgstr "Padrão"
 
-msgid "%i Wait state(s)"
-msgstr "%i estado(s) de espera"
+msgid "%1 Wait state(s)"
+msgstr "%1 estado(s) de espera"
 
 msgid "Type"
 msgstr "Tipo"
@@ -804,11 +789,11 @@ msgstr "Sistema de Controle de Voo Thrustmaster"
 msgid "None"
 msgstr "Nenhum"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CCS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CCS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Disquete %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Disquete %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Imagens de setor avançado"
@@ -828,8 +813,8 @@ msgstr "Não foi possível inicializar o Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Não foi possível inicializar o GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "Magneto-óptico %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "Magneto-óptico %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Imagens magneto-ópticas"
@@ -862,7 +847,7 @@ msgid "86Box v"
 msgstr "86Box versão"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, e outros.\n\nCom contribuições anteriores de Sarah Walker, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU, versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
+msgstr "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, e outros.\n\nCom contribuições anteriores de Sarah Walker, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva, Nelson K. Hennemann Filho\n\nLançado sob a Licença Pública Geral GNU, versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
 
 msgid "Hardware not available"
 msgstr "Hardware não disponível"
@@ -903,11 +888,8 @@ msgstr "Configuração do dispositivo %1"
 msgid "Monitor in sleep mode"
 msgstr "Monitor em modo de suspensão"
 
-msgid "OpenGL Shaders"
-msgstr "Shaders OpenGL"
-
-msgid "OpenGL options"
-msgstr "Opções do OpenGL"
+msgid "GLSL shaders"
+msgstr "Shaders GLSL"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Você está carregando uma configuração não suportada"
@@ -918,23 +900,17 @@ msgstr "A filtragem do tipo de CPU baseada na máquina selecionada está desativ
 msgid "Continue"
 msgstr "Continuar"
 
-msgid "Cassette: %s"
-msgstr "Cassete: %s"
+msgid "Cassette: %1"
+msgstr "Cassete: %1"
 
 msgid "Cassette images"
 msgstr "Imagens de cassete"
 
-msgid "Cartridge %i: %ls"
-msgstr "Cartucho %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Cartucho %1: %2"
 
 msgid "Cartridge images"
 msgstr "Imagens de cartucho"
-
-msgid "Error initializing renderer"
-msgstr "Erro ao inicializar o renderizador"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "O renderizador OpenGL (Núcleo 3.0) não pôde ser inicializado. Use outro renderizador."
 
 msgid "Resume execution"
 msgstr "Continuar a execução"
@@ -991,13 +967,13 @@ msgid "HDI or HDX images with a sector size other than 512 are not supported."
 msgstr "Imagens HDI ou HDX com um tamanho de setor que não seja 512 não são suportadas."
 
 msgid "Disk image file already exists"
-msgstr "Esta imagem existe"
+msgstr "A imagem de disco já existe"
 
 msgid "Please specify a valid file name."
 msgstr "Digite um nome de arquivo válido."
 
 msgid "Disk image created"
-msgstr "A imagem foi criada com sucesso"
+msgstr "A imagem de disco foi criada"
 
 msgid "Make sure the file exists and is readable."
 msgstr "Certifique-se de que o arquivo existe e é legível."
@@ -1006,7 +982,7 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "Certifique-se de que o arquivo está sendo salvo em um diretório gravável."
 
 msgid "Disk image too large"
-msgstr "A imagem do disco é muito grande"
+msgstr "A imagem de disco é muito grande"
 
 msgid "Remember to partition and format the newly-created drive."
 msgstr "Lembre-se de particionar e formatar a unidade recém-criada."
@@ -1098,8 +1074,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1278,9 +1254,6 @@ msgstr "Limpar histórico de imagens"
 msgid "Create..."
 msgstr "Criar..."
 
-msgid "previous image"
-msgstr "imagem anterior"
-
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Unidade de CD/DVD do anfitrião (%1)"
 
@@ -1290,23 +1263,8 @@ msgstr "Barramento desconhecido"
 msgid "Null Driver"
 msgstr "Driver nulo"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "Erro ao abrir \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Erro ao compilar o sombreador de vértice no arquivo \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Erro ao compilar o fragment shader no arquivo \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Erro ao vincular o programa de shader no arquivo \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Opções do renderizador OpenGL 3.0"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Comportamento de renderização"
@@ -1320,9 +1278,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Renderize cada quadro imediatamente, em sincronia com a tela emulada.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Essa é a opção recomendada se os shaders em uso não utilizarem o frametime para efeitos animados.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "Sincronizar com o vídeo"
 
@@ -1332,20 +1287,8 @@ msgstr "Shaders"
 msgid "Remove"
 msgstr "Remover"
 
-msgid "No shader selected"
-msgstr "Nenhum shader selecionado"
-
 msgid "Browse..."
 msgstr "Procurar..."
-
-msgid "Shader error"
-msgstr "Erro do sombreador"
-
-msgid "Could not load shaders."
-msgstr "Não foi possível carregar os shaders."
-
-msgid "More information in details."
-msgstr "Mais informações em detalhes."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Não foi possível criar o contexto OpenGL."
@@ -1356,17 +1299,11 @@ msgstr "Não foi possível alternar para o contexto OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "É necessária a versão 3.0 ou superior do OpenGL. A versão atual é %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Falha na inicialização do OpenGL. Erro %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Erro ao inicializar o OpenGL"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Voltando à renderização de software.\n"
-
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Falha na alocação de memória para o buffer de descompactação.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nVoltando à renderização de software."
 
 msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
 msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Ao selecionar imagens de mídia (CD-ROM, disquete, etc.), a caixa de diálogo de abertura será iniciada no mesmo diretório do arquivo de configuração do 86Box. Essa configuração provavelmente só fará diferença no macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
@@ -1375,16 +1312,16 @@ msgid "This machine might have been moved or copied."
 msgstr "Essa máquina pode ter sido movida ou copiada."
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "Para garantir a funcionalidade adequada da rede, o 86Box precisa saber se essa máquina foi movida ou copiada.\n\nSelecione \"A copiei\" se não tiver certeza."
+msgstr "Para garantir a funcionalidade adequada da rede, o 86Box precisa saber se essa máquina foi movida ou copiada.\n\nSelecione \"Copiei\" se não tiver certeza."
 
 msgid "I Moved It"
-msgstr "O movi"
+msgstr "Movi"
 
 msgid "I Copied It"
-msgstr "A copiei"
+msgstr "Copiei"
 
 msgid "86Box Monitor #"
-msgstr "Monitor 86Box "
+msgstr "Monitor 86Box #"
 
 msgid "No MCA devices."
 msgstr "Nenhum dispositivo MCA."
@@ -1404,17 +1341,17 @@ msgstr "Placa de rede 3"
 msgid "Network Card #4"
 msgstr "Placa de rede 4"
 
-msgid "Mode"
-msgstr "Modo"
+msgid "Mode:"
+msgstr "Modo:"
 
-msgid "Interface"
-msgstr "Interface"
+msgid "Interface:"
+msgstr "Interface:"
 
-msgid "Adapter"
-msgstr "Adaptador"
+msgid "Adapter:"
+msgstr "Adaptador:"
 
-msgid "VDE Socket"
-msgstr "Soquete VDE"
+msgid "VDE Socket:"
+msgstr "Soquete VDE:"
 
 msgid "86Box Unit Tester"
 msgstr "Testador de unidade 86Box"
@@ -1433,9 +1370,6 @@ msgstr "Passagem de porta serial 3"
 
 msgid "Serial port passthrough 4"
 msgstr "Passagem de porta serial 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
 
 msgid "Renderer options..."
 msgstr "Opções do renderizador..."
@@ -1549,7 +1483,7 @@ msgid "MIDI Clockout"
 msgstr "Saída do relógio MIDI"
 
 msgid "SoundFont"
-msgstr "Fonte de som"
+msgstr "SoundFont"
 
 msgid "Output Gain"
 msgstr "Ganho de saída"
@@ -1855,7 +1789,7 @@ msgid "4th Order"
 msgstr "De 4ª ordem"
 
 msgid "7th Order"
-msgstr "De 7º order"
+msgstr "De 7ª ordem"
 
 msgid "Non-timed (original)"
 msgstr "Sem cronômetro (original)"
@@ -1873,7 +1807,10 @@ msgid "Wheel"
 msgstr "Roda"
 
 msgid "Five + Wheel"
-msgstr "Cinco + roda"
+msgstr "Cinco + Roda"
+
+msgid "Five + 2 Wheels"
+msgstr "Cinco + 2 Rodas"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 Serial / SMT3(R)V"
@@ -2098,13 +2035,13 @@ msgid "Baud Rate of Passthrough"
 msgstr "Taxa de transmissão de passagem"
 
 msgid "Named Pipe (Server)"
-msgstr "Tubo nomeado (servidor)"
+msgstr "Pipe nomeado (servidor)"
 
 msgid "Host Serial Passthrough"
 msgstr "Passagem da porta serial do host"
 
-msgid "Eject %s"
-msgstr "Ejetar %s"
+msgid "E&ject %1"
+msgstr "E&jetar %1"
 
 msgid "&Unmute"
 msgstr "&Reativar som"
@@ -2115,8 +2052,29 @@ msgstr "FPU Softfloat"
 msgid "High performance impact"
 msgstr "Alto impacto no desempenho"
 
-msgid "RAM Disk (max. speed)"
-msgstr "Disco RAM (velocidade máxima)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Genérico] Disco RAM (velocidade máxima)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr "[Genérico] 1989 (3500 RPM)"
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr "[Genérico] 1992 (3600 RPM)"
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr "[Genérico] 1994 (4500 RPM)"
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr "[Genérico] 1996 (5400 RPM)"
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr "[Genérico] 1997 (5400 RPM)"
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr "[Genérico] 1998 (5400 RPM)"
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr "[Genérico] 2000 (7200 RPM)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Clone IBM 8514/A (ISA)"
@@ -2135,3 +2093,108 @@ msgstr "Não foi possível localizar os fontes matriciais de pontos"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial de pontos ESC/P genérica."
+
+msgid "Inhibit multimedia keys"
+msgstr "Inibir teclas multimídia"
+
+msgid "Ask for confirmation before saving settings"
+msgstr "Perguntar antes de salvar configurações"
+
+msgid "Ask for confirmation before hard resetting"
+msgstr "Perguntar antes de reinicialização completa"
+
+msgid "Ask for confirmation before quitting"
+msgstr "Perguntar antes de sair"
+
+msgid "Display hotkey message when entering full-screen mode"
+msgstr "Mostrar mensagem de atalho quando entrar em tela cheia"
+
+msgid "Options"
+msgstr "Opções"
+
+msgid "Model"
+msgstr "Modelo"
+
+msgid "Model:"
+msgstr "Modelo:"
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr "Falha ao inicializar o renderizador Vulkan."
+
+msgid "GLSL Error"
+msgstr "Erro GLSL"
+
+msgid "Could not load shader: %1"
+msgstr "Impossível carregar o shader: %1"
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr "OpenGL versão 3.0 ou superior é exigido. Versão atual GLSL é %1.%2"
+
+msgid "Could not load texture: %1"
+msgstr "Impossível carregar a textura: %1"
+
+msgid "Could not compile shader:\n\n%1"
+msgstr "Impossível compilar o shader:\n\n%1"
+
+msgid "Program not linked:\n\n%1"
+msgstr "Programa não linkado:\n\n%1"
+
+msgid "Shader Manager"
+msgstr "Gerenciador de Shader"
+
+msgid "Shader Configuration"
+msgstr "Configuração de Shader"
+
+msgid "Add"
+msgstr "Adicionar"
+
+msgid "Move up"
+msgstr "Mover para cima"
+
+msgid "Move down"
+msgstr "Mover para baixo"
+
+msgid "Could not load file %1"
+msgstr "Impossível carregar arquivo %1"
+
+msgid "Key Bindings:"
+msgstr "Atalhos:"
+
+msgid "Action"
+msgstr "Ação"
+
+msgid "Keybind"
+msgstr "Atalho"
+
+msgid "Clear binding"
+msgstr "Limpar atalho"
+
+msgid "Bind"
+msgstr "Vincular"
+
+msgid "Bind Key"
+msgstr "Vincular tecla"
+
+msgid "Enter key combo:"
+msgstr "Pressione combinação de teclas:"
+
+msgid "Send Control+Alt+Del"
+msgstr "Enviar Control+Alt+Del"
+
+msgid "Send Control+Alt+Escape"
+msgstr "Enviar Control+Alt+Escape"
+
+msgid "Toggle fullscreen"
+msgstr "Alternar tela cheia"
+
+msgid "Screenshot"
+msgstr "Captura de tela"
+
+msgid "Release mouse pointer"
+msgstr "Liberar ponteiro do mouse"
+
+msgid "Toggle pause"
+msgstr "Alternar pausa"
+
+msgid "Toggle mute"
+msgstr "Alternar mudo"

@@ -95,9 +95,10 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
                         t128->status, scsi_bus->period, timer_is_enabled(&t128->timer), t128->block_loaded);
 
                 t128->status &= ~0x04;
-                timer_on_auto(&t128->timer, 10.0);
+                timer_on_auto(&t128->timer, 1.0);
             }
-        }
+        } else
+            t128_log("Write not allowed.\n");
     }
 }
 
@@ -129,27 +130,25 @@ t128_read(uint32_t addr, void *priv)
             (t128->host_pos < MIN(512, dev->buffer_length))) {
             ret = t128->buffer[t128->host_pos++];
 
-            t128_log("T128 Read transfer: pos=%i, addr=%x.\n",
-                    t128->host_pos, addr & 0x1ff);
+            t128_log("T128 Read transfer: pos=%i, addr=%x, enabled timer=%d.\n",
+                    t128->host_pos, addr & 0x1ff, timer_is_enabled(&t128->timer));
 
             if (t128->host_pos == MIN(512, dev->buffer_length)) {
-                t128_log("T128 Transfer busy read, status=%02x, period=%lf, enabled=%d.\n",
-                        t128->status, scsi_bus->period, timer_is_enabled(&t128->timer));
+                t128_log("T128 Transfer busy read, status=%02x, period=%lf, enabled=%d, block=%d.\n",
+                        t128->status, scsi_bus->period, timer_is_enabled(&t128->timer), scsi_bus->data_pos);
 
+                t128->status &= ~0x04;
                 if (!t128->block_loaded) {
                     ncr->isr |= STATUS_END_OF_DMA;
                     if (ncr->mode & MODE_ENA_EOP_INT) {
                         t128_log("T128 read irq\n");
                         ncr5380_irq(ncr, 1);
                     }
-                    t128->status &= ~0x04;
                     scsi_bus->bus_out |= BUS_CD;
                     scsi_bus->tx_mode = PIO_TX_BUS;
                     timer_stop(&t128->timer);
                 } else if (!timer_is_enabled(&t128->timer))
-                    timer_on_auto(&t128->timer, 10.0);
-                else
-                    t128->status &= ~0x04;
+                    timer_on_auto(&t128->timer, 1.0);
             }
         } else {
             /*According to the WinNT DDK sources, just get the status timeout bit from here.*/
@@ -193,10 +192,6 @@ t128_dma_send_ext(void *priv, void *ext_priv)
         t128_log("T128 DMA OUT, len=%d.\n", dev->buffer_length);
         memset(t128->buffer, 0, MIN(512, dev->buffer_length));
         t128->host_pos = 0;
-        t128->block_count = dev->buffer_length >> 9;
-
-        if (dev->buffer_length < 512)
-            t128->block_count = 1;
 
         t128->block_loaded = 1;
         t128->status |= 0x04;
@@ -216,10 +211,6 @@ t128_dma_initiator_receive_ext(void *priv, void *ext_priv)
         t128_log("T128 DMA IN, len=%d.\n", dev->buffer_length);
         memset(t128->buffer, 0, MIN(512, dev->buffer_length));
         t128->host_pos = MIN(512, dev->buffer_length);
-        t128->block_count = dev->buffer_length >> 9;
-
-        if (dev->buffer_length < 512)
-            t128->block_count = 1;
 
         t128->block_loaded = 1;
         t128->status &= ~0x04;
@@ -296,9 +287,9 @@ t128_callback(void *priv)
                     t128->status &= ~0x02;
                     t128->pos = 0;
                     t128->host_pos = 0;
-                    t128->block_count = (t128->block_count - 1) & 0xff;
+                    scsi_bus->data_repeat = 0;
                     t128_log("T128 Remaining blocks to be written=%d\n", t128->block_count);
-                    if (!t128->block_count) {
+                    if (scsi_bus->data_pos >= dev->buffer_length) {
                         t128->block_loaded = 0;
                         ncr->tcr |= TCR_LAST_BYTE_SENT;
                         ncr->isr |= STATUS_END_OF_DMA;
@@ -345,11 +336,11 @@ t128_callback(void *priv)
                     t128->status &= ~0x02;
                     t128->pos      = 0;
                     t128->host_pos = 0;
-                    t128->block_count = (t128->block_count - 1) & 0xff;
-                    t128_log("T128 Remaining blocks to be read=%d\n", t128->block_count);
-                    if (!t128->block_count) {
-                        t128->block_loaded = 0;
+                    scsi_bus->data_repeat = 0;
+                    t128_log("T128 blocks read=%d, total len=%d\n", scsi_bus->data_pos, dev->buffer_length);
+                    if (scsi_bus->data_pos >= dev->buffer_length) {
                         scsi_bus->bus_out |= BUS_REQ;
+                        t128->block_loaded = 0;
                         timer_on_auto(&t128->timer, 10.0);
                         t128_log("IO End of read transfer\n");
                     }
@@ -473,6 +464,7 @@ t128_init(const device_t *info)
 
     ncr->bus = scsi_get_bus();
     scsi_bus = &ncr->scsibus;
+    t128->type = info->local;
 
     if (info->flags & DEVICE_MCA) {
         rom_init(&t128->bios_rom, T128_ROM,
@@ -522,6 +514,10 @@ t128_init(const device_t *info)
     scsi_bus->speed = 0.2;
     scsi_bus->divider = 1.0;
     scsi_bus->multi = 1.0;
+
+    for (int i = 0; i < 8; i++)
+        scsi_device_reset(&scsi_devices[ncr->bus][i]);
+
     return t128;
 }
 

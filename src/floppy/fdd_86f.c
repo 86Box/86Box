@@ -3452,6 +3452,7 @@ d86f_common_handlers(int drive)
     drives[drive].poll          = d86f_poll;
     drives[drive].format        = d86f_proxy_format;
     drives[drive].stop          = d86f_stop;
+    drives[drive].hole          = d86f_hole;
 }
 
 int

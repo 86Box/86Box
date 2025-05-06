@@ -1208,7 +1208,9 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
     ide->tf->atastat   = BSY_STAT;
 
     if (ide->tf->pos >= dev->packet_len) {
-        ide_log("%i bytes %s, command done\n", ide->tf->pos, out ? "written" : "read");
+        // ide_log("%i bytes %s, command done\n", ide->tf->pos, out ? "written" : "read");
+        ide_log("%i bytes %s, command done, %i sectors left\n", ide->tf->pos, out ? "written" : "read",
+                dev->sector_len);
 
         ide->tf->pos = dev->request_pos = 0;
 
@@ -1262,13 +1264,12 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
                     ide_atapi_callback(ide);
                     ide_set_callback(ide, 0.0);
                 } else {
-                    ide->sc->packet_status = PHASE_COMPLETE;
-                    ide->sc->callback      = 0.0;
-
                     if (ide->phase_data_out != NULL)
                         (void) ide->phase_data_out(dev);
 
-                    ide_atapi_callback(ide);
+                    if ((ide->sc->packet_status == PHASE_COMPLETE) &&
+                        (ide->sc->callback == 0.0))
+                        ide_atapi_callback(ide);
                 }
             }
         } else {
@@ -1280,10 +1281,9 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
                     if (ide->command_stop != NULL)
                         ide->command_stop(dev);
 
-                    ide->sc->packet_status = PHASE_COMPLETE;
-                    ide->sc->callback      = 0.0;
-
-                    ide_atapi_callback(ide);
+                    if ((ide->sc->packet_status == PHASE_COMPLETE) &&
+                        (ide->sc->callback == 0.0))
+                        ide_atapi_callback(ide);
                 }
             } else if (ide->read != NULL)
                 ide->read(dev);
@@ -1299,8 +1299,8 @@ ide_atapi_packet_read(ide_t *ide)
     uint16_t ret = 0;
 
     if (dev && dev->temp_buffer && (dev->packet_status == PHASE_DATA_IN)) {
-        ide_log("PHASE_DATA_IN read: %i, %i, %i, %i\n",
-                dev->request_pos, dev->max_transfer_len, ide->tf->pos, dev->packet_len);
+        /* ide_log("PHASE_DATA_IN read: %i, %i, %i, %i\n",
+                dev->request_pos, dev->max_transfer_len, ide->tf->pos, dev->packet_len); */
 
         bufferw = (uint16_t *) dev->temp_buffer;
 
@@ -1722,7 +1722,8 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x7: /* Command register */
-            if (ide->tf->atastat & (BSY_STAT | DRQ_STAT))
+            if ((ide->tf->atastat & (BSY_STAT | DRQ_STAT)) &&
+                ((val != WIN_SRST) || (ide->type != IDE_ATAPI)))
                 break;
 
             if ((ide->type == IDE_NONE) || ((ide->type & IDE_SHADOW) && (val != WIN_DRIVE_DIAGNOSTICS)))
@@ -1826,7 +1827,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                     ide->blockcount = 0;
                     /* Turn on the activity indicator *here* so that it gets turned on
                        less times. */
-                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
+                    ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
                     fallthrough;
 
                 case WIN_WRITE:
@@ -2158,7 +2159,8 @@ ide_read_alt_status(UNUSED(const uint16_t addr), void *priv)
     if (!(addr & 0x0001))
         ret = ide_status(ide, ide_drives[ch ^ 1], ch);
 
-    ide_log("[%04X:%08X] ide_read_alt_status(%04X, %08X) = %02X\n", CS, cpu_state.pc, addr, priv, ret);
+    // ide_log("[%04X:%08X] ide_read_alt_status(%04X, %08X) = %02X\n", CS, cpu_state.pc, addr, priv, ret);
+    // ide_log("ide_read_alt_status(%04X, %08X) = %02X\n", CS, cpu_state.pc, addr, priv, ret);
 
     return ret;
 }
@@ -2470,6 +2472,7 @@ ide_callback(void *priv)
             else if (!ide->tf->lba && (ide->cfg_spt == 0))
                 err = IDNF_ERR;
             else {
+                ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
                 ret = hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
                 ide_irq_raise(ide);
                 ide->tf->secount--;
@@ -2477,10 +2480,8 @@ ide_callback(void *priv)
                     ide->tf->atastat = DRQ_STAT | DRDY_STAT | DSC_STAT;
                     ide->tf->pos     = 0;
                     ide_next_sector(ide);
-                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
                 } else {
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
-                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
                 }
                 if (ret < 0)
                     err = UNC_ERR;
@@ -2512,6 +2513,7 @@ ide_callback(void *priv)
                         return;
                     } else if (ret & 1) {
                         /* DMA successful */
+                        ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
                         ret = hdd_image_write(ide->hdd_num, ide_get_sector(ide),
                                               ide->sector_pos, ide->sector_buffer);
 
@@ -2522,7 +2524,6 @@ ide_callback(void *priv)
                             err = UNC_ERR;
 
                         ide_irq_raise(ide);
-                        ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
                     } else {
                         /* Bus master DMA error, abort the command. */
                         ide_log("IDE %i: DMA read aborted (failed)\n", ide->channel);
@@ -2560,7 +2561,7 @@ ide_callback(void *priv)
                     ide_next_sector(ide);
                 } else {
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
-                    ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
+                    ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
                 }
                 if (ret < 0)
                     err = UNC_ERR;
@@ -2594,7 +2595,7 @@ ide_callback(void *priv)
                     err = UNC_ERR;
                 ide_irq_raise(ide);
 
-                ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
+                ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
             }
             break;
 
@@ -3159,6 +3160,13 @@ ide_init(const device_t *info)
                 ide_board_init(1, HDC_SECONDARY_IRQ, HDC_SECONDARY_BASE, HDC_SECONDARY_SIDE, info->local, info->flags);
             break;
 
+        case 8 ... 0x0d:
+            ide_board_init(2, -1, 0, 0, info->local, info->flags);
+
+            if (info->local & 1)
+                ide_board_init(3, -1, 0, 0, info->local, info->flags);
+            break;
+
         default:
             break;
     }
@@ -3540,7 +3548,7 @@ const device_t mcide_device = {
     .name          = "MCA McIDE Controller",
     .internal_name = "ide_mcide",
     .flags         = DEVICE_MCA,
-    .local         = 3,
+    .local         = 1,
     .init          = mcide_init,
     .close         = mcide_close,
     .reset         = mcide_reset,
@@ -3656,6 +3664,20 @@ const device_t ide_qua_pnp_device = {
     .init          = ide_qua_init,
     .close         = ide_qua_close,
     .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ide_pci_ter_qua_2ch_device = {
+    .name          = "PCI IDE Controller (Dual-Channel Tertiary/Quaternary)",
+    .internal_name = "ide_pci_ter_qua_2ch",
+    .flags         = DEVICE_PCI,
+    .local         = 0x0d,
+    .init          = ide_init,
+    .close         = ide_close,
+    .reset         = ide_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
