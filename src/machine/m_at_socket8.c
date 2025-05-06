@@ -217,9 +217,7 @@ machine_at_lgibmx61_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    // device_add(&keyboard_ps2_ami_pci_device);
     device_add(&keyboard_ps2_ami_device);
-    // device_add(&w83787f_device);
     device_add(&w83877f_president_device);
     device_add(&sst_flash_29ee010_device);
 
