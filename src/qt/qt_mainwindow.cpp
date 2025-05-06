@@ -193,7 +193,8 @@ MainWindow::MainWindow(QWidget *parent)
     scroll_icon_off = QIcon(":/settings/qt/icons/scroll_lock_off.ico");
     caps_icon = QIcon(":/settings/qt/icons/caps_lock_on.ico");
     caps_icon_off = QIcon(":/settings/qt/icons/caps_lock_off.ico");
-    /* TODO: Add Kana indicator here after the keyboard type work is done. */
+    kana_icon = QIcon(":/settings/qt/icons/kana_lock_on.ico");
+    kana_icon_off = QIcon(":/settings/qt/icons/kana_lock_off.ico");
 
     num_label = new QLabel;
     num_label->setPixmap(num_icon_off.pixmap(QSize(16, 16)));
@@ -207,19 +208,28 @@ MainWindow::MainWindow(QWidget *parent)
     scroll_label->setPixmap(scroll_icon_off.pixmap(QSize(16, 16)));
     statusBar()->addPermanentWidget(scroll_label);
 
+    kana_label = new QLabel;
+    kana_label->setPixmap(kana_icon_off.pixmap(QSize(16, 16)));
+    statusBar()->addPermanentWidget(kana_label);
+
     QTimer* ledKeyboardTimer = new QTimer(this);
     ledKeyboardTimer->setTimerType(Qt::CoarseTimer);
     ledKeyboardTimer->setInterval(1);
     connect(ledKeyboardTimer, &QTimer::timeout, this, [this] () {
-        uint8_t caps, num, scroll;
-        keyboard_get_states(&caps, &num, &scroll);
+        uint8_t caps, num, scroll, kana;
+        keyboard_get_states(&caps, &num, &scroll, &kana);
 
         if (num_label->isVisible())
             num_label->setPixmap(num ? this->num_icon.pixmap(QSize(16, 16)) : this->num_icon_off.pixmap(QSize(16, 16)));
         if (caps_label->isVisible())
             caps_label->setPixmap(caps ? this->caps_icon.pixmap(QSize(16, 16)) : this->caps_icon_off.pixmap(QSize(16, 16)));
         if (scroll_label->isVisible())
-            scroll_label->setPixmap(scroll ? this->scroll_icon.pixmap(QSize(16, 16)) : this->scroll_icon_off.pixmap(QSize(16, 16)));
+            scroll_label->setPixmap(scroll ? this->scroll_icon.pixmap(QSize(16, 16)) :
+                                                                      this->scroll_icon_off.pixmap(QSize(16, 16)));
+
+        if (kana_label->isVisible())
+            kana_label->setPixmap(kana ? this->kana_icon.pixmap(QSize(16, 16)) :
+                                                                this->kana_icon_off.pixmap(QSize(16, 16)));
     });
     ledKeyboardTimer->start();
 
@@ -253,6 +263,9 @@ MainWindow::MainWindow(QWidget *parent)
         num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+        /* TODO: Base this on keyboard type instead when that's done. */
+        kana_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
+                               machine_has_flags(machine, MACHINE_AX));
         while (QApplication::overrideCursor())
             QApplication::restoreOverrideCursor();
 #ifdef USE_WACOM
@@ -1499,6 +1512,8 @@ MainWindow::refreshMediaMenu()
     num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
     scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
     caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+    kana_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
+                           machine_has_flags(machine, MACHINE_AX));
 }
 
 void

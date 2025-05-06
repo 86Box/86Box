@@ -742,7 +742,7 @@ kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
     if (!adddata)
         return;
 
-    keyboard_get_states(NULL, &num_lock, NULL);
+    keyboard_get_states(NULL, &num_lock, NULL, NULL);
     shift_states = keyboard_get_shift() & STATE_LSHIFT;
 
     if (is_amstrad)

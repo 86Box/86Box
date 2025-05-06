@@ -101,7 +101,7 @@
 #define MACHINE_GAMEPORT          0x00008000 /* sys has int game port */
 #define MACHINE_SOUND             0x00010000 /* sys has int sound */
 #define MACHINE_NIC               0x00020000 /* sys has int NIC */
-#define MACHINE_MODEM             0x00040000 /* sys has int modem */
+#define MACHINE_AX                0x00040000 /* sys adheres to Japanese AX standard */
 /* Feature flags for advanced devices. */
 #define MACHINE_APM               0x00080000 /* sys has APM */
 #define MACHINE_ACPI              0x00100000 /* sys has ACPI */
