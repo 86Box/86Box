@@ -278,6 +278,7 @@ ireg_seg_limit_high(x86seg *seg)
 }
 
 extern uint8_t reg_last_version[IREG_COUNT];
+extern uint64_t dirty_ir_regs[2];
 
 /*This version of the register must be calculated, regardless of whether it is
   apparently required or not. Do not optimise out.*/
@@ -362,10 +363,12 @@ codegen_reg_write(int reg, int uop_nr)
     int            last_version = reg_last_version[IREG_GET_REG(reg)];
     reg_version_t *version;
 
-#ifndef RELEASE_BUILD
-    if (IREG_GET_REG(reg) == IREG_INVALID)
-        fatal("codegen_reg_write - IREG_INVALID\n");
-#endif
+    if (dirty_ir_regs[(IREG_GET_REG(reg) >> 6) & 3] & (1ull << ((uint64_t)IREG_GET_REG(reg) & 0x3full))) {
+        dirty_ir_regs[(IREG_GET_REG(reg) >> 6) & 3] &= ~(1ull << ((uint64_t)IREG_GET_REG(reg) & 0x3full));
+        if ((IREG_GET_REG(reg) > IREG_EBX && IREG_GET_REG(reg) < IREG_temp0) && last_version > 0) {
+            reg_version[IREG_GET_REG(reg)][last_version].flags |= REG_FLAGS_REQUIRED;
+        }
+    }
     ireg.reg     = reg;
     ireg.version = last_version + 1;
 
@@ -375,12 +378,8 @@ codegen_reg_write(int reg, int uop_nr)
     }
 
     reg_last_version[IREG_GET_REG(reg)]++;
-#ifndef RELEASE_BUILD
-    if (!reg_last_version[IREG_GET_REG(reg)])
-        fatal("codegen_reg_write - version overflow\n");
-    else
-#endif
-        if (reg_last_version[IREG_GET_REG(reg)] > REG_VERSION_MAX)
+
+    if (reg_last_version[IREG_GET_REG(reg)] > REG_VERSION_MAX)
         CPU_BLOCK_END();
     if (reg_last_version[IREG_GET_REG(reg)] > max_version_refcount)
         max_version_refcount = reg_last_version[IREG_GET_REG(reg)];

@@ -378,6 +378,34 @@ uop_alloc(ir_data_t *ir, uint32_t uop_type)
     uop->jump_list_next = -1;
 
     if (uop_type & (UOP_TYPE_BARRIER | UOP_TYPE_ORDER_BARRIER))
+        dirty_ir_regs[0] = dirty_ir_regs[1] = ~0ULL;
+
+    return uop;
+}
+
+static inline uop_t *
+uop_alloc_unroll(ir_data_t *ir, uint32_t uop_type)
+{
+    uop_t *uop;
+
+    if (ir->wr_pos >= UOP_NR_MAX)
+        fatal("Exceeded uOP max\n");
+
+    uop = &ir->uops[ir->wr_pos++];
+
+    uop->is_a16     = 0;
+
+    uop->dest_reg_a = invalid_ir_reg;
+    uop->src_reg_a  = invalid_ir_reg;
+    uop->src_reg_b  = invalid_ir_reg;
+    uop->src_reg_c  = invalid_ir_reg;
+
+    uop->pc = cpu_state.oldpc;
+
+    uop->jump_dest_uop  = -1;
+    uop->jump_list_next = -1;
+
+    if (uop_type & (UOP_TYPE_BARRIER | UOP_TYPE_ORDER_BARRIER))
         codegen_reg_mark_as_required();
 
     return uop;
