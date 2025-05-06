@@ -58,7 +58,8 @@ machine_at_premiere_common_init(const machine_t *model, int pci_switch)
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&keyboard_ps2_phoenix_device);
     device_add(&sio_zb_device);
-    device_add(&fdc37c665_device);
+    device_add(&ide_rz1000_pci_single_channel_device);
+    device_add(&fdc37c665_ide_sec_device);
     device_add(&intel_flash_bxt_ami_device);
 }
 
