@@ -7,6 +7,7 @@
 #include <QFocusEvent>
 #include <QLabel>
 #include <QShortcut>
+#include <QIcon>
 
 #include <memory>
 #include <array>
@@ -191,6 +192,8 @@ private:
     friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.
 
     QLabel *caps_label, *scroll_label, *num_label;
+    QIcon caps_icon, scroll_icon, num_icon;
+    QIcon caps_icon_off, scroll_icon_off, num_icon_off;
 
     bool isShowMessage = false;
 };
