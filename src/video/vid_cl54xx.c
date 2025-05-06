@@ -4141,8 +4141,6 @@ gd54xx_reset(void *priv)
     gd54xx_t *gd54xx = (gd54xx_t *) priv;
     svga_t   *svga   = &gd54xx->svga;
 
-    pclog("gd54xx_reset()\n");
-
     memset(svga->crtc, 0x00, sizeof(svga->crtc));
     memset(svga->seqregs, 0x00, sizeof(svga->seqregs));
     memset(svga->gdcreg, 0x00, sizeof(svga->gdcreg));
