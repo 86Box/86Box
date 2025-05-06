@@ -58,7 +58,6 @@
 #define ROM_PHOENIX_VISION864          "roms/video/s3/86c864p.bin"
 #define ROM_DIAMOND_STEALTH64_964      "roms/video/s3/964_107h.rom"
 #define ROM_PHOENIX_TRIO32             "roms/video/s3/86c732p.bin"
-#define ROM_PHOENIX_TRIO32_ONBOARD_VLB "roms/machines/dvent/Venturis466_VIDEO.BIN"
 #define ROM_SPEA_MIRAGE_P64            "roms/video/s3/S3_764VL_SPEAMirageP64VL_ver5_03.BIN"
 #define ROM_NUMBER9_9FX                "roms/video/s3/s3_764.bin"
 #define ROM_PHOENIX_TRIO64             "roms/video/s3/86c764x1.bin"
@@ -9947,7 +9946,7 @@ s3_init(const device_t *info)
                 video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_vlb);
             break;
         case S3_PHOENIX_TRIO32_ONBOARD:
-            bios_fn = ROM_PHOENIX_TRIO32_ONBOARD_VLB;
+            bios_fn = NULL;
             chip    = S3_TRIO32;
             if (info->flags & DEVICE_PCI)
                 video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_pci);
