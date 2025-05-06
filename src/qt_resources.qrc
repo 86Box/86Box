@@ -34,6 +34,14 @@
         <file>qt/icons/86Box-green.ico</file>
         <file>qt/icons/86Box-red.ico</file>
         <file>qt/icons/86Box-yellow.ico</file>
+        <file>qt/icons/caps_lock_off.ico</file>
+        <file>qt/icons/caps_lock_on.ico</file>
+        <file>qt/icons/kana_lock_off.ico</file>
+        <file>qt/icons/kana_lock_on.ico</file>
+        <file>qt/icons/num_lock_off.ico</file>
+        <file>qt/icons/num_lock_on.ico</file>
+        <file>qt/icons/scroll_lock_off.ico</file>
+        <file>qt/icons/scroll_lock_on.ico</file>
     </qresource>
     <qresource prefix="/menuicons">
         <file>qt/icons/acpi_shutdown.ico</file>
