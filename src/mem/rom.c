@@ -324,7 +324,7 @@ rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz, int off, uint8_t 
         }
         for (int i = 0; i < (sz >> 1); i++) {
             if (fread(ptr + (addr + (i << 1) + 1), 1, 1, fp) != 1)
-                fatal("rom_load_linear(): Error reading od data\n");
+                fatal("rom_load_linear(): Error reading odd data\n");
         }
     }
 
