@@ -1734,7 +1734,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 256,
             .max = 640,
-            .step = 128
+            .step = 64
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_device,
