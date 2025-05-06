@@ -782,6 +782,7 @@ extern int machine_at_ax59pro_init(const machine_t *);
 extern int machine_at_mvp3_init(const machine_t *);
 extern int machine_at_ficva503a_init(const machine_t *);
 extern int machine_at_5emapro_init(const machine_t *);
+extern int machine_at_delhi3_init(const machine_t *);
 
 extern int machine_at_5sg100_init(const machine_t *);
 
