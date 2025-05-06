@@ -700,6 +700,8 @@ static const device_config_t pb450_config[] = {
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/OPTI802.bin", "" } },
             { .name = "PNP 1.1A", .internal_name = "pnp11a", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/PNP11A.bin", "" } },
+            { .name = "P4HS20 (Micro Firmware/Phoenix 4.05)", .internal_name = "p4hs20", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/p4hs20.bin", "" } },
             { .files_no = 0 }
         },
     },
