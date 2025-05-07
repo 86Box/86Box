@@ -672,6 +672,16 @@ main(int argc, char *argv[])
     } else {
         main_window->show();
     }
+#ifdef WAYLAND
+    if (QApplication::platformName().contains("wayland")) {
+        /* Force a sync. */
+        (void)main_window->winId();
+        QApplication::sync();
+        extern void wl_keyboard_grab(QWindow *window);
+        wl_keyboard_grab(main_window->windowHandle());
+    }
+#endif
+    
 
     app.installEventFilter(main_window);
 
