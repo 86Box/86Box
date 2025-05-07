@@ -198,18 +198,22 @@ MainWindow::MainWindow(QWidget *parent)
 
     num_label = new QLabel;
     num_label->setPixmap(num_icon_off.pixmap(QSize(16, 16)));
+    num_label->setToolTip(QShortcut::tr("Num Lock"));
     statusBar()->addPermanentWidget(num_label);
 
     caps_label = new QLabel;
     caps_label->setPixmap(caps_icon_off.pixmap(QSize(16, 16)));
+    caps_label->setToolTip(QShortcut::tr("Caps Lock"));
     statusBar()->addPermanentWidget(caps_label);
 
     scroll_label = new QLabel;
     scroll_label->setPixmap(scroll_icon_off.pixmap(QSize(16, 16)));
+    scroll_label->setToolTip(QShortcut::tr("Scroll Lock"));
     statusBar()->addPermanentWidget(scroll_label);
 
     kana_label = new QLabel;
     kana_label->setPixmap(kana_icon_off.pixmap(QSize(16, 16)));
+    kana_label->setToolTip(QShortcut::tr("Kana Lock"));
     statusBar()->addPermanentWidget(kana_label);
 
     QTimer* ledKeyboardTimer = new QTimer(this);
@@ -1507,9 +1511,13 @@ MainWindow::refreshMediaMenu()
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
     ui->actionACPI_Shutdown->setEnabled(!!acpi_enabled);
 
+    num_label->setToolTip(QShortcut::tr("Num Lock"));
     num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+    scroll_label->setToolTip(QShortcut::tr("Scroll Lock"));
     scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+    caps_label->setToolTip(QShortcut::tr("Caps Lock"));
     caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+    kana_label->setToolTip(QShortcut::tr("Kana Lock"));
     kana_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
                            machine_has_flags(machine, MACHINE_AX));
 }
