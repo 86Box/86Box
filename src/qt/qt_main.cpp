@@ -672,7 +672,7 @@ main(int argc, char *argv[])
     } else {
         main_window->show();
     }
-#ifdef __unix__
+#ifdef WAYLAND
     if (QApplication::platformName().contains("wayland")) {
         /* Force a sync. */
         (void)main_window->winId();
