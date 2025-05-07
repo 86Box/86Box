@@ -630,8 +630,8 @@ msgstr "Erreur fatale"
 msgid " - PAUSED"
 msgstr " - EN PAUSE"
 
-msgid "Press %s to return to windowed mode."
-msgstr "Appuyez sur %s pour revenir au mode fenêtré."
+msgid "Press %1 to return to windowed mode."
+msgstr "Appuyez sur %1 pour revenir au mode fenêtré."
 
 msgid "Speed"
 msgstr "Vitesse"
@@ -717,11 +717,11 @@ msgstr "Autres périfériques"
 msgid "Click to capture mouse"
 msgstr "Cliquer pour capturer la souris"
 
-msgid "Press %s to release mouse"
-msgstr "Appuyer sur %s pour libérer la souris"
+msgid "Press %1 to release mouse"
+msgstr "Appuyer sur %1 pour libérer la souris"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "Appuyer sur %s ou le bouton central pour libérer la souris"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Appuyer sur %1 ou le bouton central pour libérer la souris"
 
 msgid "Bus"
 msgstr "Bus"

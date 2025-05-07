@@ -630,8 +630,8 @@ msgstr "Fatale fout"
 msgid " - PAUSED"
 msgstr " - GEPAUZEERD"
 
-msgid "Press %s to return to windowed mode."
-msgstr "Druk op %s om terug te gaan naar de venstermodus."
+msgid "Press %1 to return to windowed mode."
+msgstr "Druk op %1 om terug te gaan naar de venstermodus."
 
 msgid "Speed"
 msgstr "Snelheid"
@@ -717,11 +717,11 @@ msgstr "Andere randapparatuur"
 msgid "Click to capture mouse"
 msgstr "Klik om muis vast te leggen"
 
-msgid "Press %s to release mouse"
-msgstr "Druk op %s om de muis los te laten"
+msgid "Press %1 to release mouse"
+msgstr "Druk op %1 om de muis los te laten"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "Druk op %s of middelste knop om de muis los te laten"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Druk op %1 of middelste knop om de muis los te laten"
 
 msgid "Bus"
 msgstr "Bus"

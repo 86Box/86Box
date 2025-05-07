@@ -630,8 +630,8 @@ msgstr "Непереробна помилка"
 msgid " - PAUSED"
 msgstr " - ПРИЗУПИНЕННЯ"
 
-msgid "Press %s to return to windowed mode."
-msgstr "Натисніть %s для повернення у віконний режим."
+msgid "Press %1 to return to windowed mode."
+msgstr "Натисніть %1 для повернення у віконний режим."
 
 msgid "Speed"
 msgstr "Швидкість"
@@ -717,11 +717,11 @@ msgstr "Інша периферія"
 msgid "Click to capture mouse"
 msgstr "Клацніть мишею для захвату курсора"
 
-msgid "Press %s to release mouse"
-msgstr "Натисніть %s, щоб звільнити курсор"
+msgid "Press %1 to release mouse"
+msgstr "Натисніть %1, щоб звільнити курсор"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "Натисніть %s або середню кнопку миші, щоб звільнити курсор"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Натисніть %1 або середню кнопку миші, щоб звільнити курсор"
 
 msgid "Bus"
 msgstr "Шина"

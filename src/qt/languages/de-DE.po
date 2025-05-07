@@ -630,8 +630,8 @@ msgstr "Fataler Fehler"
 msgid " - PAUSED"
 msgstr " - PAUSIERT"
 
-msgid "Press %s to return to windowed mode."
-msgstr "%s ab, zur Rückkehr in den Fenstermodus."
+msgid "Press %1 to return to windowed mode."
+msgstr "%1 ab, zur Rückkehr in den Fenstermodus."
 
 msgid "Speed"
 msgstr "Geschwindigkeit"
@@ -717,14 +717,11 @@ msgstr "Andere Peripheriegeräte"
 msgid "Click to capture mouse"
 msgstr "Klicken zum Einfangen des Mauszeigers"
 
-msgid "Press %s to release mouse"
-msgstr "Drücke %s zur Mausfreigabe"
+msgid "Press %1 to release mouse"
+msgstr "Drücke %1 zur Mausfreigabe"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "Drücke %s oder die mittlere Maustaste zur Mausfreigabe"
-
-msgid "Ctrl+End"
-msgstr "Strg+Ende"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Drücke %1 oder die mittlere Maustaste zur Mausfreigabe"
 
 msgid "Bus"
 msgstr "Bus"

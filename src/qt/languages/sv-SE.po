@@ -630,8 +630,8 @@ msgstr "Allvarligt fel"
 msgid " - PAUSED"
 msgstr " - PAUSAD"
 
-msgid "Press %s to return to windowed mode."
-msgstr "Tryck på %s för att återvända till fönsterläge."
+msgid "Press %1 to return to windowed mode."
+msgstr "Tryck på %1 för att återvända till fönsterläge."
 
 msgid "Speed"
 msgstr "Hastighet"
@@ -717,11 +717,11 @@ msgstr "Andra tillbehör"
 msgid "Click to capture mouse"
 msgstr "Klicka för att fånga upp musen"
 
-msgid "Press %s to release mouse"
-msgstr "Tryck på %s för att släppa musen"
+msgid "Press %1 to release mouse"
+msgstr "Tryck på %1 för att släppa musen"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "Tryck på %s eller mellersta musknappen för att släppa musen"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Tryck på %1 eller mellersta musknappen för att släppa musen"
 
 msgid "Bus"
 msgstr "Buss"

@@ -630,8 +630,8 @@ msgstr "Errore fatale"
 msgid " - PAUSED"
 msgstr " - IN PAUSA"
 
-msgid "Press %s to return to windowed mode."
-msgstr "Usa %s per tornare alla modalità finestra."
+msgid "Press %1 to return to windowed mode."
+msgstr "Usa %1 per tornare alla modalità finestra."
 
 msgid "Speed"
 msgstr "Velocità"
@@ -717,11 +717,11 @@ msgstr "Altre periferiche"
 msgid "Click to capture mouse"
 msgstr "Fare clic per catturare mouse"
 
-msgid "Press %s to release mouse"
-msgstr "Premi %s per rilasciare il mouse"
+msgid "Press %1 to release mouse"
+msgstr "Premi %1 per rilasciare il mouse"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "Premi %s o pulsante centrale per rilasciare il mouse"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Premi %1 o pulsante centrale per rilasciare il mouse"
 
 msgid "Bus"
 msgstr "Bus"

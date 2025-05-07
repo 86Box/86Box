@@ -162,7 +162,7 @@ SettingsInput::refreshInputList()
 
 	for (int x=0;x<NUM_ACCELS;x++) {
 		ui->tableKeys->setItem(x, 0, new QTableWidgetItem(tr(acc_keys_t[x].desc)));
-		ui->tableKeys->setItem(x, 1, new QTableWidgetItem(acc_keys_t[x].seq));
+		ui->tableKeys->setItem(x, 1, new QTableWidgetItem(QKeySequence(acc_keys_t[x].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText)));
 		ui->tableKeys->setItem(x, 2, new QTableWidgetItem(acc_keys_t[x].name));
 	}
 }
@@ -201,7 +201,7 @@ SettingsInput::on_tableKeys_cellDoubleClicked(int row, int col)
 		// so we don't test against shortcuts the user already changed.
 		for(int x=0;x<NUM_ACCELS;x++)
 		{
-			if(QString::fromStdString(acc_keys_t[x].seq) == keyseq.toString(QKeySequence::NativeText))
+			if(QString::fromStdString(acc_keys_t[x].seq) == keyseq.toString(QKeySequence::PortableText))
 			{
 				// That key is already in use
 				main_window->showMessage(MBX_ANSI & MBX_INFO, "Bind conflict", "This key combo is already in use", false);
@@ -212,12 +212,12 @@ SettingsInput::on_tableKeys_cellDoubleClicked(int row, int col)
 		// Go ahead and apply the bind.
 		
 		// Find the correct accelerator key entry
-		int accKeyID = FindAccelerator(qPrintable(ui->tableKeys->item(row,2)->text()));
+		int accKeyID = FindAccelerator(ui->tableKeys->item(row,2)->text().toUtf8().constData());
 		if (accKeyID < 0) return; // this should never happen
 		
 		// Make the change
 		cell->setText(keyseq.toString(QKeySequence::NativeText));
-		strcpy(acc_keys_t[accKeyID].seq, qPrintable(keyseq.toString(QKeySequence::NativeText)));
+		strcpy(acc_keys_t[accKeyID].seq, keyseq.toString(QKeySequence::PortableText).toUtf8().constData());
 		
 		refreshInputList();
 	}
@@ -242,7 +242,7 @@ SettingsInput::on_pushButtonClearBind_clicked()
 	
 	cell->setText("");
 	// Find the correct accelerator key entry
-	int accKeyID = FindAccelerator(qPrintable(ui->tableKeys->item(cell->row(),2)->text()));
+	int accKeyID = FindAccelerator(ui->tableKeys->item(cell->row(),2)->text().toUtf8().constData());
 	if (accKeyID < 0) return; // this should never happen
 	
 	// Make the change
