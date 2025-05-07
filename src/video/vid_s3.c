@@ -10297,6 +10297,7 @@ s3_init(const device_t *info)
 
         case S3_SPEA_MIRAGE_86C801:
         case S3_SPEA_MIRAGE_86C805:
+        case S3_WINNER1000_805:
             svga->decode_mask = (2 << 20) - 1;
             stepping          = 0xa2; /*86C801/86C805*/
             s3->id            = stepping;
@@ -10326,7 +10327,6 @@ s3_init(const device_t *info)
 
         case S3_PHOENIX_86C801:
         case S3_PHOENIX_86C805:
-        case S3_WINNER1000_805:
             svga->decode_mask = (2 << 20) - 1;
             stepping          = 0xa0; /*86C801/86C805*/
             s3->id            = stepping;
