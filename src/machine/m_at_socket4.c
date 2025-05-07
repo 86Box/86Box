@@ -254,7 +254,7 @@ machine_at_valuepointp60_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&ide_pci_2ch_device);
+    device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -267,7 +267,7 @@ machine_at_valuepointp60_init(const machine_t *model)
     device_add(&keyboard_ps2_ps1_pci_device);
     device_add(&sio_device);
     device_add(&ide_rz1000_pci_single_channel_device);
-    device_add(&fdc37c665_ide_sec_device);
+    device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i430lx_device);
