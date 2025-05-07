@@ -69,7 +69,8 @@ machine_at_acerv35n_init(const machine_t *model)
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c932fr_device);
+    /* The chip is not marked FR but the BIOS accesses register 06h of GPIO. */
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_FR));
     device_add(&sst_flash_29ee010_device);
 
     return ret;
@@ -160,7 +161,7 @@ machine_at_m7shi_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c935_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL));
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -568,7 +569,7 @@ machine_at_presario2240_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c932qf_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C932 | FDC37C93X_NORMAL));
     device_add(&sst_flash_29ee020_device);
 
     return ret;
@@ -598,7 +599,7 @@ machine_at_presario4500_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c931apm_compaq_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C931 | FDC37C93X_APM));
     device_add(&sst_flash_29ee020_device);
 
     return ret;
@@ -631,7 +632,7 @@ machine_at_dellhannibalp_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c932fr_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C932 | FDC37C93X_FR));
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -659,7 +660,7 @@ machine_at_p55va_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c932fr_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C932 | FDC37C93X_FR));
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -687,7 +688,7 @@ machine_at_brio80xx_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c935_370_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL | FDC37C93X_370));
     device_add(&sst_flash_29ee020_device);
 
     return ret;
@@ -756,7 +757,7 @@ machine_at_pb810_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c935_370_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL | FDC37C93X_370));
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -851,7 +852,7 @@ machine_at_gw2kte_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c932fr_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C932 | FDC37C93X_FR));
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -1553,7 +1554,7 @@ machine_at_thunderbolt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -1564,7 +1565,7 @@ machine_at_thunderbolt_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_NORMAL,      3, 0, 1, 2);
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add(&fdc37c935_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL | FDC37C93X_NO_NVR));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 

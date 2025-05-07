@@ -33,6 +33,7 @@
 #include <86box/mem.h>
 #include <86box/smram.h>
 #include <86box/pic.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/keyboard.h>
 #include <86box/machine.h>
 #include <86box/chipset.h>
@@ -82,6 +83,14 @@ static uint8_t ram_471[64] = { 0x00, 0x00, 0x01, 0x01, 0x02, 0x20, 0x09, 0x09,
                                0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17,
                                0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d,
                                0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d, 0x3d };
+static uint8_t ram_asus[64] = { 0x00, 0x00, 0x01, 0x10, 0x10, 0x20, 0x03, 0x11,
+                                0x11, 0x05, 0x05, 0x12, 0x12, 0x13, 0x13, 0x13,
+                                0x13, 0x21, 0x06, 0x14, 0x14, 0x15, 0x15, 0x15,
+                                0x15, 0x1d, 0x1d, 0x1d, 0x1d, 0x1d, 0x1d, 0x1d,
+                                0x1d, 0x16, 0x16, 0x16, 0x16, 0x17, 0x17, 0x17,
+                                0x17, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e,
+                                0x1e, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f,
+                                0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f };
 static uint8_t ram_tg486g[64] = { 0x10, 0x10, 0x10, 0x10, 0x10, 0x11, 0x11, 0x11,
                                   0x11, 0x12, 0x12, 0x12, 0x12, 0x13, 0x13, 0x13,
                                   0x13, 0x14, 0x14, 0x14, 0x14, 0x15, 0x15, 0x15,
@@ -162,17 +171,32 @@ sis_85c471_get_row(ram_bank_t *dev, uint32_t addr)
     uint32_t ret = 0x00000000;
 
     switch (dev->virt_size) {
-        case 0x04000000:
-            ret = (addr >> 14) & 0x00000fff;
-            break;
-        case 0x01000000:
-            ret = (addr >> 13) & 0x000007ff;
+        case 0x00100000:
+        case 0x00200000:
+            ret |= (addr >> 13) & 0x00000001;
+            ret |= ((addr >> 12) & 0x00000001) << 1;
+            ret |= ((addr >> 14) & 0x0000003f) << 2;
+            ret |= ((addr >> 11) & 0x00000001) << 8;
+            ret |= ((addr >> 20) & 0x00000001) << 9;
+            ret |= ((addr >> 22) & 0x00000001) << 10;
+            ret |= ((addr >> 24) & 0x00000001) << 11;
             break;
         case 0x00400000:
-            ret = (addr >> 12) & 0x000003ff;
+        case 0x00800000:
+            ret |= (addr >> 13) & 0x00000001;
+            ret |= ((addr >> 12) & 0x00000001) << 1;
+            ret |= ((addr >> 14) & 0x000000ff) << 2;
+            ret |= ((addr >> 22) & 0x00000001) << 10;
+            ret |= ((addr >> 24) & 0x00000001) << 11;
             break;
-        case 0x00100000:
-            ret = (addr >> 11) & 0x000001ff;
+        case 0x01000000:
+        case 0x02000000:
+        case 0x04000000:
+            ret |= (addr >> 13) & 0x00000001;
+            ret |= ((addr >> 22) & 0x00000001) << 1;
+            ret |= ((addr >> 14) & 0x000000ff) << 2;
+            ret |= ((addr >> 23) & 0x00000001) << 10;
+            ret |= ((addr >> 24) & 0x00000001) << 11;
             break;
     }
 
@@ -185,17 +209,31 @@ sis_85c471_get_col(ram_bank_t *dev, uint32_t addr)
     uint32_t ret = 0x00000000;
 
     switch (dev->virt_size) {
-        case 0x04000000:
-            ret = (addr >> 2) & 0x00000fff;
-            break;
-        case 0x01000000:
-            ret = (addr >> 2) & 0x000007ff;
+        case 0x00100000:
+        case 0x00200000:
+            ret |= (addr >> 3) & 0x00000001;
+            ret |= ((addr >> 2) & 0x00000001) << 1;
+            ret |= ((addr >> 4) & 0x0000003f) << 2;
+            ret |= ((addr >> 10) & 0x00000001) << 8;
+            ret |= ((addr >> 21) & 0x00000001) << 9;
+            ret |= ((addr >> 23) & 0x00000001) << 10;
+            ret |= ((addr >> 25) & 0x00000001) << 11;
             break;
         case 0x00400000:
-            ret = (addr >> 2) & 0x000003ff;
+        case 0x00800000:
+            ret |= (addr >> 3) & 0x00000001;
+            ret |= ((addr >> 2) & 0x00000001) << 1;
+            ret |= ((addr >> 4) & 0x000000ff) << 2;
+            ret |= ((addr >> 23) & 0x00000001) << 10;
+            ret |= ((addr >> 25) & 0x00000001) << 11;
             break;
-        case 0x00100000:
-            ret = (addr >> 2) & 0x000001ff;
+        case 0x01000000:
+        case 0x02000000:
+        case 0x04000000:
+            ret |= (addr >> 3) & 0x00000001;
+            ret |= ((addr >> 2) & 0x00000001) << 1;
+            ret |= ((addr >> 4) & 0x000001ff) << 2;
+            ret |= ((addr >> 25) & 0x00000001) << 11;
             break;
     }
 
@@ -208,17 +246,26 @@ sis_85c471_set_row(ram_bank_t *dev, uint32_t addr)
     uint32_t ret = 0x00000000;
 
     switch (dev->phys_size) {
-        case 0x04000000:
-            ret = (addr & 0x00000fff) << 14;
+        case 0x00100000:
+            ret = (addr & 0x1ff) << 11;
             break;
-        case 0x01000000:
-            ret = (addr & 0x000007ff) << 13;
+        case 0x00200000:
+            ret = (addr & 0x3ff) << 11;
             break;
         case 0x00400000:
-            ret = (addr & 0x000003ff) << 12;
+            ret = (addr & 0x3ff) << 12;
             break;
-        case 0x00100000:
-            ret = (addr & 0x000002ff) << 11;
+        case 0x00800000:
+            ret = (addr & 0x7ff) << 12;
+            break;
+        case 0x01000000:
+            ret = (addr & 0x7ff) << 13;
+            break;
+        case 0x02000000:
+            ret = (addr & 0xfff) << 13;
+            break;
+        case 0x04000000:
+            ret = (addr & 0xfff) << 14;
             break;
     }
 
@@ -231,22 +278,27 @@ sis_85c471_set_col(ram_bank_t *dev, uint32_t addr)
     uint32_t ret = 0x00000000;
 
     switch (dev->phys_size) {
-        case 0x04000000:
-            ret = (addr & 0x00000fff) << 2;
-            break;
-        case 0x01000000:
-            ret = (addr & 0x000007ff) << 2;
+        case 0x00100000:
+        case 0x00200000:
+            ret = (addr & 0x1ff) << 2;
             break;
         case 0x00400000:
-            ret = (addr & 0x000003ff) << 2;
+        case 0x00800000:
+            ret = (addr & 0x3ff) << 2;
             break;
-        case 0x00100000:
-            ret = (addr & 0x000002ff) << 2;
+        case 0x01000000:
+        case 0x02000000:
+            ret = (addr & 0x7ff) << 2;
+            break;
+        case 0x04000000:
+            ret = (addr & 0xfff) << 2;
             break;
     }
 
     return ret;
 }
+
+uint8_t reg09 = 0x00;
 
 static uint8_t
 sis_85c471_read_ram(uint32_t addr, void *priv)
@@ -255,12 +307,10 @@ sis_85c471_read_ram(uint32_t addr, void *priv)
     uint32_t    rel = addr - dev->virt_base;
     uint8_t     ret = 0xff;
 
-    if ((dev->virt_size == 0x01000000) && (dev->phys_size == 0x00400000)) {
-        uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
-        uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
-        uint32_t dw  = rel & 0x00000003;
-        rel = row | col | dw;
-    }
+    uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
+    uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
+    uint32_t dw  = rel & 0x00000003;
+    rel = row | col | dw;
 
     addr = (rel + dev->phys_base);
 
@@ -277,12 +327,10 @@ sis_85c471_read_ramw(uint32_t addr, void *priv)
     uint32_t    rel = addr - dev->virt_base;
     uint16_t    ret = 0xffff;
 
-    if ((dev->virt_size == 0x01000000) && (dev->phys_size == 0x00400000)) {
-        uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
-        uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
-        uint32_t dw  = rel & 0x00000003;
-        rel = row | col | dw;
-    }
+    uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
+    uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
+    uint32_t dw  = rel & 0x00000003;
+    rel = row | col | dw;
 
     addr = (rel + dev->phys_base);
 
@@ -299,12 +347,10 @@ sis_85c471_read_raml(uint32_t addr, void *priv)
     uint32_t    rel = addr - dev->virt_base;
     uint32_t    ret = 0xffffffff;
 
-    if ((dev->virt_size == 0x01000000) && (dev->phys_size == 0x00400000)) {
-        uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
-        uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
-        uint32_t dw  = rel & 0x00000003;
-        rel = row | col | dw;
-    }
+    uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
+    uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
+    uint32_t dw  = rel & 0x00000003;
+    rel = row | col | dw;
 
     addr = (rel + dev->phys_base);
 
@@ -320,12 +366,10 @@ sis_85c471_write_ram(uint32_t addr, uint8_t val, void *priv)
     ram_bank_t *dev = (ram_bank_t *) priv;
     uint32_t    rel = addr - dev->virt_base;
 
-    if ((dev->virt_size == 0x01000000) && (dev->phys_size == 0x00400000)) {
-        uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
-        uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
-        uint32_t dw  = rel & 0x00000003;
-        rel = row | col | dw;
-    }
+    uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
+    uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
+    uint32_t dw  = rel & 0x00000003;
+    rel = row | col | dw;
 
     addr = (rel + dev->phys_base);
 
@@ -339,12 +383,10 @@ sis_85c471_write_ramw(uint32_t addr, uint16_t val, void *priv)
     ram_bank_t *dev = (ram_bank_t *) priv;
     uint32_t    rel = addr - dev->virt_base;
 
-    if ((dev->virt_size == 0x01000000) && (dev->phys_size == 0x00400000)) {
-        uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
-        uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
-        uint32_t dw  = rel & 0x00000003;
-        rel = row | col | dw;
-    }
+    uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
+    uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
+    uint32_t dw  = rel & 0x00000003;
+    rel = row | col | dw;
 
     addr = (rel + dev->phys_base);
 
@@ -358,12 +400,10 @@ sis_85c471_write_raml(uint32_t addr, uint32_t val, void *priv)
     ram_bank_t *dev = (ram_bank_t *) priv;
     uint32_t    rel = addr - dev->virt_base;
 
-    if ((dev->virt_size == 0x01000000) && (dev->phys_size == 0x00400000)) {
-        uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
-        uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
-        uint32_t dw  = rel & 0x00000003;
-        rel = row | col | dw;
-    }
+    uint32_t row = sis_85c471_set_row(dev, sis_85c471_get_row(dev, rel));
+    uint32_t col = sis_85c471_set_col(dev, sis_85c471_get_col(dev, rel));
+    uint32_t dw  = rel & 0x00000003;
+    rel = row | col | dw;
 
     addr = (rel + dev->phys_base);
 
@@ -492,6 +532,8 @@ sis_85c471_banks_split(uint32_t *b_ex, uint32_t *banks)
 static void
 sis_85c471_banks_recalc(sis_85c4xx_t *dev)
 {
+    reg09 = dev->regs[0x09];
+
     for (uint8_t i = 0; i < 8; i++)
         mem_mapping_disable(&dev->ram_banks[i].mapping);
 
@@ -553,12 +595,14 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
 
                 switch (rel_reg) {
                     case 0x00:
-                        if (val & 0x01) {
-                            kbc_at_set_fast_reset(0);
-                            cpu_cpurst_on_sr = 1;
-                        } else {
-                            kbc_at_set_fast_reset(1);
-                            cpu_cpurst_on_sr = 0;
+                        if (dev->is_471) {
+                            if (val & 0x01) {
+                                kbc_at_set_fast_reset(0);
+                                cpu_cpurst_on_sr = 1;
+                            } else {
+                                kbc_at_set_fast_reset(1);
+                                cpu_cpurst_on_sr = 0;
+                            }
                         }
                         break;
 
@@ -572,7 +616,7 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
                     case 0x08:
                         if (valxor)
                             sis_85c4xx_recalcmapping(dev);
-                        if (rel_reg == 0x08)
+                        if ((rel_reg == 0x08) && dev->is_471)
                             flushmmucache();
                         break;
 
@@ -694,17 +738,25 @@ sis_85c4xx_reset(void *priv)
 
     if (dev->is_471) {
         dev->regs[0x09] = 0x40;
-        if (mem_size_mb >= 64) {
+
+        if (!strcmp(machine_get_internal_name(), "vli486sv2g")) {
+            if (mem_size_mb == 64)
+                dev->regs[0x09] |= 0x1f;
+            else
+                dev->regs[0x09] |= ram_asus[mem_size_mb];
+        } else if (mem_size_mb >= 64) {
             if ((mem_size_mb >= 64) && (mem_size_mb < 68))
                 dev->regs[0x09] |= 0x33;
-            if ((mem_size_mb >= 68) && (mem_size_mb < 72))
+            else if ((mem_size_mb >= 68) && (mem_size_mb < 72))
                 dev->regs[0x09] |= 0x2b;
-            if ((mem_size_mb >= 72) && (mem_size_mb < 80))
+            else if ((mem_size_mb >= 72) && (mem_size_mb < 80))
                 dev->regs[0x09] |= 0x2d;
-            if ((mem_size_mb >= 80) && (mem_size_mb < 96))
+            else if ((mem_size_mb >= 80) && (mem_size_mb < 96))
                 dev->regs[0x09] |= 0x2f;
+            else if ((mem_size_mb >= 96) && (mem_size_mb < 128))
+                dev->regs[0x09] |= 0x34;
             else
-                dev->regs[0x09] |= 0x29;
+                dev->regs[0x09] |= 0x35;
         } else if (!strcmp(machine_get_internal_name(), "tg486g"))
             dev->regs[0x09] |= ram_tg486g[mem_size_mb];
         else

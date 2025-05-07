@@ -742,7 +742,7 @@ kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
     if (!adddata)
         return;
 
-    keyboard_get_states(NULL, &num_lock, NULL);
+    keyboard_get_states(NULL, &num_lock, NULL, NULL);
     shift_states = keyboard_get_shift() & STATE_LSHIFT;
 
     if (is_amstrad)
@@ -1312,7 +1312,6 @@ const device_t keyboard_xt_t1x00_device = {
     .config        = NULL
 };
 
-#ifdef USE_LASERXT
 const device_t keyboard_xt_lxt3_device = {
     .name          = "VTech Laser Turbo XT Keyboard",
     .internal_name = "keyboard_xt_lxt",
@@ -1326,7 +1325,6 @@ const device_t keyboard_xt_lxt3_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
-#endif /* USE_LASERXT */
 
 const device_t keyboard_xt_olivetti_device = {
     .name          = "Olivetti XT Keyboard",

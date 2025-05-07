@@ -455,7 +455,7 @@ machine_at_pb640_init(const machine_t *model)
     device_add(&piix_rev02_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5440_onboard_pci_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&pc87306_device);
@@ -546,7 +546,7 @@ machine_at_acerm3a_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_VIDEO,       4, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c935_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL));
 
     device_add(&sst_flash_29ee010_device);
 
@@ -700,7 +700,7 @@ machine_at_gw2kma_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c932fr_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C932 | FDC37C93X_FR));
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -819,7 +819,7 @@ machine_at_vectra54_init(const machine_t *model)
 
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&fdc37c932_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C932 | FDC37C93X_NORMAL));
     device_add(&sst_flash_29ee010_device);
 
     return ret;

@@ -20,6 +20,7 @@ add_library(mch OBJECT
     machine_table.c
     m_xt.c
     m_xt_compaq.c
+    m_xt_laserxt.c
     m_xt_philips.c
     m_xt_t1000.c
     m_xt_t1000_vid.c
@@ -62,11 +63,6 @@ endif()
 
 if(DESKPRO386)
     target_compile_definitions(mch PRIVATE USE_DESKPRO386)
-endif()
-
-if(LASERXT)
-    target_sources(mch PRIVATE m_xt_laserxt.c)
-    target_compile_definitions(mch PRIVATE USE_LASERXT)
 endif()
 
 if(OLIVETTI)

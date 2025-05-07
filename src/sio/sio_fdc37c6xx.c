@@ -232,7 +232,7 @@ fdc37c6xx_read(uint16_t port, void *priv)
     uint8_t            ret = 0xff;
 
     if (dev->tries == 2) {
-        if (port == 0x3f1)
+        if ((port == 0x3f1) && (dev->cur_reg <= dev->max_reg))
             ret = dev->regs[dev->cur_reg];
     }
 

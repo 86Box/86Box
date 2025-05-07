@@ -41,6 +41,36 @@
 #include <86box/snd_ac97.h>
 
 int
+machine_at_acerv62x_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/acerv62x/v62xc0s1.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 5, 0, 0, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    device_add(&i440fx_device);
+    device_add(&piix3_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_APM));
+    device_add(&sst_flash_29ee020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 128);
+
+    return ret;
+}
+
+int
 machine_at_p65up5_cpknd_init(const machine_t *model)
 {
     int ret;
@@ -131,7 +161,7 @@ machine_at_spitfire_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -143,7 +173,7 @@ machine_at_spitfire_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440lx_device);
     device_add(&piix4e_device);
-    device_add(&fdc37c935_no_nvr_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL | FDC37C93X_NO_NVR));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
     device_add(&lm78_device); /* no reporting in BIOS */

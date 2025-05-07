@@ -2387,6 +2387,14 @@ acpi_reset(void *priv)
         dev->regs.gpi_val = 0xfff57fc1;
         if (!strcmp(machine_get_internal_name(), "ficva503a") || !strcmp(machine_get_internal_name(), "6via90ap"))
             dev->regs.gpi_val |= 0x00000004;
+         /*
+            TriGem Delhi-III second GPI word:
+                - Bit 7 = Save CMOS (must be set);
+                - Bit 6 = Password jumper (must be set);
+                - Bit 5 = Enable Setup (must be set).
+         */
+        else if (!strcmp(machine_get_internal_name(), "delhi3"))
+            dev->regs.gpi_val |= 0x00008000;
     }
 
     if (acpi_power_on) {

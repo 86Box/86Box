@@ -2016,6 +2016,10 @@ image_open(cdrom_t *dev, const char *path)
                 img->has_audio = 0;
             else if (ret)
                 img->has_audio = 1;
+            else {
+                image_close(img);
+                img = NULL;
+            }
         } else {
             ret = image_load_iso(img, path);
 
@@ -2033,7 +2037,8 @@ image_open(cdrom_t *dev, const char *path)
             img->log          = log_open(n);
 
             dev->ops = &image_ops;
-        }
+        } else
+            warning("Unable to load CD-ROM image: %s\n", path);
     }
 
     return img;

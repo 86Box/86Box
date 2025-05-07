@@ -64,10 +64,11 @@ static int keydelay[512];
 #endif
 static scancode *scan_table; /* scancode table for keyboard */
 
-static uint8_t caps_lock   = 0;
-static uint8_t num_lock    = 0;
-static uint8_t scroll_lock = 0;
-static uint8_t shift       = 0;
+static volatile uint8_t caps_lock   = 0;
+static volatile uint8_t num_lock    = 0;
+static volatile uint8_t scroll_lock = 0;
+static volatile uint8_t kana_lock   = 0;
+static uint8_t shift                = 0;
 
 static int key5576mode = 0;
 
@@ -108,6 +109,7 @@ keyboard_init(void)
     num_lock    = 0;
     caps_lock   = 0;
     scroll_lock = 0;
+    kana_lock   = 0;
     shift       = 0;
 
     memset(recv_key, 0x00, sizeof(recv_key));
@@ -310,13 +312,16 @@ keyboard_input(int down, uint16_t scan)
                     shift &= ~0x80;
                     break;
                 case 0x03a: /* Caps Lock */
-                    caps_lock ^= 1;
+                    if (!(machine_has_bus(machine, MACHINE_AT) > 0))
+                        caps_lock ^= 1;
                     break;
                 case 0x045:
-                    num_lock ^= 1;
+                    if (!(machine_has_bus(machine, MACHINE_AT) > 0))
+                        num_lock ^= 1;
                     break;
                 case 0x046:
-                    scroll_lock ^= 1;
+                    if (!(machine_has_bus(machine, MACHINE_AT) > 0))
+                        scroll_lock ^= 1;
                     break;
 
                 default:
@@ -367,11 +372,12 @@ keyboard_do_break(uint16_t scan)
    Caps Lock, Num Lock, and Scroll Lock when receving the "Set keyboard LEDs"
    command. */
 void
-keyboard_update_states(uint8_t cl, uint8_t nl, uint8_t sl)
+keyboard_update_states(uint8_t cl, uint8_t nl, uint8_t sl, uint8_t kl)
 {
     caps_lock   = cl;
     num_lock    = nl;
     scroll_lock = sl;
+    kana_lock   = kl;
 }
 
 uint8_t
@@ -381,7 +387,7 @@ keyboard_get_shift(void)
 }
 
 void
-keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl)
+keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl, uint8_t *kl)
 {
     if (cl)
         *cl = caps_lock;
@@ -389,6 +395,8 @@ keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl)
         *nl = num_lock;
     if (sl)
         *sl = scroll_lock;
+    if (kl)
+        *kl = kana_lock;
 }
 
 /* Called by the UI to update the states of Caps Lock, Num Lock, and Scroll Lock. */
@@ -432,7 +440,7 @@ keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl)
         }
     }
 
-    keyboard_update_states(cl, nl, sl);
+    keyboard_update_states(cl, nl, sl, kana_lock);
 }
 
 int
