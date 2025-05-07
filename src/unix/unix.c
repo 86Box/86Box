@@ -844,7 +844,7 @@ plat_init_rom_paths(void)
 }
 
 void
-plat_get_global_config_dir(char *outbuf, const uint8_t len)
+plat_get_global_config_dir(char *outbuf, const size_t len)
 {
     char *prefPath = SDL_GetPrefPath(NULL, "86Box");
     strncpy(outbuf, prefPath, len);
@@ -853,7 +853,7 @@ plat_get_global_config_dir(char *outbuf, const uint8_t len)
 }
 
 void
-plat_get_global_data_dir(char *outbuf, const uint8_t len)
+plat_get_global_data_dir(char *outbuf, const size_t len)
 {
     char *prefPath = SDL_GetPrefPath(NULL, "86Box");
     strncpy(outbuf, prefPath, len);
