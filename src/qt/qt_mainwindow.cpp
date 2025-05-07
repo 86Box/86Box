@@ -1345,26 +1345,6 @@ MainWindow::on_actionFullscreen_triggered()
             emit resizeContents(vid_resize == 2 ? fixed_size_x : monitors[0].mon_scrnsz_x, vid_resize == 2 ? fixed_size_y : monitors[0].mon_scrnsz_y);
         }
     } else {
-        if (video_fullscreen_first) {
-            bool wasCaptured = mouse_capture == 1;
-
-            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"),
-                tr("Press %1 to return to windowed mode.").arg(QKeySequence(acc_keys[FindAccelerator("fullscreen")].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText)),
-                QMessageBox::Ok, this);
-            QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));
-            questionbox.setCheckBox(chkbox);
-            chkbox->setChecked(!video_fullscreen_first);
-
-            QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
-                video_fullscreen_first = (state == Qt::CheckState::Unchecked);
-            });
-            questionbox.exec();
-            config_save();
-
-            /* (re-capture mouse after dialog). */
-            if (wasCaptured)
-                emit setMouseCapture(true);
-        }
         video_fullscreen = 1;
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         ui->menubar->hide();
