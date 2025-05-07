@@ -508,6 +508,7 @@ extern int machine_at_pc916sx_init(const machine_t *);
    sure this appear here (and in the .c file) in the order and position
    in which they appear in the machine table. */
 extern int machine_at_dataexpert386wb_init(const machine_t *);
+extern int machine_at_isa486c_init(const machine_t *);
 extern int machine_at_genoa486_init(const machine_t *);
 extern int machine_at_ga486l_init(const machine_t *);
 extern int machine_at_cougar_init(const machine_t *);
