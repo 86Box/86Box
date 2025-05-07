@@ -121,7 +121,6 @@ extern int      dpi_scale;                  /* (C) DPI scaling of the emulated s
 extern int      vid_api;                    /* (C) video renderer */
 extern int      vid_cga_contrast;           /* (C) video */
 extern int      video_fullscreen;           /* (C) video */
-extern int      video_fullscreen_first;     /* (C) video */
 extern int      video_fullscreen_scale;     /* (C) video */
 extern int      enable_overscan;            /* (C) video */
 extern int      force_43;                   /* (C) video */
