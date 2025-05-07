@@ -115,6 +115,7 @@ video_cards[] = {
     { .device = &s3_metheus_86c928_isa_device,                  .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &s3_phoenix_86c801_isa_device,                  .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &s3_spea_mirage_86c801_isa_device,              .flags = VIDEO_FLAG_TYPE_NONE },
+    { .device = &s3_winner1000_805_isa_device,                  .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &sigma_device,                                  .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &tvga8900b_device,                              .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &tvga8900d_device,                              .flags = VIDEO_FLAG_TYPE_NONE },
