@@ -1670,7 +1670,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                     case MONO_SRC_PAT:
                         if (mach64->dst_cntl & DST_24_ROT_EN) {
                             if (!mach64->accel.xx_count)
-                                mix = mach64->accel.pattern[dst_y & 7][dst_x & 7];
+                                mix = mach64->accel.pattern[dst_y & 7][(dst_x / 3) & 7];
                         } else
                             mix = mach64->accel.pattern[dst_y & 7][dst_x & 7];
                         break;
