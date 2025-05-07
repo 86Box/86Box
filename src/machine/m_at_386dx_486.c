@@ -2450,13 +2450,8 @@ machine_at_isa486c_init(const machine_t *model)
 {
     int ret;
 
-#if 0
     ret = bios_load_linear("roms/machines/isa486c/asus-isa-486c-401a0-040591-657e2c17a0218417632602.bin",
                            0x000f0000, 65536, 0);
-#else
-    ret = bios_load_linear("roms/machines/isa486c/128k.bin",
-                           0x000e0000, 131072, 0);
-#endif
 
     if (bios_only || !ret)
         return ret;
