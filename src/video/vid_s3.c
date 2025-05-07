@@ -54,6 +54,7 @@
 #define ROM_MIROCRYSTAL20SV_964_PCI    "roms/video/s3/mirocrystal.VBI"
 #define ROM_MIROCRYSTAL20SD_864_VLB    "roms/video/s3/Miro20SD.BIN"
 #define ROM_PHOENIX_86C80X             "roms/video/s3/805.VBI"
+#define ROM_WINNER1000_805             "roms/video/s3/v01_05_00-C.BIN"
 #define ROM_PARADISE_BAHAMAS64         "roms/video/s3/bahamas64.bin"
 #define ROM_PHOENIX_VISION864          "roms/video/s3/86c864p.bin"
 #define ROM_DIAMOND_STEALTH64_964      "roms/video/s3/964_107h.rom"
@@ -117,7 +118,8 @@ enum {
     S3_NUMBER9_9FX_771,
     S3_SPEA_MERCURY_LITE_PCI,
     S3_86C805_ONBOARD,
-    S3_DIAMOND_STEALTH64_968
+    S3_DIAMOND_STEALTH64_968,
+    S3_WINNER1000_805
 };
 
 enum {
@@ -3782,6 +3784,7 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->card_type) {
                             case S3_MIROCRYSTAL8S_805:
                             case S3_MIROCRYSTAL10SD_805:
+                            case S3_WINNER1000_805:
                             case S3_PHOENIX_86C805:
                             case S3_86C805_ONBOARD:
                                 svga->hdisp >>= 1;
@@ -3950,6 +3953,7 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->card_type) {
                             case S3_MIROCRYSTAL8S_805:
                             case S3_MIROCRYSTAL10SD_805:
+                            case S3_WINNER1000_805:
                             case S3_PHOENIX_86C805:
                             case S3_86C805_ONBOARD:
                                 svga->hdisp >>= 1;
@@ -4122,6 +4126,7 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->card_type) {
                             case S3_MIROCRYSTAL8S_805:
                             case S3_MIROCRYSTAL10SD_805:
+                            case S3_WINNER1000_805:
                             case S3_PHOENIX_86C805:
                             case S3_SPEA_MIRAGE_86C805:
                             case S3_86C805_ONBOARD:
@@ -9835,6 +9840,11 @@ s3_init(const device_t *info)
             chip    = S3_86C801;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801);
             break;
+        case S3_WINNER1000_805:
+            bios_fn = ROM_WINNER1000_805;
+            chip    = S3_86C805;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+            break;
         case S3_86C805_ONBOARD:
             bios_fn = NULL;
             chip    = S3_86C805;
@@ -10287,6 +10297,7 @@ s3_init(const device_t *info)
 
         case S3_SPEA_MIRAGE_86C801:
         case S3_SPEA_MIRAGE_86C805:
+        case S3_WINNER1000_805:
             svga->decode_mask = (2 << 20) - 1;
             stepping          = 0xa2; /*86C801/86C805*/
             s3->id            = stepping;
@@ -10583,6 +10594,12 @@ static int
 s3_phoenix_86c80x_available(void)
 {
     return rom_present(ROM_PHOENIX_86C80X);
+}
+
+static int
+s3_winner1000_805_available(void)
+{
+    return rom_present(ROM_WINNER1000_805);
 }
 
 static int
@@ -10969,6 +10986,20 @@ const device_t s3_spea_mirage_86c801_isa_device = {
     .close         = s3_close,
     .reset         = s3_reset,
     .available     = s3_spea_mirage_86c801_available,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_9fx_config
+};
+
+const device_t s3_winner1000_805_isa_device = {
+    .name          = "S3 86c805 ISA (ELSA Winner 1000)",
+    .internal_name = "winner1000_805_isa",
+    .flags         = DEVICE_ISA16,
+    .local         = S3_WINNER1000_805,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available = s3_winner1000_805_available,
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
     .config        = s3_9fx_config
