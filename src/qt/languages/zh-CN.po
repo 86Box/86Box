@@ -630,8 +630,8 @@ msgstr "致命错误"
 msgid " - PAUSED"
 msgstr " - 已暂停"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "按下 Ctrl+Alt+PgDn 返回到窗口模式。"
+msgid "Press %1 to return to windowed mode."
+msgstr "按下 %1 返回到窗口模式。"
 
 msgid "Speed"
 msgstr "速度"
@@ -717,11 +717,11 @@ msgstr "其他外围设备"
 msgid "Click to capture mouse"
 msgstr "单击窗口捕捉鼠标"
 
-msgid "Press %s to release mouse"
-msgstr "按下 %s 释放鼠标"
+msgid "Press %1 to release mouse"
+msgstr "按下 %1 释放鼠标"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "按下 %s 或鼠标中键释放鼠标"
+msgid "Press %1 or middle button to release mouse"
+msgstr "按下 %1 或鼠标中键释放鼠标"
 
 msgid "Bus"
 msgstr "总线"

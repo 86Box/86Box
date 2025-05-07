@@ -1347,10 +1347,9 @@ MainWindow::on_actionFullscreen_triggered()
         if (video_fullscreen_first) {
             bool wasCaptured = mouse_capture == 1;
 
-			char strFullscreen[100];
-			sprintf(strFullscreen, qPrintable(tr("Press %s to return to windowed mode.")), acc_keys[FindAccelerator("fullscreen")].seq);
-
-            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), QString(strFullscreen), QMessageBox::Ok, this);
+            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"),
+                tr("Press %1 to return to windowed mode.").arg(QKeySequence(acc_keys[FindAccelerator("fullscreen")].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText)),
+                QMessageBox::Ok, this);
             QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));
             questionbox.setCheckBox(chkbox);
             chkbox->setChecked(!video_fullscreen_first);
