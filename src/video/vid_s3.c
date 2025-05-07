@@ -54,7 +54,7 @@
 #define ROM_MIROCRYSTAL20SV_964_PCI    "roms/video/s3/mirocrystal.VBI"
 #define ROM_MIROCRYSTAL20SD_864_VLB    "roms/video/s3/Miro20SD.BIN"
 #define ROM_PHOENIX_86C80X             "roms/video/s3/805.VBI"
-#define ROM_WINNER1000_805             "roms/video/s3/v01_05_00-C.BIN.bin"
+#define ROM_WINNER1000_805             "roms/video/s3/v01_05_00-C.BIN"
 #define ROM_PARADISE_BAHAMAS64         "roms/video/s3/bahamas64.bin"
 #define ROM_PHOENIX_VISION864          "roms/video/s3/86c864p.bin"
 #define ROM_DIAMOND_STEALTH64_964      "roms/video/s3/964_107h.rom"
