@@ -154,6 +154,14 @@ lxt_ems_write(uint32_t addr, uint8_t val, void *priv)
     mem[addr & 0x3fff] = val;
 }
 
+static void
+lxt_ems_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    uint8_t *mem = (uint8_t *) priv;
+
+    *(uint16_t *) &(mem[addr & 0x3fff]) = val;
+}
+
 static uint8_t
 lxt_ems_read(uint32_t addr, void *priv)
 {
@@ -161,6 +169,17 @@ lxt_ems_read(uint32_t addr, void *priv)
     uint8_t  ret = 0xff;
 
     ret = mem[addr & 0x3fff];
+
+    return ret;
+}
+
+static uint16_t
+lxt_ems_readw(uint32_t addr, void *priv)
+{
+    uint8_t *mem = (uint8_t *) priv;
+    uint8_t  ret = 0xff;
+
+    ret = *(uint16_t *) &(mem[addr & 0x3fff]);
 
     return ret;
 }
@@ -186,10 +205,17 @@ lxt_ems_init(lxt_t *parent, int en, uint16_t io, uint32_t mem)
         for (uint8_t i = 0; i < 4; i++) {
             uint8_t *ptr = dev->ram + (i << 14);
 
-            mem_mapping_add(&dev->ems[i].mapping, 0xe0000 + (i << 14), 0x4000,
-                            lxt_ems_read,  NULL, NULL,
-                            lxt_ems_write, NULL, NULL,
-                            ptr, 0, ptr);
+            if (parent->is_lxt3)
+                mem_mapping_add(&dev->ems[i].mapping, 0xe0000 + (i << 14), 0x4000,
+                                lxt_ems_read,  lxt_ems_readw,  NULL,
+                                lxt_ems_write, lxt_ems_writew, NULL,
+                                ptr, 0, ptr);
+            else
+                mem_mapping_add(&dev->ems[i].mapping, 0xe0000 + (i << 14), 0x4000,
+                                lxt_ems_read,  NULL,           NULL,
+                                lxt_ems_write, NULL,           NULL,
+                                ptr, 0, ptr);
+
             mem_mapping_disable(&dev->ems[i].mapping);
 
             dev->ems[i].page = 0x7f;
