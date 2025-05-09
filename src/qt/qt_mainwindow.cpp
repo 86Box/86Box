@@ -322,7 +322,8 @@ MainWindow::MainWindow(QWidget *parent)
         mouse_capture = state ? 1 : 0;
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
-            this->grabKeyboard();
+            if (hook_enabled)
+                this->grabKeyboard();
             if (ui->stackedWidget->mouse_capture_func)
                 ui->stackedWidget->mouse_capture_func(this->windowHandle());
         } else {
@@ -1481,13 +1482,15 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             plat_pause(curdopause);
 #ifdef __unix__
             if (!QApplication::platformName().contains("wayland") && (this->windowState() & Qt::WindowActive)) {
-                this->grabKeyboard();
+                if (hook_enabled)
+                    this->grabKeyboard();
             }
 #endif
         } else if (event->type() == QEvent::WindowActivate) {
 #ifdef __unix__
             if (!QApplication::platformName().contains("wayland")) {
-                this->grabKeyboard();
+                if (hook_enabled)
+                    this->grabKeyboard();
             }
 #endif
         } else if (event->type() == QEvent::WindowDeactivate) {
