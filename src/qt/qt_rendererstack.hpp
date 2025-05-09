@@ -137,6 +137,8 @@ private:
 
     std::atomic_bool rendererTakesScreenshots;
     std::atomic_bool switchInProgress{false};
+
+    char auto_mouse_type[16];
 };
 
 #endif // QT_RENDERERCONTAINER_HPP
