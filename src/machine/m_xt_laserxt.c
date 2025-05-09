@@ -176,8 +176,8 @@ lxt_ems_read(uint32_t addr, void *priv)
 static uint16_t
 lxt_ems_readw(uint32_t addr, void *priv)
 {
-    uint8_t *mem = (uint8_t *) priv;
-    uint8_t  ret = 0xff;
+    uint8_t  *mem = (uint8_t *) priv;
+    uint16_t  ret = 0xff;
 
     ret = *(uint16_t *) &(mem[addr & 0x3fff]);
 
