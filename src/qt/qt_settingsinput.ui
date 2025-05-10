@@ -23,6 +23,13 @@
    <property name="rightMargin">
     <number>0</number>
    </property>
+   <item row="0" column="0">
+    <widget class="QLabel" name="labelMouse">
+     <property name="text">
+      <string>Mouse:</string>
+     </property>
+    </widget>
+   </item>
    <item row="0" column="1" colspan="2">
     <widget class="QComboBox" name="comboBoxMouse">
      <property name="sizePolicy">
@@ -33,75 +40,6 @@
      </property>
      <property name="maxVisibleItems">
       <number>30</number>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="3">
-    <widget class="QPushButton" name="pushButtonJoystick4">
-     <property name="text">
-      <string>Joystick 4...</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="2">
-    <widget class="QPushButton" name="pushButtonJoystick3">
-     <property name="text">
-      <string>Joystick 3...</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="3">
-    <widget class="QPushButton" name="pushButtonBind">
-     <property name="enabled">
-      <bool>false</bool>
-     </property>
-     <property name="text">
-      <string>Bind</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="0">
-    <widget class="QPushButton" name="pushButtonJoystick1">
-     <property name="text">
-      <string>Joystick 1...</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1" colspan="2">
-    <widget class="QComboBox" name="comboBoxJoystick">
-     <property name="maxVisibleItems">
-      <number>30</number>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="0">
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>Mouse:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="2">
-    <widget class="QPushButton" name="pushButtonClearBind">
-     <property name="enabled">
-      <bool>false</bool>
-     </property>
-     <property name="text">
-      <string>Clear binding</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="label_2">
-     <property name="text">
-      <string>Joystick:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="1">
-    <widget class="QPushButton" name="pushButtonJoystick2">
-     <property name="text">
-      <string>Joystick 2...</string>
      </property>
     </widget>
    </item>
@@ -118,8 +56,50 @@
      </property>
     </widget>
    </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="labelJoystick">
+     <property name="text">
+      <string>Joystick:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1" colspan="2">
+    <widget class="QComboBox" name="comboBoxJoystick">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QPushButton" name="pushButtonJoystick1">
+     <property name="text">
+      <string>Joystick 1...</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QPushButton" name="pushButtonJoystick2">
+     <property name="text">
+      <string>Joystick 2...</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="2">
+    <widget class="QPushButton" name="pushButtonJoystick3">
+     <property name="text">
+      <string>Joystick 3...</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="3">
+    <widget class="QPushButton" name="pushButtonJoystick4">
+     <property name="text">
+      <string>Joystick 4...</string>
+     </property>
+    </widget>
+   </item>
    <item row="3" column="0">
-    <widget class="QLabel" name="label_3">
+    <widget class="QLabel" name="labelKeys">
      <property name="text">
       <string>Key Bindings:</string>
      </property>
@@ -141,6 +121,26 @@
      </property>
      <property name="selectionBehavior">
       <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="2">
+    <widget class="QPushButton" name="pushButtonClearBind">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="text">
+      <string>Clear binding</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="3">
+    <widget class="QPushButton" name="pushButtonBind">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="text">
+      <string>Bind</string>
      </property>
     </widget>
    </item>
