@@ -68,6 +68,7 @@ extern const device_t ibmxt286_device;
 extern const device_t pb450_device;
 extern const device_t jukopc_device;
 extern const device_t vendex_device;
+extern const device_t c5sbm2_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                             MACHINE_TYPE_NONE       },
@@ -11545,7 +11546,7 @@ const machine_t machines[] = {
     /* SiS 5501 */
     /* Has the Lance LT38C41 KBC. */
     {
-        .name = "[SiS 5501] Chaintech 5SBM2 (M103)",
+        .name = "[SiS 5501] Chaintech 5SBM/5SBM2 (M103)",
         .internal_name = "5sbm2",
         .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_SIS_5501,
@@ -11568,7 +11569,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
-            .max = 262144,
+            .max = 131072,
             .step = 8192
         },
         .nvrmask = 255,
@@ -11576,7 +11577,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &c5sbm2_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
