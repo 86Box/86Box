@@ -840,6 +840,8 @@ static const device_config_t c5sbm2_config[] = {
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5sbm2/5SBM0717.BIN", "" } },
             { .name = "4.50PG (03/21/1996)", .internal_name = "5sbm2_450pg", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5sbm2/5SBM0326.BIN", "" } },
+            { .name = "4.51PG (03/15/2000 Unicore Upgrade)", .internal_name = "5sbm2_451pg", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5sbm2/2A5ICC3A.BIN", "" } },
             { .files_no = 0 }
         },
     },
