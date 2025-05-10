@@ -785,12 +785,11 @@ host_x86_MOV32_REG_ABS(codeblock_t *block, int dst_reg, void *p)
         // void     *q = p;
         //uint32_t *r = NULL;
         // *r  = 5; /* Crash deliberately. */
-        codegen_alloc_bytes(block, 18);
-        codegen_addbyte2(block, 0x41, 0x54);   /*PUSH r12*/
-        codegen_addbyte2(block, 0x49, 0xbc);   /*MOV r12,(uintptr_t) p*/
+        codegen_alloc_bytes(block, 8);
+        codegen_addbyte2(block, 0x49, 0xb9);   /*MOV r9,(uintptr_t) p*/
         codegen_addquad(block, (uintptr_t) p);
-        codegen_addbyte4(block, 0x41, 0x8b, 0x04 | ((dst_reg & 7) << 3), 0x24); /*MOV dst_reg, [R12]*/
-        codegen_addbyte2(block, 0x41, 0x5c);   /*POP r12*/
+        codegen_alloc_bytes(block, 3);
+        codegen_addbyte3(block, 0x41, 0x8b, 0x01 | ((dst_reg & 7) << 3)); /*MOV dst_reg, [R9]*/
     } else {
         fatal("host_x86_MOV32_REG_ABS - RAM offset = %016" PRIX64 " (p - ram = %016" PRIX64 ")\n", ram_offset, (uintptr_t) p - (uintptr_t) ram);
         codegen_alloc_bytes(block, 6);
