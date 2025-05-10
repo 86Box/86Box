@@ -94,6 +94,8 @@ plat_netsocket_accept(SOCKET socket)
     if (clientsocket == -1)
         return -1;
 
+    fcntl(clientsocket, F_SETFL, fcntl(clientsocket, F_GETFL, 0) | O_NONBLOCK);
+
     return clientsocket;
 }
 
