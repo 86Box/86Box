@@ -41,6 +41,7 @@
       <property name="bottomMargin">
        <number>0</number>
       </property>
+
       <item row="0" column="1">
        <widget class="QComboBox" name="comboBoxMachineType">
         <property name="maxVisibleItems">
@@ -48,6 +49,7 @@
         </property>
        </widget>
       </item>
+
       <item row="3" column="0">
        <widget class="QLabel" name="label_4">
         <property name="text">
@@ -55,6 +57,7 @@
         </property>
        </widget>
       </item>
+
       <item row="5" column="0">
        <widget class="QLabel" name="label_6">
         <property name="text">
@@ -62,6 +65,7 @@
         </property>
        </widget>
       </item>
+
       <item row="3" column="1">
        <widget class="QComboBox" name="comboBoxFPU">
         <property name="maxVisibleItems">
@@ -69,6 +73,7 @@
         </property>
        </widget>
       </item>
+
       <item row="5" column="1">
        <widget class="QSpinBox" name="spinBoxRAM">
         <property name="sizePolicy">
@@ -79,6 +84,7 @@
         </property>
        </widget>
       </item>
+
       <item row="0" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
@@ -86,6 +92,7 @@
         </property>
        </widget>
       </item>
+
       <item row="2" column="0">
        <widget class="QLabel" name="label_3">
         <property name="text">
@@ -93,6 +100,7 @@
         </property>
        </widget>
       </item>
+
       <item row="2" column="1">
        <widget class="QWidget" name="widget_2" native="true">
         <layout class="QHBoxLayout" name="horizontalLayout">
@@ -121,6 +129,7 @@
            </property>
           </widget>
          </item>
+
          <item>
           <widget class="QLabel" name="label_7">
            <property name="text">
@@ -131,6 +140,7 @@
            </property>
           </widget>
          </item>
+
          <item>
           <widget class="QComboBox" name="comboBoxSpeed">
            <property name="sizePolicy">
@@ -147,6 +157,7 @@
         </layout>
        </widget>
       </item>
+
       <item row="4" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
@@ -154,6 +165,7 @@
         </property>
        </widget>
       </item>
+
       <item row="1" column="0">
        <widget class="QLabel" name="label_2">
         <property name="text">
@@ -161,6 +173,7 @@
         </property>
        </widget>
       </item>
+
       <item row="1" column="1">
        <widget class="QWidget" name="widget_3" native="true">
         <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -183,6 +196,7 @@
            </property>
           </widget>
          </item>
+
          <item>
           <widget class="QPushButton" name="pushButtonConfigure">
            <property name="sizePolicy">
@@ -199,6 +213,7 @@
         </layout>
        </widget>
       </item>
+
       <item row="4" column="1">
        <widget class="QWidget" name="widget_4" native="true">
         <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -253,6 +268,7 @@
      </layout>
     </widget>
    </item>
+
    <item>
     <layout class="QHBoxLayout" name="dynamicRecompilerLayout">
      <item>
@@ -270,6 +286,7 @@
      </item>
     </layout>
    </item>
+
    <item>
     <layout class="QHBoxLayout" name="softFloatLayout">
      <item>
@@ -285,6 +302,7 @@
        </property>
       </widget>
      </item>
+
      <item>
       <widget class="QLabel" name="softFloatWarningIcon">
        <property name="text">
@@ -292,6 +310,7 @@
        </property>
       </widget>
      </item>
+
      <item>
       <widget class="QLabel" name="softFloatWarningText">
        <property name="text">
@@ -314,6 +333,7 @@
      </item>
     </layout>
    </item>
+
    <item>
     <widget class="QGroupBox" name="groupBox">
      <property name="sizePolicy">
