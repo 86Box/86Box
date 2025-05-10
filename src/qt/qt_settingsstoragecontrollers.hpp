@@ -20,11 +20,11 @@ public slots:
     void onCurrentMachineChanged(int machineId);
 
 private slots:
-    void on_comboBoxHD_currentIndexChanged(int index);
-    void on_pushButtonHD_clicked();
-
     void on_comboBoxFD_currentIndexChanged(int index);
     void on_pushButtonFD_clicked();
+
+    void on_comboBoxHD_currentIndexChanged(int index);
+    void on_pushButtonHD_clicked();
 
     void on_comboBoxCDInterface_currentIndexChanged(int index);
     void on_pushButtonCDInterface_clicked();
