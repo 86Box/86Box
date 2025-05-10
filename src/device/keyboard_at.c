@@ -3476,7 +3476,10 @@ keyboard_at_bat(void *priv)
 
         keyboard_scan = 1;
 
+        keyboard_all_up();
         keyboard_update_states(0, 0, 0, 0);
+
+        keyboard_set_in_reset(0);
         kbc_at_dev_queue_add(dev, 0xaa, 0);
     } else {
         bat_counter--;
@@ -3714,6 +3717,7 @@ keyboard_at_write(void *priv)
                 break;
 
             case 0xff: /* reset */
+                keyboard_set_in_reset(1);
                 kbc_at_dev_reset(dev, 1);
                 bat_counter = 1000;
                 break;
