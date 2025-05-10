@@ -1107,6 +1107,36 @@ xta_close(void *priv)
 static const device_config_t wdxt150_config[] = {
     // clang-format off
     {
+        .name           = "bios_rev",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "rev_1",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Revision 1.0",
+                .internal_name = "rev_1",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { WD_REV_1_BIOS_FILE, "" }
+            },
+            {
+                .name          = "Revision 2.0",
+                .internal_name = "rev_2",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { WD_REV_2_BIOS_FILE, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
         .name           = "base",
         .description    = "Address",
         .type           = CONFIG_HEX16,
@@ -1150,36 +1180,6 @@ static const device_config_t wdxt150_config[] = {
             { .description = ""                        }
         },
         .bios           = { { 0 } }
-    },
-    {
-        .name           = "bios_rev",
-        .description    = "BIOS Revision",
-        .type           = CONFIG_BIOS,
-        .default_string = "rev_1",
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .bios           = {
-            {
-                .name          = "Revision 1.0",
-                .internal_name = "rev_1",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 8192,
-                .files         = { WD_REV_1_BIOS_FILE, "" }
-            },
-            {
-                .name          = "Revision 2.0",
-                .internal_name = "rev_2",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 8192,
-                .files         = { WD_REV_2_BIOS_FILE, "" }
-            },
-            { .files_no = 0 }
-        },
     },
     { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off

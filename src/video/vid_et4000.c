@@ -943,22 +943,6 @@ et4000_kasan_available(void)
 static const device_config_t et4000_tc6058af_config[] = {
   // clang-format off
     {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 512,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "256 KB", .value =  256 },
-            { .description = "512 KB", .value =  512 },
-            { .description = "1 MB",   .value = 1024 },
-            { .description = ""                      }
-        },
-        .bios           = { { 0 } }
-    },
-    {
         .name           = "bios_ver",
         .description    = "BIOS Revision",
         .type           = CONFIG_BIOS,
@@ -989,18 +973,12 @@ static const device_config_t et4000_tc6058af_config[] = {
             { .files_no = 0 }
         }
     },
-    { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
-};
-
-static const device_config_t et4000_bios_config[] = {
-  // clang-format off
     {
         .name           = "memory",
         .description    = "Memory size",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 1024,
+        .default_int    = 512,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
@@ -1011,6 +989,12 @@ static const device_config_t et4000_bios_config[] = {
         },
         .bios           = { { 0 } }
     },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format on
+};
+
+static const device_config_t et4000_bios_config[] = {
+  // clang-format off
     {
         .name           = "bios_ver",
         .description    = "BIOS Revision",
@@ -1041,6 +1025,22 @@ static const device_config_t et4000_bios_config[] = {
             },
             { .files_no = 0 }
         }
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
