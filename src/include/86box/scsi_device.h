@@ -178,7 +178,6 @@
 #define GPMODE_REMOVABLE_BLOCK_ACCESS_PAGE 0x1b /* Removable block access capabilities page */
 #define GPMODE_CAPABILITIES_PAGE     0x2a /* Capabilities page */
 #define GPMODE_IOMEGA_PAGE           0x2f /* Iomega-specific page */
-#define GPMODE_IMATION_PAGE          0x2f /* Invalid - To be removed */
 #define GPMODE_UNK_VENDOR_PAGE       0x30 /* Unknown vendor-specific page */
 #define GPMODE_ALL_PAGES             0x3f /* All pages supported */
 
@@ -196,7 +195,6 @@
 #define GPMODEP_CDROM_AUDIO_PAGE      0x0000000000004000LL
 #define GPMODEP_CAPABILITIES_PAGE     0x0000040000000000LL
 #define GPMODEP_IOMEGA_PAGE           0x0000800000000000LL
-#define GPMODEP_IMATION_PAGE          0x0000800000000000LL
 #define GPMODEP_UNK_VENDOR_PAGE       0x0001000000000000LL
 #define GPMODEP_ALL_PAGES             0x8000000000000000LL
 

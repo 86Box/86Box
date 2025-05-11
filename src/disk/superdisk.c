@@ -78,9 +78,9 @@ const uint8_t superdisk_command_flags[0x100] = {
 };
 
 static uint64_t superdisk_mode_sense_page_flags     = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE |
-                                                       GPMODEP_IMATION_PAGE | GPMODEP_ALL_PAGES);
+                                                       GPMODEP_ALL_PAGES);
 static uint64_t superdisk_240_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_FLEXIBLE_DISK_PAGE |
-                                                       GPMODEP_CACHING_PAGE | GPMODEP_IMATION_PAGE |
+                                                       GPMODEP_CACHING_PAGE |
                                                        GPMODEP_ALL_PAGES);
 
 static const mode_sense_pages_t superdisk_mode_sense_pages_default = {
@@ -88,7 +88,6 @@ static const mode_sense_pages_t superdisk_mode_sense_pages_default = {
                  0x5a,                                0x00, 0x50, 0x20                         },
       [0x02] = { GPMODE_DISCONNECT_PAGE,              0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                  0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-      [0x2f] = { GPMODE_IMATION_PAGE,                 0x04, 0x5c, 0x0f, 0xff, 0x0f             } }
 };
 
 static const mode_sense_pages_t superdisk_240_mode_sense_pages_default = {
@@ -99,7 +98,6 @@ static const mode_sense_pages_t superdisk_240_mode_sense_pages_default = {
                  0x00,                                0x00, 0x00, 0x00, 0x0b, 0x7d, 0x00, 0x00 },
       [0x08] = { GPMODE_CACHING_PAGE,                 0x0a, 0x04, 0x00, 0xff, 0xff, 0x00, 0x00,
                  0xff,                                0xff, 0xff, 0xff                         },
-      [0x2f] = { GPMODE_IMATION_PAGE,                 0x04, 0x5c, 0x0f, 0x3c, 0x0f             } }
 };
 
 static const mode_sense_pages_t superdisk_mode_sense_pages_default_scsi = {
@@ -107,7 +105,6 @@ static const mode_sense_pages_t superdisk_mode_sense_pages_default_scsi = {
                  0x5a,                                0x00, 0x50, 0x20                         },
       [0x02] = { GPMODE_DISCONNECT_PAGE,              0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                  0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-      [0x2f] = { GPMODE_IMATION_PAGE,                 0x04, 0x5c, 0x0f, 0xff, 0x0f             } }
 };
 
 static const mode_sense_pages_t superdisk_240_mode_sense_pages_default_scsi = {
@@ -118,7 +115,6 @@ static const mode_sense_pages_t superdisk_240_mode_sense_pages_default_scsi = {
                  0x00,                                0x00, 0x00, 0x00, 0x0b, 0x7d, 0x00, 0x00 },
       [0x08] = { GPMODE_CACHING_PAGE,                 0x0a, 0x04, 0x00, 0xff, 0xff, 0x00, 0x00,
                  0xff,                                0xff, 0xff, 0xff                         },
-      [0x2f] = { GPMODE_IMATION_PAGE,                 0x04, 0x5c, 0x0f, 0x3c, 0x0f             } }
 };
 
 static const mode_sense_pages_t superdisk_mode_sense_pages_changeable = {
@@ -126,7 +122,6 @@ static const mode_sense_pages_t superdisk_mode_sense_pages_changeable = {
                                                       0xff, 0xff, 0xff                         },
       [0x02] = { GPMODE_DISCONNECT_PAGE,              0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                  0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-      [0x2f] = { GPMODE_IMATION_PAGE,                 0x04, 0xff, 0xff, 0xff, 0xff             } }
 };
 
 static const mode_sense_pages_t superdisk_240_mode_sense_pages_changeable = {
@@ -137,7 +132,6 @@ static const mode_sense_pages_t superdisk_240_mode_sense_pages_changeable = {
                  0xff,                                0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00 },
       [0x08] = { GPMODE_CACHING_PAGE,                 0x0a, 0x04, 0x00, 0xff, 0xff, 0x00, 0x00,
                  0xff,                                0xff, 0xff, 0xff                         },
-      [0x2f] = { GPMODE_IMATION_PAGE,                 0x04, 0xff, 0xff, 0xff, 0xff             } }
 };
 // clang-format on
 
