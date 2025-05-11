@@ -327,8 +327,7 @@ MainWindow::MainWindow(QWidget *parent)
             if (ui->stackedWidget->mouse_capture_func)
                 ui->stackedWidget->mouse_capture_func(this->windowHandle());
         } else {
-            if (!(windowState() & Qt::WindowActive))
-                this->releaseKeyboard();
+            this->releaseKeyboard();
             if (ui->stackedWidget->mouse_uncapture_func) {
                 ui->stackedWidget->mouse_uncapture_func();
             }
@@ -1480,25 +1479,6 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             releaseKeyboard();
         } else if (event->type() == QEvent::WindowUnblocked) {
             plat_pause(curdopause);
-#ifdef __unix__
-            if (!QApplication::platformName().contains("wayland") && (this->windowState() & Qt::WindowActive)) {
-                if (hook_enabled)
-                    this->grabKeyboard();
-            }
-#endif
-        } else if (event->type() == QEvent::WindowActivate) {
-#ifdef __unix__
-            if (!QApplication::platformName().contains("wayland")) {
-                if (hook_enabled)
-                    this->grabKeyboard();
-            }
-#endif
-        } else if (event->type() == QEvent::WindowDeactivate) {
-#ifdef __unix__
-            if (!QApplication::platformName().contains("wayland")) {
-                this->releaseKeyboard();
-            }
-#endif
         }
     }
 	
