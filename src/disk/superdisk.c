@@ -25,6 +25,7 @@
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/device.h>
+#include <86box/log.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/nvr.h>
@@ -54,7 +55,7 @@ const uint8_t superdisk_command_flags[0x100] = {
     [0x0c]          = IMPLEMENTED,
     [0x0d]          = IMPLEMENTED | ATAPI_ONLY,
     [0x12]          = IMPLEMENTED | ALLOW_UA,
-    [0x13]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0x13]          = IMPLEMENTED | CHECK_READY,
     [0x15]          = IMPLEMENTED,
     [0x16 ... 0x17] = IMPLEMENTED | SCSI_ONLY,
     [0x1a]          = IMPLEMENTED,
@@ -65,8 +66,7 @@ const uint8_t superdisk_command_flags[0x100] = {
     [0x25]          = IMPLEMENTED | CHECK_READY,
     [0x28]          = IMPLEMENTED | CHECK_READY,
     [0x2a ... 0x2b] = IMPLEMENTED | CHECK_READY,
-    [0x2e]          = IMPLEMENTED | CHECK_READY,
-    [0x2f]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0x2e ... 0x2f] = IMPLEMENTED | CHECK_READY,
     [0x41]          = IMPLEMENTED | CHECK_READY,
     [0x55]          = IMPLEMENTED,
     [0x5a]          = IMPLEMENTED,
@@ -569,19 +569,16 @@ superdisk_bus_speed(superdisk_t *dev)
 {
     double ret = -1.0;
 
-    if (dev && dev->drv && (dev->drv->bus_type == SUPERDISK_BUS_SCSI)) {
-        dev->callback = -1.0; /* Speed depends on SCSI controller */
-        return 0.0;
-    } else {
-        if (dev && dev->drv)
-            ret = ide_atapi_get_period(dev->drv->ide_channel);
-        if (ret == -1.0) {
-            if (dev)
-                dev->callback = -1.0;
-            return 0.0;
-        } else
-            return ret * 1000000.0;
+    if (dev && dev->drv)
+        ret = ide_atapi_get_period(dev->drv->ide_channel);
+
+    if (ret == -1.0) {
+        if (dev)
+            dev->callback = -1.0;
+        ret = 0.0;
     }
+
+    return ret;
 }
 
 static void
@@ -592,18 +589,10 @@ superdisk_command_common(superdisk_t *dev)
     dev->tf->pos    = 0;
     if (dev->packet_status == PHASE_COMPLETE)
         dev->callback = 0.0;
-    else {
-        double bytes_per_second;
-
-        if (dev->drv->bus_type == SUPERDISK_BUS_SCSI) {
-            dev->callback = -1.0; /* Speed depends on SCSI controller */
-            return;
-        } else
-            bytes_per_second = superdisk_bus_speed(dev);
-
-        double period        = 1000000.0 / bytes_per_second;
-        dev->callback        = period * (double) (dev->packet_len);
-    }
+    else if (dev->drv->bus_type == SUPERDISK_BUS_SCSI)
+        dev->callback = -1.0; /* Speed depends on SCSI controller */
+    else
+        dev->callback = superdisk_bus_speed(dev) * (double) (dev->packet_len);
 
     superdisk_set_callback(dev);
 }
@@ -678,7 +667,10 @@ superdisk_data_command_finish(superdisk_t *dev, int len, const int block_len,
                 superdisk_command_write_dma(dev);
         } else {
             superdisk_update_request_length(dev, len, block_len);
-            if (direction == 0)
+            if ((dev->drv->bus_type != SUPERDISK_BUS_SCSI) &&
+                (dev->tf->request_length == 0))
+                superdisk_command_complete(dev);
+            else if (direction == 0)
                 superdisk_command_read(dev);
             else
                 superdisk_command_write(dev);
@@ -719,6 +711,7 @@ superdisk_cmd_error(superdisk_t *dev)
     dev->callback      = 50.0 * SUPERDISK_TIME;
     superdisk_set_callback(dev);
     ui_sb_update_icon(SB_SUPERDISK | dev->id, 0);
+    ui_sb_update_icon_write(SB_SUPERDISK | dev->id, 0);
     superdisk_log("SuperDisk %i: [%02X] ERROR: %02X/%02X/%02X\n", dev->id, dev->current_cdb[0], superdisk_sense_key,
             superdisk_asc, superdisk_ascq);
 }
@@ -735,6 +728,7 @@ superdisk_unit_attention(superdisk_t *dev)
     dev->callback      = 50.0 * SUPERDISK_TIME;
     superdisk_set_callback(dev);
     ui_sb_update_icon(SB_SUPERDISK | dev->id, 0);
+    ui_sb_update_icon_write(SB_SUPERDISK | dev->id, 0);
     superdisk_log("SuperDisk %i: UNIT ATTENTION\n", dev->id);
 }
 
@@ -909,6 +903,7 @@ superdisk_blocks(superdisk_t *dev, int32_t *len, const int out)
             superdisk_log("SuperDisk %i: Trying to %s beyond the end of disk\n", dev->id,
                     out ? "write" : "read");
             superdisk_lba_out_of_range(dev);
+            ret = 0;
         } else {
             *len    = dev->requested_blocks << 9;
 
@@ -953,6 +948,9 @@ superdisk_blocks(superdisk_t *dev, int32_t *len, const int out)
                 dev->sector_len -= dev->requested_blocks;
             }
         }
+    } else {
+        superdisk_command_complete(dev);
+        ret = 0;
     }
 
     return ret;
@@ -1495,7 +1493,7 @@ superdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                 superdisk_data_command_finish(dev, dev->packet_len, 512,
                                         dev->packet_len, 1);
 
-                ui_sb_update_icon(SB_ZIP | dev->id,
+                ui_sb_update_icon_write(SB_ZIP | dev->id,
                                   dev->packet_status != PHASE_COMPLETE);
             } else {
                 superdisk_set_phase(dev, SCSI_PHASE_STATUS);
@@ -1538,7 +1536,7 @@ superdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                         superdisk_data_command_finish(dev, 512, 512,
                                                 alloc_length, 1);
 
-                        ui_sb_update_icon(SB_ZIP | dev->id,
+                        ui_sb_update_icon_write(SB_ZIP | dev->id,
                                           dev->packet_status != PHASE_COMPLETE);
                     } else {
                         superdisk_set_phase(dev, SCSI_PHASE_STATUS);
