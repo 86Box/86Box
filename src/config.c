@@ -128,8 +128,6 @@ load_general(void)
 
     video_fullscreen_scale = ini_section_get_int(cat, "video_fullscreen_scale", 1);
 
-    video_fullscreen_first = ini_section_get_int(cat, "video_fullscreen_first", 1);
-
     video_filter_method = ini_section_get_int(cat, "video_filter_method", 1);
 
     inhibit_multimedia_keys = ini_section_get_int(cat, "inhibit_multimedia_keys", 0);
@@ -1832,7 +1830,6 @@ config_load(void)
         gfxcard[0]             = video_get_video_from_internal_name("cga");
         vid_api                = plat_vidapi("default");
         vid_resize             = 0;
-        video_fullscreen_first = 1;
         video_fullscreen_scale = 1;
         time_sync              = TIME_SYNC_ENABLED;
         hdc_current[0]         = hdc_get_from_internal_name("none");
@@ -1954,11 +1951,6 @@ save_general(void)
         ini_section_delete_var(cat, "video_fullscreen_scale");
     else
         ini_section_set_int(cat, "video_fullscreen_scale", video_fullscreen_scale);
-
-    if (video_fullscreen_first == 1)
-        ini_section_delete_var(cat, "video_fullscreen_first");
-    else
-        ini_section_set_int(cat, "video_fullscreen_first", video_fullscreen_first);
 
     if (video_filter_method == 1)
         ini_section_delete_var(cat, "video_filter_method");

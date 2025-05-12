@@ -630,9 +630,6 @@ msgstr "Kritična napaka"
 msgid " - PAUSED"
 msgstr " - ZAUSTAVLJEN"
 
-msgid "Press %s to return to windowed mode."
-msgstr "Pritisnite %s za povratek iz celozaslonskega načina."
-
 msgid "Speed"
 msgstr "Hitrost"
 
@@ -717,11 +714,11 @@ msgstr "Druga periferija"
 msgid "Click to capture mouse"
 msgstr "Kliknite za zajem miške"
 
-msgid "Press %s to release mouse"
-msgstr "Pritisnite %s za izpust miške"
+msgid "Press %1 to release mouse"
+msgstr "Pritisnite %1 za izpust miške"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "Pritisnite %s ali srednji gumb za izpust miške"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Pritisnite %1 ali srednji gumb za izpust miške"
 
 msgid "Bus"
 msgstr "Vodilo"
@@ -863,9 +860,6 @@ msgstr "%1 je potreben za samodejno pretvorbo datotek PostScript v PDF.\n\nVsi d
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Lnaugage (.pcl) files."
 msgstr "%1 je potreben za samodejno pretvorbo datotek PCL v PDF.\n\nVsi dokumenti, poslani generičnemu tiskalniku PCL bodo shranjeni kot datoteke Printer Command Language (.pcl)."
-
-msgid "Entering fullscreen mode"
-msgstr "Preklapljam v celozaslonski način"
 
 msgid "Don't show this message again"
 msgstr "Ne pokaži več tega sporočila"
@@ -1305,8 +1299,8 @@ msgstr "Napaka pri inicializaciji OpenGL"
 msgid "\nFalling back to software rendering."
 msgstr "\nVrnitev na programsko upodabljanje."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pri izbiri medijskih slik (CD-ROM, disketa itd.) se bo odprto pogovorno okno začelo v istem imeniku kot konfiguracijska datoteka 86Box. Ta nastavitev bo verjetno imela pomen le v operacijskem sistemu MacOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>Pri izbiri medijskih slik (CD-ROM, disketa itd.) se bo odprto pogovorno okno začelo v istem imeniku kot konfiguracijska datoteka 86Box. Ta nastavitev bo verjetno imela pomen le v operacijskem sistemu MacOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Ta naprava je bila morda premeščena ali kopirana."
@@ -2105,9 +2099,6 @@ msgstr "Vprašaj za potrditev pred ponovnim zagonom"
 
 msgid "Ask for confirmation before quitting"
 msgstr "Vprašaj za potrditev pred izhodom"
-
-msgid "Display hotkey message when entering full-screen mode"
-msgstr "Prikaži obvestilo o bližnjični tipki pri prehodu v celozaslonski način"
 
 msgid "Options"
 msgstr "Možnosti"

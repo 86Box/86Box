@@ -39,6 +39,7 @@ add_library(chipset OBJECT
     intel_i450kx.c
     intel_sio.c
     intel_piix.c
+    isa486c.c
     ../ioapic.c
     neat.c
     opti283.c

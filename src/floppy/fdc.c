@@ -279,6 +279,15 @@ fdc_is_mfm(fdc_t *fdc)
     return fdc->mfm ? 1 : 0;
 }
 
+int
+fdc_is_dma(fdc_t *fdc)
+{
+    if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
+        return 0;
+    else
+        return 1;
+}
+
 void
 fdc_request_next_sector_id(fdc_t *fdc)
 {

@@ -630,9 +630,6 @@ msgstr "Kritická chyba"
 msgid " - PAUSED"
 msgstr " - POZASTAVENO"
 
-msgid "Press %s to return to windowed mode."
-msgstr "Stiskněte %s pro návrat z režimu celé obrazovky."
-
 msgid "Speed"
 msgstr "Rychlost"
 
@@ -717,11 +714,11 @@ msgstr "Jiné příslušenství"
 msgid "Click to capture mouse"
 msgstr "Klikněte pro zabraní myši"
 
-msgid "Press %s to release mouse"
-msgstr "Stiskněte %s pro uvolnění myši"
+msgid "Press %1 to release mouse"
+msgstr "Stiskněte %1 pro uvolnění myši"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "Stiskněte %s nebo prostřední tlačítko pro uvolnění myši"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Stiskněte %1 nebo prostřední tlačítko pro uvolnění myši"
 
 msgid "Bus"
 msgstr "Sběrnice"
@@ -863,9 +860,6 @@ msgstr "%1 je potřeba pro automatický převod PostScript dokumentů do PDF.\n\
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 je potřeba pro automatický převod PCL dokumentů do PDF.\n\nJakékoliv dokumenty vytisknuté přes obecnou PCL-ovou tiskárnu budou uloženy jako Printer Command Language (.pcl) soubory."
-
-msgid "Entering fullscreen mode"
-msgstr "Vstup do režimu celé obrazovky"
 
 msgid "Don't show this message again"
 msgstr "Nezobrazovat dále tuto zprávu"
@@ -1305,8 +1299,8 @@ msgstr "Chyba při inicializaci OpenGL"
 msgid "\nFalling back to software rendering."
 msgstr "\nNávrat k softwarovému vykreslování."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Při výběru obrazů médií (CD-ROM, disketa atd.) se otevřené dialogové okno spustí ve stejném adresáři jako konfigurační soubor 86Box. Toto nastavení bude mít pravděpodobně význam pouze v systému MacOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>Při výběru obrazů médií (CD-ROM, disketa atd.) se otevřené dialogové okno spustí ve stejném adresáři jako konfigurační soubor 86Box. Toto nastavení bude mít pravděpodobně význam pouze v systému MacOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Tento počítač mohl být přemístěn nebo zkopírován."
@@ -2104,9 +2098,6 @@ msgid "Ask for confirmation before hard resetting"
 msgstr ""
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
-
-msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"

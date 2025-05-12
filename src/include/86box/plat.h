@@ -32,8 +32,8 @@
 /* String ID numbers. */
 enum {
     STRING_MOUSE_CAPTURE,             /* "Click to capture mouse" */
-    STRING_MOUSE_RELEASE,             /* "Press F8+F12 to release mouse" */
-    STRING_MOUSE_RELEASE_MMB,         /* "Press F8+F12 or middle button to release mouse" */
+    STRING_MOUSE_RELEASE,             /* "Press %1 to release mouse" */
+    STRING_MOUSE_RELEASE_MMB,         /* "Press %1 or middle button to release mouse" */
     STRING_INVALID_CONFIG,            /* "Invalid configuration" */
     STRING_NO_ST506_ESDI_CDROM,       /* "MFM/RLL or ESDI CD-ROM drives never existed" */
     STRING_NET_ERROR,                 /* "Failed to initialize network driver" */

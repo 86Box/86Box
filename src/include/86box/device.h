@@ -239,6 +239,8 @@ extern const char *device_get_internal_name(const device_t *dev);
 extern int         machine_get_config_int(char *str);
 extern const char *machine_get_config_string(char *str);
 
+extern int         machine_device_available(const device_t *dev);
+
 extern const device_t device_none;
 extern const device_t device_internal;
 

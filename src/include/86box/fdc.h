@@ -206,6 +206,7 @@ extern int         fdc_get_drive(fdc_t *fdc);
 extern int         fdc_get_perp(fdc_t *fdc);
 extern int         fdc_get_format_n(fdc_t *fdc);
 extern int         fdc_is_mfm(fdc_t *fdc);
+extern int         fdc_is_dma(fdc_t *fdc);
 extern double      fdc_get_hut(fdc_t *fdc);
 extern double      fdc_get_hlt(fdc_t *fdc);
 extern void        fdc_request_next_sector_id(fdc_t *fdc);

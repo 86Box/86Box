@@ -630,9 +630,6 @@ msgstr "Fataler Fehler"
 msgid " - PAUSED"
 msgstr " - PAUSIERT"
 
-msgid "Press %s to return to windowed mode."
-msgstr "%s ab, zur Rückkehr in den Fenstermodus."
-
 msgid "Speed"
 msgstr "Geschwindigkeit"
 
@@ -717,14 +714,11 @@ msgstr "Andere Peripheriegeräte"
 msgid "Click to capture mouse"
 msgstr "Klicken zum Einfangen des Mauszeigers"
 
-msgid "Press %s to release mouse"
-msgstr "Drücke %s zur Mausfreigabe"
+msgid "Press %1 to release mouse"
+msgstr "Drücke %1 zur Mausfreigabe"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "Drücke %s oder die mittlere Maustaste zur Mausfreigabe"
-
-msgid "Ctrl+End"
-msgstr "Strg+Ende"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Drücke %1 oder die mittlere Maustaste zur Mausfreigabe"
 
 msgid "Bus"
 msgstr "Bus"
@@ -866,9 +860,6 @@ msgstr "%1 wird zur automatischen Konvertierung von PostScript-Dateien ins PDF-F
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 wird zur automatischen Konvertierung von PCL-Dateien ins PDF-Format benötigt.\n\nSämtliche an den generischen PCL-Drucker gesendete Dateien werden als Printer Command Language (*.pcl) Dateien gesichert."
-
-msgid "Entering fullscreen mode"
-msgstr "Vollbildmodus wird aktiviert"
 
 msgid "Don't show this message again"
 msgstr "Diese Nachricht nicht mehr anzeigen"
@@ -1308,8 +1299,8 @@ msgstr "Fehler beim Initialisieren von OpenGL"
 msgid "\nFalling back to software rendering."
 msgstr "\nRückgriff auf Software-Rendering."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Bei der Auswahl von Medien-Abbildern (CD-ROM, Diskette usw.) wird der Öffnungsdialog im selben Verzeichnis wie die 86Box-Konfigurationsdatei gestartet. Diese Einstellung macht wahrscheinlich nur unter macOS einen Unterschied.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>Bei der Auswahl von Medien-Abbildern (CD-ROM, Diskette usw.) wird der Öffnungsdialog im selben Verzeichnis wie die 86Box-Konfigurationsdatei gestartet. Diese Einstellung macht wahrscheinlich nur unter macOS einen Unterschied.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Dieses System wurde möglicherweise verschoben oder kopiert."
@@ -2107,9 +2098,6 @@ msgid "Ask for confirmation before hard resetting"
 msgstr ""
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
-
-msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"

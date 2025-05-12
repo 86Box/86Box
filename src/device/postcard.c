@@ -158,6 +158,8 @@ postcard_init(UNUSED(const device_t *info))
         postcard_port = 0x84; /* ISA Compaq machines */
     else if (strstr(machines[machine].name, "Olivetti"))
         postcard_port = 0x378; /* Olivetti machines */
+    else if (!strcmp(machines[machine].internal_name, "isa486c"))
+        postcard_port = 0x5080; /* ASUS ISA-486C */
     else
         postcard_port = 0x80; /* AT and clone machines */
     postcard_log("POST card initializing on port %04Xh\n", postcard_port);

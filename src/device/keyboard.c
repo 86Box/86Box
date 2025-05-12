@@ -64,11 +64,12 @@ static int keydelay[512];
 #endif
 static scancode *scan_table; /* scancode table for keyboard */
 
-static volatile uint8_t caps_lock   = 0;
-static volatile uint8_t num_lock    = 0;
-static volatile uint8_t scroll_lock = 0;
-static volatile uint8_t kana_lock   = 0;
-static uint8_t shift                = 0;
+static volatile uint8_t caps_lock    = 0;
+static volatile uint8_t num_lock     = 0;
+static volatile uint8_t scroll_lock  = 0;
+static volatile uint8_t kana_lock    = 0;
+static volatile uint8_t kbd_in_reset = 0;
+static uint8_t shift                 = 0;
 
 static int key5576mode = 0;
 
@@ -106,11 +107,12 @@ static scconvtbl scconv55_8a[18 + 1] =
 void
 keyboard_init(void)
 {
-    num_lock    = 0;
-    caps_lock   = 0;
-    scroll_lock = 0;
-    kana_lock   = 0;
-    shift       = 0;
+    num_lock     = 0;
+    caps_lock    = 0;
+    scroll_lock  = 0;
+    kana_lock    = 0;
+    shift        = 0;
+    kbd_in_reset = 0;
 
     memset(recv_key, 0x00, sizeof(recv_key));
     memset(recv_key_ui, 0x00, sizeof(recv_key));
@@ -238,6 +240,9 @@ key_process(uint16_t scan, int down)
 void
 keyboard_input(int down, uint16_t scan)
 {
+    if (kbd_in_reset)
+        return;
+
     /* Special case for E1 1D, translate it to 0100 - special case. */
     if ((scan >> 8) == 0xe1) {
         if ((scan & 0xff) == 0x1d)
@@ -343,14 +348,26 @@ void
 keyboard_all_up(void)
 {
     for (unsigned short i = 0; i < 0x200; i++) {
-        if (recv_key_ui[i]) {
+        if (recv_key_ui[i])
             recv_key_ui[i] = 0;
-        }
+
         if (recv_key[i]) {
             recv_key[i] = 0;
             key_process(i, 0);
         }
     }
+}
+
+void
+keyboard_set_in_reset(uint8_t in_reset)
+{
+    kbd_in_reset = in_reset;
+}
+
+uint8_t
+keyboard_get_in_reset(void)
+{
+    return kbd_in_reset;
 }
 
 static uint8_t

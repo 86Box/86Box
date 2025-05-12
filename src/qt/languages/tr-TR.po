@@ -630,9 +630,6 @@ msgstr "Kritik hata"
 msgid " - PAUSED"
 msgstr " - DURAKLATILDI"
 
-msgid "Press %s to return to windowed mode."
-msgstr "Pencere moduna geri dönmek için %s tuşlarına basın."
-
 msgid "Speed"
 msgstr "Hız"
 
@@ -717,11 +714,11 @@ msgstr "Diğer cihazlar"
 msgid "Click to capture mouse"
 msgstr "Farenin yakalanması için tıklayın"
 
-msgid "Press %s to release mouse"
-msgstr "Farenin bırakılması için %s tuşlarına basın"
+msgid "Press %1 to release mouse"
+msgstr "Farenin bırakılması için %1 tuşlarına basın"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "Farenin bırakılması için %s tuşlarına veya tekerlek tuşuna basın"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Farenin bırakılması için %1 tuşlarına veya tekerlek tuşuna basın"
 
 msgid "Bus"
 msgstr "Veri yolu"
@@ -863,9 +860,6 @@ msgstr "%1 PostScript dosyalarının otomatik olarak PDF dosyalarına çevirilme
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 PCL dosyalarının otomatik olarak PDF dosyalarına çevirilmesi için gereklidir.\n\nBu bulunmadığından dolayı genel PostScript yazıcısına gönderilen tüm dökümanlar Printer Command Language (.pcl) dosyası olarak kaydedilecektir."
-
-msgid "Entering fullscreen mode"
-msgstr "Tam ekran moduna geçiş yapılıyor"
 
 msgid "Don't show this message again"
 msgstr "Bu mesajı bir daha gösterme"
@@ -1305,8 +1299,8 @@ msgstr "OpenGL başlatılırken hata oluştu"
 msgid "\nFalling back to software rendering."
 msgstr "\nYazılım işleyicisine geri dönülüyor."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Medya görüntüsü (CD-ROM, disket, vb.) seçme diyaloğu 86Box yapılandırma dosyasıyla aynı dizinde başlayacaktır. Bu ayar muhtemelen sadece macOS üzerinde bir fark meydana getirecektir.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>Medya görüntüsü (CD-ROM, disket, vb.) seçme diyaloğu 86Box yapılandırma dosyasıyla aynı dizinde başlayacaktır. Bu ayar muhtemelen sadece macOS üzerinde bir fark meydana getirecektir.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Bu makine taşınmış veya kopyalanmış olabilir."
@@ -2104,9 +2098,6 @@ msgid "Ask for confirmation before hard resetting"
 msgstr ""
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
-
-msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"

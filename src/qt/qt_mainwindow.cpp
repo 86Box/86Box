@@ -201,18 +201,22 @@ MainWindow::MainWindow(QWidget *parent)
 
     num_label = new QLabel;
     num_label->setPixmap(num_icon_off.pixmap(QSize(16, 16)));
+    num_label->setToolTip(QShortcut::tr("Num Lock"));
     statusBar()->addPermanentWidget(num_label);
 
     caps_label = new QLabel;
     caps_label->setPixmap(caps_icon_off.pixmap(QSize(16, 16)));
+    caps_label->setToolTip(QShortcut::tr("Caps Lock"));
     statusBar()->addPermanentWidget(caps_label);
 
     scroll_label = new QLabel;
     scroll_label->setPixmap(scroll_icon_off.pixmap(QSize(16, 16)));
+    scroll_label->setToolTip(QShortcut::tr("Scroll Lock"));
     statusBar()->addPermanentWidget(scroll_label);
 
     kana_label = new QLabel;
     kana_label->setPixmap(kana_icon_off.pixmap(QSize(16, 16)));
+    kana_label->setToolTip(QShortcut::tr("Kana Lock"));
     statusBar()->addPermanentWidget(kana_label);
 
     QTimer* ledKeyboardTimer = new QTimer(this);
@@ -321,7 +325,8 @@ MainWindow::MainWindow(QWidget *parent)
         mouse_capture = state ? 1 : 0;
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
-            this->grabKeyboard();
+            if (hook_enabled)
+                this->grabKeyboard();
             if (ui->stackedWidget->mouse_capture_func)
                 ui->stackedWidget->mouse_capture_func(this->windowHandle());
         } else {
@@ -1347,27 +1352,6 @@ MainWindow::on_actionFullscreen_triggered()
             emit resizeContents(vid_resize == 2 ? fixed_size_x : monitors[0].mon_scrnsz_x, vid_resize == 2 ? fixed_size_y : monitors[0].mon_scrnsz_y);
         }
     } else {
-        if (video_fullscreen_first) {
-            bool wasCaptured = mouse_capture == 1;
-
-			char strFullscreen[100];
-			sprintf(strFullscreen, qPrintable(tr("Press %s to return to windowed mode.")), acc_keys[FindAccelerator("fullscreen")].seq);
-
-            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), QString(strFullscreen), QMessageBox::Ok, this);
-            QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));
-            questionbox.setCheckBox(chkbox);
-            chkbox->setChecked(!video_fullscreen_first);
-
-            QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
-                video_fullscreen_first = (state == Qt::CheckState::Unchecked);
-            });
-            questionbox.exec();
-            config_save();
-
-            /* (re-capture mouse after dialog). */
-            if (wasCaptured)
-                emit setMouseCapture(true);
-        }
         video_fullscreen = 1;
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         ui->menubar->hide();
@@ -1495,6 +1479,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             curdopause = dopause;
             plat_pause(isShowMessage ? 2 : 1);
             emit setMouseCapture(false);
+            releaseKeyboard();
         } else if (event->type() == QEvent::WindowUnblocked) {
             plat_pause(curdopause);
         }
@@ -1512,9 +1497,13 @@ MainWindow::refreshMediaMenu()
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
     ui->actionACPI_Shutdown->setEnabled(!!acpi_enabled);
 
+    num_label->setToolTip(QShortcut::tr("Num Lock"));
     num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+    scroll_label->setToolTip(QShortcut::tr("Scroll Lock"));
     scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+    caps_label->setToolTip(QShortcut::tr("Caps Lock"));
     caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+    kana_label->setToolTip(QShortcut::tr("Kana Lock"));
     kana_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
                            machine_has_flags(machine, MACHINE_AX));
 }
@@ -1614,13 +1603,13 @@ MainWindow::getRenderWidgetSize()
 void
 MainWindow::focusInEvent(QFocusEvent *event)
 {
-    this->grabKeyboard();
+    //this->grabKeyboard();
 }
 
 void
 MainWindow::focusOutEvent(QFocusEvent *event)
 {
-    this->releaseKeyboard();
+    //this->releaseKeyboard();
 }
 
 void

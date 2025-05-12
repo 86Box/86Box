@@ -630,9 +630,6 @@ msgstr "Allvarligt fel"
 msgid " - PAUSED"
 msgstr " - PAUSAD"
 
-msgid "Press %s to return to windowed mode."
-msgstr "Tryck på %s för att återvända till fönsterläge."
-
 msgid "Speed"
 msgstr "Hastighet"
 
@@ -717,11 +714,11 @@ msgstr "Andra tillbehör"
 msgid "Click to capture mouse"
 msgstr "Klicka för att fånga upp musen"
 
-msgid "Press %s to release mouse"
-msgstr "Tryck på %s för att släppa musen"
+msgid "Press %1 to release mouse"
+msgstr "Tryck på %1 för att släppa musen"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "Tryck på %s eller mellersta musknappen för att släppa musen"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Tryck på %1 eller mellersta musknappen för att släppa musen"
 
 msgid "Bus"
 msgstr "Buss"
@@ -863,9 +860,6 @@ msgstr "%1 krävs för automatisk omvandling av PostScript-filer till PDF.\n\nAl
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 krävs för automatisk omvandling av PCL-filer till PDF.\n\nAlla dokument som skickas till den allmänna PCL-skrivaren kommer att sparas som Printer Command Language-filer (.pcl)."
-
-msgid "Entering fullscreen mode"
-msgstr "Startar helskärmsläge"
 
 msgid "Don't show this message again"
 msgstr "Visa inte detta meddelande igen"
@@ -1305,8 +1299,8 @@ msgstr "Fel vid initialisering av OpenGL"
 msgid "\nFalling back to software rendering."
 msgstr "\nFaller tillbaka på mjukvarurendering."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Vid val av medieavbildningar (CD-ROM, diskett, osv.) så kommer fönstret att börja i samma mapp som 86Box konfigurationsfil. Denna inställning kommer troligtvis endast göra en skillnad på macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>Vid val av medieavbildningar (CD-ROM, diskett, osv.) så kommer fönstret att börja i samma mapp som 86Box konfigurationsfil. Denna inställning kommer troligtvis endast göra en skillnad på macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Denna maskin kan ha flyttats eller kopierats."
@@ -2111,9 +2105,6 @@ msgstr "Bekräfta innan hård omstart"
 
 msgid "Ask for confirmation before quitting"
 msgstr "Bekräfta innan avslut"
-
-msgid "Display hotkey message when entering full-screen mode"
-msgstr "Visa meddelande om snabbtangenter när helskärmsläget startas"
 
 msgid "Options"
 msgstr "Alternativ"

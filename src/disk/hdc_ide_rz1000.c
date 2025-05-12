@@ -55,7 +55,6 @@ typedef struct rz1000_t {
 
 static int next_id = 0;
 
-#define ENABLE_RZ1000_LOG 1
 #ifdef ENABLE_RZ1000_LOG
 int rz1000_do_log = ENABLE_RZ1000_LOG;
 

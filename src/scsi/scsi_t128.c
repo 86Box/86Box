@@ -241,9 +241,14 @@ t128_callback(void *priv)
     uint8_t         c;
     uint8_t         temp;
     uint8_t         status;
+    double          period     = scsi_bus->period / 60.0;
 
-    if (scsi_bus->tx_mode != PIO_TX_BUS)
-        timer_on_auto(&t128->timer, scsi_bus->period / 60.0);
+    if (scsi_bus->tx_mode != PIO_TX_BUS) {
+        if (period >= 10.0)
+            timer_on_auto(&t128->timer, period);
+        else
+            timer_on_auto(&t128->timer, 10.0);
+    }
 
     if (scsi_bus->data_wait & 1) {
         scsi_bus->clear_req = 3;
@@ -287,7 +292,6 @@ t128_callback(void *priv)
                     t128->status &= ~0x02;
                     t128->pos = 0;
                     t128->host_pos = 0;
-                    scsi_bus->data_repeat = 0;
                     t128_log("T128 Remaining blocks to be written=%d\n", t128->block_count);
                     if (scsi_bus->data_pos >= dev->buffer_length) {
                         t128->block_loaded = 0;
@@ -336,7 +340,6 @@ t128_callback(void *priv)
                     t128->status &= ~0x02;
                     t128->pos      = 0;
                     t128->host_pos = 0;
-                    scsi_bus->data_repeat = 0;
                     t128_log("T128 blocks read=%d, total len=%d\n", scsi_bus->data_pos, dev->buffer_length);
                     if (scsi_bus->data_pos >= dev->buffer_length) {
                         scsi_bus->bus_out |= BUS_REQ;

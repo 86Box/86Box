@@ -68,6 +68,7 @@ extern const device_t ibmxt286_device;
 extern const device_t pb450_device;
 extern const device_t jukopc_device;
 extern const device_t vendex_device;
+extern const device_t c5sbm2_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                             MACHINE_TYPE_NONE       },
@@ -5632,6 +5633,46 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Has Award KBC firmware. */
+    {
+        .name = "[SiS 310] ASUS 386/33-64K",
+        .internal_name = "asus386_3364k",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_SIS_310,
+        .init = machine_at_asus386_3364k_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386DX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_APM,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has AMIKey F KBC firmware. */
     {
         .name = "[SiS 310] ASUS ISA-386C",
@@ -5998,6 +6039,46 @@ const machine_t machines[] = {
     },
 
     /* 486 machines - Socket 1 */
+    /* Has Award KBC firmware. */
+    {
+        .name = "[ZyMOS Poach] ASUS ISA-486C",
+        .internal_name = "isa486c",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_ZYMOS_POACH,
+        .init = machine_at_isa486c_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_APM,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has AMI KF KBC firmware. */
     {
         .name = "[ZyMOS Poach] Genoa Unknown 486",
@@ -11465,7 +11546,7 @@ const machine_t machines[] = {
     /* SiS 5501 */
     /* Has the Lance LT38C41 KBC. */
     {
-        .name = "[SiS 5501] Chaintech 5SBM2 (M103)",
+        .name = "[SiS 5501] Chaintech 5SBM/5SBM2 (M103)",
         .internal_name = "5sbm2",
         .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_SIS_5501,
@@ -11488,7 +11569,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
-            .max = 262144,
+            .max = 131072,
             .step = 8192
         },
         .nvrmask = 255,
@@ -11496,7 +11577,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &c5sbm2_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
@@ -14730,7 +14811,7 @@ const machine_t machines[] = {
             .block = CPU_BLOCK_NONE,
             .min_bus = 60000000,
             .max_bus = 83333333,
-            .min_voltage = 1800,
+            .min_voltage = 2800,
             .max_voltage = 3500,
             .min_multi = 1.5,
             .max_multi = 8.0
