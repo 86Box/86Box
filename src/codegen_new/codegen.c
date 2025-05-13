@@ -396,6 +396,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     int          test_modrm         = 1;
     int          pc_off             = 0;
     uint32_t     next_pc            = 0;
+    uint16_t     op87               = 0x0000;
 #ifdef DEBUG_EXTRA
     uint8_t last_prefix = 0;
 #endif
@@ -451,6 +452,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
 #ifdef DEBUG_EXTRA
                 last_prefix = 0xd8;
 #endif
+                op87            = (op87 & 0xf800) | ((opcode & 0x07) << 8) | (fetchdat & 0xff);
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_d8_a32 : x86_dynarec_opcodes_d8_a16;
                 recomp_op_table = fpu_softfloat ? NULL : recomp_opcodes_d8;
                 opcode_shift    = 3;
@@ -464,6 +466,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
 #ifdef DEBUG_EXTRA
                 last_prefix = 0xd9;
 #endif
+                op87            = (op87 & 0xf800) | ((opcode & 0x07) << 8) | (fetchdat & 0xff);
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_d9_a32 : x86_dynarec_opcodes_d9_a16;
                 recomp_op_table = fpu_softfloat ? NULL : recomp_opcodes_d9;
                 opcode_mask     = 0xff;
@@ -476,6 +479,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
 #ifdef DEBUG_EXTRA
                 last_prefix = 0xda;
 #endif
+                op87            = (op87 & 0xf800) | ((opcode & 0x07) << 8) | (fetchdat & 0xff);
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_da_a32 : x86_dynarec_opcodes_da_a16;
                 recomp_op_table = fpu_softfloat ? NULL : recomp_opcodes_da;
                 opcode_mask     = 0xff;
@@ -488,6 +492,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
 #ifdef DEBUG_EXTRA
                 last_prefix = 0xdb;
 #endif
+                op87            = (op87 & 0xf800) | ((opcode & 0x07) << 8) | (fetchdat & 0xff);
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_db_a32 : x86_dynarec_opcodes_db_a16;
                 recomp_op_table = fpu_softfloat ? NULL : recomp_opcodes_db;
                 opcode_mask     = 0xff;
@@ -500,6 +505,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
 #ifdef DEBUG_EXTRA
                 last_prefix = 0xdc;
 #endif
+                op87            = (op87 & 0xf800) | ((opcode & 0x07) << 8) | (fetchdat & 0xff);
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_dc_a32 : x86_dynarec_opcodes_dc_a16;
                 recomp_op_table = fpu_softfloat ? NULL : recomp_opcodes_dc;
                 opcode_shift    = 3;
@@ -513,6 +519,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
 #ifdef DEBUG_EXTRA
                 last_prefix = 0xdd;
 #endif
+                op87            = (op87 & 0xf800) | ((opcode & 0x07) << 8) | (fetchdat & 0xff);
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_dd_a32 : x86_dynarec_opcodes_dd_a16;
                 recomp_op_table = fpu_softfloat ? NULL : recomp_opcodes_dd;
                 opcode_mask     = 0xff;
@@ -525,6 +532,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
 #ifdef DEBUG_EXTRA
                 last_prefix = 0xde;
 #endif
+                op87            = (op87 & 0xf800) | ((opcode & 0x07) << 8) | (fetchdat & 0xff);
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_de_a32 : x86_dynarec_opcodes_de_a16;
                 recomp_op_table = fpu_softfloat ? NULL : recomp_opcodes_de;
                 opcode_mask     = 0xff;
@@ -537,6 +545,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
 #ifdef DEBUG_EXTRA
                 last_prefix = 0xdf;
 #endif
+                op87            = (op87 & 0xf800) | ((opcode & 0x07) << 8) | (fetchdat & 0xff);
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_df_a32 : x86_dynarec_opcodes_df_a16;
                 recomp_op_table = fpu_softfloat ? NULL : recomp_opcodes_df;
                 opcode_mask     = 0xff;
@@ -657,6 +666,9 @@ generate_call:
         }
     }
     codegen_mark_code_present(block, cs + old_pc, (op_pc - old_pc) - pc_off);
+    if (op87 != 0x0000) {
+        uop_MOV_IMM(ir, IREG_x87_op, op87);
+    }
     /* It is apparently a prefixed instruction. */
 #if 0
     if ((recomp_op_table == recomp_opcodes) && (opcode == 0x48))

@@ -450,15 +450,6 @@ msgstr "Nuked (більш точний)"
 msgid "YMFM (faster)"
 msgstr "YMFM (швидший)"
 
-msgid "Network type:"
-msgstr "Тип мережі:"
-
-msgid "PCap device:"
-msgstr "Пристрій PCap:"
-
-msgid "Network adapter:"
-msgstr "Мережевий адаптер:"
-
 msgid "COM1 Device:"
 msgstr "Пристрій COM1:"
 
@@ -638,9 +629,6 @@ msgstr "Непереробна помилка"
 
 msgid " - PAUSED"
 msgstr " - ПРИЗУПИНЕННЯ"
-
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Натисніть Ctrl+Alt+PgDn для повернення у віконний режим."
 
 msgid "Speed"
 msgstr "Швидкість"
@@ -872,9 +860,6 @@ msgstr "%1 потрібно для автоматичного перетворе
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 потрібно для автоматичного перетворення файлів PCL в PDF.\n\nВсі документи, відправлені на загальний принтер PCL, будуть збережені у вигляді файлів Printer Command Language (.ps)."
-
-msgid "Entering fullscreen mode"
-msgstr "Вхід у повноекранний режим"
 
 msgid "Don't show this message again"
 msgstr "Більше не показувати це повідомлення"
@@ -1314,8 +1299,8 @@ msgstr "Помилка ініціалізації OpenGL"
 msgid "\nFalling back to software rendering."
 msgstr "\nПовернення до програмного рендерингу."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;При виборі медіа-образів (CD-ROM, дискета і т.д.) діалогове вікно буде відкриватися в тому ж каталозі, що і файл конфігурації 86Box. Цей параметр, швидше за все, матиме значення лише на macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>При виборі медіа-образів (CD-ROM, дискета і т.д.) діалогове вікно буде відкриватися в тому ж каталозі, що і файл конфігурації 86Box. Цей параметр, швидше за все, матиме значення лише на macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Цю машину могли перемістити або скопіювати."
@@ -1350,17 +1335,17 @@ msgstr "Мережева карта 3"
 msgid "Network Card #4"
 msgstr "Мережева карта 4"
 
-msgid "Mode"
-msgstr "Режим"
+msgid "Mode:"
+msgstr "Режим:"
 
-msgid "Interface"
-msgstr "Інтерфейс"
+msgid "Interface:"
+msgstr "Інтерфейс:"
 
-msgid "Adapter"
-msgstr "Адаптер"
+msgid "Adapter:"
+msgstr "Адаптер:"
 
-msgid "VDE Socket"
-msgstr "VDE сокет"
+msgid "VDE Socket:"
+msgstr "VDE сокет:"
 
 msgid "86Box Unit Tester"
 msgstr "Тестер блоків 86Box"
@@ -1818,6 +1803,9 @@ msgstr "Колесо"
 msgid "Five + Wheel"
 msgstr "П'ять + колесо"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 послідовна / SMT3(R)V"
 
@@ -2118,10 +2106,10 @@ msgstr ""
 msgid "Ask for confirmation before quitting"
 msgstr ""
 
-msgid "Display hotkey message when entering full-screen mode"
+msgid "Options"
 msgstr ""
 
-msgid "Options"
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

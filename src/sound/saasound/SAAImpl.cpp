@@ -306,7 +306,6 @@ void scale_for_output(unsigned int left_input, unsigned int right_input,
 void CSAASoundInternal::GenerateMany(BYTE* pBuffer, unsigned long nSamples)
 {
 	unsigned int left_mixed, right_mixed;
-	static double filterout_z1_left_mixed = 0, filterout_z1_right_mixed = 0;
 
 #if defined(DEBUGSAA) || defined(USE_CONFIG_FILE)
 	BYTE* pBufferStart = pBuffer;

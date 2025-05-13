@@ -5109,7 +5109,8 @@ s3_virge_disable_handlers(virge_t *dev)
     reset_state->bios_rom.mapping = dev->bios_rom.mapping;
 
     reset_state->svga.timer     = dev->svga.timer;
-    reset_state->svga.timer8514 = dev->svga.timer8514;
+    reset_state->svga.timer_8514 = dev->svga.timer_8514;
+    reset_state->svga.timer_xga = dev->svga.timer_xga;
     reset_state->irq_timer      = dev->irq_timer;
 }
 

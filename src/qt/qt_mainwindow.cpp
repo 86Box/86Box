@@ -139,6 +139,7 @@ namespace IOKit {
 #    include "be_keyboard.hpp"
 
 extern MainWindow *main_window;
+QShortcut *windowedShortcut;
 
 filter_result
 keyb_filter(BMessage *message, BHandler **target, BMessageFilter *filter)
@@ -185,6 +186,57 @@ MainWindow::MainWindow(QWidget *parent)
     ui->menuEGA_S_VGA_settings->menuAction()->setMenuRole(QAction::NoRole);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
+
+    num_icon = QIcon(":/settings/qt/icons/num_lock_on.ico");
+    num_icon_off = QIcon(":/settings/qt/icons/num_lock_off.ico");
+    scroll_icon = QIcon(":/settings/qt/icons/scroll_lock_on.ico");
+    scroll_icon_off = QIcon(":/settings/qt/icons/scroll_lock_off.ico");
+    caps_icon = QIcon(":/settings/qt/icons/caps_lock_on.ico");
+    caps_icon_off = QIcon(":/settings/qt/icons/caps_lock_off.ico");
+    kana_icon = QIcon(":/settings/qt/icons/kana_lock_on.ico");
+    kana_icon_off = QIcon(":/settings/qt/icons/kana_lock_off.ico");
+
+    num_label = new QLabel;
+    num_label->setPixmap(num_icon_off.pixmap(QSize(16, 16)));
+    num_label->setToolTip(QShortcut::tr("Num Lock"));
+    statusBar()->addPermanentWidget(num_label);
+
+    caps_label = new QLabel;
+    caps_label->setPixmap(caps_icon_off.pixmap(QSize(16, 16)));
+    caps_label->setToolTip(QShortcut::tr("Caps Lock"));
+    statusBar()->addPermanentWidget(caps_label);
+
+    scroll_label = new QLabel;
+    scroll_label->setPixmap(scroll_icon_off.pixmap(QSize(16, 16)));
+    scroll_label->setToolTip(QShortcut::tr("Scroll Lock"));
+    statusBar()->addPermanentWidget(scroll_label);
+
+    kana_label = new QLabel;
+    kana_label->setPixmap(kana_icon_off.pixmap(QSize(16, 16)));
+    kana_label->setToolTip(QShortcut::tr("Kana Lock"));
+    statusBar()->addPermanentWidget(kana_label);
+
+    QTimer* ledKeyboardTimer = new QTimer(this);
+    ledKeyboardTimer->setTimerType(Qt::CoarseTimer);
+    ledKeyboardTimer->setInterval(1);
+    connect(ledKeyboardTimer, &QTimer::timeout, this, [this] () {
+        uint8_t caps, num, scroll, kana;
+        keyboard_get_states(&caps, &num, &scroll, &kana);
+
+        if (num_label->isVisible())
+            num_label->setPixmap(num ? this->num_icon.pixmap(QSize(16, 16)) : this->num_icon_off.pixmap(QSize(16, 16)));
+        if (caps_label->isVisible())
+            caps_label->setPixmap(caps ? this->caps_icon.pixmap(QSize(16, 16)) : this->caps_icon_off.pixmap(QSize(16, 16)));
+        if (scroll_label->isVisible())
+            scroll_label->setPixmap(scroll ? this->scroll_icon.pixmap(QSize(16, 16)) :
+                                                                      this->scroll_icon_off.pixmap(QSize(16, 16)));
+
+        if (kana_label->isVisible())
+            kana_label->setPixmap(kana ? this->kana_icon.pixmap(QSize(16, 16)) :
+                                                                this->kana_icon_off.pixmap(QSize(16, 16)));
+    });
+    ledKeyboardTimer->start();
+
 #ifdef Q_OS_WINDOWS
     util::setWin11RoundedCorners(this->winId(), (hide_status_bar ? false : true));
 #endif
@@ -212,6 +264,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this, &MainWindow::hardResetCompleted, this, [this]() {
         ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
+        num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+        scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+        caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+        /* TODO: Base this on keyboard type instead when that's done. */
+        kana_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
+                               machine_has_flags(machine, MACHINE_AX));
         while (QApplication::overrideCursor())
             QApplication::restoreOverrideCursor();
 #ifdef USE_WACOM
@@ -264,7 +322,8 @@ MainWindow::MainWindow(QWidget *parent)
         mouse_capture = state ? 1 : 0;
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
-            this->grabKeyboard();
+            if (hook_enabled)
+                this->grabKeyboard();
             if (ui->stackedWidget->mouse_capture_func)
                 ui->stackedWidget->mouse_capture_func(this->windowHandle());
         } else {
@@ -675,17 +734,6 @@ MainWindow::MainWindow(QWidget *parent)
     /* Remove default Shift+F10 handler, which unfocuses keyboard input even with no context menu. */
     connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, [](){});
 
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    auto windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_PageDown), this);
-#else
-    auto windowedShortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_PageDown), this);
-#endif
-    windowedShortcut->setContext(Qt::ShortcutContext::ApplicationShortcut);
-    connect(windowedShortcut, &QShortcut::activated, this, [this] () {
-        if (video_fullscreen)
-            ui->actionFullscreen->trigger();
-    });
-
     connect(this, &MainWindow::initRendererMonitor, this, &MainWindow::initRendererMonitorSlot);
     connect(this, &MainWindow::initRendererMonitorForNonQtThread, this, &MainWindow::initRendererMonitorSlot, Qt::BlockingQueuedConnection);
     connect(this, &MainWindow::destroyRendererMonitor, this, &MainWindow::destroyRendererMonitorSlot);
@@ -761,6 +809,8 @@ MainWindow::MainWindow(QWidget *parent)
         });
     }
 #endif
+
+	updateShortcuts();
 }
 
 void
@@ -826,6 +876,57 @@ MainWindow::closeEvent(QCloseEvent *event)
     event->accept();
 }
 
+
+void MainWindow::updateShortcuts()
+{
+	/* 
+	 Update menu shortcuts from accelerator table
+	 
+	 Note that these only work in windowed mode. If you add any new shortcuts,
+	 you have to go duplicate them in MainWindow::eventFilter()
+	 */
+	
+	// First we need to wipe all existing accelerators, otherwise Qt will
+	// run into conflicts with old ones.
+	ui->actionTake_screenshot->setShortcut(QKeySequence());
+	ui->actionCtrl_Alt_Del->setShortcut(QKeySequence());
+	ui->actionCtrl_Alt_Esc->setShortcut(QKeySequence());
+	ui->actionHard_Reset->setShortcut(QKeySequence());
+	ui->actionPause->setShortcut(QKeySequence());
+	ui->actionMute_Unmute->setShortcut(QKeySequence());
+	
+	int accID;
+	QKeySequence seq;
+	
+	accID = FindAccelerator("screenshot");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionTake_screenshot->setShortcut(seq);
+	
+	accID = FindAccelerator("send_ctrl_alt_del");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionCtrl_Alt_Del->setShortcut(seq);
+	
+	accID = FindAccelerator("send_ctrl_alt_esc");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionCtrl_Alt_Esc->setShortcut(seq);
+	
+	accID = FindAccelerator("hard_reset");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionHard_Reset->setShortcut(seq);
+	
+	accID = FindAccelerator("fullscreen");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionFullscreen->setShortcut(seq);
+	
+	accID = FindAccelerator("pause");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionPause->setShortcut(seq);
+	
+	accID = FindAccelerator("mute");
+	seq = QKeySequence::fromString(acc_keys[accID].seq);
+	ui->actionMute_Unmute->setShortcut(seq);
+}
+		
 void
 MainWindow::resizeEvent(QResizeEvent *event)
 {
@@ -1026,6 +1127,7 @@ MainWindow::on_actionSettings_triggered()
         case QDialog::Accepted:
             settings.save();
             config_changed = 2;
+			updateShortcuts();
             pc_reset_hard();
             break;
         case QDialog::Rejected:
@@ -1247,24 +1349,6 @@ MainWindow::on_actionFullscreen_triggered()
             emit resizeContents(vid_resize == 2 ? fixed_size_x : monitors[0].mon_scrnsz_x, vid_resize == 2 ? fixed_size_y : monitors[0].mon_scrnsz_y);
         }
     } else {
-        if (video_fullscreen_first) {
-            bool wasCaptured = mouse_capture == 1;
-
-            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press Ctrl+Alt+PgDn to return to windowed mode."), QMessageBox::Ok, this);
-            QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));
-            questionbox.setCheckBox(chkbox);
-            chkbox->setChecked(!video_fullscreen_first);
-
-            QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
-                video_fullscreen_first = (state == Qt::CheckState::Unchecked);
-            });
-            questionbox.exec();
-            config_save();
-
-            /* (re-capture mouse after dialog). */
-            if (wasCaptured)
-                emit setMouseCapture(true);
-        }
         video_fullscreen = 1;
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         ui->menubar->hide();
@@ -1294,9 +1378,78 @@ MainWindow::getTitle(wchar_t *title)
     }
 }
 
+
+// Helper to find an accelerator key and return it's sequence
+// TODO: Is there a more central place to put this?
+QKeySequence
+MainWindow::FindAcceleratorSeq(const char *name)
+{
+	int accID = FindAccelerator(name);
+	if(accID == -1)
+		return false;
+	
+	return(QKeySequence::fromString(acc_keys[accID].seq));
+}
+
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
+	// Detect shortcuts when menubar is hidden
+	// TODO: Could this be simplified by proxying the event and manually
+	// shoving it into the menubar?
+	if (event->type() == QEvent::KeyPress)
+	{
+		this->keyPressEvent((QKeyEvent *) event);
+
+		// We check for mouse release even if we aren't fullscreen,
+		// because it's not a menu accelerator.
+		if (event->type() == QEvent::KeyPress)
+		{
+			QKeyEvent *ke = (QKeyEvent *) event;
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse"))
+			{
+				plat_mouse_capture(0);
+			}
+		}
+
+		if (event->type() == QEvent::KeyPress && video_fullscreen != 0)
+		{
+			QKeyEvent *ke = (QKeyEvent *) event;
+			
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot"))
+			{
+				ui->actionTake_screenshot->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen"))
+			{
+				ui->actionFullscreen->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset"))
+			{
+				ui->actionHard_Reset->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_del"))
+			{
+				ui->actionCtrl_Alt_Del->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_esc"))
+			{
+				ui->actionCtrl_Alt_Esc->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("pause"))
+			{
+				ui->actionPause->trigger();
+			}
+			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("mute"))
+			{
+				ui->actionMute_Unmute->trigger();
+			}
+
+			return true;
+		}
+	}
+	
+
     if (!dopause) {
         if (event->type() == QEvent::Shortcut) {
             auto shortcutEvent = (QShortcutEvent *) event;
@@ -1306,8 +1459,8 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             }
         }
         if (event->type() == QEvent::KeyPress) {
-            event->accept();
-            this->keyPressEvent((QKeyEvent *) event);
+			event->accept();
+			
             return true;
         }
         if (event->type() == QEvent::KeyRelease) {
@@ -1323,11 +1476,12 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             curdopause = dopause;
             plat_pause(isShowMessage ? 2 : 1);
             emit setMouseCapture(false);
+            releaseKeyboard();
         } else if (event->type() == QEvent::WindowUnblocked) {
             plat_pause(curdopause);
         }
     }
-
+	
     return QMainWindow::eventFilter(receiver, event);
 }
 
@@ -1339,20 +1493,30 @@ MainWindow::refreshMediaMenu()
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
     ui->actionACPI_Shutdown->setEnabled(!!acpi_enabled);
+
+    num_label->setToolTip(QShortcut::tr("Num Lock"));
+    num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+    scroll_label->setToolTip(QShortcut::tr("Scroll Lock"));
+    scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+    caps_label->setToolTip(QShortcut::tr("Caps Lock"));
+    caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+    kana_label->setToolTip(QShortcut::tr("Kana Lock"));
+    kana_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
+                           machine_has_flags(machine, MACHINE_AX));
 }
 
 void
-MainWindow::showMessage(int flags, const QString &header, const QString &message)
+MainWindow::showMessage(int flags, const QString &header, const QString &message, bool richText)
 {
     if (QThread::currentThread() == this->thread()) {
         if (!cpu_thread_running) {
-            showMessageForNonQtThread(flags, header, message, nullptr);
+            showMessageForNonQtThread(flags, header, message, richText, nullptr);
         }
         else
-            showMessage_(flags, header, message);
+            showMessage_(flags, header, message, richText);
     } else {
         std::atomic_bool done = false;
-        emit showMessageForNonQtThread(flags, header, message, &done);
+        emit showMessageForNonQtThread(flags, header, message, richText, &done);
         while (!done) {
             QThread::msleep(1);
         }
@@ -1360,7 +1524,7 @@ MainWindow::showMessage(int flags, const QString &header, const QString &message
 }
 
 void
-MainWindow::showMessage_(int flags, const QString &header, const QString &message, std::atomic_bool *done)
+MainWindow::showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool *done)
 {
     if (done) {
         *done = false;
@@ -1372,7 +1536,8 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
     } else if (!(flags & (MBX_ERROR | MBX_WARNING))) {
         box.setIcon(QMessageBox::Warning);
     }
-    box.setTextFormat(Qt::TextFormat::RichText);
+    if (richText)
+        box.setTextFormat(Qt::TextFormat::RichText);
     box.exec();
     if (done) {
         *done = true;
@@ -1392,10 +1557,7 @@ MainWindow::keyPressEvent(QKeyEvent *event)
         processKeyboardInput(true, event->nativeScanCode());
 #endif
     }
-
-    if (keyboard_ismsexit())
-        plat_mouse_capture(0);
-
+	
     event->accept();
 }
 
@@ -1438,13 +1600,13 @@ MainWindow::getRenderWidgetSize()
 void
 MainWindow::focusInEvent(QFocusEvent *event)
 {
-    this->grabKeyboard();
+    //this->grabKeyboard();
 }
 
 void
 MainWindow::focusOutEvent(QFocusEvent *event)
 {
-    this->releaseKeyboard();
+    //this->releaseKeyboard();
 }
 
 void

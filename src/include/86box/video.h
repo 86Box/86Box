@@ -189,7 +189,6 @@ extern uint32_t     pal_lookup[256];
 #endif
 extern int          video_fullscreen;
 extern int          video_fullscreen_scale;
-extern int          video_fullscreen_first;
 extern uint8_t      fontdat[2048][8];
 extern uint8_t      fontdatm[2048][16];
 extern uint8_t      fontdat2[2048][8];
@@ -488,6 +487,7 @@ extern const device_t s3_metheus_86c928_isa_device;
 extern const device_t s3_metheus_86c928_vlb_device;
 extern const device_t s3_spea_mercury_lite_86c928_pci_device;
 extern const device_t s3_spea_mirage_86c801_isa_device;
+extern const device_t s3_winner1000_805_isa_device;
 extern const device_t s3_86c805_onboard_vlb_device;
 extern const device_t s3_spea_mirage_86c805_vlb_device;
 extern const device_t s3_mirocrystal_8s_805_vlb_device;

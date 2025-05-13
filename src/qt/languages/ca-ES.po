@@ -450,15 +450,6 @@ msgstr "Nuked (més acurat)"
 msgid "YMFM (faster)"
 msgstr "YMFM (més ràpid)"
 
-msgid "Network type:"
-msgstr "Tipus de xarxa:"
-
-msgid "PCap device:"
-msgstr "Dispositiu PCap:"
-
-msgid "Network adapter:"
-msgstr "Adaptador de xarxa:"
-
 msgid "COM1 Device:"
 msgstr "Dispositiu COM1:"
 
@@ -638,9 +629,6 @@ msgstr "Error fatal"
 
 msgid " - PAUSED"
 msgstr " - EN PAUSA"
-
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Premeu Ctrl+Alt+PgDn per tornar al mode de finestra."
 
 msgid "Speed"
 msgstr "Velocitat"
@@ -872,9 +860,6 @@ msgstr "%1 és necessària per a la conversió automàtica de fitxers PostScript
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 és necessària per a la conversió automàtica de fitxers PCL a PDF.\n\nQualsevol document enviat a la impressora genèrica PCL es desarà com a fitxer Printer Command Language (.pcl)."
-
-msgid "Entering fullscreen mode"
-msgstr "Entrant en mode pantalla completa"
 
 msgid "Don't show this message again"
 msgstr "No mostreu més aquest missatge"
@@ -1314,8 +1299,8 @@ msgstr "Error en inicialitzar OpenGL"
 msgid "\nFalling back to software rendering."
 msgstr "\nTornant al renderitzador software."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Quan seleccioneu imatges de suports (CD-ROM, disquet, etc.), el diàleg obert s’iniciarà al mateix directori que el fitxer de configuració 86Box. Aquesta configuració només farà una diferència en les macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>Quan seleccioneu imatges de suports (CD-ROM, disquet, etc.), el diàleg obert s’iniciarà al mateix directori que el fitxer de configuració 86Box. Aquesta configuració només farà una diferència en les macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Aquesta màquina podria haver estat moguda o copiada."
@@ -1350,17 +1335,17 @@ msgstr "Targeta de xarxa 3"
 msgid "Network Card #4"
 msgstr "Targeta de xarxa 4"
 
-msgid "Mode"
-msgstr "Mode"
+msgid "Mode:"
+msgstr "Mode:"
 
-msgid "Interface"
-msgstr "Interfície"
+msgid "Interface:"
+msgstr "Interfície:"
 
-msgid "Adapter"
-msgstr "Adaptador"
+msgid "Adapter:"
+msgstr "Adaptador:"
 
-msgid "VDE Socket"
-msgstr "Socket de VDE"
+msgid "VDE Socket:"
+msgstr "Socket de VDE:"
 
 msgid "86Box Unit Tester"
 msgstr "Test de la unitat de 86 Box"
@@ -1818,6 +1803,9 @@ msgstr "Roda"
 msgid "Five + Wheel"
 msgstr "Cinc + roda"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 sèrie / SMT3(R)V"
 
@@ -2112,10 +2100,10 @@ msgstr ""
 msgid "Ask for confirmation before quitting"
 msgstr ""
 
-msgid "Display hotkey message when entering full-screen mode"
+msgid "Options"
 msgstr ""
 
-msgid "Options"
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

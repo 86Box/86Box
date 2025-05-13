@@ -2793,7 +2793,8 @@ chips_69000_disable_handlers(chips_69000_t *chips)
 
     reset_state->decrement_timer  = chips->decrement_timer;
     reset_state->svga.timer       = chips->svga.timer;
-    reset_state->svga.timer8514   = chips->svga.timer8514;
+    reset_state->svga.timer_8514  = chips->svga.timer_8514;
+    reset_state->svga.timer_xga   = chips->svga.timer_xga;
 }
 
 static void

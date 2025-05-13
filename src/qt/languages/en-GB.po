@@ -39,8 +39,8 @@ msgstr "Synchronise with video"
 msgid "Error initializing OpenGL"
 msgstr "Error initialising OpenGL"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialogue will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialogue will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 
 msgid "Color (generic)"
 msgstr "Colour (generic)"

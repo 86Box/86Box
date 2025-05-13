@@ -390,42 +390,18 @@ device_get_priv(const device_t *dev)
 int
 device_available(const device_t *dev)
 {
-    if (dev != NULL) {
-        const device_config_t *config = dev->config;
-        if (config != NULL) {
-            while (config->type != CONFIG_END) {
-                if (config->type == CONFIG_BIOS) {
-                    int roms_present = 0;
-                    const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
+    int ret = machine_device_available(dev);
 
-                    /* Go through the ROM's in the device configuration. */
-                    while ((bios != NULL) &&
-                           (bios->name != NULL) &&
-                           (bios->internal_name != NULL) &&
-                           (bios->files_no != 0)) {
-                        int i = 0;
-                        for (uint8_t bf = 0; bf < bios->files_no; bf++)
-                            i += !!rom_present(bios->files[bf]);
-                        if (i == bios->files_no)
-                            roms_present++;
-                        bios++;
-                    }
-
-                    return (roms_present ? -1 : 0);
-                }
-                config++;
-            }
-        }
-
+    if (ret == 0) {
         /* No CONFIG_BIOS field present, use the classic available(). */
         if (dev->available != NULL)
-            return (dev->available());
+            ret = (dev->available());
         else
-            return 1;
-    }
+            ret = (dev != NULL);
+    } else
+        ret = (ret == -1);
 
-    /* A NULL device is never available. */
-    return 0;
+    return ret;
 }
 
 uint8_t
@@ -967,6 +943,36 @@ machine_get_config_string(char *str)
     }
 
     return ret;
+}
+
+int
+machine_device_available(const device_t *dev)
+{
+    if (dev != NULL) {
+        const device_config_t *config = dev->config;
+        if ((config != NULL) && (config->type == CONFIG_BIOS)) {
+            int roms_present = 0;
+            const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
+
+            /* Go through the ROM's in the device configuration. */
+            while ((bios != NULL) &&
+                   (bios->name != NULL) &&
+                   (bios->internal_name != NULL) &&
+                   (bios->files_no != 0)) {
+                int i = 0;
+                for (uint8_t bf = 0; bf < bios->files_no; bf++)
+                    i += !!rom_present(bios->files[bf]);
+                if (i == bios->files_no)
+                    roms_present++;
+                bios++;
+            }
+
+            return (roms_present ? -1 : -2);
+        }
+    }
+
+    /* NULL device or no CONFIG_BIOS field, return 0. */
+    return 0;
 }
 
 const device_t *

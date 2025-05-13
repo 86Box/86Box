@@ -112,7 +112,7 @@ msgid "Hi&DPI scaling"
 msgstr "Hi&DPI-schaling"
 
 msgid "&Fullscreen"
-msgstr "&Fullscreen"
+msgstr "&Volledig scherm"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Volledig scherm &uitrekmodus"
@@ -450,15 +450,6 @@ msgstr "Nuked (nauwkeuriger)"
 msgid "YMFM (faster)"
 msgstr "YMFM (sneller)"
 
-msgid "Network type:"
-msgstr "Type netwerk:"
-
-msgid "PCap device:"
-msgstr "PCap-apparaat:"
-
-msgid "Network adapter:"
-msgstr "Netwerkadapter:"
-
 msgid "COM1 Device:"
 msgstr "COM1-apparaat:"
 
@@ -639,9 +630,6 @@ msgstr "Fatale fout"
 msgid " - PAUSED"
 msgstr " - GEPAUZEERD"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Druk op Ctrl+Alt+PgDn om terug te gaan naar de venstermodus."
-
 msgid "Speed"
 msgstr "Snelheid"
 
@@ -679,16 +667,16 @@ msgid "Surface images"
 msgstr "Oppervlakte-images"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Machine \"%hs\" is niet beschikbaar door ontbrekende ROMs in de map roms/machines. Overschakelen naar een beschikbare machine."
+msgstr "Machine \"%hs\" is niet beschikbaar door ontbrekende ROMs in de map roms/machines. Er wordt overgeschakeld naar een beschikbare machine."
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Videokaart \"%hs\" is niet beschikbaar door ontbrekende ROMs in de map roms/video. Overschakel over naar een beschikbare videokaart."
+msgstr "Videokaart \"%hs\" is niet beschikbaar door ontbrekende ROMs in de map roms/video. Er wordt overgeschakeld naar een beschikbare videokaart."
 
 msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Videokaart #2 \"%hs\" is niet beschikbaar door ontbrekende ROMs in de map roms/video. Uitschakel de tweede videokaart."
+msgstr "Videokaart #2 \"%hs\" is niet beschikbaar door ontbrekende ROMs in de map roms/video. De tweede videokaart wordt uitgeschakeld."
 
 msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Het apparaat \"%hs\" is niet beschikbaar door ontbrekende ROMs. Negeer het apparaat."
+msgstr "Het apparaat \"%hs\" is niet beschikbaar door ontbrekende ROMs. Het apparaat wordt genegeerd."
 
 msgid "Machine"
 msgstr "Machine"
@@ -873,9 +861,6 @@ msgstr "%1 is vereist voor automatische conversie van PostScript-bestanden naar 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 is vereist voor automatische conversie van PCL-bestanden naar PDF.\n\nAlle documenten die naar de generieke PCL-printer worden gestuurd, worden opgeslagen als Printer Command Language (.pcl) bestanden."
 
-msgid "Entering fullscreen mode"
-msgstr "Volledig scherm modus openen"
-
 msgid "Don't show this message again"
 msgstr "Dit bericht niet meer tonen"
 
@@ -1027,7 +1012,7 @@ msgid "Differencing VHD"
 msgstr "Verschil-VHD"
 
 msgid "(N/A)"
-msgstr "(N/A)"
+msgstr "(N/B)"
 
 msgid "Raw image (.img)"
 msgstr "Ruw image (.img)"
@@ -1063,7 +1048,7 @@ msgid "This could mean that the parent image was modified after the differencing
 msgstr "Dit kan betekenen dat de bovenliggende image is gewijzigd nadat de verschil-image is gemaakt.\n\nDit kan ook gebeuren als de imagebestanden zijn verplaatst of gekopieerd, of door een fout in het programma waarmee deze schijf is gemaakt.\n\nWil je de tijdstempels herstellen?"
 
 msgid "Parent and child disk timestamps do not match"
-msgstr "Bovenliggende en onderliggende schijf tijdstempels komen niet overeen"
+msgstr "Bovenliggende en onderliggende schijftijdstempels komen niet overeen"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Kan VHD tijdstempel niet herstellen."
@@ -1243,7 +1228,7 @@ msgid "Open screenshots folder..."
 msgstr "Map met schermafbeeldingen openen..."
 
 msgid "Apply fullscreen stretch mode when maximized"
-msgstr "Pas fullscreen stretchmodus toe wanneer gemaximaliseerd"
+msgstr "Schakel de volledig scherm-uitrekmodus in bij maximaliseren"
 
 msgid "Cursor/Puck"
 msgstr "Cursor/Puck"
@@ -1300,7 +1285,7 @@ msgid "Browse..."
 msgstr "Bladeren..."
 
 msgid "Couldn't create OpenGL context."
-msgstr "Kan OpenGL context niet maken."
+msgstr "Kan OpenGL context niet aanmaken."
 
 msgid "Couldn't switch to OpenGL context."
 msgstr "Kan niet overschakelen naar OpenGL context."
@@ -1314,8 +1299,8 @@ msgstr "Fout bij het initialiseren van OpenGL"
 msgid "\nFalling back to software rendering."
 msgstr "\nTerugvallen op software rendering."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Bij het selecteren van media-images (CD-ROM, floppy, etc.) zal de \"open dialoog\" starten in dezelfde map als het 86Box configuratiebestand. Deze instelling is doet er waarschijnlijk alleen toe op macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>Bij het selecteren van media-images (CD-ROM, floppy, etc.) zal de \"open dialoog\" starten in dezelfde map als het 86Box configuratiebestand. Deze instelling is doet er waarschijnlijk alleen toe op macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Deze machine is misschien verplaatst of gekopieerd."
@@ -1350,17 +1335,17 @@ msgstr "Netwerkkaart #3"
 msgid "Network Card #4"
 msgstr "Netwerkkaart #4"
 
-msgid "Mode"
-msgstr "Modus"
+msgid "Mode:"
+msgstr "Modus:"
 
-msgid "Interface"
-msgstr "Interface"
+msgid "Interface:"
+msgstr "Interface:"
 
-msgid "Adapter"
-msgstr "Adapter"
+msgid "Adapter:"
+msgstr "Adapter:"
 
-msgid "VDE Socket"
-msgstr "VDE-socket"
+msgid "VDE Socket:"
+msgstr "VDE-socket:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box apparaattester"
@@ -1453,7 +1438,7 @@ msgid "Enable backlight"
 msgstr "Backlight inschakelen"
 
 msgid "Invert colors"
-msgstr "Kleuren omkeren"
+msgstr "Kleuren inverteren"
 
 msgid "BIOS size"
 msgstr "BIOS-grootte"
@@ -1818,6 +1803,9 @@ msgstr "Wiel"
 msgid "Five + Wheel"
 msgstr "Vijf + Wiel"
 
+msgid "Five + 2 Wheels"
+msgstr "Vijf + 2 Wielen"
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 Serieel / SMT3(R)V"
 
@@ -1963,13 +1951,13 @@ msgid "Bochs latest"
 msgstr "Bochs nieuwste"
 
 msgid "Mono Non-Interlaced"
-msgstr "Mono Non-Interlaced"
+msgstr "Mono niet geïnterlaced"
 
 msgid "Color Interlaced"
 msgstr "Kleur interlaced"
 
 msgid "Color Non-Interlaced"
-msgstr "Kleur non-interlaced"
+msgstr "Kleur niet geïnterlaced"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "3Dfx Voodoo Graphics"
@@ -2059,34 +2047,34 @@ msgid "High performance impact"
 msgstr "Hoge prestatie-impact"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] RAM-schijf (max. snelheid)"
+msgstr "[Generiek] RAM-schijf (max. snelheid)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr ""
+msgstr "[Generiek] 1989 (3500 RPM)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr ""
+msgstr "[Generiek] 1992 (3600 RPM)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr ""
+msgstr "[Generiek] 1994 (4500 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr ""
+msgstr "[Generiek] 1996 (5400 RPM)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr ""
+msgstr "[Generiek] 1997 (5400 RPM)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr ""
+msgstr "[Generiek] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr ""
+msgstr "[Generiek] 2000 (7200 RPM)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A-kloon (ISA)"
 
 msgid "Vendor"
-msgstr "Verkoper"
+msgstr "Leverancier"
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Generieke PC/XT geheugenuitbreiding"
@@ -2101,61 +2089,61 @@ msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for t
 msgstr "TrueType lettertypen in de map \"roms/printer/fonts\" zijn nodig voor de emulatie van de generieke ESC/P dot-matrix-printer."
 
 msgid "Inhibit multimedia keys"
-msgstr ""
+msgstr "Multimedia-toetsen blokkeren"
 
 msgid "Ask for confirmation before saving settings"
-msgstr ""
+msgstr "Vraag om bevestiging voor het opslaan van instellingen"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr ""
+msgstr "Vraag om bevestiging voor een harde reset"
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
-
-msgid "Display hotkey message when entering full-screen mode"
-msgstr ""
+msgstr "Vraag om bevestiging voor afsluiten"
 
 msgid "Options"
-msgstr ""
+msgstr "Opties"
+
+msgid "Model"
+msgstr "Model"
 
 msgid "Model:"
-msgstr ""
+msgstr "Model:"
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr ""
+msgstr "Initialisatie van de Vulkan-renderer is mislukt."
 
 msgid "GLSL Error"
-msgstr ""
+msgstr "GLSL-fout"
 
 msgid "Could not load shader: %1"
-msgstr ""
+msgstr "Kon de shader niet laden: %1"
 
 msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr ""
+msgstr "OpenGL versie 3.0 of hoger is vereist. Huidige GLSL-versie is %1.%2"
 
 msgid "Could not load texture: %1"
-msgstr ""
+msgstr "Kon de textuur niet laden: %1"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr ""
+msgstr "Kon de shader niet compileren:\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr ""
+msgstr "Programma niet gelinkt:\n\n%1"
 
 msgid "Shader Manager"
-msgstr ""
+msgstr "Shaderbeheer"
 
 msgid "Shader Configuration"
-msgstr ""
+msgstr "Shaderconfiguratie"
 
 msgid "Add"
-msgstr ""
+msgstr "Toevoegen"
 
 msgid "Move up"
-msgstr ""
+msgstr "Omhoog verplaatsen"
 
 msgid "Move down"
-msgstr ""
+msgstr "Omlaag verplaatsen"
 
 msgid "Could not load file %1"
-msgstr ""
+msgstr "Kon bestand %1 niet laden"

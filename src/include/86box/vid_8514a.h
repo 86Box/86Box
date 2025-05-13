@@ -90,6 +90,7 @@ typedef struct ibm8514_t {
         uint16_t subsys_cntl;
         uint16_t setup_md;
         uint16_t advfunc_cntl;
+        uint16_t advfunc_cntl_old;
         uint16_t cur_y;
         uint16_t cur_x;
         int16_t  destx;
@@ -107,8 +108,10 @@ typedef struct ibm8514_t {
         uint16_t wrt_mask;
         uint16_t rd_mask;
         uint16_t color_cmp;
-        uint16_t bkgd_mix;
-        uint16_t frgd_mix;
+        uint8_t bkgd_mix;
+        uint8_t frgd_mix;
+        uint8_t bkgd_sel;
+        uint8_t frgd_sel;
         uint16_t multifunc_cntl;
         uint16_t multifunc[16];
         uint16_t clip_right;
@@ -159,6 +162,14 @@ typedef struct ibm8514_t {
         int      ydir;
         int      linedraw;
         uint32_t ge_offset;
+        uint32_t src_ge_offset;
+        uint32_t dst_ge_offset;
+        uint16_t src_pitch;
+        uint16_t dst_pitch;
+        int64_t cur_x_24bpp;
+        int64_t cur_y_24bpp;
+        int64_t dest_x_24bpp;
+        int64_t dest_y_24bpp;
     } accel;
 
     uint16_t test;
@@ -240,6 +251,8 @@ typedef struct ibm8514_t {
     uint32_t vram_amount;
     int      vram_512k_8514;
     int      vendor_mode;
+    int      _8514on;
+    int      _8514crt;
     PALETTE  _8514pal;
 
     latch8514_t latch;

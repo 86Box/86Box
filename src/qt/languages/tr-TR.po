@@ -450,15 +450,6 @@ msgstr "Nuked (daha doğru)"
 msgid "YMFM (faster)"
 msgstr "YMFM (daha hızlı)"
 
-msgid "Network type:"
-msgstr "Ağ türü:"
-
-msgid "PCap device:"
-msgstr "PCap cihazı:"
-
-msgid "Network adapter:"
-msgstr "Ağ cihazı:"
-
 msgid "COM1 Device:"
 msgstr "COM1 cihazı:"
 
@@ -638,9 +629,6 @@ msgstr "Kritik hata"
 
 msgid " - PAUSED"
 msgstr " - DURAKLATILDI"
-
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Pencere moduna geri dönmek için Ctrl+Alt+PgDn tuşlarına basın."
 
 msgid "Speed"
 msgstr "Hız"
@@ -872,9 +860,6 @@ msgstr "%1 PostScript dosyalarının otomatik olarak PDF dosyalarına çevirilme
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 PCL dosyalarının otomatik olarak PDF dosyalarına çevirilmesi için gereklidir.\n\nBu bulunmadığından dolayı genel PostScript yazıcısına gönderilen tüm dökümanlar Printer Command Language (.pcl) dosyası olarak kaydedilecektir."
-
-msgid "Entering fullscreen mode"
-msgstr "Tam ekran moduna geçiş yapılıyor"
 
 msgid "Don't show this message again"
 msgstr "Bu mesajı bir daha gösterme"
@@ -1314,8 +1299,8 @@ msgstr "OpenGL başlatılırken hata oluştu"
 msgid "\nFalling back to software rendering."
 msgstr "\nYazılım işleyicisine geri dönülüyor."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Medya görüntüsü (CD-ROM, disket, vb.) seçme diyaloğu 86Box yapılandırma dosyasıyla aynı dizinde başlayacaktır. Bu ayar muhtemelen sadece macOS üzerinde bir fark meydana getirecektir.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>Medya görüntüsü (CD-ROM, disket, vb.) seçme diyaloğu 86Box yapılandırma dosyasıyla aynı dizinde başlayacaktır. Bu ayar muhtemelen sadece macOS üzerinde bir fark meydana getirecektir.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Bu makine taşınmış veya kopyalanmış olabilir."
@@ -1350,17 +1335,17 @@ msgstr "Ağ kartı 3"
 msgid "Network Card #4"
 msgstr "Ağ kartı 4"
 
-msgid "Mode"
-msgstr "Mod"
+msgid "Mode:"
+msgstr "Mod:"
 
-msgid "Interface"
-msgstr "Arayüz"
+msgid "Interface:"
+msgstr "Arayüz:"
 
-msgid "Adapter"
-msgstr "Adaptör"
+msgid "Adapter:"
+msgstr "Adaptör:"
 
-msgid "VDE Socket"
-msgstr "VDE soketi"
+msgid "VDE Socket:"
+msgstr "VDE soketi:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box birim test cihazı"
@@ -1818,6 +1803,9 @@ msgstr "Tekerlek"
 msgid "Five + Wheel"
 msgstr "Beş + tekerlek"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 seri / SMT3(R)V"
 
@@ -2112,10 +2100,10 @@ msgstr ""
 msgid "Ask for confirmation before quitting"
 msgstr ""
 
-msgid "Display hotkey message when entering full-screen mode"
+msgid "Options"
 msgstr ""
 
-msgid "Options"
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

@@ -450,15 +450,6 @@ msgstr "Nuked (pontosabb)"
 msgid "YMFM (faster)"
 msgstr "YMFM (gyorsabb)"
 
-msgid "Network type:"
-msgstr "Hálózati típusa:"
-
-msgid "PCap device:"
-msgstr "PCap eszköz:"
-
-msgid "Network adapter:"
-msgstr "Hálózati kártya:"
-
 msgid "COM1 Device:"
 msgstr "COM1 eszköz:"
 
@@ -638,9 +629,6 @@ msgstr "Végzetes hiba"
 
 msgid " - PAUSED"
 msgstr " - SZÜNETELT"
-
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Használja a Ctrl+Alt+PgDn gombokat az ablakhoz való visszatéréshez."
 
 msgid "Speed"
 msgstr "Sebesség"
@@ -872,9 +860,6 @@ msgstr "%1 szükséges a PostScript fájlok PDF formátumba való automatikus ko
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Lnaugage (.pcl) files."
 msgstr "%1 szükséges a PCL fájlok PDF formátumba való automatikus konvertálásához.\n\nAz általános PCL nyomtatóra küldött dokumentumok Printer Command Language (.pcl) fájlként kerülnek mentésre."
-
-msgid "Entering fullscreen mode"
-msgstr "Teljes képernyős módra váltás"
 
 msgid "Don't show this message again"
 msgstr "Ne jelenítse meg újra ezt az üzenetet "
@@ -1314,8 +1299,8 @@ msgstr "Hiba az OpenGL inicializálásában"
 msgid "\nFalling back to software rendering."
 msgstr "\nVisszatérés a szoftveres rendereléshez."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;A médiaképek (CD-ROM, floppy stb.) kiválasztásakor a megnyitási párbeszédpanel ugyanabban a könyvtárban indul, mint a 86Box konfigurációs fájl. Ez a beállítás valószínűleg csak a macOS rendszerben jelent különbséget.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>A médiaképek (CD-ROM, floppy stb.) kiválasztásakor a megnyitási párbeszédpanel ugyanabban a könyvtárban indul, mint a 86Box konfigurációs fájl. Ez a beállítás valószínűleg csak a macOS rendszerben jelent különbséget.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Lehet, hogy ezt a gépet áthelyezték vagy lemásolták."
@@ -1350,17 +1335,17 @@ msgstr "Hálózati kártya 3"
 msgid "Network Card #4"
 msgstr "Hálózati kártya 4"
 
-msgid "Mode"
-msgstr "Mód"
+msgid "Mode:"
+msgstr "Mód:"
 
-msgid "Interface"
-msgstr "Interfész"
+msgid "Interface:"
+msgstr "Interfész:"
 
-msgid "Adapter"
-msgstr "Adapter"
+msgid "Adapter:"
+msgstr "Adapter:"
 
-msgid "VDE Socket"
-msgstr "VDE aljzat"
+msgid "VDE Socket:"
+msgstr "VDE aljzat:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"
@@ -1818,6 +1803,9 @@ msgstr "Kerék"
 msgid "Five + Wheel"
 msgstr "Öt + kerék"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 soros / SMT3(R)V"
 
@@ -2112,10 +2100,10 @@ msgstr ""
 msgid "Ask for confirmation before quitting"
 msgstr ""
 
-msgid "Display hotkey message when entering full-screen mode"
+msgid "Options"
 msgstr ""
 
-msgid "Options"
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

@@ -776,9 +776,9 @@ svga_recalctimings(svga_t *svga)
         }
 
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-            if (svga->seqregs[1] & 8) {                             /*40 column*/
+            if (svga->seqregs[1] & 8)                               /*40 column*/
                 svga->render = svga_render_text_40;
-            } else
+            else
                 svga->render = svga_render_text_80;
 
             if (xga_active && (svga->xga != NULL)) {
@@ -981,7 +981,7 @@ svga_recalctimings(svga_t *svga)
     crtcconst = svga->clock * svga->char_width;
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (dev->on)
-            crtcconst8514 = svga->clock8514;
+            crtcconst8514 = svga->clock_8514;
     }
     if (xga_active && (svga->xga != NULL)) {
         if (xga->on)
@@ -1689,9 +1689,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
             addr &= ~3;
         addr = ((addr & 0xfffc) << 2) | ((addr & 0x30000) >> 14) | (addr & ~0x3ffff);
     } else if (svga->chain2_write) {
-        writemask2 &= ~0xa;
-        if (addr & 1)
-            writemask2 <<= 1;
+        writemask2 &= 0x5 << (addr & 1);
         addr &= ~1;
         addr <<= 2;
     } else

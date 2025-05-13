@@ -259,7 +259,7 @@ sis_5511_host_to_pci_write(int addr, uint8_t val, void *priv)
         case 0x7a: /* DRAM Bank Register 2-1 */
         case 0x7c: /* DRAM Bank Register 3-0 */
         case 0x7e: /* DRAM Bank Register 3-1 */
-            spd_write_drbs(dev->pci_conf, 0x70, 0x7e, 0x82);
+            spd_write_drbs(dev->pci_conf, 0x70, 0x7e, 0x02);
             break;
  
         case 0x71: /* DRAM Bank Register 0-0 */

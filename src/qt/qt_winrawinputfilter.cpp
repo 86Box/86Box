@@ -64,6 +64,8 @@ extern void    win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 #include "qt_rendererstack.hpp"
 #include "ui_qt_mainwindow.h"
 
+static bool NewDarkMode = FALSE;
+
 bool windows_is_light_theme() {
     // based on https://stackoverflow.com/questions/51334674/how-to-detect-windows-10-light-dark-mode-in-win32-application
 
@@ -220,6 +222,14 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                 if ((((void *) msg->lParam) != nullptr) &&
                     (wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0)) {
 
+                    bool OldDarkMode = NewDarkMode;
+#if 0
+                    if (do_auto_pause && !dopause) {
+                        auto_paused = 1;
+                        plat_pause(1);
+                    }
+#endif
+
                     if (!windows_is_light_theme()) {
                         QFile f(":qdarkstyle/dark/darkstyle.qss");
 
@@ -228,45 +238,39 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                         else {
                             f.open(QFile::ReadOnly | QFile::Text);
                             QTextStream ts(&f);
-                           qApp->setStyleSheet(ts.readAll());
+                            qApp->setStyleSheet(ts.readAll());
                         }
-                        QTimer::singleShot(1000, [this] () {
-                            BOOL DarkMode  = TRUE;
-                            auto vid_stack = (RendererStack::Renderer) vid_api;
-                            DwmSetWindowAttribute((HWND) window->winId(),
-                                                  DWMWA_USE_IMMERSIVE_DARK_MODE,
-                                                  (LPCVOID) &DarkMode,
-                                                  sizeof(DarkMode));
-                            window->ui->stackedWidget->switchRenderer(vid_stack);
-                            for (int i = 1; i < MONITORS_NUM; i++) {
-                                if ((window->renderers[i] != nullptr) &&
-                                    !window->renderers[i]->isHidden())
-                                    window->renderers[i]->switchRenderer(vid_stack);
-                            }
-                        });
+                        NewDarkMode = TRUE;
                     } else {
                         qApp->setStyleSheet("");
-                        QTimer::singleShot(1000, [this] () {
-                            BOOL DarkMode = FALSE;
-                            DwmSetWindowAttribute((HWND) window->winId(),
-                                                  DWMWA_USE_IMMERSIVE_DARK_MODE,
-                                                  (LPCVOID) &DarkMode,
-                                                  sizeof(DarkMode));
-                        });
+                        NewDarkMode = FALSE;
                     }
 
-                    QTimer::singleShot(1000, [this] () {
+                    if (NewDarkMode != OldDarkMode)  QTimer::singleShot(1000, [this] () {
+                        BOOL DarkMode = NewDarkMode;
+                        DwmSetWindowAttribute((HWND) window->winId(),
+                                              DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                              (LPCVOID) &DarkMode,
+                                              sizeof(DarkMode));
+
                         window->resizeContents(monitors[0].mon_scrnsz_x,
                                                monitors[0].mon_scrnsz_y);
+
                         for (int i = 1; i < MONITORS_NUM; i++) {
                             auto           mon = &(monitors[i]);
 
                             if ((window->renderers[i] != nullptr) &&
                                 !window->renderers[i]->isHidden())
                                 window->resizeContentsMonitor(mon->mon_scrnsz_x,
-                                                              mon->mon_scrnsz_y,
-                                                              i);
+                                mon->mon_scrnsz_y, i);
                         }
+
+#if 0
+                        if (auto_paused) {
+                            plat_pause(0);
+                            auto_paused = 0;
+                        }
+#endif
                     });
                 }
                 break;

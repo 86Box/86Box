@@ -73,6 +73,27 @@ machine_at_acc386_init(const machine_t *model)
 }
 
 int
+machine_at_asus386_3364k_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/asus386_3364k/am27c512dip28-64b53c26be3d8160533563.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&rabbit_device);
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
 machine_at_asus386_init(const machine_t *model)
 {
     int ret;
@@ -700,6 +721,8 @@ static const device_config_t pb450_config[] = {
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/OPTI802.bin", "" } },
             { .name = "PNP 1.1A", .internal_name = "pnp11a", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/PNP11A.bin", "" } },
+            { .name = "P4HS20 (Micro Firmware/Phoenix 4.05)", .internal_name = "p4hs20", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/p4hs20.bin", "" } },
             { .files_no = 0 }
         },
     },
@@ -1178,6 +1201,39 @@ machine_at_ms4144_init(const machine_t *model)
     device_add(&keyboard_at_ami_device);
 
     device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
+int
+machine_at_acerp3_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/acerp3/Acer Mate 600 P3 BIOS U13 V2.0R02-J3 ACR8DE00-S00-950911-R02-J3.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    machine_at_sis_85c496_common_init(model);
+    device_add(&sis_85c496_device);
+    pci_register_slot(0x09, PCI_CARD_VIDEO,  0, 0, 0, 0);
+    pci_register_slot(0x0A, PCI_CARD_IDE, 	 0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x14, PCI_CARD_NORMAL, 1, 2, 3, 4);
+
+    device_add(&fdc37c665_ide_device);
+    device_add(&keyboard_ps2_acer_pci_device);
+	device_add(&ide_cmd640_pci_legacy_only_device);
+	
+	if (gfxcard[0] == VID_INTERNAL)
+        device_add(&gd5434_onboard_pci_device);
+
+    device_add(&intel_flash_bxt_device);
 
     return ret;
 }
@@ -2283,7 +2339,8 @@ machine_at_tg486g_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&amstrad_megapc_nvr_device);
     device_add(&sis_85c471_device);
     device_add(&ide_isa_device);
     device_add(&fdc37c651_ide_device);
@@ -2401,6 +2458,30 @@ machine_at_dataexpert386wb_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&opti391_device);
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_isa486c_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/isa486c/asus-isa-486c-401a0-040591-657e2c17a0218417632602.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&isa486c_device);
+    device_add(&port_92_key_device);
+
     device_add(&keyboard_at_ami_device);
 
     if (fdc_current[0] == FDC_INTERNAL)

@@ -68,6 +68,7 @@ extern const device_t ibmxt286_device;
 extern const device_t pb450_device;
 extern const device_t jukopc_device;
 extern const device_t vendex_device;
+extern const device_t c5sbm2_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                             MACHINE_TYPE_NONE       },
@@ -1709,7 +1710,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#ifdef USE_LASERXT
     {
         .name = "[8088] VTech Laser Turbo XT",
         .internal_name = "ltxt",
@@ -1735,21 +1735,20 @@ const machine_t machines[] = {
         .ram = {
             .min = 256,
             .max = 640,
-            .step = 256
+            .step = 64
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_device,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &laserxt_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif /* USE_LASERXT */
     /* Has a standard PS/2 KBC (so, use IBM PS/2 Type 1). */
     {
         .name = "[8088] Xi8088",
@@ -2612,8 +2611,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-
-#ifdef USE_LASERXT
     {
         .name = "[8086] VTech Laser XT3",
         .internal_name = "lxt3",
@@ -2637,23 +2634,22 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
-            .min = 256,
+            .min = 512,
             .max = 640,
-            .step = 256
+            .step = 64
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_lxt3_device,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &lxt3_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif /* USE_LASERXT */
 
     /* 286 AT machines */
     /* Has IBM AT KBC firmware. */
@@ -4809,7 +4805,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_VIDEO_FIXED,
+        .flags = MACHINE_VIDEO_FIXED | MACHINE_AX,
         .ram = {
             .min = 1024,
             .max = 4096,
@@ -5637,6 +5633,46 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Has Award KBC firmware. */
+    {
+        .name = "[SiS 310] ASUS 386/33-64K",
+        .internal_name = "asus386_3364k",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_SIS_310,
+        .init = machine_at_asus386_3364k_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386DX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_APM,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has AMIKey F KBC firmware. */
     {
         .name = "[SiS 310] ASUS ISA-386C",
@@ -6003,6 +6039,46 @@ const machine_t machines[] = {
     },
 
     /* 486 machines - Socket 1 */
+    /* Has Award KBC firmware. */
+    {
+        .name = "[ZyMOS Poach] ASUS ISA-486C",
+        .internal_name = "isa486c",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_ZYMOS_POACH,
+        .init = machine_at_isa486c_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_APM,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has AMI KF KBC firmware. */
     {
         .name = "[ZyMOS Poach] Genoa Unknown 486",
@@ -7089,7 +7165,7 @@ const machine_t machines[] = {
         .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
-            .max = 65536,
+            .max = 131072,
             .step = 1024
         },
         .nvrmask = 127,
@@ -7129,7 +7205,7 @@ const machine_t machines[] = {
         .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
-            .max = 65536,
+            .max = 131072,
             .step = 1024
         },
         .nvrmask = 127,
@@ -7209,7 +7285,7 @@ const machine_t machines[] = {
         .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
-            .max = 65536,
+            .max = 131072,
             .step = 1024
         },
         .nvrmask = 127,
@@ -7249,7 +7325,7 @@ const machine_t machines[] = {
         .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
-            .max = 65536,
+            .max = 131072,
             .step = 1024
         },
         .nvrmask = 127,
@@ -7328,9 +7404,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_VLB,
         .flags = MACHINE_IDE | MACHINE_APM, /* Has internal video: Western Digital WD90C33-ZZ */
         .ram = {
-            .min = 1024,
-            .max = 65536,
-            .step = 1024
+            .min = 4096,
+            .max = 40960,
+            .step = 4096
         },
         .nvrmask = 127,
         .kbc_device = NULL,
@@ -7368,9 +7444,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE_DUAL | MACHINE_SUPER_IO | MACHINE_APM | MACHINE_VIDEO,
         .ram = {
-            .min = 1024,
-            .max = 65536,
-            .step = 1024
+            .min = 4096,
+            .max = 69632,
+            .step = 4096
         },
         .nvrmask = 127,
         .kbc_device = NULL,
@@ -8156,7 +8232,10 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* I'm going to assume this as an AMIKey-2 like the other two 486SP3's. */
+    /*
+       This has an AMIKey (and an on-board NCR 53C810 PCI SCSI controller), thanks, eBay!
+       The keyboard port is AT.
+     */
     {
         .name = "[i420TX] ASUS PCI/I-486SP3",
         .internal_name = "486sp3",
@@ -8354,6 +8433,45 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    {
+        .name = "[SiS 496] Acer P3",
+        .internal_name = "acerp3",
+        .type = MACHINE_TYPE_486_S3_PCI,
+        .chipset = MACHINE_CHIPSET_SIS_496,
+        .init = machine_at_acerp3_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK(CPU_i486SX, CPU_i486DX, CPU_Am486SX, CPU_Am486DX),
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5434_onboard_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -10053,7 +10171,7 @@ const machine_t machines[] = {
             .max_multi = 1.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE | MACHINE_SCSI | MACHINE_APM,
+        .flags = MACHINE_IDE /*| MACHINE_SCSI */ | MACHINE_APM,
         .ram = {
             .min = 2048,
             .max = 524288,
@@ -11428,7 +11546,7 @@ const machine_t machines[] = {
     /* SiS 5501 */
     /* Has the Lance LT38C41 KBC. */
     {
-        .name = "[SiS 5501] Chaintech 5SBM2 (M103)",
+        .name = "[SiS 5501] Chaintech 5SBM/5SBM2 (M103)",
         .internal_name = "5sbm2",
         .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_SIS_5501,
@@ -11451,7 +11569,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
-            .max = 262144,
+            .max = 131072,
             .step = 8192
         },
         .nvrmask = 255,
@@ -11459,7 +11577,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &c5sbm2_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
@@ -13976,6 +14094,47 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Has the VIA VT82C596A southbridge with on-chip KBC identical to the VIA
+       VT82C42N. */
+    {
+        .name = "[VIA MVP3] eMachines eTower 3xxc",
+        .internal_name = "delhi3",
+        .type = MACHINE_TYPE_SOCKETS7,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_MVP3,
+        .init = machine_at_delhi3_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 124242424,
+            .min_voltage = 2000,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, /* Has internal video: ATI 3D Rage IIc AGP (Rage 2) */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_USB,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = &cs4235_device,
+        .net_device = NULL
+    },
 
     /* SiS 5591 */
     /* Has the SiS 5591 chipset with on-chip KBC. */
@@ -14129,7 +14288,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
         .ram = {
             .min = 8192,
-            .max = 786432,
+            .max = 393216,
             .step = 8192
         },
         .nvrmask = 511,
@@ -14554,6 +14713,47 @@ const machine_t machines[] = {
     },
 
     /* 440FX */
+    /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+       MultiKey/42 (version 1.38) KBC firmware. */
+    {
+        .name = "[i440FX] Acer V62X",
+        .internal_name = "acerv62x",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_acerv62x_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 83333333,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
+        .ram = {
+            .min = 8192,
+            .max = 393216,
+            .step = 8192
+        },
+        .nvrmask = 511,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* The base board has a Holtek HT6542B KBC with AMIKey-2 (updated 'H') KBC firmware. */
     {
         .name = "[i440FX] ASUS P/I-P65UP5 (C-PKND)",
@@ -14611,7 +14811,7 @@ const machine_t machines[] = {
             .block = CPU_BLOCK_NONE,
             .min_bus = 60000000,
             .max_bus = 83333333,
-            .min_voltage = 1800,
+            .min_voltage = 2800,
             .max_voltage = 3500,
             .min_multi = 1.5,
             .max_multi = 8.0
@@ -14741,7 +14941,7 @@ const machine_t machines[] = {
             .min_multi = 1.5,
             .max_multi = 8.0
         },
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, /* Has internal video: SGS Thompson Riva 128 AGP, network: NEC PK-UG-X006 (Intel 82558B chip) and sound: OAK Audia 3D (OTI-610) */
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram = {
             .min = 8192,

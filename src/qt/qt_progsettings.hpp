@@ -15,10 +15,12 @@ public:
     explicit ProgSettings(QWidget *parent = nullptr);
     ~ProgSettings();
 #ifdef Q_OS_WINDOWS
-    static QString getFontName(uint32_t lcid);
+    static QString getFontName(int langId);
 #endif
-    static void    loadTranslators(QObject *parent = nullptr);
-    static void    reloadStrings();
+    static int      languageCodeToId(QString langCode);
+    static QString  languageIdToCode(int id);
+    static void     loadTranslators(QObject *parent = nullptr);
+    static void     reloadStrings();
     class CustomTranslator : public QTranslator {
     public:
         CustomTranslator(QObject *parent = nullptr)
@@ -31,10 +33,10 @@ public:
             return QTranslator::translate("", sourceText, disambiguation, n);
         }
     };
-    static CustomTranslator                       *translator;
-    static QTranslator                            *qtTranslator;
-    static QMap<uint32_t, QPair<QString, QString>> lcid_langcode;
-    static QMap<int, std::wstring>                 translatedstrings;
+    static CustomTranslator                 *translator;
+    static QTranslator                      *qtTranslator;
+    static QVector<QPair<QString, QString>>  languages;
+    static QMap<int, std::wstring>           translatedstrings;
 
 protected slots:
     void accept() override;

@@ -510,9 +510,6 @@ kbc_scan_kbd_at(atkbc_t *dev)
 }
 
 static void
-write_p2(atkbc_t *dev, uint8_t val);
-
-static void
 kbc_at_poll_at(atkbc_t *dev)
 {
     switch (dev->state) {
@@ -778,6 +775,7 @@ static void
 write_p2(atkbc_t *dev, uint8_t val)
 {
     uint8_t old = dev->p2;
+
     kbc_at_log("ATkbc: write P2: %02X (old: %02X)\n", val, dev->p2);
 
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
@@ -849,6 +847,25 @@ write_p2(atkbc_t *dev, uint8_t val)
             resetx86();
         }
     }
+}
+
+uint8_t
+kbc_at_read_p(void *priv, uint8_t port, uint8_t mask)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+    uint8_t *p   = (port == 2) ? &dev->p2 : &dev->p1;
+    uint8_t  ret = *p & mask;
+
+    return ret;
+}
+
+void
+kbc_at_write_p(void *priv, uint8_t port, uint8_t mask, uint8_t val)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+    uint8_t *p   = (port == 2) ? &dev->p2 : &dev->p1;
+
+    *p = (*p & mask) | val;
 }
 
 static void
@@ -2807,7 +2824,7 @@ const device_t keyboard_ps2_acer_pci_device = {
 
 const device_t keyboard_ps2_phoenix_pci_device = {
     .name          = "PS/2 Keyboard (Phoenix)",
-    .internal_name = "keyboard_ps2_acer_pci",
+    .internal_name = "keyboard_ps2_phoenix_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_PHOENIX,
     .init          = kbc_at_init,

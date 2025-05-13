@@ -450,15 +450,6 @@ msgstr "Nuked (dokładniejszy)"
 msgid "YMFM (faster)"
 msgstr "YMFM (szybszy)"
 
-msgid "Network type:"
-msgstr "Rodzaj sieci:"
-
-msgid "PCap device:"
-msgstr "Urządzenie PCap:"
-
-msgid "Network adapter:"
-msgstr "Karta sieciowa:"
-
 msgid "COM1 Device:"
 msgstr "Urządzenie COM1:"
 
@@ -638,9 +629,6 @@ msgstr "Fatalny błąd"
 
 msgid " - PAUSED"
 msgstr " - PAUSED"
-
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Naciśnij klawisze Ctrl+Alt+PgDn aby wrócić to trybu okna."
 
 msgid "Speed"
 msgstr "Szybkość"
@@ -872,9 +860,6 @@ msgstr "%1 jest wymagany do automatycznej konwersji plików PostScript do PDF.\n
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 jest wymagany do automatycznej konwersji plików PCL do PDF.\n\nDokumenty wysłane do generycznej drukarki PCL zostaną zapisane jako pliki Printer Command Language (.pcl)."
-
-msgid "Entering fullscreen mode"
-msgstr "Przechodzenie do trybu pełnoekranowego"
 
 msgid "Don't show this message again"
 msgstr "Nie pokazuj więcej tego komunikatu"
@@ -1314,8 +1299,8 @@ msgstr "Błąd inicjalizacji OpenGL"
 msgid "\nFalling back to software rendering."
 msgstr "\nPowrót do renderowania oprogramowania."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Podczas wybierania obrazów nośników (CD-ROM, dyskietka itp.) otwarte okno dialogowe rozpocznie się w tym samym katalogu, co plik konfiguracyjny 86Box. To ustawienie prawdopodobnie będzie miało znaczenie tylko na macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>Podczas wybierania obrazów nośników (CD-ROM, dyskietka itp.) otwarte okno dialogowe rozpocznie się w tym samym katalogu, co plik konfiguracyjny 86Box. To ustawienie prawdopodobnie będzie miało znaczenie tylko na macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "To urządzenie mogło zostać przeniesione lub skopiowane."
@@ -1350,17 +1335,17 @@ msgstr "Karta sieciowa 3"
 msgid "Network Card #4"
 msgstr "Karta sieciowa 4"
 
-msgid "Mode"
-msgstr "Tryb"
+msgid "Mode:"
+msgstr "Tryb:"
 
-msgid "Interface"
-msgstr "Interfejs"
+msgid "Interface:"
+msgstr "Interfejs:"
 
-msgid "Adapter"
-msgstr "Adapter"
+msgid "Adapter:"
+msgstr "Adapter:"
 
-msgid "VDE Socket"
-msgstr "Gniazdo VDE"
+msgid "VDE Socket:"
+msgstr "Gniazdo VDE:"
 
 msgid "86Box Unit Tester"
 msgstr "Tester urządzeń 86Box"
@@ -1816,7 +1801,10 @@ msgid "Wheel"
 msgstr "Koło"
 
 msgid "Five + Wheel"
-msgstr "Five + Wheel"
+msgstr ""
+
+msgid "Five + 2 Wheels"
+msgstr ""
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 szeregowa / SMT3(R)V"
@@ -2112,10 +2100,10 @@ msgstr ""
 msgid "Ask for confirmation before quitting"
 msgstr ""
 
-msgid "Display hotkey message when entering full-screen mode"
+msgid "Options"
 msgstr ""
 
-msgid "Options"
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

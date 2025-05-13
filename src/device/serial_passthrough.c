@@ -54,7 +54,7 @@ serial_passthrough_log(const char *fmt, ...)
 void
 serial_passthrough_init(void)
 {
-    for (uint8_t c = 0; c < SERIAL_MAX; c++) {
+    for (uint8_t c = 0; c < (SERIAL_MAX - 1); c++) {
         if (serial_passthrough_enabled[c]) {
             /* Instance n for COM n */
             device_add_inst(&serial_passthrough_device, c + 1);

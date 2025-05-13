@@ -450,15 +450,6 @@ msgstr "Nuked (更准确)"
 msgid "YMFM (faster)"
 msgstr "YMFM (更快)"
 
-msgid "Network type:"
-msgstr "网络类型:"
-
-msgid "PCap device:"
-msgstr "PCap 设备:"
-
-msgid "Network adapter:"
-msgstr "网络适配器:"
-
 msgid "COM1 Device:"
 msgstr "COM1 设备:"
 
@@ -638,9 +629,6 @@ msgstr "致命错误"
 
 msgid " - PAUSED"
 msgstr " - 已暂停"
-
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "按下 Ctrl+Alt+PgDn 返回到窗口模式。"
 
 msgid "Speed"
 msgstr "速度"
@@ -872,9 +860,6 @@ msgstr "%1 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 是将 PCL 文件转换为 PDF 所需要的库。\n\n使用通用 PCL 打印机打印的文档将被保存为 Printer Command Language (.pcl) 文件。"
-
-msgid "Entering fullscreen mode"
-msgstr "正在进入全屏模式"
 
 msgid "Don't show this message again"
 msgstr "不要再显示此消息"
@@ -1314,8 +1299,8 @@ msgstr "初始化 OpenGL 时出错"
 msgid "\nFalling back to software rendering."
 msgstr "\n回到软件渲染。"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;选择媒体图像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt；"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>选择媒体图像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。</p></body></html&gt；"
 
 msgid "This machine might have been moved or copied."
 msgstr "这台机器可能被移动或复制过。"
@@ -1350,17 +1335,17 @@ msgstr "网卡 3"
 msgid "Network Card #4"
 msgstr "网卡 4"
 
-msgid "Mode"
-msgstr "模式"
+msgid "Mode:"
+msgstr "模式:"
 
-msgid "Interface"
-msgstr "界面"
+msgid "Interface:"
+msgstr "界面:"
 
-msgid "Adapter"
-msgstr "适配器"
+msgid "Adapter:"
+msgstr "适配器:"
 
-msgid "VDE Socket"
-msgstr "VDE 套接字"
+msgid "VDE Socket:"
+msgstr "VDE 套接字:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box 装置测试仪"
@@ -1818,6 +1803,9 @@ msgstr "滚轮"
 msgid "Five + Wheel"
 msgstr "五键+滚轮"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 串行 / SMT3（R）V"
 
@@ -2112,10 +2100,10 @@ msgstr ""
 msgid "Ask for confirmation before quitting"
 msgstr ""
 
-msgid "Display hotkey message when entering full-screen mode"
+msgid "Options"
 msgstr ""
 
-msgid "Options"
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

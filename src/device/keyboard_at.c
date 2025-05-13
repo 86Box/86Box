@@ -3276,7 +3276,7 @@ add_data_kbd(uint16_t val)
 
     dev->ignore = 1;
 
-    keyboard_get_states(NULL, &num_lock, NULL);
+    keyboard_get_states(NULL, &num_lock, NULL, NULL);
     shift_states = keyboard_get_shift() & STATE_SHIFT_MASK;
 
     switch (val) {
@@ -3476,6 +3476,10 @@ keyboard_at_bat(void *priv)
 
         keyboard_scan = 1;
 
+        keyboard_all_up();
+        keyboard_update_states(0, 0, 0, 0);
+
+        keyboard_set_in_reset(0);
         kbc_at_dev_queue_add(dev, 0xaa, 0);
     } else {
         bat_counter--;
@@ -3510,6 +3514,7 @@ keyboard_at_write(void *priv)
         switch (dev->command) {
             case 0xed: /* Set/reset LEDs */
                 kbc_at_dev_queue_add(dev, 0xfa, 0);
+                keyboard_update_states(!!(val & 0x4), !!(val & 0x2), val & 0x1, !!(val & 0x8));
                 keyboard_at_log("%s: Set/reset LEDs [%02X]\n", dev->name, val);
                 break;
 
@@ -3712,6 +3717,7 @@ keyboard_at_write(void *priv)
                 break;
 
             case 0xff: /* reset */
+                keyboard_set_in_reset(1);
                 kbc_at_dev_reset(dev, 1);
                 bat_counter = 1000;
                 break;
@@ -3767,6 +3773,7 @@ keyboard_at_init(const device_t *info)
 
     keyboard_send = add_data_kbd;
     SavedKbd = dev;
+    keyboard_update_states(0, 0, 0, 0);
 
     inv_cmd_response = (dev->type & FLAG_PS2) ? 0xfe : 0xfa;
 
@@ -3784,6 +3791,8 @@ keyboard_at_close(void *priv)
 
     /* Disable the scancode maps. */
     keyboard_set_table(NULL);
+
+    keyboard_update_states(0, 0, 0, 0);
 
     SavedKbd = NULL;
 

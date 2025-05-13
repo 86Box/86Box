@@ -450,15 +450,6 @@ msgstr "Nuked (precizniji)"
 msgid "YMFM (faster)"
 msgstr "YMFM (brži)"
 
-msgid "Network type:"
-msgstr "Tip mreže:"
-
-msgid "PCap device:"
-msgstr "Uređaj PCap:"
-
-msgid "Network adapter:"
-msgstr "Mrežna kartica:"
-
 msgid "COM1 Device:"
 msgstr "Uređaj COM1:"
 
@@ -638,9 +629,6 @@ msgstr "Fatalna greška"
 
 msgid " - PAUSED"
 msgstr " - ZASTAO"
-
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Pritisnite Ctrl+Alt+PgDn za povratak u prozorski način rada."
 
 msgid "Speed"
 msgstr "Brzina"
@@ -872,9 +860,6 @@ msgstr "%1 je potrebno za automatsku konverziju PostScript datoteke u PDF datote
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 je potrebno za automatsku konverziju PCL datoteke u PDF datoteke.\n\nSvi dokumenti poslani na generički PCL pisač bit će spremljeni kao Printer Command Language (.pcl) datoteke."
-
-msgid "Entering fullscreen mode"
-msgstr "Ulazim u cijelozaslonski način"
 
 msgid "Don't show this message again"
 msgstr "Ne pokazi više ovu poruku"
@@ -1314,8 +1299,8 @@ msgstr "Nije moguće inicijalizirati OpenGL"
 msgid "\nFalling back to software rendering."
 msgstr "\nVraća se na softverski renderer."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Prilikom odabira medijskih slika (CD-ROM, diskete itd.), otvoreni dijalog zopočet će u istom direktoriju kao i konfiguracijska datoteka 86Box-a. Razlika će vjerojatno biti primjetna samo na macOS-u.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>Prilikom odabira medijskih slika (CD-ROM, diskete itd.), otvoreni dijalog zopočet će u istom direktoriju kao i konfiguracijska datoteka 86Box-a. Razlika će vjerojatno biti primjetna samo na macOS-u.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Ovaj je sistem mogao biti premješten ili kopiran."
@@ -1350,17 +1335,17 @@ msgstr "Mrežna kartica 3"
 msgid "Network Card #4"
 msgstr "Mrežna kartica 4"
 
-msgid "Mode"
-msgstr "Način"
+msgid "Mode:"
+msgstr "Način:"
 
-msgid "Interface"
-msgstr "Sučelje"
+msgid "Interface:"
+msgstr "Sučelje:"
 
-msgid "Adapter"
-msgstr "Adapter"
+msgid "Adapter:"
+msgstr "Adapter:"
 
-msgid "VDE Socket"
-msgstr "VDE utičnica"
+msgid "VDE Socket:"
+msgstr "VDE utičnica:"
 
 msgid "86Box Unit Tester"
 msgstr "Jedinični ispitivač 86Box-a"
@@ -1818,6 +1803,9 @@ msgstr "Kotač"
 msgid "Five + Wheel"
 msgstr "Pet + kotač"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 serijski / SMT3(R)V"
 
@@ -2112,10 +2100,10 @@ msgstr ""
 msgid "Ask for confirmation before quitting"
 msgstr ""
 
-msgid "Display hotkey message when entering full-screen mode"
+msgid "Options"
 msgstr ""
 
-msgid "Options"
+msgid "Model"
 msgstr ""
 
 msgid "Model:"

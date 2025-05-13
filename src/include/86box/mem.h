@@ -300,7 +300,6 @@ extern int writelnum;
 
 extern int memspeed[11];
 
-extern int     mmu_perm;
 extern uint8_t high_page; /* if a high (> 4 gb) page was detected */
 
 extern uint8_t *_mem_exec[MEM_MAPPINGS_NO];
