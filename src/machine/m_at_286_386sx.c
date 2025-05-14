@@ -281,6 +281,26 @@ machine_at_micronics386_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_micronics386px_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/micronics386/386-Micronics-09-00021-LO.BIN",
+                                "roms/machines/micronics386/386-Micronics-09-00021-HI.BIN",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_init(model);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
 static void
 machine_at_scat_init(const machine_t *model, int is_v4, int is_ami)
 {
