@@ -58,7 +58,7 @@ kbc_at_dev_log(const char *fmt, ...)
 #    define kbc_at_dev_log(fmt, ...)
 #endif
 
-static void
+void
 kbc_at_dev_queue_reset(atkbc_dev_t *dev, uint8_t reset_main)
 {
     if (reset_main) {

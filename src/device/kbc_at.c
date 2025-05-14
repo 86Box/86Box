@@ -220,6 +220,7 @@ kbc_at_set_fast_reset(const uint8_t new_fast_reset)
     fast_reset = new_fast_reset;
 }
 
+#define ENABLE_KBC_AT_LOG 1
 #ifdef ENABLE_KBC_AT_LOG
 int kbc_at_do_log = ENABLE_KBC_AT_LOG;
 
