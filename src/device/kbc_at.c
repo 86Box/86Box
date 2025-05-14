@@ -2149,6 +2149,12 @@ kbc_at_write(uint16_t port, uint8_t val, void *priv)
 
                 dev->wantdata  = 0;
                 dev->state     = STATE_MAIN_IBF;
+
+                /*
+                   Explicitly clear IBF so that any preceding
+                   command is not executed.
+                 */
+                dev->status   &= ~STAT_IFULL;
                 return;
             }
             break;
@@ -2160,11 +2166,36 @@ kbc_at_write(uint16_t port, uint8_t val, void *priv)
                 dev->wantdata  = 1;
                 dev->state     = STATE_KBC_PARAM;
                 dev->command = 0xd1;
+
+                /*
+                   Explicitly clear IBF so that any preceding
+                   command is not executed.
+                 */
+                dev->status   &= ~STAT_IFULL;
                 return;
             } else if (fast_reset && ((val & 0xf0) == 0xf0)) {
                 pulse_output(dev, val & 0x0f);
 
                 dev->state     = STATE_MAIN_IBF;
+
+                /*
+                   Explicitly clear IBF so that any preceding
+                   command is not executed.
+                 */
+                dev->status   &= ~STAT_IFULL;
+                return;
+            } else if (val == 0xad) {
+                /* Fast track it because of the Bochs BIOS. */
+                kbc_at_log("ATkbc: disable keyboard\n");
+                set_enable_kbd(dev, 0);
+
+                dev->state     = STATE_MAIN_IBF;
+
+                /*
+                   Explicitly clear IBF so that any preceding
+                   command is not executed.
+                 */
+                dev->status   &= ~STAT_IFULL;
                 return;
             } else if (val == 0xae) {
                 /* Fast track it because of the LG MultiNet. */
@@ -2172,6 +2203,12 @@ kbc_at_write(uint16_t port, uint8_t val, void *priv)
                 set_enable_kbd(dev, 1);
 
                 dev->state     = STATE_MAIN_IBF;
+
+                /*
+                   Explicitly clear IBF so that any preceding
+                   command is not executed.
+                 */
+                dev->status   &= ~STAT_IFULL;
                 return;
             }
             break;
