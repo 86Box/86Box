@@ -105,6 +105,12 @@ static const struct {
         .pcsr_mask   = 0x3f
     },
     {
+        .device      = &w83971d_device,
+        .misc_flags  = AC97_MASTER_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .reset_flags = (27 << AC97_3D_SHIFT),
+        .pcsr_mask   = 0x3f
+    },
+    {
         .device      = &wm9701a_device,
         .misc_flags  = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
         .reset_flags = AC97_DAC_18B | AC97_ADC_18B,
@@ -284,8 +290,9 @@ line_gain:
 
         case 0x22:      /* 3D Control */
             switch (ac97_codecs[dev->model].reset_flags >> AC97_3D_SHIFT) {
-                case 1: /* Analog Devices */
-                case 6: /* Crystal */
+                case 1:  /* Analog Devices */
+                case 6:  /* Crystal */
+                case 27: /* Winbond */
                     val &= 0x000f;
                     break;
 
@@ -755,6 +762,20 @@ const device_t tr28023_device = {
     .internal_name = "tr28023",
     .flags         = DEVICE_AC97,
     .local         = AC97_CODEC_TR28023,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t w83971d_device = {
+    .name          = "Winbond W83971D",
+    .internal_name = "w83971d",
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_W83971D,
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,
