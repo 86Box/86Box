@@ -443,7 +443,11 @@ machine_at_d824_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5428_onboard_device);
 
-    device_add(&keyboard_ps2_device);
+    /*
+       Technically, it should be the VL82C114 but we do not have
+       a proper datasheet of it that tells us the registers.
+     */
+    device_add(&vl82c113_device);
 
     device_add(&ide_isa_device);
     device_add(&fdc37c651_device);
