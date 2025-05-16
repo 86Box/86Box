@@ -43,11 +43,8 @@
 #define BIOS_ROM_PATH_W32I_ISA                 "roms/video/et4000w32/ET4KW32I.VBI"
 #define BIOS_ROM_PATH_W32I_VLB                 "roms/video/et4000w32/tseng.u41.bin"
 #define BIOS_ROM_PATH_W32P_VIDEOMAGIC_REVB_VLB "roms/video/et4000w32/VideoMagic-BioS-HXIRTW32PWSRL.bin"
-#define BIOS_ROM_PATH_W32P_IMASCAN_VLB 		   "roms/video/et4000w32/tseng_et4000w32p-8.03.bin"
-#define BIOS_ROM_PATH_W32P_MIROVIDEO20TD_VLB   "roms/video/et4000w32/m27c256b-at-dip28-miro20td-675dada18e7fa701369657.bin"
 #define BIOS_ROM_PATH_W32P                     "roms/video/et4000w32/ET4K_W32.BIN"
 #define BIOS_ROM_PATH_W32P_REVC                "roms/video/et4000w32/et4000w32pcardex.BIN"
-#define BIOS_ROM_PATH_W32P_REVCD_ONBOARD        "roms/video/et4000w32/vid.BIN"
 
 #define ACL_WRST                               1
 #define ACL_RDST                               2
@@ -58,10 +55,7 @@ enum {
     ET4000W32,
     ET4000W32I,
     ET4000W32P_REVC,
-	ET4000W32P_REVCD_ONBOARD,
     ET4000W32P_VIDEOMAGIC_REVB,
-	ET4000W32P_IMASCAN_VLB,
-	ET4000W32P_MIROVIDEO20TD_VLB,
     ET4000W32P,
     ET4000W32P_CARDEX,
     ET4000W32P_DIAMOND
@@ -184,7 +178,7 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3c7:
         case 0x3c8:
         case 0x3c9:
-            if (et4000->type <= ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD)
+            if (et4000->type <= ET4000W32P_REVC)
                 sdac_ramdac_out(addr, 0, val, svga->ramdac, svga);
             else
                 stg_ramdac_out(addr, val, svga->ramdac, svga);
@@ -308,13 +302,13 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *priv)
             if (svga->hwcursor.cur_xsize == 128) {
                 svga->hwcursor.xoff &= 0x7f;
                 svga->hwcursor.yoff &= 0x7f;
-                if (et4000->type > ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD) {
+                if (et4000->type > ET4000W32P_REVC) {
                     if (svga->bpp == 24) {
                         et4000->adjust_cursor = 2;
                     }
                 }
             } else {
-                if (et4000->type > ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD) {
+                if (et4000->type > ET4000W32P_REVC) {
                     if ((svga->bpp == 24) && et4000->adjust_cursor) {
                         et4000->adjust_cursor = 0;
                     }
@@ -354,7 +348,7 @@ et4000w32p_in(uint16_t addr, void *priv)
         case 0x3c7:
         case 0x3c8:
         case 0x3c9:
-            if (et4000->type <= ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD)
+            if (et4000->type <= ET4000W32P_REVC)
                 return sdac_ramdac_in(addr, 0, svga->ramdac, svga);
             else
                 return stg_ramdac_in(addr, svga->ramdac, svga);
@@ -509,8 +503,8 @@ et4000w32p_recalctimings(svga_t *svga)
                 svga->hdisp >>= 1;
                 svga->dots_per_clock >>= 1;
             }
-            if (et4000->type <= ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD) {
-                if (et4000->type == ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD) {
+            if (et4000->type <= ET4000W32P_REVC) {
+                if (et4000->type == ET4000W32P_REVC) {
                     if (svga->hdisp != 1024)
                         et4000->adjust_cursor = 1;
                 } else
@@ -520,7 +514,7 @@ et4000w32p_recalctimings(svga_t *svga)
         case 24:
             svga->hdisp /= 3;
             svga->dots_per_clock /= 3;
-            if (et4000->type <= ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD)
+            if (et4000->type <= ET4000W32P_REVC)
                 et4000->adjust_cursor = 2;
             if ((et4000->type == ET4000W32P_DIAMOND) && ((svga->hdisp == (640 / 2)) || (svga->hdisp == 1232))) {
                 svga->hdisp = 640;
@@ -554,7 +548,7 @@ et4000w32p_recalctimings(svga_t *svga)
                     break;
                 case 0x40:
                 case 0x60: /* 256+ colours */
-                    if (et4000->type <= ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD)
+                    if (et4000->type <= ET4000W32P_REVC)
                         svga->clock /= 2;
 
                     switch (svga->bpp) {
@@ -735,13 +729,13 @@ et4000w32p_accel_write_fifo(et4000w32p_t *et4000, uint32_t addr, uint8_t val)
             et4000->acl.queued.dest_off = (et4000->acl.queued.dest_off & 0x00ff) | (val << 8);
             break;
         case 0x8e:
-            if (et4000->type >= ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD)
+            if (et4000->type >= ET4000W32P_REVC)
                 et4000->acl.queued.pixel_depth = val & 0x30;
             else
                 et4000->acl.queued.vbus = val & 0x03;
             break;
         case 0x8f:
-            if (et4000->type >= ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD)
+            if (et4000->type >= ET4000W32P_REVC)
                 et4000->acl.queued.xy_dir = val & 0xb7;
             else
                 et4000->acl.queued.xy_dir = val & 0x03;
@@ -765,7 +759,7 @@ et4000w32p_accel_write_fifo(et4000w32p_t *et4000, uint32_t addr, uint8_t val)
             et4000->acl.queued.count_y = (et4000->acl.queued.count_y & 0x00ff) | (val << 8);
             break;
         case 0x9c:
-            if (et4000->type >= ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD)
+            if (et4000->type >= ET4000W32P_REVC)
                 et4000->acl.queued.ctrl_routing = val & 0xdb;
             else
                 et4000->acl.queued.ctrl_routing = val & 0xb7;
@@ -791,7 +785,7 @@ et4000w32p_accel_write_fifo(et4000w32p_t *et4000, uint32_t addr, uint8_t val)
         case 0xa3:
             et4000->acl.queued.dest_addr = (et4000->acl.queued.dest_addr & 0x00ffffff) | (val << 24);
             et4000->acl.internal = et4000->acl.queued;
-            if (et4000->type >= ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD) {
+            if (et4000->type >= ET4000W32P_REVC) {
                 et4000w32p_blit_start(et4000);
                 et4000w32_log("Destination Address write and start XY Block, xcnt = %i, ycnt = %i\n", et4000->acl.x_count + 1, et4000->acl.y_count + 1);
                 if (!(et4000->acl.queued.ctrl_routing & 0x43)) {
@@ -855,7 +849,7 @@ et4000w32p_accel_write_fifo(et4000w32p_t *et4000, uint32_t addr, uint8_t val)
 static void
 et4000w32p_accel_write_mmu(et4000w32p_t *et4000, uint32_t addr, uint8_t val, uint8_t bank)
 {
-    if (et4000->type >= ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD) {
+    if (et4000->type >= ET4000W32P_REVC) {
         if (!(et4000->acl.status & ACL_XYST)) {
             et4000w32_log("XY MMU block not started\n");
             return;
@@ -1093,7 +1087,7 @@ et4000w32p_mmu_read(uint32_t addr, void *priv)
                 case 0x8d:
                     return et4000->acl.internal.dest_off >> 8;
                 case 0x8e:
-                    if (et4000->type >= ET4000W32P_REVC && ET4000W32P_REVCD_ONBOARD)
+                    if (et4000->type >= ET4000W32P_REVC)
                         return et4000->acl.internal.pixel_depth;
                     return et4000->acl.internal.vbus;
                 case 0x8f:
@@ -2789,48 +2783,12 @@ et4000w32p_init(const device_t *info)
             et4000->svga.clock_gen = et4000->svga.ramdac;
             et4000->svga.getclock  = stg_getclock;
             break;
-			
-		case ET4000W32P_IMASCAN_VLB:
-            /* ET4000/W32p Imascan RGB */
-            et4000->rev = 5;
-
-            rom_init(&et4000->bios_rom, BIOS_ROM_PATH_W32P_IMASCAN_VLB, 0xc0000, 0x8000, 0x7fff, 0,
-                     MEM_MAPPING_EXTERNAL);
-
-            et4000->svga.ramdac    = device_add(&stg_ramdac_device);
-            et4000->svga.clock_gen = et4000->svga.ramdac;
-            et4000->svga.getclock  = stg_getclock;
-            break;
-			
-		case ET4000W32P_MIROVIDEO20TD_VLB:
-            /* ET4000/W32p miroVIDEO 20TD LIVE! */
-            et4000->rev = 5;
-
-            rom_init(&et4000->bios_rom, BIOS_ROM_PATH_W32P_MIROVIDEO20TD_VLB, 0xc0000, 0x8000, 0x7fff, 0,
-                     MEM_MAPPING_EXTERNAL);
-
-            et4000->svga.ramdac    = device_add(&stg_ramdac_device);
-            et4000->svga.clock_gen = et4000->svga.ramdac;
-            et4000->svga.getclock  = stg_getclock;
-            break;
 
         case ET4000W32P_REVC:
             /* ET4000/W32p rev C */
             et4000->rev = 7;
 
             rom_init(&et4000->bios_rom, BIOS_ROM_PATH_W32P_REVC, 0xc0000, 0x8000, 0x7fff, 0,
-                     MEM_MAPPING_EXTERNAL);
-
-            et4000->svga.ramdac    = device_add(&tseng_ics5341_ramdac_device);
-            et4000->svga.clock_gen = et4000->svga.ramdac;
-            et4000->svga.getclock  = sdac_getclock;
-            break;
-			
-		case ET4000W32P_REVCD_ONBOARD:
-            /* ET4000/W32p rev C */
-            et4000->rev = 7;
-
-            rom_init(&et4000->bios_rom, BIOS_ROM_PATH_W32P_REVCD_ONBOARD, 0xc0000, 0x8000, 0x7fff, 0,
                      MEM_MAPPING_EXTERNAL);
 
             et4000->svga.ramdac    = device_add(&tseng_ics5341_ramdac_device);
@@ -2933,27 +2891,9 @@ et4000w32p_videomagic_revb_vlb_available(void)
 }
 
 int
-et4000w32p_imascan_vlb_available(void)
-{
-    return rom_present(BIOS_ROM_PATH_W32P_IMASCAN_VLB);
-}
-
-int
-et4000w32p_mirovideo20td_vlb_available(void)
-{
-    return rom_present(BIOS_ROM_PATH_W32P_MIROVIDEO20TD_VLB);
-}
-
-int
 et4000w32p_revc_available(void)
 {
     return rom_present(BIOS_ROM_PATH_W32P_REVC);
-}
-
-int
-et4000w32p_revcd_onboard_available(void)
-{
-    return rom_present(BIOS_ROM_PATH_W32P_REVCD_ONBOARD);
 }
 
 int
@@ -3003,23 +2943,19 @@ et4000w32p_force_redraw(void *priv)
 static const device_config_t et4000w32p_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 2,
-        .selection = {
-            {
-                .description = "1 MB",
-                .value = 1
-            },
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -3081,34 +3017,6 @@ const device_t et4000w32i_vlb_device = {
     .config        = et4000w32p_config
 };
 
-const device_t et4000w32p_imascan_vlb_device = {
-    .name          = "Tseng Labs ET4000/w32p VLB (Imascan)",
-    .internal_name = "et4000w32p_imascan_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = ET4000W32P_IMASCAN_VLB,
-    .init          = et4000w32p_init,
-    .close         = et4000w32p_close,
-    .reset         = NULL,
-    .available     = et4000w32p_imascan_vlb_available,
-    .speed_changed = et4000w32p_speed_changed,
-    .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
-};
-
-const device_t et4000w32p_mirovideo20td_vlb_device = {
-    .name          = "Tseng Labs ET4000/w32p VLB (miroVIDEO 20TD LIVE!)",
-    .internal_name = "et4000w32p_mirovideo20td_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = ET4000W32P_MIROVIDEO20TD_VLB,
-    .init          = et4000w32p_init,
-    .close         = et4000w32p_close,
-    .reset         = NULL,
-    .available     = et4000w32p_mirovideo20td_vlb_available,
-    .speed_changed = et4000w32p_speed_changed,
-    .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
-};
-
 const device_t et4000w32p_videomagic_revb_vlb_device = {
     .name          = "Tseng Labs ET4000/w32p Rev. B VLB (VideoMagic)",
     .internal_name = "et4000w32p_videomagic_revb_vlb",
@@ -3160,20 +3068,6 @@ const device_t et4000w32p_revc_pci_device = {
     .close         = et4000w32p_close,
     .reset         = NULL,
     .available     = et4000w32p_revc_available,
-    .speed_changed = et4000w32p_speed_changed,
-    .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
-};
-
-const device_t et4000w32p_revcd_onboard_pci_device = {
-    .name          = "Tseng Labs ET4000/w32p Rev. C/D PCI (On-Board)",
-    .internal_name = "et4000w32p_revc_pci",
-    .flags         = DEVICE_PCI,
-    .local         = ET4000W32P_REVCD_ONBOARD,
-    .init          = et4000w32p_init,
-    .close         = et4000w32p_close,
-    .reset         = NULL,
-    .available     = et4000w32p_revcd_onboard_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
     .config        = et4000w32p_config
