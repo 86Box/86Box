@@ -159,6 +159,9 @@ extern const device_t stpc_atlas_device;
 extern const device_t stpc_serial_device;
 extern const device_t stpc_lpt_device;
 
+/* Symphony */
+extern const device_t sl82c461_device;
+
 /* UMC */
 extern const device_t umc_8886f_device;
 extern const device_t umc_8886af_device;

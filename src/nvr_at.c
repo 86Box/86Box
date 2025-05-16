@@ -296,6 +296,7 @@
 #define FLAG_P6RP4_HACK    0x10
 #define FLAG_PIIX4         0x20
 #define FLAG_MULTI_BANK    0x40
+#define FLAG_MARTIN_HACK   0x80
 
 typedef struct local_t {
     int8_t stat;
@@ -733,6 +734,13 @@ nvr_read(uint16_t addr, void *priv)
                 ret = REGD_VRT;
                 break;
 
+            case 0x11:
+                if (local->flags & FLAG_MARTIN_HACK)
+                    ret = nvr->regs[local->addr[addr_id]] | 0x02;
+                else
+                    ret = nvr->regs[local->addr[addr_id]];
+                break;
+
             case 0x2c:
                 if (!nvr->is_new && (local->flags & FLAG_AMI_1994_HACK))
                     ret = nvr->regs[local->addr[addr_id]] & 0x7f;
@@ -764,6 +772,17 @@ nvr_read(uint16_t addr, void *priv)
                     for (i = 0x10; i <= 0x2d; i++) {
                         if (i == 0x2c)
                             checksum += (nvr->regs[i] & 0x7f);
+                        else
+                            checksum += nvr->regs[i];
+                    }
+                    if (local->addr[addr_id] == 0x2e)
+                        ret = checksum >> 8;
+                    else
+                        ret = checksum & 0xff;
+                } else if (!nvr->is_new && (local->flags & FLAG_MARTIN_HACK)) {
+                    for (i = 0x10; i <= 0x2d; i++) {
+                        if (i == 0x11)
+                            checksum += (nvr->regs[i] | 0x02);
                         else
                             checksum += nvr->regs[i];
                     }
@@ -1123,9 +1142,11 @@ nvr_at_init(const device_t *info)
             if (info->local & 0x10) {
                 local->def = 0x00;
                 local->flags |= FLAG_AMI_1992_HACK;
-            } else if (info->local == 36)
+            } else if ((info->local == 36) || (info->local == 68)) {
                 local->def = 0x00;
-            else
+                if (info->local == 68)
+                    local->flags |= FLAG_MARTIN_HACK;
+            } else
                 local->def = 0xff;
             nvr->irq    = 8;
             local->cent = RTC_CENTURY_AT;
@@ -1159,6 +1180,9 @@ nvr_at_init(const device_t *info)
 
     /* Initialize the generic NVR. */
     nvr_init(nvr);
+
+    if (nvr->is_new && (local->flags & FLAG_MARTIN_HACK))
+        nvr->regs[0x11] = nvr->regs[0x2f] = 0x02;
 
     if (nvr_at_inited == 0) {
         /* Start the timers. */
@@ -1417,6 +1441,20 @@ const device_t amstrad_megapc_nvr_device = {
     .internal_name = "amstrad_megapc_nvr",
     .flags         = DEVICE_ISA16,
     .local         = 36,
+    .init          = nvr_at_init,
+    .close         = nvr_at_close,
+    .reset         = nvr_at_reset,
+    .available     = NULL,
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t martin_nvr_device = {
+    .name          = "Zeos Martin NVRAM",
+    .internal_name = "martin_nvr",
+    .flags         = DEVICE_ISA16,
+    .local         = 68,
     .init          = nvr_at_init,
     .close         = nvr_at_close,
     .reset         = nvr_at_reset,

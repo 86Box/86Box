@@ -61,11 +61,6 @@ enum {
 /*Very rough estimate*/
 #define VID_CLOCK (double) (651 * 416 * 60)
 
-static uint8_t cga_crtcmask[32] = {
-    0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f, 0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
-    0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
-
 /* Mapping of attributes to colours */
 static uint32_t amber;
 static uint32_t black;
@@ -97,7 +92,10 @@ compaq_plasma_display_get(void)
 
 typedef struct compaq_plasma_t {
     cga_t         cga;
+    uint8_t       ctl_mode;
+    uint8_t       port_13c6;
     uint8_t       port_23c6;
+    uint8_t       port_27c6;
     uint8_t       internal_monitor;
     uint8_t       attrmap;
 } compaq_plasma_t;
@@ -116,16 +114,18 @@ compaq_plasma_recalctimings(compaq_plasma_t *self)
     double _dispofftime;
     double disptime;
 
-    if (!self->internal_monitor && !(self->port_23c6 & 1)) {
+    if (!self->internal_monitor && !(self->port_23c6 & 0x01)) {
         cga_recalctimings(&self->cga);
         return;
     }
 
     disptime          = 651;
     _dispontime       = 640;
-    _dispofftime      = disptime - _dispontime;
-    self->cga.dispontime  = (uint64_t) (_dispontime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
-    self->cga.dispofftime = (uint64_t) (_dispofftime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
+    _dispofftime = disptime - _dispontime;
+    _dispontime *= CGACONST / 2;
+    _dispofftime *= CGACONST / 2;
+    self->cga.dispontime  = (uint64_t) (_dispontime);
+    self->cga.dispofftime = (uint64_t) (_dispofftime);
 }
 
 static void
@@ -144,9 +144,9 @@ compaq_plasma_write(uint32_t addr, uint8_t val, void *priv)
     compaq_plasma_t *self = (compaq_plasma_t *) priv;
 
     self->cga.vram[addr & 0x7fff] = val;
+
     compaq_plasma_waitstates(&self->cga);
 }
-
 static uint8_t
 compaq_plasma_read(uint32_t addr, void *priv)
 {
@@ -163,49 +163,59 @@ static void
 compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
 {
     compaq_plasma_t *self = (compaq_plasma_t *) priv;
-    uint8_t          old;
+
+    if (self->port_23c6 & 0x08) {
+        if ((addr >= 0x3d0) && (addr <= 0x3dc))
+            addr ^= 0x60;
+    }
 
     switch (addr) {
         /* Emulated CRTC, register select */
+        case 0x3d0:
+        case 0x3d2:
         case 0x3d4:
+        case 0x3d6:
             cga_out(addr, val, &self->cga);
             break;
 
         /* Emulated CRTC, value */
+        case 0x3d1:
+        case 0x3d3:
         case 0x3d5:
-            old                               = self->cga.crtc[self->cga.crtcreg];
-            self->cga.crtc[self->cga.crtcreg] = val & cga_crtcmask[self->cga.crtcreg];
-
+        case 0x3d7:
             /* Register 0x12 controls the attribute mappings for the
              * plasma screen. */
             if (self->cga.crtcreg == 0x12) {
                 self->attrmap = val;
                 compaq_plasma_recalcattrs(self);
-                break;
+                return;
             }
+            cga_out(addr, val, &self->cga);
 
-            if (old != val) {
-                if (self->cga.crtcreg < 0xe || self->cga.crtcreg > 0x10) {
-                    self->cga.fullchange = changeframecount;
-                    compaq_plasma_recalctimings(self);
-                }
-            }
+            compaq_plasma_recalctimings(self);
             break;
         case 0x3d8:
         case 0x3d9:
+        case 0x3db:
+        case 0x3dc:
             cga_out(addr, val, &self->cga);
             break;
 
         case 0x13c6:
-            compaq_plasma_display_set((val & 8) ? 1 : 0);
+            self->port_13c6 = val;
+            compaq_plasma_display_set((self->port_13c6 & 0x08) ? 1 : 0);
             break;
 
         case 0x23c6:
             self->port_23c6 = val;
-            if (val & 8) /* Disable internal CGA */
-                mem_mapping_disable(&self->cga.mapping);
+            if (val & 0x08) /* Disable internal CGA */
+                mem_mapping_set_addr(&self->cga.mapping, 0xb0000, 0x8000);
             else
-                mem_mapping_enable(&self->cga.mapping);
+                mem_mapping_set_addr(&self->cga.mapping, 0xb8000, 0x8000);
+            break;
+
+        case 0x27c6:
+            self->port_27c6 = val;
             break;
 
         default:
@@ -219,40 +229,53 @@ compaq_plasma_in(uint16_t addr, void *priv)
     compaq_plasma_t *self = (compaq_plasma_t *) priv;
     uint8_t          ret  = 0xff;
 
+    if (self->port_23c6 & 0x08) {
+        if ((addr >= 0x3d0) && (addr <= 0x3dc))
+            addr ^= 0x60;
+    }
+
     switch (addr) {
         case 0x3d4:
         case 0x3da:
+        case 0x3db:
+        case 0x3dc:
             ret = cga_in(addr, &self->cga);
             break;
 
+        case 0x3d1:
+        case 0x3d3:
         case 0x3d5:
+        case 0x3d7:
             if (self->cga.crtcreg == 0x12) {
                 ret = self->attrmap & 0x0f;
-                if (self->internal_monitor)
+                if (compaq_plasma_display_get())
                     ret |= 0x30; /* Plasma / CRT */
             } else
                 ret = cga_in(addr, &self->cga);
+        break;
+
+        case 0x3d8:
+            ret = self->cga.cgamode;
             break;
 
         case 0x13c6:
-            ret = compaq_plasma_display_get() ? 8 : 0;
-            ret |= 4;
+            ret = self->port_13c6;
+            break;
+
+        case 0x17c6:
+            ret = 0xf6;
             break;
 
         case 0x1bc6:
-            ret = 0;
-            if (compaq_plasma_display_get()) {
-                if ((self->cga.cgamode & 0x12) == 0x12) {
-                    if (self->port_23c6 & 8)
-                        ret |= 0x40;
-                    else
-                        ret |= 0x20;
-                }
-            }
+            ret = 0x40;
             break;
 
         case 0x23c6:
-            ret = 0;
+            ret = self->port_23c6;
+            break;
+
+        case 0x27c6:
+            ret = self->port_27c6 & 0x3f;
             break;
 
         default:
@@ -276,6 +299,8 @@ compaq_plasma_poll(void *priv)
     int      cursorline;
     int      blink     = 0;
     int      underline = 0;
+    int      c;
+    int      x;
     uint32_t ink = 0;
     uint32_t fg = (self->cga.cgacol & 0x0f) ? amber : black;
     uint32_t bg = black;
@@ -292,230 +317,252 @@ compaq_plasma_poll(void *priv)
     }
 
     /* graphic mode and not mode 40h */
-    if (!self->internal_monitor && !(self->port_23c6 & 1)) {
+    if (!self->internal_monitor && !(self->port_23c6 & 0x01)) {
+        /* standard cga mode */
         cga_poll(&self->cga);
         return;
-    }
+    } else {
+        /* mode 40h or text mode */
+        if (!self->cga.linepos) {
+            timer_advance_u64(&self->cga.timer, self->cga.dispofftime);
+            self->cga.cgastat |= 1;
+            self->cga.linepos = 1;
+            if (self->cga.cgadispon) {
+                if (self->cga.displine == 0)
+                    video_wait_for_buffer();
 
-    /* mode 40h or text mode */
-    if (!self->cga.linepos) {
-        timer_advance_u64(&self->cga.timer, self->cga.dispofftime);
-        self->cga.cgastat |= 1;
-        self->cga.linepos = 1;
-        if (self->cga.cgadispon) {
-            if (self->cga.displine == 0) {
-                video_wait_for_buffer();
-            }
-            if (self->cga.cgamode & 2) {
-                if (self->cga.cgamode & 0x10) {
-                    /* 640x400 mode */
-                    if (self->port_23c6 & 1) /* 640*400 */ {
-                        addr = ((self->cga.displine) & 1) * 0x2000 + ((self->cga.displine >> 1) & 1) * 0x4000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
-                    } else {
-                        addr = ((self->cga.displine >> 1) & 1) * 0x2000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
-                    }
-                    for (uint8_t x = 0; x < 80; x++) {
-                        dat = self->cga.vram[addr & 0x7FFF];
-                        addr++;
+                /* 80-col */
+                if (self->cga.cgamode & 0x01) {
+                    sc = self->cga.displine & 0x0f;
+                    addr = ((ma & ~1) + (self->cga.displine >> 4) * 80) << 1;
+                    ma += (self->cga.displine >> 4) * 80;
 
-                        for (uint8_t c = 0; c < 8; c++) {
-                            ink = (dat & 0x80) ? fg : bg;
-                            if (!(self->cga.cgamode & 8))
-                                ink = black;
-                            (buffer32->line[self->cga.displine])[x * 8 + c] = ink;
-                            dat <<= 1;
+                    if ((self->cga.crtc[0x0a] & 0x60) == 0x20)
+                        cursorline = 0;
+                    else
+                        cursorline = (((self->cga.crtc[0x0a] & 0x0f) << 1) <= sc) && (((self->cga.crtc[0x0b] & 0x0f) << 1) >= sc);
+
+                    /* for each text column */
+                    for (x = 0; x < 80; x++) {
+                        /* video output enabled */
+                        if (self->cga.cgamode & 0x08) {
+                            /* character */
+                            chr = self->cga.vram[(addr + (x << 1)) & 0x7fff];
+                            /* text attributes */
+                            attr = self->cga.vram[(addr + ((x << 1) + 1)) & 0x7fff];
+                        } else
+                            chr = attr = 0;
+                        /* check if cursor has to be drawn */
+                        drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 0x08) && (self->cga.cgablink & 0x10));
+                        /* check if character underline mode should be set */
+                        underline = (((self->port_23c6 >> 5) == 2) && (attr & 0x01) && !(attr & 0x06));
+                        if (underline) {
+                            /* set forecolor to white */
+                            attr = attr | 0x7;
                         }
+                        blink = 0;
+                        /* set foreground */
+                        cols[1] = blinkcols[attr][1];
+                        /* blink active */
+                        if (self->cga.cgamode & 0x20) {
+                            cols[0] = blinkcols[attr][0];
+                            /* attribute 7 active and not cursor */
+                            if ((self->cga.cgablink & 0x08) && (attr & 0x80) && !drawcursor) {
+                                /* set blinking */
+                                cols[1] = cols[0];
+                                blink   = 1;
+                            }
+                        } else {
+                            /* Set intensity bit */
+                            cols[1] = normcols[attr][1];
+                            cols[0] = normcols[attr][0];
+                            blink = ((attr & 0x80) << 3) + 7 + 16;
+                        }
+                        /* character underline active and 7th row of pixels in character height being drawn */
+                        if (underline && (sc == 7)) {
+                            /* for each pixel in character width */
+                            for (c = 0; c < 8; c++)
+                                buffer32->line[self->cga.displine][(x << 3) + c] = mdaattr[attr][blink][1];
+                        } else if (drawcursor) {
+                            for (c = 0; c < 8; c++)
+                                buffer32->line[self->cga.displine][(x << 3) + c] = cols[(fontdatm2[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
+                        } else {
+                            for (c = 0; c < 8; c++)
+                                buffer32->line[self->cga.displine][(x << 3) + c] = cols[(fontdatm2[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0];
+                        }
+
+                        ma++;
+                    }
+                }
+                /* 40-col */
+                else if (!(self->cga.cgamode & 0x02)) {
+                    sc = self->cga.displine & 0x0f;
+                    addr = ((ma & ~1) + (self->cga.displine >> 4) * 40) << 1;
+                    ma += (self->cga.displine >> 4) * 40;
+
+                    if ((self->cga.crtc[0x0a] & 0x60) == 0x20)
+                        cursorline = 0;
+                    else
+                        cursorline = (((self->cga.crtc[0x0a] & 0x0f) << 1) <= sc) && (((self->cga.crtc[0x0b] & 0x0f) << 1) >= sc);
+
+                    for (x = 0; x < 40; x++) {
+                        /* video output enabled */
+                        if (self->cga.cgamode & 0x08) {
+                            /* character */
+                            chr = self->cga.vram[(addr + (x << 1)) & 0x7fff];
+                            /* text attributes */
+                            attr = self->cga.vram[(addr + ((x << 1) + 1)) & 0x7fff];
+                        } else
+                            chr = attr = 0;
+
+                        /* check if cursor has to be drawn */
+                        drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 0x08) && (self->cga.cgablink & 0x10));
+                        /* check if character underline mode should be set */
+                        underline = (((self->port_23c6 >> 5) == 2) && (attr & 0x01) && !(attr & 0x06));
+                        if (underline) {
+                            /* set forecolor to white */
+                            attr = attr | 0x7;
+                        }
+                        blink = 0;
+                        /* set foreground */
+                        cols[1] = blinkcols[attr][1];
+                        /* blink active */
+                        if (self->cga.cgamode & 0x20) {
+                            cols[0] = blinkcols[attr][0];
+                            /* attribute 7 active and not cursor */
+                            if ((self->cga.cgablink & 0x08) && (attr & 0x80) && !drawcursor) {
+                                /* set blinking */
+                                cols[1] = cols[0];
+                                blink   = 1;
+                            }
+                        } else {
+                            /* Set intensity bit */
+                            cols[1] = normcols[attr][1];
+                            cols[0] = normcols[attr][0];
+                            blink = ((attr & 0x80) << 3) + 7 + 16;
+                        }
+
+                        /* character underline active and 7th row of pixels in character height being drawn */
+                        if (underline && (self->cga.sc == 7)) {
+                            /* for each pixel in character width */
+                            for (c = 0; c < 8; c++)
+                                buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = mdaattr[attr][blink][1];
+                        } else if (drawcursor) {
+                            for (c = 0; c < 8; c++)
+                                buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(fontdatm2[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
+                        } else {
+                            for (c = 0; c < 8; c++)
+                                buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(fontdatm2[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0];
+                        }
+
+                        ma++;
                     }
                 } else {
-                    addr = ((self->cga.displine >> 1) & 1) * 0x2000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
-                    for (uint8_t x = 0; x < 80; x++) {
-                        dat = self->cga.vram[addr & 0x7fff];
-                        addr++;
+                    if (self->cga.cgamode & 0x10) {
+                        /* 640x400 mode */
+                        if (self->port_23c6 & 0x01) /* 640*400 */ {
+                            addr = ((self->cga.displine) & 1) * 0x2000 + ((self->cga.displine >> 1) & 1) * 0x4000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
+                        } else {
+                            addr = ((self->cga.displine >> 1) & 1) * 0x2000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
+                        }
+                        for (uint8_t x = 0; x < 80; x++) {
+                            dat = self->cga.vram[addr & 0x7fff];
+                            addr++;
 
-                        for (uint8_t c = 0; c < 4; c++) {
-                            pattern = (dat & 0xC0) >> 6;
-                            if (!(self->cga.cgamode & 8))
-                                pattern = 0;
-
-                            switch (pattern & 3) {
-                                case 0:
-                                    ink0 = ink1 = black;
-                                    break;
-                                case 1:
-                                    if (self->cga.displine & 1) {
-                                        ink0 = black;
-                                        ink1 = black;
-                                    } else {
-                                        ink0 = amber;
-                                        ink1 = black;
-                                    }
-                                    break;
-                                case 2:
-                                    if (self->cga.displine & 1) {
-                                        ink0 = black;
-                                        ink1 = amber;
-                                    } else {
-                                        ink0 = amber;
-                                        ink1 = black;
-                                    }
-                                    break;
-                                case 3:
-                                    ink0 = ink1 = amber;
-                                    break;
-
-                                default:
-                                    break;
+                            for (uint8_t c = 0; c < 8; c++) {
+                                ink = (dat & 0x80) ? fg : bg;
+                                if (!(self->cga.cgamode & 0x08))
+                                    ink = black;
+                                buffer32->line[self->cga.displine][(x << 3) + c] = ink;
+                                dat <<= 1;
                             }
-                            buffer32->line[self->cga.displine][x * 8 + 2 * c]     = ink0;
-                            buffer32->line[self->cga.displine][x * 8 + 2 * c + 1] = ink1;
-                            dat <<= 2;
-                        }
-                    }
-                }
-            } else if (self->cga.cgamode & 1) {
-                /* 80-col */
-                sc = self->cga.displine & 0x0f;
-                addr = ((ma & ~1) + (self->cga.displine >> 4) * 80) * 2;
-                ma += (self->cga.displine >> 4) * 80;
-
-                if ((self->cga.crtc[0x0a] & 0x60) == 0x20)
-                    cursorline = 0;
-                else
-                    cursorline = ((self->cga.crtc[0x0a] & 0x0f) * 2 <= sc) && ((self->cga.crtc[0x0b] & 0x0F) * 2 >= sc);
-
-                /* for each text column */
-                for (uint8_t x = 0; x < 80; x++) {
-                    /* video output enabled */
-                    chr        = self->cga.vram[(addr + 2 * x) & 0x7FFF];
-                    attr       = self->cga.vram[(addr + 2 * x + 1) & 0x7FFF];
-                    drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 8) && (self->cga.cgablink & 16));
-
-                    blink = ((self->cga.cgablink & 16) && (self->cga.cgamode & 0x20) && (attr & 0x80) && !drawcursor);
-                    underline = ((self->port_23c6 & 0x40) && (attr & 0x1) && !(attr & 0x6));
-                    /* blink active */
-                    if (self->cga.cgamode & 0x20) {
-                        cols[1] = blinkcols[attr][1];
-                        cols[0] = blinkcols[attr][0];
-                        /* attribute 7 active and not cursor */
-                        if (blink) {
-                            /* set blinking */
-                            cols[1] = cols[0];
                         }
                     } else {
-                        /* Set intensity bit */
-                        cols[1] = normcols[attr][1];
-                        cols[0] = normcols[attr][0];
-                    }
-                    /* character underline active and 7th row of pixels in character height being drawn */
-                    if (underline && (sc == 7)) {
-                        /* for each pixel in character width */
-                        for (uint8_t c = 0; c < 8; c++)
-                            buffer32->line[self->cga.displine][(x << 3) + c] = mdaattr[attr][blink][1];
-                    } else if (drawcursor) {
-                        for (uint8_t c = 0; c < 8; c++)
-                            buffer32->line[self->cga.displine][(x << 3) + c] = cols[(fontdatm2[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
-                    } else {
-                        for (uint8_t c = 0; c < 8; c++)
-                            buffer32->line[self->cga.displine][(x << 3) + c] = cols[(fontdatm2[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0];
-                    }
+                        addr = ((self->cga.displine >> 1) & 1) * 0x2000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
+                        for (uint8_t x = 0; x < 80; x++) {
+                            dat = self->cga.vram[addr & 0x7fff];
+                            addr++;
 
-                    ++ma;
-                }
-            } else { /* 40-col */
-                sc = self->cga.displine & 0x0f;
-                addr = ((ma & ~1) + (self->cga.displine >> 4) * 40) * 2;
-                ma += (self->cga.displine >> 4) * 40;
+                            for (uint8_t c = 0; c < 4; c++) {
+                                pattern = (dat & 0xC0) >> 6;
+                                if (!(self->cga.cgamode & 0x08))
+                                    pattern = 0;
 
-                if ((self->cga.crtc[0x0a] & 0x60) == 0x20)
-                    cursorline = 0;
-                else
-                    cursorline = ((self->cga.crtc[0x0a] & 0x0f) * 2 <= sc) && ((self->cga.crtc[0x0b] & 0x0F) * 2 >= sc);
+                                switch (pattern & 3) {
+                                    case 0:
+                                        ink0 = ink1 = black;
+                                        break;
+                                    case 1:
+                                    case 2:
+                                        if (self->cga.displine & 0x01) {
+                                            ink0 = black;
+                                            ink1 = amber;
+                                        } else {
+                                            ink0 = amber;
+                                            ink1 = black;
+                                        }
+                                        break;
+                                    case 3:
+                                        ink0 = ink1 = amber;
+                                        break;
 
-                for (uint8_t x = 0; x < 40; x++) {
-                    chr        = self->cga.vram[(addr + 2 * x) & 0x7FFF];
-                    attr       = self->cga.vram[(addr + 2 * x + 1) & 0x7FFF];
-                    drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 8) && (self->cga.cgablink & 16));
-
-                    blink = ((self->cga.cgablink & 16) && (self->cga.cgamode & 0x20) && (attr & 0x80) && !drawcursor);
-                    underline = ((self->port_23c6 & 0x40) && (attr & 0x1) && !(attr & 0x6));
-                    /* blink active */
-                    if (self->cga.cgamode & 0x20) {
-                        cols[1] = blinkcols[attr][1];
-                        cols[0] = blinkcols[attr][0];
-                        /* attribute 7 active and not cursor */
-                        if (blink) {
-                            /* set blinking */
-                            cols[1] = cols[0];
+                                    default:
+                                        break;
+                                }
+                                buffer32->line[self->cga.displine][(x << 3) + (c << 1)]     = ink0;
+                                buffer32->line[self->cga.displine][(x << 3) + (c << 1) + 1] = ink1;
+                                dat <<= 2;
+                            }
                         }
-                    } else {
-                        /* Set intensity bit */
-                        cols[1] = normcols[attr][1];
-                        cols[0] = normcols[attr][0];
                     }
-                    /* character underline active and 7th row of pixels in character height being drawn */
-                    if (underline && (sc == 7)) {
-                        /* for each pixel in character width */
-                        for (uint8_t c = 0; c < 8; c++)
-                            buffer32->line[self->cga.displine][(x << 4) + (c * 2)] = buffer32->line[self->cga.displine][(x << 4) + (c * 2) + 1] = mdaattr[attr][blink][1];
-                    } else if (drawcursor) {
-                        for (uint8_t c = 0; c < 8; c++)
-                            buffer32->line[self->cga.displine][(x << 4) + c * 2] = buffer32->line[self->cga.displine][(x << 4) + c * 2 + 1] = cols[(fontdatm2[chr][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
-                    } else {
-                        for (uint8_t c = 0; c < 8; c++)
-                            buffer32->line[self->cga.displine][(x << 4) + c * 2] = buffer32->line[self->cga.displine][(x << 4) + c * 2 + 1] = cols[(fontdatm2[chr][sc] & (1 << (c ^ 7))) ? 1 : 0];
-                    }
-                    ++ma;
                 }
             }
-        }
-        self->cga.displine++;
-        /* Hardcode a fixed refresh rate and VSYNC timing */
-        if (self->cga.displine == 400) { /* Start of VSYNC */
-            self->cga.cgastat |= 8;
-            self->cga.cgadispon = 0;
-        }
-        if (self->cga.displine == 416) { /* End of VSYNC */
-            self->cga.displine = 0;
-            self->cga.cgastat &= ~8;
-            self->cga.cgadispon = 1;
-        }
-    } else {
-        if (self->cga.cgadispon)
-            self->cga.cgastat &= ~1;
+            self->cga.displine++;
+            /* Hardcode a fixed refresh rate and VSYNC timing */
+            if (self->cga.displine == 400) { /* Start of VSYNC */
+                self->cga.cgastat |= 8;
+                self->cga.cgadispon = 0;
+            }
+            if (self->cga.displine == 416) { /* End of VSYNC */
+                self->cga.displine = 0;
+                self->cga.cgastat &= ~8;
+                self->cga.cgadispon = 1;
+            }
+        } else {
+            timer_advance_u64(&self->cga.timer, self->cga.dispontime);
+            if (self->cga.cgadispon)
+                self->cga.cgastat &= ~1;
 
-        timer_advance_u64(&self->cga.timer, self->cga.dispontime);
-        self->cga.linepos = 0;
+            self->cga.linepos = 0;
 
-        if (self->cga.displine == 400) {
-            /* Hardcode 640x400 window size */
-            if ((640 != xsize) || (400 != ysize) || video_force_resize_get()) {
+            if (self->cga.displine == 400) {
                 xsize = 640;
                 ysize = 400;
-                if (xsize < 64)
-                    xsize = 656;
-                if (ysize < 32)
-                    ysize = 200;
-                set_screen_size(xsize, ysize);
 
-                if (video_force_resize_get())
-                    video_force_resize_set(0);
+                if ((self->cga.cgamode & 0x08) || video_force_resize_get()) {
+                    set_screen_size(xsize, ysize);
+
+                    if (video_force_resize_get())
+                        video_force_resize_set(0);
+                }
+                /* ogc specific */
+                video_blit_memtoscreen(0, 0, xsize, ysize);
+                frames++;
+
+                /* Fixed 640x400 resolution */
+                video_res_x = 640;
+                video_res_y = 400;
+
+                if (self->cga.cgamode & 0x02) {
+                    if (self->cga.cgamode & 0x10)
+                        video_bpp = 1;
+                    else
+                        video_bpp = 2;
+                } else
+                    video_bpp = 0;
+
+                self->cga.cgablink++;
             }
-            video_blit_memtoscreen(0, 0, xsize, ysize);
-            frames++;
-
-            /* Fixed 640x400 resolution */
-            video_res_x = 640;
-            video_res_y = 400;
-
-            if (self->cga.cgamode & 0x02) {
-                if (self->cga.cgamode & 0x10)
-                    video_bpp = 1;
-                else
-                    video_bpp = 2;
-            } else
-                video_bpp = 0;
-
-            self->cga.cgablink++;
         }
     }
 }
@@ -560,7 +607,7 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
 
     /* Set up colours */
     amber = makecol(0xff, 0x7d, 0x00);
-    black = makecol(0x64, 0x0c, 0x00);
+    black = makecol(0x64, 0x19, 0x00);
 
     /* Initialize the attribute mapping. Start by defaulting everything
      * to black on amber, and with bold set by bit 3 */
@@ -631,11 +678,13 @@ compaq_plasma_init(UNUSED(const device_t *info))
 {
     compaq_plasma_t *self = calloc(1, sizeof(compaq_plasma_t));
 
-    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_compaq_plasma);
     if (compaq_machine_type == COMPAQ_PORTABLEIII)
         loadfont_ex("roms/machines/portableiii/K Combined.bin", 11, 0x4bb2);
     else
         loadfont_ex("roms/machines/portableiii/P.2 Combined.bin", 11, 0x4b49);
+
+    cga_init(&self->cga);
+    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_compaq_plasma);
 
     self->cga.composite = 0;
     self->cga.revision  = 0;
@@ -644,12 +693,16 @@ compaq_plasma_init(UNUSED(const device_t *info))
     self->internal_monitor = 1;
 
     cga_comp_init(self->cga.revision);
-    timer_add(&self->cga.timer, compaq_plasma_poll, self, 1);
-    mem_mapping_add(&self->cga.mapping, 0xb8000, 0x08000, compaq_plasma_read, NULL, NULL, compaq_plasma_write, NULL, NULL, NULL /*self->cga.vram*/, MEM_MAPPING_EXTERNAL, self);
-    io_sethandler(0x03d0, 0x0010, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
-    io_sethandler(0x13c6, 0x0001, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
-    io_sethandler(0x1bc6, 0x0001, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
-    io_sethandler(0x23c6, 0x0001, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
+    timer_set_callback(&self->cga.timer, compaq_plasma_poll);
+    timer_set_p(&self->cga.timer, self);
+
+    mem_mapping_add(&self->cga.mapping, 0xb8000, 0x08000, compaq_plasma_read, NULL, NULL, compaq_plasma_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, self);
+    for (int i = 1; i <= 2; i++) {
+        io_sethandler(0x03c6 + (i << 12), 0x0001, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
+        io_sethandler(0x07c6 + (i << 12), 0x0001, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
+        io_sethandler(0x0bc6 + (i << 12), 0x0001, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
+    }
+    io_sethandler(0x03d0, 0x000c, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
 
     /* Default attribute mapping is 4 */
     self->attrmap = 4;
@@ -793,7 +846,8 @@ machine_at_compaq_init(const machine_t *model, int type)
 
     switch (type) {
         case COMPAQ_PORTABLEII:
-            machine_at_init(model);
+            machine_at_common_init(model);
+            device_add(&keyboard_at_compaq_device);
             break;
 
         case COMPAQ_PORTABLEIII:
@@ -801,7 +855,9 @@ machine_at_compaq_init(const machine_t *model, int type)
                 device_add(&ide_isa_device);
             if (gfxcard[0] == VID_INTERNAL)
                 device_add(&compaq_plasma_device);
-            machine_at_init(model);
+
+            machine_at_common_init(model);
+            device_add(&keyboard_at_compaq_device);
             break;
 
         case COMPAQ_PORTABLEIII386:

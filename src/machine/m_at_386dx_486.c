@@ -73,6 +73,27 @@ machine_at_acc386_init(const machine_t *model)
 }
 
 int
+machine_at_asus386_3364k_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/asus386_3364k/am27c512dip28-64b53c26be3d8160533563.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&rabbit_device);
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
 machine_at_asus386_init(const machine_t *model)
 {
     int ret;
@@ -106,6 +127,27 @@ machine_at_tandy4000_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add(&keyboard_at_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_dtk461_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/dtk461/DTK.BIO",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&sl82c461_device);
+    device_add(&keyboard_at_ami_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -370,14 +412,16 @@ machine_at_vect486vl_init(const machine_t *model) // has HDC problems
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_ide_init(model);
-
-    device_add(&vl82c480_device);
-
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5428_onboard_device);
 
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&vl82c480_device);
+
     device_add(&vl82c113_device);
+
+    device_add(&ide_isa_device);
     device_add(&fdc37c651_ide_device);
 
     return ret;
@@ -394,17 +438,45 @@ machine_at_d824_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
-
-    device_add(&vl82c480_device);
-
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5428_onboard_device);
 
-    device_add(&keyboard_ps2_device);
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&vl82c480_device);
+
+    /*
+       Technically, it should be the VL82C114 but we do not have
+       a proper datasheet of it that tells us the registers.
+     */
+    device_add(&vl82c113_device);
 
     device_add(&ide_isa_device);
     device_add(&fdc37c651_device);
+    
+    return ret;
+}
+
+int
+machine_at_martin_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/martin/NONSCSI.ROM",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&vl82c480_device);
+    device_add(&vl82c113_device);
+
+    device_add(&ide_vlb_device);
+    device_add(&fdc37c651_ide_device);
+
+    device_add(&intel_flash_bxt_device);
     
     return ret;
 }

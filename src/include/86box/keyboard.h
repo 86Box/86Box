@@ -273,6 +273,8 @@ extern void     keyboard_input(int down, uint16_t scan);
 extern void     keyboard_all_up(void);
 extern void     keyboard_update_states(uint8_t cl, uint8_t nl, uint8_t sl, uint8_t kl);
 extern uint8_t  keyboard_get_shift(void);
+extern void     keyboard_set_in_reset(uint8_t in_reset);
+extern uint8_t  keyboard_get_in_reset(void);
 extern void     keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl, uint8_t *kl);
 extern void     keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl);
 extern int      keyboard_recv(uint16_t key);
@@ -289,6 +291,7 @@ extern void     kbc_at_write_p(void *priv, uint8_t port, uint8_t mask, uint8_t v
 extern void         kbc_at_set_fast_reset(uint8_t new_fast_reset);
 extern void         kbc_at_handler(int set, void *priv);
 
+extern void         kbc_at_dev_queue_reset(atkbc_dev_t *dev, uint8_t reset_main);
 extern uint8_t      kbc_at_dev_queue_pos(atkbc_dev_t *dev, uint8_t main);
 extern void         kbc_at_dev_queue_add(atkbc_dev_t *dev, uint8_t val, uint8_t main);
 extern void         kbc_at_dev_reset(atkbc_dev_t *dev, int do_fa);

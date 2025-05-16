@@ -2414,16 +2414,28 @@ d86f_turbo_poll(int drive, int side)
         case STATE_0C_READ_DATA:
         case STATE_11_SCAN_DATA:
         case STATE_16_VERIFY_DATA:
-            d86f_turbo_read(drive, side);
+            if (fdc_is_dma(d86f_fdc))
+                for (int i = 0; i < (128 << dev->last_sector.id.n); i++)
+                    d86f_turbo_read(drive, side);
+            else
+                d86f_turbo_read(drive, side);
             break;
 
         case STATE_05_WRITE_DATA:
         case STATE_09_WRITE_DATA:
-            d86f_turbo_write(drive, side);
+            if (fdc_is_dma(d86f_fdc))
+                for (int i = 0; i < (128 << dev->last_sector.id.n); i++)
+                    d86f_turbo_write(drive, side);
+            else
+                d86f_turbo_write(drive, side);
             break;
 
         case STATE_0D_FORMAT_TRACK:
-            d86f_turbo_format(drive, side, (side && (d86f_get_sides(drive) != 2)));
+            if (fdc_is_dma(d86f_fdc))
+                while (dev->state == STATE_0D_FORMAT_TRACK)
+                    d86f_turbo_format(drive, side, (side && (d86f_get_sides(drive) != 2)));
+            else
+                d86f_turbo_format(drive, side, (side && (d86f_get_sides(drive) != 2)));
             return;
 
         case STATE_IDLE:
