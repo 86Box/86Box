@@ -724,7 +724,9 @@ machine_at_cmdsl386sx25_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5402_onboard_device);
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&ide_isa_device);
 
     device_add(&ali5105_device);  /* The FDC is part of the ALi M5105. */
     device_add(&vl82c113_device); /* The keyboard controller is part of the VL82c113. */
