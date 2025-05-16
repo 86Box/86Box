@@ -6428,7 +6428,7 @@ const machine_t machines[] = {
         .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
-            .max = 65536,
+            .max = 32768,
             .step = 1024
         },
         .nvrmask = 127,
