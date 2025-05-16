@@ -6995,7 +6995,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PS2,
+        .bus_flags = MACHINE_PS2_VLB,
         .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 2048,
