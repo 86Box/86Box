@@ -201,7 +201,6 @@ compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
 
         case 0x23c6:
             self->port_23c6 = val;
-            pclog("Write 23c6=%02x.\n", val);
             compaq_plasma_recalcattrs(self);
             break;
 
@@ -245,12 +244,10 @@ compaq_plasma_in(uint16_t addr, void *priv)
             if ((self->cga.cgamode & 0x28) == 0x00)
                 ret |= 0x04;
 #endif
-            pclog("Read 13c6=%02x, mode=%02x.\n", ret, self->cga.cgamode);
             break;
 
         case 0x17c6:
             ret = 0xe6;
-            pclog("Read 17c6=%02x, mode=%02x.\n", ret, self->cga.cgamode);
             break;
 
         case 0x1bc6:
@@ -259,7 +256,6 @@ compaq_plasma_in(uint16_t addr, void *priv)
 
         case 0x23c6:
             ret = self->port_23c6;
-            pclog("Read 23c6=%02x.\n", ret);
             break;
 
         case 0x27c6:
@@ -712,15 +708,6 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
     }
 }
 
-void
-compaq_dump(void)
-{
-    FILE *f = fopen("d:\\86boxnew\\compaq_plasma_vram.dmp", "wb");
-    for (int i = 0; i < 65536; i++)
-        fputc(mem_readb_phys(0x000b0000 + i), f);
-    fclose(f);
-}
-
 static void *
 compaq_plasma_init(UNUSED(const device_t *info))
 {
@@ -765,8 +752,6 @@ static void
 compaq_plasma_close(void *priv)
 {
     compaq_plasma_t *self = (compaq_plasma_t *) priv;
-
-    compaq_dump();
 
     free(self->cga.vram);
     free(self->font_ram);
