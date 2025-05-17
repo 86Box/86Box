@@ -237,20 +237,16 @@ vl82c480_init(const device_t *info)
     dev->regs[0x08] = 0x38;
 
     for (uint8_t i = 0; i < 4; i++) {
-        uint32_t size  = 0;
-
-        for (uint8_t j = 2; i < 7; j++) {
+        for (uint8_t j = 2; j < 7; j++) {
             if (ms >= sizes[j])
-                size = sizes[j];
+                dev->banks[i] = sizes[j];
             else
                 break;
         }
 
-        ms -= size;
+        ms -= dev->banks[i];
 
-        dev->banks[i] = size;
-
-        if ((ms == 0) || (size == 0))
+        if ((ms == 0) || (dev->banks[i] == 0))
             break;
     }
 
