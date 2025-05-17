@@ -135,7 +135,10 @@ compaq_plasma_write(uint32_t addr, uint8_t val, void *priv)
 {
     compaq_plasma_t *self = (compaq_plasma_t *) priv;
 
-    self->cga.vram[addr & 0x7fff] = val;
+    if (self->port_23c6 & 0x08)
+        self->font_ram[addr & 0x1fff] = val;
+    else
+        self->cga.vram[addr & 0x7fff] = val;
 
     compaq_plasma_waitstates(&self->cga);
 }
@@ -146,29 +149,11 @@ compaq_plasma_read(uint32_t addr, void *priv)
     uint8_t          ret;
 
     compaq_plasma_waitstates(&self->cga);
-    ret = (self->cga.vram[addr & 0x7fff]);
 
-    return ret;
-}
-
-static void
-compaq_plasma_font_write(uint32_t addr, uint8_t val, void *priv)
-{
-    compaq_plasma_t *self = (compaq_plasma_t *) priv;
-
-    addr &= 0x1fff;
-
-    self->font_ram[addr] = val;
-}
-static uint8_t
-compaq_plasma_font_read(uint32_t addr, void *priv)
-{
-    compaq_plasma_t *self = (compaq_plasma_t *) priv;
-    uint8_t          ret = 0x00;
-
-    addr &= 0x1fff;
-
-    ret = self->font_ram[addr];
+    if (self->port_23c6 & 0x08)
+        ret = (self->font_ram[addr & 0x1fff]);
+    else
+        ret = (self->cga.vram[addr & 0x7fff]);
 
     return ret;
 }
@@ -203,18 +188,20 @@ compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
         case 0x13c6:
             self->port_13c6 = val;
             compaq_plasma_display_set((self->port_13c6 & 0x08) ? 1 : 0);
+            /*
+               For bits 2-0, John gives 0 = CGA, 1 = EGA, 3 = MDA;
+               Another source (Ralf Brown?) gives 4 = CGA, 5 = EGA, 7 = MDA;
+               This leads me to believe bit 2 is not relevant to the mode.
+             */
+            if ((val & 0x03) == 0x03)
+                mem_mapping_set_addr(&self->cga.mapping, 0xb0000, 0x08000);
+            else
+                mem_mapping_set_addr(&self->cga.mapping, 0xb8000, 0x08000);
             break;
 
         case 0x23c6:
             self->port_23c6 = val;
             pclog("Write 23c6=%02x.\n", val);
-            if (val & 0x08) { /* Disable internal CGA */
-                mem_mapping_disable(&self->cga.mapping);
-                mem_mapping_enable(&self->font_ram_mapping);
-            } else {
-                mem_mapping_enable(&self->cga.mapping);
-                mem_mapping_disable(&self->font_ram_mapping);
-            }
             compaq_plasma_recalcattrs(self);
             break;
 
@@ -725,6 +712,15 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
     }
 }
 
+void
+compaq_dump(void)
+{
+    FILE *f = fopen("d:\\86boxnew\\compaq_plasma_vram.dmp", "wb");
+    for (int i = 0; i < 65536; i++)
+        fputc(mem_readb_phys(0x000b0000 + i), f);
+    fclose(f);
+}
+
 static void *
 compaq_plasma_init(UNUSED(const device_t *info))
 {
@@ -744,8 +740,10 @@ compaq_plasma_init(UNUSED(const device_t *info))
     timer_set_callback(&self->cga.timer, compaq_plasma_poll);
     timer_set_p(&self->cga.timer, self);
 
-    mem_mapping_add(&self->cga.mapping, 0xb8000, 0x08000, compaq_plasma_read, NULL, NULL, compaq_plasma_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, self);
-    mem_mapping_add(&self->font_ram_mapping, 0xb8000, 0x02000, compaq_plasma_font_read, NULL, NULL, compaq_plasma_font_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, self);
+    mem_mapping_add(&self->cga.mapping, 0xb8000, 0x08000,
+                    compaq_plasma_read, NULL, NULL,
+                    compaq_plasma_write, NULL, NULL,
+                    NULL, MEM_MAPPING_EXTERNAL, self);
     for (int i = 1; i <= 2; i++) {
         io_sethandler(0x03c6 + (i << 12), 0x0001, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
         io_sethandler(0x07c6 + (i << 12), 0x0001, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
@@ -767,6 +765,8 @@ static void
 compaq_plasma_close(void *priv)
 {
     compaq_plasma_t *self = (compaq_plasma_t *) priv;
+
+    compaq_dump();
 
     free(self->cga.vram);
     free(self->font_ram);
