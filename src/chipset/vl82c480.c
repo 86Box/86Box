@@ -37,24 +37,23 @@ typedef struct vl82c480_t {
 } vl82c480_t;
 
 static int
-vl82c480_shflags(uint8_t access, uint8_t access2)
+vl82c480_shflags(uint8_t access)
 {
     int ret = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
-    int wp  = ((access2 & 0x03) == 0x01);
 
     switch (access) {
         default:
         case 0x00:
-            ret = MEM_READ_EXTANY | (wp ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY);
+            ret = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
             break;
         case 0x01:
-            ret = MEM_READ_EXTANY | (wp ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL);
+            ret = MEM_READ_EXTANY | MEM_WRITE_INTERNAL;
             break;
         case 0x02:
-            ret = MEM_READ_INTERNAL | (wp ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY);
+            ret = MEM_READ_INTERNAL | MEM_WRITE_EXTANY;
             break;
         case 0x03:
-            ret = MEM_READ_INTERNAL | (wp ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL);
+            ret = MEM_READ_INTERNAL | MEM_WRITE_INTERNAL;
             break;
     }
 
@@ -66,7 +65,6 @@ vl82c480_recalc_shadow(vl82c480_t *dev)
 {
     uint32_t base;
     uint8_t  access;
-    uint8_t  access2;
 
     shadowbios       = 0;
     shadowbios_write = 0;
@@ -75,10 +73,9 @@ vl82c480_recalc_shadow(vl82c480_t *dev)
         for (uint8_t j = 0; j < 8; j += 2) {
             base    = 0x000a0000 + (i << 16) + (j << 13);
             access  = (dev->regs[0x0d + i] >> j) & 3;
-            access2 = (dev->regs[0x13 + i] >> j) & 3;
-            mem_set_mem_state(base, 0x4000, vl82c480_shflags(access, access2));
+            mem_set_mem_state(base, 0x4000, vl82c480_shflags(access));
             shadowbios |= ((base >= 0xe0000) && (access & 0x02));
-            shadowbios_write |= ((base >= 0xe0000) && (access & 0x01) && !(access2 & 0x01));
+            shadowbios_write |= ((base >= 0xe0000) && (access & 0x01));
         }
     }
 
@@ -152,11 +149,9 @@ vl82c480_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x07:
                         dev->regs[dev->idx] = (dev->regs[dev->idx] & 0x40) | (val & 0xbf);
                         break;
-                    case 0x0d ... 0x18:
+                    case 0x0d ... 0x12:
                         dev->regs[dev->idx] = val;
                         vl82c480_recalc_shadow(dev);
-                        if (dev->idx >= 0x13)
-                            flushmmucache();
                         break;
                 }
             }
