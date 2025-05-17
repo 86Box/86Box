@@ -84,20 +84,14 @@ compaq_plasma_display_set(uint8_t internal)
     cpq_st_display_internal = internal;
 }
 
-static uint8_t
-compaq_plasma_display_get(void)
-{
-    return cpq_st_display_internal;
-}
-
 typedef struct compaq_plasma_t {
     cga_t         cga;
-    uint8_t       ctl_mode;
+    mem_mapping_t font_ram_mapping;
+    uint8_t      *font_ram;
     uint8_t       port_13c6;
     uint8_t       port_23c6;
     uint8_t       port_27c6;
     uint8_t       internal_monitor;
-    uint8_t       attrmap;
 } compaq_plasma_t;
 
 static int compaq_machine_type = 0;
@@ -119,13 +113,11 @@ compaq_plasma_recalctimings(compaq_plasma_t *self)
         return;
     }
 
-    disptime          = 651;
-    _dispontime       = 640;
+    disptime = 651;
+    _dispontime = 640;
     _dispofftime = disptime - _dispontime;
-    _dispontime *= CGACONST / 2;
-    _dispofftime *= CGACONST / 2;
-    self->cga.dispontime  = (uint64_t) (_dispontime);
-    self->cga.dispofftime = (uint64_t) (_dispofftime);
+    self->cga.dispontime  = (uint64_t) (_dispontime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
+    self->cga.dispofftime = (uint64_t) (_dispofftime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
 }
 
 static void
@@ -160,14 +152,31 @@ compaq_plasma_read(uint32_t addr, void *priv)
 }
 
 static void
-compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
+compaq_plasma_font_write(uint32_t addr, uint8_t val, void *priv)
 {
     compaq_plasma_t *self = (compaq_plasma_t *) priv;
 
-    if (self->port_23c6 & 0x08) {
-        if ((addr >= 0x3d0) && (addr <= 0x3dc))
-            addr ^= 0x60;
-    }
+    addr &= 0x1fff;
+
+    self->font_ram[addr] = val;
+}
+static uint8_t
+compaq_plasma_font_read(uint32_t addr, void *priv)
+{
+    compaq_plasma_t *self = (compaq_plasma_t *) priv;
+    uint8_t          ret = 0x00;
+
+    addr &= 0x1fff;
+
+    ret = self->font_ram[addr];
+
+    return ret;
+}
+
+static void
+compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
+{
+    compaq_plasma_t *self = (compaq_plasma_t *) priv;
 
     switch (addr) {
         /* Emulated CRTC, register select */
@@ -183,21 +192,11 @@ compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3d3:
         case 0x3d5:
         case 0x3d7:
-            /* Register 0x12 controls the attribute mappings for the
-             * plasma screen. */
-            if (self->cga.crtcreg == 0x12) {
-                self->attrmap = val;
-                compaq_plasma_recalcattrs(self);
-                return;
-            }
             cga_out(addr, val, &self->cga);
-
             compaq_plasma_recalctimings(self);
             break;
         case 0x3d8:
         case 0x3d9:
-        case 0x3db:
-        case 0x3dc:
             cga_out(addr, val, &self->cga);
             break;
 
@@ -208,10 +207,15 @@ compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
 
         case 0x23c6:
             self->port_23c6 = val;
-            if (val & 0x08) /* Disable internal CGA */
-                mem_mapping_set_addr(&self->cga.mapping, 0xb0000, 0x8000);
-            else
-                mem_mapping_set_addr(&self->cga.mapping, 0xb8000, 0x8000);
+            pclog("Write 23c6=%02x.\n", val);
+            if (val & 0x08) { /* Disable internal CGA */
+                mem_mapping_disable(&self->cga.mapping);
+                mem_mapping_enable(&self->font_ram_mapping);
+            } else {
+                mem_mapping_enable(&self->cga.mapping);
+                mem_mapping_disable(&self->font_ram_mapping);
+            }
+            compaq_plasma_recalcattrs(self);
             break;
 
         case 0x27c6:
@@ -229,11 +233,6 @@ compaq_plasma_in(uint16_t addr, void *priv)
     compaq_plasma_t *self = (compaq_plasma_t *) priv;
     uint8_t          ret  = 0xff;
 
-    if (self->port_23c6 & 0x08) {
-        if ((addr >= 0x3d0) && (addr <= 0x3dc))
-            addr ^= 0x60;
-    }
-
     switch (addr) {
         case 0x3d4:
         case 0x3da:
@@ -246,13 +245,8 @@ compaq_plasma_in(uint16_t addr, void *priv)
         case 0x3d3:
         case 0x3d5:
         case 0x3d7:
-            if (self->cga.crtcreg == 0x12) {
-                ret = self->attrmap & 0x0f;
-                if (compaq_plasma_display_get())
-                    ret |= 0x30; /* Plasma / CRT */
-            } else
-                ret = cga_in(addr, &self->cga);
-        break;
+            ret = cga_in(addr, &self->cga);
+            break;
 
         case 0x3d8:
             ret = self->cga.cgamode;
@@ -260,10 +254,16 @@ compaq_plasma_in(uint16_t addr, void *priv)
 
         case 0x13c6:
             ret = self->port_13c6;
+#if 0
+            if ((self->cga.cgamode & 0x28) == 0x00)
+                ret |= 0x04;
+#endif
+            pclog("Read 13c6=%02x, mode=%02x.\n", ret, self->cga.cgamode);
             break;
 
         case 0x17c6:
-            ret = 0xf6;
+            ret = 0xe6;
+            pclog("Read 17c6=%02x, mode=%02x.\n", ret, self->cga.cgamode);
             break;
 
         case 0x1bc6:
@@ -272,6 +272,7 @@ compaq_plasma_in(uint16_t addr, void *priv)
 
         case 0x23c6:
             ret = self->port_23c6;
+            pclog("Read 23c6=%02x.\n", ret);
             break;
 
         case 0x27c6:
@@ -350,12 +351,15 @@ compaq_plasma_poll(void *priv)
                             chr = self->cga.vram[(addr + (x << 1)) & 0x7fff];
                             /* text attributes */
                             attr = self->cga.vram[(addr + ((x << 1) + 1)) & 0x7fff];
-                        } else
-                            chr = attr = 0;
+                        } else {
+                            chr = 0x00;
+                            attr = 0x00;
+                        }
                         /* check if cursor has to be drawn */
                         drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 0x08) && (self->cga.cgablink & 0x10));
                         /* check if character underline mode should be set */
-                        underline = (((self->port_23c6 >> 5) == 2) && (attr & 0x01) && !(attr & 0x06));
+                        underline = ((attr & 0x07) == 0x01);
+                        underline |= ((self->port_23c6 >> 5) == 2) && (attr & 0x03);
                         if (underline) {
                             /* set forecolor to white */
                             attr = attr | 0x7;
@@ -376,8 +380,13 @@ compaq_plasma_poll(void *priv)
                             /* Set intensity bit */
                             cols[1] = normcols[attr][1];
                             cols[0] = normcols[attr][0];
-                            blink = ((attr & 0x80) << 3) + 7 + 16;
                         }
+
+                        /* character address */
+                        uint16_t chr_addr = ((chr * 16) + sc) & 0x0fff;
+                        if (((self->port_23c6 >> 5) == 3) && (attr & 0x03))
+                            chr_addr |= 0x1000;
+
                         /* character underline active and 7th row of pixels in character height being drawn */
                         if (underline && (sc == 7)) {
                             /* for each pixel in character width */
@@ -385,12 +394,25 @@ compaq_plasma_poll(void *priv)
                                 buffer32->line[self->cga.displine][(x << 3) + c] = mdaattr[attr][blink][1];
                         } else if (drawcursor) {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[self->cga.displine][(x << 3) + c] = cols[(fontdatm2[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
+                                buffer32->line[self->cga.displine][(x << 3) + c] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
                         } else {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[self->cga.displine][(x << 3) + c] = cols[(fontdatm2[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0];
+                                buffer32->line[self->cga.displine][(x << 3) + c] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0];
                         }
 
+                        if (attr & 0x03) {
+                            if ((self->port_23c6 >> 5) == 1) {
+                                for (c = 0; c < 8; c++)
+                                    buffer32->line[self->cga.displine][(x << 3) + c] ^= (amber ^ black);
+                            } else if ((self->port_23c6 >> 5) == 4) {
+                                for (c = 0; c < 8; c++) {
+                                    uint32_t b = ((buffer32->line[self->cga.displine][(x << 3) + c]) >> 1) & 0x7f;
+                                    uint32_t g = ((buffer32->line[self->cga.displine][(x << 3) + c]) >> 9) & 0x7f;
+                                    uint32_t r = ((buffer32->line[self->cga.displine][(x << 3) + c]) >> 17) & 0x7f;
+                                    buffer32->line[self->cga.displine][(x << 3) + c] = b | (g << 8) || (r << 16);
+                                }
+                            }
+                        }
                         ma++;
                     }
                 }
@@ -412,13 +434,15 @@ compaq_plasma_poll(void *priv)
                             chr = self->cga.vram[(addr + (x << 1)) & 0x7fff];
                             /* text attributes */
                             attr = self->cga.vram[(addr + ((x << 1) + 1)) & 0x7fff];
-                        } else
-                            chr = attr = 0;
-
+                        } else {
+                            chr = 0x00;
+                            attr = 0x00;
+                        }
                         /* check if cursor has to be drawn */
                         drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 0x08) && (self->cga.cgablink & 0x10));
                         /* check if character underline mode should be set */
-                        underline = (((self->port_23c6 >> 5) == 2) && (attr & 0x01) && !(attr & 0x06));
+                        underline = ((attr & 0x07) == 0x01);
+                        underline |= ((self->port_23c6 >> 5) == 2) && (attr & 0x03);
                         if (underline) {
                             /* set forecolor to white */
                             attr = attr | 0x7;
@@ -439,22 +463,40 @@ compaq_plasma_poll(void *priv)
                             /* Set intensity bit */
                             cols[1] = normcols[attr][1];
                             cols[0] = normcols[attr][0];
-                            blink = ((attr & 0x80) << 3) + 7 + 16;
                         }
 
+                        /* character address */
+                        uint16_t chr_addr = ((chr * 16) + sc) & 0x0fff;
+                        if (((self->port_23c6 >> 5) == 3) && (attr & 0x03))
+                            chr_addr |= 0x1000;
+
                         /* character underline active and 7th row of pixels in character height being drawn */
-                        if (underline && (self->cga.sc == 7)) {
+                        if (underline && (sc == 7)) {
                             /* for each pixel in character width */
                             for (c = 0; c < 8; c++)
                                 buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = mdaattr[attr][blink][1];
                         } else if (drawcursor) {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(fontdatm2[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
+                                buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
                         } else {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(fontdatm2[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0];
+                                buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0];
                         }
 
+                        if (attr & 0x03) {
+                            if ((self->port_23c6 >> 5) == 1)
+                                for (c = 0; c < 8; c++) {
+                                    buffer32->line[self->cga.displine][(x << 4) + (c << 1)] ^= (amber ^ black);
+                                    buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] ^= (amber ^ black);
+                                }
+                            else if ((self->port_23c6 >> 5) == 4)
+                                for (c = 0; c < 8; c++) {
+                                    uint32_t b = ((buffer32->line[self->cga.displine][(x << 4) + (c << 1)]) >> 1) & 0x7f;
+                                    uint32_t g = ((buffer32->line[self->cga.displine][(x << 4) + (c << 1)]) >> 9) & 0x7f;
+                                    uint32_t r = ((buffer32->line[self->cga.displine][(x << 4) + (c << 1)]) >> 17) & 0x7f;
+                                    buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = b | (g << 8) || (r << 16);
+                                }
+                        }
                         ma++;
                     }
                 } else {
@@ -493,6 +535,14 @@ compaq_plasma_poll(void *priv)
                                         ink0 = ink1 = black;
                                         break;
                                     case 1:
+                                        if (self->cga.displine & 0x01) {
+                                            ink0 = black;
+                                            ink1 = black;
+                                        } else {
+                                            ink0 = amber;
+                                            ink1 = black;
+                                        }
+                                        break;
                                     case 2:
                                         if (self->cga.displine & 0x01) {
                                             ink0 = black;
@@ -545,7 +595,7 @@ compaq_plasma_poll(void *priv)
                     if (video_force_resize_get())
                         video_force_resize_set(0);
                 }
-                /* ogc specific */
+                /* Plasma specific */
                 video_blit_memtoscreen(0, 0, xsize, ysize);
                 frames++;
 
@@ -622,7 +672,7 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
     for (n = 0x11; n <= 0xFF; n++) {
         if ((n & 7) == 0)
             continue;
-        if (self->attrmap & 4) { /* Inverse */
+        if ((self->port_23c6 >> 5) == 1) { /* Inverse */
             blinkcols[n][0] = normcols[n][0] = amber;
             blinkcols[n][1] = normcols[n][1] = black;
         } else { /* Normal */
@@ -635,7 +685,7 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
     for (n = 0x01; n <= 0x0E; n++) {
         if (n == 7)
             continue;
-        if (self->attrmap & 1) {
+        if ((self->port_23c6 >> 5) == 1) {
             blinkcols[n][0] = normcols[n][0] = amber;
             blinkcols[n][1] = normcols[n][1] = black;
             blinkcols[n + 128][0]            = amber;
@@ -678,11 +728,6 @@ compaq_plasma_init(UNUSED(const device_t *info))
 {
     compaq_plasma_t *self = calloc(1, sizeof(compaq_plasma_t));
 
-    if (compaq_machine_type == COMPAQ_PORTABLEIII)
-        loadfont_ex("roms/machines/portableiii/K Combined.bin", 11, 0x4bb2);
-    else
-        loadfont_ex("roms/machines/portableiii/P.2 Combined.bin", 11, 0x4b49);
-
     cga_init(&self->cga);
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_compaq_plasma);
 
@@ -691,24 +736,21 @@ compaq_plasma_init(UNUSED(const device_t *info))
 
     self->cga.vram             = malloc(0x8000);
     self->internal_monitor = 1;
+    self->font_ram             = malloc(0x2000);
 
     cga_comp_init(self->cga.revision);
     timer_set_callback(&self->cga.timer, compaq_plasma_poll);
     timer_set_p(&self->cga.timer, self);
 
     mem_mapping_add(&self->cga.mapping, 0xb8000, 0x08000, compaq_plasma_read, NULL, NULL, compaq_plasma_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, self);
+    mem_mapping_add(&self->font_ram_mapping, 0xb8000, 0x02000, compaq_plasma_font_read, NULL, NULL, compaq_plasma_font_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, self);
     for (int i = 1; i <= 2; i++) {
         io_sethandler(0x03c6 + (i << 12), 0x0001, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
         io_sethandler(0x07c6 + (i << 12), 0x0001, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
         io_sethandler(0x0bc6 + (i << 12), 0x0001, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
     }
-    io_sethandler(0x03d0, 0x000c, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
+    io_sethandler(0x03d0, 0x0010, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
 
-    /* Default attribute mapping is 4 */
-    self->attrmap = 4;
-    compaq_plasma_recalcattrs(self);
-
-    self->cga.cgastat = 0xf4;
     overscan_x = overscan_y = 16;
 
     self->cga.rgb_type = device_get_config_int("rgb_type");
@@ -725,6 +767,7 @@ compaq_plasma_close(void *priv)
     compaq_plasma_t *self = (compaq_plasma_t *) priv;
 
     free(self->cga.vram);
+    free(self->font_ram);
     free(self);
 }
 
