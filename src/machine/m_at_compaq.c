@@ -355,11 +355,12 @@ compaq_plasma_poll(void *priv)
                             chr = 0x00;
                             attr = 0x00;
                         }
+                        uint8_t hi_bit = attr & 0x08;
                         /* check if cursor has to be drawn */
                         drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 0x08) && (self->cga.cgablink & 0x10));
                         /* check if character underline mode should be set */
                         underline = ((attr & 0x07) == 0x01);
-                        underline |= ((self->port_23c6 >> 5) == 2) && (attr & 0x03);
+                        underline = underline || (((self->port_23c6 >> 5) == 2) && hi_bit);
                         if (underline) {
                             /* set forecolor to white */
                             attr = attr | 0x7;
@@ -384,7 +385,7 @@ compaq_plasma_poll(void *priv)
 
                         /* character address */
                         uint16_t chr_addr = ((chr * 16) + sc) & 0x0fff;
-                        if (((self->port_23c6 >> 5) == 3) && (attr & 0x03))
+                        if (((self->port_23c6 >> 5) == 3) && hi_bit)
                             chr_addr |= 0x1000;
 
                         /* character underline active and 7th row of pixels in character height being drawn */
@@ -400,7 +401,7 @@ compaq_plasma_poll(void *priv)
                                 buffer32->line[self->cga.displine][(x << 3) + c] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0];
                         }
 
-                        if (attr & 0x03) {
+                        if (hi_bit) {
                             if ((self->port_23c6 >> 5) == 1) {
                                 for (c = 0; c < 8; c++)
                                     buffer32->line[self->cga.displine][(x << 3) + c] ^= (amber ^ black);
@@ -438,11 +439,12 @@ compaq_plasma_poll(void *priv)
                             chr = 0x00;
                             attr = 0x00;
                         }
+                        uint8_t hi_bit = attr & 0x08;
                         /* check if cursor has to be drawn */
                         drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 0x08) && (self->cga.cgablink & 0x10));
                         /* check if character underline mode should be set */
                         underline = ((attr & 0x07) == 0x01);
-                        underline |= ((self->port_23c6 >> 5) == 2) && (attr & 0x03);
+                        underline = underline || (((self->port_23c6 >> 5) == 2) && hi_bit);
                         if (underline) {
                             /* set forecolor to white */
                             attr = attr | 0x7;
@@ -467,7 +469,7 @@ compaq_plasma_poll(void *priv)
 
                         /* character address */
                         uint16_t chr_addr = ((chr * 16) + sc) & 0x0fff;
-                        if (((self->port_23c6 >> 5) == 3) && (attr & 0x03))
+                        if (((self->port_23c6 >> 5) == 3) && hi_bit)
                             chr_addr |= 0x1000;
 
                         /* character underline active and 7th row of pixels in character height being drawn */
@@ -483,7 +485,7 @@ compaq_plasma_poll(void *priv)
                                 buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0];
                         }
 
-                        if (attr & 0x03) {
+                        if (hi_bit) {
                             if ((self->port_23c6 >> 5) == 1)
                                 for (c = 0; c < 8; c++) {
                                     buffer32->line[self->cga.displine][(x << 4) + (c << 1)] ^= (amber ^ black);
