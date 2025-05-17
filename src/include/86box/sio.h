@@ -71,7 +71,10 @@ extern const device_t fdc37m60x_370_device;
 /* ITE */
 extern const device_t it8661f_device;
 extern const device_t it8671f_device;
+
+/* Intel */
 extern const device_t i82091aa_device;
+extern const device_t i82091aa_26e_device;
 extern const device_t i82091aa_398_device;
 extern const device_t i82091aa_ide_pri_device;
 extern const device_t i82091aa_ide_device;

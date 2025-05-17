@@ -105,7 +105,7 @@
 /* Feature flags for advanced devices. */
 #define MACHINE_APM               0x00080000 /* sys has APM */
 #define MACHINE_ACPI              0x00100000 /* sys has ACPI */
-#define MACHINE_HWM               0x00200000 /* sys has hw monitor */
+#define MACHINE_PCI_INTERNAL      0x00200000 /* sys has only internal PCI */
 #define MACHINE_CARTRIDGE         0x00400000 /* sys has cartridge bays */
 /* Feature flags for internal storage controllers. */
 #define MACHINE_MFM               0x00800000 /* sys has int MFM/RLL */
@@ -588,6 +588,7 @@ extern int machine_at_sb486p_init(const machine_t *);
 extern int machine_at_486sp3_init(const machine_t *);
 extern int machine_at_486sp3c_init(const machine_t *);
 extern int machine_at_486sp3g_init(const machine_t *);
+extern int machine_at_sb486pv_init(const machine_t *);
 extern int machine_at_486ap4_init(const machine_t *);
 extern int machine_at_g486vpa_init(const machine_t *);
 extern int machine_at_486vipio2_init(const machine_t *);

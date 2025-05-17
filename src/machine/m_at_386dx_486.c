@@ -756,7 +756,6 @@ machine_at_403tg_d_mr_init(const machine_t *model)
 
     return ret;
 }
-
 static const device_config_t pb450_config[] = {
     // clang-format off
     {
@@ -1640,6 +1639,91 @@ machine_at_486sp3g_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t sb486pv_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "sb486pv",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "AMI 062594 (0108)", .internal_name = "sb486pv", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/sb486pv/41-0108-062594-SATURN2.rom", "" } },
+            { .name = "AMI 062594 (0301)", .internal_name = "sb486pv_94", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/sb486pv/0301-062594-SATURN2.rom", "" } },
+            { .name = "AMI 071595 (1301)", .internal_name = "sb486pv_95", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/sb486pv/amiboot.rom", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t sb486pv_device = {
+    .name          = "ICS SB486PV",
+    .internal_name = "sb486pv_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = sb486pv_config
+};
+
+int
+machine_at_sb486pv_init(const machine_t *model)
+{
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    if (!strcmp(fn, "roms/machines/sb486pv/amiboot.rom"))
+        ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    else
+        ret = bios_load_linear_inverted(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+    // machine_at_common_init_ex(model, 2);
+
+    // device_add(&amstrad_megapc_nvr_device);
+    device_add(&ide_pci_device);
+
+    pci_init(PCI_CONFIG_TYPE_2);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0e, PCI_CARD_IDE,         0, 0, 0, 0);
+    pci_register_slot(0x0f, PCI_CARD_VIDEO,       1, 2, 3, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&sio_zb_device);
+    device_add(&ide_rz1000_pci_single_channel_device);
+    device_add(&i82091aa_26e_device);
+    if (!strcmp(fn, "roms/machines/sb486pv/amiboot.rom"))
+        device_add(&intel_flash_bxt_device);
+    else
+        device_add(&intel_flash_bxt_ami_device);
+
+    device_add(&i420zx_device);
+
+    return ret;
+}
+
 int
 machine_at_486ap4_init(const machine_t *model)
 {
@@ -1833,12 +1917,11 @@ machine_at_sbc490_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_VIDEO,       4, 1, 2, 3);
 
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
     device_add(&ali1489_device);
     device_add(&fdc37c665_device);
-
-    if (gfxcard[0] == VID_INTERNAL)
-        device_add(&tgui9440_onboard_pci_device);
-
     device_add(&keyboard_ps2_ami_device);
     device_add(&sst_flash_29ee010_device);
 

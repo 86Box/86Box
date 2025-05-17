@@ -33,6 +33,7 @@
 #include <86box/pci.h>
 #include <86box/rom.h>
 #include <86box/device.h>
+#include <86box/machine.h>
 #include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/i2c.h>
@@ -4316,7 +4317,8 @@ gd54xx_init(const device_t *info)
             break;
 
         case CIRRUS_ID_CLGD5436:
-            if (info->local & 0x200) {
+            if ((info->local & 0x200) &&
+                !strstr(machine_get_internal_name(), "sb486pv")) {
                 romfn            = NULL;
                 gd54xx->has_bios = 0;
             } else
@@ -4461,8 +4463,8 @@ gd54xx_init(const device_t *info)
     }
     io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
 
-    if (gd54xx->pci && id >= CIRRUS_ID_CLGD5430) {
-        if (romfn == NULL)
+    if (gd54xx->pci && (id >= CIRRUS_ID_CLGD5430)) {
+        if (info->local & 0x200)
             pci_add_card(PCI_ADD_VIDEO, cl_pci_read, cl_pci_write, gd54xx, &gd54xx->pci_slot);
         else
             pci_add_card(PCI_ADD_NORMAL, cl_pci_read, cl_pci_write, gd54xx, &gd54xx->pci_slot);

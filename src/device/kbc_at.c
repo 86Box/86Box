@@ -1336,7 +1336,10 @@ write64_ami(void *priv, uint8_t val)
             kbc_at_log("ATkbc: set KBC lines P22-P23 (P2 bits 2-3) low\n");
             if (!(dev->flags & DEVICE_PCI))
                 write_p2(dev, dev->p2 & ~(4 << (val & 0x01)));
-            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+            if (strstr(machine_get_internal_name(), "sb486pv") != NULL)
+                kbc_delay_to_ob(dev, 0x03, 0, 0x00);
+            else
+                kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
             dev->pending++;
             return 0;
 
