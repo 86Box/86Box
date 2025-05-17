@@ -291,6 +291,7 @@ extern void     kbc_at_write_p(void *priv, uint8_t port, uint8_t mask, uint8_t v
 extern void         kbc_at_set_fast_reset(uint8_t new_fast_reset);
 extern void         kbc_at_handler(int set, void *priv);
 
+extern void         kbc_at_dev_queue_reset(atkbc_dev_t *dev, uint8_t reset_main);
 extern uint8_t      kbc_at_dev_queue_pos(atkbc_dev_t *dev, uint8_t main);
 extern void         kbc_at_dev_queue_add(atkbc_dev_t *dev, uint8_t val, uint8_t main);
 extern void         kbc_at_dev_reset(atkbc_dev_t *dev, int do_fa);

@@ -72,6 +72,7 @@ add_library(chipset OBJECT
     sis_5572_usb.c
     sis_5595_pmu.c
     sis_55xx.c
+    sl82c461.c
     via_vt82c49x.c
     via_vt82c505.c
     gc100.c

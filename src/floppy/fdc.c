@@ -81,7 +81,6 @@ int fdc_current[FDC_MAX] = { 0, 0 };
 
 volatile int fdcinited = 0;
 
-// #define ENABLE_FDC_LOG 1
 #ifdef ENABLE_FDC_LOG
 int fdc_do_log = ENABLE_FDC_LOG;
 

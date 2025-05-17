@@ -24,14 +24,16 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/io.h>
+#include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/nmi.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
 typedef struct vl82c480_t {
-    uint8_t idx;
-    uint8_t regs[256];
+    uint8_t  idx;
+    uint8_t  regs[256];
+    uint32_t banks[4];
 } vl82c480_t;
 
 static int
@@ -59,7 +61,7 @@ vl82c480_shflags(uint8_t access)
 }
 
 static void
-vl82c480_recalc(vl82c480_t *dev)
+vl82c480_recalc_shadow(vl82c480_t *dev)
 {
     uint32_t base;
     uint8_t  access;
@@ -69,12 +71,43 @@ vl82c480_recalc(vl82c480_t *dev)
 
     for (uint8_t i = 0; i < 6; i++) {
         for (uint8_t j = 0; j < 8; j += 2) {
-            base   = 0x000a0000 + (i << 16) + (j << 13);
-            access = (dev->regs[0x0d + i] >> j) & 3;
+            base    = 0x000a0000 + (i << 16) + (j << 13);
+            access  = (dev->regs[0x0d + i] >> j) & 3;
             mem_set_mem_state(base, 0x4000, vl82c480_shflags(access));
             shadowbios |= ((base >= 0xe0000) && (access & 0x02));
             shadowbios_write |= ((base >= 0xe0000) && (access & 0x01));
         }
+    }
+
+    flushmmucache();
+}
+
+static void
+vl82c480_recalc_banks(vl82c480_t *dev)
+{
+    uint32_t sizes[8]  = { 0, 0, 1024, 2048, 4096, 8192, 16384, 32768 };
+    uint8_t  shifts[4] = { 0, 4, 0, 4 };
+    uint8_t  regs[4]   = { 0x02, 0x02, 0x03, 0x03 };
+    uint32_t total     = 0;
+
+    for (uint8_t i = 0; i < 4; i++) {
+        uint8_t  shift = shifts[i];
+        uint8_t  reg   = regs[i];
+        uint8_t  cfg   = (dev->regs[reg] >> shift) & 0x7;
+        uint32_t size  = sizes[cfg];
+
+        total += MIN(dev->banks[i], size);
+    }
+
+    if (total > 1024) {
+        mem_mapping_set_addr(&ram_low_mapping, 0x00000000, 0x000a0000);
+        mem_mapping_set_addr(&ram_high_mapping, 0x00100000, (total - 1024) << 10);
+    } else {
+        if (total >= 1024)
+            mem_mapping_set_addr(&ram_low_mapping, 0x00000000, 0x000a0000);
+        else
+            mem_mapping_disable(&ram_low_mapping);
+        mem_mapping_disable(&ram_high_mapping);
     }
 
     flushmmucache();
@@ -91,16 +124,24 @@ vl82c480_write(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0xed:
-            if (dev->idx >= 0x01 && dev->idx <= 0x24) {
+            if (((dev->idx >= 0x01) && (dev->idx <= 0x19)) ||
+                ((dev->idx >= 0x20) && (dev->idx <= 0x24))) {
                 switch (dev->idx) {
                     default:
                         dev->regs[dev->idx] = val;
+                        break;
+                    case 0x02: case 0x03:
+                        dev->regs[dev->idx] = val;
+                        if (!strcmp(machine_get_internal_name(), "martin"))
+                            vl82c480_recalc_banks(dev);
                         break;
                     case 0x04:
                         if (dev->regs[0x00] == 0x98)
                             dev->regs[dev->idx] = (dev->regs[dev->idx] & 0x08) | (val & 0xf7);
                         else
                             dev->regs[dev->idx] = val;
+                        if (!strcmp(machine_get_internal_name(), "martin"))
+                            dev->regs[dev->idx] &= 0x1f;
                         break;
                     case 0x05:
                         dev->regs[dev->idx] = (dev->regs[dev->idx] & 0x10) | (val & 0xef);
@@ -108,14 +149,9 @@ vl82c480_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x07:
                         dev->regs[dev->idx] = (dev->regs[dev->idx] & 0x40) | (val & 0xbf);
                         break;
-                    case 0x0d:
-                    case 0x0e:
-                    case 0x0f:
-                    case 0x10:
-                    case 0x11:
-                    case 0x12:
+                    case 0x0d ... 0x12:
                         dev->regs[dev->idx] = val;
-                        vl82c480_recalc(dev);
+                        vl82c480_recalc_shadow(dev);
                         break;
                 }
             }
@@ -124,8 +160,8 @@ vl82c480_write(uint16_t addr, uint8_t val, void *priv)
 /* TODO: This is actually Fast A20 disable. */
 #if 0
         case 0xee:
-            if (mem_a20_alt)
-                outb(0x92, inb(0x92) & ~2);
+            mem_a20_alt = 0x00;
+            mem_a20_recalc();
             break;
 #endif
 
@@ -146,14 +182,16 @@ vl82c480_read(uint16_t addr, void *priv)
             break;
 
         case 0xed:
-            ret = dev->regs[dev->idx];
+            if (((dev->idx >= 0x01) && (dev->idx <= 0x19)) ||
+                ((dev->idx >= 0x20) && (dev->idx <= 0x24)))
+                ret = dev->regs[dev->idx];
             break;
 
 /* TODO: This is actually Fast A20 enable. */
 #if 0
         case 0xee:
-            if (!mem_a20_alt)
-                outb(0x92, inb(0x92) | 2);
+            mem_a20_alt = 0x02;
+            mem_a20_recalc();
             break;
 #endif
 
@@ -180,7 +218,9 @@ vl82c480_close(void *priv)
 static void *
 vl82c480_init(const device_t *info)
 {
-    vl82c480_t *dev = (vl82c480_t *) calloc(1, sizeof(vl82c480_t));
+    vl82c480_t *dev      = (vl82c480_t *) calloc(1, sizeof(vl82c480_t));
+    uint32_t    sizes[8] = { 0, 0, 1024, 2048, 4096, 8192, 16384, 32768 };
+    uint32_t    ms       = mem_size;
 
     dev->regs[0x00] = info->local;
     dev->regs[0x01] = 0xff;
@@ -191,9 +231,23 @@ vl82c480_init(const device_t *info)
         dev->regs[0x07] = 0x21;
     dev->regs[0x08] = 0x38;
 
+    for (uint8_t i = 0; i < 4; i++) {
+        for (uint8_t j = 2; j < 7; j++) {
+            if (ms >= sizes[j])
+                dev->banks[i] = sizes[j];
+            else
+                break;
+        }
+
+        ms -= dev->banks[i];
+
+        if ((ms == 0) || (dev->banks[i] == 0))
+            break;
+    }
+
     io_sethandler(0x00ec, 0x0004, vl82c480_read, NULL, NULL, vl82c480_write, NULL, NULL, dev);
 
-    device_add(&port_92_device);
+    device_add(&port_92_pci_device);
 
     return dev;
 }

@@ -281,6 +281,26 @@ machine_at_micronics386_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_micronics386px_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/micronics386/386-Micronics-09-00021-LO.BIN",
+                                "roms/machines/micronics386/386-Micronics-09-00021-HI.BIN",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_init(model);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
 static void
 machine_at_scat_init(const machine_t *model, int is_v4, int is_ami)
 {
@@ -704,7 +724,9 @@ machine_at_cmdsl386sx25_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5402_onboard_device);
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&ide_isa_device);
 
     device_add(&ali5105_device);  /* The FDC is part of the ALi M5105. */
     device_add(&vl82c113_device); /* The keyboard controller is part of the VL82c113. */

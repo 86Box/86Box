@@ -1656,7 +1656,12 @@ i4x0_init(const device_t *info)
             regs[0x57] = 0x31;
             regs[0x59] = 0x0f;
             regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = 0x02;
-            dev->max_drb                                      = 3;
+            /* At the very least the 420ZX seems to read to 0x64, per the SB486PV. */
+            if (dev->type == INTEL_420ZX) {
+                regs[0x64]   = 0x02;
+                dev->max_drb = 4;
+            } else
+                dev->max_drb                                      = 3;
             dev->drb_unit                                     = 1;
             dev->drb_default                                  = 0x02;
             break;

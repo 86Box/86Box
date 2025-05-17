@@ -147,14 +147,17 @@ postcard_init(UNUSED(const device_t *info))
 
     if (machine_has_bus(machine, MACHINE_BUS_MCA))
         postcard_port = 0x680; /* MCA machines */
-    else if (strstr(machines[machine].name, " PS/2 ") || strstr(machine_getname_ex(machine), " PS/1 "))
+    else if (strstr(machines[machine].name, " PS/2 ") ||
+             strstr(machine_getname_ex(machine), " PS/1 "))
         postcard_port = 0x190; /* ISA PS/2 machines */
     else if (strstr(machines[machine].name, " IBM XT "))
         postcard_port = 0x60; /* IBM XT */
     else if (strstr(machines[machine].name, " IBM PCjr")) {
         postcard_port = 0x10; /* IBM PCjr */
         postcard_ports_num = 3; /* IBM PCjr error ports 11h and 12h */
-    } else if (strstr(machines[machine].name, " Compaq ") && !machine_has_bus(machine, MACHINE_BUS_PCI))
+    } else if (strstr(machines[machine].name, " Compaq ") && 
+               !strstr(machines[machine].name, " Presario ") &&
+               !strstr(machines[machine].name, " ProSignia "))
         postcard_port = 0x84; /* ISA Compaq machines */
     else if (strstr(machines[machine].name, "Olivetti"))
         postcard_port = 0x378; /* Olivetti machines */
