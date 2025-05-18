@@ -2410,8 +2410,6 @@ fdc_init(const device_t *info)
     fdc_t *fdc = (fdc_t *) calloc(1, sizeof(fdc_t));
 
     fdc->flags = info->local;
-    if (fdc->flags & FDC_FLAG_SMC661)
-        pclog("661!\n");
 
     if (fdc->flags & FDC_FLAG_SEC)
         fdc->irq = FDC_SECONDARY_IRQ;
