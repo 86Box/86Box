@@ -187,7 +187,7 @@ bool nv3_render_chroma_test(uint32_t color, nv3_grobj_t grobj)
 uint32_t nv3_render_to_chroma(nv3_color_expanded_t expanded)
 {
     // convert the alpha to 1 bit. then return packed rgb10
-    return !!expanded.a | (expanded.r << 30) | (expanded.b << 20) | (expanded.b << 10);
+    return !!expanded.a | (expanded.r << 30) | (expanded.g << 20) | (expanded.b << 10);
 }
 
 /* Get a colour for a palette index. (The colours are 24 bit RGB888 with a 0xFF alpha added for some purposes.) */
@@ -610,6 +610,8 @@ void nv3_render_current_bpp()
     uint32_t dba = ((nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_RPC0] & 0x1F) << 16)
                     + (nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_STARTADDR_HIGH] << 8)
                     + nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_STARTADDR_LOW];
+
+    //uint32_t dba = 1920000;
 
     nv3_coord_16_t screen_size = {0};
     screen_size.x = nv3->nvbase.svga.hdisp;
