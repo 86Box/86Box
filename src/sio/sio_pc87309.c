@@ -41,15 +41,19 @@ typedef struct pc87309_t {
     uint8_t   regs[48];
     uint8_t   ld_regs[256][208];
     uint8_t   pm[8];
+    uint8_t   baddr;
     uint16_t  pm_base;
     int       cur_reg;
     fdc_t    *fdc;
     serial_t *uart[2];
 } pc87309_t;
 
-static void fdc_handler(pc87309_t *dev);
-static void lpt1_handler(pc87309_t *dev);
-static void serial_handler(pc87309_t *dev, int uart);
+static void    fdc_handler(pc87309_t *dev);
+static void    lpt1_handler(pc87309_t *dev);
+static void    serial_handler(pc87309_t *dev, int uart);
+
+static void    pc87309_write(uint16_t port, uint8_t val, void *priv);
+static uint8_t pc87309_read(uint16_t port, void *priv);
 
 static void
 pc87309_pm_write(uint16_t port, uint8_t val, void *priv)
@@ -102,6 +106,30 @@ pc87309_pm_init(pc87309_t *dev, uint16_t addr)
 
     io_sethandler(dev->pm_base, 0x0008,
                   pc87309_pm_read, NULL, NULL, pc87309_pm_write, NULL, NULL, dev);
+}
+
+static void
+superio_handler(pc87309_t *dev)
+{
+    io_removehandler(0x15c, 0x0002,
+                     pc87309_read, NULL, NULL, pc87309_write, NULL, NULL, dev);
+    io_removehandler(0x02e, 0x0002,
+                     pc87309_read, NULL, NULL, pc87309_write, NULL, NULL, dev);
+
+    switch (dev->regs[0x21] & 0x0b) {
+        case 0x02:
+        case 0x08:
+        case 0x0a:
+            io_sethandler(0x15c, 0x0002,
+                          pc87309_read, NULL, NULL, pc87309_write, NULL, NULL, dev);
+            break;
+        case 0x03:
+        case 0x09:
+        case 0x0b:
+            io_sethandler(0x02e, 0x0002,
+                          pc87309_read, NULL, NULL, pc87309_write, NULL, NULL, dev);
+            break;
+    }
 }
 
 static void
@@ -194,6 +222,7 @@ pc87309_write(uint16_t port, uint8_t val, void *priv)
             case 0x07:
             case 0x21:
                 dev->regs[dev->cur_reg] = val;
+                superio_handler(dev);
                 break;
             case 0x22:
                 dev->regs[dev->cur_reg] = val & 0x7f;
@@ -378,7 +407,7 @@ pc87309_reset(pc87309_t *dev)
     memset(dev->pm, 0x00, 0x08);
 
     dev->regs[0x20] = dev->id;
-    dev->regs[0x21] = 0x04;
+    dev->regs[0x21] = 0x04 | dev->baddr;
 
     dev->ld_regs[0x00][0x01] = 0x01;
     dev->ld_regs[0x00][0x30] = 0x03;
@@ -453,6 +482,8 @@ pc87309_reset(pc87309_t *dev)
     serial_remove(dev->uart[0]);
     serial_remove(dev->uart[1]);
     fdc_reset(dev->fdc);
+
+    superio_handler(dev);
 }
 
 static void
@@ -472,18 +503,9 @@ pc87309_init(const device_t *info)
 
     dev->fdc = device_add(&fdc_at_nsc_device);
 
-    dev->uart[0] = device_add_inst(&ns16550_device, 1);
-    dev->uart[1] = device_add_inst(&ns16550_device, 2);
+    dev->baddr = (info->local & 0x100) ? 8 : 9;
 
     pc87309_reset(dev);
-
-    if (info->local & 0x100) {
-        io_sethandler(0x15c, 0x0002,
-                      pc87309_read, NULL, NULL, pc87309_write, NULL, NULL, dev);
-    } else {
-        io_sethandler(0x02e, 0x0002,
-                      pc87309_read, NULL, NULL, pc87309_write, NULL, NULL, dev);
-    }
 
     return dev;
 }
