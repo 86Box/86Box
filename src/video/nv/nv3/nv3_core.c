@@ -963,7 +963,7 @@ void nv3_draw_cursor(svga_t* svga, int32_t drawline)
     nv3_grobj_t dummy = {0}; // need to clean it up 
 
     /* do we need to update here? */
-    nv3_render_current_bpp(&nv3->nvbase.svga, start_position, size, dummy, false, false);
+    nv3_render_current_bpp(&nv3->nvbase.svga, start_position, size, dummy, false);
 }
 
 // MMIO 0x110000->0x111FFF is mapped to a mirror of the VBIOS.

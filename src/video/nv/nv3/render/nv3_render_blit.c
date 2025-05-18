@@ -57,7 +57,7 @@ void nv3_render_blit_image(uint32_t color, nv3_grobj_t grobj)
     /* the reverse order is due to the endianness */
     switch (nv3->nvbase.svga.bpp)
     {
-        // 4pixels packed into one color
+        // 4 pixels packed into one color in 8bpp
         case 8:
         
             //pixel3
@@ -82,7 +82,7 @@ void nv3_render_blit_image(uint32_t color, nv3_grobj_t grobj)
             nv3_class_011_check_line_bounds();
 
             break;
-        //2pixels packed into one color
+        // 2 pixels packed into one color in 15/16bpp
         case 15:
         case 16:
             pixel1 = (color) & 0xFFFF;
@@ -98,8 +98,7 @@ void nv3_render_blit_image(uint32_t color, nv3_grobj_t grobj)
             break;
         // just one pixel in 32bpp
         case 32: 
-            pixel0 = color;
-            if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, pixel0, grobj);
+            if (nv3->pgraph.image_current_position.x < clip_x) nv3_render_write_pixel(nv3->pgraph.image_current_position, color, grobj);
             nv3->pgraph.image_current_position.x++;
             nv3_class_011_check_line_bounds();
 
@@ -183,8 +182,7 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
         We also need to update all of the areas of the screen that moved. 
     */
 
-    nv3_coord_16_t blit_position = {0};
-    nv3_coord_16_t blit_size = {0};
+    nv3_coord_16_t blit_position = {0}, blit_size = {0};
 
     /* Change the smallest area of the screen that moved */
 
@@ -223,7 +221,6 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
 
     /* If the BUFFER_ADDRESS of the last buffer is not the DBA, we don't *actually* want to draw this, so let's not
     Apply stupid hack */
-    
 
-    nv3_render_current_bpp(&nv3->nvbase.svga, blit_position, blit_size, grobj, false, true);
+    nv3_render_current_bpp(&nv3->nvbase.svga, blit_position, blit_size, grobj, true);
 }

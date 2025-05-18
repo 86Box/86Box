@@ -39,7 +39,7 @@ nv_register_t pfb_registers[] = {
     { NV3_PFB_GREEN_0, "PFB Green / Power Saving", NULL, NULL,},
     { NV3_PFB_CONFIG_0, "PFB Framebuffer Config 0", nv3_pfb_config0_read, nv3_pfb_config0_write },
     { NV3_PFB_CONFIG_1, "PFB Framebuffer Config 1", NULL, NULL },
-    { NV3_PFB_RTL, "PFB RTL (Part of memory timings?)", NULL, NULL },
+    { NV3_PFB_RTL, "PFB RTL (Part of memory timings)", NULL, NULL },
     { NV_REG_LIST_END, NULL, NULL, NULL}, // sentinel value 
 };
 

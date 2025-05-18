@@ -32,13 +32,28 @@
    <string>VRAM Viewer</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="1" column="1">
-      <widget class="QLabel" name="GPUDebugVRAMDialog_LabelHeader">
-      <property name="text">
-         <string>VRAM Viewer</string>
-      </property>
-      </widget>
+   <item row="0" column="0">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>VRAM</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>TextLabel</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignBottom|Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft</set>
+     </property>
+    </widget>
    </item>
   </layout>
-  </widget>
+ </widget>
+ <resources/>
+ <connections/>
 </ui>
