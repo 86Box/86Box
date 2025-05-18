@@ -1727,9 +1727,6 @@ machine_at_sb486pv_init(const machine_t *model)
     device_context_restore();
 
     machine_at_common_init(model);
-    // machine_at_common_init_ex(model, 2);
-
-    // device_add(&amstrad_megapc_nvr_device);
     device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2);
