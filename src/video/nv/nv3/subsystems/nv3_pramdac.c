@@ -64,6 +64,7 @@ void nv3_pramdac_pixel_clock_poll(double real_time)
     if (nv3->nvbase.refresh_clock > nv3->nvbase.refresh_time)
     {
         /* Update the screen because something changed */
+        nv3_render_current_bpp();
         video_blit_memtoscreen(0, 0, xsize, ysize);
         nv3->nvbase.refresh_clock = 0;
     }

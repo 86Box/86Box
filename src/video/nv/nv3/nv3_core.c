@@ -957,13 +957,6 @@ void nv3_draw_cursor(svga_t* svga, int32_t drawline)
         // reset at the end of each line so we "jump" to the start x
         final_position = nv3_render_get_vram_address_for_buffer(start_position, 0);
     }
-    
-    nv3_coord_16_t size = {0};
-    size.x = size.y = 32; 
-    nv3_grobj_t dummy = {0}; // need to clean it up 
-
-    /* do we need to update here? */
-    nv3_render_current_bpp(&nv3->nvbase.svga, start_position, size, dummy, false);
 }
 
 // MMIO 0x110000->0x111FFF is mapped to a mirror of the VBIOS.
