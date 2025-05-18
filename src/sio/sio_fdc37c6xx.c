@@ -314,7 +314,10 @@ fdc37c6xx_init(const device_t *info)
 {
     fdc37c6xx_t *dev = (fdc37c6xx_t *) calloc(1, sizeof(fdc37c6xx_t));
 
-    dev->fdc = device_add(&fdc_at_smc_device);
+    if (dev->chip_id >= 0x63)
+        dev->fdc = device_add(&fdc_at_smc_device);
+    else
+        dev->fdc = device_add(&fdc_at_smc_661_device);
 
     dev->chip_id = info->local & 0xff;
     dev->has_ide = (info->local >> 8) & 0xff;

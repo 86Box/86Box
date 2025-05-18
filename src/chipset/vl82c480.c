@@ -132,7 +132,8 @@ vl82c480_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                     case 0x02: case 0x03:
                         dev->regs[dev->idx] = val;
-                        if (!strcmp(machine_get_internal_name(), "martin"))
+                        if (!strcmp(machine_get_internal_name(), "martin") ||
+                            !strcmp(machine_get_internal_name(), "prolineamt"))
                             vl82c480_recalc_banks(dev);
                         break;
                     case 0x04:
@@ -140,8 +141,6 @@ vl82c480_write(uint16_t addr, uint8_t val, void *priv)
                             dev->regs[dev->idx] = (dev->regs[dev->idx] & 0x08) | (val & 0xf7);
                         else
                             dev->regs[dev->idx] = val;
-                        if (!strcmp(machine_get_internal_name(), "martin"))
-                            dev->regs[dev->idx] &= 0x1f;
                         break;
                     case 0x05:
                         dev->regs[dev->idx] = (dev->regs[dev->idx] & 0x10) | (val & 0xef);
@@ -221,6 +220,9 @@ vl82c480_init(const device_t *info)
     vl82c480_t *dev      = (vl82c480_t *) calloc(1, sizeof(vl82c480_t));
     uint32_t    sizes[8] = { 0, 0, 1024, 2048, 4096, 8192, 16384, 32768 };
     uint32_t    ms       = mem_size;
+    uint8_t     min_i    = !strcmp(machine_get_internal_name(), "prolineamt") ? 1 : 0;
+    uint8_t     min_j    = !strcmp(machine_get_internal_name(), "prolineamt") ? 4 : 2;
+    uint8_t     max_j    = !strcmp(machine_get_internal_name(), "prolineamt") ? 8 : 7;
 
     dev->regs[0x00] = info->local;
     dev->regs[0x01] = 0xff;
@@ -231,8 +233,16 @@ vl82c480_init(const device_t *info)
         dev->regs[0x07] = 0x21;
     dev->regs[0x08] = 0x38;
 
-    for (uint8_t i = 0; i < 4; i++) {
-        for (uint8_t j = 2; j < 7; j++) {
+    if (!strcmp(machine_get_internal_name(), "prolineamt")) {
+        dev->banks[0] = 4096;
+
+        /* Bank 0 is ignored if 64 MB is installed. */
+        if (ms != 65536)
+            ms -= 4096;
+    }
+
+    if (ms > 0)  for (uint8_t i = min_i; i < 4; i++) {
+        for (uint8_t j = min_j; j < max_j; j++) {
             if (ms >= sizes[j])
                 dev->banks[i] = sizes[j];
             else
