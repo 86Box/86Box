@@ -10575,7 +10575,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM, /* Video: S3 Trio64V+ (86C765), Network: 3Com ETHERLINK III (3C509B) */
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM, /* Video: S3 Trio64V+ (86C765), Sound: Creative ViBRA 16S (CT2504), Network: 3Com ETHERLINK III (3C509B) */
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10590,7 +10590,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &s3_phoenix_trio64vplus_onboard_pci_device,
-        .snd_device = NULL,
+        .snd_device = &sb_vibra16s_onboard_device,
         .net_device = NULL /* not yet emulated */
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the

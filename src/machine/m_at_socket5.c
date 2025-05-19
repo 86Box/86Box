@@ -40,6 +40,7 @@
 #include <86box/sio.h>
 #include <86box/video.h>
 #include <86box/machine.h>
+#include <86box/sound.h>
 
 int
 machine_at_plato_init(const machine_t *model)
@@ -258,6 +259,9 @@ machine_at_optiplex_gxl_init(const machine_t *model)
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&i430fx_device);
