@@ -248,7 +248,8 @@ machine_at_optiplex_gxl_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&amstrad_megapc_nvr_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
@@ -263,7 +264,7 @@ machine_at_optiplex_gxl_init(const machine_t *model)
     if (sound_card_current[0] == SOUND_INTERNAL)
         machine_snd = device_add(machine_get_snd_device(machine));
 
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&keyboard_ps2_phoenix_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
     device_add(&pc87332_device);
