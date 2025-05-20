@@ -2710,7 +2710,7 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
 
     mach_log("VSYNCSTART=%d, VTOTAL=%d, interlace=%02x, vdisp=%d.\n", dev->v_syncstart, dev->v_total, dev->interlace, dev->vdisp);
 
-    if (ATI_8514A_ULTRA) {
+    if (!ATI_MACH32) {
         if ((mach->accel.clock_sel & 0x01) &&
             !(dev->accel.advfunc_cntl & 0x01))
             ret = 2;
