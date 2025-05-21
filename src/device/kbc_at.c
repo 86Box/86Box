@@ -1106,6 +1106,14 @@ write64_generic(void *priv, uint8_t val)
                      */
                     uint8_t p1 = 0x30;
                     kbc_delay_to_ob(dev, p1, 0, 0x00);
+                } else if (!strcmp(machine_get_internal_name(), "dellplato") | !strcmp(machine_get_internal_name(), "dellhannibalp")) {
+                    /*
+                       Dell Dimension XPS Pxxx & Pxxxa/Mxxxa:
+                           - Bit 3: Password disable jumper (must be clear);
+                           - Bit 4: Clear CMOS jumper (must be set);
+                     */
+                    uint8_t p1 = 0x10;
+                    kbc_delay_to_ob(dev, p1, 0, 0x00);
                 } else {
                     /* (B0 or F0) | (0x08 or 0x0c) */
                     uint8_t p1_out = ((dev->p1 | fixed_bits) & 0xf0) |
