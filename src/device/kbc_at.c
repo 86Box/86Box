@@ -2408,24 +2408,18 @@ kbc_at_port_handler(int num, int set, uint16_t port, void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
 
-    if (dev->handler_enable[num] && (dev->base_addr[num] != 0x0000)) {
-        pclog("Disabling keyboard controller port %i at %04X...\n", num, dev->base_addr[num]);
-
+    if (dev->handler_enable[num] && (dev->base_addr[num] != 0x0000))
         io_removehandler(dev->base_addr[num], 1,
                          dev->handlers[num].read, NULL, NULL,
                          dev->handlers[num].write, NULL, NULL, priv);
-    }
 
     dev->handler_enable[num] = set;
     dev->base_addr[num]      = port;
 
-    if (dev->handler_enable[num] && (dev->base_addr[num] != 0x0000)) {
-        pclog("Enabling keyboard controller port %i at %04X...\n", num, dev->base_addr[num]);
-
+    if (dev->handler_enable[num] && (dev->base_addr[num] != 0x0000))
         io_sethandler(dev->base_addr[num], 1,
                       dev->handlers[num].read, NULL, NULL,
                       dev->handlers[num].write, NULL, NULL, priv);
-    }
 }
 
 void
