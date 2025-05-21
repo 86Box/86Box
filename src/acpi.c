@@ -36,6 +36,7 @@
 #include <86box/pit.h>
 #include <86box/apm.h>
 #include <86box/acpi.h>
+#include <86box/dma.h>
 #include <86box/machine.h>
 #include <86box/i2c.h>
 #include <86box/video.h>
@@ -1025,8 +1026,13 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
                         nvr_reg_write(0x000f, 0xff, dev->nvr);
                     }
 
-                    if (sus_typ & SUS_RESET_PCI)
+                    if (sus_typ & SUS_RESET_PCI) {
+                        /* DMA is part of the southbridge so it responds to PCI reset. */
+                        dma_reset();
+                        dma_set_at(1);
+
                         device_reset_all(DEVICE_PCI);
+                    }
 
                     if (sus_typ & SUS_RESET_CPU)
                         cpu_alt_reset = 0;

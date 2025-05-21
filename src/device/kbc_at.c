@@ -145,6 +145,11 @@ typedef struct atkbc_t {
     /* Internal FIFO for the purpose of commands with multi-byte output. */
     uint8_t key_ctrl_queue[64];
 
+    uint8_t handler_enable[2];
+
+    uint16_t base_addr[2];
+    uint16_t irq[2];
+
     uint32_t flags;
 
     /* Main timers. */
@@ -157,8 +162,13 @@ typedef struct atkbc_t {
     /* Local copies of the pointers to both ports for easier swapping (AMI '5' MegaKey). */
     kbc_at_port_t     *ports[2];
 
-    uint8_t (*write60_ven)(void *priv, uint8_t val);
-    uint8_t (*write64_ven)(void *priv, uint8_t val);
+    struct {
+        uint8_t (*read)(uint16_t port, void *priv);
+        void    (*write)(uint16_t port, uint8_t val, void *priv);
+    } handlers[2];
+
+    uint8_t (*write_cmd_data_ven)(void *priv, uint8_t val);
+    uint8_t (*write_cmd_ven)(void *priv, uint8_t val);
 } atkbc_t;
 
 /* Keyboard controller ports. */
@@ -166,8 +176,6 @@ kbc_at_port_t  *kbc_at_ports[2] = { NULL, NULL };
 
 static uint8_t kbc_ami_revision   = '8';
 static uint8_t kbc_award_revision = 0x42;
-
-static uint8_t kbc_handler_set    = 0;
 
 static void (*kbc_at_do_poll)(atkbc_t *dev);
 
@@ -362,12 +370,19 @@ kbc_do_irq(atkbc_t *dev)
     if (dev->do_irq) {
         /* WARNING: On PS/2, all IRQ's are level-triggered, but the IBM PS/2 KBC firmware is explicitly
                     written to pulse its P2 IRQ bits, so they should be kept as as edge-triggered here. */
-        picint_common(1 << 1, 0, 0, NULL);
-        picint_common(1 << 12, 0, 0, NULL);
-        if (dev->channel >= 2)
-            picint_common(1 << 12, 0, 1, NULL);
-        else
-            picint_common(1 << 1, 0, 1, NULL);
+        if (dev->irq[0] != 0xffff)
+            picint_common(1 << dev->irq[0], 0, 0, NULL);
+
+        if (dev->irq[1] != 0xffff)
+            picint_common(1 << dev->irq[1], 0, 0, NULL);
+
+        if (dev->channel >= 2) {
+            if (dev->irq[1] != 0xffff)
+                picint_common(1 << dev->irq[1], 0, 1, NULL);
+        } else {
+            if (dev->irq[0] != 0xffff)
+                picint_common(1 << dev->irq[0], 0, 1, NULL);
+        }
 
         dev->do_irq = 0;
     }
@@ -404,7 +419,9 @@ kbc_send_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
         } else if (dev->mem[0x20] & 0x01)
             kbc_set_do_irq(dev, channel);
     } else if (dev->mem[0x20] & 0x01)
-        picintlevel(1 << 1, &dev->irq_state); /* AT KBC: IRQ 1 is level-triggered because it is tied to OBF. */
+        /* AT KBC: IRQ 1 is level-triggered because it is tied to OBF. */
+        if (dev->irq[0] != 0xffff)
+            picintlevel(1 << dev->irq[0], &dev->irq_state);
 
 #ifdef WRONG_CONDITION
     if ((dev->channel > 0) || dev->is_asic || (kbc_ven == KBC_VEN_IBM_PS1) || (kbc_ven == KBC_VEN_IBM))
@@ -784,10 +801,12 @@ write_p2(atkbc_t *dev, uint8_t val)
     /* PS/2: Handle IRQ's. */
     if (dev->misc_flags & FLAG_PS2) {
         /* IRQ 12 */
-        picint_common(1 << 12, 0, val & 0x20, NULL);
+        if (dev->irq[1] != 0xffff)
+            picint_common(1 << dev->irq[1], 0, val & 0x20, NULL);
 
         /* IRQ 1 */
-        picint_common(1 << 1, 0, val & 0x10, NULL);
+        if (dev->irq[0] != 0xffff)
+            picint_common(1 << dev->irq[0], 0, val & 0x10, NULL);
     }
 #endif
 
@@ -932,7 +951,7 @@ pulse_poll(void *priv)
 }
 
 static uint8_t
-write64_generic(void *priv, uint8_t val)
+write_cmd_generic(void *priv, uint8_t val)
 {
     atkbc_t *dev = (atkbc_t *) priv;
     uint8_t  current_drive;
@@ -1178,7 +1197,7 @@ write64_generic(void *priv, uint8_t val)
 }
 
 static uint8_t
-write60_ami(void *priv, uint8_t val)
+write_cmd_data_ami(void *priv, uint8_t val)
 {
     atkbc_t *dev = (atkbc_t *) priv;
 
@@ -1248,7 +1267,7 @@ kbc_at_set_ps2(void *priv, const uint8_t ps2)
 }
 
 static uint8_t
-write64_ami(void *priv, uint8_t val)
+write_cmd_ami(void *priv, uint8_t val)
 {
     atkbc_t *dev     = (atkbc_t *) priv;
     uint8_t  kbc_ven = dev->flags & KBC_VEN_MASK;
@@ -1453,11 +1472,11 @@ write64_ami(void *priv, uint8_t val)
             break;
     }
 
-    return write64_generic(dev, val);
+    return write_cmd_generic(dev, val);
 }
 
 static uint8_t
-write60_phoenix(void *priv, uint8_t val)
+write_cmd_data_phoenix(void *priv, uint8_t val)
 {
     atkbc_t *dev     = (atkbc_t *) priv;
 
@@ -1530,7 +1549,7 @@ write60_phoenix(void *priv, uint8_t val)
 }
 
 static uint8_t
-write64_phoenix(void *priv, uint8_t val)
+write_cmd_phoenix(void *priv, uint8_t val)
 {
     atkbc_t *dev     = (atkbc_t *) priv;
 
@@ -1676,11 +1695,11 @@ write64_phoenix(void *priv, uint8_t val)
             break;
     }
 
-    return write64_generic(dev, val);
+    return write_cmd_generic(dev, val);
 }
 
 static uint8_t
-write64_siemens(void *priv, uint8_t val)
+write_cmd_siemens(void *priv, uint8_t val)
 {
     atkbc_t *dev     = (atkbc_t *) priv;
 
@@ -1709,11 +1728,11 @@ write64_siemens(void *priv, uint8_t val)
             break;
     }
 
-    return write64_ami(dev, val);
+    return write_cmd_ami(dev, val);
 }
 
 static uint8_t
-write60_quadtel(void *priv, UNUSED(uint8_t val))
+write_cmd_data_quadtel(void *priv, UNUSED(uint8_t val))
 {
     const atkbc_t *dev = (atkbc_t *) priv;
 
@@ -1730,7 +1749,7 @@ write60_quadtel(void *priv, UNUSED(uint8_t val))
 }
 
 static uint8_t
-write64_olivetti(void *priv, uint8_t val)
+write_cmd_olivetti(void *priv, uint8_t val)
 {
     atkbc_t *dev = (atkbc_t *) priv;
 
@@ -1751,11 +1770,11 @@ write64_olivetti(void *priv, uint8_t val)
             break;
     }
 
-    return write64_generic(dev, val);
+    return write_cmd_generic(dev, val);
 }
 
 static uint8_t
-write64_quadtel(void *priv, uint8_t val)
+write_cmd_quadtel(void *priv, uint8_t val)
 {
     atkbc_t *dev = (atkbc_t *) priv;
 
@@ -1774,11 +1793,11 @@ write64_quadtel(void *priv, uint8_t val)
             break;
     }
 
-    return write64_generic(dev, val);
+    return write_cmd_generic(dev, val);
 }
 
 static uint8_t
-write60_toshiba(void *priv, uint8_t val)
+write_cmd_data_toshiba(void *priv, uint8_t val)
 {
     const atkbc_t *dev = (atkbc_t *) priv;
 
@@ -1796,7 +1815,7 @@ write60_toshiba(void *priv, uint8_t val)
 }
 
 static uint8_t
-write64_toshiba(void *priv, uint8_t val)
+write_cmd_toshiba(void *priv, uint8_t val)
 {
     atkbc_t *dev = (atkbc_t *) priv;
 
@@ -1885,7 +1904,7 @@ write64_toshiba(void *priv, uint8_t val)
             break;
     }
 
-    return write64_generic(dev, val);
+    return write_cmd_generic(dev, val);
 }
 
 static void
@@ -1929,8 +1948,10 @@ kbc_at_process_cmd(void *priv)
                         /* TODO: Proper P1 implementation, with OR and AND flags in the machine table. */
                         dev->p1 = dev->p1 & 0xff;
                         write_p2(dev, 0x4b);
-                        picintc(0x1000);
-                        picintc(0x0002);
+                        if (dev->irq[1] != 0xffff)
+                            picintc(1 << dev->irq[1]);
+                        if (dev->irq[0] != 0xffff)
+                            picintc(1 << dev->irq[0]);
                     }
 
                     dev->status = (dev->status & 0x0f) | 0x60;
@@ -1949,7 +1970,8 @@ kbc_at_process_cmd(void *priv)
                         /* TODO: Proper P1 implementation, with OR and AND flags in the machine table. */
                         dev->p1 = dev->p1 & 0xff;
                         write_p2(dev, 0xcf);
-                        picintclevel(0x0002, &dev->irq_state);
+                        if (dev->irq[0] != 0xffff)
+                            picintclevel(1 << dev->irq[0], &dev->irq_state);
                         dev->irq_state = 0;
                     }
 
@@ -2064,8 +2086,8 @@ kbc_at_process_cmd(void *priv)
                  * that. Otherwise, or if that handler fails,
                  * log a bad command.
                  */
-                if (dev->write64_ven)
-                    bad = dev->write64_ven(dev, dev->ib);
+                if (dev->write_cmd_ven)
+                    bad = dev->write_cmd_ven(dev, dev->ib);
 
                 kbc_at_log(bad ? "ATkbc: bad controller command %02X\n" : "", dev->ib);
         }
@@ -2151,8 +2173,8 @@ kbc_at_process_cmd(void *priv)
                  * it returns an error, log a bad
                  * controller command.
                  */
-                if (dev->write60_ven)
-                    bad = dev->write60_ven(dev, dev->ib);
+                if (dev->write_cmd_data_ven)
+                    bad = dev->write_cmd_data_ven(dev, dev->ib);
 
                 if (bad) {
                     kbc_at_log("ATkbc: bad controller command %02x data %02x\n", dev->command, dev->ib);
@@ -2162,7 +2184,7 @@ kbc_at_process_cmd(void *priv)
 }
 
 static void
-kbc_at_write(uint16_t port, uint8_t val, void *priv)
+kbc_at_port_1_write(uint16_t port, uint8_t val, void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
@@ -2170,83 +2192,89 @@ kbc_at_write(uint16_t port, uint8_t val, void *priv)
 
     kbc_at_log("ATkbc: [%04X:%08X] write(%04X) = %02X\n", CS, cpu_state.pc, port, val);
 
-    switch (port) {
-        case 0x60:
-            dev->status &= ~STAT_CD;
-            if (fast_a20 && dev->wantdata && (dev->command == 0xd1)) {
-                kbc_at_log("ATkbc: write P2\n");
+    dev->status &= ~STAT_CD;
 
-                /* Fast A20 - ignore all other bits. */
-                write_p2_fast_a20(dev, (dev->p2 & 0xfd) | (val & 0x02));
+    if (fast_a20 && dev->wantdata && (dev->command == 0xd1)) {
+        kbc_at_log("ATkbc: write P2\n");
 
-                dev->wantdata  = 0;
-                dev->state     = STATE_MAIN_IBF;
+        /* Fast A20 - ignore all other bits. */
+        write_p2_fast_a20(dev, (dev->p2 & 0xfd) | (val & 0x02));
 
-                /*
-                   Explicitly clear IBF so that any preceding
-                   command is not executed.
-                 */
-                dev->status   &= ~STAT_IFULL;
-                return;
-            }
-            break;
+        dev->wantdata  = 0;
+        dev->state     = STATE_MAIN_IBF;
 
-        case 0x64:
-            dev->status |= STAT_CD;
-            if (fast_a20 && (val == 0xd1)) {
-                kbc_at_log("ATkbc: write P2\n");
-                dev->wantdata  = 1;
-                dev->state     = STATE_KBC_PARAM;
-                dev->command = 0xd1;
+        /*
+           Explicitly clear IBF so that any preceding
+           command is not executed.
+         */
+        dev->status   &= ~STAT_IFULL;
+        return;
+    }
 
-                /*
-                   Explicitly clear IBF so that any preceding
-                   command is not executed.
-                 */
-                dev->status   &= ~STAT_IFULL;
-                return;
-            } else if (fast_reset && ((val & 0xf0) == 0xf0)) {
-                pulse_output(dev, val & 0x0f);
+    dev->ib = val;
+    dev->status |= STAT_IFULL;
+}
 
-                dev->state     = STATE_MAIN_IBF;
+static void
+kbc_at_port_2_write(uint16_t port, uint8_t val, void *priv)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
+    uint8_t fast_a20 = (kbc_ven != KBC_VEN_SIEMENS);
 
-                /*
-                   Explicitly clear IBF so that any preceding
-                   command is not executed.
-                 */
-                dev->status   &= ~STAT_IFULL;
-                return;
-            } else if (val == 0xad) {
-                /* Fast track it because of the Bochs BIOS. */
-                kbc_at_log("ATkbc: disable keyboard\n");
-                set_enable_kbd(dev, 0);
+    kbc_at_log("ATkbc: [%04X:%08X] write(%04X) = %02X\n", CS, cpu_state.pc, port, val);
 
-                dev->state     = STATE_MAIN_IBF;
+    dev->status |= STAT_CD;
 
-                /*
-                   Explicitly clear IBF so that any preceding
-                   command is not executed.
-                 */
-                dev->status   &= ~STAT_IFULL;
-                return;
-            } else if (val == 0xae) {
-                /* Fast track it because of the LG MultiNet. */
-                kbc_at_log("ATkbc: enable keyboard\n");
-                set_enable_kbd(dev, 1);
+    if (fast_a20 && (val == 0xd1)) {
+        kbc_at_log("ATkbc: write P2\n");
+        dev->wantdata  = 1;
+        dev->state     = STATE_KBC_PARAM;
+        dev->command = 0xd1;
 
-                dev->state     = STATE_MAIN_IBF;
+        /*
+           Explicitly clear IBF so that any preceding
+           command is not executed.
+         */
+        dev->status   &= ~STAT_IFULL;
+        return;
+    } else if (fast_reset && ((val & 0xf0) == 0xf0)) {
+        pulse_output(dev, val & 0x0f);
 
-                /*
-                   Explicitly clear IBF so that any preceding
-                   command is not executed.
-                 */
-                dev->status   &= ~STAT_IFULL;
-                return;
-            }
-            break;
+        dev->state     = STATE_MAIN_IBF;
 
-        default:
-            break;
+        /*
+           Explicitly clear IBF so that any preceding
+           command is not executed.
+         */
+        dev->status   &= ~STAT_IFULL;
+        return;
+    } else if (val == 0xad) {
+        /* Fast track it because of the Bochs BIOS. */
+        kbc_at_log("ATkbc: disable keyboard\n");
+        set_enable_kbd(dev, 0);
+
+        dev->state     = STATE_MAIN_IBF;
+
+        /*
+           Explicitly clear IBF so that any preceding
+           command is not executed.
+         */
+        dev->status   &= ~STAT_IFULL;
+        return;
+    } else if (val == 0xae) {
+        /* Fast track it because of the LG MultiNet. */
+        kbc_at_log("ATkbc: enable keyboard\n");
+        set_enable_kbd(dev, 1);
+
+        dev->state     = STATE_MAIN_IBF;
+
+        /*
+           Explicitly clear IBF so that any preceding
+           command is not executed.
+         */
+        dev->status   &= ~STAT_IFULL;
+        return;
     }
 
     dev->ib = val;
@@ -2254,7 +2282,7 @@ kbc_at_write(uint16_t port, uint8_t val, void *priv)
 }
 
 static uint8_t
-kbc_at_read(uint16_t port, void *priv)
+kbc_at_port_1_read(uint16_t port, void *priv)
 {
     atkbc_t *dev     = (atkbc_t *) priv;
     uint8_t  ret     = 0xff;
@@ -2262,26 +2290,32 @@ kbc_at_read(uint16_t port, void *priv)
     if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1)
         cycles -= ISA_CYCLES(8);
 
-    switch (port) {
-        case 0x60:
-            ret = dev->ob;
-            dev->status &= ~STAT_OFULL;
-            /* TODO: IRQ is only tied to OBF on the AT KBC, on the PS/2 KBC, it is controlled by a P2 bit.
-                     This also means that in AT mode, the IRQ is level-triggered. */
-            if (!(dev->misc_flags & FLAG_PS2))
-                picintclevel(1 << 1, &dev->irq_state);
-            if ((strstr(machine_get_internal_name(), "pb41") != NULL) && (cpu_override_dynarec == 1))
-                cpu_override_dynarec = 0;
-            break;
+    ret = dev->ob;
+    dev->status &= ~STAT_OFULL;
+    /*
+       TODO: IRQ is only tied to OBF on the AT KBC, on the PS/2 KBC, it is controlled by a P2 bit.
+       This also means that in AT mode, the IRQ is level-triggered.
+     */
+    if (!(dev->misc_flags & FLAG_PS2) && (dev->irq[0] != 0xffff))
+        picintclevel(1 << dev->irq[0], &dev->irq_state);
+    if ((strstr(machine_get_internal_name(), "pb41") != NULL) && (cpu_override_dynarec == 1))
+        cpu_override_dynarec = 0;
 
-        case 0x64:
-            ret = dev->status;
-            break;
+    kbc_at_log("ATkbc: [%04X:%08X] read (%04X) = %02X\n",  CS, cpu_state.pc, port, ret);
 
-        default:
-            kbc_at_log("ATkbc: read(%04x) invalid!\n",port);
-            break;
-    }
+    return ret;
+}
+
+static uint8_t
+kbc_at_port_2_read(uint16_t port, void *priv)
+{
+    atkbc_t *dev     = (atkbc_t *) priv;
+    uint8_t  ret     = 0xff;
+
+    if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1)
+        cycles -= ISA_CYCLES(8);
+
+    ret = dev->status;
 
     kbc_at_log("ATkbc: [%04X:%08X] read (%04X) = %02X\n",  CS, cpu_state.pc, port, ret);
 
@@ -2320,11 +2354,14 @@ kbc_at_reset(void *priv)
     if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
         dev->misc_flags |= FLAG_PS2;
         kbc_at_do_poll = kbc_at_poll_ps2;
-        picintc(0x1000);
-        picintc(0x0002);
+        if (dev->irq[1] != 0xffff)
+            picintc(1 << dev->irq[1]);
+        if (dev->irq[0] != 0xffff)
+            picintc(1 << dev->irq[0]);
     } else {
         kbc_at_do_poll = kbc_at_poll_at;
-        picintclevel(0x0002, &dev->irq_state);
+        if (dev->irq[0] != 0xffff)
+            picintclevel(1 << dev->irq[0], &dev->irq_state);
         dev->irq_state = 0;
     }
 
@@ -2367,19 +2404,50 @@ kbc_at_close(void *priv)
 }
 
 void
-kbc_at_handler(int set, void *priv)
+kbc_at_port_handler(int num, int set, uint16_t port, void *priv)
 {
-    if (kbc_handler_set) {
-        io_removehandler(0x0060, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
-        io_removehandler(0x0064, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    if (dev->handler_enable[num] && (dev->base_addr[num] != 0x0000)) {
+        pclog("Disabling keyboard controller port %i at %04X...\n", num, dev->base_addr[num]);
+
+        io_removehandler(dev->base_addr[num], 1,
+                         dev->handlers[num].read, NULL, NULL,
+                         dev->handlers[num].write, NULL, NULL, priv);
     }
 
-    kbc_handler_set = set;
+    dev->handler_enable[num] = set;
+    dev->base_addr[num]      = port;
 
-    if (kbc_handler_set) {
-        io_sethandler(0x0060, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
-        io_sethandler(0x0064, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, priv);
+    if (dev->handler_enable[num] && (dev->base_addr[num] != 0x0000)) {
+        pclog("Enabling keyboard controller port %i at %04X...\n", num, dev->base_addr[num]);
+
+        io_sethandler(dev->base_addr[num], 1,
+                      dev->handlers[num].read, NULL, NULL,
+                      dev->handlers[num].write, NULL, NULL, priv);
     }
+}
+
+void
+kbc_at_handler(int set, uint16_t port, void *priv)
+{
+    kbc_at_port_handler(0, set, port, priv);
+    kbc_at_port_handler(1, set, port + 0x0004, priv);
+}
+
+void
+kbc_at_set_irq(int num, uint16_t irq, void *priv)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    if (dev->irq[num] != 0xffff) {
+        if ((num == 0) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_1))
+            picintclevel(1 << dev->irq[num], &dev->irq_state);
+        else
+            picintc(1 << dev->irq[num]);
+    }
+
+    dev->irq[num] = irq;
 }
 
 static void *
@@ -2400,16 +2468,21 @@ kbc_at_init(const device_t *info)
     if (info->flags & DEVICE_PCI)
         dev->misc_flags |= FLAG_PCI;
 
-    kbc_handler_set = 0;
-    kbc_at_handler(1, dev);
+    dev->handlers[0].read  = kbc_at_port_1_read;
+    dev->handlers[0].write = kbc_at_port_1_write;
+    dev->handlers[1].read  = kbc_at_port_2_read;
+    dev->handlers[1].write = kbc_at_port_2_write;
+
+    dev->irq[0] = 1;
+    dev->irq[1] = 12;
 
     timer_add(&dev->kbc_poll_timer, kbc_at_poll, dev, 1);
     timer_add(&dev->pulse_cb, pulse_poll, dev, 0);
 
     timer_add(&dev->kbc_dev_poll_timer, kbc_at_dev_poll, dev, 1);
 
-    dev->write60_ven = NULL;
-    dev->write64_ven = NULL;
+    dev->write_cmd_data_ven = NULL;
+    dev->write_cmd_ven = NULL;
 
     kbc_ami_revision = '8';
     kbc_award_revision = 0x42;
@@ -2418,8 +2491,8 @@ kbc_at_init(const device_t *info)
         case KBC_VEN_SIEMENS:
             kbc_ami_revision = '8';
             kbc_award_revision = 0x42;
-            dev->write60_ven = write60_ami;
-            dev->write64_ven = write64_siemens;
+            dev->write_cmd_data_ven = write_cmd_data_ami;
+            dev->write_cmd_ven = write_cmd_siemens;
             break;
 
         case KBC_VEN_ACER:
@@ -2428,24 +2501,24 @@ kbc_at_init(const device_t *info)
         case KBC_VEN_IBM_PS1:
         case KBC_VEN_IBM:
         case KBC_VEN_COMPAQ:
-            dev->write64_ven = write64_generic;
+            dev->write_cmd_ven = write_cmd_generic;
             break;
 
         case KBC_VEN_OLIVETTI:
-            dev->write64_ven = write64_olivetti;
+            dev->write_cmd_ven = write_cmd_olivetti;
             break;
 
         case KBC_VEN_ALI:
             kbc_ami_revision = 'F';
             kbc_award_revision = 0x43;
-            dev->write60_ven = write60_ami;
-            dev->write64_ven = write64_ami;
+            dev->write_cmd_data_ven = write_cmd_data_ami;
+            dev->write_cmd_ven = write_cmd_ami;
             break;
 
         case KBC_VEN_TRIGEM_AMI:
             kbc_ami_revision = 'Z';
-            dev->write60_ven = write60_ami;
-            dev->write64_ven = write64_ami;
+            dev->write_cmd_data_ven = write_cmd_data_ami;
+            dev->write_cmd_ven = write_cmd_ami;
             break;
 
         case KBC_VEN_AMI:
@@ -2468,23 +2541,23 @@ kbc_at_init(const device_t *info)
             else
                 kbc_ami_revision = 'F';
 
-            dev->write60_ven = write60_ami;
-            dev->write64_ven = write64_ami;
+            dev->write_cmd_data_ven = write_cmd_data_ami;
+            dev->write_cmd_ven = write_cmd_ami;
             break;
 
         case KBC_VEN_PHOENIX:
-            dev->write60_ven = write60_phoenix;
-            dev->write64_ven = write64_phoenix;
+            dev->write_cmd_data_ven = write_cmd_data_phoenix;
+            dev->write_cmd_ven = write_cmd_phoenix;
             break;
 
         case KBC_VEN_QUADTEL:
-            dev->write60_ven = write60_quadtel;
-            dev->write64_ven = write64_quadtel;
+            dev->write_cmd_data_ven = write_cmd_data_quadtel;
+            dev->write_cmd_ven = write_cmd_quadtel;
             break;
 
         case KBC_VEN_TOSHIBA:
-            dev->write60_ven = write60_toshiba;
-            dev->write64_ven = write64_toshiba;
+            dev->write_cmd_data_ven = write_cmd_data_toshiba;
+            dev->write_cmd_ven = write_cmd_toshiba;
             break;
 
         default:
@@ -2509,6 +2582,8 @@ kbc_at_init(const device_t *info)
     device_add(&keyboard_at_generic_device);
 
     fast_reset = 0x00;
+
+    kbc_at_handler(1, 0x0060, dev);
 
     return dev;
 }

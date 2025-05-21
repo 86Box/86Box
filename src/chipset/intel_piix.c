@@ -155,6 +155,7 @@ piix_ide_handlers(piix_t *dev, int bus)
     uint16_t side;
 
     if (bus & 0x01) {
+        piix_log("Disabling primary IDE...\n");
         ide_pri_disable();
 
         if (dev->type == 5) {
@@ -170,11 +171,14 @@ piix_ide_handlers(piix_t *dev, int bus)
             ide_set_side(0, side);
         }
 
-        if ((dev->regs[1][0x04] & 0x01) && (dev->regs[1][0x41] & 0x80))
+        if ((dev->regs[1][0x04] & 0x01) && (dev->regs[1][0x41] & 0x80)) {
+            piix_log("Enabling primary IDE...\n");
             ide_pri_enable();
+        }
     }
 
     if (bus & 0x02) {
+        piix_log("Disabling secondary IDE...\n");
         ide_sec_disable();
 
         if (dev->type == 5) {
@@ -190,8 +194,10 @@ piix_ide_handlers(piix_t *dev, int bus)
             ide_set_side(1, side);
         }
 
-        if ((dev->regs[1][0x04] & 0x01) && (dev->regs[1][0x43] & 0x80))
+        if ((dev->regs[1][0x04] & 0x01) && (dev->regs[1][0x43] & 0x80)) {
+            piix_log("Enabling secondary IDE...\n");
             ide_sec_enable();
+        }
     }
 }
 
@@ -465,6 +471,13 @@ piix_write(int func, int addr, uint8_t val, void *priv)
     uint8_t *fregs;
     uint16_t base;
 
+    /* Dell OptiPlex Gn+ shows that register 02:FF is aliased in 01:FF. */
+    if ((dev->type == 4) && (func == 1) && (addr == 0xff))
+        func = 2;
+
+    if ((func == 1) || (addr == 0xf8) || (addr == 0xf9))
+        piix_log("[W] %02X:%02X = %02X\n", func, addr, val);
+
     /* Return on unsupported function. */
     if (dev->max_func > 0) {
         if (func > dev->max_func)
@@ -736,6 +749,8 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                     fregs[addr] = val;
                 break;
             case 0xb0:
+                if (val & 0x10)
+                    warning("Write %02X to B0\n", val);
                 if (dev->type == 4)
                     fregs[addr] = (fregs[addr] & 0x8c) | (val & 0x73);
                 else if (dev->type == 5)
@@ -745,6 +760,8 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                     alt_access = !!(val & 0x20);
                 break;
             case 0xb1:
+                if (val & 0x18)
+                    warning("Write %02X to B1\n", val);
                 if (dev->type > 3)
                     fregs[addr] = val & 0xdf;
                 break;
@@ -921,6 +938,12 @@ piix_write(int func, int addr, uint8_t val, void *priv)
             case 0x5c:
             case 0x5d:
                 if (dev->type > 4)
+                    fregs[addr] = val;
+                break;
+            case 0xf8:
+            case 0xf9:
+                /* Undocumented! */
+                if (dev->type == 4)
                     fregs[addr] = val;
                 break;
             default:
@@ -1169,6 +1192,10 @@ piix_read(int func, int addr, void *priv)
     uint8_t        ret = 0xff;
     const uint8_t *fregs;
 
+    /* Dell OptiPlex Gn+ shows that register 02:FF is aliased in 01:FF. */
+    if ((dev->type == 4) && (func == 1) && (addr == 0xff))
+        func = 2;
+
     if ((dev->type == 3) && (func == 2) && (dev->max_func == 1) && (addr >= 0x40))
         ret = 0x00;
 
@@ -1199,7 +1226,7 @@ piix_reset_hard(piix_t *dev)
 
         sff_set_slot(dev->bm[1], dev->pci_slot);
         sff_set_irq_pin(dev->bm[1], PCI_INTA);
-        sff_set_irq_line(dev->bm[1], 14);
+        sff_set_irq_line(dev->bm[1], 15);
         sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
     }
 
@@ -1314,6 +1341,10 @@ piix_reset_hard(piix_t *dev)
         fregs[0x3d] = 0x01;
         fregs[0x45] = 0x55;
         fregs[0x46] = 0x01;
+    }
+    if (dev->type == 4) {
+        fregs[0xf8] = 0x30;
+        fregs[0xf9] = 0x0f;
     }
     if ((dev->type == 1) && (dev->rev == 2))
         dev->max_func = 0; /* It starts with IDE disabled, then enables it. */
@@ -1678,7 +1709,7 @@ const device_t piix4_device = {
     .name          = "Intel 82371AB/EB (PIIX4/PIIX4E)",
     .internal_name = "piix4",
     .flags         = DEVICE_PCI,
-    .local         = 0x71100004,
+    .local         = 0x71100014,
     .init          = piix_init,
     .close         = piix_close,
     .reset         = piix_reset,

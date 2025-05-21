@@ -229,9 +229,9 @@ void
 lpt_port_setup(int i, uint16_t port)
 {
     if (lpt_ports[i].enabled) {
-        if (lpt_ports[i].addr != 0xffff)
+        if ((lpt_ports[i].addr != 0xffff) && (lpt_ports[i].addr != 0x0000))
             io_removehandler(lpt_ports[i].addr, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
-        if (port != 0xffff)
+        if ((port != 0xffff) && (port != 0x0000))
             io_sethandler(port, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
         lpt_ports[i].addr = port;
     } else
