@@ -30,11 +30,13 @@
 #include "cpu.h"
 
 uint8_t         postcard_codes[POSTCARDS_NUM];
+char            postcard_diags[5] = { 0 };
 
 static uint16_t postcard_port;
 static uint8_t  postcard_written[POSTCARDS_NUM];
 static uint8_t  postcard_ports_num = 1;
 static uint8_t  postcard_prev_codes[POSTCARDS_NUM];
+static char     postcard_prev_diags[5] = { 0 };
 #define UISTR_LEN 32
 static char postcard_str[UISTR_LEN]; /* UI output string */
 
@@ -97,6 +99,22 @@ postcard_setui(void)
                         ps[1][0], ps[1][1], ps[1][2], ps[1][3]);
                 break;
         }
+    } else if (strstr(machines[machine].name, " Dell ")) {
+        char dell_diags[10] = { 0 };
+
+        if (!postcard_written[1])
+            snprintf(dell_diags, sizeof(dell_diags), "---- ----");
+        else if (postcard_written[1] == 1)
+            snprintf(dell_diags, sizeof(dell_diags), "%s ----", postcard_diags);
+        else
+            snprintf(dell_diags, sizeof(dell_diags), "%s %s", postcard_diags, postcard_prev_diags);
+
+        if (!postcard_written[0])
+            snprintf(postcard_str, sizeof(postcard_str), "POST: -- -- %s", dell_diags);
+        else if (postcard_written[0] == 1)
+            snprintf(postcard_str, sizeof(postcard_str), "POST: %02X -- %s", postcard_codes[0], dell_diags);
+        else
+            snprintf(postcard_str, sizeof(postcard_str), "POST: %02X %02X %s", postcard_codes[0], postcard_prev_codes[0], dell_diags);
     } else {
         if (!postcard_written[0])
             snprintf(postcard_str, sizeof(postcard_str), "POST: -- --");
@@ -122,6 +140,9 @@ postcard_reset(void)
     memset(postcard_codes, 0x00, POSTCARDS_NUM * sizeof(uint8_t));
     memset(postcard_prev_codes, 0x00, POSTCARDS_NUM * sizeof(uint8_t));
 
+    memset(postcard_diags, 0x00, 5 * sizeof(char));
+    memset(postcard_prev_diags, 0x00, 5 * sizeof(char));
+
     postcard_setui();
 }
 
@@ -136,6 +157,35 @@ postcard_write(uint16_t port, uint8_t val, UNUSED(void *priv))
     postcard_codes[port & POSTCARD_MASK]      = val;
     if (postcard_written[port & POSTCARD_MASK] < 2)
         postcard_written[port & POSTCARD_MASK]++;
+
+    postcard_setui();
+}
+
+static int
+postcard_cmp_diags(uint32_t val)
+{
+    int   ret = 0;
+    char *pv  = (char *) &val;
+
+    for (int i = 0; i < 4; i++)
+        ret = ret || (pv[i] != postcard_diags[3 - i]);
+
+    return ret;
+}
+
+static void
+postcard_writel(uint16_t port, uint32_t val, UNUSED(void *priv))
+{
+    char *pv  = (char *) &val;
+
+    if (postcard_written[1] && !postcard_cmp_diags(val))
+        return;
+
+    *(uint32_t *) postcard_prev_diags = *(uint32_t *) postcard_diags;
+    for (int i = 0; i < 4; i++)
+        postcard_diags[i] = pv[3 - i];
+    if (postcard_written[1] < 2)
+        postcard_written[1]++;
 
     postcard_setui();
 }
@@ -172,6 +222,10 @@ postcard_init(UNUSED(const device_t *info))
     if (postcard_port)
         io_sethandler(postcard_port, postcard_ports_num,
                       NULL, NULL, NULL, postcard_write, NULL, NULL, NULL);
+
+    if (strstr(machines[machine].name, " Dell "))
+        io_sethandler(0x00e0, 0x0001,
+                      NULL, NULL, NULL, NULL, NULL, postcard_writel, NULL);
 
     return postcard_write;
 }

@@ -894,7 +894,7 @@ fdc37c93x_kbc_handler(fdc37c93x_t *dev)
     dev->kbc_base = local_enable ? 0x0060 : 0x0000;
 
     if (dev->kbc_base != old_base)
-        kbc_at_handler(local_enable, dev->kbc);
+        kbc_at_handler(local_enable, dev->kbc_base, dev->kbc);
 }
 
 static void

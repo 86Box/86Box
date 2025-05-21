@@ -13103,11 +13103,15 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* According to Dell specifications, it can have either National Semiconductor PC87307 or PC87309
-       Super I/O. All known instances have the former, although other similar Dells of the era have
-       pinouts for accompanying either so this likely also does.
+    /*
+       According to Dell specifications, it can have either National Semiconductor
+       PC87307 or PC87309 Super I/O. All known instances have the former, although
+       other similar Dells of the era have pinouts for accompanying either so this
+       likely also does.
 
-       The KBC is likely an AMIKey-2 clone. */
+       The KBC is either an AMI '5' MegaKey, Phoenix MultiKey/42 1.37, or Phoenix
+       MultiKey/42i 4.16.
+     */
     {
         .name = "[i430TX] Dell OptiPlex GN+",
         .internal_name = "optiplex_gn",
@@ -13129,7 +13133,8 @@ const machine_t machines[] = {
             .max_multi = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO, /* Video: S3 86C785 (Trio64V2/GX), ethernet: 3C905 */
+        /* Video: S3 86C785 (Trio64V2/GX), ethernet: 3C905. */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO | MACHINE_SOUND,
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -13143,8 +13148,9 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = &s3_trio64v2_dx_onboard_pci_device, /* Stop-gap measure until the Trio64V2/GX is emulated, as both use the same VBIOS  */
-        .snd_device = NULL,
+        /* Stop-gap measure until the Trio64V2/GX is emulated, as both use the same VBIOS. */
+        .vid_device = &s3_trio64v2_dx_onboard_pci_device,
+        .snd_device = &sb_vibra16xv_onboard_device,
         .net_device = NULL
     },
     /* [TEST] Has AMI Megakey '5' KBC firmware on the SM(S)C FDC37C67x Super I/O chip. */

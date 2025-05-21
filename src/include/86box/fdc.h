@@ -183,6 +183,7 @@ extern uint8_t fdc_get_densel_polarity(fdc_t *fdc);
 extern void    fdc_update_densel_force(fdc_t *fdc, int densel_force);
 extern void    fdc_update_drvrate(fdc_t *fdc, int drive, int drvrate);
 extern void    fdc_update_drv2en(fdc_t *fdc, int drv2en);
+extern void    fdc_toggle_flag(fdc_t *fdc, int flag, int on);
 
 extern void fdc_noidam(fdc_t *fdc);
 extern void fdc_nosector(fdc_t *fdc);
