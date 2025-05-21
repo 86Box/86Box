@@ -1106,7 +1106,7 @@ write64_generic(void *priv, uint8_t val)
                      */
                     uint8_t p1 = 0x30;
                     kbc_delay_to_ob(dev, p1, 0, 0x00);
-                } else if (!strcmp(machine_get_internal_name(), "dellplato") | !strcmp(machine_get_internal_name(), "dellhannibalp")) {
+                } else if (!strcmp(machine_get_internal_name(), "dellplato") || !strcmp(machine_get_internal_name(), "dellhannibalp")) {
                     /*
                        Dell Dimension XPS Pxxx & Pxxxa/Mxxxa:
                            - Bit 3: Password disable jumper (must be clear);
