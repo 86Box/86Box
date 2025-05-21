@@ -123,7 +123,9 @@ plat_resize(int w, int h, int monitor_index)
         main_window->resizeContents(w, h);
 }
 
+#if defined _WIN32
 extern HWND rw_hwnd;
+#endif
 
 void
 plat_mouse_capture(int on)
