@@ -663,6 +663,14 @@ RendererStack::setFocusRenderer()
 void
 RendererStack::onResize(int width, int height)
 {
+#ifdef Q_OS_WINDOWS
+    if (mouse_capture) {
+        RECT rect;
+        if (GetWindowRect((HWND)this->winId(), &rect)) {
+            ClipCursor(&rect);
+        }
+    }
+#endif
     if (rendererWindow) {
         rendererWindow->r_monitor_index = m_monitor_index;
         rendererWindow->onResize(width, height);
