@@ -396,7 +396,7 @@ machine_at_pb410a_init(const machine_t *model)
     device_add(&phoenix_486_jumper_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&ht216_32_pb410a_device);
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
@@ -545,12 +545,43 @@ machine_at_decpclpv_init(const machine_t *model)
     device_add(&sis_85c461_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&s3_86c805_onboard_vlb_device);
+        device_add(machine_get_vid_device(machine));
 
-    /* TODO: Phoenix MultiKey KBC */
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&keyboard_ps2_phoenix_pci_device);
+
     device_add(&ide_isa_2ch_device);
     device_add(&fdc37c663_ide_device);
+
+    return ret;
+}
+
+int
+machine_at_dell466np_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/dell466np/466np.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&sis_85c461_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+    else {
+        for (uint16_t i = 0; i < 32768; i++)
+            rom[i] = mem_readb_phys(0x000c0000 + i);
+    }
+    mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+    mem_mapping_set_exec(&bios_mapping, rom);
+
+    device_add(&keyboard_ps2_phoenix_pci_device);
+
+    device_add(&ide_isa_device);
+    device_add(&fdc37c661_ide_device);
 
     return ret;
 }
@@ -1696,9 +1727,6 @@ machine_at_sb486pv_init(const machine_t *model)
     device_context_restore();
 
     machine_at_common_init(model);
-    // machine_at_common_init_ex(model, 2);
-
-    // device_add(&amstrad_megapc_nvr_device);
     device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2);

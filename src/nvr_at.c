@@ -1107,9 +1107,10 @@ nvr_at_init(const device_t *info)
         case 1: /* standard AT */
         case 5: /* AMI WinBIOS 1994 */
         case 6: /* AMI BIOS 1995 */
-            if ((info->local & 0x1f) == 0x11)
+            if ((info->local & 0x1f) == 0x11) {
                 local->flags |= FLAG_PIIX4;
-            else {
+                local->def = 0x00;
+            } else {
                 local->def = 0x00;
                 if ((info->local & 0x1f) == 0x15)
                     local->flags |= FLAG_AMI_1994_HACK;

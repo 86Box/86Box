@@ -818,6 +818,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     int          over            = 0;
     int          pc_off          = 0;
     int          test_modrm      = 1;
+    int          in_lock         = 0;
     int          c;
     uint32_t     op87            = 0x00000000;
 
@@ -956,6 +957,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 break;
 
             case 0xf0: /*LOCK*/
+                in_lock         = 0;
                 break;
 
             case 0xf2: /*REPNE*/
@@ -1013,6 +1015,9 @@ generate_call:
         STORE_IMM_ADDR_L((uintptr_t) &x87_op, op87);
     }
 
+    if (in_lock && ((opcode == 0x90) || (opcode == 0xec)))
+        goto codegen_skip;
+
     if (recomp_op_table && recomp_op_table[(opcode | op_32) & 0x1ff]) {
         uint32_t new_pc = recomp_op_table[(opcode | op_32) & 0x1ff](opcode, fetchdat, op_32, op_pc, block);
         if (new_pc) {
@@ -1040,7 +1045,13 @@ generate_call:
         }
     }
 
-    op = op_table[((opcode >> opcode_shift) | op_32) & opcode_mask];
+codegen_skip:
+    if (in_lock && ((opcode == 0x90) || (opcode == 0xec)))
+        /* This is always ILLEGAL. */
+        op = x86_dynarec_opcodes_3DNOW[0xff];
+    else
+        op = op_table[((opcode >> opcode_shift) | op_32) & opcode_mask];
+
     if (op_ssegs != last_ssegs) {
         last_ssegs = op_ssegs;
         addbyte(0xC6); /*MOVB $0,(ssegs)*/

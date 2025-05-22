@@ -378,6 +378,15 @@ fdc_set_power_down(fdc_t *fdc, uint8_t power_down)
 }
 
 void
+fdc_toggle_flag(fdc_t *fdc, int flag, int on)
+{
+    if (on)
+        fdc->flags |= flag;
+    else
+        fdc->flags &= ~flag;
+}
+
+void
 fdc_update_max_track(fdc_t *fdc, int max_track)
 {
     fdc->max_track = max_track;
@@ -469,9 +478,11 @@ fdc_update_drv2en(fdc_t *fdc, int drv2en)
 void
 fdc_update_rate(fdc_t *fdc, int drive)
 {
-    if (((fdc->rwc[drive] == 1) || (fdc->rwc[drive] == 2)) && fdc->enh_mode)
+    if (((fdc->rwc[drive] == 1) || (fdc->rwc[drive] == 2)) &&
+        fdc->enh_mode && !(fdc->flags & FDC_FLAG_SMC661))
         fdc->bit_rate = 500;
-    else if ((fdc->rwc[drive] == 3) && fdc->enh_mode)
+    else if ((fdc->rwc[drive] == 3) && fdc->enh_mode &&
+             !(fdc->flags & FDC_FLAG_SMC661))
         fdc->bit_rate = 250;
     else  switch (fdc->rate) {
         default:
@@ -535,7 +546,7 @@ fdc_get_bitcell_period(fdc_t *fdc)
 static int
 fdc_get_densel(fdc_t *fdc, int drive)
 {
-    if (fdc->enh_mode) {
+    if (fdc->enh_mode && !(fdc->flags & FDC_FLAG_SMC661)) {
         switch (fdc->rwc[drive]) {
             case 1:
             case 3:
@@ -770,8 +781,13 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             return;
         case 3: /* TDR */
             if (fdc->enh_mode) {
-                drive = real_drive(fdc, fdc->dor & 3);
-                fdc_update_rwc(fdc, drive, (val & 0x30) >> 4);
+                if (fdc->flags & FDC_FLAG_SMC661) {
+                    fdc_set_swap(fdc, !!(val & 0x20));
+                    fdc_update_densel_force(fdc, (val & 0x18) >> 3);
+                } else {
+                    drive = real_drive(fdc, fdc->dor & 3);
+                    fdc_update_rwc(fdc, drive, (val & 0x30) >> 4);
+                }
             }
             /* Bit 2: FIFO test mode (PS/55 5550-S,T only. Undocumented) 
                The Power-on Self Test of PS/55 writes and verifies 8 bytes of FIFO buffer through I/O 3F5h.
@@ -1391,6 +1407,8 @@ fdc_read(uint16_t addr, void *priv)
                 /* PS/55 POST throws an error and halt if ret = 1 or 2, somehow. */
             } else if (!fdc->enh_mode)
                 ret = 0x20;
+            else if (fdc->flags & FDC_FLAG_SMC661)
+                ret = (fdc->densel_force << 3) | ((!!fdc->swap) << 5) | (fdc->media_id << 6);
             else
                 ret = (fdc->rwc[drive] << 4) | (fdc->media_id << 6);
             break;
@@ -1475,7 +1493,7 @@ fdc_read(uint16_t addr, void *priv)
             fdc->step = 0;
             break;
         default:
-            ret = 0xFF;
+            ret = 0xff;
     }
     fdc_log("[%04X:%08X] Read FDC %04X %02X [%i:%02X]\n", CS, cpu_state.pc, addr, ret, drive, fdc->dor & (0x10 << drive));
     return ret;
@@ -2226,9 +2244,13 @@ fdc_set_base(fdc_t *fdc, int base)
 {
     int super_io = (fdc->flags & FDC_FLAG_SUPERIO);
 
+    if (base == 0x0000) {
+        fdc->base_address = base;
+        return;
+    }
+
     if (fdc->flags & FDC_FLAG_NSC) {
-        io_sethandler(base + 2, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-        io_sethandler(base + 4, 0x0002, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        io_sethandler(base + 2, 0x0004, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_sethandler(base + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else {
         if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
@@ -2257,10 +2279,12 @@ fdc_remove(fdc_t *fdc)
 {
     int super_io = (fdc->flags & FDC_FLAG_SUPERIO);
 
+    if (fdc->base_address == 0x0000)
+        return;
+
     fdc_log("FDC Removed (%04X)\n", fdc->base_address);
     if (fdc->flags & FDC_FLAG_NSC) {
-        io_removehandler(fdc->base_address + 2, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-        io_removehandler(fdc->base_address + 4, 0x0002, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        io_removehandler(fdc->base_address + 2, 0x0004, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_removehandler(fdc->base_address + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else {
         if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
@@ -2635,6 +2659,20 @@ const device_t fdc_at_actlow_device = {
     .internal_name = "fdc_at_actlow",
     .flags         = 0,
     .local         = FDC_FLAG_DISKCHG_ACTLOW | FDC_FLAG_AT,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_at_smc_661_device = {
+    .name          = "PC/AT Floppy Drive Controller (SM(s)C FDC37C661/2)",
+    .internal_name = "fdc_at_smc",
+    .flags         = 0,
+    .local         = FDC_FLAG_AT | FDC_FLAG_SUPERIO | FDC_FLAG_SMC661,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,

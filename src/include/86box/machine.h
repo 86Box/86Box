@@ -532,6 +532,8 @@ extern int machine_at_cs4031_init(const machine_t *);
 extern int machine_at_pb410a_init(const machine_t *);
 
 extern int machine_at_decpclpv_init(const machine_t *);
+extern int machine_at_dell466np_init(const machine_t *);
+
 extern int machine_at_acerv10_init(const machine_t *);
 
 extern int machine_at_acera1g_init(const machine_t *);
@@ -670,6 +672,7 @@ extern int machine_at_tek932_init(const machine_t *);
 
 extern int machine_at_acerv30_init(const machine_t *);
 extern int machine_at_apollo_init(const machine_t *);
+extern int machine_at_optiplex_gxl_init(const machine_t *);
 extern int machine_at_zappa_init(const machine_t *);
 extern int machine_at_powermatev_init(const machine_t *);
 extern int machine_at_hawk_init(const machine_t *);
@@ -749,6 +752,7 @@ extern int machine_at_gw2kte_init(const machine_t *);
 extern int machine_at_ma23c_init(const machine_t *);
 extern int machine_at_nupro592_init(const machine_t *);
 extern int machine_at_tx97_init(const machine_t *);
+extern int machine_at_optiplex_gn_init(const machine_t *);
 #ifdef USE_AN430TX
 extern int machine_at_an430tx_init(const machine_t *);
 #endif /* USE_AN430TX */
@@ -818,8 +822,8 @@ extern int machine_at_p65up5_cpknd_init(const machine_t *);
 extern int machine_at_kn97_init(const machine_t *);
 
 extern int machine_at_lx6_init(const machine_t *);
+extern int machine_at_optiplex_gxa_init(const machine_t *);
 extern int machine_at_spitfire_init(const machine_t *);
-
 extern int machine_at_ma30d_init(const machine_t *);
 
 extern int machine_at_p6i440e2_init(const machine_t *);

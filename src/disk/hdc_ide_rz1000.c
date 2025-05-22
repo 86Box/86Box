@@ -272,7 +272,10 @@ rz1000_init(const device_t *info)
 
     dev->channels = ((info->local & 0x60000) >> 17) & 0x03;
 
-    device_add(&ide_pci_2ch_device);
+    if (dev->channels & 0x02)
+        device_add(&ide_pci_2ch_device);
+    else
+        device_add(&ide_pci_device);
 
     if (info->local & 0x80000)
         pci_add_card(PCI_ADD_NORMAL, rz1000_pci_read, rz1000_pci_write, dev, &dev->pci_slot);

@@ -8042,7 +8042,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
                 s3->accel.sy = s3->accel.maj_axis_pcnt;
                 if ((s3->bpp == 0) && s3->color_16bit) {
-                    s3->accel.rd_mask_16bit_check = ((rd_mask & 0xff00) != 0xff00);
+                    s3->accel.rd_mask_16bit_check = ((rd_mask & 0xff00) != 0xff00) && rd_mask;
                     if (s3->accel.rd_mask_16bit_check) {
                         if ((s3->accel.cur_x_overflow & 0xc00) == 0xc00)
                             s3->accel.start = 1;
@@ -8353,7 +8353,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                 s3->accel.dest = dstbase + s3->accel.cy * s3->width;
 
                 if ((s3->bpp == 0) && s3->color_16bit) {
-                    s3->accel.rd_mask_16bit_check = ((rd_mask & 0xff00) != 0xff00);
+                    s3->accel.rd_mask_16bit_check = ((rd_mask & 0xff00) != 0xff00) && rd_mask;
                     if (s3->accel.rd_mask_16bit_check) {
                         if (s3->accel.cmd == 0x41b3) {
                             if (frgd_mix == 0) {
@@ -8478,9 +8478,10 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                             if ((s3_cpu_src(s3)) && !(s3->accel.cmd & 0x200)) {
                                 s3_log("FIXME: S3 911/924 15/16bpp documentation needed.\n");
                             } else {
-                                if (!cpu_input && (s3->accel.cur_x & 0x400))
+                                if (!cpu_input && (s3->accel.cur_x & 0x400)) {
+                                    s3_log("No Input.\n");
                                     break;
-                                else if (cpu_input && (s3->accel.cmd == 0x53b3) && (s3->accel.cur_x & 0x400))
+                                } else if (cpu_input && (s3->accel.cmd == 0x53b3) && (s3->accel.cur_x & 0x400))
                                     break;
                             }
                         }
@@ -8756,7 +8757,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                 s3->accel.cy = s3->accel.cur_y & 0xfff;
 
                 if ((s3->bpp == 0) && s3->color_16bit) {
-                    s3->accel.rd_mask_16bit_check = ((rd_mask & 0xff00) != 0xff00);
+                    s3->accel.rd_mask_16bit_check = ((rd_mask & 0xff00) != 0xff00) && rd_mask;
                     if (s3->accel.rd_mask_16bit_check) {
                         if (!(clip_r & 0x400))
                             s3->accel.start = 1;
@@ -8805,7 +8806,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
             s3_log("CMDFULL=%04x, FRGDSEL=%x, BKGDSEL=%x, FRGDMIX=%02x, BKGDMIX=%02x, MASKCHECK=%x, RDMASK=%04x, MINUS=%d, WRTMASK=%04X, MIX=%04x, CX=%d, CY=%d, DX=%d, DY=%d, SX=%d, SY=%d, PIXCNTL=%02x, 16BITCOLOR=%x, RDCHECK=%x, CLIPL=%d, CLIPR=%d, OVERFLOW=%d, pitch=%d.\n", s3->accel.cmd, frgd_mix, bkgd_mix, s3->accel.frgd_mix & 0x0f, s3->accel.bkgd_mix & 0x0f, s3->accel.rd_mask_16bit_check, rd_mask, s3->accel.minus, wrt_mask, mix_dat & 0xffff, s3->accel.cx, s3->accel.cy, s3->accel.dx, s3->accel.dy, s3->accel.sx, s3->accel.sy, s3->accel.multifunc[0x0a] & 0xc4, s3->accel.color_16bit_check, s3->accel.rd_mask_16bit_check, clip_l, clip_r, (s3->accel.destx_overflow & 0xc00) == 0xc00, s3->width);
 
             if (!cpu_input && (frgd_mix == 3) && !vram_mask && !(s3->accel.multifunc[0xe] & 0x100) && ((s3->accel.cmd & 0xa0) == 0xa0) && ((s3->accel.frgd_mix & 0xf) == 7) && ((s3->accel.bkgd_mix & 0xf) == 7)) {
-                pclog("Special BitBLT.\n");
+                s3_log("Special BitBLT.\n");
                 while (1) {
                     if ((s3->accel.dx >= clip_l) && (s3->accel.dx <= clip_r) && (s3->accel.dy >= clip_t) && (s3->accel.dy <= clip_b)) {
                         READ(s3->accel.src + s3->accel.cx - s3->accel.minus, src_dat);

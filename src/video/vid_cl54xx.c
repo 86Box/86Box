@@ -4273,7 +4273,10 @@ gd54xx_init(const device_t *info)
             break;
 
         case CIRRUS_ID_CLGD5428:
-            if (info->local & 0x100)
+            if (info->local & 0x200) {
+                romfn            = NULL;
+                gd54xx->has_bios = 0;
+            } else if (info->local & 0x100)
                 if (gd54xx->vlb)
                     romfn = BIOS_GD5428_DIAMOND_B1_VLB_PATH;
                 else {
@@ -4750,26 +4753,6 @@ static const device_config_t gd5426_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_config_t gd5428_onboard_config[] = {
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 2048,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "512 KB", .value =  512 },
-            { .description = "1 MB",   .value = 1024 },
-            { .description = "2 MB",   .value = 2048 },
-            { .description = ""                      }
-        },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
 static const device_config_t gd5429_config[] = {
     {
         .name           = "memory",
@@ -5176,7 +5159,7 @@ const device_t gd5428_onboard_device = {
     .available     = gd5428_isa_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5428_onboard_config
+    .config        = gd5426_config
 };
 
 const device_t gd5428_vlb_onboard_device = {
@@ -5190,7 +5173,21 @@ const device_t gd5428_vlb_onboard_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5428_onboard_config
+    .config        = gd5426_config
+};
+
+const device_t gd5428_onboard_vlb_device = {
+    .name          = "Cirrus Logic GD5428 (VLB) (On-Board) (Dell)",
+    .internal_name = "cl_gd5428_onboard_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = CIRRUS_ID_CLGD5428 | 0x200,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    .available     = NULL,
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = gd542x_config
 };
 
 const device_t gd5429_isa_device = {

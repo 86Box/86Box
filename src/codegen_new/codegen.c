@@ -395,6 +395,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     int          over               = 0;
     int          test_modrm         = 1;
     int          pc_off             = 0;
+    int          in_lock            = 0;
     uint32_t     next_pc            = 0;
     uint16_t     op87               = 0x0000;
 #ifdef DEBUG_EXTRA
@@ -556,6 +557,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 break;
 
             case 0xf0: /*LOCK*/
+                in_lock         = 1;
                 break;
 
             case 0xf2: /*REPNE*/
@@ -675,6 +677,9 @@ generate_call:
         goto codegen_skip;
 #endif
 
+    if (in_lock && ((opcode == 0x90) || (opcode == 0xec)))
+        goto codegen_skip;
+
     if (recomp_op_table && recomp_op_table[(opcode | op_32) & recomp_opcode_mask]) {
         uint32_t new_pc = recomp_op_table[(opcode | op_32) & recomp_opcode_mask](block, ir, opcode, fetchdat, op_32, op_pc);
         if (new_pc) {
@@ -692,13 +697,17 @@ generate_call:
         }
     }
 
-    // codegen_skip:
+codegen_skip:
     if ((op_table == x86_dynarec_opcodes_REPNE || op_table == x86_dynarec_opcodes_REPE) && !op_table[opcode | op_32]) {
         op_table        = x86_dynarec_opcodes;
         recomp_op_table = recomp_opcodes;
     }
 
-    op = op_table[((opcode >> opcode_shift) | op_32) & opcode_mask];
+    if (in_lock && ((opcode == 0x90) || (opcode == 0xec)))
+        /* This is always ILLEGAL. */
+        op = x86_dynarec_opcodes_3DNOW[0xff];
+    else
+        op = op_table[((opcode >> opcode_shift) | op_32) & opcode_mask];
 
     if (!test_modrm || (op_table == x86_dynarec_opcodes && opcode_modrm[opcode]) || (op_table == x86_dynarec_opcodes_0f && opcode_0f_modrm[opcode]) || (op_table == x86_dynarec_opcodes_3DNOW)) {
         int stack_offset = 0;
