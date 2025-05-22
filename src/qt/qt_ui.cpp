@@ -23,6 +23,7 @@
 #include <QMessageBox>
 
 #include <QStatusBar>
+#include <QApplication>
 
 #include "qt_mainwindow.hpp"
 #include "qt_machinestatus.hpp"
@@ -122,6 +123,10 @@ plat_resize(int w, int h, int monitor_index)
         main_window->resizeContents(w, h);
 }
 
+#if defined _WIN32
+extern HWND rw_hwnd;
+#endif
+
 void
 plat_mouse_capture(int on)
 {
@@ -129,6 +134,26 @@ plat_mouse_capture(int on)
         return;
 
     main_window->setMouseCapture(on > 0 ? true : false);
+
+#if defined _WIN32
+    if (on) {
+        QCursor cursor(Qt::BlankCursor);
+
+        QApplication::setOverrideCursor(cursor);
+        QApplication::changeOverrideCursor(cursor);
+
+        RECT rect;
+
+        GetWindowRect(rw_hwnd, &rect);
+
+        ClipCursor(&rect);
+
+    } else {
+        ClipCursor(NULL);
+
+        QApplication::restoreOverrideCursor();
+    }
+#endif
 }
 
 int
