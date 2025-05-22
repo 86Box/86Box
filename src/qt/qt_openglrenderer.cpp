@@ -1503,6 +1503,7 @@ OpenGLRenderer::render()
 
         /* loop through each pass */
         for (i = 0; i < shader->num_passes; ++i) {
+            bool resetFiltering = false;
             struct shader_pass *pass = &shader->passes[i];
 
             memcpy(pass->state.input_size, input->state.output_size, 2 * sizeof(GLfloat));
@@ -1524,8 +1525,14 @@ OpenGLRenderer::render()
 
                 glw.glBindFramebuffer(GL_FRAMEBUFFER, pass->fbo.id);
                 glw.glViewport(0, 0, pass->state.output_size[0], pass->state.output_size[1]);
-            } else
+            } else {
+                resetFiltering = true;
+                glw.glBindTexture(GL_TEXTURE_2D, input->fbo.texture.id);
+                glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
+                glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
+                glw.glBindTexture(GL_TEXTURE_2D, 0);
                 glw.glViewport(window_rect.x, window_rect.y, window_rect.w, window_rect.h);
+            }
 
             glw.glClearColor(0, 0, 0, 1);
             glw.glClear(GL_COLOR_BUFFER_BIT);
@@ -1567,6 +1574,13 @@ OpenGLRenderer::render()
                 glw.glActiveTexture(GL_TEXTURE0);
                 glw.glBindTexture(GL_TEXTURE_2D, pass->fbo.texture.id);
                 glw.glGenerateMipmap(GL_TEXTURE_2D);
+                glw.glBindTexture(GL_TEXTURE_2D, 0);
+            }
+
+            if (resetFiltering) {
+                glw.glBindTexture(GL_TEXTURE_2D, input->fbo.texture.id);
+                glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, input->fbo.texture.min_filter);
+                glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, input->fbo.texture.mag_filter);
                 glw.glBindTexture(GL_TEXTURE_2D, 0);
             }
 
@@ -1636,6 +1650,11 @@ OpenGLRenderer::render()
 
             pass->state.output_texture_size[j] = next_pow2(pass->state.output_size[j]);
         }
+
+        glw.glBindTexture(GL_TEXTURE_2D, input->fbo.texture.id);
+        glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
+        glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
+        glw.glBindTexture(GL_TEXTURE_2D, 0);
 
         glw.glViewport(window_rect.x, window_rect.y, window_rect.w, window_rect.h);
 
