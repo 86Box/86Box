@@ -822,8 +822,8 @@ extern int machine_at_p65up5_cpknd_init(const machine_t *);
 extern int machine_at_kn97_init(const machine_t *);
 
 extern int machine_at_lx6_init(const machine_t *);
+extern int machine_at_optiplex_gxa_init(const machine_t *);
 extern int machine_at_spitfire_init(const machine_t *);
-
 extern int machine_at_ma30d_init(const machine_t *);
 
 extern int machine_at_p6i440e2_init(const machine_t *);
