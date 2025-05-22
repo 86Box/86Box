@@ -1115,7 +1115,16 @@ write_cmd_generic(void *priv, uint8_t val)
                            - Bit 5: Manufacturing jumper (must be set);
                      */
                     uint8_t p1 = 0x24;
-                    kbc_delay_to_ob(dev, p1, 0, 0x01);
+                    kbc_delay_to_ob(dev, p1, 0, 0x00);
+                } else if (!strcmp(machine_get_internal_name(), "optiplex_gxl")) {
+                    /*
+                       Dell OptiPlex GXL/GXM:
+                           - Bit 3: Password disable jumper (must be clear);
+                           - Bit 4: Keyboard fuse (must be set);
+                           - Bit 5: Manufacturing jumper (must be set);
+                     */
+                    uint8_t p1 = 0x30;
+                    kbc_delay_to_ob(dev, p1, 0, 0x00);
                 } else {
                     /* (B0 or F0) | (0x08 or 0x0c) */
                     uint8_t p1_out = ((dev->p1 | fixed_bits) & 0xf0) |

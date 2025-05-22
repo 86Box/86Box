@@ -2510,6 +2510,12 @@ mach_in(uint16_t addr, void *priv)
                 case 0xa9:
                     temp = svga->vc & 0xff;
                     break;
+                case 0xaa:
+                    if (ATI_GRAPHICS_ULTRA)
+                        temp = 0x06;
+                    else
+                        temp = 0x00;
+                    break;
                 case 0xb0:
                     temp = mach->regs[0xb0] | 0x80;
                     temp &= ~0x18;
@@ -2699,14 +2705,12 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
         dev->vdisp += 2;
 
     dev->v_total = dev->v_total_reg + 1;
-    if (dev->interlace)
-        dev->v_total >>= 1;
 
     dev->v_syncstart = dev->v_sync_start + 1;
-    if (dev->interlace)
-        dev->v_syncstart >>= 1;
 
-    if (ATI_8514A_ULTRA) {
+    mach_log("VSYNCSTART=%d, VTOTAL=%d, interlace=%02x, vdisp=%d.\n", dev->v_syncstart, dev->v_total, dev->interlace, dev->vdisp);
+
+    if (!ATI_MACH32) {
         if ((mach->accel.clock_sel & 0x01) &&
             !(dev->accel.advfunc_cntl & 0x01))
             ret = 2;
@@ -3233,7 +3237,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             if (len == 1) {
                 if ((mach->accel.clock_sel & 0x01) || (!(mach->accel.clock_sel & 0x01) && (mach->shadow_set & 0x03))) { /*For 8514/A mode, take the shadow sets into account.*/
                     if (!(mach->shadow_cntl & 0x20)) {
-                        WRITE8(port, dev->v_disp, val);
+                        WRITE8(port, dev->v_disp, val >> 8);
                         dev->v_disp &= 0x1fff;
                     }
                 }
@@ -3267,7 +3271,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             if (len == 1) {
                 if ((mach->accel.clock_sel & 0x01) || (!(mach->accel.clock_sel & 0x01) && (mach->shadow_set & 0x03))) {  /*For 8514/A mode, take the shadow sets into account.*/
                     if (!(mach->shadow_cntl & 0x10)) {
-                        WRITE8(port, dev->v_sync_start, val);
+                        WRITE8(port, dev->v_sync_start, val >> 8);
                         dev->v_sync_start &= 0x1fff;
                     }
                 }
