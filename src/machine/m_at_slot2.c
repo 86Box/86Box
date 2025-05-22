@@ -140,7 +140,6 @@ machine_at_fw6400gx_init(const machine_t *model)
 
     device_add(&i440gx_device);
     device_add(&piix4e_device);
-    device_add(&keyboard_ps2_ami_pci_device);
     device_add_params(&pc87309_device, (void *) (PCX730X_15C | PCX730X_AMI | PC87309_PC87309));
     device_add(ics9xxx_get(ICS9250_08));
     device_add(&sst_flash_29ee020_device);

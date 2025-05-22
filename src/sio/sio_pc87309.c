@@ -12,11 +12,13 @@
  *
  *          Copyright 2020-2025 Miran Grca.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/io.h>
 #include <86box/timer.h>
@@ -249,7 +251,7 @@ superio_handler(pc87309_t *dev)
                          pc87309_read, NULL, NULL,
                          pc87309_write, NULL, NULL, dev);
 
-    switch (dev->regs[0x22] & 0x0b) {
+    switch (dev->regs[0x21] & 0x0b) {
         default:
             dev->superio_base = 0x0000;
             break;
@@ -300,7 +302,7 @@ pc87309_write(uint16_t port, uint8_t val, void *priv)
                 break;
             case 0x21:
                 dev->regs[dev->cur_reg] = val;
-                fdc_toggle_flag(dev->fdc, FDC_FLAG_PS2_MCA, !!(val & 0x04));
+                fdc_toggle_flag(dev->fdc, FDC_FLAG_PS2_MCA, !(val & 0x04));
                 superio_handler(dev);
                 break;
             case 0x22:
