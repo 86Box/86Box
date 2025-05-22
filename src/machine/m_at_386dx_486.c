@@ -396,7 +396,7 @@ machine_at_pb410a_init(const machine_t *model)
     device_add(&phoenix_486_jumper_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&ht216_32_pb410a_device);
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }

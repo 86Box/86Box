@@ -752,6 +752,7 @@ extern int machine_at_gw2kte_init(const machine_t *);
 extern int machine_at_ma23c_init(const machine_t *);
 extern int machine_at_nupro592_init(const machine_t *);
 extern int machine_at_tx97_init(const machine_t *);
+extern int machine_at_optiplex_gn_init(const machine_t *);
 #ifdef USE_AN430TX
 extern int machine_at_an430tx_init(const machine_t *);
 #endif /* USE_AN430TX */

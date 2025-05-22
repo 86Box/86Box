@@ -6647,7 +6647,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &ht216_32_pb410a_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -13141,6 +13141,56 @@ const machine_t machines[] = {
         .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
+        .net_device = NULL
+    },
+    /*
+       According to Dell specifications, it can have either National Semiconductor
+       PC87307 or PC87309 Super I/O. All known instances have the former, although
+       other similar Dells of the era have pinouts for accompanying either so this
+       likely also does.
+
+       The KBC is either an AMI '5' MegaKey, Phoenix MultiKey/42 1.37, or Phoenix
+       MultiKey/42i 4.16.
+     */
+    {
+        .name = "[i430TX] Dell OptiPlex GN+",
+        .internal_name = "optiplex_gn",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430TX,
+        .init = machine_at_optiplex_gn_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        /* Video: S3 86C785 (Trio64V2/GX), ethernet: 3C905. */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO | MACHINE_SOUND,
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        /* Stop-gap measure until the Trio64V2/GX is emulated, as both use the same VBIOS. */
+        .vid_device = &s3_trio64v2_dx_onboard_pci_device,
+        .snd_device = &sb_vibra16xv_onboard_device,
         .net_device = NULL
     },
     /* [TEST] Has AMI Megakey '5' KBC firmware on the SM(S)C FDC37C67x Super I/O chip. */

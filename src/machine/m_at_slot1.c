@@ -584,8 +584,7 @@ machine_at_s1846_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add(&pc87309_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add_params(&pc87309_device, (void *) (PCX730X_AMI | PC87309_PC87309));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 

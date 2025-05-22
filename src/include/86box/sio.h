@@ -92,13 +92,23 @@ extern const device_t pc87332_398_ide_device;
 extern const device_t pc87332_398_ide_sec_device;
 extern const device_t pc87332_398_ide_fdcon_device;
 
+#define PCX7307_PC87307      0x00c0
+#define PCX7307_PC97307      0x00cf
+
+#define PC87309_PC87309      0x00e0
+
+#define PCX730X_CHIP_ID      0x00ff
+
+#define PCX730X_AMI          0x0200    /* AMI '5' Megakey KBC firmware. */
+#define PCX730X_PHOENIX_42   0x0500    /* Phoenix Multikey/42 1.37 KBC firmware. */
+#define PCX730X_PHOENIX_42I  0x0700    /* Phoenix Multikey/42i 4.16 KBC firmware. */
+#define PCX730X_KBC          0x0f00
+
+#define PCX730X_15C          0x2000
+
 extern const device_t pc87307_device;
-extern const device_t pc87307_15c_device;
-extern const device_t pc87307_both_device;
-extern const device_t pc97307_device;
 
 extern const device_t pc87309_device;
-extern const device_t pc87309_15c_device;
 
 /* LG Prime */
 extern const device_t prime3b_device;

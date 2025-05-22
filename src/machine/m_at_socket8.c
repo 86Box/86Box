@@ -250,8 +250,7 @@ machine_at_vs440fx_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
-    device_add(&pc87307_device);
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307));
 
     device_add(&intel_flash_bxt_ami_device);
 
@@ -287,8 +286,7 @@ machine_at_gw2kvenus_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
-    device_add(&pc87307_device);
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307));
 
     device_add(&intel_flash_bxt_ami_device);
 
@@ -324,8 +322,7 @@ machine_at_ap440fx_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87307_device);
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307));
     device_add(&intel_flash_bxt_ami_device);
 
     if (sound_card_current[0] == SOUND_INTERNAL)
