@@ -167,7 +167,7 @@ machine_at_optiplex_gxa_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      2, 1, 3, 4);
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 2, 1);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      4, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NETWORK,     4, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
