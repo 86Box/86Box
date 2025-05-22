@@ -15208,7 +15208,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL, /* not yet emulated */
-        .snd_device = &cs4236b_onboard_device,
+        .snd_device = &cs4236b_device,
         .net_device = NULL /* not yet emulated */
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
