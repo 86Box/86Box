@@ -955,7 +955,6 @@ void nv3_pfifo_cache1_pull(void)
 
     nv_log_verbose_only("***** DEBUG: CACHE1 PULLED ****** Contextual information below\n");
 
-
     nv3_ramin_context_t context_structure = *(nv3_ramin_context_t*)&current_context;
 
     nv3_debug_ramin_print_context_info(current_param, context_structure);

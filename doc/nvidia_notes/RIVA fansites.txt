@@ -3,7 +3,7 @@ RIVA User's Group	http://tiger.tnstate.edu:8080/
 RIVA 128 Homepage	http://pages.prodigy.net/babblin5/Main.html -> Riva3D (riva3d.com)
 Zone 128		http://www.tc.umn.edu/~reda0003/zone128/
 RIVAZone		https://web.archive.org/web/19981212032348/http://www.rivazone.com/ (Launched January 2, 1998)
-Dimension 128		(early domain name that was never archived) -> d128.com (1999-2001)
+Dimension 128		http://dimension128.smartcom.net (early domain name that was mostly not archived) -> d128.com (1999-2001)
 Riva3D			https://web.archive.org/web/20000525110305/http://riva3d.gxnetwork.com/s3.html
 nVNews			https://web.archive.org/web/20001205171202/http://www.nvnews.net/ (1999-2015)
 
@@ -22,3 +22,5 @@ https://web.archive.org/web/19980615024744/http://www.ogr.com/columns/techtalk/t
 https://web.archive.org/web/20001002193706/http://www.rivazone.com/files/rivalog.txt
 
 https://web.archive.org/web/20010422044820/http://www.rivazone.com/finger/finger.cgi?nick@finger.nvidia.com nvidia .plan files
+
+WAVE Report - april 1997 date for tapeout

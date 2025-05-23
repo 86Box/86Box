@@ -462,6 +462,14 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_PME_INTR                                    0x200100    // Mediaport: Interrupt Pending?
 #define NV3_PME_INTR_EN                                 0x200140    // Mediaport: Interrupt Enable
 #define NV3_PME_END                                     0x200FFF
+
+// THIS IS NOT A REAL REGISTER.
+// This is so my software e.g. nvplayground can determine if the software is being run in an emulator on a real RIVA 128.
+// This register should have some sort of open bus, garbage or 00/FF on a real NV3/NV3T but have a string.
+#define NV3_EMULATED_MARKER_START                       0x269420    
+
+#define NV3_EMULATED_MARKER                             0x0D15EA5E
+
 #define NV3_PGRAPH_START                                0x400000    // Scene graph for 2d/3d rendering...the most important part
 // PGRAPH Core
 
