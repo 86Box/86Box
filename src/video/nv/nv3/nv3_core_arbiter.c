@@ -107,8 +107,15 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t address)
         ret = nv3_user_read(address);
     else 
     {
-        warning("MMIO read arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning 0x00]\n", address);
-        return 0x00;
+        //nvplay stuff
+        #ifdef ENABLE_NV_LOG_ULTRA
+        warning("MMIO read arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning unmapped pattern]\n", address);
+        #else 
+        nv_log("MMIO read arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning unmapped pattern]\n", address);
+        #endif
+
+        // I don't know why the real hardware does this. But it does.
+        return (ret & 1) ? 0x20 : 0x07;
     }
 
     return ret;
@@ -173,7 +180,13 @@ void nv3_mmio_arbitrate_write(uint32_t address, uint32_t value)
     //RAMIN is its own thing
     else 
     {
-        warning("MMIO write arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x\n", address);
+        //nvplay stuff
+        #ifdef ENABLE_NV_LOG_ULTRA
+        warning("MMIO write arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning 0x00]\n", address);
+        #else 
+        nv_log("MMIO write arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning 0x00]\n", address);
+        #endif
+
         return;
     }
 }
