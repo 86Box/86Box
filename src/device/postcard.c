@@ -99,7 +99,8 @@ postcard_setui(void)
                         ps[1][0], ps[1][1], ps[1][2], ps[1][3]);
                 break;
         }
-    } else if (strstr(machines[machine].name, " Dell ")) {
+    } else if (strstr(machines[machine].name, " Dell ") &&
+               (machine_get_chipset(machine) >= MACHINE_CHIPSET_INTEL_430FX)) {
         char dell_diags[10] = { 0 };
 
         if (!postcard_written[1])
@@ -223,7 +224,8 @@ postcard_init(UNUSED(const device_t *info))
         io_sethandler(postcard_port, postcard_ports_num,
                       NULL, NULL, NULL, postcard_write, NULL, NULL, NULL);
 
-    if (strstr(machines[machine].name, " Dell "))
+    if (strstr(machines[machine].name, " Dell ") &&
+        (machine_get_chipset(machine) >= MACHINE_CHIPSET_INTEL_430FX))
         io_sethandler(0x00e0, 0x0001,
                       NULL, NULL, NULL, NULL, NULL, postcard_writel, NULL);
 

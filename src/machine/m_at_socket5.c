@@ -268,6 +268,7 @@ machine_at_optiplex_gxl_init(const machine_t *model)
     device_add(&i430fx_device);
     device_add(&piix_device);
     device_add(&pc87332_device);
+    device_add(&dell_jumper_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;

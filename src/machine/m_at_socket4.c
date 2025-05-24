@@ -157,7 +157,9 @@ machine_at_dellxp60_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&amstrad_megapc_nvr_device);
     device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2);
@@ -170,7 +172,7 @@ machine_at_dellxp60_init(const machine_t *model)
     pci_register_slot(0x06, PCI_CARD_NORMAL,      2, 1, 3, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430lx_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&keyboard_ps2_phoenix_device);
     device_add(&sio_zb_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_ami_device);
@@ -189,8 +191,10 @@ machine_at_opti560l_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
-    device_add(&ide_pci_2ch_device);
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&amstrad_megapc_nvr_device);
+    device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -199,7 +203,7 @@ machine_at_opti560l_init(const machine_t *model)
     pci_register_slot(0x08, PCI_CARD_NORMAL,      2, 1, 3, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430lx_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&keyboard_ps2_phoenix_device);
     device_add(&sio_zb_device);
     device_add(&i82091aa_device);
     device_add(&intel_flash_bxt_ami_device);

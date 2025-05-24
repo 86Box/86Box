@@ -22,6 +22,7 @@ add_library(dev OBJECT
     cartridge.c
     cassette.c
     clock_ics9xxx.c
+    dell_jumper.c
     hasp.c
     hwm.c
     hwm_gl518sm.c

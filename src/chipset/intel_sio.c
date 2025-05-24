@@ -355,7 +355,23 @@ sio_config_read(uint16_t port, UNUSED(void *priv))
             ret = 0xff;
             break;
         case 5:
-            ret = 0xd3;
+            /*
+               Dell Dimension XPS P60 jumpers:
+                   - Bit 5: Disable CMOS Setup (1 = yes, 0 = no).
+
+               Dell OptiPlex 560/L jumpers:
+                   - Bit 1: Password (1 = disable, 0 = enable);
+                   - Bit 5: Clear CMOS (1 = no, 0 = yes).
+                   - Bits 7, 6: Board type:
+                       - 0, 0 = L;
+                       - 0, 1 = MT;
+                       - 1, 0 = M;
+                       - 1, 1 = M.
+             */
+            if (!strcmp(machine_get_internal_name(), "opti560l"))
+                ret = 0x20;
+            else
+                ret = 0xd3;
 
             switch (cpu_pci_speed) {
                 case 20000000:

@@ -17347,6 +17347,12 @@ machine_get_type(int m)
 }
 
 int
+machine_get_chipset(int m)
+{
+    return (machines[m].chipset);
+}
+
+int
 machine_get_machine_from_internal_name(const char *s)
 {
     int c = 0;
