@@ -30,8 +30,10 @@
 #include <86box/mem.h>
 #include <86box/device.h>
 #include <86box/pci.h>
+#include <86box/plat_fallthrough.h>
 
 #define PCI_BRIDGE_DEC_21150   0x10110022
+#define PCI_BRIDGE_DEC_21152   0x10110024
 #define AGP_BRIDGE_ALI_M5243   0x10b95243
 #define AGP_BRIDGE_ALI_M5247   0x10b95247
 #define AGP_BRIDGE_INTEL_440LX 0x80867181
@@ -242,12 +244,15 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
         case 0x40:
             if (dev->local == PCI_BRIDGE_DEC_21150)
                 val &= 0x32;
+            else if (dev->local == PCI_BRIDGE_DEC_21152)
+                val &= 0x12;
             break;
 
         case 0x41:
             if (AGP_BRIDGE_VIA(dev->local))
                 val &= 0x7e;
-            else if (dev->local == PCI_BRIDGE_DEC_21150)
+            else if ((dev->local == PCI_BRIDGE_DEC_21150) || 
+                     (dev->local == PCI_BRIDGE_DEC_21152))
                 val &= 0x07;
             break;
 
@@ -257,18 +262,22 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
             break;
 
         case 0x43:
-            if (dev->local == PCI_BRIDGE_DEC_21150)
+            if ((dev->local == PCI_BRIDGE_DEC_21150) || 
+                (dev->local == PCI_BRIDGE_DEC_21152))
                 val &= 0x03;
             break;
 
         case 0x64:
-            if (dev->local == PCI_BRIDGE_DEC_21150)
+            if ((dev->local == PCI_BRIDGE_DEC_21150) || 
+                (dev->local == PCI_BRIDGE_DEC_21152))
                 val &= 0x7e;
             break;
 
         case 0x69:
             if (dev->local == PCI_BRIDGE_DEC_21150)
                 val &= 0x3f;
+            else if (dev->local == PCI_BRIDGE_DEC_21152)
+                val = (val & 0x01) | 0x3e;
             break;
 
         case 0x86:
@@ -302,6 +311,15 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
             break;
 
         case 0xe0:
+            if (AGP_BRIDGE_ALI(dev->local)) {
+                if (!(dev->ctl & 0x20))
+                    return;
+            } else if (dev->local == PCI_BRIDGE_DEC_21152)
+                val &= 0x03;
+            else
+                return;
+            break;
+
         case 0xe1:
             if (AGP_BRIDGE_ALI(dev->local)) {
                 if (!(dev->ctl & 0x20))
@@ -399,6 +417,14 @@ pci_bridge_reset(void *priv)
 
     /* command and status */
     switch (dev->local) {
+        case PCI_BRIDGE_DEC_21152:
+            dev->regs[0x08] = 0x03;
+            dev->regs[0x34] = 0xdc;
+            dev->regs[0x69] = 0x3e;
+            dev->regs[0xdc] = 0x01;
+            dev->regs[0xde] = 0x01;
+            dev->regs[0xe2] = 0x80;
+            fallthrough;
         case PCI_BRIDGE_DEC_21150:
             dev->regs[0x06] = 0x80;
             dev->regs[0x07] = 0x02;
@@ -490,6 +516,8 @@ pci_bridge_init(const device_t *info)
     uint8_t interrupt_count;
     uint8_t interrupt_mask;
     uint8_t slot_count;
+    uint8_t dell_slots[3]         = { 0x09, 0x0a, 0x0b };
+    uint8_t dell_interrupts[3][4] = { { 1, 2, 3, 4 }, { 4, 2, 1, 3 }, { 1, 3, 4, 2 } };
 
     pci_bridge_t *dev = (pci_bridge_t *) calloc(1, sizeof(pci_bridge_t));
 
@@ -499,7 +527,10 @@ pci_bridge_init(const device_t *info)
 
     pci_bridge_reset(dev);
 
-    pci_add_bridge(AGP_BRIDGE(dev->local), pci_bridge_read, pci_bridge_write, dev, &dev->slot);
+    if (info->local == PCI_BRIDGE_DEC_21152)
+        pci_add_card(PCI_ADD_BRIDGE, pci_bridge_read, pci_bridge_write, dev, &dev->slot);
+    else
+        pci_add_bridge(AGP_BRIDGE(dev->local), pci_bridge_read, pci_bridge_write, dev, &dev->slot);
 
     interrupt_count = sizeof(interrupts);
     interrupt_mask  = interrupt_count - 1;
@@ -513,16 +544,23 @@ pci_bridge_init(const device_t *info)
 
     if (info->local == PCI_BRIDGE_DEC_21150)
         slot_count = 9; /* 9 bus masters */
+    else if (info->local == PCI_BRIDGE_DEC_21152)
+        slot_count = 3; /* 3 bus masters */
     else
         slot_count = 1; /* AGP bridges always have 1 slot */
 
     for (uint8_t i = 0; i < slot_count; i++) {
+        uint8_t slot = i;
+        if (info->local == PCI_BRIDGE_DEC_21152) {
+            slot = dell_slots[i];
+            memcpy(interrupts, dell_interrupts[i], 4);
+        }
         /* Interrupts for bridge slots are assigned in round-robin: ABCD, BCDA, CDAB and so on. */
         pci_bridge_log("PCI Bridge %d: downstream slot %02X interrupts %02X %02X %02X %02X\n",
-                       dev->bus_index, i, interrupts[i & interrupt_mask],
+                       dev->bus_index, slot, interrupts[i & interrupt_mask],
                        interrupts[(i + 1) & interrupt_mask], interrupts[(i + 2) & interrupt_mask],
                        interrupts[(i + 3) & interrupt_mask]);
-        pci_register_bus_slot(dev->bus_index, i, AGP_BRIDGE(dev->local) ? PCI_CARD_AGP : PCI_CARD_NORMAL,
+        pci_register_bus_slot(dev->bus_index, slot, AGP_BRIDGE(dev->local) ? PCI_CARD_AGP : PCI_CARD_NORMAL,
                               interrupts[i & interrupt_mask],
                               interrupts[(i + 1) & interrupt_mask],
                               interrupts[(i + 2) & interrupt_mask],
@@ -538,6 +576,20 @@ const device_t dec21150_device = {
     .internal_name = "dec21150",
     .flags         = DEVICE_PCI,
     .local         = PCI_BRIDGE_DEC_21150,
+    .init          = pci_bridge_init,
+    .close         = NULL,
+    .reset         = pci_bridge_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t dec21152_device = {
+    .name          = "DEC 21152 PCI Bridge",
+    .internal_name = "dec21152",
+    .flags         = DEVICE_PCI,
+    .local         = PCI_BRIDGE_DEC_21152,
     .init          = pci_bridge_init,
     .close         = NULL,
     .reset         = pci_bridge_reset,

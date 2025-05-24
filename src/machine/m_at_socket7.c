@@ -24,7 +24,6 @@
 #include <86box/mem.h>
 #include <86box/io.h>
 #include <86box/rom.h>
-#include <86box/pci.h>
 #include <86box/device.h>
 #include <86box/chipset.h>
 #include <86box/hdc.h>
@@ -45,6 +44,7 @@
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/thread.h>
 #include <86box/network.h>
+#include <86box/pci.h>
 
 int
 machine_at_acerv35n_init(const machine_t *model)
@@ -989,6 +989,7 @@ machine_at_optiplex_gn_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_VIDEO,       4, 0, 0, 0); /* Trio64V2/GX, temporarily Trio64V2/DX is given */
     pci_register_slot(0x11, PCI_CARD_NETWORK,     4, 0, 0, 0); /* 3C905, not yet emulated */
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
+    pci_register_slot(0x0F, PCI_CARD_BRIDGE,      1, 2, 3, 4);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
@@ -998,6 +999,7 @@ machine_at_optiplex_gn_init(const machine_t *model)
 
     device_add(&i430tx_device);
     device_add(&piix4_device);
+    device_add(&dec21152_device);
     device_add_params(&pc87307_device, (void *) (PCX730X_PHOENIX_42 | PCX7307_PC87307));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
