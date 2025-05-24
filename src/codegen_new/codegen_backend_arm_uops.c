@@ -286,6 +286,7 @@ codegen_CALL_FUNC_RESULT(codeblock_t *block, uop_t *uop)
 static int
 codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
 {
+    host_arm_MOV_IMM(block, REG_ARG0, uop->imm_data);
     host_arm_call(block, uop->p);
     host_arm_TST_REG(block, REG_R0, REG_R0);
     host_arm_BNE(block, (uintptr_t) codegen_exit_rout);
