@@ -261,6 +261,42 @@ machine_at_vs440fx_init(const machine_t *model)
 }
 
 int
+machine_at_dellvenus_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined2("roms/machines/dellvenus/1006CS1J.BIO",
+                                     "roms/machines/dellvenus/1006CS1J.BI1",
+                                     "roms/machines/dellvenus/1006CS1J.BI2",
+                                     "roms/machines/dellvenus/1006CS1J.BI3",
+                                     "roms/machines/dellvenus/1006CS1J.RCV",
+                                     0x3a000, 128);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&i440fx_device);
+    device_add(&piix3_device);
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307));
+    
+    device_add(&intel_flash_bxt_ami_device);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+int
 machine_at_gw2kvenus_init(const machine_t *model)
 {
     int ret;
