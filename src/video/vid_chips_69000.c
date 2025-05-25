@@ -2247,8 +2247,8 @@ chips_69000_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
 
         case 0x13:
-            chips->linear_mapping.base = val << 24;
             mem_mapping_disable(&chips->linear_mapping);
+            chips->linear_mapping.base = val << 24;
             if ((chips->pci_conf_status & PCI_COMMAND_MEM) &&
                 (chips->linear_mapping.base > 0x00000000))
                 mem_mapping_set_addr(&chips->linear_mapping, chips->linear_mapping.base, (1 << 24));
@@ -2785,6 +2785,8 @@ chips_69000_disable_handlers(chips_69000_t *chips)
     mem_mapping_disable(&chips->svga.mapping);
     if (!chips->on_board)
         mem_mapping_disable(&chips->bios_rom.mapping);
+    
+    chips->linear_mapping.base = 0;
 
     /* Save all the mappings and the timers because they are part of linked lists. */
     reset_state->linear_mapping   = chips->linear_mapping;
