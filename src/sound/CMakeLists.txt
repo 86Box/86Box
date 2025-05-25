@@ -41,6 +41,7 @@ add_library(snd OBJECT
     snd_sb.c
     snd_sb_dsp.c
     snd_emu8k.c
+    snd_mmb.c
     snd_mpu401.c
     snd_pas16.c
     snd_sn76489.c
@@ -176,6 +177,9 @@ if(MUNT)
         target_link_libraries(86Box mt32emu)
     endif()
 endif()
+
+add_subdirectory(ayumi)
+target_link_libraries(86Box ayumi)
 
 add_subdirectory(ymfm)
 target_link_libraries(86Box ymfm)
