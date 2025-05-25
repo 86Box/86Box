@@ -270,8 +270,7 @@ machine_at_valuepointp60_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&keyboard_ps2_ps1_pci_device);
     device_add(&sio_device);
-    device_add(&ide_rz1000_pci_single_channel_device);
-    device_add(&fdc37c665_device);
+    device_add(&fdc37c665_ide_device);
     device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i430lx_device);
