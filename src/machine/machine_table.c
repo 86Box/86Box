@@ -8650,7 +8650,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET3,
-            .block = CPU_BLOCK(CPU_i486SX, CPU_i486DX, CPU_Am486SX, CPU_Am486DX),
+            .block = CPU_BLOCK_NONE,
             .min_bus = 0,
             .max_bus = 0,
             .min_voltage = 0,
@@ -13838,7 +13838,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 1572864,
-            .step = 1024
+            .step = 8192
         },
         .nvrmask = 255,
         .kbc_device = NULL,
@@ -13878,7 +13878,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 1572864,
-            .step = 1024
+            .step = 8192
         },
         .nvrmask = 255,
         .kbc_device = NULL,
@@ -13920,7 +13920,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 786432,
-            .step = 1024
+            .step = 8192
         },
         .nvrmask = 255,
         .kbc_device = NULL,
@@ -14084,7 +14084,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram = {
-            .min = 1024,
+            .min = 8192,
             .max = 1572864,
             .step = 8192
         },
@@ -14443,7 +14443,7 @@ const machine_t machines[] = {
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
             .block = CPU_BLOCK_NONE,
-            .min_bus = 66666667,
+            .min_bus = 60000000,
             .max_bus = 100000000,
             .min_voltage = 2000,
             .max_voltage = 3520,
@@ -14455,7 +14455,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 786432,
-            .step = 1024
+            .step = 8192
         },
         .nvrmask = 255,
         .kbc_device = NULL,
@@ -14675,7 +14675,47 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* It's a Intel VS440FX with a Gateway 2000 OEM BIOS */
+    /* It's an Intel VS440FX with a Dell OEM BIOS */
+    {
+        .name = "[i440FX] Dell Dimension XPS Pro___n",
+        .internal_name = "dellvenus",
+        .type = MACHINE_TYPE_SOCKET8,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_dellvenus_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET8,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3500,
+            .min_multi = 2.0,
+            .max_multi = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = &cs4236_onboard_device,
+        .net_device = NULL
+    },
+    /* It's an Intel VS440FX with a Gateway 2000 OEM BIOS */
     {
         .name = "[i440FX] Gateway 2000 Venus",
         .internal_name = "gw2kvenus",
@@ -14987,7 +15027,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: C-Media CMI8330 */
         .ram = {
-            .min = 1024,
+            .min = 8192,
             .max = 1572864,
             .step = 8192
         },
@@ -16068,7 +16108,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 1572864,
-            .step = 1024
+            .step = 8192
         },
         .nvrmask = 255,
         .kbc_device = NULL,
@@ -16108,7 +16148,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 1572864,
-            .step = 1024
+            .step = 8192
         },
         .nvrmask = 255,
         .kbc_device = NULL,
@@ -16462,7 +16502,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &chips_69000_onboard_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -16869,7 +16909,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 1572864,
-            .step = 1024
+            .step = 8192
         },
         .nvrmask = 255,
         .kbc_device = NULL,
@@ -17304,6 +17344,12 @@ int
 machine_get_type(int m)
 {
     return (machines[m].type);
+}
+
+int
+machine_get_chipset(int m)
+{
+    return (machines[m].chipset);
 }
 
 int
