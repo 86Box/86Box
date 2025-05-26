@@ -49,8 +49,6 @@ add_library(snd OBJECT
     snd_wss.c
     snd_ym7128.c
     snd_optimc.c
-    esfmu/esfm.c
-    esfmu/esfm_registers.c
     snd_opl_esfm.c
 )
 
@@ -181,6 +179,9 @@ endif()
 add_subdirectory(ayumi)
 target_link_libraries(86Box ayumi)
 
+add_subdirectory(esfmu)
+target_link_libraries(86Box esfmu)
+
 add_subdirectory(ymfm)
 target_link_libraries(86Box ymfm)
 
@@ -193,8 +194,8 @@ if(OPL4ML)
     target_sources(snd PRIVATE midi_opl4.c midi_opl4_yrw801.c)
 endif()
  
-find_package(PkgConfig )
-pkg_check_modules(SERIALPORT  libserialport)
+find_package(PkgConfig)
+pkg_check_modules(SERIALPORT libserialport)
 
 if(SERIALPORT_FOUND OR DEFINED LIBSERIALPORT_ROOT)
     add_compile_definitions(USE_LIBSERIALPORT=1)
