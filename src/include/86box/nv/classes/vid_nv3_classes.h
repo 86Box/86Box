@@ -36,7 +36,6 @@
 // or everything FUCKS UP
 //
 // DO NOT REMOVE! DO NOT REMOVE! DO NOT REMOVE!
-#pragma pack(push, 1)
 
 // CLass names for debugging
 extern const char* nv3_class_names[];
@@ -1192,7 +1191,6 @@ typedef struct nv3_grobj_s
     uint32_t grobj_3;
 } nv3_grobj_t;
 // TODO: PATCHCORDS!!!! TO LINK ALL OF THIS TOGETHER!!!
-#pragma pack(pop) // return packing to whatever it was before this disaster
 
 // PIO Subchannel info
 #define NV3_SUBCHANNEL_PIO_IS_PFIFO_FREE                0x0010
