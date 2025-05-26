@@ -386,7 +386,7 @@ machine_at_awo671r_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0D, PCI_CARD_VIDEO,       2, 3, 4, 1);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
@@ -394,9 +394,8 @@ machine_at_awo671r_init(const machine_t *model)
     device_add_inst(&w83977ef_device, 2);
     device_add(&keyboard_ps2_pci_device);
     device_add(&sst_flash_39sf020_device);
-    if (gfxcard[0] == VID_INTERNAL) {
-        device_add(&chips_69000_onboard_device);
-    }
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;

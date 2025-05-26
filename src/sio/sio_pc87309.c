@@ -58,8 +58,8 @@ enum {
     LD_UART2,
     LD_UART1,
     LD_PM,
-    LD_KBD,
-    LD_MOUSE
+    LD_MOUSE,
+    LD_KBD
 } pc87309_ld_t;
 
 #define LD_MIN LD_FDC

@@ -2091,35 +2091,39 @@ sb_vibra16s_onboard_relocate_base(uint16_t new_addr, void *priv)
     sb_t    *sb   = (sb_t *) priv;
     uint16_t addr = sb->dsp.sb_addr;
 
-    io_removehandler(addr, 0x0004,
-                     sb->opl.read, NULL, NULL,
-                     sb->opl.write, NULL, NULL,
-                     sb->opl.priv);
-    io_removehandler(addr + 8, 0x0002,
-                     sb->opl.read, NULL, NULL,
-                     sb->opl.write, NULL, NULL,
-                     sb->opl.priv);
-    io_removehandler(addr + 4, 0x0002,
-                     sb_ct1745_mixer_read, NULL, NULL,
-                     sb_ct1745_mixer_write, NULL, NULL,
-                     sb);
+    if (addr != 0x0000) {
+        io_removehandler(addr, 0x0004,
+                         sb->opl.read, NULL, NULL,
+                         sb->opl.write, NULL, NULL,
+                         sb->opl.priv);
+        io_removehandler(addr + 8, 0x0002,
+                         sb->opl.read, NULL, NULL,
+                         sb->opl.write, NULL, NULL,
+                         sb->opl.priv);
+        io_removehandler(addr + 4, 0x0002,
+                         sb_ct1745_mixer_read, NULL, NULL,
+                         sb_ct1745_mixer_write, NULL, NULL,
+                         sb);
+    }
 
     sb_dsp_setaddr(&sb->dsp, 0);
 
     addr = new_addr;
 
-    io_sethandler(addr, 0x0004,
-                  sb->opl.read, NULL, NULL,
-                  sb->opl.write, NULL, NULL,
-                  sb->opl.priv);
-    io_sethandler(addr + 8, 0x0002,
-                  sb->opl.read, NULL, NULL,
-                  sb->opl.write, NULL, NULL,
-                  sb->opl.priv);
-    io_sethandler(addr + 4, 0x0002,
-                  sb_ct1745_mixer_read, NULL, NULL,
-                  sb_ct1745_mixer_write, NULL, NULL,
-                  sb);
+    if (addr != 0x0000) {
+        io_sethandler(addr, 0x0004,
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
+        io_sethandler(addr + 8, 0x0002,
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
+        io_sethandler(addr + 4, 0x0002,
+                      sb_ct1745_mixer_read, NULL, NULL,
+                      sb_ct1745_mixer_write, NULL, NULL,
+                      sb);
+    }
 
     sb_dsp_setaddr(&sb->dsp, addr);
 }

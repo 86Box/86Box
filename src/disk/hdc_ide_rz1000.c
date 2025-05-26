@@ -130,38 +130,6 @@ rz1000_pci_write(int func, int addr, uint8_t val, void *priv)
                     rz1000_ide_handlers(dev);
                 }
                 break;
-            case 0x10:
-                dev->regs[0x10] = (val & 0xf8) | 1;
-                rz1000_ide_handlers(dev);
-                break;
-            case 0x11:
-                dev->regs[0x11] = val;
-                rz1000_ide_handlers(dev);
-                break;
-            case 0x14:
-                dev->regs[0x14] = (val & 0xfc) | 1;
-                rz1000_ide_handlers(dev);
-                break;
-            case 0x15:
-                dev->regs[0x15] = val;
-                rz1000_ide_handlers(dev);
-                break;
-            case 0x18:
-                dev->regs[0x18] = (val & 0xf8) | 1;
-                rz1000_ide_handlers(dev);
-                break;
-            case 0x19:
-                dev->regs[0x19] = val;
-                rz1000_ide_handlers(dev);
-                break;
-            case 0x1c:
-                dev->regs[0x1c] = (val & 0xfc) | 1;
-                rz1000_ide_handlers(dev);
-                break;
-            case 0x1d:
-                dev->regs[0x1d] = val;
-                rz1000_ide_handlers(dev);
-                break;
             case 0x40 ... 0x4f:
                 dev->regs[addr] = val;
                 break;
@@ -233,15 +201,12 @@ rz1000_reset(void *priv)
     dev->regs[0x01] = 0x10;
     dev->regs[0x02] = 0x00;       /* RZ-1000 */
     dev->regs[0x03] = 0x10;
-    dev->regs[0x04] = 0x01;
+    dev->regs[0x04] = 0x00;
     dev->regs[0x07] = 0x02;       /* DEVSEL timing: 01 medium */
     dev->regs[0x08] = 0x02;       /* Revision 02 */
     dev->regs[0x09] = dev->local; /* Programming interface */
     dev->regs[0x0a] = 0x01;       /* IDE controller */
     dev->regs[0x0b] = 0x01;       /* Mass storage controller */
-
-    dev->regs[0x3c] = 0x14; /* IRQ 14 */
-    dev->regs[0x3d] = 0x01; /* INTA */
 
     dev->irq_mode[0] = dev->irq_mode[1] = 0;
     dev->irq_pin                        = PCI_INTA;
@@ -299,7 +264,7 @@ const device_t ide_rz1000_pci_device = {
     .name          = "PC Technology RZ-1000 PCI",
     .internal_name = "ide_rz1000_pci",
     .flags         = DEVICE_PCI,
-    .local         = 0x6000a,
+    .local         = 0x60000,
     .init          = rz1000_init,
     .close         = rz1000_close,
     .reset         = rz1000_reset,
@@ -313,7 +278,7 @@ const device_t ide_rz1000_pci_single_channel_device = {
     .name          = "PC Technology RZ-1000 PCI",
     .internal_name = "ide_rz1000_pci_single_channel",
     .flags         = DEVICE_PCI,
-    .local         = 0x2000a,
+    .local         = 0x20000,
     .init          = rz1000_init,
     .close         = rz1000_close,
     .reset         = rz1000_reset,

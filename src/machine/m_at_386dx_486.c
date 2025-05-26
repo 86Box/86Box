@@ -1727,7 +1727,6 @@ machine_at_sb486pv_init(const machine_t *model)
     device_context_restore();
 
     machine_at_common_init(model);
-    device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);

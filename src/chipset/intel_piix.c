@@ -1621,7 +1621,10 @@ piix_init(const device_t *info)
     else
         cpu_set_isa_pci_div(3);
 
-    dma_alias_set();
+    if (dev->type > 1)
+        dma_alias_set();
+    else
+        dma_alias_set_piix();
 
     if (dev->type < 4)
         pci_enable_mirq(0);
@@ -1709,7 +1712,7 @@ const device_t piix4_device = {
     .name          = "Intel 82371AB/EB (PIIX4/PIIX4E)",
     .internal_name = "piix4",
     .flags         = DEVICE_PCI,
-    .local         = 0x71100014,
+    .local         = 0x71100004,
     .init          = piix_init,
     .close         = piix_close,
     .reset         = piix_reset,
