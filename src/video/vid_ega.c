@@ -282,7 +282,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                     val = (ega->crtc[7] & ~0x10) | (val & 0x10);
             } else {
                 idx &= crtcmask;
-                if ((idx >= 0x19) & (idx <= 0xf6))
+                if ((idx >= 0x19) && (idx <= 0xf6))
                     return;
                 if ((idx < 7) && (ega->crtc[0x11] & 0x80))
                     return;
