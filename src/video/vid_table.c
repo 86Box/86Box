@@ -328,7 +328,7 @@ video_reset(int card)
                   card, machine_has_flags(machine, MACHINE_VIDEO) ? 1 : 0);
 
     monitor_index_global = 0;
-    loadfont("roms/video/mda/mda.rom", 0);
+    loadfont(FONT_IBM_MDA_437_PATH, 0);
 
     for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
         if ((card != VID_NONE) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY) &&
