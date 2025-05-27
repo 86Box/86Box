@@ -830,7 +830,9 @@ write_p2(atkbc_t *dev, uint8_t val)
             softresetx86(); /* Pulse reset! */
             cpu_set_edx();
             flushmmucache();
-            if ((kbc_ven == KBC_VEN_ALI) || !strcmp(machine_get_internal_name(), "spc7700plw"))
+            if ((kbc_ven == KBC_VEN_ALI) ||
+                !strcmp(machine_get_internal_name(), "spc7700plw") ||
+                !strcmp(machine_get_internal_name(), "pl4600c"))
                 smbase = 0x00030000;
 
             /* Yes, this is a hack, but until someone gets ahold of the real PCD-2L
