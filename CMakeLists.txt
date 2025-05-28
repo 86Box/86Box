@@ -173,7 +173,6 @@ endif()
 #                      Option         Description                                Def.  Condition     Otherwise
 #                      ------         -----------                                ----  ------------  ---------
 cmake_dependent_option(AMD_K5         "AMD K5"                                   ON    "DEV_BRANCH"  OFF)
-cmake_dependent_option(AN430TX        "Intel AN430TX"                            ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(CDROM_MITSUMI  "Mitsumi CDROM"                            ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(G100           "Matrox Productiva G100"                   ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(GUSMAX         "Gravis UltraSound MAX"                    ON    "DEV_BRANCH"  OFF)

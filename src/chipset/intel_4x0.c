@@ -1013,7 +1013,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_430TX:
                         if (!dev->smram_locked) {
                             i4x0_smram_handler_phase0(dev);
-                            regs[0x71] = (regs[0x71] & 0x20) | (val & 0xdf);
+                            regs[0x71] = (regs[0x71] & 0x60) | (val & 0x9f);
+                            regs[0x71] &= (val & 0x40);
                             i4x0_smram_handler_phase1(dev);
                         }
                         break;
@@ -1041,9 +1042,11 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                             regs[0x72] = (val & 0x7f);
                         else
                             regs[0x72] = (regs[0x72] & 0x87) | (val & 0x78);
-                        dev->smram_locked = (val & 0x10);
-                        if (dev->smram_locked)
-                            regs[0x72] &= 0xbf;
+                        if (val & 0x08) {
+                            dev->smram_locked = (val & 0x10);
+                            if (dev->smram_locked)
+                                regs[0x72] &= 0xbf;
+                        }
                     }
                 } else {
                     if (dev->smram_locked)
@@ -1576,6 +1579,8 @@ i4x0_reset(void *priv)
         for (uint8_t i = 0; i < 4; i++)
             dev->regs[0x68 + i] = 0x00;
     }
+
+    dev->smram_locked = 0;
 
     if (dev->type >= INTEL_430FX) {
         dev->regs[0x72] &= 0xef; /* Forcibly unlock the SMRAM register. */

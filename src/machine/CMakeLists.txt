@@ -57,14 +57,6 @@ add_library(mch OBJECT
     m_at_misc.c
 )
 
-if(AN430TX)
-    target_compile_definitions(mch PRIVATE USE_AN430TX)
-endif()
-
-if(DESKPRO386)
-    target_compile_definitions(mch PRIVATE USE_DESKPRO386)
-endif()
-
 if(OLIVETTI)
     target_compile_definitions(mch PRIVATE USE_OLIVETTI)
 endif()
