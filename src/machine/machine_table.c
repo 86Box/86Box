@@ -9422,7 +9422,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: ST STPC Atlas */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas */
         .ram = {
             .min = 32768,
             .max = 163840,
@@ -9463,7 +9463,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal video: ST STPC Atlas */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL | MACHINE_USB, /* Machine has internal video: ST STPC Atlas */
         .ram = {
             .min = 32768,
             .max = 163840,
@@ -9504,7 +9504,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE | MACHINE_APM, /* Machine has internal video: ST STPC Atlas and NIC: Realtek RTL8139C+ */
+        .flags = MACHINE_IDE | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas and NIC: Realtek RTL8139C+ */
         .ram = {
             .min = 32768,
             .max = 131072,
@@ -9545,7 +9545,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL,
         .ram = {
             .min = 32768,
             .max = 98304,
@@ -9586,7 +9586,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL,
         .ram = {
             .min = 32768,
             .max = 131072,
