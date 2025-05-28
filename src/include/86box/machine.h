@@ -756,11 +756,9 @@ extern int machine_at_ma23c_init(const machine_t *);
 extern int machine_at_nupro592_init(const machine_t *);
 extern int machine_at_tx97_init(const machine_t *);
 extern int machine_at_optiplex_gn_init(const machine_t *);
-#ifdef USE_AN430TX
-extern int machine_at_an430tx_init(const machine_t *);
-#endif /* USE_AN430TX */
 extern int machine_at_ym430tx_init(const machine_t *);
 extern int machine_at_thunderbolt_init(const machine_t *);
+extern int machine_at_an430tx_init(const machine_t *);
 extern int machine_at_mb540n_init(const machine_t *);
 extern int machine_at_56a5_init(const machine_t *);
 extern int machine_at_p5mms98_init(const machine_t *);
