@@ -8,17 +8,12 @@
  *
  *          Handling of the emulated machines.
  *
- * NOTES:   OpenAT wip for 286-class machine with open BIOS.
- *          PS2_M80-486 wip, pending receipt of TRM's for machine.
- *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2017-2025 Fred N. van Kempen.
  *          Copyright 2025      Jasmine Iwanek.
  */
 #include <stdio.h>
@@ -3136,48 +3131,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#ifdef USE_OPEN_AT
-    /* Has IBM AT KBC firmware. */
-    {
-        .name = "[ISA] OpenAT",
-        .internal_name = "openat",
-        .type = MACHINE_TYPE_286,
-        .chipset = MACHINE_CHIPSET_DISCRETE,
-        .init = machine_at_openat_init,
-        .p1_handler = NULL,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_286,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
-        .ram = {
-            .min = 256,
-            .max = 15872,
-            .step = 128
-        },
-        .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-#endif /* USE_OPEN_AT */
     /* Has IBM AT KBC firmware. */
     {
         .name = "[ISA] Phoenix IBM AT",

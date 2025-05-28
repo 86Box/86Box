@@ -56,7 +56,3 @@ add_library(mch OBJECT
     m_at_socket370.c
     m_at_misc.c
 )
-
-if(OPEN_AT)
-    target_compile_definitions(mch PRIVATE USE_OPEN_AT)
-endif()
