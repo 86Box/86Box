@@ -4456,7 +4456,7 @@ const machine_t machines[] = {
         .net_device = NULL
     },
             {
-        .name = "[ALI M1409] Acer 100T",
+        .name = "[ALi M1409] Acer 100T",
         .internal_name = "acer100t",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_ALI_M1409,
@@ -14420,7 +14420,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = &cs4235_device,
+        .snd_device = &cs4235_onboard_device,
         .net_device = NULL
     },
 
