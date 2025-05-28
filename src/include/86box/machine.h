@@ -722,6 +722,8 @@ extern int machine_at_vectra54_init(const machine_t *);
 extern int machine_at_5sbm2_init(const machine_t *);
 
 /* m_at_socket7.c */
+extern void machine_at_optiplex_21152_init(void);
+
 extern int machine_at_acerv35n_init(const machine_t *);
 extern int machine_at_p55t2p4_init(const machine_t *);
 extern int machine_at_m7shi_init(const machine_t *);
