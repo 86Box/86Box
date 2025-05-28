@@ -3096,7 +3096,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#ifdef USE_OLIVETTI
     /* Has Olivetti KBC firmware. */
     {
         .name = "[ISA] Olivetti M290",
@@ -3137,7 +3136,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif /* USE_OLIVETTI */
 #ifdef USE_OPEN_AT
     /* Has IBM AT KBC firmware. */
     {

@@ -57,10 +57,6 @@ add_library(mch OBJECT
     m_at_misc.c
 )
 
-if(OLIVETTI)
-    target_compile_definitions(mch PRIVATE USE_OLIVETTI)
-endif()
-
 if(OPEN_AT)
     target_compile_definitions(mch PRIVATE USE_OPEN_AT)
 endif()

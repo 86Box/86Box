@@ -73,26 +73,24 @@ olivetti_eva_write(uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x069:
             dev->reg_069 = val;
-            /*
-             * Unfortunately, if triggered, the BIOS remapping function fails causing
-             * a fatal error. Therefore, this code section is currently commented.
-             */
-#if 0
-            if (val & 1) {
+            mem_remap_top(0);
+            if (val == 0x01) {
                 /*
                  * Set the register to 7 or above for the BIOS to trigger the
                  * memory remapping function if shadowing is active.
                  */
-                 dev->reg_069 = 0x7;
+                 dev->reg_069 = 0x07;
             }
-            if (val & 8) {
+            if (val & 0x08) {
                 /*
                  * Activate shadowing for region e0000-fffff
                  */
                  mem_remap_top(256);
-                 mem_set_mem_state_both(0xa0000, 0x60000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                 mem_set_mem_state_both(0xe0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+            } else {
+                 mem_remap_top(384);
+                 mem_set_mem_state_both(0xe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
             }
-#endif
             break;
         default:
             break;
@@ -143,7 +141,7 @@ olivetti_eva_init(UNUSED(const device_t *info))
     dev->reg_067 = 0x00;
 
     /* RAM enable registers */
-    dev->reg_069 = 0x0;
+    dev->reg_069 = 0x00;
 
     io_sethandler(0x0065, 0x0001, olivetti_eva_read, NULL, NULL, olivetti_eva_write, NULL, NULL, dev);
     io_sethandler(0x0067, 0x0001, olivetti_eva_read, NULL, NULL, olivetti_eva_write, NULL, NULL, dev);
@@ -151,13 +149,6 @@ olivetti_eva_init(UNUSED(const device_t *info))
 
     /* When shadowing is not enabled in BIOS, all upper memory is available as XMS */
     mem_remap_top(384);
-
-    /*
-     * Default settings when NVRAM is cleared activate shadowing.
-     * Thus, to avoid boot errors, remap only 256k from UMB to XMS.
-     * Remove this block once BIOS memory remapping works.
-     */
-    mem_remap_top(256);
 
     return dev;
 }

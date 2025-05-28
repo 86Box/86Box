@@ -1069,7 +1069,6 @@ machine_at_pc916sx_init(const machine_t *model)
     return ret;
 }
 
-#ifdef USE_OLIVETTI
 int
 machine_at_m290_init(const machine_t *model)
 {
@@ -1081,15 +1080,16 @@ machine_at_m290_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 4);
-    device_add(&keyboard_at_olivetti_device);
+    machine_at_common_init_ex(model, 6);
+    device_add(&amstrad_megapc_nvr_device);
+
+    device_add(&olivetti_eva_device);
     device_add(&port_6x_olivetti_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&olivetti_eva_device);
+    device_add(&keyboard_at_olivetti_device);
 
     return ret;
 }
-#endif /* USE_OLIVETTI */

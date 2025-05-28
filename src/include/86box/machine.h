@@ -481,9 +481,7 @@ extern int machine_at_dells200_init(const machine_t *);
 extern int machine_at_pc8_init(const machine_t *);
 extern int machine_at_3302_init(const machine_t *);
 
-#ifdef USE_OLIVETTI
 extern int machine_at_m290_init(const machine_t *);
-#endif /* USE_OLIVETTI */
 
 extern int machine_at_shuttle386sx_init(const machine_t *);
 extern int machine_at_adi386sx_init(const machine_t *);
