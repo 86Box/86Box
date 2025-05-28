@@ -197,6 +197,7 @@ extern const device_t ct5880_onboard_device;
 
 /* Gravis UltraSound and UltraSound Max */
 extern const device_t gus_device;
+extern const device_t gus_max_device;
 
 /* IBM PS/1 Audio Card */
 extern const device_t ps1snd_device;
