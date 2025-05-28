@@ -485,6 +485,7 @@ extern int machine_at_adi386sx_init(const machine_t *);
 extern int machine_at_cmdsl386sx16_init(const machine_t *);
 extern int machine_at_cmdsl386sx25_init(const machine_t *);
 extern int machine_at_dataexpert386sx_init(const machine_t *);
+extern int machine_at_dells333sl_init(const machine_t *);
 extern int machine_at_if386sx_init(const machine_t *);
 extern int machine_at_spc6033p_init(const machine_t *);
 extern int machine_at_wd76c10_init(const machine_t *);

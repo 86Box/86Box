@@ -100,7 +100,8 @@ postcard_setui(void)
                 break;
         }
     } else if (strstr(machines[machine].name, " Dell ") &&
-               (machine_get_chipset(machine) >= MACHINE_CHIPSET_INTEL_430FX)) {
+               ((machine_get_chipset(machine) >= MACHINE_CHIPSET_INTEL_430FX) ||
+                (machine_get_chipset(machine) >= MACHINE_CHIPSET_VLSI_SCAMP))) {
         char dell_diags[10] = { 0 };
 
         if (!postcard_written[1])
@@ -225,8 +226,9 @@ postcard_init(UNUSED(const device_t *info))
                       NULL, NULL, NULL, postcard_write, NULL, NULL, NULL);
 
     if (strstr(machines[machine].name, " Dell ") &&
-        (machine_get_chipset(machine) >= MACHINE_CHIPSET_INTEL_430FX))
-        io_sethandler(0x00e0, 0x0001,
+        ((machine_get_chipset(machine) >= MACHINE_CHIPSET_INTEL_430FX) ||
+         (machine_get_chipset(machine) >= MACHINE_CHIPSET_VLSI_SCAMP)))
+        io_sethandler(is486 ? 0x00e0 : 0x00e4, 0x0001,
                       NULL, NULL, NULL, NULL, NULL, postcard_writel, NULL);
 
     return postcard_write;

@@ -4247,7 +4247,10 @@ gd54xx_init(const device_t *info)
             break;
 
         case CIRRUS_ID_CLGD5420:
-            romfn = BIOS_GD5420_PATH;
+            if (info->local & 0x200)
+                romfn = NULL;
+            else
+                romfn = BIOS_GD5420_PATH;
             break;
 
         case CIRRUS_ID_CLGD5422:
@@ -4973,6 +4976,20 @@ const device_t gd5420_isa_device = {
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
     .available     = gd5420_available,
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = gd542x_config,
+};
+
+const device_t gd5420_onboard_device = {
+    .name          = "Cirrus Logic GD5420 (ISA)",
+    .internal_name = "cl_gd5420_isa",
+    .flags         = DEVICE_ISA16,
+    .local         = CIRRUS_ID_CLGD5420 | 0x200,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .config        = gd542x_config,
