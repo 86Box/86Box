@@ -37,6 +37,7 @@
 #include <86box/hdc.h>
 #include <86box/nvr.h>
 #include <86box/port_6x.h>
+#define USE_SIO_DETECT
 #include <86box/sio.h>
 #include <86box/serial.h>
 #include <86box/video.h>
@@ -753,6 +754,75 @@ machine_at_cmdsl386sx25_init(const machine_t *model)
     device_add(&ide_isa_device);
 
     device_add(&ali5105_device);  /* The FDC is part of the ALi M5105. */
+    device_add(&vl82c113_device); /* The keyboard controller is part of the VL82c113. */
+
+    device_add(&vlsi_scamp_device);
+
+    return ret;
+}
+
+static const device_config_t dells333sl_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "dells333sl",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "J01 (Jostens Learning Corporation OEM)", .internal_name = "dells333sl_j01", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/dells333sl/DELL386.BIN", "" } },
+            { .name = "A02", .internal_name = "dells333sl", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/dells333sl/Dell_386SX_30807_UBIOS_B400_VLSI_VL82C311_Cirrus_Logic_GD5420.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t dells333sl_device = {
+    .name          = "Dell System 333s/L",
+    .internal_name = "dells333sl_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = dells333sl_config
+};
+
+int
+machine_at_dells333sl_init(const machine_t *model)
+{
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 262144, 0);
+    memcpy(rom, &(rom[0x00020000]), 131072);
+    mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+    mem_mapping_set_exec(&bios_mapping, rom);
+    device_context_restore();
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&ide_isa_device);
+
+    device_add(&pc87311_device);
     device_add(&vl82c113_device); /* The keyboard controller is part of the VL82c113. */
 
     device_add(&vlsi_scamp_device);

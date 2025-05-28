@@ -66,6 +66,7 @@ extern const device_t vendex_device;
 extern const device_t c5sbm2_device;
 extern const device_t sb486pv_device;
 extern const device_t ap5s_device;
+extern const device_t dells333sl_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                             MACHINE_TYPE_NONE       },
@@ -4939,6 +4940,47 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* No proper pictures of the KBC exist, though it seems to have the IBM AT KBC
+       firmware. */
+    {
+        .name = "[SCAMP] Dell System 333s/L",
+        .internal_name = "dells333sl",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_VLSI_SCAMP,
+        .init = machine_at_dells333sl_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 10000000,
+            .max_bus = 33333333,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = &dells333sl_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5420_onboard_device,
         .snd_device = NULL,
         .net_device = NULL
     },
