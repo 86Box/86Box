@@ -670,7 +670,7 @@ extern int machine_at_tek932_init(const machine_t *);
 
 extern int machine_at_acerv30_init(const machine_t *);
 extern int machine_at_apollo_init(const machine_t *);
-extern int machine_at_optiplex_gxl_init(const machine_t *);
+extern int machine_at_optiplexgxl_init(const machine_t *);
 extern int machine_at_zappa_init(const machine_t *);
 extern int machine_at_powermatev_init(const machine_t *);
 extern int machine_at_hawk_init(const machine_t *);
@@ -750,7 +750,7 @@ extern int machine_at_gw2kte_init(const machine_t *);
 extern int machine_at_ma23c_init(const machine_t *);
 extern int machine_at_nupro592_init(const machine_t *);
 extern int machine_at_tx97_init(const machine_t *);
-extern int machine_at_optiplex_gn_init(const machine_t *);
+extern int machine_at_optiplexgn_init(const machine_t *);
 extern int machine_at_ym430tx_init(const machine_t *);
 extern int machine_at_thunderbolt_init(const machine_t *);
 extern int machine_at_an430tx_init(const machine_t *);
@@ -819,7 +819,7 @@ extern int machine_at_p65up5_cpknd_init(const machine_t *);
 extern int machine_at_kn97_init(const machine_t *);
 
 extern int machine_at_lx6_init(const machine_t *);
-extern int machine_at_optiplex_gxa_init(const machine_t *);
+extern int machine_at_optiplexgxa_init(const machine_t *);
 extern int machine_at_spitfire_init(const machine_t *);
 extern int machine_at_ma30d_init(const machine_t *);
 

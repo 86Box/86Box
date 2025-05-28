@@ -238,11 +238,11 @@ machine_at_apollo_init(const machine_t *model)
 }
 
 int
-machine_at_optiplex_gxl_init(const machine_t *model)
+machine_at_optiplexgxl_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/optiplex_gxl/DELL.ROM",
+    ret = bios_load_linear("roms/machines/optiplexgxl/DELL.ROM",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

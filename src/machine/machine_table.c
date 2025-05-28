@@ -10549,10 +10549,10 @@ const machine_t machines[] = {
     /* Has a National Semiconductor PC87332VLJ Super I/O with AMIKey 'F' KBC firmware. */
     {
         .name = "[i430FX] Dell OptiPlex GXL/GXM",
-        .internal_name = "optiplex_gxl",
+        .internal_name = "optiplexgxl",
         .type = MACHINE_TYPE_SOCKET5,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
-        .init = machine_at_optiplex_gxl_init,
+        .init = machine_at_optiplexgxl_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -13147,10 +13147,10 @@ const machine_t machines[] = {
      */
     {
         .name = "[i430TX] Dell OptiPlex GN+",
-        .internal_name = "optiplex_gn",
+        .internal_name = "optiplexgn",
         .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_INTEL_430TX,
-        .init = machine_at_optiplex_gn_init,
+        .init = machine_at_optiplexgn_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -15210,10 +15210,10 @@ const machine_t machines[] = {
        firmwares: AMI '5' MegaKey, Phoenix MultiKey/42 1.37, or Phoenix MultiKey/42i 4.16. */
     {
         .name = "[i440LX] Dell OptiPlex GXa",
-        .internal_name = "optiplex_gxa",
+        .internal_name = "optiplexgxa",
         .type = MACHINE_TYPE_SLOT1,
         .chipset = MACHINE_CHIPSET_INTEL_440LX,
-        .init = machine_at_optiplex_gxa_init,
+        .init = machine_at_optiplexgxa_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,

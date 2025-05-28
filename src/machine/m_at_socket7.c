@@ -970,11 +970,11 @@ machine_at_tx97_init(const machine_t *model)
 }
 
 int
-machine_at_optiplex_gn_init(const machine_t *model)
+machine_at_optiplexgn_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/optiplex_gn/DELL.ROM",
+    ret = bios_load_linear("roms/machines/optiplexgn/DELL.ROM",
                            0x000c0000, 262144, 0);
 
     if (bios_only || !ret)

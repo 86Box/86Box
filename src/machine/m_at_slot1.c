@@ -151,11 +151,11 @@ machine_at_lx6_init(const machine_t *model)
 }
 
 int
-machine_at_optiplex_gxa_init(const machine_t *model)
+machine_at_optiplexgxa_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/optiplex_gxa/DELL.ROM",
+    ret = bios_load_linear("roms/machines/optiplexgxa/DELL.ROM",
                            0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
