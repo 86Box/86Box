@@ -18,6 +18,7 @@
 add_library(chipset OBJECT
     82c100.c
     acc2168.c
+    cs8220.c
     cs8230.c
     ali1429.c
     ali1435.c

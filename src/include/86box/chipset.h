@@ -55,6 +55,7 @@ extern const device_t neat_sx_device;
 extern const device_t scat_device;
 extern const device_t scat_4_device;
 extern const device_t scat_sx_device;
+extern const device_t cs8220_device;
 extern const device_t cs8230_device;
 extern const device_t cs4031_device;
 
