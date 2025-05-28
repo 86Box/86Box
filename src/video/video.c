@@ -1017,8 +1017,8 @@ loadfont_common(FILE *fp, int format)
                 for (uint8_t d = 0; d < 8; d++)
                     fontdatm[c][d + 8] = fgetc(fp) & 0xff;
             (void) fseek(fp, 4096 + 2048, SEEK_SET);
-            for (uint16_t c = 0; c < 256; c++)
-                for (uint8_t d = 0; d < 8; d++) /* 8x8 CGA (thick, primary) */
+            for (uint16_t c = 0; c < 256; c++) /* 8x8 CGA (thick, primary) */
+                for (uint8_t d = 0; d < 8; d++)
                     fontdat[c][d] = fgetc(fp) & 0xff;
             break;
 

@@ -47,7 +47,7 @@ void ega_doblit(int wx, int wy, ega_t *ega);
 
 static video_timings_t timing_ega = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 static uint8_t         ega_rotate[8][256];
-static int             active = 0;
+static int             active             = 0;
 uint32_t               pallook16[256];
 uint32_t               pallook64[256];
 static int             ega_type           = EGA_TYPE_IBM;
@@ -154,7 +154,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
             ega_recalctimings(ega);
             if ((type == EGA_TYPE_COMPAQ) && !(val & 0x02))
                 mem_mapping_disable(&ega->mapping);
-            else  switch (ega->gdcreg[6] & 0xc) {
+            else switch (ega->gdcreg[6] & 0xc) {
                 case 0x0: /*128k at A0000*/
                     mem_mapping_set_addr(&ega->mapping, 0xa0000, 0x20000);
                     break;
@@ -225,7 +225,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                 case 6:
                     if ((type == EGA_TYPE_COMPAQ) && !(ega->miscout & 0x02))
                         mem_mapping_disable(&ega->mapping);
-                    else  switch (val & 0xc) {
+                    else switch (val & 0xc) {
                         case 0x0: /*128k at A0000*/
                             mem_mapping_set_addr(&ega->mapping, 0xa0000, 0x20000);
                             break;
@@ -289,7 +289,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                 if ((idx == 7) && (ega->crtc[0x11] & 0x80))
                     val = (ega->crtc[7] & ~0x10) | (val & 0x10);
             }
-            old                     = ega->crtc[idx];
+            old            = ega->crtc[idx];
             ega->crtc[idx] = val;
             if (old != val) {
                 if ((idx < 0xe) || (idx > 0x10)) {
@@ -305,7 +305,9 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
             }
             break;
 
-        } default:
+        }
+
+        default:
             break;
     }
 }
@@ -313,7 +315,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 ega_in(uint16_t addr, void *priv)
 {
-    ega_t  *ega = (ega_t *) priv;
+    ega_t  *ega      = (ega_t *) priv;
     uint8_t ret      = 0xff;
     int     type     = ega_type;
     int     atype    = ega->actual_type;
@@ -494,7 +496,7 @@ ega_in(uint16_t addr, void *priv)
             }
             break;
         case 0x7c6:
-            ret = 0xfd;        /* EGA mode supported. */
+            ret = 0xfd; /* EGA mode supported. */
             break;
         case 0xbc6:
             /* 0000 = None;
@@ -696,7 +698,7 @@ ega_recalctimings(ega_t *ega)
         timer_disable(&ega->dot_timer);
         timer_set_delay_u64(&ega->dot_timer, ega->dot_time);
         ega->cca = 0;
-        active = 1;
+        active   = 1;
         ega->dot = 0;
     }
 
@@ -708,30 +710,30 @@ ega_recalctimings(ega_t *ega)
 void
 ega_dot_poll(void *priv)
 {
-    ega_t   *ega = (ega_t *) priv;
-    static uint8_t chr;
-    static uint8_t attr;
-    const bool doublewidth   = ((ega->seqregs[1] & 8) != 0);
-    const bool attrblink     = ((ega->attrregs[0x10] & 8) != 0);
-    const bool attrlinechars = (ega->attrregs[0x10] & 4);
-    const bool crtcreset     = ((ega->crtc[0x17] & 0x80) == 0);
-    const bool seq9dot       = ((ega->seqregs[1] & 1) == 0);
-    const bool blinked       = ega->blink & 0x10;
-    const int  dwshift       = doublewidth ? 1 : 0;
-    const int  dotwidth      = 1 << dwshift;
-    const int  charwidth     = dotwidth * (seq9dot ? 9 : 8);
-    const int  cursoron      = (ega->sc == (ega->crtc[10] & 31));
-    const int  cursoraddr    = (ega->crtc[0xe] << 8) | ega->crtc[0xf];
-    uint32_t addr;
-    int drawcursor;
-    uint32_t charaddr;
-    static int fg            = 0;
-    static int bg            = 0;
-    static uint32_t dat      = 0x00000000;
-    static int cclock        = 0;
-    static int disptime;
-    static int _dispontime;
-    static int _dispofftime;
+    ega_t          *ega           = (ega_t *) priv;
+    static uint8_t  chr;
+    static uint8_t  attr;
+    const bool      doublewidth   = ((ega->seqregs[1] & 8) != 0);
+    const bool      attrblink     = ((ega->attrregs[0x10] & 8) != 0);
+    const bool      attrlinechars = (ega->attrregs[0x10] & 4);
+    const bool      crtcreset     = ((ega->crtc[0x17] & 0x80) == 0);
+    const bool      seq9dot       = ((ega->seqregs[1] & 1) == 0);
+    const bool      blinked       = ega->blink & 0x10;
+    const int       dwshift       = doublewidth ? 1 : 0;
+    const int       dotwidth      = 1 << dwshift;
+    const int       charwidth     = dotwidth * (seq9dot ? 9 : 8);
+    const int       cursoron      = (ega->sc == (ega->crtc[10] & 31));
+    const int       cursoraddr    = (ega->crtc[0xe] << 8) | ega->crtc[0xf];
+    uint32_t        addr;
+    int             drawcursor;
+    uint32_t        charaddr;
+    static int      fg            = 0;
+    static int      bg            = 0;
+    static uint32_t dat           = 0x00000000;
+    static int      cclock        = 0;
+    static int      disptime;
+    static int      _dispontime;
+    static int      _dispofftime;
 
     if (ega->seqregs[1] & 8) {
         disptime    = ((ega->crtc[0] + 2) << 1);
@@ -803,11 +805,9 @@ void
 ega_poll(void *priv)
 {
     ega_t   *ega = (ega_t *) priv;
-    int      x, y;
     int      old_ma;
     int      wx = 640;
     int      wy = 350;
-    uint32_t blink_delay;
 
     if (!ega->linepos) {
         timer_advance_u64(&ega->timer, ega->dispofftime);
@@ -826,7 +826,7 @@ ega_poll(void *priv)
             old_ma = ega->ma;
             ega->displine *= ega->vres + 1;
             ega->y_add *= ega->vres + 1;
-            for (y = 0; y <= ega->vres; y++) {
+            for (int y = 0; y <= ega->vres; y++) {
                 /* Render scanline */
                 ega->render(ega);
 
@@ -925,7 +925,7 @@ ega_poll(void *priv)
         }
         if (ega->vc == ega->dispend) {
             ega->dispon = 0;
-            blink_delay = (ega->crtc[11] & 0x60) >> 5;
+            uint32_t blink_delay = (ega->crtc[11] & 0x60) >> 5;
             if (ega->crtc[10] & 0x20)
                 ega->cursoron = 0;
             else if (blink_delay == 2)
@@ -946,14 +946,14 @@ ega_poll(void *priv)
 #if 0
             picint(1 << 2);
 #endif
-            x = ega->hdisp;
+//            x = ega->hdisp;
 
             if (ega->interlace && !ega->oddeven)
                 ega->lastline++;
             if (ega->interlace && ega->oddeven)
                 ega->firstline--;
 
-            wx = x;
+            wx = ega->hdisp;
 
             if (ega->vres) {
                 wy = (ega->lastline - ega->firstline) << 1;
@@ -1024,9 +1024,6 @@ ega_doblit(int wx, int wy, ega_t *ega)
     int       y_start = enable_overscan ? 0 : (unscaled_overscan_y >> 1);
     int       x_start = enable_overscan ? 0 : (overscan_x >> 1);
     int       bottom  = (unscaled_overscan_y >> 1);
-    uint32_t *p;
-    int       i;
-    int       j;
     int       xs_temp;
     int       ys_temp;
 
@@ -1073,17 +1070,17 @@ ega_doblit(int wx, int wy, ega_t *ega)
 
     if ((wx >= 160) && ((wy + 1) >= 120)) {
         /* Draw (overscan_size - scroll size) lines of overscan on top and bottom. */
-        for (i = 0; i < ega->y_add; i++) {
-            p = &buffer32->line[i & 0x7ff][0];
+        for (int i = 0; i < ega->y_add; i++) {
+            uint32_t *p = &buffer32->line[i & 0x7ff][0];
 
-            for (j = 0; j < (xsize + x_add); j++)
+            for (int j = 0; j < (xsize + x_add); j++)
                 p[j] = ega->overscan_color;
         }
 
-        for (i = 0; i < bottom; i++) {
-            p = &buffer32->line[(ysize + ega->y_add + i) & 0x7ff][0];
+        for (int i = 0; i < bottom; i++) {
+            uint32_t *p = &buffer32->line[(ysize + ega->y_add + i) & 0x7ff][0];
 
-            for (j = 0; j < (xsize + x_add); j++)
+            for (int j = 0; j < (xsize + x_add); j++)
                 p[j] = ega->overscan_color;
         }
     }
@@ -1107,12 +1104,11 @@ ega_remap_cpu_addr(uint32_t inaddr, ega_t *ega)
     // bit 2: 1 = 128K mapping, 0 = other mapping (from memory decode PROM)
     a0mux = 0;
 
-    if (ega->gdcreg[6] & 2) {
+    if (ega->gdcreg[6] & 2)
         a0mux |= 2;
-    }
-    if (ega->vram_limit <= 64 * 1024) {
+
+    if (ega->vram_limit <= 64 * 1024)
         a0mux |= 1;
-    }
 
     switch (ega->gdcreg[6] & 0xC) {
         case 0x0: // 128K A000
@@ -1179,9 +1175,8 @@ ega_write(uint32_t addr, uint8_t val, void *priv)
 
     cycles -= video_timing_write_b;
 
-    if (ega->chain2_write) {
+    if (ega->chain2_write)
         writemask2 &= 0x5 << (addr & 1);
-    }
 
     addr = ega_remap_cpu_addr(addr, ega);
 
@@ -1361,9 +1356,8 @@ ega_read(uint32_t addr, void *priv)
 
     cycles -= video_timing_read_b;
 
-    if (ega->chain2_read) {
+    if (ega->chain2_read)
         readplane = (readplane & 2) | (addr & 1);
-    }
 
     addr = ega_remap_cpu_addr(addr, ega);
 
@@ -1401,23 +1395,19 @@ ega_read(uint32_t addr, void *priv)
 void
 ega_init(ega_t *ega, int monitor_type, int is_mono)
 {
-    int c;
-    int d;
-    int e;
-
     ega->vram     = malloc(0x40000);
     ega->vrammask = 0x3ffff;
 
-    for (c = 0; c < 256; c++) {
-        e = c;
-        for (d = 0; d < 8; d++) {
+    for (uint16_t c = 0; c < 256; c++) {
+        int e = c;
+        for (uint8_t d = 0; d < 8; d++) {
             ega_rotate[d][c] = e;
             e                = (e >> 1) | ((e & 1) ? 0x80 : 0);
         }
     }
 
     if (is_mono) {
-        for (c = 0; c < 256; c++) {
+        for (uint16_t c = 0; c < 256; c++) {
             if (((c >> 3) & 3) == 0)
                 pallook64[c] = pallook16[c] = makecol32(0, 0, 0);
             else
@@ -1476,7 +1466,7 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
 
         io_sethandler(0x03a0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
     } else {
-        for (c = 0; c < 256; c++) {
+        for (uint16_t c = 0; c < 256; c++) {
             pallook64[c] = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
             pallook64[c] += makecol32(((c >> 5) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 3) & 1) * 0x55);
             pallook16[c] = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
@@ -1562,10 +1552,8 @@ ega_set_type(void *priv, uint32_t local)
 static void *
 ega_standalone_init(const device_t *info)
 {
-    ega_t *ega = malloc(sizeof(ega_t));
+    ega_t *ega = calloc(1, sizeof(ega_t));
     int    monitor_type;
-
-    memset(ega, 0x00, sizeof(ega_t));
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ega);
 
@@ -1635,8 +1623,7 @@ ega_standalone_init(const device_t *info)
 
     if (ega->chipset) {
         io_sethandler(0x01ce, 0x0002, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
-        ega->eeprom = malloc(sizeof(ati_eeprom_t));
-        memset(ega->eeprom, 0, sizeof(ati_eeprom_t));
+        ega->eeprom = calloc(1, sizeof(ati_eeprom_t));
         ati_eeprom_load((ati_eeprom_t *) ega->eeprom, "egawonder800p.nvr", 0);
     } else if (info->local == EGA_COMPAQ) {
         io_sethandler(0x0084, 0x0001, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
