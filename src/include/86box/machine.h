@@ -512,7 +512,7 @@ extern int machine_at_ga486l_init(const machine_t *);
 extern int machine_at_cougar_init(const machine_t *);
 
 extern int machine_at_acc386_init(const machine_t *);
-extern int machine_at_asus386_3364k_init(const machine_t *);
+extern int machine_at_asus3863364k_init(const machine_t *);
 extern int machine_at_asus386_init(const machine_t *);
 extern int machine_at_ecs386_init(const machine_t *);
 extern int machine_at_spc6000a_init(const machine_t *);

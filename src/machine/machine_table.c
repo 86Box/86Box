@@ -5671,10 +5671,10 @@ const machine_t machines[] = {
     /* Has Award KBC firmware. */
     {
         .name = "[SiS 310] ASUS 386/33-64K",
-        .internal_name = "asus386_3364k",
+        .internal_name = "asus3863364k",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_SIS_310,
-        .init = machine_at_asus386_3364k_init,
+        .init = machine_at_asus3863364k_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
