@@ -87,6 +87,14 @@ pci_bridge_set_ctl(void *priv, uint8_t ctl)
     dev->ctl = ctl;
 }
 
+uint8_t
+pci_bridge_get_bus_index(void *priv)
+{
+    pci_bridge_t *dev = (pci_bridge_t *) priv;
+
+    return dev->bus_index;
+}
+
 static void
 pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 {
@@ -513,11 +521,9 @@ static void *
 pci_bridge_init(const device_t *info)
 {
     uint8_t interrupts[4];
-    uint8_t interrupt_count;
     uint8_t interrupt_mask;
+    uint8_t add_type;
     uint8_t slot_count;
-    uint8_t dell_slots[3]         = { 0x09, 0x0a, 0x0b };
-    uint8_t dell_interrupts[3][4] = { { 1, 2, 3, 4 }, { 4, 2, 1, 3 }, { 1, 3, 4, 2 } };
 
     pci_bridge_t *dev = (pci_bridge_t *) calloc(1, sizeof(pci_bridge_t));
 
@@ -527,40 +533,35 @@ pci_bridge_init(const device_t *info)
 
     pci_bridge_reset(dev);
 
-    if (info->local == PCI_BRIDGE_DEC_21152)
-        pci_add_card(PCI_ADD_BRIDGE, pci_bridge_read, pci_bridge_write, dev, &dev->slot);
-    else
-        pci_add_bridge(AGP_BRIDGE(dev->local), pci_bridge_read, pci_bridge_write, dev, &dev->slot);
-
-    interrupt_count = sizeof(interrupts);
-    interrupt_mask  = interrupt_count - 1;
+    interrupt_mask = sizeof(interrupts) - 1;
     if (dev->slot < 32) {
-        for (uint8_t i = 0; i < interrupt_count; i++)
+        for (uint8_t i = 0; i <= interrupt_mask; i++)
             interrupts[i] = pci_get_int(dev->slot, PCI_INTA + i);
     }
     pci_bridge_log("PCI Bridge %d: upstream bus %02X slot %02X interrupts %02X %02X %02X %02X\n",
                    dev->bus_index, (dev->slot >> 5) & 0xff, dev->slot & 31, interrupts[0],
                    interrupts[1], interrupts[2], interrupts[3]);
 
-    if (info->local == PCI_BRIDGE_DEC_21150)
+    if (info->local == PCI_BRIDGE_DEC_21150) {
         slot_count = 9; /* 9 bus masters */
-    else if (info->local == PCI_BRIDGE_DEC_21152)
-        slot_count = 3; /* 3 bus masters */
-    else
+        add_type   = PCI_ADD_NORMAL;
+    } else if (info->local == PCI_BRIDGE_DEC_21152) {
+        slot_count = 0; /* 4 bus masters, but slots are added by the Dell machines */
+        add_type   = PCI_ADD_BRIDGE;
+    } else {
         slot_count = 1; /* AGP bridges always have 1 slot */
+        add_type   = PCI_ADD_AGPBRIDGE;
+    }
+
+    pci_add_bridge(add_type, pci_bridge_read, pci_bridge_write, dev, &dev->slot);
 
     for (uint8_t i = 0; i < slot_count; i++) {
-        uint8_t slot = i;
-        if (info->local == PCI_BRIDGE_DEC_21152) {
-            slot = dell_slots[i];
-            memcpy(interrupts, dell_interrupts[i], 4);
-        }
         /* Interrupts for bridge slots are assigned in round-robin: ABCD, BCDA, CDAB and so on. */
         pci_bridge_log("PCI Bridge %d: downstream slot %02X interrupts %02X %02X %02X %02X\n",
-                       dev->bus_index, slot, interrupts[i & interrupt_mask],
+                       dev->bus_index, i, interrupts[i & interrupt_mask],
                        interrupts[(i + 1) & interrupt_mask], interrupts[(i + 2) & interrupt_mask],
                        interrupts[(i + 3) & interrupt_mask]);
-        pci_register_bus_slot(dev->bus_index, slot, AGP_BRIDGE(dev->local) ? PCI_CARD_AGP : PCI_CARD_NORMAL,
+        pci_register_bus_slot(dev->bus_index, i, AGP_BRIDGE(dev->local) ? PCI_CARD_AGP : PCI_CARD_NORMAL,
                               interrupts[i & interrupt_mask],
                               interrupts[(i + 1) & interrupt_mask],
                               interrupts[(i + 2) & interrupt_mask],
