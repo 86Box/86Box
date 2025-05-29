@@ -64,4 +64,10 @@ private:
     void recalcSelection();
 };
 
+typedef struct _86BoxGeom {
+    uint32_t cyl;
+    uint32_t heads;
+    uint32_t spt;
+} _86BoxGeom;
+
 #endif // QT_HARDDISKDIALOG_HPP
