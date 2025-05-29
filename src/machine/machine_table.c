@@ -8,17 +8,12 @@
  *
  *          Handling of the emulated machines.
  *
- * NOTES:   OpenAT wip for 286-class machine with open BIOS.
- *          PS2_M80-486 wip, pending receipt of TRM's for machine.
- *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2017-2025 Fred N. van Kempen.
  *          Copyright 2025      Jasmine Iwanek.
  */
 #include <stdio.h>
@@ -71,6 +66,7 @@ extern const device_t vendex_device;
 extern const device_t c5sbm2_device;
 extern const device_t sb486pv_device;
 extern const device_t ap5s_device;
+extern const device_t dells333sl_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                             MACHINE_TYPE_NONE       },
@@ -117,11 +113,12 @@ const machine_filter_t machine_chipsets[] = {
     { "ALi ALADDiN IV+",            MACHINE_CHIPSET_ALI_ALADDIN_IV_PLUS },
     { "ALi ALADDiN V",              MACHINE_CHIPSET_ALI_ALADDIN_V       },
     { "ALi ALADDiN-PRO II",         MACHINE_CHIPSET_ALI_ALADDIN_PRO_II  },
+    { "C&T PC/AT",                  MACHINE_CHIPSET_CT_AT               },
+    { "C&T 386/AT",                 MACHINE_CHIPSET_CT_386              },
     { "C&T 82C235 SCAT",            MACHINE_CHIPSET_SCAT                },
     { "C&T 82C236 SCATsx",          MACHINE_CHIPSET_SCAT_SX             },
     { "C&T CS8221 NEAT",            MACHINE_CHIPSET_NEAT                },
     { "C&T CS8281 NEATsx",          MACHINE_CHIPSET_NEAT_SX             },
-    { "C&T 386",                    MACHINE_CHIPSET_CT_386              },
     { "C&T CS4031",                 MACHINE_CHIPSET_CT_CS4031           },
     { "Contaq 82C596",              MACHINE_CHIPSET_CONTAQ_82C596       },
     { "Contaq 82C597",              MACHINE_CHIPSET_CONTAQ_82C597       },
@@ -3095,7 +3092,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#ifdef USE_OLIVETTI
     /* Has Olivetti KBC firmware. */
     {
         .name = "[ISA] Olivetti M290",
@@ -3136,49 +3132,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif /* USE_OLIVETTI */
-#ifdef USE_OPEN_AT
-    /* Has IBM AT KBC firmware. */
-    {
-        .name = "[ISA] OpenAT",
-        .internal_name = "openat",
-        .type = MACHINE_TYPE_286,
-        .chipset = MACHINE_CHIPSET_DISCRETE,
-        .init = machine_at_openat_init,
-        .p1_handler = NULL,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_286,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
-        .ram = {
-            .min = 256,
-            .max = 15872,
-            .step = 128
-        },
-        .nvrmask = 63,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-#endif /* USE_OPEN_AT */
     /* Has IBM AT KBC firmware. */
     {
         .name = "[ISA] Phoenix IBM AT",
@@ -3406,6 +3359,47 @@ const machine_t machines[] = {
             .min = 1024,
             .max = 8192,
             .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* No proper pictures of the KBC exist, though it seems to have the IBM AT KBC
+       firmware. */
+    {
+        .name = "[C&T PC/AT] Dell System 200",
+        .internal_name = "dells200",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_CT_AT,
+        .init = machine_at_dells200_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 6000000,
+            .max_bus = 12000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 640,
+            .max = 16384,
+            .step = 128
         },
         .nvrmask = 127,
         .kbc_device = NULL,
@@ -4463,7 +4457,7 @@ const machine_t machines[] = {
         .net_device = NULL
     },
             {
-        .name = "[ALI M1409] Acer 100T",
+        .name = "[ALi M1409] Acer 100T",
         .internal_name = "acer100t",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_ALI_M1409,
@@ -4949,6 +4943,47 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* No proper pictures of the KBC exist, though it seems to have the IBM AT KBC
+       firmware. */
+    {
+        .name = "[SCAMP] Dell System 333s/L",
+        .internal_name = "dells333sl",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_VLSI_SCAMP,
+        .init = machine_at_dells333sl_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 10000000,
+            .max_bus = 33333333,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = &dells333sl_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5420_onboard_device,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
         .name = "[SCAMP] Samsung SPC-6033P",
@@ -5239,7 +5274,7 @@ const machine_t machines[] = {
     },
     /* Has an AMI Keyboard BIOS PLUS KBC firmware ('8'). */
     {
-        .name = "[C&T 386] ECS 386/32",
+        .name = "[C&T 386/AT] ECS 386/32",
         .internal_name = "ecs386",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_CT_386,
@@ -5279,7 +5314,7 @@ const machine_t machines[] = {
     },
     /* Has IBM AT KBC firmware. */
     {
-        .name = "[C&T 386] Samsung SPC-6000A",
+        .name = "[C&T 386/AT] Samsung SPC-6000A",
         .internal_name = "spc6000a",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_CT_386,
@@ -5678,10 +5713,10 @@ const machine_t machines[] = {
     /* Has Award KBC firmware. */
     {
         .name = "[SiS 310] ASUS 386/33-64K",
-        .internal_name = "asus386_3364k",
+        .internal_name = "asus3863364k",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_SIS_310,
-        .init = machine_at_asus386_3364k_init,
+        .init = machine_at_asus3863364k_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -9429,7 +9464,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: ST STPC Atlas */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas */
         .ram = {
             .min = 32768,
             .max = 163840,
@@ -9470,7 +9505,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal video: ST STPC Atlas */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL | MACHINE_USB, /* Machine has internal video: ST STPC Atlas */
         .ram = {
             .min = 32768,
             .max = 163840,
@@ -9511,7 +9546,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE | MACHINE_APM, /* Machine has internal video: ST STPC Atlas and NIC: Realtek RTL8139C+ */
+        .flags = MACHINE_IDE | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas and NIC: Realtek RTL8139C+ */
         .ram = {
             .min = 32768,
             .max = 131072,
@@ -9552,7 +9587,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL,
         .ram = {
             .min = 32768,
             .max = 98304,
@@ -9593,7 +9628,7 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL,
         .ram = {
             .min = 32768,
             .max = 131072,
@@ -10556,10 +10591,10 @@ const machine_t machines[] = {
     /* Has a National Semiconductor PC87332VLJ Super I/O with AMIKey 'F' KBC firmware. */
     {
         .name = "[i430FX] Dell OptiPlex GXL/GXM",
-        .internal_name = "optiplex_gxl",
+        .internal_name = "optiplexgxl",
         .type = MACHINE_TYPE_SOCKET5,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
-        .init = machine_at_optiplex_gxl_init,
+        .init = machine_at_optiplexgxl_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -13154,10 +13189,10 @@ const machine_t machines[] = {
      */
     {
         .name = "[i430TX] Dell OptiPlex GN+",
-        .internal_name = "optiplex_gn",
+        .internal_name = "optiplexgn",
         .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_INTEL_430TX,
-        .init = machine_at_optiplex_gn_init,
+        .init = machine_at_optiplexgn_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -13233,49 +13268,6 @@ const machine_t machines[] = {
         .snd_device = &cs4236b_device,
         .net_device = &pcnet_am79c973_onboard_device
     },
-#ifdef USE_AN430TX
-    /* This has the Phoenix MultiKey KBC firmware. */
-    {
-        .name = "[i430TX] Intel AN430TX (Anchorage)",
-        .internal_name = "an430tx",
-        .type = MACHINE_TYPE_SOCKET7,
-        .chipset = MACHINE_CHIPSET_INTEL_430TX,
-        .init = machine_at_an430tx_init,
-        .p1_handler = NULL,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
-                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
-            .min_bus = 60000000,
-            .max_bus = 66666667,
-            .min_voltage = 2800,
-            .max_voltage = 3520,
-            .min_multi = 1.5,
-            .max_multi = 3.5
-        },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
-        .ram = {
-            .min = 8192,
-            .max = 262144,
-            .step = 8192
-        },
-        .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-#endif /* USE_AN430TX */
     /* This has the AMIKey KBC firmware, which is an updated 'F' type. */
     {
         .name = "[i430TX] Intel YM430TX (Yamamoto)",
@@ -13317,9 +13309,13 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-	/* PhoenixBIOS 4.0 Rel 6.0 for 430TX, has onboard Yamaha YMF701 which is not emulated yet. */
-    /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
-       MultiKey/42 (version 1.38) KBC firmware. */
+    /*
+       PhoenixBIOS 4.0 Rel 6.0 for 430TX, has onboard Yamaha YMF701 which
+       is not emulated yet.
+
+       Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+       MultiKey/42 (version 1.38) KBC firmware.
+     */
     {
         .name = "[i430TX] Micronics Thunderbolt",
         .internal_name = "thunderbolt",
@@ -13341,7 +13337,8 @@ const machine_t machines[] = {
             .max_multi = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: Yamaha YMF701-S */
+        /* Machine has internal sound: Yamaha YMF701-S */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB,
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -13383,6 +13380,47 @@ const machine_t machines[] = {
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* This has the Phoenix MultiKey KBC firmware. */
+    {
+        .name = "[i430TX] Packard Bell PB790",
+        .internal_name = "an430tx",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430TX,
+        .init = machine_at_an430tx_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -14424,7 +14462,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = &cs4235_device,
+        .snd_device = &cs4235_onboard_device,
         .net_device = NULL
     },
 
@@ -15214,10 +15252,10 @@ const machine_t machines[] = {
        firmwares: AMI '5' MegaKey, Phoenix MultiKey/42 1.37, or Phoenix MultiKey/42i 4.16. */
     {
         .name = "[i440LX] Dell OptiPlex GXa",
-        .internal_name = "optiplex_gxa",
+        .internal_name = "optiplexgxa",
         .type = MACHINE_TYPE_SLOT1,
         .chipset = MACHINE_CHIPSET_INTEL_440LX,
-        .init = machine_at_optiplex_gxa_init,
+        .init = machine_at_optiplexgxa_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,

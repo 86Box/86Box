@@ -1006,76 +1006,73 @@ video_force_resize_set_monitor(uint8_t res, int monitor_index)
 }
 
 void
-loadfont_common(FILE *f, int format)
+loadfont_common(FILE *fp, int format)
 {
-    int c;
-    int d;
-
     switch (format) {
         case 0: /* MDA */
-            for (c = 0; c < 256; c++)
-                for (d = 0; d < 8; d++)
-                    fontdatm[c][d] = fgetc(f) & 0xff;
-            for (c = 0; c < 256; c++)
-                for (d = 0; d < 8; d++)
-                    fontdatm[c][d + 8] = fgetc(f) & 0xff;
-            (void) fseek(f, 4096 + 2048, SEEK_SET);
-            for (c = 0; c < 256; c++)
-                for (d = 0; d < 8; d++)
-                    fontdat[c][d] = fgetc(f) & 0xff;
+            for (uint16_t c = 0; c < 256; c++) /* 8x14 MDA in 8x8 cell (lines 0-7) */
+                for (uint8_t d = 0; d < 8; d++)
+                    fontdatm[c][d] = fgetc(fp) & 0xff;
+            for (uint16_t c = 0; c < 256; c++) /* 8x14 MDA in 8x8 cell (lines 8-13 + padding lines) */
+                for (uint8_t d = 0; d < 8; d++)
+                    fontdatm[c][d + 8] = fgetc(fp) & 0xff;
+            (void) fseek(fp, 4096 + 2048, SEEK_SET);
+            for (uint16_t c = 0; c < 256; c++)
+                for (uint8_t d = 0; d < 8; d++) /* 8x8 CGA (thick, primary) */
+                    fontdat[c][d] = fgetc(fp) & 0xff;
             break;
 
         case 1: /* PC200 */
-            for (d = 0; d < 4; d++) {
+            for (uint8_t d = 0; d < 4; d++) {
                 /* There are 4 fonts in the ROM */
-                for (c = 0; c < 256; c++) /* 8x14 MDA in 8x16 cell */
-                    (void) !fread(&fontdatm[256 * d + c][0], 1, 16, f);
-                for (c = 0; c < 256; c++) { /* 8x8 CGA in 8x16 cell */
-                    (void) !fread(&fontdat[256 * d + c][0], 1, 8, f);
-                    fseek(f, 8, SEEK_CUR);
+                for (uint16_t c = 0; c < 256; c++) /* 8x14 MDA in 8x16 cell */
+                    (void) !fread(&fontdatm[256 * d + c][0], 1, 16, fp);
+                for (uint16_t c = 0; c < 256; c++) { /* 8x8 CGA in 8x16 cell */
+                    (void) !fread(&fontdat[256 * d + c][0], 1, 8, fp);
+                    fseek(fp, 8, SEEK_CUR);
                 }
             }
             break;
 
         default:
         case 2: /* CGA */
-            for (c = 0; c < 256; c++)
-                for (d = 0; d < 8; d++)
-                    fontdat[c][d] = fgetc(f) & 0xff;
+            for (uint16_t c = 0; c < 256; c++)
+                for (uint8_t d = 0; d < 8; d++)
+                    fontdat[c][d] = fgetc(fp) & 0xff;
             break;
 
         case 3: /* Wyse 700 */
-            for (c = 0; c < 512; c++)
-                for (d = 0; d < 32; d++)
-                    fontdatw[c][d] = fgetc(f) & 0xff;
+            for (uint16_t c = 0; c < 512; c++)
+                for (uint8_t d = 0; d < 32; d++)
+                    fontdatw[c][d] = fgetc(fp) & 0xff;
             break;
 
         case 4: /* MDSI Genius */
-            for (c = 0; c < 256; c++)
-                for (d = 0; d < 16; d++)
-                    fontdat8x12[c][d] = fgetc(f) & 0xff;
+            for (uint16_t c = 0; c < 256; c++)
+                for (uint8_t d = 0; d < 16; d++)
+                    fontdat8x12[c][d] = fgetc(fp) & 0xff;
             break;
 
-        case 5:                               /* Toshiba 3100e */
-            for (d = 0; d < 2048; d += 512) { /* Four languages... */
-                for (c = d; c < d + 256; c++) {
-                    (void) !fread(&fontdatm[c][8], 1, 8, f);
+        case 5: /* Toshiba 3100e */
+            for (uint16_t d = 0; d < 2048; d += 512) { /* Four languages... */
+                for (uint16_t c = d; c < d + 256; c++) {
+                    (void) !fread(&fontdatm[c][8], 1, 8, fp);
                 }
-                for (c = d + 256; c < d + 512; c++) {
-                    (void) !fread(&fontdatm[c][8], 1, 8, f);
+                for (uint16_t c = d + 256; c < d + 512; c++) {
+                    (void) !fread(&fontdatm[c][8], 1, 8, fp);
                 }
-                for (c = d; c < d + 256; c++) {
-                    (void) !fread(&fontdatm[c][0], 1, 8, f);
+                for (uint16_t c = d; c < d + 256; c++) {
+                    (void) !fread(&fontdatm[c][0], 1, 8, fp);
                 }
-                for (c = d + 256; c < d + 512; c++) {
-                    (void) !fread(&fontdatm[c][0], 1, 8, f);
+                for (uint16_t c = d + 256; c < d + 512; c++) {
+                    (void) !fread(&fontdatm[c][0], 1, 8, fp);
                 }
-                fseek(f, 4096, SEEK_CUR); /* Skip blank section */
-                for (c = d; c < d + 256; c++) {
-                    (void) !fread(&fontdat[c][0], 1, 8, f);
+                fseek(fp, 4096, SEEK_CUR); /* Skip blank section */
+                for (uint16_t c = d; c < d + 256; c++) {
+                    (void) !fread(&fontdat[c][0], 1, 8, fp);
                 }
-                for (c = d + 256; c < d + 512; c++) {
-                    (void) !fread(&fontdat[c][0], 1, 8, f);
+                for (uint16_t c = d + 256; c < d + 512; c++) {
+                    (void) !fread(&fontdat[c][0], 1, 8, fp);
                 }
             }
             break;
@@ -1087,65 +1084,64 @@ loadfont_common(FILE *f, int format)
             if (!fontdatksc5601_user)
                 fontdatksc5601_user = malloc(192 * sizeof(dbcs_font_t));
 
-            for (c = 0; c < 16384; c++) {
-                for (d = 0; d < 32; d++)
-                    fontdatksc5601[c].chr[d] = fgetc(f) & 0xff;
+            for (uint32_t c = 0; c < 16384; c++) {
+                for (uint8_t d = 0; d < 32; d++)
+                    fontdatksc5601[c].chr[d] = fgetc(fp) & 0xff;
             }
             break;
 
         case 7: /* Sigma Color 400 */
             /* The first 4k of the character ROM holds an 8x8 font */
-            for (c = 0; c < 256; c++) {
-                (void) !fread(&fontdat[c][0], 1, 8, f);
-                fseek(f, 8, SEEK_CUR);
+            for (uint16_t c = 0; c < 256; c++) {
+                (void) !fread(&fontdat[c][0], 1, 8, fp);
+                fseek(fp, 8, SEEK_CUR);
             }
             /* The second 4k holds an 8x16 font */
-            for (c = 0; c < 256; c++) {
-                if (fread(&fontdatm[c][0], 1, 16, f) != 16)
+            for (uint16_t c = 0; c < 256; c++) {
+                if (fread(&fontdatm[c][0], 1, 16, fp) != 16)
                     fatal("loadfont(): Error reading 8x16 font in Sigma Color 400 mode, c = %i\n", c);
             }
             break;
 
-        case 8:                        /* Amstrad PC1512, Toshiba T1000/T1200 */
-            for (c = 0; c < 2048; c++) /* Allow up to 2048 chars */
-                for (d = 0; d < 8; d++)
-                    fontdat[c][d] = fgetc(f) & 0xff;
+        case 8: /* Amstrad PC1512, Toshiba T1000/T1200 */
+            for (uint16_t c = 0; c < 2048; c++) /* Allow up to 2048 chars */
+                for (uint8_t d = 0; d < 8; d++)
+                    fontdat[c][d] = fgetc(fp) & 0xff;
             break;
 
         case 9: /* Image Manager 1024 native font */
-            for (c = 0; c < 256; c++)
-                (void) !fread(&fontdat12x18[c][0], 1, 36, f);
+            for (uint16_t c = 0; c < 256; c++)
+                (void) !fread(&fontdat12x18[c][0], 1, 36, fp);
             break;
 
-        case 10:                       /* Pravetz */
-            for (c = 0; c < 1024; c++) /* Allow up to 1024 chars */
-                for (d = 0; d < 8; d++)
-                    fontdat[c][d] = fgetc(f) & 0xff;
+        case 10: /* Pravetz */
+            for (uint16_t c = 0; c < 1024; c++) /* Allow up to 1024 chars */
+                for (uint8_t d = 0; d < 8; d++)
+                    fontdat[c][d] = fgetc(fp) & 0xff;
             break;
-
 
         case 11: /* PC200 */
-            for (d = 0; d < 4; d++) {
+            for (uint8_t d = 0; d < 4; d++) {
                 /* There are 4 fonts in the ROM */
-                for (c = 0; c < 256; c++) /* 8x14 MDA in 8x16 cell */
-                    (void) !fread(&fontdatm2[256 * d + c][0], 1, 16, f);
-                for (c = 0; c < 256; c++) { /* 8x8 CGA in 8x16 cell */
-                    (void) !fread(&fontdat2[256 * d + c][0], 1, 8, f);
-                    fseek(f, 8, SEEK_CUR);
+                for (uint16_t c = 0; c < 256; c++) /* 8x14 MDA in 8x16 cell */
+                    (void) !fread(&fontdatm2[256 * d + c][0], 1, 16, fp);
+                for (uint16_t c = 0; c < 256; c++) { /* 8x8 CGA in 8x16 cell */
+                    (void) !fread(&fontdat2[256 * d + c][0], 1, 8, fp);
+                    fseek(fp, 8, SEEK_CUR);
                 }
             }
             break;
     }
 
-    (void) fclose(f);
+    (void) fclose(fp);
 }
 
 void
-loadfont_ex(char *s, int format, int offset)
+loadfont_ex(char *fn, int format, int offset)
 {
     FILE *fp;
 
-    fp = rom_fopen(s, "rb");
+    fp = rom_fopen(fn, "rb");
     if (fp == NULL)
         return;
 
@@ -1154,9 +1150,9 @@ loadfont_ex(char *s, int format, int offset)
 }
 
 void
-loadfont(char *s, int format)
+loadfont(char *fn, int format)
 {
-    loadfont_ex(s, format, 0);
+    loadfont_ex(fn, format, 0);
 }
 
 uint32_t

@@ -36,6 +36,7 @@ static uint16_t postcard_port;
 static uint8_t  postcard_written[POSTCARDS_NUM];
 static uint8_t  postcard_ports_num = 1;
 static uint8_t  postcard_prev_codes[POSTCARDS_NUM];
+static uint8_t  postcard_dell_mode = 0;
 static char     postcard_prev_diags[5] = { 0 };
 #define UISTR_LEN 32
 static char postcard_str[UISTR_LEN]; /* UI output string */
@@ -99,30 +100,23 @@ postcard_setui(void)
                         ps[1][0], ps[1][1], ps[1][2], ps[1][3]);
                 break;
         }
-    } else if (strstr(machines[machine].name, " Dell ") &&
-               (machine_get_chipset(machine) >= MACHINE_CHIPSET_INTEL_430FX)) {
-        char dell_diags[10] = { 0 };
-
-        if (!postcard_written[1])
-            snprintf(dell_diags, sizeof(dell_diags), "---- ----");
-        else if (postcard_written[1] == 1)
-            snprintf(dell_diags, sizeof(dell_diags), "%s ----", postcard_diags);
-        else
-            snprintf(dell_diags, sizeof(dell_diags), "%s %s", postcard_diags, postcard_prev_diags);
-
-        if (!postcard_written[0])
-            snprintf(postcard_str, sizeof(postcard_str), "POST: -- -- %s", dell_diags);
-        else if (postcard_written[0] == 1)
-            snprintf(postcard_str, sizeof(postcard_str), "POST: %02X -- %s", postcard_codes[0], dell_diags);
-        else
-            snprintf(postcard_str, sizeof(postcard_str), "POST: %02X %02X %s", postcard_codes[0], postcard_prev_codes[0], dell_diags);
     } else {
+        char dell_diags[11] = { 0 };
+        if (postcard_dell_mode) {
+            if (!postcard_written[1])
+                snprintf(dell_diags, sizeof(dell_diags), " ---- ----");
+            else if (postcard_written[1] == 1)
+                snprintf(dell_diags, sizeof(dell_diags), " %s ----", postcard_diags);
+            else
+                snprintf(dell_diags, sizeof(dell_diags), " %s %s", postcard_diags, postcard_prev_diags);
+        }
+
         if (!postcard_written[0])
-            snprintf(postcard_str, sizeof(postcard_str), "POST: -- --");
+            snprintf(postcard_str, sizeof(postcard_str), "POST: -- --%s", dell_diags);
         else if (postcard_written[0] == 1)
-            snprintf(postcard_str, sizeof(postcard_str), "POST: %02X --", postcard_codes[0]);
+            snprintf(postcard_str, sizeof(postcard_str), "POST: %02X --%s", postcard_codes[0], dell_diags);
         else
-            snprintf(postcard_str, sizeof(postcard_str), "POST: %02X %02X", postcard_codes[0], postcard_prev_codes[0]);
+            snprintf(postcard_str, sizeof(postcard_str), "POST: %02X %02X%s", postcard_codes[0], postcard_prev_codes[0], dell_diags);
     }
 
     ui_sb_bugui(postcard_str);
@@ -224,9 +218,10 @@ postcard_init(UNUSED(const device_t *info))
         io_sethandler(postcard_port, postcard_ports_num,
                       NULL, NULL, NULL, postcard_write, NULL, NULL, NULL);
 
-    if (strstr(machines[machine].name, " Dell ") &&
-        (machine_get_chipset(machine) >= MACHINE_CHIPSET_INTEL_430FX))
-        io_sethandler(0x00e0, 0x0001,
+    postcard_dell_mode = strstr(machines[machine].name, " Dell ") &&
+                         (machine_get_chipset(machine) >= MACHINE_CHIPSET_INTEL_430FX);
+    if (postcard_dell_mode)
+        io_sethandler(is486 ? 0x00e0 : 0x00e4, 0x0001,
                       NULL, NULL, NULL, NULL, NULL, postcard_writel, NULL);
 
     return postcard_write;

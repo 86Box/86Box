@@ -46,6 +46,15 @@
 #include <86box/network.h>
 #include <86box/pci.h>
 
+void
+machine_at_optiplex_21152_init(void)
+{
+    uint8_t bus_index = pci_bridge_get_bus_index(device_add(&dec21152_device));
+    pci_register_bus_slot(bus_index, 0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_bus_slot(bus_index, 0x0a, PCI_CARD_NORMAL, 4, 2, 1, 3);
+    pci_register_bus_slot(bus_index, 0x0b, PCI_CARD_NORMAL, 1, 3, 4, 2);
+}
+
 int
 machine_at_acerv35n_init(const machine_t *model)
 {
@@ -970,11 +979,11 @@ machine_at_tx97_init(const machine_t *model)
 }
 
 int
-machine_at_optiplex_gn_init(const machine_t *model)
+machine_at_optiplexgn_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/optiplex_gn/DELL.ROM",
+    ret = bios_load_linear("roms/machines/optiplexgn/DELL.ROM",
                            0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -989,7 +998,7 @@ machine_at_optiplex_gn_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_VIDEO,       4, 0, 0, 0); /* Trio64V2/GX, temporarily Trio64V2/DX is given */
     pci_register_slot(0x11, PCI_CARD_NETWORK,     4, 0, 0, 0); /* 3C905, not yet emulated */
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
-    pci_register_slot(0x0F, PCI_CARD_BRIDGE,      1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_BRIDGE,      0, 0, 0, 0);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
@@ -999,7 +1008,7 @@ machine_at_optiplex_gn_init(const machine_t *model)
 
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add(&dec21152_device);
+    machine_at_optiplex_21152_init();
     device_add_params(&pc87307_device, (void *) (PCX730X_PHOENIX_42 | PCX7307_PC87307));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
@@ -1007,27 +1016,17 @@ machine_at_optiplex_gn_init(const machine_t *model)
     return ret;
 }
 
-#ifdef USE_AN430TX
 int
 machine_at_an430tx_init(const machine_t *model)
 {
     int ret;
 
-#    if 1
-    ret = bios_load_linear_combined2("roms/machines/an430tx/P10-0095.BIO",
-                                     "roms/machines/an430tx/P10-0095.BI1",
-                                     "roms/machines/an430tx/P10-0095.BI2",
-                                     "roms/machines/an430tx/P10-0095.BI3",
-                                     "roms/machines/an430tx/P10-0095.RCV",
+    ret = bios_load_linear_combined2("roms/machines/an430tx/ANP0911A.BIO",
+                                     "roms/machines/an430tx/ANP0911A.BI1",
+                                     "roms/machines/an430tx/ANP0911A.BI2",
+                                     "roms/machines/an430tx/ANP0911A.BI3",
+                                     "roms/machines/an430tx/ANP0911A.RCV",
                                      0x3a000, 160);
-#    else
-    ret = bios_load_linear_combined2("roms/machines/an430tx/P06-0062.BIO",
-                                     "roms/machines/an430tx/P06-0062.BI1",
-                                     "roms/machines/an430tx/P06-0062.BI2",
-                                     "roms/machines/an430tx/P06-0062.BI3",
-                                     "roms/machines/an430tx/P10-0095.RCV",
-                                     0x3a000, 160);
-#    endif
 
     if (bios_only || !ret)
         return ret;
@@ -1036,21 +1035,25 @@ machine_at_an430tx_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* PIIX4 */
-    // pci_register_slot(0x08, PCI_CARD_VIDEO,       4, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4); /* PIIX4 */
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x10, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x08, PCI_CARD_VIDEO,       4, 0, 0, 0);
     device_add(&i430tx_device);
     device_add(&piix4_device);
+#ifdef FOLLOW_THE_SPECIFICATION
     device_add_params(&pc87307_device, (void *) (PCX730X_PHOENIX_42I | PCX7307_PC97307));
+#else
+    /* The technical specification says Phoenix, a real machnine HWINFO dump says AMI '5'. */
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC97307));
+#endif
     device_add(&intel_flash_bxt_ami_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
     return ret;
 }
-#endif /* USE_AN430TX */
 
 int
 machine_at_ym430tx_init(const machine_t *model)

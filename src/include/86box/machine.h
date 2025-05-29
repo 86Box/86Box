@@ -211,6 +211,7 @@ enum {
     MACHINE_CHIPSET_SCAT_SX,
     MACHINE_CHIPSET_NEAT,
     MACHINE_CHIPSET_NEAT_SX,
+    MACHINE_CHIPSET_CT_AT,
     MACHINE_CHIPSET_CT_386,
     MACHINE_CHIPSET_CT_CS4031,
     MACHINE_CHIPSET_CONTAQ_82C596,
@@ -447,9 +448,6 @@ extern int machine_at_pb286_init(const machine_t *);
 extern int machine_at_siemens_init(const machine_t *); // Siemens PCD-2L. N82330 discrete machine. It segfaults in some places
 
 extern int machine_at_wellamerastar_init(const machine_t *); // Wells American A*Star with custom award BIOS 
-#ifdef USE_OPEN_AT
-extern int machine_at_openat_init(const machine_t *);
-#endif /* USE_OPEN_AT */
 
 /* m_at_286_386sx.c */
 extern int machine_at_tg286m_init(const machine_t *);
@@ -475,19 +473,19 @@ extern int machine_at_spc4216p_init(const machine_t *);
 extern int machine_at_spc4620p_init(const machine_t *);
 extern int machine_at_kmxc02_init(const machine_t *);
 extern int machine_at_deskmaster286_init(const machine_t *);
+extern int machine_at_dells200_init(const machine_t *);
 
 extern int machine_at_pc8_init(const machine_t *);
 extern int machine_at_3302_init(const machine_t *);
 
-#ifdef USE_OLIVETTI
 extern int machine_at_m290_init(const machine_t *);
-#endif /* USE_OLIVETTI */
 
 extern int machine_at_shuttle386sx_init(const machine_t *);
 extern int machine_at_adi386sx_init(const machine_t *);
 extern int machine_at_cmdsl386sx16_init(const machine_t *);
 extern int machine_at_cmdsl386sx25_init(const machine_t *);
 extern int machine_at_dataexpert386sx_init(const machine_t *);
+extern int machine_at_dells333sl_init(const machine_t *);
 extern int machine_at_if386sx_init(const machine_t *);
 extern int machine_at_spc6033p_init(const machine_t *);
 extern int machine_at_wd76c10_init(const machine_t *);
@@ -515,7 +513,7 @@ extern int machine_at_ga486l_init(const machine_t *);
 extern int machine_at_cougar_init(const machine_t *);
 
 extern int machine_at_acc386_init(const machine_t *);
-extern int machine_at_asus386_3364k_init(const machine_t *);
+extern int machine_at_asus3863364k_init(const machine_t *);
 extern int machine_at_asus386_init(const machine_t *);
 extern int machine_at_ecs386_init(const machine_t *);
 extern int machine_at_spc6000a_init(const machine_t *);
@@ -673,7 +671,7 @@ extern int machine_at_tek932_init(const machine_t *);
 
 extern int machine_at_acerv30_init(const machine_t *);
 extern int machine_at_apollo_init(const machine_t *);
-extern int machine_at_optiplex_gxl_init(const machine_t *);
+extern int machine_at_optiplexgxl_init(const machine_t *);
 extern int machine_at_zappa_init(const machine_t *);
 extern int machine_at_powermatev_init(const machine_t *);
 extern int machine_at_hawk_init(const machine_t *);
@@ -724,6 +722,8 @@ extern int machine_at_vectra54_init(const machine_t *);
 extern int machine_at_5sbm2_init(const machine_t *);
 
 /* m_at_socket7.c */
+extern void machine_at_optiplex_21152_init(void);
+
 extern int machine_at_acerv35n_init(const machine_t *);
 extern int machine_at_p55t2p4_init(const machine_t *);
 extern int machine_at_m7shi_init(const machine_t *);
@@ -753,12 +753,10 @@ extern int machine_at_gw2kte_init(const machine_t *);
 extern int machine_at_ma23c_init(const machine_t *);
 extern int machine_at_nupro592_init(const machine_t *);
 extern int machine_at_tx97_init(const machine_t *);
-extern int machine_at_optiplex_gn_init(const machine_t *);
-#ifdef USE_AN430TX
-extern int machine_at_an430tx_init(const machine_t *);
-#endif /* USE_AN430TX */
+extern int machine_at_optiplexgn_init(const machine_t *);
 extern int machine_at_ym430tx_init(const machine_t *);
 extern int machine_at_thunderbolt_init(const machine_t *);
+extern int machine_at_an430tx_init(const machine_t *);
 extern int machine_at_mb540n_init(const machine_t *);
 extern int machine_at_56a5_init(const machine_t *);
 extern int machine_at_p5mms98_init(const machine_t *);
@@ -824,7 +822,7 @@ extern int machine_at_p65up5_cpknd_init(const machine_t *);
 extern int machine_at_kn97_init(const machine_t *);
 
 extern int machine_at_lx6_init(const machine_t *);
-extern int machine_at_optiplex_gxa_init(const machine_t *);
+extern int machine_at_optiplexgxa_init(const machine_t *);
 extern int machine_at_spitfire_init(const machine_t *);
 extern int machine_at_ma30d_init(const machine_t *);
 

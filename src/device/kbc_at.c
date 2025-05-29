@@ -830,7 +830,9 @@ write_p2(atkbc_t *dev, uint8_t val)
             softresetx86(); /* Pulse reset! */
             cpu_set_edx();
             flushmmucache();
-            if ((kbc_ven == KBC_VEN_ALI) || !strcmp(machine_get_internal_name(), "spc7700plw"))
+            if ((kbc_ven == KBC_VEN_ALI) ||
+                !strcmp(machine_get_internal_name(), "spc7700plw") ||
+                !strcmp(machine_get_internal_name(), "pl4600c"))
                 smbase = 0x00030000;
 
             /* Yes, this is a hack, but until someone gets ahold of the real PCD-2L
@@ -1077,7 +1079,14 @@ write_cmd_generic(void *priv, uint8_t val)
             /* The SMM handlers of Intel AMI Pentium BIOS'es expect bit 6 to be set. */
             if ((kbc_ven == KBC_VEN_AMI) && ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_GREEN))
                 fixed_bits |= 0x40;
-            if (kbc_ven == KBC_VEN_IBM_PS1) {
+            if (!strcmp(machine_get_internal_name(), "dells333sl")) {
+                /*
+                   Dell System 333s/L:
+                       - Bit 5: Stuck in reboot loop if clear.
+                 */
+                uint8_t p1 = 0x20 | (video_is_mda() ? 0x40 : 0x00);
+                kbc_delay_to_ob(dev, p1, 0, 0x00);
+            } else if (kbc_ven == KBC_VEN_IBM_PS1) {
                 current_drive = fdc_get_current_drive();
                 /* (B0 or F0) | (fdd_is_525(current_drive) on bit 6) */
                 kbc_delay_to_ob(dev, dev->p1 | fixed_bits | (fdd_is_525(current_drive) ? 0x40 : 0x00),
@@ -1112,7 +1121,7 @@ write_cmd_generic(void *priv, uint8_t val)
                        Dell 466/NP:
                            - Bit 2: Keyboard fuse (must be set);
                            - Bit 4: Password disable jumper (must be clear);
-                           - Bit 5: Manufacturing jumper (must be set);
+                           - Bit 5: Manufacturing jumper (must be set).
                      */
                     uint8_t p1 = 0x24;
                     kbc_delay_to_ob(dev, p1, 0, 0x00);
@@ -1121,7 +1130,7 @@ write_cmd_generic(void *priv, uint8_t val)
                        Dell OptiPlex GXL/GXM:
                            - Bit 3: Password disable jumper (must be clear);
                            - Bit 4: Keyboard fuse (must be set);
-                           - Bit 5: Manufacturing jumper (must be set);
+                           - Bit 5: Manufacturing jumper (must be set).
                      */
                     uint8_t p1 = 0x30;
                     kbc_delay_to_ob(dev, p1, 0, 0x00);

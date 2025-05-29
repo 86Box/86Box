@@ -197,6 +197,7 @@ extern const device_t ct5880_onboard_device;
 
 /* Gravis UltraSound and UltraSound Max */
 extern const device_t gus_device;
+extern const device_t gus_max_device;
 
 /* IBM PS/1 Audio Card */
 extern const device_t ps1snd_device;
@@ -204,6 +205,9 @@ extern const device_t ps1snd_device;
 /* Innovation SSI-2001 */
 extern const device_t ssi2001_device;
 extern const device_t entertainer_device;
+
+/* Mindscape Music Board */
+extern const device_t mmb_device;
 
 /* Pro Audio Spectrum Plus, 16, and 16D */
 extern const device_t pasplus_device;

@@ -388,21 +388,3 @@ machine_at_wellamerastar_init(const machine_t *model)
 
     return ret;
 }
-
-#ifdef USE_OPEN_AT
-int
-machine_at_openat_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/openat/bios.bin",
-                           0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_ibm_common_init(model);
-
-    return ret;
-}
-#endif /* USE_OPEN_AT */

@@ -1541,7 +1541,7 @@ machine_pcjr_init(UNUSED(const machine_t *model))
 
     /* Initialize the video controller. */
     video_reset(gfxcard[0]);
-    loadfont("roms/video/mda/mda.rom", 0);
+    loadfont(FONT_IBM_MDA_437_PATH, 0);
     device_context(&pcjr_device);
     pcjr_vid_init(pcjr);
     device_context_restore();

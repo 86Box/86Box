@@ -270,6 +270,8 @@ hb4_smram(hb4_t *dev)
     }
 
     umc_smram_recalc(dev->smram_base >> 12, 1);
+
+    flushmmucache();
 }
 
 static void
@@ -398,55 +400,6 @@ hb4_close(void *priv)
     free(dev);
 }
 
-static void
-ims8848_write(uint16_t addr, uint8_t val, void *priv)
-{
-    hb4_t     *dev = (hb4_t *) priv;
-
-    switch (addr) {
-        case 0x22:
-            dev->idx = val;
-            break;
-        case 0x23:
-            if (((val & 0x0f) == ((dev->idx >> 4) & 0x0f)) && ((val & 0xf0) == ((dev->idx << 4) & 0xf0)))
-                dev->access_data = 1;
-            break;
-        case 0x24:
-            if (dev->access_data)
-                dev->access_data = 0;
-            break;
-
-            default:
-                break;
-    }
-}
-
-static uint8_t
-ims8848_read(uint16_t addr, void *priv)
-{
-    uint8_t    ret = 0xff;
-    hb4_t     *dev = (hb4_t *) priv;
-
-    switch (addr) {
-        case 0x22:
-            ret = dev->idx;
-            break;
-        case 0x23:
-            ret = (dev->idx >> 4) | (dev->idx << 4);
-            break;
-        case 0x24:
-            if (dev->access_data) {
-                ret              = dev->pci_conf[dev->idx];
-                dev->access_data = 0;
-            }
-            break;
-        default:
-            break;
-    }
-
-    return ret;
-}
-
 static void *
 hb4_init(UNUSED(const device_t *info))
 {
@@ -462,8 +415,6 @@ hb4_init(UNUSED(const device_t *info))
 
     dev->smram_base = 0x000a0000;
     hb4_reset(dev);
-
-    io_sethandler(0x0022, 0x0003, ims8848_read, NULL, NULL, ims8848_write, NULL, NULL, dev);
 
     return dev;
 }
