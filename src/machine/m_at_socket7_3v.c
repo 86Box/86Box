@@ -646,11 +646,11 @@ machine_at_d943_init(const machine_t *model)
 	spd_register(SPD_TYPE_EDO, 0x7, 256);
 	
 	
-	 if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5436_onboard_pci_device);
+	if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&sb_vibra16s_onboard_device); 
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     return ret;
 }
