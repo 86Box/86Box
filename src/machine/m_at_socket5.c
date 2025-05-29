@@ -40,6 +40,7 @@
 #include <86box/sio.h>
 #include <86box/video.h>
 #include <86box/machine.h>
+#include <86box/sound.h>
 
 int
 machine_at_plato_init(const machine_t *model)
@@ -110,19 +111,19 @@ machine_at_p54np4_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
+    device_add(&ide_vlb_2ch_device);
 
-    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_CAN_SWITCH_TYPE);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x03, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 03 = Slot 1 */
-    pci_register_slot(0x04, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 04 = Slot 2 */
-    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 05 = Slot 3 */
-    pci_register_slot(0x06, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 06 = Slot 4 */
-    pci_register_slot(0x07, PCI_CARD_SCSI,        1, 2, 3, 4); /* 07 = SCSI   */
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 06 = Slot 1 */
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 05 = Slot 2 */
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 04 = Slot 3 */
+    pci_register_slot(0x03, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 03 = Slot 4 */
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430nx_device);
+    device_add(&sio_zb_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&fdc37c665_ide_pri_device);
-    device_add(&ncr53c810_onboard_pci_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -169,8 +170,8 @@ machine_at_tek932_init(const machine_t *model)
     device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&i430nx_device);
     device_add(&sio_zb_device);
-    device_add(&fdc37c665_ide_device);
     device_add(&ide_vlb_device);
+    device_add(&fdc37c665_ide_pri_device);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -231,6 +232,43 @@ machine_at_apollo_init(const machine_t *model)
     device_add(&i430fx_device);
     device_add(&piix_device);
     device_add(&pc87332_398_device);
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+int
+machine_at_optiplexgxl_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/optiplexgxl/DELL.ROM",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+    device_add(&amstrad_megapc_nvr_device);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 2, 1);
+    pci_register_slot(0x10, PCI_CARD_VIDEO,       0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    device_add(&keyboard_ps2_phoenix_pci_device);
+    device_add(&i430fx_device);
+    device_add(&piix_device);
+    device_add(&pc87332_device);
+    device_add(&dell_jumper_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;

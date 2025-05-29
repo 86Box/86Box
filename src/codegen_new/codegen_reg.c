@@ -169,6 +169,9 @@ struct
     [IREG_GS_limit_high] = { REG_DWORD,         &cpu_state.seg_gs.limit_high,       REG_INTEGER, REG_PERMANENT},
     [IREG_SS_limit_high] = { REG_DWORD,         &cpu_state.seg_ss.limit_high,       REG_INTEGER, REG_PERMANENT},
 
+    [IREG_eaa16] = { REG_WORD,         &cpu_state.eaaddr,                  REG_INTEGER, REG_PERMANENT},
+    [IREG_x87_op] = { REG_WORD,         &x87_op,                            REG_INTEGER, REG_PERMANENT},
+
  /*Temporary registers are stored on the stack, and are not guaranteed to
   be preserved across uOPs. They will not be written back if they will
   not be read again.*/
@@ -221,6 +224,20 @@ reg_is_native_size(ir_reg_t ir_reg)
     }
 
     return 0;
+}
+
+void
+codegen_check_regs(void)
+{
+    int i = 0;
+    for (i = 0; i < IREG_COUNT; i++) {
+        if (ireg_data[i].is_volatile == REG_VOLATILE)
+            continue;
+
+        if (ireg_data[i].p && ((uintptr_t)ireg_data[i].p - (uintptr_t)&cpu_state) >= sizeof(cpu_state)) {
+            fatal("Register number %d outside cpu_state!\n", i);
+        }
+    }
 }
 
 void

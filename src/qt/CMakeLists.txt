@@ -137,6 +137,11 @@ add_library(ui STATIC
     qt_joystickconfiguration.cpp
     qt_joystickconfiguration.hpp
     qt_joystickconfiguration.ui
+    qt_keybind.cpp
+    qt_keybind.hpp
+    qt_keybind.ui
+    qt_singlekeyseqedit.cpp
+    qt_singlekeyseqedit.hpp
 
     qt_filefield.cpp
     qt_filefield.hpp
@@ -205,6 +210,10 @@ endif()
 
 if(WACOM)
     target_compile_definitions(ui PRIVATE USE_WACOM)
+endif()
+
+if(CDROM_MITSUMI)
+    target_compile_definitions(ui PRIVATE USE_CDROM_MITSUMI)
 endif()
 
 if(WIN32)
@@ -444,6 +453,7 @@ if (UNIX AND NOT APPLE AND NOT HAIKU)
                 set(WL_SOURCE_VAR)
                 ecm_add_wayland_client_protocol(WL_SOURCE_VAR PROTOCOL ${CMAKE_SOURCE_DIR}/wl_protocols/relative-pointer-unstable-v1.xml BASENAME relative-pointer-unstable-v1)
                 ecm_add_wayland_client_protocol(WL_SOURCE_VAR PROTOCOL ${CMAKE_SOURCE_DIR}/wl_protocols/pointer-constraints-unstable-v1.xml BASENAME pointer-constraints-unstable-v1)
+                ecm_add_wayland_client_protocol(WL_SOURCE_VAR PROTOCOL ${CMAKE_SOURCE_DIR}/wl_protocols/keyboard-shortcuts-inhibit-unstable-v1.xml BASENAME keyboard-shortcuts-inhibit-unstable-v1)
                 target_include_directories(ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${Qt${QT_MAJOR}Gui_PRIVATE_INCLUDE_DIRS})
                 target_sources(ui PRIVATE ${WL_SOURCE_VAR} wl_mouse.cpp)
                 if (XKBCOMMON_FOUND)

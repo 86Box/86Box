@@ -71,8 +71,6 @@ SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
 static int      exit_event         = 0;
 static int      fullscreen_pending = 0;
-uint32_t        lang_id  = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
-uint32_t        lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
 
 static const uint16_t sdl_to_xt[0x200] = {
     [SDL_SCANCODE_ESCAPE]       = 0x01,
@@ -469,6 +467,12 @@ ui_sb_update_icon_state(UNUSED(int tag), UNUSED(int state))
 
 void
 ui_sb_update_icon(UNUSED(int tag), UNUSED(int active))
+{
+    /* No-op. */
+}
+
+void
+ui_sb_update_icon_write(UNUSED(int tag), UNUSED(int active))
 {
     /* No-op. */
 }
@@ -1340,9 +1344,6 @@ main(int argc, char **argv)
                     }
             }
         }
-        if (mouse_capture && keyboard_ismsexit()) {
-            plat_mouse_capture(0);
-        }
         if (blitreq) {
             extern void sdl_blit(int x, int y, int w, int h);
             sdl_blit(params.x, params.y, params.w, params.h);
@@ -1378,8 +1379,8 @@ plat_vidapi_name(UNUSED(int i))
     return "default";
 }
 
-/* Sets up the program language before initialization. */
-uint32_t
+/* Converts the language code string to a numeric language ID */
+int
 plat_language_code(UNUSED(char *langcode))
 {
     /* or maybe not */
@@ -1419,9 +1420,9 @@ plat_set_thread_name(void *thread, const char *name)
 #endif
 }
 
-/* Converts back the language code to LCID */
+/* Converts the numeric language ID to a language code string */
 void
-plat_language_code_r(UNUSED(uint32_t lcid), UNUSED(char *outbuf), UNUSED(int len))
+plat_language_code_r(UNUSED(int id), UNUSED(char *outbuf), UNUSED(int len))
 {
     /* or maybe not */
     return;

@@ -253,6 +253,37 @@ xtide_at_close(void *priv)
 // clang-format off
 static const device_config_t xtide_config[] = {
     {
+        .name           = "bios",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "xt",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Regular XT",
+                .internal_name = "xt",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { ROM_PATH_XT, "" }
+            },
+            {
+                .name          = "XT+ (V20/V30/8018x)",
+                .internal_name = "xt_plus",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { ROM_PATH_XTP, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
         .name           = "base",
         .description    = "Address",
         .type           = CONFIG_HEX16,
@@ -347,37 +378,6 @@ static const device_config_t xtide_config[] = {
             { .description = ""                           }
         },
         .bios           = { { 0 } }
-    },
-    {
-        .name           = "bios",
-        .description    = "BIOS Revision",
-        .type           = CONFIG_BIOS,
-        .default_string = "xt",
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = {
-            {
-                .name          = "Regular XT",
-                .internal_name = "xt",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 8192,
-                .files         = { ROM_PATH_XT, "" }
-            },
-            {
-                .name          = "XT+ (V20/V30/8018x)",
-                .internal_name = "xt_plus",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 8192,
-                .files         = { ROM_PATH_XTP, "" }
-            },
-            { .files_no = 0 }
-        },
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

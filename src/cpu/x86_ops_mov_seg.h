@@ -272,9 +272,13 @@ opLDS_w_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
     SEG_CHECK_READ(cpu_state.ea_seg);
-    CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3);
-    addr = readmemw(easeg, cpu_state.eaaddr);
-    seg  = readmemw(easeg, cpu_state.eaaddr + 2);
+    CHECK_READ(cpu_state.ea_seg, cpu_state.eaa16[0], ((cpu_state.eaa16[0] + 1) & 0xffff));
+    addr = readmemw(easeg, cpu_state.eaa16[0]);
+    if (cpu_state.abrt)
+        return 1;
+    cpu_state.eaa16[0] += 2;
+    CHECK_READ(cpu_state.ea_seg, cpu_state.eaa16[0], ((cpu_state.eaa16[0] + 1) & 0xffff));
+    seg = readmemw(easeg, cpu_state.eaa16[0]);
     if (cpu_state.abrt)
         return 1;
     op_loadseg(seg, &cpu_state.seg_ds);
@@ -318,9 +322,13 @@ opLDS_l_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
     SEG_CHECK_READ(cpu_state.ea_seg);
-    CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 5);
-    addr = readmeml(easeg, cpu_state.eaaddr);
-    seg  = readmemw(easeg, cpu_state.eaaddr + 4);
+    CHECK_READ(cpu_state.ea_seg, cpu_state.eaa16[0], ((cpu_state.eaa16[0] + 3) & 0xffff));
+    addr = readmeml(easeg, cpu_state.eaa16[0]);
+    if (cpu_state.abrt)
+        return 1;
+    cpu_state.eaa16[0] += 4;
+    CHECK_READ(cpu_state.ea_seg, cpu_state.eaa16[0], ((cpu_state.eaa16[0] + 1) & 0xffff));
+    seg = readmemw(easeg, cpu_state.eaa16[0]);
     if (cpu_state.abrt)
         return 1;
     op_loadseg(seg, &cpu_state.seg_ds);
@@ -365,9 +373,13 @@ opLSS_w_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
     SEG_CHECK_READ(cpu_state.ea_seg);
-    CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3);
-    addr = readmemw(easeg, cpu_state.eaaddr);
-    seg  = readmemw(easeg, cpu_state.eaaddr + 2);
+    CHECK_READ(cpu_state.ea_seg, cpu_state.eaa16[0], ((cpu_state.eaa16[0] + 1) & 0xffff));
+    addr = readmemw(easeg, cpu_state.eaa16[0]);
+    if (cpu_state.abrt)
+        return 1;
+    cpu_state.eaa16[0] += 2;
+    CHECK_READ(cpu_state.ea_seg, cpu_state.eaa16[0], ((cpu_state.eaa16[0] + 1) & 0xffff));
+    seg = readmemw(easeg, cpu_state.eaa16[0]);
     if (cpu_state.abrt)
         return 1;
     op_loadseg(seg, &cpu_state.seg_ss);
@@ -411,9 +423,13 @@ opLSS_l_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
     SEG_CHECK_READ(cpu_state.ea_seg);
-    CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 5);
-    addr = readmeml(easeg, cpu_state.eaaddr);
-    seg  = readmemw(easeg, cpu_state.eaaddr + 4);
+    CHECK_READ(cpu_state.ea_seg, cpu_state.eaa16[0], ((cpu_state.eaa16[0] + 3) & 0xffff));
+    addr = readmeml(easeg, cpu_state.eaa16[0]);
+    if (cpu_state.abrt)
+        return 1;
+    cpu_state.eaa16[0] += 4;
+    CHECK_READ(cpu_state.ea_seg, cpu_state.eaa16[0], ((cpu_state.eaa16[0] + 1) & 0xffff));
+    seg = readmemw(easeg, cpu_state.eaa16[0]);
     if (cpu_state.abrt)
         return 1;
     op_loadseg(seg, &cpu_state.seg_ss);
@@ -457,9 +473,13 @@ opLSS_l_a32(uint32_t fetchdat)
         fetch_ea_16(fetchdat);                                                \
         SEG_CHECK_READ(cpu_state.ea_seg);                                     \
         ILLEGAL_ON(cpu_mod == 3);                                             \
-        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3); \
-        addr = readmemw(easeg, cpu_state.eaaddr);                             \
-        seg  = readmemw(easeg, cpu_state.eaaddr + 2);                         \
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaa16[0], ((cpu_state.eaa16[0] + 1) & 0xffff)); \
+        addr = readmemw(easeg, cpu_state.eaa16[0]);                           \
+        if (cpu_state.abrt)                                                   \
+            return 1;                                                         \
+        cpu_state.eaa16[0] += 2;                                              \
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaa16[0], ((cpu_state.eaa16[0] + 1) & 0xffff)); \
+        seg  = readmemw(easeg, cpu_state.eaa16[0]);                           \
         if (cpu_state.abrt)                                                   \
             return 1;                                                         \
         op_loadseg(seg, &sel);                                                \
@@ -502,9 +522,13 @@ opLSS_l_a32(uint32_t fetchdat)
         fetch_ea_16(fetchdat);                                                \
         SEG_CHECK_READ(cpu_state.ea_seg);                                     \
         ILLEGAL_ON(cpu_mod == 3);                                             \
-        CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 5); \
-        addr = readmeml(easeg, cpu_state.eaaddr);                             \
-        seg  = readmemw(easeg, cpu_state.eaaddr + 4);                         \
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaa16[0], ((cpu_state.eaa16[0] + 3) & 0xffff)); \
+        addr = readmeml(easeg, cpu_state.eaa16[0]);                           \
+        if (cpu_state.abrt)                                                   \
+            return 1;                                                         \
+        cpu_state.eaa16[0] += 4;                                              \
+        CHECK_READ(cpu_state.ea_seg, cpu_state.eaa16[0], ((cpu_state.eaa16[0] + 1) & 0xffff)); \
+        seg  = readmemw(easeg, cpu_state.eaa16[0]);                           \
         if (cpu_state.abrt)                                                   \
             return 1;                                                         \
         op_loadseg(seg, &sel);                                                \

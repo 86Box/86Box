@@ -570,7 +570,10 @@ scsi_disk_data_command_finish(scsi_disk_t *dev, int len, const int block_len,
                 scsi_disk_command_write_dma(dev);
         } else {
             scsi_disk_update_request_length(dev, len, block_len);
-            if (direction == 0)
+            if ((dev->drv->bus_type != HDD_BUS_SCSI) &&
+                (dev->tf->request_length == 0))
+                scsi_disk_command_complete(dev);
+            else if (direction == 0)
                 scsi_disk_command_read(dev);
             else
                 scsi_disk_command_write(dev);
@@ -611,6 +614,7 @@ scsi_disk_cmd_error(scsi_disk_t *dev)
     dev->callback      = 50.0 * SCSI_TIME;
     scsi_disk_set_callback(dev);
     ui_sb_update_icon(SB_HDD | dev->drv->bus_type, 0);
+    ui_sb_update_icon_write(SB_HDD | dev->drv->bus_type, 0);
     scsi_disk_log(dev->log, "ERROR: %02X/%02X/%02X\n", scsi_disk_sense_key,
                   scsi_disk_asc, scsi_disk_ascq);
 }
@@ -1205,7 +1209,7 @@ scsi_disk_command(scsi_common_t *sc, const uint8_t *cdb)
 
                     scsi_disk_data_command_finish(dev, dev->packet_len, 512, dev->packet_len, 1);
 
-                    ui_sb_update_icon(SB_HDD | dev->drv->bus_type, dev->packet_status != PHASE_COMPLETE);
+                    ui_sb_update_icon_write(SB_HDD | dev->drv->bus_type, dev->packet_status != PHASE_COMPLETE);
                 } else {
                     scsi_disk_set_phase(dev, SCSI_PHASE_STATUS);
                     scsi_disk_log(dev->log, "All done - callback set\n");
@@ -1240,7 +1244,7 @@ scsi_disk_command(scsi_common_t *sc, const uint8_t *cdb)
 
                         scsi_disk_data_command_finish(dev, 512, 512, alloc_length, 1);
 
-                        ui_sb_update_icon(SB_HDD | dev->drv->bus_type,
+                        ui_sb_update_icon_write(SB_HDD | dev->drv->bus_type,
                                           dev->packet_status != PHASE_COMPLETE);
                     } else {
                         scsi_disk_set_phase(dev, SCSI_PHASE_STATUS);

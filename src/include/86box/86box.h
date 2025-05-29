@@ -27,7 +27,7 @@
 
 /* Configuration values. */
 #define GFXCARD_MAX  2
-#define SERIAL_MAX   7
+#define SERIAL_MAX   8
 #define PARALLEL_MAX 4
 #define SCREEN_RES_X 640
 #define SCREEN_RES_Y 480
@@ -44,8 +44,8 @@
 /* Max UUID Length */
 #define MAX_UUID_LEN 64
 
-/* Default language 0xFFFF = from system, 0x409 = en-US */
-#define DEFAULT_LANGUAGE 0x0409
+/* Default language code */
+#define DEFAULT_LANGUAGE "system"
 
 #define POSTCARDS_NUM 4
 #define POSTCARD_MASK (POSTCARDS_NUM - 1)
@@ -84,8 +84,6 @@ extern "C" {
 #endif
 
 /* Global variables. */
-extern uint32_t lang_sys; /* (-) system language code */
-
 extern int dump_on_exit;        /* (O) dump regs on exit*/
 extern int start_in_fullscreen; /* (O) start in fullscreen */
 #ifdef _WIN32
@@ -117,13 +115,12 @@ extern int      window_remember;
 extern int      vid_resize;                 /* (C) allow resizing */
 extern int      invert_display;             /* (C) invert the display */
 extern int      suppress_overscan;          /* (C) suppress overscans */
-extern uint32_t lang_id;                    /* (C) language code identifier */
+extern int      lang_id;                    /* (C) language id */
 extern int      scale;                      /* (C) screen scale factor */
 extern int      dpi_scale;                  /* (C) DPI scaling of the emulated screen */
 extern int      vid_api;                    /* (C) video renderer */
 extern int      vid_cga_contrast;           /* (C) video */
 extern int      video_fullscreen;           /* (C) video */
-extern int      video_fullscreen_first;     /* (C) video */
 extern int      video_fullscreen_scale;     /* (C) video */
 extern int      enable_overscan;            /* (C) video */
 extern int      force_43;                   /* (C) video */
@@ -173,14 +170,6 @@ extern _Atomic double mouse_y_error;        /* Mouse error accumulator - Y */
 extern int    pit_mode;                     /* (C) force setting PIT mode */
 extern int    fm_driver;                    /* (C) select FM sound driver */
 extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
-
-/* Keyboard variables for future key combination redefinition. */
-extern uint16_t key_prefix_1_1;
-extern uint16_t key_prefix_1_2;
-extern uint16_t key_prefix_2_1;
-extern uint16_t key_prefix_2_2;
-extern uint16_t key_uncapture_1;
-extern uint16_t key_uncapture_2;
 
 extern char exe_path[2048];     /* path (dir) of executable */
 extern char usr_path[1024];     /* path (dir) of user data */
@@ -245,6 +234,17 @@ extern int    framecountx;
 
 extern volatile int     cpu_thread_run;
 extern          uint8_t postcard_codes[POSTCARDS_NUM];
+
+// Accelerator key structure, defines, helper functions
+struct accelKey {
+	char name[64];
+	char desc[64];
+	char seq[64];
+};
+#define NUM_ACCELS 8
+extern struct accelKey acc_keys[NUM_ACCELS];
+extern struct accelKey def_acc_keys[NUM_ACCELS];
+extern int FindAccelerator(const char *name);
 
 #ifdef __cplusplus
 }

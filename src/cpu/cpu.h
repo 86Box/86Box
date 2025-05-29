@@ -335,7 +335,10 @@ typedef struct {
     uint8_t tag[8];
 
     x86seg  *ea_seg;
-    uint32_t eaaddr;
+    union {
+        uint32_t eaaddr;
+        uint16_t eaa16[2];
+    };
 
     int      flags_op;
     uint32_t flags_res;
@@ -413,6 +416,8 @@ typedef struct {
     uint16_t eflags;
 
     uint32_t _smbase;
+
+    uint32_t x87_op;
 } cpu_state_t;
 
 #define in_smm   cpu_state._in_smm
@@ -780,6 +785,8 @@ typedef struct {
     } arr[8];
     uint32_t smhr;
 } cyrix_t;
+
+#define x87_op cpu_state.x87_op
 
 extern uint32_t addr64;
 extern uint32_t addr64_2;

@@ -146,7 +146,8 @@ machine_xt_z184_init(const machine_t *model)
     lpt2_remove();
     lpt1_setup(LPT2_ADDR);
     device_add(&ns8250_device);
-    serial_set_next_inst(SERIAL_MAX); /* So that serial_standalone_init() won't do anything. */
+    /* So that serial_standalone_init() won't do anything. */
+    serial_set_next_inst(SERIAL_MAX - 1);
 
     device_add(&cga_device);
 

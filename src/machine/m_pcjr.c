@@ -1541,7 +1541,7 @@ machine_pcjr_init(UNUSED(const machine_t *model))
 
     /* Initialize the video controller. */
     video_reset(gfxcard[0]);
-    loadfont("roms/video/mda/mda.rom", 0);
+    loadfont(FONT_IBM_MDA_437_PATH, 0);
     device_context(&pcjr_device);
     pcjr_vid_init(pcjr);
     device_context_restore();
@@ -1566,7 +1566,8 @@ machine_pcjr_init(UNUSED(const machine_t *model))
     device_add(&fdc_pcjr_device);
 
     device_add(&ns8250_pcjr_device);
-    serial_set_next_inst(SERIAL_MAX); /* So that serial_standalone_init() won't do anything. */
+    /* So that serial_standalone_init() won't do anything. */
+    serial_set_next_inst(SERIAL_MAX - 1);
 
     /* "All the inputs are 'read' with one 'IN' from address hex 201." - PCjr Technical Reference (Nov. 83), p.2-119
 

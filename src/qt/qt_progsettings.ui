@@ -140,7 +140,7 @@
    <item row="7" column="0">
     <widget class="QCheckBox" name="checkBoxMultimediaKeys">
      <property name="text">
-      <string>Inhibit multimedia keys on Windows</string>
+      <string>Inhibit multimedia keys</string>
      </property>
     </widget>
    </item>
@@ -162,13 +162,6 @@
     <widget class="QCheckBox" name="checkBoxConfirmExit">
      <property name="text">
       <string>Ask for confirmation before quitting</string>
-     </property>
-    </widget>
-   </item>
-   <item row="11" column="0">
-    <widget class="QCheckBox" name="checkBoxFullscreenFirst">
-     <property name="text">
-      <string>Display hotkey message when entering full-screen mode</string>
      </property>
     </widget>
    </item>

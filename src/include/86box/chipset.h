@@ -37,6 +37,9 @@ extern const device_t ali6117d_device;
 /* AMD */
 extern const device_t amd640_device;
 
+/* ASUS */
+extern const device_t isa486c_device;
+
 /* Compaq */
 extern const device_t compaq_386_device;
 extern const device_t compaq_genoa_device;
@@ -52,6 +55,7 @@ extern const device_t neat_sx_device;
 extern const device_t scat_device;
 extern const device_t scat_4_device;
 extern const device_t scat_sx_device;
+extern const device_t cs8220_device;
 extern const device_t cs8230_device;
 extern const device_t cs4031_device;
 
@@ -109,6 +113,9 @@ extern const device_t slc90e66_device;
 
 extern const device_t ioapic_device;
 
+/* Olivetti */
+extern const device_t olivetti_eva_device;
+
 /* OPTi */
 extern const device_t opti283_device;
 extern const device_t opti291_device;
@@ -156,6 +163,9 @@ extern const device_t stpc_atlas_device;
 extern const device_t stpc_serial_device;
 extern const device_t stpc_lpt_device;
 
+/* Symphony */
+extern const device_t sl82c461_device;
+
 /* UMC */
 extern const device_t umc_8886f_device;
 extern const device_t umc_8886af_device;
@@ -191,12 +201,10 @@ extern const device_t vlsi_scamp_device;
 extern const device_t wd76c10_device;
 
 /* Miscellaneous Hardware */
+extern const device_t dell_jumper_device;
+
 extern const device_t nec_mate_unk_device;
 
 extern const device_t phoenix_486_jumper_device;
 extern const device_t phoenix_486_jumper_pci_device;
-
-#ifdef USE_OLIVETTI
-extern const device_t olivetti_eva_device;
-#endif /* USE_OLIVETTI */
 #endif /*EMU_CHIPSET_H*/

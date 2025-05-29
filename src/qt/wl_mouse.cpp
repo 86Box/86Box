@@ -20,6 +20,7 @@
 #include <wayland-client-protocol.h>
 #include <wayland-relative-pointer-unstable-v1-client-protocol.h>
 #include <wayland-pointer-constraints-unstable-v1-client-protocol.h>
+#include <wayland-keyboard-shortcuts-inhibit-unstable-v1-client-protocol.h>
 
 #include <qpa/qplatformnativeinterface.h>
 #include <QWindow>
@@ -30,10 +31,12 @@ extern "C" {
 #include <86box/plat.h>
 }
 
-static zwp_relative_pointer_manager_v1 *rel_manager            = nullptr;
-static zwp_relative_pointer_v1         *rel_pointer            = nullptr;
-static zwp_pointer_constraints_v1      *conf_pointer_interface = nullptr;
-static zwp_locked_pointer_v1           *conf_pointer           = nullptr;
+static zwp_relative_pointer_manager_v1           *rel_manager            = nullptr;
+static zwp_relative_pointer_v1                   *rel_pointer            = nullptr;
+static zwp_pointer_constraints_v1                *conf_pointer_interface = nullptr;
+static zwp_locked_pointer_v1                     *conf_pointer           = nullptr;
+static zwp_keyboard_shortcuts_inhibit_manager_v1 *kbd_manager            = nullptr;
+static zwp_keyboard_shortcuts_inhibitor_v1       *kbd_inhibitor          = nullptr;
 
 static bool wl_init_ok = false;
 
@@ -47,6 +50,12 @@ static struct zwp_relative_pointer_v1_listener rel_listener = {
     rel_mouse_event
 };
 
+static struct zwp_keyboard_shortcuts_inhibitor_v1_listener kbd_listener
+{
+    [](void *data, struct zwp_keyboard_shortcuts_inhibitor_v1 *zwp_keyboard_shortcuts_inhibitor_v1) -> void {},
+    [](void *data, struct zwp_keyboard_shortcuts_inhibitor_v1 *zwp_keyboard_shortcuts_inhibitor_v1) -> void {}
+};
+
 static void
 display_handle_global(void *data, struct wl_registry *registry, uint32_t id,
                       const char *interface, uint32_t version)
@@ -57,16 +66,25 @@ display_handle_global(void *data, struct wl_registry *registry, uint32_t id,
     if (!strcmp(interface, "zwp_pointer_constraints_v1")) {
         conf_pointer_interface = (zwp_pointer_constraints_v1 *) wl_registry_bind(registry, id, &zwp_pointer_constraints_v1_interface, version);
     }
+    if (!strcmp(interface, "zwp_keyboard_shortcuts_inhibit_manager_v1")) {
+        kbd_manager = (zwp_keyboard_shortcuts_inhibit_manager_v1 *) wl_registry_bind(registry, id, &zwp_keyboard_shortcuts_inhibit_manager_v1_interface, version);
+    }
 }
 
 static void
 display_global_remove(void *data, struct wl_registry *wl_registry, uint32_t name)
 {
     plat_mouse_capture(0);
+    if (kbd_inhibitor) {
+        zwp_keyboard_shortcuts_inhibitor_v1_destroy(kbd_inhibitor);
+        kbd_inhibitor = nullptr;
+    }
+    zwp_keyboard_shortcuts_inhibit_manager_v1_destroy(kbd_manager);
     zwp_relative_pointer_manager_v1_destroy(rel_manager);
     zwp_pointer_constraints_v1_destroy(conf_pointer_interface);
     rel_manager            = nullptr;
     conf_pointer_interface = nullptr;
+    kbd_manager            = nullptr;
 }
 
 static const struct wl_registry_listener registry_listener = {
@@ -91,8 +109,19 @@ wl_init()
 }
 
 void
+wl_keyboard_grab(QWindow *window)
+{
+    if (!kbd_inhibitor && kbd_manager) {
+        kbd_inhibitor = zwp_keyboard_shortcuts_inhibit_manager_v1_inhibit_shortcuts(kbd_manager, (wl_surface *) QGuiApplication::platformNativeInterface()->nativeResourceForWindow("surface", window), (wl_seat *) QGuiApplication::platformNativeInterface()->nativeResourceForIntegration("wl_seat"));
+    }
+}
+
+void
 wl_mouse_capture(QWindow *window)
 {
+    if (!kbd_inhibitor) {
+        kbd_inhibitor = zwp_keyboard_shortcuts_inhibit_manager_v1_inhibit_shortcuts(kbd_manager, (wl_surface *) QGuiApplication::platformNativeInterface()->nativeResourceForWindow("surface", window), (wl_seat *) QGuiApplication::platformNativeInterface()->nativeResourceForIntegration("wl_seat"));
+    }
     if (rel_manager) {
         rel_pointer = zwp_relative_pointer_manager_v1_get_relative_pointer(rel_manager, (wl_pointer *) QGuiApplication::platformNativeInterface()->nativeResourceForIntegration("wl_pointer"));
         zwp_relative_pointer_v1_add_listener(rel_pointer, &rel_listener, nullptr);

@@ -107,6 +107,7 @@ config_log(const char *fmt, ...)
 #    define config_log(fmt, ...)
 #endif
 
+
 /* Load "General" section. */
 static void
 load_general(void)
@@ -126,8 +127,6 @@ load_general(void)
         ini_section_delete_var(cat, "vid_api");
 
     video_fullscreen_scale = ini_section_get_int(cat, "video_fullscreen_scale", 1);
-
-    video_fullscreen_first = ini_section_get_int(cat, "video_fullscreen_first", 1);
 
     video_filter_method = ini_section_get_int(cat, "video_filter_method", 1);
 
@@ -185,6 +184,8 @@ load_general(void)
     p = ini_section_get_string(cat, "language", NULL);
     if (p != NULL)
         lang_id = plat_language_code(p);
+    else
+        lang_id = plat_language_code(DEFAULT_LANGUAGE);
 
     mouse_sensitivity = ini_section_get_double(cat, "mouse_sensitivity", 1.0);
     if (mouse_sensitivity < 0.1)
@@ -743,7 +744,7 @@ load_ports(void)
     char          temp[512];
     memset(temp, 0, sizeof(temp));
 
-    for (int c = 0; c < SERIAL_MAX; c++) {
+    for (int c = 0; c < (SERIAL_MAX - 1); c++) {
         sprintf(temp, "serial%d_enabled", c + 1);
         com_ports[c].enabled = !!ini_section_get_int(cat, temp, (c >= 2) ? 0 : 1);
 
@@ -1760,6 +1761,36 @@ load_gl3_shaders(void)
 }
 #endif
 
+/* Load "Keybinds" section. */
+static void
+load_keybinds(void)
+{
+    ini_section_t cat = ini_find_section(config, "Keybinds");
+    char         *p;
+    char          temp[512];
+    memset(temp, 0, sizeof(temp));
+
+    /* Now load values from config */
+    for (int x = 0; x < NUM_ACCELS; x++) {
+         p = ini_section_get_string(cat, acc_keys[x].name, "default");
+         /* Check if the binding was marked as cleared */
+         if (strcmp(p, "none") == 0)
+             acc_keys[x].seq[0] = '\0';
+         /* If there's no binding in the file, leave it alone. */
+         else if (strcmp(p, "default") != 0) {
+             /*
+                It would be ideal to validate whether the user entered a
+                valid combo at this point, but the Qt method for testing that is
+                not available from C. Fortunately, if you feed Qt an invalid
+                keysequence string it just assigns nothing, so this won't blow up.
+                However, to improve the user experience, we should validate keys
+                and erase any bad combos from config on mainwindow load.
+              */
+             strcpy(acc_keys[x].seq, p);
+        }
+    }
+}
+
 /* Load the specified or a default configuration file. */
 void
 config_load(void)
@@ -1799,14 +1830,13 @@ config_load(void)
         gfxcard[0]             = video_get_video_from_internal_name("cga");
         vid_api                = plat_vidapi("default");
         vid_resize             = 0;
-        video_fullscreen_first = 1;
         video_fullscreen_scale = 1;
         time_sync              = TIME_SYNC_ENABLED;
         hdc_current[0]         = hdc_get_from_internal_name("none");
 
         com_ports[0].enabled = 1;
         com_ports[1].enabled = 1;
-        for (i = 2; i < SERIAL_MAX; i++)
+        for (i = 2; i < (SERIAL_MAX - 1); i++)
             com_ports[i].enabled = 0;
 
         lpt_ports[0].enabled = 1;
@@ -1840,6 +1870,8 @@ config_load(void)
         cassette_pcm          = 0;
         cassette_ui_writeprot = 0;
 
+        lang_id = plat_language_code(DEFAULT_LANGUAGE);
+
         config_log("Config file not present or invalid!\n");
     } else {
         load_general();                 /* General */
@@ -1859,6 +1891,7 @@ config_load(void)
 #ifndef USE_SDL_UI
         load_gl3_shaders();             /* GL3 Shaders */
 #endif
+        load_keybinds();                /* Load shortcut keybinds */
 
         /* Migrate renamed device configurations. */
         c = ini_find_section(config, "MDA");
@@ -1918,11 +1951,6 @@ save_general(void)
         ini_section_delete_var(cat, "video_fullscreen_scale");
     else
         ini_section_set_int(cat, "video_fullscreen_scale", video_fullscreen_scale);
-
-    if (video_fullscreen_first == 1)
-        ini_section_delete_var(cat, "video_fullscreen_first");
-    else
-        ini_section_set_int(cat, "video_fullscreen_first", video_fullscreen_first);
 
     if (video_filter_method == 1)
         ini_section_delete_var(cat, "video_filter_method");
@@ -2025,7 +2053,7 @@ save_general(void)
     else
         ini_section_delete_var(cat, "mouse_sensitivity");
 
-    if (lang_id == DEFAULT_LANGUAGE)
+    if (lang_id == plat_language_code(DEFAULT_LANGUAGE))
         ini_section_delete_var(cat, "language");
     else {
         plat_language_code_r(lang_id, buffer, 511);
@@ -2423,7 +2451,7 @@ save_ports(void)
     ini_section_t cat = ini_find_or_create_section(config, "Ports (COM & LPT)");
     char          temp[512];
 
-    for (int c = 0; c < SERIAL_MAX; c++) {
+    for (int c = 0; c < (SERIAL_MAX - 1); c++) {
         sprintf(temp, "serial%d_enabled", c + 1);
         if (((c < 2) && com_ports[c].enabled) || ((c >= 2) && !com_ports[c].enabled))
             ini_section_delete_var(cat, temp);
@@ -2480,6 +2508,26 @@ save_ports(void)
                                    gameport_get_internal_name(gameport_type[c]));
     }
 #endif
+
+    ini_delete_section_if_empty(config, cat);
+}
+
+/* Save "Keybinds" section. */
+static void
+save_keybinds(void)
+{
+    ini_section_t cat = ini_find_or_create_section(config, "Keybinds");
+
+    for (int x = 0; x < NUM_ACCELS; x++) {
+        /* Has accelerator been changed from default? */
+        if (strcmp(def_acc_keys[x].seq, acc_keys[x].seq) == 0)
+            ini_section_delete_var(cat, acc_keys[x].name);
+        /* Check for a cleared binding to avoid saving it as an empty string */
+        else if (acc_keys[x].seq[0] == '\0')
+            ini_section_set_string(cat, acc_keys[x].name, "none");
+        else
+            ini_section_set_string(cat, acc_keys[x].name, acc_keys[x].seq);
+    }
 
     ini_delete_section_if_empty(config, cat);
 }
@@ -3094,6 +3142,7 @@ config_save(void)
 #ifndef USE_SDL_UI
     save_gl3_shaders();             /* GL3 Shaders */
 #endif
+    save_keybinds();                /* Key bindings */
 
     ini_write(config, cfg_path);
 }

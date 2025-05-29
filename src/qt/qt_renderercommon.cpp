@@ -132,6 +132,9 @@ RendererCommon::onResize(int width, int height)
 
     monitors[r_monitor_index].mon_res_x = (double) destination.width();
     monitors[r_monitor_index].mon_res_y = (double) destination.height();
+
+    destinationF.setRect((double)destination.x() / (double)width, (double)destination.y() / (double)height,
+                        (double)destination.width() / (double)width, (double)destination.height() / (double)height);
 }
 
 bool

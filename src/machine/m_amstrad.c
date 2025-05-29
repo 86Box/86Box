@@ -2936,7 +2936,7 @@ machine_amstrad_init(const machine_t *model, int type)
                 break;
 
             case AMS_PC1640:
-                loadfont("roms/video/mda/mda.rom", 0);
+                loadfont(FONT_IBM_MDA_437_PATH, 0);
                 device_context(&vid_1640_device);
                 ams->language = device_get_config_int("language");
                 vid_init_1640(ams);

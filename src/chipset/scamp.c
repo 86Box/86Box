@@ -1177,7 +1177,7 @@ scamp_init(UNUSED(const device_t *info))
             dev->mem_flags[i] = MEM_FLAG_READ | MEM_FLAG_WRITE;
             scamp_mem_update_state(dev, i * EMS_PGSIZE, EMS_PGSIZE, 0x00, MEM_FMASK_RW);
 
-            if (i >= 60)
+            if (i >= 56)
                 scamp_mem_update_state(dev, i * EMS_PGSIZE, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
         }
     }

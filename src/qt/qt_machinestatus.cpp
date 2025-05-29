@@ -68,6 +68,8 @@ namespace {
 struct PixmapSetActive {
     QPixmap normal;
     QPixmap active;
+    QPixmap write_active;
+    QPixmap read_write_active;
     void    load(const QIcon &icon);
 };
 struct PixmapSetDisabled {
@@ -85,6 +87,10 @@ struct PixmapSetEmptyActive {
     QPixmap active;
     QPixmap empty;
     QPixmap empty_active;
+    QPixmap write_active;
+    QPixmap read_write_active;
+    QPixmap empty_write_active;
+    QPixmap empty_read_write_active;
     void    load(const QIcon &icon);
 };
 struct Pixmaps {
@@ -105,6 +111,7 @@ struct StateActive {
     std::unique_ptr<QLabel> label;
     PixmapSetActive        *pixmaps = nullptr;
     bool                    active  = false;
+    bool                    write_active  = false;
 
     void setActive(bool b)
     {
@@ -115,11 +122,23 @@ struct StateActive {
         refresh();
     }
 
+    void setWriteActive(bool b)
+    {
+        if (!label || b == write_active)
+            return;
+
+        write_active = b;
+        refresh();
+    }
+
     void refresh()
     {
         if (!label)
             return;
-        label->setPixmap(active ? pixmaps->active : pixmaps->normal);
+        if (active && write_active)
+            label->setPixmap(pixmaps->read_write_active);
+        else
+            label->setPixmap(write_active ? pixmaps->write_active : (active ? pixmaps->active : pixmaps->normal));
     }
 };
 struct StateEmpty {
@@ -145,9 +164,10 @@ struct StateEmpty {
 };
 struct StateEmptyActive {
     std::unique_ptr<QLabel> label;
-    PixmapSetEmptyActive   *pixmaps = nullptr;
-    bool                    empty   = false;
-    bool                    active  = false;
+    PixmapSetEmptyActive   *pixmaps       = nullptr;
+    bool                    empty         = false;
+    bool                    active        = false;
+    bool                    write_active  = false;
 
     void setActive(bool b)
     {
@@ -155,6 +175,14 @@ struct StateEmptyActive {
             return;
 
         active = b;
+        refresh();
+    }
+    void setWriteActive(bool b)
+    {
+        if (!label || b == write_active)
+            return;
+
+        write_active = b;
         refresh();
     }
     void setEmpty(bool b)
@@ -170,9 +198,15 @@ struct StateEmptyActive {
         if (!label)
             return;
         if (empty) {
-            label->setPixmap(active ? pixmaps->empty_active : pixmaps->empty);
+            if (active && write_active)
+                label->setPixmap(pixmaps->empty_read_write_active);
+            else
+                label->setPixmap(write_active ? pixmaps->empty_write_active : (active ? pixmaps->empty_active : pixmaps->empty));
         } else {
-            label->setPixmap(active ? pixmaps->active : pixmaps->normal);
+            if (active && write_active)
+                label->setPixmap(pixmaps->read_write_active);
+            else
+                label->setPixmap(write_active ? pixmaps->write_active : (active ? pixmaps->active : pixmaps->normal));
         }
     }
 };
@@ -191,6 +225,9 @@ PixmapSetActive::load(const QIcon &icon)
 {
     normal = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, None);
     active = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Active);
+    
+    write_active = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteActive);
+    read_write_active = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, ReadWriteActive);
 }
 
 void
@@ -203,10 +240,14 @@ PixmapSetDisabled::load(const QIcon &icon)
 void
 PixmapSetEmptyActive::load(const QIcon &icon)
 {
-    normal       = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, None);
-    active       = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Active);
-    empty        = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, None);
-    empty_active = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, Active);
+    normal                  = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, None);
+    active                  = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Active);
+    write_active            = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteActive);
+    read_write_active       = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, ReadWriteActive);
+    empty                   = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, None);
+    empty_active            = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, Active);
+    empty_write_active      = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, WriteActive);
+    empty_read_write_active = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, ReadWriteActive);
 }
 }
 
@@ -217,10 +258,13 @@ struct MachineStatus::States {
     {
         pixmaps.cartridge.load(QIcon(":/settings/qt/icons/cartridge.ico"));
         pixmaps.cassette.load(QIcon(":/settings/qt/icons/cassette.ico"));
-        pixmaps.floppy_disabled.normal       = QIcon(":/settings/qt/icons/floppy_disabled.ico").pixmap(pixmap_size);
-        pixmaps.floppy_disabled.active       = pixmaps.floppy_disabled.normal;
-        pixmaps.floppy_disabled.empty        = pixmaps.floppy_disabled.normal;
-        pixmaps.floppy_disabled.empty_active = pixmaps.floppy_disabled.normal;
+        pixmaps.floppy_disabled.normal                  = QIcon(":/settings/qt/icons/floppy_disabled.ico").pixmap(pixmap_size);
+        pixmaps.floppy_disabled.active                  = pixmaps.floppy_disabled.normal;
+        pixmaps.floppy_disabled.read_write_active       = pixmaps.floppy_disabled.normal;
+        pixmaps.floppy_disabled.empty                   = pixmaps.floppy_disabled.normal;
+        pixmaps.floppy_disabled.empty_active            = pixmaps.floppy_disabled.normal;
+        pixmaps.floppy_disabled.empty_write_active      = pixmaps.floppy_disabled.normal;
+        pixmaps.floppy_disabled.empty_read_write_active = pixmaps.floppy_disabled.normal;
         pixmaps.floppy_525.load(QIcon(":/settings/qt/icons/floppy_525.ico"));
         pixmaps.floppy_35.load(QIcon(":/settings/qt/icons/floppy_35.ico"));
         pixmaps.cdrom.load(QIcon(":/settings/qt/icons/cdrom.ico"));
@@ -270,7 +314,6 @@ MachineStatus::MachineStatus(QObject *parent)
     , refreshTimer(new QTimer(this))
 {
     d = std::make_unique<MachineStatus::States>(this);
-    muteUnmuteAction = nullptr;
     soundMenu = nullptr;
     connect(refreshTimer, &QTimer::timeout, this, &MachineStatus::refreshIcons);
     refreshTimer->start(75);
@@ -279,9 +322,9 @@ MachineStatus::MachineStatus(QObject *parent)
 MachineStatus::~MachineStatus() = default;
 
 void
-MachineStatus::setSoundGainAction(QAction* action)
+MachineStatus::setSoundMenu(QMenu* menu)
 {
-    soundGainAction = action;
+    soundMenu = menu;
 }
 
 bool
@@ -436,49 +479,79 @@ MachineStatus::refreshIcons()
     if (!update_icons)
         return;
 
-    for (size_t i = 0; i < FDD_NUM; ++i)
+    for (size_t i = 0; i < FDD_NUM; ++i) {
         d->fdd[i].setActive(machine_status.fdd[i].active);
+        d->fdd[i].setWriteActive(machine_status.fdd[i].write_active);
+    }
     for (size_t i = 0; i < CDROM_NUM; ++i) {
         d->cdrom[i].setActive(machine_status.cdrom[i].active);
-        if (machine_status.cdrom[i].active)
+        d->cdrom[i].setWriteActive(machine_status.cdrom[i].write_active);
+        if (machine_status.cdrom[i].active) {
             ui_sb_update_icon(SB_CDROM | i, 0);
+        }
+        if (machine_status.cdrom[i].write_active) {
+            ui_sb_update_icon_write(SB_CDROM | i, 0);
+        }
     }
     for (size_t i = 0; i < ZIP_NUM; i++) {
         d->zip[i].setActive(machine_status.zip[i].active);
+        d->zip[i].setWriteActive(machine_status.zip[i].write_active);
         if (machine_status.zip[i].active)
             ui_sb_update_icon(SB_ZIP | i, 0);
+        if (machine_status.zip[i].write_active)
+            ui_sb_update_icon_write(SB_ZIP | i, 0);
     }
     for (size_t i = 0; i < MO_NUM; i++) {
         d->mo[i].setActive(machine_status.mo[i].active);
+        d->mo[i].setWriteActive(machine_status.mo[i].write_active);
         if (machine_status.mo[i].active)
             ui_sb_update_icon(SB_MO | i, 0);
+        if (machine_status.mo[i].write_active)
+            ui_sb_update_icon_write(SB_MO | i, 0);
     }
 
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
         d->hdds[i].setActive(machine_status.hdd[i].active);
+        d->hdds[i].setWriteActive(machine_status.hdd[i].write_active);
         if (machine_status.hdd[i].active)
             ui_sb_update_icon(SB_HDD | i, 0);
+        if (machine_status.hdd[i].write_active)
+            ui_sb_update_icon_write(SB_HDD | i, 0);
     }
 
-    for (size_t i = 0; i < NET_CARD_MAX; i++)
+    for (size_t i = 0; i < NET_CARD_MAX; i++) {
         d->net[i].setActive(machine_status.net[i].active);
+        d->net[i].setWriteActive(machine_status.net[i].write_active);
+    }
 }
 
 void
 MachineStatus::clearActivity()
 {
-    for (auto &fdd : d->fdd)
+    for (auto &fdd : d->fdd) {
         fdd.setActive(false);
-    for (auto &cdrom : d->cdrom)
+        fdd.setWriteActive(false);
+    }
+    for (auto &cdrom : d->cdrom) {
         cdrom.setActive(false);
-    for (auto &zip : d->zip)
+        cdrom.setWriteActive(false);
+    }
+    for (auto &zip : d->zip) {
         zip.setActive(false);
-    for (auto &mo : d->mo)
+        zip.setWriteActive(false);
+    }
+    for (auto &mo : d->mo) {
         mo.setActive(false);
-    for (auto &hdd : d->hdds)
+        mo.setWriteActive(false);
+    }
+    for (auto &hdd : d->hdds) {
         hdd.setActive(false);
-    for (auto &net : d->net)
+        hdd.setWriteActive(false);
+    }
+    for (auto &net : d->net) {
         net.setActive(false);
+        net.setWriteActive(false);
+    }
 }
 
 void
@@ -518,28 +591,6 @@ MachineStatus::refresh(QStatusBar *sbar)
         sbar->removeWidget(d->net[i].label.get());
     }
     sbar->removeWidget(d->sound.get());
-
-    if (!muteUnmuteAction) {
-        muteUnmuteAction = new QAction;
-        connect(muteUnmuteAction, &QAction::triggered, this, [this]() {
-            sound_muted ^= 1;
-            config_save();
-            if (d->sound)
-                d->sound->setPixmap(sound_muted ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
-
-            muteUnmuteAction->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
-        });
-    }
-
-    if (!soundMenu) {
-        soundMenu = new QMenu((QWidget*)parent());
-
-        soundMenu->addAction(muteUnmuteAction);
-        soundMenu->addSeparator();
-        soundMenu->addAction(soundGainAction);
-
-        muteUnmuteAction->setParent(soundMenu);
-    }
 
     if (cassette_enable) {
         d->cassette.label = std::make_unique<ClickableLabel>();
@@ -585,6 +636,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->fdd[i].label = std::make_unique<ClickableLabel>();
         d->fdd[i].setEmpty(QString(floppyfns[i]).isEmpty());
         d->fdd[i].setActive(false);
+        d->fdd[i].setWriteActive(false);
         d->fdd[i].refresh();
         connect((ClickableLabel *) d->fdd[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->floppyMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->floppyMenus[i]->sizeHint().height()));
@@ -601,6 +653,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->cdrom[i].label = std::make_unique<ClickableLabel>();
         d->cdrom[i].setEmpty(QString(cdrom[i].image_path).isEmpty());
         d->cdrom[i].setActive(false);
+        d->cdrom[i].setWriteActive(false);
         d->cdrom[i].refresh();
         connect((ClickableLabel *) d->cdrom[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->cdromMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->cdromMenus[i]->sizeHint().height()));
@@ -617,6 +670,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->zip[i].label = std::make_unique<ClickableLabel>();
         d->zip[i].setEmpty(QString(zip_drives[i].image_path).isEmpty());
         d->zip[i].setActive(false);
+        d->zip[i].setWriteActive(false);
         d->zip[i].refresh();
         connect((ClickableLabel *) d->zip[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->zipMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->zipMenus[i]->sizeHint().height()));
@@ -633,6 +687,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->mo[i].label = std::make_unique<ClickableLabel>();
         d->mo[i].setEmpty(QString(mo_drives[i].image_path).isEmpty());
         d->mo[i].setActive(false);
+        d->mo[i].setWriteActive(false);
         d->mo[i].refresh();
         connect((ClickableLabel *) d->mo[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->moMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->moMenus[i]->sizeHint().height()));
@@ -649,6 +704,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->net[i].label = std::make_unique<ClickableLabel>();
         d->net[i].setEmpty(!network_is_connected(i));
         d->net[i].setActive(false);
+        d->net[i].setWriteActive(false);
         d->net[i].refresh();
         d->net[i].label->setToolTip(MediaMenu::ptr->netMenus[i]->title());
         connect((ClickableLabel *) d->net[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
@@ -661,22 +717,49 @@ MachineStatus::refresh(QStatusBar *sbar)
     if ((has_mfm || (hdc_name.left(5) == QStringLiteral("st506"))) && (c_mfm > 0)) {
         d->hdds[HDD_BUS_MFM].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_MFM].setActive(false);
+        d->hdds[HDD_BUS_MFM].setWriteActive(false);
         d->hdds[HDD_BUS_MFM].refresh();
         d->hdds[HDD_BUS_MFM].label->setToolTip(tr("Hard disk (%1)").arg("MFM/RLL"));
+        auto tooltip = d->hdds[HDD_BUS_MFM].label->toolTip();
+        tooltip.append("\n");
+        for (int i = 0; i < HDD_NUM; i++) {
+            if (hdd[i].bus_type == HDD_BUS_MFM && hdd[i].fn[0] != 0) {
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
+            }
+        }
+        d->hdds[HDD_BUS_MFM].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_MFM].label.get());
     }
     if ((has_esdi || (hdc_name.left(4) == QStringLiteral("esdi"))) && (c_esdi > 0)) {
         d->hdds[HDD_BUS_ESDI].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_ESDI].setActive(false);
+        d->hdds[HDD_BUS_ESDI].setWriteActive(false);
         d->hdds[HDD_BUS_ESDI].refresh();
         d->hdds[HDD_BUS_ESDI].label->setToolTip(tr("Hard disk (%1)").arg("ESDI"));
+        auto tooltip = d->hdds[HDD_BUS_ESDI].label->toolTip();
+        tooltip.append("\n");
+        for (int i = 0; i < HDD_NUM; i++) {
+            if (hdd[i].bus_type == HDD_BUS_ESDI && hdd[i].fn[0] != 0) {
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
+            }
+        }
+        d->hdds[HDD_BUS_ESDI].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_ESDI].label.get());
     }
     if ((has_xta || (hdc_name.left(3) == QStringLiteral("xta"))) && (c_xta > 0)) {
         d->hdds[HDD_BUS_XTA].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_XTA].setActive(false);
+        d->hdds[HDD_BUS_XTA].setWriteActive(false);
         d->hdds[HDD_BUS_XTA].refresh();
         d->hdds[HDD_BUS_XTA].label->setToolTip(tr("Hard disk (%1)").arg("XTA"));
+        auto tooltip = d->hdds[HDD_BUS_XTA].label->toolTip();
+        tooltip.append("\n");
+        for (int i = 0; i < HDD_NUM; i++) {
+            if (hdd[i].bus_type == HDD_BUS_XTA && hdd[i].fn[0] != 0) {
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
+            }
+        }
+        d->hdds[HDD_BUS_XTA].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_XTA].label.get());
     }
     if (hasIDE() || (hdc_name.left(5) == QStringLiteral("xtide")) ||
@@ -685,15 +768,33 @@ MachineStatus::refresh(QStatusBar *sbar)
         if (c_ide > 0) {
             d->hdds[HDD_BUS_IDE].label = std::make_unique<QLabel>();
             d->hdds[HDD_BUS_IDE].setActive(false);
+            d->hdds[HDD_BUS_IDE].setWriteActive(false);
             d->hdds[HDD_BUS_IDE].refresh();
             d->hdds[HDD_BUS_IDE].label->setToolTip(tr("Hard disk (%1)").arg("IDE"));
+            auto tooltip = d->hdds[HDD_BUS_IDE].label->toolTip();
+            tooltip.append("\n");
+            for (int i = 0; i < HDD_NUM; i++) {
+                if (hdd[i].bus_type == HDD_BUS_IDE && hdd[i].fn[0] != 0) {
+                    tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
+                }
+            }
+            d->hdds[HDD_BUS_IDE].label->setToolTip(tooltip);
             sbar->addWidget(d->hdds[HDD_BUS_IDE].label.get());
         }
         if (c_atapi > 0) {
             d->hdds[HDD_BUS_ATAPI].label = std::make_unique<QLabel>();
             d->hdds[HDD_BUS_ATAPI].setActive(false);
+            d->hdds[HDD_BUS_ATAPI].setWriteActive(false);
             d->hdds[HDD_BUS_ATAPI].refresh();
             d->hdds[HDD_BUS_ATAPI].label->setToolTip(tr("Hard disk (%1)").arg("ATAPI"));
+            auto tooltip = d->hdds[HDD_BUS_ATAPI].label->toolTip();
+            tooltip.append("\n");
+            for (int i = 0; i < HDD_NUM; i++) {
+                if (hdd[i].bus_type == HDD_BUS_ATAPI && hdd[i].fn[0] != 0) {
+                    tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
+                }
+            }
+            d->hdds[HDD_BUS_ATAPI].label->setToolTip(tooltip);
             sbar->addWidget(d->hdds[HDD_BUS_ATAPI].label.get());
         }
     }
@@ -703,15 +804,22 @@ MachineStatus::refresh(QStatusBar *sbar)
         (c_scsi > 0)) {
         d->hdds[HDD_BUS_SCSI].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_SCSI].setActive(false);
+        d->hdds[HDD_BUS_SCSI].setWriteActive(false);
         d->hdds[HDD_BUS_SCSI].refresh();
         d->hdds[HDD_BUS_SCSI].label->setToolTip(tr("Hard disk (%1)").arg("SCSI"));
+        auto tooltip = d->hdds[HDD_BUS_SCSI].label->toolTip();
+        tooltip.append("\n");
+        for (int i = 0; i < HDD_NUM; i++) {
+            if (hdd[i].bus_type == HDD_BUS_SCSI && hdd[i].fn[0] != 0) {
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 4), QString::asprintf("%02d", hdd[i].channel & 15), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
+            }
+        }
+        d->hdds[HDD_BUS_SCSI].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_SCSI].label.get());
     }
 
     d->sound = std::make_unique<ClickableLabel>();
     d->sound->setPixmap(sound_muted ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
-    if (muteUnmuteAction)
-        muteUnmuteAction->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
 
     connect(d->sound.get(), &ClickableLabel::clicked, this, [this](QPoint pos) {
         this->soundMenu->popup(pos - QPoint(0, this->soundMenu->sizeHint().height()));
@@ -725,6 +833,13 @@ MachineStatus::refresh(QStatusBar *sbar)
     sbar_initialized = true;
 
     refreshEmptyIcons();
+}
+
+void
+MachineStatus::updateSoundIcon()
+{
+    if (d->sound)
+        d->sound->setPixmap(sound_muted ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
 }
 
 void

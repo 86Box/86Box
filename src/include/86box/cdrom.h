@@ -425,6 +425,8 @@ extern uint8_t         cdrom_mitsumi_audio_play(cdrom_t *dev, uint32_t pos, uint
 #endif
 extern uint8_t         cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
                                                 const uint8_t track, const int type);
+extern int             cdrom_is_track_audio(cdrom_t *dev, const int sector, const int ismsf,
+                                            int cdrom_sector_type, const uint8_t vendor_type);
 extern int             cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int ismsf,
                                             int cdrom_sector_type, const int cdrom_sector_flags,
                                             int *len, const uint8_t vendor_type);

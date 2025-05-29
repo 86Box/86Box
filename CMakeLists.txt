@@ -36,7 +36,7 @@ if(MUNT_EXTERNAL)
 endif()
 
 project(86Box
-    VERSION 4.3
+    VERSION 5.0
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
@@ -173,16 +173,11 @@ endif()
 #                      Option         Description                                Def.  Condition     Otherwise
 #                      ------         -----------                                ----  ------------  ---------
 cmake_dependent_option(AMD_K5         "AMD K5"                                   ON    "DEV_BRANCH"  OFF)
-cmake_dependent_option(AN430TX        "Intel AN430TX"                            ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(CDROM_MITSUMI  "Mitsumi CDROM"                            ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(G100           "Matrox Productiva G100"                   ON    "DEV_BRANCH"  OFF)
-cmake_dependent_option(GUSMAX         "Gravis UltraSound MAX"                    ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                              ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                        ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(ISAMEM_BRAT    "BocaRAM/AT"                               ON    "DEV_BRANCH"  OFF)
-cmake_dependent_option(LASERXT        "VTech Laser XT"                           ON    "DEV_BRANCH"  OFF)
-cmake_dependent_option(OLIVETTI       "Olivetti M290"                            ON    "DEV_BRANCH"  OFF)
-cmake_dependent_option(OPEN_AT        "OpenAT"                                   ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(OPL4ML         "OPL4-ML daughterboard"                    ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(PCL            "Generic PCL5e Printer"                    ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"               ON    "DEV_BRANCH"  OFF)
