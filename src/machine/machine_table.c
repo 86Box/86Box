@@ -66,6 +66,7 @@ extern const device_t vendex_device;
 extern const device_t c5sbm2_device;
 extern const device_t sb486pv_device;
 extern const device_t ap5s_device;
+extern const device_t d943_device;
 extern const device_t dells333sl_device;
 
 const machine_filter_t machine_types[] = {
@@ -11774,6 +11775,46 @@ const machine_t machines[] = {
         .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
+        .net_device = NULL
+    },
+
+    {
+        .name = "[i430HX] Siemens-Nixdorf D943",
+        .internal_name = "d943",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_d943_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_AV | MACHINE_GAMEPORT | MACHINE_APM | MACHINE_ACPI ,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 511,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = &d943_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5436_onboard_pci_device,
+        .snd_device = &sb_vibra16s_onboard_device,
         .net_device = NULL
     },
 
