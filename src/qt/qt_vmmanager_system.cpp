@@ -25,6 +25,7 @@
 #include <QCryptographicHash>
 #include <QtNetwork>
 #include <QElapsedTimer>
+#include <QProgressDialog>
 #include "qt_vmmanager_system.hpp"
 // #include "qt_vmmanager_details_section.hpp"
 #include "qt_vmmanager_detailsection.hpp"
@@ -108,6 +109,15 @@ VMManagerSystem::~VMManagerSystem() {
 QVector<VMManagerSystem *>
 VMManagerSystem::scanForConfigs(const QString &searchPath)
 {
+    QProgressDialog progDialog;
+    unsigned int found = 0;
+    progDialog.setCancelButton(nullptr);
+    progDialog.setWindowTitle(tr("Searching for VMs..."));
+    progDialog.setMinimumDuration(0);
+    progDialog.setValue(0);
+    progDialog.setMinimum(0);
+    progDialog.setMaximum(0);
+    progDialog.setWindowFlags(progDialog.windowFlags() & ~Qt::WindowCloseButtonHint);
     QElapsedTimer scanTimer;
     scanTimer.start();
     QVector<VMManagerSystem *> system_configs;
@@ -132,8 +142,9 @@ VMManagerSystem::scanForConfigs(const QString &searchPath)
     search_directory = searchPath.isEmpty()? vmm_path : searchPath;
 
     if(!QDir(search_directory).exists()) {
-        qWarning() << "Path" << search_directory << "does not exist. Cannot continue";
-        return {};
+        //qWarning() << "Path" << search_directory << "does not exist. Cannot continue";
+        QDir(search_directory).mkpath(".");
+        //return {};
     }
 
     QDirIterator dir_iterator(search_directory, filters, QDir::Files, QDirIterator::Subdirectories);
@@ -143,6 +154,9 @@ VMManagerSystem::scanForConfigs(const QString &searchPath)
     QElapsedTimer timer;
     timer.start();
     while (dir_iterator.hasNext()) {
+        found++;
+        progDialog.setLabelText(tr("Found %1").arg(QString::number(found)));
+        QApplication::processEvents();
         QString   filename = dir_iterator.next();
         matches.append(filename);
     }
@@ -154,12 +168,21 @@ VMManagerSystem::scanForConfigs(const QString &searchPath)
     // foreach (QFileInfo hit, matches) {
     //     system_configs.append(new VMManagerSystem(hit));
     // }
+    progDialog.setMaximum(found);
+    progDialog.setValue(0);
+    unsigned int appended = 0;
     for (const auto &filename : matches) {
         system_configs.append(new VMManagerSystem(filename));
+        appended++;
+        progDialog.setLabelText(system_configs.last()->displayName);
+        progDialog.setValue(appended);
+        QApplication::processEvents();
     }
-    auto elapsed = timer.elapsed();
-    qDebug() << "Load loop took" << elapsed << "ms for" << matches.size() << "loads";
-    qDebug() << "Overall scan time was" << scanTimer.elapsed() << "ms, average" << elapsed / matches.size() << "ms / load";
+    if (matches.size()) {
+        auto elapsed = timer.elapsed();
+        qDebug() << "Load loop took" << elapsed << "ms for" << matches.size() << "loads";
+        qDebug() << "Overall scan time was" << scanTimer.elapsed() << "ms, average" << elapsed / matches.size() << "ms / load";
+    }
     return system_configs;
 }
 
