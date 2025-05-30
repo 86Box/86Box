@@ -38,12 +38,22 @@ VMManagerDetailSection(const QString &sectionName)
     ui->collapseButtonHolder->setContentsMargins(getMargins(MarginSection::ToolButton));
 
     // Simple method to try and determine if light mode is enabled on the host
+#ifdef Q_OS_WINDOWS
+    extern bool windows_is_light_theme();
+    const bool lightMode = windows_is_light_theme();
+#else
     const bool lightMode = QApplication::palette().window().color().value() > QApplication::palette().windowText().color().value();
+#endif
     // Alternate layout
     if ( lightMode) {
         ui->collapseButtonHolder->setStyleSheet("background-color: palette(midlight);");
     } else {
+#ifdef Q_OS_WINDOWS
+        ui->outerFrame->setStyleSheet("background-color: #272727;");
+        ui->collapseButtonHolder->setStyleSheet("background-color: #616161;");
+#else
         ui->collapseButtonHolder->setStyleSheet("background-color: palette(mid);");
+#endif
     }
     const auto sectionLabel = new QLabel(sectionName);
     sectionLabel->setStyleSheet(sectionLabel->styleSheet().append("font-weight: bold;"));

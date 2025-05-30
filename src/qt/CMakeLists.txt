@@ -193,8 +193,10 @@ add_library(ui STATIC
     qt_updatecheck.hpp
     qt_updatecheckdialog.cpp
     qt_updatecheckdialog.hpp
+    qt_updatecheckdialog.ui
     qt_updatedetails.cpp
     qt_updatedetails.hpp
+    qt_updatedetails.ui
     qt_downloader.cpp
     qt_downloader.hpp
 
@@ -211,10 +213,12 @@ add_library(ui STATIC
     qt_vmmanager_addmachine.hpp
     qt_vmmanager_detailsection.cpp
     qt_vmmanager_detailsection.hpp
+    qt_vmmanager_detailsection.ui
     qt_vmmanager_listviewdelegate.hpp
     qt_vmmanager_listviewdelegate.cpp
     qt_vmmanager_preferences.cpp
     qt_vmmanager_preferences.hpp
+    qt_vmmanager_preferences.ui
     qt_vmmanager_main.hpp
     qt_vmmanager_main.cpp
     qt_vmmanager_main.ui
@@ -226,6 +230,7 @@ add_library(ui STATIC
     qt_vmmanager_config.hpp
     qt_vmmanager_mainwindow.cpp
     qt_vmmanager_mainwindow.hpp
+    qt_vmmanager_mainwindow.ui
 
     ../qt_resources.qrc
     ./qdarkstyle/dark/darkstyle.qrc

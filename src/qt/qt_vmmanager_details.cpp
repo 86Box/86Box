@@ -127,8 +127,14 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
 
     // Set the scrollarea background but also set the scroll bar to none. Otherwise it will also
     // set the scrollbar background to the same.
-    ui->scrollArea->setStyleSheet("QWidget {background-color: palette(light)} QScrollBar{ background-color: none }");
-    ui->systemLabel->setStyleSheet("background-color: palette(midlight);");
+#ifdef Q_OS_WINDOWS
+    extern bool windows_is_light_theme();
+    if (windows_is_light_theme())
+#endif
+    {
+        ui->scrollArea->setStyleSheet("QWidget {background-color: palette(light)} QScrollBar{ background-color: none }");
+        ui->systemLabel->setStyleSheet("background-color: palette(midlight);");
+    }
     // Margins are a little different on macos
 #ifdef Q_OS_MACOS
     ui->systemLabel->setMargin(15);

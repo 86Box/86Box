@@ -21,6 +21,10 @@
 #include "qt_vmmanager_listviewdelegate.hpp"
 #include "qt_vmmanager_model.hpp"
 
+#ifdef Q_OS_WINDOWS
+extern bool windows_is_light_theme();
+#endif
+
 
 // Thanks to scopchanov https://github.com/scopchanov/SO-MessageLog
 // from https://stackoverflow.com/questions/53105343/is-it-possible-to-add-a-custom-widget-into-a-qlistview
@@ -37,6 +41,10 @@ VMManagerListViewDelegate::~VMManagerListViewDelegate()
 
 void VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
                                       const QModelIndex &index) const {
+    bool windows_light_mode = true;
+#ifdef Q_OS_WINDOWS
+    windows_light_mode = windows_is_light_theme();
+#endif
     QStyleOptionViewItem opt(option);
     initStyleOption(&opt, index);
     const QPalette &palette(opt.palette);
@@ -97,13 +105,13 @@ void VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewI
         // When selected, only draw the highlighted part until the horizontal separator
         int offset = 2;
         auto highlightRect = rect.adjusted(0, 0, 0, -offset);
-        painter->fillRect(highlightRect, palette.highlight().color());
+        painter->fillRect(highlightRect, windows_light_mode ? palette.highlight().color() : QColor("#616161"));
         // Then fill the remainder with the normal color
         auto regularRect = rect.adjusted(0, rect.height()-offset, 0, 0);
-        painter->fillRect(regularRect, palette.light().color());
+        painter->fillRect(regularRect, windows_light_mode ? palette.light().color() : QColor("#272727"));
     } else {
         // Otherwise just draw the background color as usual
-        painter->fillRect(rect, palette.light().color());
+        painter->fillRect(rect, windows_light_mode ? palette.light().color() : QColor("#272727"));
     }
 
     // Draw bottom line. Last line gets a different color
