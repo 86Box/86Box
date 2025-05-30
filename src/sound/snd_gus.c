@@ -1473,7 +1473,7 @@ const device_t gus_device = {
 
 const device_t gus_max_device = {
     .name          = "Gravis UltraSound MAX",
-    .internal_name = "gus",
+    .internal_name = "gusmax",
     .flags         = DEVICE_ISA16,
     .local         = GUS_MAX,
     .init          = gus_init,
