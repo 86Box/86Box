@@ -22,6 +22,10 @@
 #include "qt_vmmanager_details.hpp"
 #include "ui_qt_vmmanager_details.h"
 
+#ifdef Q_OS_WINDOWS
+extern bool windows_is_light_theme();
+#endif
+
 VMManagerDetails::VMManagerDetails(QWidget *parent) :
     QWidget(parent), ui(new Ui::VMManagerDetails) {
     ui->setupUi(this);
@@ -71,10 +75,10 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     screenshotThumbnailSize = QSize(240, 160);
 
     // Set the icons for the screenshot navigation buttons
-    ui->screenshotNext->setIcon(QApplication::style()->standardIcon(QStyle::SP_MediaSeekForward));
-    ui->screenshotPrevious->setIcon(QApplication::style()->standardIcon(QStyle::SP_MediaSeekBackward));
-    ui->screenshotNextTB->setIcon(QApplication::style()->standardIcon(QStyle::SP_MediaSeekForward));
-    ui->screenshotPreviousTB->setIcon(QApplication::style()->standardIcon(QStyle::SP_MediaSeekBackward));
+    ui->screenshotNext->setIcon(QApplication::style()->standardIcon(QStyle::SP_ArrowRight));
+    ui->screenshotPrevious->setIcon(QApplication::style()->standardIcon(QStyle::SP_ArrowLeft));
+    ui->screenshotNextTB->setIcon(QApplication::style()->standardIcon(QStyle::SP_ArrowRight));
+    ui->screenshotPreviousTB->setIcon(QApplication::style()->standardIcon(QStyle::SP_ArrowLeft));
     // Disabled by default
     ui->screenshotNext->setEnabled(false);
     ui->screenshotPrevious->setEnabled(false);
@@ -90,11 +94,19 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     ui->screenshotPrevious->setVisible(false);
     QString toolButtonStyleSheet;
     // Simple method to try and determine if light mode is enabled
+#ifdef Q_OS_WINDOWS
+    const bool lightMode = windows_is_light_theme();
+#else
     const bool lightMode = QApplication::palette().window().color().value() > QApplication::palette().windowText().color().value();
+#endif
     if (lightMode) {
         toolButtonStyleSheet = "QToolButton {background: transparent; border: none; padding: 5px} QToolButton:hover {background: palette(midlight)} QToolButton:pressed {background: palette(mid)}";
     } else {
+#ifndef Q_OS_WINDOWS
         toolButtonStyleSheet = "QToolButton {background: transparent; border: none; padding: 5px} QToolButton:hover {background: palette(dark)} QToolButton:pressed {background: palette(mid)}";
+#else
+        toolButtonStyleSheet = "QToolButton {padding: 5px}";
+#endif
     }
     ui->ssNavTBHolder->setStyleSheet(toolButtonStyleSheet);
 

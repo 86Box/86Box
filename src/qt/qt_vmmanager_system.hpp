@@ -84,7 +84,7 @@ public:
 
     ~VMManagerSystem() override;
 
-    static QVector<VMManagerSystem *> scanForConfigs(const QString &searchPath = {});
+    static QVector<VMManagerSystem *> scanForConfigs(QWidget* parent = nullptr, const QString &searchPath = {});
     static QString generateTemporaryFilename();
 
     QFileInfo   config_file;

@@ -54,7 +54,7 @@ public:
 
     [[nodiscard]] VMManagerSystem * getConfigObjectForIndex(const QModelIndex &index) const;
     QModelIndex getIndexForConfigFile(const QFileInfo& config_file);
-    void reload();
+    void reload(QWidget* parent = nullptr);
     void updateDisplayName(const QModelIndex &index, const QString &newDisplayName);
     QHash <QString, int> getProcessStats();
 signals:

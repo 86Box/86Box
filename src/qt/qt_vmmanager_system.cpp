@@ -107,9 +107,9 @@ VMManagerSystem::~VMManagerSystem() {
 }
 
 QVector<VMManagerSystem *>
-VMManagerSystem::scanForConfigs(const QString &searchPath)
+VMManagerSystem::scanForConfigs(QWidget* parent, const QString &searchPath)
 {
-    QProgressDialog progDialog;
+    QProgressDialog progDialog(parent);
     unsigned int found = 0;
     progDialog.setCancelButton(nullptr);
     progDialog.setWindowTitle(tr("Searching for VMs..."));

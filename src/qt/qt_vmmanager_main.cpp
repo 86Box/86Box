@@ -390,7 +390,7 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
                     return;
                 }
                 const auto current_index = ui->listView->currentIndex();
-                vm_model->reload();
+                vm_model->reload(this);
                 const auto created_object = vm_model->getIndexForConfigFile(new_system->config_file);
                 if (created_object.row() < 0) {
                     // For some reason the index of the new object couldn't be determined. Fall back to the old index.
