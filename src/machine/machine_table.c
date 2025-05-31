@@ -66,6 +66,7 @@ extern const device_t vendex_device;
 extern const device_t c5sbm2_device;
 extern const device_t sb486pv_device;
 extern const device_t ap5s_device;
+extern const device_t d858_device;
 extern const device_t d943_device;
 extern const device_t dells333sl_device;
 
@@ -10749,6 +10750,47 @@ const machine_t machines[] = {
         .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
+        .net_device = NULL
+    },
+/* Uses the amstrad_megapc_nvr_device because otherwise the Rev. 2.00.858 BIOS would hang
+at soft reset. */
+    {
+        .name = "[i430FX] Siemens-Nixdorf D858",
+        .internal_name = "d858",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_d858_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_GAMEPORT | MACHINE_SOUND | MACHINE_APM,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = &d858_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = &sb_vibra16s_onboard_device,
         .net_device = NULL
     },
     /* KBC On-Chip the VT82C406MV. */
