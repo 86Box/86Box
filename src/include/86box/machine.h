@@ -675,6 +675,7 @@ extern int machine_at_optiplexgxl_init(const machine_t *);
 extern int machine_at_zappa_init(const machine_t *);
 extern int machine_at_powermatev_init(const machine_t *);
 extern int machine_at_hawk_init(const machine_t *);
+extern int machine_at_d858_init(const machine_t *);
 extern int machine_at_pt2000_init(const machine_t *);
 
 extern int machine_at_pat54pv_init(const machine_t *);
