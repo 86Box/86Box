@@ -72,6 +72,7 @@ VMManagerDetailSection(const QString &sectionName)
     ui->collapseButtonHolder->layout()->addItem(hSpacer);
     // collapseButton->setContent(frame);
     // ui->sectionName->setVisible(false);
+    setVisible(false);
 }
 
 VMManagerDetailSection::
@@ -227,11 +228,14 @@ VMManagerDetailSection::setSections()
         }
     }
     collapseButton->setContent(ui->detailFrame);
+    if (sections.size())
+        setVisible(true);
 }
 void
 VMManagerDetailSection::clear()
 {
     sections.clear();
+    setVisible(false);
 }
 
 // QT for Linux and Windows doesn't have the same default margins as QT on MacOS.

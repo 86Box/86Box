@@ -114,18 +114,24 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     startPauseButton = new QToolButton();
     startPauseButton->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
     startPauseButton->setAutoRaise(true);
+    startPauseButton->setEnabled(false);
     ui->toolButtonHolder->setStyleSheet(toolButtonStyleSheet);
     resetButton = new QToolButton();
     resetButton->setIcon(QIcon(":/menuicons/qt/icons/hard_reset.ico"));
+    resetButton->setEnabled(false);
     stopButton = new QToolButton();
     stopButton->setIcon(QIcon(":/menuicons/qt/icons/acpi_shutdown.ico"));
+    stopButton->setEnabled(false);
     configureButton = new QToolButton();
     configureButton->setIcon(QIcon(":/menuicons/qt/icons/settings.ico"));
+    configureButton->setEnabled(false);
 
     ui->toolButtonHolder->layout()->addWidget(configureButton);
     ui->toolButtonHolder->layout()->addWidget(resetButton);
     ui->toolButtonHolder->layout()->addWidget(stopButton);
     ui->toolButtonHolder->layout()->addWidget(startPauseButton);
+
+    ui->notesTextEdit->setEnabled(false);
 
     sysconfig = new VMManagerSystem();
 }
@@ -175,6 +181,8 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
         startPauseButton->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
         connect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::startButtonPressed);
     }
+    startPauseButton->setEnabled(true);
+    configureButton->setEnabled(true);
 
     // Each detail section here has its own VMManagerDetailSection.
     // When a system is selected in the list view it is updated here, through this object:
@@ -237,6 +245,9 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
             ui->screenshotNextTB->setEnabled(true);
             ui->screenshotPreviousTB->setEnabled(true);
         }
+#ifdef Q_OS_WINDOWS
+        ui->screenshot->setStyleSheet("");
+#endif
         if(QFileInfo::exists(screenshots.last().filePath())) {
             screenshotIndex = screenshots.size() - 1;
             const QPixmap pic(screenshots.at(screenshotIndex).filePath());
@@ -253,6 +264,13 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
         ui->screenshot->setText(tr("No screenshot"));
         ui->screenshot->setEnabled(false);
         ui->screenshot->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+#ifdef Q_OS_WINDOWS
+        if (!windows_is_light_theme()) {
+            ui->screenshot->setStyleSheet("QLabel { border: 1px solid gray }");
+        } else {
+            ui->screenshot->setStyleSheet("");
+        }
+#endif
     }
 
     ui->systemLabel->setText(passed_sysconfig->displayName);
@@ -260,6 +278,7 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
         tr("Not running") :
         QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())));
     ui->notesTextEdit->setPlainText(passed_sysconfig->notes);
+    ui->notesTextEdit->setEnabled(true);
 
     disconnect(sysconfig->process, &QProcess::stateChanged, this, &VMManagerDetails::updateProcessStatus);
     connect(sysconfig->process, &QProcess::stateChanged, this, &VMManagerDetails::updateProcessStatus);
