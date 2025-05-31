@@ -613,6 +613,91 @@ machine_at_8500tuc_init(const machine_t *model)
 }
 
 int
+machine_at_d943_init(const machine_t *model)
+
+{
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios_versions"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+	
+	machine_at_common_init_ex(model, 2);
+	device_add(&amstrad_megapc_nvr_device);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 	  0, 0, 0, 0);
+	pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 	  0, 0, 0, 0);
+	pci_register_slot(0x08, PCI_CARD_VIDEO,	  	      4, 0, 0, 0);
+	pci_register_slot(0x11, PCI_CARD_NORMAL,          3, 2, 4, 1);
+	pci_register_slot(0x12, PCI_CARD_NORMAL,	      2, 1, 3, 4);
+	pci_register_slot(0x13, PCI_CARD_NORMAL,     	  1, 3, 2, 4);
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&fdc37c665_device);
+    device_add(&intel_flash_bxt_device);
+	spd_register(SPD_TYPE_EDO, 0x7, 256);
+	
+	
+	if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+static const device_config_t d943_config[] = {
+    // clang-format off
+    {
+        .name = "bios_versions",
+        .description = "BIOS Versions",
+        .type = CONFIG_BIOS,
+        .default_string = "d943_oct96",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 }, /*W1*/
+        .bios = {
+            { .name = "Version 4.05 Revision 1.02.943 (10/28/1996)", .internal_name = "d943_oct96", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_oct96.bin", "" } },
+            { .name = "Version 4.05 Revision 1.03.943 (12/12/1996)", .internal_name = "d943_dec96", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_dec96.bin", "" } },
+			{ .name = "Version 4.05 Revision 1.05.943 (09/04/1997)", .internal_name = "d943_sept97", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_sept97.bin", "" } },
+            { .name = "Version 4.05 Revision 1.06.943 (10/29/1997)", .internal_name = "d943_oct97", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_oct97.bin", "" } },
+            
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+
+
+const device_t d943_device = {
+    .name          = "Siemens-Nixdorf D943",
+    .internal_name = "d943",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = &d943_config[0]
+};
+
+int
 machine_at_p55t2s_init(const machine_t *model)
 {
     int ret;
