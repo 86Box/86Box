@@ -64,7 +64,11 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             contextMenu.addAction(&openSystemFolderAction);
             connect(&openSystemFolderAction, &QAction::triggered, [this, indexAt] {
                 if (const auto configDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString(); !configDir.isEmpty()) {
-                    QDesktopServices::openUrl(QUrl(QString("file:///") + configDir));
+                    QDir dir(configDir);
+                    if (!dir.exists())
+                        dir.mkpath(".");
+                    
+                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
                 }
             });
 
