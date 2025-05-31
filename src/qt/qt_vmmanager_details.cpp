@@ -115,16 +115,20 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     startPauseButton->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
     startPauseButton->setAutoRaise(true);
     startPauseButton->setEnabled(false);
+    startPauseButton->setToolTip(tr("Start"));
     ui->toolButtonHolder->setStyleSheet(toolButtonStyleSheet);
     resetButton = new QToolButton();
     resetButton->setIcon(QIcon(":/menuicons/qt/icons/hard_reset.ico"));
     resetButton->setEnabled(false);
+    resetButton->setToolTip(tr("Hard reset"));
     stopButton = new QToolButton();
     stopButton->setIcon(QIcon(":/menuicons/qt/icons/acpi_shutdown.ico"));
     stopButton->setEnabled(false);
+    stopButton->setToolTip(tr("Force shutdown"));
     configureButton = new QToolButton();
     configureButton->setIcon(QIcon(":/menuicons/qt/icons/settings.ico"));
     configureButton->setEnabled(false);
+    configureButton->setToolTip(tr("Settings..."));
 
     ui->toolButtonHolder->layout()->addWidget(configureButton);
     ui->toolButtonHolder->layout()->addWidget(resetButton);
@@ -305,8 +309,10 @@ VMManagerDetails::updateProcessStatus() {
     if(running) {
         if(sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running) {
             startPauseButton->setIcon(QIcon(":/menuicons/qt/icons/pause.ico"));
+            startPauseButton->setToolTip(tr("Pause"));
         } else {
             startPauseButton->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
+            startPauseButton->setToolTip(tr("Continue"));
         }
 
         disconnect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::pauseButtonPressed);
@@ -317,6 +323,7 @@ VMManagerDetails::updateProcessStatus() {
         disconnect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::pauseButtonPressed);
         disconnect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::startButtonPressed);
         connect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::startButtonPressed);
+        startPauseButton->setToolTip(tr("Start"));
     }
 }
 
