@@ -95,10 +95,10 @@ VMManagerModel::getConfigObjectForIndex(const QModelIndex &index) const
     return machines.at(index.row());
 }
 void
-VMManagerModel::reload()
+VMManagerModel::reload(QWidget* parent)
 {
     // Scan for configs
-    auto machines_vec = VMManagerSystem::scanForConfigs();
+    auto machines_vec = VMManagerSystem::scanForConfigs(parent);
     for (const auto &scanned_config : machines_vec) {
         int found = 0;
         for (const auto &existing_config : machines) {

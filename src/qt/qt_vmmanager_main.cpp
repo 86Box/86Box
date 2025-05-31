@@ -64,7 +64,11 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             contextMenu.addAction(&openSystemFolderAction);
             connect(&openSystemFolderAction, &QAction::triggered, [this, indexAt] {
                 if (const auto configDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString(); !configDir.isEmpty()) {
-                    QDesktopServices::openUrl(QUrl(QString("file:///") + configDir));
+                    QDir dir(configDir);
+                    if (!dir.exists())
+                        dir.mkpath(".");
+                    
+                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
                 }
             });
 
@@ -386,7 +390,7 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
                     return;
                 }
                 const auto current_index = ui->listView->currentIndex();
-                vm_model->reload();
+                vm_model->reload(this);
                 const auto created_object = vm_model->getIndexForConfigFile(new_system->config_file);
                 if (created_object.row() < 0) {
                     // For some reason the index of the new object couldn't be determined. Fall back to the old index.
