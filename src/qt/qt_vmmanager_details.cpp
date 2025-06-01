@@ -129,11 +129,16 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     configureButton->setIcon(QIcon(":/menuicons/qt/icons/settings.ico"));
     configureButton->setEnabled(false);
     configureButton->setToolTip(tr("Settings..."));
+    cadButton = new QToolButton();
+    cadButton->setIcon(QIcon(":menuicons/qt/icons/send_cad.ico"));
+    cadButton->setEnabled(false);
+    cadButton->setToolTip(tr("Ctrl+Alt+Del"));
 
     ui->toolButtonHolder->layout()->addWidget(configureButton);
     ui->toolButtonHolder->layout()->addWidget(resetButton);
     ui->toolButtonHolder->layout()->addWidget(stopButton);
     ui->toolButtonHolder->layout()->addWidget(startPauseButton);
+    ui->toolButtonHolder->layout()->addWidget(cadButton);
 
     ui->notesTextEdit->setEnabled(false);
 
@@ -170,11 +175,14 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
     disconnect(resetButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::restartButtonPressed);
     disconnect(stopButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::shutdownForceButtonPressed);
     disconnect(configureButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::launchSettings);
+    disconnect(cadButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::cadButtonPressed);
 
     sysconfig = passed_sysconfig;
     connect(resetButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::restartButtonPressed);
     connect(stopButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::shutdownForceButtonPressed);
     connect(configureButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::launchSettings);
+    connect(cadButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::cadButtonPressed);
+    cadButton->setEnabled(true);
 
     bool running = sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running ||
         sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::RunningWaiting;
@@ -306,6 +314,7 @@ VMManagerDetails::updateProcessStatus() {
     ui->statusLabel->setText(status_text);
     resetButton->setEnabled(running);
     stopButton->setEnabled(running);
+    cadButton->setEnabled(running);
     if(running) {
         if(sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running) {
             startPauseButton->setIcon(QIcon(":/menuicons/qt/icons/pause.ico"));

@@ -65,6 +65,7 @@ private:
     QToolButton *resetButton;
     QToolButton *stopButton;
     QToolButton *configureButton;
+    QToolButton *cadButton;
 
     static QWidget* createHorizontalLine(int leftSpacing = 25, int rightSpacing = 25);
     // QVBoxLayout *detailsLayout;

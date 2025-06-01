@@ -813,16 +813,25 @@ VMManagerSystem::getDisplayValue(Display::Name key)
 {
     return (display_table.contains(key)) ? display_table[key] : "";
 }
+
 void
 VMManagerSystem::shutdownRequestButtonPressed()
 {
     socket_server->serverSendMessage(VMManagerProtocol::ManagerMessage::RequestShutdown);
 }
+
 void
 VMManagerSystem::shutdownForceButtonPressed()
 {
     socket_server->serverSendMessage(VMManagerProtocol::ManagerMessage::ForceShutdown);
 }
+
+void
+VMManagerSystem::cadButtonPressed()
+{
+    socket_server->serverSendMessage(VMManagerProtocol::ManagerMessage::CtrlAltDel);
+}
+
 void
 VMManagerSystem::processStatusChanged()
 {

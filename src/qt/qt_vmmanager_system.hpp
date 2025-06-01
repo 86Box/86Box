@@ -109,6 +109,7 @@ public:
     [[nodiscard]] bool isValid() const;
     [[nodiscard]] bool isProcessRunning() const;
     [[nodiscard]] qint64 processId() const;
+public slots:
     void launchMainProcess();
     void launchSettings();
     void startButtonPressed();
@@ -116,7 +117,9 @@ public:
     void pauseButtonPressed();
     void shutdownRequestButtonPressed();
     void shutdownForceButtonPressed();
+    void cadButtonPressed();
     void reloadConfig();
+public:
     QDateTime timestamp();
     void setIcon(const QString &newIcon);
 
