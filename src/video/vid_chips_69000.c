@@ -1268,15 +1268,15 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
         if (chips->bitblt_running.bytes_per_pixel == 3) {
             pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
                                                         + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
-                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)), chips);
+                                                        + (3 * ((((chips->bitblt_running.bitblt.destination_addr / 3) & 7) + chips->bitblt_running.x) & 7)), chips);
 
             pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
                                                         + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
-                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 1, chips) << 8;
+                                                        + (3 * ((((chips->bitblt_running.bitblt.destination_addr / 3) & 7) + chips->bitblt_running.x) & 7)) + 1, chips) << 8;
 
             pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
                                                         + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
-                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 2, chips) << 16;
+                                                        + (3 * ((((chips->bitblt_running.bitblt.destination_addr / 3) & 7) + chips->bitblt_running.x) & 7)) + 2, chips) << 16;
         }
     }
     if (chips->bitblt_running.bytes_per_pixel == 2) {
@@ -2785,7 +2785,7 @@ chips_69000_disable_handlers(chips_69000_t *chips)
     mem_mapping_disable(&chips->svga.mapping);
     if (!chips->on_board)
         mem_mapping_disable(&chips->bios_rom.mapping);
-    
+
     chips->linear_mapping.base = 0;
 
     /* Save all the mappings and the timers because they are part of linked lists. */
