@@ -294,6 +294,15 @@ typedef struct nv3_color_and_coord_16_s
     nv3_coord_16_t points;
 } nv3_color_and_coord_16_t;
 
+/* "UTRI" type triangle */
+typedef struct nv3_utri_s 
+{
+    uint32_t color;                             // use nv3_color_expanded_t but changed for alignment reasons
+    nv3_coord_16_t point0;
+    nv3_coord_16_t point1;
+    nv3_coord_16_t point2;
+} nv3_utri_t;
+
 /* Generic 16-bit clip region */
 typedef struct nv3_clip_16_s
 {
@@ -322,35 +331,10 @@ typedef struct nv3_object_class_001
 {
     nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
     uint32_t set_notify;
-    uint8_t set_beta_factor_1d31;   // 31:31 (?) value, 30:21 fraction
+    uint32_t set_beta_factor_1d31;                       // 31:31 (?) value, 30:21 fraction
     // Put the rest of it here
 } nv3_beta_factor_t;
 
-/* Note: This is not used in the class, there are "special" rops that do certain things. So they need to be defined for code readability. It all gets optimised away
-by the compiler anyway */
-typedef enum nv3_render_operation_type_e
-{
-    // Black
-    nv3_rop_blackness = 0x00,
-    // dst = !src 
-    nv3_rop_dstinvert = 0x55,
-    // pattern invert
-    nv3_rop_patinvert = 0x5A,
-    // src ^ dst
-    nv3_rop_xor = 0x66,
-    // src & dst
-    nv3_rop_srcand = 0x88,
-    // dst = src (?)
-    nv3_rop_dstcopy = 0xAA,
-    // src = dst (?)
-    nv3_rop_srccopy = 0xCC,
-    // paint source
-    nv3_rop_srcpaint = 0xEE,
-    // pattern copy
-    nv3_rop_patcopy = 0xF0,
-    // White
-    nv3_rop_whiteness = 0xFF,
-} nv3_render_operation_type; 
 /* 
     Object class 0x02 (real hardware)
     0x14/0x43 (drivers)
@@ -359,9 +343,9 @@ typedef enum nv3_render_operation_type_e
 */
 typedef struct nv3_object_class_002
 {
-    nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint32_t set_notify;            // Set notifier
-    uint8_t rop;                    // ROP3 (ID = ????????)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;   // Set notifier context for DMA (context switch)
+    uint32_t set_notify;                                // Set notifier
+    uint8_t rop;                                        // ROP3 (ID = ????????)
 } nv3_render_operation_t;
 
 /* 
@@ -372,9 +356,9 @@ typedef struct nv3_object_class_002
 */
 typedef struct nv3_object_class_003
 {
-    nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint32_t set_notify;            // Set notifier
-    uint8_t color;                  // ROP3 (ID = ????????)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;   // Set notifier context for DMA (context switch)
+    uint32_t set_notify;                                // Set notifier
+    uint32_t color;                                     // ROP3 (ID = ????????)
 } nv3_chroma_key_t;
 
 /* 
@@ -385,9 +369,9 @@ typedef struct nv3_object_class_003
 */
 typedef struct nv3_object_class_004
 {
-    nv3_class_ctx_switch_method_t set_notify_ctx_dma;    // Set notifier context for DMA (context switch)
-    uint32_t set_notify;            // Set notifier
-    uint8_t color;                  // ROP3 (ID = ????????)
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;   // Set notifier context for DMA (context switch)
+    uint32_t set_notify;                                // Set notifier
+    uint32_t color;                                     // Plane mask
 } nv3_plane_mask_t;
 
 /* 
@@ -533,9 +517,9 @@ typedef struct nv3_object_class_00A
 */
 typedef struct nv3_object_class_00B
 {
-    nv3_class_ctx_switch_method_t set_notify_ctx_dma;                    // Set notifier context for DMA (context switch)
-    uint32_t set_notify;                            // Set notifier
-    nv3_color_expanded_t color;                                 // argb?
+    nv3_class_ctx_switch_method_t set_notify_ctx_dma;               // Set notifier context for DMA (context switch)
+    uint32_t set_notify;                                            // Set notifier
+    nv3_color_expanded_t color;                                     // argb?
     // The points of the triangle.
     nv3_coord_16_t points[3];
 
@@ -544,13 +528,14 @@ typedef struct nv3_object_class_00B
     uint32_t y0;
     uint32_t x1;
     uint32_t y1;
-    uint32_t y2;
-    uint32_t x2; 
+    uint32_t x2;
+    uint32_t y2; 
 
-    nv3_coord_16_t mesh[32];                     // Some kind of mesh format. I guess a list of vertex positions?
-    nv3_coord_32_t mesh32[16];               
-    nv3_color_and_coord_16_t ctriangle[3];       // Triangle with colour
-    nv3_color_and_coord_16_t ctrimesh[16];       // Some kind of mesh format. I guess a list of vertex positions? with colours
+    nv3_coord_16_t mesh[32];                                        // Some kind of mesh format. I guess a list of vertex positions?
+    nv3_coord_32_t mesh32[16];                                      // Mesh with 32-bit format
+    nv3_utri_t ctriangle[8];                                        // Triangles with colour
+    nv3_color_and_coord_16_t ctrimesh[16];                          // Some kind of mesh format. I guess a list of vertex positions? with colours
+    
 } nv3_triangle_t;
 
 /* 
@@ -834,13 +819,13 @@ typedef enum nv3_d3d5_texture_size_e
 
     nv3_d3d5_texture_size_128x128 = 7,
 
-    // Highest size supported natively by hardware?
     nv3_d3d5_texture_size_256x256 = 8,
 
     nv3_d3d5_texture_size_512x512 = 9,
 
     nv3_d3d5_texture_size_1024x1024 = 10,
 
+    // Kind of infeasible considering hardware VRAM size limitations
     nv3_d3d5_texture_size_2048x2048 = 11,
 
     

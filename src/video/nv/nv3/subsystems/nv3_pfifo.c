@@ -48,8 +48,8 @@ nv_register_t pfifo_registers[] = {
     { NV3_PFIFO_CACHE0_PULLER_CTX_STATE, "PFIFO - Cache0 Puller State1 (Is context clean?)", NULL, NULL},
     { NV3_PFIFO_CACHE1_PULL0, "PFIFO - Cache1 Puller State0", NULL, NULL},
     { NV3_PFIFO_CACHE1_PULLER_CTX_STATE, "PFIFO - Cache1 Puller State1 (Is context clean?)", NULL, NULL},
-    { NV3_PFIFO_CACHE0_PUSH0, "PFIFO - Cache0 Access", NULL, NULL, },
-    { NV3_PFIFO_CACHE1_PUSH0, "PFIFO - Cache1 Access", NULL, NULL, },
+    { NV3_PFIFO_CACHE0_ENABLED, "PFIFO - Cache0 Access", NULL, NULL, },
+    { NV3_PFIFO_CACHE1_ENABLED, "PFIFO - Cache1 Access", NULL, NULL, },
     { NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID, "PFIFO - Cache0 Push Channel ID", NULL, NULL, },
     { NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID, "PFIFO - Cache1 Push Channel ID", NULL, NULL, },
     { NV3_PFIFO_CACHE0_ERROR_PENDING, "PFIFO - Cache0 DMA Error Pending?", NULL, NULL, },
@@ -160,10 +160,10 @@ uint32_t nv3_pfifo_read(uint32_t address)
                     ret = (nv3->pfifo.cache0_settings.context_is_dirty) ? (1 << NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY) : 0;
                     break;
                 /* Does this automatically push? */
-                case NV3_PFIFO_CACHE0_PUSH0:
+                case NV3_PFIFO_CACHE0_ENABLED:
                     ret = nv3->pfifo.cache0_settings.push0;
                     break;
-                case NV3_PFIFO_CACHE1_PUSH0:
+                case NV3_PFIFO_CACHE1_ENABLED:
                     ret = nv3->pfifo.cache1_settings.push0;
                     break; 
                 case NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID:
@@ -509,10 +509,10 @@ void nv3_pfifo_write(uint32_t address, uint32_t val)
                 case NV3_PFIFO_CACHE1_PULLER_CTX_STATE:
                     nv3->pfifo.cache1_settings.context_is_dirty = (val >> NV3_PFIFO_CACHE0_PULLER_CTX_STATE_DIRTY) & 0x01;
                     break;
-                case NV3_PFIFO_CACHE0_PUSH0:
+                case NV3_PFIFO_CACHE0_ENABLED:
                     nv3->pfifo.cache0_settings.push0 = val;
                     break;
-                case NV3_PFIFO_CACHE1_PUSH0:
+                case NV3_PFIFO_CACHE1_ENABLED:
                     nv3->pfifo.cache1_settings.push0 = val;
                     break; 
                 case NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID:

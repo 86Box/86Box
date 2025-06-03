@@ -269,7 +269,7 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_PFIFO_CACHE1_SIZE_MAX                       NV3_PFIFO_CACHE1_SIZE_REV_C
 #define NV3_PFIFO_CACHE_REASSIGNMENT                    0x2500        
 
-#define NV3_PFIFO_CACHE0_PUSH0                          0x3000
+#define NV3_PFIFO_CACHE0_PUSH_ENABLED                   0x3000
 #define NV3_PFIFO_CACHE0_PUSH_CHANNEL_ID                0x3004
 #define NV3_PFIFO_CACHE0_PUT                            0x3010
 #define NV3_PFIFO_CACHE0_STATUS                         0x3014
@@ -291,7 +291,7 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_PFIFO_CACHE0_METHOD_END                     0x3200
 #define NV3_PFIFO_CACHE0_METHOD_ADDRESS                 2           // 12:2
 #define NV3_PFIFO_CACHE0_METHOD_SUBCHANNEL              13          // 15:13
-#define NV3_PFIFO_CACHE1_PUSH0                          0x3200
+#define NV3_PFIFO_CACHE1_PUSH_ENABLED                   0x3200
 #define NV3_PFIFO_CACHE1_PUSH_CHANNEL_ID                0x3204
 #define NV3_PFIFO_CACHE1_PUT                            0x3210
 #define NV3_PFIFO_CACHE1_PUT_ADDRESS                    2           // 6:2
