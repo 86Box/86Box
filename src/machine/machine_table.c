@@ -2378,7 +2378,7 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
-        .name = "[8086] Olivetti M21/24/24SP",
+        .name = "[8086] Olivetti M21/24/24SP/AT&T PC 6300",
         .internal_name = "m24",
         .type = MACHINE_TYPE_8086,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
@@ -2418,7 +2418,7 @@ const machine_t machines[] = {
     },
     /* Has Olivetti KBC firmware. */
     {
-        .name = "[8086] Olivetti M240",
+        .name = "[8086] Olivetti M240/AT&T PC 6300 WGS",
         .internal_name = "m240",
         .type = MACHINE_TYPE_8086,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
