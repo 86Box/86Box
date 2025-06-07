@@ -148,6 +148,8 @@ typedef struct ega_t {
       card should not attempt to display anything. */
     void       (*render_override)(void *priv);
     void *     priv_parent;
+
+    uint8_t    alt_addr; /* 0 for 0x3XX range, 1 for 0x2XX range */
 } ega_t;
 #endif
 
