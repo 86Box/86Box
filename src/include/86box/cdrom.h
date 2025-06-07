@@ -106,10 +106,10 @@ enum {
 #define CDV                         EMU_VERSION_EX
 
 static const struct cdrom_drive_types_s {
-    const char *  vendor;
-    const char *  model;
-    const char *  revision;
-    const char *  internal_name;
+    const char   *vendor;
+    const char   *model;
+    const char   *revision;
+    const char   *internal_name;
     const int     bus_type;
     /* SCSI standard for SCSI (or both) devices, early for IDE. */
     const int     scsi_std;
@@ -296,7 +296,7 @@ typedef struct cdrom {
     uint8_t            speed;
     uint8_t            cur_speed;
 
-    void *             priv;
+    void              *priv;
 
     char               image_path[1024];
     char               prev_image_path[1280];
@@ -322,10 +322,10 @@ typedef struct cdrom {
 
     const cdrom_ops_t *ops;
 
-    char *             image_history[CD_IMAGE_HISTORY];
+    char              *image_history[CD_IMAGE_HISTORY];
 
-    void *             local;
-    void *             log;
+    void              *local;
+    void              *log;
 
     void               (*insert)(void *priv);
     void               (*close)(void *priv);
