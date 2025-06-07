@@ -930,6 +930,23 @@ machine_at_portableii_init(const machine_t *model)
 }
 
 int
+machine_at_tulip_tc7_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleavedr("roms/machines/tulip_tc7/tc7be.bin",
+                                 "roms/machines/tulip_tc7/tc7b0.bin",
+                                 0x000f8000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_compaq_init(model, COMPAQ_PORTABLEII);
+
+    return ret;
+}
+
+int
 machine_at_portableiii_init(const machine_t *model)
 {
     int ret;
