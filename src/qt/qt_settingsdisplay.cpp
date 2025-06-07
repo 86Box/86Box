@@ -171,7 +171,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    static QRegularExpression voodooRegex("3dfx|voodoo|banshee", QRegularExpression::CaseInsensitiveOption);
+    static QRegularExpression voodooRegex("3dfx|voodoo|banshee|raven", QRegularExpression::CaseInsensitiveOption);
     auto curVideoCard_2 = videoCard[1];
     videoCard[0] = ui->comboBoxVideo->currentData().toInt();
     if (videoCard[0] == VID_INTERNAL)
