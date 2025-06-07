@@ -49,9 +49,8 @@ static void
 normalize_hd_list()
 {
     hard_disk_t ihdd[HDD_NUM];
-    int j;
+    int j = 0;
 
-    j = 0;
     memset(ihdd, 0x00, HDD_NUM * sizeof(hard_disk_t));
 
     for (uint8_t i = 0; i < HDD_NUM; i++) {
@@ -75,8 +74,8 @@ static void
 addRow(QAbstractItemModel *model, hard_disk_t *hd)
 {
     const QString userPath = usr_path;
-
     int row = model->rowCount();
+
     model->insertRow(row);
 
     QString busName = Harddrives::BusChannelName(hd->bus_type, hd->channel);
@@ -88,11 +87,11 @@ addRow(QAbstractItemModel *model, hard_disk_t *hd)
     model->setData(model->index(row, ColumnBus), hd->channel, DataBusChannelPrevious);
     Harddrives::busTrackClass->device_track(1, DEV_HDD, hd->bus_type, hd->channel);
     QString fileName = hd->fn;
-    if (fileName.startsWith(userPath, Qt::CaseInsensitive)) {
+    if (fileName.startsWith(userPath, Qt::CaseInsensitive))
         model->setData(model->index(row, ColumnFilename), fileName.mid(userPath.size()));
-    } else {
+    else
         model->setData(model->index(row, ColumnFilename), fileName);
-    }
+
     model->setData(model->index(row, ColumnFilename), fileName, Qt::UserRole);
 
     model->setData(model->index(row, ColumnCylinders), hd->tracks);
@@ -120,9 +119,8 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
     ui->tableView->setModel(model);
 
     for (int i = 0; i < HDD_NUM; i++) {
-        if (hdd[i].bus_type > 0) {
+        if (hdd[i].bus_type > 0)
             addRow(model, &hdd[i]);
-        }
     }
     if (model->rowCount() == HDD_NUM) {
         ui->pushButtonNew->setEnabled(false);
@@ -176,9 +174,8 @@ void SettingsHarddisks::reloadBusChannels() {
 void
 SettingsHarddisks::on_comboBoxBus_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
 
     buschangeinprogress = true;
     auto idx            = ui->tableView->selectionModel()->currentIndex();
@@ -226,9 +223,8 @@ SettingsHarddisks::on_comboBoxBus_currentIndexChanged(int index)
 void
 SettingsHarddisks::on_comboBoxChannel_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
 
     auto idx = ui->tableView->selectionModel()->currentIndex();
     if (idx.isValid()) {
@@ -250,17 +246,15 @@ SettingsHarddisks::enableCurrentlySelectedChannel()
     const auto *item_model = qobject_cast<QStandardItemModel*>(ui->comboBoxChannel->model());
     const auto index = ui->comboBoxChannel->currentIndex();
     auto *item = item_model->item(index);
-    if(item) {
+    if(item)
         item->setEnabled(true);
-    }
 }
 
 void
 SettingsHarddisks::on_comboBoxSpeed_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
 
     auto idx = ui->tableView->selectionModel()->currentIndex();
     if (idx.isValid()) {
@@ -288,20 +282,19 @@ SettingsHarddisks::onTableRowChanged(const QModelIndex &current)
 
     auto *model = ui->comboBoxBus->model();
     auto  match = model->match(model->index(0, 0), Qt::UserRole, bus);
-    if (!match.isEmpty()) {
+    if (!match.isEmpty())
         ui->comboBoxBus->setCurrentIndex(match.first().row());
-    }
+
     model = ui->comboBoxChannel->model();
     match = model->match(model->index(0, 0), Qt::UserRole, busChannel);
-    if (!match.isEmpty()) {
+    if (!match.isEmpty())
         ui->comboBoxChannel->setCurrentIndex(match.first().row());
-    }
 
     model = ui->comboBoxSpeed->model();
     match = model->match(model->index(0, 0), Qt::UserRole, speed);
-    if (!match.isEmpty()) {
+    if (!match.isEmpty())
         ui->comboBoxSpeed->setCurrentIndex(match.first().row());
-    }
+
     reloadBusChannels();
 }
 
@@ -358,11 +351,10 @@ void
 SettingsHarddisks::on_pushButtonRemove_clicked()
 {
     auto idx = ui->tableView->selectionModel()->currentIndex();
-    if (!idx.isValid()) {
+    if (!idx.isValid())
         return;
-    }
 
-    auto *model = ui->tableView->model();
+    auto       *model = ui->tableView->model();
     const auto  col   = idx.siblingAtColumn(ColumnBus);
     Harddrives::busTrackClass->device_track(0, DEV_HDD, model->data(col, DataBus).toInt(), model->data(col, DataBusChannel).toInt());
     model->removeRow(idx.row());

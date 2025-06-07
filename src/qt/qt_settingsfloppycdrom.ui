@@ -27,7 +27,7 @@
     <number>0</number>
    </property>
    <item>
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="labelFloppy">
      <property name="text">
       <string>Floppy drives:</string>
      </property>
@@ -68,7 +68,7 @@
     <widget class="QWidget" name="floppyControls" native="true">
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <widget class="QLabel" name="label_2">
+       <widget class="QLabel" name="labelFloppyType">
         <property name="text">
          <string>Type:</string>
         </property>
@@ -99,7 +99,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="label_6">
+    <widget class="QLabel" name="labelCDROM">
      <property name="text">
       <string>CD-ROM drives:</string>
      </property>
@@ -140,30 +140,9 @@
     <widget class="QWidget" name="cdControls" native="true">
      <layout class="QGridLayout" name="gridLayout">
       <item row="0" column="0">
-       <widget class="QLabel" name="label_3">
+       <widget class="QLabel" name="labelBus">
         <property name="text">
          <string>Bus:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="label_7">
-        <property name="text">
-         <string>Channel:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Speed:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>Type:</string>
         </property>
        </widget>
       </item>
@@ -174,6 +153,13 @@
         </property>
        </widget>
       </item>
+      <item row="0" column="2">
+       <widget class="QLabel" name="labelChannel">
+        <property name="text">
+         <string>Channel:</string>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="3">
        <widget class="QComboBox" name="comboBoxChannel">
         <property name="maxVisibleItems">
@@ -181,10 +167,24 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelSpeed">
+        <property name="text">
+         <string>Speed:</string>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="1">
        <widget class="QComboBox" name="comboBoxSpeed">
         <property name="maxVisibleItems">
          <number>30</number>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="labelCDROMType">
+        <property name="text">
+         <string>Type:</string>
         </property>
        </widget>
       </item>

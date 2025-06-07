@@ -29,13 +29,20 @@
    <item>
     <layout class="QGridLayout" name="gridLayout">
      <item row="0" column="0">
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="labelFD">
        <property name="text">
-        <string>HD Controller:</string>
+        <string>FD Controller:</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="2">
+     <item row="0" column="1">
+      <widget class="QComboBox" name="comboBoxFD">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="2">
       <widget class="QPushButton" name="pushButtonFD">
        <property name="text">
         <string>Configure</string>
@@ -43,14 +50,34 @@
       </widget>
      </item>
      <item row="1" column="0">
-      <widget class="QLabel" name="label_2">
+      <widget class="QLabel" name="labelHD">
        <property name="text">
-        <string>FD Controller:</string>
+        <string>HD Controller:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="comboBoxHD">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QPushButton" name="pushButtonHD">
+       <property name="text">
+        <string>Configure</string>
        </property>
       </widget>
      </item>
      <item row="2" column="0">
-      <widget class="QLabel" name="label_7">
+      <widget class="QLabel" name="labelCDInterface">
        <property name="text">
         <string>CD-ROM Controller:</string>
        </property>
@@ -70,44 +97,10 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QComboBox" name="comboBoxHD">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="2">
-      <widget class="QPushButton" name="pushButtonHD">
-       <property name="text">
-        <string>Configure</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QComboBox" name="comboBoxFD">
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
-      </widget>
-     </item>
      <item row="3" column="0">
       <widget class="QCheckBox" name="checkBoxTertiaryIDE">
        <property name="text">
         <string>Tertiary IDE Controller</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="0">
-      <widget class="QCheckBox" name="checkBoxQuaternaryIDE">
-       <property name="text">
-        <string>Quaternary IDE Controller</string>
        </property>
       </widget>
      </item>
@@ -118,6 +111,13 @@
        </property>
        <property name="text">
         <string>Configure</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QCheckBox" name="checkBoxQuaternaryIDE">
+       <property name="text">
+        <string>Quaternary IDE Controller</string>
        </property>
       </widget>
      </item>
@@ -134,29 +134,15 @@
     </layout>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox">
+    <widget class="QGroupBox" name="groupBoxSCSI">
      <property name="title">
       <string>SCSI</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout_3">
-      <item row="1" column="3">
-       <widget class="QPushButton" name="pushButtonSCSI2">
+     <layout class="QGridLayout" name="gridLayoutSCSI">
+      <item row="0" column="0">
+       <widget class="QLabel" name="labelSCSI1">
         <property name="text">
-         <string>Configure</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="3">
-       <widget class="QPushButton" name="pushButtonSCSI4">
-        <property name="text">
-         <string>Configure</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_6">
-        <property name="text">
-         <string>Controller 3:</string>
+         <string>Controller 1:</string>
         </property>
        </widget>
       </item>
@@ -180,6 +166,13 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelSCSI2">
+        <property name="text">
+         <string>Controller 2:</string>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="2">
        <widget class="QComboBox" name="comboBoxSCSI2">
         <property name="sizePolicy">
@@ -190,6 +183,20 @@
         </property>
         <property name="maxVisibleItems">
          <number>30</number>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QPushButton" name="pushButtonSCSI2">
+        <property name="text">
+         <string>Configure</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="labelSCSI3">
+        <property name="text">
+         <string>Controller 3:</string>
         </property>
        </widget>
       </item>
@@ -206,6 +213,20 @@
         </property>
        </widget>
       </item>
+      <item row="2" column="3">
+       <widget class="QPushButton" name="pushButtonSCSI3">
+        <property name="text">
+         <string>Configure</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="labelSCSI4">
+        <property name="text">
+         <string>Controller 4:</string>
+        </property>
+       </widget>
+      </item>
       <item row="3" column="2">
        <widget class="QComboBox" name="comboBoxSCSI4">
         <property name="sizePolicy">
@@ -219,29 +240,8 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Controller 1:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Controller 2:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>Controller 4:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="3">
-       <widget class="QPushButton" name="pushButtonSCSI3">
+      <item row="3" column="3">
+       <widget class="QPushButton" name="pushButtonSCSI4">
         <property name="text">
          <string>Configure</string>
         </property>

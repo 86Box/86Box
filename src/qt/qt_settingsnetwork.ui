@@ -27,15 +27,29 @@
     <number>0</number>
    </property>
    <item>
-    <widget class="QTabWidget" name="tabWidget">
+    <widget class="QTabWidget" name="tabWidgetNet">
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="tab_1">
+
+     <widget class="QWidget" name="tabNet1">
       <attribute name="title">
        <string>Network Card #1</string>
       </attribute>
-      <layout class="QGridLayout" name="gridLayout_3">
+      <layout class="QGridLayout" name="gridLayoutNet1">
+       <item row="0" column="0">
+        <widget class="QLabel" name="labelMode1">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>Mode:</string>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="1">
         <widget class="QComboBox" name="comboBoxNet1">
          <property name="maxVisibleItems">
@@ -50,7 +64,7 @@
         </widget>
        </item>
        <item row="1" column="0">
-        <widget class="QLabel" name="label_7">
+        <widget class="QLabel" name="labelAdapter1">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -59,79 +73,6 @@
          </property>
          <property name="text">
           <string>Adapter:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="1">
-        <spacer name="verticalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Mode:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1" colspan="2">
-        <widget class="Line" name="optionListLine1">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="2">
-        <widget class="QPushButton" name="pushButtonConf1">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Configure</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="optionListLabel1">
-         <property name="text">
-          <string>Options</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="interfaceLabel1">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Interface:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="socketVDELabel1">
-         <property name="text">
-          <string>VDE Socket:</string>
          </property>
         </widget>
        </item>
@@ -151,10 +92,43 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="1">
-        <widget class="QLineEdit" name="socketVDENIC1">
-         <property name="maxLength">
-          <number>127</number>
+       <item row="1" column="2">
+        <widget class="QPushButton" name="pushButtonConf1">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>Configure</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="labelOptionList1">
+         <property name="text">
+          <string>Options</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1" colspan="2">
+        <widget class="Line" name="lineOptionList1">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="labelIntf1">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>Interface:</string>
          </property>
         </widget>
        </item>
@@ -168,15 +142,22 @@
          </property>
         </widget>
        </item>
-      </layout>
-     </widget>
-     <widget class="QWidget" name="tab_2">
-      <attribute name="title">
-       <string>Network Card #2</string>
-      </attribute>
-      <layout class="QGridLayout" name="gridLayout">
+       <item row="5" column="0">
+        <widget class="QLabel" name="labelSocketVDENIC1">
+         <property name="text">
+          <string>VDE Socket:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="socketVDENIC1">
+         <property name="maxLength">
+          <number>127</number>
+         </property>
+        </widget>
+       </item>
        <item row="6" column="1">
-        <spacer name="verticalSpacer">
+        <spacer name="verticalSpacerNIC1">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
@@ -188,28 +169,16 @@
          </property>
         </spacer>
        </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="interfaceLabel2">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Interface:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="optionListLabel2">
-         <property name="text">
-          <string>Options</string>
-         </property>
-        </widget>
-       </item>
+      </layout>
+     </widget>
+
+     <widget class="QWidget" name="tabNet2">
+      <attribute name="title">
+       <string>Network Card #2</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayoutNet2">
        <item row="0" column="0">
-        <widget class="QLabel" name="label_8">
+        <widget class="QLabel" name="labelMode2">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -234,22 +203,8 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="socketVDELabel2">
-         <property name="text">
-          <string>VDE Socket:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1" colspan="2">
-        <widget class="Line" name="optionListLine2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="0">
-        <widget class="QLabel" name="label_10">
+        <widget class="QLabel" name="labelAdapter2">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -258,6 +213,22 @@
          </property>
          <property name="text">
           <string>Adapter:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QComboBox" name="comboBoxNIC2">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="sizeAdjustPolicy">
+          <enum>QComboBox::AdjustToContents</enum>
+         </property>
+         <property name="maxVisibleItems">
+          <number>30</number>
          </property>
         </widget>
        </item>
@@ -274,24 +245,32 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QComboBox" name="comboBoxNIC2">
-         <property name="maxVisibleItems">
-          <number>30</number>
+       <item row="2" column="0">
+        <widget class="QLabel" name="labelOptionList2">
+         <property name="text">
+          <string>Options</string>
          </property>
+        </widget>
+       </item>
+       <item row="2" column="1" colspan="2">
+        <widget class="Line" name="lineOptionList2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="labelIntf2">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
-         <property name="sizeAdjustPolicy">
-          <enum>QComboBox::AdjustToContents</enum>
+         <property name="text">
+          <string>Interface:</string>
          </property>
         </widget>
-       </item>
-       <item row="5" column="1">
-        <widget class="QLineEdit" name="socketVDENIC2"/>
        </item>
        <item row="3" column="1">
         <widget class="QComboBox" name="comboBoxIntf2">
@@ -303,13 +282,54 @@
          </property>
         </widget>
        </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="labelSocketVDENIC2">
+         <property name="text">
+          <string>VDE Socket:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="socketVDENIC2">
+         <property name="maxLength">
+          <number>127</number>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <spacer name="verticalSpacerNIC2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_3">
+
+     <widget class="QWidget" name="tabNet3">
       <attribute name="title">
        <string>Network Card #3</string>
       </attribute>
-      <layout class="QGridLayout" name="gridLayout_2">
+      <layout class="QGridLayout" name="gridLayoutNet3">
+       <item row="0" column="0">
+        <widget class="QLabel" name="labelMode3">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>Mode:</string>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="1">
         <widget class="QComboBox" name="comboBoxNet3">
          <property name="maxVisibleItems">
@@ -323,17 +343,16 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="socketVDELabel3">
-         <property name="text">
-          <string>VDE Socket:</string>
+       <item row="1" column="0">
+        <widget class="QLabel" name="labelAdapter3">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="optionListLabel3">
          <property name="text">
-          <string>Options</string>
+          <string>Adapter:</string>
          </property>
         </widget>
        </item>
@@ -353,39 +372,6 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="interfaceLabel3">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Interface:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1" colspan="2">
-        <widget class="Line" name="optionListLine3">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_11">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Mode:</string>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="2">
         <widget class="QPushButton" name="pushButtonConf3">
          <property name="sizePolicy">
@@ -399,8 +385,22 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_13">
+       <item row="2" column="0">
+        <widget class="QLabel" name="labelOptionList3">
+         <property name="text">
+          <string>Options</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1" colspan="2">
+        <widget class="Line" name="lineOptionList3">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="labelIntf3">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -408,12 +408,9 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Adapter:</string>
+          <string>Interface:</string>
          </property>
         </widget>
-       </item>
-       <item row="5" column="1">
-        <widget class="QLineEdit" name="socketVDENIC3"/>
        </item>
        <item row="3" column="1">
         <widget class="QComboBox" name="comboBoxIntf3">
@@ -425,8 +422,22 @@
          </property>
         </widget>
        </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="labelSocketVDENIC3">
+         <property name="text">
+          <string>VDE Socket:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="socketVDENIC3">
+         <property name="maxLength">
+          <number>127</number>
+         </property>
+        </widget>
+       </item>
        <item row="6" column="1">
-        <spacer name="verticalSpacer_3">
+        <spacer name="verticalSpacerNIC3">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
@@ -440,20 +451,14 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_4">
+
+     <widget class="QWidget" name="tabNet4">
       <attribute name="title">
        <string>Network Card #4</string>
       </attribute>
-      <layout class="QGridLayout" name="gridLayout_4">
-       <item row="2" column="0">
-        <widget class="QLabel" name="optionListLabel4">
-         <property name="text">
-          <string>Options</string>
-         </property>
-        </widget>
-       </item>
+      <layout class="QGridLayout" name="gridLayoutNet4">
        <item row="0" column="0">
-        <widget class="QLabel" name="label_14">
+        <widget class="QLabel" name="labelMode4">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -465,28 +470,21 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="1">
-        <spacer name="verticalSpacer_4">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
+       <item row="0" column="1">
+        <widget class="QComboBox" name="comboBoxNet4">
+         <property name="maxVisibleItems">
+          <number>30</number>
          </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="socketVDELabel4">
-         <property name="text">
-          <string>VDE Socket:</string>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
         </widget>
        </item>
        <item row="1" column="0">
-        <widget class="QLabel" name="label_16">
+        <widget class="QLabel" name="labelAdapter4">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -495,26 +493,6 @@
          </property>
          <property name="text">
           <string>Adapter:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1" colspan="2">
-        <widget class="Line" name="optionListLine4">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="interfaceLabel4">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Interface:</string>
          </property>
         </widget>
        </item>
@@ -534,19 +512,6 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="1">
-        <widget class="QComboBox" name="comboBoxNet4">
-         <property name="maxVisibleItems">
-          <number>30</number>
-         </property>
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="2">
         <widget class="QPushButton" name="pushButtonConf4">
          <property name="sizePolicy">
@@ -560,8 +525,32 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="1">
-        <widget class="QLineEdit" name="socketVDENIC4"/>
+       <item row="2" column="0">
+        <widget class="QLabel" name="labelOptionList4">
+         <property name="text">
+          <string>Options</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1" colspan="2">
+        <widget class="Line" name="lineOptionList4">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="labelIntf4">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>Interface:</string>
+         </property>
+        </widget>
        </item>
        <item row="3" column="1">
         <widget class="QComboBox" name="comboBoxIntf4">
@@ -573,8 +562,36 @@
          </property>
         </widget>
        </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="labelSocketVDENIC4">
+         <property name="text">
+          <string>VDE Socket:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="socketVDENIC4">
+         <property name="maxLength">
+          <number>127</number>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <spacer name="verticalSpacerNIC4">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
       </layout>
      </widget>
+
     </widget>
    </item>
   </layout>
