@@ -118,7 +118,7 @@ static char *load_file(const char *fn) {
 
         char *data = (char*)malloc(fsize + 1);
 
-        (void *) !fread(data, fsize, 1, fp);
+        (void) fread(data, fsize, 1, fp);
         fclose(fp);
 
         data[fsize] = 0;
