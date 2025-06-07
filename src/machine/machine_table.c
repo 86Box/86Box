@@ -2936,6 +2936,46 @@ const machine_t machines[] = {
     },
     /* Uses Compaq KBC firmware. */
     {
+        .name = "[ISA] Tulip AT Compact",
+        .internal_name = "tulip_tc7",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_at_tulip_tc7_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 6000000,
+            .max_bus = 16000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 640,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Uses Compaq KBC firmware. */
+    {
         .name = "[ISA] Compaq Portable III",
         .internal_name = "portableiii",
         .type = MACHINE_TYPE_286,
