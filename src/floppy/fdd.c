@@ -467,7 +467,7 @@ fdd_load(int drive, char *fn)
     int         c = 0;
     int         size;
     const char *p;
-    FILE *      fp;
+    FILE       *fp;
 
     fdd_log("FDD: loading drive %d with '%s'\n", drive, fn);
 

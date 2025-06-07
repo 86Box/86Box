@@ -29,7 +29,7 @@
    <item row="0" column="0">
     <layout class="QFormLayout" name="formLayout">
      <item row="0" column="0">
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="labelLpt1">
        <property name="text">
         <string>LPT1 Device:</string>
        </property>
@@ -43,7 +43,7 @@
       </widget>
      </item>
      <item row="1" column="0">
-      <widget class="QLabel" name="label_2">
+      <widget class="QLabel" name="labelLpt2">
        <property name="text">
         <string>LPT2 Device:</string>
        </property>
@@ -57,7 +57,7 @@
       </widget>
      </item>
      <item row="2" column="0">
-      <widget class="QLabel" name="label_3">
+      <widget class="QLabel" name="labelLpt3">
        <property name="text">
         <string>LPT3 Device:</string>
        </property>
@@ -71,7 +71,7 @@
       </widget>
      </item>
      <item row="3" column="0">
-      <widget class="QLabel" name="label_4">
+      <widget class="QLabel" name="labelLpt4">
        <property name="text">
         <string>LPT4 Device:</string>
        </property>
@@ -88,45 +88,10 @@
    </item>
    <item row="1" column="0">
     <layout class="QGridLayout" name="gridLayout">
-     <item row="1" column="1">
-      <widget class="QCheckBox" name="checkBoxParallel2">
-       <property name="text">
-        <string>Parallel port 2</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QCheckBox" name="checkBoxParallel3">
-       <property name="text">
-        <string>Parallel port 3</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0">
-      <widget class="QCheckBox" name="checkBoxSerial3">
-       <property name="text">
-        <string>Serial port 3</string>
-       </property>
-      </widget>
-     </item>
      <item row="0" column="0">
       <widget class="QCheckBox" name="checkBoxSerial1">
        <property name="text">
         <string>Serial port 1</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QCheckBox" name="checkBoxParallel4">
-       <property name="text">
-        <string>Parallel port 4</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QCheckBox" name="checkBoxSerial2">
-       <property name="text">
-        <string>Serial port 2</string>
        </property>
       </widget>
      </item>
@@ -137,6 +102,34 @@
        </property>
       </widget>
      </item>
+     <item row="1" column="0">
+      <widget class="QCheckBox" name="checkBoxSerial2">
+       <property name="text">
+        <string>Serial port 2</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QCheckBox" name="checkBoxParallel2">
+       <property name="text">
+        <string>Parallel port 2</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QCheckBox" name="checkBoxSerial3">
+       <property name="text">
+        <string>Serial port 3</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QCheckBox" name="checkBoxParallel3">
+       <property name="text">
+        <string>Parallel port 3</string>
+       </property>
+      </widget>
+     </item>
      <item row="3" column="0">
       <widget class="QCheckBox" name="checkBoxSerial4">
        <property name="text">
@@ -144,13 +137,76 @@
        </property>
       </widget>
      </item>
+     <item row="3" column="1">
+      <widget class="QCheckBox" name="checkBoxParallel4">
+       <property name="text">
+        <string>Parallel port 4</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item row="3" column="0">
-    <layout class="QGridLayout" name="gridLayout_5">
+    <layout class="QGridLayout" name="gridLayoutPassThru">
      <property name="sizeConstraint">
       <enum>QLayout::SetDefaultConstraint</enum>
      </property>
+     <item row="0" column="0">
+      <widget class="QCheckBox" name="checkBoxSerialPassThru1">
+       <property name="text">
+        <string>Serial port passthrough 1</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QPushButton" name="pushButtonSerialPassThru1">
+       <property name="text">
+        <string>Configure</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QCheckBox" name="checkBoxSerialPassThru2">
+       <property name="text">
+        <string>Serial port passthrough 2</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QPushButton" name="pushButtonSerialPassThru2">
+       <property name="text">
+        <string>Configure</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QCheckBox" name="checkBoxSerialPassThru3">
+       <property name="text">
+        <string>Serial port passthrough 3</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QPushButton" name="pushButtonSerialPassThru3">
+       <property name="text">
+        <string>Configure</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QCheckBox" name="checkBoxSerialPassThru4">
+       <property name="text">
+        <string>Serial port passthrough 4</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QPushButton" name="pushButtonSerialPassThru4">
+       <property name="text">
+        <string>Configure</string>
+       </property>
+      </widget>
+     </item>
      <item row="4" column="0">
       <spacer name="horizontalSpacer">
        <property name="orientation">
@@ -164,13 +220,6 @@
        </property>
       </spacer>
      </item>
-     <item row="2" column="0">
-      <widget class="QCheckBox" name="checkBoxSerialPassThru3">
-       <property name="text">
-        <string>Serial port passthrough 3</string>
-       </property>
-      </widget>
-     </item>
      <item row="5" column="0" colspan="2">
       <spacer name="verticalSpacer">
        <property name="orientation">
@@ -183,55 +232,6 @@
         </size>
        </property>
       </spacer>
-     </item>
-     <item row="0" column="1">
-      <widget class="QPushButton" name="pushButtonSerialPassThru1">
-       <property name="text">
-        <string>Configure</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0">
-      <widget class="QCheckBox" name="checkBoxSerialPassThru1">
-       <property name="text">
-        <string>Serial port passthrough 1</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QCheckBox" name="checkBoxSerialPassThru2">
-       <property name="text">
-        <string>Serial port passthrough 2</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
-      <widget class="QCheckBox" name="checkBoxSerialPassThru4">
-       <property name="text">
-        <string>Serial port passthrough 4</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QPushButton" name="pushButtonSerialPassThru2">
-       <property name="text">
-        <string>Configure</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QPushButton" name="pushButtonSerialPassThru3">
-       <property name="text">
-        <string>Configure</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QPushButton" name="pushButtonSerialPassThru4">
-       <property name="text">
-        <string>Configure</string>
-       </property>
-      </widget>
      </item>
     </layout>
    </item>
