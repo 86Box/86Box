@@ -32,6 +32,15 @@ private slots:
     void on_comboBoxIsaMemCard4_currentIndexChanged(int index);
     void on_pushButtonConfigureIsaMemCard4_clicked();
 
+    void on_comboBoxIsaRomCard1_currentIndexChanged(int index);
+    void on_pushButtonConfigureIsaRomCard1_clicked();
+    void on_comboBoxIsaRomCard2_currentIndexChanged(int index);
+    void on_pushButtonConfigureIsaRomCard2_clicked();
+    void on_comboBoxIsaRomCard3_currentIndexChanged(int index);
+    void on_pushButtonConfigureIsaRomCard3_clicked();
+    void on_comboBoxIsaRomCard4_currentIndexChanged(int index);
+    void on_pushButtonConfigureIsaRomCard4_clicked();
+
     void on_checkBoxUnitTester_stateChanged(int arg1);
     void on_pushButtonConfigureUT_clicked();
 

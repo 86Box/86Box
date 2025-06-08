@@ -33,6 +33,7 @@ add_library(dev OBJECT
     i2c_gpio.c
     ibm_5161.c
     isamem.c
+    isarom.c
     isartc.c
     isapnp.c
     kbc_at.c

@@ -24,6 +24,7 @@ extern "C" {
 #include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/isamem.h>
+#include <86box/isarom.h>
 #include <86box/isartc.h>
 #include <86box/unittester.h>
 #include <86box/novell_cardkey.h>
@@ -63,6 +64,10 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
 
     for (uint8_t i = 0; i < ISAMEM_MAX; ++i)
         if (auto *cb = findChild<QComboBox *>(QString("comboBoxIsaMemCard%1").arg(i + 1)))
+            cb->clear();
+
+    for (uint8_t i = 0; i < ISAROM_MAX; ++i)
+        if (auto *cb = findChild<QComboBox *>(QString("comboBoxIsaRomCard%1").arg(i + 1)))
             cb->clear();
 
     int   c           = 0;
@@ -127,6 +132,47 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         findChild<QPushButton *>(QString("pushButtonConfigureIsaMemCard%1").arg(i + 1))->setEnabled((isamem_type[i] != 0) &&
                                 isamem_has_config(isamem_type[i]) && machineHasIsa);
     }
+
+    // ISA ROM Expansion Cards
+    QComboBox          *isarom_cbox[ISAROM_MAX]         = { 0 };
+    QAbstractItemModel *isarom_models[ISAROM_MAX]       = { 0 };
+    int                 isarom_removeRows_[ISAROM_MAX]  = { 0 };
+    int                 isarom_selectedRows[ISAROM_MAX] = { 0 };
+
+    for (uint8_t i = 0; i < ISAROM_MAX; ++i) {
+        isarom_cbox[i]        = findChild<QComboBox *>(QString("comboBoxIsaRomCard%1").arg(i + 1));
+        isarom_models[i]      = isarom_cbox[i]->model();
+        isarom_removeRows_[i] = isarom_models[i]->rowCount();
+    }
+
+    c = 0;
+    while (true) {
+        const QString name = DeviceConfig::DeviceName(isarom_get_device(c),
+                                                      isarom_get_internal_name(c), 0);
+
+        if (name.isEmpty())
+            break;
+
+        if (device_is_valid(isarom_get_device(c), machineId)) {
+            for (uint8_t i = 0; i < ISAROM_MAX; ++i) {
+                int row = Models::AddEntry(isarom_models[i], name, c);
+
+                if (c == isarom_type[i])
+                    isarom_selectedRows[i] = row - isarom_removeRows_[i];
+            }
+        }
+
+        c++;
+    }
+
+    for (uint8_t i = 0; i < ISAROM_MAX; ++i) {
+        isarom_models[i]->removeRows(0, isarom_removeRows_[i]);
+        isarom_cbox[i]->setEnabled(isarom_models[i]->rowCount() > 1);
+        isarom_cbox[i]->setCurrentIndex(-1);
+        isarom_cbox[i]->setCurrentIndex(isarom_selectedRows[i]);
+        findChild<QPushButton *>(QString("pushButtonConfigureIsaRomCard%1").arg(i + 1))->setEnabled((isarom_type[i] != 0) &&
+                                isarom_has_config(isarom_type[i]) && machineHasIsa);
+    }
 }
 
 SettingsOtherPeripherals::~SettingsOtherPeripherals()
@@ -148,6 +194,12 @@ SettingsOtherPeripherals::save()
     for (int i = 0; i < ISAMEM_MAX; i++) {
         auto *cbox     = findChild<QComboBox *>(QString("comboBoxIsaMemCard%1").arg(i + 1));
         isamem_type[i] = cbox->currentData().toInt();
+    }
+
+    /* ISA ROM boards. */
+    for (int i = 0; i < ISAROM_MAX; i++) {
+        auto *cbox     = findChild<QComboBox *>(QString("comboBoxIsaRomCard%1").arg(i + 1));
+        isarom_type[i] = cbox->currentData().toInt();
     }
 }
 
@@ -224,6 +276,66 @@ void
 SettingsOtherPeripherals::on_pushButtonConfigureIsaMemCard4_clicked()
 {
     DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard4->currentData().toInt()), 4);
+}
+
+void
+SettingsOtherPeripherals::on_comboBoxIsaRomCard1_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    ui->pushButtonConfigureIsaRomCard1->setEnabled((index != 0) && isarom_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+}
+
+void
+SettingsOtherPeripherals::on_pushButtonConfigureIsaRomCard1_clicked()
+{
+    DeviceConfig::ConfigureDevice(isarom_get_device(ui->comboBoxIsaRomCard1->currentData().toInt()), 1);
+}
+
+void
+SettingsOtherPeripherals::on_comboBoxIsaRomCard2_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    ui->pushButtonConfigureIsaRomCard2->setEnabled((index != 0) && isarom_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+}
+
+void
+SettingsOtherPeripherals::on_pushButtonConfigureIsaRomCard2_clicked()
+{
+    DeviceConfig::ConfigureDevice(isarom_get_device(ui->comboBoxIsaRomCard2->currentData().toInt()), 2);
+}
+
+void
+SettingsOtherPeripherals::on_comboBoxIsaRomCard3_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    ui->pushButtonConfigureIsaRomCard3->setEnabled((index != 0) && isarom_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+}
+
+void
+SettingsOtherPeripherals::on_pushButtonConfigureIsaRomCard3_clicked()
+{
+    DeviceConfig::ConfigureDevice(isarom_get_device(ui->comboBoxIsaRomCard3->currentData().toInt()), 3);
+}
+
+void
+SettingsOtherPeripherals::on_comboBoxIsaRomCard4_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    ui->pushButtonConfigureIsaRomCard4->setEnabled((index != 0) && isarom_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+}
+
+void
+SettingsOtherPeripherals::on_pushButtonConfigureIsaRomCard4_clicked()
+{
+    DeviceConfig::ConfigureDevice(isarom_get_device(ui->comboBoxIsaRomCard4->currentData().toInt()), 4);
 }
 
 void
