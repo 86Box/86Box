@@ -667,7 +667,7 @@ ega_recalctimings(ega_t *ega)
     }
 
     if (ega->chipset) {
-        if (ega->hdisp > 640) {
+        if (ega->hdisp >= 800) {
             ega->dispend <<= 1;
             ega->vtotal <<= 1;
             ega->split <<= 1;
@@ -881,7 +881,7 @@ ega_poll(void *priv)
             ega->stat &= ~8;
         ega->vslines++;
         if (ega->chipset) {
-            if (ega->hdisp > 640) {
+            if (ega->hdisp >= 800) {
                 if (ega->displine > 2000)
                     ega->displine = 0;
             } else {
@@ -932,7 +932,7 @@ ega_poll(void *priv)
             !(ega->real_vc & 1))
             ega->vc++;
         if (ega->chipset) {
-            if (ega->hdisp > 640)
+            if (ega->hdisp >= 800)
                 ega->vc &= 1023;
             else
                 ega->vc &= 511;
@@ -1641,7 +1641,7 @@ ega_standalone_init(const device_t *info)
         }
     }
 
-    monitor_type = device_get_config_int("monitor_type");
+    monitor_type = ega->chipset ? 0x09 : device_get_config_int("monitor_type");
     ega_init(ega, monitor_type, (monitor_type & 0x0F) == 0x0B);
 
     ega->vram_limit = device_get_config_int("memory") * 1024;
@@ -1841,6 +1841,29 @@ static const device_config_t ega_config[] = {
   // clang-format on
 };
 
+static const device_config_t atiega800p_config[] = {
+  // clang-format off
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 256,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "32 KB", .value =  32 },
+            { .description =  "64 KB", .value =  64 },
+            { .description = "128 KB", .value = 128 },
+            { .description = "256 KB", .value = 256 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
 const device_t ega_device = {
     .name          = "IBM EGA",
     .internal_name = "ega",
@@ -1894,7 +1917,7 @@ const device_t atiega800p_device = {
     .available     = atiega800p_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
-    .config        = ega_config
+    .config        = atiega800p_config
 };
 
 const device_t iskra_ega_device = {
