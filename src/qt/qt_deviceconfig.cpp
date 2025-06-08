@@ -388,6 +388,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     }
                 case CONFIG_MIDI_OUT:
                 case CONFIG_MIDI_IN:
+                case CONFIG_INT:
                 case CONFIG_SELECTION:
                     {
                         auto *cbox = dc.findChild<QComboBox *>(config->name);
