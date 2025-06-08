@@ -756,6 +756,38 @@ machine_at_p5vxb_init(const machine_t *model)
 }
 
 int
+machine_at_presario4760_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/presario4760/presario4760.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+	
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_NO_BRIDGES);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+	pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4); /* Onboard */
+    pci_register_slot(0x02, PCI_CARD_VIDEO,       2, 0, 0, 0); /* Onboard */
+    pci_register_slot(0x03, PCI_CARD_NORMAL,      1, 2, 3, 4); /* Slot 01 */
+	pci_register_slot(0x04, PCI_CARD_NORMAL,      3, 4, 1, 2); /* Slot 01 */
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      4, 1, 2, 3); /* Slot 02 */
+    
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C931 | FDC37C93X_NORMAL));
+    device_add(&intel_flash_bxb_device);
+	
+	if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    return ret;
+}
+
+int
 machine_at_gw2kma_init(const machine_t *model)
 {
     int ret;
