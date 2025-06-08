@@ -784,6 +784,12 @@ machine_at_presario4760_init(const machine_t *model)
 	if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
+     if (fdc_current[0] == FDC_INTERNAL){
+        fdd_set_turbo(0, 1);
+        fdd_set_turbo(1, 1);
+    }
+
+
     return ret;
 }
 
