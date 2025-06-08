@@ -39,6 +39,7 @@
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/nvr.h>
 #include <86box/plat_unused.h>
 #include <86box/sound.h>
