@@ -15,10 +15,46 @@
  *
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2025 starfrost (refactoring)
  */
 
 #ifndef VIDEO_CGA_H
 #define VIDEO_CGA_H
+
+// Mode flags for the CGA.
+// Set by writing to 3D8
+typedef enum cga_mode_flags_e
+{
+    CGA_MODE_FLAG_HIGHRES = 1 << 0,                     // 80-column text mode
+    CGA_MODE_FLAG_GRAPHICS = 1 << 1,                    // Graphics mode
+    CGA_MODE_FLAG_BW = 1 << 2,                          // Black and white 
+    CGA_MODE_FLAG_VIDEO_ENABLE = 1 << 3,                // 0 = no video (as if the video was 0)
+    CGA_MODE_FLAG_HIGHRES_GRAPHICS = 1 << 4,            // 640*200 mode. Corrupts the 
+    CGA_MODE_FLAG_BLINK = 1 << 5,                       // If this is set, bit 5 of textmode characters blinks. Otherwise it is a high-intensity bg mode.
+} cga_mode_flags;
+
+// Motorola MC6845 CRTC registers
+typedef enum cga_crtc_registers_e
+{
+    CGA_CRTC_HTOTAL = 0x0,                              // Horizontal total (total number of characters incl. hsync)
+    CGA_CRTC_HDISP = 0x1,                               // Horizontal display 
+    CGA_CRTC_HSYNC_POS = 0x2,                           // Horizontal position of horizontal ysnc
+    CGA_CRTC_HSYNC_WIDTH = 0x3,                         // Width of horizontal sync
+    CGA_CRTC_VTOTAL = 0x4,                              // Vertical total (total number of scanlines incl. vsync)
+    CGA_CRTC_VTOTAL_ADJUST = 0x5,                       // Vertical total adjust value
+    CGA_CRTC_VDISP = 0x6,                               // Vertical display (total number of displayed scanline)
+    CGA_CRTC_VSYNC = 0x7,                               // Vertical sync scanline number
+    CGA_CRTC_INTERLACE = 0x8,                           // If set, interlacing mode is enabled
+    CGA_CRTC_MAX_SCANLINE_ADDR = 0x9,
+    CGA_CRTC_CURSOR_START = 0xA,
+    CGA_CRTC_CURSOR_END = 0xB,
+    CGA_CRTC_START_ADDR_HIGH = 0xC,
+    CGA_CRTC_START_ADDR_LOW = 0xD,
+    CGA_CRTC_CURSOR_ADDR_HIGH = 0xE,
+    CGA_CRTC_CURSOR_ADDR_LOW = 0xF,
+    CGA_CRTC_LIGHT_PEN_ADDR_HIGH = 0x10,
+    CGA_CRTC_LIGHT_PEN_ADDR_LOW = 0x11,
+} cga_crtc_registers;
 
 typedef struct cga_t {
     mem_mapping_t mapping;
