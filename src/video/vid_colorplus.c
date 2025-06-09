@@ -37,16 +37,19 @@
 #include <86box/plat_unused.h>
 
 /* Bits in the colorplus control register: */
-#define COLORPLUS_PLANE_SWAP   0x40 /* Swap planes at 0000h and 4000h */
-#define COLORPLUS_640x200_MODE 0x20 /* 640x200x4 mode active */
-#define COLORPLUS_320x200_MODE 0x10 /* 320x200x16 mode active */
-#define COLORPLUS_EITHER_MODE  0x30 /* Either mode active */
+#define COLORPLUS_PLANE_SWAP    0x40 /* Swap planes at 0000h and 4000h */
+#define COLORPLUS_640x200_MODE  0x20 /* 640x200x4 mode active */
+#define COLORPLUS_320x200_MODE  0x10 /* 320x200x16 mode active */
+#define COLORPLUS_EITHER_MODE   0x30 /* Either mode active */
 
-#define CGA_RGB           0
-#define CGA_COMPOSITE     1
+#define CGA_RGB                 0
+#define CGA_COMPOSITE           1
 
-#define COMPOSITE_OLD     0
-#define COMPOSITE_NEW     1
+#define COMPOSITE_OLD           0
+#define COMPOSITE_NEW           1
+
+// Plantronics specific registers
+#define COLORPLUS_CONTROL      0x3DD
 
 video_timings_t timing_colorplus = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
@@ -57,7 +60,7 @@ colorplus_out(uint16_t addr, uint8_t val, void *priv)
 {
     colorplus_t *colorplus = (colorplus_t *) priv;
 
-    if (addr == 0x3DD) {
+    if (addr == COLORPLUS_CONTROL) {
         colorplus->control = val & 0x70;
     } else {
         cga_out(addr, val, &colorplus->cga);
