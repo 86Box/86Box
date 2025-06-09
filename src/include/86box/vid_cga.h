@@ -29,7 +29,7 @@ typedef enum cga_mode_flags_e
     CGA_MODE_FLAG_GRAPHICS = 1 << 1,                    // Graphics mode
     CGA_MODE_FLAG_BW = 1 << 2,                          // Black and white 
     CGA_MODE_FLAG_VIDEO_ENABLE = 1 << 3,                // 0 = no video (as if the video was 0)
-    CGA_MODE_FLAG_HIGHRES_GRAPHICS = 1 << 4,            // 640*200 mode. Corrupts the 
+    CGA_MODE_FLAG_HIGHRES_GRAPHICS = 1 << 4,            // 640*200 mode. Corrupts text mode if CGA_MODE_FLAG_GRAPHICS not set.
     CGA_MODE_FLAG_BLINK = 1 << 5,                       // If this is set, bit 5 of textmode characters blinks. Otherwise it is a high-intensity bg mode.
 } cga_mode_flags;
 
@@ -51,10 +51,21 @@ typedef enum cga_crtc_registers_e
     CGA_CRTC_START_ADDR_HIGH = 0xC,                     // Screen start address high 8 bits
     CGA_CRTC_START_ADDR_LOW = 0xD,                      // Screen start address low 8 bits
     CGA_CRTC_CURSOR_ADDR_HIGH = 0xE,                    // Cursor address high 8 bits
-    CGA_CRTC_CURSOR_ADDR_LOW = 0xF,                     // Cursor addres low 8 bits
-    CGA_CRTC_LIGHT_PEN_ADDR_HIGH = 0x10,
-    CGA_CRTC_LIGHT_PEN_ADDR_LOW = 0x11,
+    CGA_CRTC_CURSOR_ADDR_LOW = 0xF,                     // Cursor address low 8 bits
+    CGA_CRTC_LIGHT_PEN_ADDR_HIGH = 0x10,                // Light pen address high 8 bits (not currently supported)
+    CGA_CRTC_LIGHT_PEN_ADDR_LOW = 0x11,                 // Light pen address low 8 bits (not currently supported)
 } cga_crtc_registers;
+
+typedef enum cga_registers_e
+{
+    CGA_REGISTER_CRTC_INDEX = 0x3D4,
+    CGA_REGISTER_CRTC_DATA = 0x3D5,
+    CGA_REGISTER_MODE_CONTROL = 0x3D8,
+    CGA_REGISTER_COLOR_SELECT = 0x3D9,
+    CGA_REGISTER_STATUS = 0x3DA,
+    CGA_REGISTER_CLEAR_LIGHT_PEN_LATCH = 0x3DB,
+    CGA_REGISTER_SET_LIGHT_PEN_LATCH = 0x3DC,
+} cga_registers;
 
 typedef struct cga_t {
     mem_mapping_t mapping;

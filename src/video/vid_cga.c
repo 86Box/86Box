@@ -89,14 +89,14 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
         addr = (addr & 0xff9) | 0x004;
 
     switch (addr) {
-        case 0x3D4:
+        case CGA_REGISTER_CRTC_INDEX:
             cga->crtcreg = val & 31;
             return;
-        case 0x3D5:
+        case CGA_REGISTER_CRTC_DATA:
             old                     = cga->crtc[cga->crtcreg];
             cga->crtc[cga->crtcreg] = val & crtcmask[cga->crtcreg];
             if (old != val) {
-                // Update the timings if we are writing any invalid CRTC register or a valid CRTC register 
+                // Recalc the timings if we are writing any invalid CRTC register or a valid CRTC register 
                 // except the CURSOR and LIGHT PEN registers
                 if ((cga->crtcreg < 0xe) || (cga->crtcreg > 0x11)) {
                     cga->fullchange = changeframecount;
@@ -104,7 +104,7 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
                 }
             }
             return;
-        case 0x3D8:
+        case CGA_REGISTER_MODE_CONTROL:
             old          = cga->cgamode;
             cga->cgamode = val;
 
@@ -115,18 +115,18 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
                 cga_recalctimings(cga);
             }
             return;
-        case 0x3D9:
+        case CGA_REGISTER_COLOR_SELECT:
             old         = cga->cgacol;
             cga->cgacol = val;
             if (old ^ val)
                 cga_recalctimings(cga);
             return;
 
-        case 0x3DB:
+        case CGA_REGISTER_CLEAR_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 1)
                 cga->lp_strobe = 0;
             return;
-        case 0x3DC:
+        case CGA_REGISTER_SET_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 0) {
                 cga->lp_strobe = 1;
                 cga_update_latch(cga);
@@ -148,21 +148,20 @@ cga_in(uint16_t addr, void *priv)
         addr = (addr & 0xff9) | 0x004;
 
     switch (addr) {
-        case 0x3D4:
+        case CGA_REGISTER_CRTC_INDEX:
             ret = cga->crtcreg;
             break;
-        case 0x3D5:
+        case CGA_REGISTER_CRTC_DATA:
             ret = cga->crtc[cga->crtcreg];
             break;
-        case 0x3DA:
+        case CGA_REGISTER_STATUS:
             ret = cga->cgastat;
             break;
-
-        case 0x3DB:
+        case CGA_REGISTER_CLEAR_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 1)
                 cga->lp_strobe = 0;
             break;
-        case 0x3DC:
+        case CGA_REGISTER_SET_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 0) {
                 cga->lp_strobe = 1;
                 cga_update_latch(cga);
