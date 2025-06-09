@@ -217,7 +217,7 @@ ogc_poll(void *priv)
     int      blink     = 0;
     int      underline = 0;
 
-    // composito colore appare blu scuro
+    // Composite color appears dark blue
 
     /* graphic mode and not mode 40h */
     if (!(ogc->ctrl_3de & 0x1 || !(ogc->cga.cgamode & CGA_MODE_FLAG_GRAPHICS))) {
@@ -420,7 +420,7 @@ ogc_poll(void *priv)
                         ogc->cga.ma = ogc->cga.maback = (ogc->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (ogc->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
                         ogc->cga.sc                   = 0;
                     }
-                    // potrebbe dare problemi con composito
+                    // may cause problems with composite 
                 } else if (ogc->cga.sc == ogc->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] || ((ogc->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && ogc->cga.sc == (ogc->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] >> 1))) {
                     ogc->cga.maback = ogc->cga.ma;
                     ogc->cga.sc     = 0;

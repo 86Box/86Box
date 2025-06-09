@@ -116,7 +116,7 @@ typedef struct amsvid_t {
     int        sc;
     int        vc;
     int        cgadispon;
-    int        con;
+    int        cursorvisible;
     int        cursoron;
     int        cgablink;
     int        vsynctime;
@@ -387,7 +387,7 @@ vid_poll_1512(void *priv)
                 for (x = 0; x < 80; x++) {
                     chr        = vid->vram[(vid->ma << 1) & 0x3fff];
                     attr       = vid->vram[((vid->ma << 1) + 1) & 0x3fff];
-                    drawcursor = ((vid->ma == ca) && vid->con && vid->cursoron);
+                    drawcursor = ((vid->ma == ca) && vid->cursorvisible && vid->cursoron);
                     if (vid->cgamode & CGA_MODE_FLAG_BLINK) {
                         cols[1] = (attr & 15) + 16;
                         cols[0] = ((attr >> 4) & 7) + 16;
@@ -412,7 +412,7 @@ vid_poll_1512(void *priv)
                 for (x = 0; x < 40; x++) {
                     chr        = vid->vram[(vid->ma << 1) & 0x3fff];
                     attr       = vid->vram[((vid->ma << 1) + 1) & 0x3fff];
-                    drawcursor = ((vid->ma == ca) && vid->con && vid->cursoron);
+                    drawcursor = ((vid->ma == ca) && vid->cursorvisible && vid->cursoron);
                     if (vid->cgamode & CGA_MODE_FLAG_BLINK) {
                         cols[1] = (attr & 15) + 16;
                         cols[0] = ((attr >> 4) & 7) + 16;
@@ -513,7 +513,7 @@ vid_poll_1512(void *priv)
                 vid->stat &= ~8;
         }
         if (vid->sc == (vid->crtc[11] & 31)) {
-            vid->con  = 0;
+            vid->cursorvisible  = 0;
         }
         if (vid->vadj) {
             vid->sc++;
@@ -607,7 +607,7 @@ vid_poll_1512(void *priv)
             vid->ma = vid->maback;
         }
         if (vid->sc == (vid->crtc[10] & 31))
-            vid->con = 1;
+            vid->cursorvisible = 1;
     }
 }
 
@@ -1292,7 +1292,7 @@ lcdm_poll(amsvid_t *vid)
             for (x = 0; x < mda->crtc[1]; x++) {
                 chr        = mda->vram[(mda->ma << 1) & 0xfff];
                 attr       = mda->vram[((mda->ma << 1) + 1) & 0xfff];
-                drawcursor = ((mda->ma == ca) && mda->con && mda->cursoron);
+                drawcursor = ((mda->ma == ca) && mda->cursorvisible && mda->cursoron);
                 blink      = ((mda->blink & 16) && (mda->ctrl & 0x20) && (attr & 0x80) && !drawcursor);
 
                 lcd_draw_char_80(vid, &(buffer32->line[mda->displine])[x * 8], chr, attr, drawcursor, blink, mda->sc, 0, mda->ctrl);
@@ -1316,7 +1316,7 @@ lcdm_poll(amsvid_t *vid)
                 mda->stat &= ~8;
         }
         if (mda->sc == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[11] & 31) >> 1))) {
-            mda->con  = 0;
+            mda->cursorvisible  = 0;
         }
         if (mda->vadj) {
             mda->sc++;
@@ -1383,7 +1383,7 @@ lcdm_poll(amsvid_t *vid)
             mda->ma = mda->maback;
         }
         if (mda->sc == (mda->crtc[10] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[10] & 31) >> 1)))
-            mda->con = 1;
+            mda->cursorvisible = 1;
     }
 }
 

@@ -115,7 +115,7 @@ typedef struct pgc {
     int      displine;
     int      vc;
     int      cgadispon;
-    int      con;
+    int      cursorvisible;
     int      cursoron;
     int      cgablink;
     int      vsynctime;

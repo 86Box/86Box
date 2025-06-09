@@ -11,20 +11,32 @@
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
+#          Copyright 2025 starfrost
 #
 
 add_library(vid OBJECT
     agpgart.c
     video.c
     vid_table.c
+    # CGA 
     vid_cga.c
     vid_cga_comp.c
-    vid_compaq_cga.c
+    vid_cga_compaq.c 
+    vid_cga_compaq_plasma.c
+    vid_cga_colorplus.c
+    vid_cga_ncr.c
+    vid_cga_olivetti.c
+    vid_cga_toshiba_t1000.c 
+    vid_cga_toshiba_t3100e.c 
+
+    # PCJr/Tandy
+    vid_pcjr.c
+    vid_tandy.c
+
     vid_mda.c
     vid_hercules.c
-    vid_herculesplus.c
-    vid_incolor.c
-    vid_colorplus.c
+    vid_hercules_plus.c
+    vid_hercules_incolor.c
     vid_genius.c
     vid_pgc.c
     vid_im1024.c
@@ -70,9 +82,7 @@ add_library(vid OBJECT
     vid_s3.c vid_s3_virge.c
     vid_ibm_rgb528_ramdac.c
     vid_sdac_ramdac.c
-    vid_ogc.c
     vid_mga.c
-    vid_nga.c
     vid_tvp3026_ramdac.c
     vid_att2xc498_ramdac.c
     vid_xga.c

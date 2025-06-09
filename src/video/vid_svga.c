@@ -1332,7 +1332,7 @@ svga_poll(void *priv)
 
         svga->linepos = 0;
         if ((svga->sc == (svga->crtc[11] & 31)) || (svga->sc == svga->rowcount))
-            svga->con = 0;
+            svga->cursorvisible = 0;
         if (svga->dispon) {
             /* TODO: Verify real hardware behaviour for out-of-range fine vertical scroll
                - S3 Trio64V2/DX: sc == rowcount, wrapping 5-bit counter. */
@@ -1503,7 +1503,7 @@ svga_poll(void *priv)
             svga->overlay_latch = svga->overlay;
         }
         if (svga->sc == (svga->crtc[10] & 31))
-            svga->con = 1;
+            svga->cursorvisible = 1;
     }
 }
 

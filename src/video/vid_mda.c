@@ -158,7 +158,7 @@ mda_poll(void *priv)
             for (x = 0; x < mda->crtc[1]; x++) {
                 chr        = mda->vram[(mda->ma << 1) & 0xfff];
                 attr       = mda->vram[((mda->ma << 1) + 1) & 0xfff];
-                drawcursor = ((mda->ma == ca) && mda->con && mda->cursoron);
+                drawcursor = ((mda->ma == ca) && mda->cursorvisible && mda->cursoron);
                 blink      = ((mda->blink & 16) && (mda->ctrl & 0x20) && (attr & 0x80) && !drawcursor);
                 if (mda->sc == 12 && ((attr & 7) == 1)) {
                     for (c = 0; c < 9; c++)
@@ -199,7 +199,7 @@ mda_poll(void *priv)
             }
         }
         if (mda->sc == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[11] & 31) >> 1))) {
-            mda->con  = 0;
+            mda->cursorvisible  = 0;
         }
         if (mda->vadj) {
             mda->sc++;
@@ -266,7 +266,7 @@ mda_poll(void *priv)
             mda->ma = mda->maback;
         }
         if (mda->sc == (mda->crtc[10] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[10] & 31) >> 1))) {
-            mda->con = 1;
+            mda->cursorvisible = 1;
         }
     }
     VIDEO_MONITOR_EPILOGUE();

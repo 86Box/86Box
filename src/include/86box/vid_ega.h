@@ -68,7 +68,7 @@ typedef struct ega_t {
     int chain4;
     int chain2_read;
     int chain2_write;
-    int con;
+    int cursorvisible;
     int oddeven_page;
     int oddeven_chain;
     int vc;
@@ -193,7 +193,7 @@ extern int sc;
 
 extern uint32_t ma;
 extern uint32_t ca;
-extern int      con;
+extern int      cursorvisible;
 extern int      cursoron;
 extern int      cgablink;
 
