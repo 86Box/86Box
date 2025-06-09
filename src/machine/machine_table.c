@@ -69,6 +69,7 @@ extern const device_t ap5s_device;
 extern const device_t d842_device;
 extern const device_t d943_device;
 extern const device_t dells333sl_device;
+extern const device_t hot433a_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                             MACHINE_TYPE_NONE       },
@@ -9381,7 +9382,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCI,
+        .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
@@ -9393,7 +9394,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &hot433a_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,

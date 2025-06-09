@@ -2232,18 +2232,66 @@ machine_at_ecs486_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t hot433a_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "hot433a",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "AMI", .internal_name = "hot433a", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/hot433/433AUS33.ROM", "" } },
+            { .name = "Award (eSupport update)", .internal_name = "hot433a_award", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/hot433/2A4X5H21.BIN", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t hot433a_device = {
+    .name          = "Shuttle HOT-433A",
+    .internal_name = "hot433a_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = hot433a_config
+};
+
 int
 machine_at_hot433a_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/hot433/433AUS33.ROM",
-                           0x000e0000, 131072, 0);
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    int is_award = !strcmp(device_get_config_bios("bios"), "hot433a_award");
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    if (is_award)
+        device_add(&amstrad_megapc_nvr_device);
+    else
+        device_add(&ami_1994_nvr_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -2255,9 +2303,17 @@ machine_at_hot433a_init(const machine_t *model)
 
     device_add(&umc_hb4_device);
     device_add(&umc_8886bf_device);
-    device_add(&um8669f_device);
+    if (is_award)
+        device_add(&um8663af_device);
+    else
+        device_add(&um8669f_device);
     device_add(&winbond_flash_w29c010_device);
-    device_add(&keyboard_at_ami_device);
+    if (is_award)
+        device_add(&keyboard_ps2_ami_device);
+    else
+        device_add(&keyboard_at_ami_device);
+
+    pic_toggle_latch(is_award);
 
     return ret;
 }
