@@ -57,6 +57,7 @@ add_library(dev OBJECT
     smbus_ali7101.c
     smbus_piix4.c
     smbus_sis5595.c
+    tulip_jumper.c
     unittester.c
 )
 
