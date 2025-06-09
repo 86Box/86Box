@@ -67,11 +67,13 @@ typedef enum cga_registers_e
     CGA_REGISTER_SET_LIGHT_PEN_LATCH = 0x3DC,
 } cga_registers;
 
+#define CGA_NUM_CRTC_REGS   32
+
 typedef struct cga_t {
     mem_mapping_t mapping;
 
     int     crtcreg;
-    uint8_t crtc[32];
+    uint8_t crtc[CGA_NUM_CRTC_REGS];
 
     uint8_t cgastat;
 
