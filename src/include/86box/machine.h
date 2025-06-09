@@ -613,6 +613,7 @@ extern int machine_at_iach488_init(const machine_t *);
 extern int machine_at_pcm9340_init(const machine_t *);
 extern int machine_at_pcm5330_init(const machine_t *);
 
+extern int machine_at_84xxuuda_init(const machine_t *);
 extern int machine_at_ecs486_init(const machine_t *);
 extern int machine_at_hot433a_init(const machine_t *);
 extern int machine_at_pl4600c_init(const machine_t *);
