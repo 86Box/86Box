@@ -548,6 +548,7 @@ extern int machine_at_exp4349_init(const machine_t *);
 
 extern int machine_at_vect486vl_init(const machine_t *);
 extern int machine_at_d824_init(const machine_t *);
+extern int machine_at_tuliptc38_init(const machine_t *);
 extern int machine_at_martin_init(const machine_t *);
 
 extern int machine_at_403tg_init(const machine_t *);

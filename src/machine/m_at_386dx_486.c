@@ -413,7 +413,7 @@ machine_at_vect486vl_init(const machine_t *model) // has HDC problems
         return ret;
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5428_onboard_device);
+        device_add(machine_get_vid_device(machine));
 
     machine_at_common_init_ex(model, 2);
 
@@ -439,7 +439,7 @@ machine_at_d824_init(const machine_t *model)
         return ret;
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5428_onboard_device);
+        device_add(machine_get_vid_device(machine));
 
     machine_at_common_init_ex(model, 2);
 
@@ -454,6 +454,41 @@ machine_at_d824_init(const machine_t *model)
     device_add(&ide_isa_device);
     device_add(&fdc37c651_device);
     
+    return ret;
+}
+
+int
+machine_at_tuliptc38_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tuliptc38/TULIP1.BIN",
+                           0x000f0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&vl82c486_device);
+    device_add(&tulip_jumper_device);
+
+    device_add(&vl82c113_device);
+
+    device_add(&ide_isa_device);
+    device_add(&fdc37c651_ide_device);
+
+    if (gfxcard[0] == VID_INTERNAL) {
+        bios_load_aux_linear("roms/machines/tuliptc38/VBIOS.BIN",
+                             0x000c0000, 32768, 0);
+
+        device_add(machine_get_vid_device(machine));
+    } else  for (uint16_t i = 0; i < 32768; i++)
+        rom[i] = mem_readb_phys(0x000c0000 + i);
+
+    mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+    mem_mapping_set_exec(&bios_mapping, rom);
+
     return ret;
 }
 
