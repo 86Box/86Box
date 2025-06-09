@@ -310,7 +310,7 @@ cga_render(cga_t *cga, int line)
             }
             cga->ma++;
         }
-    } else if (!(cga->cgamode & 2)) {
+    } else if (!(cga->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
         for (x = 0; x < cga->crtc[CGA_CRTC_HDISP]; x++) {
             if (cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) {
                 chr  = cga->vram[(cga->ma << 1) & 0x3fff];
