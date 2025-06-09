@@ -607,7 +607,7 @@ cga_poll(void *priv)
             cga->vadj--;
             if (!cga->vadj) {
                 cga->cgadispon = 1;
-                cga->ma = cga->maback = (CGA_CRTC_START_ADDR_LOW | (CGA_CRTC_START_ADDR_HIGH << 8)) & 0x3fff;
+                cga->ma = cga->maback = (cga->crtc[CGA_CRTC_START_ADDR_LOW] | (cga->crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
                 cga->sc               = 0;
             }
         } else if (cga->sc == cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR]) {
@@ -625,7 +625,7 @@ cga_poll(void *priv)
                 cga->vadj = cga->crtc[CGA_CRTC_VTOTAL_ADJUST];
                 if (!cga->vadj) {
                     cga->cgadispon = 1;
-                    cga->ma = cga->maback = (CGA_CRTC_START_ADDR_LOW | (CGA_CRTC_START_ADDR_HIGH << 8)) & 0x3fff;
+                    cga->ma = cga->maback = (cga->crtc[CGA_CRTC_START_ADDR_LOW] | (cga->crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
                 }
                 switch (cga->crtc[CGA_CRTC_CURSOR_START] & 0x60) {
                     case 0x20:
