@@ -291,7 +291,11 @@ net_slirp_get_revents(int idx, void *opaque)
     WSA_TO_POLL(FD_WRITE, SLIRP_POLL_OUT);
     WSA_TO_POLL(FD_CONNECT, SLIRP_POLL_OUT);
     WSA_TO_POLL(FD_OOB, SLIRP_POLL_PRI);
+    WSA_TO_POLL(FD_CLOSE, SLIRP_POLL_IN);
     WSA_TO_POLL(FD_CLOSE, SLIRP_POLL_HUP);
+
+    if (ret == 0)
+        ret |= SLIRP_POLL_IN;
 
     return ret;
 }

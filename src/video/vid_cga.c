@@ -16,7 +16,7 @@
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
- *          Copyright 2023 W. M. Martinez
+ *          Copyright 2023 W. M. Martine
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -73,10 +73,10 @@ void cga_recalctimings(cga_t *cga);
 static void
 cga_update_latch(cga_t *cga)
 {
-    uint32_t lp_latch = cga->displine * cga->crtc[1];
+    uint32_t lp_latch = cga->displine * cga->crtc[CGA_CRTC_HDISP];
 
     cga->crtc[0x10] = (lp_latch >> 8) & 0x3f;
-    cga->crtc[0x11] = lp_latch & 0xff;
+    cga->crtc[CGA_CRTC_LIGHT_PEN_ADDR_LOW] = lp_latch & 0xff;
 }
 
 void
@@ -89,20 +89,22 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
         addr = (addr & 0xff9) | 0x004;
 
     switch (addr) {
-        case 0x3D4:
+        case CGA_REGISTER_CRTC_INDEX:
             cga->crtcreg = val & 31;
             return;
-        case 0x3D5:
+        case CGA_REGISTER_CRTC_DATA:
             old                     = cga->crtc[cga->crtcreg];
             cga->crtc[cga->crtcreg] = val & crtcmask[cga->crtcreg];
             if (old != val) {
+                // Recalc the timings if we are writing any invalid CRTC register or a valid CRTC register 
+                // except the CURSOR and LIGHT PEN registers
                 if ((cga->crtcreg < 0xe) || (cga->crtcreg > 0x11)) {
                     cga->fullchange = changeframecount;
                     cga_recalctimings(cga);
                 }
             }
             return;
-        case 0x3D8:
+        case CGA_REGISTER_MODE_CONTROL:
             old          = cga->cgamode;
             cga->cgamode = val;
 
@@ -113,18 +115,18 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
                 cga_recalctimings(cga);
             }
             return;
-        case 0x3D9:
+        case CGA_REGISTER_COLOR_SELECT:
             old         = cga->cgacol;
             cga->cgacol = val;
             if (old ^ val)
                 cga_recalctimings(cga);
             return;
 
-        case 0x3DB:
+        case CGA_REGISTER_CLEAR_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 1)
                 cga->lp_strobe = 0;
             return;
-        case 0x3DC:
+        case CGA_REGISTER_SET_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 0) {
                 cga->lp_strobe = 1;
                 cga_update_latch(cga);
@@ -146,21 +148,20 @@ cga_in(uint16_t addr, void *priv)
         addr = (addr & 0xff9) | 0x004;
 
     switch (addr) {
-        case 0x3D4:
+        case CGA_REGISTER_CRTC_INDEX:
             ret = cga->crtcreg;
             break;
-        case 0x3D5:
+        case CGA_REGISTER_CRTC_DATA:
             ret = cga->crtc[cga->crtcreg];
             break;
-        case 0x3DA:
+        case CGA_REGISTER_STATUS:
             ret = cga->cgastat;
             break;
-
-        case 0x3DB:
+        case CGA_REGISTER_CLEAR_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 1)
                 cga->lp_strobe = 0;
             break;
-        case 0x3DC:
+        case CGA_REGISTER_SET_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 0) {
                 cga->lp_strobe = 1;
                 cga_update_latch(cga);
@@ -235,12 +236,12 @@ cga_recalctimings(cga_t *cga)
     double _dispontime;
     double _dispofftime;
 
-    if (cga->cgamode & 1) {
-        disptime    = (double) (cga->crtc[0] + 1);
-        _dispontime = (double) cga->crtc[1];
+    if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) {
+        disptime    = (double) (cga->crtc[CGA_CRTC_HTOTAL] + 1);
+        _dispontime = (double) cga->crtc[CGA_CRTC_HDISP];
     } else {
-        disptime    = (double) ((cga->crtc[0] + 1) << 1);
-        _dispontime = (double) (cga->crtc[1] << 1);
+        disptime    = (double) ((cga->crtc[CGA_CRTC_HTOTAL] + 1) << 1);
+        _dispontime = (double) (cga->crtc[CGA_CRTC_HDISP] << 1);
     }
     _dispofftime     = disptime - _dispontime;
     _dispontime      = _dispontime * CGACONST;
@@ -252,7 +253,7 @@ cga_recalctimings(cga_t *cga)
 static void
 cga_render(cga_t *cga, int line)
 {
-    uint16_t ca  = (cga->crtc[15] | (cga->crtc[14] << 8)) & 0x3fff;
+    uint16_t ca  = (cga->crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (cga->crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
     int      drawcursor;
     int      x;
     int      c;
@@ -262,33 +263,35 @@ cga_render(cga_t *cga, int line)
     int      cols[4];
     int      col;
 
-    if ((cga->cgamode & 0x12) == 0x12) {
+    int32_t  highres_graphics_flag = (CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_GRAPHICS);
+
+    if (((cga->cgamode & highres_graphics_flag) == highres_graphics_flag)) {
         for (c = 0; c < 8; ++c) {
             buffer32->line[line][c] = 0;
-            if (cga->cgamode & 1)
-                buffer32->line[line][c + (cga->crtc[1] << 3) + 8] = 0;
+            if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
+                buffer32->line[line][c + (cga->crtc[CGA_CRTC_HDISP] << 3) + 8] = 0;
             else
-                buffer32->line[line][c + (cga->crtc[1] << 4) + 8] = 0;
+                buffer32->line[line][c + (cga->crtc[CGA_CRTC_HDISP] << 4) + 8] = 0;
         }
     } else {
         for (c = 0; c < 8; ++c) {
             buffer32->line[line][c] = (cga->cgacol & 15) + 16;
-            if (cga->cgamode & 1)
-                buffer32->line[line][c + (cga->crtc[1] << 3) + 8] = (cga->cgacol & 15) + 16;
+            if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
+                buffer32->line[line][c + (cga->crtc[CGA_CRTC_HDISP] << 3) + 8] = (cga->cgacol & 15) + 16;
             else
-                buffer32->line[line][c + (cga->crtc[1] << 4) + 8] = (cga->cgacol & 15) + 16;
+                buffer32->line[line][c + (cga->crtc[CGA_CRTC_HDISP] << 4) + 8] = (cga->cgacol & 15) + 16;
         }
     }
-    if (cga->cgamode & 1) {
-        for (x = 0; x < cga->crtc[1]; x++) {
-            if (cga->cgamode & 8) {
+    if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) {
+        for (x = 0; x < cga->crtc[CGA_CRTC_HDISP]; x++) {
+            if (cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) {
                 chr  = cga->charbuffer[x << 1];
                 attr = cga->charbuffer[(x << 1) + 1];
             } else
                 chr = attr = 0;
             drawcursor = ((cga->ma == ca) && cga->con && cga->cursoron);
             cols[1]    = (attr & 15) + 16;
-            if (cga->cgamode & 0x20) {
+            if (cga->cgamode & CGA_MODE_FLAG_BLINK) {
                 cols[0] = ((attr >> 4) & 7) + 16;
                 if ((cga->cgablink & 8) && (attr & 0x80) && !cga->drawcursor)
                     cols[1] = cols[0];
@@ -308,15 +311,15 @@ cga_render(cga_t *cga, int line)
             cga->ma++;
         }
     } else if (!(cga->cgamode & 2)) {
-        for (x = 0; x < cga->crtc[1]; x++) {
-            if (cga->cgamode & 8) {
+        for (x = 0; x < cga->crtc[CGA_CRTC_HDISP]; x++) {
+            if (cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) {
                 chr  = cga->vram[(cga->ma << 1) & 0x3fff];
                 attr = cga->vram[((cga->ma << 1) + 1) & 0x3fff];
             } else
                 chr = attr = 0;
             drawcursor = ((cga->ma == ca) && cga->con && cga->cursoron);
             cols[1]    = (attr & 15) + 16;
-            if (cga->cgamode & 0x20) {
+            if (cga->cgamode & CGA_MODE_FLAG_BLINK) {
                 cols[0] = ((attr >> 4) & 7) + 16;
                 if ((cga->cgablink & 8) && (attr & 0x80))
                     cols[1] = cols[0];
@@ -337,10 +340,10 @@ cga_render(cga_t *cga, int line)
                 }
             }
         }
-    } else if (!(cga->cgamode & 16)) {
+    } else if (!(cga->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) {
         cols[0] = (cga->cgacol & 15) | 16;
         col     = (cga->cgacol & 16) ? 24 : 16;
-        if (cga->cgamode & 4) {
+        if (cga->cgamode & CGA_MODE_FLAG_BW) {
             cols[1] = col | 3; /* Cyan */
             cols[2] = col | 4; /* Red */
             cols[3] = col | 7; /* White */
@@ -353,8 +356,8 @@ cga_render(cga_t *cga, int line)
             cols[2] = col | 4; /* Red */
             cols[3] = col | 6; /* Yellow */
         }
-        for (x = 0; x < cga->crtc[1]; x++) {
-            if (cga->cgamode & 8)
+        for (x = 0; x < cga->crtc[CGA_CRTC_HDISP]; x++) {
+            if (cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE)
                 dat = (cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000)] << 8) |
                       cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000) + 1];
             else
@@ -370,8 +373,8 @@ cga_render(cga_t *cga, int line)
     } else {
         cols[0] = 0;
         cols[1] = (cga->cgacol & 15) + 16;
-        for (x = 0; x < cga->crtc[1]; x++) {
-            if (cga->cgamode & 8)
+        for (x = 0; x < cga->crtc[CGA_CRTC_HDISP]; x++) {
+            if (cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE)
                 dat = (cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000)] << 8) |
                       cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000) + 1];
             else
@@ -388,12 +391,14 @@ cga_render(cga_t *cga, int line)
 static void
 cga_render_blank(cga_t *cga, int line)
 {
-    int col = ((cga->cgamode & 0x12) == 0x12) ? 0 : (cga->cgacol & 15) + 16;
+    int32_t  highres_graphics_flag = (CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_GRAPHICS);
 
-    if (cga->cgamode & 1)
-        hline(buffer32, 0, line, (cga->crtc[1] << 3) + 16, col);
+    int col = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag) ? 0 : (cga->cgacol & 15) + 16;
+
+    if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
+        hline(buffer32, 0, line, (cga->crtc[CGA_CRTC_HDISP] << 3) + 16, col);
     else
-        hline(buffer32, 0, line, (cga->crtc[1] << 4) + 16, col);
+        hline(buffer32, 0, line, (cga->crtc[CGA_CRTC_HDISP] << 4) + 16, col);
 }
 
 static void
@@ -401,14 +406,15 @@ cga_render_process(cga_t *cga, int line)
 {
     int      x;
     uint8_t  border;
+    int32_t  highres_graphics_flag = (CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_GRAPHICS);
 
-    if (cga->cgamode & 1)
-        x = (cga->crtc[1] << 3) + 16;
+    if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
+        x = (cga->crtc[CGA_CRTC_HDISP] << 3) + 16;
     else
-        x = (cga->crtc[1] << 4) + 16;
+        x = (cga->crtc[CGA_CRTC_HDISP] << 4) + 16;
 
     if (cga->composite) {
-        border = ((cga->cgamode & 0x12) == 0x12) ? 0 : (cga->cgacol & 15);
+        border = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag) ? 0 : (cga->cgacol & 15);
 
         Composite_Process(cga->cgamode, border, x >> 2, buffer32->line[line]);
     } else
@@ -524,7 +530,7 @@ cga_poll(void *priv)
         cga->cgastat |= 1;
         cga->linepos = 1;
         oldsc        = cga->sc;
-        if ((cga->crtc[8] & 3) == 3)
+        if ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3)
             cga->sc = ((cga->sc << 1) + cga->oddeven) & 7;
         if (cga->cgadispon) {
             if (cga->displine < cga->firstline) {
@@ -573,7 +579,7 @@ cga_poll(void *priv)
         }
 
         cga->sc = oldsc;
-        if (cga->vc == cga->crtc[7] && !cga->sc)
+        if (cga->vc == cga->crtc[CGA_CRTC_VSYNC] && !cga->sc)
             cga->cgastat |= 8;
         cga->displine++;
         if (cga->displine >= 360)
@@ -586,12 +592,11 @@ cga_poll(void *priv)
             if (!cga->vsynctime)
                 cga->cgastat &= ~8;
         }
-        if (cga->sc == (cga->crtc[11] & 31) || ((cga->crtc[8] & 3) == 3 &&
-            cga->sc == ((cga->crtc[11] & 31) >> 1))) {
+        if (cga->sc == (cga->crtc[CGA_CRTC_CURSOR_END] & 31) || ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 &&
+            cga->sc == ((cga->crtc[CGA_CRTC_CURSOR_END] & 31) >> 1))) {
             cga->con  = 0;
-            cga->coff = 1;
         }
-        if ((cga->crtc[8] & 3) == 3 && cga->sc == (cga->crtc[9] >> 1))
+        if ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 && cga->sc == (cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] >> 1))
             cga->maback = cga->ma;
         if (cga->vadj) {
             cga->sc++;
@@ -600,27 +605,27 @@ cga_poll(void *priv)
             cga->vadj--;
             if (!cga->vadj) {
                 cga->cgadispon = 1;
-                cga->ma = cga->maback = (cga->crtc[13] | (cga->crtc[12] << 8)) & 0x3fff;
+                cga->ma = cga->maback = (cga->crtc[CGA_CRTC_START_ADDR_LOW] | (cga->crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
                 cga->sc               = 0;
             }
-        } else if (cga->sc == cga->crtc[9]) {
+        } else if (cga->sc == cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR]) {
             cga->maback = cga->ma;
             cga->sc     = 0;
             oldvc       = cga->vc;
             cga->vc++;
             cga->vc &= 127;
 
-            if (cga->vc == cga->crtc[6])
+            if (cga->vc == cga->crtc[CGA_CRTC_VDISP])
                 cga->cgadispon = 0;
 
-            if (oldvc == cga->crtc[4]) {
+            if (oldvc == cga->crtc[CGA_CRTC_VTOTAL]) {
                 cga->vc   = 0;
-                cga->vadj = cga->crtc[5];
+                cga->vadj = cga->crtc[CGA_CRTC_VTOTAL_ADJUST];
                 if (!cga->vadj) {
                     cga->cgadispon = 1;
-                    cga->ma = cga->maback = (cga->crtc[13] | (cga->crtc[12] << 8)) & 0x3fff;
+                    cga->ma = cga->maback = (cga->crtc[CGA_CRTC_START_ADDR_LOW] | (cga->crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
                 }
-                switch (cga->crtc[10] & 0x60) {
+                switch (cga->crtc[CGA_CRTC_CURSOR_START] & 0x60) {
                     case 0x20:
                         cga->cursoron = 0;
                         break;
@@ -633,15 +638,15 @@ cga_poll(void *priv)
                 }
             }
 
-            if (cga->vc == cga->crtc[7]) {
+            if (cga->vc == cga->crtc[CGA_CRTC_VSYNC]) {
                 cga->cgadispon = 0;
                 cga->displine  = 0;
                 cga->vsynctime = 16;
-                if (cga->crtc[7]) {
-                    if (cga->cgamode & 1)
-                        x = (cga->crtc[1] << 3) + 16;
+                if (cga->crtc[CGA_CRTC_VSYNC]) {
+                    if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
+                        x = (cga->crtc[CGA_CRTC_HDISP] << 3) + 16;
                     else
-                        x = (cga->crtc[1] << 4) + 16;
+                        x = (cga->crtc[CGA_CRTC_HDISP] << 4) + 16;
                     cga->lastline++;
 
                     xs_temp = x;
@@ -657,7 +662,7 @@ cga_poll(void *priv)
                         if (!enable_overscan)
                             xs_temp -= 16;
 
-                        if ((cga->cgamode & 8) && ((xs_temp != xsize) ||
+                        if ((cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && ((xs_temp != xsize) ||
                             (ys_temp != ysize) || video_force_resize_get())) {
                             xsize = xs_temp;
                             ysize = ys_temp;
@@ -691,15 +696,15 @@ cga_poll(void *priv)
 
                     video_res_x = xsize;
                     video_res_y = ysize;
-                    if (cga->cgamode & 1) {
+                    if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) {
                         video_res_x /= 8;
-                        video_res_y /= cga->crtc[9] + 1;
+                        video_res_y /= cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
                         video_bpp = 0;
-                    } else if (!(cga->cgamode & 2)) {
+                    } else if (!(cga->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
                         video_res_x /= 16;
-                        video_res_y /= cga->crtc[9] + 1;
+                        video_res_y /= cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
                         video_bpp = 0;
-                    } else if (!(cga->cgamode & 16)) {
+                    } else if (!(cga->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) {
                         video_res_x /= 2;
                         video_bpp = 2;
                     } else
@@ -717,11 +722,11 @@ cga_poll(void *priv)
         }
         if (cga->cgadispon)
             cga->cgastat &= ~1;
-        if (cga->sc == (cga->crtc[10] & 31) || ((cga->crtc[8] & 3) == 3 &&
-            cga->sc == ((cga->crtc[10] & 31) >> 1)))
+        if (cga->sc == (cga->crtc[CGA_CRTC_CURSOR_START] & 31) || ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 &&
+            cga->sc == ((cga->crtc[CGA_CRTC_CURSOR_START] & 31) >> 1)))
             cga->con = 1;
-        if (cga->cgadispon && (cga->cgamode & 1)) {
-            for (x = 0; x < (cga->crtc[1] << 1); x++)
+        if (cga->cgadispon && (cga->cgamode & CGA_MODE_FLAG_HIGHRES)) {
+            for (x = 0; x < (cga->crtc[CGA_CRTC_HDISP] << 1); x++)
                 cga->charbuffer[x] = cga->vram[((cga->ma << 1) + x) & 0x3fff];
         }
     }

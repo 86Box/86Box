@@ -158,7 +158,7 @@ typedef struct sigma_t {
     int linepos, displine;
     int sc, vc;
     int cgadispon;
-    int con, coff, cursoron, cgablink;
+    int con, cursoron, cgablink;
     int vsynctime, vadj;
     int oddeven;
 
@@ -676,7 +676,6 @@ sigma_poll(void *priv)
         }
         if (sigma->sc == (sigma->crtc[11] & 31) || ((sigma->crtc[8] & 3) == 3 && sigma->sc == ((sigma->crtc[11] & 31) >> 1))) {
             sigma->con  = 0;
-            sigma->coff = 1;
         }
         if ((sigma->crtc[8] & 3) == 3 && sigma->sc == (sigma->crtc[9] >> 1))
             sigma->maback = sigma->ma;
