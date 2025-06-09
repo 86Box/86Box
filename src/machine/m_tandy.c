@@ -92,7 +92,6 @@ typedef struct t1kvid_t {
     int      vc;
     int      dispon;
     int      con;
-    int      coff;
     int      cursoron;
     int      blink;
     int      fullchange;
@@ -1212,7 +1211,6 @@ vid_poll(void *priv)
         }
         if (vid->sc == (vid->crtc[11] & 31) || ((vid->crtc[8] & 3) == 3 && vid->sc == ((vid->crtc[11] & 31) >> 1))) {
             vid->con  = 0;
-            vid->coff = 1;
         }
         if (vid->vadj) {
             vid->sc++;

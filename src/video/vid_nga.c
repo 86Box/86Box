@@ -392,7 +392,6 @@ nga_poll(void *priv)
                 /* cursor stop scanline */
                 if (nga->cga.sc == (nga->cga.crtc[11] & 31) || ((nga->cga.crtc[8] & 3) == 3 && nga->cga.sc == ((nga->cga.crtc[11] & 31) >> 1))) {
                     nga->cga.con  = 0;
-                    nga->cga.coff = 1;
                 }
                 /* interlaced and max scanline per char reached */
                 if ((nga->cga.crtc[8] & 3) == 3 && nga->cga.sc == (nga->cga.crtc[9] >> 1))
