@@ -56,6 +56,7 @@ typedef enum cga_crtc_registers_e
     CGA_CRTC_LIGHT_PEN_ADDR_LOW = 0x11,                 // Light pen address low 8 bits (not currently supported)
 } cga_crtc_registers;
 
+// Registers for the CGA
 typedef enum cga_registers_e
 {
     CGA_REGISTER_CRTC_INDEX = 0x3D4,

@@ -58,13 +58,13 @@ static void
 elt_vid_off_poll(void *priv)
 {
     cga_t  *cga   = priv;
-    uint8_t hdisp = cga->crtc[1];
+    uint8_t hdisp = cga->crtc[CGA_CRTC_HDISP];
 
     /* Don't display anything.
      * TODO: Do something less stupid to emulate backlight off. */
-    cga->crtc[1] = 0;
+    cga->crtc[CGA_CRTC_HDISP] = 0;
     cga_poll(cga);
-    cga->crtc[1] = hdisp;
+    cga->crtc[CGA_CRTC_HDISP] = hdisp;
 }
 
 static void

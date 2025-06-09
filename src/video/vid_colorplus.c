@@ -173,7 +173,7 @@ colorplus_poll(void *priv)
             } else if (colorplus->control & COLORPLUS_640x200_MODE) {
                 cols[0] = (colorplus->cga.cgacol & 15) | 16;
                 col     = (colorplus->cga.cgacol & 16) ? 24 : 16;
-                if (colorplus->cga.cgamode & 4) {
+                if (colorplus->cga.cgamode & CGA_MODE_FLAG_BW) {
                     cols[1] = col | 3;
                     cols[2] = col | 4;
                     cols[3] = col | 7;
@@ -268,7 +268,7 @@ colorplus_poll(void *priv)
                 colorplus->cga.displine  = 0;
                 colorplus->cga.vsynctime = 16;
                 if (colorplus->cga.crtc[CGA_CRTC_VSYNC]) {
-                    if (colorplus->cga.cgamode & 1)
+                    if (colorplus->cga.cgamode & CGA_MODE_FLAG_HIGHRES)
                         x = (colorplus->cga.crtc[CGA_CRTC_HDISP] << 3) + 16;
                     else
                         x = (colorplus->cga.crtc[CGA_CRTC_HDISP] << 4) + 16;
@@ -288,15 +288,15 @@ colorplus_poll(void *priv)
 
                     video_res_x = xsize - 16;
                     video_res_y = ysize;
-                    if (colorplus->cga.cgamode & 1) {
+                    if (colorplus->cga.cgamode & CGA_MODE_FLAG_HIGHRES) {
                         video_res_x /= 8;
                         video_res_y /= colorplus->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
                         video_bpp = 0;
-                    } else if (!(colorplus->cga.cgamode & 2)) {
+                    } else if (!(colorplus->cga.cgamode & CGA_MODE_FLAG_GRAPHICS)) {
                         video_res_x /= 16;
                         video_res_y /= colorplus->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
                         video_bpp = 0;
-                    } else if (!(colorplus->cga.cgamode & 16)) {
+                    } else if (!(colorplus->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) {
                         video_res_x /= 2;
                         video_bpp = 2;
                     } else {
@@ -317,7 +317,7 @@ colorplus_poll(void *priv)
             colorplus->cga.cgastat &= ~1;
         if (colorplus->cga.sc == (colorplus->cga.crtc[CGA_CRTC_CURSOR_START] & 31) || ((colorplus->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && colorplus->cga.sc == ((colorplus->cga.crtc[CGA_CRTC_CURSOR_START] & 31) >> 1)))
             colorplus->cga.cursorvisible = 1;
-        if (colorplus->cga.cgadispon && (colorplus->cga.cgamode & 1)) {
+        if (colorplus->cga.cgadispon && (colorplus->cga.cgamode & CGA_MODE_FLAG_HIGHRES)) {
             for (x = 0; x < (colorplus->cga.crtc[CGA_CRTC_HDISP] << 1); x++)
                 colorplus->cga.charbuffer[x] = colorplus->cga.vram[((colorplus->cga.ma << 1) + x) & 0x3fff];
         }

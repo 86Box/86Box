@@ -75,7 +75,7 @@ cga_update_latch(cga_t *cga)
 {
     uint32_t lp_latch = cga->displine * cga->crtc[CGA_CRTC_HDISP];
 
-    cga->crtc[0x10] = (lp_latch >> 8) & 0x3f;
+    cga->crtc[CGA_CRTC_LIGHT_PEN_ADDR_HIGH] = (lp_latch >> 8) & 0x3f;
     cga->crtc[CGA_CRTC_LIGHT_PEN_ADDR_LOW] = lp_latch & 0xff;
 }
 

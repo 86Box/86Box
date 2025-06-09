@@ -276,8 +276,8 @@ compaq_plasma_poll(void *priv)
     uint8_t  chr;
     uint8_t  attr;
     uint8_t  sc;
-    uint16_t ma  = (self->cga.crtc[13] | (self->cga.crtc[12] << 8)) & 0x7fff;
-    uint16_t ca  = (self->cga.crtc[15] | (self->cga.crtc[14] << 8)) & 0x7fff;
+    uint16_t ma  = (self->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (self->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x7fff;
+    uint16_t ca  = (self->cga.crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (self->cga.crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x7fff;
     uint16_t addr;
     int      drawcursor;
     int      cursorline;
@@ -321,10 +321,10 @@ compaq_plasma_poll(void *priv)
                     addr = ((ma & ~1) + (self->cga.displine >> 4) * 80) << 1;
                     ma += (self->cga.displine >> 4) * 80;
 
-                    if ((self->cga.crtc[0x0a] & 0x60) == 0x20)
+                    if ((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x60) == 0x20)
                         cursorline = 0;
                     else
-                        cursorline = (((self->cga.crtc[0x0a] & 0x0f) << 1) <= sc) && (((self->cga.crtc[0x0b] & 0x0f) << 1) >= sc);
+                        cursorline = (((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) << 1) <= sc) && (((self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) << 1) >= sc);
 
                     /* for each text column */
                     for (x = 0; x < 80; x++) {
@@ -352,7 +352,7 @@ compaq_plasma_poll(void *priv)
                         /* set foreground */
                         cols[1] = blinkcols[attr][1];
                         /* blink active */
-                        if (self->cga.cgamode & 0x20) {
+                        if (self->cga.cgamode & CGA_MODE_FLAG_BLINK) {
                             cols[0] = blinkcols[attr][0];
                             /* attribute 7 active and not cursor */
                             if ((self->cga.cgablink & 0x08) && (attr & 0x80) && !drawcursor) {
@@ -406,10 +406,10 @@ compaq_plasma_poll(void *priv)
                     addr = ((ma & ~1) + (self->cga.displine >> 4) * 40) << 1;
                     ma += (self->cga.displine >> 4) * 40;
 
-                    if ((self->cga.crtc[0x0a] & 0x60) == 0x20)
+                    if ((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x60) == 0x20)
                         cursorline = 0;
                     else
-                        cursorline = (((self->cga.crtc[0x0a] & 0x0f) << 1) <= sc) && (((self->cga.crtc[0x0b] & 0x0f) << 1) >= sc);
+                        cursorline = (((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) << 1) <= sc) && (((self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) << 1) >= sc);
 
                     for (x = 0; x < 40; x++) {
                         /* video output enabled */
@@ -436,7 +436,7 @@ compaq_plasma_poll(void *priv)
                         /* set foreground */
                         cols[1] = blinkcols[attr][1];
                         /* blink active */
-                        if (self->cga.cgamode & 0x20) {
+                        if (self->cga.cgamode & CGA_MODE_FLAG_BLINK) {
                             cols[0] = blinkcols[attr][0];
                             /* attribute 7 active and not cursor */
                             if ((self->cga.cgablink & 0x08) && (attr & 0x80) && !drawcursor) {
@@ -485,7 +485,7 @@ compaq_plasma_poll(void *priv)
                         ma++;
                     }
                 } else {
-                    if (self->cga.cgamode & 0x10) {
+                    if (self->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS) {
                         /* 640x400 mode */
                         if (self->port_23c6 & 0x01) /* 640*400 */ {
                             addr = ((self->cga.displine) & 1) * 0x2000 + ((self->cga.displine >> 1) & 1) * 0x4000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
@@ -589,7 +589,7 @@ compaq_plasma_poll(void *priv)
                 video_res_y = 400;
 
                 if (self->cga.cgamode & 0x02) {
-                    if (self->cga.cgamode & 0x10)
+                    if (self->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)
                         video_bpp = 1;
                     else
                         video_bpp = 2;
