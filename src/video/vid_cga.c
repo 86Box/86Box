@@ -265,7 +265,7 @@ cga_render(cga_t *cga, int line)
 
     int32_t  highres_graphics_flag = (CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_GRAPHICS);
 
-    if ((cga->cgamode & highres_graphics_flag == highres_graphics_flag)) {
+    if (((cga->cgamode & highres_graphics_flag) == highres_graphics_flag)) {
         for (c = 0; c < 8; ++c) {
             buffer32->line[line][c] = 0;
             if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)

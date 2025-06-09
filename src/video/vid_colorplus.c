@@ -77,7 +77,7 @@ colorplus_write(uint32_t addr, uint8_t val, void *priv)
 {
     colorplus_t *colorplus = (colorplus_t *) priv;
 
-    if ((colorplus->control & COLORPLUS_PLANE_SWAP) && (colorplus->control & COLORPLUS_EITHER_MODE) && (colorplus->cga.cgamode & CGA_MODE_FLAG_GRAPHICS) {
+    if ((colorplus->control & COLORPLUS_PLANE_SWAP) && (colorplus->control & COLORPLUS_EITHER_MODE) && (colorplus->cga.cgamode & CGA_MODE_FLAG_GRAPHICS)) {
         addr ^= 0x4000;
     } else if (!(colorplus->control & COLORPLUS_EITHER_MODE)) {
         addr &= 0x3FFF;
