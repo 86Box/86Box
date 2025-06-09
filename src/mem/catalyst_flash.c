@@ -29,6 +29,7 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/plat.h>
+#include <86box/plat_fallthrough.h>
 
 #define FLAG_WORD    4
 #define FLAG_BXB     2
@@ -44,21 +45,22 @@ enum {
 };
 
 enum {
-    CMD_SET_READ       = 0x00,
-    CMD_READ_SIGNATURE = 0x90,
-    CMD_ERASE          = 0x20,
-    CMD_ERASE_CONFIRM  = 0x20,
-    CMD_ERASE_VERIFY   = 0xA0,
-    CMD_PROGRAM        = 0x40,
-    CMD_PROGRAM_VERIFY = 0xC0,
-    CMD_RESET          = 0xFF
+    CMD_SET_READ         = 0x00,
+    CMD_READ_AUTO_SELECT = 0x80,
+    CMD_READ_SIGNATURE   = 0x90,
+    CMD_ERASE            = 0x20,
+    CMD_ERASE_CONFIRM    = 0x20,
+    CMD_ERASE_VERIFY     = 0xA0,
+    CMD_PROGRAM          = 0x40,
+    CMD_PROGRAM_VERIFY   = 0xC0,
+    CMD_RESET            = 0xFF
 };
 
 typedef struct flash_t {
     uint8_t command;
+    uint8_t is_amd;
     uint8_t pad;
     uint8_t pad0;
-    uint8_t pad1;
     uint8_t *array;
 
     mem_mapping_t mapping;
@@ -83,11 +85,22 @@ flash_read(uint32_t addr, void *priv)
             ret = dev->array[addr];
             break;
 
+        case CMD_READ_AUTO_SELECT:
+            if (!dev->is_amd)
+                break;
+            fallthrough;
         case CMD_READ_SIGNATURE:
-            if (addr == 0x00000)
-                ret = 0x31; /* CATALYST */
-            else if (addr == 0x00001)
-                ret = 0xB4; /* 28F010 */
+            if (dev->is_amd) {
+                if (addr == 0x00000)
+                    ret = 0x01; /* AMD */
+                else if (addr == 0x00001)
+                    ret = 0xa7; /* Am28F010 */
+            } else {
+                if (addr == 0x00000)
+                    ret = 0x31; /* CATALYST */
+                else if (addr == 0x00001)
+                    ret = 0xb4; /* 28F010 */
+            }
             break;
 
         default:
@@ -205,6 +218,7 @@ catalyst_flash_init(UNUSED(const device_t *info))
     catalyst_flash_add_mappings(dev);
 
     dev->command = CMD_RESET;
+    dev->is_amd  = info->local;
 
     fp = nvr_fopen(flash_path, "rb");
     if (fp) {
@@ -236,6 +250,20 @@ const device_t catalyst_flash_device = {
     .internal_name = "catalyst_flash",
     .flags         = DEVICE_PCI,
     .local         = 0,
+    .init          = catalyst_flash_init,
+    .close         = catalyst_flash_close,
+    .reset         = catalyst_flash_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t amd_am28f010_flash_device = {
+    .name          = "AMD Am28F010-D Flash BIOS",
+    .internal_name = "amd_am28f010_flash",
+    .flags         = DEVICE_PCI,
+    .local         = 1,
     .init          = catalyst_flash_init,
     .close         = catalyst_flash_close,
     .reset         = catalyst_flash_reset,
