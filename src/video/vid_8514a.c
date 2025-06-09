@@ -3693,10 +3693,10 @@ ibm8514_poll(void *priv)
 
                 svga->render8514(svga);
 
-                svga->x_add = (overscan_x >> 1);
+                svga->x_add = svga->left_overscan;
                 ibm8514_render_overscan_left(dev, svga);
                 ibm8514_render_overscan_right(dev, svga);
-                svga->x_add = (overscan_x >> 1);
+                svga->x_add = svga->left_overscan;
 
                 if (dev->hwcursor_on) {
                     if (svga->hwcursor_draw)
@@ -3796,7 +3796,7 @@ ibm8514_poll(void *priv)
                 dev->dispon   = 1;
                 dev->displine = (dev->interlace && dev->oddeven) ? 1 : 0;
 
-                svga->x_add = (overscan_x >> 1);
+                svga->x_add = svga->left_overscan;
 
                 dev->hwcursor_on    = 0;
                 dev->hwcursor_latch = dev->hwcursor;
@@ -3966,7 +3966,7 @@ ibm8514_init(const device_t *info)
         bios_addr = 0xc6000;
 
     switch (dev->extensions) {
-        case 1:
+        case ATI:
             if (rom_present(BIOS_MACH8_ROM_PATH)) {
                 mach_t * mach = (mach_t *) calloc(1, sizeof(mach_t));
                 svga->ext8514 = mach;
@@ -3977,13 +3977,14 @@ ibm8514_init(const device_t *info)
                          0, MEM_MAPPING_EXTERNAL);
 
                 ati8514_init(svga, svga->ext8514, svga->dev8514);
-                mach->accel.scratch0 = ((((bios_addr >> 7) - 0x1000) >> 4));
+                mach->accel.scratch0 = ((bios_addr >> 7) - 0x1000) >> 4;
                 bios_rom_eeprom = mach->accel.scratch0;
                 if (dev->type & DEVICE_MCA) {
                     dev->pos_regs[0] = 0x88;
                     dev->pos_regs[1] = 0x80;
                     mach->eeprom.data[0] = 0x0000;
                     mach->eeprom.data[1] = bios_rom_eeprom | ((bios_rom_eeprom | 0x01) << 8);
+                    ibm8514_log("EEPROM Data1=%04x.\n", mach->eeprom.data[1]);
                     mca_add(ati8514_mca_read, ati8514_mca_write, ibm8514_mca_feedb, ibm8514_mca_reset, svga);
                     ati_eeprom_load_mach8(&mach->eeprom, "ati8514_mca.nvr", 1);
                     mem_mapping_disable(&dev->bios_rom.mapping);
@@ -4067,12 +4068,12 @@ static const device_config_t isa_ext8514_config[] = {
         .description    = "Vendor",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 0,
+        .default_int    = IBM,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "IBM", .value = 0 },
-            { .description = "ATI", .value = 1 },
+            { .description = "IBM", .value = IBM },
+            { .description = "ATI", .value = ATI },
             { .description = ""                }
         },
         .bios           = { { 0 } }
@@ -4127,12 +4128,12 @@ static const device_config_t mca_ext8514_config[] = {
         .description    = "Vendor",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 0,
+        .default_int    = IBM,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "IBM", .value = 0 },
-            { .description = "ATI", .value = 1 },
+            { .description = "IBM", .value = IBM },
+            { .description = "ATI", .value = ATI },
             { .description = ""                }
         },
         .bios           = { { 0 } }
@@ -4145,7 +4146,7 @@ const device_t gen8514_isa_device = {
     .name          = "IBM 8514/A clone (ISA)",
     .internal_name = "8514_isa",
     .flags         = DEVICE_ISA16,
-    .local         = 0,
+    .local         = IBM_8514A_TYPE,
     .init          = ibm8514_init,
     .close         = ibm8514_close,
     .reset         = NULL,
@@ -4159,7 +4160,7 @@ const device_t ibm8514_mca_device = {
     .name          = "IBM 8514/A (MCA)",
     .internal_name = "8514_mca",
     .flags         = DEVICE_MCA,
-    .local         = 0,
+    .local         = IBM_8514A_TYPE,
     .init          = ibm8514_init,
     .close         = ibm8514_close,
     .reset         = NULL,
