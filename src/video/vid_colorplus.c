@@ -42,9 +42,6 @@
 #define COLORPLUS_320x200_MODE 0x10 /* 320x200x16 mode active */
 #define COLORPLUS_EITHER_MODE  0x30 /* Either mode active */
 
-/* Bits in the CGA graphics mode register */
-#define CGA_GRAPHICS_MODE 0x02 /* CGA graphics mode selected? */
-
 #define CGA_RGB           0
 #define CGA_COMPOSITE     1
 
@@ -80,7 +77,7 @@ colorplus_write(uint32_t addr, uint8_t val, void *priv)
 {
     colorplus_t *colorplus = (colorplus_t *) priv;
 
-    if ((colorplus->control & COLORPLUS_PLANE_SWAP) && (colorplus->control & COLORPLUS_EITHER_MODE) && (colorplus->cga.cgamode & CGA_GRAPHICS_MODE)) {
+    if ((colorplus->control & COLORPLUS_PLANE_SWAP) && (colorplus->control & COLORPLUS_EITHER_MODE) && (colorplus->cga.cgamode & CGA_MODE_FLAG_GRAPHICS) {
         addr ^= 0x4000;
     } else if (!(colorplus->control & COLORPLUS_EITHER_MODE)) {
         addr &= 0x3FFF;
@@ -99,7 +96,7 @@ colorplus_read(uint32_t addr, void *priv)
 {
     colorplus_t *colorplus = (colorplus_t *) priv;
 
-    if ((colorplus->control & COLORPLUS_PLANE_SWAP) && (colorplus->control & COLORPLUS_EITHER_MODE) && (colorplus->cga.cgamode & CGA_GRAPHICS_MODE)) {
+    if ((colorplus->control & COLORPLUS_PLANE_SWAP) && (colorplus->control & COLORPLUS_EITHER_MODE) && (colorplus->cga.cgamode & CGA_MODE_FLAG_GRAPHICS)) {
         addr ^= 0x4000;
     } else if (!(colorplus->control & COLORPLUS_EITHER_MODE)) {
         addr &= 0x3FFF;
@@ -140,7 +137,7 @@ colorplus_poll(void *priv)
 
     /* If one of the extra modes is not selected, drop down to the CGA
      * drawing code. */
-    if (!((colorplus->control & COLORPLUS_EITHER_MODE) && (colorplus->cga.cgamode & CGA_GRAPHICS_MODE))) {
+    if (!((colorplus->control & COLORPLUS_EITHER_MODE) && (colorplus->cga.cgamode & CGA_MODE_FLAG_GRAPHICS))) {
         cga_poll(&colorplus->cga);
         return;
     }
