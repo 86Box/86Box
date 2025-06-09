@@ -399,7 +399,6 @@ hercules_poll(void *priv)
 
         if (dev->sc == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[11] & 31) >> 1))) {
             dev->con  = 0;
-            dev->coff = 1;
         }
 
         if (dev->vadj) {

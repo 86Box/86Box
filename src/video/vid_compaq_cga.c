@@ -269,7 +269,6 @@ compaq_cga_poll(void *priv)
 
         if (self->cga.sc == (self->cga.crtc[11] & 31) || ((self->cga.crtc[8] & 3) == 3 && self->cga.sc == ((self->cga.crtc[11] & 31) >> 1))) {
             self->cga.con  = 0;
-            self->cga.coff = 1;
         }
         if ((self->cga.crtc[8] & 3) == 3 && self->cga.sc == (self->cga.crtc[9] >> 1))
             self->cga.maback = self->cga.ma;

@@ -44,14 +44,14 @@ typedef enum cga_crtc_registers_e
     CGA_CRTC_VTOTAL_ADJUST = 0x5,                       // Vertical total adjust value
     CGA_CRTC_VDISP = 0x6,                               // Vertical display (total number of displayed scanline)
     CGA_CRTC_VSYNC = 0x7,                               // Vertical sync scanline number
-    CGA_CRTC_INTERLACE = 0x8,                           // If set, interlacing mode is enabled
-    CGA_CRTC_MAX_SCANLINE_ADDR = 0x9,
-    CGA_CRTC_CURSOR_START = 0xA,
-    CGA_CRTC_CURSOR_END = 0xB,
-    CGA_CRTC_START_ADDR_HIGH = 0xC,
-    CGA_CRTC_START_ADDR_LOW = 0xD,
-    CGA_CRTC_CURSOR_ADDR_HIGH = 0xE,
-    CGA_CRTC_CURSOR_ADDR_LOW = 0xF,
+    CGA_CRTC_INTERLACE = 0x8,                           // Interlacing mode
+    CGA_CRTC_MAX_SCANLINE_ADDR = 0x9,                   // Maximum scanline address
+    CGA_CRTC_CURSOR_START = 0xA,                        // Cursor start scanline
+    CGA_CRTC_CURSOR_END = 0xB,                          // Cursor end scanline
+    CGA_CRTC_START_ADDR_HIGH = 0xC,                     // Screen start address high 8 bits
+    CGA_CRTC_START_ADDR_LOW = 0xD,                      // Screen start address low 8 bits
+    CGA_CRTC_CURSOR_ADDR_HIGH = 0xE,                    // Cursor address high 8 bits
+    CGA_CRTC_CURSOR_ADDR_LOW = 0xF,                     // Cursor addres low 8 bits
     CGA_CRTC_LIGHT_PEN_ADDR_HIGH = 0x10,
     CGA_CRTC_LIGHT_PEN_ADDR_LOW = 0x11,
 } cga_crtc_registers;
@@ -76,7 +76,6 @@ typedef struct cga_t {
     int      vc;
     int      cgadispon;
     int      con;
-    int      coff;
     int      cursoron;
     int      cgablink;
     int      vsynctime;

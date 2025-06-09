@@ -596,7 +596,6 @@ cga_poll(void *priv)
         if (cga->sc == (cga->crtc[CGA_CRTC_CURSOR_END] & 31) || ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 &&
             cga->sc == ((cga->crtc[CGA_CRTC_CURSOR_END] & 31) >> 1))) {
             cga->con  = 0;
-            cga->coff = 1;
         }
         if ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 && cga->sc == (cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] >> 1))
             cga->maback = cga->ma;

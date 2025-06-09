@@ -229,7 +229,6 @@ colorplus_poll(void *priv)
         }
         if (colorplus->cga.sc == (colorplus->cga.crtc[11] & 31) || ((colorplus->cga.crtc[8] & 3) == 3 && colorplus->cga.sc == ((colorplus->cga.crtc[11] & 31) >> 1))) {
             colorplus->cga.con  = 0;
-            colorplus->cga.coff = 1;
         }
         if ((colorplus->cga.crtc[8] & 3) == 3 && colorplus->cga.sc == (colorplus->cga.crtc[9] >> 1))
             colorplus->cga.maback = colorplus->cga.ma;

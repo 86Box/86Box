@@ -200,7 +200,6 @@ mda_poll(void *priv)
         }
         if (mda->sc == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[11] & 31) >> 1))) {
             mda->con  = 0;
-            mda->coff = 1;
         }
         if (mda->vadj) {
             mda->sc++;
