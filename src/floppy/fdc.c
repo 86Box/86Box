@@ -1653,8 +1653,8 @@ fdc_callback(void *priv)
         case 0x06: /* Read data */
         case 0x0c: /* Read deleted data */
         case 0x11: /* Scan equal */
+        case 0x16: /* Verify */
         case 0x19: /* Scan low or equal */
-        case 0x1c: /* Verify */
         case 0x1d: /* Scan high or equal */
             if ((fdc->interrupt == 0x11) || (fdc->interrupt == 0x19) || (fdc->interrupt == 0x1D))
                 compare = 1;

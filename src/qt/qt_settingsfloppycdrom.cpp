@@ -359,9 +359,9 @@ SettingsFloppyCDROM::on_comboBoxSpeed_activated(int index)
 void
 SettingsFloppyCDROM::on_comboBoxBus_activated(int)
 {
-    auto i = ui->tableViewCDROM->selectionModel()->currentIndex().siblingAtColumn(0);
+    auto    i        = ui->tableViewCDROM->selectionModel()->currentIndex().siblingAtColumn(0);
     uint8_t bus_type = ui->comboBoxBus->currentData().toUInt();
-    int cdromIdx     = ui->tableViewCDROM->selectionModel()->currentIndex().data().toInt();
+    int     cdromIdx = ui->tableViewCDROM->selectionModel()->currentIndex().data().toInt();
 
     Harddrives::busTrackClass->device_track(0, DEV_CDROM, ui->tableViewCDROM->model()->data(i,
                                             Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i,
@@ -384,9 +384,9 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
     auto *modelType  = ui->comboBoxCDROMType->model();
     int   removeRows = modelType->rowCount();
 
-    uint32_t j               = 0;
-    int selectedTypeRow      = 0;
-    int eligibleRows         = 0;
+    uint32_t j          = 0;
+    int selectedTypeRow = 0;
+    int eligibleRows    = 0;
     while (cdrom_drive_types[j].bus_type != BUS_TYPE_NONE) {
         if (((bus_type == CDROM_BUS_ATAPI) || (bus_type == CDROM_BUS_SCSI)) &&
             ((cdrom_drive_types[j].bus_type == bus_type) ||
@@ -414,11 +414,10 @@ void
 SettingsFloppyCDROM::enableCurrentlySelectedChannel()
 {
     const auto *item_model = qobject_cast<QStandardItemModel*>(ui->comboBoxChannel->model());
-    const auto index = ui->comboBoxChannel->currentIndex();
-    auto *item = item_model->item(index);
-    if(item) {
+    const auto  index      = ui->comboBoxChannel->currentIndex();
+    auto       *item       = item_model->item(index);
+    if(item)
         item->setEnabled(true);
-    }
 }
 
 void
@@ -449,9 +448,9 @@ SettingsFloppyCDROM::on_comboBoxCDROMType_activated(int)
     ui->tableViewCDROM->resizeColumnsToContents();
     ui->tableViewCDROM->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
 
-    int     speed   = cdrom_get_speed(type);
+    int speed = cdrom_get_speed(type);
     if (speed == -1) {
-        speed   = ui->comboBoxSpeed->currentData().toUInt();
+        speed = ui->comboBoxSpeed->currentData().toUInt();
         ui->comboBoxSpeed->setEnabled(true);
     } else
         ui->comboBoxSpeed->setEnabled(false);

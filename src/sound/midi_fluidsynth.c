@@ -161,6 +161,7 @@ fluidsynth_init(UNUSED(const device_t *info))
 
     fluid_settings_setnum(data->settings, "synth.sample-rate", 44100);
     fluid_settings_setnum(data->settings, "synth.gain", device_get_config_int("output_gain") / 100.0f);
+    fluid_settings_setint(data->settings, "synth.dynamic-sample-loading", device_get_config_int("dynamic_sample_loading"));
 
     data->synth = new_fluid_synth(data->settings);
 
@@ -324,7 +325,7 @@ static const device_config_t fluidsynth_config[] = {
         .type           = CONFIG_FNAME,
         .default_string = NULL,
         .default_int    = 0,
-        .file_filter    = "SF2 Sound Fonts (*.sf2)|*.sf2",
+        .file_filter    = "SoundFont files (*.sf2 *.sf3)|*.sf2,*.sf3",
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
@@ -507,6 +508,17 @@ static const device_config_t fluidsynth_config[] = {
             { .description = "7th Order", .value = 3 },
             { .description = ""                      }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dynamic_sample_loading",
+        .description    = "Dynamic Sample Loading",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }

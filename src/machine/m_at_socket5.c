@@ -81,6 +81,87 @@ machine_at_dellplato_init(const machine_t *model)
 }
 
 int
+machine_at_d842_init(const machine_t *model)
+
+{
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios_versions"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+	
+	machine_at_common_init(model);
+
+    device_add(&ide_pci_2ch_device);
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+	pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+	pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0); /* Onboard */
+	pci_register_slot(0x03, PCI_CARD_VIDEO,       4, 0, 0, 0); /* Onboard */
+	pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 3, 2, 4); /* Slot 01 */
+	pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 1, 3, 4); /* Slot 02 */
+
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&i430nx_device);
+    device_add(&sio_zb_device);
+    device_add(&fdc37c665_device);
+	device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+static const device_config_t d842_config[] = {
+    // clang-format off
+    {
+        .name = "bios_versions",
+        .description = "BIOS Versions",
+        .type = CONFIG_BIOS,
+        .default_string = "d842",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 }, /*W1*/
+        .bios = {
+            { .name = "Version 1.03 Revision 1.03.842 (11/24/1994)", .internal_name = "d842", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842.bin", "" } },
+            { .name = "Version 4.04 Revision 1.05.842 (03/15/1996)", .internal_name = "d842_mar96", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_mar96.bin", "" } },
+            { .name = "Version 4.04 Revision 1.06.842 (04/03/1998)", .internal_name = "d842_apr98", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_apr98.bin", "" } },
+			{ .name = "Version 4.04 Revision 1.07.842 (06/02/1998)", .internal_name = "d842_jun98", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_jun98.bin", "" } },
+			{ .name = "Version 1.03 Revision 1.09.842 (07/08/1996)", .internal_name = "d842_jul96", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_jul96.bin", "" } },
+			{ .name = "Version 1.03 Revision 1.10.842 (06/04/1998)", .internal_name = "d842_jun98_1", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_jun98_1.bin", "" } },			  
+            
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+
+
+const device_t d842_device = {
+    .name          = "Siemens-Nixdorf D842",
+    .internal_name = "d842",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = &d842_config[0]
+};
+
+int
 machine_at_ambradp90_init(const machine_t *model)
 {
     int ret;
@@ -393,6 +474,7 @@ machine_at_hawk_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_pt2000_init(const machine_t *model)

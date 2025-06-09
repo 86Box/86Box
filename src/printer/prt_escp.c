@@ -2053,6 +2053,7 @@ escp_close(void *priv)
         free(dev->page);
     }
 
+    FT_Done_Face(dev->fontface);
     free(dev);
 }
 

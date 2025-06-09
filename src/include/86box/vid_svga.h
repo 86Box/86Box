@@ -116,6 +116,7 @@ typedef struct svga_t {
     int lastline_draw;
     int displine;
     int fullchange;
+    int left_overscan;
     int x_add;
     int y_add;
     int pan;

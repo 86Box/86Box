@@ -35,22 +35,25 @@ private slots:
     void on_checkBoxSerial7_stateChanged(int state);
 #endif
     void on_checkBoxSerialPassThru1_stateChanged(int state);
+    void on_pushButtonSerialPassThru1_clicked();
+
     void on_checkBoxSerialPassThru2_stateChanged(int state);
+    void on_pushButtonSerialPassThru2_clicked();
+
     void on_checkBoxSerialPassThru3_stateChanged(int state);
+    void on_pushButtonSerialPassThru3_clicked();
+
     void on_checkBoxSerialPassThru4_stateChanged(int state);
+    void on_pushButtonSerialPassThru4_clicked();
+
 #if 0
     void on_checkBoxSerialPassThru5_stateChanged(int state);
-    void on_checkBoxSerialPassThru6_stateChanged(int state);
-    void on_checkBoxSerialPassThru7_stateChanged(int state);
-#endif
-
-    void on_pushButtonSerialPassThru1_clicked();
-    void on_pushButtonSerialPassThru2_clicked();
-    void on_pushButtonSerialPassThru3_clicked();
-    void on_pushButtonSerialPassThru4_clicked();
-#if 0
     void on_pushButtonSerialPassThru5_clicked();
+
+    void on_checkBoxSerialPassThru6_stateChanged(int state);
     void on_pushButtonSerialPassThru6_clicked();
+
+    void on_checkBoxSerialPassThru7_stateChanged(int state);
     void on_pushButtonSerialPassThru7_clicked();
 #endif
 

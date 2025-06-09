@@ -14,7 +14,7 @@
  *          Jasmine Iwanek <jriwanek@gmail.com>
  *
  *          Copyright 2021      Joakim L. Gilje
- *          Copyright 2022-2023 Jasmine Iwanek
+ *          Copyright 2022-2025 Jasmine Iwanek
  */
 #include "qt_settingssound.hpp"
 #include "ui_qt_settingssound.h"
@@ -76,8 +76,8 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
     int                 c;
     int                 selectedRow;
 
-    // Sound Card
-    QComboBox *         cbox[SOUND_CARD_MAX]         = { 0 };
+    // Sound Cards
+    QComboBox          *cbox[SOUND_CARD_MAX]         = { 0 };
     QAbstractItemModel *models[SOUND_CARD_MAX]       = { 0 };
     int                 removeRows_[SOUND_CARD_MAX]  = { 0 };
     int                 selectedRows[SOUND_CARD_MAX] = { 0 };
@@ -89,7 +89,7 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
         removeRows_[i] = models[i]->rowCount();
     }
 
-    c               = 0;
+    c = 0;
     while (true) {
         const QString name = DeviceConfig::DeviceName(sound_card_getdevice(c),
                                                       sound_card_get_internal_name(c), 1);
@@ -110,7 +110,7 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
             }
         }
 
-       c++;
+        c++;
     }
 
     for (uint8_t i = 0; i < SOUND_CARD_MAX; ++i) {
@@ -122,21 +122,19 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
 
     // Midi Out
     c               = 0;
-    auto model      = ui->comboBoxMidiOut->model();
+    auto *model     = ui->comboBoxMidiOut->model();
     auto removeRows = model->rowCount();
     selectedRow     = 0;
 
     while (true) {
         const QString name = DeviceConfig::DeviceName(midi_out_device_getdevice(c), midi_out_device_get_internal_name(c), 0);
-        if (name.isEmpty()) {
+        if (name.isEmpty())
             break;
-        }
 
         if (midi_out_device_available(c)) {
             int row = Models::AddEntry(model, name, c);
-            if (c == midi_output_device_current) {
+            if (c == midi_output_device_current)
                 selectedRow = row - removeRows;
-            }
         }
 
         c++;
@@ -155,15 +153,13 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
 
     while (true) {
         const QString name = DeviceConfig::DeviceName(midi_in_device_getdevice(c), midi_in_device_get_internal_name(c), 0);
-        if (name.isEmpty()) {
+        if (name.isEmpty())
             break;
-        }
 
         if (midi_in_device_available(c)) {
             int row = Models::AddEntry(model, name, c);
-            if (c == midi_input_device_current) {
+            if (c == midi_input_device_current)
                 selectedRow = row - removeRows;
-            }
         }
 
         c++;
@@ -198,13 +194,11 @@ allowMpu401(Ui::SettingsSound *ui)
     QString midiOut = midi_out_device_get_internal_name(ui->comboBoxMidiOut->currentData().toInt());
     QString midiIn  = midi_in_device_get_internal_name(ui->comboBoxMidiIn->currentData().toInt());
 
-    if (midiOut.isEmpty()) {
+    if (midiOut.isEmpty())
         return false;
-    }
 
-    if (midiOut == QStringLiteral("none") && midiIn == QStringLiteral("none")) {
+    if (midiOut == QStringLiteral("none") && midiIn == QStringLiteral("none"))
         return false;
-    }
 
     return true;
 }
@@ -212,9 +206,9 @@ allowMpu401(Ui::SettingsSound *ui)
 void
 SettingsSound::on_comboBoxSoundCard1_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
+
     int sndCard = ui->comboBoxSoundCard1->currentData().toInt();
 
     if (sndCard == SOUND_INTERNAL)
@@ -238,9 +232,8 @@ SettingsSound::on_pushButtonConfigureSoundCard1_clicked()
 void
 SettingsSound::on_comboBoxSoundCard2_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
 
     int sndCard = ui->comboBoxSoundCard2->currentData().toInt();
 
@@ -258,9 +251,8 @@ SettingsSound::on_pushButtonConfigureSoundCard2_clicked()
 void
 SettingsSound::on_comboBoxSoundCard3_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
 
     int sndCard = ui->comboBoxSoundCard3->currentData().toInt();
 
@@ -279,9 +271,8 @@ SettingsSound::on_pushButtonConfigureSoundCard3_clicked()
 void
 SettingsSound::on_comboBoxSoundCard4_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
 
     int sndCard = ui->comboBoxSoundCard4->currentData().toInt();
 
@@ -300,9 +291,8 @@ SettingsSound::on_pushButtonConfigureSoundCard4_clicked()
 void
 SettingsSound::on_comboBoxMidiOut_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
 
     ui->pushButtonConfigureMidiOut->setEnabled(midi_out_device_has_config(ui->comboBoxMidiOut->currentData().toInt()));
     ui->checkBoxMPU401->setEnabled(allowMpu401(ui) && (machine_has_bus(machineId, MACHINE_BUS_ISA) || machine_has_bus(machineId, MACHINE_BUS_MCA)));
@@ -318,9 +308,8 @@ SettingsSound::on_pushButtonConfigureMidiOut_clicked()
 void
 SettingsSound::on_comboBoxMidiIn_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
 
     ui->pushButtonConfigureMidiIn->setEnabled(midi_in_device_has_config(ui->comboBoxMidiIn->currentData().toInt()));
     ui->checkBoxMPU401->setEnabled(allowMpu401(ui) && (machine_has_bus(machineId, MACHINE_BUS_ISA) || machine_has_bus(machineId, MACHINE_BUS_MCA)));

@@ -1833,7 +1833,7 @@ msgid "2 MB"
 msgstr "2 MB"
 
 msgid "8 MB"
-msgstr " 8 MB"
+msgstr "8 MB"
 
 msgid "28 MB"
 msgstr "28 MB"

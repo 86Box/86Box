@@ -731,9 +731,11 @@ ad1848_poll(void *priv)
             if (!(ad1848->status & 0x01)) {
                 ad1848->status |= 0x01;
                 ad1848->regs[24] |= 0x10;
-                if (ad1848->regs[10] & 2)
-                    picint(1 << ad1848->irq);
             }
+            if (ad1848->regs[10] & 2)
+                picint(1 << ad1848->irq);
+            else
+                picintc(1 << ad1848->irq);
         }
 
         if (!(ad1848->adpcm_pos & 7)) /* ADPCM counts down every 4 bytes */

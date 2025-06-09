@@ -159,7 +159,7 @@ typedef struct hard_disk_t {
     uint8_t            pad;
     uint8_t            pad0;
 
-    void *             priv;
+    void              *priv;
 
     char               fn[1024];     /* Name of current image file */
     /* Differential VHD parent file */
@@ -185,7 +185,7 @@ typedef struct hard_disk_t {
     uint8_t            max_multiple_block;
     uint8_t            pad1[3];
 
-    const char *       model;
+    const char        *model;
 
     hdd_zone_t         zones[HDD_MAX_ZONES];
 
