@@ -196,7 +196,7 @@ compaq_cga_poll(void *priv)
                         cols[1] = mdaattr[attr][blink][1];
                         if (dev->sc == 12 && (attr & 7) == 1)
                             underline = 1;
-                    } else if (dev->cgamode & CGA_MODE_FLAG_BLINK)) {
+                    } else if (dev->cgamode & CGA_MODE_FLAG_BLINK) {
                         cols[1] = (attr & 15) + 16;
                         cols[0] = ((attr >> 4) & 7) + 16;
 
@@ -475,7 +475,7 @@ compaq_cga_speed_changed(void *priv)
     cga_t *dev = (cga_t *) priv;
 
     if (dev->crtc[9] == 13) /* Character height */
-        compaq_cga_recalctimings(self);
+        compaq_cga_recalctimings(dev);
     else
         cga_recalctimings(dev);
 }
