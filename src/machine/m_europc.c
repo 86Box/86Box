@@ -646,6 +646,7 @@ europc_boot(UNUSED(const device_t *info))
      * (JS9) can be used to "move" it to 0x0350, to get it out of
      * the way of other cards that need this range.
      */
+    sys->jim = device_get_config_hex16("js9");
     io_sethandler(sys->jim, 16,
                   jim_read, NULL, NULL, jim_write, NULL, NULL, sys);
 
@@ -680,14 +681,14 @@ static const device_config_t europc_config[] = {
     {
         .name = "js9",
         .description = "JS9 Jumper (JIM)",
-        .type = CONFIG_INT,
+        .type = CONFIG_HEX16,
         .default_string = "",
-        .default_int = 0,
+        .default_int = 0x0250,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
-            { .description = "Disabled (250h)", .value = 0 },
-            { .description = "Enabled (350h)",  .value = 1 },
+            { .description = "Disabled (250h)", .value = 0x0250 },
+            { .description = "Enabled (350h)",  .value = 0x0350 },
             { .description = ""                            }
         },
     },
