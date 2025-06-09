@@ -226,7 +226,7 @@ colorplus_poll(void *priv)
         }
         if (colorplus->cga.sc == (colorplus->cga.crtc[CGA_CRTC_CURSOR_END] & 31) 
         || ((colorplus->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && colorplus->cga.sc == ((colorplus->cga.crtc[CGA_CRTC_CURSOR_END] & 31) >> 1))) {
-            colorplus->cga.con  = 0;
+            colorplus->cga.cursorvisible  = 0;
         }
         if ((colorplus->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && colorplus->cga.sc == (colorplus->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] >> 1))
             colorplus->cga.maback = colorplus->cga.ma;
@@ -316,7 +316,7 @@ colorplus_poll(void *priv)
         if (colorplus->cga.cgadispon)
             colorplus->cga.cgastat &= ~1;
         if (colorplus->cga.sc == (colorplus->cga.crtc[CGA_CRTC_CURSOR_START] & 31) || ((colorplus->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && colorplus->cga.sc == ((colorplus->cga.crtc[CGA_CRTC_CURSOR_START] & 31) >> 1)))
-            colorplus->cga.con = 1;
+            colorplus->cga.cursorvisible = 1;
         if (colorplus->cga.cgadispon && (colorplus->cga.cgamode & 1)) {
             for (x = 0; x < (colorplus->cga.crtc[CGA_CRTC_HDISP] << 1); x++)
                 colorplus->cga.charbuffer[x] = colorplus->cga.vram[((colorplus->cga.ma << 1) + x) & 0x3fff];

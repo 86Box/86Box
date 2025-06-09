@@ -88,7 +88,7 @@ typedef struct cga_t {
     int      sc;
     int      vc;
     int      cgadispon;
-    int      con;
+    int      cursorvisible;             // Determines if the cursor is visible FOR THE CURRENT SCANLINE.
     int      cursoron;
     int      cgablink;
     int      vsynctime;

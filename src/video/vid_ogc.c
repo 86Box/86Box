@@ -252,7 +252,7 @@ ogc_poll(void *priv)
                         } else
                             chr = attr = 0;
                         /* check if cursor has to be drawn */
-                        drawcursor = ((ogc->cga.ma == ca) && ogc->cga.con && ogc->cga.cursoron);
+                        drawcursor = ((ogc->cga.ma == ca) && ogc->cga.cursorvisible && ogc->cga.cursoron);
                         /* check if character underline mode should be set */
                         underline = ((ogc->ctrl_3de & 0x40) && (attr & 0x1) && !(attr & 0x6));
                         if (underline) {
@@ -301,7 +301,7 @@ ogc_poll(void *priv)
                         } else {
                             chr = attr = 0;
                         }
-                        drawcursor = ((ogc->cga.ma == ca) && ogc->cga.con && ogc->cga.cursoron);
+                        drawcursor = ((ogc->cga.ma == ca) && ogc->cga.cursorvisible && ogc->cga.cursoron);
                         /* check if character underline mode should be set */
                         underline = ((ogc->ctrl_3de & 0x40) && (attr & 0x1) && !(attr & 0x6));
                         if (underline) {
@@ -406,7 +406,7 @@ ogc_poll(void *priv)
                         ogc->cga.cgastat &= ~8;
                 }
                 if (ogc->cga.sc == (ogc->cga.crtc[11] & 31) || ((ogc->cga.crtc[8] & 3) == 3 && ogc->cga.sc == ((ogc->cga.crtc[11] & 31) >> 1))) {
-                    ogc->cga.con  = 0;
+                    ogc->cga.cursorvisible  = 0;
                 }
                 if ((ogc->cga.crtc[8] & 3) == 3 && ogc->cga.sc == (ogc->cga.crtc[9] >> 1))
                     ogc->cga.maback = ogc->cga.ma;
@@ -525,7 +525,7 @@ ogc_poll(void *priv)
                     ogc->cga.cgastat &= ~1;
 
                 if (ogc->cga.sc == (ogc->cga.crtc[10] & 31) || ((ogc->cga.crtc[8] & 3) == 3 && ogc->cga.sc == ((ogc->cga.crtc[10] & 31) >> 1)))
-                    ogc->cga.con = 1;
+                    ogc->cga.cursorvisible = 1;
             }
             /* 80-columns */
             if (ogc->cga.cgadispon && (ogc->cga.cgamode & 1)) {

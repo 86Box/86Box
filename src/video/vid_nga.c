@@ -197,7 +197,7 @@ nga_poll(void *priv)
                         } else
                             chr = attr = 0;
                         /* check if cursor has to be drawn */
-                        drawcursor = ((nga->cga.ma == ca) && nga->cga.con && nga->cga.cursoron);
+                        drawcursor = ((nga->cga.ma == ca) && nga->cga.cursorvisible && nga->cga.cursoron);
                         /* set foreground */
                         cols[1] = (attr & 15) + 16;
                         /* blink active */
@@ -233,7 +233,7 @@ nga_poll(void *priv)
                         } else {
                             chr = attr = 0;
                         }
-                        drawcursor = ((nga->cga.ma == ca) && nga->cga.con && nga->cga.cursoron);
+                        drawcursor = ((nga->cga.ma == ca) && nga->cga.cursorvisible && nga->cga.cursoron);
                         /* set foreground */
                         cols[1] = (attr & 15) + 16;
                         /* blink active */
@@ -391,7 +391,7 @@ nga_poll(void *priv)
                 }
                 /* cursor stop scanline */
                 if (nga->cga.sc == (nga->cga.crtc[11] & 31) || ((nga->cga.crtc[8] & 3) == 3 && nga->cga.sc == ((nga->cga.crtc[11] & 31) >> 1))) {
-                    nga->cga.con  = 0;
+                    nga->cga.cursorvisible  = 0;
                 }
                 /* interlaced and max scanline per char reached */
                 if ((nga->cga.crtc[8] & 3) == 3 && nga->cga.sc == (nga->cga.crtc[9] >> 1))
@@ -524,7 +524,7 @@ nga_poll(void *priv)
 
                 /* enable cursor if its scanline was reached */
                 if (nga->cga.sc == (nga->cga.crtc[10] & 31) || ((nga->cga.crtc[8] & 3) == 3 && nga->cga.sc == ((nga->cga.crtc[10] & 31) >> 1)))
-                    nga->cga.con = 1;
+                    nga->cga.cursorvisible = 1;
             }
             /* 80-columns */
             if (nga->cga.cgadispon && (nga->cga.cgamode & 1)) {

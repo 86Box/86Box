@@ -1423,7 +1423,7 @@ lcdc_poll(amsvid_t *vid)
                 for (x = 0; x < cga->crtc[1]; x++) {
                     chr        = cga->charbuffer[x << 1];
                     attr       = cga->charbuffer[(x << 1) + 1];
-                    drawcursor = ((cga->ma == ca) && cga->con && cga->cursoron);
+                    drawcursor = ((cga->ma == ca) && cga->cursorvisible && cga->cursoron);
                     blink      = ((cga->cgablink & 16) && (cga->cgamode & 0x20) && (attr & 0x80) && !drawcursor);
                     lcd_draw_char_80(vid, &(buffer32->line[cga->displine << 1])[x * 8], chr, attr, drawcursor, blink, cga->sc, cga->cgamode & 0x40, cga->cgamode);
                     lcd_draw_char_80(vid, &(buffer32->line[(cga->displine << 1) + 1])[x * 8], chr, attr, drawcursor, blink, cga->sc, cga->cgamode & 0x40, cga->cgamode);
@@ -1433,7 +1433,7 @@ lcdc_poll(amsvid_t *vid)
                 for (x = 0; x < cga->crtc[1]; x++) {
                     chr        = cga->vram[(cga->ma << 1) & 0x3fff];
                     attr       = cga->vram[((cga->ma << 1) + 1) & 0x3fff];
-                    drawcursor = ((cga->ma == ca) && cga->con && cga->cursoron);
+                    drawcursor = ((cga->ma == ca) && cga->cursorvisible && cga->cursoron);
                     blink      = ((cga->cgablink & 16) && (cga->cgamode & 0x20) && (attr & 0x80) && !drawcursor);
                     lcd_draw_char_40(vid, &(buffer32->line[cga->displine << 1])[x * 16], chr, attr, drawcursor, blink, cga->sc, cga->cgamode);
                     lcd_draw_char_40(vid, &(buffer32->line[(cga->displine << 1) + 1])[x * 16], chr, attr, drawcursor, blink, cga->sc, cga->cgamode);
@@ -1479,7 +1479,7 @@ lcdc_poll(amsvid_t *vid)
                 cga->cgastat &= ~8;
         }
         if (cga->sc == (cga->crtc[11] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[11] & 31) >> 1))) {
-            cga->con  = 0;
+            cga->cursorvisible  = 0;
         }
         if ((cga->crtc[8] & 3) == 3 && cga->sc == (cga->crtc[9] >> 1))
             cga->maback = cga->ma;
@@ -1580,7 +1580,7 @@ lcdc_poll(amsvid_t *vid)
         if (cga->cgadispon)
             cga->cgastat &= ~1;
         if (cga->sc == (cga->crtc[10] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[10] & 31) >> 1)))
-            cga->con = 1;
+            cga->cursorvisible = 1;
         if (cga->cgadispon && (cga->cgamode & 1)) {
             for (x = 0; x < (cga->crtc[1] << 1); x++)
                 cga->charbuffer[x] = cga->vram[((cga->ma << 1) + x) & 0x3fff];

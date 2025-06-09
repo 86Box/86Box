@@ -289,7 +289,7 @@ cga_render(cga_t *cga, int line)
                 attr = cga->charbuffer[(x << 1) + 1];
             } else
                 chr = attr = 0;
-            drawcursor = ((cga->ma == ca) && cga->con && cga->cursoron);
+            drawcursor = ((cga->ma == ca) && cga->cursorvisible && cga->cursoron);
             cols[1]    = (attr & 15) + 16;
             if (cga->cgamode & CGA_MODE_FLAG_BLINK) {
                 cols[0] = ((attr >> 4) & 7) + 16;
@@ -317,7 +317,7 @@ cga_render(cga_t *cga, int line)
                 attr = cga->vram[((cga->ma << 1) + 1) & 0x3fff];
             } else
                 chr = attr = 0;
-            drawcursor = ((cga->ma == ca) && cga->con && cga->cursoron);
+            drawcursor = ((cga->ma == ca) && cga->cursorvisible && cga->cursoron);
             cols[1]    = (attr & 15) + 16;
             if (cga->cgamode & CGA_MODE_FLAG_BLINK) {
                 cols[0] = ((attr >> 4) & 7) + 16;
@@ -594,7 +594,7 @@ cga_poll(void *priv)
         }
         if (cga->sc == (cga->crtc[CGA_CRTC_CURSOR_END] & 31) || ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 &&
             cga->sc == ((cga->crtc[CGA_CRTC_CURSOR_END] & 31) >> 1))) {
-            cga->con  = 0;
+            cga->cursorvisible  = 0;
         }
         if ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 && cga->sc == (cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] >> 1))
             cga->maback = cga->ma;
@@ -625,6 +625,7 @@ cga_poll(void *priv)
                     cga->cgadispon = 1;
                     cga->ma = cga->maback = (cga->crtc[CGA_CRTC_START_ADDR_LOW] | (cga->crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
                 }
+                
                 switch (cga->crtc[CGA_CRTC_CURSOR_START] & 0x60) {
                     case 0x20:
                         cga->cursoron = 0;
@@ -724,7 +725,7 @@ cga_poll(void *priv)
             cga->cgastat &= ~1;
         if (cga->sc == (cga->crtc[CGA_CRTC_CURSOR_START] & 31) || ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 &&
             cga->sc == ((cga->crtc[CGA_CRTC_CURSOR_START] & 31) >> 1)))
-            cga->con = 1;
+            cga->cursorvisible = 1;
         if (cga->cgadispon && (cga->cgamode & CGA_MODE_FLAG_HIGHRES)) {
             for (x = 0; x < (cga->crtc[CGA_CRTC_HDISP] << 1); x++)
                 cga->charbuffer[x] = cga->vram[((cga->ma << 1) + x) & 0x3fff];
