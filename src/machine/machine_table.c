@@ -3692,7 +3692,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &paradise_pvga1a_ncr3302_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -9235,7 +9235,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &tgui9440_onboard_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -9276,7 +9276,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &gd5430_onboard_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },

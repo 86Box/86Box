@@ -2447,7 +2447,7 @@ machine_at_actionpc2600_init(const machine_t *model)
     device_add(&keyboard_ps2_tg_ami_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&tgui9440_onboard_pci_device);
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
@@ -2479,7 +2479,7 @@ machine_at_actiontower8400_init(const machine_t *model)
     device_add(&intel_flash_bxt_device); // The ActionPC 2600 has this so I'm gonna assume this does too.
     device_add(&keyboard_ps2_ami_pci_device);
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5430_onboard_pci_device);
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
