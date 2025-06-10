@@ -104,7 +104,7 @@ ibm_rgb528_render_4bpp(svga_t *svga)
     if ((svga->displine + svga->y_add) < 0)
         return;
 
-    if (svga->changedvram[svga->ma >> 12] || svga->changedvram[(svga->ma >> 12) + 1] || svga->changedvram[(svga->ma >> 12) + 2] || svga->fullchange) {
+    if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
         p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
@@ -114,8 +114,8 @@ ibm_rgb528_render_4bpp(svga_t *svga)
         for (int x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
             if (vram_size == 3) {
                 if (!(x & 31)) {
-                    dat64  = *(uint64_t *) (&svga->vram[svga->ma]);
-                    dat642 = *(uint64_t *) (&svga->vram[svga->ma + 8]);
+                    dat64  = *(uint64_t *) (&svga->vram[svga->memaddr]);
+                    dat642 = *(uint64_t *) (&svga->vram[svga->memaddr + 8]);
                     if (swap_word) {
                         dat64  = (dat64 << 32ULL) | (dat64 >> 32ULL);
                         dat642 = (dat642 << 32ULL) | (dat642 >> 32ULL);
@@ -127,7 +127,7 @@ ibm_rgb528_render_4bpp(svga_t *svga)
                     dat = (((x & 16) ? dat642 : dat64) >> (((x & 15) << 2) ^ 4)) & 0xf;
             } else if (vram_size == 1) {
                 if (!(x & 15)) {
-                    dat64 = *(uint64_t *) (&svga->vram[svga->ma]);
+                    dat64 = *(uint64_t *) (&svga->vram[svga->memaddr]);
                     if (swap_word)
                         dat64 = (dat64 << 32ULL) | (dat64 >> 32ULL);
                 }
@@ -137,7 +137,7 @@ ibm_rgb528_render_4bpp(svga_t *svga)
                     dat = (dat64 >> (((x & 15) << 2) ^ 4)) & 0xf;
             } else {
                 if (!(x & 7))
-                    dat32 = *(uint32_t *) (&svga->vram[svga->ma]);
+                    dat32 = *(uint32_t *) (&svga->vram[svga->memaddr]);
                 if (swap_nib)
                     dat = (dat32 >> ((x & 7) << 2)) & 0xf;
                 else
@@ -156,11 +156,11 @@ ibm_rgb528_render_4bpp(svga_t *svga)
                 p[x] = dat_out.pixel & 0xffffff;
 
             if ((vram_size == 3) && ((x & 31) == 31))
-                svga->ma = (svga->ma + 16) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 16) & svga->vram_display_mask;
             if ((vram_size == 1) && ((x & 15) == 15))
-                svga->ma = (svga->ma + 8) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 8) & svga->vram_display_mask;
             else if ((!vram_size) && ((x & 7) == 7))
-                svga->ma = (svga->ma + 4) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 4) & svga->vram_display_mask;
         }
     }
 }
@@ -182,7 +182,7 @@ ibm_rgb528_render_8bpp(svga_t *svga)
     if ((svga->displine + svga->y_add) < 0)
         return;
 
-    if (svga->changedvram[svga->ma >> 12] || svga->changedvram[(svga->ma >> 12) + 1] || svga->changedvram[(svga->ma >> 12) + 2] || svga->fullchange) {
+    if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
         p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
@@ -192,8 +192,8 @@ ibm_rgb528_render_8bpp(svga_t *svga)
         for (int x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
             if (vram_size == 3) {
                 if (!(x & 15)) {
-                    dat64  = *(uint64_t *) (&svga->vram[svga->ma]);
-                    dat642 = *(uint64_t *) (&svga->vram[svga->ma + 8]);
+                    dat64  = *(uint64_t *) (&svga->vram[svga->memaddr]);
+                    dat642 = *(uint64_t *) (&svga->vram[svga->memaddr + 8]);
                     if (swap_word) {
                         dat64  = (dat64 << 32ULL) | (dat64 >> 32ULL);
                         dat642 = (dat642 << 32ULL) | (dat642 >> 32ULL);
@@ -202,14 +202,14 @@ ibm_rgb528_render_8bpp(svga_t *svga)
                 dat = (((x & 8) ? dat642 : dat64) >> ((x & 7) << 3)) & 0xff;
             } else if (vram_size == 1) {
                 if (!(x & 7)) {
-                    dat64 = *(uint64_t *) (&svga->vram[svga->ma]);
+                    dat64 = *(uint64_t *) (&svga->vram[svga->memaddr]);
                     if (swap_word)
                         dat64 = (dat64 << 32ULL) | (dat64 >> 32ULL);
                 }
                 dat = (dat64 >> ((x & 7) << 3)) & 0xff;
             } else {
                 if (!(x & 3))
-                    dat32 = *(uint32_t *) (&svga->vram[svga->ma]);
+                    dat32 = *(uint32_t *) (&svga->vram[svga->memaddr]);
                 dat = (dat32 >> ((x & 3) << 3)) & 0xff;
             }
             if (b8_dcol == 0x00) {
@@ -225,11 +225,11 @@ ibm_rgb528_render_8bpp(svga_t *svga)
                 p[x] = dat_out.pixel & 0xffffff;
 
             if ((vram_size == 3) && ((x & 15) == 15))
-                svga->ma = (svga->ma + 16) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 16) & svga->vram_display_mask;
             else if ((vram_size == 1) && ((x & 7) == 7))
-                svga->ma = (svga->ma + 8) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 8) & svga->vram_display_mask;
             else if ((!vram_size) && ((x & 3) == 3))
-                svga->ma = (svga->ma + 4) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 4) & svga->vram_display_mask;
         }
     }
 }
@@ -262,7 +262,7 @@ ibm_rgb528_render_15_16bpp(svga_t *svga)
     if (b555_565 && (b16_dcol != 0x01))
         partition &= 0xc0;
 
-    if (svga->changedvram[svga->ma >> 12] || svga->changedvram[(svga->ma >> 12) + 1] || svga->changedvram[(svga->ma >> 12) + 2] || svga->fullchange) {
+    if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
         p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
@@ -272,8 +272,8 @@ ibm_rgb528_render_15_16bpp(svga_t *svga)
         for (int x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
             if (vram_size == 2) {
                 if (!(x & 7)) {
-                    dat64  = *(uint64_t *) (&svga->vram[svga->ma]);
-                    dat642 = *(uint64_t *) (&svga->vram[svga->ma + 8]);
+                    dat64  = *(uint64_t *) (&svga->vram[svga->memaddr]);
+                    dat642 = *(uint64_t *) (&svga->vram[svga->memaddr + 8]);
                     if (swap_word) {
                         dat64  = (dat64 << 32ULL) | (dat64 >> 32ULL);
                         dat642 = (dat64 << 32ULL) | (dat642 >> 32ULL);
@@ -282,14 +282,14 @@ ibm_rgb528_render_15_16bpp(svga_t *svga)
                 dat = (((x & 4) ? dat642 : dat64) >> ((x & 3) << 4)) & 0xffff;
             } else if (vram_size == 1) {
                 if (!(x & 3)) {
-                    dat64 = *(uint64_t *) (&svga->vram[svga->ma]);
+                    dat64 = *(uint64_t *) (&svga->vram[svga->memaddr]);
                     if (swap_word)
                         dat64 = (dat64 << 32ULL) | (dat64 >> 32ULL);
                 }
                 dat = (dat64 >> ((x & 3) << 4)) & 0xffff;
             } else {
                 if (!(x & 1))
-                    dat32 = *(uint32_t *) (&svga->vram[svga->ma]);
+                    dat32 = *(uint32_t *) (&svga->vram[svga->memaddr]);
                 dat = (dat32 >> ((x & 1) << 4)) & 0xffff;
             }
             dat_ex = (ibm_rgb528_pixel16_t *) &dat;
@@ -350,11 +350,11 @@ ibm_rgb528_render_15_16bpp(svga_t *svga)
                 p[x] = dat_out.pixel & 0xffffff;
 
             if ((vram_size == 3) && ((x & 7) == 7))
-                svga->ma = (svga->ma + 16) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 16) & svga->vram_display_mask;
             else if ((vram_size == 1) && ((x & 3) == 3))
-                svga->ma = (svga->ma + 8) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 8) & svga->vram_display_mask;
             else if (!vram_size && ((x & 1) == 1))
-                svga->ma = (svga->ma + 4) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 4) & svga->vram_display_mask;
         }
     }
 }
@@ -378,7 +378,7 @@ ibm_rgb528_render_24bpp(svga_t *svga)
     if ((svga->displine + svga->y_add) < 0)
         return;
 
-    if (svga->changedvram[svga->ma >> 12] || svga->changedvram[(svga->ma >> 12) + 1] || svga->changedvram[(svga->ma >> 12) + 2] || svga->fullchange) {
+    if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
         p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
@@ -389,12 +389,12 @@ ibm_rgb528_render_24bpp(svga_t *svga)
             dat_ex = (ibm_rgb528_pixel32_t *) &dat;
             if (vram_size == 3) {
                 if ((x & 15) == 0) {
-                    dat64[0] = *(uint64_t *) (&svga->vram[svga->ma & svga->vram_display_mask]);
-                    dat64[1] = *(uint64_t *) (&svga->vram[(svga->ma + 8) & svga->vram_display_mask]);
-                    dat64[2] = *(uint64_t *) (&svga->vram[(svga->ma + 16) & svga->vram_display_mask]);
-                    dat64[3] = *(uint64_t *) (&svga->vram[(svga->ma + 24) & svga->vram_display_mask]);
-                    dat64[4] = *(uint64_t *) (&svga->vram[(svga->ma + 32) & svga->vram_display_mask]);
-                    dat64[5] = *(uint64_t *) (&svga->vram[(svga->ma + 40) & svga->vram_display_mask]);
+                    dat64[0] = *(uint64_t *) (&svga->vram[svga->memaddr & svga->vram_display_mask]);
+                    dat64[1] = *(uint64_t *) (&svga->vram[(svga->memaddr + 8) & svga->vram_display_mask]);
+                    dat64[2] = *(uint64_t *) (&svga->vram[(svga->memaddr + 16) & svga->vram_display_mask]);
+                    dat64[3] = *(uint64_t *) (&svga->vram[(svga->memaddr + 24) & svga->vram_display_mask]);
+                    dat64[4] = *(uint64_t *) (&svga->vram[(svga->memaddr + 32) & svga->vram_display_mask]);
+                    dat64[5] = *(uint64_t *) (&svga->vram[(svga->memaddr + 40) & svga->vram_display_mask]);
                     if (swap_word) {
                         dat64[0] = (dat64[0] << 32ULL) | (dat64[0] >> 32ULL);
                         dat64[1] = (dat64[1] << 32ULL) | (dat64[1] >> 32ULL);
@@ -407,9 +407,9 @@ ibm_rgb528_render_24bpp(svga_t *svga)
                 dat_ex = (ibm_rgb528_pixel32_t *) &(dat8[(x & 15) * 3]);
             } else if (vram_size == 1) {
                 if ((x & 7) == 0) {
-                    dat64[0] = *(uint64_t *) (&svga->vram[svga->ma & svga->vram_display_mask]);
-                    dat64[1] = *(uint64_t *) (&svga->vram[(svga->ma + 8) & svga->vram_display_mask]);
-                    dat64[2] = *(uint64_t *) (&svga->vram[(svga->ma + 16) & svga->vram_display_mask]);
+                    dat64[0] = *(uint64_t *) (&svga->vram[svga->memaddr & svga->vram_display_mask]);
+                    dat64[1] = *(uint64_t *) (&svga->vram[(svga->memaddr + 8) & svga->vram_display_mask]);
+                    dat64[2] = *(uint64_t *) (&svga->vram[(svga->memaddr + 16) & svga->vram_display_mask]);
                     if (swap_word) {
                         dat64[0] = (dat64[0] << 32ULL) | (dat64[0] >> 32ULL);
                         dat64[1] = (dat64[1] << 32ULL) | (dat64[1] >> 32ULL);
@@ -441,9 +441,9 @@ ibm_rgb528_render_24bpp(svga_t *svga)
                 p[x] = dat_ex->pixel & 0xffffff;
 
             if ((vram_size == 3) && ((x & 15) == 15))
-                svga->ma = (svga->ma + 48) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 48) & svga->vram_display_mask;
             else if ((vram_size == 1) && ((x & 7) == 7))
-                svga->ma = (svga->ma + 24) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 24) & svga->vram_display_mask;
         }
     }
 }
@@ -468,7 +468,7 @@ ibm_rgb528_render_32bpp(svga_t *svga)
     if ((svga->displine + svga->y_add) < 0)
         return;
 
-    if (svga->changedvram[svga->ma >> 12] || svga->changedvram[(svga->ma >> 12) + 1] || svga->changedvram[(svga->ma >> 12) + 2] || svga->fullchange) {
+    if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
         p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
@@ -478,8 +478,8 @@ ibm_rgb528_render_32bpp(svga_t *svga)
         for (int x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
             if (vram_size == 3) {
                 if (!(x & 3)) {
-                    dat64  = *(uint64_t *) (&svga->vram[svga->ma]);
-                    dat642 = *(uint64_t *) (&svga->vram[svga->ma + 8]);
+                    dat64  = *(uint64_t *) (&svga->vram[svga->memaddr]);
+                    dat642 = *(uint64_t *) (&svga->vram[svga->memaddr + 8]);
                     if (swap_word) {
                         dat64  = (dat64 << 32ULL) | (dat64 >> 32ULL);
                         dat642 = (dat642 << 32ULL) | (dat642 >> 32ULL);
@@ -488,13 +488,13 @@ ibm_rgb528_render_32bpp(svga_t *svga)
                 dat = (((x & 2) ? dat642 : dat64) >> ((x & 1ULL) << 5ULL)) & 0xffffffff;
             } else if (vram_size == 1) {
                 if (!(x & 1)) {
-                    dat64 = *(uint64_t *) (&svga->vram[svga->ma]);
+                    dat64 = *(uint64_t *) (&svga->vram[svga->memaddr]);
                     if (swap_word)
                         dat64 = (dat64 << 32ULL) | (dat64 >> 32ULL);
                 }
                 dat = (dat64 >> ((x & 1ULL) << 5ULL)) & 0xffffffff;
             } else
-                dat = *(uint32_t *) (&svga->vram[svga->ma]);
+                dat = *(uint32_t *) (&svga->vram[svga->memaddr]);
             dat_ex = (ibm_rgb528_pixel32_t *) &dat;
             if (swaprb) {
                 temp      = dat_ex->r;
@@ -520,11 +520,11 @@ ibm_rgb528_render_32bpp(svga_t *svga)
                 p[x] = dat_ex->pixel & 0xffffff;
 
             if ((vram_size == 3) && ((x & 3) == 3))
-                svga->ma = (svga->ma + 16) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 16) & svga->vram_display_mask;
             else if ((vram_size == 1) && ((x & 1) == 1))
-                svga->ma = (svga->ma + 8) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 8) & svga->vram_display_mask;
             else if (!vram_size)
-                svga->ma = (svga->ma + 4) & svga->vram_display_mask;
+                svga->memaddr = (svga->memaddr + 4) & svga->vram_display_mask;
         }
     }
 }

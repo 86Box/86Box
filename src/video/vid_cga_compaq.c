@@ -82,7 +82,7 @@ static void
 compaq_cga_poll(void *priv)
 {
     cga_t        *dev  = (cga_t *) priv;
-    uint16_t      ca   = (dev->crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (dev->crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
+    uint16_t      cursoraddr   = (dev->crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (dev->crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
     int           drawcursor;
     int           x;
     int           c;
@@ -93,7 +93,7 @@ compaq_cga_poll(void *priv)
     uint8_t       attr;
     uint8_t       border;
     uint8_t       cols[4];
-    int           oldsc;
+    int           scanline_old;
     int           underline = 0;
     int           blink     = 0;
 
@@ -112,9 +112,9 @@ compaq_cga_poll(void *priv)
         timer_advance_u64(&dev->timer, dev->dispofftime);
         dev->cgastat |= 1;
         dev->linepos  = 1;
-        oldsc         = dev->sc;
+        scanline_old         = dev->scanline;
         if ((dev->crtc[CGA_CRTC_INTERLACE] & 3) == 3)
-            dev->sc = ((dev->sc << 1) + dev->oddeven) & 7;
+            dev->scanline = ((dev->scanline << 1) + dev->oddeven) & 7;
         if (dev->cgadispon) {
             if (dev->displine < dev->firstline) {
                 dev->firstline = dev->displine;
@@ -137,7 +137,7 @@ compaq_cga_poll(void *priv)
                 for (x = 0; x < dev->crtc[CGA_CRTC_HDISP]; x++) {
                     chr        = dev->charbuffer[x << 1];
                     attr       = dev->charbuffer[(x << 1) + 1];
-                    drawcursor = ((dev->ma == ca) && dev->cursorvisible && dev->cursoron);
+                    drawcursor = ((dev->memaddr == cursoraddr) && dev->cursorvisible && dev->cursoron);
 
                     if (vflags) {
                         underline = 0;
@@ -148,7 +148,7 @@ compaq_cga_poll(void *priv)
                         cols[0] = mdaattr[attr][blink][0];
                         cols[1] = mdaattr[attr][blink][1];
 
-                        if ((dev->sc == 12) && ((attr & 7) == 1))
+                        if ((dev->scanline == 12) && ((attr & 7) == 1))
                             underline = 1;
                     } else if (dev->cgamode & CGA_MODE_FLAG_BLINK) {
                         cols[1] = (attr & 15) + 16;
@@ -172,19 +172,19 @@ compaq_cga_poll(void *priv)
                     } else if (drawcursor) {
                         for (c = 0; c < 8; c++)
                             buffer32->line[dev->displine][(x << 3) + c + 8] =
-                                cols[(fontdatm[chr + dev->fontbase][dev->sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+                                cols[(fontdatm[chr + dev->fontbase][dev->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
                     } else {
                         for (c = 0; c < 8; c++)
                             buffer32->line[dev->displine][(x << 3) + c + 8] =
-                                cols[(fontdatm[chr + dev->fontbase][dev->sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
+                                cols[(fontdatm[chr + dev->fontbase][dev->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0];
                     }
-                    dev->ma++;
+                    dev->memaddr++;
                 }
             } else {
                 for (x = 0; x < dev->crtc[CGA_CRTC_HDISP]; x++) {
-                    chr        = dev->vram[(dev->ma << 1) & 0x3fff];
-                    attr       = dev->vram[((dev->ma << 1) + 1) & 0x3fff];
-                    drawcursor = ((dev->ma == ca) && dev->cursorvisible && dev->cursoron);
+                    chr        = dev->vram[(dev->memaddr << 1) & 0x3fff];
+                    attr       = dev->vram[((dev->memaddr << 1) + 1) & 0x3fff];
+                    drawcursor = ((dev->memaddr == cursoraddr) && dev->cursorvisible && dev->cursoron);
 
                     if (vflags) {
                         underline = 0;
@@ -194,7 +194,7 @@ compaq_cga_poll(void *priv)
                     if (vflags && (dev->cgamode & 0x80)) {
                         cols[0] = mdaattr[attr][blink][0];
                         cols[1] = mdaattr[attr][blink][1];
-                        if (dev->sc == 12 && (attr & 7) == 1)
+                        if (dev->scanline == 12 && (attr & 7) == 1)
                             underline = 1;
                     } else if (dev->cgamode & CGA_MODE_FLAG_BLINK) {
                         cols[1] = (attr & 15) + 16;
@@ -211,7 +211,7 @@ compaq_cga_poll(void *priv)
                         cols[1] = (attr & 15) + 16;
                         cols[0] = (attr >> 4) + 16;
                     }
-                    dev->ma++;
+                    dev->memaddr++;
 
                     if (vflags && underline) {
                         for (c = 0; c < 8; c++)
@@ -221,12 +221,12 @@ compaq_cga_poll(void *priv)
                         for (c = 0; c < 8; c++)
                             buffer32->line[dev->displine][(x << 4) + (c << 1) + 8] =
                                 buffer32->line[dev->displine][(x << 4) + (c << 1) + 1 + 8] =
-                                cols[(fontdatm[chr + dev->fontbase][dev->sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+                                cols[(fontdatm[chr + dev->fontbase][dev->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
                     } else {
                         for (c = 0; c < 8; c++)
                             buffer32->line[dev->displine][(x << 4) + (c << 1) + 8] =
                                 buffer32->line[dev->displine][(x << 4) + (c << 1) + 1 + 8] =
-                                cols[(fontdatm[chr + dev->fontbase][dev->sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
+                                cols[(fontdatm[chr + dev->fontbase][dev->scanline & 15] & (1 << (c ^ 7))) ? 1 : 0];
                     }
                 }
             }
@@ -257,8 +257,8 @@ compaq_cga_poll(void *priv)
         } else
             video_process_8(x, dev->displine);
 
-        dev->sc = oldsc;
-        if (dev->vc == dev->crtc[CGA_CRTC_VSYNC] && !dev->sc)
+        dev->scanline = scanline_old;
+        if (dev->vc == dev->crtc[CGA_CRTC_VSYNC] && !dev->scanline)
             dev->cgastat |= 8;
         dev->displine++;
         if (dev->displine >= 500)
@@ -272,24 +272,24 @@ compaq_cga_poll(void *priv)
                 dev->cgastat &= ~8;
         }
 
-        if (dev->sc == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[11] & 31) >> 1))) {
+        if (dev->scanline == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->scanline == ((dev->crtc[11] & 31) >> 1))) {
             dev->cursorvisible  = 0;
         }
-        if ((dev->crtc[8] & 3) == 3 && dev->sc == (dev->crtc[9] >> 1))
-            dev->maback = dev->ma;
+        if ((dev->crtc[8] & 3) == 3 && dev->scanline == (dev->crtc[9] >> 1))
+            dev->memaddr_backup = dev->memaddr;
         if (dev->vadj) {
-            dev->sc++;
-            dev->sc &= 31;
-            dev->ma = dev->maback;
+            dev->scanline++;
+            dev->scanline &= 31;
+            dev->memaddr = dev->memaddr_backup;
             dev->vadj--;
             if (!dev->vadj) {
                 dev->cgadispon = 1;
-                dev->ma = dev->maback = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
-                dev->sc                    = 0;
+                dev->memaddr = dev->memaddr_backup = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
+                dev->scanline                    = 0;
             }
-        } else if (dev->sc == dev->crtc[9]) {
-            dev->maback = dev->ma;
-            dev->sc     = 0;
+        } else if (dev->scanline == dev->crtc[9]) {
+            dev->memaddr_backup = dev->memaddr;
+            dev->scanline     = 0;
             oldvc            = dev->vc;
             dev->vc++;
             dev->vc &= 127;
@@ -305,7 +305,7 @@ compaq_cga_poll(void *priv)
                     dev->cgadispon = 1;
 
                 if (!dev->vadj)
-                    dev->ma = dev->maback = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
+                    dev->memaddr = dev->memaddr_backup = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
 
                 if ((dev->crtc[10] & 0x60) == 0x20)
                     dev->cursoron = 0;
@@ -382,20 +382,20 @@ compaq_cga_poll(void *priv)
                 dev->oddeven ^= 1;
             }
         } else {
-            dev->sc++;
-            dev->sc &= 31;
-            dev->ma = dev->maback;
+            dev->scanline++;
+            dev->scanline &= 31;
+            dev->memaddr = dev->memaddr_backup;
         }
 
         if (dev->cgadispon)
             dev->cgastat &= ~1;
 
-        if (dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1)))
+        if (dev->scanline == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->scanline == ((dev->crtc[10] & 31) >> 1)))
             dev->cursorvisible = 1;
 
         if (dev->cgadispon && (dev->cgamode & CGA_MODE_FLAG_HIGHRES)) {
             for (x = 0; x < (dev->crtc[CGA_CRTC_HDISP] << 1); x++)
-                dev->charbuffer[x] = dev->vram[((dev->ma << 1) + x) & 0x3fff];
+                dev->charbuffer[x] = dev->vram[((dev->memaddr << 1) + x) & 0x3fff];
         }
     }
 }

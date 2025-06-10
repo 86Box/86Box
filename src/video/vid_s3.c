@@ -3179,9 +3179,9 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                         if ((((svga->crtc[0x67] & 0xc) != 0xc) && (s3->chip >= S3_TRIO64V)) || (s3->chip < S3_TRIO64V))
-                            svga->ma_latch |= (s3->ma_ext << 16);
+                            svga->memaddr_latch |= (s3->ma_ext << 16);
                     } else {
                         svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
@@ -3503,7 +3503,7 @@ s3_recalctimings(svga_t *svga)
     }
 
     svga->hdisp = svga->hdisp_old;
-    svga->ma_latch |= (s3->ma_ext << 16);
+    svga->memaddr_latch |= (s3->ma_ext << 16);
 
     svga->lowres = (!!(svga->attrregs[0x10] & 0x40) && !(svga->crtc[0x3a] & 0x10));
 
@@ -4379,7 +4379,7 @@ s3_trio64v_recalctimings(svga_t *svga)
 
     if ((svga->crtc[0x67] & 0xc) != 0xc) /*VGA mode*/
     {
-        svga->ma_latch |= (s3->ma_ext << 16);
+        svga->memaddr_latch |= (s3->ma_ext << 16);
         if (svga->crtc[0x51] & 0x30)
             svga->rowoffset |= (svga->crtc[0x51] & 0x30) << 4;
         else if (svga->crtc[0x43] & 0x04)
@@ -4427,9 +4427,9 @@ s3_trio64v_recalctimings(svga_t *svga)
     } else /*Streams mode*/
     {
         if (s3->streams.buffer_ctrl & 1)
-            svga->ma_latch = s3->streams.pri_fb1 >> 2;
+            svga->memaddr_latch = s3->streams.pri_fb1 >> 2;
         else
-            svga->ma_latch = s3->streams.pri_fb0 >> 2;
+            svga->memaddr_latch = s3->streams.pri_fb0 >> 2;
 
         svga->hdisp = s3->streams.pri_w + 1;
         if (s3->streams.pri_h < svga->dispend)

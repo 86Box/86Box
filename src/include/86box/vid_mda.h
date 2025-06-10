@@ -25,9 +25,9 @@ typedef struct mda_t {
     int      linepos;
     int      displine;
     int      vc;
-    int      sc;
-    uint16_t ma;
-    uint16_t maback;
+    int      scanline;
+    uint16_t memaddr;
+    uint16_t memaddr_backup;
     int      cursorvisible;
     int      cursoron;
     int      dispon;

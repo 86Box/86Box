@@ -575,7 +575,7 @@ gd54xx_overlay_draw(svga_t *svga, int displine)
     uint8_t        *src         = &svga->vram[(svga->overlay_latch.addr << shift) & svga->vram_mask];
     int             bpp         = svga->bpp;
     int             bytesperpix = (bpp + 7) / 8;
-    uint8_t        *src2        = &svga->vram[(svga->ma - (svga->hdisp * bytesperpix)) & svga->vram_display_mask];
+    uint8_t        *src2        = &svga->vram[(svga->memaddr - (svga->hdisp * bytesperpix)) & svga->vram_display_mask];
     int             occl;
     int             ckval;
 
@@ -1255,7 +1255,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) +
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) +
                                            ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
@@ -1875,7 +1875,7 @@ gd54xx_recalctimings(svga_t *svga)
     } else if (svga->gdcreg[5] & 0x40)
         svga->render = svga_render_8bpp_lowres;
 
-    svga->ma_latch |= ((svga->crtc[0x1b] & 0x01) << 16) | ((svga->crtc[0x1b] & 0xc) << 15);
+    svga->memaddr_latch |= ((svga->crtc[0x1b] & 0x01) << 16) | ((svga->crtc[0x1b] & 0xc) << 15);
 
     svga->bpp = 8;
 

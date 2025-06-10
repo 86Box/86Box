@@ -38,7 +38,7 @@ typedef struct t1kvid_t {
 
     int      linepos;
     int      displine;
-    int      sc;
+    int      scanline;
     int      vc;
     int      dispon;
     int      cursorvisible;
@@ -47,8 +47,8 @@ typedef struct t1kvid_t {
     int      fullchange;
     int      vsynctime;
     int      vadj;
-    uint16_t ma;
-    uint16_t maback;
+    uint16_t memaddr;
+    uint16_t memaddr_backup;
 
     uint64_t   dispontime;
     uint64_t   dispofftime;

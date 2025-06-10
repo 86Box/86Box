@@ -131,14 +131,14 @@ void
 mda_poll(void *priv)
 {
     mda_t   *mda = (mda_t *) priv;
-    uint16_t ca  = (mda->crtc[15] | (mda->crtc[14] << 8)) & 0x3fff;
+    uint16_t cursoraddr  = (mda->crtc[15] | (mda->crtc[14] << 8)) & 0x3fff;
     int      drawcursor;
     int      x;
     int      c;
     int      oldvc;
     uint8_t  chr;
     uint8_t  attr;
-    int      oldsc;
+    int      scanline_old;
     int      blink;
 
     VIDEO_MONITOR_PROLOGUE()
@@ -146,9 +146,9 @@ mda_poll(void *priv)
         timer_advance_u64(&mda->timer, mda->dispofftime);
         mda->stat |= 1;
         mda->linepos = 1;
-        oldsc        = mda->sc;
+        scanline_old        = mda->scanline;
         if ((mda->crtc[8] & 3) == 3)
-            mda->sc = (mda->sc << 1) & 7;
+            mda->scanline = (mda->scanline << 1) & 7;
         if (mda->dispon) {
             if (mda->displine < mda->firstline) {
                 mda->firstline = mda->displine;
@@ -156,22 +156,22 @@ mda_poll(void *priv)
             }
             mda->lastline = mda->displine;
             for (x = 0; x < mda->crtc[1]; x++) {
-                chr        = mda->vram[(mda->ma << 1) & 0xfff];
-                attr       = mda->vram[((mda->ma << 1) + 1) & 0xfff];
-                drawcursor = ((mda->ma == ca) && mda->cursorvisible && mda->cursoron);
+                chr        = mda->vram[(mda->memaddr << 1) & 0xfff];
+                attr       = mda->vram[((mda->memaddr << 1) + 1) & 0xfff];
+                drawcursor = ((mda->memaddr == cursoraddr) && mda->cursorvisible && mda->cursoron);
                 blink      = ((mda->blink & 16) && (mda->ctrl & 0x20) && (attr & 0x80) && !drawcursor);
-                if (mda->sc == 12 && ((attr & 7) == 1)) {
+                if (mda->scanline == 12 && ((attr & 7) == 1)) {
                     for (c = 0; c < 9; c++)
                         buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][1];
                 } else {
                     for (c = 0; c < 8; c++)
-                        buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][(fontdatm[chr + mda->fontbase][mda->sc] & (1 << (c ^ 7))) ? 1 : 0];
+                        buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][(fontdatm[chr + mda->fontbase][mda->scanline] & (1 << (c ^ 7))) ? 1 : 0];
                     if ((chr & ~0x1f) == 0xc0)
-                        buffer32->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][fontdatm[chr + mda->fontbase][mda->sc] & 1];
+                        buffer32->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][fontdatm[chr + mda->fontbase][mda->scanline] & 1];
                     else
                         buffer32->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][0];
                 }
-                mda->ma++;
+                mda->memaddr++;
                 if (drawcursor) {
                     for (c = 0; c < 9; c++)
                         buffer32->line[mda->displine][(x * 9) + c] ^= mdacols[attr][0][1];
@@ -180,8 +180,8 @@ mda_poll(void *priv)
 
             video_process_8(mda->crtc[1] * 9, mda->displine);
         }
-        mda->sc = oldsc;
-        if (mda->vc == mda->crtc[7] && !mda->sc) {
+        mda->scanline = scanline_old;
+        if (mda->vc == mda->crtc[7] && !mda->scanline) {
             mda->stat |= 8;
         }
         mda->displine++;
@@ -198,22 +198,22 @@ mda_poll(void *priv)
                 mda->stat &= ~8;
             }
         }
-        if (mda->sc == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[11] & 31) >> 1))) {
+        if (mda->scanline == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->scanline == ((mda->crtc[11] & 31) >> 1))) {
             mda->cursorvisible  = 0;
         }
         if (mda->vadj) {
-            mda->sc++;
-            mda->sc &= 31;
-            mda->ma = mda->maback;
+            mda->scanline++;
+            mda->scanline &= 31;
+            mda->memaddr = mda->memaddr_backup;
             mda->vadj--;
             if (!mda->vadj) {
                 mda->dispon = 1;
-                mda->ma = mda->maback = (mda->crtc[13] | (mda->crtc[12] << 8)) & 0x3fff;
-                mda->sc               = 0;
+                mda->memaddr = mda->memaddr_backup = (mda->crtc[13] | (mda->crtc[12] << 8)) & 0x3fff;
+                mda->scanline               = 0;
             }
-        } else if (mda->sc == mda->crtc[9] || ((mda->crtc[8] & 3) == 3 && mda->sc == (mda->crtc[9] >> 1))) {
-            mda->maback = mda->ma;
-            mda->sc     = 0;
+        } else if (mda->scanline == mda->crtc[9] || ((mda->crtc[8] & 3) == 3 && mda->scanline == (mda->crtc[9] >> 1))) {
+            mda->memaddr_backup = mda->memaddr;
+            mda->scanline     = 0;
             oldvc       = mda->vc;
             mda->vc++;
             mda->vc &= 127;
@@ -225,7 +225,7 @@ mda_poll(void *priv)
                 if (!mda->vadj)
                     mda->dispon = 1;
                 if (!mda->vadj)
-                    mda->ma = mda->maback = (mda->crtc[13] | (mda->crtc[12] << 8)) & 0x3fff;
+                    mda->memaddr = mda->memaddr_backup = (mda->crtc[13] | (mda->crtc[12] << 8)) & 0x3fff;
                 if ((mda->crtc[10] & 0x60) == 0x20)
                     mda->cursoron = 0;
                 else
@@ -261,11 +261,11 @@ mda_poll(void *priv)
                 mda->blink++;
             }
         } else {
-            mda->sc++;
-            mda->sc &= 31;
-            mda->ma = mda->maback;
+            mda->scanline++;
+            mda->scanline &= 31;
+            mda->memaddr = mda->memaddr_backup;
         }
-        if (mda->sc == (mda->crtc[10] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[10] & 31) >> 1))) {
+        if (mda->scanline == (mda->crtc[10] & 31) || ((mda->crtc[8] & 3) == 3 && mda->scanline == ((mda->crtc[10] & 31) >> 1))) {
             mda->cursorvisible = 1;
         }
     }

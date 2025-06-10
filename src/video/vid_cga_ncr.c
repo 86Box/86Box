@@ -148,7 +148,7 @@ nga_poll(void *priv)
 {
     nga_t *nga = (nga_t *) priv;
     /* set cursor position in memory */
-    uint16_t ca = (nga->cga.crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (nga->cga.crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
+    uint16_t cursoraddr = (nga->cga.crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (nga->cga.crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
     int      drawcursor;
     int      x;
     int      c;
@@ -161,7 +161,7 @@ nga_poll(void *priv)
     uint16_t dat2;
     int      cols[4];
     int      col;
-    int      oldsc;
+    int      scanline_old;
 
     /* graphic mode and not high-res modes */
     if ((nga->cga.cgamode & CGA_MODE_FLAG_GRAPHICS) && !(nga->cga.cgamode & 0x40)) {
@@ -174,10 +174,10 @@ nga_poll(void *priv)
             timer_advance_u64(&nga->cga.timer, nga->cga.dispofftime);
             nga->cga.cgastat |= 1;
             nga->cga.linepos = 1;
-            oldsc            = nga->cga.sc;
+            scanline_old            = nga->cga.scanline;
             /* if interlaced */
             if ((nga->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3)
-                nga->cga.sc = ((nga->cga.sc << 1) + nga->cga.oddeven) & 7;
+                nga->cga.scanline = ((nga->cga.scanline << 1) + nga->cga.oddeven) & 7;
             if (nga->cga.cgadispon) {
                 if (nga->cga.displine < nga->cga.firstline) {
                     nga->cga.firstline = nga->cga.displine;
@@ -197,7 +197,7 @@ nga_poll(void *priv)
                         } else
                             chr = attr = 0;
                         /* check if cursor has to be drawn */
-                        drawcursor = ((nga->cga.ma == ca) && nga->cga.cursorvisible && nga->cga.cursoron);
+                        drawcursor = ((nga->cga.memaddr == cursoraddr) && nga->cga.cursorvisible && nga->cga.cursoron);
                         /* set foreground */
                         cols[1] = (attr & 15) + 16;
                         /* blink active */
@@ -214,13 +214,13 @@ nga_poll(void *priv)
                         }
                         if (drawcursor) {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[nga->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((nga->cga.sc & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+                                buffer32->line[nga->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((nga->cga.scanline & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
                         } else {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[nga->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((nga->cga.sc & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0];
+                                buffer32->line[nga->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((nga->cga.scanline & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0];
                         }
 
-                        nga->cga.ma++;
+                        nga->cga.memaddr++;
                     }
                 }
                 /* 40-col */
@@ -228,12 +228,12 @@ nga_poll(void *priv)
                     /* for each text column */
                     for (x = 0; x < nga->cga.crtc[CGA_CRTC_HDISP]; x++) {
                         if (nga->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) {
-                            chr  = nga->cga.vram[((nga->cga.ma << 1) & 0x3fff) + nga->base];
-                            attr = nga->cga.vram[(((nga->cga.ma << 1) + 1) & 0x3fff) + nga->base];
+                            chr  = nga->cga.vram[((nga->cga.memaddr << 1) & 0x3fff) + nga->base];
+                            attr = nga->cga.vram[(((nga->cga.memaddr << 1) + 1) & 0x3fff) + nga->base];
                         } else {
                             chr = attr = 0;
                         }
-                        drawcursor = ((nga->cga.ma == ca) && nga->cga.cursorvisible && nga->cga.cursoron);
+                        drawcursor = ((nga->cga.memaddr == cursoraddr) && nga->cga.cursorvisible && nga->cga.cursoron);
                         /* set foreground */
                         cols[1] = (attr & 15) + 16;
                         /* blink active */
@@ -250,13 +250,13 @@ nga_poll(void *priv)
 
                         if (drawcursor) {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 8] = buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((nga->cga.sc & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+                                buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 8] = buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((nga->cga.scanline & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
                         } else {
                             for (c = 0; c < 8; c++)
-                                buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 8] = buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((nga->cga.sc & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0];
+                                buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 8] = buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((nga->cga.scanline & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0];
                         }
 
-                        nga->cga.ma++;
+                        nga->cga.memaddr++;
                     }
                 } else {
                     /* high res modes */
@@ -270,7 +270,7 @@ nga_poll(void *priv)
                              * 0bc000-0bdf3f even scans (1,5,...)
                              * 0be000-0bff3f odd scans (3,7,...)
                              */
-                            dat2    = ((nga->cga.sc & 1) * 0x2000) | (nga->lineff * 0x4000);
+                            dat2    = ((nga->cga.scanline & 1) * 0x2000) | (nga->lineff * 0x4000);
                             cols[0] = 0;
                             cols[1] = 15 + 16;
                             /* 640x400x4 mode */
@@ -297,10 +297,10 @@ nga_poll(void *priv)
                              * 0a8000-0abf3f even scans (2,6,...)
                              * 0ac000-0aff3f odd scans (3,7,...)
                              */
-                            dat2 = (nga->cga.sc & 1) * 0x4000;
+                            dat2 = (nga->cga.scanline & 1) * 0x4000;
                         }
                     } else {
-                        dat2    = (nga->cga.sc & 1) * 0x2000;
+                        dat2    = (nga->cga.scanline & 1) * 0x2000;
                         cols[0] = 0;
                         cols[1] = (nga->cga.cgacol & 15) + 16;
                     }
@@ -312,7 +312,7 @@ nga_poll(void *priv)
                             /* 640x400x2 */
                             if (nga->cga.cgamode & 0x4 || nga->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS) {
                                 /* read two bytes at a time */
-                                dat = (nga->cga.vram[((nga->cga.ma << 1) & 0x1fff) + dat2] << 8) | nga->cga.vram[((nga->cga.ma << 1) & 0x1fff) + dat2 + 1];
+                                dat = (nga->cga.vram[((nga->cga.memaddr << 1) & 0x1fff) + dat2] << 8) | nga->cga.vram[((nga->cga.memaddr << 1) & 0x1fff) + dat2 + 1];
                                 /* each pixel is represented by one bit, so draw 16 pixels at a time */
                                 /* crtc[1] is 40 column, so 40x16=640 pixels */
                                 for (c = 0; c < 16; c++) {
@@ -322,13 +322,13 @@ nga_poll(void *priv)
                                 /* 640x400x4 */
                             } else {
                                 /* lines 2,3,6,7,etc. */
-                                if (nga->cga.sc & 2)
+                                if (nga->cga.scanline & 2)
                                     /* read two bytes at a time */
-                                    dat = (nga->vram_64k[((nga->cga.ma << 1) & 0x7fff) + dat2] << 8) | nga->vram_64k[((nga->cga.ma << 1) & 0x7fff) + dat2 + 1];
+                                    dat = (nga->vram_64k[((nga->cga.memaddr << 1) & 0x7fff) + dat2] << 8) | nga->vram_64k[((nga->cga.memaddr << 1) & 0x7fff) + dat2 + 1];
                                 /* lines 0,1,4,5,etc. */
                                 else
                                     /* read two bytes at a time */
-                                    dat = (nga->cga.vram[((nga->cga.ma << 1) & 0x7fff) + dat2] << 8) | nga->cga.vram[((nga->cga.ma << 1) & 0x7fff) + dat2 + 1];
+                                    dat = (nga->cga.vram[((nga->cga.memaddr << 1) & 0x7fff) + dat2] << 8) | nga->cga.vram[((nga->cga.memaddr << 1) & 0x7fff) + dat2 + 1];
                                 /* each pixel is represented by two bits, so draw 8 pixels at a time */
                                 /* crtc[1] is 80 column, so 80x8=640 pixels */
                                 for (c = 0; c < 8; c++) {
@@ -339,7 +339,7 @@ nga_poll(void *priv)
                         } else {
                             dat = 0;
                         }
-                        nga->cga.ma++;
+                        nga->cga.memaddr++;
                     }
                 }
             } else {
@@ -364,9 +364,9 @@ nga_poll(void *priv)
 
             video_process_8(x, nga->cga.displine);
 
-            nga->cga.sc = oldsc;
+            nga->cga.scanline = scanline_old;
             /* vertical sync */
-            if (nga->cga.vc == nga->cga.crtc[CGA_CRTC_VSYNC] && !nga->cga.sc)
+            if (nga->cga.vc == nga->cga.crtc[CGA_CRTC_VSYNC] && !nga->cga.scanline)
                 nga->cga.cgastat |= 8;
             nga->cga.displine++;
             if (nga->cga.displine >= 720)
@@ -381,7 +381,7 @@ nga_poll(void *priv)
 
             /* text mode or 640x400x2 */
             if (nga->lineff && !((nga->cga.cgamode & CGA_MODE_FLAG_HIGHRES) && (nga->cga.cgamode & 0x40))) {
-                nga->cga.ma = nga->cga.maback;
+                nga->cga.memaddr = nga->cga.memaddr_backup;
                 /* 640x400x4 */
             } else {
                 if (nga->cga.vsynctime) {
@@ -390,29 +390,29 @@ nga_poll(void *priv)
                         nga->cga.cgastat &= ~8;
                 }
                 /* cursor stop scanline */
-                if (nga->cga.sc == (nga->cga.crtc[CGA_CRTC_CURSOR_END] & 31) || ((nga->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && nga->cga.sc == ((nga->cga.crtc[CGA_CRTC_CURSOR_END] & 31) >> 1))) {
+                if (nga->cga.scanline == (nga->cga.crtc[CGA_CRTC_CURSOR_END] & 31) || ((nga->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && nga->cga.scanline == ((nga->cga.crtc[CGA_CRTC_CURSOR_END] & 31) >> 1))) {
                     nga->cga.cursorvisible  = 0;
                 }
                 /* interlaced and max scanline per char reached */
-                if ((nga->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && nga->cga.sc == (nga->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] >> 1))
-                    nga->cga.maback = nga->cga.ma;
+                if ((nga->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && nga->cga.scanline == (nga->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] >> 1))
+                    nga->cga.memaddr_backup = nga->cga.memaddr;
 
                 if (nga->cga.vadj) {
-                    nga->cga.sc++;
-                    nga->cga.sc &= 31;
-                    nga->cga.ma = nga->cga.maback;
+                    nga->cga.scanline++;
+                    nga->cga.scanline &= 31;
+                    nga->cga.memaddr = nga->cga.memaddr_backup;
                     nga->cga.vadj--;
                     if (!nga->cga.vadj) {
                         nga->cga.cgadispon = 1;
                         /* change start of displayed page (crtc 12-13) */
-                        nga->cga.ma = nga->cga.maback = (nga->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (nga->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x7fff;
-                        nga->cga.sc                   = 0;
+                        nga->cga.memaddr = nga->cga.memaddr_backup = (nga->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (nga->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x7fff;
+                        nga->cga.scanline                   = 0;
                     }
                     /* nga specific */
                     /* end of character line reached */
-                } else if (nga->cga.sc == nga->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] || ((nga->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && nga->cga.sc == (nga->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] >> 1))) {
-                    nga->cga.maback = nga->cga.ma;
-                    nga->cga.sc     = 0;
+                } else if (nga->cga.scanline == nga->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] || ((nga->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && nga->cga.scanline == (nga->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] >> 1))) {
+                    nga->cga.memaddr_backup = nga->cga.memaddr;
+                    nga->cga.scanline     = 0;
                     oldvc           = nga->cga.vc;
                     nga->cga.vc++;
                     nga->cga.vc &= 127;
@@ -429,7 +429,7 @@ nga_poll(void *priv)
                         if (!nga->cga.vadj) {
                             nga->cga.cgadispon = 1;
                             /* change start of displayed page (crtc 12-13) */
-                            nga->cga.ma = nga->cga.maback = (nga->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (nga->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x7fff;
+                            nga->cga.memaddr = nga->cga.memaddr_backup = (nga->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (nga->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x7fff;
                         }
                         /* cursor start */
                         switch (nga->cga.crtc[CGA_CRTC_CURSOR_START] & 0x60) {
@@ -514,23 +514,23 @@ nga_poll(void *priv)
                         nga->cga.oddeven ^= 1;
                     }
                 } else {
-                    nga->cga.sc++;
-                    nga->cga.sc &= 31;
-                    nga->cga.ma = nga->cga.maback;
+                    nga->cga.scanline++;
+                    nga->cga.scanline &= 31;
+                    nga->cga.memaddr = nga->cga.memaddr_backup;
                 }
 
                 if (nga->cga.cgadispon)
                     nga->cga.cgastat &= ~1;
 
                 /* enable cursor if its scanline was reached */
-                if (nga->cga.sc == (nga->cga.crtc[CGA_CRTC_CURSOR_START] & 31) || ((nga->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && nga->cga.sc == ((nga->cga.crtc[CGA_CRTC_CURSOR_START] & 31) >> 1)))
+                if (nga->cga.scanline == (nga->cga.crtc[CGA_CRTC_CURSOR_START] & 31) || ((nga->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && nga->cga.scanline == ((nga->cga.crtc[CGA_CRTC_CURSOR_START] & 31) >> 1)))
                     nga->cga.cursorvisible = 1;
             }
             /* 80-columns */
             if (nga->cga.cgadispon && (nga->cga.cgamode & CGA_MODE_FLAG_HIGHRES)) {
                 /* for each character per line */
                 for (x = 0; x < (nga->cga.crtc[CGA_CRTC_HDISP] << 1); x++)
-                    nga->cga.charbuffer[x] = nga->cga.vram[(((nga->cga.ma << 1) + x) & 0x3fff) + nga->base];
+                    nga->cga.charbuffer[x] = nga->cga.vram[(((nga->cga.memaddr << 1) + x) & 0x3fff) + nga->base];
             }
         }
     }

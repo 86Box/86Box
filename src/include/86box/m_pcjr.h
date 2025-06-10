@@ -36,7 +36,7 @@ typedef struct pcjr_s
     uint8_t      *b8000;
     int           linepos;
     int           displine;
-    int           sc;
+    int           scanline;
     int           vc;
     int           dispon;
     int           cursorvisible;            // Is the cursor visible on the current scanline?
@@ -45,8 +45,8 @@ typedef struct pcjr_s
     int           vsynctime;
     int           fullchange;
     int           vadj;
-    uint16_t      ma;
-    uint16_t      maback;
+    uint16_t      memaddr;
+    uint16_t      memaddr_backup;
     uint64_t      dispontime;
     uint64_t      dispofftime;
     pc_timer_t    timer;
