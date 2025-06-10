@@ -432,7 +432,7 @@ compaq_plasma_poll(void *priv)
 
                         cursorline = (cursorvisible <= sc) && (cursorinvisible >= sc);
                     }
- 
+
                     for (x = 0; x < 40; x++) {
                         /* video output enabled */
                         if (self->cga.cgamode & 0x08) {
@@ -444,7 +444,6 @@ compaq_plasma_poll(void *priv)
                             chr = 0x00;
                             attr = 0x00;
                         }
-                        uint8_t hi_bit = attr & 0x08;
                         /* check if cursor has to be drawn */
                         drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 0x08) && (self->cga.cgablink & 0x10));
                         /* check if character underline mode should be set */
@@ -473,7 +472,7 @@ compaq_plasma_poll(void *priv)
 
                         /* character address */
                         uint16_t chr_addr = ((chr * 16) + sc) & 0x0fff;
-                        if (((self->port_23c6 >> 5) == 3) && hi_bit)
+                        if ((self->port_23c6 >> 5) == 3)
                             chr_addr |= 0x1000;
 
                         /* character underline active and 7th row of pixels in character height being drawn */
@@ -489,41 +488,39 @@ compaq_plasma_poll(void *priv)
                                 buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0];
                         }
 
-                        if (hi_bit) {
-                            if ((self->port_23c6 >> 5) == 4) {
-                                uint8_t b = (cols[1] & 0xff) >> 1;
-                                uint8_t g = ((cols[1] >> 8) & 0xff) >> 1;
-                                uint8_t r = ((cols[1] >> 16) & 0xff) >> 1;
-                                cols[1] = b | (g << 8) | (r << 16);
-                                b = (cols[0] & 0xff) >> 1;
-                                g = ((cols[0] >> 8) & 0xff) >> 1;
-                                r = ((cols[0] >> 16) & 0xff) >> 1;
-                                cols[0] = b | (g << 8) | (r << 16);
-                                if (drawcursor) {
-                                    black_half = black;
-                                    amber_half = amber;
-                                    uint8_t bB = (black & 0xff) >> 1;
-                                    uint8_t gB = ((black >> 8) & 0xff) >> 1;
-                                    uint8_t rB = ((black >> 16) & 0xff) >> 1;
-                                    black_half = bB | (gB << 8) | (rB << 16);
-                                    uint8_t bA = (amber & 0xff) >> 1;
-                                    uint8_t gA = ((amber >> 8) & 0xff) >> 1;
-                                    uint8_t rA = ((amber >> 16) & 0xff) >> 1;
-                                    amber_half = bA | (gA << 8) | (rA << 16);
-                                    for (c = 0; c < 8; c++)
-                                        buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber_half ^ black_half);
-                                } else {
-                                    for (c = 0; c < 8; c++)
-                                        buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0];
-                                }
-                            } else if ((self->port_23c6 >> 5) == 2) {
-                                if (drawcursor) {
-                                    for (c = 0; c < 8; c++)
-                                        buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 0 : 1] ^ (amber ^ black);
-                                } else {
-                                    for (c = 0; c < 8; c++)
-                                        buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 0 : 1];
-                                }
+                        if ((self->port_23c6 >> 5) == 4) {
+                            uint8_t b = (cols[1] & 0xff) >> 1;
+                            uint8_t g = ((cols[1] >> 8) & 0xff) >> 1;
+                            uint8_t r = ((cols[1] >> 16) & 0xff) >> 1;
+                            cols[1] = b | (g << 8) | (r << 16);
+                            b = (cols[0] & 0xff) >> 1;
+                            g = ((cols[0] >> 8) & 0xff) >> 1;
+                            r = ((cols[0] >> 16) & 0xff) >> 1;
+                            cols[0] = b | (g << 8) | (r << 16);
+                            if (drawcursor) {
+                                black_half = black;
+                                amber_half = amber;
+                                uint8_t bB = (black & 0xff) >> 1;
+                                uint8_t gB = ((black >> 8) & 0xff) >> 1;
+                                uint8_t rB = ((black >> 16) & 0xff) >> 1;
+                                black_half = bB | (gB << 8) | (rB << 16);
+                                uint8_t bA = (amber & 0xff) >> 1;
+                                uint8_t gA = ((amber >> 8) & 0xff) >> 1;
+                                uint8_t rA = ((amber >> 16) & 0xff) >> 1;
+                                amber_half = bA | (gA << 8) | (rA << 16);
+                                for (c = 0; c < 8; c++)
+                                    buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber_half ^ black_half);
+                            } else {
+                                for (c = 0; c < 8; c++)
+                                    buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0];
+                            }
+                        } else if ((self->port_23c6 >> 5) == 2) {
+                            if (drawcursor) {
+                                for (c = 0; c < 8; c++)
+                                    buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 0 : 1] ^ (amber ^ black);
+                            } else {
+                                for (c = 0; c < 8; c++)
+                                    buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 0 : 1];
                             }
                         }
                         ma++;
