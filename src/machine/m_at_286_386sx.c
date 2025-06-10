@@ -1128,7 +1128,7 @@ machine_at_3302_init(const machine_t *model)
         device_add(&fdc_at_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&paradise_pvga1a_ncr3302_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add(&keyboard_at_ncr_device);
 
