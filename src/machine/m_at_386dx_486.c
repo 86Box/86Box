@@ -1010,6 +1010,33 @@ machine_at_ami471_init(const machine_t *model)
 }
 
 int
+machine_at_advantage40xxd_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/advantage40xxd/AST101.09A",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&sis_85c471_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    device_add(&keyboard_ps2_phoenix_device);
+
+    device_add(&ide_vlb_device);
+    device_add(&um82c863f_ide_device);
+
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+int
 machine_at_vli486sv2g_init(const machine_t *model)
 {
     int ret;

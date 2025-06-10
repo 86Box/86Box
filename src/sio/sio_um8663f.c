@@ -281,6 +281,34 @@ um8663f_init(UNUSED(const device_t *info))
     return dev;
 }
 
+const device_t um82c863f_device = {
+    .name          = "UMC UM82C863F Super I/O",
+    .internal_name = "um82c863f",
+    .flags         = 0,
+    .local         = 0xc100,
+    .init          = um8663f_init,
+    .close         = um8663f_close,
+    .reset         = um8663f_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t um82c863f_ide_device = {
+    .name          = "UMC UM82C863F Super I/O (With IDE)",
+    .internal_name = "um82c863f_ide",
+    .flags         = 0,
+    .local         = 0xc101,
+    .init          = um8663f_init,
+    .close         = um8663f_close,
+    .reset         = um8663f_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t um8663af_device = {
     .name          = "UMC UM8663AF Super I/O",
     .internal_name = "um8663af",

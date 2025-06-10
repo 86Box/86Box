@@ -6485,6 +6485,46 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Has Phoenix KBC firmware. */
+    {
+        .name = "[SiS 471] AST Advantage! 40xxd",
+        .internal_name = "advantage40xxd",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_SIS_471,
+        .init = machine_at_advantage40xxd_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 2
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .ram = {
+            .min = 4096,
+            .max = 36864,
+            .step = 4096
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5424_onboard_device,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has AMIKey F KBC firmware. */
     {
         .name = "[Symphony SL42C460] DTK PKM-0031Y",

@@ -4254,8 +4254,14 @@ gd54xx_init(const device_t *info)
             break;
 
         case CIRRUS_ID_CLGD5422:
-        case CIRRUS_ID_CLGD5424:
             romfn = BIOS_GD5422_PATH;
+            break;
+
+        case CIRRUS_ID_CLGD5424:
+            if (info->local & 0x200)
+                romfn = /*NULL*/ "roms/machines/advantage40xxd/AST101.09A";
+            else
+                romfn = BIOS_GD5422_PATH;
             break;
 
         case CIRRUS_ID_CLGD5426:
@@ -5018,6 +5024,20 @@ const device_t gd5424_vlb_device = {
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
     .available     = gd5422_available, /* Common BIOS between 5422 and 5424 */
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = gd542x_config,
+};
+
+const device_t gd5424_onboard_device = {
+    .name          = "Cirrus Logic GD5424 (VLB) (On-Board)",
+    .internal_name = "cl_gd5424_onboard",
+    .flags         = DEVICE_VLB,
+    .local         = CIRRUS_ID_CLGD5424 | 0x200,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .config        = gd542x_config,
