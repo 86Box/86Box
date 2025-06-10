@@ -407,7 +407,7 @@ t3100e_cgaline4(t3100e_t *t3100e)
     uint32_t ink1 = 0;
     uint16_t addr;
 
-    uint16_t memaddr = (t3100e->cga.crtc[CGA_CRTC_START_ADDR_HIGH] | (t3100e->cga.crtc[CGA_CRTC_CURSOR_END] << 8)) & 0x7fff;
+    uint16_t memaddr = (t3100e->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (t3100e->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x7fff;
     if (t3100e->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] == 3) /* 320*400 undocumented */
     {
         addr = ((t3100e->displine) & 1) * 0x2000 + ((t3100e->displine >> 1) & 1) * 0x4000 + (t3100e->displine >> 2) * 80 + ((memaddr & ~1) << 1);
