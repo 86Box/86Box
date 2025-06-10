@@ -77,7 +77,7 @@ typedef struct {
     int      linepos, displine;
     int      vc, sc;
     uint16_t ma, maback;
-    int      con, cursoron;
+    int      cursorvisible, cursoron;
     int      dispon, blink;
     int      vsynctime;
     int      vadj;
@@ -418,7 +418,7 @@ text_line(herculesplus_t *dev, uint16_t ca)
         } else
             chr = attr = 0;
 
-        drawcursor = ((dev->ma == ca) && dev->con && dev->cursoron);
+        drawcursor = ((dev->ma == ca) && dev->cursorvisible && dev->cursoron);
 
         switch (dev->crtc[HERCULESPLUS_CRTC_XMODE] & 5) {
             case 0:
@@ -535,7 +535,7 @@ herculesplus_poll(void *priv)
         }
 
         if (dev->sc == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[11] & 31) >> 1))) {
-            dev->con  = 0;
+            dev->cursorvisible  = 0;
         }
         if (dev->vadj) {
             dev->sc++;
@@ -612,7 +612,7 @@ herculesplus_poll(void *priv)
         }
 
         if (dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1)))
-            dev->con = 1;
+            dev->cursorvisible = 1;
     }
 
     VIDEO_MONITOR_EPILOGUE();

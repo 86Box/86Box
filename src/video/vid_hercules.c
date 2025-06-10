@@ -341,7 +341,7 @@ hercules_poll(void *priv)
                         attr = dev->charbuffer[(x << 1) + 1];
                     } else
                         chr = attr = 0;
-                    drawcursor = ((dev->ma == ca) && dev->con && dev->cursoron);
+                    drawcursor = ((dev->ma == ca) && dev->cursorvisible && dev->cursoron);
                     blink      = ((dev->blink & 16) && (dev->ctrl & 0x20) && (attr & 0x80) && !drawcursor);
 
                     if (dev->sc == 12 && ((attr & 7) == 1)) {
@@ -398,7 +398,7 @@ hercules_poll(void *priv)
         }
 
         if (dev->sc == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[11] & 31) >> 1))) {
-            dev->con  = 0;
+            dev->cursorvisible  = 0;
         }
 
         if (dev->vadj) {
@@ -517,7 +517,7 @@ hercules_poll(void *priv)
         }
 
         if (dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1)))
-            dev->con = 1;
+            dev->cursorvisible = 1;
         if (dev->dispon && !(dev->ctrl & 0x02)) {
             for (x = 0; x < (dev->crtc[1] << 1); x++) {
                 pa                 = (dev->ctrl & 0x80) ? ((x & 1) ? 0x0000 : 0x8000) : 0x0000;

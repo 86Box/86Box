@@ -901,7 +901,7 @@ ega_poll(void *priv)
 
         ega->linepos = 0;
         if ((ega->sc == (ega->crtc[11] & 31)) || (ega->sc == ega->rowcount))
-            ega->con = 0;
+            ega->cursorvisible = 0;
         if (ega->dispon) {
             /* TODO: Verify real hardware behaviour for out-of-range fine vertical scroll */
             if (ega->linedbl && !ega->linecountff) {
@@ -1037,7 +1037,7 @@ ega_poll(void *priv)
             ega->linecountff = 0;
         }
         if (ega->sc == (ega->crtc[10] & 31))
-            ega->con = 1;
+            ega->cursorvisible = 1;
     }
 }
 

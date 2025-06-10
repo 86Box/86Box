@@ -28,7 +28,7 @@ typedef struct mda_t {
     int      sc;
     uint16_t ma;
     uint16_t maback;
-    int      con;
+    int      cursorvisible;
     int      cursoron;
     int      dispon;
     int      blink;

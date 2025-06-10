@@ -27,7 +27,7 @@ extern int sc;
 
 extern uint32_t ma;
 extern uint32_t ca;
-extern int      con;
+extern int      cursorvisible;
 extern int      cursoron;
 extern int      cgablink;
 

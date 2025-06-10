@@ -158,7 +158,7 @@ svga_render_text_40(svga_t *svga)
             if (!svga->force_old_addr)
                 addr = svga->remap_func(svga, svga->ma) & svga->vram_display_mask;
 
-            drawcursor = ((svga->ma == svga->ca) && svga->con && svga->cursoron);
+            drawcursor = ((svga->ma == svga->ca) && svga->cursorvisible && svga->cursoron);
 
             if (svga->force_old_addr) {
                 chr  = svga->vram[(svga->ma << 1) & svga->vram_display_mask];
@@ -241,7 +241,7 @@ svga_render_text_80(svga_t *svga)
             if (!svga->force_old_addr)
                 addr = svga->remap_func(svga, svga->ma) & svga->vram_display_mask;
 
-            drawcursor = ((svga->ma == svga->ca) && svga->con && svga->cursoron);
+            drawcursor = ((svga->ma == svga->ca) && svga->cursorvisible && svga->cursoron);
 
             if (svga->force_old_addr) {
                 chr  = svga->vram[(svga->ma << 1) & svga->vram_display_mask];
@@ -318,7 +318,7 @@ svga_render_text_80_ksc5601(svga_t *svga)
 
         for (int x = 0; x < (svga->hdisp + svga->scrollcache); x += xinc) {
             uint32_t addr = svga->remap_func(svga, svga->ma) & svga->vram_display_mask;
-            drawcursor    = ((svga->ma == svga->ca) && svga->con && svga->cursoron);
+            drawcursor    = ((svga->ma == svga->ca) && svga->cursorvisible && svga->cursoron);
             chr           = svga->vram[addr];
             nextchr       = svga->vram[addr + 8];
             attr          = svga->vram[addr + 1];

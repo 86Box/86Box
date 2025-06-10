@@ -158,7 +158,7 @@ typedef struct sigma_t {
     int linepos, displine;
     int sc, vc;
     int cgadispon;
-    int con, cursoron, cgablink;
+    int cursorvisible, cursoron, cgablink;
     int vsynctime, vadj;
     int oddeven;
 
@@ -430,7 +430,7 @@ sigma_text80(sigma_t *sigma)
     for (uint32_t x = 0; x < (sigma->crtc[1] << 1); x++) {
         chr        = vram[x << 1];
         attr       = vram[(x << 1) + 1];
-        drawcursor = ((ma == ca) && sigma->con && sigma->cursoron);
+        drawcursor = ((ma == ca) && sigma->cursorvisible && sigma->cursoron);
 
         if (!(sigma->sigmamode & MODE_NOBLINK)) {
             cols[1] = (attr & 15) | 16;
@@ -485,7 +485,7 @@ sigma_text40(sigma_t *sigma)
     for (uint32_t x = 0; x < (sigma->crtc[1] << 1); x++) {
         chr        = vram[x << 1];
         attr       = vram[(x << 1) + 1];
-        drawcursor = ((ma == ca) && sigma->con && sigma->cursoron);
+        drawcursor = ((ma == ca) && sigma->cursorvisible && sigma->cursoron);
 
         if (!(sigma->sigmamode & MODE_NOBLINK)) {
             cols[1] = (attr & 15) | 16;
@@ -675,7 +675,7 @@ sigma_poll(void *priv)
                 sigma->sigmastat &= ~STATUS_RETR_V;
         }
         if (sigma->sc == (sigma->crtc[11] & 31) || ((sigma->crtc[8] & 3) == 3 && sigma->sc == ((sigma->crtc[11] & 31) >> 1))) {
-            sigma->con  = 0;
+            sigma->cursorvisible  = 0;
         }
         if ((sigma->crtc[8] & 3) == 3 && sigma->sc == (sigma->crtc[9] >> 1))
             sigma->maback = sigma->ma;
@@ -775,7 +775,7 @@ sigma_poll(void *priv)
         if (sigma->cgadispon)
             sigma->sigmastat &= ~STATUS_RETR_H;
         if (sigma->sc == (sigma->crtc[10] & 31) || ((sigma->crtc[8] & 3) == 3 && sigma->sc == ((sigma->crtc[10] & 31) >> 1)))
-            sigma->con = 1;
+            sigma->cursorvisible = 1;
     }
 }
 
