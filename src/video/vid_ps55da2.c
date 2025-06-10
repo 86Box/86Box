@@ -3441,7 +3441,7 @@ static const device_config_t da2_configuration[] = {
     // clang-format off
     {
         .name        = "charset",
-        .description = "Charset",
+        .description = "Character set",
         .type        = CONFIG_SELECTION,
         .default_int = DA2_DCONFIG_CHARSET_JPAN,
         .selection   = {
