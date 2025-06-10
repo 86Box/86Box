@@ -113,7 +113,7 @@ typedef struct jega_t {
     uint8_t   attr_palette_enable;
     uint32_t *pallook;
     int       is_vga;
-    int       con;
+    int       cursorvisible;
     int       cursoron;
     int       cursorblink_disable;
     int       ca;

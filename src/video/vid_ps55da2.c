@@ -362,7 +362,7 @@ typedef struct da2_t {
     int      vc;
     int      sc;
     int      linepos, vslines, linecountff;
-    int      con, cursoron, blink, blinkconf;
+    int      cursorvisible, cursoron, blink, blinkconf;
     int      scrollcache;
     int      char_width;
 
@@ -2055,7 +2055,7 @@ da2_render_text(da2_t *da2)
                     p[n] = da2->pallook[da2->egapal[(colormode) ? IRGBtoBGRI(da2->attrc[LV_GRID_COLOR_0]) : 2]]; /* horizontal line (white) */
             }
             /* Drawing text cursor */
-            drawcursor = ((da2->ma == da2->ca) && da2->con && da2->cursoron);
+            drawcursor = ((da2->ma == da2->ca) && da2->cursorvisible && da2->cursoron);
             if (drawcursor && da2->sc >= da2->crtc[LC_CURSOR_ROW_START] && da2->sc <= da2->crtc[LC_CURSOR_ROW_END]) {
                 int cursorwidth = (da2->crtc[LC_COMPATIBILITY] & 0x20 ? 26 : 13);
                 int cursorcolor = (colormode) ? IRGBtoBGRI(da2->attrc[LV_CURSOR_COLOR]) : 2; /* Choose color 2 if mode 8 */
@@ -2155,7 +2155,7 @@ da2_render_textm3(da2_t *da2)
                 }
                 chr_wide = 0;
             }
-            drawcursor = ((da2->ma == da2->ca) && da2->con && da2->cursoron);
+            drawcursor = ((da2->ma == da2->ca) && da2->cursorvisible && da2->cursoron);
             if (drawcursor && da2->sc >= da2->crtc[LC_CURSOR_ROW_START] && da2->sc <= da2->crtc[LC_CURSOR_ROW_END]) {
                 // int cursorwidth = (da2->crtc[0x1f] & 0x20 ? 26 : 13);
                 // int cursorcolor = (colormode) ? IRGBtoBGRI(da2->attrc[0x1a]) : 2;/* Choose color 2 if mode 8 */
@@ -3056,7 +3056,7 @@ da2_poll(void *priv)
 
         da2->linepos = 0;
         if (da2->sc == (da2->crtc[LC_CURSOR_ROW_END] & 31))
-            da2->con = 0;
+            da2->cursorvisible = 0;
         if (da2->dispon) {
             if (da2->sc == da2->rowcount) {
                 da2->linecountff = 0;
@@ -3145,7 +3145,7 @@ da2_poll(void *priv)
             da2->scrollcache = da2->attrc[LV_PANNING] & 7;
         }
         if (da2->sc == (da2->crtc[LC_CURSOR_ROW_START] & 31))
-            da2->con = 1;
+            da2->cursorvisible = 1;
     }
 }
 

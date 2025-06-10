@@ -143,7 +143,7 @@ ega_render_text(ega_t *ega)
         for (int x = 0; x < (ega->hdisp + ega->scrollcache); x += charwidth) {
             uint32_t addr = ega->remap_func(ega, ega->ma) & ega->vrammask;
 
-            int drawcursor = ((ega->ma == ega->ca) && ega->con && ega->cursoron);
+            int drawcursor = ((ega->ma == ega->ca) && ega->cursorvisible && ega->cursoron);
 
             uint32_t chr;
             uint32_t attr;

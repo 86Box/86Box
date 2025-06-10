@@ -68,9 +68,9 @@ compaq_cga_recalctimings(cga_t *dev)
     double _dispontime;
     double _dispofftime;
     double disptime;
-    disptime = dev->crtc[0] + 1;
+    disptime = dev->crtc[CGA_CRTC_HTOTAL] + 1;
 
-    _dispontime  = dev->crtc[1];
+    _dispontime  = dev->crtc[CGA_CRTC_HDISP];
     _dispofftime = disptime - _dispontime;
     _dispontime *= MDACONST;
     _dispofftime *= MDACONST;
@@ -81,24 +81,26 @@ compaq_cga_recalctimings(cga_t *dev)
 static void
 compaq_cga_poll(void *priv)
 {
-    cga_t    *dev        = (cga_t *) priv;
-    uint16_t  ca         = (dev->crtc[15] | (dev->crtc[14] << 8)) & 0x3fff;
-    int       underline  = 0;
-    int       blink      = 0;
-    int       drawcursor;
-    int       x;
-    int       c;
-    int       xs_temp;
-    int       ys_temp;
-    int       oldvc;
-    uint8_t   chr;
-    uint8_t   attr;
-    uint8_t   border;
-    uint8_t   cols[4];
-    int       oldsc;
+    cga_t        *dev  = (cga_t *) priv;
+    uint16_t      ca   = (dev->crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (dev->crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
+    int           drawcursor;
+    int           x;
+    int           c;
+    int           xs_temp;
+    int           ys_temp;
+    int           oldvc;
+    uint8_t       chr;
+    uint8_t       attr;
+    uint8_t       border;
+    uint8_t       cols[4];
+    int           oldsc;
+    int           underline = 0;
+    int           blink     = 0;
+
+    int32_t  highres_graphics_flag = (CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_GRAPHICS);
 
     /* If in graphics mode or character height is not 13, behave as CGA */
-    if ((dev->cgamode & 0x12) || (dev->crtc[9] != 13)) {
+    if ((dev->cgamode & highres_graphics_flag) || (dev->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] != 13)) {
         overscan_x = overscan_y = 16;
         cga_poll(dev);
         return;
@@ -111,7 +113,7 @@ compaq_cga_poll(void *priv)
         dev->cgastat |= 1;
         dev->linepos  = 1;
         oldsc         = dev->sc;
-        if ((dev->crtc[8] & 3) == 3)
+        if ((dev->crtc[CGA_CRTC_INTERLACE] & 3) == 3)
             dev->sc = ((dev->sc << 1) + dev->oddeven) & 7;
         if (dev->cgadispon) {
             if (dev->displine < dev->firstline) {
@@ -125,21 +127,21 @@ compaq_cga_poll(void *priv)
 
             for (c = 0; c < 8; c++) {
                 buffer32->line[dev->displine][c] = cols[0];
-                if (dev->cgamode & 1)
-                    buffer32->line[dev->displine][c + (dev->crtc[1] << 3) + 8] = cols[0];
+                if (dev->cgamode & CGA_MODE_FLAG_HIGHRES)
+                    buffer32->line[dev->displine][c + (dev->crtc[CGA_CRTC_HDISP] << 3) + 8] = cols[0];
                 else
-                    buffer32->line[dev->displine][c + (dev->crtc[1] << 4) + 8] = cols[0];
+                    buffer32->line[dev->displine][c + (dev->crtc[CGA_CRTC_HDISP] << 4) + 8] = cols[0];
             }
 
-            if (dev->cgamode & 1) {
-                for (x = 0; x < dev->crtc[1]; x++) {
+            if (dev->cgamode & CGA_MODE_FLAG_HIGHRES) {
+                for (x = 0; x < dev->crtc[CGA_CRTC_HDISP]; x++) {
                     chr        = dev->charbuffer[x << 1];
                     attr       = dev->charbuffer[(x << 1) + 1];
-                    drawcursor = ((dev->ma == ca) && dev->con && dev->cursoron);
+                    drawcursor = ((dev->ma == ca) && dev->cursorvisible && dev->cursoron);
 
                     if (vflags) {
                         underline = 0;
-                        blink     = ((dev->cgablink & 8) && (dev->cgamode & 0x20) && (attr & 0x80) && !drawcursor);
+                        blink     = ((dev->cgablink & 8) && (dev->cgamode & CGA_MODE_FLAG_BLINK) && (attr & 0x80) && !drawcursor);
                     }
 
                     if (vflags && (dev->cgamode & 0x80)) {
@@ -148,7 +150,7 @@ compaq_cga_poll(void *priv)
 
                         if ((dev->sc == 12) && ((attr & 7) == 1))
                             underline = 1;
-                    } else if (dev->cgamode & 0x20) {
+                    } else if (dev->cgamode & CGA_MODE_FLAG_BLINK) {
                         cols[1] = (attr & 15) + 16;
                         cols[0] = ((attr >> 4) & 7) + 16;
 
@@ -179,14 +181,14 @@ compaq_cga_poll(void *priv)
                     dev->ma++;
                 }
             } else {
-                for (x = 0; x < dev->crtc[1]; x++) {
+                for (x = 0; x < dev->crtc[CGA_CRTC_HDISP]; x++) {
                     chr        = dev->vram[(dev->ma << 1) & 0x3fff];
                     attr       = dev->vram[((dev->ma << 1) + 1) & 0x3fff];
-                    drawcursor = ((dev->ma == ca) && dev->con && dev->cursoron);
+                    drawcursor = ((dev->ma == ca) && dev->cursorvisible && dev->cursoron);
 
                     if (vflags) {
                         underline = 0;
-                        blink     = ((dev->cgablink & 8) && (dev->cgamode & 0x20) && (attr & 0x80) && !drawcursor);
+                        blink     = ((dev->cgablink & 8) && (dev->cgamode & CGA_MODE_FLAG_BLINK) && (attr & 0x80) && !drawcursor);
                     }
 
                     if (vflags && (dev->cgamode & 0x80)) {
@@ -194,7 +196,7 @@ compaq_cga_poll(void *priv)
                         cols[1] = mdaattr[attr][blink][1];
                         if (dev->sc == 12 && (attr & 7) == 1)
                             underline = 1;
-                    } else if (dev->cgamode & 0x20) {
+                    } else if (dev->cgamode & CGA_MODE_FLAG_BLINK) {
                         cols[1] = (attr & 15) + 16;
                         cols[0] = ((attr >> 4) & 7) + 16;
 
@@ -231,19 +233,19 @@ compaq_cga_poll(void *priv)
         } else {
             cols[0] = (dev->cgacol & 15) + 16;
 
-            if (dev->cgamode & 1)
-                hline(buffer32, 0, dev->displine, (dev->crtc[1] << 3) + 16, cols[0]);
+            if (dev->cgamode & CGA_MODE_FLAG_HIGHRES)
+                hline(buffer32, 0, dev->displine, (dev->crtc[CGA_CRTC_HDISP] << 3) + 16, cols[0]);
             else
-                hline(buffer32, 0, dev->displine, (dev->crtc[1] << 4) + 16, cols[0]);
+                hline(buffer32, 0, dev->displine, (dev->crtc[CGA_CRTC_HDISP] << 4) + 16, cols[0]);
         }
 
-        if (dev->cgamode & 1)
-            x = (dev->crtc[1] << 3) + 16;
+        if (dev->cgamode & CGA_MODE_FLAG_HIGHRES)
+            x = (dev->crtc[CGA_CRTC_HDISP] << 3) + 16;
         else
-            x = (dev->crtc[1] << 4) + 16;
+            x = (dev->crtc[CGA_CRTC_HDISP] << 4) + 16;
 
         if (dev->composite) {
-            if (dev->cgamode & 0x10)
+            if (dev->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)
                 border = 0x00;
             else
                 border = dev->cgacol & 0x0f;
@@ -256,7 +258,7 @@ compaq_cga_poll(void *priv)
             video_process_8(x, dev->displine);
 
         dev->sc = oldsc;
-        if (dev->vc == dev->crtc[7] && !dev->sc)
+        if (dev->vc == dev->crtc[CGA_CRTC_VSYNC] && !dev->sc)
             dev->cgastat |= 8;
         dev->displine++;
         if (dev->displine >= 500)
@@ -270,9 +272,8 @@ compaq_cga_poll(void *priv)
                 dev->cgastat &= ~8;
         }
 
-        if (dev->sc == (dev->crtc[11] & 31) || (((dev->crtc[8] & 3) == 3) &&
-            (dev->sc == ((dev->crtc[11] & 31) >> 1)))) {
-            dev->con  = 0;
+        if (dev->sc == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[11] & 31) >> 1))) {
+            dev->cursorvisible  = 0;
         }
         if ((dev->crtc[8] & 3) == 3 && dev->sc == (dev->crtc[9] >> 1))
             dev->maback = dev->ma;
@@ -284,14 +285,14 @@ compaq_cga_poll(void *priv)
             if (!dev->vadj) {
                 dev->cgadispon = 1;
                 dev->ma = dev->maback = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
-                dev->sc               = 0;
+                dev->sc                    = 0;
             }
         } else if (dev->sc == dev->crtc[9]) {
             dev->maback = dev->ma;
             dev->sc     = 0;
-            oldvc       = dev->vc;
+            oldvc            = dev->vc;
             dev->vc++;
-            dev->vc    &= 127;
+            dev->vc &= 127;
 
             if (dev->vc == dev->crtc[6])
                 dev->cgadispon = 0;
@@ -321,10 +322,10 @@ compaq_cga_poll(void *priv)
                     compaq_cga_log("Lastline %i Firstline %i  %i\n", dev->lastline,
                                    dev->firstline, dev->lastline - dev->firstline);
 
-                    if (dev->cgamode & 1)
-                        x = (dev->crtc[1] << 3) + 16;
+                    if (dev->cgamode & CGA_MODE_FLAG_HIGHRES)
+                        x = (dev->crtc[CGA_CRTC_HDISP] << 3) + 16;
                     else
-                        x = (dev->crtc[1] << 4) + 16;
+                        x = (dev->crtc[CGA_CRTC_HDISP] << 4) + 16;
 
                     dev->lastline++;
 
@@ -339,8 +340,7 @@ compaq_cga_poll(void *priv)
                         if (!enable_overscan)
                             xs_temp -= 16;
 
-                        if ((dev->cgamode & 8) && ((xs_temp != xsize) ||
-                            (ys_temp != ysize) || video_force_resize_get())) {
+                        if ((dev->cgamode & 8) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
                             xsize = xs_temp;
                             ysize = ys_temp;
                             set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
@@ -361,7 +361,7 @@ compaq_cga_poll(void *priv)
                     if (enable_overscan)
                         xsize -= 16;
                     video_res_y = ysize;
-                    if (dev->cgamode & 1) {
+                    if (dev->cgamode & CGA_MODE_FLAG_HIGHRES) {
                         video_res_x /= 8;
                         video_res_y /= dev->crtc[9] + 1;
                         video_bpp = 0;
@@ -390,12 +390,11 @@ compaq_cga_poll(void *priv)
         if (dev->cgadispon)
             dev->cgastat &= ~1;
 
-        if (dev->sc == (dev->crtc[10] & 31) ||
-            (((dev->crtc[8] & 3) == 3) && (dev->sc == ((dev->crtc[10] & 31) >> 1))))
-            dev->con = 1;
+        if (dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1)))
+            dev->cursorvisible = 1;
 
-        if (dev->cgadispon && (dev->cgamode & 1)) {
-            for (x = 0; x < (dev->crtc[1] << 1); x++)
+        if (dev->cgadispon && (dev->cgamode & CGA_MODE_FLAG_HIGHRES)) {
+            for (x = 0; x < (dev->crtc[CGA_CRTC_HDISP] << 1); x++)
                 dev->charbuffer[x] = dev->vram[((dev->ma << 1) + x) & 0x3fff];
         }
     }
@@ -475,8 +474,7 @@ compaq_cga_speed_changed(void *priv)
 {
     cga_t *dev = (cga_t *) priv;
 
-    if (dev->crtc[9] == 13)
-        /* Character height */
+    if (dev->crtc[9] == 13) /* Character height */
         compaq_cga_recalctimings(dev);
     else
         cga_recalctimings(dev);
