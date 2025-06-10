@@ -313,7 +313,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                 if ((idx < 0xe) || (idx > 0x10)) {
                     if ((idx == 0xc) || (idx == 0xd)) {
                         ega->fullchange = 3;
-                        ega->ma_latch   = ((ega->crtc[0xc] << 8) | ega->crtc[0xd]) +
+                        ega->memaddr_latch   = ((ega->crtc[0xc] << 8) | ega->crtc[0xd]) +
                                           ((ega->crtc[8] & 0x60) >> 5);
                     } else {
                         ega->fullchange = changeframecount;
@@ -649,7 +649,7 @@ ega_recalctimings(ega_t *ega)
 
     ega->interlace = 0;
 
-    ega->ma_latch = (ega->crtc[0xc] << 8) | ega->crtc[0xd];
+    ega->memaddr_latch = (ega->crtc[0xc] << 8) | ega->crtc[0xd];
 
     ega->render = ega_render_blank;
     if (!ega->scrblank && ega->attr_palette_enable) {
@@ -748,7 +748,7 @@ ega_dot_poll(void *priv)
     const int       dwshift       = doublewidth ? 1 : 0;
     const int       dotwidth      = 1 << dwshift;
     const int       charwidth     = dotwidth * (seq9dot ? 9 : 8);
-    const int       cursoron      = (ega->sc == (ega->crtc[10] & 31));
+    const int       cursoron      = (ega->scanline == (ega->crtc[10] & 31));
     const int       cursoraddr    = (ega->crtc[0xe] << 8) | ega->crtc[0xf];
     uint32_t        addr;
     int             drawcursor;
@@ -792,7 +792,7 @@ ega_dot_poll(void *priv)
     else
         charaddr = ega->charseta + (chr * 0x80);
 
-    dat = ega->vram[charaddr + (ega->sc << 2)];
+    dat = ega->vram[charaddr + (ega->scanline << 2)];
     dat <<= 1;
     if ((chr & ~0x1F) == 0xC0 && attrlinechars)
         dat |= (dat >> 1) & 1;
@@ -843,13 +843,13 @@ ega_poll(void *priv)
         if (ega->dispon) {
             ega->hdisp_on = 1;
 
-            ega->ma &= ega->vrammask;
+            ega->memaddr &= ega->vrammask;
             if (ega->firstline == 2000) {
                 ega->firstline = ega->displine;
                 video_wait_for_buffer();
             }
 
-            old_ma = ega->ma;
+            old_ma = ega->memaddr;
             ega->displine *= ega->vres + 1;
             ega->y_add *= ega->vres + 1;
             for (int y = 0; y <= ega->vres; y++) {
@@ -863,7 +863,7 @@ ega_poll(void *priv)
                 ega->x_add = (overscan_x >> 1) - ega->scrollcache;
 
                 if (y != ega->vres) {
-                    ega->ma = old_ma;
+                    ega->memaddr = old_ma;
                     ega->displine++;
                 }
             }
@@ -900,31 +900,31 @@ ega_poll(void *priv)
         ega->hdisp_on = 0;
 
         ega->linepos = 0;
-        if ((ega->sc == (ega->crtc[11] & 31)) || (ega->sc == ega->rowcount))
+        if ((ega->scanline == (ega->crtc[11] & 31)) || (ega->scanline == ega->rowcount))
             ega->cursorvisible = 0;
         if (ega->dispon) {
             /* TODO: Verify real hardware behaviour for out-of-range fine vertical scroll */
             if (ega->linedbl && !ega->linecountff) {
                 ega->linecountff = 1;
-                ega->ma          = ega->maback;
-                ega->cca          = ega->maback;
+                ega->memaddr          = ega->memaddr_backup;
+                ega->cca          = ega->memaddr_backup;
             }
-            if (ega->sc == (ega->crtc[9] & 31)) {
+            if (ega->scanline == (ega->crtc[9] & 31)) {
                 ega->linecountff = 0;
-                ega->sc          = 0;
+                ega->scanline          = 0;
 
-                ega->maback += (ega->rowoffset << 3);
+                ega->memaddr_backup += (ega->rowoffset << 3);
                 if (ega->interlace)
-                    ega->maback += (ega->rowoffset << 3);
-                ega->maback &= ega->vrammask;
-                ega->ma = ega->maback;
-                ega->cca = ega->maback;
+                    ega->memaddr_backup += (ega->rowoffset << 3);
+                ega->memaddr_backup &= ega->vrammask;
+                ega->memaddr = ega->memaddr_backup;
+                ega->cca = ega->memaddr_backup;
             } else {
                 ega->linecountff = 0;
-                ega->sc++;
-                ega->sc &= 31;
-                ega->ma = ega->maback;
-                ega->cca = ega->maback;
+                ega->scanline++;
+                ega->scanline &= 31;
+                ega->memaddr = ega->memaddr_backup;
+                ega->cca = ega->memaddr_backup;
             }
         }
         ega->real_vc++;
@@ -941,13 +941,13 @@ ega_poll(void *priv)
         if (ega->vc == ega->split) {
             // TODO: Implement the hardware bug where the first scanline is drawn twice when the split happens
             if (ega->interlace && ega->oddeven)
-                ega->ma = ega->maback = ega->rowoffset << 1;
+                ega->memaddr = ega->memaddr_backup = ega->rowoffset << 1;
             else
-                ega->ma = ega->maback = 0;
-            ega->ma <<= 2;
-            ega->cca = ega->ma;
-            ega->maback <<= 2;
-            ega->sc = 0;
+                ega->memaddr = ega->memaddr_backup = 0;
+            ega->memaddr <<= 2;
+            ega->cca = ega->memaddr;
+            ega->memaddr_backup <<= 2;
+            ega->scanline = 0;
         }
         if (ega->vc == ega->dispend) {
             ega->dispon = 0;
@@ -1007,19 +1007,19 @@ ega_poll(void *priv)
             ega->vslines     = 0;
 
             if (ega->interlace && ega->oddeven)
-                ega->ma = ega->maback = ega->ma_latch + (ega->rowoffset << 1);
+                ega->memaddr = ega->memaddr_backup = ega->memaddr_latch + (ega->rowoffset << 1);
             else
-                ega->ma = ega->maback = ega->ma_latch;
-            ega->ca = (ega->crtc[0xe] << 8) | ega->crtc[0xf];
+                ega->memaddr = ega->memaddr_backup = ega->memaddr_latch;
+            ega->cursoraddr = (ega->crtc[0xe] << 8) | ega->crtc[0xf];
 
-            ega->ma <<= 2;
-            ega->maback <<= 2;
-            ega->ca <<= 2;
-            ega->cca = ega->ma;
+            ega->memaddr <<= 2;
+            ega->memaddr_backup <<= 2;
+            ega->cursoraddr <<= 2;
+            ega->cca = ega->memaddr;
         }
         if (ega->vc == ega->vtotal) {
             ega->vc       = 0;
-            ega->sc       = (ega->crtc[0x8] & 0x1f);
+            ega->scanline       = (ega->crtc[0x8] & 0x1f);
             ega->dispon   = 1;
             ega->displine = (ega->interlace && ega->oddeven) ? 1 : 0;
 
@@ -1036,7 +1036,7 @@ ega_poll(void *priv)
 
             ega->linecountff = 0;
         }
-        if (ega->sc == (ega->crtc[10] & 31))
+        if (ega->scanline == (ega->crtc[10] & 31))
             ega->cursorvisible = 1;
     }
 }

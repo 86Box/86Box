@@ -80,7 +80,7 @@ typedef struct ibm8514_t {
     uint32_t vram_mask;
     uint32_t pallook[512];
     uint32_t bios_addr;
-    uint32_t ma_latch;
+    uint32_t memaddr_latch;
 
     PALETTE   vgapal;
     uint8_t   hwcursor_oddeven;
@@ -220,8 +220,8 @@ typedef struct ibm8514_t {
     int      lastline_draw;
     int      displine;
     int      fullchange;
-    uint32_t ma;
-    uint32_t maback;
+    uint32_t memaddr;
+    uint32_t memaddr_backup;
 
     uint8_t *vram;
     uint8_t *changedvram;
@@ -236,7 +236,7 @@ typedef struct ibm8514_t {
     int     hdisp;
     int     hdisp2;
     int     hdisped;
-    int     sc;
+    int     scanline;
     int     vsyncstart;
     int     vsyncwidth;
     int     vtotal;

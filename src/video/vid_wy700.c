@@ -535,9 +535,9 @@ wy700_textline(wy700_t *wy700)
     int            cursorline;
     int            mda = 0;
     uint16_t       addr;
-    uint8_t        sc;
-    uint16_t       ma = (wy700->cga_crtc[13] | (wy700->cga_crtc[12] << 8)) & 0x3fff;
-    uint16_t       ca = (wy700->cga_crtc[15] | (wy700->cga_crtc[14] << 8)) & 0x3fff;
+    uint8_t        scanline;
+    uint16_t       memaddr = (wy700->cga_crtc[13] | (wy700->cga_crtc[12] << 8)) & 0x3fff;
+    uint16_t       cursoraddr = (wy700->cga_crtc[15] | (wy700->cga_crtc[14] << 8)) & 0x3fff;
 
     /* The fake CRTC character height register selects whether MDA or CGA
      * attributes are used */
@@ -548,33 +548,33 @@ wy700_textline(wy700_t *wy700)
     if (wy700->font) {
         fontbase += 256 * 32;
     }
-    addr = ((ma & ~1) + (wy700->displine >> 5) * w) * 2;
-    sc   = (wy700->displine >> 1) & 15;
+    addr = ((memaddr & ~1) + (wy700->displine >> 5) * w) * 2;
+    scanline   = (wy700->displine >> 1) & 15;
 
-    ma += ((wy700->displine >> 5) * w);
+    memaddr += ((wy700->displine >> 5) * w);
 
     if ((wy700->real_crtc[10] & 0x60) == 0x20) {
         cursorline = 0;
     } else {
-        cursorline = ((wy700->real_crtc[10] & 0x1F) <= sc) && ((wy700->real_crtc[11] & 0x1F) >= sc);
+        cursorline = ((wy700->real_crtc[10] & 0x1F) <= scanline) && ((wy700->real_crtc[11] & 0x1F) >= scanline);
     }
 
     for (int x = 0; x < w; x++) {
         chr        = wy700->vram[(addr + 2 * x) & 0x3FFF];
         attr       = wy700->vram[(addr + 2 * x + 1) & 0x3FFF];
-        drawcursor = ((ma == ca) && cursorline && wy700->enabled && (wy700->cga_ctrl & 8) && (wy700->blink & 16));
+        drawcursor = ((memaddr == cursoraddr) && cursorline && wy700->enabled && (wy700->cga_ctrl & 8) && (wy700->blink & 16));
         blink      = ((wy700->blink & 16) && (wy700->cga_ctrl & 0x20) && (attr & 0x80) && !drawcursor);
 
         if (wy700->cga_ctrl & 0x20)
             attr &= 0x7F;
         /* MDA underline */
-        if (sc == 14 && mda && ((attr & 7) == 1)) {
+        if (scanline == 14 && mda && ((attr & 7) == 1)) {
             for (c = 0; c < cw; c++)
                 buffer32->line[wy700->displine][(x * cw) + c] = mdacols[attr][blink][1];
         } else /* Draw 16 pixels of character */
         {
-            bitmap[0] = fontbase[chr * 32 + 2 * sc];
-            bitmap[1] = fontbase[chr * 32 + 2 * sc + 1];
+            bitmap[0] = fontbase[chr * 32 + 2 * scanline];
+            bitmap[1] = fontbase[chr * 32 + 2 * scanline + 1];
             for (c = 0; c < 16; c++) {
                 int col;
                 if (c < 8)
@@ -594,7 +594,7 @@ wy700_textline(wy700_t *wy700)
                 for (c = 0; c < cw; c++)
                     buffer32->line[wy700->displine][(x * cw) + c] ^= (mda ? mdacols : cgacols)[attr][0][1];
             }
-            ++ma;
+            ++memaddr;
         }
     }
 }
@@ -608,8 +608,8 @@ wy700_cgaline(wy700_t *wy700)
     uint8_t  ink = 0;
     uint16_t addr;
 
-    uint16_t ma = (wy700->cga_crtc[13] | (wy700->cga_crtc[12] << 8)) & 0x3fff;
-    addr        = ((wy700->displine >> 2) & 1) * 0x2000 + (wy700->displine >> 3) * 80 + ((ma & ~1) << 1);
+    uint16_t memaddr = (wy700->cga_crtc[13] | (wy700->cga_crtc[12] << 8)) & 0x3fff;
+    addr        = ((wy700->displine >> 2) & 1) * 0x2000 + (wy700->displine >> 3) * 80 + ((memaddr & ~1) << 1);
 
     /* The fixed mode setting here programs the real CRTC with a screen
      * width to 20, so draw in 20 fixed chunks of 4 bytes each */

@@ -245,23 +245,23 @@ t1000_text_row80(t1000_t *t1000)
     int      bold;
     int      blink;
     uint16_t addr;
-    uint8_t  sc;
-    uint16_t ma = (t1000->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (t1000->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
-    uint16_t ca = (t1000->cga.crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (t1000->cga.crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
+    uint8_t  scanline;
+    uint16_t memaddr = (t1000->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (t1000->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+    uint16_t cursoraddr = (t1000->cga.crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (t1000->cga.crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
 
-    sc   = (t1000->displine) & 7;
-    addr = ((ma & ~1) + (t1000->displine >> 3) * 80) * 2;
-    ma += (t1000->displine >> 3) * 80;
+    scanline   = (t1000->displine) & 7;
+    addr = ((memaddr & ~1) + (t1000->displine >> 3) * 80) * 2;
+    memaddr += (t1000->displine >> 3) * 80;
 
     if ((t1000->cga.crtc[CGA_CRTC_CURSOR_START] & 0x60) == 0x20) {
         cursorline = 0;
     } else {
-        cursorline = ((t1000->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0F) <= sc) && ((t1000->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0F) >= sc);
+        cursorline = ((t1000->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0F) <= scanline) && ((t1000->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0F) >= scanline);
     }
     for (uint8_t x = 0; x < 80; x++) {
         chr        = t1000->vram[(addr + 2 * x) & 0x3FFF];
         attr       = t1000->vram[(addr + 2 * x + 1) & 0x3FFF];
-        drawcursor = ((ma == ca) && cursorline && (t1000->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && (t1000->cga.cgablink & 16));
+        drawcursor = ((memaddr == cursoraddr) && cursorline && (t1000->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && (t1000->cga.cgablink & 16));
 
         blink = ((t1000->cga.cgablink & 16) && (t1000->cga.cgamode & CGA_MODE_FLAG_BLINK) && (attr & 0x80) && !drawcursor);
 
@@ -284,13 +284,13 @@ t1000_text_row80(t1000_t *t1000)
         }
         if (drawcursor) {
             for (uint8_t c = 0; c < 8; c++) {
-                (buffer32->line[t1000->displine])[(x << 3) + c] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
+                (buffer32->line[t1000->displine])[(x << 3) + c] = cols[(fontdat[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
             }
         } else {
             for (uint8_t c = 0; c < 8; c++)
-                (buffer32->line[t1000->displine])[(x << 3) + c] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
+                (buffer32->line[t1000->displine])[(x << 3) + c] = cols[(fontdat[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0];
         }
-        ++ma;
+        ++memaddr;
     }
 }
 
@@ -306,23 +306,23 @@ t1000_text_row40(t1000_t *t1000)
     int      bold;
     int      blink;
     uint16_t addr;
-    uint8_t  sc;
-    uint16_t ma = (t1000->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (t1000->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
-    uint16_t ca = (t1000->cga.crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (t1000->cga.crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
+    uint8_t  scanline;
+    uint16_t memaddr = (t1000->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (t1000->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+    uint16_t cursoraddr = (t1000->cga.crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (t1000->cga.crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
 
-    sc   = (t1000->displine) & 7;
-    addr = ((ma & ~1) + (t1000->displine >> 3) * 40) * 2;
-    ma += (t1000->displine >> 3) * 40;
+    scanline   = (t1000->displine) & 7;
+    addr = ((memaddr & ~1) + (t1000->displine >> 3) * 40) * 2;
+    memaddr += (t1000->displine >> 3) * 40;
 
     if ((t1000->cga.crtc[CGA_CRTC_CURSOR_START] & 0x60) == 0x20) {
         cursorline = 0;
     } else {
-        cursorline = ((t1000->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0F) <= sc) && ((t1000->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0F) >= sc);
+        cursorline = ((t1000->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0F) <= scanline) && ((t1000->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0F) >= scanline);
     }
     for (uint8_t x = 0; x < 40; x++) {
         chr        = t1000->vram[(addr + 2 * x) & 0x3FFF];
         attr       = t1000->vram[(addr + 2 * x + 1) & 0x3FFF];
-        drawcursor = ((ma == ca) && cursorline && (t1000->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && (t1000->cga.cgablink & 16));
+        drawcursor = ((memaddr == cursoraddr) && cursorline && (t1000->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && (t1000->cga.cgablink & 16));
 
         blink = ((t1000->cga.cgablink & 16) && (t1000->cga.cgamode & CGA_MODE_FLAG_BLINK) && (attr & 0x80) && !drawcursor);
 
@@ -345,14 +345,14 @@ t1000_text_row40(t1000_t *t1000)
         }
         if (drawcursor) {
             for (uint8_t c = 0; c < 8; c++) {
-                (buffer32->line[t1000->displine])[(x << 4) + c * 2] = (buffer32->line[t1000->displine])[(x << 4) + c * 2 + 1] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
+                (buffer32->line[t1000->displine])[(x << 4) + c * 2] = (buffer32->line[t1000->displine])[(x << 4) + c * 2 + 1] = cols[(fontdat[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
             }
         } else {
             for (uint8_t c = 0; c < 8; c++) {
-                (buffer32->line[t1000->displine])[(x << 4) + c * 2] = (buffer32->line[t1000->displine])[(x << 4) + c * 2 + 1] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
+                (buffer32->line[t1000->displine])[(x << 4) + c * 2] = (buffer32->line[t1000->displine])[(x << 4) + c * 2 + 1] = cols[(fontdat[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0];
             }
         }
-        ++ma;
+        ++memaddr;
     }
 }
 
@@ -366,9 +366,9 @@ t1000_cgaline6(t1000_t *t1000)
     uint32_t fg = (t1000->cga.cgacol & 0x0F) ? blue : grey;
     uint32_t bg = grey;
 
-    uint16_t ma = (t1000->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (t1000->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+    uint16_t memaddr = (t1000->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (t1000->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
 
-    addr = ((t1000->displine) & 1) * 0x2000 + (t1000->displine >> 1) * 80 + ((ma & ~1) << 1);
+    addr = ((t1000->displine) & 1) * 0x2000 + (t1000->displine >> 1) * 80 + ((memaddr & ~1) << 1);
 
     for (uint8_t x = 0; x < 80; x++) {
         dat = t1000->vram[addr & 0x3FFF];
@@ -395,8 +395,8 @@ t1000_cgaline4(t1000_t *t1000)
     uint32_t ink1;
     uint16_t addr;
 
-    uint16_t ma = (t1000->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (t1000->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
-    addr        = ((t1000->displine) & 1) * 0x2000 + (t1000->displine >> 1) * 80 + ((ma & ~1) << 1);
+    uint16_t memaddr = (t1000->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (t1000->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+    addr        = ((t1000->displine) & 1) * 0x2000 + (t1000->displine >> 1) * 80 + ((memaddr & ~1) << 1);
 
     for (uint8_t x = 0; x < 80; x++) {
         dat = t1000->vram[addr & 0x3FFF];

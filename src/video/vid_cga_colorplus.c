@@ -130,7 +130,7 @@ colorplus_poll(void *priv)
     uint16_t         dat1;
     int              cols[4];
     int              col;
-    int              oldsc;
+    int              scanline_old;
     static const int cols16[16] = { 0x10, 0x12, 0x14, 0x16,
                                     0x18, 0x1A, 0x1C, 0x1E,
                                     0x11, 0x13, 0x15, 0x17,
@@ -149,9 +149,9 @@ colorplus_poll(void *priv)
         timer_advance_u64(&colorplus->cga.timer, colorplus->cga.dispofftime);
         colorplus->cga.cgastat |= 1;
         colorplus->cga.linepos = 1;
-        oldsc                  = colorplus->cga.sc;
+        scanline_old                  = colorplus->cga.scanline;
         if ((colorplus->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3)
-            colorplus->cga.sc = ((colorplus->cga.sc << 1) + colorplus->cga.oddeven) & 7;
+            colorplus->cga.scanline = ((colorplus->cga.scanline << 1) + colorplus->cga.oddeven) & 7;
         if (colorplus->cga.cgadispon) {
             if (colorplus->cga.displine < colorplus->cga.firstline) {
                 colorplus->cga.firstline = colorplus->cga.displine;
@@ -164,9 +164,9 @@ colorplus_poll(void *priv)
             }
             if (colorplus->control & COLORPLUS_320x200_MODE) {
                 for (x = 0; x < colorplus->cga.crtc[CGA_CRTC_HDISP]; x++) {
-                    dat0 = (plane0[((colorplus->cga.ma << 1) & 0x1fff) + ((colorplus->cga.sc & 1) * 0x2000)] << 8) | plane0[((colorplus->cga.ma << 1) & 0x1fff) + ((colorplus->cga.sc & 1) * 0x2000) + 1];
-                    dat1 = (plane1[((colorplus->cga.ma << 1) & 0x1fff) + ((colorplus->cga.sc & 1) * 0x2000)] << 8) | plane1[((colorplus->cga.ma << 1) & 0x1fff) + ((colorplus->cga.sc & 1) * 0x2000) + 1];
-                    colorplus->cga.ma++;
+                    dat0 = (plane0[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000)] << 8) | plane0[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000) + 1];
+                    dat1 = (plane1[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000)] << 8) | plane1[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000) + 1];
+                    colorplus->cga.memaddr++;
                     for (c = 0; c < 8; c++) {
                         buffer32->line[colorplus->cga.displine][(x << 4) + (c << 1) + 8] = buffer32->line[colorplus->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols16[(dat0 >> 14) | ((dat1 >> 14) << 2)];
                         dat0 <<= 2;
@@ -190,9 +190,9 @@ colorplus_poll(void *priv)
                     cols[3] = col | 6;
                 }
                 for (x = 0; x < colorplus->cga.crtc[CGA_CRTC_HDISP]; x++) {
-                    dat0 = (plane0[((colorplus->cga.ma << 1) & 0x1fff) + ((colorplus->cga.sc & 1) * 0x2000)] << 8) | plane0[((colorplus->cga.ma << 1) & 0x1fff) + ((colorplus->cga.sc & 1) * 0x2000) + 1];
-                    dat1 = (plane1[((colorplus->cga.ma << 1) & 0x1fff) + ((colorplus->cga.sc & 1) * 0x2000)] << 8) | plane1[((colorplus->cga.ma << 1) & 0x1fff) + ((colorplus->cga.sc & 1) * 0x2000) + 1];
-                    colorplus->cga.ma++;
+                    dat0 = (plane0[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000)] << 8) | plane0[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000) + 1];
+                    dat1 = (plane1[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000)] << 8) | plane1[((colorplus->cga.memaddr << 1) & 0x1fff) + ((colorplus->cga.scanline & 1) * 0x2000) + 1];
+                    colorplus->cga.memaddr++;
                     for (c = 0; c < 16; c++) {
                         buffer32->line[colorplus->cga.displine][(x << 4) + c + 8] = cols[(dat0 >> 15) | ((dat1 >> 15) << 1)];
                         dat0 <<= 1;
@@ -213,8 +213,8 @@ colorplus_poll(void *priv)
         else
             video_process_8(x, colorplus->cga.displine);
 
-        colorplus->cga.sc = oldsc;
-        if (colorplus->cga.vc == colorplus->cga.crtc[CGA_CRTC_VSYNC] && !colorplus->cga.sc)
+        colorplus->cga.scanline = scanline_old;
+        if (colorplus->cga.vc == colorplus->cga.crtc[CGA_CRTC_VSYNC] && !colorplus->cga.scanline)
             colorplus->cga.cgastat |= 8;
         colorplus->cga.displine++;
         if (colorplus->cga.displine >= 360)
@@ -227,25 +227,25 @@ colorplus_poll(void *priv)
             if (!colorplus->cga.vsynctime)
                 colorplus->cga.cgastat &= ~8;
         }
-        if (colorplus->cga.sc == (colorplus->cga.crtc[CGA_CRTC_CURSOR_END] & 31) 
-        || ((colorplus->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && colorplus->cga.sc == ((colorplus->cga.crtc[CGA_CRTC_CURSOR_END] & 31) >> 1))) {
+        if (colorplus->cga.scanline == (colorplus->cga.crtc[CGA_CRTC_CURSOR_END] & 31) 
+        || ((colorplus->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && colorplus->cga.scanline == ((colorplus->cga.crtc[CGA_CRTC_CURSOR_END] & 31) >> 1))) {
             colorplus->cga.cursorvisible  = 0;
         }
-        if ((colorplus->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && colorplus->cga.sc == (colorplus->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] >> 1))
-            colorplus->cga.maback = colorplus->cga.ma;
+        if ((colorplus->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && colorplus->cga.scanline == (colorplus->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] >> 1))
+            colorplus->cga.memaddr_backup = colorplus->cga.memaddr;
         if (colorplus->cga.vadj) {
-            colorplus->cga.sc++;
-            colorplus->cga.sc &= 31;
-            colorplus->cga.ma = colorplus->cga.maback;
+            colorplus->cga.scanline++;
+            colorplus->cga.scanline &= 31;
+            colorplus->cga.memaddr = colorplus->cga.memaddr_backup;
             colorplus->cga.vadj--;
             if (!colorplus->cga.vadj) {
                 colorplus->cga.cgadispon = 1;
-                colorplus->cga.ma = colorplus->cga.maback = (colorplus->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (colorplus->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
-                colorplus->cga.sc                         = 0;
+                colorplus->cga.memaddr = colorplus->cga.memaddr_backup = (colorplus->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (colorplus->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+                colorplus->cga.scanline                         = 0;
             }
-        } else if (colorplus->cga.sc == colorplus->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR]) {
-            colorplus->cga.maback = colorplus->cga.ma;
-            colorplus->cga.sc     = 0;
+        } else if (colorplus->cga.scanline == colorplus->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR]) {
+            colorplus->cga.memaddr_backup = colorplus->cga.memaddr;
+            colorplus->cga.scanline     = 0;
             oldvc                 = colorplus->cga.vc;
             colorplus->cga.vc++;
             colorplus->cga.vc &= 127;
@@ -259,7 +259,7 @@ colorplus_poll(void *priv)
                 if (!colorplus->cga.vadj)
                     colorplus->cga.cgadispon = 1;
                 if (!colorplus->cga.vadj)
-                    colorplus->cga.ma = colorplus->cga.maback = (colorplus->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (colorplus->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+                    colorplus->cga.memaddr = colorplus->cga.memaddr_backup = (colorplus->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (colorplus->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
                 if ((colorplus->cga.crtc[CGA_CRTC_CURSOR_START] & 0x60) == 0x20)
                     colorplus->cga.cursoron = 0;
                 else
@@ -312,17 +312,17 @@ colorplus_poll(void *priv)
                 colorplus->cga.oddeven ^= 1;
             }
         } else {
-            colorplus->cga.sc++;
-            colorplus->cga.sc &= 31;
-            colorplus->cga.ma = colorplus->cga.maback;
+            colorplus->cga.scanline++;
+            colorplus->cga.scanline &= 31;
+            colorplus->cga.memaddr = colorplus->cga.memaddr_backup;
         }
         if (colorplus->cga.cgadispon)
             colorplus->cga.cgastat &= ~1;
-        if (colorplus->cga.sc == (colorplus->cga.crtc[CGA_CRTC_CURSOR_START] & 31) || ((colorplus->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && colorplus->cga.sc == ((colorplus->cga.crtc[CGA_CRTC_CURSOR_START] & 31) >> 1)))
+        if (colorplus->cga.scanline == (colorplus->cga.crtc[CGA_CRTC_CURSOR_START] & 31) || ((colorplus->cga.crtc[CGA_CRTC_INTERLACE] & 3) == 3 && colorplus->cga.scanline == ((colorplus->cga.crtc[CGA_CRTC_CURSOR_START] & 31) >> 1)))
             colorplus->cga.cursorvisible = 1;
         if (colorplus->cga.cgadispon && (colorplus->cga.cgamode & CGA_MODE_FLAG_HIGHRES)) {
             for (x = 0; x < (colorplus->cga.crtc[CGA_CRTC_HDISP] << 1); x++)
-                colorplus->cga.charbuffer[x] = colorplus->cga.vram[((colorplus->cga.ma << 1) + x) & 0x3fff];
+                colorplus->cga.charbuffer[x] = colorplus->cga.vram[((colorplus->cga.memaddr << 1) + x) & 0x3fff];
         }
     }
 }

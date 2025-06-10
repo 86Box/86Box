@@ -256,9 +256,9 @@ compaq_plasma_poll(void *priv)
     compaq_plasma_t *self = (compaq_plasma_t *) priv;
     uint8_t  chr;
     uint8_t  attr;
-    uint8_t  sc;
-    uint16_t ma  = (self->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (self->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x7fff;
-    uint16_t ca  = (self->cga.crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (self->cga.crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x7fff;
+    uint8_t  scanline;
+    uint16_t memaddr  = (self->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (self->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x7fff;
+    uint16_t cursoraddr  = (self->cga.crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (self->cga.crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x7fff;
     uint16_t addr;
     int      drawcursor;
     int      cursorline;
@@ -298,14 +298,14 @@ compaq_plasma_poll(void *priv)
 
                 /* 80-col */
                 if (self->cga.cgamode & 0x01) {
-                    sc = self->cga.displine & 0x0f;
-                    addr = ((ma & ~1) + (self->cga.displine >> 4) * 80) << 1;
-                    ma += (self->cga.displine >> 4) * 80;
+                    scanline = self->cga.displine & 0x0f;
+                    addr = ((memaddr & ~1) + (self->cga.displine >> 4) * 80) << 1;
+                    memaddr += (self->cga.displine >> 4) * 80;
 
                     if ((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x60) == 0x20)
                         cursorline = 0;
                     else
-                        cursorline = (((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) << 1) <= sc) && (((self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) << 1) >= sc);
+                        cursorline = (((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) << 1) <= scanline) && (((self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) << 1) >= scanline);
 
                     /* for each text column */
                     for (x = 0; x < 80; x++) {
@@ -321,7 +321,7 @@ compaq_plasma_poll(void *priv)
                         }
                         uint8_t hi_bit = attr & 0x08;
                         /* check if cursor has to be drawn */
-                        drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 0x08) && (self->cga.cgablink & 0x10));
+                        drawcursor = ((memaddr == cursoraddr) && cursorline && (self->cga.cgamode & 0x08) && (self->cga.cgablink & 0x10));
                         /* check if character underline mode should be set */
                         underline = ((attr & 0x07) == 0x01);
                         underline = underline || (((self->port_23c6 >> 5) == 2) && hi_bit);
@@ -348,12 +348,12 @@ compaq_plasma_poll(void *priv)
                         }
 
                         /* character address */
-                        uint16_t chr_addr = ((chr * 16) + sc) & 0x0fff;
+                        uint16_t chr_addr = ((chr * 16) + scanline) & 0x0fff;
                         if (((self->port_23c6 >> 5) == 3) && hi_bit)
                             chr_addr |= 0x1000;
 
                         /* character underline active and 7th row of pixels in character height being drawn */
-                        if (underline && (sc == 7)) {
+                        if (underline && (scanline == 7)) {
                             /* for each pixel in character width */
                             for (c = 0; c < 8; c++)
                                 buffer32->line[self->cga.displine][(x << 3) + c] = mdaattr[attr][blink][1];
@@ -378,19 +378,19 @@ compaq_plasma_poll(void *priv)
                                 }
                             }
                         }
-                        ma++;
+                        memaddr++;
                     }
                 }
                 /* 40-col */
                 else if (!(self->cga.cgamode & 0x02)) {
-                    sc = self->cga.displine & 0x0f;
-                    addr = ((ma & ~1) + (self->cga.displine >> 4) * 40) << 1;
-                    ma += (self->cga.displine >> 4) * 40;
+                    scanline = self->cga.displine & 0x0f;
+                    addr = ((memaddr & ~1) + (self->cga.displine >> 4) * 40) << 1;
+                    memaddr += (self->cga.displine >> 4) * 40;
 
                     if ((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x60) == 0x20)
                         cursorline = 0;
                     else
-                        cursorline = (((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) << 1) <= sc) && (((self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) << 1) >= sc);
+                        cursorline = (((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) << 1) <= scanline) && (((self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) << 1) >= scanline);
 
                     for (x = 0; x < 40; x++) {
                         /* video output enabled */
@@ -405,7 +405,7 @@ compaq_plasma_poll(void *priv)
                         }
                         uint8_t hi_bit = attr & 0x08;
                         /* check if cursor has to be drawn */
-                        drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 0x08) && (self->cga.cgablink & 0x10));
+                        drawcursor = ((memaddr == cursoraddr) && cursorline && (self->cga.cgamode & 0x08) && (self->cga.cgablink & 0x10));
                         /* check if character underline mode should be set */
                         underline = ((attr & 0x07) == 0x01);
                         underline = underline || (((self->port_23c6 >> 5) == 2) && hi_bit);
@@ -432,12 +432,12 @@ compaq_plasma_poll(void *priv)
                         }
 
                         /* character address */
-                        uint16_t chr_addr = ((chr * 16) + sc) & 0x0fff;
+                        uint16_t chr_addr = ((chr * 16) + scanline) & 0x0fff;
                         if (((self->port_23c6 >> 5) == 3) && hi_bit)
                             chr_addr |= 0x1000;
 
                         /* character underline active and 7th row of pixels in character height being drawn */
-                        if (underline && (sc == 7)) {
+                        if (underline && (scanline == 7)) {
                             /* for each pixel in character width */
                             for (c = 0; c < 8; c++)
                                 buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = mdaattr[attr][blink][1];
@@ -463,15 +463,15 @@ compaq_plasma_poll(void *priv)
                                     buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = b | (g << 8) || (r << 16);
                                 }
                         }
-                        ma++;
+                        memaddr++;
                     }
                 } else {
                     if (self->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS) {
                         /* 640x400 mode */
                         if (self->port_23c6 & 0x01) /* 640*400 */ {
-                            addr = ((self->cga.displine) & 1) * 0x2000 + ((self->cga.displine >> 1) & 1) * 0x4000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
+                            addr = ((self->cga.displine) & 1) * 0x2000 + ((self->cga.displine >> 1) & 1) * 0x4000 + (self->cga.displine >> 2) * 80 + ((memaddr & ~1) << 1);
                         } else {
-                            addr = ((self->cga.displine >> 1) & 1) * 0x2000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
+                            addr = ((self->cga.displine >> 1) & 1) * 0x2000 + (self->cga.displine >> 2) * 80 + ((memaddr & ~1) << 1);
                         }
                         for (uint8_t x = 0; x < 80; x++) {
                             dat = self->cga.vram[addr & 0x7fff];
@@ -486,7 +486,7 @@ compaq_plasma_poll(void *priv)
                             }
                         }
                     } else {
-                        addr = ((self->cga.displine >> 1) & 1) * 0x2000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
+                        addr = ((self->cga.displine >> 1) & 1) * 0x2000 + (self->cga.displine >> 2) * 80 + ((memaddr & ~1) << 1);
                         for (uint8_t x = 0; x < 80; x++) {
                             dat = self->cga.vram[addr & 0x7fff];
                             addr++;
