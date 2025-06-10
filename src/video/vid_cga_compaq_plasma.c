@@ -174,7 +174,7 @@ compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
                Another source (Ralf Brown?) gives 4 = CGA, 5 = EGA, 7 = MDA;
                This leads me to believe bit 2 is not relevant to the mode.
              */
-            if ((val & 0x03) == 0x03)
+            if ((val & 0x07) == 0x03)
                 mem_mapping_set_addr(&self->cga.mapping, 0xb0000, 0x08000);
             else
                 mem_mapping_set_addr(&self->cga.mapping, 0xb8000, 0x08000);
@@ -182,7 +182,6 @@ compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
 
         case 0x23c6:
             self->port_23c6 = val;
-            compaq_plasma_recalcattrs(self);
             break;
 
         case 0x27c6:
@@ -221,10 +220,6 @@ compaq_plasma_in(uint16_t addr, void *priv)
 
         case 0x13c6:
             ret = self->port_13c6;
-#if 0
-            if ((self->cga.cgamode & 0x28) == 0x00)
-                ret |= 0x04;
-#endif
             break;
 
         case 0x17c6:
@@ -264,11 +259,15 @@ compaq_plasma_poll(void *priv)
     int      cursorline;
     int      blink     = 0;
     int      underline = 0;
+    int      cursorvisible = 0;
+    int      cursorinvisible = 0;
     int      c;
     int      x;
     uint32_t ink = 0;
     uint32_t fg = (self->cga.cgacol & 0x0f) ? amber : black;
     uint32_t bg = black;
+    uint32_t black_half = black;
+    uint32_t amber_half = amber;
     uint32_t cols[2];
     uint8_t  dat;
     uint8_t  pattern;
@@ -304,8 +303,19 @@ compaq_plasma_poll(void *priv)
 
                     if ((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x60) == 0x20)
                         cursorline = 0;
-                    else
-                        cursorline = (((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) << 1) <= sc) && (((self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) << 1) >= sc);
+                    else {
+                        if ((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) > 0x07)
+                            cursorvisible = (self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) + 1;
+                        else
+                            cursorvisible = ((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) << 1);
+
+                        if ((self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) > 0x07)
+                            cursorinvisible = (self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) + 2;
+                        else
+                            cursorinvisible = ((self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) << 1);
+
+                        cursorline = (cursorvisible <= sc) && (cursorinvisible >= sc);
+                    }
 
                     /* for each text column */
                     for (x = 0; x < 80; x++) {
@@ -319,12 +329,10 @@ compaq_plasma_poll(void *priv)
                             chr = 0x00;
                             attr = 0x00;
                         }
-                        uint8_t hi_bit = attr & 0x08;
                         /* check if cursor has to be drawn */
                         drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 0x08) && (self->cga.cgablink & 0x10));
                         /* check if character underline mode should be set */
-                        underline = ((attr & 0x07) == 0x01);
-                        underline = underline || (((self->port_23c6 >> 5) == 2) && hi_bit);
+                        underline = ((self->port_23c6 >> 5) == 1) && (attr & 0x1) && !(attr & 0x6);
                         if (underline) {
                             /* set forecolor to white */
                             attr = attr | 0x7;
@@ -349,11 +357,11 @@ compaq_plasma_poll(void *priv)
 
                         /* character address */
                         uint16_t chr_addr = ((chr * 16) + sc) & 0x0fff;
-                        if (((self->port_23c6 >> 5) == 3) && hi_bit)
+                        if ((self->port_23c6 >> 5) == 3)
                             chr_addr |= 0x1000;
 
                         /* character underline active and 7th row of pixels in character height being drawn */
-                        if (underline && (sc == 7)) {
+                        if (underline) {
                             /* for each pixel in character width */
                             for (c = 0; c < 8; c++)
                                 buffer32->line[self->cga.displine][(x << 3) + c] = mdaattr[attr][blink][1];
@@ -365,17 +373,39 @@ compaq_plasma_poll(void *priv)
                                 buffer32->line[self->cga.displine][(x << 3) + c] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0];
                         }
 
-                        if (hi_bit) {
-                            if ((self->port_23c6 >> 5) == 1) {
+                        if ((self->port_23c6 >> 5) == 4) {
+                            uint8_t b = (cols[1] & 0xff) >> 1;
+                            uint8_t g = ((cols[1] >> 8) & 0xff) >> 1;
+                            uint8_t r = ((cols[1] >> 16) & 0xff) >> 1;
+                            cols[1] = b | (g << 8) | (r << 16);
+                            b = (cols[0] & 0xff) >> 1;
+                            g = ((cols[0] >> 8) & 0xff) >> 1;
+                            r = ((cols[0] >> 16) & 0xff) >> 1;
+                            cols[0] = b | (g << 8) | (r << 16);
+                            if (drawcursor) {
+                                black_half = black;
+                                amber_half = amber;
+                                uint8_t bB = (black & 0xff) >> 1;
+                                uint8_t gB = ((black >> 8) & 0xff) >> 1;
+                                uint8_t rB = ((black >> 16) & 0xff) >> 1;
+                                black_half = bB | (gB << 8) | (rB << 16);
+                                uint8_t bA = (amber & 0xff) >> 1;
+                                uint8_t gA = ((amber >> 8) & 0xff) >> 1;
+                                uint8_t rA = ((amber >> 16) & 0xff) >> 1;
+                                amber_half = bA | (gA << 8) | (rA << 16);
                                 for (c = 0; c < 8; c++)
-                                    buffer32->line[self->cga.displine][(x << 3) + c] ^= (amber ^ black);
-                            } else if ((self->port_23c6 >> 5) == 4) {
-                                for (c = 0; c < 8; c++) {
-                                    uint32_t b = ((buffer32->line[self->cga.displine][(x << 3) + c]) >> 1) & 0x7f;
-                                    uint32_t g = ((buffer32->line[self->cga.displine][(x << 3) + c]) >> 9) & 0x7f;
-                                    uint32_t r = ((buffer32->line[self->cga.displine][(x << 3) + c]) >> 17) & 0x7f;
-                                    buffer32->line[self->cga.displine][(x << 3) + c] = b | (g << 8) || (r << 16);
-                                }
+                                    buffer32->line[self->cga.displine][(x << 3) + c] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber_half ^ black_half);
+                            } else {
+                                for (c = 0; c < 8; c++)
+                                    buffer32->line[self->cga.displine][(x << 3) + c] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0];
+                            }
+                        } else if ((self->port_23c6 >> 5) == 2) {
+                            if (drawcursor) {
+                                for (c = 0; c < 8; c++)
+                                    buffer32->line[self->cga.displine][(x << 3) + c] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 0 : 1] ^ (amber ^ black);
+                            } else {
+                                for (c = 0; c < 8; c++)
+                                    buffer32->line[self->cga.displine][(x << 3) + c] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 0 : 1];
                             }
                         }
                         ma++;
@@ -389,9 +419,20 @@ compaq_plasma_poll(void *priv)
 
                     if ((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x60) == 0x20)
                         cursorline = 0;
-                    else
-                        cursorline = (((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) << 1) <= sc) && (((self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) << 1) >= sc);
+                    else {
+                        if ((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) > 0x07)
+                            cursorvisible = (self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) + 1;
+                        else
+                            cursorvisible = ((self->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0f) << 1);
 
+                        if ((self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) > 0x07)
+                            cursorinvisible = (self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) + 2;
+                        else
+                            cursorinvisible = ((self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) << 1);
+
+                        cursorline = (cursorvisible <= sc) && (cursorinvisible >= sc);
+                    }
+ 
                     for (x = 0; x < 40; x++) {
                         /* video output enabled */
                         if (self->cga.cgamode & 0x08) {
@@ -407,8 +448,7 @@ compaq_plasma_poll(void *priv)
                         /* check if cursor has to be drawn */
                         drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 0x08) && (self->cga.cgablink & 0x10));
                         /* check if character underline mode should be set */
-                        underline = ((attr & 0x07) == 0x01);
-                        underline = underline || (((self->port_23c6 >> 5) == 2) && hi_bit);
+                        underline = ((self->port_23c6 >> 5) == 1) && (attr & 0x1) && !(attr & 0x6);
                         if (underline) {
                             /* set forecolor to white */
                             attr = attr | 0x7;
@@ -450,18 +490,41 @@ compaq_plasma_poll(void *priv)
                         }
 
                         if (hi_bit) {
-                            if ((self->port_23c6 >> 5) == 1)
-                                for (c = 0; c < 8; c++) {
-                                    buffer32->line[self->cga.displine][(x << 4) + (c << 1)] ^= (amber ^ black);
-                                    buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] ^= (amber ^ black);
+                            if ((self->port_23c6 >> 5) == 4) {
+                                uint8_t b = (cols[1] & 0xff) >> 1;
+                                uint8_t g = ((cols[1] >> 8) & 0xff) >> 1;
+                                uint8_t r = ((cols[1] >> 16) & 0xff) >> 1;
+                                cols[1] = b | (g << 8) | (r << 16);
+                                b = (cols[0] & 0xff) >> 1;
+                                g = ((cols[0] >> 8) & 0xff) >> 1;
+                                r = ((cols[0] >> 16) & 0xff) >> 1;
+                                cols[0] = b | (g << 8) | (r << 16);
+                                if (drawcursor) {
+                                    black_half = black;
+                                    amber_half = amber;
+                                    uint8_t bB = (black & 0xff) >> 1;
+                                    uint8_t gB = ((black >> 8) & 0xff) >> 1;
+                                    uint8_t rB = ((black >> 16) & 0xff) >> 1;
+                                    black_half = bB | (gB << 8) | (rB << 16);
+                                    uint8_t bA = (amber & 0xff) >> 1;
+                                    uint8_t gA = ((amber >> 8) & 0xff) >> 1;
+                                    uint8_t rA = ((amber >> 16) & 0xff) >> 1;
+                                    amber_half = bA | (gA << 8) | (rA << 16);
+                                    for (c = 0; c < 8; c++)
+                                        buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber_half ^ black_half);
+                                } else {
+                                    for (c = 0; c < 8; c++)
+                                        buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0];
                                 }
-                            else if ((self->port_23c6 >> 5) == 4)
-                                for (c = 0; c < 8; c++) {
-                                    uint32_t b = ((buffer32->line[self->cga.displine][(x << 4) + (c << 1)]) >> 1) & 0x7f;
-                                    uint32_t g = ((buffer32->line[self->cga.displine][(x << 4) + (c << 1)]) >> 9) & 0x7f;
-                                    uint32_t r = ((buffer32->line[self->cga.displine][(x << 4) + (c << 1)]) >> 17) & 0x7f;
-                                    buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = b | (g << 8) || (r << 16);
+                            } else if ((self->port_23c6 >> 5) == 2) {
+                                if (drawcursor) {
+                                    for (c = 0; c < 8; c++)
+                                        buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 0 : 1] ^ (amber ^ black);
+                                } else {
+                                    for (c = 0; c < 8; c++)
+                                        buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 0 : 1];
                                 }
+                            }
                         }
                         ma++;
                     }
@@ -638,30 +701,18 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
     for (n = 0x11; n <= 0xFF; n++) {
         if ((n & 7) == 0)
             continue;
-        if ((self->port_23c6 >> 5) == 1) { /* Inverse */
-            blinkcols[n][0] = normcols[n][0] = amber;
-            blinkcols[n][1] = normcols[n][1] = black;
-        } else { /* Normal */
-            blinkcols[n][0] = normcols[n][0] = black;
-            blinkcols[n][1] = normcols[n][1] = amber;
-        }
+        blinkcols[n][0] = normcols[n][0] = black;
+        blinkcols[n][1] = normcols[n][1] = amber;
     }
     /* Set up the 01-0E range, controlled by bits 0 and 1 of the
      * passed value. When blinking is enabled this also affects 81-8E. */
     for (n = 0x01; n <= 0x0E; n++) {
         if (n == 7)
             continue;
-        if ((self->port_23c6 >> 5) == 1) {
-            blinkcols[n][0] = normcols[n][0] = amber;
-            blinkcols[n][1] = normcols[n][1] = black;
-            blinkcols[n + 128][0]            = amber;
-            blinkcols[n + 128][1]            = black;
-        } else {
-            blinkcols[n][0] = normcols[n][0] = black;
-            blinkcols[n][1] = normcols[n][1] = amber;
-            blinkcols[n + 128][0]            = black;
-            blinkcols[n + 128][1]            = amber;
-        }
+        blinkcols[n][0] = normcols[n][0] = black;
+        blinkcols[n][1] = normcols[n][1] = amber;
+        blinkcols[n + 128][0]            = black;
+        blinkcols[n + 128][1]            = amber;
     }
     /* Colours 07 and 0F are always amber on black. If blinking is
      * enabled so are 87 and 8F. */
@@ -720,6 +771,7 @@ compaq_plasma_init(UNUSED(const device_t *info))
     io_sethandler(0x03d0, 0x0010, compaq_plasma_in, NULL, NULL, compaq_plasma_out, NULL, NULL, self);
 
     overscan_x = overscan_y = 16;
+    compaq_plasma_recalcattrs(self);
 
     self->cga.rgb_type = device_get_config_int("rgb_type");
     cga_palette        = (self->cga.rgb_type << 1);
