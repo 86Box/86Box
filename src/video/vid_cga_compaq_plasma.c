@@ -314,7 +314,7 @@ compaq_plasma_poll(void *priv)
                         else
                             cursorinvisible = ((self->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0f) << 1);
 
-                        cursorline = (cursorvisible <= scanline) && (cursorinvisible >= sc);
+                        cursorline = (cursorvisible <= scanline) && (cursorinvisible >= scanline);
                     }
 
                     /* for each text column */
