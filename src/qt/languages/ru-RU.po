@@ -1591,7 +1591,7 @@ msgid "Interpolation Method"
 msgstr "Метод интерполяции"
 
 msgid "Dynamic Sample Loading"
-msgstr "Динамическая загрузка образца"
+msgstr "Динамическая загрузка сэмплов"
 
 msgid "Reverb Output Gain"
 msgstr "Усиление выходного сигнала ревербератора"
