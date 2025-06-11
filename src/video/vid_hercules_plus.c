@@ -67,7 +67,7 @@ typedef struct {
     uint8_t crtc[32];
     int     crtcreg;
 
-    uint8_t ctrl, ctrl2, stat;
+    uint8_t ctrl, ctrl2, status;
 
     uint64_t   dispontime, dispofftime;
     pc_timer_t timer;
@@ -194,7 +194,7 @@ herculesplus_in(uint16_t port, void *priv)
 
         case 0x3ba:
             /* 0x10: Hercules Plus card identity */
-            ret = (dev->stat & 0xf) | ((dev->stat & 8) << 4) | 0x10;
+            ret = (dev->status & 0xf) | ((dev->status & 8) << 4) | 0x10;
             break;
 
         default:
@@ -494,7 +494,7 @@ herculesplus_poll(void *priv)
     VIDEO_MONITOR_PROLOGUE();
     if (!dev->linepos) {
         timer_advance_u64(&dev->timer, dev->dispofftime);
-        dev->stat |= 1;
+        dev->status |= 1;
         dev->linepos = 1;
         scanline_old        = dev->scanline;
         if ((dev->crtc[8] & 3) == 3)
@@ -519,19 +519,19 @@ herculesplus_poll(void *priv)
         }
         dev->scanline = scanline_old;
         if (dev->vc == dev->crtc[7] && !dev->scanline)
-            dev->stat |= 8;
+            dev->status |= 8;
         dev->displine++;
         if (dev->displine >= 500)
             dev->displine = 0;
     } else {
         timer_advance_u64(&dev->timer, dev->dispontime);
         if (dev->dispon)
-            dev->stat &= ~1;
+            dev->status &= ~1;
         dev->linepos = 0;
         if (dev->vsynctime) {
             dev->vsynctime--;
             if (!dev->vsynctime)
-                dev->stat &= ~8;
+                dev->status &= ~8;
         }
 
         if (dev->scanline == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->scanline == ((dev->crtc[11] & 31) >> 1))) {

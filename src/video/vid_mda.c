@@ -12,9 +12,11 @@
  *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
+ *          Connor Hyde, <mario64crashed@gmail.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2025 starfrost / Connor Hyde
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -44,32 +46,35 @@ mda_out(uint16_t addr, uint8_t val, void *priv)
 {
     mda_t *mda = (mda_t *) priv;
 
-    switch (addr) {
-        case 0x3b0:
-        case 0x3b2:
-        case 0x3b4:
-        case 0x3b6:
-            mda->crtcreg = val & 31;
-            return;
-        case 0x3b1:
-        case 0x3b3:
-        case 0x3b5:
-        case 0x3b7:
-            mda->crtc[mda->crtcreg] = val;
-            if (mda->crtc[10] == 6 && mda->crtc[11] == 7) /*Fix for Generic Turbo XT BIOS, which sets up cursor registers wrong*/
-            {
-                mda->crtc[10] = 0xb;
-                mda->crtc[11] = 0xc;
-            }
-            mda_recalctimings(mda);
-            return;
-        case 0x3b8:
-            mda->ctrl = val;
-            return;
+    if (addr < MDA_REGISTER_START 
+    || addr > MDA_REGISTER_CRT_STATUS)  // Maintain old behaviour for printer registers, just in case
+        return;
 
+    switch (addr)
+    {
+        case MDA_REGISTER_MODE_CONTROL:
+            mda->mode = val;
+            return;
         default:
             break;
     }
+
+    // addr & 1 == 1 = MDA_REGISTER_CRTC_DATA
+    // otherwise       MDA_REGISTER_CRTC_INDEX
+    if (addr & 1)
+    {
+        mda->crtc[mda->crtcreg] = val;
+        if (mda->crtc[MDA_CRTC_CURSOR_START] == 6 
+            && mda->crtc[MDA_CRTC_CURSOR_END] == 7) /*Fix for Generic Turbo XT BIOS, which sets up cursor registers wrong*/
+        {
+            mda->crtc[MDA_CRTC_CURSOR_START] = 0xb;
+            mda->crtc[MDA_CRTC_CURSOR_END] = 0xc;
+        }
+        mda_recalctimings(mda);
+    }
+    else
+        mda->crtcreg = val & 31;
+
 }
 
 uint8_t
@@ -77,24 +82,26 @@ mda_in(uint16_t addr, void *priv)
 {
     const mda_t *mda = (mda_t *) priv;
 
-    switch (addr) {
-        case 0x3b0:
-        case 0x3b2:
-        case 0x3b4:
-        case 0x3b6:
-            return mda->crtcreg;
-        case 0x3b1:
-        case 0x3b3:
-        case 0x3b5:
-        case 0x3b7:
-            return mda->crtc[mda->crtcreg];
-        case 0x3ba:
-            return mda->stat | 0xF0;
+    switch (addr)
+    {
+        case MDA_REGISTER_CRT_STATUS:
+            return mda->status | 0xF0;
 
         default:
+            if (addr < MDA_REGISTER_START 
+            || addr > MDA_REGISTER_CRT_STATUS)  // Maintain old behaviour for printer registers, just in case
+                return 0xFF;
+
+            // MDA_REGISTER_CRTC_DATA
+            if (addr & 1)
+                return mda->crtc[mda->crtcreg];
+            else 
+                return mda->crtcreg;
+
             break;
     }
-    return 0xff;
+
+    return 0xFF;
 }
 
 void
@@ -118,8 +125,8 @@ mda_recalctimings(mda_t *mda)
     double _dispontime;
     double _dispofftime;
     double disptime;
-    disptime     = mda->crtc[0] + 1;
-    _dispontime  = mda->crtc[1];
+    disptime     = mda->crtc[MDA_CRTC_HTOTAL] + 1;
+    _dispontime  = mda->crtc[MDA_CRTC_HDISP];
     _dispofftime = disptime - _dispontime;
     _dispontime *= MDACONST;
     _dispofftime *= MDACONST;
@@ -131,7 +138,7 @@ void
 mda_poll(void *priv)
 {
     mda_t   *mda = (mda_t *) priv;
-    uint16_t cursoraddr  = (mda->crtc[15] | (mda->crtc[14] << 8)) & 0x3fff;
+    uint16_t cursoraddr  = (mda->crtc[MDA_CRTC_CURSOR_ADDR_LOW] | (mda->crtc[MDA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
     int      drawcursor;
     int      x;
     int      c;
@@ -144,10 +151,10 @@ mda_poll(void *priv)
     VIDEO_MONITOR_PROLOGUE()
     if (!mda->linepos) {
         timer_advance_u64(&mda->timer, mda->dispofftime);
-        mda->stat |= 1;
+        mda->status |= 1;
         mda->linepos = 1;
         scanline_old        = mda->scanline;
-        if ((mda->crtc[8] & 3) == 3)
+        if ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3)
             mda->scanline = (mda->scanline << 1) & 7;
         if (mda->dispon) {
             if (mda->displine < mda->firstline) {
@@ -155,11 +162,11 @@ mda_poll(void *priv)
                 video_wait_for_buffer();
             }
             mda->lastline = mda->displine;
-            for (x = 0; x < mda->crtc[1]; x++) {
+            for (x = 0; x < mda->crtc[MDA_CRTC_HDISP]; x++) {
                 chr        = mda->vram[(mda->memaddr << 1) & 0xfff];
                 attr       = mda->vram[((mda->memaddr << 1) + 1) & 0xfff];
                 drawcursor = ((mda->memaddr == cursoraddr) && mda->cursorvisible && mda->cursoron);
-                blink      = ((mda->blink & 16) && (mda->ctrl & 0x20) && (attr & 0x80) && !drawcursor);
+                blink      = ((mda->blink & 16) && (mda->mode & MDA_MODE_BLINK) && (attr & 0x80) && !drawcursor);
                 if (mda->scanline == 12 && ((attr & 7) == 1)) {
                     for (c = 0; c < 9; c++)
                         buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][1];
@@ -178,11 +185,11 @@ mda_poll(void *priv)
                 }
             }
 
-            video_process_8(mda->crtc[1] * 9, mda->displine);
+            video_process_8(mda->crtc[MDA_CRTC_HDISP] * 9, mda->displine);
         }
         mda->scanline = scanline_old;
-        if (mda->vc == mda->crtc[7] && !mda->scanline) {
-            mda->stat |= 8;
+        if (mda->vc == mda->crtc[MDA_CRTC_VSYNC] && !mda->scanline) {
+            mda->status |= 8;
         }
         mda->displine++;
         if (mda->displine >= 500)
@@ -190,15 +197,17 @@ mda_poll(void *priv)
     } else {
         timer_advance_u64(&mda->timer, mda->dispontime);
         if (mda->dispon)
-            mda->stat &= ~1;
+            mda->status &= ~1;
         mda->linepos = 0;
         if (mda->vsynctime) {
             mda->vsynctime--;
             if (!mda->vsynctime) {
-                mda->stat &= ~8;
+                mda->status &= ~8;
             }
         }
-        if (mda->scanline == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->scanline == ((mda->crtc[11] & 31) >> 1))) {
+        if (mda->scanline == (mda->crtc[MDA_CRTC_CURSOR_END] & 31) 
+        || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3
+        && mda->scanline == ((mda->crtc[MDA_CRTC_CURSOR_END] & 31) >> 1))) {
             mda->cursorvisible  = 0;
         }
         if (mda->vadj) {
@@ -208,35 +217,37 @@ mda_poll(void *priv)
             mda->vadj--;
             if (!mda->vadj) {
                 mda->dispon = 1;
-                mda->memaddr = mda->memaddr_backup = (mda->crtc[13] | (mda->crtc[12] << 8)) & 0x3fff;
+                mda->memaddr = mda->memaddr_backup = (mda->crtc[MDA_CRTC_START_ADDR_LOW] | (mda->crtc[MDA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
                 mda->scanline               = 0;
             }
-        } else if (mda->scanline == mda->crtc[9] || ((mda->crtc[8] & 3) == 3 && mda->scanline == (mda->crtc[9] >> 1))) {
+        } else if (mda->scanline == mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR]
+            || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3 
+            && mda->scanline == (mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR] >> 1))) {
             mda->memaddr_backup = mda->memaddr;
             mda->scanline     = 0;
             oldvc       = mda->vc;
             mda->vc++;
             mda->vc &= 127;
-            if (mda->vc == mda->crtc[6])
+            if (mda->vc == mda->crtc[MDA_CRTC_VDISP])
                 mda->dispon = 0;
-            if (oldvc == mda->crtc[4]) {
+            if (oldvc == mda->crtc[MDA_CRTC_VTOTAL]) {
                 mda->vc   = 0;
-                mda->vadj = mda->crtc[5];
+                mda->vadj = mda->crtc[MDA_CRTC_VTOTAL_ADJUST];
                 if (!mda->vadj)
                     mda->dispon = 1;
                 if (!mda->vadj)
-                    mda->memaddr = mda->memaddr_backup = (mda->crtc[13] | (mda->crtc[12] << 8)) & 0x3fff;
-                if ((mda->crtc[10] & 0x60) == 0x20)
+                    mda->memaddr = mda->memaddr_backup = (mda->crtc[MDA_CRTC_START_ADDR_LOW] | (mda->crtc[MDA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+                if ((mda->crtc[MDA_CRTC_CURSOR_START] & 0x60) == 0x20)
                     mda->cursoron = 0;
                 else
                     mda->cursoron = mda->blink & 16;
             }
-            if (mda->vc == mda->crtc[7]) {
+            if (mda->vc == mda->crtc[MDA_CRTC_VSYNC]) {
                 mda->dispon    = 0;
                 mda->displine  = 0;
                 mda->vsynctime = 16;
-                if (mda->crtc[7]) {
-                    x = mda->crtc[1] * 9;
+                if (mda->crtc[MDA_CRTC_VSYNC]) {
+                    x = mda->crtc[MDA_CRTC_HDISP] * 9;
                     mda->lastline++;
                     if ((x != xsize) || ((mda->lastline - mda->firstline) != ysize) || video_force_resize_get()) {
                         xsize = x;
@@ -252,8 +263,8 @@ mda_poll(void *priv)
                     }
                     video_blit_memtoscreen(0, mda->firstline, xsize, ysize);
                     frames++;
-                    video_res_x = mda->crtc[1];
-                    video_res_y = mda->crtc[6];
+                    video_res_x = mda->crtc[MDA_CRTC_HDISP];
+                    video_res_y = mda->crtc[MDA_CRTC_VDISP];
                     video_bpp   = 0;
                 }
                 mda->firstline = 1000;
@@ -265,7 +276,9 @@ mda_poll(void *priv)
             mda->scanline &= 31;
             mda->memaddr = mda->memaddr_backup;
         }
-        if (mda->scanline == (mda->crtc[10] & 31) || ((mda->crtc[8] & 3) == 3 && mda->scanline == ((mda->crtc[10] & 31) >> 1))) {
+        if (mda->scanline == (mda->crtc[MDA_CRTC_CURSOR_START] & 31) 
+        || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3 
+        && mda->scanline == ((mda->crtc[MDA_CRTC_CURSOR_START] & 31) >> 1))) {
             mda->cursorvisible = 1;
         }
     }

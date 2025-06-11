@@ -505,7 +505,7 @@ ega_in(uint16_t addr, void *priv)
         case 0x3da:
             ega->attrff = 0;
             if (type == EGA_TYPE_COMPAQ) {
-                ret = ega->stat & 0xcf;
+                ret = ega->status & 0xcf;
                 switch ((ega->attrregs[0x12] >> 4) & 0x03) {
                     case 0x00:
                         /* 00 = Pri. Red (5), Pri. Blue (4) */
@@ -526,8 +526,8 @@ ega_in(uint16_t addr, void *priv)
                         break;
                 }
             } else {
-                ega->stat ^= 0x30; /* Fools IBM EGA video BIOS self-test. */
-                ret = ega->stat;
+                ega->status ^= 0x30; /* Fools IBM EGA video BIOS self-test. */
+                ret = ega->status;
             }
             break;
         case 0x7c6:
@@ -837,7 +837,7 @@ ega_poll(void *priv)
 
     if (!ega->linepos) {
         timer_advance_u64(&ega->timer, ega->dispofftime);
-        ega->stat |= 1;
+        ega->status |= 1;
         ega->linepos = 1;
 
         if (ega->dispon) {
@@ -877,8 +877,8 @@ ega_poll(void *priv)
         ega->displine++;
         if (ega->interlace)
             ega->displine++;
-        if ((ega->stat & 8) && ((ega->displine & 15) == (ega->crtc[0x11] & 15)) && ega->vslines)
-            ega->stat &= ~8;
+        if ((ega->status & 8) && ((ega->displine & 15) == (ega->crtc[0x11] & 15)) && ega->vslines)
+            ega->status &= ~8;
         ega->vslines++;
         if (ega->chipset) {
             if (ega->hdisp >= 800) {
@@ -896,7 +896,7 @@ ega_poll(void *priv)
         timer_advance_u64(&ega->timer, ega->dispontime);
 
         if (ega->dispon)
-            ega->stat &= ~1;
+            ega->status &= ~1;
         ega->hdisp_on = 0;
 
         ega->linepos = 0;
@@ -968,7 +968,7 @@ ega_poll(void *priv)
         }
         if (ega->vc == ega->vsyncstart) {
             ega->dispon = 0;
-            ega->stat |= 8;
+            ega->status |= 8;
 #if 0
             picint(1 << 2);
 #endif

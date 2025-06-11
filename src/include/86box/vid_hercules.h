@@ -31,7 +31,7 @@ typedef struct {
 
     uint8_t ctrl;
     uint8_t ctrl2;
-    uint8_t stat;
+    uint8_t status;
 
     uint64_t   dispontime;
     uint64_t   dispofftime;

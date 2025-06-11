@@ -3297,7 +3297,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
 
         case 0x42e8:
         case 0x42e9:
-            mach_log("VBLANK stat=%02x, val=%02x.\n", dev->subsys_stat, val);
+            mach_log("VBLANK status=%02x, val=%02x.\n", dev->subsys_stat, val);
             if (len == 2)
                 dev->subsys_cntl = val;
             else {

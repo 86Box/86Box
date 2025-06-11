@@ -169,8 +169,8 @@ t3100e_out(uint16_t addr, uint8_t val, void *priv)
             t3100e_recalctimings(t3100e);
             return;
 
-        case 0x3D8: /* CGA control register */
-        case 0x3D9: /* CGA colour register */
+        case CGA_REGISTER_MODE_CONTROL: /* CGA control register */
+        case CGA_REGISTER_COLOR_SELECT: /* CGA colour register */
             cga_out(addr, val, &t3100e->cga);
             return;
 

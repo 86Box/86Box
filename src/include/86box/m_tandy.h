@@ -27,7 +27,7 @@ typedef struct t1kvid_t {
     int     memctrl;
     uint8_t mode;
     uint8_t col;
-    uint8_t stat;
+    uint8_t status;
 
     uint8_t *vram;
     uint8_t *b8000;

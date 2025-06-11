@@ -183,8 +183,8 @@ vid_in(uint16_t addr, void *priv)
 
         case 0x3da:
             pcjr->array_ff = 0;
-            pcjr->stat ^= 0x10;
-            ret = pcjr->stat;
+            pcjr->status ^= 0x10;
+            ret = pcjr->status;
             break;
 
         default:
@@ -316,7 +316,7 @@ vid_poll(void *priv)
 
     if (!pcjr->linepos) {
         timer_advance_u64(&pcjr->timer, pcjr->dispofftime);
-        pcjr->stat &= ~1;
+        pcjr->status &= ~1;
         pcjr->linepos = 1;
         scanline_old         = pcjr->scanline;
         if ((pcjr->crtc[8] & 3) == 3)
@@ -557,7 +557,7 @@ vid_poll(void *priv)
         }
         pcjr->scanline = scanline_old;
         if (pcjr->vc == pcjr->crtc[7] && !pcjr->scanline) {
-            pcjr->stat |= 8;
+            pcjr->status |= 8;
         }
         pcjr->displine++;
         if (pcjr->displine >= 360)
@@ -565,12 +565,12 @@ vid_poll(void *priv)
     } else {
         timer_advance_u64(&pcjr->timer, pcjr->dispontime);
         if (pcjr->dispon)
-            pcjr->stat |= 1;
+            pcjr->status |= 1;
         pcjr->linepos = 0;
         if (pcjr->vsynctime) {
             pcjr->vsynctime--;
             if (!pcjr->vsynctime) {
-                pcjr->stat &= ~8;
+                pcjr->status &= ~8;
             }
         }
         if (pcjr->scanline == (pcjr->crtc[11] & 31) || ((pcjr->crtc[8] & 3) == 3 && pcjr->scanline == ((pcjr->crtc[11] & 31) >> 1))) {
