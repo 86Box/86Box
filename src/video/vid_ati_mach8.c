@@ -2461,7 +2461,7 @@ mach_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
@@ -2604,7 +2604,7 @@ ati_render_24bpp(svga_t *svga)
     if ((dev->displine + svga->y_add) < 0)
         return;
 
-    if (dev->changedvram[dev->ma >> 12] || dev->changedvram[(dev->ma >> 12) + 1] || svga->fullchange) {
+    if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
         p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
 
         if (dev->firstline_draw == 2000)
@@ -2613,38 +2613,38 @@ ati_render_24bpp(svga_t *svga)
 
         if (mach->accel.ext_ge_config & 0x400) { /*BGR, Blue-(23:16), Green-(15:8), Red-(7:0)*/
             for (int x = 0; x <= dev->h_disp; x += 4) {
-                dat  = *(uint32_t *) (&dev->vram[dev->ma & dev->vram_mask]);
+                dat  = *(uint32_t *) (&dev->vram[dev->memaddr & dev->vram_mask]);
                 p[x] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
 
-                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 3) & dev->vram_mask]);
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 3) & dev->vram_mask]);
                 p[x + 1] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
 
-                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 6) & dev->vram_mask]);
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 6) & dev->vram_mask]);
                 p[x + 2] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
 
-                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 9) & dev->vram_mask]);
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 9) & dev->vram_mask]);
                 p[x + 3] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
 
-                dev->ma += 12;
+                dev->memaddr += 12;
             }
         } else { /*RGB, Red-(23:16), Green-(15:8), Blue-(7:0)*/
             for (int x = 0; x <= dev->h_disp; x += 4) {
-                dat  = *(uint32_t *) (&dev->vram[dev->ma & dev->vram_mask]);
+                dat  = *(uint32_t *) (&dev->vram[dev->memaddr & dev->vram_mask]);
                 p[x] = dat & 0xffffff;
 
-                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 3) & dev->vram_mask]);
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 3) & dev->vram_mask]);
                 p[x + 1] = dat & 0xffffff;
 
-                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 6) & dev->vram_mask]);
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 6) & dev->vram_mask]);
                 p[x + 2] = dat & 0xffffff;
 
-                dat      = *(uint32_t *) (&dev->vram[(dev->ma + 9) & dev->vram_mask]);
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 9) & dev->vram_mask]);
                 p[x + 3] = dat & 0xffffff;
 
-                dev->ma += 12;
+                dev->memaddr += 12;
             }
         }
-        dev->ma &= dev->vram_mask;
+        dev->memaddr &= dev->vram_mask;
     }
 }
 
@@ -2660,7 +2660,7 @@ ati_render_32bpp(svga_t *svga)
     if ((dev->displine + svga->y_add) < 0)
         return;
 
-    if (dev->changedvram[dev->ma >> 12] || dev->changedvram[(dev->ma >> 12) + 1] || dev->changedvram[(dev->ma >> 12) + 2] || svga->fullchange) {
+    if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || dev->changedvram[(dev->memaddr >> 12) + 2] || svga->fullchange) {
         p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
 
         if (dev->firstline_draw == 2000)
@@ -2669,17 +2669,17 @@ ati_render_32bpp(svga_t *svga)
 
         if (mach->accel.ext_ge_config & 0x400) { /*BGR, Blue-(23:16), Green-(15:8), Red-(7:0)*/
             for (x = 0; x <= dev->h_disp; x++) {
-                dat  = *(uint32_t *) (&dev->vram[(dev->ma + (x << 2)) & dev->vram_mask]);
+                dat  = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 2)) & dev->vram_mask]);
                 *p++ = ((dat & 0x00ff0000) >> 16) | (dat & 0x0000ff00) | ((dat & 0x000000ff) << 16);
             }
         } else { /*RGB, Red-(31:24), Green-(23:16), Blue-(15:8)*/
             for (x = 0; x <= dev->h_disp; x++) {
-                dat  = *(uint32_t *) (&dev->vram[(dev->ma + (x << 2)) & dev->vram_mask]);
+                dat  = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 2)) & dev->vram_mask]);
                 *p++ = ((dat & 0xffffff00) >> 8);
             }
         }
-        dev->ma += (x * 4);
-        dev->ma &= dev->vram_mask;
+        dev->memaddr += (x * 4);
+        dev->memaddr &= dev->vram_mask;
     }
 }
 
@@ -2847,17 +2847,17 @@ mach_recalctimings(svga_t *svga)
 
     if (ATI_MACH32) {
         if (mach->regs[0xad] & 0x04)
-            svga->ma_latch |= 0x40000;
+            svga->memaddr_latch |= 0x40000;
 
         if (mach->regs[0xad] & 0x08)
-            svga->ma_latch |= 0x80000;
+            svga->memaddr_latch |= 0x80000;
     }
 
     if (mach->regs[0xa3] & 0x10)
-        svga->ma_latch |= 0x10000;
+        svga->memaddr_latch |= 0x10000;
 
     if (mach->regs[0xb0] & 0x40)
-        svga->ma_latch |= 0x20000;
+        svga->memaddr_latch |= 0x20000;
 
     if ((mach->regs[0xb6] & 0x18) >= 0x10) {
         svga->hdisp <<= 1;
@@ -2886,7 +2886,7 @@ mach_recalctimings(svga_t *svga)
 
     mach_log("ON=%d, override=%d, gelo=%04x, gehi=%04x, vgahdisp=%d.\n", dev->on, svga->override, mach->accel.ge_offset_lo, mach->accel.ge_offset_hi, svga->hdisp);
     if (dev->on) {
-        dev->ma_latch                   = 0; /*(mach->accel.crt_offset_lo | (mach->accel.crt_offset_hi << 16)) << 2;*/
+        dev->memaddr_latch                   = 0; /*(mach->accel.crt_offset_lo | (mach->accel.crt_offset_hi << 16)) << 2;*/
         dev->interlace                  = !!(dev->disp_cntl & 0x10);
         dev->pitch                      = dev->ext_pitch;
         dev->rowoffset                  = dev->ext_crt_pitch;
@@ -3085,7 +3085,7 @@ mach_recalctimings(svga_t *svga)
                     else {
                         svga->render = svga_render_8bpp_highres;
                         if (!svga->packed_4bpp) {
-                            svga->ma_latch <<= 1;
+                            svga->memaddr_latch <<= 1;
                             svga->rowoffset <<= 1;
                         }
                     }
@@ -3297,7 +3297,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
 
         case 0x42e8:
         case 0x42e9:
-            mach_log("VBLANK stat=%02x, val=%02x.\n", dev->subsys_stat, val);
+            mach_log("VBLANK status=%02x, val=%02x.\n", dev->subsys_stat, val);
             if (len == 2)
                 dev->subsys_cntl = val;
             else {
@@ -3972,7 +3972,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0x92ee:
-            mach_log("Write port 92ee, malatch=%08x.\n", svga->ma_latch);
+            mach_log("Write port 92ee, malatch=%08x.\n", svga->memaddr_latch);
             break;
 
         case 0x96ee:
@@ -4227,7 +4227,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         default:
-            mach_log("Unknown or reserved write to %04x, val=%04x, len=%d, latch=%08x.\n", port, val, len, svga->ma_latch);
+            mach_log("Unknown or reserved write to %04x, val=%04x, len=%d, latch=%08x.\n", port, val, len, svga->memaddr_latch);
             break;
     }
 }

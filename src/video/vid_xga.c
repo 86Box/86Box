@@ -107,7 +107,7 @@ svga_xga_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -290,7 +290,7 @@ xga_recalctimings(svga_t *svga)
             xga->v_blankstart >>= 1;
         }
 
-        xga->ma_latch = xga->disp_start_addr;
+        xga->memaddr_latch = xga->disp_start_addr;
 
 
         xga_log("XGA ClkSel1 = %d, ClkSel2 = %02x, dispcntl2=%02x.\n", (xga->clk_sel_1 >> 2) & 3, xga->clk_sel_2 & 0x80, xga->disp_cntl_2 & 0xc0);
@@ -2626,7 +2626,7 @@ xga_render_4bpp(svga_t *svga)
     if ((xga->displine + svga->y_add) < 0)
         return;
 
-    if (xga->changedvram[xga->ma >> 12] || xga->changedvram[(xga->ma >> 12) + 1] || svga->fullchange) {
+    if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
         p = &buffer32->line[xga->displine + svga->y_add][svga->x_add];
 
         if (xga->firstline_draw == 2000)
@@ -2635,22 +2635,22 @@ xga_render_4bpp(svga_t *svga)
         xga->lastline_draw = xga->displine;
 
         for (int x = 0; x <= xga->h_disp; x += 8) {
-            dat  = *(uint32_t *) (&xga->vram[xga->ma & xga->vram_mask]);
+            dat  = *(uint32_t *) (&xga->vram[xga->memaddr & xga->vram_mask]);
             p[0] = xga->pallook[dat & 0x0f];
             p[1] = xga->pallook[(dat >> 8) & 0x0f];
             p[2] = xga->pallook[(dat >> 16) & 0x0f];
             p[3] = xga->pallook[(dat >> 24) & 0x0f];
 
-            dat  = *(uint32_t *) (&xga->vram[(xga->ma + 2) & xga->vram_mask]);
+            dat  = *(uint32_t *) (&xga->vram[(xga->memaddr + 2) & xga->vram_mask]);
             p[4] = xga->pallook[dat & 0x0f];
             p[5] = xga->pallook[(dat >> 8) & 0x0f];
             p[6] = xga->pallook[(dat >> 16) & 0x0f];
             p[7] = xga->pallook[(dat >> 24) & 0x0f];
 
-            xga->ma += 8;
+            xga->memaddr += 8;
             p += 8;
         }
-        xga->ma &= xga->vram_mask;
+        xga->memaddr &= xga->vram_mask;
     }
 }
 
@@ -2664,7 +2664,7 @@ xga_render_8bpp(svga_t *svga)
     if ((xga->displine + svga->y_add) < 0)
         return;
 
-    if (xga->changedvram[xga->ma >> 12] || xga->changedvram[(xga->ma >> 12) + 1] || svga->fullchange) {
+    if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
         p = &buffer32->line[xga->displine + svga->y_add][svga->x_add];
 
         if (xga->firstline_draw == 2000)
@@ -2672,22 +2672,22 @@ xga_render_8bpp(svga_t *svga)
         xga->lastline_draw = xga->displine;
 
         for (int x = 0; x <= xga->h_disp; x += 8) {
-            dat  = *(uint32_t *) (&xga->vram[xga->ma & xga->vram_mask]);
+            dat  = *(uint32_t *) (&xga->vram[xga->memaddr & xga->vram_mask]);
             p[0] = xga->pallook[dat & 0xff];
             p[1] = xga->pallook[(dat >> 8) & 0xff];
             p[2] = xga->pallook[(dat >> 16) & 0xff];
             p[3] = xga->pallook[(dat >> 24) & 0xff];
 
-            dat  = *(uint32_t *) (&xga->vram[(xga->ma + 4) & xga->vram_mask]);
+            dat  = *(uint32_t *) (&xga->vram[(xga->memaddr + 4) & xga->vram_mask]);
             p[4] = xga->pallook[dat & 0xff];
             p[5] = xga->pallook[(dat >> 8) & 0xff];
             p[6] = xga->pallook[(dat >> 16) & 0xff];
             p[7] = xga->pallook[(dat >> 24) & 0xff];
 
-            xga->ma += 8;
+            xga->memaddr += 8;
             p += 8;
         }
-        xga->ma &= xga->vram_mask;
+        xga->memaddr &= xga->vram_mask;
     }
 }
 
@@ -2702,7 +2702,7 @@ xga_render_16bpp(svga_t *svga)
     if ((xga->displine + svga->y_add) < 0)
         return;
 
-    if (xga->changedvram[xga->ma >> 12] || xga->changedvram[(xga->ma >> 12) + 1] || svga->fullchange) {
+    if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
         p = &buffer32->line[xga->displine + svga->y_add][svga->x_add];
 
         if (xga->firstline_draw == 2000)
@@ -2710,24 +2710,24 @@ xga_render_16bpp(svga_t *svga)
         xga->lastline_draw = xga->displine;
 
         for (x = 0; x <= xga->h_disp; x += 8) {
-            dat      = *(uint32_t *) (&xga->vram[(xga->ma + (x << 1)) & xga->vram_mask]);
+            dat      = *(uint32_t *) (&xga->vram[(xga->memaddr + (x << 1)) & xga->vram_mask]);
             p[x]     = video_16to32[dat & 0xffff];
             p[x + 1] = video_16to32[dat >> 16];
 
-            dat      = *(uint32_t *) (&xga->vram[(xga->ma + (x << 1) + 4) & xga->vram_mask]);
+            dat      = *(uint32_t *) (&xga->vram[(xga->memaddr + (x << 1) + 4) & xga->vram_mask]);
             p[x + 2] = video_16to32[dat & 0xffff];
             p[x + 3] = video_16to32[dat >> 16];
 
-            dat      = *(uint32_t *) (&xga->vram[(xga->ma + (x << 1) + 8) & xga->vram_mask]);
+            dat      = *(uint32_t *) (&xga->vram[(xga->memaddr + (x << 1) + 8) & xga->vram_mask]);
             p[x + 4] = video_16to32[dat & 0xffff];
             p[x + 5] = video_16to32[dat >> 16];
 
-            dat      = *(uint32_t *) (&xga->vram[(xga->ma + (x << 1) + 12) & xga->vram_mask]);
+            dat      = *(uint32_t *) (&xga->vram[(xga->memaddr + (x << 1) + 12) & xga->vram_mask]);
             p[x + 6] = video_16to32[dat & 0xffff];
             p[x + 7] = video_16to32[dat >> 16];
         }
-        xga->ma += x << 1;
-        xga->ma &= xga->vram_mask;
+        xga->memaddr += x << 1;
+        xga->memaddr &= xga->vram_mask;
     }
 }
 
@@ -3109,7 +3109,7 @@ xga_poll(void *priv)
             if (xga->dispon) {
                 xga->h_disp_on = 1;
 
-                xga->ma &= xga->vram_mask;
+                xga->memaddr &= xga->vram_mask;
 
                 if (xga->firstline == 2000) {
                     xga->firstline = xga->displine;
@@ -3117,7 +3117,7 @@ xga_poll(void *priv)
                 }
 
                 if (xga->hwcursor_on)
-                    xga->changedvram[xga->ma >> 12] = xga->changedvram[(xga->ma >> 12) + 1] = xga->interlace ? 3 : 2;
+                    xga->changedvram[xga->memaddr >> 12] = xga->changedvram[(xga->memaddr >> 12) + 1] = xga->interlace ? 3 : 2;
 
                 svga->render_xga(svga);
 
@@ -3153,20 +3153,20 @@ xga_poll(void *priv)
 
             xga->linepos = 0;
             if (xga->dispon) {
-                if (xga->sc == xga->rowcount) {
-                    xga->sc = 0;
+                if (xga->scanline == xga->rowcount) {
+                    xga->scanline = 0;
 
-                    xga_log("MA=%08x, MALATCH=%x.\n", xga->ma, xga->ma_latch);
-                    xga->maback += (xga->rowoffset << 3);
+                    xga_log("MA=%08x, MALATCH=%x.\n", xga->memaddr, xga->memaddr_latch);
+                    xga->memaddr_backup += (xga->rowoffset << 3);
                     if (xga->interlace)
-                        xga->maback += (xga->rowoffset << 3);
+                        xga->memaddr_backup += (xga->rowoffset << 3);
 
-                    xga->maback &= xga->vram_mask;
-                    xga->ma = xga->maback;
+                    xga->memaddr_backup &= xga->vram_mask;
+                    xga->memaddr = xga->memaddr_backup;
                 } else {
-                    xga->sc++;
-                    xga->sc &= 0x1f;
-                    xga->ma = xga->maback;
+                    xga->scanline++;
+                    xga->scanline &= 0x1f;
+                    xga->memaddr = xga->memaddr_backup;
                 }
             }
 
@@ -3175,14 +3175,14 @@ xga_poll(void *priv)
 
             if (xga->vc == xga->split) {
                 if (xga->interlace && xga->oddeven)
-                    xga->ma = xga->maback = (xga->rowoffset << 1);
+                    xga->memaddr = xga->memaddr_backup = (xga->rowoffset << 1);
                 else
-                    xga->ma = xga->maback = 0;
+                    xga->memaddr = xga->memaddr_backup = 0;
 
-                xga->ma     = (xga->ma << 2);
-                xga->maback = (xga->maback << 2);
+                xga->memaddr     = (xga->memaddr << 2);
+                xga->memaddr_backup = (xga->memaddr_backup << 2);
 
-                xga->sc = 0;
+                xga->scanline = 0;
             }
             if (xga->vc == xga->dispend) {
                 xga->dispon = 0;
@@ -3220,16 +3220,16 @@ xga_poll(void *priv)
                 svga->monitor->mon_changeframecount = xga->interlace ? 3 : 2;
 
                 if (xga->interlace && xga->oddeven)
-                    xga->ma = xga->maback = xga->ma_latch + (xga->rowoffset << 1);
+                    xga->memaddr = xga->memaddr_backup = xga->memaddr_latch + (xga->rowoffset << 1);
                 else
-                    xga->ma = xga->maback = xga->ma_latch;
+                    xga->memaddr = xga->memaddr_backup = xga->memaddr_latch;
 
-                xga->ma     = (xga->ma << 2);
-                xga->maback = (xga->maback << 2);
+                xga->memaddr     = (xga->memaddr << 2);
+                xga->memaddr_backup = (xga->memaddr_backup << 2);
             }
             if (xga->vc == xga->v_total) {
                 xga->vc       = 0;
-                xga->sc       = 0;
+                xga->scanline       = 0;
                 xga->dispon   = 1;
                 xga->displine = (xga->interlace && xga->oddeven) ? 1 : 0;
 

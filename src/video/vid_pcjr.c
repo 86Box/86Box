@@ -183,8 +183,8 @@ vid_in(uint16_t addr, void *priv)
 
         case 0x3da:
             pcjr->array_ff = 0;
-            pcjr->stat ^= 0x10;
-            ret = pcjr->stat;
+            pcjr->status ^= 0x10;
+            ret = pcjr->status;
             break;
 
         default:
@@ -299,7 +299,7 @@ static void
 vid_poll(void *priv)
 {
     pcjr_t  *pcjr = (pcjr_t *) priv;
-    uint16_t ca   = (pcjr->crtc[15] | (pcjr->crtc[14] << 8)) & 0x3fff;
+    uint16_t cursoraddr   = (pcjr->crtc[15] | (pcjr->crtc[14] << 8)) & 0x3fff;
     int      drawcursor;
     int      x;
     int      xs_temp;
@@ -309,18 +309,18 @@ vid_poll(void *priv)
     uint8_t  attr;
     uint16_t dat;
     int      cols[4];
-    int      oldsc;
+    int      scanline_old;
     int      l = (pcjr->displine << 1) + 16;
     int      ho_s = vid_get_h_overscan_size(pcjr);
     int      ho_d = vid_get_h_overscan_delta(pcjr) + (ho_s / 2);
 
     if (!pcjr->linepos) {
         timer_advance_u64(&pcjr->timer, pcjr->dispofftime);
-        pcjr->stat &= ~1;
+        pcjr->status &= ~1;
         pcjr->linepos = 1;
-        oldsc         = pcjr->sc;
+        scanline_old         = pcjr->scanline;
         if ((pcjr->crtc[8] & 3) == 3)
-            pcjr->sc = (pcjr->sc << 1) & 7;
+            pcjr->scanline = (pcjr->scanline << 1) & 7;
         if (pcjr->dispon) {
             uint16_t offset = 0;
             uint16_t mask   = 0x1fff;
@@ -346,10 +346,10 @@ vid_poll(void *priv)
                     mask   = 0x3fff;
                     break;
                 case 1: /*Low resolution graphics*/
-                    offset = (pcjr->sc & 1) * 0x2000;
+                    offset = (pcjr->scanline & 1) * 0x2000;
                     break;
                 case 3: /*High resolution graphics*/
-                    offset = (pcjr->sc & 3) * 0x2000;
+                    offset = (pcjr->scanline & 3) * 0x2000;
                     break;
                 default:
                     break;
@@ -358,9 +358,9 @@ vid_poll(void *priv)
                 case 0x13: /*320x200x16*/
                     for (x = 0; x < pcjr->crtc[1]; x++) {
                         int ef_x = (x << 3) + ho_d;
-                        dat = (pcjr->vram[((pcjr->ma << 1) & mask) + offset] << 8) |
-                              pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1];
-                        pcjr->ma++;
+                        dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
+                              pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                        pcjr->memaddr++;
                         buffer32->line[l][ef_x] = buffer32->line[l][ef_x + 1] =
                         buffer32->line[l + 1][ef_x] = buffer32->line[l + 1][ef_x + 1] =
                             pcjr->array[((dat >> 12) & pcjr->array[1] & 0x0f) + 16] + 16;
@@ -378,9 +378,9 @@ vid_poll(void *priv)
                 case 0x12: /*160x200x16*/
                     for (x = 0; x < pcjr->crtc[1]; x++) {
                         int ef_x = (x << 4) + ho_d;
-                        dat = (pcjr->vram[((pcjr->ma << 1) & mask) + offset] << 8) |
-                              pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1];
-                        pcjr->ma++;
+                        dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
+                              pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                        pcjr->memaddr++;
                         buffer32->line[l][ef_x] = buffer32->line[l][ef_x + 1] =
                         buffer32->line[l][ef_x + 2] = buffer32->line[l][ef_x + 3] =
                         buffer32->line[l + 1][ef_x] = buffer32->line[l + 1][ef_x + 1] =
@@ -406,9 +406,9 @@ vid_poll(void *priv)
                 case 0x03: /*640x200x4*/
                     for (x = 0; x < pcjr->crtc[1]; x++) {
                         int ef_x = (x << 3) + ho_d;
-                        dat = (pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1] << 8) |
-                              pcjr->vram[((pcjr->ma << 1) & mask) + offset];
-                        pcjr->ma++;
+                        dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1] << 8) |
+                              pcjr->vram[((pcjr->memaddr << 1) & mask) + offset];
+                        pcjr->memaddr++;
                         for (uint8_t c = 0; c < 8; c++) {
                             chr = (dat >> 7) & 1;
                             chr |= ((dat >> 14) & 2);
@@ -421,9 +421,9 @@ vid_poll(void *priv)
                 case 0x01: /*80 column text*/
                     for (x = 0; x < pcjr->crtc[1]; x++) {
                         int ef_x = (x << 3) + ho_d;
-                        chr        = pcjr->vram[((pcjr->ma << 1) & mask) + offset];
-                        attr       = pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1];
-                        drawcursor = ((pcjr->ma == ca) && pcjr->cursorvisible && pcjr->cursoron);
+                        chr        = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset];
+                        attr       = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                        drawcursor = ((pcjr->memaddr == cursoraddr) && pcjr->cursorvisible && pcjr->cursoron);
                         if (pcjr->array[3] & 4) {
                             cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
                             cols[0] = pcjr->array[(((attr >> 4) & 7) & pcjr->array[1] & 0x0f) + 16] + 16;
@@ -433,7 +433,7 @@ vid_poll(void *priv)
                             cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
                             cols[0] = pcjr->array[((attr >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
                         }
-                        if (pcjr->sc & 8)
+                        if (pcjr->scanline & 8)
                             for (uint8_t c = 0; c < 8; c++)
                                 buffer32->line[l][ef_x + c] =
                                 buffer32->line[l + 1][ef_x + c] = cols[0];
@@ -441,21 +441,21 @@ vid_poll(void *priv)
                             for (uint8_t c = 0; c < 8; c++)
                                 buffer32->line[l][ef_x + c] =
                                 buffer32->line[l + 1][ef_x + c] =
-                                    cols[(fontdat[chr][pcjr->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+                                    cols[(fontdat[chr][pcjr->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
                         if (drawcursor)
                             for (uint8_t c = 0; c < 8; c++) {
                                 buffer32->line[l][ef_x + c] ^= 15;
                                 buffer32->line[l + 1][ef_x + c] ^= 15;
                             }
-                        pcjr->ma++;
+                        pcjr->memaddr++;
                     }
                     break;
                 case 0x00: /*40 column text*/
                     for (x = 0; x < pcjr->crtc[1]; x++) {
                         int ef_x = (x << 4) + ho_d;
-                        chr        = pcjr->vram[((pcjr->ma << 1) & mask) + offset];
-                        attr       = pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1];
-                        drawcursor = ((pcjr->ma == ca) && pcjr->cursorvisible && pcjr->cursoron);
+                        chr        = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset];
+                        attr       = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                        drawcursor = ((pcjr->memaddr == cursoraddr) && pcjr->cursorvisible && pcjr->cursoron);
                         if (pcjr->array[3] & 4) {
                             cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
                             cols[0] = pcjr->array[(((attr >> 4) & 7) & pcjr->array[1] & 0x0f) + 16] + 16;
@@ -465,8 +465,8 @@ vid_poll(void *priv)
                             cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
                             cols[0] = pcjr->array[((attr >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
                         }
-                        pcjr->ma++;
-                        if (pcjr->sc & 8)
+                        pcjr->memaddr++;
+                        if (pcjr->scanline & 8)
                             for (uint8_t c = 0; c < 8; c++)
                                 buffer32->line[l][ef_x + (c << 1)] =
                                 buffer32->line[l][ef_x + (c << 1) + 1] =
@@ -478,7 +478,7 @@ vid_poll(void *priv)
                                 buffer32->line[l][ef_x + (c << 1) + 1] =
                                 buffer32->line[l + 1][ef_x + (c << 1)] =
                                 buffer32->line[l + 1][ef_x + (c << 1) + 1] =
-                                    cols[(fontdat[chr][pcjr->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+                                    cols[(fontdat[chr][pcjr->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
                         if (drawcursor)
                             for (uint8_t c = 0; c < 16; c++) {
                                 buffer32->line[l][ef_x + c] ^= 15;
@@ -493,9 +493,9 @@ vid_poll(void *priv)
                     cols[3] = pcjr->array[3 + 16] + 16;
                     for (x = 0; x < pcjr->crtc[1]; x++) {
                         int ef_x = (x << 4) + ho_d;
-                        dat = (pcjr->vram[((pcjr->ma << 1) & mask) + offset] << 8) |
-                              pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1];
-                        pcjr->ma++;
+                        dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
+                              pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                        pcjr->memaddr++;
                         for (uint8_t c = 0; c < 8; c++) {
                             buffer32->line[l][ef_x + (c << 1)] =
                             buffer32->line[l][ef_x + (c << 1) + 1] =
@@ -510,9 +510,9 @@ vid_poll(void *priv)
                     cols[1] = pcjr->array[1 + 16] + 16;
                     for (x = 0; x < pcjr->crtc[1]; x++) {
                         int ef_x = (x << 4) + ho_d;
-                        dat = (pcjr->vram[((pcjr->ma << 1) & mask) + offset] << 8) |
-                              pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1];
-                        pcjr->ma++;
+                        dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
+                              pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                        pcjr->memaddr++;
                         for (uint8_t c = 0; c < 16; c++) {
                             buffer32->line[l][ef_x + c] = buffer32->line[l + 1][ef_x + c] =
                                 cols[dat >> 15];
@@ -555,9 +555,9 @@ vid_poll(void *priv)
             video_process_8(x, l);
             video_process_8(x, l + 1);
         }
-        pcjr->sc = oldsc;
-        if (pcjr->vc == pcjr->crtc[7] && !pcjr->sc) {
-            pcjr->stat |= 8;
+        pcjr->scanline = scanline_old;
+        if (pcjr->vc == pcjr->crtc[7] && !pcjr->scanline) {
+            pcjr->status |= 8;
         }
         pcjr->displine++;
         if (pcjr->displine >= 360)
@@ -565,30 +565,30 @@ vid_poll(void *priv)
     } else {
         timer_advance_u64(&pcjr->timer, pcjr->dispontime);
         if (pcjr->dispon)
-            pcjr->stat |= 1;
+            pcjr->status |= 1;
         pcjr->linepos = 0;
         if (pcjr->vsynctime) {
             pcjr->vsynctime--;
             if (!pcjr->vsynctime) {
-                pcjr->stat &= ~8;
+                pcjr->status &= ~8;
             }
         }
-        if (pcjr->sc == (pcjr->crtc[11] & 31) || ((pcjr->crtc[8] & 3) == 3 && pcjr->sc == ((pcjr->crtc[11] & 31) >> 1))) {
+        if (pcjr->scanline == (pcjr->crtc[11] & 31) || ((pcjr->crtc[8] & 3) == 3 && pcjr->scanline == ((pcjr->crtc[11] & 31) >> 1))) {
             pcjr->cursorvisible  = 0;
         }
         if (pcjr->vadj) {
-            pcjr->sc++;
-            pcjr->sc &= 31;
-            pcjr->ma = pcjr->maback;
+            pcjr->scanline++;
+            pcjr->scanline &= 31;
+            pcjr->memaddr = pcjr->memaddr_backup;
             pcjr->vadj--;
             if (!pcjr->vadj) {
                 pcjr->dispon = 1;
-                pcjr->ma = pcjr->maback = (pcjr->crtc[13] | (pcjr->crtc[12] << 8)) & 0x3fff;
-                pcjr->sc                = 0;
+                pcjr->memaddr = pcjr->memaddr_backup = (pcjr->crtc[13] | (pcjr->crtc[12] << 8)) & 0x3fff;
+                pcjr->scanline                = 0;
             }
-        } else if (pcjr->sc == pcjr->crtc[9] || ((pcjr->crtc[8] & 3) == 3 && pcjr->sc == (pcjr->crtc[9] >> 1))) {
-            pcjr->maback = pcjr->ma;
-            pcjr->sc     = 0;
+        } else if (pcjr->scanline == pcjr->crtc[9] || ((pcjr->crtc[8] & 3) == 3 && pcjr->scanline == (pcjr->crtc[9] >> 1))) {
+            pcjr->memaddr_backup = pcjr->memaddr;
+            pcjr->scanline     = 0;
             oldvc        = pcjr->vc;
             pcjr->vc++;
             pcjr->vc &= 127;
@@ -600,7 +600,7 @@ vid_poll(void *priv)
                 if (!pcjr->vadj)
                     pcjr->dispon = 1;
                 if (!pcjr->vadj)
-                    pcjr->ma = pcjr->maback = (pcjr->crtc[13] | (pcjr->crtc[12] << 8)) & 0x3fff;
+                    pcjr->memaddr = pcjr->memaddr_backup = (pcjr->crtc[13] | (pcjr->crtc[12] << 8)) & 0x3fff;
                 if ((pcjr->crtc[10] & 0x60) == 0x20)
                     pcjr->cursoron = 0;
                 else
@@ -664,11 +664,11 @@ vid_poll(void *priv)
                 pcjr->blink++;
             }
         } else {
-            pcjr->sc++;
-            pcjr->sc &= 31;
-            pcjr->ma = pcjr->maback;
+            pcjr->scanline++;
+            pcjr->scanline &= 31;
+            pcjr->memaddr = pcjr->memaddr_backup;
         }
-        if (pcjr->sc == (pcjr->crtc[10] & 31) || ((pcjr->crtc[8] & 3) == 3 && pcjr->sc == ((pcjr->crtc[10] & 31) >> 1)))
+        if (pcjr->scanline == (pcjr->crtc[10] & 31) || ((pcjr->crtc[8] & 3) == 3 && pcjr->scanline == ((pcjr->crtc[10] & 31) >> 1)))
             pcjr->cursorvisible = 1;
     }
 }

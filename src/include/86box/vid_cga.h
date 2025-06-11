@@ -87,7 +87,7 @@ typedef struct cga_t {
     int      fontbase;
     int      linepos;
     int      displine;
-    int      sc;
+    int      scanline;
     int      vc;
     int      cgadispon;
     int      cursorvisible;             // Determines if the cursor is visible FOR THE CURRENT SCANLINE.
@@ -95,8 +95,8 @@ typedef struct cga_t {
     int      cgablink;
     int      vsynctime;
     int      vadj;
-    uint16_t ma;
-    uint16_t maback;
+    uint16_t memaddr;
+    uint16_t memaddr_backup;
     int      oddeven;
 
     uint64_t   dispontime;

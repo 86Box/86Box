@@ -212,9 +212,9 @@ typedef struct wy700_t {
 } wy700_t;
 
 /* Mapping of attributes to colours, in CGA emulation... */
-static int cgacols[256][2][2];
+static int cga_attr_to_color_table[256][2][2];
 /* ... and MDA emulation. */
-static int mdacols[256][2][2];
+static int mda_attr_to_color_table[256][2][2];
 
 void    wy700_recalctimings(wy700_t *wy700);
 void    wy700_write(uint32_t addr, uint8_t val, void *priv);
@@ -535,9 +535,9 @@ wy700_textline(wy700_t *wy700)
     int            cursorline;
     int            mda = 0;
     uint16_t       addr;
-    uint8_t        sc;
-    uint16_t       ma = (wy700->cga_crtc[13] | (wy700->cga_crtc[12] << 8)) & 0x3fff;
-    uint16_t       ca = (wy700->cga_crtc[15] | (wy700->cga_crtc[14] << 8)) & 0x3fff;
+    uint8_t        scanline;
+    uint16_t       memaddr = (wy700->cga_crtc[13] | (wy700->cga_crtc[12] << 8)) & 0x3fff;
+    uint16_t       cursoraddr = (wy700->cga_crtc[15] | (wy700->cga_crtc[14] << 8)) & 0x3fff;
 
     /* The fake CRTC character height register selects whether MDA or CGA
      * attributes are used */
@@ -548,41 +548,41 @@ wy700_textline(wy700_t *wy700)
     if (wy700->font) {
         fontbase += 256 * 32;
     }
-    addr = ((ma & ~1) + (wy700->displine >> 5) * w) * 2;
-    sc   = (wy700->displine >> 1) & 15;
+    addr = ((memaddr & ~1) + (wy700->displine >> 5) * w) * 2;
+    scanline   = (wy700->displine >> 1) & 15;
 
-    ma += ((wy700->displine >> 5) * w);
+    memaddr += ((wy700->displine >> 5) * w);
 
     if ((wy700->real_crtc[10] & 0x60) == 0x20) {
         cursorline = 0;
     } else {
-        cursorline = ((wy700->real_crtc[10] & 0x1F) <= sc) && ((wy700->real_crtc[11] & 0x1F) >= sc);
+        cursorline = ((wy700->real_crtc[10] & 0x1F) <= scanline) && ((wy700->real_crtc[11] & 0x1F) >= scanline);
     }
 
     for (int x = 0; x < w; x++) {
         chr        = wy700->vram[(addr + 2 * x) & 0x3FFF];
         attr       = wy700->vram[(addr + 2 * x + 1) & 0x3FFF];
-        drawcursor = ((ma == ca) && cursorline && wy700->enabled && (wy700->cga_ctrl & 8) && (wy700->blink & 16));
+        drawcursor = ((memaddr == cursoraddr) && cursorline && wy700->enabled && (wy700->cga_ctrl & 8) && (wy700->blink & 16));
         blink      = ((wy700->blink & 16) && (wy700->cga_ctrl & 0x20) && (attr & 0x80) && !drawcursor);
 
         if (wy700->cga_ctrl & 0x20)
             attr &= 0x7F;
         /* MDA underline */
-        if (sc == 14 && mda && ((attr & 7) == 1)) {
+        if (scanline == 14 && mda && ((attr & 7) == 1)) {
             for (c = 0; c < cw; c++)
-                buffer32->line[wy700->displine][(x * cw) + c] = mdacols[attr][blink][1];
+                buffer32->line[wy700->displine][(x * cw) + c] = mda_attr_to_color_table[attr][blink][1];
         } else /* Draw 16 pixels of character */
         {
-            bitmap[0] = fontbase[chr * 32 + 2 * sc];
-            bitmap[1] = fontbase[chr * 32 + 2 * sc + 1];
+            bitmap[0] = fontbase[chr * 32 + 2 * scanline];
+            bitmap[1] = fontbase[chr * 32 + 2 * scanline + 1];
             for (c = 0; c < 16; c++) {
                 int col;
                 if (c < 8)
-                    col = (mda ? mdacols : cgacols)[attr][blink][(bitmap[0] & (1 << (c ^ 7))) ? 1 : 0];
+                    col = (mda ? mda_attr_to_color_table : cga_attr_to_color_table)[attr][blink][(bitmap[0] & (1 << (c ^ 7))) ? 1 : 0];
                 else
-                    col = (mda ? mdacols : cgacols)[attr][blink][(bitmap[1] & (1 << ((c & 7) ^ 7))) ? 1 : 0];
+                    col = (mda ? mda_attr_to_color_table : cga_attr_to_color_table)[attr][blink][(bitmap[1] & (1 << ((c & 7) ^ 7))) ? 1 : 0];
                 if (!(wy700->enabled) || !(wy700->cga_ctrl & 8))
-                    col = mdacols[0][0][0];
+                    col = mda_attr_to_color_table[0][0][0];
                 if (w == 40) {
                     buffer32->line[wy700->displine][(x * cw) + 2 * c]     = col;
                     buffer32->line[wy700->displine][(x * cw) + 2 * c + 1] = col;
@@ -592,9 +592,9 @@ wy700_textline(wy700_t *wy700)
 
             if (drawcursor) {
                 for (c = 0; c < cw; c++)
-                    buffer32->line[wy700->displine][(x * cw) + c] ^= (mda ? mdacols : cgacols)[attr][0][1];
+                    buffer32->line[wy700->displine][(x * cw) + c] ^= (mda ? mda_attr_to_color_table : cga_attr_to_color_table)[attr][0][1];
             }
-            ++ma;
+            ++memaddr;
         }
     }
 }
@@ -608,8 +608,8 @@ wy700_cgaline(wy700_t *wy700)
     uint8_t  ink = 0;
     uint16_t addr;
 
-    uint16_t ma = (wy700->cga_crtc[13] | (wy700->cga_crtc[12] << 8)) & 0x3fff;
-    addr        = ((wy700->displine >> 2) & 1) * 0x2000 + (wy700->displine >> 3) * 80 + ((ma & ~1) << 1);
+    uint16_t memaddr = (wy700->cga_crtc[13] | (wy700->cga_crtc[12] << 8)) & 0x3fff;
+    addr        = ((wy700->displine >> 2) & 1) * 0x2000 + (wy700->displine >> 3) * 80 + ((memaddr & ~1) << 1);
 
     /* The fixed mode setting here programs the real CRTC with a screen
      * width to 20, so draw in 20 fixed chunks of 4 bytes each */
@@ -902,74 +902,74 @@ wy700_init(UNUSED(const device_t *info))
     /* Set up the emulated attributes.
      * CGA is done in four groups: 00-0F, 10-7F, 80-8F, 90-FF */
     for (c = 0; c < 0x10; c++) {
-        cgacols[c][0][0] = cgacols[c][1][0] = cgacols[c][1][1] = 16;
+        cga_attr_to_color_table[c][0][0] = cga_attr_to_color_table[c][1][0] = cga_attr_to_color_table[c][1][1] = 16;
         if (c & 8)
-            cgacols[c][0][1] = 15 + 16;
+            cga_attr_to_color_table[c][0][1] = 15 + 16;
         else
-            cgacols[c][0][1] = 7 + 16;
+            cga_attr_to_color_table[c][0][1] = 7 + 16;
     }
     for (c = 0x10; c < 0x80; c++) {
-        cgacols[c][0][0] = cgacols[c][1][0] = cgacols[c][1][1] = 16 + 7;
+        cga_attr_to_color_table[c][0][0] = cga_attr_to_color_table[c][1][0] = cga_attr_to_color_table[c][1][1] = 16 + 7;
         if (c & 8)
-            cgacols[c][0][1] = 15 + 16;
+            cga_attr_to_color_table[c][0][1] = 15 + 16;
         else
-            cgacols[c][0][1] = 0 + 16;
+            cga_attr_to_color_table[c][0][1] = 0 + 16;
 
         if ((c & 0x0F) == 8)
-            cgacols[c][0][1] = 8 + 16;
+            cga_attr_to_color_table[c][0][1] = 8 + 16;
     }
     /* With special cases for 00, 11, 22, ... 77 */
-    cgacols[0x00][0][1] = cgacols[0x00][1][1] = 16;
+    cga_attr_to_color_table[0x00][0][1] = cga_attr_to_color_table[0x00][1][1] = 16;
     for (c = 0x11; c <= 0x77; c += 0x11) {
-        cgacols[c][0][1] = cgacols[c][1][1] = 16 + 7;
+        cga_attr_to_color_table[c][0][1] = cga_attr_to_color_table[c][1][1] = 16 + 7;
     }
     for (c = 0x80; c < 0x90; c++) {
-        cgacols[c][0][0] = 16 + 8;
+        cga_attr_to_color_table[c][0][0] = 16 + 8;
         if (c & 8)
-            cgacols[c][0][1] = 15 + 16;
+            cga_attr_to_color_table[c][0][1] = 15 + 16;
         else
-            cgacols[c][0][1] = 7 + 16;
-        cgacols[c][1][0] = cgacols[c][1][1] = cgacols[c - 0x80][0][0];
+            cga_attr_to_color_table[c][0][1] = 7 + 16;
+        cga_attr_to_color_table[c][1][0] = cga_attr_to_color_table[c][1][1] = cga_attr_to_color_table[c - 0x80][0][0];
     }
     for (c = 0x90; c < 0x100; c++) {
-        cgacols[c][0][0] = 16 + 15;
+        cga_attr_to_color_table[c][0][0] = 16 + 15;
         if (c & 8)
-            cgacols[c][0][1] = 8 + 16;
+            cga_attr_to_color_table[c][0][1] = 8 + 16;
         else
-            cgacols[c][0][1] = 7 + 16;
+            cga_attr_to_color_table[c][0][1] = 7 + 16;
         if ((c & 0x0F) == 0)
-            cgacols[c][0][1] = 16;
-        cgacols[c][1][0] = cgacols[c][1][1] = cgacols[c - 0x80][0][0];
+            cga_attr_to_color_table[c][0][1] = 16;
+        cga_attr_to_color_table[c][1][0] = cga_attr_to_color_table[c][1][1] = cga_attr_to_color_table[c - 0x80][0][0];
     }
     /* Also special cases for 99, AA, ..., FF */
     for (c = 0x99; c <= 0xFF; c += 0x11) {
-        cgacols[c][0][1] = 16 + 15;
+        cga_attr_to_color_table[c][0][1] = 16 + 15;
     }
     /* Special cases for 08, 80 and 88 */
-    cgacols[0x08][0][1] = 16 + 8;
-    cgacols[0x80][0][1] = 16;
-    cgacols[0x88][0][1] = 16 + 8;
+    cga_attr_to_color_table[0x08][0][1] = 16 + 8;
+    cga_attr_to_color_table[0x80][0][1] = 16;
+    cga_attr_to_color_table[0x88][0][1] = 16 + 8;
 
     /* MDA attributes */
     for (c = 0; c < 256; c++) {
-        mdacols[c][0][0] = mdacols[c][1][0] = mdacols[c][1][1] = 16;
+        mda_attr_to_color_table[c][0][0] = mda_attr_to_color_table[c][1][0] = mda_attr_to_color_table[c][1][1] = 16;
         if (c & 8)
-            mdacols[c][0][1] = 15 + 16;
+            mda_attr_to_color_table[c][0][1] = 15 + 16;
         else
-            mdacols[c][0][1] = 7 + 16;
+            mda_attr_to_color_table[c][0][1] = 7 + 16;
     }
-    mdacols[0x70][0][1] = 16;
-    mdacols[0x70][0][0] = mdacols[0x70][1][0] = mdacols[0x70][1][1] = 16 + 15;
-    mdacols[0xF0][0][1]                                             = 16;
-    mdacols[0xF0][0][0] = mdacols[0xF0][1][0] = mdacols[0xF0][1][1] = 16 + 15;
-    mdacols[0x78][0][1]                                             = 16 + 7;
-    mdacols[0x78][0][0] = mdacols[0x78][1][0] = mdacols[0x78][1][1] = 16 + 15;
-    mdacols[0xF8][0][1]                                             = 16 + 7;
-    mdacols[0xF8][0][0] = mdacols[0xF8][1][0] = mdacols[0xF8][1][1] = 16 + 15;
-    mdacols[0x00][0][1] = mdacols[0x00][1][1] = 16;
-    mdacols[0x08][0][1] = mdacols[0x08][1][1] = 16;
-    mdacols[0x80][0][1] = mdacols[0x80][1][1] = 16;
-    mdacols[0x88][0][1] = mdacols[0x88][1][1] = 16;
+    mda_attr_to_color_table[0x70][0][1] = 16;
+    mda_attr_to_color_table[0x70][0][0] = mda_attr_to_color_table[0x70][1][0] = mda_attr_to_color_table[0x70][1][1] = 16 + 15;
+    mda_attr_to_color_table[0xF0][0][1]                                             = 16;
+    mda_attr_to_color_table[0xF0][0][0] = mda_attr_to_color_table[0xF0][1][0] = mda_attr_to_color_table[0xF0][1][1] = 16 + 15;
+    mda_attr_to_color_table[0x78][0][1]                                             = 16 + 7;
+    mda_attr_to_color_table[0x78][0][0] = mda_attr_to_color_table[0x78][1][0] = mda_attr_to_color_table[0x78][1][1] = 16 + 15;
+    mda_attr_to_color_table[0xF8][0][1]                                             = 16 + 7;
+    mda_attr_to_color_table[0xF8][0][0] = mda_attr_to_color_table[0xF8][1][0] = mda_attr_to_color_table[0xF8][1][1] = 16 + 15;
+    mda_attr_to_color_table[0x00][0][1] = mda_attr_to_color_table[0x00][1][1] = 16;
+    mda_attr_to_color_table[0x08][0][1] = mda_attr_to_color_table[0x08][1][1] = 16;
+    mda_attr_to_color_table[0x80][0][1] = mda_attr_to_color_table[0x80][1][1] = 16;
+    mda_attr_to_color_table[0x88][0][1] = mda_attr_to_color_table[0x88][1][1] = 16;
 
     /* Start off in 80x25 text mode */
     wy700->cga_stat   = 0xF4;
