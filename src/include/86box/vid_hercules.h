@@ -13,10 +13,12 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
- *
+ *          Connor Hyde / starfrost, <mario64crashed@gmail.com
+ * 
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2021 Jasmine Iwanek.
+ *          Copyright 2025 starfrost
  */
 
 #ifndef VIDEO_HERCULES_H
@@ -53,10 +55,10 @@ typedef struct {
     int      vsynctime;
     int      vadj;
 
-    int lp_ff;
-    int fullchange;
+    int     lp_ff;
+    int     fullchange;
 
-    int cols[256][2][2];
+    int     cols[256][2][2];
 
     uint8_t *vram;
     int      monitor_index;

@@ -185,11 +185,11 @@ ega_render_text(ega_t *ega)
                     int bit   = (dat & (0x100 >> (xx >> dwshift))) ? 1 : 0;
                     int blink = (!drawcursor && (attr & 0x80) && attrblink && blinked);
                     if ((ega->scanline == ega->crtc[0x14]) && ((attr & 7) == 1))
-                        p[xx] = ega->mdacols[attr][blink][1];
+                        p[xx] = ega->mda_attr_to_color_table[attr][blink][1];
                     else
-                        p[xx] = ega->mdacols[attr][blink][bit];
+                        p[xx] = ega->mda_attr_to_color_table[attr][blink][bit];
                     if (drawcursor)
-                        p[xx] ^= ega->mdacols[attr][0][1];
+                        p[xx] ^= ega->mda_attr_to_color_table[attr][0][1];
                     p[xx] = ega->pallook[ega->egapal[p[xx] & 0x0f]];
                 } else
                     p[xx] = (dat & (0x100 >> (xx >> dwshift))) ? fg : bg;

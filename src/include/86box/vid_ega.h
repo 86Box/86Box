@@ -115,7 +115,7 @@ typedef struct ega_t {
     int chipset;
     int mono_display;
 
-    int mdacols[256][2][2];
+    int mda_attr_to_color_table[256][2][2];
 
     uint32_t charseta;
     uint32_t charsetb;

@@ -35,7 +35,7 @@
 #include <86box/vid_mda.h>
 #include <86box/plat_unused.h>
 
-static int mdacols[256][2][2];
+static int mda_attr_to_color_table[256][2][2];
 
 static video_timings_t timing_mda = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
@@ -86,7 +86,6 @@ mda_in(uint16_t addr, void *priv)
     {
         case MDA_REGISTER_CRT_STATUS:
             return mda->status | 0xF0;
-
         default:
             if (addr < MDA_REGISTER_START 
             || addr > MDA_REGISTER_CRT_STATUS)  // Maintain old behaviour for printer registers, just in case
@@ -169,19 +168,19 @@ mda_poll(void *priv)
                 blink      = ((mda->blink & 16) && (mda->mode & MDA_MODE_BLINK) && (attr & 0x80) && !drawcursor);
                 if (mda->scanline == 12 && ((attr & 7) == 1)) {
                     for (c = 0; c < 9; c++)
-                        buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][1];
+                        buffer32->line[mda->displine][(x * 9) + c] = mda_attr_to_color_table[attr][blink][1];
                 } else {
                     for (c = 0; c < 8; c++)
-                        buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][(fontdatm[chr + mda->fontbase][mda->scanline] & (1 << (c ^ 7))) ? 1 : 0];
+                        buffer32->line[mda->displine][(x * 9) + c] = mda_attr_to_color_table[attr][blink][(fontdatm[chr + mda->fontbase][mda->scanline] & (1 << (c ^ 7))) ? 1 : 0];
                     if ((chr & ~0x1f) == 0xc0)
-                        buffer32->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][fontdatm[chr + mda->fontbase][mda->scanline] & 1];
+                        buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][fontdatm[chr + mda->fontbase][mda->scanline] & 1];
                     else
-                        buffer32->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][0];
+                        buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][0];
                 }
                 mda->memaddr++;
                 if (drawcursor) {
                     for (c = 0; c < 9; c++)
-                        buffer32->line[mda->displine][(x * 9) + c] ^= mdacols[attr][0][1];
+                        buffer32->line[mda->displine][(x * 9) + c] ^= mda_attr_to_color_table[attr][0][1];
                 }
             }
 
@@ -218,14 +217,14 @@ mda_poll(void *priv)
             if (!mda->vadj) {
                 mda->dispon = 1;
                 mda->memaddr = mda->memaddr_backup = (mda->crtc[MDA_CRTC_START_ADDR_LOW] | (mda->crtc[MDA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
-                mda->scanline               = 0;
+                mda->scanline = 0;
             }
         } else if (mda->scanline == mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR]
             || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3 
             && mda->scanline == (mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR] >> 1))) {
             mda->memaddr_backup = mda->memaddr;
-            mda->scanline     = 0;
-            oldvc       = mda->vc;
+            mda->scanline = 0;
+            oldvc = mda->vc;
             mda->vc++;
             mda->vc &= 127;
             if (mda->vc == mda->crtc[MDA_CRTC_VDISP])
@@ -242,6 +241,7 @@ mda_poll(void *priv)
                 else
                     mda->cursoron = mda->blink & 16;
             }
+
             if (mda->vc == mda->crtc[MDA_CRTC_VSYNC]) {
                 mda->dispon    = 0;
                 mda->displine  = 0;
@@ -276,6 +276,7 @@ mda_poll(void *priv)
             mda->scanline &= 31;
             mda->memaddr = mda->memaddr_backup;
         }
+
         if (mda->scanline == (mda->crtc[MDA_CRTC_CURSOR_START] & 31) 
         || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3 
         && mda->scanline == ((mda->crtc[MDA_CRTC_CURSOR_START] & 31) >> 1))) {
@@ -289,24 +290,24 @@ void
 mda_init(mda_t *mda)
 {
     for (uint16_t c = 0; c < 256; c++) {
-        mdacols[c][0][0] = mdacols[c][1][0] = mdacols[c][1][1] = 16;
+        mda_attr_to_color_table[c][0][0] = mda_attr_to_color_table[c][1][0] = mda_attr_to_color_table[c][1][1] = 16;
         if (c & 8)
-            mdacols[c][0][1] = 15 + 16;
+            mda_attr_to_color_table[c][0][1] = 15 + 16;
         else
-            mdacols[c][0][1] = 7 + 16;
+            mda_attr_to_color_table[c][0][1] = 7 + 16;
     }
-    mdacols[0x70][0][1] = 16;
-    mdacols[0x70][0][0] = mdacols[0x70][1][0] = mdacols[0x70][1][1] = 16 + 15;
-    mdacols[0xF0][0][1]                                             = 16;
-    mdacols[0xF0][0][0] = mdacols[0xF0][1][0] = mdacols[0xF0][1][1] = 16 + 15;
-    mdacols[0x78][0][1]                                             = 16 + 7;
-    mdacols[0x78][0][0] = mdacols[0x78][1][0] = mdacols[0x78][1][1] = 16 + 15;
-    mdacols[0xF8][0][1]                                             = 16 + 7;
-    mdacols[0xF8][0][0] = mdacols[0xF8][1][0] = mdacols[0xF8][1][1] = 16 + 15;
-    mdacols[0x00][0][1] = mdacols[0x00][1][1] = 16;
-    mdacols[0x08][0][1] = mdacols[0x08][1][1] = 16;
-    mdacols[0x80][0][1] = mdacols[0x80][1][1] = 16;
-    mdacols[0x88][0][1] = mdacols[0x88][1][1] = 16;
+    mda_attr_to_color_table[0x70][0][1] = 16;
+    mda_attr_to_color_table[0x70][0][0] = mda_attr_to_color_table[0x70][1][0] = mda_attr_to_color_table[0x70][1][1] = 16 + 15;
+    mda_attr_to_color_table[0xF0][0][1]                                             = 16;
+    mda_attr_to_color_table[0xF0][0][0] = mda_attr_to_color_table[0xF0][1][0] = mda_attr_to_color_table[0xF0][1][1] = 16 + 15;
+    mda_attr_to_color_table[0x78][0][1]                                             = 16 + 7;
+    mda_attr_to_color_table[0x78][0][0] = mda_attr_to_color_table[0x78][1][0] = mda_attr_to_color_table[0x78][1][1] = 16 + 15;
+    mda_attr_to_color_table[0xF8][0][1]                                             = 16 + 7;
+    mda_attr_to_color_table[0xF8][0][0] = mda_attr_to_color_table[0xF8][1][0] = mda_attr_to_color_table[0xF8][1][1] = 16 + 15;
+    mda_attr_to_color_table[0x00][0][1] = mda_attr_to_color_table[0x00][1][1] = 16;
+    mda_attr_to_color_table[0x08][0][1] = mda_attr_to_color_table[0x08][1][1] = 16;
+    mda_attr_to_color_table[0x80][0][1] = mda_attr_to_color_table[0x80][1][1] = 16;
+    mda_attr_to_color_table[0x88][0][1] = mda_attr_to_color_table[0x88][1][1] = 16;
 
     overscan_x = overscan_y = 0;
     mda->monitor_index      = monitor_index_global;
@@ -366,7 +367,7 @@ mda_standalone_init(UNUSED(const device_t *info))
 void
 mda_setcol(int chr, int blink, int fg, uint8_t cga_ink)
 {
-    mdacols[chr][blink][fg] = 16 + cga_ink;
+    mda_attr_to_color_table[chr][blink][fg] = 16 + cga_ink;
 }
 
 void

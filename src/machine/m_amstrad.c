@@ -412,7 +412,9 @@ vid_poll_1512(void *priv)
                 for (x = 0; x < 40; x++) {
                     chr        = vid->vram[(vid->memaddr<< 1) & 0x3fff];
                     attr       = vid->vram[((vid->memaddr<< 1) + 1) & 0x3fff];
-                    drawcursor = ((vid->memaddr== cursoraddr) && vid->cursorvisible && vid->cursoron);
+                    drawcursor = ((vid->memaddr == cursoraddr) 
+                    && vid->cursorvisible && vid->cursoron);
+                    
                     if (vid->cgamode & CGA_MODE_FLAG_BLINK) {
                         cols[1] = (attr & 15) + 16;
                         cols[0] = ((attr >> 4) & 7) + 16;
