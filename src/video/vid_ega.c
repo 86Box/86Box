@@ -505,7 +505,7 @@ ega_in(uint16_t addr, void *priv)
         case 0x3da:
             ega->attrff = 0;
             if (type == EGA_TYPE_COMPAQ) {
-                ret = ega->stat & 0xcf;
+                ret = ega->status & 0xcf;
                 switch ((ega->attrregs[0x12] >> 4) & 0x03) {
                     case 0x00:
                         /* 00 = Pri. Red (5), Pri. Blue (4) */
@@ -526,8 +526,8 @@ ega_in(uint16_t addr, void *priv)
                         break;
                 }
             } else {
-                ega->stat ^= 0x30; /* Fools IBM EGA video BIOS self-test. */
-                ret = ega->stat;
+                ega->status ^= 0x30; /* Fools IBM EGA video BIOS self-test. */
+                ret = ega->status;
             }
             break;
         case 0x7c6:
@@ -837,7 +837,7 @@ ega_poll(void *priv)
 
     if (!ega->linepos) {
         timer_advance_u64(&ega->timer, ega->dispofftime);
-        ega->stat |= 1;
+        ega->status |= 1;
         ega->linepos = 1;
 
         if (ega->dispon) {
@@ -877,8 +877,8 @@ ega_poll(void *priv)
         ega->displine++;
         if (ega->interlace)
             ega->displine++;
-        if ((ega->stat & 8) && ((ega->displine & 15) == (ega->crtc[0x11] & 15)) && ega->vslines)
-            ega->stat &= ~8;
+        if ((ega->status & 8) && ((ega->displine & 15) == (ega->crtc[0x11] & 15)) && ega->vslines)
+            ega->status &= ~8;
         ega->vslines++;
         if (ega->chipset) {
             if (ega->hdisp >= 800) {
@@ -896,7 +896,7 @@ ega_poll(void *priv)
         timer_advance_u64(&ega->timer, ega->dispontime);
 
         if (ega->dispon)
-            ega->stat &= ~1;
+            ega->status &= ~1;
         ega->hdisp_on = 0;
 
         ega->linepos = 0;
@@ -968,7 +968,7 @@ ega_poll(void *priv)
         }
         if (ega->vc == ega->vsyncstart) {
             ega->dispon = 0;
-            ega->stat |= 8;
+            ega->status |= 8;
 #if 0
             picint(1 << 2);
 #endif
@@ -1512,24 +1512,24 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
     ega->pallook = pallook16;
 
     for (uint16_t c = 0; c < 256; c++) {
-        ega->mdacols[c][0][0] = ega->mdacols[c][1][0] = ega->mdacols[c][1][1] = 16;
+        ega->mda_attr_to_color_table[c][0][0] = ega->mda_attr_to_color_table[c][1][0] = ega->mda_attr_to_color_table[c][1][1] = 16;
         if (c & 8)
-            ega->mdacols[c][0][1] = 15 + 16;
+            ega->mda_attr_to_color_table[c][0][1] = 15 + 16;
         else
-            ega->mdacols[c][0][1] = 7 + 16;
+            ega->mda_attr_to_color_table[c][0][1] = 7 + 16;
     }
-    ega->mdacols[0x70][0][1] = 16;
-    ega->mdacols[0x70][0][0] = ega->mdacols[0x70][1][0] = ega->mdacols[0x70][1][1] = 16 + 15;
-    ega->mdacols[0xF0][0][1]                                                       = 16;
-    ega->mdacols[0xF0][0][0] = ega->mdacols[0xF0][1][0] = ega->mdacols[0xF0][1][1] = 16 + 15;
-    ega->mdacols[0x78][0][1]                                                       = 16 + 7;
-    ega->mdacols[0x78][0][0] = ega->mdacols[0x78][1][0] = ega->mdacols[0x78][1][1] = 16 + 15;
-    ega->mdacols[0xF8][0][1]                                                       = 16 + 7;
-    ega->mdacols[0xF8][0][0] = ega->mdacols[0xF8][1][0] = ega->mdacols[0xF8][1][1] = 16 + 15;
-    ega->mdacols[0x00][0][1] = ega->mdacols[0x00][1][1] = 16;
-    ega->mdacols[0x08][0][1] = ega->mdacols[0x08][1][1] = 16;
-    ega->mdacols[0x80][0][1] = ega->mdacols[0x80][1][1] = 16;
-    ega->mdacols[0x88][0][1] = ega->mdacols[0x88][1][1] = 16;
+    ega->mda_attr_to_color_table[0x70][0][1] = 16;
+    ega->mda_attr_to_color_table[0x70][0][0] = ega->mda_attr_to_color_table[0x70][1][0] = ega->mda_attr_to_color_table[0x70][1][1] = 16 + 15;
+    ega->mda_attr_to_color_table[0xF0][0][1]                                                       = 16;
+    ega->mda_attr_to_color_table[0xF0][0][0] = ega->mda_attr_to_color_table[0xF0][1][0] = ega->mda_attr_to_color_table[0xF0][1][1] = 16 + 15;
+    ega->mda_attr_to_color_table[0x78][0][1]                                                       = 16 + 7;
+    ega->mda_attr_to_color_table[0x78][0][0] = ega->mda_attr_to_color_table[0x78][1][0] = ega->mda_attr_to_color_table[0x78][1][1] = 16 + 15;
+    ega->mda_attr_to_color_table[0xF8][0][1]                                                       = 16 + 7;
+    ega->mda_attr_to_color_table[0xF8][0][0] = ega->mda_attr_to_color_table[0xF8][1][0] = ega->mda_attr_to_color_table[0xF8][1][1] = 16 + 15;
+    ega->mda_attr_to_color_table[0x00][0][1] = ega->mda_attr_to_color_table[0x00][1][1] = 16;
+    ega->mda_attr_to_color_table[0x08][0][1] = ega->mda_attr_to_color_table[0x08][1][1] = 16;
+    ega->mda_attr_to_color_table[0x80][0][1] = ega->mda_attr_to_color_table[0x80][1][1] = 16;
+    ega->mda_attr_to_color_table[0x88][0][1] = ega->mda_attr_to_color_table[0x88][1][1] = 16;
 
     egaswitches = monitor_type & 0xf;
 

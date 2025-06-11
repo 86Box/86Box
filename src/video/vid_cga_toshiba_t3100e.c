@@ -169,8 +169,8 @@ t3100e_out(uint16_t addr, uint8_t val, void *priv)
             t3100e_recalctimings(t3100e);
             return;
 
-        case 0x3D8: /* CGA control register */
-        case 0x3D9: /* CGA colour register */
+        case CGA_REGISTER_MODE_CONTROL: /* CGA control register */
+        case CGA_REGISTER_COLOR_SELECT: /* CGA colour register */
             cga_out(addr, val, &t3100e->cga);
             return;
 
@@ -497,12 +497,12 @@ t3100e_poll(void *priv)
             }
 
             /* Graphics */
-            if (t3100e->cga.cgamode & 0x02) {
+            if (t3100e->cga.cgamode & CGA_MODE_FLAG_GRAPHICS) {
                 if (t3100e->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)
                     t3100e_cgaline6(t3100e);
                 else
                     t3100e_cgaline4(t3100e);
-            } else if (t3100e->cga.cgamode & 0x01) /* High-res text */
+            } else if (t3100e->cga.cgamode & CGA_MODE_FLAG_HIGHRES) /* High-res text */
             {
                 t3100e_text_row80(t3100e);
             } else {
@@ -550,7 +550,7 @@ t3100e_poll(void *priv)
             video_res_x = T3100E_XSIZE;
             video_res_y = T3100E_YSIZE;
 
-            if (t3100e->cga.cgamode & 0x02) {
+            if (t3100e->cga.cgamode & CGA_MODE_FLAG_GRAPHICS) {
                 if (t3100e->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)
                     video_bpp = 1;
                 else

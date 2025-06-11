@@ -459,7 +459,7 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
             break;
 
         case 0x42e8:
-            ibm8514_log("VBLANK stat=%02x, val=%02x.\n", dev->subsys_stat, val);
+            ibm8514_log("VBLANK status=%02x, val=%02x.\n", dev->subsys_stat, val);
             if (len == 2) {
                 dev->subsys_cntl = val;
                 dev->subsys_stat &= ~val;

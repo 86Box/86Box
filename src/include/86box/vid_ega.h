@@ -39,7 +39,7 @@ typedef struct ega_t {
     uint8_t lb;
     uint8_t lc;
     uint8_t ld;
-    uint8_t stat;
+    uint8_t status;
     uint8_t colourcompare;
     uint8_t colournocare;
     uint8_t scrblank;
@@ -115,7 +115,7 @@ typedef struct ega_t {
     int chipset;
     int mono_display;
 
-    int mdacols[256][2][2];
+    int mda_attr_to_color_table[256][2][2];
 
     uint32_t charseta;
     uint32_t charsetb;

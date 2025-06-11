@@ -30,7 +30,7 @@ typedef struct pcjr_s
     uint8_t       array[32];
     int           array_ff;
     int           memctrl;
-    uint8_t       stat;
+    uint8_t       status;
     int           addr_mode;
     uint8_t      *vram;
     uint8_t      *b8000;

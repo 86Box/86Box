@@ -105,7 +105,7 @@ typedef struct amsvid_t {
     int        cga_enabled; /* 1640 */
     uint8_t    cgacol;
     uint8_t    cgamode;
-    uint8_t    stat;
+    uint8_t    status;
     uint8_t    plane_write; /* 1512/200 */
     uint8_t    plane_read;  /* 1512/200 */
     uint8_t    border;      /* 1512/200 */
@@ -290,7 +290,7 @@ vid_in_1512(uint16_t addr, void *priv)
             break;
 
         case 0x03da:
-            ret = vid->stat;
+            ret = vid->status;
             break;
 
         default:
@@ -357,7 +357,7 @@ vid_poll_1512(void *priv)
 
     if (!vid->linepos) {
         timer_advance_u64(&vid->timer, vid->dispofftime);
-        vid->stat |= 1;
+        vid->status |= 1;
         vid->linepos = 1;
         scanline_old        = vid->scanline;
         if (vid->dispon) {
@@ -412,7 +412,9 @@ vid_poll_1512(void *priv)
                 for (x = 0; x < 40; x++) {
                     chr        = vid->vram[(vid->memaddr<< 1) & 0x3fff];
                     attr       = vid->vram[((vid->memaddr<< 1) + 1) & 0x3fff];
-                    drawcursor = ((vid->memaddr== cursoraddr) && vid->cursorvisible && vid->cursoron);
+                    drawcursor = ((vid->memaddr == cursoraddr) 
+                    && vid->cursorvisible && vid->cursoron);
+                    
                     if (vid->cgamode & CGA_MODE_FLAG_BLINK) {
                         cols[1] = (attr & 15) + 16;
                         cols[0] = ((attr >> 4) & 7) + 16;
@@ -496,7 +498,7 @@ vid_poll_1512(void *priv)
 
         vid->scanline = scanline_old;
         if (vid->vsynctime)
-            vid->stat |= 8;
+            vid->status |= 8;
         vid->displine++;
         if (vid->displine >= 360)
             vid->displine = 0;
@@ -505,12 +507,12 @@ vid_poll_1512(void *priv)
         if ((vid->lastline - vid->firstline) == 199)
             vid->dispon = 0; /*Amstrad PC1512 always displays 200 lines, regardless of CRTC settings*/
         if (vid->dispon)
-            vid->stat &= ~1;
+            vid->status &= ~1;
         vid->linepos = 0;
         if (vid->vsynctime) {
             vid->vsynctime--;
             if (!vid->vsynctime)
-                vid->stat &= ~8;
+                vid->status &= ~8;
         }
         if (vid->scanline == (vid->crtc[11] & 31)) {
             vid->cursorvisible  = 0;
@@ -1044,7 +1046,7 @@ vid_in_200(uint16_t addr, void *priv)
 
     switch (addr) {
         case 0x03b8:
-            return (mda->ctrl);
+            return (mda->mode);
 
         case 0x03d8:
             return (cga->cgamode);
@@ -1106,9 +1108,9 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
             }
             return;
         case 0x3b8:
-            old       = mda->ctrl;
-            mda->ctrl = val;
-            if ((mda->ctrl ^ old) & 3)
+            old       = mda->mode;
+            mda->mode = val;
+            if ((mda->mode ^ old) & 3)
                 mda_recalctimings(mda);
             vid->crtc_index &= 0x1F;
             vid->crtc_index |= 0x80;
@@ -1269,7 +1271,7 @@ static void
 lcdm_poll(amsvid_t *vid)
 {
     mda_t   *mda = &vid->mda;
-    uint16_t cursoraddr  = (mda->crtc[15] | (mda->crtc[14] << 8)) & 0x3fff;
+    uint16_t cursoraddr  = (mda->crtc[MDA_CRTC_CURSOR_ADDR_LOW] | (mda->crtc[MDA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
     int      drawcursor;
     int      x;
     int      oldvc;
@@ -1280,42 +1282,42 @@ lcdm_poll(amsvid_t *vid)
 
     if (!mda->linepos) {
         timer_advance_u64(&vid->timer, mda->dispofftime);
-        mda->stat |= 1;
+        mda->status |= 1;
         mda->linepos = 1;
         scanline_old        = mda->scanline;
-        if ((mda->crtc[8] & 3) == 3)
+        if ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3)
             mda->scanline = (mda->scanline << 1) & 7;
         if (mda->dispon) {
             if (mda->displine < mda->firstline)
                 mda->firstline = mda->displine;
             mda->lastline = mda->displine;
-            for (x = 0; x < mda->crtc[1]; x++) {
+            for (x = 0; x < mda->crtc[MDA_CRTC_HDISP]; x++) {
                 chr        = mda->vram[(mda->memaddr<< 1) & 0xfff];
                 attr       = mda->vram[((mda->memaddr<< 1) + 1) & 0xfff];
                 drawcursor = ((mda->memaddr== cursoraddr) && mda->cursorvisible && mda->cursoron);
-                blink      = ((mda->blink & 16) && (mda->ctrl & 0x20) && (attr & 0x80) && !drawcursor);
+                blink      = ((mda->blink & 16) && (mda->mode & MDA_MODE_BLINK) && (attr & 0x80) && !drawcursor);
 
-                lcd_draw_char_80(vid, &(buffer32->line[mda->displine])[x * 8], chr, attr, drawcursor, blink, mda->scanline, 0, mda->ctrl);
+                lcd_draw_char_80(vid, &(buffer32->line[mda->displine])[x * 8], chr, attr, drawcursor, blink, mda->scanline, 0, mda->mode);
                 mda->memaddr++;
             }
         }
         mda->scanline = scanline_old;
-        if (mda->vc == mda->crtc[7] && !mda->scanline)
-            mda->stat |= 8;
+        if (mda->vc == mda->crtc[MDA_CRTC_VSYNC] && !mda->scanline)
+            mda->status |= 8;
         mda->displine++;
         if (mda->displine >= 500)
             mda->displine = 0;
     } else {
         timer_advance_u64(&vid->timer, mda->dispontime);
         if (mda->dispon)
-            mda->stat &= ~1;
+            mda->status &= ~1;
         mda->linepos = 0;
         if (mda->vsynctime) {
             mda->vsynctime--;
             if (!mda->vsynctime)
-                mda->stat &= ~8;
+                mda->status &= ~8;
         }
-        if (mda->scanline == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->scanline == ((mda->crtc[11] & 31) >> 1))) {
+        if (mda->scanline == (mda->crtc[MDA_CRTC_CURSOR_END] & 31) || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3 && mda->scanline == ((mda->crtc[MDA_CRTC_CURSOR_END] & 31) >> 1))) {
             mda->cursorvisible  = 0;
         }
         if (mda->vadj) {
@@ -1325,35 +1327,35 @@ lcdm_poll(amsvid_t *vid)
             mda->vadj--;
             if (!mda->vadj) {
                 mda->dispon = 1;
-                mda->memaddr= mda->memaddr_backup = (mda->crtc[13] | (mda->crtc[12] << 8)) & 0x3fff;
+                mda->memaddr= mda->memaddr_backup = (mda->crtc[MDA_CRTC_START_ADDR_LOW] | (mda->crtc[MDA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
                 mda->scanline               = 0;
             }
-        } else if (mda->scanline == mda->crtc[9] || ((mda->crtc[8] & 3) == 3 && mda->scanline == (mda->crtc[9] >> 1))) {
+        } else if (mda->scanline == mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR] || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3 && mda->scanline == (mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR] >> 1))) {
             mda->memaddr_backup = mda->memaddr;
             mda->scanline     = 0;
             oldvc       = mda->vc;
             mda->vc++;
             mda->vc &= 127;
-            if (mda->vc == mda->crtc[6])
+            if (mda->vc == mda->crtc[MDA_CRTC_VDISP])
                 mda->dispon = 0;
-            if (oldvc == mda->crtc[4]) {
+            if (oldvc == mda->crtc[MDA_CRTC_VTOTAL]) {
                 mda->vc   = 0;
-                mda->vadj = mda->crtc[5];
+                mda->vadj = mda->crtc[MDA_CRTC_VTOTAL_ADJUST];
                 if (!mda->vadj)
                     mda->dispon = 1;
                 if (!mda->vadj)
-                    mda->memaddr= mda->memaddr_backup = (mda->crtc[13] | (mda->crtc[12] << 8)) & 0x3fff;
-                if ((mda->crtc[10] & 0x60) == 0x20)
+                    mda->memaddr= mda->memaddr_backup = (mda->crtc[MDA_CRTC_START_ADDR_LOW] | (mda->crtc[MDA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+                if ((mda->crtc[MDA_CRTC_CURSOR_START] & 0x60) == 0x20)
                     mda->cursoron = 0;
                 else
                     mda->cursoron = mda->blink & 16;
             }
-            if (mda->vc == mda->crtc[7]) {
+            if (mda->vc == mda->crtc[MDA_CRTC_VSYNC]) {
                 mda->dispon    = 0;
                 mda->displine  = 0;
                 mda->vsynctime = 16;
-                if (mda->crtc[7]) {
-                    x = mda->crtc[1] * 8;
+                if (mda->crtc[MDA_CRTC_VSYNC]) {
+                    x = mda->crtc[MDA_CRTC_HDISP] * 8;
                     mda->lastline++;
                     if ((x != xsize) || ((mda->lastline - mda->firstline) != ysize) || video_force_resize_get()) {
                         xsize = x;
@@ -1369,8 +1371,8 @@ lcdm_poll(amsvid_t *vid)
                     }
                     video_blit_memtoscreen(0, mda->firstline, xsize, ysize);
                     frames++;
-                    video_res_x = mda->crtc[1];
-                    video_res_y = mda->crtc[6];
+                    video_res_x = mda->crtc[MDA_CRTC_HDISP];
+                    video_res_y = mda->crtc[MDA_CRTC_VDISP];
                     video_bpp   = 0;
                 }
                 mda->firstline = 1000;
@@ -1382,7 +1384,7 @@ lcdm_poll(amsvid_t *vid)
             mda->scanline &= 31;
             mda->memaddr= mda->memaddr_backup;
         }
-        if (mda->scanline == (mda->crtc[10] & 31) || ((mda->crtc[8] & 3) == 3 && mda->scanline == ((mda->crtc[10] & 31) >> 1)))
+        if (mda->scanline == (mda->crtc[MDA_CRTC_CURSOR_START] & 31) || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3 && mda->scanline == ((mda->crtc[MDA_CRTC_CURSOR_START] & 31) >> 1)))
             mda->cursorvisible = 1;
     }
 }

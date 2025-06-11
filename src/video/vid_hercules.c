@@ -178,8 +178,8 @@ hercules_in(uint16_t addr, void *priv)
         case 0x03ba:
             ret = 0x70; /* Hercules ident */
             ret |= (dev->lp_ff ? 2 : 0);
-            ret |= (dev->stat & 0x01);
-            if (dev->stat & 0x08)
+            ret |= (dev->status & 0x01);
+            if (dev->status & 0x08)
                 ret |= 0x80;
             if ((ret & 0x81) == 0x80)
                 ret |= 0x08;
@@ -300,7 +300,7 @@ hercules_poll(void *priv)
 
     if (!dev->linepos) {
         timer_advance_u64(&dev->timer, dev->dispofftime);
-        dev->stat |= 1;
+        dev->status |= 1;
         dev->linepos = 1;
         scanline_old        = dev->scanline;
 
@@ -380,7 +380,7 @@ hercules_poll(void *priv)
         dev->scanline = scanline_old;
 
         if (dev->vc == dev->crtc[7] && !dev->scanline)
-            dev->stat |= 8;
+            dev->status |= 8;
         dev->displine++;
         if (dev->displine >= 500)
             dev->displine = 0;
@@ -388,13 +388,13 @@ hercules_poll(void *priv)
         timer_advance_u64(&dev->timer, dev->dispontime);
 
         if (dev->dispon)
-            dev->stat &= ~1;
+            dev->status &= ~1;
 
         dev->linepos = 0;
         if (dev->vsynctime) {
             dev->vsynctime--;
             if (!dev->vsynctime)
-                dev->stat &= ~8;
+                dev->status &= ~8;
         }
 
         if (dev->scanline == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->scanline == ((dev->crtc[11] & 31) >> 1))) {

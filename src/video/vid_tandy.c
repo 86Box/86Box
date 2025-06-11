@@ -268,7 +268,7 @@ tandy_vid_in(uint16_t addr, void *priv)
             break;
 
         case 0x03da:
-            ret = vid->stat;
+            ret = vid->status;
             break;
 
         case 0x3db:
@@ -353,7 +353,7 @@ vid_poll(void *priv)
 
     if (!vid->linepos) {
         timer_advance_u64(&vid->timer, vid->dispofftime);
-        vid->stat |= 1;
+        vid->status |= 1;
         vid->linepos = 1;
         scanline_old        = vid->scanline;
         if ((vid->crtc[8] & 3) == 3)
@@ -574,19 +574,19 @@ vid_poll(void *priv)
         }
         vid->scanline = scanline_old;
         if (vid->vc == vid->crtc[7] && !vid->scanline)
-            vid->stat |= 8;
+            vid->status |= 8;
         vid->displine++;
         if (vid->displine >= 360)
             vid->displine = 0;
     } else {
         timer_advance_u64(&vid->timer, vid->dispontime);
         if (vid->dispon)
-            vid->stat &= ~1;
+            vid->status &= ~1;
         vid->linepos = 0;
         if (vid->vsynctime) {
             vid->vsynctime--;
             if (!vid->vsynctime)
-                vid->stat &= ~8;
+                vid->status &= ~8;
         }
         if (vid->scanline == (vid->crtc[11] & 31) || ((vid->crtc[8] & 3) == 3 && vid->scanline == ((vid->crtc[11] & 31) >> 1))) {
             vid->cursorvisible  = 0;
