@@ -262,6 +262,19 @@ machine_at_px286_init(const machine_t *model)
     return ret;
 }
 
+static void
+machine_at_ctat_common_init(const machine_t *model)
+{
+    machine_at_common_init(model);
+
+    device_add(&cs8220_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    device_add(&keyboard_at_phoenix_device);
+}
+
 int
 machine_at_dells200_init(const machine_t *model)
 {
@@ -274,14 +287,24 @@ machine_at_dells200_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_ctat_common_init(model);
 
-    device_add(&cs8220_device);
+    return ret;
+}
 
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
+int
+machine_at_tuliptc7_init(const machine_t *model)
+{
+    int ret;
 
-    device_add(&keyboard_at_phoenix_device);
+    ret = bios_load_interleavedr("roms/machines/tuliptc7/tc7be.bin",
+                                 "roms/machines/tuliptc7/tc7bo.bin",
+                                 0x000f8000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ctat_common_init(model);
 
     return ret;
 }
@@ -1105,7 +1128,7 @@ machine_at_3302_init(const machine_t *model)
         device_add(&fdc_at_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&paradise_pvga1a_ncr3302_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add(&keyboard_at_ncr_device);
 

@@ -212,7 +212,7 @@ isarom_init(const device_t *info)
 static const device_config_t isarom_config[] = {
     {
         .name           = "bios_fn",
-        .description    = "BIOS File",
+        .description    = "BIOS file",
         .type           = CONFIG_FNAME,
         .default_string = NULL,
         .default_int    = 0,
@@ -234,7 +234,7 @@ static const device_config_t isarom_config[] = {
     },
     {
         .name           = "bios_size",
-        .description    = "BIOS Size:",
+        .description    = "BIOS size",
         .type           = CONFIG_INT,
         .default_string = NULL,
         .default_int    = 8192,
@@ -260,7 +260,7 @@ static const device_config_t isarom_config[] = {
 static const device_config_t isarom_dual_config[] = {
     {
         .name           = "bios_fn",
-        .description    = "BIOS File (ROM #1)",
+        .description    = "BIOS file (ROM #1)",
         .type           = CONFIG_FNAME,
         .default_string = NULL,
         .default_int    = 0,
@@ -271,7 +271,7 @@ static const device_config_t isarom_dual_config[] = {
     },
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address (ROM #1)",
+        .description    = "BIOS address (ROM #1)",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0x00000,
@@ -282,7 +282,7 @@ static const device_config_t isarom_dual_config[] = {
     },
     {
         .name           = "bios_size",
-        .description    = "BIOS Size (ROM #1):",
+        .description    = "BIOS size (ROM #1)",
         .type           = CONFIG_INT,
         .default_string = NULL,
         .default_int    = 8192,
@@ -304,7 +304,7 @@ static const device_config_t isarom_dual_config[] = {
     },
     {
         .name           = "bios_fn2",
-        .description    = "BIOS File (ROM #2)",
+        .description    = "BIOS file (ROM #2)",
         .type           = CONFIG_FNAME,
         .default_string = NULL,
         .default_int    = 0,
@@ -315,7 +315,7 @@ static const device_config_t isarom_dual_config[] = {
     },
     {
         .name           = "bios_addr2",
-        .description    = "BIOS Address (ROM #2)",
+        .description    = "BIOS address (ROM #2)",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0x00000,
@@ -326,7 +326,7 @@ static const device_config_t isarom_dual_config[] = {
     },
     {
         .name           = "bios_size2",
-        .description    = "BIOS Size (ROM #2):",
+        .description    = "BIOS size (ROM #2)",
         .type           = CONFIG_INT,
         .default_string = NULL,
         .default_int    = 8192,
@@ -352,7 +352,7 @@ static const device_config_t isarom_dual_config[] = {
 static const device_config_t isarom_quad_config[] = {
     {
         .name           = "bios_fn",
-        .description    = "BIOS File (ROM #1)",
+        .description    = "BIOS file (ROM #1)",
         .type           = CONFIG_FNAME,
         .default_string = NULL,
         .default_int    = 0,
@@ -363,7 +363,7 @@ static const device_config_t isarom_quad_config[] = {
     },
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address (ROM #1)",
+        .description    = "BIOS address (ROM #1)",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0x00000,
@@ -374,7 +374,7 @@ static const device_config_t isarom_quad_config[] = {
     },
     {
         .name           = "bios_size",
-        .description    = "BIOS Size (ROM #1):",
+        .description    = "BIOS size (ROM #1)",
         .type           = CONFIG_INT,
         .default_string = NULL,
         .default_int    = 8192,
@@ -396,7 +396,7 @@ static const device_config_t isarom_quad_config[] = {
     },
     {
         .name           = "bios_fn2",
-        .description    = "BIOS File (ROM #2)",
+        .description    = "BIOS file (ROM #2)",
         .type           = CONFIG_FNAME,
         .default_string = NULL,
         .default_int    = 0,
@@ -407,7 +407,7 @@ static const device_config_t isarom_quad_config[] = {
     },
     {
         .name           = "bios_addr2",
-        .description    = "BIOS Address (ROM #2)",
+        .description    = "BIOS address (ROM #2)",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0x00000,
@@ -418,7 +418,7 @@ static const device_config_t isarom_quad_config[] = {
     },
     {
         .name           = "bios_size2",
-        .description    = "BIOS Size (ROM #2):",
+        .description    = "BIOS size (ROM #2)",
         .type           = CONFIG_INT,
         .default_string = NULL,
         .default_int    = 8192,
@@ -440,7 +440,7 @@ static const device_config_t isarom_quad_config[] = {
     },
     {
         .name           = "bios_fn3",
-        .description    = "BIOS File (ROM #3)",
+        .description    = "BIOS file (ROM #3)",
         .type           = CONFIG_FNAME,
         .default_string = NULL,
         .default_int    = 0,
@@ -451,7 +451,7 @@ static const device_config_t isarom_quad_config[] = {
     },
     {
         .name           = "bios_addr3",
-        .description    = "BIOS Address (ROM #3)",
+        .description    = "BIOS address (ROM #3)",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0x00000,
@@ -462,7 +462,7 @@ static const device_config_t isarom_quad_config[] = {
     },
     {
         .name           = "bios_size3",
-        .description    = "BIOS Size (ROM #3):",
+        .description    = "BIOS size (ROM #3)",
         .type           = CONFIG_INT,
         .default_string = NULL,
         .default_int    = 8192,
@@ -484,7 +484,7 @@ static const device_config_t isarom_quad_config[] = {
     },
     {
         .name           = "bios_fn4",
-        .description    = "BIOS File (ROM #4)",
+        .description    = "BIOS file (ROM #4)",
         .type           = CONFIG_FNAME,
         .default_string = NULL,
         .default_int    = 0,
@@ -495,7 +495,7 @@ static const device_config_t isarom_quad_config[] = {
     },
     {
         .name           = "bios_addr4",
-        .description    = "BIOS Address (ROM #4)",
+        .description    = "BIOS address (ROM #4)",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0x00000,
@@ -506,7 +506,7 @@ static const device_config_t isarom_quad_config[] = {
     },
     {
         .name           = "bios_size4",
-        .description    = "BIOS Size (ROM #4):",
+        .description    = "BIOS size (ROM #4)",
         .type           = CONFIG_INT,
         .default_string = NULL,
         .default_int    = 8192,

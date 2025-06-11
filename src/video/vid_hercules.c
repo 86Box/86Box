@@ -168,9 +168,9 @@ hercules_in(uint16_t addr, void *priv)
         case 0x03b5:
         case 0x03b7:
             if (dev->crtcreg == 0x0c)
-                ret = (dev->ma >> 8) & 0x3f;
+                ret = (dev->memaddr >> 8) & 0x3f;
             else if (dev->crtcreg == 0x0d)
-                ret = dev->ma & 0xff;
+                ret = dev->memaddr & 0xff;
             else
                 ret = dev->crtc[dev->crtcreg];
             break;
@@ -178,8 +178,8 @@ hercules_in(uint16_t addr, void *priv)
         case 0x03ba:
             ret = 0x70; /* Hercules ident */
             ret |= (dev->lp_ff ? 2 : 0);
-            ret |= (dev->stat & 0x01);
-            if (dev->stat & 0x08)
+            ret |= (dev->status & 0x01);
+            if (dev->status & 0x08)
                 ret |= 0x80;
             if ((ret & 0x81) == 0x80)
                 ret |= 0x08;
@@ -281,10 +281,10 @@ hercules_poll(void *priv)
     hercules_t *dev = (hercules_t *) priv;
     uint8_t     chr;
     uint8_t     attr;
-    uint16_t    ca;
+    uint16_t    cursoraddr;
     uint16_t    dat;
     uint16_t    pa;
-    int         oldsc;
+    int         scanline_old;
     int         blink;
     int         x;
     int         xx;
@@ -296,16 +296,16 @@ hercules_poll(void *priv)
     uint32_t   *p;
 
     VIDEO_MONITOR_PROLOGUE()
-    ca = (dev->crtc[15] | (dev->crtc[14] << 8)) & 0x3fff;
+    cursoraddr = (dev->crtc[15] | (dev->crtc[14] << 8)) & 0x3fff;
 
     if (!dev->linepos) {
         timer_advance_u64(&dev->timer, dev->dispofftime);
-        dev->stat |= 1;
+        dev->status |= 1;
         dev->linepos = 1;
-        oldsc        = dev->sc;
+        scanline_old        = dev->scanline;
 
         if ((dev->crtc[8] & 3) == 3)
-            dev->sc = (dev->sc << 1) & 7;
+            dev->scanline = (dev->scanline << 1) & 7;
 
         if (dev->dispon) {
             if (dev->displine < dev->firstline) {
@@ -317,16 +317,16 @@ hercules_poll(void *priv)
             hercules_render_overscan_left(dev);
 
             if (dev->ctrl & 0x02) {
-                ca = (dev->sc & 3) * 0x2000;
+                cursoraddr = (dev->scanline & 3) * 0x2000;
                 if (dev->ctrl & 0x80)
-                    ca += 0x8000;
+                    cursoraddr += 0x8000;
 
                 for (x = 0; x < dev->crtc[1]; x++) {
                     if (dev->ctrl & 8)
-                        dat = (dev->vram[((dev->ma << 1) & 0x1fff) + ca] << 8) | dev->vram[((dev->ma << 1) & 0x1fff) + ca + 1];
+                        dat = (dev->vram[((dev->memaddr << 1) & 0x1fff) + cursoraddr] << 8) | dev->vram[((dev->memaddr << 1) & 0x1fff) + cursoraddr + 1];
                     else
                         dat = 0;
-                    dev->ma++;
+                    dev->memaddr++;
                     for (c = 0; c < 16; c++)
                         buffer32->line[dev->displine + 14][(x << 4) + c + 8] = (dat & (32768 >> c)) ? 7 : 0;
                     for (c = 0; c < 16; c += 8)
@@ -341,25 +341,25 @@ hercules_poll(void *priv)
                         attr = dev->charbuffer[(x << 1) + 1];
                     } else
                         chr = attr = 0;
-                    drawcursor = ((dev->ma == ca) && dev->con && dev->cursoron);
+                    drawcursor = ((dev->memaddr == cursoraddr) && dev->cursorvisible && dev->cursoron);
                     blink      = ((dev->blink & 16) && (dev->ctrl & 0x20) && (attr & 0x80) && !drawcursor);
 
-                    if (dev->sc == 12 && ((attr & 7) == 1)) {
+                    if (dev->scanline == 12 && ((attr & 7) == 1)) {
                         for (c = 0; c < 9; c++)
                             buffer32->line[dev->displine + 14][(x * 9) + c + 8] = dev->cols[attr][blink][1];
                     } else {
                         for (c = 0; c < 8; c++)
-                            buffer32->line[dev->displine + 14][(x * 9) + c + 8] = dev->cols[attr][blink][(fontdatm[chr][dev->sc] & (1 << (c ^ 7))) ? 1 : 0];
+                            buffer32->line[dev->displine + 14][(x * 9) + c + 8] = dev->cols[attr][blink][(fontdatm[chr][dev->scanline] & (1 << (c ^ 7))) ? 1 : 0];
 
                         if ((chr & ~0x1f) == 0xc0)
-                            buffer32->line[dev->displine + 14][(x * 9) + 8 + 8] = dev->cols[attr][blink][fontdatm[chr][dev->sc] & 1];
+                            buffer32->line[dev->displine + 14][(x * 9) + 8 + 8] = dev->cols[attr][blink][fontdatm[chr][dev->scanline] & 1];
                         else
                             buffer32->line[dev->displine + 14][(x * 9) + 8 + 8] = dev->cols[attr][blink][0];
                     }
                     if (dev->ctrl2 & 0x01)
-                        dev->ma = (dev->ma + 1) & 0x3fff;
+                        dev->memaddr = (dev->memaddr + 1) & 0x3fff;
                     else
-                        dev->ma = (dev->ma + 1) & 0x7ff;
+                        dev->memaddr = (dev->memaddr + 1) & 0x7ff;
 
                     if (drawcursor) {
                         for (c = 0; c < 9; c++)
@@ -377,10 +377,10 @@ hercules_poll(void *priv)
 
             video_process_8(x + 16, dev->displine + 14);
         }
-        dev->sc = oldsc;
+        dev->scanline = scanline_old;
 
-        if (dev->vc == dev->crtc[7] && !dev->sc)
-            dev->stat |= 8;
+        if (dev->vc == dev->crtc[7] && !dev->scanline)
+            dev->status |= 8;
         dev->displine++;
         if (dev->displine >= 500)
             dev->displine = 0;
@@ -388,32 +388,32 @@ hercules_poll(void *priv)
         timer_advance_u64(&dev->timer, dev->dispontime);
 
         if (dev->dispon)
-            dev->stat &= ~1;
+            dev->status &= ~1;
 
         dev->linepos = 0;
         if (dev->vsynctime) {
             dev->vsynctime--;
             if (!dev->vsynctime)
-                dev->stat &= ~8;
+                dev->status &= ~8;
         }
 
-        if (dev->sc == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[11] & 31) >> 1))) {
-            dev->con  = 0;
+        if (dev->scanline == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->scanline == ((dev->crtc[11] & 31) >> 1))) {
+            dev->cursorvisible  = 0;
         }
 
         if (dev->vadj) {
-            dev->sc++;
-            dev->sc &= 31;
-            dev->ma = dev->maback;
+            dev->scanline++;
+            dev->scanline &= 31;
+            dev->memaddr = dev->memaddr_backup;
             dev->vadj--;
             if (!dev->vadj) {
                 dev->dispon = 1;
-                dev->ma = dev->maback = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
-                dev->sc               = 0;
+                dev->memaddr = dev->memaddr_backup = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
+                dev->scanline               = 0;
             }
-        } else if (((dev->crtc[8] & 3) != 3 && dev->sc == dev->crtc[9]) || ((dev->crtc[8] & 3) == 3 && dev->sc == (dev->crtc[9] >> 1))) {
-            dev->maback = dev->ma;
-            dev->sc     = 0;
+        } else if (((dev->crtc[8] & 3) != 3 && dev->scanline == dev->crtc[9]) || ((dev->crtc[8] & 3) == 3 && dev->scanline == (dev->crtc[9] >> 1))) {
+            dev->memaddr_backup = dev->memaddr;
+            dev->scanline     = 0;
             oldvc       = dev->vc;
             dev->vc++;
             dev->vc &= 127;
@@ -426,7 +426,7 @@ hercules_poll(void *priv)
                 dev->vadj = dev->crtc[5];
                 if (!dev->vadj) {
                     dev->dispon = 1;
-                    dev->ma = dev->maback = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
+                    dev->memaddr = dev->memaddr_backup = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
                 }
                 switch (dev->crtc[10] & 0x60) {
                     case 0x20:
@@ -511,17 +511,17 @@ hercules_poll(void *priv)
                 dev->blink++;
             }
         } else {
-            dev->sc++;
-            dev->sc &= 31;
-            dev->ma = dev->maback;
+            dev->scanline++;
+            dev->scanline &= 31;
+            dev->memaddr = dev->memaddr_backup;
         }
 
-        if (dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1)))
-            dev->con = 1;
+        if (dev->scanline == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->scanline == ((dev->crtc[10] & 31) >> 1)))
+            dev->cursorvisible = 1;
         if (dev->dispon && !(dev->ctrl & 0x02)) {
             for (x = 0; x < (dev->crtc[1] << 1); x++) {
                 pa                 = (dev->ctrl & 0x80) ? ((x & 1) ? 0x0000 : 0x8000) : 0x0000;
-                dev->charbuffer[x] = dev->vram[(((dev->ma << 1) + x) & 0x3fff) + pa];
+                dev->charbuffer[x] = dev->vram[(((dev->memaddr << 1) + x) & 0x3fff) + pa];
             }
         }
     }

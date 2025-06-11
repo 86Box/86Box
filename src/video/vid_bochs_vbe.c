@@ -336,13 +336,13 @@ bochs_vbe_recalctimings(svga_t* svga)
 
         if (svga->bpp == 4) {
             svga->rowoffset = (dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] / 2) >> 3;
-            svga->ma_latch  = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
+            svga->memaddr_latch  = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
                               (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] >> 3);
 
             svga->fullchange = 3;
         } else {
             svga->rowoffset = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8));
-            svga->ma_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
+            svga->memaddr_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
                              (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));
             svga->fullchange = 3;
         }
@@ -470,11 +470,11 @@ bochs_vbe_outw(const uint16_t addr, const uint16_t val, void *priv)
                 svga_t *svga = &dev->svga;
                 if (svga->bpp == 4) {
                     svga->rowoffset = (dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] / 2) >> 3;
-                    svga->ma_latch  = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
+                    svga->memaddr_latch  = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
                                     (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] >> 3);
                 } else {
                     svga->rowoffset = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8));
-                    svga->ma_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
+                    svga->memaddr_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
                                     (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));
                 }
 
@@ -575,7 +575,7 @@ bochs_vbe_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);

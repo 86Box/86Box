@@ -13,10 +13,12 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
- *
+ *          Connor Hyde / starfrost, <mario64crashed@gmail.com
+ * 
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2021 Jasmine Iwanek.
+ *          Copyright 2025 starfrost
  */
 
 #ifndef VIDEO_HERCULES_H
@@ -31,7 +33,7 @@ typedef struct {
 
     uint8_t ctrl;
     uint8_t ctrl2;
-    uint8_t stat;
+    uint8_t status;
 
     uint64_t   dispontime;
     uint64_t   dispofftime;
@@ -43,20 +45,20 @@ typedef struct {
     int      linepos;
     int      displine;
     int      vc;
-    int      sc;
-    uint16_t ma;
-    uint16_t maback;
-    int      con;
+    int      scanline;
+    uint16_t memaddr;
+    uint16_t memaddr_backup;
+    int      cursorvisible;
     int      cursoron;
     int      dispon;
     int      blink;
     int      vsynctime;
     int      vadj;
 
-    int lp_ff;
-    int fullchange;
+    int     lp_ff;
+    int     fullchange;
 
-    int cols[256][2][2];
+    int     cols[256][2][2];
 
     uint8_t *vram;
     int      monitor_index;

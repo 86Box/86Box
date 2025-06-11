@@ -1918,7 +1918,7 @@ m19_vid_out(uint16_t addr, uint8_t val, void *priv)
     /* activating plantronics mode */
     if (addr == 0x3dd) {
         /* already in graphics mode */
-        if ((val & 0x30) && (vid->ogc.cga.cgamode & 0x2))
+        if ((val & 0x30) && (vid->ogc.cga.cgamode & CGA_MODE_FLAG_GRAPHICS))
             vid->mode = PLANTRONICS_MODE;
         else
             vid->mode = OLIVETTI_OGC_MODE;

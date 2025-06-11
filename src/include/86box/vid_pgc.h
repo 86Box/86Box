@@ -115,13 +115,13 @@ typedef struct pgc {
     int      displine;
     int      vc;
     int      cgadispon;
-    int      con;
+    int      cursorvisible;
     int      cursoron;
     int      cgablink;
     int      vsynctime;
     int      vadj;
-    uint16_t ma;
-    uint16_t maback;
+    uint16_t memaddr;
+    uint16_t memaddr_backup;
     int      oddeven;
 
     uint64_t dispontime;

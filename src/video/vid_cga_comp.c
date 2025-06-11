@@ -135,7 +135,7 @@ update_cga16_color(uint8_t cgamode)
         int left  = (x >> 6) & 15;
         int rc    = right;
         int lc    = left;
-        if ((cgamode & 4) != 0) {
+        if ((cgamode & CGA_MODE_FLAG_BW) != 0) {
             rc = (right & 8) | ((right & 7) != 0 ? 7 : 0);
             lc = (left & 8) | ((left & 7) != 0 ? 7 : 0);
         }
@@ -240,7 +240,7 @@ Composite_Process(uint8_t cgamode, uint8_t border, uint32_t blocks /*, bool doub
     for (uint8_t x = 0; x < 5; ++x)
         OUT(b[x & 3]);
 
-    if ((cgamode & 4) != 0) {
+    if ((cgamode & CGA_MODE_FLAG_BW) != 0) {
         /* Decode */
         i    = temp + 5;
         srgb = TempLine;

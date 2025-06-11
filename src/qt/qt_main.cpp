@@ -214,7 +214,7 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
                          (GetForegroundWindow() == ((HWND) secondaryRenderer->winId())));
     }
 
-    bool skip = ((nCode < 0) || (nCode != HC_ACTION) || !is_over_window);
+    bool skip = ((nCode < 0) || (nCode != HC_ACTION) || !is_over_window || (kbd_req_capture && !mouse_capture));
 
     if (skip)
         return CallNextHookEx(NULL, nCode, wParam, lParam);

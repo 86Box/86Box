@@ -157,7 +157,7 @@ typedef struct {
     uint8_t crtc[32];
     int     crtcreg;
 
-    uint8_t ctrl, ctrl2, stat;
+    uint8_t ctrl, ctrl2, status;
 
     uint64_t   dispontime, dispofftime;
     pc_timer_t timer;
@@ -165,9 +165,9 @@ typedef struct {
     int firstline, lastline;
 
     int      linepos, displine;
-    int      vc, sc;
-    uint16_t ma, maback;
-    int      con, cursoron;
+    int      vc, scanline;
+    uint16_t memaddr, memaddr_backup;
+    int      cursorvisible, cursoron;
     int      dispon, blink;
     int      vsynctime;
     int      vadj;
@@ -285,7 +285,7 @@ incolor_in(uint16_t port, void *priv)
 
         case 0x3ba:
             /* 0x50: InColor card identity */
-            ret = (dev->stat & 0xf) | ((dev->stat & 8) << 4) | 0x50;
+            ret = (dev->status & 0xf) | ((dev->status & 8) << 4) | 0x50;
             break;
 
         default:
@@ -483,11 +483,11 @@ draw_char_rom(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
         elg = ((chr >= 0xc0) && (chr <= 0xdf));
     }
 
-    fnt = &(fontdatm[chr][dev->sc]);
+    fnt = &(fontdatm[chr][dev->scanline]);
 
     if (blk) {
         val = 0x000; /* Blinking, draw all background */
-    } else if (dev->sc == ull) {
+    } else if (dev->scanline == ull) {
         val = 0x1ff; /* Underscore, draw all foreground */
     } else {
         val = fnt[0] << 1;
@@ -559,12 +559,12 @@ draw_char_ram4(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
     } else {
         elg = ((chr >= 0xc0) && (chr <= 0xdf));
     }
-    fnt = dev->vram + 0x4000 + 16 * chr + dev->sc;
+    fnt = dev->vram + 0x4000 + 16 * chr + dev->scanline;
 
     if (blk) {
         /* Blinking, draw all background */
         val[0] = val[1] = val[2] = val[3] = 0x000;
-    } else if (dev->sc == ull) {
+    } else if (dev->scanline == ull) {
         /* Underscore, draw all foreground */
         val[0] = val[1] = val[2] = val[3] = 0x1ff;
     } else {
@@ -685,12 +685,12 @@ draw_char_ram48(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
     } else {
         elg = ((chr >= 0xc0) && (chr <= 0xdf));
     }
-    fnt = dev->vram + 0x4000 + 16 * chr + 4096 * font + dev->sc;
+    fnt = dev->vram + 0x4000 + 16 * chr + 4096 * font + dev->scanline;
 
     if (blk) {
         /* Blinking, draw all background */
         val[0] = val[1] = val[2] = val[3] = 0x000;
-    } else if (dev->sc == ull) {
+    } else if (dev->scanline == ull) {
         /* Underscore, draw all foreground */
         val[0] = val[1] = val[2] = val[3] = 0x1ff;
     } else {
@@ -716,9 +716,9 @@ draw_char_ram48(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
         /* Generate pixel colour */
         cfg   = 0;
         pmask = 1;
-        if (dev->sc == oll) {
+        if (dev->scanline == oll) {
             cfg = olc ^ ibg; /* Strikethrough */
-        } else if (dev->sc == ull) {
+        } else if (dev->scanline == ull) {
             cfg = ulc ^ ibg; /* Underline */
         } else {
             for (uint8_t plane = 0; plane < 4; plane++, pmask = pmask << 1) {
@@ -746,7 +746,7 @@ draw_char_ram48(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
 }
 
 static void
-text_line(incolor_t *dev, uint16_t ca)
+text_line(incolor_t *dev, uint16_t cursoraddr)
 {
     int      drawcursor;
     uint8_t  chr;
@@ -755,12 +755,12 @@ text_line(incolor_t *dev, uint16_t ca)
 
     for (uint8_t x = 0; x < dev->crtc[1]; x++) {
         if (dev->ctrl & 8) {
-            chr  = dev->vram[(dev->ma << 1) & 0x3fff];
-            attr = dev->vram[((dev->ma << 1) + 1) & 0x3fff];
+            chr  = dev->vram[(dev->memaddr << 1) & 0x3fff];
+            attr = dev->vram[((dev->memaddr << 1) + 1) & 0x3fff];
         } else
             chr = attr = 0;
 
-        drawcursor = ((dev->ma == ca) && dev->con && dev->cursoron);
+        drawcursor = ((dev->memaddr == cursoraddr) && dev->cursorvisible && dev->cursoron);
 
         switch (dev->crtc[INCOLOR_CRTC_XMODE] & 5) {
             case 0:
@@ -779,7 +779,7 @@ text_line(incolor_t *dev, uint16_t ca)
             default:
                 break;
         }
-        ++dev->ma;
+        ++dev->memaddr;
 
         if (drawcursor) {
             int     cw  = INCOLOR_CW;
@@ -808,29 +808,29 @@ static void
 graphics_line(incolor_t *dev)
 {
     uint8_t  mask;
-    uint16_t ca;
+    uint16_t cursoraddr;
     int      plane;
     int      col;
     uint8_t  ink;
     uint16_t val[4];
 
     /* Graphics mode. */
-    ca = (dev->sc & 3) * 0x2000;
+    cursoraddr = (dev->scanline & 3) * 0x2000;
     if ((dev->ctrl & INCOLOR_CTRL_PAGE1) && (dev->ctrl2 & INCOLOR_CTRL2_PAGE1))
-        ca += 0x8000;
+        cursoraddr += 0x8000;
 
     for (uint8_t x = 0; x < dev->crtc[1]; x++) {
         mask = dev->crtc[INCOLOR_CRTC_MASK]; /* Planes to display */
         for (plane = 0; plane < 4; plane++, mask = mask >> 1) {
             if (dev->ctrl & 8) {
                 if (mask & 1)
-                    val[plane] = (dev->vram[((dev->ma << 1) & 0x1fff) + ca + 0x10000 * plane] << 8) | dev->vram[((dev->ma << 1) & 0x1fff) + ca + 0x10000 * plane + 1];
+                    val[plane] = (dev->vram[((dev->memaddr << 1) & 0x1fff) + cursoraddr + 0x10000 * plane] << 8) | dev->vram[((dev->memaddr << 1) & 0x1fff) + cursoraddr + 0x10000 * plane + 1];
                 else
                     val[plane] = 0;
             } else
                 val[plane] = 0;
         }
-        dev->ma++;
+        dev->memaddr++;
 
         for (uint8_t c = 0; c < 16; c++) {
             ink = 0;
@@ -855,19 +855,19 @@ static void
 incolor_poll(void *priv)
 {
     incolor_t *dev = (incolor_t *) priv;
-    uint16_t   ca  = (dev->crtc[15] | (dev->crtc[14] << 8)) & 0x3fff;
+    uint16_t   cursoraddr  = (dev->crtc[15] | (dev->crtc[14] << 8)) & 0x3fff;
     int        x;
     int        oldvc;
-    int        oldsc;
+    int        scanline_old;
     int        cw      = INCOLOR_CW;
 
     if (!dev->linepos) {
         timer_advance_u64(&dev->timer, dev->dispofftime);
-        dev->stat |= 1;
+        dev->status |= 1;
         dev->linepos = 1;
-        oldsc        = dev->sc;
+        scanline_old        = dev->scanline;
         if ((dev->crtc[8] & 3) == 3)
-            dev->sc = (dev->sc << 1) & 7;
+            dev->scanline = (dev->scanline << 1) & 7;
 
         if (dev->dispon) {
             if (dev->displine < dev->firstline) {
@@ -878,43 +878,43 @@ incolor_poll(void *priv)
             if ((dev->ctrl & INCOLOR_CTRL_GRAPH) && (dev->ctrl2 & INCOLOR_CTRL2_GRAPH))
                 graphics_line(dev);
             else
-                text_line(dev, ca);
+                text_line(dev, cursoraddr);
         }
-        dev->sc = oldsc;
-        if (dev->vc == dev->crtc[7] && !dev->sc)
-            dev->stat |= 8;
+        dev->scanline = scanline_old;
+        if (dev->vc == dev->crtc[7] && !dev->scanline)
+            dev->status |= 8;
         dev->displine++;
         if (dev->displine >= 500)
             dev->displine = 0;
     } else {
         timer_advance_u64(&dev->timer, dev->dispontime);
         if (dev->dispon)
-            dev->stat &= ~1;
+            dev->status &= ~1;
         dev->linepos = 0;
         if (dev->vsynctime) {
             dev->vsynctime--;
             if (!dev->vsynctime)
-                dev->stat &= ~8;
+                dev->status &= ~8;
         }
 
-        if (dev->sc == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[11] & 31) >> 1))) {
-            dev->con  = 0;
+        if (dev->scanline == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->scanline == ((dev->crtc[11] & 31) >> 1))) {
+            dev->cursorvisible  = 0;
         }
 
         if (dev->vadj) {
-            dev->sc++;
-            dev->sc &= 31;
-            dev->ma = dev->maback;
+            dev->scanline++;
+            dev->scanline &= 31;
+            dev->memaddr = dev->memaddr_backup;
             dev->vadj--;
             if (!dev->vadj) {
                 dev->dispon = 1;
-                dev->ma = dev->maback = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
-                dev->sc               = 0;
+                dev->memaddr = dev->memaddr_backup = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
+                dev->scanline = 0;
             }
-        } else if (dev->sc == dev->crtc[9] || ((dev->crtc[8] & 3) == 3 && dev->sc == (dev->crtc[9] >> 1))) {
-            dev->maback = dev->ma;
-            dev->sc     = 0;
-            oldvc       = dev->vc;
+        } else if (dev->scanline == dev->crtc[9] || ((dev->crtc[8] & 3) == 3 && dev->scanline == (dev->crtc[9] >> 1))) {
+            dev->memaddr_backup = dev->memaddr;
+            dev->scanline = 0;
+            oldvc = dev->vc;
             dev->vc++;
             dev->vc &= 127;
             if (dev->vc == dev->crtc[6])
@@ -925,7 +925,7 @@ incolor_poll(void *priv)
                 if (!dev->vadj)
                     dev->dispon = 1;
                 if (!dev->vadj)
-                    dev->ma = dev->maback = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
+                    dev->memaddr = dev->memaddr_backup = (dev->crtc[13] | (dev->crtc[12] << 8)) & 0x3fff;
                 if ((dev->crtc[10] & 0x60) == 0x20)
                     dev->cursoron = 0;
                 else
@@ -971,13 +971,13 @@ incolor_poll(void *priv)
                 dev->blink++;
             }
         } else {
-            dev->sc++;
-            dev->sc &= 31;
-            dev->ma = dev->maback;
+            dev->scanline++;
+            dev->scanline &= 31;
+            dev->memaddr = dev->memaddr_backup;
         }
 
-        if (dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1)))
-            dev->con = 1;
+        if (dev->scanline == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->scanline == ((dev->crtc[10] & 31) >> 1)))
+            dev->cursorvisible = 1;
     }
 }
 
