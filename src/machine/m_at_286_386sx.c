@@ -361,6 +361,22 @@ machine_at_dells200_init(const machine_t *model)
 }
 
 int
+machine_at_at122_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/at122/FINAL.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ctat_common_init(model);
+
+    return ret;
+}
+
+int
 machine_at_tuliptc7_init(const machine_t *model)
 {
     int ret;

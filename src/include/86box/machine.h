@@ -477,6 +477,7 @@ extern int machine_at_kmxc02_init(const machine_t *);
 extern int machine_at_deskmaster286_init(const machine_t *);
 
 extern int machine_at_dells200_init(const machine_t *);
+extern int machine_at_at122_init(const machine_t *);
 extern int machine_at_tuliptc7_init(const machine_t *);
 
 extern int machine_at_pc8_init(const machine_t *);
