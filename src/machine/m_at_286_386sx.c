@@ -169,6 +169,74 @@ machine_at_quadt386sx_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t pbl300sx_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "pbl300sx",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "1991", .internal_name = "pbl300sx_1991", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pbl300sx/V1.10_1113_910723.bin", "" } },
+            { .name = "1992", .internal_name = "pbl300sx", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pbl300sx/pb_l300sx_1992.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pbl300sx_device = {
+    .name          = "Packard Bell Legend 300SX",
+    .internal_name = "pbl300sx_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pbl300sx_config
+};
+
+int
+machine_at_pbl300sx_init(const machine_t *model)
+{
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&acc2036_device);
+
+    device_add(&keyboard_ps2_phoenix_device);
+
+    device_add(&ide_isa_device);
+    device_add(&um82c862f_ide_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    return ret;
+}
+
 int
 machine_at_neat_init(const machine_t *model)
 {

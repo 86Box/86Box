@@ -71,6 +71,7 @@ extern const device_t d842_device;
 extern const device_t d943_device;
 extern const device_t dells333sl_device;
 extern const device_t hot433a_device;
+extern const device_t pbl300sx_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                             MACHINE_TYPE_NONE       },
@@ -107,6 +108,7 @@ const machine_filter_t machine_chipsets[] = {
     { "Headland GC100A",            MACHINE_CHIPSET_GC100A              },
     { "Headland GC103",             MACHINE_CHIPSET_GC103               },
     { "Headland HT18",              MACHINE_CHIPSET_HT18                },
+    { "ACC 2036",                   MACHINE_CHIPSET_ACC_2036            },
     { "ACC 2168",                   MACHINE_CHIPSET_ACC_2168            },
     { "ALi M1217",                  MACHINE_CHIPSET_ALI_M1217           },
     { "ALi M6117",                  MACHINE_CHIPSET_ALI_M6117           },
@@ -4298,6 +4300,46 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Most likely has Phonenix KBC firmware. */
+    {
+        .name = "[ACC 2036] Packard Bell Legend 300SX",
+        .internal_name = "pbl300sx",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_ACC_2036,
+        .init = machine_at_pbl300sx_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = &pbl300sx_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &oti037_pbl300sx_device,
         .snd_device = NULL,
         .net_device = NULL
     },

@@ -822,6 +822,7 @@ machine_at_403tg_d_mr_init(const machine_t *model)
 
     return ret;
 }
+
 static const device_config_t pb450_config[] = {
     // clang-format off
     {

@@ -125,6 +125,8 @@ extern const device_t sio_detect_device;
 #endif /* USE_SIO_DETECT */
 
 /* UMC */
+extern const device_t um82c862f_device;
+extern const device_t um82c862f_ide_device;
 extern const device_t um82c863f_device;
 extern const device_t um82c863f_ide_device;
 extern const device_t um8663af_device;

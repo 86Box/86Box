@@ -197,6 +197,7 @@ enum {
     MACHINE_CHIPSET_GC100A,
     MACHINE_CHIPSET_GC103,
     MACHINE_CHIPSET_HT18,
+    MACHINE_CHIPSET_ACC_2036,
     MACHINE_CHIPSET_ACC_2168,
     MACHINE_CHIPSET_ALI_M1217,
     MACHINE_CHIPSET_ALI_M6117,
@@ -456,6 +457,7 @@ extern int machine_at_px286_init(const machine_t *);
 extern int machine_at_quadt286_init(const machine_t *);
 extern int machine_at_mr286_init(const machine_t *);
 
+extern int machine_at_pbl300sx_init(const machine_t *);
 extern int machine_at_neat_init(const machine_t *);
 extern int machine_at_neat_ami_init(const machine_t *);
 extern int machine_at_ataripc4_init(const machine_t *);

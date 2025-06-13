@@ -18,6 +18,7 @@
 #define EMU_CHIPSET_H
 
 /* ACC */
+extern const device_t acc2036_device;
 extern const device_t acc2168_device;
 
 /* ALi */

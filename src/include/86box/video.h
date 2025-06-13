@@ -469,6 +469,7 @@ extern const device_t if386jega_device;
 
 /* Oak OTI-0x7 */
 extern const device_t oti037c_device;
+extern const device_t oti037_pbl300sx_device;
 extern const device_t oti067_device;
 extern const device_t oti067_acer386_device;
 extern const device_t oti067_ama932j_device;
