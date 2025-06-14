@@ -758,8 +758,6 @@ machine_at_c747_init(const machine_t *model)
        desired behavior: command A9 does absolutely nothing.
      */
     device_add(&keyboard_at_siemens_device);
-
-    device_add(&ide_isa_device);
     device_add(&um82c862f_ide_device);
 
     return ret;
@@ -1057,8 +1055,6 @@ machine_at_advantage40xxd_init(const machine_t *model)
         device_add(machine_get_vid_device(machine));
 
     device_add(&keyboard_ps2_phoenix_device);
-
-    device_add(&ide_vlb_device);
     device_add(&um82c863f_ide_device);
 
     device_add(&intel_flash_bxt_device);

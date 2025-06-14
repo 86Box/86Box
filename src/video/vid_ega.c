@@ -158,9 +158,11 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
             if (ega->alt_addr == 1)
                 base_addr = 0x02a0;
 #endif
-            io_removehandler(base_addr, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
-            if (!(val & 1))
-                io_sethandler(base_addr, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+            if (ega->priv_parent == NULL) {
+                io_removehandler(base_addr, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+                if (!(val & 1))
+                    io_sethandler(base_addr, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+            }
             ega_recalctimings(ega);
             if ((type == EGA_TYPE_COMPAQ) && !(val & 0x02))
                 mem_mapping_disable(&ega->mapping);

@@ -280,9 +280,11 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3c2:
             svga->miscout  = val;
             svga->vidclock = val & 4;
-            io_removehandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->priv);
-            if (!(val & 1))
-                io_sethandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->priv);
+            if (svga->priv_parent == NULL) {
+                io_removehandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->priv);
+                if (!(val & 1))
+                    io_sethandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->priv);
+            }
             svga_recalctimings(svga);
             break;
         case 0x3c3:

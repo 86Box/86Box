@@ -227,8 +227,6 @@ machine_at_pbl300sx_init(const machine_t *model)
     device_add(&acc2036_device);
 
     device_add(&keyboard_ps2_phoenix_device);
-
-    device_add(&ide_isa_device);
     device_add(&um82c862f_ide_device);
 
     if (gfxcard[0] == VID_INTERNAL)

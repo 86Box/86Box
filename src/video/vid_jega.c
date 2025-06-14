@@ -151,6 +151,8 @@ extern uint32_t        pallook64[256];
 static bool is_SJIS_1(uint8_t chr) { return (chr >= 0x81 && chr <= 0x9f) || (chr >= 0xe0 && chr <= 0xfc); }
 static bool is_SJIS_2(uint8_t chr) { return (chr >= 0x40 && chr <= 0x7e) || (chr >= 0x80 && chr <= 0xfc); }
 
+static uint8_t         jega_in(uint16_t addr, void *priv);
+
 static uint16_t
 SJIS_to_SEQ(uint16_t sjis)
 {
@@ -422,7 +424,10 @@ jega_out(uint16_t addr, uint8_t val, void *priv)
             if (!jega->attrff) {
                 jega->attraddr = val & 31;
                 if ((val & 0x20) != jega->attr_palette_enable) {
-                    jega->ega.fullchange      = 3;
+                    if (jega->is_vga)
+                        jega->vga.svga.fullchange = 3;
+                    else
+                        jega->ega.fullchange      = 3;
                     jega->attr_palette_enable = val & 0x20;
                     jega_recalctimings(jega);
                 }
@@ -448,6 +453,13 @@ jega_out(uint16_t addr, uint8_t val, void *priv)
                 }
             }
             jega->attrff ^= 1;
+            break;
+        case 0x3c2:
+            if (jega->regs[RMOD1] & 0x0c) {
+                io_removehandler(0x03a0, 0x0020, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
+                if (!(val & 1))
+                    io_sethandler(0x03a0, 0x0020, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
+            }
             break;
         case 0x3b4:
         case 0x3d4:
@@ -742,9 +754,19 @@ jega_commoninit(const device_t *info, void *priv, int vga)
     jega->is_vga = vga;
     if (vga) {
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga);
-        vga_init(info, &jega->vga, 1);
+        svga_init(info, &jega->vga.svga, &jega->vga, 1 << 18, /*256kb*/
+                  NULL,
+                  jega_in, jega_out,
+                  NULL,
+                  NULL);
+
+        jega->vga.svga.bpp     = 8;
+        jega->vga.svga.miscout = 1;
+
+        jega->vga.svga.vga_enabled = 0;
         jega->vga.svga.priv_parent = jega;
         jega->pallook = jega->vga.svga.pallook;
+        io_sethandler(0x03c0, 0x0020, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
     } else {
         for (int c = 0; c < 256; c++) {
             pallook64[c] = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
@@ -758,9 +780,11 @@ jega_commoninit(const device_t *info, void *priv, int vga)
         mem_mapping_add(&jega->ega.mapping, 0xa0000, 0x20000,
                         ega_read, NULL, NULL, ega_write, NULL, NULL,
                         NULL, MEM_MAPPING_EXTERNAL, &jega->ega);
+        /* I/O 3DD and 3DE are used by Oki if386 */
+        io_sethandler(0x03c0, 0x001c, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
     }
     /* I/O 3DD and 3DE are used by Oki if386 */
-    io_sethandler(0x03b0, 0x002c, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
+    // io_sethandler(0x03b0, 0x002c, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
     jega->regs[RMOD1] = 0x48;
 }
 
