@@ -241,7 +241,9 @@ enum {
     MACHINE_CHIPSET_OPTI_391,
     MACHINE_CHIPSET_OPTI_481,
     MACHINE_CHIPSET_OPTI_493,
-    MACHINE_CHIPSET_OPTI_495,
+    MACHINE_CHIPSET_OPTI_495SLC,
+    MACHINE_CHIPSET_OPTI_495SX,
+    MACHINE_CHIPSET_OPTI_498,
     MACHINE_CHIPSET_OPTI_499,
     MACHINE_CHIPSET_OPTI_895_802G,
     MACHINE_CHIPSET_OPTI_547_597,
@@ -547,6 +549,7 @@ extern int machine_at_winbios1429_init(const machine_t *);
 extern int machine_at_opti495_init(const machine_t *);
 extern int machine_at_opti495_ami_init(const machine_t *);
 extern int machine_at_opti495_mr_init(const machine_t *);
+extern int machine_at_c747_init(const machine_t *);
 extern int machine_at_exp4349_init(const machine_t *);
 
 extern int machine_at_vect486vl_init(const machine_t *);

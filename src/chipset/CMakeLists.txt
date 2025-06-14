@@ -49,6 +49,7 @@ add_library(chipset OBJECT
     opti291.c
     opti391.c
     opti495.c
+    opti498.c
     opti499.c
     opti602.c
     opti822.c

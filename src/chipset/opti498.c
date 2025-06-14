@@ -6,15 +6,11 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Implementation of the OPTi 82C283 chipset.
+ *          Implementation of the OPTi 82C498 chipset.
  *
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *
- * Authors: Tiseno100,
- *          Miran Grca, <mgrca8@gmail.com>
- *
- *          Copyright 2021 Tiseno100.
- *          Copyright 2021 Miran Grca.
+ *          Copyright 2025 Miran Grca.
  */
 #include <math.h>
 #include <stdarg.h>
@@ -35,22 +31,22 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-#ifdef ENABLE_OPTI283_LOG
-int opti283_do_log = ENABLE_OPTI283_LOG;
+#ifdef ENABLE_OPTI498_LOG
+int opti498_do_log = ENABLE_OPTI498_LOG;
 
 static void
-opti283_log(const char *fmt, ...)
+opti498_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (opti283_do_log) {
+    if (opti498_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define opti283_log(fmt, ...)
+#    define opti498_log(fmt, ...)
 #endif
 
 typedef struct mem_remapping_t {
@@ -58,16 +54,18 @@ typedef struct mem_remapping_t {
     uint32_t virt;
 } mem_remapping_t;
 
-typedef struct opti283_t {
+typedef struct opti498_t {
     uint8_t         index;
+    /* 0x30 for 496/497, 0x70 for 498. */
+    uint8_t         reg_base;
     uint8_t         shadow_high;
     uint8_t         regs[256];
     mem_remapping_t mem_remappings[2];
     mem_mapping_t   mem_mappings[2];
-} opti283_t;
+} opti498_t;
 
 static uint8_t
-opti283_read_remapped_ram(uint32_t addr, void *priv)
+opti498_read_remapped_ram(uint32_t addr, void *priv)
 {
     const mem_remapping_t *dev = (mem_remapping_t *) priv;
 
@@ -75,7 +73,7 @@ opti283_read_remapped_ram(uint32_t addr, void *priv)
 }
 
 static uint16_t
-opti283_read_remapped_ramw(uint32_t addr, void *priv)
+opti498_read_remapped_ramw(uint32_t addr, void *priv)
 {
     const mem_remapping_t *dev = (mem_remapping_t *) priv;
 
@@ -83,7 +81,7 @@ opti283_read_remapped_ramw(uint32_t addr, void *priv)
 }
 
 static uint32_t
-opti283_read_remapped_raml(uint32_t addr, void *priv)
+opti498_read_remapped_raml(uint32_t addr, void *priv)
 {
     const mem_remapping_t *dev = (mem_remapping_t *) priv;
 
@@ -91,7 +89,7 @@ opti283_read_remapped_raml(uint32_t addr, void *priv)
 }
 
 static void
-opti283_write_remapped_ram(uint32_t addr, uint8_t val, void *priv)
+opti498_write_remapped_ram(uint32_t addr, uint8_t val, void *priv)
 {
     const mem_remapping_t *dev = (mem_remapping_t *) priv;
 
@@ -99,7 +97,7 @@ opti283_write_remapped_ram(uint32_t addr, uint8_t val, void *priv)
 }
 
 static void
-opti283_write_remapped_ramw(uint32_t addr, uint16_t val, void *priv)
+opti498_write_remapped_ramw(uint32_t addr, uint16_t val, void *priv)
 {
     const mem_remapping_t *dev = (mem_remapping_t *) priv;
 
@@ -107,7 +105,7 @@ opti283_write_remapped_ramw(uint32_t addr, uint16_t val, void *priv)
 }
 
 static void
-opti283_write_remapped_raml(uint32_t addr, uint32_t val, void *priv)
+opti498_write_remapped_raml(uint32_t addr, uint32_t val, void *priv)
 {
     const mem_remapping_t *dev = (mem_remapping_t *) priv;
 
@@ -115,7 +113,7 @@ opti283_write_remapped_raml(uint32_t addr, uint32_t val, void *priv)
 }
 
 static void
-opti283_shadow_recalc(opti283_t *dev)
+opti498_shadow_recalc(opti498_t *dev)
 {
     uint32_t base;
     uint32_t rbase;
@@ -127,37 +125,33 @@ opti283_shadow_recalc(opti283_t *dev)
     shadowbios = shadowbios_write = 0;
     dev->shadow_high              = 0;
 
-    opti283_log("OPTI 283: %02X %02X %02X %02X\n", dev->regs[0x11], dev->regs[0x12], dev->regs[0x13], dev->regs[0x14]);
+    opti498_log("OPTI 498: %02X %02X %02X %02X\n", dev->regs[0x02], dev->regs[0x03], dev->regs[0x04], dev->regs[0x05]);
 
-    if (dev->regs[0x11] & 0x80) {
-        mem_set_mem_state_both(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-        opti283_log("OPTI 283: F0000-FFFFF READ_EXTANY, WRITE_INTERNAL\n");
-        shadowbios_write = 1;
+    if (dev->regs[0x02] & 0x80) {
+        if (dev->regs[0x04] & 0x02) {
+            mem_set_mem_state_both(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+            opti498_log("OPTI 498: F0000-FFFFF READ_EXTANY, WRITE_EXTANY\n");
+        } else {
+            shadowbios_write = 1;
+            mem_set_mem_state_both(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
+            opti498_log("OPTI 498: F0000-FFFFF READ_EXTANY, WRITE_INTERNAL\n");
+        }
     } else {
         shadowbios = 1;
-        if (dev->regs[0x14] & 0x80) {
-            mem_set_mem_state_both(0xf0000, 0x01000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-            opti283_log("OPTI 283: F0000-F0FFF READ_INTERNAL, WRITE_INTERNAL\n");
-            shadowbios_write = 1;
-        } else {
-            mem_set_mem_state_both(0xf0000, 0x01000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
-            opti283_log("OPTI 283: F0000-F0FFF READ_INTERNAL, WRITE_DISABLED\n");
-        }
-
-        mem_set_mem_state_both(0xf1000, 0x0f000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
-        opti283_log("OPTI 283: F1000-FFFFF READ_INTERNAL, WRITE_DISABLED\n");
+        mem_set_mem_state_both(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+        opti498_log("OPTI 498: F0000-FFFFF READ_INTERNAL, WRITE_DISABLED\n");
     }
 
-    sh_copy = dev->regs[0x11] & 0x08;
+    sh_copy = dev->regs[0x02] & 0x08;
     for (uint8_t i = 0; i < 12; i++) {
         base = 0xc0000 + (i << 14);
         if (i >= 4)
-            sh_enable = dev->regs[0x12] & (1 << (i - 4));
+            sh_enable = dev->regs[0x03] & (1 << (i - 4));
         else
-            sh_enable = dev->regs[0x13] & (1 << (i + 4));
-        sh_mode = dev->regs[0x11] & (1 << (i >> 2));
-        rom     = dev->regs[0x11] & (1 << ((i >> 2) + 4));
-        opti283_log("OPTI 283: %i/%08X: %i, %i, %i\n", i, base, (i >= 4) ? (1 << (i - 4)) : (1 << (i + 4)), (1 << (i >> 2)), (1 << ((i >> 2) + 4)));
+            sh_enable = dev->regs[0x04] & (1 << (i + 4));
+        sh_mode = dev->regs[0x02] & (1 << (i >> 2));
+        rom     = dev->regs[0x02] & (1 << ((i >> 2) + 4));
+        opti498_log("OPTI 498: %i/%08X: %i, %i, %i\n", i, base, (i >= 4) ? (1 << (i - 4)) : (1 << (i + 4)), (1 << (i >> 2)), (1 << ((i >> 2) + 4)));
 
         if (sh_copy) {
             if (base >= 0x000e0000)
@@ -167,10 +161,10 @@ opti283_shadow_recalc(opti283_t *dev)
 
             if (base >= 0xe0000) {
                 mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-                opti283_log("OPTI 283: %08X-%08X READ_EXTANY, WRITE_INTERNAL\n", base, base + 0x3fff);
+                opti498_log("OPTI 498: %08X-%08X READ_EXTANY, WRITE_INTERNAL\n", base, base + 0x3fff);
             } else {
                 mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
-                opti283_log("OPTI 283: %08X-%08X READ_EXTERNAL, WRITE_INTERNAL\n", base, base + 0x3fff);
+                opti498_log("OPTI 498: %08X-%08X READ_EXTERNAL, WRITE_INTERNAL\n", base, base + 0x3fff);
             }
         } else if (sh_enable && rom) {
             if (base >= 0x000e0000)
@@ -180,26 +174,26 @@ opti283_shadow_recalc(opti283_t *dev)
 
             if (sh_mode) {
                 mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
-                opti283_log("OPTI 283: %08X-%08X READ_INTERNAL, WRITE_DISABLED\n", base, base + 0x3fff);
+                opti498_log("OPTI 498: %08X-%08X READ_INTERNAL, WRITE_DISABLED\n", base, base + 0x3fff);
             } else {
                 if (base >= 0x000e0000)
                     shadowbios_write |= 1;
 
                 mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                opti283_log("OPTI 283: %08X-%08X READ_INTERNAL, WRITE_INTERNAL\n", base, base + 0x3fff);
+                opti498_log("OPTI 498: %08X-%08X READ_INTERNAL, WRITE_INTERNAL\n", base, base + 0x3fff);
             }
         } else {
             if (base >= 0xe0000) {
                 mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_DISABLED);
-                opti283_log("OPTI 283: %08X-%08X READ_EXTANY, WRITE_DISABLED\n", base, base + 0x3fff);
+                opti498_log("OPTI 498: %08X-%08X READ_EXTANY, WRITE_DISABLED\n", base, base + 0x3fff);
             } else {
                 mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTERNAL | MEM_WRITE_DISABLED);
-                opti283_log("OPTI 283: %08X-%08X READ_EXTERNAL, WRITE_DISABLED\n", base, base + 0x3fff);
+                opti498_log("OPTI 498: %08X-%08X READ_EXTERNAL, WRITE_DISABLED\n", base, base + 0x3fff);
             }
         }
     }
 
-    rbase = ((uint32_t) (dev->regs[0x13] & 0x0f)) << 20;
+    rbase = ((uint32_t) (dev->regs[0x05] & 0x3f)) << 20;
 
     if (rbase > 0) {
         dev->mem_remappings[0].virt = rbase;
@@ -220,9 +214,10 @@ opti283_shadow_recalc(opti283_t *dev)
 }
 
 static void
-opti283_write(uint16_t addr, uint8_t val, void *priv)
+opti498_write(uint16_t addr, uint8_t val, void *priv)
 {
-    opti283_t *dev = (opti283_t *) priv;
+    opti498_t *dev = (opti498_t *) priv;
+    uint8_t    reg = dev->index - dev->reg_base;
 
     switch (addr) {
         default:
@@ -232,43 +227,52 @@ opti283_write(uint16_t addr, uint8_t val, void *priv)
             dev->index = val;
             break;
 
-        case 0x23:
-            if (dev->index == 0x01)
-                dev->regs[dev->index] = val;
-            break;
-
         case 0x24:
-            opti283_log("OPTi 283: dev->regs[%02x] = %02x\n", dev->index, val);
+            opti498_log("OPTi 498: dev->regs[%02x] = %02x\n", dev->index, val);
 
-            switch (dev->index) {
+            if ((reg >= 0x00) && (reg <= 0x0b))  switch (reg) {
                 default:
                     break;
 
-                case 0x10:
-                    dev->regs[dev->index] = (dev->regs[dev->index] & 0x80) | (val & 0x7f);
+                case 0x00:
+                    dev->regs[reg] = (dev->regs[reg] & 0xc0) | (val & 0x3f);
                     break;
 
-                case 0x14: {
+                case 0x01:
+                case 0x07 ... 0x0b:
+                    dev->regs[reg] = val;
+                    break;
+
+                case 0x02:
+                case 0x03:
+                case 0x04:
+                case 0x05:
+                    dev->regs[reg] = val;
+                    opti498_shadow_recalc(dev);
+                    break;
+
+                case 0x06: {
                     double bus_clk;
-                    switch (val & 0x01) {
+                    dev->regs[reg] = val;
+                    switch (val & 0x03) {
                         default:
                         case 0x00:
-                             bus_clk = cpu_busspeed / 6.0;
+                             bus_clk = cpu_busspeed / 8.0;
                              break;
                         case 0x01:
+                             bus_clk = cpu_busspeed / 6.0;
+                             break;
+                        case 0x02:
+                             bus_clk = cpu_busspeed / 5.0;
+                             break;
+                        case 0x03:
                              bus_clk = cpu_busspeed / 4.0;
                              break;
                     }
                     cpu_set_isa_speed((int) round(bus_clk));
                     reset_on_hlt = !!(val & 0x40);
-                    fallthrough;
-                }
-                case 0x11:
-                case 0x12:
-                case 0x13:
-                    dev->regs[dev->index] = val;
-                    opti283_shadow_recalc(dev);
                     break;
+                }
             }
 
             dev->index = 0xff;
@@ -277,16 +281,15 @@ opti283_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-opti283_read(uint16_t addr, void *priv)
+opti498_read(uint16_t addr, void *priv)
 {
-    opti283_t *dev = (opti283_t *) priv;
+    opti498_t *dev = (opti498_t *) priv;
+    uint8_t    reg = dev->index - dev->reg_base;
     uint8_t    ret = 0xff;
 
-    if ((addr == 0x23) && (dev->index == 0x01))
-        ret = dev->regs[dev->index];
-    else if (addr == 0x24) {
-        if ((dev->index >= 0x10) && (dev->index <= 0x14))
-            ret = dev->regs[dev->index];
+    if (addr == 0x24) {
+        if ((reg >= 0x00) && (reg <= 0x0b))
+            ret = dev->regs[reg];
 
         dev->index = 0xff;
     }
@@ -295,56 +298,60 @@ opti283_read(uint16_t addr, void *priv)
 }
 
 static void
-opti283_close(void *priv)
+opti498_close(void *priv)
 {
-    opti283_t *dev = (opti283_t *) priv;
+    opti498_t *dev = (opti498_t *) priv;
 
     free(dev);
 }
 
 static void *
-opti283_init(UNUSED(const device_t *info))
+opti498_init(UNUSED(const device_t *info))
 {
-    opti283_t *dev = (opti283_t *) calloc(1, sizeof(opti283_t));
+    opti498_t *dev = (opti498_t *) calloc(1, sizeof(opti498_t));
 
-    io_sethandler(0x0022, 0x0001, opti283_read, NULL, NULL, opti283_write, NULL, NULL, dev);
-    io_sethandler(0x0023, 0x0001, opti283_read, NULL, NULL, opti283_write, NULL, NULL, dev);
-    io_sethandler(0x0024, 0x0001, opti283_read, NULL, NULL, opti283_write, NULL, NULL, dev);
+    dev->reg_base = info->local & 0xff;
 
-    dev->regs[0x10] = 0x3f;
-    dev->regs[0x11] = 0xf0;
+    io_sethandler(0x0022, 0x0001, opti498_read, NULL, NULL, opti498_write, NULL, NULL, dev);
+    io_sethandler(0x0024, 0x0001, opti498_read, NULL, NULL, opti498_write, NULL, NULL, dev);
+
+    dev->regs[0x00] = 0x1f;
+    dev->regs[0x01] = 0x8f;
+    dev->regs[0x02] = 0xf0;
+    dev->regs[0x07] = 0x70;
+    dev->regs[0x09] = 0x70;
 
     dev->mem_remappings[0].phys = 0x000a0000;
     dev->mem_remappings[1].phys = 0x000d0000;
 
     mem_mapping_add(&dev->mem_mappings[0], 0, 0x00020000,
-                    opti283_read_remapped_ram, opti283_read_remapped_ramw, opti283_read_remapped_raml,
-                    opti283_write_remapped_ram, opti283_write_remapped_ramw, opti283_write_remapped_raml,
+                    opti498_read_remapped_ram, opti498_read_remapped_ramw, opti498_read_remapped_raml,
+                    opti498_write_remapped_ram, opti498_write_remapped_ramw, opti498_write_remapped_raml,
                     &ram[dev->mem_remappings[0].phys], MEM_MAPPING_INTERNAL, &dev->mem_remappings[0]);
     mem_mapping_disable(&dev->mem_mappings[0]);
 
     mem_mapping_add(&dev->mem_mappings[1], 0, 0x00020000,
-                    opti283_read_remapped_ram, opti283_read_remapped_ramw, opti283_read_remapped_raml,
-                    opti283_write_remapped_ram, opti283_write_remapped_ramw, opti283_write_remapped_raml,
+                    opti498_read_remapped_ram, opti498_read_remapped_ramw, opti498_read_remapped_raml,
+                    opti498_write_remapped_ram, opti498_write_remapped_ramw, opti498_write_remapped_raml,
                     &ram[dev->mem_remappings[1].phys], MEM_MAPPING_INTERNAL, &dev->mem_remappings[1]);
     mem_mapping_disable(&dev->mem_mappings[1]);
 
-    opti283_shadow_recalc(dev);
+    opti498_shadow_recalc(dev);
 
-    cpu_set_isa_speed((int) round(cpu_busspeed / 6.0));
+    cpu_set_isa_speed((int) round(cpu_busspeed / 8.0));
 
     device_add(&port_92_device);
 
     return dev;
 }
 
-const device_t opti283_device = {
-    .name          = "OPTi 82C283",
-    .internal_name = "opti283",
+const device_t opti498_device = {
+    .name          = "OPTi 82C498",
+    .internal_name = "opti498",
     .flags         = 0,
-    .local         = 0,
-    .init          = opti283_init,
-    .close         = opti283_close,
+    .local         = 0x70,
+    .init          = opti498_init,
+    .close         = opti498_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = NULL,

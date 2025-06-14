@@ -152,7 +152,9 @@ const machine_filter_t machine_chipsets[] = {
     { "OPTi 391",                   MACHINE_CHIPSET_OPTI_391            },
     { "OPTi 481",                   MACHINE_CHIPSET_OPTI_481            },
     { "OPTi 493",                   MACHINE_CHIPSET_OPTI_493            },
-    { "OPTi 495",                   MACHINE_CHIPSET_OPTI_495            },
+    { "OPTi 495SLC",                MACHINE_CHIPSET_OPTI_495SLC         },
+    { "OPTi 495SX",                 MACHINE_CHIPSET_OPTI_495SX          },
+    { "OPTi 498",                   MACHINE_CHIPSET_OPTI_498            },
     { "OPTi 499",                   MACHINE_CHIPSET_OPTI_499            },
     { "OPTi 895/802G",              MACHINE_CHIPSET_OPTI_895_802G       },
     { "OPTi 547/597",               MACHINE_CHIPSET_OPTI_547_597        },
@@ -5800,10 +5802,10 @@ const machine_t machines[] = {
         but the BIOS sends commands C9 without a parameter and D5, both of which are
         Phoenix MultiKey commands. */
     {
-        .name = "[OPTi 495] U-Board OPTi 495SLC",
+        .name = "[OPTi 495SLC] U-Board OPTi 495SLC",
         .internal_name = "award495",
         .type = MACHINE_TYPE_386DX,
-        .chipset = MACHINE_CHIPSET_OPTI_495,
+        .chipset = MACHINE_CHIPSET_OPTI_495SLC,
         .init = machine_at_opti495_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
@@ -6042,12 +6044,52 @@ const machine_t machines[] = {
     },
 
     /* 386DX/486 machines */
+    /* Has AMIKey F KBC firmware. The EFAR chipst is a rebrand of OPTi 495SX. */
+    {
+        .name = "[OPTi 495SX] CAF Technology C747",
+        .internal_name = "c747",
+        .type = MACHINE_TYPE_386DX_486,
+        .chipset = MACHINE_CHIPSET_OPTI_495SX,
+        .init = machine_at_c747_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386DX | CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_APM | MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has AMIKey F KBC firmware. */
     {
-        .name = "[OPTi 495] DataExpert SX495",
+        .name = "[OPTi 495SX] DataExpert SX495",
         .internal_name = "ami495",
         .type = MACHINE_TYPE_386DX_486,
-        .chipset = MACHINE_CHIPSET_OPTI_495,
+        .chipset = MACHINE_CHIPSET_OPTI_495SX,
         .init = machine_at_opti495_ami_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
@@ -6084,10 +6126,10 @@ const machine_t machines[] = {
     },
     /* Has AMIKey F KBC firmware (it's just the MR BIOS for the above machine). */
     {
-        .name = "[OPTi 495] DataExpert SX495 (MR BIOS)",
+        .name = "[OPTi 495SX] DataExpert SX495 (MR BIOS)",
         .internal_name = "mr495",
         .type = MACHINE_TYPE_386DX_486,
-        .chipset = MACHINE_CHIPSET_OPTI_495,
+        .chipset = MACHINE_CHIPSET_OPTI_495SX,
         .init = machine_at_opti495_mr_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
@@ -6409,10 +6451,10 @@ const machine_t machines[] = {
     /* Uses some variant of Phoenix MultiKey/42 as the Intel 8242 chip has a Phoenix
        copyright. */
     {
-        .name = "[OPTi 495] Mylex MVI486",
+        .name = "[OPTi 498] Mylex MVI486",
         .internal_name = "mvi486",
         .type = MACHINE_TYPE_486,
-        .chipset = MACHINE_CHIPSET_OPTI_495,
+        .chipset = MACHINE_CHIPSET_OPTI_498,
         .init = machine_at_mvi486_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,

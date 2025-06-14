@@ -682,7 +682,7 @@ machine_at_opti495_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&opti495_device);
+    device_add(&opti495slc_device);
 
     device_add(&keyboard_at_device);
 
@@ -697,7 +697,7 @@ machine_at_opti495_ami_common_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add(&opti495_device);
+    device_add(&opti495sx_device);
 
     device_add(&keyboard_at_ami_device);
 
@@ -733,6 +733,34 @@ machine_at_opti495_mr_init(const machine_t *model)
         return ret;
 
     machine_at_opti495_ami_common_init(model);
+
+    return ret;
+}
+
+int
+machine_at_c747_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/c747/486-C747 Tandon.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    /* The EFAR chipset is a rebrand of the OPTi 495SX. */
+    device_add(&opti495sx_device);
+
+    /*
+       No idea what KBC it actually has but this produces the
+       desired behavior: command A9 does absolutely nothing.
+     */
+    device_add(&keyboard_at_siemens_device);
+
+    device_add(&ide_isa_device);
+    device_add(&um82c862f_ide_device);
 
     return ret;
 }
@@ -975,7 +1003,8 @@ machine_at_mvi486_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&opti495_device);
+    device_add(&opti498_device);
+
     device_add(&keyboard_at_device);
     device_add(&pc87311_ide_device);
 
