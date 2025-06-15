@@ -137,6 +137,7 @@ typedef struct mach_t {
         int16_t  dx_end;
         int16_t  dy;
         int16_t  dy_end;
+        int16_t  dx_first_row_start;
         int16_t  dx_start;
         int16_t  dy_start;
         int16_t  cy;
