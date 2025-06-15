@@ -777,6 +777,18 @@ cga_standalone_init(UNUSED(const device_t *info))
         }
     }
 
+    switch(device_get_config_int("font")) {
+        case 0:
+            loadfont(FONT_IBM_MDA_437_PATH, 0);
+            break;
+        case 1:
+            loadfont(FONT_IBM_MDA_437_NORDIC_PATH, 0);
+            break;
+        case 4:
+            loadfont(FONT_TULIP_DGA_PATH, 0);
+            break;
+    }
+
     return cga;
 }
 
@@ -877,6 +889,22 @@ const device_config_t cga_config[] = {
             { .description = "sRGB interpolation",   .value = DOUBLE_INTERPOLATE_SRGB   },
             { .description = "Linear interpolation", .value = DOUBLE_INTERPOLATE_LINEAR },
             { .description = ""                                                         }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "font",
+        .description    = "Font",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "US (CP 437)",                 .value = 0 },
+            { .description = "IBM Nordic (CP 437-Nordic)",  .value = 1 },
+            { .description = "Tulip DGA",                   .value = 4 },
+            { .description = ""                                        }
         },
         .bios           = { { 0 } }
     },

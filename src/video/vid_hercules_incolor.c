@@ -992,6 +992,24 @@ incolor_init(UNUSED(const device_t *info))
 
     dev->vram = (uint8_t *) malloc(0x40000); /* 4 planes of 64k */
 
+    switch(device_get_config_int("font")) {
+        case 0:
+            loadfont(FONT_IBM_MDA_437_PATH, 0);
+            break;
+        case 1:
+            loadfont(FONT_IBM_MDA_437_NORDIC_PATH, 0);
+            break;
+        case 2:
+            loadfont(FONT_KAM_PATH, 0);
+            break;
+        case 3:
+            loadfont(FONT_KAMCL16_PATH, 0);
+            break;
+        case 4:
+            loadfont(FONT_TULIP_DGA_PATH, 0);
+            break;
+    }
+
     timer_add(&dev->timer, incolor_poll, dev, 1);
 
     mem_mapping_add(&dev->mapping, 0xb0000, 0x08000,
@@ -1044,6 +1062,30 @@ speed_changed(void *priv)
     recalc_timings(dev);
 }
 
+static const device_config_t incolor_config[] = {
+  // clang-format off
+    {
+        .name           = "font",
+        .description    = "Font",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "US (CP 437)",                 .value = 0 },
+            { .description = "IBM Nordic (CP 437-Nordic)",  .value = 1 },
+            { .description = "Czech Kamenicky (CP 895) #1", .value = 2 },
+            { .description = "Czech Kamenicky (CP 895) #2", .value = 3 },
+            { .description = "Tulip DGA",                   .value = 4 },
+            { .description = ""                                        }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
 const device_t incolor_device = {
     .name          = "Hercules InColor",
     .internal_name = "incolor",
@@ -1055,5 +1097,5 @@ const device_t incolor_device = {
     .available     = NULL,
     .speed_changed = speed_changed,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = incolor_config
 };

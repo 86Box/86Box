@@ -629,6 +629,24 @@ herculesplus_init(UNUSED(const device_t *info))
     dev->vram          = (uint8_t *) malloc(0x10000); /* 64k VRAM */
     dev->monitor_index = monitor_index_global;
 
+    switch(device_get_config_int("font")) {
+        case 0:
+            loadfont(FONT_IBM_MDA_437_PATH, 0);
+            break;
+        case 1:
+            loadfont(FONT_IBM_MDA_437_NORDIC_PATH, 0);
+            break;
+        case 2:
+            loadfont(FONT_KAM_PATH, 0);
+            break;
+        case 3:
+            loadfont(FONT_KAMCL16_PATH, 0);
+            break;
+        case 4:
+            loadfont(FONT_TULIP_DGA_PATH, 0);
+            break;
+    }
+
     timer_add(&dev->timer, herculesplus_poll, dev, 1);
 
     mem_mapping_add(&dev->mapping, 0xb0000, 0x08000,
@@ -712,6 +730,24 @@ static const device_config_t herculesplus_config[] = {
             { .description = "Amber",   .value = 2 },
             { .description = "Gray",    .value = 3 },
             { .description = ""                    }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "font",
+        .description    = "Font",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "US (CP 437)",                 .value = 0 },
+            { .description = "IBM Nordic (CP 437-Nordic)",  .value = 1 },
+            { .description = "Czech Kamenicky (CP 895) #1", .value = 2 },
+            { .description = "Czech Kamenicky (CP 895) #2", .value = 3 },
+            { .description = "Tulip DGA",                   .value = 4 },
+            { .description = ""                                        }
         },
         .bios           = { { 0 } }
     },

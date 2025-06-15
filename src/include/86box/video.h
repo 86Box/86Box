@@ -75,6 +75,7 @@ enum {
 #define FONT_IBM_MDA_437_NORDIC_PATH "roms/video/mda/4733197.bin"
 #define FONT_KAM_PATH                "roms/video/mda/kam.bin"
 #define FONT_KAMCL16_PATH            "roms/video/mda/kamcl16.bin"
+#define FONT_TULIP_DGA_PATH          "roms/video/mda/tulip-dga-bios.bin"
 
 typedef struct video_timings_t {
     int type;
