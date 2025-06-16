@@ -217,10 +217,16 @@ mda_poll(void *priv)
                         }
                         
                         buffer32->line[mda->displine][(x * 9) + c] = font_char;
-
                     }
                     if ((chr & ~0x1f) == 0xc0)
-                        buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][fontdatm[chr + mda->fontbase][mda->scanline] & 1];
+                    {
+                        bool is_fg = fontdatm[chr + mda->fontbase][mda->scanline] & 1;
+
+                        if (is_fg)
+                            buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][is_fg] | color_fg; 
+                        else
+                            buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][is_fg] | color_bg; 
+                    }
                     else
                         buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][0] | color_bg;
                 }
