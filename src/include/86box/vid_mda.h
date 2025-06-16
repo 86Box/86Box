@@ -66,6 +66,26 @@ typedef enum mda_mode_flags_e
     MDA_MODE_BLINK = 1 << 5,
 } mda_mode_flags;
 
+typedef enum mda_colors_e 
+{
+    MDA_COLOR_BLACK = 0,
+    MDA_COLOR_BLUE = 1,
+    MDA_COLOR_GREEN = 2,
+    MDA_COLOR_CYAN = 3,
+    MDA_COLOR_RED = 4,
+    MDA_COLOR_MAGENTA = 5,
+    MDA_COLOR_BROWN = 6,
+    MDA_COLOR_WHITE = 7,
+    MDA_COLOR_GREY = 8,
+    MDA_COLOR_BRIGHT_BLUE = 9,
+    MDA_COLOR_BRIGHT_GREEN = 10,
+    MDA_COLOR_BRIGHT_CYAN = 11,
+    MDA_COLOR_BRIGHT_RED = 12,
+    MDA_COLOR_BRIGHT_MAGENTA = 13,
+    MDA_COLOR_BRIGHT_YELLOW = 14,
+    MDA_COLOR_BRIGHT_WHITE = 15,
+} mda_colors; 
+
 typedef struct mda_t {
     mem_mapping_t mapping;
 

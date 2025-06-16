@@ -193,18 +193,18 @@ mda_poll(void *priv)
 
                     bool special_treatment = (color_bg != 0 && color_bg != 7);
 
-                    if (color_fg == 8
+                    if (color_fg == MDA_COLOR_GREY
                         && special_treatment)
-                        color_fg = 15;
+                        color_fg = MDA_COLOR_BRIGHT_WHITE;
 
                     if (color_fg == 0
                         && special_treatment)
-                        color_fg = 8;
+                        color_fg = MDA_COLOR_GREY;
 
                     // gray is black
-                    if (color_fg == 8
-                        && (color_bg == 8 || color_bg == 0))
-                        color_fg = 0;
+                    if (color_fg == MDA_COLOR_GREY
+                        && (color_bg == MDA_COLOR_GREY || color_bg == MDA_COLOR_BLACK))
+                        color_fg = MDA_COLOR_BLACK;
                 }
 
                 if (mda->scanline == 12
