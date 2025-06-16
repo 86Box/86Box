@@ -213,7 +213,7 @@ mda_poll(void *priv)
 
                         // gray is black
                     if (color_fg == 7
-                    && color_bg == 7)
+                    && (color_bg == 7 || color_bg == 0))
                         color_fg = 0;
                 }
 
