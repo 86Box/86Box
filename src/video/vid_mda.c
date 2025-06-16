@@ -210,6 +210,11 @@ mda_poll(void *priv)
                     if (color_fg == 0
                     && special_treatment)
                         color_fg = 7;
+
+                        // gray is black
+                    if (color_fg == 7
+                    && color_bg == 7)
+                        color_fg = 0;
                 }
 
                 if (mda->scanline == 12 && ((attr & 7) == 1)) 
