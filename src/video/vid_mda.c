@@ -198,7 +198,7 @@ mda_poll(void *priv)
 
                 if (mda->scanline == 12 && ((attr & 7) == 1)) { // underline
                     for (c = 0; c < 9; c++)
-                        buffer32->line[mda->displine][(x * 9) + c] = mda_attr_to_color_table[attr][blink][1] | color_bg;
+                        buffer32->line[mda->displine][(x * 9) + c] = mda_attr_to_color_table[attr][blink][1] | color_fg;
                 } else {
                     for (c = 0; c < 8; c++)
                     {
@@ -207,7 +207,8 @@ mda_poll(void *priv)
 
                         uint32_t font_char = mda_attr_to_color_table[attr][blink][is_fg];
 
-                        if (!(mda->mode & MDA_MODE_BW))
+                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
+                            && !(mda->mode & MDA_MODE_BW))
                         {
                             if (!is_fg)
                                 font_char = 16 + color_bg; 
