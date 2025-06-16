@@ -817,6 +817,10 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                     dev->accel.dy |= ~0x5ff;
 
                 /*Destination Width*/
+                mach->accel.dx_first_row_start = dev->accel.cur_x;
+                if (dev->accel.cur_x >= 0x600)
+                    mach->accel.dx_first_row_start |= ~0x5ff;
+
                 mach->accel.dx_start = mach->accel.dest_x_start;
                 if (mach->accel.dest_x_start >= 0x600)
                     mach->accel.dx_start |= ~0x5ff;
@@ -831,16 +835,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 } else if (mach->accel.dx_end < mach->accel.dx_start) {
                     mach->accel.width = (mach->accel.dx_start - mach->accel.dx_end);
                     mach->accel.stepx = -1;
-                    if (dev->accel.dx > 0)
-                        dev->accel.dx--;
-                    mach_log("BitBLT: Dst Negative X, dxstart = %d, end = %d, width = %d, dx = %d, dpconfig = %04x.\n",
-                             mach->accel.dest_x_start, mach->accel.dest_x_end, mach->accel.width, dev->accel.dx,
-                             mach->accel.dp_config);
                 } else {
                     mach->accel.stepx = 1;
                     mach->accel.width = 0;
-                    mach_log("BitBLT: Dst Indeterminate X, dpconfig = %04x, destxend = %d, destxstart = %d.\n",
-                             mach->accel.dp_config, mach->accel.dest_x_end, mach->accel.dest_x_start);
                 }
 
                 dev->accel.sx = 0;
@@ -868,6 +865,24 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
 
                 if (mach->accel.dp_config == 0x4011)
                     mach->accel.height++;
+
+                if (mach->accel.height == 1) {
+                    if (mach->accel.dx_end > mach->accel.dx_first_row_start) {
+                        mach->accel.width = (mach->accel.dx_end - mach->accel.dx_first_row_start);
+                        mach->accel.stepx = 1;
+                    } else if (mach->accel.dx_end < mach->accel.dx_first_row_start) {
+                        mach->accel.width = (mach->accel.dx_first_row_start - mach->accel.dx_end);
+                        mach->accel.stepx = -1;
+                    } else {
+                        mach->accel.stepx = 1;
+                        mach->accel.width = 0;
+                    }
+                }
+
+                if (mach->accel.stepx == -1) {
+                    if (dev->accel.dx > 0)
+                        dev->accel.dx--;
+                }
 
                 dev->accel.sy = 0;
                 dev->accel.dest = mach->accel.dst_ge_offset + (dev->accel.dy * mach->accel.dst_pitch);
@@ -6475,6 +6490,7 @@ ati8514_io_set(svga_t *svga)
     io_sethandler(0xeeee, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
     io_sethandler(0xf2ee, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
     io_sethandler(0xf6ee, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
+    io_sethandler(0xfaee, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
     io_sethandler(0xfeee, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
 }
 
