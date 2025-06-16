@@ -192,8 +192,14 @@ mda_poll(void *priv)
                     {
                         color_bg = (attr >> 4) & 0x0F;
                         color_fg = (attr & 0x0F); 
-                    }
-                        
+
+                        // turn off bright bg colours in blink mode
+                        if ((mda->mode & MDA_MODE_BLINK)
+                        && (color_bg & 0x8))
+                        {
+                            color_bg & ~(0x8);
+                        }  
+                    }   
                 }
 
                 if (mda->scanline == 12 && ((attr & 7) == 1)) { // underline
@@ -222,10 +228,10 @@ mda_poll(void *priv)
                     {
                         bool is_fg = fontdatm[chr + mda->fontbase][mda->scanline] & 1;
 
-                        if (is_fg)
-                            buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][is_fg] | color_fg; 
-                        else
+                        if (!is_fg)
                             buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][is_fg] | color_bg; 
+                        else
+                            buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][is_fg] | color_fg; 
                     }
                     else
                         buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][0] | color_bg;
