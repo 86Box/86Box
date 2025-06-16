@@ -359,12 +359,13 @@ void
 mda_init(mda_t *mda)
 {
     
-    for (uint16_t c = 0; c < 256; c++) {
-        mda_attr_to_color_table[c][0][0] = mda_attr_to_color_table[c][1][0] = mda_attr_to_color_table[c][1][1] = 16;
-        if (c & 8)
-            mda_attr_to_color_table[c][0][1] = 15 + 16;
+    for (uint16_t attr = 0; attr < 256; attr++) 
+    {
+        mda_attr_to_color_table[attr][0][0] = mda_attr_to_color_table[attr][1][0] = mda_attr_to_color_table[attr][1][1] = 16;
+        if (attr & 8)
+            mda_attr_to_color_table[attr][0][1] = 15 + 16;
         else
-            mda_attr_to_color_table[c][0][1] = 7 + 16;
+            mda_attr_to_color_table[attr][0][1] = 7 + 16;
     }
     mda_attr_to_color_table[0x70][0][1] = 16;
     mda_attr_to_color_table[0x70][0][0] = mda_attr_to_color_table[0x70][1][0] = mda_attr_to_color_table[0x70][1][1] = CGAPAL_CGA_START + 15;
