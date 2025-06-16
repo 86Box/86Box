@@ -37,13 +37,12 @@
 #include <86box/plat_unused.h>
 
 // Enumerates MDA monitor types
-enum mda_monitor_type_e 
-{
-    MDA_MONITOR_TYPE_DEFAULT = 0,           // Default MDA monitor type.
-    MDA_MONITOR_TYPE_GREEN = 1,             // Green phosphor
-    MDA_MONITOR_TYPE_AMBER = 2,             // Amber phosphor
-    MDA_MONITOR_TYPE_GRAY = 3,              // Gray phosphor
-    MDA_MONITOR_TYPE_RGBI = 4,              // RGBI colour monitor with modified rev1 or rev0 MDA card for colour support
+enum mda_monitor_type_e {
+    MDA_MONITOR_TYPE_DEFAULT = 0, // Default MDA monitor type.
+    MDA_MONITOR_TYPE_GREEN   = 1, // Green phosphor
+    MDA_MONITOR_TYPE_AMBER   = 2, // Amber phosphor
+    MDA_MONITOR_TYPE_GRAY    = 3, // Gray phosphor
+    MDA_MONITOR_TYPE_RGBI    = 4, // RGBI colour monitor with modified rev1 or rev0 MDA card for colour support
 } mda_monitor_type;
 
 // [attr][blink][fg]
@@ -58,12 +57,11 @@ mda_out(uint16_t addr, uint8_t val, void *priv)
 {
     mda_t *mda = (mda_t *) priv;
 
-    if (addr < MDA_REGISTER_START 
-    || addr > MDA_REGISTER_CRT_STATUS)  // Maintain old behaviour for printer registers, just in case
+    if (addr < MDA_REGISTER_START
+        || addr > MDA_REGISTER_CRT_STATUS) // Maintain old behaviour for printer registers, just in case
         return;
 
-    switch (addr)
-    {
+    switch (addr) {
         case MDA_REGISTER_MODE_CONTROL:
             mda->mode = val;
             return;
@@ -73,20 +71,17 @@ mda_out(uint16_t addr, uint8_t val, void *priv)
 
     // addr & 1 == 1 = MDA_REGISTER_CRTC_DATA
     // otherwise       MDA_REGISTER_CRTC_INDEX
-    if (addr & 1)
-    {
+    if (addr & 1) {
         mda->crtc[mda->crtcreg] = val;
-        if (mda->crtc[MDA_CRTC_CURSOR_START] == 6 
+        if (mda->crtc[MDA_CRTC_CURSOR_START] == 6
             && mda->crtc[MDA_CRTC_CURSOR_END] == 7) /*Fix for Generic Turbo XT BIOS, which sets up cursor registers wrong*/
         {
             mda->crtc[MDA_CRTC_CURSOR_START] = 0xb;
-            mda->crtc[MDA_CRTC_CURSOR_END] = 0xc;
+            mda->crtc[MDA_CRTC_CURSOR_END]   = 0xc;
         }
         mda_recalctimings(mda);
-    }
-    else
+    } else
         mda->crtcreg = val & 31;
-
 }
 
 uint8_t
@@ -94,19 +89,18 @@ mda_in(uint16_t addr, void *priv)
 {
     const mda_t *mda = (mda_t *) priv;
 
-    switch (addr)
-    {
+    switch (addr) {
         case MDA_REGISTER_CRT_STATUS:
             return mda->status | 0xF0;
         default:
-            if (addr < MDA_REGISTER_START 
-            || addr > MDA_REGISTER_CRT_STATUS)  // Maintain old behaviour for printer registers, just in case
+            if (addr < MDA_REGISTER_START
+                || addr > MDA_REGISTER_CRT_STATUS) // Maintain old behaviour for printer registers, just in case
                 return 0xFF;
 
             // MDA_REGISTER_CRTC_DATA
             if (addr & 1)
                 return mda->crtc[mda->crtcreg];
-            else 
+            else
                 return mda->crtcreg;
 
             break;
@@ -148,8 +142,8 @@ mda_recalctimings(mda_t *mda)
 void
 mda_poll(void *priv)
 {
-    mda_t   *mda = (mda_t *) priv;
-    uint16_t cursoraddr  = (mda->crtc[MDA_CRTC_CURSOR_ADDR_LOW] | (mda->crtc[MDA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
+    mda_t   *mda        = (mda_t *) priv;
+    uint16_t cursoraddr = (mda->crtc[MDA_CRTC_CURSOR_ADDR_LOW] | (mda->crtc[MDA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
     bool     drawcursor;
     int32_t  oldvc;
     uint8_t  chr;
@@ -159,44 +153,39 @@ mda_poll(void *priv)
 
     VIDEO_MONITOR_PROLOGUE()
 
-    if (!mda->linepos)
-    {
+    if (!mda->linepos) {
         timer_advance_u64(&mda->timer, mda->dispofftime);
         mda->status |= 1;
         mda->linepos = 1;
-        scanline_old        = mda->scanline;
+        scanline_old = mda->scanline;
         if ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3)
             mda->scanline = (mda->scanline << 1) & 7;
 
-        if (mda->dispon)
-        {
-            if (mda->displine < mda->firstline)
-            {
+        if (mda->dispon) {
+            if (mda->displine < mda->firstline) {
                 mda->firstline = mda->displine;
                 video_wait_for_buffer();
             }
             mda->lastline = mda->displine;
 
-            for (uint32_t x = 0; x < mda->crtc[MDA_CRTC_HDISP]; x++)
-            {
+            for (uint32_t x = 0; x < mda->crtc[MDA_CRTC_HDISP]; x++) {
                 chr        = mda->vram[(mda->memaddr << 1) & 0xfff];
                 attr       = mda->vram[((mda->memaddr << 1) + 1) & 0xfff];
                 drawcursor = ((mda->memaddr == cursoraddr) && mda->cursorvisible && mda->cursoron);
                 blink      = ((mda->blink & 16) && (mda->mode & MDA_MODE_BLINK) && (attr & 0x80) && !drawcursor);
 
                 // Colours that will be used
-                int32_t color_bg = 0, color_fg = 0; 
-    
+                int32_t color_bg = 0, color_fg = 0;
+
                 // If we are using an RGBI monitor allow colour
                 if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI
-                && !(mda->mode & MDA_MODE_BW))
-                {
+                    && !(mda->mode & MDA_MODE_BW)) {
                     color_bg = (attr >> 4) & 0x0F;
-                    color_fg = (attr & 0x0F); 
+                    color_fg = (attr & 0x0F);
 
                     // turn off bright bg colours in blink mode
                     if ((mda->mode & MDA_MODE_BLINK)
-                    && (color_bg & 0x8))
+                        && (color_bg & 0x8))
                         color_bg & ~(0x8);
 
                     // black-on-non black or white colours forced to white
@@ -204,98 +193,80 @@ mda_poll(void *priv)
 
                     bool special_treatment = (color_bg != 0 && color_bg != 7);
 
-                    if (color_fg == 8 
-                    && special_treatment)
+                    if (color_fg == 8
+                        && special_treatment)
                         color_fg = 15;
-                    
+
                     if (color_fg == 0
-                    && special_treatment)
+                        && special_treatment)
                         color_fg = 8;
 
-                        // gray is black
+                    // gray is black
                     if (color_fg == 8
-                    && (color_bg == 8 || color_bg == 0))
+                        && (color_bg == 8 || color_bg == 0))
                         color_fg = 0;
                 }
 
-                if (mda->scanline == 12 
-                    && ((attr & 7) == 1)) 
-                { // underline
-                    for (uint32_t column = 0; column < 9; column++)
-                    {
-                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
-                            && !(mda->mode & MDA_MODE_BW))
-                        {
+                if (mda->scanline == 12
+                    && ((attr & 7) == 1)) { // underline
+                    for (uint32_t column = 0; column < 9; column++) {
+                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI
+                            && !(mda->mode & MDA_MODE_BW)) {
                             buffer32->line[mda->displine][(x * 9) + column] = CGAPAL_CGA_START + color_fg;
-                        }
-                        else
+                        } else
                             buffer32->line[mda->displine][(x * 9) + column] = mda_attr_to_color_table[attr][blink][1];
                     }
-                } 
-                else 
-                { // character
-                    for (uint32_t column = 0; column < 8; column++)
-                    {
-                        //bg=0, fg=1
+                } else { // character
+                    for (uint32_t column = 0; column < 8; column++) {
+                        // bg=0, fg=1
                         bool is_fg = (fontdatm[chr + mda->fontbase][mda->scanline] & (1 << (column ^ 7))) ? 1 : 0;
 
                         uint32_t font_char = mda_attr_to_color_table[attr][blink][is_fg];
 
-                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
-                            && !(mda->mode & MDA_MODE_BW))
-                        {
+                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI
+                            && !(mda->mode & MDA_MODE_BW)) {
                             if (!is_fg)
-                                font_char = CGAPAL_CGA_START + color_bg; 
-                            else  
-                                font_char = CGAPAL_CGA_START + color_fg; 
+                                font_char = CGAPAL_CGA_START + color_bg;
+                            else
+                                font_char = CGAPAL_CGA_START + color_fg;
                         }
-                        
+
                         buffer32->line[mda->displine][(x * 9) + column] = font_char;
                     }
-                    
+
                     // these characters (C0-DF) have their background extended to their 9th column
-                    if ((chr & ~0x1f) == 0xc0)
-                    {
-                        bool is_fg = fontdatm[chr + mda->fontbase][mda->scanline] & 1;
+                    if ((chr & ~0x1f) == 0xc0) {
+                        bool     is_fg        = fontdatm[chr + mda->fontbase][mda->scanline] & 1;
                         uint32_t final_result = mda_attr_to_color_table[attr][blink][is_fg];
 
-                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
-                            &&  !(mda->mode & MDA_MODE_BW))
-                        {
+                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI
+                            && !(mda->mode & MDA_MODE_BW)) {
                             if (!is_fg)
-                                final_result = CGAPAL_CGA_START + color_bg; 
+                                final_result = CGAPAL_CGA_START + color_bg;
                             else
-                                final_result = CGAPAL_CGA_START + color_fg; 
+                                final_result = CGAPAL_CGA_START + color_fg;
                         }
 
-                        buffer32->line[mda->displine][(x * 9) + 8] = final_result; 
+                        buffer32->line[mda->displine][(x * 9) + 8] = final_result;
 
-                    }
-                    else
-                    {   
-                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
-                            && !(mda->mode & MDA_MODE_BW))
-                            {
-                                buffer32->line[mda->displine][(x * 9) + 8] = CGAPAL_CGA_START + color_bg;
+                    } else {
+                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI
+                            && !(mda->mode & MDA_MODE_BW)) {
+                            buffer32->line[mda->displine][(x * 9) + 8] = CGAPAL_CGA_START + color_bg;
 
-                            }
-                            else
-                                buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][0];
+                        } else
+                            buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][0];
                     }
                 }
-                
+
                 mda->memaddr++;
 
-                if (drawcursor) 
-                {
-                    for (uint32_t column = 0; column < 9; column++)
-                    {
-                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
-                            && !(mda->mode & MDA_MODE_BW))
-                        {
-                            buffer32->line[mda->displine][(x * 9) + column] ^= CGAPAL_CGA_START + color_fg; 
-                        }
-                        else 
+                if (drawcursor) {
+                    for (uint32_t column = 0; column < 9; column++) {
+                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI
+                            && !(mda->mode & MDA_MODE_BW)) {
+                            buffer32->line[mda->displine][(x * 9) + column] ^= CGAPAL_CGA_START + color_fg;
+                        } else
                             buffer32->line[mda->displine][(x * 9) + column] ^= mda_attr_to_color_table[attr][0][1];
                     }
                 }
@@ -316,41 +287,34 @@ mda_poll(void *priv)
             mda->status &= ~1;
         mda->linepos = 0;
 
-        if (mda->vsynctime) 
-        {
+        if (mda->vsynctime) {
             mda->vsynctime--;
-            if (!mda->vsynctime) 
-            {
+            if (!mda->vsynctime) {
                 mda->status &= ~8;
             }
         }
-        if (mda->scanline == (mda->crtc[MDA_CRTC_CURSOR_END] & 31) 
-        || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3
-        && mda->scanline == ((mda->crtc[MDA_CRTC_CURSOR_END] & 31) >> 1))) 
-        {
-            mda->cursorvisible  = 0;
+        if (mda->scanline == (mda->crtc[MDA_CRTC_CURSOR_END] & 31)
+            || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3
+                && mda->scanline == ((mda->crtc[MDA_CRTC_CURSOR_END] & 31) >> 1))) {
+            mda->cursorvisible = 0;
         }
 
-        if (mda->vadj) 
-        {
+        if (mda->vadj) {
             mda->scanline++;
             mda->scanline &= 31;
             mda->memaddr = mda->memaddr_backup;
             mda->vadj--;
-            if (!mda->vadj) 
-            {
-                mda->dispon = 1;
+            if (!mda->vadj) {
+                mda->dispon  = 1;
                 mda->memaddr = mda->memaddr_backup = (mda->crtc[MDA_CRTC_START_ADDR_LOW] | (mda->crtc[MDA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
-                mda->scanline = 0;
+                mda->scanline                      = 0;
             }
-        } 
-        else if (mda->scanline == mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR]
-            || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3 
-            && mda->scanline == (mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR] >> 1))) 
-            {
+        } else if (mda->scanline == mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR]
+                   || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3
+                       && mda->scanline == (mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR] >> 1))) {
             mda->memaddr_backup = mda->memaddr;
-            mda->scanline = 0;
-            oldvc = mda->vc;
+            mda->scanline       = 0;
+            oldvc               = mda->vc;
             mda->vc++;
             mda->vc &= 127;
             if (mda->vc == mda->crtc[MDA_CRTC_VDISP])
@@ -403,9 +367,9 @@ mda_poll(void *priv)
             mda->memaddr = mda->memaddr_backup;
         }
 
-        if (mda->scanline == (mda->crtc[MDA_CRTC_CURSOR_START] & 31) 
-        || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3 
-        && mda->scanline == ((mda->crtc[MDA_CRTC_CURSOR_START] & 31) >> 1))) {
+        if (mda->scanline == (mda->crtc[MDA_CRTC_CURSOR_START] & 31)
+            || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3
+                && mda->scanline == ((mda->crtc[MDA_CRTC_CURSOR_START] & 31) >> 1))) {
             mda->cursorvisible = 1;
         }
     }
@@ -415,9 +379,8 @@ mda_poll(void *priv)
 void
 mda_init(mda_t *mda)
 {
-    
-    for (uint16_t attr = 0; attr < 256; attr++) 
-    {
+
+    for (uint16_t attr = 0; attr < 256; attr++) {
         mda_attr_to_color_table[attr][0][0] = mda_attr_to_color_table[attr][1][0] = mda_attr_to_color_table[attr][1][1] = 16;
         if (attr & 8)
             mda_attr_to_color_table[attr][0][1] = 15 + 16;
@@ -426,23 +389,22 @@ mda_init(mda_t *mda)
     }
     mda_attr_to_color_table[0x70][0][1] = 16;
     mda_attr_to_color_table[0x70][0][0] = mda_attr_to_color_table[0x70][1][0] = mda_attr_to_color_table[0x70][1][1] = CGAPAL_CGA_START + 15;
-    mda_attr_to_color_table[0xF0][0][1]                                             = 16;
+    mda_attr_to_color_table[0xF0][0][1]                                                                             = 16;
     mda_attr_to_color_table[0xF0][0][0] = mda_attr_to_color_table[0xF0][1][0] = mda_attr_to_color_table[0xF0][1][1] = CGAPAL_CGA_START + 15;
-    mda_attr_to_color_table[0x78][0][1]                                             = CGAPAL_CGA_START + 7;
+    mda_attr_to_color_table[0x78][0][1]                                                                             = CGAPAL_CGA_START + 7;
     mda_attr_to_color_table[0x78][0][0] = mda_attr_to_color_table[0x78][1][0] = mda_attr_to_color_table[0x78][1][1] = CGAPAL_CGA_START + 15;
-    mda_attr_to_color_table[0xF8][0][1]                                             = CGAPAL_CGA_START + 7;
+    mda_attr_to_color_table[0xF8][0][1]                                                                             = CGAPAL_CGA_START + 7;
     mda_attr_to_color_table[0xF8][0][0] = mda_attr_to_color_table[0xF8][1][0] = mda_attr_to_color_table[0xF8][1][1] = CGAPAL_CGA_START + 15;
     mda_attr_to_color_table[0x00][0][1] = mda_attr_to_color_table[0x00][1][1] = 16;
     mda_attr_to_color_table[0x08][0][1] = mda_attr_to_color_table[0x08][1][1] = 16;
     mda_attr_to_color_table[0x80][0][1] = mda_attr_to_color_table[0x80][1][1] = 16;
     mda_attr_to_color_table[0x88][0][1] = mda_attr_to_color_table[0x88][1][1] = 16;
-    
 
     overscan_x = overscan_y = 0;
     mda->monitor_index      = monitor_index_global;
 
     mda->monitor_type = device_get_config_int("rgb_type");
-    cga_palette = mda->monitor_type << 1;
+    cga_palette       = mda->monitor_type << 1;
     if (cga_palette > 6) {
         cga_palette = 0;
     }
@@ -460,7 +422,7 @@ mda_standalone_init(UNUSED(const device_t *info))
 
     mda->vram = malloc(0x1000);
 
-    switch(device_get_config_int("font")) {
+    switch (device_get_config_int("font")) {
         case 0:
             loadfont(FONT_IBM_MDA_437_PATH, 0);
             break;
@@ -517,9 +479,8 @@ mda_speed_changed(void *priv)
     mda_recalctimings(mda);
 }
 
-
 static const device_config_t mda_config[] = {
-  // clang-format off
+    // clang-format off
     {
         .name           = "rgb_type",
         .description    = "Display type",
@@ -558,7 +519,7 @@ static const device_config_t mda_config[] = {
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t mda_device = {
