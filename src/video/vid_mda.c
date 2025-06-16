@@ -152,7 +152,7 @@ mda_poll(void *priv)
     uint16_t cursoraddr  = (mda->crtc[MDA_CRTC_CURSOR_ADDR_LOW] | (mda->crtc[MDA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
     int      drawcursor;
     int      x;
-    int      c;
+    int      column;
     int      oldvc;
     uint8_t  chr;
     uint8_t  attr;
@@ -197,25 +197,38 @@ mda_poll(void *priv)
                     if ((mda->mode & MDA_MODE_BLINK)
                     && (color_bg & 0x8))
                         color_bg & ~(0x8);
+
+                    // black-on-non black or white colours forced to white
+                    // grey-on-colours forced to bright white
+
+                    bool special_treatment = (color_bg != 0 && color_bg != 7);
+
+                    if (color_fg == 7 
+                    && special_treatment)
+                        color_fg = 15;
+                    
+                    if (color_fg == 0
+                    && special_treatment)
+                        color_fg = 7;
                 }
 
                 if (mda->scanline == 12 && ((attr & 7) == 1)) 
                 { // underline
-                    for (c = 0; c < 9; c++)
+                    for (column = 0; column < 9; column++)
                     {
                         if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
                             && !(mda->mode & MDA_MODE_BW))
                         {
-                            buffer32->line[mda->displine][(x * 9) + c] = CGAPAL_CGA_START + color_fg;
+                            buffer32->line[mda->displine][(x * 9) + column] = CGAPAL_CGA_START + color_fg;
                         }
                         else
-                            buffer32->line[mda->displine][(x * 9) + c] = mda_attr_to_color_table[attr][blink][1];
+                            buffer32->line[mda->displine][(x * 9) + column] = mda_attr_to_color_table[attr][blink][1];
                     }
-                } else { // main text
-                    for (c = 0; c < 8; c++)
+                } else { // character
+                    for (column = 0; column < 8; column++)
                     {
                         //bg=0, fg=1
-                        bool is_fg = (fontdatm[chr + mda->fontbase][mda->scanline] & (1 << (c ^ 7))) ? 1 : 0;
+                        bool is_fg = (fontdatm[chr + mda->fontbase][mda->scanline] & (1 << (column ^ 7))) ? 1 : 0;
 
                         uint32_t font_char = mda_attr_to_color_table[attr][blink][is_fg];
 
@@ -228,28 +241,53 @@ mda_poll(void *priv)
                                 font_char = CGAPAL_CGA_START + color_fg; 
                         }
                         
-                        buffer32->line[mda->displine][(x * 9) + c] = font_char;
+                        buffer32->line[mda->displine][(x * 9) + column] = font_char;
                     }
                     
                     if ((chr & ~0x1f) == 0xc0)
                     {
                         bool is_fg = fontdatm[chr + mda->fontbase][mda->scanline] & 1;
+                        uint32_t final_result = mda_attr_to_color_table[attr][blink][is_fg];
 
-                        if (!is_fg)
-                            buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][is_fg] | color_bg; 
-                        else
-                            buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][is_fg] | color_fg; 
+                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
+                            &&  !(mda->mode & MDA_MODE_BW))
+                        {
+                            if (!is_fg)
+                                final_result = CGAPAL_CGA_START + color_bg; 
+                            else
+                                final_result = CGAPAL_CGA_START + color_fg; 
+                        }
+
+                        buffer32->line[mda->displine][(x * 9) + 8] = final_result; 
+
                     }
                     else
-                        buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][0] | color_bg;
+                    {   
+                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
+                            && !(mda->mode & MDA_MODE_BW))
+                            {
+                                buffer32->line[mda->displine][(x * 9) + 8] = CGAPAL_CGA_START + color_bg;
+
+                            }
+                            else
+                                buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][0];
+                    }
                 }
                 
                 mda->memaddr++;
 
                 if (drawcursor) 
                 {
-                    for (c = 0; c < 9; c++)
-                        buffer32->line[mda->displine][(x * 9) + c] ^= mda_attr_to_color_table[attr][0][1] | color_fg;
+                    for (column = 0; column < 9; column++)
+                    {
+                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
+                            && !(mda->mode & MDA_MODE_BW))
+                        {
+                            buffer32->line[mda->displine][(x * 9) + column] ^= CGAPAL_CGA_START + color_fg; 
+                        }
+                        else 
+                            buffer32->line[mda->displine][(x * 9) + column] ^= mda_attr_to_color_table[attr][0][1];
+                    }
                 }
             }
 
