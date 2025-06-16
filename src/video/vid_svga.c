@@ -915,7 +915,7 @@ svga_recalctimings(svga_t *svga)
     if (vblankend <= svga->vblankstart)
         vblankend += 0x00000080;
 
-    if (svga->hoverride) {
+    if (svga->hoverride || svga->override) {
         if (svga->hdisp >= 2048)
             svga->monitor->mon_overscan_x = 0;
 
