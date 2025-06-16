@@ -61,7 +61,7 @@ typedef enum mda_crtc_registers_e
 typedef enum mda_mode_flags_e
 {
     MDA_MODE_HIGHRES = 1 << 0,                          // MUST be enabled for sane operation
-    MDA_MODE_BLACKANDWHITE = 1 << 1,                    // UNUSED in most cases. Not present on Hercules
+    MDA_MODE_BW = 1 << 1,                    // UNUSED in most cases. Not present on Hercules
     MDA_MODE_VIDEO_ENABLE = 1 << 3, 
     MDA_MODE_BLINK = 1 << 5,
 } mda_mode_flags;

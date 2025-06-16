@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          MDA emulation.
+ *          IBM Monochrome Display and Printer Adapter emulation.
  *
  *
  *
@@ -18,6 +18,7 @@
  *          Copyright 2016-2025 Miran Grca.
  *          Copyright 2025 starfrost / Connor Hyde
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -35,6 +36,17 @@
 #include <86box/vid_mda.h>
 #include <86box/plat_unused.h>
 
+// Enumerates MDA monitor types
+enum mda_monitor_type_e 
+{
+    MDA_MONITOR_TYPE_DEFAULT = 0,           // Default MDA monitor type.
+    MDA_MONITOR_TYPE_GREEN = 1,             // Green phosphor
+    MDA_MONITOR_TYPE_AMBER = 2,             // Amber phosphor
+    MDA_MONITOR_TYPE_GRAY = 3,              // Gray phosphor
+    MDA_MONITOR_TYPE_RGBI = 4,              // RGBI colour monitor with modified rev1 or rev0 MDA card for colour support
+} mda_monitor_type;
+
+// [attr][blink][fg]
 static int mda_attr_to_color_table[256][2][2];
 
 static video_timings_t timing_mda = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
@@ -155,32 +167,66 @@ mda_poll(void *priv)
         scanline_old        = mda->scanline;
         if ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3)
             mda->scanline = (mda->scanline << 1) & 7;
-        if (mda->dispon) {
-            if (mda->displine < mda->firstline) {
+        if (mda->dispon)
+        {
+            if (mda->displine < mda->firstline)
+            {
                 mda->firstline = mda->displine;
                 video_wait_for_buffer();
             }
             mda->lastline = mda->displine;
-            for (x = 0; x < mda->crtc[MDA_CRTC_HDISP]; x++) {
+
+            for (x = 0; x < mda->crtc[MDA_CRTC_HDISP]; x++)
+            {
                 chr        = mda->vram[(mda->memaddr << 1) & 0xfff];
                 attr       = mda->vram[((mda->memaddr << 1) + 1) & 0xfff];
                 drawcursor = ((mda->memaddr == cursoraddr) && mda->cursorvisible && mda->cursoron);
                 blink      = ((mda->blink & 16) && (mda->mode & MDA_MODE_BLINK) && (attr & 0x80) && !drawcursor);
-                if (mda->scanline == 12 && ((attr & 7) == 1)) {
+
+                int32_t color_bg = 0, color_fg = 0; 
+    
+                // If we are using an RGBI monitor allow colour
+                //if (cga_palette == MDA_MONITOR_TYPE_RGBI)
+                //{
+                    if (!(mda->mode & MDA_MODE_BW))
+                    {
+                        color_bg = (attr >> 4) & 0x0F;
+                        color_fg = (attr & 0x0F); 
+                    }
+                        
+                //}
+
+                if (mda->scanline == 12 && ((attr & 7) == 1)) { // underline
                     for (c = 0; c < 9; c++)
-                        buffer32->line[mda->displine][(x * 9) + c] = mda_attr_to_color_table[attr][blink][1];
+                        buffer32->line[mda->displine][(x * 9) + c] = mda_attr_to_color_table[attr][blink][1] | color_bg;
                 } else {
                     for (c = 0; c < 8; c++)
-                        buffer32->line[mda->displine][(x * 9) + c] = mda_attr_to_color_table[attr][blink][(fontdatm[chr + mda->fontbase][mda->scanline] & (1 << (c ^ 7))) ? 1 : 0];
+                    {
+                        //bg=0, fg=1
+                        bool is_fg = (fontdatm[chr + mda->fontbase][mda->scanline] & (1 << (c ^ 7))) ? 1 : 0;
+
+                        uint32_t font_char = mda_attr_to_color_table[attr][blink][is_fg];
+
+                        if (!(mda->mode & MDA_MODE_BW))
+                        {
+                            if (!is_fg)
+                                font_char = 16 + color_bg; 
+                            else  
+                                font_char = 16 + color_fg; 
+                        }
+                        
+                        buffer32->line[mda->displine][(x * 9) + c] = font_char;
+
+                    }
                     if ((chr & ~0x1f) == 0xc0)
                         buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][fontdatm[chr + mda->fontbase][mda->scanline] & 1];
                     else
-                        buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][0];
+                        buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][0] | color_bg;
                 }
                 mda->memaddr++;
                 if (drawcursor) {
                     for (c = 0; c < 9; c++)
-                        buffer32->line[mda->displine][(x * 9) + c] ^= mda_attr_to_color_table[attr][0][1];
+                        buffer32->line[mda->displine][(x * 9) + c] ^= mda_attr_to_color_table[attr][0][1] | color_fg;
                 }
             }
 
@@ -289,6 +335,7 @@ mda_poll(void *priv)
 void
 mda_init(mda_t *mda)
 {
+    
     for (uint16_t c = 0; c < 256; c++) {
         mda_attr_to_color_table[c][0][0] = mda_attr_to_color_table[c][1][0] = mda_attr_to_color_table[c][1][1] = 16;
         if (c & 8)
@@ -308,6 +355,7 @@ mda_init(mda_t *mda)
     mda_attr_to_color_table[0x08][0][1] = mda_attr_to_color_table[0x08][1][1] = 16;
     mda_attr_to_color_table[0x80][0][1] = mda_attr_to_color_table[0x80][1][1] = 16;
     mda_attr_to_color_table[0x88][0][1] = mda_attr_to_color_table[0x88][1][1] = 16;
+    
 
     overscan_x = overscan_y = 0;
     mda->monitor_index      = monitor_index_global;
@@ -387,6 +435,7 @@ mda_speed_changed(void *priv)
     mda_recalctimings(mda);
 }
 
+
 static const device_config_t mda_config[] = {
   // clang-format off
     {
@@ -397,12 +446,14 @@ static const device_config_t mda_config[] = {
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
-        .selection      = {
-            { .description = "Default", .value = 0 },
-            { .description = "Green",   .value = 1 },
-            { .description = "Amber",   .value = 2 },
-            { .description = "Gray",    .value = 3 },
-            { .description = ""                    }
+        .selection      = 
+        {
+            { .description = "Default", .value = MDA_MONITOR_TYPE_DEFAULT },
+            { .description = "Green", .value = MDA_MONITOR_TYPE_GREEN },
+            { .description = "Amber", .value = MDA_MONITOR_TYPE_AMBER },
+            { .description = "Gray",  .value = MDA_MONITOR_TYPE_GRAY  },
+            { .description = "Generic RGBI color monitor",  .value = MDA_MONITOR_TYPE_RGBI },
+            { .description = "" }
         },
         .bios           = { { 0 } }
     },
@@ -414,12 +465,13 @@ static const device_config_t mda_config[] = {
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
-        .selection      = {
-            { .description = "US (CP 437)",                 .value = 0 },
+        .selection      =
+        {
+            { .description = "US (CP 437)", .value = 0 },
             { .description = "IBM Nordic (CP 437-Nordic)",  .value = 1 },
             { .description = "Czech Kamenicky (CP 895) #1", .value = 2 },
             { .description = "Czech Kamenicky (CP 895) #2", .value = 3 },
-            { .description = ""                                        }
+            { .description = "" }
         },
         .bios           = { { 0 } }
     },
