@@ -61,42 +61,63 @@ typedef enum mda_crtc_registers_e
 typedef enum mda_mode_flags_e
 {
     MDA_MODE_HIGHRES = 1 << 0,                          // MUST be enabled for sane operation
-    MDA_MODE_BLACKANDWHITE = 1 << 1,                    // UNUSED in most cases. Not present on Hercules
+    MDA_MODE_BW = 1 << 1,                    // UNUSED in most cases. Not present on Hercules
     MDA_MODE_VIDEO_ENABLE = 1 << 3, 
     MDA_MODE_BLINK = 1 << 5,
 } mda_mode_flags;
 
+typedef enum mda_colors_e 
+{
+    MDA_COLOR_BLACK = 0,
+    MDA_COLOR_BLUE = 1,
+    MDA_COLOR_GREEN = 2,
+    MDA_COLOR_CYAN = 3,
+    MDA_COLOR_RED = 4,
+    MDA_COLOR_MAGENTA = 5,
+    MDA_COLOR_BROWN = 6,
+    MDA_COLOR_WHITE = 7,
+    MDA_COLOR_GREY = 8,
+    MDA_COLOR_BRIGHT_BLUE = 9,
+    MDA_COLOR_BRIGHT_GREEN = 10,
+    MDA_COLOR_BRIGHT_CYAN = 11,
+    MDA_COLOR_BRIGHT_RED = 12,
+    MDA_COLOR_BRIGHT_MAGENTA = 13,
+    MDA_COLOR_BRIGHT_YELLOW = 14,
+    MDA_COLOR_BRIGHT_WHITE = 15,
+} mda_colors; 
+
 typedef struct mda_t {
     mem_mapping_t mapping;
 
-    uint8_t crtc[MDA_CRTC_NUM_REGISTERS];
-    int     crtcreg;
+    uint8_t     crtc[MDA_CRTC_NUM_REGISTERS];
+    int32_t     crtcreg;
 
-    uint8_t mode;
-    uint8_t status;
+    uint8_t     mode;
+    uint8_t     status;
 
-    uint64_t   dispontime;
-    uint64_t   dispofftime;
-    pc_timer_t timer;
+    uint64_t    dispontime;
+    uint64_t    dispofftime;
+    pc_timer_t  timer;
 
-    int firstline;
-    int lastline;
+    int32_t     firstline;
+    int32_t     lastline;
 
-    int      fontbase;
-    int      linepos;
-    int      displine;
-    int      vc;
-    int      scanline;
-    uint16_t memaddr;
-    uint16_t memaddr_backup;
-    int      cursorvisible;
-    int      cursoron;
-    int      dispon;
-    int      blink;
-    int      vsynctime;
-    int      vadj;
-    int      monitor_index;
-    int      prev_monitor_index;
+    int32_t     fontbase;
+    int32_t     linepos;
+    int32_t     displine;
+    int32_t     vc;
+    int32_t     scanline;
+    uint16_t    memaddr;
+    uint16_t    memaddr_backup;
+    int32_t     cursorvisible;
+    int32_t     cursoron;
+    int32_t     dispon;
+    int32_t     blink;
+    int32_t     vsynctime;
+    int32_t     vadj;
+    int32_t     monitor_index;
+    int32_t     prev_monitor_index;
+    int32_t     monitor_type;           // Used for MDA Colour support (REV0 u64)
 
     uint8_t *vram;
 } mda_t;
