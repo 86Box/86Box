@@ -183,24 +183,24 @@ mda_poll(void *priv)
                 drawcursor = ((mda->memaddr == cursoraddr) && mda->cursorvisible && mda->cursoron);
                 blink      = ((mda->blink & 16) && (mda->mode & MDA_MODE_BLINK) && (attr & 0x80) && !drawcursor);
 
+                // Colours that will be used
                 int32_t color_bg = 0, color_fg = 0; 
     
                 // If we are using an RGBI monitor allow colour
-                if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI)
+                if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI
+                && !(mda->mode & MDA_MODE_BW))
                 {
-                    if (!(mda->mode & MDA_MODE_BW))
-                    {
-                        color_bg = (attr >> 4) & 0x0F;
-                        color_fg = (attr & 0x0F); 
+                    color_bg = (attr >> 4) & 0x0F;
+                    color_fg = (attr & 0x0F); 
 
-                        // turn off bright bg colours in blink mode
-                        if ((mda->mode & MDA_MODE_BLINK)
-                        && (color_bg & 0x8))
-                            color_bg & ~(0x8);
-                    }   
+                    // turn off bright bg colours in blink mode
+                    if ((mda->mode & MDA_MODE_BLINK)
+                    && (color_bg & 0x8))
+                        color_bg & ~(0x8);
                 }
 
-                if (mda->scanline == 12 && ((attr & 7) == 1)) { // underline
+                if (mda->scanline == 12 && ((attr & 7) == 1)) 
+                { // underline
                     for (c = 0; c < 9; c++)
                     {
                         if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
@@ -243,9 +243,11 @@ mda_poll(void *priv)
                     else
                         buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][0] | color_bg;
                 }
+                
                 mda->memaddr++;
 
-                if (drawcursor) {
+                if (drawcursor) 
+                {
                     for (c = 0; c < 9; c++)
                         buffer32->line[mda->displine][(x * 9) + c] ^= mda_attr_to_color_table[attr][0][1] | color_fg;
                 }
