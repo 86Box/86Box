@@ -186,15 +186,15 @@ mda_poll(void *priv)
                 int32_t color_bg = 0, color_fg = 0; 
     
                 // If we are using an RGBI monitor allow colour
-                //if (cga_palette == MDA_MONITOR_TYPE_RGBI)
-                //{
+                if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI)
+                {
                     if (!(mda->mode & MDA_MODE_BW))
                     {
                         color_bg = (attr >> 4) & 0x0F;
                         color_fg = (attr & 0x0F); 
                     }
                         
-                //}
+                }
 
                 if (mda->scanline == 12 && ((attr & 7) == 1)) { // underline
                     for (c = 0; c < 9; c++)
@@ -360,7 +360,8 @@ mda_init(mda_t *mda)
     overscan_x = overscan_y = 0;
     mda->monitor_index      = monitor_index_global;
 
-    cga_palette = device_get_config_int("rgb_type") << 1;
+    mda->monitor_type = device_get_config_int("rgb_type");
+    cga_palette = mda->monitor_type << 1;
     if (cga_palette > 6) {
         cga_palette = 0;
     }
