@@ -196,16 +196,22 @@ mda_poll(void *priv)
                         // turn off bright bg colours in blink mode
                         if ((mda->mode & MDA_MODE_BLINK)
                         && (color_bg & 0x8))
-                        {
                             color_bg & ~(0x8);
-                        }  
                     }   
                 }
 
                 if (mda->scanline == 12 && ((attr & 7) == 1)) { // underline
                     for (c = 0; c < 9; c++)
-                        buffer32->line[mda->displine][(x * 9) + c] = mda_attr_to_color_table[attr][blink][1] | color_fg;
-                } else {
+                    {
+                        if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
+                            && !(mda->mode & MDA_MODE_BW))
+                        {
+                            buffer32->line[mda->displine][(x * 9) + c] = CGAPAL_CGA_START + color_fg;
+                        }
+                        else
+                            buffer32->line[mda->displine][(x * 9) + c] = mda_attr_to_color_table[attr][blink][1];
+                    }
+                } else { // main text
                     for (c = 0; c < 8; c++)
                     {
                         //bg=0, fg=1
@@ -217,13 +223,14 @@ mda_poll(void *priv)
                             && !(mda->mode & MDA_MODE_BW))
                         {
                             if (!is_fg)
-                                font_char = 16 + color_bg; 
+                                font_char = CGAPAL_CGA_START + color_bg; 
                             else  
-                                font_char = 16 + color_fg; 
+                                font_char = CGAPAL_CGA_START + color_fg; 
                         }
                         
                         buffer32->line[mda->displine][(x * 9) + c] = font_char;
                     }
+                    
                     if ((chr & ~0x1f) == 0xc0)
                     {
                         bool is_fg = fontdatm[chr + mda->fontbase][mda->scanline] & 1;
@@ -237,6 +244,7 @@ mda_poll(void *priv)
                         buffer32->line[mda->displine][(x * 9) + 8] = mda_attr_to_color_table[attr][blink][0] | color_bg;
                 }
                 mda->memaddr++;
+
                 if (drawcursor) {
                     for (c = 0; c < 9; c++)
                         buffer32->line[mda->displine][(x * 9) + c] ^= mda_attr_to_color_table[attr][0][1] | color_fg;
@@ -357,13 +365,13 @@ mda_init(mda_t *mda)
             mda_attr_to_color_table[c][0][1] = 7 + 16;
     }
     mda_attr_to_color_table[0x70][0][1] = 16;
-    mda_attr_to_color_table[0x70][0][0] = mda_attr_to_color_table[0x70][1][0] = mda_attr_to_color_table[0x70][1][1] = 16 + 15;
+    mda_attr_to_color_table[0x70][0][0] = mda_attr_to_color_table[0x70][1][0] = mda_attr_to_color_table[0x70][1][1] = CGAPAL_CGA_START + 15;
     mda_attr_to_color_table[0xF0][0][1]                                             = 16;
-    mda_attr_to_color_table[0xF0][0][0] = mda_attr_to_color_table[0xF0][1][0] = mda_attr_to_color_table[0xF0][1][1] = 16 + 15;
-    mda_attr_to_color_table[0x78][0][1]                                             = 16 + 7;
-    mda_attr_to_color_table[0x78][0][0] = mda_attr_to_color_table[0x78][1][0] = mda_attr_to_color_table[0x78][1][1] = 16 + 15;
-    mda_attr_to_color_table[0xF8][0][1]                                             = 16 + 7;
-    mda_attr_to_color_table[0xF8][0][0] = mda_attr_to_color_table[0xF8][1][0] = mda_attr_to_color_table[0xF8][1][1] = 16 + 15;
+    mda_attr_to_color_table[0xF0][0][0] = mda_attr_to_color_table[0xF0][1][0] = mda_attr_to_color_table[0xF0][1][1] = CGAPAL_CGA_START + 15;
+    mda_attr_to_color_table[0x78][0][1]                                             = CGAPAL_CGA_START + 7;
+    mda_attr_to_color_table[0x78][0][0] = mda_attr_to_color_table[0x78][1][0] = mda_attr_to_color_table[0x78][1][1] = CGAPAL_CGA_START + 15;
+    mda_attr_to_color_table[0xF8][0][1]                                             = CGAPAL_CGA_START + 7;
+    mda_attr_to_color_table[0xF8][0][0] = mda_attr_to_color_table[0xF8][1][0] = mda_attr_to_color_table[0xF8][1][1] = CGAPAL_CGA_START + 15;
     mda_attr_to_color_table[0x00][0][1] = mda_attr_to_color_table[0x00][1][1] = 16;
     mda_attr_to_color_table[0x08][0][1] = mda_attr_to_color_table[0x08][1][1] = 16;
     mda_attr_to_color_table[0x80][0][1] = mda_attr_to_color_table[0x80][1][1] = 16;
@@ -429,7 +437,7 @@ mda_standalone_init(UNUSED(const device_t *info))
 void
 mda_setcol(int chr, int blink, int fg, uint8_t cga_ink)
 {
-    mda_attr_to_color_table[chr][blink][fg] = 16 + cga_ink;
+    mda_attr_to_color_table[chr][blink][fg] = CGAPAL_CGA_START + cga_ink;
 }
 
 void

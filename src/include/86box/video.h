@@ -187,6 +187,10 @@ extern bitmap_t *buffer32;
 #define efscrnsz_y           (monitors[monitor_index_global].mon_efscrnsz_y)
 #define unscaled_size_x      (monitors[monitor_index_global].mon_unscaled_size_x)
 #define unscaled_size_y      (monitors[monitor_index_global].mon_unscaled_size_y)
+
+#define CGAPAL_CGA_START    16            // Where the 16-color cga text/composite starts
+
+
 extern PALETTE      cgapal;
 extern PALETTE      cgapal_mono[6];
 #if 0
