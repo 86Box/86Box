@@ -203,17 +203,17 @@ mda_poll(void *priv)
 
                     bool special_treatment = (color_bg != 0 && color_bg != 7);
 
-                    if (color_fg == 7 
+                    if (color_fg == 8 
                     && special_treatment)
                         color_fg = 15;
                     
                     if (color_fg == 0
                     && special_treatment)
-                        color_fg = 7;
+                        color_fg = 8;
 
                         // gray is black
-                    if (color_fg == 7
-                    && (color_bg == 7 || color_bg == 0))
+                    if (color_fg == 8
+                    && (color_bg == 8 || color_bg == 0))
                         color_fg = 0;
                 }
 
@@ -225,7 +225,7 @@ mda_poll(void *priv)
                             && !(mda->mode & MDA_MODE_BW))
                         {
                             buffer32->line[mda->displine][(x * 9) + column] = CGAPAL_CGA_START + color_fg;
-                        }
+                   1     }
                         else
                             buffer32->line[mda->displine][(x * 9) + column] = mda_attr_to_color_table[attr][blink][1];
                     }
