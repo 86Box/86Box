@@ -150,23 +150,24 @@ mda_poll(void *priv)
 {
     mda_t   *mda = (mda_t *) priv;
     uint16_t cursoraddr  = (mda->crtc[MDA_CRTC_CURSOR_ADDR_LOW] | (mda->crtc[MDA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
-    int      drawcursor;
-    int      x;
-    int      column;
-    int      oldvc;
+    bool     drawcursor;
+    int32_t  oldvc;
     uint8_t  chr;
     uint8_t  attr;
-    int      scanline_old;
-    int      blink;
+    int32_t  scanline_old;
+    int32_t  blink;
 
     VIDEO_MONITOR_PROLOGUE()
-    if (!mda->linepos) {
+
+    if (!mda->linepos)
+    {
         timer_advance_u64(&mda->timer, mda->dispofftime);
         mda->status |= 1;
         mda->linepos = 1;
         scanline_old        = mda->scanline;
         if ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3)
             mda->scanline = (mda->scanline << 1) & 7;
+
         if (mda->dispon)
         {
             if (mda->displine < mda->firstline)
@@ -176,7 +177,7 @@ mda_poll(void *priv)
             }
             mda->lastline = mda->displine;
 
-            for (x = 0; x < mda->crtc[MDA_CRTC_HDISP]; x++)
+            for (uint32_t x = 0; x < mda->crtc[MDA_CRTC_HDISP]; x++)
             {
                 chr        = mda->vram[(mda->memaddr << 1) & 0xfff];
                 attr       = mda->vram[((mda->memaddr << 1) + 1) & 0xfff];
@@ -217,20 +218,23 @@ mda_poll(void *priv)
                         color_fg = 0;
                 }
 
-                if (mda->scanline == 12 && ((attr & 7) == 1)) 
+                if (mda->scanline == 12 
+                    && ((attr & 7) == 1)) 
                 { // underline
-                    for (column = 0; column < 9; column++)
+                    for (uint32_t column = 0; column < 9; column++)
                     {
                         if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
                             && !(mda->mode & MDA_MODE_BW))
                         {
                             buffer32->line[mda->displine][(x * 9) + column] = CGAPAL_CGA_START + color_fg;
-                   1     }
+                        }
                         else
                             buffer32->line[mda->displine][(x * 9) + column] = mda_attr_to_color_table[attr][blink][1];
                     }
-                } else { // character
-                    for (column = 0; column < 8; column++)
+                } 
+                else 
+                { // character
+                    for (uint32_t column = 0; column < 8; column++)
                     {
                         //bg=0, fg=1
                         bool is_fg = (fontdatm[chr + mda->fontbase][mda->scanline] & (1 << (column ^ 7))) ? 1 : 0;
@@ -249,6 +253,7 @@ mda_poll(void *priv)
                         buffer32->line[mda->displine][(x * 9) + column] = font_char;
                     }
                     
+                    // these characters (C0-DF) have their background extended to their 9th column
                     if ((chr & ~0x1f) == 0xc0)
                     {
                         bool is_fg = fontdatm[chr + mda->fontbase][mda->scanline] & 1;
@@ -283,7 +288,7 @@ mda_poll(void *priv)
 
                 if (drawcursor) 
                 {
-                    for (column = 0; column < 9; column++)
+                    for (uint32_t column = 0; column < 9; column++)
                     {
                         if (mda->monitor_type == MDA_MONITOR_TYPE_RGBI 
                             && !(mda->mode & MDA_MODE_BW))
@@ -310,30 +315,39 @@ mda_poll(void *priv)
         if (mda->dispon)
             mda->status &= ~1;
         mda->linepos = 0;
-        if (mda->vsynctime) {
+
+        if (mda->vsynctime) 
+        {
             mda->vsynctime--;
-            if (!mda->vsynctime) {
+            if (!mda->vsynctime) 
+            {
                 mda->status &= ~8;
             }
         }
         if (mda->scanline == (mda->crtc[MDA_CRTC_CURSOR_END] & 31) 
         || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3
-        && mda->scanline == ((mda->crtc[MDA_CRTC_CURSOR_END] & 31) >> 1))) {
+        && mda->scanline == ((mda->crtc[MDA_CRTC_CURSOR_END] & 31) >> 1))) 
+        {
             mda->cursorvisible  = 0;
         }
-        if (mda->vadj) {
+
+        if (mda->vadj) 
+        {
             mda->scanline++;
             mda->scanline &= 31;
             mda->memaddr = mda->memaddr_backup;
             mda->vadj--;
-            if (!mda->vadj) {
+            if (!mda->vadj) 
+            {
                 mda->dispon = 1;
                 mda->memaddr = mda->memaddr_backup = (mda->crtc[MDA_CRTC_START_ADDR_LOW] | (mda->crtc[MDA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
                 mda->scanline = 0;
             }
-        } else if (mda->scanline == mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR]
+        } 
+        else if (mda->scanline == mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR]
             || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3 
-            && mda->scanline == (mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR] >> 1))) {
+            && mda->scanline == (mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR] >> 1))) 
+            {
             mda->memaddr_backup = mda->memaddr;
             mda->scanline = 0;
             oldvc = mda->vc;
@@ -359,7 +373,7 @@ mda_poll(void *priv)
                 mda->displine  = 0;
                 mda->vsynctime = 16;
                 if (mda->crtc[MDA_CRTC_VSYNC]) {
-                    x = mda->crtc[MDA_CRTC_HDISP] * 9;
+                    uint32_t x = mda->crtc[MDA_CRTC_HDISP] * 9;
                     mda->lastline++;
                     if ((x != xsize) || ((mda->lastline - mda->firstline) != ysize) || video_force_resize_get()) {
                         xsize = x;
