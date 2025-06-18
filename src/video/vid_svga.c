@@ -917,7 +917,7 @@ svga_recalctimings(svga_t *svga)
     if (vblankend <= svga->vblankstart)
         vblankend += 0x00000080;
 
-    if (svga->hoverride) {
+    if (svga->hoverride || svga->override) {
         if (svga->hdisp >= 2048)
             svga->monitor->mon_overscan_x = 0;
 
@@ -958,14 +958,18 @@ svga_recalctimings(svga_t *svga)
         svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
 
         svga->left_overscan = svga->x_add = (svga->htotal - adj_dot - 1) * svga->dots_per_clock;
-        svga->monitor->mon_overscan_x = svga->x_add + (svga->hblankstart * svga->dots_per_clock) - hd;
+        svga->monitor->mon_overscan_x = svga->x_add + (svga->hblankstart * svga->dots_per_clock) - hd + svga->dots_per_clock;
+        /* Compensate for the HDISP code above. */
+        if (svga->crtc[1] & 1)
+            svga->monitor->mon_overscan_x++;
 
         if ((svga->hdisp >= 2048) || (svga->left_overscan < 0)) {
             svga->left_overscan = svga->x_add = 0;
             svga->monitor->mon_overscan_x = 0;
         }
 
-        svga->y_add = svga->vtotal - vblankend + 1;
+        /* - 1 because + 1 but also - 2 to compensate for the + 2 added to vtotal above. */
+        svga->y_add = svga->vtotal - vblankend - 1;
         svga->monitor->mon_overscan_y = svga->y_add + abs(svga->vblankstart - svga->dispend);
 
         if ((svga->dispend >= 2048) || (svga->y_add < 0)) {
