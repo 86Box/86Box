@@ -186,7 +186,7 @@ mda_poll(void *priv)
                     // turn off bright bg colours in blink mode
                     if ((mda->mode & MDA_MODE_BLINK)
                         && (color_bg & 0x8))
-                        color_bg & ~(0x8);
+                        color_bg &= ~(0x8);
 
                     // black-on-non black or white colours forced to white
                     // grey-on-colours forced to bright white
