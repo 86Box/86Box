@@ -483,7 +483,7 @@ vid_poll(void *priv)
                     vid->memaddr++;
                     if (vid->scanline & 8) {
                         for (c = 0; c < 8; c++)
-                            buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 8] = buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 1 + 8] = cols[0];
+                            buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] = cols[0];
                     } else {
                         for (c = 0; c < 8; c++) {
                             if (vid->scanline == 8) {
