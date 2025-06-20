@@ -813,7 +813,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                         else
                             svga->overscan_color = svga->pallook[svga->attrregs[0x11]];
                         svga_recalctimings(svga);
-                        svga->hwcursor.ena = val & CIRRUS_CURSOR_SHOW;
+                        svga->hwcursor.enable = val & CIRRUS_CURSOR_SHOW;
                         if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5422)
                             svga->hwcursor.cur_xsize = svga->hwcursor.cur_ysize =
                                 ((svga->crtc[0x27] >= CIRRUS_ID_CLGD5422) &&
@@ -1244,7 +1244,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                         break;
                     case 0x3e:
                         gd54xx->overlay.mode = (val >> 1) & 7;
-                        svga->overlay.ena    = (val & 1) != 0;
+                        svga->overlay.enable    = (val & 1) != 0;
                         gd54xx_update_overlay(gd54xx);
                         break;
 

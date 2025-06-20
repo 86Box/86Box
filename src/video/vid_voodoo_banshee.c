@@ -679,7 +679,7 @@ banshee_recalctimings(svga_t *svga)
 
         svga->interlace = !!(banshee->vidProcCfg & VIDPROCCFG_INTERLACE);
 
-        svga->overlay.ena = banshee->vidProcCfg & VIDPROCCFG_OVERLAY_ENABLE;
+        svga->overlay.enable = banshee->vidProcCfg & VIDPROCCFG_OVERLAY_ENABLE;
 
         svga->overlay.x         = voodoo->overlay.start_x;
         svga->overlay.y         = voodoo->overlay.start_y;
@@ -689,8 +689,8 @@ banshee_recalctimings(svga_t *svga)
         if (banshee->vidProcCfg & VIDPROCCFG_OVERLAY_TILE)
             svga->overlay.pitch *= 128 * 32;
         if (svga->overlay.cur_xsize <= 0 || svga->overlay.cur_ysize <= 0)
-            svga->overlay.ena = 0;
-        if (svga->overlay.ena) {
+            svga->overlay.enable = 0;
+        if (svga->overlay.enable) {
 #if 0
             banshee_log("Overlay enabled : start=%i,%i end=%i,%i size=%i,%i pitch=%x\n",
                         voodoo->overlay.start_x, voodoo->overlay.start_y,
@@ -894,7 +894,7 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
             banshee_log("vidProcCfg=%08x\n", val);
 #endif
             banshee->overlay_pix_fmt = (val & VIDPROCCFG_OVERLAY_PIX_FORMAT_MASK) >> VIDPROCCFG_OVERLAY_PIX_FORMAT_SHIFT;
-            svga->hwcursor.ena       = val & VIDPROCCFG_HWCURSOR_ENA;
+            svga->hwcursor.enable       = val & VIDPROCCFG_HWCURSOR_ENA;
             svga->fullchange         = changeframecount;
             svga->lut_map            = !(val & VIDPROCCFG_DESKTOP_CLUT_BYPASS) && (svga->bpp < 24);
             svga_recalctimings(svga);

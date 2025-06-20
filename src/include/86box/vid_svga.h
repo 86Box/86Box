@@ -33,7 +33,7 @@
 struct monitor_t;
 
 typedef struct hwcursor_t {
-    int      ena;
+    int      enable;
     int      x;
     int      y;
     int      xoff;

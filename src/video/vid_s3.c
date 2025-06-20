@@ -3037,7 +3037,7 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                 case 0x45:
                     if ((s3->chip == S3_VISION964) || (s3->chip == S3_VISION968))
                         break;
-                    svga->hwcursor.ena = val & 1;
+                    svga->hwcursor.enable = val & 1;
                     break;
                 case 0x46:
                 case 0x47:
@@ -4442,13 +4442,13 @@ s3_trio64v_recalctimings(svga_t *svga)
         else
             svga->overlay.addr = s3->streams.sec_fb0;
 
-        svga->overlay.ena   = (svga->overlay.x >= 0);
+        svga->overlay.enable   = (svga->overlay.x >= 0);
         svga->overlay.h_acc = s3->streams.dda_horiz_accumulator;
         svga->overlay.v_acc = s3->streams.dda_vert_accumulator;
         svga->rowoffset     = s3->streams.pri_stride >> 3;
 
-        if (svga->overlay.ena) {
-            svga->overlay.ena = (((s3->streams.blend_ctrl >> 24) & 7) == 0b000) ||
+        if (svga->overlay.enable) {
+            svga->overlay.enable = (((s3->streams.blend_ctrl >> 24) & 7) == 0b000) ||
                                 (((s3->streams.blend_ctrl >> 24) & 7) == 0b101);
         }
         switch ((s3->streams.pri_ctrl >> 24) & 0x7) {

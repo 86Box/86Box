@@ -1223,32 +1223,32 @@ svga_poll(void *priv)
 
     svga_log("SVGA Poll.\n");
     if (!svga->linepos) {
-        if (svga->displine == ((svga->hwcursor_latch.y < 0) ? 0 : svga->hwcursor_latch.y) && svga->hwcursor_latch.ena) {
+        if (svga->displine == ((svga->hwcursor_latch.y < 0) ? 0 : svga->hwcursor_latch.y) && svga->hwcursor_latch.enable) {
             svga->hwcursor_on      = svga->hwcursor_latch.cur_ysize - svga->hwcursor_latch.yoff;
             svga->hwcursor_oddeven = 0;
         }
 
-        if (svga->displine == (((svga->hwcursor_latch.y < 0) ? 0 : svga->hwcursor_latch.y) + 1) && svga->hwcursor_latch.ena && svga->interlace) {
+        if (svga->displine == (((svga->hwcursor_latch.y < 0) ? 0 : svga->hwcursor_latch.y) + 1) && svga->hwcursor_latch.enable && svga->interlace) {
             svga->hwcursor_on      = svga->hwcursor_latch.cur_ysize - (svga->hwcursor_latch.yoff + 1);
             svga->hwcursor_oddeven = 1;
         }
 
-        if (svga->displine == ((svga->dac_hwcursor_latch.y < 0) ? 0 : svga->dac_hwcursor_latch.y) && svga->dac_hwcursor_latch.ena) {
+        if (svga->displine == ((svga->dac_hwcursor_latch.y < 0) ? 0 : svga->dac_hwcursor_latch.y) && svga->dac_hwcursor_latch.enable) {
             svga->dac_hwcursor_on      = svga->dac_hwcursor_latch.cur_ysize - svga->dac_hwcursor_latch.yoff;
             svga->dac_hwcursor_oddeven = 0;
         }
 
-        if (svga->displine == (((svga->dac_hwcursor_latch.y < 0) ? 0 : svga->dac_hwcursor_latch.y) + 1) && svga->dac_hwcursor_latch.ena && svga->interlace) {
+        if (svga->displine == (((svga->dac_hwcursor_latch.y < 0) ? 0 : svga->dac_hwcursor_latch.y) + 1) && svga->dac_hwcursor_latch.enable && svga->interlace) {
             svga->dac_hwcursor_on      = svga->dac_hwcursor_latch.cur_ysize - (svga->dac_hwcursor_latch.yoff + 1);
             svga->dac_hwcursor_oddeven = 1;
         }
 
-        if (svga->displine == svga->overlay_latch.y && svga->overlay_latch.ena) {
+        if (svga->displine == svga->overlay_latch.y && svga->overlay_latch.enable) {
             svga->overlay_on      = svga->overlay_latch.cur_ysize - svga->overlay_latch.yoff;
             svga->overlay_oddeven = 0;
         }
 
-        if (svga->displine == svga->overlay_latch.y + 1 && svga->overlay_latch.ena && svga->interlace) {
+        if (svga->displine == svga->overlay_latch.y + 1 && svga->overlay_latch.enable && svga->interlace) {
             svga->overlay_on      = svga->overlay_latch.cur_ysize - svga->overlay_latch.yoff;
             svga->overlay_oddeven = 1;
         }

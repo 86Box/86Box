@@ -397,21 +397,21 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
         case 0x16e8:
             /*In preparation to switch from VGA to 8514/A mode*/
             if (len == 2) {
-                dev->v_disp = val;
-                dev->v_disp &= 0x1fff;
-                ibm8514_log("IBM 8514/A: V_DISP write 16E8 = %d\n", dev->v_disp);
+                dev->vdisp_latch = val;
+                dev->vdisp_latch &= 0x1fff;
+                ibm8514_log("IBM 8514/A: V_DISP write 16E8 = %d\n", dev->vdisp_latch);
                 ibm8514_log("IBM 8514/A: (0x%04x): vdisp=0x%02x.\n", port, val);
                 svga_recalctimings(svga);
             } else {
-                WRITE8(port, dev->v_disp, val);
+                WRITE8(port, dev->vdisp_latch, val);
             }
             break;
         case 0x16e9:
             /*In preparation to switch from VGA to 8514/A mode*/
             if (len == 1) {
-                WRITE8(port, dev->v_disp, val >> 8);
-                dev->v_disp &= 0x1fff;
-                ibm8514_log("IBM 8514/A: V_DISP write 16E8 = %d\n", dev->v_disp);
+                WRITE8(port, dev->vdisp_latch, val >> 8);
+                dev->vdisp_latch &= 0x1fff;
+                ibm8514_log("IBM 8514/A: V_DISP write 16E8 = %d\n", dev->vdisp_latch);
                 ibm8514_log("IBM 8514/A: (0x%04x): vdisp=0x%02x.\n", port, val);
                 svga_recalctimings(svga);
             }
@@ -3663,12 +3663,12 @@ ibm8514_poll(void *priv)
     if (dev->on) {
         ibm8514_log("ON!\n");
         if (!dev->linepos) {
-            if ((dev->displine == ((dev->hwcursor_latch.y < 0) ? 0 : dev->hwcursor_latch.y)) && dev->hwcursor_latch.ena) {
+            if ((dev->displine == ((dev->hwcursor_latch.y < 0) ? 0 : dev->hwcursor_latch.y)) && dev->hwcursor_latch.enable) {
                 dev->hwcursor_on      = dev->hwcursor_latch.cur_ysize - dev->hwcursor_latch.yoff;
                 dev->hwcursor_oddeven = 0;
             }
 
-            if ((dev->displine == (((dev->hwcursor_latch.y < 0) ? 0 : dev->hwcursor_latch.y) + 1)) && dev->hwcursor_latch.ena && dev->interlace) {
+            if ((dev->displine == (((dev->hwcursor_latch.y < 0) ? 0 : dev->hwcursor_latch.y) + 1)) && dev->hwcursor_latch.enable && dev->interlace) {
                 dev->hwcursor_on      = dev->hwcursor_latch.cur_ysize - (dev->hwcursor_latch.yoff + 1);
                 dev->hwcursor_oddeven = 1;
             }
@@ -3819,7 +3819,7 @@ ibm8514_recalctimings(svga_t *svga)
             if (dev->h_total == 1) /*Default to 1024x768 87hz 8514/A htotal timings if it goes to 0.*/
                 dev->h_total = 0x9e;
 
-            dev->vdisp = (dev->v_disp + 1) >> 1;
+            dev->vdisp = (dev->vdisp_latch + 1) >> 1;
             if ((dev->vdisp == 478) || (dev->vdisp == 766))
                 dev->vdisp += 2;
 

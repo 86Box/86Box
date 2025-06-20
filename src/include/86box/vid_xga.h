@@ -20,7 +20,7 @@
 #include <86box/rom.h>
 
 typedef struct xga_hwcursor_t {
-    int      ena;
+    int      enable;
     int      x;
     int      y;
     int      xoff;

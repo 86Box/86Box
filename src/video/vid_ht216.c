@@ -299,7 +299,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                         break;
 
                     case 0xa5:
-                        svga->hwcursor.ena = !!(val & 0x80);
+                        svga->hwcursor.enable = !!(val & 0x80);
                         break;
 
                     case 0xc0:

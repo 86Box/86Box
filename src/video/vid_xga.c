@@ -424,7 +424,7 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
 
         case 0x36:
             xga->hwc_control  = val;
-            xga->hwcursor.ena = xga->hwc_control & 1;
+            xga->hwcursor.enable = xga->hwc_control & 1;
             break;
 
         case 0x38:
@@ -3092,12 +3092,12 @@ xga_poll(void *priv)
     xga_log("XGA Poll=%d.\n", xga->on);
     if (xga->on) {
         if (!xga->linepos) {
-            if (xga->displine == xga->hwcursor_latch.y && xga->hwcursor_latch.ena) {
+            if (xga->displine == xga->hwcursor_latch.y && xga->hwcursor_latch.enable) {
                 xga->hwcursor_on      = xga->hwcursor_latch.cur_ysize - ((xga->hwcursor_latch.yoff & 0x20) ? 32 : 0);
                 xga->hwcursor_oddeven = 0;
             }
 
-            if (xga->displine == (xga->hwcursor_latch.y + 1) && xga->hwcursor_latch.ena && xga->interlace) {
+            if (xga->displine == (xga->hwcursor_latch.y + 1) && xga->hwcursor_latch.enable && xga->interlace) {
                 xga->hwcursor_on      = xga->hwcursor_latch.cur_ysize - ((xga->hwcursor_latch.yoff & 0x20) ? 33 : 1);
                 xga->hwcursor_oddeven = 1;
             }

@@ -1380,7 +1380,7 @@ mystique_write_xreg(mystique_t *mystique, int reg, uint8_t val)
 
         case XREG_XCURCTRL:
             mystique->xcurctrl = val;
-            svga->hwcursor.ena = (val & 3) ? 1 : 0;
+            svga->hwcursor.enable = (val & 3) ? 1 : 0;
             break;
 
         case XREG_XCURCOL0R:

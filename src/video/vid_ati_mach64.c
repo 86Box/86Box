@@ -2297,7 +2297,7 @@ mach64_vblank_start(svga_t *svga)
     svga->overlay.addr  = mach64->buf_offset[0] & 0x3ffff8;
     svga->overlay.pitch = mach64->buf_pitch[0] & 0xfff;
 
-    svga->overlay.ena = (mach64->overlay_scale_cntl & OVERLAY_EN) && (overlay_cmp_mix != 1);
+    svga->overlay.enable = (mach64->overlay_scale_cntl & OVERLAY_EN) && (overlay_cmp_mix != 1);
 
     mach64->overlay_v_acc = 0;
     mach64->scaler_update = 1;
@@ -3344,9 +3344,9 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                 ati_eeprom_write(&mach64->eeprom, mach64->gen_test_cntl & 0x10, mach64->gen_test_cntl & 2, mach64->gen_test_cntl & 1);
                 mach64->gen_test_cntl  = (mach64->gen_test_cntl & ~8) | (ati_eeprom_read(&mach64->eeprom) ? 8 : 0);
                 if (mach64->type == MACH64_GX)
-                    svga->dac_hwcursor.ena = !!(mach64->gen_test_cntl & 0x80);
+                    svga->dac_hwcursor.enable = !!(mach64->gen_test_cntl & 0x80);
                 else
-                    svga->hwcursor.ena = !!(mach64->gen_test_cntl & 0x80);
+                    svga->hwcursor.enable = !!(mach64->gen_test_cntl & 0x80);
                 break;
 
             case 0xdc:

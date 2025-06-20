@@ -107,18 +107,18 @@ ati_eeprom_save(ati_eeprom_t *eeprom)
 }
 
 void
-ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
+ati_eeprom_write(ati_eeprom_t *eeprom, int enable, int clk, int dat)
 {
-    if (!ena)
+    if (!enable)
         eeprom->out = 1;
 
     if (clk && !eeprom->oldclk) {
-        if (ena && !eeprom->oldena) {
+        if (enable && !eeprom->oldena) {
             eeprom->state  = EEPROM_WAIT;
             eeprom->opcode = 0;
             eeprom->count  = 3;
             eeprom->out    = 1;
-        } else if (ena) {
+        } else if (enable) {
             switch (eeprom->state) {
                 case EEPROM_WAIT:
                     if (!dat)
@@ -231,9 +231,9 @@ ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                     break;
             }
         }
-        eeprom->oldena = ena;
+        eeprom->oldena = enable;
     } else if (!clk && eeprom->oldclk) {
-        if (ena) {
+        if (enable) {
             switch (eeprom->state) {
                 case EEPROM_OUTPUT:
                     eeprom->out = (eeprom->dat & 0x10000) ? 1 : 0;

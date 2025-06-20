@@ -2715,7 +2715,7 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
 
     dev->hdisp = (dev->hdisped + 1) << 3;
 
-    dev->vdisp = (dev->v_disp + 1) >> 1;
+    dev->vdisp = (dev->vdisp_latch + 1) >> 1;
     if ((dev->vdisp == 478) || (dev->vdisp == 598) || (dev->vdisp == 766) || (dev->vdisp == 1022))
         dev->vdisp += 2;
 
@@ -3232,17 +3232,17 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             if (len == 2) {
                 if ((mach->accel.clock_sel & 0x01) || (!(mach->accel.clock_sel & 0x01) && (mach->shadow_set & 0x03))) { /*For 8514/A mode, take the shadow sets into account.*/
                     if (!(mach->shadow_cntl & 0x20) && val) {
-                        dev->v_disp = val;
-                        dev->v_disp &= 0x1fff;
+                        dev->vdisp_latch = val;
+                        dev->vdisp_latch &= 0x1fff;
                     }
                 }
-                mach_log("ATI 8514/A: V_DISP write 16E8=%d\n", dev->v_disp);
+                mach_log("ATI 8514/A: V_DISP write 16E8=%d\n", dev->vdisp_latch);
                 mach_log("ATI 8514/A: (0x%04x): vdisp=0x%02x.\n", port, val);
             } else {
                 if ((mach->accel.clock_sel & 0x01) || (!(mach->accel.clock_sel & 0x01) && (mach->shadow_set & 0x03))) {  /*For 8514/A mode, take the shadow sets into account.*/
                     if (!(mach->shadow_cntl & 0x20)) {
-                        WRITE8(port, dev->v_disp, val);
-                        dev->v_disp &= 0x1fff;
+                        WRITE8(port, dev->vdisp_latch, val);
+                        dev->vdisp_latch &= 0x1fff;
                     }
                 }
             }
@@ -3252,11 +3252,11 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             if (len == 1) {
                 if ((mach->accel.clock_sel & 0x01) || (!(mach->accel.clock_sel & 0x01) && (mach->shadow_set & 0x03))) { /*For 8514/A mode, take the shadow sets into account.*/
                     if (!(mach->shadow_cntl & 0x20)) {
-                        WRITE8(port, dev->v_disp, val >> 8);
-                        dev->v_disp &= 0x1fff;
+                        WRITE8(port, dev->vdisp_latch, val >> 8);
+                        dev->vdisp_latch &= 0x1fff;
                     }
                 }
-                mach_log("ATI 8514/A: V_DISP write 16E8=%d.\n", dev->v_disp);
+                mach_log("ATI 8514/A: V_DISP write 16E8=%d.\n", dev->vdisp_latch);
                 mach_log("ATI 8514/A: (0x%04x): vdisp=0x%02x.\n", port, val);
             }
             svga_recalctimings(svga);
@@ -3604,7 +3604,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             if (len == 2) {
                 WRITE8(port + 1, mach->cursor_offset_hi_reg, val >> 8);
             }
-            dev->hwcursor.ena = !!(mach->cursor_offset_hi_reg & 0x8000);
+            dev->hwcursor.enable = !!(mach->cursor_offset_hi_reg & 0x8000);
             mach->cursor_offset_hi = mach->cursor_offset_hi_reg & 0x0f;
             dev->hwcursor.addr = ((mach->cursor_offset_lo | (mach->cursor_offset_hi << 16)) << 2);
             if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00))
@@ -4606,13 +4606,13 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
 
         case 0xc6ee:
             if (len == 2)
-                temp = dev->v_disp;
+                temp = dev->vdisp_latch;
             else
-                temp = dev->v_disp & 0xff;
+                temp = dev->vdisp_latch & 0xff;
             break;
         case 0xc6ef:
             if (len == 1)
-                temp = dev->v_disp >> 8;
+                temp = dev->vdisp_latch >> 8;
             break;
 
         case 0xcaee:
@@ -7246,7 +7246,7 @@ ati8514_init(svga_t *svga, void *ext8514, void *dev8514)
     dev->accel_bpp = 8;
     dev->rowoffset = 0x80;
     dev->hdisped = 0x7f;
-    dev->v_disp = 0x05ff;
+    dev->vdisp_latch = 0x05ff;
     dev->htotal = 0x9d;
     dev->v_total_reg = 0x0668;
     dev->v_sync_start = 0x0600;

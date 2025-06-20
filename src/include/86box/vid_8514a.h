@@ -40,15 +40,13 @@ typedef enum {
 } ibm8514_extensions_t;
 
 typedef struct hwcursor8514_t {
-    int      ena;
+    int      enable;
     int      x;
     int      y;
     int      xoff;
     int      yoff;
     int      cur_xsize;
     int      cur_ysize;
-    int      v_acc;
-    int      h_acc;
     uint32_t addr;
     uint32_t pitch;
 } hwcursor8514_t;
@@ -129,7 +127,6 @@ typedef struct ibm8514_t {
         uint16_t clip_bottom;
         int16_t  clip_left;
         int16_t  clip_top;
-        uint8_t  pix_trans[2];
         int      ssv_state;
 
         int      temp_cnt;
@@ -144,7 +141,7 @@ typedef struct ibm8514_t {
         uint32_t src;
         uint32_t dest;
         int      x_count;
-        int      y_count;
+        /* y_count not used */
         int      input;
         int      input2;
         int      output;
@@ -154,13 +151,8 @@ typedef struct ibm8514_t {
         uint8_t  ssv_dir;
         uint8_t  ssv_draw;
         int      odd_in;
-        int      odd_out;
 
-        uint16_t scratch;
         int      fill_state;
-        int      xdir;
-        int      ydir;
-        int      linedraw;
         uint32_t ge_offset;
         uint32_t src_ge_offset;
         uint32_t dst_ge_offset;
@@ -214,10 +206,9 @@ typedef struct ibm8514_t {
     int     hdisp2;
     int     hdisped;
     int     scanline;
-    int     vsyncstart;
     int     vsyncwidth;
     int     vtotal;
-    int     v_disp;
+    int     vdisp_latch;
     int     vdisp;
     int     disp_cntl;
     int     interlace;
