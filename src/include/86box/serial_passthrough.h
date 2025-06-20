@@ -13,7 +13,7 @@
  *              Jasmine Iwanek <jasmine@iwanek.co.uk>
  *
  *              Copyright 2021      Andreas J. Reichel.
- *              Copyright 2021-2022 Jasmine Iwanek.
+ *              Copyright 2021-2025 Jasmine Iwanek.
  */
 
 #ifndef SERIAL_PASSTHROUGH_H
@@ -28,10 +28,15 @@
 #include <86box/serial.h>
 
 enum serial_passthrough_mode {
-    SERPT_MODE_VCON,    /*Named Pipe (Server) / Pseudo Terminal/Virtual Console */
-    SERPT_MODE_TCPSRV,  /* TCP Server (TODO) */
-    SERPT_MODE_TCPCLNT, /* TCP Client (TODO) */
-    SERPT_MODE_HOSTSER, /* Host Serial Passthrough */
+#ifdef _WIN32
+    SERPT_MODE_NPIPE_SRV,  /* Named Pipe (Server) */
+    SERPT_MODE_NPIPE_CLNT, /* Named Pipe (Client) */
+#else
+    SERPT_MODE_VCON,       /* Pseudo Terminal/Virtual Console */
+#endif
+    SERPT_MODE_TCP_SRV,    /* TCP Server (TODO) */
+    SERPT_MODE_TCP_CLNT,   /* TCP Client (TODO) */
+    SERPT_MODE_HOSTSER,    /* Host Serial Passthrough */
     SERPT_MODES_MAX,
 };
 

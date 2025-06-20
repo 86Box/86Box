@@ -13,7 +13,7 @@
  *              Jasmine Iwanek <jasmine@iwanek.co.uk>
  *
  *              Copyright 2021      Andreas J. Reichel
- *              Copyright 2021-2023 Jasmine Iwanek
+ *              Copyright 2021-2025 Jasmine Iwanek
  */
 
 #define _XOPEN_SOURCE 500
@@ -46,9 +46,9 @@ plat_serpt_close(void *priv)
     fclose(dev->master_fd);
 #endif
     FlushFileBuffers((HANDLE) dev->master_fd);
-    if (dev->mode == SERPT_MODE_VCON)
+    if (dev->mode == SERPT_MODE_NPIPE_SRV)
         DisconnectNamedPipe((HANDLE) dev->master_fd);
-    if (dev->mode == SERPT_MODE_HOSTSER) {
+    else if (dev->mode == SERPT_MODE_HOSTSER) {
         SetCommState((HANDLE) dev->master_fd, (DCB *) dev->backend_priv);
         free(dev->backend_priv);
     }
@@ -133,7 +133,8 @@ plat_serpt_write(void *priv, uint8_t data)
     serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     switch (dev->mode) {
-        case SERPT_MODE_VCON:
+        case SERPT_MODE_NPIPE_SRV:
+        case SERPT_MODE_NPIPE_CLNT:
         case SERPT_MODE_HOSTSER:
             plat_serpt_write_vcon(dev, data);
             break;
@@ -157,7 +158,8 @@ plat_serpt_read(void *priv, uint8_t *data)
     int                   res = 0;
 
     switch (dev->mode) {
-        case SERPT_MODE_VCON:
+        case SERPT_MODE_NPIPE_SRV:
+        case SERPT_MODE_NPIPE_CLNT:
         case SERPT_MODE_HOSTSER:
             res = plat_serpt_read_vcon(dev, data);
             break;
@@ -222,15 +224,14 @@ plat_serpt_open_device(void *priv)
     serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     switch (dev->mode) {
-        case SERPT_MODE_VCON:
-            if (open_pseudo_terminal(dev)) {
+        case SERPT_MODE_NPIPE_SRV:
+            if (open_pseudo_terminal(dev))
                 return 0;
-            }
             break;
         case SERPT_MODE_HOSTSER:
-            if (open_host_serial_port(dev)) {
+            if (open_host_serial_port(dev))
                 return 0;
-            }
+            break;
         default:
             break;
     }
