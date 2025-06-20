@@ -190,6 +190,38 @@ open_pseudo_terminal(serial_passthrough_t *dev)
 }
 
 static int
+connect_named_pipe_client(serial_passthrough_t *dev)
+{
+    char ascii_pipe_name[1024] = { 0 };
+    strncpy(ascii_pipe_name, dev->named_pipe, sizeof(ascii_pipe_name) - 1);
+
+    HANDLE hPipe = CreateFileA(
+        ascii_pipe_name,            // pipe name
+        GENERIC_READ | GENERIC_WRITE,
+        0,                          // no sharing
+        NULL,                       // default security attributes
+        OPEN_EXISTING,              // open existing pipe
+        0,                          // default attributes
+        NULL);                      // no template file
+
+    if (hPipe == INVALID_HANDLE_VALUE) {
+        DWORD error = GetLastError();
+        wchar_t errorMsg[1024] = { 0 };
+        wchar_t finalMsg[1024] = { 0 };
+        FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorMsg, 1024, NULL);
+        swprintf(finalMsg, 1024, L"Named Pipe (client, named_pipe=\"%hs\", port=COM%d): %ls\n", ascii_pipe_name, dev->port + 1, errorMsg);
+        ui_msgbox(MBX_ERROR | MBX_FATAL, finalMsg);
+        return 0;
+    }
+
+    DWORD mode = PIPE_READMODE_BYTE | PIPE_NOWAIT;
+    SetNamedPipeHandleState(hPipe, &mode, NULL, NULL);
+    dev->master_fd = (intptr_t) hPipe;
+    pclog("Named Pipe client connected to %s\n", ascii_pipe_name);
+    return 1;
+}
+
+static int
 open_host_serial_port(serial_passthrough_t *dev)
 {
     COMMTIMEOUTS timeouts = {
@@ -226,6 +258,10 @@ plat_serpt_open_device(void *priv)
     switch (dev->mode) {
         case SERPT_MODE_NPIPE_SRV:
             if (open_pseudo_terminal(dev))
+                return 0;
+            break;
+        case SERPT_MODE_NPIPE_CLNT:
+            if (connect_named_pipe_client(dev))
                 return 0;
             break;
         case SERPT_MODE_HOSTSER:
