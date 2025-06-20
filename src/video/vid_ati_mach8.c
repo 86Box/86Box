@@ -2835,7 +2835,7 @@ ati8514_recalctimings(svga_t *svga)
         mach_log("cntl=%d, hv(%d,%d), pitch=%d, rowoffset=%d, gextconfig=%03x, shadow=%x interlace=%d.\n",
                  dev->accel.advfunc_cntl & 0x04, dev->h_disp, dev->dispend, dev->pitch, dev->rowoffset,
                  mach->accel.ext_ge_config & 0xcec0, mach->shadow_set & 3, dev->interlace);
-        if (dev->vram_512k_8514) {
+        if (dev->vram_is_512k) {
             if (dev->h_disp == 640)
                 dev->pitch = 640;
             else
@@ -2917,7 +2917,7 @@ mach_recalctimings(svga_t *svga)
             mach->accel.crt_offset <<= 2;
         }
 
-        if (ATI_MACH32 && !dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+        if (ATI_MACH32 && !dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
             dev->accel.ge_offset <<= 1;
             mach->accel.crt_offset <<= 1;
         }
@@ -2960,7 +2960,7 @@ mach_recalctimings(svga_t *svga)
                         mach->accel.src_ge_offset <<= 2;
                         mach->accel.dst_ge_offset <<= 2;
                     }
-                    if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+                    if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
                         mach->accel.src_ge_offset <<= 1;
                         mach->accel.dst_ge_offset <<= 1;
                     }
@@ -2979,7 +2979,7 @@ mach_recalctimings(svga_t *svga)
                     else
                         mach->accel.dst_ge_offset <<= 2;
 
-                    if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00))
+                    if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00))
                         mach->accel.dst_ge_offset <<= 1;
 
                     mach->accel.dst_ge_offset -= mach->accel.crt_offset;
@@ -2994,7 +2994,7 @@ mach_recalctimings(svga_t *svga)
                     else
                         mach->accel.src_ge_offset <<= 2;
 
-                    if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00))
+                    if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00))
                         mach->accel.src_ge_offset <<= 1;
 
                     mach->accel.src_ge_offset -= mach->accel.crt_offset;
@@ -3015,7 +3015,7 @@ mach_recalctimings(svga_t *svga)
                 switch (dev->accel_bpp) {
                     case 8:
                         if ((mach->accel.ext_ge_config & 0x30) == 0x00) {
-                            if (dev->vram_512k_8514) {
+                            if (dev->vram_is_512k) {
                                 if (dev->h_disp == 640)
                                     dev->pitch = 640;
                                 else
@@ -3056,7 +3056,7 @@ mach_recalctimings(svga_t *svga)
             mach_log("cntl=%d, clksel=%x, hv(%d,%d), pitch=%d, rowoffset=%d, gextconfig=%03x, shadow=%x interlace=%d, vgahdisp=%d.\n",
                      dev->accel.advfunc_cntl & 0x04, mach->accel.clock_sel & 0x01, dev->h_disp, dev->dispend, dev->pitch, dev->rowoffset,
                      mach->accel.ext_ge_config & 0xcec0, mach->shadow_set & 0x03, dev->interlace, svga->hdisp);
-            if (dev->vram_512k_8514) {
+            if (dev->vram_is_512k) {
                 if (dev->h_disp == 640)
                     dev->pitch = 640;
                 else
@@ -3236,7 +3236,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                         dev->v_disp &= 0x1fff;
                     }
                 }
-                mach_log("ATI 8514/A: V_DISP write 16E8=%d, vdisp2=%d.\n", dev->v_disp, dev->v_disp2);
+                mach_log("ATI 8514/A: V_DISP write 16E8=%d\n", dev->v_disp);
                 mach_log("ATI 8514/A: (0x%04x): vdisp=0x%02x.\n", port, val);
             } else {
                 if ((mach->accel.clock_sel & 0x01) || (!(mach->accel.clock_sel & 0x01) && (mach->shadow_set & 0x03))) {  /*For 8514/A mode, take the shadow sets into account.*/
@@ -3256,7 +3256,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                         dev->v_disp &= 0x1fff;
                     }
                 }
-                mach_log("ATI 8514/A: V_DISP write 16E8=%d, vdisp2=%d.\n", dev->v_disp, dev->v_disp2);
+                mach_log("ATI 8514/A: V_DISP write 16E8=%d.\n", dev->v_disp);
                 mach_log("ATI 8514/A: (0x%04x): vdisp=0x%02x.\n", port, val);
             }
             svga_recalctimings(svga);
@@ -3594,7 +3594,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             }
             mach->cursor_offset_lo = mach->cursor_offset_lo_reg;
             dev->hwcursor.addr = ((mach->cursor_offset_lo | (mach->cursor_offset_hi << 16)) << 2);
-            if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00))
+            if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00))
                 dev->hwcursor.addr <<= 1;
             break;
 
@@ -3607,7 +3607,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             dev->hwcursor.ena = !!(mach->cursor_offset_hi_reg & 0x8000);
             mach->cursor_offset_hi = mach->cursor_offset_hi_reg & 0x0f;
             dev->hwcursor.addr = ((mach->cursor_offset_lo | (mach->cursor_offset_hi << 16)) << 2);
-            if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00))
+            if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00))
                 dev->hwcursor.addr <<= 1;
             break;
 
@@ -4794,7 +4794,7 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
                     temp |= INT_FIFO_EMP;
                     mach_log("Fifo Empty.\n");
                 }
-                temp |= (dev->subsys_stat | (dev->vram_512k_8514 ? 0x00 : 0x80));
+                temp |= (dev->subsys_stat | (dev->vram_is_512k ? 0x00 : 0x80));
                 if (mach->accel.ext_ge_config & 0x08)
                     temp |= ((mach->accel.ext_ge_config & 0x07) << 4);
                 else
@@ -5231,12 +5231,12 @@ mach32_write_common(uint32_t addr, uint8_t val, int linear, mach_t *mach, svga_t
     cycles -= svga->monitor->mon_video_timing_write_b;
 
     if (linear) {
-        if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00))
+        if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00))
             addr <<= 1;
 
         addr &= dev->vram_mask;
         dev->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
-        if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+        if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
             switch (addr & 0x06) {
                 case 0x00:
                 case 0x06:
@@ -5387,7 +5387,7 @@ mach32_write(uint32_t addr, uint8_t val, void *priv)
             return;
     }
 
-    if ((ATI_MACH32 && !dev->vram_512k_8514) && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+    if ((ATI_MACH32 && !dev->vram_is_512k) && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
         addr <<= 1;
         switch (addr & 0x06) {
             case 0x00:
@@ -5427,7 +5427,7 @@ mach32_writew(uint32_t addr, uint16_t val, void *priv)
             return;
     }
 
-    if ((ATI_MACH32 && !dev->vram_512k_8514) && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+    if ((ATI_MACH32 && !dev->vram_is_512k) && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
         addr <<= 1;
         if (addr & 0x04) {
             mach32_write_common(addr - 2, val & 0x0f, 0, mach, svga);
@@ -5462,7 +5462,7 @@ mach32_writel(uint32_t addr, uint32_t val, void *priv)
             return;
     }
 
-    if ((ATI_MACH32 && !dev->vram_512k_8514) && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+    if ((ATI_MACH32 && !dev->vram_is_512k) && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
         addr <<= 1;
         mach32_write_common(addr, val & 0x0f, 0, mach, svga);
         mach32_write_common(addr + 1, (val >> 4) & 0x0f, 0, mach, svga);
@@ -5705,12 +5705,12 @@ mach32_writew_linear(uint32_t addr, uint16_t val, mach_t *mach)
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
     cycles -= svga->monitor->mon_video_timing_write_w;
-    if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00))
+    if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00))
         addr <<= 1;
 
     addr &= dev->vram_mask;
     dev->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
-    if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+    if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
         if (addr & 0x04) {
             dev->vram[addr - 2] = val & 0x0f;
             dev->vram[addr - 1] = (val >> 4) & 0x0f;
@@ -5734,12 +5734,12 @@ mach32_writel_linear(uint32_t addr, uint32_t val, mach_t *mach)
 
     cycles -= svga->monitor->mon_video_timing_write_l;
 
-    if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00))
+    if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00))
         addr <<= 1;
 
     addr &= dev->vram_mask;
     dev->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
-    if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+    if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
         dev->vram[addr] = val & 0x0f;
         dev->vram[addr + 1] = (val >> 4) & 0x0f;
         dev->vram[addr + 4] = (val >> 8) & 0x0f;
@@ -5765,11 +5765,11 @@ mach32_read_common(uint32_t addr, int linear, mach_t *mach, svga_t *svga)
     cycles -= svga->monitor->mon_video_timing_read_b;
 
     if (linear) {
-        if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00))
+        if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00))
             addr <<= 1;
 
         addr &= dev->vram_mask;
-        if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+        if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
             switch ((addr & 0x06) >> 1) {
                 case 0x00:
                 case 0x03:
@@ -5879,7 +5879,7 @@ mach32_read(uint32_t addr, void *priv)
     (void) xga_read_test(addr, svga);
     addr = (addr & svga->banked_mask) + svga->read_bank;
 
-    if ((ATI_MACH32 && !dev->vram_512k_8514) && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+    if ((ATI_MACH32 && !dev->vram_is_512k) && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
         addr <<= 1;
         switch ((addr & 0x06) >> 1) {
             case 0x00:
@@ -5916,7 +5916,7 @@ mach32_readw(uint32_t addr, void *priv)
     (void) xga_read_test(addr, svga);
     addr = (addr & svga->banked_mask) + svga->read_bank;
 
-    if ((ATI_MACH32 && !dev->vram_512k_8514) && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+    if ((ATI_MACH32 && !dev->vram_is_512k) && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
         addr <<= 1;
         if (addr & 0x04) {
             ret = mach32_read_common(addr - 2, 0, mach, svga) & 0x0f;
@@ -5948,7 +5948,7 @@ mach32_readl(uint32_t addr, void *priv)
     (void) xga_read_test(addr, svga);
     addr = (addr & svga->banked_mask) + svga->read_bank;
 
-    if ((ATI_MACH32 && !dev->vram_512k_8514) && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+    if ((ATI_MACH32 && !dev->vram_is_512k) && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
         addr <<= 1;
         ret = mach32_read_common(addr, 0, mach, svga) & 0x0f;
         ret |= (mach32_read_common(addr + 1, 0, mach, svga) << 4);
@@ -5976,7 +5976,7 @@ mach32_readw_linear(uint32_t addr, mach_t *mach)
     uint16_t         ret;
 
     cycles -= svga->monitor->mon_video_timing_read_w;
-    if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+    if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
         addr <<= 1;
         addr &= dev->vram_mask;
         if (addr & 0x04) {
@@ -6004,7 +6004,7 @@ mach32_readl_linear(uint32_t addr, mach_t *mach)
     uint32_t         ret;
 
     cycles -= svga->monitor->mon_video_timing_read_l;
-    if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
+    if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00)) {
         addr <<= 1;
         addr &= dev->vram_mask;
         ret = dev->vram[addr] & 0x0f;
@@ -6301,7 +6301,7 @@ mach32_hwcursor_draw(svga_t *svga, int displine)
     int           shift = 0;
 
     offset = dev->hwcursor_latch.x - dev->hwcursor_latch.xoff;
-    if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00))
+    if (!dev->vram_is_512k && ((mach->accel.ext_ge_config & 0x30) == 0x00))
         shift = 1;
 
     mach_log("BPP=%d, displine=%d.\n", dev->accel_bpp, displine);
@@ -7070,7 +7070,7 @@ mach8_init(const device_t *info)
     mach->has_bios   = !(info->local & 0xff00);
     mach->ramdac_type = mach->pci_bus ? device_get_config_int("ramdac") : 1;
     dev->vram_amount = device_get_config_int("memory");
-    dev->vram_512k_8514 = dev->vram_amount == 512;
+    dev->vram_is_512k = dev->vram_amount == 512;
 
     if (ATI_MACH32) {
         if (mach->pci_bus) {

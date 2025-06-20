@@ -375,8 +375,6 @@ typedef struct s3_t {
     event_t  *fifo_not_full_event;
 
     atomic_int blitter_busy;
-    uint64_t blitter_time;
-    uint64_t status_time;
 
     uint8_t subsys_cntl, subsys_stat;
 
@@ -9698,8 +9696,6 @@ static void
 fifo_thread(void *param)
 {
     s3_t    *s3 = (s3_t *) param;
-    uint64_t start_time;
-    uint64_t end_time;
 
     while (s3->fifo_thread_run) {
         thread_set_event(s3->fifo_not_full_event);
@@ -9707,7 +9703,6 @@ fifo_thread(void *param)
         thread_reset_event(s3->wake_fifo_thread);
         s3->blitter_busy = 1;
         while (!FIFO_EMPTY) {
-            start_time         = plat_timer_read();
             fifo_entry_t *fifo = &s3->fifo[s3->fifo_read_idx & FIFO_MASK];
 
             switch (fifo->addr_type & FIFO_TYPE) {
@@ -9739,9 +9734,6 @@ fifo_thread(void *param)
 
             if (FIFO_ENTRIES > 0xe000)
                 thread_set_event(s3->fifo_not_full_event);
-
-            end_time = plat_timer_read();
-            s3->blitter_time += (end_time - start_time);
         }
         s3->blitter_busy = 0;
         s3->subsys_stat |= INT_FIFO_EMP;

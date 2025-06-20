@@ -356,7 +356,6 @@ typedef struct da2_t {
     uint64_t   da2const;
 
     int dispon;
-    int hdisp_on;
 
     uint32_t memaddr, memaddr_backup, cursoraddr;
     int      vc;
@@ -3020,7 +3019,6 @@ da2_poll(void *priv)
         da2->linepos = 1;
 
         if (da2->dispon) {
-            da2->hdisp_on = 1;
 
             da2->memaddr &= da2->vram_display_mask;
             if (da2->firstline == 2000) {
@@ -3052,7 +3050,6 @@ da2_poll(void *priv)
 
         if (da2->dispon)
             da2->cgastat &= ~1;
-        da2->hdisp_on = 0;
 
         da2->linepos = 0;
         if (da2->scanline == (da2->crtc[LC_CURSOR_ROW_END] & 31))

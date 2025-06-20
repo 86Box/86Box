@@ -18,6 +18,8 @@
 #ifndef VIDEO_8514A_H
 #define VIDEO_8514A_H
 
+#include <stdbool.h>
+
 #define INT_VSY         (1 << 0)
 #define INT_GE_BSY      (1 << 1)
 #define INT_FIFO_OVR    (1 << 2)
@@ -92,18 +94,14 @@ typedef struct ibm8514_t {
     int       dac_r;
     int       dac_g;
     int       dac_b;
-    int       internal_pitch;
     int       hwcursor_on;
-    int       modechange;
 
     uint64_t  dispontime;
     uint64_t  dispofftime;
 
     struct {
         uint16_t subsys_cntl;
-        uint16_t setup_md;
         uint16_t advfunc_cntl;
-        uint16_t advfunc_cntl_old;
         uint16_t cur_y;
         uint16_t cur_x;
         int16_t  destx;
@@ -132,35 +130,24 @@ typedef struct ibm8514_t {
         int16_t  clip_left;
         int16_t  clip_top;
         uint8_t  pix_trans[2];
-        int      poly_draw;
         int      ssv_state;
-        int      x1;
-        int      x2;
-        int      x3;
-        int      y1;
-        int      y2;
+
         int      temp_cnt;
-        int16_t  dx_ibm;
-        int16_t  dy_ibm;
         int16_t  cx;
-        int16_t  cx_back;
         int16_t  cy;
-        int16_t  oldcx;
+        /* oldcx was not used! */
         int16_t  oldcy;
         int16_t  sx;
         int16_t  sy;
         int16_t  dx;
         int16_t  dy;
-        int16_t  err;
         uint32_t src;
         uint32_t dest;
         int      x_count;
-        int      xx_count;
         int      y_count;
         int      input;
         int      input2;
         int      output;
-        int      output2;
 
         int      ssv_len;
         int      ssv_len_back;
@@ -179,20 +166,12 @@ typedef struct ibm8514_t {
         uint32_t dst_ge_offset;
         uint16_t src_pitch;
         uint16_t dst_pitch;
-        int64_t cur_x_24bpp;
-        int64_t cur_y_24bpp;
-        int64_t dest_x_24bpp;
-        int64_t dest_y_24bpp;
     } accel;
 
-    uint16_t test;
     int      h_blankstart;
-    int      h_blank_end_val;
     int      hblankstart;
-    int      hblank_end_val;
     int      hblankend;
     int      hblank_ext;
-    int      hblank_sub;
 
     int      v_total_reg;
     int      v_total;
@@ -202,12 +181,10 @@ typedef struct ibm8514_t {
     int      split;
     int      h_disp;
     int      h_total;
-    int      h_sync_width;
     int      h_disp_time;
     int      rowoffset;
     int      dispon;
-    int      hdisp_on;
-    int      linecountff;
+    int      hdispon;
     int      vc;
     int      linepos;
     int      oddeven;
@@ -241,9 +218,7 @@ typedef struct ibm8514_t {
     int     vsyncwidth;
     int     vtotal;
     int     v_disp;
-    int     v_disp2;
     int     vdisp;
-    int     vdisp2;
     int     disp_cntl;
     int     interlace;
     uint16_t subsys_cntl;
@@ -255,15 +230,15 @@ typedef struct ibm8514_t {
 
     int      blitter_busy;
     uint64_t blitter_time;
-    uint64_t status_time;
     int      pitch;
     int      ext_pitch;
     int      ext_crt_pitch;
     ibm8514_extensions_t extensions;
     int      onboard;
     int      linear;
+    bool     vram_is_512k;
+
     uint32_t vram_amount;
-    int      vram_512k_8514;
     int      vendor_mode;
     int      _8514on;
     int      _8514crt;

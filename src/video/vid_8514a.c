@@ -520,7 +520,6 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
 
         case 0x92e8:
             if (len == 2) {
-                dev->test = val;
                 dev->accel.err_term = val & 0x3fff;
                 if (val & 0x2000)
                     dev->accel.err_term |= ~0x1fff;
@@ -790,7 +789,7 @@ ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len)
 
         case 0x92e8:
             if (len == 2)
-                temp = dev->test;
+                temp = dev->accel.err_term;
             break;
 
         case 0x96e8:
@@ -968,7 +967,7 @@ ibm8514_accel_in(uint16_t port, svga_t *svga)
                     dev->data_available2 = 0;
                     temp |= INT_FIFO_EMP;
                 }
-                temp |= (dev->subsys_stat | (dev->vram_512k_8514 ? 0x00 : 0x80));
+                temp |= (dev->subsys_stat | (dev->vram_is_512k ? 0x00 : 0x80));
                 temp |= 0x20;
             }
             break;
@@ -2430,7 +2429,7 @@ skip_nibble_rect_write:
                                     ((compare_mode == 0x28) && (dest_dat == compare)) ||
                                     ((compare_mode == 0x30) && (dest_dat <= compare)) ||
                                     ((compare_mode == 0x38) && (dest_dat > compare))) {
-                                    ibm8514_log("Results c(%d,%d):rdmask=%02x, wrtmask=%02x, mix=%02x, destdat=%02x, nowrite=%d.\n", dev->accel.cx, dev->accel.cy, rd_mask_polygon, wrt_mask, mix_dat, dest_dat, dev->accel.cx_back);
+                                    ibm8514_log("Results c(%d,%d):rdmask=%02x, wrtmask=%02x, mix=%02x, destdat=%02x\n", dev->accel.cx, dev->accel.cy, rd_mask_polygon, wrt_mask, mix_dat, dest_dat);
                                     WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
                                 }
                             } else
@@ -3679,7 +3678,6 @@ ibm8514_poll(void *priv)
             dev->linepos = 1;
 
             if (dev->dispon) {
-                dev->hdisp_on = 1;
 
                 dev->memaddr &= dev->vram_mask;
 
@@ -3722,7 +3720,6 @@ ibm8514_poll(void *priv)
             timer_advance_u64(&svga->timer, dev->dispontime);
             if (dev->dispon)
                 svga->cgastat &= ~1;
-            dev->hdisp_on = 0;
 
             dev->linepos = 0;
             if (dev->dispon) {
@@ -3862,7 +3859,7 @@ ibm8514_recalctimings(svga_t *svga)
 
             dev->pitch = 1024;
             dev->rowoffset = 0x80;
-            if (dev->vram_512k_8514) {
+            if (dev->vram_is_512k) {
                 if (dev->h_disp == 640)
                     dev->pitch = 640;
             }
@@ -3947,7 +3944,7 @@ ibm8514_init(const device_t *info)
     svga->ext8514    = NULL;
 
     dev->vram_amount = device_get_config_int("memory");
-    dev->vram_512k_8514 = dev->vram_amount == 512;
+    dev->vram_is_512k = dev->vram_amount == 512;
     dev->vram_size   = dev->vram_amount << 10;
     dev->vram        = calloc(dev->vram_size, 1);
     dev->changedvram = calloc((dev->vram_size >> 12) + 1, 1);

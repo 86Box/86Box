@@ -13,13 +13,17 @@
  *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
+ *          Connor Hyde / starfrost, <mario64crashed@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2025 Connor Hyde.
  */
 
 #ifndef VIDEO_EGA_H
 #define VIDEO_EGA_H
+
+#include <stdbool.h>
 
 #if defined(EMU_MEM_H) && defined(EMU_ROM_H)
 typedef struct ega_t {
@@ -57,65 +61,52 @@ typedef struct ega_t {
 
     uint16_t light_pen;
 
-    int vidclock;
-    int fast;
-    int extvram;
-    int vres;
-    int readmode;
-    int writemode;
-    int readplane;
-    int vrammask;
-    int chain4;
-    int chain2_read;
-    int chain2_write;
-    int cursorvisible;
-    int oddeven_page;
-    int oddeven_chain;
-    int vc;
-    int real_vc;
-    int scanline;
-    int dispon;
-    int hdisp_on;
-    int cursoron;
-    int blink;
-    int fullchange;
-    int linepos;
-    int vslines;
-    int linecountff;
-    int oddeven;
-    int lowres;
-    int interlace;
-    int linedbl;
-    int lindebl;
-    int rowcount;
-    int vtotal;
-    int dispend;
-    int vsyncstart;
-    int split;
-    int hdisp;
-    int hdisp_old;
-    int htotal;
-    int hdisp_time;
-    int rowoffset;
-    int vblankstart;
-    int scrollcache;
-    int firstline;
-    int lastline;
-    int firstline_draw;
-    int lastline_draw;
-    int x_add;
-    int y_add;
-    int displine;
-    int res_x;
-    int res_y;
-    int bpp;
-    int index;
-    int remap_required;
-    int actual_type;
-    int chipset;
-    int mono_display;
+    int32_t vidclock;
+    int32_t vres;
+    int32_t readmode;
+    int32_t writemode;
+    int32_t readplane;
+    int32_t vrammask;
+    int32_t chain4;
+    int32_t chain2_read;
+    int32_t chain2_write;
+    int32_t cursorvisible;
+    int32_t vc;
+    int32_t real_vc;
+    int32_t scanline;
+    int32_t dispon;
+    int32_t cursoron;
+    int32_t blink;
+    int32_t fullchange;
+    int32_t linepos;
+    int32_t vslines;
+    int32_t linecountff;
+    int32_t oddeven;
+    int32_t interlace;
+    int32_t linedbl;
+    int32_t rowcount;
+    int32_t vtotal;
+    int32_t dispend;
+    int32_t vsyncstart;
+    int32_t split;
+    int32_t hdisp;
+    int32_t htotal;
+    int32_t rowoffset;
+    int32_t vblankstart;
+    int32_t scrollcache;
+    int32_t firstline;
+    int32_t lastline;
+    int32_t firstline_draw;
+    int32_t lastline_draw;
+    int32_t x_add;
+    int32_t y_add;
+    int32_t displine;
+    int32_t index;
+    bool remap_required;
+    int32_t actual_type;
+    int32_t chipset;
 
-    int mda_attr_to_color_table[256][2][2];
+    int32_t mda_attr_to_color_table[256][2][2];
 
     uint32_t charseta;
     uint32_t charsetb;
@@ -164,7 +155,7 @@ extern const device_t jega_device;
 extern const device_t jvga_device;
 #endif
 
-extern int update_overscan;
+extern int32_t update_overscan;
 
 #define DISPLAY_RGB          0
 #define DISPLAY_COMPOSITE    1
@@ -174,7 +165,7 @@ extern int update_overscan;
 #define DISPLAY_WHITE        5
 
 #if defined(EMU_MEM_H) && defined(EMU_ROM_H)
-extern void ega_init(ega_t *ega, int monitor_type, int is_mono);
+extern void ega_init(ega_t *ega, int32_t monitor_type, int32_t is_mono);
 extern void ega_recalctimings(struct ega_t *ega);
 extern void ega_recalc_remap_func(struct ega_t *ega);
 #endif
@@ -186,18 +177,18 @@ extern void    ega_write(uint32_t addr, uint8_t val, void *priv);
 extern uint8_t ega_read(uint32_t addr, void *priv);
 extern void    ega_set_type(void *priv, uint32_t local);
 
-extern int firstline_draw;
-extern int lastline_draw;
-extern int displine;
-extern int scanline;
+extern int32_t firstline_draw;
+extern int32_t lastline_draw;
+extern int32_t displine;
+extern int32_t scanline;
 
 extern uint32_t memaddr;
 extern uint32_t cursoraddr;
-extern int      cursorvisible;
-extern int      cursoron;
-extern int      cgablink;
+extern int32_t  cursorvisible;
+extern int32_t  cursoron;
+extern int32_t  cgablink;
 
-extern int scrollcache;
+extern int32_t scrollcache;
 
 extern uint8_t edatlookup[4][4];
 extern uint8_t egaremap2bpp[256];

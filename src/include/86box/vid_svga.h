@@ -98,7 +98,6 @@ typedef struct svga_t {
     int hdisp_time;
     int rowoffset;
     int dispon;
-    int hdisp_on;
     int vc;
     int scanline;
     int linepos;

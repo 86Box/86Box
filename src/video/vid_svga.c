@@ -972,33 +972,6 @@ svga_recalctimings(svga_t *svga)
         }
     }
 
-#ifdef TBD
-    if (ibm8514_active && (svga->dev8514 != NULL)) {
-        if (dev->on) {
-            uint32_t dot8514 = dev->h_blankstart;
-            uint32_t adj_dot8514 = dev->h_blankstart;
-            uint32_t eff_mask8514 = 0x0000001f;
-            dev->hblank_sub = 0;
-
-            while (adj_dot8514 < (dev->h_total << 1)) {
-                if (dot8514 == dev->h_total)
-                    dot8514 = 0;
-
-                if (adj_dot8514 >= dev->h_total)
-                    dev->hblank_sub++;
-
-                if ((dot8514 & eff_mask8514) == (dev->h_blank_end_val & eff_mask8514))
-                    break;
-
-                dot8514++;
-                adj_dot8514++;
-            }
-
-            dev->h_disp -= dev->hblank_sub;
-        }
-    }
-#endif
-
     if (svga->vblankstart < svga->dispend) {
         svga_log("DISPEND > VBLANKSTART.\n");
         svga->dispend = svga->vblankstart;
@@ -1281,7 +1254,6 @@ svga_poll(void *priv)
         svga->linepos = 1;
 
         if (svga->dispon) {
-            svga->hdisp_on = 1;
 
             svga->memaddr &= svga->vram_display_mask;
             if (svga->firstline == 2000) {
@@ -1328,7 +1300,6 @@ svga_poll(void *priv)
 
         if (svga->dispon)
             svga->cgastat &= ~1;
-        svga->hdisp_on = 0;
 
         svga->linepos = 0;
         if ((svga->scanline == (svga->crtc[11] & 31)) || (svga->scanline == svga->rowcount))

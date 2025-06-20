@@ -255,9 +255,6 @@ typedef struct mach64_t {
     event_t  *wake_fifo_thread;
     event_t  *fifo_not_full_event;
 
-    uint64_t blitter_time;
-    uint64_t status_time;
-
     uint16_t pci_id;
     uint32_t config_chip_id;
     uint32_t block_decoded_io;
@@ -1189,8 +1186,6 @@ fifo_thread(void *param)
         thread_reset_event(mach64->wake_fifo_thread);
         mach64->blitter_busy = 1;
         while (!FIFO_EMPTY) {
-            uint64_t      start_time = plat_timer_read();
-            uint64_t      end_time;
             fifo_entry_t *fifo = &mach64->fifo[mach64->fifo_read_idx & FIFO_MASK];
 
             switch (fifo->addr_type & FIFO_TYPE) {
@@ -1213,9 +1208,6 @@ fifo_thread(void *param)
 
             if (FIFO_ENTRIES > 0xe000)
                 thread_set_event(mach64->fifo_not_full_event);
-
-            end_time = plat_timer_read();
-            mach64->blitter_time += end_time - start_time;
         }
         mach64->blitter_busy = 0;
     }
