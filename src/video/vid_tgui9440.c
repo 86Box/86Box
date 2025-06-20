@@ -125,6 +125,7 @@ typedef struct tgui_t {
         uint8_t  rop;
         uint32_t flags;
         uint8_t  pattern[0x80];
+        uint8_t  pattern_32bpp[0x100];
         int      command;
         int      offset;
         uint16_t ger22;
@@ -142,6 +143,7 @@ typedef struct tgui_t {
         uint32_t pattern_8[8 * 8];
         uint32_t pattern_16[8 * 8];
         uint32_t pattern_32[8 * 8];
+        int pattern_32_idx;
     } accel;
 
     uint8_t copy_latch[16]; /*TGUI9400CXi only*/
@@ -541,7 +543,7 @@ tgui_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
@@ -724,13 +726,13 @@ tgui_recalctimings(svga_t *svga)
 #endif
 
     if ((svga->crtc[0x1e] & 0xA0) == 0xA0)
-        svga->ma_latch |= 0x10000;
+        svga->memaddr_latch |= 0x10000;
     if (svga->crtc[0x27] & 0x01)
-        svga->ma_latch |= 0x20000;
+        svga->memaddr_latch |= 0x20000;
     if (svga->crtc[0x27] & 0x02)
-        svga->ma_latch |= 0x40000;
+        svga->memaddr_latch |= 0x40000;
     if (svga->crtc[0x27] & 0x04)
-        svga->ma_latch |= 0x80000;
+        svga->memaddr_latch |= 0x80000;
 
     if (svga->crtc[0x27] & 0x08)
         svga->split |= 0x400;
@@ -756,8 +758,8 @@ tgui_recalctimings(svga_t *svga)
     if (svga->vdisp == 1020)
         svga->vdisp += 2;
 
-    if ((tgui->oldctrl2 & 0x10) || (svga->crtc[0x2a] & 0x40))
-        svga->ma_latch <<= 1;
+    if (tgui->oldctrl2 & 0x10)
+        svga->memaddr_latch <<= 1;
 
     svga->lowres = !(svga->crtc[0x2a] & 0x40);
 
@@ -2280,6 +2282,8 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
     if (count == -1)
         tgui->accel.x = tgui->accel.y = 0;
 
+    tgui->accel.pattern_32_idx = 0;
+
     if (tgui->accel.flags & TGUI_SOLIDFILL) {
         for (y = 0; y < 8; y++) {
             for (x = 0; x < 8; x++) {
@@ -2298,22 +2302,21 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
         if (tgui->accel.bpp == 0) {
             for (y = 0; y < 8; y++) {
                 for (x = 0; x < 8; x++) {
-                    tgui->accel.pattern_8[(y * 8) + (7 - x)] = tgui->accel.pattern[x + y * 8];
+                    tgui->accel.pattern_8[(y * 8) + x] = tgui->accel.pattern[x + y * 8];
                 }
             }
             pattern_data = tgui->accel.pattern_8;
         } else if (tgui->accel.bpp == 1) {
             for (y = 0; y < 8; y++) {
                 for (x = 0; x < 8; x++) {
-                    tgui->accel.pattern_16[(y * 8) + (7 - x)] = tgui->accel.pattern[x * 2 + y * 16] | (tgui->accel.pattern[x * 2 + y * 16 + 1] << 8);
+                    tgui->accel.pattern_16[(y * 8) + x] = tgui->accel.pattern[x * 2 + y * 16] | (tgui->accel.pattern[x * 2 + y * 16 + 1] << 8);
                 }
             }
             pattern_data = tgui->accel.pattern_16;
         } else {
-            for (y = 0; y < 4; y++) {
+            for (y = 0; y < 8; y++) {
                 for (x = 0; x < 8; x++) {
-                    tgui->accel.pattern_32[(y * 8) + (7 - x)]       = tgui->accel.pattern[x * 4 + y * 32] | (tgui->accel.pattern[x * 4 + y * 32 + 1] << 8) | (tgui->accel.pattern[x * 4 + y * 32 + 2] << 16) | (tgui->accel.pattern[x * 4 + y * 32 + 3] << 24);
-                    tgui->accel.pattern_32[((y + 4) * 8) + (7 - x)] = tgui->accel.pattern[x * 4 + y * 32] | (tgui->accel.pattern[x * 4 + y * 32 + 1] << 8) | (tgui->accel.pattern[x * 4 + y * 32 + 2] << 16) | (tgui->accel.pattern[x * 4 + y * 32 + 3] << 24);
+                    tgui->accel.pattern_32[(y * 8) + x] = tgui->accel.pattern_32bpp[x * 4 + y * 32] | (tgui->accel.pattern_32bpp[x * 4 + y * 32 + 1] << 8) | (tgui->accel.pattern_32bpp[x * 4 + y * 32 + 2] << 16) | (tgui->accel.pattern_32bpp[x * 4 + y * 32 + 3] << 24);
                 }
             }
             pattern_data = tgui->accel.pattern_32;
@@ -2395,6 +2398,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                                 cpu_dat <<= 16;
                                 count -= 3;
                             }
+
 
                             READ(tgui->accel.dst, dst_dat);
 
@@ -3192,6 +3196,8 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *priv)
         case 0x21fe:
         case 0x21ff:
             tgui->accel.pattern[addr & 0x7f] = val;
+            tgui->accel.pattern_32bpp[tgui->accel.pattern_32_idx] = val;
+            tgui->accel.pattern_32_idx = (tgui->accel.pattern_32_idx + 1) & 0xff;
             break;
 
         default:

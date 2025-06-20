@@ -127,7 +127,7 @@ typedef struct xga_t {
     int dispon;
     int h_disp_on;
     int vc;
-    int sc;
+    int scanline;
     int linepos;
     int oddeven;
     int firstline;
@@ -160,12 +160,12 @@ typedef struct xga_t {
     uint32_t hwc_color0;
     uint32_t hwc_color1;
     uint32_t disp_start_addr;
-    uint32_t ma_latch;
+    uint32_t memaddr_latch;
     uint32_t vram_size;
     uint32_t vram_mask;
     uint32_t rom_addr;
-    uint32_t ma;
-    uint32_t maback;
+    uint32_t memaddr;
+    uint32_t memaddr_backup;
     uint32_t read_bank;
     uint32_t write_bank;
     uint32_t px_map_base;

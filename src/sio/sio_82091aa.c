@@ -295,6 +295,20 @@ const device_t i82091aa_device = {
     .config        = NULL
 };
 
+const device_t i82091aa_26e_device = {
+    .name          = "Intel 82091AA Super I/O (Port 26Eh)",
+    .internal_name = "i82091aa_26e",
+    .flags         = 0,
+    .local         = 0x140,
+    .init          = i82091aa_init,
+    .close         = i82091aa_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t i82091aa_398_device = {
     .name          = "Intel 82091AA Super I/O (Port 398h)",
     .internal_name = "i82091aa_398",

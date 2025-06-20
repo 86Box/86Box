@@ -151,6 +151,41 @@ machine_at_lx6_init(const machine_t *model)
 }
 
 int
+machine_at_optiplexgxa_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/optiplexgxa/DELL.ROM",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NETWORK,     4, 0, 0, 0);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 2, 1);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      2, 1, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_BRIDGE,      0, 0, 0, 0);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    device_add(&i440lx_device);
+    device_add(&piix4_device);
+    machine_at_optiplex_21152_init();
+    device_add_params(&pc87307_device, (void *) (PCX730X_PHOENIX_42 | PCX7307_PC87307));
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    return ret;
+}
+
+int
 machine_at_spitfire_init(const machine_t *model)
 {
     int ret;
@@ -584,8 +619,7 @@ machine_at_s1846_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add(&pc87309_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add_params(&pc87309_device, (void *) (PCX730X_AMI | PC87309_PC87309));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 

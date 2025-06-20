@@ -448,7 +448,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -660,10 +660,10 @@ ht216_recalctimings(svga_t *svga)
             break;
     }
 
-    svga->ma_latch |= ((ht216->ht_regs[0xf6] & 0x30) << 12);
+    svga->memaddr_latch |= ((ht216->ht_regs[0xf6] & 0x30) << 12);
 
     if (ht216->ht_regs[0xf6] & 0x80)
-        svga->ma_latch = ((ht216->ht_regs[0xf6] & 0x30) << 12);
+        svga->memaddr_latch = ((ht216->ht_regs[0xf6] & 0x30) << 12);
 
     svga->interlace = ht216->ht_regs[0xe0] & 0x01;
 

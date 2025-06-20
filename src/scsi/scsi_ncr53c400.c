@@ -759,7 +759,7 @@ ncr53c400_init(const device_t *info)
     scsi_bus->bus_device            = ncr->bus;
     scsi_bus->timer                 = ncr->timer;
     scsi_bus->priv                  = ncr->priv;
-    ncr400->status_ctrl             = STATUS_BUFFER_NOT_READY;
+    ncr400->status_ctrl             = 0x00;
     ncr400->buffer_host_pos         = 128;
     timer_add(&ncr400->timer, ncr53c400_callback, ncr400, 0);
 

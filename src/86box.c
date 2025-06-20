@@ -70,6 +70,7 @@
 #include <86box/unittester.h>
 #include <86box/novell_cardkey.h>
 #include <86box/isamem.h>
+#include <86box/isarom.h>
 #include <86box/isartc.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
@@ -181,6 +182,7 @@ int      postcard_enabled                       = 0;              /* (C) enable 
 int      unittester_enabled                     = 0;              /* (C) enable unit tester device */
 int      gameport_type[GAMEPORT_MAX]            = { 0, 0 };       /* (C) enable gameports */
 int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
+int      isarom_type[ISAROM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA ROM cards */
 int      isartc_type                            = 0;              /* (C) enable ISA RTC card */
 int      gfxcard[GFXCARD_MAX]                   = { 0, 0 };       /* (C) graphics/video card */
 int      show_second_monitors                   = 1;              /* (C) show non-primary monitors */
@@ -1471,6 +1473,10 @@ pc_reset_hard_init(void)
     mo_hard_reset();
 
     zip_hard_reset();
+
+
+    /* Reset any ISA ROM cards. */
+    isarom_reset();
 
     /* Reset any ISA RTC cards. */
     isartc_reset();

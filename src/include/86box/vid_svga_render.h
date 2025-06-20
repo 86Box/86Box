@@ -23,11 +23,11 @@
 extern int firstline_draw;
 extern int lastline_draw;
 extern int displine;
-extern int sc;
+extern int scanline;
 
-extern uint32_t ma;
-extern uint32_t ca;
-extern int      con;
+extern uint32_t memaddr;
+extern uint32_t cursoraddr;
+extern int      cursorvisible;
 extern int      cursoron;
 extern int      cgablink;
 

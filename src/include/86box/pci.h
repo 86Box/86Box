@@ -283,9 +283,11 @@ extern void        pci_init(int flags);
 
 /* PCI bridge stuff. */
 extern void        pci_bridge_set_ctl(void *priv, uint8_t ctl);
+extern uint8_t     pci_bridge_get_bus_index(void *priv);
 
 #ifdef EMU_DEVICE_H
 extern const device_t dec21150_device;
+extern const device_t dec21152_device;
 
 extern const device_t ali5243_agp_device;
 extern const device_t ali5247_agp_device;

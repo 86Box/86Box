@@ -639,6 +639,25 @@ pic_reset_hard(void)
 }
 
 void
+pic_toggle_latch(int is_ps2)
+{
+    pic_kbd_latch(0x00);
+    pic_mouse_latch(0x00);
+
+    /* Explicitly reset the latches. */
+    kbd_latch = mouse_latch = 0;
+    latched_irqs = 0x0000;
+
+    /* The situation is as follows: There is a giant mess when it comes to these latches on real hardware,
+       to the point that there's even boards with board-level latched that get used in place of the latches
+       on the chipset, therefore, I'm just doing this here for the sake of simplicity. */
+    if (is_ps2) {
+        pic_kbd_latch(0x01);
+        pic_mouse_latch(0x01);
+    }
+}
+
+void
 pic_init(void)
 {
     pic_reset_hard();

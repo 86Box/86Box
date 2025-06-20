@@ -134,6 +134,7 @@ extern int      postcard_enabled;           /* (C) enable POST card */
 extern int      unittester_enabled;         /* (C) enable unit tester device */
 extern int      gameport_type[];            /* (C) enable gameports */
 extern int      isamem_type[];              /* (C) enable ISA mem cards */
+extern int      isarom_type[];              /* (C) enable ISA ROM cards */
 extern int      isartc_type;                /* (C) enable ISA RTC card */
 extern int      sound_is_float;             /* (C) sound uses FP values */
 extern int      voodoo_enabled;             /* (C) video option */

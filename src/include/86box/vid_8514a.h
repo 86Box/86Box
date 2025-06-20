@@ -24,6 +24,19 @@
 #define INT_FIFO_EMP    (1 << 3)
 #define INT_MASK        0xf
 
+typedef enum {
+    IBM_8514A_TYPE = 0,
+    ATI_38800_TYPE,
+    ATI_68800_TYPE,
+    TYPE_MAX
+} ibm8514_card_type;
+
+typedef enum {
+    IBM = 0,
+    ATI,
+    EXTENSIONS_MAX
+} ibm8514_extensions_t;
+
 typedef struct hwcursor8514_t {
     int      ena;
     int      x;
@@ -58,7 +71,7 @@ typedef struct ibm8514_t {
 
     int force_old_addr;
     int type;
-    int local;
+    ibm8514_card_type local;
     int bpp;
     int on;
     int accel_bpp;
@@ -67,7 +80,7 @@ typedef struct ibm8514_t {
     uint32_t vram_mask;
     uint32_t pallook[512];
     uint32_t bios_addr;
-    uint32_t ma_latch;
+    uint32_t memaddr_latch;
 
     PALETTE   vgapal;
     uint8_t   hwcursor_oddeven;
@@ -207,8 +220,8 @@ typedef struct ibm8514_t {
     int      lastline_draw;
     int      displine;
     int      fullchange;
-    uint32_t ma;
-    uint32_t maback;
+    uint32_t memaddr;
+    uint32_t memaddr_backup;
 
     uint8_t *vram;
     uint8_t *changedvram;
@@ -223,7 +236,7 @@ typedef struct ibm8514_t {
     int     hdisp;
     int     hdisp2;
     int     hdisped;
-    int     sc;
+    int     scanline;
     int     vsyncstart;
     int     vsyncwidth;
     int     vtotal;
@@ -246,7 +259,8 @@ typedef struct ibm8514_t {
     int      pitch;
     int      ext_pitch;
     int      ext_crt_pitch;
-    int      extensions;
+    ibm8514_extensions_t extensions;
+    int      onboard;
     int      linear;
     uint32_t vram_amount;
     int      vram_512k_8514;
@@ -263,9 +277,9 @@ typedef struct ibm8514_t {
 
 } ibm8514_t;
 
-#define IBM_8514A (((dev->local & 0xff) == 0x00) && (dev->extensions == 0x00))
-#define ATI_8514A_ULTRA (((dev->local & 0xff) == 0x00) && (dev->extensions == 0x01))
-#define ATI_GRAPHICS_ULTRA ((dev->local & 0xff) == 0x01)
-#define ATI_MACH32 ((dev->local & 0xff) == 0x02)
+#define IBM_8514A (((dev->local & 0xff) == IBM_8514A_TYPE) && (dev->extensions == IBM))
+#define ATI_8514A_ULTRA (((dev->local & 0xff) == IBM_8514A_TYPE) && (dev->extensions == ATI))
+#define ATI_GRAPHICS_ULTRA ((dev->local & 0xff) == ATI_38800_TYPE)
+#define ATI_MACH32 ((dev->local & 0xff) == ATI_68800_TYPE)
 
 #endif /*VIDEO_8514A_H*/

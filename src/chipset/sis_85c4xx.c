@@ -15,6 +15,7 @@
  *
  *          Copyright 2019-2020 Miran Grca.
  */
+#include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -631,6 +632,41 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
                             sis_85c4xx_recalcremap(dev);
                         break;
 
+                    case 0x10:
+                        if (dev->reg_base == 0x50) {
+                            double bus_clk;
+
+                            switch (val & 0xe0) {
+                                default:
+                                case 0x00:
+                                     bus_clk = 7159091.0;
+                                     break;
+                                case 0x02:
+                                     bus_clk = cpu_busspeed / 10.0;
+                                     break;
+                                case 0x04:
+                                     bus_clk = cpu_busspeed / 8.0;
+                                     break;
+                                case 0x06:
+                                     bus_clk = cpu_busspeed / 6.0;
+                                     break;
+                                case 0x80:
+                                     bus_clk = cpu_busspeed / 5.0;
+                                     break;
+                                case 0xa0:
+                                     bus_clk = cpu_busspeed / 4.0;
+                                     break;
+                                case 0xc0:
+                                     bus_clk = cpu_busspeed / 3.0;
+                                     break;
+                                case 0xe0:
+                                     bus_clk = cpu_busspeed / 2.0;
+                                     break;
+                            }
+                            cpu_set_isa_speed((int) round(bus_clk));
+                        }
+                        break;
+
                     case 0x13:
                         if (dev->is_471 && (valxor & 0xf0)) {
                             smram_disable(dev->smram);
@@ -813,6 +849,9 @@ sis_85c4xx_reset(void *priv)
 
     dev->force_flush = 1;
     sis_85c4xx_recalcmapping(dev);
+
+    if (dev->reg_base == 0x50)
+        cpu_set_isa_speed((int) round(7159091.0));
 }
 
 static void

@@ -168,7 +168,7 @@ tvga_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -293,15 +293,15 @@ tvga_recalctimings(svga_t *svga)
         svga->hdisp = (svga->crtc[1] + 1) * 8;
 
     if ((svga->crtc[0x1e] & 0xA0) == 0xA0)
-        svga->ma_latch |= 0x10000;
+        svga->memaddr_latch |= 0x10000;
     if ((svga->crtc[0x27] & 0x01) == 0x01)
-        svga->ma_latch |= 0x20000;
+        svga->memaddr_latch |= 0x20000;
     if ((svga->crtc[0x27] & 0x02) == 0x02)
-        svga->ma_latch |= 0x40000;
+        svga->memaddr_latch |= 0x40000;
 
     if (tvga->oldctrl2 & 0x10) {
         svga->rowoffset <<= 1;
-        svga->ma_latch <<= 1;
+        svga->memaddr_latch <<= 1;
     }
 
     if (svga->gdcreg[0xf] & 0x08) {

@@ -36,6 +36,10 @@ using atomic_int  = std::atomic_int;
 #define getcolg(color) (((color) >> 8) & 0xFF)
 #define getcolb(color) ((color) & 0xFF)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum {
     VID_NONE = 0,
     VID_INTERNAL
@@ -48,10 +52,6 @@ enum {
     FULLSCR_SCALE_INT,
     FULLSCR_SCALE_INT43
 };
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 enum {
     VIDEO_ISA = 0,
@@ -70,6 +70,11 @@ enum {
 #define VIDEO_FLAG_TYPE_MASK    7
 
 #define VIDEO_FLAG_TYPE_SECONDARY VIDEO_FLAG_TYPE_SPECIAL
+
+#define FONT_IBM_MDA_437_PATH        "roms/video/mda/mda.rom"
+#define FONT_IBM_MDA_437_NORDIC_PATH "roms/video/mda/4733197.bin"
+#define FONT_KAM_PATH                "roms/video/mda/kam.bin"
+#define FONT_KAMCL16_PATH            "roms/video/mda/kamcl16.bin"
 
 typedef struct video_timings_t {
     int type;
@@ -182,6 +187,10 @@ extern bitmap_t *buffer32;
 #define efscrnsz_y           (monitors[monitor_index_global].mon_efscrnsz_y)
 #define unscaled_size_x      (monitors[monitor_index_global].mon_unscaled_size_x)
 #define unscaled_size_y      (monitors[monitor_index_global].mon_unscaled_size_y)
+
+#define CGAPAL_CGA_START    16            // Where the 16-color cga text/composite starts
+
+
 extern PALETTE      cgapal;
 extern PALETTE      cgapal_mono[6];
 #if 0
@@ -189,15 +198,15 @@ extern uint32_t     pal_lookup[256];
 #endif
 extern int          video_fullscreen;
 extern int          video_fullscreen_scale;
-extern uint8_t      fontdat[2048][8];
-extern uint8_t      fontdatm[2048][16];
-extern uint8_t      fontdat2[2048][8];
-extern uint8_t      fontdatm2[2048][16];
-extern uint8_t      fontdatw[512][32];
-extern uint8_t      fontdat8x12[256][16];
-extern uint8_t      fontdat12x18[256][36];
-extern dbcs_font_t *fontdatksc5601;
-extern dbcs_font_t *fontdatksc5601_user;
+extern uint8_t      fontdat[2048][8];      /* IBM CGA font */
+extern uint8_t      fontdatm[2048][16];    /* IBM MDA font */
+extern uint8_t      fontdat2[2048][8];     /* IBM CGA 2nd instance font */
+extern uint8_t      fontdatm2[2048][16];   /* IBM MDA 2nd instance font */
+extern uint8_t      fontdatw[512][32];     /* Wyse700 font */
+extern uint8_t      fontdat8x12[256][16];  /* MDSI Genius font */
+extern uint8_t      fontdat12x18[256][36]; /* IM1024 font */
+extern dbcs_font_t *fontdatksc5601;        /* Korean KSC-5601 font */
+extern dbcs_font_t *fontdatksc5601_user;   /* Korean KSC-5601 user defined font */
 extern uint32_t    *video_6to8;
 extern uint32_t    *video_8togs;
 extern uint32_t    *video_8to32;
@@ -277,8 +286,8 @@ extern uint8_t video_force_resize_get_monitor(int monitor_index);
 extern void    video_force_resize_set_monitor(uint8_t res, int monitor_index);
 extern void    video_update_timing(void);
 
-extern void loadfont_ex(char *s, int format, int offset);
-extern void loadfont(char *s, int format);
+extern void loadfont_ex(char *fn, int format, int offset);
+extern void loadfont(char *fn, int format);
 
 extern int get_actual_size_x(void);
 extern int get_actual_size_y(void);
@@ -351,6 +360,7 @@ extern const device_t gd5401_isa_device;
 extern const device_t gd5402_isa_device;
 extern const device_t gd5402_onboard_device;
 extern const device_t gd5420_isa_device;
+extern const device_t gd5420_onboard_device;
 extern const device_t gd5422_isa_device;
 extern const device_t gd5424_vlb_device;
 extern const device_t gd5426_isa_device;
@@ -365,6 +375,7 @@ extern const device_t gd5428_boca_isa_device;
 extern const device_t gd5428_mca_device;
 extern const device_t gd5426_mca_device;
 extern const device_t gd5428_onboard_device;
+extern const device_t gd5428_onboard_vlb_device;
 extern const device_t gd5429_isa_device;
 extern const device_t gd5429_vlb_device;
 extern const device_t gd5430_diamond_speedstar_pro_se_a8_vlb_device;
@@ -388,6 +399,7 @@ extern const device_t gd5480_pci_device;
 /* Compaq CGA */
 extern const device_t compaq_cga_device;
 extern const device_t compaq_cga_2_device;
+extern const device_t compaq_plasma_device; 
 
 /* Olivetti OGC */
 extern const device_t ogc_device;
@@ -601,6 +613,11 @@ extern const device_t velocity_200_agp_device;
 
 /* Wyse 700 */
 extern const device_t wy700_device;
+
+/* Tandy */
+extern const device_t tandy_1000_video_device; 
+extern const device_t tandy_1000hx_video_device; 
+extern const device_t tandy_1000sl_video_device; 
 
 #endif
 

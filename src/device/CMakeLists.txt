@@ -22,6 +22,7 @@ add_library(dev OBJECT
     cartridge.c
     cassette.c
     clock_ics9xxx.c
+    dell_jumper.c
     hasp.c
     hwm.c
     hwm_gl518sm.c
@@ -32,6 +33,7 @@ add_library(dev OBJECT
     i2c_gpio.c
     ibm_5161.c
     isamem.c
+    isarom.c
     isartc.c
     isapnp.c
     kbc_at.c
@@ -55,6 +57,7 @@ add_library(dev OBJECT
     smbus_ali7101.c
     smbus_piix4.c
     smbus_sis5595.c
+    tulip_jumper.c
     unittester.c
 )
 

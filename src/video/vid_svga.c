@@ -691,11 +691,11 @@ svga_recalctimings(svga_t *svga)
     double           _dispontime_xga = 0.0;
     double           _dispofftime_xga = 0.0;
     double           disptime_xga = 0.0;
+    int              vblankend;
 #ifdef ENABLE_SVGA_LOG
     int              vsyncend;
-    int              vblankend;
-    int              hdispstart;
     int              hdispend;
+    int              hdispstart;
     int              hsyncstart;
     int              hsyncend;
 #endif
@@ -754,7 +754,7 @@ svga_recalctimings(svga_t *svga)
 
     svga->interlace = 0;
 
-    svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+    svga->memaddr_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
     svga->ca_adj   = 0;
 
     svga->rowcount = svga->crtc[9] & 0x1f;
@@ -911,7 +911,17 @@ svga_recalctimings(svga_t *svga)
     if (xga_active && (svga->xga != NULL))
         xga_recalctimings(svga);
 
-    if (!svga->hoverride) {
+    vblankend = (svga->vblankstart & 0xffffff80) | (svga->crtc[0x16] & 0x7f);
+    if (vblankend <= svga->vblankstart)
+        vblankend += 0x00000080;
+
+    if (svga->hoverride || svga->override) {
+        if (svga->hdisp >= 2048)
+            svga->monitor->mon_overscan_x = 0;
+
+        svga->y_add = (svga->monitor->mon_overscan_y >> 1);
+        svga->left_overscan = svga->x_add = (svga->monitor->mon_overscan_x >> 1);
+    } else {
         uint32_t dot = svga->hblankstart;
         uint32_t adj_dot = svga->hblankstart;
         /* Verified with both the Voodoo 3 and the S3 cards: compare 7 bits if bit 7 is set,
@@ -919,7 +929,9 @@ svga_recalctimings(svga_t *svga)
         uint32_t eff_mask = (svga->hblank_end_val & ~0x0000003f) ? svga->hblank_end_mask : 0x0000003f;
         svga->hblank_sub = 0;
 
-        svga_log("HDISP=%d, CRTC1+1=%d, Blank: %04i-%04i, Total: %04i, Mask: %02X, ADJ_DOT=%04i.\n", svga->hdisp, svga->crtc[1] + 1, svga->hblankstart, svga->hblank_end_val,
+        svga_log("HDISP=%d, CRTC1+1=%d, Blank: %04i-%04i, Total: %04i, "
+                 "Mask: %02X, ADJ_DOT=%04i.\n", svga->hdisp, svga->crtc[1] + 1,
+                 svga->hblankstart, svga->hblank_end_val,
                  svga->htotal, eff_mask, adj_dot);
 
         while (adj_dot < (svga->htotal << 1)) {
@@ -929,7 +941,10 @@ svga_recalctimings(svga_t *svga)
             if (adj_dot >= svga->htotal)
                 svga->hblank_sub++;
 
-            svga_log("Loop: adjdot=%d, htotal=%d, dotmask=%02x, hblankendvalmask=%02x, blankendval=%02x.\n", adj_dot, svga->htotal, dot & eff_mask, svga->hblank_end_val & eff_mask, svga->hblank_end_val);
+            svga_log("Loop: adjdot=%d, htotal=%d, dotmask=%02x, "
+                     "hblankendvalmask=%02x, blankendval=%02x.\n", adj_dot,
+                     svga->htotal, dot & eff_mask, svga->hblank_end_val & eff_mask,
+                     svga->hblank_end_val);
             if ((dot & eff_mask) == (svga->hblank_end_val & eff_mask))
                 break;
 
@@ -937,7 +952,28 @@ svga_recalctimings(svga_t *svga)
             adj_dot++;
         }
 
+        uint32_t hd = svga->hdisp;
         svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
+
+        svga->left_overscan = svga->x_add = (svga->htotal - adj_dot - 1) * svga->dots_per_clock;
+        svga->monitor->mon_overscan_x = svga->x_add + (svga->hblankstart * svga->dots_per_clock) - hd + svga->dots_per_clock;
+        /* Compensate for the HDISP code above. */
+        if (svga->crtc[1] & 1)
+            svga->monitor->mon_overscan_x++;
+
+        if ((svga->hdisp >= 2048) || (svga->left_overscan < 0)) {
+            svga->left_overscan = svga->x_add = 0;
+            svga->monitor->mon_overscan_x = 0;
+        }
+
+        /* - 1 because + 1 but also - 2 to compensate for the + 2 added to vtotal above. */
+        svga->y_add = svga->vtotal - vblankend - 1;
+        svga->monitor->mon_overscan_y = svga->y_add + abs(svga->vblankstart - svga->dispend);
+
+        if ((svga->dispend >= 2048) || (svga->y_add < 0)) {
+            svga->y_add = 0;
+            svga->monitor->mon_overscan_y = 0;
+        }
     }
 
 #ifdef TBD
@@ -967,12 +1003,6 @@ svga_recalctimings(svga_t *svga)
     }
 #endif
 
-    if (svga->hdisp >= 2048)
-        svga->monitor->mon_overscan_x = 0;
-
-    svga->y_add = (svga->monitor->mon_overscan_y >> 1);
-    svga->x_add = (svga->monitor->mon_overscan_x >> 1);
-
     if (svga->vblankstart < svga->dispend) {
         svga_log("DISPEND > VBLANKSTART.\n");
         svga->dispend = svga->vblankstart;
@@ -992,12 +1022,9 @@ svga_recalctimings(svga_t *svga)
     vsyncend = (svga->vsyncstart & 0xfffffff0) | (svga->crtc[0x11] & 0x0f);
     if (vsyncend <= svga->vsyncstart)
         vsyncend += 0x00000010;
-    vblankend = (svga->vblankstart & 0xffffff80) | (svga->crtc[0x16] & 0x7f);
-    if (vblankend <= svga->vblankstart)
-        vblankend += 0x00000080;
 
-    hdispstart = ((svga->crtc[3] >> 5) & 3);
     hdispend   = svga->crtc[1] + 1;
+    hdispstart = ((svga->crtc[3] >> 5) & 3);
     hsyncstart = svga->crtc[4] + ((svga->crtc[5] >> 5) & 3) + 1;
     hsyncend   = (hsyncstart & 0xffffffe0) | (svga->crtc[5] & 0x1f);
     if (hsyncend <= hsyncstart)
@@ -1178,10 +1205,10 @@ svga_do_render(svga_t *svga)
     if (!svga->override) {
         svga->render(svga);
 
-        svga->x_add = (svga->monitor->mon_overscan_x >> 1);
+        svga->x_add = svga->left_overscan;
         svga_render_overscan_left(svga);
         svga_render_overscan_right(svga);
-        svga->x_add = (svga->monitor->mon_overscan_x >> 1) - svga->scrollcache;
+        svga->x_add = svga->left_overscan - svga->scrollcache;
     }
 
     if (svga->overlay_on) {
@@ -1260,17 +1287,17 @@ svga_poll(void *priv)
         if (svga->dispon) {
             svga->hdisp_on = 1;
 
-            svga->ma &= svga->vram_display_mask;
+            svga->memaddr &= svga->vram_display_mask;
             if (svga->firstline == 2000) {
                 svga->firstline = svga->displine;
                 video_wait_for_buffer_monitor(svga->monitor_index);
             }
 
             if (svga->hwcursor_on || svga->dac_hwcursor_on || svga->overlay_on)
-                svga->changedvram[svga->ma >> 12] = svga->changedvram[(svga->ma >> 12) + 1] = svga->interlace ? 3 : 2;
+                svga->changedvram[svga->memaddr >> 12] = svga->changedvram[(svga->memaddr >> 12) + 1] = svga->interlace ? 3 : 2;
 
             if (svga->vertical_linedbl) {
-                old_ma = svga->ma;
+                old_ma = svga->memaddr;
 
                 svga->displine <<= 1;
                 svga->y_add <<= 1;
@@ -1279,7 +1306,7 @@ svga_poll(void *priv)
 
                 svga->displine++;
 
-                svga->ma = old_ma;
+                svga->memaddr = old_ma;
 
                 svga_do_render(svga);
 
@@ -1308,29 +1335,29 @@ svga_poll(void *priv)
         svga->hdisp_on = 0;
 
         svga->linepos = 0;
-        if ((svga->sc == (svga->crtc[11] & 31)) || (svga->sc == svga->rowcount))
-            svga->con = 0;
+        if ((svga->scanline == (svga->crtc[11] & 31)) || (svga->scanline == svga->rowcount))
+            svga->cursorvisible = 0;
         if (svga->dispon) {
             /* TODO: Verify real hardware behaviour for out-of-range fine vertical scroll
-               - S3 Trio64V2/DX: sc == rowcount, wrapping 5-bit counter. */
+               - S3 Trio64V2/DX: scanline == rowcount, wrapping 5-bit counter. */
             if (svga->linedbl && !svga->linecountff) {
                 svga->linecountff = 1;
-                svga->ma          = svga->maback;
-            } else if (svga->sc == svga->rowcount) {
+                svga->memaddr          = svga->memaddr_backup;
+            } else if (svga->scanline == svga->rowcount) {
                 svga->linecountff = 0;
-                svga->sc          = 0;
+                svga->scanline          = 0;
 
-                svga->maback += (svga->adv_flags & FLAG_NO_SHIFT3) ? svga->rowoffset : (svga->rowoffset << 3);
+                svga->memaddr_backup += (svga->adv_flags & FLAG_NO_SHIFT3) ? svga->rowoffset : (svga->rowoffset << 3);
                 if (svga->interlace)
-                    svga->maback += (svga->adv_flags & FLAG_NO_SHIFT3) ? svga->rowoffset : (svga->rowoffset << 3);
+                    svga->memaddr_backup += (svga->adv_flags & FLAG_NO_SHIFT3) ? svga->rowoffset : (svga->rowoffset << 3);
 
-                svga->maback &= svga->vram_display_mask;
-                svga->ma = svga->maback;
+                svga->memaddr_backup &= svga->vram_display_mask;
+                svga->memaddr = svga->memaddr_backup;
             } else {
                 svga->linecountff = 0;
-                svga->sc++;
-                svga->sc &= 0x1f;
-                svga->ma = svga->maback;
+                svga->scanline++;
+                svga->scanline &= 0x1f;
+                svga->memaddr = svga->memaddr_backup;
             }
         }
 
@@ -1350,17 +1377,17 @@ svga_poll(void *priv)
 
             if (ret) {
                 if (svga->interlace && svga->oddeven)
-                    svga->ma = svga->maback = (svga->rowoffset << 1) + svga->hblank_sub;
+                    svga->memaddr = svga->memaddr_backup = (svga->rowoffset << 1) + svga->hblank_sub;
                 else
-                    svga->ma = svga->maback = svga->hblank_sub;
+                    svga->memaddr = svga->memaddr_backup = svga->hblank_sub;
 
-                svga->ma     = (svga->ma << 2);
-                svga->maback = (svga->maback << 2);
+                svga->memaddr     = (svga->memaddr << 2);
+                svga->memaddr_backup = (svga->memaddr_backup << 2);
 
-                svga->sc = 0;
+                svga->scanline = 0;
                 if (svga->attrregs[0x10] & 0x20) {
                     svga->scrollcache = 0;
-                    svga->x_add       = (svga->monitor->mon_overscan_x >> 1);
+                    svga->x_add       = svga->left_overscan;
                 }
             }
         }
@@ -1426,16 +1453,16 @@ svga_poll(void *priv)
             svga->vslines                       = 0;
 
             if (svga->interlace && svga->oddeven)
-                svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1) + svga->hblank_sub;
+                svga->memaddr = svga->memaddr_backup = svga->memaddr_latch + (svga->rowoffset << 1) + svga->hblank_sub;
             else
-                svga->ma = svga->maback = svga->ma_latch + svga->hblank_sub;
+                svga->memaddr = svga->memaddr_backup = svga->memaddr_latch + svga->hblank_sub;
 
-            svga->ca     = ((svga->crtc[0xe] << 8) | svga->crtc[0xf]) + ((svga->crtc[0xb] & 0x60) >> 5) + svga->ca_adj;
+            svga->cursoraddr     = ((svga->crtc[0xe] << 8) | svga->crtc[0xf]) + ((svga->crtc[0xb] & 0x60) >> 5) + svga->ca_adj;
             if (!(svga->adv_flags & FLAG_NO_SHIFT3)) {
-                svga->ma     = (svga->ma << 2);
-                svga->maback = (svga->maback << 2);
+                svga->memaddr     = (svga->memaddr << 2);
+                svga->memaddr_backup = (svga->memaddr_backup << 2);
             }
-            svga->ca     = (svga->ca << 2);
+            svga->cursoraddr     = (svga->cursoraddr << 2);
 
             if (svga->vsync_callback)
                 svga->vsync_callback(svga);
@@ -1445,7 +1472,7 @@ svga_poll(void *priv)
 #endif
         if (svga->vc == svga->vtotal) {
             svga->vc       = 0;
-            svga->sc       = (svga->crtc[0x8] & 0x1f);
+            svga->scanline       = (svga->crtc[0x8] & 0x1f);
             svga->dispon   = 1;
             svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
 
@@ -1466,7 +1493,7 @@ svga_poll(void *priv)
             if ((svga->seqregs[1] & 8) || (svga->render == svga_render_8bpp_lowres))
                 svga->scrollcache <<= 1;
 
-            svga->x_add = (svga->monitor->mon_overscan_x >> 1) - svga->scrollcache;
+            svga->x_add = svga->left_overscan - svga->scrollcache;
 
             svga->linecountff = 0;
 
@@ -1479,8 +1506,8 @@ svga_poll(void *priv)
             svga->overlay_on    = 0;
             svga->overlay_latch = svga->overlay;
         }
-        if (svga->sc == (svga->crtc[10] & 31))
-            svga->con = 1;
+        if (svga->scanline == (svga->crtc[10] & 31))
+            svga->cursorvisible = 1;
     }
 }
 
@@ -1516,6 +1543,7 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->attrregs[0x11] = 0;
     svga->overscan_color = 0x000000;
 
+    svga->left_overscan           = 8;
     svga->monitor->mon_overscan_x = 16;
     svga->monitor->mon_overscan_y = 32;
     svga->x_add                   = 8;
@@ -1973,9 +2001,15 @@ svga_doblit(int wx, int wy, svga_t *svga)
 
     y_add   = enable_overscan ? svga->monitor->mon_overscan_y : 0;
     x_add   = enable_overscan ? svga->monitor->mon_overscan_x : 0;
+#ifdef USE_OLD_CALCULATION
     y_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_y >> 1);
     x_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_x >> 1);
     bottom  = (svga->monitor->mon_overscan_y >> 1);
+#else
+    y_start = enable_overscan ? 0 : svga->y_add;
+    x_start = enable_overscan ? 0 : svga->left_overscan;
+    bottom  = svga->monitor->mon_overscan_y - svga->y_add;
+#endif
 
     if (svga->vertical_linedbl) {
         y_add <<= 1;

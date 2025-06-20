@@ -424,7 +424,7 @@ et3000_out(uint16_t addr, uint8_t val, void *priv)
 static void
 et3000_recalctimings(svga_t *svga)
 {
-    svga->ma_latch |= (svga->crtc[0x23] & 2) << 15;
+    svga->memaddr_latch |= (svga->crtc[0x23] & 2) << 15;
     if (svga->crtc[0x25] & 1)
         svga->vblankstart |= 0x400;
     if (svga->crtc[0x25] & 2)
@@ -439,7 +439,7 @@ et3000_recalctimings(svga_t *svga)
     svga->interlace = !!(svga->crtc[0x25] & 0x80);
 
     if (svga->attrregs[0x16] & 0x10) {
-        svga->ma_latch <<= (1 << 0);
+        svga->memaddr_latch <<= (1 << 0);
         svga->rowoffset <<= (1 << 0);
         switch (svga->gdcreg[5] & 0x60) {
             case 0x00:

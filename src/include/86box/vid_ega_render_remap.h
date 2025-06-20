@@ -33,9 +33,9 @@
         }                                                                                               \
                                                                                                         \
         if (nr & VAR_ROW0_MA13)                                                                         \
-            out_addr = (out_addr & ~0x8000) | ((ega->sc & 1) ? 0x8000 : 0);                             \
+            out_addr = (out_addr & ~0x8000) | ((ega->scanline & 1) ? 0x8000 : 0);                             \
         if (nr & VAR_ROW1_MA14)                                                                         \
-            out_addr = (out_addr & ~0x10000) | ((ega->sc & 2) ? 0x10000 : 0);                           \
+            out_addr = (out_addr & ~0x10000) | ((ega->scanline & 2) ? 0x10000 : 0);                           \
                                                                                                         \
         return out_addr;                                                                                \
     }

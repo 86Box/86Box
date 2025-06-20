@@ -650,15 +650,7 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
             isapnp_update_card_rom(dev->pnp_card, &dev->ram_data[dev->pnp_offset], dev->pnp_size);
 
         /* Disable PnP key if the PKD bit is set, or if it was disabled by command 0x55. */
-        /* But wait! The TriGem Delhi-III BIOS sends command 0x55, and its behavior doesn't
-           line up with real hardware (still listed in the POST summary and seen by software).
-           Disable the PnP key disabling mechanism until someone figures something out. */
-#if 0
         isapnp_enable_card(dev->pnp_card, ((dev->ram_data[0x4002] & 0x20) || !dev->pnp_enable) ? ISAPNP_CARD_NO_KEY : ISAPNP_CARD_ENABLE);
-#else
-        if ((dev->ram_data[0x4002] & 0x20) || !dev->pnp_enable)
-            pclog("CS423x: Attempted to disable PnP key\n");
-#endif
     }
 
     /* Update some register bits based on the config data in RAM if requested. */

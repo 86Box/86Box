@@ -979,28 +979,28 @@ cdrom_toc_dump(cdrom_t *dev)
     uint8_t     b[65536] = { 0 };
     int         len      = cdrom_read_toc(dev, b, CD_TOC_RAW, 0, 0, 65536);
     const char *fn2      = "d:\\86boxnew\\toc_cue.dmp";
-    FILE *      f        = fopen(fn2, "wb");
-    fwrite(b, 1, len, f);
-    fflush(f);
-    fclose(f);
+    FILE *      fp        = fopen(fn2, "wb");
+    fwrite(b, 1, len, fp);
+    fflush(fp);
+    fclose(fp);
     cdrom_log(dev->log, "Written TOC of %i bytes to %s\n", len, fn2);
 
     memset(b, 0x00, 65536);
     len      = cdrom_read_toc(dev, b, CD_TOC_NORMAL, 0, 0, 65536);
     fn2      = "d:\\86boxnew\\toc_cue_cooked.dmp";
-    f        = fopen(fn2, "wb");
-    fwrite(b, 1, len, f);
-    fflush(f);
-    fclose(f);
+    fp        = fopen(fn2, "wb");
+    fwrite(b, 1, len, fp);
+    fflush(fp);
+    fclose(fp);
     cdrom_log(dev->log, "Written cooked TOC of %i bytes to %s\n", len, fn2);
 
     memset(b, 0x00, 65536);
     len      = cdrom_read_toc(dev, b, CD_TOC_SESSION, 0, 0, 65536);
     fn2      = "d:\\86boxnew\\toc_cue_session.dmp";
-    f        = fopen(fn2, "wb");
-    fwrite(b, 1, len, f);
-    fflush(f);
-    fclose(f);
+    fp        = fopen(fn2, "wb");
+    fwrite(b, 1, len, fp);
+    fflush(fp);
+    fclose(fp);
     cdrom_log(dev->log, "Written session TOC of %i bytes to %s\n", len, fn2);
 }
 #endif

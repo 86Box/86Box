@@ -141,9 +141,9 @@ ega_render_text(ega_t *ega)
         }
 
         for (int x = 0; x < (ega->hdisp + ega->scrollcache); x += charwidth) {
-            uint32_t addr = ega->remap_func(ega, ega->ma) & ega->vrammask;
+            uint32_t addr = ega->remap_func(ega, ega->memaddr) & ega->vrammask;
 
-            int drawcursor = ((ega->ma == ega->ca) && ega->con && ega->cursoron);
+            int drawcursor = ((ega->memaddr == ega->cursoraddr) && ega->cursorvisible && ega->cursoron);
 
             uint32_t chr;
             uint32_t attr;
@@ -175,7 +175,7 @@ ega_render_text(ega_t *ega)
                 }
             }
 
-            uint32_t dat = ega->vram[charaddr + (ega->sc << 2)];
+            uint32_t dat = ega->vram[charaddr + (ega->scanline << 2)];
             dat <<= 1;
             if (((chr & ~0x1f) == 0xc0) && attrlinechars)
                 dat |= (dat >> 1) & 1;
@@ -184,21 +184,21 @@ ega_render_text(ega_t *ega)
                 if (monoattrs) {
                     int bit   = (dat & (0x100 >> (xx >> dwshift))) ? 1 : 0;
                     int blink = (!drawcursor && (attr & 0x80) && attrblink && blinked);
-                    if ((ega->sc == ega->crtc[0x14]) && ((attr & 7) == 1))
-                        p[xx] = ega->mdacols[attr][blink][1];
+                    if ((ega->scanline == ega->crtc[0x14]) && ((attr & 7) == 1))
+                        p[xx] = ega->mda_attr_to_color_table[attr][blink][1];
                     else
-                        p[xx] = ega->mdacols[attr][blink][bit];
+                        p[xx] = ega->mda_attr_to_color_table[attr][blink][bit];
                     if (drawcursor)
-                        p[xx] ^= ega->mdacols[attr][0][1];
+                        p[xx] ^= ega->mda_attr_to_color_table[attr][0][1];
                     p[xx] = ega->pallook[ega->egapal[p[xx] & 0x0f]];
                 } else
                     p[xx] = (dat & (0x100 >> (xx >> dwshift))) ? fg : bg;
             }
 
-            ega->ma += 4;
+            ega->memaddr += 4;
             p += charwidth;
         }
-        ega->ma &= 0x3ffff;
+        ega->memaddr &= 0x3ffff;
     }
 }
 
@@ -236,7 +236,7 @@ ega_render_graphics(ega_t *ega)
     }
 
     for (int x = 0; x <= (ega->hdisp + ega->scrollcache); x += charwidth) {
-        uint32_t addr = ega->remap_func(ega, ega->ma) & ega->vrammask;
+        uint32_t addr = ega->remap_func(ega, ega->memaddr) & ega->vrammask;
 
         uint8_t edat[4];
         if (seqoddeven) {
@@ -247,12 +247,12 @@ ega_render_graphics(ega_t *ega)
             edat[3]    = ega->vram[(addr | 3) ^ secondcclk];
             secondcclk = (secondcclk + 1) & 1;
             if (secondcclk == 0)
-                ega->ma += 4;
+                ega->memaddr += 4;
         } else {
             *(uint32_t *) (&edat[0]) = *(uint32_t *) (&ega->vram[addr]);
-            ega->ma += 4;
+            ega->memaddr += 4;
         }
-        ega->ma &= 0x3ffff;
+        ega->memaddr &= 0x3ffff;
 
         if (cga2bpp) {
             // Remap CGA 2bpp-chunky data into fully planar data

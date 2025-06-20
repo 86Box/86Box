@@ -395,7 +395,7 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
 
     mouse_scale(delta_x, delta_y);
 
-    HWND wnd = (HWND)window->winId();
+    /* HWND wnd = (HWND)window->winId();
 
     RECT rect;
 
@@ -404,5 +404,5 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
     int left = rect.left + (rect.right - rect.left) / 2;
     int top = rect.top + (rect.bottom - rect.top) / 2;
 
-    SetCursorPos(left, top);
+    SetCursorPos(left, top); */
 }

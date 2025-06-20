@@ -532,8 +532,8 @@ isartc_init(const device_t *info)
     switch (dev->board) {
         case ISARTC_MM58167: /* Generic MM58167 RTC */
             {
-                int rom_addr = device_get_config_hex20("bios_addr");
-                if (rom_addr != -1)
+                uint32_t rom_addr = device_get_config_hex20("bios_addr");
+                if (rom_addr != 0)
                     rom_init(&dev->rom, ISARTC_ROM_MM58167_1,
                              rom_addr, 0x0800, 0x7ff, 0, MEM_MAPPING_EXTERNAL);
 
@@ -830,7 +830,7 @@ static const device_config_t mm58167_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "Disabled", .value = -1      },
+            { .description = "Disabled", .value = 0x00000 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = "CA00H",    .value = 0xca000 },
             { .description = "CC00H",    .value = 0xcc000 },
@@ -919,12 +919,12 @@ isartc_get_internal_name(int board)
 }
 
 int
-isartc_get_from_internal_name(char *s)
+isartc_get_from_internal_name(const char *str)
 {
     int c = 0;
 
     while (boards[c].dev != NULL) {
-        if (!strcmp(boards[c].dev->internal_name, s))
+        if (!strcmp(boards[c].dev->internal_name, str))
             return c;
         c++;
     }

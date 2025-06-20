@@ -390,6 +390,8 @@ ropPUSHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUS
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     uop_CALL_FUNC(ir, flags_rebuild);
     sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
+    uop_AND_IMM(ir, IREG_flags, IREG_flags, 0x7fd5);
+    uop_OR_IMM(ir, IREG_flags, IREG_flags, 0x0002);
     uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, IREG_flags);
     SUB_SP(ir, 2);
 
@@ -406,6 +408,8 @@ ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNU
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     uop_CALL_FUNC(ir, flags_rebuild);
 
+    uop_AND_IMM(ir, IREG_flags, IREG_flags, 0x7fd5);
+    uop_OR_IMM(ir, IREG_flags, IREG_flags, 0x0002);
     if (cpu_CR4_mask & CR4_VME)
         uop_AND_IMM(ir, IREG_temp0_W, IREG_eflags, 0x3c);
     else if (CPUID)

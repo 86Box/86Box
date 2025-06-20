@@ -849,8 +849,8 @@ msgstr "一个旧式计算机模拟器\n\n作者: Miran Grča (OBattler)、Richa
 msgid "Hardware not available"
 msgstr "硬件不可用"
 
-msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
-msgstr "请确认 %1 已安装且使用兼容 libpcap 的网络连接。"
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "请确认 %1 已安装且使用兼容 %1 的网络连接。"
 
 msgid "Invalid configuration"
 msgstr "无效配置"
@@ -1240,7 +1240,7 @@ msgid "Host CD/DVD Drive (%1:)"
 msgstr "主机 CD/DVD 驱动器 (%1:)"
 
 msgid "&Connected"
-msgstr ""
+msgstr "已连接(&C)"
 
 msgid "Clear image history"
 msgstr "清除映像历史记录"
@@ -1300,7 +1300,7 @@ msgid "\nFalling back to software rendering."
 msgstr "\n回到软件渲染。"
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
-msgstr "<html><head/><body><p>选择媒体图像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。</p></body></html&gt；"
+msgstr "<html><head/><body><p>选择媒体图像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "这台机器可能被移动或复制过。"
@@ -1315,7 +1315,7 @@ msgid "I Copied It"
 msgstr "我已复制这台机器"
 
 msgid "86Box Monitor #"
-msgstr "86Box 监测器 "
+msgstr "86Box 监测器 #"
 
 msgid "No MCA devices."
 msgstr "无 MCA 设备。"
@@ -1804,7 +1804,7 @@ msgid "Five + Wheel"
 msgstr "五键+滚轮"
 
 msgid "Five + 2 Wheels"
-msgstr ""
+msgstr "五键+双滚轮"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 串行 / SMT3（R）V"
@@ -2050,31 +2050,37 @@ msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Generic] RAM 磁盘 (最大速度)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr ""
+msgstr "[Generic] 1989 (3500 RPM)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr ""
+msgstr "[Generic] 1992 (3600 RPM)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr ""
+msgstr "[Generic] 1994 (4500 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr ""
+msgstr "[Generic] 1996 (5400 RPM)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr ""
+msgstr "[Generic] 1997 (5400 RPM)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr ""
+msgstr "[Generic] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr ""
+msgstr "[Generic] 2000 (7200 RPM)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A 克隆 (ISA)"
 
 msgid "Vendor"
 msgstr "制造商"
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr "30 Hz (JMP2 = 1)"
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr "60 Hz (JMP2 = 2)"
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "通用 PC/XT 内存扩展"
@@ -2089,61 +2095,61 @@ msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for t
 msgstr "仿真通用 ESC/P 点阵打印机需要使用 \"roms/printer/fonts\" 目录中的 TrueType 字体。"
 
 msgid "Inhibit multimedia keys"
-msgstr ""
+msgstr "禁止多媒体按键"
 
 msgid "Ask for confirmation before saving settings"
-msgstr ""
+msgstr "保存设置前要求用户确认"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr ""
+msgstr "硬重置前要求用户确认"
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
+msgstr "退出前要求用户确认"
 
 msgid "Options"
-msgstr ""
+msgstr "选项"
 
 msgid "Model"
-msgstr ""
+msgstr "模型"
 
 msgid "Model:"
-msgstr ""
+msgstr "模型："
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr ""
+msgstr "Vulkan 渲染器初始化失败。"
 
 msgid "GLSL Error"
-msgstr ""
+msgstr "GLSL 错误"
 
 msgid "Could not load shader: %1"
-msgstr ""
+msgstr "无法加载着色器：%1"
 
 msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr ""
+msgstr "OpenGL 版本需要达到 3.0 或更高。当前 GLSL 版本为 %1.%2"
 
 msgid "Could not load texture: %1"
-msgstr ""
+msgstr "无法加载材质：%1"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr ""
+msgstr "无法编译着色器：\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr ""
+msgstr "程序未链接：\n\n%1"
 
 msgid "Shader Manager"
-msgstr ""
+msgstr "着色器管理器"
 
 msgid "Shader Configuration"
-msgstr ""
+msgstr "着色器配置"
 
 msgid "Add"
-msgstr ""
+msgstr "添加"
 
 msgid "Move up"
-msgstr ""
+msgstr "上移"
 
 msgid "Move down"
-msgstr ""
+msgstr "下移"
 
 msgid "Could not load file %1"
-msgstr ""
+msgstr "无法加载文件 %1"
