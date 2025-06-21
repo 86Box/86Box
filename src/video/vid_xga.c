@@ -257,9 +257,9 @@ xga_render_blank(svga_t *svga)
     xga->lastline_draw = xga->displine;
 
     uint32_t *line_ptr   = &svga->monitor->target_buffer->line[xga->displine + svga->y_add][svga->x_add];
-    uint32_t  line_width = (uint32_t)(xga->h_disp) * sizeof(uint32_t);
+    uint32_t  line_width = (uint32_t)(xga->hdisp_xga) * sizeof(uint32_t);
 
-    if (xga->h_disp > 0)
+    if (xga->hdisp_xga > 0)
         memset(line_ptr, 0, line_width);
 }
 
@@ -268,14 +268,14 @@ xga_recalctimings(svga_t *svga)
 {
     xga_t *xga = (xga_t *) svga->xga;
     if (xga->on) {
-        xga->h_total      = xga->htotal + 1;
-        xga->v_total      = xga->vtotal + 1;
+        xga->htotal_xga      = xga->htotal + 1;
+        xga->vtotal_xga      = xga->vtotal + 1;
         xga->dispend      = xga->vdispend + 1;
-        xga->v_syncstart  = xga->vsyncstart + 1;
+        xga->vsyncstart++;
         xga->split        = xga->linecmp + 1;
-        xga->v_blankstart = xga->vblankstart + 1;
+        xga->vblankstart_xga = xga->vblankstart + 1;
 
-        xga->h_disp = (xga->hdisp + 1) << 3;
+        xga->hdisp_xga = (xga->hdisp + 1) << 3;
 
         xga->rowoffset = xga->pix_map_width;
 
@@ -283,11 +283,11 @@ xga_recalctimings(svga_t *svga)
         xga->rowcount  = (xga->disp_cntl_2 & 0xc0) >> 6;
 
         if (xga->interlace) {
-            xga->v_total >>= 1;
+            xga->vtotal_xga >>= 1;
             xga->dispend >>= 1;
-            xga->v_syncstart >>= 1;
+            xga->vsyncstart >>= 1;
             xga->split >>= 1;
-            xga->v_blankstart >>= 1;
+            xga->vblankstart_xga >>= 1;
         }
 
         xga->memaddr_latch = xga->disp_start_addr;
@@ -296,14 +296,14 @@ xga_recalctimings(svga_t *svga)
         xga_log("XGA ClkSel1 = %d, ClkSel2 = %02x, dispcntl2=%02x.\n", (xga->clk_sel_1 >> 2) & 3, xga->clk_sel_2 & 0x80, xga->disp_cntl_2 & 0xc0);
         switch ((xga->clk_sel_1 >> 2) & 3) {
             case 0:
-                xga_log("HDISP VGA0 = %d, XGA = %d.\n", svga->hdisp, xga->h_disp);
+                xga_log("HDISP VGA0 = %d, XGA = %d.\n", svga->hdisp, xga->hdisp_xga);
                 if (xga->clk_sel_2 & 0x80)
                     svga->clock_xga = (cpuclock * (double) (1ULL << 32)) / 41539000.0;
                 else
                     svga->clock_xga = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
                 break;
             case 1:
-                xga_log("HDISP VGA1 = %d, XGA = %d.\n", svga->hdisp, xga->h_disp);
+                xga_log("HDISP VGA1 = %d, XGA = %d.\n", svga->hdisp, xga->hdisp_xga);
                 svga->clock_xga = (cpuclock * (double) (1ULL << 32)) / 28322000.0;
                 break;
             case 3:
@@ -1555,7 +1555,7 @@ xga_bitblt(svga_t *svga)
         if (srcheight == 7)
             xga->accel.pattern = 1;
         else {
-            if ((dstwidth == (xga->h_disp - 1)) && (srcwidth == 1)) {
+            if ((dstwidth == (xga->hdisp_xga - 1)) && (srcwidth == 1)) {
                 if ((xga->accel.dst_map == 1) && (xga->accel.src_map == 2)) {
                     if ((xga->accel.px_map_format[xga->accel.dst_map] >= 0x0a) && (xga->accel.px_map_format[xga->accel.src_map] >= 0x0a))
                         xga->accel.pattern = 1;
@@ -1640,8 +1640,8 @@ xga_bitblt(svga_t *svga)
             else if ((xga->accel.src_map == 1) && (patwidth == 7))
                 xga->accel.pattern = 1;
         } else {
-            if (dstwidth == (xga->h_disp - 1)) {
-                if (srcwidth == (xga->h_disp - 1)) {
+            if (dstwidth == (xga->hdisp_xga - 1)) {
+                if (srcwidth == (xga->hdisp_xga - 1)) {
                     if ((xga->accel.src_map == 1) && (xga->accel.dst_map == 1) && (xga->accel.pat_src == 2)) {
                         if ((xga->accel.px_map_format[xga->accel.dst_map] >= 0x0a) && (xga->accel.px <= 7) && (xga->accel.py <= 3))
                             xga->accel.pattern = 1;
@@ -2591,7 +2591,7 @@ xga_render_overscan_left(xga_t *xga, svga_t *svga)
     if ((xga->displine + svga->y_add) < 0)
         return;
 
-    if (svga->scrblank || (xga->h_disp == 0))
+    if (svga->scrblank || (xga->hdisp_xga == 0))
         return;
 
     uint32_t *line_ptr = buffer32->line[xga->displine + svga->y_add];
@@ -2607,10 +2607,10 @@ xga_render_overscan_right(xga_t *xga, svga_t *svga)
     if ((xga->displine + svga->y_add) < 0)
         return;
 
-    if (svga->scrblank || (xga->h_disp == 0))
+    if (svga->scrblank || (xga->hdisp_xga == 0))
         return;
 
-    uint32_t *line_ptr = &buffer32->line[xga->displine + svga->y_add][svga->x_add + xga->h_disp];
+    uint32_t *line_ptr = &buffer32->line[xga->displine + svga->y_add][svga->x_add + xga->hdisp_xga];
     right              = (overscan_x >> 1);
     for (int i = 0; i < right; i++)
         *line_ptr++ = svga->overscan_color;
@@ -2634,7 +2634,7 @@ xga_render_4bpp(svga_t *svga)
 
         xga->lastline_draw = xga->displine;
 
-        for (int x = 0; x <= xga->h_disp; x += 8) {
+        for (int x = 0; x <= xga->hdisp_xga; x += 8) {
             dat  = *(uint32_t *) (&xga->vram[xga->memaddr & xga->vram_mask]);
             p[0] = xga->pallook[dat & 0x0f];
             p[1] = xga->pallook[(dat >> 8) & 0x0f];
@@ -2671,7 +2671,7 @@ xga_render_8bpp(svga_t *svga)
             xga->firstline_draw = xga->displine;
         xga->lastline_draw = xga->displine;
 
-        for (int x = 0; x <= xga->h_disp; x += 8) {
+        for (int x = 0; x <= xga->hdisp_xga; x += 8) {
             dat  = *(uint32_t *) (&xga->vram[xga->memaddr & xga->vram_mask]);
             p[0] = xga->pallook[dat & 0xff];
             p[1] = xga->pallook[(dat >> 8) & 0xff];
@@ -2709,7 +2709,7 @@ xga_render_16bpp(svga_t *svga)
             xga->firstline_draw = xga->displine;
         xga->lastline_draw = xga->displine;
 
-        for (x = 0; x <= xga->h_disp; x += 8) {
+        for (x = 0; x <= xga->hdisp_xga; x += 8) {
             dat      = *(uint32_t *) (&xga->vram[(xga->memaddr + (x << 1)) & xga->vram_mask]);
             p[x]     = video_16to32[dat & 0xffff];
             p[x + 1] = video_16to32[dat >> 16];
@@ -3107,7 +3107,7 @@ xga_poll(void *priv)
             xga->linepos = 1;
 
             if (xga->dispon) {
-                xga->h_disp_on = 1;
+                xga->hdispon_xga = 1;
 
                 xga->memaddr &= xga->vram_mask;
 
@@ -3149,7 +3149,7 @@ xga_poll(void *priv)
             if (xga->dispon)
                 svga->cgastat &= ~1;
 
-            xga->h_disp_on = 0;
+            xga->hdispon_xga = 0;
 
             xga->linepos = 0;
             if (xga->dispon) {
@@ -3194,10 +3194,10 @@ xga_poll(void *priv)
                 if (svga->fullchange)
                     svga->fullchange--;
             }
-            if (xga->vc == xga->v_syncstart) {
+            if (xga->vc == xga->vsyncstart) {
                 xga->dispon = 0;
                 svga->cgastat |= 8;
-                x           = xga->h_disp;
+                x           = xga->hdisp_xga;
 
                 if (xga->interlace && !xga->oddeven)
                     xga->lastline++;
@@ -3227,7 +3227,7 @@ xga_poll(void *priv)
                 xga->memaddr     = (xga->memaddr << 2);
                 xga->memaddr_backup = (xga->memaddr_backup << 2);
             }
-            if (xga->vc == xga->v_total) {
+            if (xga->vc == xga->vtotal_xga) {
                 xga->vc       = 0;
                 xga->scanline       = 0;
                 xga->dispon   = 1;

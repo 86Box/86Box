@@ -1030,16 +1030,16 @@ svga_recalctimings(svga_t *svga)
 
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (dev->on) {
-            disptime8514 = dev->h_total;
-            _dispontime8514 = dev->h_disp;
-            svga_log("HTOTAL=%d, HDISP=%d.\n", dev->h_total, dev->h_disp);
+            disptime8514 = dev->htotal_8514;
+            _dispontime8514 = dev->hdisp_8514;
+            svga_log("HTOTAL=%d, HDISP=%d.\n", dev->htotal_8514, dev->hdisp_8514);
         }
     }
 
     if (xga_active && (svga->xga != NULL)) {
         if (xga->on) {
-            disptime_xga = xga->h_total ? xga->h_total : TIMER_USEC;
-            _dispontime_xga = xga->h_disp;
+            disptime_xga = xga->htotal_xga ? xga->htotal_xga : TIMER_USEC;
+            _dispontime_xga = xga->hdisp_xga;
         }
     }
 

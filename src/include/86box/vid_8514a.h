@@ -39,7 +39,7 @@ typedef enum {
     EXTENSIONS_MAX
 } ibm8514_extensions_t;
 
-typedef struct hwcursor8514_t {
+typedef struct ibm8514_hwcursor_s {
     int      enable;
     int      x;
     int      y;
@@ -49,14 +49,14 @@ typedef struct hwcursor8514_t {
     int      cur_ysize;
     uint32_t addr;
     uint32_t pitch;
-} hwcursor8514_t;
+} ibm8514_hwcursor_t;
 
 typedef union {
     uint64_t q;
     uint32_t d[2];
     uint16_t w[4];
     uint8_t  b[8];
-} latch8514_t;
+} ibm8514_latch_t;
 
 typedef struct ibm8514_t {
     rom_t bios_rom;
@@ -64,8 +64,8 @@ typedef struct ibm8514_t {
     mem_mapping_t bios_mapping;
     uint8_t *rom1;
     uint8_t *rom2;
-    hwcursor8514_t hwcursor;
-    hwcursor8514_t hwcursor_latch;
+    ibm8514_hwcursor_t hwcursor;
+    ibm8514_hwcursor_t hwcursor_latch;
     uint8_t        pos_regs[8];
     char *rom_path;
 
@@ -160,20 +160,17 @@ typedef struct ibm8514_t {
         uint16_t dst_pitch;
     } accel;
 
-    int      h_blankstart;
     int      hblankstart;
     int      hblankend;
     int      hblank_ext;
 
-    int      v_total_reg;
-    int      v_total;
+    int      vtotal_reg;
+    int      vtotal_8514;
     int      dispend;
-    int      v_sync_start;
-    int      v_syncstart;
+    int      vsyncstart;
     int      split;
-    int      h_disp;
-    int      h_total;
-    int      h_disp_time;
+    int      hdisp_8514;
+    int      htotal_8514;
     int      rowoffset;
     int      dispon;
     int      hdispon;
@@ -197,26 +194,23 @@ typedef struct ibm8514_t {
     uint8_t  linedbl;
 
     uint8_t data_available;
-    uint8_t data_available2;
     uint8_t rowcount;
     int     hsync_start;
     int     hsync_width;
     int     htotal;
-    int     hdisp;
-    int     hdisp2;
+    int     hdisp_vga;
     int     hdisped;
     int     scanline;
     int     vsyncwidth;
     int     vtotal;
-    int     vdisp_latch;
-    int     vdisp;
+    int     vdisp_8514;
+    int     vdisp_vga;
     int     disp_cntl;
     int     interlace;
     uint16_t subsys_cntl;
     uint8_t subsys_stat;
 
     atomic_int force_busy;
-    atomic_int force_busy2;
     atomic_int fifo_idx;
 
     int      blitter_busy;
@@ -235,7 +229,7 @@ typedef struct ibm8514_t {
     int      _8514crt;
     PALETTE  _8514pal;
 
-    latch8514_t latch;
+    ibm8514_latch_t latch;
 
     void (*vblank_start)(void *priv);
     void (*accel_out_fifo)(void *priv, uint16_t port, uint16_t val, int len);
