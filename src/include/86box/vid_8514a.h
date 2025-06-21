@@ -62,14 +62,11 @@ typedef struct ibm8514_t {
     rom_t bios_rom;
     rom_t bios_rom2;
     mem_mapping_t bios_mapping;
-    uint8_t *rom1;
-    uint8_t *rom2;
     ibm8514_hwcursor_t hwcursor;
     ibm8514_hwcursor_t hwcursor_latch;
     uint8_t        pos_regs[8];
     char *rom_path;
 
-    int force_old_addr;
     int type;
     ibm8514_card_type local;
     int bpp;
@@ -162,8 +159,6 @@ typedef struct ibm8514_t {
 
     int      hblankstart;
     int      hblankend;
-    int      hblank_ext;
-
     int      vtotal_reg;
     int      vtotal_8514;
     int      dispend;
