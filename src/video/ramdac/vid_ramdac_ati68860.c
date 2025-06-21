@@ -261,38 +261,57 @@ void
 ati68860_hwcursor_draw(svga_t *svga, int displine)
 {
     const ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) svga->ramdac;
+    int                      comb;
     int                      offset;
-    uint8_t                  dat;
+    int                      x_pos;
+    int                      y_pos;
+    int                      shift = 0;
+    uint16_t                 dat;
     uint32_t                 col0 = ramdac->pallook[0];
     uint32_t                 col1 = ramdac->pallook[1];
+    uint32_t                *p;
 
-    offset = svga->dac_hwcursor_latch.xoff;
-    for (uint32_t x = 0; x < 64 - svga->dac_hwcursor_latch.xoff; x += 4) {
-        dat = svga->vram[svga->dac_hwcursor_latch.addr + (offset >> 2)];
-        if (!(dat & 2))
-            buffer32->line[displine][svga->dac_hwcursor_latch.x + x + svga->x_add] = (dat & 1) ? col1 : col0;
-        else if ((dat & 3) == 3)
-            buffer32->line[displine][svga->dac_hwcursor_latch.x + x + svga->x_add] ^= 0xFFFFFF;
-        dat >>= 2;
-        if (!(dat & 2))
-            buffer32->line[displine][svga->dac_hwcursor_latch.x + x + svga->x_add + 1] = (dat & 1) ? col1 : col0;
-        else if ((dat & 3) == 3)
-            buffer32->line[displine][svga->dac_hwcursor_latch.x + x + svga->x_add + 1] ^= 0xFFFFFF;
-        dat >>= 2;
-        if (!(dat & 2))
-            buffer32->line[displine][svga->dac_hwcursor_latch.x + x + svga->x_add + 2] = (dat & 1) ? col1 : col0;
-        else if ((dat & 3) == 3)
-            buffer32->line[displine][svga->dac_hwcursor_latch.x + x + svga->x_add + 2] ^= 0xFFFFFF;
-        dat >>= 2;
-        if (!(dat & 2))
-            buffer32->line[displine][svga->dac_hwcursor_latch.x + x + svga->x_add + 3] = (dat & 1) ? col1 : col0;
-        else if ((dat & 3) == 3)
-            buffer32->line[displine][svga->dac_hwcursor_latch.x + x + svga->x_add + 3] ^= 0xFFFFFF;
-        dat >>= 2;
-        offset += 4;
+    offset = svga->dac_hwcursor_latch.x - svga->dac_hwcursor_latch.xoff;
+    if (svga->packed_4bpp)
+        shift = 1;
+
+    for (int x = 0; x < svga->dac_hwcursor_latch.cur_xsize; x += (8 >> shift)) {
+        if (shift) {
+            dat = svga->vram[(svga->dac_hwcursor_latch.addr) & svga->vram_mask] & 0x0f;
+            dat |= (svga->vram[(svga->dac_hwcursor_latch.addr + 1) & svga->vram_mask] << 4);
+            dat |= (svga->vram[(svga->dac_hwcursor_latch.addr + 2) & svga->vram_mask] << 8);
+            dat |= (svga->vram[(svga->dac_hwcursor_latch.addr + 3) & svga->vram_mask] << 12);
+        } else {
+            dat = svga->vram[svga->dac_hwcursor_latch.addr & svga->vram_mask];
+            dat |= (svga->vram[(svga->dac_hwcursor_latch.addr + 1) & svga->vram_mask] << 8);
+        }
+        for (int xx = 0; xx < (8 >> shift); xx++) {
+            comb = (dat >> (xx << 1)) & 0x03;
+
+            y_pos = displine;
+            x_pos = offset + svga->x_add;
+            p     = buffer32->line[y_pos];
+
+            if (offset >= svga->dac_hwcursor_latch.x) {
+                switch (comb) {
+                    case 0:
+                        p[x_pos] = col0;
+                        break;
+                    case 1:
+                        p[x_pos] = col1;
+                        break;
+                    case 3:
+                        p[x_pos] ^= 0xffffff;
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+            offset++;
+        }
+        svga->dac_hwcursor_latch.addr += 2;
     }
-
-    svga->dac_hwcursor_latch.addr += 16;
 }
 
 static void

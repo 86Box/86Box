@@ -187,6 +187,10 @@ extern bitmap_t *buffer32;
 #define efscrnsz_y           (monitors[monitor_index_global].mon_efscrnsz_y)
 #define unscaled_size_x      (monitors[monitor_index_global].mon_unscaled_size_x)
 #define unscaled_size_y      (monitors[monitor_index_global].mon_unscaled_size_y)
+
+#define CGAPAL_CGA_START    16            // Where the 16-color cga text/composite starts
+
+
 extern PALETTE      cgapal;
 extern PALETTE      cgapal_mono[6];
 #if 0
@@ -395,6 +399,7 @@ extern const device_t gd5480_pci_device;
 /* Compaq CGA */
 extern const device_t compaq_cga_device;
 extern const device_t compaq_cga_2_device;
+extern const device_t compaq_plasma_device; 
 
 /* Olivetti OGC */
 extern const device_t ogc_device;
@@ -608,6 +613,11 @@ extern const device_t velocity_200_agp_device;
 
 /* Wyse 700 */
 extern const device_t wy700_device;
+
+/* Tandy */
+extern const device_t tandy_1000_video_device; 
+extern const device_t tandy_1000hx_video_device; 
+extern const device_t tandy_1000sl_video_device; 
 
 #endif
 

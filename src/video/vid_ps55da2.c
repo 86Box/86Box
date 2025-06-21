@@ -349,7 +349,7 @@ typedef struct da2_t {
     int      lowres;
     int      rowcount;
     double   clock;
-    uint32_t ma_latch, ca_adj;
+    uint32_t memaddr_latch, ca_adj;
 
     uint64_t   dispontime, dispofftime;
     pc_timer_t timer;
@@ -358,11 +358,11 @@ typedef struct da2_t {
     int dispon;
     int hdisp_on;
 
-    uint32_t ma, maback, ca;
+    uint32_t memaddr, memaddr_backup, cursoraddr;
     int      vc;
-    int      sc;
+    int      scanline;
     int      linepos, vslines, linecountff;
-    int      con, cursoron, blink, blinkconf;
+    int      cursorvisible, cursoron, blink, blinkconf;
     int      scrollcache;
     int      char_width;
 
@@ -1960,10 +1960,10 @@ da2_render_text(da2_t *da2)
         uint32_t  chr_dbcs;
         int       chr_wide = 0;
         int       colormode = ((da2->attrc[LV_PAS_STATUS_CNTRL] & 0x80) == 0x80);
-        // da2_log("\nda2ma: %x, da2sc: %x\n", da2->ma, da2->sc);
+        // da2_log("\nda2ma: %x, da2sc: %x\n", da2->memaddr, da2->scanline);
         for (x = 0; x < da2->hdisp; x += 13) {
-            chr  = da2->cram[(da2->ma) & DA2_MASK_CRAM];
-            attr = da2->cram[(da2->ma + 1) & DA2_MASK_CRAM];
+            chr  = da2->cram[(da2->memaddr) & DA2_MASK_CRAM];
+            attr = da2->cram[(da2->memaddr + 1) & DA2_MASK_CRAM];
             // if(chr!=0x20) da2_log("chr: %x, attr: %x    ", chr, attr);
             if (colormode) /* IO 3E8h, Index 1Dh */
             {                                           /* --Parse attribute byte in color mode-- */
@@ -2003,11 +2003,11 @@ da2_render_text(da2_t *da2)
                 /* Stay drawing If the char code is DBCS and not at last column. */
                 if (chr_wide) {
                     /* Get high DBCS code from the next video address */
-                    chr_dbcs = da2->cram[(da2->ma + 2) & DA2_MASK_CRAM];
+                    chr_dbcs = da2->cram[(da2->memaddr + 2) & DA2_MASK_CRAM];
                     chr_dbcs <<= 8;
                     chr_dbcs |= chr;
                     /* Get the font pattern */
-                    uint32_t font = getfont_ps55dbcs(chr_dbcs, da2->sc, da2);
+                    uint32_t font = getfont_ps55dbcs(chr_dbcs, da2->scanline, da2);
                     /* Draw 13 dots */
                     for (uint32_t n = 0; n < 13; n++) {
                         p[n] = da2->pallook[da2->egapal[(font & 0x80000000) ? fg : bg]];
@@ -2020,10 +2020,10 @@ da2_render_text(da2_t *da2)
                         fontbase = DA2_GAIJIRAM_SBEX;
                     else
                         fontbase = DA2_GAIJIRAM_SBCS;
-                    uint16_t font = da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2]; /* w13xh29 font */
+                    uint16_t font = da2->mmio.ram[fontbase + chr * 0x40 + da2->scanline * 2]; /* w13xh29 font */
                     font <<= 8;
-                    font |= da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2 + 1]; /* w13xh29 font */
-                    // if(chr!=0x20) da2_log("ma: %x, sc: %x, chr: %x, font: %x    ", da2->ma, da2->sc, chr, font);
+                    font |= da2->mmio.ram[fontbase + chr * 0x40 + da2->scanline * 2 + 1]; /* w13xh29 font */
+                    // if(chr!=0x20) da2_log("memaddr: %x, scanline: %x, chr: %x, font: %x    ", da2->memaddr, da2->scanline, chr, font);
                     /* Draw 13 dots */
                     for (uint32_t n = 0; n < 13; n++) {
                         p[n] = da2->pallook[da2->egapal[(font & 0x8000) ? fg : bg]];
@@ -2033,7 +2033,7 @@ da2_render_text(da2_t *da2)
             }
             /* right half of DBCS */
             else {
-                uint32_t font = getfont_ps55dbcs(chr_dbcs, da2->sc, da2);
+                uint32_t font = getfont_ps55dbcs(chr_dbcs, da2->scanline, da2);
                 /* Draw 13 dots */
                 for (uint32_t n = 0; n < 13; n++) {
                     p[n] = da2->pallook[da2->egapal[(font & 0x8000) ? fg : bg]];
@@ -2042,7 +2042,7 @@ da2_render_text(da2_t *da2)
                 chr_wide = 0;
             }
             /* Line 28 (Underscore) Note: Draw this first to display blink + vertical + underline correctly. */
-            if (da2->sc == da2->crtc[LC_UNDERLINE_LOCATION] && attr & 0x40 && !colormode) { /* Underscore only in monochrome mode */
+            if (da2->scanline == da2->crtc[LC_UNDERLINE_LOCATION] && attr & 0x40 && !colormode) { /* Underscore only in monochrome mode */
                 for (uint32_t n = 0; n < 13; n++)
                     p[n] = da2->pallook[da2->egapal[fg]]; /* under line (white) */
             }
@@ -2050,13 +2050,13 @@ da2_render_text(da2_t *da2)
             if (attr & 0x10) {
                 p[0] = da2->pallook[da2->egapal[(colormode) ? IRGBtoBGRI(da2->attrc[LV_GRID_COLOR_0]) : 2]]; /* vertical line (white) */
             }
-            if (da2->sc == 0 && attr & 0x20 && ~da2->attrc[LV_PAS_STATUS_CNTRL]) { /* HGrid */
+            if (da2->scanline == 0 && attr & 0x20 && ~da2->attrc[LV_PAS_STATUS_CNTRL]) { /* HGrid */
                 for (uint32_t n = 0; n < 13; n++)
                     p[n] = da2->pallook[da2->egapal[(colormode) ? IRGBtoBGRI(da2->attrc[LV_GRID_COLOR_0]) : 2]]; /* horizontal line (white) */
             }
             /* Drawing text cursor */
-            drawcursor = ((da2->ma == da2->ca) && da2->con && da2->cursoron);
-            if (drawcursor && da2->sc >= da2->crtc[LC_CURSOR_ROW_START] && da2->sc <= da2->crtc[LC_CURSOR_ROW_END]) {
+            drawcursor = ((da2->memaddr == da2->cursoraddr) && da2->cursorvisible && da2->cursoron);
+            if (drawcursor && da2->scanline >= da2->crtc[LC_CURSOR_ROW_START] && da2->scanline <= da2->crtc[LC_CURSOR_ROW_END]) {
                 int cursorwidth = (da2->crtc[LC_COMPATIBILITY] & 0x20 ? 26 : 13);
                 int cursorcolor = (colormode) ? IRGBtoBGRI(da2->attrc[LV_CURSOR_COLOR]) : 2; /* Choose color 2 if mode 8 */
                 fg              = (colormode) ? getPS55ForeColor(attr, da2) : ((attr & 0x08) ? 3 : 2);
@@ -2071,10 +2071,10 @@ da2_render_text(da2_t *da2)
                     else
                         p[n] = (p[n] == da2->pallook[da2->egapal[bg]]) ? da2->pallook[da2->egapal[cursorcolor]] : p[n];
             }
-            da2->ma += 2;
+            da2->memaddr += 2;
             p += 13;
         }
-        // da2->ma &= DA2_MASK_CRAM;
+        // da2->memaddr &= DA2_MASK_CRAM;
         // da2->writelines++;
     }
 }
@@ -2096,12 +2096,12 @@ da2_render_textm3(da2_t *da2)
         int       fg, bg;
         uint32_t  chr_dbcs;
         int       chr_wide = 0;
-        // da2_log("\nda2ma: %x, da2sc: %x\n", da2->ma, da2->sc);
+        // da2_log("\nda2ma: %x, da2sc: %x\n", da2->memaddr, da2->scanline);
         for (x = 0; x < da2->hdisp; x += 13) {
-            chr     = da2_vram_r(DA2_VM03_BASECHR + da2->ma, da2);
-            attr    = da2_vram_r(DA2_VM03_BASECHR + da2->ma + 1, da2);
-            extattr = da2_vram_r(DA2_VM03_BASEEXATTR + da2->ma + 1, da2);
-            // if(chr!=0x20) da2_log("addr: %x, chr: %x, attr: %x    ", (DA2_VM03_BASECHR + da2->ma << 1) & da2->vram_mask, chr, attr);
+            chr     = da2_vram_r(DA2_VM03_BASECHR + da2->memaddr, da2);
+            attr    = da2_vram_r(DA2_VM03_BASECHR + da2->memaddr + 1, da2);
+            extattr = da2_vram_r(DA2_VM03_BASEEXATTR + da2->memaddr + 1, da2);
+            // if(chr!=0x20) da2_log("addr: %x, chr: %x, attr: %x    ", (DA2_VM03_BASECHR + da2->memaddr << 1) & da2->vram_mask, chr, attr);
             bg = attr >> 4;
             // if (da2->blink) bg &= ~0x8;
             // fg = (da2->blink || (!(attr & 0x80))) ? (attr & 0xf) : bg;
@@ -2118,11 +2118,11 @@ da2_render_textm3(da2_t *da2)
                 /* Stay drawing if the char code is DBCS and not at last column. */
                 if (chr_wide) {
                     /* Get high DBCS code from the next video address */
-                    chr_dbcs = da2_vram_r(DA2_VM03_BASECHR + da2->ma + 2, da2);
+                    chr_dbcs = da2_vram_r(DA2_VM03_BASECHR + da2->memaddr + 2, da2);
                     chr_dbcs <<= 8;
                     chr_dbcs |= chr;
                     /* Get the font pattern */
-                    uint32_t font = getfont_ps55dbcs(chr_dbcs, da2->sc, da2);
+                    uint32_t font = getfont_ps55dbcs(chr_dbcs, da2->scanline, da2);
                     /* Draw 13 dots */
                     for (uint32_t n = 0; n < 13; n++) {
                         p[n] = da2->pallook[da2->egapal[(font & 0x80000000) ? fg : bg]];
@@ -2135,10 +2135,10 @@ da2_render_textm3(da2_t *da2)
                         fontbase = DA2_GAIJIRAM_SBEX;
                     else
                         fontbase = DA2_GAIJIRAM_SBCS;
-                    uint16_t font = da2->mmio.ram[fontbase+ chr * 0x40 + da2->sc * 2]; /* w13xh29 font */
+                    uint16_t font = da2->mmio.ram[fontbase+ chr * 0x40 + da2->scanline * 2]; /* w13xh29 font */
                     font <<= 8;
-                    font |= da2->mmio.ram[fontbase + chr * 0x40 + da2->sc * 2 + 1]; /* w13xh29 font */
-                    // if(chr!=0x20) da2_log("ma: %x, sc: %x, chr: %x, font: %x    ", da2->ma, da2->sc, chr, font);
+                    font |= da2->mmio.ram[fontbase + chr * 0x40 + da2->scanline * 2 + 1]; /* w13xh29 font */
+                    // if(chr!=0x20) da2_log("memaddr: %x, scanline: %x, chr: %x, font: %x    ", da2->memaddr, da2->scanline, chr, font);
                     for (uint32_t n = 0; n < 13; n++) {
                         p[n] = da2->pallook[da2->egapal[(font & 0x8000) ? fg : bg]];
                         font <<= 1;
@@ -2147,7 +2147,7 @@ da2_render_textm3(da2_t *da2)
             }
             /* right half of DBCS */
             else {
-                uint32_t font = getfont_ps55dbcs(chr_dbcs, da2->sc, da2);
+                uint32_t font = getfont_ps55dbcs(chr_dbcs, da2->scanline, da2);
                 /* Draw 13 dots */
                 for (uint32_t n = 0; n < 13; n++) {
                     p[n] = da2->pallook[da2->egapal[(font & 0x8000) ? fg : bg]];
@@ -2155,8 +2155,8 @@ da2_render_textm3(da2_t *da2)
                 }
                 chr_wide = 0;
             }
-            drawcursor = ((da2->ma == da2->ca) && da2->con && da2->cursoron);
-            if (drawcursor && da2->sc >= da2->crtc[LC_CURSOR_ROW_START] && da2->sc <= da2->crtc[LC_CURSOR_ROW_END]) {
+            drawcursor = ((da2->memaddr == da2->cursoraddr) && da2->cursorvisible && da2->cursoron);
+            if (drawcursor && da2->scanline >= da2->crtc[LC_CURSOR_ROW_START] && da2->scanline <= da2->crtc[LC_CURSOR_ROW_END]) {
                 // int cursorwidth = (da2->crtc[0x1f] & 0x20 ? 26 : 13);
                 // int cursorcolor = (colormode) ? IRGBtoBGRI(da2->attrc[0x1a]) : 2;/* Choose color 2 if mode 8 */
                 // fg = (colormode) ? getPS55ForeColor(attr, da2) : (attr & 0x08) ? 3 : 2;
@@ -2168,10 +2168,10 @@ da2_render_textm3(da2_t *da2)
                 for (uint32_t n = 0; n < 13; n++)
                     p[n] = da2->pallook[da2->egapal[fg]];
             }
-            da2->ma += 2;
+            da2->memaddr += 2;
             p += 13;
         }
-        // da2->ma &= DA2_MASK_CRAM;
+        // da2->memaddr &= DA2_MASK_CRAM;
         // da2->writelines++;
     }
 }
@@ -2179,8 +2179,8 @@ da2_render_textm3(da2_t *da2)
 static void
 da2_render_color_4bpp(da2_t *da2)
 {
-    int changed_offset = da2->ma >> 9;
-    // da2_log("ma %x cf %x\n", da2->ma, changed_offset);
+    int changed_offset = da2->memaddr >> 9;
+    // da2_log("memaddr %x cf %x\n", da2->memaddr, changed_offset);
     da2->plane_mask &= 0x0f; /*safety */
 
     if (da2->changedvram[changed_offset] || da2->changedvram[changed_offset + 1] || da2->fullchange) {
@@ -2191,7 +2191,7 @@ da2_render_color_4bpp(da2_t *da2)
         if (da2->firstline_draw == 2000)
             da2->firstline_draw = da2->displine;
         da2->lastline_draw = da2->displine;
-        // da2_log("d %X\n", da2->ma);
+        // da2_log("d %X\n", da2->memaddr);
 
         for (x = 0; x <= da2->hdisp; x += 8) /* hdisp = 1024 */
         {
@@ -2199,9 +2199,9 @@ da2_render_color_4bpp(da2_t *da2)
             uint8_t dat;
 
             /* get 8 pixels from vram */
-            da2->ma &= da2->vram_display_mask;
-            *(uint32_t *) (&edat[0]) = *(uint32_t *) (&da2->vram[da2->ma << 3]);
-            da2->ma += 1;
+            da2->memaddr &= da2->vram_display_mask;
+            *(uint32_t *) (&edat[0]) = *(uint32_t *) (&da2->vram[da2->memaddr << 3]);
+            da2->memaddr += 1;
 
             dat  = ((edat[0] >> 7) & (1 << 0)) | ((edat[1] >> 6) & (1 << 1)) | ((edat[2] >> 5) & (1 << 2)) | ((edat[3] >> 4) & (1 << 3));
             p[0] = da2->pallook[da2->egapal[dat & da2->plane_mask]];
@@ -2228,8 +2228,8 @@ da2_render_color_4bpp(da2_t *da2)
 static void
 da2_render_color_8bpp(da2_t *da2)
 {
-    int changed_offset = da2->ma >> 9;
-    // da2_log("ma %x cf %x\n", da2->ma, changed_offset);
+    int changed_offset = da2->memaddr >> 9;
+    // da2_log("memaddr %x cf %x\n", da2->memaddr, changed_offset);
 
     if (da2->changedvram[changed_offset] || da2->changedvram[changed_offset + 1] || da2->fullchange) {
         int       x;
@@ -2239,7 +2239,7 @@ da2_render_color_8bpp(da2_t *da2)
         if (da2->firstline_draw == 2000)
             da2->firstline_draw = da2->displine;
         da2->lastline_draw = da2->displine;
-        // da2_log("d %X\n", da2->ma);
+        // da2_log("d %X\n", da2->memaddr);
 
         for (x = 0; x <= da2->hdisp; x += 8) /* hdisp = 1024 */
         {
@@ -2247,10 +2247,10 @@ da2_render_color_8bpp(da2_t *da2)
             uint8_t dat;
 
             /* get 8 pixels from vram */
-            da2->ma &= da2->vram_display_mask;
-            *(uint32_t *) (&edat[0]) = *(uint32_t *) (&da2->vram[da2->ma << 3]);
-            *(uint32_t *) (&edat[4]) = *(uint32_t *) (&da2->vram[(da2->ma << 3) + 4]);
-            da2->ma += 1;
+            da2->memaddr &= da2->vram_display_mask;
+            *(uint32_t *) (&edat[0]) = *(uint32_t *) (&da2->vram[da2->memaddr << 3]);
+            *(uint32_t *) (&edat[4]) = *(uint32_t *) (&da2->vram[(da2->memaddr << 3) + 4]);
+            da2->memaddr += 1;
 
             dat  = ((edat[0] >> 7) & (1 << 0)) | ((edat[1] >> 6) & (1 << 1)) | ((edat[2] >> 5) & (1 << 2)) | ((edat[3] >> 4) & (1 << 3)) | ((edat[4] >> 3) & (1 << 4)) | ((edat[5] >> 2) & (1 << 5)) | ((edat[6] >> 1) & (1 << 6)) | ((edat[7] >> 0) & (1 << 7));
             p[0] = da2->pallook[dat];
@@ -2343,9 +2343,9 @@ da2_recalctimings(da2_t *da2)
     if (da2->rowoffset == 0)
         da2->rowoffset = 64 * 2; /* To avoid causing a DBZ error */
     if (da2->split == 0) /* To avoid a glitch in MODE 1 of OS/2 J1.3 DOSBox. */
-        da2->ma_latch = 0;
+        da2->memaddr_latch = 0;
     else
-        da2->ma_latch = ((da2->crtc[LC_START_ADDRESS_HIGH] & 0x3ff) << 8) | da2->crtc[LC_START_ADDRESS_LOW];
+        da2->memaddr_latch = ((da2->crtc[LC_START_ADDRESS_HIGH] & 0x3ff) << 8) | da2->crtc[LC_START_ADDRESS_LOW];
 
     da2->ca_adj = 0;
     da2->rowcount = da2->crtc[LC_MAXIMUM_SCAN_LINE];
@@ -3022,7 +3022,7 @@ da2_poll(void *priv)
         if (da2->dispon) {
             da2->hdisp_on = 1;
 
-            da2->ma &= da2->vram_display_mask;
+            da2->memaddr &= da2->vram_display_mask;
             if (da2->firstline == 2000) {
                 da2->firstline = da2->displine;
                 video_wait_for_buffer();
@@ -3035,7 +3035,7 @@ da2_poll(void *priv)
                 da2->lastline = da2->displine;
         }
 
-        // da2_log("%03i %06X %06X\n", da2->displine, da2->ma,da2->vram_display_mask);
+        // da2_log("%03i %06X %06X\n", da2->displine, da2->memaddr,da2->vram_display_mask);
         da2->displine++;
         if ((da2->cgastat & 8) && ((da2->displine & 0xf) == (da2->crtc[LC_VERTICAL_SYNC_END] & 0xf)) && da2->vslines) {
             // da2_log("Vsync off at line %i\n",displine);
@@ -3045,9 +3045,9 @@ da2_poll(void *priv)
         if (da2->displine > 1200)
             da2->displine = 0;
         // da2_log("Col is %08X %08X %08X   %i %i  %08X\n",((uint32_t *)buffer32->line[displine])[320],((uint32_t *)buffer32->line[displine])[321],((uint32_t *)buffer32->line[displine])[322],
-        // displine, vc, ma);
+        // displine, vc, memaddr);
     } else {
-        // da2_log("VC %i ma %05X\n", da2->vc, da2->ma);
+        // da2_log("VC %i memaddr %05X\n", da2->vc, da2->memaddr);
         timer_advance_u64(&da2->timer, da2->dispontime);
 
         if (da2->dispon)
@@ -3055,20 +3055,20 @@ da2_poll(void *priv)
         da2->hdisp_on = 0;
 
         da2->linepos = 0;
-        if (da2->sc == (da2->crtc[LC_CURSOR_ROW_END] & 31))
-            da2->con = 0;
+        if (da2->scanline == (da2->crtc[LC_CURSOR_ROW_END] & 31))
+            da2->cursorvisible = 0;
         if (da2->dispon) {
-            if (da2->sc == da2->rowcount) {
+            if (da2->scanline == da2->rowcount) {
                 da2->linecountff = 0;
-                da2->sc          = 0;
+                da2->scanline          = 0;
 
-                da2->maback += (da2->rowoffset << 1); /*   color = 0x50(80), mono = 0x40(64) */
-                da2->maback &= da2->vram_display_mask;
-                da2->ma = da2->maback;
+                da2->memaddr_backup += (da2->rowoffset << 1); /*   color = 0x50(80), mono = 0x40(64) */
+                da2->memaddr_backup &= da2->vram_display_mask;
+                da2->memaddr = da2->memaddr_backup;
             } else {
-                da2->sc++;
-                da2->sc &= 31;
-                da2->ma = da2->maback;
+                da2->scanline++;
+                da2->scanline &= 31;
+                da2->memaddr = da2->memaddr_backup;
             }
         }
 
@@ -3076,9 +3076,9 @@ da2_poll(void *priv)
         da2->vc &= 2047;
 
         if (da2->vc == da2->split) {
-            // da2->ma = da2->maback = da2->hblank_sub;
-            da2->ma = da2->maback = 0;
-            da2->sc = 0;
+            // da2->memaddr = da2->memaddr_backup = da2->hblank_sub;
+            da2->memaddr = da2->memaddr_backup = 0;
+            da2->scanline = 0;
             // da2->displine    = 0;
         }
 
@@ -3128,24 +3128,24 @@ da2_poll(void *priv)
             changeframecount = 2;
             da2->vslines     = 0;
 
-            da2->ma
-                = da2->maback = da2->ma_latch << 1;
-            da2->ca           = ((da2->crtc[LC_CURSOR_LOC_HIGH] << 8) | da2->crtc[LC_CURSOR_LOC_LOWJ]) + da2->ca_adj;
-            da2->ca <<= 1;
+            da2->memaddr
+                = da2->memaddr_backup = da2->memaddr_latch << 1;
+            da2->cursoraddr           = ((da2->crtc[LC_CURSOR_LOC_HIGH] << 8) | da2->crtc[LC_CURSOR_LOC_LOWJ]) + da2->ca_adj;
+            da2->cursoraddr <<= 1;
 
-            // da2_log("Addr %08X vson %03X vsoff %01X\n",da2->ma,da2->vsyncstart,da2->crtc[0x11]&0xF);
+            // da2_log("Addr %08X vson %03X vsoff %01X\n",da2->memaddr,da2->vsyncstart,da2->crtc[0x11]&0xF);
         }
         if (da2->vc == da2->vtotal) {
             // da2_log("VC vtotal\n");
             // printf("Frame over at line %i %i  %i %i\n",displine,vc,da2_vsyncstart,da2_dispend);
             da2->vc          = 0;
-            da2->sc          = da2->crtc[LC_PRESET_ROW_SCANJ] & 0x1f;
+            da2->scanline          = da2->crtc[LC_PRESET_ROW_SCANJ] & 0x1f;
             da2->dispon      = 1;
             da2->displine    = 0;
             da2->scrollcache = da2->attrc[LV_PANNING] & 7;
         }
-        if (da2->sc == (da2->crtc[LC_CURSOR_ROW_START] & 31))
-            da2->con = 1;
+        if (da2->scanline == (da2->crtc[LC_CURSOR_ROW_START] & 31))
+            da2->cursorvisible = 1;
     }
 }
 
@@ -3231,7 +3231,7 @@ da2_reset(void *priv)
     da2->attrc[LV_CURSOR_COLOR]    = 0x0f;                   /* cursor color */
     da2->crtc[LC_HORIZONTAL_TOTAL] = 63;                     /* Horizontal Total */
     da2->crtc[LC_VERTICAL_TOTALJ]  = 255;                    /* Vertical Total (These two must be set before the timer starts.) */
-    da2->ma_latch                  = 0;
+    da2->memaddr_latch                  = 0;
     da2->attrc[LV_CURSOR_CONTROL]  = 0x13; /* cursor options */
     da2->attr_palette_enable       = 0;    /* disable attribute generator */
 
@@ -3441,7 +3441,7 @@ static const device_config_t da2_configuration[] = {
     // clang-format off
     {
         .name        = "charset",
-        .description = "Charset",
+        .description = "Character set",
         .type        = CONFIG_SELECTION,
         .default_int = DA2_DCONFIG_CHARSET_JPAN,
         .selection   = {

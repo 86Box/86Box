@@ -113,10 +113,10 @@ typedef struct jega_t {
     uint8_t   attr_palette_enable;
     uint32_t *pallook;
     int       is_vga;
-    int       con;
+    int       cursorvisible;
     int       cursoron;
     int       cursorblink_disable;
-    int       ca;
+    int       cursoraddr;
     int       font_index;
     int       sbcsbank_inv;
     int       attr3_sbcsbank;
@@ -222,14 +222,14 @@ jega_render_text(void *priv)
                                               &jega->ega.x_add;
     int *     y_add          = jega->is_vga ? &jega->vga.svga.y_add :
                                               &jega->ega.y_add;
-    int *     sc             = jega->is_vga ? &jega->vga.svga.sc :
-                                              &jega->ega.sc;
+    int *     sc             = jega->is_vga ? &jega->vga.svga.scanline :
+                                              &jega->ega.scanline;
     int *     hdisp          = jega->is_vga ? &jega->vga.svga.hdisp :
                                               &jega->ega.hdisp;
     int *     scrollcache    = jega->is_vga ? &jega->vga.svga.scrollcache :
                                               &jega->ega.scrollcache;
-    uint32_t *ma             = jega->is_vga ? &jega->vga.svga.ma :
-                                              &jega->ega.ma;
+    uint32_t *memaddr             = jega->is_vga ? &jega->vga.svga.memaddr :
+                                              &jega->ega.memaddr;
     uint8_t   mask           = jega->is_vga ? jega->vga.svga.dac_mask : 0xff;
 
     if (*firstline_draw == 2000)
@@ -260,12 +260,12 @@ jega_render_text(void *priv)
 
             if (jega->is_vga) {
                 if (!jega->vga.svga.force_old_addr)
-                    addr = jega->vga.svga.remap_func(&jega->vga.svga, jega->vga.svga.ma) &
+                    addr = jega->vga.svga.remap_func(&jega->vga.svga, jega->vga.svga.memaddr) &
                                                      jega->vga.svga.vram_display_mask;
             } else
-                addr = jega->ega.remap_func(&jega->ega, *ma) & jega->ega.vrammask;
+                addr = jega->ega.remap_func(&jega->ega, *memaddr) & jega->ega.vrammask;
 
-            int drawcursor = ((*ma == jega->ca) && cursoron);
+            int drawcursor = ((*memaddr == jega->cursoraddr) && cursoron);
 
             uint32_t chr;
             uint32_t attr;
@@ -399,9 +399,9 @@ jega_render_text(void *priv)
                     p += charwidth;
                 }
             }
-            *ma += 4;
+            *memaddr += 4;
         }
-        *ma &= 0x3ffff;
+        *memaddr &= 0x3ffff;
     }
 }
 
@@ -523,7 +523,7 @@ jega_out(uint16_t addr, uint8_t val, void *priv)
                         break;
                     case RCCLH:
                     case RCCLL:
-                        jega->ca = jega->regs[RCCLH] << 10 | jega->regs[RCCLL] << 2;
+                        jega->cursoraddr = jega->regs[RCCLH] << 10 | jega->regs[RCCLL] << 2;
                         break;
                     case RCMOD:
                         jega->cursoron = (val & 0x80);

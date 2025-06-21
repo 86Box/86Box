@@ -169,8 +169,8 @@ t3100e_out(uint16_t addr, uint8_t val, void *priv)
             t3100e_recalctimings(t3100e);
             return;
 
-        case 0x3D8: /* CGA control register */
-        case 0x3D9: /* CGA colour register */
+        case CGA_REGISTER_MODE_CONTROL: /* CGA control register */
+        case CGA_REGISTER_COLOR_SELECT: /* CGA colour register */
             cga_out(addr, val, &t3100e->cga);
             return;
 
@@ -254,25 +254,25 @@ t3100e_text_row80(t3100e_t *t3100e)
     int      bold;
     int      blink;
     uint16_t addr;
-    uint8_t  sc;
-    uint16_t ma = (t3100e->cga.crtc[13] | (t3100e->cga.crtc[12] << 8)) & 0x7fff;
-    uint16_t ca = (t3100e->cga.crtc[15] | (t3100e->cga.crtc[14] << 8)) & 0x7fff;
+    uint8_t  scanline;
+    uint16_t memaddr = (t3100e->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (t3100e->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x7fff;
+    uint16_t cursoraddr = (t3100e->cga.crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (t3100e->cga.crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x7fff;
 
-    sc   = (t3100e->displine) & 15;
-    addr = ((ma & ~1) + (t3100e->displine >> 4) * 80) * 2;
-    ma += (t3100e->displine >> 4) * 80;
+    scanline   = (t3100e->displine) & 15;
+    addr = ((memaddr & ~1) + (t3100e->displine >> 4) * 80) * 2;
+    memaddr += (t3100e->displine >> 4) * 80;
 
-    if ((t3100e->cga.crtc[10] & 0x60) == 0x20) {
+    if ((t3100e->cga.crtc[CGA_CRTC_CURSOR_START] & 0x60) == 0x20) {
         cursorline = 0;
     } else {
-        cursorline = ((t3100e->cga.crtc[10] & 0x0F) * 2 <= sc) && ((t3100e->cga.crtc[11] & 0x0F) * 2 >= sc);
+        cursorline = ((t3100e->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0F) * 2 <= scanline) && ((t3100e->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0F) * 2 >= scanline);
     }
     for (uint8_t x = 0; x < 80; x++) {
         chr        = t3100e->vram[(addr + 2 * x) & 0x7FFF];
         attr       = t3100e->vram[(addr + 2 * x + 1) & 0x7FFF];
-        drawcursor = ((ma == ca) && cursorline && (t3100e->cga.cgamode & 8) && (t3100e->cga.cgablink & 16));
+        drawcursor = ((memaddr == cursoraddr) && cursorline && (t3100e->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && (t3100e->cga.cgablink & 16));
 
-        blink = ((t3100e->cga.cgablink & 16) && (t3100e->cga.cgamode & 0x20) && (attr & 0x80) && !drawcursor);
+        blink = ((t3100e->cga.cgablink & 16) && (t3100e->cga.cgamode & CGA_MODE_FLAG_BLINK) && (attr & 0x80) && !drawcursor);
 
         if (t3100e->video_options & 4)
             bold = boldcols[attr] ? chr + 256 : chr;
@@ -280,7 +280,7 @@ t3100e_text_row80(t3100e_t *t3100e)
             bold = boldcols[attr] ? chr : chr + 256;
         bold += 512 * (t3100e->video_options & 3);
 
-        if (t3100e->cga.cgamode & 0x20) /* Blink */
+        if (t3100e->cga.cgamode & CGA_MODE_FLAG_BLINK) /* Blink */
         {
             cols[1] = blinkcols[attr][1];
             cols[0] = blinkcols[attr][0];
@@ -292,13 +292,13 @@ t3100e_text_row80(t3100e_t *t3100e)
         }
         if (drawcursor) {
             for (uint8_t c = 0; c < 8; c++) {
-                (buffer32->line[t3100e->displine])[(x << 3) + c] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
+                (buffer32->line[t3100e->displine])[(x << 3) + c] = cols[(fontdatm[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
             }
         } else {
             for (uint8_t c = 0; c < 8; c++)
-                (buffer32->line[t3100e->displine])[(x << 3) + c] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
+                (buffer32->line[t3100e->displine])[(x << 3) + c] = cols[(fontdatm[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0];
         }
-        ++ma;
+        ++memaddr;
     }
 }
 
@@ -315,25 +315,25 @@ t3100e_text_row40(t3100e_t *t3100e)
     int      bold;
     int      blink;
     uint16_t addr;
-    uint8_t  sc;
-    uint16_t ma = (t3100e->cga.crtc[13] | (t3100e->cga.crtc[12] << 8)) & 0x7fff;
-    uint16_t ca = (t3100e->cga.crtc[15] | (t3100e->cga.crtc[14] << 8)) & 0x7fff;
+    uint8_t  scanline;
+    uint16_t memaddr = (t3100e->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (t3100e->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x7fff;
+    uint16_t cursoraddr = (t3100e->cga.crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (t3100e->cga.crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x7fff;
 
-    sc   = (t3100e->displine) & 15;
-    addr = ((ma & ~1) + (t3100e->displine >> 4) * 40) * 2;
-    ma += (t3100e->displine >> 4) * 40;
+    scanline   = (t3100e->displine) & 15;
+    addr = ((memaddr & ~1) + (t3100e->displine >> 4) * 40) * 2;
+    memaddr += (t3100e->displine >> 4) * 40;
 
-    if ((t3100e->cga.crtc[10] & 0x60) == 0x20) {
+    if ((t3100e->cga.crtc[CGA_CRTC_CURSOR_START] & 0x60) == 0x20) {
         cursorline = 0;
     } else {
-        cursorline = ((t3100e->cga.crtc[10] & 0x0F) * 2 <= sc) && ((t3100e->cga.crtc[11] & 0x0F) * 2 >= sc);
+        cursorline = ((t3100e->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0F) * 2 <= scanline) && ((t3100e->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0F) * 2 >= scanline);
     }
     for (uint8_t x = 0; x < 40; x++) {
         chr        = t3100e->vram[(addr + 2 * x) & 0x7FFF];
         attr       = t3100e->vram[(addr + 2 * x + 1) & 0x7FFF];
-        drawcursor = ((ma == ca) && cursorline && (t3100e->cga.cgamode & 8) && (t3100e->cga.cgablink & 16));
+        drawcursor = ((memaddr == cursoraddr) && cursorline && (t3100e->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && (t3100e->cga.cgablink & 16));
 
-        blink = ((t3100e->cga.cgablink & 16) && (t3100e->cga.cgamode & 0x20) && (attr & 0x80) && !drawcursor);
+        blink = ((t3100e->cga.cgablink & 16) && (t3100e->cga.cgamode & CGA_MODE_FLAG_BLINK) && (attr & 0x80) && !drawcursor);
 
         if (t3100e->video_options & 4)
             bold = boldcols[attr] ? chr + 256 : chr;
@@ -341,7 +341,7 @@ t3100e_text_row40(t3100e_t *t3100e)
             bold = boldcols[attr] ? chr : chr + 256;
         bold += 512 * (t3100e->video_options & 3);
 
-        if (t3100e->cga.cgamode & 0x20) /* Blink */
+        if (t3100e->cga.cgamode & CGA_MODE_FLAG_BLINK) /* Blink */
         {
             cols[1] = blinkcols[attr][1];
             cols[0] = blinkcols[attr][0];
@@ -353,14 +353,14 @@ t3100e_text_row40(t3100e_t *t3100e)
         }
         if (drawcursor) {
             for (c = 0; c < 8; c++) {
-                (buffer32->line[t3100e->displine])[(x << 4) + c * 2] = (buffer32->line[t3100e->displine])[(x << 4) + c * 2 + 1] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
+                (buffer32->line[t3100e->displine])[(x << 4) + c * 2] = (buffer32->line[t3100e->displine])[(x << 4) + c * 2 + 1] = cols[(fontdatm[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
             }
         } else {
             for (c = 0; c < 8; c++) {
-                (buffer32->line[t3100e->displine])[(x << 4) + c * 2] = (buffer32->line[t3100e->displine])[(x << 4) + c * 2 + 1] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
+                (buffer32->line[t3100e->displine])[(x << 4) + c * 2] = (buffer32->line[t3100e->displine])[(x << 4) + c * 2 + 1] = cols[(fontdatm[bold][scanline] & (1 << (c ^ 7))) ? 1 : 0];
             }
         }
-        ++ma;
+        ++memaddr;
     }
 }
 
@@ -374,13 +374,13 @@ t3100e_cgaline6(t3100e_t *t3100e)
     uint32_t fg = (t3100e->cga.cgacol & 0x0F) ? amber : black;
     uint32_t bg = black;
 
-    uint16_t ma = (t3100e->cga.crtc[13] | (t3100e->cga.crtc[12] << 8)) & 0x7fff;
+    uint16_t memaddr = (t3100e->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (t3100e->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x7fff;
 
-    if (t3100e->cga.crtc[9] == 3) /* 640*400 */
+    if (t3100e->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] == 3) /* 640*400 */
     {
-        addr = ((t3100e->displine) & 1) * 0x2000 + ((t3100e->displine >> 1) & 1) * 0x4000 + (t3100e->displine >> 2) * 80 + ((ma & ~1) << 1);
+        addr = ((t3100e->displine) & 1) * 0x2000 + ((t3100e->displine >> 1) & 1) * 0x4000 + (t3100e->displine >> 2) * 80 + ((memaddr & ~1) << 1);
     } else {
-        addr = ((t3100e->displine >> 1) & 1) * 0x2000 + (t3100e->displine >> 2) * 80 + ((ma & ~1) << 1);
+        addr = ((t3100e->displine >> 1) & 1) * 0x2000 + (t3100e->displine >> 2) * 80 + ((memaddr & ~1) << 1);
     }
     for (uint8_t x = 0; x < 80; x++) {
         dat = t3100e->vram[addr & 0x7FFF];
@@ -388,7 +388,7 @@ t3100e_cgaline6(t3100e_t *t3100e)
 
         for (uint8_t c = 0; c < 8; c++) {
             ink = (dat & 0x80) ? fg : bg;
-            if (!(t3100e->cga.cgamode & 8))
+            if (!(t3100e->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE))
                 ink = black;
             (buffer32->line[t3100e->displine])[x * 8 + c] = ink;
             dat                                           = dat << 1;
@@ -407,13 +407,13 @@ t3100e_cgaline4(t3100e_t *t3100e)
     uint32_t ink1 = 0;
     uint16_t addr;
 
-    uint16_t ma = (t3100e->cga.crtc[13] | (t3100e->cga.crtc[12] << 8)) & 0x7fff;
-    if (t3100e->cga.crtc[9] == 3) /* 320*400 undocumented */
+    uint16_t memaddr = (t3100e->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (t3100e->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x7fff;
+    if (t3100e->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] == 3) /* 320*400 undocumented */
     {
-        addr = ((t3100e->displine) & 1) * 0x2000 + ((t3100e->displine >> 1) & 1) * 0x4000 + (t3100e->displine >> 2) * 80 + ((ma & ~1) << 1);
+        addr = ((t3100e->displine) & 1) * 0x2000 + ((t3100e->displine >> 1) & 1) * 0x4000 + (t3100e->displine >> 2) * 80 + ((memaddr & ~1) << 1);
     } else /* 320*200 */
     {
-        addr = ((t3100e->displine >> 1) & 1) * 0x2000 + (t3100e->displine >> 2) * 80 + ((ma & ~1) << 1);
+        addr = ((t3100e->displine >> 1) & 1) * 0x2000 + (t3100e->displine >> 2) * 80 + ((memaddr & ~1) << 1);
     }
     for (uint8_t x = 0; x < 80; x++) {
         dat = t3100e->vram[addr & 0x7FFF];
@@ -421,7 +421,7 @@ t3100e_cgaline4(t3100e_t *t3100e)
 
         for (uint8_t c = 0; c < 4; c++) {
             pattern = (dat & 0xC0) >> 6;
-            if (!(t3100e->cga.cgamode & 8))
+            if (!(t3100e->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE))
                 pattern = 0;
 
             switch (pattern & 3) {
@@ -497,12 +497,12 @@ t3100e_poll(void *priv)
             }
 
             /* Graphics */
-            if (t3100e->cga.cgamode & 0x02) {
-                if (t3100e->cga.cgamode & 0x10)
+            if (t3100e->cga.cgamode & CGA_MODE_FLAG_GRAPHICS) {
+                if (t3100e->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)
                     t3100e_cgaline6(t3100e);
                 else
                     t3100e_cgaline4(t3100e);
-            } else if (t3100e->cga.cgamode & 0x01) /* High-res text */
+            } else if (t3100e->cga.cgamode & CGA_MODE_FLAG_HIGHRES) /* High-res text */
             {
                 t3100e_text_row80(t3100e);
             } else {
@@ -550,8 +550,8 @@ t3100e_poll(void *priv)
             video_res_x = T3100E_XSIZE;
             video_res_y = T3100E_YSIZE;
 
-            if (t3100e->cga.cgamode & 0x02) {
-                if (t3100e->cga.cgamode & 0x10)
+            if (t3100e->cga.cgamode & CGA_MODE_FLAG_GRAPHICS) {
+                if (t3100e->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)
                     video_bpp = 1;
                 else
                     video_bpp = 2;

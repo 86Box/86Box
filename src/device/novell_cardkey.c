@@ -109,7 +109,7 @@ static const device_config_t keycard_config[] = {
 };
 
 const device_t novell_keycard_device = {
-    .name          = "Novell Netware 2.x Key Card",
+    .name          = "Novell NetWare 2.x Key Card",
     .internal_name = "mssystems",
     .flags         = DEVICE_ISA,
     .local         = 0,

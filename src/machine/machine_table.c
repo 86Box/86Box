@@ -39,8 +39,10 @@
 // Temporarily here till we move everything out into the right files
 extern const device_t pcjr_device;
 extern const device_t m19_vid_device;
-extern const device_t vid_device;
-extern const device_t vid_device_hx;
+extern const device_t tandy_1000_video_device;
+extern const device_t tandy_1000hx_video_device;
+extern const device_t tandy_1000sl_video_device; 
+
 extern const device_t t1000_video_device;
 extern const device_t xi8088_device;
 extern const device_t cga_device;
@@ -50,7 +52,6 @@ extern const device_t vid_pc2086_device;
 extern const device_t vid_pc3086_device;
 extern const device_t vid_200_device;
 extern const device_t vid_ppc512_device;
-extern const device_t vid_device_sl;
 extern const device_t t1200_video_device;
 extern const device_t compaq_plasma_device;
 extern const device_t ps1_2011_device;
@@ -69,6 +70,7 @@ extern const device_t ap5s_device;
 extern const device_t d842_device;
 extern const device_t d943_device;
 extern const device_t dells333sl_device;
+extern const device_t hot433a_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                             MACHINE_TYPE_NONE       },
@@ -1590,7 +1592,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = &vid_device,
+        .vid_device = &tandy_1000_video_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -1629,7 +1631,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = &vid_device_hx,
+        .vid_device = &tandy_1000hx_video_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -2530,7 +2532,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = &vid_device_sl,
+        .vid_device = &tandy_1000sl_video_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -3415,6 +3417,47 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* No proper pictures of the KBC exist, though it seems to have the IBM AT KBC
+       firmware. */
+    {
+        .name = "[C&T PC/AT] Tulip AT Compact",
+        .internal_name = "tuliptc7",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_CT_AT,
+        .init = machine_at_tuliptc7_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 6000000,
+            .max_bus = 12000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 640,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has Quadtel KBC firmware. */
     {
         .name = "[GC103] Quadtel 286 clone",
@@ -3650,7 +3693,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &paradise_pvga1a_ncr3302_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -6605,6 +6648,46 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */
+    {
+        .name = "[VLSI 82C486] Tulip 486 DC/DT",
+        .internal_name = "tuliptc38",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_VLSI_VL82C486,
+        .init = machine_at_tuliptc38_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .ram = {
+            .min = 2048,
+            .max = 32768,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL, /*Has SIO (sorta): VLSI VL82C113A SCAMP Combination I/O*/
+        .vid_device = &gd5426_onboard_device,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
         .name = "[MCA] IBM PS/2 model 70 (type 4)",
@@ -9036,6 +9119,47 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
+       in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
+    {
+        .name = "[UMC 8881] Biostar MB-84xxUUD-A",
+        .internal_name = "84xxuuda",
+        .type = MACHINE_TYPE_486_S3_PCI,
+        .chipset = MACHINE_CHIPSET_UMC_UM8881,
+        .init = machine_at_84xxuuda_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
         .name = "[UMC 8881] ECS Elite UM8810P-AIO",
@@ -9112,7 +9236,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &tgui9440_onboard_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -9153,7 +9277,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &gd5430_onboard_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -9259,7 +9383,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCI,
+        .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
@@ -9271,7 +9395,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &hot433a_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,

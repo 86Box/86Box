@@ -39,7 +39,7 @@ typedef struct ega_t {
     uint8_t lb;
     uint8_t lc;
     uint8_t ld;
-    uint8_t stat;
+    uint8_t status;
     uint8_t colourcompare;
     uint8_t colournocare;
     uint8_t scrblank;
@@ -68,12 +68,12 @@ typedef struct ega_t {
     int chain4;
     int chain2_read;
     int chain2_write;
-    int con;
+    int cursorvisible;
     int oddeven_page;
     int oddeven_chain;
     int vc;
     int real_vc;
-    int sc;
+    int scanline;
     int dispon;
     int hdisp_on;
     int cursoron;
@@ -115,14 +115,14 @@ typedef struct ega_t {
     int chipset;
     int mono_display;
 
-    int mdacols[256][2][2];
+    int mda_attr_to_color_table[256][2][2];
 
     uint32_t charseta;
     uint32_t charsetb;
-    uint32_t ma_latch;
-    uint32_t ma;
-    uint32_t maback;
-    uint32_t ca;
+    uint32_t memaddr_latch;
+    uint32_t memaddr;
+    uint32_t memaddr_backup;
+    uint32_t cursoraddr;
     uint32_t vram_limit;
     uint32_t overscan_color;
     uint32_t cca;
@@ -189,11 +189,11 @@ extern void    ega_set_type(void *priv, uint32_t local);
 extern int firstline_draw;
 extern int lastline_draw;
 extern int displine;
-extern int sc;
+extern int scanline;
 
-extern uint32_t ma;
-extern uint32_t ca;
-extern int      con;
+extern uint32_t memaddr;
+extern uint32_t cursoraddr;
+extern int      cursorvisible;
 extern int      cursoron;
 extern int      cgablink;
 
