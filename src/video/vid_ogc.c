@@ -407,7 +407,6 @@ ogc_poll(void *priv)
                 }
                 if (ogc->cga.sc == (ogc->cga.crtc[11] & 31) || ((ogc->cga.crtc[8] & 3) == 3 && ogc->cga.sc == ((ogc->cga.crtc[11] & 31) >> 1))) {
                     ogc->cga.con  = 0;
-                    ogc->cga.coff = 1;
                 }
                 if ((ogc->cga.crtc[8] & 3) == 3 && ogc->cga.sc == (ogc->cga.crtc[9] >> 1))
                     ogc->cga.maback = ogc->cga.ma;

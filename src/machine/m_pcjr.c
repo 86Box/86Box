@@ -82,7 +82,6 @@ typedef struct pcjr_t {
     int           vc;
     int           dispon;
     int           con;
-    int           coff;
     int           cursoron;
     int           blink;
     int           vsynctime;
@@ -1167,7 +1166,6 @@ vid_poll(void *priv)
         }
         if (pcjr->sc == (pcjr->crtc[11] & 31) || ((pcjr->crtc[8] & 3) == 3 && pcjr->sc == ((pcjr->crtc[11] & 31) >> 1))) {
             pcjr->con  = 0;
-            pcjr->coff = 1;
         }
         if (pcjr->vadj) {
             pcjr->sc++;

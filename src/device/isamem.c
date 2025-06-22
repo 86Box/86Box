@@ -2165,12 +2165,12 @@ isamem_get_internal_name(int board)
 }
 
 int
-isamem_get_from_internal_name(const char *s)
+isamem_get_from_internal_name(const char *str)
 {
     int c = 0;
 
     while (boards[c].dev != NULL) {
-        if (!strcmp(boards[c].dev->internal_name, s))
+        if (!strcmp(boards[c].dev->internal_name, str))
             return c;
         c++;
     }

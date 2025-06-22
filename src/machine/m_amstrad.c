@@ -117,7 +117,6 @@ typedef struct amsvid_t {
     int        vc;
     int        cgadispon;
     int        con;
-    int        coff;
     int        cursoron;
     int        cgablink;
     int        vsynctime;
@@ -515,7 +514,6 @@ vid_poll_1512(void *priv)
         }
         if (vid->sc == (vid->crtc[11] & 31)) {
             vid->con  = 0;
-            vid->coff = 1;
         }
         if (vid->vadj) {
             vid->sc++;
@@ -1319,7 +1317,6 @@ lcdm_poll(amsvid_t *vid)
         }
         if (mda->sc == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[11] & 31) >> 1))) {
             mda->con  = 0;
-            mda->coff = 1;
         }
         if (mda->vadj) {
             mda->sc++;
@@ -1483,7 +1480,6 @@ lcdc_poll(amsvid_t *vid)
         }
         if (cga->sc == (cga->crtc[11] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[11] & 31) >> 1))) {
             cga->con  = 0;
-            cga->coff = 1;
         }
         if ((cga->crtc[8] & 3) == 3 && cga->sc == (cga->crtc[9] >> 1))
             cga->maback = cga->ma;

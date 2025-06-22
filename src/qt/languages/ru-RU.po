@@ -2195,3 +2195,12 @@ msgstr "Переключить паузу"
 
 msgid "Toggle mute"
 msgstr "Переключить беззвучный режим"
+
+msgid "Text files"
+msgstr "Текстовые файлы"
+
+msgid "ROM files"
+msgstr "Файлы ПЗУ"
+
+msgid "SoundFont files"
+msgstr "Файлы SoundFont"

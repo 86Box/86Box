@@ -104,22 +104,22 @@ glsl_detect_bom(const char *fn)
 
 static char *load_file(const char *fn) {
         int bom = glsl_detect_bom(fn);
-        FILE *f = plat_fopen(fn, "rb");
-        if (!f)
+        FILE *fp = plat_fopen(fn, "rb");
+        if (!fp)
                 return 0;
-        fseek(f, 0, SEEK_END);
-        long fsize = ftell(f);
-        fseek(f, 0, SEEK_SET);
+        fseek(fp, 0, SEEK_END);
+        long fsize = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
 
         if (bom) {
                 fsize -= 3;
-                fseek(f, 3, SEEK_SET);
+                fseek(fp, 3, SEEK_SET);
         }
 
         char *data = (char*)malloc(fsize + 1);
 
-        fread(data, fsize, 1, f);
-        fclose(f);
+        (void) fread(data, fsize, 1, fp);
+        fclose(fp);
 
         data[fsize] = 0;
 

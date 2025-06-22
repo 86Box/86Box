@@ -19,17 +19,20 @@ public:
 
 signals:
     void cdromChannelChanged();
+
 private slots:
-    void on_comboBoxCDROMType_activated(int index);
-    void on_comboBoxChannel_activated(int index);
-    void on_comboBoxBus_activated(int index);
-    void on_comboBoxSpeed_activated(int index);
-    void on_comboBoxBus_currentIndexChanged(int index);
-    void on_comboBoxFloppyType_activated(int index);
-    void on_checkBoxCheckBPB_stateChanged(int arg1);
-    void on_checkBoxTurboTimings_stateChanged(int arg1);
     void onFloppyRowChanged(const QModelIndex &current);
+    void on_comboBoxFloppyType_activated(int index);
+    void on_checkBoxTurboTimings_stateChanged(int arg1);
+    void on_checkBoxCheckBPB_stateChanged(int arg1);
+
     void onCDROMRowChanged(const QModelIndex &current);
+    void on_comboBoxBus_activated(int index);
+    void on_comboBoxBus_currentIndexChanged(int index);
+    void on_comboBoxChannel_activated(int index);
+    void on_comboBoxSpeed_activated(int index);
+    void on_comboBoxCDROMType_activated(int index);
+
 
 private:
     Ui::SettingsFloppyCDROM *ui;

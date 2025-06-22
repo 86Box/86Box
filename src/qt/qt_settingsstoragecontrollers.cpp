@@ -56,8 +56,8 @@ SettingsStorageControllers::save()
         QComboBox *cbox      = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
         scsi_card_current[i] = cbox->currentData().toInt();
     }
-    hdc_current[0]          = ui->comboBoxHD->currentData().toInt();
     fdc_current[0]          = ui->comboBoxFD->currentData().toInt();
+    hdc_current[0]          = ui->comboBoxHD->currentData().toInt();
     cdrom_interface_current = ui->comboBoxCDInterface->currentData().toInt();
     ide_ter_enabled         = ui->checkBoxTertiaryIDE->isChecked() ? 1 : 0;
     ide_qua_enabled         = ui->checkBoxQuaternaryIDE->isChecked() ? 1 : 0;
@@ -84,18 +84,16 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
         }
 
         QString name = DeviceConfig::DeviceName(hdc_get_device(c), hdc_get_internal_name(c), 1);
-        if (name.isEmpty()) {
+        if (name.isEmpty())
             break;
-        }
 
         if (hdc_available(c)) {
             const device_t *hdc_dev = hdc_get_device(c);
 
             if (device_is_valid(hdc_dev, machineId)) {
                 int row = Models::AddEntry(model, name, c);
-                if (c == hdc_current[0]) {
+                if (c == hdc_current[0])
                     selectedRow = row - removeRows;
-                }
             }
         }
         c++;
@@ -105,7 +103,7 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     ui->comboBoxHD->setCurrentIndex(-1);
     ui->comboBoxHD->setCurrentIndex(selectedRow);
 
-    /*FD controller config*/
+    /* FD controller config */
     model       = ui->comboBoxFD->model();
     removeRows  = model->rowCount();
     c           = 0;
@@ -143,11 +141,11 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
 
     /*CD interface controller config*/
 #ifdef USE_CDROM_MITSUMI
-    ui->label_7->setVisible(true);
+    ui->labelCDInterface->setVisible(true);
     ui->comboBoxCDInterface->setVisible(true);
     ui->pushButtonCDInterface->setVisible(true);
 #else
-    ui->label_7->setVisible(false);
+    ui->labelCDInterface->setVisible(false);
     ui->comboBoxCDInterface->setVisible(false);
     ui->pushButtonCDInterface->setVisible(false);
 #endif
@@ -240,29 +238,29 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
 }
 
 void
-SettingsStorageControllers::on_comboBoxHD_currentIndexChanged(int index)
+SettingsStorageControllers::on_comboBoxFD_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
-    ui->pushButtonHD->setEnabled(hdc_has_config(ui->comboBoxHD->currentData().toInt()) > 0);
+
+    ui->pushButtonFD->setEnabled(hdc_has_config(ui->comboBoxFD->currentData().toInt()) > 0);
 }
 
 void
-SettingsStorageControllers::on_comboBoxFD_currentIndexChanged(int index)
+SettingsStorageControllers::on_comboBoxHD_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
-    ui->pushButtonFD->setEnabled(hdc_has_config(ui->comboBoxFD->currentData().toInt()) > 0);
+
+    ui->pushButtonHD->setEnabled(hdc_has_config(ui->comboBoxHD->currentData().toInt()) > 0);
 }
 
 void
 SettingsStorageControllers::on_comboBoxCDInterface_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
+
     ui->pushButtonCDInterface->setEnabled(cdrom_interface_has_config(ui->comboBoxCDInterface->currentData().toInt()) > 0);
 }
 
@@ -279,15 +277,15 @@ SettingsStorageControllers::on_checkBoxQuaternaryIDE_stateChanged(int arg1)
 }
 
 void
-SettingsStorageControllers::on_pushButtonHD_clicked()
-{
-    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD->currentData().toInt()));
-}
-
-void
 SettingsStorageControllers::on_pushButtonFD_clicked()
 {
     DeviceConfig::ConfigureDevice(fdc_card_getdevice(ui->comboBoxFD->currentData().toInt()));
+}
+
+void
+SettingsStorageControllers::on_pushButtonHD_clicked()
+{
+    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD->currentData().toInt()));
 }
 
 void
@@ -311,36 +309,36 @@ SettingsStorageControllers::on_pushButtonQuaternaryIDE_clicked()
 void
 SettingsStorageControllers::on_comboBoxSCSI1_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
+
     ui->pushButtonSCSI1->setEnabled(scsi_card_has_config(ui->comboBoxSCSI1->currentData().toInt()) > 0);
 }
 
 void
 SettingsStorageControllers::on_comboBoxSCSI2_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
+
     ui->pushButtonSCSI2->setEnabled(scsi_card_has_config(ui->comboBoxSCSI2->currentData().toInt()) > 0);
 }
 
 void
 SettingsStorageControllers::on_comboBoxSCSI3_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
+
     ui->pushButtonSCSI3->setEnabled(scsi_card_has_config(ui->comboBoxSCSI3->currentData().toInt()) > 0);
 }
 
 void
 SettingsStorageControllers::on_comboBoxSCSI4_currentIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
+
     ui->pushButtonSCSI4->setEnabled(scsi_card_has_config(ui->comboBoxSCSI4->currentData().toInt()) > 0);
 }
 

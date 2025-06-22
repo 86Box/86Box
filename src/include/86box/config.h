@@ -122,6 +122,7 @@ typedef struct config_t {
     int ide_qua_enabled;          /* Quaternary IDE controller enabled */
     int bugger_enabled;           /* ISA bugger device enabled */
     int isa_rtc_type;             /* ISA RTC card */
+    int isa_rom_type[ISAROM_MAX]; /* ISA ROM boards */
     int isa_mem_type[ISAMEM_MAX]; /* ISA memory boards */
 
     /* Hard disks category */

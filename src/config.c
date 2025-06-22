@@ -46,6 +46,7 @@
 #include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/isamem.h>
+#include <86box/isarom.h>
 #include <86box/isartc.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
@@ -1699,11 +1700,23 @@ load_other_peripherals(void)
     if (!novell_keycard_enabled)
         ini_section_delete_var(cat, "novell_keycard_enabled");
 
+    // ISA RAM Boards
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);
 
         p              = ini_section_get_string(cat, temp, "none");
         isamem_type[c] = isamem_get_from_internal_name(p);
+
+        if (!strcmp(p, "none"))
+            ini_section_delete_var(cat, temp);
+    }
+
+    // ISA ROM Boards
+    for (uint8_t c = 0; c < ISAROM_MAX; c++) {
+        sprintf(temp, "isarom%d_type", c);
+
+        p              = ini_section_get_string(cat, temp, "none");
+        isarom_type[c] = isarom_get_from_internal_name(p);
 
         if (!strcmp(p, "none"))
             ini_section_delete_var(cat, temp);
@@ -1858,6 +1871,8 @@ config_load(void)
         cdrom[0].sound_on = 1;
         mem_size          = 64;
         isartc_type       = 0;
+        for (i = 0; i < ISAROM_MAX; i++)
+            isarom_type[i] = 0;
         for (i = 0; i < ISAMEM_MAX; i++)
             isamem_type[i] = 0;
 
@@ -2706,6 +2721,7 @@ save_other_peripherals(void)
     else
         ini_section_set_int(cat, "novell_keycard_enabled", novell_keycard_enabled);
 
+    // ISA RAM Boards
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);
         if (isamem_type[c] == 0)
@@ -2713,6 +2729,16 @@ save_other_peripherals(void)
         else
             ini_section_set_string(cat, temp,
                                    isamem_get_internal_name(isamem_type[c]));
+    }
+
+    // ISA ROM Boards
+    for (uint8_t c = 0; c < ISAROM_MAX; c++) {
+        sprintf(temp, "isarom%d_type", c);
+        if (isarom_type[c] == 0)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp,
+                                   isarom_get_internal_name(isarom_type[c]));
     }
 
     if (isartc_type == 0)

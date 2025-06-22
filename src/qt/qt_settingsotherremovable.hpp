@@ -21,33 +21,19 @@ public:
 signals:
     void moChannelChanged();
     void zipChannelChanged();
-private slots:
-    void on_checkBoxZIP250_stateChanged(int arg1);
-
-private slots:
-    void on_comboBoxZIPChannel_activated(int index);
-
-private slots:
-    void on_comboBoxZIPBus_activated(int index);
-
-private slots:
-    void on_comboBoxZIPBus_currentIndexChanged(int index);
-
-private slots:
-    void on_comboBoxMOType_activated(int index);
-
-private slots:
-    void on_comboBoxMOChannel_activated(int index);
-
-private slots:
-    void on_comboBoxMOBus_activated(int index);
-
-private slots:
-    void on_comboBoxMOBus_currentIndexChanged(int index);
 
 private slots:
     void onMORowChanged(const QModelIndex &current);
+    void on_comboBoxMOBus_currentIndexChanged(int index);
+    void on_comboBoxMOBus_activated(int index);
+    void on_comboBoxMOChannel_activated(int index);
+    void on_comboBoxMOType_activated(int index);
+
     void onZIPRowChanged(const QModelIndex &current);
+    void on_comboBoxZIPBus_currentIndexChanged(int index);
+    void on_comboBoxZIPBus_activated(int index);
+    void on_comboBoxZIPChannel_activated(int index);
+    void on_checkBoxZIP250_stateChanged(int arg1);
 
 private:
     Ui::SettingsOtherRemovable *ui;

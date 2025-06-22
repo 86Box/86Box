@@ -187,10 +187,18 @@ fdc_ctrl_reset(void *priv)
     fdc->stat             = 0x80;
     fdc->pnum = fdc->ptot = 0;
     fdc->st0              = 0;
-    fdc->lock             = 0;
     fdc->head             = 0;
     fdc->step             = 0;
     fdc->power_down       = 0;
+
+    if (!fdc->lock) {
+        fdc->fifo  = 0;
+        fdc->tfifo = 1;
+
+        fifo_reset(fdc->fifo_p);
+        fifo_set_len(fdc->fifo_p, fdc->tfifo + 1);
+        fifo_set_trigger_len(fdc->fifo_p, fdc->tfifo + 1);
+    }
 }
 
 sector_id_t
@@ -1653,8 +1661,8 @@ fdc_callback(void *priv)
         case 0x06: /* Read data */
         case 0x0c: /* Read deleted data */
         case 0x11: /* Scan equal */
+        case 0x16: /* Verify */
         case 0x19: /* Scan low or equal */
-        case 0x1c: /* Verify */
         case 0x1d: /* Scan high or equal */
             if ((fdc->interrupt == 0x11) || (fdc->interrupt == 0x19) || (fdc->interrupt == 0x1D))
                 compare = 1;
@@ -2373,6 +2381,8 @@ fdc_reset(void *priv)
 
     fdc->swwp          = 0;
     fdc->disable_write = 0;
+
+    fdc->lock          = 0;
 
     fdc_ctrl_reset(fdc);
 
