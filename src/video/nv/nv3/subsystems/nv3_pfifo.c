@@ -739,7 +739,7 @@ void nv3_pfifo_cache0_pull(void)
     uint32_t current_context = nv3->pfifo.cache0_settings.context[0]; // only 1 entry for CACHE0 so basically ignore the other context entries?
     uint8_t class_id = ((nv3_ramin_context_t*)&current_context)->class_id;
 
-    // Tell the CPU if we found a software method
+    // Tell the CPU if we found a software method and turn off cache pulling
     if (!(current_context & 0x800000))
     {
         nv_log("The object in CACHE0 is a software object\n");

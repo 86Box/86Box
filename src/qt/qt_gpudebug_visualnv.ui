@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>600</width>
+    <width>620</width>
     <height>350</height>
    </rect>
   </property>
@@ -18,13 +18,13 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>600</width>
+    <width>620</width>
     <height>350</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>600</width>
+    <width>620</width>
     <height>350</height>
    </size>
   </property>
@@ -88,7 +88,7 @@
          <x>10</x>
          <y>30</y>
          <width>151</width>
-         <height>16</height>
+         <height>21</height>
         </rect>
        </property>
        <property name="text">
@@ -98,7 +98,7 @@
       <widget class="QLabel" name="label_2">
        <property name="geometry">
         <rect>
-         <x>420</x>
+         <x>390</x>
          <y>30</y>
          <width>91</width>
          <height>16</height>
@@ -111,14 +111,14 @@
       <widget class="QLabel" name="label_3">
        <property name="geometry">
         <rect>
-         <x>510</x>
+         <x>480</x>
          <y>30</y>
-         <width>49</width>
+         <width>81</width>
          <height>16</height>
         </rect>
        </property>
        <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:700;&quot;&gt;PLACEHOLDER 9000&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:700;&quot;&gt;PLACEHOLDER&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
       </widget>
       <widget class="QPlainTextEdit" name="plainTextEdit_2">
@@ -137,11 +137,24 @@
          <x>10</x>
          <y>60</y>
          <width>151</width>
-         <height>16</height>
+         <height>21</height>
         </rect>
        </property>
        <property name="text">
         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pixel Depth&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="loadSavestateBtn">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>110</y>
+         <width>231</width>
+         <height>24</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Load nvplay savestate from real hardware</string>
        </property>
       </widget>
      </widget>

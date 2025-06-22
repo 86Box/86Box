@@ -866,9 +866,14 @@ void nv3_draw_cursor(svga_t* svga, int32_t drawline)
     if ((nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_CURSOR_START] >> NV3_CRTC_REGISTER_CURSOR_START_DISABLED) & 0x01)
         return; 
     
-    // On windows, this shows up using NV_IMAGE_IN_MEMORY.
+    // NT GDI drivers: Load cursor using NV_IMAGE_FROM_MEMORY ("NV3LCD")
+    // 9x GDI drivers: Use H/W cursor in RAMIN
+
     // Do we need to emulate it?
-    uint32_t vram_cursor_base = nv3->pramdac.cursor_address;
+
+    // THIS IS CORRECT. BUT HOW DO WE FIND IT?
+    uint32_t ramin_cursor_position = NV3_RAMIN_OFFSET_CURSOR;
+
     /* let's just assume buffer 0 here...that code needs to be totally rewritten*/
     nv3_coord_16_t start_position = nv3->pramdac.cursor_start;
 
@@ -890,49 +895,64 @@ void nv3_draw_cursor(svga_t* svga, int32_t drawline)
         We have to get a 32x32, "A"1R5G5B5-format cursor 
         out of video memory. The alpha bit actually means - XOR with display pixel if 0, replace if 1
 
-        Technically these are expanded to RGB10, but I don't see why this needs to happen. And our pipeline isn't set up for it anyway.
+        These are expanded to RGB10 only if they are XORed. We don't do this (we don't really need to + there is no grobj specified here so special casing
+        would be needed) so we just xor it with the current pixel format
     */
     for (int32_t y = 0; y < NV3_PRAMDAC_CURSOR_SIZE_Y; y++)
     {
         for (int32_t x = 0; x < NV3_PRAMDAC_CURSOR_SIZE_X; x++)
         {
-            uint16_t current_pixel = vram_16[vram_cursor_base << 1];
-            bool replace_bit = (current_pixel & 0x8000);
-            
-            switch (nv3->nvbase.svga.bpp)
+            uint16_t current_pixel = nv3_ramin_read16(ramin_cursor_position, nv3);
+
+            // 0000 = transparent, so skip drawing
+            if (current_pixel)
             {
-                /* this is indexed colour but... lol */
-                case 8: 
-                    if (replace_bit)
-                    {
-                        uint8_t final = current_pixel ^ nv3->nvbase.svga.vram[final_position];
-                        nv3->nvbase.svga.vram[final_position] = final;
-                    }
-                    else                    // just override 
-                        nv3->nvbase.svga.vram[final_position] = current_pixel;
-                case 15 ... 16:             // easy case (our cursor is 15bpp format)
-                    uint32_t index_16 = final_position >> 1; 
-                    if (replace_bit)
-                    {
-                        uint16_t final = current_pixel ^ vram_16[index_16];
-                        vram_16[index_16] = final;
-                    }
-                    else                    // just override 
-                        vram_16[index_16] = current_pixel;
-                case 32: 
-                    uint32_t index_32 = final_position >> 2; 
-                    if (replace_bit)
-                    {
-                        uint16_t final = current_pixel ^ vram_32[index_32];
-                        vram_32[index_32] = final;
-                    }
-                    else                    // just override 
-                        vram_32[index_32] = nv3->nvbase.svga.conv_16to32(&nv3->nvbase.svga, current_pixel, 15); // 565_MODE doesn't seem to matter here
-                    break;  
+                bool replace_bit = (current_pixel & 0x8000);
+        
+                // use buffer 0 BPIXEL
+                uint32_t bpixel_format = (nv3->pgraph.bpixel[0]) & 0x03;
+
+                switch (bpixel_format)
+                {
+                    case bpixel_fmt_8bit: 
+                        if (replace_bit)
+                            nv3->nvbase.svga.vram[final_position] = current_pixel;
+                        else //xor
+                        {
+                            // not sure what to do here. we'd have to search through the palette to find the closest possible colour.
+                            uint8_t final = current_pixel ^ nv3->nvbase.svga.vram[final_position];
+                            nv3->nvbase.svga.vram[final_position] = final;
+                        }
+                    case bpixel_fmt_16bit:             // easy case (our cursor is 15bpp format)
+                        uint32_t index_16 = final_position >> 1; 
+
+                        if (replace_bit) // just replace
+                            vram_16[index_16] = current_pixel;
+                        else // xor
+                        {
+                            current_pixel &= ~0x8000;  // mask off the xor bit
+                            uint16_t final = current_pixel ^ vram_16[index_16];
+                            vram_16[index_16] = final;
+                        }
+                    case bpixel_fmt_32bit: 
+                        uint32_t index_32 = final_position >> 2; 
+
+                        if (replace_bit) // just replace    
+                            vram_32[index_32] = nv3->nvbase.svga.conv_16to32(&nv3->nvbase.svga, current_pixel, 15); // 565_MODE doesn't seem to matter here
+                        else //xor
+                        {
+                            current_pixel &= ~0x8000;  // mask off the xor bit
+                            uint32_t current_pixel_32 = nv3->nvbase.svga.conv_16to32(&nv3->nvbase.svga, current_pixel, 15); // 565_MODE doesn't seem to matter here
+                        
+                            uint32_t final = current_pixel_32 ^ vram_32[index_32];
+                            vram_32[index_32] = final;
+                        }
+                        break;  
+                }
             }
 
             // increment vram position 
-            vram_cursor_base += 2; 
+            ramin_cursor_position += 2; 
 
             // go
             switch (nv3->nvbase.svga.bpp)
