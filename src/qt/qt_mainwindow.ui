@@ -914,7 +914,7 @@
   </action>
   <action name="actionDebug_GPUDebug_VisualNv">
     <property name="text">
-      <string>GPU Debug - NV3 Visual Debugger</string>
+      <string>GPU Realtime Debugger (NVIDIA ONLY)</string>
     </property>
   </action>
  </widget>

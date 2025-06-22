@@ -317,7 +317,7 @@ mda_standalone_init(UNUSED(const device_t *info))
 
     mda->vram = malloc(0x1000);
 
-    switch(device_get_config_int("font")) {
+    switch (device_get_config_int("font")) {
         case 0:
             loadfont(FONT_IBM_MDA_437_PATH, 0);
             break;
@@ -375,7 +375,7 @@ mda_speed_changed(void *priv)
 }
 
 static const device_config_t mda_config[] = {
-  // clang-format off
+    // clang-format off
     {
         .name           = "rgb_type",
         .description    = "Display type",
@@ -411,7 +411,7 @@ static const device_config_t mda_config[] = {
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t mda_device = {

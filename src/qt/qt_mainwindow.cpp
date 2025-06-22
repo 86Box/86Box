@@ -24,6 +24,7 @@
 
 #include "qt_mainwindow.hpp"
 #include "qt_gpudebug_vram.hpp"
+#include "qt_gpudebug_visualnv.hpp"
 #include "ui_qt_mainwindow.h"
 
 #include "qt_specifydimensions.h"
@@ -2326,4 +2327,14 @@ void MainWindow::on_actionDebug_GPUDebug_VRAM_triggered()
     debugVramDialog.setWindowFlag(Qt::WindowTitleHint, true);
     debugVramDialog.setWindowFlag(Qt::WindowSystemMenuHint, false);
     debugVramDialog.exec();
+}
+
+
+void MainWindow::on_actionDebug_GPUDebug_VisualNv_triggered()
+{
+    VisualNVDialog visualNvDialog(this);
+    visualNvDialog.setWindowFlag(Qt::CustomizeWindowHint, true);
+    visualNvDialog.setWindowFlag(Qt::WindowTitleHint, true);
+    visualNvDialog.setWindowFlag(Qt::WindowSystemMenuHint, false);
+    visualNvDialog.exec();
 }

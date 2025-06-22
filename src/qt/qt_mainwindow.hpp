@@ -128,7 +128,8 @@ private slots:
     void on_actionEnable_Discord_integration_triggered(bool checked);
     void on_actionRenderer_options_triggered();
     void on_actionDebug_GPUDebug_VRAM_triggered();
-
+    void on_actionDebug_GPUDebug_VisualNv_triggered();
+    
     void refreshMediaMenu();
     void showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool* done = nullptr);
     void getTitle_(wchar_t *title);

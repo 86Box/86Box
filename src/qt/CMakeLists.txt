@@ -157,6 +157,10 @@ add_library(ui STATIC
     qt_gpudebug_vram.hpp 
     qt_gpudebug_vram.ui 
 
+    qt_gpudebug_visualnv.cpp 
+    qt_gpudebug_visualnv.hpp 
+    qt_gpudebug_visualnv.ui 
+
     qt_harddrive_common.cpp
     qt_harddrive_common.hpp
     qt_models_common.cpp

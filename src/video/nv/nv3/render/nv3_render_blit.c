@@ -134,9 +134,8 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER2_ENABLED) & 0x01) dst_buffer = 2;
     if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER3_ENABLED) & 0x01) dst_buffer = 3;
 
-
-    nv3_coord_16_t old_position = nv3->pgraph.blit.point_in;
-    nv3_coord_16_t new_position = nv3->pgraph.blit.point_out;
+    nv3_coord_16_t in_position = nv3->pgraph.blit.point_in;
+    nv3_coord_16_t out_position = nv3->pgraph.blit.point_out;
 
     /* Coordinates for copying an entire line at a time */
     uint32_t buf_position = 0, vram_position = 0, size_x = nv3->pgraph.blit.size.x;
@@ -159,10 +158,10 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     {
         buf_position = (nv3->pgraph.blit.size.x * y);
         /* shouldn't matter in non-wtf mode */
-        vram_position = nv3_render_get_vram_address_for_buffer(old_position, dst_buffer);
+        vram_position = nv3_render_get_vram_address_for_buffer(in_position, src_buffer);
 
         memcpy(&nv3_s2sb_line_buffer[buf_position], &nv3->nvbase.svga.vram[vram_position], size_x);
-        old_position.y++;
+        in_position.y++;
         /* 32bit buffer */
     }
     
@@ -170,9 +169,9 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     for (int32_t y = 0; y < nv3->pgraph.blit.size.y; y++)
     {        
         buf_position = (nv3->pgraph.blit.size.x * y);
-        vram_position = nv3_render_get_vram_address_for_buffer(new_position, src_buffer);
+        vram_position = nv3_render_get_vram_address_for_buffer(out_position, dst_buffer);
 
         memcpy(&nv3->nvbase.svga.vram[vram_position], &nv3_s2sb_line_buffer[buf_position], size_x);
-        new_position.y++;
+        out_position.y++;
     }
 }
