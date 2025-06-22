@@ -131,6 +131,7 @@ typedef struct nv_base_s
     void* i2c;                                  // I2C for monitor EDID
     void* ddc;                                  // Display Data Channel for EDID
     uint32_t last_buffer_address;               // Last buffer address.
+    bool agp_enabled;                           // AGP Enabled (for debugging)
 } nv_base_t;
 
 #define NV_REG_LIST_END                         0xD15EA5E

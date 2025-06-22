@@ -235,6 +235,46 @@ void nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv)
     nv3_mmio_arbitrate_write(addr, val);
 }
 
+// AGP read function
+uint8_t nv3_agp_read(int32_t func, int32_t addr)
+{
+    uint8_t ret = 0x00;
+
+    switch (addr)
+    {
+        case NV3_AGP_CAPABILITIES_CAP_ID:
+            ret = NV3_AGP_CAPABILITIES_CAP_ID_AGP;     // AGP capable device
+            break;
+        case NV3_AGP_CAPABILITIES_NEXT_PTR:             // Always off
+            ret = 0x00; 
+        case NV3_AGP_CAPABILITIES_AGP_VERSION:
+            ret = (0x1 << NV3_AGP_CAPABILITIES_AGP_VERSION_MAJOR) | NV3_AGP_CAPABILITIES_AGP_VERSION_MINOR;
+            break;
+        case NV3_AGP_STATUS_RATE:
+            // NV3T = AGP 2X, NV3 = AGP 1X
+            if (nv3->nvbase.gpu_revision == NV3_PCI_CFG_REVISION_C00)
+                ret = NV3_AGP_STATUS_RATE_1X_SUPPORTED | NV3_AGP_STATUS_RATE_2X_SUPPORTED;
+            else
+                ret = NV3_AGP_STATUS_RATE_1X_SUPPORTED;
+            break;
+        case NV3_AGP_STATUS_BYTE1:
+            ret = 0x00;             // SBA not supported
+            break;
+        case NV3_AGP_STATUS_MAX_REQUESTS:
+            ret = NV3_AGP_STATUS_MAX_REQUESTS_AMOUNT;
+            break;
+        // This is also used for SBA but SBA is always off so we can use a bool
+        case NV3_AGP_COMMAND_BYTE1:
+            ret = nv3->nvbase.agp_enabled;
+            break;
+        default:
+            ret = nv3->pci_config.pci_regs[addr];
+            break; 
+    }
+
+    return ret; 
+}
+
 // PCI stuff
 // BAR0         Pointer to MMIO space
 // BAR1         Pointer to Linear Framebuffer (NV_USER)
@@ -332,7 +372,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
         case NV3_PCI_CFG_BAR0_L:
         case NV3_PCI_CFG_BAR1_L:
             // only bit that matters is bit 3 (prefetch bit)
-            ret =(NV3_PCI_CFG_BAR_PREFETCHABLE_ENABLED << NV3_PCI_CFG_BAR_PREFETCHABLE);
+            ret = (NV3_PCI_CFG_BAR_PREFETCHABLE_ENABLED << NV3_PCI_CFG_BAR_PREFETCHABLE);
             break;
 
         // These registers are hardwired to zero per the datasheet
@@ -355,6 +395,13 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
             ret = nv3->pci_config.vbios_enabled;
             break;
         
+        case NV3_AGP_CAPABILITIES_POINTER:
+            if (nv3->nvbase.bus_generation >= nv_bus_agp_1x)
+                ret = NV3_AGP_CAPABILITIES_START;
+            else 
+                ret = 0x00;
+            break; 
+
         case NV3_PCI_CFG_INT_LINE:
             ret = nv3->pci_config.int_line;
             break;
@@ -381,6 +428,15 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
             ret = nv3->pci_config.pci_regs[NV3_PCI_CFG_SUBSYSTEM_ID + (addr & 0x03)];
             break;
 
+        case NV3_AGP_START ... NV3_AGP_END:
+            if (nv3->nvbase.bus_generation < nv_bus_agp_1x)
+                break;
+
+            ret = nv3_agp_read(func, addr);
+
+            break; 
+        
+
         default: // by default just return pci_config.pci_regs
             ret = nv3->pci_config.pci_regs[addr];
             break;
@@ -389,6 +445,20 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
 
     nv_log("nv3_pci_read func=0x%04x addr=0x%04x ret=0x%04x\n", func, addr, ret);
     return ret; 
+}
+
+void nv3_agp_write(int32_t func, int32_t addr, uint8_t val)
+{
+    nv3->pci_config.pci_regs[addr] = val;
+
+    switch (addr)
+    {
+        case NV3_AGP_COMMAND_BYTE1:
+            nv3->nvbase.agp_enabled = val;
+            break;
+        default:  
+            break;
+    }
 }
 
 void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
@@ -489,6 +559,14 @@ void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
             nv3->pci_config.pci_regs[NV3_PCI_CFG_SUBSYSTEM_ID + (addr & 0x03)] = val;
             break;
 
+        case NV3_AGP_START ... NV3_AGP_END:
+            if (nv3->nvbase.bus_generation < nv_bus_agp_1x)
+                break;
+
+            nv3_agp_write(func, addr, val);
+
+            break; 
+        
         default:
             break;
     }

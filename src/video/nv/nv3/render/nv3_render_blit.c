@@ -140,12 +140,13 @@ void nv3_render_blit_screen2screen(nv3_grobj_t grobj)
     /* Coordinates for copying an entire line at a time */
     uint32_t buf_position = 0, vram_position = 0, size_x = nv3->pgraph.blit.size.x;
 
-    /* Read the old pixel into the line buffer
-       Assumption: All data is sent in an unpacked format. In the case of an NVIDIA GPU this means that all data is sent 32 bits at a time regardless of if
-       the actual source data is 32 bits in size or not. For pixel data, the upper bits are left as 0 in 8bpp/16bpp mode. For 86box purposes, the data is written
-       8/16 bits at a time.
+    /* 
+        Read the old pixel into the line buffer
+        Assumption: All data is sent in an unpacked format. In the case of an NVIDIA GPU this means that all data is sent 32 bits at a time regardless of if
+        the actual source data is 32 bits in size or not. For pixel data, the upper bits are left as 0 in 8bpp/16bpp mode. For 86box purposes, the data is written
+        8/16 bits at a time.
 
-       TODO: CHECK FOR PACKED FORMAT!!!!!
+        TODO: CHECK FOR PACKED FORMAT!!!!!
     */
 
     if (nv3->nvbase.svga.bpp == 15
