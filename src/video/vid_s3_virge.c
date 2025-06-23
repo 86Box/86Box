@@ -211,6 +211,7 @@ typedef struct virge_t {
     uint8_t pci_regs[256];
     uint8_t pci_slot;
 
+    uint8_t type;
     int chip;
 
     int bilinear_enabled;
@@ -5140,9 +5141,11 @@ s3_virge_init(const device_t *info)
     virge_t    *virge   = (virge_t *) calloc(1, sizeof(virge_t));
     reset_state         = calloc(1, sizeof(virge_t));
 
+    virge->type = (info->local & 0xff);
+
     virge->bilinear_enabled  = device_get_config_int("bilinear");
     virge->dithering_enabled = device_get_config_int("dithering");
-    if (info->local >= S3_VIRGE_GX2)
+    if (virge->type >= S3_VIRGE_GX2)
         virge->memory_size = 4;
     else
         virge->memory_size = device_get_config_int("memory");
@@ -5150,7 +5153,7 @@ s3_virge_init(const device_t *info)
     virge->onboard = !!(info->local & 0x100);
 
     if (!virge->onboard)
-        switch (info->local) {
+        switch (virge->type) {
             case S3_VIRGE_325:
                 bios_fn = ROM_VIRGE_325;
                 break;
@@ -5197,7 +5200,7 @@ s3_virge_init(const device_t *info)
     virge->svga.hwcursor.cur_ysize = 64;
 
     if (bios_fn != NULL) {
-        if (info->local == S3_VIRGE_GX2)
+        if (virge->type == S3_VIRGE_GX2)
             rom_init(&virge->bios_rom, bios_fn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
         else
             rom_init(&virge->bios_rom, bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -5251,7 +5254,7 @@ s3_virge_init(const device_t *info)
     virge->virge_id  = 0xe1;
     virge->is_agp    = !!(info->flags & DEVICE_AGP);
 
-    switch (info->local) {
+    switch (virge->type) {
         case S3_VIRGE_325:
         case S3_DIAMOND_STEALTH3D_2000:
         case S3_MIROCRYSTAL_3D:
@@ -5356,7 +5359,7 @@ s3_virge_init(const device_t *info)
             default:
                 break;
         }
-        if (info->local == S3_VIRGE_GX)
+        if (virge->type == S3_VIRGE_GX)
             virge->svga.crtc[0x36] |= (1 << 2);
     }
 
