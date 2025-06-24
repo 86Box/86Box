@@ -16,6 +16,7 @@
  *          Copyright 2021 Tiseno100.
  *          Copyright 2021 Miran Grca.
  */
+#include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -158,7 +159,20 @@ opti283_shadow_recalc(opti283_t *dev)
         rom     = dev->regs[0x11] & (1 << ((i >> 2) + 4));
         opti283_log("OPTI 283: %i/%08X: %i, %i, %i\n", i, base, (i >= 4) ? (1 << (i - 4)) : (1 << (i + 4)), (1 << (i >> 2)), (1 << ((i >> 2) + 4)));
 
-        if (sh_enable && rom) {
+        if (sh_copy) {
+            if (base >= 0x000e0000)
+                shadowbios_write |= 1;
+            if (base >= 0x000d0000)
+                dev->shadow_high |= 1;
+
+            if (base >= 0xe0000) {
+                mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
+                opti283_log("OPTI 283: %08X-%08X READ_EXTANY, WRITE_INTERNAL\n", base, base + 0x3fff);
+            } else {
+                mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+                opti283_log("OPTI 283: %08X-%08X READ_EXTERNAL, WRITE_INTERNAL\n", base, base + 0x3fff);
+            }
+        } else if (sh_enable && rom) {
             if (base >= 0x000e0000)
                 shadowbios |= 1;
             if (base >= 0x000d0000)
@@ -171,13 +185,8 @@ opti283_shadow_recalc(opti283_t *dev)
                 if (base >= 0x000e0000)
                     shadowbios_write |= 1;
 
-                if (sh_copy) {
-                    mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                    opti283_log("OPTI 283: %08X-%08X READ_INTERNAL, WRITE_INTERNAL\n", base, base + 0x3fff);
-                } else {
-                    mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
-                    opti283_log("OPTI 283: %08X-%08X READ_INTERNAL, WRITE_EXTERNAL\n", base, base + 0x3fff);
-                }
+                mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                opti283_log("OPTI 283: %08X-%08X READ_INTERNAL, WRITE_INTERNAL\n", base, base + 0x3fff);
             }
         } else {
             if (base >= 0xe0000) {
@@ -239,9 +248,21 @@ opti283_write(uint16_t addr, uint8_t val, void *priv)
                     dev->regs[dev->index] = (dev->regs[dev->index] & 0x80) | (val & 0x7f);
                     break;
 
-                case 0x14:
+                case 0x14: {
+                    double bus_clk;
+                    switch (val & 0x01) {
+                        default:
+                        case 0x00:
+                             bus_clk = cpu_busspeed / 6.0;
+                             break;
+                        case 0x01:
+                             bus_clk = cpu_busspeed / 4.0;
+                             break;
+                    }
+                    cpu_set_isa_speed((int) round(bus_clk));
                     reset_on_hlt = !!(val & 0x40);
                     fallthrough;
+                }
                 case 0x11:
                 case 0x12:
                 case 0x13:
@@ -309,6 +330,8 @@ opti283_init(UNUSED(const device_t *info))
     mem_mapping_disable(&dev->mem_mappings[1]);
 
     opti283_shadow_recalc(dev);
+
+    cpu_set_isa_speed((int) round(cpu_busspeed / 6.0));
 
     device_add(&port_92_device);
 

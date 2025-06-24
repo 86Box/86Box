@@ -13,6 +13,8 @@
 #include <array>
 #include <atomic>
 
+#include "qt_vmmanager_protocol.hpp"
+
 class MediaMenu;
 class RendererStack;
 
@@ -63,6 +65,8 @@ signals:
 
     void showMessageForNonQtThread(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool* done);
     void getTitleForNonQtThread(wchar_t *title);
+
+    void vmmRunningStateChanged(VMManagerProtocol::RunningState state);
 public slots:
     void showSettings();
     void hardReset();

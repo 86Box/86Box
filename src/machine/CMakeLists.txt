@@ -23,7 +23,6 @@ add_library(mch OBJECT
     m_xt_laserxt.c
     m_xt_philips.c
     m_xt_t1000.c
-    m_xt_t1000_vid.c
     m_xt_xi8088.c
     m_xt_zenith.c
     m_pcjr.c
@@ -37,7 +36,6 @@ add_library(mch OBJECT
     m_at_commodore.c
     m_at_grid.c
     m_at_t3100e.c
-    m_at_t3100e_vid.c
     m_ps1.c
     m_ps1_hdc.c
     m_ps2_isa.c

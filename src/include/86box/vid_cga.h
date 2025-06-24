@@ -11,7 +11,8 @@
  *
  *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>, 
+ *          Connor Hyde / starfrost, <mario64crashed@gmail.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
@@ -56,6 +57,7 @@ typedef enum cga_crtc_registers_e
     CGA_CRTC_LIGHT_PEN_ADDR_LOW = 0x11,                 // Light pen address low 8 bits (not currently supported)
 } cga_crtc_registers;
 
+// Registers for the CGA
 typedef enum cga_registers_e
 {
     CGA_REGISTER_CRTC_INDEX = 0x3D4,
@@ -85,16 +87,16 @@ typedef struct cga_t {
     int      fontbase;
     int      linepos;
     int      displine;
-    int      sc;
+    int      scanline;
     int      vc;
     int      cgadispon;
-    int      con;
+    int      cursorvisible;             // Determines if the cursor is visible FOR THE CURRENT SCANLINE.
     int      cursoron;
     int      cgablink;
     int      vsynctime;
     int      vadj;
-    uint16_t ma;
-    uint16_t maback;
+    uint16_t memaddr;
+    uint16_t memaddr_backup;
     int      oddeven;
 
     uint64_t   dispontime;

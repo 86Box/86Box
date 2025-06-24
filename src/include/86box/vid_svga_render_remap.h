@@ -47,9 +47,9 @@
         }                                                                                               \
                                                                                                         \
         if (nr & VAR_ROW0_MA13)                                                                         \
-            out_addr = (out_addr & ~0x8000) | ((svga->sc & 1) ? 0x8000 : 0);                            \
+            out_addr = (out_addr & ~0x8000) | ((svga->scanline & 1) ? 0x8000 : 0);                            \
         if (nr & VAR_ROW1_MA14)                                                                         \
-            out_addr = (out_addr & ~0x10000) | ((svga->sc & 2) ? 0x10000 : 0);                          \
+            out_addr = (out_addr & ~0x10000) | ((svga->scanline & 2) ? 0x10000 : 0);                          \
                                                                                                         \
         return out_addr;                                                                                \
     }

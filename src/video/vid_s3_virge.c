@@ -211,6 +211,7 @@ typedef struct virge_t {
     uint8_t pci_regs[256];
     uint8_t pci_slot;
 
+    uint8_t type;
     int chip;
 
     int bilinear_enabled;
@@ -688,10 +689,10 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) +
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) +
                                            ((svga->crtc[8] & 0x60) >> 5);
                         if ((svga->crtc[0x67] & 0xc) != 0xc)
-                            svga->ma_latch |= (virge->ma_ext << 16);
+                            svga->memaddr_latch |= (virge->ma_ext << 16);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -890,7 +891,7 @@ s3_virge_recalctimings(svga_t *svga)
     }
 
     if ((svga->crtc[0x67] & 0xc) != 0xc) { /*VGA mode*/
-        svga->ma_latch |= (virge->ma_ext << 16);
+        svga->memaddr_latch |= (virge->ma_ext << 16);
         if (svga->crtc[0x51] & 0x30)
             svga->rowoffset |= (svga->crtc[0x51] & 0x30) << 4;
         else if (svga->crtc[0x43] & 0x04)
@@ -935,9 +936,9 @@ s3_virge_recalctimings(svga_t *svga)
     } else { /*Streams mode*/
         if (virge->chip < S3_VIRGEGX2) {
             if (virge->streams.buffer_ctrl & 1)
-                svga->ma_latch = virge->streams.pri_fb1 >> 2;
+                svga->memaddr_latch = virge->streams.pri_fb1 >> 2;
             else
-                svga->ma_latch = virge->streams.pri_fb0 >> 2;
+                svga->memaddr_latch = virge->streams.pri_fb0 >> 2;
 
             svga->hdisp = virge->streams.pri_w + 1;
             if (virge->streams.pri_h < svga->dispend)
@@ -946,7 +947,7 @@ s3_virge_recalctimings(svga_t *svga)
             svga->overlay.x = virge->streams.sec_x - virge->streams.pri_x;
             svga->overlay.y = virge->streams.sec_y - virge->streams.pri_y;
         } else {
-            svga->ma_latch |= (virge->ma_ext << 16);
+            svga->memaddr_latch |= (virge->ma_ext << 16);
             if (svga->crtc[0x51] & 0x30)
                 svga->rowoffset |= (svga->crtc[0x51] & 0x30) << 4;
             else if (svga->crtc[0x43] & 0x04)
@@ -5140,9 +5141,11 @@ s3_virge_init(const device_t *info)
     virge_t    *virge   = (virge_t *) calloc(1, sizeof(virge_t));
     reset_state         = calloc(1, sizeof(virge_t));
 
+    virge->type = (info->local & 0xff);
+
     virge->bilinear_enabled  = device_get_config_int("bilinear");
     virge->dithering_enabled = device_get_config_int("dithering");
-    if (info->local >= S3_VIRGE_GX2)
+    if (virge->type >= S3_VIRGE_GX2)
         virge->memory_size = 4;
     else
         virge->memory_size = device_get_config_int("memory");
@@ -5150,7 +5153,7 @@ s3_virge_init(const device_t *info)
     virge->onboard = !!(info->local & 0x100);
 
     if (!virge->onboard)
-        switch (info->local) {
+        switch (virge->type) {
             case S3_VIRGE_325:
                 bios_fn = ROM_VIRGE_325;
                 break;
@@ -5197,7 +5200,7 @@ s3_virge_init(const device_t *info)
     virge->svga.hwcursor.cur_ysize = 64;
 
     if (bios_fn != NULL) {
-        if (info->local == S3_VIRGE_GX2)
+        if (virge->type == S3_VIRGE_GX2)
             rom_init(&virge->bios_rom, bios_fn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
         else
             rom_init(&virge->bios_rom, bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -5251,7 +5254,7 @@ s3_virge_init(const device_t *info)
     virge->virge_id  = 0xe1;
     virge->is_agp    = !!(info->flags & DEVICE_AGP);
 
-    switch (info->local) {
+    switch (virge->type) {
         case S3_VIRGE_325:
         case S3_DIAMOND_STEALTH3D_2000:
         case S3_MIROCRYSTAL_3D:
@@ -5356,7 +5359,7 @@ s3_virge_init(const device_t *info)
             default:
                 break;
         }
-        if (info->local == S3_VIRGE_GX)
+        if (virge->type == S3_VIRGE_GX)
             virge->svga.crtc[0x36] |= (1 << 2);
     }
 

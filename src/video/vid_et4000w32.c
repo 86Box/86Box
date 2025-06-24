@@ -238,7 +238,7 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -430,7 +430,7 @@ et4000w32p_recalctimings(svga_t *svga)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) svga->priv;
 
-    svga->ma_latch |= (svga->crtc[0x33] & 0x7) << 16;
+    svga->memaddr_latch |= (svga->crtc[0x33] & 0x7) << 16;
 
     svga->hblankstart    = (((svga->crtc[0x3f] & 0x4) >> 2) << 8) + svga->crtc[2];
 

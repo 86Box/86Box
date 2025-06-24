@@ -274,12 +274,69 @@ um8663f_init(UNUSED(const device_t *info))
 
     dev->max_reg = info->local >> 8;
 
-    io_sethandler(0x0108, 0x0002, um8663f_read, NULL, NULL, um8663f_write, NULL, NULL, dev);
+    if (dev->max_reg != 0x00)
+        io_sethandler(0x0108, 0x0002, um8663f_read, NULL, NULL, um8663f_write, NULL, NULL, dev);
 
     um8663f_reset(dev);
 
     return dev;
 }
+
+const device_t um82c862f_device = {
+    .name          = "UMC UM82C862F Super I/O",
+    .internal_name = "um82c862f",
+    .flags         = 0,
+    .local         = 0x0000,
+    .init          = um8663f_init,
+    .close         = um8663f_close,
+    .reset         = um8663f_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t um82c862f_ide_device = {
+    .name          = "UMC UM82C862F Super I/O (With IDE)",
+    .internal_name = "um82c862f_ide",
+    .flags         = 0,
+    .local         = 0x0001,
+    .init          = um8663f_init,
+    .close         = um8663f_close,
+    .reset         = um8663f_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t um82c863f_device = {
+    .name          = "UMC UM82C863F Super I/O",
+    .internal_name = "um82c863f",
+    .flags         = 0,
+    .local         = 0xc100,
+    .init          = um8663f_init,
+    .close         = um8663f_close,
+    .reset         = um8663f_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t um82c863f_ide_device = {
+    .name          = "UMC UM82C863F Super I/O (With IDE)",
+    .internal_name = "um82c863f_ide",
+    .flags         = 0,
+    .local         = 0xc101,
+    .init          = um8663f_init,
+    .close         = um8663f_close,
+    .reset         = um8663f_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
 
 const device_t um8663af_device = {
     .name          = "UMC UM8663AF Super I/O",
