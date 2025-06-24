@@ -1606,6 +1606,8 @@ pc_close(UNUSED(thread_t *ptr))
 
     plat_mouse_capture(0);
 
+    warning("CS:EIP = %04X:%08X\n", CS, cpu_state.pc);
+
     /* Close all the memory mappings. */
     mem_close();
 

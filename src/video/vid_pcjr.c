@@ -686,7 +686,7 @@ pcjr_vid_init(pcjr_t *pcjr)
         pcjr->memctrl &= ~0x24;
 
     display_type    = device_get_config_int("display_type");
-    pcjr->composite = (display_type != PCJR_RGB);
+    pcjr->composite = (display_type == PCJR_COMPOSITE);
     pcjr->apply_hd  = device_get_config_int("apply_hd");
     overscan_x = 256;
     overscan_y = 32;
@@ -698,6 +698,9 @@ pcjr_vid_init(pcjr_t *pcjr)
                   vid_in, NULL, NULL, vid_out, NULL, NULL, pcjr);
     timer_add(&pcjr->timer, vid_poll, pcjr, 1);
 
-    cga_palette = 0;
+    if (pcjr->composite)
+        cga_palette = 0;
+    else
+        cga_palette = (display_type << 1);
     cgapal_rebuild();
 }
