@@ -26,6 +26,8 @@
 extern bool windows_is_light_theme();
 #endif
 
+using namespace VMManager;
+
 VMManagerDetails::VMManagerDetails(QWidget *parent) :
     QWidget(parent), ui(new Ui::VMManagerDetails) {
     ui->setupUi(this);

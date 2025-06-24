@@ -34,6 +34,8 @@ inline uint qHash(const T &t, uint seed) { \
     return ::qHash(static_cast<typename std::underlying_type<T>::type>(t), seed); \
 }
 
+namespace VMManager {
+Q_NAMESPACE
 namespace Display {
 Q_NAMESPACE
 enum class Name {
@@ -58,11 +60,12 @@ enum class Name {
 Q_ENUM_NS(Name)
 QHASH_FOR_CLASS_ENUM(Name)
 }
+}
 
 class VMManagerSystem : public QWidget {
     Q_OBJECT
 
-    typedef QHash<Display::Name, QString> display_table_t;
+    typedef QHash<VMManager::Display::Name, QString> display_table_t;
     typedef QHash <QString, QHash <QString, QString>> config_hash_t;
 
 public:
@@ -127,7 +130,7 @@ public:
 
     bool window_obscured;
 
-    QString getDisplayValue(Display::Name key);
+    QString getDisplayValue(VMManager::Display::Name key);
     QFileInfoList getScreenshots();
 
     inline bool operator==(const VMManagerSystem &rhs) const
