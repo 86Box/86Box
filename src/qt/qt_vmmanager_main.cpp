@@ -236,7 +236,6 @@ VMManagerMain::shutdownForceButtonPressed() const
 void
 VMManagerMain::refresh()
 {
-    bool running = selected_sysconfig->process->state() == QProcess::ProcessState::Running;
     const auto current_index = ui->listView->currentIndex();
     emit selectionChanged(current_index, selected_sysconfig->process->state());
 

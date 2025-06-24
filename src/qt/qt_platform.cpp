@@ -776,8 +776,8 @@ plat_set_thread_name(void *thread, const char *name)
 
     if (pSetThreadDescription) {
         size_t len = strlen(name) + 1;
-        wchar_t wname[len + 1];
-        mbstowcs(wname, name, len);
+        wchar_t wname[2048];
+        mbstowcs(wname, name, (len >= 1024) ? 1024 : len);
         pSetThreadDescription(thread ? (HANDLE) thread : GetCurrentThread(), wname);
     }
 #else

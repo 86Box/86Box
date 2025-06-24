@@ -747,18 +747,20 @@ VMManagerSystem::setupVars() {
     QStringList serialFinal;
     QStringList lptFinal;
     int portIndex = 0;
-    for(const auto &serialNum: serial_enabled) {
-        if (serial_enabled[portIndex]) {
+    while (true) {
+        if (serial_enabled[portIndex])
             serialFinal.append(QString("COM%1").arg(portIndex + 1));
-        }
         ++portIndex;
+        if (portIndex == SERIAL_MAX)
+            break;
     }
     portIndex = 0;
-    for (const auto &lptNum: lpt_enabled) {
-        if (lpt_enabled[portIndex]) {
+    while (true) {
+        if (lpt_enabled[portIndex])
             lptFinal.append(QString("LPT%1").arg(portIndex + 1));
-        }
         ++portIndex;
+        if (portIndex == PARALLEL_MAX)
+            break;
     }
     display_table[Display::Name::Serial]   = serialFinal.empty() ?  tr("None") : serialFinal.join(", ");
     display_table[Display::Name::Parallel] = lptFinal.empty()    ?  tr("None") : lptFinal.join(", ");

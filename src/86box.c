@@ -639,7 +639,7 @@ pc_show_usage(char *s)
     ui_msgbox(MBX_ANSI | ((s == NULL) ? MBX_INFO : MBX_WARNING), p);
 #else
     if (s == NULL)
-        pclog(p);
+        pclog("%s", p);
     else
         ui_msgbox(MBX_ANSI | MBX_WARNING, p);
 #endif
@@ -742,7 +742,11 @@ usage:
             /* Using this variable for vm manager path
                Temporary solution!*/
             if ((c+1) == argc) goto usage;
-            strcpy(vmm_path, argv[++c]);
+            char *vp = argv[++c];
+            if ((strlen(vp) + 1) >= sizeof(vmm_path))
+                memcpy(vmm_path, vp, sizeof(vmm_path));
+            else
+                memcpy(vmm_path, vp, strlen(vp) + 1);
             //#endif
         } else if (!strcasecmp(argv[c], "--fullscreen") || !strcasecmp(argv[c], "-F")) {
             start_in_fullscreen = 1;
@@ -1612,8 +1616,6 @@ pc_close(UNUSED(thread_t *ptr))
     config_save();
 
     plat_mouse_capture(0);
-
-    warning("CS:EIP = %04X:%08X\n", CS, cpu_state.pc);
 
     /* Close all the memory mappings. */
     mem_close();
