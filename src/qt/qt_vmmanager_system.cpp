@@ -51,6 +51,8 @@ extern "C" {
 #include <86box/mouse.h>
 }
 
+using namespace VMManager;
+
 VMManagerSystem::VMManagerSystem(const QString &sysconfig_file)  {
 
     // The 86Box configuration file
