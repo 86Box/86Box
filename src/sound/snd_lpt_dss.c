@@ -133,13 +133,16 @@ dss_close(void *priv)
 }
 
 const lpt_device_t dss_device = {
-    .name          = "Disney Sound Source",
-    .internal_name = "dss",
-    .init          = dss_init,
-    .close         = dss_close,
-    .write_data    = dss_write_data,
-    .write_ctrl    = dss_write_ctrl,
-    .read_data     = NULL,
-    .read_status   = dss_read_status,
-    .read_ctrl     = NULL
+    .name             = "Disney Sound Source",
+    .internal_name    = "dss",
+    .init             = dss_init,
+    .close            = dss_close,
+    .write_data       = dss_write_data,
+    .autofeed         = NULL,
+    .strobe           = NULL,
+    .write_ctrl       = dss_write_ctrl,
+    .read_status      = dss_read_status,
+    .read_ctrl        = NULL,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL
 };

@@ -51,6 +51,14 @@ dac_write_data(uint8_t val, void *priv)
 }
 
 static void
+dac_strobe(uint8_t old, uint8_t val, void *priv)
+{
+    lpt_dac_t *lpt_dac = (lpt_dac_t *) priv;
+
+    lpt_dac->channel = val;
+}
+
+static void
 dac_write_ctrl(uint8_t val, void *priv)
 {
     lpt_dac_t *lpt_dac = (lpt_dac_t *) priv;
@@ -109,25 +117,31 @@ dac_close(void *priv)
 }
 
 const lpt_device_t lpt_dac_device = {
-    .name          = "LPT DAC / Covox Speech Thing",
-    .internal_name = "lpt_dac",
-    .init          = dac_init,
-    .close         = dac_close,
-    .write_data    = dac_write_data,
-    .write_ctrl    = dac_write_ctrl,
-    .read_data     = NULL,
-    .read_status   = dac_read_status,
-    .read_ctrl     = NULL
+    .name             = "LPT DAC / Covox Speech Thing",
+    .internal_name    = "lpt_dac",
+    .init             = dac_init,
+    .close            = dac_close,
+    .write_data       = dac_write_data,
+    .write_ctrl       = dac_write_ctrl,
+    .autofeed         = NULL,
+    .strobe           = dac_strobe,
+    .read_status      = dac_read_status,
+    .read_ctrl        = NULL,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL
 };
 
 const lpt_device_t lpt_dac_stereo_device = {
-    .name          = "Stereo LPT DAC",
-    .internal_name = "lpt_dac_stereo",
-    .init          = dac_stereo_init,
-    .close         = dac_close,
-    .write_data    = dac_write_data,
-    .write_ctrl    = dac_write_ctrl,
-    .read_data     = NULL,
-    .read_status   = dac_read_status,
-    .read_ctrl     = NULL
+    .name             = "Stereo LPT DAC",
+    .internal_name    = "lpt_dac_stereo",
+    .init             = dac_stereo_init,
+    .close            = dac_close,
+    .write_data       = dac_write_data,
+    .write_ctrl       = dac_write_ctrl,
+    .autofeed         = NULL,
+    .strobe           = dac_strobe,
+    .read_status      = dac_read_status,
+    .read_ctrl        = NULL,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL
 };
