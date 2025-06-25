@@ -94,6 +94,7 @@ typedef struct mach64_t {
 
     int type;
     int pci;
+    int vlb;
 
     uint8_t pci_slot;
     uint8_t irq_state;
@@ -3857,7 +3858,7 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
         case 0x6aee:
         case 0x6aef:
             WRITE8(port, mach64->config_cntl, val);
-            if (!mach64->pci)
+            if (mach64->vlb)
                 mach64->linear_base = (mach64->config_cntl & 0x3ff0) << 18;
 
             mach64_updatemapping(mach64);
@@ -4764,6 +4765,7 @@ mach64gx_init(const device_t *info)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_vlb);
 
     mach64->pci            = !!(info->flags & DEVICE_PCI);
+    mach64->vlb            = !!(info->flags & DEVICE_VLB);
     mach64->pci_id         = 'X' | ('G' << 8);
     mach64->config_chip_id = 0x000000d7;
     mach64->dac_cntl       = 5 << 16;             /*ATI 68860 RAMDAC*/
