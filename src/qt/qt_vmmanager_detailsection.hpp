@@ -60,7 +60,7 @@ public:
 
     ~VMManagerDetailSection() override;
 
-    void addSection(const QString &name, const QString &value, Display::Name displayField = Display::Name::Unknown);
+    void addSection(const QString &name, const QString &value, VMManager::Display::Name displayField = VMManager::Display::Name::Unknown);
     void clear();
 
     CollapseButton *collapseButton;
