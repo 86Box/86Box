@@ -1656,6 +1656,10 @@ pc_close(UNUSED(thread_t *ptr))
     scsi_disk_close();
 
     gdbstub_close();
+
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+    mem_free();
+#endif
 }
 
 #ifdef __APPLE__
