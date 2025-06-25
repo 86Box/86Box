@@ -118,7 +118,7 @@ svga_render_overscan_right(svga_t *svga)
         return;
 
     uint32_t *line_ptr = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add + svga->hdisp];
-    right              = (overscan_x >> 1);
+    right              = overscan_x  - svga->left_overscan;
     for (int i = 0; i < right; i++)
         *line_ptr++ = svga->overscan_color;
 }
