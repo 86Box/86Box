@@ -172,7 +172,7 @@ msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
 msgstr "Overscan dla CGA/PCjr/Tandy/E&GA/(S)VGA"
 
 msgid "Change contrast for &monochrome display"
-msgstr "Zmień kontrast ekranu &monochromatycznego"
+msgstr "Zmień kontrast dla ekranu &monochromatycznego"
 
 msgid "&Media"
 msgstr "&Nośnik"
@@ -697,7 +697,7 @@ msgid "Ports (COM & LPT)"
 msgstr "Porty (COM & LPT)"
 
 msgid "Storage controllers"
-msgstr "Kontrolery danych"
+msgstr "Kontrolery pamięci masowej"
 
 msgid "Hard disks"
 msgstr "Dyski twarde"
@@ -742,7 +742,7 @@ msgid "Default"
 msgstr "Domyślny"
 
 msgid "%1 Wait state(s)"
-msgstr "%1 stany oczekiwania"
+msgstr "%1 stan(y/ów) oczekiwania"
 
 msgid "Type"
 msgstr "Rodzaj"
@@ -796,7 +796,7 @@ msgid "Advanced sector images"
 msgstr "Zaawansowane obrazy sektorów"
 
 msgid "Flux images"
-msgstr "Obrazy Flux"
+msgstr "Obrazy flux"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Czy na pewno chcesz wykonać twardy reset emulowanej maszyny?"
@@ -1003,16 +1003,16 @@ msgid "HDX image"
 msgstr "Obraz HDX"
 
 msgid "Fixed-size VHD"
-msgstr "VHD stałego rozmiaru"
+msgstr "VHD o stałym rozmiarze"
 
 msgid "Dynamic-size VHD"
-msgstr "VHD dynamicznego rozmiaru"
+msgstr "VHD o dynamicznym rozmiarze"
 
 msgid "Differencing VHD"
 msgstr "VHD różnicujący"
 
 msgid "(N/A)"
-msgstr "(N/D)"
+msgstr "(nd.)"
 
 msgid "Raw image (.img)"
 msgstr "Surowy obraz (.img)"
@@ -1630,7 +1630,7 @@ msgid "Receive MIDI input (MPU-401)"
 msgstr "Odbiór wejścia MIDI (MPU-401)"
 
 msgid "SB low DMA"
-msgstr "Niskie DMA SB"
+msgstr "Low DMA SB"
 
 msgid "6CH variant (6-channel)"
 msgstr "Wariant 6CH (6-kanałowy)"
@@ -2119,7 +2119,7 @@ msgid "Could not load shader: %1"
 msgstr "Nie udało się wczytać shadera: %1"
 
 msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Wymagana jest wersja OpenGL 3.0 lub wyższa. Aktualna wersja GLSL to %1."
+msgstr "Wymagana jest wersja OpenGL 3.0 lub wyższa. Aktualna wersja GLSL to %1.%2"
 
 msgid "Could not load texture: %1"
 msgstr "Nie udało się wczytać tekstury: %1"
