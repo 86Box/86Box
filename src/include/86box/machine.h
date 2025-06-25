@@ -517,6 +517,7 @@ extern int machine_at_dataexpert386wb_init(const machine_t *);
 extern int machine_at_isa486c_init(const machine_t *);
 extern int machine_at_genoa486_init(const machine_t *);
 extern int machine_at_ga486l_init(const machine_t *);
+extern int machine_at_cobalt_init(const machine_t *);
 extern int machine_at_cougar_init(const machine_t *);
 
 extern int machine_at_acc386_init(const machine_t *);

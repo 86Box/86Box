@@ -7179,6 +7179,45 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    {
+        .name = "[OPTi 499] Alaris Cobalt LPX",
+        .internal_name = "cobalt",
+        .type = MACHINE_TYPE_486_S2,
+        .chipset = MACHINE_CHIPSET_OPTI_499,
+        .init = machine_at_cobalt_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3 | CPU_PKG_486BL,
+            .block = CPU_BLOCK(CPU_P24T),
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags = MACHINE_APM | MACHINE_VIDEO | MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5428_vlb_onboard_device,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has AMIKey-2 'H' KBC firmware. */
     {
         .name = "[OPTi 499] Alaris COUGAR 486BL",
