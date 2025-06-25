@@ -158,7 +158,7 @@ acc2036_recalc(acc2036_t *dev)
                 /* 0E0000-0FFFFF */
                 master_write = dev->regs[0x02] & 0x02;
                 master_read  = dev->regs[0x02] & 0x01;
-                bit           = (((i - 8) >> 2) + 2);
+                bit           = ((i - 8) >> 2);
                 val           = dev->regs[0x0c] & (1 << bit);
                 if (i >= 20) {
                     ew_flag = MEM_WRITE_EXTANY;
