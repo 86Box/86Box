@@ -693,7 +693,6 @@ svga_recalctimings(svga_t *svga)
     double           _dispontime_xga = 0.0;
     double           _dispofftime_xga = 0.0;
     double           disptime_xga = 0.0;
-    int              vblankend;
 #ifdef ENABLE_SVGA_LOG
     int              vsyncend;
     int              hdispend;
@@ -913,9 +912,9 @@ svga_recalctimings(svga_t *svga)
     if (xga_active && (svga->xga != NULL))
         xga_recalctimings(svga);
 
-    vblankend = (svga->vblankstart & 0xffffff80) | (svga->crtc[0x16] & 0x7f);
-    if (vblankend <= svga->vblankstart)
-        vblankend += 0x00000080;
+    svga->vblankend = (svga->vblankstart & 0xffffff80) | (svga->crtc[0x16] & 0x7f);
+    if (svga->vblankend <= svga->vblankstart)
+        svga->vblankend += 0x00000080;
 
     if (svga->hoverride || svga->override) {
         if (svga->hdisp >= 2048)
@@ -969,7 +968,7 @@ svga_recalctimings(svga_t *svga)
         }
 
         /* - 1 because + 1 but also - 2 to compensate for the + 2 added to vtotal above. */
-        svga->y_add = svga->vtotal - vblankend - 1;
+        svga->y_add = svga->vtotal - svga->vblankend - 1;
         svga->monitor->mon_overscan_y = svga->y_add + abs(svga->vblankstart - svga->dispend);
 
         if ((svga->dispend >= 2048) || (svga->y_add < 0)) {
@@ -1050,7 +1049,7 @@ svga_recalctimings(svga_t *svga)
              "\n"
              "\n",
              svga->vtotal, svga->dispend, svga->vsyncstart, vsyncend,
-             svga->vblankstart, vblankend,
+             svga->vblankstart, svga->vblankend,
              svga->htotal, hdispstart, hdispend, hsyncstart, hsyncend,
              svga->hblankstart, svga->hblankend);
 
