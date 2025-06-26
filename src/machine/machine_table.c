@@ -3141,7 +3141,7 @@ const machine_t machines[] = {
     },
     /* Has Olivetti KBC firmware. */
     {
-        .name = "[ISA] Olivetti M290",
+        .name = "[ISA] Olivetti M290/AT&T 6286 WGS",
         .internal_name = "m290",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
@@ -3163,7 +3163,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
-            .min = 640,
+            .min = 1024,
             .max = 16384,
             .step = 128
         },
