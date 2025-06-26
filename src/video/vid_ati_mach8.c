@@ -2422,11 +2422,11 @@ mach_out(uint16_t addr, uint8_t val, void *priv)
             rs2 = !!(mach->accel.ext_ge_config & 0x1000);
             rs3 = !!(mach->accel.ext_ge_config & 0x2000);
             mach_log("8514/A Extended mode=%02x.\n", mach->regs[0xb0] & 0x20);
-            if (ATI_MACH32 && !dev->on) {
-                if (mach->pci_bus && !mach->ramdac_type)
-                    ati68860_ramdac_out((addr & 0x03) | (rs2 << 2) | (rs3 << 3), val, svga->ramdac, svga);
+            if (ATI_MACH32) {
+                if (mach->pci_bus && (mach->ramdac_type == ATI_68860))
+                    ati68860_ramdac_out((addr & 0x03) | (rs2 << 2) | (rs3 << 3), val, 1, svga->ramdac, svga);
                 else
-                    ati68875_ramdac_out(addr, rs2, rs3, val, svga->ramdac, svga);
+                    ati68875_ramdac_out(addr, rs2, rs3, val, 1, svga->ramdac, svga);
             } else
                 svga_out(addr, val, svga);
             return;
@@ -2438,11 +2438,11 @@ mach_out(uint16_t addr, uint8_t val, void *priv)
             rs2 = !!(mach->regs[0xa0] & 0x20);
             rs3 = !!(mach->regs[0xa0] & 0x40);
             mach_log("VGA Extended mode=%02x.\n", mach->regs[0xb0] & 0x20);
-            if (ATI_MACH32 && !dev->on) {
-                if (mach->pci_bus && !mach->ramdac_type)
-                    ati68860_ramdac_out((addr & 0x03) | (rs2 << 2) | (rs3 << 3), val, svga->ramdac, svga);
+            if (ATI_MACH32) {
+                if (mach->pci_bus && (mach->ramdac_type == ATI_68860))
+                    ati68860_ramdac_out((addr & 0x03) | (rs2 << 2) | (rs3 << 3), val, 0, svga->ramdac, svga);
                 else
-                    ati68875_ramdac_out(addr, rs2, rs3, val, svga->ramdac, svga);
+                    ati68875_ramdac_out(addr, rs2, rs3, val, 0, svga->ramdac, svga);
             } else
                 svga_out(addr, val, svga);
             return;
@@ -2563,11 +2563,11 @@ mach_in(uint16_t addr, void *priv)
         case 0x2ed:
             rs2 = !!(mach->accel.ext_ge_config & 0x1000);
             rs3 = !!(mach->accel.ext_ge_config & 0x2000);
-            if (ATI_MACH32 && !dev->on) {
-                if (mach->pci_bus && !mach->ramdac_type)
-                    temp = ati68860_ramdac_in((addr & 3) | (rs2 << 2) | (rs3 << 3), svga->ramdac, svga);
+            if (ATI_MACH32) {
+                if (mach->pci_bus && (mach->ramdac_type == ATI_68860))
+                    temp = ati68860_ramdac_in((addr & 3) | (rs2 << 2) | (rs3 << 3), 1, svga->ramdac, svga);
                 else
-                    temp = ati68875_ramdac_in(addr, rs2, rs3, svga->ramdac, svga);
+                    temp = ati68875_ramdac_in(addr, rs2, rs3, 1, svga->ramdac, svga);
             } else
                 temp = svga_in(addr, svga);
             break;
@@ -3007,6 +3007,7 @@ mach_recalctimings(svga_t *svga)
             mach_log("cntl=%d, clksel=%x, hv(%d,%d), pitch=%d, rowoffset=%d, gextconfig=%03x, shadow=%x interlace=%d, vgahdisp=%d.\n",
                      dev->accel.advfunc_cntl & 0x04, mach->accel.clock_sel & 0x01, dev->h_disp, dev->dispend, dev->pitch, dev->rowoffset,
                      mach->accel.ext_ge_config & 0xcec0, mach->shadow_set & 3, dev->interlace, svga->hdisp);
+            mach_log("EXTGECONFIG bits 11-15=%04x.\n", mach->accel.ext_ge_config & 0x8800);
             if ((mach->accel.ext_ge_config & 0x800) || (!(mach->accel.ext_ge_config & 0x8000) && !(mach->accel.ext_ge_config & 0x800))) {
                 mach_log("hv=%d,%d, pitch=%d, rowoffset=%d, gextconfig=%03x, bpp=%d, shadow=%x, vgahdisp=%d.\n",
                          dev->h_disp, dev->dispend, dev->pitch, dev->ext_crt_pitch, mach->accel.ext_ge_config & 0xcec0,
@@ -4759,7 +4760,6 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
                     }
                 } else {
                     switch (mach->accel.cmd_type) {
-                        case 1:
                         case 2:
                         case 5:
                             if ((dev->subsys_cntl & INT_GE_BSY) &&
@@ -4770,6 +4770,7 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
                                 (dev->accel.dy <= clip_b))
                                 temp |= INT_GE_BSY;
                             break;
+                        case 1:
                         case 3:
                         case 4:
                             if ((dev->subsys_cntl & INT_GE_BSY) &&
@@ -7068,7 +7069,7 @@ mach8_init(const device_t *info)
     dev->type        = info->flags;
     dev->local       = info->local & 0xff;
     mach->has_bios   = !(info->local & 0xff00);
-    mach->ramdac_type = mach->pci_bus ? device_get_config_int("ramdac") : 1;
+    mach->ramdac_type = mach->pci_bus ? device_get_config_int("ramdac") : ATI_68875;
     dev->vram_amount = device_get_config_int("memory");
     dev->vram_512k_8514 = dev->vram_amount == 512;
 
@@ -7119,7 +7120,7 @@ mach8_init(const device_t *info)
         dev->vram_mask   = dev->vram_size - 1;
         dev->hwcursor.cur_ysize = 64;
         mach->config1 = 0x20;
-        if (mach->pci_bus && !mach->ramdac_type)
+        if (mach->pci_bus && (mach->ramdac_type == ATI_68860))
             svga->ramdac = device_add(&ati68860_ramdac_device);
         else
             svga->ramdac = device_add(&ati68875_ramdac_device);
@@ -7142,7 +7143,7 @@ mach8_init(const device_t *info)
         } else if (mach->pci_bus) {
             video_inform(VIDEO_FLAG_TYPE_8514, &timing_mach32_pci);
             mach->config1 |= 0x0e;
-            if (mach->ramdac_type)
+            if (mach->ramdac_type == ATI_68860)
                 mach->config1 |= 0x0400;
             else
                 mach->config1 |= 0x0a00;
@@ -7180,6 +7181,7 @@ mach8_init(const device_t *info)
 
     dev->on = 0;
     dev->pitch = 1024;
+    dev->ext_pitch = 1024;
     dev->ext_crt_pitch = 0x80;
     dev->accel_bpp = 8;
     svga->force_old_addr = 1;
@@ -7242,6 +7244,7 @@ ati8514_init(svga_t *svga, void *ext8514, void *dev8514)
     /*Init as 1024x768 87hz interlaced first, per 8514/A.*/
     dev->on = 0;
     dev->pitch = 1024;
+    dev->ext_pitch = 1024;
     dev->ext_crt_pitch = 0x80;
     dev->accel_bpp = 8;
     dev->rowoffset = 0x80;
@@ -7390,12 +7393,12 @@ static const device_config_t mach32_pci_config[] = {
         .description    = "RAMDAC type",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 0,
+        .default_int    = ATI_68860,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "ATI 68860", .value = 0 },
-            { .description = "ATI 68875", .value = 1 },
+            { .description = "ATI 68860", .value = ATI_68860 },
+            { .description = "ATI 68875", .value = ATI_68875 },
             { .description = ""                      }
         },
         .bios           = { { 0 } }

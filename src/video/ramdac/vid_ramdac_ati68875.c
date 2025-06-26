@@ -38,7 +38,7 @@ typedef struct ati68875_ramdac_t {
 } ati68875_ramdac_t;
 
 void
-ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga)
+ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, int is_8514, void *priv, svga_t *svga)
 {
     ati68875_ramdac_t *ramdac = (ati68875_ramdac_t *) priv;
     uint8_t rs = (addr & 0x03);
@@ -48,10 +48,16 @@ ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, sv
 
     switch (rs) {
         case 0x00: /* Palette Write Index Register (RS value = 0000) */
+            svga_out(is_8514 ? 0x2ec : 0x3c8, val, svga);
+            break;
         case 0x01: /* Palette Data Register (RS value = 0001) */
+            svga_out(is_8514 ? 0x2ed : 0x3c9, val, svga);
+            break;
         case 0x02: /* Pixel Read Mask Register (RS value = 0010) */
-        case 0x03:
-            svga_out(addr, val, svga);
+            svga_out(is_8514 ? 0x2ea : 0x3c6, val, svga);
+            break;
+        case 0x03: /* Palette Read Index Register (RS value = 0011) */
+            svga_out(is_8514 ? 0x2eb : 0x3c7, val, svga);
             break;
         case 0x08: /* General Control Register (RS value = 1000) */
             ramdac->gen_cntl = val;
@@ -83,7 +89,7 @@ ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, sv
 }
 
 uint8_t
-ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga)
+ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, int is_8514, void *priv, svga_t *svga)
 {
     const ati68875_ramdac_t *ramdac = (ati68875_ramdac_t *) priv;
     uint8_t                  rs = (addr & 0x03);
@@ -94,10 +100,16 @@ ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga)
 
     switch (rs) {
         case 0x00: /* Palette Write Index Register (RS value = 0000) */
+            temp = svga_in(is_8514 ? 0x2ec : 0x3c8, svga);
+            break;
         case 0x01: /* Palette Data Register (RS value = 0001) */
+            temp = svga_in(is_8514 ? 0x2ed : 0x3c9, svga);
+            break;
         case 0x02: /* Pixel Read Mask Register (RS value = 0010) */
-        case 0x03:
-            temp = svga_in(addr, svga);
+            temp = svga_in(is_8514 ? 0x2ea : 0x3c6, svga);
+            break;
+        case 0x03: /* Palette Read Index Register (RS value = 0011) */
+            temp = svga_in(is_8514 ? 0x2eb : 0x3c7, svga);
             break;
         case 0x08: /* General Control Register (RS value = 1000) */
             temp = ramdac->gen_cntl;

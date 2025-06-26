@@ -136,6 +136,7 @@ typedef struct svga_t {
     int packed_4bpp;
     int ps_bit_bug;
     int ati_4color;
+    int vblankend;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM
@@ -404,15 +405,15 @@ uint32_t svga_lookup_lut_ram(svga_t* svga, uint32_t val);
 
 /* We need a way to add a device with a pointer to a parent device so it can attach itself to it, and
    possibly also a second ATi 68860 RAM DAC type that auto-sets SVGA render on RAM DAC render change. */
-extern void    ati68860_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga);
-extern uint8_t ati68860_ramdac_in(uint16_t addr, void *priv, svga_t *svga);
+extern void    ati68860_ramdac_out(uint16_t addr, uint8_t val, int is_8514, void *priv, svga_t *svga);
+extern uint8_t ati68860_ramdac_in(uint16_t addr, int is_8514, void *priv, svga_t *svga);
 extern void    ati68860_set_ramdac_type(void *priv, int type);
 extern void    ati68860_ramdac_set_render(void *priv, svga_t *svga);
 extern void    ati68860_ramdac_set_pallook(void *priv, int i, uint32_t col);
 extern void    ati68860_hwcursor_draw(svga_t *svga, int displine);
 
-extern void    ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga);
-extern uint8_t ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga);
+extern void    ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, int is_8514, void *priv, svga_t *svga);
+extern uint8_t ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, int is_8514, void *priv, svga_t *svga);
 
 extern void    att49x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t att49x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
