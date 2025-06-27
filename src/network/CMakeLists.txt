@@ -34,6 +34,13 @@ list(APPEND net_sources
     net_l80225.c
     net_modem.c
     utils/getline.c
+
+    net_netswitch.c
+    netswitch.c
+    pb_common.c
+    pb_encode.c
+    pb_decode.c
+    networkmessage.pb.c
 )
 
 find_package(PkgConfig REQUIRED)
