@@ -118,7 +118,7 @@ machine_at_ama932j_init(const machine_t *model)
 
     machine_at_headland_common_init(model, 2);
 
-    device_add(&ali5105_device);
+    device_add_params(&pc87310_device, (void *) (PC87310_ALI));
 
     return ret;
 }
@@ -858,7 +858,7 @@ machine_at_cmdsl386sx25_init(const machine_t *model)
 
     device_add(&ide_isa_device);
 
-    device_add(&ali5105_device);  /* The FDC is part of the ALi M5105. */
+    device_add_params(&pc87310_device, (void *) (PC87310_ALI));
     device_add(&vl82c113_device); /* The keyboard controller is part of the VL82c113. */
 
     device_add(&vlsi_scamp_device);
@@ -1008,7 +1008,7 @@ machine_at_acer100t_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&oti077_acer100t_device);
      
-    device_add(&ali5105_device);
+    device_add_params(&pc87310_device, (void *) (PC87310_ALI));
     
     return ret;
 }
