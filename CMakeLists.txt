@@ -137,6 +137,7 @@ option(GDBSTUB      "Enable GDB stub server for debugging"                      
 option(DEV_BRANCH   "Development branch"                                         OFF)
 option(DISCORD      "Discord Rich Presence support"                              ON)
 option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
+option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
 
 if((ARCH STREQUAL "arm64") OR (ARCH STREQUAL "arm"))
     set(NEW_DYNAREC ON)
@@ -221,6 +222,12 @@ if(NOT EMU_BUILD_NUM)
 endif()
 if(NOT EMU_COPYRIGHT_YEAR)
     set(EMU_COPYRIGHT_YEAR 2024)
+endif()
+
+# Libasan
+if(LIBASAN)
+    add_compile_options(-fsanitize=address)
+    add_link_options(-fsanitize=address)
 endif()
 
 add_subdirectory(src)
