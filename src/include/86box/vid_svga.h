@@ -281,6 +281,10 @@ typedef struct svga_t {
       you should set this flag when entering that mode*/
     int disable_blink;
 
+    /*Force special shifter bypass logic for 8-bpp lowres modes.
+      Needed if the screen is squished on certain S3 cards.*/
+    int force_shifter_bypass;
+
     /*Force CRTC to dword mode, regardless of CR14/CR17. Required for S3 enhanced mode*/
     int force_dword_mode;
 

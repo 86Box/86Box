@@ -1193,6 +1193,21 @@ svga_recalctimings(svga_t *svga)
 
     if (enable_overscan && (svga->monitor->mon_overscan_x != old_monitor_overscan_x || svga->monitor->mon_overscan_y != old_monitor_overscan_y))
         video_force_resize_set_monitor(1, svga->monitor_index);
+
+    svga->force_shifter_bypass = 0;
+    if (svga->hdisp == 320 && svga->dispend >= 400 && !svga->override && svga->render != svga_render_8bpp_clone_highres) {
+        svga->hdisp *= 2;
+        if (svga->render == svga_render_16bpp_highres) svga->render = svga_render_16bpp_lowres;
+        else if (svga->render == svga_render_15bpp_highres) svga->render = svga_render_15bpp_lowres;
+        else if (svga->render == svga_render_15bpp_mix_highres) svga->render = svga_render_15bpp_mix_lowres;
+        else if (svga->render == svga_render_24bpp_highres) svga->render = svga_render_24bpp_lowres;
+        else if (svga->render == svga_render_32bpp_highres) svga->render = svga_render_32bpp_lowres;
+        else if (svga->render == svga_render_8bpp_highres) {
+            svga->render = svga_render_8bpp_lowres;
+            svga->force_shifter_bypass = 1;
+        }
+        else svga->hdisp /= 2;
+    }
 }
 
 static void
@@ -1550,6 +1565,7 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->monitor->mon_overscan_y = 32;
     svga->x_add                   = 8;
     svga->y_add                   = 16;
+    svga->force_shifter_bypass    = 1;
 
     svga->crtc[0]           = 63;
     svga->crtc[6]           = 255;
