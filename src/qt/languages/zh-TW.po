@@ -18,8 +18,8 @@ msgstr "將右 CTRL 鍵映射為左 ALT 鍵(&R)"
 msgid "&Hard Reset..."
 msgstr "硬重設(&H)..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "Ctrl+Alt+Del(&C)\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del(&C)"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+Esc(&E)"
@@ -111,8 +111,8 @@ msgstr "線性(&L)"
 msgid "Hi&DPI scaling"
 msgstr "HiDPI 縮放(&D)"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "全螢幕(&F)\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "全螢幕(&F)"
 
 msgid "Fullscreen &stretch mode"
 msgstr "全螢幕拉伸模式(&S)"
@@ -186,8 +186,11 @@ msgstr "設定(&S)..."
 msgid "&Update status bar icons"
 msgstr "更新狀態列圖示(&U)"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "擷圖(&C)\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "擷圖(&C)"
+
+msgid "S&ound"
+msgstr "聲音(&O)"
 
 msgid "&Preferences..."
 msgstr "偏好設定(&P)..."
@@ -198,11 +201,11 @@ msgstr "啟用 Discord 整合(&D)"
 msgid "Sound &gain..."
 msgstr "音量增益(&G)..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "開始追踪\tCtrl+T"
+msgid "Begin trace"
+msgstr "開始追踪"
 
-msgid "End trace\tCtrl+T"
-msgstr "結束追踪\tCtrl+T"
+msgid "End trace"
+msgstr "結束追踪"
 
 msgid "&Help"
 msgstr "說明(&H)"
@@ -249,8 +252,8 @@ msgstr "靜音(&M)"
 msgid "E&mpty"
 msgstr "空置光碟機(&M)"
 
-msgid "&Reload previous image"
-msgstr "載入上一個映像(&R)"
+msgid "Reload previous image"
+msgstr "載入上一個映像"
 
 msgid "&Folder..."
 msgstr "資料夾(&F)..."
@@ -306,17 +309,11 @@ msgstr "確定"
 msgid "Cancel"
 msgstr "取消"
 
-msgid "Save these settings as &global defaults"
-msgstr "將以上設定存儲為全局預設值(&G)"
-
 msgid "&Default"
 msgstr "預設(&D)"
 
 msgid "Language:"
 msgstr "語言:"
-
-msgid "Icon set:"
-msgstr "圖示集:"
 
 msgid "Gain"
 msgstr "增益"
@@ -452,15 +449,6 @@ msgstr "Nuked (更準確)"
 
 msgid "YMFM (faster)"
 msgstr "YMFM (更快)"
-
-msgid "Network type:"
-msgstr "網路類型:"
-
-msgid "PCap device:"
-msgstr "PCap 裝置:"
-
-msgid "Network adapter:"
-msgstr "網路配接器:"
 
 msgid "COM1 Device:"
 msgstr "COM1 裝置:"
@@ -642,14 +630,11 @@ msgstr "致命錯誤"
 msgid " - PAUSED"
 msgstr " - 已暫停"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "按下 Ctrl+Alt+PgDn 返回到視窗模式。"
-
 msgid "Speed"
 msgstr "速度"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIP 映像"
@@ -687,8 +672,11 @@ msgstr "由於 roms/machines 資料夾中缺少合適的 ROM，機型 \"%hs\" �
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "由於 roms/video 資料夾中缺少合適的 ROM，顯示卡 \"%hs\" 不可用。將切換到其他可用顯示卡。"
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "由於 roms/video 資料夾中缺少合適的 ROM，顯示卡 2 \"%hs\" 不可用。將切換到其他可用顯示卡。"
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "由於 roms/video 資料夾中缺少合適的 ROM，顯示卡 2 \"%hs\" 不可用。禁用第二块显卡。"
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "由於缺少合適的 ROM，裝置 \"%hs\" 不可用。忽略设备。"
 
 msgid "Machine"
 msgstr "機型"
@@ -750,14 +738,11 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "無法初始化視訊渲染器。"
-
 msgid "Default"
 msgstr "預設"
 
-msgid "%i Wait state(s)"
-msgstr "%i 等待狀態 (WS)"
+msgid "%1 Wait state(s)"
+msgstr "%1 等待狀態 (WS)"
 
 msgid "Type"
 msgstr "類型"
@@ -801,11 +786,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "無"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "軟碟 %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "軟碟 %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "進階磁區映像"
@@ -825,8 +810,8 @@ msgstr "無法初始化 Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "無法初始化 GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "磁光碟 %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "磁光碟 %1 (%2): %3"
 
 msgid "MO images"
 msgstr "磁光碟映像"
@@ -876,9 +861,6 @@ msgstr "%1 是將 PostScript 檔案轉換為 PDF 所需要的庫。\n\n使用通
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 是將 PCL 檔案轉換為 PDF 所需要的庫。\n\n使用通用 PCL 印表機列印的文件將被儲存為 Printer Command Language (.pcl) 檔案。"
 
-msgid "Entering fullscreen mode"
-msgstr "正在進入全螢幕模式"
-
 msgid "Don't show this message again"
 msgstr "不要再顯示此消息"
 
@@ -900,11 +882,8 @@ msgstr "%1 裝置設定"
 msgid "Monitor in sleep mode"
 msgstr "顯示器處在睡眠狀態"
 
-msgid "OpenGL Shaders"
-msgstr "OpenGL 著色器"
-
-msgid "OpenGL options"
-msgstr "OpenGL 選項"
+msgid "GLSL shaders"
+msgstr "GLSL 著色器"
 
 msgid "You are loading an unsupported configuration"
 msgstr "正在載入一個不受支援的設定"
@@ -915,23 +894,17 @@ msgstr "此模擬電腦停用了基於選定電腦的 CPU 類型過濾。\n\n能
 msgid "Continue"
 msgstr "繼續"
 
-msgid "Cassette: %s"
-msgstr "磁帶: %s"
+msgid "Cassette: %1"
+msgstr "磁帶: %1"
 
 msgid "Cassette images"
 msgstr "磁帶映像"
 
-msgid "Cartridge %i: %ls"
-msgstr "卡帶 %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "卡帶 %1: %2"
 
 msgid "Cartridge images"
 msgstr "卡帶映像"
-
-msgid "Error initializing renderer"
-msgstr "初始化渲染器時出錯"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "無法初始化 OpenGL (3.0 Core) 渲染器。請使用其他渲染器。"
 
 msgid "Resume execution"
 msgstr "恢復執行"
@@ -1095,8 +1068,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "光碟 %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "光碟 %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1275,9 +1248,6 @@ msgstr "清除映像歷史記錄"
 msgid "Create..."
 msgstr "建立..."
 
-msgid "previous image"
-msgstr "上一個映像"
-
 msgid "Host CD/DVD Drive (%1)"
 msgstr "主機 CD/DVD 光碟機 (%1)"
 
@@ -1287,23 +1257,8 @@ msgstr "未知匯流排"
 msgid "Null Driver"
 msgstr "空驅動程式"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "網路卡 %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "錯誤開啟 \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "編譯檔案 \"%1\" 中的頂點著色器時發生錯誤"
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "編譯檔案 \"%1\" 中的片段著色器出錯"
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "在檔案中連結shader程式出錯 \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "OpenGL 3.0 渲染器選項"
+msgid "NIC %1 (%2) %3"
+msgstr "網路卡 %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "渲染行為"
@@ -1317,9 +1272,6 @@ msgstr "fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;立即渲染每個畫面，與模擬顯示同步。&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;如果使用中的著色器不利用影格時間製作動畫效果，建議使用此選項。&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "與視訊同步"
 
@@ -1329,20 +1281,8 @@ msgstr "著色器"
 msgid "Remove"
 msgstr "移除"
 
-msgid "No shader selected"
-msgstr "未選擇著色器"
-
 msgid "Browse..."
 msgstr "瀏覽..."
-
-msgid "Shader error"
-msgstr "著色器錯誤"
-
-msgid "Could not load shaders."
-msgstr "無法載入著色器。"
-
-msgid "More information in details."
-msgstr "更多詳細資訊。"
 
 msgid "Couldn't create OpenGL context."
 msgstr "無法建立 OpenGL 上下文。"
@@ -1353,20 +1293,14 @@ msgstr "無法切換至 OpenGL 上下文。"
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "需要 OpenGL 版本 3.0 或更高。目前版本為 %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "OpenGL 初始化失敗。錯誤 %1."
-
 msgid "Error initializing OpenGL"
 msgstr "初始化 OpenGL 出錯"
 
-msgid "Falling back to software rendering.\n"
-msgstr "回退到軟體渲染。"
+msgid "\nFalling back to software rendering."
+msgstr "\n回退到軟體渲染。"
 
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "為解除封包緩衝區分配記憶體失敗。\n"
-
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;當選擇媒體映像 (CD-ROM、軟碟等) 時，開啟對話方塊會在與 86Box 設定檔相同的目錄中開始。此設定可能只會在 macOS 上有所影響。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>當選擇媒體映像 (CD-ROM、軟碟等) 時，開啟對話方塊會在與 86Box 設定檔相同的目錄中開始。此設定可能只會在 macOS 上有所影響。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "這台機器可能已被移動或複製。"
@@ -1401,17 +1335,17 @@ msgstr "網路卡 3"
 msgid "Network Card #4"
 msgstr "網路卡 4"
 
-msgid "Mode"
-msgstr "模式"
+msgid "Mode:"
+msgstr "模式:"
 
-msgid "Interface"
-msgstr "介面"
+msgid "Interface:"
+msgstr "介面:"
 
-msgid "Adapter"
-msgstr "配接器"
+msgid "Adapter:"
+msgstr "配接器:"
 
-msgid "VDE Socket"
-msgstr "VDE 插座"
+msgid "VDE Socket:"
+msgstr "VDE 插座:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box 單元測試器"
@@ -1430,9 +1364,6 @@ msgstr "序列埠的直通 3"
 
 msgid "Serial port passthrough 4"
 msgstr "序列埠的直通 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
 
 msgid "Renderer options..."
 msgstr "渲染器選項..."
@@ -1872,6 +1803,9 @@ msgstr "滾輪"
 msgid "Five + Wheel"
 msgstr "五鍵 + 滾輪"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 序列 / SMT3(R)V"
 
@@ -2059,7 +1993,7 @@ msgid "Generic Text Printer"
 msgstr "通用文字印表機"
 
 msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "通用 ESC/P 點矩陣"
+msgstr "通用 ESC/P 點矩陣印表機"
 
 msgid "Generic PostScript Printer"
 msgstr "通用 PostScript 印表機"
@@ -2100,11 +2034,11 @@ msgstr "已命名管道 (伺服器)"
 msgid "Host Serial Passthrough"
 msgstr "主機序列埠的直通"
 
-msgid "Eject %s"
-msgstr "退出 %s"
+msgid "E&ject %1"
+msgstr "退出 %1(&J)"
 
 msgid "&Unmute"
-msgstr "解除靜音 (&U)"
+msgstr "解除靜音(&U)"
 
 msgid "Softfloat FPU"
 msgstr "Softfloat FPU"
@@ -2112,11 +2046,104 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "對效能影響大"
 
-msgid "RAM Disk (max. speed)"
-msgstr "RAM 磁碟 (最大速度)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] RAM 磁碟 (最大速度)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A 克隆 (ISA)"
 
 msgid "Vendor"
 msgstr "製造商"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "通用 PC/XT 記憶體擴充"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "通用 PC/AT 記憶體擴充"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "無法找到點矩陣字型"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "通用 ESC/P 點矩陣印表機的模擬需要 \"roms/printer/fonts\" 目錄中的 TrueType 字體。"
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
+msgstr ""

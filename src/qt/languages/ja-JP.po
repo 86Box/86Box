@@ -18,8 +18,8 @@ msgstr "右CTRLを左ALTへ変換(&R)"
 msgid "&Hard Reset..."
 msgstr "ハード リセット(&H)..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "Ctrl+Alt+Del(&C)\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del(&C)"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+Esc(&E)"
@@ -111,8 +111,8 @@ msgstr "線形補間(&L)"
 msgid "Hi&DPI scaling"
 msgstr "HiDPIスケーリング(&D)"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "全画面表示(&F)\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "全画面表示(&F)"
 
 msgid "Fullscreen &stretch mode"
 msgstr "全画面の拡大表示モード(&S)"
@@ -186,8 +186,11 @@ msgstr "設定(&S)..."
 msgid "&Update status bar icons"
 msgstr "ステータスバーのアイコンを更新(&U)"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "スクリーンショットを撮る(&C)\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "スクリーンショットを撮る(&C)"
+
+msgid "S&ound"
+msgstr "サウンド(&O)"
 
 msgid "&Preferences..."
 msgstr "環境設定(&P)..."
@@ -198,11 +201,11 @@ msgstr "Discord連携機能(&D)"
 msgid "Sound &gain..."
 msgstr "音量調整(&G)..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "トレース開始\tCtrl+T"
+msgid "Begin trace"
+msgstr "トレース開始"
 
-msgid "End trace\tCtrl+T"
-msgstr "トレース終了\tCtrl+T"
+msgid "End trace"
+msgstr "トレース終了"
 
 msgid "&Help"
 msgstr "ヘルプ(&H)"
@@ -249,8 +252,8 @@ msgstr "ミュート(&M)"
 msgid "E&mpty"
 msgstr "なし(&M)"
 
-msgid "&Reload previous image"
-msgstr "前のイメージを再読み込み(&R)"
+msgid "Reload previous image"
+msgstr "前のイメージを再読み込み"
 
 msgid "&Folder..."
 msgstr "フォルダ(&F)..."
@@ -306,17 +309,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "キャンセル"
 
-msgid "Save these settings as &global defaults"
-msgstr "これらの設定をグローバル既定値として保存(&G)"
-
 msgid "&Default"
 msgstr "既定値(&D)"
 
 msgid "Language:"
 msgstr "言語:"
-
-msgid "Icon set:"
-msgstr "アイコンセット:"
 
 msgid "Gain"
 msgstr "音量"
@@ -452,15 +449,6 @@ msgstr "Nuked(高精度化)"
 
 msgid "YMFM (faster)"
 msgstr "YMFM(より速く)"
-
-msgid "Network type:"
-msgstr "ネットワーク タイプ:"
-
-msgid "PCap device:"
-msgstr "PCapデバイス:"
-
-msgid "Network adapter:"
-msgstr "ネットワークアダプター:"
 
 msgid "COM1 Device:"
 msgstr "COM1デバイス:"
@@ -642,14 +630,11 @@ msgstr "致命的なエラー"
 msgid " - PAUSED"
 msgstr " - 一時停止"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Ctrl+Alt+PgDnでウィンドウ モードに戻ります。"
-
 msgid "Speed"
 msgstr "速度"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIPイメージ"
@@ -687,8 +672,11 @@ msgstr "roms/machines ディレクトリにROMがないため、マシン「%hs�
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "roms/video ディレクトリにROMがないため、ビデオ カード「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
 
-msgid "Video card 2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "roms/video ディレクトリにROMがないため、ビデオ カード2「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "roms/video ディレクトリにROMがないため、ビデオ カード2「%hs」は使用できません。2枚目のビデオカードを無効にします。"
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "ROMがないため、デバイス「%hs」は使用できません。装置を無視する。"
 
 msgid "Machine"
 msgstr "マシン"
@@ -750,14 +738,11 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "ビデオレンダラーが初期化できません。"
-
 msgid "Default"
 msgstr "既定値"
 
-msgid "%i Wait state(s)"
-msgstr "%iつのウェイト ステート"
+msgid "%1 Wait state(s)"
+msgstr "%1つのウェイト ステート"
 
 msgid "Type"
 msgstr "タイプ"
@@ -801,11 +786,11 @@ msgstr "Thrustmaster飛行制御システム"
 msgid "None"
 msgstr "なし"
 
-msgid "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
 msgstr "%u MB (CHS値: %i、%i、%i)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "フロッピー %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "フロッピー %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "アドバンスドセクターイメージ"
@@ -825,8 +810,8 @@ msgstr "Ghostscriptが初期化できません"
 msgid "Unable to initialize GhostPCL"
 msgstr "GhostPCLが初期化できません"
 
-msgid "MO %i (%ls): %ls"
-msgstr "光磁気 %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "光磁気 %1 (%2): %3"
 
 msgid "MO images"
 msgstr "光磁気イメージ"
@@ -865,7 +850,7 @@ msgid "Hardware not available"
 msgstr "ハードウェアが利用できません"
 
 msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "がインストールされてるか、%1に対応したネットワークに接続されてるか確認してください。"
+msgstr "%1がインストールされていてかつ、%1に対応したネットワークに接続されてるか確認してください。"
 
 msgid "Invalid configuration"
 msgstr "不正な設定です"
@@ -875,9 +860,6 @@ msgstr "PostScriptファイルをPDFに自動変換するには%1が必要です
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "PCLファイルをPDFに自動変換するには%1が必要です。\n\n汎用PCLプリンターに送信された文書は、Printer Command Language (.pcl) ファイルとして保存されます。"
-
-msgid "Entering fullscreen mode"
-msgstr "全画面モードを入力"
 
 msgid "Don't show this message again"
 msgstr "今後、このメッセージを表示しない"
@@ -900,38 +882,29 @@ msgstr "%1 のデバイス設定"
 msgid "Monitor in sleep mode"
 msgstr "モニターのスリープモード"
 
-msgid "OpenGL Shaders"
-msgstr "OpenGLシェーダー"
-
-msgid "OpenGL options"
-msgstr "OpenGL設定"
+msgid "GLSL shaders"
+msgstr "GLSLシェーダー"
 
 msgid "You are loading an unsupported configuration"
-msgstr "読み込んでいる設定がサポートされません"
+msgstr "サポートされていないコンフィグを読み込んでいます"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "選択したマシンに基づくCPUタイプのフィルター機能は、使用中のマシンでは無効になっています。\n\nこれにより、選択したマシンと互換性のないCPUが選択できます。しかし、マシンのBIOSや他のソフトウェアと互換性がない場合があります。\n\nこの設定を有効にすることは公式にはサポートされておらず、バグレポートは無効として中止される可能性があります。"
+msgstr "選択したマシンに基づくCPUタイプのフィルター機能は、使用中のマシンでは無効になっています。\n\nこれにより、選択したマシンと互換性のないCPUが選択できます。しかし、マシンのBIOSや他のソフトウェアと互換性がない場合があります。\n\nこの設定を有効にすることは公式にはサポートされておらず、バグレポートは無効としてクローズされる可能性があります。"
 
 msgid "Continue"
 msgstr "続行"
 
-msgid "Cassette: %s"
-msgstr "カセット: %s"
+msgid "Cassette: %1"
+msgstr "カセット: %1"
 
 msgid "Cassette images"
 msgstr "カセットイメージ"
 
-msgid "Cartridge %i: %ls"
-msgstr "カートリッジ %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "カートリッジ %1: %2"
 
 msgid "Cartridge images"
 msgstr "カートリッジイメージ"
-
-msgid "Error initializing renderer"
-msgstr "レンダラーの初期化エラー"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) レンダラーが初期化できません。別のレンダラーを使用してください。"
 
 msgid "Resume execution"
 msgstr "実行を再開"
@@ -1012,7 +985,7 @@ msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "選択したファイルは上書きされます。よろしいですか？"
 
 msgid "Unsupported disk image"
-msgstr "非対応のディスクイメージジ"
+msgstr "非対応のディスクイメージ"
 
 msgid "Overwrite"
 msgstr "上書き"
@@ -1095,8 +1068,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1275,35 +1248,17 @@ msgstr "クリア画像履歴"
 msgid "Create..."
 msgstr "作成..."
 
-msgid "previous image"
-msgstr "前の画像"
-
 msgid "Host CD/DVD Drive (%1)"
 msgstr "ホスト CD/DVD ドライブ (%1)"
 
 msgid "Unknown Bus"
-msgstr "不明バス"
+msgstr "不明なバス"
 
 msgid "Null Driver"
 msgstr "ヌル・ドライバー"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "エラー・オープニング\"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "ファイル\"%1\"の頂点シェーダのコンパイルエラー。"
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "ファイル\"%1\"のフラグメント・シェーダのコンパイル・エラー。"
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "ファイル\"%1\"のシェーダープログラムのリンクエラー。"
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "OpenGL 3.0レンダラー設定"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "レンダリング動作"
@@ -1317,9 +1272,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSシンク"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;エミュレートされたディスプレイと同期して、各フレームを即座にレンダリングします。&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;これは、使用中のシェーダがアニメーション効果のためにフレームタイムを利用しない場合に推奨されるオプションです。&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "ビデオと同期"
 
@@ -1329,20 +1281,8 @@ msgstr "シェーダー"
 msgid "Remove"
 msgstr "削除"
 
-msgid "No shader selected"
-msgstr "シェーダーが選択されていない"
-
 msgid "Browse..."
 msgstr "ブラウズ..."
-
-msgid "Shader error"
-msgstr "シェーダーエラー"
-
-msgid "Could not load shaders."
-msgstr "シェーダーをロードできませんでした。"
-
-msgid "More information in details."
-msgstr "詳細はこちら。"
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGLコンテキストを作成できませんでした。"
@@ -1353,20 +1293,14 @@ msgstr "OpenGLコンテキストに切り替えられなかった。"
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGLのバージョン3.0以上が必要です。現在のバージョンは %1.%2 です。"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "OpenGL の初期化に失敗しました。エラー %1。"
-
 msgid "Error initializing OpenGL"
 msgstr "OpenGLの初期化エラー"
 
-msgid "Falling back to software rendering.\n"
-msgstr "ソフトウェアレンダリングに逆戻り。"
+msgid "\nFalling back to software rendering."
+msgstr "\nソフトウェアレンダリングに逆戻り。"
 
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "アンパックバッファのメモリ確保に失敗しました。"
-
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;メディアイメージ（CD-ROM、フロッピーなど）を選択するとき、オープンダイアログは86Box設定ファイルと同じディレクトリで開始します。この設定は、おそらく macOS でのみ違いがあります。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>メディアイメージ（CD-ROM、フロッピーなど）を選択するとき、オープンダイアログは86Box設定ファイルと同じディレクトリで開始します。この設定は、おそらく macOS でのみ違いがあります。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "このマシンは移動されたかコピーされた可能性がある。"
@@ -1401,17 +1335,17 @@ msgstr "ネットワークカード 3"
 msgid "Network Card #4"
 msgstr "ネットワークカード 4"
 
-msgid "Mode"
-msgstr "モード"
+msgid "Mode:"
+msgstr "モード:"
 
-msgid "Interface"
-msgstr "インターフェース"
+msgid "Interface:"
+msgstr "インターフェース:"
 
-msgid "Adapter"
-msgstr "アダプター"
+msgid "Adapter:"
+msgstr "アダプター:"
 
-msgid "VDE Socket"
-msgstr "VDEソケット"
+msgid "VDE Socket:"
+msgstr "VDEソケット:"
 
 msgid "86Box Unit Tester"
 msgstr "86Boxユニットテスター"
@@ -1430,9 +1364,6 @@ msgstr "シリアル・ポート・パススルー 3"
 
 msgid "Serial port passthrough 4"
 msgstr "シリアル・ポート・パススルー 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "ビジョン・システムズ LBAエンハンサー"
 
 msgid "Renderer options..."
 msgstr "レンダラー設定..."
@@ -1872,6 +1803,9 @@ msgstr "ホイール"
 msgid "Five + Wheel"
 msgstr "五つ＋ホイール"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 シリアル / SMT3(R)V"
 
@@ -2100,8 +2034,8 @@ msgstr "名前付きパイプ（サーバー）"
 msgid "Host Serial Passthrough"
 msgstr "ホストシリアルポートのパススルー"
 
-msgid "Eject %s"
-msgstr "%sを取り出す"
+msgid "E&ject %1"
+msgstr "%1を取り出す(&J)"
 
 msgid "&Unmute"
 msgstr "ミュート解除(&U)"
@@ -2112,11 +2046,104 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "パフォーマンスへの影響が大きい"
 
-msgid "RAM Disk (max. speed)"
-msgstr "RAMディスク（最高速度）"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] RAMディスク（最高速度）"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A クローン（ISA）"
 
 msgid "Vendor"
 msgstr "業者"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "汎用PC/XTメモリ拡張カード"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "汎用PC/ATメモリ拡張カード"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "ドットマトリクスフォントが見つかりません"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "汎用ESC/Pドットマトリクスプリンタのエミュレーションには、roms/printer/fontsディレクトリ内のTrueTypeフォントが必要です。"
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
+msgstr ""

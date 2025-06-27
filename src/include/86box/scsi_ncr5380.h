@@ -44,6 +44,9 @@
 #define ICR_ACK                 0x10
 #define ICR_ARB_LOST            0x20
 #define ICR_ARB_IN_PROGRESS     0x40
+#define ICR_RST                 0x80
+#define ICR_PHASE               0x9e
+#define ICR_WRITE               0x9f
 
 #define MODE_ARBITRATE          0x01
 #define MODE_DMA                0x02
@@ -63,69 +66,34 @@
 #define TCR_REQ                 0x08
 #define TCR_LAST_BYTE_SENT      0x80
 
-
-#define STATE_IDLE            0
-#define STATE_COMMAND         1
-#define STATE_DATAIN          2
-#define STATE_DATAOUT         3
-#define STATE_STATUS          4
-#define STATE_MESSAGEIN       5
-#define STATE_SELECT          6
-#define STATE_MESSAGEOUT      7
-#define STATE_MESSAGE_ID      8
-
-#define DMA_IDLE              0
-#define DMA_SEND              1
-#define DMA_INITIATOR_RECEIVE 2
-
 typedef struct ncr_t {
     uint8_t icr;
     uint8_t mode;
     uint8_t tcr;
-    uint8_t data_wait;
     uint8_t isr;
     uint8_t output_data;
-    uint8_t target_id;
     uint8_t tx_data;
-    uint8_t msglun;
     uint8_t irq_state;
+    uint8_t isr_reg;
 
-    uint8_t command[20];
-    uint8_t msgout[4];
     uint8_t bus;
-
-    int     msgout_pos;
-    int     is_msgout;
-
-    int     dma_mode;
-    int     cur_bus;
-    int     bus_in;
-    int     new_phase;
-    int     state;
-    int     clear_req;
-    int     wait_data;
-    int     wait_complete;
-    int     command_pos;
-    int     data_pos;
 
     int     irq;
 
     double  period;
 
     void   *priv;
-    void  (*dma_mode_ext)(void *priv, void *ext_priv);
+    void  (*dma_mode_ext)(void *priv, void *ext_priv, uint8_t val);
     int   (*dma_send_ext)(void *priv, void *ext_priv);
     int   (*dma_initiator_receive_ext)(void *priv, void *ext_priv);
     void  (*timer)(void *ext_priv, double period);
+
+    scsi_bus_t scsibus;
 } ncr_t;
 
-extern int      ncr5380_cmd_len[8];
-
 extern void     ncr5380_irq(ncr_t *ncr, int set_irq);
-extern void	ncr5380_set_irq(ncr_t *ncr, int irq);
+extern void	    ncr5380_set_irq(ncr_t *ncr, int irq);
 extern uint32_t ncr5380_get_bus_host(ncr_t *ncr);
-extern void     ncr5380_bus_read(ncr_t *ncr);
-extern void     ncr5380_bus_update(ncr_t *ncr, int bus);
 extern void     ncr5380_write(uint16_t port, uint8_t val, ncr_t *ncr);
 extern uint8_t  ncr5380_read(uint16_t port, ncr_t *ncr);
 

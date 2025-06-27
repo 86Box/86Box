@@ -13,7 +13,7 @@
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  */
 #ifndef EMU_HDC_H
@@ -22,11 +22,6 @@
 #define MFM_NUM   2  /* 2 drives per controller supported */
 #define ESDI_NUM  2  /* 2 drives per controller supported */
 #define XTA_NUM   2  /* 2 drives per controller supported */
-#define IDE_NUM   10 /* 8 drives per AT IDE + 2 for XT IDE */
-#define ATAPI_NUM 8  /* 8 drives per AT IDE */
-#define SCSI_NUM  16 /* theoretically the controller can have at \
-                      * least 7 devices, with each device being  \
-                      * able to support 8 units, but hey... */
 
 /* Controller types. */
 #define HDC_NONE     0
@@ -53,14 +48,19 @@ extern const device_t st506_xt_toshiba_t1200_device;      /* st506_xt_toshiba_t1
 
 extern const device_t esdi_at_wd1007vse1_device; /* esdi_at */
 extern const device_t esdi_ps2_device;           /* esdi_mca */
+extern const device_t esdi_integrated_device;           /* esdi_mca */
 
 extern const device_t ide_isa_device;         /* isa_ide */
+extern const device_t ide_isa_sec_device;     /* isa_ide sec*/
 extern const device_t ide_isa_2ch_device;     /* isa_ide_2ch */
-extern const device_t ide_isa_2ch_opt_device; /* isa_ide_2ch_opt */
 extern const device_t ide_vlb_device;         /* vlb_ide */
+extern const device_t ide_vlb_sec_device;     /* vlb_ide sec */
 extern const device_t ide_vlb_2ch_device;     /* vlb_ide_2ch */
 extern const device_t ide_pci_device;         /* pci_ide */
+extern const device_t ide_pci_sec_device;     /* pci_ide sec */
 extern const device_t ide_pci_2ch_device;     /* pci_ide_2ch */
+
+extern const device_t ide_pci_ter_qua_2ch_device;     /* pci_ide_ter_qua_2ch */
 
 extern const device_t ide_ali1489_device;                       /* ALi M1489 */
 extern const device_t ide_ali5213_device;                       /* ALi M5213 */
@@ -78,9 +78,13 @@ extern const device_t ide_cmd640_pci_single_channel_sec_device; /* CMD PCI-640B 
 extern const device_t ide_cmd646_device;                        /* CMD PCI-646 */
 extern const device_t ide_cmd646_legacy_only_device;            /* CMD PCI-646 (Legacy Mode Only) */
 extern const device_t ide_cmd646_single_channel_device;         /* CMD PCI-646 (Only primary channel) */
+extern const device_t ide_cmd646_ter_qua_device;                /* CMD PCI-646 (Tertiary and quaternary channels) */
 
 extern const device_t ide_opti611_vlb_device;                   /* OPTi 82c611/611A VLB */
 extern const device_t ide_opti611_vlb_sec_device;               /* OPTi 82c611/611A VLB (Secondary channel) */
+
+extern const device_t ide_rz1000_pci_device;                    /* PC Technology RZ-1000 PCI */
+extern const device_t ide_rz1000_pci_single_channel_device;     /* PC Technology RZ-1000 PCI (Only primary channel) */
 
 extern const device_t ide_um8673f_device;                       /* UMC UM8673F */
 extern const device_t ide_um8886af_device;                      /* UMC UM8886AF */
@@ -101,10 +105,12 @@ extern const device_t mcide_device;
 extern const device_t xta_wdxt150_device; /* xta_wdxt150 */
 extern const device_t xta_hd20_device;    /* EuroPC internal */
 
-extern const device_t xtide_device;           /* xtide_xt */
-extern const device_t xtide_at_device;        /* xtide_at */
-extern const device_t xtide_acculogic_device; /* xtide_ps2 */
-extern const device_t xtide_at_ps2_device;    /* xtide_at_ps2 */
+extern const device_t xtide_device;            /* xtide_xt */
+extern const device_t xtide_at_device;         /* xtide_at */
+extern const device_t xtide_at_2ch_device;     /* xtide_at_2ch */
+extern const device_t xtide_acculogic_device;  /* xtide_ps2 */
+extern const device_t xtide_at_ps2_device;     /* xtide_at_ps2 */
+extern const device_t xtide_at_ps2_2ch_device; /* xtide_at_ps2_2ch */
 
 /* Miscellaneous */
 extern const device_t lba_enhancer_device;

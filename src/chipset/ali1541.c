@@ -22,6 +22,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/timer.h>
 
 #include <86box/device.h>
@@ -643,8 +644,7 @@ ali1541_close(void *priv)
 static void *
 ali1541_init(UNUSED(const device_t *info))
 {
-    ali1541_t *dev = (ali1541_t *) malloc(sizeof(ali1541_t));
-    memset(dev, 0, sizeof(ali1541_t));
+    ali1541_t *dev = (ali1541_t *) calloc(1, sizeof(ali1541_t));
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, ali1541_read, ali1541_write, dev, &dev->pci_slot);
 
@@ -665,7 +665,7 @@ const device_t ali1541_device = {
     .init          = ali1541_init,
     .close         = ali1541_close,
     .reset         = ali1541_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

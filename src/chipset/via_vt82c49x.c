@@ -275,8 +275,8 @@ vt82c49x_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x71:
                     if (dev->has_ide) {
                         ide_pri_disable();
-                        ide_set_base(0, (val & 0x40) ? 0x170 : 0x1f0);
-                        ide_set_side(0, (val & 0x40) ? 0x376 : 0x3f6);
+                        ide_set_base(0, (val & 0x40) ? HDC_SECONDARY_BASE : HDC_PRIMARY_BASE);
+                        ide_set_side(0, (val & 0x40) ? HDC_SECONDARY_SIDE : HDC_PRIMARY_SIDE);
                         if (val & 0x01)
                             ide_pri_enable();
                         vt82c49x_log("VT82C496 IDE now %sabled as %sary\n", (val & 0x01) ? "en" : "dis",
@@ -342,8 +342,7 @@ vt82c49x_close(void *priv)
 static void *
 vt82c49x_init(const device_t *info)
 {
-    vt82c49x_t *dev = (vt82c49x_t *) malloc(sizeof(vt82c49x_t));
-    memset(dev, 0x00, sizeof(vt82c49x_t));
+    vt82c49x_t *dev = (vt82c49x_t *) calloc(1, sizeof(vt82c49x_t));
 
     dev->smram_smm  = smram_add();
     dev->smram_low  = smram_add();
@@ -375,7 +374,7 @@ const device_t via_vt82c49x_device = {
     .init          = vt82c49x_init,
     .close         = vt82c49x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -389,7 +388,7 @@ const device_t via_vt82c49x_pci_device = {
     .init          = vt82c49x_init,
     .close         = vt82c49x_close,
     .reset         = vt82c49x_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -403,7 +402,7 @@ const device_t via_vt82c49x_ide_device = {
     .init          = vt82c49x_init,
     .close         = vt82c49x_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -417,7 +416,7 @@ const device_t via_vt82c49x_pci_ide_device = {
     .init          = vt82c49x_init,
     .close         = vt82c49x_close,
     .reset         = vt82c49x_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

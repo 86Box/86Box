@@ -32,8 +32,10 @@
 #include <86box/86box.h>
 #include <86box/sound.h>
 #include <86box/device.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/snd_opl.h>
+#include <86box/plat_unused.h>
 
 #define RSM_FRAC 10
 
@@ -175,7 +177,7 @@ esfm_drv_set_do_cycles(void *priv, int8_t do_cycles)
 }
 
 static void *
-esfm_drv_init(const device_t *info)
+esfm_drv_init(UNUSED(const device_t *info))
 {
     esfm_drv_t *dev = (esfm_drv_t *) calloc(1, sizeof(esfm_drv_t));
     dev->flags      = FLAG_CYCLES | FLAG_OPL3;

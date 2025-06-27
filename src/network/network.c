@@ -54,7 +54,9 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <time.h>
+#ifndef _MSC_VER
 #include <sys/time.h>
+#endif
 #include <stdbool.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -83,36 +85,43 @@ static const NETWORK_CARD net_cards[] = {
     // clang-format off
     { &device_none                },
     { &device_internal            },
+    /* ISA */
     { &threec501_device           },
     { &threec503_device           },
-    { &pcnet_am79c960_device      },
-    { &pcnet_am79c961_device      },
-    { &de220p_device              },
     { &ne1000_compat_device       },
-    { &ne2000_compat_device       },
     { &ne2000_compat_8bit_device  },
     { &ne1000_device              },
-    { &ne2000_device              },
-    { &pcnet_am79c960_eb_device   },
-    { &rtl8019as_device           },
     { &wd8003e_device             },
     { &wd8003eb_device            },
     { &wd8013ebt_device           },
+    /* COM */
+    { &modem_device               },
+    /* LPT */
     { &plip_device                },
+    /* ISA16 */
+    { &pcnet_am79c960_device      },
+    { &pcnet_am79c961_device      },
+    { &de220p_device              },
+    { &ne2000_compat_device       },
+    { &ne2000_device              },
+    { &pcnet_am79c960_eb_device   },
+    { &rtl8019as_pnp_device       },
+    /* MCA */
     { &ethernext_mc_device        },
     { &wd8003eta_device           },
     { &wd8003ea_device            },
     { &wd8013epa_device           },
+    /* VLB */
+    { &pcnet_am79c960_vlb_device  },
+    /* PCI */
     { &pcnet_am79c973_device      },
     { &pcnet_am79c970a_device     },
+    { &dec_tulip_21140_device     },
+    { &dec_tulip_21040_device     },
     { &dec_tulip_device           },
+    { &dec_tulip_21140_vpc_device },
     { &rtl8029as_device           },
     { &rtl8139c_plus_device       },
-    { &dec_tulip_21140_device     },
-    { &dec_tulip_21140_vpc_device },
-    { &dec_tulip_21040_device     },
-    { &pcnet_am79c960_vlb_device  },
-    { &modem_device               },
     { NULL                        }
     // clang-format on
 };
@@ -430,7 +439,8 @@ network_rx_queue(void *priv)
     bool activity = rx_bytes || tx_bytes;
     bool led_on   = card->led_timer & 0x80000000;
     if ((activity && !led_on) || (card->led_timer & 0x7fffffff) >= 150000) {
-        ui_sb_update_icon(SB_NETWORK | card->card_num, activity);
+        ui_sb_update_icon(SB_NETWORK | card->card_num, !!(rx_bytes));
+        ui_sb_update_icon_write(SB_NETWORK | card->card_num, !!(tx_bytes));
         card->led_timer = 0 | (activity << 31);
     }
 
@@ -505,7 +515,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
 
         if(net_cards_conf[net_card_current].net_type != NET_TYPE_NONE) {
             // We're here because of a failure
-            swprintf(tempmsg, sizeof_w(tempmsg), L"%ls:<br /><br />%s<br /><br />%ls", plat_get_string(STRING_NET_ERROR), net_drv_error, plat_get_string(STRING_NET_ERROR_DESC));
+            swprintf(tempmsg, sizeof_w(tempmsg), L"%ls:\n\n%s\n\n%ls", plat_get_string(STRING_NET_ERROR), net_drv_error, plat_get_string(STRING_NET_ERROR_DESC));
             ui_msgbox(MBX_ERROR, tempmsg);
             net_cards_conf[net_card_current].net_type = NET_TYPE_NONE;
         }
@@ -581,6 +591,7 @@ void
 network_reset(void)
 {
     ui_sb_update_icon(SB_NETWORK, 0);
+    ui_sb_update_icon_write(SB_NETWORK, 0);
 
 #ifdef ENABLE_NETWORK_LOG
     network_dump_mutex = thread_create_mutex();
@@ -643,6 +654,43 @@ network_rx_put(netcard_t *card, uint8_t *bufp, int len)
     thread_wait_mutex(card->rx_mutex);
     ret = network_queue_put(&card->queues[NET_QUEUE_RX], bufp, len);
     thread_release_mutex(card->rx_mutex);
+
+    return ret;
+}
+
+int
+network_rx_on_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size)
+{
+    int pkt_count = 0;
+
+    netqueue_t *queue = &card->queues[NET_QUEUE_RX_ON_TX];
+    for (int i = 0; i < vec_size; i++) {
+        if (!network_queue_get_swap(queue, pkt_vec))
+            break;
+        network_dump_packet(pkt_vec);
+        pkt_count++;
+        pkt_vec++;
+    }
+
+    return pkt_count;
+}
+
+int
+network_rx_on_tx_put(netcard_t *card, uint8_t *bufp, int len)
+{
+    int ret = 0;
+
+    ret = network_queue_put(&card->queues[NET_QUEUE_RX_ON_TX], bufp, len);
+
+    return ret;
+}
+
+int
+network_rx_on_tx_put_pkt(netcard_t *card, netpkt_t *pkt)
+{
+    int ret = 0;
+
+    ret = network_queue_put_swap(&card->queues[NET_QUEUE_RX_ON_TX], pkt);
 
     return ret;
 }

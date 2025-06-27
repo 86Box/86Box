@@ -18,6 +18,25 @@
 #ifndef VIDEO_8514A_H
 #define VIDEO_8514A_H
 
+#define INT_VSY         (1 << 0)
+#define INT_GE_BSY      (1 << 1)
+#define INT_FIFO_OVR    (1 << 2)
+#define INT_FIFO_EMP    (1 << 3)
+#define INT_MASK        0xf
+
+typedef enum {
+    IBM_8514A_TYPE = 0,
+    ATI_38800_TYPE,
+    ATI_68800_TYPE,
+    TYPE_MAX
+} ibm8514_card_type;
+
+typedef enum {
+    IBM = 0,
+    ATI,
+    EXTENSIONS_MAX
+} ibm8514_extensions_t;
+
 typedef struct hwcursor8514_t {
     int      ena;
     int      x;
@@ -52,7 +71,7 @@ typedef struct ibm8514_t {
 
     int force_old_addr;
     int type;
-    int local;
+    ibm8514_card_type local;
     int bpp;
     int on;
     int accel_bpp;
@@ -61,6 +80,7 @@ typedef struct ibm8514_t {
     uint32_t vram_mask;
     uint32_t pallook[512];
     uint32_t bios_addr;
+    uint32_t memaddr_latch;
 
     PALETTE   vgapal;
     uint8_t   hwcursor_oddeven;
@@ -83,6 +103,7 @@ typedef struct ibm8514_t {
         uint16_t subsys_cntl;
         uint16_t setup_md;
         uint16_t advfunc_cntl;
+        uint16_t advfunc_cntl_old;
         uint16_t cur_y;
         uint16_t cur_x;
         int16_t  destx;
@@ -100,8 +121,10 @@ typedef struct ibm8514_t {
         uint16_t wrt_mask;
         uint16_t rd_mask;
         uint16_t color_cmp;
-        uint16_t bkgd_mix;
-        uint16_t frgd_mix;
+        uint8_t bkgd_mix;
+        uint8_t frgd_mix;
+        uint8_t bkgd_sel;
+        uint8_t frgd_sel;
         uint16_t multifunc_cntl;
         uint16_t multifunc[16];
         uint16_t clip_right;
@@ -117,6 +140,8 @@ typedef struct ibm8514_t {
         int      y1;
         int      y2;
         int      temp_cnt;
+        int16_t  dx_ibm;
+        int16_t  dy_ibm;
         int16_t  cx;
         int16_t  cx_back;
         int16_t  cy;
@@ -150,6 +175,14 @@ typedef struct ibm8514_t {
         int      ydir;
         int      linedraw;
         uint32_t ge_offset;
+        uint32_t src_ge_offset;
+        uint32_t dst_ge_offset;
+        uint16_t src_pitch;
+        uint16_t dst_pitch;
+        int64_t cur_x_24bpp;
+        int64_t cur_y_24bpp;
+        int64_t dest_x_24bpp;
+        int64_t dest_y_24bpp;
     } accel;
 
     uint16_t test;
@@ -187,8 +220,8 @@ typedef struct ibm8514_t {
     int      lastline_draw;
     int      displine;
     int      fullchange;
-    uint32_t ma;
-    uint32_t maback;
+    uint32_t memaddr;
+    uint32_t memaddr_backup;
 
     uint8_t *vram;
     uint8_t *changedvram;
@@ -203,7 +236,7 @@ typedef struct ibm8514_t {
     int     hdisp;
     int     hdisp2;
     int     hdisped;
-    int     sc;
+    int     scanline;
     int     vsyncstart;
     int     vsyncwidth;
     int     vtotal;
@@ -213,13 +246,12 @@ typedef struct ibm8514_t {
     int     vdisp2;
     int     disp_cntl;
     int     interlace;
-    uint8_t subsys_cntl;
+    uint16_t subsys_cntl;
     uint8_t subsys_stat;
 
-    atomic_int fifo_idx;
-    atomic_int ext_fifo_idx;
     atomic_int force_busy;
     atomic_int force_busy2;
+    atomic_int fifo_idx;
 
     int      blitter_busy;
     uint64_t blitter_time;
@@ -227,14 +259,27 @@ typedef struct ibm8514_t {
     int      pitch;
     int      ext_pitch;
     int      ext_crt_pitch;
-    int      extensions;
+    ibm8514_extensions_t extensions;
+    int      onboard;
     int      linear;
     uint32_t vram_amount;
     int      vram_512k_8514;
     int      vendor_mode;
+    int      _8514on;
+    int      _8514crt;
     PALETTE  _8514pal;
 
     latch8514_t latch;
+
+    void (*vblank_start)(void *priv);
+    void (*accel_out_fifo)(void *priv, uint16_t port, uint16_t val, int len);
+    void (*update_irqs)(void *priv);
+
 } ibm8514_t;
+
+#define IBM_8514A (((dev->local & 0xff) == IBM_8514A_TYPE) && (dev->extensions == IBM))
+#define ATI_8514A_ULTRA (((dev->local & 0xff) == IBM_8514A_TYPE) && (dev->extensions == ATI))
+#define ATI_GRAPHICS_ULTRA ((dev->local & 0xff) == ATI_38800_TYPE)
+#define ATI_MACH32 ((dev->local & 0xff) == ATI_68800_TYPE)
 
 #endif /*VIDEO_8514A_H*/

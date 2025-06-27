@@ -35,8 +35,6 @@ qt_nvr_save(void)
     return nvr_save();
 }
 
-char icon_set[256] = ""; /* name of the iconset to be used */
-
 int
 plat_vidapi(const char *api)
 {

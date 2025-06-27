@@ -128,8 +128,7 @@ mtouch_initnvr(void *priv)
     FILE *fp;
 
     /* Allocate and initialize the EEPROM. */
-    dev->nvr = (uint8_t *) malloc(NVR_SIZE);
-    memset(dev->nvr, 0x00, NVR_SIZE);
+    dev->nvr = (uint8_t *) calloc(1, NVR_SIZE);
 
     fp = nvr_fopen(dev->nvr_path, "rb");
     if (fp) {
@@ -314,7 +313,7 @@ mtouch_process_commands(mouse_microtouch_t *dev)
 }
 
 static void
-mtouch_write(serial_t *serial, void *priv, uint8_t data)
+mtouch_write(UNUSED(serial_t *serial), void *priv, uint8_t data)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
     
@@ -496,7 +495,7 @@ mtouch_poll_global(void)
 }
 
 void *
-mtouch_init(const device_t *info)
+mtouch_init(UNUSED(const device_t *info))
 {
     mouse_microtouch_t *dev = calloc(1, sizeof(mouse_microtouch_t));
     
@@ -526,6 +525,7 @@ mtouch_init(const device_t *info)
     
     mouse_input_mode = device_get_config_int("crosshair") + 1;
     mouse_set_buttons(2);
+    mouse_set_poll(mtouch_poll, dev);
     mouse_set_poll_ex(mtouch_poll_global);
     mtouch_inst = dev;
     
@@ -550,42 +550,49 @@ mtouch_close(void *priv)
 static const device_config_t mtouch_config[] = {
   // clang-format off
     {
-        .name = "port",
-        .description = "Serial Port",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "port",
+        .description    = "Serial Port",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "COM1", .value = 0 },
             { .description = "COM2", .value = 1 },
             { .description = "COM3", .value = 2 },
             { .description = "COM4", .value = 3 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "identity",
-        .description = "Controller",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = NULL,
-        .spinner = { 0 },
-        .selection = {
-            { .description =  "A3 - SMT2 Serial / SMT3(R)V", .value =   0 },
-            { .description =  "A4 - SMT2 PCBus",             .value =   1 },
-            { .description =  "P5 - TouchPen 4(+)",          .value =   2 },
-            { .description =  "Q1 - SMT3(R) Serial",         .value =   3 }
-        }
+        .name           = "identity",
+        .description    = "Controller",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "A3 - SMT2 Serial / SMT3(R)V", .value = 0 },
+            { .description = "A4 - SMT2 PCBus",             .value = 1 },
+            { .description = "P5 - TouchPen 4(+)",          .value = 2 },
+            { .description = "Q1 - SMT3(R) Serial",         .value = 3 },
+            { .description = ""                                        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "crosshair",
-        .description = "Show Crosshair",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "crosshair",
+        .description    = "Show Crosshair",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -599,7 +606,7 @@ const device_t mouse_mtouch_device = {
     .init          = mtouch_init,
     .close         = mtouch_close,
     .reset         = NULL,
-    { .poll = mtouch_poll },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mtouch_config

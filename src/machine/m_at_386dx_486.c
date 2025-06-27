@@ -50,6 +50,7 @@
 #include <86box/plat_unused.h>
 #include <86box/sound.h>
 
+/* 386DX */
 int
 machine_at_acc386_init(const machine_t *model)
 {
@@ -63,6 +64,27 @@ machine_at_acc386_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add(&acc2168_device);
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_asus3863364k_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/asus3863364k/am27c512dip28-64b53c26be3d8160533563.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&rabbit_device);
     device_add(&keyboard_at_ami_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
@@ -105,6 +127,27 @@ machine_at_tandy4000_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add(&keyboard_at_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_dtk461_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/dtk461/DTK.BIO",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&sl82c461_device);
+    device_add(&keyboard_at_ami_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -252,7 +295,7 @@ machine_at_ecs386v_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/ecs386v/PANDA_386V.BIN",
-               0x000f0000, 65536, 0);
+                           0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
     return ret;
@@ -353,7 +396,7 @@ machine_at_pb410a_init(const machine_t *model)
     device_add(&phoenix_486_jumper_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&ht216_32_pb410a_device);
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
@@ -369,14 +412,16 @@ machine_at_vect486vl_init(const machine_t *model) // has HDC problems
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_ide_init(model);
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    machine_at_common_init_ex(model, 2);
 
     device_add(&vl82c480_device);
 
-    if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5428_onboard_device);
-
     device_add(&vl82c113_device);
+
+    device_add(&ide_isa_device);
     device_add(&fdc37c651_ide_device);
 
     return ret;
@@ -393,17 +438,80 @@ machine_at_d824_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    machine_at_common_init_ex(model, 2);
 
     device_add(&vl82c480_device);
 
-    if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5428_onboard_device);
-
-    device_add(&keyboard_ps2_device);
+    /*
+       Technically, it should be the VL82C114 but we do not have
+       a proper datasheet of it that tells us the registers.
+     */
+    device_add(&vl82c113_device);
 
     device_add(&ide_isa_device);
     device_add(&fdc37c651_device);
+    
+    return ret;
+}
+
+int
+machine_at_tuliptc38_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tuliptc38/TULIP1.BIN",
+                           0x000f0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&vl82c486_device);
+    device_add(&tulip_jumper_device);
+
+    device_add(&vl82c113_device);
+
+    device_add(&ide_isa_device);
+    device_add(&fdc37c651_ide_device);
+
+    if (gfxcard[0] == VID_INTERNAL) {
+        bios_load_aux_linear("roms/machines/tuliptc38/VBIOS.BIN",
+                             0x000c0000, 32768, 0);
+
+        device_add(machine_get_vid_device(machine));
+    } else  for (uint16_t i = 0; i < 32768; i++)
+        rom[i] = mem_readb_phys(0x000c0000 + i);
+
+    mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+    mem_mapping_set_exec(&bios_mapping, rom);
+
+    return ret;
+}
+
+int
+machine_at_martin_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/martin/NONSCSI.ROM",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&vl82c480_device);
+    device_add(&vl82c113_device);
+
+    device_add(&ide_vlb_device);
+    device_add(&fdc37c651_ide_device);
+
+    device_add(&intel_flash_bxt_device);
     
     return ret;
 }
@@ -472,12 +580,43 @@ machine_at_decpclpv_init(const machine_t *model)
     device_add(&sis_85c461_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&s3_86c805_onboard_vlb_device);
+        device_add(machine_get_vid_device(machine));
 
-    /* TODO: Phoenix MultiKey KBC */
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&keyboard_ps2_phoenix_pci_device);
+
     device_add(&ide_isa_2ch_device);
     device_add(&fdc37c663_ide_device);
+
+    return ret;
+}
+
+int
+machine_at_dell466np_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/dell466np/466np.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&sis_85c461_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+    else {
+        for (uint16_t i = 0; i < 32768; i++)
+            rom[i] = mem_readb_phys(0x000c0000 + i);
+    }
+    mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+    mem_mapping_set_exec(&bios_mapping, rom);
+
+    device_add(&keyboard_ps2_phoenix_pci_device);
+
+    device_add(&ide_isa_device);
+    device_add(&fdc37c661_ide_device);
 
     return ret;
 }
@@ -543,7 +682,7 @@ machine_at_opti495_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&opti495_device);
+    device_add(&opti495slc_device);
 
     device_add(&keyboard_at_device);
 
@@ -558,7 +697,7 @@ machine_at_opti495_ami_common_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add(&opti495_device);
+    device_add(&opti495sx_device);
 
     device_add(&keyboard_at_ami_device);
 
@@ -594,6 +733,32 @@ machine_at_opti495_mr_init(const machine_t *model)
         return ret;
 
     machine_at_opti495_ami_common_init(model);
+
+    return ret;
+}
+
+int
+machine_at_c747_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/c747/486-C747 Tandon.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    /* The EFAR chipset is a rebrand of the OPTi 495SX. */
+    device_add(&opti495sx_device);
+
+    /*
+       No idea what KBC it actually has but this produces the
+       desired behavior: command A9 does absolutely nothing.
+     */
+    device_add(&keyboard_at_siemens_device);
+    device_add(&um82c862f_ide_device);
 
     return ret;
 }
@@ -684,14 +849,59 @@ machine_at_403tg_d_mr_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t pb450_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "pb450a",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "PCI 1.0A", .internal_name = "pb450a" /*"pci10a"*/, .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/OPTI802.bin", "" } },
+            { .name = "PNP 1.1A", .internal_name = "pnp11a", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/PNP11A.bin", "" } },
+            { .name = "P4HS20 (Micro Firmware/Phoenix 4.05)", .internal_name = "p4hs20", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/p4hs20.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pb450_device = {
+    .name          = "Packard Bell PB450",
+    .internal_name = "pb450_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pb450_config
+};
+
 int
 machine_at_pb450_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/pb450/OPTI802.bin",
-                           0x000e0000, 131072, 0);
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
 
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+    
     if (bios_only || !ret)
         return ret;
 
@@ -791,7 +1001,8 @@ machine_at_mvi486_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&opti895_device);
+    device_add(&opti498_device);
+
     device_add(&keyboard_at_device);
     device_add(&pc87311_ide_device);
 
@@ -822,6 +1033,31 @@ machine_at_ami471_init(const machine_t *model)
 
     machine_at_sis_85c471_common_init(model);
     device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_advantage40xxd_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/advantage40xxd/AST101.09A",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&sis_85c471_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    device_add(&keyboard_ps2_phoenix_device);
+    device_add(&um82c863f_ide_device);
+
+    device_add(&intel_flash_bxt_device);
 
     return ret;
 }
@@ -1139,6 +1375,39 @@ machine_at_ms4144_init(const machine_t *model)
 }
 
 int
+machine_at_acerp3_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/acerp3/Acer Mate 600 P3 BIOS U13 V2.0R02-J3 ACR8DE00-S00-950911-R02-J3.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    machine_at_sis_85c496_common_init(model);
+    device_add(&sis_85c496_device);
+    pci_register_slot(0x09, PCI_CARD_VIDEO,  0, 0, 0, 0);
+    pci_register_slot(0x0A, PCI_CARD_IDE, 	 0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 3, 4, 1);
+	pci_register_slot(0x14, PCI_CARD_NORMAL, 1, 2, 3, 4);
+
+    device_add(&fdc37c665_ide_device);
+    device_add(&keyboard_ps2_acer_pci_device);
+	device_add(&ide_cmd640_pci_legacy_only_device);
+	
+	if (gfxcard[0] == VID_INTERNAL)
+        device_add(&gd5434_onboard_pci_device);
+
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+int
 machine_at_486sp3c_init(const machine_t *model)
 {
     int ret;
@@ -1204,7 +1473,9 @@ machine_at_alfredo_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&amstrad_megapc_nvr_device);
     device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
@@ -1214,7 +1485,7 @@ machine_at_alfredo_init(const machine_t *model)
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 1, 3, 4);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 3, 2, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&keyboard_ps2_phoenix_device);
     device_add(&sio_device);
     device_add(&fdc37c663_device);
     device_add(&intel_flash_bxt_ami_device);
@@ -1235,14 +1506,15 @@ machine_at_ninja_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&amstrad_megapc_nvr_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 1, 2);
     pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 1, 2, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 1, 2, 1);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&keyboard_ps2_phoenix_device);
     device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i420ex_device);
@@ -1369,7 +1641,7 @@ machine_at_amis76_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_inverted("roms/machines/s76p/S76P.ROM", 
+    ret = bios_load_linear_inverted("roms/machines/s76p/S76P.ROM",
                                     0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -1482,6 +1754,87 @@ machine_at_486sp3g_init(const machine_t *model)
 
     device_add(&i420zx_device);
     device_add(&ncr53c810_onboard_pci_device);
+
+    return ret;
+}
+
+static const device_config_t sb486pv_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "sb486pv",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "AMI 062594 (0108)", .internal_name = "sb486pv", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/sb486pv/41-0108-062594-SATURN2.rom", "" } },
+            { .name = "AMI 062594 (0301)", .internal_name = "sb486pv_94", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/sb486pv/0301-062594-SATURN2.rom", "" } },
+            { .name = "AMI 071595 (1301)", .internal_name = "sb486pv_95", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/sb486pv/amiboot.rom", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t sb486pv_device = {
+    .name          = "ICS SB486PV",
+    .internal_name = "sb486pv_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = sb486pv_config
+};
+
+int
+machine_at_sb486pv_init(const machine_t *model)
+{
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    if (!strcmp(fn, "roms/machines/sb486pv/amiboot.rom"))
+        ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    else
+        ret = bios_load_linear_inverted(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_2);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0e, PCI_CARD_IDE,         0, 0, 0, 0);
+    pci_register_slot(0x0f, PCI_CARD_VIDEO,       1, 2, 3, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&sio_zb_device);
+    device_add(&ide_rz1000_pci_single_channel_device);
+    device_add(&i82091aa_26e_device);
+    if (!strcmp(fn, "roms/machines/sb486pv/amiboot.rom"))
+        device_add(&intel_flash_bxt_device);
+    else
+        device_add(&intel_flash_bxt_ami_device);
+
+    device_add(&i420zx_device);
 
     return ret;
 }
@@ -1679,12 +2032,11 @@ machine_at_sbc490_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_VIDEO,       4, 1, 2, 3);
 
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
     device_add(&ali1489_device);
     device_add(&fdc37c665_device);
-
-    if (gfxcard[0] == VID_INTERNAL)
-        device_add(&tgui9440_onboard_pci_device);
-
     device_add(&keyboard_ps2_ami_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -1933,18 +2285,66 @@ machine_at_ecs486_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t hot433a_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "hot433a",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "AMI", .internal_name = "hot433a", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/hot433/433AUS33.ROM", "" } },
+            { .name = "Award (eSupport update)", .internal_name = "hot433a_award", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/hot433/2A4X5H21.BIN", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t hot433a_device = {
+    .name          = "Shuttle HOT-433A",
+    .internal_name = "hot433a_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = hot433a_config
+};
+
 int
 machine_at_hot433a_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/hot433/433AUS33.ROM",
-                           0x000e0000, 131072, 0);
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    int is_award = !strcmp(device_get_config_bios("bios"), "hot433a_award");
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    if (is_award)
+        device_add(&amstrad_megapc_nvr_device);
+    else
+        device_add(&ami_1994_nvr_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -1956,9 +2356,46 @@ machine_at_hot433a_init(const machine_t *model)
 
     device_add(&umc_hb4_device);
     device_add(&umc_8886bf_device);
-    device_add(&um8669f_device);
+    if (is_award)
+        device_add(&um8663af_device);
+    else
+        device_add(&um8669f_device);
     device_add(&winbond_flash_w29c010_device);
-    device_add(&keyboard_at_ami_device);
+    if (is_award)
+        device_add(&keyboard_ps2_ami_device);
+    else
+        device_add(&keyboard_at_ami_device);
+
+    pic_toggle_latch(is_award);
+
+    return ret;
+}
+
+int
+machine_at_84xxuuda_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/84xxuuda/uud0520s.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2);
+
+    device_add(&umc_hb4_device);
+    device_add(&umc_8886bf_device);
+    device_add(&um8663bf_device);
+    device_add(&winbond_flash_w29c010_device);
+    device_add(&keyboard_ps2_ami_device);
 
     return ret;
 }
@@ -2063,7 +2500,7 @@ machine_at_actionpc2600_init(const machine_t *model)
     device_add(&keyboard_ps2_tg_ami_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&tgui9440_onboard_pci_device);
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
@@ -2095,7 +2532,7 @@ machine_at_actiontower8400_init(const machine_t *model)
     device_add(&intel_flash_bxt_device); // The ActionPC 2600 has this so I'm gonna assume this does too.
     device_add(&keyboard_ps2_ami_pci_device);
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5430_onboard_pci_device);
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
@@ -2236,7 +2673,8 @@ machine_at_tg486g_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&amstrad_megapc_nvr_device);
     device_add(&sis_85c471_device);
     device_add(&ide_isa_device);
     device_add(&fdc37c651_ide_device);
@@ -2363,6 +2801,30 @@ machine_at_dataexpert386wb_init(const machine_t *model)
 }
 
 int
+machine_at_isa486c_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/isa486c/asus-isa-486c-401a0-040591-657e2c17a0218417632602.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&isa486c_device);
+    device_add(&port_92_key_device);
+
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
 machine_at_genoa486_init(const machine_t *model)
 {
     int ret;
@@ -2403,6 +2865,32 @@ machine_at_ga486l_init(const machine_t *model)
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_cobalt_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/cobalt/Cobalt_2.3.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+	
+    machine_at_common_init(model);
+
+    device_add(&opti499_device);
+    device_add(&ide_opti611_vlb_device);
+    device_add(&ide_isa_sec_device);
+    device_add(&fdc37c665_device);
+	
+    device_add(&keyboard_ps2_ami_device);
+	
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }

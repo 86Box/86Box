@@ -20,7 +20,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#else
+#include <io.h>
+#endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
@@ -465,7 +469,7 @@ track_flags(int drive)
 }
 
 static void
-set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
+set_sector(int drive, int side, uint8_t c, UNUSED(uint8_t h), uint8_t r, UNUSED(uint8_t n))
 {
     pcjs_t *dev = images[drive];
 
@@ -613,8 +617,7 @@ pcjs_load(int drive, char *fn)
     d86f_unregister(drive);
 
     /* Allocate a drive block */
-    dev = (pcjs_t *) malloc(sizeof(pcjs_t));
-    memset(dev, 0x00, sizeof(pcjs_t));
+    dev = (pcjs_t *) calloc(1, sizeof(pcjs_t));
 
     /* Open the image file, read-only */
     dev->fp = plat_fopen(fn, "rb");

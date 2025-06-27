@@ -316,14 +316,14 @@ sff_bus_master_readl(uint16_t port, void *priv)
 }
 
 int
-sff_bus_master_dma(uint8_t *data, int transfer_length, int out, void *priv)
+sff_bus_master_dma(uint8_t *data, int transfer_length, int total_length, int out, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
 #ifdef ENABLE_SFF_LOG
     char *sop;
 #endif
 
-    int force_end = 0;
+    int force_end  = 0;
     int buffer_pos = 0;
 
 #ifdef ENABLE_SFF_LOG
@@ -365,9 +365,15 @@ sff_bus_master_dma(uint8_t *data, int transfer_length, int out, void *priv)
             return 1; /* This block has exhausted the data to transfer and it was smaller than the count, break. */
         } else {
             if (!transfer_length && !dev->eot) {
-                sff_log("Total transfer length smaller than sum of all blocks, full block\n");
-                dev->status &= ~2;
-                return 1; /* We have exhausted the data to transfer but there's more blocks left, break. */
+                if (total_length) {
+                    sff_log("Total transfer length smaller than sum of all blocks, partial transfer\n");
+                    sff_bus_master_next_addr(dev);
+                    return 1; /* We have exhausted the data to transfer but there's more blocks left, break. */
+                } else {
+                    sff_log("Total transfer length smaller than sum of all blocks, full block\n");
+                    dev->status &= ~2;
+                    return 1; /* We have exhausted the data to transfer but there's more blocks left, break. */
+                }
             } else if (transfer_length && dev->eot) {
                 sff_log("Total transfer length greater than sum of all blocks\n");
                 dev->status |= 2;
@@ -375,7 +381,7 @@ sff_bus_master_dma(uint8_t *data, int transfer_length, int out, void *priv)
             } else if (dev->eot) {
                 sff_log("Regular EOT\n");
                 dev->status &= ~3;
-                return 1; /* We have regularly reached EOT - clear status and break. */
+                return 3; /* We have regularly reached EOT - clear status and break. */
             } else {
                 /* We have more to transfer and there are blocks left, get next block. */
                 sff_bus_master_next_addr(dev);
@@ -475,19 +481,22 @@ sff_reset(void *priv)
 #endif
 
     for (uint8_t i = 0; i < HDD_NUM; i++) {
-        if ((hdd[i].bus == HDD_BUS_ATAPI) && (hdd[i].ide_channel < 4) && hdd[i].priv)
+        if ((hdd[i].bus_type == HDD_BUS_ATAPI) && (hdd[i].ide_channel < 4) && hdd[i].priv)
             scsi_disk_reset((scsi_common_t *) hdd[i].priv);
     }
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
-        if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && (cdrom[i].ide_channel < 4) && cdrom[i].priv)
+        if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && (cdrom[i].ide_channel < 4) &&
+            cdrom[i].priv)
             scsi_cdrom_reset((scsi_common_t *) cdrom[i].priv);
     }
     for (uint8_t i = 0; i < ZIP_NUM; i++) {
-        if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && (zip_drives[i].ide_channel < 4) && zip_drives[i].priv)
+        if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && (zip_drives[i].ide_channel < 4) &&
+            zip_drives[i].priv)
             zip_reset((scsi_common_t *) zip_drives[i].priv);
     }
     for (uint8_t i = 0; i < MO_NUM; i++) {
-        if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && (mo_drives[i].ide_channel < 4) && mo_drives[i].priv)
+        if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && (mo_drives[i].ide_channel < 4) &&
+            mo_drives[i].priv)
             mo_reset((scsi_common_t *) mo_drives[i].priv);
     }
 
@@ -575,8 +584,7 @@ sff_close(void *priv)
 static void *
 sff_init(UNUSED(const device_t *info))
 {
-    sff8038i_t *dev = (sff8038i_t *) malloc(sizeof(sff8038i_t));
-    memset(dev, 0, sizeof(sff8038i_t));
+    sff8038i_t *dev = (sff8038i_t *) calloc(1, sizeof(sff8038i_t));
 
     /* Make sure to only add IDE once. */
     if (next_id == 0)
@@ -608,7 +616,7 @@ const device_t sff8038i_device = {
     .init          = sff_init,
     .close         = sff_close,
     .reset         = sff_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

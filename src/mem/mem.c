@@ -67,7 +67,9 @@ mem_mapping_t bios_mapping;
 mem_mapping_t bios_high_mapping;
 
 page_t  *pages;       /* RAM page table */
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
 page_t **page_lookup; /* pagetable lookup */
+#endif
 uint32_t pages_sz;    /* #pages in table */
 
 uint8_t *ram;  /* the virtual RAM */
@@ -85,12 +87,23 @@ uint8_t *pccache2;
 
 int        readlnext;
 int        readlookup[256];
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
 uintptr_t *readlookup2;
+#endif
 uintptr_t  old_rl2;
 uint8_t    uncached = 0;
 int        writelnext;
 int        writelookup[256];
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
 uintptr_t *writelookup2;
+#endif
+
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+/* The lookup tables. */
+page_t *page_lookup[1048576] = { 0 };
+uintptr_t readlookup2[1048576] = { 0 };
+uintptr_t writelookup2[1048576] = { 0 };
+#endif
 
 uint32_t mem_logical_addr;
 
@@ -108,7 +121,6 @@ int mem_a20_alt   = 0;
 int mem_a20_state = 0;
 
 int mmuflush = 0;
-int mmu_perm = 4;
 
 #ifdef USE_NEW_DYNAREC
 uint64_t *byte_dirty_mask;
@@ -125,10 +137,6 @@ mem_mapping_t        *write_mapping[MEM_MAPPINGS_NO];
 
 uint8_t              *_mem_exec[MEM_MAPPINGS_NO];
 
-/* FIXME: re-do this with a 'mem_ops' struct. */
-static uint8_t       *page_lookupp; /* pagetable mmu_perm lookup */
-static uint8_t       *readlookupp;
-static uint8_t       *writelookupp;
 static mem_mapping_t *base_mapping;
 static mem_mapping_t *last_mapping;
 static mem_mapping_t *read_mapping_bus[MEM_MAPPINGS_NO];
@@ -187,10 +195,8 @@ resetreadlookup(void)
 
     /* Initialize the tables for high (> 1024K) RAM. */
     memset(readlookup2, 0xff, (1 << 20) * sizeof(uintptr_t));
-    memset(readlookupp, 0x04, (1 << 20) * sizeof(uint8_t));
 
     memset(writelookup2, 0xff, (1 << 20) * sizeof(uintptr_t));
-    memset(writelookupp, 0x04, (1 << 20) * sizeof(uint8_t));
 
     readlnext  = 0;
     writelnext = 0;
@@ -204,14 +210,11 @@ flushmmucache(void)
     for (uint16_t c = 0; c < 256; c++) {
         if (readlookup[c] != (int) 0xffffffff) {
             readlookup2[readlookup[c]] = LOOKUP_INV;
-            readlookupp[readlookup[c]] = 4;
             readlookup[c]              = 0xffffffff;
         }
         if (writelookup[c] != (int) 0xffffffff) {
             page_lookup[writelookup[c]]  = NULL;
-            page_lookupp[writelookup[c]] = 4;
             writelookup2[writelookup[c]] = LOOKUP_INV;
-            writelookupp[writelookup[c]] = 4;
             writelookup[c]               = 0xffffffff;
         }
     }
@@ -223,6 +226,19 @@ flushmmucache(void)
 #ifdef USE_DYNAREC
     codegen_flush();
 #endif
+}
+
+void
+flushmmucache_write(void)
+{
+    for (uint16_t c = 0; c < 256; c++) {
+        if (writelookup[c] != (int) 0xffffffff) {
+            page_lookup[writelookup[c]]  = NULL;
+            writelookup2[writelookup[c]] = LOOKUP_INV;
+            writelookup[c]               = 0xffffffff;
+        }
+    }
+    mmuflush++;
 }
 
 void
@@ -244,14 +260,11 @@ flushmmucache_nopc(void)
     for (uint16_t c = 0; c < 256; c++) {
         if (readlookup[c] != (int) 0xffffffff) {
             readlookup2[readlookup[c]] = LOOKUP_INV;
-            readlookupp[readlookup[c]] = 4;
             readlookup[c]              = 0xffffffff;
         }
         if (writelookup[c] != (int) 0xffffffff) {
             page_lookup[writelookup[c]]  = NULL;
-            page_lookupp[writelookup[c]] = 4;
             writelookup2[writelookup[c]] = LOOKUP_INV;
-            writelookupp[writelookup[c]] = 4;
             writelookup[c]               = 0xffffffff;
         }
     }
@@ -333,7 +346,6 @@ mmutranslatereal_normal(uint32_t addr, int rw)
             return 0xffffffffffffffffULL;
         }
 
-        mmu_perm = temp & 4;
         rammap(addr2) |= (rw ? 0x60 : 0x20);
 
         uint64_t page = temp & ~0x3fffff;
@@ -356,7 +368,6 @@ mmutranslatereal_normal(uint32_t addr, int rw)
         return 0xffffffffffffffffULL;
     }
 
-    mmu_perm = temp & 4;
     rammap(addr2) |= 0x20;
     rammap((temp2 & ~0xfff) + ((addr >> 10) & 0xffc)) |= (rw ? 0x60 : 0x20);
 
@@ -420,7 +431,6 @@ mmutranslatereal_pae(uint32_t addr, int rw)
 
             return 0xffffffffffffffffULL;
         }
-        mmu_perm = temp & 4;
         rammap64(addr3) |= (rw ? 0x60 : 0x20);
 
         return ((temp & ~0x1fffffULL) + (addr & 0x1fffffULL)) & 0x000000ffffffffffULL;
@@ -441,7 +451,6 @@ mmutranslatereal_pae(uint32_t addr, int rw)
         return 0xffffffffffffffffULL;
     }
 
-    mmu_perm = temp & 4;
     rammap64(addr3) |= 0x20;
     rammap64(addr4) |= (rw ? 0x60 : 0x20);
 
@@ -616,7 +625,6 @@ addreadlookup(uint32_t virt, uint32_t phys)
     else
         readlookup2[virt >> 12] = (uintptr_t) &ram[a];
 #endif
-    readlookupp[virt >> 12] = mmu_perm;
 
     readlookup[readlnext++] = virt >> 12;
     readlnext &= (cachesize - 1);
@@ -656,7 +664,6 @@ addwritelookup(uint32_t virt, uint32_t phys)
 #    endif
 #endif
         page_lookup[virt >> 12]  = &pages[phys >> 12];
-        page_lookupp[virt >> 12] = mmu_perm;
     } else {
 #if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
         writelookup2[virt >> 12] = (uintptr_t) &ram[(uintptr_t) (phys & ~0xFFF) - (uintptr_t) (virt & ~0xfff)];
@@ -669,7 +676,6 @@ addwritelookup(uint32_t virt, uint32_t phys)
             writelookup2[virt >> 12] = (uintptr_t) &ram[a];
 #endif
     }
-    writelookupp[virt >> 12] = mmu_perm;
 
     writelookup[writelnext++] = virt >> 12;
     writelnext &= (cachesize - 1);
@@ -958,10 +964,8 @@ readmemwl(uint32_t addr)
             }
 
             return readmembl_no_mmut(addr, addr64a[0]) | (((uint16_t) readmembl_no_mmut(addr + 1, addr64a[1])) << 8);
-        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
-            mmu_perm = readlookupp[addr >> 12];
+        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
             return *(uint16_t *) (readlookup2[addr >> 12] + addr);
-        }
     }
 
     if (cr0 >> 31) {
@@ -1029,7 +1033,6 @@ writememwl(uint32_t addr, uint16_t val)
             writemembl_no_mmut(addr + 1, addr64a[1], val >> 8);
             return;
         } else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
-            mmu_perm                                        = writelookupp[addr >> 12];
             *(uint16_t *) (writelookup2[addr >> 12] + addr) = val;
             return;
         }
@@ -1037,7 +1040,6 @@ writememwl(uint32_t addr, uint16_t val)
 
     if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_w) {
         page_lookup[addr >> 12]->write_w(addr, val, page_lookup[addr >> 12]);
-        mmu_perm = page_lookupp[addr >> 12];
         return;
     }
 
@@ -1085,10 +1087,8 @@ readmemwl_no_mmut(uint32_t addr, uint32_t *a64)
             }
 
             return readmembl_no_mmut(addr, a64[0]) | (((uint16_t) readmembl_no_mmut(addr + 1, a64[1])) << 8);
-        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
-            mmu_perm = readlookupp[addr >> 12];
+        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
             return *(uint16_t *) (readlookup2[addr >> 12] + addr);
-        }
     }
 
     if (cr0 >> 31) {
@@ -1134,14 +1134,12 @@ writememwl_no_mmut(uint32_t addr, uint32_t *a64, uint16_t val)
             writemembl_no_mmut(addr + 1, a64[1], val >> 8);
             return;
         } else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
-            mmu_perm                                        = writelookupp[addr >> 12];
             *(uint16_t *) (writelookup2[addr >> 12] + addr) = val;
             return;
         }
     }
 
     if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_w) {
-        mmu_perm = page_lookupp[addr >> 12];
         page_lookup[addr >> 12]->write_w(addr, val, page_lookup[addr >> 12]);
         return;
     }
@@ -1216,10 +1214,8 @@ readmemll(uint32_t addr)
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
             return readmemwl_no_mmut(addr, addr64a) | (((uint32_t) readmemwl_no_mmut(addr + 2, &(addr64a[2]))) << 16);
-        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
-            mmu_perm = readlookupp[addr >> 12];
+        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
             return *(uint32_t *) (readlookup2[addr >> 12] + addr);
-        }
     }
 
     if (cr0 >> 31) {
@@ -1301,14 +1297,12 @@ writememll(uint32_t addr, uint32_t val)
             writememwl_no_mmut(addr + 2, &(addr64a[2]), val >> 16);
             return;
         } else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
-            mmu_perm                                        = writelookupp[addr >> 12];
             *(uint32_t *) (writelookup2[addr >> 12] + addr) = val;
             return;
         }
     }
 
     if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_l) {
-        mmu_perm = page_lookupp[addr >> 12];
         page_lookup[addr >> 12]->write_l(addr, val, page_lookup[addr >> 12]);
         return;
     }
@@ -1363,10 +1357,8 @@ readmemll_no_mmut(uint32_t addr, uint32_t *a64)
             }
 
             return readmemwl_no_mmut(addr, a64) | ((uint32_t) (readmemwl_no_mmut(addr + 2, &(a64[2]))) << 16);
-        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
-            mmu_perm = readlookupp[addr >> 12];
+        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
             return *(uint32_t *) (readlookup2[addr >> 12] + addr);
-        }
     }
 
     if (cr0 >> 31) {
@@ -1414,14 +1406,12 @@ writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val)
             writememwl_no_mmut(addr + 2, &(a64[2]), val >> 16);
             return;
         } else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
-            mmu_perm                                        = writelookupp[addr >> 12];
             *(uint32_t *) (writelookup2[addr >> 12] + addr) = val;
             return;
         }
     }
 
     if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_l) {
-        mmu_perm = page_lookupp[addr >> 12];
         page_lookup[addr >> 12]->write_l(addr, val, page_lookup[addr >> 12]);
         return;
     }
@@ -1501,10 +1491,8 @@ readmemql(uint32_t addr)
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
             return readmemll_no_mmut(addr, addr64a) | (((uint64_t) readmemll_no_mmut(addr + 4, &(addr64a[4]))) << 32);
-        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
-            mmu_perm = readlookupp[addr >> 12];
+        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
             return *(uint64_t *) (readlookup2[addr >> 12] + addr);
-        }
     }
 
     if (cr0 >> 31) {
@@ -1518,10 +1506,28 @@ readmemql(uint32_t addr)
     addr = addr64a[0] & rammask;
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
-    if (map && map->read_l)
-        return map->read_l(addr, map->priv) | ((uint64_t) map->read_l(addr + 4, map->priv) << 32);
 
-    return readmemll(addr) | ((uint64_t) readmemll(addr + 4) << 32);
+    if (map && map->read_l)
+        return map->read_l(addr, map->priv) |
+               ((uint64_t) map->read_l(addr + 4, map->priv) << 32);
+
+    if (map && map->read_w)
+        return map->read_w(addr, map->priv) |
+               ((uint64_t) map->read_w(addr + 2, map->priv) << 16) |
+               ((uint64_t) map->read_w(addr + 4, map->priv) << 32) |
+               ((uint64_t) map->read_w(addr + 6, map->priv) << 48);
+
+    if (map && map->read_b)
+        return map->read_b(addr, map->priv) |
+               ((uint64_t) map->read_b(addr + 1, map->priv) << 8) |
+               ((uint64_t) map->read_b(addr + 2, map->priv) << 16) |
+               ((uint64_t) map->read_b(addr + 3, map->priv) << 24) |
+               ((uint64_t) map->read_b(addr + 4, map->priv) << 32) |
+               ((uint64_t) map->read_b(addr + 5, map->priv) << 40) |
+               ((uint64_t) map->read_b(addr + 6, map->priv) << 48) |
+               ((uint64_t) map->read_b(addr + 7, map->priv) << 56);
+
+    return 0xffffffffffffffffULL;
 }
 
 void
@@ -1578,14 +1584,12 @@ writememql(uint32_t addr, uint64_t val)
             writememll_no_mmut(addr + 4, &(addr64a[4]), val >> 32);
             return;
         } else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
-            mmu_perm                                        = writelookupp[addr >> 12];
             *(uint64_t *) (writelookup2[addr >> 12] + addr) = val;
             return;
         }
     }
 
     if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_l) {
-        mmu_perm = page_lookupp[addr >> 12];
         page_lookup[addr >> 12]->write_l(addr, val, page_lookup[addr >> 12]);
         page_lookup[addr >> 12]->write_l(addr + 4, val >> 32, page_lookup[addr >> 12]);
         return;
@@ -1669,8 +1673,7 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
                 a      = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));
                 a64[i] = (uint32_t) a;
             }
-        } else
-            mmu_perm = page_lookupp[addr >> 12];
+        }
 
         addr++;
     }
@@ -2370,7 +2373,7 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
             for (i_c = i_s; i_c <= i_e; i_c += i_a) {
                 for (c = (start + i_c); c < (end + i_c); c += MEM_GRANULARITY_SIZE) {
                     /* CPU */
-                    n = !!in_smm;
+                    n = (!!in_smm) || (is_cxsmm && (ccr1 & CCR1_SMAC));
                     wp = _mem_wp[c >> MEM_GRANULARITY_BITS];
 
                     if (map->exec && mem_mapping_access_allowed(map->flags,
@@ -2759,6 +2762,17 @@ mem_init_ram_mapping(mem_mapping_t *mapping, uint32_t base, uint32_t size)
     mem_add_ram_mapping(mapping, base, size);
 }
 
+void
+mem_zero(void)
+{
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+    if (mem_size > 1048576)
+        memset(ram2, 0x00, ram2_size + 16);
+#endif
+
+    memset(ram, 0x00, ram_size + 16);
+}
+
 /* Reset the memory state. */
 void
 mem_reset(void)
@@ -2834,8 +2848,10 @@ mem_reset(void)
             return;
         }
         memset(ram, 0x00, ram_size + 16);
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
         if (mem_size > 1048576)
             ram2 = &(ram[1 << 30]);
+#endif
     }
 
     /*
@@ -2868,7 +2884,6 @@ mem_reset(void)
     pages    = (page_t *) malloc(m * sizeof(page_t));
 
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
-    memset(page_lookupp, 0x04, (1 << 20) * sizeof(uint8_t));
 
     memset(pages, 0x00, pages_sz * sizeof(page_t));
 
@@ -2930,6 +2945,7 @@ mem_reset(void)
         else if (cpu_16bitbus && is6117 && mem_size > 65408)
             mem_init_ram_mapping(&ram_high_mapping, 0x100000, (65408 - 1024) * 1024);
         else {
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
             if (mem_size > 1048576) {
                 mem_init_ram_mapping(&ram_high_mapping, 0x100000, (1048576 - 1024) * 1024);
 
@@ -2942,6 +2958,9 @@ mem_reset(void)
                                 ram2, MEM_MAPPING_INTERNAL, NULL);
             } else
                 mem_init_ram_mapping(&ram_high_mapping, 0x100000, (mem_size - 1024) * 1024);
+#else
+            mem_init_ram_mapping(&ram_high_mapping, 0x100000, (mem_size - 1024) * 1024);
+#endif
         }
     }
 
@@ -2981,20 +3000,32 @@ mem_init(void)
     ram2      = NULL;
     pages     = NULL;
 
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     /* Allocate the lookup tables. */
     page_lookup  = (page_t **) malloc((1 << 20) * sizeof(page_t *));
-    page_lookupp = (uint8_t *) malloc((1 << 20) * sizeof(uint8_t));
     readlookup2  = malloc((1 << 20) * sizeof(uintptr_t));
-    readlookupp  = malloc((1 << 20) * sizeof(uint8_t));
     writelookup2 = malloc((1 << 20) * sizeof(uintptr_t));
-    writelookupp = malloc((1 << 20) * sizeof(uint8_t));
+#endif
 }
 
-static void
-umc_page_recalc(uint32_t c, int set)
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+void
+mem_free(void)
 {
+    free(page_lookup);
+    free(readlookup2);
+    free(writelookup2);
+}
+#endif
+
+
+static void
+umc_page_recalc(uint32_t c, uint32_t phys, int set)
+{
+    uint32_t target = set ? phys : c;
+
     if (set) {
-        pages[c].mem = &ram[(c & 0xff) << 12];
+        pages[c].mem = &ram[(target & 0xff) << 12];
         pages[c].write_b = mem_write_ramb_page;
         pages[c].write_w = mem_write_ramw_page;
         pages[c].write_l = mem_write_raml_page;
@@ -3007,8 +3038,8 @@ umc_page_recalc(uint32_t c, int set)
 
 #ifdef USE_NEW_DYNAREC
     pages[c].evict_prev             = EVICT_NOT_IN_LIST;
-    pages[c].byte_dirty_mask        = &byte_dirty_mask[(c & 0xff) * 64];
-    pages[c].byte_code_present_mask = &byte_code_present_mask[(c & 0xff) * 64];
+    pages[c].byte_dirty_mask        = &byte_dirty_mask[(target & 0xff) * 64];
+    pages[c].byte_code_present_mask = &byte_code_present_mask[(target & 0xff) * 64];
 #endif
 }
 
@@ -3016,11 +3047,11 @@ void
 umc_smram_recalc(uint32_t start, int set)
 {
     for (uint32_t c = start; c < (start + 0x0020); c++)
-        umc_page_recalc(c, set);
+        umc_page_recalc(c, c - start + 0x000a0000, set);
 }
 
-void
-mem_remap_top_ex(int kb, uint32_t start)
+static void
+mem_remap_top_ex_common(int kb, uint32_t start, int mid)
 {
     uint32_t   c;
     int        offset;
@@ -3123,35 +3154,59 @@ mem_remap_top_ex(int kb, uint32_t start)
             mem_mapping_set_addr(&ram_remapped_mapping2, (start * 1024) + 0x00020000, 0x00020000);
             mem_mapping_set_exec(&ram_remapped_mapping2, ram + 0x000d0000);
 
-            mem_mapping_set_addr(&ram_mid_mapping, 0x000c0000, 0x00010000);
-            mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000c0000);
-            mem_mapping_set_addr(&ram_mid_mapping2, 0x000f0000, 0x00010000);
-            mem_mapping_set_exec(&ram_mid_mapping2, ram + 0x000f0000);
+            if (mid) {
+                mem_mapping_set_addr(&ram_mid_mapping, 0x000c0000, 0x00010000);
+                mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000c0000);
+                mem_mapping_set_addr(&ram_mid_mapping2, 0x000f0000, 0x00010000);
+                mem_mapping_set_exec(&ram_mid_mapping2, ram + 0x000f0000);
+            }
         } else {
             mem_mapping_set_addr(&ram_remapped_mapping, start * 1024, size * 1024);
             mem_mapping_set_exec(&ram_remapped_mapping, ram + start_addr);
             mem_mapping_disable(&ram_remapped_mapping2);
 
-            mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
-            mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
-            mem_mapping_disable(&ram_mid_mapping2);
+            if (mid) {
+                mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
+                mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
+                mem_mapping_disable(&ram_mid_mapping2);
+            }
         }
     } else {
         mem_mapping_disable(&ram_remapped_mapping);
         mem_mapping_disable(&ram_remapped_mapping2);
 
-        mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
-        mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
-        mem_mapping_disable(&ram_mid_mapping2);
+        if (mid) {
+            mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
+            mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
+            mem_mapping_disable(&ram_mid_mapping2);
+        }
     }
 
     flushmmucache();
 }
 
 void
+mem_remap_top_ex(int kb, uint32_t start)
+{
+    mem_remap_top_ex_common(kb, start, 1);
+}
+
+void
+mem_remap_top_ex_nomid(int kb, uint32_t start)
+{
+    mem_remap_top_ex_common(kb, start, 0);
+}
+
+void
 mem_remap_top(int kb)
 {
     mem_remap_top_ex(kb, (mem_size >= 1024) ? mem_size : 1024);
+}
+
+void
+mem_remap_top_nomid(int kb)
+{
+    mem_remap_top_ex_nomid(kb, (mem_size >= 1024) ? mem_size : 1024);
 }
 
 void

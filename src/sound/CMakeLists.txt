@@ -41,6 +41,7 @@ add_library(snd OBJECT
     snd_sb.c
     snd_sb_dsp.c
     snd_emu8k.c
+    snd_mmb.c
     snd_mpu401.c
     snd_pas16.c
     snd_sn76489.c
@@ -48,12 +49,28 @@ add_library(snd OBJECT
     snd_wss.c
     snd_ym7128.c
     snd_optimc.c
-    esfmu/esfm.c
-    esfmu/esfm_registers.c
     snd_opl_esfm.c
 )
 
-if(OPENAL)
+# TODO: Should platform-specific audio driver be here?
+if(AUDIO4)
+    target_sources(snd PRIVATE audio4.c)
+elseif(SNDIO)
+    target_sources(snd PRIVATE sndio.c)
+    find_package(PkgConfig REQUIRED)
+
+    pkg_check_modules(SNDIO IMPORTED_TARGET sndio)
+    if(SNDIO_FOUND)
+        target_link_libraries(86Box PkgConfig::SNDIO)
+    else()
+        find_path(SNDIO_INCLUDE_DIR NAMES "sndio.h")
+        find_library(SNDIO_LIBRARY sndio)
+
+        target_link_libraries(86Box ${SNDIO_LIBRARY})
+    endif()
+
+    include_directories(${SNDIO_INCLUDE_DIRS})
+elseif(OPENAL)
     if(VCPKG_TOOLCHAIN)
         find_package(OpenAL CONFIG REQUIRED)
     elseif(MINGW)
@@ -159,20 +176,22 @@ if(MUNT)
     endif()
 endif()
 
+add_subdirectory(ayumi)
+target_link_libraries(86Box ayumi)
+
+add_subdirectory(esfmu)
+target_link_libraries(86Box esfmu)
+
 add_subdirectory(ymfm)
 target_link_libraries(86Box ymfm)
-
-if(GUSMAX)
-    target_compile_definitions(snd PRIVATE USE_GUSMAX)
-endif()
 
 if(OPL4ML)
     target_compile_definitions(snd PRIVATE USE_OPL4ML)
     target_sources(snd PRIVATE midi_opl4.c midi_opl4_yrw801.c)
 endif()
  
-find_package(PkgConfig )
-pkg_check_modules(SERIALPORT  libserialport)
+find_package(PkgConfig)
+pkg_check_modules(SERIALPORT libserialport)
 
 if(SERIALPORT_FOUND OR DEFINED LIBSERIALPORT_ROOT)
     add_compile_definitions(USE_LIBSERIALPORT=1)

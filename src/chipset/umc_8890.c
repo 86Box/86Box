@@ -38,6 +38,7 @@
 #include <86box/smram.h>
 
 #include <86box/chipset.h>
+#include <86box/plat_unused.h>
 
 #ifdef ENABLE_UMC_8890_LOG
 int umc_8890_do_log = ENABLE_UMC_8890_LOG;
@@ -209,7 +210,7 @@ umc_8890_close(void *priv)
 
 
 static void *
-umc_8890_init(const device_t *info)
+umc_8890_init(UNUSED(const device_t *info))
 {
     umc_8890_t *dev = (umc_8890_t *) calloc(1, sizeof(umc_8890_t));
 
@@ -234,7 +235,7 @@ const device_t umc_8890_device = {
     .init          = umc_8890_init,
     .close         = umc_8890_close,
     .reset         = umc_8890_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

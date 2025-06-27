@@ -18,12 +18,8 @@ opSYSENTER(uint32_t fetchdat)
 {
     int ret = sysenter(fetchdat);
 
-    if (ret <= 1) {
-        CLOCK_CYCLES(20);
-        PREFETCH_RUN(20, 7, -1, 0, 0, 0, 0, 0);
-        PREFETCH_FLUSH();
+    if (ret <= 1)
         CPU_BLOCK_END();
-    }
 
     return ret;
 }
@@ -33,12 +29,8 @@ opSYSEXIT(uint32_t fetchdat)
 {
     int ret = sysexit(fetchdat);
 
-    if (ret <= 1) {
-        CLOCK_CYCLES(20);
-        PREFETCH_RUN(20, 7, -1, 0, 0, 0, 0, 0);
-        PREFETCH_FLUSH();
+    if (ret <= 1)
         CPU_BLOCK_END();
-    }
 
     return ret;
 }
@@ -53,8 +45,6 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
 
     if (CPUID < 0x650)
         return ILLEGAL(fetchdat);
-
-    FP_ENTER();
 
     if (bits == 32) {
         fetch_ea_32(fetchdat);
@@ -90,12 +80,18 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
         /* The lower 11 bits contain the FPU opcode, upper 5 bits are reserved */
         fpu_state.foo = readmemw(easeg, cpu_state.eaaddr + 6) & 0x7FF;
 
-        fpu_state.fip = readmeml(easeg, cpu_state.eaaddr + 8);
+        if (bits == 32)
+            fpu_state.fip = readmeml(easeg, cpu_state.eaaddr + 8);
+        else
+            fpu_state.fip = readmemw(easeg, cpu_state.eaaddr + 8);
         fpu_state.fcs = readmemw(easeg, cpu_state.eaaddr + 12);
 
         tag_byte = readmemb(easeg, cpu_state.eaaddr + 4);
 
-        fpu_state.fdp = readmeml(easeg, cpu_state.eaaddr + 16);
+        if (bits == 32)
+            fpu_state.fdp = readmeml(easeg, cpu_state.eaaddr + 16);
+        else
+            fpu_state.fdp = readmemw(easeg, cpu_state.eaaddr + 16);
         fpu_state.fds = readmemw(easeg, cpu_state.eaaddr + 20);
 
         /* load i387 register file */
@@ -118,7 +114,7 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
             fpu_state.swd &= ~(FPU_SW_Summary | FPU_SW_Backward);
         }
 
-        CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
+        CLOCK_CYCLES(1);
     } else {
         /* FXSAVE */
         writememw(easeg, cpu_state.eaaddr, i387_get_control_word());
@@ -139,7 +135,10 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
          * x87 CS FPU IP Selector
          *   + 16 bit, in 16/32 bit mode only
          */
-        writememl(easeg, cpu_state.eaaddr + 8, fpu_state.fip);
+        if (bits == 32)
+            writememl(easeg, cpu_state.eaaddr + 8, fpu_state.fip);
+        else
+            writememl(easeg, cpu_state.eaaddr + 8, fpu_state.fip & 0xffff);
         writememl(easeg, cpu_state.eaaddr + 12, fpu_state.fcs);
 
         /*
@@ -152,7 +151,10 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
          * x87 DS FPU Instruction Operand (Data) Pointer Selector
          *   + 16 bit, in 16/32 bit mode only
          */
-        writememl(easeg, cpu_state.eaaddr + 16, fpu_state.fdp);
+        if (bits == 32)
+            writememl(easeg, cpu_state.eaaddr + 16, fpu_state.fdp);
+        else
+            writememl(easeg, cpu_state.eaaddr + 16, fpu_state.fdp & 0xffff);
         writememl(easeg, cpu_state.eaaddr + 20, fpu_state.fds);
 
         /* store i387 register file */
@@ -163,7 +165,7 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
             writememw(easeg, cpu_state.eaaddr + (index * 16) + 40, fp.signExp);
         }
 
-        CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
+        CLOCK_CYCLES(1);
     }
 
     return cpu_state.abrt;
@@ -263,8 +265,6 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
         return cpu_state.abrt;
     }
 
-    FP_ENTER();
-
     old_eaaddr = cpu_state.eaaddr;
 
     if (fxinst == 1) {
@@ -276,13 +276,19 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
         cpu_state.TOP = (fpus >> 11) & 7;
         cpu_state.npxs &= fpus & ~0x3800;
 
-        x87_pc_off = readmeml(easeg, cpu_state.eaaddr + 8);
+        if (bits == 32)
+            x87_pc_off = readmeml(easeg, cpu_state.eaaddr + 8);
+        else
+            x87_pc_off = readmemw(easeg, cpu_state.eaaddr + 8);
         x87_pc_seg = readmemw(easeg, cpu_state.eaaddr + 12);
 
         ftwb = readmemb(easeg, cpu_state.eaaddr + 4);
+        x87_op = readmemw(easeg, cpu_state.eaaddr + 6) & 0x07ff;
 
-        x87_op_off = readmeml(easeg, cpu_state.eaaddr + 16);
-        x87_op_off |= (readmemw(easeg, cpu_state.eaaddr + 6) >> 12) << 16;
+        if (bits == 32)
+            x87_op_off = readmeml(easeg, cpu_state.eaaddr + 16);
+        else
+            x87_op_off = readmemw(easeg, cpu_state.eaaddr +16);
         x87_op_seg = readmemw(easeg, cpu_state.eaaddr + 20);
 
         for (i = 0; i <= 7; i++) {
@@ -327,7 +333,7 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
             }
         }
 
-        CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
+        CLOCK_CYCLES(1);
     } else {
         /* FXSAVE */
         if ((twd & 0x0003) != 0x0003)
@@ -351,11 +357,17 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
         writememw(easeg, cpu_state.eaaddr + 2, cpu_state.npxs);
         writememb(easeg, cpu_state.eaaddr + 4, ftwb);
 
-        writememw(easeg, cpu_state.eaaddr + 6, (x87_op_off >> 16) << 12);
-        writememl(easeg, cpu_state.eaaddr + 8, x87_pc_off);
+        writememw(easeg, cpu_state.eaaddr + 6, x87_op);
+        if (bits == 32)
+            writememl(easeg, cpu_state.eaaddr + 8, x87_pc_off);
+        else
+            writememl(easeg, cpu_state.eaaddr + 8, x87_pc_off & 0xffff);
         writememw(easeg, cpu_state.eaaddr + 12, x87_pc_seg);
 
-        writememl(easeg, cpu_state.eaaddr + 16, x87_op_off);
+        if (bits == 32)
+            writememl(easeg, cpu_state.eaaddr + 16, x87_op_off);
+        else
+            writememl(easeg, cpu_state.eaaddr + 16, x87_op_off & 0xffff);
         writememw(easeg, cpu_state.eaaddr + 20, x87_op_seg);
 
         if (cpu_state.ismmx) {
@@ -372,7 +384,7 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
         cpu_state.eaaddr = old_eaaddr;
 
-        CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
+        CLOCK_CYCLES(1);
     }
 
     return cpu_state.abrt;
@@ -400,8 +412,7 @@ static int
 opHINT_NOP_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
-    CLOCK_CYCLES((is486) ? 1 : 3);
-    PREFETCH_RUN(3, 1, -1, 0, 0, 0, 0, 0);
+    CLOCK_CYCLES(1);
     return 0;
 }
 
@@ -409,7 +420,6 @@ static int
 opHINT_NOP_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
-    CLOCK_CYCLES((is486) ? 1 : 3);
-    PREFETCH_RUN(3, 1, -1, 0, 0, 0, 0, 0);
+    CLOCK_CYCLES(1);
     return 0;
 }

@@ -4,10 +4,12 @@
 typedef struct dev_status_empty_active_t {
     atomic_bool_t empty;
     atomic_bool_t active;
+    atomic_bool_t write_active;
 } dev_status_empty_active_t;
 
 typedef struct dev_status_active_t {
     atomic_bool_t active;
+    atomic_bool_t write_active;
 } dev_status_active_t;
 
 typedef struct dev_status_empty_t {

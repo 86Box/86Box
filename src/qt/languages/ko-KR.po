@@ -18,8 +18,8 @@ msgstr "우측CTRL로 좌측ALT 입력(&R)"
 msgid "&Hard Reset..."
 msgstr "재시작(&H)..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "Ctrl+Alt+Del(&C)\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del(&C)"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+Esc(&E)"
@@ -111,8 +111,8 @@ msgstr "선형 보간법(&L)"
 msgid "Hi&DPI scaling"
 msgstr "HiDPI 스케일링(&D)"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "전체 화면(&F)\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "전체 화면(&F)"
 
 msgid "Fullscreen &stretch mode"
 msgstr "전체 화면 비율(&S)"
@@ -186,8 +186,11 @@ msgstr "설정(&S)..."
 msgid "&Update status bar icons"
 msgstr "상태 바 아이콘 갱신하기(&U)"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "스크린샷 찍기(&C)\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "스크린샷 찍기(&C)"
+
+msgid "S&ound"
+msgstr "사운드(&O)"
 
 msgid "&Preferences..."
 msgstr "환경설정(&P)..."
@@ -198,11 +201,11 @@ msgstr "디스코드 연동 활성화하기(&D)"
 msgid "Sound &gain..."
 msgstr "음량 증폭(&G)..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "추적 시작하기\tCtrl+T"
+msgid "Begin trace"
+msgstr "추적 시작하기"
 
-msgid "End trace\tCtrl+T"
-msgstr "추적 끝내기\tCtrl+T"
+msgid "End trace"
+msgstr "추적 끝내기"
 
 msgid "&Help"
 msgstr "도움말(&H)"
@@ -249,8 +252,8 @@ msgstr "음소거(&M)"
 msgid "E&mpty"
 msgstr "비었음(&M)"
 
-msgid "&Reload previous image"
-msgstr "이전 이미지 다시 불러오기(&R)"
+msgid "Reload previous image"
+msgstr "이전 이미지 다시 불러오기"
 
 msgid "&Folder..."
 msgstr "폴더(&F)..."
@@ -306,17 +309,11 @@ msgstr "확인"
 msgid "Cancel"
 msgstr "취소"
 
-msgid "Save these settings as &global defaults"
-msgstr "이 설정들을 전역 기본값으로 저장하기(&G)"
-
 msgid "&Default"
 msgstr "기본값(&D)"
 
 msgid "Language:"
 msgstr "언어:"
-
-msgid "Icon set:"
-msgstr "아이콘셋:"
 
 msgid "Gain"
 msgstr "증가값"
@@ -452,15 +449,6 @@ msgstr "Nuked (더 정확한)"
 
 msgid "YMFM (faster)"
 msgstr "YMFM (더 빠르게)"
-
-msgid "Network type:"
-msgstr "네트워크 종류:"
-
-msgid "PCap device:"
-msgstr "PCap 장치:"
-
-msgid "Network adapter:"
-msgstr "네트워크 어댑터:"
 
 msgid "COM1 Device:"
 msgstr "COM1 장치:"
@@ -642,14 +630,11 @@ msgstr "치명적인 오류"
 msgid " - PAUSED"
 msgstr " - 일시 중지됨"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Ctrl+Alt+PgDn 키를 누르면 창 모드로 전환합니다."
-
 msgid "Speed"
 msgstr "속도"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIP 이미지"
@@ -687,8 +672,11 @@ msgstr "roms/machines 디렉토리에 필요한 롬파일이 없어 기종 \"%hs
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "roms/video 디렉토리에 필요한 롬파일이 없어 비디오 카드 \"%hs\"을(를) 사용할 수 없습니다. 사용 가능한 기종으로 변경합니다."
 
-msgid "Video card 2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "roms/video 디렉토리에 필요한 롬파일이 없어 비디오 카드 2 \"%hs\"을(를) 사용할 수 없습니다. 사용 가능한 기종으로 변경합니다."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "roms/video 디렉토리에 필요한 롬파일이 없어 비디오 카드 2 \"%hs\"을(를) 사용할 수 없습니다. 두 번째 비디오 카드를 비활성화합니다."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "필요한 롬파일이 없어 장치 \"%hs\"을(를) 사용할 수 없습니다. 장치를 무시합니다."
 
 msgid "Machine"
 msgstr "기종"
@@ -750,14 +738,11 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "비디오 렌더러를 초기화할 수 없습니다."
-
 msgid "Default"
 msgstr "기본값"
 
-msgid "%i Wait state(s)"
-msgstr "%i 대기 상태"
+msgid "%1 Wait state(s)"
+msgstr "%1 대기 상태"
 
 msgid "Type"
 msgstr "형식"
@@ -801,11 +786,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "없음"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "플로피 %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "플로피 %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "어드밴스드 섹터 이미지"
@@ -825,8 +810,8 @@ msgstr "Ghostscript를 초기화할 수 없습니다"
 msgid "Unable to initialize GhostPCL"
 msgstr "GhostPCL를 초기화할 수 없습니다"
 
-msgid "MO %i (%ls): %ls"
-msgstr "광자기 %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "광자기 %1 (%2): %3"
 
 msgid "MO images"
 msgstr "광자기 이미지"
@@ -876,9 +861,6 @@ msgstr "%1은(는) PostScript 파일을 PDF로 자동변환하는 데에 필요�
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1은(는) PCL 파일을 PDF로 자동변환하는 데에 필요합니다.\n\n표준 PCL 프린터로 보내신 임의의 문서는 Printer Command Language (.pcl) 파일로 저장됩니다."
 
-msgid "Entering fullscreen mode"
-msgstr "전체 화면으로 전환"
-
 msgid "Don't show this message again"
 msgstr "이 메시지 그만 보기"
 
@@ -900,11 +882,8 @@ msgstr "%1 장치 설정"
 msgid "Monitor in sleep mode"
 msgstr "모니터 절전 모드"
 
-msgid "OpenGL Shaders"
-msgstr "OpenGL 쉐이더"
-
-msgid "OpenGL options"
-msgstr "OpenGL 설정"
+msgid "GLSL shaders"
+msgstr "GLSL 쉐이더"
 
 msgid "You are loading an unsupported configuration"
 msgstr "지원하지 않는 설정입니다"
@@ -915,23 +894,17 @@ msgstr "이 에뮬레이트된 기종에 대해 선택한 기종을 기반으로
 msgid "Continue"
 msgstr "계속"
 
-msgid "Cassette: %s"
-msgstr "카세트: %s"
+msgid "Cassette: %1"
+msgstr "카세트: %1"
 
 msgid "Cassette images"
 msgstr "카세트 이미지"
 
-msgid "Cartridge %i: %ls"
-msgstr "카트리지 %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "카트리지 %1: %2"
 
 msgid "Cartridge images"
 msgstr "카트리지 이미지"
-
-msgid "Error initializing renderer"
-msgstr "렌더러 초기화 오류"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) 렌더러를 초기화할 수 없습니다. 다른 렌더러를 사용하십시오."
 
 msgid "Resume execution"
 msgstr "실행 재개"
@@ -1095,8 +1068,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1275,9 +1248,6 @@ msgstr "이미지 기록 지우기"
 msgid "Create..."
 msgstr "만들기..."
 
-msgid "previous image"
-msgstr "이전 이미지"
-
 msgid "Host CD/DVD Drive (%1)"
 msgstr "호스트 CD/DVD 드라이브 (%1)"
 
@@ -1287,23 +1257,8 @@ msgstr "알 수 없는 버스"
 msgid "Null Driver"
 msgstr "Null 드라이버"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "열기 오류 \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "파일 \"%1\"에서 버텍스 셰이더를 컴파일하는 동안 오류가 발생했습니다."
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "파일에서 조각 셰이더 컴파일 중 오류 발생 \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "파일에서 셰이더 프로그램 연결 중 오류 \"%1\"\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "OpenGL 3.0 렌더러 옵션"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "렌더링 동작"
@@ -1317,9 +1272,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;;에뮬레이트된 디스플레이와 동기화하여 각 프레임을 즉시 렌더링합니다.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;사용 중인 셰이더가 애니메이션 효과에 프레임 시간을 활용하지 않는 경우 권장되는 옵션입니다.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "비디오와 동기"
 
@@ -1329,20 +1281,8 @@ msgstr "셰이더"
 msgid "Remove"
 msgstr "제거"
 
-msgid "No shader selected"
-msgstr "셰이더를 선택하지 않음"
-
 msgid "Browse..."
 msgstr "찾아보기..."
-
-msgid "Shader error"
-msgstr "셰이더 오류"
-
-msgid "Could not load shaders."
-msgstr "셰이더를 로드할 수 없습니다."
-
-msgid "More information in details."
-msgstr "자세한 내용은 자세히 알아보세요."
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGL 컨텍스트를 만들 수 없습니다."
@@ -1353,20 +1293,14 @@ msgstr "OpenGL 컨텍스트로 전환할 수 없습니다."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGL 버전 3.0 이상이 필요합니다. 현재 버전은 %1.%2입니다."
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "OpenGL 초기화에 실패했습니다. 오류 %1입니다."
-
 msgid "Error initializing OpenGL"
 msgstr "OpenGL 초기화 중 오류 발생"
 
-msgid "Falling back to software rendering.\n"
-msgstr "소프트웨어 렌더링으로 돌아가기.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\n소프트웨어 렌더링으로 돌아가기."
 
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "압축 해제 버퍼에 메모리를 할당하지 못했습니다.\n"
-
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;미디어 이미지(CD-ROM, 플로피 등)를 선택하면 86Box 구성 파일과 동일한 디렉터리에서 열기 대화 상자가 시작됩니다. 이 설정은 macOS에서만 차이가 있을 수 있습니다.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>미디어 이미지(CD-ROM, 플로피 등)를 선택하면 86Box 구성 파일과 동일한 디렉터리에서 열기 대화 상자가 시작됩니다. 이 설정은 macOS에서만 차이가 있을 수 있습니다.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "이 컴퓨터가 이동되었거나 복사되었을 수 있습니다."
@@ -1401,17 +1335,17 @@ msgstr "네트워크 카드 3"
 msgid "Network Card #4"
 msgstr "네트워크 카드 4"
 
-msgid "Mode"
-msgstr "모드"
+msgid "Mode:"
+msgstr "모드:"
 
-msgid "Interface"
-msgstr "인터페이스"
+msgid "Interface:"
+msgstr "인터페이스:"
 
-msgid "Adapter"
-msgstr "어댑터"
+msgid "Adapter:"
+msgstr "어댑터:"
 
-msgid "VDE Socket"
-msgstr "VDE 소켓"
+msgid "VDE Socket:"
+msgstr "VDE 소켓:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box 유닛 테스터"
@@ -1430,9 +1364,6 @@ msgstr "직렬 포트 패스스루 3"
 
 msgid "Serial port passthrough 4"
 msgstr "직렬 포트 패스스루 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "비전 시스템 LBA 인핸서"
 
 msgid "Renderer options..."
 msgstr "렌더러 옵션..."
@@ -1872,6 +1803,9 @@ msgstr "휠"
 msgid "Five + Wheel"
 msgstr "5개 + 휠"
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 직렬/SMT3(R)V"
 
@@ -2100,8 +2034,8 @@ msgstr "네임드 파이프(서버)"
 msgid "Host Serial Passthrough"
 msgstr "호스트 직렬 포트 패스스루"
 
-msgid "Eject %s"
-msgstr "%s 꺼내기"
+msgid "E&ject %1"
+msgstr "%1 꺼내기(&J)"
 
 msgid "&Unmute"
 msgstr "음소거 해제(&U)"
@@ -2112,11 +2046,104 @@ msgstr "소프트플로트 FPU"
 msgid "High performance impact"
 msgstr "성능에 미치는 영향"
 
-msgid "RAM Disk (max. speed)"
-msgstr "RAM 디스크(최대 속도)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] RAM 디스크(최대 속도)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A 클론(ISA)"
 
 msgid "Vendor"
 msgstr "제조사"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "일반 PC/XT 메모리 확장 카드"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "일반 PC/AT 메모리 확장 카드"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "도트 매트릭스 글꼴을 찾을 수 없습니다"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "일반 ESC/P 도트 매트릭스 프린터의 에뮬레이션을 사용하려면 \"roms/printer/fonts\" 디렉터리에 있는 트루타입 글꼴이 필요합니다."
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
+msgstr ""

@@ -15,10 +15,9 @@
 #include <86box/nmi.h>
 #include <86box/pic.h>
 #include <86box/sound.h>
+#include "cpu.h"
 #include <86box/timer.h>
-#ifdef USE_GUSMAX
-#    include <86box/snd_ad1848.h>
-#endif /*USE_GUSMAX */
+#include <86box/snd_ad1848.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
@@ -144,11 +143,9 @@ typedef struct gus_t {
 
     uint8_t usrr;
 
-#ifdef USE_GUSMAX
     uint8_t max_ctrl;
 
     ad1848_t ad1848;
-#endif /*USE_GUSMAX */
 } gus_t;
 
 static int gus_gf1_irqs[8]  = { -1, 2, 5, 3, 7, 11, 12, 15 };
@@ -256,9 +253,7 @@ writegus(uint16_t addr, uint8_t val, void *priv)
     int      d;
     int      old;
     uint16_t port;
-#ifdef USE_GUSMAX
     uint16_t csioport;
-#endif /*USE_GUSMAX */
 
     if ((addr == 0x388) || (addr == 0x389))
         port = addr;
@@ -606,10 +601,9 @@ writegus(uint16_t addr, uint8_t val, void *priv)
                                 gus->irq_midi = gus->irq;
                         } else
                             gus->irq_midi = gus_midi_irqs[(val >> 3) & 7];
-#ifdef USE_GUSMAX
+
                         if (gus->type == GUS_MAX)
                             ad1848_setirq(&gus->ad1848, gus->irq);
-#endif /*USE_GUSMAX */
 
                         gus->sb_nmi = val & 0x80;
                     } else {
@@ -622,10 +616,9 @@ writegus(uint16_t addr, uint8_t val, void *priv)
                                 gus->dma2 = gus->dma;
                         } else
                             gus->dma2 = gus_dmas[(val >> 3) & 7];
-#ifdef USE_GUSMAX
+
                         if (gus->type == GUS_MAX)
                             ad1848_setdma(&gus->ad1848, gus->dma2);
-#endif /*USE_GUSMAX */
                     }
                     break;
                 case 1:
@@ -683,7 +676,6 @@ writegus(uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x306:
         case 0x706:
-#ifdef USE_GUSMAX
             if (gus->type == GUS_MAX) {
                 if (gus->dma >= 4)
                     val |= 0x10;
@@ -703,7 +695,6 @@ writegus(uint16_t addr, uint8_t val, void *priv)
                     }
                 }
             }
-#endif /*USE_GUSMAX */
             break;
 
         default:
@@ -755,11 +746,9 @@ readgus(uint16_t addr, void *priv)
             return val;
 
         case 0x20F:
-#ifdef USE_GUSMAX
             if (gus->type == GUS_MAX)
                 val = 0x02;
             else
-#endif /*USE_GUSMAX */
                 val = 0x00;
             break;
 
@@ -878,11 +867,9 @@ readgus(uint16_t addr, void *priv)
             break;
         case 0x306:
         case 0x706:
-#ifdef USE_GUSMAX
             if (gus->type == GUS_MAX)
                 val = 0x0a; /* GUS MAX */
             else
-#endif /*USE_GUSMAX */
                 val = 0xff; /*Pre 3.7 - no mixer*/
             break;
 
@@ -1182,24 +1169,20 @@ gus_get_buffer(int32_t *buffer, int len, void *priv)
 {
     gus_t *gus = (gus_t *) priv;
 
-#ifdef USE_GUSMAX
     if ((gus->type == GUS_MAX) && (gus->max_ctrl))
         ad1848_update(&gus->ad1848);
-#endif /*USE_GUSMAX */
+
     gus_update(gus);
 
     for (int c = 0; c < len * 2; c++) {
-#ifdef USE_GUSMAX
         if ((gus->type == GUS_MAX) && (gus->max_ctrl))
             buffer[c] += (int32_t) (gus->ad1848.buffer[c] / 2);
-#endif /*USE_GUSMAX */
         buffer[c] += (int32_t) gus->buffer[c & 1][c >> 1];
     }
 
-#ifdef USE_GUSMAX
     if ((gus->type == GUS_MAX) && (gus->max_ctrl))
         gus->ad1848.pos = 0;
-#endif /*USE_GUSMAX */
+
     gus->pos = 0;
 }
 
@@ -1332,9 +1315,7 @@ gus_reset(void *priv)
 
     gus->usrr = 0;
 
-#ifdef USE_GUSMAX
     gus->max_ctrl = 0;
-#endif /*USE_GUSMAX */
 
     gus->irq_state = 0;
     gus->midi_irq_state = 0;
@@ -1348,12 +1329,10 @@ gus_init(UNUSED(const device_t *info))
     int     c;
     double  out     = 1.0;
     uint8_t gus_ram = device_get_config_int("gus_ram");
-    gus_t  *gus     = malloc(sizeof(gus_t));
-    memset(gus, 0x00, sizeof(gus_t));
+    gus_t  *gus     = calloc(1, sizeof(gus_t));
 
     gus->gus_end_ram = 1 << (18 + gus_ram);
-    gus->ram         = (uint8_t *) malloc(gus->gus_end_ram);
-    memset(gus->ram, 0x00, (gus->gus_end_ram));
+    gus->ram         = (uint8_t *) calloc(1, gus->gus_end_ram);
 
     for (c = 0; c < 32; c++) {
         gus->ctrl[c]  = 1;
@@ -1374,7 +1353,7 @@ gus_init(UNUSED(const device_t *info))
 
     gus->uart_out = 1;
 
-    gus->type = device_get_config_int("type");
+    gus->type = info->local;
 
     gus->base = device_get_config_hex16("base");
 
@@ -1383,7 +1362,6 @@ gus_init(UNUSED(const device_t *info))
     io_sethandler(0x0506 + gus->base, 0x0001, readgus, NULL, NULL, writegus, NULL, NULL, gus);
     io_sethandler(0x0388, 0x0002, readgus, NULL, NULL, writegus, NULL, NULL, gus);
 
-#ifdef USE_GUSMAX
     if (gus->type == GUS_MAX) {
         ad1848_init(&gus->ad1848, AD1848_TYPE_CS4231);
         ad1848_setirq(&gus->ad1848, 5);
@@ -1391,7 +1369,6 @@ gus_init(UNUSED(const device_t *info))
         io_sethandler(0x10C + gus->base, 4,
                       ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &gus->ad1848);
     }
-#endif /*USE_GUSMAX */
 
     timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
     timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
@@ -1424,101 +1401,57 @@ gus_speed_changed(void *priv)
     else
         gus->samp_latch = (uint64_t) (TIMER_USEC * (1000000.0 / gusfreqs[gus->voices - 14]));
 
-#ifdef USE_GUSMAX
     if ((gus->type == GUS_MAX) && (gus->max_ctrl))
         ad1848_speed_changed(&gus->ad1848);
-#endif /*USE_GUSMAX */
 }
 
 static const device_config_t gus_config[] = {
     // clang-format off
     {
-        .name = "type",
-        .description = "GUS type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "Classic",
-                .value = GUS_CLASSIC
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "210H", .value = 0x210 },
+            { .description = "220H", .value = 0x220 },
+            { .description = "230H", .value = 0x230 },
+            { .description = "240H", .value = 0x240 },
+            { .description = "250H", .value = 0x250 },
+            { .description = "260H", .value = 0x260 },
+            { NULL                                  }
         },
-#ifdef USE_GUSMAX
-            {
-                .description = "MAX",
-                .value = GUS_MAX
-            },
-#endif /*USE_GUSMAX */
-            { NULL }
-        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x220,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "210H",
-                .value = 0x210
-            },
-            {
-                .description = "220H",
-                .value = 0x220
-            },
-            {
-                .description = "230H",
-                .value = 0x230
-            },
-            {
-                .description = "240H",
-                .value = 0x240
-            },
-            {
-                .description = "250H",
-                .value = 0x250
-            },
-            {
-                .description = "260H",
-                .value = 0x260
-            },
+        .name           = "gus_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value = 0 },
+            { .description = "512 KB", .value = 1 },
+            { .description = "1 MB",   .value = 2 },
+            { NULL                                }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "gus_ram",
-        "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "256 KB",
-                .value = 0
-            },
-            {
-                .description = "512 KB",
-                .value = 1
-            },
-            {
-                .description = "1 MB",
-                .value = 2
-            },
-            { NULL }
-        }
-    },
-    {
-        .name = "receive_input",
-        .description = "Receive MIDI input",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off
@@ -1527,8 +1460,22 @@ static const device_config_t gus_config[] = {
 const device_t gus_device = {
     .name          = "Gravis UltraSound",
     .internal_name = "gus",
-    .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 0,
+    .flags         = DEVICE_ISA16,
+    .local         = GUS_CLASSIC,
+    .init          = gus_init,
+    .close         = gus_close,
+    .reset         = gus_reset,
+    .available     = NULL,
+    .speed_changed = gus_speed_changed,
+    .force_redraw  = NULL,
+    .config        = gus_config
+};
+
+const device_t gus_max_device = {
+    .name          = "Gravis UltraSound MAX",
+    .internal_name = "gusmax",
+    .flags         = DEVICE_ISA16,
+    .local         = GUS_MAX,
     .init          = gus_init,
     .close         = gus_close,
     .reset         = gus_reset,

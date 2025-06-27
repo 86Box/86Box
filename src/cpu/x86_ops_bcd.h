@@ -1,5 +1,5 @@
 static int
-opAAA(uint32_t fetchdat)
+opAAA(UNUSED(uint32_t fetchdat))
 {
     flags_rebuild();
     if ((cpu_state.flags & A_FLAG) || ((AL & 0xF) > 9)) {
@@ -46,7 +46,7 @@ opAAM(uint32_t fetchdat)
 }
 
 static int
-opAAS(uint32_t fetchdat)
+opAAS(UNUSED(uint32_t fetchdat))
 {
     flags_rebuild();
     if ((cpu_state.flags & A_FLAG) || ((AL & 0xF) > 9)) {
@@ -63,7 +63,7 @@ opAAS(uint32_t fetchdat)
 }
 
 static int
-opDAA(uint32_t fetchdat)
+opDAA(UNUSED(uint32_t fetchdat))
 {
     uint16_t tempw;
     uint16_t old_AL;
@@ -100,7 +100,7 @@ opDAA(uint32_t fetchdat)
 }
 
 static int
-opDAS(uint32_t fetchdat)
+opDAS(UNUSED(uint32_t fetchdat))
 {
     uint16_t tempw;
     uint16_t old_AL;

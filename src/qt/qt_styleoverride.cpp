@@ -18,6 +18,16 @@
 
 #include <QComboBox>
 #include <QAbstractItemView>
+#include <QPixmap>
+#include <QIcon>
+#include <QStyleOption>
+
+#ifdef Q_OS_WINDOWS
+#include <dwmapi.h>
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+#endif
 
 int
 StyleOverride::styleHint(
@@ -48,9 +58,51 @@ StyleOverride::polish(QWidget *widget)
             widget->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, true);
         }
         widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
+#ifdef Q_OS_WINDOWS
+        extern bool windows_is_light_theme();
+        BOOL DarkMode = !windows_is_light_theme();
+        DwmSetWindowAttribute((HWND)widget->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID)&DarkMode, sizeof(DarkMode));
+#endif
     }
 
     if (qobject_cast<QComboBox *>(widget)) {
         qobject_cast<QComboBox *>(widget)->view()->setMinimumWidth(widget->minimumSizeHint().width());
     }
+}
+
+QPixmap
+StyleOverride::generatedIconPixmap(QIcon::Mode iconMode, const QPixmap &pixmap, const QStyleOption *option) const
+{
+    if (iconMode != QIcon::Disabled) {
+        return QProxyStyle::generatedIconPixmap(iconMode, pixmap, option);
+    }
+
+    auto image = pixmap.toImage();
+
+    for (int y = 0; y < image.height(); y++) {
+        for (int x = 0; x < image.width(); x++) {
+            // checkerboard transparency
+            if (((x ^ y) & 1) == 0) {
+                image.setPixelColor(x, y, Qt::transparent);
+                continue;
+            }
+
+            auto color = image.pixelColor(x, y);
+
+            // convert to grayscale using the NTSC formula
+            auto avg = 0.0;
+            avg += color.blueF() * 0.114;
+            avg += color.greenF() * 0.587;
+            avg += color.redF() * 0.299;
+
+            color.setRedF(avg);
+            color.setGreenF(avg);
+            color.setBlueF(avg);
+
+            image.setPixelColor(x, y, color);
+
+        }
+    }
+
+    return QPixmap::fromImage(image);
 }

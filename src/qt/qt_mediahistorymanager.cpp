@@ -101,15 +101,20 @@ MediaHistoryManager::getImageForSlot(int index, int slot, ui::MediaType type)
     return image_name;
 }
 
-// These are hardcoded since we can't include the various
-// header files where they are defined (e.g., fdd.h, mo.h).
-// However, all in ui::MediaType support 4 except cassette.
 int
 MediaHistoryManager::maxDevicesSupported(ui::MediaType type)
 {
     switch (type) {
         default:
             return 4;
+        case ui::MediaType::Optical:
+            return CDROM_NUM;
+        case ui::MediaType::Floppy:
+            return FDD_NUM;
+        case ui::MediaType::Zip:
+            return ZIP_NUM;
+        case ui::MediaType::Mo:
+            return MO_NUM;
         case ui::MediaType::Cassette:
             return 1;
         case ui::MediaType::Cartridge:

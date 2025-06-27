@@ -38,26 +38,27 @@
 #define FDC_QUATERNARY_IRQ      6
 #define FDC_QUATERNARY_DMA      2
 
-#define FDC_FLAG_PCJR           0x01    /* PCjr */
-#define FDC_FLAG_DISKCHG_ACTLOW 0x02    /* Amstrad, PS/1, PS/2 ISA */
-#define FDC_FLAG_AT             0x04    /* AT+, PS/x */
-#define FDC_FLAG_PS2            0x08    /* PS/1, PS/2 ISA */
-#define FDC_FLAG_PS2_MCA        0x10    /* PS/2 MCA */
-#define FDC_FLAG_SUPERIO        0x20    /* Super I/O chips */
-#define FDC_FLAG_START_RWC_1    0x40    /* W83877F, W83977F */
-#define FDC_FLAG_MORE_TRACKS    0x80    /* W83877F, W83977F, PC87306, PC87309 */
-#define FDC_FLAG_NSC            0x100   /* PC87306, PC87309 */
-#define FDC_FLAG_TOSHIBA        0x200   /* T1000, T1200 */
-#define FDC_FLAG_AMSTRAD        0x400   /* Non-AT Amstrad machines */
-#define FDC_FLAG_UMC            0x800   /* UMC UM8398 */
-#define FDC_FLAG_ALI            0x1000  /* ALi M512x / M1543C */
-#define FDC_FLAG_NO_DSR_RESET   0x2000  /* Has no DSR reset */
-#define FDC_FLAG_DENSEL_INVERT  0x4000  /* Invert DENSEL polarity */
-#define FDC_FLAG_FINTR          0x8000  /* Raise FINTR on data command finish */
-#define FDC_FLAG_NEC            0x10000 /* Is NEC upd765-compatible */
-#define FDC_FLAG_SEC            0x20000 /* Is Secondary */
-#define FDC_FLAG_TER            0x40000 /* Is Tertiary */
-#define FDC_FLAG_QUA            0x80000 /* Is Quaternary */
+#define FDC_FLAG_PCJR           0x01     /* PCjr */
+#define FDC_FLAG_DISKCHG_ACTLOW 0x02     /* Amstrad, PS/1, PS/2 ISA */
+#define FDC_FLAG_AT             0x04     /* AT+, PS/x */
+#define FDC_FLAG_PS2            0x08     /* PS/1, PS/2 ISA */
+#define FDC_FLAG_PS2_MCA        0x10     /* PS/2 MCA */
+#define FDC_FLAG_SUPERIO        0x20     /* Super I/O chips */
+#define FDC_FLAG_START_RWC_1    0x40     /* W83877F, W83977F */
+#define FDC_FLAG_MORE_TRACKS    0x80     /* W83877F, W83977F, PC87306, PC87309 */
+#define FDC_FLAG_NSC            0x100    /* PC87306, PC87309 */
+#define FDC_FLAG_TOSHIBA        0x200    /* T1000, T1200 */
+#define FDC_FLAG_AMSTRAD        0x400    /* Non-AT Amstrad machines */
+#define FDC_FLAG_UMC            0x800    /* UMC UM8398 */
+#define FDC_FLAG_ALI            0x1000   /* ALi M512x / M1543C */
+#define FDC_FLAG_NO_DSR_RESET   0x2000   /* Has no DSR reset */
+#define FDC_FLAG_DENSEL_INVERT  0x4000   /* Invert DENSEL polarity */
+#define FDC_FLAG_FINTR          0x8000   /* Raise FINTR on data command finish */
+#define FDC_FLAG_NEC            0x10000  /* Is NEC upd765-compatible */
+#define FDC_FLAG_SEC            0x20000  /* Is Secondary */
+#define FDC_FLAG_TER            0x40000  /* Is Tertiary */
+#define FDC_FLAG_QUA            0x80000  /* Is Quaternary */
+#define FDC_FLAG_SMC661         0x100000 /* SM(s)C FDC37C661 - different TDR enhanced mode */
 
 typedef struct fdc_t {
     uint8_t dor;
@@ -103,7 +104,6 @@ typedef struct fdc_t {
     uint8_t densel_force;
     uint8_t fifo;
     uint8_t tfifo;
-    uint8_t fifobufpos;
 
     uint8_t drv2en;
     uint8_t gap;
@@ -119,6 +119,8 @@ typedef struct fdc_t {
 
     uint8_t lock;
     uint8_t dsr;
+
+    uint8_t media_id;
 
     uint8_t params[15];
     uint8_t specify[2];
@@ -148,6 +150,7 @@ typedef struct fdc_t {
     int drvrate[4];
 
     void *fifo_p;
+    int fifointest;
 
     sector_id_t read_track_sector;
     sector_id_t format_sector_id;
@@ -166,6 +169,9 @@ extern void fdc_3f1_enable(fdc_t *fdc, int enable);
 extern int  fdc_get_bit_rate(fdc_t *fdc);
 extern int  fdc_get_bitcell_period(fdc_t *fdc);
 
+extern uint8_t fdc_get_media_id(fdc_t *fdc, int id);
+extern void    fdc_set_media_id(fdc_t *fdc, int id, int set);
+
 /* A few functions to communicate between Super I/O chips and the FDC. */
 extern void    fdc_update_enh_mode(fdc_t *fdc, int enh_mode);
 extern int     fdc_get_rwc(fdc_t *fdc, int drive);
@@ -177,6 +183,7 @@ extern uint8_t fdc_get_densel_polarity(fdc_t *fdc);
 extern void    fdc_update_densel_force(fdc_t *fdc, int densel_force);
 extern void    fdc_update_drvrate(fdc_t *fdc, int drive, int drvrate);
 extern void    fdc_update_drv2en(fdc_t *fdc, int drv2en);
+extern void    fdc_toggle_flag(fdc_t *fdc, int flag, int on);
 
 extern void fdc_noidam(fdc_t *fdc);
 extern void fdc_nosector(fdc_t *fdc);
@@ -201,6 +208,7 @@ extern int         fdc_get_drive(fdc_t *fdc);
 extern int         fdc_get_perp(fdc_t *fdc);
 extern int         fdc_get_format_n(fdc_t *fdc);
 extern int         fdc_is_mfm(fdc_t *fdc);
+extern int         fdc_is_dma(fdc_t *fdc);
 extern double      fdc_get_hut(fdc_t *fdc);
 extern double      fdc_get_hlt(fdc_t *fdc);
 extern void        fdc_request_next_sector_id(fdc_t *fdc);
@@ -254,6 +262,7 @@ extern const device_t fdc_at_sec_device;
 extern const device_t fdc_at_ter_device;
 extern const device_t fdc_at_qua_device;
 extern const device_t fdc_at_actlow_device;
+extern const device_t fdc_at_smc_661_device;
 extern const device_t fdc_at_smc_device;
 extern const device_t fdc_at_ali_device;
 extern const device_t fdc_at_winbond_device;

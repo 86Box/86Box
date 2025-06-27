@@ -355,7 +355,23 @@ sio_config_read(uint16_t port, UNUSED(void *priv))
             ret = 0xff;
             break;
         case 5:
-            ret = 0xd3;
+            /*
+               Dell Dimension XPS P60 jumpers:
+                   - Bit 5: Disable CMOS Setup (1 = yes, 0 = no).
+
+               Dell OptiPlex 560/L jumpers:
+                   - Bit 1: Password (1 = disable, 0 = enable);
+                   - Bit 5: Clear CMOS (1 = no, 0 = yes).
+                   - Bits 7, 6: Board type:
+                       - 0, 0 = L;
+                       - 0, 1 = MT;
+                       - 1, 0 = M;
+                       - 1, 1 = M.
+             */
+            if (!strcmp(machine_get_internal_name(), "opti560l"))
+                ret = 0x20;
+            else
+                ret = 0xd3;
 
             switch (cpu_pci_speed) {
                 case 20000000:
@@ -508,8 +524,7 @@ sio_speed_changed(void *priv)
 static void *
 sio_init(const device_t *info)
 {
-    sio_t *dev = (sio_t *) malloc(sizeof(sio_t));
-    memset(dev, 0, sizeof(sio_t));
+    sio_t *dev = (sio_t *) calloc(1, sizeof(sio_t));
 
     pci_add_card(PCI_ADD_SOUTHBRIDGE, sio_read, sio_write, dev, &dev->pci_slot);
 
@@ -568,7 +583,7 @@ const device_t sio_device = {
     .init          = sio_init,
     .close         = sio_close,
     .reset         = sio_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sio_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -582,7 +597,7 @@ const device_t sio_zb_device = {
     .init          = sio_init,
     .close         = sio_close,
     .reset         = sio_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = sio_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL

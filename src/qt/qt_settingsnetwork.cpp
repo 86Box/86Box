@@ -35,27 +35,70 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
     for (int i = 0; i < NET_CARD_MAX; ++i) {
         auto *nic_cbox      = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         auto *net_type_cbox = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
+
+        auto *intf_label    = findChild<QLabel *>(QString("labelIntf%1").arg(i + 1));
         auto *intf_cbox     = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
+
         auto *conf_btn      = findChild<QPushButton *>(QString("pushButtonConf%1").arg(i + 1));
+//        auto *net_type_conf_btn      = findChild<QPushButton *>(QString("pushButtonNetTypeConf%1").arg(i + 1));
+
+        auto *vde_socket_label = findChild<QLabel *>(QString("labelSocketVDENIC%1").arg(i + 1));
         auto *socket_line   = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
+
         auto *bridge_line   = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i + 1));
-        int  netType         = net_type_cbox->currentData().toInt();
-        bool adaptersEnabled =  netType == NET_TYPE_NONE
-                            ||  netType == NET_TYPE_SLIRP
-                            ||  netType == NET_TYPE_VDE
-                            || (netType == NET_TYPE_PCAP && intf_cbox->currentData().toInt() > 0)
-                            ||  netType == NET_TYPE_TAP;
+
+        auto *option_list_label = findChild<QLabel *>(QString("labelOptionList%1").arg(i + 1));
+        auto *option_list_line = findChild<QWidget *>(QString("lineOptionList%1").arg(i + 1));
 
         intf_cbox->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_PCAP);
-        nic_cbox->setEnabled(adaptersEnabled);
-        int netCard = nic_cbox->currentData().toInt();
-        if ((i == 0) && (netCard == NET_INTERNAL))
-            conf_btn->setEnabled(adaptersEnabled && machine_has_flags(machineId, MACHINE_NIC) &&
-                                 device_has_config(machine_get_net_device(machineId)));
-        else
-            conf_btn->setEnabled(adaptersEnabled && network_card_has_config(nic_cbox->currentData().toInt()));
-        socket_line->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_VDE);
+        conf_btn->setEnabled(network_card_has_config(nic_cbox->currentData().toInt()));
+//        net_type_conf_btn->setEnabled(network_type_has_config(netType));
+
+        // Option list label and line
+        option_list_label->setVisible(false);
+        option_list_line->setVisible(false);
+
+        // VDE
+        vde_socket_label->setVisible(false);
+        socket_line->setVisible(false);
+
+        // TAP
         bridge_line->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_TAP);
+
+        // PCAP
+        intf_cbox->setVisible(false);
+        intf_label->setVisible(false);
+
+        // Don't enable anything unless there's a nic selected
+        if(nic_cbox->currentData().toInt() != 0) {
+            // Then only enable as needed based on network type
+            switch (net_type_cbox->currentData().toInt()) {
+                case NET_TYPE_VDE:
+                    // option_list_label->setText("VDE Options");
+                    option_list_label->setVisible(true);
+                    option_list_line->setVisible(true);
+
+                    vde_socket_label->setVisible(true);
+                    socket_line->setVisible(true);
+                    break;
+
+                case NET_TYPE_PCAP:
+                    // option_list_label->setText("PCAP Options");
+                    option_list_label->setVisible(true);
+                    option_list_line->setVisible(true);
+
+                    intf_cbox->setVisible(true);
+                    intf_label->setVisible(true);
+                    break;
+
+                case NET_TYPE_TAP:
+                    bridge_line->setVisible(true);
+
+                case NET_TYPE_SLIRP:
+                default:
+                    break;
+            }
+        }
     }
 }
 
@@ -94,13 +137,12 @@ SettingsNetwork::save()
         net_cards_conf[i].net_type   = cbox->currentData().toInt();
         cbox                         = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
         memset(net_cards_conf[i].host_dev_name, '\0', sizeof(net_cards_conf[i].host_dev_name));
-        if (net_cards_conf[i].net_type == NET_TYPE_PCAP) {
+        if (net_cards_conf[i].net_type == NET_TYPE_PCAP)
             strncpy(net_cards_conf[i].host_dev_name, network_devs[cbox->currentData().toInt()].device, sizeof(net_cards_conf[i].host_dev_name) - 1);
-        } else if (net_cards_conf[i].net_type == NET_TYPE_VDE) {
+        else if (net_cards_conf[i].net_type == NET_TYPE_VDE)
             strncpy(net_cards_conf[i].host_dev_name, socket_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
-        } else if (net_cards_conf[i].net_type == NET_TYPE_TAP) {
+        else if (net_cards_conf[i].net_type == NET_TYPE_TAP)
             strncpy(net_cards_conf[i].host_dev_name, bridge_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
-        }
     }
 }
 
@@ -109,57 +151,68 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
 {
     this->machineId = machineId;
 
-    int c           = 0;
-    int selectedRow = 0;
+    int                 c                           = 0;
+    int                 selectedRow                 = 0;
 
-    for (int i = 0; i < NET_CARD_MAX; ++i) {
-        auto *cbox       = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
-        auto *model      = cbox->model();
-        auto  removeRows = model->rowCount();
-        c                = 0;
-        selectedRow      = 0;
+    // Network Card
+    QComboBox          *cbox_[NET_CARD_MAX]         = { 0 };
+    QAbstractItemModel *models[NET_CARD_MAX]        = { 0 };
+    int                 removeRows_[NET_CARD_MAX]   = { 0 };
+    int                 selectedRows[NET_CARD_MAX]  = { 0 };
+    int                 m_has_net                   = machine_has_flags(machineId, MACHINE_NIC);
 
-        while (true) {
-            /* Skip "internal" if machine doesn't have it or this is not the primary card. */
-            if ((c == 1) && ((i > 0) || (machine_has_flags(machineId, MACHINE_NIC) == 0))) {
-                c++;
-                continue;
-            }
+    for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
+        cbox_[i]       = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
+        models[i]      = cbox_[i]->model();
+        removeRows_[i] = models[i]->rowCount();
+    }
 
-            auto name = DeviceConfig::DeviceName(network_card_getdevice(c), network_card_get_internal_name(c), 1);
-            if (name.isEmpty()) {
-                break;
-            }
+    c = 0;
+    while (true) {
+        const QString name = DeviceConfig::DeviceName(network_card_getdevice(c),
+                                                      network_card_get_internal_name(c), 1);
 
-            if (network_card_available(c) && device_is_valid(network_card_getdevice(c), machineId)) {
-                int row = Models::AddEntry(model, name, c);
-                if (c == net_cards_conf[i].device_num) {
-                    selectedRow = row - removeRows;
+        if (name.isEmpty())
+            break;
+
+        if (network_card_available(c)) {
+            if (device_is_valid(network_card_getdevice(c), machineId)) {
+                for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
+                    if ((c != 1) || ((i == 0) && m_has_net)) {
+                        int row = Models::AddEntry(models[i], name, c);
+
+                        if (c == net_cards_conf[i].device_num)
+                            selectedRows[i] = row - removeRows_[i];
+                    }
                 }
             }
-            c++;
         }
 
-        model->removeRows(0, removeRows);
-        cbox->setEnabled(model->rowCount() > 0);
-        cbox->setCurrentIndex(-1);
-        cbox->setCurrentIndex(selectedRow);
+       c++;
+    }
 
-        cbox       = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
-        model      = cbox->model();
-        removeRows = model->rowCount();
+    for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
+        models[i]->removeRows(0, removeRows_[i]);
+        cbox_[i]->setEnabled(models[i]->rowCount() > 1);
+        cbox_[i]->setCurrentIndex(-1);
+        cbox_[i]->setCurrentIndex(selectedRows[i]);
+
+        auto cbox       = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
+        auto model      = cbox->model();
+        auto removeRows = model->rowCount();
         Models::AddEntry(model, tr("Null Driver"), NET_TYPE_NONE);
         Models::AddEntry(model, "SLiRP", NET_TYPE_SLIRP);
 
-        if (network_ndev > 1) {
+        if (network_ndev > 1)
             Models::AddEntry(model, "PCap", NET_TYPE_PCAP);
-        }
-        if (network_devmap.has_vde) {
+
+        if (network_devmap.has_vde)
             Models::AddEntry(model, "VDE", NET_TYPE_VDE);
-        }
+        
         Models::AddEntry(model, "TAP", NET_TYPE_TAP);
+
         model->removeRows(0, removeRows);
-        cbox->setCurrentIndex(net_cards_conf[i].net_type);
+        cbox->setCurrentIndex(cbox->findData(net_cards_conf[i].net_type));
 
         selectedRow = 0;
 
@@ -177,6 +230,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             model->removeRows(0, removeRows);
             cbox->setCurrentIndex(selectedRow);
         }
+
         if (net_cards_conf[i].net_type == NET_TYPE_VDE) {
             QString currentVdeSocket = net_cards_conf[i].host_dev_name;
             auto editline = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i+1));
@@ -193,9 +247,8 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
 void
 SettingsNetwork::on_comboIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
 
     enableElements(ui);
 }
@@ -203,33 +256,33 @@ SettingsNetwork::on_comboIndexChanged(int index)
 void
 SettingsNetwork::on_pushButtonConf1_clicked()
 {
-    int netCard = ui->comboBoxNIC1->currentData().toInt();
-    auto *device = network_card_getdevice(netCard);
+    int   netCard = ui->comboBoxNIC1->currentData().toInt();
+    auto *device  = network_card_getdevice(netCard);
     if (netCard == NET_INTERNAL)
         device = machine_get_net_device(machineId);
-    DeviceConfig::ConfigureDevice(device, 1, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
 SettingsNetwork::on_pushButtonConf2_clicked()
 {
-    int netCard = ui->comboBoxNIC2->currentData().toInt();
-    auto *device = network_card_getdevice(netCard);
-    DeviceConfig::ConfigureDevice(device, 2, qobject_cast<Settings *>(Settings::settings));
+    int   netCard = ui->comboBoxNIC2->currentData().toInt();
+    auto *device  = network_card_getdevice(netCard);
+    DeviceConfig::ConfigureDevice(device, 2);
 }
 
 void
 SettingsNetwork::on_pushButtonConf3_clicked()
 {
-    int netCard = ui->comboBoxNIC3->currentData().toInt();
-    auto *device = network_card_getdevice(netCard);
-    DeviceConfig::ConfigureDevice(device, 3, qobject_cast<Settings *>(Settings::settings));
+    int   netCard = ui->comboBoxNIC3->currentData().toInt();
+    auto *device  = network_card_getdevice(netCard);
+    DeviceConfig::ConfigureDevice(device, 3);
 }
 
 void
 SettingsNetwork::on_pushButtonConf4_clicked()
 {
-    int netCard = ui->comboBoxNIC4->currentData().toInt();
-    auto *device = network_card_getdevice(netCard);
-    DeviceConfig::ConfigureDevice(device, 4, qobject_cast<Settings *>(Settings::settings));
+    int   netCard = ui->comboBoxNIC4->currentData().toInt();
+    auto *device  = network_card_getdevice(netCard);
+    DeviceConfig::ConfigureDevice(device, 4);
 }

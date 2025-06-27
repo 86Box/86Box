@@ -81,7 +81,7 @@ sf_FABS(uint32_t fetchdat)
 }
 
 static int
-sf_FDECSTP(uint32_t fetchdat)
+sf_FDECSTP(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -94,7 +94,7 @@ sf_FDECSTP(uint32_t fetchdat)
 }
 
 static int
-sf_FINCSTP(uint32_t fetchdat)
+sf_FINCSTP(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     FPU_check_pending_exceptions();

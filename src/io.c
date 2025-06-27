@@ -15,7 +15,7 @@
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
- *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -28,6 +28,7 @@
 #include <86box/io.h>
 #include <86box/timer.h>
 #include "cpu.h"
+#include "x86.h"
 #include <86box/m_amstrad.h>
 #include <86box/pci.h>
 
@@ -145,6 +146,8 @@ io_sethandler_common(uint16_t base, int size,
         q->next = NULL;
 
         io_last[base + c] = q;
+
+        q = NULL;
     }
 }
 
@@ -342,6 +345,8 @@ inb(uint16_t port)
     int     qfound = 0;
 #endif
 
+    io_port = port;
+
 #ifdef USE_DEBUG_REGS_486
     io_debug_check_addr(port);
 #endif
@@ -406,6 +411,9 @@ outb(uint16_t port, uint8_t val)
     int   qfound = 0;
 #endif
 
+    io_port = port;
+    io_val  = val;
+
 #ifdef USE_DEBUG_REGS_486
     io_debug_check_addr(port);
 #endif
@@ -437,10 +445,10 @@ outb(uint16_t port, uint8_t val)
         }
     }
 
-    if (!found) {
+    if (!found || (port == 0x84)) {
         cycles -= io_delay;
 #ifdef USE_DYNAREC
-        if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
+        if (cpu_use_dynarec && ((port == 0x84) || (port == 0xeb) || (port == 0xed)))
             update_tsc();
 #endif
     }
@@ -461,6 +469,8 @@ inw(uint16_t port)
     int      qfound = 0;
 #endif
     uint8_t  ret8[2];
+
+    io_port = port;
 
 #ifdef USE_DEBUG_REGS_486
     io_debug_check_addr(port);
@@ -538,6 +548,9 @@ outw(uint16_t port, uint16_t val)
     int   qfound = 0;
 #endif
 
+    io_port = port;
+    io_val  = val;
+
 #ifdef USE_DEBUG_REGS_486
     io_debug_check_addr(port);
 #endif
@@ -609,6 +622,8 @@ inl(uint16_t port)
 #ifdef ENABLE_IO_LOG
     int      qfound = 0;
 #endif
+
+    io_port = port;
 
 #ifdef USE_DEBUG_REGS_486
     io_debug_check_addr(port);
@@ -717,6 +732,9 @@ outl(uint16_t port, uint32_t val)
     int   qfound = 0;
 #endif
     int   i      = 0;
+
+    io_port = port;
+    io_val  = val;
 
 #ifdef USE_DEBUG_REGS_486
     io_debug_check_addr(port);

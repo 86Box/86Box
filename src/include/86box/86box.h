@@ -8,21 +8,26 @@
  *
  *          Main include file for the application.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2021 Laci bá'
+ *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #ifndef EMU_86BOX_H
 #define EMU_86BOX_H
 
+#if defined(__NetBSD__) || defined(__OpenBSD__)
+/* Doesn't compile on NetBSD/OpenBSD without this include */
+#include <stdarg.h>
+#endif
+
 /* Configuration values. */
 #define GFXCARD_MAX  2
-#define SERIAL_MAX   7
+#define SERIAL_MAX   8
 #define PARALLEL_MAX 4
 #define SCREEN_RES_X 640
 #define SCREEN_RES_Y 480
@@ -33,14 +38,14 @@
 #define SCREENSHOT_PATH "screenshots"
 
 /* Recently used images */
-#define MAX_PREV_IMAGES    4
+#define MAX_PREV_IMAGES    10
 #define MAX_IMAGE_PATH_LEN 2048
 
 /* Max UUID Length */
 #define MAX_UUID_LEN 64
 
-/* Default language 0xFFFF = from system, 0x409 = en-US */
-#define DEFAULT_LANGUAGE 0x0409
+/* Default language code */
+#define DEFAULT_LANGUAGE "system"
 
 #define POSTCARDS_NUM 4
 #define POSTCARD_MASK (POSTCARDS_NUM - 1)
@@ -79,8 +84,6 @@ extern "C" {
 #endif
 
 /* Global variables. */
-extern uint32_t lang_sys; /* (-) system language code */
-
 extern int dump_on_exit;        /* (O) dump regs on exit*/
 extern int start_in_fullscreen; /* (O) start in fullscreen */
 #ifdef _WIN32
@@ -107,18 +110,17 @@ extern uint64_t instru_run_ms;
 #define window_y monitor_settings[0].mon_window_y
 #define window_w monitor_settings[0].mon_window_w
 #define window_h monitor_settings[0].mon_window_h
+extern int      inhibit_multimedia_keys;    /* (C) Inhibit multimedia keys on Windows. */
 extern int      window_remember;
 extern int      vid_resize;                 /* (C) allow resizing */
 extern int      invert_display;             /* (C) invert the display */
 extern int      suppress_overscan;          /* (C) suppress overscans */
-extern uint32_t lang_id;                    /* (C) language code identifier */
-extern char     icon_set[256];              /* (C) iconset identifier */
+extern int      lang_id;                    /* (C) language id */
 extern int      scale;                      /* (C) screen scale factor */
 extern int      dpi_scale;                  /* (C) DPI scaling of the emulated screen */
 extern int      vid_api;                    /* (C) video renderer */
 extern int      vid_cga_contrast;           /* (C) video */
 extern int      video_fullscreen;           /* (C) video */
-extern int      video_fullscreen_first;     /* (C) video */
 extern int      video_fullscreen_scale;     /* (C) video */
 extern int      enable_overscan;            /* (C) video */
 extern int      force_43;                   /* (C) video */
@@ -126,17 +128,19 @@ extern int      video_filter_method;        /* (C) video */
 extern int      video_vsync;                /* (C) video */
 extern int      video_framerate;            /* (C) video */
 extern int      gfxcard[GFXCARD_MAX];       /* (C) graphics/video card */
-extern char     video_shader[512];          /* (C) video */
 extern int      bugger_enabled;             /* (C) enable ISAbugger */
 extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */
 extern int      postcard_enabled;           /* (C) enable POST card */
 extern int      unittester_enabled;         /* (C) enable unit tester device */
+extern int      gameport_type[];            /* (C) enable gameports */
 extern int      isamem_type[];              /* (C) enable ISA mem cards */
+extern int      isarom_type[];              /* (C) enable ISA ROM cards */
 extern int      isartc_type;                /* (C) enable ISA RTC card */
 extern int      sound_is_float;             /* (C) sound uses FP values */
 extern int      voodoo_enabled;             /* (C) video option */
 extern int      ibm8514_standalone_enabled; /* (C) video option */
 extern int      xga_standalone_enabled;     /* (C) video option */
+extern int      da2_standalone_enabled;     /* (C) video option */
 extern uint32_t mem_size;                   /* (C) memory size (Installed on system board) */
 extern uint32_t isa_mem_size;               /* (C) memory size (ISA Memory Cards) */
 extern int      cpu;                        /* (C) cpu type */
@@ -156,6 +160,7 @@ extern int      other_scsi_present;         /* SCSI controllers from non-SCSI ca
 extern int    hard_reset_pending;
 extern int    fixed_size_x;
 extern int    fixed_size_y;
+extern int    sound_muted;                  /* (C) Is sound muted? */
 extern int    do_auto_pause;                /* (C) Auto-pause the emulator on focus loss */
 extern int    auto_paused;
 extern double mouse_sensitivity;            /* (C) Mouse sensitivity scale */
@@ -167,32 +172,30 @@ extern int    pit_mode;                     /* (C) force setting PIT mode */
 extern int    fm_driver;                    /* (C) select FM sound driver */
 extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
 
-/* Keyboard variables for future key combination redefinition. */
-extern uint16_t key_prefix_1_1;
-extern uint16_t key_prefix_1_2;
-extern uint16_t key_prefix_2_1;
-extern uint16_t key_prefix_2_2;
-extern uint16_t key_uncapture_1;
-extern uint16_t key_uncapture_2;
-
 extern char exe_path[2048];     /* path (dir) of executable */
 extern char usr_path[1024];     /* path (dir) of user data */
 extern char cfg_path[1024];     /* full path of config file */
 extern int  open_dir_usr_path;  /* default file open dialog directory of usr_path */
 extern char uuid[MAX_UUID_LEN]; /* UUID or machine identifier */
+extern char vmm_path[1024];       /* VM Manager path to scan (temporary) */
+extern int  vmm_enabled;
 #ifndef USE_NEW_DYNAREC
 extern FILE *stdlog; /* file to log output to */
 #endif
 extern int config_changed; /* config has changed */
 
+extern __thread int is_cpu_thread; /* Is this the CPU thread? */
+
 /* Function prototypes. */
 #ifdef HAVE_STDARG_H
-extern void pclog_ex(const char *fmt, va_list);
-extern void fatal_ex(const char *fmt, va_list);
+extern void pclog_ex(const char *fmt, va_list ap);
+extern void fatal_ex(const char *fmt, va_list ap);
+extern void warning_ex(const char *fmt, va_list ap);
 #endif
 extern void pclog_toggle_suppr(void);
 extern void pclog(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void fatal(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+extern void warning(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void set_screen_size(int x, int y);
 extern void set_screen_size_monitor(int x, int y, int monitor_index);
 extern void reset_screen_size(void);
@@ -234,6 +237,17 @@ extern int    framecountx;
 
 extern volatile int     cpu_thread_run;
 extern          uint8_t postcard_codes[POSTCARDS_NUM];
+
+// Accelerator key structure, defines, helper functions
+struct accelKey {
+	char name[64];
+	char desc[64];
+	char seq[64];
+};
+#define NUM_ACCELS 8
+extern struct accelKey acc_keys[NUM_ACCELS];
+extern struct accelKey def_acc_keys[NUM_ACCELS];
+extern int FindAccelerator(const char *name);
 
 #ifdef __cplusplus
 }

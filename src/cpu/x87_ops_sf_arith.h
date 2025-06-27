@@ -1,7 +1,7 @@
 #define sf_FPU(name, optype, a_size, load_var, rw, use_var, is_nan, cycle_postfix)                                                                 \
     static int sf_FADD##name##_a##a_size(uint32_t fetchdat)                                                                                        \
     {                                                                                                                                              \
-        floatx80           a, result;                                                                                                          \
+        floatx80           a, result;                                                                                                              \
         struct softfloat_status_t status;                                                                                                          \
         optype                temp;                                                                                                                \
         FP_ENTER();                                                                                                                                \
@@ -31,7 +31,7 @@ next_ins:                                                                       
     }                                                                                                                                              \
     static int sf_FDIV##name##_a##a_size(uint32_t fetchdat)                                                                                        \
     {                                                                                                                                              \
-        floatx80           a, result;                                                                                                          \
+        floatx80           a, result;                                                                                                              \
         struct softfloat_status_t status;                                                                                                          \
         optype                temp;                                                                                                                \
         FP_ENTER();                                                                                                                                \
@@ -61,7 +61,7 @@ next_ins:                                                                       
     }                                                                                                                                              \
     static int sf_FDIVR##name##_a##a_size(uint32_t fetchdat)                                                                                       \
     {                                                                                                                                              \
-        floatx80           a, result;                                                                                                          \
+        floatx80           a, result;                                                                                                              \
         struct softfloat_status_t status;                                                                                                          \
         optype                temp;                                                                                                                \
         FP_ENTER();                                                                                                                                \
@@ -91,7 +91,7 @@ next_ins:                                                                       
     }                                                                                                                                              \
     static int sf_FMUL##name##_a##a_size(uint32_t fetchdat)                                                                                        \
     {                                                                                                                                              \
-        floatx80           a, result;                                                                                                          \
+        floatx80           a, result;                                                                                                              \
         struct softfloat_status_t status;                                                                                                          \
         optype                temp;                                                                                                                \
         FP_ENTER();                                                                                                                                \
@@ -121,7 +121,7 @@ next_ins:                                                                       
     }                                                                                                                                              \
     static int sf_FSUB##name##_a##a_size(uint32_t fetchdat)                                                                                        \
     {                                                                                                                                              \
-        floatx80           a, result;                                                                                                          \
+        floatx80           a, result;                                                                                                              \
         struct softfloat_status_t status;                                                                                                          \
         optype                temp;                                                                                                                \
         FP_ENTER();                                                                                                                                \
@@ -151,7 +151,7 @@ next_ins:                                                                       
     }                                                                                                                                              \
     static int sf_FSUBR##name##_a##a_size(uint32_t fetchdat)                                                                                       \
     {                                                                                                                                              \
-        floatx80           a, result;                                                                                                          \
+        floatx80           a, result;                                                                                                              \
         struct softfloat_status_t status;                                                                                                          \
         optype                temp;                                                                                                                \
         FP_ENTER();                                                                                                                                \
@@ -800,3 +800,88 @@ next_ins:
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frndint) : (x87_concurrency.frndint * cpu_multi));
     return 0;
 }
+
+#ifndef FPU_8087
+#ifndef OPS_286_386
+static int
+sf_FRINT2(uint32_t fetchdat)
+{
+    floatx80              result;
+    struct softfloat_status_t status;
+
+    FP_ENTER();
+    FPU_check_pending_exceptions();
+    cpu_state.pc++;
+    clear_C1();
+    if (IS_TAG_EMPTY(0)) {
+        FPU_stack_underflow(fetchdat, 0, 0);
+        goto next_ins;
+    }
+    status = i387cw_to_softfloat_status_word(i387_get_control_word());
+    result = extF80_roundToInt(FPU_read_regi(0), softfloat_round_near_maxMag, true, &status);
+
+    if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0)) {
+        FPU_save_regi(result, 0);
+    }
+
+next_ins:
+    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.frndint) : (x87_timings.frndint * cpu_multi));
+    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frndint) : (x87_concurrency.frndint * cpu_multi));
+    return 0;
+}
+
+static int
+sf_FRINEAR(uint32_t fetchdat)
+{
+    floatx80              result;
+    struct softfloat_status_t status;
+
+    FP_ENTER();
+    FPU_check_pending_exceptions();
+    cpu_state.pc++;
+    clear_C1();
+    if (IS_TAG_EMPTY(0)) {
+        FPU_stack_underflow(fetchdat, 0, 0);
+        goto next_ins;
+    }
+    status = i387cw_to_softfloat_status_word(i387_get_control_word());
+    result = extF80_roundToInt(FPU_read_regi(0), softfloat_round_near_even, true, &status);
+
+    if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0)) {
+        FPU_save_regi(result, 0);
+    }
+
+next_ins:
+    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.frndint) : (x87_timings.frndint * cpu_multi));
+    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frndint) : (x87_concurrency.frndint * cpu_multi));
+    return 0;
+}
+#endif
+
+static int
+sf_FRICHOP(uint32_t fetchdat)
+{
+    floatx80              result;
+    struct softfloat_status_t status;
+
+    FP_ENTER();
+    FPU_check_pending_exceptions();
+    cpu_state.pc++;
+    clear_C1();
+    if (IS_TAG_EMPTY(0)) {
+        FPU_stack_underflow(fetchdat, 0, 0);
+        goto next_ins;
+    }
+    status = i387cw_to_softfloat_status_word(i387_get_control_word());
+    result = extF80_roundToInt(FPU_read_regi(0), softfloat_round_to_zero, true, &status);
+
+    if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0)) {
+        FPU_save_regi(result, 0);
+    }
+
+next_ins:
+    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.frndint) : (x87_timings.frndint * cpu_multi));
+    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frndint) : (x87_concurrency.frndint * cpu_multi));
+    return 0;
+}
+#endif

@@ -41,6 +41,7 @@
 #define MOUSE_TYPE_PS2       11 /* PS/2 series Bus Mouse */
 #define MOUSE_TYPE_WACOM     12 /* WACOM tablet */
 #define MOUSE_TYPE_WACOMARTP 13 /* WACOM tablet (ArtPad) */
+#define MOUSE_TYPE_MSYSTEMSB 14 /* Mouse Systems bus mouse */
 
 #define MOUSE_TYPE_ONBOARD   0x80 /* Mouse is an on-board version of one of the above. */
 
@@ -68,6 +69,7 @@ extern const device_t mouse_msinport_device;
 extern const device_t mouse_genibus_device;
 #    endif
 extern const device_t mouse_mssystems_device;
+extern const device_t mouse_mssystems_bus_device;
 extern const device_t mouse_msserial_device;
 extern const device_t mouse_ltserial_device;
 extern const device_t mouse_ps2_device;
@@ -100,6 +102,9 @@ extern void            mouse_scale_axis(int axis, int val);
 extern void            mouse_set_z(int z);
 extern void            mouse_clear_z(void);
 extern void            mouse_subtract_z(int *delta_z, int min, int max, int invert);
+extern void            mouse_set_w(int w);
+extern void            mouse_clear_w(void);
+extern void            mouse_subtract_w(int *delta_w, int min, int max, int invert);
 extern void            mouse_set_buttons_ex(int b);
 extern int             mouse_get_buttons_ex(void);
 extern void            mouse_set_sample_rate(double new_rate);

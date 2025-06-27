@@ -36,6 +36,7 @@
 #include <86box/pit.h>
 #include <86box/apm.h>
 #include <86box/acpi.h>
+#include <86box/dma.h>
 #include <86box/machine.h>
 #include <86box/i2c.h>
 #include <86box/video.h>
@@ -89,7 +90,7 @@ acpi_timer_get(acpi_t *dev)
 }
 
 static uint8_t
-acpi_gp_timer_get(acpi_t *dev)
+acpi_gp_timer_get(UNUSED(acpi_t *dev))
 {
     uint64_t clock = acpi_clock_get();
     clock -= acpi_last_clock;
@@ -211,7 +212,10 @@ acpi_update_irq(acpi_t *dev)
 
     if ((dev->regs.pmcntrl & 0x01) && sci_level)  switch (dev->irq_mode) {
         default:
-            picintlevel(1 << dev->irq_line, &dev->irq_state);
+            if (dev->irq_line != 0)
+                picintlevel(1 << dev->irq_line, &dev->irq_state);
+            else
+                dev->irq_state = 1;
             break;
         case 1:
             pci_set_irq(dev->slot, dev->irq_pin, &dev->irq_state);
@@ -223,7 +227,10 @@ acpi_update_irq(acpi_t *dev)
             break;
     } else  switch (dev->irq_mode) {
         default:
-            picintclevel(1 << dev->irq_line, &dev->irq_state);
+            if (dev->irq_line != 0)
+                picintclevel(1 << dev->irq_line, &dev->irq_state);
+            else
+                dev->irq_state = 0;
             break;
         case 1:
             pci_clear_irq(dev->slot, dev->irq_pin, &dev->irq_state);
@@ -1019,8 +1026,13 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
                         nvr_reg_write(0x000f, 0xff, dev->nvr);
                     }
 
-                    if (sus_typ & SUS_RESET_PCI)
+                    if (sus_typ & SUS_RESET_PCI) {
+                        /* DMA is part of the southbridge so it responds to PCI reset. */
+                        dma_reset();
+                        dma_set_at(1);
+
                         device_reset_all(DEVICE_PCI);
+                    }
 
                     if (sus_typ & SUS_RESET_CPU)
                         cpu_alt_reset = 0;
@@ -2381,6 +2393,14 @@ acpi_reset(void *priv)
         dev->regs.gpi_val = 0xfff57fc1;
         if (!strcmp(machine_get_internal_name(), "ficva503a") || !strcmp(machine_get_internal_name(), "6via90ap"))
             dev->regs.gpi_val |= 0x00000004;
+         /*
+            TriGem Delhi-III second GPI word:
+                - Bit 7 = Save CMOS (must be set);
+                - Bit 6 = Password jumper (must be set);
+                - Bit 5 = Enable Setup (must be set).
+         */
+        else if (!strcmp(machine_get_internal_name(), "delhi3"))
+            dev->regs.gpi_val |= 0x00008000;
     }
 
     if (acpi_power_on) {
@@ -2473,10 +2493,9 @@ acpi_init(const device_t *info)
 {
     acpi_t *dev;
 
-    dev = (acpi_t *) malloc(sizeof(acpi_t));
+    dev = (acpi_t *) calloc(1, sizeof(acpi_t));
     if (dev == NULL)
         return NULL;
-    memset(dev, 0x00, sizeof(acpi_t));
 
     cpu_to_acpi = ACPI_TIMER_FREQ / cpuclock;
     dev->vendor = info->local;
@@ -2576,7 +2595,7 @@ const device_t acpi_ali_device = {
     .init          = acpi_init,
     .close         = acpi_close,
     .reset         = acpi_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = acpi_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2590,7 +2609,7 @@ const device_t acpi_intel_device = {
     .init          = acpi_init,
     .close         = acpi_close,
     .reset         = acpi_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = acpi_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2604,7 +2623,7 @@ const device_t acpi_via_device = {
     .init          = acpi_init,
     .close         = acpi_close,
     .reset         = acpi_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = acpi_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2618,7 +2637,7 @@ const device_t acpi_via_596b_device = {
     .init          = acpi_init,
     .close         = acpi_close,
     .reset         = acpi_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = acpi_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2632,7 +2651,7 @@ const device_t acpi_smc_device = {
     .init          = acpi_init,
     .close         = acpi_close,
     .reset         = acpi_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = acpi_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2646,7 +2665,7 @@ const device_t acpi_sis_5582_device = {
     .init          = acpi_init,
     .close         = acpi_close,
     .reset         = acpi_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = acpi_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2660,7 +2679,7 @@ const device_t acpi_sis_5595_1997_device = {
     .init          = acpi_init,
     .close         = acpi_close,
     .reset         = acpi_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = acpi_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2674,7 +2693,7 @@ const device_t acpi_sis_5595_device = {
     .init          = acpi_init,
     .close         = acpi_close,
     .reset         = acpi_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = acpi_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL

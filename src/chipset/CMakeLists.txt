@@ -17,7 +17,9 @@
 
 add_library(chipset OBJECT
     82c100.c
+    acc2036.c
     acc2168.c
+    cs8220.c
     cs8230.c
     ali1429.c
     ali1435.c
@@ -39,12 +41,15 @@ add_library(chipset OBJECT
     intel_i450kx.c
     intel_sio.c
     intel_piix.c
+    isa486c.c
     ../ioapic.c
     neat.c
+    olivetti_eva.c
     opti283.c
     opti291.c
     opti391.c
     opti495.c
+    opti498.c
     opti499.c
     opti602.c
     opti822.c
@@ -71,6 +76,7 @@ add_library(chipset OBJECT
     sis_5572_usb.c
     sis_5595_pmu.c
     sis_55xx.c
+    sl82c461.c
     via_vt82c49x.c
     via_vt82c505.c
     gc100.c
@@ -83,7 +89,3 @@ add_library(chipset OBJECT
     vl82c480.c
     wd76c10.c
 )
-
-if(OLIVETTI)
-    target_sources(chipset PRIVATE olivetti_eva.c)
-endif()

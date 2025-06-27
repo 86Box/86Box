@@ -23,6 +23,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/nmi.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/mem.h>
@@ -142,7 +143,7 @@ const device_t philips_device = {
     .init          = philips_init,
     .close         = philips_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

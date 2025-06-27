@@ -18,8 +18,8 @@ msgstr "&Правый CTRL - это левый ALT"
 msgid "&Hard Reset..."
 msgstr "&Холодная перезагрузка..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -55,7 +55,7 @@ msgid "Qt (&OpenGL)"
 msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0)"
+msgstr "Open&GL (3.0 Core)"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -111,8 +111,8 @@ msgstr "&Линейный"
 msgid "Hi&DPI scaling"
 msgstr "Масштабирование Hi&DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "&Полноэкранный режим\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "&Полноэкранный режим"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Растягивание в полноэкранном режиме"
@@ -146,6 +146,12 @@ msgstr "RGB &цветной"
 
 msgid "&RGB Grayscale"
 msgstr "&RGB монохромный"
+
+msgid "RGB (no brown)"
+msgstr "RGB (без коричневого)"
+
+msgid "Generic RGBI color monitor"
+msgstr "Стандартный цветной монитор RGBI"
 
 msgid "&Amber monitor"
 msgstr "&Янтарный оттенок"
@@ -186,8 +192,11 @@ msgstr "&Настройки машины..."
 msgid "&Update status bar icons"
 msgstr "&Обновление значков строки состояния"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Сделать с&криншот\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "Сделать с&криншот"
+
+msgid "S&ound"
+msgstr "&Звук"
 
 msgid "&Preferences..."
 msgstr "&Параметры..."
@@ -198,11 +207,11 @@ msgstr "Включить интеграцию &Discord"
 msgid "Sound &gain..."
 msgstr "&Усиление звука..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "Начать трассировку\tCtrl+T"
+msgid "Begin trace"
+msgstr "Начать трассировку"
 
-msgid "End trace\tCtrl+T"
-msgstr "Завершить трассировку\tCtrl+T"
+msgid "End trace"
+msgstr "Завершить трассировку"
 
 msgid "&Help"
 msgstr "&Помощь"
@@ -211,7 +220,7 @@ msgid "&Documentation..."
 msgstr "&Документация..."
 
 msgid "&About 86Box..."
-msgstr "&О программе 86Box..."
+msgstr "&О 86Box..."
 
 msgid "&New image..."
 msgstr "&Новый образ..."
@@ -249,8 +258,8 @@ msgstr "О&тключить звук"
 msgid "E&mpty"
 msgstr "П&устой"
 
-msgid "&Reload previous image"
-msgstr "&Снова загрузить предыдущий образ"
+msgid "Reload previous image"
+msgstr "Перезагрузить предыдущий образ"
 
 msgid "&Folder..."
 msgstr "&Папка..."
@@ -306,17 +315,11 @@ msgstr "OK"
 msgid "Cancel"
 msgstr "Отмена"
 
-msgid "Save these settings as &global defaults"
-msgstr "Сохранить эти параметры как &глобальные по умолчанию"
-
 msgid "&Default"
 msgstr "&По умолчанию"
 
 msgid "Language:"
 msgstr "Язык:"
-
-msgid "Icon set:"
-msgstr "Набор иконок:"
 
 msgid "Gain"
 msgstr "Усиление"
@@ -433,10 +436,10 @@ msgid "Sound card #4:"
 msgstr "Звуковая карта 4:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI Out устройство:"
+msgstr "Устройство вывода MIDI:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI In устройство:"
+msgstr "Устройство ввода MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "Отдельный MPU-401"
@@ -452,15 +455,6 @@ msgstr "Nuked (более точный)"
 
 msgid "YMFM (faster)"
 msgstr "YMFM (быстрее)"
-
-msgid "Network type:"
-msgstr "Тип сети:"
-
-msgid "PCap device:"
-msgstr "Устройство PCap:"
-
-msgid "Network adapter:"
-msgstr "Сетевая карта:"
 
 msgid "COM1 Device:"
 msgstr "Устройство COM1:"
@@ -610,7 +604,10 @@ msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
 msgid "ISA Memory Expansion"
-msgstr "Карта расширения памяти ISA"
+msgstr "Карты расширения памяти ISA"
+
+msgid "ISA ROM Cards"
+msgstr "Карты ПЗУ ISA"
 
 msgid "Card 1:"
 msgstr "Карта 1:"
@@ -642,14 +639,11 @@ msgstr "Неустранимая ошибка"
 msgid " - PAUSED"
 msgstr " - ПАУЗА"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Нажмите Ctrl+Alt+PgDn для возврата в оконный режим."
-
 msgid "Speed"
 msgstr "Скорость"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "Образы ZIP"
@@ -687,8 +681,11 @@ msgstr "Системная плата \"%hs\" недоступна из-за о�
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Видеокарта \"%hs\" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/video. Переключение на доступную видеокарту."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Видеокарта 2 \"%hs\" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/video. Переключение на доступную видеокарту."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Видеокарта 2 \"%hs\" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/video. Вторая видеокарта отключена."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Устройство \"%hs\" недоступно из-за отсутствия файла его ПЗУ. Устройство проигнорировано."
 
 msgid "Machine"
 msgstr "Компьютер"
@@ -750,14 +747,11 @@ msgstr "S"
 msgid "KB"
 msgstr "КБ"
 
-msgid "Could not initialize the video renderer."
-msgstr "Не удалось инициализировать рендерер видео."
-
 msgid "Default"
 msgstr "По умолчанию"
 
-msgid "%i Wait state(s)"
-msgstr "%i WS"
+msgid "%1 Wait state(s)"
+msgstr "%1 WS"
 
 msgid "Type"
 msgstr "Тип"
@@ -801,11 +795,11 @@ msgstr "Система управления полётом Thrustmaster"
 msgid "None"
 msgstr "Нет"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u МБ (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 МБ (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "Дисковод %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "Дисковод %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Расширенные образы секторов"
@@ -825,8 +819,8 @@ msgstr "Невозможно инициализировать Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Невозможно инициализировать GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "Магнитооптический %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "Магнитооптический %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Образы магнитооптических дисков"
@@ -876,9 +870,6 @@ msgstr "Для автоматического преобразования фа�
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "Для автоматического преобразования файлов PCL в PDF требуется %1.\n\nВсе документы, отправленные на стандартный принтер PCL, будут сохранены в виде файлов Printer Command Language (.pcl)."
 
-msgid "Entering fullscreen mode"
-msgstr "Вход в полноэкранный режим"
-
 msgid "Don't show this message again"
 msgstr "Больше не показывать это сообщение"
 
@@ -900,11 +891,8 @@ msgstr "Конфигурация устройства %1"
 msgid "Monitor in sleep mode"
 msgstr "Монитор в спящем режиме"
 
-msgid "OpenGL Shaders"
-msgstr "Шейдеры OpenGL"
-
-msgid "OpenGL options"
-msgstr "Параметры OpenGL"
+msgid "GLSL shaders"
+msgstr "Шейдеры GLSL"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Вы загружаете неподдерживаемую конфигурацию"
@@ -915,23 +903,17 @@ msgstr "Выбор типов ЦП для этой системной платы
 msgid "Continue"
 msgstr "Продолжить"
 
-msgid "Cassette: %s"
-msgstr "Кассета: %s"
+msgid "Cassette: %1"
+msgstr "Кассета: %1"
 
 msgid "Cassette images"
 msgstr "Образы кассет"
 
-msgid "Cartridge %i: %ls"
-msgstr "Картридж %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "Картридж %1: %2"
 
 msgid "Cartridge images"
 msgstr "Образы картриджей"
-
-msgid "Error initializing renderer"
-msgstr "Ошибка инициализации рендерера"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Невозможно инициализировать рендерер OpenGL (3.0). Пожалуйста, используйте другой рендерер."
 
 msgid "Resume execution"
 msgstr "Возобновить выполнение"
@@ -1095,8 +1077,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 КБ"
@@ -1264,22 +1246,19 @@ msgid "Pen"
 msgstr "Ручка"
 
 msgid "Host CD/DVD Drive (%1:)"
-msgstr "Главный CD/DVD-привод (%1:)"
+msgstr "CD/DVD Привод хоста (%1:)"
 
 msgid "&Connected"
-msgstr "&Connected"
+msgstr "&Кабель подключен"
 
 msgid "Clear image history"
 msgstr "Очистить историю образов"
 
 msgid "Create..."
-msgstr "Создайте..."
-
-msgid "previous image"
-msgstr "предыдущее изображение"
+msgstr "Создать..."
 
 msgid "Host CD/DVD Drive (%1)"
-msgstr "Главный CD/DVD-привод (%1)"
+msgstr "CD/DVD Привод хоста (%1)"
 
 msgid "Unknown Bus"
 msgstr "Неизвестная шина"
@@ -1287,23 +1266,8 @@ msgstr "Неизвестная шина"
 msgid "Null Driver"
 msgstr "Нулевой драйвер"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "Ошибка при открытии \"%1\": %2"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "Ошибка компиляции вершинного шейдера в файле \"%1\""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "Ошибка компиляции фрагментного шейдера в файле \"%1\""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "Ошибка компоновки программы шейдера в файле \"%1\""
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "Параметры рендеринга OpenGL 3.0"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Режим рендеринга"
@@ -1317,11 +1281,8 @@ msgstr " fps"
 msgid "VSync"
 msgstr "Вертикальная синхронизация"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Рендерить каждый кадр немедленно, синхронно с эмулируемым дисплеем.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;font-style:italic;&quot;&gt;Это рекомендуемый вариант, если используемые шейдеры не используют время кадров для анимированных эффектов.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
-msgstr "Синхронизация с видео"
+msgstr "Синхронизировать с видео"
 
 msgid "Shaders"
 msgstr "Шейдеры"
@@ -1329,20 +1290,8 @@ msgstr "Шейдеры"
 msgid "Remove"
 msgstr "Удалить"
 
-msgid "No shader selected"
-msgstr "Шейдер не выбран"
-
 msgid "Browse..."
 msgstr "Обзор..."
-
-msgid "Shader error"
-msgstr "Ошибка шейдера"
-
-msgid "Could not load shaders."
-msgstr "Не удалось загрузить шейдеры."
-
-msgid "More information in details."
-msgstr "Более подробная информация в деталях."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Не удалось создать контекст OpenGL."
@@ -1353,20 +1302,14 @@ msgstr "Не удалось переключиться на контекст Ope
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Требуется OpenGL версии 3.0 или выше. Текущая версия %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "Не удалось выполнить инициализацию OpenGL. Ошибка %1."
-
 msgid "Error initializing OpenGL"
 msgstr "Ошибка инициализации OpenGL"
 
-msgid "Falling back to software rendering.\n"
-msgstr "Переключение на программный рендеринг.\n"
+msgid "\nFalling back to software rendering."
+msgstr "\nПереключение на программный рендеринг."
 
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "Выделение памяти для буфера распаковки не удалось.\n"
-
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;При выборе образов носителей (CD-ROM, дискет и т. д.) диалог открытия будет запускаться в том же каталоге, что и файл конфигурации 86Box. Эта настройка, скорее всего, будет иметь значение только на macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>При выборе образов носителей (CD-ROM, дискет и т. д.) диалог открытия будет запускаться в том же каталоге, что и файл конфигурации 86Box. Эта настройка, скорее всего, будет иметь значение только на macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Возможно, эта машина была перемещена или скопирована."
@@ -1401,17 +1344,17 @@ msgstr "Сетевая карта 3"
 msgid "Network Card #4"
 msgstr "Сетевая карта 4"
 
-msgid "Mode"
-msgstr "Режим"
+msgid "Mode:"
+msgstr "Режим:"
 
-msgid "Interface"
-msgstr "Интерфейс"
+msgid "Interface:"
+msgstr "Интерфейс:"
 
-msgid "Adapter"
-msgstr "Адаптер"
+msgid "Adapter:"
+msgstr "Адаптер:"
 
-msgid "VDE Socket"
-msgstr "VDE сокет"
+msgid "VDE Socket:"
+msgstr "VDE сокет:"
 
 msgid "86Box Unit Tester"
 msgstr "Модульный Тестер 86Box"
@@ -1431,32 +1374,29 @@ msgstr "Сквозной последовательный порт COM3"
 msgid "Serial port passthrough 4"
 msgstr "Сквозной последовательный порт COM4"
 
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA Enhancer"
-
 msgid "Renderer options..."
 msgstr "Параметры рендеринга..."
 
 msgid "Logitech/Microsoft Bus Mouse"
-msgstr "Шинная мышь Logitech/Microsoft"
+msgstr "Bus-мышь Logitech/Microsoft"
 
 msgid "Microsoft Bus Mouse (InPort)"
-msgstr "Шинная мышь Microsoft (InPort)"
+msgstr "Bus-мышь Microsoft (InPort)"
 
 msgid "Mouse Systems Serial Mouse"
-msgstr "Последовательная мышь Mouse Systems"
+msgstr "COM-мышь Mouse Systems"
 
 msgid "Microsoft Serial Mouse"
-msgstr "Последовательная мышь Microsoft"
+msgstr "COM-мышь Microsoft"
 
 msgid "Logitech Serial Mouse"
-msgstr "Последовательная мышь Logitech"
+msgstr "COM-мышь Logitech"
 
 msgid "PS/2 Mouse"
 msgstr "Мышь PS/2"
 
 msgid "3M MicroTouch (Serial)"
-msgstr "3M MicroTouch (последовательная)"
+msgstr "3M MicroTouch (последовательный)"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Стандартный Hayes-совместимый модем"
@@ -1482,11 +1422,53 @@ msgstr "Системный MIDI"
 msgid "MIDI Input Device"
 msgstr "Устройство ввода MIDI"
 
+msgid "BIOS file"
+msgstr "Файл BIOS"
+
+msgid "BIOS file (ROM #1)"
+msgstr "Файл BIOS (ПЗУ #1)"
+
+msgid "BIOS file (ROM #2)"
+msgstr "Файл BIOS (ПЗУ #2)"
+
+msgid "BIOS file (ROM #3)"
+msgstr "Файл BIOS (ПЗУ #3)"
+
+msgid "BIOS file (ROM #4)"
+msgstr "Файл BIOS (ПЗУ #4)"
+
 msgid "BIOS Address"
 msgstr "Адрес BIOS"
 
+msgid "BIOS address (ROM #1)"
+msgstr "Адрес BIOS (ПЗУ #1)"
+
+msgid "BIOS address (ROM #2)"
+msgstr "Адрес BIOS (ПЗУ #2)"
+
+msgid "BIOS address (ROM #3)"
+msgstr "Адрес BIOS (ПЗУ #3)"
+
+msgid "BIOS address (ROM #4)"
+msgstr "Адрес BIOS (ПЗУ #4)"
+
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Разрешить запись в ПЗУ расширения BIOS"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ #1)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ #2)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ #3)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ #4)"
+
+msgid "Linear framebuffer base"
+msgstr "Линейная база кадрового буфера"
 
 msgid "Address"
 msgstr "Адрес"
@@ -1497,8 +1479,23 @@ msgstr "IRQ"
 msgid "BIOS Revision"
 msgstr "Версия BIOS"
 
+msgid "BIOS Version"
+msgstr "Версия BIOS"
+
+msgid "BIOS Versions"
+msgstr "Версии BIOS"
+
+msgid "BIOS Language"
+msgstr "Язык BIOS"
+
+msgid "IBM 5161 Expansion Unit"
+msgstr "Блок расширения IBM 5161"
+
+msgid "IBM Cassette Basic"
+msgstr "Кассетный бейсик IBM"
+
 msgid "Translate 26 -> 17"
-msgstr "Перевести 26 -> 17"
+msgstr "Переводить 26 -> 17"
 
 msgid "Language"
 msgstr "Язык"
@@ -1511,6 +1508,18 @@ msgstr "Инвертировать цвета"
 
 msgid "BIOS size"
 msgstr "Размер BIOS"
+
+msgid "BIOS size (ROM #1)"
+msgstr "Размер BIOS (ПЗУ #1)"
+
+msgid "BIOS size (ROM #2)"
+msgstr "Размер BIOS (ПЗУ #2)"
+
+msgid "BIOS size (ROM #3)"
+msgstr "Размер BIOS (ПЗУ #3)"
+
+msgid "BIOS size (ROM #4)"
+msgstr "Размер BIOS (ПЗУ #4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Отображение C0000-C7FFF в качестве UMB"
@@ -1587,6 +1596,9 @@ msgstr "Уровень реверберации"
 msgid "Interpolation Method"
 msgstr "Метод интерполяции"
 
+msgid "Dynamic Sample Loading"
+msgstr "Динамическая загрузка сэмплов"
+
 msgid "Reverb Output Gain"
 msgstr "Усиление выходного сигнала ревербератора"
 
@@ -1594,7 +1606,7 @@ msgid "Reversed stereo"
 msgstr "Реверс стерео"
 
 msgid "Nice ramp"
-msgstr "Nice ramp"
+msgstr "Улучшение рампы"
 
 msgid "Hz"
 msgstr "Гц"
@@ -1645,7 +1657,7 @@ msgid "RAM Address"
 msgstr "Адрес оперативной памяти"
 
 msgid "RAM size"
-msgstr "Объем оперативной памяти"
+msgstr "Размер оперативной памяти"
 
 msgid "Initial RAM size"
 msgstr "Начальный размер оперативной памяти"
@@ -1675,16 +1687,19 @@ msgid "Enable Game port"
 msgstr "Включить игровой порт"
 
 msgid "Surround module"
-msgstr "Модуль объемного звучания"
+msgstr "Модуль объёмного звучания"
 
 msgid "CODEC"
-msgstr "КОДЕК"
+msgstr "Кодек"
 
 msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Поднимать прерывание CODEC при настройке CODEC (необходимо некоторым драйверам)."
+msgstr "Поднимать прерывание кодека при настройке кодека (необходимо некоторым драйверам)"
 
 msgid "SB Address"
 msgstr "Адрес SB"
+
+msgid "Use EEPROM setting"
+msgstr "Использовать настройку EEPROM"
 
 msgid "WSS IRQ"
 msgstr "IRQ WSS"
@@ -1708,7 +1723,7 @@ msgid "Enable CMS"
 msgstr "Включить CMS"
 
 msgid "Mixer"
-msgstr "Смеситель"
+msgstr "Микшер"
 
 msgid "High DMA"
 msgstr "Высокий DMA"
@@ -1717,7 +1732,7 @@ msgid "Control PC speaker"
 msgstr "Управление динамиком ПК"
 
 msgid "Memory size"
-msgstr "Объем памяти"
+msgstr "Размер памяти"
 
 msgid "EMU8000 Address"
 msgstr "Адрес EMU8000"
@@ -1732,7 +1747,7 @@ msgid "GUS type"
 msgstr "Тип GUS"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr "Включить команду 0x04 \"Выход 86Box\"."
+msgstr "Включить команду 0x04 \"Выход из 86Box\""
 
 msgid "Display type"
 msgstr "Тип дисплея"
@@ -1770,17 +1785,20 @@ msgstr "Тип RAMDAC"
 msgid "Blend"
 msgstr "Смесь"
 
+msgid "Font"
+msgstr "Шрифт"
+
 msgid "Bilinear filtering"
 msgstr "Билинейная фильтрация"
 
 msgid "Dithering"
-msgstr "Dithering"
+msgstr "Дизеринг"
 
 msgid "Enable NMI for CGA emulation"
-msgstr "Включение NMI для эмуляции CGA"
+msgstr "Включить NMI для эмуляции CGA"
 
 msgid "Voodoo type"
-msgstr "Тип Вуду"
+msgstr "Тип Voodoo"
 
 msgid "Framebuffer memory size"
 msgstr "Размер памяти фреймбуфера"
@@ -1789,10 +1807,10 @@ msgid "Texture memory size"
 msgstr "Размер памяти текстур"
 
 msgid "Dither subtraction"
-msgstr "Вычитание с вычитанием"
+msgstr "Вычитание дизеринга"
 
 msgid "Screen Filter"
-msgstr "Фильтр экрана"
+msgstr "Экранный фильтр"
 
 msgid "Render threads"
 msgstr "Потоки рендеринга"
@@ -1815,6 +1833,33 @@ msgstr "Скорость передачи данных"
 msgid "EMS mode"
 msgstr "Режим EMS"
 
+msgid "EMS Address"
+msgstr "Адрес EMS"
+
+msgid "EMS 1 Address"
+msgstr "Адрес EMS 1"
+
+msgid "EMS 2 Address"
+msgstr "Адрес EMS 2"
+
+msgid "EMS Memory Size"
+msgstr "Размер памяти EMS"
+
+msgid "EMS 1 Memory Size"
+msgstr "Размер памяти EMS 1"
+
+msgid "EMS 2 Memory Size"
+msgstr "Размер памяти EMS 2"
+
+msgid "Enable EMS"
+msgstr "Включить EMS"
+
+msgid "Enable EMS 1"
+msgstr "Включить EMS 1"
+
+msgid "Enable EMS 2"
+msgstr "Включить EMS 2"
+
 msgid "Address for > 2 MB"
 msgstr "Адрес для > 2 МБ"
 
@@ -1834,10 +1879,10 @@ msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Настройка BIOS + горячие клавиши (отключается во время POST)"
 
 msgid "64 kB starting from F0000"
-msgstr "64 кБ, начиная с F0000"
+msgstr "64 КБ, начиная с F0000"
 
 msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 кБ, начиная с E0000 (адрес MSB инвертирован, сначала последние 64 КБ)"
+msgstr "128 КБ, начиная с E0000 (адрес MSB инвертирован, сначала последние 64 КБ)"
 
 msgid "Sine"
 msgstr "Синусоидальная"
@@ -1861,7 +1906,7 @@ msgid "45 Hz (JMP2 not populated)"
 msgstr "45 Гц (без джампера на JMP2)"
 
 msgid "Two"
-msgstr "Два"
+msgstr "Две"
 
 msgid "Three"
 msgstr "Три"
@@ -1871,6 +1916,9 @@ msgstr "Колесо"
 
 msgid "Five + Wheel"
 msgstr "Пять + колесо"
+
+msgid "Five + 2 Wheels"
+msgstr "Пять + 2 колеса"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 последовательная / SMT3(R)V"
@@ -1945,7 +1993,7 @@ msgid "Color (generic)"
 msgstr "Цветной (стандартный)"
 
 msgid "Green Monochrome"
-msgstr "Зеленый монохромный"
+msgstr "Зелёный монохромный"
 
 msgid "Amber Monochrome"
 msgstr "Янтарный монохромный"
@@ -1975,7 +2023,7 @@ msgid "Monochrome (5151/MDA) (white)"
 msgstr "Монохромный (5151/MDA) (белый)"
 
 msgid "Monochrome (5151/MDA) (green)"
-msgstr "Монохромный (5151/MDA) (зеленый)"
+msgstr "Монохромный (5151/MDA) (зелёный)"
 
 msgid "Monochrome (5151/MDA) (amber)"
 msgstr "Монохромный (5151/MDA) (янтарный)"
@@ -1993,13 +2041,16 @@ msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Улучшенный цветной - улучшенный режим (5154/ECD)"
 
 msgid "Green"
-msgstr "Зеленый"
+msgstr "Зелёный"
 
 msgid "Amber"
 msgstr "Янтарный"
 
 msgid "Gray"
 msgstr "Серый"
+
+msgid "Grayscale"
+msgstr "Монохромный"
 
 msgid "Color"
 msgstr "Цветной"
@@ -2016,14 +2067,20 @@ msgstr "Другие языки"
 msgid "Bochs latest"
 msgstr "Bochs последний"
 
+msgid "Apply overscan deltas"
+msgstr "Применить дельты вылетов развёртки"
+
+msgid "Mono Interlaced"
+msgstr "Монохромный с чересстрочной развёрткой"
+
 msgid "Mono Non-Interlaced"
-msgstr "Монохромный без чересстрочной развертки"
+msgstr "Монохромный без чересстрочной развёртки"
 
 msgid "Color Interlaced"
-msgstr "Цветной с чересстрочной разверткой"
+msgstr "Цветной с чересстрочной развёрткой"
 
 msgid "Color Non-Interlaced"
-msgstr "Цветной без чересстрочной развертки"
+msgstr "Цветной без чересстрочной развёртки"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "Ускоритель 3Dfx Voodoo"
@@ -2074,10 +2131,10 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Защитный донгл для Savage Quest"
 
 msgid "Serial Passthrough Device"
-msgstr "Устройство прохода через последовательный порт"
+msgstr "Устройство проброса через последовательный порт"
 
 msgid "Passthrough Mode"
-msgstr "Проходной режим"
+msgstr "Режим проброса"
 
 msgid "Host Serial Device"
 msgstr "Последовательное устройство хоста"
@@ -2100,8 +2157,8 @@ msgstr "Именованный пайп (Сервер)"
 msgid "Host Serial Passthrough"
 msgstr "Последовательный порт хоста"
 
-msgid "Eject %s"
-msgstr "Извлечь %s"
+msgid "E&ject %1"
+msgstr "И&звлечь %1"
 
 msgid "&Unmute"
 msgstr "В&ключить звук"
@@ -2112,8 +2169,29 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "Сильное влияние на производительность"
 
-msgid "RAM Disk (max. speed)"
-msgstr "RAM-диск (макс. скорость)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Стандартный] RAM-диск (макс. скорость)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr "[Стандартный] 1989 (3500 RPM)"
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr "[Стандартный] 1992 (3600 RPM)"
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr "[Стандартный] 1994 (4500 RPM)"
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr "[Стандартный] 1996 (5400 RPM)"
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr "[Стандартный] 1997 (5400 RPM)"
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr "[Стандартный] 1998 (5400 RPM)"
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr "[Стандартный] 2000 (7200 RPM)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Клон IBM 8514/A (ISA)"
@@ -2132,3 +2210,120 @@ msgstr "Стандартное расширение памяти PC/XT"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Стандартное расширение памяти PC/AT"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "Невозможно найти матричные шрифты"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "Шрифты TrueType в каталоге \"roms/printer/fonts\" необходимы для эмуляции стандартного матричного принтера ESC/P."
+
+msgid "Inhibit multimedia keys"
+msgstr "Перехватывать мультимедийные клавиши"
+
+msgid "Ask for confirmation before saving settings"
+msgstr "Запрашивать подтверждение перед сохранением настроек"
+
+msgid "Ask for confirmation before hard resetting"
+msgstr "Запрашивать подтверждение перед холодной перезагрузкой"
+
+msgid "Ask for confirmation before quitting"
+msgstr "Запрашивать подтверждение перед выходом"
+
+msgid "Options"
+msgstr "Параметры"
+
+msgid "Model"
+msgstr "Модель"
+
+msgid "Model:"
+msgstr "Модель:"
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr "Не удалось инициализировать рендерер Vulkan."
+
+msgid "GLSL Error"
+msgstr "Ошибка GLSL"
+
+msgid "Could not load shader: %1"
+msgstr "Не удалось загрузить шейдер: %1"
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr "Требуется OpenGL версии 3.0 или выше. Текущая версия GLSL %1.%2"
+
+msgid "Could not load texture: %1"
+msgstr "Не удалось загрузить текстуру: %1"
+
+msgid "Could not compile shader:\n\n%1"
+msgstr "Не удалось скомпилировать шейдер:\n\n%1"
+
+msgid "Program not linked:\n\n%1"
+msgstr "Не удалось скомпоновать шейдер:\n\n%1"
+
+msgid "Shader Manager"
+msgstr "Управление шейдерами"
+
+msgid "Shader Configuration"
+msgstr "Конфигурация шейдера"
+
+msgid "Add"
+msgstr "Добавить"
+
+msgid "Move up"
+msgstr "Вверх"
+
+msgid "Move down"
+msgstr "Вниз"
+
+msgid "Could not load file %1"
+msgstr "Не удалось загрузить файл %1"
+
+msgid "Key Bindings:"
+msgstr "Привязки клавиш:"
+
+msgid "Action"
+msgstr "Действие"
+
+msgid "Keybind"
+msgstr "Привязка клавиш"
+
+msgid "Clear binding"
+msgstr "Очистить привязку"
+
+msgid "Bind"
+msgstr "Привязка"
+
+msgid "Bind Key"
+msgstr "Привязать клавишу"
+
+msgid "Enter key combo:"
+msgstr "Введите комбинацию клавиш:"
+
+msgid "Send Control+Alt+Del"
+msgstr "Отправить Control+Alt+Del"
+
+msgid "Send Control+Alt+Escape"
+msgstr "Отправить Control+Alt+Escape"
+
+msgid "Toggle fullscreen"
+msgstr "Переключить полноэкранный режим"
+
+msgid "Screenshot"
+msgstr "Скриншот"
+
+msgid "Release mouse pointer"
+msgstr "Отпустить указатель мыши"
+
+msgid "Toggle pause"
+msgstr "Переключить паузу"
+
+msgid "Toggle mute"
+msgstr "Переключить беззвучный режим"
+
+msgid "Text files"
+msgstr "Текстовые файлы"
+
+msgid "ROM files"
+msgstr "Файлы ПЗУ"
+
+msgid "SoundFont files"
+msgstr "Файлы SoundFont"

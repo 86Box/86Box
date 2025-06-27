@@ -2,6 +2,9 @@
 #    define _FILE_OFFSET_BITS   64
 #    define _LARGEFILE64_SOURCE 1
 #endif
+#ifdef __HAIKU__
+#include <OS.h>
+#endif
 #include <SDL.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -38,6 +41,7 @@
 #include <86box/device.h>
 #include <86box/gameport.h>
 #include <86box/unix_sdl.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/version.h>
@@ -61,15 +65,12 @@ int             fixed_size_y = 480;
 extern int      title_set;
 extern wchar_t  sdl_win_title[512];
 plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
-joystick_t      joystick_state[MAX_JOYSTICKS];
+joystick_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
 int             joysticks_present;
 SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
 static int      exit_event         = 0;
 static int      fullscreen_pending = 0;
-uint32_t        lang_id  = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
-uint32_t        lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
-char            icon_set[256] = "";                  /* name of the iconset to be used */
 
 static const uint16_t sdl_to_xt[0x200] = {
     [SDL_SCANCODE_ESCAPE]       = 0x01,
@@ -301,7 +302,7 @@ path_abs(char *path)
 }
 
 void
-path_normalize(char *path)
+path_normalize(UNUSED(char *path))
 {
     /* No-op. */
 }
@@ -459,13 +460,19 @@ plat_remove(char *path)
 }
 
 void
-ui_sb_update_icon_state(int tag, int state)
+ui_sb_update_icon_state(UNUSED(int tag), UNUSED(int state))
 {
     /* No-op. */
 }
 
 void
-ui_sb_update_icon(int tag, int active)
+ui_sb_update_icon(UNUSED(int tag), UNUSED(int active))
+{
+    /* No-op. */
+}
+
+void
+ui_sb_update_icon_write(UNUSED(int tag), UNUSED(int active))
 {
     /* No-op. */
 }
@@ -477,7 +484,7 @@ plat_delay_ms(uint32_t count)
 }
 
 void
-ui_sb_update_tip(int arg)
+ui_sb_update_tip(UNUSED(int arg))
 {
     /* No-op. */
 }
@@ -514,8 +521,9 @@ path_get_dirname(char *dest, const char *path)
     *dest = '\0';
 }
 volatile int cpu_thread_run = 1;
+
 void
-ui_sb_set_text_w(wchar_t *wstr)
+ui_sb_set_text_w(UNUSED(wchar_t *wstr))
 {
     /* No-op. */
 }
@@ -533,7 +541,7 @@ strnicmp(const char *s1, const char *s2, size_t n)
 }
 
 void
-main_thread(void *param)
+main_thread(UNUSED(void *param))
 {
     uint32_t old_time;
     uint32_t new_time;
@@ -707,7 +715,7 @@ plat_power_off(void)
 }
 
 void
-ui_sb_bugui(char *str)
+ui_sb_bugui(UNUSED(char *str))
 {
     /* No-op. */
 }
@@ -726,7 +734,7 @@ int        real_sdl_w;
 int        real_sdl_h;
 
 void
-ui_sb_set_ready(int ready)
+ui_sb_set_ready(UNUSED(int ready))
 {
     /* No-op. */
 }
@@ -912,14 +920,14 @@ void (*f_rl_callback_handler_remove)(void) = NULL;
 #endif
 
 uint32_t
-timer_onesec(uint32_t interval, void *param)
+timer_onesec(uint32_t interval, UNUSED(void *param))
 {
     pc_onesec();
     return interval;
 }
 
 void
-monitor_thread(void *param)
+monitor_thread(UNUSED(void *param))
 {
 #ifndef USE_CLI
     if (isatty(fileno(stdin)) && isatty(fileno(stdout))) {
@@ -1336,9 +1344,6 @@ main(int argc, char **argv)
                     }
             }
         }
-        if (mouse_capture && keyboard_ismsexit()) {
-            plat_mouse_capture(0);
-        }
         if (blitreq) {
             extern void sdl_blit(int x, int y, int w, int h);
             sdl_blit(params.x, params.y, params.w, params.h);
@@ -1369,14 +1374,14 @@ main(int argc, char **argv)
     return 0;
 }
 char *
-plat_vidapi_name(int i)
+plat_vidapi_name(UNUSED(int i))
 {
     return "default";
 }
 
-/* Sets up the program language before initialization. */
-uint32_t
-plat_language_code(char *langcode)
+/* Converts the language code string to a numeric language ID */
+int
+plat_language_code(UNUSED(char *langcode))
 {
     /* or maybe not */
     return 0;
@@ -1396,24 +1401,28 @@ plat_set_thread_name(void *thread, const char *name)
     if (thread) /* Apple pthread can only set self's name */
         return;
     char truncated[64];
-#elif defined(Q_OS_NETBSD)
+#elif defined(__NetBSD__)
     char truncated[64];
+#elif defined(__HAIKU__)
+    char truncated[32];
 #else
     char truncated[16];
 #endif
     strncpy(truncated, name, sizeof(truncated) - 1);
 #ifdef __APPLE__
     pthread_setname_np(truncated);
-#elif defined(Q_OS_NETBSD)
+#elif defined(__NetBSD__)
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, "%s");
+#elif defined(__HAIKU__)
+    rename_thread(find_thread(NULL), truncated);
 #else
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
 #endif
 }
 
-/* Converts back the language code to LCID */
+/* Converts the numeric language ID to a language code string */
 void
-plat_language_code_r(uint32_t lcid, char *outbuf, int len)
+plat_language_code_r(UNUSED(int id), UNUSED(char *outbuf), UNUSED(int len))
 {
     /* or maybe not */
     return;
@@ -1451,7 +1460,7 @@ endblit(void)
 
 /* API */
 void
-ui_sb_mt32lcd(char *str)
+ui_sb_mt32lcd(UNUSED(char *str))
 {
     /* No-op. */
 }

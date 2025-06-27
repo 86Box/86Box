@@ -217,6 +217,7 @@ block_free_list_get(void)
 void
 codegen_init(void)
 {
+    codegen_check_regs();
     codegen_allocator_init();
 
     codegen_backend_init();

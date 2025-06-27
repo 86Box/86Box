@@ -188,8 +188,9 @@ machine_at_acerv60n_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      2, 3, 4, 1);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c935_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL));
     device_add(&sst_flash_29ee010_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 128);
 
     return ret;
 }
@@ -216,9 +217,7 @@ machine_at_lgibmx61_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    // device_add(&keyboard_ps2_ami_pci_device);
     device_add(&keyboard_ps2_ami_device);
-    // device_add(&w83787f_device);
     device_add(&w83877f_president_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -251,10 +250,48 @@ machine_at_vs440fx_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
-    device_add(&pc87307_device);
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307));
 
     device_add(&intel_flash_bxt_ami_device);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+int
+machine_at_dellvenus_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined2("roms/machines/dellvenus/1006CS1J.BIO",
+                                     "roms/machines/dellvenus/1006CS1J.BI1",
+                                     "roms/machines/dellvenus/1006CS1J.BI2",
+                                     "roms/machines/dellvenus/1006CS1J.BI3",
+                                     "roms/machines/dellvenus/1006CS1J.RCV",
+                                     0x3a000, 128);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&i440fx_device);
+    device_add(&piix3_device);
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307));
+    
+    device_add(&intel_flash_bxt_ami_device);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -285,10 +322,12 @@ machine_at_gw2kvenus_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
-    device_add(&pc87307_device);
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307));
 
     device_add(&intel_flash_bxt_ami_device);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -319,8 +358,7 @@ machine_at_ap440fx_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87307_device);
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC87307));
     device_add(&intel_flash_bxt_ami_device);
 
     if (sound_card_current[0] == SOUND_INTERNAL)
@@ -383,7 +421,7 @@ machine_at_m6mi_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c935_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL));
     device_add(&intel_flash_bxt_device);
 
     return ret;

@@ -22,6 +22,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/dma.h>
 #include <86box/mem.h>
@@ -486,7 +487,7 @@ const device_t sis_5591_h2p_device = {
     .init          = sis_5591_host_to_pci_init,
     .close         = sis_5591_host_to_pci_close,
     .reset         = sis_5591_host_to_pci_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

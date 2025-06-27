@@ -343,8 +343,7 @@ smbus_sis5595_reset(void *priv)
 static void *
 smbus_sis5595_init(const device_t *info)
 {
-    smbus_sis5595_t *dev = (smbus_sis5595_t *) malloc(sizeof(smbus_sis5595_t));
-    memset(dev, 0, sizeof(smbus_sis5595_t));
+    smbus_sis5595_t *dev = (smbus_sis5595_t *) calloc(1, sizeof(smbus_sis5595_t));
 
     dev->local        = info->local;
 
@@ -374,12 +373,12 @@ smbus_sis5595_close(void *priv)
 const device_t sis5595_smbus_device = {
     .name          = "SiS 5595-compatible SMBus Host Controller",
     .internal_name = "sis5595_smbus",
-    .flags         = DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = smbus_sis5595_init,
     .close         = smbus_sis5595_close,
     .reset         = smbus_sis5595_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

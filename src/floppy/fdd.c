@@ -100,10 +100,10 @@ d86f_handler_t d86f_handler[FDD_NUM];
 
 static const struct
 {
-    char *ext;
-    void (*load)(int drive, char *fn);
-    void (*close)(int drive);
-    int size;
+    const char *ext;
+    void        (*load)(int drive, char *fn);
+    void        (*close)(int drive);
+    int         size;
 } loaders[] = {
     { "001",  img_load,  img_close,  -1},
     { "002",  img_load,  img_close,  -1},
@@ -294,7 +294,7 @@ fdd_type_invert_densel(int type)
     int ret;
 
     if (drive_types[type].flags & FLAG_PS2)
-        ret = (!!strstr(machine_getname(), "PS/1")) || (!!strstr(machine_getname(), "PS/2"));
+        ret = (!!strstr(machine_getname(), "PS/1")) || (!!strstr(machine_getname(), "PS/2")) || (!!strstr(machine_getname(), "PS/55"));
     else
         ret = drive_types[type].flags & FLAG_INVERT_DENSEL;
 
@@ -467,7 +467,7 @@ fdd_load(int drive, char *fn)
     int         c = 0;
     int         size;
     const char *p;
-    FILE *      fp;
+    FILE       *fp;
 
     fdd_log("FDD: loading drive %d with '%s'\n", drive, fn);
 

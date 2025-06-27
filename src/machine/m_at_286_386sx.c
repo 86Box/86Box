@@ -37,6 +37,7 @@
 #include <86box/hdc.h>
 #include <86box/nvr.h>
 #include <86box/port_6x.h>
+#define USE_SIO_DETECT
 #include <86box/sio.h>
 #include <86box/serial.h>
 #include <86box/video.h>
@@ -66,7 +67,7 @@ machine_at_mr286_init(const machine_t *model)
 }
 
 static void
-machine_at_headland_common_init(int type)
+machine_at_headland_common_init(const machine_t *model, int type)
 {
     device_add(&keyboard_at_ami_device);
 
@@ -94,7 +95,7 @@ machine_at_tg286m_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
 
-    machine_at_headland_common_init(1);
+    machine_at_headland_common_init(model, 1);
 
     return ret;
 }
@@ -115,7 +116,7 @@ machine_at_ama932j_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&oti067_ama932j_device);
 
-    machine_at_headland_common_init(2);
+    machine_at_headland_common_init(model, 2);
 
     device_add(&ali5105_device);
 
@@ -164,6 +165,72 @@ machine_at_quadt386sx_init(const machine_t *model)
         device_add(&fdc_at_device);
 
     device_add(&headland_gc10x_device);
+
+    return ret;
+}
+
+static const device_config_t pbl300sx_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "pbl300sx",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "1991", .internal_name = "pbl300sx_1991", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pbl300sx/V1.10_1113_910723.bin", "" } },
+            { .name = "1992", .internal_name = "pbl300sx", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pbl300sx/pb_l300sx_1992.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pbl300sx_device = {
+    .name          = "Packard Bell Legend 300SX",
+    .internal_name = "pbl300sx_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pbl300sx_config
+};
+
+int
+machine_at_pbl300sx_init(const machine_t *model)
+{
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&acc2036_device);
+
+    device_add(&keyboard_ps2_phoenix_device);
+    device_add(&um82c862f_ide_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
@@ -222,10 +289,6 @@ machine_at_ataripc4_init(const machine_t *model)
 
     ret = bios_load_interleaved("roms/machines/ataripc4/AMI_PC4X_1.7_EVEN.BIN",
                                 "roms/machines/ataripc4/AMI_PC4X_1.7_ODD.BIN",
-#if 0
-    ret = bios_load_interleaved("roms/machines/ataripc4/ami_pc4x_1.7_even.bin",
-                                "roms/machines/ataripc4/ami_pc4x_1.7_odd.bin",
-#endif
                                 0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -265,6 +328,69 @@ machine_at_px286_init(const machine_t *model)
     return ret;
 }
 
+static void
+machine_at_ctat_common_init(const machine_t *model)
+{
+    machine_at_common_init(model);
+
+    device_add(&cs8220_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    device_add(&keyboard_at_phoenix_device);
+}
+
+int
+machine_at_dells200_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/dells200/dellL200256_LO_@DIP28.BIN",
+                                "roms/machines/dells200/Dell200256_HI_@DIP28.BIN",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ctat_common_init(model);
+
+    return ret;
+}
+
+int
+machine_at_at122_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/at122/FINAL.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ctat_common_init(model);
+
+    return ret;
+}
+
+int
+machine_at_tuliptc7_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleavedr("roms/machines/tuliptc7/tc7be.bin",
+                                 "roms/machines/tuliptc7/tc7bo.bin",
+                                 0x000f8000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ctat_common_init(model);
+
+    return ret;
+}
+
 int
 machine_at_micronics386_init(const machine_t *model)
 {
@@ -272,6 +398,26 @@ machine_at_micronics386_init(const machine_t *model)
 
     ret = bios_load_interleaved("roms/machines/micronics386/386-Micronics-09-00021-EVEN.BIN",
                                 "roms/machines/micronics386/386-Micronics-09-00021-ODD.BIN",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_init(model);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_micronics386px_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/micronics386/386-Micronics-09-00021-LO.BIN",
+                                "roms/machines/micronics386/386-Micronics-09-00021-HI.BIN",
                                 0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -630,9 +776,9 @@ machine_at_cmdsl386sx16_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
-    device_add(&keyboard_at_device);
+    device_add(&keyboard_ps2_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -641,6 +787,39 @@ machine_at_cmdsl386sx16_init(const machine_t *model)
     /* Two serial ports - on the real hardware SL386SX-16, they are on the single UMC UM82C452. */
     device_add_inst(&ns16450_device, 1);
     device_add_inst(&ns16450_device, 2);
+
+    return ret;
+}
+
+int
+machine_at_if386sx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/if386sx/OKI_IF386SX_odd.bin",
+                                "roms/machines/if386sx/OKI_IF386SX_even.bin",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+    device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
+
+    device_add(&keyboard_at_phoenix_device);
+
+    device_add(&neat_sx_device);
+
+    device_add(&if386jega_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    /*
+       One serial port - on the real hardware IF386AX, it is on the VL 16C451,
+       alognside the bidirectional parallel port.
+     */
+    device_add_inst(&ns16450_device, 1);
 
     return ret;
 }
@@ -675,9 +854,80 @@ machine_at_cmdsl386sx25_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5402_onboard_device);
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&ide_isa_device);
 
     device_add(&ali5105_device);  /* The FDC is part of the ALi M5105. */
+    device_add(&vl82c113_device); /* The keyboard controller is part of the VL82c113. */
+
+    device_add(&vlsi_scamp_device);
+
+    return ret;
+}
+
+static const device_config_t dells333sl_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "dells333sl",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "J01 (Jostens Learning Corporation OEM)", .internal_name = "dells333sl_j01", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/dells333sl/DELL386.BIN", "" } },
+            { .name = "A02", .internal_name = "dells333sl", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/dells333sl/Dell_386SX_30807_UBIOS_B400_VLSI_VL82C311_Cirrus_Logic_GD5420.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t dells333sl_device = {
+    .name          = "Dell System 333s/L",
+    .internal_name = "dells333sl_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = dells333sl_config
+};
+
+int
+machine_at_dells333sl_init(const machine_t *model)
+{
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 262144, 0);
+    memcpy(rom, &(rom[0x00020000]), 131072);
+    mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+    mem_mapping_set_exec(&bios_mapping, rom);
+    device_context_restore();
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&ide_isa_device);
+
+    device_add(&pc87311_device);
     device_add(&vl82c113_device); /* The keyboard controller is part of the VL82c113. */
 
     device_add(&vlsi_scamp_device);
@@ -746,7 +996,7 @@ machine_at_acer100t_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/acer100t/acer386.bin",
+    ret = bios_load_linear("roms/machines/acer100t/acer386.BIN",
                            0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -754,12 +1004,9 @@ machine_at_acer100t_init(const machine_t *model)
 
     machine_at_ps2_ide_init(model);
 
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-    
     device_add(&ali1409_device);
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&oti077_acer100t_device);   
+        device_add(&oti077_acer100t_device);
      
     device_add(&ali5105_device);
     
@@ -963,7 +1210,7 @@ machine_at_3302_init(const machine_t *model)
         device_add(&fdc_at_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&paradise_pvga1a_ncr3302_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add(&keyboard_at_ncr_device);
 
@@ -997,7 +1244,6 @@ machine_at_pc916sx_init(const machine_t *model)
     return ret;
 }
 
-#ifdef USE_OLIVETTI
 int
 machine_at_m290_init(const machine_t *model)
 {
@@ -1009,15 +1255,16 @@ machine_at_m290_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 4);
-    device_add(&keyboard_at_olivetti_device);
+    machine_at_common_init_ex(model, 6);
+    device_add(&amstrad_megapc_nvr_device);
+
+    device_add(&olivetti_eva_device);
     device_add(&port_6x_olivetti_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&olivetti_eva_device);
+    device_add(&keyboard_at_olivetti_device);
 
     return ret;
 }
-#endif /* USE_OLIVETTI */

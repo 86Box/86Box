@@ -31,6 +31,7 @@ typedef void *ini_section_t;
 
 extern ini_t ini_new(void);
 extern ini_t ini_read(const char *fn);
+extern void  ini_strip_quotes(ini_t ini);
 extern void  ini_write(ini_t ini, const char *fn);
 extern void  ini_dump(ini_t ini);
 extern void  ini_close(ini_t ini);
@@ -58,6 +59,7 @@ extern void     ini_section_set_hex20(ini_section_t section, const char *name, i
 extern void     ini_section_set_mac(ini_section_t section, const char *name, int val);
 extern void     ini_section_set_string(ini_section_t section, const char *name, const char *val);
 extern void     ini_section_set_wstring(ini_section_t section, const char *name, wchar_t *val);
+extern int      ini_has_entry(ini_section_t self, const char *name);
 
 #define ini_delete_var(ini, head, name)       ini_section_delete_var(ini_find_section(ini, head), name)
 

@@ -107,8 +107,10 @@ constexpr unsigned int OSC_DAC_BITS = 12;
  * On my 6581R4AR has 0x3A as the only value giving the same output level as 1.prg
  */
 //@{
+#ifdef USE_RESID_UNUSED
 constexpr unsigned int OFFSET_6581 = 0x380;
 constexpr unsigned int OFFSET_8580 = 0x9c0;
+#endif
 //@}
 
 /**

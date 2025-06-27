@@ -104,7 +104,7 @@ f82c710_update_ports(upc_t *dev, int set)
 
     if (dev->regs[0] & 8) {
         lpt_addr = dev->regs[6] * 4;
-        lpt1_init(lpt_addr);
+        lpt1_setup(lpt_addr);
         if ((lpt_addr == LPT1_ADDR) || (lpt_addr == LPT_MDA_ADDR))
             lpt1_irq(LPT1_IRQ);
         else if (lpt_addr == LPT2_ADDR)
@@ -215,7 +215,7 @@ f82c606_update_ports(upc_t *dev, int set)
     }
 
     if (dev->regs[0] & 8) {
-        lpt1_init(((uint16_t) dev->regs[6]) << 2);
+        lpt1_setup(((uint16_t) dev->regs[6]) << 2);
         lpt1_irq(lpt1_int);
         f82c710_log("LPT1 at %04X, IRQ %i\n", ((uint16_t) dev->regs[6]) << 2, lpt1_int);
     }
@@ -364,8 +364,7 @@ f82c710_close(void *priv)
 static void *
 f82c710_init(const device_t *info)
 {
-    upc_t *dev = (upc_t *) malloc(sizeof(upc_t));
-    memset(dev, 0, sizeof(upc_t));
+    upc_t *dev = (upc_t *) calloc(1, sizeof(upc_t));
     dev->local = info->local;
 
     if (dev->local == 606) {
@@ -393,7 +392,7 @@ const device_t f82c606_device = {
     .init          = f82c710_init,
     .close         = f82c710_close,
     .reset         = f82c710_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -407,7 +406,7 @@ const device_t f82c710_device = {
     .init          = f82c710_init,
     .close         = f82c710_close,
     .reset         = f82c710_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

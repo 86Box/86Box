@@ -32,8 +32,8 @@
 /* String ID numbers. */
 enum {
     STRING_MOUSE_CAPTURE,             /* "Click to capture mouse" */
-    STRING_MOUSE_RELEASE,             /* "Press F8+F12/Ctrl+End to release mouse" */
-    STRING_MOUSE_RELEASE_MMB,         /* "Press F8+F12/Ctrl+End or middle button to release mouse" */
+    STRING_MOUSE_RELEASE,             /* "Press %1 to release mouse" */
+    STRING_MOUSE_RELEASE_MMB,         /* "Press %1 or middle button to release mouse" */
     STRING_INVALID_CONFIG,            /* "Invalid configuration" */
     STRING_NO_ST506_ESDI_CDROM,       /* "MFM/RLL or ESDI CD-ROM drives never existed" */
     STRING_NET_ERROR,                 /* "Failed to initialize network driver" */
@@ -47,9 +47,12 @@ enum {
     STRING_HW_NOT_AVAILABLE_MACHINE,  /* "Machine \"%hs\" is not available..." */
     STRING_HW_NOT_AVAILABLE_VIDEO,    /* "Video card \"%hs\" is not available..." */
     STRING_HW_NOT_AVAILABLE_VIDEO2,   /* "Video card #2 \"%hs\" is not available..." */
+    STRING_HW_NOT_AVAILABLE_DEVICE,   /* "Device \"%hs\" is not available..." */
     STRING_MONITOR_SLEEP,             /* "Monitor in sleep mode" */
     STRING_GHOSTPCL_ERROR_TITLE,      /* "Unable to initialize GhostPCL" */
-    STRING_GHOSTPCL_ERROR_DESC        /* "gpcl6dll32.dll/gpcl6dll64.dll/libgpcl6 is required..." */
+    STRING_GHOSTPCL_ERROR_DESC,       /* "gpcl6dll32.dll/gpcl6dll64.dll/libgpcl6 is required..." */
+    STRING_ESCP_ERROR_TITLE,          /* "Unable to find Dot-Matrix fonts" */
+    STRING_ESCP_ERROR_DESC            /* "TrueType fonts in the \"roms/printer/fonts\" directory..." */
 };
 
 /* The Win32 API uses _wcsicmp. */
@@ -157,10 +160,11 @@ extern int      plat_vidapi(const char *name);
 extern char    *plat_vidapi_name(int api);
 extern void     plat_resize(int x, int y, int monitor_index);
 extern void     plat_resize_request(int x, int y, int monitor_index);
-extern uint32_t plat_language_code(char *langcode);
-extern void     plat_language_code_r(uint32_t lcid, char *outbuf, int len);
+extern int      plat_language_code(char *langcode);
+extern void     plat_language_code_r(int id, char *outbuf, int len);
 extern void     plat_get_cpu_string(char *outbuf, uint8_t len);
 extern void     plat_set_thread_name(void *thread, const char *name);
+extern void     plat_break(void);
 
 /* Resource management. */
 extern wchar_t *plat_get_string(int id);
@@ -187,9 +191,6 @@ extern void zip_reload(uint8_t id);
 extern void mo_eject(uint8_t id);
 extern void mo_mount(uint8_t id, char *fn, uint8_t wp);
 extern void mo_reload(uint8_t id);
-extern int  ioctl_open(uint8_t id, char d);
-extern void ioctl_reset(uint8_t id);
-extern void ioctl_close(uint8_t id);
 
 /* Other stuff. */
 extern void startblit(void);

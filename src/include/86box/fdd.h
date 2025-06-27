@@ -8,21 +8,19 @@
  *
  *          Definitions for the floppy drive emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *          Copyright 2008-2018 Sarah Walker.
- *          Copyright 2016-2018 Miran Grca.
- *          Copyright 2018 Fred N. van Kempen.
+ *          Copyright 2008-2025 Sarah Walker.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2018-2025 Fred N. van Kempen.
  */
 #ifndef EMU_FDD_H
 #define EMU_FDD_H
 
 #define FDD_NUM              4
-#define FLOPPY_IMAGE_HISTORY 4
+#define FLOPPY_IMAGE_HISTORY 10
 #define SEEK_RECALIBRATE     -999
 
 #ifdef __cplusplus
@@ -128,13 +126,6 @@ extern int drive_empty[FDD_NUM];
 /*Used in the Read A Track command. Only valid for fdd_readsector(). */
 #define SECTOR_FIRST -2
 #define SECTOR_NEXT  -1
-
-typedef union {
-    uint16_t word;
-    uint8_t  bytes[2];
-} crc_t;
-
-void fdd_calccrc(uint8_t byte, crc_t *crc_var);
 
 typedef struct d86f_handler_t {
     uint16_t (*disk_flags)(int drive);

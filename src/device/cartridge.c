@@ -22,6 +22,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
@@ -104,6 +105,7 @@ cart_image_load(int drive, char *fn)
     if (size < 0x1200) {
         cartridge_log("cart_image_load(): File size %i is too small\n", size);
         cart_load_error(drive, fn);
+        fclose(fp);
         return;
     }
     if (size & 0x00000fff) {
@@ -112,8 +114,7 @@ cart_image_load(int drive, char *fn)
         (void) !fread(&base, 1, 2, fp);
         base <<= 4;
         fseek(fp, 0x00000200, SEEK_SET);
-        carts[drive].buf = (uint8_t *) malloc(size);
-        memset(carts[drive].buf, 0x00, size);
+        carts[drive].buf = (uint8_t *) calloc(1, size);
         (void) !fread(carts[drive].buf, 1, size, fp);
         fclose(fp);
     } else {
@@ -121,8 +122,7 @@ cart_image_load(int drive, char *fn)
         if (size == 32768)
             base += 0x8000;
         fseek(fp, 0x00000000, SEEK_SET);
-        carts[drive].buf = (uint8_t *) malloc(size);
-        memset(carts[drive].buf, 0x00, size);
+        carts[drive].buf = (uint8_t *) calloc(1, size);
         (void) !fread(carts[drive].buf, 1, size, fp);
         fclose(fp);
     }

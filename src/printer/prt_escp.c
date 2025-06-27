@@ -1882,6 +1882,39 @@ write_data(uint8_t val, void *priv)
 }
 
 static void
+autofeed(uint8_t val, void *priv)
+{
+    escp_t *dev = (escp_t *) priv;
+
+    if (dev == NULL)
+        return;
+
+    dev->autofeed = ((val & 0x02) > 0);
+}
+
+static void
+strobe(uint8_t old, uint8_t val, void *priv)
+{
+    escp_t *dev = (escp_t *) priv;
+
+    if (dev == NULL)
+        return;
+
+    /* Data is strobed to the parallel printer on the falling edge of the
+       strobe bit. */
+    if (!(val & 0x01) && (old & 0x01)) {
+        /* Process incoming character. */
+        handle_char(dev, dev->data);
+
+        /* ACK it, will be read on next READ STATUS. */
+        dev->ack = 1;
+        timer_set_delay_u64(&dev->pulse_timer, ISACONST);
+
+        timer_set_delay_u64(&dev->timeout_timer, 5000000 * TIMER_USEC);
+    }
+}
+
+static void
 write_ctrl(uint8_t val, void *priv)
 {
     escp_t *dev = (escp_t *) priv;
@@ -1920,14 +1953,6 @@ write_ctrl(uint8_t val, void *priv)
 }
 
 static uint8_t
-read_data(void *priv)
-{
-    const escp_t *dev = (escp_t *) priv;
-
-    return dev->data;
-}
-
-static uint8_t
 read_ctrl(void *priv)
 {
     const escp_t *dev = (escp_t *) priv;
@@ -1952,7 +1977,7 @@ read_status(void *priv)
 static void *
 escp_init(void *lpt)
 {
-    escp_t *dev;
+    escp_t *dev = NULL;
 
     /* Initialize FreeType. */
     if (ft_lib == NULL) {
@@ -1964,20 +1989,19 @@ escp_init(void *lpt)
     }
 
     /* Initialize a device instance. */
-    dev = (escp_t *) malloc(sizeof(escp_t));
-    memset(dev, 0x00, sizeof(escp_t));
+    dev = (escp_t *) calloc(1, sizeof(escp_t));
     dev->ctrl = 0x04;
     dev->lpt  = lpt;
 
+    rom_get_full_path(dev->fontpath, "roms/printer/fonts/");
+
     /* Create a full pathname for the font files. */
-    if (strlen(exe_path) >= sizeof(dev->fontpath)) {
+    if (strlen(dev->fontpath) == 0) {
+        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_ESCP_ERROR_TITLE),
+                         plat_get_string(STRING_ESCP_ERROR_DESC));
         free(dev);
         return (NULL);
     }
-
-    strcpy(dev->fontpath, exe_path);
-    path_slash(dev->fontpath);
-    strcat(dev->fontpath, "roms/printer/fonts/");
 
     /* Create the full path for the page images. */
     path_append_filename(dev->pagepath, usr_path, "printer");
@@ -2054,17 +2078,21 @@ escp_close(void *priv)
         free(dev->page);
     }
 
+    FT_Done_Face(dev->fontface);
     free(dev);
 }
 
 const lpt_device_t lpt_prt_escp_device = {
-    .name          = "Generic ESC/P Dot-Matrix Printer",
-    .internal_name = "dot_matrix",
-    .init          = escp_init,
-    .close         = escp_close,
-    .write_data    = write_data,
-    .write_ctrl    = write_ctrl,
-    .read_data     = read_data,
-    .read_status   = read_status,
-    .read_ctrl     = read_ctrl
+    .name             = "Generic ESC/P Dot-Matrix",
+    .internal_name    = "dot_matrix",
+    .init             = escp_init,
+    .close            = escp_close,
+    .write_data       = write_data,
+    .write_ctrl       = write_ctrl,
+    .autofeed         = autofeed,
+    .strobe           = strobe,
+    .read_status      = read_status,
+    .read_ctrl        = read_ctrl,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL
 };

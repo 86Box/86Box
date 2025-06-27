@@ -29,6 +29,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/machine.h>
@@ -68,6 +69,7 @@ enum {
     KBD_TYPE_ZENITH,
     KBD_TYPE_PRAVETZ,
     KBD_TYPE_HYUNDAI,
+    KBD_TYPE_FE2010,
     KBD_TYPE_XTCLONE
 };
 
@@ -79,10 +81,12 @@ typedef struct xtkbd_t {
     uint8_t pa;
     uint8_t pb;
     uint8_t pd;
+    uint8_t cfg;
     uint8_t clock;
     uint8_t key_waiting;
     uint8_t type;
     uint8_t pravetz_flags;
+    uint8_t cpu_speed;
 
     pc_timer_t send_delay_timer;
 } xtkbd_t;
@@ -740,7 +744,7 @@ kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
     if (!adddata)
         return;
 
-    keyboard_get_states(NULL, &num_lock, NULL);
+    keyboard_get_states(NULL, &num_lock, NULL, NULL);
     shift_states = keyboard_get_shift() & STATE_LSHIFT;
 
     if (is_amstrad)
@@ -798,6 +802,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                     kbd_adddata(0xaa);
                 }
             }
+
             kbd->pb = val;
             if (!(kbd->pb & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI))
                 kbd->clock = !!(kbd->pb & 0x40);
@@ -829,12 +834,26 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                 kbd_log("XTkbd: Cassette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
 #endif
             break;
-#ifdef ENABLE_KEYBOARD_XT_LOG
+
         case 0x62: /* Switch Register (aka Port C) */
+#ifdef ENABLE_KEYBOARD_XT_LOG
             if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
                 kbd_log("XTkbd: Cassette IN is %i\n", !!(val & 0x10));
-            break;
 #endif
+            if (kbd->type == KBD_TYPE_FE2010) {
+                kbd_log("XTkbd: Switch register in is %02X\n", val);
+                if (!(kbd->cfg & 0x08))
+                    kbd->pd = (kbd->pd & 0x30) | (val & 0xcf);
+            }
+            break;
+
+        case 0x63:
+            if (kbd->type == KBD_TYPE_FE2010) {
+                kbd_log("XTkbd: Configuration register in is %02X\n", val);
+                if (!(kbd->cfg & 0x08))
+                    kbd->cfg = val;
+            }
+            break;
 
         case 0xc0 ... 0xcf: /* Pravetz Flags */
             kbd_log("XTkbd: Port %02X out: %02X\n", port, val);
@@ -842,6 +861,14 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                 bit                = (port >> 1) & 0x07;
                 set                = (port & 0x01) << bit;
                 kbd->pravetz_flags = (kbd->pravetz_flags & ~(1 << bit)) | set;
+            }
+            break;
+
+        case 0x1f0:
+            kbd_log("XTkbd: Port %04X out: %02X\n", port, val);
+            if (kbd->type == KBD_TYPE_VTECH) {
+                kbd->cpu_speed     = val;
+                cpu_dynamic_switch(kbd->cpu_speed >> 7);
             }
             break;
 
@@ -862,12 +889,14 @@ kbd_read(uint16_t port, void *priv)
                 (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ) ||
                 (kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) ||
                 (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) ||
-                (kbd->type == KBD_TYPE_ZENITH) || (kbd->type == KBD_TYPE_HYUNDAI))) {
+                (kbd->type == KBD_TYPE_ZENITH) || (kbd->type == KBD_TYPE_HYUNDAI) ||
+                (kbd->type == KBD_TYPE_VTECH))) {
                 if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
                     (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) ||
                     (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_HYUNDAI))
                     ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
-                else if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86))
+                else if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) ||
+                    (kbd->type == KBD_TYPE_VTECH))
                     /* According to Ruud on the PCem forum, this is supposed to
                        return 0xFF on the XT. */
                     ret = 0xff;
@@ -899,7 +928,12 @@ kbd_read(uint16_t port, void *priv)
             break;
 
         case 0x62: /* Switch Register (aka Port C) */
-            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+            if (kbd->type == KBD_TYPE_FE2010) {
+                if (kbd->pb & 0x04) /* PB2 */
+                    ret = (kbd->pd & 0x0d) | (hasfpu ? 0x02 : 0x00);
+                else
+                    ret = kbd->pd >> 4;
+            } else if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
                 (kbd->type == KBD_TYPE_PRAVETZ)) {
                 if (kbd->pb & 0x04) /* PB2 */
                     switch (mem_size + isa_mem_size) {
@@ -925,16 +959,8 @@ kbd_read(uint16_t port, void *priv)
             } else {
                 if (kbd->pb & 0x08) /* PB3 */
                     ret = kbd->pd >> 4;
-                else {
-                    /* LaserXT = Always 512k RAM;
-                       LaserXT/3 = Bit 0: set = 512k, clear = 256k. */
-#ifdef USE_LASERXT
-                    if (kbd->type == KBD_TYPE_VTECH)
-                        ret = ((mem_size == 512) ? 0x0d : 0x0c) | (hasfpu ? 0x02 : 0x00);
-                    else
-#endif /* USE_LASERXT */
-                        ret = (kbd->pd & 0x0d) | (hasfpu ? 0x02 : 0x00);
-                }
+                else
+                    ret = (kbd->pd & 0x0d) | (hasfpu ? 0x02 : 0x00);
             }
             ret |= (ppispeakon ? 0x20 : 0);
 
@@ -955,7 +981,8 @@ kbd_read(uint16_t port, void *priv)
         case 0x63: /* Keyboard Configuration Register (aka Port D) */
             if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) ||
                 (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) ||
-                (kbd->type == KBD_TYPE_TOSHIBA) || (kbd->type == KBD_TYPE_HYUNDAI))
+                (kbd->type == KBD_TYPE_TOSHIBA) || (kbd->type == KBD_TYPE_HYUNDAI) ||
+                (kbd->type == KBD_TYPE_VTECH))
                 ret = kbd->pd;
             break;
 
@@ -963,6 +990,12 @@ kbd_read(uint16_t port, void *priv)
             if (kbd->type == KBD_TYPE_PRAVETZ)
                 ret = kbd->pravetz_flags;
             kbd_log("XTkbd: Port %02X in : %02X\n", port, ret);
+            break;
+
+        case 0x1f0:
+            if (kbd->type == KBD_TYPE_VTECH)
+                ret = kbd->cpu_speed;
+            kbd_log("XTkbd: Port %04X in : %02X\n", port, ret);
             break;
 
         default:
@@ -983,7 +1016,7 @@ kbd_reset(void *priv)
     kbd->pb            = 0x00;
     kbd->pravetz_flags = 0x00;
 
-    keyboard_scan = 1;
+    keyboard_scan   = 1;
 
     key_queue_start = 0;
     key_queue_end   = 0;
@@ -1000,18 +1033,21 @@ kbd_init(const device_t *info)
 {
     xtkbd_t *kbd;
 
-    kbd = (xtkbd_t *) malloc(sizeof(xtkbd_t));
-    memset(kbd, 0x00, sizeof(xtkbd_t));
+    kbd = (xtkbd_t *) calloc(1, sizeof(xtkbd_t));
 
     io_sethandler(0x0060, 4,
                   kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
     keyboard_send = kbd_adddata_ex;
-    kbd_reset(kbd);
     kbd->type = info->local;
-    if (kbd->type == KBD_TYPE_PRAVETZ) {
+    if (kbd->type == KBD_TYPE_VTECH)
+        kbd->cpu_speed = (!!cpu) << 2;
+    kbd_reset(kbd);
+    if (kbd->type == KBD_TYPE_PRAVETZ)
         io_sethandler(0x00c0, 16,
                       kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
-    }
+    if (kbd->type == KBD_TYPE_VTECH)
+        io_sethandler(0x01f0, 1,
+                      kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
 
     key_queue_start = key_queue_end = 0;
 
@@ -1021,7 +1057,8 @@ kbd_init(const device_t *info)
         (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) ||
         (kbd->type <= KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) ||
         (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_TOSHIBA) ||
-        (kbd->type == KBD_TYPE_OLIVETTI) || (kbd->type == KBD_TYPE_HYUNDAI)) {
+        (kbd->type == KBD_TYPE_OLIVETTI) || (kbd->type == KBD_TYPE_HYUNDAI) ||
+        (kbd->type == KBD_TYPE_VTECH) || (kbd->type == KBD_TYPE_FE2010)) {
         /* DIP switch readout: bit set = OFF, clear = ON. */
         if (kbd->type == KBD_TYPE_OLIVETTI)
             /* Olivetti M19
@@ -1035,13 +1072,13 @@ kbd_init(const device_t *info)
             /* Switches 7, 8 - floppy drives. */
             kbd->pd = get_fdd_switch_settings();
 
-        /* Siitches 5, 6 - video card type */
+        /* Switches 5, 6 - video card type */
         kbd->pd |= get_videomode_switch_settings();
 
         /* Switches 3, 4 - memory size. */
         if ((kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) ||
             (kbd->type == KBD_TYPE_HYUNDAI) || (kbd->type == KBD_TYPE_COMPAQ) ||
-            (kbd->type == KBD_TYPE_TOSHIBA)) {
+            (kbd->type == KBD_TYPE_TOSHIBA) || (kbd->type == KBD_TYPE_FE2010)) {
             switch (mem_size) {
                 case 256:
                     kbd->pd |= 0x00;
@@ -1057,7 +1094,7 @@ kbd_init(const device_t *info)
                     kbd->pd |= 0x0c;
                     break;
             }
-        } else if (kbd->type == KBD_TYPE_XT82) {
+        } else if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_VTECH)) {
             switch (mem_size) {
                 case 64: /* 1x64k */
                     kbd->pd |= 0x00;
@@ -1075,9 +1112,13 @@ kbd_init(const device_t *info)
             }
         } else if (kbd->type == KBD_TYPE_PC82) {
             switch (mem_size) {
+#ifdef PC82_192K_3BANK
                 case 192: /* 3x64k, not supported by stock BIOS due to bugs */
                     kbd->pd |= 0x08;
                     break;
+#else
+                case 192: /* 2x64k + 2x32k */
+#endif
                 case 64:  /* 4x16k */
                 case 96:  /* 2x32k + 2x16k */
                 case 128: /* 4x32k */
@@ -1188,7 +1229,7 @@ const device_t keyboard_pc_device = {
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1202,7 +1243,7 @@ const device_t keyboard_pc82_device = {
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1216,7 +1257,7 @@ const device_t keyboard_pravetz_device = {
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1230,7 +1271,7 @@ const device_t keyboard_xt_device = {
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1244,7 +1285,7 @@ const device_t keyboard_xt86_device = {
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1258,7 +1299,7 @@ const device_t keyboard_xt_compaq_device = {
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1272,7 +1313,7 @@ const device_t keyboard_tandy_device = {
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1286,27 +1327,25 @@ const device_t keyboard_xt_t1x00_device = {
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
 };
 
-#ifdef USE_LASERXT
 const device_t keyboard_xt_lxt3_device = {
-    .name          = "VTech Laser XT3 Keyboard",
-    .internal_name = "keyboard_xt_lxt3",
+    .name          = "VTech Laser Turbo XT Keyboard",
+    .internal_name = "keyboard_xt_lxt",
     .flags         = 0,
     .local         = KBD_TYPE_VTECH,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
 };
-#endif /* USE_LASERXT */
 
 const device_t keyboard_xt_olivetti_device = {
     .name          = "Olivetti XT Keyboard",
@@ -1316,7 +1355,7 @@ const device_t keyboard_xt_olivetti_device = {
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1330,7 +1369,7 @@ const device_t keyboard_xt_zenith_device = {
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1338,13 +1377,27 @@ const device_t keyboard_xt_zenith_device = {
 
 const device_t keyboard_xt_hyundai_device = {
     .name          = "Hyundai XT Keyboard",
-    .internal_name = "keyboard_x_hyundai",
+    .internal_name = "keyboard_xt_hyundai",
     .flags         = 0,
     .local         = KBD_TYPE_HYUNDAI,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_xt_fe2010_device = {
+    .name          = "Faraday FE2010 XT Keyboard",
+    .internal_name = "keyboard_xt_fe2010",
+    .flags         = 0,
+    .local         = KBD_TYPE_FE2010,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1358,7 +1411,7 @@ const device_t keyboard_xtclone_device = {
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

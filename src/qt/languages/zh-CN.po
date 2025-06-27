@@ -18,8 +18,8 @@ msgstr "将右 CTRL 键映射为左 ALT 键(&R)"
 msgid "&Hard Reset..."
 msgstr "硬重置(&H)..."
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
-msgstr "Ctrl+Alt+Del(&C)\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del(&C)"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+Esc(&E)"
@@ -111,8 +111,8 @@ msgstr "线性(&L)"
 msgid "Hi&DPI scaling"
 msgstr "HiDPI 缩放(&D)"
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr "全屏(&F)\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
+msgstr "全屏(&F)"
 
 msgid "Fullscreen &stretch mode"
 msgstr "全屏拉伸模式(&S)"
@@ -186,8 +186,11 @@ msgstr "设置(&S)..."
 msgid "&Update status bar icons"
 msgstr "更新状态栏图标(&U)"
 
-msgid "Take s&creenshot\tCtrl+F11"
-msgstr "截图(&C)\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr "截图(&C)"
+
+msgid "S&ound"
+msgstr "声音(&O)"
 
 msgid "&Preferences..."
 msgstr "首选项(&P)..."
@@ -198,11 +201,11 @@ msgstr "启用 Discord 集成(&D)"
 msgid "Sound &gain..."
 msgstr "音量增益(&G)..."
 
-msgid "Begin trace\tCtrl+T"
-msgstr "开始追踪\tCtrl+T"
+msgid "Begin trace"
+msgstr "开始追踪"
 
-msgid "End trace\tCtrl+T"
-msgstr "结束追踪\tCtrl+T"
+msgid "End trace"
+msgstr "结束追踪"
 
 msgid "&Help"
 msgstr "帮助(&H)"
@@ -249,8 +252,8 @@ msgstr "静音(&M)"
 msgid "E&mpty"
 msgstr "空置驱动器(&M)"
 
-msgid "&Reload previous image"
-msgstr "载入上一个映像(&R)"
+msgid "Reload previous image"
+msgstr "载入上一个映像"
 
 msgid "&Folder..."
 msgstr "文件夹(&F)..."
@@ -306,17 +309,11 @@ msgstr "确定"
 msgid "Cancel"
 msgstr "取消"
 
-msgid "Save these settings as &global defaults"
-msgstr "将以上设置存储为全局默认值(&G)"
-
 msgid "&Default"
 msgstr "默认(&D)"
 
 msgid "Language:"
 msgstr "语言:"
-
-msgid "Icon set:"
-msgstr "图标集:"
 
 msgid "Gain"
 msgstr "增益"
@@ -452,15 +449,6 @@ msgstr "Nuked (更准确)"
 
 msgid "YMFM (faster)"
 msgstr "YMFM (更快)"
-
-msgid "Network type:"
-msgstr "网络类型:"
-
-msgid "PCap device:"
-msgstr "PCap 设备:"
-
-msgid "Network adapter:"
-msgstr "网络适配器:"
 
 msgid "COM1 Device:"
 msgstr "COM1 设备:"
@@ -642,14 +630,11 @@ msgstr "致命错误"
 msgid " - PAUSED"
 msgstr " - 已暂停"
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "按下 Ctrl+Alt+PgDn 返回到窗口模式。"
-
 msgid "Speed"
 msgstr "速度"
 
-msgid "ZIP %03i %i (%s): %ls"
-msgstr "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
+msgstr "ZIP %1 %2 (%3): %4"
 
 msgid "ZIP images"
 msgstr "ZIP 映像"
@@ -687,8 +672,11 @@ msgstr "由于 roms/machines 文件夹中缺少合适的 ROM，机型 \"%hs\" �
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "由于 roms/video 文件夹中缺少合适的 ROM，显卡 \"%hs\" 不可用。将切换到其他可用显卡。"
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "由于 roms/video 文件夹中缺少合适的 ROM，显卡 2 \"%hs\" 不可用。将切换到其他可用显卡。"
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "由于 roms/video 文件夹中缺少合适的 ROM，显卡 2 \"%hs\" 不可用。禁用第二块显卡。"
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "由于缺少合适的 ROM，设备 \"%hs\" 不可用。忽略设备。"
 
 msgid "Machine"
 msgstr "机型"
@@ -750,14 +738,11 @@ msgstr "S"
 msgid "KB"
 msgstr "KB"
 
-msgid "Could not initialize the video renderer."
-msgstr "无法初始化视频渲染器。"
-
 msgid "Default"
 msgstr "默认"
 
-msgid "%i Wait state(s)"
-msgstr "%i 等待状态 (WS)"
+msgid "%1 Wait state(s)"
+msgstr "%1 等待状态 (WS)"
 
 msgid "Type"
 msgstr "类型"
@@ -801,11 +786,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "None"
 msgstr "无"
 
-msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
 
-msgid "Floppy %i (%s): %ls"
-msgstr "软盘 %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
+msgstr "软盘 %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "高级扇区映像"
@@ -825,8 +810,8 @@ msgstr "无法初始化 Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "无法初始化 GhostPCL"
 
-msgid "MO %i (%ls): %ls"
-msgstr "磁光盘 %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
+msgstr "磁光盘 %1 (%2): %3"
 
 msgid "MO images"
 msgstr "磁光盘映像"
@@ -864,8 +849,8 @@ msgstr "一个旧式计算机模拟器\n\n作者: Miran Grča (OBattler)、Richa
 msgid "Hardware not available"
 msgstr "硬件不可用"
 
-msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
-msgstr "请确认 %1 已安装且使用兼容 libpcap 的网络连接。"
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "请确认 %1 已安装且使用兼容 %1 的网络连接。"
 
 msgid "Invalid configuration"
 msgstr "无效配置"
@@ -875,9 +860,6 @@ msgstr "%1 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 是将 PCL 文件转换为 PDF 所需要的库。\n\n使用通用 PCL 打印机打印的文档将被保存为 Printer Command Language (.pcl) 文件。"
-
-msgid "Entering fullscreen mode"
-msgstr "正在进入全屏模式"
 
 msgid "Don't show this message again"
 msgstr "不要再显示此消息"
@@ -900,11 +882,8 @@ msgstr "%1 设备配置"
 msgid "Monitor in sleep mode"
 msgstr "显示器处在睡眠状态"
 
-msgid "OpenGL Shaders"
-msgstr "OpenGL 着色器"
-
-msgid "OpenGL options"
-msgstr "OpenGL 选项"
+msgid "GLSL shaders"
+msgstr "GLSL 着色器"
 
 msgid "You are loading an unsupported configuration"
 msgstr "正在载入一个不受支持的配置"
@@ -915,23 +894,17 @@ msgstr "此模拟计算机禁用了基于选定计算机的 CPU 类型过滤。\
 msgid "Continue"
 msgstr "继续"
 
-msgid "Cassette: %s"
-msgstr "磁带: %s"
+msgid "Cassette: %1"
+msgstr "磁带: %1"
 
 msgid "Cassette images"
 msgstr "磁带映像"
 
-msgid "Cartridge %i: %ls"
-msgstr "卡带 %i: %ls"
+msgid "Cartridge %1: %2"
+msgstr "卡带 %1: %2"
 
 msgid "Cartridge images"
 msgstr "卡带映像"
-
-msgid "Error initializing renderer"
-msgstr "初始化渲染器时出错"
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "无法初始化 OpenGL (3.0 Core) 渲染器。请使用其他渲染器。"
 
 msgid "Resume execution"
 msgstr "恢复执行"
@@ -1095,8 +1068,8 @@ msgstr "IDE"
 msgid "ATAPI"
 msgstr "ATAPI"
 
-msgid "CD-ROM %i (%s): %s"
-msgstr "光盘 %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
+msgstr "光盘 %1 (%2): %3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1267,16 +1240,13 @@ msgid "Host CD/DVD Drive (%1:)"
 msgstr "主机 CD/DVD 驱动器 (%1:)"
 
 msgid "&Connected"
-msgstr "&Connected"
+msgstr "已连接(&C)"
 
 msgid "Clear image history"
 msgstr "清除映像历史记录"
 
 msgid "Create..."
 msgstr "创建..."
-
-msgid "previous image"
-msgstr "上一张"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "主机 CD/DVD 驱动器 (%1)"
@@ -1287,23 +1257,8 @@ msgstr "未知总线"
 msgid "Null Driver"
 msgstr "空驱动程序"
 
-msgid "NIC %02i (%ls) %ls"
-msgstr "NIC %02i (%ls) %ls"
-
-msgid "Error opening \"%1\": %2"
-msgstr "打开 \"%1\": %2 时出错"
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr "文件 \"%1\" 中的顶点着色器编译出错"
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr "文件 \"%1\" 中的片段着色器编译出错"
-
-msgid "Error linking shader program in file \"%1\""
-msgstr "文件 \"%1\" 中的着色器程序链接出错"
-
-msgid "OpenGL 3.0 renderer options"
-msgstr "OpenGL 3.0 渲染器选项"
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "渲染行为"
@@ -1317,9 +1272,6 @@ msgstr " fps"
 msgid "VSync"
 msgstr "VSync"
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;与模拟显示同步，即时渲染每一帧。&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;如果使用的着色器不使用帧时间来产生动画效果，则建议使用此选项。&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-
 msgid "Synchronize with video"
 msgstr "与视频同步"
 
@@ -1329,20 +1281,8 @@ msgstr "着色器"
 msgid "Remove"
 msgstr "移除"
 
-msgid "No shader selected"
-msgstr "未选择着色器"
-
 msgid "Browse..."
 msgstr "浏览..."
-
-msgid "Shader error"
-msgstr "着色器错误"
-
-msgid "Could not load shaders."
-msgstr "无法加载着色器。"
-
-msgid "More information in details."
-msgstr "更多详细信息。"
 
 msgid "Couldn't create OpenGL context."
 msgstr "无法创建 OpenGL 上下文。"
@@ -1353,20 +1293,14 @@ msgstr "无法切换到 OpenGL 上下文。"
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "需要 OpenGL 3.0 或更高版本。当前版本为 %1.%2"
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr "OpenGL 初始化失败。错误 %1."
-
 msgid "Error initializing OpenGL"
 msgstr "初始化 OpenGL 时出错"
 
-msgid "Falling back to software rendering.\n"
-msgstr "回到软件渲染。"
+msgid "\nFalling back to software rendering."
+msgstr "\n回到软件渲染。"
 
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr "为解包缓冲区分配内存失败.\n"
-
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;选择媒体图像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt；"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>选择媒体图像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "这台机器可能被移动或复制过。"
@@ -1381,7 +1315,7 @@ msgid "I Copied It"
 msgstr "我已复制这台机器"
 
 msgid "86Box Monitor #"
-msgstr "86Box 监测器 "
+msgstr "86Box 监测器 #"
 
 msgid "No MCA devices."
 msgstr "无 MCA 设备。"
@@ -1401,17 +1335,17 @@ msgstr "网卡 3"
 msgid "Network Card #4"
 msgstr "网卡 4"
 
-msgid "Mode"
-msgstr "模式"
+msgid "Mode:"
+msgstr "模式:"
 
-msgid "Interface"
-msgstr "界面"
+msgid "Interface:"
+msgstr "界面:"
 
-msgid "Adapter"
-msgstr "适配器"
+msgid "Adapter:"
+msgstr "适配器:"
 
-msgid "VDE Socket"
-msgstr "VDE 套接字"
+msgid "VDE Socket:"
+msgstr "VDE 套接字:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box 装置测试仪"
@@ -1430,9 +1364,6 @@ msgstr "串行端口直通 3"
 
 msgid "Serial port passthrough 4"
 msgstr "串行端口直通 4"
-
-msgid "Vision Systems LBA Enhancer"
-msgstr "Vision Systems LBA 增强器"
 
 msgid "Renderer options..."
 msgstr "渲染器选项..."
@@ -1872,6 +1803,9 @@ msgstr "滚轮"
 msgid "Five + Wheel"
 msgstr "五键+滚轮"
 
+msgid "Five + 2 Wheels"
+msgstr "五键+双滚轮"
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 串行 / SMT3（R）V"
 
@@ -2100,8 +2034,8 @@ msgstr "命名管道（服务器）"
 msgid "Host Serial Passthrough"
 msgstr "主机串行端口直通"
 
-msgid "Eject %s"
-msgstr "弹出 %s"
+msgid "E&ject %1"
+msgstr "弹出 %1(&J)"
 
 msgid "&Unmute"
 msgstr "解除静音(&U)"
@@ -2112,11 +2046,110 @@ msgstr "Softfloat FPU"
 msgid "High performance impact"
 msgstr "重大性能影响"
 
-msgid "RAM Disk (max. speed)"
-msgstr "RAM 磁盘 (最大速度)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generic] RAM 磁盘 (最大速度)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr "[Generic] 1989 (3500 RPM)"
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr "[Generic] 1992 (3600 RPM)"
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr "[Generic] 1994 (4500 RPM)"
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr "[Generic] 1996 (5400 RPM)"
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr "[Generic] 1997 (5400 RPM)"
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr "[Generic] 1998 (5400 RPM)"
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr "[Generic] 2000 (7200 RPM)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A 克隆 (ISA)"
 
 msgid "Vendor"
 msgstr "制造商"
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr "30 Hz (JMP2 = 1)"
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr "60 Hz (JMP2 = 2)"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "通用 PC/XT 内存扩展"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "通用 PC/AT 内存扩展"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "无法找到点阵字体"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "仿真通用 ESC/P 点阵打印机需要使用 \"roms/printer/fonts\" 目录中的 TrueType 字体。"
+
+msgid "Inhibit multimedia keys"
+msgstr "禁止多媒体按键"
+
+msgid "Ask for confirmation before saving settings"
+msgstr "保存设置前要求用户确认"
+
+msgid "Ask for confirmation before hard resetting"
+msgstr "硬重置前要求用户确认"
+
+msgid "Ask for confirmation before quitting"
+msgstr "退出前要求用户确认"
+
+msgid "Options"
+msgstr "选项"
+
+msgid "Model"
+msgstr "模型"
+
+msgid "Model:"
+msgstr "模型："
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr "Vulkan 渲染器初始化失败。"
+
+msgid "GLSL Error"
+msgstr "GLSL 错误"
+
+msgid "Could not load shader: %1"
+msgstr "无法加载着色器：%1"
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr "OpenGL 版本需要达到 3.0 或更高。当前 GLSL 版本为 %1.%2"
+
+msgid "Could not load texture: %1"
+msgstr "无法加载材质：%1"
+
+msgid "Could not compile shader:\n\n%1"
+msgstr "无法编译着色器：\n\n%1"
+
+msgid "Program not linked:\n\n%1"
+msgstr "程序未链接：\n\n%1"
+
+msgid "Shader Manager"
+msgstr "着色器管理器"
+
+msgid "Shader Configuration"
+msgstr "着色器配置"
+
+msgid "Add"
+msgstr "添加"
+
+msgid "Move up"
+msgstr "上移"
+
+msgid "Move down"
+msgstr "下移"
+
+msgid "Could not load file %1"
+msgstr "无法加载文件 %1"

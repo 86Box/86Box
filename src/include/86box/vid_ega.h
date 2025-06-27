@@ -39,7 +39,7 @@ typedef struct ega_t {
     uint8_t lb;
     uint8_t lc;
     uint8_t ld;
-    uint8_t stat;
+    uint8_t status;
     uint8_t colourcompare;
     uint8_t colournocare;
     uint8_t scrblank;
@@ -47,13 +47,12 @@ typedef struct ega_t {
     uint8_t ctl_mode;
     uint8_t color_mux;
     uint8_t dot;
-    uint8_t crtc[32];
-    uint8_t gdcreg[16];
+    uint8_t crtc[256];
+    uint8_t gdcreg[256];
     uint8_t attrregs[32];
     uint8_t seqregs[64];
     uint8_t egapal[16];
     uint8_t regs[256];
-
     uint8_t *vram;
 
     uint16_t light_pen;
@@ -69,11 +68,12 @@ typedef struct ega_t {
     int chain4;
     int chain2_read;
     int chain2_write;
-    int con;
+    int cursorvisible;
     int oddeven_page;
     int oddeven_chain;
     int vc;
-    int sc;
+    int real_vc;
+    int scanline;
     int dispon;
     int hdisp_on;
     int cursoron;
@@ -113,13 +113,16 @@ typedef struct ega_t {
     int remap_required;
     int actual_type;
     int chipset;
+    int mono_display;
+
+    int mda_attr_to_color_table[256][2][2];
 
     uint32_t charseta;
     uint32_t charsetb;
-    uint32_t ma_latch;
-    uint32_t ma;
-    uint32_t maback;
-    uint32_t ca;
+    uint32_t memaddr_latch;
+    uint32_t memaddr;
+    uint32_t memaddr_backup;
+    uint32_t cursoraddr;
     uint32_t vram_limit;
     uint32_t overscan_color;
     uint32_t cca;
@@ -140,6 +143,13 @@ typedef struct ega_t {
 
     uint32_t   (*remap_func)(struct ega_t *ega, uint32_t in_addr);
     void       (*render)(struct ega_t *svga);
+
+    /* If set then another device is driving the monitor output and the EGA
+      card should not attempt to display anything. */
+    void       (*render_override)(void *priv);
+    void *     priv_parent;
+
+    uint8_t    alt_addr; /* 0 for 0x3XX range, 1 for 0x2XX range */
 } ega_t;
 #endif
 
@@ -150,6 +160,8 @@ extern const device_t sega_device;
 extern const device_t atiega800p_device;
 extern const device_t iskra_ega_device;
 extern const device_t et2000_device;
+extern const device_t jega_device;
+extern const device_t jvga_device;
 #endif
 
 extern int update_overscan;
@@ -172,15 +184,16 @@ extern uint8_t ega_in(uint16_t addr, void *priv);
 extern void    ega_poll(void *priv);
 extern void    ega_write(uint32_t addr, uint8_t val, void *priv);
 extern uint8_t ega_read(uint32_t addr, void *priv);
+extern void    ega_set_type(void *priv, uint32_t local);
 
 extern int firstline_draw;
 extern int lastline_draw;
 extern int displine;
-extern int sc;
+extern int scanline;
 
-extern uint32_t ma;
-extern uint32_t ca;
-extern int      con;
+extern uint32_t memaddr;
+extern uint32_t cursoraddr;
+extern int      cursorvisible;
 extern int      cursoron;
 extern int      cgablink;
 
@@ -198,5 +211,20 @@ void ega_render_overscan_right(ega_t *ega);
 void ega_render_text(ega_t *ega);
 void ega_render_graphics(ega_t *ega);
 #endif
+
+enum {
+  EGA_IBM = 0,
+  EGA_COMPAQ,
+  EGA_SUPEREGA,
+  EGA_ATI800P,
+  EGA_ISKRA,
+  EGA_TSENG
+};
+
+enum {
+  EGA_TYPE_IBM    = 0,
+  EGA_TYPE_OTHER  = 1,
+  EGA_TYPE_COMPAQ = 2
+};
 
 #endif /*VIDEO_EGA_H*/

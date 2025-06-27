@@ -653,7 +653,7 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
         case STATE_FINIT:
 do_fmt:
             /* Activate the status icon. */
-            ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 1);
+            ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 1);
 
             /* Seek to cylinder. */
             if (do_seek(dev, drive, start_cyl)) {
@@ -691,7 +691,7 @@ do_fmt:
             }
 
             /* De-activate the status icon. */
-            ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+            ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 
             /* This saves us a LOT of code. */
             dev->state = STATE_FINIT;
@@ -705,6 +705,7 @@ do_fmt:
     if (intr) {
         /* De-activate the status icon. */
         ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+        ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 
         do_finish(dev);
     }
@@ -970,7 +971,7 @@ do_send:
 
                 case STATE_RECV:
                     /* Activate the status icon. */
-                    ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 1);
+                    ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 1);
 do_recv:
                     /* Ready to transfer the data in. */
                     dev->state   = STATE_RDATA;
@@ -1000,7 +1001,7 @@ do_recv:
                                 ps1_hdc_log("HDC: CMD_WRITE_SECTORS out of data (idx=%d, len=%d)!\n", dev->buf_idx, dev->buf_len);
 
                                 /* De-activate the status icon. */
-                                ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+                                ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 
                                 dev->intstat |= ISR_EQUIP_CHECK;
                                 dev->ssb.need_reset = 1;
@@ -1025,7 +1026,7 @@ do_recv:
                     /* Get address of sector to write. */
                     if (get_sector(dev, drive, &addr)) {
                         /* De-activate the status icon. */
-                        ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+                        ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 
                         do_finish(dev);
                         return;
@@ -1038,7 +1039,7 @@ do_recv:
                     dev->buf_idx = 0;
                     if (--dev->count == 0) {
                         /* De-activate the status icon. */
-                        ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+                        ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 
                         if (!(dev->ctrl & ACR_DMA_EN))
                             dev->status &= ~ASR_DATA_REQ;
@@ -1297,8 +1298,7 @@ ps1_hdc_init(UNUSED(const device_t *info))
     int      c;
 
     /* Allocate and initialize device block. */
-    dev = malloc(sizeof(hdc_t));
-    memset(dev, 0x00, sizeof(hdc_t));
+    dev = calloc(1, sizeof(hdc_t));
 
     /* Set up controller parameters for PS/1 2011. */
     dev->base = 0x0320;
@@ -1311,7 +1311,7 @@ ps1_hdc_init(UNUSED(const device_t *info))
     /* Load any disks for this device class. */
     c = 0;
     for (uint8_t i = 0; i < HDD_NUM; i++) {
-        if ((hdd[i].bus == HDD_BUS_XTA) && (hdd[i].xta_channel < 1)) {
+        if ((hdd[i].bus_type == HDD_BUS_XTA) && (hdd[i].xta_channel < 1)) {
             drive = &dev->drives[hdd[i].xta_channel];
 
             if (!hdd_image_load(i)) {
@@ -1381,12 +1381,12 @@ ps1_hdc_close(void *priv)
 const device_t ps1_hdc_device = {
     .name          = "PS/1 2011 Fixed Disk Controller",
     .internal_name = "ps1_hdc",
-    .flags         = DEVICE_ISA | DEVICE_PS2,
+    .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = ps1_hdc_init,
     .close         = ps1_hdc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

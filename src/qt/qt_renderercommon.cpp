@@ -59,6 +59,9 @@ RendererCommon::onResize(int width, int height)
     bool main_max = main_window->isMaximized();
     bool main_is_max = (main_is_ancestor && main_max == false);
 
+    width = round(pixelRatio * width);
+    height = round(pixelRatio * height);
+
     if (is_fs && (video_fullscreen_scale_maximized ? (parent_max && main_is_max) : 1))
         destination.setRect(0, 0, width, height);
     else {
@@ -129,6 +132,9 @@ RendererCommon::onResize(int width, int height)
 
     monitors[r_monitor_index].mon_res_x = (double) destination.width();
     monitors[r_monitor_index].mon_res_y = (double) destination.height();
+
+    destinationF.setRect((double)destination.x() / (double)width, (double)destination.y() / (double)height,
+                        (double)destination.width() / (double)width, (double)destination.height() / (double)height);
 }
 
 bool
@@ -144,6 +150,10 @@ RendererCommon::eventDelegate(QEvent *event, bool &result)
         case QEvent::MouseButtonPress:
         case QEvent::MouseMove:
         case QEvent::MouseButtonRelease:
+        case QEvent::TouchBegin:
+        case QEvent::TouchEnd:
+        case QEvent::TouchCancel:
+        case QEvent::TouchUpdate:
         case QEvent::Wheel:
         case QEvent::Enter:
         case QEvent::Leave:

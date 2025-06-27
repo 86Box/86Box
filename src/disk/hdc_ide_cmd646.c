@@ -95,19 +95,19 @@ cmd646_set_irq_1(uint8_t status, void *priv)
 }
 
 static int
-cmd646_bus_master_dma_0(uint8_t *data, int transfer_length, int out, void *priv)
+cmd646_bus_master_dma_0(uint8_t *data, int transfer_length, int total_length, int out, void *priv)
 {
     const cmd646_t *dev = (cmd646_t *) priv;
 
-    return sff_bus_master_dma(data, transfer_length, out, dev->bm[0]);
+    return sff_bus_master_dma(data, transfer_length, total_length, out, dev->bm[0]);
 }
 
 static int
-cmd646_bus_master_dma_1(uint8_t *data, int transfer_length, int out, void *priv)
+cmd646_bus_master_dma_1(uint8_t *data, int transfer_length, int total_length, int out, void *priv)
 {
     const cmd646_t *dev = (cmd646_t *) priv;
 
-    return sff_bus_master_dma(data, transfer_length, out, dev->bm[1]);
+    return sff_bus_master_dma(data, transfer_length, total_length, out, dev->bm[1]);
 }
 
 static void
@@ -391,8 +391,7 @@ cmd646_close(void *priv)
 static void *
 cmd646_init(const device_t *info)
 {
-    cmd646_t *dev = (cmd646_t *) malloc(sizeof(cmd646_t));
-    memset(dev, 0x00, sizeof(cmd646_t));
+    cmd646_t *dev = (cmd646_t *) calloc(1, sizeof(cmd646_t));
 
     dev->local = info->local;
 
@@ -431,7 +430,7 @@ const device_t ide_cmd646_device = {
     .init          = cmd646_init,
     .close         = cmd646_close,
     .reset         = cmd646_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -445,7 +444,7 @@ const device_t ide_cmd646_legacy_only_device = {
     .init          = cmd646_init,
     .close         = cmd646_close,
     .reset         = cmd646_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -459,7 +458,7 @@ const device_t ide_cmd646_single_channel_device = {
     .init          = cmd646_init,
     .close         = cmd646_close,
     .reset         = cmd646_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

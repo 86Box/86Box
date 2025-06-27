@@ -109,7 +109,7 @@ ati18800_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -223,7 +223,7 @@ ati18800_recalctimings(svga_t *svga)
                             else {
                                 svga->render = svga_render_8bpp_highres;
                                 if (!svga->packed_4bpp) {
-                                    svga->ma_latch <<= 1;
+                                    svga->memaddr_latch <<= 1;
                                     svga->rowoffset <<= 1;
                                 }
                             }
@@ -329,27 +329,21 @@ ati18800_force_redraw(void *priv)
 
 static const device_config_t ati18800_wonder_config[] = {
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 512,
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
         .selection = {
-            {
-                .description = "256 KB",
-                .value = 256
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = ""
-            }
-        }
+            { .description = "256 KB", .value = 256 },
+            { .description = "512 KB", .value = 512 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 const device_t ati18800_wonder_device = {
@@ -360,7 +354,7 @@ const device_t ati18800_wonder_device = {
     .init          = ati18800_init,
     .close         = ati18800_close,
     .reset         = NULL,
-    { .available = ati18800_wonder_available },
+    .available     = ati18800_wonder_available,
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
     .config        = ati18800_wonder_config
@@ -374,7 +368,7 @@ const device_t ati18800_vga88_device = {
     .init          = ati18800_init,
     .close         = ati18800_close,
     .reset         = NULL,
-    { .available = ati18800_vga88_available },
+    .available     = ati18800_vga88_available,
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
     .config        = NULL
@@ -388,7 +382,7 @@ const device_t ati18800_device = {
     .init          = ati18800_init,
     .close         = ati18800_close,
     .reset         = NULL,
-    { .available = ati18800_available },
+    .available     = ati18800_available,
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
     .config        = NULL

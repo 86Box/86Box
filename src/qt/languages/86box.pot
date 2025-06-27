@@ -18,7 +18,7 @@ msgstr ""
 msgid "&Hard Reset..."
 msgstr ""
 
-msgid "&Ctrl+Alt+Del\tCtrl+F12"
+msgid "&Ctrl+Alt+Del"
 msgstr ""
 
 msgid "Ctrl+Alt+&Esc"
@@ -111,7 +111,7 @@ msgstr ""
 msgid "Hi&DPI scaling"
 msgstr ""
 
-msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgid "&Fullscreen"
 msgstr ""
 
 msgid "Fullscreen &stretch mode"
@@ -186,7 +186,10 @@ msgstr ""
 msgid "&Update status bar icons"
 msgstr ""
 
-msgid "Take s&creenshot\tCtrl+F11"
+msgid "Take s&creenshot"
+msgstr ""
+
+msgid "S&ound"
 msgstr ""
 
 msgid "&Preferences..."
@@ -198,10 +201,10 @@ msgstr ""
 msgid "Sound &gain..."
 msgstr ""
 
-msgid "Begin trace\tCtrl+T"
+msgid "Begin trace"
 msgstr ""
 
-msgid "End trace\tCtrl+T"
+msgid "End trace"
 msgstr ""
 
 msgid "&Help"
@@ -249,7 +252,7 @@ msgstr ""
 msgid "E&mpty"
 msgstr ""
 
-msgid "&Reload previous image"
+msgid "Reload previous image"
 msgstr ""
 
 msgid "&Folder..."
@@ -306,16 +309,10 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
-msgid "Save these settings as &global defaults"
-msgstr ""
-
 msgid "&Default"
 msgstr ""
 
 msgid "Language:"
-msgstr ""
-
-msgid "Icon set:"
 msgstr ""
 
 msgid "Gain"
@@ -451,15 +448,6 @@ msgid "Nuked (more accurate)"
 msgstr ""
 
 msgid "YMFM (faster)"
-msgstr ""
-
-msgid "Network type:"
-msgstr ""
-
-msgid "PCap device:"
-msgstr ""
-
-msgid "Network adapter:"
 msgstr ""
 
 msgid "COM1 Device:"
@@ -642,13 +630,10 @@ msgstr ""
 msgid " - PAUSED"
 msgstr ""
 
-msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr ""
-
 msgid "Speed"
 msgstr ""
 
-msgid "ZIP %03i %i (%s): %ls"
+msgid "ZIP %1 %2 (%3): %4"
 msgstr ""
 
 msgid "ZIP images"
@@ -687,7 +672,10 @@ msgstr ""
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr ""
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr ""
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
 msgstr ""
 
 msgid "Machine"
@@ -750,13 +738,10 @@ msgstr ""
 msgid "KB"
 msgstr ""
 
-msgid "Could not initialize the video renderer."
-msgstr ""
-
 msgid "Default"
 msgstr ""
 
-msgid "%i estat(s) d'espera"
+msgid "%1 Wait state(s)"
 msgstr ""
 
 msgid "Type"
@@ -801,10 +786,10 @@ msgstr ""
 msgid "None"
 msgstr ""
 
-msgid "%u MB (CHS: %i, %i, %i)"
+msgid "%1 MB (CHS: %2, %3, %4)"
 msgstr ""
 
-msgid "Floppy %i (%s): %ls"
+msgid "Floppy %1 (%2): %3"
 msgstr ""
 
 msgid "Advanced sector images"
@@ -825,7 +810,7 @@ msgstr ""
 msgid "Unable to initialize GhostPCL"
 msgstr ""
 
-msgid "MO %i (%ls): %ls"
+msgid "MO %1 (%2): %3"
 msgstr ""
 
 msgid "MO images"
@@ -876,9 +861,6 @@ msgstr ""
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr ""
 
-msgid "Entering fullscreen mode"
-msgstr ""
-
 msgid "Don't show this message again"
 msgstr ""
 
@@ -900,10 +882,7 @@ msgstr ""
 msgid "Monitor in sleep mode"
 msgstr ""
 
-msgid "OpenGL Shaders"
-msgstr ""
-
-msgid "OpenGL options"
+msgid "GLSL shaders"
 msgstr ""
 
 msgid "You are loading an unsupported configuration"
@@ -915,22 +894,16 @@ msgstr ""
 msgid "Continue"
 msgstr ""
 
-msgid "Cassette: %s"
+msgid "Cassette: %1"
 msgstr ""
 
 msgid "Cassette images"
 msgstr ""
 
-msgid "Cartridge %i: %ls"
+msgid "Cartridge %1: %2"
 msgstr ""
 
 msgid "Cartridge images"
-msgstr ""
-
-msgid "Error initializing renderer"
-msgstr ""
-
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
 msgstr ""
 
 msgid "Resume execution"
@@ -1095,7 +1068,7 @@ msgstr ""
 msgid "ATAPI"
 msgstr ""
 
-msgid "CD-ROM %i (%s): %s"
+msgid "CD-ROM %1 (%2): %3"
 msgstr ""
 
 msgid "160 KB"
@@ -1275,9 +1248,6 @@ msgstr ""
 msgid "Create..."
 msgstr ""
 
-msgid "previous image"
-msgstr ""
-
 msgid "Host CD/DVD Drive (%1)"
 msgstr ""
 
@@ -1287,22 +1257,7 @@ msgstr ""
 msgid "Null Driver"
 msgstr ""
 
-msgid "NIC %02i (%ls) %ls"
-msgstr ""
-
-msgid "Error opening \"%1\": %2"
-msgstr ""
-
-msgid "Error compiling vertex shader in file \"%1\""
-msgstr ""
-
-msgid "Error compiling fragment shader in file \"%1\""
-msgstr ""
-
-msgid "Error linking shader program in file \"%1\""
-msgstr ""
-
-msgid "OpenGL 3.0 renderer options"
+msgid "NIC %1 (%2) %3"
 msgstr ""
 
 msgid "Render behavior"
@@ -1317,9 +1272,6 @@ msgstr ""
 msgid "VSync"
 msgstr ""
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Render each frame immediately, in sync with the emulated display.&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;This is the recommended option if the shaders in use don't utilize frametime for animated effects.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr ""
-
 msgid "Synchronize with video"
 msgstr ""
 
@@ -1329,19 +1281,7 @@ msgstr ""
 msgid "Remove"
 msgstr ""
 
-msgid "No shader selected"
-msgstr ""
-
 msgid "Browse..."
-msgstr ""
-
-msgid "Shader error"
-msgstr ""
-
-msgid "Could not load shaders."
-msgstr ""
-
-msgid "More information in details."
 msgstr ""
 
 msgid "Couldn't create OpenGL context."
@@ -1353,19 +1293,13 @@ msgstr ""
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr ""
 
-msgid "OpenGL initialization failed. Error %1."
-msgstr ""
-
 msgid "Error initializing OpenGL"
 msgstr ""
 
-msgid "Falling back to software rendering.\n"
+msgid "\nFalling back to software rendering."
 msgstr ""
 
-msgid "Allocating memory for unpack buffer failed.\n"
-msgstr ""
-
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr ""
 
 msgid "This machine might have been moved or copied."
@@ -1401,16 +1335,16 @@ msgstr ""
 msgid "Network Card #4"
 msgstr ""
 
-msgid "Mode"
+msgid "Mode:"
 msgstr ""
 
-msgid "Interface"
+msgid "Interface:"
 msgstr ""
 
-msgid "Adapter"
+msgid "Adapter:"
 msgstr ""
 
-msgid "VDE Socket"
+msgid "VDE Socket:"
 msgstr ""
 
 msgid "86Box Unit Tester"
@@ -1429,9 +1363,6 @@ msgid "Serial port passthrough 3"
 msgstr ""
 
 msgid "Serial port passthrough 4"
-msgstr ""
-
-msgid "Vision Systems LBA Enhancer"
 msgstr ""
 
 msgid "Renderer options..."
@@ -1872,6 +1803,9 @@ msgstr ""
 msgid "Five + Wheel"
 msgstr ""
 
+msgid "Five + 2 Wheels"
+msgstr ""
+
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr ""
 
@@ -2100,7 +2034,7 @@ msgstr ""
 msgid "Host Serial Passthrough"
 msgstr ""
 
-msgid "Eject %s"
+msgid "E&ject %1"
 msgstr ""
 
 msgid "&Unmute"
@@ -2112,7 +2046,28 @@ msgstr ""
 msgid "High performance impact"
 msgstr ""
 
-msgid "RAM Disk (max. speed)"
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr ""
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr ""
+
+msgid "[Generic] 2000 (7200 RPM)"
 msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
@@ -2131,4 +2086,70 @@ msgid "Generic PC/XT Memory Expansion"
 msgstr ""
 
 msgid "Generic PC/AT Memory Expansion"
+msgstr ""
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr ""
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr ""
+
+msgid "Inhibit multimedia keys"
+msgstr ""
+
+msgid "Ask for confirmation before saving settings"
+msgstr ""
+
+msgid "Ask for confirmation before hard resetting"
+msgstr ""
+
+msgid "Ask for confirmation before quitting"
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Model"
+msgstr ""
+
+msgid "Model:"
+msgstr ""
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "GLSL Error"
+msgstr ""
+
+msgid "Could not load shader: %1"
+msgstr ""
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr ""
+
+msgid "Could not load texture: %1"
+msgstr ""
+
+msgid "Could not compile shader:\n\n%1"
+msgstr ""
+
+msgid "Program not linked:\n\n%1"
+msgstr ""
+
+msgid "Shader Manager"
+msgstr ""
+
+msgid "Shader Configuration"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Move up"
+msgstr ""
+
+msgid "Move down"
+msgstr ""
+
+msgid "Could not load file %1"
 msgstr ""

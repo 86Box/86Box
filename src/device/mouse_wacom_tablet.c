@@ -662,8 +662,10 @@ wacom_init(const device_t *info)
     if (dev->tablet_type->type == WACOM_TYPE_IV) {
         wacom_reset_artpad(dev);
         wacom_process_settings_dword(dev, 0xE2018000);
-    }
-    else wacom_reset(dev);
+    } else
+        wacom_reset(dev);
+
+    mouse_set_poll(wacom_poll, dev);
 
     return dev;
 }
@@ -693,20 +695,21 @@ wacom_close(void *priv)
 static const device_config_t wacom_config[] = {
   // clang-format off
     {
-        .name = "port",
-        .description = "Serial Port",
-        .type = CONFIG_SELECTION,
+        .name           = "port",
+        .description    = "Serial Port",
+        .type           = CONFIG_SELECTION,
         .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .default_int    = 0,
+        .file_filter    = "",
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "COM1", .value = 0 },
             { .description = "COM2", .value = 1 },
             { .description = "COM3", .value = 2 },
             { .description = "COM4", .value = 3 },
             { .description = ""                 }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -720,7 +723,7 @@ const device_t mouse_wacom_device = {
     .init          = wacom_init,
     .close         = wacom_close,
     .reset         = NULL,
-    { .poll = wacom_poll },
+    .available     = NULL,
     .speed_changed = wacom_speed_changed,
     .force_redraw  = NULL,
     .config        = wacom_config
@@ -730,11 +733,11 @@ const device_t mouse_wacom_artpad_device = {
     .name          = "Wacom ArtPad",
     .internal_name = "wacom_serial_artpad",
     .flags         = DEVICE_COM,
-    .local         = (uintptr_t)&artpad_id,
+    .local         = (uintptr_t) &artpad_id,
     .init          = wacom_init,
     .close         = wacom_close,
     .reset         = NULL,
-    { .poll = wacom_poll },
+    .available     = NULL,
     .speed_changed = wacom_speed_changed,
     .force_redraw  = NULL,
     .config        = wacom_config

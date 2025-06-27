@@ -58,7 +58,7 @@
 /* Queue size must be a power of 2 */
 #define NET_QUEUE_LEN      16
 #define NET_QUEUE_LEN_MASK (NET_QUEUE_LEN - 1)
-#define NET_QUEUE_COUNT 3
+#define NET_QUEUE_COUNT    4
 #define NET_CARD_MAX       4
 #define NET_HOST_INTF_MAX  64
 
@@ -85,9 +85,10 @@ enum {
 };
 
 enum {
-    NET_QUEUE_RX      = 0,
-    NET_QUEUE_TX_VM   = 1,
-    NET_QUEUE_TX_HOST = 2
+    NET_QUEUE_RX       = 0,
+    NET_QUEUE_TX_VM    = 1,
+    NET_QUEUE_TX_HOST  = 2,
+    NET_QUEUE_RX_ON_TX = 3
 };
 
 typedef struct netcard_conf_t {
@@ -202,7 +203,10 @@ extern const device_t *network_card_getdevice(int);
 extern int network_tx_pop(netcard_t *card, netpkt_t *out_pkt);
 extern int network_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size);
 extern int network_rx_put(netcard_t *card, uint8_t *bufp, int len);
+extern int network_rx_on_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size);
+extern int network_rx_on_tx_put(netcard_t *card, uint8_t *bufp, int len);
 extern int network_rx_put_pkt(netcard_t *card, netpkt_t *pkt);
+extern int network_rx_on_tx_put_pkt(netcard_t *card, netpkt_t *pkt);
 
 #ifdef EMU_DEVICE_H
 /* 3Com Etherlink */
@@ -216,7 +220,7 @@ extern const device_t ne2000_device;
 extern const device_t ne2000_compat_device;
 extern const device_t ne2000_compat_8bit_device;
 extern const device_t ethernext_mc_device;
-extern const device_t rtl8019as_device;
+extern const device_t rtl8019as_pnp_device;
 extern const device_t de220p_device;
 extern const device_t rtl8029as_device;
 

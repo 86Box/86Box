@@ -20,9 +20,9 @@ add_library(mch OBJECT
     machine_table.c
     m_xt.c
     m_xt_compaq.c
+    m_xt_laserxt.c
     m_xt_philips.c
     m_xt_t1000.c
-    m_xt_t1000_vid.c
     m_xt_xi8088.c
     m_xt_zenith.c
     m_pcjr.c
@@ -36,7 +36,6 @@ add_library(mch OBJECT
     m_at_commodore.c
     m_at_grid.c
     m_at_t3100e.c
-    m_at_t3100e_vid.c
     m_ps1.c
     m_ps1_hdc.c
     m_ps2_isa.c
@@ -55,24 +54,3 @@ add_library(mch OBJECT
     m_at_socket370.c
     m_at_misc.c
 )
-
-if(AN430TX)
-    target_compile_definitions(mch PRIVATE USE_AN430TX)
-endif()
-
-if(DESKPRO386)
-    target_compile_definitions(mch PRIVATE USE_DESKPRO386)
-endif()
-
-if(LASERXT)
-    target_sources(mch PRIVATE m_xt_laserxt.c)
-    target_compile_definitions(mch PRIVATE USE_LASERXT)
-endif()
-
-if(OLIVETTI)
-    target_compile_definitions(mch PRIVATE USE_OLIVETTI)
-endif()
-
-if(OPEN_AT)
-    target_compile_definitions(mch PRIVATE USE_OPEN_AT)
-endif()

@@ -97,8 +97,7 @@ pii_init(const device_t *info)
 {
     pii_t *dev;
 
-    dev = (pii_t *) malloc(sizeof(pii_t));
-    memset(dev, 0, sizeof(pii_t));
+    dev = (pii_t *) calloc(1, sizeof(pii_t));
 
     if (BIOS_ADDR != 0)
         rom_init(&dev->bios_rom, DTK_VARIANT, BIOS_ADDR, 0x2000, 0x1ffff, 0, MEM_MAPPING_EXTERNAL);
@@ -123,20 +122,21 @@ pii_158_available(void)
 static const device_config_t pii_config[] = {
   // clang-format off
     {
-        .name = "bios_addr",
-        .description = "BIOS Address",
-        .type = CONFIG_HEX20,
-        .default_string = "",
-        .default_int = 0xce000,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xce000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled", .value = 0 },
             { .description = "CA00H",    .value = 0xca000 },
             { .description = "CC00H",    .value = 0xcc000 },
             { .description = "CE00H",    .value = 0xce000 },
             { .description = ""                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -150,7 +150,7 @@ const device_t fdc_pii151b_device = {
     .init          = pii_init,
     .close         = pii_close,
     .reset         = NULL,
-    { .available = pii_151b_available },
+    .available     = pii_151b_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pii_config
@@ -164,7 +164,7 @@ const device_t fdc_pii158b_device = {
     .init          = pii_init,
     .close         = pii_close,
     .reset         = NULL,
-    { .available = pii_158_available },
+    .available     = pii_158_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pii_config

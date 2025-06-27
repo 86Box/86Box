@@ -368,6 +368,38 @@ write_data(uint8_t val, void *priv)
 }
 
 static void
+autofeed(uint8_t val, void *priv)
+{
+    prnt_t *dev = (prnt_t *) priv;
+
+    if (dev == NULL)
+        return;
+
+    /* set autofeed value */
+    dev->autofeed = val & 0x02 ? 1 : 0;
+}
+
+static void
+strobe(uint8_t old, uint8_t val, void *priv)
+{
+    prnt_t *dev = (prnt_t *) priv;
+
+    if (dev == NULL)
+        return;
+
+    if (!(val & 0x01) && (old & 0x01)) { /* STROBE */
+        /* Process incoming character. */
+        handle_char(dev);
+
+        /* ACK it, will be read on next READ STATUS. */
+        dev->ack = 1;
+
+        timer_set_delay_u64(&dev->pulse_timer, ISACONST);
+        timer_set_delay_u64(&dev->timeout_timer, 5000000 * TIMER_USEC);
+    }
+}
+
+static void
 write_ctrl(uint8_t val, void *priv)
 {
     prnt_t *dev = (prnt_t *) priv;
@@ -421,11 +453,9 @@ read_status(void *priv)
 static void *
 prnt_init(void *lpt)
 {
-    prnt_t *dev;
-
     /* Initialize a device instance. */
-    dev = (prnt_t *) malloc(sizeof(prnt_t));
-    memset(dev, 0x00, sizeof(prnt_t));
+    prnt_t *dev = (prnt_t *) calloc(1, sizeof(prnt_t));
+
     dev->ctrl = 0x04;
     dev->lpt  = lpt;
 
@@ -467,13 +497,16 @@ prnt_close(void *priv)
 }
 
 const lpt_device_t lpt_prt_text_device = {
-    .name          = "Generic Text Printer",
-    .internal_name = "text_prt",
-    .init          = prnt_init,
-    .close         = prnt_close,
-    .write_data    = write_data,
-    .write_ctrl    = write_ctrl,
-    .read_data     = NULL,
-    .read_status   = read_status,
-    .read_ctrl     = NULL
+    .name             = "Generic Text Printer",
+    .internal_name    = "text_prt",
+    .init             = prnt_init,
+    .close            = prnt_close,
+    .write_data       = write_data,
+    .write_ctrl       = write_ctrl,
+    .autofeed         = autofeed,
+    .strobe           = strobe,
+    .read_status      = read_status,
+    .read_ctrl        = NULL,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL
 };

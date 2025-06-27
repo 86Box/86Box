@@ -53,10 +53,10 @@
 static uint64_t virge_time = 0;
 
 static int dither[4][4] = {
-    {0, 4, 1, 5},
-    {6, 2, 7, 3},
-    {1, 5, 0, 4},
-    {7, 3, 6, 2}
+    { 0, 4, 1, 5 },
+    { 6, 2, 7, 3 },
+    { 1, 5, 0, 4 },
+    { 7, 3, 6, 2 }
 };
 
 #define ROM_VIRGE_325                 "roms/video/s3virge/86c325.bin"
@@ -112,80 +112,80 @@ enum {
 };
 
 enum {
-    FIFO_INVALID = (0x00 << 24),
-    FIFO_WRITE_BYTE = (0x01 << 24),
-    FIFO_WRITE_WORD = (0x02 << 24),
+    FIFO_INVALID     = (0x00 << 24),
+    FIFO_WRITE_BYTE  = (0x01 << 24),
+    FIFO_WRITE_WORD  = (0x02 << 24),
     FIFO_WRITE_DWORD = (0x03 << 24)
 };
 
 typedef struct {
-    uint32_t      addr_type;
-    uint32_t      val;
+    uint32_t addr_type;
+    uint32_t val;
 } fifo_entry_t;
 
 typedef struct s3d_t {
-    uint32_t      cmd_set;
-    int           clip_l;
-    int           clip_r;
-    int           clip_t;
-    int           clip_b;
+    uint32_t cmd_set;
+    int      clip_l;
+    int      clip_r;
+    int      clip_t;
+    int      clip_b;
 
-    uint32_t      dest_base;
-    uint32_t      dest_str;
+    uint32_t dest_base;
+    uint32_t dest_str;
 
-    uint32_t      z_base;
-    uint32_t      z_str;
+    uint32_t z_base;
+    uint32_t z_str;
 
-    uint32_t      tex_base;
-    uint32_t      tex_bdr_clr;
-    uint32_t      tbv;
-    uint32_t      tbu;
-    int32_t       TdVdX;
-    int32_t       TdUdX;
-    int32_t       TdVdY;
-    int32_t       TdUdY;
-    uint32_t      tus;
-    uint32_t      tvs;
+    uint32_t tex_base;
+    uint32_t tex_bdr_clr;
+    uint32_t tbv;
+    uint32_t tbu;
+    int32_t  TdVdX;
+    int32_t  TdUdX;
+    int32_t  TdVdY;
+    int32_t  TdUdY;
+    uint32_t tus;
+    uint32_t tvs;
 
-    int32_t       TdZdX;
-    int32_t       TdZdY;
-    uint32_t      tzs;
+    int32_t  TdZdX;
+    int32_t  TdZdY;
+    uint32_t tzs;
 
-    int32_t       TdWdX;
-    int32_t       TdWdY;
-    uint32_t      tws;
+    int32_t  TdWdX;
+    int32_t  TdWdY;
+    uint32_t tws;
 
-    int32_t       TdDdX;
-    int32_t       TdDdY;
-    uint32_t      tds;
+    int32_t  TdDdX;
+    int32_t  TdDdY;
+    uint32_t tds;
 
-    int16_t       TdGdX;
-    int16_t       TdBdX;
-    int16_t       TdRdX;
-    int16_t       TdAdX;
-    int16_t       TdGdY;
-    int16_t       TdBdY;
-    int16_t       TdRdY;
-    int16_t       TdAdY;
-    uint32_t      tgs;
-    uint32_t      tbs;
-    uint32_t      trs;
-    uint32_t      tas;
+    int16_t  TdGdX;
+    int16_t  TdBdX;
+    int16_t  TdRdX;
+    int16_t  TdAdX;
+    int16_t  TdGdY;
+    int16_t  TdBdY;
+    int16_t  TdRdY;
+    int16_t  TdAdY;
+    uint32_t tgs;
+    uint32_t tbs;
+    uint32_t trs;
+    uint32_t tas;
 
-    uint32_t      TdXdY12;
-    uint32_t      txend12;
-    uint32_t      TdXdY01;
-    uint32_t      txend01;
-    uint32_t      TdXdY02;
-    uint32_t      txs;
-    uint32_t      tys;
-    int           ty01;
-    int           ty12;
-    int           tlr;
+    uint32_t TdXdY12;
+    uint32_t txend12;
+    uint32_t TdXdY01;
+    uint32_t txend01;
+    uint32_t TdXdY02;
+    uint32_t txs;
+    uint32_t tys;
+    int      ty01;
+    int      ty12;
+    int      tlr;
 
-    uint8_t       fog_r;
-    uint8_t       fog_g;
-    uint8_t       fog_b;
+    uint8_t fog_r;
+    uint8_t fog_g;
+    uint8_t fog_b;
 } s3d_t;
 
 typedef struct virge_t {
@@ -193,41 +193,42 @@ typedef struct virge_t {
     mem_mapping_t mmio_mapping;
     mem_mapping_t new_mmio_mapping;
 
-    rom_t         bios_rom;
+    rom_t bios_rom;
 
-    svga_t        svga;
+    svga_t svga;
 
-    uint8_t       bank;
-    uint8_t       ma_ext;
+    uint8_t bank;
+    uint8_t ma_ext;
 
-    uint8_t       virge_id;
-    uint8_t       virge_id_high;
-    uint8_t       virge_id_low;
-    uint8_t       virge_rev;
+    uint8_t virge_id;
+    uint8_t virge_id_high;
+    uint8_t virge_id_low;
+    uint8_t virge_rev;
 
-    uint32_t      linear_base;
-    uint32_t      linear_size;
+    uint32_t linear_base;
+    uint32_t linear_size;
 
-    uint8_t       pci_regs[256];
-    uint8_t       pci_slot;
+    uint8_t pci_regs[256];
+    uint8_t pci_slot;
 
-    int           chip;
+    uint8_t type;
+    int chip;
 
-    int           bilinear_enabled;
-    int           dithering_enabled;
-    int           memory_size;
+    int bilinear_enabled;
+    int dithering_enabled;
+    int memory_size;
 
-    int           pixel_count;
-    int           tri_count;
+    int pixel_count;
+    int tri_count;
 
-    thread_t *    render_thread;
-    event_t *     wake_render_thread;
-    event_t *     wake_main_thread;
-    event_t *     not_full_event;
+    thread_t *render_thread;
+    event_t  *wake_render_thread;
+    event_t  *wake_main_thread;
+    event_t  *not_full_event;
 
-    uint32_t      hwc_fg_col;
-    uint32_t      hwc_bg_col;
-    int           hwc_col_stack_pos;
+    uint32_t hwc_fg_col;
+    uint32_t hwc_bg_col;
+    int      hwc_col_stack_pos;
 
     struct {
         uint32_t src_base;
@@ -260,13 +261,13 @@ typedef struct virge_t {
         int      lycnt;
         int      line_dir;
 
-        int      src_x;
-        int      src_y;
-        int      dest_x;
-        int      dest_y;
-        int      w;
-        int      h;
-        uint8_t  rop;
+        int     src_x;
+        int     src_y;
+        int     dest_x;
+        int     dest_y;
+        int     w;
+        int     h;
+        uint8_t rop;
 
         int      data_left_count;
         uint32_t data_left;
@@ -282,15 +283,16 @@ typedef struct virge_t {
         uint32_t plxstart;
         uint32_t pystart;
         uint32_t pycnt;
-        uint32_t dest_l, dest_r;
+        uint32_t dest_l;
+        uint32_t dest_r;
     } s3d;
 
-    s3d_t        s3d_tri;
+    s3d_t s3d_tri;
 
-    s3d_t        s3d_buffer[RB_SIZE];
-    atomic_int   s3d_read_idx;
-    atomic_int   s3d_write_idx;
-    atomic_int   s3d_busy;
+    s3d_t      s3d_buffer[RB_SIZE];
+    atomic_int s3d_read_idx;
+    atomic_int s3d_write_idx;
+    atomic_int s3d_busy;
 
     struct {
         uint32_t pri_ctrl;
@@ -317,85 +319,89 @@ typedef struct virge_t {
         uint32_t sec_start;
         uint32_t sec_size;
 
-        int      sdif;
+        int sdif;
 
-        int      pri_x;
-        int      pri_y;
-        int      pri_w;
-        int      pri_h;
-        int      sec_x;
-        int      sec_y;
-        int      sec_w;
-        int      sec_h;
+        int pri_x;
+        int pri_y;
+        int pri_w;
+        int pri_h;
+        int sec_x;
+        int sec_y;
+        int sec_w;
+        int sec_h;
     } streams;
 
     fifo_entry_t fifo[FIFO_SIZE];
     atomic_int   fifo_read_idx, fifo_write_idx;
     atomic_int   fifo_thread_run, render_thread_run;
 
-    thread_t *   fifo_thread;
-    event_t      *wake_fifo_thread;
-    event_t *    fifo_not_full_event;
+    thread_t *fifo_thread;
+    event_t  *wake_fifo_thread;
+    event_t  *fifo_not_full_event;
 
-    atomic_int   virge_busy;
+    atomic_int  virge_busy;
+    atomic_uint irq_pending;
 
-    uint8_t      subsys_stat;
-    uint8_t      subsys_cntl;
+    uint8_t subsys_stat;
+    uint8_t subsys_cntl;
 
-    int          local;
+    int local;
 
-    uint8_t      serialport;
+    uint8_t serialport;
 
-    uint8_t      irq_state;
-    uint8_t      advfunc_cntl;
+    uint8_t irq_state;
+    uint8_t advfunc_cntl;
 
-    void        *i2c, *ddc;
+    void *i2c, *ddc;
 
-    int          onboard;
-    int          fifo_slots_num;
+    int onboard;
+    int fifo_slots_num;
 
-    uint32_t     vram_mask;
+    uint32_t vram_mask;
 
-    uint8_t      reg6b;
-    uint8_t      lfb_bios;
-    uint8_t      int_line;
-    uint8_t      cmd_dma;
+    uint8_t reg6b;
+    uint8_t lfb_bios;
+    uint8_t int_line;
+    uint8_t cmd_dma;
 
-    uint32_t     cmd_dma_base;
-    uint32_t     cmd_dma_buf_size;
-    uint32_t     cmd_dma_buf_size_mask;
-    uint32_t     cmd_base_addr;
-    uint32_t     cmd_dma_write_ptr_reg;
-    uint32_t     cmd_dma_write_ptr_update;
-    uint32_t     cmd_dma_read_ptr_reg;
-    uint32_t     dma_val;
-    uint32_t     dma_dbl_words;
-    uint32_t     dma_mmio_addr;
-    uint32_t     dma_data_type;
+    uint32_t cmd_dma_base;
+    uint32_t cmd_dma_buf_size;
+    uint32_t cmd_dma_buf_size_mask;
+    uint32_t cmd_base_addr;
+    uint32_t cmd_dma_write_ptr_reg;
+    uint32_t cmd_dma_write_ptr_update;
+    uint32_t cmd_dma_read_ptr_reg;
+    uint32_t dma_val;
+    uint32_t dma_dbl_words;
+    uint32_t dma_mmio_addr;
+    uint32_t dma_data_type;
 
-    int          pci;
-    int          is_agp;
+    int pci;
+    int is_agp;
+
+    pc_timer_t irq_timer;
 } virge_t;
 
 static __inline void
-wake_fifo_thread(virge_t *virge) {
+wake_fifo_thread(virge_t *virge)
+{
     /* Wake up FIFO thread if moving from idle */
     thread_set_event(virge->wake_fifo_thread);
 }
 
-static virge_t         *reset_state = NULL;
+static virge_t *reset_state = NULL;
 
 static video_timings_t timing_diamond_stealth3d_2000_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 3, .read_b = 28, .read_w = 28, .read_l = 45 };
 static video_timings_t timing_diamond_stealth3d_3000_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 4, .read_b = 26, .read_w = 26, .read_l = 42 };
 static video_timings_t timing_virge_dx_pci               = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 3, .read_b = 28, .read_w = 28, .read_l = 45 };
 static video_timings_t timing_virge_agp                  = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 3, .read_b = 28, .read_w = 28, .read_l = 45 };
 
-static void     queue_triangle(virge_t *virge);
+static void queue_triangle(virge_t *virge);
 
-static void     s3_virge_recalctimings(svga_t *svga);
-static void     s3_virge_updatemapping(virge_t *virge);
+static void s3_virge_recalctimings(svga_t *svga);
+static void s3_virge_updatemapping(virge_t *virge);
 
-static void     s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat);
+static void s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat);
 
 static uint8_t  s3_virge_mmio_read(uint32_t addr, void *priv);
 static uint16_t s3_virge_mmio_read_w(uint32_t addr, void *priv);
@@ -404,33 +410,33 @@ static void     s3_virge_mmio_write(uint32_t addr, uint8_t val, void *priv);
 static void     s3_virge_mmio_write_w(uint32_t addr, uint16_t val, void *priv);
 static void     s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv);
 
-static void     s3_virge_queue(virge_t *virge, uint32_t addr, uint32_t val, uint32_t type);
+static void s3_virge_queue(virge_t *virge, uint32_t addr, uint32_t val, uint32_t type);
 
 enum {
-    CMD_SET_AE           = 1,
-    CMD_SET_HC           = (1 << 1),
+    CMD_SET_AE = 1,
+    CMD_SET_HC = (1 << 1),
 
-    CMD_SET_FORMAT_MASK  = (7 << 2),
-    CMD_SET_FORMAT_8     = (0 << 2),
-    CMD_SET_FORMAT_16    = (1 << 2),
-    CMD_SET_FORMAT_24    = (2 << 2),
+    CMD_SET_FORMAT_MASK = (7 << 2),
+    CMD_SET_FORMAT_8    = (0 << 2),
+    CMD_SET_FORMAT_16   = (1 << 2),
+    CMD_SET_FORMAT_24   = (2 << 2),
 
-    CMD_SET_MS           = (1 << 6),
-    CMD_SET_IDS          = (1 << 7),
-    CMD_SET_MP           = (1 << 8),
-    CMD_SET_TP           = (1 << 9),
+    CMD_SET_MS  = (1 << 6),
+    CMD_SET_IDS = (1 << 7),
+    CMD_SET_MP  = (1 << 8),
+    CMD_SET_TP  = (1 << 9),
 
-    CMD_SET_ITA_MASK     = (3 << 10),
-    CMD_SET_ITA_BYTE     = (0 << 10),
-    CMD_SET_ITA_WORD     = (1 << 10),
-    CMD_SET_ITA_DWORD    = (2 << 10),
+    CMD_SET_ITA_MASK  = (3 << 10),
+    CMD_SET_ITA_BYTE  = (0 << 10),
+    CMD_SET_ITA_WORD  = (1 << 10),
+    CMD_SET_ITA_DWORD = (2 << 10),
 
-    CMD_SET_ZUP          = (1 << 23),
+    CMD_SET_ZUP = (1 << 23),
 
-    CMD_SET_ZB_MODE      = (3 << 24),
+    CMD_SET_ZB_MODE = (3 << 24),
 
-    CMD_SET_XP           = (1 << 25),
-    CMD_SET_YP           = (1 << 26),
+    CMD_SET_XP = (1 << 25),
+    CMD_SET_YP = (1 << 26),
 
     CMD_SET_COMMAND_MASK = (15 << 27)
 };
@@ -441,11 +447,11 @@ enum {
 #define CMD_SET_TWE        (1 << 26)
 
 enum {
-        CMD_SET_COMMAND_BITBLT   = (0 << 27),
-        CMD_SET_COMMAND_RECTFILL = (2 << 27),
-        CMD_SET_COMMAND_LINE     = (3 << 27),
-        CMD_SET_COMMAND_POLY     = (5 << 27),
-        CMD_SET_COMMAND_NOP      = (15 << 27)
+    CMD_SET_COMMAND_BITBLT   = (0 << 27),
+    CMD_SET_COMMAND_RECTFILL = (2 << 27),
+    CMD_SET_COMMAND_LINE     = (3 << 27),
+    CMD_SET_COMMAND_POLY     = (5 << 27),
+    CMD_SET_COMMAND_NOP      = (15 << 27)
 };
 
 #define INT_VSY         (1 << 0)
@@ -472,10 +478,23 @@ s3_virge_update_irqs(virge_t *virge)
 }
 
 static void
+s3_virge_update_irq_timer(void *priv)
+{
+    virge_t *virge = (virge_t *) priv;
+
+    if (virge->irq_pending) {
+        virge->irq_pending--;
+        s3_virge_update_irqs(virge);
+    }
+
+    timer_on_auto(&virge->irq_timer, 100.);
+}
+
+static void
 s3_virge_out(uint16_t addr, uint8_t val, void *priv)
 {
     virge_t *virge = (virge_t *) priv;
-    svga_t * svga = &virge->svga;
+    svga_t  *svga  = &virge->svga;
     uint8_t  old;
     uint32_t cursoraddr;
 
@@ -522,7 +541,7 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
             if ((svga->crtcreg == 0x36) && (svga->crtc[0x39] != 0xa5))
                 return;
 
-            old = svga->crtc[svga->crtcreg];
+            old                       = svga->crtc[svga->crtcreg];
             svga->crtc[svga->crtcreg] = val;
 
             switch (svga->crtcreg) {
@@ -606,7 +625,7 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
                     switch (virge->hwc_col_stack_pos) {
                         case 0:
                             virge->hwc_bg_col = (virge->hwc_bg_col & 0xffff00) | val;
-                             break;
+                            break;
                         case 1:
                             virge->hwc_bg_col = (virge->hwc_bg_col & 0xff00ff) | (val << 8);
                             break;
@@ -670,10 +689,10 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) +
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) +
                                            ((svga->crtc[8] & 0x60) >> 5);
                         if ((svga->crtc[0x67] & 0xc) != 0xc)
-                            svga->ma_latch |= (virge->ma_ext << 16);
+                            svga->memaddr_latch |= (virge->ma_ext << 16);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -689,9 +708,10 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-s3_virge_in(uint16_t addr, void *priv) {
+s3_virge_in(uint16_t addr, void *priv)
+{
     virge_t *virge = (virge_t *) priv;
-    svga_t * svga  = &virge->svga;
+    svga_t  *svga  = &virge->svga;
     uint8_t  ret;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
@@ -742,7 +762,7 @@ s3_virge_in(uint16_t addr, void *priv) {
                     break;
                 case 0x45:
                     virge->hwc_col_stack_pos = 0;
-                    ret = svga->crtc[0x45];
+                    ret                      = svga->crtc[0x45];
                     break;
                 case 0x51:
                     ret = (svga->crtc[0x51] & 0xf0) | ((virge->bank >> 2) & 0xc) | ((virge->ma_ext >> 2) & 3);
@@ -796,8 +816,10 @@ s3_virge_in(uint16_t addr, void *priv) {
 static void
 s3_virge_recalctimings(svga_t *svga)
 {
-    int n, r, m;
-    double freq;
+    int      n;
+    int      r;
+    int      m;
+    double   freq;
     virge_t *virge = (virge_t *) svga->priv;
 
     svga->hdisp = svga->hdisp_old;
@@ -841,7 +863,7 @@ s3_virge_recalctimings(svga_t *svga)
         else
             r = (svga->seqregs[0x12] >> 5) & 0x03;
 
-        m = svga->seqregs[0x13] & 0x7f;
+        m    = svga->seqregs[0x13] & 0x7f;
         freq = (((double) m + 2) / (((double) n + 2) * (double) (1 << r))) * 14318184.0;
 
         svga->clock = (cpuclock * (float) (1ULL << 32)) / freq;
@@ -860,7 +882,7 @@ s3_virge_recalctimings(svga_t *svga)
         svga->vblankstart = svga->dispend;
         video_force_resize_set_monitor(1, svga->monitor_index);
     } else {
-        svga->hblankstart    = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2];
+        svga->hblankstart = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2];
 
         svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
                                 (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
@@ -869,7 +891,7 @@ s3_virge_recalctimings(svga_t *svga)
     }
 
     if ((svga->crtc[0x67] & 0xc) != 0xc) { /*VGA mode*/
-        svga->ma_latch |= (virge->ma_ext << 16);
+        svga->memaddr_latch |= (virge->ma_ext << 16);
         if (svga->crtc[0x51] & 0x30)
             svga->rowoffset |= (svga->crtc[0x51] & 0x30) << 4;
         else if (svga->crtc[0x43] & 0x04)
@@ -878,45 +900,45 @@ s3_virge_recalctimings(svga_t *svga)
             svga->rowoffset = 256;
 
         svga->lowres = !((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10));
-        if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10))  switch (svga->bpp) {
-            case 8:
-                svga->render = svga_render_8bpp_highres;
-                break;
-            case 15:
-                svga->render = svga_render_15bpp_highres;
-                if ((virge->chip != S3_VIRGEVX) && (virge->chip < S3_VIRGEGX2)) {
-                    svga->hdisp >>= 1;
-                    svga->dots_per_clock >>= 1;
-                }
-                break;
-            case 16:
-                svga->render = svga_render_16bpp_highres;
-                if ((virge->chip != S3_VIRGEVX) && (virge->chip < S3_VIRGEGX2)) {
-                    svga->hdisp >>= 1;
-                    svga->dots_per_clock >>= 1;
-                }
-                break;
-            case 24:
-                svga->render = svga_render_24bpp_highres;
-                if ((virge->chip != S3_VIRGEVX) && (virge->chip < S3_VIRGEGX2))
-                    svga->rowoffset = (svga->rowoffset * 3) >> 2; /*Hack*/
-                break;
-            case 32:
-                svga->render = svga_render_32bpp_highres;
-                break;
+        if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10))
+            switch (svga->bpp) {
+                case 8:
+                    svga->render = svga_render_8bpp_highres;
+                    break;
+                case 15:
+                    svga->render = svga_render_15bpp_highres;
+                    if ((virge->chip != S3_VIRGEVX) && (virge->chip < S3_VIRGEGX2)) {
+                        svga->hdisp >>= 1;
+                        svga->dots_per_clock >>= 1;
+                    }
+                    break;
+                case 16:
+                    svga->render = svga_render_16bpp_highres;
+                    if ((virge->chip != S3_VIRGEVX) && (virge->chip < S3_VIRGEGX2)) {
+                        svga->hdisp >>= 1;
+                        svga->dots_per_clock >>= 1;
+                    }
+                    break;
+                case 24:
+                    svga->render = svga_render_24bpp_highres;
+                    if ((virge->chip != S3_VIRGEVX) && (virge->chip < S3_VIRGEGX2))
+                        svga->rowoffset = (svga->rowoffset * 3) >> 2; /*Hack*/
+                    break;
+                case 32:
+                    svga->render = svga_render_32bpp_highres;
+                    break;
 
-            default:
-                break;
-        }
+                default:
+                    break;
+            }
 
-        svga->vram_display_mask = (!(svga->crtc[0x31] & 0x08) &&
-                                  (svga->crtc[0x32] & 0x40)) ? 0x3ffff : virge->vram_mask;
+        svga->vram_display_mask = (!(svga->crtc[0x31] & 0x08) && (svga->crtc[0x32] & 0x40)) ? 0x3ffff : virge->vram_mask;
     } else { /*Streams mode*/
         if (virge->chip < S3_VIRGEGX2) {
             if (virge->streams.buffer_ctrl & 1)
-                svga->ma_latch = virge->streams.pri_fb1 >> 2;
+                svga->memaddr_latch = virge->streams.pri_fb1 >> 2;
             else
-                svga->ma_latch = virge->streams.pri_fb0 >> 2;
+                svga->memaddr_latch = virge->streams.pri_fb0 >> 2;
 
             svga->hdisp = virge->streams.pri_w + 1;
             if (virge->streams.pri_h < svga->dispend)
@@ -925,7 +947,7 @@ s3_virge_recalctimings(svga_t *svga)
             svga->overlay.x = virge->streams.sec_x - virge->streams.pri_x;
             svga->overlay.y = virge->streams.sec_y - virge->streams.pri_y;
         } else {
-            svga->ma_latch |= (virge->ma_ext << 16);
+            svga->memaddr_latch |= (virge->ma_ext << 16);
             if (svga->crtc[0x51] & 0x30)
                 svga->rowoffset |= (svga->crtc[0x51] & 0x30) << 4;
             else if (svga->crtc[0x43] & 0x04)
@@ -944,7 +966,7 @@ s3_virge_recalctimings(svga_t *svga)
         else
             svga->overlay.addr = virge->streams.sec_fb0;
 
-        svga->overlay.ena = (svga->overlay.x >= 0);
+        svga->overlay.ena   = (svga->overlay.x >= 0);
         svga->overlay.h_acc = virge->streams.dda_horiz_accumulator;
         svga->overlay.v_acc = virge->streams.dda_vert_accumulator;
 
@@ -952,8 +974,7 @@ s3_virge_recalctimings(svga_t *svga)
             svga->rowoffset = virge->streams.pri_stride >> 3;
 
         if (virge->chip <= S3_VIRGEDX && svga->overlay.ena) {
-            svga->overlay.ena = (((virge->streams.blend_ctrl >> 24) & 7) == 0b000) ||
-                                (((virge->streams.blend_ctrl >> 24) & 7) == 0b101);
+            svga->overlay.ena = (((virge->streams.blend_ctrl >> 24) & 7) == 0b000) || (((virge->streams.blend_ctrl >> 24) & 7) == 0b101);
         } else if (virge->chip >= S3_VIRGEGX2 && svga->overlay.ena) {
             /* 0x20 = Secondary Stream enabled */
             /* 0x2000 = Primary Stream enabled */
@@ -1012,7 +1033,8 @@ s3_virge_recalctimings(svga_t *svga)
 }
 
 static void
-s3_virge_updatemapping(virge_t *virge) {
+s3_virge_updatemapping(virge_t *virge)
+{
     svga_t *svga = &virge->svga;
 
     if (!(virge->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)) {
@@ -1024,7 +1046,7 @@ s3_virge_updatemapping(virge_t *virge) {
     }
 
     switch (svga->gdcreg[6] & 0xc) { /*Banked framebuffer*/
-        case 0x0: /*128k at A0000*/
+        case 0x0:                    /*128k at A0000*/
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
             svga->banked_mask = 0xffff;
             break;
@@ -1098,15 +1120,19 @@ s3_virge_updatemapping(virge_t *virge) {
 }
 
 static void
-s3_virge_vblank_start(svga_t *svga) {
+s3_virge_vblank_start(svga_t *svga)
+{
     virge_t *virge = (virge_t *) svga->priv;
 
+    if (virge->irq_pending)
+        virge->irq_pending--;
     virge->subsys_stat |= INT_VSY;
     s3_virge_update_irqs(virge);
 }
 
 static void
-s3_virge_wait_fifo_idle(virge_t *virge) {
+s3_virge_wait_fifo_idle(virge_t *virge)
+{
     while (!FIFO_EMPTY) {
         wake_fifo_thread(virge);
         thread_wait_event(virge->fifo_not_full_event, 1);
@@ -1117,7 +1143,7 @@ static uint8_t
 s3_virge_mmio_read(uint32_t addr, void *priv)
 {
     virge_t *virge = (virge_t *) priv;
-    uint8_t ret;
+    uint8_t  ret;
 
     switch (addr & 0xffff) {
         case 0x8504:
@@ -1198,9 +1224,10 @@ s3_virge_mmio_read_w(uint32_t addr, void *priv)
 }
 
 static uint32_t
-s3_virge_mmio_read_l(uint32_t addr, void *priv) {
+s3_virge_mmio_read_l(uint32_t addr, void *priv)
+{
     virge_t *virge = (virge_t *) priv;
-    uint32_t ret = 0xffffffff;
+    uint32_t ret   = 0xffffffff;
 
     switch (addr & 0xfffc) {
         case 0x8180:
@@ -1429,7 +1456,7 @@ s3_virge_mmio_read_l(uint32_t addr, void *priv) {
             break;
     }
 
-    //pclog("MMIO ReadL=%04x, ret=%08x.\n", addr & 0xfffc, ret);
+    // pclog("MMIO ReadL=%04x, ret=%08x.\n", addr & 0xfffc, ret);
     return ret;
 }
 
@@ -1443,15 +1470,15 @@ s3_virge_mmio_write_fifo_l(virge_t *virge, uint32_t addr, uint32_t val)
                 int      y = (addr >> 3) & 7;
                 int      color;
                 int      byte;
-                uint32_t newaddr = addr;
-                virge->s3d.pattern_8[y * 8 + x] = val & 0xff;
+                uint32_t newaddr                    = addr;
+                virge->s3d.pattern_8[y * 8 + x]     = val & 0xff;
                 virge->s3d.pattern_8[y * 8 + x + 1] = val >> 8;
                 virge->s3d.pattern_8[y * 8 + x + 2] = val >> 16;
                 virge->s3d.pattern_8[y * 8 + x + 3] = val >> 24;
 
-                x     = (addr >> 1) & 6;
-                y     = (addr >> 4) & 7;
-                virge->s3d.pattern_16[y * 8 + x] = val & 0xffff;
+                x                                    = (addr >> 1) & 6;
+                y                                    = (addr >> 4) & 7;
+                virge->s3d.pattern_16[y * 8 + x]     = val & 0xffff;
                 virge->s3d.pattern_16[y * 8 + x + 1] = val >> 16;
 
                 newaddr &= 0x00ff;
@@ -1464,22 +1491,21 @@ s3_virge_mmio_write_fifo_l(virge_t *virge, uint32_t addr, uint32_t val)
                     virge->s3d.pattern_24[y * 8 + x] |= ((val >> byte) & 0xff) << color;
                 }
 
-                x     = (addr >> 2) & 7;
-                y     = (addr >> 5) & 7;
+                x                                = (addr >> 2) & 7;
+                y                                = (addr >> 5) & 7;
                 virge->s3d.pattern_32[y * 8 + x] = val & 0xffffff;
-            } break;
+            }
+            break;
 
         case 0xa4d4:
         case 0xa8d4:
         case 0xacd4:
-            virge->s3d.src_base = val & ((virge->memory_size == 8) ?
-                                         (val & 0x7ffff8) : (val & 0x3ffff8));
+            virge->s3d.src_base = val & ((virge->memory_size == 8) ? (val & 0x7ffff8) : (val & 0x3ffff8));
             break;
         case 0xa4d8:
         case 0xa8d8:
         case 0xacd8:
-            virge->s3d.dest_base = val & ((virge->memory_size == 8) ?
-                                          (val & 0x7ffff8) : (val & 0x3ffff8));
+            virge->s3d.dest_base = val & ((virge->memory_size == 8) ? (val & 0x7ffff8) : (val & 0x3ffff8));
             break;
         case 0xa4dc:
         case 0xa8dc:
@@ -1497,7 +1523,7 @@ s3_virge_mmio_write_fifo_l(virge_t *virge, uint32_t addr, uint32_t val)
         case 0xa8e4:
         case 0xace4:
             virge->s3d.dest_str = (val >> 16) & 0xff8;
-            virge->s3d.src_str = val & 0xff8;
+            virge->s3d.src_str  = val & 0xff8;
             break;
         case 0xa4e8:
         case 0xace8:
@@ -1530,7 +1556,7 @@ s3_virge_mmio_write_fifo_l(virge_t *virge, uint32_t addr, uint32_t val)
                 s3_virge_bitblt(virge, -1, 0);
             break;
         case 0xa504:
-            virge->s3d.r_width = (val >> 16) & 0x7ff;
+            virge->s3d.r_width  = (val >> 16) & 0x7ff;
             virge->s3d.r_height = val & 0x7ff;
             break;
         case 0xa508:
@@ -1548,7 +1574,7 @@ s3_virge_mmio_write_fifo_l(virge_t *virge, uint32_t addr, uint32_t val)
             virge->s3d.lxend1 = val & 0x7ff;
             break;
         case 0xa970:
-            virge->s3d.ldx = (int32_t)val;
+            virge->s3d.ldx = (int32_t) val;
             break;
         case 0xa974:
             virge->s3d.lxstart = val;
@@ -1557,7 +1583,7 @@ s3_virge_mmio_write_fifo_l(virge_t *virge, uint32_t addr, uint32_t val)
             virge->s3d.lystart = val & 0x7ff;
             break;
         case 0xa97c:
-            virge->s3d.lycnt = val & 0x7ff;
+            virge->s3d.lycnt    = val & 0x7ff;
             virge->s3d.line_dir = val >> 31;
             if (virge->s3d.cmd_set & CMD_SET_AE)
                 s3_virge_bitblt(virge, -1, 0);
@@ -1586,13 +1612,11 @@ s3_virge_mmio_write_fifo_l(virge_t *virge, uint32_t addr, uint32_t val)
 
         case 0xb0d4:
         case 0xb4d4:
-            virge->s3d_tri.z_base = val & ((virge->memory_size == 8) ?
-                                           (val & 0x7ffff8) : (val & 0x3ffff8));
+            virge->s3d_tri.z_base = val & ((virge->memory_size == 8) ? (val & 0x7ffff8) : (val & 0x3ffff8));
             break;
         case 0xb0d8:
         case 0xb4d8:
-            virge->s3d_tri.dest_base = val & ((virge->memory_size == 8) ?
-                                              (val & 0x7ffff8) : (val & 0x3ffff8));
+            virge->s3d_tri.dest_base = val & ((virge->memory_size == 8) ? (val & 0x7ffff8) : (val & 0x3ffff8));
             break;
         case 0xb0dc:
         case 0xb4dc:
@@ -1607,15 +1631,14 @@ s3_virge_mmio_write_fifo_l(virge_t *virge, uint32_t addr, uint32_t val)
         case 0xb0e4:
         case 0xb4e4:
             virge->s3d_tri.dest_str = (val >> 16) & 0xff8;
-            virge->s3d.src_str = val & 0xff8;
+            virge->s3d.src_str      = val & 0xff8;
             break;
         case 0xb0e8:
         case 0xb4e8:
             virge->s3d_tri.z_str = val & 0xff8;
             break;
         case 0xb4ec:
-            virge->s3d_tri.tex_base = val & ((virge->memory_size == 8) ?
-                                             (val & 0x7ffff8) : (val & 0x3ffff8));
+            virge->s3d_tri.tex_base = val & ((virge->memory_size == 8) ? (val & 0x7ffff8) : (val & 0x3ffff8));
             break;
         case 0xb4f0:
             virge->s3d_tri.tex_bdr_clr = val & 0xffffff;
@@ -1732,17 +1755,17 @@ s3_virge_mmio_write_fifo_l(virge_t *virge, uint32_t addr, uint32_t val)
         case 0xb57c:
             virge->s3d_tri.ty01 = (val >> 16) & 0x7ff;
             virge->s3d_tri.ty12 = val & 0x7ff;
-            virge->s3d_tri.tlr = val >> 31;
+            virge->s3d_tri.tlr  = val >> 31;
             if (virge->s3d_tri.cmd_set & CMD_SET_AE)
                 queue_triangle(virge);
-             break;
+            break;
     }
 }
 
 static void
 fifo_thread(void *param)
 {
-    virge_t *virge = (virge_t *)param;
+    virge_t *virge = (virge_t *) param;
 
     while (virge->fifo_thread_run) {
         thread_set_event(virge->fifo_not_full_event);
@@ -1750,10 +1773,10 @@ fifo_thread(void *param)
         thread_reset_event(virge->wake_fifo_thread);
         virge->virge_busy = 1;
         while (!FIFO_EMPTY) {
-            uint64_t start_time = plat_timer_read();
-            uint64_t end_time;
+            uint64_t      start_time = plat_timer_read();
+            uint64_t      end_time;
             fifo_entry_t *fifo = &virge->fifo[virge->fifo_read_idx & FIFO_MASK];
-            uint32_t val = fifo->val;
+            uint32_t      val  = fifo->val;
 
             switch (fifo->addr_type & FIFO_TYPE) {
                 case FIFO_WRITE_BYTE:
@@ -1784,26 +1807,26 @@ fifo_thread(void *param)
             virge->fifo_read_idx++;
             fifo->addr_type = FIFO_INVALID;
 
-             if (FIFO_ENTRIES > 0xe000)
-                 thread_set_event(virge->fifo_not_full_event);
+            if (FIFO_ENTRIES > 0xe000)
+                thread_set_event(virge->fifo_not_full_event);
 
-             end_time = plat_timer_read();
-             virge_time += end_time - start_time;
-         }
-         virge->virge_busy = 0;
-         virge->subsys_stat |= (INT_FIFO_EMP | INT_3DF_EMP);
-         if (virge->cmd_dma)
+            end_time = plat_timer_read();
+            virge_time += end_time - start_time;
+        }
+        virge->virge_busy = 0;
+        virge->subsys_stat |= (INT_FIFO_EMP | INT_3DF_EMP);
+        if (virge->cmd_dma)
             virge->subsys_stat |= (INT_HOST_DONE | INT_CMD_DONE);
 
-         s3_virge_update_irqs(virge);
+        virge->irq_pending++;
     }
 }
 
 static void
 s3_virge_queue(virge_t *virge, uint32_t addr, uint32_t val, uint32_t type)
 {
-    fifo_entry_t *fifo = &virge->fifo[virge->fifo_write_idx & FIFO_MASK];
-    int limit = 0;
+    fifo_entry_t *fifo  = &virge->fifo[virge->fifo_write_idx & FIFO_MASK];
+    int           limit = 0;
 
     if (type == FIFO_WRITE_DWORD) {
         switch (addr & 0xfffc) {
@@ -1830,7 +1853,7 @@ s3_virge_queue(virge_t *virge, uint32_t addr, uint32_t val, uint32_t type)
         }
     }
 
-    fifo->val = val;
+    fifo->val       = val;
     fifo->addr_type = (addr & FIFO_ADDR) | type;
 
     virge->fifo_write_idx++;
@@ -1906,7 +1929,7 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                 virge->streams.chroma_ctrl = val;
                 break;
             case 0x8190:
-                virge->streams.sec_ctrl = val;
+                virge->streams.sec_ctrl              = val;
                 virge->streams.dda_horiz_accumulator = val & 0xfff;
                 if (val & 0x1000)
                     virge->streams.dda_horiz_accumulator |= ~0xfff;
@@ -1917,7 +1940,7 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                 virge->streams.chroma_upper_bound = val;
                 break;
             case 0x8198:
-                virge->streams.sec_filter = val;
+                virge->streams.sec_filter     = val;
                 virge->streams.k1_horiz_scale = val & 0x7ff;
                 if (val & 0x800)
                     virge->streams.k1_horiz_scale |= ~0x7ff;
@@ -1997,29 +2020,29 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                 break;
             case 0x81f0:
                 virge->streams.pri_start = val;
-                virge->streams.pri_x = (val >> 16) & 0x7ff;
-                virge->streams.pri_y = val & 0x7ff;
+                virge->streams.pri_x     = (val >> 16) & 0x7ff;
+                virge->streams.pri_y     = val & 0x7ff;
                 svga_recalctimings(svga);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81f4:
                 virge->streams.pri_size = val;
-                virge->streams.pri_w = (val >> 16) & 0x7ff;
-                virge->streams.pri_h = val & 0x7ff;
+                virge->streams.pri_w    = (val >> 16) & 0x7ff;
+                virge->streams.pri_h    = val & 0x7ff;
                 svga_recalctimings(svga);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81f8:
                 virge->streams.sec_start = val;
-                virge->streams.sec_x = (val >> 16) & 0x7ff;
-                virge->streams.sec_y = val & 0x7ff;
+                virge->streams.sec_x     = (val >> 16) & 0x7ff;
+                virge->streams.sec_y     = val & 0x7ff;
                 svga_recalctimings(svga);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81fc:
                 virge->streams.sec_size = val;
-                virge->streams.sec_w = (val >> 16) & 0x7ff;
-                virge->streams.sec_h = val & 0x7ff;
+                virge->streams.sec_w    = (val >> 16) & 0x7ff;
+                virge->streams.sec_h    = val & 0x7ff;
                 svga_recalctimings(svga);
                 svga->fullchange = changeframecount;
                 break;
@@ -2036,23 +2059,23 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                 break;
 
             case 0x8590:
-                virge->cmd_dma_base = val;
-                virge->cmd_dma_buf_size = (val & 2) ? 0x10000 : 0x1000;
+                virge->cmd_dma_base          = val;
+                virge->cmd_dma_buf_size      = (val & 2) ? 0x10000 : 0x1000;
                 virge->cmd_dma_buf_size_mask = virge->cmd_dma_buf_size - 1;
-                virge->cmd_base_addr = (val & 2) ? (val & 0xffff0000) : (val & 0xfffff000);
+                virge->cmd_base_addr         = (val & 2) ? (val & 0xffff0000) : (val & 0xfffff000);
                 break;
 
             case 0x8594:
                 virge->cmd_dma_write_ptr_update = val & (1 << 16);
                 if (virge->cmd_dma_write_ptr_update) {
                     virge->cmd_dma_write_ptr_reg = (virge->cmd_dma_buf_size == 0x10000) ? (val & 0xffff) : (val & 0xfff);
-                    virge->dma_dbl_words = 0;
-                    virge->dma_data_type = 0;
-                    virge->dma_val = 0;
+                    virge->dma_dbl_words         = 0;
+                    virge->dma_data_type         = 0;
+                    virge->dma_val               = 0;
                     if (virge->cmd_dma) {
                         while (virge->cmd_dma_read_ptr_reg != virge->cmd_dma_write_ptr_reg) {
                             virge->cmd_dma_write_ptr_update = 0;
-                            dma_bm_read(virge->cmd_base_addr + virge->cmd_dma_read_ptr_reg, (uint8_t *)&virge->dma_val, 4, 4);
+                            dma_bm_read(virge->cmd_base_addr + virge->cmd_dma_read_ptr_reg, (uint8_t *) &virge->dma_val, 4, 4);
                             if (!virge->dma_dbl_words) {
                                 virge->dma_dbl_words = (virge->dma_val & 0xffff);
                                 virge->dma_data_type = !!(virge->dma_val & (1 << 31));
@@ -2076,9 +2099,9 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                 break;
 
             case 0x859c:
-                virge->cmd_dma = val & 1;
+                virge->cmd_dma               = val & 1;
                 virge->cmd_dma_write_ptr_reg = 0;
-                virge->cmd_dma_read_ptr_reg = 0;
+                virge->cmd_dma_read_ptr_reg  = 0;
                 break;
 
             case 0xff20:
@@ -2088,133 +2111,899 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
     }
 }
 
-#define READ(addr, val)                                                        \
-    do {                                                                       \
-        switch (bpp) {                                                         \
-            case 0: /*8 bpp*/                                                  \
-                val = vram[addr & virge->vram_mask];                            \
-                break;                                                         \
-            case 1: /*16 bpp*/                                                 \
-                val = *(uint16_t *)&vram[addr & virge->vram_mask];              \
-                break;                                                         \
-            case 2: /*24 bpp*/                                                 \
-                val = (*(uint32_t *)&vram[addr & virge->vram_mask]) & 0xffffff; \
-                break;                                                         \
-        }                                                                      \
+#define READ(addr, val)                                                          \
+    do {                                                                         \
+        switch (bpp) {                                                           \
+            case 0: /*8 bpp*/                                                    \
+                val = vram[addr & virge->vram_mask];                             \
+                break;                                                           \
+            case 1: /*16 bpp*/                                                   \
+                val = *(uint16_t *) &vram[addr & virge->vram_mask];              \
+                break;                                                           \
+            case 2: /*24 bpp*/                                                   \
+                val = (*(uint32_t *) &vram[addr & virge->vram_mask]) & 0xffffff; \
+                break;                                                           \
+        }                                                                        \
     } while (0)
 
-#define Z_READ(addr) *(uint16_t *)&vram[addr & virge->vram_mask]
+#define Z_READ(addr) *(uint16_t *) &vram[addr & virge->vram_mask]
 
-#define Z_WRITE(addr, val)                                                     \
-    if (!(s3d_tri->cmd_set & CMD_SET_ZB_MODE))                                 \
-        *(uint16_t *)&vram[addr & virge->vram_mask] = val
+#define Z_WRITE(addr, val)                     \
+    if (!(s3d_tri->cmd_set & CMD_SET_ZB_MODE)) \
+    *(uint16_t *) &vram[addr & virge->vram_mask] = val
 
-#define CLIP(x, y)                                                             \
-    do {                                                                       \
-        if ((virge->s3d.cmd_set & CMD_SET_HC) &&                               \
-            (x < virge->s3d.clip_l || x > virge->s3d.clip_r ||                 \
-             y < virge->s3d.clip_t || y > virge->s3d.clip_b))                  \
-             update = 0;                                                       \
+#define CLIP(x, y)                                             \
+    do {                                                       \
+        if ((virge->s3d.cmd_set & CMD_SET_HC) &&               \
+            (x < virge->s3d.clip_l || x > virge->s3d.clip_r || \
+             y < virge->s3d.clip_t || y > virge->s3d.clip_b))  \
+             update = 0;                                       \
     } while (0)
 
-#define CLIP_3D(x, y)                                                          \
-    do {                                                                       \
-        if ((s3d_tri->cmd_set & CMD_SET_HC) && (x < s3d_tri->clip_l ||         \
-            x > s3d_tri->clip_r || y < s3d_tri->clip_t ||                      \
-            y > s3d_tri->clip_b))                                              \
-            update = 0;                                                        \
+#define CLIP_3D(x, y)                                                  \
+    do {                                                               \
+        if ((s3d_tri->cmd_set & CMD_SET_HC) && (x < s3d_tri->clip_l || \
+            x > s3d_tri->clip_r || y < s3d_tri->clip_t ||              \
+            y > s3d_tri->clip_b))                                      \
+            update = 0;                                                \
         } while (0)
 
-#define Z_CLIP(Zzb, Zs)                                                        \
-    do {                                                                       \
-        if (!(s3d_tri->cmd_set & CMD_SET_ZB_MODE))                             \
-            switch ((s3d_tri->cmd_set >> 20) & 7) {                            \
-                case 0:                                                        \
-                    update = 0;                                                \
-                    break;                                                     \
-                case 1:                                                        \
-                    if (Zs <= Zzb)                                             \
-                        update = 0;                                            \
-                    else                                                       \
-                        Zzb = Zs;                                              \
-                    break;                                                     \
-                case 2:                                                        \
-                    if (Zs != Zzb)                                             \
-                        update = 0;                                            \
-                    else                                                       \
-                        Zzb = Zs;                                              \
-                    break;                                                     \
-                case 3:                                                        \
-                    if (Zs < Zzb)                                              \
-                        update = 0;                                            \
-                    else                                                       \
-                        Zzb = Zs;                                              \
-                    break;                                                     \
-                case 4:                                                        \
-                    if (Zs >= Zzb)                                             \
-                        update = 0;                                            \
-                    else                                                       \
-                        Zzb = Zs;                                              \
-                    break;                                                     \
-                 case 5:                                                       \
-                    if (Zs == Zzb)                                             \
-                        update = 0;                                            \
-                    else                                                       \
-                        Zzb = Zs;                                              \
-                     break;                                                    \
-                case 6:                                                        \
-                    if (Zs > Zzb)                                              \
-                        update = 0;                                            \
-                    else                                                       \
-                        Zzb = Zs;                                              \
-                    break;                                                     \
-                case 7:                                                        \
-                    update = 1;                                                \
-                    Zzb = Zs;                                                  \
-                    break;                                                     \
-            }                                                                  \
-        } while (0)
-
-#define MIX()                                                                  \
-    do {                                                                       \
-        int c;                                                                 \
-        for (c = 0; c < 24; c++) {                                             \
-            int d = (dest & (1 << c)) ? 1 : 0;                                 \
-            if (source & (1 << c))                                             \
-                d |= 2;                                                        \
-            if (pattern & (1 << c))                                            \
-                d |= 4;                                                        \
-            if (virge->s3d.rop & (1 << d))                                     \
-                out |= (1 << c);                                               \
-        }                                                                      \
+#define Z_CLIP(Zzb, Zs)                             \
+    do {                                            \
+        if (!(s3d_tri->cmd_set & CMD_SET_ZB_MODE))  \
+            switch ((s3d_tri->cmd_set >> 20) & 7) { \
+                case 0:                             \
+                    update = 0;                     \
+                    break;                          \
+                case 1:                             \
+                    if (Zs <= Zzb)                  \
+                        update = 0;                 \
+                    else                            \
+                        Zzb = Zs;                   \
+                    break;                          \
+                case 2:                             \
+                    if (Zs != Zzb)                  \
+                        update = 0;                 \
+                    else                            \
+                        Zzb = Zs;                   \
+                    break;                          \
+                case 3:                             \
+                    if (Zs < Zzb)                   \
+                        update = 0;                 \
+                    else                            \
+                        Zzb = Zs;                   \
+                    break;                          \
+                case 4:                             \
+                    if (Zs >= Zzb)                  \
+                        update = 0;                 \
+                    else                            \
+                        Zzb = Zs;                   \
+                    break;                          \
+                case 5:                             \
+                    if (Zs == Zzb)                  \
+                        update = 0;                 \
+                    else                            \
+                        Zzb = Zs;                   \
+                    break;                          \
+                case 6:                             \
+                    if (Zs > Zzb)                   \
+                        update = 0;                 \
+                    else                            \
+                        Zzb = Zs;                   \
+                    break;                          \
+                case 7:                             \
+                    update = 1;                     \
+                    Zzb    = Zs;                    \
+                    break;                          \
+            }                                       \
     } while (0)
 
-#define WRITE(addr, val)                                                       \
-    do {                                                                       \
-        switch (bpp) {                                                         \
-            case 0: /*8 bpp*/                                                  \
-                vram[addr & virge->vram_mask] = val;                            \
-                virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =      \
-                    changeframecount;                                          \
-                break;                                                         \
-            case 1: /*16 bpp*/                                                 \
-                 *(uint16_t *)&vram[addr & virge->vram_mask] = val;             \
-                virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =      \
-                    changeframecount;                                          \
-                break;                                                         \
-            case 2: /*24 bpp*/                                                 \
-                *(uint32_t *)&vram[addr & virge->vram_mask] = (val & 0xffffff) |\
-                    (vram[(addr + 3) & virge->vram_mask] << 24);                \
-                virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =      \
-                    changeframecount;                                          \
-                break;                                                         \
-        }                                                                      \
+#define ROPMIX(R, D, P, S, out)                    \
+    {                                              \
+        switch (R) {                               \
+            case 0x00:                             \
+                out = 0;                           \
+                break;                             \
+            case 0x01:                             \
+                out = ~(D | (P | S));              \
+                break;                             \
+            case 0x02:                             \
+                out = D & ~(P | S);                \
+                break;                             \
+            case 0x03:                             \
+                out = ~(P | S);                    \
+                break;                             \
+            case 0x04:                             \
+                out = S & ~(D | P);                \
+                break;                             \
+            case 0x05:                             \
+                out = ~(D | P);                    \
+                break;                             \
+            case 0x06:                             \
+                out = ~(P | ~(D ^ S));             \
+                break;                             \
+            case 0x07:                             \
+                out = ~(P | (D & S));              \
+                break;                             \
+            case 0x08:                             \
+                out = S & (D & ~P);                \
+                break;                             \
+            case 0x09:                             \
+                out = ~(P | (D ^ S));              \
+                break;                             \
+            case 0x0a:                             \
+                out = D & ~P;                      \
+                break;                             \
+            case 0x0b:                             \
+                out = ~(P | (S & ~D));             \
+                break;                             \
+            case 0x0c:                             \
+                out = S & ~P;                      \
+                break;                             \
+            case 0x0d:                             \
+                out = ~(P | (D & ~S));             \
+                break;                             \
+            case 0x0e:                             \
+                out = ~(P | ~(D | S));             \
+                break;                             \
+            case 0x0f:                             \
+                out = ~P;                          \
+                break;                             \
+            case 0x10:                             \
+                out = P & ~(D | S);                \
+                break;                             \
+            case 0x11:                             \
+                out = ~(D | S);                    \
+                break;                             \
+            case 0x12:                             \
+                out = ~(S | ~(D ^ P));             \
+                break;                             \
+            case 0x13:                             \
+                out = ~(S | (D & P));              \
+                break;                             \
+            case 0x14:                             \
+                out = ~(D | ~(P ^ S));             \
+                break;                             \
+            case 0x15:                             \
+                out = ~(D | (P & S));              \
+                break;                             \
+            case 0x16:                             \
+                out = P ^ (S ^ (D & ~(P & S)));    \
+                break;                             \
+            case 0x17:                             \
+                out = ~(S ^ ((S ^ P) & (D ^ S)));  \
+                break;                             \
+            case 0x18:                             \
+                out = (S ^ P) & (P ^ D);           \
+                break;                             \
+            case 0x19:                             \
+                out = ~(S ^ (D & ~(P & S)));       \
+                break;                             \
+            case 0x1a:                             \
+                out = P ^ (D | (S & P));           \
+                break;                             \
+            case 0x1b:                             \
+                out = ~(S ^ (D & (P ^ S)));        \
+                break;                             \
+            case 0x1c:                             \
+                out = P ^ (S | (D & P));           \
+                break;                             \
+            case 0x1d:                             \
+                out = ~(D ^ (S & (P ^ D)));        \
+                break;                             \
+            case 0x1e:                             \
+                out = P ^ (D | S);                 \
+                break;                             \
+            case 0x1f:                             \
+                out = ~(P & (D | S));              \
+                break;                             \
+            case 0x20:                             \
+                out = D & (P & ~S);                \
+                break;                             \
+            case 0x21:                             \
+                out = ~(S | (D ^ P));              \
+                break;                             \
+            case 0x22:                             \
+                out = D & ~S;                      \
+                break;                             \
+            case 0x23:                             \
+                out = ~(S | (P & ~D));             \
+                break;                             \
+            case 0x24:                             \
+                out = (S ^ P) & (D ^ S);           \
+                break;                             \
+            case 0x25:                             \
+                out = ~(P ^ (D & ~(S & P)));       \
+                break;                             \
+            case 0x26:                             \
+                out = S ^ (D | (P & S));           \
+                break;                             \
+            case 0x27:                             \
+                out = S ^ (D | ~(P ^ S));          \
+                break;                             \
+            case 0x28:                             \
+                out = D & (P ^ S);                 \
+                break;                             \
+            case 0x29:                             \
+                out = ~(P ^ (S ^ (D | (P & S))));  \
+                break;                             \
+            case 0x2a:                             \
+                out = D & ~(P & S);                \
+                break;                             \
+            case 0x2b:                             \
+                out = ~(S ^ ((S ^ P) & (P ^ D)));  \
+                break;                             \
+            case 0x2c:                             \
+                out = S ^ (P & (D | S));           \
+                break;                             \
+            case 0x2d:                             \
+                out = P ^ (S | ~D);                \
+                break;                             \
+            case 0x2e:                             \
+                out = P ^ (S | (D ^ P));           \
+                break;                             \
+            case 0x2f:                             \
+                out = ~(P & (S | ~D));             \
+                break;                             \
+            case 0x30:                             \
+                out = P & ~S;                      \
+                break;                             \
+            case 0x31:                             \
+                out = ~(S | (D & ~P));             \
+                break;                             \
+            case 0x32:                             \
+                out = S ^ (D | (P | S));           \
+                break;                             \
+            case 0x33:                             \
+                out = ~S;                          \
+                break;                             \
+            case 0x34:                             \
+                out = S ^ (P | (D & S));           \
+                break;                             \
+            case 0x35:                             \
+                out = S ^ (P | ~(D ^ S));          \
+                break;                             \
+            case 0x36:                             \
+                out = S ^ (D | P);                 \
+                break;                             \
+            case 0x37:                             \
+                out = ~(S & (D | P));              \
+                break;                             \
+            case 0x38:                             \
+                out = P ^ (S & (D | P));           \
+                break;                             \
+            case 0x39:                             \
+                out = S ^ (P | ~D);                \
+                break;                             \
+            case 0x3a:                             \
+                out = S ^ (P | (D ^ S));           \
+                break;                             \
+            case 0x3b:                             \
+                out = ~(S & (P | ~D));             \
+                break;                             \
+            case 0x3c:                             \
+                out = P ^ S;                       \
+                break;                             \
+            case 0x3d:                             \
+                out = S ^ (P | ~(D | S));          \
+                break;                             \
+            case 0x3e:                             \
+                out = S ^ (P | (D & ~S));          \
+                break;                             \
+            case 0x3f:                             \
+                out = ~(P & S);                    \
+                break;                             \
+            case 0x40:                             \
+                out = P & (S & ~D);                \
+                break;                             \
+            case 0x41:                             \
+                out = ~(D | (P ^ S));              \
+                break;                             \
+            case 0x42:                             \
+                out = (S ^ D) & (P ^ D);           \
+                break;                             \
+            case 0x43:                             \
+                out = ~(S ^ (P & ~(D & S)));       \
+                break;                             \
+            case 0x44:                             \
+                out = S & ~D;                      \
+                break;                             \
+            case 0x45:                             \
+                out = ~(D | (P & ~S));             \
+                break;                             \
+            case 0x46:                             \
+                out = D ^ (S | (P & D));           \
+                break;                             \
+            case 0x47:                             \
+                out = ~(P ^ (S & (D ^ P)));        \
+                break;                             \
+            case 0x48:                             \
+                out = S & (D ^ P);                 \
+                break;                             \
+            case 0x49:                             \
+                out = ~(P ^ (D ^ (S | (P & D))));  \
+                break;                             \
+            case 0x4a:                             \
+                out = D ^ (P & (S | D));           \
+                break;                             \
+            case 0x4b:                             \
+                out = P ^ (D | ~S);                \
+                break;                             \
+            case 0x4c:                             \
+                out = S & ~(D & P);                \
+                break;                             \
+            case 0x4d:                             \
+                out = ~(S ^ ((S ^ P) | (D ^ S)));  \
+                break;                             \
+            case 0x4e:                             \
+                out = P ^ (D | (S ^ P));           \
+                break;                             \
+            case 0x4f:                             \
+                out = ~(P & (D | ~S));             \
+                break;                             \
+            case 0x50:                             \
+                out = P & ~D;                      \
+                break;                             \
+            case 0x51:                             \
+                out = ~(D | (S & ~P));             \
+                break;                             \
+            case 0x52:                             \
+                out = D ^ (P | (S & D));           \
+                break;                             \
+            case 0x53:                             \
+                out = ~(S ^ (P & (D ^ S)));        \
+                break;                             \
+            case 0x54:                             \
+                out = ~(D | ~(P | S));             \
+                break;                             \
+            case 0x55:                             \
+                out = ~D;                          \
+                break;                             \
+            case 0x56:                             \
+                out = D ^ (P | S);                 \
+                break;                             \
+            case 0x57:                             \
+                out = ~(D & (P | S));              \
+                break;                             \
+            case 0x58:                             \
+                out = P ^ (D & (S | P));           \
+                break;                             \
+            case 0x59:                             \
+                out = D ^ (P | ~S);                \
+                break;                             \
+            case 0x5a:                             \
+                out = D ^ P;                       \
+                break;                             \
+            case 0x5b:                             \
+                out = D ^ (P | ~(S | D));          \
+                break;                             \
+            case 0x5c:                             \
+                out = D ^ (P | (S ^ D));           \
+                break;                             \
+            case 0x5d:                             \
+                out = ~(D & (P | ~S));             \
+                break;                             \
+            case 0x5e:                             \
+                out = D ^ (P | (S & ~D));          \
+                break;                             \
+            case 0x5f:                             \
+                out = ~(D & P);                    \
+                break;                             \
+            case 0x60:                             \
+                out = P & (D ^ S);                 \
+                break;                             \
+            case 0x61:                             \
+                out = ~(D ^ (S ^ (P | (D & S))));  \
+                break;                             \
+            case 0x62:                             \
+                out = D ^ (S & (P | D));           \
+                break;                             \
+            case 0x63:                             \
+                out = S ^ (D | ~P);                \
+                break;                             \
+            case 0x64:                             \
+                out = S ^ (D & (P | S));           \
+                break;                             \
+            case 0x65:                             \
+                out = D ^ (S | ~P);                \
+                break;                             \
+            case 0x66:                             \
+                out = D ^ S;                       \
+                break;                             \
+            case 0x67:                             \
+                out = S ^ (D | ~(P | S));          \
+                break;                             \
+            case 0x68:                             \
+                out = ~(D ^ (S ^ (P | ~(D | S)))); \
+                break;                             \
+            case 0x69:                             \
+                out = ~(P ^ (D ^ S));              \
+                break;                             \
+            case 0x6a:                             \
+                out = D ^ (P & S);                 \
+                break;                             \
+            case 0x6b:                             \
+                out = ~(P ^ (S ^ (D & (P | S))));  \
+                break;                             \
+            case 0x6c:                             \
+                out = S ^ (D & P);                 \
+                break;                             \
+            case 0x6d:                             \
+                out = ~(P ^ (D ^ (S & (P | D))));  \
+                break;                             \
+            case 0x6e:                             \
+                out = S ^ (D & (P | ~S));          \
+                break;                             \
+            case 0x6f:                             \
+                out = ~(P & ~(D ^ S));             \
+                break;                             \
+            case 0x70:                             \
+                out = P & ~(D & S);                \
+                break;                             \
+            case 0x71:                             \
+                out = ~(S ^ ((S ^ D) & (P ^ D)));  \
+                break;                             \
+            case 0x72:                             \
+                out = S ^ (D | (P ^ S));           \
+                break;                             \
+            case 0x73:                             \
+                out = ~(S & (D | ~P));             \
+                break;                             \
+            case 0x74:                             \
+                out = D ^ (S | (P ^ D));           \
+                break;                             \
+            case 0x75:                             \
+                out = ~(D & (S | ~P));             \
+                break;                             \
+            case 0x76:                             \
+                out = S ^ (D | (P & ~S));          \
+                break;                             \
+            case 0x77:                             \
+                out = ~(D & S);                    \
+                break;                             \
+            case 0x78:                             \
+                out = P ^ (D & S);                 \
+                break;                             \
+            case 0x79:                             \
+                out = ~(D ^ (S ^ (P & (D | S))));  \
+                break;                             \
+            case 0x7a:                             \
+                out = D ^ (P & (S | ~D));          \
+                break;                             \
+            case 0x7b:                             \
+                out = ~(S & ~(D ^ P));             \
+                break;                             \
+            case 0x7c:                             \
+                out = S ^ (P & (D | ~S));          \
+                break;                             \
+            case 0x7d:                             \
+                out = ~(D & ~(P ^ S));             \
+                break;                             \
+            case 0x7e:                             \
+                out = (S ^ P) | (D ^ S);           \
+                break;                             \
+            case 0x7f:                             \
+                out = ~(D & (P & S));              \
+                break;                             \
+            case 0x80:                             \
+                out = D & (P & S);                 \
+                break;                             \
+            case 0x81:                             \
+                out = ~((S ^ P) | (D ^ S));        \
+                break;                             \
+            case 0x82:                             \
+                out = D & ~(P ^ S);                \
+                break;                             \
+            case 0x83:                             \
+                out = ~(S ^ (P & (D | ~S)));       \
+                break;                             \
+            case 0x84:                             \
+                out = S & ~(D ^ P);                \
+                break;                             \
+            case 0x85:                             \
+                out = ~(P ^ (D & (S | ~P)));       \
+                break;                             \
+            case 0x86:                             \
+                out = D ^ (S ^ (P & (D | S)));     \
+                break;                             \
+            case 0x87:                             \
+                out = ~(P ^ (D & S));              \
+                break;                             \
+            case 0x88:                             \
+                out = D & S;                       \
+                break;                             \
+            case 0x89:                             \
+                out = ~(S ^ (D | (P & ~S)));       \
+                break;                             \
+            case 0x8a:                             \
+                out = D & (S | ~P);                \
+                break;                             \
+            case 0x8b:                             \
+                out = ~(D ^ (S | (P ^ D)));        \
+                break;                             \
+            case 0x8c:                             \
+                out = S & (D | ~P);                \
+                break;                             \
+            case 0x8d:                             \
+                out = ~(S ^ (D | (P ^ S)));        \
+                break;                             \
+            case 0x8e:                             \
+                out = S ^ ((S ^ D) & (P ^ D));     \
+                break;                             \
+            case 0x8f:                             \
+                out = ~(P & ~(D & S));             \
+                break;                             \
+            case 0x90:                             \
+                out = P & ~(D ^ S);                \
+                break;                             \
+            case 0x91:                             \
+                out = ~(S ^ (D & (P | ~S)));       \
+                break;                             \
+            case 0x92:                             \
+                out = D ^ (P ^ (S & (D | P)));     \
+                break;                             \
+            case 0x93:                             \
+                out = ~(S ^ (P & D));              \
+                break;                             \
+            case 0x94:                             \
+                out = P ^ (S ^ (D & (P | S)));     \
+                break;                             \
+            case 0x95:                             \
+                out = ~(D ^ (P & S));              \
+                break;                             \
+            case 0x96:                             \
+                out = D ^ (P ^ S);                 \
+                break;                             \
+            case 0x97:                             \
+                out = P ^ (S ^ (D | ~(P | S)));    \
+                break;                             \
+            case 0x98:                             \
+                out = ~(S ^ (D | ~(P | S)));       \
+                break;                             \
+            case 0x99:                             \
+                out = ~(D ^ S);                    \
+                break;                             \
+            case 0x9a:                             \
+                out = D ^ (P & ~S);                \
+                break;                             \
+            case 0x9b:                             \
+                out = ~(S ^ (D & (P | S)));        \
+                break;                             \
+            case 0x9c:                             \
+                out = S ^ (P & ~D);                \
+                break;                             \
+            case 0x9d:                             \
+                out = ~(D ^ (S & (P | D)));        \
+                break;                             \
+            case 0x9e:                             \
+                out = D ^ (S ^ (P | (D & S)));     \
+                break;                             \
+            case 0x9f:                             \
+                out = ~(P & (D ^ S));              \
+                break;                             \
+            case 0xa0:                             \
+                out = D & P;                       \
+                break;                             \
+            case 0xa1:                             \
+                out = ~(P ^ (D | (S & ~P)));       \
+                break;                             \
+            case 0xa2:                             \
+                out = D & (P | ~S);                \
+                break;                             \
+            case 0xa3:                             \
+                out = ~(D ^ (P | (S ^ D)));        \
+                break;                             \
+            case 0xa4:                             \
+                out = ~(P ^ (D | ~(S | P)));       \
+                break;                             \
+            case 0xa5:                             \
+                out = ~(P ^ D);                    \
+                break;                             \
+            case 0xa6:                             \
+                out = D ^ (S & ~P);                \
+                break;                             \
+            case 0xa7:                             \
+                out = ~(P ^ (D & (S | P)));        \
+                break;                             \
+            case 0xa8:                             \
+                out = D & (P | S);                 \
+                break;                             \
+            case 0xa9:                             \
+                out = ~(D ^ (P | S));              \
+                break;                             \
+            case 0xaa:                             \
+                out = D;                           \
+                break;                             \
+            case 0xab:                             \
+                out = D | ~(P | S);                \
+                break;                             \
+            case 0xac:                             \
+                out = S ^ (P & (D ^ S));           \
+                break;                             \
+            case 0xad:                             \
+                out = ~(D ^ (P | (S & D)));        \
+                break;                             \
+            case 0xae:                             \
+                out = D | (S & ~P);                \
+                break;                             \
+            case 0xaf:                             \
+                out = D | ~P;                      \
+                break;                             \
+            case 0xb0:                             \
+                out = P & (D | ~S);                \
+                break;                             \
+            case 0xb1:                             \
+                out = ~(P ^ (D | (S ^ P)));        \
+                break;                             \
+            case 0xb2:                             \
+                out = S ^ ((S ^ P) | (D ^ S));     \
+                break;                             \
+            case 0xb3:                             \
+                out = ~(S & ~(D & P));             \
+                break;                             \
+            case 0xb4:                             \
+                out = P ^ (S & ~D);                \
+                break;                             \
+            case 0xb5:                             \
+                out = ~(D ^ (P & (S | D)));        \
+                break;                             \
+            case 0xb6:                             \
+                out = D ^ (P ^ (S | (D & P)));     \
+                break;                             \
+            case 0xb7:                             \
+                out = ~(S & (D ^ P));              \
+                break;                             \
+            case 0xb8:                             \
+                out = P ^ (S & (D ^ P));           \
+                break;                             \
+            case 0xb9:                             \
+                out = ~(D ^ (S | (P & D)));        \
+                break;                             \
+            case 0xba:                             \
+                out = D | (P & ~S);                \
+                break;                             \
+            case 0xbb:                             \
+                out = D | ~S;                      \
+                break;                             \
+            case 0xbc:                             \
+                out = S ^ (P & ~(D & S));          \
+                break;                             \
+            case 0xbd:                             \
+                out = ~((S ^ D) & (P ^ D));        \
+                break;                             \
+            case 0xbe:                             \
+                out = D | (P ^ S);                 \
+                break;                             \
+            case 0xbf:                             \
+                out = D | ~(P & S);                \
+                break;                             \
+            case 0xc0:                             \
+                out = P & S;                       \
+                break;                             \
+            case 0xc1:                             \
+                out = ~(S ^ (P | (D & ~S)));       \
+                break;                             \
+            case 0xc2:                             \
+                out = ~(S ^ (P | ~(D | S)));       \
+                break;                             \
+            case 0xc3:                             \
+                out = ~(P ^ S);                    \
+                break;                             \
+            case 0xc4:                             \
+                out = S & (P | ~D);                \
+                break;                             \
+            case 0xc5:                             \
+                out = ~(S ^ (P | (D ^ S)));        \
+                break;                             \
+            case 0xc6:                             \
+                out = S ^ (D & ~P);                \
+                break;                             \
+            case 0xc7:                             \
+                out = ~(P ^ (S & (D | P)));        \
+                break;                             \
+            case 0xc8:                             \
+                out = S & (D | P);                 \
+                break;                             \
+            case 0xc9:                             \
+                out = ~(S ^ (P | D));              \
+                break;                             \
+            case 0xca:                             \
+                out = D ^ (P & (S ^ D));           \
+                break;                             \
+            case 0xcb:                             \
+                out = ~(S ^ (P | (D & S)));        \
+                break;                             \
+            case 0xcc:                             \
+                out = S;                           \
+                break;                             \
+            case 0xcd:                             \
+                out = S | ~(D | P);                \
+                break;                             \
+            case 0xce:                             \
+                out = S | (D & ~P);                \
+                break;                             \
+            case 0xcf:                             \
+                out = S | ~P;                      \
+                break;                             \
+            case 0xd0:                             \
+                out = P & (S | ~D);                \
+                break;                             \
+            case 0xd1:                             \
+                out = ~(P ^ (S | (D ^ P)));        \
+                break;                             \
+            case 0xd2:                             \
+                out = P ^ (D & ~S);                \
+                break;                             \
+            case 0xd3:                             \
+                out = ~(S ^ (P & (D | S)));        \
+                break;                             \
+            case 0xd4:                             \
+                out = S ^ ((S ^ P) & (P ^ D));     \
+                break;                             \
+            case 0xd5:                             \
+                out = ~(D & ~(P & S));             \
+                break;                             \
+            case 0xd6:                             \
+                out = P ^ (S ^ (D | (P & S)));     \
+                break;                             \
+            case 0xd7:                             \
+                out = ~(D & (P ^ S));              \
+                break;                             \
+            case 0xd8:                             \
+                out = P ^ (D & (S ^ P));           \
+                break;                             \
+            case 0xd9:                             \
+                out = ~(S ^ (D | (P & S)));        \
+                break;                             \
+            case 0xda:                             \
+                out = D ^ (P & ~(S & D));          \
+                break;                             \
+            case 0xdb:                             \
+                out = ~((S ^ P) & (D ^ S));        \
+                break;                             \
+            case 0xdc:                             \
+                out = S | (P & ~D);                \
+                break;                             \
+            case 0xdd:                             \
+                out = S | ~D;                      \
+                break;                             \
+            case 0xde:                             \
+                out = S | (D ^ P);                 \
+                break;                             \
+            case 0xdf:                             \
+                out = S | ~(D & P);                \
+                break;                             \
+            case 0xe0:                             \
+                out = P & (D | S);                 \
+                break;                             \
+            case 0xe1:                             \
+                out = ~(P ^ (D | S));              \
+                break;                             \
+            case 0xe2:                             \
+                out = D ^ (S & (P ^ D));           \
+                break;                             \
+            case 0xe3:                             \
+                out = ~(P ^ (S | (D & P)));        \
+                break;                             \
+            case 0xe4:                             \
+                out = S ^ (D & (P ^ S));           \
+                break;                             \
+            case 0xe5:                             \
+                out = ~(P ^ (D | (S & P)));        \
+                break;                             \
+            case 0xe6:                             \
+                out = S ^ (D & ~(P & S));          \
+                break;                             \
+            case 0xe7:                             \
+                out = ~((S ^ P) & (P ^ D));        \
+                break;                             \
+            case 0xe8:                             \
+                out = S ^ ((S ^ P) & (D ^ S));     \
+                break;                             \
+            case 0xe9:                             \
+                out = ~(D ^ (S ^ (P & ~(D & S)))); \
+                break;                             \
+            case 0xea:                             \
+                out = D | (P & S);                 \
+                break;                             \
+            case 0xeb:                             \
+                out = D | ~(P ^ S);                \
+                break;                             \
+            case 0xec:                             \
+                out = S | (D & P);                 \
+                break;                             \
+            case 0xed:                             \
+                out = S | ~(D ^ P);                \
+                break;                             \
+            case 0xee:                             \
+                out = D | S;                       \
+                break;                             \
+            case 0xef:                             \
+                out = S | (D | ~P);                \
+                break;                             \
+            case 0xf0:                             \
+                out = P;                           \
+                break;                             \
+            case 0xf1:                             \
+                out = P | ~(D | S);                \
+                break;                             \
+            case 0xf2:                             \
+                out = P | (D & ~S);                \
+                break;                             \
+            case 0xf3:                             \
+                out = P | ~S;                      \
+                break;                             \
+            case 0xf4:                             \
+                out = P | (S & ~D);                \
+                break;                             \
+            case 0xf5:                             \
+                out = P | ~D;                      \
+                break;                             \
+            case 0xf6:                             \
+                out = P | (D ^ S);                 \
+                break;                             \
+            case 0xf7:                             \
+                out = P | ~(D & S);                \
+                break;                             \
+            case 0xf8:                             \
+                out = P | (D & S);                 \
+                break;                             \
+            case 0xf9:                             \
+                out = P | ~(D ^ S);                \
+                break;                             \
+            case 0xfa:                             \
+                out = D | P;                       \
+                break;                             \
+            case 0xfb:                             \
+                out = D | (P | ~S);                \
+                break;                             \
+            case 0xfc:                             \
+                out = P | S;                       \
+                break;                             \
+            case 0xfd:                             \
+                out = P | (S | ~D);                \
+                break;                             \
+            case 0xfe:                             \
+                out = D | (P | S);                 \
+                break;                             \
+            case 0xff:                             \
+                out = ~0;                          \
+                break;                             \
+        }                                          \
+    }
+
+#define MIX()                                                      \
+    do {                                                           \
+        ROPMIX(virge->s3d.rop & 0xFF, dest, pattern, source, out); \
+        out &= 0xFFFFFF;                                           \
+    } while (0)
+
+#define WRITE(addr, val)                                                         \
+    do {                                                                         \
+        switch (bpp) {                                                           \
+            case 0: /*8 bpp*/                                                    \
+                vram[addr & virge->vram_mask] = val;                             \
+                virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =       \
+                    changeframecount;                                            \
+                break;                                                           \
+            case 1: /*16 bpp*/                                                   \
+                 *(uint16_t *)&vram[addr & virge->vram_mask] = val;              \
+                virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =       \
+                    changeframecount;                                            \
+                break;                                                           \
+            case 2: /*24 bpp*/                                                   \
+                *(uint32_t *)&vram[addr & virge->vram_mask] = (val & 0xffffff) | \
+                    (vram[(addr + 3) & virge->vram_mask] << 24);                 \
+                virge->svga.changedvram[(addr & virge->vram_mask) >> 12] =       \
+                    changeframecount;                                            \
+                break;                                                           \
+        }                                                                        \
     } while (0)
 
 static void
 s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
 {
-    uint8_t  *vram  = virge->svga.vram;
+    uint8_t  *vram = virge->svga.vram;
     uint32_t  mono_pattern[64];
     int       count_mask;
     int       x_inc = (virge->s3d.cmd_set & CMD_SET_XP) ? 1 : -1;
@@ -2228,33 +3017,33 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
 
     switch (virge->s3d.cmd_set & CMD_SET_FORMAT_MASK) {
         case CMD_SET_FORMAT_8:
-            bpp = 0;
-            x_mul = 1;
+            bpp           = 0;
+            x_mul         = 1;
             cpu_dat_shift = 8;
-            pattern_data = virge->s3d.pattern_8;
-            src_fg_clr = virge->s3d.src_fg_clr & 0xff;
-            src_bg_clr = virge->s3d.src_bg_clr & 0xff;
+            pattern_data  = virge->s3d.pattern_8;
+            src_fg_clr    = virge->s3d.src_fg_clr & 0xff;
+            src_bg_clr    = virge->s3d.src_bg_clr & 0xff;
             break;
         case CMD_SET_FORMAT_16:
-            bpp = 1;
-            x_mul = 2;
+            bpp           = 1;
+            x_mul         = 2;
             cpu_dat_shift = 16;
-            pattern_data = virge->s3d.pattern_16;
-            src_fg_clr = virge->s3d.src_fg_clr & 0xffff;
-            src_bg_clr = virge->s3d.src_bg_clr & 0xffff;
+            pattern_data  = virge->s3d.pattern_16;
+            src_fg_clr    = virge->s3d.src_fg_clr & 0xffff;
+            src_bg_clr    = virge->s3d.src_bg_clr & 0xffff;
             break;
         case CMD_SET_FORMAT_24:
         default:
-            bpp = 2;
-            x_mul = 3;
+            bpp           = 2;
+            x_mul         = 3;
             cpu_dat_shift = 24;
-            pattern_data = virge->s3d.pattern_24;
-            src_fg_clr = virge->s3d.src_fg_clr;
-            src_bg_clr = virge->s3d.src_bg_clr;
+            pattern_data  = virge->s3d.pattern_24;
+            src_fg_clr    = virge->s3d.src_fg_clr;
+            src_bg_clr    = virge->s3d.src_bg_clr;
             break;
-     }
-     if (virge->s3d.cmd_set & CMD_SET_MP)
-         pattern_data = mono_pattern;
+    }
+    if (virge->s3d.cmd_set & CMD_SET_MP)
+        pattern_data = mono_pattern;
 
     switch (virge->s3d.cmd_set & CMD_SET_ITA_MASK) {
         case CMD_SET_ITA_BYTE:
@@ -2272,16 +3061,16 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
         int x;
         int y;
         for (y = 0; y < 4; y++) {
-             for (x = 0; x < 8; x++) {
-                 if (virge->s3d.mono_pat_0 & (1 << (x + y * 8)))
-                     mono_pattern[y * 8 + (7 - x)] = virge->s3d.pat_fg_clr;
-                 else
-                     mono_pattern[y * 8 + (7 - x)] = virge->s3d.pat_bg_clr;
-                 if (virge->s3d.mono_pat_1 & (1 << (x + y * 8)))
-                     mono_pattern[(y + 4) * 8 + (7 - x)] = virge->s3d.pat_fg_clr;
-                 else
-                     mono_pattern[(y + 4) * 8 + (7 - x)] = virge->s3d.pat_bg_clr;
-             }
+            for (x = 0; x < 8; x++) {
+                if (virge->s3d.mono_pat_0 & (1 << (x + y * 8)))
+                    mono_pattern[y * 8 + (7 - x)] = virge->s3d.pat_fg_clr;
+                else
+                    mono_pattern[y * 8 + (7 - x)] = virge->s3d.pat_bg_clr;
+                if (virge->s3d.mono_pat_1 & (1 << (x + y * 8)))
+                    mono_pattern[(y + 4) * 8 + (7 - x)] = virge->s3d.pat_fg_clr;
+                else
+                    mono_pattern[(y + 4) * 8 + (7 - x)] = virge->s3d.pat_bg_clr;
+            }
         }
     }
     switch (virge->s3d.cmd_set & CMD_SET_COMMAND_MASK) {
@@ -2290,13 +3079,13 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
 
         case CMD_SET_COMMAND_BITBLT:
             if (count == -1) {
-                virge->s3d.src_x = virge->s3d.rsrc_x;
-                virge->s3d.src_y = virge->s3d.rsrc_y;
-                virge->s3d.dest_x = virge->s3d.rdest_x;
-                virge->s3d.dest_y = virge->s3d.rdest_y;
-                virge->s3d.w = virge->s3d.r_width;
-                virge->s3d.h = virge->s3d.r_height;
-                virge->s3d.rop = (virge->s3d.cmd_set >> 17) & 0xff;
+                virge->s3d.src_x           = virge->s3d.rsrc_x;
+                virge->s3d.src_y           = virge->s3d.rsrc_y;
+                virge->s3d.dest_x          = virge->s3d.rdest_x;
+                virge->s3d.dest_y          = virge->s3d.rdest_y;
+                virge->s3d.w               = virge->s3d.r_width;
+                virge->s3d.h               = virge->s3d.r_height;
+                virge->s3d.rop             = (virge->s3d.cmd_set >> 17) & 0xff;
                 virge->s3d.data_left_count = 0;
 
                 if (virge->s3d.cmd_set & CMD_SET_IDS)
@@ -2312,8 +3101,8 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                 uint32_t source    = 0;
                 uint32_t dest      = 0;
                 uint32_t pattern;
-                uint32_t out       = 0;
-                int update         = 1;
+                uint32_t out    = 0;
+                int      update = 1;
 
                 switch (virge->s3d.cmd_set & (CMD_SET_MS | CMD_SET_IDS)) {
                     case 0:
@@ -2331,18 +3120,18 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                             count -= (cpu_dat_shift - virge->s3d.data_left_count);
                             virge->s3d.data_left_count = 0;
                             if (count < cpu_dat_shift) {
-                                virge->s3d.data_left = cpu_dat;
+                                virge->s3d.data_left       = cpu_dat;
                                 virge->s3d.data_left_count = count;
-                                count = 0;
+                                count                      = 0;
                             }
                         } else {
                             source = cpu_dat;
                             cpu_dat >>= cpu_dat_shift;
                             count -= cpu_dat_shift;
                             if (count < cpu_dat_shift) {
-                                virge->s3d.data_left = cpu_dat;
+                                virge->s3d.data_left       = cpu_dat;
                                 virge->s3d.data_left_count = count;
-                                count = 0;
+                                count                      = 0;
                             }
                         }
                         if ((virge->s3d.cmd_set & CMD_SET_TP) && source == src_fg_clr)
@@ -2372,9 +3161,9 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                 virge->s3d.dest_x += x_inc;
                 virge->s3d.dest_x &= 0x7ff;
                 if (!virge->s3d.w) {
-                    virge->s3d.src_x = virge->s3d.rsrc_x;
+                    virge->s3d.src_x  = virge->s3d.rsrc_x;
                     virge->s3d.dest_x = virge->s3d.rdest_x;
-                    virge->s3d.w = virge->s3d.r_width;
+                    virge->s3d.w      = virge->s3d.r_width;
 
                     virge->s3d.src_y += y_inc;
                     virge->s3d.dest_y += y_inc;
@@ -2402,23 +3191,22 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
         case CMD_SET_COMMAND_RECTFILL:
             /*No source, pattern = pat_fg_clr*/
             if (count == -1) {
-                virge->s3d.src_x = virge->s3d.rsrc_x;
-                virge->s3d.src_y = virge->s3d.rsrc_y;
+                virge->s3d.src_x  = virge->s3d.rsrc_x;
+                virge->s3d.src_y  = virge->s3d.rsrc_y;
                 virge->s3d.dest_x = virge->s3d.rdest_x;
                 virge->s3d.dest_y = virge->s3d.rdest_y;
-                virge->s3d.w = virge->s3d.r_width;
-                virge->s3d.h = virge->s3d.r_height;
-                virge->s3d.rop = (virge->s3d.cmd_set >> 17) & 0xff;
+                virge->s3d.w      = virge->s3d.r_width;
+                virge->s3d.h      = virge->s3d.r_height;
+                virge->s3d.rop    = (virge->s3d.cmd_set >> 17) & 0xff;
             }
 
             while (count && virge->s3d.h) {
-                uint32_t dest_addr = virge->s3d.dest_base + (virge->s3d.dest_x * x_mul) +
-                                     (virge->s3d.dest_y * virge->s3d.dest_str);
+                uint32_t dest_addr = virge->s3d.dest_base + (virge->s3d.dest_x * x_mul) + (virge->s3d.dest_y * virge->s3d.dest_str);
                 uint32_t source    = 0;
                 uint32_t dest      = 0;
                 uint32_t pattern   = virge->s3d.pat_fg_clr;
                 uint32_t out       = 0;
-                int update         = 1;
+                int      update    = 1;
 
                 CLIP(virge->s3d.dest_x, virge->s3d.dest_y);
 
@@ -2435,9 +3223,9 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                 virge->s3d.dest_x += x_inc;
                 virge->s3d.dest_x &= 0x7ff;
                 if (!virge->s3d.w) {
-                    virge->s3d.src_x = virge->s3d.rsrc_x;
+                    virge->s3d.src_x  = virge->s3d.rsrc_x;
                     virge->s3d.dest_x = virge->s3d.rdest_x;
-                    virge->s3d.w = virge->s3d.r_width;
+                    virge->s3d.w      = virge->s3d.r_width;
 
                     virge->s3d.src_y += y_inc;
                     virge->s3d.dest_y += y_inc;
@@ -2445,7 +3233,7 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                     if (!virge->s3d.h)
                         return;
                 } else
-                     virge->s3d.w--;
+                    virge->s3d.w--;
                 count--;
             }
             break;
@@ -2454,8 +3242,8 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
             if (count == -1) {
                 virge->s3d.dest_x = virge->s3d.lxstart;
                 virge->s3d.dest_y = virge->s3d.lystart;
-                virge->s3d.h = virge->s3d.lycnt;
-                virge->s3d.rop = (virge->s3d.cmd_set >> 17) & 0xff;
+                virge->s3d.h      = virge->s3d.lycnt;
+                virge->s3d.rop    = (virge->s3d.cmd_set >> 17) & 0xff;
             }
             while (virge->s3d.h) {
                 int x;
@@ -2482,8 +3270,8 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                     uint32_t source    = 0;
                     uint32_t dest      = 0;
                     uint32_t pattern;
-                    uint32_t out       = 0;
-                    int      update    = 1;
+                    uint32_t out    = 0;
+                    int      update = 1;
 
                     if ((virge->s3d.h == virge->s3d.lycnt || !first_pixel) &&
                         ((virge->s3d.line_dir && x < virge->s3d.lxend0) ||
@@ -2526,39 +3314,39 @@ skip_line:
                 virge->s3d.dest_r = virge->s3d.prxstart;
             if (virge->s3d.pycnt & (1 << 29))
                 virge->s3d.dest_l = virge->s3d.plxstart;
-            virge->s3d.h = virge->s3d.pycnt & 0x7ff;
+            virge->s3d.h   = virge->s3d.pycnt & 0x7ff;
             virge->s3d.rop = (virge->s3d.cmd_set >> 17) & 0xff;
             while (virge->s3d.h) {
-               int x = virge->s3d.dest_l >> 20;
-               int xend = virge->s3d.dest_r >> 20;
-               int y = virge->s3d.pystart & 0x7ff;
-               int xdir = (x < xend) ? 1 : -1;
-               do {
-                   uint32_t dest_addr = virge->s3d.dest_base + (x * x_mul) + (y * virge->s3d.dest_str);
-                   uint32_t source    = 0;
-                   uint32_t dest      = 0;
-                   uint32_t pattern;
-                   uint32_t out       = 0;
-                   int      update    = 1;
+                int x    = virge->s3d.dest_l >> 20;
+                int xend = virge->s3d.dest_r >> 20;
+                int y    = virge->s3d.pystart & 0x7ff;
+                int xdir = (x < xend) ? 1 : -1;
+                do {
+                    uint32_t dest_addr = virge->s3d.dest_base + (x * x_mul) + (y * virge->s3d.dest_str);
+                    uint32_t source    = 0;
+                    uint32_t dest      = 0;
+                    uint32_t pattern;
+                    uint32_t out    = 0;
+                    int      update = 1;
 
-                   CLIP(x, y);
+                    CLIP(x, y);
 
-                   if (update) {
-                       READ(dest_addr, dest);
-                       pattern = pattern_data[(y & 7) * 8 + (x & 7)];
+                    if (update) {
+                        READ(dest_addr, dest);
+                        pattern = pattern_data[(y & 7) * 8 + (x & 7)];
 
-                       MIX();
+                        MIX();
 
-                       WRITE(dest_addr, out);
-                   }
+                        WRITE(dest_addr, out);
+                    }
 
-                   x = (x + xdir) & 0x7ff;
-               } while (x != (xend + xdir));
+                    x = (x + xdir) & 0x7ff;
+                } while (x != (xend + xdir));
 
-               virge->s3d.dest_l += virge->s3d.pldx;
-               virge->s3d.dest_r += virge->s3d.prdx;
-               virge->s3d.h--;
-               virge->s3d.pystart = (virge->s3d.pystart - 1) & 0x7ff;
+                virge->s3d.dest_l += virge->s3d.pldx;
+                virge->s3d.dest_r += virge->s3d.prdx;
+                virge->s3d.h--;
+                virge->s3d.pystart = (virge->s3d.pystart - 1) & 0x7ff;
             }
             break;
 
@@ -2573,76 +3361,79 @@ skip_line:
         g = ((val & 0x03e0) >> 2) | ((val & 0x03e0) >> 7);  \
         r = ((val & 0x7c00) >> 7) | ((val & 0x7c00) >> 12);
 
-#define RGB24_TO_24(val, r, g, b)                           \
-        b = val & 0xff;                                     \
-        g = (val & 0xff00) >> 8;                            \
+#define RGB24_TO_24(val, r, g, b)  \
+        b = val & 0xff;            \
+        g = (val & 0xff00) >> 8;   \
         r = (val & 0xff0000) >> 16
 
-#define RGB15(r, g, b, dest)                                \
-        if (virge->dithering_enabled) {                     \
-                int add = dither[_y & 3][_x & 3];           \
-                int _r = (r > 248) ? 248 : r + add;         \
-                int _g = (g > 248) ? 248 : g + add;         \
-                int _b = (b > 248) ? 248 : b + add;         \
-                dest = ((_b >> 3) & 0x1f) |                 \
-                       (((_g >> 3) & 0x1f) << 5) |          \
-                       (((_r >> 3) & 0x1f) << 10);          \
-        } else                                              \
-                dest = ((b >> 3) & 0x1f) |                  \
-                       (((g >> 3) & 0x1f) << 5) |           \
+#define RGB15(r, g, b, dest)                        \
+        if (virge->dithering_enabled) {             \
+                int add = dither[_y & 3][_x & 3];   \
+                int _r = (r > 248) ? 248 : r + add; \
+                int _g = (g > 248) ? 248 : g + add; \
+                int _b = (b > 248) ? 248 : b + add; \
+                dest = ((_b >> 3) & 0x1f) |         \
+                       (((_g >> 3) & 0x1f) << 5) |  \
+                       (((_r >> 3) & 0x1f) << 10);  \
+        } else                                      \
+                dest = ((b >> 3) & 0x1f) |          \
+                       (((g >> 3) & 0x1f) << 5) |   \
                        (((r >> 3) & 0x1f) << 10)
 
 #define RGB24(r, g, b) ((b) | ((g) << 8) | ((r) << 16))
 
 typedef struct rgba_t {
-    int r, g, b, a;
+    int r;
+    int g;
+    int b;
+    int a;
 } rgba_t;
 
 typedef struct s3d_state_t {
-    int32_t   r;
-    int32_t   g;
-    int32_t   b;
-    int32_t   a;
-    int32_t   u;
-    int32_t   v;
-    int32_t   d;
-    int32_t   w;
+    int32_t r;
+    int32_t g;
+    int32_t b;
+    int32_t a;
+    int32_t u;
+    int32_t v;
+    int32_t d;
+    int32_t w;
 
-    int32_t   base_r;
-    int32_t   base_g;
-    int32_t   base_b;
-    int32_t   base_a;
-    int32_t   base_u;
-    int32_t   base_v;
-    int32_t   base_d;
-    int32_t   base_w;
+    int32_t base_r;
+    int32_t base_g;
+    int32_t base_b;
+    int32_t base_a;
+    int32_t base_u;
+    int32_t base_v;
+    int32_t base_d;
+    int32_t base_w;
 
-    uint32_t  base_z;
+    uint32_t base_z;
 
-    uint32_t  tbu;
-    uint32_t  tbv;
+    uint32_t tbu;
+    uint32_t tbv;
 
-    uint32_t  cmd_set;
-    int       max_d;
+    uint32_t cmd_set;
+    int      max_d;
 
     uint16_t *texture[10];
 
-    uint32_t  tex_bdr_clr;
+    uint32_t tex_bdr_clr;
 
-    int32_t   x1;
-    int32_t   x2;
+    int32_t x1;
+    int32_t x2;
 
-    int       y;
+    int y;
 
-    rgba_t    dest_rgba;
+    rgba_t dest_rgba;
 } s3d_state_t;
 
 typedef struct s3d_texture_state_t {
-    int       level;
-    int       texture_shift;
+    int level;
+    int texture_shift;
 
-    int32_t   u;
-    int32_t   v;
+    int32_t u;
+    int32_t v;
 } s3d_texture_state_t;
 
 static void (*tex_read)(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out);
@@ -2656,7 +3447,8 @@ static int _x;
 static int _y;
 
 static void
-tex_ARGB1555(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out) {
+tex_ARGB1555(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out)
+{
     int offset = ((texture_state->u & 0x7fc0000) >> texture_state->texture_shift) +
                  (((texture_state->v & 0x7fc0000) >> texture_state->texture_shift) << texture_state->level);
     uint16_t val = state->texture[texture_state->level][offset];
@@ -2668,7 +3460,8 @@ tex_ARGB1555(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out
 }
 
 static void
-tex_ARGB1555_nowrap(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out) {
+tex_ARGB1555_nowrap(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out)
+{
     int offset = ((texture_state->u & 0x7fc0000) >> texture_state->texture_shift) +
                  (((texture_state->v & 0x7fc0000) >> texture_state->texture_shift) << texture_state->level);
     uint16_t val = state->texture[texture_state->level][offset];
@@ -2683,7 +3476,8 @@ tex_ARGB1555_nowrap(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba
 }
 
 static void
-tex_ARGB4444(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out) {
+tex_ARGB4444(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out)
+{
     int offset = ((texture_state->u & 0x7fc0000) >> texture_state->texture_shift) +
                  (((texture_state->v & 0x7fc0000) >> texture_state->texture_shift) << texture_state->level);
     uint16_t val = state->texture[texture_state->level][offset];
@@ -2695,7 +3489,8 @@ tex_ARGB4444(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out
 }
 
 static void
-tex_ARGB4444_nowrap(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out) {
+tex_ARGB4444_nowrap(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out)
+{
     int offset = ((texture_state->u & 0x7fc0000) >> texture_state->texture_shift) +
                  (((texture_state->v & 0x7fc0000) >> texture_state->texture_shift) << texture_state->level);
     uint16_t val = state->texture[texture_state->level][offset];
@@ -2710,7 +3505,8 @@ tex_ARGB4444_nowrap(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba
 }
 
 static void
-tex_ARGB8888(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out) {
+tex_ARGB8888(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out)
+{
     int offset = ((texture_state->u & 0x7fc0000) >> texture_state->texture_shift) +
                   (((texture_state->v & 0x7fc0000) >> texture_state->texture_shift) << texture_state->level);
     uint32_t val = ((uint32_t *)state->texture[texture_state->level])[offset];
@@ -2722,7 +3518,8 @@ tex_ARGB8888(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out
 }
 
 static void
-tex_ARGB8888_nowrap(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out) {
+tex_ARGB8888_nowrap(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out)
+{
     int offset = ((texture_state->u & 0x7fc0000) >> texture_state->texture_shift) +
                  (((texture_state->v & 0x7fc0000) >> texture_state->texture_shift) << texture_state->level);
     uint32_t val = ((uint32_t *)state->texture[texture_state->level])[offset];
@@ -2737,19 +3534,21 @@ tex_ARGB8888_nowrap(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba
 }
 
 static void
-tex_sample_normal(s3d_state_t *state) {
+tex_sample_normal(s3d_state_t *state)
+{
     s3d_texture_state_t texture_state;
 
-    texture_state.level = state->max_d;
+    texture_state.level         = state->max_d;
     texture_state.texture_shift = 18 + (9 - texture_state.level);
-    texture_state.u = state->u + state->tbu;
-    texture_state.v = state->v + state->tbv;
+    texture_state.u             = state->u + state->tbu;
+    texture_state.v             = state->v + state->tbv;
 
     tex_read(state, &texture_state, &state->dest_rgba);
 }
 
 static void
-tex_sample_normal_filter(s3d_state_t *state) {
+tex_sample_normal_filter(s3d_state_t *state)
+{
     s3d_texture_state_t texture_state;
     int                 tex_offset;
     rgba_t              tex_samples[4];
@@ -2757,71 +3556,9 @@ tex_sample_normal_filter(s3d_state_t *state) {
     int                 dv;
     int                 d[4];
 
-    texture_state.level = state->max_d;
+    texture_state.level         = state->max_d;
     texture_state.texture_shift = 18 + (9 - texture_state.level);
-    tex_offset = 1 << texture_state.texture_shift;
-
-    texture_state.u = state->u + state->tbu;
-    texture_state.v = state->v + state->tbv;
-    tex_read(state, &texture_state, &tex_samples[0]);
-    du = (texture_state.u >> (texture_state.texture_shift - 8)) & 0xff;
-    dv = (texture_state.v >> (texture_state.texture_shift - 8)) & 0xff;
-
-    texture_state.u = state->u + state->tbu + tex_offset;
-    texture_state.v = state->v + state->tbv;
-    tex_read(state, &texture_state, &tex_samples[1]);
-
-    texture_state.u = state->u + state->tbu;
-    texture_state.v = state->v + state->tbv + tex_offset;
-    tex_read(state, &texture_state, &tex_samples[2]);
-
-    texture_state.u = state->u + state->tbu + tex_offset;
-    texture_state.v = state->v + state->tbv + tex_offset;
-    tex_read(state, &texture_state, &tex_samples[3]);
-
-    d[0] = (256 - du) * (256 - dv);
-    d[1] = du * (256 - dv);
-    d[2] = (256 - du) * dv;
-    d[3] = du * dv;
-
-    state->dest_rgba.r = (tex_samples[0].r * d[0] + tex_samples[1].r * d[1] +
-                          tex_samples[2].r * d[2] + tex_samples[3].r * d[3]) >> 16;
-    state->dest_rgba.g = (tex_samples[0].g * d[0] + tex_samples[1].g * d[1] +
-                          tex_samples[2].g * d[2] + tex_samples[3].g * d[3]) >> 16;
-    state->dest_rgba.b = (tex_samples[0].b * d[0] + tex_samples[1].b * d[1] +
-                          tex_samples[2].b * d[2] + tex_samples[3].b * d[3]) >> 16;
-    state->dest_rgba.a = (tex_samples[0].a * d[0] + tex_samples[1].a * d[1] +
-                          tex_samples[2].a * d[2] + tex_samples[3].a * d[3]) >> 16;
-}
-
-static void
-tex_sample_mipmap(s3d_state_t *state) {
-    s3d_texture_state_t texture_state;
-
-    texture_state.level = (state->d < 0) ? state->max_d : state->max_d - ((state->d >> 27) & 0xf);
-    if (texture_state.level < 0)
-        texture_state.level = 0;
-    texture_state.texture_shift = 18 + (9 - texture_state.level);
-    texture_state.u = state->u + state->tbu;
-    texture_state.v = state->v + state->tbv;
-
-    tex_read(state, &texture_state, &state->dest_rgba);
-}
-
-static void
-tex_sample_mipmap_filter(s3d_state_t *state) {
-    s3d_texture_state_t texture_state;
-    int                 tex_offset;
-    rgba_t              tex_samples[4];
-    int                 du;
-    int                 dv;
-    int                 d[4];
-
-    texture_state.level = (state->d < 0) ? state->max_d : state->max_d - ((state->d >> 27) & 0xf);
-    if (texture_state.level < 0)
-        texture_state.level = 0;
-    texture_state.texture_shift = 18 + (9 - texture_state.level);
-    tex_offset = 1 << texture_state.texture_shift;
+    tex_offset                  = 1 << texture_state.texture_shift;
 
     texture_state.u = state->u + state->tbu;
     texture_state.v = state->v + state->tbv;
@@ -2857,25 +3594,91 @@ tex_sample_mipmap_filter(s3d_state_t *state) {
 }
 
 static void
-tex_sample_persp_normal(s3d_state_t *state) {
+tex_sample_mipmap(s3d_state_t *state)
+{
     s3d_texture_state_t texture_state;
-    int32_t             w             = 0;
 
-    if (state->w)
-        w = (int32_t)(((1ULL << 27) << 19) / (int64_t)state->w);
-
-    texture_state.level = state->max_d;
+    texture_state.level = (state->d < 0) ? state->max_d : state->max_d - ((state->d >> 27) & 0xf);
+    if (texture_state.level < 0)
+        texture_state.level = 0;
     texture_state.texture_shift = 18 + (9 - texture_state.level);
-    texture_state.u = (int32_t)(((int64_t)state->u * (int64_t)w) >> (12 + state->max_d)) + state->tbu;
-    texture_state.v = (int32_t)(((int64_t)state->v * (int64_t)w) >> (12 + state->max_d)) + state->tbv;
+    texture_state.u             = state->u + state->tbu;
+    texture_state.v             = state->v + state->tbv;
 
     tex_read(state, &texture_state, &state->dest_rgba);
 }
 
 static void
-tex_sample_persp_normal_filter(s3d_state_t *state) {
+tex_sample_mipmap_filter(s3d_state_t *state)
+{
     s3d_texture_state_t texture_state;
-    int32_t             w             = 0;
+    int                 tex_offset;
+    rgba_t              tex_samples[4];
+    int                 du;
+    int                 dv;
+    int                 d[4];
+
+    texture_state.level = (state->d < 0) ? state->max_d : state->max_d - ((state->d >> 27) & 0xf);
+    if (texture_state.level < 0)
+        texture_state.level = 0;
+    texture_state.texture_shift = 18 + (9 - texture_state.level);
+    tex_offset                  = 1 << texture_state.texture_shift;
+
+    texture_state.u = state->u + state->tbu;
+    texture_state.v = state->v + state->tbv;
+    tex_read(state, &texture_state, &tex_samples[0]);
+    du = (texture_state.u >> (texture_state.texture_shift - 8)) & 0xff;
+    dv = (texture_state.v >> (texture_state.texture_shift - 8)) & 0xff;
+
+    texture_state.u = state->u + state->tbu + tex_offset;
+    texture_state.v = state->v + state->tbv;
+    tex_read(state, &texture_state, &tex_samples[1]);
+
+    texture_state.u = state->u + state->tbu;
+    texture_state.v = state->v + state->tbv + tex_offset;
+    tex_read(state, &texture_state, &tex_samples[2]);
+
+    texture_state.u = state->u + state->tbu + tex_offset;
+    texture_state.v = state->v + state->tbv + tex_offset;
+    tex_read(state, &texture_state, &tex_samples[3]);
+
+    d[0] = (256 - du) * (256 - dv);
+    d[1] = du * (256 - dv);
+    d[2] = (256 - du) * dv;
+    d[3] = du * dv;
+
+    state->dest_rgba.r = (tex_samples[0].r * d[0] + tex_samples[1].r * d[1] +
+                          tex_samples[2].r * d[2] + tex_samples[3].r * d[3]) >> 16;
+    state->dest_rgba.g = (tex_samples[0].g * d[0] + tex_samples[1].g * d[1] +
+                          tex_samples[2].g * d[2] + tex_samples[3].g * d[3]) >> 16;
+    state->dest_rgba.b = (tex_samples[0].b * d[0] + tex_samples[1].b * d[1] +
+                          tex_samples[2].b * d[2] + tex_samples[3].b * d[3]) >> 16;
+    state->dest_rgba.a = (tex_samples[0].a * d[0] + tex_samples[1].a * d[1] +
+                          tex_samples[2].a * d[2] + tex_samples[3].a * d[3]) >> 16;
+}
+
+static void
+tex_sample_persp_normal(s3d_state_t *state)
+{
+    s3d_texture_state_t texture_state;
+    int32_t             w = 0;
+
+    if (state->w)
+        w = (int32_t) (((1ULL << 27) << 19) / (int64_t) state->w);
+
+    texture_state.level         = state->max_d;
+    texture_state.texture_shift = 18 + (9 - texture_state.level);
+    texture_state.u             = (int32_t) (((int64_t) state->u * (int64_t) w) >> (12 + state->max_d)) + state->tbu;
+    texture_state.v             = (int32_t) (((int64_t) state->v * (int64_t) w) >> (12 + state->max_d)) + state->tbv;
+
+    tex_read(state, &texture_state, &state->dest_rgba);
+}
+
+static void
+tex_sample_persp_normal_filter(s3d_state_t *state)
+{
+    s3d_texture_state_t texture_state;
+    int32_t             w = 0;
     int32_t             u;
     int32_t             v;
     int                 tex_offset;
@@ -2885,14 +3688,14 @@ tex_sample_persp_normal_filter(s3d_state_t *state) {
     int                 d[4];
 
     if (state->w)
-        w = (int32_t)(((1ULL << 27) << 19) / (int64_t)state->w);
+        w = (int32_t) (((1ULL << 27) << 19) / (int64_t) state->w);
 
-    u = (int32_t)(((int64_t)state->u * (int64_t)w) >> (12 + state->max_d)) + state->tbu;
-    v = (int32_t)(((int64_t)state->v * (int64_t)w) >> (12 + state->max_d)) + state->tbv;
+    u = (int32_t) (((int64_t) state->u * (int64_t) w) >> (12 + state->max_d)) + state->tbu;
+    v = (int32_t) (((int64_t) state->v * (int64_t) w) >> (12 + state->max_d)) + state->tbv;
 
-    texture_state.level = state->max_d;
+    texture_state.level         = state->max_d;
     texture_state.texture_shift = 18 + (9 - texture_state.level);
-    tex_offset = 1 << texture_state.texture_shift;
+    tex_offset                  = 1 << texture_state.texture_shift;
 
     texture_state.u = u;
     texture_state.v = v;
@@ -2928,25 +3731,27 @@ tex_sample_persp_normal_filter(s3d_state_t *state) {
 }
 
 static void
-tex_sample_persp_normal_375(s3d_state_t *state) {
+tex_sample_persp_normal_375(s3d_state_t *state)
+{
     s3d_texture_state_t texture_state;
-    int32_t w = 0;
+    int32_t             w = 0;
 
     if (state->w)
-        w = (int32_t)(((1ULL << 27) << 19) / (int64_t)state->w);
+        w = (int32_t) (((1ULL << 27) << 19) / (int64_t) state->w);
 
-    texture_state.level = state->max_d;
+    texture_state.level         = state->max_d;
     texture_state.texture_shift = 18 + (9 - texture_state.level);
-    texture_state.u = (int32_t)(((int64_t)state->u * (int64_t)w) >> (8 + state->max_d)) + state->tbu;
-    texture_state.v = (int32_t)(((int64_t)state->v * (int64_t)w) >> (8 + state->max_d)) + state->tbv;
+    texture_state.u             = (int32_t) (((int64_t) state->u * (int64_t) w) >> (8 + state->max_d)) + state->tbu;
+    texture_state.v             = (int32_t) (((int64_t) state->v * (int64_t) w) >> (8 + state->max_d)) + state->tbv;
 
     tex_read(state, &texture_state, &state->dest_rgba);
 }
 
 static void
-tex_sample_persp_normal_filter_375(s3d_state_t *state) {
+tex_sample_persp_normal_filter_375(s3d_state_t *state)
+{
     s3d_texture_state_t texture_state;
-    int32_t             w             = 0;
+    int32_t             w = 0;
     int32_t             u;
     int32_t             v;
     int                 tex_offset;
@@ -2956,14 +3761,14 @@ tex_sample_persp_normal_filter_375(s3d_state_t *state) {
     int                 d[4];
 
     if (state->w)
-        w = (int32_t)(((1ULL << 27) << 19) / (int64_t)state->w);
+        w = (int32_t) (((1ULL << 27) << 19) / (int64_t) state->w);
 
-    u = (int32_t)(((int64_t)state->u * (int64_t)w) >> (8 + state->max_d)) + state->tbu;
-    v = (int32_t)(((int64_t)state->v * (int64_t)w) >> (8 + state->max_d)) + state->tbv;
+    u = (int32_t) (((int64_t) state->u * (int64_t) w) >> (8 + state->max_d)) + state->tbu;
+    v = (int32_t) (((int64_t) state->v * (int64_t) w) >> (8 + state->max_d)) + state->tbv;
 
-    texture_state.level = state->max_d;
+    texture_state.level         = state->max_d;
     texture_state.texture_shift = 18 + (9 - texture_state.level);
-    tex_offset = 1 << texture_state.texture_shift;
+    tex_offset                  = 1 << texture_state.texture_shift;
 
     texture_state.u = u;
     texture_state.v = v;
@@ -2999,27 +3804,29 @@ tex_sample_persp_normal_filter_375(s3d_state_t *state) {
 }
 
 static void
-tex_sample_persp_mipmap(s3d_state_t *state) {
+tex_sample_persp_mipmap(s3d_state_t *state)
+{
     s3d_texture_state_t texture_state;
-    int32_t             w             = 0;
+    int32_t             w = 0;
 
     if (state->w)
-        w = (int32_t)(((1ULL << 27) << 19) / (int64_t)state->w);
+        w = (int32_t) (((1ULL << 27) << 19) / (int64_t) state->w);
 
     texture_state.level = (state->d < 0) ? state->max_d : state->max_d - ((state->d >> 27) & 0xf);
     if (texture_state.level < 0)
         texture_state.level = 0;
     texture_state.texture_shift = 18 + (9 - texture_state.level);
-    texture_state.u = (int32_t)(((int64_t)state->u * (int64_t)w) >> (12 + state->max_d)) + state->tbu;
-    texture_state.v = (int32_t)(((int64_t)state->v * (int64_t)w) >> (12 + state->max_d)) + state->tbv;
+    texture_state.u             = (int32_t) (((int64_t) state->u * (int64_t) w) >> (12 + state->max_d)) + state->tbu;
+    texture_state.v             = (int32_t) (((int64_t) state->v * (int64_t) w) >> (12 + state->max_d)) + state->tbv;
 
     tex_read(state, &texture_state, &state->dest_rgba);
 }
 
 static void
-tex_sample_persp_mipmap_filter(s3d_state_t *state) {
+tex_sample_persp_mipmap_filter(s3d_state_t *state)
+{
     s3d_texture_state_t texture_state;
-    int32_t             w             = 0;
+    int32_t             w = 0;
     int32_t             u;
     int32_t             v;
     int                 tex_offset;
@@ -3029,16 +3836,16 @@ tex_sample_persp_mipmap_filter(s3d_state_t *state) {
     int                 d[4];
 
     if (state->w)
-        w = (int32_t)(((1ULL << 27) << 19) / (int64_t)state->w);
+        w = (int32_t) (((1ULL << 27) << 19) / (int64_t) state->w);
 
-    u = (int32_t)(((int64_t)state->u * (int64_t)w) >> (12 + state->max_d)) + state->tbu;
-    v = (int32_t)(((int64_t)state->v * (int64_t)w) >> (12 + state->max_d)) + state->tbv;
+    u = (int32_t) (((int64_t) state->u * (int64_t) w) >> (12 + state->max_d)) + state->tbu;
+    v = (int32_t) (((int64_t) state->v * (int64_t) w) >> (12 + state->max_d)) + state->tbv;
 
     texture_state.level = (state->d < 0) ? state->max_d : state->max_d - ((state->d >> 27) & 0xf);
     if (texture_state.level < 0)
         texture_state.level = 0;
     texture_state.texture_shift = 18 + (9 - texture_state.level);
-    tex_offset = 1 << texture_state.texture_shift;
+    tex_offset                  = 1 << texture_state.texture_shift;
 
     texture_state.u = u;
     texture_state.v = v;
@@ -3074,27 +3881,29 @@ tex_sample_persp_mipmap_filter(s3d_state_t *state) {
 }
 
 static void
-tex_sample_persp_mipmap_375(s3d_state_t *state) {
+tex_sample_persp_mipmap_375(s3d_state_t *state)
+{
     s3d_texture_state_t texture_state;
-    int32_t             w             = 0;
+    int32_t             w = 0;
 
     if (state->w)
-        w = (int32_t)(((1ULL << 27) << 19) / (int64_t)state->w);
+        w = (int32_t) (((1ULL << 27) << 19) / (int64_t) state->w);
 
     texture_state.level = (state->d < 0) ? state->max_d : state->max_d - ((state->d >> 27) & 0xf);
     if (texture_state.level < 0)
         texture_state.level = 0;
     texture_state.texture_shift = 18 + (9 - texture_state.level);
-    texture_state.u = (int32_t)(((int64_t)state->u * (int64_t)w) >> (8 + state->max_d)) + state->tbu;
-    texture_state.v = (int32_t)(((int64_t)state->v * (int64_t)w) >> (8 + state->max_d)) + state->tbv;
+    texture_state.u             = (int32_t) (((int64_t) state->u * (int64_t) w) >> (8 + state->max_d)) + state->tbu;
+    texture_state.v             = (int32_t) (((int64_t) state->v * (int64_t) w) >> (8 + state->max_d)) + state->tbv;
 
     tex_read(state, &texture_state, &state->dest_rgba);
 }
 
 static void
-tex_sample_persp_mipmap_filter_375(s3d_state_t *state) {
+tex_sample_persp_mipmap_filter_375(s3d_state_t *state)
+{
     s3d_texture_state_t texture_state;
-    int32_t             w             = 0;
+    int32_t             w = 0;
     int32_t             u;
     int32_t             v;
     int                 tex_offset;
@@ -3104,16 +3913,16 @@ tex_sample_persp_mipmap_filter_375(s3d_state_t *state) {
     int                 d[4];
 
     if (state->w)
-        w = (int32_t)(((1ULL << 27) << 19) / (int64_t)state->w);
+        w = (int32_t) (((1ULL << 27) << 19) / (int64_t) state->w);
 
-    u = (int32_t)(((int64_t)state->u * (int64_t)w) >> (8 + state->max_d)) + state->tbu;
-    v = (int32_t)(((int64_t)state->v * (int64_t)w) >> (8 + state->max_d)) + state->tbv;
+    u = (int32_t) (((int64_t) state->u * (int64_t) w) >> (8 + state->max_d)) + state->tbu;
+    v = (int32_t) (((int64_t) state->v * (int64_t) w) >> (8 + state->max_d)) + state->tbv;
 
     texture_state.level = (state->d < 0) ? state->max_d : state->max_d - ((state->d >> 27) & 0xf);
     if (texture_state.level < 0)
         texture_state.level = 0;
     texture_state.texture_shift = 18 + (9 - texture_state.level);
-    tex_offset = 1 << texture_state.texture_shift;
+    tex_offset                  = 1 << texture_state.texture_shift;
 
     texture_state.u = u;
     texture_state.v = v;
@@ -3148,40 +3957,41 @@ tex_sample_persp_mipmap_filter_375(s3d_state_t *state) {
                           tex_samples[2].a * d[2] + tex_samples[3].a * d[3]) >> 16;
 }
 
-#define CLAMP(x)                              \
-    do {                                      \
-            if ((x) & ~0xff)                  \
-                    x = ((x) < 0) ? 0 : 0xff; \
+#define CLAMP(x)                      \
+    do {                              \
+        if ((x) & ~0xff)              \
+            x = ((x) < 0) ? 0 : 0xff; \
     } while (0)
 
-#define CLAMP_RGBA(r, g, b, a)                \
-        if ((r) & ~0xff)                      \
-                r = ((r) < 0) ? 0 : 0xff;     \
-        if ((g) & ~0xff)                      \
-                g = ((g) < 0) ? 0 : 0xff;     \
-        if ((b) & ~0xff)                      \
-                b = ((b) < 0) ? 0 : 0xff;     \
-        if ((a) & ~0xff)                      \
-                a = ((a) < 0) ? 0 : 0xff;
+#define CLAMP_RGBA(r, g, b, a)    \
+    if ((r) & ~0xff)              \
+        r = ((r) < 0) ? 0 : 0xff; \
+    if ((g) & ~0xff)              \
+        g = ((g) < 0) ? 0 : 0xff; \
+    if ((b) & ~0xff)              \
+        b = ((b) < 0) ? 0 : 0xff; \
+    if ((a) & ~0xff)              \
+        a = ((a) < 0) ? 0 : 0xff;
 
-#define CLAMP_RGB(r, g, b)                    \
-    do {                                      \
-        if ((r) < 0)                          \
-            r = 0;                            \
-        if ((r) > 0xff)                       \
-            r = 0xff;                         \
-        if ((g) < 0)                          \
-            g = 0;                            \
-        if ((g) > 0xff)                       \
-            g = 0xff;                         \
-        if ((b) < 0)                          \
-            b = 0;                            \
-        if ((b) > 0xff)                       \
-            b = 0xff;                         \
+#define CLAMP_RGB(r, g, b) \
+    do {                   \
+        if ((r) < 0)       \
+            r = 0;         \
+        if ((r) > 0xff)    \
+            r = 0xff;      \
+        if ((g) < 0)       \
+            g = 0;         \
+        if ((g) > 0xff)    \
+            g = 0xff;      \
+        if ((b) < 0)       \
+            b = 0;         \
+        if ((b) > 0xff)    \
+            b = 0xff;      \
     } while (0)
 
 static void
-dest_pixel_gouraud_shaded_triangle(s3d_state_t *state) {
+dest_pixel_gouraud_shaded_triangle(s3d_state_t *state)
+{
     state->dest_rgba.r = state->r >> 7;
     CLAMP(state->dest_rgba.r);
 
@@ -3196,7 +4006,8 @@ dest_pixel_gouraud_shaded_triangle(s3d_state_t *state) {
 }
 
 static void
-dest_pixel_unlit_texture_triangle(s3d_state_t *state) {
+dest_pixel_unlit_texture_triangle(s3d_state_t *state)
+{
     tex_sample(state);
 
     if (state->cmd_set & CMD_SET_ABC_SRC)
@@ -3204,7 +4015,8 @@ dest_pixel_unlit_texture_triangle(s3d_state_t *state) {
 }
 
 static void
-dest_pixel_lit_texture_decal(s3d_state_t *state) {
+dest_pixel_lit_texture_decal(s3d_state_t *state)
+{
     tex_sample(state);
 
     if (state->cmd_set & CMD_SET_ABC_SRC)
@@ -3212,7 +4024,8 @@ dest_pixel_lit_texture_decal(s3d_state_t *state) {
 }
 
 static void
-dest_pixel_lit_texture_reflection(s3d_state_t *state) {
+dest_pixel_lit_texture_reflection(s3d_state_t *state)
+{
     tex_sample(state);
 
     state->dest_rgba.r += (state->r >> 7);
@@ -3225,7 +4038,8 @@ dest_pixel_lit_texture_reflection(s3d_state_t *state) {
 }
 
 static void
-dest_pixel_lit_texture_modulate(s3d_state_t *state) {
+dest_pixel_lit_texture_modulate(s3d_state_t *state)
+{
     int r = state->r >> 7;
     int g = state->g >> 7;
     int b = state->b >> 7;
@@ -3244,17 +4058,18 @@ dest_pixel_lit_texture_modulate(s3d_state_t *state) {
 }
 
 static void
-tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int32_t dx2) {
-    uint8_t  *vram    = virge->svga.vram;
-    int       x_dir   = s3d_tri->tlr ? 1 : -1;
-    int       use_z   = !(s3d_tri->cmd_set & CMD_SET_ZB_MODE);
-    int       y_count = yc;
-    int       bpp     = (s3d_tri->cmd_set >> 2) & 7;
-    uint32_t  dest_offset;
-    uint32_t  z_offset;
+tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int32_t dx2)
+{
+    uint8_t *vram    = virge->svga.vram;
+    int      x_dir   = s3d_tri->tlr ? 1 : -1;
+    int      use_z   = !(s3d_tri->cmd_set & CMD_SET_ZB_MODE);
+    int      y_count = yc;
+    int      bpp     = (s3d_tri->cmd_set >> 2) & 7;
+    uint32_t dest_offset;
+    uint32_t z_offset;
 
     dest_offset = s3d_tri->dest_base + (state->y * s3d_tri->dest_str);
-    z_offset = s3d_tri->z_base + (state->y * s3d_tri->z_str);
+    z_offset    = s3d_tri->z_base + (state->y * s3d_tri->z_str);
 
     if (s3d_tri->cmd_set & CMD_SET_HC) {
         if (state->y < s3d_tri->clip_t)
@@ -3274,195 +4089,190 @@ tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int
             state->base_a += (s3d_tri->TdAdY * diff_y);
             state->base_d += (s3d_tri->TdDdY * diff_y);
             state->base_w += (s3d_tri->TdWdY * diff_y);
-            state->x1     += (dx1 * diff_y);
-            state->x2     += (dx2 * diff_y);
-            state->y      -= diff_y;
-            dest_offset   -= s3d_tri->dest_str;
-            z_offset      -= s3d_tri->z_str;
-            y_count       -= diff_y;
+            state->x1 += (dx1 * diff_y);
+            state->x2 += (dx2 * diff_y);
+            state->y -= diff_y;
+            dest_offset -= s3d_tri->dest_str;
+            z_offset -= s3d_tri->z_str;
+            y_count -= diff_y;
         }
         if ((state->y - y_count) < s3d_tri->clip_t)
             y_count = (state->y - s3d_tri->clip_t) + 1;
     }
 
     for (; y_count > 0; y_count--) {
-         int      x  = (state->x1 + ((1 << 20) - 1)) >> 20;
-         int      xe = (state->x2 + ((1 << 20) - 1)) >> 20;
-         uint32_t z  = (state->base_z > 0) ? (state->base_z << 1) : 0;
+        int      x  = (state->x1 + ((1 << 20) - 1)) >> 20;
+        int      xe = (state->x2 + ((1 << 20) - 1)) >> 20;
+        uint32_t z  = (state->base_z > 0) ? (state->base_z << 1) : 0;
 
-         if (x_dir < 0) {
-             x--;
-             xe--;
-         }
+        if (x_dir < 0) {
+            x--;
+            xe--;
+        }
 
-         if (x != xe && ((x_dir > 0 && x < xe) || (x_dir < 0 && x > xe))) {
-             uint32_t dest_addr;
-             uint32_t z_addr;
-             int      dx        = (x_dir > 0) ? ((31 - ((state->x1 - 1) >> 15)) & 0x1f) :
-                                                (((state->x1 - 1) >> 15) & 0x1f);
-             int      x_offset  = x_dir * (bpp + 1);
-             int      xz_offset = x_dir << 1;
+        if (x != xe && ((x_dir > 0 && x < xe) || (x_dir < 0 && x > xe))) {
+            uint32_t dest_addr;
+            uint32_t z_addr;
+            int      dx        = (x_dir > 0) ? ((31 - ((state->x1 - 1) >> 15)) & 0x1f) : (((state->x1 - 1) >> 15) & 0x1f);
+            int      x_offset  = x_dir * (bpp + 1);
+            int      xz_offset = x_dir << 1;
 
-             if (x_dir > 0)
-                 dx += 1;
+            if (x_dir > 0)
+                dx += 1;
 
-             state->r = state->base_r + ((s3d_tri->TdRdX * dx) >> 5);
-             state->g = state->base_g + ((s3d_tri->TdGdX * dx) >> 5);
-             state->b = state->base_b + ((s3d_tri->TdBdX * dx) >> 5);
-             state->a = state->base_a + ((s3d_tri->TdAdX * dx) >> 5);
-             state->u = state->base_u + ((s3d_tri->TdUdX * dx) >> 5);
-             state->v = state->base_v + ((s3d_tri->TdVdX * dx) >> 5);
-             state->w = state->base_w + ((s3d_tri->TdWdX * dx) >> 5);
-             state->d = state->base_d + ((s3d_tri->TdDdX * dx) >> 5);
-             z += ((s3d_tri->TdZdX * dx) >> 5);
+            state->r = state->base_r + ((s3d_tri->TdRdX * dx) >> 5);
+            state->g = state->base_g + ((s3d_tri->TdGdX * dx) >> 5);
+            state->b = state->base_b + ((s3d_tri->TdBdX * dx) >> 5);
+            state->a = state->base_a + ((s3d_tri->TdAdX * dx) >> 5);
+            state->u = state->base_u + ((s3d_tri->TdUdX * dx) >> 5);
+            state->v = state->base_v + ((s3d_tri->TdVdX * dx) >> 5);
+            state->w = state->base_w + ((s3d_tri->TdWdX * dx) >> 5);
+            state->d = state->base_d + ((s3d_tri->TdDdX * dx) >> 5);
+            z += ((s3d_tri->TdZdX * dx) >> 5);
 
-             if (s3d_tri->cmd_set & CMD_SET_HC) {
-                 if (x_dir > 0) {
-                     if (x > s3d_tri->clip_r)
-                         goto tri_skip_line;
-                     if (xe < s3d_tri->clip_l)
-                         goto tri_skip_line;
-                     if (xe > s3d_tri->clip_r)
-                         xe = s3d_tri->clip_r + 1;
-                     if (x < s3d_tri->clip_l) {
-                         int diff_x = s3d_tri->clip_l - x;
+            if (s3d_tri->cmd_set & CMD_SET_HC) {
+                if (x_dir > 0) {
+                    if (x > s3d_tri->clip_r)
+                        goto tri_skip_line;
+                    if (xe < s3d_tri->clip_l)
+                        goto tri_skip_line;
+                    if (xe > s3d_tri->clip_r)
+                        xe = s3d_tri->clip_r + 1;
+                    if (x < s3d_tri->clip_l) {
+                        int diff_x = s3d_tri->clip_l - x;
 
-                         z        += (s3d_tri->TdZdX * diff_x);
-                         state->u += (s3d_tri->TdUdX * diff_x);
-                         state->v += (s3d_tri->TdVdX * diff_x);
-                         state->r += (s3d_tri->TdRdX * diff_x);
-                         state->g += (s3d_tri->TdGdX * diff_x);
-                         state->b += (s3d_tri->TdBdX * diff_x);
-                         state->a += (s3d_tri->TdAdX * diff_x);
-                         state->d += (s3d_tri->TdDdX * diff_x);
-                         state->w += (s3d_tri->TdWdX * diff_x);
+                        z += (s3d_tri->TdZdX * diff_x);
+                        state->u += (s3d_tri->TdUdX * diff_x);
+                        state->v += (s3d_tri->TdVdX * diff_x);
+                        state->r += (s3d_tri->TdRdX * diff_x);
+                        state->g += (s3d_tri->TdGdX * diff_x);
+                        state->b += (s3d_tri->TdBdX * diff_x);
+                        state->a += (s3d_tri->TdAdX * diff_x);
+                        state->d += (s3d_tri->TdDdX * diff_x);
+                        state->w += (s3d_tri->TdWdX * diff_x);
 
-                         x = s3d_tri->clip_l;
-                     }
-                 } else {
-                     if (x < s3d_tri->clip_l)
-                         goto tri_skip_line;
-                     if (xe > s3d_tri->clip_r)
-                         goto tri_skip_line;
-                     if (xe < s3d_tri->clip_l)
-                         xe = s3d_tri->clip_l - 1;
-                     if (x > s3d_tri->clip_r) {
-                         int diff_x = x - s3d_tri->clip_r;
+                        x = s3d_tri->clip_l;
+                    }
+                } else {
+                    if (x < s3d_tri->clip_l)
+                        goto tri_skip_line;
+                    if (xe > s3d_tri->clip_r)
+                        goto tri_skip_line;
+                    if (xe < s3d_tri->clip_l)
+                        xe = s3d_tri->clip_l - 1;
+                    if (x > s3d_tri->clip_r) {
+                        int diff_x = x - s3d_tri->clip_r;
 
-                         z        += (s3d_tri->TdZdX * diff_x);
-                         state->u += (s3d_tri->TdUdX * diff_x);
-                         state->v += (s3d_tri->TdVdX * diff_x);
-                         state->r += (s3d_tri->TdRdX * diff_x);
-                         state->g += (s3d_tri->TdGdX * diff_x);
-                         state->b += (s3d_tri->TdBdX * diff_x);
-                         state->a += (s3d_tri->TdAdX * diff_x);
-                         state->d += (s3d_tri->TdDdX * diff_x);
-                         state->w += (s3d_tri->TdWdX * diff_x);
+                        z += (s3d_tri->TdZdX * diff_x);
+                        state->u += (s3d_tri->TdUdX * diff_x);
+                        state->v += (s3d_tri->TdVdX * diff_x);
+                        state->r += (s3d_tri->TdRdX * diff_x);
+                        state->g += (s3d_tri->TdGdX * diff_x);
+                        state->b += (s3d_tri->TdBdX * diff_x);
+                        state->a += (s3d_tri->TdAdX * diff_x);
+                        state->d += (s3d_tri->TdDdX * diff_x);
+                        state->w += (s3d_tri->TdWdX * diff_x);
 
-                         x = s3d_tri->clip_r;
-                     }
-                 }
-             }
+                        x = s3d_tri->clip_r;
+                    }
+                }
+            }
 
-             virge->svga.changedvram[(dest_offset & virge->vram_mask) >> 12] = changeframecount;
+            virge->svga.changedvram[(dest_offset & virge->vram_mask) >> 12] = changeframecount;
 
-             dest_addr = dest_offset + (x * (bpp + 1));
-             z_addr = z_offset + (x << 1);
+            dest_addr = dest_offset + (x * (bpp + 1));
+            z_addr    = z_offset + (x << 1);
 
-             x &= 0xfff;
-             xe &= 0xfff;
+            x &= 0xfff;
+            xe &= 0xfff;
 
-             for (; x != xe; x = (x + x_dir) & 0xfff) {
-                  int      update = 1;
-                  uint16_t src_z  = 0;
+            for (; x != xe; x = (x + x_dir) & 0xfff) {
+                int      update = 1;
+                uint16_t src_z  = 0;
 
-                  _x = x;
-                  _y = state->y;
+                _x = x;
+                _y = state->y;
 
-                  if (use_z) {
-                      src_z = Z_READ(z_addr);
-                      Z_CLIP(src_z, z >> 16);
-                  }
+                if (use_z) {
+                    src_z = Z_READ(z_addr);
+                    Z_CLIP(src_z, z >> 16);
+                }
 
-                  if (update) {
-                      uint32_t dest_col;
+                if (update) {
+                    uint32_t dest_col;
 
-                      dest_pixel(state);
+                    dest_pixel(state);
 
-                      if (s3d_tri->cmd_set & CMD_SET_FE) {
-                          int a              = state->a >> 7;
-                          state->dest_rgba.r = ((state->dest_rgba.r * a) + (s3d_tri->fog_r * (255 - a))) / 255;
-                          state->dest_rgba.g = ((state->dest_rgba.g * a) + (s3d_tri->fog_g * (255 - a))) / 255;
-                          state->dest_rgba.b = ((state->dest_rgba.b * a) + (s3d_tri->fog_b * (255 - a))) / 255;
-                      }
+                    if (s3d_tri->cmd_set & CMD_SET_FE) {
+                        int a              = state->a >> 7;
+                        state->dest_rgba.r = ((state->dest_rgba.r * a) + (s3d_tri->fog_r * (255 - a))) / 255;
+                        state->dest_rgba.g = ((state->dest_rgba.g * a) + (s3d_tri->fog_g * (255 - a))) / 255;
+                        state->dest_rgba.b = ((state->dest_rgba.b * a) + (s3d_tri->fog_b * (255 - a))) / 255;
+                    }
 
-                      if (s3d_tri->cmd_set & CMD_SET_ABC_ENABLE) {
-                          uint32_t src_col;
-                          int      src_r = 0;
-                          uint32_t src_g = 0;
-                          uint32_t src_b = 0;
+                    if (s3d_tri->cmd_set & CMD_SET_ABC_ENABLE) {
+                        uint32_t src_col;
+                        int      src_r = 0;
+                        uint32_t src_g = 0;
+                        uint32_t src_b = 0;
 
+                        switch (bpp) {
+                            case 0: /*8 bpp*/
+                                /*Not implemented yet*/
+                                break;
+                            case 1: /*16 bpp*/
+                                src_col = *(uint16_t *) &vram[dest_addr & virge->vram_mask];
+                                RGB15_TO_24(src_col, src_r, src_g, src_b);
+                                break;
+                            case 2: /*24 bpp*/
+                                src_col = (*(uint32_t *) &vram[dest_addr & virge->vram_mask]) & 0xffffff;
+                                RGB24_TO_24(src_col, src_r, src_g, src_b);
+                                break;
+                        }
 
-                          switch (bpp) {
-                              case 0: /*8 bpp*/
-                                  /*Not implemented yet*/
-                                  break;
-                              case 1: /*16 bpp*/
-                                  src_col = *(uint16_t *)&vram[dest_addr & virge->vram_mask];
-                                  RGB15_TO_24(src_col, src_r, src_g, src_b);
-                                  break;
-                              case 2: /*24 bpp*/
-                                  src_col = (*(uint32_t *)&vram[dest_addr & virge->vram_mask]) & 0xffffff;
-                                  RGB24_TO_24(src_col, src_r, src_g, src_b);
-                                  break;
-                          }
+                        state->dest_rgba.r = ((state->dest_rgba.r * state->dest_rgba.a) + (src_r * (255 - state->dest_rgba.a))) / 255;
+                        state->dest_rgba.g = ((state->dest_rgba.g * state->dest_rgba.a) + (src_g * (255 - state->dest_rgba.a))) / 255;
+                        state->dest_rgba.b = ((state->dest_rgba.b * state->dest_rgba.a) + (src_b * (255 - state->dest_rgba.a))) / 255;
+                    }
 
-                          state->dest_rgba.r = ((state->dest_rgba.r * state->dest_rgba.a) +
-                                                (src_r * (255 - state->dest_rgba.a))) / 255;
-                          state->dest_rgba.g = ((state->dest_rgba.g * state->dest_rgba.a) +
-                                                (src_g * (255 - state->dest_rgba.a))) / 255;
-                          state->dest_rgba.b = ((state->dest_rgba.b * state->dest_rgba.a) +
-                                                (src_b * (255 - state->dest_rgba.a))) / 255;
-                      }
+                    switch (bpp) {
+                        case 0: /*8 bpp*/
+                            /*Not implemented yet*/
+                            break;
+                        case 1: /*16 bpp*/
+                            RGB15(state->dest_rgba.r, state->dest_rgba.g, state->dest_rgba.b, dest_col);
+                            *(uint16_t *) &vram[dest_addr] = dest_col;
+                            break;
+                        case 2: /*24 bpp*/
+                            dest_col                          = RGB24(state->dest_rgba.r, state->dest_rgba.g, state->dest_rgba.b);
+                            *(uint8_t *) &vram[dest_addr]     = dest_col & 0xff;
+                            *(uint8_t *) &vram[dest_addr + 1] = (dest_col >> 8) & 0xff;
+                            *(uint8_t *) &vram[dest_addr + 2] = (dest_col >> 16) & 0xff;
+                            break;
+                    }
 
-                      switch (bpp) {
-                          case 0: /*8 bpp*/
-                              /*Not implemented yet*/
-                              break;
-                          case 1: /*16 bpp*/
-                              RGB15(state->dest_rgba.r, state->dest_rgba.g, state->dest_rgba.b, dest_col);
-                              *(uint16_t *)&vram[dest_addr] = dest_col;
-                              break;
-                          case 2: /*24 bpp*/
-                              dest_col = RGB24(state->dest_rgba.r, state->dest_rgba.g, state->dest_rgba.b);
-                              *(uint8_t *)&vram[dest_addr] = dest_col & 0xff;
-                              *(uint8_t *)&vram[dest_addr + 1] = (dest_col >> 8) & 0xff;
-                              *(uint8_t *)&vram[dest_addr + 2] = (dest_col >> 16) & 0xff;
-                              break;
-                      }
+                    if (use_z && (s3d_tri->cmd_set & CMD_SET_ZUP))
+                        Z_WRITE(z_addr, src_z);
+                }
 
-                      if (use_z && (s3d_tri->cmd_set & CMD_SET_ZUP))
-                          Z_WRITE(z_addr, src_z);
-                  }
-
-                  z         += s3d_tri->TdZdX;
-                  state->u  += s3d_tri->TdUdX;
-                  state->v  += s3d_tri->TdVdX;
-                  state->r  += s3d_tri->TdRdX;
-                  state->g  += s3d_tri->TdGdX;
-                  state->b  += s3d_tri->TdBdX;
-                  state->a  += s3d_tri->TdAdX;
-                  state->d  += s3d_tri->TdDdX;
-                  state->w  += s3d_tri->TdWdX;
-                  dest_addr += x_offset;
-                  z_addr    += xz_offset;
-                  virge->pixel_count++;
-              }
+                z += s3d_tri->TdZdX;
+                state->u += s3d_tri->TdUdX;
+                state->v += s3d_tri->TdVdX;
+                state->r += s3d_tri->TdRdX;
+                state->g += s3d_tri->TdGdX;
+                state->b += s3d_tri->TdBdX;
+                state->a += s3d_tri->TdAdX;
+                state->d += s3d_tri->TdDdX;
+                state->w += s3d_tri->TdWdX;
+                dest_addr += x_offset;
+                z_addr += xz_offset;
+                virge->pixel_count++;
+            }
         }
 
 tri_skip_line:
-        state->x1     += dx1;
-        state->x2     += dx2;
+        state->x1 += dx1;
+        state->x2 += dx2;
         state->base_u += s3d_tri->TdUdY;
         state->base_v += s3d_tri->TdVdY;
         state->base_z += s3d_tri->TdZdY;
@@ -3473,22 +4283,23 @@ tri_skip_line:
         state->base_d += s3d_tri->TdDdY;
         state->base_w += s3d_tri->TdWdY;
         state->y--;
-        dest_offset   -= s3d_tri->dest_str;
-        z_offset      -= s3d_tri->z_str;
+        dest_offset -= s3d_tri->dest_str;
+        z_offset -= s3d_tri->z_str;
     }
 }
 
-static int tex_size[8] = {4 * 2, 2 * 2, 2 * 2, 1 * 2, 2 / 1, 2 / 1, 1 * 2, 1 * 2};
+static int tex_size[8] = { 4 * 2, 2 * 2, 2 * 2, 1 * 2, 2 / 1, 2 / 1, 1 * 2, 1 * 2 };
 
 static void
-s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri) {
+s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
+{
     s3d_state_t state;
 
-    uint32_t    tex_base;
-    int         c;
+    uint32_t tex_base;
+    int      c;
 
-    uint64_t     start_time = plat_timer_read();
-    uint64_t     end_time;
+    uint64_t start_time = plat_timer_read();
+    uint64_t end_time;
 
     state.tbu = s3d_tri->tbu << 11;
     state.tbv = s3d_tri->tbv << 11;
@@ -3502,18 +4313,18 @@ s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri) {
     state.base_u = s3d_tri->tus;
     state.base_v = s3d_tri->tvs;
     state.base_z = s3d_tri->tzs;
-    state.base_r = (int32_t)s3d_tri->trs;
-    state.base_g = (int32_t)s3d_tri->tgs;
-    state.base_b = (int32_t)s3d_tri->tbs;
-    state.base_a = (int32_t)s3d_tri->tas;
+    state.base_r = (int32_t) s3d_tri->trs;
+    state.base_g = (int32_t) s3d_tri->tgs;
+    state.base_b = (int32_t) s3d_tri->tbs;
+    state.base_a = (int32_t) s3d_tri->tas;
     state.base_d = s3d_tri->tds;
     state.base_w = s3d_tri->tws;
 
     tex_base = s3d_tri->tex_base;
     for (c = 9; c >= 0; c--) {
-         state.texture[c] = (uint16_t *)&virge->svga.vram[tex_base];
-         if (c <= state.max_d)
-             tex_base += ((1 << (c * 2)) * tex_size[(s3d_tri->cmd_set >> 5) & 7]) / 2;
+        state.texture[c] = (uint16_t *) &virge->svga.vram[tex_base];
+        if (c <= state.max_d)
+            tex_base += ((1 << (c * 2)) * tex_size[(s3d_tri->cmd_set >> 5) & 7]) / 2;
     }
 
     switch ((s3d_tri->cmd_set >> 27) & 0xf) {
@@ -3627,7 +4438,7 @@ s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri) {
 static void
 render_thread(void *param)
 {
-    virge_t *virge = (virge_t *)param;
+    virge_t *virge = (virge_t *) param;
 
     while (virge->render_thread_run) {
         thread_wait_event(virge->wake_render_thread, -1);
@@ -3642,7 +4453,7 @@ render_thread(void *param)
         }
         virge->s3d_busy = 0;
         virge->subsys_stat |= INT_S3D_DONE;
-        s3_virge_update_irqs(virge);
+        virge->irq_pending++;
     }
 }
 
@@ -3663,14 +4474,14 @@ queue_triangle(virge_t *virge)
 static void
 s3_virge_hwcursor_draw(svga_t *svga, int displine)
 {
-    virge_t  *virge  = (virge_t *) svga->priv;
-    int       x;
-    uint16_t  dat[2] = { 0, 0 };
-    int       xx;
-    int       offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
-    uint32_t  fg;
-    uint32_t  bg;
-    uint32_t  vram_mask = virge->vram_mask;
+    virge_t *virge = (virge_t *) svga->priv;
+    int      x;
+    uint16_t dat[2] = { 0, 0 };
+    int      xx;
+    int      offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
+    uint32_t fg;
+    uint32_t bg;
+    uint32_t vram_mask = virge->vram_mask;
 
     if (svga->interlace && svga->hwcursor_oddeven)
         svga->hwcursor_latch.addr += 16;
@@ -3753,103 +4564,99 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
         svga->hwcursor_latch.addr += 16;
 }
 
-#define DECODE_YCbCr()                       \
-    do {                                     \
-        int c;                               \
-                                             \
-        for (c = 0; c < 2; c++) {            \
-            uint8_t y1, y2;                  \
-            int8_t  Cr;                      \
-            int8_t  Cb;                      \
-            int     dR;                      \
-            int     dG;                      \
-            int     dB;                      \
-                                             \
-            y1 = src[0];                     \
-            Cr = src[1] - 0x80;              \
-            y2 = src[2];                     \
-            Cb = src[3] - 0x80;              \
-            src += 4;                        \
-                                             \
-            dR = (359 * Cr) >> 8;            \
-            dG = (88 * Cb + 183 * Cr) >> 8;  \
-            dB = (453 * Cb) >> 8;            \
-                                             \
-            r[x_write] = y1 + dR;            \
-            CLAMP(r[x_write]);               \
-            g[x_write] = y1 - dG;            \
-            CLAMP(g[x_write]);               \
-            b[x_write] = y1 + dB;            \
-            CLAMP(b[x_write]);               \
-                                             \
-            r[x_write + 1] = y2 + dR;        \
-            CLAMP(r[x_write + 1]);           \
-            g[x_write + 1] = y2 - dG;        \
-            CLAMP(g[x_write + 1]);           \
-            b[x_write + 1] = y2 + dB;        \
-            CLAMP(b[x_write + 1]);           \
-                                             \
-            x_write = (x_write + 2) & 7;     \
-         }                                   \
+#define DECODE_YCbCr()                      \
+    do {                                    \
+        for (uint8_t c = 0; c < 2; c++) {   \
+            uint8_t y1, y2;                 \
+            int8_t  Cr;                     \
+            int8_t  Cb;                     \
+            int     dR;                     \
+            int     dG;                     \
+            int     dB;                     \
+                                            \
+            y1 = src[0];                    \
+            Cr = src[1] - 0x80;             \
+            y2 = src[2];                    \
+            Cb = src[3] - 0x80;             \
+            src += 4;                       \
+                                            \
+            dR = (359 * Cr) >> 8;           \
+            dG = (88 * Cb + 183 * Cr) >> 8; \
+            dB = (453 * Cb) >> 8;           \
+                                            \
+            r[x_write] = y1 + dR;           \
+            CLAMP(r[x_write]);              \
+            g[x_write] = y1 - dG;           \
+            CLAMP(g[x_write]);              \
+            b[x_write] = y1 + dB;           \
+            CLAMP(b[x_write]);              \
+                                            \
+            r[x_write + 1] = y2 + dR;       \
+            CLAMP(r[x_write + 1]);          \
+            g[x_write + 1] = y2 - dG;       \
+            CLAMP(g[x_write + 1]);          \
+            b[x_write + 1] = y2 + dB;       \
+            CLAMP(b[x_write + 1]);          \
+                                            \
+            x_write = (x_write + 2) & 7;    \
+        }                                   \
     } while (0)
 
 /*Both YUV formats are untested*/
-#define DECODE_YUV211()                      \
-    do {                                     \
-        uint8_t y1, y2, y3, y4;              \
-        int8_t U, V;                         \
-        int dR;                              \
-        int dG;                              \
-        int dB;                              \
-                                             \
-        U = src[0] - 0x80;                   \
-        y1 = (298 * (src[1] - 16)) >> 8;     \
-        y2 = (298 * (src[2] - 16)) >> 8;     \
-        V = src[3] - 0x80;                   \
-        y3 = (298 * (src[4] - 16)) >> 8;     \
-        y4 = (298 * (src[5] - 16)) >> 8;     \
-        src += 6;                            \
-                                             \
-        dR = (309 * V) >> 8;                 \
-        dG = (100 * U + 208 * V) >> 8;       \
-        dB = (516 * U) >> 8;                 \
-                                             \
-        r[x_write] = y1 + dR;                \
-        CLAMP(r[x_write]);                   \
-        g[x_write] = y1 - dG;                \
-        CLAMP(g[x_write]);                   \
-        b[x_write] = y1 + dB;                \
-        CLAMP(b[x_write]);                   \
-                                             \
-        r[x_write + 1] = y2 + dR;            \
-        CLAMP(r[x_write + 1]);               \
-        g[x_write + 1] = y2 - dG;            \
-        CLAMP(g[x_write + 1]);               \
-        b[x_write + 1] = y2 + dB;            \
-        CLAMP(b[x_write + 1]);               \
-                                             \
-        r[x_write + 2] = y3 + dR;            \
-        CLAMP(r[x_write + 2]);               \
-        g[x_write + 2] = y3 - dG;            \
-        CLAMP(g[x_write + 2]);               \
-        b[x_write + 2] = y3 + dB;            \
-        CLAMP(b[x_write + 2]);               \
-                                             \
-        r[x_write + 3] = y4 + dR;            \
-        CLAMP(r[x_write + 3]);               \
-        g[x_write + 3] = y4 - dG;            \
-        CLAMP(g[x_write + 3]);               \
-        b[x_write + 3] = y4 + dB;            \
-        CLAMP(b[x_write + 3]);               \
-                                             \
-        x_write = (x_write + 4) & 7;         \
+#define DECODE_YUV211()                  \
+    do {                                 \
+        uint8_t y1, y2, y3, y4;          \
+        int8_t  U, V;                    \
+        int     dR;                      \
+        int     dG;                      \
+        int     dB;                      \
+                                         \
+        U  = src[0] - 0x80;              \
+        y1 = (298 * (src[1] - 16)) >> 8; \
+        y2 = (298 * (src[2] - 16)) >> 8; \
+        V  = src[3] - 0x80;              \
+        y3 = (298 * (src[4] - 16)) >> 8; \
+        y4 = (298 * (src[5] - 16)) >> 8; \
+        src += 6;                        \
+                                         \
+        dR = (309 * V) >> 8;             \
+        dG = (100 * U + 208 * V) >> 8;   \
+        dB = (516 * U) >> 8;             \
+                                         \
+        r[x_write] = y1 + dR;            \
+        CLAMP(r[x_write]);               \
+        g[x_write] = y1 - dG;            \
+        CLAMP(g[x_write]);               \
+        b[x_write] = y1 + dB;            \
+        CLAMP(b[x_write]);               \
+                                         \
+        r[x_write + 1] = y2 + dR;        \
+        CLAMP(r[x_write + 1]);           \
+        g[x_write + 1] = y2 - dG;        \
+        CLAMP(g[x_write + 1]);           \
+        b[x_write + 1] = y2 + dB;        \
+        CLAMP(b[x_write + 1]);           \
+                                         \
+        r[x_write + 2] = y3 + dR;        \
+        CLAMP(r[x_write + 2]);           \
+        g[x_write + 2] = y3 - dG;        \
+        CLAMP(g[x_write + 2]);           \
+        b[x_write + 2] = y3 + dB;        \
+        CLAMP(b[x_write + 2]);           \
+                                         \
+        r[x_write + 3] = y4 + dR;        \
+        CLAMP(r[x_write + 3]);           \
+        g[x_write + 3] = y4 - dG;        \
+        CLAMP(g[x_write + 3]);           \
+        b[x_write + 3] = y4 + dB;        \
+        CLAMP(b[x_write + 3]);           \
+                                         \
+        x_write = (x_write + 4) & 7;     \
     } while (0)
 
 #define DECODE_YUV422()                      \
     do {                                     \
-        int c;                               \
-                                             \
-        for (c = 0; c < 2; c++) {            \
+        for (uint8_t c = 0; c < 2; c++) {    \
             uint8_t y1;                      \
             uint8_t y2;                      \
             int8_t  U;                       \
@@ -3858,9 +4665,9 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
             int     dG;                      \
             int     dB;                      \
                                              \
-            U = src[0] - 0x80;               \
+            U  = src[0] - 0x80;              \
             y1 = (298 * (src[1] - 16)) >> 8; \
-            V = src[2] - 0x80;               \
+            V  = src[2] - 0x80;              \
             y2 = (298 * (src[3] - 16)) >> 8; \
             src += 4;                        \
                                              \
@@ -3886,116 +4693,108 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
         }                                    \
     } while (0)
 
-#define DECODE_RGB555()                      \
-    do {                                     \
-        int c;                               \
-                                             \
-        for (c = 0; c < 4; c++) {            \
-            uint16_t dat;                    \
-                                             \
-            dat = *(uint16_t *)src;          \
-            src += 2;                        \
-                                             \
-            r[x_write + c] =                 \
-                ((dat & 0x001f) << 3) |      \
-                ((dat & 0x001f) >> 2);       \
-            g[x_write + c] =                 \
-                ((dat & 0x03e0) >> 2) |      \
-                ((dat & 0x03e0) >> 7);       \
-            b[x_write + c] =                 \
-                ((dat & 0x7c00) >> 7) |      \
-                ((dat & 0x7c00) >> 12);      \
-        }                                    \
-        x_write = (x_write + 4) & 7;         \
+#define DECODE_RGB555()                   \
+    do {                                  \
+        for (uint8_t c = 0; c < 4; c++) { \
+            uint16_t dat;                 \
+                                          \
+            dat = *(uint16_t *)src;       \
+            src += 2;                     \
+                                          \
+            r[x_write + c] =              \
+                ((dat & 0x001f) << 3) |   \
+                ((dat & 0x001f) >> 2);    \
+            g[x_write + c] =              \
+                ((dat & 0x03e0) >> 2) |   \
+                ((dat & 0x03e0) >> 7);    \
+            b[x_write + c] =              \
+                ((dat & 0x7c00) >> 7) |   \
+                ((dat & 0x7c00) >> 12);   \
+        }                                 \
+        x_write = (x_write + 4) & 7;      \
     } while (0)
 
-#define DECODE_RGB565()                      \
-    do {                                     \
-        int c;                               \
-                                             \
-        for (c = 0; c < 4; c++) {            \
-            uint16_t dat;                    \
-                                             \
-            dat = *(uint16_t *)src;          \
-            src += 2;                        \
-                                             \
-            r[x_write + c] =                 \
-                ((dat & 0x001f) << 3) |      \
-                ((dat & 0x001f) >> 2);       \
-            g[x_write + c] =                 \
-                ((dat & 0x07e0) >> 3) |      \
-                ((dat & 0x07e0) >> 9);       \
-            b[x_write + c] =                 \
-                ((dat & 0xf800) >> 8) |      \
-                ((dat & 0xf800) >> 13);      \
-        }                                    \
-        x_write = (x_write + 4) & 7;         \
+#define DECODE_RGB565()                   \
+    do {                                  \
+        for (uint8_t c = 0; c < 4; c++) { \
+            uint16_t dat;                 \
+                                          \
+            dat = *(uint16_t *)src;       \
+            src += 2;                     \
+                                          \
+            r[x_write + c] =              \
+                ((dat & 0x001f) << 3) |   \
+                ((dat & 0x001f) >> 2);    \
+            g[x_write + c] =              \
+                ((dat & 0x07e0) >> 3) |   \
+                ((dat & 0x07e0) >> 9);    \
+            b[x_write + c] =              \
+                ((dat & 0xf800) >> 8) |   \
+                ((dat & 0xf800) >> 13);   \
+        }                                 \
+        x_write = (x_write + 4) & 7;      \
     } while (0)
 
-#define DECODE_RGB888()                      \
-    do {                                     \
-        int c;                               \
-                                             \
-        for (c = 0; c < 4; c++) {            \
-            r[x_write + c] = src[0];         \
-            g[x_write + c] = src[1];         \
-            b[x_write + c] = src[2];         \
-            src += 3;                        \
-        }                                    \
-        x_write = (x_write + 4) & 7;         \
+#define DECODE_RGB888()                   \
+    do {                                  \
+        for (uint8_t c = 0; c < 4; c++) { \
+            r[x_write + c] = src[0];      \
+            g[x_write + c] = src[1];      \
+            b[x_write + c] = src[2];      \
+            src += 3;                     \
+        }                                 \
+        x_write = (x_write + 4) & 7;      \
     } while (0)
 
-#define DECODE_XRGB8888()                    \
-    do {                                     \
-        int c;                               \
-                                             \
-        for (c = 0; c < 4; c++) {            \
-            r[x_write + c] = src[0];         \
-            g[x_write + c] = src[1];         \
-            b[x_write + c] = src[2];         \
-            src += 4;                        \
-        }                                    \
-        x_write = (x_write + 4) & 7;         \
+#define DECODE_XRGB8888()                 \
+    do {                                  \
+        for (uint8_t c = 0; c < 4; c++) { \
+            r[x_write + c] = src[0];      \
+            g[x_write + c] = src[1];      \
+            b[x_write + c] = src[2];      \
+            src += 4;                     \
+        }                                 \
+        x_write = (x_write + 4) & 7;      \
     } while (0)
 
-#define OVERLAY_SAMPLE()                     \
-    do {                                     \
-        switch (virge->streams.sdif) {       \
-            case 1:                          \
-                DECODE_YCbCr();              \
-                break;                       \
-            case 2:                          \
-                DECODE_YUV422();             \
-                break;                       \
-            case 3:                          \
-                DECODE_RGB555();             \
-                break;                       \
-            case 4:                          \
-                DECODE_YUV211();             \
-                break;                       \
-            case 5:                          \
-                DECODE_RGB565();             \
-                break;                       \
-            case 6:                          \
-                DECODE_RGB888();             \
-                break;                       \
-            case 7:                          \
-            default:                         \
-                DECODE_XRGB8888();           \
-                break;                       \
-        }                                    \
+#define OVERLAY_SAMPLE()               \
+    do {                               \
+        switch (virge->streams.sdif) { \
+            case 1:                    \
+                DECODE_YCbCr();        \
+                break;                 \
+            case 2:                    \
+                DECODE_YUV422();       \
+                break;                 \
+            case 3:                    \
+                DECODE_RGB555();       \
+                break;                 \
+            case 4:                    \
+                DECODE_YUV211();       \
+                break;                 \
+            case 5:                    \
+                DECODE_RGB565();       \
+                break;                 \
+            case 6:                    \
+                DECODE_RGB888();       \
+                break;                 \
+            case 7:                    \
+            default:                   \
+                DECODE_XRGB8888();     \
+                break;                 \
+        }                              \
     } while (0)
 
 static void
 s3_virge_overlay_draw(svga_t *svga, int displine)
 {
-    virge_t  *virge  = (virge_t *) svga->priv;
+    virge_t  *virge = (virge_t *) svga->priv;
     int       offset;
     int       r[8];
     int       g[8];
     int       b[8];
     int       x_size;
-    int       x_read = 4;
+    int       x_read  = 4;
     int       x_write = 4;
     int       x;
     uint32_t *p;
@@ -4006,7 +4805,7 @@ s3_virge_overlay_draw(svga_t *svga, int displine)
     else
         offset = virge->streams.sec_x + 1;
 
-    p = &((uint32_t *)buffer32->line[displine])[offset + svga->x_add];
+    p = &((uint32_t *) buffer32->line[displine])[offset + svga->x_add];
 
     if (virge->chip < S3_VIRGEGX2) {
         if ((offset + virge->streams.sec_w) > virge->streams.pri_w)
@@ -4310,8 +5109,10 @@ s3_virge_disable_handlers(virge_t *dev)
     reset_state->svga.mapping     = dev->svga.mapping;
     reset_state->bios_rom.mapping = dev->bios_rom.mapping;
 
-    reset_state->svga.timer       = dev->svga.timer;
-    reset_state->svga.timer8514   = dev->svga.timer8514;
+    reset_state->svga.timer     = dev->svga.timer;
+    reset_state->svga.timer_8514 = dev->svga.timer_8514;
+    reset_state->svga.timer_xga = dev->svga.timer_xga;
+    reset_state->irq_timer      = dev->irq_timer;
 }
 
 static void
@@ -4321,12 +5122,12 @@ s3_virge_reset(void *priv)
 
     if (reset_state != NULL) {
         s3_virge_disable_handlers(dev);
-        dev->virge_busy = 0;
-        dev->fifo_write_idx = 0;
-        dev->fifo_read_idx = 0;
-        dev->s3d_busy = 0;
-        dev->s3d_write_idx = 0;
-        dev->s3d_read_idx = 0;
+        dev->virge_busy       = 0;
+        dev->fifo_write_idx   = 0;
+        dev->fifo_read_idx    = 0;
+        dev->s3d_busy         = 0;
+        dev->s3d_write_idx    = 0;
+        dev->s3d_read_idx     = 0;
         reset_state->pci_slot = dev->pci_slot;
 
         *dev = *reset_state;
@@ -4337,56 +5138,59 @@ static void *
 s3_virge_init(const device_t *info)
 {
     const char *bios_fn = NULL;
-    virge_t    *virge = (virge_t *) calloc(1, sizeof(virge_t));
-    reset_state       = calloc(1, sizeof(virge_t));
+    virge_t    *virge   = (virge_t *) calloc(1, sizeof(virge_t));
+    reset_state         = calloc(1, sizeof(virge_t));
+
+    virge->type = (info->local & 0xff);
 
     virge->bilinear_enabled  = device_get_config_int("bilinear");
     virge->dithering_enabled = device_get_config_int("dithering");
-    if (info->local >= S3_VIRGE_GX2)
+    if (virge->type >= S3_VIRGE_GX2)
         virge->memory_size = 4;
     else
         virge->memory_size = device_get_config_int("memory");
 
     virge->onboard = !!(info->local & 0x100);
 
-    if (!virge->onboard)  switch (info->local) {
-        case S3_VIRGE_325:
-            bios_fn = ROM_VIRGE_325;
-            break;
-        case S3_DIAMOND_STEALTH3D_2000:
-            bios_fn = ROM_DIAMOND_STEALTH3D_2000;
-            break;
-        case S3_MIROCRYSTAL_3D:
-            bios_fn = ROM_MIROCRYSTAL_3D;
-            break;
-        case S3_DIAMOND_STEALTH3D_3000:
-            bios_fn = ROM_DIAMOND_STEALTH3D_3000;
-            break;
-        case S3_STB_VELOCITY_3D:
-            bios_fn = ROM_STB_VELOCITY_3D;
-            break;
-        case S3_VIRGE_DX:
-            bios_fn = ROM_VIRGE_DX;
-            break;
-        case S3_DIAMOND_STEALTH3D_2000PRO:
-            bios_fn = ROM_DIAMOND_STEALTH3D_2000PRO;
-            break;
-        case S3_VIRGE_GX:
-            bios_fn = ROM_VIRGE_GX;
-            break;
-        case S3_VIRGE_GX2:
-            bios_fn = ROM_VIRGE_GX2;
-            break;
-        case S3_DIAMOND_STEALTH3D_4000:
-            bios_fn = ROM_DIAMOND_STEALTH3D_4000;
-            break;
-        case S3_TRIO_3D2X:
-            bios_fn = ROM_TRIO3D2X;
-            break;
-        default:
-            free(virge);
-            return NULL;
-    }
+    if (!virge->onboard)
+        switch (virge->type) {
+            case S3_VIRGE_325:
+                bios_fn = ROM_VIRGE_325;
+                break;
+            case S3_DIAMOND_STEALTH3D_2000:
+                bios_fn = ROM_DIAMOND_STEALTH3D_2000;
+                break;
+            case S3_MIROCRYSTAL_3D:
+                bios_fn = ROM_MIROCRYSTAL_3D;
+                break;
+            case S3_DIAMOND_STEALTH3D_3000:
+                bios_fn = ROM_DIAMOND_STEALTH3D_3000;
+                break;
+            case S3_STB_VELOCITY_3D:
+                bios_fn = ROM_STB_VELOCITY_3D;
+                break;
+            case S3_VIRGE_DX:
+                bios_fn = ROM_VIRGE_DX;
+                break;
+            case S3_DIAMOND_STEALTH3D_2000PRO:
+                bios_fn = ROM_DIAMOND_STEALTH3D_2000PRO;
+                break;
+            case S3_VIRGE_GX:
+                bios_fn = ROM_VIRGE_GX;
+                break;
+            case S3_VIRGE_GX2:
+                bios_fn = ROM_VIRGE_GX2;
+                break;
+            case S3_DIAMOND_STEALTH3D_4000:
+                bios_fn = ROM_DIAMOND_STEALTH3D_4000;
+                break;
+            case S3_TRIO_3D2X:
+                bios_fn = ROM_TRIO3D2X;
+                break;
+            default:
+                free(virge);
+                return NULL;
+        }
 
     svga_init(info, &virge->svga, virge, virge->memory_size << 20,
               s3_virge_recalctimings,
@@ -4396,7 +5200,7 @@ s3_virge_init(const device_t *info)
     virge->svga.hwcursor.cur_ysize = 64;
 
     if (bios_fn != NULL) {
-        if (info->local == S3_VIRGE_GX2)
+        if (virge->type == S3_VIRGE_GX2)
             rom_init(&virge->bios_rom, bios_fn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
         else
             rom_init(&virge->bios_rom, bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -4450,11 +5254,11 @@ s3_virge_init(const device_t *info)
     virge->virge_id  = 0xe1;
     virge->is_agp    = !!(info->flags & DEVICE_AGP);
 
-    switch (info->local) {
+    switch (virge->type) {
         case S3_VIRGE_325:
         case S3_DIAMOND_STEALTH3D_2000:
         case S3_MIROCRYSTAL_3D:
-            virge->fifo_slots_num = 8;
+            virge->fifo_slots_num   = 8;
             virge->svga.decode_mask = (4 << 20) - 1;
             virge->virge_id_high    = 0x56;
             virge->virge_id_low     = 0x31;
@@ -4464,7 +5268,7 @@ s3_virge_init(const device_t *info)
             break;
         case S3_DIAMOND_STEALTH3D_3000:
         case S3_STB_VELOCITY_3D:
-            virge->fifo_slots_num = 8;
+            virge->fifo_slots_num   = 8;
             virge->svga.decode_mask = (8 << 20) - 1;
             virge->virge_id_high    = 0x88;
             virge->virge_id_low     = 0x3d;
@@ -4474,7 +5278,7 @@ s3_virge_init(const device_t *info)
             break;
         case S3_VIRGE_GX2:
         case S3_DIAMOND_STEALTH3D_4000:
-            virge->fifo_slots_num = 16;
+            virge->fifo_slots_num    = 16;
             virge->svga.decode_mask  = (4 << 20) - 1;
             virge->virge_id_high     = 0x8a;
             virge->virge_id_low      = 0x10;
@@ -4486,7 +5290,7 @@ s3_virge_init(const device_t *info)
             break;
 
         case S3_TRIO_3D2X:
-            virge->fifo_slots_num = 16;
+            virge->fifo_slots_num    = 16;
             virge->svga.decode_mask  = (8 << 20) - 1;
             virge->virge_id_high     = 0x8a;
             virge->virge_id_low      = 0x13;
@@ -4503,7 +5307,7 @@ s3_virge_init(const device_t *info)
             fallthrough;
 
         default:
-            virge->fifo_slots_num = 8;
+            virge->fifo_slots_num    = 8;
             virge->svga.decode_mask  = (4 << 20) - 1;
             virge->virge_id_high     = 0x8a;
             virge->virge_id_low      = 0x01;
@@ -4555,7 +5359,7 @@ s3_virge_init(const device_t *info)
             default:
                 break;
         }
-        if (info->local == S3_VIRGE_GX)
+        if (virge->type == S3_VIRGE_GX)
             virge->svga.crtc[0x36] |= (1 << 2);
     }
 
@@ -4572,16 +5376,18 @@ s3_virge_init(const device_t *info)
 
     virge->svga.force_old_addr = 1;
 
-    virge->render_thread_run = 1;
+    virge->render_thread_run  = 1;
     virge->wake_render_thread = thread_create_event();
-    virge->wake_main_thread = thread_create_event();
-    virge->not_full_event = thread_create_event();
-    virge->render_thread = thread_create(render_thread, virge);
+    virge->wake_main_thread   = thread_create_event();
+    virge->not_full_event     = thread_create_event();
+    virge->render_thread      = thread_create(render_thread, virge);
 
-    virge->fifo_thread_run = 1;
-    virge->wake_fifo_thread = thread_create_event();
+    virge->fifo_thread_run     = 1;
+    virge->wake_fifo_thread    = thread_create_event();
     virge->fifo_not_full_event = thread_create_event();
-    virge->fifo_thread = thread_create(fifo_thread, virge);
+    virge->fifo_thread         = thread_create(fifo_thread, virge);
+
+    timer_add(&virge->irq_timer, s3_virge_update_irq_timer, virge, 1);
 
     virge->local = info->local;
 
@@ -4702,144 +5508,153 @@ s3_virge_force_redraw(void *priv)
 }
 
 static const device_config_t s3_virge_config[] = {
-  // clang-format off
+    // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection = {
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dithering",
-        .description = "Dithering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
-  // clang-format on
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
 };
 
 static const device_config_t s3_virge_stb_config[] = {
-  // clang-format off
+    // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection = {
-            {
-                .description = "2 MB",
-                .value = 2
-            },
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dithering",
-        .description = "Dithering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
-  // clang-format on
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
 };
 
 static const device_config_t s3_virge_357_config[] = {
-  // clang-format off
+    // clang-format off
     {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dithering",
-        .description = "Dithering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
-  // clang-format on
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
 };
 
 static const device_config_t s3_trio3d2x_config[] = {
-  // clang-format off
+    // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 4,
-        .selection = {
-            {
-                .description = "4 MB",
-                .value = 4
-            },
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "dithering",
-        .description = "Dithering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
-  // clang-format on
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
 };
 
 const device_t s3_virge_325_pci_device = {
@@ -4850,7 +5665,7 @@ const device_t s3_virge_325_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_325_available },
+    .available     = s3_virge_325_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4864,7 +5679,7 @@ const device_t s3_virge_325_onboard_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4878,7 +5693,7 @@ const device_t s3_diamond_stealth_2000_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_325_diamond_available },
+    .available     = s3_virge_325_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4892,7 +5707,7 @@ const device_t s3_mirocrystal_3d_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_mirocrystal_3d_available },
+    .available     = s3_mirocrystal_3d_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4906,7 +5721,7 @@ const device_t s3_diamond_stealth_3000_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_988_diamond_available },
+    .available     = s3_virge_988_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_stb_config
@@ -4920,7 +5735,7 @@ const device_t s3_stb_velocity_3d_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_988_stb_available },
+    .available     = s3_virge_988_stb_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_stb_config
@@ -4934,7 +5749,7 @@ const device_t s3_virge_375_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_375_available },
+    .available     = s3_virge_375_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4948,7 +5763,7 @@ const device_t s3_virge_375_onboard_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4962,7 +5777,7 @@ const device_t s3_diamond_stealth_2000pro_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_375_diamond_available },
+    .available     = s3_virge_375_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4976,7 +5791,7 @@ const device_t s3_virge_385_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_385_available },
+    .available     = s3_virge_385_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_config
@@ -4990,7 +5805,7 @@ const device_t s3_virge_357_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_357_available },
+    .available     = s3_virge_357_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_357_config
@@ -5004,7 +5819,7 @@ const device_t s3_virge_357_agp_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_357_available },
+    .available     = s3_virge_357_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_357_config
@@ -5018,7 +5833,7 @@ const device_t s3_diamond_stealth_4000_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_357_diamond_available },
+    .available     = s3_virge_357_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_357_config
@@ -5032,7 +5847,7 @@ const device_t s3_diamond_stealth_4000_agp_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_virge_357_diamond_available },
+    .available     = s3_virge_357_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_357_config
@@ -5046,7 +5861,7 @@ const device_t s3_trio3d2x_pci_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_trio3d2x_available },
+    .available     = s3_trio3d2x_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_trio3d2x_config
@@ -5060,7 +5875,7 @@ const device_t s3_trio3d2x_agp_device = {
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    { .available = s3_trio3d2x_available },
+    .available     = s3_trio3d2x_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_trio3d2x_config

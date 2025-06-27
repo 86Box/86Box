@@ -82,8 +82,8 @@ typedef struct {
     rom_t bios_rom;
 
     uint8_t  banking;
-    uint32_t vram_size,
-        vram_mask;
+    uint32_t vram_size;
+    uint32_t vram_mask;
 
     uint8_t  port_22cb_val;
     uint8_t  port_32cb_val;
@@ -378,7 +378,7 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -642,7 +642,7 @@ et4000_recalctimings(svga_t *svga)
 {
     const et4000_t *dev = (et4000_t *) svga->priv;
 
-    svga->ma_latch |= (svga->crtc[0x33] & 3) << 16;
+    svga->memaddr_latch |= (svga->crtc[0x33] & 3) << 16;
 
     svga->hblankstart = (((svga->crtc[0x3f] & 0x4) >> 2) << 8) + svga->crtc[2];
 
@@ -701,7 +701,7 @@ et4000_recalctimings(svga_t *svga)
     if (dev->type == ET4000_TYPE_KOREAN || dev->type == ET4000_TYPE_TRIGEM || dev->type == ET4000_TYPE_KASAN) {
         if ((svga->render == svga_render_text_80) && ((svga->crtc[0x37] & 0x0A) == 0x0A)) {
             if (dev->port_32cb_val & 0x80) {
-                svga->ma_latch -= 2;
+                svga->memaddr_latch -= 2;
                 svga->ca_adj = -2;
             }
             if ((dev->port_32cb_val & 0xB4) == ((svga->crtc[0x37] & 3) == 2 ? 0xB4 : 0xB0)) {
@@ -719,7 +719,7 @@ et4000_recalctimings(svga_t *svga)
     }
 
     if ((svga->seqregs[0x0e] & 0x02) && ((svga->gdcreg[5] & 0x60) >= 0x40) && svga->lowres) {
-        svga->ma_latch <<= 1;
+        svga->memaddr_latch <<= 1;
         svga->rowoffset <<= 1;
         svga->render = svga_render_8bpp_highres;
     }
@@ -734,7 +734,7 @@ et4000_kasan_recalctimings(svga_t *svga)
 
     if (svga->render == svga_render_text_80 && (et4000->kasan_cfg_regs[0] & 8)) {
         svga->hdisp             += svga->dots_per_clock;
-        svga->ma_latch          -= 4;
+        svga->memaddr_latch          -= 4;
         svga->ca_adj             = (et4000->kasan_cfg_regs[0] >> 6) - 3;
         svga->ksc5601_sbyte_mask = (et4000->kasan_cfg_regs[0] & 4) << 5;
         if ((et4000->kasan_cfg_regs[0] & 0x23) == 0x20 && (et4000->kasan_cfg_regs[4] & 0x80) && ((svga->crtc[0x37] & 0x0B) == 0x0A))
@@ -943,125 +943,128 @@ et4000_kasan_available(void)
 static const device_config_t et4000_tc6058af_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 512,
-        .selection = {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "v1_10",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
             {
-                .description = "256 KB",
-                .value = 256
+                .name          = "Version 1.10",
+                .internal_name = "v1_10",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { TC6058AF_BIOS_ROM_PATH, "" }
             },
             {
-                .description = "512 KB",
-                .value = 512
+                .name          = "Version 1.21",
+                .internal_name = "v1_21",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { V1_21_BIOS_ROM_PATH, "" }
             },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
+            { .files_no = 0 }
         }
     },
     {
-        .name = "bios_ver",
-        .description = "BIOS Revision",
-        .type = CONFIG_BIOS,
-        .default_string = "v1_10",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 }, /*W1*/
-        .bios = {
-            { .name = "Version 1.10", .internal_name = "v1_10", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 32768, .files = { TC6058AF_BIOS_ROM_PATH, "" } },
-            { .name = "Version 1.21", .internal_name = "v1_21", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 32768, .files = { V1_21_BIOS_ROM_PATH, "" } },
-            { .files_no = 0 }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
 static const device_config_t et4000_bios_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 1024,
-        .selection = {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "v8_01",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
             {
-                .description = "256 KB",
-                .value = 256
+                .name          = "Version 8.01",
+                .internal_name = "v8_01",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_ROM_PATH, "" }
             },
             {
-                .description = "512 KB",
-                .value = 512
+                .name          = "Version 8.06",
+                .internal_name = "v8_06",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { V8_06_BIOS_ROM_PATH, "" }
             },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
+            { .files_no = 0 }
         }
     },
     {
-        .name = "bios_ver",
-        .description = "BIOS Revision",
-        .type = CONFIG_BIOS,
-        .default_string = "v8_01",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 }, /*W1*/
-        .bios = {
-            { .name = "Version 8.01", .internal_name = "v8_01", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 32768, .files = { BIOS_ROM_PATH, "" } },
-            { .name = "Version 8.06", .internal_name = "v8_06", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 32768, .files = { V8_06_BIOS_ROM_PATH, "" } },
-            { .files_no = 0 }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
         },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
 static const device_config_t et4000_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 1024,
-        .selection = {
-            {
-                .description = "256 KB",
-                .value = 256
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -1073,7 +1076,7 @@ const device_t et4000_tc6058af_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_tc6058af_config
@@ -1087,7 +1090,7 @@ const device_t et4000_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_bios_config
@@ -1101,7 +1104,7 @@ const device_t et4000_mca_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000_available },
+    .available     = et4000_available,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_config
@@ -1115,7 +1118,7 @@ const device_t et4000k_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000k_available },
+    .available     = et4000k_available,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_config
@@ -1129,7 +1132,7 @@ const device_t et4000k_tg286_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000k_available },
+    .available     = et4000k_available,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_config
@@ -1143,7 +1146,7 @@ const device_t et4000_kasan_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000_kasan_available },
+    .available     = et4000_kasan_available,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_config

@@ -56,6 +56,14 @@
             "inherits": "base"
         },
         {
+            "name": "ultra_debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "UltraDebug",
+                "DEV_BRANCH": "ON"
+            },
+            "inherits": "base"
+        },
+        {
             "name": "llvm-macos-aarch64.cmake",
             "displayName": "MacOS clang regular",
             "generator": "Ninja",

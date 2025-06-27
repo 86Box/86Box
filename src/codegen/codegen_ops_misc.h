@@ -1,24 +1,24 @@
 static uint32_t
-ropNOP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropNOP(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     return op_pc;
 }
 
 static uint32_t
-ropCLD(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropCLD(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     CLEAR_BITS((uintptr_t) &cpu_state.flags, D_FLAG);
     return op_pc;
 }
 static uint32_t
-ropSTD(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropSTD(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     SET_BITS((uintptr_t) &cpu_state.flags, D_FLAG);
     return op_pc;
 }
 
 static uint32_t
-ropCLI(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropCLI(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if (!IOPLp && (cr4 & (CR4_VME | CR4_PVI)))
         return 0;
@@ -29,7 +29,7 @@ ropCLI(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codebl
     return op_pc;
 }
 static uint32_t
-ropSTI(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropSTI(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if (!IOPLp && (cr4 & (CR4_VME | CR4_PVI)))
         return 0;
@@ -38,7 +38,7 @@ ropSTI(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codebl
 }
 
 static uint32_t
-ropFE(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFE(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg = NULL;
     int     host_reg;
@@ -88,7 +88,7 @@ ropFE(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblo
 }
 static uint32_t codegen_temp;
 static uint32_t
-ropFF_16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFF_16(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg = NULL;
     int     host_reg;
@@ -175,7 +175,7 @@ ropFF_16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return 0;
 }
 static uint32_t
-ropFF_32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropFF_32(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     x86seg *target_seg = NULL;
     int     host_reg;

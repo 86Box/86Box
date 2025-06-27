@@ -119,7 +119,7 @@ sis_5595_pmu_trap_io_mask(int size, uint16_t addr, uint8_t write, uint8_t val, v
 }
 
 static void
-sis_5595_pmu_trap_io_ide_bm(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+sis_5595_pmu_trap_io_ide_bm(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write), UNUSED(uint8_t val), void *priv)
 {
     sis_5595_pmu_io_trap_t *trap = (sis_5595_pmu_io_trap_t *) priv;
     sis_5595_pmu_t *dev = (sis_5595_pmu_t *) trap->priv;
@@ -433,7 +433,7 @@ const device_t sis_5595_1997_pmu_device = {
     .init          = sis_5595_pmu_init,
     .close         = sis_5595_pmu_close,
     .reset         = sis_5595_pmu_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -447,7 +447,7 @@ const device_t sis_5595_pmu_device = {
     .init          = sis_5595_pmu_init,
     .close         = sis_5595_pmu_close,
     .reset         = sis_5595_pmu_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

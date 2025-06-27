@@ -386,7 +386,7 @@ machine_at_awo671r_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0D, PCI_CARD_VIDEO,       2, 3, 4, 1);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
@@ -394,9 +394,8 @@ machine_at_awo671r_init(const machine_t *model)
     device_add_inst(&w83977ef_device, 2);
     device_add(&keyboard_ps2_pci_device);
     device_add(&sst_flash_39sf020_device);
-    if (gfxcard[0] == VID_INTERNAL) {
-        device_add(&chips_69000_onboard_device);
-    }
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
@@ -538,6 +537,34 @@ machine_at_6via90ap_init(const machine_t *model)
 
     if (sound_card_current[0] == SOUND_INTERNAL)
         device_add(&alc100_device); /* ALC100P identified on similar Acorp boards (694TA, 6VIA90A1) */
+
+    return ret;
+}
+
+int
+machine_at_7sbb_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/7sbb/sbb12aa2.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    device_add(&sis_5600_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&it8661f_device);
+    device_add(&sst_flash_29ee020_device); /* assumed */
 
     return ret;
 }

@@ -100,12 +100,12 @@ typedef struct svga_t {
     int dispon;
     int hdisp_on;
     int vc;
-    int sc;
+    int scanline;
     int linepos;
     int vslines;
     int linecountff;
     int oddeven;
-    int con;
+    int cursorvisible;
     int cursoron;
     int blink;
     int scrollcache;
@@ -116,6 +116,7 @@ typedef struct svga_t {
     int lastline_draw;
     int displine;
     int fullchange;
+    int left_overscan;
     int x_add;
     int y_add;
     int pan;
@@ -135,6 +136,7 @@ typedef struct svga_t {
     int packed_4bpp;
     int ps_bit_bug;
     int ati_4color;
+    int vblankend;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM
@@ -151,15 +153,15 @@ typedef struct svga_t {
     uint32_t  charseta;
     uint32_t  charsetb;
     uint32_t  adv_flags;
-    uint32_t  ma_latch;
+    uint32_t  memaddr_latch;
     uint32_t  ca_adj;
-    uint32_t  ma;
-    uint32_t  maback;
+    uint32_t  memaddr;
+    uint32_t  memaddr_backup;
     uint32_t  write_bank;
     uint32_t  read_bank;
     uint32_t  extra_banks[2];
     uint32_t  banked_mask;
-    uint32_t  ca;
+    uint32_t  cursoraddr;
     uint32_t  overscan_color;
     uint32_t *map8;
     uint32_t  pallook[512];
@@ -171,11 +173,11 @@ typedef struct svga_t {
     latch_t  latch;
 
     pc_timer_t timer;
-    pc_timer_t timer8514;
+    pc_timer_t timer_8514;
     pc_timer_t timer_xga;
 
     double clock;
-    double clock8514;
+    double clock_8514;
     double clock_xga;
 
     double multiplier;
@@ -189,6 +191,7 @@ typedef struct svga_t {
 
     void (*render)(struct svga_t *svga);
     void (*render8514)(struct svga_t *svga);
+    void (*render_xga)(struct svga_t *svga);
     void (*recalctimings_ex)(struct svga_t *svga);
 
     void (*video_out)(uint16_t addr, uint8_t val, void *priv);
@@ -201,6 +204,14 @@ typedef struct svga_t {
     void (*overlay_draw)(struct svga_t *svga, int displine);
 
     void (*vblank_start)(struct svga_t *svga);
+
+    void (*write)(uint32_t addr, uint8_t val, void *priv);
+    void (*writew)(uint32_t addr, uint16_t val, void *priv);
+    void (*writel)(uint32_t addr, uint32_t val, void *priv);
+
+    uint8_t (*read)(uint32_t addr, void *priv);
+    uint16_t (*readw)(uint32_t addr, void *priv);
+    uint32_t (*readl)(uint32_t addr, void *priv);
 
     void (*ven_write)(struct svga_t *svga, uint8_t val, uint32_t addr);
     float (*getclock)(int clock, void *priv);
@@ -219,6 +230,11 @@ typedef struct svga_t {
       card should not attempt to display anything */
     int   override;
     void *priv;
+
+    int vga_enabled;
+    /* The PS/55 POST BIOS has a special monitor detection for its internal VGA
+       when the monitor is connected to the Display Adapter. */
+    int cable_connected;
 
     uint8_t  crtc[256];
     uint8_t  gdcreg[256];
@@ -296,8 +312,16 @@ typedef struct svga_t {
     void *  ext8514;
     void *  clock_gen8514;
     void *  xga;
+
+    /* If set then another device is driving the monitor output and the EGA
+      card should not attempt to display anything. */
+    void       (*render_override)(void *priv);
+    void *     priv_parent;
+
+    void *     local;
 } svga_t;
 
+extern void     ibm8514_set_poll(svga_t *svga);
 extern void     ibm8514_poll(void *priv);
 extern void     ibm8514_recalctimings(svga_t *svga);
 extern uint8_t  ibm8514_ramdac_in(uint16_t port, void *priv);
@@ -320,10 +344,11 @@ extern void     ati8514_mca_write(int port, uint8_t val, void *priv);
 extern void     ati8514_pos_write(uint16_t port, uint8_t val, void *priv);
 extern void     ati8514_init(svga_t *svga, void *ext8514, void *dev8514);
 
-extern void xga_write_test(uint32_t addr, uint8_t val, void *priv);
-extern uint8_t xga_read_test(uint32_t addr, void *priv);
-extern void xga_poll(void *priv);
-extern void xga_recalctimings(svga_t *svga);
+extern void     xga_write_test(uint32_t addr, uint8_t val, void *priv);
+extern uint8_t  xga_read_test(uint32_t addr, void *priv);
+extern void     xga_set_poll(svga_t *svga);
+extern void     xga_poll(void *priv);
+extern void     xga_recalctimings(svga_t *svga);
 
 extern uint32_t svga_decode_addr(svga_t *svga, uint32_t addr, int write);
 
@@ -368,6 +393,7 @@ uint32_t svga_mask_addr(uint32_t addr, svga_t *svga);
 uint32_t svga_mask_changedaddr(uint32_t addr, svga_t *svga);
 
 void svga_doblit(int wx, int wy, svga_t *svga);
+void svga_set_poll(svga_t *svga);
 void svga_poll(void *priv);
 
 enum {
@@ -379,15 +405,15 @@ uint32_t svga_lookup_lut_ram(svga_t* svga, uint32_t val);
 
 /* We need a way to add a device with a pointer to a parent device so it can attach itself to it, and
    possibly also a second ATi 68860 RAM DAC type that auto-sets SVGA render on RAM DAC render change. */
-extern void    ati68860_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga);
-extern uint8_t ati68860_ramdac_in(uint16_t addr, void *priv, svga_t *svga);
+extern void    ati68860_ramdac_out(uint16_t addr, uint8_t val, int is_8514, void *priv, svga_t *svga);
+extern uint8_t ati68860_ramdac_in(uint16_t addr, int is_8514, void *priv, svga_t *svga);
 extern void    ati68860_set_ramdac_type(void *priv, int type);
 extern void    ati68860_ramdac_set_render(void *priv, svga_t *svga);
 extern void    ati68860_ramdac_set_pallook(void *priv, int i, uint32_t col);
 extern void    ati68860_hwcursor_draw(svga_t *svga, int displine);
 
-extern void    ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga);
-extern uint8_t ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga);
+extern void    ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, int is_8514, void *priv, svga_t *svga);
+extern uint8_t ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, int is_8514, void *priv, svga_t *svga);
 
 extern void    att49x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t att49x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
