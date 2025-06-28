@@ -10082,7 +10082,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE | MACHINE_SCSI | MACHINE_APM,
         .ram = {
             .min = 2048,
-            .max = 131072,
+            .max = 196608,
             .step = 2048
         },
         .nvrmask = 127,
