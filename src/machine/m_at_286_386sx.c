@@ -540,11 +540,10 @@ machine_at_drsm35286_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 	
-    device_add(&fdc37c651_device);
+    device_add(&ide_isa_device);
+    device_add(&fdc37c651_ide_device);
    
     machine_at_scat_init(model, 1, 0);
-
-    device_add(&ide_isa_device);
 	
 	if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
