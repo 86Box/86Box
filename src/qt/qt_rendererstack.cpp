@@ -40,6 +40,22 @@
 #include <QTouchEvent>
 #include <QStringBuilder>
 
+#include <QPainter>
+#include <QEvent>
+#include <QKeyEvent>
+#include <QWidget>
+
+#include <atomic>
+#include <mutex>
+#include <array>
+#include <vector>
+#include <memory>
+#include <QApplication>
+
+#ifdef WAYLAND
+#    include "wl_mouse.hpp"
+#endif
+
 #ifdef __APPLE__
 #    include <CoreGraphics/CoreGraphics.h>
 #endif
