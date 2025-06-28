@@ -37,6 +37,13 @@ typedef enum {
     EXTENSIONS_MAX
 } ibm8514_extensions_t;
 
+typedef enum {
+    VGA_MODE = 0,
+    IBM_MODE,
+    ATI_MODE,
+    MODE_MAX
+} ibm8514_mode_t;
+
 typedef struct hwcursor8514_t {
     int      ena;
     int      x;
@@ -202,6 +209,7 @@ typedef struct ibm8514_t {
     int      split;
     int      h_disp;
     int      h_total;
+    int      h_sync_start;
     int      h_sync_width;
     int      h_disp_time;
     int      rowoffset;
@@ -260,6 +268,7 @@ typedef struct ibm8514_t {
     int      ext_pitch;
     int      ext_crt_pitch;
     ibm8514_extensions_t extensions;
+    ibm8514_mode_t mode;
     int      onboard;
     int      linear;
     uint32_t vram_amount;
