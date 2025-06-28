@@ -540,7 +540,7 @@ machine_at_drsm35286_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 	
-    device_add(&f82c710_device);
+    device_add(&fdc37c651_device);
    
     machine_at_scat_init(model, 1, 0);
 
