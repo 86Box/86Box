@@ -303,27 +303,27 @@ OpenGLRenderer::find_uniforms(struct glsl_shader *glsl, int num_pass)
     u->orig.texture_size = get_uniform(p, "OrigTextureSize");
 
     for (i = 0; i < glsl->num_passes; ++i) {
-        sprintf(s, "Pass%dTexture", (i + 1));
+        snprintf(s, sizeof(s) -1, "Pass%dTexture", (i + 1));
         u->pass[i].texture = get_uniform(p, s);
-        sprintf(s, "Pass%dInputSize", (i + 1));
+        snprintf(s, sizeof(s) -1, "Pass%dInputSize", (i + 1));
         u->pass[i].input_size = get_uniform(p, s);
-        sprintf(s, "Pass%dTextureSize", (i + 1));
+        snprintf(s, sizeof(s) -1, "Pass%dTextureSize", (i + 1));
         u->pass[i].texture_size = get_uniform(p, s);
 
-        sprintf(s, "PassPrev%dTexture", num_pass - i);
+        snprintf(s, sizeof(s) -1, "PassPrev%dTexture", num_pass - i);
         u->prev_pass[i].texture = get_uniform(p, s);
-        sprintf(s, "PassPrev%dInputSize", num_pass - i);
+        snprintf(s, sizeof(s) -1, "PassPrev%dInputSize", num_pass - i);
         u->prev_pass[i].input_size = get_uniform(p, s);
-        sprintf(s, "PassPrev%dTextureSize", num_pass - i);
+        snprintf(s, sizeof(s) -1, "PassPrev%dTextureSize", num_pass - i);
         u->prev_pass[i].texture_size = get_uniform(p, s);
     }
 
     u->prev[0].texture   = get_uniform(p, "PrevTexture");
     u->prev[0].tex_coord = get_attrib(p, "PrevTexCoord");
     for (i = 1; i < MAX_PREV; ++i) {
-        sprintf(s, "Prev%dTexture", i);
+        snprintf(s, sizeof(s) -1, "Prev%dTexture", i);
         u->prev[i].texture = get_uniform(p, s);
-        sprintf(s, "Prev%dTexCoord", i);
+        snprintf(s, sizeof(s) -1, "Prev%dTexCoord", i);
         u->prev[i].tex_coord = get_attrib(p, s);
     }
     for (i = 0; i < MAX_PREV; ++i)
@@ -434,23 +434,21 @@ OpenGLRenderer::delete_prev(struct shader_prev *prev)
 void
 OpenGLRenderer::delete_shader(struct glsl_shader *glsl)
 {
-    int i;
-    for (i = 0; i < glsl->num_passes; ++i)
+    for (int i = 0; i < glsl->num_passes; ++i)
         delete_pass(&glsl->passes[i]);
     if (glsl->has_prev) {
         delete_pass(&glsl->prev_scene);
-        for (i = 0; i < MAX_PREV; ++i)
+        for (int i = 0; i < MAX_PREV; ++i)
             delete_prev(&glsl->prev[i]);
     }
-    for (i = 0; i < glsl->num_lut_textures; ++i)
+    for (int i = 0; i < glsl->num_lut_textures; ++i)
         delete_texture(&glsl->lut_textures[i].texture);
 }
 
 void
 OpenGLRenderer::delete_glsl(glsl_t *glsl)
 {
-    int i;
-    for (i = 0; i < glsl->num_shaders; ++i)
+    for (int i = 0; i < glsl->num_shaders; ++i)
         delete_shader(&glsl->shaders[i]);
     delete_pass(&glsl->scene);
     delete_pass(&glsl->fs_color);
@@ -622,7 +620,6 @@ load_texture(const char *f, struct shader_texture *tex)
 glsl_t *
 OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
 {
-    int      i, j;
     glslp_t *p = glslp_parse(f);
 
     if (p) {
@@ -639,10 +636,10 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
 
         gshader->num_lut_textures = p->num_textures;
 
-        for (i = 0; i < p->num_textures; ++i) {
+        for (int i = 0; i < p->num_textures; ++i) {
             struct texture *texture = &p->textures[i];
 
-            sprintf(file, "%s%s", path, texture->path);
+            snprintf(file, sizeof(file) - 1, "%s%s", path, texture->path);
 
             struct shader_lut_texture *tex = &gshader->lut_textures[i];
             strcpy(tex->name, texture->name);
@@ -681,18 +678,18 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
             gshader->input_filter_linear = p->input_filter_linear;
 
             gshader->num_parameters = p->num_parameters;
-            for (j = 0; j < gshader->num_parameters; ++j)
+            for (int j = 0; j < gshader->num_parameters; ++j)
                 memcpy(&gshader->parameters[j], &p->parameters[j], sizeof(struct shader_parameter));
 
             gshader->num_passes = p->num_shaders;
 
-            for (i = 0; i < p->num_shaders; ++i) {
+            for (int i = 0; i < p->num_shaders; ++i) {
                 struct shader      *shader = &p->shaders[i];
                 struct shader_pass *pass   = &gshader->passes[i];
 
                 strcpy(pass->alias, shader->alias);
                 if (!strlen(pass->alias))
-                    sprintf(pass->alias, "Pass %u", (i + 1));
+                    snprintf(pass->alias, sizeof(pass->alias) - 1, "Pass %u", (i + 1));
 
                 ogl3_log("Creating pass %u (%s)\n", (i + 1), pass->alias);
                 ogl3_log("Loading shader %s...\n", shader->shader_fn);
@@ -726,7 +723,7 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
                     if (num_shader == glsl->num_shaders - 1) {
                         pass->fbo.id = -1;
 
-                        for (j = 0; j < 2; ++j) {
+                        for (uint8_t j = 0; j < 2; ++j) {
                             if (pass->scale.mode[j] != SCALE_SOURCE || pass->scale.value[j] != 1) {
                                 setup_fbo(shader, &pass->fbo);
                                 break;
@@ -755,7 +752,7 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
                 if (gshader->has_prev) {
                     struct shader scene_shader_conf;
                     memset(&scene_shader_conf, 0, sizeof(struct shader));
-                    for (i = 0; i < MAX_PREV; ++i) {
+                    for (int i = 0; i < MAX_PREV; ++i) {
                         setup_fbo(&scene_shader_conf, &gshader->prev[i].fbo);
                     }
                 }
@@ -772,7 +769,6 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
 glsl_t *
 OpenGLRenderer::load_shaders(int num, char shaders[MAX_USER_SHADERS][512])
 {
-    int     i;
     glsl_t *glsl;
 
     glsl = (glsl_t *) malloc(sizeof(glsl_t));
@@ -780,7 +776,7 @@ OpenGLRenderer::load_shaders(int num, char shaders[MAX_USER_SHADERS][512])
 
     glsl->num_shaders = num;
     int failed        = 0;
-    for (i = num - 1; i >= 0; --i) {
+    for (int i = num - 1; i >= 0; --i) {
         const char *f = shaders[i];
         if (f && strlen(f)) {
             if (!load_glslp(glsl, i, f)) {
@@ -800,13 +796,12 @@ void
 OpenGLRenderer::read_shader_config()
 {
     char s[512];
-    int  i, j;
-    for (i = 0; i < active_shader->num_shaders; ++i) {
+    for (int i = 0; i < active_shader->num_shaders; ++i) {
         struct glsl_shader *shader = &active_shader->shaders[i];
         char               *name   = shader->name;
-        sprintf(s, "GL3 Shaders - %s", name);
+        snprintf(s, sizeof(s) -1, "GL3 Shaders - %s", name);
         //                shader->shader_refresh_rate = config_get_float(CFG_MACHINE, s, "shader_refresh_rate", -1);
-        for (j = 0; j < shader->num_parameters; ++j) {
+        for (int j = 0; j < shader->num_parameters; ++j) {
             struct shader_parameter *param = &shader->parameters[j];
             param->value                   = config_get_double(s, param->id, param->default_value);
         }
@@ -1233,7 +1228,6 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
 void
 OpenGLRenderer::render_pass(struct render_data *data)
 {
-    int    i;
     GLuint texture_unit = 0;
 
     //        ogl3_log("pass %d: %gx%g, %gx%g -> %gx%g, %gx%g, %gx%g\n", num_pass, pass->state.input_size[0],
@@ -1278,7 +1272,7 @@ OpenGLRenderer::render_pass(struct render_data *data)
 
     if (data->shader) {
         /* parameters */
-        for (i = 0; i < data->shader->num_parameters; ++i)
+        for (int i = 0; i < data->shader->num_parameters; ++i)
             if (u->parameters[i] >= 0)
                 glw.glUniform1f(u->parameters[i], data->shader->parameters[i].value);
 
@@ -1296,7 +1290,7 @@ OpenGLRenderer::render_pass(struct render_data *data)
             if (u->orig.texture_size >= 0)
                 glw.glUniform2fv(u->orig.texture_size, 1, orig->state.input_texture_size);
 
-            for (i = 0; i < data->pass; ++i) {
+            for (int i = 0; i < data->pass; ++i) {
                 if (u->pass[i].texture >= 0) {
                     glw.glActiveTexture(GL_TEXTURE0 + texture_unit);
                     glw.glBindTexture(GL_TEXTURE_2D, passes[i].fbo.texture.id);
@@ -1323,7 +1317,7 @@ OpenGLRenderer::render_pass(struct render_data *data)
 
         if (data->shader->has_prev) {
             /* loop through each previous frame */
-            for (i = 0; i < MAX_PREV; ++i) {
+            for (int i = 0; i < MAX_PREV; ++i) {
                 if (u->prev[i].texture >= 0) {
                     glw.glActiveTexture(GL_TEXTURE0 + texture_unit);
                     glw.glBindTexture(GL_TEXTURE_2D, data->shader->prev[i].fbo.texture.id);
@@ -1340,7 +1334,7 @@ OpenGLRenderer::render_pass(struct render_data *data)
             }
         }
 
-        for (i = 0; i < data->shader->num_lut_textures; ++i) {
+        for (int i = 0; i < data->shader->num_lut_textures; ++i) {
             if (u->lut_textures[i] >= 0) {
                 glw.glActiveTexture(GL_TEXTURE0 + texture_unit);
                 glw.glBindTexture(GL_TEXTURE_2D, data->shader->lut_textures[i].texture.id);
@@ -1364,7 +1358,7 @@ OpenGLRenderer::render_pass(struct render_data *data)
         glw.glDisableVertexAttribArray(data->shader_pass->uniforms.color);
 
     if (data->shader && data->shader->has_prev) {
-        for (i = 0; i < MAX_PREV; ++i) {
+        for (int i = 0; i < MAX_PREV; ++i) {
             if (u->prev[i].tex_coord >= 0)
                 glw.glDisableVertexAttribArray(u->prev[i].tex_coord);
         }
@@ -1401,10 +1395,11 @@ OpenGLRenderer::render()
     if (notReady())
         return;
 
-    int s, i, j;
-
     struct {
-        uint32_t x, y, w, h;
+        uint32_t x;
+        uint32_t y;
+        uint32_t w;
+        uint32_t h;
     } window_rect;
 
     window_rect.x = destination.x();
@@ -1434,7 +1429,10 @@ OpenGLRenderer::render()
         struct shader_pass *pass = &active_shader->scene;
 
         struct {
-            uint32_t x, y, w, h;
+            uint32_t x;
+            uint32_t y;
+            uint32_t w;
+            uint32_t h;
         } rect;
         rect.x = 0;
         rect.y = 0;
@@ -1496,20 +1494,20 @@ OpenGLRenderer::render()
     struct shader_pass *orig  = &active_shader->scene;
     struct shader_pass *input = &active_shader->scene;
 
-    for (s = 0; s < active_shader->num_shaders; ++s) {
+    for (int s = 0; s < active_shader->num_shaders; ++s) {
         struct glsl_shader *shader = &active_shader->shaders[s];
 
         int frame_count = frameCounter;
 
         /* loop through each pass */
-        for (i = 0; i < shader->num_passes; ++i) {
+        for (int i = 0; i < shader->num_passes; ++i) {
             bool resetFiltering = false;
             struct shader_pass *pass = &shader->passes[i];
 
             memcpy(pass->state.input_size, input->state.output_size, 2 * sizeof(GLfloat));
             memcpy(pass->state.input_texture_size, input->state.output_texture_size, 2 * sizeof(GLfloat));
 
-            for (j = 0; j < 2; ++j) {
+            for (uint8_t j = 0; j < 2; ++j) {
                 if (pass->scale.mode[j] == SCALE_VIEWPORT)
                     pass->state.output_size[j] = orig_output_size[j] * pass->scale.value[j];
                 else if (pass->scale.mode[j] == SCALE_ABSOLUTE)
@@ -1640,7 +1638,7 @@ OpenGLRenderer::render()
         memcpy(pass->state.input_size, input->state.output_size, 2 * sizeof(GLfloat));
         memcpy(pass->state.input_texture_size, input->state.output_texture_size, 2 * sizeof(GLfloat));
 
-        for (j = 0; j < 2; ++j) {
+        for (uint8_t j = 0; j < 2; ++j) {
             if (pass->scale.mode[j] == SCALE_VIEWPORT)
                 pass->state.output_size[j] = orig_output_size[j] * pass->scale.value[j];
             else if (pass->scale.mode[j] == SCALE_ABSOLUTE)

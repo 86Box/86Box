@@ -154,7 +154,7 @@ xtide_init(const device_t *info)
         sprintf(xtide->nvr_path, "xtide_%i.nvr", device_get_instance());
         FILE *fp = nvr_fopen(xtide->nvr_path, "rb");
         if (fp != NULL) {
-            fread(xtide->bios_rom.rom, 1, 0x2000, fp);
+            (void) !fread(xtide->bios_rom.rom, 1, 0x2000, fp);
             fclose(fp);
         }
     }

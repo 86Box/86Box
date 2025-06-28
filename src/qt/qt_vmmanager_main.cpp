@@ -62,7 +62,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
 
             QAction openSystemFolderAction(tr("Open folder"));
             contextMenu.addAction(&openSystemFolderAction);
-            connect(&openSystemFolderAction, &QAction::triggered, [this, indexAt] {
+            connect(&openSystemFolderAction, &QAction::triggered, [indexAt] {
                 if (const auto configDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString(); !configDir.isEmpty()) {
                     QDir dir(configDir);
                     if (!dir.exists())
@@ -78,7 +78,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
 
             QAction setSystemIcon(tr("Set icon"));
             contextMenu.addAction(&setSystemIcon);
-            connect(&setSystemIcon, &QAction::triggered, [this, indexAt] {
+            connect(&setSystemIcon, &QAction::triggered, [this] {
                 IconSelectionDialog dialog(":/systemicons/");
                 if(dialog.exec() == QDialog::Accepted) {
                     const QString iconName = dialog.getSelectedIconName();

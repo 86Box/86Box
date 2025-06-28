@@ -46,7 +46,7 @@ UpdateDetails(const UpdateCheck::UpdateResult &updateResult, QWidget *parent) : 
     const auto downloadButton = new QPushButton(tr("Visit download page"));
     ui->buttonBox->addButton(downloadButton, QDialogButtonBox::AcceptRole);
     // Override accepted to mean "I want to visit the download page"
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, [this, updateResult] {
+    connect(ui->buttonBox, &QDialogButtonBox::accepted, [updateResult] {
         visitDownloadPage(updateResult.channel);
     });
     const auto logo = QPixmap(":/assets/86box.png").scaled(QSize(64, 64), Qt::KeepAspectRatio, Qt::SmoothTransformation);
