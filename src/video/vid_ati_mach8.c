@@ -7141,9 +7141,9 @@ mach8_init(const device_t *info)
             video_inform(VIDEO_FLAG_TYPE_8514, &timing_mach32_pci);
             mach->config1 |= 0x0e;
             if (mach->ramdac_type == ATI_68860)
-                mach->config1 |= 0x0400;
-            else
                 mach->config1 |= 0x0a00;
+            else
+                mach->config1 |= 0x0400;
             mach->config2 |= 0x2000;
             svga->clock_gen = device_add(&ati18811_1_device);
         } else {
