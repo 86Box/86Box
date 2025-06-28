@@ -121,8 +121,6 @@
       <string>Re&amp;nderer</string>
      </property>
      <addaction name="actionSoftware_Renderer"/>
-     <addaction name="actionHardware_Renderer_OpenGL"/>
-     <addaction name="actionHardware_Renderer_OpenGL_ES"/>
      <addaction name="actionOpenGL_3_0_Core"/>
      <addaction name="actionVulkan"/>
      <addaction name="actionVNC"/>

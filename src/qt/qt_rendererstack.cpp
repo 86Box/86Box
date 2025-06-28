@@ -21,7 +21,6 @@
 #include "qt_rendererstack.hpp"
 #include "ui_qt_rendererstack.h"
 
-#include "qt_hardwarerenderer.hpp"
 #include "qt_openglrenderer.hpp"
 #include "qt_softwarerenderer.hpp"
 #include "qt_vulkanwindowrenderer.hpp"
@@ -336,24 +335,6 @@ RendererStack::createRenderer(Renderer renderer)
 #endif
             }
             break;
-        case Renderer::OpenGL:
-            {
-                this->createWinId();
-                auto hw        = new HardwareRenderer(this);
-                rendererWindow = hw;
-                connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
-                current.reset(this->createWindowContainer(hw, this));
-                break;
-            }
-        case Renderer::OpenGLES:
-            {
-                this->createWinId();
-                auto hw        = new HardwareRenderer(this, HardwareRenderer::RenderType::OpenGLES);
-                rendererWindow = hw;
-                connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
-                current.reset(this->createWindowContainer(hw, this));
-                break;
-            }
         case Renderer::OpenGL3:
             {
                 this->createWinId();

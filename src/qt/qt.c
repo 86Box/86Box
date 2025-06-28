@@ -38,21 +38,16 @@ qt_nvr_save(void)
 int
 plat_vidapi(const char *api)
 {
-    if (!strcasecmp(api, "default") || !strcasecmp(api, "system")) {
+    if (!strcasecmp(api, "default") || !strcasecmp(api, "system"))
         return 0;
-    } else if (!strcasecmp(api, "qt_software")) {
+    else if (!strcasecmp(api, "qt_software"))
         return 0;
-    } else if (!strcasecmp(api, "qt_opengl")) {
+    else if (!strcasecmp(api, "qt_opengl") || !strcasecmp(api, "qt_opengles") || !strcasecmp(api, "qt_opengl3"))
         return 1;
-    } else if (!strcasecmp(api, "qt_opengles")) {
+    else if (!strcasecmp(api, "qt_vulkan"))
         return 2;
-    } else if (!strcasecmp(api, "qt_opengl3")) {
+    else if (!strcasecmp(api, "vnc"))
         return 3;
-    } else if (!strcasecmp(api, "qt_vulkan")) {
-        return 4;
-    } else if (!strcasecmp(api, "vnc")) {
-        return 5;
-    }
 
     return 0;
 }
@@ -67,18 +62,12 @@ plat_vidapi_name(int api)
             name = "qt_software";
             break;
         case 1:
-            name = "qt_opengl";
-            break;
-        case 2:
-            name = "qt_opengles";
-            break;
-        case 3:
             name = "qt_opengl3";
             break;
-        case 4:
+        case 2:
             name = "qt_vulkan";
             break;
-        case 5:
+        case 3:
             name = "vnc";
             break;
         default:
