@@ -41,6 +41,80 @@
 #include <86box/video.h>
 #include <86box/machine.h>
 
+int
+machine_at_v12p_init(const machine_t *model)
+
+{
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios_versions"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+	
+	machine_at_common_init(model);
+
+    device_add(&ide_isa_device);
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SCSI,        1, 4, 3, 2);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 2, 1, 4, 3);
+    pci_register_slot(0x03, PCI_CARD_NORMAL,      3, 2, 1, 4);
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      4, 0, 0, 0);
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      0, 0, 0, 0);
+    device_add(&i430lx_device);
+    device_add(&keyboard_ps2_acer_pci_device);
+    device_add(&sio_zb_device);
+    device_add(&ali5105_device);
+	device_add(&amd_am28f010_flash_device);
+	device_add(&ncr53c810_onboard_pci_device);
+
+    return ret;
+}
+
+static const device_config_t v12p_config[] = {
+    // clang-format off
+    {
+        .name = "bios_versions",
+        .description = "BIOS Versions",
+        .type = CONFIG_BIOS,
+        .default_string = "v12p_14",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 }, /*W1*/
+        .bios = {
+            { .name = "Core Version 1.2 Version R1.4", .internal_name = "v12p_14", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/v12p/v12p_14.bin", "" } },
+            { .name = "Core Version 1.2 Version R1.6", .internal_name = "v12p_16", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/v12p/v12p_16.bin", "" } },	  
+            
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+
+
+const device_t v12p_device = {
+    .name          = "Acer V12P",
+    .internal_name = "v12p",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available	   = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = &v12p_config[0]
+};
+
 void
 machine_at_premiere_common_init(const machine_t *model, int pci_switch)
 {
