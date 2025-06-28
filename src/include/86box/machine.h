@@ -655,6 +655,7 @@ extern void machine_at_award_common_init(const machine_t *);
 
 extern void machine_at_sp4_common_init(const machine_t *model);
 
+extern int machine_at_v12p_init(const machine_t *);
 extern int machine_at_excaliburpci_init(const machine_t *);
 extern int machine_at_p5mp3_init(const machine_t *);
 extern int machine_at_dellxp60_init(const machine_t *);
