@@ -243,7 +243,7 @@ SettingsStorageControllers::on_comboBoxFD_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonFD->setEnabled(hdc_has_config(ui->comboBoxFD->currentData().toInt()) > 0);
+    ui->pushButtonFD->setEnabled(fdc_card_has_config(ui->comboBoxFD->currentData().toInt()) > 0);
 }
 
 void
