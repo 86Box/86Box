@@ -4006,7 +4006,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 512,
-            .max = 5000,
+            .max = 4096,
             .step = 128
         },
         .nvrmask = 127,
