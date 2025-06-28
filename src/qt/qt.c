@@ -28,6 +28,7 @@
 #include <86box/plat.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
+#include <86box/renderdefs.h>
 
 int
 qt_nvr_save(void)
@@ -38,16 +39,16 @@ qt_nvr_save(void)
 int
 plat_vidapi(const char *api)
 {
-    if (!strcasecmp(api, "default") || !strcasecmp(api, "system"))
-        return 0;
-    else if (!strcasecmp(api, "qt_software"))
-        return 0;
-    else if (!strcasecmp(api, "qt_opengl") || !strcasecmp(api, "qt_opengles") || !strcasecmp(api, "qt_opengl3"))
-        return 1;
-    else if (!strcasecmp(api, "qt_vulkan"))
-        return 2;
-    else if (!strcasecmp(api, "vnc"))
-        return 3;
+    if (!strcasecmp(api, RENDERER_NAME_DEFAULT) || !strcasecmp(api, RENDERER_NAME_SYSTEM))
+        return RENDERER_SOFTWARE;
+    else if (!strcasecmp(api, RENDERER_NAME_QT_SOFTWARE))
+        return RENDERER_SOFTWARE;
+    else if (!strcasecmp(api, RENDERER_NAME_QT_OPENGL) || !strcasecmp(api, RENDERER_NAME_QT_OPENGLES) || !strcasecmp(api, RENDERER_NAME_QT_OPENGL3))
+        return RENDERER_OPENGL3;
+    else if (!strcasecmp(api, RENDERER_NAME_QT_VULKAN))
+        return RENDERER_VULKAN;
+    else if (!strcasecmp(api, RENDERER_NAME_VNC))
+        return RENDERER_VNC;
 
     return 0;
 }
@@ -55,20 +56,20 @@ plat_vidapi(const char *api)
 char *
 plat_vidapi_name(int api)
 {
-    char *name = "default";
+    char *name = RENDERER_NAME_DEFAULT;
 
     switch (api) {
-        case 0:
-            name = "qt_software";
+        case RENDERER_SOFTWARE:
+            name = RENDERER_NAME_QT_SOFTWARE;
             break;
-        case 1:
-            name = "qt_opengl3";
+        case RENDERER_OPENGL3:
+            name = RENDERER_NAME_QT_OPENGL3;
             break;
-        case 2:
-            name = "qt_vulkan";
+        case RENDERER_VULKAN:
+            name = RENDERER_NAME_QT_VULKAN;
             break;
-        case 3:
-            name = "vnc";
+        case RENDERER_VNC:
+            name = RENDERER_NAME_VNC;
             break;
         default:
             fatal("Unknown renderer: %i\n", api);

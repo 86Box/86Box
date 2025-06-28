@@ -52,6 +52,7 @@ extern "C" {
 #include <86box/apm.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
+#include <86box/renderdefs.h>
 
 #ifdef USE_VNC
 #    include <86box/vnc.h>
@@ -421,16 +422,16 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
 
     if ((QApplication::platformName().contains("eglfs") || QApplication::platformName() == "haiku")) {
-        if (vid_api >= 1)
+        if ((vid_api == RENDERER_OPENGL3) || (vid_api == RENDERER_VULKAN))
             fprintf(stderr, "OpenGL renderers are unsupported on %s.\n", QApplication::platformName().toUtf8().data());
-        vid_api = 0;
+        vid_api = RENDERER_SOFTWARE;
         ui->actionVulkan->setVisible(false);
         ui->actionOpenGL_3_0_Core->setVisible(false);
     }
 
 #ifndef USE_VNC
-    if (vid_api == 3)
-        vid_api = 0;
+    if (vid_api == RENDERER_VNC)
+        vid_api = RENDERER_SOFTWARE;
     ui->actionVNC->setVisible(false);
 #endif
 
@@ -450,8 +451,8 @@ MainWindow::MainWindow(QWidget *parent)
     if (!vulkanAvailable)
 #endif
     {
-        if (vid_api == 2)
-            vid_api = 0;
+        if (vid_api == RENDERER_VULKAN)
+            vid_api = RENDERER_SOFTWARE;
         ui->actionVulkan->setVisible(false);
     }
 
@@ -465,7 +466,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(actGroup, &QActionGroup::triggered, [this](QAction *action) {
         vid_api = action->property("vid_api").toInt();
 #ifdef USE_VNC
-        if (vnc_enabled && vid_api != 3) {
+        if (vnc_enabled && vid_api != RENDERER_VNC) {
             startblit();
             vnc_enabled = 0;
             vnc_close();
@@ -477,17 +478,17 @@ MainWindow::MainWindow(QWidget *parent)
         switch (vid_api) {
             default:
                 break;
-            case 0:
+            case RENDERER_SOFTWARE:
                 newVidApi = RendererStack::Renderer::Software;
                 break;
-            case 1:
+            case RENDERER_OPENGL3:
                 newVidApi = RendererStack::Renderer::OpenGL3;
                 break;
-            case 2:
+            case RENDERER_VULKAN:
                 newVidApi = RendererStack::Renderer::Vulkan;
                 break;
 #ifdef USE_VNC
-            case 3:
+            case RENDERER_VNC:
                 {
                     newVidApi = RendererStack::Renderer::Software;
                     startblit();
