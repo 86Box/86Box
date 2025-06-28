@@ -530,6 +530,28 @@ machine_at_gw286ct_init(const machine_t *model)
 }
 
 int
+machine_at_drsm35286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/drsm35286/syab04-665821fb81363428830424.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+	
+    device_add(&ide_isa_device);
+    device_add(&fdc37c651_ide_device);
+   
+    machine_at_scat_init(model, 1, 0);
+	
+	if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    return ret;
+}
+
+int
 machine_at_senor_scat286_init(const machine_t *model)
 {
     int ret;
