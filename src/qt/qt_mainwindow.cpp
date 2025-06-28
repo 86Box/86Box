@@ -429,7 +429,7 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
 #ifndef USE_VNC
-    if (vid_api == 5)
+    if (vid_api == 3)
         vid_api = 0;
     ui->actionVNC->setVisible(false);
 #endif
@@ -450,7 +450,7 @@ MainWindow::MainWindow(QWidget *parent)
     if (!vulkanAvailable)
 #endif
     {
-        if (vid_api == 4)
+        if (vid_api == 2)
             vid_api = 0;
         ui->actionVulkan->setVisible(false);
     }
@@ -465,7 +465,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(actGroup, &QActionGroup::triggered, [this](QAction *action) {
         vid_api = action->property("vid_api").toInt();
 #ifdef USE_VNC
-        if (vnc_enabled && vid_api != 5) {
+        if (vnc_enabled && vid_api != 3) {
             startblit();
             vnc_enabled = 0;
             vnc_close();
