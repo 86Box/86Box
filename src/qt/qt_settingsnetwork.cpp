@@ -36,20 +36,22 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
         auto *nic_cbox      = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         auto *net_type_cbox = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
 
-        auto *intf_label    = findChild<QLabel *>(QString("labelIntf%1").arg(i + 1));
-        auto *intf_cbox     = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
+        auto *intf_label = findChild<QLabel *>(QString("labelIntf%1").arg(i + 1));
+        auto *intf_cbox  = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
 
         auto *conf_btn      = findChild<QPushButton *>(QString("pushButtonConf%1").arg(i + 1));
 //        auto *net_type_conf_btn      = findChild<QPushButton *>(QString("pushButtonNetTypeConf%1").arg(i + 1));
 
         auto *vde_socket_label = findChild<QLabel *>(QString("labelSocketVDENIC%1").arg(i + 1));
-        auto *socket_line   = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
+        auto *socket_line      = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
 
-        auto *bridge_line   = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i + 1));
+        auto *bridge_label = findChild<QLabel *>(QString("labelBridgeTAPNIC%1").arg(i + 1));
+        auto *bridge_line  = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i + 1));
 
         auto *option_list_label = findChild<QLabel *>(QString("labelOptionList%1").arg(i + 1));
-        auto *option_list_line = findChild<QWidget *>(QString("lineOptionList%1").arg(i + 1));
+        auto *option_list_line  = findChild<QWidget *>(QString("lineOptionList%1").arg(i + 1));
 
+        bridge_line->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_TAP);
         intf_cbox->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_PCAP);
         conf_btn->setEnabled(network_card_has_config(nic_cbox->currentData().toInt()));
 //        net_type_conf_btn->setEnabled(network_type_has_config(netType));
@@ -63,7 +65,8 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
         socket_line->setVisible(false);
 
         // TAP
-        bridge_line->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_TAP);
+        bridge_label->setVisible(false);
+        bridge_line->setVisible(false);
 
         // PCAP
         intf_cbox->setVisible(false);
@@ -92,6 +95,11 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
                     break;
 
                 case NET_TYPE_TAP:
+                    // option_list_label->setText("TAP Options");
+                    option_list_label->setVisible(true);
+                    option_list_line->setVisible(true);
+
+                    bridge_label->setVisible(true);
                     bridge_line->setVisible(true);
 
                 case NET_TYPE_SLIRP:
@@ -235,8 +243,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             QString currentVdeSocket = net_cards_conf[i].host_dev_name;
             auto editline = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i+1));
             editline->setText(currentVdeSocket);
-        }
-        else if (net_cards_conf[i].net_type == NET_TYPE_TAP) {
+        } else if (net_cards_conf[i].net_type == NET_TYPE_TAP) {
             QString currentTapDevice = net_cards_conf[i].host_dev_name;
             auto editline = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i+1));
             editline->setText(currentTapDevice);
