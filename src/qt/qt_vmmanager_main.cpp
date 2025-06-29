@@ -72,10 +72,6 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
                 }
             });
 
-            QAction convertToP3(tr("Convert system to PIII"));
-            contextMenu.addAction(&convertToP3);
-            convertToP3.setEnabled(false);
-
             QAction setSystemIcon(tr("Set icon"));
             contextMenu.addAction(&setSystemIcon);
             connect(&setSystemIcon, &QAction::triggered, [this] {
