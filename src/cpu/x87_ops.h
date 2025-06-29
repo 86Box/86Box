@@ -22,6 +22,20 @@
  */
 #include <math.h>
 #include <fenv.h>
+#if defined(_MSC_VER) && !defined(__clang__)
+#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
+#        define X87_INLINE_ASM
+#    endif
+#else
+#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64 || defined __amd64__
+#        define X87_INLINE_ASM
+#    endif
+#endif
+
+#ifdef X87_INLINE_ASM
+#include <immintrin.h>
+#endif
+
 #include "x87_timings.h"
 #ifdef _MSC_VER
 #    include <intrin.h>
@@ -63,16 +77,6 @@ typedef union {
         uint64_t negative : 1;
     };
 } double_decompose_t;
-
-#if defined(_MSC_VER) && !defined(__clang__)
-#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
-#        define X87_INLINE_ASM
-#    endif
-#else
-#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64 || defined __amd64__
-#        define X87_INLINE_ASM
-#    endif
-#endif
 
 #ifdef FPU_8087
 #    define x87_div(dst, src1, src2)                    \
