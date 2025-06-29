@@ -3,7 +3,7 @@ name: CodeQL Analysis (Windows, msys2)
 on:
 
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
     paths:
       - src/**
       - cmake/**
@@ -14,7 +14,7 @@ on:
       - "!**/Makefile*"
 
   pull_request:
-    branches: [ "main" ]
+    branches: [ "master" ]
     paths:
       - src/**
       - cmake/**

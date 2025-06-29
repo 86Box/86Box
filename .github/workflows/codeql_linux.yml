@@ -3,7 +3,7 @@ name: CodeQL Analysis (Linux)
 on:
 
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
     paths:
       - src/**
       - cmake/**
