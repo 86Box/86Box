@@ -297,6 +297,10 @@ fetch_and_bus(int c, int bus)
     }
 }
 
+#ifdef wait
+#undef wait
+#endif
+
 static void
 wait(int c, int bus)
 {
