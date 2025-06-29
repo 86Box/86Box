@@ -264,6 +264,7 @@ opVPCEXT(uint32_t fetchdat)
     uint8_t    b2;
     uint16_t   cent;
     time_t     now;
+    struct tm  tm_buf;
     struct tm *tm = NULL;
 
     if (!is_vpc) /* only emulate this on Virtual PC machines */
@@ -282,7 +283,16 @@ opVPCEXT(uint32_t fetchdat)
     /* 0f 3f 03 xx opcodes are mostly related to the host clock, so fetch it now */
     if (b1 == 0x03) {
         (void) time(&now);
-        tm = localtime(&now);
+
+#ifdef _WIN32
+        if (localtime_s(&tm_buf, &now) == 0)
+            tm = &tm_buf;
+#else
+        tm = localtime_r(&now, &tm_buf);
+#endif
+
+        if (!tm)
+            fatal("localtime() failed for host clock\n");
     }
 
     if ((b1 == 0x07) && (b2 == 0x0b)) {

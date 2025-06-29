@@ -782,7 +782,11 @@ usage:
                 goto usage;
 
             temp2 = (char *) calloc(2048, 1);
-            sscanf(argv[++c], "%c:%s", &drive, temp2);
+            if (sscanf(argv[++c], "%c:%2047s", &drive, temp2) != 2) {
+                fprintf(stderr, "Invalid input format for --image option.\n");
+                free(temp2);
+                goto usage;
+            }
             if (drive > 0x40)
                 drive = (drive & 0x1f) - 1;
             else
@@ -1021,9 +1025,21 @@ usage:
      * This is where we start outputting to the log file,
      * if there is one. Create a little info header first.
      */
+    struct tm time_buf;
+
     (void) time(&now);
-    info = localtime(&now);
-    strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
+#ifdef _WIN32
+    if (localtime_s(&time_buf, &now) == 0)
+        info = &time_buf;
+#else
+    info = localtime_r(&now, &time_buf);
+#endif
+
+    if (info)
+        strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
+    else
+        strcpy(temp, "unknown");
+
     pclog("#\n# %ls v%ls logfile, created %s\n#\n",
           EMU_NAME_W, EMU_VERSION_FULL_W, temp);
     pclog("# VM: %s\n#\n", vm_name);

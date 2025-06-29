@@ -69,13 +69,12 @@ static inline int wx_config_has_entry(void *config, const char *name) { return i
 static inline void wx_config_free(void *config) { ini_close(config); };
 
 static int endswith(const char *str, const char *ext) {
-        int i;
         const char *p;
         int elen = strlen(ext);
         int slen = strlen(str);
         if (slen >= elen) {
                 p = &str[slen - elen];
-                for (i = 0; i < elen; ++i) {
+                for (int i = 0; i < elen; ++i) {
                         if (tolower(p[i]) != tolower(ext[i]))
                                 return 0;
                 }
@@ -118,12 +117,18 @@ static char *load_file(const char *fn) {
 
         char *data = (char*)malloc(fsize + 1);
 
-        (void) fread(data, fsize, 1, fp);
-        fclose(fp);
+        size_t read_bytes = fread(data, fsize, 1, fp);
+        if (read_bytes != 1) {
+            fclose(fp);
+            free(data);
+            return nullptr;
+        } else {
+            fclose(fp);
 
-        data[fsize] = 0;
+            data[fsize] = 0;
 
-        return data;
+            return data;
+        }
 }
 
 static void strip_lines(const char *program, const char *starts_with) {
@@ -147,17 +152,15 @@ static void strip_defines(const char *program) {
 }
 
 static int has_parameter(glslp_t *glsl, char *id) {
-        int i;
-        for (i = 0; i < glsl->num_parameters; ++i)
+        for (int i = 0; i < glsl->num_parameters; ++i)
                 if (!strcmp(glsl->parameters[i].id, id))
                         return 1;
         return 0;
 }
 
 static int get_parameters(glslp_t *glsl) {
-        int i;
         struct parameter p;
-        for (i = 0; i < glsl->num_shaders; ++i) {
+        for (int i = 0; i < glsl->num_shaders; ++i) {
                 size_t size = 0;
                 char* line = NULL;
                 struct shader *shader = &glsl->shaders[i];
@@ -197,8 +200,7 @@ static int get_parameters(glslp_t *glsl) {
 }
 
 static struct parameter *get_parameter(glslp_t *glslp, const char *id) {
-        int i;
-        for (i = 0; i < glslp->num_parameters; ++i) {
+        for (int i = 0; i < glslp->num_parameters; ++i) {
                 if (!strcmp(glslp->parameters[i].id, id)) {
                         return &glslp->parameters[i];
                 }
@@ -207,8 +209,7 @@ static struct parameter *get_parameter(glslp_t *glslp, const char *id) {
 }
 
 static glslp_t *glsl_parse(const char *f) {
-        glslp_t *glslp = (glslp_t*)malloc(sizeof(glslp_t));
-        memset(glslp, 0, sizeof(glslp_t));
+        glslp_t *glslp = (glslp_t*) calloc(1, sizeof(glslp_t));
         glslp->num_shaders = 1;
         struct shader *shader = &glslp->shaders[0];
         strcpy(shader->shader_fn, f);
@@ -233,7 +234,9 @@ extern "C" {
 void get_glslp_name(const char *f, char *s, int size) { safe_strncpy(s, path_get_filename((char *)f), size); }
 
 glslp_t *glslp_parse(const char *f) {
-        int i, j, len, sublen;
+        int j;
+        int len;
+        int sublen;
         char s[513], t[513], z[540];
 
         memset(s, 0, sizeof(s));
@@ -247,8 +250,7 @@ glslp_t *glslp_parse(const char *f) {
                 return 0;
         }
 
-        glslp_t *glslp = (glslp_t*)malloc(sizeof(glslp_t));
-        memset(glslp, 0, sizeof(glslp_t));
+        glslp_t *glslp = (glslp_t*) calloc(1, sizeof(glslp_t));
 
         get_glslp_name(f, glslp->name, sizeof(glslp->name));
 
@@ -256,7 +258,7 @@ glslp_t *glslp_parse(const char *f) {
 
         wx_config_get_bool(cfg, "filter_linear0", &glslp->input_filter_linear, -1);
 
-        for (i = 0; i < glslp->num_shaders; ++i) {
+        for (int i = 0; i < glslp->num_shaders; ++i) {
                 struct shader *shader = &glslp->shaders[i];
 
                 snprintf(s, sizeof(s) - 1, "shader%d", i);
@@ -267,12 +269,31 @@ glslp_t *glslp_parse(const char *f) {
                 }
                 strcpy(s, f);
                 *path_get_filename(s) = 0;
-                snprintf(shader->shader_fn, sizeof(shader->shader_fn) - 1, "%s%s", s, t);
+
+                size_t max_len = sizeof(shader->shader_fn);
+                size_t s_len = strlen(s);
+
+                if (s_len >= max_len) {
+                    // s alone fills or overflows the buffer, truncate and null-terminate
+                    size_t copy_len = max_len - 1 < s_len ? max_len - 1 : s_len;
+                    memcpy(shader->shader_fn, s, copy_len);
+                    shader->shader_fn[copy_len] = '\0';
+                } else {
+                    // Copy s fully
+                    memcpy(shader->shader_fn, s, s_len);
+                    // Copy as much of t as fits after s
+                    size_t avail = max_len - 1 - s_len; // space left for t + null terminator
+                    // Copy as much of t as fits into the remaining space
+                    memcpy(shader->shader_fn + s_len, t, avail);
+                    // Null-terminate
+                    shader->shader_fn[s_len + avail] = '\0';
+                }
+
                 shader->shader_program = load_file(shader->shader_fn);
                 if (!shader->shader_program) {
-                        fprintf(stderr, "GLSLP Error: Could not load shader %s\n", shader->shader_fn);
-                        glslp_free(glslp);
-                        return 0;
+                    fprintf(stderr, "GLSLP Error: Could not load shader %s\n", shader->shader_fn);
+                    glslp_free(glslp);
+                    return 0;
                 }
                 strip_parameters(shader->shader_program);
                 strip_defines(shader->shader_program);
@@ -327,7 +348,7 @@ glslp_t *glslp_parse(const char *f) {
         len = strlen(t);
         j = 0;
         sublen = 0;
-        for (i = 0; i < len; ++i) {
+        for (int i = 0; i < len; ++i) {
                 if (t[i] == ';' || i == len - 1) {
                         sublen = (i - j) + ((i == len - 1) ? 1 : 0) + 1;
                         safe_strncpy(s, t + j, sublen);
@@ -361,7 +382,7 @@ glslp_t *glslp_parse(const char *f) {
         len = strlen(t);
         j = 0;
         sublen = 0;
-        for (i = 0; i < len; ++i) {
+        for (int i = 0; i < len; ++i) {
                 if (t[i] == ';' || i == len - 1) {
                         sublen = (i - j) + ((i == len - 1) ? 1 : 0) + 1;
                         safe_strncpy(s, t + j, sublen);
@@ -382,8 +403,7 @@ glslp_t *glslp_parse(const char *f) {
 }
 
 void glslp_free(glslp_t *p) {
-        int i;
-        for (i = 0; i < p->num_shaders; ++i)
+        for (int i = 0; i < p->num_shaders; ++i)
                 if (p->shaders[i].shader_program)
                         free(p->shaders[i].shader_program);
         free(p);
@@ -391,10 +411,9 @@ void glslp_free(glslp_t *p) {
 
 void glslp_read_shader_config(glslp_t *shader) {
     char s[512];
-    int i;
     char *name = shader->name;
-    sprintf(s, "GL3 Shaders - %s", name);
-    for (i = 0; i < shader->num_parameters; ++i) {
+    snprintf(s, sizeof(s) -1, "GL3 Shaders - %s", name);
+    for (int i = 0; i < shader->num_parameters; ++i) {
         struct parameter *param = &shader->parameters[i];
         param->value = config_get_double(s, param->id, param->default_value);
     }
@@ -402,12 +421,11 @@ void glslp_read_shader_config(glslp_t *shader) {
 
 void glslp_write_shader_config(glslp_t *shader) {
     char s[512];
-    int i;
     char *name = shader->name;
 
     startblit();
-    sprintf(s, "GL3 Shaders - %s", name);
-    for (i = 0; i < shader->num_parameters; ++i) {
+    snprintf(s, sizeof(s) - 1, "GL3 Shaders - %s", name);
+    for (int i = 0; i < shader->num_parameters; ++i) {
         struct parameter *param = &shader->parameters[i];
         config_set_double(s, param->id, param->value);
     }

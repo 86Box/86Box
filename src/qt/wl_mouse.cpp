@@ -50,12 +50,6 @@ static struct zwp_relative_pointer_v1_listener rel_listener = {
     rel_mouse_event
 };
 
-static struct zwp_keyboard_shortcuts_inhibitor_v1_listener kbd_listener
-{
-    [](void *data, struct zwp_keyboard_shortcuts_inhibitor_v1 *zwp_keyboard_shortcuts_inhibitor_v1) -> void {},
-    [](void *data, struct zwp_keyboard_shortcuts_inhibitor_v1 *zwp_keyboard_shortcuts_inhibitor_v1) -> void {}
-};
-
 static void
 display_handle_global(void *data, struct wl_registry *registry, uint32_t id,
                       const char *interface, uint32_t version)

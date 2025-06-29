@@ -3,6 +3,7 @@ name: CodeQL Analysis (Linux)
 on:
 
   push:
+    branches: [ "master" ]
     paths:
       - src/**
       - cmake/**
@@ -13,6 +14,7 @@ on:
       - "!**/Makefile*"
 
   pull_request:
+    branches: [ "master" ]
     paths:
       - src/**
       - cmake/**
@@ -22,6 +24,9 @@ on:
       - .github/workflows/codeql_linux.yml
       - vcpkg.json
       - "!**/Makefile*"
+
+  schedule:
+    - cron: '22 11 * * 0'
 
 jobs:
 

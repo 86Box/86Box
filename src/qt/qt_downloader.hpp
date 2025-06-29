@@ -24,7 +24,7 @@
 #include <QFile>
 
 
-class Downloader : public QObject {
+class Downloader final : public QObject {
     Q_OBJECT
 public:
     enum class DownloadLocation {

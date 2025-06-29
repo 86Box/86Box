@@ -193,7 +193,11 @@ static int
 connect_named_pipe_client(serial_passthrough_t *dev)
 {
     char ascii_pipe_name[1024] = { 0 };
-    strncpy(ascii_pipe_name, dev->named_pipe, sizeof(ascii_pipe_name) - 1);
+    size_t len = strlen(dev->named_pipe);
+    if ((len + 1) >= sizeof(ascii_pipe_name))
+        memcpy(ascii_pipe_name, dev->named_pipe, sizeof(ascii_pipe_name));
+    else
+        memcpy(ascii_pipe_name, dev->named_pipe, len + 1);
 
     HANDLE hPipe = CreateFileA(
         ascii_pipe_name,            // pipe name

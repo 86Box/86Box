@@ -446,24 +446,36 @@ static int
 viso_fill_time(uint8_t *data, time_t time, int format, int longform)
 {
     uint8_t   *p      = data;
-    struct tm *time_s = localtime(&time);
-    if (!time_s) {
-        /* localtime will return NULL if the time_t is negative (Windows)
-           or way too far into 64-bit space (Linux). Fall back to epoch. */
-        time_t epoch = 0;
-        time_s       = localtime(&epoch);
-        if (UNLIKELY(!time_s))
-            fatal("VISO: localtime(0) = NULL\n");
+    struct tm time_s_buf;
+    struct tm *time_s = NULL;
+    time_t epoch      = 0;
 
-        /* Force year clamping if the timestamp is known to be outside the supported ranges. */
+#ifdef _WIN32
+    if (localtime_s(&time_s_buf, &time) == 0)
+        time_s = &time_s_buf;
+#else
+    time_s = localtime_r(&time, &time_s_buf);
+#endif
+
+    if (!time_s) {
+        /* localtime may return NULL if time is negative or out of range */
+#ifdef _WIN32
+        if (localtime_s(&time_s_buf, &epoch) == 0)
+            time_s = &time_s_buf;
+#else
+        time_s = localtime_r(&epoch, &time_s_buf);
+#endif
+        if (!time_s)
+            fatal("VISO: localtime fallback to epoch failed\n");
+
+        /* Force year clamping for out-of-range times */
         if (time < (longform ? -62135596800LL : -2208988800LL)) /* 0001-01-01 00:00:00 : 1900-01-01 00:00:00 */
             time_s->tm_year = -1901;
         else if (time > (longform ? 253402300799LL : 5869583999LL)) /* 9999-12-31 23:59:59 : 2155-12-31 23:59:59 */
             time_s->tm_year = 8100;
     }
 
-    /* Clamp year to the supported ranges, and assume the
-       OS returns valid numbers in the other struct fields. */
+    /* Clamp year within supported ranges */
     if (time_s->tm_year < (longform ? -1900 : 0)) {
         time_s->tm_year = longform ? -1900 : 0;
         time_s->tm_mon = time_s->tm_hour = time_s->tm_min = time_s->tm_sec = 0;
@@ -476,18 +488,18 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
         time_s->tm_min = time_s->tm_sec = 59;
     }
 
-    /* Convert timestamp. */
+    /* Convert timestamp */
     if (longform) {
-        p += sprintf((char *) p, "%04u%02u%02u%02u%02u%02u00",
-                     1900 + time_s->tm_year, 1 + time_s->tm_mon, time_s->tm_mday,
+        p += sprintf((char *)p, "%04u%02u%02u%02u%02u%02u00",
+                     1900 + (unsigned)time_s->tm_year, 1 + time_s->tm_mon, time_s->tm_mday,
                      time_s->tm_hour, time_s->tm_min, time_s->tm_sec);
     } else {
-        *p++ = time_s->tm_year;    /* year since 1900 */
-        *p++ = 1 + time_s->tm_mon; /* month */
-        *p++ = time_s->tm_mday;    /* day */
-        *p++ = time_s->tm_hour;    /* hour */
-        *p++ = time_s->tm_min;     /* minute */
-        *p++ = time_s->tm_sec;     /* second */
+        *p++ = (uint8_t)time_s->tm_year;    /* year since 1900 */
+        *p++ = (uint8_t)(1 + time_s->tm_mon); /* month */
+        *p++ = (uint8_t)time_s->tm_mday;    /* day */
+        *p++ = (uint8_t)time_s->tm_hour;    /* hour */
+        *p++ = (uint8_t)time_s->tm_min;     /* minute */
+        *p++ = (uint8_t)time_s->tm_sec;     /* second */
     }
     if (format & VISO_FORMAT_ISO)
         *p++ = tz_offset; /* timezone (ISO only) */
@@ -1034,8 +1046,15 @@ next_dir:
        the timezone offset for descriptors and file times to use. */
     tzset();
     time_t now = time(NULL);
-    if (viso->format & VISO_FORMAT_ISO) /* timezones are ISO only */
-        tz_offset = (now - mktime(gmtime(&now))) / (3600 / 4);
+    struct tm now_tm;
+    if (viso->format & VISO_FORMAT_ISO) { /* timezones are ISO only */
+#ifdef _WIN32
+        gmtime_s(&now_tm, &now);  // Windows: output first param, input second
+#else
+        gmtime_r(&now, &now_tm);  // POSIX: input first param, output second
+#endif
+        tz_offset = (now - mktime(&now_tm)) / (3600 / 4);
+    }
 
     /* Get root directory basename for the volume ID. */
     const char *basename = path_get_filename(viso->root_dir->path);
