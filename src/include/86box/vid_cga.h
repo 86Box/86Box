@@ -8,15 +8,13 @@
  *
  *          Emulation of the old and new IBM CGA graphics cards.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>, 
+ *          Miran Grca, <mgrca8@gmail.com>
  *          Connor Hyde / starfrost, <mario64crashed@gmail.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
- *          Copyright 2025 starfrost (refactoring)
+ *          Copyright 2025      starfrost (refactoring).
  */
 
 #ifndef VIDEO_CGA_H
@@ -24,8 +22,7 @@
 
 // Mode flags for the CGA.
 // Set by writing to 3D8
-typedef enum cga_mode_flags_e
-{
+typedef enum cga_mode_flags_e {
     CGA_MODE_FLAG_HIGHRES = 1 << 0,                     // 80-column text mode
     CGA_MODE_FLAG_GRAPHICS = 1 << 1,                    // Graphics mode
     CGA_MODE_FLAG_BW = 1 << 2,                          // Black and white 
@@ -35,8 +32,7 @@ typedef enum cga_mode_flags_e
 } cga_mode_flags;
 
 // Motorola MC6845 CRTC registers
-typedef enum cga_crtc_registers_e
-{
+typedef enum cga_crtc_registers_e {
     CGA_CRTC_HTOTAL = 0x0,                              // Horizontal total (total number of characters incl. hsync)
     CGA_CRTC_HDISP = 0x1,                               // Horizontal display 
     CGA_CRTC_HSYNC_POS = 0x2,                           // Horizontal position of horizontal ysnc
@@ -58,8 +54,7 @@ typedef enum cga_crtc_registers_e
 } cga_crtc_registers;
 
 // Registers for the CGA
-typedef enum cga_registers_e
-{
+typedef enum cga_registers_e {
     CGA_REGISTER_CRTC_INDEX = 0x3D4,
     CGA_REGISTER_CRTC_DATA = 0x3D5,
     CGA_REGISTER_MODE_CONTROL = 0x3D8,
@@ -129,11 +124,11 @@ uint8_t cga_read(uint32_t addr, void *priv);
 void    cga_recalctimings(cga_t *cga);
 void    cga_poll(void *priv);
 
-#ifdef EMU_DEVICE_H
-extern const device_config_t cga_config[];
-
-extern const device_t cga_device;
-extern const device_t cga_pravetz_device;
-#endif
-
+//#ifdef EMU_DEVICE_H
+//extern const device_config_t cga_config[];
+//
+//extern const device_t cga_device;
+//extern const device_t cga_pravetz_device;
+//#endif
+//
 #endif /*VIDEO_CGA_H*/

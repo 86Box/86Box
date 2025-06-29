@@ -399,6 +399,13 @@ extern const device_t gd5446_pci_device;
 extern const device_t gd5446_stb_pci_device;
 extern const device_t gd5480_pci_device;
 
+
+/* IBM CGA*/
+extern const device_t cga_device;
+
+/* pravetz CGA */
+extern const device_t cga_pravetz_device;
+
 /* Compaq CGA */
 extern const device_t compaq_cga_device;
 extern const device_t compaq_cga_2_device;
