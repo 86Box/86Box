@@ -55,6 +55,7 @@ extern "C" {
 #endif
 #include <86box/gdbstub.h>
 #include <86box/version.h>
+#include <86box/renderdefs.h>
 }
 
 #ifdef Q_OS_WINDOWS
@@ -835,7 +836,7 @@ main(int argc, char *argv[])
 
         /* Set the PAUSE mode depending on the renderer. */
 #ifdef USE_VNC
-        if (vid_api == 3)
+        if (vid_api == RENDERER_VNC)
             plat_pause(1);
         else
 #endif
