@@ -177,6 +177,8 @@ extern char usr_path[1024];     /* path (dir) of user data */
 extern char cfg_path[1024];     /* full path of config file */
 extern int  open_dir_usr_path;  /* default file open dialog directory of usr_path */
 extern char uuid[MAX_UUID_LEN]; /* UUID or machine identifier */
+extern char vmm_path[1024];       /* VM Manager path to scan (temporary) */
+extern int  vmm_enabled;
 #ifndef USE_NEW_DYNAREC
 extern FILE *stdlog; /* file to log output to */
 #endif

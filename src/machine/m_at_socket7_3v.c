@@ -628,25 +628,24 @@ machine_at_d943_init(const machine_t *model)
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
 	
-	machine_at_common_init_ex(model, 2);
-	device_add(&amstrad_megapc_nvr_device);
+    machine_at_common_init_ex(model, 2);
+    device_add(&amstrad_megapc_nvr_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 	  0, 0, 0, 0);
-	pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 	  0, 0, 0, 0);
-	pci_register_slot(0x08, PCI_CARD_VIDEO,	  	      4, 0, 0, 0);
-	pci_register_slot(0x11, PCI_CARD_NORMAL,          3, 2, 4, 1);
-	pci_register_slot(0x12, PCI_CARD_NORMAL,	      2, 1, 3, 4);
-	pci_register_slot(0x13, PCI_CARD_NORMAL,     	  1, 3, 2, 4);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_VIDEO,       4, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 2, 4, 1);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,	  2, 1, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 3, 2, 4);
     device_add(&i430hx_device);
     device_add(&piix3_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
-	spd_register(SPD_TYPE_EDO, 0x7, 256);
-	
-	
-	if (gfxcard[0] == VID_INTERNAL)
+    spd_register(SPD_TYPE_EDO, 0x7, 256);
+
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
     if (sound_card_current[0] == SOUND_INTERNAL)
@@ -670,11 +669,10 @@ static const device_config_t d943_config[] = {
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_oct96.bin", "" } },
             { .name = "Version 4.05 Revision 1.03.943 (12/12/1996)", .internal_name = "d943_dec96", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_dec96.bin", "" } },
-			{ .name = "Version 4.05 Revision 1.05.943 (09/04/1997)", .internal_name = "d943_sept97", .bios_type = BIOS_NORMAL,
+            { .name = "Version 4.05 Revision 1.05.943 (09/04/1997)", .internal_name = "d943_sept97", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_sept97.bin", "" } },
             { .name = "Version 4.05 Revision 1.06.943 (10/29/1997)", .internal_name = "d943_oct97", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_oct97.bin", "" } },
-            
         },
     },
     { .name = "", .description = "", .type = CONFIG_END }
@@ -691,7 +689,7 @@ const device_t d943_device = {
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
-    .available = NULL,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = &d943_config[0]

@@ -341,9 +341,25 @@ path_get_slash(char *path)
 void
 path_append_filename(char *dest, const char *s1, const char *s2)
 {
-    strcpy(dest, s1);
-    path_slash(dest);
-    strcat(dest, s2);
+    size_t dest_size = 260;
+    size_t len;
+
+    if (!dest || !s1 || !s2)
+        return;
+
+    snprintf(dest, dest_size, "%s", s1);
+    len = strlen(dest);
+
+    if (len > 0 && dest[len - 1] != '/' && dest[len - 1] != '\\') {
+        if (len + 1 < dest_size) {
+            dest[len++] = '/';
+            dest[len] = '\0';
+        }
+    }
+
+    if (len < dest_size - 1) {
+        strncat(dest, s2, dest_size - len - 1);
+    }
 }
 
 void
@@ -776,8 +792,8 @@ plat_set_thread_name(void *thread, const char *name)
 
     if (pSetThreadDescription) {
         size_t len = strlen(name) + 1;
-        wchar_t wname[len + 1];
-        mbstowcs(wname, name, len);
+        wchar_t wname[2048];
+        mbstowcs(wname, name, (len >= 1024) ? 1024 : len);
         pSetThreadDescription(thread ? (HANDLE) thread : GetCurrentThread(), wname);
     }
 #else

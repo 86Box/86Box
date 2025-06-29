@@ -48,8 +48,10 @@
 #define DOUBLE_INTERPOLATE_SRGB   2
 #define DOUBLE_INTERPOLATE_LINEAR 3
 
-typedef union
-{
+#define DEVICE_VRAM      0x4000
+#define DEVICE_VRAM_MASK 0x3fff
+
+typedef union {
     uint32_t color;
     struct {
         uint8_t b;
@@ -206,11 +208,11 @@ cga_write(uint32_t addr, uint8_t val, void *priv)
 {
     cga_t *cga = (cga_t *) priv;
 
-    cga->vram[addr & 0x3fff] = val;
+    cga->vram[addr & DEVICE_VRAM_MASK] = val;
     if (cga->snow_enabled) {
         int offset                  = ((timer_get_remaining_u64(&cga->timer) / CGACONST) * 2) & 0xfc;
-        cga->charbuffer[offset]     = cga->vram[addr & 0x3fff];
-        cga->charbuffer[offset | 1] = cga->vram[addr & 0x3fff];
+        cga->charbuffer[offset]     = cga->vram[addr & DEVICE_VRAM_MASK];
+        cga->charbuffer[offset | 1] = cga->vram[addr & DEVICE_VRAM_MASK];
     }
     cga_waitstates(cga);
 }
@@ -223,10 +225,10 @@ cga_read(uint32_t addr, void *priv)
     cga_waitstates(cga);
     if (cga->snow_enabled) {
         int offset                  = ((timer_get_remaining_u64(&cga->timer) / CGACONST) * 2) & 0xfc;
-        cga->charbuffer[offset]     = cga->vram[addr & 0x3fff];
-        cga->charbuffer[offset | 1] = cga->vram[addr & 0x3fff];
+        cga->charbuffer[offset]     = cga->vram[addr & DEVICE_VRAM_MASK];
+        cga->charbuffer[offset | 1] = cga->vram[addr & DEVICE_VRAM_MASK];
     }
-    return cga->vram[addr & 0x3fff];
+    return cga->vram[addr & DEVICE_VRAM_MASK];
 }
 
 void
@@ -253,7 +255,7 @@ cga_recalctimings(cga_t *cga)
 static void
 cga_render(cga_t *cga, int line)
 {
-    uint16_t cursoraddr  = (cga->crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (cga->crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
+    uint16_t cursoraddr  = (cga->crtc[CGA_CRTC_CURSOR_ADDR_LOW] | (cga->crtc[CGA_CRTC_CURSOR_ADDR_HIGH] << 8)) & DEVICE_VRAM_MASK;
     int      drawcursor;
     int      x;
     int      column;
@@ -313,8 +315,8 @@ cga_render(cga_t *cga, int line)
     } else if (!(cga->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
         for (x = 0; x < cga->crtc[CGA_CRTC_HDISP]; x++) {
             if (cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) {
-                chr  = cga->vram[(cga->memaddr << 1) & 0x3fff];
-                attr = cga->vram[((cga->memaddr << 1) + 1) & 0x3fff];
+                chr  = cga->vram[(cga->memaddr << 1) & DEVICE_VRAM_MASK];
+                attr = cga->vram[((cga->memaddr << 1) + 1) & DEVICE_VRAM_MASK];
             } else
                 chr = attr = 0;
             drawcursor = ((cga->memaddr == cursoraddr) && cga->cursorvisible && cga->cursoron);
@@ -605,7 +607,7 @@ cga_poll(void *priv)
             cga->vadj--;
             if (!cga->vadj) {
                 cga->cgadispon = 1;
-                cga->memaddr = cga->memaddr_backup = (cga->crtc[CGA_CRTC_START_ADDR_LOW] | (cga->crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+                cga->memaddr = cga->memaddr_backup = (cga->crtc[CGA_CRTC_START_ADDR_LOW] | (cga->crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & DEVICE_VRAM_MASK;
                 cga->scanline               = 0;
             }
         } else if (cga->scanline == cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR]) {
@@ -623,7 +625,7 @@ cga_poll(void *priv)
                 cga->vadj = cga->crtc[CGA_CRTC_VTOTAL_ADJUST];
                 if (!cga->vadj) {
                     cga->cgadispon = 1;
-                    cga->memaddr = cga->memaddr_backup = (cga->crtc[CGA_CRTC_START_ADDR_LOW] | (cga->crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+                    cga->memaddr = cga->memaddr_backup = (cga->crtc[CGA_CRTC_START_ADDR_LOW] | (cga->crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & DEVICE_VRAM_MASK;
                 }
                 
                 switch (cga->crtc[CGA_CRTC_CURSOR_START] & 0x60) {
@@ -728,7 +730,7 @@ cga_poll(void *priv)
             cga->cursorvisible = 1;
         if (cga->cgadispon && (cga->cgamode & CGA_MODE_FLAG_HIGHRES)) {
             for (x = 0; x < (cga->crtc[CGA_CRTC_HDISP] << 1); x++)
-                cga->charbuffer[x] = cga->vram[((cga->memaddr << 1) + x) & 0x3fff];
+                cga->charbuffer[x] = cga->vram[((cga->memaddr << 1) + x) & DEVICE_VRAM_MASK];
         }
     }
 }
@@ -754,7 +756,7 @@ cga_standalone_init(UNUSED(const device_t *info))
     cga->revision     = device_get_config_int("composite_type");
     cga->snow_enabled = device_get_config_int("snow_enabled");
 
-    cga->vram = malloc(0x4000);
+    cga->vram = malloc(DEVICE_VRAM);
 
     cga_comp_init(cga->revision);
     timer_add(&cga->timer, cga_poll, cga, 1);
@@ -775,6 +777,18 @@ cga_standalone_init(UNUSED(const device_t *info))
             interp_lut[0][i][j] = cga_interpolate_srgb(i, j, 0.5);
             interp_lut[1][i][j] = cga_interpolate_linear(i, j, 0.5);
         }
+    }
+
+    switch(device_get_config_int("font")) {
+        case 0:
+            loadfont(FONT_IBM_MDA_437_PATH, 0);
+            break;
+        case 1:
+            loadfont(FONT_IBM_MDA_437_NORDIC_PATH, 0);
+            break;
+        case 4:
+            loadfont(FONT_TULIP_DGA_PATH, 0);
+            break;
     }
 
     return cga;
@@ -877,6 +891,22 @@ const device_config_t cga_config[] = {
             { .description = "sRGB interpolation",   .value = DOUBLE_INTERPOLATE_SRGB   },
             { .description = "Linear interpolation", .value = DOUBLE_INTERPOLATE_LINEAR },
             { .description = ""                                                         }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "font",
+        .description    = "Font",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "US (CP 437)",                 .value = 0 },
+            { .description = "IBM Nordic (CP 437-Nordic)",  .value = 1 },
+            { .description = "Tulip DGA",                   .value = 4 },
+            { .description = ""                                        }
         },
         .bios           = { { 0 } }
     },

@@ -555,6 +555,9 @@ hercules_init(UNUSED(const device_t *info))
         case 3:
             loadfont(FONT_KAMCL16_PATH, 0);
             break;
+        case 4:
+            loadfont(FONT_TULIP_DGA_PATH, 0);
+            break;
     }
 
     timer_add(&dev->timer, hercules_poll, dev, 1);
@@ -650,17 +653,6 @@ static const device_config_t hercules_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name           = "blend",
-        .description    = "Blend",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
         .name           = "font",
         .description    = "Font",
         .type           = CONFIG_SELECTION,
@@ -673,8 +665,20 @@ static const device_config_t hercules_config[] = {
             { .description = "IBM Nordic (CP 437-Nordic)",  .value = 1 },
             { .description = "Czech Kamenicky (CP 895) #1", .value = 2 },
             { .description = "Czech Kamenicky (CP 895) #2", .value = 3 },
+            { .description = "Tulip DGA",                   .value = 4 },
             { .description = ""                                        }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "blend",
+        .description    = "Blend",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }

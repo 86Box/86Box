@@ -786,7 +786,7 @@ host_x86_MOV32_REG_ABS(codeblock_t *block, int dst_reg, void *p)
         codegen_addquad(block, (uintptr_t) p);
         codegen_addbyte3(block, 0x41, 0x8b, 0x01 | ((dst_reg & 7) << 3)); /*MOV dst_reg, [R9]*/
     } else {
-        fatal("host_x86_MOV32_REG_ABS - RAM offset = %016" PRIX64 " (p - ram = %016" PRIX64 ")\n", ram_offset, (uintptr_t) p - (uintptr_t) ram);
+        fatal("host_x86_MOV32_REG_ABS - RAM offset = %016" PRIX64 " (p - ram = %016" PRIXPTR ")\n", ram_offset, (uintptr_t) p - (uintptr_t) ram);
         codegen_alloc_bytes(block, 6);
         codegen_addbyte(block, 0x8b); /*MOV [p], src_reg*/
         codegen_addbyte(block, 0x05 | ((dst_reg & 7) << 3));

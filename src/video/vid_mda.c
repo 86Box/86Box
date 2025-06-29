@@ -186,7 +186,7 @@ mda_poll(void *priv)
                     // turn off bright bg colours in blink mode
                     if ((mda->mode & MDA_MODE_BLINK)
                         && (color_bg & 0x8))
-                        color_bg & ~(0x8);
+                        color_bg &= ~(0x8);
 
                     // black-on-non black or white colours forced to white
                     // grey-on-colours forced to bright white
@@ -429,12 +429,14 @@ mda_standalone_init(UNUSED(const device_t *info))
         case 1:
             loadfont(FONT_IBM_MDA_437_NORDIC_PATH, 0);
             break;
-
         case 2:
             loadfont(FONT_KAM_PATH, 0);
             break;
         case 3:
             loadfont(FONT_KAMCL16_PATH, 0);
+            break;
+        case 4:
+            loadfont(FONT_TULIP_DGA_PATH, 0);
             break;
     }
 
@@ -514,6 +516,7 @@ static const device_config_t mda_config[] = {
             { .description = "IBM Nordic (CP 437-Nordic)",  .value = 1 },
             { .description = "Czech Kamenicky (CP 895) #1", .value = 2 },
             { .description = "Czech Kamenicky (CP 895) #2", .value = 3 },
+            { .description = "Tulip DGA",                   .value = 4 },
             { .description = "" }
         },
         .bios           = { { 0 } }
@@ -535,3 +538,4 @@ const device_t mda_device = {
     .force_redraw  = NULL,
     .config        = mda_config
 };
+

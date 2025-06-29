@@ -208,22 +208,33 @@ dynld_module(const char *name, dllimp_t *table)
     return modhandle;
 }
 
+#define TMPFILE_BUFSIZE 1024  // Assumed max buffer size
 void
 plat_tempfile(char *bufp, char *prefix, char *suffix)
 {
     struct tm     *calendertime;
     struct timeval t;
     time_t         curtime;
+    size_t         used = 0;
 
     if (prefix != NULL)
-        sprintf(bufp, "%s-", prefix);
-    else
-        strcpy(bufp, "");
+        used = snprintf(bufp, TMPFILE_BUFSIZE, "%s-", prefix);
+    else if (TMPFILE_BUFSIZE > 0)
+        bufp[0] = '\0';
+
     gettimeofday(&t, NULL);
     curtime      = time(NULL);
     calendertime = localtime(&curtime);
-    sprintf(&bufp[strlen(bufp)], "%d%02d%02d-%02d%02d%02d-%03ld%s", calendertime->tm_year, calendertime->tm_mon, calendertime->tm_mday, calendertime->tm_hour, calendertime->tm_min, calendertime->tm_sec, t.tv_usec / 1000, suffix);
+
+    if (used < TMPFILE_BUFSIZE) {
+        snprintf(bufp + used, TMPFILE_BUFSIZE - used,
+                 "%d%02d%02d-%02d%02d%02d-%03" PRId32 "%s",
+                 calendertime->tm_year, calendertime->tm_mon, calendertime->tm_mday,
+                 calendertime->tm_hour, calendertime->tm_min, calendertime->tm_sec,
+                 (int32_t)(t.tv_usec / 1000), suffix);
+    }
 }
+#undef TMPFILE_BUFSIZE
 
 int
 plat_getcwd(char *bufp, int max)
@@ -783,65 +794,83 @@ plat_pause(int p)
     }
 }
 
+#define TMP_PATH_BUFSIZE 1024
 void
 plat_init_rom_paths(void)
 {
 #ifndef __APPLE__
-    if (getenv("XDG_DATA_HOME")) {
-        char xdg_rom_path[1024] = { 0 };
-
-        strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);
-        path_slash(xdg_rom_path);
-        strncat(xdg_rom_path, "86Box/", 1023);
-
-        if (!plat_dir_check(xdg_rom_path))
+    const char *xdg_data_home = getenv("XDG_DATA_HOME");
+    if (xdg_data_home) {
+        char xdg_rom_path[TMP_PATH_BUFSIZE] = {0};
+        size_t used = snprintf(xdg_rom_path, sizeof(xdg_rom_path), "%s/", xdg_data_home);
+        if (used < sizeof(xdg_rom_path))
+            used += snprintf(xdg_rom_path + used, sizeof(xdg_rom_path) - used, "86Box/");
+        if (used < sizeof(xdg_rom_path) && !plat_dir_check(xdg_rom_path))
             plat_dir_create(xdg_rom_path);
-        strcat(xdg_rom_path, "roms/");
-
-        if (!plat_dir_check(xdg_rom_path))
+        if (used < sizeof(xdg_rom_path))
+            used += snprintf(xdg_rom_path + used, sizeof(xdg_rom_path) - used, "roms/");
+        if (used < sizeof(xdg_rom_path) && !plat_dir_check(xdg_rom_path))
             plat_dir_create(xdg_rom_path);
-        rom_add_path(xdg_rom_path);
+        if (used < sizeof(xdg_rom_path))
+            rom_add_path(xdg_rom_path);
     } else {
-        char home_rom_path[1024] = { 0 };
-
-        snprintf(home_rom_path, 1024, "%s/.local/share/86Box/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
-
-        if (!plat_dir_check(home_rom_path))
-            plat_dir_create(home_rom_path);
-        strcat(home_rom_path, "roms/");
-
-        if (!plat_dir_check(home_rom_path))
-            plat_dir_create(home_rom_path);
-        rom_add_path(home_rom_path);
-    }
-    if (getenv("XDG_DATA_DIRS")) {
-        char *xdg_rom_paths      = strdup(getenv("XDG_DATA_DIRS"));
-        char *xdg_rom_paths_orig = xdg_rom_paths;
-        char *cur_xdg_rom_path   = NULL;
-
-        if (xdg_rom_paths) {
-            while (xdg_rom_paths[strlen(xdg_rom_paths) - 1] == ':') {
-                xdg_rom_paths[strlen(xdg_rom_paths) - 1] = '\0';
-            }
-            while ((cur_xdg_rom_path = local_strsep(&xdg_rom_paths, ":")) != NULL) {
-                char real_xdg_rom_path[1024] = { '\0' };
-                strcat(real_xdg_rom_path, cur_xdg_rom_path);
-                path_slash(real_xdg_rom_path);
-                strcat(real_xdg_rom_path, "86Box/roms/");
-                rom_add_path(real_xdg_rom_path);
-            }
+        const char *home = getenv("HOME");
+        if (!home) {
+            struct passwd *pw = getpwuid(getuid());
+            if (pw)
+                home = pw->pw_dir;
         }
-        free(xdg_rom_paths_orig);
+
+        if (home) {
+            char home_rom_path[TMP_PATH_BUFSIZE] = {0};
+            size_t used = snprintf(home_rom_path, sizeof(home_rom_path),
+                                   "%s/.local/share/86Box/", home);
+            if (used < sizeof(home_rom_path) && !plat_dir_check(home_rom_path))
+                plat_dir_create(home_rom_path);
+            if (used < sizeof(home_rom_path))
+                used += snprintf(home_rom_path + used,
+                                 sizeof(home_rom_path) - used, "roms/");
+            if (used < sizeof(home_rom_path) && !plat_dir_check(home_rom_path))
+                plat_dir_create(home_rom_path);
+            if (used < sizeof(home_rom_path))
+                rom_add_path(home_rom_path);
+        }
+    }
+
+    const char *xdg_data_dirs = getenv("XDG_DATA_DIRS");
+    if (xdg_data_dirs) {
+        char *xdg_rom_paths = strdup(xdg_data_dirs);
+        if (xdg_rom_paths) {
+            // Trim trailing colons
+            size_t len = strlen(xdg_rom_paths);
+            while (len > 0 && xdg_rom_paths[len - 1] == ':')
+                xdg_rom_paths[--len] = '\0';
+
+            char *saveptr = NULL;
+            char *cur_xdg = strtok_r(xdg_rom_paths, ":", &saveptr);
+            while (cur_xdg) {
+                char real_xdg_rom_path[TMP_PATH_BUFSIZE] = {0};
+                size_t used = snprintf(real_xdg_rom_path,
+                                       sizeof(real_xdg_rom_path),
+                                       "%s/86Box/roms/", cur_xdg);
+                if (used < sizeof(real_xdg_rom_path))
+                    rom_add_path(real_xdg_rom_path);
+                cur_xdg = strtok_r(NULL, ":", &saveptr);
+            }
+
+            free(xdg_rom_paths);
+        }
     } else {
         rom_add_path("/usr/local/share/86Box/roms/");
         rom_add_path("/usr/share/86Box/roms/");
     }
 #else
-    char  default_rom_path[1024] = { '\0' };
+    char default_rom_path[TMP_PATH_BUFSIZE] = {0};
     getDefaultROMPath(default_rom_path);
     rom_add_path(default_rom_path);
 #endif
 }
+#undef TMP_PATH_BUFSIZE
 
 void
 plat_get_global_config_dir(char *outbuf, const uint8_t len)

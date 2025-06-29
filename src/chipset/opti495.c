@@ -8,14 +8,13 @@
  *
  *          Implementation of the OPTi 82C493/82C495 chipset.
  *
- *
- *
  * Authors: Tiseno100,
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2020 Tiseno100.
  *          Copyright 2016-2020 Miran Grca.
  */
+#include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -28,6 +27,7 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/mem.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
@@ -166,6 +166,27 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x26:
                         opti495_recalc(dev);
                         break;
+
+                    case 0x25: {
+                        double bus_clk;
+                        switch (val & 0x03) {
+                            default:
+                            case 0x00:
+                                 bus_clk = cpu_busspeed / 6.0;
+                                 break;
+                            case 0x01:
+                                 bus_clk = cpu_busspeed / 4.0;
+                                 break;
+                            case 0x02:
+                                 bus_clk = cpu_busspeed / 3.0;
+                                 break;
+                            case 0x03:
+                                 bus_clk = (cpu_busspeed * 2.0) / 5.0;
+                                 break;
+                        }
+                        cpu_set_isa_speed((int) round(bus_clk));
+                        break;
+                    }
                 }
             }
 
@@ -259,6 +280,8 @@ opti495_init(const device_t *info)
 
     io_sethandler(0x00e1, 0x0002, opti495_read, NULL, NULL, opti495_write, NULL, NULL, dev);
 
+    cpu_set_isa_speed((int) round(cpu_busspeed / 6.0));
+
     return dev;
 }
 
@@ -276,11 +299,25 @@ const device_t opti493_device = {
     .config        = NULL
 };
 
-const device_t opti495_device = {
+const device_t opti495slc_device = {
     .name          = "OPTi 82C495",
-    .internal_name = "opti495",
+    .internal_name = "opti495slc",
     .flags         = 0,
-    .local         = OPTI495XLC,
+    .local         = OPTI495SLC,
+    .init          = opti495_init,
+    .close         = opti495_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t opti495sx_device = {
+    .name          = "OPTi 82C495SX",
+    .internal_name = "opti495sx",
+    .flags         = 0,
+    .local         = OPTI495SX,
     .init          = opti495_init,
     .close         = opti495_close,
     .reset         = NULL,

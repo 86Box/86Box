@@ -39,6 +39,7 @@
 #include <86box/keyboard.h>
 #include <86box/rom.h>
 #include <86box/machine.h>
+#include <86box/nvr.h>
 #include <86box/chipset.h>
 #include <86box/port_6x.h>
 #include <86box/video.h>
@@ -664,6 +665,34 @@ machine_xt_amixt_init(const machine_t *model)
         return ret;
 
     machine_xt_clone_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_tuliptc8_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tuliptc8/tulip-bios_xt_compact_2.bin",
+                           0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&keyboard_xt_fe2010_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    machine_common_init(model);
+
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
+
+    nmi_init();
+    standalone_gameport_type = &gameport_device;
+
+    device_add(&amstrad_megapc_nvr_device);
 
     return ret;
 }

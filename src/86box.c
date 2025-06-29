@@ -253,6 +253,8 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
 		.seq="Ctrl+Alt+M" }	
 };
 
+char vmm_path[1024] = { '\0'}; /* TEMPORARY - VM manager path to scan for VMs */
+int  vmm_enabled = 0;
 
 /* Statistics. */
 extern int mmuflush;
@@ -600,8 +602,8 @@ pc_show_usage(char *s)
 #ifdef _WIN32
             "-D or --debug\t\t\t- force debug output logging\n"
 #endif
-#if 0
-            "-E or --nographic\t\t- forces the old behavior\n"
+#if 1
+            "-E or --vmmpath\t\t- vm manager path\n"
 #endif
             "-F or --fullscreen\t\t- start in fullscreen mode\n"
             "-G or --lang langid\t\t- start with specified language\n"
@@ -637,7 +639,7 @@ pc_show_usage(char *s)
     ui_msgbox(MBX_ANSI | ((s == NULL) ? MBX_INFO : MBX_WARNING), p);
 #else
     if (s == NULL)
-        pclog(p);
+        pclog("%s", p);
     else
         ui_msgbox(MBX_ANSI | MBX_WARNING, p);
 #endif
@@ -734,13 +736,18 @@ usage:
         } else if (!strcasecmp(argv[c], "--debug") || !strcasecmp(argv[c], "-D")) {
             force_debug = 1;
 #endif
-#ifdef ENABLE_NG
-        } else if (!strcasecmp(argv[c], "--nographic") || !strcasecmp(argv[c], "-E")) {
-            /* Currently does nothing, but if/when we implement a built-in manager,
-               it's going to force the manager not to run, allowing the old usage
-               without parameter. */
-            ng = 1;
-#endif
+//#ifdef ENABLE_NG
+        } else if (!strcasecmp(argv[c], "--vmmpath") ||
+                   !strcasecmp(argv[c], "-E")) {
+            /* Using this variable for vm manager path
+               Temporary solution!*/
+            if ((c+1) == argc) goto usage;
+            char *vp = argv[++c];
+            if ((strlen(vp) + 1) >= sizeof(vmm_path))
+                memcpy(vmm_path, vp, sizeof(vmm_path));
+            else
+                memcpy(vmm_path, vp, strlen(vp) + 1);
+            //#endif
         } else if (!strcasecmp(argv[c], "--fullscreen") || !strcasecmp(argv[c], "-F")) {
             start_in_fullscreen = 1;
         } else if (!strcasecmp(argv[c], "--logfile") || !strcasecmp(argv[c], "-L")) {
@@ -775,7 +782,11 @@ usage:
                 goto usage;
 
             temp2 = (char *) calloc(2048, 1);
-            sscanf(argv[++c], "%c:%s", &drive, temp2);
+            if (sscanf(argv[++c], "%c:%2047s", &drive, temp2) != 2) {
+                fprintf(stderr, "Invalid input format for --image option.\n");
+                free(temp2);
+                goto usage;
+            }
             if (drive > 0x40)
                 drive = (drive & 0x1f) - 1;
             else
@@ -1014,9 +1025,21 @@ usage:
      * This is where we start outputting to the log file,
      * if there is one. Create a little info header first.
      */
+    struct tm time_buf;
+
     (void) time(&now);
-    info = localtime(&now);
-    strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
+#ifdef _WIN32
+    if (localtime_s(&time_buf, &now) == 0)
+        info = &time_buf;
+#else
+    info = localtime_r(&now, &time_buf);
+#endif
+
+    if (info)
+        strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
+    else
+        strcpy(temp, "unknown");
+
     pclog("#\n# %ls v%ls logfile, created %s\n#\n",
           EMU_NAME_W, EMU_VERSION_FULL_W, temp);
     pclog("# VM: %s\n#\n", vm_name);
@@ -1027,6 +1050,10 @@ usage:
     }
 
     pclog("# Configuration file: %s\n#\n\n", cfg_path);
+    if (strlen(vmm_path) != 0) {
+        vmm_enabled = 1;
+        pclog("# VM Manager enabled. Path: %s\n", vmm_path);
+    }
     /*
      * We are about to read the configuration file, which MAY
      * put data into global variables (the hard- and floppy
@@ -1645,6 +1672,10 @@ pc_close(UNUSED(thread_t *ptr))
     scsi_disk_close();
 
     gdbstub_close();
+
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+    mem_free();
+#endif
 }
 
 #ifdef __APPLE__

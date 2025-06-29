@@ -80,8 +80,6 @@ public:
 
     enum class Renderer {
         Software,
-        OpenGL,
-        OpenGLES,
         OpenGL3,
         Vulkan,
         None = -1

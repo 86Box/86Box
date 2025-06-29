@@ -40,9 +40,6 @@
 #include <86box/sio.h>
 #include <86box/plat_unused.h>
 
-#define FLAG_IDE    0x00000001
-#define FLAG_ALI    0x00000002
-
 #ifdef ENABLE_PC87310_LOG
 int pc87310_do_log = ENABLE_PC87310_LOG;
 
@@ -137,7 +134,7 @@ serial_handler(pc87310_t *dev)
      * Then they become simple toggle bits.
      * Therefore, we do this for easier operation.
      */
-    if (dev->flags & FLAG_ALI) {
+    if (dev->flags & PC87310_ALI) {
         temp2 = dev->regs[0] & 0x03;
         temp2 ^= ((temp2 & 0x02) >> 1);
     }
@@ -197,7 +194,7 @@ pc87310_write(UNUSED(uint16_t port), uint8_t val, void *priv)
                 serial_handler(dev);
 
             /* Reconfigure IDE controller. */
-            if ((dev->flags & FLAG_IDE) && (valxor & 0x20))  {
+            if ((dev->flags & PC87310_IDE) && (valxor & 0x20))  {
                 pc87310_log("SIO: HDC disabled\n");
                 ide_pri_disable();
                 /* Bit 5: 1 = Disable IDE controller. */
@@ -258,7 +255,7 @@ pc87310_reset(pc87310_t *dev)
 
     lpt1_handler(dev);
     serial_handler(dev);
-    if (dev->flags & FLAG_IDE) {
+    if (dev->flags & PC87310_IDE) {
         ide_pri_disable();
         ide_pri_enable();
     }
@@ -286,54 +283,27 @@ pc87310_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16450_device, 1);
     dev->uart[1] = device_add_inst(&ns16450_device, 2);
 
-    if (dev->flags & FLAG_IDE)
-        device_add((dev->flags & FLAG_ALI) ? &ide_vlb_device : &ide_isa_device);
+    if (dev->flags & PC87310_IDE)
+        device_add((dev->flags & PC87310_ALI) ? &ide_vlb_device : &ide_isa_device);
 
     pc87310_reset(dev);
 
     io_sethandler(0x3f3, 0x0001,
                   pc87310_read, NULL, NULL, pc87310_write, NULL, NULL, dev);
 
-    if (dev->flags & FLAG_ALI)
+    if (dev->flags & PC87310_ALI)
         io_sethandler(0x3f1, 0x0001,
                       pc87310_read, NULL, NULL, pc87310_write, NULL, NULL, dev);
 
     return dev;
 }
 
+/* The ALi M5105 is an extended clone of this. */
 const device_t pc87310_device = {
     .name          = "National Semiconductor PC87310 Super I/O",
     .internal_name = "pc87310",
     .flags         = 0,
     .local         = 0,
-    .init          = pc87310_init,
-    .close         = pc87310_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t pc87310_ide_device = {
-    .name          = "National Semiconductor PC87310 Super I/O with IDE functionality",
-    .internal_name = "pc87310_ide",
-    .flags         = 0,
-    .local         = FLAG_IDE,
-    .init          = pc87310_init,
-    .close         = pc87310_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t ali5105_device = {
-    .name          = "ALi M5105 Super I/O",
-    .internal_name = "ali5105",
-    .flags         = 0,
-    .local         = FLAG_ALI,
     .init          = pc87310_init,
     .close         = pc87310_close,
     .reset         = NULL,

@@ -85,8 +85,6 @@ add_library(ui STATIC
     qt_renderercommon.hpp
     qt_softwarerenderer.cpp
     qt_softwarerenderer.hpp
-    qt_hardwarerenderer.cpp
-    qt_hardwarerenderer.hpp
     qt_openglrenderer.cpp
     qt_openglrenderer.hpp
     qt_glsl_parser.cpp
@@ -188,6 +186,49 @@ add_library(ui STATIC
 
     qt_mediahistorymanager.cpp
     qt_mediahistorymanager.hpp
+
+    qt_updatecheck.cpp
+    qt_updatecheck.hpp
+    qt_updatecheckdialog.cpp
+    qt_updatecheckdialog.hpp
+    qt_updatecheckdialog.ui
+    qt_updatedetails.cpp
+    qt_updatedetails.hpp
+    qt_updatedetails.ui
+    qt_downloader.cpp
+    qt_downloader.hpp
+
+    qt_vmmanager_clientsocket.cpp
+    qt_vmmanager_clientsocket.hpp
+    qt_vmmanager_serversocket.cpp
+    qt_vmmanager_serversocket.hpp
+    qt_vmmanager_protocol.cpp
+    qt_vmmanager_protocol.hpp
+    qt_vmmanager_details.hpp
+    qt_vmmanager_details.cpp
+    qt_vmmanager_details.ui
+    qt_vmmanager_addmachine.cpp
+    qt_vmmanager_addmachine.hpp
+    qt_vmmanager_detailsection.cpp
+    qt_vmmanager_detailsection.hpp
+    qt_vmmanager_detailsection.ui
+    qt_vmmanager_listviewdelegate.hpp
+    qt_vmmanager_listviewdelegate.cpp
+    qt_vmmanager_preferences.cpp
+    qt_vmmanager_preferences.hpp
+    qt_vmmanager_preferences.ui
+    qt_vmmanager_main.hpp
+    qt_vmmanager_main.cpp
+    qt_vmmanager_main.ui
+    qt_vmmanager_model.cpp
+    qt_vmmanager_model.hpp
+    qt_vmmanager_system.cpp
+    qt_vmmanager_system.hpp
+    qt_vmmanager_config.cpp
+    qt_vmmanager_config.hpp
+    qt_vmmanager_mainwindow.cpp
+    qt_vmmanager_mainwindow.hpp
+    qt_vmmanager_mainwindow.ui
 
     ../qt_resources.qrc
     ./qdarkstyle/dark/darkstyle.qrc

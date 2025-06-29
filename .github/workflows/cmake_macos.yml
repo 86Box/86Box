@@ -69,7 +69,6 @@ jobs:
       - name: Install dependencies
         run: >-
           brew install
-          ninja
           sdl2
           rtmidi
           openal-soft
@@ -162,12 +161,12 @@ jobs:
       - name: Install dependencies
         run: >-
           brew install
-          ninja
           sdl2
           rtmidi
           openal-soft
           fluidsynth
           libslirp
+          vde
           libserialport
           ${{ matrix.ui.packages }}
 

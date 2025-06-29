@@ -75,6 +75,7 @@ enum {
 #define FONT_IBM_MDA_437_NORDIC_PATH "roms/video/mda/4733197.bin"
 #define FONT_KAM_PATH                "roms/video/mda/kam.bin"
 #define FONT_KAMCL16_PATH            "roms/video/mda/kamcl16.bin"
+#define FONT_TULIP_DGA_PATH          "roms/video/mda/tulip-dga-bios.bin"
 
 typedef struct video_timings_t {
     int type;
@@ -357,12 +358,14 @@ extern const device_t chips_69000_onboard_device;
 
 /* Cirrus Logic GD54xx */
 extern const device_t gd5401_isa_device;
+extern const device_t gd5401_onboard_device;
 extern const device_t gd5402_isa_device;
 extern const device_t gd5402_onboard_device;
 extern const device_t gd5420_isa_device;
 extern const device_t gd5420_onboard_device;
 extern const device_t gd5422_isa_device;
 extern const device_t gd5424_vlb_device;
+extern const device_t gd5424_onboard_device;
 extern const device_t gd5426_isa_device;
 extern const device_t gd5426_diamond_speedstar_pro_a1_isa_device;
 extern const device_t gd5426_vlb_device;
@@ -472,6 +475,7 @@ extern const device_t if386jega_device;
 
 /* Oak OTI-0x7 */
 extern const device_t oti037c_device;
+extern const device_t oti037_pbl300sx_device;
 extern const device_t oti067_device;
 extern const device_t oti067_acer386_device;
 extern const device_t oti067_ama932j_device;

@@ -1817,8 +1817,6 @@ read_p1(atkbc_t *dev)
               Compaq: Reserved;
               NCR: DMA mode.
      */
-    kbc_at_log("ATkbc: read P1\n");
-
     fixed_bits = 4;
 
     /* The SMM handlers of Intel AMI Pentium BIOS'es expect bit 6 to be set. */
@@ -2108,7 +2106,7 @@ kbc_at_process_cmd(void *priv)
                 break;
 
             case 0xc0: /* read P1 */
-                kbc_at_log("ATkbc: read P2\n");
+                kbc_at_log("ATkbc: read P1\n");
                 kbc_delay_to_ob(dev, read_p1(dev), 0, 0x00);
                 break;
 

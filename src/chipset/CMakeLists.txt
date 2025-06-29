@@ -17,6 +17,7 @@
 
 add_library(chipset OBJECT
     82c100.c
+    acc2036.c
     acc2168.c
     cs8220.c
     cs8230.c
@@ -48,6 +49,7 @@ add_library(chipset OBJECT
     opti291.c
     opti391.c
     opti495.c
+    opti498.c
     opti499.c
     opti602.c
     opti822.c

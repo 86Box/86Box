@@ -118,7 +118,7 @@ svga_render_overscan_right(svga_t *svga)
         return;
 
     uint32_t *line_ptr = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add + svga->hdisp];
-    right              = (overscan_x >> 1);
+    right              = overscan_x  - svga->left_overscan;
     for (int i = 0; i < right; i++)
         *line_ptr++ = svga->overscan_color;
 }
@@ -694,7 +694,7 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
        - HT-216 (+ other Video7 chipsets?) has 0x3C4.0xC8 bit 4 which, when set to 1, loads
          bytes directly, bypassing the shifters.
      */
-    const bool highres8bpp = combine8bits && highres;
+    const bool highres8bpp = (combine8bits && highres) || svga->force_shifter_bypass;
 
     const bool     dwordload  = ((svga->seqregs[0x01] & 0x10) != 0);
     const bool     wordload   = ((svga->seqregs[0x01] & 0x04) != 0) && !dwordload;

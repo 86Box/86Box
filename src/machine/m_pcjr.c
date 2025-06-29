@@ -782,9 +782,11 @@ static const device_config_t pcjr_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
-            { .description = "RGB",       .value = PCJR_RGB       },
-            { .description = "Composite", .value = PCJR_COMPOSITE },
-            { .description = ""                                   }
+            { .description = "RGB",            .value = PCJR_RGB          },
+            { .description = "Composite",      .value = PCJR_COMPOSITE    },
+            { .description = "RGB (no brown)", .value = PCJR_RGB_NO_BROWN },
+            { .description = "RGB (IBM 5153)", .value = PCJR_RGB_IBM_5153 },
+            { .description = ""                                           }
         }
     },
     {

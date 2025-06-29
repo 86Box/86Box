@@ -3,9 +3,7 @@ name: CodeQL Analysis (Windows, msys2)
 on:
 
   push:
-    branches:
-      - main
-
+    branches: [ "main" ]
     paths:
       - src/**
       - cmake/**
@@ -16,6 +14,7 @@ on:
       - "!**/Makefile*"
 
   pull_request:
+    branches: [ "main" ]
     paths:
       - src/**
       - cmake/**
@@ -25,6 +24,9 @@ on:
       - .github/workflows/codeql_windows_msys2.yml
       - vcpkg.json
       - "!**/Makefile*"
+
+  schedule:
+    - cron: '22 11 * * 0'
 
 jobs:
 

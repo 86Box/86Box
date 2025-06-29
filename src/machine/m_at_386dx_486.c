@@ -535,7 +535,7 @@ machine_at_acera1g_init(const machine_t *model)
 
     device_add(&keyboard_ps2_acer_pci_device);
 
-    device_add(&ali5105_device);
+    device_add_params(&pc87310_device, (void *) (PC87310_ALI));
     device_add(&ide_ali5213_device);
 
     return ret;
@@ -682,7 +682,7 @@ machine_at_opti495_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&opti495_device);
+    device_add(&opti495slc_device);
 
     device_add(&keyboard_at_device);
 
@@ -697,7 +697,7 @@ machine_at_opti495_ami_common_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add(&opti495_device);
+    device_add(&opti495sx_device);
 
     device_add(&keyboard_at_ami_device);
 
@@ -733,6 +733,32 @@ machine_at_opti495_mr_init(const machine_t *model)
         return ret;
 
     machine_at_opti495_ami_common_init(model);
+
+    return ret;
+}
+
+int
+machine_at_c747_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/c747/486-C747 Tandon.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    /* The EFAR chipset is a rebrand of the OPTi 495SX. */
+    device_add(&opti495sx_device);
+
+    /*
+       No idea what KBC it actually has but this produces the
+       desired behavior: command A9 does absolutely nothing.
+     */
+    device_add(&keyboard_at_siemens_device);
+    device_add(&um82c862f_ide_device);
 
     return ret;
 }
@@ -822,6 +848,7 @@ machine_at_403tg_d_mr_init(const machine_t *model)
 
     return ret;
 }
+
 static const device_config_t pb450_config[] = {
     // clang-format off
     {
@@ -974,7 +1001,8 @@ machine_at_mvi486_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&opti495_device);
+    device_add(&opti498_device);
+
     device_add(&keyboard_at_device);
     device_add(&pc87311_ide_device);
 
@@ -1005,6 +1033,31 @@ machine_at_ami471_init(const machine_t *model)
 
     machine_at_sis_85c471_common_init(model);
     device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_advantage40xxd_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/advantage40xxd/AST101.09A",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&sis_85c471_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    device_add(&keyboard_ps2_phoenix_device);
+    device_add(&um82c863f_ide_device);
+
+    device_add(&intel_flash_bxt_device);
 
     return ret;
 }
@@ -2812,6 +2865,32 @@ machine_at_ga486l_init(const machine_t *model)
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_cobalt_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/cobalt/Cobalt_2.3.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+	
+    machine_at_common_init(model);
+
+    device_add(&opti499_device);
+    device_add(&ide_opti611_vlb_device);
+    device_add(&ide_isa_sec_device);
+    device_add(&fdc37c665_device);
+	
+    device_add(&keyboard_ps2_ami_device);
+	
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
