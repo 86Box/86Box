@@ -137,6 +137,7 @@ typedef struct svga_t {
     int ps_bit_bug;
     int ati_4color;
     int vblankend;
+    int panning_blank;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM
