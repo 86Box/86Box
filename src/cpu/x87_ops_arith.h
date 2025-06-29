@@ -1,3 +1,56 @@
+
+#ifdef X87_INLINE_ASM
+static inline double float_add(double src, double val, int round)
+{
+    int orig_round, new_round;
+    __asm volatile(""
+                   :
+                   :
+                   : "memory");
+    asm (
+        "fnstcw %0\n" : "=m"(orig_round)
+    );
+    new_round = orig_round & ~(3 << 10);
+    new_round |= (round << 10);
+
+    __asm volatile(""
+                   :
+                   :
+                   : "memory");
+
+    asm (
+        "fldl %0\n"
+        "fldcw %1\n"
+        "faddl %2\n"
+        "fstl %0\n"
+        "fldcw %3\n"
+        : "=m"(src)
+        : "m"(new_round), "m"(val), "m"(orig_round)
+    );
+
+    return src;
+}
+
+#define DO_FADD(use_var)                                               \
+    do                                                                 \
+    {                                                                  \
+        ST(0) = float_add(ST(0), use_var, (cpu_state.npxc >> 10) & 3); \
+    }                                                                  \
+    while (0)
+
+#else
+#define DO_FADD(use_var)                                               \
+    do                                                                 \
+    {                                                                  \
+        if ((cpu_state.npxc >> 10) & 3)                                \
+            fesetround(rounding_modes[(cpu_state.npxc >> 10) & 3]);    \
+        ST(0) += use_var;                                              \
+        if ((cpu_state.npxc >> 10) & 3)                                \
+            fesetround(FE_TONEAREST);                                  \
+    }                                                                  \
+    while (0)
+#endif
+
 #define opFPU(name, optype, a_size, load_var, get, use_var, cycle_postfix)                                                                         \
     static int opFADD##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                 \
     {                                                                                                                                              \
@@ -8,11 +61,7 @@
         load_var = get();                                                                                                                          \
         if (cpu_state.abrt)                                                                                                                        \
             return 1;                                                                                                                              \
-        if ((cpu_state.npxc >> 10) & 3)                                                                                                            \
-            fesetround(rounding_modes[(cpu_state.npxc >> 10) & 3]);                                                                                \
-        ST(0) += use_var;                                                                                                                          \
-        if ((cpu_state.npxc >> 10) & 3)                                                                                                            \
-            fesetround(FE_TONEAREST);                                                                                                              \
+        DO_FADD(use_var);                                                                                                                          \
         FP_TAG_VALID;                                                                                                                              \
         CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fadd##cycle_postfix) : ((x87_timings.fadd##cycle_postfix) * cpu_multi));           \
         CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fadd##cycle_postfix) : ((x87_concurrency.fadd##cycle_postfix) * cpu_multi)); \
