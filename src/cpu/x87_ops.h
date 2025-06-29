@@ -52,7 +52,9 @@ extern void fpu_log(const char *fmt, ...);
 
 extern double exp_pow_table[0x800];
 
+#ifndef X87_INLINE_ASM
 static int rounding_modes[4] = { FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO };
+#endif
 
 #define ST(x)             cpu_state.ST[((cpu_state.TOP + (x)) & 7)]
 
