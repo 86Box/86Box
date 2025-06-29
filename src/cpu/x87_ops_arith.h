@@ -2,33 +2,23 @@
 #ifdef X87_INLINE_ASM
 static inline double float_add(double src, double val, int round)
 {
-    int orig_round, new_round;
-    __asm volatile(""
-                   :
-                   :
-                   : "memory");
-    asm (
-        "fnstcw %0\n" : "=m"(orig_round)
-    );
-    new_round = orig_round & ~(3 << 10);
-    new_round |= (round << 10);
+    int rounding_mode_orig;
 
-    __asm volatile(""
-                   :
-                   :
-                   : "memory");
+    __m128d xmm_src = _mm_load_sd(&src);
+    __m128d xmm_dst = _mm_load_sd(&val);
+    __m128d xmm_res;
 
-    asm (
-        "fldl %0\n"
-        "fldcw %1\n"
-        "faddl %2\n"
-        "fstl %0\n"
-        "fldcw %3\n"
-        : "=m"(src)
-        : "m"(new_round), "m"(val), "m"(orig_round)
-    );
+    rounding_mode_orig = _MM_GET_ROUNDING_MODE();
+    if (round == 0) _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);
+    if (round == 1) _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
+    if (round == 2) _MM_SET_ROUNDING_MODE(_MM_ROUND_UP);
+    if (round == 3) _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
 
-    return src;
+    xmm_res = _mm_add_sd(xmm_src, xmm_dst);
+
+    _MM_SET_ROUNDING_MODE(rounding_mode_orig);
+
+    return _mm_cvtsd_f64(xmm_res);
 }
 
 #define DO_FADD(use_var)                                               \
