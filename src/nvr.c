@@ -310,18 +310,25 @@ nvr_close(void)
 void
 nvr_time_sync(void)
 {
-    struct tm *tm;
-    time_t     now;
+    struct tm tm;
+    time_t    now;
 
     /* Get the current time of day, and convert to local time. */
     (void) time(&now);
-    if (time_sync & TIME_SYNC_UTC)
-        tm = gmtime(&now);
-    else
-        tm = localtime(&now);
 
-    /* Set the internal clock. */
-    nvr_time_set(tm);
+#ifdef _WIN32
+    if (time_sync & TIME_SYNC_UTC)
+        gmtime_s(&tm, &now);
+    else
+        localtime_s(&tm, &now);
+#else
+    if (time_sync & TIME_SYNC_UTC)
+        gmtime_r(&now, &tm);
+    else
+        localtime_r(&now, &tm);
+#endif
+
+    nvr_time_set(&tm);
 }
 
 /* Get current time from internal clock. */
