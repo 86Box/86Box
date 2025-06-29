@@ -57,7 +57,7 @@ machine_at_v12p_init(const machine_t *model)
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
 	
-	machine_at_common_init(model);
+    machine_at_common_init(model);
 
     device_add(&ide_isa_device);
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
@@ -71,8 +71,7 @@ machine_at_v12p_init(const machine_t *model)
     device_add(&keyboard_ps2_acer_pci_device);
     device_add(&sio_zb_device);
     device_add_params(&pc87310_device, (void *) (PC87310_ALI));
-	device_add(&amd_am28f010_flash_device);
-	device_add(&ncr53c810_onboard_pci_device);
+    device_add(&amd_am28f010_flash_device);
 
     return ret;
 }
