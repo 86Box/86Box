@@ -703,6 +703,13 @@ svga_recalctimings(svga_t *svga)
     int              old_monitor_overscan_x = svga->monitor->mon_overscan_x;
     int              old_monitor_overscan_y = svga->monitor->mon_overscan_y;
 
+    if (svga->adv_flags & FLAG_PRECISETIME) {
+#ifdef USE_DYNAREC
+        if (cpu_use_dynarec)
+            update_tsc();
+#endif
+    }
+
     svga->vtotal      = svga->crtc[6];
     svga->dispend     = svga->crtc[0x12];
     svga->vsyncstart  = svga->crtc[0x10];
@@ -1253,6 +1260,7 @@ svga_do_render(svga_t *svga)
     }
 
     if (!svga->override) {
+        svga->render_line_offset = svga->start_retrace_latch - svga->crtc[0x4];
         svga->render(svga);
 
         svga->x_add = svga->left_overscan;
@@ -1514,6 +1522,8 @@ svga_poll(void *priv)
 
             if (svga->vsync_callback)
                 svga->vsync_callback(svga);
+
+            svga->start_retrace_latch = svga->crtc[0x4];
         }
 #if 0
         if (svga->vc == lines_num) {
