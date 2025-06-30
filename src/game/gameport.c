@@ -15,7 +15,7 @@
  *
  *          Copyright 2016-2022 Miran Grca.
  *          Copyright 2008-2018 Sarah Walker.
- *          Copyright 2021 RichardG.
+ *          Copyright 2021      RichardG.
  *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #include <stdio.h>
