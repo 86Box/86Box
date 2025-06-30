@@ -723,6 +723,17 @@ et4000_recalctimings(svga_t *svga)
         svga->rowoffset <<= 1;
         svga->render = svga_render_8bpp_highres;
     }
+
+    if (svga->render == svga_render_4bpp_highres)
+        svga->render = svga_render_4bpp_tseng_highres;
+
+    if (dev->type == ET4000_TYPE_TC6058AF) {
+        if (svga->render == svga_render_8bpp_lowres)
+            svga->render = svga_render_8bpp_tseng_lowres;
+
+        else if (svga->render == svga_render_8bpp_highres)
+            svga->render = svga_render_8bpp_tseng_highres;
+    }
 }
 
 static void
