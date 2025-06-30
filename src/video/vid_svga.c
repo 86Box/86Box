@@ -1031,7 +1031,7 @@ svga_recalctimings(svga_t *svga)
             svga->y_add = svga->vtotal - svga->vblankend - 1;
             svga->monitor->mon_overscan_y = svga->y_add + abs(svga->vblankstart - svga->dispend);
 
-            if ((svga->dispend >= 2048) || (svga->y_add < 0)) {
+            if ((dev->dispend >= 2048) || (svga->y_add < 0)) {
                 svga->y_add = 0;
                 svga->monitor->mon_overscan_y = 0;
             }
@@ -1094,7 +1094,7 @@ svga_recalctimings(svga_t *svga)
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (dev->on) {
             disptime8514 = dev->h_total;
-            _dispontime8514 = dev->h_disp;
+            _dispontime8514 = dev->h_disp_time;
             svga_log("HTOTAL=%d, HDISP=%d.\n", dev->h_total, dev->h_disp);
         }
     }

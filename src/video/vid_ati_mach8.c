@@ -2707,9 +2707,9 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
 {
     ibm8514_t    *dev = (ibm8514_t *) svga->dev8514;
 
-    dev->h_total = (dev->htotal + 1) << 3;
+    dev->h_total = (dev->htotal + 1);
     if (dev->h_total == 8) /*Default to 1024x768 87hz 8514/A htotal timings if it goes to 0.*/
-        dev->h_total = 0x9e << 3;
+        dev->h_total = 0x9e;
 
     dev->hdisp = (dev->hdisped + 1) << 3;
 
@@ -2730,7 +2730,7 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
         switch (mach->shadow_set & 0x03) {
             case 0x01:
                 if (!(dev->accel.advfunc_cntl & 0x04)) {
-                    dev->h_total = 0x64 << 3;
+                    dev->h_total = 0x64;
                     dev->hdisp = 640;
                     dev->vdisp = 480;
                     dev->v_total = 0x0419;
@@ -2739,7 +2739,7 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
                 break;
             case 0x02:
                 if (dev->accel.advfunc_cntl & 0x04) {
-                    dev->h_total = 0x9e << 3;
+                    dev->h_total = 0x9e;
                     dev->hdisp = 1024;
                     dev->vdisp = 768;
                     dev->v_total = 0x0669;
@@ -2754,7 +2754,7 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
     } else if ((dev->disp_cntl >> 5) == 2) { /*Reset 8514/A to defaults if needed.*/
         if (dev->accel.advfunc_cntl & 0x04) {
             if (dev->hdisp == 640) {
-                dev->h_total = 0x9e << 3;
+                dev->h_total = 0x9e;
                 dev->hdisp = 1024;
                 dev->vdisp = 768;
                 dev->v_total = 0x0669;
@@ -2763,7 +2763,7 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
             }
         } else {
             if (dev->hdisp == 1024) {
-                dev->h_total = 0x64 << 3;
+                dev->h_total = 0x64;
                 dev->hdisp = 640;
                 dev->vdisp = 480;
                 dev->v_total = 0x0419;
@@ -2925,6 +2925,8 @@ mach_recalctimings(svga_t *svga)
             dev->h_disp = 800;
         else if (dev->h_disp == 640)
             dev->dispend = 480;
+
+        dev->h_disp_time = dev->hdisp >> 3;
 
         svga->clock_8514 = (cpuclock * (double) (1ULL << 32)) / svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen);
         if (mach->accel.clock_sel & 0x40)
