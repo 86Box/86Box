@@ -631,7 +631,7 @@ ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *s
                     }
                     svga->dac_hwcursor.addr      = ramdac->smlc_part;
                     svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = (val & 0x04) ? 64 : 32;
-                    svga->dac_hwcursor.ena                                      = ((val & 0x03) != 0x00);
+                    svga->dac_hwcursor.enable                                      = ((val & 0x03) != 0x00);
                     break;
                 case 0x031:
                     if (!updt_cntl)

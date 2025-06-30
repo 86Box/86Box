@@ -474,8 +474,6 @@ typedef struct mystique_t {
     atomic_uint status;
     atomic_bool softrap_status_read;
 
-    uint64_t blitter_time, status_time;
-
     pc_timer_t softrap_pending_timer, wake_timer;
 
     fifo_entry_t fifo[FIFO_SIZE];
@@ -1382,7 +1380,7 @@ mystique_write_xreg(mystique_t *mystique, int reg, uint8_t val)
 
         case XREG_XCURCTRL:
             mystique->xcurctrl = val;
-            svga->hwcursor.ena = (val & 3) ? 1 : 0;
+            svga->hwcursor.enable = (val & 3) ? 1 : 0;
             break;
 
         case XREG_XCURCOL0R:
@@ -6048,8 +6046,6 @@ static void
 mystique_start_blit(mystique_t *mystique)
 {
     svga_t *svga = &mystique->svga;
-    uint64_t start_time = plat_timer_read();
-    uint64_t end_time;
 
     /*Make sure we don't get any artifacts.*/
     svga->chain2_write = 0;
@@ -6119,9 +6115,6 @@ mystique_start_blit(mystique_t *mystique)
             fatal("mystique_start_blit: unknown blit %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK);
             break;
     }
-
-    end_time = plat_timer_read();
-    mystique->blitter_time += end_time - start_time;
 }
 
 static void

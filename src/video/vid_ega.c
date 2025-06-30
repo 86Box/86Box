@@ -665,7 +665,6 @@ ega_recalctimings(ega_t *ega)
             ega->hdisp *= (ega->seqregs[1] & 8) ? 16 : 8;
             ega->render = ega_render_graphics;
         }
-        ega->hdisp_old = ega->hdisp;
     }
 
     if (ega->chipset) {
@@ -843,7 +842,6 @@ ega_poll(void *priv)
         ega->linepos = 1;
 
         if (ega->dispon) {
-            ega->hdisp_on = 1;
 
             ega->memaddr &= ega->vrammask;
             if (ega->firstline == 2000) {
@@ -899,7 +897,6 @@ ega_poll(void *priv)
 
         if (ega->dispon)
             ega->status &= ~1;
-        ega->hdisp_on = 0;
 
         ega->linepos = 0;
         if ((ega->scanline == (ega->crtc[11] & 31)) || (ega->scanline == ega->rowcount))
@@ -1541,10 +1538,8 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
     old_overscan_color = 0;
 
     ega->miscout |= 0x22;
-    ega->oddeven_page = 0;
 
     ega->seqregs[4] |= 2;
-    ega->extvram = 1;
 
     update_overscan = 0;
 

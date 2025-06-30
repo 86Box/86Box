@@ -161,7 +161,7 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_
             break;
         case 0x09: /* Command Register 2 (RS value = 1001) */
             ramdac->cmd_r2         = val;
-            svga->dac_hwcursor.ena = !!(val & 0x03);
+            svga->dac_hwcursor.enable = !!(val & 0x03);
             bt48x_set_bpp(ramdac, svga);
             break;
         case 0x0a:
