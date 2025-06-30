@@ -171,9 +171,16 @@ extern void  gameport_remap(void *priv, uint16_t address);
 extern void *gameport_add(const device_t *gameport_type);
 
 extern const joystick_if_t joystick_2axis_2button;
+extern const joystick_if_t joystick_2button_gamepad;
+extern const joystick_if_t joystick_2button_flight_yoke;
 extern const joystick_if_t joystick_2axis_4button;
+extern const joystick_if_t joystick_4button_gamepad;
+extern const joystick_if_t joystick_4button_flight_yoke;
 extern const joystick_if_t joystick_3axis_2button;
+extern const joystick_if_t joystick_2button_yoke_throttle;
 extern const joystick_if_t joystick_3axis_4button;
+extern const joystick_if_t joystick_4button_yoke_throttle;
+extern const joystick_if_t joystick_win95_steering_wheel;
 extern const joystick_if_t joystick_4axis_4button;
 extern const joystick_if_t joystick_2axis_6button;
 extern const joystick_if_t joystick_2axis_8button;
