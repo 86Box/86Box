@@ -30,6 +30,7 @@
 #    define FLAG_S3_911_16BIT 256
 #    define FLAG_512K_MASK    512
 #    define FLAG_NO_SHIFT3    1024 /* Needed for Bochs VBE. */
+#    define FLAG_PRECISETIME  2048 /* Needed for Copper demo if on dynarec. */
 struct monitor_t;
 
 typedef struct hwcursor_t {
@@ -138,6 +139,8 @@ typedef struct svga_t {
     int ati_4color;
     int vblankend;
     int panning_blank;
+    int render_line_offset;
+    int start_retrace_latch;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM

@@ -892,6 +892,9 @@ et4000_init(const device_t *info)
     if (dev->type >= ET4000_TYPE_ISA)
         dev->svga.ramdac = device_add(&sc1502x_ramdac_device);
 
+    if (dev->type == ET4000_TYPE_TC6058AF)
+        dev->svga.adv_flags |= FLAG_PRECISETIME;
+
     dev->vram_mask = dev->vram_size - 1;
 
     rom_init(&dev->bios_rom, fn,

@@ -744,6 +744,13 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
         return;
     p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
+    if (svga->render_line_offset) {
+        if (svga->render_line_offset > 0) {
+            memset(p, svga->overscan_color, charwidth * svga->render_line_offset * sizeof(uint32_t));
+            p += charwidth * svga->render_line_offset;
+        }
+    }
+
     if (svga->firstline_draw == 2000)
         svga->firstline_draw = svga->displine;
     svga->lastline_draw = svga->displine;
@@ -899,6 +906,12 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
             // p += charwidth;
         else
             p += charwidth;
+    }
+
+    if (svga->render_line_offset < 0) {
+        uint32_t *orig_line = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+        memmove(orig_line, orig_line + (charwidth * -svga->render_line_offset), (svga->hdisp) * 4);
+        memset((orig_line + svga->hdisp) - (charwidth * -svga->render_line_offset), svga->overscan_color, charwidth * -svga->render_line_offset * 4);
     }
 }
 
@@ -1279,16 +1292,25 @@ svga_render_8bpp_tseng_lowres(svga_t *svga)
 {
     uint32_t *p;
     uint32_t  dat;
+    int       x = 0;
 
     if ((svga->displine + svga->y_add) < 0)
         return;
 
-    if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange) {
+    if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange || svga->render_line_offset) {
+        int end = svga->hdisp + svga->scrollcache;
         p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
             svga->firstline_draw = svga->displine;
         svga->lastline_draw = svga->displine;
+
+        if (svga->render_line_offset) {
+            if (svga->render_line_offset > 0) {
+                memset(p, svga->overscan_color, 8 * svga->render_line_offset * sizeof(uint32_t));
+                p += 8 * svga->render_line_offset;
+            }
+        }
 
         for (int x = 0; x <= (svga->hdisp + svga->scrollcache); x += 8) {
             dat = *(uint32_t *) (&svga->vram[svga->memaddr & svga->vram_display_mask]);
@@ -1311,6 +1333,11 @@ svga_render_8bpp_tseng_lowres(svga_t *svga)
             svga->memaddr += 4;
             p += 8;
         }
+        if (svga->render_line_offset < 0) {
+            uint32_t *orig_line = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+            memmove(orig_line, orig_line + (8 * -svga->render_line_offset), (svga->hdisp) * 4);
+            memset((orig_line + svga->hdisp) - (8 * -svga->render_line_offset), svga->overscan_color, 8 * -svga->render_line_offset * 4);
+        }
         svga->memaddr &= svga->vram_display_mask;
     }
 }
@@ -1324,12 +1351,19 @@ svga_render_8bpp_tseng_highres(svga_t *svga)
     if ((svga->displine + svga->y_add) < 0)
         return;
 
-    if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange) {
+    if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange || svga->render_line_offset) {
         p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
             svga->firstline_draw = svga->displine;
         svga->lastline_draw = svga->displine;
+
+        if (svga->render_line_offset) {
+            if (svga->render_line_offset > 0) {
+                memset(p, svga->overscan_color, 8 * svga->render_line_offset * sizeof(uint32_t));
+                p += 8 * svga->render_line_offset;
+            }
+        }
 
         for (int x = 0; x <= (svga->hdisp /* + svga->scrollcache*/); x += 8) {
             dat = *(uint32_t *) (&svga->vram[svga->memaddr & svga->vram_display_mask]);
@@ -1369,6 +1403,13 @@ svga_render_8bpp_tseng_highres(svga_t *svga)
             svga->memaddr += 8;
             p += 8;
         }
+
+        if (svga->render_line_offset < 0) {
+            uint32_t *orig_line = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+            memmove(orig_line, orig_line + (8 * -svga->render_line_offset), (svga->hdisp) * 4);
+            memset((orig_line + svga->hdisp) - (8 * -svga->render_line_offset), svga->overscan_color, 8 * -svga->render_line_offset * 4);
+        }
+
         svga->memaddr &= svga->vram_display_mask;
     }
 }
