@@ -1292,13 +1292,11 @@ svga_render_8bpp_tseng_lowres(svga_t *svga)
 {
     uint32_t *p;
     uint32_t  dat;
-    int       x = 0;
 
     if ((svga->displine + svga->y_add) < 0)
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange || svga->render_line_offset) {
-        int end = svga->hdisp + svga->scrollcache;
         p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
         if (svga->firstline_draw == 2000)
