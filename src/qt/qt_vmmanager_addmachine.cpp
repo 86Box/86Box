@@ -210,7 +210,13 @@ NameAndLocationPage(QWidget *parent)
 {
     setTitle(tr("System name and location"));
 
-    dirValidate = QRegularExpression(R"(^[^\\/:*?"<>|\s]+$)");
+#if defined(_WIN32)
+    dirValidate = QRegularExpression(R"(^[^\\/:*?"<>|]+$)");
+#elif defined(__APPLE__)
+    dirValidate = QRegularExpression(R"(^[^/:]+$)");
+#else
+    dirValidate = QRegularExpression(R"(^[^/]+$)");
+#endif
 
     const auto topLabel = new QLabel(tr("Enter the name of the system and choose the location"));
     topLabel->setWordWrap(true);
@@ -282,7 +288,7 @@ NameAndLocationPage::isComplete() const
     if (systemName->text().isEmpty()) {
         systemNameValidation->setText(tr("Please enter a system name"));
     } else if (!systemName->text().contains(dirValidate)) {
-        systemNameValidation->setText(tr("System name cannot contain a space or certain characters"));
+        systemNameValidation->setText(tr("System name cannot certain characters"));
     } else if (const QDir newDir = QDir::cleanPath(systemLocation->text() + "/" + systemName->text()); newDir.exists()) {
         systemNameValidation->setText(tr("System name already exists"));
     } else {
