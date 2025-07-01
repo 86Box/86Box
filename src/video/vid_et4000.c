@@ -784,6 +784,17 @@ et4000_mca_feedb(UNUSED(void *priv))
     return et4000->pos_regs[2] & 1;
 }
 
+static int
+et4000_line_compare(svga_t* svga)
+{
+    if (svga->split > svga->vsyncstart) {
+        /* Don't do line compare if we're already in vertical retrace. */
+        /* This makes picture bouncing effect work on Copper demo. */
+        return 0;
+    }
+    return 1;
+}
+
 static void *
 et4000_init(const device_t *info)
 {
@@ -896,6 +907,8 @@ et4000_init(const device_t *info)
         dev->svga.adv_flags |= FLAG_PRECISETIME;
 
     dev->vram_mask = dev->vram_size - 1;
+
+    dev->svga.line_compare = et4000_line_compare;
 
     rom_init(&dev->bios_rom, fn,
         0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
