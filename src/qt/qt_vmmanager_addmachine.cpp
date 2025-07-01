@@ -288,7 +288,7 @@ NameAndLocationPage::isComplete() const
     if (systemName->text().isEmpty()) {
         systemNameValidation->setText(tr("Please enter a system name"));
     } else if (!systemName->text().contains(dirValidate)) {
-        systemNameValidation->setText(tr("System name cannot certain characters"));
+        systemNameValidation->setText(tr("System name cannot contain certain characters"));
     } else if (const QDir newDir = QDir::cleanPath(systemLocation->text() + "/" + systemName->text()); newDir.exists()) {
         systemNameValidation->setText(tr("System name already exists"));
     } else {
