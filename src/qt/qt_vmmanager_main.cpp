@@ -456,6 +456,7 @@ VMManagerMain::onPreferencesUpdated()
 void
 VMManagerMain::backgroundUpdateCheckStart() const
 {
+#if EMU_BUILD_NUM != 0
     auto updateChannel = UpdateCheck::UpdateChannel::CI;
 #ifdef RELEASE_BUILD
     updateChannel = UpdateCheck::UpdateChannel::Stable;
@@ -464,6 +465,7 @@ VMManagerMain::backgroundUpdateCheckStart() const
     connect(updateCheck, &UpdateCheck::updateCheckComplete, this, &VMManagerMain::backgroundUpdateCheckComplete);
     connect(updateCheck, &UpdateCheck::updateCheckError, this, &VMManagerMain::backgroundUpdateCheckError);
     updateCheck->checkForUpdates();
+#endif
 }
 
 void
