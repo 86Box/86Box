@@ -585,7 +585,7 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x45:
-                    svga->hwcursor.enable = val & 1;
+                    svga->hwcursor.ena = val & 1;
                     break;
                 case 0x46:
                 case 0x47:
@@ -966,19 +966,19 @@ s3_virge_recalctimings(svga_t *svga)
         else
             svga->overlay.addr = virge->streams.sec_fb0;
 
-        svga->overlay.enable   = (svga->overlay.x >= 0);
+        svga->overlay.ena   = (svga->overlay.x >= 0);
         svga->overlay.h_acc = virge->streams.dda_horiz_accumulator;
         svga->overlay.v_acc = virge->streams.dda_vert_accumulator;
 
         if (virge->chip < S3_VIRGEGX2)
             svga->rowoffset = virge->streams.pri_stride >> 3;
 
-        if (virge->chip <= S3_VIRGEDX && svga->overlay.enable) {
-            svga->overlay.enable = (((virge->streams.blend_ctrl >> 24) & 7) == 0b000) || (((virge->streams.blend_ctrl >> 24) & 7) == 0b101);
-        } else if (virge->chip >= S3_VIRGEGX2 && svga->overlay.enable) {
+        if (virge->chip <= S3_VIRGEDX && svga->overlay.ena) {
+            svga->overlay.ena = (((virge->streams.blend_ctrl >> 24) & 7) == 0b000) || (((virge->streams.blend_ctrl >> 24) & 7) == 0b101);
+        } else if (virge->chip >= S3_VIRGEGX2 && svga->overlay.ena) {
             /* 0x20 = Secondary Stream enabled */
             /* 0x2000 = Primary Stream enabled */
-            svga->overlay.enable = !!(virge->streams.blend_ctrl & 0x20);
+            svga->overlay.ena = !!(virge->streams.blend_ctrl & 0x20);
         }
 
         if (virge->chip >= S3_VIRGEGX2) {

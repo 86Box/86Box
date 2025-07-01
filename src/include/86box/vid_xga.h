@@ -20,7 +20,7 @@
 #include <86box/rom.h>
 
 typedef struct xga_hwcursor_t {
-    int      enable;
+    int      ena;
     int      x;
     int      y;
     int      xoff;
@@ -114,16 +114,18 @@ typedef struct xga_t {
     int dac_pos;
     int dac_r;
     int dac_g;
-    int vtotal_xga;
+    int v_total;
     int dispend;
+    int v_syncstart;
     int split;
-    int vblankstart_xga;
-    int hdisp_xga;
-    int hdispold_xga;
-    int htotal_xga;
+    int v_blankstart;
+    int h_disp;
+    int h_disp_old;
+    int h_total;
+    int h_disp_time;
     int rowoffset;
     int dispon;
-    int hdispon_xga;
+    int h_disp_on;
     int vc;
     int scanline;
     int linepos;

@@ -170,7 +170,7 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svg
                 svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 64;
                 svga->dac_hwcursor.x                                        = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;
                 svga->dac_hwcursor.y                                        = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
-                svga->dac_hwcursor.enable                                      = !!(val & 0x03);
+                svga->dac_hwcursor.ena                                      = !!(val & 0x03);
                 ramdac->mode                                                = val & 0x03;
             }
             break;
@@ -182,13 +182,13 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svg
                         svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 64;
                         svga->dac_hwcursor.x                                        = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;
                         svga->dac_hwcursor.y                                        = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
-                        svga->dac_hwcursor.enable                                      = !!(val & 0x03);
+                        svga->dac_hwcursor.ena                                      = !!(val & 0x03);
                         ramdac->mode                                                = val & 0x03;
                     } else {
                         svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 64;
                         svga->dac_hwcursor.x                                        = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;
                         svga->dac_hwcursor.y                                        = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
-                        svga->dac_hwcursor.enable                                      = !!(ramdac->dcc & 0x03);
+                        svga->dac_hwcursor.ena                                      = !!(ramdac->dcc & 0x03);
                         ramdac->mode                                                = ramdac->dcc & 0x03;
                     }
                     break;

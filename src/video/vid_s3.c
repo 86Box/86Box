@@ -375,6 +375,8 @@ typedef struct s3_t {
     event_t  *fifo_not_full_event;
 
     atomic_int blitter_busy;
+    uint64_t blitter_time;
+    uint64_t status_time;
 
     uint8_t subsys_cntl, subsys_stat;
 
@@ -3037,7 +3039,7 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                 case 0x45:
                     if ((s3->chip == S3_VISION964) || (s3->chip == S3_VISION968))
                         break;
-                    svga->hwcursor.enable = val & 1;
+                    svga->hwcursor.ena = val & 1;
                     break;
                 case 0x46:
                 case 0x47:
@@ -4442,13 +4444,13 @@ s3_trio64v_recalctimings(svga_t *svga)
         else
             svga->overlay.addr = s3->streams.sec_fb0;
 
-        svga->overlay.enable   = (svga->overlay.x >= 0);
+        svga->overlay.ena   = (svga->overlay.x >= 0);
         svga->overlay.h_acc = s3->streams.dda_horiz_accumulator;
         svga->overlay.v_acc = s3->streams.dda_vert_accumulator;
         svga->rowoffset     = s3->streams.pri_stride >> 3;
 
-        if (svga->overlay.enable) {
-            svga->overlay.enable = (((s3->streams.blend_ctrl >> 24) & 7) == 0b000) ||
+        if (svga->overlay.ena) {
+            svga->overlay.ena = (((s3->streams.blend_ctrl >> 24) & 7) == 0b000) ||
                                 (((s3->streams.blend_ctrl >> 24) & 7) == 0b101);
         }
         switch ((s3->streams.pri_ctrl >> 24) & 0x7) {
@@ -9696,6 +9698,8 @@ static void
 fifo_thread(void *param)
 {
     s3_t    *s3 = (s3_t *) param;
+    uint64_t start_time;
+    uint64_t end_time;
 
     while (s3->fifo_thread_run) {
         thread_set_event(s3->fifo_not_full_event);
@@ -9703,6 +9707,7 @@ fifo_thread(void *param)
         thread_reset_event(s3->wake_fifo_thread);
         s3->blitter_busy = 1;
         while (!FIFO_EMPTY) {
+            start_time         = plat_timer_read();
             fifo_entry_t *fifo = &s3->fifo[s3->fifo_read_idx & FIFO_MASK];
 
             switch (fifo->addr_type & FIFO_TYPE) {
@@ -9734,6 +9739,9 @@ fifo_thread(void *param)
 
             if (FIFO_ENTRIES > 0xe000)
                 thread_set_event(s3->fifo_not_full_event);
+
+            end_time = plat_timer_read();
+            s3->blitter_time += (end_time - start_time);
         }
         s3->blitter_busy = 0;
         s3->subsys_stat |= INT_FIFO_EMP;

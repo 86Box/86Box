@@ -256,6 +256,9 @@ typedef struct mach64_t {
     event_t  *wake_fifo_thread;
     event_t  *fifo_not_full_event;
 
+    uint64_t blitter_time;
+    uint64_t status_time;
+
     uint16_t pci_id;
     uint32_t config_chip_id;
     uint32_t block_decoded_io;
@@ -1187,6 +1190,8 @@ fifo_thread(void *param)
         thread_reset_event(mach64->wake_fifo_thread);
         mach64->blitter_busy = 1;
         while (!FIFO_EMPTY) {
+            uint64_t      start_time = plat_timer_read();
+            uint64_t      end_time;
             fifo_entry_t *fifo = &mach64->fifo[mach64->fifo_read_idx & FIFO_MASK];
 
             switch (fifo->addr_type & FIFO_TYPE) {
@@ -1209,6 +1214,9 @@ fifo_thread(void *param)
 
             if (FIFO_ENTRIES > 0xe000)
                 thread_set_event(mach64->fifo_not_full_event);
+
+            end_time = plat_timer_read();
+            mach64->blitter_time += end_time - start_time;
         }
         mach64->blitter_busy = 0;
     }
@@ -2298,7 +2306,7 @@ mach64_vblank_start(svga_t *svga)
     svga->overlay.addr  = mach64->buf_offset[0] & 0x3ffff8;
     svga->overlay.pitch = mach64->buf_pitch[0] & 0xfff;
 
-    svga->overlay.enable = (mach64->overlay_scale_cntl & OVERLAY_EN) && (overlay_cmp_mix != 1);
+    svga->overlay.ena = (mach64->overlay_scale_cntl & OVERLAY_EN) && (overlay_cmp_mix != 1);
 
     mach64->overlay_v_acc = 0;
     mach64->scaler_update = 1;
@@ -3345,9 +3353,9 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                 ati_eeprom_write(&mach64->eeprom, mach64->gen_test_cntl & 0x10, mach64->gen_test_cntl & 2, mach64->gen_test_cntl & 1);
                 mach64->gen_test_cntl  = (mach64->gen_test_cntl & ~8) | (ati_eeprom_read(&mach64->eeprom) ? 8 : 0);
                 if (mach64->type == MACH64_GX)
-                    svga->dac_hwcursor.enable = !!(mach64->gen_test_cntl & 0x80);
+                    svga->dac_hwcursor.ena = !!(mach64->gen_test_cntl & 0x80);
                 else
-                    svga->hwcursor.enable = !!(mach64->gen_test_cntl & 0x80);
+                    svga->hwcursor.ena = !!(mach64->gen_test_cntl & 0x80);
                 break;
 
             case 0xdc:

@@ -34,7 +34,7 @@
 struct monitor_t;
 
 typedef struct hwcursor_t {
-    int      enable;
+    int      ena;
     int      x;
     int      y;
     int      xoff;
@@ -99,6 +99,7 @@ typedef struct svga_t {
     int hdisp_time;
     int rowoffset;
     int dispon;
+    int hdisp_on;
     int vc;
     int scanline;
     int linepos;

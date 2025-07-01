@@ -277,7 +277,7 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *priv)
             et4000->regs[et4000->index] = val;
             svga->hwcursor.x                                    = et4000->regs[0xE0] | ((et4000->regs[0xE1] & 7) << 8);
             svga->hwcursor.y                                    = et4000->regs[0xE4] | ((et4000->regs[0xE5] & 7) << 8);
-            svga->hwcursor.enable                                  = !!(et4000->regs[0xF7] & 0x80);
+            svga->hwcursor.ena                                  = !!(et4000->regs[0xF7] & 0x80);
             svga->hwcursor.xoff                                 = et4000->regs[0xE2];
             svga->hwcursor.yoff                                 = et4000->regs[0xE6];
             svga->hwcursor.cur_xsize = svga->hwcursor.cur_ysize = ((et4000->regs[0xEF] & 4) || ((et4000->type == ET4000W32) && (et4000->regs[0xe2] >= 0x1f) && (et4000->regs[0xe6] >= 0x1f))) ? 128 : 64;

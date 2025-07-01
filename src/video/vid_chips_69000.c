@@ -1906,7 +1906,7 @@ chips_69000_write_ext_reg(chips_69000_t* chips, uint8_t val)
             break;
         case 0xA0:
             chips->ext_regs[chips->ext_index] = val;
-            chips->svga.hwcursor.enable = ((val & 7) == 0b101) || ((val & 7) == 0b1);
+            chips->svga.hwcursor.ena = ((val & 7) == 0b101) || ((val & 7) == 0b1);
             chips->svga.hwcursor.cur_xsize = chips->svga.hwcursor.cur_ysize = ((val & 7) == 0b1) ? 32 : 64;
             break;
         case 0xA2:
