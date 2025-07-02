@@ -164,13 +164,8 @@ uint8_t nv3_pbus_rma_read(uint16_t addr)
                 ret = nv3_mmio_read8(real_final_address, NULL);
             else 
             {
-                // ABOVE CODE IS TEMPORARY UNTIL PNVM EXISTS!!!!!
-                // would svga->fast work?
-                nv3->nvbase.svga.chain4 = true;
-                nv3->nvbase.svga.packed_chain4 = true;
-                ret = svga_read_linear((real_final_address - NV3_MMIO_SIZE) & (nv3->nvbase.svga.vram_max - 1), &nv3->nvbase.svga);
-                nv3->nvbase.svga.chain4 = false;
-                nv3->nvbase.svga.packed_chain4 = false;
+                /* Do we need to read RAMIN here? */
+                ret = nv3->nvbase.svga.vram[real_final_address - NV3_MMIO_SIZE] & (nv3->nvbase.svga.vram_max - 1);
             }
 
             // log current location for vbios RE
@@ -246,11 +241,8 @@ void nv3_pbus_rma_write(uint16_t addr, uint8_t val)
                     nv3_mmio_write32(nv3->pbus.rma.addr, nv3->pbus.rma.data, NULL);
                 else // failsafe code, i don't think you will ever write outside of VRAM?
                 {
-                    nv3->nvbase.svga.chain4 = true;
-                    nv3->nvbase.svga.packed_chain4 = true;
-                    svga_writel_linear((nv3->pbus.rma.addr - NV3_MMIO_SIZE) & (nv3->nvbase.svga.vram_max - 1), nv3->pbus.rma.data, &nv3->nvbase.svga);
-                    nv3->nvbase.svga.chain4 = false;
-                    nv3->nvbase.svga.packed_chain4 = false;
+                    uint32_t* vram_32 = (uint32_t*)nv3->nvbase.svga.vram;
+                    vram_32[(nv3->pbus.rma.addr - NV3_MMIO_SIZE) >> 2] = nv3->pbus.rma.data;
                 }
                     
                     

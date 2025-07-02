@@ -202,7 +202,7 @@ void nv3_pfifo_interrupt(uint32_t id, bool fire_now)
 
 /* 
 RAMIN access arbitration functions
-Arbitrates reads and writes to RAMFC (unused dma context storage), RAMRO (invalid object submission location), RAMHT (hashtable for graphics objectstorage) (RAMAU?) 
+Arbitrates reads and writes to RAMFC (unused dma context storage), RAMRO (invalid object submission location), RAMHT (hashtable for graphics objectstorage) unused audio memory (RAMAU?) 
 and generic RAMIN
 
 Takes a pointer to a result integer. This is because we need to check its result in our normal write function.

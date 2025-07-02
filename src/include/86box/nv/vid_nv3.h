@@ -908,7 +908,7 @@ extern const device_config_t nv3t_config[];                             // Confi
 
 // These are nvidia, licensed from weitek (25-63)
 #define NV3_CRTC_REGISTER_RPC0                          0x19        // 7:5 - [10:8] of CRTC. 4:0 - [20:16] of 21-bit display buffer address
-#define NV3_CRTC_REGISTER_RPC1                          0x1A        // What does this mean?
+#define NV3_CRTC_REGISTER_RPC1                          0x1A        // bit7=hsync enabled, bit6=vsync enabled, bit4="compatible text", bit2=large screen, bit1=6bit palette width (>1280)
 #define NV3_CRTC_REGISTER_READ_BANK                     0x1D
 #define NV3_CRTC_REGISTER_WRITE_BANK                    0x1E
 #define NV3_CRTC_REGISTER_FORMAT                        0x25
@@ -921,8 +921,8 @@ extern const device_config_t nv3t_config[];                             // Confi
 
 #define NV3_CRTC_REGISTER_HEB                           0x2D        // HRS most significant bit
 
-#define NV3_CRTC_REGISTER_CURSOR_ADDR0                  0x30        // Cursor high 
-#define NV3_CRTC_REGISTER_CURSOR_ADDR1                  0x31        // Cursor low (1:0 = enable)
+#define NV3_CRTC_REGISTER_CURSOR_ADDR0                  0x30        // Cursor high                  21:16
+#define NV3_CRTC_REGISTER_CURSOR_ADDR1                  0x31        // Cursor low (1:0 = enable)    15:11
 
 #define NV3_CRTC_REGISTER_PIXELMODE_VGA                 0x00        // vga textmode
 #define NV3_CRTC_REGISTER_PIXELMODE_8BPP                0x01
@@ -1413,7 +1413,7 @@ typedef struct nv3_ptimer_s
 } nv3_ptimer_t;
 
 // Object name is just a uint32_t identifier it doesn't need a struct
-// This is howt he cotnext is represented in ramin
+// This is how the context is represented in ramin
 // IN PGRAPH IT IS DIFFERENT! ONLY 5 BITS FOR THE CLASS ID! WHY?
 typedef struct nv3_ramin_context_s
 {

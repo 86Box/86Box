@@ -192,7 +192,6 @@ add_library(vid OBJECT
 
     # Generic
     vid_bochs_vbe.c
-
 )
 
 if(G100)
