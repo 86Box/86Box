@@ -658,9 +658,9 @@ load_network(void)
                 nc->net_type = NET_TYPE_PCAP;
             else if (!strcmp(p, "slirp") || !strcmp(p, "2"))
                 nc->net_type = NET_TYPE_SLIRP;
-            else if (!strcmp(p, "vde") || !strcmp(p, "2"))
+            else if (!strcmp(p, "vde") || !strcmp(p, "3"))
                 nc->net_type = NET_TYPE_VDE;
-            else if (!strcmp(p, "tap") || !strcmp(p, "3"))
+            else if (!strcmp(p, "tap") || !strcmp(p, "4"))
                 nc->net_type = NET_TYPE_TAP;
             else
                 nc->net_type = NET_TYPE_NONE;
@@ -706,9 +706,9 @@ load_network(void)
                 nc->net_type = NET_TYPE_PCAP;
             else if (!strcmp(p, "slirp") || !strcmp(p, "2"))
                 nc->net_type = NET_TYPE_SLIRP;
-            else if (!strcmp(p, "vde") || !strcmp(p, "2"))
+            else if (!strcmp(p, "vde") || !strcmp(p, "3"))
                 nc->net_type = NET_TYPE_VDE;
-            else if (!strcmp(p, "tap") || !strcmp(p, "3"))
+            else if (!strcmp(p, "tap") || !strcmp(p, "4"))
                 nc->net_type = NET_TYPE_TAP;
             else
                 nc->net_type = NET_TYPE_NONE;
