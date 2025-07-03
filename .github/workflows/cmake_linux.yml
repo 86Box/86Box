@@ -8,6 +8,7 @@ on:
       - cmake/**
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
+      - "!.github/workflows/**"
       - .github/workflows/cmake_linux.yml
       - vcpkg.json
       - "!**/Makefile*"
@@ -18,7 +19,7 @@ on:
       - cmake/**
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
-      - .github/workflows/**
+      - "!.github/workflows/**"
       - .github/workflows/cmake_linux.yml
       - vcpkg.json
       - "!**/Makefile*"
@@ -26,12 +27,10 @@ on:
 jobs:
 
   linux:
+
     name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64"
 
     runs-on: ubuntu-22.04
-
-    env:
-      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
 
     strategy:
       fail-fast: true
@@ -90,9 +89,6 @@ jobs:
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
-      - name: Install sonar-scanner and build-wrapper
-        uses: SonarSource/sonarcloud-github-c-cpp@v3
-
       - name: Configure CMake
         run: >-
           cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
@@ -103,15 +99,7 @@ jobs:
 
       - name: Build
         run: |
-          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
-
-      - name: Run sonar-scanner
-        if: 0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+          cmake --build build
 
       - name: Generate package
         run: |
