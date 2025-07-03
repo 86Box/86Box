@@ -76,6 +76,7 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
         if(nic_cbox->currentData().toInt() != 0) {
             // Then only enable as needed based on network type
             switch (net_type_cbox->currentData().toInt()) {
+#ifdef HAS_VDE
                 case NET_TYPE_VDE:
                     // option_list_label->setText("VDE Options");
                     option_list_label->setVisible(true);
@@ -84,6 +85,7 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
                     vde_socket_label->setVisible(true);
                     socket_line->setVisible(true);
                     break;
+#endif
 
                 case NET_TYPE_PCAP:
                     // option_list_label->setText("PCAP Options");
@@ -152,8 +154,10 @@ SettingsNetwork::save()
         memset(net_cards_conf[i].host_dev_name, '\0', sizeof(net_cards_conf[i].host_dev_name));
         if (net_cards_conf[i].net_type == NET_TYPE_PCAP)
             strncpy(net_cards_conf[i].host_dev_name, network_devs[cbox->currentData().toInt()].device, sizeof(net_cards_conf[i].host_dev_name) - 1);
+#ifdef HAS_VDE
         else if (net_cards_conf[i].net_type == NET_TYPE_VDE)
             strncpy(net_cards_conf[i].host_dev_name, socket_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
+#endif
 #if defined(__unix__) || defined(__APPLE__)
         else if (net_cards_conf[i].net_type == NET_TYPE_TAP)
             strncpy(net_cards_conf[i].host_dev_name, bridge_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
@@ -221,8 +225,10 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         if (network_ndev > 1)
             Models::AddEntry(model, "PCap", NET_TYPE_PCAP);
 
+#ifdef HAS_VDE
         if (network_devmap.has_vde)
             Models::AddEntry(model, "VDE", NET_TYPE_VDE);
+#endif
         
 #if defined(__unix__) || defined(__APPLE__)
         Models::AddEntry(model, "TAP", NET_TYPE_TAP);
@@ -249,9 +255,13 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         }
 
         if (net_cards_conf[i].net_type == NET_TYPE_VDE) {
+#ifdef HAS_VDE
             QString currentVdeSocket = net_cards_conf[i].host_dev_name;
             auto editline = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i+1));
             editline->setText(currentVdeSocket);
+#else
+            ;
+#endif
 #if defined(__unix__) || defined(__APPLE__)
         } else if (net_cards_conf[i].net_type == NET_TYPE_TAP) {
             QString currentTapDevice = net_cards_conf[i].host_dev_name;
