@@ -97,10 +97,10 @@ jobs:
 #            toolchain: ./cmake/flags-gcc-x86_64.cmake
 #            slug: "UCRT64"
 #            runner: windows-2022
-          - msystem: CLANGARM64
-            toolchain: ./cmake/flags-gcc-aarch64.cmake
-            slug: -arm64
-            runner: windows-11-arm
+#          - msystem: CLANGARM64
+#            toolchain: ./cmake/flags-gcc-aarch64.cmake
+#            slug: -arm64
+#            runner: windows-11-arm
         exclude:
           - dynarec:
               new: off
@@ -136,8 +136,8 @@ jobs:
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
-      - name: Install Build Wrapper
-        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v5
+#      - name: Install Build Wrapper
+#        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v5
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
