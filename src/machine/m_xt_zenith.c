@@ -45,7 +45,7 @@
 #include <86box/serial.h>
 #include <86box/machine.h>
 #include <86box/io.h>
-#include <86box/vid_cga.h>
+#include <86box/video.h>
 #include <86box/plat_unused.h>
 
 typedef struct {
