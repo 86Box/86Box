@@ -28,9 +28,9 @@ jobs:
 
   linux:
 
-    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64"
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.arch }}"
 
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.environment.runner }}
 
     strategy:
       fail-fast: true
@@ -65,6 +65,15 @@ jobs:
               qttranslations5-l10n
               libevdev-dev
               libxkbcommon-x11-dev
+        environment:
+          - arch: x86_64
+            toolchain: ./cmake/flags-gcc-x86_64.cmake
+            slug: "-x86_64"
+            runner: ubuntu-22.04
+          - arch: arm64
+            toolchain: ./cmake/flags-gcc-aarch64.cmake
+            slug: -arm64
+            runner: ubuntu-22.04-arm
 
     steps:
       - name: Install dependencies
@@ -92,7 +101,7 @@ jobs:
       - name: Configure CMake
         run: >-
           cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
-          --toolchain ./cmake/flags-gcc-x86_64.cmake
+          --toolchain  ${{ matrix.environment.toolchain }}
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D QT=${{ matrix.ui.qt }}
@@ -108,5 +117,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy${{ matrix.environment.slug }}-gha${{ github.run_number }}'
           path: build/artifacts/**
