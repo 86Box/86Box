@@ -46,7 +46,7 @@ UpdateDetails(const UpdateCheck::UpdateResult &updateResult, QWidget *parent) : 
     const auto downloadButton = new QPushButton(tr("Visit download page"));
     ui->buttonBox->addButton(downloadButton, QDialogButtonBox::AcceptRole);
     // Override accepted to mean "I want to visit the download page"
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, [this, updateResult] {
+    connect(ui->buttonBox, &QDialogButtonBox::accepted, [updateResult] {
         visitDownloadPage(updateResult.channel);
     });
     const auto logo = QPixmap(":/assets/86box.png").scaled(QSize(64, 64), Qt::KeepAspectRatio, Qt::SmoothTransformation);
@@ -102,10 +102,10 @@ UpdateDetails::visitDownloadPage(const UpdateCheck::UpdateChannel &channel)
 {
     switch (channel) {
         case UpdateCheck::UpdateChannel::Stable:
-            QDesktopServices::openUrl(QUrl("https://ci.86box.net/job/86Box/lastSuccessfulBuild/artifact/"));
-        break;
-        case UpdateCheck::UpdateChannel::CI:
             QDesktopServices::openUrl(QUrl("https://github.com/86Box/86Box/releases/latest"));
-        break;
+            break;
+        case UpdateCheck::UpdateChannel::CI:
+            QDesktopServices::openUrl(QUrl("https://ci.86box.net/job/86Box/lastSuccessfulBuild/artifact/"));
+            break;
     }
 }

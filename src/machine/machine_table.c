@@ -72,6 +72,7 @@ extern const device_t d943_device;
 extern const device_t dells333sl_device;
 extern const device_t hot433a_device;
 extern const device_t pbl300sx_device;
+extern const device_t v12p_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                             MACHINE_TYPE_NONE       },
@@ -3141,7 +3142,7 @@ const machine_t machines[] = {
     },
     /* Has Olivetti KBC firmware. */
     {
-        .name = "[ISA] Olivetti M290",
+        .name = "[ISA] Olivetti M290/AT&T 6286 WGS",
         .internal_name = "m290",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
@@ -3163,7 +3164,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
-            .min = 640,
+            .min = 1024,
             .max = 16384,
             .step = 128
         },
@@ -3978,6 +3979,45 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    {
+        .name = "[SCAT] ICL DRS M35/286",
+        .internal_name = "drsm35286",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_SCAT,
+        .init = machine_at_drsm35286_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 512,
+            .max = 5120,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5401_onboard_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -7179,6 +7219,45 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    {
+        .name = "[OPTi 499] Alaris Cobalt LPX",
+        .internal_name = "cobalt",
+        .type = MACHINE_TYPE_486_S2,
+        .chipset = MACHINE_CHIPSET_OPTI_499,
+        .init = machine_at_cobalt_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3 | CPU_PKG_486BL,
+            .block = CPU_BLOCK(CPU_P24T),
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags = MACHINE_APM | MACHINE_VIDEO | MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5428_vlb_onboard_device,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has AMIKey-2 'H' KBC firmware. */
     {
         .name = "[OPTi 499] Alaris COUGAR 486BL",
@@ -9979,6 +10058,45 @@ const machine_t machines[] = {
 
     /* Socket 4 machines */
     /* 430LX */
+    {
+        .name = "[i430LX] Acer V12P",
+        .internal_name = "v12p",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_INTEL_430LX,
+        .init = machine_at_v12p_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE | MACHINE_APM,
+        .ram = {
+            .min = 2048,
+            .max = 196608,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = &v12p_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has AMIKey H KBC firmware (AMIKey-2), per POST screen with BIOS string
        shown in the manual. Has PS/2 mouse support with serial-style (DB9)
        connector.
@@ -12172,7 +12290,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 131072,
-            .step = 8192
+            .step = 4096
         },
         .nvrmask = 511,
         .kbc_device = NULL,
@@ -14612,7 +14730,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram = {
-            .min = 1024,
+            .min = 8192,
             .max = 1572864,
             .step = 8192
         },
@@ -14652,7 +14770,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram = {
-            .min = 1024,
+            .min = 8192,
             .max = 1572864,
             .step = 8192
         },

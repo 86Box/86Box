@@ -55,6 +55,7 @@ typedef struct {
     rom_t bios_rom;
 
     int     index;
+    int     en_map;
     uint8_t regs[32];
 
     uint8_t chip_id;
@@ -88,6 +89,12 @@ oti_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3c3:
             if (!oti->chip_id) {
                 oti->enable_register = val & 1;
+                if ((val & 0x01) && oti->en_map)
+                    mem_mapping_enable(&svga->mapping);
+                else if (!(val & 0x01)) {
+                    oti->en_map = svga->mapping.enable;
+                    mem_mapping_disable(&svga->mapping);
+                }
                 return;
             }
             svga_out(addr, val, svga);
@@ -245,11 +252,14 @@ oti_in(uint16_t addr, void *priv)
         case 0x3c8:
         case 0x3c9:
             if (oti->chip_id == OTI_077 || oti->chip_id == OTI_077_ACER100T)
-                return sc1148x_ramdac_in(addr, 0, svga->ramdac, svga);
-            return svga_in(addr, svga);
+                temp = sc1148x_ramdac_in(addr, 0, svga->ramdac, svga);
+            else
+                temp = svga_in(addr, svga);
+            break;
 
         case 0x3CF:
-            return svga->gdcreg[svga->gdcaddr & 0xf];
+            temp = svga->gdcreg[svga->gdcaddr & 0xf];
+            break;
 
         case 0x3d4:
             temp = svga->crtcreg;

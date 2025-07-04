@@ -358,6 +358,7 @@ extern const device_t chips_69000_onboard_device;
 
 /* Cirrus Logic GD54xx */
 extern const device_t gd5401_isa_device;
+extern const device_t gd5401_onboard_device;
 extern const device_t gd5402_isa_device;
 extern const device_t gd5402_onboard_device;
 extern const device_t gd5420_isa_device;
@@ -397,6 +398,13 @@ extern const device_t gd5440_onboard_pci_device;
 extern const device_t gd5446_pci_device;
 extern const device_t gd5446_stb_pci_device;
 extern const device_t gd5480_pci_device;
+
+
+/* IBM CGA*/
+extern const device_t cga_device;
+
+/* pravetz CGA */
+extern const device_t cga_pravetz_device;
 
 /* Compaq CGA */
 extern const device_t compaq_cga_device;
@@ -489,6 +497,9 @@ extern const device_t paradise_pvga1a_device;
 extern const device_t paradise_wd90c11_megapc_device;
 extern const device_t paradise_wd90c11_device;
 extern const device_t paradise_wd90c30_device;
+
+/* Quadram Quadcolor I / I + II */
+extern const device_t quadcolor_device;
 
 /* Realtek (S)VGA */
 extern const device_t realtek_rtg3105_device;

@@ -20,23 +20,28 @@ typedef struct psid_t {
 psid_t *psid;
 
 void *
-sid_init(uint8_t type)
+sid_init(uint8_t type, double range)
 {
     reSIDfp::SamplingMethod method         = reSIDfp::RESAMPLE;
     float                   cycles_per_sec = 14318180.0 / 16.0;
 
     psid      = new psid_t;
     psid->sid = new SID;
-
+	psid->sid->setFilter6581Range(range);
+	psid->sid->reset();
     switch (type) {
         default:
+		    psid->sid->setChipModel(reSIDfp::MOS6581);
+			break;
         case 0:
             psid->sid->setChipModel(reSIDfp::MOS6581);
+			break;
         case 1:
             psid->sid->setChipModel(reSIDfp::MOS8580);
+			break;
     }
 
-    psid->sid->reset();
+
 
     for (uint8_t c = 0; c < 32; c++)
         psid->sid->write(c, 0);

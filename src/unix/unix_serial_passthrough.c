@@ -13,7 +13,7 @@
  *              Jasmine Iwanek <jasmine@iwanek.co.uk>
  *
  *              Copyright 2021      Andreas J. Reichel.
- *              Copyright 2021-2022 Jasmine Iwanek.
+ *              Copyright 2021-2025 Jasmine Iwanek.
  */
 
 #ifndef __APPLE__
@@ -310,14 +310,12 @@ plat_serpt_open_device(void *priv)
 
     switch (dev->mode) {
         case SERPT_MODE_VCON:
-            if (!open_pseudo_terminal(dev)) {
+            if (!open_pseudo_terminal(dev))
                 return 1;
-            }
             break;
         case SERPT_MODE_HOSTSER:
-            if (!open_host_serial_port(dev)) {
+            if (!open_host_serial_port(dev))
                 return 1;
-            }
             break;
         default:
             break;

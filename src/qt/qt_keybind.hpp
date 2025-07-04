@@ -26,8 +26,8 @@ public:
 
 private:
     Ui::KeyBinder *ui;
-	bool eventFilter(QObject *obj, QEvent *event);
-	void showEvent( QShowEvent* event );
+	bool eventFilter(QObject *obj, QEvent *event) override;
+	void showEvent( QShowEvent* event ) override;
 };
 
 #endif // QT_KeyBinder_HPP

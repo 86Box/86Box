@@ -147,6 +147,12 @@ msgstr "RGB &цветной"
 msgid "&RGB Grayscale"
 msgstr "&RGB монохромный"
 
+msgid "RGB (no brown)"
+msgstr "RGB (без коричневого)"
+
+msgid "Generic RGBI color monitor"
+msgstr "Стандартный цветной монитор RGBI"
+
 msgid "&Amber monitor"
 msgstr "&Янтарный оттенок"
 
@@ -1789,7 +1795,7 @@ msgid "Dithering"
 msgstr "Дизеринг"
 
 msgid "Enable NMI for CGA emulation"
-msgstr "Включение NMI для эмуляции CGA"
+msgstr "Включить NMI для эмуляции CGA"
 
 msgid "Voodoo type"
 msgstr "Тип Voodoo"

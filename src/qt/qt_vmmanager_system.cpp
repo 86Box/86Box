@@ -51,6 +51,8 @@ extern "C" {
 #include <86box/mouse.h>
 }
 
+using namespace VMManager;
+
 VMManagerSystem::VMManagerSystem(const QString &sysconfig_file)  {
 
     // The 86Box configuration file
@@ -717,7 +719,7 @@ VMManagerSystem::setupVars() {
     // Serial
     // By default serial 1 and 2 are enabled unless otherwise specified
     static auto serial_match = QRegularExpression("serial\\d_enabled", QRegularExpression::CaseInsensitiveOption);
-    QList<bool> serial_enabled = {true, true, false, false};
+    QList<bool> serial_enabled = {true, true, false, false, false, false, false, false};
     // Parallel
     // By default lpt 1 is enabled unless otherwise specified
     static auto lpt_match = QRegularExpression("lpt\\d_enabled", QRegularExpression::CaseInsensitiveOption);

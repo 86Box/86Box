@@ -94,6 +94,7 @@ typedef struct mach64_t {
 
     int type;
     int pci;
+    int vlb;
 
     uint8_t pci_slot;
     uint8_t irq_state;
@@ -424,7 +425,7 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3C8:
         case 0x3C9:
             if (mach64->type == MACH64_GX)
-                ati68860_ramdac_out((addr & 3) | ((mach64->dac_cntl & 3) << 2), val, svga->ramdac, svga);
+                ati68860_ramdac_out((addr & 3) | ((mach64->dac_cntl & 3) << 2), val, 0, svga->ramdac, svga);
             else
                 svga_out(addr, val, svga);
             return;
@@ -491,7 +492,7 @@ mach64_in(uint16_t addr, void *priv)
         case 0x3C8:
         case 0x3C9:
             if (mach64->type == MACH64_GX)
-                return ati68860_ramdac_in((addr & 3) | ((mach64->dac_cntl & 3) << 2), svga->ramdac, svga);
+                return ati68860_ramdac_in((addr & 3) | ((mach64->dac_cntl & 3) << 2), 0, svga->ramdac, svga);
             return svga_in(addr, svga);
 
         case 0x3D4:
@@ -2529,7 +2530,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
             case 0xc2:
             case 0xc3:
                 if (mach64->type == MACH64_GX)
-                    ret = ati68860_ramdac_in((addr & 3) | ((mach64->dac_cntl & 3) << 2), mach64->svga.ramdac, &mach64->svga);
+                    ret = ati68860_ramdac_in((addr & 3) | ((mach64->dac_cntl & 3) << 2), 0, mach64->svga.ramdac, &mach64->svga);
                 else {
                     switch (addr & 3) {
                         case 0:
@@ -3312,7 +3313,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
             case 0xc2:
             case 0xc3:
                 if (mach64->type == MACH64_GX)
-                    ati68860_ramdac_out((addr & 3) | ((mach64->dac_cntl & 3) << 2), val, svga->ramdac, svga);
+                    ati68860_ramdac_out((addr & 3) | ((mach64->dac_cntl & 3) << 2), val, 0, svga->ramdac, svga);
                 else {
                     switch (addr & 3) {
                         case 0:
@@ -3573,7 +3574,7 @@ mach64_ext_inb(uint16_t port, void *priv)
         case 0x5eee:
         case 0x5eef:
             if (mach64->type == MACH64_GX)
-                ret = ati68860_ramdac_in((port & 3) | ((mach64->dac_cntl & 3) << 2), mach64->svga.ramdac, &mach64->svga);
+                ret = ati68860_ramdac_in((port & 3) | ((mach64->dac_cntl & 3) << 2), 0, mach64->svga.ramdac, &mach64->svga);
             else {
                 switch (port & 3) {
                     case 0:
@@ -3819,7 +3820,7 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
         case 0x5eee:
         case 0x5eef:
             if (mach64->type == MACH64_GX)
-                ati68860_ramdac_out((port & 3) | ((mach64->dac_cntl & 3) << 2), val, svga->ramdac, svga);
+                ati68860_ramdac_out((port & 3) | ((mach64->dac_cntl & 3) << 2), val, 0, svga->ramdac, svga);
             else {
                 switch (port & 3) {
                     case 0:
@@ -3857,7 +3858,7 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
         case 0x6aee:
         case 0x6aef:
             WRITE8(port, mach64->config_cntl, val);
-            if (!mach64->pci)
+            if (mach64->vlb)
                 mach64->linear_base = (mach64->config_cntl & 0x3ff0) << 18;
 
             mach64_updatemapping(mach64);
@@ -4764,6 +4765,7 @@ mach64gx_init(const device_t *info)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_vlb);
 
     mach64->pci            = !!(info->flags & DEVICE_PCI);
+    mach64->vlb            = !!(info->flags & DEVICE_VLB);
     mach64->pci_id         = 'X' | ('G' << 8);
     mach64->config_chip_id = 0x000000d7;
     mach64->dac_cntl       = 5 << 16;             /*ATI 68860 RAMDAC*/
@@ -4799,6 +4801,7 @@ mach64vt2_init(const device_t *info)
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
 
     mach64->pci                  = 1;
+    mach64->vlb                  = 0;
     mach64->pci_id               = 0x5654;
     mach64->config_chip_id       = 0x40005654;
     mach64->dac_cntl             = 1 << 16; /*Internal 24-bit DAC*/

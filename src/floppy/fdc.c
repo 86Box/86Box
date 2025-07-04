@@ -191,7 +191,7 @@ fdc_ctrl_reset(void *priv)
     fdc->step             = 0;
     fdc->power_down       = 0;
 
-    if (!fdc->lock) {
+    if (!fdc->lock && !fdc->fifointest) {
         fdc->fifo  = 0;
         fdc->tfifo = 1;
 
@@ -808,6 +808,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     fdc->tfifo      = 1;
                     fdc->fifointest = 0;
                 }
+                fifo_reset(fdc->fifo_p);
+                fifo_set_len(fdc->fifo_p, fdc->tfifo + 1);
+                fifo_set_trigger_len(fdc->fifo_p, fdc->tfifo + 1);
             }
             return;
         case 4: /* DSR */

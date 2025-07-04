@@ -62,7 +62,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
 
             QAction openSystemFolderAction(tr("Open folder"));
             contextMenu.addAction(&openSystemFolderAction);
-            connect(&openSystemFolderAction, &QAction::triggered, [this, indexAt] {
+            connect(&openSystemFolderAction, &QAction::triggered, [indexAt] {
                 if (const auto configDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString(); !configDir.isEmpty()) {
                     QDir dir(configDir);
                     if (!dir.exists())
@@ -72,13 +72,9 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
                 }
             });
 
-            QAction convertToP3(tr("Convert system to PIII"));
-            contextMenu.addAction(&convertToP3);
-            convertToP3.setEnabled(false);
-
             QAction setSystemIcon(tr("Set icon"));
             contextMenu.addAction(&setSystemIcon);
-            connect(&setSystemIcon, &QAction::triggered, [this, indexAt] {
+            connect(&setSystemIcon, &QAction::triggered, [this] {
                 IconSelectionDialog dialog(":/systemicons/");
                 if(dialog.exec() == QDialog::Accepted) {
                     const QString iconName = dialog.getSelectedIconName();
@@ -460,6 +456,7 @@ VMManagerMain::onPreferencesUpdated()
 void
 VMManagerMain::backgroundUpdateCheckStart() const
 {
+#if EMU_BUILD_NUM != 0
     auto updateChannel = UpdateCheck::UpdateChannel::CI;
 #ifdef RELEASE_BUILD
     updateChannel = UpdateCheck::UpdateChannel::Stable;
@@ -468,6 +465,7 @@ VMManagerMain::backgroundUpdateCheckStart() const
     connect(updateCheck, &UpdateCheck::updateCheckComplete, this, &VMManagerMain::backgroundUpdateCheckComplete);
     connect(updateCheck, &UpdateCheck::updateCheckError, this, &VMManagerMain::backgroundUpdateCheckError);
     updateCheck->checkForUpdates();
+#endif
 }
 
 void

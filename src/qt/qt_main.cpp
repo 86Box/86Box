@@ -55,6 +55,7 @@ extern "C" {
 #endif
 #include <86box/gdbstub.h>
 #include <86box/version.h>
+#include <86box/renderdefs.h>
 }
 
 #ifdef Q_OS_WINDOWS
@@ -789,20 +790,6 @@ main(int argc, char *argv[])
         main_window->installEventFilter(&manager_socket);
     }
 
-    /* Warn the user about unsupported configs */
-    if (cpu_override) {
-        QMessageBox warningbox(QMessageBox::Icon::Warning, QObject::tr("You are loading an unsupported configuration"),
-                               QObject::tr("CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."),
-                               QMessageBox::NoButton, main_window);
-        warningbox.addButton(QObject::tr("Continue"), QMessageBox::AcceptRole);
-        warningbox.addButton(QObject::tr("Exit"), QMessageBox::RejectRole);
-        warningbox.exec();
-        if (warningbox.result() == QDialog::Accepted) {
-              confirm_exit_cmdl = 0; /* skip the confirmation prompt without touching the config */
-              emit main_window->close();
-        }
-    }
-
     // pc_reset_hard_init();
 
     QTimer onesec;
@@ -835,7 +822,7 @@ main(int argc, char *argv[])
 
         /* Set the PAUSE mode depending on the renderer. */
 #ifdef USE_VNC
-        if (vid_api == 5)
+        if (vid_api == RENDERER_VNC)
             plat_pause(1);
         else
 #endif

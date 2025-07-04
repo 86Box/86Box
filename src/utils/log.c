@@ -107,7 +107,6 @@ log_out(void *priv, const char *fmt, va_list ap)
 {
     log_t *log = (log_t *) priv;
     char   temp[1024];
-    char   fmt2[1024];
 
     if (log == NULL)
         pclog("WARNING: Logging called with a NULL log pointer\n");
@@ -116,18 +115,20 @@ log_out(void *priv, const char *fmt, va_list ap)
     else if (fmt[0] != '\0') {
         log_ensure_stdlog_open();
 
-        vsprintf(temp, fmt, ap);
+        vsnprintf(temp, sizeof(temp), fmt, ap);
+
         if (log->suppr_seen && !strcmp(log->buff, temp))
             log->seen++;
         else {
             if (log->suppr_seen && log->seen) {
-                log_copy(log, fmt2, "*** %d repeats ***\n", 1024);
-                fprintf(stdlog, fmt2, log->seen);
+                fprintf(stdlog, "*** %d repeats ***\n", log->seen);
             }
             log->seen = 0;
-            strcpy(log->buff, temp);
-            log_copy(log, fmt2, temp, 1024);
-            fprintf(stdlog, fmt2, ap);
+
+            strncpy(log->buff, temp, sizeof(log->buff) - 1);
+            log->buff[sizeof(log->buff) - 1] = '\0';
+
+            fprintf(stdlog, "%s", temp);
         }
 
         fflush(stdlog);

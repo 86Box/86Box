@@ -156,7 +156,7 @@ isarom_init(const device_t *info)
                 snprintf(dev->socket[i].nvr_path, sizeof(dev->socket[i].nvr_path), "isarom_%i_%i.nvr", dev->inst, i + 1);
                 FILE *fp = nvr_fopen(dev->socket[i].nvr_path, "rb");
                 if (fp != NULL) {
-                    fread(dev->socket[i].rom.rom, 1, dev->socket[i].size, fp);
+                    (void) !fread(dev->socket[i].rom.rom, 1, dev->socket[i].size, fp);
                     fclose(fp);
                     isarom_log("isarom[%u]: loaded %zu bytes from %s\n", dev->inst, read_bytes, dev->socket[i].nvr_path);
                 } else

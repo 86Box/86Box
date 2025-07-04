@@ -723,6 +723,17 @@ et4000_recalctimings(svga_t *svga)
         svga->rowoffset <<= 1;
         svga->render = svga_render_8bpp_highres;
     }
+
+    if (svga->render == svga_render_4bpp_highres)
+        svga->render = svga_render_4bpp_tseng_highres;
+
+    if (dev->type == ET4000_TYPE_TC6058AF) {
+        if (svga->render == svga_render_8bpp_lowres)
+            svga->render = svga_render_8bpp_tseng_lowres;
+
+        else if (svga->render == svga_render_8bpp_highres)
+            svga->render = svga_render_8bpp_tseng_highres;
+    }
 }
 
 static void
@@ -771,6 +782,17 @@ et4000_mca_feedb(UNUSED(void *priv))
 {
     et4000_t *et4000 = (et4000_t *) priv;
     return et4000->pos_regs[2] & 1;
+}
+
+static int
+et4000_line_compare(svga_t* svga)
+{
+    if (svga->split > svga->vsyncstart) {
+        /* Don't do line compare if we're already in vertical retrace. */
+        /* This makes picture bouncing effect work on Copper demo. */
+        return 0;
+    }
+    return 1;
 }
 
 static void *
@@ -881,7 +903,12 @@ et4000_init(const device_t *info)
     if (dev->type >= ET4000_TYPE_ISA)
         dev->svga.ramdac = device_add(&sc1502x_ramdac_device);
 
+    if (dev->type == ET4000_TYPE_TC6058AF)
+        dev->svga.adv_flags |= FLAG_PRECISETIME;
+
     dev->vram_mask = dev->vram_size - 1;
+
+    dev->svga.line_compare = et4000_line_compare;
 
     rom_init(&dev->bios_rom, fn,
         0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);

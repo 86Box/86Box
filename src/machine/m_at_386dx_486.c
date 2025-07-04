@@ -535,7 +535,7 @@ machine_at_acera1g_init(const machine_t *model)
 
     device_add(&keyboard_ps2_acer_pci_device);
 
-    device_add(&ali5105_device);
+    device_add_params(&pc87310_device, (void *) (PC87310_ALI));
     device_add(&ide_ali5213_device);
 
     return ret;
@@ -2865,6 +2865,32 @@ machine_at_ga486l_init(const machine_t *model)
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_cobalt_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/cobalt/Cobalt_2.3.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+	
+    machine_at_common_init(model);
+
+    device_add(&opti499_device);
+    device_add(&ide_opti611_vlb_device);
+    device_add(&ide_isa_sec_device);
+    device_add(&fdc37c665_device);
+	
+    device_add(&keyboard_ps2_ami_device);
+	
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }

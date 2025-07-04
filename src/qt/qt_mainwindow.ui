@@ -121,8 +121,6 @@
       <string>Re&amp;nderer</string>
      </property>
      <addaction name="actionSoftware_Renderer"/>
-     <addaction name="actionHardware_Renderer_OpenGL"/>
-     <addaction name="actionHardware_Renderer_OpenGL_ES"/>
      <addaction name="actionOpenGL_3_0_Core"/>
      <addaction name="actionVulkan"/>
      <addaction name="actionVNC"/>
@@ -405,28 +403,6 @@
    </property>
    <property name="vid_api" stdset="0">
     <number>0</number>
-   </property>
-  </action>
-  <action name="actionHardware_Renderer_OpenGL">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Qt (&amp;OpenGL)</string>
-   </property>
-   <property name="vid_api" stdset="0">
-    <number>1</number>
-   </property>
-  </action>
-  <action name="actionHardware_Renderer_OpenGL_ES">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Qt (OpenGL &amp;ES)</string>
-   </property>
-   <property name="vid_api" stdset="0">
-    <number>2</number>
    </property>
   </action>
   <action name="actionHide_status_bar">
@@ -759,7 +735,7 @@
     <string>Open&amp;GL (3.0 Core)</string>
    </property>
    <property name="vid_api" stdset="0">
-    <number>3</number>
+    <number>1</number>
    </property>
   </action>
   <action name="actionPreferences">
@@ -851,7 +827,7 @@
     <string>&amp;Vulkan</string>
    </property>
    <property name="vid_api" stdset="0">
-    <number>4</number>
+    <number>2</number>
    </property>
   </action>
   <action name="actionMCA_devices">
@@ -875,7 +851,7 @@
     <string>VNC</string>
    </property>
    <property name="vid_api" stdset="0">
-    <number>5</number>
+    <number>3</number>
    </property>
   </action>
   <action name="actionOpen_screenshots_folder">

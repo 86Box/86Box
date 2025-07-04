@@ -21,6 +21,7 @@
 #include <QPushButton>
 
 const QString VMManagerDetailSection::sectionSeparator = ";";
+using namespace VMManager;
 
 VMManagerDetailSection::
 VMManagerDetailSection(const QString &sectionName)

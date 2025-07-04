@@ -137,14 +137,7 @@ option(GDBSTUB      "Enable GDB stub server for debugging"                      
 option(DEV_BRANCH   "Development branch"                                         OFF)
 option(DISCORD      "Discord Rich Presence support"                              ON)
 option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
-# Remove when merged, should just be -D
-option(NV_LOG       "NVidia RIVA 128 debug logging"                              ON)
-option(NV_LOG_ULTRA "Even more NVidia RIVA 128 debug logging"                    OFF)
 option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
-
-# Remove when merged, should just be -D
-option(NV_LOG       "NVidia RIVA 128 debug logging"                              ON)
-option(NV_LOG_ULTRA "Even more NVidia RIVA 128 debug logging"                    OFF)
 
 if (NV_LOG)
     add_compile_definitions(ENABLE_NV_LOG)
@@ -238,6 +231,12 @@ if(NOT EMU_BUILD_NUM)
 endif()
 if(NOT EMU_COPYRIGHT_YEAR)
     set(EMU_COPYRIGHT_YEAR 2024)
+endif()
+
+# Libasan
+if(LIBASAN)
+    add_compile_options(-fsanitize=address)
+    add_link_options(-fsanitize=address)
 endif()
 
 add_subdirectory(src)
