@@ -148,6 +148,8 @@ joystick_standard_read_axis_4button(UNUSED(void *priv), int axis)
     }
 }
 
+#if 0
+// For later use
 static int
 joystick_standard_read_axis_with_pov(UNUSED(void *priv), int axis)
 {
@@ -178,6 +180,7 @@ joystick_standard_read_axis_with_pov(UNUSED(void *priv), int axis)
             return 0;
     }
 }
+#endif
 
 static int
 joystick_standard_read_axis_3axis(UNUSED(void *priv), int axis)
