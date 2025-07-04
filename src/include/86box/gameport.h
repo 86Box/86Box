@@ -15,7 +15,7 @@
  *
  *          Copyright 2016-2022 Miran Grca.
  *          Copyright 2008-2018 Sarah Walker.
- *          Copyright 2021 RichardG.
+ *          Copyright 2021      RichardG.
  *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #ifndef EMU_GAMEPORT_H
@@ -51,6 +51,26 @@
 #define GAMEPORT_6ADDR      0x060000
 #define GAMEPORT_8ADDR      0x080000
 #define GAMEPORT_SIO        0x1000000
+
+typedef struct joystick_if_t {
+    const char *name;
+    const char *internal_name;
+
+    void   *(*init)(void);
+    void    (*close)(void *priv);
+    uint8_t (*read)(void *priv);
+    void    (*write)(void *priv);
+    int     (*read_axis)(void *priv, int axis);
+    void    (*a0_over)(void *priv);
+
+    int         axis_count;
+    int         button_count;
+    int         pov_count;
+    int         max_joysticks;
+    const char *axis_names[MAX_JOY_AXES];
+    const char *button_names[MAX_JOY_BUTTONS];
+    const char *pov_names[MAX_JOY_POVS];
+} joystick_if_t;
 
 typedef struct plat_joystick_t {
     char name[260];
@@ -89,26 +109,6 @@ typedef struct joystick_t {
     int button_mapping[MAX_JOY_BUTTONS];
     int pov_mapping[MAX_JOY_POVS][2];
 } joystick_t;
-
-typedef struct joystick_if_t {
-    const char *name;
-    const char *internal_name;
-
-    void   *(*init)(void);
-    void    (*close)(void *priv);
-    uint8_t (*read)(void *priv);
-    void    (*write)(void *priv);
-    int     (*read_axis)(void *priv, int axis);
-    void    (*a0_over)(void *priv);
-
-    int         axis_count;
-    int         button_count;
-    int         pov_count;
-    int         max_joysticks;
-    const char *axis_names[MAX_JOY_AXES];
-    const char *button_names[MAX_JOY_BUTTONS];
-    const char *pov_names[MAX_JOY_POVS];
-} joystick_if_t;
 
 extern device_t game_ports[GAMEPORT_MAX];
 
@@ -171,9 +171,16 @@ extern void  gameport_remap(void *priv, uint16_t address);
 extern void *gameport_add(const device_t *gameport_type);
 
 extern const joystick_if_t joystick_2axis_2button;
+extern const joystick_if_t joystick_2button_gamepad;
+extern const joystick_if_t joystick_2button_flight_yoke;
 extern const joystick_if_t joystick_2axis_4button;
+extern const joystick_if_t joystick_4button_gamepad;
+extern const joystick_if_t joystick_4button_flight_yoke;
 extern const joystick_if_t joystick_3axis_2button;
+extern const joystick_if_t joystick_2button_yoke_throttle;
 extern const joystick_if_t joystick_3axis_4button;
+extern const joystick_if_t joystick_4button_yoke_throttle;
+extern const joystick_if_t joystick_win95_steering_wheel;
 extern const joystick_if_t joystick_4axis_4button;
 extern const joystick_if_t joystick_2axis_6button;
 extern const joystick_if_t joystick_2axis_8button;
@@ -185,14 +192,6 @@ extern const joystick_if_t joystick_sw_pad;
 
 extern const joystick_if_t joystick_tm_fcs;
 extern const joystick_if_t joystick_tm_fcs_rcs;
-
-extern int             gameport_available(int);
-extern int             gameport_has_config(int);
-extern const char     *gameport_get_internal_name(int);
-extern int             gampeport_get_from_internal_name(char *);
-#ifdef EMU_DEVICE_H
-extern const device_t *gameport_getdevice(int);
-#endif
 
 #ifdef __cplusplus
 }

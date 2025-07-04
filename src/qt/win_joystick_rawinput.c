@@ -222,6 +222,7 @@ joystick_get_capabilities(raw_joystick_t *rawjoy, plat_joystick_t *joy)
     UINT              size     = 0;
     PHIDP_BUTTON_CAPS btn_caps = NULL;
     PHIDP_VALUE_CAPS  val_caps = NULL;
+    HIDP_CAPS         caps;
 
     /* Get preparsed data (HID data format) */
     GetRawInputDeviceInfoW(rawjoy->hdevice, RIDI_PREPARSEDDATA, NULL, &size);
@@ -229,7 +230,6 @@ joystick_get_capabilities(raw_joystick_t *rawjoy, plat_joystick_t *joy)
     if (GetRawInputDeviceInfoW(rawjoy->hdevice, RIDI_PREPARSEDDATA, rawjoy->data, &size) <= 0)
         fatal("joystick_get_capabilities: Failed to get preparsed data.\n");
 
-    HIDP_CAPS caps;
     HidP_GetCaps(rawjoy->data, &caps);
 
     /* Buttons */
@@ -356,6 +356,7 @@ end_loop:
         free(info);
     }
 
+    free(deviceList);
     joystick_log("joystick_init: joysticks_present=%i\n", joysticks_present);
 
     /* Initialize the RawInput (joystick and gamepad) module. */
