@@ -14,7 +14,7 @@
  *          (they are converted to pointers). In the case of NV3, these map directly to the PHYSICAL PGRAPH REGISTERS while sitting in RAMHT!!!!.
  *
  *          Also, these class IDs don't relate to the internal architecture of the GPU.
- *          Effectively, the NVIDIA drivers are faking shit. There are only 16 classes but the drivers recognise many more. See nv3_object_classes_driver.txt for the list of  
+ *          Effectively, the NVIDIA drivers are faking shit. There are only 22 classes but the drivers recognise many more and have a different naming scheme. See nv3_object_classes_driver.txt for the list of  
  *          classes recognised by the driver.
  *          This is why the Class IDs you see here are not the same as you may see in other places.
  *
@@ -31,11 +31,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-// This is slower, but these need to map *****EXACTLY***** to the registers in PGRAPH,
-// or everything FUCKS UP
-//
-// DO NOT REMOVE! DO NOT REMOVE! DO NOT REMOVE!
 
 // CLass names for debugging
 extern const char* nv3_class_names[];

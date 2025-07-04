@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>VisualNVDialog</class>
- <widget class="QDialog" name="VisualNVialog">
+ <widget class="QDialog" name="VisualNVDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -144,7 +144,7 @@
         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pixel Depth&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="loadSavestateBtn">
+      <widget class="QPushButton" name="btnLoadSavestate">
        <property name="geometry">
         <rect>
          <x>10</x>

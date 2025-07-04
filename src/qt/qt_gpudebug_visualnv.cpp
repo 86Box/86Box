@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          GPU Debugging Tools - VRAM Viewer implementation
+ *          GPU Debugging Tools - Visual NV Debugger implementation
  *
  *
  *
@@ -35,13 +35,18 @@
 #include <qt_gpudebug_visualnv.hpp>
 #include "ui_qt_gpudebug_visualnv.h"
 
-/* NOTE: DO NOT REMOVE */
-#include <86box/nv/vid_nv3.h>
-
 /* 86Box core includes */
 extern "C"
 {
-
+    /* NOTE: DO NOT REMOVE */
+    #include <86box/86box.h>
+    #include <86box/device.h>
+    #include <86box/mem.h>
+    #include <86box/pci.h>
+    #include <86box/rom.h>
+    #include <86box/video.h>
+    #include <86box/nv/vid_nv.h>
+    #include <86box/nv/vid_nv3.h>
 }
 
 VisualNVDialog::VisualNVDialog(QWidget *parent)
@@ -49,9 +54,16 @@ VisualNVDialog::VisualNVDialog(QWidget *parent)
     , ui(new Ui::VisualNVDialog)
 {
     ui->setupUi(this);
+    connect(ui->btnLoadSavestate, &QPushButton::clicked, this, &VisualNVDialog::on_btnLoadSavestate_clicked);
 }
 
+// VisualNV dialog destructor
 VisualNVDialog::~VisualNVDialog()
 {
     
+}
+
+void VisualNVDialog::on_btnLoadSavestate_clicked()
+{
+    warning("THIS IS VisualNVDialog::on_btnLoadSavestate_clicked!!!! (throws into hole)");
 }

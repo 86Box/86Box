@@ -935,7 +935,6 @@ extern const device_config_t nv3t_config[];                             // Confi
 #define NV3_CRTC_REGISTER_I2C                           0x3E    
 #define NV3_CRTC_REGISTER_I2C_GPIO                      0x3F
 
-// where the fuck is GDC?
 #define NV3_CRTC_BANKED_128K_A0000                      0x00
 #define NV3_CRTC_BANKED_64K_A0000                       0x04
 #define NV3_CRTC_BANKED_32K_B0000                       0x08
@@ -1066,7 +1065,7 @@ typedef struct nv3_pbus_s
 
 typedef struct nv3_pfifo_cache_s
 {
-    bool push0;                // Can we even access this cache?
+    bool push0;                         // Can we even access this cache?
     uint8_t put_address;                // Trigger a DMA into the value you put here.
     uint8_t get_address;                // Trigger a DMA from the value you put here into where you were going.
     uint8_t channel;                    // The DMA channel ID of this cache.
@@ -1180,7 +1179,7 @@ typedef struct nv3_pgraph_context_control_s
 } nv3_pgraph_context_control_t;
 
 /* DMA object context info 
-   Context uploaded from CACHE0/CACH1 by DMA Puller
+   Context uploaded from CACHE0/CACHE1 by DMA Puller
 */
 typedef struct nv3_pgraph_context_user_s
 {
@@ -1193,7 +1192,7 @@ typedef struct nv3_pgraph_context_user_s
             bool reserved3 : 1;
             uint8_t channel : 7;
             uint8_t reserved2 : 3;
-            uint8_t class : 5;
+            uint8_t class_id : 5;
             uint8_t subchannel : 3;
             uint16_t reserved : 13;
         };
@@ -1468,19 +1467,6 @@ typedef enum nv3_ramin_ramro_reason_e
 
 } nv3_ramin_ramro_reason;
 
-/* This is a gigantic error handling system */
-typedef struct nv3_ramin_ramro_entry_s
-{
-    
-    //todo
-} nv3_ramin_ramro_entry_t;
-
-// Anti-fuckup device
-typedef struct nv3_ramin_ramro_s
-{
-
-} nv3_ramin_ramro_t;
-
 // context for unused channels
 typedef struct nv3_ramin_ramfc_s
 {
@@ -1533,10 +1519,10 @@ typedef struct nv3_s
     nv3_pextdev_t pextdev;          // Chip configuration
     nv3_ptimer_t ptimer;            // programmable interval timer
     nv3_ramin_ramht_t ramht;        // hashtable for PGRAPH objects
-    nv3_ramin_ramro_t ramro;        // anti-fuckup mechanism for idiots who fucked up the FIFO submission
+    // (ramro does not need a struct)
     nv3_ramin_ramfc_t ramfc;        // context for unused channels
     nv3_ramin_ramau_t ramau;        // auxillary weirdnes
-    nv3_ramin_t pramin;             // Ram for INput of DMA objects. Very important!
+    nv3_ramin_t pramin;             // INstance memory for graphics objects. Very important!
     nv3_pvideo_t pvideo;            // Video overlay
     nv3_pme_t pme;                  // Mediaport - external MPEG decoder and video interface
     //more here

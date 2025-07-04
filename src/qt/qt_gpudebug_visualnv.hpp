@@ -32,6 +32,9 @@ class VisualNVDialog : public QDialog
     public:
         explicit VisualNVDialog(QWidget *parent = nullptr);
         ~VisualNVDialog();
+
+        void on_btnLoadSavestate_clicked();
+
     protected:
     private:
         Ui::VisualNVDialog* ui; 

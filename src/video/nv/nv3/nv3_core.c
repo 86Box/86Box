@@ -614,7 +614,7 @@ void nv3_recalc_timings(svga_t* svga)
         case NV3_CRTC_REGISTER_PIXELMODE_16BPP:
             /* This is some sketchy shit that is an attempt at an educated guess
             at pixel clock differences between 9x and NT only in 16bpp. If there is ever an error on 9x with "interlaced" looking graphics,
-            this is what's causing it. Possibly fucking up *ReactOS* of all things */
+            this is what's causing it. Possibly fucking up the drivers under *ReactOS* of all things */
             if ((svga->crtc[NV3_CRTC_REGISTER_VRETRACESTART] >> 1) & 0x01)
                 svga->rowoffset += (svga->crtc[NV3_CRTC_REGISTER_RPC0] & 0xE0) << 2;
             else 
@@ -710,7 +710,7 @@ uint8_t nv3_svga_read(uint16_t addr, void* priv)
             ret = nv3->nvbase.svga.crtcreg;
             break;
         case NV3_CRTC_REGISTER_WTF:
-            ret = 0x08; // Required to not freeze in certain situations on v3.xx drivers
+            ret = 0x08; // Required to not freeze in certain situations on v3.xx drivers. Even though this register doesn't actually exist lol
             break; 
         case NV3_CRTC_REGISTER_CURRENT:
             // Support the extended NVIDIA CRTC register range
