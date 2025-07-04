@@ -140,6 +140,11 @@ option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"              
 # Remove when merged, should just be -D
 option(NV_LOG       "NVidia RIVA 128 debug logging"                              ON)
 option(NV_LOG_ULTRA "Even more NVidia RIVA 128 debug logging"                    OFF)
+option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
+
+# Remove when merged, should just be -D
+option(NV_LOG       "NVidia RIVA 128 debug logging"                              ON)
+option(NV_LOG_ULTRA "Even more NVidia RIVA 128 debug logging"                    OFF)
 
 if (NV_LOG)
     add_compile_definitions(ENABLE_NV_LOG)
