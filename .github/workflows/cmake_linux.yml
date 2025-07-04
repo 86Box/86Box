@@ -74,6 +74,11 @@ jobs:
             toolchain: ./cmake/flags-gcc-aarch64.cmake
             slug: -arm64
             runner: ubuntu-22.04-arm
+        exclude:
+          - dynarec:
+              new: off
+            environment:
+              arch: arm64
 
     steps:
       - name: Install dependencies
