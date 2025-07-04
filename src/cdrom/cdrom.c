@@ -2655,7 +2655,7 @@ cdrom_read_disc_information(const cdrom_t *dev, uint8_t *buffer)
     buffer[ 3] = first;       /* Number of First Track on Disc */
     buffer[ 4] = sessions;    /* Number of Sessions (LSB) */
     buffer[ 5] = ls_first;    /* First Track Number in Last Session (LSB) */
-    buffer[ 5] = ls_last;     /* Last Track Number in Last Session (LSB) */
+    buffer[ 6] = ls_last;     /* Last Track Number in Last Session (LSB) */
     buffer[ 7] = 0x20;        /* Unrestricted use */
     buffer[ 8] = t[0].ps;     /* Disc Type */
     buffer[ 9] = 0x00;        /* Number Of Sessions (MSB) */
