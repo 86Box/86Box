@@ -70,6 +70,8 @@ signals:
 public slots:
     void showSettings();
     void hardReset();
+    void onHardResetCompleted();
+
     void togglePause();
     void initRendererMonitorSlot(int monitor_index);
     void destroyRendererMonitorSlot(int monitor_index);

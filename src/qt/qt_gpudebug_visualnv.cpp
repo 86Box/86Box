@@ -35,6 +35,9 @@
 #include <qt_gpudebug_visualnv.hpp>
 #include "ui_qt_gpudebug_visualnv.h"
 
+/* NOTE: DO NOT REMOVE */
+#include <86box/nv/vid_nv3.h>
+
 /* 86Box core includes */
 extern "C"
 {

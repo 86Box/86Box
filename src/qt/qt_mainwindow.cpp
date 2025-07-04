@@ -268,20 +268,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
 
     connect(this, &MainWindow::hardResetCompleted, this, [this]() {
-        ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
-        num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
-        scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
-        caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
-        /* TODO: Base this on keyboard type instead when that's done. */
-        kana_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
-                               machine_has_flags(machine, MACHINE_AX));
-        while (QApplication::overrideCursor())
-            QApplication::restoreOverrideCursor();
-#ifdef USE_WACOM
-        ui->menuTablet_tool->menuAction()->setVisible(mouse_input_mode >= 1);
-#else
-        ui->menuTablet_tool->menuAction()->setVisible(false);
-#endif
+        onHardResetCompleted();
     });
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::QueuedConnection);
@@ -797,6 +784,41 @@ MainWindow::MainWindow(QWidget *parent)
 
 	updateShortcuts();
 }
+
+void MainWindow::onHardResetCompleted()
+{
+        ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
+        num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+        scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+        caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+        /* TODO: Base this on keyboard type instead when that's done. */
+        kana_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
+                               machine_has_flags(machine, MACHINE_AX));
+        while (QApplication::overrideCursor())
+            QApplication::restoreOverrideCursor();
+#ifdef USE_WACOM
+        ui->menuTablet_tool->menuAction()->setVisible(mouse_input_mode >= 1);
+#else
+        ui->menuTablet_tool->menuAction()->setVisible(false);
+#endif
+
+#ifdef ENABLE_NV_LOG
+        /* 
+            THIS CODE SUCKS AND THIS DESIGN IS TERRIBLE - EVERYTHING ABOUT IT IS BAD AND WRONG. 
+            ENTIRE DEVICE SUBSYSTEM IDEALLY WOULD BE DECOUPLED FROM UI BUT MEH
+        */
+
+        const device_t* vid_device = video_card_getdevice(gfxcard[0]);
+        
+        bool is_nv3 = (vid_device == &nv3_device_agp
+        || vid_device == &nv3_device_pci
+        || vid_device == &nv3t_device_agp
+        || vid_device == &nv3t_device_pci);
+
+        ui->actionDebug_GPUDebug_VisualNv->setVisible(is_nv3);
+#endif 
+}
+
 
 void
 MainWindow::closeEvent(QCloseEvent *event)

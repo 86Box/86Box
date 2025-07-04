@@ -16,6 +16,7 @@
  *          Copyright 2017-2025 Fred N. van Kempen.
  *          Copyright 2025      Jasmine Iwanek.
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
