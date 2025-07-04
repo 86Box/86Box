@@ -15,7 +15,7 @@
  *
  *          Copyright 2016-2022 Miran Grca.
  *          Copyright 2008-2018 Sarah Walker.
- *          Copyright 2021 RichardG.
+ *          Copyright 2021      RichardG.
  *          Copyright 2021-2025 Jasmine Iwanek.
  */
 #include <stdio.h>
@@ -90,11 +90,18 @@ static const struct {
 } joysticks[] = {
     { &joystick_none                         },
     { &joystick_2axis_2button                },
+    { &joystick_2button_gamepad              },
+    { &joystick_2button_flight_yoke          },
     { &joystick_2axis_4button                },
+    { &joystick_4button_gamepad              },
+    { &joystick_4button_flight_yoke          },
     { &joystick_2axis_6button                },
     { &joystick_2axis_8button                },
     { &joystick_3axis_2button                },
+    { &joystick_2button_yoke_throttle        },
     { &joystick_3axis_4button                },
+    { &joystick_win95_steering_wheel         }, // Temp
+    { &joystick_4button_yoke_throttle        },
     { &joystick_4axis_4button                },
     { &joystick_ch_flightstick_pro           },
     { &joystick_ch_flightstick_pro_ch_pedals },
