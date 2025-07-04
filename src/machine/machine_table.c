@@ -14730,7 +14730,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram = {
-            .min = 1024,
+            .min = 8192,
             .max = 1572864,
             .step = 8192
         },
@@ -14770,7 +14770,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram = {
-            .min = 1024,
+            .min = 8192,
             .max = 1572864,
             .step = 8192
         },

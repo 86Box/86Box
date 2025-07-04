@@ -102,10 +102,10 @@ UpdateDetails::visitDownloadPage(const UpdateCheck::UpdateChannel &channel)
 {
     switch (channel) {
         case UpdateCheck::UpdateChannel::Stable:
-            QDesktopServices::openUrl(QUrl("https://ci.86box.net/job/86Box/lastSuccessfulBuild/artifact/"));
-        break;
-        case UpdateCheck::UpdateChannel::CI:
             QDesktopServices::openUrl(QUrl("https://github.com/86Box/86Box/releases/latest"));
-        break;
+            break;
+        case UpdateCheck::UpdateChannel::CI:
+            QDesktopServices::openUrl(QUrl("https://ci.86box.net/job/86Box/lastSuccessfulBuild/artifact/"));
+            break;
     }
 }

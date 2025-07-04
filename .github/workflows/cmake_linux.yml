@@ -11,6 +11,7 @@ on:
       - cmake/**
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
+      - "!.github/workflows/**"
       - .github/workflows/cmake_linux.yml
       - vcpkg.json
       - "!**/Makefile*"
@@ -21,7 +22,7 @@ on:
       - cmake/**
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
-      - .github/workflows/**
+      - "!.github/workflows/**"
       - .github/workflows/cmake_linux.yml
       - vcpkg.json
       - "!**/Makefile*"
@@ -29,12 +30,10 @@ on:
 jobs:
 
   linux:
-    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64"
 
-    runs-on: ubuntu-22.04
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.arch }}"
 
-    env:
-      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+    runs-on: ${{ matrix.environment.runner }}
 
     strategy:
       fail-fast: true
@@ -69,6 +68,20 @@ jobs:
               qttranslations5-l10n
               libevdev-dev
               libxkbcommon-x11-dev
+        environment:
+          - arch: x86_64
+            toolchain: ./cmake/flags-gcc-x86_64.cmake
+            slug: "-x86_64"
+            runner: ubuntu-22.04
+          - arch: arm64
+            toolchain: ./cmake/flags-gcc-aarch64.cmake
+            slug: -arm64
+            runner: ubuntu-22.04-arm
+        exclude:
+          - dynarec:
+              new: off
+            environment:
+              arch: arm64
 
     steps:
       - name: Install dependencies
@@ -93,28 +106,17 @@ jobs:
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
-      - name: Install sonar-scanner and build-wrapper
-        uses: SonarSource/sonarcloud-github-c-cpp@v3
-
       - name: Configure CMake
         run: >-
           cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
-          --toolchain ./cmake/flags-gcc-x86_64.cmake
+          --toolchain  ${{ matrix.environment.toolchain }}
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D QT=${{ matrix.ui.qt }}
 
       - name: Build
         run: |
-          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
-
-      - name: Run sonar-scanner
-        if: 0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+          cmake --build build
 
       - name: Generate package
         run: |
@@ -123,5 +125,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy${{ matrix.environment.slug }}-gha${{ github.run_number }}'
           path: build/artifacts/**

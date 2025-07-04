@@ -8,15 +8,13 @@
  *
  *          Emulation of the old and new IBM CGA graphics cards.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          W. M. Martinez, <anikom15@outlook.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
- *          Copyright 2023 W. M. Martinez
+ *          Copyright 2023      W. M. Martinez
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -284,7 +282,7 @@ cga_render(cga_t *cga, int line)
                 buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] << 4) + 8] = (cga->cgacol & 15) + 16;
         }
     }
-    if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) {
+    if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) { /* 80-column text */
         for (x = 0; x < cga->crtc[CGA_CRTC_HDISP]; x++) {
             if (cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) {
                 chr  = cga->charbuffer[x << 1];
@@ -342,7 +340,7 @@ cga_render(cga_t *cga, int line)
                 }
             }
         }
-    } else if (!(cga->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) {
+    } else if (!(cga->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) { /* not hi-res (but graphics) => 4-color mode */
         cols[0] = (cga->cgacol & 15) | 16;
         col     = (cga->cgacol & 16) ? 24 : 16;
         if (cga->cgamode & CGA_MODE_FLAG_BW) {
@@ -372,7 +370,7 @@ cga_render(cga_t *cga, int line)
                 dat <<= 2;
             }
         }
-    } else {
+    } else { /* 2-color hi-res graphics mode */
         cols[0] = 0;
         cols[1] = (cga->cgacol & 15) + 16;
         for (x = 0; x < cga->crtc[CGA_CRTC_HDISP]; x++) {
@@ -500,7 +498,7 @@ cga_interpolate(cga_t *cga, int x, int y, int w, int h)
 
             interim_1 = cga_interpolate_lookup(cga, prev_color, black, quotient);
             interim_2 = cga_interpolate_lookup(cga, black, next_color, quotient);
-            final = cga_interpolate_lookup(cga, interim_1, interim_2, quotient);
+            final     = cga_interpolate_lookup(cga, interim_1, interim_2, quotient);
 
             buffer32->line[i][j] = final.color;
         }
@@ -746,9 +744,8 @@ void *
 cga_standalone_init(UNUSED(const device_t *info))
 {
     int    display_type;
-    cga_t *cga = malloc(sizeof(cga_t));
+    cga_t *cga = calloc(1, sizeof(cga_t));
 
-    memset(cga, 0, sizeof(cga_t));
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_cga);
 
     display_type      = device_get_config_int("display_type");

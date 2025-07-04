@@ -38,6 +38,7 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/vid_cga.h>
+extern const device_config_t cga_config[]; /* defined in vid_cga.c */
 #include <86box/vid_ogc.h>
 #include <86box/vid_cga_comp.h>
 #include <86box/plat_unused.h>

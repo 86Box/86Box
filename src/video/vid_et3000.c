@@ -476,6 +476,20 @@ et3000_recalctimings(svga_t *svga)
             svga->clock = (cpuclock * (double) (1ULL << 32)) / 36000000.0;
             break;
     }
+
+    if (svga->render == svga_render_4bpp_highres)
+        svga->render = svga_render_4bpp_tseng_highres;
+}
+
+static int
+et3000_line_compare(svga_t* svga)
+{
+    if (svga->split > svga->vsyncstart) {
+        /* Don't do line compare if we're already in vertical retrace. */
+        /* This makes picture bouncing effect work on Copper demo. */
+        return 0;
+    }
+    return 1;
 }
 
 static void *
@@ -511,6 +525,7 @@ et3000_init(const device_t *info)
     dev->svga.miscout = 1;
 
     dev->svga.packed_chain4 = 1;
+    dev->svga.line_compare  = et3000_line_compare;
 
     return dev;
 }

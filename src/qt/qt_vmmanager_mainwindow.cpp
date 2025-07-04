@@ -48,8 +48,13 @@ VMManagerMainWindow(QWidget *parent)
     connect(ui->actionNew_Machine, &QAction::triggered, vmm, &VMManagerMain::newMachineWizard);
 
     // Set up menu actions
-    connect(ui->actionCheck_for_updates, &QAction::triggered, this, &VMManagerMainWindow::checkForUpdatesTriggered);
-
+    // (Disable this if the EMU_BUILD_NUM == 0)
+    #if EMU_BUILD_NUM == 0
+        ui->actionCheck_for_updates->setVisible(false);
+    #else
+        connect(ui->actionCheck_for_updates, &QAction::triggered, this, &VMManagerMainWindow::checkForUpdatesTriggered);
+    #endif
+    
     // TODO: Remove all of this (all the way to END REMOVE) once certain the search will no longer be in the toolbar.
     // BEGIN REMOVE
     // Everything is still setup here for it but it is all hidden. None of it will be

@@ -3819,7 +3819,7 @@ ibm8514_recalctimings(svga_t *svga)
     } else {
         if (dev->on) {
             dev->hdisp = (dev->hdisped + 1) << 3;
-            dev->h_total = (dev->htotal + 1) << 3;
+            dev->h_total = dev->htotal + 1;
 
             if (dev->h_total == 1) /*Default to 1024x768 87hz 8514/A htotal timings if it goes to 0.*/
                 dev->h_total = 0x9e;
@@ -3854,6 +3854,7 @@ ibm8514_recalctimings(svga_t *svga)
 
             dev->h_disp = dev->hdisp;
             dev->dispend = dev->vdisp;
+            dev->h_disp_time = dev->hdisp >> 3;
 
             if (dev->accel.advfunc_cntl & 0x04)
                 svga->clock_8514 = (cpuclock * (double) (1ULL << 32)) / 44900000.0;

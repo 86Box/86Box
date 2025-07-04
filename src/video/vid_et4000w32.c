@@ -600,6 +600,9 @@ et4000w32p_recalctimings(svga_t *svga)
             }
         }
     }
+
+    if (svga->render == svga_render_4bpp_highres)
+        svga->render = svga_render_4bpp_tseng_highres;
 }
 
 void
