@@ -1032,13 +1032,12 @@ xga_accel_read_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, int
             } else
                 byte = mem_readb_phys(addr);
 
-            if (xga->accel.px_map_format[map] & 0x08)
+            if ((xga->accel.px_map_format[map] & 0x08) && (xga->access_mode & 0x08))
                 mask = ((1 - (x & 1)) << 2);
-            else
+            else {
                 mask = ((x & 1) << 2);
-
-            if (xga->access_mode & 0x08)
                 mask ^= 0x04;
+            }
 
             byte = (byte >> mask) & 0x0f;
 
@@ -1127,13 +1126,13 @@ xga_accel_write_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, ui
             } else
                 byte = mem_readb_phys(addr);
 
-            if (xga->accel.px_map_format[map] & 0x08)
+            if ((xga->accel.px_map_format[map] & 0x08) && (xga->access_mode & 0x08))
                 mask = ((1 - (x & 1)) << 2);
-            else
+            else {
                 mask = ((x & 1) << 2);
-
-            if (xga->access_mode & 0x08)
                 mask ^= 0x04;
+            }
+            xga_log("4bpp Write: AccessMode=%02x.\n", xga->access_mode & 0x08);
 
             pixel <<= mask;
             mask = 0x0f << mask;
@@ -2647,46 +2646,24 @@ xga_render_4bpp(svga_t *svga)
 
         for (int x = 0; x <= xga->h_disp; x += 16) {
             dat  = *(uint32_t *) (&xga->vram[xga->memaddr & xga->vram_mask]);
-            if (xga->access_mode & 0x08) {
-                p[1] = xga->pallook[dat & 0x0f];
-                p[0] = xga->pallook[(dat >> 4) & 0x0f];
-                p[3] = xga->pallook[(dat >> 8) & 0x0f];
-                p[2] = xga->pallook[(dat >> 12) & 0x0f];
-                p[5] = xga->pallook[(dat >> 16) & 0x0f];
-                p[4] = xga->pallook[(dat >> 20) & 0x0f];
-                p[7] = xga->pallook[(dat >> 24) & 0x0f];
-                p[6] = xga->pallook[(dat >> 28) & 0x0f];
-            } else {
-                p[0] = xga->pallook[dat & 0x0f];
-                p[1] = xga->pallook[(dat >> 4) & 0x0f];
-                p[2] = xga->pallook[(dat >> 8) & 0x0f];
-                p[3] = xga->pallook[(dat >> 12) & 0x0f];
-                p[4] = xga->pallook[(dat >> 16) & 0x0f];
-                p[5] = xga->pallook[(dat >> 20) & 0x0f];
-                p[6] = xga->pallook[(dat >> 24) & 0x0f];
-                p[7] = xga->pallook[(dat >> 28) & 0x0f];
-            }
+            p[1] = xga->pallook[dat & 0x0f];
+            p[0] = xga->pallook[(dat >> 4) & 0x0f];
+            p[3] = xga->pallook[(dat >> 8) & 0x0f];
+            p[2] = xga->pallook[(dat >> 12) & 0x0f];
+            p[5] = xga->pallook[(dat >> 16) & 0x0f];
+            p[4] = xga->pallook[(dat >> 20) & 0x0f];
+            p[7] = xga->pallook[(dat >> 24) & 0x0f];
+            p[6] = xga->pallook[(dat >> 28) & 0x0f];
 
             dat  = *(uint32_t *) (&xga->vram[(xga->memaddr + 4) & xga->vram_mask]);
-            if (xga->access_mode & 0x08) {
-                p[9] = xga->pallook[dat & 0x0f];
-                p[8] = xga->pallook[(dat >> 4) & 0x0f];
-                p[11] = xga->pallook[(dat >> 8) & 0x0f];
-                p[10] = xga->pallook[(dat >> 12) & 0x0f];
-                p[13] = xga->pallook[(dat >> 16) & 0x0f];
-                p[12] = xga->pallook[(dat >> 20) & 0x0f];
-                p[15] = xga->pallook[(dat >> 24) & 0x0f];
-                p[14] = xga->pallook[(dat >> 28) & 0x0f];
-            } else {
-                p[8] = xga->pallook[dat & 0x0f];
-                p[9] = xga->pallook[(dat >> 4) & 0x0f];
-                p[10] = xga->pallook[(dat >> 8) & 0x0f];
-                p[11] = xga->pallook[(dat >> 12) & 0x0f];
-                p[12] = xga->pallook[(dat >> 16) & 0x0f];
-                p[13] = xga->pallook[(dat >> 20) & 0x0f];
-                p[14] = xga->pallook[(dat >> 24) & 0x0f];
-                p[15] = xga->pallook[(dat >> 28) & 0x0f];
-            }
+            p[9] = xga->pallook[dat & 0x0f];
+            p[8] = xga->pallook[(dat >> 4) & 0x0f];
+            p[11] = xga->pallook[(dat >> 8) & 0x0f];
+            p[10] = xga->pallook[(dat >> 12) & 0x0f];
+            p[13] = xga->pallook[(dat >> 16) & 0x0f];
+            p[12] = xga->pallook[(dat >> 20) & 0x0f];
+            p[15] = xga->pallook[(dat >> 24) & 0x0f];
+            p[14] = xga->pallook[(dat >> 28) & 0x0f];
 
             xga->memaddr += 8;
             p += 16;
