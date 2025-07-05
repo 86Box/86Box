@@ -324,13 +324,23 @@ quadcolor_render(quadcolor_t *quadcolor, int line)
                 cols[0] = (attr >> 4) + 16;
             if (drawcursor) {
                 for (column = 0; column < 8; column++) {
-                    buffer32->line[line][(x << 3) + column + 8]
-                        = (cols[(fontdat[chr + quadcolor->fontbase][quadcolor->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ 15) | get_next_qc2_pixel(quadcolor);
+                    uint32_t cga_color_idx = (cols[(fontdat[chr + quadcolor->fontbase][quadcolor->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ 15);
+                    uint8_t qc2_pixel_val = get_next_qc2_pixel(quadcolor);
+                    if (qc2_pixel_val != 0) {
+                        buffer32->line[line][(x << 3) + column + 8] = (cga_color_idx & 0xF0) | qc2_pixel_val;
+                    } else {
+                        buffer32->line[line][(x << 3) + column + 8] = cga_color_idx;
+                    }
                 }
             } else {
                 for (column = 0; column < 8; column++) {
-                    buffer32->line[line][(x << 3) + column + 8]
-                        = cols[(fontdat[chr + quadcolor->fontbase][quadcolor->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] | get_next_qc2_pixel(quadcolor);
+                    uint32_t cga_color_idx = cols[(fontdat[chr + quadcolor->fontbase][quadcolor->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0];
+                    uint8_t qc2_pixel_val = get_next_qc2_pixel(quadcolor);
+                    if (qc2_pixel_val != 0) {
+                        buffer32->line[line][(x << 3) + column + 8] = (cga_color_idx & 0xF0) | qc2_pixel_val;
+                    } else {
+                        buffer32->line[line][(x << 3) + column + 8] = cga_color_idx;
+                    }
                 }
             }
             quadcolor->memaddr++;
@@ -354,16 +364,26 @@ quadcolor_render(quadcolor_t *quadcolor, int line)
             if (drawcursor) {
                 for (column = 0; column < 8; column++) {
                     dat = (cols[(fontdat[chr + quadcolor->fontbase][quadcolor->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ 15);
-                    buffer32->line[line][(x << 4) + (column << 1) + 8] = dat | get_next_qc2_pixel(quadcolor);
-                    buffer32->line[line][(x << 4) + (column << 1) + 9] = dat | get_next_qc2_pixel(quadcolor);
-                        
+                    uint8_t qc2_pixel_val = get_next_qc2_pixel(quadcolor);
+                    if (qc2_pixel_val != 0) {
+                        buffer32->line[line][(x << 4) + (column << 1) + 8] = (dat & 0xF0) | qc2_pixel_val;
+                        buffer32->line[line][(x << 4) + (column << 1) + 9] = (dat & 0xF0) | qc2_pixel_val;
+                    } else {
+                        buffer32->line[line][(x << 4) + (column << 1) + 8] = dat;
+                        buffer32->line[line][(x << 4) + (column << 1) + 9] = dat;
+                    }
                 }
             } else {
                 for (column = 0; column < 8; column++) {
                     dat = cols[(fontdat[chr + quadcolor->fontbase][quadcolor->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0];
-                    buffer32->line[line][(x << 4) + (column << 1) + 8] = dat | get_next_qc2_pixel(quadcolor);
-                    buffer32->line[line][(x << 4) + (column << 1) + 9] = dat | get_next_qc2_pixel(quadcolor);
-                    
+                    uint8_t qc2_pixel_val = get_next_qc2_pixel(quadcolor);
+                    if (qc2_pixel_val != 0) {
+                        buffer32->line[line][(x << 4) + (column << 1) + 8] = (dat & 0xF0) | qc2_pixel_val;
+                        buffer32->line[line][(x << 4) + (column << 1) + 9] = (dat & 0xF0) | qc2_pixel_val;
+                    } else {
+                        buffer32->line[line][(x << 4) + (column << 1) + 8] = dat;
+                        buffer32->line[line][(x << 4) + (column << 1) + 9] = dat;
+                    }
                 }
             }
         }
@@ -391,8 +411,15 @@ quadcolor_render(quadcolor_t *quadcolor, int line)
                 dat = 0;
             quadcolor->memaddr++;
             for (column = 0; column < 8; column++) {
-                buffer32->line[line][(x << 4) + (column << 1) + 8] = cols[dat >> 14] | get_next_qc2_pixel(quadcolor);
-                buffer32->line[line][(x << 4) + (column << 1) + 9] = cols[dat >> 14] | get_next_qc2_pixel(quadcolor);
+                uint32_t cga_color_idx = cols[dat >> 14];
+                uint8_t qc2_pixel_val = get_next_qc2_pixel(quadcolor);
+                if (qc2_pixel_val != 0) {
+                    buffer32->line[line][(x << 4) + (column << 1) + 8] = (cga_color_idx & 0xF0) | qc2_pixel_val;
+                    buffer32->line[line][(x << 4) + (column << 1) + 9] = (cga_color_idx & 0xF0) | qc2_pixel_val;
+                } else {
+                    buffer32->line[line][(x << 4) + (column << 1) + 8] = cga_color_idx;
+                    buffer32->line[line][(x << 4) + (column << 1) + 9] = cga_color_idx;
+                }
                 dat <<= 2;
             }
         }
@@ -407,7 +434,13 @@ quadcolor_render(quadcolor_t *quadcolor, int line)
                 dat = quadcolor->quadcolor_ctrl & 15; /* TODO: Is Quadcolor bg color actually relevant, here? Probably. See QC2 manual p.46 1. */;
             quadcolor->memaddr++;
             for (column = 0; column < 16; column++) {
-                buffer32->line[line][(x << 4) + column + 8] = cols[dat >> 15] | get_next_qc2_pixel(quadcolor);
+                uint32_t cga_color_idx = cols[dat >> 15];
+                uint8_t qc2_pixel_val = get_next_qc2_pixel(quadcolor);
+                if (qc2_pixel_val != 0) {
+                    buffer32->line[line][(x << 4) + column + 8] = (cga_color_idx & 0xF0) | qc2_pixel_val;
+                } else {
+                    buffer32->line[line][(x << 4) + column + 8] = cga_color_idx;
+                }
                 dat <<= 1;
             }
         }
