@@ -3602,7 +3602,7 @@ sb_awe32_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
-    sb->gameport      = gameport_add(&gameport_pnp_device);
+    sb->gameport      = gameport_add(&gameport_device);
     sb->gameport_addr = 0x200;
     gameport_remap(sb->gameport, sb->gameport_addr);
 
