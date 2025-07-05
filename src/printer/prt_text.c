@@ -63,6 +63,7 @@
 #include <86box/lpt.h>
 #include <86box/printer.h>
 #include <86box/prt_devs.h>
+#include "cpu.h"
 
 #define FULL_PAGE 1 /* set if no top/bot margins */
 
@@ -391,6 +392,14 @@ strobe(uint8_t old, uint8_t val, void *priv)
         /* Process incoming character. */
         handle_char(dev);
 
+        if (timer_is_enabled(&dev->timeout_timer)) {
+            timer_disable(&dev->timeout_timer);
+#ifdef USE_DYNAREC
+            if (cpu_use_dynarec)
+                update_tsc();
+#endif
+        }
+
         /* ACK it, will be read on next READ STATUS. */
         dev->ack = 1;
 
@@ -428,6 +437,14 @@ write_ctrl(uint8_t val, void *priv)
 
         /* ACK it, will be read on next READ STATUS. */
         dev->ack = 1;
+
+        if (timer_is_enabled(&dev->timeout_timer)) {
+            timer_disable(&dev->timeout_timer);
+#ifdef USE_DYNAREC
+            if (cpu_use_dynarec)
+                update_tsc();
+#endif
+        }
 
         timer_set_delay_u64(&dev->pulse_timer, ISACONST);
         timer_set_delay_u64(&dev->timeout_timer, 5000000 * TIMER_USEC);

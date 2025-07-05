@@ -34,6 +34,7 @@
 #include <86box/plat_dynld.h>
 #include <86box/ui.h>
 #include <86box/prt_devs.h>
+#include "cpu.h"
 
 #ifdef _WIN32
 #    define GSDLLAPI __stdcall
@@ -341,6 +342,14 @@ ps_strobe(uint8_t old, uint8_t val, void *priv)
     if (!(val & 0x01) && (old & 0x01)) {
         process_data(dev);
 
+        if (timer_is_enabled(&dev->timeout_timer)) {
+            timer_disable(&dev->timeout_timer);
+#ifdef USE_DYNAREC
+            if (cpu_use_dynarec)
+                update_tsc();
+#endif
+        }
+
         dev->ack = true;
 
         timer_set_delay_u64(&dev->pulse_timer, ISACONST);
@@ -370,6 +379,14 @@ ps_write_ctrl(uint8_t val, void *priv)
 
     if (!(val & 0x01) && (dev->ctrl & 0x01)) {
         process_data(dev);
+
+        if (timer_is_enabled(&dev->timeout_timer)) {
+            timer_disable(&dev->timeout_timer);
+#ifdef USE_DYNAREC
+            if (cpu_use_dynarec)
+                update_tsc();
+#endif
+        }
 
         dev->ack = true;
 
