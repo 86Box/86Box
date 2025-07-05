@@ -95,7 +95,7 @@ machine_at_d842_init(const machine_t *model)
     fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios_versions"), 0);
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
-	
+
     machine_at_common_init(model);
 
     device_add(&ide_pci_2ch_device);
@@ -195,10 +195,10 @@ machine_at_p54np4_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_CAN_SWITCH_TYPE);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x06, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 06 = Slot 1 */
-    pci_register_slot(0x05, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 05 = Slot 2 */
-    pci_register_slot(0x04, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 04 = Slot 3 */
-    pci_register_slot(0x03, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 03 = Slot 4 */
+    pci_register_slot(0x07, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 07 = Slot 1 */
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 06 = Slot 2 */
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 05 = Slot 3 */
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 04 = Slot 4 */
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430nx_device);
     device_add(&sio_zb_device);
@@ -237,7 +237,7 @@ machine_at_tek932_init(const machine_t *model)
 
     if (bios_only || !ret)
         return ret;
-    
+
     machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_CAN_SWITCH_TYPE);
