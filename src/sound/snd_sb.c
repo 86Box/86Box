@@ -2864,7 +2864,7 @@ sb_init(UNUSED(const device_t *info))
     sb_dsp_init(&sb->dsp, model, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
-    sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
+    sb_dsp_setdma8(&sb->dsp, 1); // SB 1, SB1.5 and 2 don't support DMA3
 
     if (mixer_addr > 0x0000)
         sb_ct1335_mixer_reset(sb);
@@ -4114,21 +4114,6 @@ static const device_config_t sb_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name           = "dma",
-        .description    = "DMA",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
-            { .description = ""                  }
-        },
-        .bios           = { { 0 } }
-    },
-    {
         .name           = "opl",
         .description    = "Enable OPL",
         .type           = CONFIG_BINARY,
@@ -4186,21 +4171,6 @@ static const device_config_t sb15_config[] = {
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 5", .value = 5 },
             { .description = "IRQ 7", .value = 7 },
-            { .description = ""                  }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "dma",
-        .description    = "DMA",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
             { .description = ""                  }
         },
         .bios           = { { 0 } }
@@ -4286,21 +4256,6 @@ static const device_config_t sb2_config[] = {
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 5", .value = 5 },
             { .description = "IRQ 7", .value = 7 },
-            { .description = ""                  }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "dma",
-        .description    = "DMA",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
             { .description = ""                  }
         },
         .bios           = { { 0 } }
