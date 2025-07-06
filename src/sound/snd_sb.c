@@ -3906,9 +3906,11 @@ ess_x688_init(UNUSED(const device_t *info))
         sb_dsp_set_mpu(&ess->dsp, ess->mpu);
     }
 
-    ess->gameport      = gameport_add(&gameport_pnp_device);
-    ess->gameport_addr = 0x200;
-    gameport_remap(ess->gameport, ess->gameport_addr);
+    if (device_get_config_int("gameport")) {
+        ess->gameport      = gameport_add(&gameport_device);
+        ess->gameport_addr = 0x200;
+        gameport_remap(ess->gameport, ess->gameport_addr);
+    }
 
     if (ide_base > 0x0000) {
         device_add(&ide_qua_pnp_device);
@@ -5266,6 +5268,17 @@ static const device_config_t ess_688_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "ide_ctrl",
         .description    = "IDE Controller",
         .type           = CONFIG_HEX16,
@@ -5346,6 +5359,17 @@ static const device_config_t ess_1688_config[] = {
             { .description = "DMA 3", .value = 3 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
