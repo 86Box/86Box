@@ -3231,9 +3231,17 @@ sb_16_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
-    sb->gameport      = gameport_add(&gameport_pnp_device);
-    sb->gameport_addr = 0x200;
-    gameport_remap(sb->gameport, sb->gameport_addr);
+    if (info->local == FM_YMF289B) {
+        sb->gameport      = gameport_add(&gameport_pnp_device);
+        sb->gameport_addr = 0x200;
+        gameport_remap(sb->gameport, sb->gameport_addr);
+    } else {
+        if (device_get_config_int("gameport")) {
+            sb->gameport      = gameport_add(&gameport_device);
+            sb->gameport_addr = 0x200;
+            gameport_remap(sb->gameport, sb->gameport_addr);
+        }
+    }
 
     return sb;
 }
@@ -4620,6 +4628,17 @@ static const device_config_t sb_16_config[] = {
             { .description = "DMA 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
