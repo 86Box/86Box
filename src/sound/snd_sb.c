@@ -2869,6 +2869,12 @@ sb_init(UNUSED(const device_t *info))
     if (mixer_addr > 0x0000)
         sb_ct1335_mixer_reset(sb);
 
+    if (device_get_config_int("gameport")) {
+        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport_addr = 0x200;
+        gameport_remap(sb->gameport, sb->gameport_addr);
+    }
+
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
         // TODO: See if this applies to the SB1.5 as well
@@ -4114,6 +4120,17 @@ static const device_config_t sb_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "opl",
         .description    = "Enable OPL",
         .type           = CONFIG_BINARY,
@@ -4173,6 +4190,17 @@ static const device_config_t sb15_config[] = {
             { .description = "IRQ 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
@@ -4258,6 +4286,17 @@ static const device_config_t sb2_config[] = {
             { .description = "IRQ 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
