@@ -3481,7 +3481,6 @@ sb_16_compat_init(const device_t *info)
     music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
 
     sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
-    memset(sb->mpu, 0, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, (int) (intptr_t) info->local);
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
@@ -3549,8 +3548,6 @@ sb_awe32_init(UNUSED(const device_t *info))
     uint16_t emu_addr    = device_get_config_hex16("emu_base");
     int      onboard_ram = device_get_config_int("onboard_ram");
 
-    memset(sb, 0x00, sizeof(sb_t));
-
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
         fm_driver_get(FM_YMF262, &sb->opl);
@@ -3594,7 +3591,6 @@ sb_awe32_init(UNUSED(const device_t *info))
 
     if (mpu_addr) {
         sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
-        memset(sb->mpu, 0, sizeof(mpu_t));
         mpu401_init(sb->mpu, device_get_config_hex16("base401"), 0, M_UART,
                     device_get_config_int("receive_input401"));
     } else
@@ -4153,7 +4149,7 @@ static const device_config_t sb_config[] = {
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
-     },
+    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
@@ -4178,8 +4174,8 @@ static const device_config_t sb15_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
+        .name           = "irq",
+        .description    = "IRQ",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -4247,8 +4243,8 @@ static const device_config_t sb15_config[] = {
 
 static const device_config_t sb2_config[] = {
     {
-        .name = "base",
-        .description = "Address",
+        .name           = "base",
+        .description    = "Address",
         .type           = CONFIG_HEX16,
         .default_string = NULL,
         .default_int    = 0x220,
@@ -4298,7 +4294,7 @@ static const device_config_t sb2_config[] = {
         .name           = "dma",
         .description    = "DMA",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -4367,7 +4363,7 @@ static const device_config_t sb_mcv_config[] = {
         .name           = "dma",
         .description    = "DMA",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -5343,7 +5339,7 @@ static const device_config_t ess_1688_pnp_config[] = {
         .name           = "control_pc_speaker",
         .description    = "Control PC speaker",
         .type           = CONFIG_BINARY,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -5354,7 +5350,7 @@ static const device_config_t ess_1688_pnp_config[] = {
         .name           = "receive_input",
         .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -5365,7 +5361,7 @@ static const device_config_t ess_1688_pnp_config[] = {
         .name           = "receive_input401",
         .description    = "Receive MIDI input (MPU-401)",
         .type           = CONFIG_BINARY,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
