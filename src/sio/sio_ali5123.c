@@ -103,6 +103,7 @@ ali5123_lpt_handler(ali5123_t *dev)
             lpt1_setup(ld_port);
     }
     lpt1_irq(lpt_irq);
+    lpt_port_dma(0, lpt_dma);
 }
 
 static void
