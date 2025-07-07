@@ -2864,10 +2864,16 @@ sb_init(UNUSED(const device_t *info))
     sb_dsp_init(&sb->dsp, model, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
-    sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
+    sb_dsp_setdma8(&sb->dsp, 1); // SB 1, SB1.5 and 2 don't support DMA3
 
     if (mixer_addr > 0x0000)
         sb_ct1335_mixer_reset(sb);
+
+    if (device_get_config_int("gameport")) {
+        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport_addr = 0x200;
+        gameport_remap(sb->gameport, sb->gameport_addr);
+    }
 
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
@@ -2947,6 +2953,12 @@ sb_mcv_init(UNUSED(const device_t *info))
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
+    if (device_get_config_int("gameport")) {
+        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport_addr = 0x200;
+        gameport_remap(sb->gameport, sb->gameport_addr);
+    }
 
     return sb;
 }
@@ -3030,6 +3042,12 @@ sb_pro_v1_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
+    if (device_get_config_int("gameport")) {
+        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport_addr = 0x200;
+        gameport_remap(sb->gameport, sb->gameport_addr);
+    }
+
     return sb;
 }
 
@@ -3084,6 +3102,12 @@ sb_pro_v2_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
+    if (device_get_config_int("gameport")) {
+        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport_addr = 0x200;
+        gameport_remap(sb->gameport, sb->gameport_addr);
+    }
+
     return sb;
 }
 
@@ -3116,6 +3140,12 @@ sb_pro_mcv_init(UNUSED(const device_t *info))
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
+    if (device_get_config_int("gameport")) {
+        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport_addr = 0x200;
+        gameport_remap(sb->gameport, sb->gameport_addr);
+    }
 
     return sb;
 }
@@ -3201,9 +3231,17 @@ sb_16_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
-    sb->gameport      = gameport_add(&gameport_pnp_device);
-    sb->gameport_addr = 0x200;
-    gameport_remap(sb->gameport, sb->gameport_addr);
+    if (info->local == FM_YMF289B) {
+        sb->gameport      = gameport_add(&gameport_pnp_device);
+        sb->gameport_addr = 0x200;
+        gameport_remap(sb->gameport, sb->gameport_addr);
+    } else {
+        if (device_get_config_int("gameport")) {
+            sb->gameport      = gameport_add(&gameport_device);
+            sb->gameport_addr = 0x200;
+            gameport_remap(sb->gameport, sb->gameport_addr);
+        }
+    }
 
     return sb;
 }
@@ -3481,7 +3519,6 @@ sb_16_compat_init(const device_t *info)
     music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
 
     sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
-    memset(sb->mpu, 0, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, (int) (intptr_t) info->local);
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
@@ -3549,8 +3586,6 @@ sb_awe32_init(UNUSED(const device_t *info))
     uint16_t emu_addr    = device_get_config_hex16("emu_base");
     int      onboard_ram = device_get_config_int("onboard_ram");
 
-    memset(sb, 0x00, sizeof(sb_t));
-
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
         fm_driver_get(FM_YMF262, &sb->opl);
@@ -3594,7 +3629,6 @@ sb_awe32_init(UNUSED(const device_t *info))
 
     if (mpu_addr) {
         sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
-        memset(sb->mpu, 0, sizeof(mpu_t));
         mpu401_init(sb->mpu, device_get_config_hex16("base401"), 0, M_UART,
                     device_get_config_int("receive_input401"));
     } else
@@ -3606,9 +3640,11 @@ sb_awe32_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
-    sb->gameport      = gameport_add(&gameport_pnp_device);
-    sb->gameport_addr = 0x200;
-    gameport_remap(sb->gameport, sb->gameport_addr);
+    if (device_get_config_int("gameport")) {
+        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport_addr = 0x200;
+        gameport_remap(sb->gameport, sb->gameport_addr);
+    }
 
     return sb;
 }
@@ -3870,9 +3906,11 @@ ess_x688_init(UNUSED(const device_t *info))
         sb_dsp_set_mpu(&ess->dsp, ess->mpu);
     }
 
-    ess->gameport      = gameport_add(&gameport_pnp_device);
-    ess->gameport_addr = 0x200;
-    gameport_remap(ess->gameport, ess->gameport_addr);
+    if (device_get_config_int("gameport")) {
+        ess->gameport      = gameport_add(&gameport_device);
+        ess->gameport_addr = 0x200;
+        gameport_remap(ess->gameport, ess->gameport_addr);
+    }
 
     if (ide_base > 0x0000) {
         device_add(&ide_qua_pnp_device);
@@ -4118,18 +4156,14 @@ static const device_config_t sb_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name           = "dma",
-        .description    = "DMA",
-        .type           = CONFIG_SELECTION,
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
         .default_string = NULL,
-        .default_int    = 1,
+        .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
-            { .description = ""                  }
-        },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
@@ -4153,7 +4187,7 @@ static const device_config_t sb_config[] = {
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
-     },
+    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
@@ -4178,8 +4212,8 @@ static const device_config_t sb15_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name = "irq",
-        .description = "IRQ",
+        .name           = "irq",
+        .description    = "IRQ",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -4195,18 +4229,14 @@ static const device_config_t sb15_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name           = "dma",
-        .description    = "DMA",
-        .type           = CONFIG_SELECTION,
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
         .default_string = NULL,
-        .default_int    = 1,
+        .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
-            { .description = ""                  }
-        },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
@@ -4247,8 +4277,8 @@ static const device_config_t sb15_config[] = {
 
 static const device_config_t sb2_config[] = {
     {
-        .name = "base",
-        .description = "Address",
+        .name           = "base",
+        .description    = "Address",
         .type           = CONFIG_HEX16,
         .default_string = NULL,
         .default_int    = 0x220,
@@ -4295,18 +4325,14 @@ static const device_config_t sb2_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name           = "dma",
-        .description    = "DMA",
-        .type           = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int    = 1,
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
-            { .description = ""                  }
-        },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
@@ -4367,7 +4393,7 @@ static const device_config_t sb_mcv_config[] = {
         .name           = "dma",
         .description    = "DMA",
         .type           = CONFIG_SELECTION,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -4376,6 +4402,17 @@ static const device_config_t sb_mcv_config[] = {
             { .description = "DMA 3", .value = 3 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
@@ -4453,6 +4490,17 @@ static const device_config_t sb_pro_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "opl",
         .description    = "Enable OPL",
         .type           = CONFIG_BINARY,
@@ -4478,6 +4526,17 @@ static const device_config_t sb_pro_config[] = {
 };
 
 static const device_config_t sb_pro_mcv_config[] = {
+    {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
     {
         .name           = "receive_input",
         .description    = "Receive MIDI input",
@@ -4573,6 +4632,17 @@ static const device_config_t sb_16_config[] = {
             { .description = "DMA 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
@@ -4855,6 +4925,17 @@ static const device_config_t sb_awe32_config[] = {
             { .description = "28 MB",  .value = 28672 },
             { .description = ""                       }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
@@ -5187,6 +5268,17 @@ static const device_config_t ess_688_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "ide_ctrl",
         .description    = "IDE Controller",
         .type           = CONFIG_HEX16,
@@ -5270,6 +5362,17 @@ static const device_config_t ess_1688_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "ide_ctrl",
         .description    = "IDE Controller",
         .type           = CONFIG_HEX16,
@@ -5343,7 +5446,7 @@ static const device_config_t ess_1688_pnp_config[] = {
         .name           = "control_pc_speaker",
         .description    = "Control PC speaker",
         .type           = CONFIG_BINARY,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -5354,7 +5457,7 @@ static const device_config_t ess_1688_pnp_config[] = {
         .name           = "receive_input",
         .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -5365,7 +5468,7 @@ static const device_config_t ess_1688_pnp_config[] = {
         .name           = "receive_input401",
         .description    = "Receive MIDI input (MPU-401)",
         .type           = CONFIG_BINARY,
-        .default_string = "",
+        .default_string = NULL,
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
