@@ -102,6 +102,8 @@ bool cpu_thread_running = false;
 void qt_set_sequence_auto_mnemonic(bool b);
 
 #ifdef Q_OS_WINDOWS
+bool acp_utf8 = false;
+
 static void
 keyboard_getkeymap()
 {
@@ -515,6 +517,13 @@ extern bool windows_is_light_theme();
 int
 main(int argc, char *argv[])
 {
+#ifdef Q_OS_WINDOWS
+    /* Check if Windows supports UTF-8 */
+    if (GetACP() == CP_UTF8)
+	    acp_utf8 = 1;
+    else
+	    acp_utf8 = 0;
+#endif
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, false);
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
@@ -530,6 +539,9 @@ main(int argc, char *argv[])
 
 #ifdef Q_OS_WINDOWS
     Q_INIT_RESOURCE(darkstyle);
+    if (QFile(QApplication::applicationDirPath() + "/opengl32.dll").exists()) {
+        qputenv("QT_OPENGL_DLL", QFileInfo(QApplication::applicationDirPath() + "/opengl32.dll").absoluteFilePath().toUtf8());
+    }
     QApplication::setAttribute(Qt::AA_NativeWindows);
 
     if (!windows_is_light_theme()) {
