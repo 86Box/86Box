@@ -123,6 +123,8 @@ lpt1_handler(pc87306_t *dev)
     uint8_t  lpt_irq = LPT2_IRQ;
     uint8_t  lpt_dma = ((dev->regs[0x18] & 0x06) >> 1);
 
+    lpt1_remove();
+
     if (lpt_dma == 0x00)
         lpt_dma = 0xff;
 
@@ -157,17 +159,17 @@ lpt1_handler(pc87306_t *dev)
     if (dev->regs[0x1b] & 0x10)
         lpt_irq = (dev->regs[0x1b] & 0x20) ? 7 : 5;
 
+    lpt_set_ext(0, !!(dev->regs[0x02] & 0x80));
+
+    lpt_set_epp(0, !!(dev->regs[0x04] & 0x01));
+    lpt_set_ecp(0, !!(dev->regs[0x04] & 0x04));
+
     if (lpt_port)
         lpt1_setup(lpt_port);
 
     lpt1_irq(lpt_irq);
 
     lpt_port_dma(0, lpt_dma);
-
-    lpt_set_ext(0, !!(dev->regs[0x02] & 0x80));
-
-    lpt_set_epp(0, !!(dev->regs[0x04] & 0x01));
-    lpt_set_ecp(0, !!(dev->regs[0x04] & 0x04));
 }
 
 static void
@@ -386,7 +388,7 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
             if (valxor & 0x70) {
                 lpt1_remove();
                 if (!(val & 0x40))
-                    dev->regs[0x19] = 0xEF;
+                    dev->regs[0x19] = 0xef;
                 if ((dev->regs[0x00] & 1) && !(dev->regs[0x02] & 1))
                     lpt1_handler(dev);
             }

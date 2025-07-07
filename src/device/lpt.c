@@ -626,34 +626,29 @@ lpt_set_ext(const int port, const uint8_t ext)
 void
 lpt_set_ecp(const int port, const uint8_t ecp)
 {
-    if (lpt_ports[port].enabled) {
-        const uint16_t addr = lpt_ports[port].addr;
-        lpt_port_setup(port, 0xfff);
+    if (lpt_ports[port].enabled)
         lpt_ports[port].ecp = ecp;
-        lpt_port_setup(port, addr);
-    }
 }
 
 void
 lpt_set_epp(const int port, const uint8_t epp)
 {
-    if (lpt_ports[port].enabled) {
-        const uint16_t addr = lpt_ports[port].addr;
-        lpt_port_setup(port, 0xfff);
+    if (lpt_ports[port].enabled)
         lpt_ports[port].epp = epp;
-        lpt_port_setup(port, addr);
-    }
 }
 
 void
 lpt_set_lv2(const int port, const uint8_t lv2)
 {
-    if (lpt_ports[port].enabled) {
-        const uint16_t addr = lpt_ports[port].addr;
-        lpt_port_setup(port, 0xfff);
+    if (lpt_ports[port].enabled)
         lpt_ports[port].lv2 = lv2;
-        lpt_port_setup(port, addr);
-    }
+}
+
+void
+lpt_set_fifo_threshold(const int port, const int threshold)
+{
+    if (lpt_ports[port].enabled)
+        fifo_set_trigger_len(lpt_ports[port].fifo, threshold);
 }
 
 void
@@ -778,19 +773,19 @@ void
 lpt_port_setup(const int i, const uint16_t port)
 {
     if (lpt_ports[i].enabled) {
-        if (lpt_ports[i].addr != 0xffff) {
+        if ((lpt_ports[i].addr != 0x0000) && (lpt_ports[i].addr != 0xffff)) {
             io_removehandler(lpt_ports[i].addr, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
             io_removehandler(lpt_ports[i].addr + 0x0400, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
         }
-        if (port != 0xffff) {
+        if ((port != 0x0000) && (port != 0xffff)) {
             lpt_log("Set handler: %04X-%04X\n", port, port + 0x0003);
             io_sethandler(port, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
             if (lpt_ports[i].epp)
-                io_sethandler(lpt_ports[i].addr + 0x0003, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
+                io_sethandler(port + 0x0003, 0x0005, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
             if (lpt_ports[i].ecp || lpt_ports[i].lv2) {
                 io_sethandler(port + 0x0400, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
                 if (lpt_ports[i].epp)
-                    io_sethandler(lpt_ports[i].addr + 0x0403, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
+                    io_sethandler(port + 0x0404, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
             }
         }
         lpt_ports[i].addr = port;
