@@ -456,7 +456,7 @@ main_thread_fn()
         if (drawits > 0 && !dopause) {
             /* Yes, so do one frame now. */
             drawits -= 1;
-            if (drawits > 500)
+            if (drawits > 50)
                 drawits = 0;
 
 #ifdef USE_INSTRUMENT
