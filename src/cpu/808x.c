@@ -1226,21 +1226,23 @@ custom_nmi(void)
 }
 
 static int
-irq_pending(void)
+irq_pending(int nec_hlt)
 {
     uint8_t temp;
+    int     i_flag = (cpu_state.flags & I_FLAG) || nec_hlt;
 
-    temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) || ((cpu_state.flags & I_FLAG) && pic.int_pending && !noint);
+    temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) || (i_flag && pic.int_pending && !noint);
 
     return temp;
 }
 
 static void
-check_interrupts(void)
+check_interrupts(int nec_hlt)
 {
     int temp;
+    int     i_flag = (cpu_state.flags & I_FLAG) || nec_hlt;
 
-    if (irq_pending()) {
+    if (irq_pending(nec_hlt)) {
         if ((cpu_state.flags & T_FLAG) && !noint) {
             interrupt(1);
             return;
@@ -1256,7 +1258,7 @@ check_interrupts(void)
 #endif
             return;
         }
-        if ((cpu_state.flags & I_FLAG) && pic.int_pending && !noint) {
+        if (i_flag && pic.int_pending && !noint) {
             repeating = 0;
             completed = 1;
             ovr_seg   = NULL;
@@ -1289,7 +1291,7 @@ rep_action(int bits)
         return 0;
     wait_cycs(2, 0);
     t = CX;
-    if (irq_pending() && (repeating != 0)) {
+    if (irq_pending(0) && (repeating != 0)) {
         access(71, bits);
         pfq_clear();
         if (is_nec && (ovr_seg != NULL))
@@ -3008,9 +3010,9 @@ execx86(int cycs)
                         wait_cycs(2, 0);
                     wait_cycs(5, 0);
 #ifdef NO_HACK
-                    if (irq_pending()) {
+                    if (irq_pending(0)) {
                         wait_cycs(7, 0);
-                        check_interrupts();
+                        check_interrupts(0);
                     } else {
                         repeating = 1;
                         completed = 0;
@@ -3018,7 +3020,7 @@ execx86(int cycs)
                     }
 #else
                     wait_cycs(7, 0);
-                    check_interrupts();
+                    check_interrupts(0);
 #endif
                     break;
                 case 0x9C: /*PUSHF*/
@@ -3647,9 +3649,9 @@ execx86(int cycs)
                         pfq_clear();
                     }
                     wait_cycs(1, 0);
-                    if (irq_pending()) {
+                    if (irq_pending(is_nec)) {
                         wait_cycs(cycles & 1, 0);
-                        check_interrupts();
+                        check_interrupts(is_nec);
                     } else {
                         repeating = 1;
                         completed = 0;
@@ -3848,7 +3850,7 @@ exec_completed:
             if (in_lock)
                 clear_lock = 1;
             clock_end();
-            check_interrupts();
+            check_interrupts(0);
 
             if (noint)
                 noint = 0;
