@@ -358,8 +358,18 @@ ctr_load(ctr_t *ctr)
     else
         ctr_set_state_1(ctr);
 
-    if (ctr->load_func != NULL)
-        ctr->load_func(ctr->m, ctr->l ? ctr->l : 0x10000);
+    if (ctr->load_func != NULL) {
+        uint32_t count = ctr->l ? ctr->l : 0x10000;
+        if (ctr->bcd) {
+            uint32_t bcd_count = (((count >> 16) & 0xf) * 10000) |
+                                 (((count >> 12) & 0xf) * 1000 ) |
+                                 (((count >> 8 ) & 0xf) * 100  ) |
+                                 (((count >> 4 ) & 0xf) * 10   ) |
+                                 (count & 0xf);
+            ctr->load_func(ctr->m, bcd_count);
+        } else
+            ctr->load_func(ctr->m, ctr->l ? ctr->l : 0x10000);
+    }
 
     pit_log("Counter loaded, state = %i, gate = %i, latch = %i\n", ctr->state, ctr->gate, ctr->latch);
 }
