@@ -1714,7 +1714,7 @@ pc_run(void)
 
     /* Run a block of code. */
     startblit();
-    cpu_exec((int32_t) cpu_s->rspeed / 100);
+    cpu_exec((int32_t) cpu_s->rspeed / 1000);
     ack_pause();
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC) {
@@ -1729,7 +1729,7 @@ pc_run(void)
 
     /* Done with this frame, update statistics. */
     framecount++;
-    if (++framecountx >= 100) {
+    if (++framecountx >= 1000) {
         framecountx = 0;
         frames      = 0;
     }
