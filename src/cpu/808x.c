@@ -1243,7 +1243,7 @@ check_interrupts(int nec_hlt)
     int     i_flag = (cpu_state.flags & I_FLAG) || nec_hlt;
 
     if (irq_pending(nec_hlt)) {
-        if ((cpu_state.flags & T_FLAG) && !noint) {
+        if ((cpu_state.flags & T_FLAG) && !(noint & 1)) {
             interrupt(1);
             return;
         }
@@ -3031,16 +3031,19 @@ execx86(int cycs)
                         tempw = (cpu_state.flags & 0x0fd7) | 0xf000;
                     push(&tempw);
                     break;
-                case 0x9D: /*POPF*/
+                case 0x9D: { /*POPF*/
+                    uint16_t old_flags = cpu_state.flags;
                     access(25, 16);
                     if (is_nec && cpu_md_write_disable)
                         cpu_state.flags = pop() | 0x8002;
                     else
                         cpu_state.flags = pop() | 0x0002;
                     wait_cycs(1, 0);
+                    if ((old_flags ^ cpu_state.flags) & T_FLAG)
+                        noint = 1;
                     sync_to_i8080();
                     break;
-                case 0x9E: /*SAHF*/
+                } case 0x9E: /*SAHF*/
                     wait_cycs(1, 0);
                     cpu_state.flags = (cpu_state.flags & 0xff02) | AH;
                     wait_cycs(2, 0);
@@ -3309,7 +3312,7 @@ execx86(int cycs)
                     else
                         cpu_state.flags = pop() | 0x0002;
                     wait_cycs(5, 0);
-                    noint      = 1;
+                    noint      = 2;
                     nmi_enable = 1;
                     if (is_nec && !(cpu_state.flags & MD_FLAG))
                         sync_to_i8080();
