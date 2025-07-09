@@ -41,7 +41,6 @@
       <property name="bottomMargin">
        <number>0</number>
       </property>
-
       <item row="0" column="1">
        <widget class="QComboBox" name="comboBoxMachineType">
         <property name="maxVisibleItems">
@@ -49,7 +48,6 @@
         </property>
        </widget>
       </item>
-
       <item row="3" column="0">
        <widget class="QLabel" name="label_4">
         <property name="text">
@@ -57,7 +55,6 @@
         </property>
        </widget>
       </item>
-
       <item row="5" column="0">
        <widget class="QLabel" name="label_6">
         <property name="text">
@@ -65,7 +62,6 @@
         </property>
        </widget>
       </item>
-
       <item row="3" column="1">
        <widget class="QComboBox" name="comboBoxFPU">
         <property name="maxVisibleItems">
@@ -73,7 +69,6 @@
         </property>
        </widget>
       </item>
-
       <item row="5" column="1">
        <widget class="QSpinBox" name="spinBoxRAM">
         <property name="sizePolicy">
@@ -84,7 +79,6 @@
         </property>
        </widget>
       </item>
-
       <item row="0" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
@@ -92,7 +86,6 @@
         </property>
        </widget>
       </item>
-
       <item row="2" column="0">
        <widget class="QLabel" name="label_3">
         <property name="text">
@@ -100,7 +93,6 @@
         </property>
        </widget>
       </item>
-
       <item row="2" column="1">
        <widget class="QWidget" name="widget_2" native="true">
         <layout class="QHBoxLayout" name="horizontalLayout">
@@ -129,18 +121,16 @@
            </property>
           </widget>
          </item>
-
          <item>
           <widget class="QLabel" name="label_7">
            <property name="text">
             <string>Frequency:</string>
            </property>
            <property name="alignment">
-            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
            </property>
           </widget>
          </item>
-
          <item>
           <widget class="QComboBox" name="comboBoxSpeed">
            <property name="sizePolicy">
@@ -157,7 +147,6 @@
         </layout>
        </widget>
       </item>
-
       <item row="4" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
@@ -165,7 +154,6 @@
         </property>
        </widget>
       </item>
-
       <item row="1" column="0">
        <widget class="QLabel" name="label_2">
         <property name="text">
@@ -173,7 +161,6 @@
         </property>
        </widget>
       </item>
-
       <item row="1" column="1">
        <widget class="QWidget" name="widget_3" native="true">
         <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -196,7 +183,6 @@
            </property>
           </widget>
          </item>
-
          <item>
           <widget class="QPushButton" name="pushButtonConfigure">
            <property name="sizePolicy">
@@ -213,7 +199,6 @@
         </layout>
        </widget>
       </item>
-
       <item row="4" column="1">
        <widget class="QWidget" name="widget_4" native="true">
         <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -268,7 +253,6 @@
      </layout>
     </widget>
    </item>
-
    <item>
     <layout class="QHBoxLayout" name="dynamicRecompilerLayout">
      <item>
@@ -286,7 +270,6 @@
      </item>
     </layout>
    </item>
-
    <item>
     <layout class="QHBoxLayout" name="softFloatLayout">
      <item>
@@ -302,7 +285,6 @@
        </property>
       </widget>
      </item>
-
      <item>
       <widget class="QLabel" name="softFloatWarningIcon">
        <property name="text">
@@ -310,7 +292,6 @@
        </property>
       </widget>
      </item>
-
      <item>
       <widget class="QLabel" name="softFloatWarningText">
        <property name="text">
@@ -321,7 +302,7 @@
      <item>
       <spacer name="softFloatHorizontalSpacer">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
@@ -333,39 +314,102 @@
      </item>
     </layout>
    </item>
-
    <item>
-    <widget class="QGroupBox" name="groupBox">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Time synchronization</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <widget class="QRadioButton" name="radioButtonDisabled">
-        <property name="text">
-         <string>Disabled</string>
+    <widget class="QFrame" name="horizontalFrame">
+     <layout class="QGridLayout" name="gridLayout_3">
+      <item row="0" column="0">
+       <widget class="QGroupBox" name="groupBox">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
+        <property name="title">
+         <string>Time synchronization</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_2">
+         <item row="0" column="0">
+          <widget class="QRadioButton" name="radioButtonDisabled">
+           <property name="text">
+            <string>Disabled</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QRadioButton" name="radioButtonUTC">
+           <property name="text">
+            <string>Enabled (UTC)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QRadioButton" name="radioButtonLocalTime">
+           <property name="text">
+            <string>Enabled (local time)</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </item>
-      <item>
-       <widget class="QRadioButton" name="radioButtonLocalTime">
-        <property name="text">
-         <string>Enabled (local time)</string>
+      <item row="0" column="1">
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="0" column="2">
+       <widget class="QGroupBox" name="groupBox_2">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="title">
+         <string>CPU frame size</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <item>
+          <widget class="QRadioButton" name="radioButtonLargerFrames">
+           <property name="text">
+            <string>Larger frames (less smooth)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="radioButtonSmallerFrames">
+           <property name="text">
+            <string>Smaller frames (smoother)</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </item>
-      <item>
-       <widget class="QRadioButton" name="radioButtonUTC">
-        <property name="text">
-         <string>Enabled (UTC)</string>
+      <item row="1" column="0" colspan="3">
+       <spacer name="verticalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Orientation::Vertical</enum>
         </property>
-       </widget>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
       </item>
      </layout>
     </widget>
@@ -373,7 +417,7 @@
    <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
-      <enum>Qt::Vertical</enum>
+      <enum>Qt::Orientation::Vertical</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
