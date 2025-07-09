@@ -334,11 +334,10 @@ ctr_set_state_1(ctr_t *ctr)
 {
     uint8_t mode = (ctr->m & 0x03);
     int do_reload = !!ctr->incomplete || (mode == 0) || (ctr->state == 0);
-    int disables_counting = (mode != 1) && !ctr->gate;
-
+ 
     ctr->incomplete = 0;
 
-    if (do_reload && !disables_counting)
+    if (do_reload)
         ctr->state = 1 + ((mode == 1) << 2);
 }
 
@@ -551,7 +550,8 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
     ctr_t *ctr;
 
     if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
-        pit_log("[%04X:%08X] pit_write(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
+        pit_log("[%04X:%08X] pit_write(%04X, %02X, %016" PRIX64 ")\n",
+                CS, cpu_state.pc, addr, val, (uint64_t) (uintptr_t) priv);
     }
 
     switch (addr & 3) {
@@ -799,7 +799,8 @@ pit_read(uint16_t addr, void *priv)
     }
 
     if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
-        pit_log("[%04X:%08X] pit_read(%04X, %08X) = %02X\n", CS, cpu_state.pc, addr, priv, ret);
+        pit_log("[%04X:%08X] pit_read(%04X, %016" PRIX64 ") = %02X\n",
+                CS, cpu_state.pc, addr, (uint64_t) (uintptr_t) priv, ret);
     }
 
     return ret;
