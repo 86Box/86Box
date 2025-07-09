@@ -1152,8 +1152,9 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
                         else if ((val & 0x06) == 0x02)
                             mpu401_change_addr(sb->mpu, 0);
                     }
+
+                    sb->gameport_addr = 0;
                     if (sb->gameport != NULL) {
-                        sb->gameport_addr = 0;
                         gameport_remap(sb->gameport, 0);
                         if (!(val & 0x01)) {
                             sb->gameport_addr = 0x200;
@@ -1373,7 +1374,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                     else
                         ret = 0x06; /* Should never happen. */
                 }
-                if (!sb->gameport_addr && (sb->gameport != NULL))
+                if (!sb->gameport_addr)
                     ret |= 0x01;
                 break;
 
