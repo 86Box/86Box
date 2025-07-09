@@ -144,6 +144,8 @@ load_general(void)
     video_grayscale  = ini_section_get_int(cat, "video_grayscale", 0);
     video_graytype   = ini_section_get_int(cat, "video_graytype", 0);
 
+    force_10ms = !!ini_section_get_int(cat, "force_10ms", 0);
+
     rctrl_is_lalt = ini_section_get_int(cat, "rctrl_is_lalt", 0);
     update_icons  = ini_section_get_int(cat, "update_icons", 1);
 
@@ -1946,6 +1948,10 @@ save_general(void)
     char          buffer[512] = { 0 };
 
     const char *va_name;
+
+    ini_section_set_int(cat, "force_10ms", force_10ms);
+    if (force_10ms == 0)
+        ini_section_delete_var(cat, "force_10ms");
 
     ini_section_set_int(cat, "inhibit_multimedia_keys", inhibit_multimedia_keys);
     if (inhibit_multimedia_keys == 0)

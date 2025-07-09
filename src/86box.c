@@ -217,6 +217,7 @@ int      test_mode                              = 0;              /* (C) Test mo
 char     uuid[MAX_UUID_LEN]                     = { '\0' };       /* (C) UUID or machine identifier */
 int      sound_muted                            = 0;              /* (C) Is sound muted? */
 int      inhibit_multimedia_keys;                                 /* (C) Inhibit multimedia keys on Windows. */
+int      force_10ms;                                              /* (C) Force 10ms CPU frame intervals. */
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
                                                                      present */
@@ -1592,19 +1593,19 @@ update_mouse_msg(void)
         *(wcp - 1) = L'\0';
     mbstowcs(wcpu, cpu_s->name, strlen(cpu_s->name) + 1);
 #ifdef _WIN32
-    swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%%i%%%% - %ls",
+    swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%%.1lf%%%% - %ls",
              plat_get_string(STRING_MOUSE_CAPTURE));
-    swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%%i%%%% - %ls",
+    swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%%.1lf%%%% - %ls",
              (mouse_get_buttons() > 2) ? plat_get_string(STRING_MOUSE_RELEASE) : plat_get_string(STRING_MOUSE_RELEASE_MMB));
     wcsncpy(mouse_msg[2], L"%i%%", sizeof_w(mouse_msg[2]));
 #else
-    swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
+    swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%ls v%ls - %%.1lf%%%% - %ls - %ls/%ls - %ls",
              EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu,
              plat_get_string(STRING_MOUSE_CAPTURE));
-    swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
+    swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%ls v%ls - %%.1lf%%%% - %ls - %ls/%ls - %ls",
              EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu,
              (mouse_get_buttons() > 2) ? plat_get_string(STRING_MOUSE_RELEASE) : plat_get_string(STRING_MOUSE_RELEASE_MMB));
-    swprintf(mouse_msg[2], sizeof_w(mouse_msg[2]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls",
+    swprintf(mouse_msg[2], sizeof_w(mouse_msg[2]), L"%ls v%ls - %%.1lf%%%% - %ls - %ls/%ls",
              EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu);
 #endif
 }
@@ -1714,7 +1715,7 @@ pc_run(void)
 
     /* Run a block of code. */
     startblit();
-    cpu_exec((int32_t) cpu_s->rspeed / 1000);
+    cpu_exec((int32_t) cpu_s->rspeed / (force_10ms ? 100 : 1000));
     ack_pause();
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC) {
@@ -1729,14 +1730,14 @@ pc_run(void)
 
     /* Done with this frame, update statistics. */
     framecount++;
-    if (++framecountx >= 1000) {
+    if (++framecountx >= (force_10ms ? 100 : 1000)) {
         framecountx = 0;
         frames      = 0;
     }
 
     if (title_update) {
         mouse_msg_idx = ((mouse_type == MOUSE_TYPE_NONE) || (mouse_input_mode >= 1)) ? 2 : !!mouse_capture;
-        swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], fps);
+        swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], (double)fps / (force_10ms ? 1. : 10.));
 #ifdef __APPLE__
         /* Needed due to modifying the UI on the non-main thread is a big no-no. */
         dispatch_async_f(dispatch_get_main_queue(), wcsdup((const wchar_t *) temp), _ui_window_title);

@@ -448,14 +448,14 @@ main_thread_fn()
         const uint64_t new_time = elapsed_timer.elapsed();
 #ifdef USE_GDBSTUB
         if (gdbstub_next_asap && (drawits <= 0))
-            drawits = 1;
+            drawits = force_10ms ? 10 : 1;
         else
 #endif
             drawits += static_cast<int>(new_time - old_time);
         old_time = new_time;
         if (drawits > 0 && !dopause) {
             /* Yes, so do one frame now. */
-            drawits -= 1;
+            drawits -= force_10ms ? 10 : 1;
             if (drawits > 50)
                 drawits = 0;
 
@@ -474,8 +474,8 @@ main_thread_fn()
                     break;
             }
 #endif
-            /* Every 200 frames we save the machine status. */
-            if (++frames >= 2000 && nvr_dosave) {
+            /* Every 2 emulated seconds we save the machine status. */
+            if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
                 qt_nvr_save();
                 nvr_dosave = 0;
                 frames     = 0;
