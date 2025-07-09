@@ -247,7 +247,7 @@ ctr_tick(ctr_t *ctr, void *priv)
                                 ctr_decrease_count(ctr);
                         } else
                             ctr->count -= (ctr->newcount ? 1 : 2);
-                        if (ctr->count < 0) {
+                        if (ctr->count == 0) {
                             ctr_set_out(ctr, 0, pit);
                             ctr_load_count(ctr);
                             ctr->state = 3;
@@ -266,7 +266,7 @@ ctr_tick(ctr_t *ctr, void *priv)
                                 ctr_decrease_count(ctr);
                         } else
                             ctr->count -= (ctr->newcount ? 3 : 2);
-                        if (ctr->count < 0) {
+                        if (ctr->count == 0) {
                             ctr_set_out(ctr, 1, pit);
                             ctr_load_count(ctr);
                             ctr->state = 2;
@@ -334,10 +334,11 @@ ctr_set_state_1(ctr_t *ctr)
 {
     uint8_t mode = (ctr->m & 0x03);
     int do_reload = !!ctr->incomplete || (mode == 0) || (ctr->state == 0);
+    int disables_counting = (mode != 1) && !ctr->gate;
 
     ctr->incomplete = 0;
 
-    if (do_reload)
+    if (do_reload && !disables_counting)
         ctr->state = 1 + ((mode == 1) << 2);
 }
 
