@@ -157,14 +157,13 @@ static const device_config_t ssi2001_config[] = {
         .description    = "Enable Game port",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
-        .default_int    = 1,
+        .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-	
-	{
+    {
         .name           = "sid_config",
         .description    = "SID Model",
         .type           = CONFIG_HEX16,
@@ -201,7 +200,7 @@ static const device_config_t entertainer_config[] = {
         .description    = "Enable Game port",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
-        .default_int    = 1,
+        .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
