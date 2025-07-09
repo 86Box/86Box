@@ -68,7 +68,11 @@ public slots:
     void shutdownForceButtonPressed() const;
     void searchSystems(const QString &text) const;
     void newMachineWizard();
+#ifdef _WIN32
     void addNewSystem(const QString &name, const QString &dir, const QString &configFile = {});
+#else
+    void addNewSystem(const QString &name, const QString &dir, const QString &configFile);
+#endif
     [[nodiscard]] QStringList getSearchCompletionList() const;
     void modelDataChange();
     void onPreferencesUpdated();
