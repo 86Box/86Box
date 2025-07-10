@@ -306,6 +306,9 @@ gameport_remap(void *priv, uint16_t address)
     gameport_t *dev = (gameport_t *) priv;
     gameport_t *other_dev;
 
+    if (dev == NULL)
+        return;
+
     if (dev->addr) {
         /* Remove this port from the active ports list. */
         if (active_gameports == dev) {

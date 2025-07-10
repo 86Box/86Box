@@ -1152,11 +1152,14 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
                         else if ((val & 0x06) == 0x02)
                             mpu401_change_addr(sb->mpu, 0);
                     }
+
                     sb->gameport_addr = 0;
-                    gameport_remap(sb->gameport, 0);
-                    if (!(val & 0x01)) {
-                        sb->gameport_addr = 0x200;
-                        gameport_remap(sb->gameport, 0x200);
+                    if (sb->gameport != NULL) {
+                        gameport_remap(sb->gameport, 0);
+                        if (!(val & 0x01)) {
+                            sb->gameport_addr = 0x200;
+                            gameport_remap(sb->gameport, 0x200);
+                        }
                     }
                 }
                 break;
@@ -1619,7 +1622,8 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                                          ess_fm_midi_write, NULL, NULL,
                                          ess);
 
-                        gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
+                        if (ess->gameport != NULL)
+                            gameport_remap(ess->gameport, !(mixer->regs[0x40] & 0x2) ? 0x00 : 0x200);
 
                         if (ess->dsp.sb_subtype > SB_SUBTYPE_ESS_ES1688) {
                             /* Not on ES1688. */
