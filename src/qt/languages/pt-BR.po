@@ -147,6 +147,9 @@ msgstr "&Cor RGB"
 msgid "&RGB Grayscale"
 msgstr "Tons de cinza &RGB"
 
+msgid "Generic RGBI color monitor"
+msgstr "Monitor colorido RGBI genérico"
+
 msgid "&Amber monitor"
 msgstr "Monitor &âmbar"
 
@@ -600,6 +603,9 @@ msgstr "RTC ISA:"
 msgid "ISA Memory Expansion"
 msgstr "Expansão de memória ISA"
 
+msgid "ISA ROM Cards"
+msgstr "Placas ROM ISA"
+
 msgid "Card 1:"
 msgstr "Placa 1:"
 
@@ -611,6 +617,27 @@ msgstr "Placa 3:"
 
 msgid "Card 4:"
 msgstr "Placa 4:"
+
+msgid "Board 1"
+msgstr "Placa 1"
+
+msgid "Board 2"
+msgstr "Placa 2"
+
+msgid "Board 3"
+msgstr "Placa 3"
+
+msgid "Board 4"
+msgstr "Placa 4"
+
+msgid "Generic ISA ROM Board"
+msgstr "Placa ROM ISA Genérica"
+
+msgid "Generic Dual ISA ROM Board"
+msgstr "Placa Dual ROM ISA Genérica"
+
+msgid "Generic Quad ISA ROM Board"
+msgstr "Placa Quad ROM ISA Genérica"
 
 msgid "ISABugger device"
 msgstr "Dispositivo ISABugger"
@@ -783,6 +810,27 @@ msgstr "Microsoft SideWinder Pad"
 msgid "Thrustmaster Flight Control System"
 msgstr "Sistema de Controle de Voo Thrustmaster"
 
+msgid "2-button gamepad(s)"
+msgstr "Gamepad(s) de 2 botões"
+
+msgid "2-button flight yoke"
+msgstr "Manche de voo de 2 botões"
+
+msgid "4-button gamepad"
+msgstr "Gamepad de 4 botões"
+
+msgid "4-button flight yoke"
+msgstr "Manche de voo de 4 botões"
+
+msgid "2-button flight yoke with throttle"
+msgstr "Manche de voo de 2 botões com acelerador"
+
+msgid "4-button flight yoke with throttle"
+msgstr "Manche de voo de 4 botões com acelerador"
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr "Volante Win95 (3 eixos, 4 botões)"
+
 msgid "None"
 msgstr "Nenhum"
 
@@ -841,7 +889,7 @@ msgid "About 86Box"
 msgstr "Sobre o 86Box"
 
 msgid "86Box v"
-msgstr "86Box versão"
+msgstr "86Box versão "
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, e outros.\n\nCom contribuições anteriores de Sarah Walker, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva, Nelson K. Hennemann Filho\n\nLançado sob a Licença Pública Geral GNU, versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
@@ -1413,11 +1461,53 @@ msgstr "Sistema MIDI"
 msgid "MIDI Input Device"
 msgstr "Dispositivo de entrada MIDI"
 
+msgid "BIOS file"
+msgstr "Arquivo do BIOS"
+
+msgid "BIOS file (ROM #1)"
+msgstr "Arquivo do BIOS (ROM #1)"
+
+msgid "BIOS file (ROM #2)"
+msgstr "Arquivo do BIOS (ROM #2)"
+
+msgid "BIOS file (ROM #3)"
+msgstr "Arquivo do BIOS (ROM #3)"
+
+msgid "BIOS file (ROM #4)"
+msgstr "Arquivo do BIOS (ROM #4)"
+
 msgid "BIOS Address"
 msgstr "Endereço do BIOS"
 
+msgid "BIOS address (ROM #1)"
+msgstr "Endereço do BIOS (ROM #1)"
+
+msgid "BIOS address (ROM #2)"
+msgstr "Endereço do BIOS (ROM #2)"
+
+msgid "BIOS address (ROM #3)"
+msgstr "Endereço do BIOS (ROM #3)"
+
+msgid "BIOS address (ROM #4)"
+msgstr "Endereço do BIOS (ROM #4)"
+
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Habilitar gravações na ROM de extensão do BIOS"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr "Habilitar gravações na ROM de extensão do BIOS (ROM #1)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr "Habilitar gravações na ROM de extensão do BIOS (ROM #2)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr "Habilitar gravações na ROM de extensão do BIOS (ROM #3)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr "Habilitar gravações na ROM de extensão do BIOS (ROM #4)"
+
+msgid "Linear framebuffer base"
+msgstr "Base do framebuffer linear"
 
 msgid "Address"
 msgstr "Endereço"
@@ -1427,6 +1517,21 @@ msgstr "IRQ"
 
 msgid "BIOS Revision"
 msgstr "Revisão do BIOS"
+
+msgid "BIOS Version"
+msgstr "Versão do BIOS"
+
+msgid "BIOS Versions"
+msgstr "Versões de BIOS"
+
+msgid "BIOS Language"
+msgstr "Idioma do BIOS"
+
+msgid "IBM 5161 Expansion Unit"
+msgstr "Unidade de Expansão IBM 5161"
+
+msgid "IBM Cassette Basic"
+msgstr "Cassete BASIC IBM"
 
 msgid "Translate 26 -> 17"
 msgstr "Traduzir 26 -> 17"
@@ -1442,6 +1547,18 @@ msgstr "Inverter cores"
 
 msgid "BIOS size"
 msgstr "Tamanho do BIOS"
+
+msgid "BIOS size (ROM #1)"
+msgstr "Tamanho do BIOS (ROM #1)"
+
+msgid "BIOS size (ROM #2)"
+msgstr "Tamanho do BIOS (ROM #2)"
+
+msgid "BIOS size (ROM #3)"
+msgstr "Tamanho do BIOS (ROM #3)"
+
+msgid "BIOS size (ROM #4)"
+msgstr "Tamanho do BIOS (ROM #4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Mapear C0000-C7FFF como UMB"
@@ -1517,6 +1634,9 @@ msgstr "Nível de reverberação"
 
 msgid "Interpolation Method"
 msgstr "Método de interpolação"
+
+msgid "Dynamic Sample Loading"
+msgstr "Carregamento dinâmico de amostra"
 
 msgid "Reverb Output Gain"
 msgstr "Ganho da saída da reverberação"
@@ -1617,6 +1737,9 @@ msgstr "Aumentar a interrupção do CODEC na configuração do CODEC (necessári
 msgid "SB Address"
 msgstr "Endereço do SB"
 
+msgid "Use EEPROM setting"
+msgstr "Usar configuração da EEPROM"
+
 msgid "WSS IRQ"
 msgstr "WSS IRQ"
 
@@ -1701,6 +1824,9 @@ msgstr "Tipo de RAMDAC"
 msgid "Blend"
 msgstr "Mistura"
 
+msgid "Font"
+msgstr "Fonte"
+
 msgid "Bilinear filtering"
 msgstr "Filtragem bilinear"
 
@@ -1745,6 +1871,33 @@ msgstr "Velocidade de transferência"
 
 msgid "EMS mode"
 msgstr "Modo EMS"
+
+msgid "EMS Address"
+msgstr "Endereço EMS"
+
+msgid "EMS 1 Address"
+msgstr "Endereço EMS 1"
+
+msgid "EMS 2 Address"
+msgstr "Endereço EMS 2"
+
+msgid "EMS Memory Size"
+msgstr "Tamanho de Memória EMS"
+
+msgid "EMS 1 Memory Size"
+msgstr "Tamanho de Memória EMS 1"
+
+msgid "EMS 2 Memory Size"
+msgstr "Tamanho de Memória EMS 2"
+
+msgid "Enable EMS"
+msgstr "Habilitar EMS"
+
+msgid "Enable EMS 1"
+msgstr "Habilitar EMS 1"
+
+msgid "Enable EMS 2"
+msgstr "Habilitar EMS 2"
 
 msgid "Address for > 2 MB"
 msgstr "Endereço para > 2 MB"
@@ -1902,6 +2055,15 @@ msgstr "Interpolação sRGB"
 msgid "Linear interpolation"
 msgstr "Interpolação linear"
 
+msgid "Has secondary 8x8 character set"
+msgstr "Tem conjunto secundário de caracteres 8x8"
+
+msgid "Has Quadcolor II daughter board"
+msgstr "Tem placa filha Quadcolor II"
+
+msgid "Alternate monochrome contrast"
+msgstr "Contraste monocromático alternativo"
+
 msgid "128 KB"
 msgstr "128 KB"
 
@@ -1935,6 +2097,9 @@ msgstr "Âmbar"
 msgid "Gray"
 msgstr "Cinza"
 
+msgid "Grayscale"
+msgstr "Escala de cinza"
+
 msgid "Color"
 msgstr "Colorido"
 
@@ -1949,6 +2114,12 @@ msgstr "Outros idiomas"
 
 msgid "Bochs latest"
 msgstr "Bochs mais recente"
+
+msgid "Apply overscan deltas"
+msgstr "Aplicar deltas de overscan"
+
+msgid "Mono Interlaced"
+msgstr "Monocromático entrelaçado"
 
 msgid "Mono Non-Interlaced"
 msgstr "Monocromático não entrelaçado"
@@ -2076,6 +2247,12 @@ msgstr "Clone IBM 8514/A (ISA)"
 msgid "Vendor"
 msgstr "Fabricante"
 
+msgid "30 Hz (JMP2 = 1)"
+msgstr "30 Hz (JMP2 = 1)"
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr "60 Hz (JMP2 = 2)"
+
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Expansão de memória genérica PC/XT"
 
@@ -2189,3 +2366,15 @@ msgstr "Alternar pausa"
 
 msgid "Toggle mute"
 msgstr "Alternar mudo"
+
+msgid "Text files"
+msgstr "Arquivos de texto"
+
+msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
+msgstr "Arquivos de ROM (*.bin *.rom)|*.bin,*.rom"
+
+msgid "ROM files"
+msgstr "Arquivos de ROM"
+
+msgid "SoundFont files"
+msgstr "Arquivos SoundFont"
