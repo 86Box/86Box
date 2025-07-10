@@ -265,7 +265,9 @@ load_machine(void)
     if (p != NULL) {
         migrate_from = p;
         /* Migrate renamed machines. */
-        if (!strcmp(p, "430nx"))
+        if (!strcmp(p, "tandy"))
+            machine = machine_get_machine_from_internal_name("tandy1000sx");
+        else if (!strcmp(p, "430nx"))
             machine = machine_get_machine_from_internal_name("586ip");
         else if (!strcmp(p, "586mc1"))
             machine = machine_get_machine_from_internal_name("586is");
