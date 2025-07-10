@@ -124,13 +124,13 @@ isarom_init(const device_t *info)
     isarom_log("isarom[%u]: initializing device (type=%u)\n", dev->inst, dev->type);
 
     for (uint8_t i = 0; i < get_limit(dev->type); i++) {
-        char s[22];
+        char str[22];
         char suffix[4] = "";
         if (i > 0)
             snprintf(suffix, sizeof(suffix), "%d", i + 1);
 
-        snprintf(s, sizeof(s), "bios_addr%s", suffix);
-        dev->socket[i].addr = device_get_config_hex20(s);
+        snprintf(str, sizeof(str), "bios_addr%s", suffix);
+        dev->socket[i].addr = device_get_config_hex20(str);
 
         switch (dev->type) {
             case ISAROM_CARD_LBA_ENHANCER:
@@ -139,14 +139,14 @@ isarom_init(const device_t *info)
                 break;
 
             default:
-                snprintf(s, sizeof(s), "bios_fn%s", suffix);
-                dev->socket[i].fn = device_get_config_string(s);
+                snprintf(str, sizeof(str), "bios_fn%s", suffix);
+                dev->socket[i].fn = device_get_config_string(str);
 
-                snprintf(s, sizeof(s), "bios_size%s", suffix);
-                dev->socket[i].size = device_get_config_int(s);
+                snprintf(str, sizeof(str), "bios_size%s", suffix);
+                dev->socket[i].size = device_get_config_int(str);
 
-                snprintf(s, sizeof(s), "rom_writes_enabled%s", suffix);
-                if (device_get_config_int(s))
+                snprintf(str, sizeof(str), "rom_writes_enabled%s", suffix);
+                if (device_get_config_int(str))
                     dev->socket[i].writable = 1;
                 break;
         }
