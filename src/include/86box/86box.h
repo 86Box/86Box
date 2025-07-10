@@ -154,9 +154,10 @@ extern int      confirm_reset;              /* (C) enable reset confirmation */
 extern int      confirm_exit;               /* (C) enable exit confirmation */
 extern int      confirm_save;               /* (C) enable save confirmation */
 extern int      enable_discord;             /* (C) enable Discord integration */
-extern int      force_10ms;					/* (C) force 10ms CPU frame interval */
+extern int      force_10ms;                 /* (C) force 10ms CPU frame interval */
 extern int      other_ide_present;          /* IDE controllers from non-IDE cards are present */
 extern int      other_scsi_present;         /* SCSI controllers from non-SCSI cards are present */
+extern int      is_pcjr;                    /* The current machine is PCjr. */
 
 extern int    hard_reset_pending;
 extern int    fixed_size_x;

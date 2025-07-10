@@ -252,7 +252,7 @@ gameport_write(UNUSED(uint16_t addr), UNUSED(uint8_t val), void *priv)
     /* Notify the interface. */
     joystick->intf->write(joystick->dat);
 
-    cycles -= ISA_CYCLES(8);
+    cycles -= ISA_CYCLES((8 << is_pcjr));
 }
 
 static uint8_t
@@ -268,7 +268,7 @@ gameport_read(UNUSED(uint16_t addr), void *priv)
     /* Merge axis state with button state. */
     uint8_t ret = joystick->state | joystick->intf->read(joystick->dat);
 
-    cycles -= ISA_CYCLES(8);
+    cycles -= ISA_CYCLES((8 << is_pcjr));
 
     return ret;
 }
