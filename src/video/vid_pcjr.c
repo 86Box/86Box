@@ -35,6 +35,8 @@
 #include <86box/video.h>
 #include <86box/vid_cga.h>
 #include <86box/vid_cga_comp.h>
+#include <86box/plat_unused.h>
+#include "cpu.h"
 
 #include <86box/m_pcjr.h>
 
@@ -194,6 +196,16 @@ vid_in(uint16_t addr, void *priv)
     return ret;
 }
 
+void
+pcjr_waitstates(UNUSED(void *priv))
+{
+    int ws_array[16] = { 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5 };
+    int ws;
+
+    ws = ws_array[cycles & 0xf];
+    cycles -= ws;
+}
+
 static void
 vid_write(uint32_t addr, uint8_t val, void *priv)
 {
@@ -201,6 +213,8 @@ vid_write(uint32_t addr, uint8_t val, void *priv)
 
     if (pcjr->memctrl == -1)
         return;
+
+    pcjr_waitstates(NULL);
 
     pcjr->b8000[addr & 0x3fff] = val;
 }
@@ -212,6 +226,8 @@ vid_read(uint32_t addr, void *priv)
 
     if (pcjr->memctrl == -1)
         return 0xff;
+
+    pcjr_waitstates(NULL);
 
     return (pcjr->b8000[addr & 0x3fff]);
 }

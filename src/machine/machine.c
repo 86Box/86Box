@@ -123,6 +123,8 @@ machine_init_ex(int m)
         pci_flags = 0x00000000;
     }
 
+    is_pcjr = 0;
+
     /* All good, boot the machine! */
     if (machines[m].init)
         ret = machines[m].init(&machines[m]);

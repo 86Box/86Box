@@ -26,9 +26,14 @@
 #include <86box/nvr.h>
 #include <86box/isarom.h>
 
-#define ISAROM_CARD      0
-#define ISAROM_CARD_DUAL 1
-#define ISAROM_CARD_QUAD 2
+enum {
+    ISAROM_CARD = 0,
+    ISAROM_CARD_DUAL,
+    ISAROM_CARD_QUAD,
+    ISAROM_CARD_LBA_ENHANCER
+};
+
+#define BIOS_LBA_ENHANCER  "roms/hdd/misc/lbaenhancer.bin"
 
 #ifdef ENABLE_ISAROM_LOG
 int isarom_do_log = ENABLE_ISAROM_LOG;
@@ -56,7 +61,7 @@ typedef struct isarom_t {
         uint32_t    size;
         uint32_t    len;
         char        nvr_path[64];
-        uint8_t     wp;
+        uint8_t     writable;
     } socket[4];
     uint8_t inst;
     uint8_t type;
@@ -65,11 +70,14 @@ typedef struct isarom_t {
 static inline uint8_t
 get_limit(uint8_t type)
 {
-    if (type == ISAROM_CARD_DUAL)
-        return 2;
-    if (type == ISAROM_CARD_QUAD)
-        return 4;
-    return 1;
+    switch (type) {
+        case ISAROM_CARD_DUAL:
+            return 2;
+        case ISAROM_CARD_QUAD:
+            return 4;
+        default:
+            return 1;
+    }
 }
 
 static inline void
@@ -92,12 +100,13 @@ isarom_close(void *priv)
     if (!priv)
         return;
 
-    for (uint8_t i = 0; i < get_limit(dev->type); i++)
-        if (dev->socket[i].rom.rom) {
+    for (uint8_t i = 0; i < get_limit(dev->type); i++) {
+        if (dev->socket[i].writable) {
             isarom_log("isarom[%u]: saving NVR for socket %u -> %s (%u bytes)\n",
                        dev->inst, i, dev->socket[i].nvr_path, dev->socket[i].size);
             isarom_save_nvr(dev->socket[i].nvr_path, dev->socket[i].rom.rom, dev->socket[i].size);
         }
+    }
 
     free(dev);
 }
@@ -115,32 +124,42 @@ isarom_init(const device_t *info)
     isarom_log("isarom[%u]: initializing device (type=%u)\n", dev->inst, dev->type);
 
     for (uint8_t i = 0; i < get_limit(dev->type); i++) {
-        char key_fn[12];
-        char key_addr[14];
-        char key_size[14];
-        char key_writes[22];
+        char str[22];
         char suffix[4] = "";
         if (i > 0)
             snprintf(suffix, sizeof(suffix), "%d", i + 1);
 
-        snprintf(key_fn, sizeof(key_fn), "bios_fn%s", suffix);
-        snprintf(key_addr, sizeof(key_addr), "bios_addr%s", suffix);
-        snprintf(key_size, sizeof(key_size), "bios_size%s", suffix);
-        snprintf(key_writes, sizeof(key_writes), "rom_writes_enabled%s", suffix);
+        snprintf(str, sizeof(str), "bios_addr%s", suffix);
+        dev->socket[i].addr = device_get_config_hex20(str);
 
-        dev->socket[i].fn   = device_get_config_string(key_fn);
-        dev->socket[i].addr = device_get_config_hex20(key_addr);
-        dev->socket[i].size = device_get_config_int(key_size);
-        // Note: 2K is the smallest ROM I've found, but 86box's memory granularity is 4k, the number below is fine
-        // as we'll end up allocating no less than 4k due to the device config limits.
-        dev->socket[i].len  = (dev->socket[i].size > 2048) ? dev->socket[i].size - 1 : 0;
-        dev->socket[i].wp   = (uint8_t) device_get_config_int(key_writes) ? 1 : 0;
+        switch (dev->type) {
+            case ISAROM_CARD_LBA_ENHANCER:
+                dev->socket[i].fn   = BIOS_LBA_ENHANCER;
+                dev->socket[i].size = 0x4000;
+                break;
 
-        isarom_log("isarom[%u]: socket %u: addr=0x%05X size=%u wp=%u fn=%s\n",
+            default:
+                snprintf(str, sizeof(str), "bios_fn%s", suffix);
+                dev->socket[i].fn = device_get_config_string(str);
+
+                snprintf(str, sizeof(str), "bios_size%s", suffix);
+                dev->socket[i].size = device_get_config_int(str);
+
+                snprintf(str, sizeof(str), "rom_writes_enabled%s", suffix);
+                if (device_get_config_int(str))
+                    dev->socket[i].writable = 1;
+                break;
+        }
+
+        /* Note: 2K is the smallest ROM I've found, but 86Box's memory granularity is 4K, the number
+           below is fine as we'll end up allocating no less than 4K due to the device config limits. */
+        dev->socket[i].len = (dev->socket[i].size > 0) ? ((dev->socket[i].size - 1) | MEM_GRANULARITY_MASK) : 0;
+
+        isarom_log("isarom[%u]: socket %u: addr=0x%05X size=%u writable=%u fn=%s\n",
                    dev->inst, i, dev->socket[i].addr, dev->socket[i].size,
-                   dev->socket[i].wp, dev->socket[i].fn ? dev->socket[i].fn : "(null)");
+                   dev->socket[i].writable, dev->socket[i].fn ? dev->socket[i].fn : "(null)");
 
-        if (dev->socket[i].addr != 0 && dev->socket[i].fn != NULL) {
+        if ((dev->socket[i].addr != 0) && (dev->socket[i].fn != NULL)) {
             rom_init(&dev->socket[i].rom,
                      dev->socket[i].fn,
                      dev->socket[i].addr,
@@ -151,7 +170,7 @@ isarom_init(const device_t *info)
 
             isarom_log("isarom[%u]: ROM initialized for socket %u\n", dev->inst, i);
 
-            if (dev->socket[i].wp) {
+            if (dev->socket[i].writable) {
                 mem_mapping_set_write_handler(&dev->socket[i].rom.mapping, rom_write, rom_writew, rom_writel);
                 snprintf(dev->socket[i].nvr_path, sizeof(dev->socket[i].nvr_path), "isarom_%i_%i.nvr", dev->inst, i + 1);
                 FILE *fp = nvr_fopen(dev->socket[i].nvr_path, "rb");
@@ -166,6 +185,12 @@ isarom_init(const device_t *info)
     }
 
     return dev;
+}
+
+static int
+isarom_lba_enhancer_available(void)
+{
+    return rom_present(BIOS_LBA_ENHANCER);
 }
 
 #define BIOS_FILE_FILTER "ROM files (*.bin *.rom)|*.bin,*.rom"
@@ -528,6 +553,29 @@ static const device_config_t isarom_quad_config[] = {
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
+
+static const device_config_t lba_enhancer_config[] = {
+    {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "C800H", .value = 0xc8000 },
+            { .description = "CC00H", .value = 0xcc000 },
+            { .description = "D000H", .value = 0xd0000 },
+            { .description = "D400H", .value = 0xd4000 },
+            { .description = "D800H", .value = 0xd8000 },
+            { .description = "DC00H", .value = 0xdc000 },
+            { .description = ""                        }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
 // clang-format on
 
 static const device_t isarom_device = {
@@ -572,15 +620,30 @@ static const device_t isarom_quad_device = {
     .config        = isarom_quad_config
 };
 
+static const device_t lba_enhancer_device = {
+    .name          = "Vision Systems LBA Enhancer",
+    .internal_name = "lba_enhancer",
+    .flags         = DEVICE_ISA,
+    .local         = ISAROM_CARD_LBA_ENHANCER,
+    .init          = isarom_init,
+    .close         = isarom_close,
+    .reset         = NULL,
+    .available     = isarom_lba_enhancer_available,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = lba_enhancer_config
+};
+
 static const struct {
     const device_t *dev;
 } boards[] = {
     // clang-format off
-    { &device_none        },
-    { &isarom_device      },
-    { &isarom_dual_device },
-    { &isarom_quad_device },
-    { NULL                }
+    { &device_none         },
+    { &isarom_device       },
+    { &isarom_dual_device  },
+    { &isarom_quad_device  },
+    { &lba_enhancer_device },
+    { NULL                 }
     // clang-format on
 };
 

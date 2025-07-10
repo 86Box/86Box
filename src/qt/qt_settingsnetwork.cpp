@@ -142,7 +142,9 @@ SettingsNetwork::save()
     for (int i = 0; i < NET_CARD_MAX; ++i) {
         auto *cbox                   = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         auto *socket_line            = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
+#if defined(__unix__) || defined(__APPLE__)
         auto *bridge_line            = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i + 1));
+#endif
         net_cards_conf[i].device_num = cbox->currentData().toInt();
         cbox                         = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
         net_cards_conf[i].net_type   = cbox->currentData().toInt();

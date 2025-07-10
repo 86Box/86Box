@@ -177,14 +177,28 @@ do_stop(void)
 #endif
 }
 
+extern bool acp_utf8;
 void
 plat_get_exe_name(char *s, int size)
 {
+#ifdef Q_OS_WINDOWS
+    wchar_t *temp;
+
+    if (acp_utf8)
+        GetModuleFileNameA(NULL, s, size);
+    else {
+        temp = (wchar_t*)calloc(size, sizeof(wchar_t));
+        GetModuleFileNameW(NULL, temp, size);
+        c16stombs(s, (uint16_t*)temp, size);
+        free(temp);
+    }
+#else
     QByteArray exepath_temp = QCoreApplication::applicationDirPath().toLocal8Bit();
 
     memcpy(s, exepath_temp.data(), std::min((qsizetype) exepath_temp.size(), (qsizetype) size));
 
     path_slash(s);
+#endif
 }
 
 uint32_t

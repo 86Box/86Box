@@ -152,11 +152,8 @@ SettingsDisplay::on_pushButtonConfigure8514_clicked()
 void
 SettingsDisplay::on_pushButtonConfigureXga_clicked()
 {
-    if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0) {
+    if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0)
         DeviceConfig::ConfigureDevice(&xga_device);
-    } else {
-        DeviceConfig::ConfigureDevice(&xga_isa_device);
-    }
 }
 
 void
@@ -189,7 +186,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     bool videoCardHasXga  = ((videoCard[0] == VID_INTERNAL) ? machine_has_flags(machineId, MACHINE_VIDEO_XGA) : (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_XGA));
 
     bool machineSupports8514 = ((machineHasIsa16 || machineHasMca) && !videoCardHas8514);
-    bool machineSupportsXga  = (((machineHasIsa16 && device_available(&xga_isa_device)) || (machineHasMca && device_available(&xga_device))) && !videoCardHasXga);
+    bool machineSupportsXga  = ((machineHasMca && device_available(&xga_device)) && !videoCardHasXga);
     bool machineSupportsDa2 = machineHasMca && device_available(&ps55da2_device);
 
     ui->checkBox8514->setEnabled(machineSupports8514);

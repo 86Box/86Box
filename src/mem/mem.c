@@ -1840,6 +1840,9 @@ mem_read_ram(uint32_t addr, UNUSED(void *priv))
         mem_log("Read  B       %02X from %08X\n", ram[addr], addr);
 #endif
 
+    if (is_pcjr)
+        pcjr_waitstates(NULL);
+
     if (cpu_use_exec)
         addreadlookup(mem_logical_addr, addr);
 
@@ -2100,6 +2103,9 @@ mem_write_ram(uint32_t addr, uint8_t val, UNUSED(void *priv))
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
         mem_log("Write B       %02X to   %08X\n", val, addr);
 #endif
+    if (is_pcjr)
+        pcjr_waitstates(NULL);
+
     if (cpu_use_exec) {
         addwritelookup(mem_logical_addr, addr);
         mem_write_ramb_page(addr, val, &pages[addr >> 12]);

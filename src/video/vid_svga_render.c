@@ -58,7 +58,7 @@ svga_render_null(svga_t *svga)
 void
 svga_render_blank(svga_t *svga)
 {
-    if ((svga->displine + svga->y_add) < 0)
+    if ((svga->displine + svga->y_add) < 0 || (svga->displine + svga->y_add) >= 2048)
         return;
 
     if (svga->firstline_draw == 2000)

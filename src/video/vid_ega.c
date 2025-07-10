@@ -1895,7 +1895,7 @@ const device_t cpqega_device = {
 };
 
 const device_t sega_device = {
-    .name          = "SuperEGA",
+    .name          = "Chips & Technologies SuperEGA",
     .internal_name = "superega",
     .flags         = DEVICE_ISA,
     .local         = EGA_SUPEREGA,
