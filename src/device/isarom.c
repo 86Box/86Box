@@ -29,8 +29,11 @@
 enum {
     ISAROM_CARD = 0,
     ISAROM_CARD_DUAL,
-    ISAROM_CARD_QUAD
+    ISAROM_CARD_QUAD,
+    ISAROM_CARD_LBA_ENHANCER
 };
+
+#define BIOS_LBA_ENHANCER  "roms/hdd/misc/lbaenhancer.bin"
 
 #ifdef ENABLE_ISAROM_LOG
 int isarom_do_log = ENABLE_ISAROM_LOG;
@@ -130,6 +133,11 @@ isarom_init(const device_t *info)
         dev->socket[i].addr = device_get_config_hex20(s);
 
         switch (dev->type) {
+            case ISAROM_CARD_LBA_ENHANCER:
+                dev->socket[i].fn   = BIOS_LBA_ENHANCER;
+                dev->socket[i].size = 0x4000;
+                break;
+
             default:
                 snprintf(s, sizeof(s), "bios_fn%s", suffix);
                 dev->socket[i].fn = device_get_config_string(s);
@@ -177,6 +185,12 @@ isarom_init(const device_t *info)
     }
 
     return dev;
+}
+
+static int
+isarom_lba_enhancer_available(void)
+{
+    return rom_present(BIOS_LBA_ENHANCER);
 }
 
 #define BIOS_FILE_FILTER "ROM files (*.bin *.rom)|*.bin,*.rom"
@@ -539,6 +553,29 @@ static const device_config_t isarom_quad_config[] = {
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
+
+static const device_config_t lba_enhancer_config[] = {
+    {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "C800H", .value = 0xc8000 },
+            { .description = "CC00H", .value = 0xcc000 },
+            { .description = "D000H", .value = 0xd0000 },
+            { .description = "D400H", .value = 0xd4000 },
+            { .description = "D800H", .value = 0xd8000 },
+            { .description = "DC00H", .value = 0xdc000 },
+            { .description = ""                        }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
 // clang-format on
 
 static const device_t isarom_device = {
@@ -583,15 +620,30 @@ static const device_t isarom_quad_device = {
     .config        = isarom_quad_config
 };
 
+static const device_t lba_enhancer_device = {
+    .name          = "Vision Systems LBA Enhancer",
+    .internal_name = "lba_enhancer",
+    .flags         = DEVICE_ISA,
+    .local         = ISAROM_CARD_LBA_ENHANCER,
+    .init          = isarom_init,
+    .close         = isarom_close,
+    .reset         = NULL,
+    .available     = isarom_lba_enhancer_available,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = lba_enhancer_config
+};
+
 static const struct {
     const device_t *dev;
 } boards[] = {
     // clang-format off
-    { &device_none        },
-    { &isarom_device      },
-    { &isarom_dual_device },
-    { &isarom_quad_device },
-    { NULL                }
+    { &device_none         },
+    { &isarom_device       },
+    { &isarom_dual_device  },
+    { &isarom_quad_device  },
+    { &lba_enhancer_device },
+    { NULL                 }
     // clang-format on
 };
 
