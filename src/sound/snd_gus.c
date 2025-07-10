@@ -246,7 +246,7 @@ gus_midi_update_int_status(gus_t *gus)
 }
 
 void
-writegus(uint16_t addr, uint8_t val, void *priv)
+gus_write(uint16_t addr, uint8_t val, void *priv)
 {
     gus_t   *gus = (gus_t *) priv;
     int      c;
@@ -703,7 +703,7 @@ writegus(uint16_t addr, uint8_t val, void *priv)
 }
 
 uint8_t
-readgus(uint16_t addr, void *priv)
+gus_read(uint16_t addr, void *priv)
 {
     gus_t   *gus = (gus_t *) priv;
     uint8_t  val = 0xff;
@@ -1357,10 +1357,10 @@ gus_init(UNUSED(const device_t *info))
 
     gus->base = device_get_config_hex16("base");
 
-    io_sethandler(gus->base, 0x0010, readgus, NULL, NULL, writegus, NULL, NULL, gus);
-    io_sethandler(0x0100 + gus->base, 0x0010, readgus, NULL, NULL, writegus, NULL, NULL, gus);
-    io_sethandler(0x0506 + gus->base, 0x0001, readgus, NULL, NULL, writegus, NULL, NULL, gus);
-    io_sethandler(0x0388, 0x0002, readgus, NULL, NULL, writegus, NULL, NULL, gus);
+    io_sethandler(gus->base, 0x0010, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_sethandler(0x0100 + gus->base, 0x0010, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_sethandler(0x0506 + gus->base, 0x0001, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_sethandler(0x0388, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
 
     if (gus->type == GUS_MAX) {
         ad1848_init(&gus->ad1848, AD1848_TYPE_CS4231);
