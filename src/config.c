@@ -1215,14 +1215,20 @@ load_floppy_and_cdrom_drives(void)
     unsigned int  board = 0;
     unsigned int  dev = 0;
     int           c;
-    int           d = 0;
+    int           d;
     int           count = cdrom_get_type_count();
 
     memset(temp, 0x00, sizeof(temp));
     for (c = 0; c < FDD_NUM; c++) {
         sprintf(temp, "fdd_%02i_type", c + 1);
         p = ini_section_get_string(cat, temp, (c < 2) ? "525_2dd" : "none");
-        fdd_set_type(c, fdd_get_from_internal_name(p));
+        if (!strcmp(p, "525_2hd_ps2"))
+            d = fdd_get_from_internal_name("525_2hd");
+        else if (!strcmp(p, "35_2hd_ps2"))
+            d = fdd_get_from_internal_name("35_2hd");
+        else
+            d = fdd_get_from_internal_name(p);
+        fdd_set_type(c, d);
         if (fdd_get_type(c) > 13)
             fdd_set_type(c, 13);
 
@@ -1301,6 +1307,7 @@ load_floppy_and_cdrom_drives(void)
         ini_section_delete_var(cat, temp);
 
         sprintf(temp, "cdrom_%02i_parameters", c + 1);
+        d = 0;
         p = ini_section_get_string(cat, temp, NULL);
         if (p != NULL)
             sscanf(p, "%01u, %s", &d, s);
