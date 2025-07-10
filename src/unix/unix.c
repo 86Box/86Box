@@ -576,7 +576,7 @@ main_thread(UNUSED(void *param))
         old_time = new_time;
         if (drawits > 0 && !dopause) {
             /* Yes, so do one frame now. */
-            drawits -= 10;
+            drawits -= force_10ms ? 10 : 1;
             if (drawits > 50)
                 drawits = 0;
 
@@ -584,7 +584,7 @@ main_thread(UNUSED(void *param))
             pc_run();
 
             /* Every 200 frames we save the machine status. */
-            if (++frames >= 200 && nvr_dosave) {
+            if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
                 nvr_save();
                 nvr_dosave = 0;
                 frames     = 0;
