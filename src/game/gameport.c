@@ -61,13 +61,13 @@ typedef struct _joystick_instance_ {
     uint8_t  state;
     g_axis_t axis[4];
 
-    const joystick_if_t *intf;
-    void                *dat;
+    const joystick_t *intf;
+    void             *dat;
 } joystick_instance_t;
 
 int joystick_type = JS_TYPE_NONE;
 
-static const joystick_if_t joystick_none = {
+static const joystick_t joystick_none = {
     .name          = "None",
     .internal_name = "none",
     .init          = NULL,
@@ -86,7 +86,7 @@ static const joystick_if_t joystick_none = {
 };
 
 static const struct {
-    const joystick_if_t *joystick;
+    const joystick_t *joystick;
 } joysticks[] = {
     { &joystick_none                         },
     { &joystick_2axis_2button                },
@@ -100,7 +100,7 @@ static const struct {
     { &joystick_3axis_2button                },
     { &joystick_2button_yoke_throttle        },
     { &joystick_3axis_4button                },
-    { &joystick_win95_steering_wheel         }, // Temp
+    { &joystick_win95_steering_wheel         },
     { &joystick_4button_yoke_throttle        },
     { &joystick_4axis_4button                },
     { &joystick_ch_flightstick_pro           },
@@ -114,24 +114,39 @@ static const struct {
 static joystick_instance_t *joystick_instance[GAMEPORT_MAX] = { NULL, NULL };
 
 static uint8_t gameport_pnp_rom[] = {
-    0x09, 0xf8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,          /* BOX0002, dummy checksum (filled in by isapnp_add_card) */
-    0x0a, 0x10, 0x10,                                              /* PnP version 1.0, vendor version 1.0 */
-    0x82, 0x09, 0x00, 'G', 'a', 'm', 'e', ' ', 'P', 'o', 'r', 't', /* ANSI identifier */
+    /* BOX0002, serial 0, dummy checksum (filled in by isapnp_add_card) */
+    0x09, 0xf8, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
+    /* PnP version 1.0, vendor version 1.0 */
+    0x0a, 0x10, 0x10,
+    /* ANSI identifier */
+    0x82, 0x09, 0x00, 'G', 'a', 'm', 'e', ' ', 'P', 'o', 'r', 't',
 
-    0x15, 0x09, 0xf8, 0x00, 0x02, 0x01,             /* logical device BOX0002, can participate in boot */
-    0x1c, 0x41, 0xd0, 0xb0, 0x2f,                   /* compatible device PNPB02F */
-    0x31, 0x00,                                     /* start dependent functions, preferred */
-    0x47, 0x01, 0x00, 0x02, 0x00, 0x02, 0x08, 0x08, /* I/O 0x200, decodes 16-bit, 8-byte alignment, 8 addresses */
-    0x30,                                           /* start dependent functions, acceptable */
-    0x47, 0x01, 0x08, 0x02, 0x08, 0x02, 0x08, 0x08, /* I/O 0x208, decodes 16-bit, 8-byte alignment, 8 addresses */
-    0x31, 0x02,                                     /* start dependent functions, sub-optimal */
-    0x47, 0x01, 0x00, 0x01, 0xf8, 0xff, 0x08, 0x08, /* I/O 0x100-0xFFF8, decodes 16-bit, 8-byte alignment, 8 addresses */
-    0x38,                                           /* end dependent functions */
+    /* Logical device BOX0002, can participate in boot */
+    0x15, 0x09, 0xf8, 0x00, 0x02, 0x01,
+    /* Compatible device PNPB02F */
+    0x1c, 0x41, 0xd0, 0xb0, 0x2f,
+    /* Start dependent functions, preferred */
+    0x31, 0x00,
+    /* I/O 0x200, decodes 16-bit, 8-byte alignment, 8 addresses */
+    0x47, 0x01, 0x00, 0x02, 0x00, 0x02, 0x08, 0x08,
+    /* Start dependent functions, acceptable */
+    0x30,
+    /* I/O 0x208, decodes 16-bit, 8-byte alignment, 8 addresses */
+    0x47, 0x01, 0x08, 0x02, 0x08, 0x02, 0x08, 0x08,
+    /* Start dependent functions, sub-optimal */
+    0x31, 0x02,
+    /* I/O 0x100-0xFFF8, decodes 16-bit, 8-byte alignment, 8 addresses */
+    0x47, 0x01, 0x00, 0x01, 0xf8, 0xff, 0x08, 0x08,
+    /* End dependent functions */
+    0x38,
 
-    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
+    /* End tag, dummy checksum (filled in by isapnp_add_card) */
+    0x79, 0x00
 };
+
 static const isapnp_device_config_t gameport_pnp_defaults[] = {
-    {.activate = 1,
+    {
+        .activate = 1,
         .io       = {
             { .base = 0x200 },
         }
@@ -244,10 +259,8 @@ gameport_write(UNUSED(uint16_t addr), UNUSED(uint8_t val), void *priv)
     /* Read all axes. */
     joystick->state |= 0x0f;
 
-    gameport_time(joystick, 0, joystick->intf->read_axis(joystick->dat, 0));
-    gameport_time(joystick, 1, joystick->intf->read_axis(joystick->dat, 1));
-    gameport_time(joystick, 2, joystick->intf->read_axis(joystick->dat, 2));
-    gameport_time(joystick, 3, joystick->intf->read_axis(joystick->dat, 3));
+    for (uint8_t i = 0; i < 4; i++)
+        gameport_time(joystick, i, joystick->intf->read_axis(joystick->dat, i));
 
     /* Notify the interface. */
     joystick->intf->write(joystick->dat);
@@ -384,20 +397,14 @@ gameport_init(const device_t *info)
     if (!joystick_instance[0] && joystick_type) {
         joystick_instance[0] = calloc(1, sizeof(joystick_instance_t));
 
-        joystick_instance[0]->axis[0].joystick = joystick_instance[0];
-        joystick_instance[0]->axis[1].joystick = joystick_instance[0];
-        joystick_instance[0]->axis[2].joystick = joystick_instance[0];
-        joystick_instance[0]->axis[3].joystick = joystick_instance[0];
+        // For each analog joystick axis
+        for (uint8_t i = 0; i < 4; i++) {
+            joystick_instance[0]->axis[i].joystick = joystick_instance[0];
 
-        joystick_instance[0]->axis[0].axis_nr = 0;
-        joystick_instance[0]->axis[1].axis_nr = 1;
-        joystick_instance[0]->axis[2].axis_nr = 2;
-        joystick_instance[0]->axis[3].axis_nr = 3;
+            joystick_instance[0]->axis[i].axis_nr = i;
 
-        timer_add(&joystick_instance[0]->axis[0].timer, timer_over, &joystick_instance[0]->axis[0], 0);
-        timer_add(&joystick_instance[0]->axis[1].timer, timer_over, &joystick_instance[0]->axis[1], 0);
-        timer_add(&joystick_instance[0]->axis[2].timer, timer_over, &joystick_instance[0]->axis[2], 0);
-        timer_add(&joystick_instance[0]->axis[3].timer, timer_over, &joystick_instance[0]->axis[3], 0);
+            timer_add(&joystick_instance[0]->axis[i].timer, timer_over, &joystick_instance[0]->axis[i], 0);
+        }
 
         joystick_instance[0]->intf = joysticks[joystick_type].joystick;
         joystick_instance[0]->dat  = joystick_instance[0]->intf->init();
@@ -771,7 +778,7 @@ gameport_available(int port)
 
 /* UI */
 const device_t *
-gameports_getdevice(int port)
+gameport_getdevice(int port)
 {
     return (gameports[port].device);
 }

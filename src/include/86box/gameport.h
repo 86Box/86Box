@@ -52,7 +52,7 @@
 #define GAMEPORT_8ADDR      0x080000
 #define GAMEPORT_SIO        0x1000000
 
-typedef struct joystick_if_t {
+typedef struct joystick_t {
     const char *name;
     const char *internal_name;
 
@@ -70,9 +70,9 @@ typedef struct joystick_if_t {
     const char *axis_names[MAX_JOY_AXES];
     const char *button_names[MAX_JOY_BUTTONS];
     const char *pov_names[MAX_JOY_POVS];
-} joystick_if_t;
+} joystick_t;
 
-typedef struct plat_joystick_t {
+typedef struct plat_joystick_state_t {
     char name[260];
 
     int a[MAX_JOY_AXES];
@@ -97,9 +97,9 @@ typedef struct plat_joystick_t {
     int nr_axes;
     int nr_buttons;
     int nr_povs;
-} plat_joystick_t;
+} plat_joystick_state_t;
 
-typedef struct joystick_t {
+typedef struct joystick_state_t {
     int axis[MAX_JOY_AXES];
     int button[MAX_JOY_BUTTONS];
     int pov[MAX_JOY_POVS];
@@ -108,7 +108,7 @@ typedef struct joystick_t {
     int axis_mapping[MAX_JOY_AXES];
     int button_mapping[MAX_JOY_BUTTONS];
     int pov_mapping[MAX_JOY_POVS][2];
-} joystick_t;
+} joystick_state_t;
 
 extern device_t game_ports[GAMEPORT_MAX];
 
@@ -144,10 +144,10 @@ extern const device_t gameport_sio_1io_device;
 
 extern const device_t *standalone_gameport_type;
 #endif
-extern int             gameport_instance_id;
-extern plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
-extern joystick_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
-extern int             joysticks_present;
+extern int                   gameport_instance_id;
+extern plat_joystick_state_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
+extern joystick_state_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
+extern int                   joysticks_present;
 
 extern int joystick_type;
 
@@ -170,28 +170,28 @@ extern void  gameport_update_joystick_type(void);
 extern void  gameport_remap(void *priv, uint16_t address);
 extern void *gameport_add(const device_t *gameport_type);
 
-extern const joystick_if_t joystick_2axis_2button;
-extern const joystick_if_t joystick_2button_gamepad;
-extern const joystick_if_t joystick_2button_flight_yoke;
-extern const joystick_if_t joystick_2axis_4button;
-extern const joystick_if_t joystick_4button_gamepad;
-extern const joystick_if_t joystick_4button_flight_yoke;
-extern const joystick_if_t joystick_3axis_2button;
-extern const joystick_if_t joystick_2button_yoke_throttle;
-extern const joystick_if_t joystick_3axis_4button;
-extern const joystick_if_t joystick_4button_yoke_throttle;
-extern const joystick_if_t joystick_win95_steering_wheel;
-extern const joystick_if_t joystick_4axis_4button;
-extern const joystick_if_t joystick_2axis_6button;
-extern const joystick_if_t joystick_2axis_8button;
+extern const joystick_t joystick_2axis_2button;
+extern const joystick_t joystick_2button_gamepad;
+extern const joystick_t joystick_2button_flight_yoke;
+extern const joystick_t joystick_2axis_4button;
+extern const joystick_t joystick_4button_gamepad;
+extern const joystick_t joystick_4button_flight_yoke;
+extern const joystick_t joystick_3axis_2button;
+extern const joystick_t joystick_2button_yoke_throttle;
+extern const joystick_t joystick_3axis_4button;
+extern const joystick_t joystick_4button_yoke_throttle;
+extern const joystick_t joystick_win95_steering_wheel;
+extern const joystick_t joystick_4axis_4button;
+extern const joystick_t joystick_2axis_6button;
+extern const joystick_t joystick_2axis_8button;
 
-extern const joystick_if_t joystick_ch_flightstick_pro;
-extern const joystick_if_t joystick_ch_flightstick_pro_ch_pedals;
+extern const joystick_t joystick_ch_flightstick_pro;
+extern const joystick_t joystick_ch_flightstick_pro_ch_pedals;
 
-extern const joystick_if_t joystick_sw_pad;
+extern const joystick_t joystick_sw_pad;
 
-extern const joystick_if_t joystick_tm_fcs;
-extern const joystick_if_t joystick_tm_fcs_rcs;
+extern const joystick_t joystick_tm_fcs;
+extern const joystick_t joystick_tm_fcs_rcs;
 
 #ifdef __cplusplus
 }
