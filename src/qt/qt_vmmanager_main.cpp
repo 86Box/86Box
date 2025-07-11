@@ -59,6 +59,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             connect(&nameChangeAction, &QAction::triggered, ui->listView, [this, indexAt] {
                    updateDisplayName(indexAt);
             });
+            nameChangeAction.setEnabled(!selected_sysconfig->window_obscured);
 
             QAction openSystemFolderAction(tr("Open folder"));
             contextMenu.addAction(&openSystemFolderAction);
@@ -82,6 +83,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
                     selected_sysconfig->setIcon(iconName);
                 }
             });
+            setSystemIcon.setEnabled(!selected_sysconfig->window_obscured);
 
             contextMenu.addSeparator();
 

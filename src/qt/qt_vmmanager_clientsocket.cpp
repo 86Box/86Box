@@ -218,19 +218,32 @@ VMManagerClientSocket::eventFilter(QObject *obj, QEvent *event)
         if (event->type() == QEvent::WindowBlocked) {
             running_state = dopause ? VMManagerProtocol::RunningState::PausedWaiting : VMManagerProtocol::RunningState::RunningWaiting;
             clientRunningStateChanged(running_state);
+            window_blocked = true;
         } else if (event->type() == QEvent::WindowUnblocked) {
             running_state = dopause ? VMManagerProtocol::RunningState::Paused : VMManagerProtocol::RunningState::Running;
             clientRunningStateChanged(running_state);
+            window_blocked = false;
         }
     }
     return QObject::eventFilter(obj, event);
 }
 
 void
+VMManagerClientSocket::sendWinIdMessage(WId id)
+{
+    QJsonObject extra_object;
+    extra_object["params"] = static_cast<int>(id);
+    sendMessageWithObject(VMManagerProtocol::ClientMessage::WinIdMessage, extra_object);
+}
+
+void
 VMManagerClientSocket::clientRunningStateChanged(VMManagerProtocol::RunningState state) const
 {
     QJsonObject extra_object;
+    if ((state == VMManagerProtocol::RunningState::Paused
+    || state == VMManagerProtocol::RunningState::Running) && window_blocked) {
+        state = (state == VMManagerProtocol::RunningState::Paused) ? VMManagerProtocol::RunningState::PausedWaiting : VMManagerProtocol::RunningState::RunningWaiting;
+    }
     extra_object["status"] = static_cast<int>(state);
     sendMessageWithObject(VMManagerProtocol::ClientMessage::RunningStateChanged, extra_object);
-
 }

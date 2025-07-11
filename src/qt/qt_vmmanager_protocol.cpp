@@ -91,6 +91,8 @@ VMManagerProtocol::getClientMessageType(const QJsonObject &json_document)
         return VMManagerProtocol::ClientMessage::WindowUnblocked;
     } else if (message_type == "RunningStateChanged") {
         return VMManagerProtocol::ClientMessage::RunningStateChanged;
+    } else if (message_type == "WinIdMessage") {
+        return VMManagerProtocol::ClientMessage::WinIdMessage;
     }
     return VMManagerProtocol::ClientMessage::UnknownMessage;
 }
