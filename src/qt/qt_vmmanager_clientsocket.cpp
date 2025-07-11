@@ -220,9 +220,9 @@ VMManagerClientSocket::eventFilter(QObject *obj, QEvent *event)
             clientRunningStateChanged(running_state);
             window_blocked = true;
         } else if (event->type() == QEvent::WindowUnblocked) {
+            window_blocked = false;
             running_state = dopause ? VMManagerProtocol::RunningState::Paused : VMManagerProtocol::RunningState::Running;
             clientRunningStateChanged(running_state);
-            window_blocked = false;
         }
     }
     return QObject::eventFilter(obj, event);
