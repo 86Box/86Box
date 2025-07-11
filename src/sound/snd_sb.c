@@ -2876,7 +2876,6 @@ sb_init(UNUSED(const device_t *info))
     if (device_get_config_int("gameport")) {
         sb->gameport      = gameport_add(&gameport_200_device);
         sb->gameport_addr = 0x200;
-        gameport_remap(sb->gameport, sb->gameport_addr);
     }
 
     /* DSP I/O handler is activated in sb_dsp_setaddr */
@@ -2961,7 +2960,6 @@ sb_mcv_init(UNUSED(const device_t *info))
     if (device_get_config_int("gameport")) {
         sb->gameport      = gameport_add(&gameport_200_device);
         sb->gameport_addr = 0x200;
-        gameport_remap(sb->gameport, sb->gameport_addr);
     }
 
     return sb;
@@ -3049,7 +3047,6 @@ sb_pro_v1_init(UNUSED(const device_t *info))
     if (device_get_config_int("gameport")) {
         sb->gameport      = gameport_add(&gameport_200_device);
         sb->gameport_addr = 0x200;
-        gameport_remap(sb->gameport, sb->gameport_addr);
     }
 
     return sb;
@@ -3109,7 +3106,6 @@ sb_pro_v2_init(UNUSED(const device_t *info))
     if (device_get_config_int("gameport")) {
         sb->gameport      = gameport_add(&gameport_200_device);
         sb->gameport_addr = 0x200;
-        gameport_remap(sb->gameport, sb->gameport_addr);
     }
 
     return sb;
@@ -3148,7 +3144,6 @@ sb_pro_mcv_init(UNUSED(const device_t *info))
     if (device_get_config_int("gameport")) {
         sb->gameport      = gameport_add(&gameport_200_device);
         sb->gameport_addr = 0x200;
-        gameport_remap(sb->gameport, sb->gameport_addr);
     }
 
     return sb;
@@ -3243,7 +3238,6 @@ sb_16_init(UNUSED(const device_t *info))
         if (device_get_config_int("gameport")) {
             sb->gameport      = gameport_add(&gameport_200_device);
             sb->gameport_addr = 0x200;
-            gameport_remap(sb->gameport, sb->gameport_addr);
         }
     }
 
@@ -3647,7 +3641,6 @@ sb_awe32_init(UNUSED(const device_t *info))
     if (device_get_config_int("gameport")) {
         sb->gameport      = gameport_add(&gameport_200_device);
         sb->gameport_addr = 0x200;
-        gameport_remap(sb->gameport, sb->gameport_addr);
     }
 
     return sb;
@@ -3913,7 +3906,6 @@ ess_x688_init(UNUSED(const device_t *info))
     if (device_get_config_int("gameport")) {
         ess->gameport      = gameport_add(&gameport_200_device);
         ess->gameport_addr = 0x200;
-        gameport_remap(ess->gameport, ess->gameport_addr);
     }
 
     if (ide_base > 0x0000) {
