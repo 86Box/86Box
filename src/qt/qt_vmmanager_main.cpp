@@ -131,12 +131,14 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
         emit updateStatusRight(totalCountString());
     });
 
+#if EMU_BUILD_NUM != 0
     // Start update check after a slight delay
     QTimer::singleShot(1000, this, [this] {
             if(updateCheck) {
                 backgroundUpdateCheckStart();
             }
     });
+#endif
 }
 
 VMManagerMain::~VMManagerMain() {
@@ -276,7 +278,9 @@ VMManagerMain::loadSettings()
 {
     const auto config        = new VMManagerConfig(VMManagerConfig::ConfigType::General);
     const auto lastSelection = config->getStringValue("last_selection");
+#if EMU_BUILD_NUM != 0
     updateCheck = config->getStringValue("update_check").toInt();
+#endif
     regexSearch = config->getStringValue("regex_search").toInt();
 
     const auto matches = ui->listView->model()->match(vm_model->index(0, 0), VMManagerModel::Roles::ConfigName, QVariant::fromValue(lastSelection));
@@ -453,10 +457,10 @@ VMManagerMain::onPreferencesUpdated()
     }
 }
 
+#if EMU_BUILD_NUM != 0
 void
 VMManagerMain::backgroundUpdateCheckStart() const
 {
-#if EMU_BUILD_NUM != 0
     auto updateChannel = UpdateCheck::UpdateChannel::CI;
 #ifdef RELEASE_BUILD
     updateChannel = UpdateCheck::UpdateChannel::Stable;
@@ -465,7 +469,6 @@ VMManagerMain::backgroundUpdateCheckStart() const
     connect(updateCheck, &UpdateCheck::updateCheckComplete, this, &VMManagerMain::backgroundUpdateCheckComplete);
     connect(updateCheck, &UpdateCheck::updateCheckError, this, &VMManagerMain::backgroundUpdateCheckError);
     updateCheck->checkForUpdates();
-#endif
 }
 
 void
@@ -483,6 +486,7 @@ VMManagerMain::backgroundUpdateCheckError(const QString &errorMsg)
     qDebug() << "Update check failed with the following error:" << errorMsg;
     // TODO: Update the status bar
 }
+#endif
 
 void
 VMManagerMain::showTextFileContents(const QString &title, const QString &path)
