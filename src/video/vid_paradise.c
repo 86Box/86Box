@@ -409,9 +409,10 @@ paradise_recalctimings(svga_t *svga)
             svga->vblankstart |= 0x400;
         if (svga->crtc[0x3e] & 0x10)
             svga->split |= 0x400;
-
-        svga->interlace = !!(svga->crtc[0x2d] & 0x20);
     }
+
+    if (paradise->type >= WD90C11)
+        svga->interlace = !!(svga->crtc[0x2d] & 0x20);
 
     if (paradise->type < WD90C30) {
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
