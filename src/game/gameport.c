@@ -489,9 +489,9 @@ gameport_close(void *priv)
     free(dev);
 }
 
-const device_t gameport_device = {
-    .name          = "Game port",
-    .internal_name = "gameport",
+const device_t gameport_200_device = {
+    .name          = "Game port (Port 200h-207h)",
+    .internal_name = "gameport_200",
     .flags         = 0,
     .local         = GAMEPORT_8ADDR | 0x0200,
     .init          = gameport_init,
@@ -743,7 +743,7 @@ const device_t gameport_sio_device = {
 
 const device_t gameport_sio_1io_device = {
     .name          = "Game port (Super I/O, 1 I/O port)",
-    .internal_name = "gameport_sio",
+    .internal_name = "gameport_sio_1io",
     .flags         = 0,
     .local         = GAMEPORT_SIO | GAMEPORT_1ADDR,
     .init          = gameport_init,
@@ -758,7 +758,7 @@ const device_t gameport_sio_1io_device = {
 static const GAMEPORT gameports[] = {
     { &device_none            },
     { &device_internal        },
-    { &gameport_device        },
+    { &gameport_200_device    },
     { &gameport_208_device    },
     { &gameport_pnp_device    },
     { &gameport_tm_acm_device },

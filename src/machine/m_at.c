@@ -81,7 +81,7 @@ machine_at_common_init_ex(const machine_t *model, int type)
     else if (type == 0)
         device_add(&at_nvr_device);
 
-    standalone_gameport_type = &gameport_device;
+    standalone_gameport_type = &gameport_200_device;
 }
 
 void

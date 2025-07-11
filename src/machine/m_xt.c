@@ -57,7 +57,7 @@ machine_xt_common_init(const machine_t *model, int fixed_floppy)
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
     nmi_init();
-    standalone_gameport_type = &gameport_device;
+    standalone_gameport_type = &gameport_200_device;
 }
 
 static const device_config_t ibmpc_config[] = {
@@ -690,7 +690,7 @@ machine_xt_tuliptc8_init(const machine_t *model)
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
     nmi_init();
-    standalone_gameport_type = &gameport_device;
+    standalone_gameport_type = &gameport_200_device;
 
     device_add(&amstrad_megapc_nvr_device);
 

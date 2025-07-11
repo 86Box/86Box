@@ -125,7 +125,7 @@ extern const char *gameport_get_internal_name(int port);
 extern int         gameport_get_from_internal_name(const char *str);
 
 #ifdef EMU_DEVICE_H
-extern const device_t gameport_device;
+extern const device_t gameport_200_device;
 extern const device_t gameport_201_device;
 extern const device_t gameport_203_device;
 extern const device_t gameport_205_device;

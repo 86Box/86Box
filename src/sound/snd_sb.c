@@ -2874,7 +2874,7 @@ sb_init(UNUSED(const device_t *info))
         sb_ct1335_mixer_reset(sb);
 
     if (device_get_config_int("gameport")) {
-        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport      = gameport_add(&gameport_200_device);
         sb->gameport_addr = 0x200;
         gameport_remap(sb->gameport, sb->gameport_addr);
     }
@@ -2959,7 +2959,7 @@ sb_mcv_init(UNUSED(const device_t *info))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
     if (device_get_config_int("gameport")) {
-        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport      = gameport_add(&gameport_200_device);
         sb->gameport_addr = 0x200;
         gameport_remap(sb->gameport, sb->gameport_addr);
     }
@@ -3047,7 +3047,7 @@ sb_pro_v1_init(UNUSED(const device_t *info))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
     if (device_get_config_int("gameport")) {
-        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport      = gameport_add(&gameport_200_device);
         sb->gameport_addr = 0x200;
         gameport_remap(sb->gameport, sb->gameport_addr);
     }
@@ -3107,7 +3107,7 @@ sb_pro_v2_init(UNUSED(const device_t *info))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
     if (device_get_config_int("gameport")) {
-        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport      = gameport_add(&gameport_200_device);
         sb->gameport_addr = 0x200;
         gameport_remap(sb->gameport, sb->gameport_addr);
     }
@@ -3146,7 +3146,7 @@ sb_pro_mcv_init(UNUSED(const device_t *info))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
     if (device_get_config_int("gameport")) {
-        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport      = gameport_add(&gameport_200_device);
         sb->gameport_addr = 0x200;
         gameport_remap(sb->gameport, sb->gameport_addr);
     }
@@ -3241,7 +3241,7 @@ sb_16_init(UNUSED(const device_t *info))
         gameport_remap(sb->gameport, sb->gameport_addr);
     } else {
         if (device_get_config_int("gameport")) {
-            sb->gameport      = gameport_add(&gameport_device);
+            sb->gameport      = gameport_add(&gameport_200_device);
             sb->gameport_addr = 0x200;
             gameport_remap(sb->gameport, sb->gameport_addr);
         }
@@ -3279,7 +3279,7 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
-    sb->gameport = gameport_add(&gameport_device);
+    sb->gameport = gameport_add(&gameport_200_device);
 
     /* I/O handlers activated in sb_pro_mcv_write */
     mca_add(sb_16_reply_mca_read, sb_16_reply_mca_write, sb_mcv_feedb, NULL, sb);
@@ -3645,7 +3645,7 @@ sb_awe32_init(UNUSED(const device_t *info))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
     if (device_get_config_int("gameport")) {
-        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport      = gameport_add(&gameport_200_device);
         sb->gameport_addr = 0x200;
         gameport_remap(sb->gameport, sb->gameport_addr);
     }
@@ -3911,7 +3911,7 @@ ess_x688_init(UNUSED(const device_t *info))
     }
 
     if (device_get_config_int("gameport")) {
-        ess->gameport      = gameport_add(&gameport_device);
+        ess->gameport      = gameport_add(&gameport_200_device);
         ess->gameport_addr = 0x200;
         gameport_remap(ess->gameport, ess->gameport_addr);
     }
@@ -4060,7 +4060,7 @@ ess_x688_mca_init(UNUSED(const device_t *info))
         sb_dsp_set_mpu(&ess->dsp, ess->mpu);
     }
 
-    ess->gameport = gameport_add(&gameport_device);
+    ess->gameport = gameport_add(&gameport_200_device);
 
     mpu401_change_addr(ess->mpu, 0);
 
