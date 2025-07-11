@@ -32,7 +32,14 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
-#include <86box/vid_svga_render_remap.h>
+
+#define VAR_BYTE_MODE      (0 << 0)
+#define VAR_WORD_MODE_MA13 (1 << 0)
+#define VAR_WORD_MODE_MA15 (2 << 0)
+#define VAR_DWORD_MODE     (3 << 0)
+#define VAR_MODE_MASK      (3 << 0)
+#define VAR_ROW0_MA13      (1 << 2)
+#define VAR_ROW1_MA14      (1 << 3)
 
 typedef struct paradise_t {
     svga_t svga;
