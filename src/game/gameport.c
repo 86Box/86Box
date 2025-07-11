@@ -416,8 +416,8 @@ gameport_init(const device_t *info)
     dev->len = (info->local >> 16) & 0xff;
     gameport_remap(dev, info->local & 0xffff);
 
-    /* Register ISAPnP if this is a standard game port card. */
-    if ((info->local & 0xffff) == 0x200)
+    /* Register ISAPnP if this is a PNP game port card. */
+    if (info->local & GAMEPORT_PNPROM)
         isapnp_set_device_defaults(isapnp_add_card(gameport_pnp_rom, sizeof(gameport_pnp_rom), gameport_pnp_config_changed, NULL, NULL, NULL, dev), 0, gameport_pnp_defaults);
 
     return dev;
@@ -488,6 +488,20 @@ gameport_close(void *priv)
 
     free(dev);
 }
+
+const device_t gameport_device = {
+    .name          = "86Box PNP Game port",
+    .internal_name = "gameport",
+    .flags         = 0,
+    .local         = GAMEPORT_PNPROM | GAMEPORT_8ADDR | 0x0200,
+    .init          = gameport_init,
+    .close         = gameport_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
 
 const device_t gameport_200_device = {
     .name          = "Game port (Port 200h-207h)",
@@ -759,6 +773,7 @@ static const GAMEPORT gameports[] = {
     { &device_none            },
     { &device_internal        },
     { &gameport_200_device    },
+    { &gameport_device        },
     { &gameport_208_device    },
     { &gameport_pnp_device    },
     { &gameport_tm_acm_device },
