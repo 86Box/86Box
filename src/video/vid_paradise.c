@@ -32,6 +32,7 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/vid_svga_render_remap.h>
 
 typedef struct paradise_t {
     svga_t svga;
@@ -392,6 +393,85 @@ paradise_remap(paradise_t *paradise)
 }
 
 void
+paradise_render_4bpp_word_highres(svga_t *svga)
+{
+    int       x;
+    int       oddeven;
+    uint32_t  addr;
+    uint32_t *p;
+    uint8_t   edat[4];
+    uint8_t   dat;
+    uint32_t  changed_addr;
+
+    if ((svga->displine + svga->y_add) < 0)
+        return;
+
+    changed_addr = ((svga->memaddr & 0x3fffc) << 1);
+
+    if (svga->changedvram[changed_addr >> 12] || svga->changedvram[(changed_addr >> 12) + 1] || svga->fullchange) {
+        p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+
+        if (svga->firstline_draw == 2000)
+            svga->firstline_draw = svga->displine;
+        svga->lastline_draw = svga->displine;
+
+        for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 8) {
+            addr    = ((svga->memaddr & 0x3fffc) << 1);
+            oddeven = 0;
+
+            oddeven = (svga->memaddr & 2) ? 1 : 0;
+            *(uint32_t *) (&edat[0]) = *(uint32_t *) (&svga->vram[addr | oddeven]) & 0x00ff00ff;
+            svga->memaddr = (svga->memaddr + 2) & svga->vram_mask;
+
+            dat  = edatlookup[edat[0] >> 6][edat[1] >> 6] | (edatlookup[edat[2] >> 6][edat[3] >> 6] << 2);
+            p[0] = svga->pallook[svga->egapal[(dat >> 4) & svga->plane_mask]];
+            p[1] = svga->pallook[svga->egapal[dat & svga->plane_mask]];
+            dat  = edatlookup[(edat[0] >> 4) & 3][(edat[1] >> 4) & 3] |
+                   (edatlookup[(edat[2] >> 4) & 3][(edat[3] >> 4) & 3] << 2);
+            p[2] = svga->pallook[svga->egapal[(dat >> 4) & svga->plane_mask]];
+            p[3] = svga->pallook[svga->egapal[dat & svga->plane_mask]];
+            dat  = edatlookup[(edat[0] >> 2) & 3][(edat[1] >> 2) & 3] |
+                   (edatlookup[(edat[2] >> 2) & 3][(edat[3] >> 2) & 3] << 2);
+            p[4] = svga->pallook[svga->egapal[(dat >> 4) & svga->plane_mask]];
+            p[5] = svga->pallook[svga->egapal[dat & svga->plane_mask]];
+            dat  = edatlookup[edat[0] & 3][edat[1] & 3] | (edatlookup[edat[2] & 3][edat[3] & 3] << 2);
+            p[6] = svga->pallook[svga->egapal[(dat >> 4) & svga->plane_mask]];
+            p[7] = svga->pallook[svga->egapal[dat & svga->plane_mask]];
+
+            p += 8;
+        }
+    }
+}
+
+static int
+paradise_mode_is_word(svga_t *svga)
+{
+    int func_nr;
+
+    if (svga->fb_only)
+        func_nr = 0;
+    else {
+        if (svga->force_dword_mode)
+            func_nr = VAR_DWORD_MODE;
+        else if (svga->crtc[0x14] & 0x40)
+            func_nr = svga->packed_chain4 ? VAR_BYTE_MODE : VAR_DWORD_MODE;
+        else if (svga->crtc[0x17] & 0x40)
+            func_nr = VAR_BYTE_MODE;
+        else if (svga->crtc[0x17] & 0x20)
+            func_nr = VAR_WORD_MODE_MA15;
+        else
+            func_nr = VAR_WORD_MODE_MA13;
+
+        if (!(svga->crtc[0x17] & 0x01))
+            func_nr |= VAR_ROW0_MA13;
+        if (!(svga->crtc[0x17] & 0x02))
+            func_nr |= VAR_ROW1_MA14;
+    }
+
+    return (func_nr == 2);
+}
+
+void
 paradise_recalctimings(svga_t *svga)
 {
     paradise_t *paradise = (paradise_t *) svga->priv;
@@ -456,6 +536,14 @@ paradise_recalctimings(svga_t *svga)
                                        a windowed DOS box in Win3.x*/
         }
     }
+
+    /*
+       Yes, this is basically hack but I'm going to look at a proper rewrite in
+       86Box 6.0.
+     */
+    if ((paradise->type == WD90C11) && (svga->hdisp == 1024) &&
+        (svga->render == svga_render_4bpp_highres) && paradise_mode_is_word(svga))
+        svga->render = paradise_render_4bpp_word_highres;
 }
 
 uint32_t
