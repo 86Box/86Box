@@ -212,6 +212,20 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
                     else
                         svga->gdcreg[0x0b] |= 0x40;
 
+                    if (svga->crtc[0x2f] & 0x02)
+                        svga->decode_mask = 0x3ffff;
+                    else  switch (svga->gdcreg[0x0b] & 0xc0) {
+                        case 0x00: case 0x40:
+                            svga->decode_mask = 0x3ffff;
+                            break;
+                        case 0x80:
+                            svga->decode_mask = 0x7ffff;
+                            break;
+                        case 0xc0:
+                            svga->decode_mask = 0xfffff;
+                            break;
+                    }
+
                     paradise_remap(paradise);
                     return;
                 case 0x0e:
@@ -243,6 +257,21 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
 
             if (old != val) {
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
+                    if (svga->crtcreg == 0x2f) {
+                        if (svga->crtc[0x2f] & 0x02)
+                            svga->decode_mask = 0x3ffff;
+                        else  switch (svga->gdcreg[0x0b] & 0xc0) {
+                            case 0x00: case 0x40:
+                                svga->decode_mask = 0x3ffff;
+                                break;
+                            case 0x80:
+                                svga->decode_mask = 0x7ffff;
+                                break;
+                            case 0xc0:
+                                svga->decode_mask = 0xfffff;
+                                break;
+                        }
+                    }
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
                         svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
@@ -267,30 +296,92 @@ paradise_remap(paradise_t *paradise)
     svga_t *svga    = &paradise->svga;
 
     if (svga->seqregs[0x11] & 0x80) {
-        paradise->read_bank[0] = paradise->read_bank[2] = svga->gdcreg[9] << 12;
-        paradise->read_bank[1] = paradise->read_bank[3] = (svga->gdcreg[9] << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
-        paradise->write_bank[0] = paradise->write_bank[2] = svga->gdcreg[0x0a] << 12;
-        paradise->write_bank[1] = paradise->write_bank[3] = (svga->gdcreg[0x0a] << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
-    } else if (svga->gdcreg[0x0b] & 0x08) {
-        if (svga->gdcreg[6] & 0x0c) {
-            paradise->read_bank[0] = paradise->read_bank[2] = svga->gdcreg[0x0a] << 12;
-            paradise->write_bank[0] = paradise->write_bank[2] = svga->gdcreg[0x0a] << 12;
-            paradise->read_bank[1] = paradise->read_bank[3] = (svga->gdcreg[9] << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
-            paradise->write_bank[1] = paradise->write_bank[3] = (svga->gdcreg[9] << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
-        } else {
-            paradise->read_bank[0] = paradise->write_bank[0] = svga->gdcreg[0x0a] << 12;
-            paradise->read_bank[1] = paradise->write_bank[1] = (svga->gdcreg[0xa] << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
-            paradise->read_bank[2] = paradise->write_bank[2] = svga->gdcreg[9] << 12;
-            paradise->read_bank[3] = paradise->write_bank[3] = (svga->gdcreg[9] << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
-        }
-    } else {
-        paradise->read_bank[0] = paradise->read_bank[2] = svga->gdcreg[9] << 12;
-        paradise->read_bank[1] = paradise->read_bank[3] = (svga->gdcreg[9] << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
-        paradise->write_bank[0] = paradise->write_bank[2] = svga->gdcreg[9] << 12;
-        paradise->write_bank[1] = paradise->write_bank[3] = (svga->gdcreg[9] << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
-    }
+        paradise->read_bank[0] = svga->gdcreg[9] << 12;
+        paradise->read_bank[1] = paradise->read_bank[0] + 0x8000;
 
-    /*There are separate drivers for 1M and 512K/256K versions of the PVGA chips.*/
+        paradise->write_bank[0] = svga->gdcreg[0x0a] << 12;
+        paradise->write_bank[1] = paradise->write_bank[0] + 0x8000;
+
+        if ((svga->gdcreg[6] & 0x0c) == 0x00) {
+            paradise->read_bank[2] = paradise->read_bank[1] + 0x8000;
+            paradise->read_bank[3] = paradise->read_bank[2] + 0x8000;
+
+            paradise->write_bank[2] = paradise->write_bank[1] + 0x8000;
+            paradise->write_bank[3] = paradise->write_bank[2] + 0x8000;
+        } else {
+            if (svga->gdcreg[6] & 0x08) {
+                paradise->read_bank[1] = paradise->read_bank[0];
+
+                paradise->write_bank[1] = paradise->write_bank[0];
+            }
+
+            paradise->read_bank[2] = paradise->read_bank[0];
+            paradise->read_bank[3] = paradise->read_bank[1];
+
+            paradise->write_bank[2] = paradise->write_bank[0];
+            paradise->write_bank[3] = paradise->write_bank[1];
+        }
+    } else if (svga->gdcreg[0x0b] & 0x08) {
+        if ((svga->gdcreg[6] & 0x0c) == 0x00) {
+            paradise->read_bank[0] = svga->gdcreg[0x0a] << 12;
+            paradise->read_bank[1] = paradise->read_bank[0] + 0x8000;
+            paradise->read_bank[2] = svga->gdcreg[9] << 12;
+            paradise->read_bank[3] = paradise->read_bank[2] + 0x8000;
+
+            paradise->write_bank[0] = svga->gdcreg[0x0a] << 12;
+            paradise->write_bank[1] = paradise->write_bank[0] + 0x8000;
+            paradise->write_bank[2] = svga->gdcreg[9] << 12;
+            paradise->write_bank[3] = paradise->write_bank[2] + 0x8000;
+       } else if ((svga->gdcreg[6] & 0x0c) == 0x04) {
+            paradise->read_bank[0] = svga->gdcreg[0x0a] << 12;
+            paradise->read_bank[1] = svga->gdcreg[9] << 12;
+            paradise->read_bank[2] = paradise->read_bank[0];
+            paradise->read_bank[3] = paradise->read_bank[1];
+
+            paradise->write_bank[0] = svga->gdcreg[0x0a] << 12;
+            paradise->write_bank[1] = svga->gdcreg[9] << 12;
+            paradise->write_bank[2] = paradise->write_bank[0];
+            paradise->write_bank[3] = paradise->write_bank[1];
+       } else {
+            paradise->read_bank[0] = svga->gdcreg[0x0a] << 12;
+            paradise->read_bank[1] = paradise->read_bank[0];
+            paradise->read_bank[2] = paradise->read_bank[0];
+            paradise->read_bank[3] = paradise->read_bank[0];
+
+            paradise->write_bank[0] = svga->gdcreg[0x0a] << 12;
+            paradise->write_bank[1] = paradise->write_bank[0];
+            paradise->write_bank[2] = paradise->write_bank[0];
+            paradise->write_bank[3] = paradise->write_bank[0];
+       }
+    } else {
+        paradise->read_bank[0] = svga->gdcreg[9] << 12;
+        paradise->read_bank[1] = paradise->read_bank[0] + 0x8000;
+
+        paradise->write_bank[0] = svga->gdcreg[9] << 12;
+        paradise->write_bank[1] = paradise->write_bank[0] + 0x8000;
+
+        if ((svga->gdcreg[6] & 0x0c) == 0x00) {
+            paradise->read_bank[2] = paradise->read_bank[1] + 0x8000;
+            paradise->read_bank[3] = paradise->read_bank[2] + 0x8000;
+
+            paradise->write_bank[2] = paradise->write_bank[1] + 0x8000;
+            paradise->write_bank[3] = paradise->write_bank[2] + 0x8000;
+        } else {
+            if (svga->gdcreg[6] & 0x08) {
+                paradise->read_bank[1] = paradise->read_bank[0];
+
+                paradise->write_bank[1] = paradise->write_bank[0];
+            }
+
+            paradise->read_bank[2] = paradise->read_bank[0];
+            paradise->read_bank[3] = paradise->read_bank[1];
+
+            paradise->write_bank[2] = paradise->write_bank[0];
+            paradise->write_bank[3] = paradise->write_bank[1];
+        }
+   }
+
+    /* There are separate drivers for 1M and 512K/256K versions of the PVGA chips. */
     if ((svga->gdcreg[0x0b] & 0xc0) < 0xc0) {
         paradise->read_bank[1] &= 0x7ffff;
         paradise->write_bank[1] &= 0x7ffff;
@@ -326,8 +417,20 @@ paradise_recalctimings(svga_t *svga)
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
             if ((svga->bpp >= 8) && !svga->lowres) {
                 svga->render = svga_render_8bpp_highres;
-                svga->vram_display_mask = (svga->crtc[0x2f] & 0x02) ? 0x3ffff : paradise->vram_mask;
+                if (paradise->type != WD90C11)
+                    svga->vram_display_mask = (svga->crtc[0x2f] & 0x02) ? 0x3ffff : paradise->vram_mask;
             }
+        }
+        if (paradise->type == WD90C11)  switch (svga->crtc[0x2f] & 0x60) {
+            case 0x60: case 0x40:
+                svga->vram_display_mask = 0x3ffff;
+                break;
+            case 0x20:
+                svga->vram_display_mask = 0x7ffff;
+                break;
+            case 0x00:
+                svga->vram_display_mask = 0xfffff;
+                break;
         }
     } else {
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
@@ -354,6 +457,44 @@ paradise_recalctimings(svga_t *svga)
     }
 }
 
+uint32_t
+paradise_decode_addr(paradise_t *paradise, uint32_t addr, int write)
+{
+    svga_t   *svga            = &paradise->svga;
+    int       memory_map_mode = (svga->gdcreg[6] >> 2) & 3;
+
+    addr &= 0x1ffff;
+
+    switch (memory_map_mode) {
+        case 0:
+            break;
+        case 1:
+            if (addr >= 0x10000)
+                return 0xffffffff;
+            break;
+        case 2:
+            addr -= 0x10000;
+            if (addr >= 0x8000)
+                return 0xffffffff;
+            break;
+        default:
+        case 3:
+            addr -= 0x18000;
+            if (addr >= 0x8000)
+                return 0xffffffff;
+            break;
+    }
+
+    if (memory_map_mode <= 1) {
+        if (write)
+            addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
+        else
+            addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
+    }
+
+    return addr;
+}
+
 static void
 paradise_write(uint32_t addr, uint8_t val, void *priv)
 {
@@ -362,7 +503,9 @@ paradise_write(uint32_t addr, uint8_t val, void *priv)
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
 
-    addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
+    addr = paradise_decode_addr(paradise, addr, 1);
+    if (addr == 0xffffffff)
+        return;
 
     /*Could be done in a better way but it works.*/
     if (!svga->lowres || (svga->attrregs[0x10] & 0x40)) {
@@ -395,7 +538,9 @@ paradise_writew(uint32_t addr, uint16_t val, void *priv)
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
 
-    addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
+    addr = paradise_decode_addr(paradise, addr, 1);
+    if (addr == 0xffffffff)
+        return;
 
     /*Could be done in a better way but it works.*/
     if (!svga->lowres || (svga->attrregs[0x10] & 0x40)) {
@@ -428,7 +573,9 @@ paradise_read(uint32_t addr, void *priv)
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
 
-    addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
+    addr = paradise_decode_addr(paradise, addr, 1);
+    if (addr == 0xffffffff)
+        return 0xff;
 
     /*Could be done in a better way but it works.*/
     if (!svga->lowres || (svga->attrregs[0x10] & 0x40)) {
@@ -461,7 +608,9 @@ paradise_readw(uint32_t addr, void *priv)
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
 
-    addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
+    addr = paradise_decode_addr(paradise, addr, 1);
+    if (addr == 0xffffffff)
+        return 0xffff;
 
     /*Could be done in a better way but it works.*/
     if (!svga->lowres || (svga->attrregs[0x10] & 0x40)) {
