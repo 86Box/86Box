@@ -181,3 +181,9 @@ VMManagerMainWindow::checkForUpdatesTriggered()
     const auto updateCheck = new UpdateCheckDialog(updateChannel);
     updateCheck->exec();
 }
+
+void VMManagerMainWindow::on_actionExit_triggered()
+{
+    this->close();
+}
+
