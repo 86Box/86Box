@@ -44,8 +44,12 @@ VMManagerPreferences(QWidget *parent) : ui(new Ui::VMManagerPreferences)
     }
 
     // TODO: Defaults
+#if EMU_BUILD_NUM != 0
     const auto configUpdateCheck = config->getStringValue("update_check").toInt();
     ui->updateCheckBox->setChecked(configUpdateCheck);
+#else
+    ui->updateCheckBox->setVisible(false);
+#endif
     const auto useRegexSearch = config->getStringValue("regex_search").toInt();
     ui->regexSearchCheckBox->setChecked(useRegexSearch);
 
@@ -70,7 +74,9 @@ VMManagerPreferences::accept()
 {
     const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
     config->setStringValue("system_directory", ui->systemDirectory->text());
+#if EMU_BUILD_NUM != 0
     config->setStringValue("update_check", ui->updateCheckBox->isChecked() ? "1" : "0");
+#endif
     config->setStringValue("regex_search", ui->regexSearchCheckBox->isChecked() ? "1" : "0");
     QDialog::accept();
 }
