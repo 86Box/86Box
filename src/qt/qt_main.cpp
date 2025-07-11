@@ -56,6 +56,10 @@ extern "C" {
 #include <86box/gdbstub.h>
 #include <86box/version.h>
 #include <86box/renderdefs.h>
+#ifdef Q_OS_LINUX
+#define GAMEMODE_AUTO
+#include "../unix/gamemode/gamemode_client.h"
+#endif
 }
 
 #ifdef Q_OS_WINDOWS
