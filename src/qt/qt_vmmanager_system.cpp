@@ -444,6 +444,7 @@ VMManagerSystem::launchSettings() {
 
     // Otherwise, launch the system with the settings parameter
     setProcessEnvVars();
+    window_obscured = true;
     QString program = main_binary.filePath();
     QStringList open_command_args;
     QStringList args;
@@ -858,6 +859,7 @@ VMManagerSystem::processStatusChanged()
         }
     } else if (process->state() == QProcess::ProcessState::NotRunning) {
         process_status = VMManagerSystem::ProcessStatus::Stopped;
+        window_obscured = false;
     }
     emit itemDataChanged();
     emit clientProcessStatusChanged();
