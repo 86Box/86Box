@@ -808,7 +808,6 @@ main(int argc, char *argv[])
         QObject::connect(main_window, &MainWindow::vmmRunningStateChanged, &manager_socket, &VMManagerClientSocket::clientRunningStateChanged);
         main_window->installEventFilter(&manager_socket);
 
-        main_window->show();
         manager_socket.sendWinIdMessage(main_window->winId());
     }
 
