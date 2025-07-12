@@ -49,7 +49,7 @@ private:
     QString server_name;
     QLocalSocket *socket;
     bool server_connected;
-    bool window_blocked;
+    bool window_blocked = false;
     void connected() const;
     void disconnected() const;
     static void connectionError(QLocalSocket::LocalSocketError socketError);

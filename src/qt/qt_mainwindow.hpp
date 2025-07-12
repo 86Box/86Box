@@ -200,6 +200,7 @@ private:
     QIcon caps_icon_off, scroll_icon_off, num_icon_off, kana_icon_off;
 
     bool isShowMessage = false;
+    bool window_blocked = false;
 };
 
 #endif // QT_MAINWINDOW_HPP
