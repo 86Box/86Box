@@ -153,6 +153,16 @@ VMManagerServerSocket::jsonReceived(const QJsonObject &json)
 
     auto message_type = VMManagerProtocol::getClientMessageType(json);
     switch (message_type) {
+        case VMManagerProtocol::ClientMessage::WinIdMessage:
+            qDebug("WinId message received from client");
+            params_object = VMManagerProtocol::getParams(json);
+            if (!params_object.isEmpty()) {
+                // valid object
+                if(params_object.value("params").type() == QJsonValue::Double) {
+                    emit winIdReceived(params_object.value("params").toVariant().toULongLong());
+                }
+            }
+            break;
         case VMManagerProtocol::ClientMessage::Status:
             qDebug("Status message received from client");
             break;

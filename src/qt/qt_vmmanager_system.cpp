@@ -15,6 +15,7 @@
 *		Copyright 2024 cold-brewed
 */
 
+
 #include <QString>
 #include <QDirIterator>
 #include <QDebug>
@@ -26,9 +27,14 @@
 #include <QtNetwork>
 #include <QElapsedTimer>
 #include <QProgressDialog>
+#include <QWindow>
 #include "qt_vmmanager_system.hpp"
 // #include "qt_vmmanager_details_section.hpp"
 #include "qt_vmmanager_detailsection.hpp"
+
+#ifdef Q_OS_WINDOWS
+#include <windows.h>
+#endif
 
 
 extern "C" {
@@ -427,12 +433,18 @@ VMManagerSystem::launchSettings() {
 
     // If the system is already running, instruct it to show settings
     if (process->processId() != 0) {
+#ifdef Q_OS_WINDOWS
+        if (this->id) {
+            SetForegroundWindow((HWND)this->id);
+        }
+#endif
         socket_server->serverSendMessage(VMManagerProtocol::ManagerMessage::ShowSettings);
         return;
     }
 
     // Otherwise, launch the system with the settings parameter
     setProcessEnvVars();
+    window_obscured = true;
     QString program = main_binary.filePath();
     QStringList open_command_args;
     QStringList args;
@@ -776,6 +788,7 @@ VMManagerSystem::startServer() {
         connect(socket_server, &VMManagerServerSocket::dataReceived, this, &VMManagerSystem::dataReceived);
         connect(socket_server, &VMManagerServerSocket::windowStatusChanged, this, &VMManagerSystem::windowStatusChangeReceived);
         connect(socket_server, &VMManagerServerSocket::runningStatusChanged, this, &VMManagerSystem::runningStatusChangeReceived);
+        connect(socket_server, &VMManagerServerSocket::winIdReceived, this, [this] (WId id) { this->id = id; });
         return true;
     } else {
         return false;
@@ -846,6 +859,7 @@ VMManagerSystem::processStatusChanged()
         }
     } else if (process->state() == QProcess::ProcessState::NotRunning) {
         process_status = VMManagerSystem::ProcessStatus::Stopped;
+        window_obscured = false;
     }
     emit itemDataChanged();
     emit clientProcessStatusChanged();
@@ -892,12 +906,20 @@ VMManagerSystem::runningStatusChangeReceived(VMManagerProtocol::RunningState sta
 {
     if(state == VMManagerProtocol::RunningState::Running) {
         process_status = VMManagerSystem::ProcessStatus::Running;
+        window_obscured = false;
+        windowStatusChanged();
     } else if(state == VMManagerProtocol::RunningState::Paused) {
         process_status = VMManagerSystem::ProcessStatus::Paused;
+        window_obscured = false;
+        windowStatusChanged();
     } else if(state == VMManagerProtocol::RunningState::RunningWaiting) {
         process_status = VMManagerSystem::ProcessStatus::RunningWaiting;
+        window_obscured = true;
+        windowStatusChanged();
     } else if(state == VMManagerProtocol::RunningState::PausedWaiting) {
         process_status = VMManagerSystem::ProcessStatus::PausedWaiting;
+        window_obscured = true;
+        windowStatusChanged();
     } else {
         process_status = VMManagerSystem::ProcessStatus::Unknown;
     }

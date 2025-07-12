@@ -807,6 +807,8 @@ main(int argc, char *argv[])
         });
         QObject::connect(main_window, &MainWindow::vmmRunningStateChanged, &manager_socket, &VMManagerClientSocket::clientRunningStateChanged);
         main_window->installEventFilter(&manager_socket);
+
+        manager_socket.sendWinIdMessage(main_window->winId());
     }
 
     // pc_reset_hard_init();

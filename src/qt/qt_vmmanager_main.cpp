@@ -48,7 +48,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
 
     // Set up the context menu for the list view
     ui->listView->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(ui->listView, &QListView::customContextMenuRequested, [this](const QPoint &pos) {
+    connect(ui->listView, &QListView::customContextMenuRequested, [this, parent](const QPoint &pos) {
         const auto indexAt = ui->listView->indexAt(pos);
         if (indexAt.isValid()) {
             QMenu contextMenu(tr("Context Menu"), ui->listView);
@@ -59,6 +59,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             connect(&nameChangeAction, &QAction::triggered, ui->listView, [this, indexAt] {
                    updateDisplayName(indexAt);
             });
+            nameChangeAction.setEnabled(!selected_sysconfig->window_obscured);
 
             QAction openSystemFolderAction(tr("Open folder"));
             contextMenu.addAction(&openSystemFolderAction);
@@ -82,6 +83,18 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
                     selected_sysconfig->setIcon(iconName);
                 }
             });
+            setSystemIcon.setEnabled(!selected_sysconfig->window_obscured);
+
+            QAction killIcon(tr("&Kill"));
+            contextMenu.addAction(&killIcon);
+            connect(&killIcon, &QAction::triggered, [this, parent] {
+                QMessageBox msgbox(QMessageBox::Warning, tr("Warning"), tr("Killing a virtual machine can cause data loss. Only do this if 86Box.exe process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?").arg(selected_sysconfig->displayName), QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, parent);
+                msgbox.exec();
+                if (msgbox.result() == QMessageBox::Yes) {
+                    selected_sysconfig->process->kill();
+                }
+            });
+            killIcon.setEnabled(selected_sysconfig->process->state() == QProcess::Running);
 
             contextMenu.addSeparator();
 
