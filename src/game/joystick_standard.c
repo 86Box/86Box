@@ -293,7 +293,7 @@ const joystick_if_t joystick_2axis_2button = {
 };
 
 const joystick_if_t joystick_2button_gamepad = {
-    .name          = "2-button gamepad(s)",
+    .name          = "2-button gamepad",
     .internal_name = "2button_gamepad",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,
