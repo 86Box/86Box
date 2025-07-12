@@ -1582,19 +1582,19 @@ sb_exec_command(sb_dsp_t *dsp)
                 timer_set_delay_u64(&dsp->output_timer, (uint64_t) trunc(dsp->sblatcho));
             break;
         case 0x90: /* High speed 8-bit autoinit DMA output */
-            if ((dsp->sb_type >= SB_DSP_201) && (dsp->sb_type < SB16_DSP_404)) // TODO docs need validated
+            if (dsp->sb_type >= SB_DSP_201) // TODO docs need validated
                 sb_start_dma(dsp, 1, 1, 0, dsp->sb_8_autolen);
             break;
         case 0x91: /* High speed 8-bit single cycle DMA output */
-            if ((dsp->sb_type >= SB_DSP_201) && (dsp->sb_type < SB16_DSP_404)) // TODO docs need validated
+            if (dsp->sb_type >= SB_DSP_201) // TODO docs need validated
                 sb_start_dma(dsp, 1, 0, 0, dsp->sb_8_autolen);
             break;
         case 0x98: /* High speed 8-bit autoinit DMA input */
-            if ((dsp->sb_type >= SB_DSP_201) && (dsp->sb_type < SB16_DSP_404)) // TODO docs need validated
+            if (dsp->sb_type >= SB_DSP_201) // TODO docs need validated
                 sb_start_dma_i(dsp, 1, 1, 0, dsp->sb_8_autolen);
             break;
         case 0x99: /* High speed 8-bit single cycle DMA input */
-            if ((dsp->sb_type >= SB_DSP_201) && (dsp->sb_type < SB16_DSP_404)) // TODO docs need validated
+            if (dsp->sb_type >= SB_DSP_201) // TODO docs need validated
                 sb_start_dma_i(dsp, 1, 0, 0, dsp->sb_8_autolen);
             break;
         case 0xA0: /* Set input mode to mono */
