@@ -17,8 +17,6 @@
  *          Copyright 2025 win2kgamer
  */
 
-#define ENABLE_VL82C59X_LOG 1
-
 #ifdef ENABLE_VL82C59X_LOG
 #include <stdarg.h>
 #endif
@@ -395,8 +393,6 @@ vl82c59x_sb_write(int func, int addr, uint8_t val, void *priv)
             case 0x70:
             case 0x71:
             case 0x72: /* GPIO? */
-                dev->pci_conf_sb[addr] = val;
-                break;
             case 0x73: /* GPIO? */
                 dev->pci_conf_sb[addr] = val;
                 break;
@@ -507,9 +503,6 @@ vl82c59x_reset(void *priv)
     dev->pci_conf_sb[0x09] = 0x00;
     dev->pci_conf_sb[0x0a] = 0x01;
     dev->pci_conf_sb[0x0b] = 0x06;
-
-    /* Old ISA bus speed code */
-    //cpu_set_isa_speed(8000000);
 
     /* Unsure on which register configures this (if any), per Compaq's
      * Pentium-based Presario 700/900 Series and Prolinea E Series Desktop
