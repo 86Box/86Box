@@ -774,7 +774,7 @@ msgstr "Неверное устройство PCap"
 msgid "2-axis, 2-button joystick(s)"
 msgstr "2-осевой, 2-кнопочный джойстик"
 
-msgid "2-button gamepad"
+msgid "2-button gamepad(s)"
 msgstr "2-кнопочный геймпад"
 
 msgid "2-button flight yoke"
