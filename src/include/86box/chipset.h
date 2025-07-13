@@ -198,6 +198,10 @@ extern const device_t via_vt8231_device;
 /* VLSI */
 extern const device_t vl82c480_device;
 extern const device_t vl82c486_device;
+extern const device_t vl82c59x_device;
+extern const device_t vl82c59x_compaq_device;
+extern const device_t vl82c59x_wildcat_device;
+extern const device_t vl82c59x_wildcat_compaq_device;
 extern const device_t vlsi_scamp_device;
 
 /* WD */
