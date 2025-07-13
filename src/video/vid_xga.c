@@ -993,12 +993,10 @@ xga_accel_read_pattern_map_pixel(svga_t *svga, int x, int y, uint32_t base, int 
     uint8_t      byte;
     uint8_t      px;
     int          skip = 0;
-    int          x_dir = (xga->accel.octant & 0x04) ? -1 : 1;
-    int          y_dir = (xga->accel.octant & 0x02) ? -1 : 1;
-    int          pos = ((y * width * y_dir) + (x * x_dir));
+    int          pos = (y * width) + x;
 
     addr += (pos / 8);
-    bits = 7 - (abs(pos) & 7);
+    bits = 7 - (pos & 7);
 
     if ((addr < xga->linear_base) || (addr > (xga->linear_base + 0xfffff)))
         skip = 1;
