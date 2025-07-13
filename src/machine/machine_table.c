@@ -195,6 +195,8 @@ const machine_filter_t machine_chipsets[] = {
     { "VLSI VL82C480",              MACHINE_CHIPSET_VLSI_VL82C480       },
     { "VLSI VL82C481",              MACHINE_CHIPSET_VLSI_VL82C481       },
     { "VLSI VL82C486",              MACHINE_CHIPSET_VLSI_VL82C486       },
+    { "VLSI SuperCore",             MACHINE_CHIPSET_VLSI_SUPERCORE      },
+    { "VLSI Wildcat",               MACHINE_CHIPSET_VLSI_WILDCAT        },
     { "WD76C10",                    MACHINE_CHIPSET_WD76C10             }
 };
 
@@ -11643,6 +11645,47 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* VLSI SuperCore */
+    /* This has AST KBC firmware. */
+    {
+        .name = "[VLSI SuperCore] AST Bravo MS P/90",
+        .internal_name = "bravoms586",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_VLSI_SUPERCORE,
+        .init = machine_at_bravoms586_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
+        .ram = {
+            .min = 4096,
+            .max = 131072,
+            .step = 4096
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5434_onboard_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },

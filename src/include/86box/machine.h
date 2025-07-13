@@ -283,6 +283,8 @@ enum {
     MACHINE_CHIPSET_VLSI_VL82C480,
     MACHINE_CHIPSET_VLSI_VL82C481,
     MACHINE_CHIPSET_VLSI_VL82C486,
+    MACHINE_CHIPSET_VLSI_SUPERCORE,
+    MACHINE_CHIPSET_VLSI_WILDCAT,
     MACHINE_CHIPSET_WD76C10,
     MACHINE_CHIPSET_ZYMOS_POACH,
     MACHINE_CHIPSET_MAX
@@ -705,6 +707,8 @@ extern int machine_at_ms5109_init(const machine_t *);
 extern int machine_at_torino_init(const machine_t *);
 
 extern int machine_at_hot539_init(const machine_t *);
+
+extern int machine_at_bravoms586_init(const machine_t *);
 
 /* m_at_socket7_3v.c */
 extern int machine_at_p54tp4xe_init(const machine_t *);
