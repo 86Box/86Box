@@ -710,6 +710,7 @@ extern int machine_at_hot539_init(const machine_t *);
 
 extern int machine_at_bravoms586_init(const machine_t *);
 extern int machine_at_globalyst620_init(const machine_t *);
+extern int machine_at_celebris5xx_init(const machine_t *);
 
 /* m_at_socket7_3v.c */
 extern int machine_at_p54tp4xe_init(const machine_t *);
