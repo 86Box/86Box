@@ -101,11 +101,14 @@
 #include <86box/ui.h>
 #include <86box/hdc.h>
 #include <86box/hdd.h>
+#include "cpu.h"
 
 #define HDC_TIME           (250 * TIMER_USEC)
 
 #define WD_REV_1_BIOS_FILE "roms/hdd/xta/idexywd2.bin"
 #define WD_REV_2_BIOS_FILE "roms/hdd/xta/infowdbios.rom"
+#define ST50X_BIOS_FILE    "roms/hdd/xta/ST05XBIO.BIN"
+#define PC5086_BIOS_FILE   "roms/machines/pc5086/c800.bin"
 
 enum {
     STATE_IDLE = 0,
@@ -236,6 +239,7 @@ typedef struct hdc_t {
     const char *name; /* controller name */
 
     uint16_t base; /* controller base I/O address */
+    uint8_t  sw;   /* controller switches */
     int8_t   irq;  /* controller IRQ channel */
     int8_t   dma;  /* controller DMA channel */
     int8_t   type; /* controller type ID */
@@ -269,6 +273,11 @@ typedef struct hdc_t {
     uint8_t sector_buf[512]; /* sector buffer */
 } hdc_t;
 
+typedef struct hdc_dual_t {
+    hdc_t  *hdc[2];
+} hdc_dual_t;
+
+#define ENABLE_XTA_LOG 1
 #ifdef ENABLE_XTA_LOG
 int xta_do_log = ENABLE_XTA_LOG;
 
@@ -882,7 +891,7 @@ hdc_read(uint16_t port, void *priv)
     hdc_t  *dev = (hdc_t *) priv;
     uint8_t ret = 0xff;
 
-    switch (port & 7) {
+    switch (port & 3) {
         case 0: /* DATA register */
             dev->status &= ~STAT_IRQ;
 
@@ -915,12 +924,14 @@ hdc_read(uint16_t port, void *priv)
             break;
 
         case 2:         /* "read option jumpers" */
-            ret = 0xff; /* all switches off */
+            ret = dev->sw;
             break;
 
         default:
             break;
     }
+
+    pclog("[%04X:%08X] XTA: [R] %04X = %02X\n", CS, cpu_state.pc, port, ret);
 
     return ret;
 }
@@ -931,7 +942,9 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 {
     hdc_t *dev = (hdc_t *) priv;
 
-    switch (port & 7) {
+    pclog("[%04X:%08X] XTA: [W] %04X = %02X\n", CS, cpu_state.pc, port, val);
+
+    switch (port & 3) {
         case 0: /* DATA register */
             if (dev->state == STATE_RDATA) {
                 if (!(dev->status & STAT_REQ)) {
@@ -989,38 +1002,81 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+void
+xta_handler(void *priv, int set)
+{
+    hdc_t      *dev = (hdc_t *) priv;
+
+    io_handler(set, dev->base, 4,
+               hdc_read, NULL, NULL, hdc_write, NULL, NULL, dev);
+
+    pclog("XTA: %sabled at %04X-%0X\n", set ? "En" : "Dis", dev->base, dev->base + 3);
+}
+
 static void *
-xta_init(const device_t *info)
+xta_init_common(const device_t *info, int type)
 {
     drive_t    *drive;
     const char *bios_rev = NULL;
     const char *fn       = NULL;
     hdc_t      *dev;
     int         c;
-    int         max = XTA_NUM;
+    int         min      = 0;
+    int         max      = XTA_NUM;
 
     /* Allocate and initialize device block. */
     dev = calloc(1, sizeof(hdc_t));
-    dev->type = info->local;
+
+    dev->sw   = 0xff;        /* all switches off */
+    dev->type = type;
 
     /* Do per-controller-type setup. */
     switch (dev->type) {
         case 0: /* WDXT-150, with BIOS */
             dev->name     = "WDXT-150";
+            bios_rev      = (char *) device_get_config_bios("bios_rev");
+            fn            = (char *) device_get_bios_file(info, bios_rev, 0);
+            max           = 1;
             dev->base     = device_get_config_hex16("base");
             dev->irq      = device_get_config_int("irq");
             dev->rom_addr = device_get_config_hex20("bios_addr");
             dev->dma      = 3;
-            bios_rev      = (char *) device_get_config_bios("bios_rev");
-            fn            = (char *) device_get_bios_file(info, bios_rev, 0);
-            max           = 1;
             break;
 
         case 1: /* EuroPC */
-            dev->name = "HD20";
-            dev->base = 0x0320;
-            dev->irq  = 5;
-            dev->dma  = 3;
+        case 3: /* Amstrad PC5086 */
+            switch (dev->type) {
+                case 1:
+                    dev->name     = "HD20";
+                    break;
+                case 3:
+                    dev->name     = "ST-50X PC5086";
+                    dev->rom_addr = 0xc8000;
+                    fn            = PC5086_BIOS_FILE;
+                    max           = 1;
+                    break;
+            }
+            dev->base     = 0x0320;
+            dev->irq      = 5;
+            dev->dma      = 3;
+            break;
+        case 2: /* Seagate ST-05X Standalone */
+        case 4: /* Seagate ST-05X Standalone secondary device */
+            switch (dev->type) {
+                case 2:
+                    dev->name     = "ST-50X PRI";
+                    dev->rom_addr = device_get_config_hex20("bios_addr");
+                    fn            = ST50X_BIOS_FILE;
+                    max           = 1;
+                    break;
+                case 4:
+                    dev->name     = "ST-50X SEC";
+                    min           = 1;
+                    break;
+            }
+            dev->base     = 0x0320 + (dev->type & 4);
+            dev->irq      = 5;
+            dev->dma      = 3;
             break;
 
         default:
@@ -1029,6 +1085,8 @@ xta_init(const device_t *info)
 
     xta_log("%s: initializing (I/O=%04X, IRQ=%d, DMA=%d",
             dev->name, dev->base, dev->irq, dev->dma);
+    pclog("%s: initializing (I/O=%04X, IRQ=%d, DMA=%d",
+          dev->name, dev->base, dev->irq, dev->dma);
     if (dev->rom_addr != 0x000000)
         xta_log(", BIOS=%06X", dev->rom_addr);
 
@@ -1037,8 +1095,11 @@ xta_init(const device_t *info)
     /* Load any disks for this device class. */
     c = 0;
     for (uint8_t i = 0; i < HDD_NUM; i++) {
-        if ((hdd[i].bus_type == HDD_BUS_XTA) && (hdd[i].xta_channel < max)) {
-            drive = &dev->drives[hdd[i].xta_channel];
+        if ((hdd[i].bus_type == HDD_BUS_XTA) && (hdd[i].xta_channel >= min) && (hdd[i].xta_channel < max)) {
+            if (dev->type == 4)
+                drive = &dev->drives[0];
+            else
+                drive = &dev->drives[hdd[i].xta_channel];
 
             if (!hdd_image_load(i)) {
                 drive->present = 0;
@@ -1058,9 +1119,29 @@ xta_init(const device_t *info)
             drive->hpc    = drive->cfg_hpc;
             drive->tracks = drive->cfg_tracks;
 
+            if ((dev->type >= 2) && (dev->type <= 4)) {
+                /*
+                   Bits 1, 0:
+                       - 1, 1 = 615/4/17 (20 MB);
+                       - 1, 0 or 0, 0 = 980/5/17 (40 MB);
+                       - 0, 1 = 615/6/17 (30 MB).
+                       - 0, 0 is actually no hard disk present - switch port supposed to be readable always?
+                 */
+                if (drive->tracks == 980)
+                    dev->sw = 0xfe;
+                else if (drive->hpc == 6)
+                    dev->sw = 0xfd;
+                else
+                    dev->sw = 0xff;
+                pclog("%s: SW = %02X\n", dev->name, dev->sw);
+            }
+
             xta_log("%s: drive%d (cyl=%d,hd=%d,spt=%d), disk %d\n",
                     dev->name, hdd[i].xta_channel, drive->tracks,
                     drive->hpc, drive->spt, i);
+            pclog("%s: drive%d (cyl=%d,hd=%d,spt=%d), disk %d\n",
+                  dev->name, hdd[i].xta_channel, drive->tracks,
+                  drive->hpc, drive->spt, i);
 
             if (++c > max)
                 break;
@@ -1079,6 +1160,23 @@ xta_init(const device_t *info)
 
     /* Create a timer for command delays. */
     timer_add(&dev->timer, hdc_callback, dev, 0);
+
+    return dev;
+}
+
+static void *
+xta_init(const device_t *info)
+{
+    return xta_init_common(info, info->local);
+}
+
+static void *
+xta_st50x_init(const device_t *info)
+{
+    hdc_dual_t *dev = (hdc_dual_t *) calloc(1, sizeof(hdc_dual_t));
+
+    dev->hdc[0] = xta_init_common(info, info->local);
+    dev->hdc[1] = xta_init_common(info, 4);
 
     return dev;
 }
@@ -1102,6 +1200,21 @@ xta_close(void *priv)
 
     /* Release the device. */
     free(dev);
+}
+
+static void
+xta_st50x_close(void *priv)
+{
+    hdc_dual_t    *dev = (hdc_dual_t *) priv;
+
+    xta_close(dev->hdc[1]);
+    xta_close(dev->hdc[0]);
+}
+
+static int
+st50x_available(void)
+{
+    return (rom_present(ST50X_BIOS_FILE));
 }
 
 static const device_config_t wdxt150_config[] = {
@@ -1185,6 +1298,27 @@ static const device_config_t wdxt150_config[] = {
 // clang-format off
 };
 
+static const device_config_t st50x_config[] = {
+    // clang-format off
+    {
+        .name           = "bios_addr",
+        .description    = "BIOS Address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "C800H", .value = 0xc8000 },
+            { .description = "CA00H", .value = 0xca000 },
+            { .description = ""                        }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format off
+};
+
 const device_t xta_wdxt150_device = {
     .name          = "WDXT-150 XTA Fixed Disk Controller",
     .internal_name = "xta_wdxt150",
@@ -1204,6 +1338,35 @@ const device_t xta_hd20_device = {
     .internal_name = "xta_hd20",
     .flags         = DEVICE_ISA,
     .local         = 1,
+    .init          = xta_init,
+    .close         = xta_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t xta_st50x_device = {
+    .name          = "ST-50X Fixed Disk Controller",
+    .internal_name = "xta_st50x",
+    .flags         = DEVICE_ISA,
+    .local         = 2,
+    .init          = xta_st50x_init,
+    .close         = xta_st50x_close,
+    .reset         = NULL,
+    .available     = st50x_available,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = st50x_config
+};
+
+
+const device_t xta_st50x_pc5086_device = {
+    .name          = "ST-50X Fixed Disk Controller  (PC5086)",
+    .internal_name = "xta_st50x_pc5086",
+    .flags         = DEVICE_ISA,
+    .local         = 3,
     .init          = xta_init,
     .close         = xta_close,
     .reset         = NULL,

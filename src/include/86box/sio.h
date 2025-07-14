@@ -26,6 +26,7 @@ extern const device_t ali5123_device;
 extern const device_t f82c606_device;
 
 extern const device_t f82c710_device;
+extern const device_t f82c710_pc5086_device;
 
 /* SM(S)C */
 extern const device_t fdc37c651_device;

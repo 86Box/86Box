@@ -42,7 +42,9 @@
 #define MOUSE_TYPE_WACOM     12 /* WACOM tablet */
 #define MOUSE_TYPE_WACOMARTP 13 /* WACOM tablet (ArtPad) */
 #define MOUSE_TYPE_MSYSTEMSB 14 /* Mouse Systems bus mouse */
+#define MOUSE_TYPE_PS2_QPORT 27 /* PS/2 QuickPort series Bus Mouse */
 
+#define MOUSE_TYPE_QPORT     0x40 /* Mouse is an on-board version of one of the above. */
 #define MOUSE_TYPE_ONBOARD   0x80 /* Mouse is an on-board version of one of the above. */
 
 
@@ -73,6 +75,8 @@ extern const device_t mouse_mssystems_bus_device;
 extern const device_t mouse_msserial_device;
 extern const device_t mouse_ltserial_device;
 extern const device_t mouse_ps2_device;
+extern const device_t mouse_upc_device;
+extern const device_t mouse_upc_standalone_device;
 #    ifdef USE_WACOM
 extern const device_t mouse_wacom_device;
 extern const device_t mouse_wacom_artpad_device;
@@ -128,6 +132,11 @@ extern void            mouse_close(void);
 extern void            mouse_init(void);
 
 extern void            mouse_bus_set_irq(void *priv, int irq);
+
+extern void            mouse_upc_port_handler(int num, int set, uint16_t port, void *priv);
+extern void            mouse_upc_handler(int set, uint16_t port, void *priv);
+
+extern void            mouse_upc_set_irq(int num, uint16_t irq, void *priv);
 
 #ifdef __cplusplus
 }

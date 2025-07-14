@@ -917,6 +917,9 @@ extern int machine_xt_m19_init(const machine_t *);
 /* m_pcjr.c */
 extern int machine_pcjr_init(const machine_t *);
 
+/* m_pc5086.c */
+extern int machine_pc5086_init(const machine_t *);
+
 /* m_ps1.c */
 extern int machine_ps1_m2011_init(const machine_t *);
 extern int machine_ps1_m2121_init(const machine_t *);
