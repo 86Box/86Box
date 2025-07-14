@@ -1843,7 +1843,7 @@ msgid "Alternate monochrome contrast"
 msgstr "Альтернативный монохромный контраст"
 
 msgid "Video chroma-keying"
-msgid "Видео хромакеинг"
+msgstr "Видео хромакеинг"
 
 msgid "Bilinear filtering"
 msgstr "Билинейная фильтрация"
