@@ -624,7 +624,7 @@ machine_at_d943_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios_versions"), 0);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
 	
@@ -657,22 +657,23 @@ machine_at_d943_init(const machine_t *model)
 static const device_config_t d943_config[] = {
     // clang-format off
     {
-        .name = "bios_versions",
-        .description = "BIOS Versions",
+        .name = "bios",
+        .description = "BIOS Version",
         .type = CONFIG_BIOS,
-        .default_string = "d943_oct96",
+        .default_string = "d943",
         .default_int = 0,
         .file_filter = "",
         .spinner = { 0 }, /*W1*/
         .bios = {
-            { .name = "Version 4.05 Revision 1.02.943 (10/28/1996)", .internal_name = "d943_oct96", .bios_type = BIOS_NORMAL,
+            { .name = "PhoenixBIOS 4.05 - Revision 1.02.943", .internal_name = "d943_oct96", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_oct96.bin", "" } },
-            { .name = "Version 4.05 Revision 1.03.943 (12/12/1996)", .internal_name = "d943_dec96", .bios_type = BIOS_NORMAL,
+            { .name = "PhoenixBIOS 4.05 - Revision 1.03.943", .internal_name = "d943_dec96", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_dec96.bin", "" } },
-            { .name = "Version 4.05 Revision 1.05.943 (09/04/1997)", .internal_name = "d943_sept97", .bios_type = BIOS_NORMAL,
+            { .name = "PhoenixBIOS 4.05 - Revision 1.05.943", .internal_name = "d943_sept97", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_sept97.bin", "" } },
-            { .name = "Version 4.05 Revision 1.06.943 (10/29/1997)", .internal_name = "d943_oct97", .bios_type = BIOS_NORMAL,
+            { .name = "PhoenixBIOS 4.05 - Revision 1.06.943", .internal_name = "d943", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_oct97.bin", "" } },
+            { .files_no = 0 }
         },
     },
     { .name = "", .description = "", .type = CONFIG_END }
@@ -683,7 +684,7 @@ static const device_config_t d943_config[] = {
 
 const device_t d943_device = {
     .name          = "Siemens-Nixdorf D943",
-    .internal_name = "d943",
+    .internal_name = "d943_device",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -692,7 +693,7 @@ const device_t d943_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = &d943_config[0]
+    .config        = d943_config
 };
 
 int
@@ -800,11 +801,11 @@ static const device_config_t ap5s_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "04/22/96 1.20 4.50PG", .internal_name = "ap5s_450pg", .bios_type = BIOS_NORMAL, 
+            { .name = "AwardBIOS v4.50PG - Revision R1.20", .internal_name = "ap5s_450pg", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/ap5s/ap5s120.bin", "" } },
-            { .name = "11/13/96 1.50 4.51PG", .internal_name = "ap5s", .bios_type = BIOS_NORMAL, 
+            { .name = "AwardBIOS v4.51PG - Revision R1.50", .internal_name = "ap5s_r150", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/ap5s/AP5S150.BIN", "" } },
-            { .name = "06/25/97 1.60 4.51PG", .internal_name = "ap5s_latest", .bios_type = BIOS_NORMAL,
+            { .name = "AwardBIOS v4.51PG - Revision R1.60", .internal_name = "ap5s", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/ap5s/ap5s160.bin", "" } },
             { .files_no = 0 }
         },
@@ -961,11 +962,11 @@ static const device_config_t c5sbm2_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "4.50GP (07/17/1995)", .internal_name = "5sbm2", .bios_type = BIOS_NORMAL, 
+            { .name = "AwardBIOS v4.50GP - Revision 07/17/1995", .internal_name = "5sbm2_v450gp", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5sbm2/5SBM0717.BIN", "" } },
-            { .name = "4.50PG (03/21/1996)", .internal_name = "5sbm2_450pg", .bios_type = BIOS_NORMAL,
+            { .name = "AwardBIOS v4.50PG - Revision 03/26/1996", .internal_name = "5sbm2", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5sbm2/5SBM0326.BIN", "" } },
-            { .name = "4.51PG (03/15/2000 Unicore Upgrade)", .internal_name = "5sbm2_451pg", .bios_type = BIOS_NORMAL,
+            { .name = "AwardBIOS v4.51PG - Revision 2.2 (by Unicore Software)", .internal_name = "5sbm2_451pg", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5sbm2/2A5ICC3A.BIN", "" } },
             { .files_no = 0 }
         },
