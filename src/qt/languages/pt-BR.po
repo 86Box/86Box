@@ -387,6 +387,15 @@ msgstr "Ativar (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Recompilador dinâmico"
 
+msgid "CPU frame size"
+msgstr "Tamanho de quadro do CPU"
+
+msgid "Larger frames (less smooth)"
+msgstr "Quadros largos (menos suave)"
+
+msgid "Smaller frames (smoother)"
+msgstr "Quadros menores (mais suave)"
+
 msgid "Video:"
 msgstr "Vídeo:"
 
@@ -804,11 +813,17 @@ msgstr "Joystick padrão de 4 eixos, 4 botões"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr "CH Flightstick Pro + CH Pedais"
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Sistema de Controle de Voo Thrustmaster"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr "Thrustmaster FCS + Sistema de Controle de Leme"
 
 msgid "2-button gamepad(s)"
 msgstr "Gamepad(s) de 2 botões"
@@ -1425,6 +1440,9 @@ msgstr "Mouse de barramento Microsoft (InPort)"
 msgid "Mouse Systems Serial Mouse"
 msgstr "Mouse serial Mouse Systems"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr "Mouse de barramento Mouse Systems"
+
 msgid "Microsoft Serial Mouse"
 msgstr "Mouse serial Microsoft"
 
@@ -1724,6 +1742,12 @@ msgstr "DMA baixo"
 
 msgid "Enable Game port"
 msgstr "Ativar a porta do jogo"
+
+msgid "SID Model"
+msgstr "Modelo do SID"
+
+msgid "SID Filter Strength"
+msgstr "Força do Filtro SID"
 
 msgid "Surround module"
 msgstr "Módulo surround"
