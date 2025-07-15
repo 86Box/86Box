@@ -114,8 +114,8 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t address)
         nv_log("MMIO read arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning unmapped pattern]\n", address);
         #endif
 
-        // I don't know why the real hardware does this. But it does.
-        return (ret & 1) ? 0x20 : 0x07;
+        // The real hardware returns a garbage pattern
+        return 0x00;
     }
 
     return ret;
@@ -132,7 +132,7 @@ void nv3_mmio_arbitrate_write(uint32_t address, uint32_t value)
 
 
     // Ensure the addresses are dword aligned.
-    // I don't know why this is needed because writepriv32 is always to dword align, but it crashes if you don't do this.
+    // I don't know why this is needed because writepriv32 is always dword aligned in Nvidia's drivers, but it crashes if you don't do this.
     // Exclude the 4bpp/8bpp CLUT for this purpose
     if (!(address >= NV3_USER_DAC_PALETTE_START && address <= NV3_USER_DAC_PALETTE_END))
         address &= 0xFFFFFC;

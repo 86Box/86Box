@@ -951,9 +951,6 @@ extern const device_config_t nv3t_config[];                             // Confi
 
 #define NV3_CRTC_REGISTER_RMA_MODE_MAX                  0x0F
 
-
-
-
 /* 
     STRUCTURES FOR THE GPU START HERE
     OBJECT CLASS & RENDERING RELATED STUFF IS IN VID_NV3_CLASSES.H

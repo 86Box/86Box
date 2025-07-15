@@ -508,7 +508,7 @@ void nv3_debug_ramin_print_context_info(uint32_t name, nv3_ramin_context_t conte
 
     nv_log_verbose_only("Context:\n");
     nv_log_verbose_only("DMA Channel %d (0-7 valid)\n", context.channel);
-    nv_log_verbose_only("Class ID: =0x%04x (%s)\n", context.class_id & 0x1F, nv3_class_names[context.class_id & 0x1F]);
+    nv_log_verbose_only("Class ID: 0x%04x (%s)\n", context.class_id & 0x1F, nv3_class_names[context.class_id & 0x1F]);
     nv_log_verbose_only("Render Engine %d (0=Software, also DMA? 1=Accelerated Renderer)\n", context.is_rendering);
     nv_log_verbose_only("PRAMIN Offset 0x%08x\n", context.ramin_offset << 4);
     #endif

@@ -927,7 +927,17 @@ void nv3_pfifo_cache1_pull(void)
 
     uint8_t class_id = ((nv3_ramin_context_t*)&current_context)->class_id;
 
-    // Tell the CPU if we found a software method
+
+
+    // start by incrementing
+    uint32_t next_get_address = nv3_pfifo_cache1_gray2normal(get_index) + 1;
+    
+    if (nv3->nvbase.gpu_revision >= NV3_PCI_CFG_REVISION_C00) // RIVA 128ZX
+        next_get_address &= (NV3_PFIFO_CACHE1_SIZE_REV_C - 1);
+    else 
+        next_get_address &= (NV3_PFIFO_CACHE1_SIZE_REV_AB - 1);
+
+        // Tell the CPU if we found a software method
     //bit23 unset=software
     //bit23 set=hardware
     if (!(current_context & 0x800000))
@@ -939,14 +949,6 @@ void nv3_pfifo_cache1_pull(void)
         nv3_pfifo_interrupt(NV3_PFIFO_INTR_CACHE_ERROR, true);
         return;
     }
-
-    // start by incrementing
-    uint32_t next_get_address = nv3_pfifo_cache1_gray2normal(get_index) + 1;
-    
-    if (nv3->nvbase.gpu_revision >= NV3_PCI_CFG_REVISION_C00) // RIVA 128ZX
-        next_get_address &= (NV3_PFIFO_CACHE1_SIZE_REV_C - 1);
-    else 
-        next_get_address &= (NV3_PFIFO_CACHE1_SIZE_REV_AB - 1);
 
     // Is this needed?
     nv3->pfifo.cache1_settings.get_address = nv3_pfifo_cache1_normal2gray(next_get_address) << 2;
