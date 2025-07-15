@@ -154,7 +154,8 @@ typedef struct xga_t {
     int a5_test;
     int type;
     int bus;
-    int busy;
+    int src_reverse_order;
+    int dst_reverse_order;
 
     uint32_t linear_base;
     uint32_t linear_size;
@@ -225,15 +226,13 @@ typedef struct xga_t {
         int y;
         int sx;
         int sy;
-        int dx;
-        int dy;
         int px;
         int py;
         int pattern;
         int command_len;
         int filling;
+        int y_len;
         int x_len;
-        int py_alt;
 
         uint32_t short_stroke;
         uint32_t color_cmp;
@@ -243,7 +242,7 @@ typedef struct xga_t {
         uint32_t bkgd_color;
         uint32_t command;
         uint32_t dir_cmd;
-        uint32_t srcbase_new;
+        uint32_t pattern_data;
 
         uint8_t  px_map_format[4];
         uint16_t px_map_width[4];
