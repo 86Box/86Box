@@ -1725,6 +1725,12 @@ msgstr "Низкий DMA"
 msgid "Enable Game port"
 msgstr "Включить игровой порт"
 
+msgid "SID Model"
+msgstr "Модель SID"
+
+msgid "SID Filter Strength"
+msgstr "Сила фильтра SID"
+
 msgid "Surround module"
 msgstr "Модуль объёмного звучания"
 
@@ -1826,6 +1832,18 @@ msgstr "Смесь"
 
 msgid "Font"
 msgstr "Шрифт"
+
+msgid "Has secondary 8x8 character set"
+msgstr "Вторичный набор символов 8x8"
+
+msgid "Has Quadcolor II daughter board"
+msgstr "Дочерняя плата Quadcolor II"
+
+msgid "Alternate monochrome contrast"
+msgstr "Альтернативный монохромный контраст"
+
+msgid "Video chroma-keying"
+msgstr "Видео хромакеинг"
 
 msgid "Bilinear filtering"
 msgstr "Билинейная фильтрация"
@@ -2192,6 +2210,9 @@ msgstr "Скорость передачи данных через канал"
 
 msgid "Named Pipe (Server)"
 msgstr "Именованный пайп (Сервер)"
+
+msgid "Named Pipe (Client)"
+msgstr "Именованный пайп (Клиент)"
 
 msgid "Host Serial Passthrough"
 msgstr "Последовательный порт хоста"
