@@ -28,6 +28,10 @@ private slots:
     void on_comboBoxMachineType_currentIndexChanged(int index);
     void on_checkBoxFPUSoftfloat_stateChanged(int state);
 
+    void on_radioButtonSmallerFrames_clicked();
+
+    void on_radioButtonLargerFrames_clicked();
+
 private:
     Ui::SettingsMachine *ui;
 };

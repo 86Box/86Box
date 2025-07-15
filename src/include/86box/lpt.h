@@ -37,6 +37,7 @@ extern void lpt_set_ext(int port, uint8_t ext);
 extern void lpt_set_ecp(int port, uint8_t ecp);
 extern void lpt_set_epp(int port, uint8_t epp);
 extern void lpt_set_lv2(int port, uint8_t lv2);
+extern void lpt_set_fifo_threshold(int port, int threshold);
 extern void lpt_reset(void);
 extern void lpt_close(void);
 extern void lpt_init(void);

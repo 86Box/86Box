@@ -1101,8 +1101,8 @@ svga_recalctimings(svga_t *svga)
 
     if (xga_active && (svga->xga != NULL)) {
         if (xga->on) {
-            disptime_xga = xga->h_total ? xga->h_total : TIMER_USEC;
-            _dispontime_xga = xga->h_disp;
+            disptime_xga = xga->h_total;
+            _dispontime_xga = xga->h_disp_time;
         }
     }
 

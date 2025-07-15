@@ -69,7 +69,11 @@ public slots:
     void searchSystems(const QString &text) const;
     void newMachineWizard();
     void addNewSystem(const QString &name, const QString &dir, const QString &configFile = {});
+#if __GNUC__ >= 11
     [[nodiscard]] QStringList getSearchCompletionList() const;
+#else
+    QStringList getSearchCompletionList() const;
+#endif
     void modelDataChange();
     void onPreferencesUpdated();
 

@@ -102,6 +102,8 @@ bool cpu_thread_running = false;
 void qt_set_sequence_auto_mnemonic(bool b);
 
 #ifdef Q_OS_WINDOWS
+bool acp_utf8 = false;
+
 static void
 keyboard_getkeymap()
 {
@@ -435,6 +437,9 @@ main_thread_fn()
     int      frames;
 
     QThread::currentThread()->setPriority(QThread::HighestPriority);
+#ifdef _WIN32
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+#endif
     plat_set_thread_name(nullptr, "main_thread_fn");
     framecountx = 0;
     // title_update = 1;
@@ -446,14 +451,14 @@ main_thread_fn()
         const uint64_t new_time = elapsed_timer.elapsed();
 #ifdef USE_GDBSTUB
         if (gdbstub_next_asap && (drawits <= 0))
-            drawits = 10;
+            drawits = force_10ms ? 10 : 1;
         else
 #endif
             drawits += static_cast<int>(new_time - old_time);
         old_time = new_time;
         if (drawits > 0 && !dopause) {
             /* Yes, so do one frame now. */
-            drawits -= 10;
+            drawits -= force_10ms ? 10 : 1;
             if (drawits > 50)
                 drawits = 0;
 
@@ -472,8 +477,8 @@ main_thread_fn()
                     break;
             }
 #endif
-            /* Every 200 frames we save the machine status. */
-            if (++frames >= 200 && nvr_dosave) {
+            /* Every 2 emulated seconds we save the machine status. */
+            if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
                 qt_nvr_save();
                 nvr_dosave = 0;
                 frames     = 0;
@@ -515,6 +520,13 @@ extern bool windows_is_light_theme();
 int
 main(int argc, char *argv[])
 {
+#ifdef Q_OS_WINDOWS
+    /* Check if Windows supports UTF-8 */
+    if (GetACP() == CP_UTF8)
+	    acp_utf8 = 1;
+    else
+	    acp_utf8 = 0;
+#endif
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, false);
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
@@ -530,6 +542,9 @@ main(int argc, char *argv[])
 
 #ifdef Q_OS_WINDOWS
     Q_INIT_RESOURCE(darkstyle);
+    if (QFile(QApplication::applicationDirPath() + "/opengl32.dll").exists()) {
+        qputenv("QT_OPENGL_DLL", QFileInfo(QApplication::applicationDirPath() + "/opengl32.dll").absoluteFilePath().toUtf8());
+    }
     QApplication::setAttribute(Qt::AA_NativeWindows);
 
     if (!windows_is_light_theme()) {
