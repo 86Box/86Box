@@ -166,6 +166,10 @@ int ignoreNextMouseEvent = 1;
 void
 RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
+#ifdef Q_OS_WINDOWS
+    rw_hwnd        = (HWND) this->winId();                
+#endif
+
     if (!dopause && this->geometry().contains(m_monitor_index >= 1 ? event->globalPos() : event->pos()) &&
         (event->button() == Qt::LeftButton) && !mouse_capture &&
         (isMouseDown & 1) && (kbd_req_capture || (mouse_get_buttons() != 0)) &&
@@ -410,14 +414,8 @@ RendererStack::createRenderer(Renderer renderer)
 #endif
     }
     if (current.get() == nullptr) {
-#ifdef Q_OS_WINDOWS
-        rw_hwnd = NULL;
-#endif
         return;
     }
-#ifdef Q_OS_WINDOWS
-    rw_hwnd        = (HWND) this->winId();                
-#endif
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);
     current->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
