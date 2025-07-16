@@ -180,9 +180,9 @@ static const device_config_t pbl300sx_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "1991", .internal_name = "pbl300sx_1991", .bios_type = BIOS_NORMAL, 
+            { .name = "Phoenix ROM BIOS PLUS 1.10 - Revision 19910723091302", .internal_name = "pbl300sx_1991", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pbl300sx/V1.10_1113_910723.bin", "" } },
-            { .name = "1992", .internal_name = "pbl300sx", .bios_type = BIOS_NORMAL, 
+            { .name = "Phoenix ROM BIOS PLUS 1.10 - Revision 19920910", .internal_name = "pbl300sx", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pbl300sx/pb_l300sx_1992.bin", "" } },
             { .files_no = 0 }
         },
@@ -859,9 +859,9 @@ static const device_config_t dells333sl_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "J01 (Jostens Learning Corporation OEM)", .internal_name = "dells333sl_j01", .bios_type = BIOS_NORMAL, 
+            { .name = "Phoenix ROM BIOS PLUS 1.10 - Revision J01 (Jostens Learning Corporation OEM)", .internal_name = "dells333sl_j01", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/dells333sl/DELL386.BIN", "" } },
-            { .name = "A02", .internal_name = "dells333sl", .bios_type = BIOS_NORMAL, 
+            { .name = "Phoenix ROM BIOS PLUS 1.10 - Revision A02", .internal_name = "dells333sl", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/dells333sl/Dell_386SX_30807_UBIOS_B400_VLSI_VL82C311_Cirrus_Logic_GD5420.bin", "" } },
             { .files_no = 0 }
         },

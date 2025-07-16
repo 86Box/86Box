@@ -54,6 +54,7 @@ public:
         WindowBlocked,
         WindowUnblocked,
         RunningStateChanged,
+        WinIdMessage,
         UnknownMessage,
     };
     Q_ENUM(ClientMessage);
@@ -82,6 +83,7 @@ public:
 
     static bool           hasRequiredFields(const QJsonObject &json_document);
     static QJsonObject    getParams(const QJsonObject &json_document);
+    static QJsonObject    getStatus(const QJsonObject &json_document);
     static ClientMessage  getClientMessageType(const QJsonObject &json_document);
     static ManagerMessage getManagerMessageType(const QJsonObject &json_document);
 

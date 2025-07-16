@@ -35,6 +35,8 @@
      <string>File</string>
     </property>
     <addaction name="actionNew_Machine"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuTools"/>
@@ -202,6 +204,17 @@
   <action name="actionCheck_for_updates">
    <property name="text">
     <string>Check for updates</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::ApplicationExit"/>
+   </property>
+   <property name="text">
+    <string>&amp;Exit</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::QuitRole</enum>
    </property>
   </action>
  </widget>

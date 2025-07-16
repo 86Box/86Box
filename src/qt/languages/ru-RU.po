@@ -390,6 +390,15 @@ msgstr "Включено (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Динамический рекомпилятор"
 
+msgid "CPU frame size"
+msgstr "Размер кадра ЦП"
+
+msgid "Larger frames (less smooth)"
+msgstr "Большие кадры (менее плавные)"
+
+msgid "Smaller frames (smoother)"
+msgstr "Меньшие кадры (более плавные)"
+
 msgid "Video:"
 msgstr "Видеокарта 1:"
 
@@ -765,8 +774,20 @@ msgstr "Неверное устройство PCap"
 msgid "2-axis, 2-button joystick(s)"
 msgstr "2-осевой, 2-кнопочный джойстик"
 
+msgid "2-button gamepad(s)"
+msgstr "2-кнопочный геймпад"
+
+msgid "2-button flight yoke"
+msgstr "2-кнопочный flight yoke"
+
 msgid "2-axis, 4-button joystick"
 msgstr "2-осевой, 4-кнопочный джойстик"
+
+msgid "4-button gamepad"
+msgstr "4-кнопочный геймпад"
+
+msgid "4-button flight yoke"
+msgstr "4-кнопочный flight yoke"
 
 msgid "2-axis, 6-button joystick"
 msgstr "2-осевой, 6-кнопочный джойстик"
@@ -777,8 +798,17 @@ msgstr "2-осевой, 8-кнопочный джойстик"
 msgid "3-axis, 2-button joystick"
 msgstr "3-осевой, 2-кнопочный джойстик"
 
+msgid "2-button flight yoke with throttle"
+msgstr "2-кнопочный flight yoke с дросселем"
+
 msgid "3-axis, 4-button joystick"
 msgstr "3-осевой, 4-кнопочный джойстик"
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr "Руль Win95 (3-осевой, 4-кнопочный)"
+
+msgid "4-button flight yoke with throttle"
+msgstr "4-кнопочный flight yoke с дросселем"
 
 msgid "4-axis, 4-button joystick"
 msgstr "4-осевой, 4-кнопочный джойстик"
@@ -786,11 +816,17 @@ msgstr "4-осевой, 4-кнопочный джойстик"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr "CH Flightstick Pro + CH Педали"
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Система управления полётом Thrustmaster"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr "Thrustmaster FCS + Система управления рулем"
 
 msgid "None"
 msgstr "Нет"
@@ -1386,6 +1422,9 @@ msgstr "Bus-мышь Microsoft (InPort)"
 msgid "Mouse Systems Serial Mouse"
 msgstr "COM-мышь Mouse Systems"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr "Bus-мышь Mouse Systems"
+
 msgid "Microsoft Serial Mouse"
 msgstr "COM-мышь Microsoft"
 
@@ -1686,6 +1725,12 @@ msgstr "Низкий DMA"
 msgid "Enable Game port"
 msgstr "Включить игровой порт"
 
+msgid "SID Model"
+msgstr "Модель SID"
+
+msgid "SID Filter Strength"
+msgstr "Сила фильтра SID"
+
 msgid "Surround module"
 msgstr "Модуль объёмного звучания"
 
@@ -1787,6 +1832,18 @@ msgstr "Смесь"
 
 msgid "Font"
 msgstr "Шрифт"
+
+msgid "Has secondary 8x8 character set"
+msgstr "Вторичный набор символов 8x8"
+
+msgid "Has Quadcolor II daughter board"
+msgstr "Дочерняя плата Quadcolor II"
+
+msgid "Alternate monochrome contrast"
+msgstr "Альтернативный монохромный контраст"
+
+msgid "Video chroma-keying"
+msgstr "Видео хромакеинг"
 
 msgid "Bilinear filtering"
 msgstr "Билинейная фильтрация"
@@ -2153,6 +2210,9 @@ msgstr "Скорость передачи данных через канал"
 
 msgid "Named Pipe (Server)"
 msgstr "Именованный пайп (Сервер)"
+
+msgid "Named Pipe (Client)"
+msgstr "Именованный пайп (Клиент)"
 
 msgid "Host Serial Passthrough"
 msgstr "Последовательный порт хоста"
