@@ -34,6 +34,7 @@ class VisualNVDialog : public QDialog
         ~VisualNVDialog();
 
         void on_btnLoadSavestate_clicked();
+        void on_fbStartAddress_changed();
 
     protected:
     private:

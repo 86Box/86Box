@@ -819,7 +819,7 @@ void nv3_pfifo_cache1_push(uint32_t addr, uint32_t param)
     // 0x0 is used for creating the object.
     if (method_offset > 0 && method_offset < 0x100)
     {
-        // Reserved NVIDIA Objects
+        // Reserved nvidia methods
         oh_shit = true; 
         oh_shit_reason = nv3_runout_reason_reserved_access;
         new_address |= (nv3_runout_reason_reserved_access << NV3_PFIFO_RUNOUT_RAMIN_ERR);

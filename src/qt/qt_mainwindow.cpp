@@ -23,9 +23,9 @@
 #include <QDebug>
 
 #include "qt_mainwindow.hpp"
-#include "qt_gpudebug_vram.hpp"
-#include "qt_gpudebug_visualnv.hpp"
 #include "ui_qt_mainwindow.h"
+#include "ui_qt_gpudebug_vram.h"
+#include "ui_qt_gpudebug_visualnv.h"
 
 #include "qt_specifydimensions.h"
 #include "qt_soundgain.hpp"
@@ -2326,19 +2326,19 @@ void MainWindow::on_actionACPI_Shutdown_triggered()
 
 void MainWindow::on_actionDebug_GPUDebug_VRAM_triggered()
 {
-    GPUDebugVRAMDialog debugVramDialog(this);
-    debugVramDialog.setWindowFlag(Qt::CustomizeWindowHint, true);
-    debugVramDialog.setWindowFlag(Qt::WindowTitleHint, true);
-    debugVramDialog.setWindowFlag(Qt::WindowSystemMenuHint, false);
-    debugVramDialog.exec();
+    debugVramDialog = new GPUDebugVRAMDialog;
+    debugVramDialog->setWindowFlag(Qt::CustomizeWindowHint, true);
+    debugVramDialog->setWindowFlag(Qt::WindowTitleHint, true);
+    debugVramDialog->setWindowFlag(Qt::WindowSystemMenuHint, false);
+    debugVramDialog->show();
 }
 
 
 void MainWindow::on_actionDebug_GPUDebug_VisualNv_triggered()
 {
-    VisualNVDialog visualNvDialog(this);
-    visualNvDialog.setWindowFlag(Qt::CustomizeWindowHint, true);
-    visualNvDialog.setWindowFlag(Qt::WindowTitleHint, true);
-    visualNvDialog.setWindowFlag(Qt::WindowSystemMenuHint, false);
-    visualNvDialog.exec();
+    visualNvDialog = new VisualNVDialog;
+    visualNvDialog->setWindowFlag(Qt::CustomizeWindowHint, true);
+    visualNvDialog->setWindowFlag(Qt::WindowTitleHint, true);
+    visualNvDialog->setWindowFlag(Qt::WindowSystemMenuHint, false);
+    visualNvDialog->show();
 }

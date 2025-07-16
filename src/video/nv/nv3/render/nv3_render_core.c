@@ -351,24 +351,9 @@ uint32_t nv3_render_read_pixel_32(nv3_coord_16_t position, nv3_grobj_t grobj)
     return vram_32[vram_address];
 }
 
-/* Plots a pixel. */
-void nv3_render_write_pixel(nv3_coord_16_t position, uint32_t color, nv3_grobj_t grobj)
+void nv3_render_write_pixel_to_buffer(nv3_coord_16_t position, uint32_t color, nv3_grobj_t grobj, uint32_t buffer)
 {
-
-    // PFB_0 is always set to hardcoded "NO_TILING" value of 0x1114.
-    // It seems, you are meant to 
-
     bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_ALPHA) & 0x01;
-
-    uint32_t dst_buffer = 0; // 5 = just use the source buffer
-
-    if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER0_ENABLED) & 0x01) dst_buffer = 0;
-    if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER1_ENABLED) & 0x01) dst_buffer = 1;
-    if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER2_ENABLED) & 0x01) dst_buffer = 2;
-    if ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_DST_BUFFER3_ENABLED) & 0x01) dst_buffer = 3;
-
-
-    uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp; // maybe y16 too?z
 
     int32_t clip_end_x = nv3->pgraph.clip_start.x + nv3->pgraph.clip_size.x;
     int32_t clip_end_y = nv3->pgraph.clip_start.y + nv3->pgraph.clip_size.y;
@@ -388,7 +373,7 @@ void nv3_render_write_pixel(nv3_coord_16_t position, uint32_t color, nv3_grobj_t
     if (!nv3_render_chroma_test(color, grobj))
         return;
 
-    uint32_t pixel_addr_vram = nv3_render_get_vram_address(position, grobj);
+    uint32_t pixel_addr_vram = nv3_render_get_vram_address_for_buffer(position, buffer);
 
     uint32_t rop_src = 0, rop_dst = 0, rop_pattern = 0;
     uint8_t bit = 0x00; 
@@ -437,7 +422,7 @@ void nv3_render_write_pixel(nv3_coord_16_t position, uint32_t color, nv3_grobj_t
         We use the pixel format of the destination buffer to achieve this (thanks frostbite2000)
     */
 
-    uint32_t destination_format = (nv3->pgraph.bpixel[dst_buffer]) & 0x03;
+    uint32_t destination_format = (nv3->pgraph.bpixel[buffer]) & 0x03;
 
     switch (destination_format)
     {
@@ -494,6 +479,26 @@ void nv3_render_write_pixel(nv3_coord_16_t position, uint32_t color, nv3_grobj_t
             break;
         }
     }
+}
+
+/* Plots a pixel. */
+void nv3_render_write_pixel(nv3_coord_16_t position, uint32_t color, nv3_grobj_t grobj)
+{
+    // PFB_0 is always set to hardcoded "NO_TILING" value of 0x1114.
+    // It seems, you are meant to use the CRTC
+
+    nv3_pgraph_destination_buffer dst_buffer = (nv3_pgraph_destination_buffer)grobj.grobj_0;
+
+    if (dst_buffer & (pgraph_dest_buffer0))
+        nv3_render_write_pixel_to_buffer(position, color, grobj, 0);
+    if (dst_buffer & (pgraph_dest_buffer1))
+        nv3_render_write_pixel_to_buffer(position, color, grobj, 1);
+    if (dst_buffer & (pgraph_dest_buffer2))
+        nv3_render_write_pixel_to_buffer(position, color, grobj, 2);
+    if (dst_buffer & (pgraph_dest_buffer3))
+        nv3_render_write_pixel_to_buffer(position, color, grobj, 3);
+    
+
 }
 
 /* Ensure the correct monitor size */
@@ -606,12 +611,14 @@ void nv3_render_current_bpp_dfb_32(uint32_t address)
 void nv3_render_current_bpp()
 {
     /* Figure out the Display Buffer Address from the CRTC */
-
+    
     uint32_t dba = ((nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_RPC0] & 0x1F) << 16)
                     + (nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_STARTADDR_HIGH] << 8)
                     + nv3->nvbase.svga.crtc[NV3_CRTC_REGISTER_STARTADDR_LOW];
 
-    //uint32_t dba = 1920000;
+    if (nv3->nvbase.debug_dba_enabled
+        && nv3->nvbase.debug_dba > 0)
+        dba = nv3->nvbase.debug_dba;
 
     nv3_coord_16_t screen_size = {0};
     screen_size.x = nv3->nvbase.svga.hdisp;

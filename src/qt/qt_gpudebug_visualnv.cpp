@@ -29,6 +29,7 @@
 #include <QCheckBox>
 #include <QFrame>
 #include <QLineEdit>
+#include <QPlainTextEdit>
 #include <QLabel>
 #include <QDir>
 #include <QSettings>
@@ -55,6 +56,7 @@ VisualNVDialog::VisualNVDialog(QWidget *parent)
 {
     ui->setupUi(this);
     connect(ui->btnLoadSavestate, &QPushButton::clicked, this, &VisualNVDialog::on_btnLoadSavestate_clicked);
+    connect(ui->fbStartAddress, &QPlainTextEdit::textChanged, this, &VisualNVDialog::on_fbStartAddress_changed);
 }
 
 // VisualNV dialog destructor
@@ -66,4 +68,19 @@ VisualNVDialog::~VisualNVDialog()
 void VisualNVDialog::on_btnLoadSavestate_clicked()
 {
     warning("THIS IS VisualNVDialog::on_btnLoadSavestate_clicked!!!! (throws into hole)");
+}
+
+void VisualNVDialog::on_fbStartAddress_changed()
+{
+    if (nv3)
+    {
+        nv3->nvbase.debug_dba_enabled = true; 
+
+        bool ok = true;
+
+        nv3->nvbase.debug_dba = ui->fbStartAddress->toPlainText().toInt(&ok);
+
+        if (!ok)
+            nv3->nvbase.debug_dba_enabled = false; 
+    }
 }

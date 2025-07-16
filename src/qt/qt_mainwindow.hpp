@@ -15,6 +15,10 @@
 
 #include "qt_vmmanager_protocol.hpp"
 
+// NON-modal dialogs
+#include "qt_gpudebug_vram.hpp"
+#include "qt_gpudebug_visualnv.hpp"
+
 class MediaMenu;
 class RendererStack;
 
@@ -170,6 +174,10 @@ private slots:
 
 private:
     Ui::MainWindow                *ui;
+
+    // NON-modal dialogs - these use ::show() and therefore have to be maintained as objects
+    GPUDebugVRAMDialog            *debugVramDialog;
+    VisualNVDialog                *visualNvDialog;          
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
 

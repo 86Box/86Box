@@ -130,8 +130,13 @@ typedef struct nv_base_s
     bool memory_clock_enabled;                  // Memory Clock Enabled - stupid crap used to prevent us eanbling the timer multiple times
     void* i2c;                                  // I2C for monitor EDID
     void* ddc;                                  // Display Data Channel for EDID
-    uint32_t last_buffer_address;               // Last buffer address.
     bool agp_enabled;                           // AGP Enabled (for debugging)
+
+    //
+    // DEBUG UI STUFF
+    //
+    bool debug_dba_enabled;                    // Debug DBA override
+    uint32_t debug_dba;                         // Debug DBA
 } nv_base_t;
 
 #define NV_REG_LIST_END                         0xD15EA5E

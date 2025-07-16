@@ -72,7 +72,7 @@
       <property name="title">
        <string>VRAM Control</string>
       </property>
-      <widget class="QPlainTextEdit" name="plainTextEdit">
+      <widget class="QPlainTextEdit" name="fbStartAddress">
        <property name="geometry">
         <rect>
          <x>160</x>
@@ -155,6 +155,52 @@
        </property>
        <property name="text">
         <string>Load nvplay savestate from real hardware</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="BPITCH">
+       <property name="geometry">
+        <rect>
+         <x>390</x>
+         <y>60</y>
+         <width>61</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;BPITCH[0]:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+      </widget>
+      <widget class="QPlainTextEdit" name="plainTextEdit_3">
+       <property name="geometry">
+        <rect>
+         <x>460</x>
+         <y>60</y>
+         <width>104</width>
+         <height>21</height>
+        </rect>
+       </property>
+      </widget>
+      <widget class="QPlainTextEdit" name="plainTextEdit_4">
+       <property name="geometry">
+        <rect>
+         <x>460</x>
+         <y>90</y>
+         <width>104</width>
+         <height>21</height>
+        </rect>
+       </property>
+      </widget>
+      <widget class="QLabel" name="BPITCH_2">
+       <property name="geometry">
+        <rect>
+         <x>390</x>
+         <y>90</y>
+         <width>61</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;BPITCH[1]:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
       </widget>
      </widget>
