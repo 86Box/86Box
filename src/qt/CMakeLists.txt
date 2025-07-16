@@ -463,6 +463,7 @@ endif()
 
 if (UNIX AND NOT APPLE AND NOT HAIKU)
     target_sources(ui PRIVATE x11_util.c)
+    target_link_libraries(plat PRIVATE ${CMAKE_DL_LIBS})
 
     find_package(X11 REQUIRED)
     target_link_libraries(ui PRIVATE X11::X11 X11::Xi)
