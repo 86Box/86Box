@@ -92,7 +92,7 @@ machine_at_d842_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios_versions"), 0);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
 
@@ -118,37 +118,36 @@ machine_at_d842_init(const machine_t *model)
 static const device_config_t d842_config[] = {
     // clang-format off
     {
-        .name = "bios_versions",
-        .description = "BIOS Versions",
+        .name = "bios",
+        .description = "BIOS Version",
         .type = CONFIG_BIOS,
         .default_string = "d842",
         .default_int = 0,
         .file_filter = "",
         .spinner = { 0 }, /*W1*/
         .bios = {
-            { .name = "Version 1.03 Revision 1.03.842 (11/24/1994)", .internal_name = "d842", .bios_type = BIOS_NORMAL,
+            { .name = "PhoenixBIOS Pentium 1.03 - Revision 1.03.842", .internal_name = "d842_103", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842.BIN", "" } },
-            { .name = "Version 4.04 Revision 1.05.842 (03/15/1996)", .internal_name = "d842_mar96", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_mar96.bin", "" } },
-            { .name = "Version 4.04 Revision 1.06.842 (04/03/1998)", .internal_name = "d842_apr98", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_apr98.bin", "" } },
-            { .name = "Version 4.04 Revision 1.07.842 (06/02/1998)", .internal_name = "d842_jun98", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_jun98.BIN", "" } },
-            { .name = "Version 1.03 Revision 1.09.842 (07/08/1996)", .internal_name = "d842_jul96", .bios_type = BIOS_NORMAL,
+            { .name = "PhoenixBIOS Pentium 1.03 - Revision 1.09.842", .internal_name = "d842_109", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_jul96.bin", "" } },
-            { .name = "Version 1.03 Revision 1.10.842 (06/04/1998)", .internal_name = "d842_jun98_1", .bios_type = BIOS_NORMAL,
+            { .name = "PhoenixBIOS Pentium 1.03 - Revision 1.10.842", .internal_name = "d842", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_jun98_1.bin", "" } },
+            { .name = "PhoenixBIOS 4.04 - Revision 1.05.842", .internal_name = "d842_105", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_mar96.bin", "" } },
+            { .name = "PhoenixBIOS 4.04 - Revision 1.06.842", .internal_name = "d842_106", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_apr98.bin", "" } },
+            { .name = "PhoenixBIOS 4.04 - Revision 1.07.842", .internal_name = "d842_107", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_jun98.BIN", "" } },
+            { .files_no = 0 }
         },
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
 
-
-
 const device_t d842_device = {
     .name          = "Siemens-Nixdorf D842",
-    .internal_name = "d842",
+    .internal_name = "d842_device",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -157,7 +156,7 @@ const device_t d842_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = &d842_config[0]
+    .config        = d842_config
 };
 
 int
