@@ -286,8 +286,8 @@ sermouse_report_ms(mouse_t *dev)
     mouse_subtract_z(&delta_z, -8, 7, 1);
 
     dev->buf[0] = 0x40;
-    dev->buf[0] |= (((delta_y >> 6) & 0x03) << 2);
-    dev->buf[0] |= ((delta_x >> 6) & 0x03);
+    dev->buf[0] |= ((((delta_y & 0xFF) >> 6) & 0x03) << 2);
+    dev->buf[0] |= (((delta_x & 0xFF) >> 6) & 0x03);
     if (b & 0x01)
         dev->buf[0] |= 0x20;
     if (b & 0x02)
@@ -295,7 +295,16 @@ sermouse_report_ms(mouse_t *dev)
     dev->buf[1] = delta_x & 0x3f;
     dev->buf[2] = delta_y & 0x3f;
     mouse_serial_log("Microsoft serial mouse report: %02X %02X %02X\n", dev->buf[0], dev->buf[1], dev->buf[2]);
-    if (dev->but == 3) {
+    if (dev->type == MOUSE_TYPE_MSBPOINT) {
+        len = 4;
+        dev->buf[3] = 0;
+        if (b & 0x4)
+            dev->buf[3] |= 0x8;
+        if (b & 0x8)
+            dev->buf[3] |= 0x4;
+        dev->buf[3] |= !!(delta_y < 0) ? 0x2 : 0;
+        dev->buf[3] |= !!(delta_x < 0) ? 0x1 : 0;
+    } else if (dev->but == 3) {
         len = 3;
         if (dev->format == FORMAT_MS) {
             if (b & 0x04) {
@@ -723,6 +732,9 @@ sermouse_reset(mouse_t *dev, int callback)
         case 4:
             dev->format = FORMAT_MS_WHEEL;
             break;
+        case 5:
+            dev->format = FORMAT_MS;
+            break;
     }
 
     ltsermouse_switch_baud_rate(dev, callback ? STATE_TRANSMIT : STATE_IDLE);
@@ -855,10 +867,10 @@ sermouse_init(const device_t *info)
 
     dev = (mouse_t *) calloc(1, sizeof(mouse_t));
     dev->name = info->name;
-    dev->but  = device_get_config_int("buttons");
+    dev->but  = (info->local == MOUSE_TYPE_MSBPOINT) ? 5 : device_get_config_int("buttons");
     dev->rev  = device_get_config_int("revision");
 
-    if (info->local == 0)
+    if (info->local == 0 || info->local == MOUSE_TYPE_MSBPOINT)
         dev->rts_toggle  = 1;
     else
         dev->rts_toggle  = device_get_config_int("rts_toggle");
@@ -866,7 +878,14 @@ sermouse_init(const device_t *info)
     if (dev->but > 2)
         dev->flags |= FLAG_3BTN;
 
-    if (info->local == MOUSE_TYPE_MSYSTEMS || info->local == MOUSE_TYPE_MSYSTEMSB) {
+    if (info->local == MOUSE_TYPE_MSBPOINT) {
+        dev->format    = 7;
+        dev->status    = 0x0f;
+        dev->type      = info->local;
+        dev->id_len    = 1;
+        dev->id[0]     = 'B';
+        dev->flags    &= ~FLAG_3BTN;
+    } else if (info->local == MOUSE_TYPE_MSYSTEMS || info->local == MOUSE_TYPE_MSYSTEMSB) {
         dev->format    = 0;
         dev->type      = info->local;
         dev->id_len    = 1;
@@ -1083,6 +1102,29 @@ static const device_config_t mssermouse_config[] = {
   // clang-format on
 };
 
+static const device_config_t msballpoint_config[] = {
+  // clang-format off
+    {
+        .name           = "port",
+        .description    = "Serial Port",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "COM1", .value = 0 },
+            { .description = "COM2", .value = 1 },
+            { .description = "COM3", .value = 2 },
+            { .description = "COM4", .value = 3 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
 static const device_config_t ltsermouse_config[] = {
   // clang-format off
     {
@@ -1189,6 +1231,20 @@ const device_t mouse_msserial_device = {
     .speed_changed = sermouse_speed_changed,
     .force_redraw  = NULL,
     .config        = mssermouse_config
+};
+
+const device_t mouse_msserial_ballpoint_device = {
+    .name          = "Microsoft Serial BallPoint",
+    .internal_name = "msballpoint",
+    .flags         = DEVICE_COM,
+    .local         = MOUSE_TYPE_MSBPOINT,
+    .init          = sermouse_init,
+    .close         = sermouse_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = sermouse_speed_changed,
+    .force_redraw  = NULL,
+    .config        = msballpoint_config
 };
 
 const device_t mouse_ltserial_device = {
