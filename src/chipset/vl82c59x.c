@@ -330,7 +330,7 @@ vl82c59x_sb_write(int func, int addr, uint8_t val, void *priv)
         switch (addr) {
             case 0x04:
             case 0x05: /* PCI Command Register */
-                dev->pci_conf[addr] = val;
+                dev->pci_conf_sb[addr] = val;
                 break;
             case 0x50: /* MISCSETC */
             case 0x51: /* MISCSETB */
