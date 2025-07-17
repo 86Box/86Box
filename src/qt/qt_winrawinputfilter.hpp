@@ -38,6 +38,7 @@
 #include <QByteArray>
 
 #include <windows.h>
+#include <windns.h>
 
 #include <memory>
 
@@ -59,6 +60,8 @@ public:
 
     ~WindowsRawInputFilter();
 
+    static void   mouse_handle(RAWMOUSE* raw);
+
 private:
     MainWindow *window;
     int          buttons    = 0;
@@ -71,7 +74,6 @@ private:
 
     void          handle_input(HRAWINPUT input);
     void          keyboard_handle(PRAWINPUT raw);
-    void          mouse_handle(PRAWINPUT raw);
 };
 
 #endif
