@@ -742,7 +742,7 @@ void nv3_pfifo_cache0_pull(void)
     // Tell the CPU if we found a software method and turn off cache pulling
     if (!(current_context & 0x800000))
     {
-        nv_log("The object in CACHE0 is a software object\n");
+        nv_log_verbose_only("The object in CACHE0 is a software object\n");
 
         nv3->pfifo.cache0_settings.pull0 |= NV3_PFIFO_CACHE0_PULL0_SOFTWARE_METHOD;
         nv3->pfifo.cache0_settings.pull0 &= ~NV3_PFIFO_CACHE0_PULL0_ENABLED;
@@ -923,6 +923,7 @@ void nv3_pfifo_cache1_pull(void)
             return; // interrupt was fired, and we went to ramro
     }
 
+    // should this be obtained from the grobj? Test on real nv3 h/w after drawrect.nvp works
     uint32_t current_context = nv3->pfifo.cache1_settings.context[current_subchannel]; // get the current subchannel
 
     uint8_t class_id = ((nv3_ramin_context_t*)&current_context)->class_id;

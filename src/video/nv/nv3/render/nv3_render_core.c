@@ -454,8 +454,7 @@ void nv3_render_write_pixel_to_buffer(nv3_coord_16_t position, uint32_t color, n
                     return;
             }
 
-            // convert to 16bpp
-            // forcing it to render in 15bpp fixes it, 
+            // convert to 15bpp or 16bpp based on if we are in 16bpp mode
 
             rop_dst = vram_16[pixel_addr_vram];
 
@@ -497,8 +496,6 @@ void nv3_render_write_pixel(nv3_coord_16_t position, uint32_t color, nv3_grobj_t
         nv3_render_write_pixel_to_buffer(position, color, grobj, 2);
     if (dst_buffer & (pgraph_dest_buffer3))
         nv3_render_write_pixel_to_buffer(position, color, grobj, 3);
-    
-
 }
 
 /* Ensure the correct monitor size */

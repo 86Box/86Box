@@ -197,7 +197,9 @@ void nv3_mmio_write16(uint32_t addr, uint16_t val, void* priv)
         nv_log_verbose_only("Redirected MMIO write16 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
 
         nv3_svga_write(real_address, val & 0xFF, nv3);
-        nv3_svga_write(real_address + 1, (val >> 8) & 0xFF, nv3);
+
+        if (val > 0xFF) 
+            nv3_svga_write(real_address + 1, (val >> 8) & 0xFF, nv3);
         
         return; 
     }
@@ -225,9 +227,15 @@ void nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv)
         nv_log_verbose_only("Redirected MMIO write32 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
 
         nv3_svga_write(real_address, val & 0xFF, nv3);
-        nv3_svga_write(real_address + 1, (val >> 8) & 0xFF, nv3);
-        nv3_svga_write(real_address + 2, (val >> 16) & 0xFF, nv3);
-        nv3_svga_write(real_address + 3, (val >> 24) & 0xFF, nv3);
+
+        if (val > 0xFF) 
+            nv3_svga_write(real_address + 1, (val >> 8) & 0xFF, nv3);
+
+        if (val > 0xFFFF)
+            nv3_svga_write(real_address + 2, (val >> 16) & 0xFF, nv3);
+
+        if (val > 0xFFFFFF)
+            nv3_svga_write(real_address + 3, (val >> 24) & 0xFF, nv3);
         
         return; 
     }
