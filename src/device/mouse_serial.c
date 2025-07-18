@@ -943,25 +943,28 @@ sermouse_init(const device_t *info)
     return dev;
 }
 
+#define SERMOUSE_PORT_CONFIG_COMMON                \
+    {                                              \
+        .name           = "port",                  \
+        .description    = "Serial Port",           \
+        .type           = CONFIG_SELECTION,        \
+        .default_string = NULL,                    \
+        .default_int    = 0,                       \
+        .file_filter    = NULL,                    \
+        .spinner        = { 0 },                   \
+        .selection      = {                        \
+            { .description = "COM1", .value = 0 }, \
+            { .description = "COM2", .value = 1 }, \
+            { .description = "COM3", .value = 2 }, \
+            { .description = "COM4", .value = 3 }, \
+            { .description = ""                 }  \
+        },                                         \
+        .bios           = { { 0 } }                \
+    }
+
 static const device_config_t msssermouse_config[] = {
     // clang-format off
-    {
-        .name           = "port",
-        .description    = "Serial Port",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "COM1", .value = 0 },
-            { .description = "COM2", .value = 1 },
-            { .description = "COM3", .value = 2 },
-            { .description = "COM4", .value = 3 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
+    SERMOUSE_PORT_CONFIG_COMMON,
     {
         .name           = "buttons",
         .description    = "Buttons",
@@ -1066,23 +1069,7 @@ static const device_config_t mssbusmouse_config[] = {
 
 static const device_config_t mssermouse_config[] = {
     // clang-format off
-    {
-        .name           = "port",
-        .description    = "Serial Port",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "COM1", .value = 0 },
-            { .description = "COM2", .value = 1 },
-            { .description = "COM3", .value = 2 },
-            { .description = "COM4", .value = 3 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
+    SERMOUSE_PORT_CONFIG_COMMON,
     {
         .name           = "buttons",
         .description    = "Buttons",
@@ -1105,46 +1092,14 @@ static const device_config_t mssermouse_config[] = {
 
 static const device_config_t msballpoint_config[] = {
     // clang-format off
-    {
-        .name           = "port",
-        .description    = "Serial Port",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "COM1", .value = 0 },
-            { .description = "COM2", .value = 1 },
-            { .description = "COM3", .value = 2 },
-            { .description = "COM4", .value = 3 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
+    SERMOUSE_PORT_CONFIG_COMMON,
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
 
 static const device_config_t ltsermouse_config[] = {
     // clang-format off
-    {
-        .name           = "port",
-        .description    = "Serial Port",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "COM1", .value = 0 },
-            { .description = "COM2", .value = 1 },
-            { .description = "COM3", .value = 2 },
-            { .description = "COM4", .value = 3 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
+    SERMOUSE_PORT_CONFIG_COMMON,
     {
         .name           = "buttons",
         .description    = "Buttons",
