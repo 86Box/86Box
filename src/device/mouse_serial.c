@@ -160,7 +160,7 @@ sermouse_transmit_byte(mouse_t *dev, int do_next)
 static void
 sermouse_transmit(mouse_t *dev, int len, int from_report, int to_report)
 {
-    dev->state = to_report ? STATE_TRANSMIT_REPORT : STATE_TRANSMIT;
+    dev->state   = to_report ? STATE_TRANSMIT_REPORT : STATE_TRANSMIT;
     dev->buf_pos = 0;
     dev->buf_len = len;
 
@@ -186,7 +186,7 @@ sermouse_report_msystems(mouse_t *dev)
 {
     int delta_x = 0;
     int delta_y = 0;
-    int b = mouse_get_buttons_ex();
+    int b       = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 1, 0);
 
@@ -210,7 +210,7 @@ sermouse_report_3bp(mouse_t *dev)
 {
     int delta_x = 0;
     int delta_y = 0;
-    int b = mouse_get_buttons_ex();
+    int b       = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 1, 0);
 
@@ -230,7 +230,7 @@ sermouse_report_mmseries(mouse_t *dev)
 {
     int delta_x = 0;
     int delta_y = 0;
-    int b = mouse_get_buttons_ex();
+    int b       = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -127, 127, 1, 0);
 
@@ -256,7 +256,7 @@ sermouse_report_bp1(mouse_t *dev, int abs)
 {
     int delta_x = 0;
     int delta_y = 0;
-    int b = mouse_get_buttons_ex();
+    int b       = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -2048, 2047, 1, abs);
 
@@ -277,10 +277,10 @@ static uint8_t
 sermouse_report_ms(mouse_t *dev)
 {
     uint8_t len;
-    int delta_x = 0;
-    int delta_y = 0;
-    int delta_z = 0;
-    int b = mouse_get_buttons_ex();
+    int     delta_x = 0;
+    int     delta_y = 0;
+    int     delta_z = 0;
+    int     b       = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 0, 0);
     mouse_subtract_z(&delta_z, -8, 7, 1);
@@ -334,11 +334,11 @@ sermouse_report_ms(mouse_t *dev)
 static uint8_t
 sermouse_report_hex(mouse_t *dev)
 {
-    char    ret[6] = { 0, 0, 0, 0, 0, 0 };
-    uint8_t but = 0x00;
-    int delta_x = 0;
-    int delta_y = 0;
-    int b = mouse_get_buttons_ex();
+    char    ret[6]  = { 0, 0, 0, 0, 0, 0 };
+    uint8_t but     = 0x00;
+    int     delta_x = 0;
+    int     delta_y = 0;
+    int     b       = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 1, 0);
 
@@ -490,7 +490,8 @@ ltsermouse_switch_baud_rate(mouse_t *dev, int next_state)
            [FORMAT_MS]        = 7.0,          /* 7 datas bits + no parity */
            [FORMAT_HEX]       = 8.0,          /* 8 data bits + no parity */
            [FORMAT_MS_4BYTE]  = 7.0,          /* 7 datas bits + no parity */
-           [FORMAT_MS_WHEEL]  = 7.0 };        /* 7 datas bits + no parity */
+           [FORMAT_MS_WHEEL]  = 7.0           /* 7 datas bits + no parity */
+    };
     double word_len = word_lens[dev->format];
 
     word_len += 1.0 + 2.0;            /* 1 start bit + 2 stop bits */
@@ -551,7 +552,8 @@ ltsermouse_process_command(mouse_t *dev)
                         [FORMAT_MS]        = 0x0e,
                         [FORMAT_HEX]       = 0x04,
                         [FORMAT_MS_4BYTE]  = 0x08,         /* Guess */
-                        [FORMAT_MS_WHEEL]  = 0x08 };       /* Guess */
+                        [FORMAT_MS_WHEEL]  = 0x08          /* Guess */
+    };
     const char *copr = "\r\n(C) " COPYRIGHT_YEAR " 86Box, Revision 3.0";
 
     mouse_serial_log("ltsermouse_process_command(): %02X\n", dev->ib);
@@ -852,7 +854,7 @@ sermouse_close(void *priv)
 static void *
 sermouse_init(const device_t *info)
 {
-    mouse_t *dev;
+    mouse_t *dev = (mouse_t *) calloc(1, sizeof(mouse_t));
     void (*rcr_callback)(struct serial_s *serial, void *priv);
     void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data);
     void (*transmit_period_callback)(struct serial_s *serial, void *priv,
@@ -862,18 +864,16 @@ sermouse_init(const device_t *info)
         uintptr_t irqbase = ((device_get_config_int("irq") << 16) |
                              (device_get_config_hex16("addr") << 20)) |
                              ns16450_device.local;
-        device_add_params(&ns16450_device, (void*)irqbase);
+        device_add_params(&ns16450_device, (void*) irqbase);
     }
 
-    dev = (mouse_t *) calloc(1, sizeof(mouse_t));
     dev->name = info->name;
     dev->but  = (info->local == MOUSE_TYPE_MSBPOINT) ? 5 : device_get_config_int("buttons");
-    dev->rev  = device_get_config_int("revision");
 
-    if (info->local == 0 || info->local == MOUSE_TYPE_MSBPOINT)
-        dev->rts_toggle  = 1;
+    if ((info->local == 0) || (info->local == MOUSE_TYPE_MSBPOINT))
+        dev->rts_toggle = 1;
     else
-        dev->rts_toggle  = device_get_config_int("rts_toggle");
+        dev->rts_toggle = device_get_config_int("rts_toggle");
 
     if (dev->but > 2)
         dev->flags |= FLAG_3BTN;
@@ -881,11 +881,11 @@ sermouse_init(const device_t *info)
     if (info->local == MOUSE_TYPE_MSBPOINT) {
         dev->format    = 7;
         dev->status    = 0x0f;
-        dev->type      = info->local;
+        dev->type      = MOUSE_TYPE_MSBPOINT;
         dev->id_len    = 1;
         dev->id[0]     = 'B';
         dev->flags    &= ~FLAG_3BTN;
-    } else if (info->local == MOUSE_TYPE_MSYSTEMS || info->local == MOUSE_TYPE_MSYSTEMSB) {
+    } else if ((info->local == MOUSE_TYPE_MSYSTEMS) || (info->local == MOUSE_TYPE_MSYSTEMSB)) {
         dev->format    = 0;
         dev->type      = info->local;
         dev->id_len    = 1;
@@ -895,7 +895,7 @@ sermouse_init(const device_t *info)
         dev->status    = 0x0f;
         dev->id_len    = 1;
         dev->id[0]     = 'M';
-        if (info->local)
+        if (info->local == 1) // Logitech Serial Mouse
             dev->rev  = device_get_config_int("revision");
         switch (dev->but) {
             default:
