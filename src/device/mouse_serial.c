@@ -86,6 +86,7 @@ typedef struct mouse_t {
     int state;
 
     int bps;
+    int default_bps;
     int rps;
 
     double transmit_period;
@@ -718,7 +719,10 @@ sermouse_reset(mouse_t *dev, int callback)
 {
     sermouse_set_period(dev, 0.0);
 
-    dev->bps    = 1200;
+    if (dev->default_bps)
+        dev->bps = dev->default_bps;
+    else
+        dev->bps    = 1200;
     dev->rps    = 0;
     dev->prompt = 0;
     if (dev->id[0] == 'H')
@@ -897,7 +901,8 @@ sermouse_init(const device_t *info)
         dev->id_len = 1;
         dev->id[0]  = 'M';
         if (info->local == 1) // Logitech Serial Mouse
-            dev->rev = device_get_config_int("revision");
+            dev->rev         = device_get_config_int("revision");
+            dev->default_bps = device_get_config_int("default_baud");
         switch (dev->but) {
             default:
             case 2:
@@ -1129,6 +1134,23 @@ static const device_config_t ltsermouse_config[] = {
             { .description = "LOGIMOUSE C7 3.0",  .value = 3 },
             { .description = "Logitech MouseMan", .value = 4 },
             { .description = ""                              }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "default_baud",
+        .description    = "Default Baud rate",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1200,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1200", .value = 1200 },
+            { .description = "2400", .value = 2400 },
+            { .description = "4800", .value = 4800 },
+            { .description = "9600", .value = 9600 },
+            { .description = ""                    }
         },
         .bios           = { { 0 } }
     },
