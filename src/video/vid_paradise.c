@@ -85,6 +85,7 @@ paradise_in(uint16_t addr, void *priv)
 {
     paradise_t *paradise = (paradise_t *) priv;
     svga_t     *svga     = &paradise->svga;
+    uint8_t     max_sr   = (paradise->type >= WD90C30) ? 0x15 : 0x12;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
         addr ^= 0x60;
@@ -94,7 +95,7 @@ paradise_in(uint16_t addr, void *priv)
             if (svga->seqaddr > 7) {
                 if (paradise->type < WD90C11 || svga->seqregs[6] != 0x48)
                     return 0xff;
-                if (svga->seqaddr > 0x12)
+                if (svga->seqaddr > max_sr)
                     return 0xff;
                 return svga->seqregs[svga->seqaddr & 0x1f];
             }
