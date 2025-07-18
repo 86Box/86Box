@@ -69,7 +69,11 @@ public slots:
     void searchSystems(const QString &text) const;
     void newMachineWizard();
     void addNewSystem(const QString &name, const QString &dir, const QString &configFile = {});
+#if __GNUC__ >= 11
     [[nodiscard]] QStringList getSearchCompletionList() const;
+#else
+    QStringList getSearchCompletionList() const;
+#endif
     void modelDataChange();
     void onPreferencesUpdated();
 
@@ -81,7 +85,9 @@ private:
     VMManagerSystem       *selected_sysconfig;
     // VMManagerConfig       *config;
     QSortFilterProxyModel *proxy_model;
+#if EMU_BUILD_NUM != 0
     bool                   updateCheck = false;
+#endif
     bool                   regexSearch = false;
 
     // void updateSelection(const QItemSelection &selected,
@@ -93,11 +99,15 @@ private:
     void loadSettings();
     [[nodiscard]] bool currentSelectionIsValid() const;
     [[nodiscard]] QString totalCountString() const;
+#if EMU_BUILD_NUM != 0
     void backgroundUpdateCheckStart() const;
+#endif
     void showTextFileContents(const QString &title, const QString &path);
 private slots:
+#if EMU_BUILD_NUM != 0
     void backgroundUpdateCheckComplete(const UpdateCheck::UpdateResult &result);
     void backgroundUpdateCheckError(const QString &errorMsg);
+#endif
 };
 
 #include <QDialog>

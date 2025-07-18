@@ -1564,7 +1564,7 @@ const machine_t machines[] = {
     },
     {
         .name = "[8088] Tandy 1000 SX",
-        .internal_name = "tandy",
+        .internal_name = "tandy1000sx",
         .type = MACHINE_TYPE_8088,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
         .init = machine_tandy1000sx_init,
@@ -7440,7 +7440,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PS2_VLB,
+        .bus_flags = MACHINE_VLB,
         .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 2048,

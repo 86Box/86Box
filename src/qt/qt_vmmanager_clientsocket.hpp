@@ -31,6 +31,8 @@ public:
     explicit VMManagerClientSocket(QObject* object = nullptr);
     bool IPCConnect(const QString &server);
 
+    void sendWinIdMessage(WId id);
+
 signals:
     void pause();
     void ctrlaltdel();
@@ -47,6 +49,7 @@ private:
     QString server_name;
     QLocalSocket *socket;
     bool server_connected;
+    bool window_blocked = false;
     void connected() const;
     void disconnected() const;
     static void connectionError(QLocalSocket::LocalSocketError socketError);

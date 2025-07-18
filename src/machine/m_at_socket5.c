@@ -92,10 +92,10 @@ machine_at_d842_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios_versions"), 0);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
-	
+
     machine_at_common_init(model);
 
     device_add(&ide_pci_2ch_device);
@@ -118,37 +118,36 @@ machine_at_d842_init(const machine_t *model)
 static const device_config_t d842_config[] = {
     // clang-format off
     {
-        .name = "bios_versions",
-        .description = "BIOS Versions",
+        .name = "bios",
+        .description = "BIOS Version",
         .type = CONFIG_BIOS,
         .default_string = "d842",
         .default_int = 0,
         .file_filter = "",
         .spinner = { 0 }, /*W1*/
         .bios = {
-            { .name = "Version 1.03 Revision 1.03.842 (11/24/1994)", .internal_name = "d842", .bios_type = BIOS_NORMAL,
+            { .name = "PhoenixBIOS Pentium 1.03 - Revision 1.03.842", .internal_name = "d842_103", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842.BIN", "" } },
-            { .name = "Version 4.04 Revision 1.05.842 (03/15/1996)", .internal_name = "d842_mar96", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_mar96.bin", "" } },
-            { .name = "Version 4.04 Revision 1.06.842 (04/03/1998)", .internal_name = "d842_apr98", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_apr98.bin", "" } },
-            { .name = "Version 4.04 Revision 1.07.842 (06/02/1998)", .internal_name = "d842_jun98", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_jun98.BIN", "" } },
-            { .name = "Version 1.03 Revision 1.09.842 (07/08/1996)", .internal_name = "d842_jul96", .bios_type = BIOS_NORMAL,
+            { .name = "PhoenixBIOS Pentium 1.03 - Revision 1.09.842", .internal_name = "d842_109", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_jul96.bin", "" } },
-            { .name = "Version 1.03 Revision 1.10.842 (06/04/1998)", .internal_name = "d842_jun98_1", .bios_type = BIOS_NORMAL,
+            { .name = "PhoenixBIOS Pentium 1.03 - Revision 1.10.842", .internal_name = "d842", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_jun98_1.bin", "" } },
+            { .name = "PhoenixBIOS 4.04 - Revision 1.05.842", .internal_name = "d842_105", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_mar96.bin", "" } },
+            { .name = "PhoenixBIOS 4.04 - Revision 1.06.842", .internal_name = "d842_106", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_apr98.bin", "" } },
+            { .name = "PhoenixBIOS 4.04 - Revision 1.07.842", .internal_name = "d842_107", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d842/d842_jun98.BIN", "" } },
+            { .files_no = 0 }
         },
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
 
-
-
 const device_t d842_device = {
     .name          = "Siemens-Nixdorf D842",
-    .internal_name = "d842",
+    .internal_name = "d842_device",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -157,7 +156,7 @@ const device_t d842_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = &d842_config[0]
+    .config        = d842_config
 };
 
 int
@@ -195,10 +194,10 @@ machine_at_p54np4_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_CAN_SWITCH_TYPE);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x06, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 06 = Slot 1 */
-    pci_register_slot(0x05, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 05 = Slot 2 */
-    pci_register_slot(0x04, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 04 = Slot 3 */
-    pci_register_slot(0x03, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 03 = Slot 4 */
+    pci_register_slot(0x07, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 07 = Slot 1 */
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 06 = Slot 2 */
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 05 = Slot 3 */
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 04 = Slot 4 */
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430nx_device);
     device_add(&sio_zb_device);
@@ -237,7 +236,7 @@ machine_at_tek932_init(const machine_t *model)
 
     if (bios_only || !ret)
         return ret;
-    
+
     machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_CAN_SWITCH_TYPE);

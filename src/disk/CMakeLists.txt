@@ -35,7 +35,6 @@ add_library(hdd OBJECT
     hdc_ide_sff8038i.c
     hdc_ide_um8673f.c
     hdc_ide_w83769f.c
-    lba_enhancer.c
 )
 
 add_library(zip OBJECT zip.c)

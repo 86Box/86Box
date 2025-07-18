@@ -45,8 +45,10 @@ static SDL_Joystick *sdl_joy[MAX_PLAT_JOYSTICKS];
 void
 joystick_init(void)
 {
+#ifdef _WIN32
     /* This is needed for SDL's Windows raw input backend to work properly without SDL video. */
     SDL_SetHint(SDL_HINT_JOYSTICK_THREAD, "1");
+#endif
 
     if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) != 0) {
         return;

@@ -117,6 +117,9 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     ui->comboBoxMachineType->setCurrentIndex(-1);
     ui->comboBoxMachineType->setCurrentIndex(selectedMachineType);
 
+    ui->radioButtonLargerFrames->setChecked(force_10ms);
+    ui->radioButtonSmallerFrames->setChecked(!force_10ms);
+
 #ifndef USE_DYNAREC
     ui->checkBoxDynamicRecompiler->setEnabled(false);
     ui->checkBoxDynamicRecompiler->setVisible(false);
@@ -137,6 +140,7 @@ SettingsMachine::save()
     fpu_type        = ui->comboBoxFPU->currentData().toInt();
     cpu_use_dynarec = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
     fpu_softfloat   = ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0;
+    force_10ms      = ui->radioButtonLargerFrames->isChecked() ? 1 : 0;
 
     int64_t temp_mem_size;
     if (machine_get_ram_granularity(machine) < 1024)
@@ -359,3 +363,15 @@ void SettingsMachine::on_checkBoxFPUSoftfloat_stateChanged(int state) {
         ui->softFloatWarningText->setVisible(false);
     }
 }
+
+void SettingsMachine::on_radioButtonSmallerFrames_clicked()
+{
+    ui->radioButtonLargerFrames->setChecked(false);
+}
+
+
+void SettingsMachine::on_radioButtonLargerFrames_clicked()
+{
+    ui->radioButtonSmallerFrames->setChecked(false);
+}
+

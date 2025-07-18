@@ -1101,8 +1101,8 @@ svga_recalctimings(svga_t *svga)
 
     if (xga_active && (svga->xga != NULL)) {
         if (xga->on) {
-            disptime_xga = xga->h_total ? xga->h_total : TIMER_USEC;
-            _dispontime_xga = xga->h_disp;
+            disptime_xga = xga->h_total;
+            _dispontime_xga = xga->h_disp_time;
         }
     }
 
@@ -1262,11 +1262,6 @@ svga_do_render(svga_t *svga)
     if (!svga->override) {
         svga->render_line_offset = svga->start_retrace_latch - svga->crtc[0x4];
         svga->render(svga);
-
-        svga->x_add = svga->left_overscan;
-        svga_render_overscan_left(svga);
-        svga_render_overscan_right(svga);
-        svga->x_add = svga->left_overscan - svga->scrollcache;
     }
 
     if (svga->overlay_on) {
@@ -1292,6 +1287,13 @@ svga_do_render(svga_t *svga)
         svga->hwcursor_on--;
         if (svga->hwcursor_on && svga->interlace)
             svga->hwcursor_on--;
+    }
+
+    if (!svga->override) {
+        svga->x_add = svga->left_overscan;
+        svga_render_overscan_left(svga);
+        svga_render_overscan_right(svga);
+        svga->x_add = svga->left_overscan - svga->scrollcache;
     }
 }
 

@@ -860,11 +860,11 @@ static const device_config_t pb450_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "PCI 1.0A", .internal_name = "pb450a" /*"pci10a"*/, .bios_type = BIOS_NORMAL, 
+            { .name = "PhoenixBIOS 4.03 - Revision PCI 1.0A", .internal_name = "pb450a_pci10a" /*"pci10a"*/, .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/OPTI802.bin", "" } },
-            { .name = "PNP 1.1A", .internal_name = "pnp11a", .bios_type = BIOS_NORMAL,
+            { .name = "PhoenixBIOS 4.03 - Revision PNP 1.1A", .internal_name = "pb450a", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/PNP11A.bin", "" } },
-            { .name = "P4HS20 (Micro Firmware/Phoenix 4.05)", .internal_name = "p4hs20", .bios_type = BIOS_NORMAL,
+            { .name = "PhoenixBIOS 4.05 - Revision P4HS20 (by Micro Firmware)", .internal_name = "pb450a_p4hs20", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pb450/p4hs20.bin", "" } },
             { .files_no = 0 }
         },
@@ -1769,11 +1769,11 @@ static const device_config_t sb486pv_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "AMI 062594 (0108)", .internal_name = "sb486pv", .bios_type = BIOS_NORMAL, 
+            { .name = "AMI WinBIOS (062594) - Revision 0108", .internal_name = "sb486pv_0108", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/sb486pv/41-0108-062594-SATURN2.rom", "" } },
-            { .name = "AMI 062594 (0301)", .internal_name = "sb486pv_94", .bios_type = BIOS_NORMAL, 
+            { .name = "AMI WinBIOS (062594) - Revision 0301", .internal_name = "sb486pv_0301", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/sb486pv/0301-062594-SATURN2.rom", "" } },
-            { .name = "AMI 071595 (1301)", .internal_name = "sb486pv_95", .bios_type = BIOS_NORMAL,
+            { .name = "AMIBIOS 6 (071595) - Revision 1301", .internal_name = "sb486pv", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/sb486pv/amiboot.rom", "" } },
             { .files_no = 0 }
         },
@@ -2296,9 +2296,9 @@ static const device_config_t hot433a_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "AMI", .internal_name = "hot433a", .bios_type = BIOS_NORMAL, 
+            { .name = "AMIBIOS 5 (101094) - Revision 433AUS33", .internal_name = "hot433a", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/hot433/433AUS33.ROM", "" } },
-            { .name = "Award (eSupport update)", .internal_name = "hot433a_award", .bios_type = BIOS_NORMAL, 
+            { .name = "AwardBIOS v4.51PG - Revision 2.5 (by eSupport)", .internal_name = "hot433a_v451pg", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/hot433/2A4X5H21.BIN", "" } },
             { .files_no = 0 }
         },
@@ -2913,6 +2913,48 @@ machine_at_cougar_init(const machine_t *model)
     device_add(&fdc37c665_ide_pri_device);
 
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_micronics386_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/micronics386/386-Micronics-09-00021-EVEN.BIN",
+                                "roms/machines/micronics386/386-Micronics-09-00021-ODD.BIN",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_init(model);
+    device_add(&port_92_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_micronics386px_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/micronics386/386-Micronics-09-00021-LO.BIN",
+                                "roms/machines/micronics386/386-Micronics-09-00021-HI.BIN",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_init(model);
+    device_add(&port_92_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);

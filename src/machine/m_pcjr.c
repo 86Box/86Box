@@ -829,6 +829,8 @@ machine_pcjr_init(UNUSED(const machine_t *model))
 
     pcjr = calloc(1, sizeof(pcjr_t));
 
+    is_pcjr = 1;
+
     pic_init_pcjr();
     pit_common_init(0, pit_irq0_timer_pcjr, NULL);
 

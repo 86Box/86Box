@@ -94,6 +94,7 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
                     intf_label->setVisible(true);
                     break;
 
+#if defined(__unix__) || defined(__APPLE__)
                 case NET_TYPE_TAP:
                     // option_list_label->setText("TAP Options");
                     option_list_label->setVisible(true);
@@ -101,6 +102,8 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
 
                     bridge_label->setVisible(true);
                     bridge_line->setVisible(true);
+                    break;
+#endif
 
                 case NET_TYPE_SLIRP:
                 default:
@@ -139,7 +142,9 @@ SettingsNetwork::save()
     for (int i = 0; i < NET_CARD_MAX; ++i) {
         auto *cbox                   = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         auto *socket_line            = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
+#if defined(__unix__) || defined(__APPLE__)
         auto *bridge_line            = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i + 1));
+#endif
         net_cards_conf[i].device_num = cbox->currentData().toInt();
         cbox                         = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
         net_cards_conf[i].net_type   = cbox->currentData().toInt();
@@ -149,8 +154,10 @@ SettingsNetwork::save()
             strncpy(net_cards_conf[i].host_dev_name, network_devs[cbox->currentData().toInt()].device, sizeof(net_cards_conf[i].host_dev_name) - 1);
         else if (net_cards_conf[i].net_type == NET_TYPE_VDE)
             strncpy(net_cards_conf[i].host_dev_name, socket_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
+#if defined(__unix__) || defined(__APPLE__)
         else if (net_cards_conf[i].net_type == NET_TYPE_TAP)
             strncpy(net_cards_conf[i].host_dev_name, bridge_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
+#endif
     }
 }
 
@@ -217,7 +224,9 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         if (network_devmap.has_vde)
             Models::AddEntry(model, "VDE", NET_TYPE_VDE);
         
+#if defined(__unix__) || defined(__APPLE__)
         Models::AddEntry(model, "TAP", NET_TYPE_TAP);
+#endif
 
         model->removeRows(0, removeRows);
         cbox->setCurrentIndex(cbox->findData(net_cards_conf[i].net_type));
@@ -243,10 +252,12 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             QString currentVdeSocket = net_cards_conf[i].host_dev_name;
             auto editline = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i+1));
             editline->setText(currentVdeSocket);
+#if defined(__unix__) || defined(__APPLE__)
         } else if (net_cards_conf[i].net_type == NET_TYPE_TAP) {
             QString currentTapDevice = net_cards_conf[i].host_dev_name;
             auto editline = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i+1));
             editline->setText(currentTapDevice);
+#endif
         }
     }
 }

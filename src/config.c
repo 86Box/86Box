@@ -144,6 +144,8 @@ load_general(void)
     video_grayscale  = ini_section_get_int(cat, "video_grayscale", 0);
     video_graytype   = ini_section_get_int(cat, "video_graytype", 0);
 
+    force_10ms = !!ini_section_get_int(cat, "force_10ms", 0);
+
     rctrl_is_lalt = ini_section_get_int(cat, "rctrl_is_lalt", 0);
     update_icons  = ini_section_get_int(cat, "update_icons", 1);
 
@@ -263,7 +265,9 @@ load_machine(void)
     if (p != NULL) {
         migrate_from = p;
         /* Migrate renamed machines. */
-        if (!strcmp(p, "430nx"))
+        if (!strcmp(p, "tandy"))
+            machine = machine_get_machine_from_internal_name("tandy1000sx");
+        else if (!strcmp(p, "430nx"))
             machine = machine_get_machine_from_internal_name("586ip");
         else if (!strcmp(p, "586mc1"))
             machine = machine_get_machine_from_internal_name("586is");
@@ -658,9 +662,9 @@ load_network(void)
                 nc->net_type = NET_TYPE_PCAP;
             else if (!strcmp(p, "slirp") || !strcmp(p, "2"))
                 nc->net_type = NET_TYPE_SLIRP;
-            else if (!strcmp(p, "vde") || !strcmp(p, "2"))
+            else if (!strcmp(p, "vde") || !strcmp(p, "3"))
                 nc->net_type = NET_TYPE_VDE;
-            else if (!strcmp(p, "tap") || !strcmp(p, "3"))
+            else if (!strcmp(p, "tap") || !strcmp(p, "4"))
                 nc->net_type = NET_TYPE_TAP;
             else
                 nc->net_type = NET_TYPE_NONE;
@@ -706,9 +710,9 @@ load_network(void)
                 nc->net_type = NET_TYPE_PCAP;
             else if (!strcmp(p, "slirp") || !strcmp(p, "2"))
                 nc->net_type = NET_TYPE_SLIRP;
-            else if (!strcmp(p, "vde") || !strcmp(p, "2"))
+            else if (!strcmp(p, "vde") || !strcmp(p, "3"))
                 nc->net_type = NET_TYPE_VDE;
-            else if (!strcmp(p, "tap") || !strcmp(p, "3"))
+            else if (!strcmp(p, "tap") || !strcmp(p, "4"))
                 nc->net_type = NET_TYPE_TAP;
             else
                 nc->net_type = NET_TYPE_NONE;
@@ -990,11 +994,6 @@ load_storage_controllers(void)
             }
         }
     }
-
-    lba_enhancer_enabled = !!ini_section_get_int(cat, "lba_enhancer_enabled", 0);
-
-    if (!lba_enhancer_enabled)
-        ini_section_delete_var(cat, "lba_enhancer_enabled");
 }
 
 /* Load "Hard Disks" section. */
@@ -1211,14 +1210,20 @@ load_floppy_and_cdrom_drives(void)
     unsigned int  board = 0;
     unsigned int  dev = 0;
     int           c;
-    int           d = 0;
+    int           d;
     int           count = cdrom_get_type_count();
 
     memset(temp, 0x00, sizeof(temp));
     for (c = 0; c < FDD_NUM; c++) {
         sprintf(temp, "fdd_%02i_type", c + 1);
         p = ini_section_get_string(cat, temp, (c < 2) ? "525_2dd" : "none");
-        fdd_set_type(c, fdd_get_from_internal_name(p));
+        if (!strcmp(p, "525_2hd_ps2"))
+            d = fdd_get_from_internal_name("525_2hd");
+        else if (!strcmp(p, "35_2hd_ps2"))
+            d = fdd_get_from_internal_name("35_2hd");
+        else
+            d = fdd_get_from_internal_name(p);
+        fdd_set_type(c, d);
         if (fdd_get_type(c) > 13)
             fdd_set_type(c, 13);
 
@@ -1297,6 +1302,7 @@ load_floppy_and_cdrom_drives(void)
         ini_section_delete_var(cat, temp);
 
         sprintf(temp, "cdrom_%02i_parameters", c + 1);
+        d = 0;
         p = ini_section_get_string(cat, temp, NULL);
         if (p != NULL)
             sscanf(p, "%01u, %s", &d, s);
@@ -1725,6 +1731,17 @@ load_other_peripherals(void)
             ini_section_delete_var(cat, temp);
     }
 
+    /* Backwards compatibility for standalone LBA Enhancer from v4.2 and older. */
+    if (ini_section_get_int(ini_find_section(config, "Storage controllers"), "lba_enhancer_enabled", 0) == 1) {
+        /* Migrate to the first available ISA ROM slot. */
+        for (uint8_t c = 0; c < ISAROM_MAX; c++) {
+            if (!isarom_type[c]) {
+                isarom_type[c] = isarom_get_from_internal_name("lba_enhancer");
+                break;
+            }
+        }
+    }
+
     p           = ini_section_get_string(cat, "isartc_type", "none");
     isartc_type = isartc_get_from_internal_name(p);
 
@@ -1946,6 +1963,10 @@ save_general(void)
     char          buffer[512] = { 0 };
 
     const char *va_name;
+
+    ini_section_set_int(cat, "force_10ms", force_10ms);
+    if (force_10ms == 0)
+        ini_section_delete_var(cat, "force_10ms");
 
     ini_section_set_int(cat, "inhibit_multimedia_keys", inhibit_multimedia_keys);
     if (inhibit_multimedia_keys == 0)
@@ -2691,10 +2712,19 @@ save_storage_controllers(void)
         }
     }
 
-    if (lba_enhancer_enabled == 0)
+    /* Downgrade compatibility for standalone LBA Enhancer from v4.2 and older. */
+    int card_id = isarom_get_from_internal_name("lba_enhancer");
+    for (c = 0; c < ISAROM_MAX; c++) {
+        if (isarom_type[c] == card_id) {
+            /* A special value of 2 still enables the cards on older versions,
+               but lets newer versions know that they've already been migrated. */
+            ini_section_set_int(cat, "lba_enhancer_enabled", 2);
+            card_id = 0; /* mark as found */
+            break;
+        }
+    }
+    if (card_id > 0) /* not found */
         ini_section_delete_var(cat, "lba_enhancer_enabled");
-    else
-        ini_section_set_int(cat, "lba_enhancer_enabled", 1);
 
     ini_delete_section_if_empty(config, cat);
 }

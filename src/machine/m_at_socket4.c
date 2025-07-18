@@ -53,7 +53,7 @@ machine_at_v12p_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios_versions"), 0);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
 	
@@ -79,30 +79,28 @@ machine_at_v12p_init(const machine_t *model)
 static const device_config_t v12p_config[] = {
     // clang-format off
     {
-        .name = "bios_versions",
-        .description = "BIOS Versions",
+        .name = "bios",
+        .description = "BIOS Version",
         .type = CONFIG_BIOS,
-        .default_string = "v12p_14",
+        .default_string = "v12p",
         .default_int = 0,
         .file_filter = "",
         .spinner = { 0 }, /*W1*/
         .bios = {
-            { .name = "Core Version 1.2 Version R1.4", .internal_name = "v12p_14", .bios_type = BIOS_NORMAL,
+            { .name = "Acer BIOS V1.2 - Revision R1.4", .internal_name = "v12p_r14", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/v12p/v12p_14.bin", "" } },
-            { .name = "Core Version 1.2 Version R1.6", .internal_name = "v12p_16", .bios_type = BIOS_NORMAL,
+            { .name = "Acer BIOS V1.2 - Revision R1.6", .internal_name = "v12p", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/v12p/v12p_16.bin", "" } },	  
-            
+            { .files_no = 0 }            
         },
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
 
-
-
 const device_t v12p_device = {
     .name          = "Acer V12P",
-    .internal_name = "v12p",
+    .internal_name = "v12p_device",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -111,7 +109,7 @@ const device_t v12p_device = {
     .available	   = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = &v12p_config[0]
+    .config        = v12p_config
 };
 
 void

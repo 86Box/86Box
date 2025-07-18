@@ -81,28 +81,61 @@ ali5123_fdc_handler(ali5123_t *dev)
 static void
 ali5123_lpt_handler(ali5123_t *dev)
 {
-    uint16_t ld_port       = 0;
+    uint16_t ld_port       = 0x0000;
+    uint16_t mask          = 0xfffc;
     uint8_t  global_enable = !(dev->regs[0x22] & (1 << 3));
     uint8_t  local_enable  = !!dev->ld_regs[3][0x30];
     uint8_t  lpt_irq       = dev->ld_regs[3][0x70];
     uint8_t  lpt_dma       = dev->ld_regs[3][0x74];
+    uint8_t  lpt_mode      = dev->ld_regs[3][0xf0] & 0x07;
 
     if (lpt_irq > 15)
         lpt_irq = 0xff;
 
-    if (lpt_dma == 4)
+    if (lpt_dma >= 4)
         lpt_dma = 0xff;
 
     lpt1_remove();
-    lpt_set_epp(0, !!(dev->ld_regs[3][0xf0] & 0x01));
-    lpt_set_ecp(0, !!(dev->ld_regs[3][0xf0] & 0x02));
-    lpt_set_ext(0, !(dev->ld_regs[3][0xf0] & 0x04) || !!(dev->ld_regs[3][0xf1] & 0x80));
+    lpt_set_fifo_threshold(0, (dev->ld_regs[3][0xf0] & 0x78) >> 3);
+    if ((lpt_mode == 0x04) && (dev->ld_regs[3][0xf1] & 0x80))
+        lpt_mode = 0x00;
+    switch (lpt_mode) {
+        default:
+        case 0x04:
+            lpt_set_epp(0, 0);
+            lpt_set_ecp(0, 0);
+            lpt_set_ext(0, 0);
+            break;
+        case 0x00:
+            lpt_set_epp(0, 0);
+            lpt_set_ecp(0, 0);
+            lpt_set_ext(0, 1);
+            break;
+        case 0x01: case 0x05:
+            mask = 0xfff8;
+            lpt_set_epp(0, 1);
+            lpt_set_ecp(0, 0);
+            lpt_set_ext(0, 0);
+            break;
+        case 0x02:
+            lpt_set_epp(0, 0);
+            lpt_set_ecp(0, 1);
+            lpt_set_ext(0, 0);
+            break;
+        case 0x03: case 0x07:
+            mask = 0xfff8;
+            lpt_set_epp(0, 1);
+            lpt_set_ecp(0, 1);
+            lpt_set_ext(0, 0);
+            break;
+    }
     if (global_enable && local_enable) {
-        ld_port = make_port(dev, 3) & 0xFFFC;
-        if ((ld_port >= 0x0100) && (ld_port <= 0x0FFC))
+        ld_port = (make_port(dev, 3) & 0xfffc) & mask;
+        if ((ld_port >= 0x0100) && (ld_port <= (0x0ffc & mask)))
             lpt1_setup(ld_port);
     }
     lpt1_irq(lpt_irq);
+    lpt_port_dma(0, lpt_dma);
 }
 
 static void

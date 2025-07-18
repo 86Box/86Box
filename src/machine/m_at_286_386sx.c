@@ -180,9 +180,9 @@ static const device_config_t pbl300sx_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "1991", .internal_name = "pbl300sx_1991", .bios_type = BIOS_NORMAL, 
+            { .name = "Phoenix ROM BIOS PLUS 1.10 - Revision 19910723091302", .internal_name = "pbl300sx_1991", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pbl300sx/V1.10_1113_910723.bin", "" } },
-            { .name = "1992", .internal_name = "pbl300sx", .bios_type = BIOS_NORMAL, 
+            { .name = "Phoenix ROM BIOS PLUS 1.10 - Revision 19920910", .internal_name = "pbl300sx", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pbl300sx/pb_l300sx_1992.bin", "" } },
             { .files_no = 0 }
         },
@@ -387,46 +387,6 @@ machine_at_tuliptc7_init(const machine_t *model)
         return ret;
 
     machine_at_ctat_common_init(model);
-
-    return ret;
-}
-
-int
-machine_at_micronics386_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved("roms/machines/micronics386/386-Micronics-09-00021-EVEN.BIN",
-                                "roms/machines/micronics386/386-Micronics-09-00021-ODD.BIN",
-                                0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_init(model);
-
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-
-    return ret;
-}
-
-int
-machine_at_micronics386px_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved("roms/machines/micronics386/386-Micronics-09-00021-LO.BIN",
-                                "roms/machines/micronics386/386-Micronics-09-00021-HI.BIN",
-                                0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_init(model);
-
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
 
     return ret;
 }
@@ -899,9 +859,9 @@ static const device_config_t dells333sl_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "J01 (Jostens Learning Corporation OEM)", .internal_name = "dells333sl_j01", .bios_type = BIOS_NORMAL, 
+            { .name = "Phoenix ROM BIOS PLUS 1.10 - Revision J01 (Jostens Learning Corporation OEM)", .internal_name = "dells333sl_j01", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/dells333sl/DELL386.BIN", "" } },
-            { .name = "A02", .internal_name = "dells333sl", .bios_type = BIOS_NORMAL, 
+            { .name = "Phoenix ROM BIOS PLUS 1.10 - Revision A02", .internal_name = "dells333sl", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/dells333sl/Dell_386SX_30807_UBIOS_B400_VLSI_VL82C311_Cirrus_Logic_GD5420.bin", "" } },
             { .files_no = 0 }
         },
