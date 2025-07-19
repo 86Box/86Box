@@ -37,10 +37,10 @@
 
 #define ROM_TVGA_8900B            "roms/video/tvga/tvga8900b.vbi"
 #define ROM_TVGA_8900CLD          "roms/video/tvga/trident.bin"
+#define ROM_TVGA_8900D_FLYTECH_386 "roms/machines/flytech386/FLYTECHV.VBI"
 #define ROM_TVGA_8900DR           "roms/video/tvga/8900DR.VBI"
 #define ROM_TVGA_9000B            "roms/video/tvga/tvga9000b.bin"
 #define ROM_TVGA_9000B_NEC_SV9000 "roms/video/tvga/SV9000.VBI"
-
 typedef struct tvga_t {
     mem_mapping_t linear_mapping;
     mem_mapping_t accel_mapping;
@@ -475,6 +475,13 @@ tvga8900d_available(void)
 }
 
 static int
+
+tvga8900d_flytech_386_available(void)
+{
+    return rom_present(ROM_TVGA_8900D_FLYTECH_386);
+}
+
+static int
 tvga8900dr_available(void)
 {
     return rom_present(ROM_TVGA_8900DR);
@@ -538,6 +545,28 @@ static const device_config_t tvga_config[] = {
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
+};
+static const device_config_t tvga_flytech386_config[] = {
+    // clang-format off
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            /*expandable to 1MB*/
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+
 // clang-format off
 };
 
@@ -568,7 +597,19 @@ const device_t tvga8900d_device = {
     .force_redraw  = tvga_force_redraw,
     .config        = tvga_config
 };
-
+const device_t tvga8900d_flytech386_device = {
+    .name          = "Trident TVGA 8900D (Flytech A36)",
+    .internal_name = "tvga8900d_flytech386",
+    .flags         = DEVICE_ISA,
+    .local         = TVGA8900CLD_ID,
+    .init          = tvga_init,
+    .close         = tvga_close,
+    .reset         = NULL,
+    .available     = tvga8900d_flytech_386_available,
+    .speed_changed = tvga_speed_changed,
+    .force_redraw  = tvga_force_redraw,
+    .config        = tvga_flytech386_config
+};
 const device_t tvga8900dr_device = {
     .name          = "Trident TVGA 8900D-R",
     .internal_name = "tvga8900dr",
