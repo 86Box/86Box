@@ -823,7 +823,7 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Sistema de Controle de Voo Thrustmaster"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster SCV + Sistema de Controle de Leme"
+msgstr "SCV Thrustmaster + Sistema de Controle de Leme"
 
 msgid "2-button gamepad(s)"
 msgstr "Gamepad(s) de 2 botões"
@@ -1446,6 +1446,9 @@ msgstr "Mouse de barramento Mouse Systems"
 msgid "Microsoft Serial Mouse"
 msgstr "Mouse serial Microsoft"
 
+msgid "Microsoft Serial BallPoint"
+msgstr "Mouse serial Microsoft BallPoint"
+
 msgid "Logitech Serial Mouse"
 msgstr "Mouse serial Logitech"
 
@@ -1454,6 +1457,9 @@ msgstr "Mouse PS/2"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serial)"
+
+msgid "Default Baud rate"
+msgstr "Taxa de transmissão padrão"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Modem padrão compatível com Hayes"
