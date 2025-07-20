@@ -948,6 +948,11 @@ void (*f_rl_callback_handler_remove)(void) = NULL;
 #    define LIBEDIT_LIBRARY "libedit.so"
 #endif
 
+void ui_sb_update_icon_wp(int tag, int state)
+{
+    /* No-op */
+}
+
 uint32_t
 timer_onesec(uint32_t interval, UNUSED(void *param))
 {
