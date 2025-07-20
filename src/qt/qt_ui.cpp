@@ -263,6 +263,34 @@ ui_sb_set_ready(int ready)
 }
 
 void
+ui_sb_update_icon_wp(int tag, int state)
+{
+    const auto temp    = static_cast<unsigned int>(tag);
+    const int category = static_cast<int>(temp & 0xfffffff0);
+    const int item     = tag & 0xf;
+
+    switch (category) {
+        default:
+            break;
+        case SB_CASSETTE:
+            machine_status.cassette.write_prot = state > 0 ? true : false;
+            break;
+        case SB_FLOPPY:
+            machine_status.fdd[item].write_prot = state > 0 ? true : false;
+            break;
+        case SB_ZIP:
+            machine_status.zip[item].write_prot = state > 0 ? true : false;
+            break;
+        case SB_MO:
+            machine_status.mo[item].write_prot = state > 0 ? true : false;
+            break;
+    }
+
+    if (main_window != nullptr)
+        main_window->updateStatusEmptyIcons();
+}
+
+void
 ui_sb_update_icon_state(int tag, int state)
 {
     const auto temp    = static_cast<unsigned int>(tag);
