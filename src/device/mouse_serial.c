@@ -900,9 +900,11 @@ sermouse_init(const device_t *info)
         dev->status = 0x0f;
         dev->id_len = 1;
         dev->id[0]  = 'M';
-        if (info->local == 1) // Logitech Serial Mouse
+        if (info->local == 1) {
+            /* Logitech Serial Mouse */
             dev->rev         = device_get_config_int("revision");
             dev->default_bps = device_get_config_int("default_baud");
+        }
         switch (dev->but) {
             default:
             case 2:
