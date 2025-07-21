@@ -483,6 +483,7 @@ fdd_load(int drive, char *fn)
                 drive_empty[drive] = 0;
                 fdd_forced_seek(drive, 0);
                 fdd_changed[drive] = 1;
+                ui_sb_update_icon_wp(SB_FLOPPY | drive, ui_writeprot[drive]);
                 return;
             }
             c++;

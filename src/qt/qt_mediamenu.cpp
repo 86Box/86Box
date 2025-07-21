@@ -282,6 +282,7 @@ MediaMenu::cassetteMount(const QString &filename, bool wp)
     }
 
     ui_sb_update_icon_state(SB_CASSETTE, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_wp(SB_CASSETTE, cassette_ui_writeprot);
     mhm.addImageToHistory(0, ui::MediaType::Cassette, previous_image.filePath(), filename);
     cassetteUpdateMenu();
     ui_sb_update_tip(SB_CASSETTE);
@@ -446,6 +447,7 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
         fdd_load(i, filenameBytes.data());
     }
     ui_sb_update_icon_state(SB_FLOPPY | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_wp(SB_FLOPPY | i, ui_writeprot[i]);
     mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), filename);
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);
@@ -822,6 +824,7 @@ MediaMenu::zipMount(int i, const QString &filename, bool wp)
     mhm.addImageToHistory(i, ui::MediaType::Zip, zip_drives[i].prev_image_path, zip_drives[i].image_path);
 
     ui_sb_update_icon_state(SB_ZIP | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_wp(SB_ZIP | i, wp);
     zipUpdateMenu(i);
     ui_sb_update_tip(SB_ZIP | i);
 
@@ -858,6 +861,7 @@ MediaMenu::zipReloadPrev(int i)
     } else {
         ui_sb_update_icon_state(SB_ZIP | i, 0);
     }
+    ui_sb_update_icon_wp(SB_ZIP | i, zip_drives[i].read_only);
 
     zipUpdateMenu(i);
     ui_sb_update_tip(SB_ZIP | i);
@@ -869,7 +873,7 @@ void
 MediaMenu::zipReload(int index, int slot)
 {
     const QString filename = mhm.getImageForSlot(index, slot, ui::MediaType::Zip);
-    zipMount(index, filename, false);
+    zipMount(index, filename, zip_drives[index].read_only);
     zipUpdateMenu(index);
     ui_sb_update_tip(SB_ZIP | index);
 }
@@ -995,6 +999,7 @@ MediaMenu::moReloadPrev(int i)
     } else {
         ui_sb_update_icon_state(SB_MO | i, 0);
     }
+    ui_sb_update_icon_state(SB_MO | i, mo_drives[i].read_only);
 
     moUpdateMenu(i);
     ui_sb_update_tip(SB_MO | i);

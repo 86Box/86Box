@@ -10,6 +10,8 @@ enum IconIndicator {
     WriteActive,
     ReadWriteActive,
     Disabled,
+    WriteProtected,
+    WriteProtectedActive,
 };
 
 QPixmap getIconWithIndicator(const QIcon &icon, const QSize &size, QIcon::Mode iconMode, IconIndicator indicator);
