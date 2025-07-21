@@ -1517,6 +1517,9 @@ load_other_removable_devices(void)
 
         sprintf(temp, "zip_%02i_image_path", c + 1);
         p = ini_section_get_string(cat, temp, "");
+        
+        sprintf(temp, "zip_%02i_writeprot", c + 1);
+        zip_drives[c].read_only =  ini_section_get_int(cat, temp, 0);
 
         if (!strcmp(p, usr_path))
             p[0] = 0x00;
@@ -1629,6 +1632,9 @@ load_other_removable_devices(void)
 
         sprintf(temp, "mo_%02i_image_path", c + 1);
         p = ini_section_get_string(cat, temp, "");
+
+        sprintf(temp, "mo_%02i_writeprot", c + 1);
+        mo_drives[c].read_only = ini_section_get_int(cat, temp, 0);
 
         if (!strcmp(p, usr_path))
             p[0] = 0x00;
@@ -3090,6 +3096,12 @@ save_other_removable_devices(void)
         sprintf(temp, "zip_%02i_scsi_id", c + 1);
         ini_section_delete_var(cat, temp);
 
+        sprintf(temp, "zip_%02i_writeprot", c + 1);
+        if (zip_drives[c].read_only)
+            ini_section_set_int(cat, temp, zip_drives[c].read_only);
+        else
+            ini_section_delete_var(cat, temp);
+
         sprintf(temp, "zip_%02i_scsi_location", c + 1);
         if (zip_drives[c].bus_type != ZIP_BUS_SCSI)
             ini_section_delete_var(cat, temp);
@@ -3145,6 +3157,12 @@ save_other_removable_devices(void)
 
         sprintf(temp, "mo_%02i_scsi_id", c + 1);
         ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "mo_%02i_writeprot", c + 1);
+        if (mo_drives[c].read_only)
+            ini_section_set_int(cat, temp, mo_drives[c].read_only);
+        else
+            ini_section_delete_var(cat, temp);
 
         sprintf(temp, "mo_%02i_scsi_location", c + 1);
         if (mo_drives[c].bus_type != MO_BUS_SCSI)
