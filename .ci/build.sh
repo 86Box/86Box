@@ -1146,7 +1146,7 @@ EOF
 	# Download appimage-builder if necessary.
 	appimage_builder_commit=22fefa298f9cee922a651a6f65a46fe0ccbfa34e # from issue 376
 	appimage_builder_dir="$cache_dir/appimage-builder-$appimage_builder_commit"
-	if [ ! -d "$appimage_builder_dir" ]
+	if [ ! -x "$appimage_builder_dir/bin/appimage-builder" ]
 	then
 		rm -rf "$cache_dir/appimage-builder-"* # remove old versions
 		python3 -m venv "$appimage_builder_dir" # venv to solve some Debian setuptools headaches
