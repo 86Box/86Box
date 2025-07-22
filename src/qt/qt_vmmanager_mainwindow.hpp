@@ -52,6 +52,8 @@ private slots:
     void preferencesTriggered();
     static void checkForUpdatesTriggered();
 
+    void on_actionExit_triggered();
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 };

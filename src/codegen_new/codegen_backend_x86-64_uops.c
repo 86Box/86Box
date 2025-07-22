@@ -219,6 +219,11 @@ codegen_CALL_FUNC_RESULT(codeblock_t *block, uop_t *uop)
 static int
 codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
 {
+#    if _WIN64
+    host_x86_MOV32_REG_IMM(block, REG_ECX, uop->imm_data);
+#    else
+    host_x86_MOV32_REG_IMM(block, REG_EDI, uop->imm_data);
+#    endif
     host_x86_CALL(block, uop->p);
     host_x86_TEST32_REG(block, REG_EAX, REG_EAX);
     host_x86_JNZ(block, codegen_exit_rout);
@@ -631,9 +636,10 @@ codegen_FCHS(codeblock_t *block, uop_t *uop)
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_D(dest_size) && REG_IS_D(src_size_a)) {
-        host_x86_MOVQ_XREG_XREG(block, REG_XMM_TEMP, src_reg_a);
-        host_x86_PXOR_XREG_XREG(block, dest_reg, dest_reg);
-        host_x86_SUBSD_XREG_XREG(block, dest_reg, REG_XMM_TEMP);
+        host_x86_MOVQ_XREG_XREG(block, dest_reg, src_reg_a);
+        host_x86_MOV64_REG_IMM(block, REG_RCX, 0x8000000000000000);
+        host_x86_MOVQ_XREG_REG(block, REG_XMM_TEMP, REG_RCX);
+        host_x86_PXOR_XREG_XREG(block, dest_reg, REG_XMM_TEMP);
     }
 #    ifdef RECOMPILER_DEBUG
     else

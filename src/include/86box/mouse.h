@@ -42,6 +42,7 @@
 #define MOUSE_TYPE_WACOM     12 /* WACOM tablet */
 #define MOUSE_TYPE_WACOMARTP 13 /* WACOM tablet (ArtPad) */
 #define MOUSE_TYPE_MSYSTEMSB 14 /* Mouse Systems bus mouse */
+#define MOUSE_TYPE_MSBPOINT  15 /* Microsoft Serial BallPoint mouse */
 
 #define MOUSE_TYPE_ONBOARD   0x80 /* Mouse is an on-board version of one of the above. */
 
@@ -71,6 +72,7 @@ extern const device_t mouse_genibus_device;
 extern const device_t mouse_mssystems_device;
 extern const device_t mouse_mssystems_bus_device;
 extern const device_t mouse_msserial_device;
+extern const device_t mouse_msserial_ballpoint_device;
 extern const device_t mouse_ltserial_device;
 extern const device_t mouse_ps2_device;
 #    ifdef USE_WACOM

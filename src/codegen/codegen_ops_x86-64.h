@@ -3875,19 +3875,31 @@ FP_LOAD_IMM_Q(uint64_t v)
 static __inline void
 FP_FCHS(void)
 {
+    addbyte(0x48); /* MOVABS RAX, 0x8000000000000000 */
+    addbyte(0xb8);
+    addquad(0x8000000000000000);
+    addbyte(0x66); /* MOVQ XMM15, RAX */
+    addbyte(0x4c);
+    addbyte(0x0f);
+    addbyte(0x6e);
+    addbyte(0xf8);
+    addbyte(0x48); /* XOR RAX, RAX */
+    addbyte(0x31);
+    addbyte(0xc0);
     addbyte(0x8b); /*MOV EAX, TOP*/
     addbyte(0x45);
     addbyte((uint8_t) cpu_state_offset(TOP));
-    addbyte(0xf2); /*SUBSD XMM0, XMM0*/
+    addbyte(0xf3); /*MOVQ XMM0, ST[EAX*8]*/
     addbyte(0x0f);
-    addbyte(0x5c);
-    addbyte(0xc0);
-    addbyte(0xf2); /*SUBSD XMM0, ST[EAX*8]*/
-    addbyte(0x0f);
-    addbyte(0x5c);
+    addbyte(0x7e);
     addbyte(0x44);
     addbyte(0xc5);
     addbyte((uint8_t) cpu_state_offset(ST));
+    addbyte(0x66); /* PXOR XMM0, XMM15 */
+    addbyte(0x41);
+    addbyte(0x0F);
+    addbyte(0xEF);
+    addbyte(0xC7);
     addbyte(0x80); /*AND tag[EAX], ~TAG_UINT64*/
     addbyte(0x64);
     addbyte(0x05);

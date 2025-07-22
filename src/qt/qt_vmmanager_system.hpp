@@ -174,6 +174,8 @@ private:
     // Configuration file settings
     VMManagerConfig *config_settings;
 
+    WId id;
+
     bool serverIsRunning;
     bool startServer();
 

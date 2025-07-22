@@ -336,6 +336,17 @@ VMManagerDetails::updateProcessStatus() {
         connect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::startButtonPressed);
         startPauseButton->setToolTip(tr("Start"));
     }
+
+    if (sysconfig->window_obscured) {
+        resetButton->setDisabled(true);
+        stopButton->setDisabled(true);
+        cadButton->setDisabled(true);
+        startPauseButton->setDisabled(true);
+        configureButton->setDisabled(true);
+    } else {
+        configureButton->setDisabled(false);
+        startPauseButton->setDisabled(false);
+    }
 }
 
 void
