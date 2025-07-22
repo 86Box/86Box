@@ -30,6 +30,7 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/video.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
@@ -143,6 +144,7 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
 {
     paradise_t *paradise = (paradise_t *) priv;
     svga_t     *svga     = &paradise->svga;
+    xga_t      *xga      = (xga_t *) svga->xga;
     uint8_t     old;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
@@ -188,6 +190,10 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
                             case 0x4: /*64k at A0000*/
                                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                                 svga->banked_mask = 0xffff;
+                                if (xga_active && (svga->xga != NULL)) {
+                                    xga->on = 0;
+                                    mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+                                }
                                 break;
                             case 0x8: /*32k at B0000*/
                                 mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
@@ -586,7 +592,7 @@ paradise_decode_addr(paradise_t *paradise, uint32_t addr, int write)
         addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
     else
         addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
- 
+
 
     return addr;
 }

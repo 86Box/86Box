@@ -35,6 +35,7 @@
 #include <86box/video.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
@@ -1042,6 +1043,9 @@ mystique_recalctimings(svga_t *svga)
                 }
             } else {
                 switch (svga->bpp) {
+                    case 4:
+                        svga->render = svga_render_4bpp_highres;
+                        break;
                     case 8:
                         svga->render = svga_render_8bpp_highres;
                         break;
@@ -1061,6 +1065,9 @@ mystique_recalctimings(svga_t *svga)
             }
         } else {
             switch (svga->bpp) {
+                case 4:
+                    svga->render = svga_render_4bpp_highres;
+                    break;
                 case 8:
                     svga->render = svga_render_8bpp_highres;
                     break;
@@ -1104,6 +1111,7 @@ static void
 mystique_recalc_mapping(mystique_t *mystique)
 {
     svga_t *svga = &mystique->svga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     io_removehandler(0x03c0, 0x0020, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
     if ((mystique->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO) && (mystique->pci_regs[0x41] & 1))
@@ -1141,6 +1149,10 @@ mystique_recalc_mapping(mystique_t *mystique)
             case 0x4: /*64k at A0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                 svga->banked_mask = 0xffff;
+                if (xga_active && (svga->xga != NULL)) {
+                    xga->on = 0;
+                    mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+                }
                 break;
             case 0x8: /*32k at B0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);

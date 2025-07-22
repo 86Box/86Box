@@ -41,6 +41,7 @@
 #include <86box/video.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/vid_voodoo_common.h>
@@ -452,6 +453,7 @@ static void
 banshee_updatemapping(banshee_t *banshee)
 {
     svga_t *svga = &banshee->svga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     if (!(banshee->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)) {
 #if 0
@@ -473,6 +475,10 @@ banshee_updatemapping(banshee_t *banshee)
         case 0x4: /*64k at A0000*/
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
             svga->banked_mask = 0xffff;
+            if (xga_active && (svga->xga != NULL)) {
+                xga->on = 0;
+                mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+            }
             break;
         case 0x8: /*32k at B0000*/
             mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
@@ -956,7 +962,7 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
         case Video_vidChromaKeyMin:
             banshee->vidChromaKeyMin = val;
             break;
-        
+
         case Video_vidChromaKeyMax:
             banshee->vidChromaKeyMax = val;
             break;
@@ -2760,7 +2766,7 @@ banshee_overlay_draw(svga_t *svga, int displine)
         voodoo->overlay.src_y += (1 << 20);
         return;
     }
-    
+
     chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x, displine - svga->y_add);
 
     if ((voodoo->overlay.src_y >> 20) < 2048)
@@ -2880,7 +2886,7 @@ banshee_overlay_draw(svga_t *svga, int displine)
                         fil[x * 3 + 1]     = vb_filter_v1_g[fil[x * 3 + 1]][fil3[(x + 1) * 3 + 1]];
                         fil[x * 3 + 2]     = vb_filter_v1_rb[fil[x * 3 + 2]][fil3[(x + 1) * 3 + 2]];
                         chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x + x, displine - svga->y_add);
-                        
+
                         if (chroma_test_passed)
                             p[x] = (fil[x * 3 + 2] << 16) | (fil[x * 3 + 1] << 8) | fil[x * 3];
                     }
