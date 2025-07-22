@@ -163,24 +163,76 @@ xga_updatemapping(svga_t *svga)
         case 0:
             xga_log("XGA: VGA mode address decode disabled.\n");
             mem_mapping_disable(&xga->linear_mapping);
+            xga->test_stage = 0;
+            xga->mapping_base = svga->mapping.base;
             break;
         case 1:
             xga_log("XGA: VGA mode address decode enabled.\n");
             mem_mapping_disable(&xga->linear_mapping);
+            xga->test_stage = 0;
+            mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+            switch (svga->gdcreg[6] & 0xc) {
+                case 0x0: /*128k at A0000*/
+                    mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
+                    svga->banked_mask = 0xffff;
+                    break;
+                case 0x4: /*64k at A0000*/
+                    mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
+                    svga->banked_mask = 0xffff;
+                    break;
+                case 0x8: /*32k at B0000*/
+                    mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
+                    svga->banked_mask = 0x7fff;
+                    break;
+                case 0xC: /*32k at B8000*/
+                    mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
+                    svga->banked_mask = 0x7fff;
+                    break;
+
+                default:
+                    break;
+            }
+            xga->mapping_base = svga->mapping.base;
             break;
         case 2:
             xga_log("XGA: 132-Column mode address decode disabled.\n");
             mem_mapping_disable(&xga->linear_mapping);
+            xga->test_stage = 0;
+            xga->mapping_base = svga->mapping.base;
             break;
         case 3:
             xga_log("XGA: 132-Column mode address decode enabled.\n");
             mem_mapping_disable(&xga->linear_mapping);
+            xga->test_stage = 0;
+            mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+            switch (svga->gdcreg[6] & 0xc) {
+                case 0x0: /*128k at A0000*/
+                    mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
+                    svga->banked_mask = 0xffff;
+                    break;
+                case 0x4: /*64k at A0000*/
+                    mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
+                    svga->banked_mask = 0xffff;
+                    break;
+                case 0x8: /*32k at B0000*/
+                    mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
+                    svga->banked_mask = 0x7fff;
+                    break;
+                case 0xC: /*32k at B8000*/
+                    mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
+                    svga->banked_mask = 0x7fff;
+                    break;
+
+                default:
+                    break;
+            }
+            xga->mapping_base = svga->mapping.base;
             break;
         default:
-            xga_log("XGA: Extended Graphics mode, ap=%d.\n", xga->aperture_cntl);
+            xga_log("XGA: Extended Graphics mode, ap=%d, mapbits=%x.\n", xga->aperture_cntl, svga->gdcreg[6] & 0xc);
             switch (xga->aperture_cntl) {
                 case 0:
-                    xga_log("XGA: No 64KB aperture: 1MB=%x, 4MB=%x, SVGA Mapping Base=%x.\n", xga->base_addr_1mb, xga->linear_base, svga->mapping.base);
+                    xga_log("XGA: No 64KB aperture: 1MB=%x, 4MB=%x, SVGA Mapping Base=%x, mapbits=%x.\n", xga->base_addr_1mb, xga->linear_base, svga->mapping.base, svga->gdcreg[6] & 0xc);
                     if (xga->base_addr_1mb) {
                         mem_mapping_set_addr(&xga->linear_mapping, xga->base_addr_1mb, 0x100000);
                         mem_mapping_enable(&xga->linear_mapping);
@@ -190,6 +242,7 @@ xga_updatemapping(svga_t *svga)
                     } else
                         mem_mapping_disable(&xga->linear_mapping);
 
+                    xga->test_stage = 0;
                     mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
                     switch (svga->gdcreg[6] & 0xc) {
                         case 0x0: /*128k at A0000*/
@@ -212,10 +265,13 @@ xga_updatemapping(svga_t *svga)
                         default:
                             break;
                     }
+                    xga->mapping_base = svga->mapping.base;
                     break;
                 case 1:
                     mem_mapping_disable(&xga->linear_mapping);
-                    xga_log("XGA: 64KB aperture at A0000.\n");
+                    xga_log("XGA: 64KB aperture at A0000, on=%d.\n", xga->on);
+                    xga->test_stage = 0;
+                    xga->mapping_base = 0xa0000;
                     mem_mapping_set_handler(&svga->mapping, xga_read, xga_readw, xga_readl, xga_write, xga_writew, xga_writel);
                     mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                     xga->banked_mask = 0xffff;
@@ -223,6 +279,8 @@ xga_updatemapping(svga_t *svga)
                 case 2:
                     mem_mapping_disable(&xga->linear_mapping);
                     xga_log("XGA: 64KB aperture at B0000.\n");
+                    xga->test_stage = 0;
+                    xga->mapping_base = 0xb0000;
                     mem_mapping_set_handler(&svga->mapping, xga_read, xga_readw, xga_readl, xga_write, xga_writew, xga_writel);
                     mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x10000);
                     xga->banked_mask = 0xffff;
@@ -258,6 +316,8 @@ void
 xga_recalctimings(svga_t *svga)
 {
     xga_t *xga = (xga_t *) svga->xga;
+
+    xga_log("DispCntl2=%d, lowres=%x.\n", xga->disp_cntl_2 & 7, svga->lowres);
     if (xga->on) {
         xga->h_total      = xga->htotal + 1;
         xga->v_total      = xga->vtotal + 1;
@@ -305,6 +365,7 @@ xga_recalctimings(svga_t *svga)
                 break;
         }
 
+        svga->render_xga = xga_render_blank;
         switch (xga->disp_cntl_2 & 7) {
             case 2:
                 svga->render_xga = xga_render_4bpp;
@@ -317,7 +378,6 @@ xga_recalctimings(svga_t *svga)
                 break;
 
             default:
-                svga->render_xga = xga_render_blank;
                 break;
         }
 
@@ -601,6 +661,12 @@ xga_ext_outb(uint16_t addr, uint8_t val, void *priv)
         case 5:
             xga_log("[%04X:%08X]: EXT OUTB = %02x, val = %02x\n", CS, cpu_state.pc, addr, val);
             xga->int_stat = val;
+            break;
+        case 6:
+            xga_log("[%04X:%08X]: EXT OUTB = %02x, val = %02x\n", CS, cpu_state.pc, addr, val);
+            break;
+        case 7:
+            xga_log("[%04X:%08X]: EXT OUTB = %02x, val = %02x\n", CS, cpu_state.pc, addr, val);
             break;
         case 8:
             xga->ap_idx = val;
@@ -2379,8 +2445,6 @@ exec_command:
                                 xga->accel.px_map_format[xga->accel.src_map] & 0x0f,
                                 xga->accel.plane_mask);
 
-                    xga->src_reverse_order = 0;
-                    xga->dst_reverse_order = 0;
                     switch ((xga->accel.command >> 24) & 0x0f) {
                         case 2: /*Short Stroke Vectors Read */
                             xga_log("Short Stroke Vectors Read.\n");
@@ -2837,31 +2901,39 @@ xga_render_16bpp(svga_t *svga)
 void
 xga_write_test(uint32_t addr, uint8_t val, void *priv)
 {
-    svga_t *svga       = (svga_t *) priv;
-    xga_t  *xga        = (xga_t *) svga->xga;
+    svga_t *svga = (svga_t *) priv;
+    xga_t  *xga = (xga_t *) svga->xga;
 
     if (xga_active && xga) {
-        if (((xga->op_mode & 7) >= 1) && xga->aperture_cntl && (svga->mapping.base == 0xb8000)) {
-            xga_log("WriteAddr=%05x.\n", addr);
-            if (val == 0xa5) { /*Memory size test of XGA*/
-                xga->test    = val;
-                if (addr == 0xa0001)
-                    xga->a5_test = 1;
-                else if (addr == 0xafffe)
-                    xga->a5_test = 2;
+        if ((xga->op_mode & 7) == 4) {
+            if (xga->aperture_cntl && !xga->test_stage) {
+                if (val == 0xa5) { /*Memory size test of XGA*/
+                    xga->test    = val;
+                    if (addr == (xga->mapping_base + 0x0001))
+                        xga->a5_test = 1;
+                    else if (addr == (xga->mapping_base + xga->banked_mask - 0x0001))
+                        xga->a5_test = 2;
 
+                    xga->test_stage = 1;
+                    xga->on = 0;
+                    xga_log("XGA test1 addr=%05x, test=%02x.\n", addr, xga->a5_test);
+                } else if (val == 0x5a) {
+                    xga->test = val;
+                    xga->test_stage = 1;
+                    xga->on = 0;
+                    xga_log("XGA test2 addr = %05x.\n", addr);
+                } else if ((addr == xga->mapping_base) || (addr == (xga->mapping_base + 0x0010))) {
+                    addr += xga->write_bank;
+                    xga->vram[addr & xga->vram_mask] = val;
+                    xga_log("XGA Linear endian reverse write, val = %02x, addr = %05x, banked mask = %04x, a5test=%d.\n", val, addr, svga->banked_mask, xga->a5_test);
+                }
+            } else {
+                xga->test_stage = 0;
                 xga->on = 0;
-                xga_log("XGA test1 addr=%05x, test=%02x.\n", addr, xga->a5_test);
-            } else if (val == 0x5a) {
-                xga->test = val;
-                xga->on = 0;
-                xga_log("XGA test2 addr = %05x.\n", addr);
-            } else if ((addr == 0xa0000) || (addr == 0xa0010)) {
-                addr += xga->write_bank;
-                xga->vram[addr & xga->vram_mask] = val;
-                xga_log("XGA Linear endian reverse write, val = %02x, addr = %05x, banked mask = %04x, a5test=%d.\n", val, addr, svga->banked_mask, xga->a5_test);
+                xga_log("Write: AP=%x, teststage=%x, on=%d.\n", xga->aperture_cntl, xga->test_stage, xga->on);
             }
-        } else if (xga->aperture_cntl || (!xga->aperture_cntl && (svga->mapping.base == 0xa0000))) {
+        } else {
+            xga->test_stage = 0;
             xga->on = 0;
             xga_log("OFF XGA write.\n");
         }
@@ -2899,7 +2971,7 @@ xga_write(uint32_t addr, uint8_t val, void *priv)
     addr &= xga->banked_mask;
     addr += xga->write_bank;
 
-    xga_log("WriteBankedB addr=%08x, val=%02x, addrshift1=%08x.\n", addr, val, addr >> 1);
+    xga_log("WriteBankedB addr=%08x, val=%02x, ison=%d, mapbits=%x.\n", addr, val, xga->on, svga->gdcreg[6] & 0x0c);
     if (addr >= xga->vram_size)
         return;
 
@@ -2917,7 +2989,7 @@ xga_writew(uint32_t addr, uint16_t val, void *priv)
     addr &= xga->banked_mask;
     addr += xga->write_bank;
 
-    xga_log("WriteBankedW addr=%08x, val=%04x, addrshift1=%08x.\n", addr, val, addr >> 1);
+    xga_log("WriteBankedW addr=%08x, val=%04x, ison=%d.\n", addr, val, xga->on);
     if (addr >= xga->vram_size)
         return;
 
@@ -2935,7 +3007,7 @@ xga_writel(uint32_t addr, uint32_t val, void *priv)
     addr &= xga->banked_mask;
     addr += xga->write_bank;
 
-    xga_log("WriteBankedL addr=%08x, val=%08x, addrshift1=%08x.\n", addr, val, addr >> 1);
+    xga_log("WriteBankedL addr=%08x, val=%08x.\n", addr, val);
     if (addr >= xga->vram_size)
         return;
 
@@ -2953,31 +3025,41 @@ xga_read_test(uint32_t addr, void *priv)
     uint8_t ret = 0x00;
 
     if (xga_active && xga) {
-        if (((xga->op_mode & 7) >= 1) && xga->aperture_cntl && (svga->mapping.base == 0xb8000)) {
-            if (xga->test == 0xa5) { /*Memory size test of XGA*/
-                if (addr == 0xa0001) {
+        xga_log("Read: OPMODE=%x, APCNTL=%x, base=%05x, test=%x.\n", xga->op_mode & 7, xga->aperture_cntl, svga->mapping.base, xga->test);
+        if ((xga->op_mode & 7) == 4) {
+            if (xga->aperture_cntl && (xga->test_stage == 1)) {
+                if (xga->test == 0xa5) { /*Memory size test of XGA*/
+                    if (addr == (xga->mapping_base + 0x0001)) {
+                        xga_log("A5 test bank = %x, svgabase=%05x.\n", addr, svga->mapping.base);
+                        ret = xga->test;
+                    } else if ((addr == xga->mapping_base) && (xga->a5_test == 1)) { /*This is required by XGAKIT to pass the memory test*/
+                        xga_log("A5 test bank = %x.\n", addr);
+                        addr += xga->read_bank;
+                        ret = xga->vram[addr & xga->vram_mask];
+                    } else
+                        ret = xga->test;
+
+                    xga->test_stage = 0;
+                    xga->on = 1;
+                    xga_log("A5 read: XGA ON = %d, addr = %05x, ret = %02x, test1 = %x.\n", xga->on, addr, ret, xga->a5_test);
+                    return ret;
+                } else if (xga->test == 0x5a) {
+                    xga->test_stage = 0;
                     ret = xga->test;
                     xga->on = 1;
-                } else if ((addr == 0xa0000) && (xga->a5_test == 1)) { /*This is required by XGAKIT to pass the memory test*/
-                    xga_log("A5 test bank = %x.\n", addr);
+                    xga_log("5A read: XGA ON = %d.\n", xga->on);
+                    return ret;
+                } else if ((addr == xga->mapping_base) || (addr == (xga->mapping_base + 0x0010))) {
                     addr += xga->read_bank;
-                    ret = xga->vram[addr & xga->vram_mask];
-                } else {
-                    ret = xga->test;
-                    xga->on = 1;
+                    return xga->vram[addr & xga->vram_mask];
                 }
-                xga_log("A5 read: XGA ON = %d, addr = %05x, ret = %02x, test1 = %x.\n", xga->on, addr, ret, xga->a5_test);
-                return ret;
-            } else if (xga->test == 0x5a) {
-                ret = xga->test;
-                xga->on = 1;
-                xga_log("5A read: XGA ON = %d.\n", xga->on);
-                return ret;
-            } else if ((addr == 0xa0000) || (addr == 0xa0010)) {
-                addr += xga->read_bank;
-                return xga->vram[addr & xga->vram_mask];
+            } else {
+                xga->test_stage = 0;
+                xga->on = 0;
+                xga_log("Read: AP=%x, teststage=%x, on=%d.\n", xga->aperture_cntl, xga->test_stage, xga->on);
             }
-        } else if (xga->aperture_cntl || (!xga->aperture_cntl && (svga->mapping.base == 0xa0000))) {
+        } else {
+            xga->test_stage = 0;
             xga->on = 0;
             xga_log("OFF XGA read.\n");
         }
@@ -3029,6 +3111,7 @@ xga_read(uint32_t addr, void *priv)
     cycles -= svga->monitor->mon_video_timing_read_b;
 
     ret = xga_read_banked(addr, svga);
+    xga_log("ReadBankedB addr=%08x, ret=%02x, ison=%d.\n", addr, ret, xga->on);
     return ret;
 }
 
@@ -3050,6 +3133,7 @@ xga_readw(uint32_t addr, void *priv)
     cycles -= svga->monitor->mon_video_timing_read_w;
 
     ret = xga_readw_banked(addr, svga);
+    xga_log("ReadBankedW addr=%08x, ret=%04x, ison=%d.\n", addr, ret, xga->on);
     return ret;
 }
 
@@ -3398,6 +3482,7 @@ xga_mca_write(int port, uint8_t val, void *priv)
     mem_mapping_disable(&xga->memio_mapping);
     xga->on                    = 0;
     xga->a5_test               = 0;
+    xga->test_stage            = 0;
 
     /* Save the MCA register value. */
     xga->pos_regs[port & 7] = val;
@@ -3450,11 +3535,11 @@ xga_reset(void *priv)
     xga_t  *xga  = (xga_t *) svga->xga;
 
     xga_log("Normal Reset.\n");
-    if (xga_standalone_enabled)
-        mem_mapping_disable(&xga->memio_mapping);
+    mem_mapping_disable(&xga->memio_mapping);
 
     xga->on                    = 0;
     xga->a5_test               = 0;
+    xga->test_stage            = 0;
     mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
     svga_set_poll(svga);
 }
@@ -3651,6 +3736,7 @@ xga_init(const device_t *info)
     xga->hwcursor.cur_xsize    = 64;
     xga->hwcursor.cur_ysize    = 64;
     xga->a5_test               = 0;
+    xga->test_stage            = 0;
 
     if (info->flags & DEVICE_MCA) {
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_xga_mca);
