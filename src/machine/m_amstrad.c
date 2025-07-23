@@ -2997,7 +2997,7 @@ machine_amstrad_init(const machine_t *model, int type)
         mouse_set_poll(ms_poll, ams);
     }
 
-    standalone_gameport_type = &gameport_device;
+    standalone_gameport_type = &gameport_200_device;
 }
 
 int

@@ -995,7 +995,7 @@ machine_tandy1k_init(const machine_t *model, int type)
             break;
     }
 
-    standalone_gameport_type = &gameport_device;
+    standalone_gameport_type = &gameport_200_device;
 
     eep_data_out = 0x0000;
 }

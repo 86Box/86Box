@@ -209,7 +209,7 @@ machine_xt_xi8088_init(const machine_t *model)
     nmi_init();
     device_add(&ibmat_nvr_device);
     pic2_init();
-    standalone_gameport_type = &gameport_device;
+    standalone_gameport_type = &gameport_200_device;
     device_add(&sst_flash_39sf010_device);
 
     return ret;
