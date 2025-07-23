@@ -194,6 +194,14 @@ zip_load(const zip_t *dev, const char *fn, const int skip_insert)
 {
     const int was_empty = zip_is_empty(dev->id);
     int       ret       = 0;
+    int       offs      = 0;
+
+    if (strstr(fn, "wp://") == fn) {
+        offs                = 5;
+        dev->drv->read_only = 1;
+    }
+
+    fn += offs;
 
     if (dev->drv == NULL)
         zip_eject(dev->id);
@@ -247,7 +255,7 @@ zip_load(const zip_t *dev, const char *fn, const int skip_insert)
                  log_fatal(dev->log, "zip_load(): Error seeking to the beginning of "
                            "the file\n");
 
-             strncpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path) - 1);
+             strncpy(dev->drv->image_path, fn - offs, sizeof(dev->drv->image_path) - 1);
              /*
                 After using strncpy, dev->drv->image_path needs to be explicitly null
                 terminated to make gcc happy.
@@ -270,6 +278,9 @@ zip_load(const zip_t *dev, const char *fn, const int skip_insert)
         if (was_empty)
             zip_insert((zip_t *) dev);
     }
+
+    if (ret)
+        ui_sb_update_icon_wp(SB_ZIP | dev->id, dev->drv->read_only);
 }
 
 void

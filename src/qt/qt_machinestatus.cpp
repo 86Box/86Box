@@ -617,7 +617,12 @@ MachineStatus::refresh(QStatusBar *sbar)
     if (cassette_enable) {
         d->cassette.label = std::make_unique<ClickableLabel>();
         d->cassette.setEmpty(QString(cassette_fname).isEmpty());
-        d->cassette.setWriteProtected(cassette_ui_writeprot);
+        if (QString(cassette_fname).isEmpty())
+            d->cassette.setWriteProtected(false);
+        else if (QString(cassette_fname).left(5) == "wp://")
+            d->cassette.setWriteProtected(true);
+        else
+            d->cassette.setWriteProtected(cassette_ui_writeprot);
         d->cassette.refresh();
         connect((ClickableLabel *) d->cassette.label.get(), &ClickableLabel::clicked, [](QPoint pos) {
             MediaMenu::ptr->cassetteMenu->popup(pos - QPoint(0, MediaMenu::ptr->cassetteMenu->sizeHint().height()));
@@ -658,7 +663,12 @@ MachineStatus::refresh(QStatusBar *sbar)
         }
         d->fdd[i].label = std::make_unique<ClickableLabel>();
         d->fdd[i].setEmpty(QString(floppyfns[i]).isEmpty());
-        d->fdd[i].setWriteProtected(ui_writeprot[i]);
+        if (QString(floppyfns[i]).isEmpty())
+            d->fdd[i].setWriteProtected(false);
+        else if (QString(floppyfns[i]).left(5) == "wp://")
+            d->fdd[i].setWriteProtected(true);
+        else
+            d->fdd[i].setWriteProtected(ui_writeprot[i]);
         d->fdd[i].setActive(false);
         d->fdd[i].setWriteActive(false);
         d->fdd[i].refresh();
@@ -693,7 +703,12 @@ MachineStatus::refresh(QStatusBar *sbar)
     iterateZIP([this, sbar](int i) {
         d->zip[i].label = std::make_unique<ClickableLabel>();
         d->zip[i].setEmpty(QString(zip_drives[i].image_path).isEmpty());
-        d->zip[i].setWriteProtected(zip_drives[i].read_only);
+        if (QString(zip_drives[i].image_path).isEmpty())
+            d->zip[i].setWriteProtected(false);
+        else if (QString(zip_drives[i].image_path).left(5) == "wp://")
+            d->zip[i].setWriteProtected(true);
+        else
+            d->zip[i].setWriteProtected(zip_drives[i].read_only);
         d->zip[i].setActive(false);
         d->zip[i].setWriteActive(false);
         d->zip[i].refresh();
@@ -711,7 +726,12 @@ MachineStatus::refresh(QStatusBar *sbar)
     iterateMO([this, sbar](int i) {
         d->mo[i].label = std::make_unique<ClickableLabel>();
         d->mo[i].setEmpty(QString(mo_drives[i].image_path).isEmpty());
-        d->mo[i].setWriteProtected(mo_drives[i].read_only);
+        if (QString(zip_drives[i].image_path).isEmpty())
+            d->mo[i].setWriteProtected(false);
+        else if (QString(zip_drives[i].image_path).left(5) == "wp://")
+            d->mo[i].setWriteProtected(true);
+        else
+            d->mo[i].setWriteProtected(zip_drives[i].read_only);
         d->mo[i].setActive(false);
         d->mo[i].setWriteActive(false);
         d->mo[i].refresh();
