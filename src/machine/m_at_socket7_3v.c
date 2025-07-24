@@ -1054,3 +1054,35 @@ machine_at_pc140_6260_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_at_zeoswildcat_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/zeoswildcat/003606.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_IDE, 1, 2, 0, 0); /* Onboard device */
+    pci_register_slot(0x0E, PCI_CARD_SCSI, 1, 0, 0, 0); /* Onboard device */
+    pci_register_slot(0x0F, PCI_CARD_NETWORK, 1, 0, 0, 0); /* Onboard device */
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4); /* Slot 03 */
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 4, 2, 3, 1); /* Slot 04 */
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2); /* Slot 05 */
+    /* Per the machine's manual there was an option for AMD SCSI and/or LAN controllers */
+    device_add(&vl82c59x_wildcat_device);
+    device_add(&intel_flash_bxt_device);
+    device_add(&keyboard_at_device);
+    device_add(&fdc37c665_device);
+    device_add(&ide_pci_2ch_device); /* Real board has a PCTech RZ1000 but POST hangs on code 95 with it */
+
+    return ret;
+}
