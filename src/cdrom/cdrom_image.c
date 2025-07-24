@@ -1345,12 +1345,12 @@ image_set_track_subch_type(track_t *ct)
 static int
 image_load_iso(cd_image_t *img, const char *filename)
 {
-    track_t       *ct      = NULL;
-    track_index_t *ci      = NULL;
-    track_file_t  *tf      = NULL;
-    int            success = 1;
-    int            error   = 1;
-    int            is_viso = 0;
+    track_t       *ct              = NULL;
+    track_index_t *ci              = NULL;
+    track_file_t  *tf              = NULL;
+    int            success         = 1;
+    int            error           = 1;
+    int            is_viso         = 0;
     int            sector_sizes[8] = { 2448, 2368, RAW_SECTOR_SIZE, 2336,
                                        2332, 2328, 2324,            COOKED_SECTOR_SIZE };
 
@@ -1445,8 +1445,12 @@ image_load_iso(cd_image_t *img, const char *filename)
     if (success)
         image_process(img);
     else {
-        image_log(img->log, "    [ISO     ] Unable to open image or folder \"%s\"\n",
-                  filename);
+#ifdef ENABLE_IMAGE_LOG
+        log_warning(img->log, "Unable to open image or folder \"%s\"\n",
+                    filename);
+#else
+        warning("Unable to open image or folder \"%s\"\n", filename);
+#endif
         return 0;
     }
 
@@ -1791,10 +1795,12 @@ image_load_cue(cd_image_t *img, const char *cuefile)
 
     if (success)
         image_process(img);
-    else {
-        image_log(img->log, "    [CUE   ] Unable to open Cue sheet \"%s\"\n", cuefile);
-        return 0;
-    }
+    else
+#ifdef ENABLE_IMAGE_LOG
+        log_warning(img->log, "    [CUE   ] Unable to open Cue sheet \"%s\"\n", cuefile);
+#else
+        warning("Unable to open Cue sheet \"%s\"\n", cuefile);
+#endif
 
     return success;
 }
@@ -1842,14 +1848,25 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
 
     fseek(fp, 0, SEEK_SET);
     fread(&mds_hdr, 1, sizeof(mds_hdr_t), fp);
+
     if (memcmp(mds_hdr.file_sig, "MEDIA DESCRIPTOR", 16)) {
-        image_log(img->log, "    [MDS   ] Not an actual MDF file \"%s\"\n", mdsfile);
+#ifdef ENABLE_IMAGE_LOG
+        log_warning(img->log, "    [MDS   ] \"%s\"\n is not an actual MDF file",
+                    mdsfile);
+#else
+        warning("\"%s\"\n is not an actual MDF file", mdsfile);
+#endif
         fclose(fp);
         return 0;
     }
 
     if (mds_hdr.file_ver[0] == 0x02) {
-        image_log(img->log, "    [MDS   ] Daemon tools encrypted MDS is not supported in file \"%s\"\n", mdsfile);
+#ifdef ENABLE_IMAGE_LOG
+        log_warning(img->log, "    [MDS   ] \"%s\" is a Daemon Tools encrypted MDS which is not supported\n",
+                    mdsfile);
+#else
+        warning("\"%s\" is a Daemon Tools encrypted MDS which is not supported\n", mdsfile);
+#endif
         fclose(fp);
         return 0;
     }
@@ -2085,8 +2102,6 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
     fclose(fp);
 
     if (success) {
-        // image_process(img);
-
 #ifdef ENABLE_IMAGE_LOG
         image_log(img->log, "Final tracks list:\n");
         for (int i = 0; i < img->tracks_num; i++) {
@@ -2106,10 +2121,12 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             }
         }
 #endif
-    } else {
-        image_log(img->log, "    [MDS   ] Unable to open MDS sheet \"%s\"\n", mdsfile);
-        return 0;
-    }
+    } else
+#ifdef ENABLE_IMAGE_LOG
+        log_warning(img->log, "    [MDS   ] Unable to open MDS sheet \"%s\"\n", mdsfile);
+#else
+        warning("Unable to open MDS sheet \"%s\"\n", mdsfile);
+#endif
 
     return success;
 }
@@ -2509,7 +2526,7 @@ image_open(cdrom_t *dev, const char *path)
         sprintf(n, "CD-ROM %i Image", dev->id + 1);
         img->log          = log_open(n);
 
-        img->dev = dev;
+        img->dev          = dev;
 
         if (is_mds) {
             ret = image_load_mds(img, path);
@@ -2518,10 +2535,6 @@ image_open(cdrom_t *dev, const char *path)
                 img->has_audio = 0;
             else if (ret)
                 img->has_audio = 1;
-            else {
-                image_close(img);
-                img = NULL;
-            }
         } else if (is_cue) {
             ret = image_load_cue(img, path);
 
@@ -2529,25 +2542,20 @@ image_open(cdrom_t *dev, const char *path)
                 img->has_audio = 0;
             else if (ret)
                 img->has_audio = 1;
-            else {
-                image_close(img);
-                img = NULL;
-            }
         } else {
             ret = image_load_iso(img, path);
 
-            if (!ret) {
-                image_close(img);
-                img = NULL;
-            } else
+            if (ret)
                 img->has_audio = 0;
         }
 
-        if (ret)
+        if (ret > 0)
             dev->ops = &image_ops;
         else {
             log_warning(img->log, "Unable to load CD-ROM image: %s\n", path);
-            log_close(img->log);
+
+            image_close(img);
+            img = NULL;
         }
     }
 
