@@ -3926,7 +3926,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
-            .min = 512,
+            .min = 640,
             .max = 8192,
             .step = 128
         },
@@ -3966,7 +3966,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
-            .min = 512,
+            .min = 640,
             .max = 8192,
             .step = 128
         },
