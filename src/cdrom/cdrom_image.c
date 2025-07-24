@@ -2000,7 +2000,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                     int src_len = 256;
                     int dst_len = 512;
                     iconv_t conv = iconv_open("UTF-8", "UTF-16");
-                    iconv(conv, (char *) wfn, &src_len, fn, &dst_len);
+                    iconv(conv, (char **) &wfn, &src_len, &fn, &dst_len);
                     iconv_close(conv);
 #endif
                 } else  for (int i = 0; i < 512; i++) {
