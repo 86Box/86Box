@@ -11813,7 +11813,7 @@ const machine_t machines[] = {
     /* VLSI Wildcat */
     /* This has Phoenix KBC firmware. */
     {
-        .name = "[VLSI Wildcat] AT&T Globalyst 620",
+        .name = "[VLSI Wildcat] AT&T Globalyst 620/630 (NCR 3248/3348)",
         .internal_name = "globalyst620",
         .type = MACHINE_TYPE_SOCKET5,
         .chipset = MACHINE_CHIPSET_VLSI_WILDCAT,
