@@ -2010,7 +2010,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             fread(&mds_dpm_block_offs, 1, sizeof(uint32_t), fp);
 
             fseek(fp, mds_dpm_block_offs, SEEK_SET);
-            fread(&mds_dpm_block, 1, 4 * sizeof(mds_dpm_block_t), fp);
+            fread(&mds_dpm_block, 1, sizeof(mds_dpm_block_t), fp);
 
             /* We currently only support the bad sectors block and not (yet) actual DPM. */
             if (mds_dpm_block.type == 0x00000002) {
@@ -2075,7 +2075,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 if (mds_footer.fn_is_wide) {
                     int len = 0;
                     for (int i = 0; i < 256; i++) {
-                        fread(&wfn[i], 1, 2, fp);
+                        fread(&(wfn[i]), 1, 2, fp);
                         len++;
                         if (wfn[i] == 0x0000)
                             break;
