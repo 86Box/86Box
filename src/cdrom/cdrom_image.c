@@ -143,6 +143,7 @@ typedef enum
     PW_INTERLEAVED = 0x08     /* 96-byte PW subchannel, interleaved */
 } mds_subch_mode_t;
 
+#pragma pack(push, 1)
 typedef struct
 {
     uint8_t  file_sig[16];
@@ -224,6 +225,7 @@ typedef struct
     uint32_t pad[2];
     uint32_t entries;
 } mds_dpm_block_t;
+#pragma pack(pop)
 
 #ifdef ENABLE_IMAGE_LOG
 int image_do_log = ENABLE_IMAGE_LOG;
