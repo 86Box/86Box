@@ -247,7 +247,7 @@ static once_t made = ONCE_INIT;
   Return a(x) multiplied by b(x) modulo p(x), where p(x) is the CRC polynomial,
   reflected. For speed, this requires that a not be zero.
  */
-local crc_t multmodp(crc_t a, crc_t b) {
+static crc_t multmodp(crc_t a, crc_t b) {
     crc_t m, p;
 
     m = (crc_t)1 << 31;
@@ -268,7 +268,7 @@ local crc_t multmodp(crc_t a, crc_t b) {
   Return x^(n * 2^k) modulo p(x). Requires that x2n_table[] has been
   initialized.
  */
-local crc_t x2nmodp(z_off64_t n, unsigned k) {
+static crc_t x2nmodp(z_off64_t n, unsigned k) {
     crc_t p;
 
     p = (z_crc_t)1 << 31;           /* x^0 == 1 */
