@@ -29,7 +29,6 @@
 #include <wchar.h>
 #include <sys/stat.h>
 #ifndef _WIN32
-#    include <iconv.h>
 #    include <libgen.h>
 #endif
 #include <86box/86box.h>
@@ -1808,6 +1807,91 @@ image_load_cue(cd_image_t *img, const char *cuefile)
     return success;
 }
 
+// Converts UTF-16 string into UTF-8 string.
+// If destination string is NULL returns total number of symbols that would've
+// been written (without null terminator). However, when actually writing into
+// destination string, it does include it. So, be sure to allocate extra byte
+// for destination string.
+// Params:
+// u16_str      - source UTF-16 string
+// u16_str_len  - length of source UTF-16 string
+// u8_str       - destination UTF-8 string
+// u8_str_size  - size of destination UTF-8 string in bytes
+// Return value:
+// 0 on success, -1 if encountered invalid surrogate pair, -2 if
+// encountered buffer overflow or length of destination UTF-8 string in bytes
+// (without including the null terminator).
+long int utf16_to_utf8(const uint16_t *u16_str, size_t u16_str_len,
+                       uint8_t *u8_str, size_t u8_str_size)
+{
+    size_t i = 0, j = 0;
+
+    if (!u8_str) {
+        u8_str_size = u16_str_len * 4;
+    }
+
+    while (i < u16_str_len) {
+        uint32_t codepoint = u16_str[i++];
+
+        // check for surrogate pair
+        if (codepoint >= 0xD800 && codepoint <= 0xDBFF) {
+            uint16_t high_surr = codepoint;
+            uint16_t low_surr  = u16_str[i++];
+
+            if (low_surr < 0xDC00 || low_surr > 0xDFFF)
+                return -1;
+
+            codepoint = ((high_surr - 0xD800) << 10) +
+                        (low_surr - 0xDC00) + 0x10000;
+        }
+
+        if (codepoint < 0x80) {
+            if (j + 1 > u8_str_size) return -2;
+
+            if (u8_str) u8_str[j] = (char)codepoint;
+
+            j++;
+        } else if (codepoint < 0x800) {
+            if (j + 2 > u8_str_size) return -2;
+
+            if (u8_str) {
+                u8_str[j + 0] = 0xC0 | (codepoint >> 6);
+                u8_str[j + 1] = 0x80 | (codepoint & 0x3F);
+            }
+
+            j += 2;
+        } else if (codepoint < 0x10000) {
+            if (j + 3 > u8_str_size) return -2;
+
+            if (u8_str) {
+                u8_str[j + 0] = 0xE0 | (codepoint >> 12);
+                u8_str[j + 1] = 0x80 | ((codepoint >> 6) & 0x3F);
+                u8_str[j + 2] = 0x80 | (codepoint & 0x3F);
+            }
+
+            j += 3;
+        } else {
+            if (j + 4 > u8_str_size) return -2;
+
+            if (u8_str) {
+                u8_str[j + 0] = 0xF0 | (codepoint >> 18);
+                u8_str[j + 1] = 0x80 | ((codepoint >> 12) & 0x3F);
+                u8_str[j + 2] = 0x80 | ((codepoint >> 6) & 0x3F);
+                u8_str[j + 3] = 0x80 | (codepoint & 0x3F);
+            }
+
+            j += 4;
+        }
+    }
+
+    if (u8_str) {
+        if (j >= u8_str_size) return -2;
+        u8_str[j] = '\0';
+    }
+
+    return (long int)j;
+}
+
 static int
 image_load_mds(cd_image_t *img, const char *mdsfile)
 {
@@ -1989,20 +2073,14 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 char     fn[2048] = { 0 };
                 fseek(fp, mds_footer.fn_offs, SEEK_SET);
                 if (mds_footer.fn_is_wide) {
+                    int len = 0;
                     for (int i = 0; i < 256; i++) {
                         fread(&wfn[i], 1, 2, fp);
+                        len++;
                         if (wfn[i] == 0x0000)
                             break;
                     }
-#ifdef _WIN32
-                    wcstombs(fn, wfn, 256);
-#else
-                    int src_len = 256;
-                    int dst_len = 512;
-                    iconv_t conv = iconv_open("UTF-8", "UTF-16");
-                    iconv(conv, (char **) &wfn, &src_len, &fn, &dst_len);
-                    iconv_close(conv);
-#endif
+                    (void) utf16_to_utf8(wfn, 2048, (uint8_t *) fn, 2048);
                 } else  for (int i = 0; i < 512; i++) {
                     fread(&fn[i], 1, 1, fp);
                     if (fn[i] == 0x00)
