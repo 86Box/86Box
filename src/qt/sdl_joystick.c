@@ -33,10 +33,10 @@
 #include <86box/gameport.h>
 #include <86box/plat_unused.h>
 
-int                  joysticks_present = 0;
-joystick_t           joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
-plat_joystick_t      plat_joystick_state[MAX_PLAT_JOYSTICKS];
-static SDL_Joystick *sdl_joy[MAX_PLAT_JOYSTICKS];
+int                   joysticks_present = 0;
+joystick_state_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
+plat_joystick_state_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
+static SDL_Joystick  *sdl_joy[MAX_PLAT_JOYSTICKS];
 
 #ifndef M_PI
 #    define M_PI 3.14159265358979323846

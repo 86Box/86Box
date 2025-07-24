@@ -302,7 +302,7 @@ cmd646_pci_read(int func, int addr, void *priv)
         else if ((addr >= 0x70) && (addr <= 0x77))
             ret = sff_bus_master_read(addr & 0x0f, dev->bm[0]);
         else if ((addr >= 0x78) && (addr <= 0x7f))
-            ret = sff_bus_master_read(addr & 0x0f, dev->bm[0]);
+            ret = sff_bus_master_read(addr & 0x0f, dev->bm[1]);
     }
 
     cmd646_log("[%04X:%08X] (%08X) cmd646_pci_read(%i, %02X, %02X)\n", CS, cpu_state.pc, ESI, func, addr, ret);

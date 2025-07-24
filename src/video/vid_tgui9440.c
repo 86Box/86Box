@@ -72,6 +72,7 @@
 #include <86box/video.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
@@ -911,6 +912,7 @@ static void
 tgui_recalcmapping(tgui_t *tgui)
 {
     svga_t *svga = &tgui->svga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     if (tgui->type == TGUI_9400CXI) {
         if (svga->gdcreg[0x10] & EXT_CTRL_LATCH_COPY) {
@@ -964,6 +966,10 @@ tgui_recalcmapping(tgui_t *tgui)
                 case 0x4: /*64k at A0000*/
                     mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                     svga->banked_mask = 0xffff;
+                    if (xga_active && (svga->xga != NULL)) {
+                        xga->on = 0;
+                        mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+                    }
                     break;
                 case 0x8: /*32k at B0000*/
                     mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
@@ -988,6 +994,10 @@ tgui_recalcmapping(tgui_t *tgui)
             case 0x4: /*64k at A0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                 svga->banked_mask = 0xffff;
+                if (xga_active && (svga->xga != NULL)) {
+                    xga->on = 0;
+                    mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+                }
                 break;
             case 0x8: /*32k at B0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
