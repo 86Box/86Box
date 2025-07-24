@@ -25,6 +25,10 @@
 #define __USE_LARGEFILE64
 #include <sys/types.h>
 
+#if (defined(__HAIKU__) || defined(__unix__) || defined(__APPLE__)) && !defined(__linux__)
+#    define off64_t  off_t
+#endif
+
 #ifdef MAKECRCH
 #  include <stdio.h>
 #  ifndef DYNAMIC_CRC_TABLE
