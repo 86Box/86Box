@@ -597,7 +597,7 @@ MediaMenu::cdromMount(int i, int dir, const QString &arg)
     else {
         filename = QFileDialog::getOpenFileName(parentWidget, QString(),
                                                 QString(),
-            tr("CD-ROM images") % util::DlgFilter({ "iso", "cue" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+            tr("CD-ROM images") % util::DlgFilter({ "iso", "cue", "mds" }) % tr("All files") % util::DlgFilter({ "*" }, true));
     }
 
     if (filename.isEmpty())
