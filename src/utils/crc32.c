@@ -244,6 +244,44 @@ static void once(once_t *state, void (*init)(void)) {
 static once_t made = ONCE_INIT;
 
 /*
+  Return a(x) multiplied by b(x) modulo p(x), where p(x) is the CRC polynomial,
+  reflected. For speed, this requires that a not be zero.
+ */
+local crc_t multmodp(crc_t a, crc_t b) {
+    crc_t m, p;
+
+    m = (crc_t)1 << 31;
+    p = 0;
+    for (;;) {
+        if (a & m) {
+            p ^= b;
+            if ((a & (m - 1)) == 0)
+                break;
+        }
+        m >>= 1;
+        b = b & 1 ? (b >> 1) ^ POLY : b >> 1;
+    }
+    return p;
+}
+
+/*
+  Return x^(n * 2^k) modulo p(x). Requires that x2n_table[] has been
+  initialized.
+ */
+local crc_t x2nmodp(z_off64_t n, unsigned k) {
+    crc_t p;
+
+    p = (z_crc_t)1 << 31;           /* x^0 == 1 */
+    while (n) {
+        if (n & 1)
+            p = multmodp(x2n_table[k & 31], p);
+        n >>= 1;
+        k++;
+    }
+    return p;
+}
+
+/*
   Generate tables for a byte-wise 32-bit CRC calculation on the polynomial:
   x^32+x^26+x^23+x^22+x^16+x^12+x^11+x^10+x^8+x^7+x^5+x^4+x^2+x+1.
 
