@@ -1984,14 +1984,22 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 fseek(fp, mds_trk_block.footer_offs + (ff * sizeof(mds_footer_t)), SEEK_SET);
                 fread(&mds_footer, 1, sizeof(mds_footer_t), fp);
 
-                wchar_t wfn[2048] = { 0 };
-                char    fn[2048] = { 0 };
+                uint16_t wfn[2048] = { 0 };
+                char     fn[2048] = { 0 };
                 fseek(fp, mds_footer.fn_offs, SEEK_SET);
                 if (mds_footer.fn_is_wide) {
-                    fgetws(wfn, 256, fp);
+                    for (int i = 0; i < 256; i++) {
+                        fread(&wfn[i], 1, 2, fp);
+                        if (wfn[i] == 0x0000)
+                            break;
+                    }
                     wcstombs(fn, wfn, 256);
-                } else
-                    fgets(fn, 512, fp);
+                } else  for (int i = 0; i < 512; i++) {
+                    fread(&fn[i], 1, 1, fp);
+                    if (fn[i] == 0x00)
+                        break;
+                }
+
                 if (!stricmp(fn, "*.mdf")) {
                     strcpy(fn, mdsfile);
                     fn[strlen(mdsfile) - 3] = 'm';
