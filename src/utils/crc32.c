@@ -21,6 +21,7 @@
  */
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/types.h>
 
 #ifdef MAKECRCH
 #  include <stdio.h>
