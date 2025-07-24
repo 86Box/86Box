@@ -540,10 +540,10 @@ static crc_t multmodp(crc_t a, crc_t b) {
   Return x^(n * 2^k) modulo p(x). Requires that x2n_table[] has been
   initialized.
  */
-static crc_t x2nmodp(z_off64_t n, unsigned k) {
+static crc_t x2nmodp(off64_t n, unsigned k) {
     crc_t p;
 
-    p = (z_crc_t)1 << 31;           /* x^0 == 1 */
+    p = (crc_t)1 << 31;           /* x^0 == 1 */
     while (n) {
         if (n & 1)
             p = multmodp(x2n_table[k & 31], p);
