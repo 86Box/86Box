@@ -1817,6 +1817,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
     int            last_t                        = -1;
     int            error;
     char           pathname[MAX_FILENAME_LENGTH];
+    char           ofn[2048]                     = { 0 };
 
     mds_hdr_t             mds_hdr             = { 0 };
     mds_sess_block_t      mds_sess_block      = { 0 };
@@ -1964,8 +1965,6 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             last_t           = mds_trk_block.point;
             ct               = image_insert_track(img, mds_sess_block.sess_id, mds_trk_block.point);
 
-            tf = NULL;
-
             if (img->is_dvd) {
                 /* DVD images have no extra block - the extra block offset is the track length. */
                 memset(&mds_trk_ex_block, 0x00, sizeof(mds_trk_ex_block_t));
@@ -2006,7 +2005,10 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 else
                     strcpy(filename, fn);
 
-                tf = index_file_init(img->dev->id, filename, &error, &is_viso);
+                if (strcmp(ofn, filename) != 0) {
+                    tf = index_file_init(img->dev->id, filename, &error, &is_viso);
+                    strcpy(ofn, filename);
+                }
             }
 
             ct->sector_size = mds_trk_block.sector_len;
