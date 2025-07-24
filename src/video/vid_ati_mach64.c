@@ -37,6 +37,7 @@
 #include <86box/video.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/vid_ati_eeprom.h>
@@ -586,6 +587,7 @@ void
 mach64_updatemapping(mach64_t *mach64)
 {
     svga_t *svga = &mach64->svga;
+    xga_t *xga   = (xga_t *) svga->xga;
 
     if (mach64->pci && !(mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)) {
         mach64_log("Update mapping - PCI disabled\n");
@@ -611,6 +613,8 @@ mach64_updatemapping(mach64_t *mach64)
             mem_mapping_set_p(&svga->mapping, mach64);
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
             svga->banked_mask = 0xffff;
+            if (xga_active && (svga->xga != NULL))
+                xga->on = 0;
             break;
         case 0x8: /*32k at B0000*/
             mem_mapping_set_handler(&svga->mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);

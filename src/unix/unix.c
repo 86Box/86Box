@@ -64,8 +64,8 @@ int             fixed_size_x = 640;
 int             fixed_size_y = 480;
 extern int      title_set;
 extern wchar_t  sdl_win_title[512];
-plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
-joystick_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
+plat_joystick_state_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
+joystick_state_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
 int             joysticks_present;
 SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
@@ -947,6 +947,11 @@ void (*f_rl_callback_handler_remove)(void) = NULL;
 #else
 #    define LIBEDIT_LIBRARY "libedit.so"
 #endif
+
+void ui_sb_update_icon_wp(int tag, int state)
+{
+    /* No-op */
+}
 
 uint32_t
 timer_onesec(uint32_t interval, UNUSED(void *param))

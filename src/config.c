@@ -795,6 +795,33 @@ load_ports(void)
 #endif
 }
 
+static int
+load_image_file(char *dest, char *p, uint8_t *ui_wp)
+{
+    char *prefix = "";
+    int   ret    = 0;
+
+    if (strstr(p, "wp://") == p) {
+       p += 5;
+       prefix = "wp://";
+       if (ui_wp != NULL)
+           *ui_wp = 1;
+    } else if ((ui_wp != NULL) && *ui_wp)
+       prefix = "wp://";
+
+    if (path_abs(p)) {
+        if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
+            ret = 1;
+        else
+            snprintf(dest, MAX_IMAGE_PATH_LEN, "%s%s", prefix, p);
+    } else
+        snprintf(dest, MAX_IMAGE_PATH_LEN, "%s%s%s%s", prefix, usr_path, path_get_slash(usr_path), p);
+
+    path_normalize(dest);
+
+    return ret;
+}
+
 /* Load "Storage Controllers" section. */
 static void
 load_storage_controllers(void)
@@ -888,20 +915,17 @@ load_storage_controllers(void)
     else
         cassette_enable = 0;
 
+    cassette_ui_writeprot = !!ini_section_get_int(cat, "cassette_writeprot", 0);
+    ini_section_delete_var(cat, "cassette_writeprot");
+
     p = ini_section_get_string(cat, "cassette_file", "");
 
     if (!strcmp(p, usr_path))
         p[0] = 0x00;
 
     if (p[0] != 0x00) {
-        if (path_abs(p)) {
-            if (strlen(p) > 511)
-                fatal("Configuration: Length of cassette_file is more than 511\n");
-            else
-                strncpy(cassette_fname, p, 511);
-        } else
-            path_append_filename(cassette_fname, usr_path, p);
-        path_normalize(cassette_fname);
+        if (load_image_file(cassette_fname, p, (uint8_t *) &cassette_ui_writeprot))
+            fatal("Configuration: Length of cassette_file is more than 511\n");
     }
 
     p = ini_section_get_string(cat, "cassette_mode", "load");
@@ -915,16 +939,9 @@ load_storage_controllers(void)
         sprintf(temp, "cassette_image_history_%02i", i + 1);
         p = ini_section_get_string(cat, temp, NULL);
         if (p) {
-            if (path_abs(p)) {
-                if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
-                    fatal("Configuration: Length of cassette_image_history_%02i is more "
-                          "than %i\n", i + 1, MAX_IMAGE_PATH_LEN - 1);
-                else
-                    snprintf(cassette_image_history[i], MAX_IMAGE_PATH_LEN, "%s", p);
-            } else
-                snprintf(cassette_image_history[i], MAX_IMAGE_PATH_LEN, "%s%s%s", usr_path,
-                         path_get_slash(usr_path), p);
-            path_normalize(cassette_image_history[i]);
+            if (load_image_file(cassette_image_history[i], p, NULL))
+                fatal("Configuration: Length of cassette_image_history_%02i is more "
+                      "than %i\n", i + 1, MAX_IMAGE_PATH_LEN - 1);
         }
     }
     cassette_pos          = ini_section_get_int(cat, "cassette_position", 0);
@@ -939,9 +956,6 @@ load_storage_controllers(void)
     cassette_pcm          = ini_section_get_int(cat, "cassette_pcm", 0);
     if (!cassette_pcm)
         ini_section_delete_var(cat, "cassette_pcm");
-    cassette_ui_writeprot = !!ini_section_get_int(cat, "cassette_writeprot", 0);
-    if (!cassette_ui_writeprot)
-        ini_section_delete_var(cat, "cassette_writeprot");
 
     if (!cassette_enable) {
         ini_section_delete_var(cat, "cassette_file");
@@ -1227,6 +1241,11 @@ load_floppy_and_cdrom_drives(void)
         if (fdd_get_type(c) > 13)
             fdd_set_type(c, 13);
 
+        sprintf(temp, "fdd_%02i_writeprot", c + 1);
+        ui_writeprot[c] = !!ini_section_get_int(cat, temp, 0);
+        if (ui_writeprot[c] == 0)
+            ini_section_delete_var(cat, temp);
+
         sprintf(temp, "fdd_%02i_fn", c + 1);
         p = ini_section_get_string(cat, temp, "");
 
@@ -1234,22 +1253,14 @@ load_floppy_and_cdrom_drives(void)
             p[0] = 0x00;
 
         if (p[0] != 0x00) {
-            if (path_abs(p)) {
-                if (strlen(p) > 511)
-                    fatal("Configuration: Length of fdd_%02i_fn is more than 511\n", c + 1);
-                else
-                    strncpy(floppyfns[c], p, 511);
-            } else
-                path_append_filename(floppyfns[c], usr_path, p);
-            path_normalize(floppyfns[c]);
+            if (load_image_file(floppyfns[c], p, (uint8_t *) &(ui_writeprot[c])))
+                fatal("Configuration: Length of fdd_%02i_fn is more than 511\n", c + 1);
         }
 
 #if defined(ENABLE_CONFIG_LOG) && (ENABLE_CONFIG_LOG == 2)
         if (*p != '\0')
             config_log("Floppy%d: %ls\n", c, floppyfns[c]);
 #endif
-        sprintf(temp, "fdd_%02i_writeprot", c + 1);
-        ui_writeprot[c] = !!ini_section_get_int(cat, temp, 0);
         sprintf(temp, "fdd_%02i_turbo", c + 1);
         fdd_set_turbo(c, !!ini_section_get_int(cat, temp, 0));
         sprintf(temp, "fdd_%02i_check_bpb", c + 1);
@@ -1265,10 +1276,6 @@ load_floppy_and_cdrom_drives(void)
             sprintf(temp, "fdd_%02i_fn", c + 1);
             ini_section_delete_var(cat, temp);
         }
-        if (ui_writeprot[c] == 0) {
-            sprintf(temp, "fdd_%02i_writeprot", c + 1);
-            ini_section_delete_var(cat, temp);
-        }
         if (fdd_get_turbo(c) == 0) {
             sprintf(temp, "fdd_%02i_turbo", c + 1);
             ini_section_delete_var(cat, temp);
@@ -1282,16 +1289,9 @@ load_floppy_and_cdrom_drives(void)
             sprintf(temp, "fdd_%02i_image_history_%02i", c + 1, i + 1);
             p = ini_section_get_string(cat, temp, NULL);
             if (p) {
-                if (path_abs(p)) {
-                    if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
-                        fatal("Configuration: Length of fdd_%02i_image_history_%02i is more "
-                              "than %i\n", c + 1, i + 1, MAX_IMAGE_PATH_LEN - 1);
-                    else
-                        snprintf(fdd_image_history[c][i], MAX_IMAGE_PATH_LEN, "%s", p);
-                } else
-                    snprintf(fdd_image_history[c][i], MAX_IMAGE_PATH_LEN, "%s%s%s", usr_path,
-                             path_get_slash(usr_path), p);
-                path_normalize(fdd_image_history[c][i]);
+                if (load_image_file(fdd_image_history[c][i], p, NULL))
+                    fatal("Configuration: Length of fdd_%02i_image_history_%02i is more "
+                          "than %i\n", c + 1, i + 1, MAX_IMAGE_PATH_LEN - 1);
             }
         }
     }
@@ -1517,19 +1517,17 @@ load_other_removable_devices(void)
 
         sprintf(temp, "zip_%02i_image_path", c + 1);
         p = ini_section_get_string(cat, temp, "");
+        
+        sprintf(temp, "zip_%02i_writeprot", c + 1);
+        zip_drives[c].read_only =  ini_section_get_int(cat, temp, 0);
+        ini_section_delete_var(cat, temp);
 
         if (!strcmp(p, usr_path))
             p[0] = 0x00;
 
         if (p[0] != 0x00) {
-            if (path_abs(p)) {
-                if (strlen(p) > 511)
-                    fatal("Configuration: Length of zip_%02i_image_path is more than 511\n", c + 1);
-                else
-                    strncpy(zip_drives[c].image_path, p, 511);
-            } else
-                path_append_filename(zip_drives[c].image_path, usr_path, p);
-            path_normalize(zip_drives[c].image_path);
+            if (load_image_file(zip_drives[c].image_path, p, &(zip_drives[c].read_only)))
+                fatal("Configuration: Length of zip_%02i_image_path is more than 511\n", c + 1);
         }
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
@@ -1537,16 +1535,9 @@ load_other_removable_devices(void)
             sprintf(temp, "zip_%02i_image_history_%02i", c + 1, i + 1);
             p = ini_section_get_string(cat, temp, NULL);
             if (p) {
-                if (path_abs(p)) {
-                    if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
-                        fatal("Configuration: Length of zip_%02i_image_history_%02i is more than %i\n",
-                              c + 1, i + 1, MAX_IMAGE_PATH_LEN - 1);
-                    else
-                        snprintf(zip_drives[c].image_history[i], MAX_IMAGE_PATH_LEN, "%s", p);
-                } else
-                    snprintf(zip_drives[c].image_history[i], MAX_IMAGE_PATH_LEN, "%s%s%s", usr_path,
-                             path_get_slash(usr_path), p);
-                path_normalize(zip_drives[c].image_history[i]);
+                if (load_image_file(zip_drives[c].image_history[i], p, NULL))
+                    fatal("Configuration: Length of zip_%02i_image_history_%02i is more than %i\n",
+                          c + 1, i + 1, MAX_IMAGE_PATH_LEN - 1);
             }
         }
 
@@ -1630,18 +1621,16 @@ load_other_removable_devices(void)
         sprintf(temp, "mo_%02i_image_path", c + 1);
         p = ini_section_get_string(cat, temp, "");
 
+        sprintf(temp, "mo_%02i_writeprot", c + 1);
+        mo_drives[c].read_only = ini_section_get_int(cat, temp, 0);
+        ini_section_delete_var(cat, temp);
+
         if (!strcmp(p, usr_path))
             p[0] = 0x00;
 
         if (p[0] != 0x00) {
-            if (path_abs(p)) {
-                if (strlen(p) > 511)
-                    fatal("Configuration: Length of mo_%02i_image_path is more than 511\n", c + 1);
-                else
-                    strncpy(mo_drives[c].image_path, p, 511);
-            } else
-                path_append_filename(mo_drives[c].image_path, usr_path, p);
-            path_normalize(mo_drives[c].image_path);
+            if (load_image_file(mo_drives[c].image_path, p, &(mo_drives[c].read_only)))
+                fatal("Configuration: Length of mo_%02i_image_path is more than 511\n", c + 1);
         }
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
@@ -1649,16 +1638,9 @@ load_other_removable_devices(void)
             sprintf(temp, "mo_%02i_image_history_%02i", c + 1, i + 1);
             p = ini_section_get_string(cat, temp, NULL);
             if (p) {
-                if (path_abs(p)) {
-                    if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
-                        fatal("Configuration: Length of mo_%02i_image_history_%02i is more than %i\n",
-                              c + 1, i + 1, MAX_IMAGE_PATH_LEN - 1);
-                    else
-                        snprintf(mo_drives[c].image_history[i], MAX_IMAGE_PATH_LEN, "%s", p);
-                } else
-                    snprintf(mo_drives[c].image_history[i], MAX_IMAGE_PATH_LEN, "%s%s%s", usr_path,
-                             path_get_slash(usr_path), p);
-                path_normalize(mo_drives[c].image_history[i]);
+                if (load_image_file(mo_drives[c].image_history[i], p, NULL))
+                    fatal("Configuration: Length of mo_%02i_image_history_%02i is more than %i\n",
+                          c + 1, i + 1, MAX_IMAGE_PATH_LEN - 1);
             }
         }
 
@@ -2573,6 +2555,27 @@ save_keybinds(void)
     ini_delete_section_if_empty(config, cat);
 }
 
+static void
+save_image_file(char *cat, char *var, char *src)
+{
+    char  temp[2048] = { 0 };
+    char *prefix     = "";
+
+    path_normalize(src);
+
+    if (strstr(src, "wp://") == src) {
+        src    += 5;
+        prefix  = "wp://";
+    }
+
+    if (!strnicmp(src, usr_path, strlen(usr_path)))
+        sprintf(temp, "%s%s", prefix, &src[strlen(usr_path)]);
+    else
+        sprintf(temp, "%s%s", prefix, src);
+
+    ini_section_set_string(cat, var, temp);
+}
+
 /* Save "Storage Controllers" section. */
 static void
 save_storage_controllers(void)
@@ -2634,13 +2637,8 @@ save_storage_controllers(void)
 
     if (strlen(cassette_fname) == 0)
         ini_section_delete_var(cat, "cassette_file");
-    else {
-        path_normalize(cassette_fname);
-        if (!strnicmp(cassette_fname, usr_path, strlen(usr_path)))
-            ini_section_set_string(cat, "cassette_file", &cassette_fname[strlen(usr_path)]);
-        else
-            ini_section_set_string(cat, "cassette_file", cassette_fname);
-    }
+    else
+        save_image_file(cat, "cassette_file", cassette_fname);
 
     if (!strcmp(cassette_mode, "load"))
         ini_section_delete_var(cat, "cassette_mode");
@@ -2651,13 +2649,8 @@ save_storage_controllers(void)
         sprintf(temp, "cassette_image_history_%02i", i + 1);
         if ((cassette_image_history[i] == 0) || strlen(cassette_image_history[i]) == 0)
             ini_section_delete_var(cat, temp);
-        else {
-            path_normalize(cassette_image_history[i]);
-            if (!strnicmp(cassette_image_history[i], usr_path, strlen(usr_path)))
-                ini_section_set_string(cat, temp, &cassette_image_history[i][strlen(usr_path)]);
-            else
-                ini_section_set_string(cat, temp, cassette_image_history[i]);
-        }
+        else
+            save_image_file(cat, temp, cassette_image_history[i]);
     }
 
     if (cassette_pos == 0)
@@ -2680,10 +2673,7 @@ save_storage_controllers(void)
     else
         ini_section_set_int(cat, "cassette_pcm", cassette_pcm);
 
-    if (cassette_ui_writeprot == 0)
-        ini_section_delete_var(cat, "cassette_writeprot");
-    else
-        ini_section_set_int(cat, "cassette_writeprot", cassette_ui_writeprot);
+    ini_section_delete_var(cat, "cassette_writeprot");
 
     for (c = 0; c < 2; c++) {
         sprintf(temp, "cartridge_%02i_fn", c + 1);
@@ -2938,19 +2928,11 @@ save_floppy_and_cdrom_drives(void)
 
             sprintf(temp, "fdd_%02i_writeprot", c + 1);
             ini_section_delete_var(cat, temp);
-        } else {
-            path_normalize(floppyfns[c]);
-            if (!strnicmp(floppyfns[c], usr_path, strlen(usr_path)))
-                ini_section_set_string(cat, temp, &floppyfns[c][strlen(usr_path)]);
-            else
-                ini_section_set_string(cat, temp, floppyfns[c]);
-        }
+        } else
+            save_image_file(cat, temp, floppyfns[c]);
 
         sprintf(temp, "fdd_%02i_writeprot", c + 1);
-        if (ui_writeprot[c] == 0)
-            ini_section_delete_var(cat, temp);
-        else
-            ini_section_set_int(cat, temp, ui_writeprot[c]);
+        ini_section_delete_var(cat, temp);
 
         sprintf(temp, "fdd_%02i_turbo", c + 1);
         if (fdd_get_turbo(c) == 0)
@@ -2968,13 +2950,8 @@ save_floppy_and_cdrom_drives(void)
             sprintf(temp, "fdd_%02i_image_history_%02i", c + 1, i + 1);
             if ((fdd_image_history[c][i] == 0) || strlen(fdd_image_history[c][i]) == 0)
                 ini_section_delete_var(cat, temp);
-            else {
-                path_normalize(fdd_image_history[c][i]);
-                if (!strnicmp(fdd_image_history[c][i], usr_path, strlen(usr_path)))
-                    ini_section_set_string(cat, temp, &fdd_image_history[c][i][strlen(usr_path)]);
-                else
-                    ini_section_set_string(cat, temp, fdd_image_history[c][i]);
-            }
+            else
+                save_image_file(cat, temp, fdd_image_history[c][i]);
         }
     }
 
@@ -3090,6 +3067,9 @@ save_other_removable_devices(void)
         sprintf(temp, "zip_%02i_scsi_id", c + 1);
         ini_section_delete_var(cat, temp);
 
+        sprintf(temp, "zip_%02i_writeprot", c + 1);
+        ini_section_delete_var(cat, temp);
+
         sprintf(temp, "zip_%02i_scsi_location", c + 1);
         if (zip_drives[c].bus_type != ZIP_BUS_SCSI)
             ini_section_delete_var(cat, temp);
@@ -3102,25 +3082,15 @@ save_other_removable_devices(void)
         sprintf(temp, "zip_%02i_image_path", c + 1);
         if ((zip_drives[c].bus_type == 0) || (strlen(zip_drives[c].image_path) == 0))
             ini_section_delete_var(cat, temp);
-        else {
-            path_normalize(zip_drives[c].image_path);
-            if (!strnicmp(zip_drives[c].image_path, usr_path, strlen(usr_path)))
-                ini_section_set_string(cat, temp, &zip_drives[c].image_path[strlen(usr_path)]);
-            else
-                ini_section_set_string(cat, temp, zip_drives[c].image_path);
-        }
+        else
+            save_image_file(cat, temp, zip_drives[c].image_path);
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             sprintf(temp, "zip_%02i_image_history_%02i", c + 1, i + 1);
             if ((zip_drives[c].image_history[i] == 0) || strlen(zip_drives[c].image_history[i]) == 0)
                 ini_section_delete_var(cat, temp);
-            else {
-                path_normalize(zip_drives[c].image_history[i]);
-                if (!strnicmp(zip_drives[c].image_history[i], usr_path, strlen(usr_path)))
-                    ini_section_set_string(cat, temp, &zip_drives[c].image_history[i][strlen(usr_path)]);
-                else
-                    ini_section_set_string(cat, temp, zip_drives[c].image_history[i]);
-            }
+            else
+                save_image_file(cat, temp, zip_drives[c].image_history[i]);
         }
     }
 
@@ -3146,6 +3116,9 @@ save_other_removable_devices(void)
         sprintf(temp, "mo_%02i_scsi_id", c + 1);
         ini_section_delete_var(cat, temp);
 
+        sprintf(temp, "mo_%02i_writeprot", c + 1);
+        ini_section_delete_var(cat, temp);
+
         sprintf(temp, "mo_%02i_scsi_location", c + 1);
         if (mo_drives[c].bus_type != MO_BUS_SCSI)
             ini_section_delete_var(cat, temp);
@@ -3158,25 +3131,15 @@ save_other_removable_devices(void)
         sprintf(temp, "mo_%02i_image_path", c + 1);
         if ((mo_drives[c].bus_type == 0) || (strlen(mo_drives[c].image_path) == 0))
             ini_section_delete_var(cat, temp);
-        else {
-            path_normalize(mo_drives[c].image_path);
-            if (!strnicmp(mo_drives[c].image_path, usr_path, strlen(usr_path)))
-                ini_section_set_string(cat, temp, &mo_drives[c].image_path[strlen(usr_path)]);
-            else
-                ini_section_set_string(cat, temp, mo_drives[c].image_path);
-        }
+        else
+            save_image_file(cat, temp, mo_drives[c].image_path);
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             sprintf(temp, "mo_%02i_image_history_%02i", c + 1, i + 1);
             if ((mo_drives[c].image_history[i] == 0) || strlen(mo_drives[c].image_history[i]) == 0)
                 ini_section_delete_var(cat, temp);
-            else {
-                path_normalize(mo_drives[c].image_history[i]);
-                if (!strnicmp(mo_drives[c].image_history[i], usr_path, strlen(usr_path)))
-                    ini_section_set_string(cat, temp, &mo_drives[c].image_history[i][strlen(usr_path)]);
-                else
-                    ini_section_set_string(cat, temp, mo_drives[c].image_history[i]);
-            }
+            else
+                save_image_file(cat, temp, mo_drives[c].image_history[i]);
         }
     }
 

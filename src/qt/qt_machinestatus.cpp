@@ -91,6 +91,8 @@ struct PixmapSetEmptyActive {
     QPixmap read_write_active;
     QPixmap empty_write_active;
     QPixmap empty_read_write_active;
+    QPixmap wp;
+    QPixmap wp_active;
     void    load(const QIcon &icon);
 };
 struct Pixmaps {
@@ -168,6 +170,7 @@ struct StateEmptyActive {
     bool                    empty         = false;
     bool                    active        = false;
     bool                    write_active  = false;
+    bool                    wp            = false;
 
     void setActive(bool b)
     {
@@ -193,6 +196,14 @@ struct StateEmptyActive {
         empty = b;
         refresh();
     }
+    void setWriteProtected(bool b)
+    {
+        if (!label || b == wp)
+            return;
+
+        wp = b;
+        refresh();
+    }
     void refresh()
     {
         if (!label)
@@ -203,7 +214,9 @@ struct StateEmptyActive {
             else
                 label->setPixmap(write_active ? pixmaps->empty_write_active : (active ? pixmaps->empty_active : pixmaps->empty));
         } else {
-            if (active && write_active)
+            if (wp)
+                label->setPixmap(active ? pixmaps->wp_active : pixmaps->wp);
+            else if (active && write_active)
                 label->setPixmap(pixmaps->read_write_active);
             else
                 label->setPixmap(write_active ? pixmaps->write_active : (active ? pixmaps->active : pixmaps->normal));
@@ -241,6 +254,8 @@ void
 PixmapSetEmptyActive::load(const QIcon &icon)
 {
     normal                  = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, None);
+    wp                      = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteProtected);
+    wp_active               = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteProtectedActive);
     active                  = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Active);
     write_active            = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteActive);
     read_write_active       = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, ReadWriteActive);
@@ -454,16 +469,23 @@ MachineStatus::refreshEmptyIcons()
     if (!sbar_initialized)
         return;
 
-    for (size_t i = 0; i < FDD_NUM; ++i)
+    for (size_t i = 0; i < FDD_NUM; ++i) {
         d->fdd[i].setEmpty(machine_status.fdd[i].empty);
+        d->fdd[i].setWriteProtected(machine_status.fdd[i].write_prot);
+    }
     for (size_t i = 0; i < CDROM_NUM; ++i)
         d->cdrom[i].setEmpty(machine_status.cdrom[i].empty);
-    for (size_t i = 0; i < ZIP_NUM; i++)
+    for (size_t i = 0; i < ZIP_NUM; i++) {
         d->zip[i].setEmpty(machine_status.zip[i].empty);
-    for (size_t i = 0; i < MO_NUM; i++)
+        d->zip[i].setWriteProtected(machine_status.zip[i].write_prot);
+    }
+    for (size_t i = 0; i < MO_NUM; i++) {
         d->mo[i].setEmpty(machine_status.mo[i].empty);
+        d->mo[i].setWriteProtected(machine_status.mo[i].write_prot);
+    }
 
     d->cassette.setEmpty(machine_status.cassette.empty);
+    d->cassette.setWriteProtected(machine_status.cassette.write_prot);
 
     for (size_t i = 0; i < NET_CARD_MAX; i++)
         d->net[i].setEmpty(machine_status.net[i].empty);
@@ -595,6 +617,12 @@ MachineStatus::refresh(QStatusBar *sbar)
     if (cassette_enable) {
         d->cassette.label = std::make_unique<ClickableLabel>();
         d->cassette.setEmpty(QString(cassette_fname).isEmpty());
+        if (QString(cassette_fname).isEmpty())
+            d->cassette.setWriteProtected(false);
+        else if (QString(cassette_fname).left(5) == "wp://")
+            d->cassette.setWriteProtected(true);
+        else
+            d->cassette.setWriteProtected(cassette_ui_writeprot);
         d->cassette.refresh();
         connect((ClickableLabel *) d->cassette.label.get(), &ClickableLabel::clicked, [](QPoint pos) {
             MediaMenu::ptr->cassetteMenu->popup(pos - QPoint(0, MediaMenu::ptr->cassetteMenu->sizeHint().height()));
@@ -635,6 +663,12 @@ MachineStatus::refresh(QStatusBar *sbar)
         }
         d->fdd[i].label = std::make_unique<ClickableLabel>();
         d->fdd[i].setEmpty(QString(floppyfns[i]).isEmpty());
+        if (QString(floppyfns[i]).isEmpty())
+            d->fdd[i].setWriteProtected(false);
+        else if (QString(floppyfns[i]).left(5) == "wp://")
+            d->fdd[i].setWriteProtected(true);
+        else
+            d->fdd[i].setWriteProtected(ui_writeprot[i]);
         d->fdd[i].setActive(false);
         d->fdd[i].setWriteActive(false);
         d->fdd[i].refresh();
@@ -669,6 +703,12 @@ MachineStatus::refresh(QStatusBar *sbar)
     iterateZIP([this, sbar](int i) {
         d->zip[i].label = std::make_unique<ClickableLabel>();
         d->zip[i].setEmpty(QString(zip_drives[i].image_path).isEmpty());
+        if (QString(zip_drives[i].image_path).isEmpty())
+            d->zip[i].setWriteProtected(false);
+        else if (QString(zip_drives[i].image_path).left(5) == "wp://")
+            d->zip[i].setWriteProtected(true);
+        else
+            d->zip[i].setWriteProtected(zip_drives[i].read_only);
         d->zip[i].setActive(false);
         d->zip[i].setWriteActive(false);
         d->zip[i].refresh();
@@ -686,6 +726,12 @@ MachineStatus::refresh(QStatusBar *sbar)
     iterateMO([this, sbar](int i) {
         d->mo[i].label = std::make_unique<ClickableLabel>();
         d->mo[i].setEmpty(QString(mo_drives[i].image_path).isEmpty());
+        if (QString(zip_drives[i].image_path).isEmpty())
+            d->mo[i].setWriteProtected(false);
+        else if (QString(zip_drives[i].image_path).left(5) == "wp://")
+            d->mo[i].setWriteProtected(true);
+        else
+            d->mo[i].setWriteProtected(zip_drives[i].read_only);
         d->mo[i].setActive(false);
         d->mo[i].setWriteActive(false);
         d->mo[i].refresh();

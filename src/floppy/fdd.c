@@ -459,11 +459,17 @@ fdd_load(int drive, char *fn)
     int         size;
     const char *p;
     FILE       *fp;
+    int         offs = 0;
 
     fdd_log("FDD: loading drive %d with '%s'\n", drive, fn);
 
     if (!fn)
         return;
+    if (strstr(fn, "wp://") == fn) {
+        offs = 5;
+        ui_writeprot[drive] = 1;
+    }
+    fn += offs;
     p = path_get_extension(fn);
     if (!p)
         return;
@@ -476,13 +482,14 @@ fdd_load(int drive, char *fn)
         while (loaders[c].ext) {
             if (!strcasecmp(p, (char *) loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1)) {
                 driveloaders[drive] = c;
-                if (floppyfns[drive] != fn)
-                    strcpy(floppyfns[drive], fn);
+                if (floppyfns[drive] != (fn - offs))
+                    strcpy(floppyfns[drive], fn - offs);
                 d86f_setup(drive);
-                loaders[c].load(drive, floppyfns[drive]);
+                loaders[c].load(drive, floppyfns[drive] + offs);
                 drive_empty[drive] = 0;
                 fdd_forced_seek(drive, 0);
                 fdd_changed[drive] = 1;
+                ui_sb_update_icon_wp(SB_FLOPPY | drive, ui_writeprot[drive]);
                 return;
             }
             c++;

@@ -30,6 +30,7 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/video.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
@@ -85,6 +86,7 @@ paradise_in(uint16_t addr, void *priv)
 {
     paradise_t *paradise = (paradise_t *) priv;
     svga_t     *svga     = &paradise->svga;
+    uint8_t     max_sr   = (paradise->type >= WD90C30) ? 0x15 : 0x12;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
         addr ^= 0x60;
@@ -94,7 +96,7 @@ paradise_in(uint16_t addr, void *priv)
             if (svga->seqaddr > 7) {
                 if (paradise->type < WD90C11 || svga->seqregs[6] != 0x48)
                     return 0xff;
-                if (svga->seqaddr > 0x12)
+                if (svga->seqaddr > max_sr)
                     return 0xff;
                 return svga->seqregs[svga->seqaddr & 0x1f];
             }
@@ -142,6 +144,7 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
 {
     paradise_t *paradise = (paradise_t *) priv;
     svga_t     *svga     = &paradise->svga;
+    xga_t      *xga      = (xga_t *) svga->xga;
     uint8_t     old;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
@@ -187,6 +190,10 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
                             case 0x4: /*64k at A0000*/
                                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                                 svga->banked_mask = 0xffff;
+                                if (xga_active && (svga->xga != NULL)) {
+                                    xga->on = 0;
+                                    mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+                                }
                                 break;
                             case 0x8: /*32k at B0000*/
                                 mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
@@ -342,12 +349,12 @@ paradise_remap(paradise_t *paradise)
             paradise->write_bank[3] = paradise->write_bank[2] + 0x8000;
        } else if ((svga->gdcreg[6] & 0x0c) == 0x04) {
             paradise->read_bank[0] = svga->gdcreg[0x0a] << 12;
-            paradise->read_bank[1] = svga->gdcreg[9] << 12;
+            paradise->read_bank[1] = (svga->gdcreg[9] << 12) + 0x8000;
             paradise->read_bank[2] = paradise->read_bank[0];
             paradise->read_bank[3] = paradise->read_bank[1];
 
             paradise->write_bank[0] = svga->gdcreg[0x0a] << 12;
-            paradise->write_bank[1] = svga->gdcreg[9] << 12;
+            paradise->write_bank[1] = (svga->gdcreg[9] << 12) + 0x8000;
             paradise->write_bank[2] = paradise->write_bank[0];
             paradise->write_bank[3] = paradise->write_bank[1];
        } else {
@@ -505,11 +512,11 @@ paradise_recalctimings(svga_t *svga)
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
             if ((svga->bpp >= 8) && !svga->lowres) {
                 svga->render = svga_render_8bpp_highres;
-                if (paradise->type != WD90C11)
+                if (paradise->type < WD90C11)
                     svga->vram_display_mask = (svga->crtc[0x2f] & 0x02) ? 0x3ffff : paradise->vram_mask;
             }
         }
-        if (paradise->type == WD90C11)  switch (svga->crtc[0x2f] & 0x60) {
+        if (paradise->type >= WD90C11)  switch (svga->crtc[0x2f] & 0x60) {
             case 0x60: case 0x40:
                 svga->vram_display_mask = 0x3ffff;
                 break;
@@ -581,12 +588,11 @@ paradise_decode_addr(paradise_t *paradise, uint32_t addr, int write)
             break;
     }
 
-    if (memory_map_mode <= 1) {
-        if (write)
-            addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
-        else
-            addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
-    }
+    if (write)
+        addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
+    else
+        addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
+
 
     return addr;
 }
@@ -669,7 +675,7 @@ paradise_read(uint32_t addr, void *priv)
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
 
-    addr = paradise_decode_addr(paradise, addr, 1);
+    addr = paradise_decode_addr(paradise, addr, 0);
     if (addr == 0xffffffff)
         return 0xff;
 
@@ -704,7 +710,7 @@ paradise_readw(uint32_t addr, void *priv)
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
 
-    addr = paradise_decode_addr(paradise, addr, 1);
+    addr = paradise_decode_addr(paradise, addr, 0);
     if (addr == 0xffffffff)
         return 0xffff;
 

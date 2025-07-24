@@ -1703,6 +1703,7 @@ static void
 gd543x_recalc_mapping(gd54xx_t *gd54xx)
 {
     svga_t  *svga = &gd54xx->svga;
+    xga_t   *xga  = (xga_t *) svga->xga;
     uint32_t base;
     uint32_t size;
 
@@ -1729,6 +1730,10 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
             case 0x4: /*64k at A0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                 svga->banked_mask = 0xffff;
+                if (xga_active && (svga->xga != NULL)) {
+                    xga->on = 0;
+                    mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+                }
                 break;
             case 0x8: /*32k at B0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);

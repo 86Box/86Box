@@ -67,6 +67,7 @@ extern void     ui_sb_update_tip(int meaning);
 extern void     ui_sb_update_icon(int tag, int active);
 extern void     ui_sb_update_icon_write(int tag, int write);
 extern void     ui_sb_update_icon_state(int tag, int state);
+extern void     ui_sb_update_icon_wp(int tag, int state);
 extern void     ui_sb_set_text_w(wchar_t *wstr);
 extern void     ui_sb_set_text(char *str);
 extern void     ui_sb_bugui(char *str);

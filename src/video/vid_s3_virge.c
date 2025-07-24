@@ -37,6 +37,7 @@
 #include <86box/video.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
@@ -1036,6 +1037,7 @@ static void
 s3_virge_updatemapping(virge_t *virge)
 {
     svga_t *svga = &virge->svga;
+    xga_t *xga   = (xga_t *) svga->xga;
 
     if (!(virge->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)) {
         mem_mapping_disable(&svga->mapping);
@@ -1053,6 +1055,10 @@ s3_virge_updatemapping(virge_t *virge)
         case 0x4: /*64k at A0000*/
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
             svga->banked_mask = 0xffff;
+            if (xga_active && (svga->xga != NULL)) {
+                xga->on = 0;
+                mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+            }
             break;
         case 0x8: /*32k at B0000*/
             mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
