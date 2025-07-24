@@ -21,6 +21,8 @@
  */
 #include <stdint.h>
 #include <stdlib.h>
+
+#define __USE_LARGEFILE64
 #include <sys/types.h>
 
 #ifdef MAKECRCH
