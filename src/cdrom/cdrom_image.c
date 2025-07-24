@@ -19,7 +19,6 @@
 #define __STDC_FORMAT_MACROS
 #include <ctype.h>
 #include <inttypes.h>
-// #define ENABLE_IMAGE_LOG 1
 #ifdef ENABLE_IMAGE_LOG
 #include <stdarg.h>
 #endif
@@ -2045,7 +2044,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 ci->file = tf;
             } else {
                 ci->start = (mds_trk_block.pm * 60 * 75) + (mds_trk_block.ps * 75) + mds_trk_block.pf;
-                ci->type = INDEX_ZERO;
+                ci->type = INDEX_NONE;
                 ci->file_start = 0;
                 ci->file_length = 0;
                 ci->file = NULL;
@@ -2309,28 +2308,21 @@ image_read_sector(const void *local, uint8_t *buffer,
             if ((ret > 0) && (trk->attr & 0x04) && ((idx->type < INDEX_NORMAL) || !track_is_raw)) {
                 uint32_t crc;
 
-                if ((trk->mode == 2) && (trk->form == 1))
-                    crc = cdrom_crc32(0xffffffff, buf, 2072) ^ 0xffffffff;
-                else
+                if ((trk->mode == 2) && (trk->form == 1)) {
+                    crc = cdrom_crc32(0xffffffff, &(buf[16]), 2056) ^ 0xffffffff;
+                    memcpy(&(buf[2072]), &crc, 4);
+                } else {
                     crc = cdrom_crc32(0xffffffff, buf, 2064) ^ 0xffffffff;
+                    memcpy(&(buf[2064]), &crc, 4);
+                }
 
-                memcpy(&(buf[2064]), &crc, 4);
+                int m2f1 = (trk->mode == 2) && (trk->form == 1);
 
-#if 0
                 /* Compute ECC P code. */
-                cdrom_compute_ecc_block(dev, dev->p_parity, &(buf[12]), 86, 24, 2, 86);
-                memcpy(&(buf[2076]), dev->p_parity, 172);
+                cdrom_compute_ecc_block(dev, &(buf[2076]), &(buf[12]), 86, 24, 2, 86, m2f1);
 
                 /* Compute ECC Q code. */
-                cdrom_compute_ecc_block(dev, dev->q_parity, &(buf[12]), 52, 43, 86, 88);
-                memcpy(&(buf[2248]), dev->q_parity, 104);
-#else
-                /* Compute ECC P code. */
-                cdrom_compute_ecc_block(dev, &(buf[2076]), &(buf[12]), 86, 24, 2, 86);
-
-                /* Compute ECC Q code. */
-                cdrom_compute_ecc_block(dev, &(buf[2248]), &(buf[12]), 52, 43, 86, 88);
-#endif
+                cdrom_compute_ecc_block(dev, &(buf[2248]), &(buf[12]), 52, 43, 86, 88, m2f1);
             }
 
             if ((ret > 0) && ((idx->type < INDEX_NORMAL) || (trk->subch_type != 0x08))) {

@@ -295,7 +295,7 @@ msf_to_bcd(int *m, int *s, int *f)
 void
 cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, const uint8_t *data,
                         uint32_t major_count, uint32_t minor_count,
-                        uint32_t major_mult, uint32_t minor_inc)
+                        uint32_t major_mult, uint32_t minor_inc, int m2f1)
 {
     uint32_t size = major_count * minor_count;
 
@@ -307,6 +307,9 @@ cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, const uint8_t *data,
 
         for (uint32_t minor = 0; minor < minor_count; ++minor) {
             uint8_t temp = data[index];
+
+            if (m2f1 && (index < 4))
+                temp = 0x00;
 
             index += minor_inc;
 
@@ -323,14 +326,14 @@ cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, const uint8_t *data,
     }
 }
 
-extern void
-cdrom_generate_ecc_data(cdrom_t *dev, const uint8_t *data)
+static void
+cdrom_generate_ecc_data(cdrom_t *dev, const uint8_t *data, int m2f1)
 {
     /* Compute ECC P code. */
-    cdrom_compute_ecc_block(dev, dev->p_parity, data, 86, 24, 2, 86);
+    cdrom_compute_ecc_block(dev, dev->p_parity, data, 86, 24, 2, 86, m2f1);
 
     /* Compute ECC Q code. */
-    cdrom_compute_ecc_block(dev, dev->q_parity, data, 52, 43, 86, 88);
+    cdrom_compute_ecc_block(dev, dev->q_parity, data, 52, 43, 86, 88, m2f1);
 }
 
 static int
@@ -338,20 +341,22 @@ cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const 
 {
     int            ret = 1;
 
-    if (mode2 && (form == 1)) {
-        const uint32_t crc = cdrom_crc32(0xffffffff, b, 2072) ^ 0xffffffff;
+    if (!mode2 || (form != 1)) {
+        if (mode2 && (form == 1)) {
+            const uint32_t crc = cdrom_crc32(0xffffffff, &(b[16]), 2056) ^ 0xffffffff;
 
-        ret = ret && (crc == (*(uint32_t *) &(b[2072])));
-    } else if (!mode2) {
-        const uint32_t crc = cdrom_crc32(0xffffffff, b, 2064) ^ 0xffffffff;
+            ret = ret && (crc == (*(uint32_t *) &(b[2072])));
+        } else if (!mode2) {
+            const uint32_t crc = cdrom_crc32(0xffffffff, b, 2064) ^ 0xffffffff;
 
-        ret = ret && (crc == (*(uint32_t *) &(b[2064])));
+            ret = ret && (crc == (*(uint32_t *) &(b[2064])));
+        }
+
+        cdrom_generate_ecc_data(dev, &(b[12]), mode2 && (form == 1));
+
+        ret = ret && !memcmp(dev->p_parity, &(b[2076]), 172);
+        ret = ret && !memcmp(dev->q_parity, &(b[2248]), 104);
     }
-
-    cdrom_generate_ecc_data(dev, &(b[12]));
-
-    ret = ret && !memcmp(dev->p_parity, &(b[2076]), 172);
-    ret = ret && !memcmp(dev->q_parity, &(b[2248]), 104);
 
     return ret;
 }
@@ -379,7 +384,7 @@ read_data(cdrom_t *dev, const uint32_t lba, int check)
                 else if (dev->raw_buffer[dev->cur_buf ^ 1][0x0012] ==
                          dev->raw_buffer[dev->cur_buf ^ 1][0x0016])
                     form = ((dev->raw_buffer[dev->cur_buf ^ 1][0x0012] &
-                        0x20) >> 5) + 1;
+                            0x20) >> 5) + 1;
             } else if (dev->raw_buffer[dev->cur_buf ^ 1][0x000f] == 0x02)
                 dev->mode2 = 1;
 

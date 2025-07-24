@@ -459,7 +459,7 @@ extern void            cdrom_reload(const uint8_t id);
 
 extern void            cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, const uint8_t *data,
                                                uint32_t major_count, uint32_t minor_count,
-                                               uint32_t major_mult, uint32_t minor_inc);
+                                               uint32_t major_mult, uint32_t minor_inc, int m2f1);
 extern unsigned long   cdrom_crc32(unsigned long crc, const unsigned char *buf,
                                    size_t len);
 
