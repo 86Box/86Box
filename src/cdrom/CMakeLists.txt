@@ -18,6 +18,7 @@
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(SNDFILE REQUIRED IMPORTED_TARGET sndfile)
+pkg_check_modules(ICONV REQUIRED IMPORTED_TARGET iconv)
 
 add_library(cdrom OBJECT
     cdrom.c
@@ -25,6 +26,7 @@ add_library(cdrom OBJECT
     cdrom_image_viso.c
 )
 target_link_libraries(86Box PkgConfig::SNDFILE)
+target_link_libraries(86Box PkgConfig::ICONV)
 
 if(CDROM_MITSUMI)
     target_compile_definitions(cdrom PRIVATE USE_CDROM_MITSUMI)
@@ -33,5 +35,5 @@ endif()
 
 if (WIN32)
     # MSYS2
-    target_link_libraries(86Box -static ${SNDFILE_STATIC_LIBRARIES})
+    target_link_libraries(86Box -static ${ICONV_STATIC_LIBRARIES} ${SNDFILE_STATIC_LIBRARIES})
 endif()
