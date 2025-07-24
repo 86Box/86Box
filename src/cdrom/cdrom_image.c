@@ -29,6 +29,7 @@
 #include <wchar.h>
 #include <sys/stat.h>
 #ifndef _WIN32
+#    include <iconv.h>
 #    include <libgen.h>
 #endif
 #include <86box/86box.h>
@@ -1993,7 +1994,15 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                         if (wfn[i] == 0x0000)
                             break;
                     }
+#ifdef _WIN32
                     wcstombs(fn, wfn, 256);
+#else
+                    int src_len = 256;
+                    int dst_len = 512;
+                    iconv_t conv = iconv_open("UTF-8", "UTF-16");
+                    iconv(conv, (char *) wfn, &src_len, fn, &dst_len);
+                    iconv_close(conv);
+#endif
                 } else  for (int i = 0; i < 512; i++) {
                     fread(&fn[i], 1, 1, fp);
                     if (fn[i] == 0x00)
