@@ -61,6 +61,8 @@ private:
        8 bits per device (future-proofing) = 2048 bits. */
     uint64_t scsi_tracking[32] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+    bool mitsumi_tracking, mke_tracking;
 };
 
 #endif // QT_SETTINGS_BUS_TRACKING_HPP

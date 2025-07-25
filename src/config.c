@@ -898,6 +898,7 @@ load_storage_controllers(void)
         p = NULL;
     }
 
+    free_p = 0;
     p = ini_section_get_string(cat, "cdrom_interface", NULL);
     if (p != NULL)
         cdrom_interface_current = cdrom_interface_get_from_internal_name(p);
@@ -2967,7 +2968,7 @@ save_floppy_and_cdrom_drives(void)
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
         char *tn = cdrom_get_internal_name(cdrom_get_type(c));
-        if ((cdrom[c].bus_type == 0) || (cdrom[c].bus_type == CDROM_BUS_MITSUMI) ||
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].bus_type == CDROM_BUS_MITSUMI) || (cdrom[c].bus_type == CDROM_BUS_MKE) ||
             !strcmp(tn, "86cd"))
             ini_section_delete_var(cat, temp);
         else

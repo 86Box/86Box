@@ -114,6 +114,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     ui->setupUi(this);
 
     Harddrives::populateRemovableBuses(ui->comboBoxMOBus->model());
+    ui->comboBoxMOBus->model()->removeRows(3, ui->comboBoxMOBus->model()->rowCount() - 3);
     auto *model = ui->comboBoxMOType->model();
     for (uint32_t i = 0; i < KNOWN_MO_DRIVE_TYPES; i++) {
         Models::AddEntry(model, moDriveTypeName(i), i);
@@ -137,6 +138,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     ui->tableViewMO->setCurrentIndex(model->index(0, 0));
 
     Harddrives::populateRemovableBuses(ui->comboBoxZIPBus->model());
+    ui->comboBoxZIPBus->model()->removeRows(3, ui->comboBoxZIPBus->model()->rowCount() - 3);
 
     model = new QStandardItemModel(0, 2, this);
     ui->tableViewZIP->setModel(model);

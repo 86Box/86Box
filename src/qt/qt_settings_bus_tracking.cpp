@@ -23,10 +23,14 @@
 
 #include "86box/hdd.h"
 #include "86box/scsi.h"
+#include "86box/cdrom.h"
 #include "qt_settings_bus_tracking.hpp"
 
 SettingsBusTracking::SettingsBusTracking()
 {
+    mitsumi_tracking = false;
+    mke_tracking     = false;
+
     mfm_tracking  = 0x0000000000000000ULL;
     esdi_tracking = 0x0000000000000000ULL;
     xta_tracking  = 0x0000000000000000ULL;
@@ -204,6 +208,14 @@ QList<int> SettingsBusTracking::busChannelsInUse(const int bus) {
     int        element;
     uint64_t   mask;
     switch (bus) {
+        case CDROM_BUS_MKE:
+            if (mke_tracking)
+                channelsInUse.append(0);
+            break;
+        case CDROM_BUS_MITSUMI:
+            if (mitsumi_tracking)
+                channelsInUse.append(0);
+            break;
         case HDD_BUS_MFM:
             for (uint8_t i = 0; i < 32; i++) {
                 mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
@@ -263,6 +275,12 @@ SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channe
     uint64_t mask;
 
     switch (bus) {
+        case CDROM_BUS_MKE:
+            mke_tracking = set;
+            break;
+        case CDROM_BUS_MITSUMI:
+            mitsumi_tracking = set;
+            break;
         case HDD_BUS_MFM:
             mask = ((uint64_t) dev_type) << ((uint64_t) ((channel << 3) & 0x3f));
 
