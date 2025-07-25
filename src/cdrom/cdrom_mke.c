@@ -95,7 +95,7 @@ mke_t mke;
 
 #define mke_log(x, ...)
 
-#define CHECK_READY() { if (mke.cdrom_dev->image_path[0] == 0) { fifo8_push(&mke.errors_fifo, 0x03); return; } }
+#define CHECK_READY() { if (mke.cdrom_dev->cd_status == CD_STATUS_EMPTY) { fifo8_push(&mke.errors_fifo, 0x03); return; } }
 
 static uint8_t temp_buf[65536];
 
@@ -175,22 +175,23 @@ uint8_t mke_disc_capacity(cdrom_t *dev, unsigned char *b) {
 }
 
 uint8_t mke_cdrom_status(cdrom_t *dev, mke_t* mke) {
-    uint8_t status = 0;    
+    uint8_t status = 0;
     status |= 2;//this bit seems to always be set?
                 //bit 4 never set?
-    if(dev->cd_status == CD_STATUS_PLAYING)  status |= STAT_PLAY;
-    if(dev->cd_status == CD_STATUS_PAUSED)  status |= STAT_PLAY;    
-    if(fifo8_num_used(&mke->errors_fifo)) status |= 0x10;
+    if (dev->cd_status == CD_STATUS_PLAYING)  status |= STAT_PLAY;
+    if (dev->cd_status == CD_STATUS_PAUSED)  status |= STAT_PLAY;
+    if (fifo8_num_used(&mke->errors_fifo)) status |= 0x10;
     status |= 0x20;//always set?
     status |= STAT_TRAY;
-    if(dev->image_path[0] != 0) {
-        status |= STAT_DISK;        
+    if (mke->cdrom_dev->cd_status != CD_STATUS_EMPTY) {
+        status |= STAT_DISK;
         status |= STAT_READY;
     }
 
     return status;
 }
 
+uint8_t ver[10] = "CR-5630.75";
 void MKE_COMMAND(uint8_t value) {  
     uint16_t i,len;
     uint8_t x[12];//this is wasteful handling of buffers for compatibility, but will optimize later.
@@ -213,6 +214,7 @@ void MKE_COMMAND(uint8_t value) {
     }
 
     if (!mke.command_buffer_pending && mke.command_buffer[0]) {
+        mke.command_buffer_pending=7;
         switch (mke.command_buffer[0]) {
             case 06: {
                 fifo8_reset(&mke.info_fifo);
@@ -405,8 +407,7 @@ void MKE_COMMAND(uint8_t value) {
                 SB2CD Expects 12 bytes, but drive only returns 11.
                 */
                 fifo8_reset(&mke.info_fifo);
-                mke_log("CMD: READ VER\n");
-                uint8_t ver[10] = "CR-5631.02";
+                //pclog("CMD: READ VER\n");
                 fifo8_push_all(&mke.info_fifo, ver, 10);
                 fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
                 break;
@@ -450,18 +451,20 @@ void MKE_WRITE(uint16_t address, uint8_t value, void* priv) {
 uint8_t MKE_READ(uint16_t address, void* priv) {
     uint8_t x;
     if(mke.enable_register ) {
-        pclog("Ignore Read Unit %u\n",mke.enable_register);
+        //pclog("Ignore Read Unit %u\n",mke.enable_register);
         return 0;
     }
-    pclog("MKEREAD: 0x%X\n", address & 0xf);
+    //pclog("MKEREAD: 0x%X\n", address & 0xf);
     switch(address & 0xF) {        
         case 0://Info            
             if(mke.data_select) {
-                return fifo8_pop(&mke.data_fifo); //cdrom_fifo_read(&cdrom.data_fifo);
+                x = fifo8_num_used(&mke.data_fifo) ? fifo8_pop(&mke.data_fifo) : 0; //cdrom_fifo_read(&cdrom.data_fifo);
             } else {
-                return fifo8_pop(&mke.info_fifo);
+                x = fifo8_num_used(&mke.info_fifo) ? fifo8_pop(&mke.info_fifo) : 0;
                 //return cdrom_fifo_read(&cdrom.info_fifo);
-            }            
+            }
+            //pclog("Read FIFO 0x%X, %d\n", x, mke.data_select);
+            return x;
             break;
             case 1://Status 
             /*
@@ -506,17 +509,14 @@ mke_cdrom_insert(void *priv)
         return;
 
     if (dev->cdrom_dev->ops == NULL) {
-        dev->unit_attention = 0;
+        //dev->unit_attention = 0;
         dev->cdrom_dev->cd_status = CD_STATUS_EMPTY;
         fifo8_push(&dev->errors_fifo, 0x11);
-    } else if (dev->cdrom_dev->cd_status & CD_STATUS_TRANSITION) {
-        dev->unit_attention = 1;
+    } else {
+        //dev->unit_attention = 1;
         /* Turn off the medium changed status. */
         dev->cdrom_dev->cd_status &= ~CD_STATUS_TRANSITION;
         fifo8_push(&dev->errors_fifo, 0x11);
-    } else {
-        dev->unit_attention = 0;
-        dev->cdrom_dev->cd_status |= CD_STATUS_TRANSITION;
     }
 }
 
@@ -538,6 +538,9 @@ void* mke_init(const device_t* info)
     fifo8_create(&mke.info_fifo, 128);
     fifo8_create(&mke.data_fifo, 624240);
     fifo8_create(&mke.errors_fifo, 8);
+    fifo8_reset(&mke.info_fifo);
+    fifo8_reset(&mke.data_fifo);
+    fifo8_reset(&mke.errors_fifo);
     mke.cdrom_dev = dev;
     mke.command_buffer_pending = 7;
     mke.sector_type = 0x08 | (1 << 4);
