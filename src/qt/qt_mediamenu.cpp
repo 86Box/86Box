@@ -834,8 +834,8 @@ MediaMenu::cdromUpdateMenu(int i)
             busName = "SCSI";
             break;
         case CDROM_BUS_MITSUMI:
-	        busName = "Mitsumi";
-	        break;
+            busName = "Mitsumi";
+            break;
         case CDROM_BUS_MKE:
             busName = "Panasonic/MKE";
             break;
