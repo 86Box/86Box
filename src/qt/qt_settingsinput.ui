@@ -141,7 +141,7 @@
    <item row="5" column="0" colspan="4">
     <widget class="QTableWidget" name="tableKeys">
      <property name="editTriggers">
-      <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+      <set>QAbstractItemView::NoEditTriggers</set>
      </property>
      <property name="tabKeyNavigation">
       <bool>false</bool>
@@ -153,7 +153,7 @@
       <bool>true</bool>
      </property>
      <property name="selectionBehavior">
-      <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+      <enum>QAbstractItemView::SelectRows</enum>
      </property>
     </widget>
    </item>
