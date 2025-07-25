@@ -600,8 +600,8 @@ msgstr "Unidades de CD-ROM:"
 msgid "MO drives:"
 msgstr "Unidades magneto-ópticas:"
 
-msgid "ZIP drives:"
-msgstr "Unidades ZIP:"
+msgid "Removable disk drives:"
+msgstr "Unidades de disco removível:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
