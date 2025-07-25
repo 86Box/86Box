@@ -481,7 +481,7 @@ uint8_t MKE_READ(uint16_t address, void* priv) {
             return x;      
             break;
         case 2://Data
-            return fifo8_pop(&mke.data_fifo);
+            return fifo8_num_used(&mke.info_fifo) ? fifo8_pop(&mke.data_fifo) : 0;
         case 3:
             return mke.enable_register;
             break;
