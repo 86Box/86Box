@@ -603,9 +603,34 @@ mke_init(const device_t *info)
     dev->cached_sector = -1;
     dev->sector_size   = 2048;
 
-    io_sethandler(0x250, 16, mke_read, NULL, NULL, mke_write, NULL, NULL, &mke);
+    uint16_t base = device_get_config_hex16("base");
+    io_sethandler(base, 16, mke_read, NULL, NULL, mke_write, NULL, NULL, &mke);
     return &mke;
 }
+
+static const device_config_t mke_config[] = {
+    // clang-format off
+    {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x250,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "230H", .value = 0x230 },
+            { .description = "250H", .value = 0x250 },
+            { .description = "260H", .value = 0x260 },
+            { .description = "270H", .value = 0x270 },
+            { .description = "290H", .value = 0x290 },
+            { NULL                                  }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format off
+};
 
 const device_t mke_cdrom_device = {
     .name          = "Panasonic/MKE CD-ROM interface",
@@ -618,5 +643,5 @@ const device_t mke_cdrom_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = mke_config
 };
