@@ -239,7 +239,7 @@ void MKE_COMMAND(uint8_t value) {
                 uint64_t lba = MSFtoLBA(mke.command_buffer[1], mke.command_buffer[2], mke.command_buffer[3]);
                 CHECK_READY();
                 while (count) {
-                    if ((res = cdrom_readsector_raw(mke.cdrom_dev, mke.cdbuffer, lba, 0, mke.sector_type, mke.sector_flags, &len, 0)) > 0) {
+                    if ((res = cdrom_readsector_raw(mke.cdrom_dev, buf, lba, 0, mke.sector_type, mke.sector_flags, &len, 0)) > 0) {
                         fifo8_push_all(&mke.data_fifo, buf, mke.cdrom_dev->sector_size);
                         lba++;
                         buf += mke.cdrom_dev->sector_size;
