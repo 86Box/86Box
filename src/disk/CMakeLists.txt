@@ -37,7 +37,7 @@ add_library(hdd OBJECT
     hdc_ide_w83769f.c
 )
 
-add_library(zip OBJECT zip.c)
+add_library(rdisk OBJECT rdisk.c)
 
 add_library(mo OBJECT mo.c)
 

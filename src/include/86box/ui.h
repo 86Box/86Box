@@ -49,7 +49,7 @@ extern int ui_msgbox_header(int flags, void *header, void *message);
 #define SB_CARTRIDGE  0x10
 #define SB_FLOPPY     0x20
 #define SB_CDROM      0x30
-#define SB_ZIP        0x40
+#define SB_RDISK      0x40
 #define SB_MO         0x50
 #define SB_HDD        0x60
 #define SB_NETWORK    0x70

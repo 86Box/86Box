@@ -600,8 +600,8 @@ msgstr "Unidades de CD-ROM:"
 msgid "MO drives:"
 msgstr "Unidades magneto-ópticas:"
 
-msgid "ZIP drives:"
-msgstr "Unidades ZIP:"
+msgid "Removable disk drives:"
+msgstr "Unidades de disco removível:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -669,11 +669,14 @@ msgstr " - PAUSADO"
 msgid "Speed"
 msgstr "Velocidade"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr "Disco removível %1 (%2): %3"
 
-msgid "ZIP images"
-msgstr "Imagens ZIP"
+msgid "Removable disk images"
+msgstr "Imagens de disco removível"
+
+msgid "Image %1"
+msgstr "Imagem %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "O 86Box não conseguiu encontrar nenhuma imagem de ROM utilizável.\n\nPor favor, <a href=\"https://github.com/86Box/roms/releases/latest\">baixe</a> um conjunto de ROM e extraia no diretório \"roms\"."
@@ -823,7 +826,7 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Sistema de Controle de Voo Thrustmaster"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster SCV + Sistema de Controle de Leme"
+msgstr "SCV Thrustmaster + Sistema de Controle de Leme"
 
 msgid "2-button gamepad(s)"
 msgstr "Gamepad(s) de 2 botões"
@@ -1446,6 +1449,9 @@ msgstr "Mouse de barramento Mouse Systems"
 msgid "Microsoft Serial Mouse"
 msgstr "Mouse serial Microsoft"
 
+msgid "Microsoft Serial BallPoint"
+msgstr "Mouse serial Microsoft BallPoint"
+
 msgid "Logitech Serial Mouse"
 msgstr "Mouse serial Logitech"
 
@@ -1454,6 +1460,9 @@ msgstr "Mouse PS/2"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serial)"
+
+msgid "Default Baud rate"
+msgstr "Taxa de transmissão padrão"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Modem padrão compatível com Hayes"

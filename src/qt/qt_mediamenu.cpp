@@ -56,7 +56,7 @@ extern "C" {
 #include <86box/fdd_86f.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
-#include <86box/zip.h>
+#include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
@@ -187,24 +187,24 @@ MediaMenu::refresh(QMenu *parentMenu)
         cdromUpdateMenu(i);
     });
 
-    zipMenus.clear();
-    MachineStatus::iterateZIP([this, parentMenu](int i) {
+    rdiskMenus.clear();
+    MachineStatus::iterateRDisk([this, parentMenu](int i) {
         auto *menu = parentMenu->addMenu("");
-        QIcon img_icon = QIcon(":/settings/qt/icons/zip_image.ico");
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image..."), [this, i]() { zipNewImage(i); });
+        QIcon img_icon = QIcon(":/settings/qt/icons/rdisk_image.ico");
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image..."), [this, i]() { rdiskNewImage(i); });
         menu->addSeparator();
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image..."), [this, i]() { zipSelectImage(i, false); });
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)..."), [this, i]() { zipSelectImage(i, true); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image..."), [this, i]() { rdiskSelectImage(i, false); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)..."), [this, i]() { rdiskSelectImage(i, true); });
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
-            zipImageHistoryPos[slot] = menu->children().count();
-            menu->addAction(img_icon, tr("Image %1").arg(slot), [this, i, slot]() { zipReload(i, slot); })->setCheckable(false);
+            rdiskImageHistoryPos[slot] = menu->children().count();
+            menu->addAction(img_icon, tr("Image %1").arg(slot), [this, i, slot]() { rdiskReload(i, slot); })->setCheckable(false);
         }
         menu->addSeparator();
-        zipEjectPos = menu->children().count();
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Eject), tr("E&ject"), [this, i]() { zipEject(i); });
-        zipMenus[i] = menu;
-        zipUpdateMenu(i);
+        rdiskEjectPos = menu->children().count();
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Eject), tr("E&ject"), [this, i]() { rdiskEject(i); });
+        rdiskMenus[i] = menu;
+        rdiskUpdateMenu(i);
     });
 
     moMenus.clear();
@@ -725,12 +725,12 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             }
             imageHistoryUpdatePos->setIcon(menu_icon);
             break;
-        case ui::MediaType::Zip:
-            if (!zipMenus.contains(index))
+        case ui::MediaType::RDisk:
+            if (!rdiskMenus.contains(index))
                 return;
-            menu                  = zipMenus[index];
+            menu                  = rdiskMenus[index];
             children              = menu->children();
-            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[zipImageHistoryPos[slot]]);
+            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[rdiskImageHistoryPos[slot]]);
             menu_icon             = QIcon(":/settings/qt/icons/mo_image.ico");
             if (fn.left(5) == "wp://")
                 fi.setFile(fn.right(fn.length() - 5));
@@ -845,145 +845,178 @@ MediaMenu::cdromUpdateMenu(int i)
 }
 
 void
-MediaMenu::zipNewImage(int i)
+MediaMenu::rdiskNewImage(int i)
 {
-    NewFloppyDialog dialog(NewFloppyDialog::MediaType::Zip, parentWidget);
+    NewFloppyDialog dialog(NewFloppyDialog::MediaType::RDisk, parentWidget);
     switch (dialog.exec()) {
         default:
             break;
         case QDialog::Accepted:
             QByteArray filename = dialog.fileName().toUtf8();
-            zipMount(i, filename, false);
+            rdiskMount(i, filename, false);
             break;
     }
 }
 
 void
-MediaMenu::zipSelectImage(int i, bool wp)
+MediaMenu::rdiskSelectImage(int i, bool wp)
 {
     const auto filename = QFileDialog::getOpenFileName(
         parentWidget,
         QString(),
         QString(),
-        tr("ZIP images") % util::DlgFilter({ "im?", "zdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+        tr("Removable disk images") % util::DlgFilter({ "im?", "rdi", "zdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
 
     if (!filename.isEmpty())
-        zipMount(i, filename, wp);
+        rdiskMount(i, filename, wp);
 }
 
 void
-MediaMenu::zipMount(int i, const QString &filename, bool wp)
+MediaMenu::rdiskMount(int i, const QString &filename, bool wp)
 {
-    const auto dev       = static_cast<zip_t *>(zip_drives[i].priv);
-    int        was_empty = zip_is_empty(i);
+    const auto dev       = static_cast<rdisk_t *>(rdisk_drives[i].priv);
+    int        was_empty = rdisk_is_empty(i);
 
-    zip_disk_close(dev);
-    zip_drives[i].read_only = wp;
+    rdisk_disk_close(dev);
+    rdisk_drives[i].read_only = wp;
     if (!filename.isEmpty()) {
         QByteArray filenameBytes = filename.toUtf8();
 
         if (filename.left(5) == "wp://")
-            zip_drives[i].read_only = 1;
-        else if (zip_drives[i].read_only)
+            rdisk_drives[i].read_only = 1;
+        else if (rdisk_drives[i].read_only)
             filenameBytes = QString::asprintf(R"(wp://%s)", filename.toUtf8().data()).toUtf8();
 
-        zip_load(dev, filenameBytes.data(), 1);
+        rdisk_load(dev, filenameBytes.data(), 1);
 
         /* Signal media change to the emulated machine. */
-        zip_insert(dev);
+        rdisk_insert(dev);
 
         /* The drive was previously empty, transition directly to UNIT ATTENTION. */
         if (was_empty)
-            zip_insert(dev);
+            rdisk_insert(dev);
     }
-    mhm.addImageToHistory(i, ui::MediaType::Zip, zip_drives[i].prev_image_path, zip_drives[i].image_path);
+    mhm.addImageToHistory(i, ui::MediaType::RDisk, rdisk_drives[i].prev_image_path, rdisk_drives[i].image_path);
 
-    ui_sb_update_icon_state(SB_ZIP | i, filename.isEmpty() ? 1 : 0);
-    ui_sb_update_icon_wp(SB_ZIP | i, wp);
-    zipUpdateMenu(i);
-    ui_sb_update_tip(SB_ZIP | i);
+    ui_sb_update_icon_state(SB_RDISK | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_wp(SB_RDISK | i, wp);
+    rdiskUpdateMenu(i);
+    ui_sb_update_tip(SB_RDISK | i);
 
     config_save();
 }
 
 void
-MediaMenu::zipEject(int i)
+MediaMenu::rdiskEject(int i)
 {
-    const auto dev = static_cast<zip_t *>(zip_drives[i].priv);
+    const auto dev = static_cast<rdisk_t *>(rdisk_drives[i].priv);
 
-    mhm.addImageToHistory(i, ui::MediaType::Zip, zip_drives[i].image_path, QString());
-    zip_disk_close(dev);
-    zip_drives[i].image_path[0] = 0;
-    if (zip_drives[i].bus_type) {
+    mhm.addImageToHistory(i, ui::MediaType::RDisk, rdisk_drives[i].image_path, QString());
+    rdisk_disk_close(dev);
+    rdisk_drives[i].image_path[0] = 0;
+    if (rdisk_drives[i].bus_type) {
         /* Signal disk change to the emulated machine. */
-        zip_insert(dev);
+        rdisk_insert(dev);
     }
 
-    ui_sb_update_icon_state(SB_ZIP | i, 1);
-    zipUpdateMenu(i);
-    ui_sb_update_tip(SB_ZIP | i);
+    ui_sb_update_icon_state(SB_RDISK | i, 1);
+    rdiskUpdateMenu(i);
+    ui_sb_update_tip(SB_RDISK | i);
     config_save();
 }
 
 void
-MediaMenu::zipReloadPrev(int i)
+MediaMenu::rdiskReloadPrev(int i)
 {
-    const auto dev = static_cast<zip_t *>(zip_drives[i].priv);
+    const auto dev = static_cast<rdisk_t *>(rdisk_drives[i].priv);
 
-    zip_disk_reload(dev);
-    if (strlen(zip_drives[i].image_path) == 0) {
-        ui_sb_update_icon_state(SB_ZIP | i, 1);
+    rdisk_disk_reload(dev);
+    if (strlen(rdisk_drives[i].image_path) == 0) {
+        ui_sb_update_icon_state(SB_RDISK | i, 1);
     } else {
-        ui_sb_update_icon_state(SB_ZIP | i, 0);
+        ui_sb_update_icon_state(SB_RDISK | i, 0);
     }
-    ui_sb_update_icon_wp(SB_ZIP | i, zip_drives[i].read_only);
+    ui_sb_update_icon_wp(SB_RDISK | i, rdisk_drives[i].read_only);
 
-    zipUpdateMenu(i);
-    ui_sb_update_tip(SB_ZIP | i);
+    rdiskUpdateMenu(i);
+    ui_sb_update_tip(SB_RDISK | i);
 
     config_save();
 }
 
 void
-MediaMenu::zipReload(int index, int slot)
+MediaMenu::rdiskReload(int index, int slot)
 {
-    const QString filename = mhm.getImageForSlot(index, slot, ui::MediaType::Zip);
-    zipMount(index, filename, zip_drives[index].read_only);
-    zipUpdateMenu(index);
-    ui_sb_update_tip(SB_ZIP | index);
+    const QString filename = mhm.getImageForSlot(index, slot, ui::MediaType::RDisk);
+    rdiskMount(index, filename, rdisk_drives[index].read_only);
+    rdiskUpdateMenu(index);
+    ui_sb_update_tip(SB_RDISK | index);
 }
 
 void
-MediaMenu::zipUpdateMenu(int i)
+MediaMenu::moUpdateMenu(int i)
 {
-    const QString name      = zip_drives[i].image_path;
-    const QString prev_name = zip_drives[i].prev_image_path;
-    QFileInfo     fi(zip_drives[i].image_path);
-    if (!zipMenus.contains(i))
+    QString   name      = mo_drives[i].image_path;
+    QString   prev_name = mo_drives[i].prev_image_path;
+    QFileInfo fi(mo_drives[i].image_path);
+    if (!moMenus.contains(i))
         return;
-    auto *menu   = zipMenus[i];
+    auto *menu   = moMenus[i];
     auto  childs = menu->children();
 
-    auto *ejectMenu  = dynamic_cast<QAction *>(childs[zipEjectPos]);
+    auto *ejectMenu  = dynamic_cast<QAction *>(childs[moEjectPos]);
     ejectMenu->setEnabled(!name.isEmpty());
     ejectMenu->setText(name.isEmpty() ? tr("E&ject") : tr("E&ject %1").arg(fi.fileName()));
 
     QString busName = tr("Unknown Bus");
-    switch (zip_drives[i].bus_type) {
+    switch (mo_drives[i].bus_type) {
         default:
             break;
-        case ZIP_BUS_ATAPI:
+        case MO_BUS_ATAPI:
             busName = "ATAPI";
             break;
-        case ZIP_BUS_SCSI:
+        case MO_BUS_SCSI:
             busName = "SCSI";
             break;
     }
 
-    menu->setTitle(tr("ZIP %1 %2 (%3): %4").arg((zip_drives[i].is_250 > 0) ? QString("250") : QString("100"), QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
+    menu->setTitle(tr("MO %1 (%2): %3").arg(QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
-        updateImageHistory(i, slot, ui::MediaType::Zip);
+        updateImageHistory(i, slot, ui::MediaType::Mo);
+}
+
+void
+MediaMenu::rdiskUpdateMenu(int i)
+{
+    const QString name      = rdisk_drives[i].image_path;
+    const QString prev_name = rdisk_drives[i].prev_image_path;
+    QFileInfo     fi(rdisk_drives[i].image_path);
+    if (!rdiskMenus.contains(i))
+        return;
+    auto *menu   = rdiskMenus[i];
+    auto  childs = menu->children();
+
+    auto *ejectMenu  = dynamic_cast<QAction *>(childs[rdiskEjectPos]);
+    ejectMenu->setEnabled(!name.isEmpty());
+    ejectMenu->setText(name.isEmpty() ? tr("E&ject") : tr("E&ject %1").arg(fi.fileName()));
+
+    QString busName = tr("Unknown Bus");
+    switch (rdisk_drives[i].bus_type) {
+        default:
+            break;
+        case RDISK_BUS_ATAPI:
+            busName = "ATAPI";
+            break;
+        case RDISK_BUS_SCSI:
+            busName = "SCSI";
+            break;
+    }
+
+    menu->setTitle(tr("Removable disk %1 (%2): %3").arg(QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
+
+    for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
+        updateImageHistory(i, slot, ui::MediaType::RDisk);
 }
 
 void
@@ -1095,39 +1128,6 @@ MediaMenu::moReload(int index, int slot)
     moMount(index, filename, false);
     moUpdateMenu(index);
     ui_sb_update_tip(SB_MO | index);
-}
-
-void
-MediaMenu::moUpdateMenu(int i)
-{
-    QString   name      = mo_drives[i].image_path;
-    QString   prev_name = mo_drives[i].prev_image_path;
-    QFileInfo fi(mo_drives[i].image_path);
-    if (!moMenus.contains(i))
-        return;
-    auto *menu   = moMenus[i];
-    auto  childs = menu->children();
-
-    auto *ejectMenu  = dynamic_cast<QAction *>(childs[moEjectPos]);
-    ejectMenu->setEnabled(!name.isEmpty());
-    ejectMenu->setText(name.isEmpty() ? tr("E&ject") : tr("E&ject %1").arg(fi.fileName()));
-
-    QString busName = tr("Unknown Bus");
-    switch (mo_drives[i].bus_type) {
-        default:
-            break;
-        case MO_BUS_ATAPI:
-            busName = "ATAPI";
-            break;
-        case MO_BUS_SCSI:
-            busName = "SCSI";
-            break;
-    }
-
-    menu->setTitle(tr("MO %1 (%2): %3").arg(QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
-
-    for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
-        updateImageHistory(i, slot, ui::MediaType::Mo);
 }
 
 void
@@ -1244,21 +1244,21 @@ plat_cdrom_ui_update(uint8_t id, uint8_t reload)
 }
 
 void
-zip_eject(uint8_t id)
+rdisk_eject(uint8_t id)
 {
-    MediaMenu::ptr->zipEject(id);
+    MediaMenu::ptr->rdiskEject(id);
 }
 
 void
-zip_mount(uint8_t id, char *fn, uint8_t wp)
+rdisk_mount(uint8_t id, char *fn, uint8_t wp)
 {
-    MediaMenu::ptr->zipMount(id, QString(fn), wp);
+    MediaMenu::ptr->rdiskMount(id, QString(fn), wp);
 }
 
 void
-zip_reload(uint8_t id)
+rdisk_reload(uint8_t id)
 {
-    MediaMenu::ptr->zipReloadPrev(id);
+    MediaMenu::ptr->rdiskReloadPrev(id);
 }
 
 void

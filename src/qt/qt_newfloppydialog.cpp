@@ -29,7 +29,7 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/random.h>
 #include <86box/scsi_device.h>
-#include <86box/zip.h>
+#include <86box/rdisk.h>
 #include <86box/mo.h>
 }
 
@@ -110,7 +110,7 @@ static const QStringList floppyTypes = {
     "2.88 MB",
 };
 
-static const QStringList zipTypes = {
+static const QStringList rdiskTypes = {
     "ZIP 100",
     "ZIP 250",
 };
@@ -146,11 +146,11 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent)
                 tr("All images") % util::DlgFilter({ "86f", "dsk", "flp", "im?", "img", "*fd?" }) % tr("Basic sector images") % util::DlgFilter({ "dsk", "flp", "im?", "img", "*fd?" }) % tr("Surface images") % util::DlgFilter({ "86f" }, true));
 
             break;
-        case MediaType::Zip:
-            for (int i = 0; i < zipTypes.size(); ++i) {
-                Models::AddEntry(model, tr(zipTypes[i].toUtf8().data()), i);
+        case MediaType::RDisk:
+            for (int i = 0; i < rdiskTypes.size(); ++i) {
+                Models::AddEntry(model, tr(rdiskTypes[i].toUtf8().data()), i);
             }
-            ui->fileField->setFilter(tr("ZIP images") % util::DlgFilter({ "im?", "img", "zdi" }, true));
+            ui->fileField->setFilter(tr("Removable disk images") % util::DlgFilter({ "im?", "img", "rdi", "zdi" }, true));
             break;
         case MediaType::Mo:
             for (int i = 0; i < moTypes.size(); ++i) {
@@ -218,13 +218,13 @@ NewFloppyDialog::onCreate()
                 }
             }
             break;
-        case MediaType::Zip:
+        case MediaType::RDisk:
             {
                 fileType = fi.suffix().toLower() == QStringLiteral("zdi") ? FileType::Zdi : FileType::Img;
 
                 std::atomic_bool res;
                 std::thread      t([this, &res, filename, fileType, &progress] {
-                    res = createZipSectorImage(filename, disk_sizes[ui->comboBoxSize->currentIndex() + 12], fileType, progress);
+                    res = createRDiskSectorImage(filename, disk_sizes[ui->comboBoxSize->currentIndex() + 12], fileType, progress);
                 });
                 progress.exec();
                 t.join();
@@ -463,7 +463,7 @@ NewFloppyDialog::createSectorImage(const QString &filename, const disk_size_t &d
 }
 
 bool
-NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type, QProgressDialog &pbar)
+NewFloppyDialog::createRDiskSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type, QProgressDialog &pbar)
 {
     uint64_t total_size    = 0;
     uint32_t total_sectors = 0;
