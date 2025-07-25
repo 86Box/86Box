@@ -173,7 +173,7 @@ ProgSettings::languageCodeToId(QString langCode)
 QString
 ProgSettings::languageIdToCode(int id)
 {
-    if ((id == 0) || (id >= languages.length())) {
+    if ((id <= 0) || (id >= languages.length())) {
         return "system";
     }
     return languages[id].first;
