@@ -69,6 +69,8 @@
 
 #define CD_FPS                   75
 
+#define _LUT_SIZE                0x100
+
 #define FRAMES_TO_MSF(f, M, S, F)                 \
     {                                             \
         uint64_t value = f;                       \
@@ -351,6 +353,13 @@ typedef struct cdrom {
 
     /* Only used on Windows hosts for disc change notifications. */
     uint8_t            host_letter;
+    uint8_t            mode2;
+
+    uint8_t            _F_LUT[_LUT_SIZE];
+    uint8_t            _B_LUT[_LUT_SIZE];
+
+    uint8_t            p_parity[172];
+    uint8_t            q_parity[104];
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];
@@ -447,6 +456,12 @@ extern void            cdrom_exit(const uint8_t id);
 extern int             cdrom_is_empty(const uint8_t id);
 extern void            cdrom_eject(const uint8_t id);
 extern void            cdrom_reload(const uint8_t id);
+
+extern void            cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, const uint8_t *data,
+                                               uint32_t major_count, uint32_t minor_count,
+                                               uint32_t major_mult, uint32_t minor_inc, int m2f1);
+extern unsigned long   cdrom_crc32(unsigned long crc, const unsigned char *buf,
+                                   size_t len);
 
 extern int             cdrom_assigned_letters;
 

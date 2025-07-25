@@ -88,7 +88,7 @@
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_interface.h>
-#include <86box/zip.h>
+#include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/scsi_disk.h>
 #include <86box/cdrom_image.h>
@@ -1066,7 +1066,7 @@ usage:
     network_init();
     mouse_init();
     cdrom_global_init();
-    zip_global_init();
+    rdisk_global_init();
     mo_global_init();
 
     /* Initialize the keyboard accelerator list with default values */
@@ -1395,7 +1395,7 @@ pc_reset_hard_close(void)
 
     cdrom_close();
 
-    zip_close();
+    rdisk_close();
 
     mo_close();
 
@@ -1501,7 +1501,7 @@ pc_reset_hard_init(void)
 
     mo_hard_reset();
 
-    zip_hard_reset();
+    rdisk_hard_reset();
 
 
     /* Reset any ISA ROM cards. */
@@ -1664,7 +1664,7 @@ pc_close(UNUSED(thread_t *ptr))
 
     cdrom_close();
 
-    zip_close();
+    rdisk_close();
 
     mo_close();
 

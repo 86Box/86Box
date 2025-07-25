@@ -19,7 +19,6 @@
 #define __STDC_FORMAT_MACROS
 #include <ctype.h>
 #include <inttypes.h>
-// #define ENABLE_IMAGE_LOG 1
 #ifdef ENABLE_IMAGE_LOG
 #include <stdarg.h>
 #endif
@@ -144,6 +143,7 @@ typedef enum
     PW_INTERLEAVED = 0x08     /* 96-byte PW subchannel, interleaved */
 } mds_subch_mode_t;
 
+#pragma pack(push, 1)
 typedef struct
 {
     uint8_t  file_sig[16];
@@ -225,6 +225,7 @@ typedef struct
     uint32_t pad[2];
     uint32_t entries;
 } mds_dpm_block_t;
+#pragma pack(pop)
 
 #ifdef ENABLE_IMAGE_LOG
 int image_do_log = ENABLE_IMAGE_LOG;
@@ -1346,12 +1347,12 @@ image_set_track_subch_type(track_t *ct)
 static int
 image_load_iso(cd_image_t *img, const char *filename)
 {
-    track_t       *ct      = NULL;
-    track_index_t *ci      = NULL;
-    track_file_t  *tf      = NULL;
-    int            success = 1;
-    int            error   = 1;
-    int            is_viso = 0;
+    track_t       *ct              = NULL;
+    track_index_t *ci              = NULL;
+    track_file_t  *tf              = NULL;
+    int            success         = 1;
+    int            error           = 1;
+    int            is_viso         = 0;
     int            sector_sizes[8] = { 2448, 2368, RAW_SECTOR_SIZE, 2336,
                                        2332, 2328, 2324,            COOKED_SECTOR_SIZE };
 
@@ -1446,8 +1447,12 @@ image_load_iso(cd_image_t *img, const char *filename)
     if (success)
         image_process(img);
     else {
-        image_log(img->log, "    [ISO     ] Unable to open image or folder \"%s\"\n",
-                  filename);
+#ifdef ENABLE_IMAGE_LOG
+        log_warning(img->log, "Unable to open image or folder \"%s\"\n",
+                    filename);
+#else
+        warning("Unable to open image or folder \"%s\"\n", filename);
+#endif
         return 0;
     }
 
@@ -1792,12 +1797,99 @@ image_load_cue(cd_image_t *img, const char *cuefile)
 
     if (success)
         image_process(img);
-    else {
-        image_log(img->log, "    [CUE   ] Unable to open Cue sheet \"%s\"\n", cuefile);
-        return 0;
-    }
+    else
+#ifdef ENABLE_IMAGE_LOG
+        log_warning(img->log, "    [CUE   ] Unable to open Cue sheet \"%s\"\n", cuefile);
+#else
+        warning("Unable to open Cue sheet \"%s\"\n", cuefile);
+#endif
 
     return success;
+}
+
+// Converts UTF-16 string into UTF-8 string.
+// If destination string is NULL returns total number of symbols that would've
+// been written (without null terminator). However, when actually writing into
+// destination string, it does include it. So, be sure to allocate extra byte
+// for destination string.
+// Params:
+// u16_str      - source UTF-16 string
+// u16_str_len  - length of source UTF-16 string
+// u8_str       - destination UTF-8 string
+// u8_str_size  - size of destination UTF-8 string in bytes
+// Return value:
+// 0 on success, -1 if encountered invalid surrogate pair, -2 if
+// encountered buffer overflow or length of destination UTF-8 string in bytes
+// (without including the null terminator).
+long int utf16_to_utf8(const uint16_t *u16_str, size_t u16_str_len,
+                       uint8_t *u8_str, size_t u8_str_size)
+{
+    size_t i = 0, j = 0;
+
+    if (!u8_str) {
+        u8_str_size = u16_str_len * 4;
+    }
+
+    while (i < u16_str_len) {
+        uint32_t codepoint = u16_str[i++];
+
+        // check for surrogate pair
+        if (codepoint >= 0xD800 && codepoint <= 0xDBFF) {
+            uint16_t high_surr = codepoint;
+            uint16_t low_surr  = u16_str[i++];
+
+            if (low_surr < 0xDC00 || low_surr > 0xDFFF)
+                return -1;
+
+            codepoint = ((high_surr - 0xD800) << 10) +
+                        (low_surr - 0xDC00) + 0x10000;
+        }
+
+        if (codepoint < 0x80) {
+            if (j + 1 > u8_str_size) return -2;
+
+            if (u8_str) u8_str[j] = (char)codepoint;
+
+            j++;
+        } else if (codepoint < 0x800) {
+            if (j + 2 > u8_str_size) return -2;
+
+            if (u8_str) {
+                u8_str[j + 0] = 0xC0 | (codepoint >> 6);
+                u8_str[j + 1] = 0x80 | (codepoint & 0x3F);
+            }
+
+            j += 2;
+        } else if (codepoint < 0x10000) {
+            if (j + 3 > u8_str_size) return -2;
+
+            if (u8_str) {
+                u8_str[j + 0] = 0xE0 | (codepoint >> 12);
+                u8_str[j + 1] = 0x80 | ((codepoint >> 6) & 0x3F);
+                u8_str[j + 2] = 0x80 | (codepoint & 0x3F);
+            }
+
+            j += 3;
+        } else {
+            if (j + 4 > u8_str_size) return -2;
+
+            if (u8_str) {
+                u8_str[j + 0] = 0xF0 | (codepoint >> 18);
+                u8_str[j + 1] = 0x80 | ((codepoint >> 12) & 0x3F);
+                u8_str[j + 2] = 0x80 | ((codepoint >> 6) & 0x3F);
+                u8_str[j + 3] = 0x80 | (codepoint & 0x3F);
+            }
+
+            j += 4;
+        }
+    }
+
+    if (u8_str) {
+        if (j >= u8_str_size) return -2;
+        u8_str[j] = '\0';
+    }
+
+    return (long int)j;
 }
 
 static int
@@ -1810,6 +1902,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
     int            last_t                        = -1;
     int            error;
     char           pathname[MAX_FILENAME_LENGTH];
+    char           ofn[2048]                     = { 0 };
 
     mds_hdr_t             mds_hdr             = { 0 };
     mds_sess_block_t      mds_sess_block      = { 0 };
@@ -1843,14 +1936,25 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
 
     fseek(fp, 0, SEEK_SET);
     fread(&mds_hdr, 1, sizeof(mds_hdr_t), fp);
+
     if (memcmp(mds_hdr.file_sig, "MEDIA DESCRIPTOR", 16)) {
-        image_log(img->log, "    [MDS   ] Not an actual MDF file \"%s\"\n", mdsfile);
+#ifdef ENABLE_IMAGE_LOG
+        log_warning(img->log, "    [MDS   ] \"%s\"\n is not an actual MDF file",
+                    mdsfile);
+#else
+        warning("\"%s\"\n is not an actual MDF file", mdsfile);
+#endif
         fclose(fp);
         return 0;
     }
 
     if (mds_hdr.file_ver[0] == 0x02) {
-        image_log(img->log, "    [MDS   ] Daemon tools encrypted MDS is not supported in file \"%s\"\n", mdsfile);
+#ifdef ENABLE_IMAGE_LOG
+        log_warning(img->log, "    [MDS   ] \"%s\" is a Daemon Tools encrypted MDS which is not supported\n",
+                    mdsfile);
+#else
+        warning("\"%s\" is a Daemon Tools encrypted MDS which is not supported\n", mdsfile);
+#endif
         fclose(fp);
         return 0;
     }
@@ -1906,7 +2010,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             fread(&mds_dpm_block_offs, 1, sizeof(uint32_t), fp);
 
             fseek(fp, mds_dpm_block_offs, SEEK_SET);
-            fread(&mds_dpm_block, 1, 4 * sizeof(mds_dpm_block_t), fp);
+            fread(&mds_dpm_block, 1, sizeof(mds_dpm_block_t), fp);
 
             /* We currently only support the bad sectors block and not (yet) actual DPM. */
             if (mds_dpm_block.type == 0x00000002) {
@@ -1946,8 +2050,6 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             last_t           = mds_trk_block.point;
             ct               = image_insert_track(img, mds_sess_block.sess_id, mds_trk_block.point);
 
-            tf = NULL;
-
             if (img->is_dvd) {
                 /* DVD images have no extra block - the extra block offset is the track length. */
                 memset(&mds_trk_ex_block, 0x00, sizeof(mds_trk_ex_block_t));
@@ -1967,14 +2069,24 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 fseek(fp, mds_trk_block.footer_offs + (ff * sizeof(mds_footer_t)), SEEK_SET);
                 fread(&mds_footer, 1, sizeof(mds_footer_t), fp);
 
-                wchar_t wfn[2048] = { 0 };
-                char    fn[2048] = { 0 };
+                uint16_t wfn[2048] = { 0 };
+                char     fn[2048] = { 0 };
                 fseek(fp, mds_footer.fn_offs, SEEK_SET);
                 if (mds_footer.fn_is_wide) {
-                    fgetws(wfn, 256, fp);
-                    wcstombs(fn, wfn, 256);
-                } else
-                    fgets(fn, 512, fp);
+                    int len = 0;
+                    for (int i = 0; i < 256; i++) {
+                        fread(&(wfn[i]), 1, 2, fp);
+                        len++;
+                        if (wfn[i] == 0x0000)
+                            break;
+                    }
+                    (void) utf16_to_utf8(wfn, 2048, (uint8_t *) fn, 2048);
+                } else  for (int i = 0; i < 512; i++) {
+                    fread(&fn[i], 1, 1, fp);
+                    if (fn[i] == 0x00)
+                        break;
+                }
+
                 if (!stricmp(fn, "*.mdf")) {
                     strcpy(fn, mdsfile);
                     fn[strlen(mdsfile) - 3] = 'm';
@@ -1988,7 +2100,10 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 else
                     strcpy(filename, fn);
 
-                tf = index_file_init(img->dev->id, filename, &error, &is_viso);
+                if (strcmp(ofn, filename) != 0) {
+                    tf = index_file_init(img->dev->id, filename, &error, &is_viso);
+                    strcpy(ofn, filename);
+                }
             }
 
             ct->sector_size = mds_trk_block.sector_len;
@@ -2045,7 +2160,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 ci->file = tf;
             } else {
                 ci->start = (mds_trk_block.pm * 60 * 75) + (mds_trk_block.ps * 75) + mds_trk_block.pf;
-                ci->type = INDEX_ZERO;
+                ci->type = INDEX_NONE;
                 ci->file_start = 0;
                 ci->file_length = 0;
                 ci->file = NULL;
@@ -2086,8 +2201,6 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
     fclose(fp);
 
     if (success) {
-        // image_process(img);
-
 #ifdef ENABLE_IMAGE_LOG
         image_log(img->log, "Final tracks list:\n");
         for (int i = 0; i < img->tracks_num; i++) {
@@ -2107,10 +2220,12 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             }
         }
 #endif
-    } else {
-        image_log(img->log, "    [MDS   ] Unable to open MDS sheet \"%s\"\n", mdsfile);
-        return 0;
-    }
+    } else
+#ifdef ENABLE_IMAGE_LOG
+        log_warning(img->log, "    [MDS   ] Unable to open MDS sheet \"%s\"\n", mdsfile);
+#else
+        warning("Unable to open MDS sheet \"%s\"\n", mdsfile);
+#endif
 
     return success;
 }
@@ -2237,6 +2352,7 @@ image_read_sector(const void *local, uint8_t *buffer,
                   const uint32_t sector)
 {
     const cd_image_t *img    = (const cd_image_t *) local;
+    cdrom_t          *dev    = (cdrom_t *) img->dev;
     int               m      = 0;
     int               s      = 0;
     int               f      = 0;
@@ -2245,6 +2361,7 @@ image_read_sector(const void *local, uint8_t *buffer,
     int               track;
     int               index;
     uint8_t           q[16]  = { 0x00 };
+    uint8_t          *buf    = buffer;
 
     if (sector == 0xffffffff)
         lba = img->dev->seek_pos;
@@ -2303,6 +2420,26 @@ image_read_sector(const void *local, uint8_t *buffer,
             } else
                 /* Index is not in the file, no read to fail here. */
                 ret = 1;
+
+            if ((ret > 0) && (trk->attr & 0x04) && ((idx->type < INDEX_NORMAL) || !track_is_raw)) {
+                uint32_t crc;
+
+                if ((trk->mode == 2) && (trk->form == 1)) {
+                    crc = cdrom_crc32(0xffffffff, &(buf[16]), 2056) ^ 0xffffffff;
+                    memcpy(&(buf[2072]), &crc, 4);
+                } else {
+                    crc = cdrom_crc32(0xffffffff, buf, 2064) ^ 0xffffffff;
+                    memcpy(&(buf[2064]), &crc, 4);
+                }
+
+                int m2f1 = (trk->mode == 2) && (trk->form == 1);
+
+                /* Compute ECC P code. */
+                cdrom_compute_ecc_block(dev, &(buf[2076]), &(buf[12]), 86, 24, 2, 86, m2f1);
+
+                /* Compute ECC Q code. */
+                cdrom_compute_ecc_block(dev, &(buf[2248]), &(buf[12]), 52, 43, 86, 88, m2f1);
+            }
 
             if ((ret > 0) && ((idx->type < INDEX_NORMAL) || (trk->subch_type != 0x08))) {
                 buffer -= offset;
@@ -2488,7 +2625,7 @@ image_open(cdrom_t *dev, const char *path)
         sprintf(n, "CD-ROM %i Image", dev->id + 1);
         img->log          = log_open(n);
 
-        img->dev = dev;
+        img->dev          = dev;
 
         if (is_mds) {
             ret = image_load_mds(img, path);
@@ -2497,10 +2634,6 @@ image_open(cdrom_t *dev, const char *path)
                 img->has_audio = 0;
             else if (ret)
                 img->has_audio = 1;
-            else {
-                image_close(img);
-                img = NULL;
-            }
         } else if (is_cue) {
             ret = image_load_cue(img, path);
 
@@ -2508,25 +2641,20 @@ image_open(cdrom_t *dev, const char *path)
                 img->has_audio = 0;
             else if (ret)
                 img->has_audio = 1;
-            else {
-                image_close(img);
-                img = NULL;
-            }
         } else {
             ret = image_load_iso(img, path);
 
-            if (!ret) {
-                image_close(img);
-                img = NULL;
-            } else
+            if (ret)
                 img->has_audio = 0;
         }
 
-        if (ret)
+        if (ret > 0)
             dev->ops = &image_ops;
         else {
             log_warning(img->log, "Unable to load CD-ROM image: %s\n", path);
-            log_close(img->log);
+
+            image_close(img);
+            img = NULL;
         }
     }
 

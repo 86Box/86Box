@@ -8,7 +8,7 @@
 
 #define DEV_HDD      0x01
 #define DEV_CDROM    0x02
-#define DEV_ZIP      0x04
+#define DEV_RDISK    0x04
 #define DEV_MO       0x08
 
 #define BUS_MFM      0
@@ -44,7 +44,7 @@ public:
     int scsi_bus_full();
 
     /* Set: 0 = Clear the device from the tracking, 1 = Set the device on the tracking.
-       Device type: 1 = Hard Disk, 2 = CD-ROM, 4 = ZIP, 8 = Magneto-Optical.
+       Device type: 1 = Hard Disk, 2 = CD-ROM, 4 = Removable disk, 8 = Magneto-Optical.
        Bus: 0 = MFM, 1 = ESDI, 2 = XTA, 3 = IDE, 4 = SCSI. */
     void device_track(int set, uint8_t dev_type, int bus, int channel);
 

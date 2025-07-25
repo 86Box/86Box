@@ -292,16 +292,105 @@ msf_to_bcd(int *m, int *s, int *f)
     *f = bin2bcd(*f);
 }
 
-static int
-read_data(cdrom_t *dev, const uint32_t lba)
+void
+cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, const uint8_t *data,
+                        uint32_t major_count, uint32_t minor_count,
+                        uint32_t major_mult, uint32_t minor_inc, int m2f1)
 {
-    int ret = 1;
+    uint32_t size = major_count * minor_count;
+
+    for (uint32_t major = 0; major < major_count; ++major) {
+        uint32_t index = (major >> 1) * major_mult + (major & 1);
+
+        uint8_t ecc_a = 0;
+        uint8_t ecc_b = 0;
+
+        for (uint32_t minor = 0; minor < minor_count; ++minor) {
+            uint8_t temp = data[index];
+
+            if (m2f1 && (index < 4))
+                temp = 0x00;
+
+            index += minor_inc;
+
+            if (index >= size)
+                index -= size;
+
+            ecc_a ^= temp;
+            ecc_b ^= temp;
+            ecc_a = dev->_F_LUT[ecc_a];
+        }
+
+        parity[major] = dev->_B_LUT[dev->_F_LUT[ecc_a] ^ ecc_b];
+        parity[major + major_count] = parity[major] ^ ecc_b;
+    }
+}
+
+static void
+cdrom_generate_ecc_data(cdrom_t *dev, const uint8_t *data, int m2f1)
+{
+    /* Compute ECC P code. */
+    cdrom_compute_ecc_block(dev, dev->p_parity, data, 86, 24, 2, 86, m2f1);
+
+    /* Compute ECC Q code. */
+    cdrom_compute_ecc_block(dev, dev->q_parity, data, 52, 43, 86, 88, m2f1);
+}
+
+static int
+cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const uint8_t form)
+{
+    int            ret = 1;
+
+    if (!mode2 || (form != 1)) {
+        if (mode2 && (form == 1)) {
+            const uint32_t crc = cdrom_crc32(0xffffffff, &(b[16]), 2056) ^ 0xffffffff;
+
+            ret = ret && (crc == (*(uint32_t *) &(b[2072])));
+        } else if (!mode2) {
+            const uint32_t crc = cdrom_crc32(0xffffffff, b, 2064) ^ 0xffffffff;
+
+            ret = ret && (crc == (*(uint32_t *) &(b[2064])));
+        }
+
+        cdrom_generate_ecc_data(dev, &(b[12]), mode2 && (form == 1));
+
+        ret = ret && !memcmp(dev->p_parity, &(b[2076]), 172);
+        ret = ret && !memcmp(dev->q_parity, &(b[2248]), 104);
+    }
+
+    return ret;
+}
+
+static int
+read_data(cdrom_t *dev, const uint32_t lba, int check)
+{
+    int ret  = 1;
+    int form = 0;
 
     if (dev->cached_sector != lba) {
         dev->cached_sector = lba;
 
         ret = dev->ops->read_sector(dev->local,
                                     dev->raw_buffer[dev->cur_buf ^ 1], lba);
+
+        if ((ret > 0) && check) {
+            if (dev->mode2) {
+                if (dev->raw_buffer[dev->cur_buf ^ 1][0x000f] == 0x01)
+                    /*
+                       Use Mode 1, since evidently specification-violating
+                       discs exist.
+                     */
+                    dev->mode2 = 0;
+                else if (dev->raw_buffer[dev->cur_buf ^ 1][0x0012] ==
+                         dev->raw_buffer[dev->cur_buf ^ 1][0x0016])
+                    form = ((dev->raw_buffer[dev->cur_buf ^ 1][0x0012] &
+                            0x20) >> 5) + 1;
+            } else if (dev->raw_buffer[dev->cur_buf ^ 1][0x000f] == 0x02)
+                dev->mode2 = 1;
+
+            if (!cdrom_is_sector_good(dev, dev->raw_buffer[dev->cur_buf ^ 1], dev->mode2, form))
+                ret = -1;
+        }
 
         if (ret <= 0) {
             memset(dev->raw_buffer[dev->cur_buf ^ 1], 0x00, 2448);
@@ -322,7 +411,7 @@ cdrom_get_subchannel(cdrom_t *dev, const uint32_t lba,
     if (lba != dev->cached_sector)
         dev->cached_sector = -1;
 
-    (void) read_data(dev, lba);
+    (void) read_data(dev, lba, 0);
 
     for (int i = 0; i < 12; i++)
         for (int j = 0; j < 8; j++)
@@ -679,7 +768,7 @@ track_type_is_valid(UNUSED(const cdrom_t *dev), const int type, const int flags,
 static int
 read_audio(cdrom_t *dev, const uint32_t lba, uint8_t *b)
 {
-    const int ret = read_data(dev, lba);
+    const int ret = read_data(dev, lba, 0);
 
     memcpy(b, dev->raw_buffer[dev->cur_buf], 2352);
 
@@ -2379,6 +2468,8 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
         if (dm != CD_TRACK_NORMAL)
             mode2 = 1;
 
+        dev->mode2 = mode2;
+
         memset(dev->extra_buffer, 0, 296);
 
         if ((cdrom_sector_flags & 0xf8) == 0x08) {
@@ -2405,7 +2496,7 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
                 else
                     ret = read_audio(dev, lba, temp_b);
             } else {
-                ret = read_data(dev, lba);
+                ret = read_data(dev, lba, 1);
 
                 /* Return with error if we had one. */
                 if (ret > 0) {
@@ -2800,7 +2891,7 @@ cdrom_read_track_information(cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer)
              }
 
              if (track->adr_ctl & 0x04) {
-                 ret  = read_data(dev, start);
+                 ret  = read_data(dev, start, 0);
                  mode = dev->raw_buffer[dev->cur_buf][3];
              }
          } else if (track->point != 0xa2)
@@ -2829,9 +2920,9 @@ uint8_t
 cdrom_get_current_mode(cdrom_t *dev)
 {
     if (dev->cached_sector == -1)
-        (void) read_data(dev, dev->seek_pos);
+        (void) read_data(dev, dev->seek_pos, 0);
     else
-        (void) read_data(dev, dev->cached_sector);
+        (void) read_data(dev, dev->cached_sector, 0);
 
     return dev->raw_buffer[dev->cur_buf][3];
 }
@@ -3010,6 +3101,11 @@ cdrom_hard_reset(void)
 #endif
 
                 cdrom_load(dev, dev->image_path, 0);
+            }
+
+            for (uint32_t j = 0; j < _LUT_SIZE; ++j) {
+                dev->_F_LUT[j] = (j << 1) ^ (j & 0x80 ? 0x11d : 0);
+                dev->_B_LUT[j ^ dev->_F_LUT[j]] = j;
             }
         }
     }
