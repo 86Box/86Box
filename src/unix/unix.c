@@ -1006,12 +1006,12 @@ monitor_thread(UNUSED(void *param))
                     printf(
                         "fddload <id> <filename> <wp> - Load floppy disk image into drive <id>.\n"
                         "cdload <id> <filename> - Load CD-ROM image into drive <id>.\n"
-                        "zipload <id> <filename> <wp> - Load ZIP image into ZIP drive <id>.\n"
+                        "rdiskload <id> <filename> <wp> - Load removable disk image into removable disk drive <id>.\n"
                         "cartload <id> <filename> <wp> - Load cartridge image into cartridge drive <id>.\n"
                         "moload <id> <filename> <wp> - Load MO image into MO drive <id>.\n\n"
                         "fddeject <id> - eject disk from floppy drive <id>.\n"
                         "cdeject <id> - eject disc from CD-ROM drive <id>.\n"
-                        "zipeject <id> - eject ZIP image from ZIP drive <id>.\n"
+                        "rdiskeject <id> - eject removable disk image from removable disk drive <id>.\n"
                         "carteject <id> - eject cartridge from drive <id>.\n"
                         "moeject <id> - eject image from MO drive <id>.\n\n"
                         "hardreset - hard reset the emulated system.\n"
@@ -1116,8 +1116,8 @@ monitor_thread(UNUSED(void *param))
                     mo_eject(atoi(xargv[1]));
                 } else if (strncasecmp(xargv[0], "carteject", 8) == 0 && cmdargc >= 2) {
                     cartridge_eject(atoi(xargv[1]));
-                } else if (strncasecmp(xargv[0], "zipeject", 8) == 0 && cmdargc >= 2) {
-                    zip_eject(atoi(xargv[1]));
+                } else if (strncasecmp(xargv[0], "rdiskeject", 8) == 0 && cmdargc >= 2) {
+                    rdisk_eject(atoi(xargv[1]));
                 } else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4) {
                     uint8_t id;
                     uint8_t wp;
@@ -1184,7 +1184,7 @@ monitor_thread(UNUSED(void *param))
                         printf("Inserting tape into cartridge holder %hhu: %s\n", id, fn);
                         cartridge_mount(id, fn, wp);
                     }
-                } else if (strncasecmp(xargv[0], "zipload", 7) == 0 && cmdargc >= 4) {
+                } else if (strncasecmp(xargv[0], "rdiskload", 7) == 0 && cmdargc >= 4) {
                     uint8_t id;
                     uint8_t wp;
                     bool    err = false;
@@ -1203,8 +1203,8 @@ monitor_thread(UNUSED(void *param))
                         if (fn[strlen(fn) - 1] == '\''
                             || fn[strlen(fn) - 1] == '"')
                             fn[strlen(fn) - 1] = '\0';
-                        printf("Inserting disk into ZIP drive %c: %s\n", id + 'A', fn);
-                        zip_mount(id, fn, wp);
+                        printf("Inserting disk into removable disk drive %c: %s\n", id + 'A', fn);
+                        rdisk_mount(id, fn, wp);
                     }
                 }
                 free(line);

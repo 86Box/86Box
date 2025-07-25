@@ -113,14 +113,14 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="labelZIP">
+    <widget class="QLabel" name="labelRDisk">
      <property name="text">
-      <string>ZIP drives:</string>
+      <string>Removable disk drives:</string>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QTableView" name="tableViewZIP">
+    <widget class="QTableView" name="tableViewRDisk">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>0</horstretch>
@@ -151,40 +151,47 @@
     </widget>
    </item>
    <item>
-    <widget class="QWidget" name="zipControls" native="true">
+    <widget class="QWidget" name="rdiskControls" native="true">
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <widget class="QLabel" name="labelZIPBus">
+       <widget class="QLabel" name="labelRDiskBus">
         <property name="text">
          <string>Bus:</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBoxZIPBus">
+       <widget class="QComboBox" name="comboBoxRDiskBus">
         <property name="maxVisibleItems">
          <number>30</number>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="labelZIPChannel">
+       <widget class="QLabel" name="labelRDiskChannel">
         <property name="text">
          <string>Channel:</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBoxZIPChannel">
+       <widget class="QComboBox" name="comboBoxRDiskChannel">
         <property name="maxVisibleItems">
          <number>30</number>
         </property>
        </widget>
       </item>
-      <item>
-       <widget class="QCheckBox" name="checkBoxZIP250">
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelRDiskType">
         <property name="text">
-         <string>ZIP 250</string>
+         <string>Type:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1" colspan="3">
+       <widget class="QComboBox" name="comboBoxRDiskType">
+        <property name="maxVisibleItems">
+         <number>30</number>
         </property>
        </widget>
       </item>

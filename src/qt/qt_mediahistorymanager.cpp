@@ -33,7 +33,7 @@ extern "C" {
 #include <86box/fdd.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
-#include <86box/zip.h>
+#include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/path.h>
 }
@@ -114,8 +114,8 @@ MediaHistoryManager::maxDevicesSupported(ui::MediaType type)
             return CDROM_NUM;
         case ui::MediaType::Floppy:
             return FDD_NUM;
-        case ui::MediaType::Zip:
-            return ZIP_NUM;
+        case ui::MediaType::RDisk:
+            return RDISK_NUM;
         case ui::MediaType::Mo:
             return MO_NUM;
         case ui::MediaType::Cassette:
@@ -200,8 +200,8 @@ MediaHistoryManager::initialDeduplication()
                 case ui::MediaType::Optical:
                     current_image = cdrom[device_index].image_path;
                     break;
-                case ui::MediaType::Zip:
-                    current_image = zip_drives[device_index].image_path;
+                case ui::MediaType::RDisk:
+                    current_image = rdisk_drives[device_index].image_path;
                     break;
                 case ui::MediaType::Mo:
                     current_image = mo_drives[device_index].image_path;
@@ -237,8 +237,8 @@ MediaHistoryManager::getEmuHistoryVarForType(ui::MediaType type, int index)
             return &fdd_image_history[index][0];
         case ui::MediaType::Optical:
             return &cdrom[index].image_history[0];
-        case ui::MediaType::Zip:
-            return &zip_drives[index].image_history[0];
+        case ui::MediaType::RDisk:
+            return &rdisk_drives[index].image_history[0];
         case ui::MediaType::Mo:
             return &mo_drives[index].image_history[0];
     }

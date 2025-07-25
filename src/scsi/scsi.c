@@ -33,7 +33,7 @@
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
-#include <86box/zip.h>
+#include <86box/rdisk.h>
 #include <86box/scsi_disk.h>
 #include <86box/scsi_aha154x.h>
 #include <86box/scsi_buslogic.h>
