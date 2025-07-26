@@ -46,11 +46,11 @@ VMManagerMainWindow(QWidget *parent)
     setCentralWidget(vmm);
 
     // Set up the buttons
+    connect(ui->actionNew_Machine, &QAction::triggered, vmm, &VMManagerMain::newMachineWizard);
     connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
     connect(ui->actionSettings, &QAction::triggered, vmm, &VMManagerMain::settingsButtonPressed);
     connect(ui->actionHard_Reset, &QAction::triggered, vmm, &VMManagerMain::restartButtonPressed);
     connect(ui->actionForce_Shutdown, &QAction::triggered, vmm, &VMManagerMain::shutdownForceButtonPressed);
-    connect(ui->actionNew_Machine, &QAction::triggered, vmm, &VMManagerMain::newMachineWizard);
 
     // Set up menu actions
     // (Disable this if the EMU_BUILD_NUM == 0)

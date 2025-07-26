@@ -30,8 +30,8 @@ msgstr "&Duraklat"
 msgid "Re&sume"
 msgstr ""
 
-msgid "E&xit..."
-msgstr "&Çıkış yap..."
+msgid "E&xit"
+msgstr "&Çıkış yap"
 
 msgid "&View"
 msgstr "&Görünüm"

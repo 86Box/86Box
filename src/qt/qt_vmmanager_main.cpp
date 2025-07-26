@@ -53,7 +53,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
         if (indexAt.isValid()) {
             QMenu contextMenu(tr("Context Menu"), ui->listView);
 
-            QAction nameChangeAction(tr("Change display name"));
+            QAction nameChangeAction(tr("Change &display name..."));
             contextMenu.addAction(&nameChangeAction);
             // Use a lambda to call a function so indexAt can be passed
             connect(&nameChangeAction, &QAction::triggered, ui->listView, [this, indexAt] {
@@ -61,7 +61,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             });
             nameChangeAction.setEnabled(!selected_sysconfig->window_obscured);
 
-            QAction openSystemFolderAction(tr("Open folder"));
+            QAction openSystemFolderAction(tr("&Open folder..."));
             contextMenu.addAction(&openSystemFolderAction);
             connect(&openSystemFolderAction, &QAction::triggered, [indexAt] {
                 if (const auto configDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString(); !configDir.isEmpty()) {
@@ -73,7 +73,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
                 }
             });
 
-            QAction setSystemIcon(tr("Set icon"));
+            QAction setSystemIcon(tr("Set &icon..."));
             contextMenu.addAction(&setSystemIcon);
             connect(&setSystemIcon, &QAction::triggered, [this] {
                 IconSelectionDialog dialog(":/systemicons/");
@@ -98,7 +98,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
 
             contextMenu.addSeparator();
 
-            QAction showRawConfigFile(tr("Show config file"));
+            QAction showRawConfigFile(tr("Show &config file"));
             contextMenu.addAction(&showRawConfigFile);
             connect(&showRawConfigFile, &QAction::triggered, [this, indexAt] {
                 if (const auto configFile = indexAt.data(VMManagerModel::Roles::ConfigFile).toString(); !configFile.isEmpty()) {
