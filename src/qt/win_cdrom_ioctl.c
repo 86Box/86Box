@@ -317,7 +317,7 @@ ioctl_get_track_info(const void *local, const uint32_t track,
     int                     trk   = -1;
     int                     next  = -1;
 
-    if ((track >= 1) && (track < 99)) {
+    if ((track >= 1) && (track < 99))
         for (int i = 0; i < ioctl->blocks_num; i++)
              if (rti[i].point == track) {
                  trk = i;
