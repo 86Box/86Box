@@ -131,7 +131,7 @@ mke_get_subq(cdrom_t *dev, uint8_t *b)
 #endif
     cdrom_get_current_subcodeq(dev, temp_buf);
     b[0]  = 0x80; //?
-    b[1]  = ((temp_buf[0] & 0xf) << 4) | ((temp_buf[0] & 0xf0) >> 4);
+    b[1]  = temp_buf[0];
     b[2]  = temp_buf[1];
     b[3]  = temp_buf[2];
     b[4]  = temp_buf[6];
