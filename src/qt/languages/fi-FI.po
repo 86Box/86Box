@@ -147,6 +147,9 @@ msgstr "RGB, &värit"
 msgid "&RGB Grayscale"
 msgstr "&RGB, harmaasävy"
 
+msgid "Generic RGBI color monitor"
+msgstr ""
+
 msgid "&Amber monitor"
 msgstr "&Meripihkanvärinen"
 
@@ -384,6 +387,15 @@ msgstr "Käytössä (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Dynaaminen uudelleenkääntäjä"
 
+msgid "CPU frame size"
+msgstr ""
+
+msgid "Larger frames (less smooth)"
+msgstr ""
+
+msgid "Smaller frames (smoother)"
+msgstr ""
+
 msgid "Video:"
 msgstr "Näytönohjain:"
 
@@ -588,8 +600,8 @@ msgstr "CD-ROM-asemat:"
 msgid "MO drives:"
 msgstr "Magneettisoptiset asemat (MO):"
 
-msgid "ZIP drives:"
-msgstr "ZIP-asemat:"
+msgid "Removable disk drives:"
+msgstr ""
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +611,9 @@ msgstr "ISA-RTC (kello):"
 
 msgid "ISA Memory Expansion"
 msgstr "ISA-muistilaajennus"
+
+msgid "ISA ROM Cards"
+msgstr ""
 
 msgid "Card 1:"
 msgstr "Kortti 1:"
@@ -611,6 +626,27 @@ msgstr "Kortti 3:"
 
 msgid "Card 4:"
 msgstr "Kortti 4:"
+
+msgid "Board 1"
+msgstr ""
+
+msgid "Board 2"
+msgstr ""
+
+msgid "Board 3"
+msgstr ""
+
+msgid "Board 4"
+msgstr ""
+
+msgid "Generic ISA ROM Board"
+msgstr ""
+
+msgid "Generic Dual ISA ROM Board"
+msgstr ""
+
+msgid "Generic Quad ISA ROM Board"
+msgstr ""
 
 msgid "ISABugger device"
 msgstr "ISABugger-laite"
@@ -633,11 +669,14 @@ msgstr " - TAUKO"
 msgid "Speed"
 msgstr "Nopeus"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr ""
 
-msgid "ZIP images"
-msgstr "ZIP-levykuvat"
+msgid "Removable disk images"
+msgstr ""
+
+msgid "Image %1"
+msgstr ""
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=\"https://github.com/86Box/roms/releases/latest\">ladata</a> ROM-paketin ja purkaa sen \"roms\"-hakemistoon."
@@ -672,8 +711,8 @@ msgstr "Konetta \"%hs\" ei voi käyttää, koska roms/machines-hakemistosta puut
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Näytönohjainta \"%hs\" ei voi käyttää, koska roms/machines-hakemistosta puuttuvien ROM-tiedostojen vuoksi. Vaihdetaan käyttökelpoiseen näytönohjaimeen."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Näytönohjainta 2 \"%hs\" ei voi käyttää, koska roms/machines-hakemistosta puuttuvien ROM-tiedostojen vuoksi. Toisen näytönohjaimen poistaminen käytöstä."
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr ""
 
 msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
 msgstr "Laite \"%hs\" ei voi käyttää puuttuvien ROM-tiedostojen vuoksi. Laitteen huomiotta jättäminen."
@@ -777,11 +816,38 @@ msgstr "4-akselinen 4-painikkeinen peliohjain"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr ""
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr ""
+
+msgid "2-button gamepad(s)"
+msgstr ""
+
+msgid "2-button flight yoke"
+msgstr ""
+
+msgid "4-button gamepad"
+msgstr ""
+
+msgid "4-button flight yoke"
+msgstr ""
+
+msgid "2-button flight yoke with throttle"
+msgstr ""
+
+msgid "4-button flight yoke with throttle"
+msgstr ""
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr ""
 
 msgid "None"
 msgstr "Ei mikään"
@@ -1281,9 +1347,6 @@ msgstr "Varjostinohjelmat"
 msgid "Remove"
 msgstr "Poista"
 
-msgid "No shader selected"
-msgstr "Ei valittu varjostinohjelmatta"
-
 msgid "Browse..."
 msgstr "Selaa..."
 
@@ -1380,8 +1443,14 @@ msgstr "Microsoft-väylähiiri (InPort)"
 msgid "Mouse Systems Serial Mouse"
 msgstr "Mouse Systems-sarjahiiri"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr ""
+
 msgid "Microsoft Serial Mouse"
 msgstr "Microsoft-sarjahiiri"
+
+msgid "Microsoft Serial BallPoint"
+msgstr ""
 
 msgid "Logitech Serial Mouse"
 msgstr "Logitech-sarjahiiri"
@@ -1391,6 +1460,9 @@ msgstr "PS/2 hiiri"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (sarja)"
+
+msgid "Default Baud rate"
+msgstr ""
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Tavallinen Hayes-yhteensopiva modeemi"
@@ -1416,11 +1488,53 @@ msgstr "Järjestelmän MIDI"
 msgid "MIDI Input Device"
 msgstr "MIDI-syöttölaite"
 
+msgid "BIOS file"
+msgstr ""
+
+msgid "BIOS file (ROM #1)"
+msgstr ""
+
+msgid "BIOS file (ROM #2)"
+msgstr ""
+
+msgid "BIOS file (ROM #3)"
+msgstr ""
+
+msgid "BIOS file (ROM #4)"
+msgstr ""
+
 msgid "BIOS Address"
 msgstr "BIOS-osoite"
 
+msgid "BIOS address (ROM #1)"
+msgstr ""
+
+msgid "BIOS address (ROM #2)"
+msgstr ""
+
+msgid "BIOS address (ROM #3)"
+msgstr ""
+
+msgid "BIOS address (ROM #4)"
+msgstr ""
+
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Käytä BIOS-laajennuksen ROM-kirjoitusten"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr ""
+
+msgid "Linear framebuffer base"
+msgstr ""
 
 msgid "Address"
 msgstr "Osoite"
@@ -1430,6 +1544,21 @@ msgstr "IRQ"
 
 msgid "BIOS Revision"
 msgstr "BIOS-tarkistus"
+
+msgid "BIOS Version"
+msgstr ""
+
+msgid "BIOS Versions"
+msgstr ""
+
+msgid "BIOS Language"
+msgstr ""
+
+msgid "IBM 5161 Expansion Unit"
+msgstr ""
+
+msgid "IBM Cassette Basic"
+msgstr ""
 
 msgid "Translate 26 -> 17"
 msgstr "Käännä 26 -> 17"
@@ -1445,6 +1574,18 @@ msgstr "Käännä värit"
 
 msgid "BIOS size"
 msgstr "BIOS-koko"
+
+msgid "BIOS size (ROM #1)"
+msgstr ""
+
+msgid "BIOS size (ROM #2)"
+msgstr ""
+
+msgid "BIOS size (ROM #3)"
+msgstr ""
+
+msgid "BIOS size (ROM #4)"
+msgstr ""
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Kartta C0000-C7FFF UMB:nä"
@@ -1520,6 +1661,9 @@ msgstr "Jälkikaiunnan taso"
 
 msgid "Interpolation Method"
 msgstr "Interpolointimenetelmä"
+
+msgid "Dynamic Sample Loading"
+msgstr ""
 
 msgid "Reverb Output Gain"
 msgstr "Jälkikaiunta lähtötaso"
@@ -1608,6 +1752,12 @@ msgstr "Matala DMA"
 msgid "Enable Game port"
 msgstr "Käytä peliporttita"
 
+msgid "SID Model"
+msgstr ""
+
+msgid "SID Filter Strength"
+msgstr ""
+
 msgid "Surround module"
 msgstr "Surround-moduuli"
 
@@ -1619,6 +1769,9 @@ msgstr "CODEC-keskeytyksen nostaminen CODEC-asennuksen yhteydessä (jotkut ohjai
 
 msgid "SB Address"
 msgstr "SB-osoite"
+
+msgid "Use EEPROM setting"
+msgstr ""
 
 msgid "WSS IRQ"
 msgstr "WSS-IRQ"
@@ -1704,6 +1857,9 @@ msgstr "RAMDAC-tyyppi"
 msgid "Blend"
 msgstr "Sekoitus"
 
+msgid "Font"
+msgstr ""
+
 msgid "Bilinear filtering"
 msgstr "Bilineaarinen suodatus"
 
@@ -1748,6 +1904,33 @@ msgstr "Siirtonopeus"
 
 msgid "EMS mode"
 msgstr "EMS-tila"
+
+msgid "EMS Address"
+msgstr ""
+
+msgid "EMS 1 Address"
+msgstr ""
+
+msgid "EMS 2 Address"
+msgstr ""
+
+msgid "EMS Memory Size"
+msgstr ""
+
+msgid "EMS 1 Memory Size"
+msgstr ""
+
+msgid "EMS 2 Memory Size"
+msgstr ""
+
+msgid "Enable EMS"
+msgstr ""
+
+msgid "Enable EMS 1"
+msgstr ""
+
+msgid "Enable EMS 2"
+msgstr ""
 
 msgid "Address for > 2 MB"
 msgstr "Osoite > 2 Mt"
@@ -1905,6 +2088,15 @@ msgstr "sRGB-interpolointi"
 msgid "Linear interpolation"
 msgstr "Lineaarinen interpolointi"
 
+msgid "Has secondary 8x8 character set"
+msgstr ""
+
+msgid "Has Quadcolor II daughter board"
+msgstr ""
+
+msgid "Alternate monochrome contrast"
+msgstr ""
+
 msgid "128 KB"
 msgstr "128 Kt"
 
@@ -1938,6 +2130,9 @@ msgstr "Keltainen"
 msgid "Gray"
 msgstr "Harmaa"
 
+msgid "Grayscale"
+msgstr ""
+
 msgid "Color"
 msgstr "Väri"
 
@@ -1952,6 +2147,12 @@ msgstr "Muut kielet"
 
 msgid "Bochs latest"
 msgstr "Bochs uusin"
+
+msgid "Apply overscan deltas"
+msgstr ""
+
+msgid "Mono Interlaced"
+msgstr ""
 
 msgid "Mono Non-Interlaced"
 msgstr "Yksivärinen ei-välitetyt"
@@ -2079,6 +2280,12 @@ msgstr "IBM 8514/A-klooni (ISA)"
 msgid "Vendor"
 msgstr "Valmistaja"
 
+msgid "30 Hz (JMP2 = 1)"
+msgstr ""
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr ""
+
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Yleinen PC/XT-muistilaajennus"
 
@@ -2150,3 +2357,72 @@ msgstr ""
 
 msgid "Could not load file %1"
 msgstr ""
+
+msgid "Key Bindings:"
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "Clear binding"
+msgstr ""
+
+msgid "Bind"
+msgstr ""
+
+msgid "Bind Key"
+msgstr ""
+
+msgid "Enter key combo:"
+msgstr ""
+
+msgid "Send Control+Alt+Del"
+msgstr ""
+
+msgid "Send Control+Alt+Escape"
+msgstr ""
+
+msgid "Toggle fullscreen"
+msgstr ""
+
+msgid "Screenshot"
+msgstr ""
+
+msgid "Release mouse pointer"
+msgstr ""
+
+msgid "Toggle pause"
+msgstr ""
+
+msgid "Toggle mute"
+msgstr ""
+
+msgid "Text files"
+msgstr ""
+
+msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
+msgstr ""
+
+msgid "ROM files"
+msgstr ""
+
+msgid "SoundFont files"
+msgstr ""
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIP-asemat:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "ZIP-levykuvat"
+
+#~ msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+#~ msgstr "Näytönohjainta 2 \"%hs\" ei voi käyttää, koska roms/machines-hakemistosta puuttuvien ROM-tiedostojen vuoksi. Toisen näytönohjaimen poistaminen käytöstä."
+
+#~ msgid "No shader selected"
+#~ msgstr "Ei valittu varjostinohjelmatta"

@@ -147,6 +147,9 @@ msgstr "&RGB-Farbe"
 msgid "&RGB Grayscale"
 msgstr "&RGB-Graustufen"
 
+msgid "Generic RGBI color monitor"
+msgstr ""
+
 msgid "&Amber monitor"
 msgstr "&Bernstein-Monitor"
 
@@ -384,6 +387,15 @@ msgstr "Eingeschaltet (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Dynamischer Recompiler"
 
+msgid "CPU frame size"
+msgstr ""
+
+msgid "Larger frames (less smooth)"
+msgstr ""
+
+msgid "Smaller frames (smoother)"
+msgstr ""
+
 msgid "Video:"
 msgstr "Videokarte:"
 
@@ -588,8 +600,8 @@ msgstr "CD-ROM-Laufwerke:"
 msgid "MO drives:"
 msgstr "MO-Laufwerke:"
 
-msgid "ZIP drives:"
-msgstr "ZIP-Laufwerke:"
+msgid "Removable disk drives:"
+msgstr ""
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +611,9 @@ msgstr "ISA-Echtzeituhr:"
 
 msgid "ISA Memory Expansion"
 msgstr "ISA-Speichererweiterung:"
+
+msgid "ISA ROM Cards"
+msgstr ""
 
 msgid "Card 1:"
 msgstr "Steckkarte 1:"
@@ -611,6 +626,27 @@ msgstr "Steckkarte 3:"
 
 msgid "Card 4:"
 msgstr "Steckkarte 4:"
+
+msgid "Board 1"
+msgstr ""
+
+msgid "Board 2"
+msgstr ""
+
+msgid "Board 3"
+msgstr ""
+
+msgid "Board 4"
+msgstr ""
+
+msgid "Generic ISA ROM Board"
+msgstr ""
+
+msgid "Generic Dual ISA ROM Board"
+msgstr ""
+
+msgid "Generic Quad ISA ROM Board"
+msgstr ""
 
 msgid "ISABugger device"
 msgstr "ISABugger-Gerät"
@@ -633,11 +669,14 @@ msgstr " - PAUSIERT"
 msgid "Speed"
 msgstr "Geschwindigkeit"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr ""
 
-msgid "ZIP images"
-msgstr "ZIP-Abbilder"
+msgid "Removable disk images"
+msgstr ""
+
+msgid "Image %1"
+msgstr ""
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box konnte keine nutzbaren ROM-Dateien finden.\n\nBitte besuchen Sie <a href=\"https://github.com/86Box/roms/releases/latest\">download</a>, laden ein ROM-Set herunter und extrahieren dies in das \"roms\"-Verzeichnis."
@@ -777,11 +816,38 @@ msgstr "4-Achsen-, 4-Tasten-Joystick"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr ""
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr ""
+
+msgid "2-button gamepad(s)"
+msgstr ""
+
+msgid "2-button flight yoke"
+msgstr ""
+
+msgid "4-button gamepad"
+msgstr ""
+
+msgid "4-button flight yoke"
+msgstr ""
+
+msgid "2-button flight yoke with throttle"
+msgstr ""
+
+msgid "4-button flight yoke with throttle"
+msgstr ""
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr ""
 
 msgid "None"
 msgstr "Ohne"
@@ -1377,8 +1443,14 @@ msgstr "Microsoft Bus-Maus (InPort)"
 msgid "Mouse Systems Serial Mouse"
 msgstr "Mouse Systems Serielle Maus"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr ""
+
 msgid "Microsoft Serial Mouse"
 msgstr "Microsoft Serielle Maus"
+
+msgid "Microsoft Serial BallPoint"
+msgstr ""
 
 msgid "Logitech Serial Mouse"
 msgstr "Logitech Serielle Maus"
@@ -1388,6 +1460,9 @@ msgstr "PS/2-Maus"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (Seriell)"
+
+msgid "Default Baud rate"
+msgstr ""
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Standard Hayes-kompatibles Modem"
@@ -1413,11 +1488,53 @@ msgstr "System MIDI"
 msgid "MIDI Input Device"
 msgstr "MIDI-Eingabegerät"
 
+msgid "BIOS file"
+msgstr ""
+
+msgid "BIOS file (ROM #1)"
+msgstr ""
+
+msgid "BIOS file (ROM #2)"
+msgstr ""
+
+msgid "BIOS file (ROM #3)"
+msgstr ""
+
+msgid "BIOS file (ROM #4)"
+msgstr ""
+
 msgid "BIOS Address"
 msgstr "BIOS-Adresse"
 
+msgid "BIOS address (ROM #1)"
+msgstr ""
+
+msgid "BIOS address (ROM #2)"
+msgstr ""
+
+msgid "BIOS address (ROM #3)"
+msgstr ""
+
+msgid "BIOS address (ROM #4)"
+msgstr ""
+
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Schreiben in BIOS Erweiterungs ROMs zulassen"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr ""
+
+msgid "Linear framebuffer base"
+msgstr ""
 
 msgid "Address"
 msgstr "Adresse"
@@ -1427,6 +1544,21 @@ msgstr "IRQ"
 
 msgid "BIOS Revision"
 msgstr "BIOS-Revision"
+
+msgid "BIOS Version"
+msgstr ""
+
+msgid "BIOS Versions"
+msgstr ""
+
+msgid "BIOS Language"
+msgstr ""
+
+msgid "IBM 5161 Expansion Unit"
+msgstr ""
+
+msgid "IBM Cassette Basic"
+msgstr ""
 
 msgid "Translate 26 -> 17"
 msgstr "Übersetzen 26 -> 17"
@@ -1442,6 +1574,18 @@ msgstr "Farben invertieren"
 
 msgid "BIOS size"
 msgstr "BIOS-Größe"
+
+msgid "BIOS size (ROM #1)"
+msgstr ""
+
+msgid "BIOS size (ROM #2)"
+msgstr ""
+
+msgid "BIOS size (ROM #3)"
+msgstr ""
+
+msgid "BIOS size (ROM #4)"
+msgstr ""
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "C0000-C7FFF als UMB zuordnen"
@@ -1517,6 +1661,9 @@ msgstr "Nachhall-Pegel"
 
 msgid "Interpolation Method"
 msgstr "Interpolationsmethode"
+
+msgid "Dynamic Sample Loading"
+msgstr ""
 
 msgid "Reverb Output Gain"
 msgstr "Nachhall-Ausgangsverstärkung"
@@ -1605,6 +1752,12 @@ msgstr "Niedrige DMA"
 msgid "Enable Game port"
 msgstr "Game-Port einschalten"
 
+msgid "SID Model"
+msgstr ""
+
+msgid "SID Filter Strength"
+msgstr ""
+
 msgid "Surround module"
 msgstr "Surround-Modul"
 
@@ -1616,6 +1769,9 @@ msgstr "CODEC-Interrupt bei CODEC-Einrichtung auslösen (wird von einigen Treibe
 
 msgid "SB Address"
 msgstr "SB-Adresse"
+
+msgid "Use EEPROM setting"
+msgstr ""
 
 msgid "WSS IRQ"
 msgstr "WSS-IRQ"
@@ -1701,6 +1857,9 @@ msgstr "RAMDAC-Typ"
 msgid "Blend"
 msgstr "Mischung"
 
+msgid "Font"
+msgstr ""
+
 msgid "Bilinear filtering"
 msgstr "Bilineare Filterung"
 
@@ -1745,6 +1904,33 @@ msgstr "Übertragungsgeschwindigkeit"
 
 msgid "EMS mode"
 msgstr "EMS-Modus"
+
+msgid "EMS Address"
+msgstr ""
+
+msgid "EMS 1 Address"
+msgstr ""
+
+msgid "EMS 2 Address"
+msgstr ""
+
+msgid "EMS Memory Size"
+msgstr ""
+
+msgid "EMS 1 Memory Size"
+msgstr ""
+
+msgid "EMS 2 Memory Size"
+msgstr ""
+
+msgid "Enable EMS"
+msgstr ""
+
+msgid "Enable EMS 1"
+msgstr ""
+
+msgid "Enable EMS 2"
+msgstr ""
 
 msgid "Address for > 2 MB"
 msgstr "Adresse für > 2 MB"
@@ -1902,6 +2088,15 @@ msgstr "sRGB-Interpolation"
 msgid "Linear interpolation"
 msgstr "Lineare Interpolation"
 
+msgid "Has secondary 8x8 character set"
+msgstr ""
+
+msgid "Has Quadcolor II daughter board"
+msgstr ""
+
+msgid "Alternate monochrome contrast"
+msgstr ""
+
 msgid "128 KB"
 msgstr "128 KB"
 
@@ -1935,6 +2130,9 @@ msgstr "Bernsteinfarben"
 msgid "Gray"
 msgstr "Graues"
 
+msgid "Grayscale"
+msgstr ""
+
 msgid "Color"
 msgstr "Farbe"
 
@@ -1949,6 +2147,12 @@ msgstr "Andere Sprachen"
 
 msgid "Bochs latest"
 msgstr "Bochs neueste"
+
+msgid "Apply overscan deltas"
+msgstr ""
+
+msgid "Mono Interlaced"
+msgstr ""
 
 msgid "Mono Non-Interlaced"
 msgstr "Monochrom (Kein Zeilensprungverfahren)"
@@ -2076,6 +2280,12 @@ msgstr "IBM 8514/A-Klon (ISA)"
 msgid "Vendor"
 msgstr "Hersteller"
 
+msgid "30 Hz (JMP2 = 1)"
+msgstr ""
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr ""
+
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Generische PC/XT-Speichererweiterung"
 
@@ -2147,3 +2357,66 @@ msgstr ""
 
 msgid "Could not load file %1"
 msgstr ""
+
+msgid "Key Bindings:"
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "Clear binding"
+msgstr ""
+
+msgid "Bind"
+msgstr ""
+
+msgid "Bind Key"
+msgstr ""
+
+msgid "Enter key combo:"
+msgstr ""
+
+msgid "Send Control+Alt+Del"
+msgstr ""
+
+msgid "Send Control+Alt+Escape"
+msgstr ""
+
+msgid "Toggle fullscreen"
+msgstr ""
+
+msgid "Screenshot"
+msgstr ""
+
+msgid "Release mouse pointer"
+msgstr ""
+
+msgid "Toggle pause"
+msgstr ""
+
+msgid "Toggle mute"
+msgstr ""
+
+msgid "Text files"
+msgstr ""
+
+msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
+msgstr ""
+
+msgid "ROM files"
+msgstr ""
+
+msgid "SoundFont files"
+msgstr ""
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIP-Laufwerke:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "ZIP-Abbilder"

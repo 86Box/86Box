@@ -147,6 +147,9 @@ msgstr "RGB(カラー)(&C)"
 msgid "&RGB Grayscale"
 msgstr "RGB(グレースケール)(&R)"
 
+msgid "Generic RGBI color monitor"
+msgstr ""
+
 msgid "&Amber monitor"
 msgstr "モニター(黄色)(&A)"
 
@@ -384,6 +387,15 @@ msgstr "有効(UTC)"
 msgid "Dynamic Recompiler"
 msgstr "動的再コンパイル"
 
+msgid "CPU frame size"
+msgstr ""
+
+msgid "Larger frames (less smooth)"
+msgstr ""
+
+msgid "Smaller frames (smoother)"
+msgstr ""
+
 msgid "Video:"
 msgstr "ビデオカード:"
 
@@ -588,8 +600,8 @@ msgstr "CD-ROMドライブ:"
 msgid "MO drives:"
 msgstr "光磁気ドライブ:"
 
-msgid "ZIP drives:"
-msgstr "ZIPドライブ:"
+msgid "Removable disk drives:"
+msgstr ""
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +611,9 @@ msgstr "ISA RTCカード:"
 
 msgid "ISA Memory Expansion"
 msgstr "ISAメモリ拡張カード"
+
+msgid "ISA ROM Cards"
+msgstr ""
 
 msgid "Card 1:"
 msgstr "カード1:"
@@ -611,6 +626,27 @@ msgstr "カード3:"
 
 msgid "Card 4:"
 msgstr "カード4:"
+
+msgid "Board 1"
+msgstr ""
+
+msgid "Board 2"
+msgstr ""
+
+msgid "Board 3"
+msgstr ""
+
+msgid "Board 4"
+msgstr ""
+
+msgid "Generic ISA ROM Board"
+msgstr ""
+
+msgid "Generic Dual ISA ROM Board"
+msgstr ""
+
+msgid "Generic Quad ISA ROM Board"
+msgstr ""
 
 msgid "ISABugger device"
 msgstr "ISABuggerデバイス"
@@ -633,11 +669,14 @@ msgstr " - 一時停止"
 msgid "Speed"
 msgstr "速度"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr ""
 
-msgid "ZIP images"
-msgstr "ZIPイメージ"
+msgid "Removable disk images"
+msgstr ""
+
+msgid "Image %1"
+msgstr ""
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Boxで使用可能なROMイメージが見つかりません。\n\nROMセットを<a href=\"https://github.com/86Box/roms/releases/latest\">ダウンロード</a>して、roms ディレクトリに解凍してください。"
@@ -777,11 +816,38 @@ msgstr "ジョイスティック(4軸、4ボタン)"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr ""
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinderパッド"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster飛行制御システム"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr ""
+
+msgid "2-button gamepad(s)"
+msgstr ""
+
+msgid "2-button flight yoke"
+msgstr ""
+
+msgid "4-button gamepad"
+msgstr ""
+
+msgid "4-button flight yoke"
+msgstr ""
+
+msgid "2-button flight yoke with throttle"
+msgstr ""
+
+msgid "4-button flight yoke with throttle"
+msgstr ""
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr ""
 
 msgid "None"
 msgstr "なし"
@@ -1377,8 +1443,14 @@ msgstr "Microsoft バスマウス（InPort）"
 msgid "Mouse Systems Serial Mouse"
 msgstr "Mouse Systems シリアルマウス"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr ""
+
 msgid "Microsoft Serial Mouse"
 msgstr "Microsoft シリアルマウス"
+
+msgid "Microsoft Serial BallPoint"
+msgstr ""
 
 msgid "Logitech Serial Mouse"
 msgstr "Logitech シリアルマウス"
@@ -1388,6 +1460,9 @@ msgstr "PS/2マウス"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3Mマイクロタッチ（シリアル）"
+
+msgid "Default Baud rate"
+msgstr ""
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] 標準ヘイズ準拠モデム"
@@ -1413,11 +1488,53 @@ msgstr "システムMIDI"
 msgid "MIDI Input Device"
 msgstr "MIDI入力デバイス"
 
+msgid "BIOS file"
+msgstr ""
+
+msgid "BIOS file (ROM #1)"
+msgstr ""
+
+msgid "BIOS file (ROM #2)"
+msgstr ""
+
+msgid "BIOS file (ROM #3)"
+msgstr ""
+
+msgid "BIOS file (ROM #4)"
+msgstr ""
+
 msgid "BIOS Address"
 msgstr "BIOSアドレス"
 
+msgid "BIOS address (ROM #1)"
+msgstr ""
+
+msgid "BIOS address (ROM #2)"
+msgstr ""
+
+msgid "BIOS address (ROM #3)"
+msgstr ""
+
+msgid "BIOS address (ROM #4)"
+msgstr ""
+
 msgid "Enable BIOS extension ROM Writes"
 msgstr "BIOS拡張ROM書き込みを有効にする"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr ""
+
+msgid "Linear framebuffer base"
+msgstr ""
 
 msgid "Address"
 msgstr "アドレス"
@@ -1427,6 +1544,21 @@ msgstr "割り込み要求"
 
 msgid "BIOS Revision"
 msgstr "BIOSリビジョン"
+
+msgid "BIOS Version"
+msgstr ""
+
+msgid "BIOS Versions"
+msgstr ""
+
+msgid "BIOS Language"
+msgstr ""
+
+msgid "IBM 5161 Expansion Unit"
+msgstr ""
+
+msgid "IBM Cassette Basic"
+msgstr ""
 
 msgid "Translate 26 -> 17"
 msgstr "26→17を翻訳"
@@ -1442,6 +1574,18 @@ msgstr "色の反転"
 
 msgid "BIOS size"
 msgstr "BIOSサイズ"
+
+msgid "BIOS size (ROM #1)"
+msgstr ""
+
+msgid "BIOS size (ROM #2)"
+msgstr ""
+
+msgid "BIOS size (ROM #3)"
+msgstr ""
+
+msgid "BIOS size (ROM #4)"
+msgstr ""
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "C0000-C7FFFをUMBとしてマップ"
@@ -1517,6 +1661,9 @@ msgstr "リバーブ・レベル"
 
 msgid "Interpolation Method"
 msgstr "補間法"
+
+msgid "Dynamic Sample Loading"
+msgstr ""
 
 msgid "Reverb Output Gain"
 msgstr "リバーブ出力のゲイン"
@@ -1605,6 +1752,12 @@ msgstr "低DMA"
 msgid "Enable Game port"
 msgstr "ゲームポートを有効にする"
 
+msgid "SID Model"
+msgstr ""
+
+msgid "SID Filter Strength"
+msgstr ""
+
 msgid "Surround module"
 msgstr "サラウンド・モジュール"
 
@@ -1616,6 +1769,9 @@ msgstr "CODECセットアップ時にCODEC割り込みを発生させる(一部�
 
 msgid "SB Address"
 msgstr "SBアドレス"
+
+msgid "Use EEPROM setting"
+msgstr ""
 
 msgid "WSS IRQ"
 msgstr "WSS IRQ"
@@ -1701,6 +1857,9 @@ msgstr "RAMDACタイプ"
 msgid "Blend"
 msgstr "ブレンド"
 
+msgid "Font"
+msgstr ""
+
 msgid "Bilinear filtering"
 msgstr "バイリニア・フィルタリング"
 
@@ -1745,6 +1904,33 @@ msgstr "転送速度"
 
 msgid "EMS mode"
 msgstr "EMSモード"
+
+msgid "EMS Address"
+msgstr ""
+
+msgid "EMS 1 Address"
+msgstr ""
+
+msgid "EMS 2 Address"
+msgstr ""
+
+msgid "EMS Memory Size"
+msgstr ""
+
+msgid "EMS 1 Memory Size"
+msgstr ""
+
+msgid "EMS 2 Memory Size"
+msgstr ""
+
+msgid "Enable EMS"
+msgstr ""
+
+msgid "Enable EMS 1"
+msgstr ""
+
+msgid "Enable EMS 2"
+msgstr ""
 
 msgid "Address for > 2 MB"
 msgstr "2MB以上のアドレス"
@@ -1902,6 +2088,15 @@ msgstr "sRGB補間"
 msgid "Linear interpolation"
 msgstr "線形補間"
 
+msgid "Has secondary 8x8 character set"
+msgstr ""
+
+msgid "Has Quadcolor II daughter board"
+msgstr ""
+
+msgid "Alternate monochrome contrast"
+msgstr ""
+
 msgid "128 KB"
 msgstr "128 KB"
 
@@ -1935,6 +2130,9 @@ msgstr "鼈甲色"
 msgid "Gray"
 msgstr "ねずみ色"
 
+msgid "Grayscale"
+msgstr ""
+
 msgid "Color"
 msgstr "カラー"
 
@@ -1949,6 +2147,12 @@ msgstr "その他の言語"
 
 msgid "Bochs latest"
 msgstr "Bochs latest"
+
+msgid "Apply overscan deltas"
+msgstr ""
+
+msgid "Mono Interlaced"
+msgstr ""
 
 msgid "Mono Non-Interlaced"
 msgstr "モノラル・ノンインターレース"
@@ -2076,6 +2280,12 @@ msgstr "IBM 8514/A クローン（ISA）"
 msgid "Vendor"
 msgstr "業者"
 
+msgid "30 Hz (JMP2 = 1)"
+msgstr ""
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr ""
+
 msgid "Generic PC/XT Memory Expansion"
 msgstr "汎用PC/XTメモリ拡張カード"
 
@@ -2147,3 +2357,66 @@ msgstr ""
 
 msgid "Could not load file %1"
 msgstr ""
+
+msgid "Key Bindings:"
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "Clear binding"
+msgstr ""
+
+msgid "Bind"
+msgstr ""
+
+msgid "Bind Key"
+msgstr ""
+
+msgid "Enter key combo:"
+msgstr ""
+
+msgid "Send Control+Alt+Del"
+msgstr ""
+
+msgid "Send Control+Alt+Escape"
+msgstr ""
+
+msgid "Toggle fullscreen"
+msgstr ""
+
+msgid "Screenshot"
+msgstr ""
+
+msgid "Release mouse pointer"
+msgstr ""
+
+msgid "Toggle pause"
+msgstr ""
+
+msgid "Toggle mute"
+msgstr ""
+
+msgid "Text files"
+msgstr ""
+
+msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
+msgstr ""
+
+msgid "ROM files"
+msgstr ""
+
+msgid "SoundFont files"
+msgstr ""
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIPドライブ:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "ZIPイメージ"

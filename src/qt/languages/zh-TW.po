@@ -147,6 +147,9 @@ msgstr "RGB 彩色(&C)"
 msgid "&RGB Grayscale"
 msgstr "RGB 灰度(&R)"
 
+msgid "Generic RGBI color monitor"
+msgstr ""
+
 msgid "&Amber monitor"
 msgstr "琥珀色單色顯示器(&A)"
 
@@ -384,6 +387,15 @@ msgstr "啟用 (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "動態重編譯器"
 
+msgid "CPU frame size"
+msgstr ""
+
+msgid "Larger frames (less smooth)"
+msgstr ""
+
+msgid "Smaller frames (smoother)"
+msgstr ""
+
 msgid "Video:"
 msgstr "顯示卡:"
 
@@ -588,8 +600,8 @@ msgstr "光碟機:"
 msgid "MO drives:"
 msgstr "磁光碟機:"
 
-msgid "ZIP drives:"
-msgstr "ZIP 磁碟機:"
+msgid "Removable disk drives:"
+msgstr ""
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +611,9 @@ msgstr "ISA 實時時鐘:"
 
 msgid "ISA Memory Expansion"
 msgstr "ISA 記憶體擴充"
+
+msgid "ISA ROM Cards"
+msgstr ""
 
 msgid "Card 1:"
 msgstr "擴充卡 1:"
@@ -611,6 +626,27 @@ msgstr "擴充卡 3:"
 
 msgid "Card 4:"
 msgstr "擴充卡 4:"
+
+msgid "Board 1"
+msgstr ""
+
+msgid "Board 2"
+msgstr ""
+
+msgid "Board 3"
+msgstr ""
+
+msgid "Board 4"
+msgstr ""
+
+msgid "Generic ISA ROM Board"
+msgstr ""
+
+msgid "Generic Dual ISA ROM Board"
+msgstr ""
+
+msgid "Generic Quad ISA ROM Board"
+msgstr ""
 
 msgid "ISABugger device"
 msgstr "ISABugger 裝置"
@@ -633,11 +669,14 @@ msgstr " - 已暫停"
 msgid "Speed"
 msgstr "速度"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr ""
 
-msgid "ZIP images"
-msgstr "ZIP 映像"
+msgid "Removable disk images"
+msgstr ""
+
+msgid "Image %1"
+msgstr ""
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box 找不到任何可用的 ROM 映像。\n\n請<a href=\"https://github.com/86Box/roms/releases/latest\">下載</a> ROM 套件並將其解壓到 \"roms\" 資料夾。"
@@ -777,11 +816,38 @@ msgstr "4 軸, 4 鍵搖桿"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr ""
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr ""
+
+msgid "2-button gamepad(s)"
+msgstr ""
+
+msgid "2-button flight yoke"
+msgstr ""
+
+msgid "4-button gamepad"
+msgstr ""
+
+msgid "4-button flight yoke"
+msgstr ""
+
+msgid "2-button flight yoke with throttle"
+msgstr ""
+
+msgid "4-button flight yoke with throttle"
+msgstr ""
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr ""
 
 msgid "None"
 msgstr "無"
@@ -849,8 +915,8 @@ msgstr "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG
 msgid "Hardware not available"
 msgstr "硬體不可用"
 
-msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
-msgstr "請確認 %1 已安裝且使用相容 libpcap 的網路連線。"
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr ""
 
 msgid "Invalid configuration"
 msgstr "無效設定"
@@ -1377,8 +1443,14 @@ msgstr "Microsoft 匯流排滑鼠 (InPort)"
 msgid "Mouse Systems Serial Mouse"
 msgstr "Mouse Systems 序列滑鼠"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr ""
+
 msgid "Microsoft Serial Mouse"
 msgstr "Microsoft 序列滑鼠"
+
+msgid "Microsoft Serial BallPoint"
+msgstr ""
 
 msgid "Logitech Serial Mouse"
 msgstr "Logitech 序列滑鼠"
@@ -1388,6 +1460,9 @@ msgstr "PS/2 滑鼠"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (序列)"
+
+msgid "Default Baud rate"
+msgstr ""
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] 標準 Hayes 相容的數據機"
@@ -1413,11 +1488,53 @@ msgstr "系統的 MIDI"
 msgid "MIDI Input Device"
 msgstr "MIDI 輸入裝置"
 
+msgid "BIOS file"
+msgstr ""
+
+msgid "BIOS file (ROM #1)"
+msgstr ""
+
+msgid "BIOS file (ROM #2)"
+msgstr ""
+
+msgid "BIOS file (ROM #3)"
+msgstr ""
+
+msgid "BIOS file (ROM #4)"
+msgstr ""
+
 msgid "BIOS Address"
 msgstr "BIOS 位址"
 
+msgid "BIOS address (ROM #1)"
+msgstr ""
+
+msgid "BIOS address (ROM #2)"
+msgstr ""
+
+msgid "BIOS address (ROM #3)"
+msgstr ""
+
+msgid "BIOS address (ROM #4)"
+msgstr ""
+
 msgid "Enable BIOS extension ROM Writes"
 msgstr "啟用 BIOS 擴充 ROM 寫入"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr ""
+
+msgid "Linear framebuffer base"
+msgstr ""
 
 msgid "Address"
 msgstr "位址"
@@ -1427,6 +1544,21 @@ msgstr "IRQ"
 
 msgid "BIOS Revision"
 msgstr "BIOS 版本"
+
+msgid "BIOS Version"
+msgstr ""
+
+msgid "BIOS Versions"
+msgstr ""
+
+msgid "BIOS Language"
+msgstr ""
+
+msgid "IBM 5161 Expansion Unit"
+msgstr ""
+
+msgid "IBM Cassette Basic"
+msgstr ""
 
 msgid "Translate 26 -> 17"
 msgstr "轉換 26 -> 17"
@@ -1442,6 +1574,18 @@ msgstr "反轉顏色"
 
 msgid "BIOS size"
 msgstr "BIOS 大小"
+
+msgid "BIOS size (ROM #1)"
+msgstr ""
+
+msgid "BIOS size (ROM #2)"
+msgstr ""
+
+msgid "BIOS size (ROM #3)"
+msgstr ""
+
+msgid "BIOS size (ROM #4)"
+msgstr ""
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "映射 C0000-C7FFF 為 UMB"
@@ -1517,6 +1661,9 @@ msgstr "混響電平"
 
 msgid "Interpolation Method"
 msgstr "插值方法"
+
+msgid "Dynamic Sample Loading"
+msgstr ""
 
 msgid "Reverb Output Gain"
 msgstr "迴響輸出增益"
@@ -1605,6 +1752,12 @@ msgstr "低 DMA"
 msgid "Enable Game port"
 msgstr "啟用遊戲埠"
 
+msgid "SID Model"
+msgstr ""
+
+msgid "SID Filter Strength"
+msgstr ""
+
 msgid "Surround module"
 msgstr "環繞聲模組"
 
@@ -1616,6 +1769,9 @@ msgstr "在 CODEC 設定時啟動 CODEC 中斷 (某些驅動程式需要)"
 
 msgid "SB Address"
 msgstr "SB 位址"
+
+msgid "Use EEPROM setting"
+msgstr ""
 
 msgid "WSS IRQ"
 msgstr "WSS IRQ"
@@ -1701,6 +1857,9 @@ msgstr "RAMDAC 類型"
 msgid "Blend"
 msgstr "混合"
 
+msgid "Font"
+msgstr ""
+
 msgid "Bilinear filtering"
 msgstr "雙線性濾波"
 
@@ -1745,6 +1904,33 @@ msgstr "傳輸速度"
 
 msgid "EMS mode"
 msgstr "EMS 模式"
+
+msgid "EMS Address"
+msgstr ""
+
+msgid "EMS 1 Address"
+msgstr ""
+
+msgid "EMS 2 Address"
+msgstr ""
+
+msgid "EMS Memory Size"
+msgstr ""
+
+msgid "EMS 1 Memory Size"
+msgstr ""
+
+msgid "EMS 2 Memory Size"
+msgstr ""
+
+msgid "Enable EMS"
+msgstr ""
+
+msgid "Enable EMS 1"
+msgstr ""
+
+msgid "Enable EMS 2"
+msgstr ""
 
 msgid "Address for > 2 MB"
 msgstr "> 2 MB 的位址"
@@ -1902,6 +2088,15 @@ msgstr "sRGB 插值"
 msgid "Linear interpolation"
 msgstr "線性插補"
 
+msgid "Has secondary 8x8 character set"
+msgstr ""
+
+msgid "Has Quadcolor II daughter board"
+msgstr ""
+
+msgid "Alternate monochrome contrast"
+msgstr ""
+
 msgid "128 KB"
 msgstr "128 KB"
 
@@ -1935,6 +2130,9 @@ msgstr "琥珀色"
 msgid "Gray"
 msgstr "灰色"
 
+msgid "Grayscale"
+msgstr ""
+
 msgid "Color"
 msgstr "顏色"
 
@@ -1949,6 +2147,12 @@ msgstr "其他語言"
 
 msgid "Bochs latest"
 msgstr "Bochs 最新"
+
+msgid "Apply overscan deltas"
+msgstr ""
+
+msgid "Mono Interlaced"
+msgstr ""
 
 msgid "Mono Non-Interlaced"
 msgstr "單色非隔行掃描"
@@ -2076,6 +2280,12 @@ msgstr "IBM 8514/A 克隆 (ISA)"
 msgid "Vendor"
 msgstr "製造商"
 
+msgid "30 Hz (JMP2 = 1)"
+msgstr ""
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr ""
+
 msgid "Generic PC/XT Memory Expansion"
 msgstr "通用 PC/XT 記憶體擴充"
 
@@ -2147,3 +2357,69 @@ msgstr ""
 
 msgid "Could not load file %1"
 msgstr ""
+
+msgid "Key Bindings:"
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "Clear binding"
+msgstr ""
+
+msgid "Bind"
+msgstr ""
+
+msgid "Bind Key"
+msgstr ""
+
+msgid "Enter key combo:"
+msgstr ""
+
+msgid "Send Control+Alt+Del"
+msgstr ""
+
+msgid "Send Control+Alt+Escape"
+msgstr ""
+
+msgid "Toggle fullscreen"
+msgstr ""
+
+msgid "Screenshot"
+msgstr ""
+
+msgid "Release mouse pointer"
+msgstr ""
+
+msgid "Toggle pause"
+msgstr ""
+
+msgid "Toggle mute"
+msgstr ""
+
+msgid "Text files"
+msgstr ""
+
+msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
+msgstr ""
+
+msgid "ROM files"
+msgstr ""
+
+msgid "SoundFont files"
+msgstr ""
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIP 磁碟機:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "ZIP 映像"
+
+#~ msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
+#~ msgstr "請確認 %1 已安裝且使用相容 libpcap 的網路連線。"
