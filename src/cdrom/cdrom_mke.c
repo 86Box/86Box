@@ -296,7 +296,7 @@ mke_command(uint8_t value)
                     int      len   = 0;
                     int      res   = 0;
                     int      error = 0;
-                    uint64_t lba   = MSFtoLBA(mke.command_buffer[1], mke.command_buffer[2], mke.command_buffer[3]);
+                    uint64_t lba   = MSFtoLBA(mke.command_buffer[1], mke.command_buffer[2], mke.command_buffer[3]) - 150;
                     CHECK_READY();
                     while (count) {
                         if ((res = cdrom_readsector_raw(mke.cdrom_dev, buf, lba, 0, mke.sector_type, mke.sector_flags, &len, 0)) > 0) {
