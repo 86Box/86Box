@@ -144,6 +144,9 @@ msgstr "&Тип экрана VGA"
 msgid "RGB &Color"
 msgstr "RGB &цветной"
 
+msgid "RGB (no brown)"
+msgstr "RGB (без коричневого)"
+
 msgid "&RGB Grayscale"
 msgstr "&RGB монохромный"
 
@@ -1863,6 +1866,9 @@ msgstr "Шрифт"
 msgid "Bilinear filtering"
 msgstr "Билинейная фильтрация"
 
+msgid "Video chroma-keying"
+msgstr "Видео хромакеинг"
+
 msgid "Dithering"
 msgstr "Дизеринг"
 
@@ -2406,17 +2412,11 @@ msgstr "Переключить беззвучный режим"
 msgid "Text files"
 msgstr "Текстовые файлы"
 
-msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
-msgstr ""
-
 msgid "ROM files"
 msgstr "Файлы ПЗУ"
 
 msgid "SoundFont files"
 msgstr "Файлы SoundFont"
-
-#~ msgid "RGB (no brown)"
-#~ msgstr "RGB (без коричневого)"
 
 #~ msgid "ZIP drives:"
 #~ msgstr "ZIP дисководы:"
@@ -2426,6 +2426,3 @@ msgstr "Файлы SoundFont"
 
 #~ msgid "ZIP images"
 #~ msgstr "Образы ZIP"
-
-#~ msgid "Video chroma-keying"
-#~ msgstr "Видео хромакеинг"

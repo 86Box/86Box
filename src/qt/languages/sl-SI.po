@@ -144,6 +144,9 @@ msgstr "&Vrsta zaslona VGA"
 msgid "RGB &Color"
 msgstr "&Barvni RGB"
 
+msgid "RGB (no brown)"
+msgstr ""
+
 msgid "&RGB Grayscale"
 msgstr "&Sivinski RGB"
 
@@ -1863,6 +1866,9 @@ msgstr ""
 msgid "Bilinear filtering"
 msgstr "Bilinearno filtriranje"
 
+msgid "Video chroma-keying"
+msgstr ""
+
 msgid "Dithering"
 msgstr "Barvno stresanje"
 
@@ -2404,9 +2410,6 @@ msgid "Toggle mute"
 msgstr ""
 
 msgid "Text files"
-msgstr ""
-
-msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
 msgstr ""
 
 msgid "ROM files"

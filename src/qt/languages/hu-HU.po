@@ -144,6 +144,9 @@ msgstr "VGA képernyő &típusa"
 msgid "RGB &Color"
 msgstr "RGB &színes"
 
+msgid "RGB (no brown)"
+msgstr ""
+
 msgid "&RGB Grayscale"
 msgstr "&RGB szürkeárnyalatos"
 
@@ -1863,6 +1866,9 @@ msgstr ""
 msgid "Bilinear filtering"
 msgstr "Bilineáris szűrés"
 
+msgid "Video chroma-keying"
+msgstr ""
+
 msgid "Dithering"
 msgstr "Dithering"
 
@@ -2404,9 +2410,6 @@ msgid "Toggle mute"
 msgstr ""
 
 msgid "Text files"
-msgstr ""
-
-msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
 msgstr ""
 
 msgid "ROM files"

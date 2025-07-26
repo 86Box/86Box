@@ -144,6 +144,9 @@ msgstr "画面タイプ(&T)"
 msgid "RGB &Color"
 msgstr "RGB(カラー)(&C)"
 
+msgid "RGB (no brown)"
+msgstr ""
+
 msgid "&RGB Grayscale"
 msgstr "RGB(グレースケール)(&R)"
 
@@ -1863,6 +1866,9 @@ msgstr ""
 msgid "Bilinear filtering"
 msgstr "バイリニア・フィルタリング"
 
+msgid "Video chroma-keying"
+msgstr ""
+
 msgid "Dithering"
 msgstr "ディザリング"
 
@@ -2404,9 +2410,6 @@ msgid "Toggle mute"
 msgstr ""
 
 msgid "Text files"
-msgstr ""
-
-msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
 msgstr ""
 
 msgid "ROM files"

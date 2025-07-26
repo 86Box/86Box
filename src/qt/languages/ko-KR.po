@@ -144,6 +144,9 @@ msgstr "VGA 화면 종류(&T)"
 msgid "RGB &Color"
 msgstr "RGB 천연색(&C)"
 
+msgid "RGB (no brown)"
+msgstr ""
+
 msgid "&RGB Grayscale"
 msgstr "RGB 회색조(&R)"
 
@@ -1863,6 +1866,9 @@ msgstr ""
 msgid "Bilinear filtering"
 msgstr "이중선형 필터링"
 
+msgid "Video chroma-keying"
+msgstr ""
+
 msgid "Dithering"
 msgstr "디더링"
 
@@ -2404,9 +2410,6 @@ msgid "Toggle mute"
 msgstr ""
 
 msgid "Text files"
-msgstr ""
-
-msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
 msgstr ""
 
 msgid "ROM files"

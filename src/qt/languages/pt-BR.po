@@ -144,6 +144,9 @@ msgstr "&Tipo de tela VGA"
 msgid "RGB &Color"
 msgstr "&Cor RGB"
 
+msgid "RGB (no brown)"
+msgstr "RGB (sem marrom)"
+
 msgid "&RGB Grayscale"
 msgstr "Tons de cinza &RGB"
 
@@ -1863,6 +1866,9 @@ msgstr "Fonte"
 msgid "Bilinear filtering"
 msgstr "Filtragem bilinear"
 
+msgid "Video chroma-keying"
+msgstr "Chroma-keying de vídeo"
+
 msgid "Dithering"
 msgstr "Pontilhamento"
 
@@ -2405,9 +2411,6 @@ msgstr "Alternar mudo"
 
 msgid "Text files"
 msgstr "Arquivos de texto"
-
-msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
-msgstr "Arquivos de ROM (*.bin *.rom)|*.bin,*.rom"
 
 msgid "ROM files"
 msgstr "Arquivos de ROM"

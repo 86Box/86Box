@@ -144,6 +144,9 @@ msgstr "L&oại màn VGA"
 msgid "RGB &Color"
 msgstr "Màu R&GB"
 
+msgid "RGB (no brown)"
+msgstr ""
+
 msgid "&RGB Grayscale"
 msgstr "Thang xám RG&B"
 
@@ -1863,6 +1866,9 @@ msgstr ""
 msgid "Bilinear filtering"
 msgstr "Lọc song tuyến"
 
+msgid "Video chroma-keying"
+msgstr ""
+
 msgid "Dithering"
 msgstr "Ngân tán"
 
@@ -2404,9 +2410,6 @@ msgid "Toggle mute"
 msgstr ""
 
 msgid "Text files"
-msgstr ""
-
-msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
 msgstr ""
 
 msgid "ROM files"
