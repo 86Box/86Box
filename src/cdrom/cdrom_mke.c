@@ -765,7 +765,7 @@ mke_init(const device_t *info)
     cdrom_t *dev = NULL;
     memset(&mke, 0, sizeof(mke_t));
 
-    for (int i = 0; i < CDROM_NUM; i++) {
+    for (uint8_t i = 0; i < CDROM_NUM; i++) {
         if (cdrom[i].bus_type == CDROM_BUS_MKE) {
             dev = &cdrom[i];
             break;
