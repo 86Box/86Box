@@ -129,9 +129,9 @@ mke_get_subq(cdrom_t *dev, uint8_t *b)
     cdrom_get_current_subchannel(dev, &subc);
     cdrom_get_current_subcodeq(dev, b);
 #endif
-    cdrom_get_current_subcodeq(dev, temp_buf);
+    cdrom_get_current_subchannel_sony(dev, temp_buf, 1);
     b[0]  = 0x80; //?
-    b[1]  = temp_buf[0];
+    b[1]  = ((temp_buf[0] & 0xf) << 4) | ((temp_buf[0] & 0xf0) >> 4);
     b[2]  = temp_buf[1];
     b[3]  = temp_buf[2];
     b[4]  = temp_buf[6];
@@ -290,7 +290,6 @@ mke_command(uint8_t value)
                 }
             case CMD1_READ:
                 {
-                    // cdrom_readsector_raw(mke.cdrom_dev, )
                     uint32_t count = mke.command_buffer[6];
                     uint8_t *buf   = mke.cdbuffer;
                     int      len   = 0;
@@ -433,9 +432,9 @@ mke_command(uint8_t value)
 
                 cdrom_stop(mke.cdrom_dev);
                 /* Note for self: Panasonic/MKE drives send seek commands in MSF format. */
-                cdrom_seek(mke.cdrom_dev, MSFtoLBA((mke.command_buffer[1]), (mke.command_buffer[2]), mke.command_buffer[3]) - 150, 0);
+                cdrom_seek(mke.cdrom_dev, MSFtoLBA(mke.command_buffer[1], mke.command_buffer[2], mke.command_buffer[3]) - 150, 0);
                 if (old_cd_status == CD_STATUS_PLAYING || old_cd_status == CD_STATUS_PAUSED) {
-                    cdrom_audio_play(mke.cdrom_dev, mke.cdrom_dev->seek_pos, 0, -1);
+                    cdrom_audio_play(mke.cdrom_dev, mke.cdrom_dev->seek_pos, -1, 0);
                     cdrom_audio_pause_resume(mke.cdrom_dev, old_cd_status == CD_STATUS_PLAYING);
                 }
                 fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
