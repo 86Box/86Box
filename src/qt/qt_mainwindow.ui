@@ -341,9 +341,6 @@
    </property>
   </action>
   <action name="actionPause">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
      <normaloff>:/menuicons/qt/icons/pause.ico</normaloff>:/menuicons/qt/icons/pause.ico</iconset>
