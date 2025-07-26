@@ -311,6 +311,8 @@ mke_command(uint8_t value)
                     }
                     if (count != 0) {
                         fifo8_reset(&mke.data_fifo);
+                    } else {
+                        fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
                     }
                     break;
                 }
