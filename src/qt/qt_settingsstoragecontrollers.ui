@@ -75,7 +75,7 @@
    <item>
     <widget class="QGroupBox" name="groupBoxHD">
      <property name="title">
-      <string>Hard Disk</string>
+      <string>Hard disk</string>
      </property>
      <layout class="QGridLayout" name="gridLayoutHD">
       <item row="0" column="0">
