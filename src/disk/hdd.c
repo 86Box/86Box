@@ -78,6 +78,12 @@ no_cdrom:
 
     if (!strcmp(str, "scsi"))
         return HDD_BUS_SCSI;
+    
+    if (!strcmp(str, "mitsumi"))
+        return CDROM_BUS_MITSUMI;
+
+    if (!strcmp(str, "mke"))
+        return CDROM_BUS_MKE;
 
     return 0;
 }
@@ -89,6 +95,17 @@ hdd_bus_to_string(int bus, UNUSED(int cdrom))
 
     switch (bus) {
         default:
+        if (cdrom) {
+            switch (bus) {
+                case CDROM_BUS_MITSUMI:
+                    s = "mitsumi";
+                    break;
+                case CDROM_BUS_MKE:
+                    s = "mke";
+                    break;
+            }
+            break;
+        }
         case HDD_BUS_DISABLED:
             break;
 

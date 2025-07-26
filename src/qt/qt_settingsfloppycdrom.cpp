@@ -69,6 +69,7 @@ setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint
         case CDROM_BUS_ATAPI:
         case CDROM_BUS_SCSI:
         case CDROM_BUS_MITSUMI:
+        case CDROM_BUS_MKE:
             icon = QIcon(":/settings/qt/icons/cdrom.ico");
             break;
     }
@@ -104,7 +105,8 @@ setCDROMType(QAbstractItemModel *model, const QModelIndex &idx, int type)
     auto i = idx.siblingAtColumn(2);
     if (idx.siblingAtColumn(0).data(Qt::UserRole).toUInt() == CDROM_BUS_DISABLED)
         model->setData(i, QCoreApplication::translate("", "None"));
-    else if (idx.siblingAtColumn(0).data(Qt::UserRole).toUInt() != CDROM_BUS_MITSUMI)
+    else if (idx.siblingAtColumn(0).data(Qt::UserRole).toUInt() != CDROM_BUS_MITSUMI &&
+            idx.siblingAtColumn(0).data(Qt::UserRole).toUInt() != CDROM_BUS_MKE)
         model->setData(i, CDROMName(type));
     model->setData(i, type, Qt::UserRole);
 }
@@ -175,7 +177,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
         else if (cdrom[i].bus_type == CDROM_BUS_SCSI)
             Harddrives::busTrackClass->device_track(1, DEV_CDROM, cdrom[i].bus_type,
                                                     cdrom[i].scsi_device_id);
-        else if (cdrom[i].bus_type == CDROM_BUS_MITSUMI)
+        else if (cdrom[i].bus_type == CDROM_BUS_MITSUMI || cdrom[i].bus_type == CDROM_BUS_MKE)
             Harddrives::busTrackClass->device_track(1, DEV_CDROM, cdrom[i].bus_type, 0);
     }
     ui->tableViewCDROM->resizeColumnsToContents();
@@ -341,9 +343,9 @@ SettingsFloppyCDROM::on_comboBoxBus_currentIndexChanged(int index)
     if (index >= 0) {
         int  bus     = ui->comboBoxBus->currentData().toInt();
         bool enabled = (bus != CDROM_BUS_DISABLED);
-        ui->comboBoxChannel->setEnabled((bus == CDROM_BUS_MITSUMI) ? 0 : enabled);
-        ui->comboBoxSpeed->setEnabled((bus == CDROM_BUS_MITSUMI) ? 0 : enabled);
-        ui->comboBoxCDROMType->setEnabled((bus == CDROM_BUS_MITSUMI) ? 0 : enabled);
+        ui->comboBoxChannel->setEnabled((bus == CDROM_BUS_MITSUMI || bus == CDROM_BUS_MKE) ? 0 : enabled);
+        ui->comboBoxSpeed->setEnabled((bus == CDROM_BUS_MITSUMI || bus == CDROM_BUS_MKE) ? 0 : enabled);
+        ui->comboBoxCDROMType->setEnabled((bus == CDROM_BUS_MITSUMI || bus == CDROM_BUS_MKE) ? 0 : enabled);
 
         Harddrives::populateBusChannels(ui->comboBoxChannel->model(), bus, Harddrives::busTrackClass);
     }
@@ -370,7 +372,7 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
         ui->comboBoxChannel->setCurrentIndex(Harddrives::busTrackClass->next_free_ide_channel());
     else if (bus_type == CDROM_BUS_SCSI)
         ui->comboBoxChannel->setCurrentIndex(Harddrives::busTrackClass->next_free_scsi_id());
-    else if (bus_type == CDROM_BUS_MITSUMI)
+    else if (bus_type == CDROM_BUS_MITSUMI || bus_type == CDROM_BUS_MKE)
         ui->comboBoxChannel->setCurrentIndex(0);
 
     setCDROMBus(ui->tableViewCDROM->model(),

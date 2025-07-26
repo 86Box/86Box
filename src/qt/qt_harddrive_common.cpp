@@ -52,15 +52,18 @@ Harddrives::populateRemovableBuses(QAbstractItemModel *model)
 {
     model->removeRows(0, model->rowCount());
 #ifdef USE_CDROM_MITSUMI
-    model->insertRows(0, 4);
+    model->insertRows(0, 5);
 #else
-    model->insertRows(0, 3);
+    model->insertRows(0, 4);
 #endif
     model->setData(model->index(0, 0), QObject::tr("Disabled"));
     model->setData(model->index(1, 0), QObject::tr("ATAPI"));
     model->setData(model->index(2, 0), QObject::tr("SCSI"));
 #ifdef USE_CDROM_MITSUMI
     model->setData(model->index(3, 0), QObject::tr("Mitsumi"));
+    model->setData(model->index(4, 0), QObject::tr("Panasonic/MKE"));
+#else
+    model->setData(model->index(3, 0), QObject::tr("Panasonic/MKE"));
 #endif
 
     model->setData(model->index(0, 0), HDD_BUS_DISABLED, Qt::UserRole);
@@ -68,6 +71,9 @@ Harddrives::populateRemovableBuses(QAbstractItemModel *model)
     model->setData(model->index(2, 0), HDD_BUS_SCSI, Qt::UserRole);
 #ifdef USE_CDROM_MITSUMI
     model->setData(model->index(3, 0), CDROM_BUS_MITSUMI, Qt::UserRole);
+    model->setData(model->index(4, 0), CDROM_BUS_MKE, Qt::UserRole);
+#else
+    model->setData(model->index(3, 0), CDROM_BUS_MKE, Qt::UserRole);
 #endif
 }
 
@@ -189,6 +195,9 @@ Harddrives::BusChannelName(uint8_t bus, uint8_t channel)
 	    case CDROM_BUS_MITSUMI:
 	        busName = QString("Mitsumi");
 	        break;
+        case CDROM_BUS_MKE:
+            busName = QString("Panasonic/MKE");
+            break;
     }
 
     return busName;

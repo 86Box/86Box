@@ -23,6 +23,7 @@ add_library(cdrom OBJECT
     cdrom.c
     cdrom_image.c
     cdrom_image_viso.c
+    cdrom_mke.c
 )
 target_link_libraries(86Box PkgConfig::SNDFILE)
 

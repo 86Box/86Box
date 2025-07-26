@@ -388,7 +388,7 @@ MachineStatus::iterateCDROM(const std::function<void(int)> &cb)
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
             (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
             continue;
-        if ((cdrom[i].bus_type == CDROM_BUS_MITSUMI) && (cdrom_interface_current == 0))
+        if ((cdrom[i].bus_type == CDROM_BUS_MITSUMI || cdrom[i].bus_type == CDROM_BUS_MKE) && (cdrom_interface_current == 0))
             continue;
         if (cdrom[i].bus_type != 0) {
             cb(i);
