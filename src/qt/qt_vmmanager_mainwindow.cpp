@@ -22,10 +22,12 @@
 #if EMU_BUILD_NUM != 0
 #    include "qt_updatecheckdialog.hpp"
 #endif
+#include "qt_about.hpp"
 
 #include <QLineEdit>
 #include <QStringListModel>
 #include <QCompleter>
+#include <QDesktopServices> 
 
 VMManagerMainWindow::
 VMManagerMainWindow(QWidget *parent)
@@ -186,8 +188,27 @@ VMManagerMainWindow::checkForUpdatesTriggered()
 }
 #endif
 
-void VMManagerMainWindow::on_actionExit_triggered()
+void
+VMManagerMainWindow::on_actionExit_triggered()
 {
     this->close();
 }
 
+void
+VMManagerMainWindow::on_actionAbout_Qt_triggered()
+{
+    QApplication::aboutQt();
+}
+
+void
+VMManagerMainWindow::on_actionAbout_86Box_triggered()
+{
+    const auto msgBox = new About(this);
+    msgBox->exec();
+}
+
+void
+VMManagerMainWindow::on_actionDocumentation_triggered()
+{
+    QDesktopServices::openUrl(QUrl(EMU_DOCS_URL));
+}
