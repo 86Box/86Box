@@ -193,14 +193,16 @@ uint8_t mke_read_toc(cdrom_t *dev, unsigned char *b, uint8_t track) {
 uint8_t
 mke_disc_info(cdrom_t *dev, unsigned char *b)
 {
+    uint8_t disc_type_buf[34];
     track_info_t ti;
     int          first_track;
     int          last_track;
     cdrom_read_toc(dev, temp_buf, CD_TOC_NORMAL, 0, 2 << 8, 65536);
+    cdrom_read_disc_information(dev, disc_type_buf);
     first_track = temp_buf[2];
     last_track  = temp_buf[3];
     // dev->ops->get_track_info(dev, last_track + 1, 0, &ti);
-    b[0] = 0x0;
+    b[0] = disc_type_buf[8];
     b[1] = first_track;
     b[2] = last_track;
     b[3] = 0;
@@ -396,13 +398,64 @@ mke_command(uint8_t value)
                     case 0:
                     {
                         switch (mke.command_buffer[2]) {
-                            case 0x00: {
+                            case 0x00: /* Cooked */ {
                                 mke.sector_type  = 0x08 | (1 << 4);
                                 mke.sector_flags = 0x10;
                                 mke.cdrom_dev->sector_size = 2048;
                                 break;
                             }
-                            case 0x82: {
+                            case 0x81: /* XA */
+                            case 0x01: /* User */ {
+                                uint32_t sector_size = (mke.command_buffer[3] << 8) | mke.command_buffer[4];
+                                if (!sector_size) {
+                                    fifo8_push(&mke.errors_fifo, 0x0e);
+                                    return;
+                                } else {
+                                    switch (sector_size) {
+                                        case 2048: {
+                                            mke.sector_type  = 0x08 | (1 << 4);
+                                            mke.sector_flags = 0x10;
+                                            mke.cdrom_dev->sector_size = 2048;
+                                            break;
+                                        }
+                                        case 2052: {
+                                            mke.sector_type  = 0x18;
+                                            mke.sector_flags = 0x30;
+                                            mke.cdrom_dev->sector_size = 2052;
+                                            break;
+                                        }
+                                        case 2324: {
+                                            mke.sector_type  = 0x1b;
+                                            mke.sector_flags = 0x18;
+                                            mke.cdrom_dev->sector_size = 2324;
+                                            break;
+                                        }
+                                        case 2336: {
+                                            mke.sector_type  = 0x1c;
+                                            mke.sector_flags = 0x58;
+                                            mke.cdrom_dev->sector_size = 2336;
+                                            break;
+                                        }
+                                        case 2340: {
+                                            mke.sector_type  = 0x18;
+                                            mke.sector_flags = 0x78;
+                                            mke.cdrom_dev->sector_size = 2340;
+                                            break;
+                                        }
+                                        case 2352: {
+                                            mke.sector_type  = 0x00;
+                                            mke.sector_flags = 0xf8;
+                                            mke.cdrom_dev->sector_size = 2352;
+                                            break;
+                                        }
+                                        default: {
+                                            fifo8_push(&mke.errors_fifo, 0x0e);
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+                            case 0x82: /* DA */ {
                                 mke.sector_type  = 0x00;
                                 mke.sector_flags = 0xf8;
                                 mke.cdrom_dev->sector_size = 2352;
