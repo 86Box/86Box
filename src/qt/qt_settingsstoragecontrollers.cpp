@@ -52,15 +52,16 @@ void
 SettingsStorageControllers::save()
 {
     /* Storage devices category */
+    for (uint8_t i = 0; i < HDC_MAX; ++i) {
+        QComboBox *cbox      = findChild<QComboBox *>(QString("comboBoxHD%1").arg(i + 1));
+        hdc_current[i]       = cbox->currentData().toInt();
+    }
     for (uint8_t i = 0; i < SCSI_CARD_MAX; ++i) {
         QComboBox *cbox      = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
         scsi_card_current[i] = cbox->currentData().toInt();
     }
     fdc_current[0]          = ui->comboBoxFD->currentData().toInt();
-    hdc_current[0]          = ui->comboBoxHD->currentData().toInt();
     cdrom_interface_current = ui->comboBoxCDInterface->currentData().toInt();
-    ide_ter_enabled         = ui->checkBoxTertiaryIDE->isChecked() ? 1 : 0;
-    ide_qua_enabled         = ui->checkBoxQuaternaryIDE->isChecked() ? 1 : 0;
     cassette_enable         = ui->checkBoxCassette->isChecked() ? 1 : 0;
 }
 
@@ -69,44 +70,12 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
 {
     this->machineId = machineId;
 
-    /*HD controller config*/
+    /* FD controller config */
     int   c           = 0;
-    auto *model       = ui->comboBoxHD->model();
+    auto *model       = ui->comboBoxFD->model();
     auto  removeRows  = model->rowCount();
     int   selectedRow = 0;
 
-    while (true) {
-        /* Skip "internal" if machine doesn't have it. */
-        if ((c == 1) && (machine_has_flags(machineId, MACHINE_HDC) == 0)) {
-            c++;
-            continue;
-        }
-
-        QString name = DeviceConfig::DeviceName(hdc_get_device(c), hdc_get_internal_name(c), 1);
-        if (name.isEmpty())
-            break;
-
-        if (hdc_available(c)) {
-            const device_t *hdc_dev = hdc_get_device(c);
-
-            if (device_is_valid(hdc_dev, machineId)) {
-                int row = Models::AddEntry(model, name, c);
-                if (c == hdc_current[0])
-                    selectedRow = row - removeRows;
-            }
-        }
-        c++;
-    }
-    model->removeRows(0, removeRows);
-    ui->comboBoxHD->setEnabled(model->rowCount() > 0);
-    ui->comboBoxHD->setCurrentIndex(-1);
-    ui->comboBoxHD->setCurrentIndex(selectedRow);
-
-    /* FD controller config */
-    model       = ui->comboBoxFD->model();
-    removeRows  = model->rowCount();
-    c           = 0;
-    selectedRow = 0;
     while (true) {
 #if 0
         /* Skip "internal" if machine doesn't have it. */
@@ -177,6 +146,51 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     ui->comboBoxCDInterface->setCurrentIndex(-1);
     ui->comboBoxCDInterface->setCurrentIndex(selectedRow);
 
+    // HD Controller
+    QComboBox *         hd_cbox[HDC_MAX]            = { 0 };
+    QAbstractItemModel *hd_models[HDC_MAX]          = { 0 };
+    int                 hd_removeRows_[HDC_MAX]     = { 0 };
+    int                 hd_selectedRows[HDC_MAX]    = { 0 };
+
+    for (uint8_t i = 0; i < HDC_MAX; ++i) {
+        hd_cbox[i]        = findChild<QComboBox *>(QString("comboBoxHD%1").arg(i + 1));
+        hd_models[i]      = hd_cbox[i]->model();
+        hd_removeRows_[i] = hd_models[i]->rowCount();
+    }
+
+    c = 0;
+    while (true) {
+        const QString name = DeviceConfig::DeviceName(hdc_get_device(c),
+                                                      hdc_get_internal_name(c), 1);
+
+        if (name.isEmpty())
+            break;
+
+        if (hdc_available(c)) {
+            if (device_is_valid(hdc_get_device(c), machineId)) {
+                for (uint8_t i = 0; i < HDC_MAX; ++i) {
+                    /* Skip "internal" if machine doesn't have it. */
+                    if ((c == 1) && ((i > 0) || (machine_has_flags(machineId, MACHINE_HDC) == 0)))
+                        continue;
+
+                    int row = Models::AddEntry(hd_models[i], name, c);
+
+                    if (c == hdc_current[i])
+                        hd_selectedRows[i] = row - hd_removeRows_[i];
+                }
+            }
+        }
+
+        c++;
+    }
+
+    for (uint8_t i = 0; i < HDC_MAX; ++i) {
+        hd_models[i]->removeRows(0, hd_removeRows_[i]);
+        hd_cbox[i]->setEnabled(hd_models[i]->rowCount() > 1);
+        hd_cbox[i]->setCurrentIndex(-1);
+        hd_cbox[i]->setCurrentIndex(hd_selectedRows[i]);
+    }
+
     // SCSI Card
     QComboBox *         cbox[SCSI_CARD_MAX]         = { 0 };
     QAbstractItemModel *models[SCSI_CARD_MAX]       = { 0 };
@@ -208,7 +222,7 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
             }
         }
 
-       c++;
+        c++;
     }
 
     for (uint8_t i = 0; i < SCSI_CARD_MAX; ++i) {
@@ -217,12 +231,6 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
         cbox[i]->setCurrentIndex(-1);
         cbox[i]->setCurrentIndex(selectedRows[i]);
     }
-
-    int is_at = IS_AT(machineId);
-    ui->checkBoxTertiaryIDE->setEnabled(is_at > 0);
-    ui->checkBoxQuaternaryIDE->setEnabled(is_at > 0);
-    ui->checkBoxTertiaryIDE->setChecked(ui->checkBoxTertiaryIDE->isEnabled() && ide_ter_enabled);
-    ui->checkBoxQuaternaryIDE->setChecked(ui->checkBoxQuaternaryIDE->isEnabled() && ide_qua_enabled);
 
     if (machine_has_bus(machineId, MACHINE_BUS_CASSETTE)) {
         ui->checkBoxCassette->setChecked(cassette_enable > 0);
@@ -243,12 +251,39 @@ SettingsStorageControllers::on_comboBoxFD_currentIndexChanged(int index)
 }
 
 void
-SettingsStorageControllers::on_comboBoxHD_currentIndexChanged(int index)
+SettingsStorageControllers::on_comboBoxHD1_currentIndexChanged(int index)
 {
     if (index < 0)
         return;
 
-    ui->pushButtonHD->setEnabled(hdc_has_config(ui->comboBoxHD->currentData().toInt()) > 0);
+    ui->pushButtonHD1->setEnabled(hdc_has_config(ui->comboBoxHD1->currentData().toInt()) > 0);
+}
+
+void
+SettingsStorageControllers::on_comboBoxHD2_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    ui->pushButtonHD2->setEnabled(hdc_has_config(ui->comboBoxHD2->currentData().toInt()) > 0);
+}
+
+void
+SettingsStorageControllers::on_comboBoxHD3_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    ui->pushButtonHD3->setEnabled(hdc_has_config(ui->comboBoxHD3->currentData().toInt()) > 0);
+}
+
+void
+SettingsStorageControllers::on_comboBoxHD4_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    ui->pushButtonHD4->setEnabled(hdc_has_config(ui->comboBoxHD4->currentData().toInt()) > 0);
 }
 
 void
@@ -261,45 +296,39 @@ SettingsStorageControllers::on_comboBoxCDInterface_currentIndexChanged(int index
 }
 
 void
-SettingsStorageControllers::on_checkBoxTertiaryIDE_stateChanged(int arg1)
-{
-    ui->pushButtonTertiaryIDE->setEnabled(arg1 == Qt::Checked);
-}
-
-void
-SettingsStorageControllers::on_checkBoxQuaternaryIDE_stateChanged(int arg1)
-{
-    ui->pushButtonQuaternaryIDE->setEnabled(arg1 == Qt::Checked);
-}
-
-void
 SettingsStorageControllers::on_pushButtonFD_clicked()
 {
     DeviceConfig::ConfigureDevice(fdc_card_getdevice(ui->comboBoxFD->currentData().toInt()));
 }
 
 void
-SettingsStorageControllers::on_pushButtonHD_clicked()
+SettingsStorageControllers::on_pushButtonHD1_clicked()
 {
-    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD1->currentData().toInt()));
+}
+
+void
+SettingsStorageControllers::on_pushButtonHD2_clicked()
+{
+    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD2->currentData().toInt()));
+}
+
+void
+SettingsStorageControllers::on_pushButtonHD3_clicked()
+{
+    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD3->currentData().toInt()));
+}
+
+void
+SettingsStorageControllers::on_pushButtonHD4_clicked()
+{
+    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD4->currentData().toInt()));
 }
 
 void
 SettingsStorageControllers::on_pushButtonCDInterface_clicked()
 {
     DeviceConfig::ConfigureDevice(cdrom_interface_get_device(ui->comboBoxCDInterface->currentData().toInt()));
-}
-
-void
-SettingsStorageControllers::on_pushButtonTertiaryIDE_clicked()
-{
-    DeviceConfig::ConfigureDevice(&ide_ter_device);
-}
-
-void
-SettingsStorageControllers::on_pushButtonQuaternaryIDE_clicked()
-{
-    DeviceConfig::ConfigureDevice(&ide_qua_device);
 }
 
 void

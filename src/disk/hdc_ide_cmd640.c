@@ -667,7 +667,7 @@ const device_t ide_cmd640_pci_legacy_only_device = {
 };
 
 const device_t ide_cmd640_pci_single_channel_device = {
-    .name          = "CMD PCI-0640B PCI",
+    .name          = "CMD PCI-0640B PCI (Single Channel)",
     .internal_name = "ide_cmd640_pci_single_channel",
     .flags         = DEVICE_PCI,
     .local         = 0x2000a,
@@ -681,7 +681,7 @@ const device_t ide_cmd640_pci_single_channel_device = {
 };
 
 const device_t ide_cmd640_pci_single_channel_sec_device = {
-    .name          = "CMD PCI-0640B PCI",
+    .name          = "CMD PCI-0640B PCI (Single Channel, Secondary)",
     .internal_name = "ide_cmd640_pci_single_channel_sec",
     .flags         = DEVICE_PCI,
     .local         = 0x4000a,

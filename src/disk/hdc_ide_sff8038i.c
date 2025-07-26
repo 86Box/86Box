@@ -118,6 +118,9 @@ sff_bus_master_write(uint16_t port, uint8_t val, void *priv)
 
     sff_log("SFF-8038i Bus master BYTE  write: %04X       %02X\n", port, val);
 
+    if (dev->ven_write != NULL)
+        val = dev->ven_write(port, val, dev->priv);
+
     switch (port & 7) {
         case 0:
             sff_log("sff Cmd   : val = %02X, old = %02X\n", val, dev->command);
@@ -254,6 +257,9 @@ sff_bus_master_read(uint16_t port, void *priv)
         default:
             break;
     }
+
+    if (dev->ven_read != NULL)
+        ret= dev->ven_read(port, ret, dev->priv);
 
     sff_log("SFF-8038i Bus master BYTE  read : %04X       %02X\n", port, ret);
 
@@ -567,6 +573,16 @@ void
 sff_set_mirq(sff8038i_t *dev, uint8_t mirq)
 {
     dev->mirq = mirq;
+}
+
+void
+sff_set_ven_handlers(sff8038i_t *dev, uint8_t (*ven_write)(uint16_t port, uint8_t val, void *priv),
+                     uint8_t (*ven_read)(uint16_t port, uint8_t val, void *priv), void *priv)
+{
+    dev->ven_write = ven_write;
+    dev->ven_read  = ven_read;
+
+    dev->priv      = priv;
 }
 
 static void

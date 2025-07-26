@@ -235,8 +235,6 @@ static uint8_t ide_qua_pnp_rom[] = {
 };
 
 ide_t *ide_drives[IDE_NUM];
-int    ide_ter_enabled = 0;
-int    ide_qua_enabled = 0;
 
 static void ide_atapi_callback(ide_t *ide);
 static void ide_callback(void *priv);

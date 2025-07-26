@@ -23,17 +23,17 @@ private slots:
     void on_comboBoxFD_currentIndexChanged(int index);
     void on_pushButtonFD_clicked();
 
-    void on_comboBoxHD_currentIndexChanged(int index);
-    void on_pushButtonHD_clicked();
+    void on_comboBoxHD1_currentIndexChanged(int index);
+    void on_pushButtonHD1_clicked();
+    void on_comboBoxHD2_currentIndexChanged(int index);
+    void on_pushButtonHD2_clicked();
+    void on_comboBoxHD3_currentIndexChanged(int index);
+    void on_pushButtonHD3_clicked();
+    void on_comboBoxHD4_currentIndexChanged(int index);
+    void on_pushButtonHD4_clicked();
 
     void on_comboBoxCDInterface_currentIndexChanged(int index);
     void on_pushButtonCDInterface_clicked();
-
-    void on_checkBoxTertiaryIDE_stateChanged(int arg1);
-    void on_pushButtonTertiaryIDE_clicked();
-
-    void on_checkBoxQuaternaryIDE_stateChanged(int arg1);
-    void on_pushButtonQuaternaryIDE_clicked();
 
     void on_comboBoxSCSI1_currentIndexChanged(int index);
     void on_pushButtonSCSI1_clicked();
