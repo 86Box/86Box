@@ -513,9 +513,6 @@ msgstr ""
 msgid "Parallel port 4"
 msgstr ""
 
-msgid "HD Controller:"
-msgstr ""
-
 msgid "FD Controller:"
 msgstr ""
 
@@ -523,6 +520,9 @@ msgid "Tertiary IDE Controller"
 msgstr ""
 
 msgid "Quaternary IDE Controller"
+msgstr ""
+
+msgid "Hard disk"
 msgstr ""
 
 msgid "SCSI"
@@ -1459,6 +1459,9 @@ msgid "Logitech Serial Mouse"
 msgstr ""
 
 msgid "PS/2 Mouse"
+msgstr ""
+
+msgid "PS/2 QuickPort Mouse"
 msgstr ""
 
 msgid "3M MicroTouch (Serial)"

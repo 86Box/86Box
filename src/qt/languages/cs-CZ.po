@@ -513,9 +513,6 @@ msgstr "Povolit port LPT3"
 msgid "Parallel port 4"
 msgstr "Povolit port LPT4"
 
-msgid "HD Controller:"
-msgstr "Řadič disku:"
-
 msgid "FD Controller:"
 msgstr "Disketový řadič:"
 
@@ -524,6 +521,9 @@ msgstr "Třetí řadič IDE"
 
 msgid "Quaternary IDE Controller"
 msgstr "Čtvrtý řadič IDE"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -1460,6 +1460,9 @@ msgstr "Sériová myš Logitech"
 
 msgid "PS/2 Mouse"
 msgstr "Myš PS/2"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (sériová)"
@@ -2417,6 +2420,9 @@ msgstr ""
 
 msgid "SoundFont files"
 msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "Řadič disku:"
 
 #~ msgid "ZIP drives:"
 #~ msgstr "Mechaniky ZIP:"

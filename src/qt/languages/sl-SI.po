@@ -513,9 +513,6 @@ msgstr "Vzporedna vrata 3"
 msgid "Parallel port 4"
 msgstr "Vzporedna vrata 4"
 
-msgid "HD Controller:"
-msgstr "Krmilnik trdega diska:"
-
 msgid "FD Controller:"
 msgstr "Disketni krmilnik:"
 
@@ -524,6 +521,9 @@ msgstr "Terciarni krmilnik IDE"
 
 msgid "Quaternary IDE Controller"
 msgstr "Kvartarni krmilnik IDE"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -1460,6 +1460,9 @@ msgstr "Serijska miška Logitech"
 
 msgid "PS/2 Mouse"
 msgstr "Miška PS/2"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serijska)"
@@ -2417,6 +2420,9 @@ msgstr ""
 
 msgid "SoundFont files"
 msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "Krmilnik trdega diska:"
 
 #~ msgid "ZIP drives:"
 #~ msgstr "Pogoni ZIP:"

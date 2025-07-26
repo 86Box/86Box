@@ -513,9 +513,6 @@ msgstr "3. Paralel Port"
 msgid "Parallel port 4"
 msgstr "4. Paralel Port"
 
-msgid "HD Controller:"
-msgstr "Hard Disk Denetleyicisi:"
-
 msgid "FD Controller:"
 msgstr "Disket Denetleyicisi:"
 
@@ -524,6 +521,9 @@ msgstr "Üçlü IDE Denetleyici"
 
 msgid "Quaternary IDE Controller"
 msgstr "Dörtlü IDE Denetleyici"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -1460,6 +1460,9 @@ msgstr "Logitech Seri Fare"
 
 msgid "PS/2 Mouse"
 msgstr "PS/2 fare"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (seri)"
@@ -2417,6 +2420,9 @@ msgstr ""
 
 msgid "SoundFont files"
 msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "Hard Disk Denetleyicisi:"
 
 #~ msgid "ZIP drives:"
 #~ msgstr "ZIP sürücüleri:"

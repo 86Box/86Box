@@ -513,9 +513,6 @@ msgstr "병렬 포트 3"
 msgid "Parallel port 4"
 msgstr "병렬 포트 4"
 
-msgid "HD Controller:"
-msgstr "HD 컨트롤러:"
-
 msgid "FD Controller:"
 msgstr "FD 컨트롤러:"
 
@@ -524,6 +521,9 @@ msgstr "제3의 IDE 컨트롤러"
 
 msgid "Quaternary IDE Controller"
 msgstr "제4의 IDE 컨트롤러"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -1460,6 +1460,9 @@ msgstr "로지텍 직렬 마우스"
 
 msgid "PS/2 Mouse"
 msgstr "PS/2 마우스"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M 마이크로터치(직렬)"
@@ -2417,6 +2420,9 @@ msgstr ""
 
 msgid "SoundFont files"
 msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "HD 컨트롤러:"
 
 #~ msgid "Video 2:"
 #~ msgstr "비디오 카드 2:"

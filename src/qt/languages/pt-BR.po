@@ -513,9 +513,6 @@ msgstr "Porta paralela 3"
 msgid "Parallel port 4"
 msgstr "Porta paralela 4"
 
-msgid "HD Controller:"
-msgstr "Controlador HD:"
-
 msgid "FD Controller:"
 msgstr "Controlador FD:"
 
@@ -524,6 +521,9 @@ msgstr "Controlador IDE terciário"
 
 msgid "Quaternary IDE Controller"
 msgstr "Controlador IDE quaternário"
+
+msgid "Hard disk"
+msgstr "Disco rígido"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -1460,6 +1460,9 @@ msgstr "Mouse serial Logitech"
 
 msgid "PS/2 Mouse"
 msgstr "Mouse PS/2"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr "Mouse PS/2 QuickPort"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serial)"
@@ -2417,3 +2420,4 @@ msgstr "Arquivos de ROM"
 
 msgid "SoundFont files"
 msgstr "Arquivos SoundFont"
+

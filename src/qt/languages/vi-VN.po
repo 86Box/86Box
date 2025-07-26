@@ -513,9 +513,6 @@ msgstr "Cổng parallel 3"
 msgid "Parallel port 4"
 msgstr "Cổng parallel 4"
 
-msgid "HD Controller:"
-msgstr "Bộ điều khiển ổ cứng:"
-
 msgid "FD Controller:"
 msgstr "Bộ điều khiển ổ mềm:"
 
@@ -524,6 +521,9 @@ msgstr "Bộ điều khiển IDE thứ ba"
 
 msgid "Quaternary IDE Controller"
 msgstr "Bộ điều khiển IDE thứ tư"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -1460,6 +1460,9 @@ msgstr "Chuột serial Logitech"
 
 msgid "PS/2 Mouse"
 msgstr "Chuột PS/2"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (Serial)"
@@ -2417,6 +2420,9 @@ msgstr ""
 
 msgid "SoundFont files"
 msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "Bộ điều khiển ổ cứng:"
 
 #~ msgid "ZIP drives:"
 #~ msgstr "Ổ đĩa ZIP:"

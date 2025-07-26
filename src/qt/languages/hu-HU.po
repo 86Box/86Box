@@ -513,9 +513,6 @@ msgstr "Párhuzamos port 3"
 msgid "Parallel port 4"
 msgstr "Párhuzamos port 4"
 
-msgid "HD Controller:"
-msgstr "Merevl.-vezérlő:"
-
 msgid "FD Controller:"
 msgstr "Floppy-vezérlő:"
 
@@ -524,6 +521,9 @@ msgstr "Harmadlagos IDE-vezérlő"
 
 msgid "Quaternary IDE Controller"
 msgstr "Negyedleges IDE-vezérlő"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -1460,6 +1460,9 @@ msgstr "Logitech soros egér"
 
 msgid "PS/2 Mouse"
 msgstr "PS/2 egér"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (soros)"
@@ -2417,6 +2420,9 @@ msgstr ""
 
 msgid "SoundFont files"
 msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "Merevl.-vezérlő:"
 
 #~ msgid "ZIP drives:"
 #~ msgstr "ZIP-meghajtók:"

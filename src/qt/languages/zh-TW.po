@@ -513,9 +513,6 @@ msgstr "並列埠 3"
 msgid "Parallel port 4"
 msgstr "並列埠 4"
 
-msgid "HD Controller:"
-msgstr "硬碟控制器:"
-
 msgid "FD Controller:"
 msgstr "軟碟控制器:"
 
@@ -524,6 +521,9 @@ msgstr "第三 IDE 控制器"
 
 msgid "Quaternary IDE Controller"
 msgstr "第四 IDE 控制器"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -1460,6 +1460,9 @@ msgstr "Logitech 序列滑鼠"
 
 msgid "PS/2 Mouse"
 msgstr "PS/2 滑鼠"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (序列)"
@@ -2417,6 +2420,9 @@ msgstr ""
 
 msgid "SoundFont files"
 msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "硬碟控制器:"
 
 #~ msgid "ZIP drives:"
 #~ msgstr "ZIP 磁碟機:"

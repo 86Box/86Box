@@ -513,9 +513,6 @@ msgstr "Паралельний порт LPT3"
 msgid "Parallel port 4"
 msgstr "Паралельний порт LPT4"
 
-msgid "HD Controller:"
-msgstr "Контролер HD:"
-
 msgid "FD Controller:"
 msgstr "Контролер FD:"
 
@@ -524,6 +521,9 @@ msgstr "Третинний IDE контролер"
 
 msgid "Quaternary IDE Controller"
 msgstr "Четвертинний IDE контролер"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -1463,6 +1463,9 @@ msgstr "Послідовна миша Logitech"
 
 msgid "PS/2 Mouse"
 msgstr "Миша PS/2"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (послідовна)"
@@ -2420,6 +2423,9 @@ msgstr ""
 
 msgid "SoundFont files"
 msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "Контролер HD:"
 
 #~ msgid "ZIP drives:"
 #~ msgstr "ZIP дисководи:"

@@ -513,9 +513,6 @@ msgstr "Parallellport 3"
 msgid "Parallel port 4"
 msgstr "Parallellport 4"
 
-msgid "HD Controller:"
-msgstr "Styrenhet för hårddisk:"
-
 msgid "FD Controller:"
 msgstr "Styrenhet för diskett:"
 
@@ -524,6 +521,9 @@ msgstr "Tertiär IDE-kontroller"
 
 msgid "Quaternary IDE Controller"
 msgstr "Kvartär IDE-kontroller"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -1460,6 +1460,9 @@ msgstr "Logitech seriemus"
 
 msgid "PS/2 Mouse"
 msgstr "PS/2-mus"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serie)"
@@ -2417,6 +2420,9 @@ msgstr ""
 
 msgid "SoundFont files"
 msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "Styrenhet för hårddisk:"
 
 #~ msgid "ZIP drives:"
 #~ msgstr "Zip-enheter:"
