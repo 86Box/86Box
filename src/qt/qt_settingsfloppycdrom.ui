@@ -200,6 +200,17 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>tableViewFloppy</tabstop>
+  <tabstop>comboBoxFloppyType</tabstop>
+  <tabstop>checkBoxTurboTimings</tabstop>
+  <tabstop>checkBoxCheckBPB</tabstop>
+  <tabstop>tableViewCDROM</tabstop>
+  <tabstop>comboBoxBus</tabstop>
+  <tabstop>comboBoxChannel</tabstop>
+  <tabstop>comboBoxSpeed</tabstop>
+  <tabstop>comboBoxCDROMType</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

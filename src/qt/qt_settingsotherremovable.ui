@@ -200,6 +200,16 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>tableViewMO</tabstop>
+  <tabstop>comboBoxMOBus</tabstop>
+  <tabstop>comboBoxMOChannel</tabstop>
+  <tabstop>comboBoxMOType</tabstop>
+  <tabstop>tableViewRDisk</tabstop>
+  <tabstop>comboBoxRDiskBus</tabstop>
+  <tabstop>comboBoxRDiskChannel</tabstop>
+  <tabstop>comboBoxRDiskType</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

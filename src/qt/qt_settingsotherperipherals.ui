@@ -382,6 +382,32 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>comboBoxRTC</tabstop>
+  <tabstop>pushButtonConfigureRTC</tabstop>
+  <tabstop>comboBoxIsaMemCard1</tabstop>
+  <tabstop>pushButtonConfigureIsaMemCard1</tabstop>
+  <tabstop>comboBoxIsaMemCard2</tabstop>
+  <tabstop>pushButtonConfigureIsaMemCard2</tabstop>
+  <tabstop>comboBoxIsaMemCard3</tabstop>
+  <tabstop>pushButtonConfigureIsaMemCard3</tabstop>
+  <tabstop>comboBoxIsaMemCard4</tabstop>
+  <tabstop>pushButtonConfigureIsaMemCard4</tabstop>
+  <tabstop>comboBoxIsaRomCard1</tabstop>
+  <tabstop>pushButtonConfigureIsaRomCard1</tabstop>
+  <tabstop>comboBoxIsaRomCard2</tabstop>
+  <tabstop>pushButtonConfigureIsaRomCard2</tabstop>
+  <tabstop>comboBoxIsaRomCard3</tabstop>
+  <tabstop>pushButtonConfigureIsaRomCard3</tabstop>
+  <tabstop>comboBoxIsaRomCard4</tabstop>
+  <tabstop>pushButtonConfigureIsaRomCard4</tabstop>
+  <tabstop>checkBoxISABugger</tabstop>
+  <tabstop>checkBoxPOSTCard</tabstop>
+  <tabstop>checkBoxUnitTester</tabstop>
+  <tabstop>pushButtonConfigureUT</tabstop>
+  <tabstop>checkBoxKeyCard</tabstop>
+  <tabstop>pushButtonConfigureKeyCard</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
