@@ -561,13 +561,11 @@ main(int argc, char *argv[])
     }
 #endif
 
-    qt_set_sequence_auto_mnemonic(false);
     Q_INIT_RESOURCE(qt_resources);
     Q_INIT_RESOURCE(qt_translations);
     QSurfaceFormat fmt = QSurfaceFormat::defaultFormat();
     fmt.setSwapInterval(0);
     QSurfaceFormat::setDefaultFormat(fmt);
-    app.setStyle(new StyleOverride());
 
 #ifdef __APPLE__
     CocoaEventFilter cocoafilter;
@@ -585,6 +583,10 @@ main(int argc, char *argv[])
     if (!pc_init(argc, argv)) {
         return 0;
     }
+
+    if (!vmm_enabled)
+        qt_set_sequence_auto_mnemonic(false);
+    app.setStyle(new StyleOverride());
 
     bool startMaximized = window_remember && monitor_settings[0].mon_window_maximized;
     fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
@@ -617,6 +619,19 @@ main(int argc, char *argv[])
         fatalbox.setTextFormat(Qt::TextFormat::RichText);
         fatalbox.exec();
         return 6;
+    }
+
+    if (vmm_enabled) {
+        // VMManagerMain vmm;
+        // // Hackish until there is a proper solution
+        // QApplication::setApplicationName("86Box VM Manager");
+        // QApplication::setApplicationDisplayName("86Box VM Manager");
+        // vmm.show();
+        // vmm.exec();
+        const auto vmm_main_window = new VMManagerMainWindow();
+        vmm_main_window->show();
+        QApplication::exec();
+        return 0;
     }
 
     // UUID / copy / move detection
@@ -679,19 +694,6 @@ main(int argc, char *argv[])
         warningbox.exec();
         if (warningbox.result() == QDialog::Accepted)
               return 0;
-    }
-
-    if (vmm_enabled) {
-        // VMManagerMain vmm;
-        // // Hackish until there is a proper solution
-        // QApplication::setApplicationName("86Box VM Manager");
-        // QApplication::setApplicationDisplayName("86Box VM Manager");
-        // vmm.show();
-        // vmm.exec();
-        const auto vmm_main_window = new VMManagerMainWindow();
-        vmm_main_window->show();
-        QApplication::exec();
-        return 0;
     }
 
 #ifdef DISCORD
