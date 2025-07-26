@@ -414,6 +414,9 @@ msgstr "IBM 8514/A 그래픽"
 msgid "XGA Graphics"
 msgstr "XGA 그래픽"
 
+msgid "Keyboard:"
+msgstr ""
+
 msgid "Mouse:"
 msgstr "마우스:"
 
@@ -1436,6 +1439,24 @@ msgstr "직렬 포트 패스스루 4"
 
 msgid "Renderer options..."
 msgstr "렌더러 옵션..."
+
+msgid "AT Keyboard"
+msgstr ""
+
+msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard (US)"
+msgstr ""
+
+msgid "PS/2 Keyboard (European)"
+msgstr ""
+
+msgid "PS/2 Keyboard (Japanese)"
+msgstr ""
+
+msgid "PS/55 Keyboard"
+msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "로지텍/마이크로소프트 버스 마우스"

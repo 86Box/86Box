@@ -414,6 +414,9 @@ msgstr ""
 msgid "XGA Graphics"
 msgstr ""
 
+msgid "Keyboard:"
+msgstr ""
+
 msgid "Mouse:"
 msgstr ""
 
@@ -1435,6 +1438,24 @@ msgid "Serial port passthrough 4"
 msgstr ""
 
 msgid "Renderer options..."
+msgstr ""
+
+msgid "AT Keyboard"
+msgstr ""
+
+msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard (US)"
+msgstr ""
+
+msgid "PS/2 Keyboard (European)"
+msgstr ""
+
+msgid "PS/2 Keyboard (Japanese)"
+msgstr ""
+
+msgid "PS/55 Keyboard"
 msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"

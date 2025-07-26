@@ -414,6 +414,9 @@ msgstr "Gráficos IBM 8514/A"
 msgid "XGA Graphics"
 msgstr "Gráficos XGA"
 
+msgid "Keyboard:"
+msgstr "Teclado:"
+
 msgid "Mouse:"
 msgstr "Mouse:"
 
@@ -1437,6 +1440,24 @@ msgstr "Passagem de porta serial 4"
 msgid "Renderer options..."
 msgstr "Opções do renderizador..."
 
+msgid "AT Keyboard"
+msgstr "Teclado AT"
+
+msgid "AX Keyboard"
+msgstr "Teclado AX"
+
+msgid "PS/2 Keyboard (US)"
+msgstr "Teclado PS/2 (Estados Unidos)"
+
+msgid "PS/2 Keyboard (European)"
+msgstr "Teclado PS/2 (Europeu)"
+
+msgid "PS/2 Keyboard (Japanese)"
+msgstr "Teclado PS/2 (Japonês)"
+
+msgid "PS/55 Keyboard"
+msgstr "Teclado PS/55"
+
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Mouse de barramento Logitech/Microsoft"
 
@@ -2420,4 +2441,3 @@ msgstr "Arquivos de ROM"
 
 msgid "SoundFont files"
 msgstr "Arquivos SoundFont"
-
