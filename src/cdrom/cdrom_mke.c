@@ -762,7 +762,7 @@ mke_get_channel(void *priv, int channel)
 void *
 mke_init(const device_t *info)
 {
-    cdrom_t *dev;
+    cdrom_t *dev = NULL;
     memset(&mke, 0, sizeof(mke_t));
 
     for (int i = 0; i < CDROM_NUM; i++) {
