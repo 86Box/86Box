@@ -23,7 +23,7 @@
 
 
 UpdateDetails::
-UpdateDetails(const UpdateCheck::UpdateResult &updateResult, QWidget *parent) : ui(new Ui::UpdateDetails)
+UpdateDetails(const UpdateCheck::UpdateResult &updateResult, QWidget *parent) : QDialog(parent), ui(new Ui::UpdateDetails)
 {
     ui->setupUi(this);
     setWindowTitle("86Box Update");

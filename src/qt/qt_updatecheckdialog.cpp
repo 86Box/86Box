@@ -67,7 +67,7 @@ UpdateCheckDialog::downloadComplete(const UpdateCheck::UpdateResult &result)
         return;
     }
 
-    const auto updateDetails = new UpdateDetails(result);
+    const auto updateDetails = new UpdateDetails(result, this);
     connect(updateDetails, &QDialog::accepted, [this] {
         accept();
     });

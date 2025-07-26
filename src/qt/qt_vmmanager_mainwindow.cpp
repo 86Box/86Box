@@ -183,7 +183,7 @@ VMManagerMainWindow::checkForUpdatesTriggered()
 #    ifdef RELEASE_BUILD
     updateChannel = UpdateCheck::UpdateChannel::Stable;
 #    endif
-    const auto updateCheck = new UpdateCheckDialog(updateChannel);
+    const auto updateCheck = new UpdateCheckDialog(updateChannel, this);
     updateCheck->exec();
 }
 #endif
