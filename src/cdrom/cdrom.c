@@ -1190,6 +1190,12 @@ cdrom_is_early(const int type)
 }
 
 int
+cdrom_is_dvd(const int type)
+{
+    return (cdrom_drive_types[type].is_dvd == 1);
+}
+
+int
 cdrom_is_generic(const int type)
 {
     return (cdrom_drive_types[type].speed == -1);
@@ -2098,9 +2104,10 @@ cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
     cdrom_get_current_subcodeq(dev, b);
 
     switch (dev->cd_status) {
-        default:                  case CD_STATUS_EMPTY:
-        case CD_STATUS_DATA_ONLY: case CD_STATUS_DVD:
-        case CD_STATUS_STOPPED:   case CD_STATUS_PLAYING_COMPLETED:
+        default:                     case CD_STATUS_EMPTY:
+        case CD_STATUS_DATA_ONLY:    case CD_STATUS_DVD:
+        case CD_STATUS_STOPPED:      case CD_STATUS_PLAYING_COMPLETED:
+        case CD_STATUS_DVD_REJECTED:
             ret = 0x03;
             break;
         case CD_STATUS_HOLD:
@@ -2449,7 +2456,7 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
         ecc_diff           = 0;
     }
 
-    if (dev->cd_status != CD_STATUS_EMPTY) {
+    if ((dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED)) {
         uint8_t *temp_b;
         uint8_t *b      = temp_b = buffer;
         int      audio  = 0;
@@ -2955,7 +2962,7 @@ cdrom_update_status(cdrom_t *dev)
     dev->cached_sector  = -1;
     dev->cdrom_capacity = dev->ops->get_last_block(dev->local);
 
-    if (dev->cd_status != CD_STATUS_EMPTY) {
+    if ((dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED)) {
         /* Signal media change to the emulated machine. */
         cdrom_insert(dev->id);
 
@@ -2997,9 +3004,14 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
 
         if ((dev->ops->is_empty != NULL) && dev->ops->is_empty(dev->local))
             dev->cd_status      = CD_STATUS_EMPTY;
-        else if (dev->ops->is_dvd(dev->local))
-            dev->cd_status      = CD_STATUS_DVD;
-        else
+        else if (dev->ops->is_dvd(dev->local)) {
+            if (cdrom_is_dvd(dev->type))
+                dev->cd_status      = CD_STATUS_DVD;
+            else {
+                warning("DVD image \"%s\" in a CD-only drive, reporting as empty\n", fn);
+                dev->cd_status      = CD_STATUS_DVD_REJECTED;
+            }
+        } else
             dev->cd_status      = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
                                                                     CD_STATUS_DATA_ONLY;
 
@@ -3013,7 +3025,7 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
     cdrom_toc_dump(dev);
 #endif
 
-    if (!skip_insert && (dev->cd_status != CD_STATUS_EMPTY)) {
+    if (!skip_insert && (dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED)) {
         /* Signal media change to the emulated machine. */
         cdrom_insert(dev->id);
 

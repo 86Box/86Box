@@ -2641,16 +2641,26 @@ image_open(cdrom_t *dev, const char *path)
                 img->has_audio = 0;
             else if (ret)
                 img->has_audio = 1;
+
+            if (ret >= 1)
+                img->is_dvd = 2;
         } else {
             ret = image_load_iso(img, path);
 
-            if (ret)
+            if (ret) {
                 img->has_audio = 0;
+                img->is_dvd = 2;
+            }
         }
 
-        if (ret > 0)
+        if (ret > 0) {
+            if (img->is_dvd == 2) {
+                uint32_t lb = dev->ops->get_last_block(img);
+                img->is_dvd = (lb >= 524287);    /* Minimum 1 GB total capacity as threshold for DVD. */
+            }
+
             dev->ops = &image_ops;
-        else {
+        } else {
             log_warning(img->log, "Unable to load CD-ROM image: %s\n", path);
 
             image_close(img);
