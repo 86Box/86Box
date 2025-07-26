@@ -2235,6 +2235,9 @@ msgstr "Szybkość transmisji przelotowej"
 msgid "Named Pipe (Server)"
 msgstr "Nazwany potok (serwer)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Przelot przez port szeregowy hosta"
 

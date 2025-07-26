@@ -2235,6 +2235,9 @@ msgstr "パススルーのボーレート"
 msgid "Named Pipe (Server)"
 msgstr "名前付きパイプ（サーバー）"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "ホストシリアルポートのパススルー"
 

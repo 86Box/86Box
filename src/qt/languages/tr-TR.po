@@ -2235,6 +2235,9 @@ msgstr "Geçişin Baud Hızı"
 msgid "Named Pipe (Server)"
 msgstr "Adlandırılmış Boru (Sunucu)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Ana Sistem Seri Geçişi"
 

@@ -2235,6 +2235,9 @@ msgstr "Taxa de baud de pas"
 msgid "Named Pipe (Server)"
 msgstr "Pipe anomenat (servidor)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Pas del port sèrie amfitrió"
 

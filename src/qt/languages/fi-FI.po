@@ -2235,6 +2235,9 @@ msgstr "Läpiviennin baudinopeus"
 msgid "Named Pipe (Server)"
 msgstr "Nimetty putki (palvelin)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Isännän sarjaportin läpivienti"
 

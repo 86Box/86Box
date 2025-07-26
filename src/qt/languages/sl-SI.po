@@ -2235,6 +2235,9 @@ msgstr "Baudna hitrost prepusta"
 msgid "Named Pipe (Server)"
 msgstr "Poimenovana cev (Strežnik)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Prepust serijskih vrat gostitelja"
 

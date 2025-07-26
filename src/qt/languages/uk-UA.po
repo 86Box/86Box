@@ -2238,6 +2238,9 @@ msgstr "Швидкість передачі даних пропуску"
 msgid "Named Pipe (Server)"
 msgstr "Іменований пайп (сервер)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Пропуск послідовного порту хоста"
 

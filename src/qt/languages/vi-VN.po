@@ -2235,6 +2235,9 @@ msgstr "Tốc độ baud của đường thông"
 msgid "Named Pipe (Server)"
 msgstr "Đường ống có tên (máy chủ)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Thông qua cổng serial của máy chủ"
 

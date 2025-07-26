@@ -2235,6 +2235,9 @@ msgstr "Скорость передачи данных через канал"
 msgid "Named Pipe (Server)"
 msgstr "Именованный пайп (Сервер)"
 
+msgid "Named Pipe (Client)"
+msgstr "Именованный пайп (Клиент)"
+
 msgid "Host Serial Passthrough"
 msgstr "Последовательный порт хоста"
 
@@ -2426,6 +2429,3 @@ msgstr "Файлы SoundFont"
 
 #~ msgid "Video chroma-keying"
 #~ msgstr "Видео хромакеинг"
-
-#~ msgid "Named Pipe (Client)"
-#~ msgstr "Именованный пайп (Клиент)"

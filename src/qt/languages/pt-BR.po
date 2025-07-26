@@ -2221,7 +2221,7 @@ msgid "Host Serial Device"
 msgstr "Dispositivo serial host"
 
 msgid "Name of pipe"
-msgstr "Nome do tubo"
+msgstr "Nome do pipe"
 
 msgid "Data bits"
 msgstr "Bits de dados"
@@ -2233,7 +2233,10 @@ msgid "Baud Rate of Passthrough"
 msgstr "Taxa de transmissão de passagem"
 
 msgid "Named Pipe (Server)"
-msgstr "Pipe nomeado (servidor)"
+msgstr "Pipe nomeado (Servidor)"
+
+msgid "Named Pipe (Client)"
+msgstr "Pipe nomeado (Cliente)"
 
 msgid "Host Serial Passthrough"
 msgstr "Passagem da porta serial do host"

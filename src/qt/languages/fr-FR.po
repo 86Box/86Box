@@ -2235,6 +2235,9 @@ msgstr "Taux de bauds du transfert"
 msgid "Named Pipe (Server)"
 msgstr "Pipeline nommé (serveur)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Transfert du port série de l'hôte"
 

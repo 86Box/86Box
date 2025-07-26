@@ -2235,6 +2235,9 @@ msgstr "直通波特率"
 msgid "Named Pipe (Server)"
 msgstr "命名管道（服务器）"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "主机串行端口直通"
 

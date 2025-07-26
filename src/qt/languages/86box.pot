@@ -2235,6 +2235,9 @@ msgstr ""
 msgid "Named Pipe (Server)"
 msgstr ""
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr ""
 

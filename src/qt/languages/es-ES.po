@@ -2235,6 +2235,9 @@ msgstr "Tasa de baudios de paso"
 msgid "Named Pipe (Server)"
 msgstr "Tubería con nombre (servidor)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Paso del puerto serie del host"
 

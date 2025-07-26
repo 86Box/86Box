@@ -2235,6 +2235,9 @@ msgstr "Passthroughns Baudhastighet"
 msgid "Named Pipe (Server)"
 msgstr "Namngiven pipe (server)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Värd-seriepassthrough"
 

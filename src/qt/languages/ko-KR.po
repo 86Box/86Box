@@ -2235,6 +2235,9 @@ msgstr "통과 속도"
 msgid "Named Pipe (Server)"
 msgstr "네임드 파이프(서버)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "호스트 직렬 포트 패스스루"
 

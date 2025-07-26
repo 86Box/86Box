@@ -2235,6 +2235,9 @@ msgstr "Taxa de transmissão de passagem"
 msgid "Named Pipe (Server)"
 msgstr "Tubo nomeado (servidor)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Passagem da porta de série do anfitrião"
 

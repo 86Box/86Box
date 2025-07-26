@@ -2235,6 +2235,9 @@ msgstr "Velocità di trasmissione in baud del passaggio"
 msgid "Named Pipe (Server)"
 msgstr "Tubo denominato (Server)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Passaggio della porta seriale host"
 
