@@ -34,8 +34,10 @@
 #include <86box/cdrom_interface.h>
 #include <86box/cdrom_mke.h>
 #include <86box/plat.h>
+#include <86box/ui.h>
 #include <86box/sound.h>
 #include <86box/fifo8.h>
+#include <86box/timer.h>
 
 /*
 https://elixir.bootlin.com/linux/2.0.29/source/include/linux/sbpcd.h
@@ -110,7 +112,11 @@ typedef struct mke_t {
 
     uint32_t unit_attention;
 
-    uint8_t cdbuffer[624240];
+    uint8_t cdbuffer[624240 * 2];
+
+    uint32_t data_to_push;
+
+    pc_timer_t timer;
 } mke_t;
 mke_t mke;
 
@@ -255,6 +261,7 @@ static void
 mke_reset(void)
 {
     cdrom_stop(mke.cdrom_dev);
+    timer_disable(&mke.timer);
     mke.sector_type            = 0x08 | (1 << 4);
     mke.sector_flags           = 0x10;
     memset(mke.mode_select, 0, 5);
@@ -264,6 +271,24 @@ mke_reset(void)
     mke.vol0                   = 255;
     mke.vol1                   = 255;
     mke.cdrom_dev->sector_size = 2048;
+}
+
+void
+mke_command_callback(void* priv)
+{
+    switch (mke.command_buffer[0]) {
+        case CMD1_SEEK: {
+            fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
+            break;
+        }
+        case CMD1_READ: {
+            fifo8_push_all(&mke.data_fifo, mke.cdbuffer, mke.data_to_push);
+            fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
+            mke.data_to_push = 0;
+            ui_sb_update_icon(SB_CDROM | mke.cdrom_dev->id, 0);
+            break;
+        }
+    }
 }
 
 void
@@ -283,6 +308,8 @@ mke_command(uint8_t value)
         mke_log("CMD_ABORT\n");
         // fifo8_reset(&mke.info_fifo);
         fifo8_reset(&mke.info_fifo);
+        fifo8_reset(&mke.data_fifo);
+        timer_disable(&mke.timer);
         mke.command_buffer[0]      = 0;
         mke.command_buffer_pending = 7;
         // fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
@@ -322,11 +349,13 @@ mke_command(uint8_t value)
                     int      error = 0;
                     uint64_t lba   = MSFtoLBA(mke.command_buffer[1], mke.command_buffer[2], mke.command_buffer[3]) - 150;
                     CHECK_READY();
+                    mke.data_to_push = 0;
                     while (count) {
                         if ((res = cdrom_readsector_raw(mke.cdrom_dev, buf, lba, 0, mke.sector_type, mke.sector_flags, &len, 0)) > 0) {
-                            fifo8_push_all(&mke.data_fifo, buf, mke.cdrom_dev->sector_size);
+                            //fifo8_push_all(&mke.data_fifo, buf, mke.cdrom_dev->sector_size);
                             lba++;
                             buf += mke.cdrom_dev->sector_size;
+                            mke.data_to_push += mke.cdrom_dev->sector_size;
                         } else {
                             fifo8_push(&mke.errors_fifo, res == 0 ? 0x10 : 0x05);
                             break;
@@ -335,8 +364,11 @@ mke_command(uint8_t value)
                     }
                     if (count != 0) {
                         fifo8_reset(&mke.data_fifo);
+                        mke.data_to_push = 0;
                     } else {
-                        fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
+                        //fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
+                        ui_sb_update_icon(SB_CDROM | mke.cdrom_dev->id, 1);
+                        timer_on_auto(&mke.timer, (1000000.0 / (176400.0 * 2.)) * mke.data_to_push);
                     }
                     break;
                 }
@@ -634,6 +666,7 @@ mke_close(void *priv)
     fifo8_destroy(&mke.info_fifo);
     fifo8_destroy(&mke.data_fifo);
     fifo8_destroy(&mke.errors_fifo);
+    timer_disable(&mke.timer);
 }
 
 static void
@@ -647,6 +680,11 @@ mke_cdrom_insert(void *priv)
     if (dev->cdrom_dev->ops == NULL) {
         // dev->unit_attention = 0;
         dev->cdrom_dev->cd_status = CD_STATUS_EMPTY;
+        if (timer_is_enabled(&dev->timer)) {
+            timer_disable(&dev->timer);
+            mke.data_to_push = 0;
+            fifo8_push(&dev->errors_fifo, 0x15);
+        }
         fifo8_push(&dev->errors_fifo, 0x11);
     } else {
         // dev->unit_attention = 1;
@@ -685,7 +723,7 @@ mke_init(const device_t *info)
         return NULL;
 
     fifo8_create(&mke.info_fifo, 128);
-    fifo8_create(&mke.data_fifo, 624240);
+    fifo8_create(&mke.data_fifo, 624240 * 2);
     fifo8_create(&mke.errors_fifo, 8);
     fifo8_reset(&mke.info_fifo);
     fifo8_reset(&mke.data_fifo);
@@ -707,6 +745,7 @@ mke_init(const device_t *info)
     dev->get_channel   = mke_get_channel;
     dev->cached_sector = -1;
 
+    timer_add(&mke.timer, mke_command_callback, &mke, 0);
     uint16_t base = device_get_config_hex16("base");
     io_sethandler(base, 16, mke_read, NULL, NULL, mke_write, NULL, NULL, &mke);
     return &mke;
