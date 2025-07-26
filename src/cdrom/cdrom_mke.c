@@ -417,9 +417,10 @@ mke_command(uint8_t value)
                     if (!cdrom_audio_play(mke.cdrom_dev, pos, len, msf)) {
                         fifo8_push(&mke.errors_fifo, 0x0E);
                         fifo8_push(&mke.errors_fifo, 0x10);
+                    } else {
+                        fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
                     }
                 }
-                fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
                 break;
             case CMD1_SEEK:
                 CHECK_READY();
@@ -431,7 +432,8 @@ mke_command(uint8_t value)
                 }
 
                 cdrom_stop(mke.cdrom_dev);
-                cdrom_seek(mke.cdrom_dev, (mke.command_buffer[1] << 16) | (mke.command_buffer[2] << 8) | mke.command_buffer[3], 0);
+                /* Note for self: Panasonic/MKE drives send seek commands in MSF format. */
+                cdrom_seek(mke.cdrom_dev, MSFtoLBA((mke.command_buffer[1]), (mke.command_buffer[2]), mke.command_buffer[3]) - 150, 0);
                 if (old_cd_status == CD_STATUS_PLAYING || old_cd_status == CD_STATUS_PAUSED) {
                     cdrom_audio_play(mke.cdrom_dev, mke.cdrom_dev->seek_pos, 0, -1);
                     cdrom_audio_pause_resume(mke.cdrom_dev, old_cd_status == CD_STATUS_PLAYING);
