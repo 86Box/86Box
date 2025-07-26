@@ -30,8 +30,8 @@ msgstr "&Пауза"
 msgid "Re&sume"
 msgstr "В&озобновить"
 
-msgid "E&xit..."
-msgstr "&Выход..."
+msgid "E&xit"
+msgstr "&Выход"
 
 msgid "&View"
 msgstr "&Вид"

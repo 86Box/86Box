@@ -30,8 +30,8 @@ msgstr "暫停(&P)"
 msgid "Re&sume"
 msgstr ""
 
-msgid "E&xit..."
-msgstr "退出(&X)..."
+msgid "E&xit"
+msgstr "退出(&X)"
 
 msgid "&View"
 msgstr "檢視(&V)"

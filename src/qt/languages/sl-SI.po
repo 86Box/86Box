@@ -30,8 +30,8 @@ msgstr "&Premor"
 msgid "Re&sume"
 msgstr ""
 
-msgid "E&xit..."
-msgstr "Iz&hod..."
+msgid "E&xit"
+msgstr "Iz&hod"
 
 msgid "&View"
 msgstr "&Pogled"

@@ -30,8 +30,8 @@ msgstr "일시정지(&P)"
 msgid "Re&sume"
 msgstr ""
 
-msgid "E&xit..."
-msgstr "끝내기(&X)..."
+msgid "E&xit"
+msgstr "끝내기(&X)"
 
 msgid "&View"
 msgstr "표시(&V)"

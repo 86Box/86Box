@@ -30,7 +30,7 @@ msgstr "P&ozastaviť"
 msgid "Re&sume"
 msgstr ""
 
-msgid "E&xit..."
+msgid "E&xit"
 msgstr "&Ukončiť"
 
 msgid "&View"
