@@ -2281,8 +2281,8 @@ image_get_track_info(const void *local, const uint32_t track,
     }
 
     if (ct != NULL) {
-        const uint32_t pos = end ? ct->idx[1].start :
-                                   (ct->idx[1].start + ct->idx[1].length);
+        const uint32_t pos = end ? (ct->idx[1].start + ct->idx[1].length) :
+                                   ct->idx[1].start;
 
         ti->number = ct->point;
         ti->attr   = ct->attr;
