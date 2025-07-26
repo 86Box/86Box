@@ -1325,9 +1325,17 @@ scsi_cdrom_update_sector_flags(scsi_cdrom_t *dev)
             dev->sector_type  = 0x08 | ((2048 / dev->drv->sector_size) << 4);
             dev->sector_flags = 0x0010;
             break;
+        case 2052:
+            dev->sector_type  = 0x18;
+            dev->sector_flags = 0x0030;
+            break;
         case 2056:
             dev->sector_type  = 0x18;
             dev->sector_flags = 0x0050;
+            break;
+        case 2060:
+            dev->sector_type  = 0x18;
+            dev->sector_flags = 0x0070;
             break;
         case 2324: case 2328:
             dev->sector_type  = (dev->drv->sector_size == 2328) ? 0x1a : 0x1b;

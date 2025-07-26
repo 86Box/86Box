@@ -275,7 +275,7 @@ const device_t ide_rz1000_pci_device = {
 };
 
 const device_t ide_rz1000_pci_single_channel_device = {
-    .name          = "PC Technology RZ-1000 PCI",
+    .name          = "PC Technology RZ-1000 PCI (Single Channel)",
     .internal_name = "ide_rz1000_pci_single_channel",
     .flags         = DEVICE_PCI,
     .local         = 0x20000,

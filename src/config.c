@@ -832,6 +832,7 @@ load_storage_controllers(void)
     char          temp[512];
     int           min = 0;
     int           free_p = 0;
+    int           migrate_hdc[HDC_MAX] = { 1, 1, 1, 1 };
 
     for (int c = min; c < SCSI_CARD_MAX; c++) {
         sprintf(temp, "scsicard_%d", c + 1);
@@ -870,28 +871,62 @@ load_storage_controllers(void)
     }
 #endif
 
-    p = ini_section_get_string(cat, "hdc", NULL);
-    if (p == NULL) {
-        if (machine_has_flags(machine, MACHINE_HDC)) {
-            p = (char *) malloc((strlen("internal") + 1) * sizeof(char));
-            strcpy(p, "internal");
-        } else {
-            p = (char *) malloc((strlen("none") + 1) * sizeof(char));
-            strcpy(p, "none");
-        }
-        free_p = 1;
+    for (int c = min; c < HDC_MAX; c++) {
+        sprintf(temp, "hdc_%d", c + 1);
+
+        p = ini_section_get_string(cat, temp, NULL);
+        if (p != NULL) {
+            hdc_current[c] = hdc_get_from_internal_name(p);
+            migrate_hdc[c] = 0;
+        } else
+            hdc_current[c] = 0;
     }
-    /* Migrate renamed and merged cards. */
-    if (!strcmp(p, "xtide_plus")) {
-        hdc_current[0] = hdc_get_from_internal_name("xtide");
-        migration_cat = ini_find_or_create_section(config, "PC/XT XTIDE");
-        ini_section_set_string(migration_cat, "bios", "xt_plus");
-    } else if (!strcmp(p, "xtide_at_386")) {
-        hdc_current[0] = hdc_get_from_internal_name("xtide_at");
-        migration_cat = ini_find_or_create_section(config, "PC/AT XTIDE");
-        ini_section_set_string(migration_cat, "bios", "at_386");
-    } else
-        hdc_current[0] = hdc_get_from_internal_name(p);
+
+    if (migrate_hdc[0]) {
+        p = ini_section_get_string(cat, "hdc", NULL);
+        if (p == NULL) {
+            if (machine_has_flags(machine, MACHINE_HDC)) {
+                p = (char *) malloc((strlen("internal") + 1) * sizeof(char));
+                strcpy(p, "internal");
+            } else {
+                p = (char *) malloc((strlen("none") + 1) * sizeof(char));
+                strcpy(p, "none");
+            }
+            free_p = 1;
+        }
+
+        /* Migrate renamed and merged cards. */
+        if (!strcmp(p, "xtide_plus")) {
+            hdc_current[0] = hdc_get_from_internal_name("xtide");
+            migration_cat = ini_find_or_create_section(config, "PC/XT XTIDE #1");
+            ini_section_set_string(migration_cat, "bios", "xt_plus");
+        } else if (!strcmp(p, "xtide_at_386")) {
+            hdc_current[0] = hdc_get_from_internal_name("xtide_at");
+            migration_cat = ini_find_or_create_section(config, "PC/AT XTIDE #1");
+            ini_section_set_string(migration_cat, "bios", "at_386");
+        } else
+            hdc_current[0] = hdc_get_from_internal_name(p);
+
+        ini_section_delete_var(cat, "hdc");
+    }
+
+    if (migrate_hdc[1]) {
+        int ide_ter_enabled = !!ini_section_get_int(cat, "ide_ter", 0);
+
+        if (ide_ter_enabled)
+            hdc_current[1] = hdc_get_from_internal_name("ide_ter");
+
+        ini_section_delete_var(cat, "ide_ter");
+    }
+
+    if (migrate_hdc[2]) {
+        int ide_qua_enabled = !!ini_section_get_int(cat, "ide_qua", 0);
+
+        if (ide_qua_enabled)
+            hdc_current[2] = hdc_get_from_internal_name("ide_qua");
+
+        ini_section_delete_var(cat, "ide_qua");
+    }
 
     if (free_p) {
         free(p);
@@ -907,9 +942,6 @@ load_storage_controllers(void)
         free(p);
         p = NULL;
     }
-
-    ide_ter_enabled = !!ini_section_get_int(cat, "ide_ter", 0);
-    ide_qua_enabled = !!ini_section_get_int(cat, "ide_qua", 0);
 
     if (machine_has_bus(machine, MACHINE_BUS_CASSETTE))
         cassette_enable = !!ini_section_get_int(cat, "cassette_enabled", 0);
@@ -1956,7 +1988,9 @@ config_load(void)
         vid_resize             = 0;
         video_fullscreen_scale = 1;
         time_sync              = TIME_SYNC_ENABLED;
-        hdc_current[0]         = hdc_get_from_internal_name("none");
+
+        for (int i = 0; i < HDC_MAX; i++)
+            hdc_current[i]         = hdc_get_from_internal_name("none");
 
         com_ports[0].enabled = 1;
         com_ports[1].enabled = 1;
@@ -2712,16 +2746,22 @@ save_storage_controllers(void)
         ini_section_set_string(cat, "fdc",
                                fdc_card_get_internal_name(fdc_current[0]));
 
-    if (machine_has_flags(machine, MACHINE_HDC))
-        def_hdc = "internal";
-    else
-        def_hdc = "none";
+    ini_section_delete_var(cat, "hdc");
 
-    if (!strcmp(hdc_get_internal_name(hdc_current[0]), def_hdc))
-        ini_section_delete_var(cat, "hdc");
-    else
-        ini_section_set_string(cat, "hdc",
-                               hdc_get_internal_name(hdc_current[0]));
+    for (c = 0; c < HDC_MAX; c++) {
+        sprintf(temp, "hdc_%d", c + 1);
+
+        if ((c == 0) && machine_has_flags(machine, MACHINE_HDC))
+            def_hdc = "internal";
+        else
+            def_hdc = "none";
+
+        if (!strcmp(hdc_get_internal_name(hdc_current[c]), def_hdc))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp,
+                                   hdc_get_internal_name(hdc_current[c]));
+    }
 
     if (cdrom_interface_current == 0)
         ini_section_delete_var(cat, "cdrom_interface");
@@ -2729,15 +2769,8 @@ save_storage_controllers(void)
         ini_section_set_string(cat, "cdrom_interface",
                                cdrom_interface_get_internal_name(cdrom_interface_current));
 
-    if (ide_ter_enabled == 0)
-        ini_section_delete_var(cat, "ide_ter");
-    else
-        ini_section_set_int(cat, "ide_ter", ide_ter_enabled);
-
-    if (ide_qua_enabled == 0)
-        ini_section_delete_var(cat, "ide_qua");
-    else
-        ini_section_set_int(cat, "ide_qua", ide_qua_enabled);
+    ini_section_delete_var(cat, "ide_ter");
+    ini_section_delete_var(cat, "ide_qua");
 
     if (cassette_enable == 0)
         ini_section_delete_var(cat, "cassette_enabled");
