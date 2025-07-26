@@ -6,13 +6,15 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Mitsumi CD-ROM emulation for the ISA bus.
+ *          Panasonic/MKE CD-ROM emulation for the ISA bus.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Kevin Moonlight, <me@yyzkevin.com>
  *          Cacodemon345
  *
- *          Copyright 2022-2025 Miran Grca.
- *          Copyright 2025      Cacodemon345.
+ *          Copyright (C) 2025 Miran Grca.
+ *          Copyright (C) 2025 Cacodemon345.
+ *          Copyright (C) 2024 Kevin Moonlight.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -89,6 +91,9 @@ typedef struct mke_t {
 
     uint8_t command_buffer[7];
     uint8_t command_buffer_pending;
+
+    uint8_t vol0, vol1, patch0, patch1;
+    uint8_t mode_select[5];
 
     uint8_t data_select;
 
@@ -246,6 +251,21 @@ mke_cdrom_status(cdrom_t *dev, mke_t *mke)
 
 uint8_t ver[10] = "CR-5630.75";
 
+static void
+mke_reset(void)
+{
+    cdrom_stop(mke.cdrom_dev);
+    mke.sector_type            = 0x08 | (1 << 4);
+    mke.sector_flags           = 0x10;
+    memset(mke.mode_select, 0, 5);
+    mke.mode_select[2]         = 0x08;
+    mke.patch0                 = 0x01;
+    mke.patch1                 = 0x02;
+    mke.vol0                   = 255;
+    mke.vol1                   = 255;
+    mke.cdrom_dev->sector_size = 2048;
+}
+
 void
 mke_command(uint8_t value)
 {
@@ -288,6 +308,11 @@ mke_command(uint8_t value)
                     fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
                     break;
                 }
+            case CMD1_RESET:
+            {
+                mke_reset();
+                break;
+            }
             case CMD1_READ:
                 {
                     uint32_t count = mke.command_buffer[6];
@@ -335,12 +360,48 @@ mke_command(uint8_t value)
                     mke_log("%02x ", mke.command_buffer[i + 1]);
                 }
                 mke_log("\n");
+                switch (mke.command_buffer[1]) {
+                    case 0:
+                    {
+                        switch (mke.command_buffer[2]) {
+                            case 0x00: {
+                                mke.sector_type  = 0x08 | (1 << 4);
+                                mke.sector_flags = 0x10;
+                                mke.cdrom_dev->sector_size = 2048;
+                                break;
+                            }
+                            case 0x82: {
+                                mke.sector_type  = 0x00;
+                                mke.sector_flags = 0xf8;
+                                mke.cdrom_dev->sector_size = 2352;
+                                break;
+                            }
+                            default: {
+                                fifo8_push(&mke.errors_fifo, 0x0e);
+                                return;
+                            }
+                        }
+
+                        memcpy(mke.mode_select, &mke.command_buffer[2], 5);
+                    }
+                    case 5: {
+                        mke.vol0 = mke.command_buffer[4];
+                        mke.vol1 = mke.command_buffer[6];
+                        mke.patch0 = mke.command_buffer[3];
+                        mke.patch1 = mke.command_buffer[5];
+                        break;
+                    }
+                }
                 fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
                 break;
             case CMD1_GETMODE: // 6
                 mke_log("GET MODE\n");
-                uint8_t mode[5] = { [1] = 0x08 };
-                fifo8_push_all(&mke.info_fifo, mode, 5);
+                if (mke.command_buffer[1] == 5) {
+                    uint8_t volsettings[5] = { 0, mke.patch0, mke.vol0, mke.patch1, mke.vol1 };
+                    fifo8_push_all(&mke.info_fifo, volsettings, 5);
+                }
+                else
+                    fifo8_push_all(&mke.info_fifo, mke.mode_select, 5);
                 fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
                 break;
             case CMD1_PAUSERESUME:
@@ -505,6 +566,9 @@ mke_write(uint16_t address, uint8_t value, void *priv)
         case 1:
             mke.data_select = value;
             break;
+        case 2:
+            mke_reset();
+            break;
         case 3:
             mke.enable_register = value;
             break;
@@ -592,6 +656,18 @@ mke_cdrom_insert(void *priv)
     }
 }
 
+uint32_t
+mke_get_volume(void *priv, int channel)
+{
+    return channel == 0 ? mke.vol0 : mke.vol1;
+}
+
+uint32_t
+mke_get_channel(void *priv, int channel)
+{
+    return channel == 0 ? mke.patch0 : mke.patch1;
+}
+
 void *
 mke_init(const device_t *info)
 {
@@ -618,11 +694,18 @@ mke_init(const device_t *info)
     mke.command_buffer_pending = 7;
     mke.sector_type            = 0x08 | (1 << 4);
     mke.sector_flags           = 0x10;
+    mke.mode_select[2]         = 0x08;
+    mke.patch0                 = 0x01;
+    mke.patch1                 = 0x02;
+    mke.vol0                   = 255;
+    mke.vol1                   = 255;
+    dev->sector_size           = 2048;
 
     dev->priv          = &mke;
     dev->insert        = mke_cdrom_insert;
+    dev->get_volume    = mke_get_volume;
+    dev->get_channel   = mke_get_channel;
     dev->cached_sector = -1;
-    dev->sector_size   = 2048;
 
     uint16_t base = device_get_config_hex16("base");
     io_sethandler(base, 16, mke_read, NULL, NULL, mke_write, NULL, NULL, &mke);
