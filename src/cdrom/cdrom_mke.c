@@ -141,31 +141,43 @@ mke_get_subq(cdrom_t *dev, uint8_t *b)
     b[8]  = temp_buf[4];
     b[9]  = temp_buf[5];
     b[10] = 0; //??
+    pclog("mke_get_subq: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n", b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8], b[9], b[10]);
 }
 
-uint8_t
-mke_read_toc(cdrom_t *dev, unsigned char *b, uint8_t track)
+// Lifted from FreeBSD
+
+static void blk_to_msf(int blk, unsigned char *msf)
 {
+	blk = blk + 150;			/*2 seconds skip required to
+					  reach ISO data*/
+	msf[0] = blk / 4500;
+	blk = blk % 4500;
+	msf[1] = blk / 75;
+	msf[2] = blk % 75;
+	return;
+}
+
+uint8_t mke_read_toc(cdrom_t *dev, unsigned char *b, uint8_t track) {
     track_info_t ti;
-    int          first_track;
-    int          last_track;
-    // dev->ops->get_tracks(dev, &first_track, &last_track);
+    int first_track;
+    int last_track;
     cdrom_read_toc(dev, temp_buf, CD_TOC_NORMAL, 0, 0, 65536);
     first_track = temp_buf[2];
-    last_track  = temp_buf[3];
-    if (track > last_track)
-        return 0; // should we allow +1 here?
-    dev->ops->get_track_info(dev, track, 0, &ti);
-    b[0] = 0x0;
-    b[1] = ti.attr;
-    b[2] = ti.number;
-    b[3] = 0;
-    b[4] = ti.m;
-    b[5] = ti.s;
-    b[6] = ti.f;
-    b[7] = 0;
-    return 1;
+    last_track = temp_buf[3];
+    if(track > last_track)  return 0;    //should we allow +1 here?
+    dev->ops->get_track_info(dev->local, track, 0, &ti);
+    b[0]=0;
+    b[1]=ti.attr;
+    b[2]=ti.number;
+    b[3]=0;
+    b[4]=ti.m;
+    b[5]=ti.s;
+    b[6]=ti.f;
+    b[7]=0;
+    pclog("mke_read_toc: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n", b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]);
+    return 1;    
 }
+
 
 uint8_t
 mke_disc_info(cdrom_t *dev, unsigned char *b)
@@ -173,16 +185,18 @@ mke_disc_info(cdrom_t *dev, unsigned char *b)
     track_info_t ti;
     int          first_track;
     int          last_track;
-    cdrom_read_toc(dev, temp_buf, CD_TOC_NORMAL, 0, 0, 65536);
+    cdrom_read_toc(dev, temp_buf, CD_TOC_NORMAL, 0, 2 << 8, 65536);
     first_track = temp_buf[2];
     last_track  = temp_buf[3];
-    dev->ops->get_track_info(dev, last_track + 1, 0, &ti);
+    // dev->ops->get_track_info(dev, last_track + 1, 0, &ti);
     b[0] = 0x0;
     b[1] = first_track;
     b[2] = last_track;
-    b[3] = ti.m;
-    b[4] = ti.s;
-    b[5] = ti.f;
+    b[3] = 0;
+    b[4] = 0;
+    b[5] = 0;
+    blk_to_msf(dev->cdrom_capacity, &b[3]);
+    pclog("mke_disc_info: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n", b[0], b[1], b[2], b[3], b[4], b[5]);
     return 1;
 }
 
@@ -193,7 +207,7 @@ mke_disc_capacity(cdrom_t *dev, unsigned char *b)
     int          first_track;
     int          last_track;
     // dev->ops->get_tracks(dev, &first_track, &last_track);
-    cdrom_read_toc(dev, temp_buf, CD_TOC_NORMAL, 0, 0, 65536);
+    cdrom_read_toc(dev, temp_buf, CD_TOC_NORMAL, 0, 2 << 8, 65536);
     first_track = temp_buf[2];
     last_track  = temp_buf[3];
     dev->ops->get_track_info(dev, last_track + 1, 0, &ti);
@@ -202,6 +216,9 @@ mke_disc_capacity(cdrom_t *dev, unsigned char *b)
     b[2] = ti.f - 1; // TODO THIS NEEDS TO HANDLE   FRAME 0,  JUST BEING LAZY 6AM
     b[3] = 0x08;
     b[4] = 0x00;
+
+    blk_to_msf(dev->cdrom_capacity, &b[0]);
+    pclog("mke_disc_capacity: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n", b[0], b[1], b[2], b[3], b[4]);
     return 1;
 }
 
@@ -254,6 +271,7 @@ mke_command(uint8_t value)
 
     if (!mke.command_buffer_pending && mke.command_buffer[0]) {
         mke.command_buffer_pending = 7;
+        pclog("mke_command: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n", mke.command_buffer[0], mke.command_buffer[1], mke.command_buffer[2], mke.command_buffer[3], mke.command_buffer[4], mke.command_buffer[5], mke.command_buffer[6]);
         switch (mke.command_buffer[0]) {
             case 06:
                 {
@@ -471,7 +489,7 @@ mke_command(uint8_t value)
 void
 mke_write(uint16_t address, uint8_t value, void *priv)
 {
-    pclog("MKEWRITE: 0x%X, 0x%02X\n", address & 0xf, value);
+    //pclog("MKEWRITE: 0x%X, 0x%02X\n", address & 0xf, value);
     if (mke.enable_register && ((address & 0xF) != 3)) {
         // mke_log("Ignore Write Unit %u\n",mke.enable_register);
         return;
