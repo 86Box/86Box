@@ -255,8 +255,7 @@ mke_cdrom_status(cdrom_t *dev, mke_t *mke)
 void
 mke_read_multisess(void)
 {
-    int len = cdrom_read_toc(mke.cdrom_dev, temp_buf, CD_TOC_SESSION, 0, 1, 65536);
-    if (temp_buf[9] != 0 || temp_buf[10] != 0 || temp_buf[11] != 0) {
+    if ((temp_buf[9] != 0) || (temp_buf[10] != 0) || (temp_buf[11] != 0)) {
         /* Multi-session disc. */
         fifo8_push(&mke.info_fifo, 0x80);
         fifo8_push(&mke.info_fifo, temp_buf[9]);
