@@ -256,16 +256,17 @@ void
 mke_read_multisess(void)
 {
     int len = cdrom_read_toc(mke.cdrom_dev, temp_buf, CD_TOC_SESSION, 0, 1, 65536);
-    if (len == 4) {
-        /* Single-session disc. */
-        uint8_t no_multisess[4] = { 0x00, 0x00, 0x00, 0x00 };
-        fifo8_push_all(&mke.info_fifo, no_multisess, 4);
-    } else {
+    if (temp_buf[9] != 0 || temp_buf[10] != 0 || temp_buf[11] != 0) {
         /* Multi-session disc. */
         fifo8_push(&mke.info_fifo, 0x80);
         fifo8_push(&mke.info_fifo, temp_buf[9]);
         fifo8_push(&mke.info_fifo, temp_buf[10]);
         fifo8_push(&mke.info_fifo, temp_buf[11]);
+        fifo8_push(&mke.info_fifo, 0);
+        fifo8_push(&mke.info_fifo, 0);
+    } else {
+        uint8_t no_multisess[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+        fifo8_push_all(&mke.info_fifo, no_multisess, 6);
     }
 }
 
