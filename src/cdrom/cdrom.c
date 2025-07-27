@@ -120,12 +120,13 @@ static const struct {
     const device_t *device;
 } controllers[] = {
     // clang-format off
-    { &cdrom_interface_none_device },
+    { &cdrom_interface_none_device  },
 #ifdef USE_CDROM_MITSUMI
-    { &mitsumi_cdrom_device        },
+    { &mitsumi_cdrom_device         },
 #endif
-    { &mke_cdrom_device            },
-    { NULL                         }
+    { &mke_cdrom_noncreative_device },
+    { &mke_cdrom_device             },
+    { NULL                          }
     // clang-format on
 };
 

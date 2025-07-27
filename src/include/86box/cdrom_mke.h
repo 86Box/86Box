@@ -19,5 +19,6 @@
 #define CDROM_MKE_H
 
 extern const device_t mke_cdrom_device;
+extern const device_t mke_cdrom_noncreative_device;
 
 #endif /*CDROM_MKE_H*/
