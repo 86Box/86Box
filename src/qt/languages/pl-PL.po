@@ -181,7 +181,7 @@ msgid "Change contrast for &monochrome display"
 msgstr "Zmień kontrast dla ekranu &monochromatycznego"
 
 msgid "&Media"
-msgstr "&Nośnik"
+msgstr "N&ośnik"
 
 msgid "&Tools"
 msgstr "&Narzędzia"
@@ -760,10 +760,10 @@ msgid "Click to capture mouse"
 msgstr "Kliknij, by przechwycić mysz"
 
 msgid "Press %1 to release mouse"
-msgstr "Naciśnij %1 w celu uwolnienia myszy"
+msgstr "Naciśnij %1, by wypuścić mysz"
 
 msgid "Press %1 or middle button to release mouse"
-msgstr "Naciśnij %1 lub środkowy przycisk w celu uwolnienia myszy"
+msgstr "Naciśnij %1 lub środkowy przycisk, by wypuścić mysz"
 
 msgid "Bus"
 msgstr "Magistrala"
@@ -940,10 +940,10 @@ msgid "Don't exit"
 msgstr "Nie kończ"
 
 msgid "Reset"
-msgstr "Przywróć"
+msgstr "Resetuj"
 
 msgid "Don't reset"
-msgstr "Nie przywracaj"
+msgstr "Nie resetuj"
 
 msgid "CD-ROM images"
 msgstr "Obrazy CD-ROM"
@@ -2197,7 +2197,7 @@ msgid "3Dfx Voodoo Graphics"
 msgstr "Grafika 3Dfx Voodoo"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
-msgstr "Obsydian SB50 + Amethyst (2 jednostki TMU)"
+msgstr "Obsidian SB50 + Amethyst (2 jednostki TMU)"
 
 msgid "8-bit"
 msgstr "8-bitowy"
@@ -2275,7 +2275,7 @@ msgid "E&ject %1"
 msgstr "W&yjmij %1"
 
 msgid "&Unmute"
-msgstr "O&dcisz"
+msgstr "&Odcisz"
 
 msgid "Softfloat FPU"
 msgstr "FPU Softfloat"
@@ -2392,64 +2392,52 @@ msgid "Could not load file %1"
 msgstr "Nie można wczytać pliku %1"
 
 msgid "Key Bindings:"
-msgstr ""
+msgstr "Przypisania klawiszy:"
 
 msgid "Action"
-msgstr ""
+msgstr "Akcja"
 
 msgid "Keybind"
-msgstr ""
+msgstr "Przypisane klawisze"
 
 msgid "Clear binding"
-msgstr ""
+msgstr "Wyczyść przypisanie"
 
 msgid "Bind"
-msgstr ""
+msgstr "Przypisanie"
 
 msgid "Bind Key"
-msgstr ""
+msgstr "Przypisanie klawiszy"
 
 msgid "Enter key combo:"
-msgstr ""
+msgstr "Wciśnij kombinację klawiszy:"
 
 msgid "Send Control+Alt+Del"
-msgstr ""
+msgstr "Wyślij Control+Alt+Del"
 
 msgid "Send Control+Alt+Escape"
-msgstr ""
+msgstr "Wyślij Control+Alt+Escape"
 
 msgid "Toggle fullscreen"
-msgstr ""
+msgstr "Przełącz pełny ekran"
 
 msgid "Screenshot"
-msgstr ""
+msgstr "Zrzut ekranu"
 
 msgid "Release mouse pointer"
-msgstr ""
+msgstr "Wypuść wskaźnik myszy"
 
 msgid "Toggle pause"
-msgstr ""
+msgstr "Przełącz pauzę"
 
 msgid "Toggle mute"
-msgstr ""
+msgstr "Przełącz wyciszenie"
 
 msgid "Text files"
-msgstr ""
+msgstr "Pliki tekstowe"
 
 msgid "ROM files"
-msgstr ""
+msgstr "Pliki ROM"
 
 msgid "SoundFont files"
-msgstr ""
-
-#~ msgid "HD Controller:"
-#~ msgstr "Kontroler dysku twardego:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "Napędy ZIP:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "Obrazy ZIP"
+msgstr "Pliki SoundFont"
