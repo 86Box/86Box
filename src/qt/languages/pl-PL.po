@@ -1449,32 +1449,11 @@ msgstr "Klawiatura AX"
 msgid "PS/2 Keyboard"
 msgstr "Klawiatura PS/2"
 
-msgid "PS/2 Keyboard"
-msgstr ""
-
-msgid "PS/2 Keyboard (US)"
-msgstr "Klawiatura PS/2 (ANSI)"
-
-msgid "PS/2 Keyboard (European)"
-msgstr "Klawiatura PS/2 (ISO)"
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr "Klawiatura PS/2 (JIS)"
-
-msgid "AT/PS/2 Keyboard"
-msgstr "Klawiatura AT/PS/2"
-
 msgid "PS/55 Keyboard"
 msgstr "Klawiatura PS/55"
 
 msgid "Keys"
 msgstr "Klawisze"
-
-msgid "AT/PS/2 Keyboard"
-msgstr ""
-
-msgid "Keys"
-msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Mysz magistralowa Logitech/Microsoft"
@@ -1548,7 +1527,7 @@ msgstr "Plik BIOS (ROM nr 3)"
 msgid "BIOS file (ROM #4)"
 msgstr "Plik BIOS (ROM nr 4)"
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "Adres BIOS"
 
 msgid "BIOS address (ROM #1)"
@@ -1592,9 +1571,6 @@ msgstr "Rewizja BIOS-u"
 
 msgid "BIOS Version"
 msgstr "Wersja BIOS-u"
-
-msgid "BIOS Versions"
-msgstr "Wersje BIOS-u"
 
 msgid "BIOS Language"
 msgstr "Język BIOS-u"
@@ -1998,11 +1974,11 @@ msgstr "Zawsze z wybraną prędkością"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Ustawienia BIOS + klawisze skrótu (wyłączone podczas testu POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB począwszy od F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB począwszy od F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB począwszy od E0000 (adres MSB odwrócony, najpierw ostatnie 64KB)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB począwszy od E0000 (adres MSB odwrócony, najpierw ostatnie 64 KB)"
 
 msgid "Sine"
 msgstr "Sinusoidalny"

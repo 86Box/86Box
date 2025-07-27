@@ -919,7 +919,7 @@ msgid "Hardware not available"
 msgstr "Обладнання недоступне"
 
 msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr ""
+msgstr "Переконайтесь, що %1 встановлений і ваше мережеве з'єднання, сумісне з %1."
 
 msgid "Invalid configuration"
 msgstr "Неприпустима конфігурація"
@@ -1452,19 +1452,7 @@ msgstr ""
 msgid "PS/2 Keyboard"
 msgstr ""
 
-msgid "PS/2 Keyboard (US)"
-msgstr ""
-
-msgid "PS/2 Keyboard (European)"
-msgstr ""
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
-
 msgid "PS/55 Keyboard"
-msgstr ""
-
-msgid "AT/PS/2 Keyboard"
 msgstr ""
 
 msgid "Keys"
@@ -1542,7 +1530,7 @@ msgstr ""
 msgid "BIOS file (ROM #4)"
 msgstr ""
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "Адреса BIOS"
 
 msgid "BIOS address (ROM #1)"
@@ -1585,9 +1573,6 @@ msgid "BIOS Revision"
 msgstr "Ревізія BIOS"
 
 msgid "BIOS Version"
-msgstr ""
-
-msgid "BIOS Versions"
 msgstr ""
 
 msgid "BIOS Language"
@@ -1992,11 +1977,11 @@ msgstr "Завжди на обраній швидкості"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Налаштування BIOS + Гарячі клавіші (вимкнено під час POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 кБ, починаючи з F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KБ, починаючи з F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 кБ, починаючи з E0000 (адреса MSB інвертована, останні 64 кБ першими)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KБ, починаючи з E0000 (адреса MSB інвертована, останні 64 KБ першими)"
 
 msgid "Sine"
 msgstr "Синусоїдальна"
@@ -2465,6 +2450,3 @@ msgstr ""
 
 #~ msgid "ZIP images"
 #~ msgstr "Образи ZIP"
-
-#~ msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
-#~ msgstr "Переконайтесь, що %1 встановлений і ваше мережеве з'єднання, сумісне з libpcap."

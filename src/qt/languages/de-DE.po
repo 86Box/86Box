@@ -1449,19 +1449,7 @@ msgstr ""
 msgid "PS/2 Keyboard"
 msgstr ""
 
-msgid "PS/2 Keyboard (US)"
-msgstr ""
-
-msgid "PS/2 Keyboard (European)"
-msgstr ""
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
-
 msgid "PS/55 Keyboard"
-msgstr ""
-
-msgid "AT/PS/2 Keyboard"
 msgstr ""
 
 msgid "Keys"
@@ -1539,7 +1527,7 @@ msgstr ""
 msgid "BIOS file (ROM #4)"
 msgstr ""
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "BIOS-Adresse"
 
 msgid "BIOS address (ROM #1)"
@@ -1582,9 +1570,6 @@ msgid "BIOS Revision"
 msgstr "BIOS-Revision"
 
 msgid "BIOS Version"
-msgstr ""
-
-msgid "BIOS Versions"
 msgstr ""
 
 msgid "BIOS Language"
@@ -1989,11 +1974,11 @@ msgstr "Immer mit der gewählten Geschwindigkeit"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "BIOS-Einstellung + Hotkeys (aus während POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB ab F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB ab F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB ab E0000 (MSB der Adresse invertiert, letzte 64KB zuerst)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB ab E0000 (MSB der Adresse invertiert, letzte 64 KB zuerst)"
 
 msgid "Sine"
 msgstr "Sinus"

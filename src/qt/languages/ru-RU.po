@@ -1446,21 +1446,10 @@ msgid "AX Keyboard"
 msgstr "Клавиатура AX"
 
 msgid "PS/2 Keyboard"
-msgstr "Клавиатура PS/2"
-
-msgid "PS/2 Keyboard (US)"
-msgstr "Клавиатура PS/2 (US)"
-
-msgid "PS/2 Keyboard (European)"
-msgstr "Клавиатура PS/2 (European)"
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr "Клавиатура PS/2 (Japanese)"
+msgstr ""
 
 msgid "PS/55 Keyboard"
-msgstr "Клавиатура PS/55"
-msgid "AT/PS/2 Keyboard"
-msgstr "Клавиатура AT/PS/2"
+msgstr ""
 
 msgid "Keys"
 msgstr "Клавиши"
@@ -1537,7 +1526,7 @@ msgstr "Файл BIOS (ПЗУ #3)"
 msgid "BIOS file (ROM #4)"
 msgstr "Файл BIOS (ПЗУ #4)"
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "Адрес BIOS"
 
 msgid "BIOS address (ROM #1)"
@@ -1581,9 +1570,6 @@ msgstr "Версия BIOS"
 
 msgid "BIOS Version"
 msgstr "Версия BIOS"
-
-msgid "BIOS Versions"
-msgstr "Версии BIOS"
 
 msgid "BIOS Language"
 msgstr "Язык BIOS"
@@ -1987,10 +1973,10 @@ msgstr "Всегда на выбранной скорости"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Настройка BIOS + горячие клавиши (отключается во время POST)"
 
-msgid "64 kB starting from F0000"
+msgid "64 KB starting from F0000"
 msgstr "64 КБ, начиная с F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
 msgstr "128 КБ, начиная с E0000 (адрес MSB инвертирован, сначала последние 64 КБ)"
 
 msgid "Sine"

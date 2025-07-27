@@ -406,7 +406,7 @@ msgid "Video:"
 msgstr "비디오 카드:"
 
 msgid "Video #2:"
-msgstr ""
+msgstr "비디오 카드 2:"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 또는 2 그래픽"
@@ -1449,19 +1449,7 @@ msgstr ""
 msgid "PS/2 Keyboard"
 msgstr ""
 
-msgid "PS/2 Keyboard (US)"
-msgstr ""
-
-msgid "PS/2 Keyboard (European)"
-msgstr ""
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
-
 msgid "PS/55 Keyboard"
-msgstr ""
-
-msgid "AT/PS/2 Keyboard"
 msgstr ""
 
 msgid "Keys"
@@ -1539,7 +1527,7 @@ msgstr ""
 msgid "BIOS file (ROM #4)"
 msgstr ""
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "BIOS 주소"
 
 msgid "BIOS address (ROM #1)"
@@ -1582,9 +1570,6 @@ msgid "BIOS Revision"
 msgstr "BIOS 개정"
 
 msgid "BIOS Version"
-msgstr ""
-
-msgid "BIOS Versions"
 msgstr ""
 
 msgid "BIOS Language"
@@ -1989,11 +1974,11 @@ msgstr "항상 선택한 속도로"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "BIOS 설정 + 핫키(POST 중 꺼짐)"
 
-msgid "64 kB starting from F0000"
-msgstr "64kB부터 F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB부터 F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "E0000에서 시작하는 128kB(주소 MSB 반전, 마지막 64KB 먼저)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "E0000에서 시작하는 128KB(주소 MSB 반전, 마지막 64 KB 먼저)"
 
 msgid "Sine"
 msgstr "사인"
@@ -2453,9 +2438,6 @@ msgstr ""
 
 #~ msgid "HD Controller:"
 #~ msgstr "HD 컨트롤러:"
-
-#~ msgid "Video 2:"
-#~ msgstr "비디오 카드 2:"
 
 #~ msgid "ZIP drives:"
 #~ msgstr "ZIP 드라이브:"

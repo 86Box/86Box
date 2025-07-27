@@ -715,7 +715,7 @@ msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video
 msgstr "Näytönohjainta \"%hs\" ei voi käyttää, koska roms/machines-hakemistosta puuttuvien ROM-tiedostojen vuoksi. Vaihdetaan käyttökelpoiseen näytönohjaimeen."
 
 msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr ""
+msgstr "Näytönohjainta 2 \"%hs\" ei voi käyttää, koska roms/machines-hakemistosta puuttuvien ROM-tiedostojen vuoksi. Toisen näytönohjaimen poistaminen käytöstä."
 
 msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
 msgstr "Laite \"%hs\" ei voi käyttää puuttuvien ROM-tiedostojen vuoksi. Laitteen huomiotta jättäminen."
@@ -1449,19 +1449,7 @@ msgstr ""
 msgid "PS/2 Keyboard"
 msgstr ""
 
-msgid "PS/2 Keyboard (US)"
-msgstr ""
-
-msgid "PS/2 Keyboard (European)"
-msgstr ""
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
-
 msgid "PS/55 Keyboard"
-msgstr ""
-
-msgid "AT/PS/2 Keyboard"
 msgstr ""
 
 msgid "Keys"
@@ -1539,7 +1527,7 @@ msgstr ""
 msgid "BIOS file (ROM #4)"
 msgstr ""
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "BIOS-osoite"
 
 msgid "BIOS address (ROM #1)"
@@ -1582,9 +1570,6 @@ msgid "BIOS Revision"
 msgstr "BIOS-tarkistus"
 
 msgid "BIOS Version"
-msgstr ""
-
-msgid "BIOS Versions"
 msgstr ""
 
 msgid "BIOS Language"
@@ -1989,11 +1974,11 @@ msgstr "Aina valitulla nopeudella"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "BIOS-asetus + pikanäppäimet (pois päältä POSTin aikana)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB alkaen F0000:sta"
+msgid "64 KB starting from F0000"
+msgstr "64 Kt alkaen F0000:sta"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB alkaen E0000:sta (osoitteen käänteinen MSB, viimeiset 64 kB ensin)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 Kt alkaen E0000:sta (osoitteen käänteinen MSB, viimeiset 64 Kt ensin)"
 
 msgid "Sine"
 msgstr "Sini"
@@ -2059,7 +2044,7 @@ msgid "2 MB"
 msgstr "2 Mt"
 
 msgid "8 MB"
-msgstr " 8 Mt"
+msgstr "8 Mt"
 
 msgid "28 MB"
 msgstr "28 Mt"
@@ -2462,9 +2447,3 @@ msgstr ""
 
 #~ msgid "ZIP images"
 #~ msgstr "ZIP-levykuvat"
-
-#~ msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-#~ msgstr "Näytönohjainta 2 \"%hs\" ei voi käyttää, koska roms/machines-hakemistosta puuttuvien ROM-tiedostojen vuoksi. Toisen näytönohjaimen poistaminen käytöstä."
-
-#~ msgid "No shader selected"
-#~ msgstr "Ei valittu varjostinohjelmatta"
