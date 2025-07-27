@@ -26,7 +26,7 @@
 #endif
 
 #define MOUSE_TYPE_NONE     0 /* no mouse configured */
-#define MOUSE_TYPE_INTERNAL 1 /* achine has internal mouse */
+#define MOUSE_TYPE_INTERNAL 1 /* machine has internal mouse */
 #define MOUSE_TYPE_LOGIBUS  2 /* Logitech/ATI Bus Mouse */
 #define MOUSE_TYPE_INPORT   3 /* Microsoft InPort Mouse */
 #if 0

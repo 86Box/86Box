@@ -190,7 +190,7 @@ machine_elt_init(const machine_t *model)
     /* Keyboard goes after the video, because on XT compatibles it's dealt
      * with by the same PPI as the config switches and we need them to
      * indicate the correct display type */
-    device_add(&keyboard_xt_device);
+    device_add(&kbc_xt_device);
 
     device_add(&elt_nvr_device);
 

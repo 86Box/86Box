@@ -138,7 +138,6 @@ typedef struct svga_t {
     int ps_bit_bug;
     int ati_4color;
     int vblankend;
-    int panning_blank;
     int render_line_offset;
     int start_retrace_latch;
 

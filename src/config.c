@@ -56,6 +56,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
+#include <86box/keyboard.h>
 #include <86box/serial_passthrough.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
@@ -453,9 +454,6 @@ load_video(void)
     if (((gfxcard[0] == VID_INTERNAL) && machine_has_flags(machine, MACHINE_VIDEO_8514A)) ||
         video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_8514)
         ini_section_delete_var(cat, "8514a");
-    if (((gfxcard[0] == VID_INTERNAL) && machine_has_flags(machine, MACHINE_VIDEO_XGA)) ||
-        video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_XGA)
-        ini_section_delete_var(cat, "xga");
 
     voodoo_enabled                   = !!ini_section_get_int(cat, "voodoo", 0);
     ibm8514_standalone_enabled       = !!ini_section_get_int(cat, "8514a", 0);
@@ -482,6 +480,23 @@ load_input_devices(void)
     ini_section_t cat = ini_find_section(config, "Input devices");
     char          temp[512];
     char         *p;
+
+    p = ini_section_get_string(cat, "keyboard_type", NULL);
+    if (p != NULL)
+        keyboard_type = keyboard_get_from_internal_name(p);
+    else if (machine_has_bus(machine, MACHINE_BUS_PS2_PORTS)) {
+        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+            keyboard_type = KEYBOARD_TYPE_PS55;
+        else
+            keyboard_type = KEYBOARD_TYPE_PS2;
+    } else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||
+               machine_has_bus(machine, MACHINE_BUS_PCI)) {
+        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+            keyboard_type = KEYBOARD_TYPE_AX;
+        else
+            keyboard_type = KEYBOARD_TYPE_AT;
+    } else
+        keyboard_type = KEYBOARD_TYPE_PC_XT;
 
     p = ini_section_get_string(cat, "mouse_type", NULL);
     if (p != NULL)
@@ -933,6 +948,7 @@ load_storage_controllers(void)
         p = NULL;
     }
 
+    free_p = 0;
     p = ini_section_get_string(cat, "cdrom_interface", NULL);
     if (p != NULL)
         cdrom_interface_current = cdrom_interface_get_from_internal_name(p);
@@ -1988,6 +2004,8 @@ config_load(void)
         video_fullscreen_scale = 1;
         time_sync              = TIME_SYNC_ENABLED;
 
+        keyboard_type          = KEYBOARD_TYPE_PC_XT;
+
         for (int i = 0; i < HDC_MAX; i++)
             hdc_current[i]         = hdc_get_from_internal_name("none");
 
@@ -2413,6 +2431,8 @@ save_input_devices(void)
     ini_section_t cat = ini_find_or_create_section(config, "Input devices");
     char          temp[512];
     char          tmp2[512];
+
+    ini_section_set_string(cat, "keyboard_type", keyboard_get_internal_name(keyboard_type));
 
     ini_section_set_string(cat, "mouse_type", mouse_get_internal_name(mouse_type));
 
@@ -3108,7 +3128,7 @@ save_floppy_and_cdrom_drives(void)
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
         char *tn = cdrom_get_internal_name(cdrom_get_type(c));
-        if ((cdrom[c].bus_type == 0) || (cdrom[c].bus_type == CDROM_BUS_MITSUMI) ||
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].bus_type == CDROM_BUS_MITSUMI) || (cdrom[c].bus_type == CDROM_BUS_MKE) ||
             !strcmp(tn, "86cd"))
             ini_section_delete_var(cat, temp);
         else

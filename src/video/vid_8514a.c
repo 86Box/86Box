@@ -334,6 +334,9 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
+    if (dev == NULL)
+        return;
+
     if (port & 0x8000) {
         if ((port != 0xe2e8) && (port != 0xe2e9) && (port != 0xe6e8) && (port != 0xe6e9)) {
             if (port & 0x4000)
@@ -743,6 +746,9 @@ ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
+    if (dev == NULL)
+        return;
+
     if (port & 0x8000) {
         if (dev->accel.cmd_back) {
             dev->fifo_idx++;
@@ -776,6 +782,9 @@ ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len)
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     uint16_t temp = 0;
     int      cmd  = 0;
+
+    if (dev == NULL)
+        return 0xffff;
 
     switch (port) {
         case 0x82e8:

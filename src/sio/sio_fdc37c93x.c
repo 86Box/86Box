@@ -1835,20 +1835,20 @@ fdc37c93x_init(const device_t *info)
 
     switch (dev->kbc_type) {
         case FDC37C931:
-            dev->kbc = device_add(&keyboard_ps2_compaq_device);
+            dev->kbc = device_add(&kbc_ps2_compaq_device);
             break;
         case FDC37C932:
-            dev->kbc = device_add(&keyboard_ps2_intel_ami_pci_device);
+            dev->kbc = device_add(&kbc_ps2_intel_ami_pci_device);
             break;
         case FDC37C933:
         default:
-            dev->kbc = device_add(&keyboard_ps2_pci_device);
+            dev->kbc = device_add(&kbc_ps2_pci_device);
             break;
         case FDC37C935:
-            dev->kbc = device_add(&keyboard_ps2_phoenix_device);
+            dev->kbc = device_add(&kbc_ps2_phoenix_device);
             break;
         case FDC37C937:
-            dev->kbc = device_add(&keyboard_ps2_phoenix_pci_device);
+            dev->kbc = device_add(&kbc_ps2_phoenix_pci_device);
             break;
     }
 

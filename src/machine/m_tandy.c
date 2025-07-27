@@ -945,7 +945,7 @@ machine_tandy1k_init(const machine_t *model, int type)
                     MEM_MAPPING_INTERNAL, dev);
     mem_mapping_set_addr(&ram_low_mapping, 0, dev->base);
 
-    device_add(&keyboard_tandy_device);
+    device_add(&kbc_tandy_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_xt_tandy_device);
