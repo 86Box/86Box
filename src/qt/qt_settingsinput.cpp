@@ -91,7 +91,9 @@ SettingsInput::~SettingsInput()
 void
 SettingsInput::save()
 {
+    keyboard_type = ui->comboBoxKeyboard->currentData().toInt();
     mouse_type    = ui->comboBoxMouse->currentData().toInt();
+
     joystick_type = ui->comboBoxJoystick->currentData().toInt();
 
     // Copy accelerators from working set to global set
