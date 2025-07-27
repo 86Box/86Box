@@ -252,6 +252,23 @@ mke_cdrom_status(cdrom_t *dev, mke_t *mke)
     return status;
 }
 
+void
+mke_read_multisess(void)
+{
+    int len = cdrom_read_toc(mke.cdrom_dev, temp_buf, CD_TOC_SESSION, 0, 1, 65536);
+    if (len == 4) {
+        /* Single-session disc. */
+        uint8_t no_multisess[4] = { 0x00, 0x00, 0x00, 0x00 };
+        fifo8_push_all(&mke.info_fifo, no_multisess, 4);
+    } else {
+        /* Multi-session disc. */
+        fifo8_push(&mke.info_fifo, 0x80);
+        fifo8_push(&mke.info_fifo, temp_buf[9]);
+        fifo8_push(&mke.info_fifo, temp_buf[10]);
+        fifo8_push(&mke.info_fifo, temp_buf[11]);
+    }
+}
+
 uint8_t ver[10] = "CR-5630.75";
 
 static void
@@ -530,6 +547,19 @@ mke_command(uint8_t value)
 #endif
                 fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
                 break;
+            case CMD1_PLAY_TI:
+            {
+                CHECK_READY();
+                /* Index is ignored for now. */
+                fifo8_reset(&mke.info_fifo);
+                if (!cdrom_audio_play(mke.cdrom_dev, mke.command_buffer[1], mke.command_buffer[3], 2)) {
+                    fifo8_push(&mke.errors_fifo, 0x0E);
+                    fifo8_push(&mke.errors_fifo, 0x10);
+                } else {
+                    fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
+                }
+                break;
+            }
             case CMD1_PLAY_MSF:
                 CHECK_READY();
                 fifo8_reset(&mke.info_fifo);
@@ -582,8 +612,7 @@ mke_command(uint8_t value)
                 CHECK_READY();
                 fifo8_reset(&mke.info_fifo);
                 mke_log("CMD: READ SESSION INFO\n");
-                uint8_t session_info[6] = { 0 };
-                fifo8_push_all(&mke.info_fifo, session_info, 6);
+                mke_read_multisess();
                 fifo8_push(&mke.info_fifo, mke_cdrom_status(mke.cdrom_dev, &mke));
                 break;
             case CMD1_READ_UPC:
