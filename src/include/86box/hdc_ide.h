@@ -178,9 +178,6 @@ enum {
     TIMINGS_PIO_FC = 2
 };
 
-extern int ide_ter_enabled;
-extern int ide_qua_enabled;
-
 #ifdef SCSI_DEVICE_H
 extern ide_t *ide_get_drive(int ch);
 extern void   ide_irq(ide_t *ide, int set, int log);

@@ -315,6 +315,7 @@ ioctl_get_track_info(const void *local, const uint32_t track,
     const raw_track_info_t *rti   = (const raw_track_info_t *) ioctl->cur_rti;
     int                     ret   = 1;
     int                     trk   = -1;
+    int                     next  = -1;
 
     if ((track >= 1) && (track < 99))
         for (int i = 0; i < ioctl->blocks_num; i++)
@@ -323,13 +324,35 @@ ioctl_get_track_info(const void *local, const uint32_t track,
                  break;
              }
 
+    if ((track >= 1) && (track < 98))
+        for (int i = 0; i < ioctl->blocks_num; i++)
+             if ((rti[i].point == (track + 1)) && (rti[i].session == rti[trk].session)) {
+                 next = i;
+                 break;
+             }
+
+    if ((track >= 1) && (track < 99) && (trk != -1) && (next == -1))
+        for (int i = 0; i < ioctl->blocks_num; i++)
+            if ((rti[i].point == 0xa2) && (rti[i].session == rti[trk].session)) {
+                next = i;
+                break;
+            }
+
     if ((track == 0xaa) || (trk == -1)) {
         ioctl_log(ioctl->log, "ioctl_get_track_info(%02i)\n", track);
         ret = 0;
     } else {
-        ti->m      = rti[trk].pm;
-        ti->s      = rti[trk].ps;
-        ti->f      = rti[trk].pf;
+        if (end) {
+            if (next != -1) {
+                ti->m      = rti[next].pm;
+                ti->s      = rti[next].ps;
+                ti->f      = rti[next].pf;
+            }
+        } else {
+            ti->m      = rti[trk].pm;
+            ti->s      = rti[trk].ps;
+            ti->f      = rti[trk].pf;
+        }
 
         ti->number = rti[trk].point;
         ti->attr   = rti[trk].adr_ctl;
