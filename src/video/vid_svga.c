@@ -1535,7 +1535,7 @@ svga_poll(void *priv)
             svga->scanline       = (svga->crtc[0x8] & 0x1f);
             svga->dispon   = 1;
             svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
-        } else {
+
             svga->scrollcache = (svga->attrregs[0x13] & 0x0f);
             if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
                 if (svga->seqregs[1] & 1)
