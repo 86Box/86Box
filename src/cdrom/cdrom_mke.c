@@ -239,17 +239,9 @@ mke_disc_info(cdrom_t *dev, unsigned char *b)
 uint8_t
 mke_disc_capacity(cdrom_t *dev, unsigned char *b)
 {
-    track_info_t ti;
-    int          last_track;
-
-    cdrom_read_toc(dev, temp_buf, CD_TOC_NORMAL, 0, 2 << 8, 65536);
-    last_track  = temp_buf[3];
-    dev->ops->get_track_info(dev, last_track + 1, 0, &ti);
-
-    b[0] = ti.m;
-    b[1] = ti.s;
-    /* TODO THIS NEEDS TO HANDLE   FRAME 0,  JUST BEING LAZY 6AM */
-    b[2] = ti.f - 1;
+    b[0] = 0x00;
+    b[1] = 0x00;
+    b[2] = 0x00;
     b[3] = 0x08;
     b[4] = 0x00;
 
