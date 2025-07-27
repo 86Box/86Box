@@ -32,6 +32,7 @@
 #ifdef USE_CDROM_MITSUMI
 #include <86box/cdrom_mitsumi.h>
 #endif
+#include <86box/cdrom_mke.h>
 #include <86box/log.h>
 #include <86box/plat.h>
 #include <86box/plat_cdrom_ioctl.h>
@@ -121,8 +122,10 @@ static const struct {
     // clang-format off
     { &cdrom_interface_none_device  },
 #ifdef USE_CDROM_MITSUMI
-    { &mitsumi_cdrom_device },
+    { &mitsumi_cdrom_device         },
 #endif
+    { &mke_cdrom_noncreative_device },
+    { &mke_cdrom_device             },
     { NULL                          }
     // clang-format on
 };

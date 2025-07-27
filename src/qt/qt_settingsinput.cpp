@@ -91,7 +91,9 @@ SettingsInput::~SettingsInput()
 void
 SettingsInput::save()
 {
+    keyboard_type = ui->comboBoxKeyboard->currentData().toInt();
     mouse_type    = ui->comboBoxMouse->currentData().toInt();
+
     joystick_type = ui->comboBoxJoystick->currentData().toInt();
 
     // Copy accelerators from working set to global set
@@ -125,7 +127,6 @@ SettingsInput::onCurrentMachineChanged(int machineId)
             continue;
 
         QString name = DeviceConfig::DeviceName(dev, keyboard_get_internal_name(i), 0);
-        pclog("Found   valid keyboard: %s\n", name.toUtf8().data());
         int     row  = keyboardModel->rowCount();
         keyboardModel->insertRow(row);
         auto idx = keyboardModel->index(row, 0);

@@ -98,7 +98,8 @@ enum {
     CDROM_BUS_ATAPI    = 5,
     CDROM_BUS_SCSI     = 6,
     CDROM_BUS_MITSUMI  = 7,
-    CDROM_BUS_USB      = 8
+    CDROM_BUS_MKE      = 8,
+    CDROM_BUS_USB      = 9
 };
 
 #define BUS_TYPE_IDE                CDROM_BUS_ATAPI

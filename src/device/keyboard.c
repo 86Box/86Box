@@ -601,6 +601,5 @@ keyboard_get_ndev(void)
 void
 keyboard_add_device(void)
 {
-    pclog("keyboard_type = %i (%s)\n", keyboard_type, keyboard_get_internal_name(keyboard_type));
     device_add(keyboard_devices[keyboard_type].device);
 }

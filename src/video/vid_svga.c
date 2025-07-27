@@ -1443,8 +1443,10 @@ svga_poll(void *priv)
                 svga->memaddr_backup = (svga->memaddr_backup << 2);
 
                 svga->scanline = 0;
-                if (svga->attrregs[0x10] & 0x20)
-                    svga->panning_blank = 1;
+                if (svga->attrregs[0x10] & 0x20) {
+                    svga->scrollcache   = 0;
+                    svga->x_add         = svga->left_overscan;
+                }
             }
         }
         if (svga->vc == svga->dispend) {
@@ -1534,27 +1536,6 @@ svga_poll(void *priv)
             svga->dispon   = 1;
             svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
 
-            svga->linecountff = 0;
-
-            svga->hwcursor_on    = 0;
-            svga->hwcursor_latch = svga->hwcursor;
-
-            svga->dac_hwcursor_on    = 0;
-            svga->dac_hwcursor_latch = svga->dac_hwcursor;
-
-            svga->overlay_on    = 0;
-            svga->overlay_latch = svga->overlay;
-
-            svga->panning_blank = 0;
-        }
-
-        if (svga->scanline == (svga->crtc[10] & 31))
-            svga->cursorvisible = 1;
-
-        if (svga->panning_blank) {
-            svga->scrollcache = 0;
-            svga->x_add       = svga->left_overscan;
-        } else {
             svga->scrollcache = (svga->attrregs[0x13] & 0x0f);
             if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
                 if (svga->seqregs[1] & 1)
@@ -1574,7 +1555,20 @@ svga_poll(void *priv)
                 svga->scrollcache <<= 1;
 
             svga->x_add = svga->left_overscan - svga->scrollcache;
+
+            svga->linecountff = 0;
+
+            svga->hwcursor_on    = 0;
+            svga->hwcursor_latch = svga->hwcursor;
+
+            svga->dac_hwcursor_on    = 0;
+            svga->dac_hwcursor_latch = svga->dac_hwcursor;
+
+            svga->overlay_on    = 0;
+            svga->overlay_latch = svga->overlay;
         }
+        if (svga->scanline == (svga->crtc[10] & 31))
+            svga->cursorvisible = 1;
     }
 }
 
