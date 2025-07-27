@@ -436,16 +436,16 @@ msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
 msgid "Sound card #1:"
-msgstr "Karta dźwiękowa 1:"
+msgstr "Karta dźwiękowa nr 1:"
 
 msgid "Sound card #2:"
-msgstr "Karta dźwiękowa 2:"
+msgstr "Karta dźwiękowa nr 2:"
 
 msgid "Sound card #3:"
-msgstr "Karta dźwiękowa 3:"
+msgstr "Karta dźwiękowa nr 3:"
 
 msgid "Sound card #4:"
-msgstr "Karta dźwiękowa 4:"
+msgstr "Karta dźwiękowa nr 4:"
 
 msgid "MIDI Out Device:"
 msgstr "Urządzenie wyjściowe MIDI:"
@@ -1396,16 +1396,16 @@ msgid "MiB"
 msgstr "MiB"
 
 msgid "Network Card #1"
-msgstr "Karta sieciowa 1"
+msgstr "Karta sieciowa nr 1"
 
 msgid "Network Card #2"
-msgstr "Karta sieciowa 2"
+msgstr "Karta sieciowa nr 2"
 
 msgid "Network Card #3"
-msgstr "Karta sieciowa 3"
+msgstr "Karta sieciowa nr 3"
 
 msgid "Network Card #4"
-msgstr "Karta sieciowa 4"
+msgstr "Karta sieciowa nr 4"
 
 msgid "Mode:"
 msgstr "Tryb:"
@@ -1456,7 +1456,7 @@ msgid "PS/2 Keyboard (Japanese)"
 msgstr "Klawiatura PS/2 (JIS)"
 
 msgid "PS/55 Keyboard"
-msgstr "Klawiatura PS/5"
+msgstr "Klawiatura PS/55"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Mysz magistralowa Logitech/Microsoft"
@@ -1519,46 +1519,46 @@ msgid "BIOS file"
 msgstr "Plik BIOS"
 
 msgid "BIOS file (ROM #1)"
-msgstr "Plik BIOS (ROM 1)"
+msgstr "Plik BIOS (ROM nr 1)"
 
 msgid "BIOS file (ROM #2)"
-msgstr "Plik BIOS (ROM 2)"
+msgstr "Plik BIOS (ROM nr 2)"
 
 msgid "BIOS file (ROM #3)"
-msgstr "Plik BIOS (ROM 3)"
+msgstr "Plik BIOS (ROM nr 3)"
 
 msgid "BIOS file (ROM #4)"
-msgstr "Plik BIOS (ROM 4)"
+msgstr "Plik BIOS (ROM nr 4)"
 
 msgid "BIOS Address"
 msgstr "Adres BIOS"
 
 msgid "BIOS address (ROM #1)"
-msgstr "Adres BIOS (ROM 1)"
+msgstr "Adres BIOS (ROM nr 1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr "Adres BIOS (ROM 2)"
+msgstr "Adres BIOS (ROM nr 2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr "Adres BIOS (ROM 3)"
+msgstr "Adres BIOS (ROM nr 3)"
 
 msgid "BIOS address (ROM #4)"
-msgstr "Adres BIOS (ROM 4)"
+msgstr "Adres BIOS (ROM nr 4)"
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Włącz zapis do pamięci ROM rozszerzenia BIOS"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr "Włącz zapis do pamięci ROM rozszerzenia BIOS (ROM 1)"
+msgstr "Włącz zapis do pamięci ROM rozszerzenia BIOS (ROM nr 1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr "Włącz zapis do pamięci ROM rozszerzenia BIOS (ROM 2)"
+msgstr "Włącz zapis do pamięci ROM rozszerzenia BIOS (ROM nr 2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr "Włącz zapis do pamięci ROM rozszerzenia BIOS (ROM 3)"
+msgstr "Włącz zapis do pamięci ROM rozszerzenia BIOS (ROM nr 3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr "Włącz zapis do pamięci ROM rozszerzenia BIOS (ROM 4)"
+msgstr "Włącz zapis do pamięci ROM rozszerzenia BIOS (ROM nr 4)"
 
 msgid "Linear framebuffer base"
 msgstr "Adres bazowy liniowego buforu ramki"
@@ -1603,16 +1603,16 @@ msgid "BIOS size"
 msgstr "Rozmiar BIOS-u"
 
 msgid "BIOS size (ROM #1)"
-msgstr "Rozmiar BIOS-u (ROM 1)"
+msgstr "Rozmiar BIOS-u (ROM nr 1)"
 
 msgid "BIOS size (ROM #2)"
-msgstr "Rozmiar BIOS-u (ROM 2)"
+msgstr "Rozmiar BIOS-u (ROM nr 2)"
 
 msgid "BIOS size (ROM #3)"
-msgstr "Rozmiar BIOS-u (ROM 3)"
+msgstr "Rozmiar BIOS-u (ROM nr 3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr "Rozmiar BIOS-u (ROM 4)"
+msgstr "Rozmiar BIOS-u (ROM nr 4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Mapowanie C0000-C7FFF jako UMB"
@@ -1798,7 +1798,7 @@ msgid "SB Address"
 msgstr "Adres SB"
 
 msgid "Use EEPROM setting"
-msgstr "Użyj ustawienia EEPROM"
+msgstr "Użyj ustawień z EEPROM"
 
 msgid "WSS IRQ"
 msgstr "WSS IRQ"
@@ -2119,7 +2119,7 @@ msgid "Linear interpolation"
 msgstr "Interpolacja liniowa"
 
 msgid "Has secondary 8x8 character set"
-msgstr "Ma pomocniczy zestaw znaków 8x8"
+msgstr "Posiada pomocniczy zestaw znaków 8x8"
 
 msgid "Has Quadcolor II daughter board"
 msgstr "Ma płytę rozszerzeń Quadcolor II"
