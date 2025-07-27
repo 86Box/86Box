@@ -46,6 +46,7 @@
 #include <86box/scsi_pcscsi.h>
 #include <86box/vid_ati_eeprom.h>
 #include <86box/fifo8.h>
+#include "cpu.h"
 
 #define DC390_ROM        "roms/scsi/esp_pci/INT13.BIN"
 #define AM53C974_ROM     "roms/scsi/esp_pci/harom.bin"
@@ -632,7 +633,10 @@ esp_dma_enable(esp_t *dev, int level)
         dev->dma_enabled = 1;
         timer_stop(&dev->timer);
         if (((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_TI) && ((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_PAD)) {
-            timer_on_auto(&dev->timer, 40.0);
+            if (dev->wregs[ESP_WCCF] & 0x07)
+                timer_on_auto(&dev->timer, ((double)(dev->wregs[ESP_WCCF] & 0x07)) * 5.0);
+            else
+                timer_on_auto(&dev->timer, 40.0);
         } else {
             esp_log("Period = %lf\n", dev->period);
             timer_on_auto(&dev->timer, dev->period);
@@ -702,13 +706,14 @@ esp_do_dma(esp_t *dev)
     uint8_t  buf[ESP_CMDFIFO_SZ];
     uint32_t len;
 
-    esp_log("ESP SCSI Actual DMA len = %d\n", esp_get_tc(dev));
-
     len = esp_get_tc(dev);
+
+    esp_log("ESP SCSI Actual DMA len=%d, cfg3=%02x.\n", len, dev->rregs[ESP_CFG3]);
 
     switch (esp_get_phase(dev)) {
         case STAT_MO:
             len = MIN(len, fifo8_num_free(&dev->cmdfifo));
+            esp_log("ESP SCSI Message Out len=%d.\n", len);
             if (len) {
                 if (dev->mca) {
                     dma_set_drq(dev->DmaChannel, 1);
@@ -1030,6 +1035,7 @@ esp_do_nodma(esp_t *dev)
                     /* Copy FIFO into cmdfifo */
                     len = esp_fifo_pop_buf(dev, buf, fifo8_num_used(&dev->fifo));
                     len = MIN(fifo8_num_free(&dev->cmdfifo), len);
+                    esp_log("ESP Message Out CMD SelAtn len=%d.\n", len);
                     fifo8_push_all(&dev->cmdfifo, buf, len);
 
                     if (fifo8_num_used(&dev->cmdfifo) >= 1) {
@@ -1243,15 +1249,18 @@ esp_command_complete(void *priv, uint32_t status)
 static void
 esp_timer_on(esp_t *dev, scsi_device_t *sd, double p)
 {
-    if (dev->mca) {
-        /* Normal SCSI: 5000000 bytes per second */
-        dev->period = (p > 0.0) ? p : (((double) sd->buffer_length) * 0.2);
-    } else {
+    if ((dev->rregs[ESP_CFG3] & 0x18) == 0x18) {
         /* Fast SCSI: 10000000 bytes per second */
         dev->period = (p > 0.0) ? p : (((double) sd->buffer_length) * 0.1);
+    } else  {
+        /* Normal SCSI: 5000000 bytes per second */
+        dev->period = (p > 0.0) ? p : (((double) sd->buffer_length) * 0.2);
     }
 
-    timer_on_auto(&dev->timer, dev->period + 40.0);
+    if ((dev->wregs[ESP_WCCF] & 0x07) == 0x00)
+        timer_on_auto(&dev->timer, dev->period + 40.0);
+    else
+        timer_on_auto(&dev->timer, dev->period + (((double)(dev->wregs[ESP_WCCF] & 0x07)) * 5.0));
 }
 
 static void
@@ -1407,9 +1416,9 @@ esp_reg_read(esp_t *dev, uint32_t saddr)
             esp_log("ESP RINTR read old val = %02x\n", ret);
             break;
         case ESP_TCHI: /* Return the unique id if the value has never been written */
-            if (dev->mca) {
+            if (dev->mca)
                 ret = dev->rregs[ESP_TCHI];
-            } else {
+            else {
                 if (!dev->tchi_written)
                     ret = TCHI_AM53C974;
                 else
@@ -1437,7 +1446,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
             fallthrough;
         case ESP_TCLO:
         case ESP_TCMID:
-            esp_log("ESP TCW reg%02x = %02x.\n", saddr, val);
+            esp_log("%04X:%08X: ESP TCW reg%02x = %02x.\n", CS, cpu_state.pc, saddr, val);
             dev->rregs[ESP_RSTAT] &= ~STAT_TC;
             break;
         case ESP_FIFO:
@@ -1448,7 +1457,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
             break;
         case ESP_CMD:
             dev->rregs[ESP_CMD] = val;
-            if (!esp_cmd_is_valid(dev, dev->rregs[saddr])) {
+            if (!esp_cmd_is_valid(dev, dev->rregs[ESP_CMD])) {
                 dev->rregs[ESP_RSTAT] |= INTR_IL;
                 esp_raise_irq(dev);
                 break;
@@ -1460,9 +1469,9 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                 esp_set_tc(dev, esp_get_stc(dev));
                 if (!esp_get_stc(dev)) {
                     if (dev->rregs[ESP_CFG2] & 0x40)
-                        esp_set_tc(dev, 0x1000000);
+                        esp_set_tc(dev, 0x1000000 - 1);
                     else
-                        esp_set_tc(dev, 0x10000);
+                        esp_set_tc(dev, 0x10000 - 1);
                 }
             } else {
                 dev->dma = 0;
@@ -1532,7 +1541,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                     break;
                 case CMD_ENSEL:
                     dev->rregs[ESP_RINTR] = 0;
-                    esp_log("ESP Enable Selection, do cmd = %d\n", dev->do_cmd);
+                    esp_log("ESP Enable Selection.\n");
                     break;
                 case CMD_DISSEL:
                     dev->rregs[ESP_RINTR] = 0;
@@ -1571,9 +1580,12 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
 static void
 esp_pci_dma_memory_rw(esp_t *dev, uint8_t *buf, uint32_t len, int dir)
 {
-    uint32_t sg_pos = 0;
     uint32_t addr;
     int expected_dir;
+    int sg_pos = 0;
+    uint32_t DMALen;
+    uint32_t DMAPtr;
+    uint32_t WAC = 0;
 
     if (dev->dma_regs[DMA_CMD] & DMA_CMD_DIR)
         expected_dir = READ_FROM_DEVICE;
@@ -1586,33 +1598,57 @@ esp_pci_dma_memory_rw(esp_t *dev, uint8_t *buf, uint32_t len, int dir)
     }
 
     if (dev->dma_regs[DMA_CMD] & DMA_CMD_MDL) {
-        if (dev->dma_regs[DMA_STC]) {
-            if (dev->dma_regs[DMA_WBC] > len)
-                dev->dma_regs[DMA_WBC] = len;
+        if (dev->dma_regs[DMA_WBC] < len)
+            len = dev->dma_regs[DMA_WBC];
 
-            esp_log("WAC MDL=%08x, STC=%d, ID=%d.\n", dev->dma_regs[DMA_WAC] | (dev->dma_regs[DMA_WMAC] & 0xff000), dev->dma_regs[DMA_STC], dev->id);
-            for (uint32_t i = 0; i < len; i++) {
+        if (len) {
+            dma_bm_read(dev->dma_regs[DMA_WMAC], (uint8_t *)&DMAPtr, 4, 4);
+            dev->dma_regs[DMA_WAC] = DMAPtr | dev->dma_regs[DMA_SPA];
+            DMALen = len;
+            WAC = dev->dma_regs[DMA_SPA];
+            for (uint32_t i = 0; i < len; i += 4) {
+                if (WAC == 0) {
+                    dma_bm_read(dev->dma_regs[DMA_WMAC], (uint8_t *)&DMAPtr, 4, 4);
+                    dev->dma_regs[DMA_WAC] = DMAPtr;
+                }
+
                 addr = dev->dma_regs[DMA_WAC];
 
-                if (expected_dir)
-                    dma_bm_write(addr | (dev->dma_regs[DMA_WMAC] & 0xff000), &buf[sg_pos], len, 4);
-                else
-                    dma_bm_read(addr | (dev->dma_regs[DMA_WMAC] & 0xff000), &buf[sg_pos], len, 4);
+                esp_log("Data Buffer %s: length %d (%u), pointer 0x%04X\n",
+                         expected_dir ? "read" : "write", len, len, addr);
 
-                sg_pos++;
-                dev->dma_regs[DMA_WBC]--;
-                dev->dma_regs[DMA_WAC]++;
-
-                if (dev->dma_regs[DMA_WAC] & 0x1000) {
-                    dev->dma_regs[DMA_WAC] = 0;
-                    dev->dma_regs[DMA_WMAC] += 0x1000;
+                if (addr && DMALen) {
+                    if (expected_dir)
+                        dma_bm_write(addr, &buf[sg_pos], DMALen, 4);
+                    else
+                        dma_bm_read(addr, &buf[sg_pos], DMALen, 4);
                 }
+
+                sg_pos += 4;
+                DMALen -= 4;
+
+                /* update status registers */
+                dev->dma_regs[DMA_WBC] -= 4;
+                dev->dma_regs[DMA_WAC] += 4;
+                WAC += 4;
+                if (WAC >= 0x1000) {
+                    WAC = 0;
+                    dev->dma_regs[DMA_WMAC] += 4;
+                }
+
+                if (DMALen < 0)
+                    DMALen = 0;
 
                 if (dev->dma_regs[DMA_WBC] <= 0) {
                     dev->dma_regs[DMA_WBC] = 0;
-                    dev->dma_regs[DMA_STAT] |= DMA_STAT_DONE;
+                    break;
                 }
             }
+        }
+        esp_log("Finished count=%d.\n", dev->dma_regs[DMA_WBC]);
+        if (dev->dma_regs[DMA_WBC] == 0) {
+            esp_log("DMA transfer finished.\n");
+            dev->dma_regs[DMA_STAT] |= DMA_STAT_DONE;
         }
     } else {
         if (dev->dma_regs[DMA_WBC] < len)
@@ -1629,8 +1665,11 @@ esp_pci_dma_memory_rw(esp_t *dev, uint8_t *buf, uint32_t len, int dir)
         dev->dma_regs[DMA_WBC] -= len;
         dev->dma_regs[DMA_WAC] += len;
 
-        if (dev->dma_regs[DMA_WBC] == 0)
+        esp_log("Finished count=%d.\n", dev->dma_regs[DMA_WBC]);
+        if (dev->dma_regs[DMA_WBC] == 0) {
+            esp_log("DMA transfer finished.\n");
             dev->dma_regs[DMA_STAT] |= DMA_STAT_DONE;
+        }
     }
 }
 
@@ -1674,12 +1713,12 @@ esp_pci_dma_write(esp_t *dev, uint16_t saddr, uint32_t val)
                     scsi_device_command_stop(&scsi_devices[dev->bus][dev->id]);
                     break;
                 case 3: /*START*/
+                    dev->dma_regs[DMA_WBC] = dev->dma_regs[DMA_STC];
                     dev->dma_regs[DMA_WAC] = dev->dma_regs[DMA_SPA];
-                    dev->dma_regs[DMA_WMAC] = dev->dma_regs[DMA_SMDLA] & 0xfffffffc;
-                    if (!dev->dma_regs[DMA_STC])
-                        dev->dma_regs[DMA_STC] = 0x1000000;
 
-                    dev->dma_regs[DMA_WBC]  = dev->dma_regs[DMA_STC];
+                    if (val & DMA_CMD_MDL)
+                        dev->dma_regs[DMA_WMAC] = dev->dma_regs[DMA_SMDLA] & 0xfffffffc;
+
                     dev->dma_regs[DMA_STAT] &= ~(DMA_STAT_BCMBLT | DMA_STAT_SCSIINT | DMA_STAT_DONE | DMA_STAT_ABORT | DMA_STAT_ERROR | DMA_STAT_PWDN);
                     esp_dma_enable(dev, 1);
                     esp_log("PCI DMA enable, MDL bit=%02x, SPA=%08x, SMDLA=%08x, STC=%d, ID=%d, SCSICMD=%02x.\n", val & DMA_CMD_MDL, dev->dma_regs[DMA_SPA], dev->dma_regs[DMA_SMDLA], dev->dma_regs[DMA_STC], dev->id, dev->cmdfifo.data[1]);
@@ -2505,7 +2544,7 @@ ncr53c9x_mca_init(const device_t *info)
 
     timer_add(&dev->timer, esp_callback, dev, 0);
 
-    scsi_bus_set_speed(dev->bus, 5000000.0);
+    scsi_bus_set_speed(dev->bus, 10000000.0);
 
     return dev;
 }
