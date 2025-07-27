@@ -144,11 +144,11 @@ msgstr "&Тип экрана VGA"
 msgid "RGB &Color"
 msgstr "RGB &цветной"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB монохромный"
-
 msgid "RGB (no brown)"
 msgstr "RGB (без коричневого)"
+
+msgid "&RGB Grayscale"
+msgstr "&RGB монохромный"
 
 msgid "Generic RGBI color monitor"
 msgstr "Стандартный цветной монитор RGBI"
@@ -414,6 +414,9 @@ msgstr "Ускоритель IBM 8514/A"
 msgid "XGA Graphics"
 msgstr "Ускоритель XGA"
 
+msgid "Keyboard:"
+msgstr ""
+
 msgid "Mouse:"
 msgstr "Мышь:"
 
@@ -513,9 +516,6 @@ msgstr "Параллельный порт LPT3"
 msgid "Parallel port 4"
 msgstr "Параллельный порт LPT4"
 
-msgid "HD Controller:"
-msgstr "Контроллер HD:"
-
 msgid "FD Controller:"
 msgstr "Контроллер FD:"
 
@@ -524,6 +524,9 @@ msgstr "Третичный IDE контроллер"
 
 msgid "Quaternary IDE Controller"
 msgstr "Четвертичный IDE контроллер"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -603,8 +606,8 @@ msgstr "Дисководы CD-ROM:"
 msgid "MO drives:"
 msgstr "Магнитооптические дисководы:"
 
-msgid "ZIP drives:"
-msgstr "ZIP дисководы:"
+msgid "Removable disk drives:"
+msgstr ""
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -630,6 +633,27 @@ msgstr "Карта 3:"
 msgid "Card 4:"
 msgstr "Карта 4:"
 
+msgid "Board 1"
+msgstr ""
+
+msgid "Board 2"
+msgstr ""
+
+msgid "Board 3"
+msgstr ""
+
+msgid "Board 4"
+msgstr ""
+
+msgid "Generic ISA ROM Board"
+msgstr ""
+
+msgid "Generic Dual ISA ROM Board"
+msgstr ""
+
+msgid "Generic Quad ISA ROM Board"
+msgstr ""
+
 msgid "ISABugger device"
 msgstr "Устройство ISABugger"
 
@@ -651,11 +675,14 @@ msgstr " - ПАУЗА"
 msgid "Speed"
 msgstr "Скорость"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr ""
 
-msgid "ZIP images"
-msgstr "Образы ZIP"
+msgid "Removable disk images"
+msgstr ""
+
+msgid "Image %1"
+msgstr ""
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box не смог найти ни одного подходящего для использования файла с ПЗУ.\n\nПожалуйста <a href=\"https://github.com/86Box/roms/releases/latest\">скачайте</a> набор ПЗУ и извлеките его в каталог \"roms\"."
@@ -774,20 +801,8 @@ msgstr "Неверное устройство PCap"
 msgid "2-axis, 2-button joystick(s)"
 msgstr "2-осевой, 2-кнопочный джойстик"
 
-msgid "2-button gamepad(s)"
-msgstr "2-кнопочный геймпад"
-
-msgid "2-button flight yoke"
-msgstr "2-кнопочный flight yoke"
-
 msgid "2-axis, 4-button joystick"
 msgstr "2-осевой, 4-кнопочный джойстик"
-
-msgid "4-button gamepad"
-msgstr "4-кнопочный геймпад"
-
-msgid "4-button flight yoke"
-msgstr "4-кнопочный flight yoke"
 
 msgid "2-axis, 6-button joystick"
 msgstr "2-осевой, 6-кнопочный джойстик"
@@ -798,17 +813,8 @@ msgstr "2-осевой, 8-кнопочный джойстик"
 msgid "3-axis, 2-button joystick"
 msgstr "3-осевой, 2-кнопочный джойстик"
 
-msgid "2-button flight yoke with throttle"
-msgstr "2-кнопочный flight yoke с дросселем"
-
 msgid "3-axis, 4-button joystick"
 msgstr "3-осевой, 4-кнопочный джойстик"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Руль Win95 (3-осевой, 4-кнопочный)"
-
-msgid "4-button flight yoke with throttle"
-msgstr "4-кнопочный flight yoke с дросселем"
 
 msgid "4-axis, 4-button joystick"
 msgstr "4-осевой, 4-кнопочный джойстик"
@@ -827,6 +833,27 @@ msgstr "Система управления полётом Thrustmaster"
 
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Система управления рулем"
+
+msgid "2-button gamepad(s)"
+msgstr "2-кнопочный геймпад"
+
+msgid "2-button flight yoke"
+msgstr "2-кнопочный flight yoke"
+
+msgid "4-button gamepad"
+msgstr "4-кнопочный геймпад"
+
+msgid "4-button flight yoke"
+msgstr "4-кнопочный flight yoke"
+
+msgid "2-button flight yoke with throttle"
+msgstr "2-кнопочный flight yoke с дросселем"
+
+msgid "4-button flight yoke with throttle"
+msgstr "4-кнопочный flight yoke с дросселем"
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr "Руль Win95 (3-осевой, 4-кнопочный)"
 
 msgid "None"
 msgstr "Нет"
@@ -1413,6 +1440,24 @@ msgstr "Сквозной последовательный порт COM4"
 msgid "Renderer options..."
 msgstr "Параметры рендеринга..."
 
+msgid "AT Keyboard"
+msgstr ""
+
+msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard (US)"
+msgstr ""
+
+msgid "PS/2 Keyboard (European)"
+msgstr ""
+
+msgid "PS/2 Keyboard (Japanese)"
+msgstr ""
+
+msgid "PS/55 Keyboard"
+msgstr ""
+
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Bus-мышь Logitech/Microsoft"
 
@@ -1428,14 +1473,23 @@ msgstr "Bus-мышь Mouse Systems"
 msgid "Microsoft Serial Mouse"
 msgstr "COM-мышь Microsoft"
 
+msgid "Microsoft Serial BallPoint"
+msgstr ""
+
 msgid "Logitech Serial Mouse"
 msgstr "COM-мышь Logitech"
 
 msgid "PS/2 Mouse"
 msgstr "Мышь PS/2"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (последовательный)"
+
+msgid "Default Baud rate"
+msgstr ""
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Стандартный Hayes-совместимый модем"
@@ -1833,20 +1887,11 @@ msgstr "Смесь"
 msgid "Font"
 msgstr "Шрифт"
 
-msgid "Has secondary 8x8 character set"
-msgstr "Вторичный набор символов 8x8"
-
-msgid "Has Quadcolor II daughter board"
-msgstr "Дочерняя плата Quadcolor II"
-
-msgid "Alternate monochrome contrast"
-msgstr "Альтернативный монохромный контраст"
+msgid "Bilinear filtering"
+msgstr "Билинейная фильтрация"
 
 msgid "Video chroma-keying"
 msgstr "Видео хромакеинг"
-
-msgid "Bilinear filtering"
-msgstr "Билинейная фильтрация"
 
 msgid "Dithering"
 msgstr "Дизеринг"
@@ -2072,6 +2117,15 @@ msgstr "Интерполяция sRGB"
 
 msgid "Linear interpolation"
 msgstr "Линейная интерполяция"
+
+msgid "Has secondary 8x8 character set"
+msgstr "Вторичный набор символов 8x8"
+
+msgid "Has Quadcolor II daughter board"
+msgstr "Дочерняя плата Quadcolor II"
+
+msgid "Alternate monochrome contrast"
+msgstr "Альтернативный монохромный контраст"
 
 msgid "128 KB"
 msgstr "128 КБ"
@@ -2387,3 +2441,15 @@ msgstr "Файлы ПЗУ"
 
 msgid "SoundFont files"
 msgstr "Файлы SoundFont"
+
+#~ msgid "HD Controller:"
+#~ msgstr "Контроллер HD:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIP дисководы:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "Образы ZIP"
