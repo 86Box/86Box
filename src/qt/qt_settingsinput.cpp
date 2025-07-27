@@ -27,6 +27,7 @@ extern "C" {
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/machine.h>
+#include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/gameport.h>
 #include <86box/ui.h>
@@ -108,10 +109,48 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     // win_settings_video_proc, WM_INITDIALOG
     this->machineId = machineId;
 
-    auto *mouseModel = ui->comboBoxMouse->model();
-    auto  removeRows = mouseModel->rowCount();
+    auto *keyboardModel = ui->comboBoxKeyboard->model();
+    auto  removeRows = keyboardModel->rowCount();
 
     int selectedRow = 0;
+
+    int c           = 0;
+    int has_int_kbd = !!machine_has_flags(machineId, MACHINE_KEYBOARD);
+
+    for (int i = 0; i < keyboard_get_ndev(); ++i) {
+        const auto *dev  = keyboard_get_device(i);
+        int         ikbd = (i == KEYBOARD_TYPE_INTERNAL);
+
+        if ((ikbd != has_int_kbd) || !device_is_valid(dev, machineId))
+            continue;
+
+        QString name = DeviceConfig::DeviceName(dev, keyboard_get_internal_name(i), 0);
+        pclog("Found   valid keyboard: %s\n", name.toUtf8().data());
+        int     row  = keyboardModel->rowCount();
+        keyboardModel->insertRow(row);
+        auto idx = keyboardModel->index(row, 0);
+
+        keyboardModel->setData(idx, name, Qt::DisplayRole);
+        keyboardModel->setData(idx, i, Qt::UserRole);
+
+        if (i == keyboard_type)
+            selectedRow = row - removeRows;
+
+        c++;
+    }
+    keyboardModel->removeRows(0, removeRows);
+
+    if ((c == 1) || has_int_kbd)
+        ui->comboBoxKeyboard->setEnabled(false);
+    else
+        ui->comboBoxKeyboard->setEnabled(true);
+
+    ui->comboBoxKeyboard->setCurrentIndex(selectedRow);
+
+    auto *mouseModel = ui->comboBoxMouse->model();
+    removeRows       = mouseModel->rowCount();
+
+    selectedRow = 0;
     for (int i = 0; i < mouse_get_ndev(); ++i) {
         const auto *dev = mouse_get_device(i);
         if ((i == MOUSE_TYPE_INTERNAL) && (machine_has_flags(machineId, MACHINE_MOUSE) == 0))
@@ -246,6 +285,13 @@ SettingsInput::on_pushButtonClearBind_clicked()
 }
 
 void
+SettingsInput::on_comboBoxKeyboard_currentIndexChanged(int index)
+{
+    int keyboardId = ui->comboBoxKeyboard->currentData().toInt();
+    ui->pushButtonConfigureKeyboard->setEnabled(keyboard_has_config(keyboardId) > 0);
+}
+
+void
 SettingsInput::on_comboBoxMouse_currentIndexChanged(int index)
 {
     int mouseId = ui->comboBoxMouse->currentData().toInt();
@@ -263,6 +309,13 @@ SettingsInput::on_comboBoxJoystick_currentIndexChanged(int index)
 
         btn->setEnabled(joystick_get_max_joysticks(joystickId) > i);
     }
+}
+
+void
+SettingsInput::on_pushButtonConfigureKeyboard_clicked()
+{
+    int keyboardId = ui->comboBoxKeyboard->currentData().toInt();
+    DeviceConfig::ConfigureDevice(keyboard_get_device(keyboardId));
 }
 
 void

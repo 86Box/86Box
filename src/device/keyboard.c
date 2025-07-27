@@ -27,6 +27,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/machine.h>
+#include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/plat.h>
 
@@ -35,6 +36,38 @@
 uint16_t     scancode_map[768] = { 0 };
 
 int          keyboard_scan;
+
+typedef struct keyboard_t {
+    const device_t *device;
+} keyboard_t;
+
+int          keyboard_type = 0;
+
+static const device_t keyboard_internal_device = {
+    .name          = "Internal",
+    .internal_name = "internal",
+    .flags         = 0,
+    .local         = KEYBOARD_TYPE_INTERNAL,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+static keyboard_t keyboard_devices[] = {
+    // clang-format off
+    { &keyboard_internal_device        },
+    { &keyboard_pc_xt_device           },
+    { &keyboard_at_device              },
+    { &keyboard_ax_device              },
+    { &keyboard_ps2_device             },
+    { &keyboard_ps55_device            },
+    { NULL                             }
+    // clang-format on
+};
 
 #ifdef ENABLE_KBC_AT_LOG
 int kbc_at_do_log = ENABLE_KBC_AT_LOG;
@@ -515,4 +548,59 @@ convert_scan_code(uint16_t scan_code)
         scan_code = 0xFFFF;
 
     return scan_code;
+}
+
+const char *
+keyboard_get_name(int keyboard)
+{
+    return (keyboard_devices[keyboard].device->name);
+}
+
+const char *
+keyboard_get_internal_name(int keyboard)
+{
+    return device_get_internal_name(keyboard_devices[keyboard].device);
+}
+
+int
+keyboard_get_from_internal_name(char *s)
+{
+    int c = 0;
+
+    while (keyboard_devices[c].device != NULL) {
+        if (!strcmp((char *) keyboard_devices[c].device->internal_name, s))
+            return c;
+        c++;
+    }
+
+    return 0;
+}
+
+int
+keyboard_has_config(int keyboard)
+{
+    if (keyboard_devices[keyboard].device == NULL)
+        return 0;
+
+    return (keyboard_devices[keyboard].device->config ? 1 : 0);
+}
+
+const device_t *
+keyboard_get_device(int keyboard)
+{
+    return (keyboard_devices[keyboard].device);
+}
+
+/* Return number of MOUSE types we know about. */
+int
+keyboard_get_ndev(void)
+{
+    return ((sizeof(keyboard_devices) / sizeof(keyboard_t)) - 1);
+}
+
+void
+keyboard_add_device(void)
+{
+    pclog("keyboard_type = %i (%s)\n", keyboard_type, keyboard_get_internal_name(keyboard_type));
+    device_add(keyboard_devices[keyboard_type].device);
 }

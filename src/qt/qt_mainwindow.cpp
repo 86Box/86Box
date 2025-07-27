@@ -268,9 +268,11 @@ MainWindow::MainWindow(QWidget *parent)
         num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
-        /* TODO: Base this on keyboard type instead when that's done. */
-        kana_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
-                               machine_has_flags(machine, MACHINE_AX));
+        int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
+                         (keyboard_type == KEYBOARD_TYPE_AX);
+        int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) &&
+                         !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
+        kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
         while (QApplication::overrideCursor())
             QApplication::restoreOverrideCursor();
 #ifdef USE_WACOM
@@ -1484,8 +1486,11 @@ MainWindow::refreshMediaMenu()
     caps_label->setToolTip(QShortcut::tr("Caps Lock"));
     caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
     kana_label->setToolTip(QShortcut::tr("Kana Lock"));
-    kana_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
-                           machine_has_flags(machine, MACHINE_AX));
+    int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
+                     (keyboard_type == KEYBOARD_TYPE_AX);
+    int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) &&
+                     !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
+    kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
 }
 
 void

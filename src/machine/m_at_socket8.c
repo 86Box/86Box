@@ -65,7 +65,7 @@ machine_at_ap61_init(const machine_t *model)
     device_add(&i450kx_device);
     device_add(&sio_zb_device);
     device_add(&ide_cmd646_device);
-    device_add(&keyboard_ps2_acer_pci_device);
+    device_add(&kbc_ps2_acer_pci_device);
     device_add(&fdc37c665_device);
     device_add(&sst_flash_29ee010_device);
     // device_add(&intel_flash_bxt_device);
@@ -100,7 +100,7 @@ machine_at_p6rp4_init(const machine_t *model)
     device_add(&sio_zb_device);
     device_add(&ide_cmd646_device);
     /* Input port bit 2 must be 1 or CMOS Setup is disabled. */
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
 
@@ -129,7 +129,7 @@ machine_at_686nx_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device); // Uses the AMIKEY keyboard controller
+    device_add(&kbc_ps2_ami_pci_device); // Uses the AMIKEY keyboard controller
     device_add(&um8669f_device);
     device_add(&intel_flash_bxt_device);
 
@@ -158,7 +158,7 @@ machine_at_mb600n_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&fdc37c669_device);
     device_add(&intel_flash_bxt_device);
 
@@ -217,7 +217,7 @@ machine_at_lgibmx61_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_device);
+    device_add(&kbc_ps2_ami_device);
     device_add(&w83877f_president_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -392,7 +392,7 @@ machine_at_8600ttc_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&fdc37c669_device);
     device_add(&intel_flash_bxt_device);
 
@@ -442,7 +442,7 @@ machine_at_p65up5_common_init(const machine_t *model, const device_t *northbridg
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(northbridge);
     device_add(&piix3_ioapic_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83877f_device);
     device_add(&sst_flash_29ee010_device);
     device_add(&ioapic_device);
