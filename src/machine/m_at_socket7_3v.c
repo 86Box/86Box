@@ -1082,7 +1082,7 @@ machine_at_zeoswildcat_init(const machine_t *model)
     device_add(&intel_flash_bxt_device);
     device_add(&keyboard_at_device);
     device_add(&fdc37c665_device);
-    device_add(&ide_pci_2ch_device); /* Real board has a PCTech RZ1000 but POST hangs on code 95 with it */
+    device_add(&ide_rz1001_pci_device);
 
     return ret;
 }

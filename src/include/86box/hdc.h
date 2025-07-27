@@ -88,6 +88,7 @@ extern const device_t ide_opti611_vlb_sec_device;               /* OPTi 82c611/6
 
 extern const device_t ide_rz1000_pci_device;                    /* PC Technology RZ-1000 PCI */
 extern const device_t ide_rz1000_pci_single_channel_device;     /* PC Technology RZ-1000 PCI (Only primary channel) */
+extern const device_t ide_rz1001_pci_device;                    /* PC Technology RZ-1001 PCI */
 
 extern const device_t ide_um8673f_device;                       /* UMC UM8673F */
 extern const device_t ide_um8886af_device;                      /* UMC UM8886AF */
