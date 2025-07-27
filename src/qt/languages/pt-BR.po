@@ -144,6 +144,9 @@ msgstr "&Tipo de tela VGA"
 msgid "RGB &Color"
 msgstr "&Cor RGB"
 
+msgid "RGB (no brown)"
+msgstr "RGB (sem marrom)"
+
 msgid "&RGB Grayscale"
 msgstr "Tons de cinza &RGB"
 
@@ -411,6 +414,9 @@ msgstr "Gráficos IBM 8514/A"
 msgid "XGA Graphics"
 msgstr "Gráficos XGA"
 
+msgid "Keyboard:"
+msgstr "Teclado:"
+
 msgid "Mouse:"
 msgstr "Mouse:"
 
@@ -510,9 +516,6 @@ msgstr "Porta paralela 3"
 msgid "Parallel port 4"
 msgstr "Porta paralela 4"
 
-msgid "HD Controller:"
-msgstr "Controlador HD:"
-
 msgid "FD Controller:"
 msgstr "Controlador FD:"
 
@@ -521,6 +524,9 @@ msgstr "Controlador IDE terciário"
 
 msgid "Quaternary IDE Controller"
 msgstr "Controlador IDE quaternário"
+
+msgid "Hard disk"
+msgstr "Disco rígido"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -1434,6 +1440,24 @@ msgstr "Passagem de porta serial 4"
 msgid "Renderer options..."
 msgstr "Opções do renderizador..."
 
+msgid "AT Keyboard"
+msgstr "Teclado AT"
+
+msgid "AX Keyboard"
+msgstr "Teclado AX"
+
+msgid "PS/2 Keyboard (US)"
+msgstr "Teclado PS/2 (Estados Unidos)"
+
+msgid "PS/2 Keyboard (European)"
+msgstr "Teclado PS/2 (Europeu)"
+
+msgid "PS/2 Keyboard (Japanese)"
+msgstr "Teclado PS/2 (Japonês)"
+
+msgid "PS/55 Keyboard"
+msgstr "Teclado PS/55"
+
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Mouse de barramento Logitech/Microsoft"
 
@@ -1457,6 +1481,9 @@ msgstr "Mouse serial Logitech"
 
 msgid "PS/2 Mouse"
 msgstr "Mouse PS/2"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr "Mouse PS/2 QuickPort"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serial)"
@@ -1863,6 +1890,9 @@ msgstr "Fonte"
 msgid "Bilinear filtering"
 msgstr "Filtragem bilinear"
 
+msgid "Video chroma-keying"
+msgstr "Chroma-keying de vídeo"
+
 msgid "Dithering"
 msgstr "Pontilhamento"
 
@@ -2221,7 +2251,7 @@ msgid "Host Serial Device"
 msgstr "Dispositivo serial host"
 
 msgid "Name of pipe"
-msgstr "Nome do tubo"
+msgstr "Nome do pipe"
 
 msgid "Data bits"
 msgstr "Bits de dados"
@@ -2233,7 +2263,10 @@ msgid "Baud Rate of Passthrough"
 msgstr "Taxa de transmissão de passagem"
 
 msgid "Named Pipe (Server)"
-msgstr "Pipe nomeado (servidor)"
+msgstr "Pipe nomeado (Servidor)"
+
+msgid "Named Pipe (Client)"
+msgstr "Pipe nomeado (Cliente)"
 
 msgid "Host Serial Passthrough"
 msgstr "Passagem da porta serial do host"
@@ -2402,9 +2435,6 @@ msgstr "Alternar mudo"
 
 msgid "Text files"
 msgstr "Arquivos de texto"
-
-msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
-msgstr "Arquivos de ROM (*.bin *.rom)|*.bin,*.rom"
 
 msgid "ROM files"
 msgstr "Arquivos de ROM"

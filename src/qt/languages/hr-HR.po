@@ -144,8 +144,14 @@ msgstr "&Tip zaslona VGA"
 msgid "RGB &Color"
 msgstr "RGB u &boji"
 
+msgid "RGB (no brown)"
+msgstr ""
+
 msgid "&RGB Grayscale"
 msgstr "&RGB u nijansama sive boje"
+
+msgid "Generic RGBI color monitor"
+msgstr ""
 
 msgid "&Amber monitor"
 msgstr "&Jantarni zaslon"
@@ -384,6 +390,15 @@ msgstr "Uključeno (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Dinamički rekompilator"
 
+msgid "CPU frame size"
+msgstr ""
+
+msgid "Larger frames (less smooth)"
+msgstr ""
+
+msgid "Smaller frames (smoother)"
+msgstr ""
+
 msgid "Video:"
 msgstr "Video:"
 
@@ -398,6 +413,9 @@ msgstr "IBM 8514/A grafika"
 
 msgid "XGA Graphics"
 msgstr "XGA grafika"
+
+msgid "Keyboard:"
+msgstr ""
 
 msgid "Mouse:"
 msgstr "Miš:"
@@ -498,9 +516,6 @@ msgstr "Paralelna vrata 3"
 msgid "Parallel port 4"
 msgstr "Paralelna vrata 4"
 
-msgid "HD Controller:"
-msgstr "Kontroler tvrdog diska:"
-
 msgid "FD Controller:"
 msgstr "Kontroler diskete:"
 
@@ -509,6 +524,9 @@ msgstr "Tercijarni IDE kontroler"
 
 msgid "Quaternary IDE Controller"
 msgstr "Kvaternarni IDE kontroler"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -588,8 +606,8 @@ msgstr "CD-ROM pogoni:"
 msgid "MO drives:"
 msgstr "MO pogoni:"
 
-msgid "ZIP drives:"
-msgstr "ZIP pogoni:"
+msgid "Removable disk drives:"
+msgstr ""
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +617,9 @@ msgstr "Sat stvarnog vremena (RTC):"
 
 msgid "ISA Memory Expansion"
 msgstr "Proširenje memorije ISA"
+
+msgid "ISA ROM Cards"
+msgstr ""
 
 msgid "Card 1:"
 msgstr "Kartica 1:"
@@ -611,6 +632,27 @@ msgstr "Kartica 3:"
 
 msgid "Card 4:"
 msgstr "Kartica 4:"
+
+msgid "Board 1"
+msgstr ""
+
+msgid "Board 2"
+msgstr ""
+
+msgid "Board 3"
+msgstr ""
+
+msgid "Board 4"
+msgstr ""
+
+msgid "Generic ISA ROM Board"
+msgstr ""
+
+msgid "Generic Dual ISA ROM Board"
+msgstr ""
+
+msgid "Generic Quad ISA ROM Board"
+msgstr ""
 
 msgid "ISABugger device"
 msgstr "Uređaj ISABugger"
@@ -633,11 +675,14 @@ msgstr " - ZASTAO"
 msgid "Speed"
 msgstr "Brzina"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr ""
 
-msgid "ZIP images"
-msgstr "ZIP slike"
+msgid "Removable disk images"
+msgstr ""
+
+msgid "Image %1"
+msgstr ""
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box nije mogao pronaći upotrebljive ROM datoteke.\n\nMolimte posjetite <a href=\"https://github.com/86Box/roms/releases/latest\"></a> sknite paket s ROM datotekama i ekstrahirajte paket u mapu \"roms\"."
@@ -765,8 +810,8 @@ msgstr "Palica za igru s 2 osi, 6 tipke"
 msgid "2-axis, 8-button joystick"
 msgstr "Palica za igru s 2 osi, 8 tipke"
 
-msgid "3-axis, 2-button joystick(s)"
-msgstr "Palica za igru s 3 osi, 2 tipke"
+msgid "3-axis, 2-button joystick"
+msgstr ""
 
 msgid "3-axis, 4-button joystick"
 msgstr "Palica za igru s 3 osi, 4 tipke"
@@ -777,11 +822,38 @@ msgstr "Palica za igru s 4 osi, 4 tipke"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr ""
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr ""
+
+msgid "2-button gamepad(s)"
+msgstr ""
+
+msgid "2-button flight yoke"
+msgstr ""
+
+msgid "4-button gamepad"
+msgstr ""
+
+msgid "4-button flight yoke"
+msgstr ""
+
+msgid "2-button flight yoke with throttle"
+msgstr ""
+
+msgid "4-button flight yoke with throttle"
+msgstr ""
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr ""
 
 msgid "None"
 msgstr "Bez"
@@ -1368,6 +1440,24 @@ msgstr "Prolaz serijskih vrata 4"
 msgid "Renderer options..."
 msgstr "Opcije rendera..."
 
+msgid "AT Keyboard"
+msgstr ""
+
+msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard (US)"
+msgstr ""
+
+msgid "PS/2 Keyboard (European)"
+msgstr ""
+
+msgid "PS/2 Keyboard (Japanese)"
+msgstr ""
+
+msgid "PS/55 Keyboard"
+msgstr ""
+
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Sabirnički miš Logitech/Microsoft"
 
@@ -1377,8 +1467,14 @@ msgstr "Sabirnički miš Microsoft (InPort)"
 msgid "Mouse Systems Serial Mouse"
 msgstr "Serijski miš Mouse Systems"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr ""
+
 msgid "Microsoft Serial Mouse"
 msgstr "Serijski miš Microsoft"
+
+msgid "Microsoft Serial BallPoint"
+msgstr ""
 
 msgid "Logitech Serial Mouse"
 msgstr "Serijski miš Logitech"
@@ -1386,8 +1482,14 @@ msgstr "Serijski miš Logitech"
 msgid "PS/2 Mouse"
 msgstr "Miš PS/2"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serijski)"
+
+msgid "Default Baud rate"
+msgstr ""
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Standardni modem, usklađen s standardom Hayesom"
@@ -1413,11 +1515,53 @@ msgstr "Sistemski MIDI"
 msgid "MIDI Input Device"
 msgstr "Ulazni uređaj MIDI"
 
+msgid "BIOS file"
+msgstr ""
+
+msgid "BIOS file (ROM #1)"
+msgstr ""
+
+msgid "BIOS file (ROM #2)"
+msgstr ""
+
+msgid "BIOS file (ROM #3)"
+msgstr ""
+
+msgid "BIOS file (ROM #4)"
+msgstr ""
+
 msgid "BIOS Address"
 msgstr "Adresa BIOS-a"
 
+msgid "BIOS address (ROM #1)"
+msgstr ""
+
+msgid "BIOS address (ROM #2)"
+msgstr ""
+
+msgid "BIOS address (ROM #3)"
+msgstr ""
+
+msgid "BIOS address (ROM #4)"
+msgstr ""
+
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Omogući pisanje u ROM proširenja BIOS-a"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr ""
+
+msgid "Linear framebuffer base"
+msgstr ""
 
 msgid "Address"
 msgstr "Adresa"
@@ -1427,6 +1571,21 @@ msgstr "IRQ"
 
 msgid "BIOS Revision"
 msgstr "Revizija BIOS-a"
+
+msgid "BIOS Version"
+msgstr ""
+
+msgid "BIOS Versions"
+msgstr ""
+
+msgid "BIOS Language"
+msgstr ""
+
+msgid "IBM 5161 Expansion Unit"
+msgstr ""
+
+msgid "IBM Cassette Basic"
+msgstr ""
 
 msgid "Translate 26 -> 17"
 msgstr "Prevedi 26 -> 17"
@@ -1442,6 +1601,18 @@ msgstr "Invertiraj boje"
 
 msgid "BIOS size"
 msgstr "Veličina BIOS-a"
+
+msgid "BIOS size (ROM #1)"
+msgstr ""
+
+msgid "BIOS size (ROM #2)"
+msgstr ""
+
+msgid "BIOS size (ROM #3)"
+msgstr ""
+
+msgid "BIOS size (ROM #4)"
+msgstr ""
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Mapiraj C0000-C7FFF kao UMB"
@@ -1517,6 +1688,9 @@ msgstr "Nivo odjeka"
 
 msgid "Interpolation Method"
 msgstr "Metoda interpolacije"
+
+msgid "Dynamic Sample Loading"
+msgstr ""
 
 msgid "Reverb Output Gain"
 msgstr "Pojačavanje izlaza odjeka"
@@ -1605,6 +1779,12 @@ msgstr "Niski DMA"
 msgid "Enable Game port"
 msgstr "Omogoći vrata za igru"
 
+msgid "SID Model"
+msgstr ""
+
+msgid "SID Filter Strength"
+msgstr ""
+
 msgid "Surround module"
 msgstr "Modul Surround"
 
@@ -1616,6 +1796,9 @@ msgstr "Podigni prekid CODEC na postavljanju CODEC-a (potrebno nekim upravljačk
 
 msgid "SB Address"
 msgstr "Adresa SB-a"
+
+msgid "Use EEPROM setting"
+msgstr ""
 
 msgid "WSS IRQ"
 msgstr "IRQ WSS-a"
@@ -1701,8 +1884,14 @@ msgstr "Vrsta RAMDAC-a"
 msgid "Blend"
 msgstr "Miješaj"
 
+msgid "Font"
+msgstr ""
+
 msgid "Bilinear filtering"
 msgstr "Bilinearno filtriranje"
+
+msgid "Video chroma-keying"
+msgstr ""
 
 msgid "Dithering"
 msgstr "Podrhtavanje"
@@ -1745,6 +1934,33 @@ msgstr "Brzina prijenosa"
 
 msgid "EMS mode"
 msgstr "Načina EMS"
+
+msgid "EMS Address"
+msgstr ""
+
+msgid "EMS 1 Address"
+msgstr ""
+
+msgid "EMS 2 Address"
+msgstr ""
+
+msgid "EMS Memory Size"
+msgstr ""
+
+msgid "EMS 1 Memory Size"
+msgstr ""
+
+msgid "EMS 2 Memory Size"
+msgstr ""
+
+msgid "Enable EMS"
+msgstr ""
+
+msgid "Enable EMS 1"
+msgstr ""
+
+msgid "Enable EMS 2"
+msgstr ""
 
 msgid "Address for > 2 MB"
 msgstr "Adresa za > 2 MB"
@@ -1902,6 +2118,15 @@ msgstr "Interpolacija sRGB"
 msgid "Linear interpolation"
 msgstr "Linearna interpolacija"
 
+msgid "Has secondary 8x8 character set"
+msgstr ""
+
+msgid "Has Quadcolor II daughter board"
+msgstr ""
+
+msgid "Alternate monochrome contrast"
+msgstr ""
+
 msgid "128 KB"
 msgstr "128 KB"
 
@@ -1935,6 +2160,9 @@ msgstr "Jantarna"
 msgid "Gray"
 msgstr "Siva"
 
+msgid "Grayscale"
+msgstr ""
+
 msgid "Color"
 msgstr "Bojna"
 
@@ -1949,6 +2177,12 @@ msgstr "Ostali jezici"
 
 msgid "Bochs latest"
 msgstr "Bochs poslednji"
+
+msgid "Apply overscan deltas"
+msgstr ""
+
+msgid "Mono Interlaced"
+msgstr ""
 
 msgid "Mono Non-Interlaced"
 msgstr "Crno-biljeli bez preplitanja"
@@ -2031,6 +2265,9 @@ msgstr "Baudova brzina prolaza"
 msgid "Named Pipe (Server)"
 msgstr "Imenovani vod (server)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Prolaz serijskih vrata nositelja"
 
@@ -2075,6 +2312,12 @@ msgstr "Klon IBM 8514/A (ISA)"
 
 msgid "Vendor"
 msgstr "Proizvođać"
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr ""
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr ""
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Generičko proširenje memorije PC/XT"
@@ -2147,3 +2390,69 @@ msgstr ""
 
 msgid "Could not load file %1"
 msgstr ""
+
+msgid "Key Bindings:"
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "Clear binding"
+msgstr ""
+
+msgid "Bind"
+msgstr ""
+
+msgid "Bind Key"
+msgstr ""
+
+msgid "Enter key combo:"
+msgstr ""
+
+msgid "Send Control+Alt+Del"
+msgstr ""
+
+msgid "Send Control+Alt+Escape"
+msgstr ""
+
+msgid "Toggle fullscreen"
+msgstr ""
+
+msgid "Screenshot"
+msgstr ""
+
+msgid "Release mouse pointer"
+msgstr ""
+
+msgid "Toggle pause"
+msgstr ""
+
+msgid "Toggle mute"
+msgstr ""
+
+msgid "Text files"
+msgstr ""
+
+msgid "ROM files"
+msgstr ""
+
+msgid "SoundFont files"
+msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "Kontroler tvrdog diska:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIP pogoni:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "ZIP slike"
+
+#~ msgid "3-axis, 2-button joystick(s)"
+#~ msgstr "Palica za igru s 3 osi, 2 tipke"

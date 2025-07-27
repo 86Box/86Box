@@ -144,8 +144,14 @@ msgstr "&Tipo de pantalla VGA"
 msgid "RGB &Color"
 msgstr "RGB &Color"
 
+msgid "RGB (no brown)"
+msgstr ""
+
 msgid "&RGB Grayscale"
 msgstr "RGB &Grises"
+
+msgid "Generic RGBI color monitor"
+msgstr ""
 
 msgid "&Amber monitor"
 msgstr "Monitor &Ámbar"
@@ -384,6 +390,15 @@ msgstr "Habilitado (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Recompilador Dinámico"
 
+msgid "CPU frame size"
+msgstr ""
+
+msgid "Larger frames (less smooth)"
+msgstr ""
+
+msgid "Smaller frames (smoother)"
+msgstr ""
+
 msgid "Video:"
 msgstr "Vídeo:"
 
@@ -398,6 +413,9 @@ msgstr "Gráficos IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Gráficos XGA"
+
+msgid "Keyboard:"
+msgstr ""
 
 msgid "Mouse:"
 msgstr "Ratón:"
@@ -498,9 +516,6 @@ msgstr "Puerto paralelo 3"
 msgid "Parallel port 4"
 msgstr "Puerto paralelo 4"
 
-msgid "HD Controller:"
-msgstr "Controladora HD:"
-
 msgid "FD Controller:"
 msgstr "Controladora FD:"
 
@@ -509,6 +524,9 @@ msgstr "Tercera controladora IDE"
 
 msgid "Quaternary IDE Controller"
 msgstr "Cuarta controladora IDE"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -588,8 +606,8 @@ msgstr "Unidades de CD-ROM:"
 msgid "MO drives:"
 msgstr "Unidades MO:"
 
-msgid "ZIP drives:"
-msgstr "Unidades ZIP:"
+msgid "Removable disk drives:"
+msgstr ""
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +617,9 @@ msgstr "ISA RTC:"
 
 msgid "ISA Memory Expansion"
 msgstr "Expansión de Memoria ISA"
+
+msgid "ISA ROM Cards"
+msgstr ""
 
 msgid "Card 1:"
 msgstr "Tarjeta 1:"
@@ -611,6 +632,27 @@ msgstr "Tarjeta 3:"
 
 msgid "Card 4:"
 msgstr "Tarjeta 4:"
+
+msgid "Board 1"
+msgstr ""
+
+msgid "Board 2"
+msgstr ""
+
+msgid "Board 3"
+msgstr ""
+
+msgid "Board 4"
+msgstr ""
+
+msgid "Generic ISA ROM Board"
+msgstr ""
+
+msgid "Generic Dual ISA ROM Board"
+msgstr ""
+
+msgid "Generic Quad ISA ROM Board"
+msgstr ""
 
 msgid "ISABugger device"
 msgstr "Dispositivo ISABugger"
@@ -633,11 +675,14 @@ msgstr " - EN PAUSA"
 msgid "Speed"
 msgstr "Velocidad"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr ""
 
-msgid "ZIP images"
-msgstr "Imagenes ZIP"
+msgid "Removable disk images"
+msgstr ""
+
+msgid "Image %1"
+msgstr ""
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box no pudo encontrar ninguna imagen ROM usable.\n\nPor favor <a href=\"https://github.com/86Box/roms/releases/latest\">descargue</a> un conjunte de ROMs y extráigalo en el directorio \"roms\"."
@@ -777,11 +822,38 @@ msgstr "Mando de 4 ejes, 4 botones"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr ""
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr ""
+
+msgid "2-button gamepad(s)"
+msgstr ""
+
+msgid "2-button flight yoke"
+msgstr ""
+
+msgid "4-button gamepad"
+msgstr ""
+
+msgid "4-button flight yoke"
+msgstr ""
+
+msgid "2-button flight yoke with throttle"
+msgstr ""
+
+msgid "4-button flight yoke with throttle"
+msgstr ""
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr ""
 
 msgid "None"
 msgstr "Ninguno"
@@ -1187,6 +1259,7 @@ msgstr "WinBox ya no recibe soporte"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 msgstr "El desarrollo del gestor WinBox se detuvo en 2022 debido a la falta de mantenedores. Como dirigimos nuestros esfuerzos a hacer 86Box aún mejor, hemos tomado la decisión de dejar de dar soporte a WinBox como gestor.\n\nNo se proporcionarán más actualizaciones a través de WinBox, y puede encontrar un comportamiento incorrecto si continúa usándolo con versiones más nuevas de 86Box. Cualquier informe de error relacionado con el comportamiento de WinBox será cerrado como inválido.\n\nVaya a 86box.net para una lista de otros gestores que puede utilizar."
+
 msgid "Generate"
 msgstr "Vytvoř"
 
@@ -1367,6 +1440,24 @@ msgstr "Paso de puerto serie 4"
 msgid "Renderer options..."
 msgstr "Opciones del renderizador..."
 
+msgid "AT Keyboard"
+msgstr ""
+
+msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard (US)"
+msgstr ""
+
+msgid "PS/2 Keyboard (European)"
+msgstr ""
+
+msgid "PS/2 Keyboard (Japanese)"
+msgstr ""
+
+msgid "PS/55 Keyboard"
+msgstr ""
+
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Ratón de bus Logitech/Microsoft"
 
@@ -1376,8 +1467,14 @@ msgstr "Ratón de bus Microsoft (InPort)"
 msgid "Mouse Systems Serial Mouse"
 msgstr "Ratón serie Mouse Systems"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr ""
+
 msgid "Microsoft Serial Mouse"
 msgstr "Ratón serie Microsoft"
+
+msgid "Microsoft Serial BallPoint"
+msgstr ""
 
 msgid "Logitech Serial Mouse"
 msgstr "Ratón serie Logitech"
@@ -1385,8 +1482,14 @@ msgstr "Ratón serie Logitech"
 msgid "PS/2 Mouse"
 msgstr "Ratón PS/2"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serie)"
+
+msgid "Default Baud rate"
+msgstr ""
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Módem estándar compatible con Hayes"
@@ -1412,11 +1515,53 @@ msgstr "MIDI del sistema"
 msgid "MIDI Input Device"
 msgstr "Dispositivo de entrada MIDI"
 
+msgid "BIOS file"
+msgstr ""
+
+msgid "BIOS file (ROM #1)"
+msgstr ""
+
+msgid "BIOS file (ROM #2)"
+msgstr ""
+
+msgid "BIOS file (ROM #3)"
+msgstr ""
+
+msgid "BIOS file (ROM #4)"
+msgstr ""
+
 msgid "BIOS Address"
 msgstr "Dirección de BIOS"
 
+msgid "BIOS address (ROM #1)"
+msgstr ""
+
+msgid "BIOS address (ROM #2)"
+msgstr ""
+
+msgid "BIOS address (ROM #3)"
+msgstr ""
+
+msgid "BIOS address (ROM #4)"
+msgstr ""
+
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Habilitar escrituras para el ROM de extensión de BIOS"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr ""
+
+msgid "Linear framebuffer base"
+msgstr ""
 
 msgid "Address"
 msgstr "Dirección"
@@ -1426,6 +1571,21 @@ msgstr "IRQ"
 
 msgid "BIOS Revision"
 msgstr "Revisión de BIOS"
+
+msgid "BIOS Version"
+msgstr ""
+
+msgid "BIOS Versions"
+msgstr ""
+
+msgid "BIOS Language"
+msgstr ""
+
+msgid "IBM 5161 Expansion Unit"
+msgstr ""
+
+msgid "IBM Cassette Basic"
+msgstr ""
 
 msgid "Translate 26 -> 17"
 msgstr "Traducir 26 -> 17"
@@ -1441,6 +1601,18 @@ msgstr "Invertir colores"
 
 msgid "BIOS size"
 msgstr "Tamaño de BIOS"
+
+msgid "BIOS size (ROM #1)"
+msgstr ""
+
+msgid "BIOS size (ROM #2)"
+msgstr ""
+
+msgid "BIOS size (ROM #3)"
+msgstr ""
+
+msgid "BIOS size (ROM #4)"
+msgstr ""
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Mapear a C0000-C7FFF como UMB"
@@ -1516,6 +1688,9 @@ msgstr "Nível de reverberación"
 
 msgid "Interpolation Method"
 msgstr "Método de interpolación"
+
+msgid "Dynamic Sample Loading"
+msgstr ""
 
 msgid "Reverb Output Gain"
 msgstr "Ganancia de salida de reverberación"
@@ -1604,6 +1779,12 @@ msgstr "DMA bajo"
 msgid "Enable Game port"
 msgstr "Habilitar puerto de juegos"
 
+msgid "SID Model"
+msgstr ""
+
+msgid "SID Filter Strength"
+msgstr ""
+
 msgid "Surround module"
 msgstr "Módulo Surround"
 
@@ -1615,6 +1796,9 @@ msgstr "Activar la interrupción CODEC en la configuración CODEC (necesario par
 
 msgid "SB Address"
 msgstr "Dirección del SB"
+
+msgid "Use EEPROM setting"
+msgstr ""
 
 msgid "WSS IRQ"
 msgstr "IRQ de WSS"
@@ -1700,8 +1884,14 @@ msgstr "Tipo de RAMDAC"
 msgid "Blend"
 msgstr "Mezclar"
 
+msgid "Font"
+msgstr ""
+
 msgid "Bilinear filtering"
 msgstr "Filtrado bilineal"
+
+msgid "Video chroma-keying"
+msgstr ""
 
 msgid "Dithering"
 msgstr "Dithering"
@@ -1744,6 +1934,33 @@ msgstr "Velocidad de transferencia"
 
 msgid "EMS mode"
 msgstr "Modo EMS"
+
+msgid "EMS Address"
+msgstr ""
+
+msgid "EMS 1 Address"
+msgstr ""
+
+msgid "EMS 2 Address"
+msgstr ""
+
+msgid "EMS Memory Size"
+msgstr ""
+
+msgid "EMS 1 Memory Size"
+msgstr ""
+
+msgid "EMS 2 Memory Size"
+msgstr ""
+
+msgid "Enable EMS"
+msgstr ""
+
+msgid "Enable EMS 1"
+msgstr ""
+
+msgid "Enable EMS 2"
+msgstr ""
 
 msgid "Address for > 2 MB"
 msgstr "Dirección para > 2 MB"
@@ -1901,6 +2118,15 @@ msgstr "Interpolación sRGB"
 msgid "Linear interpolation"
 msgstr "Interpolación lineare"
 
+msgid "Has secondary 8x8 character set"
+msgstr ""
+
+msgid "Has Quadcolor II daughter board"
+msgstr ""
+
+msgid "Alternate monochrome contrast"
+msgstr ""
+
 msgid "128 KB"
 msgstr "128 KB"
 
@@ -1934,6 +2160,9 @@ msgstr "Ámbar"
 msgid "Gray"
 msgstr "Gris"
 
+msgid "Grayscale"
+msgstr ""
+
 msgid "Color"
 msgstr "Color"
 
@@ -1948,6 +2177,12 @@ msgstr "Otros idiomas"
 
 msgid "Bochs latest"
 msgstr "Bochs más nuevo"
+
+msgid "Apply overscan deltas"
+msgstr ""
+
+msgid "Mono Interlaced"
+msgstr ""
 
 msgid "Mono Non-Interlaced"
 msgstr "Monocromo no entrelazado"
@@ -2030,6 +2265,9 @@ msgstr "Tasa de baudios de paso"
 msgid "Named Pipe (Server)"
 msgstr "Tubería con nombre (servidor)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Paso del puerto serie del host"
 
@@ -2074,6 +2312,12 @@ msgstr "Clon IBM 8514/A (ISA)"
 
 msgid "Vendor"
 msgstr "Fabricante"
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr ""
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr ""
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Expansión de Memoria Generica PC/XT"
@@ -2146,3 +2390,66 @@ msgstr ""
 
 msgid "Could not load file %1"
 msgstr ""
+
+msgid "Key Bindings:"
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "Clear binding"
+msgstr ""
+
+msgid "Bind"
+msgstr ""
+
+msgid "Bind Key"
+msgstr ""
+
+msgid "Enter key combo:"
+msgstr ""
+
+msgid "Send Control+Alt+Del"
+msgstr ""
+
+msgid "Send Control+Alt+Escape"
+msgstr ""
+
+msgid "Toggle fullscreen"
+msgstr ""
+
+msgid "Screenshot"
+msgstr ""
+
+msgid "Release mouse pointer"
+msgstr ""
+
+msgid "Toggle pause"
+msgstr ""
+
+msgid "Toggle mute"
+msgstr ""
+
+msgid "Text files"
+msgstr ""
+
+msgid "ROM files"
+msgstr ""
+
+msgid "SoundFont files"
+msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "Controladora HD:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "Unidades ZIP:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "Imagenes ZIP"

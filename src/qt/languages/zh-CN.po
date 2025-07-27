@@ -144,8 +144,14 @@ msgstr "VGA 屏幕类型(&T)"
 msgid "RGB &Color"
 msgstr "RGB 彩色(&C)"
 
+msgid "RGB (no brown)"
+msgstr ""
+
 msgid "&RGB Grayscale"
 msgstr "RGB 灰度(&R)"
+
+msgid "Generic RGBI color monitor"
+msgstr ""
 
 msgid "&Amber monitor"
 msgstr "琥珀色单色显示器(&A)"
@@ -384,6 +390,15 @@ msgstr "启用 (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "动态重编译器"
 
+msgid "CPU frame size"
+msgstr ""
+
+msgid "Larger frames (less smooth)"
+msgstr ""
+
+msgid "Smaller frames (smoother)"
+msgstr ""
+
 msgid "Video:"
 msgstr "显卡:"
 
@@ -398,6 +413,9 @@ msgstr "IBM 8514/A 图形"
 
 msgid "XGA Graphics"
 msgstr "XGA 图形"
+
+msgid "Keyboard:"
+msgstr ""
 
 msgid "Mouse:"
 msgstr "鼠标:"
@@ -498,9 +516,6 @@ msgstr "并口 3"
 msgid "Parallel port 4"
 msgstr "并口 4"
 
-msgid "HD Controller:"
-msgstr "硬盘控制器:"
-
 msgid "FD Controller:"
 msgstr "软盘控制器:"
 
@@ -509,6 +524,9 @@ msgstr "第三 IDE 控制器"
 
 msgid "Quaternary IDE Controller"
 msgstr "第四 IDE 控制器"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -588,8 +606,8 @@ msgstr "光盘驱动器:"
 msgid "MO drives:"
 msgstr "磁光盘驱动器:"
 
-msgid "ZIP drives:"
-msgstr "ZIP 驱动器:"
+msgid "Removable disk drives:"
+msgstr ""
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +617,9 @@ msgstr "ISA 实时时钟:"
 
 msgid "ISA Memory Expansion"
 msgstr "ISA 内存扩展"
+
+msgid "ISA ROM Cards"
+msgstr ""
 
 msgid "Card 1:"
 msgstr "扩展卡 1:"
@@ -611,6 +632,27 @@ msgstr "扩展卡 3:"
 
 msgid "Card 4:"
 msgstr "扩展卡 4:"
+
+msgid "Board 1"
+msgstr ""
+
+msgid "Board 2"
+msgstr ""
+
+msgid "Board 3"
+msgstr ""
+
+msgid "Board 4"
+msgstr ""
+
+msgid "Generic ISA ROM Board"
+msgstr ""
+
+msgid "Generic Dual ISA ROM Board"
+msgstr ""
+
+msgid "Generic Quad ISA ROM Board"
+msgstr ""
 
 msgid "ISABugger device"
 msgstr "ISABugger 设备"
@@ -633,11 +675,14 @@ msgstr " - 已暂停"
 msgid "Speed"
 msgstr "速度"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr ""
 
-msgid "ZIP images"
-msgstr "ZIP 映像"
+msgid "Removable disk images"
+msgstr ""
+
+msgid "Image %1"
+msgstr ""
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box 找不到任何可用的 ROM 映像。\n\n请<a href=\"https://github.com/86Box/roms/releases/latest\">下载</a> ROM 包并将其解压到 \"roms\" 文件夹中。"
@@ -777,11 +822,38 @@ msgstr "4 轴, 4 键操纵杆"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr ""
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr ""
+
+msgid "2-button gamepad(s)"
+msgstr ""
+
+msgid "2-button flight yoke"
+msgstr ""
+
+msgid "4-button gamepad"
+msgstr ""
+
+msgid "4-button flight yoke"
+msgstr ""
+
+msgid "2-button flight yoke with throttle"
+msgstr ""
+
+msgid "4-button flight yoke with throttle"
+msgstr ""
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr ""
 
 msgid "None"
 msgstr "无"
@@ -1368,6 +1440,24 @@ msgstr "串行端口直通 4"
 msgid "Renderer options..."
 msgstr "渲染器选项..."
 
+msgid "AT Keyboard"
+msgstr ""
+
+msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard (US)"
+msgstr ""
+
+msgid "PS/2 Keyboard (European)"
+msgstr ""
+
+msgid "PS/2 Keyboard (Japanese)"
+msgstr ""
+
+msgid "PS/55 Keyboard"
+msgstr ""
+
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Logitech/Microsoft 总线鼠标"
 
@@ -1377,8 +1467,14 @@ msgstr "Microsoft 总线鼠标（InPort）"
 msgid "Mouse Systems Serial Mouse"
 msgstr "Mouse Systems 串行鼠标"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr ""
+
 msgid "Microsoft Serial Mouse"
 msgstr "Microsoft 串行鼠标"
+
+msgid "Microsoft Serial BallPoint"
+msgstr ""
 
 msgid "Logitech Serial Mouse"
 msgstr "Logitech 串行鼠标"
@@ -1386,8 +1482,14 @@ msgstr "Logitech 串行鼠标"
 msgid "PS/2 Mouse"
 msgstr "PS/2 鼠标"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (串行)"
+
+msgid "Default Baud rate"
+msgstr ""
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] 标准 Hayes 兼容调制解调器"
@@ -1413,11 +1515,53 @@ msgstr "系统 MIDI"
 msgid "MIDI Input Device"
 msgstr "MIDI 输入设备"
 
+msgid "BIOS file"
+msgstr ""
+
+msgid "BIOS file (ROM #1)"
+msgstr ""
+
+msgid "BIOS file (ROM #2)"
+msgstr ""
+
+msgid "BIOS file (ROM #3)"
+msgstr ""
+
+msgid "BIOS file (ROM #4)"
+msgstr ""
+
 msgid "BIOS Address"
 msgstr "BIOS 地址"
 
+msgid "BIOS address (ROM #1)"
+msgstr ""
+
+msgid "BIOS address (ROM #2)"
+msgstr ""
+
+msgid "BIOS address (ROM #3)"
+msgstr ""
+
+msgid "BIOS address (ROM #4)"
+msgstr ""
+
 msgid "Enable BIOS extension ROM Writes"
 msgstr "启用 BIOS 扩展 ROM 写入功能"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr ""
+
+msgid "Linear framebuffer base"
+msgstr ""
 
 msgid "Address"
 msgstr "地址"
@@ -1427,6 +1571,21 @@ msgstr "IRQ"
 
 msgid "BIOS Revision"
 msgstr "BIOS 修订版"
+
+msgid "BIOS Version"
+msgstr ""
+
+msgid "BIOS Versions"
+msgstr ""
+
+msgid "BIOS Language"
+msgstr ""
+
+msgid "IBM 5161 Expansion Unit"
+msgstr ""
+
+msgid "IBM Cassette Basic"
+msgstr ""
 
 msgid "Translate 26 -> 17"
 msgstr "翻译 26 -> 17"
@@ -1442,6 +1601,18 @@ msgstr "反转颜色"
 
 msgid "BIOS size"
 msgstr "BIOS 大小"
+
+msgid "BIOS size (ROM #1)"
+msgstr ""
+
+msgid "BIOS size (ROM #2)"
+msgstr ""
+
+msgid "BIOS size (ROM #3)"
+msgstr ""
+
+msgid "BIOS size (ROM #4)"
+msgstr ""
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "将 C0000-C7FFF 映射为 UMB"
@@ -1517,6 +1688,9 @@ msgstr "混响电平"
 
 msgid "Interpolation Method"
 msgstr "插值法"
+
+msgid "Dynamic Sample Loading"
+msgstr ""
 
 msgid "Reverb Output Gain"
 msgstr "混响输出的增益"
@@ -1605,6 +1779,12 @@ msgstr "低 DMA"
 msgid "Enable Game port"
 msgstr "启用游戏端口"
 
+msgid "SID Model"
+msgstr ""
+
+msgid "SID Filter Strength"
+msgstr ""
+
 msgid "Surround module"
 msgstr "环绕声模块"
 
@@ -1616,6 +1796,9 @@ msgstr "在 CODEC 设置时引发 CODEC 中断（某些驱动程序需要）。"
 
 msgid "SB Address"
 msgstr "SB 地址"
+
+msgid "Use EEPROM setting"
+msgstr ""
 
 msgid "WSS IRQ"
 msgstr "WSS IRQ"
@@ -1701,8 +1884,14 @@ msgstr "RAMDAC 类型"
 msgid "Blend"
 msgstr "混合"
 
+msgid "Font"
+msgstr ""
+
 msgid "Bilinear filtering"
 msgstr "双线性滤波"
+
+msgid "Video chroma-keying"
+msgstr ""
 
 msgid "Dithering"
 msgstr "抖动"
@@ -1745,6 +1934,33 @@ msgstr "传输速度"
 
 msgid "EMS mode"
 msgstr "EMS (扩展内存)模式"
+
+msgid "EMS Address"
+msgstr ""
+
+msgid "EMS 1 Address"
+msgstr ""
+
+msgid "EMS 2 Address"
+msgstr ""
+
+msgid "EMS Memory Size"
+msgstr ""
+
+msgid "EMS 1 Memory Size"
+msgstr ""
+
+msgid "EMS 2 Memory Size"
+msgstr ""
+
+msgid "Enable EMS"
+msgstr ""
+
+msgid "Enable EMS 1"
+msgstr ""
+
+msgid "Enable EMS 2"
+msgstr ""
 
 msgid "Address for > 2 MB"
 msgstr "地址 > 2 MB"
@@ -1902,6 +2118,15 @@ msgstr "sRGB 插值"
 msgid "Linear interpolation"
 msgstr "线性插值"
 
+msgid "Has secondary 8x8 character set"
+msgstr ""
+
+msgid "Has Quadcolor II daughter board"
+msgstr ""
+
+msgid "Alternate monochrome contrast"
+msgstr ""
+
 msgid "128 KB"
 msgstr "128 KB"
 
@@ -1935,6 +2160,9 @@ msgstr "琥珀色"
 msgid "Gray"
 msgstr "灰色"
 
+msgid "Grayscale"
+msgstr ""
+
 msgid "Color"
 msgstr "彩色"
 
@@ -1949,6 +2177,12 @@ msgstr "其他语言"
 
 msgid "Bochs latest"
 msgstr "Bochs 最新版本"
+
+msgid "Apply overscan deltas"
+msgstr ""
+
+msgid "Mono Interlaced"
+msgstr ""
 
 msgid "Mono Non-Interlaced"
 msgstr "单色非隔行扫描"
@@ -2030,6 +2264,9 @@ msgstr "直通波特率"
 
 msgid "Named Pipe (Server)"
 msgstr "命名管道（服务器）"
+
+msgid "Named Pipe (Client)"
+msgstr ""
 
 msgid "Host Serial Passthrough"
 msgstr "主机串行端口直通"
@@ -2153,3 +2390,66 @@ msgstr "下移"
 
 msgid "Could not load file %1"
 msgstr "无法加载文件 %1"
+
+msgid "Key Bindings:"
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "Clear binding"
+msgstr ""
+
+msgid "Bind"
+msgstr ""
+
+msgid "Bind Key"
+msgstr ""
+
+msgid "Enter key combo:"
+msgstr ""
+
+msgid "Send Control+Alt+Del"
+msgstr ""
+
+msgid "Send Control+Alt+Escape"
+msgstr ""
+
+msgid "Toggle fullscreen"
+msgstr ""
+
+msgid "Screenshot"
+msgstr ""
+
+msgid "Release mouse pointer"
+msgstr ""
+
+msgid "Toggle pause"
+msgstr ""
+
+msgid "Toggle mute"
+msgstr ""
+
+msgid "Text files"
+msgstr ""
+
+msgid "ROM files"
+msgstr ""
+
+msgid "SoundFont files"
+msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "硬盘控制器:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIP 驱动器:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "ZIP 映像"
