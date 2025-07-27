@@ -38,6 +38,9 @@
 #include <86box/sound.h>
 #include <86box/fifo8.h>
 #include <86box/timer.h>
+#ifdef ENABLE_MKE_LOG
+#include "cpu.h"
+#endif
 
 /*
 https://elixir.bootlin.com/linux/2.0.29/source/include/linux/sbpcd.h
@@ -168,7 +171,8 @@ mke_get_subq(cdrom_t *dev, uint8_t *b)
     b[9]  = temp_buf[5];
     /* ? */
     b[10] = 0;
-    pclog("mke_get_subq: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n", b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8], b[9], b[10]);
+    mke_log("mke_get_subq: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n",
+            b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8], b[9], b[10]);
 }
 
 /* Lifted from FreeBSD */
@@ -640,23 +644,25 @@ mke_command(mke_t *mke, uint8_t value)
 }
 
 void
-mke_write(uint16_t address, uint8_t value, void *priv)
+mke_write(uint16_t port, uint8_t val, void *priv)
 {
     mke_t *mke = (mke_t *) priv;
 
-    if (!mke->enable_register || ((address & 0xf) == 3))  switch (address & 0xf) {
+    mke_log("[%04X:%08X] [W] %04X = %02X\n", CS, cpu_state.pc, port, val);
+
+    if (!mke->enable_register || ((port & 0xf) == 3))  switch (port & 0xf) {
         case 0:
-            mke_command(mke, value);
+            mke_command(mke, val);
             break;
         case 1:
             if (mke->is_sb)
-                mke->data_select = value;
+                mke->data_select = val;
             break;
         case 2:
             mke_reset(mke);
             break;
         case 3:
-            mke->enable_register = value;
+            mke->enable_register = val;
             break;
         default:
             mke_log("w %03x %02x\n", address, value);
@@ -665,18 +671,18 @@ mke_write(uint16_t address, uint8_t value, void *priv)
 }
 
 uint8_t
-mke_read(uint16_t address, void *priv)
+mke_read(uint16_t port, void *priv)
 {
     mke_t   *mke = (mke_t *) priv;
     uint8_t  ret = 0x00;
 
-    if (!mke->enable_register)  switch (address & 0xf) {
+    if (!mke->enable_register)  switch (port & 0xf) {
         case 0:
             /* Info */
             if (mke->is_sb && mke->data_select)
-                ret = fifo8_num_used(&mke->data_fifo) ? fifo8_pop(&mke->data_fifo) : 0;
+                ret = fifo8_num_used(&mke->data_fifo) ? fifo8_pop(&mke->data_fifo) : 0x00;
             else
-                ret = fifo8_num_used(&mke->info_fifo) ? fifo8_pop(&mke->info_fifo) : 0;
+                ret = fifo8_num_used(&mke->info_fifo) ? fifo8_pop(&mke->info_fifo) : 0x00;
             break;
         case 1:
             /*
@@ -699,16 +705,15 @@ mke_read(uint16_t address, void *priv)
         case 2:
             /* Data */
             if (!mke->is_sb)
-                ret = fifo8_num_used(&mke->data_fifo) ? fifo8_pop(&mke->data_fifo) : 0;
-            break;
-        case 3:
-            ret = mke->enable_register;
+                ret = fifo8_num_used(&mke->data_fifo) ? fifo8_pop(&mke->data_fifo) : 0x00;
             break;
         default:
-            mke_log("MKE Unknown Read Address: %03x\n",address);
+            mke_log("MKE Unknown Read Port: %04X\n", port);
             ret = 0xff;
             break;
     }
+
+    mke_log("[%04X:%08X] [R] %04X = %02X\n", CS, cpu_state.pc, port, ret);
 
     return ret;
 }
