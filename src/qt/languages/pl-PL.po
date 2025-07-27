@@ -2122,7 +2122,7 @@ msgid "Has secondary 8x8 character set"
 msgstr "Posiada pomocniczy zestaw znaków 8x8"
 
 msgid "Has Quadcolor II daughter board"
-msgstr "Ma płytę rozszerzeń Quadcolor II"
+msgstr "Posiada płytę rozszerzeń Quadcolor II"
 
 msgid "Alternate monochrome contrast"
 msgstr "Alternatywny kontrast monochromatyczny"
