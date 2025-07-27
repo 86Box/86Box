@@ -170,10 +170,8 @@ static void blk_to_msf(int blk, unsigned char *msf)
 
 uint8_t mke_read_toc(cdrom_t *dev, unsigned char *b, uint8_t track) {
     track_info_t ti;
-    int first_track;
     int last_track;
     cdrom_read_toc(dev, temp_buf, CD_TOC_NORMAL, 0, 0, 65536);
-    first_track = temp_buf[2];
     last_track = temp_buf[3];
     if(track > last_track)  return 0;    //should we allow +1 here?
     dev->ops->get_track_info(dev->local, track, 0, &ti);
@@ -194,7 +192,6 @@ uint8_t
 mke_disc_info(cdrom_t *dev, unsigned char *b)
 {
     uint8_t disc_type_buf[34];
-    track_info_t ti;
     int          first_track;
     int          last_track;
     cdrom_read_toc(dev, temp_buf, CD_TOC_NORMAL, 0, 2 << 8, 65536);
@@ -217,11 +214,9 @@ uint8_t
 mke_disc_capacity(cdrom_t *dev, unsigned char *b)
 {
     track_info_t ti;
-    int          first_track;
     int          last_track;
     // dev->ops->get_tracks(dev, &first_track, &last_track);
     cdrom_read_toc(dev, temp_buf, CD_TOC_NORMAL, 0, 2 << 8, 65536);
-    first_track = temp_buf[2];
     last_track  = temp_buf[3];
     dev->ops->get_track_info(dev, last_track + 1, 0, &ti);
     b[0] = ti.m;
@@ -296,9 +291,8 @@ mke_command_callback(void* priv)
 void
 mke_command(uint8_t value)
 {
-    uint16_t     i, len;
+    uint16_t     i;
     uint8_t      x[12]; // this is wasteful handling of buffers for compatibility, but will optimize later.
-    subchannel_t subc;
     int          old_cd_status;
 
     if (mke.command_buffer_pending) {
@@ -346,10 +340,9 @@ mke_command(uint8_t value)
                 {
                     uint32_t count = mke.command_buffer[6];
                     uint8_t *buf   = mke.cdbuffer;
-                    int      len   = 0;
                     int      res   = 0;
-                    int      error = 0;
                     uint64_t lba   = MSFtoLBA(mke.command_buffer[1], mke.command_buffer[2], mke.command_buffer[3]) - 150;
+                    int      len __attribute__((unused)) = 0;
                     CHECK_READY();
                     mke.data_to_push = 0;
                     while (count) {
