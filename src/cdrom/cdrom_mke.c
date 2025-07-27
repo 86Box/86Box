@@ -665,7 +665,6 @@ mke_write(uint16_t port, uint8_t val, void *priv)
             mke->enable_register = val;
             break;
         default:
-            mke_log("w %03x %02x\n", address, value);
             break;
     }
 }
@@ -823,11 +822,17 @@ static const device_config_t mke_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
+            { .description = "220H", .value = 0x220 },
             { .description = "230H", .value = 0x230 },
             { .description = "250H", .value = 0x250 },
             { .description = "260H", .value = 0x260 },
             { .description = "270H", .value = 0x270 },
             { .description = "290H", .value = 0x290 },
+            { .description = "300H", .value = 0x300 },
+            { .description = "310H", .value = 0x310 },
+            { .description = "320H", .value = 0x320 },
+            { .description = "330H", .value = 0x330 },
+            { .description = "340H", .value = 0x340 },
             { NULL                                  }
         },
         .bios           = { { 0 } }
