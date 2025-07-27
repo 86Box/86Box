@@ -1051,7 +1051,7 @@ msgid "Disk image too large"
 msgstr "Obraz dysku jest za duży"
 
 msgid "Remember to partition and format the newly-created drive."
-msgstr "Nie zapomnij o partycjonowaniu i sformatowaniu nowo utworzego dysku"
+msgstr "Nie zapomnij o partycjonowaniu i sformatowaniu nowo utworzonego dysku."
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "Wybrany plik zostanie nadpisany. Czy na pewno chcesz użyć tego pliku?"
