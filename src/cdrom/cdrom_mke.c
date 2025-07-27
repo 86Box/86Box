@@ -723,7 +723,7 @@ mke_read(uint16_t address, void *priv)
             return x;
             break;
         case 2: // Data
-            return fifo8_num_used(&mke.info_fifo) ? fifo8_pop(&mke.data_fifo) : 0;
+            return fifo8_num_used(&mke.data_fifo) ? fifo8_pop(&mke.data_fifo) : 0;
         case 3:
             return mke.enable_register;
             break;
@@ -851,8 +851,22 @@ static const device_config_t mke_config[] = {
 };
 
 const device_t mke_cdrom_device = {
-    .name          = "Panasonic/MKE CD-ROM interface",
+    .name          = "Panasonic/MKE CD-ROM interface (Creative)",
     .internal_name = "mkecd",
+    .flags         = DEVICE_ISA16,
+    .local         = 0,
+    .init          = mke_init,
+    .close         = mke_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = mke_config
+};
+
+const device_t mke_cdrom_noncreative_device = {
+    .name          = "Panasonic/MKE CD-ROM interface",
+    .internal_name = "mkecd_normal",
     .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = mke_init,
