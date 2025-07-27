@@ -783,7 +783,7 @@ machine_at_bravoms586_init(const machine_t *model)
 
     device_add(&vl82c59x_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&keyboard_ps2_device);
+    device_add(&kbc_ps2_device);
     device_add(&fdc37c665_ide_sec_device);
     device_add(&ide_cmd640_pci_single_channel_device);
     if (gfxcard[0] == VID_INTERNAL)
@@ -817,7 +817,7 @@ machine_at_globalyst620_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2); /* Slot 06 */
     device_add(&vl82c59x_wildcat_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&keyboard_ps2_phoenix_device);
+    device_add(&kbc_ps2_phoenix_device);
     device_add(&ide_cmd640_pci_single_channel_legacy_only_device);
     device_add(&fdc37c665_ide_sec_device);
     if (gfxcard[0] == VID_INTERNAL)
@@ -849,7 +849,7 @@ machine_at_celebris5xx_init(const machine_t *model)
 
     device_add(&vl82c59x_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&keyboard_ps2_phoenix_device);
+    device_add(&kbc_ps2_phoenix_device);
     device_add(&fdc37c665_device);
     device_add(&ide_cmd640_pci_device);
     if (gfxcard[0] == VID_INTERNAL)
@@ -880,7 +880,7 @@ machine_at_g586vpmc_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_IDE, 0, 0, 0, 0);
     device_add(&vl82c59x_device);
     device_add(&sst_flash_29ee010_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&pc87332_398_device);
     device_add(&ide_cmd646_device);
     return ret;
@@ -909,7 +909,7 @@ machine_at_pb600_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 3, 4, 1);
     device_add(&vl82c59x_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&keyboard_ps2_phoenix_device);
+    device_add(&kbc_ps2_phoenix_device);
     device_add(&fdc37c665_device);
     device_add(&phoenix_486_jumper_pci_pb600_device);
     device_add(&ide_cmd640_pci_device);
@@ -942,7 +942,7 @@ machine_at_m54si_init(const machine_t *model)
     /* Slots are a guess since this BIOS won't work with pcireg */
     device_add(&vl82c59x_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&keyboard_ps2_phoenix_device);
+    device_add(&kbc_ps2_phoenix_device);
     device_add(&fdc37c665_ide_sec_device);
     device_add(&ide_cmd640_pci_single_channel_device);
 

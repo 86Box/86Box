@@ -1080,7 +1080,7 @@ machine_at_zeoswildcat_init(const machine_t *model)
     /* Per the machine's manual there was an option for AMD SCSI and/or LAN controllers */
     device_add(&vl82c59x_wildcat_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&keyboard_at_device);
+    device_add(&kbc_at_device);
     device_add(&fdc37c665_device);
     device_add(&ide_rz1001_pci_device);
 
