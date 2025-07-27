@@ -890,7 +890,7 @@
   </action>
   <action name="actionDebug_GPUDebug_VisualNv">
     <property name="text">
-      <string>GPU Realtime Debugger (NVIDIA ONLY)</string>
+      <string>RIVA 128 Realtime Debugger</string>
     </property>
   </action>
  </widget>

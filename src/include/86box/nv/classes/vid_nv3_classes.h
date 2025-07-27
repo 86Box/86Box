@@ -239,9 +239,14 @@ typedef struct nv3_color_expanded_s
     uint8_t a;
 
     /* WARNING: The internal format is 10-bit RGB! */
-    uint16_t r : 10;
-    uint16_t g : 10;
-    uint16_t b : 10;
+    uint16_t r;
+    uint16_t g;
+    uint16_t b;
+
+    // YUV stuff
+    float y;
+    float u;
+    float v; 
 
     // Indexed colour
     union 

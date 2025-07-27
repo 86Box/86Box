@@ -33,6 +33,7 @@
 #include <QLabel>
 #include <QDir>
 #include <QSettings>
+#include <QFileDialog>
 #include <qt_gpudebug_visualnv.hpp>
 #include "ui_qt_gpudebug_visualnv.h"
 
@@ -55,8 +56,11 @@ VisualNVDialog::VisualNVDialog(QWidget *parent)
     , ui(new Ui::VisualNVDialog)
 {
     ui->setupUi(this);
+
     connect(ui->btnLoadSavestate, &QPushButton::clicked, this, &VisualNVDialog::on_btnLoadSavestate_clicked);
     connect(ui->fbStartAddress, &QPlainTextEdit::textChanged, this, &VisualNVDialog::on_fbStartAddress_changed);
+    connect(ui->bPitch0Value, &QPlainTextEdit::textChanged, this, &VisualNVDialog::on_bPitch0Value_changed);
+    connect(ui->bPitch1Value, &QPlainTextEdit::textChanged, this, &VisualNVDialog::on_bPitch1Value_changed);
 }
 
 // VisualNV dialog destructor
@@ -67,7 +71,62 @@ VisualNVDialog::~VisualNVDialog()
 
 void VisualNVDialog::on_btnLoadSavestate_clicked()
 {
-    warning("THIS IS VisualNVDialog::on_btnLoadSavestate_clicked!!!! (throws into hole)");
+    if (!nv3)
+        return; 
+
+    QString bar0_file_name = QFileDialog::getOpenFileName
+    (
+        this,
+        tr("Please provide NVPlay 0.3.0.7+ NV3BAR0.BIN file"),
+        ".",
+        tr("NVPlay MMIO Dump Files (*.bin)")
+    );
+
+    QString bar1_file_name = QFileDialog::getOpenFileName
+    (
+        this,
+        tr("Please provide NVPlay 0.3.0.7+ NV3BAR1.BIN file"),
+        ".",
+        tr("NVPlay VRAM/RAMIN Dump Files (*.bin)")
+    );
+
+    //
+    // Open both dump files
+    //
+
+    QFile bar0(bar0_file_name);
+    QFile bar1(bar1_file_name); 
+
+    if (!bar0.open(QIODevice::ReadOnly))
+    {
+        warning("Failed to open NV3BAR0.bin!");
+        return;
+    }
+
+    if (!bar1.open(QIODevice::ReadOnly))
+    {
+        warning("Failed to open NV3BAR1.bin!");
+        return;
+    }
+
+    if (bar0.size() != NV3_MMIO_SIZE
+        || bar1.size() != NV3_MMIO_SIZE)
+    {
+        warning("NV3BAR0.bin and NV3BAR1.bin must be 16MB!");
+        bar0.close();
+        bar1.close();
+        return; 
+    }
+
+    // Load VRAM contents only for now. Todo: MMIO+RAMIN
+    QString oldTitle = this->windowTitle();
+
+    this->setWindowTitle(tr("RIVA 128 Realtime Debugger: Savestate Loading..."));
+
+    bar1.read((char*)nv3->nvbase.svga.vram, nv3->nvbase.vram_amount);
+
+    this->setWindowTitle(oldTitle);
+
 }
 
 void VisualNVDialog::on_fbStartAddress_changed()
@@ -83,4 +142,36 @@ void VisualNVDialog::on_fbStartAddress_changed()
         if (!ok)
             nv3->nvbase.debug_dba_enabled = false; 
     }
+}
+
+void VisualNVDialog::on_bPitch0Value_changed()
+{
+    if (nv3)
+    {
+        bool ok = true;
+
+        uint32_t old_bpitch = nv3->pgraph.bpitch[0];
+
+        nv3->pgraph.bpitch[0] = ui->bPitch0Value->toPlainText().toInt(&ok);
+
+        if (!ok)
+            nv3->pgraph.bpitch[0] = old_bpitch;
+    }
+
+}
+
+void VisualNVDialog::on_bPitch1Value_changed()
+{
+    if (nv3)
+    {
+        bool ok = true;
+
+        uint32_t old_bpitch = nv3->pgraph.bpitch[1];
+
+        nv3->pgraph.bpitch[1] = ui->bPitch0Value->toPlainText().toInt(&ok);
+
+        if (!ok)
+            nv3->pgraph.bpitch[1] = old_bpitch;
+    }
+
 }

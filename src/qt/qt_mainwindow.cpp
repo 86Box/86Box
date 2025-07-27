@@ -2328,19 +2328,26 @@ void MainWindow::on_actionACPI_Shutdown_triggered()
 
 void MainWindow::on_actionDebug_GPUDebug_VRAM_triggered()
 {
-    debugVramDialog = new GPUDebugVRAMDialog;
+    debugVramDialog = new GPUDebugVRAMDialog(this);
     debugVramDialog->setWindowFlag(Qt::CustomizeWindowHint, true);
     debugVramDialog->setWindowFlag(Qt::WindowTitleHint, true);
     debugVramDialog->setWindowFlag(Qt::WindowSystemMenuHint, false);
-    debugVramDialog->show();
+    // If I have this as a NON-MODAL dialog, input is just eaten without doing anything
+    // WTF?!?!?!?!? 
+    //debugVramDialog->show();
+    debugVramDialog->exec();
+
 }
 
 
 void MainWindow::on_actionDebug_GPUDebug_VisualNv_triggered()
 {
-    visualNvDialog = new VisualNVDialog;
+    visualNvDialog = new VisualNVDialog(this);
     visualNvDialog->setWindowFlag(Qt::CustomizeWindowHint, true);
     visualNvDialog->setWindowFlag(Qt::WindowTitleHint, true);
     visualNvDialog->setWindowFlag(Qt::WindowSystemMenuHint, false);
-    visualNvDialog->show();
+    // If I have this as a NON-MODAL dialog, input is just eaten without doing anything
+    // WTF?!?!?!?!?
+    //visualNvDialog->show();
+    visualNvDialog->exec();
 }

@@ -29,7 +29,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Nvidia GPU Realtime Debugger</string>
+   <string>RIVA 128 Realtime Debugger</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="4" column="0">
@@ -170,7 +170,7 @@
         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;BPITCH[0]:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
       </widget>
-      <widget class="QPlainTextEdit" name="plainTextEdit_3">
+      <widget class="QPlainTextEdit" name="bPitch0Value">
        <property name="geometry">
         <rect>
          <x>460</x>
@@ -180,7 +180,7 @@
         </rect>
        </property>
       </widget>
-      <widget class="QPlainTextEdit" name="plainTextEdit_4">
+      <widget class="QPlainTextEdit" name="bPitch1Value">
        <property name="geometry">
         <rect>
          <x>460</x>

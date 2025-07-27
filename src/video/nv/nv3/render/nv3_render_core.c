@@ -100,6 +100,9 @@ nv3_color_expanded_t nv3_render_expand_color(uint32_t color, nv3_grobj_t grobj)
             // yuv
             color_final.r = color_final.g = color_final.b = (color & 0xFFFF) * 4; // convert to rgb10
             break;
+        case nv3_pgraph_pixel_format_y420:
+            warning("nv3_render_expand_color: YUV420 not implemented\n");
+            break;
         default:
             warning("nv3_render_expand_color unknown format %d", format);
             break;
@@ -148,8 +151,11 @@ uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t co
             packed_color = nv3_render_get_palette_index((color.r >> 2) & 0xFF);
             break;
         case nv3_pgraph_pixel_format_y16:
-            warning("nv3_render_downconvert: Y16 not implemented");
+            warning("nv3_render_downconvert_color: Y16 not implemented");
             break;
+        case nv3_pgraph_pixel_format_y420:
+            warning("nv3_render_downconvert_color: YUV420 not implemented\n");
+            break; 
         default:
             warning("nv3_render_downconvert_color unknown format %d", format);
             break;
@@ -668,6 +674,9 @@ void nv3_render_8bpp(uint32_t vram_start, nv3_coord_16_t screen_size)
     {
         for (uint32_t x = 0; x < screen_size.x; x++)
         {
+            if (vram_current_position >= nv3->nvbase.vram_amount)
+                return;
+                
             p = &nv3->nvbase.svga.monitor->target_buffer->line[y][x];
             data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_current_position];
             
@@ -698,6 +707,9 @@ void nv3_render_15bpp(uint32_t vram_start, nv3_coord_16_t screen_size)
     {
         for (uint32_t x = 0; x < screen_size.x; x++)
         {
+            if (vram_current_position >= nv3->nvbase.vram_amount)
+                return;
+
             p = &nv3->nvbase.svga.monitor->target_buffer->line[y][x];
             data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_current_position];
             
@@ -728,7 +740,10 @@ void nv3_render_16bpp(uint32_t vram_start, nv3_coord_16_t screen_size)
     for (uint32_t y = 0; y < screen_size.y; y++)
     {
         for (uint32_t x = 0; x < screen_size.x; x++)
-        {
+        {            
+            if (vram_current_position >= nv3->nvbase.vram_amount)
+                return;
+
             p = &nv3->nvbase.svga.monitor->target_buffer->line[y][x];
             data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_current_position];
             
@@ -760,7 +775,10 @@ void nv3_render_32bpp(uint32_t vram_start, nv3_coord_16_t screen_size)
     for (uint32_t y = 0; y < screen_size.y; y++)
     {
         for (uint32_t x = 0; x < screen_size.x; x++)
-        {
+        {   
+            if (vram_current_position >= nv3->nvbase.vram_amount)
+                return;
+
             p = &nv3->nvbase.svga.monitor->target_buffer->line[y][x];
             data = *(uint32_t*)&nv3->nvbase.svga.vram[vram_current_position];
             
