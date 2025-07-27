@@ -2655,7 +2655,7 @@ image_open(cdrom_t *dev, const char *path)
 
         if (ret > 0) {
             if (img->is_dvd == 2) {
-                uint32_t lb = dev->ops->get_last_block(img);
+                uint32_t lb = image_get_last_block(img); /* Should be safer than previous way of doing it? */
                 img->is_dvd = (lb >= 524287);    /* Minimum 1 GB total capacity as threshold for DVD. */
             }
 
