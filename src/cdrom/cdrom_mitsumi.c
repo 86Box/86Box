@@ -8,11 +8,11 @@
  *
  *          Mitsumi CD-ROM emulation for the ISA bus.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2022 Miran Grca.
+ *          Copyright 2022       Miran Grca.
+ *          Copyright 2024-2025 Jasmine Iwanek.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -32,10 +32,6 @@
 #include <86box/cdrom_mitsumi.h>
 #include <86box/plat.h>
 #include <86box/sound.h>
-
-#define MCD_DEFAULT_IOPORT 0x310
-#define MCD_DEFAULT_IRQ    5
-#define MCD_DEFAULT_DMA    5
 
 #define RAW_SECTOR_SIZE    2352
 #define COOKED_SECTOR_SIZE 2048
@@ -434,10 +430,11 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
 {
     mcd_t *dev = calloc(1, sizeof(mcd_t));
 
-    dev->irq = MCD_DEFAULT_IRQ;
-    dev->dma = MCD_DEFAULT_DMA;
+    uint16_t base = device_get_config_hex16("base");
+    dev->irq  = device_get_config_int("irq");
+    dev->dma  = device_get_config_int("dma");
 
-    io_sethandler(MCD_DEFAULT_IOPORT, 3,
+    io_sethandler(base, 3,
                   mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
 
     mitsumi_cdrom_reset(dev);
@@ -456,6 +453,64 @@ mitsumi_cdrom_close(void *priv)
     }
 }
 
+static const device_config_t mitsumi_config[] = {
+    // clang-format off
+    {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x310,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "300H", .value = 0x300 },
+            { .description = "310H", .value = 0x310 },
+            { .description = "320H", .value = 0x320 },
+            { .description = "340H", .value = 0x340 },
+            { .description = "350H", .value = 0x350 },
+            { NULL                                  }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 3",  .value =  3 },
+            { .description = "IRQ 5",  .value =  5 },
+            { .description = "IRQ 9",  .value =  9 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = "IRQ 11", .value = 11 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 5", .value = 5 },
+            { .description = "DMA 6", .value = 6 },
+            { .description = "DMA 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format off
+};
+
 const device_t mitsumi_cdrom_device = {
     .name          = "Mitsumi CD-ROM interface",
     .internal_name = "mcd",
@@ -467,5 +522,5 @@ const device_t mitsumi_cdrom_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = mitsumi_config
 };
