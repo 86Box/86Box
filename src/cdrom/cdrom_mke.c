@@ -144,8 +144,8 @@ mke_log(const char *fmt, ...)
 #    define mke_log(fmt, ...)
 #endif
 
-#define CHECK_READY()                                      \
-    {                                                      \
+#define CHECK_READY()                                       \
+    {                                                       \
         if (mke->cdrom_dev->cd_status == CD_STATUS_EMPTY) { \
             fifo8_push(&mke->errors_fifo, 0x03);            \
             return;                                         \
