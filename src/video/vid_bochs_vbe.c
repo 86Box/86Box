@@ -511,7 +511,7 @@ bochs_vbe_outw(const uint16_t addr, const uint16_t val, void *priv)
                 svga_recalctimings(&dev->svga);
                 if (!(val & VBE_DISPI_NOCLEARMEM)) {
                     memset(dev->svga.vram, 0,
-                           dev->vbe_regs[VBE_DISPI_INDEX_YRES] * dev->svga.rowoffset);
+                           (size_t) dev->vbe_regs[VBE_DISPI_INDEX_YRES] * dev->svga.rowoffset);
                 }
             } else
                 dev->svga.read_bank = dev->svga.write_bank = 0;

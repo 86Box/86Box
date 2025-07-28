@@ -595,7 +595,7 @@ load_texture(const char *f, struct shader_texture *tex)
 
     int bpp = 4;
 
-    GLubyte *data = (GLubyte *) malloc(width * height * bpp);
+    GLubyte *data = (GLubyte *) malloc((size_t) width * height * bpp);
 
     int x, y, Y;
     for (y = 0; y < height; ++y) {
@@ -1709,7 +1709,7 @@ OpenGLRenderer::render()
         plat_tempfile(fn, NULL, (char*)".png");
         strcat(path, fn);
 
-        unsigned char *rgba = (unsigned char *)calloc(1, width * height * 4);
+        unsigned char *rgba = (unsigned char *) calloc(1, (size_t) width * height * 4);
         
         glw.glFinish();
         glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
