@@ -121,10 +121,10 @@ typedef struct mke_t {
     uint32_t data_to_push;
 
     pc_timer_t timer;
+
+    uint8_t *ver;
 } mke_t;
 mke_t mke;
-
-static uint8_t ver[10] = "CR-5630.75";
 
 #ifdef ENABLE_MKE_LOG
 int mke_do_log = ENABLE_MKE_LOG;
@@ -144,8 +144,8 @@ mke_log(const char *fmt, ...)
 #    define mke_log(fmt, ...)
 #endif
 
-#define CHECK_READY()                                      \
-    {                                                      \
+#define CHECK_READY()                                       \
+    {                                                       \
         if (mke->cdrom_dev->cd_status == CD_STATUS_EMPTY) { \
             fifo8_push(&mke->errors_fifo, 0x03);            \
             return;                                         \
@@ -614,7 +614,7 @@ mke_command(mke_t *mke, uint8_t value)
             case CMD1_READ_VER:
                 /* SB2CD Expects 12 bytes, but drive only returns 11. */
                 fifo8_reset(&mke->info_fifo);
-                fifo8_push_all(&mke->info_fifo, ver, 10);
+                fifo8_push_all(&mke->info_fifo, mke->ver, 10);
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 break;
             case CMD1_STATUS:
@@ -773,6 +773,22 @@ mke_init(const device_t *info)
     if (!dev)
         return NULL;
 
+    switch (device_get_config_int("firmware")) {
+        default:
+        case 0:
+            mke->ver = "CR-5630.75";
+            break;
+        case 1:
+            mke->ver = "CR-5630.80";
+            break;
+        case 2:
+            mke->ver = "CR-5620.75";
+            break;
+        case 3:
+            mke->ver = "CR-5620.80";
+            break;
+    }
+
     fifo8_create(&mke->info_fifo, 128);
     fifo8_create(&mke->data_fifo, 624240 * 2);
     fifo8_create(&mke->errors_fifo, 8);
@@ -826,6 +842,23 @@ static const device_config_t mke_config[] = {
             { .description = "330H", .value = 0x330 },
             { .description = "340H", .value = 0x340 },
             { NULL                                  }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "firmware",
+        .description    = "Firmware Version",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "CR-563 0.75", .value = 0 },
+            { .description = "CR-563 0.80", .value = 1 },
+            { .description = "CR-562 0.75", .value = 2 },
+            { .description = "CR-562 0.80", .value = 3 },
+            { .description = ""                        }
         },
         .bios           = { { 0 } }
     },
