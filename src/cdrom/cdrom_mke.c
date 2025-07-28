@@ -152,6 +152,15 @@ mke_log(const char *fmt, ...)
         }                                                   \
     }
 
+#define CHECK_READY_READ()                                                      \
+    {                                                                           \
+        if (mke->cdrom_dev->cd_status == CD_STATUS_EMPTY) {                     \
+            fifo8_push(&mke->errors_fifo, 0x03);                                \
+            fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke)); \
+            return;                                                             \
+        }                                                                       \
+    }
+
 static uint8_t temp_buf[65536];
 
 void
@@ -383,7 +392,7 @@ mke_command(mke_t *mke, uint8_t value)
                                           mke->command_buffer[3]) - 150;
                 int      len __attribute__((unused)) = 0;
 
-                CHECK_READY();
+                CHECK_READY_READ();
                 mke->data_to_push = 0;
 
                 while (count) {
@@ -394,6 +403,7 @@ mke_command(mke_t *mke, uint8_t value)
                         mke->data_to_push += mke->cdrom_dev->sector_size;
                     } else {
                         fifo8_push(&mke->errors_fifo, res == 0 ? 0x10 : 0x05);
+                        fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                         break;
                     }
                     count--;
