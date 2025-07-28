@@ -370,13 +370,18 @@ mke_command(mke_t *mke, uint8_t value)
                 mke->command_buffer[4], mke->command_buffer[5],
                 mke->command_buffer[6]);
         switch (mke->command_buffer[0]) {
-            case 06:
+            case 0x03:
+                fifo8_reset(&mke->info_fifo);
+                cdrom_stop(mke->cdrom_dev);
+                fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
+                break;
+            case 0x06:
                 fifo8_reset(&mke->info_fifo);
                 cdrom_stop(mke->cdrom_dev);
                 cdrom_eject(mke->cdrom_dev->id);
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 break;
-            case 07:
+            case 0x07:
                 fifo8_reset(&mke->info_fifo);
                 cdrom_reload(mke->cdrom_dev->id);
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
