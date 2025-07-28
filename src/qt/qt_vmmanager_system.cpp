@@ -408,6 +408,15 @@ VMManagerSystem::launchMainProcess() {
             return;
         }
     }
+    // If the system is already running, bring it to front
+    if (process->processId() != 0) {
+#ifdef Q_OS_WINDOWS
+        if (this->id) {
+            SetForegroundWindow((HWND)this->id);
+        }
+#endif
+        return;
+    }
     setProcessEnvVars();
     QString program = main_binary.filePath();
     QStringList args;
