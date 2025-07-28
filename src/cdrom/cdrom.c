@@ -1687,7 +1687,7 @@ cdrom_audio_track_search(cdrom_t *dev, const uint32_t pos,
                     dev->seek_pos = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
                 else {
                     cdrom_log(dev->log, "Unable to get the starting position for "
-                              "track %08X\n", ismsf & 0xff);
+                              "track %08X\n", pos2 & 0xff);
                     cdrom_stop(dev);
                 }
                 break;
@@ -1805,7 +1805,7 @@ cdrom_audio_play_toshiba(cdrom_t *dev, const uint32_t pos, const int type)
                     dev->cd_end = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
                 else {
                     cdrom_log(dev->log, "Unable to get the starting position for "
-                              "track %08X\n", ismsf & 0xff);
+                              "track %08X\n", pos2 & 0xff);
                     cdrom_stop(dev);
                 }
                 break;
@@ -1838,7 +1838,7 @@ cdrom_audio_scan(cdrom_t *dev, const uint32_t pos)
     uint8_t       ret       = 0;
 
     if (dev->cd_status & CD_STATUS_HAS_AUDIO) {
-        cdrom_log(dev->log, "Audio Scan: MSF = %06x, type = %02x\n", pos, type);
+        cdrom_log(dev->log, "Audio Scan: MSF = %06x\n", pos);
 
         if (pos == 0xffffffff) {
             cdrom_log(dev->log, "(Type 0) Search from current position\n");

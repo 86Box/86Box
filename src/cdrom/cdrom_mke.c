@@ -776,16 +776,16 @@ mke_init(const device_t *info)
     switch (device_get_config_int("firmware")) {
         default:
         case 0:
-            mke->ver = "CR-5630.75";
+            mke->ver = (uint8_t *) "CR-5630.75";
             break;
         case 1:
-            mke->ver = "CR-5630.80";
+            mke->ver = (uint8_t *) "CR-5630.80";
             break;
         case 2:
-            mke->ver = "CR-5620.75";
+            mke->ver = (uint8_t *) "CR-5620.75";
             break;
         case 3:
-            mke->ver = "CR-5620.80";
+            mke->ver = (uint8_t *) "CR-5620.80";
             break;
     }
 
