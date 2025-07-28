@@ -415,7 +415,7 @@ VMManagerSystem::launchMainProcess() {
     setProcessEnvVars();
     QString program = main_binary.filePath();
     QStringList args;
-    args << "-P" << config_dir;
+    args << "--vmpath" << config_dir;
     args << "--vmname" << displayName;
     process->setProgram(program);
     process->setArguments(args);
@@ -471,7 +471,7 @@ VMManagerSystem::launchSettings() {
     QString program = main_binary.filePath();
     QStringList open_command_args;
     QStringList args;
-    args << "-P" << config_dir << "-S";
+    args << "--vmpath" << config_dir << "--settings";
     process->setProgram(program);
     process->setArguments(args);
     qDebug() << Q_FUNC_INFO << " Full Command:" << process->program() << " " << process->arguments();
