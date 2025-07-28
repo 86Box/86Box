@@ -182,19 +182,6 @@ VMManagerMain::settingsButtonPressed() {
         return;
     }
     selected_sysconfig->launchSettings();
-    // If the process is already running, the system will be instructed to open its settings window.
-    // Otherwise the process will be launched and will need to be tracked here.
-    if (!selected_sysconfig->isProcessRunning()) {
-        connect(selected_sysconfig->process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            [=](const int exitCode, const QProcess::ExitStatus exitStatus){
-                if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
-                    qInfo().nospace().noquote() << "Abnormal program termination while launching settings: exit code " <<  exitCode << ", exit status " << exitStatus;
-                    return;
-                }
-                selected_sysconfig->reloadConfig();
-                vm_details->updateData(selected_sysconfig);
-            });
-    }
 }
 
 void

@@ -418,6 +418,14 @@ VMManagerSystem::launchMainProcess() {
     qDebug() << Q_FUNC_INFO << " Full Command:" << process->program() << " " << process->arguments();
     process->start();
     updateTimestamp();
+
+    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+    [=](const int exitCode, const QProcess::ExitStatus exitStatus){
+        if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
+            qInfo().nospace().noquote() << "Abnormal program termination while launching main process: exit code " <<  exitCode << ", exit status " << exitStatus;
+            return;
+        }
+    });
 }
 
 void
@@ -430,6 +438,15 @@ VMManagerSystem::launchSettings() {
     if(!has86BoxBinary()) {
         qWarning("No binary found! returning");
         return;
+    }
+
+    // start the server first to get the socket name
+    if (!serverIsRunning) {
+        if(!startServer()) {
+            // FIXME: Better error handling
+            qInfo("Failed to start VM Manager server");
+            return;
+        }
     }
 
     // If the system is already running, instruct it to show settings
@@ -454,6 +471,14 @@ VMManagerSystem::launchSettings() {
     process->setArguments(args);
     qDebug() << Q_FUNC_INFO << " Full Command:" << process->program() << " " << process->arguments();
     process->start();
+
+    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+    [=](const int exitCode, const QProcess::ExitStatus exitStatus){
+        if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
+            qInfo().nospace().noquote() << "Abnormal program termination while launching settings: exit code " <<  exitCode << ", exit status " << exitStatus;
+            return;
+        }
+    });
 }
 
 void
