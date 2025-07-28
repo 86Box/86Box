@@ -746,7 +746,7 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
 
     if (svga->render_line_offset) {
         if (svga->render_line_offset > 0) {
-            memset(p, svga->overscan_color, charwidth * svga->render_line_offset * sizeof(uint32_t));
+            memset(p, svga->overscan_color, (size_t) charwidth * svga->render_line_offset * sizeof(uint32_t));
             p += charwidth * svga->render_line_offset;
         }
     }
@@ -911,7 +911,7 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     if (svga->render_line_offset < 0) {
         uint32_t *orig_line = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
         memmove(orig_line, orig_line + (charwidth * -svga->render_line_offset), (svga->hdisp) * 4);
-        memset((orig_line + svga->hdisp) - (charwidth * -svga->render_line_offset), svga->overscan_color, charwidth * -svga->render_line_offset * 4);
+        memset((orig_line + svga->hdisp) - (charwidth * -svga->render_line_offset), svga->overscan_color, (size_t) charwidth * -svga->render_line_offset * 4);
     }
 }
 
