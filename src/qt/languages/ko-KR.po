@@ -27,6 +27,9 @@ msgstr "Ctrl+Alt+Esc(&E)"
 msgid "&Pause"
 msgstr "일시정지(&P)"
 
+msgid "Re&sume"
+msgstr ""
+
 msgid "E&xit..."
 msgstr "끝내기(&X)..."
 

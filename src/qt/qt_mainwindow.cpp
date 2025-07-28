@@ -2115,8 +2115,11 @@ MainWindow::updateUiPauseState()
                                     QIcon(":/menuicons/qt/icons/pause.ico");
     const auto tooltip_text = dopause ? QString(tr("Resume execution")) :
                                     QString(tr("Pause execution"));
+    const auto menu_text = dopause ? QString(tr("Re&sume")) :
+                                    QString(tr("&Pause"));
     ui->actionPause->setIcon(pause_icon);
     ui->actionPause->setToolTip(tooltip_text);
+    ui->actionPause->setText(menu_text);
     emit vmmRunningStateChanged(static_cast<VMManagerProtocol::RunningState>(window_blocked ? (dopause ? VMManagerProtocol::RunningState::PausedWaiting : VMManagerProtocol::RunningState::RunningWaiting) : (VMManagerProtocol::RunningState)dopause));
 }
 

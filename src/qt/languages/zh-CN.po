@@ -27,6 +27,9 @@ msgstr "Ctrl+Alt+Esc(&E)"
 msgid "&Pause"
 msgstr "暂停(&P)"
 
+msgid "Re&sume"
+msgstr ""
+
 msgid "E&xit..."
 msgstr "退出(&X)..."
 

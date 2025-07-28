@@ -27,6 +27,9 @@ msgstr ""
 msgid "&Pause"
 msgstr ""
 
+msgid "Re&sume"
+msgstr ""
+
 msgid "E&xit..."
 msgstr ""
 
