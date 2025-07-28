@@ -676,6 +676,11 @@ main(int argc, char *argv[])
 #endif
 
     if (settings_only) {
+        VMManagerClientSocket manager_socket;
+        if (qgetenv("VMM_86BOX_SOCKET").size()) {
+            manager_socket.IPCConnect(qgetenv("VMM_86BOX_SOCKET"));
+            manager_socket.clientRunningStateChanged(VMManagerProtocol::RunningState::PausedWaiting);
+        }
         Settings settings;
         if (settings.exec() == QDialog::Accepted) {
             settings.save();
