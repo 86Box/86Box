@@ -1440,10 +1440,16 @@ msgstr "Paso de puerto serie 4"
 msgid "Renderer options..."
 msgstr "Opciones del renderizador..."
 
+msgid "PC/XT Keyboard"
+msgstr ""
+
 msgid "AT Keyboard"
 msgstr ""
 
 msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard"
 msgstr ""
 
 msgid "PS/2 Keyboard (US)"
@@ -1456,6 +1462,12 @@ msgid "PS/2 Keyboard (Japanese)"
 msgstr ""
 
 msgid "PS/55 Keyboard"
+msgstr ""
+
+msgid "AT/PS/2 Keyboard"
+msgstr ""
+
+msgid "Keys"
 msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"

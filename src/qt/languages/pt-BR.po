@@ -1440,11 +1440,17 @@ msgstr "Passagem de porta serial 4"
 msgid "Renderer options..."
 msgstr "Opções do renderizador..."
 
+msgid "PC/XT Keyboard"
+msgstr "Teclado PC/XT"
+
 msgid "AT Keyboard"
 msgstr "Teclado AT"
 
 msgid "AX Keyboard"
 msgstr "Teclado AX"
+
+msgid "PS/2 Keyboard"
+msgstr "Teclado PS/2"
 
 msgid "PS/2 Keyboard (US)"
 msgstr "Teclado PS/2 (Estados Unidos)"
@@ -1457,6 +1463,12 @@ msgstr "Teclado PS/2 (Japonês)"
 
 msgid "PS/55 Keyboard"
 msgstr "Teclado PS/55"
+
+msgid "AT/PS/2 Keyboard"
+msgstr "Teclado AT/PS/2"
+
+msgid "Keys"
+msgstr "Teclas"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Mouse de barramento Logitech/Microsoft"
