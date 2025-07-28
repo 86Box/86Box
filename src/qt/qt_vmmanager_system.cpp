@@ -28,6 +28,7 @@
 #include <QElapsedTimer>
 #include <QProgressDialog>
 #include <QWindow>
+#include "qt_util.hpp"
 #include "qt_vmmanager_system.hpp"
 // #include "qt_vmmanager_details_section.hpp"
 #include "qt_vmmanager_detailsection.hpp"
@@ -67,16 +68,10 @@ VMManagerSystem::VMManagerSystem(const QString &sysconfig_file)  {
     // that contains the 86box configuration file
     config_name = config_file.dir().dirName();
     // The full path of the directory that contains the 86box configuration file
-    config_dir = shortened_dir = config_file.dir().path();
+    config_dir = shortened_dir = config_file.dir().absolutePath();
     process_status = ProcessStatus::Stopped;
-    // Main 86Box uses usr_path for UUID which includes the trailing slash.
-    // Make sure to append the slash here so the UUIDs will match
-    auto uuid_path = config_dir;
-    if (!uuid_path.endsWith("/")) {
-        uuid_path.append("/");
-    }
     // In the configuration file the UUID is used as a unique value
-    uuid = QUuid::createUuidV5(QUuid{}, uuid_path).toString(QUuid::WithoutBraces);
+    uuid = util::generateUuid(sysconfig_file);
     // That unique value is used to map the information to each individual system.
     config_settings = new VMManagerConfig(VMManagerConfig::ConfigType::System, uuid);
 
