@@ -519,6 +519,9 @@ msgstr ""
 msgid "FD Controller:"
 msgstr ""
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr ""
 
@@ -547,6 +550,9 @@ msgid "Cassette"
 msgstr ""
 
 msgid "Hard disks:"
+msgstr ""
+
+msgid "Firmware Version"
 msgstr ""
 
 msgid "&New..."

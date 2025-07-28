@@ -519,6 +519,9 @@ msgstr "4. Paralel Port"
 msgid "FD Controller:"
 msgstr "Disket Denetleyicisi:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Üçlü IDE Denetleyici"
 
@@ -548,6 +551,9 @@ msgstr "Kaset"
 
 msgid "Hard disks:"
 msgstr "Hard diskler:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Yeni imaj oluştur"

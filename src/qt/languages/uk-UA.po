@@ -519,6 +519,9 @@ msgstr "Паралельний порт LPT4"
 msgid "FD Controller:"
 msgstr "Контролер FD:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Третинний IDE контролер"
 
@@ -548,6 +551,9 @@ msgstr "Касета"
 
 msgid "Hard disks:"
 msgstr "Жорсткі диски:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Створити..."

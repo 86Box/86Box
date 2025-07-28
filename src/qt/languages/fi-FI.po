@@ -519,6 +519,9 @@ msgstr "Rinnakkaisportti 4"
 msgid "FD Controller:"
 msgstr "Levykeohjain:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Kolmas IDE-ohjain"
 
@@ -548,6 +551,9 @@ msgstr "Kasettiasema"
 
 msgid "Hard disks:"
 msgstr "Kiintolevyt:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Uusi..."

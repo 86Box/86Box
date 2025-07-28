@@ -519,6 +519,9 @@ msgstr "Vzporedna vrata 4"
 msgid "FD Controller:"
 msgstr "Disketni krmilnik:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Terciarni krmilnik IDE"
 
@@ -548,6 +551,9 @@ msgstr "Kasetnik"
 
 msgid "Hard disks:"
 msgstr "Trdi diski:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "Nov..."

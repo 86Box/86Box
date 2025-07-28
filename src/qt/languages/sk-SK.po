@@ -519,6 +519,9 @@ msgstr "Povoliť port LPT4"
 msgid "FD Controller:"
 msgstr "Disketový radič:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Tretí radič IDE"
 
@@ -548,6 +551,9 @@ msgstr "Kazeta"
 
 msgid "Hard disks:"
 msgstr "Pevné disky:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Nový..."

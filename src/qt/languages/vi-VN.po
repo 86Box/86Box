@@ -519,6 +519,9 @@ msgstr "Cổng parallel 4"
 msgid "FD Controller:"
 msgstr "Bộ điều khiển ổ mềm:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Bộ điều khiển IDE thứ ba"
 
@@ -548,6 +551,9 @@ msgstr "Cassette"
 
 msgid "Hard disks:"
 msgstr "Đĩa cứng:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "Tạ&o mới..."

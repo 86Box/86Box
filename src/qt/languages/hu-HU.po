@@ -519,6 +519,9 @@ msgstr "Párhuzamos port 4"
 msgid "FD Controller:"
 msgstr "Floppy-vezérlő:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Harmadlagos IDE-vezérlő"
 
@@ -548,6 +551,9 @@ msgstr "Magnókazetta"
 
 msgid "Hard disks:"
 msgstr "Merevlemezek:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Új..."

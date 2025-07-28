@@ -519,6 +519,9 @@ msgstr "パラレルポート4"
 msgid "FD Controller:"
 msgstr "FDDコントローラー:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "第三IDEコントローラー"
 
@@ -548,6 +551,9 @@ msgstr "カセット"
 
 msgid "Hard disks:"
 msgstr "ハード ディスク:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "新規(&N)..."

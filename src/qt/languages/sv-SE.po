@@ -519,6 +519,9 @@ msgstr "Parallellport 4"
 msgid "FD Controller:"
 msgstr "Styrenhet för diskett:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Tertiär IDE-kontroller"
 
@@ -548,6 +551,9 @@ msgstr "Kassettband"
 
 msgid "Hard disks:"
 msgstr "Hårddiskar:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Ny..."

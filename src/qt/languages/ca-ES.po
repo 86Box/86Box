@@ -519,6 +519,9 @@ msgstr "Port paral·lel 4"
 msgid "FD Controller:"
 msgstr "Controlador de FD:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Controlador IDE terciari"
 
@@ -548,6 +551,9 @@ msgstr "Casset"
 
 msgid "Hard disks:"
 msgstr "Discs durs:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Nou ..."
