@@ -541,7 +541,7 @@ pfq_read(void)
 {
     uint8_t temp = pfq[0];
 
-    for (uint16_t i = 0; i < (pfq_size - 1); i++)
+    for (int i = 0; i < (pfq_size - 1); i++)
         pfq[i] = pfq[i + 1];
     pfq_pos--;
     cpu_state.pc = (cpu_state.pc + 1) & 0xffff;
