@@ -1212,7 +1212,7 @@ svga_recalctimings(svga_t *svga)
             int y_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_y >> 1);
             int x_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_x >> 1);
             video_wait_for_buffer_monitor(svga->monitor_index);
-            memset(svga->monitor->target_buffer->dat, 0, svga->monitor->target_buffer->w * svga->monitor->target_buffer->h * 4);
+            memset(svga->monitor->target_buffer->dat, 0, (size_t) svga->monitor->target_buffer->w * svga->monitor->target_buffer->h * 4);
             video_blit_memtoscreen_monitor(x_start, y_start, svga->monitor->mon_xsize + x_add, svga->monitor->mon_ysize + y_add, svga->monitor_index);
             video_wait_for_buffer_monitor(svga->monitor_index);
             svga->dpms_ui = 1;

@@ -841,7 +841,7 @@ wd76c10_pf_loc_recalc(wd76c10_t *dev)
     uint8_t ems_page;
     uint32_t base;
 
-    for (uint8_t i = (0x031 + pf_loc); i <= (0x037 + pf_loc); i++) {
+    for (uint16_t i = (0x031 + pf_loc); i <= (0x037 + pf_loc); i++) {
         ems_page = (i - 0x10) & 0xf7;
         dev->mem_pages[i] = ems_page;
         base = ((uint32_t) i) << 14;
