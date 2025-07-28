@@ -123,6 +123,8 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
         ui->listView->setCurrentIndex(first_index);
     }
 
+    connect(ui->listView, &QListView::doubleClicked, this, &VMManagerMain::startButtonPressed);
+
     // Load and apply settings
     loadSettings();
 
