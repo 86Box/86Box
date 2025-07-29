@@ -515,10 +515,21 @@ VMManagerMain::showTextFileContents(const QString &title, const QString &path)
     displayFile.close();
 
     const auto textDisplayDialog = new QDialog(this);
-    textDisplayDialog->setFixedSize(QSize(540, 360));
+    textDisplayDialog->setMinimumSize(QSize(540, 360));
     textDisplayDialog->setWindowTitle(QString("%1 - %2").arg(title, fi.fileName()));
 
     const auto textEdit = new QPlainTextEdit();
+    const auto monospaceFont = new QFont();
+#ifdef Q_OS_WINDOWS
+    monospaceFont->setFamily("Consolas");
+#elif defined(Q_OS_MACOS)
+    monospaceFont->setFamily("Menlo");
+#else
+    monospaceFont->setFamily("Monospace");
+#endif
+    monospaceFont->setStyleHint(QFont::Monospace);
+    monospaceFont->setFixedPitch(true);
+    textEdit->setFont(*monospaceFont);
     textEdit->setReadOnly(true);
     textEdit->setPlainText(configFileContents);
     const auto buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok);

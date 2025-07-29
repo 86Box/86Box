@@ -139,6 +139,17 @@ WithExistingConfigPage(QWidget *parent)
     topLabel->setWordWrap(true);
 
     existingConfiguration = new QPlainTextEdit();
+    const auto monospaceFont = new QFont();
+#ifdef Q_OS_WINDOWS
+    monospaceFont->setFamily("Consolas");
+#elif defined(Q_OS_MACOS)
+    monospaceFont->setFamily("Menlo");
+#else
+    monospaceFont->setFamily("Monospace");
+#endif
+    monospaceFont->setStyleHint(QFont::Monospace);
+    monospaceFont->setFixedPitch(true);
+    existingConfiguration->setFont(*monospaceFont);
     connect(existingConfiguration, &QPlainTextEdit::textChanged, this, &WithExistingConfigPage::completeChanged);
     registerField("existingConfiguration*", this, "configuration");
 
