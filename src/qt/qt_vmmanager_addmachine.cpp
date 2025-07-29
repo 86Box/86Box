@@ -62,11 +62,14 @@ VMManagerAddMachine(QWidget *parent) : QWizard(parent)
     setOption(HaveHelpButton, false);
     // setPixmap(LogoPixmap, QPixmap(":/settings/qt/icons/86Box-gray.ico"));
 
+#if 0
     connect(this, &QWizard::helpRequested, this, &VMManagerAddMachine::showHelp);
+#endif
 
     setWindowTitle(tr("Add new system wizard"));
 }
 
+#if 0
 void
 VMManagerAddMachine::showHelp()
 {
@@ -92,6 +95,7 @@ VMManagerAddMachine::showHelp()
     QMessageBox::information(this, tr("Add new system wizard help"), message);
     lastHelpMessage = message;
 }
+#endif
 
 IntroPage::
 IntroPage(QWidget *parent)
