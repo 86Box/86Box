@@ -27,6 +27,7 @@
 #include <QLineEdit>
 #include <QStringListModel>
 #include <QCompleter>
+#include <QCloseEvent>
 #include <QDesktopServices> 
 
 VMManagerMainWindow::
@@ -159,6 +160,15 @@ VMManagerMainWindow::saveSettings() const
 void
 VMManagerMainWindow::closeEvent(QCloseEvent *event)
 {
+    int running = vmm->getActiveMachineCount();
+    if (running > 0) {
+        QMessageBox warningbox(QMessageBox::Icon::Warning, tr("%1 VM Manager").arg(EMU_NAME), tr("%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?").arg(running), QMessageBox::Yes | QMessageBox::No, this);
+        warningbox.exec();
+        if (warningbox.result() == QMessageBox::No) {
+            event->ignore();
+            return;
+        }
+    }
     saveSettings();
     QMainWindow::closeEvent(event);
 }

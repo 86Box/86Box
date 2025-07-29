@@ -161,3 +161,14 @@ VMManagerModel::getProcessStats()
     }
     return stats;
 }
+
+int
+VMManagerModel::getActiveMachineCount()
+{
+    int running = 0;
+    for (const auto& system: machines) {
+        if (system->getProcessStatus() != VMManagerSystem::ProcessStatus::Stopped)
+            running++;
+    }
+    return running;
+}

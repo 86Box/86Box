@@ -77,6 +77,7 @@ public slots:
 #endif
     void modelDataChange();
     void onPreferencesUpdated();
+    int  getActiveMachineCount();
 
 private:
     Ui::VMManagerMain *ui;
