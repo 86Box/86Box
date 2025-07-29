@@ -519,6 +519,9 @@ msgstr "Паралельний порт LPT4"
 msgid "FD Controller:"
 msgstr "Контролер FD:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Третинний IDE контролер"
 
@@ -548,6 +551,9 @@ msgstr "Касета"
 
 msgid "Hard disks:"
 msgstr "Жорсткі диски:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Створити..."
@@ -1443,10 +1449,16 @@ msgstr "Пропуск послідовного порту 4"
 msgid "Renderer options..."
 msgstr "Параметри рендерингу..."
 
+msgid "PC/XT Keyboard"
+msgstr ""
+
 msgid "AT Keyboard"
 msgstr ""
 
 msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard"
 msgstr ""
 
 msgid "PS/2 Keyboard (US)"
@@ -1459,6 +1471,12 @@ msgid "PS/2 Keyboard (Japanese)"
 msgstr ""
 
 msgid "PS/55 Keyboard"
+msgstr ""
+
+msgid "AT/PS/2 Keyboard"
+msgstr ""
+
+msgid "Keys"
 msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"

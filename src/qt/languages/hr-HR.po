@@ -519,6 +519,9 @@ msgstr "Paralelna vrata 4"
 msgid "FD Controller:"
 msgstr "Kontroler diskete:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Tercijarni IDE kontroler"
 
@@ -548,6 +551,9 @@ msgstr "Audio kaseta"
 
 msgid "Hard disks:"
 msgstr "Tvrdi diskovi:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Novi..."
@@ -1440,10 +1446,16 @@ msgstr "Prolaz serijskih vrata 4"
 msgid "Renderer options..."
 msgstr "Opcije rendera..."
 
+msgid "PC/XT Keyboard"
+msgstr ""
+
 msgid "AT Keyboard"
 msgstr ""
 
 msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard"
 msgstr ""
 
 msgid "PS/2 Keyboard (US)"
@@ -1456,6 +1468,12 @@ msgid "PS/2 Keyboard (Japanese)"
 msgstr ""
 
 msgid "PS/55 Keyboard"
+msgstr ""
+
+msgid "AT/PS/2 Keyboard"
+msgstr ""
+
+msgid "Keys"
 msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"
