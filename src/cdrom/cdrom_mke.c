@@ -878,9 +878,12 @@ mke_close(void *priv)
     for (uint8_t i = 0; i < 4; i++) {
         mke_t *mke = &(mki->mke[i]);
 
-        fifo8_destroy(&mke->info_fifo);
-        fifo8_destroy(&mke->data_fifo);
-        timer_disable(&mke->timer);
+        if (mke->present) {
+            timer_disable(&mke->timer);
+
+            fifo8_destroy(&mke->data_fifo);
+            fifo8_destroy(&mke->info_fifo);
+        }
     }
 
     free(mki);
