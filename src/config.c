@@ -825,12 +825,16 @@ load_image_file(char *dest, char *p, uint8_t *ui_wp)
        prefix = "wp://";
 
     if (path_abs(p)) {
-        if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
+        if ((strlen(prefix) + strlen(p)) > (MAX_IMAGE_PATH_LEN - 1))
             ret = 1;
         else
             snprintf(dest, MAX_IMAGE_PATH_LEN, "%s%s", prefix, p);
-    } else
-        snprintf(dest, MAX_IMAGE_PATH_LEN, "%s%s%s%s", prefix, usr_path, path_get_slash(usr_path), p);
+    } else {
+        if ((strlen(prefix) + strlen(usr_path) + strlen(path_get_slash(usr_path)) + strlen(p)) > (MAX_IMAGE_PATH_LEN - 1))
+            ret = 1;
+        else
+            snprintf(dest, MAX_IMAGE_PATH_LEN, "%s%s%s%s", prefix, usr_path, path_get_slash(usr_path), p);
+    }
 
     path_normalize(dest);
 
