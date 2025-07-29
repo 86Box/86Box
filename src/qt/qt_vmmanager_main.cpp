@@ -459,6 +459,12 @@ VMManagerMain::onPreferencesUpdated()
     }
 }
 
+int
+VMManagerMain::getActiveMachineCount()
+{
+    return vm_model->getActiveMachineCount();
+}
+
 #if EMU_BUILD_NUM != 0
 void
 VMManagerMain::backgroundUpdateCheckStart() const
