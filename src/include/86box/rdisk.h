@@ -63,10 +63,12 @@ static const rdisk_drive_type_t rdisk_drive_types[KNOWN_RDISK_DRIVE_TYPES] = {
 };
 
 enum {
-    RDISK_BUS_DISABLED = 0,
-    RDISK_BUS_ATAPI    = 5,
-    RDISK_BUS_SCSI     = 6,
-    RDISK_BUS_USB      = 7
+    RDISK_BUS_DISABLED =  0,
+    RDISK_BUS_LPT      =  6,
+    RDISK_BUS_IDE      =  7,
+    RDISK_BUS_ATAPI    =  8,
+    RDISK_BUS_SCSI     =  9,
+    RDISK_BUS_USB      = 10
 };
 
 typedef struct rdisk_drive_t {

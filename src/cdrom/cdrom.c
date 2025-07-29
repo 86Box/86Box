@@ -1250,6 +1250,26 @@ cdrom_get_type_count(void)
 }
 
 void
+cdrom_generate_name_mke(const int type, char *name)
+{
+    char  elements[2][512] = { 0 };
+
+    memcpy(elements[0], cdrom_drive_types[type].model,
+           strlen(cdrom_drive_types[type].model) + 1);
+    char *s = strstr(elements[0], "  ");
+    if (s != NULL)
+        s[0] = 0x00;
+
+    memcpy(elements[1], cdrom_drive_types[type].revision,
+           strlen(cdrom_drive_types[type].revision) + 1);
+    s = strstr(elements[1], " ");
+    if (s != NULL)
+        s[0] = 0x00;
+
+    sprintf(name, "%s%s", elements[0], elements[1]);
+}
+
+void
 cdrom_get_identify_model(const int type, char *name, const int id)
 {
     char  elements[2][512] = { 0 };

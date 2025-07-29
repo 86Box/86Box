@@ -1387,11 +1387,17 @@ load_floppy_and_cdrom_drives(void)
             ini_section_delete_var(cat, temp);
 
         /* Default values, needed for proper operation of the Settings dialog. */
-        cdrom[c].ide_channel = cdrom[c].scsi_device_id = c + 2;
+        cdrom[c].mke_channel = cdrom[c].ide_channel = cdrom[c].scsi_device_id = c & 3;
 
-        if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
+        if (cdrom[c].bus_type == CDROM_BUS_MKE) {
+            sprintf(temp, "cdrom_%02i_mke_channel", c + 1);
+            cdrom[c].mke_channel = !!ini_section_get_int(cat, temp, c & 3);
+
+            if (cdrom[c].mke_channel > 3)
+                cdrom[c].mke_channel = 3;
+        } else if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
             sprintf(temp, "cdrom_%02i_ide_channel", c + 1);
-            sprintf(tmp2, "%01u:%01u", (c + 2) >> 1, (c + 2) & 1);
+            sprintf(tmp2, "%01u:%01u", (c & 3) >> 1, (c & 3) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
             sscanf(p, "%01u:%01u", &board, &dev);
             board &= 3;
@@ -1402,13 +1408,13 @@ load_floppy_and_cdrom_drives(void)
                 cdrom[c].ide_channel = 7;
         } else if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
             sprintf(temp, "cdrom_%02i_scsi_location", c + 1);
-            sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c + 2);
+            sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c & 3);
             p = ini_section_get_string(cat, temp, tmp2);
             sscanf(p, "%01u:%02u", &board, &dev);
             if (board >= SCSI_BUS_MAX) {
                 /* Invalid bus - check legacy ID */
                 sprintf(temp, "cdrom_%02i_scsi_id", c + 1);
-                cdrom[c].scsi_device_id = ini_section_get_int(cat, temp, c + 2);
+                cdrom[c].scsi_device_id = ini_section_get_int(cat, temp, c & 3);
 
                 if (cdrom[c].scsi_device_id > 15)
                     cdrom[c].scsi_device_id = 15;
@@ -1417,6 +1423,11 @@ load_floppy_and_cdrom_drives(void)
                 dev &= 15;
                 cdrom[c].scsi_device_id = (board << 4) + dev;
             }
+        }
+
+        if (cdrom[c].bus_type != CDROM_BUS_MKE) {
+            sprintf(temp, "cdrom_%02i_mke_channel", c + 1);
+            ini_section_delete_var(cat, temp);
         }
 
         if (cdrom[c].bus_type != CDROM_BUS_ATAPI) {
@@ -3132,8 +3143,7 @@ save_floppy_and_cdrom_drives(void)
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
         char *tn = cdrom_get_internal_name(cdrom_get_type(c));
-        if ((cdrom[c].bus_type == 0) || (cdrom[c].bus_type == CDROM_BUS_MITSUMI) || (cdrom[c].bus_type == CDROM_BUS_MKE) ||
-            !strcmp(tn, "86cd"))
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].bus_type == CDROM_BUS_MITSUMI) || !strcmp(tn, "86cd"))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp, tn);
@@ -3149,6 +3159,14 @@ save_floppy_and_cdrom_drives(void)
 
             sprintf(tmp2, "%u, %s", cdrom[c].sound_on,
                     hdd_bus_to_string(cdrom[c].bus_type, 1));
+            ini_section_set_string(cat, temp, tmp2);
+        }
+
+        sprintf(temp, "cdrom_%02i_mke_channel", c + 1);
+        if (cdrom[c].bus_type != CDROM_BUS_MKE)
+            ini_section_delete_var(cat, temp);
+        else {
+            ini_section_set_int(cat, temp, cdrom[c].mke_channel);
             ini_section_set_string(cat, temp, tmp2);
         }
 
