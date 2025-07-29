@@ -96,6 +96,7 @@ typedef struct mke_t {
 
     uint8_t command_buffer[7];
     uint8_t command_buffer_pending;
+    uint8_t command_byte;
 
     uint8_t vol0, vol1, patch0, patch1;
     uint8_t mode_select[5];
@@ -388,6 +389,8 @@ mke_command(mke_t *mke, uint8_t value)
 
     if (!mke->command_buffer_pending && mke->command_buffer[0]) {
         mke->command_buffer_pending = 7;
+        if (mke->command_buffer[0] != CMD1_READ_ERR)
+            mke->command_byte = mke->command_buffer[0];
         mke_log("mke_command: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n",
                 mke->command_buffer[0], mke->command_buffer[1],
                 mke->command_buffer[2], mke->command_buffer[3],
@@ -653,8 +656,11 @@ mke_command(mke_t *mke, uint8_t value)
                 fifo8_reset(&mke->info_fifo);
                 mke_log("CMD: READ ERR\n");
                 memset(x, 0, 8);
-                if (fifo8_num_used(&mke->errors_fifo))
-                    fifo8_pop_buf(&mke->errors_fifo, x, fifo8_num_used(&mke->errors_fifo));
+                x[1] = mke->command_byte;
+                if (fifo8_num_used(&mke->errors_fifo)) {
+                    uint8_t error = fifo8_pop(&mke->errors_fifo);
+                    memset(&x[2], error, 6);
+                }
                 fifo8_push_all(&mke->info_fifo, x, 8);
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 fifo8_reset(&mke->errors_fifo);
