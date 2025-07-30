@@ -52,11 +52,17 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
+   <property name="autoFillBackground">
+    <bool>true</bool>
+   </property>
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
    <property name="movable">
     <bool>false</bool>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::TopToolBarArea</set>
    </property>
    <property name="iconSize">
     <size>
@@ -212,9 +218,6 @@
    </property>
   </action>
   <action name="actionExit">
-   <property name="icon">
-    <iconset theme="QIcon::ApplicationExit"/>
-   </property>
    <property name="text">
     <string>E&amp;xit</string>
    </property>

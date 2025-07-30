@@ -32,7 +32,6 @@
 VMManagerMain::VMManagerMain(QWidget *parent) :
     QWidget(parent), ui(new Ui::VMManagerMain), selected_sysconfig(new VMManagerSystem) {
     ui->setupUi(this);
-    this->setWindowTitle("86Box VM Manager");
 
     // Set up the main listView
     ui->listView->setItemDelegate(new VMManagerListViewDelegate);
@@ -100,7 +99,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             QAction killIcon(tr("&Kill"));
             contextMenu.addAction(&killIcon);
             connect(&killIcon, &QAction::triggered, [this, parent] {
-                QMessageBox msgbox(QMessageBox::Warning, tr("Warning"), tr("Killing a virtual machine can cause data loss. Only do this if 86Box.exe process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?").arg(selected_sysconfig->displayName), QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, parent);
+                QMessageBox msgbox(QMessageBox::Warning, tr("Warning"), tr("Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?").arg(selected_sysconfig->displayName), QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, parent);
                 msgbox.exec();
                 if (msgbox.result() == QMessageBox::Yes) {
                     selected_sysconfig->process->kill();
