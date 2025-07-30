@@ -277,7 +277,7 @@ SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current)
     int     speed   = cdrom_get_speed(type);
     if (speed == -1) {
         speed   = current.siblingAtColumn(1).data(Qt::UserRole).toUInt();
-        ui->comboBoxSpeed->setEnabled(true);
+        ui->comboBoxSpeed->setEnabled((bus == CDROM_BUS_DISABLED) ? false : true);
     } else
         ui->comboBoxSpeed->setEnabled(false);
     ui->comboBoxSpeed->setCurrentIndex(speed == 0 ? 7 : speed - 1);
