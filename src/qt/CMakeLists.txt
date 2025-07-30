@@ -187,14 +187,6 @@ add_library(ui STATIC
     qt_mediahistorymanager.cpp
     qt_mediahistorymanager.hpp
 
-    qt_updatecheck.cpp
-    qt_updatecheck.hpp
-    qt_updatecheckdialog.cpp
-    qt_updatecheckdialog.hpp
-    qt_updatecheckdialog.ui
-    qt_updatedetails.cpp
-    qt_updatedetails.hpp
-    qt_updatedetails.ui
     qt_downloader.cpp
     qt_downloader.hpp
 
@@ -244,6 +236,19 @@ add_library(ui STATIC
     qt_iconindicators.hpp
     qt_iconindicators.cpp
 )
+
+if(EMU_BUILD_NUM)
+    target_sources(ui PRIVATE
+        qt_updatecheck.cpp
+        qt_updatecheck.hpp
+        qt_updatecheckdialog.cpp
+        qt_updatecheckdialog.hpp
+        qt_updatecheckdialog.ui
+        qt_updatedetails.cpp
+        qt_updatedetails.hpp
+        qt_updatedetails.ui
+    )
+endif()
 
 if(RTMIDI)
     target_compile_definitions(ui PRIVATE USE_RTMIDI)
