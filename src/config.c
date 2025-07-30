@@ -1390,11 +1390,17 @@ load_floppy_and_cdrom_drives(void)
         cdrom[c].mke_channel = cdrom[c].ide_channel = cdrom[c].scsi_device_id = c & 3;
 
         if (cdrom[c].bus_type == CDROM_BUS_MKE) {
+            char *type = cdrom_get_internal_name(cdrom_get_type(c));
+
+            if (strstr(type, "cr56") == NULL)
+                cdrom_set_type(c, cdrom_get_from_internal_name("cr563_075"));
+
             sprintf(temp, "cdrom_%02i_mke_channel", c + 1);
             cdrom[c].mke_channel = !!ini_section_get_int(cat, temp, c & 3);
 
             if (cdrom[c].mke_channel > 3)
                 cdrom[c].mke_channel = 3;
+
         } else if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
             sprintf(temp, "cdrom_%02i_ide_channel", c + 1);
             sprintf(tmp2, "%01u:%01u", (c & 3) >> 1, (c & 3) & 1);
