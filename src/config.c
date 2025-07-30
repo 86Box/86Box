@@ -3167,7 +3167,6 @@ save_floppy_and_cdrom_drives(void)
             ini_section_delete_var(cat, temp);
         else {
             ini_section_set_int(cat, temp, cdrom[c].mke_channel);
-            ini_section_set_string(cat, temp, tmp2);
         }
 
         sprintf(temp, "cdrom_%02i_ide_channel", c + 1);
