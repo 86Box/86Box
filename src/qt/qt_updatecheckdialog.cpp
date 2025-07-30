@@ -30,7 +30,6 @@ UpdateCheckDialog::
 UpdateCheckDialog(const UpdateCheck::UpdateChannel channel, QWidget *parent) : QDialog(parent), ui(new Ui::UpdateCheckDialog), updateCheck(new UpdateCheck(channel))
 {
     ui->setupUi(this);
-    setWindowTitle(tr("Update check"));
     ui->statusLabel->setHidden(true);
     this->setFixedSize(400, 130);
     updateChannel = channel;

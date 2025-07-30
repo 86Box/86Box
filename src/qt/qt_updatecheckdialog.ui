@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Update check</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>

@@ -42,7 +42,7 @@ VMManagerMainWindow(QWidget *parent)
     // Connect signals from the VMManagerMain widget
     connect(vmm, &VMManagerMain::selectionChanged, this, &VMManagerMainWindow::vmmSelectionChanged);
 
-    setWindowTitle(tr("86Box VM Manager"));
+    setWindowTitle(tr("%1 VM Manager").arg(EMU_NAME));
     setCentralWidget(vmm);
 
     // Set up the buttons
@@ -97,6 +97,9 @@ VMManagerMainWindow(QWidget *parent)
     auto *completerModel = new QStringListModel(allStrings, completer);
     completer->setModel(completerModel);
     searchBar->setCompleter(completer);
+#ifdef Q_OS_WINDOWS
+    ui->toolBar->setBackgroundRole(QPalette::Light);
+#endif
     ui->toolBar->setVisible(false);
     // END REMOVE
 
