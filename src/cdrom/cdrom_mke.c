@@ -333,8 +333,8 @@ mke_get_subq(mke_t *mke, uint8_t *b)
 }
 
 /* Lifted from FreeBSD */
-
-static void blk_to_msf(int blk, unsigned char *msf)
+static void
+blk_to_msf(int blk, unsigned char *msf)
 {
     blk = blk + 150;        /* 2 seconds skip required to
                                reach ISO data */
@@ -346,28 +346,50 @@ static void blk_to_msf(int blk, unsigned char *msf)
     return;
 }
 
-uint8_t mke_read_toc(mke_t *mke, unsigned char *b, uint8_t track) {
-    cdrom_t      *dev        = mke->cdrom_dev;
+uint8_t
+mke_read_toc(mke_t *mke, unsigned char *b, uint8_t track) {
+    cdrom_t      *dev            = mke->cdrom_dev;
+#if 0
     track_info_t  ti;
     int           last_track;
+#endif
+    const raw_track_info_t *trti = (raw_track_info_t *) mke->temp_buf;
+    int           num            = 0;
+    int           ret            = 0;
 
-    cdrom_read_toc(dev, mke->temp_buf, CD_TOC_NORMAL, 0, 0, 65536);
-    last_track = mke->temp_buf[3];
-    /* Should we allow +1 here? */
-    if (track > last_track)
-        return 0;
-    dev->ops->get_track_info(dev->local, track, 0, &ti);
-    b[0]=0;
-    b[1]=ti.attr;
-    b[2]=ti.number;
-    b[3]=0;
-    b[4]=ti.m;
-    b[5]=ti.s;
-    b[6]=ti.f;
-    b[7]=0;
-    mke_log("mke_read_toc: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n",
-            b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]);
-    return 1;    
+    dev->ops->get_raw_track_info(dev->local, &num, mke->temp_buf);
+
+    if (num > 0) {
+        if (track == 0xaa)
+            track = 0xa2;
+
+        int trk = - 1;
+
+        for (int i = (num - 1); i >= 0; i--) {
+            if (trti[i].point == track) {
+                trk = i;
+                break;
+            }
+        }
+
+        if (trk != -1) {
+            b[0] = 0;
+            b[1] = trti[trk].adr_ctl;
+            b[2] = (trti[trk].point == 0xa2) ? 0xaa : trti[trk].point;
+            b[3] = 0;
+            b[4] = trti[trk].pm;
+            b[5] = trti[trk].ps;
+            b[6] = trti[trk].pf;
+            b[7] = 0;
+
+            ret  = 1;
+        }
+
+        mke_log("mke_read_toc: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n",
+                b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]);
+    }
+
+    return ret;
 }
 
 
@@ -414,20 +436,56 @@ mke_disc_capacity(cdrom_t *dev, unsigned char *b)
 void
 mke_read_multisess(mke_t *mke)
 {
-    uint8_t disc_type_buf[34];
-    cdrom_read_toc(mke->cdrom_dev, mke->temp_buf, CD_TOC_SESSION, 1, 1, 65536);
-    cdrom_read_disc_information(mke->cdrom_dev, disc_type_buf);
-    if (disc_type_buf[17] == 0 && disc_type_buf[18] == 0 && disc_type_buf[19] == 0)
-    {
-        uint8_t no_multisess[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-        fifo8_push_all(&mke->info_fifo, no_multisess, 6);
+    cdrom_t      *dev            = mke->cdrom_dev;
+    uint8_t      *b              = (uint8_t *) &(mke->temp_buf[32768]);
+    const raw_track_info_t *trti = (raw_track_info_t *) mke->temp_buf;
+    int           num            = 0;
+    int           first_sess     = 0;
+    int           last_sess      = 0;
+
+    dev->ops->get_raw_track_info(dev->local, &num, mke->temp_buf);
+
+    if (num > 0) {
+        int trk = - 1;
+
+        for (int i = 0; i < num; i++) {
+            if (trti[i].point == 0xa2) {
+                first_sess = trti[i].session;
+                break;
+            }
+        }
+
+        for (int i = (num - 1); i >= 0; i--) {
+            if (trti[i].point == 0xa2) {
+                last_sess = trti[i].session;
+                break;
+            }
+        }
+
+        for (int i = 0; i < num; i++) {
+            if ((trti[i].point >= 1) && (trti[i].point >= 99) &&
+                (trti[i].session == last_sess)) {
+                trk = i;
+                break;
+            }
+        }
+
+        if ((first_sess > 0) && (last_sess < 0) && (trk != -1)) {
+            b[0] = (first_sess == last_sess) ? 0x00 : 0x80;
+            b[1] = trti[trk].pm;
+            b[2] = trti[trk].ps;
+            b[3] = trti[trk].pf;
+            b[4] = 0;
+            b[5] = 0;
+        }
+
+        fifo8_push_all(&mke->info_fifo, b, 6);
+
+        mke_log("mke_read_multisess: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n",
+                b[0], b[1], b[2], b[3], b[4], b[5]);
     } else {
-        fifo8_push(&mke->info_fifo, 0x80);
-        fifo8_push(&mke->info_fifo, mke->temp_buf[9]);
-        fifo8_push(&mke->info_fifo, mke->temp_buf[10]);
-        fifo8_push(&mke->info_fifo, mke->temp_buf[11]);
-        fifo8_push(&mke->info_fifo, 0);
-        fifo8_push(&mke->info_fifo, 0);
+        memset(b, 0x00, 6);
+        fifo8_push_all(&mke->info_fifo, b, 6);
     }
 }
 
@@ -919,7 +977,9 @@ mke_init(const device_t *info)
 
             mke->present = 1;
 
+            memset(mke->ver, 0x00, 512);
             cdrom_generate_name_mke(dev->type, mke->ver);
+            mke->ver[10] = 0x00;
 
             fifo8_create(&mke->info_fifo, 128);
             fifo8_create(&mke->data_fifo, 624240 * 2);
