@@ -197,7 +197,7 @@ ps2_isa_common_init(const machine_t *model)
     dma16_init();
     pic2_init();
 
-    device_add(&keyboard_ps2_device);
+    device_add(&kbc_ps2_device);
     device_add(&port_6x_ps2_device);
 }
 

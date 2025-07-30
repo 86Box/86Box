@@ -22,6 +22,21 @@
 #ifndef EMU_KEYBOARD_H
 #define EMU_KEYBOARD_H
 
+#define FLAG_AT        0x00  /* dev is AT         */
+#define FLAG_PS2_KBD   0x10  /* dev is AT or PS/2 */
+#define FLAG_AX        0x08  /* dev is AX         */
+#define FLAG_TYPE_MASK 0x07  /* mask for type     */
+
+enum {
+    KBD_83_KEY = 0,
+    KBD_84_KEY,
+    KBD_101_KEY,
+    KBD_102_KEY,
+    KBD_JIS,
+    KBD_KSC,
+    KBD_ABNT2
+};
+
 enum {
     DEV_KBD = 0,
     DEV_AUX = 1
@@ -36,6 +51,15 @@ enum {
     DEV_STATE_MAIN_IN               = 5,
     DEV_STATE_EXECUTE_BAT           = 6,
     DEV_STATE_MAIN_WANT_EXECUTE_BAT = 7
+};
+
+enum {
+    KEYBOARD_TYPE_INTERNAL          = 0,
+    KEYBOARD_TYPE_PC_XT,
+    KEYBOARD_TYPE_AT,
+    KEYBOARD_TYPE_AX,
+    KEYBOARD_TYPE_PS2,
+    KEYBOARD_TYPE_PS55
 };
 
 /* Used by the AT / PS/2 keyboard controller, common device, keyboard, and mouse. */
@@ -194,6 +218,8 @@ typedef struct scancode {
 extern "C" {
 #endif
 
+extern int     keyboard_type;
+
 extern uint8_t keyboard_mode;
 extern int     keyboard_scan;
 
@@ -216,51 +242,56 @@ extern int     mouse_scan;
 extern kbc_at_port_t     *kbc_at_ports[2];
 
 #ifdef EMU_DEVICE_H
-extern const device_t keyboard_pc_device;
-extern const device_t keyboard_pc82_device;
-extern const device_t keyboard_pravetz_device;
-extern const device_t keyboard_xt_device;
-extern const device_t keyboard_xt86_device;
-extern const device_t keyboard_xt_compaq_device;
-extern const device_t keyboard_xt_t1x00_device;
-extern const device_t keyboard_tandy_device;
-extern const device_t keyboard_xt_lxt3_device;
-extern const device_t keyboard_xt_olivetti_device;
-extern const device_t keyboard_xt_zenith_device;
-extern const device_t keyboard_xt_hyundai_device;
-extern const device_t keyboard_xt_fe2010_device;
-extern const device_t keyboard_xtclone_device;
-extern const device_t keyboard_at_device;
-extern const device_t keyboard_at_ami_device;
-extern const device_t keyboard_at_compaq_device;
-extern const device_t keyboard_at_phoenix_device;
-extern const device_t keyboard_at_ncr_device;
-extern const device_t keyboard_at_olivetti_device;
-extern const device_t keyboard_at_siemens_device;
-extern const device_t keyboard_at_tg_ami_device;
-extern const device_t keyboard_at_toshiba_device;
-extern const device_t keyboard_ps2_device;
-extern const device_t keyboard_ps2_ps1_device;
-extern const device_t keyboard_ps2_ps1_pci_device;
-extern const device_t keyboard_ps2_xi8088_device;
-extern const device_t keyboard_ps2_ami_device;
-extern const device_t keyboard_ps2_compaq_device;
-extern const device_t keyboard_ps2_holtek_device;
-extern const device_t keyboard_ps2_mca_1_device;
-extern const device_t keyboard_ps2_mca_2_device;
-extern const device_t keyboard_ps2_olivetti_device;
-extern const device_t keyboard_ps2_phoenix_device;
-extern const device_t keyboard_ps2_quadtel_device;
-extern const device_t keyboard_ps2_tg_ami_device;
-extern const device_t keyboard_ps2_tg_ami_green_device;
-extern const device_t keyboard_ps2_pci_device;
-extern const device_t keyboard_ps2_ami_pci_device;
-extern const device_t keyboard_ps2_intel_ami_pci_device;
-extern const device_t keyboard_ps2_acer_pci_device;
-extern const device_t keyboard_ps2_ali_pci_device;
-extern const device_t keyboard_ps2_phoenix_pci_device;
-extern const device_t keyboard_ps2_tg_ami_pci_device;
+extern const device_t kbc_pc_device;
+extern const device_t kbc_pc82_device;
+extern const device_t kbc_pravetz_device;
+extern const device_t kbc_xt_device;
+extern const device_t kbc_xt86_device;
+extern const device_t kbc_xt_compaq_device;
+extern const device_t kbc_xt_t1x00_device;
+extern const device_t kbc_tandy_device;
+extern const device_t kbc_xt_lxt3_device;
+extern const device_t kbc_xt_olivetti_device;
+extern const device_t kbc_xt_zenith_device;
+extern const device_t kbc_xt_hyundai_device;
+extern const device_t kbc_xt_fe2010_device;
+extern const device_t kbc_xtclone_device;
+extern const device_t kbc_at_device;
+extern const device_t kbc_at_ami_device;
+extern const device_t kbc_at_compaq_device;
+extern const device_t kbc_at_phoenix_device;
+extern const device_t kbc_at_ncr_device;
+extern const device_t kbc_at_olivetti_device;
+extern const device_t kbc_at_siemens_device;
+extern const device_t kbc_at_tg_ami_device;
+extern const device_t kbc_at_toshiba_device;
+extern const device_t kbc_ps2_device;
+extern const device_t kbc_ps2_ps1_device;
+extern const device_t kbc_ps2_ps1_pci_device;
+extern const device_t kbc_ps2_xi8088_device;
+extern const device_t kbc_ps2_ami_device;
+extern const device_t kbc_ps2_compaq_device;
+extern const device_t kbc_ps2_holtek_device;
+extern const device_t kbc_ps2_mca_1_device;
+extern const device_t kbc_ps2_mca_2_device;
+extern const device_t kbc_ps2_olivetti_device;
+extern const device_t kbc_ps2_phoenix_device;
+extern const device_t kbc_ps2_quadtel_device;
+extern const device_t kbc_ps2_tg_ami_device;
+extern const device_t kbc_ps2_tg_ami_green_device;
+extern const device_t kbc_ps2_pci_device;
+extern const device_t kbc_ps2_ami_pci_device;
+extern const device_t kbc_ps2_intel_ami_pci_device;
+extern const device_t kbc_ps2_acer_pci_device;
+extern const device_t kbc_ps2_ali_pci_device;
+extern const device_t kbc_ps2_phoenix_pci_device;
+extern const device_t kbc_ps2_tg_ami_pci_device;
 
+extern const device_t keyboard_pc_xt_device;
+extern const device_t keyboard_at_device;
+extern const device_t keyboard_ax_device;
+extern const device_t keyboard_ps2_device;
+extern const device_t keyboard_ps55_device;
 extern const device_t keyboard_at_generic_device;
 #endif /*EMU_DEVICE_H*/
 
@@ -302,6 +333,18 @@ extern atkbc_dev_t *kbc_at_dev_init(uint8_t inst);
 /* This is so we can disambiguate scan codes that would otherwise conflict and get
    passed on incorrectly. */
 extern uint16_t     convert_scan_code(uint16_t scan_code);
+
+extern const char *    keyboard_get_name(int mouse);
+extern const char *    keyboard_get_internal_name(int mouse);
+extern int             keyboard_get_from_internal_name(char *s);
+extern int             keyboard_has_config(int mouse);
+#ifdef EMU_DEVICE_H
+extern const device_t *keyboard_get_device(int mouse);
+#endif
+extern int             keyboard_get_ndev(void);
+extern void            keyboard_add_device(void);
+
+extern const scancode  scancode_set1[512];
 
 #ifdef __cplusplus
 }

@@ -133,7 +133,7 @@ machine_at_compaq_init(const machine_t *model, int type)
     switch (type) {
         case COMPAQ_PORTABLEII:
             machine_at_common_init(model);
-            device_add(&keyboard_at_compaq_device);
+            device_add(&kbc_at_compaq_device);
             break;
 
         case COMPAQ_PORTABLEIII:
@@ -143,7 +143,7 @@ machine_at_compaq_init(const machine_t *model, int type)
                 device_add(&compaq_plasma_device);
 
             machine_at_common_init(model);
-            device_add(&keyboard_at_compaq_device);
+            device_add(&kbc_at_compaq_device);
             break;
 
         case COMPAQ_PORTABLEIII386:
@@ -153,14 +153,14 @@ machine_at_compaq_init(const machine_t *model, int type)
                 device_add(&compaq_plasma_device);
             device_add(&compaq_386_device);
             machine_at_common_init(model);
-            device_add(&keyboard_at_compaq_device);
+            device_add(&kbc_at_compaq_device);
             break;
 
         case COMPAQ_DESKPRO386:
         case COMPAQ_DESKPRO386_05_1988:
             device_add(&compaq_386_device);
             machine_at_common_init(model);
-            device_add(&keyboard_at_compaq_device);
+            device_add(&kbc_at_compaq_device);
             break;
 
         default:

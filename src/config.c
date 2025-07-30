@@ -56,6 +56,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
+#include <86box/keyboard.h>
 #include <86box/serial_passthrough.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
@@ -453,9 +454,6 @@ load_video(void)
     if (((gfxcard[0] == VID_INTERNAL) && machine_has_flags(machine, MACHINE_VIDEO_8514A)) ||
         video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_8514)
         ini_section_delete_var(cat, "8514a");
-    if (((gfxcard[0] == VID_INTERNAL) && machine_has_flags(machine, MACHINE_VIDEO_XGA)) ||
-        video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_XGA)
-        ini_section_delete_var(cat, "xga");
 
     voodoo_enabled                   = !!ini_section_get_int(cat, "voodoo", 0);
     ibm8514_standalone_enabled       = !!ini_section_get_int(cat, "8514a", 0);
@@ -482,6 +480,23 @@ load_input_devices(void)
     ini_section_t cat = ini_find_section(config, "Input devices");
     char          temp[512];
     char         *p;
+
+    p = ini_section_get_string(cat, "keyboard_type", NULL);
+    if (p != NULL)
+        keyboard_type = keyboard_get_from_internal_name(p);
+    else if (machine_has_bus(machine, MACHINE_BUS_PS2_PORTS)) {
+        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+            keyboard_type = KEYBOARD_TYPE_PS55;
+        else
+            keyboard_type = KEYBOARD_TYPE_PS2;
+    } else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||
+               machine_has_bus(machine, MACHINE_BUS_PCI)) {
+        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+            keyboard_type = KEYBOARD_TYPE_AX;
+        else
+            keyboard_type = KEYBOARD_TYPE_AT;
+    } else
+        keyboard_type = KEYBOARD_TYPE_PC_XT;
 
     p = ini_section_get_string(cat, "mouse_type", NULL);
     if (p != NULL)
@@ -810,12 +825,16 @@ load_image_file(char *dest, char *p, uint8_t *ui_wp)
        prefix = "wp://";
 
     if (path_abs(p)) {
-        if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
+        if ((strlen(prefix) + strlen(p)) > (MAX_IMAGE_PATH_LEN - 1))
             ret = 1;
         else
             snprintf(dest, MAX_IMAGE_PATH_LEN, "%s%s", prefix, p);
-    } else
-        snprintf(dest, MAX_IMAGE_PATH_LEN, "%s%s%s%s", prefix, usr_path, path_get_slash(usr_path), p);
+    } else {
+        if ((strlen(prefix) + strlen(usr_path) + strlen(path_get_slash(usr_path)) + strlen(p)) > (MAX_IMAGE_PATH_LEN - 1))
+            ret = 1;
+        else
+            snprintf(dest, MAX_IMAGE_PATH_LEN, "%s%s%s%s", prefix, usr_path, path_get_slash(usr_path), p);
+    }
 
     path_normalize(dest);
 
@@ -933,6 +952,7 @@ load_storage_controllers(void)
         p = NULL;
     }
 
+    free_p = 0;
     p = ini_section_get_string(cat, "cdrom_interface", NULL);
     if (p != NULL)
         cdrom_interface_current = cdrom_interface_get_from_internal_name(p);
@@ -1367,11 +1387,17 @@ load_floppy_and_cdrom_drives(void)
             ini_section_delete_var(cat, temp);
 
         /* Default values, needed for proper operation of the Settings dialog. */
-        cdrom[c].ide_channel = cdrom[c].scsi_device_id = c + 2;
+        cdrom[c].mke_channel = cdrom[c].ide_channel = cdrom[c].scsi_device_id = c & 3;
 
-        if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
+        if (cdrom[c].bus_type == CDROM_BUS_MKE) {
+            sprintf(temp, "cdrom_%02i_mke_channel", c + 1);
+            cdrom[c].mke_channel = !!ini_section_get_int(cat, temp, c & 3);
+
+            if (cdrom[c].mke_channel > 3)
+                cdrom[c].mke_channel = 3;
+        } else if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
             sprintf(temp, "cdrom_%02i_ide_channel", c + 1);
-            sprintf(tmp2, "%01u:%01u", (c + 2) >> 1, (c + 2) & 1);
+            sprintf(tmp2, "%01u:%01u", (c & 3) >> 1, (c & 3) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
             sscanf(p, "%01u:%01u", &board, &dev);
             board &= 3;
@@ -1382,13 +1408,13 @@ load_floppy_and_cdrom_drives(void)
                 cdrom[c].ide_channel = 7;
         } else if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
             sprintf(temp, "cdrom_%02i_scsi_location", c + 1);
-            sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c + 2);
+            sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c & 3);
             p = ini_section_get_string(cat, temp, tmp2);
             sscanf(p, "%01u:%02u", &board, &dev);
             if (board >= SCSI_BUS_MAX) {
                 /* Invalid bus - check legacy ID */
                 sprintf(temp, "cdrom_%02i_scsi_id", c + 1);
-                cdrom[c].scsi_device_id = ini_section_get_int(cat, temp, c + 2);
+                cdrom[c].scsi_device_id = ini_section_get_int(cat, temp, c & 3);
 
                 if (cdrom[c].scsi_device_id > 15)
                     cdrom[c].scsi_device_id = 15;
@@ -1397,6 +1423,11 @@ load_floppy_and_cdrom_drives(void)
                 dev &= 15;
                 cdrom[c].scsi_device_id = (board << 4) + dev;
             }
+        }
+
+        if (cdrom[c].bus_type != CDROM_BUS_MKE) {
+            sprintf(temp, "cdrom_%02i_mke_channel", c + 1);
+            ini_section_delete_var(cat, temp);
         }
 
         if (cdrom[c].bus_type != CDROM_BUS_ATAPI) {
@@ -1988,6 +2019,8 @@ config_load(void)
         video_fullscreen_scale = 1;
         time_sync              = TIME_SYNC_ENABLED;
 
+        keyboard_type          = KEYBOARD_TYPE_PC_XT;
+
         for (int i = 0; i < HDC_MAX; i++)
             hdc_current[i]         = hdc_get_from_internal_name("none");
 
@@ -2413,6 +2446,8 @@ save_input_devices(void)
     ini_section_t cat = ini_find_or_create_section(config, "Input devices");
     char          temp[512];
     char          tmp2[512];
+
+    ini_section_set_string(cat, "keyboard_type", keyboard_get_internal_name(keyboard_type));
 
     ini_section_set_string(cat, "mouse_type", mouse_get_internal_name(mouse_type));
 
@@ -3108,8 +3143,7 @@ save_floppy_and_cdrom_drives(void)
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
         char *tn = cdrom_get_internal_name(cdrom_get_type(c));
-        if ((cdrom[c].bus_type == 0) || (cdrom[c].bus_type == CDROM_BUS_MITSUMI) ||
-            !strcmp(tn, "86cd"))
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].bus_type == CDROM_BUS_MITSUMI) || !strcmp(tn, "86cd"))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp, tn);
@@ -3126,6 +3160,13 @@ save_floppy_and_cdrom_drives(void)
             sprintf(tmp2, "%u, %s", cdrom[c].sound_on,
                     hdd_bus_to_string(cdrom[c].bus_type, 1));
             ini_section_set_string(cat, temp, tmp2);
+        }
+
+        sprintf(temp, "cdrom_%02i_mke_channel", c + 1);
+        if (cdrom[c].bus_type != CDROM_BUS_MKE)
+            ini_section_delete_var(cat, temp);
+        else {
+            ini_section_set_int(cat, temp, cdrom[c].mke_channel);
         }
 
         sprintf(temp, "cdrom_%02i_ide_channel", c + 1);

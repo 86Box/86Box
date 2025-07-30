@@ -813,7 +813,7 @@ machine_at_t3100e_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
 
-    device_add(&keyboard_at_toshiba_device);
+    device_add(&kbc_at_toshiba_device);
 
     if (fdc_current[0] == FDC_INTERNAL) {
         device_add(&fdc_at_device);

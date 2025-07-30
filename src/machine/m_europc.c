@@ -651,7 +651,7 @@ europc_boot(UNUSED(const device_t *info))
                   jim_read, NULL, NULL, jim_write, NULL, NULL, sys);
 
     /* Only after JIM has been initialized. */
-    (void) device_add(&keyboard_xt_device);
+    (void) device_add(&kbc_xt_device);
 
     /* Enable and set up the FDC. */
     (void) device_add(&fdc_xt_device);

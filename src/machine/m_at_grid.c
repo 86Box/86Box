@@ -342,7 +342,7 @@ int machine_at_grid1520_init(const machine_t *model) {
     machine_at_common_ide_init(model);
     mem_remap_top(384);
 
-    device_add(&keyboard_at_device);
+    device_add(&kbc_at_device);
     // for now just select CGA with amber monitor 
     //device_add(&cga_device);
 

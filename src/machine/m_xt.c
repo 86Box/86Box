@@ -160,7 +160,7 @@ machine_pc_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_pc_device);
+    device_add(&kbc_pc_device);
 
     machine_xt_common_init(model, 0);
 
@@ -270,7 +270,7 @@ machine_pc82_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_pc82_device);
+    device_add(&kbc_pc82_device);
 
     machine_xt_common_init(model, 0);
 
@@ -441,7 +441,7 @@ machine_xt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt_device);
+    device_add(&kbc_xt_device);
 
     machine_xt_common_init(model, 0);
 
@@ -462,7 +462,7 @@ machine_genxt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt_device);
+    device_add(&kbc_xt_device);
 
     machine_xt_common_init(model, 0);
 
@@ -619,7 +619,7 @@ machine_xt86_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt86_device);
+    device_add(&kbc_xt86_device);
 
     machine_xt_common_init(model, 0);
 
@@ -632,7 +632,7 @@ machine_xt86_init(const machine_t *model)
 static void
 machine_xt_clone_init(const machine_t *model, int fixed_floppy)
 {
-    device_add(&keyboard_xtclone_device);
+    device_add(&kbc_xtclone_device);
 
     machine_xt_common_init(model, fixed_floppy);
 }
@@ -680,7 +680,7 @@ machine_xt_tuliptc8_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt_fe2010_device);
+    device_add(&kbc_xt_fe2010_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -863,7 +863,7 @@ machine_xt_pxxt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt_device);
+    device_add(&kbc_xt_device);
 
     machine_xt_common_init(model, 0);
 
@@ -943,7 +943,7 @@ machine_xt_pravetz16_imko4_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_pravetz_device);
+    device_add(&kbc_pravetz_device);
 
     machine_xt_common_init(model, 0);
 
@@ -961,7 +961,7 @@ machine_xt_pravetz16s_cpu12p_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt_device);
+    device_add(&kbc_xt_device);
 
     machine_xt_common_init(model, 0);
 
@@ -979,7 +979,7 @@ machine_xt_micoms_xl7turbo_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt_device);
+    device_add(&kbc_xt_device);
 
     machine_xt_common_init(model, 0);
 
@@ -1013,7 +1013,7 @@ machine_xt_mpc1600_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_pc82_device);
+    device_add(&kbc_pc82_device);
 
     machine_xt_common_init(model, 0);
 
@@ -1036,7 +1036,7 @@ machine_xt_pcspirit_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_pc82_device);
+    device_add(&kbc_pc82_device);
 
     machine_xt_common_init(model, 0);
 
@@ -1054,7 +1054,7 @@ machine_xt_pc700_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_pc_device);
+    device_add(&kbc_pc_device);
 
     machine_xt_common_init(model, 0);
 
@@ -1072,7 +1072,7 @@ machine_xt_pc500_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_pc_device);
+    device_add(&kbc_pc_device);
 
     machine_xt_common_init(model, 0);
 
@@ -1146,7 +1146,7 @@ machine_xt_vendex_init(const machine_t *model)
 static void
 machine_xt_hyundai_common_init(const machine_t *model, int fixed_floppy)
 {
-    device_add(&keyboard_xt_hyundai_device);
+    device_add(&kbc_xt_hyundai_device);
 
     machine_xt_common_init(model, fixed_floppy);
 }
@@ -1294,7 +1294,7 @@ machine_xt_glabios_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt_device);
+    device_add(&kbc_xt_device);
 
     machine_xt_common_init(model, 0);
 

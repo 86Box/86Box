@@ -66,7 +66,7 @@ machine_at_vpc2007_init(const machine_t *model)
     device_add(&i440bx_no_agp_device);
     device_add(&piix4e_device);
     device_add(&w83977f_370_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256); /* real VPC provides invalid SPD data */
 

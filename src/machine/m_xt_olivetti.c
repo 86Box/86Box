@@ -2451,7 +2451,7 @@ machine_xt_m19_init(const machine_t *model)
     m19_vid_init(vid);
     device_add_ex(&m19_vid_device, vid);
 
-    device_add(&keyboard_xt_olivetti_device);
+    device_add(&kbc_xt_olivetti_device);
 
     pit_set_clock((uint32_t) 14318184.0);
 

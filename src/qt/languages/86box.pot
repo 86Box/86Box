@@ -519,6 +519,9 @@ msgstr ""
 msgid "FD Controller:"
 msgstr ""
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr ""
 
@@ -547,6 +550,9 @@ msgid "Cassette"
 msgstr ""
 
 msgid "Hard disks:"
+msgstr ""
+
+msgid "Firmware Version"
 msgstr ""
 
 msgid "&New..."
@@ -1440,10 +1446,16 @@ msgstr ""
 msgid "Renderer options..."
 msgstr ""
 
+msgid "PC/XT Keyboard"
+msgstr ""
+
 msgid "AT Keyboard"
 msgstr ""
 
 msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard"
 msgstr ""
 
 msgid "PS/2 Keyboard (US)"
@@ -1456,6 +1468,12 @@ msgid "PS/2 Keyboard (Japanese)"
 msgstr ""
 
 msgid "PS/55 Keyboard"
+msgstr ""
+
+msgid "AT/PS/2 Keyboard"
+msgstr ""
+
+msgid "Keys"
 msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"

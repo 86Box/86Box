@@ -688,14 +688,14 @@ pc87309_init(const device_t *info)
     switch (info->local & PCX730X_KBC) {
         default:
         case PCX730X_AMI:
-            dev->kbc = device_add(&keyboard_ps2_intel_ami_pci_device);
+            dev->kbc = device_add(&kbc_ps2_intel_ami_pci_device);
             break;
         /* Optiplex! */
         case PCX730X_PHOENIX_42:
-            dev->kbc = device_add(&keyboard_ps2_phoenix_device);
+            dev->kbc = device_add(&kbc_ps2_phoenix_device);
             break;
         case PCX730X_PHOENIX_42I:
-            dev->kbc = device_add(&keyboard_ps2_phoenix_pci_device);
+            dev->kbc = device_add(&kbc_ps2_phoenix_pci_device);
             break;
     }
 

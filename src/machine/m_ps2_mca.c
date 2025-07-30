@@ -1159,7 +1159,7 @@ ps2_mca_board_model_50_init(void)
 
     mem_remap_top(384);
     mca_init(4);
-    device_add(&keyboard_ps2_mca_2_device);
+    device_add(&kbc_ps2_mca_2_device);
 
     ps2.planar_read  = model_50_read;
     ps2.planar_write = model_50_write;
@@ -1180,7 +1180,7 @@ ps2_mca_board_model_60_init(void)
 
     mem_remap_top(384);
     mca_init(8);
-    device_add(&keyboard_ps2_mca_2_device);
+    device_add(&kbc_ps2_mca_2_device);
 
     ps2.planar_read  = model_50_read;
     ps2.planar_write = model_50_write;
@@ -1240,7 +1240,7 @@ ps2_mca_board_model_55sx_init(int has_sec_nvram, int slots)
     }
 
     mca_init(slots);
-    device_add(&keyboard_ps2_mca_1_device);
+    device_add(&kbc_ps2_mca_1_device);
 
     if (has_sec_nvram)
         device_add(&ps2_nvr_55ls_device);
@@ -1419,7 +1419,7 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 
     ps2.split_addr = mem_size * 1024;
     mca_init(slots);
-    device_add(&keyboard_ps2_mca_1_device);
+    device_add(&kbc_ps2_mca_1_device);
 
     ps2.planar_read  = model_70_type3_read;
     ps2.planar_write = model_70_type3_write;
@@ -1512,7 +1512,7 @@ ps2_mca_board_model_80_type2_init(void)
 
     ps2.split_addr = mem_size * 1024;
     mca_init(8);
-    device_add(&keyboard_ps2_mca_1_device);
+    device_add(&kbc_ps2_mca_1_device);
 
     ps2.planar_read  = model_80_read;
     ps2.planar_write = model_80_write;
@@ -1778,7 +1778,7 @@ ps55_mca_board_model_50t_init(void)
     ps2.split_addr = mem_size * 1024;
     /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
     mca_init(5);
-    device_add(&keyboard_ps2_mca_1_device);
+    device_add(&kbc_ps2_mca_1_device);
 
     ps2.planar_read = ps55_model_50t_read;
     ps2.planar_write = ps55_model_50tv_write;
@@ -1822,7 +1822,7 @@ ps55_mca_board_model_50v_init(void)
     ps2.split_addr = mem_size * 1024;
     /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
     mca_init(5);
-    device_add(&keyboard_ps2_mca_1_device);
+    device_add(&kbc_ps2_mca_1_device);
 
     ps2.planar_read = ps55_model_50v_read;
     ps2.planar_write = ps55_model_50tv_write;

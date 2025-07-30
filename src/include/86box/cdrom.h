@@ -94,13 +94,19 @@ extern "C" {
 #endif
 
 enum {
-    CDROM_BUS_DISABLED = 0,
-    CDROM_BUS_ATAPI    = 5,
-    CDROM_BUS_SCSI     = 6,
-    CDROM_BUS_MITSUMI  = 7,
-    CDROM_BUS_USB      = 8
+    CDROM_BUS_DISABLED =  0,
+    CDROM_BUS_PHILIPS  =  1,
+    CDROM_BUS_SONY     =  2,
+    CDROM_BUS_HITACHI  =  3,
+    CDROM_BUS_MKE      =  4,
+    CDROM_BUS_MITSUMI  =  5,
+    CDROM_BUS_LPT      =  6,
+    CDROM_BUS_ATAPI    =  8,
+    CDROM_BUS_SCSI     =  9,
+    CDROM_BUS_USB      = 10
 };
 
+#define BUS_TYPE_MKE                CDROM_BUS_MKE
 #define BUS_TYPE_IDE                CDROM_BUS_ATAPI
 #define BUS_TYPE_SCSI               CDROM_BUS_SCSI
 #define BUS_TYPE_BOTH              -2
@@ -220,6 +226,10 @@ static const struct cdrom_drive_types_s {
     { "TOSHIBA",  "CD-ROM XM-3301TA", "0272", "toshiba_3301ta", BUS_TYPE_SCSI, 2,  2, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray.  */
     { "TOSHIBA",  "CD-ROM XM-5701TA", "3136", "toshiba_5701a",  BUS_TYPE_SCSI, 2, 12, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray.  */
     { "TOSHIBA",  "DVD-ROM SD-M1401", "1008", "toshiba_m1401",  BUS_TYPE_SCSI, 2, 40, 96, 0, 1, { -1, -1, -1, -1 } }, /* Tray.  */
+    { "MATSHITA", "CR-562",           "0.75", "cr562",          BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
+    { "MATSHITA", "CR-562",           "0.80", "cr562_080",      BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
+    { "MATSHITA", "CR-563",           "0.75", "cr563",          BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
+    { "MATSHITA", "CR-563",           "0.80", "cr563_080",      BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
     { "",         "",                 "",     "",               BUS_TYPE_NONE, 0, -1,  0, 0, 0, { -1, -1, -1, -1 } }
 };
 
@@ -287,7 +297,7 @@ typedef struct cdrom {
     union {
         uint8_t           res;
         uint8_t           res0;      /* Reserved for other ID's. */
-        uint8_t           res1;
+        uint8_t           mke_channel;
         uint8_t           ide_channel;
         uint8_t           scsi_device_id;
     };
@@ -393,6 +403,7 @@ extern int             cdrom_get_inquiry_len(const int type);
 extern int             cdrom_has_dma(const int type);
 extern int             cdrom_get_transfer_max(const int type, const int mode);
 extern int             cdrom_get_type_count(void);
+extern void            cdrom_generate_name_mke(const int type, char *name);
 extern void            cdrom_get_identify_model(const int type, char *name, const int id);
 extern void            cdrom_get_name(const int type, char *name);
 extern char           *cdrom_get_internal_name(const int type);

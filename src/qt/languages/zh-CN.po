@@ -519,6 +519,9 @@ msgstr "并口 4"
 msgid "FD Controller:"
 msgstr "软盘控制器:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "第三 IDE 控制器"
 
@@ -548,6 +551,9 @@ msgstr "磁带"
 
 msgid "Hard disks:"
 msgstr "硬盘:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "新建(&N)..."
@@ -1440,10 +1446,16 @@ msgstr "串行端口直通 4"
 msgid "Renderer options..."
 msgstr "渲染器选项..."
 
+msgid "PC/XT Keyboard"
+msgstr ""
+
 msgid "AT Keyboard"
 msgstr ""
 
 msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard"
 msgstr ""
 
 msgid "PS/2 Keyboard (US)"
@@ -1456,6 +1468,12 @@ msgid "PS/2 Keyboard (Japanese)"
 msgstr ""
 
 msgid "PS/55 Keyboard"
+msgstr ""
+
+msgid "AT/PS/2 Keyboard"
+msgstr ""
+
+msgid "Keys"
 msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"

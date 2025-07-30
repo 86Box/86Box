@@ -31,12 +31,14 @@ public:
     QList<int> busChannelsInUse(int bus);
 
     /* These return 0xff is none is free. */
+    uint8_t next_free_mke_channel();
     uint8_t next_free_mfm_channel();
     uint8_t next_free_esdi_channel();
     uint8_t next_free_xta_channel();
     uint8_t next_free_ide_channel();
     uint8_t next_free_scsi_id();
 
+    int mke_bus_full();
     int mfm_bus_full();
     int esdi_bus_full();
     int xta_bus_full();
@@ -50,6 +52,8 @@ public:
 
 private:
     /* 1 channel, 2 devices per channel, 8 bits per device = 16 bits. */
+    uint64_t mke_tracking { 0 };
+    /* 1 channel, 2 devices per channel, 8 bits per device = 16 bits. */
     uint64_t mfm_tracking { 0 };
     /* 1 channel, 2 devices per channel, 8 bits per device = 16 bits. */
     uint64_t esdi_tracking { 0 };
@@ -61,6 +65,8 @@ private:
        8 bits per device (future-proofing) = 2048 bits. */
     uint64_t scsi_tracking[32] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+    bool mitsumi_tracking;
 };
 
 #endif // QT_SETTINGS_BUS_TRACKING_HPP

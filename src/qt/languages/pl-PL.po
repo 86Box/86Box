@@ -1458,6 +1458,9 @@ msgstr "Klawiatura AX"
 msgid "PS/2 Keyboard"
 msgstr "Klawiatura PS/2"
 
+msgid "PS/2 Keyboard"
+msgstr ""
+
 msgid "PS/2 Keyboard (US)"
 msgstr "Klawiatura PS/2 (ANSI)"
 
@@ -1475,6 +1478,12 @@ msgstr "Klawiatura PS/55"
 
 msgid "Keys"
 msgstr "Klawisze"
+
+msgid "AT/PS/2 Keyboard"
+msgstr ""
+
+msgid "Keys"
+msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Mysz magistralowa Logitech/Microsoft"
