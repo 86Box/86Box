@@ -693,6 +693,13 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
     uint16_t lines = level ? 0x0000 : num;
     pic_t   *dev;
 
+    /*
+       Do this because some emulated cards will, for whatever reason, attempt to
+       raise an IRQ at init when the PIC has not yet been properly initialized.
+     */
+    if (update_pending == NULL)
+        return;
+
     /* Make sure to ignore all slave IRQ's, and in case of AT+,
        translate IRQ 2 to IRQ 9. */
     for (uint8_t i = 0; i < 8; i++) {
