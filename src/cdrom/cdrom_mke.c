@@ -160,6 +160,13 @@ mke_log(const char *fmt, ...)
             return;                                         \
     }
 
+#define REPORT_IF_NOT_READY()                                                   \
+    {                                                                           \
+        if (!mke_pre_execution_check(mke)) {                                    \
+            fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke)); \
+        }                                                                       \
+    }
+
 #define CHECK_READY_READ()                                                      \
     {                                                                           \
         if (!mke_pre_execution_check(mke)) {                                    \
@@ -407,17 +414,20 @@ mke_disc_capacity(cdrom_t *dev, unsigned char *b)
 void
 mke_read_multisess(mke_t *mke)
 {
-    if ((mke->temp_buf[9] != 0) || (mke->temp_buf[10] != 0) || (mke->temp_buf[11] != 0)) {
-        /* Multi-session disc. */
+    uint8_t disc_type_buf[34];
+    cdrom_read_toc(mke->cdrom_dev, mke->temp_buf, CD_TOC_SESSION, 1, 1, 65536);
+    cdrom_read_disc_information(mke->cdrom_dev, disc_type_buf);
+    if (disc_type_buf[17] == 0 && disc_type_buf[18] == 0 && disc_type_buf[19] == 0)
+    {
+        uint8_t no_multisess[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+        fifo8_push_all(&mke->info_fifo, no_multisess, 6);
+    } else {
         fifo8_push(&mke->info_fifo, 0x80);
         fifo8_push(&mke->info_fifo, mke->temp_buf[9]);
         fifo8_push(&mke->info_fifo, mke->temp_buf[10]);
         fifo8_push(&mke->info_fifo, mke->temp_buf[11]);
         fifo8_push(&mke->info_fifo, 0);
         fifo8_push(&mke->info_fifo, 0);
-    } else {
-        uint8_t no_multisess[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-        fifo8_push_all(&mke->info_fifo, no_multisess, 6);
     }
 }
 
@@ -462,7 +472,7 @@ mke_command(mke_t *mke, uint8_t value)
 {
     uint16_t     i;
     /* This is wasteful handling of buffers for compatibility, but will optimize later. */
-    uint8_t      x[12];
+    uint8_t      x[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     int          old_cd_status;
 
     if (mke->command_buffer_pending) {
@@ -540,8 +550,9 @@ mke_command(mke_t *mke, uint8_t value)
                 }
                 break;
             } case CMD1_READSUBQ:
-                CHECK_READY();
-                mke_get_subq(mke, (uint8_t *) &x);
+                if (mke_pre_execution_check(mke)) {
+                    mke_get_subq(mke, (uint8_t *) &x);
+                }
                 fifo8_reset(&mke->info_fifo);
                 fifo8_push_all(&mke->info_fifo, x, 11);
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
@@ -569,6 +580,7 @@ mke_command(mke_t *mke, uint8_t value)
 
                                 if (!sector_size) {
                                     mke_update_sense(mke, 0x0e);
+                                    fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                                     return;
                                 } else {
                                     switch (sector_size) {
@@ -604,6 +616,7 @@ mke_command(mke_t *mke, uint8_t value)
                                             break;
                                         default:
                                             mke_update_sense(mke, 0x0e);
+                                            fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                                             return;
                                     }
                                 }
@@ -615,6 +628,7 @@ mke_command(mke_t *mke, uint8_t value)
                                 break;
                             default:
                                 mke_update_sense(mke, 0x0e);
+                                fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                                 return;
                         }
 
@@ -640,45 +654,45 @@ mke_command(mke_t *mke, uint8_t value)
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 break;
             case CMD1_PAUSERESUME:
-                CHECK_READY();
+                CHECK_READY_READ();
                 cdrom_audio_pause_resume(mke->cdrom_dev, mke->command_buffer[1] >> 7);
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 break;
             case CMD1_CAPACITY:
                 /* 6 */
                 mke_log("DISK CAPACITY\n");
-                CHECK_READY();
-                mke_disc_capacity(mke->cdrom_dev, (uint8_t *) &x);
+                if (mke_pre_execution_check(mke))
+                    mke_disc_capacity(mke->cdrom_dev, (uint8_t *) &x);
                 fifo8_push_all(&mke->info_fifo, x, 5);
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 break;
             case CMD1_DISKINFO:
                 /* 7 */
                 mke_log("DISK INFO\n");
-                CHECK_READY();
-                mke_disc_info(mke, (uint8_t *) &x);
+                fifo8_reset(&mke->info_fifo);
+                if (mke_pre_execution_check(mke))
+                    mke_disc_info(mke, (uint8_t *) &x);
                 fifo8_push_all(&mke->info_fifo, x, 6);
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 break;
             case CMD1_READTOC:
-                CHECK_READY();
                 fifo8_reset(&mke->info_fifo);
-                mke_read_toc(mke, (uint8_t *) &x, mke->command_buffer[2]);
+                if (mke_pre_execution_check(mke))
+                    mke_read_toc(mke, (uint8_t *) &x, mke->command_buffer[2]);
                 fifo8_push_all(&mke->info_fifo, x, 8);
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 break;
             case CMD1_PLAY_TI:
-                CHECK_READY();
                 /* Index is ignored for now. */
                 fifo8_reset(&mke->info_fifo);
-                if (cdrom_audio_play(mke->cdrom_dev, mke->command_buffer[1], mke->command_buffer[3], 2))
-                    fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
-                else
+                CHECK_READY_READ();
+                if (!cdrom_audio_play(mke->cdrom_dev, mke->command_buffer[1], mke->command_buffer[3], 2))
                     mke_update_sense(mke, 0x10);
+                fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 break;
             case CMD1_PLAY_MSF:
-                CHECK_READY();
                 fifo8_reset(&mke->info_fifo);
+                CHECK_READY_READ();
                 mke_log("PLAY MSF:");
                 for (i = 0; i < 6; i++) {
                     mke_log("%02x ", mke->command_buffer[i + 1]);
@@ -690,16 +704,16 @@ mke_command(mke_t *mke, uint8_t value)
                               mke->command_buffer[3];
                     int len = (mke->command_buffer[4] << 16) | (mke->command_buffer[5] << 8) |
                               mke->command_buffer[6];
-                    if (!cdrom_audio_play(mke->cdrom_dev, pos, len, msf))
+                    if (!cdrom_audio_play(mke->cdrom_dev, pos, len, msf)){
                         mke_update_sense(mke, 0x10);
-                    else
-                        fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
+                    }
+                    fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 }
                 break;
             case CMD1_SEEK:
-                CHECK_READY();
                 old_cd_status = mke->cdrom_dev->cd_status;
                 fifo8_reset(&mke->info_fifo);
+                CHECK_READY_READ();
                 /* TODO: DOES THIS IMPACT CURRENT PLAY LENGTH? */
                 mke_log("SEEK MSF:");
                 for (i = 0; i < 6; i++) {
@@ -717,18 +731,20 @@ mke_command(mke_t *mke, uint8_t value)
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 break;
             case CMD1_SESSINFO:
-                CHECK_READY();
                 fifo8_reset(&mke->info_fifo);
                 mke_log("CMD: READ SESSION INFO\n");
-                mke_read_multisess(mke);
+                if (mke_pre_execution_check(mke))
+                    mke_read_multisess(mke);
+                else
+                    fifo8_push_all(&mke->info_fifo, x, 6);
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 break;
             case CMD1_READ_UPC:
-                CHECK_READY();
                 fifo8_reset(&mke->info_fifo);
                 mke_log("CMD: READ UPC\n");
                 uint8_t upc[8] = { [0] = 80 };
                 fifo8_push_all(&mke->info_fifo, upc, 8);
+                REPORT_IF_NOT_READY();
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 break;
             case CMD1_READ_ERR:
