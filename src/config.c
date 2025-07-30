@@ -1396,7 +1396,7 @@ load_floppy_and_cdrom_drives(void)
                 cdrom_set_type(c, cdrom_get_from_internal_name("cr563_075"));
 
             sprintf(temp, "cdrom_%02i_mke_channel", c + 1);
-            cdrom[c].mke_channel = !!ini_section_get_int(cat, temp, c & 3);
+            cdrom[c].mke_channel = ini_section_get_int(cat, temp, c & 3);
 
             if (cdrom[c].mke_channel > 3)
                 cdrom[c].mke_channel = 3;

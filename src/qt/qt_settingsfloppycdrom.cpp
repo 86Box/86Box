@@ -277,7 +277,7 @@ SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current)
     int     speed   = cdrom_get_speed(type);
     if (speed == -1) {
         speed   = current.siblingAtColumn(1).data(Qt::UserRole).toUInt();
-        ui->comboBoxSpeed->setEnabled(true);
+        ui->comboBoxSpeed->setEnabled((bus == CDROM_BUS_DISABLED) ? false : true);
     } else
         ui->comboBoxSpeed->setEnabled(false);
     ui->comboBoxSpeed->setCurrentIndex(speed == 0 ? 7 : speed - 1);
@@ -414,6 +414,20 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
     setCDROMType(ui->tableViewCDROM->model(),
                  ui->tableViewCDROM->selectionModel()->currentIndex(),
                  ui->comboBoxCDROMType->currentData().toUInt());
+
+    int speed = cdrom_get_speed(ui->comboBoxCDROMType->currentData().toUInt());
+    if ((speed == -1) && (bus_type != CDROM_BUS_MITSUMI)) {
+        speed = ui->comboBoxSpeed->currentData().toUInt();
+        ui->comboBoxSpeed->setEnabled(bus_type != CDROM_BUS_DISABLED);
+    } else {
+        ui->comboBoxSpeed->setEnabled(false);
+        if (bus_type == CDROM_BUS_MITSUMI) // temp hack
+            speed = 0; 
+    }
+    ui->comboBoxSpeed->setCurrentIndex(speed == 0 ? 7 : speed - 1);
+    setCDROMSpeed(ui->tableViewCDROM->model(),
+                  ui->tableViewCDROM->selectionModel()->currentIndex(),
+                  speed);
     emit cdromChannelChanged();
 }
 
