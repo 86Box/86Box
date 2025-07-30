@@ -519,6 +519,9 @@ msgstr "Port równoległy 4"
 msgid "FD Controller:"
 msgstr "Kontroler dyskietek:"
 
+msgid "CD-ROM Controller:"
+msgstr "Kontroler CD-ROM:"
+
 msgid "Tertiary IDE Controller"
 msgstr "Trzeciorzędny kontroler IDE"
 
@@ -548,6 +551,9 @@ msgstr "Kaseta"
 
 msgid "Hard disks:"
 msgstr "Dyski twarde:"
+
+msgid "Firmware Version"
+msgstr "Wersja firmware'u"
 
 msgid "&New..."
 msgstr "&Nowy..."
@@ -1440,11 +1446,17 @@ msgstr "Przelotka portu szeregowego 4"
 msgid "Renderer options..."
 msgstr "Opcje renderowania..."
 
+msgid "PC/XT Keyboard"
+msgstr "Klawiatura PC/XT"
+
 msgid "AT Keyboard"
 msgstr "Klawiatura AT"
 
 msgid "AX Keyboard"
 msgstr "Klawiatura AX"
+
+msgid "PS/2 Keyboard"
+msgstr "Klawiatura PS/2"
 
 msgid "PS/2 Keyboard (US)"
 msgstr "Klawiatura PS/2 (ANSI)"
@@ -1455,8 +1467,14 @@ msgstr "Klawiatura PS/2 (ISO)"
 msgid "PS/2 Keyboard (Japanese)"
 msgstr "Klawiatura PS/2 (JIS)"
 
+msgid "AT/PS/2 Keyboard"
+msgstr "Klawiatura AT/PS/2"
+
 msgid "PS/55 Keyboard"
 msgstr "Klawiatura PS/55"
+
+msgid "Keys"
+msgstr "Klawisze"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Mysz magistralowa Logitech/Microsoft"
