@@ -16,6 +16,10 @@
 #          Copyright 2024      Jasmine Iwanek.
 #
 
+if(NOT CMAKE_TOP_LEVEL_PROCESSED)
+    message(FATAL_ERROR "Incorrect source directory specified. Delete your build directory and retry with the top-level directory instead")
+endif()
+
 if(APPLE)
     set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 endif()
