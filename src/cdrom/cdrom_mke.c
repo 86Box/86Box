@@ -905,6 +905,7 @@ mke_init(const device_t *info)
 
             memset(mke->ver, 0x00, 512);
             cdrom_generate_name_mke(dev->type, mke->ver);
+            mke->ver[10] = 0x00;
 
             fifo8_create(&mke->info_fifo, 128);
             fifo8_create(&mke->data_fifo, 624240 * 2);
