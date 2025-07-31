@@ -19,7 +19,9 @@
 #include "qt_vmmanager_main.hpp"
 #include "qt_vmmanager_preferences.hpp"
 #include "ui_qt_vmmanager_mainwindow.h"
-#include "qt_updatecheckdialog.hpp"
+#if EMU_BUILD_NUM != 0
+#    include "qt_updatecheckdialog.hpp"
+#endif
 
 #include <QLineEdit>
 #include <QStringListModel>
@@ -171,16 +173,18 @@ VMManagerMainWindow::setStatusRight(const QString &text) const
     statusRight->setText(text);
 }
 
+#if EMU_BUILD_NUM != 0
 void
 VMManagerMainWindow::checkForUpdatesTriggered()
 {
     auto updateChannel = UpdateCheck::UpdateChannel::CI;
-#ifdef RELEASE_BUILD
+#    ifdef RELEASE_BUILD
     updateChannel = UpdateCheck::UpdateChannel::Stable;
-#endif
+#    endif
     const auto updateCheck = new UpdateCheckDialog(updateChannel);
     updateCheck->exec();
 }
+#endif
 
 void VMManagerMainWindow::on_actionExit_triggered()
 {
