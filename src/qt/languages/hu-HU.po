@@ -642,18 +642,6 @@ msgstr "Kártya 3:"
 msgid "Card 4:"
 msgstr "Kártya 4:"
 
-msgid "Board 1"
-msgstr ""
-
-msgid "Board 2"
-msgstr ""
-
-msgid "Board 3"
-msgstr ""
-
-msgid "Board 4"
-msgstr ""
-
 msgid "Generic ISA ROM Board"
 msgstr ""
 

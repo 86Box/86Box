@@ -642,18 +642,6 @@ msgstr "Placa 3:"
 msgid "Card 4:"
 msgstr "Placa 4:"
 
-msgid "Board 1"
-msgstr "Placa 1"
-
-msgid "Board 2"
-msgstr "Placa 2"
-
-msgid "Board 3"
-msgstr "Placa 3"
-
-msgid "Board 4"
-msgstr "Placa 4"
-
 msgid "Generic ISA ROM Board"
 msgstr "Placa ROM ISA Genérica"
 

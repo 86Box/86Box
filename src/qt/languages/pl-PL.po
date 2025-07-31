@@ -642,18 +642,6 @@ msgstr "Karta 3:"
 msgid "Card 4:"
 msgstr "Karta 4:"
 
-msgid "Board 1"
-msgstr "Płyta 1"
-
-msgid "Board 2"
-msgstr "Płyta 2"
-
-msgid "Board 3"
-msgstr "Płyta 3"
-
-msgid "Board 4"
-msgstr "Płyta 4"
-
 msgid "Generic ISA ROM Board"
 msgstr "Generyczna płyta ROM ISA"
 
