@@ -585,7 +585,11 @@ main(int argc, char *argv[])
     }
 
     if (!vmm_enabled)
+#ifdef Q_OS_MACOS
         qt_set_sequence_auto_mnemonic(false);
+#else
+        qt_set_sequence_auto_mnemonic(!!kbd_req_capture);
+#endif
     app.setStyle(new StyleOverride());
 
     bool startMaximized = window_remember && monitor_settings[0].mon_window_maximized;

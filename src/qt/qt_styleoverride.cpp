@@ -24,6 +24,7 @@
 
 extern "C" {
 #include <86box/86box.h>
+#include <86box/plat.h>
 }
 
 #ifdef Q_OS_WINDOWS
@@ -41,7 +42,7 @@ StyleOverride::styleHint(
     QStyleHintReturn   *returnData) const
 {
     /* Disable using menu with alt key */
-    if (!vmm_enabled && (hint == QStyle::SH_MenuBar_AltKeyNavigation))
+    if (!vmm_enabled && (!kbd_req_capture || mouse_capture) && (hint == QStyle::SH_MenuBar_AltKeyNavigation))
         return 0;
 
     return QProxyStyle::styleHint(hint, option, widget, returnData);
