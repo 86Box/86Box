@@ -469,7 +469,6 @@ device_get_bios_local(const device_t *dev, const char *internal_name)
                            (bios->name != NULL) &&
                            (bios->internal_name != NULL) &&
                            (bios->files_no != 0)) {
-                        printf("Internal name was: %s", internal_name);
                         if (!strcmp(internal_name, bios->internal_name))
                             return bios->local;
                         bios++;
