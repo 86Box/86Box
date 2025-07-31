@@ -217,7 +217,7 @@ msgid "End trace"
 msgstr "Завершить трассировку"
 
 msgid "&Help"
-msgstr "&Помощь"
+msgstr "&Справка"
 
 msgid "&Documentation..."
 msgstr "&Документация..."
@@ -616,7 +616,7 @@ msgid "MO drives:"
 msgstr "Магнитооптические дисководы:"
 
 msgid "Removable disk drives:"
-msgstr "Съёмные дисковые устройства:"
+msgstr "Дисководы съёмных дисков:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -643,13 +643,13 @@ msgid "Card 4:"
 msgstr "Карта 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr "Стандартная плата ISA ROM"
+msgstr "Стандартная плата ПЗУ ISA"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr "Стандартная плата Dual ISA ROM"
+msgstr "Стандартная плата на 2 ПЗУ ISA"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr "Стандартная плата Quad ISA ROM"
+msgstr "Стандартная плата на 4 ПЗУ ISA"
 
 msgid "ISABugger device"
 msgstr "Устройство ISABugger"
@@ -676,7 +676,7 @@ msgid "Removable disk %1 (%2): %3"
 msgstr "Съёмный диск %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr "Съёмные образы дисков"
+msgstr "Образы съёмных дисков"
 
 msgid "Image %1"
 msgstr "Образ %1"
@@ -1439,6 +1439,7 @@ msgstr "Параметры рендеринга..."
 
 msgid "PC/XT Keyboard"
 msgstr "Клавиатура PC/XT"
+
 msgid "AT Keyboard"
 msgstr "Клавиатура AT"
 
@@ -1446,10 +1447,10 @@ msgid "AX Keyboard"
 msgstr "Клавиатура AX"
 
 msgid "PS/2 Keyboard"
-msgstr ""
+msgstr "Клавиатура PS/2"
 
 msgid "PS/55 Keyboard"
-msgstr ""
+msgstr "Клавиатура PS/55"
 
 msgid "Keys"
 msgstr "Клавиши"
@@ -1485,7 +1486,7 @@ msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (последовательный)"
 
 msgid "Default Baud rate"
-msgstr "Скорость передачи данных (По умолчанию)"
+msgstr "Скорость передачи данных по умолчанию"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Стандартный Hayes-совместимый модем"
