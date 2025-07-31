@@ -140,6 +140,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
         c++;
     }
     keyboardModel->removeRows(0, removeRows);
+    ui->comboBoxKeyboard->setCurrentIndex(-1);
     ui->comboBoxKeyboard->setCurrentIndex(selectedRow);
 
     if ((c == 1) || has_int_kbd)
@@ -171,6 +172,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
             selectedRow = row - removeRows;
     }
     mouseModel->removeRows(0, removeRows);
+    ui->comboBoxMouse->setCurrentIndex(-1);
     ui->comboBoxMouse->setCurrentIndex(selectedRow);
 
     int         i             = 0;
@@ -287,6 +289,8 @@ SettingsInput::on_pushButtonClearBind_clicked()
 void
 SettingsInput::on_comboBoxKeyboard_currentIndexChanged(int index)
 {
+    if (index < 0)
+        return;
     int keyboardId = ui->comboBoxKeyboard->currentData().toInt();
     ui->pushButtonConfigureKeyboard->setEnabled(keyboard_has_config(keyboardId) > 0);
 }
@@ -294,6 +298,8 @@ SettingsInput::on_comboBoxKeyboard_currentIndexChanged(int index)
 void
 SettingsInput::on_comboBoxMouse_currentIndexChanged(int index)
 {
+    if (index < 0)
+        return;
     int mouseId = ui->comboBoxMouse->currentData().toInt();
     ui->pushButtonConfigureMouse->setEnabled(mouse_has_config(mouseId) > 0);
 }

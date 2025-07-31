@@ -328,6 +328,29 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>comboBoxFD</tabstop>
+  <tabstop>pushButtonFD</tabstop>
+  <tabstop>comboBoxCDInterface</tabstop>
+  <tabstop>pushButtonCDInterface</tabstop>
+  <tabstop>comboBoxHD1</tabstop>
+  <tabstop>pushButtonHD1</tabstop>
+  <tabstop>comboBoxHD2</tabstop>
+  <tabstop>pushButtonHD2</tabstop>
+  <tabstop>comboBoxHD3</tabstop>
+  <tabstop>pushButtonHD3</tabstop>
+  <tabstop>comboBoxHD4</tabstop>
+  <tabstop>pushButtonHD4</tabstop>
+  <tabstop>comboBoxSCSI1</tabstop>
+  <tabstop>pushButtonSCSI1</tabstop>
+  <tabstop>comboBoxSCSI2</tabstop>
+  <tabstop>pushButtonSCSI2</tabstop>
+  <tabstop>comboBoxSCSI3</tabstop>
+  <tabstop>pushButtonSCSI3</tabstop>
+  <tabstop>comboBoxSCSI4</tabstop>
+  <tabstop>pushButtonSCSI4</tabstop>
+  <tabstop>checkBoxCassette</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
