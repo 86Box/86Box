@@ -67,14 +67,15 @@ enum {
 };
 #else
 enum {
-    HDD_BUS_DISABLED = 0,
-    HDD_BUS_MFM      = 1,
-    HDD_BUS_XTA      = 2,
-    HDD_BUS_ESDI     = 3,
-    HDD_BUS_IDE      = 4,
-    HDD_BUS_ATAPI    = 5,
-    HDD_BUS_SCSI     = 6,
-    HDD_BUS_USB      = 7
+    HDD_BUS_DISABLED =  0,
+    HDD_BUS_MFM      =  1,
+    HDD_BUS_XTA      =  2,
+    HDD_BUS_ESDI     =  3,
+    HDD_BUS_LPT      =  6,
+    HDD_BUS_IDE      =  7,
+    HDD_BUS_ATAPI    =  8,
+    HDD_BUS_SCSI     =  9,
+    HDD_BUS_USB      = 10
 };
 #endif
 

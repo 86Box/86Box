@@ -519,6 +519,9 @@ msgstr "Povoliť port LPT4"
 msgid "FD Controller:"
 msgstr "Disketový radič:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Tretí radič IDE"
 
@@ -548,6 +551,9 @@ msgstr "Kazeta"
 
 msgid "Hard disks:"
 msgstr "Pevné disky:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Nový..."
@@ -1440,10 +1446,16 @@ msgstr "Priechod cez sériový port 4"
 msgid "Renderer options..."
 msgstr "Možnosti vykresľovača..."
 
+msgid "PC/XT Keyboard"
+msgstr ""
+
 msgid "AT Keyboard"
 msgstr ""
 
 msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard"
 msgstr ""
 
 msgid "PS/2 Keyboard (US)"
@@ -1456,6 +1468,12 @@ msgid "PS/2 Keyboard (Japanese)"
 msgstr ""
 
 msgid "PS/55 Keyboard"
+msgstr ""
+
+msgid "AT/PS/2 Keyboard"
+msgstr ""
+
+msgid "Keys"
 msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"

@@ -1039,7 +1039,7 @@ const machine_t machines[] = {
         .net_device = NULL 
     }, 
     { 
-        .name = "[8088] Micoms XL-7 Turbo", 
+        .name = "[8088] Micoms XL-7 Turbo/Pravetz-16ES", 
         .internal_name = "mxl7t", 
         .type = MACHINE_TYPE_8088, 
         .chipset = MACHINE_CHIPSET_DISCRETE, 
@@ -1279,7 +1279,7 @@ const machine_t machines[] = {
         .net_device = NULL 
     }, 
     { 
-        .name = "[8088] Packard Bell PB8810", 
+        .name = "[8088] Samsung SPC-3000V/Packard Bell PB500/PB8810", 
         .internal_name = "pb8810", 
         .type = MACHINE_TYPE_8088, 
         .chipset = MACHINE_CHIPSET_DISCRETE, 
@@ -13204,7 +13204,7 @@ const machine_t machines[] = {
             .block = CPU_BLOCK_NONE, 
             .min_bus = 50000000, 
             .max_bus = 75000000, 
-            .min_voltage = 2500, 
+            .min_voltage = 2100, 
             .max_voltage = 3520, 
             .min_multi = 1.5, 
             .max_multi = 4.0 
@@ -14076,7 +14076,7 @@ const machine_t machines[] = {
        PC87306 Super I/O chip, command 0xA1 returns '5'. 
        Command 0xA0 copyright string: (C)1994 AMI . */ 
     { 
-        .name = "[i430VX] Packard Bell Multimedia C110", 
+        .name = "[i430VX] Packard Bell Multimedia C110 (PB680/PB682/PB685)", 
         .internal_name = "pb680", 
         .type = MACHINE_TYPE_SOCKET7, 
         .chipset = MACHINE_CHIPSET_INTEL_430VX, 
@@ -14119,7 +14119,7 @@ const machine_t machines[] = {
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix 
        MultiKey/42 (version 1.38) KBC firmware. */ 
     { 
-        .name = "[i430VX] Packard Bell Multimedia M415", 
+        .name = "[i430VX] Packard Bell Multimedia M415 (PB810)", 
         .internal_name = "pb810", 
         .type = MACHINE_TYPE_SOCKET7, 
         .chipset = MACHINE_CHIPSET_INTEL_430VX, 
@@ -14301,7 +14301,7 @@ const machine_t machines[] = {
             .block = CPU_BLOCK_NONE, 
             .min_bus = 50000000, 
             .max_bus = 75000000, 
-            .min_voltage = 2500, 
+            .min_voltage = 2100, 
             .max_voltage = 3520, 
             .min_multi = 1.5, 
             .max_multi = 3.5 
@@ -15239,7 +15239,7 @@ const machine_t machines[] = {
             .block = CPU_BLOCK_NONE, 
             .min_bus = 50000000, 
             .max_bus = 83333333, 
-            .min_voltage = 2500, 
+            .min_voltage = 2100, 
             .max_voltage = 3520, 
             .min_multi = 1.5, 
             .max_multi = 3.0 
@@ -15644,9 +15644,9 @@ const machine_t machines[] = {
         .net_device = NULL 
     }, 
     /* Has the VIA VT82C596A southbridge with on-chip KBC identical to the VIA 
-       VT82C42N. */ 
+       VT82C42N. Sadly likely abuses cache on Cyrix 6x86MX and MII CPUs (Cyrix MII being what most socket 7 eMachines PCs used) , so they are blocked and it's thus named after the only known eMachines with an AMD K6-2 CPU here */ 
     { 
-        .name = "[VIA MVP3] eMachines eTower 3xxc", 
+        .name = "[VIA MVP3] eMachines eTower 300k", 
         .internal_name = "delhi3", 
         .type = MACHINE_TYPE_SOCKETS7, 
         .chipset = MACHINE_CHIPSET_VIA_APOLLO_MVP3, 
@@ -15657,7 +15657,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL, 
         .cpu = { 
             .package = CPU_PKG_SOCKET5_7, 
-            .block = CPU_BLOCK_NONE, 
+            .block = CPU_BLOCK(CPU_Cx6x86MX), 
             .min_bus = 66666667, 
             .max_bus = 124242424, 
             .min_voltage = 2000, 
@@ -17125,7 +17125,7 @@ const machine_t machines[] = {
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC 
        firmware. */ 
     { 
-        .name = "[i440ZX] Packard Bell Bora Pro", 
+        .name = "[i440ZX] Packard Bell Bora Pro (MSI MS-6168)", 
         .internal_name = "borapro", 
         .type = MACHINE_TYPE_SLOT1, 
         .chipset = MACHINE_CHIPSET_INTEL_440ZX, 

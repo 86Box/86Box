@@ -140,13 +140,12 @@ SettingsInput::onCurrentMachineChanged(int machineId)
         c++;
     }
     keyboardModel->removeRows(0, removeRows);
+    ui->comboBoxKeyboard->setCurrentIndex(selectedRow);
 
     if ((c == 1) || has_int_kbd)
         ui->comboBoxKeyboard->setEnabled(false);
     else
         ui->comboBoxKeyboard->setEnabled(true);
-
-    ui->comboBoxKeyboard->setCurrentIndex(selectedRow);
 
     auto *mouseModel = ui->comboBoxMouse->model();
     removeRows       = mouseModel->rowCount();

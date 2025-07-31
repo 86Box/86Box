@@ -1489,15 +1489,15 @@ pc_reset_hard_init(void)
 
     fdd_reset();
 
-    /* Reset the CD-ROM Controller module. */
-    cdrom_interface_reset();
-
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
     scsi_disk_hard_reset();
 
     cdrom_hard_reset();
+
+    /* Reset the CD-ROM Controller module. */
+    cdrom_interface_reset();
 
     mo_hard_reset();
 

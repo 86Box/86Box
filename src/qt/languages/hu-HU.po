@@ -519,6 +519,9 @@ msgstr "Párhuzamos port 4"
 msgid "FD Controller:"
 msgstr "Floppy-vezérlő:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Harmadlagos IDE-vezérlő"
 
@@ -548,6 +551,9 @@ msgstr "Magnókazetta"
 
 msgid "Hard disks:"
 msgstr "Merevlemezek:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Új..."
@@ -1440,10 +1446,16 @@ msgstr "Soros port áthaladás 4"
 msgid "Renderer options..."
 msgstr "Renderer opciók..."
 
+msgid "PC/XT Keyboard"
+msgstr ""
+
 msgid "AT Keyboard"
 msgstr ""
 
 msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard"
 msgstr ""
 
 msgid "PS/2 Keyboard (US)"
@@ -1456,6 +1468,12 @@ msgid "PS/2 Keyboard (Japanese)"
 msgstr ""
 
 msgid "PS/55 Keyboard"
+msgstr ""
+
+msgid "AT/PS/2 Keyboard"
+msgstr ""
+
+msgid "Keys"
 msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"

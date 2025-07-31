@@ -519,6 +519,9 @@ msgstr "Porta parallela 4"
 msgid "FD Controller:"
 msgstr "Controller FD:"
 
+msgid "CD-ROM Controller:"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Controller IDE terziario"
 
@@ -548,6 +551,9 @@ msgstr "Cassetta"
 
 msgid "Hard disks:"
 msgstr "Hard disk:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Nuovo..."
@@ -1440,10 +1446,16 @@ msgstr "Passaggio della porta seriale 4"
 msgid "Renderer options..."
 msgstr "Opzioni del renderer..."
 
+msgid "PC/XT Keyboard"
+msgstr ""
+
 msgid "AT Keyboard"
 msgstr ""
 
 msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard"
 msgstr ""
 
 msgid "PS/2 Keyboard (US)"
@@ -1456,6 +1468,12 @@ msgid "PS/2 Keyboard (Japanese)"
 msgstr ""
 
 msgid "PS/55 Keyboard"
+msgstr ""
+
+msgid "AT/PS/2 Keyboard"
+msgstr ""
+
+msgid "Keys"
 msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"

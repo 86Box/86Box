@@ -1250,6 +1250,26 @@ cdrom_get_type_count(void)
 }
 
 void
+cdrom_generate_name_mke(const int type, char *name)
+{
+    char  elements[2][512] = { 0 };
+
+    memcpy(elements[0], cdrom_drive_types[type].model,
+           strlen(cdrom_drive_types[type].model) + 1);
+    char *s = strstr(elements[0], "  ");
+    if (s != NULL)
+        s[0] = 0x00;
+
+    memcpy(elements[1], cdrom_drive_types[type].revision,
+           strlen(cdrom_drive_types[type].revision) + 1);
+    s = strstr(elements[1], " ");
+    if (s != NULL)
+        s[0] = 0x00;
+
+    sprintf(name, "%s%s", elements[0], elements[1]);
+}
+
+void
 cdrom_get_identify_model(const int type, char *name, const int id)
 {
     char  elements[2][512] = { 0 };
@@ -1687,7 +1707,7 @@ cdrom_audio_track_search(cdrom_t *dev, const uint32_t pos,
                     dev->seek_pos = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
                 else {
                     cdrom_log(dev->log, "Unable to get the starting position for "
-                              "track %08X\n", ismsf & 0xff);
+                              "track %08X\n", pos2 & 0xff);
                     cdrom_stop(dev);
                 }
                 break;
@@ -1805,7 +1825,7 @@ cdrom_audio_play_toshiba(cdrom_t *dev, const uint32_t pos, const int type)
                     dev->cd_end = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
                 else {
                     cdrom_log(dev->log, "Unable to get the starting position for "
-                              "track %08X\n", ismsf & 0xff);
+                              "track %08X\n", pos2 & 0xff);
                     cdrom_stop(dev);
                 }
                 break;
@@ -1838,7 +1858,7 @@ cdrom_audio_scan(cdrom_t *dev, const uint32_t pos)
     uint8_t       ret       = 0;
 
     if (dev->cd_status & CD_STATUS_HAS_AUDIO) {
-        cdrom_log(dev->log, "Audio Scan: MSF = %06x, type = %02x\n", pos, type);
+        cdrom_log(dev->log, "Audio Scan: MSF = %06x\n", pos);
 
         if (pos == 0xffffffff) {
             cdrom_log(dev->log, "(Type 0) Search from current position\n");
