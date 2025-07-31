@@ -539,7 +539,7 @@ fdd_hole(int drive)
 static __inline uint64_t
 fdd_byteperiod(int drive)
 {
-    if (!fdd_get_turbo(drive) && drives[drive].byteperiod)
+    if (drives[drive].byteperiod)
         return drives[drive].byteperiod(drive);
     else
         return 32ULL * TIMER_USEC;

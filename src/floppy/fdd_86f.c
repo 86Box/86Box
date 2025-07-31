@@ -758,36 +758,43 @@ d86f_get_encoding(int drive)
 uint64_t
 d86f_byteperiod(int drive)
 {
-    double dusec = (double) TIMER_USEC;
-    double p     = 2.0;
+    d86f_t   *dev = d86f[drive];
+    uint64_t  ret = 32ULL * TIMER_USEC;
 
-    switch (d86f_track_flags(drive) & 0x0f) {
-        case 0x02: /* 125 kbps, FM */
-            p = 4.0;
-            break;
-        case 0x01: /* 150 kbps, FM */
-            p = 20.0 / 6.0;
-            break;
-        case 0x0a: /* 250 kbps, MFM */
-        case 0x00: /* 250 kbps, FM */
-        default:
-            p = 2.0;
-            break;
-        case 0x09: /* 300 kbps, MFM */
-            p = 10.0 / 6.0;
-            break;
-        case 0x08: /* 500 kbps, MFM */
-            p = 1.0;
-            break;
-        case 0x0b: /* 1000 kbps, MFM */
-            p = 0.5;
-            break;
-        case 0x0d: /* 2000 kbps, MFM */
-            p = 0.25;
-            break;
+    if (!fdd_get_turbo(drive) || (dev->version != 0x0063) || (dev->state == STATE_SECTOR_NOT_FOUND)) {
+        double dusec = (double) TIMER_USEC;
+        double p     = 2.0;
+
+        switch (d86f_track_flags(drive) & 0x0f) {
+            case 0x02: /* 125 kbps, FM */
+                p = 4.0;
+                break;
+            case 0x01: /* 150 kbps, FM */
+                p = 20.0 / 6.0;
+                break;
+            case 0x0a: /* 250 kbps, MFM */
+            case 0x00: /* 250 kbps, FM */
+                default:
+                p = 2.0;
+                break;
+            case 0x09: /* 300 kbps, MFM */
+                p = 10.0 / 6.0;
+                break;
+            case 0x08: /* 500 kbps, MFM */
+                p = 1.0;
+                break;
+            case 0x0b: /* 1000 kbps, MFM */
+                p = 0.5;
+                break;
+            case 0x0d: /* 2000 kbps, MFM */
+                p = 0.25;
+                break;
+        }
+
+        ret = (uint64_t) (p * dusec);
     }
 
-    return (uint64_t) (p * dusec);
+    return ret;
 }
 
 int
@@ -2463,14 +2470,15 @@ d86f_poll(int drive)
             dev->state = STATE_SECTOR_NOT_FOUND;
     }
 
-    if (fdd_get_turbo(drive) && (dev->version == 0x0063)) {
-        d86f_turbo_poll(drive, side);
-        return;
-    }
-
     if ((dev->state != STATE_IDLE) && (dev->state != STATE_SECTOR_NOT_FOUND) && ((dev->state & 0xF8) != 0xE8)) {
         if (!d86f_can_read_address(drive))
             dev->state = STATE_SECTOR_NOT_FOUND;
+    }
+
+    /* Do normal poll if DENSEL is wrong, because Windows 95 is very strict about timings there. */
+    if (fdd_get_turbo(drive) && (dev->version == 0x0063) && (dev->state != STATE_SECTOR_NOT_FOUND)) {
+        d86f_turbo_poll(drive, side);
+        return;
     }
 
     if ((dev->state != STATE_02_SPIN_TO_INDEX) && (dev->state != STATE_0D_SPIN_TO_INDEX))
@@ -2576,12 +2584,6 @@ d86f_poll(int drive)
     }
 
     d86f_advance_bit(drive, side);
-
-    if (d86f_wrong_densel(drive) && (dev->state != STATE_IDLE)) {
-        dev->state = STATE_IDLE;
-        fdc_noidam(d86f_fdc);
-        return;
-    }
 
     if ((dev->index_count == 2) && (dev->state != STATE_IDLE)) {
         switch (dev->state) {
@@ -3277,7 +3279,12 @@ d86f_readsector(int drive, int sector, int track, int side, int rate, int sector
     if (!ret)
         return;
 
-    if (sector == SECTOR_FIRST)
+    if (d86f_wrong_densel(drive)) {
+        dev->state = STATE_SECTOR_NOT_FOUND;
+
+        if (fdd_get_turbo(drive))
+            dev->track_pos = 0;
+    } else if (sector == SECTOR_FIRST)
         dev->state = STATE_02_SPIN_TO_INDEX;
     else if (sector == SECTOR_NEXT)
         dev->state = STATE_02_FIND_ID;
@@ -3302,7 +3309,13 @@ d86f_writesector(int drive, int sector, int track, int side, int rate, int secto
     if (!ret)
         return;
 
-    dev->state = fdc_is_deleted(d86f_fdc) ? STATE_09_FIND_ID : STATE_05_FIND_ID;
+    if (d86f_wrong_densel(drive)) {
+        dev->state = STATE_SECTOR_NOT_FOUND;
+
+        if (fdd_get_turbo(drive))
+            dev->track_pos = 0;
+    } else
+        dev->state = fdc_is_deleted(d86f_fdc) ? STATE_09_FIND_ID : STATE_05_FIND_ID;
 }
 
 void
@@ -3315,7 +3328,13 @@ d86f_comparesector(int drive, int sector, int track, int side, int rate, int sec
     if (!ret)
         return;
 
-    dev->state = STATE_11_FIND_ID;
+    if (d86f_wrong_densel(drive)) {
+        dev->state = STATE_SECTOR_NOT_FOUND;
+
+        if (fdd_get_turbo(drive))
+            dev->track_pos = 0;
+    } else
+        dev->state = STATE_11_FIND_ID;
 }
 
 void
@@ -3336,7 +3355,13 @@ d86f_readaddress(int drive, UNUSED(int side), UNUSED(int rate))
     dev->id_found                                                   = 0;
     dev->dma_over                                                   = 0;
 
-    dev->state = STATE_0A_FIND_ID;
+    if (d86f_wrong_densel(drive)) {
+        dev->state = STATE_SECTOR_NOT_FOUND;
+
+        if (fdd_get_turbo(drive))
+            dev->track_pos = 0;
+    } else
+        dev->state = STATE_0A_FIND_ID;
 }
 
 void
@@ -3438,7 +3463,13 @@ d86f_common_format(int drive, int side, UNUSED(int rate), uint8_t fill, int prox
     dev->index_count = dev->error_condition = dev->satisfying_bytes = dev->sector_count = 0;
     dev->dma_over                                                                       = 0;
 
-    dev->state = STATE_0D_SPIN_TO_INDEX;
+    if (d86f_wrong_densel(drive) && !proxy) {
+        dev->state = STATE_SECTOR_NOT_FOUND;
+
+        if (fdd_get_turbo(drive))
+            dev->track_pos = 0;
+    } else
+        dev->state = STATE_0D_SPIN_TO_INDEX;
 }
 
 void
