@@ -63,8 +63,8 @@ msgstr "OpenGL (3.0 Core)(&G)"
 msgid "&VNC"
 msgstr "VNC(&V)"
 
-msgid "Specify dimensions..."
-msgstr "指定視窗大小..."
+msgid "Specify &dimensions..."
+msgstr "指定視窗大小...(&D)"
 
 msgid "F&orce 4:3 display ratio"
 msgstr "強制 4:3 顯示比例(&O)"
@@ -102,8 +102,8 @@ msgstr "7x(&7)"
 msgid "&8x"
 msgstr "8x(&8)"
 
-msgid "Filter method"
-msgstr "過濾方式"
+msgid "Fi&lter method"
+msgstr "過濾方式(&L)"
 
 msgid "&Nearest"
 msgstr "鄰近(&N)"
@@ -675,6 +675,9 @@ msgstr "速度"
 msgid "Removable disk %1 (%2): %3"
 msgstr ""
 
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
 msgid "Removable disk images"
 msgstr ""
 
@@ -861,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "軟碟 %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "軟碟 %1 (%2): %3(&F)"
+
 msgid "Advanced sector images"
 msgstr "進階磁區映像"
 
@@ -881,6 +887,9 @@ msgstr "無法初始化 GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "磁光碟 %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "磁光碟 %1 (%2): %3(&M)"
 
 msgid "MO images"
 msgstr "磁光碟映像"
@@ -966,11 +975,17 @@ msgstr "繼續"
 msgid "Cassette: %1"
 msgstr "磁帶: %1"
 
+msgid "C&assette: %1"
+msgstr "磁帶: %1(&A)"
+
 msgid "Cassette images"
 msgstr "磁帶映像"
 
 msgid "Cartridge %1: %2"
 msgstr "卡帶 %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "卡帶 %1: %2(&A)"
 
 msgid "Cartridge images"
 msgstr "卡帶映像"
@@ -992,6 +1007,9 @@ msgstr "硬重設"
 
 msgid "ACPI shutdown"
 msgstr "ACPI 關機"
+
+msgid "ACP&I shutdown"
+msgstr "ACP&I 關機"
 
 msgid "Hard disk (%1)"
 msgstr "硬碟 (%1)"
@@ -1278,41 +1296,41 @@ msgstr "MCA 裝置"
 msgid "List of MCA devices:"
 msgstr "MCA 裝置清單："
 
-msgid "Tablet tool"
-msgstr "平板工具"
+msgid "&Tablet tool"
+msgstr "平板工具(&T)"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "關於 Qt"
+msgid "About &Qt"
+msgstr "關於 &Qt"
 
-msgid "MCA devices..."
-msgstr "MCA 裝置..."
+msgid "&MCA devices..."
+msgstr "&MCA 裝置..."
 
-msgid "Show non-primary monitors"
-msgstr "顯示非主要顯示器"
+msgid "Show non-&primary monitors"
+msgstr "顯示非主要顯示器(&P)"
 
-msgid "Open screenshots folder..."
-msgstr "開啟螢幕截圖資料夾..."
+msgid "Open screenshots &folder..."
+msgstr "開啟螢幕截圖資料夾...(&F)"
 
-msgid "Apply fullscreen stretch mode when maximized"
-msgstr "最大化時套用全螢幕拉伸模式"
+msgid "Appl&y fullscreen stretch mode when maximized"
+msgstr "最大化時套用全螢幕拉伸模式(&Y)"
 
-msgid "Cursor/Puck"
-msgstr "游標/球棒"
+msgid "&Cursor/Puck"
+msgstr "游標/球棒(&C)"
 
-msgid "Pen"
-msgstr "筆"
+msgid "&Pen"
+msgstr "筆(&P)"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "主機 CD/DVD 光碟機 (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "主機 CD/DVD 光碟機 (%1:) (&H)"
 
 msgid "&Connected"
 msgstr "已連線"
 
-msgid "Clear image history"
-msgstr "清除映像歷史記錄"
+msgid "Clear image &history"
+msgstr "清除映像歷史記錄(&H)"
 
 msgid "Create..."
 msgstr "建立..."
@@ -1434,8 +1452,8 @@ msgstr "序列埠的直通 3"
 msgid "Serial port passthrough 4"
 msgstr "序列埠的直通 4"
 
-msgid "Renderer options..."
-msgstr "渲染器選項..."
+msgid "Renderer &options..."
+msgstr "渲染器選項...(&O)"
 
 msgid "PC/XT Keyboard"
 msgstr ""

@@ -63,7 +63,7 @@ msgstr ""
 msgid "&VNC"
 msgstr ""
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr ""
 
 msgid "F&orce 4:3 display ratio"
@@ -102,7 +102,7 @@ msgstr ""
 msgid "&8x"
 msgstr ""
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr ""
 
 msgid "&Nearest"
@@ -675,6 +675,9 @@ msgstr ""
 msgid "Removable disk %1 (%2): %3"
 msgstr ""
 
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
 msgid "Removable disk images"
 msgstr ""
 
@@ -861,6 +864,9 @@ msgstr ""
 msgid "Floppy %1 (%2): %3"
 msgstr ""
 
+msgid "&Floppy %1 (%2): %3"
+msgstr ""
+
 msgid "Advanced sector images"
 msgstr ""
 
@@ -880,6 +886,9 @@ msgid "Unable to initialize GhostPCL"
 msgstr ""
 
 msgid "MO %1 (%2): %3"
+msgstr ""
+
+msgid "&MO %1 (%2): %3"
 msgstr ""
 
 msgid "MO images"
@@ -966,10 +975,16 @@ msgstr ""
 msgid "Cassette: %1"
 msgstr ""
 
+msgid "C&assette: %1"
+msgstr ""
+
 msgid "Cassette images"
 msgstr ""
 
 msgid "Cartridge %1: %2"
+msgstr ""
+
+msgid "Car&tridge %1: %2"
 msgstr ""
 
 msgid "Cartridge images"
@@ -991,6 +1006,9 @@ msgid "Hard reset"
 msgstr ""
 
 msgid "ACPI shutdown"
+msgstr ""
+
+msgid "ACP&I shutdown"
 msgstr ""
 
 msgid "Hard disk (%1)"
@@ -1140,6 +1158,9 @@ msgstr ""
 msgid "CD-ROM %1 (%2): %3"
 msgstr ""
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr ""
+
 msgid "160 KB"
 msgstr ""
 
@@ -1278,40 +1299,40 @@ msgstr ""
 msgid "List of MCA devices:"
 msgstr ""
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr ""
 
 msgid "Qt (OpenGL &ES)"
 msgstr ""
 
-msgid "About Qt"
+msgid "About &Qt"
 msgstr ""
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr ""
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr ""
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr ""
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr ""
 
-msgid "Cursor/Puck"
+msgid "&Cursor/Puck"
 msgstr ""
 
-msgid "Pen"
+msgid "&Pen"
 msgstr ""
 
-msgid "Host CD/DVD Drive (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
 msgstr ""
 
 msgid "&Connected"
 msgstr ""
 
-msgid "Clear image history"
+msgid "Clear image &history"
 msgstr ""
 
 msgid "Create..."
@@ -1327,6 +1348,9 @@ msgid "Null Driver"
 msgstr ""
 
 msgid "NIC %1 (%2) %3"
+msgstr ""
+
+msgid "&NIC %1 (%2) %3"
 msgstr ""
 
 msgid "Render behavior"
@@ -1434,7 +1458,7 @@ msgstr ""
 msgid "Serial port passthrough 4"
 msgstr ""
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr ""
 
 msgid "PC/XT Keyboard"

@@ -63,7 +63,7 @@ msgstr "Open&GL (3.0)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "&Вказати розміри..."
 
 msgid "F&orce 4:3 display ratio"
@@ -102,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "Метод фільтрації"
 
 msgid "&Nearest"
@@ -675,6 +675,9 @@ msgstr "Швидкість"
 msgid "Removable disk %1 (%2): %3"
 msgstr ""
 
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
 msgid "Removable disk images"
 msgstr ""
 
@@ -861,6 +864,9 @@ msgstr "%1 МБ (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Дисковод %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Дисковод %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Розширені образи секторів"
 
@@ -881,6 +887,9 @@ msgstr "Неможливо ініціалізувати GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "Магнітооптичний %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&Магнітооптичний %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Образи магнітооптичних дисків"
@@ -966,11 +975,17 @@ msgstr "Продовжити"
 msgid "Cassette: %1"
 msgstr "Касета: %1"
 
+msgid "C&assette: %1"
+msgstr "К&асета: %1"
+
 msgid "Cassette images"
 msgstr "Образи касет"
 
 msgid "Cartridge %1: %2"
 msgstr "Картридж %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Кар&тридж %1: %2"
 
 msgid "Cartridge images"
 msgstr "Образи картриджів"
@@ -992,6 +1007,9 @@ msgstr "Холодне перезавантаження"
 
 msgid "ACPI shutdown"
 msgstr "Сигнал завершення ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Сигнал завершення ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Жорсткий диск (%1)"
@@ -1281,40 +1299,40 @@ msgstr "Пристрої MCA"
 msgid "List of MCA devices:"
 msgstr "Список пристроїв MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Інструмент для планшета"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Про Qt"
+msgid "About &Qt"
+msgstr "Про &Qt"
 
-msgid "MCA devices..."
-msgstr "Пристрої MCA..."
+msgid "&MCA devices..."
+msgstr "Пристрої &MCA..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Показати неосновні монітори"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Відкрийте папку скріншотів..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Застосовувати розстягування у повноекранному режимі у максимізованому стані"
 
-msgid "Cursor/Puck"
-msgstr "Курсор/шайба"
+msgid "&Cursor/Puck"
+msgstr "&Курсор/шайба"
 
-msgid "Pen"
-msgstr "Ручка"
+msgid "&Pen"
+msgstr "&Ручка"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "CD/DVD привід хоста (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "CD/DVD &привід хоста (%1:)"
 
 msgid "&Connected"
 msgstr "&Підключено"
 
-msgid "Clear image history"
+msgid "Clear image &history"
 msgstr "Очистити історію образів"
 
 msgid "Create..."
@@ -1437,7 +1455,7 @@ msgstr "Пропуск послідовного порту 3"
 msgid "Serial port passthrough 4"
 msgstr "Пропуск послідовного порту 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Параметри рендерингу..."
 
 msgid "PC/XT Keyboard"

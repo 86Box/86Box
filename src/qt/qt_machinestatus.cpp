@@ -630,7 +630,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         connect((ClickableLabel *) d->cassette.label.get(), &ClickableLabel::dropped, [](QString str) {
             MediaMenu::ptr->cassetteMount(str, false);
         });
-        d->cassette.label->setToolTip(MediaMenu::ptr->cassetteMenu->title());
+        d->cassette.label->setToolTip(MediaMenu::ptr->cassetteMenu->toolTip());
         d->cassette.label->setAcceptDrops(true);
         sbar->addWidget(d->cassette.label.get());
     }
@@ -646,7 +646,7 @@ MachineStatus::refresh(QStatusBar *sbar)
             connect((ClickableLabel *) d->cartridge[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
                 MediaMenu::ptr->cartridgeMount(i, str);
             });
-            d->cartridge[i].label->setToolTip(MediaMenu::ptr->cartridgeMenus[i]->title());
+            d->cartridge[i].label->setToolTip(MediaMenu::ptr->cartridgeMenus[i]->toolTip());
             d->cartridge[i].label->setAcceptDrops(true);
             sbar->addWidget(d->cartridge[i].label.get());
         }
@@ -678,7 +678,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         connect((ClickableLabel *) d->fdd[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
             MediaMenu::ptr->floppyMount(i, str, false);
         });
-        d->fdd[i].label->setToolTip(MediaMenu::ptr->floppyMenus[i]->title());
+        d->fdd[i].label->setToolTip(MediaMenu::ptr->floppyMenus[i]->toolTip());
         d->fdd[i].label->setAcceptDrops(true);
         sbar->addWidget(d->fdd[i].label.get());
     });
@@ -695,7 +695,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         connect((ClickableLabel *) d->cdrom[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
             MediaMenu::ptr->cdromMount(i, str);
         });
-        d->cdrom[i].label->setToolTip(MediaMenu::ptr->cdromMenus[i]->title());
+        d->cdrom[i].label->setToolTip(MediaMenu::ptr->cdromMenus[i]->toolTip());
         d->cdrom[i].label->setAcceptDrops(true);
         sbar->addWidget(d->cdrom[i].label.get());
     });
@@ -718,7 +718,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         connect((ClickableLabel *) d->rdisk[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
             MediaMenu::ptr->rdiskMount(i, str, false);
         });
-        d->rdisk[i].label->setToolTip(MediaMenu::ptr->rdiskMenus[i]->title());
+        d->rdisk[i].label->setToolTip(MediaMenu::ptr->rdiskMenus[i]->toolTip());
         d->rdisk[i].label->setAcceptDrops(true);
         sbar->addWidget(d->rdisk[i].label.get());
     });
@@ -741,7 +741,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         connect((ClickableLabel *) d->mo[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
             MediaMenu::ptr->moMount(i, str, false);
         });
-        d->mo[i].label->setToolTip(MediaMenu::ptr->moMenus[i]->title());
+        d->mo[i].label->setToolTip(MediaMenu::ptr->moMenus[i]->toolTip());
         d->mo[i].label->setAcceptDrops(true);
         sbar->addWidget(d->mo[i].label.get());
     });
@@ -752,7 +752,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->net[i].setActive(false);
         d->net[i].setWriteActive(false);
         d->net[i].refresh();
-        d->net[i].label->setToolTip(MediaMenu::ptr->netMenus[i]->title());
+        d->net[i].label->setToolTip(MediaMenu::ptr->netMenus[i]->toolTip());
         connect((ClickableLabel *) d->net[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->netMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->netMenus[i]->sizeHint().height()));
         });
@@ -910,27 +910,27 @@ MachineStatus::updateTip(int tag)
     switch (category) {
         case SB_CASSETTE:
             if (d->cassette.label && MediaMenu::ptr->cassetteMenu)
-                d->cassette.label->setToolTip(MediaMenu::ptr->cassetteMenu->title());
+                d->cassette.label->setToolTip(MediaMenu::ptr->cassetteMenu->toolTip());
             break;
         case SB_CARTRIDGE:
             if (d->cartridge[item].label && MediaMenu::ptr->cartridgeMenus[item])
-                d->cartridge[item].label->setToolTip(MediaMenu::ptr->cartridgeMenus[item]->title());
+                d->cartridge[item].label->setToolTip(MediaMenu::ptr->cartridgeMenus[item]->toolTip());
             break;
         case SB_FLOPPY:
             if (d->fdd[item].label && MediaMenu::ptr->floppyMenus[item])
-                d->fdd[item].label->setToolTip(MediaMenu::ptr->floppyMenus[item]->title());
+                d->fdd[item].label->setToolTip(MediaMenu::ptr->floppyMenus[item]->toolTip());
             break;
         case SB_CDROM:
             if (d->cdrom[item].label && MediaMenu::ptr->cdromMenus[item])
-                d->cdrom[item].label->setToolTip(MediaMenu::ptr->cdromMenus[item]->title());
+                d->cdrom[item].label->setToolTip(MediaMenu::ptr->cdromMenus[item]->toolTip());
             break;
         case SB_RDISK:
             if (d->rdisk[item].label && MediaMenu::ptr->rdiskMenus[item])
-                d->rdisk[item].label->setToolTip(MediaMenu::ptr->rdiskMenus[item]->title());
+                d->rdisk[item].label->setToolTip(MediaMenu::ptr->rdiskMenus[item]->toolTip());
             break;
         case SB_MO:
             if (d->mo[item].label && MediaMenu::ptr->moMenus[item])
-                d->mo[item].label->setToolTip(MediaMenu::ptr->moMenus[item]->title());
+                d->mo[item].label->setToolTip(MediaMenu::ptr->moMenus[item]->toolTip());
             break;
         case SB_HDD:
             break;

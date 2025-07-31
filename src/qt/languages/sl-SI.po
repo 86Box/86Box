@@ -63,7 +63,7 @@ msgstr "Open&GL (jedro 3.0)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "&Določi velikost..."
 
 msgid "F&orce 4:3 display ratio"
@@ -102,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "&Vrsta filtriranja"
 
 msgid "&Nearest"
@@ -675,6 +675,9 @@ msgstr "Hitrost"
 msgid "Removable disk %1 (%2): %3"
 msgstr ""
 
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
 msgid "Removable disk images"
 msgstr ""
 
@@ -861,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Disketa %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Disketa %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Napredne sektorske slike"
 
@@ -881,6 +887,9 @@ msgstr "GhostPCL-ja ni bilo mogoče inicializirati"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Slike MO"
@@ -966,11 +975,17 @@ msgstr "Nadaljuj"
 msgid "Cassette: %1"
 msgstr "Kaseta: %1"
 
+msgid "C&assette: %1"
+msgstr "K&aseta: %1"
+
 msgid "Cassette images"
 msgstr "Slike kaset"
 
 msgid "Cartridge %1: %2"
 msgstr "Spominski vložek %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "S&pominski vložek %1: %2"
 
 msgid "Cartridge images"
 msgstr "Slike spominskega vložka"
@@ -992,6 +1007,9 @@ msgstr "Ponovni zagon"
 
 msgid "ACPI shutdown"
 msgstr "Zaustavitev ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Zaustavitev ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Trdi disk (%1)"
@@ -1278,40 +1296,40 @@ msgstr "Naprave MCA"
 msgid "List of MCA devices:"
 msgstr "Seznam naprav MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Orodje za tablico"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "O programu Qt"
+msgid "About &Qt"
+msgstr "O programu &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Naprave MCA..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Prikaži neprimarne monitorje"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Odprite mapo s posnetki zaslona..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Uporabi način celozaslonskega raztezanja v maksimiranem stanju"
 
-msgid "Cursor/Puck"
-msgstr "Kazalec/ključ"
+msgid "&Cursor/Puck"
+msgstr "&Kazalec/ključ"
 
-msgid "Pen"
-msgstr "Pisalo"
+msgid "&Pen"
+msgstr "&Pisalo"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Gostiteljski pogon CD/DVD (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Gostiteljski pogon CD/DVD (%1:)"
 
 msgid "&Connected"
 msgstr "&Povezan"
 
-msgid "Clear image history"
+msgid "Clear image &history"
 msgstr "Počisti zgodovino slik"
 
 msgid "Create..."
@@ -1434,7 +1452,7 @@ msgstr "Prepust za serijska vrata 3"
 msgid "Serial port passthrough 4"
 msgstr "Prepust za serijska vrata 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Možnosti sistema za upodabljanje..."
 
 msgid "PC/XT Keyboard"

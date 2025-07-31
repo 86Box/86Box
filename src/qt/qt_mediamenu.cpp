@@ -177,7 +177,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         for (const auto &letter : driveLetters) {
             auto drive = QString("%1:\\").arg(letter);
             if (GetDriveType(drive.toUtf8().constData()) == DRIVE_CDROM)
-                menu->addAction(QIcon(":/settings/qt/icons/cdrom_host.ico"), tr("Host CD/DVD Drive (%1:)").arg(letter), [this, i, letter] { cdromMount(i, 2, QString(R"(\\.\%1:)").arg(letter)); })->setCheckable(false);
+                menu->addAction(QIcon(":/settings/qt/icons/cdrom_host.ico"), tr("&Host CD/DVD Drive (%1:)").arg(letter), [this, i, letter] { cdromMount(i, 2, QString(R"(\\.\%1:)").arg(letter)); })->setCheckable(false);
         }
         menu->addSeparator();
 #endif // Q_OS_WINDOWS
@@ -236,7 +236,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         netMenus[i] = menu;
         nicUpdateMenu(i);
     });
-    parentMenu->addAction(tr("Clear image history"), [this]() { clearImageHistory(); });
+    parentMenu->addAction(tr("Clear image &history"), [this]() { clearImageHistory(); });
 }
 
 void
@@ -340,7 +340,8 @@ MediaMenu::cassetteUpdateMenu()
     recordMenu->setChecked(isSaving);
     playMenu->setChecked(!isSaving);
 
-    cassetteMenu->setTitle(tr("Cassette: %1").arg(name.isEmpty() ? tr("(empty)") : name));
+    cassetteMenu->setTitle(tr("C&assette: %1").arg(name.isEmpty() ? tr("(empty)") : name));
+    cassetteMenu->setToolTip(tr("Cassette: %1").arg(name.isEmpty() ? tr("(empty)") : name));
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
         updateImageHistory(0, slot, ui::MediaType::Cassette);
@@ -407,7 +408,8 @@ MediaMenu::cartridgeUpdateMenu(int i)
     auto   *ejectMenu = dynamic_cast<QAction *>(childs[cartridgeEjectPos]);
     ejectMenu->setEnabled(!name.isEmpty());
     ejectMenu->setText(name.isEmpty() ? tr("E&ject") : tr("E&ject %1").arg(fi.fileName()));
-    menu->setTitle(tr("Cartridge %1: %2").arg(QString::number(i + 1), name.isEmpty() ? tr("(empty)") : name));
+    menu->setTitle(tr("Car&tridge %1: %2").arg(QString::number(i + 1), name.isEmpty() ? tr("(empty)") : name));
+    menu->setToolTip(tr("Cartridge %1: %2").arg(QString::number(i + 1), name.isEmpty() ? tr("(empty)") : name));
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
         updateImageHistory(i, slot, ui::MediaType::Cartridge);
@@ -524,7 +526,8 @@ MediaMenu::floppyUpdateMenu(int i)
     }
 
     int type = fdd_get_type(i);
-    floppyMenus[i]->setTitle(tr("Floppy %1 (%2): %3").arg(QString::number(i + 1), fdd_getname(type), name.isEmpty() ? tr("(empty)") : name));
+    floppyMenus[i]->setTitle(tr("&Floppy %1 (%2): %3").arg(QString::number(i + 1), fdd_getname(type), name.isEmpty() ? tr("(empty)") : name));
+    floppyMenus[i]->setToolTip(tr("Floppy %1 (%2): %3").arg(QString::number(i + 1), fdd_getname(type), name.isEmpty() ? tr("(empty)") : name));
 
 }
 
@@ -765,6 +768,11 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             break;
     }
 
+#ifndef Q_OS_MACOS
+    if ((slot >= 0) && (slot <= 9))
+        imageHistoryUpdatePos->setText(menu_item_name.prepend("&%1 ").arg((slot == 9) ? 0 : (slot + 1)));
+    else
+#endif
     imageHistoryUpdatePos->setText(menu_item_name);
 
     if (fn.left(8) == "ioctl://")
@@ -841,7 +849,8 @@ MediaMenu::cdromUpdateMenu(int i)
             break;
     }
 
-    menu->setTitle(tr("CD-ROM %1 (%2): %3").arg(QString::number(i+1), busName, name.isEmpty() ? tr("(empty)") : name2));
+    menu->setTitle(tr("&CD-ROM %1 (%2): %3").arg(QString::number(i+1), busName, name.isEmpty() ? tr("(empty)") : name2));
+    menu->setToolTip(tr("CD-ROM %1 (%2): %3").arg(QString::number(i+1), busName, name.isEmpty() ? tr("(empty)") : name2));
 }
 
 void
@@ -980,7 +989,8 @@ MediaMenu::moUpdateMenu(int i)
             break;
     }
 
-    menu->setTitle(tr("MO %1 (%2): %3").arg(QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
+    menu->setTitle(tr("&MO %1 (%2): %3").arg(QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
+    menu->setToolTip(tr("MO %1 (%2): %3").arg(QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
         updateImageHistory(i, slot, ui::MediaType::Mo);
@@ -1013,7 +1023,8 @@ MediaMenu::rdiskUpdateMenu(int i)
             break;
     }
 
-    menu->setTitle(tr("Removable disk %1 (%2): %3").arg(QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
+    menu->setTitle(tr("&Removable disk %1 (%2): %3").arg(QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
+    menu->setToolTip(tr("Removable disk %1 (%2): %3").arg(QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
         updateImageHistory(i, slot, ui::MediaType::RDisk);
@@ -1179,7 +1190,8 @@ MediaMenu::nicUpdateMenu(int i)
     auto *connectedAction = dynamic_cast<QAction *>(childs[netDisconnPos]);
     connectedAction->setChecked(network_is_connected(i));
 
-    menu->setTitle(tr("NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
+    menu->setTitle(tr("&NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
+    menu->setToolTip(tr("NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
 }
 
 QString

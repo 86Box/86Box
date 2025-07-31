@@ -63,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Tự nhập độ &phân giải..."
 
 msgid "F&orce 4:3 display ratio"
@@ -102,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "&Bộ lọc hình ảnh"
 
 msgid "&Nearest"
@@ -675,6 +675,9 @@ msgstr "Vận tốc"
 msgid "Removable disk %1 (%2): %3"
 msgstr ""
 
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
 msgid "Removable disk images"
 msgstr ""
 
@@ -861,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Đĩa mềm %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "Đĩa &mềm %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Ảnh (đĩa) sector nâng cao"
 
@@ -881,6 +887,9 @@ msgstr "Không thể khởi tạo GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "M&O %1 (%2): %3"
+msgstr "M&O %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Ảnh đĩa MO"
@@ -966,11 +975,17 @@ msgstr "Tiếp tục"
 msgid "Cassette: %1"
 msgstr "Cassette: %1"
 
+msgid "C&assette: %1"
+msgstr "C&assette: %1"
+
 msgid "Cassette images"
 msgstr "Ảnh đĩa Cassette"
 
 msgid "Cartridge %1: %2"
 msgstr "Băng cartridge %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Băng car&tridge %1: %2"
 
 msgid "Cartridge images"
 msgstr "Ảnh đĩa băng cartridge"
@@ -992,6 +1007,9 @@ msgstr "Buộc khởi động lại"
 
 msgid "ACPI shutdown"
 msgstr "Tắt máy theo ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Tắt máy theo ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Ổ cứng (%1)"
@@ -1278,40 +1296,40 @@ msgstr "Thiết bị MCA"
 msgid "List of MCA devices:"
 msgstr "Danh sách các thiết bị MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Công cụ bảng nhập liệu"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "QT (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Về qt"
+msgid "About &Qt"
+msgstr "Về &qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Thiết bị MCA..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Hiển thị các màn hình phụ"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Mở thư mục ảnh chụp màn hình..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Co giãn toàn màn hình khi cực đại hóa cửa sổ"
 
-msgid "Cursor/Puck"
-msgstr "Con trỏ/puck"
+msgid "&Cursor/Puck"
+msgstr "&Con trỏ/puck"
 
-msgid "Pen"
-msgstr "Bút"
+msgid "&Pen"
+msgstr "&Bút"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Máy chủ CD/DVD ổ đĩa (%1 :)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Máy chủ CD/DVD ổ đĩa (%1 :)"
 
 msgid "&Connected"
 msgstr "&Đã kết nối"
 
-msgid "Clear image history"
+msgid "Clear image &history"
 msgstr "Xóa lịch sử ảnh đĩa"
 
 msgid "Create..."
@@ -1434,7 +1452,7 @@ msgstr "Thông qua cổng serial 3"
 msgid "Serial port passthrough 4"
 msgstr "Thông qua cổng serial 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Tùy chọn kết xuất ..."
 
 msgid "PC/XT Keyboard"

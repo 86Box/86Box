@@ -63,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Spécifier dimensions..."
 
 msgid "F&orce 4:3 display ratio"
@@ -102,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "Méthode de Filtre"
 
 msgid "&Nearest"
@@ -675,6 +675,9 @@ msgstr "Vitesse"
 msgid "Removable disk %1 (%2): %3"
 msgstr ""
 
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
 msgid "Removable disk images"
 msgstr ""
 
@@ -861,6 +864,9 @@ msgstr "%1 Mo (CTS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Disquette %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Disquette %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Images secteur avancé"
 
@@ -881,6 +887,9 @@ msgstr "Impossible d'initialiser GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "Magnéto-optique %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&Magnéto-optique %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Images magnéto-optiques"
@@ -966,11 +975,17 @@ msgstr "Continuer"
 msgid "Cassette: %1"
 msgstr "Cassette: %1"
 
+msgid "C&assette: %1"
+msgstr "C&assette: %1"
+
 msgid "Cassette images"
 msgstr "Images cassette"
 
 msgid "Cartridge %1: %2"
 msgstr "Cartouche %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Car&touche %1: %2"
 
 msgid "Cartridge images"
 msgstr "Images cartouche"
@@ -992,6 +1007,9 @@ msgstr "Hard reset"
 
 msgid "ACPI shutdown"
 msgstr "Arrêt ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Arrêt ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Disque dur (%1)"
@@ -1140,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 Ko"
 
@@ -1278,41 +1299,41 @@ msgstr "Dispositifs MCA"
 msgid "List of MCA devices:"
 msgstr "Liste des dispositifs MCA :"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Outil Tablette"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "A propos de Qt"
+msgid "About &Qt"
+msgstr "A propos de &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Dispositifs MCA..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Afficher les moniteurs non primaires"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Ouvrir le dossier des captures d'écran..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Appliquer le mode élargi plein écran lorsque la fenêtre est maximisée"
 
-msgid "Cursor/Puck"
-msgstr "Curseur/Palette"
+msgid "&Cursor/Puck"
+msgstr "&Curseur/Palette"
 
-msgid "Pen"
-msgstr "Stylo"
+msgid "&Pen"
+msgstr "&Stylo"
 
 msgid "Host CD/DVD Drive (%1:)"
-msgstr "Lecteur CD/DVD hôte (%1:)"
+msgstr "&Lecteur CD/DVD hôte (%1:)"
 
 msgid "&Connected"
 msgstr "&Connecté"
 
-msgid "Clear image history"
-msgstr "Effacer l'historique de l'image"
+msgid "Clear image &history"
+msgstr "Effacer l'&historique de l'image"
 
 msgid "Create..."
 msgstr "Créer..."
@@ -1328,6 +1349,9 @@ msgstr "Pilote NULL"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Comportement du rendu"
@@ -1434,7 +1458,7 @@ msgstr "Transfert du port série 3"
 msgid "Serial port passthrough 4"
 msgstr "Transfert du port série 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Options du rendu..."
 
 msgid "PC/XT Keyboard"
