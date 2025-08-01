@@ -58,6 +58,7 @@ public:
     void updateDisplayName(const QModelIndex &index, const QString &newDisplayName);
     QHash <QString, int> getProcessStats();
     int getActiveMachineCount();
+    void refreshConfigs();
 signals:
     void systemDataChanged();
 

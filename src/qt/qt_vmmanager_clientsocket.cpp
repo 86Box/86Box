@@ -247,3 +247,9 @@ VMManagerClientSocket::clientRunningStateChanged(VMManagerProtocol::RunningState
     extra_object["status"] = static_cast<int>(state);
     sendMessageWithObject(VMManagerProtocol::ClientMessage::RunningStateChanged, extra_object);
 }
+
+void
+VMManagerClientSocket::configurationChanged() const
+{
+    sendMessage(VMManagerProtocol::ClientMessage::ConfigurationChanged);
+}

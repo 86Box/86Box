@@ -113,6 +113,12 @@ VMManagerModel::reload(QWidget* parent)
     // TODO: Remove missing configs
 }
 
+void
+VMManagerModel::refreshConfigs() {
+    for ( const auto& each_config : machines)
+        each_config->reloadConfig();
+}
+
 QModelIndex
 VMManagerModel::getIndexForConfigFile(const QFileInfo& config_file)
 {

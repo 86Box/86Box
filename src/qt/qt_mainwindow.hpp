@@ -67,6 +67,7 @@ signals:
     void getTitleForNonQtThread(wchar_t *title);
 
     void vmmRunningStateChanged(VMManagerProtocol::RunningState state);
+    void vmmConfigurationChanged();
 public slots:
     void showSettings();
     void hardReset();
