@@ -130,7 +130,7 @@ hdc_get_internal_name(int hdc)
 }
 
 int
-hdc_get_from_internal_name(char *s)
+hdc_get_from_internal_name(const char *s)
 {
     int c = 0;
 
