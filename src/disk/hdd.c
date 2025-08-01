@@ -160,8 +160,12 @@ hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_
 
     const hdd_zone_t *zone = NULL;
     if (hdd->num_zones <= 0) {
+#ifdef DO_FATAL
         fatal("hdd_seek_get_time(): hdd->num_zones < 0)\n");
         return 0.0;
+#else
+        return 1000.0;
+#endif
     }
     for (uint32_t i = 0; i < hdd->num_zones; i++) {
         zone = &hdd->zones[i];

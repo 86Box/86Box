@@ -221,7 +221,7 @@ if(NOT EMU_BUILD_NUM)
     set(EMU_BUILD_NUM 0)
 endif()
 if(NOT EMU_COPYRIGHT_YEAR)
-    set(EMU_COPYRIGHT_YEAR 2024)
+    set(EMU_COPYRIGHT_YEAR 2025)
 endif()
 
 # Libasan
@@ -229,5 +229,7 @@ if(LIBASAN)
     add_compile_options(-fsanitize=address)
     add_link_options(-fsanitize=address)
 endif()
+
+set(CMAKE_TOP_LEVEL_PROCESSED TRUE)
 
 add_subdirectory(src)

@@ -18,8 +18,6 @@
 #ifndef QT_VMMANAGER_MAIN_H
 #define QT_VMMANAGER_MAIN_H
 
-#include "qt_updatecheck.hpp"
-
 #include <QWidget>
 #include "qt_vmmanager_model.hpp"
 #include "qt_vmmanager_details.hpp"
@@ -31,6 +29,9 @@ extern "C" {
 #include <86box/86box.h> // for vmm_path
 }
 
+#if EMU_BUILD_NUM != 0
+#    include "qt_updatecheck.hpp"
+#endif
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class VMManagerMain; }
