@@ -2388,6 +2388,12 @@ msgstr ""
 msgid "Key Bindings:"
 msgstr ""
 
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
+msgstr ""
+
 msgid "Action"
 msgstr ""
 
