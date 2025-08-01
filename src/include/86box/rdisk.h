@@ -57,7 +57,7 @@ typedef struct rdisk_drive_type_t {
 
 #define KNOWN_RDISK_DRIVE_TYPES 3
 static const rdisk_drive_type_t rdisk_drive_types[KNOWN_RDISK_DRIVE_TYPES] = {
-    { "86BOX",    "REMOVABLE DISK",  "1.00", { 1, 1 }},
+    { "86BOX",    "REMOVABLE DISK",  "5.00", { 1, 1 }},
     { "IOMEGA",   "ZIP 100",         "E.08", { 1, 0 }},
     { "IOMEGA",   "ZIP 250",         "42.S", { 1, 1 }}
 };
