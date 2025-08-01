@@ -783,7 +783,7 @@ machine_at_bravoms586_init(const machine_t *model)
 
     device_add(&vl82c59x_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&kbc_ps2_device);
+    device_add(&kbc_ps2_phoenix_device);
     device_add(&fdc37c665_ide_sec_device);
     device_add(&ide_cmd640_pci_single_channel_device);
     if (gfxcard[0] == VID_INTERNAL)
