@@ -2245,7 +2245,7 @@ msgid "Generic Text Printer"
 msgstr "Genel Metin Yazıcı"
 
 msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "Genel ESC/P Dot-Matrix"
+msgstr "Genel ESC/P Dot-Matrix Yazıcı"
 
 msgid "Generic PostScript Printer"
 msgstr "Genel PostScript Yazıcı"

@@ -263,6 +263,7 @@ cmd646_pci_write(int func, int addr, uint8_t val, void *priv)
             case 0x04:
                 dev->regs[addr] = (val & 0x45);
                 cmd646_ide_handlers(dev);
+                cmd646_ide_bm_handlers(dev);
                 break;
             case 0x07:
                 dev->regs[addr] &= ~(val & 0xb1);
