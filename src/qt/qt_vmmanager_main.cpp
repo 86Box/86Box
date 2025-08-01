@@ -138,6 +138,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
 
     // Load and apply settings
     loadSettings();
+    ui->splitter->setSizes({ui->detailsArea->width(), (ui->listView->minimumWidth() * 2)});
 
     // Set up search bar
     connect(ui->searchBar, &QLineEdit::textChanged, this, &VMManagerMain::searchSystems);
