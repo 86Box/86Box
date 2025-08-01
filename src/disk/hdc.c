@@ -92,6 +92,7 @@ static const struct {
     /* PCI */
     { &ide_cmd646_ter_qua_device   },
     { &ide_cmd648_ter_qua_device   },
+    { &ide_cmd649_ter_qua_device   },
     { &ide_pci_device              },
     { &ide_pci_2ch_device          },
     { NULL                         }
