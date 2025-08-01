@@ -27,6 +27,9 @@ msgstr "Ctrl+Alt+Esc(&E)"
 msgid "&Pause"
 msgstr "暫停(&P)"
 
+msgid "Re&sume"
+msgstr ""
+
 msgid "E&xit..."
 msgstr "退出(&X)..."
 
@@ -639,18 +642,6 @@ msgstr "擴充卡 3:"
 msgid "Card 4:"
 msgstr "擴充卡 4:"
 
-msgid "Board 1"
-msgstr ""
-
-msgid "Board 2"
-msgstr ""
-
-msgid "Board 3"
-msgstr ""
-
-msgid "Board 4"
-msgstr ""
-
 msgid "Generic ISA ROM Board"
 msgstr ""
 
@@ -928,7 +919,7 @@ msgid "Hardware not available"
 msgstr "硬體不可用"
 
 msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr ""
+msgstr "請確認 %1 已安裝且使用相容 %1 的網路連線。"
 
 msgid "Invalid configuration"
 msgstr "無效設定"
@@ -1458,19 +1449,7 @@ msgstr ""
 msgid "PS/2 Keyboard"
 msgstr ""
 
-msgid "PS/2 Keyboard (US)"
-msgstr ""
-
-msgid "PS/2 Keyboard (European)"
-msgstr ""
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
-
 msgid "PS/55 Keyboard"
-msgstr ""
-
-msgid "AT/PS/2 Keyboard"
 msgstr ""
 
 msgid "Keys"
@@ -1548,7 +1527,7 @@ msgstr ""
 msgid "BIOS file (ROM #4)"
 msgstr ""
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "BIOS 位址"
 
 msgid "BIOS address (ROM #1)"
@@ -1591,9 +1570,6 @@ msgid "BIOS Revision"
 msgstr "BIOS 版本"
 
 msgid "BIOS Version"
-msgstr ""
-
-msgid "BIOS Versions"
 msgstr ""
 
 msgid "BIOS Language"
@@ -1998,11 +1974,11 @@ msgstr "永遠以所選速度運作"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "BIOS 設定 + 熱鍵 (POST 期間關閉)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB 從 F0000 開始"
+msgid "64 KB starting from F0000"
+msgstr "64 KB 從 F0000 開始"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB 從 E0000 開始 (位址 MSB 反轉，後 64KB 為先)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB 從 E0000 開始 (位址 MSB 反轉，後 64 KB 為先)"
 
 msgid "Sine"
 msgstr "正弦"
@@ -2471,6 +2447,3 @@ msgstr ""
 
 #~ msgid "ZIP images"
 #~ msgstr "ZIP 映像"
-
-#~ msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
-#~ msgstr "請確認 %1 已安裝且使用相容 libpcap 的網路連線。"

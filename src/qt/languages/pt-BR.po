@@ -27,6 +27,9 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Pausar"
 
+msgid "Re&sume"
+msgstr ""
+
 msgid "E&xit..."
 msgstr "&Sair..."
 
@@ -638,18 +641,6 @@ msgstr "Placa 3:"
 
 msgid "Card 4:"
 msgstr "Placa 4:"
-
-msgid "Board 1"
-msgstr "Placa 1"
-
-msgid "Board 2"
-msgstr "Placa 2"
-
-msgid "Board 3"
-msgstr "Placa 3"
-
-msgid "Board 4"
-msgstr "Placa 4"
 
 msgid "Generic ISA ROM Board"
 msgstr "Placa ROM ISA Genérica"
@@ -1458,20 +1449,8 @@ msgstr "Teclado AX"
 msgid "PS/2 Keyboard"
 msgstr "Teclado PS/2"
 
-msgid "PS/2 Keyboard (US)"
-msgstr "Teclado PS/2 (Estados Unidos)"
-
-msgid "PS/2 Keyboard (European)"
-msgstr "Teclado PS/2 (Europeu)"
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr "Teclado PS/2 (Japonês)"
-
 msgid "PS/55 Keyboard"
 msgstr "Teclado PS/55"
-
-msgid "AT/PS/2 Keyboard"
-msgstr "Teclado AT/PS/2"
 
 msgid "Keys"
 msgstr "Teclas"
@@ -1548,7 +1527,7 @@ msgstr "Arquivo do BIOS (ROM #3)"
 msgid "BIOS file (ROM #4)"
 msgstr "Arquivo do BIOS (ROM #4)"
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "Endereço do BIOS"
 
 msgid "BIOS address (ROM #1)"
@@ -1592,9 +1571,6 @@ msgstr "Revisão do BIOS"
 
 msgid "BIOS Version"
 msgstr "Versão do BIOS"
-
-msgid "BIOS Versions"
-msgstr "Versões de BIOS"
 
 msgid "BIOS Language"
 msgstr "Idioma do BIOS"
@@ -1998,11 +1974,11 @@ msgstr "Sempre na velocidade selecionada"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Configuração do BIOS + teclas de atalho (desativadas durante o POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB a partir de F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB a partir de F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB a partir de E0000 (endereço MSB invertido, os últimos 64 kB primeiro)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB a partir de E0000 (endereço MSB invertido, os últimos 64 KB primeiro)"
 
 msgid "Sine"
 msgstr "Senoidal"

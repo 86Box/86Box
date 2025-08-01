@@ -27,6 +27,9 @@ msgstr "Ctrl+Alt+Esc(&E)"
 msgid "&Pause"
 msgstr "暂停(&P)"
 
+msgid "Re&sume"
+msgstr ""
+
 msgid "E&xit..."
 msgstr "退出(&X)..."
 
@@ -638,18 +641,6 @@ msgstr "扩展卡 3:"
 
 msgid "Card 4:"
 msgstr "扩展卡 4:"
-
-msgid "Board 1"
-msgstr ""
-
-msgid "Board 2"
-msgstr ""
-
-msgid "Board 3"
-msgstr ""
-
-msgid "Board 4"
-msgstr ""
 
 msgid "Generic ISA ROM Board"
 msgstr ""
@@ -1458,19 +1449,7 @@ msgstr ""
 msgid "PS/2 Keyboard"
 msgstr ""
 
-msgid "PS/2 Keyboard (US)"
-msgstr ""
-
-msgid "PS/2 Keyboard (European)"
-msgstr ""
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
-
 msgid "PS/55 Keyboard"
-msgstr ""
-
-msgid "AT/PS/2 Keyboard"
 msgstr ""
 
 msgid "Keys"
@@ -1548,7 +1527,7 @@ msgstr ""
 msgid "BIOS file (ROM #4)"
 msgstr ""
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "BIOS 地址"
 
 msgid "BIOS address (ROM #1)"
@@ -1591,9 +1570,6 @@ msgid "BIOS Revision"
 msgstr "BIOS 修订版"
 
 msgid "BIOS Version"
-msgstr ""
-
-msgid "BIOS Versions"
 msgstr ""
 
 msgid "BIOS Language"
@@ -1998,11 +1974,11 @@ msgstr "始终保持选定速度"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "BIOS 设置 + 热键 (开机自检期间关闭)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB，从 F0000 开始"
+msgid "64 KB starting from F0000"
+msgstr "64 KB，从 F0000 开始"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB，从 E0000 开始 (地址 MSB 反相，最后 64KB 优先)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB，从 E0000 开始 (地址 MSB 反相，最后 64 KB 优先)"
 
 msgid "Sine"
 msgstr "正弦"

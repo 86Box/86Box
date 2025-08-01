@@ -27,6 +27,9 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Пауза"
 
+msgid "Re&sume"
+msgstr "В&озобновить"
+
 msgid "E&xit..."
 msgstr "&Выход..."
 
@@ -214,7 +217,7 @@ msgid "End trace"
 msgstr "Завершить трассировку"
 
 msgid "&Help"
-msgstr "&Помощь"
+msgstr "&Справка"
 
 msgid "&Documentation..."
 msgstr "&Документация..."
@@ -613,7 +616,7 @@ msgid "MO drives:"
 msgstr "Магнитооптические дисководы:"
 
 msgid "Removable disk drives:"
-msgstr "Съёмные дисковые устройства:"
+msgstr "Дисководы съёмных дисков:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -639,26 +642,14 @@ msgstr "Карта 3:"
 msgid "Card 4:"
 msgstr "Карта 4:"
 
-msgid "Board 1"
-msgstr "Плата 1"
-
-msgid "Board 2"
-msgstr "Плата 2"
-
-msgid "Board 3"
-msgstr "Плата 3"
-
-msgid "Board 4"
-msgstr "Плата 4"
-
 msgid "Generic ISA ROM Board"
-msgstr "Стандартная плата ISA ROM"
+msgstr "Стандартная плата ПЗУ ISA"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr "Стандартная плата Dual ISA ROM"
+msgstr "Стандартная плата на 2 ПЗУ ISA"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr "Стандартная плата Quad ISA ROM"
+msgstr "Стандартная плата на 4 ПЗУ ISA"
 
 msgid "ISABugger device"
 msgstr "Устройство ISABugger"
@@ -685,7 +676,7 @@ msgid "Removable disk %1 (%2): %3"
 msgstr "Съёмный диск %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr "Съёмные образы дисков"
+msgstr "Образы съёмных дисков"
 
 msgid "Image %1"
 msgstr "Образ %1"
@@ -1448,6 +1439,7 @@ msgstr "Параметры рендеринга..."
 
 msgid "PC/XT Keyboard"
 msgstr "Клавиатура PC/XT"
+
 msgid "AT Keyboard"
 msgstr "Клавиатура AT"
 
@@ -1457,19 +1449,8 @@ msgstr "Клавиатура AX"
 msgid "PS/2 Keyboard"
 msgstr "Клавиатура PS/2"
 
-msgid "PS/2 Keyboard (US)"
-msgstr "Клавиатура PS/2 (US)"
-
-msgid "PS/2 Keyboard (European)"
-msgstr "Клавиатура PS/2 (European)"
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr "Клавиатура PS/2 (Japanese)"
-
 msgid "PS/55 Keyboard"
 msgstr "Клавиатура PS/55"
-msgid "AT/PS/2 Keyboard"
-msgstr "Клавиатура AT/PS/2"
 
 msgid "Keys"
 msgstr "Клавиши"
@@ -1505,7 +1486,7 @@ msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (последовательный)"
 
 msgid "Default Baud rate"
-msgstr "Скорость передачи данных (По умолчанию)"
+msgstr "Скорость передачи данных по умолчанию"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Стандартный Hayes-совместимый модем"
@@ -1546,7 +1527,7 @@ msgstr "Файл BIOS (ПЗУ #3)"
 msgid "BIOS file (ROM #4)"
 msgstr "Файл BIOS (ПЗУ #4)"
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "Адрес BIOS"
 
 msgid "BIOS address (ROM #1)"
@@ -1590,9 +1571,6 @@ msgstr "Версия BIOS"
 
 msgid "BIOS Version"
 msgstr "Версия BIOS"
-
-msgid "BIOS Versions"
-msgstr "Версии BIOS"
 
 msgid "BIOS Language"
 msgstr "Язык BIOS"
@@ -1996,10 +1974,10 @@ msgstr "Всегда на выбранной скорости"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Настройка BIOS + горячие клавиши (отключается во время POST)"
 
-msgid "64 kB starting from F0000"
+msgid "64 KB starting from F0000"
 msgstr "64 КБ, начиная с F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
 msgstr "128 КБ, начиная с E0000 (адрес MSB инвертирован, сначала последние 64 КБ)"
 
 msgid "Sine"
