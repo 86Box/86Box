@@ -63,7 +63,7 @@
     </property>
     <widget class="QMenu" name="menuTablet_tool">
      <property name="title">
-      <string>Tablet tool</string>
+      <string>&amp;Tablet tool</string>
      </property>
      <addaction name="actionPen"/>
      <addaction name="actionCursor_Puck"/>
@@ -142,7 +142,7 @@
     </widget>
     <widget class="QMenu" name="menuFilter_method">
      <property name="title">
-      <string>Filter method</string>
+      <string>Fi&amp;lter method</string>
      </property>
      <addaction name="actionNearest"/>
      <addaction name="actionLinear"/>
@@ -354,7 +354,7 @@
   </action>
   <action name="actionExit">
    <property name="text">
-    <string>Exit</string>
+    <string>E&amp;xit</string>
    </property>
    <property name="menuRole">
     <enum>QAction::QuitRole</enum>
@@ -420,7 +420,7 @@
   </action>
   <action name="actionSpecify_dimensions">
    <property name="text">
-    <string>Specify dimensions...</string>
+    <string>Specify &amp;dimensions...</string>
    </property>
   </action>
   <action name="actionForce_4_3_display_ratio">
@@ -665,7 +665,7 @@
   </action>
   <action name="actionAbout_Qt">
    <property name="text">
-    <string>About Qt</string>
+    <string>About &amp;Qt</string>
    </property>
    <property name="visible">
     <bool>false</bool>
@@ -763,7 +763,7 @@
      <normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</iconset>
    </property>
    <property name="text">
-    <string>ACPI shutdown</string>
+    <string>ACP&amp;I shutdown</string>
    </property>
    <property name="toolTip">
     <string>ACPI shutdown</string>
@@ -802,7 +802,7 @@
   </action>
   <action name="actionRenderer_options">
    <property name="text">
-    <string>Renderer options...</string>
+    <string>Renderer &amp;options...</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
@@ -821,7 +821,7 @@
   </action>
   <action name="actionMCA_devices">
    <property name="text">
-    <string>MCA devices...</string>
+    <string>&amp;MCA devices...</string>
    </property>
   </action>
   <action name="actionShow_non_primary_monitors">
@@ -829,7 +829,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Show non-primary monitors</string>
+    <string>Show non-&amp;primary monitors</string>
    </property>
   </action>
   <action name="actionVNC">
@@ -837,7 +837,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>VNC</string>
+    <string>&amp;VNC</string>
    </property>
    <property name="vid_api" stdset="0">
     <number>3</number>
@@ -845,7 +845,7 @@
   </action>
   <action name="actionOpen_screenshots_folder">
    <property name="text">
-    <string>Open screenshots folder...</string>
+    <string>Open screenshots &amp;folder...</string>
    </property>
   </action>
   <action name="actionApply_fullscreen_stretch_mode_when_maximized">
@@ -853,7 +853,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Apply fullscreen stretch mode when maximized</string>
+    <string>Appl&amp;y fullscreen stretch mode when maximized</string>
    </property>
   </action>
   <action name="actionCursor_Puck">
@@ -861,7 +861,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Cursor/Puck</string>
+    <string>&amp;Cursor/Puck</string>
    </property>
   </action>
   <action name="actionPen">
@@ -869,7 +869,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Pen</string>
+    <string>&amp;Pen</string>
    </property>
   </action>
  </widget>

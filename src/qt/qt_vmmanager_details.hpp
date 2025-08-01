@@ -67,6 +67,8 @@ private:
     QToolButton *configureButton;
     QToolButton *cadButton;
 
+    void updateConfig(VMManagerSystem *passed_sysconfig);
+    void updateScreenshots(VMManagerSystem *passed_sysconfig);
     static QWidget* createHorizontalLine(int leftSpacing = 25, int rightSpacing = 25);
     // QVBoxLayout *detailsLayout;
 private slots:

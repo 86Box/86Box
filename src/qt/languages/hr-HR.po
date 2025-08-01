@@ -27,8 +27,11 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Pauza"
 
-msgid "E&xit..."
-msgstr "Iz&laz..."
+msgid "Re&sume"
+msgstr ""
+
+msgid "E&xit"
+msgstr "Iz&laz"
 
 msgid "&View"
 msgstr "&Pogled"
@@ -60,7 +63,7 @@ msgstr "Open&GL (3.0 jezgra)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Odrediti veličinu..."
 
 msgid "F&orce 4:3 display ratio"
@@ -99,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "Metoda filtriranja"
 
 msgid "&Nearest"
@@ -639,18 +642,6 @@ msgstr "Kartica 3:"
 msgid "Card 4:"
 msgstr "Kartica 4:"
 
-msgid "Board 1"
-msgstr ""
-
-msgid "Board 2"
-msgstr ""
-
-msgid "Board 3"
-msgstr ""
-
-msgid "Board 4"
-msgstr ""
-
 msgid "Generic ISA ROM Board"
 msgstr ""
 
@@ -682,6 +673,9 @@ msgid "Speed"
 msgstr "Brzina"
 
 msgid "Removable disk %1 (%2): %3"
+msgstr ""
+
+msgid "&Removable disk %1 (%2): %3"
 msgstr ""
 
 msgid "Removable disk images"
@@ -817,7 +811,7 @@ msgid "2-axis, 8-button joystick"
 msgstr "Palica za igru s 2 osi, 8 tipke"
 
 msgid "3-axis, 2-button joystick"
-msgstr ""
+msgstr "Palica za igru s 3 osi, 2 tipke"
 
 msgid "3-axis, 4-button joystick"
 msgstr "Palica za igru s 3 osi, 4 tipke"
@@ -870,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Disketa %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Disketa %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Napredne sektorske slike"
 
@@ -890,6 +887,9 @@ msgstr "Nije moguće inicijalizirati GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "MO slike"
@@ -975,11 +975,17 @@ msgstr "Nastavi"
 msgid "Cassette: %1"
 msgstr "Audio kaseta: %1"
 
+msgid "C&assette: %1"
+msgstr "&Audio kaseta: %1"
+
 msgid "Cassette images"
 msgstr "Slike audio kasete"
 
 msgid "Cartridge %1: %2"
 msgstr "Kaseta %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "&Kaseta %1: %2"
 
 msgid "Cartridge images"
 msgstr "Slike kasete"
@@ -1001,6 +1007,9 @@ msgstr "Ponovno pokretanje"
 
 msgid "ACPI shutdown"
 msgstr "ACPI bazirano gašenje"
+
+msgid "ACP&I shutdown"
+msgstr "ACP&I bazirano gašenje"
 
 msgid "Hard disk (%1)"
 msgstr "Tvrdi disk (%1)"
@@ -1149,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1287,41 +1299,41 @@ msgstr "Uređaji MCA"
 msgid "List of MCA devices:"
 msgstr "Spisak uređaja MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Alat za tablet"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "O programu Qt"
+msgid "About &Qt"
+msgstr "O programu &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Uređaji MCA ..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Prikaži neprimarne monitore"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Otvori mapu snimaka zaslona..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Primijeni način cijelozaslonskog rastezanja u maksimiziranom načinu"
 
-msgid "Cursor/Puck"
-msgstr "Kursor/Pak"
+msgid "&Cursor/Puck"
+msgstr "&Kursor/Pak"
 
-msgid "Pen"
-msgstr "Olovka"
+msgid "&Pen"
+msgstr "&Olovka"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "CD/DVD pogon nositelja (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "CD/DVD pogon &nositelja (%1:)"
 
 msgid "&Connected"
 msgstr "&Povezan"
 
-msgid "Clear image history"
-msgstr "Očisti povijest slika"
+msgid "Clear image &history"
+msgstr "Očisti &povijest slika"
 
 msgid "Create..."
 msgstr "Stvori..."
@@ -1337,6 +1349,9 @@ msgstr "Nulti upravljački program"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Ponašanje rendera"
@@ -1443,7 +1458,7 @@ msgstr "Prolaz serijskih vrata 3"
 msgid "Serial port passthrough 4"
 msgstr "Prolaz serijskih vrata 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Opcije rendera..."
 
 msgid "PC/XT Keyboard"
@@ -1458,19 +1473,7 @@ msgstr ""
 msgid "PS/2 Keyboard"
 msgstr ""
 
-msgid "PS/2 Keyboard (US)"
-msgstr ""
-
-msgid "PS/2 Keyboard (European)"
-msgstr ""
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
-
 msgid "PS/55 Keyboard"
-msgstr ""
-
-msgid "AT/PS/2 Keyboard"
 msgstr ""
 
 msgid "Keys"
@@ -1548,7 +1551,7 @@ msgstr ""
 msgid "BIOS file (ROM #4)"
 msgstr ""
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "Adresa BIOS-a"
 
 msgid "BIOS address (ROM #1)"
@@ -1591,9 +1594,6 @@ msgid "BIOS Revision"
 msgstr "Revizija BIOS-a"
 
 msgid "BIOS Version"
-msgstr ""
-
-msgid "BIOS Versions"
 msgstr ""
 
 msgid "BIOS Language"
@@ -1998,11 +1998,11 @@ msgstr "Uvijek na odabranoj brzini"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Konfiguracija BIOS-a + Tipkovni prečaci (onemogućeni tekom POST-a)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB od F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB od F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB od E0000 (MSB adrese invertiran, poslednjih 64KB prvo)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB od E0000 (MSB adrese invertiran, poslednjih 64 KB prvo)"
 
 msgid "Sine"
 msgstr "Sinusni"
@@ -2430,6 +2430,12 @@ msgstr ""
 msgid "Enter key combo:"
 msgstr ""
 
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
+msgstr ""
+
 msgid "Send Control+Alt+Del"
 msgstr ""
 
@@ -2471,6 +2477,3 @@ msgstr ""
 
 #~ msgid "ZIP images"
 #~ msgstr "ZIP slike"
-
-#~ msgid "3-axis, 2-button joystick(s)"
-#~ msgstr "Palica za igru s 3 osi, 2 tipke"

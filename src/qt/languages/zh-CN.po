@@ -27,8 +27,11 @@ msgstr "Ctrl+Alt+Esc(&E)"
 msgid "&Pause"
 msgstr "暂停(&P)"
 
-msgid "E&xit..."
-msgstr "退出(&X)..."
+msgid "Re&sume"
+msgstr ""
+
+msgid "E&xit"
+msgstr "退出(&X)"
 
 msgid "&View"
 msgstr "查看(&V)"
@@ -60,8 +63,8 @@ msgstr "OpenGL (3.0 Core)(&G)"
 msgid "&VNC"
 msgstr "VNC(&V)"
 
-msgid "Specify dimensions..."
-msgstr "指定窗口大小..."
+msgid "Specify &dimensions..."
+msgstr "指定窗口大小...(&D)"
 
 msgid "F&orce 4:3 display ratio"
 msgstr "强制 4:3 显示比例(&O)"
@@ -99,8 +102,8 @@ msgstr "7x(&7)"
 msgid "&8x"
 msgstr "8x(&8)"
 
-msgid "Filter method"
-msgstr "过滤方式"
+msgid "Fi&lter method"
+msgstr "过滤方式(&L)"
 
 msgid "&Nearest"
 msgstr "邻近(&N)"
@@ -639,18 +642,6 @@ msgstr "扩展卡 3:"
 msgid "Card 4:"
 msgstr "扩展卡 4:"
 
-msgid "Board 1"
-msgstr ""
-
-msgid "Board 2"
-msgstr ""
-
-msgid "Board 3"
-msgstr ""
-
-msgid "Board 4"
-msgstr ""
-
 msgid "Generic ISA ROM Board"
 msgstr ""
 
@@ -682,6 +673,9 @@ msgid "Speed"
 msgstr "速度"
 
 msgid "Removable disk %1 (%2): %3"
+msgstr ""
+
+msgid "&Removable disk %1 (%2): %3"
 msgstr ""
 
 msgid "Removable disk images"
@@ -870,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "软盘 %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "软盘 %1 (%2): %3(&F)"
+
 msgid "Advanced sector images"
 msgstr "高级扇区映像"
 
@@ -890,6 +887,9 @@ msgstr "无法初始化 GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "磁光盘 %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "磁光盘 %1 (%2): %3(&M)"
 
 msgid "MO images"
 msgstr "磁光盘映像"
@@ -975,11 +975,17 @@ msgstr "继续"
 msgid "Cassette: %1"
 msgstr "磁带: %1"
 
+msgid "C&assette: %1"
+msgstr "磁带: %1(&A)"
+
 msgid "Cassette images"
 msgstr "磁带映像"
 
 msgid "Cartridge %1: %2"
 msgstr "卡带 %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "卡带 %1: %2(&A)"
 
 msgid "Cartridge images"
 msgstr "卡带映像"
@@ -1001,6 +1007,9 @@ msgstr "硬重置"
 
 msgid "ACPI shutdown"
 msgstr "ACPI 关机"
+
+msgid "ACP&I shutdown"
+msgstr "ACP&I 关机"
 
 msgid "Hard disk (%1)"
 msgstr "硬盘 (%1)"
@@ -1287,41 +1296,41 @@ msgstr "MCA 设备"
 msgid "List of MCA devices:"
 msgstr "MCA 设备清单："
 
-msgid "Tablet tool"
-msgstr "平板工具"
+msgid "&Tablet tool"
+msgstr "平板工具(&T)"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt（OpenGL &ES）"
 
-msgid "About Qt"
-msgstr "关于 Qt"
+msgid "About &Qt"
+msgstr "关于 &Qt"
 
-msgid "MCA devices..."
-msgstr "MCA 设备..."
+msgid "&MCA devices..."
+msgstr "&MCA 设备..."
 
-msgid "Show non-primary monitors"
-msgstr "显示非主要显示器"
+msgid "Show non-&primary monitors"
+msgstr "显示非主要显示器(&P)"
 
-msgid "Open screenshots folder..."
-msgstr "打开屏幕截图文件夹..."
+msgid "Open screenshots &folder..."
+msgstr "打开屏幕截图文件夹...(&F)"
 
-msgid "Apply fullscreen stretch mode when maximized"
-msgstr "最大化时应用全屏拉伸模式"
+msgid "Appl&y fullscreen stretch mode when maximized"
+msgstr "最大化时应用全屏拉伸模式(&Y)"
 
-msgid "Cursor/Puck"
-msgstr "光标/冰球"
+msgid "&Cursor/Puck"
+msgstr "光标/冰球(&C)"
 
-msgid "Pen"
-msgstr "笔"
+msgid "&Pen"
+msgstr "笔(&P)"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "主机 CD/DVD 驱动器 (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "主机 CD/DVD 驱动器 (%1:) (&H)"
 
 msgid "&Connected"
 msgstr "已连接(&C)"
 
-msgid "Clear image history"
-msgstr "清除映像历史记录"
+msgid "Clear image &history"
+msgstr "清除映像历史记录(&H)"
 
 msgid "Create..."
 msgstr "创建..."
@@ -1443,8 +1452,8 @@ msgstr "串行端口直通 3"
 msgid "Serial port passthrough 4"
 msgstr "串行端口直通 4"
 
-msgid "Renderer options..."
-msgstr "渲染器选项..."
+msgid "Renderer &options..."
+msgstr "渲染器选项...(&O)"
 
 msgid "PC/XT Keyboard"
 msgstr ""
@@ -1458,19 +1467,7 @@ msgstr ""
 msgid "PS/2 Keyboard"
 msgstr ""
 
-msgid "PS/2 Keyboard (US)"
-msgstr ""
-
-msgid "PS/2 Keyboard (European)"
-msgstr ""
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
-
 msgid "PS/55 Keyboard"
-msgstr ""
-
-msgid "AT/PS/2 Keyboard"
 msgstr ""
 
 msgid "Keys"
@@ -1548,7 +1545,7 @@ msgstr ""
 msgid "BIOS file (ROM #4)"
 msgstr ""
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "BIOS 地址"
 
 msgid "BIOS address (ROM #1)"
@@ -1591,9 +1588,6 @@ msgid "BIOS Revision"
 msgstr "BIOS 修订版"
 
 msgid "BIOS Version"
-msgstr ""
-
-msgid "BIOS Versions"
 msgstr ""
 
 msgid "BIOS Language"
@@ -1998,11 +1992,11 @@ msgstr "始终保持选定速度"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "BIOS 设置 + 热键 (开机自检期间关闭)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB，从 F0000 开始"
+msgid "64 KB starting from F0000"
+msgstr "64 KB，从 F0000 开始"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB，从 E0000 开始 (地址 MSB 反相，最后 64KB 优先)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB，从 E0000 开始 (地址 MSB 反相，最后 64 KB 优先)"
 
 msgid "Sine"
 msgstr "正弦"
@@ -2428,6 +2422,12 @@ msgid "Bind Key"
 msgstr ""
 
 msgid "Enter key combo:"
+msgstr ""
+
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
 msgstr ""
 
 msgid "Send Control+Alt+Del"

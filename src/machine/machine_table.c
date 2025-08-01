@@ -539,7 +539,7 @@ const machine_t machines[] = {
             .max_multi = 0 
         }, 
         .bus_flags = MACHINE_PC, 
-        .flags = MACHINE_FDC, 
+        .flags = MACHINE_FDC, /* Machine has internal video: NSI EVC315-S EGA */
         .ram = { 
             .min = 64, 
             .max = 640, 
@@ -859,7 +859,7 @@ const machine_t machines[] = {
             .max_multi = 0 
         }, 
         .bus_flags = MACHINE_PC, 
-        .flags = MACHINE_FLAGS_NONE, 
+        .flags = MACHINE_FLAGS_NONE, /* Machine has internal video: Paradise PVC2 */
         .ram = { 
             .min = 128, 
             .max = 640, 
@@ -1539,7 +1539,7 @@ const machine_t machines[] = {
             .max_multi = 0 
         }, 
         .bus_flags = MACHINE_PC, 
-        .flags = MACHINE_XTA | MACHINE_KEYBOARD | MACHINE_MOUSE, 
+        .flags = MACHINE_XTA | MACHINE_KEYBOARD | MACHINE_MOUSE, /* Machine has internal video: Paradise PVC4 */
         .ram = { 
             .min = 512, 
             .max = 640, 
@@ -2975,7 +2975,7 @@ const machine_t machines[] = {
         .name = "[ISA] Commodore PC 30 III", 
         .internal_name = "cmdpc30", 
         .type = MACHINE_TYPE_286, 
-        .chipset = MACHINE_CHIPSET_PROPRIETARY, 
+        .chipset = MACHINE_CHIPSET_PROPRIETARY, /* Machine has chipset: Faraday FE3400B */
         .init = machine_at_cmdpc_init, 
         .p1_handler = NULL, 
         .gpio_handler = NULL, 
@@ -3175,53 +3175,12 @@ const machine_t machines[] = {
         .snd_device = NULL, 
         .net_device = NULL 
     }, 
-    /* Has Chips & Technologies KBC firmware. */ 
-    { 
-        .name = "[ISA] Wells American A*Star", 
-        .internal_name = "wellamerastar", 
-        .type = MACHINE_TYPE_286, 
-        .chipset = MACHINE_CHIPSET_DISCRETE, 
-        .init = machine_at_wellamerastar_init, 
-        .p1_handler = NULL, 
-        .gpio_handler = NULL, 
-        .available_flag = MACHINE_AVAILABLE, 
-        .gpio_acpi_handler = NULL, 
-        .cpu = { 
-            .package = CPU_PKG_286, 
-            .block = CPU_BLOCK_NONE, 
-            .min_bus = 6000000, 
-            .max_bus = 14000000, 
-            .min_voltage = 0, 
-            .max_voltage = 0, 
-            .min_multi = 0, 
-            .max_multi = 0 
-        }, 
-        .bus_flags = MACHINE_AT, 
-        .flags = MACHINE_FLAGS_NONE, 
-        .ram = { 
-            .min = 512, 
-            .max = 1024, 
-            .step = 512 
-        }, 
-        .nvrmask = 63, 
-        .kbc_device = NULL, 
-        .kbc_p1 = 0xff, 
-        .gpio = 0xffffffff, 
-        .gpio_acpi = 0xffffffff, 
-        .device = NULL, 
-        .kbd_device = NULL, 
-        .fdc_device = NULL, 
-        .sio_device = NULL, 
-        .vid_device = NULL, 
-        .snd_device = NULL, 
-        .net_device = NULL 
-    }, 
     /* Has Olivetti KBC firmware. */ 
     { 
         .name = "[ISA] Olivetti M290/AT&T 6286 WGS", 
         .internal_name = "m290", 
         .type = MACHINE_TYPE_286, 
-        .chipset = MACHINE_CHIPSET_PROPRIETARY, 
+        .chipset = MACHINE_CHIPSET_PROPRIETARY, /* Machine has chipset: VLSI TOPCAT */
         .init = machine_at_m290_init, 
         .p1_handler = NULL, 
         .gpio_handler = NULL, 
@@ -3467,7 +3426,7 @@ const machine_t machines[] = {
         .name = "[ISA] GRiD GRiDcase 1520", 
         .internal_name = "grid1520", 
         .type = MACHINE_TYPE_286, 
-        .chipset = MACHINE_CHIPSET_PROPRIETARY, 
+        .chipset = MACHINE_CHIPSET_PROPRIETARY, /* Machine has chipset: Faraday FE3400B */
         .init = machine_at_grid1520_init, 
         .p1_handler = NULL, 
         .gpio_handler = NULL, 
@@ -3545,6 +3504,47 @@ const machine_t machines[] = {
         .snd_device = NULL, 
         .net_device = NULL 
     }, 
+    /* has an Award-branded KBC controller */ 
+    { 
+        .name = "[C&T PC/AT] Hyundai Super-286C", 
+        .internal_name = "super286c", 
+        .type = MACHINE_TYPE_286, 
+        .chipset = MACHINE_CHIPSET_CT_AT, 
+        .init = machine_at_super286c_init, 
+        .p1_handler = NULL, 
+        .gpio_handler = NULL, 
+        .available_flag = MACHINE_AVAILABLE, 
+        .gpio_acpi_handler = NULL, 
+        .cpu = { 
+            .package = CPU_PKG_286, 
+            .block = CPU_BLOCK_NONE, 
+            .min_bus = 0, 
+            .max_bus = 0, 
+            .min_voltage = 0, 
+            .max_voltage = 0, 
+            .min_multi = 0, 
+            .max_multi = 0 
+        }, 
+        .bus_flags = MACHINE_AT, 
+        .flags = MACHINE_FLAGS_NONE, 
+        .ram = { 
+            .min = 512, 
+            .max = 1024, 
+            .step = 128 
+        }, 
+        .nvrmask = 127, 
+        .kbc_device = NULL, 
+        .kbc_p1 = 0xff, 
+        .gpio = 0xffffffff, 
+        .gpio_acpi = 0xffffffff, 
+        .device = NULL, 
+        .kbd_device = NULL, 
+        .fdc_device = NULL, 
+        .sio_device = NULL, 
+        .vid_device = NULL, 
+        .snd_device = NULL, 
+        .net_device = NULL 
+    },
     /* No proper pictures of the KBC exist, though it seems to have the IBM AT KBC 
        firmware. */ 
     { 
@@ -3617,6 +3617,47 @@ const machine_t machines[] = {
             .step = 128 
         }, 
         .nvrmask = 127, 
+        .kbc_device = NULL, 
+        .kbc_p1 = 0xff, 
+        .gpio = 0xffffffff, 
+        .gpio_acpi = 0xffffffff, 
+        .device = NULL, 
+        .kbd_device = NULL, 
+        .fdc_device = NULL, 
+        .sio_device = NULL, 
+        .vid_device = NULL, 
+        .snd_device = NULL, 
+        .net_device = NULL 
+    },
+    /* Has Chips & Technologies KBC firmware. */ 
+    { 
+        .name = "[C&T PC/AT] Wells American A*Star", 
+        .internal_name = "wellamerastar", 
+        .type = MACHINE_TYPE_286, 
+        .chipset = MACHINE_CHIPSET_CT_AT, 
+        .init = machine_at_wellamerastar_init, 
+        .p1_handler = NULL, 
+        .gpio_handler = NULL, 
+        .available_flag = MACHINE_AVAILABLE, 
+        .gpio_acpi_handler = NULL, 
+        .cpu = { 
+            .package = CPU_PKG_286, 
+            .block = CPU_BLOCK_NONE, 
+            .min_bus = 6000000, 
+            .max_bus = 14000000, 
+            .min_voltage = 0, 
+            .max_voltage = 0, 
+            .min_multi = 0, 
+            .max_multi = 0 
+        }, 
+        .bus_flags = MACHINE_AT, 
+        .flags = MACHINE_FLAGS_NONE, 
+        .ram = { 
+            .min = 512, 
+            .max = 1024, 
+            .step = 512 
+        }, 
+        .nvrmask = 63, 
         .kbc_device = NULL, 
         .kbc_p1 = 0xff, 
         .gpio = 0xffffffff, 
@@ -3732,7 +3773,7 @@ const machine_t machines[] = {
             .max_multi = 0 
         }, 
         .bus_flags = MACHINE_AT, 
-        .flags = MACHINE_FDC, 
+        .flags = MACHINE_FDC, /* Machine has video: Paradise PVGA1A */
         .ram = { 
             .min = 512, 
             .max = 8192, 
@@ -3791,48 +3832,7 @@ const machine_t machines[] = {
         .vid_device = NULL, 
         .snd_device = NULL, 
         .net_device = NULL 
-    }, 
-    /* has an Award-branded KBC controller */ 
-    { 
-        .name = "[NEAT] Hyundai Super-286C", 
-        .internal_name = "super286c", 
-        .type = MACHINE_TYPE_286, 
-        .chipset = MACHINE_CHIPSET_NEAT, 
-        .init = machine_at_super286c_init, 
-        .p1_handler = NULL, 
-        .gpio_handler = NULL, 
-        .available_flag = MACHINE_AVAILABLE, 
-        .gpio_acpi_handler = NULL, 
-        .cpu = { 
-            .package = CPU_PKG_286, 
-            .block = CPU_BLOCK_NONE, 
-            .min_bus = 0, 
-            .max_bus = 0, 
-            .min_voltage = 0, 
-            .max_voltage = 0, 
-            .min_multi = 0, 
-            .max_multi = 0 
-        }, 
-        .bus_flags = MACHINE_AT, 
-        .flags = MACHINE_FLAGS_NONE, 
-        .ram = { 
-            .min = 512, 
-            .max = 1024, 
-            .step = 128 
-        }, 
-        .nvrmask = 127, 
-        .kbc_device = NULL, 
-        .kbc_p1 = 0xff, 
-        .gpio = 0xffffffff, 
-        .gpio_acpi = 0xffffffff, 
-        .device = NULL, 
-        .kbd_device = NULL, 
-        .fdc_device = NULL, 
-        .sio_device = NULL, 
-        .vid_device = NULL, 
-        .snd_device = NULL, 
-        .net_device = NULL 
-    }, 
+    },  
     /* Has IBM AT KBC firmware. */ 
     { 
         .name = "[NEAT] NCR 3302", 
@@ -4100,7 +4100,7 @@ const machine_t machines[] = {
             .max_multi = 0 
         }, 
         .bus_flags = MACHINE_PS2, 
-        .flags = MACHINE_IDE | MACHINE_VIDEO, 
+        .flags = MACHINE_IDE | MACHINE_VIDEO, /* Machine has Super I/O: C&T F82C711 */
         .ram = { 
             .min = 512, 
             .max = 5120, 
@@ -4455,7 +4455,7 @@ const machine_t machines[] = {
         .name = "[ISA] NCR PC916SX", 
         .internal_name = "pc916sx", 
         .type = MACHINE_TYPE_386SX, 
-        .chipset = MACHINE_CHIPSET_DISCRETE, 
+        .chipset = MACHINE_CHIPSET_DISCRETE, /* Machine has chipset: TI TACT82000 */
         .init = machine_at_pc916sx_init, 
         .p1_handler = NULL, 
         .gpio_handler = NULL, 
@@ -4496,7 +4496,7 @@ const machine_t machines[] = {
         .name = "[ISA] QTC-SXM KT X20T02/HI", 
         .internal_name = "quadt386sx", 
         .type = MACHINE_TYPE_386SX, 
-        .chipset = MACHINE_CHIPSET_DISCRETE, 
+        .chipset = MACHINE_CHIPSET_DISCRETE, /* Machine has chipset: VLSI TOPCAT */
         .init = machine_at_quadt386sx_init, 
         .p1_handler = NULL, 
         .gpio_handler = NULL, 
@@ -5696,6 +5696,47 @@ const machine_t machines[] = {
         .snd_device = NULL, 
         .net_device = NULL 
     }, 
+    /* Has IBM AT KBC firmware. */ 
+    { 
+        .name = "[C&T 386/AT] Tandy 4000", 
+        .internal_name = "tandy4000", 
+        .type = MACHINE_TYPE_386DX, 
+        .chipset = MACHINE_CHIPSET_CT_386,
+        .init = machine_at_tandy4000_init, 
+        .p1_handler = NULL, 
+        .gpio_handler = NULL, 
+        .available_flag = MACHINE_AVAILABLE, 
+        .gpio_acpi_handler = NULL, 
+        .cpu = { 
+            .package = CPU_PKG_386DX, 
+            .block = CPU_BLOCK_NONE, 
+            .min_bus = 0, 
+            .max_bus = 0, 
+            .min_voltage = 0, 
+            .max_voltage = 0, 
+            .min_multi = 0, 
+            .max_multi = 0 
+        }, 
+        .bus_flags = MACHINE_AT, 
+        .flags = MACHINE_APM, 
+        .ram = { 
+            .min = 1024, 
+            .max = 16384, 
+            .step = 1024 
+        }, 
+        .nvrmask = 63, 
+        .kbc_device = NULL, 
+        .kbc_p1 = 0xff, 
+        .gpio = 0xffffffff, 
+        .gpio_acpi = 0xffffffff, 
+        .device = NULL, 
+        .kbd_device = NULL, 
+        .fdc_device = NULL, 
+        .sio_device = NULL, 
+        .vid_device = NULL, 
+        .snd_device = NULL, 
+        .net_device = NULL 
+    },
     /* Uses Compaq KBC firmware. */ 
     { 
         .name = "[ISA] Compaq Deskpro 386 (September 1986)", 
@@ -5898,48 +5939,7 @@ const machine_t machines[] = {
         .vid_device = NULL, 
         .snd_device = NULL, 
         .net_device = NULL 
-    }, 
-    /* Has IBM AT KBC firmware. */ 
-    { 
-        .name = "[ISA] Tandy 4000", 
-        .internal_name = "tandy4000", 
-        .type = MACHINE_TYPE_386DX, 
-        .chipset = MACHINE_CHIPSET_DISCRETE, 
-        .init = machine_at_tandy4000_init, 
-        .p1_handler = NULL, 
-        .gpio_handler = NULL, 
-        .available_flag = MACHINE_AVAILABLE, 
-        .gpio_acpi_handler = NULL, 
-        .cpu = { 
-            .package = CPU_PKG_386DX, 
-            .block = CPU_BLOCK_NONE, 
-            .min_bus = 0, 
-            .max_bus = 0, 
-            .min_voltage = 0, 
-            .max_voltage = 0, 
-            .min_multi = 0, 
-            .max_multi = 0 
-        }, 
-        .bus_flags = MACHINE_AT, 
-        .flags = MACHINE_APM, 
-        .ram = { 
-            .min = 1024, 
-            .max = 16384, 
-            .step = 1024 
-        }, 
-        .nvrmask = 63, 
-        .kbc_device = NULL, 
-        .kbc_p1 = 0xff, 
-        .gpio = 0xffffffff, 
-        .gpio_acpi = 0xffffffff, 
-        .device = NULL, 
-        .kbd_device = NULL, 
-        .fdc_device = NULL, 
-        .sio_device = NULL, 
-        .vid_device = NULL, 
-        .snd_device = NULL, 
-        .net_device = NULL 
-    }, 
+    },  
     /* Has a Lance LT38C41 with AMI Megakey P KBC firmware */ 
     { 
         .name = "[ALi M1429] ECS Panda 386V", 
@@ -7456,7 +7456,7 @@ const machine_t machines[] = {
             .max_multi = 0 
         }, 
         .bus_flags = MACHINE_VLB, 
-        .flags = MACHINE_APM, 
+        .flags = MACHINE_APM, /* Machine has IDE with controller: Appian ADI/2 */
         .ram = { 
             .min = 1024, 
             .max = 65536, 
@@ -8139,7 +8139,7 @@ const machine_t machines[] = {
     }, 
     /* TriGem AMIBIOS Pre-Color with TriGem AMI 'Z' keyboard controller */ 
     { 
-        .name = "[SiS 471] TriGem 486G", 
+        .name = "[SiS 471] TriGem 486G (Olympia-K)", 
         .internal_name = "tg486g", 
         .type = MACHINE_TYPE_486_S3, 
         .chipset = MACHINE_CHIPSET_SIS_471, 
@@ -8388,7 +8388,7 @@ const machine_t machines[] = {
     }, 
     /* TriGem machine with M1429G and PhoenixBIOS */ 
     { 
-        .name = "[ALi M1429G] TriGem 486GP", 
+        .name = "[ALi M1429G] TriGem 486GP (Talent)", 
         .internal_name = "tg486gp", 
         .type = MACHINE_TYPE_486_S3_PCI, 
         .chipset = MACHINE_CHIPSET_ALI_M1429G, 
@@ -8848,7 +8848,7 @@ const machine_t machines[] = {
     }, 
     /* This has the Phoenix MultiKey KBC firmware. */ 
     { 
-        .name = "[i420EX] Intel Classic/PCI ED", 
+        .name = "[i420EX] Intel Classic/PCI ED (Ninja)", 
         .internal_name = "ninja", 
         .type = MACHINE_TYPE_486_S3_PCI, 
         .chipset = MACHINE_CHIPSET_INTEL_420EX, 
@@ -9056,7 +9056,7 @@ const machine_t machines[] = {
     }, 
     /* This has the Phoenix MultiKey KBC firmware. */ 
     { 
-        .name = "[i420TX] Intel Classic/PCI", 
+        .name = "[i420TX] Intel Classic/PCI (Alfredo)", 
         .internal_name = "alfredo", 
         .type = MACHINE_TYPE_486_S3_PCI, 
         .chipset = MACHINE_CHIPSET_INTEL_420TX, 
@@ -10071,7 +10071,7 @@ const machine_t machines[] = {
             .max_multi = 1.0 
         }, 
         .bus_flags = MACHINE_PS2_PCI, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: ST STPC Atlas */
         .ram = { 
             .min = 8192, 
             .max = 131072, 
@@ -10239,7 +10239,7 @@ const machine_t machines[] = {
             .max_multi = 2.0 
         }, 
         .bus_flags = MACHINE_PS2_PCI, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: SMI LynxEM+ 712 */
         .ram = { 
             .min = 32768, 
             .max = 98304, 
@@ -10281,7 +10281,7 @@ const machine_t machines[] = {
             .max_multi = 2.0 
         }, 
         .bus_flags = MACHINE_PS2_PCI, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas */
         .ram = { 
             .min = 32768, 
             .max = 131072, 
@@ -10597,7 +10597,7 @@ const machine_t machines[] = {
     }, 
     /* This has the Phoenix MultiKey KBC firmware. */ 
     { 
-        .name = "[i430LX] Intel Premiere/PCI", 
+        .name = "[i430LX] Intel Premiere/PCI (Batman's Revenge)", 
         .internal_name = "revenge", 
         .type = MACHINE_TYPE_SOCKET4, 
         .chipset = MACHINE_CHIPSET_INTEL_430LX, 
@@ -10976,7 +10976,7 @@ const machine_t machines[] = {
     /* 430NX */ 
     /* This has the Phoenix MultiKey KBC firmware. */ 
     { 
-        .name = "[i430NX] Intel Premiere/PCI II", 
+        .name = "[i430NX] Intel Premiere/PCI II (Plato)", 
         .internal_name = "plato", 
         .type = MACHINE_TYPE_SOCKET5, 
         .chipset = MACHINE_CHIPSET_INTEL_430NX, 
@@ -11078,7 +11078,7 @@ const machine_t machines[] = {
             .max_multi = 2.0 
 		},	 
         .bus_flags = MACHINE_PS2_PCI, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has onboard video: TLI ET4000/w32p */
         .ram = { 
             .min = 2048, 
             .max = 131072, 
@@ -11391,7 +11391,7 @@ const machine_t machines[] = {
        PC87306 Super I/O chip, command 0xA1 returns '5'. 
        Command 0xA0 copyright string: (C)1994 AMI . */ 
     { 
-        .name = "[i430FX] Intel Advanced/ZP", 
+        .name = "[i430FX] Intel Advanced/ZP (Zappa)", 
         .internal_name = "zappa", 
         .type = MACHINE_TYPE_SOCKET5, 
         .chipset = MACHINE_CHIPSET_INTEL_430FX, 
@@ -12326,7 +12326,7 @@ const machine_t machines[] = {
             .max_multi = 3.0 
         }, 
         .bus_flags = MACHINE_PS2_PCI, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT, /* Machine has optional onboard sound: Crystal CS4232-KQ */
         .ram = { 
             .min = 8192, 
             .max = 131072, 
@@ -12391,7 +12391,7 @@ const machine_t machines[] = {
        PC87306 Super I/O chip, command 0xA1 returns '5'. 
        Command 0xA0 copyright string: (C)1994 AMI . */ 
     { 
-        .name = "[i430FX] Intel Advanced/ATX", 
+        .name = "[i430FX] Intel Advanced/ATX (Thor)", 
         .internal_name = "thor", 
         .type = MACHINE_TYPE_SOCKET7_3V, 
         .chipset = MACHINE_CHIPSET_INTEL_430FX, 
@@ -12411,7 +12411,7 @@ const machine_t machines[] = {
             .max_multi = 3.0 
         }, 
         .bus_flags = MACHINE_PS2_PCI, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_GAMEPORT, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_GAMEPORT, /* Machine has optional onboard sound: Crystal CS4232-KQ */
         .ram = { 
             .min = 8192, 
             .max = 131072, 
@@ -12434,7 +12434,7 @@ const machine_t machines[] = {
        PC87306 Super I/O chip, command 0xA1 returns '5'. 
        Command 0xA0 copyright string: (C)1994 AMI . */ 
     { 
-        .name = "[i430FX] Intel Advanced/ATX (MR BIOS)", 
+        .name = "[i430FX] Intel Advanced/ATX (Thor) (MR BIOS)", 
         .internal_name = "mrthor", 
         .type = MACHINE_TYPE_SOCKET7_3V, 
         .chipset = MACHINE_CHIPSET_INTEL_430FX, 
@@ -12454,7 +12454,7 @@ const machine_t machines[] = {
             .max_multi = 3.0 
         }, 
         .bus_flags = MACHINE_PS2_PCI, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT, /* Machine has optional onboard video: S3 Trio64V+ and optional onboard sound: Crystal CS4232-KQ */
         .ram = { 
             .min = 8192, 
             .max = 131072, 
@@ -12477,7 +12477,7 @@ const machine_t machines[] = {
        PC87306 Super I/O chip, command 0xA1 returns '5'. 
        Command 0xA0 copyright string: (C)1994 AMI . */ 
     { 
-        .name = "[i430FX] Intel Advanced/EV", 
+        .name = "[i430FX] Intel Advanced/EV (Endeavor)", 
         .internal_name = "endeavor", 
         .type = MACHINE_TYPE_SOCKET7_3V, 
         .chipset = MACHINE_CHIPSET_INTEL_430FX, 
@@ -12874,7 +12874,7 @@ const machine_t machines[] = {
             .max_multi = 3.0 
         }, 
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
         .ram = { 
             .min = 8192, 
             .max = 131072, 
@@ -13422,7 +13422,7 @@ const machine_t machines[] = {
             .max_multi = 3.5 
         }, 
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_USB, /* Machine has internal video: ATI Mach64GT 3D Rage and internal NIC: Intel 82557 */
         .ram = { 
             .min = 8192, 
             .max = 524288, 
@@ -13464,7 +13464,7 @@ const machine_t machines[] = {
             .max_multi = 3.5 
         }, 
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_USB, /* Machine has internal video: ATI Mach64GT 3D Rage and internal NIC: Intel 82557 */
         .ram = { 
             .min = 8192, 
             .max = 524288, 
@@ -13550,7 +13550,7 @@ const machine_t machines[] = {
             .max_multi = 3.0 
         }, 
         .bus_flags = MACHINE_PS2_PCI, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
         .ram = { 
             .min = 8192, 
             .max = 524288, 
@@ -13886,7 +13886,7 @@ const machine_t machines[] = {
             .max_multi = 3.5 
         }, 
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal video: S3 Trio64V+ */
         .ram = { 
             .min = 8192, 
             .max = 131072, 
@@ -14012,7 +14012,7 @@ const machine_t machines[] = {
             .max_multi = 3.0 
         }, 
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: S3 Trio64V+ */
         .ram = { 
             .min = 8192, 
             .max = 131072, 
@@ -14054,7 +14054,7 @@ const machine_t machines[] = {
             .max_multi = 3.5 
         }, 
         .bus_flags = MACHINE_PS2_PCI, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: S3 Trio64V2/DX */
         .ram = { 
             .min = 8192, 
             .max = 131072, 
@@ -14140,7 +14140,7 @@ const machine_t machines[] = {
             .max_multi = 4.0 
         }, 
         .bus_flags = MACHINE_PS2_PCI, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM, /* Machine has internal video: S3 Trio64V2/DX */
         .ram = { 
             .min = 4096, 
             .max = 131072, 
@@ -14532,7 +14532,7 @@ const machine_t machines[] = {
             .max_multi = 3.5 
         }, 
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: Cirrus Logic CL-GD5465 and internal sound: Yamaha YMF715 */
         .ram = { 
             .min = 8192, 
             .max = 262144, 
@@ -14574,7 +14574,7 @@ const machine_t machines[] = {
             .max_multi = 3.5 
         }, 
         .bus_flags = MACHINE_PS2_PCI, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
         .ram = { 
             .min = 8192, 
             .max = 262144, 
@@ -15290,7 +15290,7 @@ const machine_t machines[] = {
             .max_multi = 5.5 
         }, 
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: ESS Solo-1 */
         .ram = { 
             .min = 8192, 
             .max = 1572864, 
@@ -15332,7 +15332,7 @@ const machine_t machines[] = {
             .max_multi = 5.5 
         }, 
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal sound: C-Media CMI8330 */ 
         .ram = { 
             .min = 8192, 
             .max = 1572864, 
@@ -15962,7 +15962,7 @@ const machine_t machines[] = {
             .max_multi = 3.5 
         }, 
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
         .ram = { 
             .min = 8192, 
             .max = 524288, 
@@ -16067,7 +16067,7 @@ const machine_t machines[] = {
        PC87306 Super I/O chip, command 0xA1 returns '5'. 
        Command 0xA0 copyright string: (C)1994 AMI . */ 
     { 
-        .name = "[i440FX] Intel AP440FX", 
+        .name = "[i440FX] Intel AP440FX (Apollo)", 
         .internal_name = "ap440fx", 
         .type = MACHINE_TYPE_SOCKET8, 
         .chipset = MACHINE_CHIPSET_INTEL_440FX, 
@@ -16110,7 +16110,7 @@ const machine_t machines[] = {
        PC87306 Super I/O chip, command 0xA1 returns '5'. 
        Command 0xA0 copyright string: (C)1994 AMI . */ 
     { 
-        .name = "[i440FX] Intel VS440FX", 
+        .name = "[i440FX] Intel VS440FX (Venus)", 
         .internal_name = "vs440fx", 
         .type = MACHINE_TYPE_SOCKET8, 
         .chipset = MACHINE_CHIPSET_INTEL_440FX, 
@@ -16171,7 +16171,7 @@ const machine_t machines[] = {
             .max_multi = 8.0 
         }, 
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal SCSI: Adaptec AIC-78xx */ 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal SCSI: Adaptec AIC-7880U */ 
         .ram = { 
             .min = 40960, 
             .max = 524288, 
@@ -16213,7 +16213,7 @@ const machine_t machines[] = {
             .max_multi = 8.0 
         }, 
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: Creative Vibra 16C */
         .ram = { 
             .min = 8192, 
             .max = 786432, 
@@ -16553,7 +16553,7 @@ const machine_t machines[] = {
             .max_multi = 8.0 
         }, 
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal sound: Yamaha YMF701 */
         .ram = { 
             .min = 8192, 
             .max = 1048576, 
@@ -16912,48 +16912,6 @@ const machine_t machines[] = {
         .snd_device = NULL, 
         .net_device = NULL 
     }, 
-    /* Has a SM(S)C FDC37M60x Super I/O chip with on-chip KBC with most likely 
-       AMIKey-2 KBC firmware. */ 
-    { 
-        .name = "[i440BX] HP Vectra VEi 8", 
-        .internal_name = "vei8", 
-        .type = MACHINE_TYPE_SLOT1, 
-        .chipset = MACHINE_CHIPSET_INTEL_440BX, 
-        .init = machine_at_vei8_init, 
-        .p1_handler = NULL, 
-        .gpio_handler = NULL, 
-        .available_flag = MACHINE_AVAILABLE, 
-        .gpio_acpi_handler = NULL, 
-        .cpu = { 
-            .package = CPU_PKG_SLOT1, 
-            .block = CPU_BLOCK_NONE, 
-            .min_bus = 66666667, 
-            .max_bus = 100000000, 
-            .min_voltage = 1800, 
-            .max_voltage = 3500, 
-            .min_multi = 1.5, 
-            .max_multi = 8.0 
-        }, 
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: Matrox MGA-G200 and sound: Crystal CS4820 */ 
-        .ram = { 
-            .min = 8192, 
-            .max = 524288, 
-            .step = 8192 
-        }, 
-        .nvrmask = 255, 
-        .kbc_device = NULL, 
-        .kbc_p1 = 0xff, 
-        .gpio = 0xffffffff, 
-        .gpio_acpi = 0xffffffff, 
-        .device = NULL, 
-        .kbd_device = NULL, 
-        .fdc_device = NULL, 
-        .sio_device = NULL, 
-        .vid_device = NULL, 
-        .snd_device = NULL, 
-        .net_device = NULL 
-    }, 
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 (updated 'H') KBC firmware. */ 
     { 
         .name = "[i440BX] LG IBM Multinet i x7G (MSI MS-6119)", 
@@ -17081,6 +17039,48 @@ const machine_t machines[] = {
     }, 
  
     /* 440ZX */ 
+    /* Has a SM(S)C FDC37M60x Super I/O chip with on-chip KBC with most likely 
+       AMIKey-2 KBC firmware. */ 
+    { 
+        .name = "[i440ZX] HP Vectra VEi 8", 
+        .internal_name = "vei8", 
+        .type = MACHINE_TYPE_SLOT1, 
+        .chipset = MACHINE_CHIPSET_INTEL_440ZX, 
+        .init = machine_at_vei8_init, 
+        .p1_handler = NULL, 
+        .gpio_handler = NULL, 
+        .available_flag = MACHINE_AVAILABLE, 
+        .gpio_acpi_handler = NULL, 
+        .cpu = { 
+            .package = CPU_PKG_SLOT1, 
+            .block = CPU_BLOCK_NONE, 
+            .min_bus = 66666667, 
+            .max_bus = 100000000, 
+            .min_voltage = 1800, 
+            .max_voltage = 3500, 
+            .min_multi = 1.5, 
+            .max_multi = 8.0 
+        }, 
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: Matrox MGA-G200 and sound: Crystal CS4820 */ 
+        .ram = { 
+            .min = 8192, 
+            .max = 524288, 
+            .step = 8192 
+        }, 
+        .nvrmask = 255, 
+        .kbc_device = NULL, 
+        .kbc_p1 = 0xff, 
+        .gpio = 0xffffffff, 
+        .gpio_acpi = 0xffffffff, 
+        .device = NULL, 
+        .kbd_device = NULL, 
+        .fdc_device = NULL, 
+        .sio_device = NULL, 
+        .vid_device = NULL, 
+        .snd_device = NULL, 
+        .net_device = NULL 
+    }, 
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC 
        firmware. */ 
     { 
@@ -17444,7 +17444,7 @@ const machine_t machines[] = {
             .max_multi = 8.0 
         }, 
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: SiS 6326 and internal sound: C-Media CMI8330 */
         .ram = { 
             .min = 8192, 
             .max = 1572864, 
@@ -18054,7 +18054,7 @@ const machine_t machines[] = {
             .max_multi = 8.0 
         }, 
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, 
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, 
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: Creative Vibra 16XV */
         .ram = { 
             .min = 8192, 
             .max = 786432, 

@@ -27,8 +27,11 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "Tạm &dừng"
 
-msgid "E&xit..."
-msgstr "Th&oát..."
+msgid "Re&sume"
+msgstr ""
+
+msgid "E&xit"
+msgstr "Th&oát"
 
 msgid "&View"
 msgstr "&Xem"
@@ -60,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Tự nhập độ &phân giải..."
 
 msgid "F&orce 4:3 display ratio"
@@ -99,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "&Bộ lọc hình ảnh"
 
 msgid "&Nearest"
@@ -639,18 +642,6 @@ msgstr "Thẻ 3:"
 msgid "Card 4:"
 msgstr "Thẻ 4:"
 
-msgid "Board 1"
-msgstr ""
-
-msgid "Board 2"
-msgstr ""
-
-msgid "Board 3"
-msgstr ""
-
-msgid "Board 4"
-msgstr ""
-
 msgid "Generic ISA ROM Board"
 msgstr ""
 
@@ -682,6 +673,9 @@ msgid "Speed"
 msgstr "Vận tốc"
 
 msgid "Removable disk %1 (%2): %3"
+msgstr ""
+
+msgid "&Removable disk %1 (%2): %3"
 msgstr ""
 
 msgid "Removable disk images"
@@ -870,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Đĩa mềm %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "Đĩa &mềm %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Ảnh (đĩa) sector nâng cao"
 
@@ -890,6 +887,9 @@ msgstr "Không thể khởi tạo GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "M&O %1 (%2): %3"
+msgstr "M&O %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Ảnh đĩa MO"
@@ -975,11 +975,17 @@ msgstr "Tiếp tục"
 msgid "Cassette: %1"
 msgstr "Cassette: %1"
 
+msgid "C&assette: %1"
+msgstr "C&assette: %1"
+
 msgid "Cassette images"
 msgstr "Ảnh đĩa Cassette"
 
 msgid "Cartridge %1: %2"
 msgstr "Băng cartridge %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Băng car&tridge %1: %2"
 
 msgid "Cartridge images"
 msgstr "Ảnh đĩa băng cartridge"
@@ -1001,6 +1007,9 @@ msgstr "Buộc khởi động lại"
 
 msgid "ACPI shutdown"
 msgstr "Tắt máy theo ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Tắt máy theo ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Ổ cứng (%1)"
@@ -1287,40 +1296,40 @@ msgstr "Thiết bị MCA"
 msgid "List of MCA devices:"
 msgstr "Danh sách các thiết bị MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Công cụ bảng nhập liệu"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "QT (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Về qt"
+msgid "About &Qt"
+msgstr "Về &qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Thiết bị MCA..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Hiển thị các màn hình phụ"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Mở thư mục ảnh chụp màn hình..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Co giãn toàn màn hình khi cực đại hóa cửa sổ"
 
-msgid "Cursor/Puck"
-msgstr "Con trỏ/puck"
+msgid "&Cursor/Puck"
+msgstr "&Con trỏ/puck"
 
-msgid "Pen"
-msgstr "Bút"
+msgid "&Pen"
+msgstr "&Bút"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Máy chủ CD/DVD ổ đĩa (%1 :)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Máy chủ CD/DVD ổ đĩa (%1 :)"
 
 msgid "&Connected"
 msgstr "&Đã kết nối"
 
-msgid "Clear image history"
+msgid "Clear image &history"
 msgstr "Xóa lịch sử ảnh đĩa"
 
 msgid "Create..."
@@ -1443,7 +1452,7 @@ msgstr "Thông qua cổng serial 3"
 msgid "Serial port passthrough 4"
 msgstr "Thông qua cổng serial 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Tùy chọn kết xuất ..."
 
 msgid "PC/XT Keyboard"
@@ -1458,19 +1467,7 @@ msgstr ""
 msgid "PS/2 Keyboard"
 msgstr ""
 
-msgid "PS/2 Keyboard (US)"
-msgstr ""
-
-msgid "PS/2 Keyboard (European)"
-msgstr ""
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
-
 msgid "PS/55 Keyboard"
-msgstr ""
-
-msgid "AT/PS/2 Keyboard"
 msgstr ""
 
 msgid "Keys"
@@ -1548,7 +1545,7 @@ msgstr ""
 msgid "BIOS file (ROM #4)"
 msgstr ""
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "Địa chỉ BIOS"
 
 msgid "BIOS address (ROM #1)"
@@ -1591,9 +1588,6 @@ msgid "BIOS Revision"
 msgstr "Sửa đổi BIOS"
 
 msgid "BIOS Version"
-msgstr ""
-
-msgid "BIOS Versions"
 msgstr ""
 
 msgid "BIOS Language"
@@ -1998,11 +1992,11 @@ msgstr "Luôn ở tốc độ đã chọn"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Cài đặt BIOS + phím nóng (TẮT trong POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kb bắt đầu từ f0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB bắt đầu từ f0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kb bắt đầu từ E0000 (địa chỉ MSB đảo ngược, 64kb cuối cùng)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB bắt đầu từ E0000 (địa chỉ MSB đảo ngược, 64 KB cuối cùng)"
 
 msgid "Sine"
 msgstr "Sin"
@@ -2410,6 +2404,12 @@ msgid "Could not load file %1"
 msgstr ""
 
 msgid "Key Bindings:"
+msgstr ""
+
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
 msgstr ""
 
 msgid "Action"

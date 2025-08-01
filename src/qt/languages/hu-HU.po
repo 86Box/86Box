@@ -27,8 +27,11 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Szüneteltetés"
 
-msgid "E&xit..."
-msgstr "&Kilépés..."
+msgid "Re&sume"
+msgstr ""
+
+msgid "E&xit"
+msgstr "&Kilépés"
 
 msgid "&View"
 msgstr "&Nézet"
@@ -60,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Méretek kézi megadása..."
 
 msgid "F&orce 4:3 display ratio"
@@ -99,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "Szűrési mód"
 
 msgid "&Nearest"
@@ -639,18 +642,6 @@ msgstr "Kártya 3:"
 msgid "Card 4:"
 msgstr "Kártya 4:"
 
-msgid "Board 1"
-msgstr ""
-
-msgid "Board 2"
-msgstr ""
-
-msgid "Board 3"
-msgstr ""
-
-msgid "Board 4"
-msgstr ""
-
 msgid "Generic ISA ROM Board"
 msgstr ""
 
@@ -682,6 +673,9 @@ msgid "Speed"
 msgstr "Sebesség"
 
 msgid "Removable disk %1 (%2): %3"
+msgstr ""
+
+msgid "&Removable disk %1 (%2): %3"
 msgstr ""
 
 msgid "Removable disk images"
@@ -817,7 +811,7 @@ msgid "2-axis, 8-button joystick"
 msgstr "2-tengelyes, 8-gombos játékvezérlő"
 
 msgid "3-axis, 2-button joystick"
-msgstr ""
+msgstr "3-tengelyes, 2-gombos játékvezérlő"
 
 msgid "3-axis, 4-button joystick"
 msgstr "3-tengelyes, 4-gombos játékvezérlő"
@@ -870,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Floppy %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Floppy %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Továbbfejlesztett szektor képek"
 
@@ -890,6 +887,9 @@ msgstr "Nem sikerült inicializálni a GhostPCL-et"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "MO-képfájlok"
@@ -937,7 +937,7 @@ msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAn
 msgstr "%1 szükséges a PostScript fájlok PDF formátumba való automatikus konvertálásához.\n\nAz általános PostScript nyomtatóra küldött dokumentumok PostScript (.ps) fájlként kerülnek mentésre."
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr ""
+msgstr "%1 szükséges a PCL fájlok PDF formátumba való automatikus konvertálásához.\n\nAz általános PCL nyomtatóra küldött dokumentumok Printer Command Language (.pcl) fájlként kerülnek mentésre."
 
 msgid "Don't show this message again"
 msgstr "Ne jelenítse meg újra ezt az üzenetet "
@@ -975,6 +975,9 @@ msgstr "Folytatás"
 msgid "Cassette: %1"
 msgstr "Magnókazetta: %1"
 
+msgid "C&assette: %1"
+msgstr "M&agnókazetta: %1"
+
 msgid "Cassette images"
 msgstr "Magnókazetta-képek"
 
@@ -1001,6 +1004,9 @@ msgstr "Hardveres újraindítás"
 
 msgid "ACPI shutdown"
 msgstr "ACPI leállítás"
+
+msgid "ACP&I shutdown"
+msgstr "ACP&I leállítás"
 
 msgid "Hard disk (%1)"
 msgstr "Merevlemez (%1)"
@@ -1149,6 +1155,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1287,41 +1296,41 @@ msgstr "MCA eszközök"
 msgid "List of MCA devices:"
 msgstr "Az MCA-eszközök listája:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Tablet eszköz"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "A Qt-ről"
+msgid "About &Qt"
+msgstr "A &Qt-ről"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "MCA eszközök..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Nem elsődleges monitorok megjelenítése"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Nyissa meg a képernyőképek mappát..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Teljes képernyős méretezés alkalmazása maximalizáláskor"
 
-msgid "Cursor/Puck"
-msgstr "Cursor/Puck"
+msgid "&Cursor/Puck"
+msgstr "&Cursor/Puck"
 
-msgid "Pen"
-msgstr "Toll"
+msgid "&Pen"
+msgstr "&Toll"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Gazdag CD/DVD-meghajtó (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Gazdag CD/DVD-meghajtó (%1:)"
 
 msgid "&Connected"
 msgstr ""
 
-msgid "Clear image history"
-msgstr "Törölje a kép előzményeit"
+msgid "Clear image &history"
+msgstr "Törölje a kép &előzményeit"
 
 msgid "Create..."
 msgstr "Hozzon létre..."
@@ -1337,6 +1346,9 @@ msgstr "Null Driver"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Renderelési viselkedés"
@@ -1443,7 +1455,7 @@ msgstr "Soros port áthaladás 3"
 msgid "Serial port passthrough 4"
 msgstr "Soros port áthaladás 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Renderer opciók..."
 
 msgid "PC/XT Keyboard"
@@ -1458,19 +1470,7 @@ msgstr ""
 msgid "PS/2 Keyboard"
 msgstr ""
 
-msgid "PS/2 Keyboard (US)"
-msgstr ""
-
-msgid "PS/2 Keyboard (European)"
-msgstr ""
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
-
 msgid "PS/55 Keyboard"
-msgstr ""
-
-msgid "AT/PS/2 Keyboard"
 msgstr ""
 
 msgid "Keys"
@@ -1548,7 +1548,7 @@ msgstr ""
 msgid "BIOS file (ROM #4)"
 msgstr ""
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "BIOS cím"
 
 msgid "BIOS address (ROM #1)"
@@ -1591,9 +1591,6 @@ msgid "BIOS Revision"
 msgstr "BIOS felülvizsgálata"
 
 msgid "BIOS Version"
-msgstr ""
-
-msgid "BIOS Versions"
 msgstr ""
 
 msgid "BIOS Language"
@@ -1998,11 +1995,11 @@ msgstr "Mindig a kiválasztott sebességen"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "BIOS beállítás + gyorsbillentyűk (kikapcsolva POST alatt)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB F0000-től kezdődően"
+msgid "64 KB starting from F0000"
+msgstr "64 KB F0000-től kezdődően"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB E0000-től kezdődően (cím MSB invertálva, először az utolsó 64KB)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB E0000-től kezdődően (cím MSB invertálva, először az utolsó 64 KB)"
 
 msgid "Sine"
 msgstr "Szinuszos"
@@ -2430,6 +2427,12 @@ msgstr ""
 msgid "Enter key combo:"
 msgstr ""
 
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
+msgstr ""
+
 msgid "Send Control+Alt+Del"
 msgstr ""
 
@@ -2472,8 +2475,3 @@ msgstr ""
 #~ msgid "ZIP images"
 #~ msgstr "ZIP-lemezképek"
 
-#~ msgid "3-axis, 2-button joystick(s)"
-#~ msgstr "3-tengelyes, 2-gombos játékvezérlő(k)"
-
-#~ msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Lnaugage (.pcl) files."
-#~ msgstr "%1 szükséges a PCL fájlok PDF formátumba való automatikus konvertálásához.\n\nAz általános PCL nyomtatóra küldött dokumentumok Printer Command Language (.pcl) fájlként kerülnek mentésre."

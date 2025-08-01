@@ -27,8 +27,11 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Pausa"
 
-msgid "E&xit..."
-msgstr "A&vsluta..."
+msgid "Re&sume"
+msgstr ""
+
+msgid "E&xit"
+msgstr "A&vsluta"
 
 msgid "&View"
 msgstr "&Visa"
@@ -60,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Ange mått..."
 
 msgid "F&orce 4:3 display ratio"
@@ -99,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "Filtermetod"
 
 msgid "&Nearest"
@@ -639,18 +642,6 @@ msgstr "Kort 3:"
 msgid "Card 4:"
 msgstr "Kort 4:"
 
-msgid "Board 1"
-msgstr ""
-
-msgid "Board 2"
-msgstr ""
-
-msgid "Board 3"
-msgstr ""
-
-msgid "Board 4"
-msgstr ""
-
 msgid "Generic ISA ROM Board"
 msgstr ""
 
@@ -682,6 +673,9 @@ msgid "Speed"
 msgstr "Hastighet"
 
 msgid "Removable disk %1 (%2): %3"
+msgstr ""
+
+msgid "&Removable disk %1 (%2): %3"
 msgstr ""
 
 msgid "Removable disk images"
@@ -870,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Diskett %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Diskett %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Avancerade sektoravbildningar"
 
@@ -890,6 +887,9 @@ msgstr "Ej möjligt att initialisera GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "MO-avbildningar"
@@ -975,11 +975,17 @@ msgstr "Fortsätt"
 msgid "Cassette: %1"
 msgstr "Kassettband: %1"
 
+msgid "C&assette: %1"
+msgstr "K&assettband: %1"
+
 msgid "Cassette images"
 msgstr "Kassettbandsavbildningar"
 
 msgid "Cartridge %1: %2"
 msgstr "Kassett %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Ka&ssett %1: %2"
 
 msgid "Cartridge images"
 msgstr "Kassettavbildningar"
@@ -1001,6 +1007,9 @@ msgstr "Hård omstart"
 
 msgid "ACPI shutdown"
 msgstr "ACPI-avstängning"
+
+msgid "ACP&I shutdown"
+msgstr "ACP&I-avstängning"
 
 msgid "Hard disk (%1)"
 msgstr "Hårddisk (%1)"
@@ -1287,40 +1296,40 @@ msgstr "MCA-enheter"
 msgid "List of MCA devices:"
 msgstr "Lista på MCA-enheter:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Plattverktyg"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Om Qt"
+msgid "About &Qt"
+msgstr "Om &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "MCA-enheter..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Visa icke-primära skärmar"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Öppna skärmbildsmappen..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Tillämpa sträckläge för helskärm när den är maximerad"
 
-msgid "Cursor/Puck"
-msgstr "Pekare/puck"
+msgid "&Cursor/Puck"
+msgstr "&Pekare/puck"
 
-msgid "Pen"
-msgstr "Penna"
+msgid "&Pen"
+msgstr "P&enna"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Värdenhet för CD/DVD (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Värdenhet för CD/DVD (%1:)"
 
 msgid "&Connected"
 msgstr "&Ansluten"
 
-msgid "Clear image history"
+msgid "Clear image &history"
 msgstr "Rensa historik för avbildningar"
 
 msgid "Create..."
@@ -1443,7 +1452,7 @@ msgstr "Serieport passthrough 3"
 msgid "Serial port passthrough 4"
 msgstr "Serieport passthrough 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Renderingsalternativ..."
 
 msgid "PC/XT Keyboard"
@@ -1458,19 +1467,7 @@ msgstr ""
 msgid "PS/2 Keyboard"
 msgstr ""
 
-msgid "PS/2 Keyboard (US)"
-msgstr ""
-
-msgid "PS/2 Keyboard (European)"
-msgstr ""
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
-
 msgid "PS/55 Keyboard"
-msgstr ""
-
-msgid "AT/PS/2 Keyboard"
 msgstr ""
 
 msgid "Keys"
@@ -1548,7 +1545,7 @@ msgstr ""
 msgid "BIOS file (ROM #4)"
 msgstr ""
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "BIOS-adress"
 
 msgid "BIOS address (ROM #1)"
@@ -1591,9 +1588,6 @@ msgid "BIOS Revision"
 msgstr "BIOS revision"
 
 msgid "BIOS Version"
-msgstr ""
-
-msgid "BIOS Versions"
 msgstr ""
 
 msgid "BIOS Language"
@@ -1998,11 +1992,11 @@ msgstr "Alltid vid den valda hastigheten"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "BIOS-inställningar + Snabbtangenter (av under POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB som börjar från F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB som börjar från F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB som börjar från E0000 (adress MSB inverterad, de sista 64KB först)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB som börjar från E0000 (adress MSB inverterad, de sista 64 KB först)"
 
 msgid "Sine"
 msgstr "Sinus"
@@ -2428,6 +2422,12 @@ msgid "Bind Key"
 msgstr ""
 
 msgid "Enter key combo:"
+msgstr ""
+
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
 msgstr ""
 
 msgid "Send Control+Alt+Del"

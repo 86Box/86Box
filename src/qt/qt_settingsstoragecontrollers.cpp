@@ -299,25 +299,25 @@ SettingsStorageControllers::on_pushButtonFD_clicked()
 void
 SettingsStorageControllers::on_pushButtonHD1_clicked()
 {
-    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD1->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD1->currentData().toInt()), 1);
 }
 
 void
 SettingsStorageControllers::on_pushButtonHD2_clicked()
 {
-    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD2->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD2->currentData().toInt()), 2);
 }
 
 void
 SettingsStorageControllers::on_pushButtonHD3_clicked()
 {
-    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD3->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD3->currentData().toInt()), 3);
 }
 
 void
 SettingsStorageControllers::on_pushButtonHD4_clicked()
 {
-    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD4->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD4->currentData().toInt()), 4);
 }
 
 void

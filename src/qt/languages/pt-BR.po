@@ -27,8 +27,11 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Pausar"
 
-msgid "E&xit..."
-msgstr "&Sair..."
+msgid "Re&sume"
+msgstr ""
+
+msgid "E&xit"
+msgstr "&Sair"
 
 msgid "&View"
 msgstr "&Exibir"
@@ -60,7 +63,7 @@ msgstr "Open&GL (Núcleo 3.0)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Especificar as dimensões..."
 
 msgid "F&orce 4:3 display ratio"
@@ -99,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "Método de filtragem"
 
 msgid "&Nearest"
@@ -639,18 +642,6 @@ msgstr "Placa 3:"
 msgid "Card 4:"
 msgstr "Placa 4:"
 
-msgid "Board 1"
-msgstr "Placa 1"
-
-msgid "Board 2"
-msgstr "Placa 2"
-
-msgid "Board 3"
-msgstr "Placa 3"
-
-msgid "Board 4"
-msgstr "Placa 4"
-
 msgid "Generic ISA ROM Board"
 msgstr "Placa ROM ISA Genérica"
 
@@ -683,6 +674,9 @@ msgstr "Velocidade"
 
 msgid "Removable disk %1 (%2): %3"
 msgstr "Disco removível %1 (%2): %3"
+
+msgid "&Removable disk %1 (%2): %3"
+msgstr "Disco &removível %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Imagens de disco removível"
@@ -870,6 +864,9 @@ msgstr "%1 MB (CCS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Disquete %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Disquete %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Imagens de setor avançado"
 
@@ -890,6 +887,9 @@ msgstr "Não foi possível inicializar o GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "Magneto-óptico %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&Magneto-óptico %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Imagens magneto-ópticas"
@@ -975,11 +975,17 @@ msgstr "Continuar"
 msgid "Cassette: %1"
 msgstr "Cassete: %1"
 
+msgid "C&assette: %1"
+msgstr "C&assete: %1"
+
 msgid "Cassette images"
 msgstr "Imagens de cassete"
 
 msgid "Cartridge %1: %2"
 msgstr "Cartucho %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Car&tucho %1: %2"
 
 msgid "Cartridge images"
 msgstr "Imagens de cartucho"
@@ -1001,6 +1007,9 @@ msgstr "Reinicialização completa"
 
 msgid "ACPI shutdown"
 msgstr "Desligamento por ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Desligamento por ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Disco rígido (%1)"
@@ -1149,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1287,41 +1299,41 @@ msgstr "Dispositivos MCA"
 msgid "List of MCA devices:"
 msgstr "Lista de dispositivos MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Ferramenta para tablet"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Sobre o Qt"
+msgid "About &Qt"
+msgstr "Sobre o &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Dispositivos MCA..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Mostrar monitores não primários"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Abrir pasta de capturas de tela..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Aplicar modo de ampliação em tela cheia quando maximizado"
 
-msgid "Cursor/Puck"
-msgstr "Cursor/Puck"
+msgid "&Cursor/Puck"
+msgstr "&Cursor/Puck"
 
-msgid "Pen"
-msgstr "Caneta"
+msgid "&Pen"
+msgstr "C&aneta"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Unidade de CD/DVD do anfitrião (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Unidade de CD/DVD do anfitrião (%1:)"
 
 msgid "&Connected"
 msgstr "&Conectado"
 
-msgid "Clear image history"
-msgstr "Limpar histórico de imagens"
+msgid "Clear image &history"
+msgstr "Limpar histórico de imagens(&H)"
 
 msgid "Create..."
 msgstr "Criar..."
@@ -1337,6 +1349,9 @@ msgstr "Driver nulo"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Comportamento de renderização"
@@ -1443,7 +1458,7 @@ msgstr "Passagem de porta serial 3"
 msgid "Serial port passthrough 4"
 msgstr "Passagem de porta serial 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Opções do renderizador..."
 
 msgid "PC/XT Keyboard"
@@ -1458,20 +1473,8 @@ msgstr "Teclado AX"
 msgid "PS/2 Keyboard"
 msgstr "Teclado PS/2"
 
-msgid "PS/2 Keyboard (US)"
-msgstr "Teclado PS/2 (Estados Unidos)"
-
-msgid "PS/2 Keyboard (European)"
-msgstr "Teclado PS/2 (Europeu)"
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr "Teclado PS/2 (Japonês)"
-
 msgid "PS/55 Keyboard"
 msgstr "Teclado PS/55"
-
-msgid "AT/PS/2 Keyboard"
-msgstr "Teclado AT/PS/2"
 
 msgid "Keys"
 msgstr "Teclas"
@@ -1548,7 +1551,7 @@ msgstr "Arquivo do BIOS (ROM #3)"
 msgid "BIOS file (ROM #4)"
 msgstr "Arquivo do BIOS (ROM #4)"
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "Endereço do BIOS"
 
 msgid "BIOS address (ROM #1)"
@@ -1592,9 +1595,6 @@ msgstr "Revisão do BIOS"
 
 msgid "BIOS Version"
 msgstr "Versão do BIOS"
-
-msgid "BIOS Versions"
-msgstr "Versões de BIOS"
 
 msgid "BIOS Language"
 msgstr "Idioma do BIOS"
@@ -1998,11 +1998,11 @@ msgstr "Sempre na velocidade selecionada"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Configuração do BIOS + teclas de atalho (desativadas durante o POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB a partir de F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB a partir de F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB a partir de E0000 (endereço MSB invertido, os últimos 64 kB primeiro)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB a partir de E0000 (endereço MSB invertido, os últimos 64 KB primeiro)"
 
 msgid "Sine"
 msgstr "Senoidal"
@@ -2429,6 +2429,12 @@ msgstr "Vincular tecla"
 
 msgid "Enter key combo:"
 msgstr "Pressione combinação de teclas:"
+
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
+msgstr ""
 
 msgid "Send Control+Alt+Del"
 msgstr "Enviar Control+Alt+Del"

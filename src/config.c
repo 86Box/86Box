@@ -850,8 +850,6 @@ load_storage_controllers(void)
     char         *p;
     char          temp[512];
     int           min = 0;
-    int           free_p = 0;
-    int           migrate_hdc[HDC_MAX] = { 1, 1, 1, 1 };
 
     for (int c = min; c < SCSI_CARD_MAX; c++) {
         sprintf(temp, "scsicard_%d", c + 1);
@@ -870,6 +868,8 @@ load_storage_controllers(void)
     else
         fdc_current[0] = FDC_INTERNAL;
 #else
+    int free_p = 0;
+
     if (p == NULL) {
         if (machine_has_flags(machine, MACHINE_FDC)) {
             p = (char *) malloc((strlen("internal") + 1) * sizeof(char));
@@ -894,73 +894,49 @@ load_storage_controllers(void)
         sprintf(temp, "hdc_%d", c + 1);
 
         p = ini_section_get_string(cat, temp, NULL);
-        if (p != NULL) {
+        if (p != NULL)
             hdc_current[c] = hdc_get_from_internal_name(p);
-            migrate_hdc[c] = 0;
-        } else
+        else
             hdc_current[c] = 0;
     }
 
-    if (migrate_hdc[0]) {
-        p = ini_section_get_string(cat, "hdc", NULL);
-        if (p == NULL) {
-            if (machine_has_flags(machine, MACHINE_HDC)) {
-                p = (char *) malloc((strlen("internal") + 1) * sizeof(char));
-                strcpy(p, "internal");
-            } else {
-                p = (char *) malloc((strlen("none") + 1) * sizeof(char));
-                strcpy(p, "none");
+    /* Backwards compatibility for single HDC and standalone tertiary/quaternary IDE from v4.2 and older. */
+    const char *legacy_cards[] = { NULL, "ide_ter", "ide_qua" };
+    p = ini_section_get_string(cat, "hdc", NULL);
+    for (int i = !(p || machine_has_flags(machine, MACHINE_HDC)), j = 0; i < (sizeof(legacy_cards) / sizeof(legacy_cards[0])); i++) {
+        if (!legacy_cards[i] || (ini_section_get_int(cat, legacy_cards[i], 0) == 1)) {
+            /* Migrate to the first available HDC slot. */
+            for (; j < (sizeof(hdc_current) / sizeof(hdc_current[0])); j++) {
+                if (!hdc_current[j]) {
+                    if (!legacy_cards[i]) {
+                        if (!p) {
+                            hdc_current[j] = hdc_get_from_internal_name("internal");
+                        } else if (!strcmp(p, "xtide_plus")) {
+                            hdc_current[j] = hdc_get_from_internal_name("xtide");
+                            sprintf(temp, "PC/XT XTIDE #%i", j + 1);
+                            migration_cat = ini_find_or_create_section(config, temp);
+                            ini_section_set_string(migration_cat, "bios", "xt_plus");
+                        } else if (!strcmp(p, "xtide_at_386")) {
+                            hdc_current[j] = hdc_get_from_internal_name("xtide_at");
+                            sprintf(temp, "PC/AT XTIDE #%i", j + 1);
+                            migration_cat = ini_find_or_create_section(config, temp);
+                            ini_section_set_string(migration_cat, "bios", "at_386");
+                        } else {
+                            hdc_current[j] = hdc_get_from_internal_name(p);
+                        }
+                    } else {
+                        hdc_current[j] = hdc_get_from_internal_name(legacy_cards[i]);
+                    }
+                    break;
+                }
             }
-            free_p = 1;
         }
-
-        /* Migrate renamed and merged cards. */
-        if (!strcmp(p, "xtide_plus")) {
-            hdc_current[0] = hdc_get_from_internal_name("xtide");
-            migration_cat = ini_find_or_create_section(config, "PC/XT XTIDE #1");
-            ini_section_set_string(migration_cat, "bios", "xt_plus");
-        } else if (!strcmp(p, "xtide_at_386")) {
-            hdc_current[0] = hdc_get_from_internal_name("xtide_at");
-            migration_cat = ini_find_or_create_section(config, "PC/AT XTIDE #1");
-            ini_section_set_string(migration_cat, "bios", "at_386");
-        } else
-            hdc_current[0] = hdc_get_from_internal_name(p);
-
-        ini_section_delete_var(cat, "hdc");
     }
+    ini_section_delete_var(cat, "hdc");
 
-    if (migrate_hdc[1]) {
-        int ide_ter_enabled = !!ini_section_get_int(cat, "ide_ter", 0);
-
-        if (ide_ter_enabled)
-            hdc_current[1] = hdc_get_from_internal_name("ide_ter");
-
-        ini_section_delete_var(cat, "ide_ter");
-    }
-
-    if (migrate_hdc[2]) {
-        int ide_qua_enabled = !!ini_section_get_int(cat, "ide_qua", 0);
-
-        if (ide_qua_enabled)
-            hdc_current[2] = hdc_get_from_internal_name("ide_qua");
-
-        ini_section_delete_var(cat, "ide_qua");
-    }
-
-    if (free_p) {
-        free(p);
-        p = NULL;
-    }
-
-    free_p = 0;
     p = ini_section_get_string(cat, "cdrom_interface", NULL);
     if (p != NULL)
         cdrom_interface_current = cdrom_interface_get_from_internal_name(p);
-
-    if (free_p) {
-        free(p);
-        p = NULL;
-    }
 
     if (machine_has_bus(machine, MACHINE_BUS_CASSETTE))
         cassette_enable = !!ini_section_get_int(cat, "cassette_enabled", 0);
@@ -2803,14 +2779,28 @@ save_storage_controllers(void)
                                    hdc_get_internal_name(hdc_current[c]));
     }
 
+    /* Downgrade compatibility for standalone tertiary/quaternary IDE from v4.2 and older. */
+    const char *legacy_cards[] = { "ide_ter", "ide_qua" };
+    for (int i = 0; i < (sizeof(legacy_cards) / sizeof(legacy_cards[0])); i++) {
+        int card_id = hdc_get_from_internal_name(legacy_cards[i]);
+        for (int j = 0; j < (sizeof(sound_card_current) / sizeof(sound_card_current[0])); j++) {
+            if (hdc_current[j] == card_id) {
+                /* A special value of 2 still enables the cards on older versions,
+                   but lets newer versions know that they've already been migrated. */
+                ini_section_set_int(cat, legacy_cards[i], 2);
+                card_id = 0; /* mark as found */
+                break;
+            }
+        }
+        if (card_id > 0) /* not found */
+            ini_section_delete_var(cat, legacy_cards[i]);
+    }
+
     if (cdrom_interface_current == 0)
         ini_section_delete_var(cat, "cdrom_interface");
     else
         ini_section_set_string(cat, "cdrom_interface",
                                cdrom_interface_get_internal_name(cdrom_interface_current));
-
-    ini_section_delete_var(cat, "ide_ter");
-    ini_section_delete_var(cat, "ide_qua");
 
     if (cassette_enable == 0)
         ini_section_delete_var(cat, "cassette_enabled");

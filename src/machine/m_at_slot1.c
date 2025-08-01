@@ -796,7 +796,7 @@ machine_at_vei8_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
-    device_add(&i440bx_device);
+    device_add(&i440zx_device);
     device_add(&piix4e_device);
     device_add(&fdc37m60x_370_device);
     device_add(&kbc_ps2_ami_pci_device);

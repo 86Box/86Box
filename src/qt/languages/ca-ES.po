@@ -27,8 +27,11 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Pausa"
 
-msgid "E&xit..."
-msgstr "&Sortir ..."
+msgid "Re&sume"
+msgstr ""
+
+msgid "E&xit"
+msgstr "&Sortir"
 
 msgid "&View"
 msgstr "&Vista"
@@ -60,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "E&specificar dimensions ..."
 
 msgid "F&orce 4:3 display ratio"
@@ -99,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "&Mètode de filtrat"
 
 msgid "&Nearest"
@@ -639,18 +642,6 @@ msgstr "Targeta 3:"
 msgid "Card 4:"
 msgstr "Targeta 4:"
 
-msgid "Board 1"
-msgstr ""
-
-msgid "Board 2"
-msgstr ""
-
-msgid "Board 3"
-msgstr ""
-
-msgid "Board 4"
-msgstr ""
-
 msgid "Generic ISA ROM Board"
 msgstr ""
 
@@ -682,6 +673,9 @@ msgid "Speed"
 msgstr "Velocitat"
 
 msgid "Removable disk %1 (%2): %3"
+msgstr ""
+
+msgid "&Removable disk %1 (%2): %3"
 msgstr ""
 
 msgid "Removable disk images"
@@ -870,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Disquet %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Disquet %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Imatges avançates del sector"
 
@@ -890,6 +887,9 @@ msgstr "No es pot inicialitzar GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Imatges MO"
@@ -975,11 +975,17 @@ msgstr "Continuar"
 msgid "Cassette: %1"
 msgstr "Casset: %1"
 
+msgid "C&assette: %1"
+msgstr "C&asset: %1"
+
 msgid "Cassette images"
 msgstr "Imatges de casset"
 
 msgid "Cartridge %1: %2"
 msgstr "Cartutx %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Car&tutx %1: %2"
 
 msgid "Cartridge images"
 msgstr "Imatges de cartutx"
@@ -1001,6 +1007,9 @@ msgstr "Reinicialització completa"
 
 msgid "ACPI shutdown"
 msgstr "Apagada ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Apagada ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Disc dur (%1)"
@@ -1149,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1287,41 +1299,41 @@ msgstr "Dispositius MCA"
 msgid "List of MCA devices:"
 msgstr "Lista de dispositius MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Eina de tauleta"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Quant a Qt"
+msgid "About &Qt"
+msgstr "Quant a &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Dispositius MCA ..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Mostrar monitors no primaris"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Obrir la carpeta de captures de pantalla ..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Apliqueu el mode d’estirament de pantalla completa en màxima"
 
-msgid "Cursor/Puck"
-msgstr "Cursor/Puck"
+msgid "&Cursor/Puck"
+msgstr "&Cursor/Puck"
 
-msgid "Pen"
-msgstr "Ploma"
+msgid "&Pen"
+msgstr "&Ploma"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Unitat CD/DVD d'amfitrió (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Unitat CD/DVD d'amfitrió (%1:)"
 
 msgid "&Connected"
 msgstr "&Connectat"
 
-msgid "Clear image history"
-msgstr "Esborrar la història de imatges"
+msgid "Clear image &history"
+msgstr "Esborrar la &història de imatges"
 
 msgid "Create..."
 msgstr "Crear ..."
@@ -1337,6 +1349,9 @@ msgstr "Controlador nul"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Comportament del renderitzador"
@@ -1443,7 +1458,7 @@ msgstr "Pas del port sèrie 3"
 msgid "Serial port passthrough 4"
 msgstr "Pas del port sèrie 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Opcions del renderitzador ..."
 
 msgid "PC/XT Keyboard"
@@ -1458,19 +1473,7 @@ msgstr ""
 msgid "PS/2 Keyboard"
 msgstr ""
 
-msgid "PS/2 Keyboard (US)"
-msgstr ""
-
-msgid "PS/2 Keyboard (European)"
-msgstr ""
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
-
 msgid "PS/55 Keyboard"
-msgstr ""
-
-msgid "AT/PS/2 Keyboard"
 msgstr ""
 
 msgid "Keys"
@@ -1548,7 +1551,7 @@ msgstr ""
 msgid "BIOS file (ROM #4)"
 msgstr ""
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "Adreça de BIOS"
 
 msgid "BIOS address (ROM #1)"
@@ -1591,9 +1594,6 @@ msgid "BIOS Revision"
 msgstr "Revisió de la BIOS"
 
 msgid "BIOS Version"
-msgstr ""
-
-msgid "BIOS Versions"
 msgstr ""
 
 msgid "BIOS Language"
@@ -1998,11 +1998,11 @@ msgstr "Sempre a la velocitat seleccionada"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Configuració de la BIOS + Hotkeys (desactivat durant el POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB a partir de F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB a partir de F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB a partir de E0000 (MSB de adreça invertit, els darrers 64KB primer)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB a partir de E0000 (MSB de adreça invertit, els darrers 64 KB primer)"
 
 msgid "Sine"
 msgstr "Sinusoidal"
@@ -2428,6 +2428,12 @@ msgid "Bind Key"
 msgstr ""
 
 msgid "Enter key combo:"
+msgstr ""
+
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
 msgstr ""
 
 msgid "Send Control+Alt+Del"

@@ -92,6 +92,7 @@ static const struct {
     /* PCI */
     { &ide_cmd646_ter_qua_device   },
     { &ide_cmd648_ter_qua_device   },
+    { &ide_cmd649_ter_qua_device   },
     { &ide_pci_device              },
     { &ide_pci_2ch_device          },
     { NULL                         }
@@ -129,7 +130,7 @@ hdc_get_internal_name(int hdc)
 }
 
 int
-hdc_get_from_internal_name(char *s)
+hdc_get_from_internal_name(const char *s)
 {
     int c = 0;
 

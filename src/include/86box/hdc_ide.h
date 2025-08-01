@@ -227,6 +227,8 @@ extern void ide_padstr8(uint8_t *buf, int buf_size, const char *src);
 extern uint8_t ide_read_ali_75(void);
 extern uint8_t ide_read_ali_76(void);
 
+extern void    ide_hard_reset(void);
+
 /* Legacy #define's. */
 #define ide_irq_raise(ide) ide_irq(ide, 1, 1)
 #define ide_irq_lower(ide) ide_irq(ide, 0, 1)

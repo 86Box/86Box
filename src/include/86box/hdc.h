@@ -82,6 +82,7 @@ extern const device_t ide_cmd646_single_channel_device;         /* CMD PCI-646 (
 extern const device_t ide_cmd646_ter_qua_device;                /* CMD PCI-646 (Tertiary and quaternary channels) */
 extern const device_t ide_cmd648_ter_qua_device;                /* CMD PCI-648 (Tertiary and quaternary channels) */
 extern const device_t ide_cmd648_ter_qua_onboard_device;        /* CMD PCI-648 (Tertiary and quaternary channels, on-board) */
+extern const device_t ide_cmd649_ter_qua_device;                /* CMD PCI-649 (Tertiary and quaternary channels) */
 
 extern const device_t ide_opti611_vlb_device;                   /* OPTi 82c611/611A VLB */
 extern const device_t ide_opti611_vlb_sec_device;               /* OPTi 82c611/611A VLB (Secondary channel) */
@@ -120,7 +121,7 @@ extern void hdc_init(void);
 extern void hdc_reset(void);
 
 extern const char     *hdc_get_internal_name(int hdc);
-extern int             hdc_get_from_internal_name(char *s);
+extern int             hdc_get_from_internal_name(const char *s);
 extern int             hdc_has_config(int hdc);
 extern const device_t *hdc_get_device(int hdc);
 extern int             hdc_get_flags(int hdc);

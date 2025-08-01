@@ -132,7 +132,7 @@ static const struct cdrom_drive_types_s {
     /* SCSI-1 / early ATAPI generic - second on purpose so the later variant is the default. */
     { EMU_NAME,   "86B_CD",           "1.00", "86cd100",        BUS_TYPE_BOTH, 1, -1, 36, 1, 0, {  0, -1, -1, -1 } },
     /* No difference from 86BOX CD-ROM, other than name - but enough people have requested such a name to warrant it. */
-    { EMU_NAME,   "86B_DVD",          "4.30", "86dvd",          BUS_TYPE_BOTH, 2, -1, 36, 0, 1, {  4,  2,  2,  5 } },
+    { EMU_NAME,   "86B_DVD",          "5.00", "86dvd",          BUS_TYPE_BOTH, 2, -1, 36, 0, 1, {  4,  2,  2,  5 } },
     { "ASUS",     "CD-S500/A",        "1.41", "asus_500",       BUS_TYPE_IDE,  0, 50, 36, 0, 0, {  4,  2,  2,  2 } },
     { "ASUS",     "CD-S520/A4",       "1.32", "asus_520",       BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  2 } },
     { "AZT",      "CDA46802I",        "1.15", "azt_cda",        BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  3,  0,  0,  0 } },

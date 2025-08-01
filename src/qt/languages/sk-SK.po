@@ -27,7 +27,10 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "P&ozastaviť"
 
-msgid "E&xit..."
+msgid "Re&sume"
+msgstr ""
+
+msgid "E&xit"
 msgstr "&Ukončiť"
 
 msgid "&View"
@@ -60,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "&Zadať veľkosť..."
 
 msgid "F&orce 4:3 display ratio"
@@ -99,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "Spôsob &filtrovania"
 
 msgid "&Nearest"
@@ -639,18 +642,6 @@ msgstr "Karta 3:"
 msgid "Card 4:"
 msgstr "Karta 4:"
 
-msgid "Board 1"
-msgstr ""
-
-msgid "Board 2"
-msgstr ""
-
-msgid "Board 3"
-msgstr ""
-
-msgid "Board 4"
-msgstr ""
-
 msgid "Generic ISA ROM Board"
 msgstr ""
 
@@ -682,6 +673,9 @@ msgid "Speed"
 msgstr "Rýchlosť"
 
 msgid "Removable disk %1 (%2): %3"
+msgstr ""
+
+msgid "&Removable disk %1 (%2): %3"
 msgstr ""
 
 msgid "Removable disk images"
@@ -870,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Disketová mechanika %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Disketová mechanika %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Rozšírené sektorové obrazy"
 
@@ -890,6 +887,9 @@ msgstr "Nastala chyba pri inicializácii knižnice GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Obrazy MO"
@@ -928,7 +928,7 @@ msgid "Hardware not available"
 msgstr "Hardvér nie je dostupný"
 
 msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr ""
+msgstr "Uistite sa, že je nainštalovaný %1 a používate sieťové pripojenie s ním kompatibilné."
 
 msgid "Invalid configuration"
 msgstr "Neplatná konfigurácia"
@@ -937,7 +937,7 @@ msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAn
 msgstr "%1 je potrebná pre automatický prevod PostScript dokumentov do PDF.\n\nAkékoľvek dokumenty vytlačené cez všeobecnú PostScriptovú tlačiareň budú uložené ako PostScript (.ps) súbory."
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr ""
+msgstr "%1 je potrebná pre automatický prevod PCL dokumentov do PDF.\n\nAkékoľvek dokumenty vytlačené cez všeobecnú PCLovú tlačiareň budú uložené ako Printer Command Language (.pcl) súbory."
 
 msgid "Don't show this message again"
 msgstr "Nezobrazovať ďalej túto správu"
@@ -975,11 +975,17 @@ msgstr "Pokračovať"
 msgid "Cassette: %1"
 msgstr "Kazeta: %1"
 
+msgid "C&assette: %1"
+msgstr "K&azeta: %1"
+
 msgid "Cassette images"
 msgstr "Kazetové nahrávky"
 
 msgid "Cartridge %1: %2"
 msgstr "Cartridge %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Car&tridge %1: %2"
 
 msgid "Cartridge images"
 msgstr "Obrazy cartridge"
@@ -1001,6 +1007,9 @@ msgstr "Resetovať"
 
 msgid "ACPI shutdown"
 msgstr "Vypnúť cez rozhranie ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Vypnúť cez rozhranie ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Pevný disk (%1)"
@@ -1287,40 +1296,40 @@ msgstr "Zariadenia MCA"
 msgid "List of MCA devices:"
 msgstr "Zoznam zariadení MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Nástroj pre tablety"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "O Qt"
+msgid "About &Qt"
+msgstr "O &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Zariadenia MCA..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Zobrazenie iných ako primárnych monitorov"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Otvorte priečinok so snímkami obrazovky..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Použitie režimu roztiahnutia na celú obrazovku pri maximalizácii"
 
-msgid "Cursor/Puck"
-msgstr "Kurzor/Puck"
+msgid "&Cursor/Puck"
+msgstr "&Kurzor/Puck"
 
-msgid "Pen"
-msgstr "Pero"
+msgid "&Pen"
+msgstr "&Pero"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Hostiteľská jednotka CD/DVD (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Hostiteľská jednotka CD/DVD (%1:)"
 
 msgid "&Connected"
 msgstr ""
 
-msgid "Clear image history"
+msgid "Clear image &history"
 msgstr "Vymazanie histórie obrázkov"
 
 msgid "Create..."
@@ -1443,7 +1452,7 @@ msgstr "Priechod sériového portu 3"
 msgid "Serial port passthrough 4"
 msgstr "Priechod cez sériový port 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Možnosti vykresľovača..."
 
 msgid "PC/XT Keyboard"
@@ -1458,19 +1467,7 @@ msgstr ""
 msgid "PS/2 Keyboard"
 msgstr ""
 
-msgid "PS/2 Keyboard (US)"
-msgstr ""
-
-msgid "PS/2 Keyboard (European)"
-msgstr ""
-
-msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
-
 msgid "PS/55 Keyboard"
-msgstr ""
-
-msgid "AT/PS/2 Keyboard"
 msgstr ""
 
 msgid "Keys"
@@ -1548,7 +1545,7 @@ msgstr ""
 msgid "BIOS file (ROM #4)"
 msgstr ""
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "Adresa BIOS"
 
 msgid "BIOS address (ROM #1)"
@@ -1591,9 +1588,6 @@ msgid "BIOS Revision"
 msgstr "Revízia systému BIOS"
 
 msgid "BIOS Version"
-msgstr ""
-
-msgid "BIOS Versions"
 msgstr ""
 
 msgid "BIOS Language"
@@ -1998,11 +1992,11 @@ msgstr "Vždy pri zvolenej rýchlosti"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Nastavenie BIOS + klávesové skratky (vypnuté počas POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB od F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB od F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB od E0000 (adresa MSB invertovaná, najprv posledných 64 kB)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB od E0000 (adresa MSB invertovaná, najprv posledných 64 KB)"
 
 msgid "Sine"
 msgstr "Sinusový"
@@ -2430,6 +2424,12 @@ msgstr ""
 msgid "Enter key combo:"
 msgstr ""
 
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
+msgstr ""
+
 msgid "Send Control+Alt+Del"
 msgstr ""
 
@@ -2471,9 +2471,3 @@ msgstr ""
 
 #~ msgid "ZIP images"
 #~ msgstr "Obrazy ZIP diskov"
-
-#~ msgid "Make sure %1 is installed and that you are on a libpcap-compatible network connection."
-#~ msgstr "Uistite sa, že je nainštalovaný %1 a používate sieťové pripojenie s ním kompatibilné."
-
-#~ msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Lnaugage (.pcl) files."
-#~ msgstr "%1 je potrebná pre automatický prevod PCL dokumentov do PDF.\n\nAkékoľvek dokumenty vytlačené cez všeobecnú PCLovú tlačiareň budú uložené ako Printer Command Language (.pcl) súbory."

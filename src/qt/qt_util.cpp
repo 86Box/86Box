@@ -117,11 +117,16 @@ DlgFilter(QStringList extensions, bool last)
 
 QString currentUuid()
 {
-    auto configPath = QFileInfo(cfg_path).dir().canonicalPath();
-    if(!configPath.endsWith("/")) {
-        configPath.append("/");
+    return generateUuid(QString(cfg_path));
+}
+
+QString generateUuid(const QString &path)
+{
+    auto dirPath = QFileInfo(path).dir().canonicalPath();
+    if(!dirPath.endsWith("/")) {
+        dirPath.append("/");
     }
-    return QUuid::createUuidV5(QUuid{}, configPath).toString(QUuid::WithoutBraces);
+    return QUuid::createUuidV5(QUuid{}, dirPath).toString(QUuid::WithoutBraces);
 }
 
 bool compareUuid()

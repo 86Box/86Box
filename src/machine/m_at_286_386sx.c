@@ -391,6 +391,23 @@ machine_at_tuliptc7_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_wellamerastar_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/wellamerastar/W_3.031_L.BIN",
+                                "roms/machines/wellamerastar/W_3.031_H.BIN",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ctat_common_init(model);
+
+    return ret;
+}
+
 static void
 machine_at_scat_init(const machine_t *model, int is_v4, int is_ami)
 {
@@ -548,7 +565,7 @@ machine_at_super286c_init(const machine_t *model)
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&neat_device);
+    device_add(&cs8220_device);
 
     return ret;
 }
@@ -585,8 +602,7 @@ machine_at_spc4200p_init(const machine_t *model)
 
     machine_at_scat_init(model, 0, 1);
 
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
+    device_add(&f82c710_device);
 
     device_add(&ide_isa_device);
 
@@ -607,8 +623,7 @@ machine_at_spc4216p_init(const machine_t *model)
 
     machine_at_scat_init(model, 1, 1);
 
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
+    device_add(&f82c710_device);
 
     return ret;
 }
@@ -630,8 +645,7 @@ machine_at_spc4620p_init(const machine_t *model)
 
     machine_at_scat_init(model, 1, 1);
 
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
+    device_add(&f82c710_device);
 
     device_add(&ide_isa_device);
 
@@ -667,8 +681,7 @@ machine_at_deskmaster286_init(const machine_t *model)
 
     machine_at_scat_init(model, 0, 1);
 
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
+    device_add(&f82c710_device);
         
     device_add(&ide_isa_device);
 
