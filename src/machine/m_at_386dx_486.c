@@ -126,6 +126,7 @@ machine_at_tandy4000_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
+    device_add(&cs8230_device);
     device_add(&kbc_at_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
