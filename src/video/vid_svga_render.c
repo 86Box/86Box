@@ -86,9 +86,14 @@ svga_render_blank(svga_t *svga)
     }
 
     uint32_t *line_ptr   = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
-    uint32_t  line_width = (uint32_t) (svga->hdisp + svga->scrollcache) * char_width * sizeof(uint32_t);
+    int32_t   line_width = (uint32_t) (svga->hdisp + svga->scrollcache) * char_width * sizeof(uint32_t);
 
-    if ((svga->hdisp + svga->scrollcache) > 0)
+    if (svga->x_add < 0) {
+        line_ptr = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][0];
+        line_width -= svga->x_add;
+    }
+
+    if (((svga->hdisp + svga->scrollcache) > 0) && (line_width >= 0))
         memset(line_ptr, 0, line_width);
 }
 
@@ -102,7 +107,8 @@ svga_render_overscan_left(svga_t *svga)
         return;
 
     uint32_t *line_ptr = svga->monitor->target_buffer->line[svga->displine + svga->y_add];
-    for (int i = 0; i < svga->x_add; i++)
+
+    if (svga->x_add >= 0)  for (int i = 0; i < svga->x_add; i++)
         *line_ptr++ = svga->overscan_color;
 }
 
