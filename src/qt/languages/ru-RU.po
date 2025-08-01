@@ -415,7 +415,7 @@ msgid "XGA Graphics"
 msgstr "Ускоритель XGA"
 
 msgid "Keyboard:"
-msgstr ""
+msgstr "Клавиатура:"
 
 msgid "Mouse:"
 msgstr "Мышь:"
@@ -520,7 +520,7 @@ msgid "FD Controller:"
 msgstr "Контроллер FD:"
 
 msgid "CD-ROM Controller:"
-msgstr ""
+msgstr "Контроллер CD-ROM:"
 
 msgid "Tertiary IDE Controller"
 msgstr "Третичный IDE контроллер"
@@ -529,7 +529,7 @@ msgid "Quaternary IDE Controller"
 msgstr "Четвертичный IDE контроллер"
 
 msgid "Hard disk"
-msgstr ""
+msgstr "Жёсткий диск"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -553,7 +553,7 @@ msgid "Hard disks:"
 msgstr "Жёсткие диски:"
 
 msgid "Firmware Version"
-msgstr ""
+msgstr "Версия прошивки"
 
 msgid "&New..."
 msgstr "&Создать..."
@@ -613,7 +613,7 @@ msgid "MO drives:"
 msgstr "Магнитооптические дисководы:"
 
 msgid "Removable disk drives:"
-msgstr ""
+msgstr "Съёмные дисковые устройства:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -640,25 +640,25 @@ msgid "Card 4:"
 msgstr "Карта 4:"
 
 msgid "Board 1"
-msgstr ""
+msgstr "Плата 1"
 
 msgid "Board 2"
-msgstr ""
+msgstr "Плата 2"
 
 msgid "Board 3"
-msgstr ""
+msgstr "Плата 3"
 
 msgid "Board 4"
-msgstr ""
+msgstr "Плата 4"
 
 msgid "Generic ISA ROM Board"
-msgstr ""
+msgstr "Стандартная плата ISA ROM"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr ""
+msgstr "Стандартная плата Dual ISA ROM"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr ""
+msgstr "Стандартная плата Quad ISA ROM"
 
 msgid "ISABugger device"
 msgstr "Устройство ISABugger"
@@ -682,13 +682,13 @@ msgid "Speed"
 msgstr "Скорость"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr ""
+msgstr "Съёмный диск %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr ""
+msgstr "Съёмные образы дисков"
 
 msgid "Image %1"
-msgstr ""
+msgstr "Образ %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box не смог найти ни одного подходящего для использования файла с ПЗУ.\n\nПожалуйста <a href=\"https://github.com/86Box/roms/releases/latest\">скачайте</a> набор ПЗУ и извлеките его в каталог \"roms\"."
@@ -1447,34 +1447,32 @@ msgid "Renderer options..."
 msgstr "Параметры рендеринга..."
 
 msgid "PC/XT Keyboard"
-msgstr ""
-
+msgstr "Клавиатура PC/XT"
 msgid "AT Keyboard"
-msgstr ""
+msgstr "Клавиатура AT"
 
 msgid "AX Keyboard"
-msgstr ""
+msgstr "Клавиатура AX"
 
 msgid "PS/2 Keyboard"
-msgstr ""
+msgstr "Клавиатура PS/2"
 
 msgid "PS/2 Keyboard (US)"
-msgstr ""
+msgstr "Клавиатура PS/2 (US)"
 
 msgid "PS/2 Keyboard (European)"
-msgstr ""
+msgstr "Клавиатура PS/2 (European)"
 
 msgid "PS/2 Keyboard (Japanese)"
-msgstr ""
+msgstr "Клавиатура PS/2 (Japanese)"
 
 msgid "PS/55 Keyboard"
-msgstr ""
-
+msgstr "Клавиатура PS/55"
 msgid "AT/PS/2 Keyboard"
-msgstr ""
+msgstr "Клавиатура AT/PS/2"
 
 msgid "Keys"
-msgstr ""
+msgstr "Клавиши"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Bus-мышь Logitech/Microsoft"
@@ -1492,7 +1490,7 @@ msgid "Microsoft Serial Mouse"
 msgstr "COM-мышь Microsoft"
 
 msgid "Microsoft Serial BallPoint"
-msgstr ""
+msgstr "COM-мышь Microsoft BallPoint"
 
 msgid "Logitech Serial Mouse"
 msgstr "COM-мышь Logitech"
@@ -1501,13 +1499,13 @@ msgid "PS/2 Mouse"
 msgstr "Мышь PS/2"
 
 msgid "PS/2 QuickPort Mouse"
-msgstr ""
+msgstr "Мышь PS/2 QuickPort"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (последовательный)"
 
 msgid "Default Baud rate"
-msgstr ""
+msgstr "Скорость передачи данных (По умолчанию)"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Стандартный Hayes-совместимый модем"
