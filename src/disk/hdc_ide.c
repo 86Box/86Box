@@ -234,7 +234,7 @@ static uint8_t ide_qua_pnp_rom[] = {
     0x79, 0x00
 };
 
-ide_t *ide_drives[IDE_NUM];
+ide_t *ide_drives[IDE_NUM] = { 0 };
 
 static void ide_atapi_callback(ide_t *ide);
 static void ide_callback(void *priv);
@@ -2826,20 +2826,23 @@ ide_board_close(int board)
 
     ide_log("ide_board_close(%i)\n", board);
 
-    if ((ide_boards[board] == NULL) || !ide_boards[board]->inited)
+    if (ide_boards[board] == NULL)
         return;
 
     ide_log("IDE: Closing board %i...\n", board);
 
-    timer_stop(&ide_boards[board]->timer);
+    if (ide_boards[board]->inited) {
+        timer_stop(&ide_boards[board]->timer);
 
-    ide_clear_bus_master(board);
+        ide_clear_bus_master(board);
+    }
 
     /* Close hard disk image files (if previously open) */
     for (uint8_t d = 0; d < 2; d++) {
         c = (board << 1) + d;
 
-        ide_boards[board]->ide[d] = NULL;
+        if (ide_boards[board]->inited)
+            ide_boards[board]->ide[d] = NULL;
 
         dev = ide_drives[c];
 
@@ -3261,6 +3264,16 @@ ide_close(UNUSED(void *priv))
             ide_boards[i] = NULL;
         }
     }
+}
+
+void
+ide_hard_reset(void)
+{
+    for (int i = 0; i < IDE_BUS_MAX; i++)
+        ide_boards[i] = NULL;
+
+    for (int i = 0; i < IDE_NUM; i++)
+        ide_drives[i] = NULL;
 }
 
 static uint8_t

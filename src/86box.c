@@ -1449,6 +1449,8 @@ pc_reset_hard_init(void)
     scsi_reset();
     scsi_device_init();
 
+    ide_hard_reset();
+
     /* Initialize the actual machine and its basic modules. */
     machine_init();
 

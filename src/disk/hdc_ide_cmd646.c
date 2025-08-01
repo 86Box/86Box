@@ -35,19 +35,22 @@
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/rdisk.h>
+#include <86box/rom.h>
 #include <86box/hdd.h>
 #include <86box/scsi_disk.h>
 #include <86box/mo.h>
 #include "cpu.h"
 #include "x86.h"
 
-#define CMD_TYPE_646    0x000000
-#define CMD_TYPE_648    0x100000
+#define CMD_TYPE_646     0x000000
+#define CMD_TYPE_648     0x100000
 
-#define CMD648_JP7      0x200000    /* Reload subsystem ID on reset. */
-#define CMD648_RAID     0x400000
+#define CMD648_JP7       0x200000    /* Reload subsystem ID on reset. */
+#define CMD648_RAID      0x400000
 
-#define CMD64X_ONBOARD  0x800000
+#define CMD64X_ONBOARD   0x800000
+
+#define CMD648_BIOS_FILE "roms/hdd/ide/648_1910.bin"
 
 typedef struct cmd646_t {
     uint8_t     vlb_idx;
@@ -58,10 +61,14 @@ typedef struct cmd646_t {
     uint8_t     regs[256];
 
     uint32_t    local;
+    uint32_t    rom_addr;
 
     int         irq_pin;
+    int         has_bios;
 
     int         irq_mode[2];
+
+    rom_t       bios_rom;
 
     sff8038i_t *bm[2];
 } cmd646_t;
@@ -252,18 +259,46 @@ cmd646_bm_read(uint16_t port, uint8_t val, void *priv)
 }
 
 static void
+cmd646_bios_handler(cmd646_t *dev)
+{
+    if ((dev->local & CMD_TYPE_648) && dev->has_bios) {
+        uint32_t *addr = (uint32_t *) &(dev->regs[0x30]);
+
+        *addr         &= 0xffffc001;
+        dev->rom_addr  = *addr & 0xfffffff0;
+
+        cmd646_log("ROM address now: %08X\n", dev->rom_addr);
+
+        if ((dev->regs[0x04] & 0x02) && (*addr & 0x00000001))
+            mem_mapping_set_addr(&dev->bios_rom.mapping, dev->rom_addr, 0x00004000);
+        else
+            mem_mapping_disable(&dev->bios_rom.mapping);
+    }
+}
+
+static void
 cmd646_pci_write(int func, int addr, uint8_t val, void *priv)
 {
-    cmd646_t *dev = (cmd646_t *) priv;
+    cmd646_t *dev   = (cmd646_t *) priv;
+    int       reg50 = dev->regs[0x50];
+
+    if ((dev->local & CMD_TYPE_648) && (dev->regs[0x0a] == 0x04) && (dev->regs[0x0b] == 0x01))
+        reg50 |= 0x40;
 
     cmd646_log("[%04X:%08X] (%08X) cmd646_pci_write(%i, %02X, %02X)\n", CS, cpu_state.pc, ESI, func, addr, val);
 
     if (func == 0x00)
         switch (addr) {
             case 0x04:
-                dev->regs[addr] = (val & 0x45);
+                if (dev->has_bios)
+                    dev->regs[addr] = (val & 0x47);
+                else
+                    dev->regs[addr] = (val & 0x45);
+
                 cmd646_ide_handlers(dev);
                 cmd646_ide_bm_handlers(dev);
+
+                cmd646_bios_handler(dev);
                 break;
             case 0x07:
                 dev->regs[addr] &= ~(val & 0xb1);
@@ -272,7 +307,6 @@ cmd646_pci_write(int func, int addr, uint8_t val, void *priv)
                 if (!(dev->local & CMD_TYPE_648) ||
                     ((dev->regs[0x0a] == 0x01) && (dev->regs[0x0b] == 0x01))) {
                     if ((dev->regs[addr] & 0x0a) == 0x0a) {
-                        dev->regs[addr]  = (dev->regs[addr] & 0x0a) | (val & 0x05);
                         dev->regs[addr]  = (dev->regs[addr] & 0x8a) | (val & 0x05);
                         dev->irq_mode[0] = !!(val & 0x01);
                         dev->irq_mode[1] = !!(val & 0x04);
@@ -287,49 +321,49 @@ cmd646_pci_write(int func, int addr, uint8_t val, void *priv)
                 }
                 break;
             case 0x10:
-                if (dev->regs[0x50] & 0x40) {
+                if (reg50 & 0x40) {
                     dev->regs[0x10] = (val & 0xf8) | 1;
                     cmd646_ide_handlers(dev);
                 }
                 break;
             case 0x11:
-                if (dev->regs[0x50] & 0x40) {
+                if (reg50 & 0x40) {
                     dev->regs[0x11] = val;
                     cmd646_ide_handlers(dev);
                 }
                 break;
             case 0x14:
-                if (dev->regs[0x50] & 0x40) {
+                if (reg50 & 0x40) {
                     dev->regs[0x14] = (val & 0xfc) | 1;
                     cmd646_ide_handlers(dev);
                 }
                 break;
             case 0x15:
-                if (dev->regs[0x50] & 0x40) {
+                if (reg50 & 0x40) {
                     dev->regs[0x15] = val;
                     cmd646_ide_handlers(dev);
                 }
                 break;
             case 0x18:
-                if (dev->regs[0x50] & 0x40) {
+                if (reg50 & 0x40) {
                     dev->regs[0x18] = (val & 0xf8) | 1;
                     cmd646_ide_handlers(dev);
                 }
                 break;
             case 0x19:
-                if (dev->regs[0x50] & 0x40) {
+                if (reg50 & 0x40) {
                     dev->regs[0x19] = val;
                     cmd646_ide_handlers(dev);
                 }
                 break;
             case 0x1c:
-                if (dev->regs[0x50] & 0x40) {
+                if (reg50 & 0x40) {
                     dev->regs[0x1c] = (val & 0xfc) | 1;
                     cmd646_ide_handlers(dev);
                 }
                 break;
             case 0x1d:
-                if (dev->regs[0x50] & 0x40) {
+                if (reg50 & 0x40) {
                     dev->regs[0x1d] = val;
                     cmd646_ide_handlers(dev);
                 }
@@ -346,6 +380,12 @@ cmd646_pci_write(int func, int addr, uint8_t val, void *priv)
             case 0x8c ... 0x8f:
                 if (dev->local & CMD_TYPE_648)
                     dev->regs[(addr & 0x0f) | 0x20] = val;
+                break;
+            case 0x30 ... 0x33:
+                if ((dev->local & CMD_TYPE_648) && dev->has_bios) {
+                    dev->regs[addr] = val;
+                    cmd646_bios_handler(dev);
+                }
                 break;
             case 0x3c:
                 dev->regs[0x3c] = val;
@@ -422,7 +462,9 @@ cmd646_pci_read(int func, int addr, void *priv)
     if (func == 0x00) {
         ret = dev->regs[addr];
 
-        if (addr == 0x50)
+        if ((addr == 0x09) && (dev->local & CMD_TYPE_648) && (dev->regs[0x0a] == 0x04))
+            ret = 0x00;
+        else if (addr == 0x50)
             dev->regs[0x50] &= ~0x04;
         else if (addr == 0x57)
             dev->regs[0x57] &= ~0x10;
@@ -495,11 +537,16 @@ cmd646_reset(void *priv)
     dev->regs[0x04] = 0x00;
     dev->regs[0x06] = 0x80;
     dev->regs[0x07] = 0x02;       /* DEVSEL timing: 01 medium */
-    dev->regs[0x09] = dev->local; /* Programming interface */
-    if ((dev->local & CMD_TYPE_648) && (dev->local & CMD648_RAID))
+    if ((dev->local & CMD_TYPE_648) && (dev->local & CMD648_RAID)) {
+        dev->regs[0x09] = 0x00;       /* Programming interface */
         dev->regs[0x0a] = 0x04;       /* RAID controller */
-    else
+
+        dev->regs[0x50] = 0x40;       /* Enable Base address register R/W;
+                                         If 0, they return 0 and are read-only 8 */
+    } else {
+        dev->regs[0x09] = dev->local; /* Programming interface */
         dev->regs[0x0a] = 0x01;       /* IDE controller */
+    }
     dev->regs[0x0b] = 0x01;       /* Mass storage controller */
 
     if ((dev->local & CMD_TYPE_648) && (dev->local & CMD648_JP7))
@@ -565,6 +612,8 @@ cmd646_reset(void *priv)
 
     cmd646_ide_handlers(dev);
     cmd646_ide_bm_handlers(dev);
+
+    cmd646_bios_handler(dev);
 }
 
 static void
@@ -617,6 +666,14 @@ cmd646_init(const device_t *info)
     if (dev->local & CMD_TYPE_648) {
         sff_set_ven_handlers(dev->bm[0], cmd646_bm_write, cmd646_bm_read, dev);
         sff_set_ven_handlers(dev->bm[1], cmd646_bm_write, cmd646_bm_read, dev);
+
+        dev->has_bios = device_get_config_int("bios");
+
+        if (dev->has_bios) {
+            rom_init(&dev->bios_rom, CMD648_BIOS_FILE,
+                     0x000c8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+            mem_mapping_disable(&dev->bios_rom.mapping);
+        }
     }
 
     cmd646_reset(dev);
@@ -627,6 +684,22 @@ cmd646_init(const device_t *info)
 
     return dev;
 }
+
+static const device_config_t cmd648_config[] = {
+    {
+        .name           = "bios",
+        .description    = "Enable BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+// clang-format on
 
 const device_t ide_cmd646_device = {
     .name          = "CMD PCI-0646",
@@ -695,7 +768,7 @@ const device_t ide_cmd648_ter_qua_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = cmd648_config
 };
 
 const device_t ide_cmd648_ter_qua_onboard_device = {
