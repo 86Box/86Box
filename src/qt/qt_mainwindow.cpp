@@ -92,6 +92,8 @@ extern bool cpu_thread_running;
 #    include <QVulkanFunctions>
 #endif
 
+void qt_set_sequence_auto_mnemonic(bool b);
+
 #include <array>
 #include <memory>
 #include <unordered_map>
@@ -335,6 +337,16 @@ MainWindow::MainWindow(QWidget *parent)
             }
             ui->stackedWidget->unsetCursor();
         }
+#ifndef Q_OS_MACOS
+        if (kbd_req_capture) {
+            qt_set_sequence_auto_mnemonic(!mouse_capture);
+            /* Hack to get the menubar to update the internal Alt+shortcut table */
+            if (!video_fullscreen) {
+                ui->menubar->hide();
+                ui->menubar->show();
+            }
+        }
+#endif
     });
 
     connect(qApp, &QGuiApplication::applicationStateChanged, [this](Qt::ApplicationState state) {
@@ -1034,6 +1046,14 @@ void
 MainWindow::on_actionKeyboard_requires_capture_triggered()
 {
     kbd_req_capture ^= 1;
+#ifndef Q_OS_MACOS
+    qt_set_sequence_auto_mnemonic(!!kbd_req_capture);
+    /* Hack to get the menubar to update the internal Alt+shortcut table */
+    if (!video_fullscreen) {
+        ui->menubar->hide();
+        ui->menubar->show();
+    }
+#endif
 }
 
 void
@@ -1432,7 +1452,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
 	}
 	
 
-    if (!dopause) {
+    if (!dopause && (!kbd_req_capture || mouse_capture)) {
         if (event->type() == QEvent::Shortcut) {
             auto shortcutEvent = (QShortcutEvent *) event;
             if (shortcutEvent->key() == ui->actionExit->shortcut()) {

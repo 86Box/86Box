@@ -63,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "&Zadat velikost..."
 
 msgid "F&orce 4:3 display ratio"
@@ -102,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "Metoda &filtrování"
 
 msgid "&Nearest"
@@ -675,6 +675,9 @@ msgstr "Rychlost"
 msgid "Removable disk %1 (%2): %3"
 msgstr ""
 
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
 msgid "Removable disk images"
 msgstr ""
 
@@ -861,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Disketová mechanika %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Disketová mechanika %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Rozšířené sektorové obrazy"
 
@@ -881,6 +887,9 @@ msgstr "Nastala chyba při inicializaci knihovny GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Obrazy MO"
@@ -966,11 +975,17 @@ msgstr "Pokračovat"
 msgid "Cassette: %1"
 msgstr "Kazeta: %1"
 
+msgid "C&assette: %1"
+msgstr "K&azeta: %1"
+
 msgid "Cassette images"
 msgstr "Kazetové nahrávky"
 
 msgid "Cartridge %1: %2"
 msgstr "Cartridge %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Car&tridge %1: %2"
 
 msgid "Cartridge images"
 msgstr "Obrazy cartridge"
@@ -992,6 +1007,9 @@ msgstr "Resetovat"
 
 msgid "ACPI shutdown"
 msgstr "Vypnout skrze rozhraní ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Vypnout skrze rozhraní ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Pevný disk (%1)"
@@ -1140,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1278,41 +1299,41 @@ msgstr "Zařízení MCA"
 msgid "List of MCA devices:"
 msgstr "Seznam zařízení MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Nástroj pro tablety"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "O programu Qt"
+msgid "About &Qt"
+msgstr "O programu &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Zařízení MCA ..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Zobrazit neprimární monitory"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Otevři složku screenshots..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Použití režimu roztá&hnutí při celé obrazovce při maximalizaci"
 
-msgid "Cursor/Puck"
-msgstr "Kurzor/Puk"
+msgid "&Cursor/Puck"
+msgstr "&Kurzor/Puk"
 
-msgid "Pen"
-msgstr "Pero"
+msgid "&Pen"
+msgstr "&Pero"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Jednotka CD/DVD hostitele (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Jednotka CD/DVD hostitele (%1:)"
 
 msgid "&Connected"
 msgstr "&Připojeno"
 
-msgid "Clear image history"
-msgstr "Vymaž historie snímků"
+msgid "Clear image &history"
+msgstr "Vymaž &historie snímků"
 
 msgid "Create..."
 msgstr "Vytvoř..."
@@ -1328,6 +1349,9 @@ msgstr "Nulový ovladač"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Chování vykreslování"
@@ -1434,7 +1458,7 @@ msgstr "Průchod sériového portu 3"
 msgid "Serial port passthrough 4"
 msgstr "Průchod sériového portu 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Možnosti vykreslovače..."
 
 msgid "PC/XT Keyboard"

@@ -63,7 +63,7 @@ msgstr "Open&GL (3.0 jezgra)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Odrediti veličinu..."
 
 msgid "F&orce 4:3 display ratio"
@@ -102,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "Metoda filtriranja"
 
 msgid "&Nearest"
@@ -675,6 +675,9 @@ msgstr "Brzina"
 msgid "Removable disk %1 (%2): %3"
 msgstr ""
 
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
 msgid "Removable disk images"
 msgstr ""
 
@@ -861,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Disketa %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Disketa %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Napredne sektorske slike"
 
@@ -881,6 +887,9 @@ msgstr "Nije moguće inicijalizirati GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "MO slike"
@@ -966,11 +975,17 @@ msgstr "Nastavi"
 msgid "Cassette: %1"
 msgstr "Audio kaseta: %1"
 
+msgid "C&assette: %1"
+msgstr "&Audio kaseta: %1"
+
 msgid "Cassette images"
 msgstr "Slike audio kasete"
 
 msgid "Cartridge %1: %2"
 msgstr "Kaseta %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "&Kaseta %1: %2"
 
 msgid "Cartridge images"
 msgstr "Slike kasete"
@@ -992,6 +1007,9 @@ msgstr "Ponovno pokretanje"
 
 msgid "ACPI shutdown"
 msgstr "ACPI bazirano gašenje"
+
+msgid "ACP&I shutdown"
+msgstr "ACP&I bazirano gašenje"
 
 msgid "Hard disk (%1)"
 msgstr "Tvrdi disk (%1)"
@@ -1140,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1278,41 +1299,41 @@ msgstr "Uređaji MCA"
 msgid "List of MCA devices:"
 msgstr "Spisak uređaja MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Alat za tablet"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "O programu Qt"
+msgid "About &Qt"
+msgstr "O programu &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Uređaji MCA ..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Prikaži neprimarne monitore"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Otvori mapu snimaka zaslona..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Primijeni način cijelozaslonskog rastezanja u maksimiziranom načinu"
 
-msgid "Cursor/Puck"
-msgstr "Kursor/Pak"
+msgid "&Cursor/Puck"
+msgstr "&Kursor/Pak"
 
-msgid "Pen"
-msgstr "Olovka"
+msgid "&Pen"
+msgstr "&Olovka"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "CD/DVD pogon nositelja (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "CD/DVD pogon &nositelja (%1:)"
 
 msgid "&Connected"
 msgstr "&Povezan"
 
-msgid "Clear image history"
-msgstr "Očisti povijest slika"
+msgid "Clear image &history"
+msgstr "Očisti &povijest slika"
 
 msgid "Create..."
 msgstr "Stvori..."
@@ -1328,6 +1349,9 @@ msgstr "Nulti upravljački program"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Ponašanje rendera"
@@ -1434,7 +1458,7 @@ msgstr "Prolaz serijskih vrata 3"
 msgid "Serial port passthrough 4"
 msgstr "Prolaz serijskih vrata 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Opcije rendera..."
 
 msgid "PC/XT Keyboard"

@@ -63,7 +63,7 @@ msgstr "OpenG&L (Sürüm 3.0)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Pencere &boyutunu belirle..."
 
 msgid "F&orce 4:3 display ratio"
@@ -102,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "&Filtreleme yöntemi"
 
 msgid "&Nearest"
@@ -675,6 +675,9 @@ msgstr "Hız"
 msgid "Removable disk %1 (%2): %3"
 msgstr ""
 
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
 msgid "Removable disk images"
 msgstr ""
 
@@ -861,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Disket %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Disket %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Gelişmiş sektör imajları"
 
@@ -881,6 +887,9 @@ msgstr "GhostPCL başlatılamadı"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "MO imajları"
@@ -966,11 +975,17 @@ msgstr "Devam et"
 msgid "Cassette: %1"
 msgstr "Kaset: %1"
 
+msgid "C&assette: %1"
+msgstr "K&aset: %1"
+
 msgid "Cassette images"
 msgstr "Kaset imajları"
 
 msgid "Cartridge %1: %2"
 msgstr "Kartuş %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Kar&tuş %1: %2"
 
 msgid "Cartridge images"
 msgstr "Kartuş imajları"
@@ -992,6 +1007,9 @@ msgstr "Makineyi yeniden başlat"
 
 msgid "ACPI shutdown"
 msgstr "Makineyi ACPI kullanarak kapat"
+
+msgid "ACP&I shutdown"
+msgstr "Makineyi ACP&I kullanarak kapat"
 
 msgid "Hard disk (%1)"
 msgstr "Hard disk (%1)"
@@ -1278,40 +1296,40 @@ msgstr "MCA cihazları"
 msgid "List of MCA devices:"
 msgstr "MCA cihazlarının listesi:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Tablet aracı"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Qt hakkında"
+msgid "About &Qt"
+msgstr "&Qt hakkında"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "MCA cihazları..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Birincil olmayan monitörleri göster"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Ekran görüntüsü klasörünü aç..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Büyütüldüğünde tam ekran germe modunu uygula"
 
-msgid "Cursor/Puck"
-msgstr "İmleç/Puck"
+msgid "&Cursor/Puck"
+msgstr "&İmleç/Puck"
 
-msgid "Pen"
-msgstr "Kalem"
+msgid "&Pen"
+msgstr "&Kalem"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Ana Sistemin CD/DVD Sürücüsü (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Ana Sistemin CD/DVD Sürücüsü (%1:)"
 
 msgid "&Connected"
 msgstr "&Bağlı"
 
-msgid "Clear image history"
+msgid "Clear image &history"
 msgstr "İmaj geçmişini temizle"
 
 msgid "Create..."
@@ -1434,7 +1452,7 @@ msgstr "3. Seri Port geçişi"
 msgid "Serial port passthrough 4"
 msgstr "4. Seri Port geçişi"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Derleyici seçenekleri..."
 
 msgid "PC/XT Keyboard"

@@ -63,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Afmetingen opgeven..."
 
 msgid "F&orce 4:3 display ratio"
@@ -102,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "Filtermethode"
 
 msgid "&Nearest"
@@ -675,6 +675,9 @@ msgstr "Snelheid"
 msgid "Removable disk %1 (%2): %3"
 msgstr ""
 
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
 msgid "Removable disk images"
 msgstr ""
 
@@ -861,6 +864,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Floppy %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Floppy %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Geavanceerde sector-images"
 
@@ -881,6 +887,9 @@ msgstr "Kan GhostPCL niet initialiseren"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "MO-images"
@@ -966,11 +975,17 @@ msgstr "Doorgaan"
 msgid "Cassette: %1"
 msgstr "Cassette: %1"
 
+msgid "C&assette: %1"
+msgstr "C&assette: %1"
+
 msgid "Cassette images"
 msgstr "Cassette-images"
 
 msgid "Cartridge %1: %2"
 msgstr "Cartridge %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Car&tridge %1: %2"
 
 msgid "Cartridge images"
 msgstr "Cartridge-images"
@@ -992,6 +1007,9 @@ msgstr "Harde reset"
 
 msgid "ACPI shutdown"
 msgstr "ACPI uitschakeling"
+
+msgid "ACP&I shutdown"
+msgstr "ACP&I uitschakeling"
 
 msgid "Hard disk (%1)"
 msgstr "Harde schijf (%1)"
@@ -1140,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1278,41 +1299,41 @@ msgstr "MCA-apparaten"
 msgid "List of MCA devices:"
 msgstr "Lijst van MCA-apparaten:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Tablet-hulpmiddel"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Over Qt"
+msgid "About &Qt"
+msgstr "Over &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "MCA-apparaten..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Toon niet-primaire monitors"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Map met schermafbeeldingen openen..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Schakel de volledig scherm-uitrekmodus in bij maximaliseren"
 
-msgid "Cursor/Puck"
-msgstr "Cursor/Puck"
+msgid "&Cursor/Puck"
+msgstr "&Cursor/Puck"
 
-msgid "Pen"
-msgstr "Pen"
+msgid "&Pen"
+msgstr "&Pen"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Host cd/dvd-station (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Host cd/dvd-station (%1:)"
 
 msgid "&Connected"
 msgstr "&Verbonden"
 
-msgid "Clear image history"
-msgstr "Imagegeschiedenis verwijderen"
+msgid "Clear image &history"
+msgstr "Imagegeschiedenis verwijderen(&H)"
 
 msgid "Create..."
 msgstr "Creëer..."
@@ -1328,6 +1349,9 @@ msgstr "Null Driver"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Rendergedrag"
@@ -1434,7 +1458,7 @@ msgstr "Seriële poort doorvoer 3"
 msgid "Serial port passthrough 4"
 msgstr "Seriële poort doorvoer 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Renderer-opties..."
 
 msgid "PC/XT Keyboard"

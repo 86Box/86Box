@@ -63,8 +63,8 @@ msgstr "OpenGL (3.0 Core)(&G)"
 msgid "&VNC"
 msgstr "VNC(&V)"
 
-msgid "Specify dimensions..."
-msgstr "ディメンションを指定..."
+msgid "Specify &dimensions..."
+msgstr "ディメンションを指定...(&D)"
 
 msgid "F&orce 4:3 display ratio"
 msgstr "4:3の縦横比を強制表示(&O)"
@@ -102,8 +102,8 @@ msgstr "7x(&7)"
 msgid "&8x"
 msgstr "8x(&8)"
 
-msgid "Filter method"
-msgstr "フィルター方式"
+msgid "Fi&lter method"
+msgstr "フィルター方式(&L)"
 
 msgid "&Nearest"
 msgstr "最近傍補間(&N)"
@@ -675,6 +675,9 @@ msgstr "速度"
 msgid "Removable disk %1 (%2): %3"
 msgstr ""
 
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
 msgid "Removable disk images"
 msgstr ""
 
@@ -861,6 +864,9 @@ msgstr "%u MB (CHS値: %i、%i、%i)"
 msgid "Floppy %1 (%2): %3"
 msgstr "フロッピー %1 (%2): %3"
 
+msgid "Floppy %1 (%2): %3 (&F)"
+msgstr "フロッピー %1 (%2): %3(&F)"
+
 msgid "Advanced sector images"
 msgstr "アドバンスドセクターイメージ"
 
@@ -881,6 +887,9 @@ msgstr "GhostPCLが初期化できません"
 
 msgid "MO %1 (%2): %3"
 msgstr "光磁気 %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "光磁気 %1 (%2): %3(&M)"
 
 msgid "MO images"
 msgstr "光磁気イメージ"
@@ -966,11 +975,17 @@ msgstr "続行"
 msgid "Cassette: %1"
 msgstr "カセット: %1"
 
+msgid "C&assette: %1"
+msgstr "カセット: %1(&A)"
+
 msgid "Cassette images"
 msgstr "カセットイメージ"
 
 msgid "Cartridge %1: %2"
 msgstr "カートリッジ %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "カートリッジ %1: %2(&T)"
 
 msgid "Cartridge images"
 msgstr "カートリッジイメージ"
@@ -992,6 +1007,9 @@ msgstr "ハードリセット"
 
 msgid "ACPI shutdown"
 msgstr "ACPIシャットダウン"
+
+msgid "ACP&I shutdown"
+msgstr "ACP&Iシャットダウン"
 
 msgid "Hard disk (%1)"
 msgstr "ハードディスク (%1)"
@@ -1140,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1278,41 +1299,41 @@ msgstr "MCAデバイス"
 msgid "List of MCA devices:"
 msgstr "MCAデバイスのリスト："
 
-msgid "Tablet tool"
-msgstr "タブレットツール"
+msgid "&Tablet tool"
+msgstr "タブレットツール(&T)"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Qtについて"
+msgid "About &Qt"
+msgstr "&Qtについて"
 
-msgid "MCA devices..."
-msgstr "MCAデバイス..."
+msgid "&MCA devices..."
+msgstr "&MCAデバイス..."
 
-msgid "Show non-primary monitors"
-msgstr "プライマリーモニター以外のモニターを表示する"
+msgid "Show non-&primary monitors"
+msgstr "プライマリーモニター以外のモニターを表示する(&P)"
 
-msgid "Open screenshots folder..."
-msgstr "スクリーンショットフォルダを開く"
+msgid "Open screenshots &folder..."
+msgstr "スクリーンショットフォルダを開く(&F)"
 
-msgid "Apply fullscreen stretch mode when maximized"
-msgstr "最大化時にフルスクリーンストレッチモードを適用"
+msgid "Appl&y fullscreen stretch mode when maximized"
+msgstr "最大化時にフルスクリーンストレッチモードを適用(&Y)"
 
-msgid "Cursor/Puck"
-msgstr "カーソル/パック"
+msgid "&Cursor/Puck"
+msgstr "カーソル/パック(&C)"
 
-msgid "Pen"
-msgstr "ペン"
+msgid "&Pen"
+msgstr "ペン(&P)"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "ホスト CD/DVD ドライブ (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "ホスト CD/DVD ドライブ (%1:) (&H)"
 
 msgid "&Connected"
 msgstr "コネクテッド"
 
-msgid "Clear image history"
-msgstr "クリア画像履歴"
+msgid "Clear image &history"
+msgstr "クリア画像履歴(&H)"
 
 msgid "Create..."
 msgstr "作成..."
@@ -1328,6 +1349,9 @@ msgstr "ヌル・ドライバー"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "レンダリング動作"
@@ -1434,8 +1458,8 @@ msgstr "シリアル・ポート・パススルー 3"
 msgid "Serial port passthrough 4"
 msgstr "シリアル・ポート・パススルー 4"
 
-msgid "Renderer options..."
-msgstr "レンダラー設定..."
+msgid "Renderer &options..."
+msgstr "レンダラー設定...(&O)"
 
 msgid "PC/XT Keyboard"
 msgstr ""
