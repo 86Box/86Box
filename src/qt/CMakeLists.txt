@@ -88,6 +88,8 @@ add_library(ui STATIC
     qt_openglrenderer.cpp
     qt_openglrenderer.hpp
     qt_glsl_parser.cpp
+    qt_about.cpp
+    qt_about.hpp
 
     qt_settings.cpp
     qt_settings.hpp

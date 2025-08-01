@@ -1056,47 +1056,50 @@ usage:
         vmm_enabled = 1;
         pclog("# VM Manager enabled. Path: %s\n", vmm_path);
     }
-    /*
-     * We are about to read the configuration file, which MAY
-     * put data into global variables (the hard- and floppy
-     * disks are an example) so we have to initialize those
-     * modules before we load the config..
-     */
-    hdd_init();
-    network_init();
-    mouse_init();
-    cdrom_global_init();
-    rdisk_global_init();
-    mo_global_init();
 
-    /* Initialize the keyboard accelerator list with default values */
-    for (int x = 0; x < NUM_ACCELS; x++) {
-        strcpy(acc_keys[x].name, def_acc_keys[x].name);
-        strcpy(acc_keys[x].desc, def_acc_keys[x].desc);
-        strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
-    }
+    if (!vmm_enabled) {
+        /*
+         * We are about to read the configuration file, which MAY
+         * put data into global variables (the hard- and floppy
+         * disks are an example) so we have to initialize those
+         * modules before we load the config..
+         */
+        hdd_init();
+        network_init();
+        mouse_init();
+        cdrom_global_init();
+        rdisk_global_init();
+        mo_global_init();
 
-    /* Load the configuration file. */
-    config_load();
+        /* Initialize the keyboard accelerator list with default values */
+        for (int x = 0; x < NUM_ACCELS; x++) {
+            strcpy(acc_keys[x].name, def_acc_keys[x].name);
+            strcpy(acc_keys[x].desc, def_acc_keys[x].desc);
+            strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
+        }
 
-    /* Clear the CMOS and/or BIOS flash file, if we were started with
-       the relevant parameter(s). */
-    if (clear_cmos) {
-        delete_nvr_file(0);
-        clear_cmos = 0;
-    }
+        /* Load the configuration file. */
+        config_load();
 
-    if (clear_flash) {
-        delete_nvr_file(1);
-        clear_flash = 0;
-    }
+        /* Clear the CMOS and/or BIOS flash file, if we were started with
+           the relevant parameter(s). */
+        if (clear_cmos) {
+            delete_nvr_file(0);
+            clear_cmos = 0;
+        }
 
-    for (uint8_t i = 0; i < FDD_NUM; i++) {
-        if (fn[i] != NULL) {
-            if (strlen(fn[i]) <= 511)
-                strncpy(floppyfns[i], fn[i], 511);
-            free(fn[i]);
-            fn[i] = NULL;
+        if (clear_flash) {
+            delete_nvr_file(1);
+            clear_flash = 0;
+        }
+
+        for (uint8_t i = 0; i < FDD_NUM; i++) {
+            if (fn[i] != NULL) {
+                if (strlen(fn[i]) <= 511)
+                    strncpy(floppyfns[i], fn[i], 511);
+                free(fn[i]);
+                fn[i] = NULL;
+            }
         }
     }
 

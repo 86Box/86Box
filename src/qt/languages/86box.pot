@@ -30,7 +30,7 @@ msgstr ""
 msgid "Re&sume"
 msgstr ""
 
-msgid "E&xit..."
+msgid "E&xit"
 msgstr ""
 
 msgid "&View"

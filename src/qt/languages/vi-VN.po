@@ -30,8 +30,8 @@ msgstr "Tạm &dừng"
 msgid "Re&sume"
 msgstr ""
 
-msgid "E&xit..."
-msgstr "Th&oát..."
+msgid "E&xit"
+msgstr "Th&oát"
 
 msgid "&View"
 msgstr "&Xem"

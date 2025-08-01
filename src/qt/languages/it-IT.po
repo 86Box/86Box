@@ -30,8 +30,8 @@ msgstr "&Pausa"
 msgid "Re&sume"
 msgstr ""
 
-msgid "E&xit..."
-msgstr "E&sci..."
+msgid "E&xit"
+msgstr "E&sci"
 
 msgid "&View"
 msgstr "&Visualizza"

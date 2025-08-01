@@ -60,7 +60,7 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     ui->leftColumn->layout()->addWidget(networkSection);
     // ui->leftColumn->layout()->addWidget(createHorizontalLine());
 
-    inputSection = new VMManagerDetailSection(tr("Input Devices", "Header for Input section in VM Manager Details"));
+    inputSection = new VMManagerDetailSection(tr("Input devices", "Header for Input section in VM Manager Details"));
     ui->leftColumn->layout()->addWidget(inputSection);
     // ui->leftColumn->layout()->addWidget(createHorizontalLine());
 

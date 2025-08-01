@@ -216,7 +216,7 @@ VMManagerDetailSection::setSections()
             labelKey->setFont(smaller_font);
             labelValue->setFont(smaller_font);
 
-            labelKey->setText(section.name + ":");
+            labelKey->setText(QCoreApplication::translate("", QString(section.name + ":").toUtf8().data()));
             labelValue->setText(line);
             if(!keyAdded) {
                 frameGridLayout->addWidget(labelKey, row, 0, Qt::AlignLeft);

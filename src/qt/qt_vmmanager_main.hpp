@@ -27,6 +27,7 @@
 
 extern "C" {
 #include <86box/86box.h> // for vmm_path
+#include <86box/version.h>
 }
 
 #if EMU_BUILD_NUM != 0
@@ -77,6 +78,7 @@ public slots:
 #endif
     void modelDataChange();
     void onPreferencesUpdated();
+    int  getActiveMachineCount();
 
 private:
     Ui::VMManagerMain *ui;

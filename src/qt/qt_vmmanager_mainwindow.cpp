@@ -22,10 +22,13 @@
 #if EMU_BUILD_NUM != 0
 #    include "qt_updatecheckdialog.hpp"
 #endif
+#include "qt_about.hpp"
 
 #include <QLineEdit>
 #include <QStringListModel>
 #include <QCompleter>
+#include <QCloseEvent>
+#include <QDesktopServices> 
 
 VMManagerMainWindow::
 VMManagerMainWindow(QWidget *parent)
@@ -39,15 +42,15 @@ VMManagerMainWindow(QWidget *parent)
     // Connect signals from the VMManagerMain widget
     connect(vmm, &VMManagerMain::selectionChanged, this, &VMManagerMainWindow::vmmSelectionChanged);
 
-    setWindowTitle(tr("86Box VM Manager"));
+    setWindowTitle(tr("%1 VM Manager").arg(EMU_NAME));
     setCentralWidget(vmm);
 
     // Set up the buttons
+    connect(ui->actionNew_Machine, &QAction::triggered, vmm, &VMManagerMain::newMachineWizard);
     connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
     connect(ui->actionSettings, &QAction::triggered, vmm, &VMManagerMain::settingsButtonPressed);
     connect(ui->actionHard_Reset, &QAction::triggered, vmm, &VMManagerMain::restartButtonPressed);
     connect(ui->actionForce_Shutdown, &QAction::triggered, vmm, &VMManagerMain::shutdownForceButtonPressed);
-    connect(ui->actionNew_Machine, &QAction::triggered, vmm, &VMManagerMain::newMachineWizard);
 
     // Set up menu actions
     // (Disable this if the EMU_BUILD_NUM == 0)
@@ -94,6 +97,9 @@ VMManagerMainWindow(QWidget *parent)
     auto *completerModel = new QStringListModel(allStrings, completer);
     completer->setModel(completerModel);
     searchBar->setCompleter(completer);
+#ifdef Q_OS_WINDOWS
+    ui->toolBar->setBackgroundRole(QPalette::Light);
+#endif
     ui->toolBar->setVisible(false);
     // END REMOVE
 
@@ -157,6 +163,15 @@ VMManagerMainWindow::saveSettings() const
 void
 VMManagerMainWindow::closeEvent(QCloseEvent *event)
 {
+    int running = vmm->getActiveMachineCount();
+    if (running > 0) {
+        QMessageBox warningbox(QMessageBox::Icon::Warning, tr("%1 VM Manager").arg(EMU_NAME), tr("%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?").arg(running), QMessageBox::Yes | QMessageBox::No, this);
+        warningbox.exec();
+        if (warningbox.result() == QMessageBox::No) {
+            event->ignore();
+            return;
+        }
+    }
     saveSettings();
     QMainWindow::closeEvent(event);
 }
@@ -181,13 +196,32 @@ VMManagerMainWindow::checkForUpdatesTriggered()
 #    ifdef RELEASE_BUILD
     updateChannel = UpdateCheck::UpdateChannel::Stable;
 #    endif
-    const auto updateCheck = new UpdateCheckDialog(updateChannel);
+    const auto updateCheck = new UpdateCheckDialog(updateChannel, this);
     updateCheck->exec();
 }
 #endif
 
-void VMManagerMainWindow::on_actionExit_triggered()
+void
+VMManagerMainWindow::on_actionExit_triggered()
 {
     this->close();
 }
 
+void
+VMManagerMainWindow::on_actionAbout_Qt_triggered()
+{
+    QApplication::aboutQt();
+}
+
+void
+VMManagerMainWindow::on_actionAbout_86Box_triggered()
+{
+    const auto msgBox = new About(this);
+    msgBox->exec();
+}
+
+void
+VMManagerMainWindow::on_actionDocumentation_triggered()
+{
+    QDesktopServices::openUrl(QUrl(EMU_DOCS_URL));
+}

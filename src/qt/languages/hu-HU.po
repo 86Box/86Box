@@ -30,8 +30,8 @@ msgstr "&Szüneteltetés"
 msgid "Re&sume"
 msgstr ""
 
-msgid "E&xit..."
-msgstr "&Kilépés..."
+msgid "E&xit"
+msgstr "&Kilépés"
 
 msgid "&View"
 msgstr "&Nézet"
