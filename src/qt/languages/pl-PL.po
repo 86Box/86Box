@@ -10,13 +10,13 @@ msgid "&Action"
 msgstr "&Akcje"
 
 msgid "&Keyboard requires capture"
-msgstr "&Klawaitura wymaga przechwytu myszy"
+msgstr "&Klawiatura wymaga przechwytu myszy"
 
 msgid "&Right CTRL is left ALT"
-msgstr "&Prawy CTRL to lewy ALT"
+msgstr "Prawy C&TRL to lewy ALT"
 
 msgid "&Hard Reset..."
-msgstr "&Twardy reset..."
+msgstr "Twardy &reset..."
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -28,10 +28,10 @@ msgid "&Pause"
 msgstr "&Pauza"
 
 msgid "Re&sume"
-msgstr ""
+msgstr "&Wznów"
 
 msgid "E&xit"
-msgstr "W&yjdź"
+msgstr "W&yjście"
 
 msgid "&View"
 msgstr "&Widok"
@@ -2431,10 +2431,10 @@ msgid "Enter key combo:"
 msgstr "Wciśnij kombinację klawiszy:"
 
 msgid "Bind conflict"
-msgstr ""
+msgstr "Konflikt przypisań"
 
 msgid "This key combo is already in use."
-msgstr ""
+msgstr "Ta kombinacja klawiszy jest już w użyciu."
 
 msgid "Send Control+Alt+Del"
 msgstr "Wyślij Control+Alt+Del"
