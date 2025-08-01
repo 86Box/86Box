@@ -1215,6 +1215,27 @@ static const device_config_t aha_154xa_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "hostid",
+        .description    = "Host ID",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0", .value = 0 },
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "3", .value = 3 },
+            { .description = "4", .value = 4 },
+            { .description = "5", .value = 5 },
+            { .description = "6", .value = 6 },
+            { .description = "7", .value = 7 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "bios_rev",
         .description    = "BIOS Revision",
         .type           = CONFIG_BIOS,
@@ -1309,6 +1330,27 @@ static const device_config_t aha_154xb_config[] = {
             { .description = "DMA 6", .value = 6 },
             { .description = "DMA 7", .value = 7 },
             { .description = ""                  }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "hostid",
+        .description    = "Host ID",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0", .value = 0 },
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "3", .value = 3 },
+            { .description = "4", .value = 4 },
+            { .description = "5", .value = 5 },
+            { .description = "6", .value = 6 },
+            { .description = "7", .value = 7 },
+            { .description = ""              }
         },
         .bios           = { { 0 } }
     },
