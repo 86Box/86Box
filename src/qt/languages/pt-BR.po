@@ -13,13 +13,13 @@ msgid "&Keyboard requires capture"
 msgstr "&Teclado requer captura"
 
 msgid "&Right CTRL is left ALT"
-msgstr "&CTRL direito é o ALT esquerdo"
+msgstr "CTR&L direito é o ALT esquerdo"
 
 msgid "&Hard Reset..."
 msgstr "&Reinicialização completa..."
 
 msgid "&Ctrl+Alt+Del"
-msgstr "&Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+&Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -28,7 +28,7 @@ msgid "&Pause"
 msgstr "&Pausar"
 
 msgid "Re&sume"
-msgstr ""
+msgstr "&Continuar"
 
 msgid "E&xit"
 msgstr "&Sair"
@@ -37,10 +37,10 @@ msgid "&View"
 msgstr "&Exibir"
 
 msgid "&Hide status bar"
-msgstr "&Ocultar barra de status"
+msgstr "Ocultar barra de &status"
 
 msgid "Hide &toolbar"
-msgstr "Ocultar &barra de ferramenta"
+msgstr "Ocultar barra de &ferramenta"
 
 msgid "&Resizeable window"
 msgstr "&Janela redimensionável"
@@ -70,7 +70,7 @@ msgid "F&orce 4:3 display ratio"
 msgstr "F&orçar proporção de tela em 4:3"
 
 msgid "&Window scale factor"
-msgstr "&Fator de redimensionamento da janela"
+msgstr "F&ator de redimensionamento da janela"
 
 msgid "&0.5x"
 msgstr "&0,5x"
@@ -103,7 +103,7 @@ msgid "&8x"
 msgstr "&8x"
 
 msgid "Fi&lter method"
-msgstr "Método de filtragem"
+msgstr "Método d&e filtragem"
 
 msgid "&Nearest"
 msgstr "&Mais próximo"
@@ -118,7 +118,7 @@ msgid "&Fullscreen"
 msgstr "&Tela cheia"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Modo de &redimensionamento da tela cheia"
+msgstr "Modo de redimensionamento da tela &cheia"
 
 msgid "&Full screen stretch"
 msgstr "&Tela cheia redimensionada"
@@ -136,7 +136,7 @@ msgid "4:&3 Integer scale"
 msgstr "Redimensionamento com valores inteiros 4:&3"
 
 msgid "E&GA/(S)VGA settings"
-msgstr "Configurações de E&GA/(S)VGA"
+msgstr "Configurações de EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "Monitor VGA &invertido"
@@ -217,7 +217,7 @@ msgid "End trace"
 msgstr "Finalizar rastreamento"
 
 msgid "&Help"
-msgstr "&Ajuda"
+msgstr "Aj&uda"
 
 msgid "&Documentation..."
 msgstr "&Documentação..."
@@ -361,7 +361,7 @@ msgid "CPU type:"
 msgstr "Tipo de CPU:"
 
 msgid "Speed:"
-msgstr "Veloc.:"
+msgstr "Velocidade:"
 
 msgid "Frequency:"
 msgstr "Frequência:"
@@ -463,7 +463,7 @@ msgid "Use FLOAT32 sound"
 msgstr "Usar som FLOAT32"
 
 msgid "FM synth driver"
-msgstr "Controlador de sint. FM"
+msgstr "Driver de sintetizador FM"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (mais preciso)"
@@ -1717,7 +1717,7 @@ msgid "Reversed stereo"
 msgstr "Estéreo invertido"
 
 msgid "Nice ramp"
-msgstr "Bela rampa"
+msgstr "Rampa suave"
 
 msgid "Hz"
 msgstr "Hz"
@@ -1840,7 +1840,7 @@ msgid "Enable CMS"
 msgstr "Ativar o CMS"
 
 msgid "Mixer"
-msgstr "Misturador"
+msgstr "Mixer"
 
 msgid "High DMA"
 msgstr "DMA alto"
@@ -2245,7 +2245,7 @@ msgid "Generic Text Printer"
 msgstr "Impressora de texto genérica"
 
 msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "Impressora matricial de pontos ESC/P genérica"
+msgstr "Impressora matricial ESC/P genérica"
 
 msgid "Generic PostScript Printer"
 msgstr "Impressora PostScript genérica"
@@ -2347,7 +2347,7 @@ msgid "Unable to find Dot-Matrix fonts"
 msgstr "Não foi possível localizar os fontes matriciais de pontos"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial de pontos ESC/P genérica."
+msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial ESC/P genérica."
 
 msgid "Inhibit multimedia keys"
 msgstr "Inibir teclas multimídia"
@@ -2431,10 +2431,10 @@ msgid "Enter key combo:"
 msgstr "Pressione combinação de teclas:"
 
 msgid "Bind conflict"
-msgstr ""
+msgstr "Conflito de vínculo"
 
 msgid "This key combo is already in use."
-msgstr ""
+msgstr "Esta combinação de teclas já está em uso."
 
 msgid "Send Control+Alt+Del"
 msgstr "Enviar Control+Alt+Del"
