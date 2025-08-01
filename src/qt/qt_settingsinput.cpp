@@ -57,7 +57,7 @@ SettingsInput::SettingsInput(QWidget *parent)
     horizontalHeader.append(tr("Keybind"));
 
     QTableWidget *keyTable = ui->tableKeys;
-    keyTable->setRowCount(10);
+    keyTable->setRowCount(NUM_ACCELS);
     keyTable->setColumnCount(3);
     keyTable->setColumnHidden(2, true);
     keyTable->setColumnWidth(0, 200);
