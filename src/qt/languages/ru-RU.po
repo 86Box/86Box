@@ -2406,6 +2406,12 @@ msgstr "Привязать клавишу"
 msgid "Enter key combo:"
 msgstr "Введите комбинацию клавиш:"
 
+msgid "Bind conflict"
+msgstr "Конфликт привязки"
+
+msgid "This key combo is already in use."
+msgstr "Эта комбинация клавиш уже используется."
+
 msgid "Send Control+Alt+Del"
 msgstr "Отправить Control+Alt+Del"
 

@@ -2406,6 +2406,12 @@ msgstr ""
 msgid "Enter key combo:"
 msgstr ""
 
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
+msgstr ""
+
 msgid "Send Control+Alt+Del"
 msgstr ""
 

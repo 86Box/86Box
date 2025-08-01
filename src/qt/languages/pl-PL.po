@@ -2406,6 +2406,12 @@ msgstr "Przypisanie klawiszy"
 msgid "Enter key combo:"
 msgstr "Wciśnij kombinację klawiszy:"
 
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
+msgstr ""
+
 msgid "Send Control+Alt+Del"
 msgstr "Wyślij Control+Alt+Del"
 

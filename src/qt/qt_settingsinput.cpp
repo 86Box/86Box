@@ -236,7 +236,7 @@ SettingsInput::on_tableKeys_cellDoubleClicked(int row, int col)
         for(int x = 0; x < NUM_ACCELS; x++) {
             if(QString::fromStdString(acc_keys_t[x].seq) == keyseq.toString(QKeySequence::PortableText)) {
                 // That key is already in use
-                main_window->showMessage(MBX_ANSI & MBX_INFO, "Bind conflict", "This key combo is already in use", false);
+                main_window->showMessage(MBX_ANSI & MBX_INFO, tr("Bind conflict"), tr("This key combo is already in use."), false);
                 return;
             }
         }
