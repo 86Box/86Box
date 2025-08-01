@@ -185,6 +185,10 @@ VMManagerServerSocket::jsonReceived(const QJsonObject &json)
                 }
             }
             break;
+        case VMManagerProtocol::ClientMessage::ConfigurationChanged:
+            qDebug("Configuration change received from client");
+            emit configurationChanged();
+            break;
         default:
             qDebug("Unknown client message type received:");
             qDebug() << json;

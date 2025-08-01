@@ -482,6 +482,8 @@ VMManagerSystem::launchSettings() {
             qInfo().nospace().noquote() << "Abnormal program termination while launching settings: exit code " <<  exitCode << ", exit status " << exitStatus;
             return;
         }
+
+        configurationChangeReceived();
     });
 }
 
@@ -818,6 +820,7 @@ VMManagerSystem::startServer() {
         connect(socket_server, &VMManagerServerSocket::dataReceived, this, &VMManagerSystem::dataReceived);
         connect(socket_server, &VMManagerServerSocket::windowStatusChanged, this, &VMManagerSystem::windowStatusChangeReceived);
         connect(socket_server, &VMManagerServerSocket::runningStatusChanged, this, &VMManagerSystem::runningStatusChangeReceived);
+        connect(socket_server, &VMManagerServerSocket::configurationChanged, this, &VMManagerSystem::configurationChangeReceived);
         connect(socket_server, &VMManagerServerSocket::winIdReceived, this, [this] (WId id) { this->id = id; });
         return true;
     } else {
@@ -954,6 +957,12 @@ VMManagerSystem::runningStatusChangeReceived(VMManagerProtocol::RunningState sta
         process_status = VMManagerSystem::ProcessStatus::Unknown;
     }
     processStatusChanged();
+}
+void
+VMManagerSystem::configurationChangeReceived()
+{
+    reloadConfig();
+    emit configurationChanged(this->uuid);
 }
 void
 VMManagerSystem::reloadConfig()

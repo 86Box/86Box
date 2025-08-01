@@ -198,6 +198,30 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
     startPauseButton->setEnabled(true);
     configureButton->setEnabled(true);
 
+    updateConfig(passed_sysconfig);
+    updateScreenshots(passed_sysconfig);
+
+    ui->systemLabel->setText(passed_sysconfig->displayName);
+    ui->statusLabel->setText(sysconfig->process->processId() == 0 ?
+        tr("Not running") :
+        QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())));
+    ui->notesTextEdit->setPlainText(passed_sysconfig->notes);
+    ui->notesTextEdit->setEnabled(true);
+
+    disconnect(sysconfig->process, &QProcess::stateChanged, this, &VMManagerDetails::updateProcessStatus);
+    connect(sysconfig->process, &QProcess::stateChanged, this, &VMManagerDetails::updateProcessStatus);
+
+    disconnect(sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerDetails::updateWindowStatus);
+    connect(sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerDetails::updateWindowStatus);
+
+    disconnect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
+    connect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
+
+    updateProcessStatus();
+}
+
+void
+VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
     // Each detail section here has its own VMManagerDetailSection.
     // When a system is selected in the list view it is updated here, through this object:
     // * First you clear it with VMManagerDetailSection::clear()
@@ -242,6 +266,10 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
     portsSection->addSection(tr("Serial Ports"), passed_sysconfig->getDisplayValue(Display::Name::Serial));
     portsSection->addSection(tr("Parallel Ports"), passed_sysconfig->getDisplayValue(Display::Name::Parallel));
 
+}
+
+void
+VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig) {
     // Disable screenshot navigation buttons by default
     ui->screenshotNext->setEnabled(false);
     ui->screenshotPrevious->setEnabled(false);
@@ -286,24 +314,6 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
         }
 #endif
     }
-
-    ui->systemLabel->setText(passed_sysconfig->displayName);
-    ui->statusLabel->setText(sysconfig->process->processId() == 0 ?
-        tr("Not running") :
-        QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())));
-    ui->notesTextEdit->setPlainText(passed_sysconfig->notes);
-    ui->notesTextEdit->setEnabled(true);
-
-    disconnect(sysconfig->process, &QProcess::stateChanged, this, &VMManagerDetails::updateProcessStatus);
-    connect(sysconfig->process, &QProcess::stateChanged, this, &VMManagerDetails::updateProcessStatus);
-
-    disconnect(sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerDetails::updateWindowStatus);
-    connect(sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerDetails::updateWindowStatus);
-
-    disconnect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
-    connect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
-
-    updateProcessStatus();
 }
 
 void

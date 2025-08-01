@@ -1129,7 +1129,8 @@ MainWindow::on_actionSettings_triggered()
         case QDialog::Accepted:
             settings.save();
             config_changed = 2;
-			updateShortcuts();
+            updateShortcuts();
+            emit vmmConfigurationChanged();
             pc_reset_hard();
             break;
         case QDialog::Rejected:

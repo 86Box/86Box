@@ -148,6 +148,7 @@ signals:
     void windowStatusChanged();
     void itemDataChanged();
     void clientProcessStatusChanged();
+    void configurationChanged(const QString &uuid);
 
 private:
     void loadSettings();
@@ -188,6 +189,7 @@ private:
     void dataReceived();
     void windowStatusChangeReceived(int status);
     void runningStatusChangeReceived(VMManagerProtocol::RunningState state);
+    void configurationChangeReceived();
     void processStatusChanged();
     void statusRefresh();
 };

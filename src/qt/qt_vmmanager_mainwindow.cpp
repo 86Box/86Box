@@ -128,6 +128,8 @@ VMManagerMainWindow::vmmSelectionChanged(const QModelIndex &currentSelection, co
         ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/pause.ico"));
         ui->actionStartPause->setText(tr("Pause"));
         ui->actionStartPause->setToolTip(tr("Pause"));
+        disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
+        connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
         ui->actionHard_Reset->setEnabled(true);
         ui->actionForce_Shutdown->setEnabled(true);
         ui->actionCtrl_Alt_Del->setEnabled(true);
@@ -136,6 +138,8 @@ VMManagerMainWindow::vmmSelectionChanged(const QModelIndex &currentSelection, co
         ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
         ui->actionStartPause->setText(tr("Start"));
         ui->actionStartPause->setToolTip(tr("Start"));
+        disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
+        connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
         ui->actionHard_Reset->setEnabled(false);
         ui->actionForce_Shutdown->setEnabled(false);
         ui->actionCtrl_Alt_Del->setEnabled(false);

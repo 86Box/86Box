@@ -181,9 +181,11 @@ VMManagerMain::currentSelectionChanged(const QModelIndex &current,
         return;
     }
 
+    disconnect(selected_sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerMain::onConfigUpdated);
     const auto mapped_index = proxy_model->mapToSource(current);
     selected_sysconfig = vm_model->getConfigObjectForIndex(mapped_index);
     vm_details->updateData(selected_sysconfig);
+    connect(selected_sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerMain::onConfigUpdated);
 
     // Emit that the selection changed, include with the process state
     emit selectionChanged(current, selected_sysconfig->process->state());
@@ -309,6 +311,12 @@ VMManagerMain::currentSelectionIsValid() const
     return ui->listView->currentIndex().isValid() && selected_sysconfig->isValid();
 }
 
+void
+VMManagerMain::onConfigUpdated(const QString &uuid)
+{
+    if (selected_sysconfig->uuid == uuid)
+        vm_details->updateData(selected_sysconfig);
+}
 // Used from MainWindow during app exit to obtain and persist the current selection
 QString
 VMManagerMain::getCurrentSelection() const
