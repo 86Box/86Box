@@ -21,6 +21,7 @@
 
 #include <QDebug>
 #include <QKeySequence>
+#include <QMessageBox>
 #include <string>
 
 extern "C" {
@@ -236,7 +237,7 @@ SettingsInput::on_tableKeys_cellDoubleClicked(int row, int col)
         for(int x = 0; x < NUM_ACCELS; x++) {
             if(QString::fromStdString(acc_keys_t[x].seq) == keyseq.toString(QKeySequence::PortableText)) {
                 // That key is already in use
-                main_window->showMessage(MBX_ANSI & MBX_INFO, tr("Bind conflict"), tr("This key combo is already in use."), false);
+                QMessageBox::warning(this, tr("Bind conflict"), tr("This key combo is already in use."), QMessageBox::StandardButton::Ok);
                 return;
             }
         }
