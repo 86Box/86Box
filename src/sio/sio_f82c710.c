@@ -128,22 +128,17 @@ ide_handler(upc_t *dev)
     if (dev->xta) {
         if (dev->hdc_xta != NULL)
             xta_handler(dev->hdc_xta, 0);
-        pclog("IDE XT interface disabled at 320-323\n");
-    } else {
+    } else
         ide_pri_disable();
-        pclog("IDE AT interface disabled at 1F0-1F7, 3F6-3F7\n");
-    }
 
     if (dev->regs[0x0c] & 0x80) {
         if (dev->regs[0x0c] & 0x40) {
             /* TODO: See what IDE mode the Amstrad PC5086 uses. */
             if (dev->xta && (dev->hdc_xta != NULL))
                 xta_handler(dev->hdc_xta, 1);
-            pclog("IDE XT interface enabled at 320-323\n");
         } else {
             if (!dev->xta)
                 ide_pri_enable();
-            pclog("IDE AT interface enabled at 1F0-1F7, 3F6-3F7\n");
         }
     }
 }
@@ -162,17 +157,13 @@ fdc_handler(upc_t *dev)
 static void
 mouse_handler(upc_t *dev)
 {
-    if (dev->mouse_base != 0x0000) {
-        pclog("QuickPort mouse interface disabled at %04X-%04X\n", dev->mouse_base, dev->mouse_base + 1);
+    if (dev->mouse_base != 0x0000)
         mouse_upc_handler(0, dev->mouse_base, dev->mouse);
-    }
 
     dev->mouse_base = dev->regs[0x0d] << 2;
 
-    if (dev->mouse_base != 0x0000) {
-        pclog("QuickPort mouse interface enabled at %04X-%04X\n", dev->mouse_base, dev->mouse_base + 1);
+    if (dev->mouse_base != 0x0000)
         mouse_upc_handler(1, dev->mouse_base, dev->mouse);
-    }
 }
 
 static void
@@ -284,7 +275,6 @@ f82c710_config_write(uint16_t port, uint8_t val, void *priv)
                         lpt_handler(dev);
                     break;
                 case 0x0c:
-                    pclog("[%04X:%08X] [W] 0C = %02X\n", CS, cpu_state.pc, val);
                     dev->regs[dev->cri] = val;
                     if (valxor & 0xc0)
                         ide_handler(dev);
