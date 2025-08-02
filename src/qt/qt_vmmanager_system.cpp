@@ -858,13 +858,34 @@ VMManagerSystem::setupVars() {
     display_table[Display::Name::StorageController] = storageControllers.join(VMManagerDetailSection::sectionSeparator);
 
     // Audio
-    int sound_int = sound_card_get_from_internal_name(audio_config["sndcard"].toUtf8().data());
-    const device_t* audio_dev = sound_card_getdevice(sound_int);
-    display_table[Display::Name::Audio] = DeviceConfig::DeviceName(audio_dev, sound_card_get_internal_name(sound_int), 1);
+    QStringList sndCards;
+    static auto sndcard_match = QRegularExpression("sndcard\\d?", QRegularExpression::CaseInsensitiveOption);
+    for(const auto& key: audio_config.keys()) {
+        if(key.contains(sndcard_match)) {
+            auto device_number = key.right(1);
+            if(device_number == "d") // card #1 has no number
+                device_number == "1";
+            auto audio_internal_name = QString(audio_config[key]);
+            auto audio_id = sound_card_get_from_internal_name(audio_internal_name.toUtf8().data());
+            auto audio_device = sound_card_getdevice(audio_id);
+            auto audio_name = DeviceConfig::DeviceName(audio_device, sound_card_get_internal_name(audio_id), 1);
+            if(!audio_name.isEmpty()) {
+                sndCards.append(audio_name);
+            }
+        }
+    }
+    if(audio_config.contains("mpu401_standalone")) {
+        sndCards.append(tr("Standalone MPU-401"));
+    }
+    if(sndCards.isEmpty()) {
+        sndCards.append(tr("None"));
+    }
+    display_table[Display::Name::Audio] = sndCards.join(VMManagerDetailSection::sectionSeparator);
 
     // MIDI
     QString midiOutDev;
-    if(auto midi_out_device = QString(audio_config["midi_device"]); !midi_out_device.isEmpty()) {
+    if (audio_config.contains("midi_device")) {
+        auto midi_out_device = QString(audio_config["midi_device"]);
         auto midi_device_int = midi_out_device_get_from_internal_name(midi_out_device.toUtf8().data());
         auto midi_out = midi_out_device_getdevice(midi_device_int);
         if(auto midiDevName = QString(midi_out->name);  !midiDevName.isEmpty()) {
