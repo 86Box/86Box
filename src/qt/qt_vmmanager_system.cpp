@@ -61,6 +61,7 @@ extern "C" {
 #include <86box/gameport.h>
 #include <86box/midi.h>
 #include <86box/network.h>
+#include <86box/keyboard.h>
 #include <86box/mouse.h>
 }
 
@@ -928,6 +929,14 @@ VMManagerSystem::setupVars() {
         nicList.append(tr("None"));
     }
     display_table[Display::Name::NIC] = nicList.join(VMManagerDetailSection::sectionSeparator);
+
+    // Input (Keyboard)
+    if (input_config.contains("keyboard_type")) {
+        auto keyboard_internal_name = input_config["keyboard_type"];
+        auto keyboard_dev = keyboard_get_from_internal_name(keyboard_internal_name.toUtf8().data());
+        auto keyboard_dev_name = DeviceConfig::DeviceName(keyboard_get_device(keyboard_dev), keyboard_get_internal_name(keyboard_dev), 0);
+        display_table[Display::Name::Keyboard] = keyboard_dev_name;
+    }
 
     // Input (Mouse)
     auto mouse_internal_name = input_config["mouse_type"];

@@ -261,6 +261,7 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
 
     // Input
     inputSection->clear();
+    inputSection->addSection(tr("Keyboard"), passed_sysconfig->getDisplayValue(Display::Name::Keyboard));
     inputSection->addSection(tr("Mouse"), passed_sysconfig->getDisplayValue(Display::Name::Mouse));
     inputSection->addSection(tr("Joystick"), passed_sysconfig->getDisplayValue(Display::Name::Joystick));
 

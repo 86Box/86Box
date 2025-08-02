@@ -57,6 +57,7 @@ enum class Name {
     Audio,
     Voodoo,
     NIC,
+    Keyboard,
     Mouse,
     Unknown
 };
