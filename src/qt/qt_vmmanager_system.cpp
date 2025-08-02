@@ -545,17 +545,39 @@ VMManagerSystem::setupVars() {
     }
     display_table[Display::Name::Machine] = machine_name;
 
-    // CPU: Combine name with speed
-    auto cpu_name = QString();
+    // CPU: Combine name with speed and FPU
+    QString cpu_name = "Unknown";
     while (cpu_families[i].package != 0) {
         if (cpu_families[i].internal_name == machine_config["cpu_family"]) {
+            int j = 0;
             cpu_name = QString("%1 %2").arg(cpu_families[i].manufacturer, cpu_families[i].name);
+            while (cpu_families[i].cpus[j].cpu_type != 0) {
+                if (cpu_families[i].cpus[j].rspeed == machine_config["cpu_speed"].toUInt()) {
+                    auto cpu_speed = QString(cpu_families[i].cpus[j].name).split("/").at(0).split(" (").at(0);
+                    cpu_name.append(cpu_speed.prepend(" / "));
+                    cpu_name.append(QCoreApplication::translate("", "MHz").prepend(' '));
+                    if (machine_config.contains("fpu_type") && (machine_config["fpu_type"] != QString("none")) && (machine_config["fpu_type"] != QString("internal"))) {
+                        int k = 0;
+                        while (cpu_families[i].cpus[j].fpus[k].internal_name != nullptr) {
+                            if (QString(cpu_families[i].cpus[j].fpus[k].internal_name) == machine_config["fpu_type"]) {
+                                cpu_name.append(QString(cpu_families[i].cpus[j].fpus[k].name).prepend(", "));
+                                cpu_name.append(QCoreApplication::translate("", "FPU").prepend(' '));
+                                break;
+                            }
+                            k++;
+                        }
+                    }
+                    break;
+                }
+                j++;
+            }
+            break;
         }
         i++;
     }
-    int speed_display = machine_config["cpu_speed"].toInt() / 1000000;
-    cpu_name.append(QString::number(speed_display).prepend(" / "));
-    cpu_name.append(QCoreApplication::translate("", "MHz").prepend(' '));
+//    int speed_display = machine_config["cpu_speed"].toInt() / 1000000;
+//    cpu_name.append(QString::number(speed_display).prepend(" / "));
+//    cpu_name.append(QCoreApplication::translate("", "MHz").prepend(' '));
     display_table[Display::Name::CPU] = cpu_name;
 
     // Memory
