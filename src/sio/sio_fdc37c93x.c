@@ -1250,7 +1250,6 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                             if (valxor)
                                 fdc37c93x_serial_handler(dev, 0);
                             break;
-                        /* TODO: Bit 0 = MIDI Mode, Bit 1 = High speed. */
                         case 0xf0:
                             if (dev->chip_id >= FDC37C93X_FR) {
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x83;
@@ -1281,7 +1280,6 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                                     fdc37c93x_serial_handler(dev, 1);
                             }
                             break;
-                        /* TODO: Bit 0 = MIDI Mode, Bit 1 = High speed. */
                         case 0xf0:
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x03;
 
