@@ -244,8 +244,7 @@ machine_at_ma30d_init(const machine_t *model)
     device_add(&i440lx_device);
     device_add(&piix4e_device);
     device_add(&nec_mate_unk_device);
-    device_add(&kbc_ps2_ami_pci_device);
-    device_add(&fdc37c67x_device);
+    device_add_params(&fdc37c67x_device, (void *) (FDC37C932 | FDC37C93X_370));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 

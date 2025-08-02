@@ -890,8 +890,7 @@ machine_at_ma23c_init(const machine_t *model)
     device_add(&i430tx_device);
     device_add(&piix4_device);
     device_add(&nec_mate_unk_device);
-    device_add(&kbc_ps2_ami_pci_device);
-    device_add(&fdc37c67x_device);
+    device_add_params(&fdc37c67x_device, (void *) (FDC37C932 | FDC37C93X_370));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
@@ -1235,8 +1234,7 @@ machine_at_tomahawk_init(const machine_t *model)
     pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add(&kbc_ps2_intel_ami_pci_device);
-    device_add(&fdc37c67x_device);
+    device_add_params(&fdc37c67x_device, (void *) (FDC37C932 | FDC37C93X_370));
     device_add(&amd_flash_29f020a_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
     device_add(&lm78_device);      /* fans: Thermal, CPU, Chassis; temperature: unused */

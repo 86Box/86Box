@@ -6,10 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Implementation of the SMC FDC37C932FR and FDC37C935 Super
- *          I/O Chips.
- *
- *
+ *          Implementation of the SMC FDC37C93x Super I/O Chips.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
@@ -793,28 +790,59 @@ fdc37c93x_fdc_handler(fdc37c93x_t *dev)
 static void
 fdc37c93x_lpt_handler(fdc37c93x_t *dev)
 {
-    const uint8_t  global_enable = !!(dev->regs[0x22] & (1 << 3));
-    const uint8_t  local_enable  = !!dev->ld_regs[3][0x30];
-    uint8_t        lpt_irq       = dev->ld_regs[3][0x70];
-    const uint16_t old_base      = dev->lpt_base;
+    uint16_t ld_port       = 0x0000;
+    uint16_t mask          = 0xfffc;
+    uint8_t  global_enable = !!(dev->regs[0x22] & (1 << 3));
+    uint8_t  local_enable  = !!dev->ld_regs[3][0x30];
+    uint8_t  lpt_irq       = dev->ld_regs[3][0x70];
+    uint8_t  lpt_dma       = dev->ld_regs[3][0x74];
+    uint8_t  lpt_mode      = dev->ld_regs[3][0xf0] & 0x07;
 
     if (lpt_irq > 15)
         lpt_irq = 0xff;
 
-    dev->lpt_base = 0x0000;
+    if (lpt_dma >= 4)
+        lpt_dma = 0xff;
 
-    if (global_enable && local_enable)
-        dev->lpt_base = make_port(dev, 3) & 0xfffc;
-
-    if (dev->lpt_base != old_base) {
-        if ((old_base >= 0x0100) && (old_base <= 0x0ffc))
-            lpt_port_remove(dev->lpt);
-
-        if ((dev->lpt_base >= 0x0100) && (dev->lpt_base <= 0x0ffc))
-            lpt_port_setup(dev->lpt, dev->lpt_base);
+    lpt_port_remove(dev->lpt);
+    lpt_set_fifo_threshold(dev->lpt, (dev->ld_regs[3][0xf0] & 0x78) >> 3);
+    switch (lpt_mode) {
+        default:
+        case 0x04:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x00:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 1);
+            break;
+        case 0x01: case 0x05:
+            mask = 0xfff8;
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x02:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x03: case 0x07:
+            mask = 0xfff8;
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
     }
-
+    if (global_enable && local_enable) {
+        ld_port = (make_port(dev, 3) & 0xfffc) & mask;
+        if ((ld_port >= 0x0100) && (ld_port <= (0x0ffc & mask)))
+            lpt_port_setup(dev->lpt, ld_port);
+    }
     lpt_port_irq(dev->lpt, lpt_irq);
+    lpt_port_dma(dev->lpt, lpt_dma);
 }
 
 static void
@@ -918,6 +946,9 @@ fdc37c93x_kbc_handler(fdc37c93x_t *dev)
 
     if (dev->kbc_base != old_base)
         kbc_at_handler(local_enable, dev->kbc_base, dev->kbc);
+
+    kbc_at_set_irq(0, dev->ld_regs[7][0x70], dev->kbc);
+    kbc_at_set_irq(1, dev->ld_regs[7][0x72], dev->kbc);
 }
 
 static void
@@ -1059,6 +1090,7 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case 0x03:
                     dev->regs[dev->cur_reg] = val & 0x83;
+                    fdc37c93x_gpio_handler(dev);
                     break;
                 case 0x07: case 0x26:
                 case 0x2e ... 0x2f:
@@ -1229,8 +1261,20 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                             if (valxor)
                                 fdc37c93x_lpt_handler(dev);
                             break;
+                        /*
+                           Bits 2:0: Mode:
+                               - 000: Bi-directional (SPP);
+                               - 001: EPP-1.9 and SPP;
+                               - 010: ECP;
+                               - 011: ECP and EPP-1.9;
+                               - 101: EPP-1.7 and SPP;
+                               - 110: ECP and EPP-1.7.
+                           Bits 6:3: ECP FIFO Threshold.
+                         */
                         case 0xf0:
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+                            if (valxor & 0x7f)
+                                fdc37c93x_lpt_handler(dev);
                             break;
                         case 0xf1:
                             if (dev->chip_id >= FDC37C93X_FR)
@@ -1381,7 +1425,7 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                 case 0x07:    /* Keyboard */
                     switch (dev->cur_reg) {
                         case 0x30:
-                        case 0x70: case 0x71:
+                        case 0x70: case 0x72:
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
 
                             if (valxor)
@@ -1609,8 +1653,10 @@ fdc37c93x_read(uint16_t port, void *priv)
 }
 
 static void
-fdc37c93x_reset(fdc37c93x_t *dev)
+fdc37c93x_reset(void *priv)
 {
+    fdc37c93x_t *dev = (fdc37c93x_t *) priv;
+
     memset(dev->regs, 0x00, sizeof(dev->regs));
 
     dev->regs[0x03] = 0x03;
@@ -1689,6 +1735,7 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     dev->ld_regs[0x07][0x30] = 0x00;
     dev->ld_regs[0x07][0x61] = 0x60;
     dev->ld_regs[0x07][0x70] = 0x01;
+    dev->ld_regs[0x07][0x72] = 0x0c;
 
     /* Logical device 8: Auxiliary I/O */
     dev->ld_regs[0x08][0x30] = 0x00;
@@ -1912,7 +1959,7 @@ const device_t fdc37c93x_device = {
     .local         = 0,
     .init          = fdc37c93x_init,
     .close         = fdc37c93x_close,
-    .reset         = NULL,
+    .reset         = fdc37c93x_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
