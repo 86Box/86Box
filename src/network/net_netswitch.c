@@ -80,6 +80,7 @@ typedef struct {
 
 // Used for debugging, needs to be moved to an official location
 void print_packet(const netpkt_t netpkt) {
+#ifdef NET_SWITCH_LOG
     if(netpkt.len == 0) {
         net_switch_log("Something is wrong, len is %d\n", netpkt.len);
         return;
@@ -161,6 +162,7 @@ void print_packet(const netpkt_t netpkt) {
     }
     net_switch_log("\n");
     pclog_toggle_suppr();
+#endif /* NET_SWITCH_LOG*/
 }
 
 #ifdef ENABLE_NET_SWITCH_STATS
@@ -274,12 +276,12 @@ net_netswitch_thread(void *priv)
                 }
                 for (int i = 0; i < packets; i++) {
                     //                net_switch_log("%d packet(s) to send\n", packets);
+#if defined(NET_PRINT_PACKET_TX) || defined(NET_PRINT_PACKET_ALL)
                     data_packet_info_t packet_info = get_data_packet_info(&net_netswitch->pktv[i], net_netswitch->mac_addr);
                     /* Temporarily disable log suppression for packet logging */
                     pclog_toggle_suppr();
                     net_switch_log("%s Net Switch: TX: %s\n", switch_type, packet_info.printable);
                     pclog_toggle_suppr();
-#if defined(NET_PRINT_PACKET_TX) || defined(NET_PRINT_PACKET_ALL)
                     print_packet(net_netswitch->pktv[i]);
 #endif
                     /* Only send if we're in a connected state (always true for local) */
