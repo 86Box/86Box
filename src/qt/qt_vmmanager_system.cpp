@@ -682,19 +682,19 @@ VMManagerSystem::setupVars() {
         }
         int diskSizeRaw = (cylinders.toInt() * heads.toInt() * sectors.toInt()) >> 11;
         QString diskSizeFinal;
-        QString unit = "MiB";
+        QString unit = tr("MiB");
         if(diskSizeRaw > 1000) {
-            unit = "GiB";
+            unit = tr("GiB");
             diskSizeFinal = QString::number(diskSizeRaw * 1.0 / 1000, 'f', 1);
         } else {
             diskSizeFinal = QString::number(diskSizeRaw);
         }
         // Only prefix each disk when there are multiple disks
-        QString diskNumberDisplay = disks.count() > 1 ? QString("Disk %1: ").arg(disk_number) : "";
+        QString diskNumberDisplay = disks.count() > 1 ? tr("Disk %1: ").arg(disk_number) : "";
         new_disk_display.append(QString("%1%2 %3 (%4)").arg(diskNumberDisplay, diskSizeFinal, unit, bus_type.toUpper()));
     }
     if(new_disk_display.isEmpty()) {
-        new_disk_display = "No disks";
+        new_disk_display = tr("No disks");
     }
     display_table[Display::Name::Disks] = new_disk_display;
 
@@ -796,7 +796,7 @@ VMManagerSystem::setupVars() {
             auto scsi_internal_name = QString(storage_config[key]);
             auto scsi_id = scsi_card_get_from_internal_name(scsi_internal_name.toUtf8().data());
             auto scsi_device = scsi_card_getdevice(scsi_id);
-            auto scsi_name = QString(scsi_device->name);
+            auto scsi_name = DeviceConfig::DeviceName(scsi_device, scsi_card_get_internal_name(scsi_id), 1);
             if(!scsi_name.isEmpty()) {
                 scsiControllers.append(scsi_name);
             }
@@ -946,14 +946,15 @@ VMManagerSystem::setupVars() {
     // Input (Mouse)
     auto mouse_internal_name = input_config["mouse_type"];
     auto mouse_dev = mouse_get_from_internal_name(mouse_internal_name.toUtf8().data());
-    auto mouse_dev_name = mouse_get_name(mouse_dev);
+    auto mouse_dev_name = DeviceConfig::DeviceName(mouse_get_device(mouse_dev), mouse_get_internal_name(mouse_dev), 0);
     display_table[Display::Name::Mouse] = mouse_dev_name;
 
     // Input (joystick)
     QString joystickDevice;
-    if(auto joystick_internal = QString(input_config["joystick_type"]); !joystick_internal.isEmpty()) {
+    if(input_config.contains("joystick_type")) {
+        auto joystick_internal = QString(input_config["joystick_type"]);
         auto joystick_dev = joystick_get_from_internal_name(joystick_internal.toUtf8().data());
-        if (auto joystickName = QString(joystick_get_name(joystick_dev)); !joystickName.isEmpty()) {
+        if (auto joystickName = tr(joystick_get_name(joystick_dev)); !joystickName.isEmpty()) {
             joystickDevice = joystickName;
         }
     }
