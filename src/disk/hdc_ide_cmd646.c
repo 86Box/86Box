@@ -146,7 +146,7 @@ cmd646_ide_handlers(cmd646_t *dev)
     int      reg09       = dev->regs[0x09];
     int      reg50       = dev->regs[0x50];
 
-    if ((dev->local & CMD_TYPE_648) && (dev->regs[0x0a] == 0x04) && (dev->regs[0x0b] == 0x01)) {
+    if ((dev->local & CMD_TYPE_648) && (dev->local & CMD648_RAID)) {
         reg09 = 0xff;
         reg50 |= 0x40;
     }
