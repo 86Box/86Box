@@ -1818,7 +1818,7 @@ const machine_t machines[] = {
             .min_multi = 0, 
             .max_multi = 0 
         }, 
-        .bus_flags = MACHINE_PC | MACHINE_BUS_PS2, 
+        .bus_flags = MACHINE_PS2, 
         .flags = MACHINE_FLAGS_NONE, 
         .ram = { 
             .min = 64, 
