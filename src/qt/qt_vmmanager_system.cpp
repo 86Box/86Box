@@ -688,6 +688,12 @@ VMManagerSystem::setupVars() {
     // Floppy & CD-ROM
     QStringList floppyDevices;
     QStringList cdromDevices;
+    // Special case: first two 5.25" 360k FDDs which don't get saved to the .cfg
+    for (int i = 0; i < 2; i++) {
+        if (!floppy_cdrom_config.contains(QString("fdd_0%1_type").arg(i + 1)))
+            floppyDevices.append(QString(fdd_getname(fdd_get_from_internal_name((char *) "525_2dd"))));
+    }
+
     static auto floppy_match = QRegularExpression("fdd_\\d\\d_type", QRegularExpression::CaseInsensitiveOption);
     static auto cdrom_match  = QRegularExpression("cdrom_\\d\\d_type", QRegularExpression::CaseInsensitiveOption);
     for(const auto& key: floppy_cdrom_config.keys()) {
