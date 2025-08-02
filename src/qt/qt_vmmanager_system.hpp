@@ -46,6 +46,8 @@ enum class Name {
     Disks,
     Floppy,
     CD,
+    RDisk,
+    MO,
     SCSIController,
     MidiOut,
     Joystick,

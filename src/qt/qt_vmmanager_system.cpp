@@ -51,6 +51,9 @@ extern "C" {
 #include <86box/timer.h>     // required for network.h and fdd.h
 #include <86box/cdrom.h>
 #include <86box/scsi.h>
+#include <86box/scsi_device.h> // required for rdisk.h and mo.h
+#include <86box/rdisk.h>
+#include <86box/mo.h>
 #include <86box/fdd.h>
 #include <86box/gameport.h>
 #include <86box/midi.h>
@@ -521,7 +524,7 @@ VMManagerSystem::setupVars() {
     auto network_config      = getCategory("Network");
     auto input_config        = getCategory("Input devices");
     auto floppy_cdrom_config = getCategory("Floppy and CD-ROM drives");
-    auto scsi_config         = getCategory("Storage controllers");
+    auto rdisk_mo_config     = getCategory("Other removable devices");
     auto ports_config        = getCategory("Ports (COM & LPT)");
     // auto general_config = getCategory("General");
     // auto config_uuid = QString("Not set");
@@ -734,6 +737,45 @@ VMManagerSystem::setupVars() {
 
     display_table[Display::Name::Floppy] = floppyDevices.join(VMManagerDetailSection::sectionSeparator);
     display_table[Display::Name::CD]     = cdromDevices.join(VMManagerDetailSection::sectionSeparator);
+
+    // Removable disks & MO
+    QStringList rdiskDevices;
+    QStringList moDevices;
+    static auto rdisk_match = QRegularExpression("rdisk_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption);
+    static auto zip_match   = QRegularExpression("zip_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption); // Legacy ZIP drive entries
+    static auto mo_match    = QRegularExpression("mo_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption);
+    for(const auto& key: rdisk_mo_config.keys()) {
+        if(key.contains(rdisk_match) || key.contains(zip_match)) {
+            auto device_number = key.split("_").at(1);
+            auto rdisk_parameters = QString(rdisk_mo_config[key]);
+            auto rdisk_type = rdisk_parameters.split(",").at(0).toInt();
+            if (key.contains(zip_match))
+                rdisk_type++;
+            auto rdisk_bus =  rdisk_parameters.split(",").at(1).trimmed().toUpper();
+
+            if((rdisk_type >= 0) && (rdisk_type < KNOWN_RDISK_DRIVE_TYPES)) {
+                if(!rdisk_bus.isEmpty())
+                    rdisk_bus = QString(" (%1)").arg(rdisk_bus);
+                rdiskDevices.append(QString("%1 %2%3").arg(rdisk_drive_types[rdisk_type].vendor, rdisk_drive_types[rdisk_type].model, rdisk_bus));
+            }
+        }
+        if(key.contains(mo_match)) {
+            auto device_number = key.split("_").at(1);
+            auto mo_parameters = QString(rdisk_mo_config[key]);
+            auto mo_type = mo_parameters.split(",").at(0).toInt();
+            auto mo_bus  = mo_parameters.split(",").at(1).trimmed().toUpper();
+
+            if((mo_type >= 0) && (mo_type < KNOWN_MO_DRIVE_TYPES)) {
+                if(!mo_bus.isEmpty())
+                    mo_bus = QString(" (%1)").arg(mo_bus);
+                moDevices.append(QString("%1 %2%3").arg(mo_drive_types[mo_type].vendor, mo_drive_types[mo_type].model, mo_bus));
+            }
+        }
+    }
+
+    display_table[Display::Name::RDisk] = rdiskDevices.join(VMManagerDetailSection::sectionSeparator);
+    display_table[Display::Name::MO]    = moDevices.join(VMManagerDetailSection::sectionSeparator);
+
 
     // SCSI controllers
     QStringList scsiControllers;

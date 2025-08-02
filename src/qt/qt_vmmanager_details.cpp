@@ -245,6 +245,8 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
     storageSection->addSection("Disks", passed_sysconfig->getDisplayValue(Display::Name::Disks));
     storageSection->addSection("Floppy", passed_sysconfig->getDisplayValue(Display::Name::Floppy));
     storageSection->addSection("CD-ROM", passed_sysconfig->getDisplayValue(Display::Name::CD));
+    storageSection->addSection("Removable disks", passed_sysconfig->getDisplayValue(Display::Name::RDisk));
+    storageSection->addSection("MO", passed_sysconfig->getDisplayValue(Display::Name::MO));
     storageSection->addSection("SCSI", passed_sysconfig->getDisplayValue(Display::Name::SCSIController));
 
     // Audio
