@@ -1555,7 +1555,7 @@ machine_at_m5ata_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/m5ata/ATA1223.BIN",
+    ret = bios_load_linear("roms/machines/m5ata/ATA0527B.BIN",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
