@@ -683,6 +683,10 @@ load_network(void)
                 nc->net_type = NET_TYPE_VDE;
             else if (!strcmp(p, "tap") || !strcmp(p, "4"))
                 nc->net_type = NET_TYPE_TAP;
+            else if (!strcmp(p, "nmswitch") || !strcmp(p, "5"))
+                nc->net_type = NET_TYPE_NMSWITCH;
+            else if (!strcmp(p, "nrswitch") || !strcmp(p, "6"))
+                nc->net_type = NET_TYPE_NRSWITCH;
             else
                 nc->net_type = NET_TYPE_NONE;
         } else
@@ -731,6 +735,10 @@ load_network(void)
                 nc->net_type = NET_TYPE_VDE;
             else if (!strcmp(p, "tap") || !strcmp(p, "4"))
                 nc->net_type = NET_TYPE_TAP;
+            else if (!strcmp(p, "nmswitch") || !strcmp(p, "5"))
+                nc->net_type = NET_TYPE_NMSWITCH;
+            else if (!strcmp(p, "nrswitch") || !strcmp(p, "6"))
+                nc->net_type = NET_TYPE_NRSWITCH;
             else
                 nc->net_type = NET_TYPE_NONE;
         } else
@@ -751,6 +759,19 @@ load_network(void)
                 strncpy(nc->host_dev_name, p, sizeof(nc->host_dev_name) - 1);
         } else
             strcpy(nc->host_dev_name, "none");
+
+         sprintf(temp, "net_%02i_switch_group", c + 1);
+         net_cards_conf[c].switch_group = ini_section_get_int(cat, temp, 0);
+
+         sprintf(temp, "net_%02i_promisc", c + 1);
+         net_cards_conf[c].promisc_mode = ini_section_get_int(cat, temp, 0);
+
+         sprintf(temp, "net_%02i_nrs_host", c + 1);
+         p = ini_section_get_string(cat, temp, NULL);
+         if (p != NULL)
+            strncpy(net_cards_conf[c].nrs_hostname, p, sizeof(net_cards_conf[c].nrs_hostname) - 1);
+         else
+            strncpy(net_cards_conf[c].nrs_hostname, "", sizeof(net_cards_conf[c].nrs_hostname) - 1);
 
         sprintf(temp, "net_%02i_link", c + 1);
         nc->link_state = ini_section_get_int(cat, temp,
@@ -2603,6 +2624,12 @@ save_network(void)
             case NET_TYPE_TAP:
                 ini_section_set_string(cat, temp, "tap");
                 break;
+            case NET_TYPE_NMSWITCH:
+                ini_section_set_string(cat, temp, "nmswitch");
+                break;
+            case NET_TYPE_NRSWITCH:
+                ini_section_set_string(cat, temp, "nrswitch");
+                break;
             default:
                 break;
         }
@@ -2623,6 +2650,28 @@ save_network(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, nc->link_state);
+
+        sprintf(temp, "net_%02i_switch_group", c + 1);
+        if (nc->device_num == 0)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, net_cards_conf[c].switch_group);
+
+        sprintf(temp, "net_%02i_promisc", c + 1);
+        if (nc->device_num == 0)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, net_cards_conf[c].promisc_mode);
+
+        sprintf(temp, "net_%02i_nrs_host", c + 1);
+        if (nc->device_num == 0)
+            ini_section_delete_var(cat, temp);
+        else {
+            if (nc->nrs_hostname[0] != '\0')
+                ini_section_set_string(cat, temp, net_cards_conf[c].nrs_hostname);
+            else
+                ini_section_delete_var(cat, temp);
+        }
     }
 
     ini_delete_section_if_empty(config, cat);
