@@ -591,10 +591,40 @@ VMManagerSystem::setupVars() {
     int video_int = video_get_video_from_internal_name(video_config["gfxcard"].toUtf8().data());
     const device_t* video_dev = video_card_getdevice(video_int);
     display_table[Display::Name::Video] = DeviceConfig::DeviceName(video_dev, video_get_internal_name(video_int), 1);
-    if (!video_config["voodoo"].isEmpty()) {
-        // FIXME: Come back to this later to add more for secondary video
-//        display_table[Display::Name::Video].append(" (with voodoo)");
-        display_table[Display::Name::Voodoo] = "Voodoo enabled";
+
+    // Secondary video
+    if (video_config.contains("gfxcard_2")) {
+        int video2_int = video_get_video_from_internal_name(video_config["gfxcard_2"].toUtf8().data());
+        const device_t* video2_dev = video_card_getdevice(video2_int);
+        display_table[Display::Name::Video].append(DeviceConfig::DeviceName(video2_dev, video_get_internal_name(video2_int), 1).prepend(VMManagerDetailSection::sectionSeparator));
+    }
+
+    // Add-on video that's not Voodoo
+    if (video_config.contains("8514a") && (video_config["8514a"] != 0))
+        display_table[Display::Name::Video].append(tr("IBM 8514/A Graphics").prepend(VMManagerDetailSection::sectionSeparator));
+    if (video_config.contains("xga") && (video_config["xga"] != 0))
+        display_table[Display::Name::Video].append(tr("XGA Graphics").prepend(VMManagerDetailSection::sectionSeparator));
+    if (video_config.contains("da2") && (video_config["da2"] != 0))
+        display_table[Display::Name::Video].append(tr("IBM PS/55 Display Adapter Graphics").prepend(VMManagerDetailSection::sectionSeparator));
+
+    // Voodoo
+    if (video_config.contains("voodoo") && (video_config["voodoo"] != 0)) {
+        auto voodoo_config = getCategory(DeviceConfig::DeviceName(&voodoo_device, "voodoo", 0));
+        int voodoo_type = voodoo_config["type"].toInt();
+        QString voodoo_name;
+        switch (voodoo_type) {
+            case 0:
+            default:
+                voodoo_name = tr("3Dfx Voodoo Graphics");
+                break;
+            case 1:
+                voodoo_name = tr("Obsidian SB50 + Amethyst (2 TMUs)");
+                break;
+            case 2:
+                voodoo_name = tr("3Dfx Voodoo 2");
+                break;
+        }
+        display_table[Display::Name::Voodoo] = voodoo_name;
     }
 
     // Drives
