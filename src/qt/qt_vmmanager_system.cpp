@@ -899,7 +899,7 @@ VMManagerSystem::setupVars() {
     // midi_in_device (input)
 
     // Network
-    QString nicList;
+    QStringList nicList;
     static auto nic_match = QRegularExpression("net_\\d\\d_card", QRegularExpression::CaseInsensitiveOption);
     for(const auto& key: network_config.keys()) {
         if(key.contains(nic_match)) {
@@ -907,14 +907,16 @@ VMManagerSystem::setupVars() {
             auto nic_internal_name = QString(network_config[key]);
             auto nic_id = network_card_get_from_internal_name(nic_internal_name.toUtf8().data());
             auto nic = network_card_getdevice(nic_id);
-            auto nic_name = QString(nic->name);
-            // Add separator for each subsequent value, skipping the first
-            if(!nicList.isEmpty()) {
-                nicList.append(QString("%1").arg(VMManagerDetailSection::sectionSeparator));
-            }
+            auto nic_name = DeviceConfig::DeviceName(nic, network_card_get_internal_name(nic_id), 1);
             auto net_type_key = QString("net_%1_net_type").arg(device_number);
             auto net_type = network_config[net_type_key];
             if (!net_type.isEmpty()) {
+                if (net_type == "slirp")
+                    net_type = "SLiRP";
+                else if (net_type == "pcap")
+                    net_type = "PCap";
+                else
+                    net_type = net_type.toUpper();
                 nicList.append(nic_name + " (" + net_type + ")");
             } else {
                 nicList.append(nic_name);
@@ -923,9 +925,9 @@ VMManagerSystem::setupVars() {
         }
     }
     if(nicList.isEmpty()) {
-        nicList = "None";
+        nicList.append(tr("None"));
     }
-    display_table[Display::Name::NIC] = nicList;
+    display_table[Display::Name::NIC] = nicList.join(VMManagerDetailSection::sectionSeparator);
 
     // Input (Mouse)
     auto mouse_internal_name = input_config["mouse_type"];
