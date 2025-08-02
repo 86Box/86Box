@@ -798,8 +798,7 @@ machine_at_vei8_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440zx_device);
     device_add(&piix4e_device);
-    device_add(&fdc37m60x_370_device);
-    device_add(&kbc_ps2_ami_pci_device);
+    device_add_params(&fdc37m60x_device, (void *) (FDC37C932 | FDC37C93X_370));
     device_add(ics9xxx_get(ICS9250_08));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 512);

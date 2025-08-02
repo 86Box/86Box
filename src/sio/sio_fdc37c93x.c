@@ -824,6 +824,7 @@ fdc37c93x_serial_handler(fdc37c93x_t *dev, const int uart)
     const uint8_t  global_enable = !!(dev->regs[0x22] & (1 << uart_no));
     const uint8_t  local_enable  = !!dev->ld_regs[uart_no][0x30];
     const uint16_t old_base      = dev->uart_base[uart];
+    double         clock_src     = 24000000.0 / 13.0;
 
     dev->uart_base[uart] = 0x0000;
 
@@ -838,13 +839,34 @@ fdc37c93x_serial_handler(fdc37c93x_t *dev, const int uart)
             serial_setup(dev->uart[uart], dev->uart_base[uart], dev->ld_regs[uart_no][0x70]);
     }
 
+    switch (dev->ld_regs[uart_no][0xf0] & 0x03) {
+        case 0x00:
+            clock_src = 24000000.0 / 13.0;
+            break;
+        case 0x01:
+            clock_src = 24000000.0 / 12.0;
+            break;
+        case 0x02:
+            clock_src = 24000000.0 / 1.0;
+            break;
+        case 0x03:
+            clock_src = 24000000.0 / 1.625;
+            break;
+
+        default:
+            break;
+    }
+
+    serial_set_clock_src(dev->uart[uart], clock_src);
+
     /*
        TODO: If UART 2's own IRQ pin is also enabled when shared,
              it should also be asserted.
      */
-    if ((dev->chip_id >= FDC37C93X_FR) && (dev->ld_regs[4][0xf0] & 0x80))
-        serial_irq(dev->uart[uart], dev->ld_regs[4][0x70]);
-    else
+    if ((dev->chip_id >= FDC37C93X_FR) && (dev->ld_regs[4][0xf0] & 0x80)) {
+        serial_irq(dev->uart[0], dev->ld_regs[4][0x70]);
+        serial_irq(dev->uart[1], dev->ld_regs[4][0x70]);
+    } else
         serial_irq(dev->uart[uart], dev->ld_regs[uart_no][0x70]);
 }
 
@@ -1117,6 +1139,18 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 
                             if (valxor & 0x01)
                                 fdc_update_enh_mode(dev->fdc, val & 0x01);
+                            if (valxor & 0x0c) {
+                                fdc_clear_flags(dev->fdc, FDC_FLAG_PS2 | FDC_FLAG_PS2_MCA);
+                                switch (val & 0x0c) {
+                                    case 0x00:
+                                        fdc_set_flags(dev->fdc, FDC_FLAG_PS2);
+                                        break;
+                                    case 0x04:
+                                        fdc_set_flags(dev->fdc, FDC_FLAG_PS2_MCA);
+                                        break;
+                                }
+                                fdc_update_enh_mode(dev->fdc, val & 0x01);
+                            }
                             if (valxor & 0x10)
                                 fdc_set_swap(dev->fdc, (val & 0x10) >> 4);
                             break;
@@ -1522,8 +1556,6 @@ fdc37c93x_read(uint16_t port, void *priv)
                 if ((dev->regs[7] == 0x00) && (dev->cur_reg == 0xf2))
                     ret = (fdc_get_rwc(dev->fdc, 0) | (fdc_get_rwc(dev->fdc, 1) << 2) |
                           (fdc_get_rwc(dev->fdc, 2) << 4) | (fdc_get_rwc(dev->fdc, 3) << 6));
-                else if ((dev->regs[7] != 0x06) || (dev->cur_reg != 0xf3))
-                    ret = dev->ld_regs[dev->regs[7]][dev->cur_reg];
                 else if ((dev->regs[7] == 0x08) && (dev->cur_reg >= 0xf6) &&
                          (dev->cur_reg <= 0xfb) &&
                          (dev->chip_id >= FDC37C93X_FR))  switch (dev->cur_reg) {
@@ -1569,7 +1601,8 @@ fdc37c93x_read(uint16_t port, void *priv)
                                 ret |= fdc37c93x_read_gp(dev, 7, i);
                         }
                         break;
-                }
+                } else if ((dev->regs[7] != 0x06) || (dev->cur_reg != 0xf3))
+                    ret = dev->ld_regs[dev->regs[7]][dev->cur_reg];
             }
         }
     }
@@ -1702,7 +1735,9 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     if (dev->is_apm)
         fdc37c93x_acpi_handler(dev);
 
+    fdc_clear_flags(dev->fdc, FDC_FLAG_PS2 | FDC_FLAG_PS2_MCA);
     fdc_reset(dev->fdc);
+
     fdc37c93x_fdc_handler(dev);
 
     if (dev->has_nvr) {
@@ -1721,11 +1756,6 @@ fdc37c93x_reset(fdc37c93x_t *dev)
 
     if (dev->chip_id != 0x02)
         fdc37c93x_superio_handler(dev);
-
-    if (dev->chip_id >= FDC37C93X_FR) {
-        serial_set_clock_src(dev->uart[0], 24000000.0);
-        serial_set_clock_src(dev->uart[1], 24000000.0);
-    }
 
     memset(dev->gpio_regs,   0xff, 256);
     memset(dev->gpio_pulldn, 0xff, 8);

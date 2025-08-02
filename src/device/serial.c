@@ -746,6 +746,14 @@ serial_read(uint16_t addr, void *priv)
     return ret;
 }
 
+uint8_t
+serial_get_shadow(serial_t *dev)
+{
+    uint8_t ret = dev->fcr;
+
+    return ret;
+}
+
 void
 serial_remove(serial_t *dev)
 {

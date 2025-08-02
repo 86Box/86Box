@@ -65,7 +65,6 @@ extern const device_t fdc37c67x_device;
 extern const device_t fdc37c93x_device;
 
 extern const device_t fdc37m60x_device;
-extern const device_t fdc37m60x_370_device;
 
 /* ITE */
 extern const device_t it8661f_device;

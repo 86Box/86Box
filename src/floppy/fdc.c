@@ -438,6 +438,44 @@ fdc_set_media_id(fdc_t *fdc, int id, int set)
     fdc->media_id = (fdc->media_id & ~(1 << id)) | (set << id);
 }
 
+void
+fdc_set_flags(fdc_t *fdc, int flags)
+{
+    fdc->flags |= flags;
+}
+
+void
+fdc_clear_flags(fdc_t *fdc, int flags)
+{
+    fdc->flags &= ~flags;
+}
+
+void
+fdc_set_fdd_changed(int drive, int changed)
+{
+    if (changed)
+        fdd_changed[drive] = 1;
+}
+
+uint8_t
+fdc_get_fdd_changed(int drive)
+{
+    uint8_t ret = !!fdd_changed[drive];
+
+    return ret;
+}
+
+uint8_t
+fdc_get_shadow(fdc_t *fdc)
+{
+    uint8_t ret = (fdc->rate & 0x03) |
+                  ((fdc->pretrk & 0x07) << 2) |
+                  (fdc->power_down ? 0x40 : 0x00) |
+                  ((fdc_read(0x03f2, fdc) & 0x04) ? 0x80 : 0x00);
+
+    return ret;
+}
+
 int
 fdc_get_boot_drive(fdc_t *fdc)
 {

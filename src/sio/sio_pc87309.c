@@ -50,7 +50,7 @@ typedef struct pc87309_t {
     void     *kbc;
     fdc_t    *fdc;
     serial_t *uart[2];
-    lpt_t    *lpt
+    lpt_t    *lpt;
 } pc87309_t;
 
 enum {
