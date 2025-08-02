@@ -105,6 +105,7 @@ static struct ps2_t {
     int pending_cache_miss;
 
     serial_t *uart;
+    lpt_t    *lpt;
 
     vga_t* mb_vga;
     int has_e0000_hole;
@@ -477,7 +478,7 @@ model_50_write(uint16_t port, uint8_t val)
 {
     switch (port) {
         case 0x102:
-            lpt1_remove();
+            lpt_port_remove(ps2.lpt);
             serial_remove(ps2.uart);
             if (val & 0x04) {
                 if (val & 0x08)
@@ -488,13 +489,13 @@ model_50_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_setup(LPT_MDA_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_setup(LPT1_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_setup(LPT2_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT2_ADDR);
                         break;
 
                     default:
@@ -609,7 +610,7 @@ model_55sx_write(uint16_t port, uint8_t val)
 {
     switch (port) {
         case 0x102:
-            lpt1_remove();
+            lpt_port_remove(ps2.lpt);
             serial_remove(ps2.uart);
             if (val & 0x04) {
                 if (val & 0x08)
@@ -620,13 +621,13 @@ model_55sx_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_setup(LPT_MDA_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_setup(LPT1_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_setup(LPT2_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT2_ADDR);
                         break;
 
                     default:
@@ -668,7 +669,7 @@ model_70_type3_write(uint16_t port, uint8_t val)
 {
     switch (port) {
         case 0x102:
-            lpt1_remove();
+            lpt_port_remove(ps2.lpt);
             serial_remove(ps2.uart);
             if (val & 0x04) {
                 if (val & 0x08)
@@ -679,13 +680,13 @@ model_70_type3_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_setup(LPT_MDA_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_setup(LPT1_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_setup(LPT2_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT2_ADDR);
                         break;
 
                     default:
@@ -722,7 +723,7 @@ model_80_write(uint16_t port, uint8_t val)
 {
     switch (port) {
         case 0x102:
-            lpt1_remove();
+            lpt_port_remove(ps2.lpt);
             serial_remove(ps2.uart);
             if (val & 0x04) {
                 if (val & 0x08)
@@ -733,13 +734,13 @@ model_80_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_setup(LPT_MDA_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_setup(LPT1_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_setup(LPT2_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT2_ADDR);
                         break;
 
                     default:
@@ -775,7 +776,7 @@ ps55_model_50tv_write(uint16_t port, uint8_t val)
     ps2_mca_log(" Write SysBrd %04X %02X %04X:%04X\n", port, val, cs >> 4, cpu_state.pc);
     switch (port) {
         case 0x102:
-            lpt1_remove();
+            lpt_port_remove(ps2.lpt);
             serial_remove(ps2.uart);
             if (val & 0x04) {
                 if (val & 0x08)
@@ -786,13 +787,13 @@ ps55_model_50tv_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_setup(LPT_MDA_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_setup(LPT1_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_setup(LPT2_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT2_ADDR);
                         break;
                     default:
                         break;
@@ -1032,7 +1033,7 @@ ps2_mca_board_common_init(void)
 
     ps2.setup = 0xff;
 
-    lpt1_setup(LPT_MDA_ADDR);
+    lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
 }
 
 static uint8_t
@@ -1600,6 +1601,7 @@ machine_ps2_common_init(const machine_t *model)
     nmi_mask = 0x80;
 
     ps2.uart = device_add_inst(&ns16550_device, 1);
+    ps2.lpt  = device_add_inst(&lpt_port_device, 1);
 
     ps2.has_e0000_hole = 0;
 }
