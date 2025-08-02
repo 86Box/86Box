@@ -1346,7 +1346,7 @@ load_floppy_and_cdrom_drives(void)
         cdrom[c].speed = ini_section_get_int(cat, temp, 8);
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
-        p = ini_section_get_string(cat, temp, cdrom[c].bus_type == CDROM_BUS_MKE ? "cr563_075" : "86cd");
+        p = ini_section_get_string(cat, temp, cdrom[c].bus_type == CDROM_BUS_MKE ? "cr563" : "86cd");
         /* TODO: Configuration migration, remove when no longer needed. */
         int cdrom_type = cdrom_get_from_internal_name(p);
         if (cdrom_type == -1) {
