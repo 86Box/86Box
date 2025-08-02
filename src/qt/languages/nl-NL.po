@@ -2466,6 +2466,21 @@ msgstr ""
 msgid "SoundFont files"
 msgstr ""
 
+msgid "Local Switch"
+msgstr ""
+
+msgid "Remote Switch"
+msgstr ""
+
+msgid "Switch:"
+msgstr ""
+
+msgid "Hub Mode"
+msgstr ""
+
+msgid "Hostname:"
+msgstr ""
+
 #~ msgid "HD Controller:"
 #~ msgstr "HD-controller:"
 
