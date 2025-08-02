@@ -2466,6 +2466,21 @@ msgstr "Файлы ПЗУ"
 msgid "SoundFont files"
 msgstr "Файлы SoundFont"
 
+msgid "Local Switch"
+msgstr "Локальный коммутатор"
+
+msgid "Remote Switch"
+msgstr "Удалённый коммутатор"
+
+msgid "Switch:"
+msgstr "Номер коммутатора:"
+
+msgid "Hub Mode"
+msgstr "Режим концентратора"
+
+msgid "Hostname:"
+msgstr "Имя хоста:"
+
 #~ msgid "HD Controller:"
 #~ msgstr "Контроллер HD:"
 
