@@ -34,13 +34,6 @@ list(APPEND net_sources
     net_l80225.c
     net_modem.c
     utils/getline.c
-
-    net_netswitch.c
-    netswitch.c
-    pb_common.c
-    pb_encode.c
-    pb_decode.c
-    networkmessage.pb.c
 )
 
 find_package(PkgConfig REQUIRED)
@@ -63,6 +56,18 @@ endif()
 
 if(WIN32)
     target_link_libraries(86Box ws2_32)
+endif()
+
+if(NETSWITCH)
+    add_compile_definitions(USE_NETSWITCH)
+    list(APPEND net_sources
+	    net_netswitch.c
+        netswitch.c
+        pb_common.c
+        pb_encode.c
+        pb_decode.c
+        networkmessage.pb.c
+    )
 endif()
 
 if (UNIX)
