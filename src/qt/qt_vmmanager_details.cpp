@@ -267,8 +267,8 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
 
     // Ports
     portsSection->clear();
-    portsSection->addSection(tr("Serial Ports"), passed_sysconfig->getDisplayValue(Display::Name::Serial));
-    portsSection->addSection(tr("Parallel Ports"), passed_sysconfig->getDisplayValue(Display::Name::Parallel));
+    portsSection->addSection(tr("Serial ports"), passed_sysconfig->getDisplayValue(Display::Name::Serial));
+    portsSection->addSection(tr("Parallel ports"), passed_sysconfig->getDisplayValue(Display::Name::Parallel));
 
 }
 

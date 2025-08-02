@@ -59,6 +59,7 @@ extern "C" {
 #include <86box/fdc_ext.h>
 #include <86box/hdc.h>
 #include <86box/gameport.h>
+#include <86box/lpt.h>
 #include <86box/midi.h>
 #include <86box/network.h>
 #include <86box/keyboard.h>
@@ -996,15 +997,25 @@ VMManagerSystem::setupVars() {
             break;
     }
     portIndex = 0;
+    bool hasLptDevices = false;
     while (true) {
-        if (lpt_enabled[portIndex])
-            lptFinal.append(QString("LPT%1").arg(portIndex + 1));
+        if (lpt_enabled[portIndex]) {
+            auto lpt_device_key = QString("lpt%1_device").arg(portIndex + 1);
+            QString lpt_device_name = "";
+            if (ports_config.contains(lpt_device_key)) {
+                auto lpt_internal_name = QString(ports_config[lpt_device_key]);
+                auto lpt_id = lpt_device_get_from_internal_name(lpt_internal_name.toUtf8().data());
+                lpt_device_name = " (" + tr(lpt_device_get_name(lpt_id)) + ")";
+                hasLptDevices = true;
+            }
+            lptFinal.append(QString("LPT%1%2").arg(portIndex + 1).arg(lpt_device_name));
+        }
         ++portIndex;
         if (portIndex == PARALLEL_MAX)
             break;
     }
-    display_table[Display::Name::Serial]   = serialFinal.empty() ?  tr("None") : serialFinal.join(", ");
-    display_table[Display::Name::Parallel] = lptFinal.empty()    ?  tr("None") : lptFinal.join(", ");
+    display_table[Display::Name::Serial]   = (serialFinal.empty() ?  tr("None") : serialFinal.join(", "));
+    display_table[Display::Name::Parallel] = (lptFinal.empty()    ?  tr("None") : lptFinal.join((hasLptDevices ? VMManagerDetailSection::sectionSeparator : ", ")));
 
 }
 
