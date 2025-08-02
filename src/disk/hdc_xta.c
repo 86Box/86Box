@@ -82,6 +82,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -277,7 +278,6 @@ typedef struct hdc_dual_t {
     hdc_t  *hdc[2];
 } hdc_dual_t;
 
-#define ENABLE_XTA_LOG 1
 #ifdef ENABLE_XTA_LOG
 int xta_do_log = ENABLE_XTA_LOG;
 
@@ -931,8 +931,6 @@ hdc_read(uint16_t port, void *priv)
             break;
     }
 
-    pclog("[%04X:%08X] XTA: [R] %04X = %02X\n", CS, cpu_state.pc, port, ret);
-
     return ret;
 }
 
@@ -941,8 +939,6 @@ static void
 hdc_write(uint16_t port, uint8_t val, void *priv)
 {
     hdc_t *dev = (hdc_t *) priv;
-
-    pclog("[%04X:%08X] XTA: [W] %04X = %02X\n", CS, cpu_state.pc, port, val);
 
     switch (port & 3) {
         case 0: /* DATA register */
@@ -1009,8 +1005,6 @@ xta_handler(void *priv, int set)
 
     io_handler(set, dev->base, 4,
                hdc_read, NULL, NULL, hdc_write, NULL, NULL, dev);
-
-    pclog("XTA: %sabled at %04X-%0X\n", set ? "En" : "Dis", dev->base, dev->base + 3);
 }
 
 static void *
@@ -1030,14 +1024,21 @@ xta_init_common(const device_t *info, int type)
     dev->sw   = 0xff;        /* all switches off */
     dev->type = type;
 
+
     /* Do per-controller-type setup. */
     switch (dev->type) {
         case 0: /* WDXT-150, with BIOS */
             dev->name     = "WDXT-150";
             bios_rev      = (char *) device_get_config_bios("bios_rev");
             fn            = (char *) device_get_bios_file(info, bios_rev, 0);
-            max           = 1;
+            /* Revision 2 actually supports 2 drives using drive select. */
+            if (!strcmp(bios_rev, "rev_1"))
+                 max           = 1;
+#ifdef SELECTABLE_BASE
             dev->base     = device_get_config_hex16("base");
+#else
+            dev->base     = 0x0320;
+#endif
             dev->irq      = device_get_config_int("irq");
             dev->rom_addr = device_get_config_hex20("bios_addr");
             dev->dma      = 3;
@@ -1085,11 +1086,8 @@ xta_init_common(const device_t *info, int type)
 
     xta_log("%s: initializing (I/O=%04X, IRQ=%d, DMA=%d",
             dev->name, dev->base, dev->irq, dev->dma);
-    pclog("%s: initializing (I/O=%04X, IRQ=%d, DMA=%d",
-          dev->name, dev->base, dev->irq, dev->dma);
     if (dev->rom_addr != 0x000000)
         xta_log(", BIOS=%06X", dev->rom_addr);
-
     xta_log(")\n");
 
     /* Load any disks for this device class. */
@@ -1119,7 +1117,97 @@ xta_init_common(const device_t *info, int type)
             drive->hpc    = drive->cfg_hpc;
             drive->tracks = drive->cfg_tracks;
 
-            if ((dev->type >= 2) && (dev->type <= 4)) {
+            if (dev->type == 0) {
+                if (!strcmp(bios_rev, "rev_1")) {
+                    /*
+                       WDXT-150, Revision 1 switches:
+                           - Bit 6: 1 = IBM (INT 13h), 0 = Tandy (INT 0Ah).
+                           - Bit 5: 1 = 17 sectors per track, 0 = 27 sectors per track.
+                           - Drive 0, bits 1,0:
+                               - With bit 4 set:
+                                   - 0,0 = 820/4/17;
+                                   - 0,1 = 615/4/17;
+                                   - 1,0 = 782/4/17;
+                                   - 1,1 = 782/2/17.
+                               - With bit 4 clear:
+                                   - 0,0 = 1024/4/17;
+                                   - 0,1 = 940/4/17;
+                                   - 1,0 = 1024/4/17;
+                                   - 1,1 = 1024/2/17.
+                           - Drive 1, bits 3,2:
+                               - With bit 4 set:
+                                   - 0,0 = 820/4/17;
+                                   - 0,1 = 615/4/17;
+                                   - 1,0 = 782/4/17;
+                                   - 1,1 = 782/2/17.
+                               - With bit 4 clear:
+                                   - 0,0 = 1024/4/17;
+                                   - 0,1 = 940/4/17;
+                                   - 1,0 = 1024/4/17;
+                                   - 1,1 = 1024/2/17.
+                     */
+                    if (drive->tracks == 940)
+                        dev->sw = ((dev->sw & 0xef) & (c ? 0xf3 : 0xfc)) | (0x01 << (c << 1));
+                    else if (drive->tracks == 1024) {
+                        if (drive->hpc == 4)
+                            dev->sw = ((dev->sw & 0xef) & (c ? 0xf3 : 0xfc)) | (0x00 << (c << 1));
+                        else
+                            dev->sw = ((dev->sw & 0xef) & (c ? 0xf3 : 0xfc)) | (0x03 << (c << 1));
+                    } else if (drive->tracks == 782) {
+                        if (drive->hpc == 4)
+                            dev->sw = (dev->sw & (c ? 0xf3 : 0xfc)) | (0x02 << (c << 1));
+                        else
+                            dev->sw = (dev->sw & (c ? 0xf3 : 0xfc)) | (0x03 << (c << 1));
+                    } else if (drive->tracks == 820)
+                        dev->sw = (dev->sw & (c ? 0xf3 : 0xfc)) | (0x00 << (c << 1));
+                    else
+                        dev->sw = (dev->sw & (c ? 0xf3 : 0xfc)) | (0x01 << (c << 1));
+                } else {
+                    /*
+                       WDXT-150, Revision 2 switches:
+                           - Drive 0, bits 1,0:
+                               - With bit 4 set:
+                                   - 0,0 = 612/4/17;
+                                   - 0,1 = 615/6/17;
+                                   - 1,0 = 977/5/17;
+                                   - 1,1 = 615/4/17.
+                               - With bit 4 clear:
+                                   - 0,0 = 976/4/17;
+                                   - 0,1 = 1024/3/17;
+                                   - 1,0 = 1024/4/17;
+                                   - 1,1 = 1024/2/17.
+                           - Drive 1, bits 3,2:
+                               - With bit 4 set:
+                                   - 0,0 = 612/4/17;
+                                   - 0,1 = 615/6/17;
+                                   - 1,0 = 977/5/17;
+                                   - 1,1 = 615/4/17.
+                               - With bit 4 clear:
+                                   - 0,0 = 976/4/17;
+                                   - 0,1 = 1024/3/17;
+                                   - 1,0 = 1024/4/17;
+                                   - 1,1 = 1024/2/17.
+                     */
+                    if (drive->tracks == 976)
+                        dev->sw = ((dev->sw & 0xef) & (c ? 0xf3 : 0xfc)) | (0x00 << (c << 1));
+                    else if (drive->tracks == 1024) {
+                        if (drive->hpc == 3)
+                            dev->sw = ((dev->sw & 0xef) & (c ? 0xf3 : 0xfc)) | (0x01 << (c << 1));
+                        else if (drive->hpc == 4)
+                            dev->sw = ((dev->sw & 0xef) & (c ? 0xf3 : 0xfc)) | (0x02 << (c << 1));
+                        else
+                            dev->sw = ((dev->sw & 0xef) & (c ? 0xf3 : 0xfc)) | (0x03 << (c << 1));
+                    } else if (drive->tracks == 615) {
+                        if (drive->hpc == 6)
+                            dev->sw = (dev->sw & (c ? 0xf3 : 0xfc)) | (0x01 << (c << 1));
+                        else
+                            dev->sw = (dev->sw & (c ? 0xf3 : 0xfc)) | (0x03 << (c << 1));
+                    } else if (drive->tracks == 612)
+                        dev->sw = (dev->sw & (c ? 0xf3 : 0xfc)) | (0x00 << (c << 1));
+                    else
+                        dev->sw = (dev->sw & (c ? 0xf3 : 0xfc)) | (0x02 << (c << 1));
+                }
+            } else if ((dev->type >= 2) && (dev->type <= 4)) {
                 /*
                    Bits 1, 0:
                        - 1, 1 = 615/4/17 (20 MB);
@@ -1133,15 +1221,11 @@ xta_init_common(const device_t *info, int type)
                     dev->sw = 0xfd;
                 else
                     dev->sw = 0xff;
-                pclog("%s: SW = %02X\n", dev->name, dev->sw);
             }
 
             xta_log("%s: drive%d (cyl=%d,hd=%d,spt=%d), disk %d\n",
                     dev->name, hdd[i].xta_channel, drive->tracks,
                     drive->hpc, drive->spt, i);
-            pclog("%s: drive%d (cyl=%d,hd=%d,spt=%d), disk %d\n",
-                  dev->name, hdd[i].xta_channel, drive->tracks,
-                  drive->hpc, drive->spt, i);
 
             if (++c > max)
                 break;
@@ -1249,6 +1333,7 @@ static const device_config_t wdxt150_config[] = {
             { .files_no = 0 }
         },
     },
+#ifdef SELECTABLE_BASE
     {
         .name           = "base",
         .description    = "Address",
@@ -1264,6 +1349,7 @@ static const device_config_t wdxt150_config[] = {
         },
         .bios           = { { 0 } }
     },
+#endif
     {
         .name           = "irq",
         .description    = "IRQ",

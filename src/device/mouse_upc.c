@@ -79,7 +79,6 @@ enum {
     STATE_SCAN         /* UPC is waiting for the auxiliary command response. */
 };
 
-#define ENABLE_MOUSE_UPC_LOG 1
 #ifdef ENABLE_MOUSE_UPC_LOG
 int mouse_upc_do_log = ENABLE_MOUSE_UPC_LOG;
 

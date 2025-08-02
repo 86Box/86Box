@@ -73,6 +73,7 @@ extern const device_t dells333sl_device;
 extern const device_t hot433a_device; 
 extern const device_t pbl300sx_device; 
 extern const device_t v12p_device; 
+extern const device_t f82c710_pc5086_device; 
  
 const machine_filter_t machine_types[] = { 
     { "None",                             MACHINE_TYPE_NONE       }, 
@@ -2347,7 +2348,7 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 63,
-        .kbc_device = &keyboard_xt_device,
+        .kbc_device = &kbc_xt_device,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,

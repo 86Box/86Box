@@ -60,7 +60,7 @@ machine_pc5086_init(const machine_t *model)
     device_add(&ct_82c100_device);
     device_add(&f82c710_pc5086_device);
 
-    device_add(&keyboard_xt_device);
+    device_add(&kbc_xt_device);
 
     device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
 
