@@ -15,7 +15,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="sizeConstraint">
-    <enum>QLayout::SizeConstraint::SetMinAndMaxSize</enum>
+    <enum>QLayout::SetMinAndMaxSize</enum>
    </property>
    <item>
     <widget class="QScrollArea" name="scrollArea">
@@ -33,10 +33,10 @@
       </property>
       <layout class="QFormLayout" name="formLayout_2">
        <property name="sizeConstraint">
-        <enum>QLayout::SizeConstraint::SetMaximumSize</enum>
+        <enum>QLayout::SetMaximumSize</enum>
        </property>
        <property name="fieldGrowthPolicy">
-        <enum>QFormLayout::FieldGrowthPolicy::AllNonFixedFieldsGrow</enum>
+        <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
        </property>
       </layout>
      </widget>
@@ -45,10 +45,10 @@
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
-      <enum>Qt::Orientation::Horizontal</enum>
+      <enum>Qt::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::StandardButton::Apply|QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok|QDialogButtonBox::StandardButton::Reset</set>
+      <set>QDialogButtonBox::Apply|QDialogButtonBox::Cancel|QDialogButtonBox::Ok|QDialogButtonBox::Reset</set>
      </property>
     </widget>
    </item>

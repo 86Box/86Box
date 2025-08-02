@@ -113,14 +113,14 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="labelZIP">
+    <widget class="QLabel" name="labelRDisk">
      <property name="text">
-      <string>ZIP drives:</string>
+      <string>Removable disk drives:</string>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QTableView" name="tableViewZIP">
+    <widget class="QTableView" name="tableViewRDisk">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>0</horstretch>
@@ -151,40 +151,47 @@
     </widget>
    </item>
    <item>
-    <widget class="QWidget" name="zipControls" native="true">
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="QLabel" name="labelZIPBus">
+    <widget class="QWidget" name="rdiskControls" native="true">
+     <layout class="QGridLayout" name="gridLayout_2">
+      <item row="0" column="0">
+       <widget class="QLabel" name="labelRDiskBus">
         <property name="text">
          <string>Bus:</string>
         </property>
        </widget>
       </item>
-      <item>
-       <widget class="QComboBox" name="comboBoxZIPBus">
+      <item row="0" column="1">
+       <widget class="QComboBox" name="comboBoxRDiskBus">
         <property name="maxVisibleItems">
          <number>30</number>
         </property>
        </widget>
       </item>
-      <item>
-       <widget class="QLabel" name="labelZIPChannel">
+      <item row="0" column="2">
+       <widget class="QLabel" name="labelRDiskChannel">
         <property name="text">
          <string>Channel:</string>
         </property>
        </widget>
       </item>
-      <item>
-       <widget class="QComboBox" name="comboBoxZIPChannel">
+      <item row="0" column="3">
+       <widget class="QComboBox" name="comboBoxRDiskChannel">
         <property name="maxVisibleItems">
          <number>30</number>
         </property>
        </widget>
       </item>
-      <item>
-       <widget class="QCheckBox" name="checkBoxZIP250">
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelRDiskType">
         <property name="text">
-         <string>ZIP 250</string>
+         <string>Type:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1" colspan="3">
+       <widget class="QComboBox" name="comboBoxRDiskType">
+        <property name="maxVisibleItems">
+         <number>30</number>
         </property>
        </widget>
       </item>
@@ -193,6 +200,16 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>tableViewMO</tabstop>
+  <tabstop>comboBoxMOBus</tabstop>
+  <tabstop>comboBoxMOChannel</tabstop>
+  <tabstop>comboBoxMOType</tabstop>
+  <tabstop>tableViewRDisk</tabstop>
+  <tabstop>comboBoxRDiskBus</tabstop>
+  <tabstop>comboBoxRDiskChannel</tabstop>
+  <tabstop>comboBoxRDiskType</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

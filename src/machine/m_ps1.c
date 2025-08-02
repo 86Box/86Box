@@ -394,7 +394,7 @@ ps1_common_init(const machine_t *model)
     dma16_init();
     pic2_init();
 
-    device_add(&keyboard_ps2_ps1_device);
+    device_add(&kbc_ps2_ps1_device);
     device_add(&port_6x_device);
 
     /* Audio uses ports 200h and 202-207h, so only initialize gameport on 201h. */

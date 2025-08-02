@@ -50,9 +50,14 @@ public slots:
 private slots:
     void vmmSelectionChanged(const QModelIndex &currentSelection, QProcess::ProcessState processState) const;
     void preferencesTriggered();
-    static void checkForUpdatesTriggered();
+#if EMU_BUILD_NUM != 0
+    void checkForUpdatesTriggered();
+#endif
 
     void on_actionExit_triggered();
+    void on_actionDocumentation_triggered();
+    void on_actionAbout_86Box_triggered();
+    void on_actionAbout_Qt_triggered();
 
 protected:
     void closeEvent(QCloseEvent *event) override;

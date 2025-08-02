@@ -32,6 +32,7 @@
 #ifdef USE_CDROM_MITSUMI
 #include <86box/cdrom_mitsumi.h>
 #endif
+#include <86box/cdrom_mke.h>
 #include <86box/log.h>
 #include <86box/plat.h>
 #include <86box/plat_cdrom_ioctl.h>
@@ -121,8 +122,10 @@ static const struct {
     // clang-format off
     { &cdrom_interface_none_device  },
 #ifdef USE_CDROM_MITSUMI
-    { &mitsumi_cdrom_device },
+    { &mitsumi_cdrom_device         },
 #endif
+    { &mke_cdrom_noncreative_device },
+    { &mke_cdrom_device             },
     { NULL                          }
     // clang-format on
 };
@@ -295,7 +298,7 @@ msf_to_bcd(int *m, int *s, int *f)
 void
 cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, const uint8_t *data,
                         uint32_t major_count, uint32_t minor_count,
-                        uint32_t major_mult, uint32_t minor_inc)
+                        uint32_t major_mult, uint32_t minor_inc, int m2f1)
 {
     uint32_t size = major_count * minor_count;
 
@@ -307,6 +310,9 @@ cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, const uint8_t *data,
 
         for (uint32_t minor = 0; minor < minor_count; ++minor) {
             uint8_t temp = data[index];
+
+            if (m2f1 && (index < 4))
+                temp = 0x00;
 
             index += minor_inc;
 
@@ -323,14 +329,14 @@ cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, const uint8_t *data,
     }
 }
 
-extern void
-cdrom_generate_ecc_data(cdrom_t *dev, const uint8_t *data)
+static void
+cdrom_generate_ecc_data(cdrom_t *dev, const uint8_t *data, int m2f1)
 {
     /* Compute ECC P code. */
-    cdrom_compute_ecc_block(dev, dev->p_parity, data, 86, 24, 2, 86);
+    cdrom_compute_ecc_block(dev, dev->p_parity, data, 86, 24, 2, 86, m2f1);
 
     /* Compute ECC Q code. */
-    cdrom_compute_ecc_block(dev, dev->q_parity, data, 52, 43, 86, 88);
+    cdrom_compute_ecc_block(dev, dev->q_parity, data, 52, 43, 86, 88, m2f1);
 }
 
 static int
@@ -338,20 +344,22 @@ cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const 
 {
     int            ret = 1;
 
-    if (mode2 && (form == 1)) {
-        const uint32_t crc = cdrom_crc32(0xffffffff, b, 2072) ^ 0xffffffff;
+    if (!mode2 || (form != 1)) {
+        if (mode2 && (form == 1)) {
+            const uint32_t crc = cdrom_crc32(0xffffffff, &(b[16]), 2056) ^ 0xffffffff;
 
-        ret = ret && (crc == (*(uint32_t *) &(b[2072])));
-    } else if (!mode2) {
-        const uint32_t crc = cdrom_crc32(0xffffffff, b, 2064) ^ 0xffffffff;
+            ret = ret && (crc == (*(uint32_t *) &(b[2072])));
+        } else if (!mode2) {
+            const uint32_t crc = cdrom_crc32(0xffffffff, b, 2064) ^ 0xffffffff;
 
-        ret = ret && (crc == (*(uint32_t *) &(b[2064])));
+            ret = ret && (crc == (*(uint32_t *) &(b[2064])));
+        }
+
+        cdrom_generate_ecc_data(dev, &(b[12]), mode2 && (form == 1));
+
+        ret = ret && !memcmp(dev->p_parity, &(b[2076]), 172);
+        ret = ret && !memcmp(dev->q_parity, &(b[2248]), 104);
     }
-
-    cdrom_generate_ecc_data(dev, &(b[12]));
-
-    ret = ret && !memcmp(dev->p_parity, &(b[2076]), 172);
-    ret = ret && !memcmp(dev->q_parity, &(b[2248]), 104);
 
     return ret;
 }
@@ -379,7 +387,7 @@ read_data(cdrom_t *dev, const uint32_t lba, int check)
                 else if (dev->raw_buffer[dev->cur_buf ^ 1][0x0012] ==
                          dev->raw_buffer[dev->cur_buf ^ 1][0x0016])
                     form = ((dev->raw_buffer[dev->cur_buf ^ 1][0x0012] &
-                        0x20) >> 5) + 1;
+                            0x20) >> 5) + 1;
             } else if (dev->raw_buffer[dev->cur_buf ^ 1][0x000f] == 0x02)
                 dev->mode2 = 1;
 
@@ -1185,6 +1193,12 @@ cdrom_is_early(const int type)
 }
 
 int
+cdrom_is_dvd(const int type)
+{
+    return (cdrom_drive_types[type].is_dvd == 1);
+}
+
+int
 cdrom_is_generic(const int type)
 {
     return (cdrom_drive_types[type].speed == -1);
@@ -1233,6 +1247,26 @@ cdrom_get_type_count(void)
     }
 
     return count;
+}
+
+void
+cdrom_generate_name_mke(const int type, char *name)
+{
+    char  elements[2][512] = { 0 };
+
+    memcpy(elements[0], cdrom_drive_types[type].model,
+           strlen(cdrom_drive_types[type].model) + 1);
+    char *s = strstr(elements[0], "  ");
+    if (s != NULL)
+        s[0] = 0x00;
+
+    memcpy(elements[1], cdrom_drive_types[type].revision,
+           strlen(cdrom_drive_types[type].revision) + 1);
+    s = strstr(elements[1], " ");
+    if (s != NULL)
+        s[0] = 0x00;
+
+    sprintf(name, "%s%s", elements[0], elements[1]);
 }
 
 void
@@ -1673,7 +1707,7 @@ cdrom_audio_track_search(cdrom_t *dev, const uint32_t pos,
                     dev->seek_pos = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
                 else {
                     cdrom_log(dev->log, "Unable to get the starting position for "
-                              "track %08X\n", ismsf & 0xff);
+                              "track %08X\n", pos2 & 0xff);
                     cdrom_stop(dev);
                 }
                 break;
@@ -1791,7 +1825,7 @@ cdrom_audio_play_toshiba(cdrom_t *dev, const uint32_t pos, const int type)
                     dev->cd_end = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
                 else {
                     cdrom_log(dev->log, "Unable to get the starting position for "
-                              "track %08X\n", ismsf & 0xff);
+                              "track %08X\n", pos2 & 0xff);
                     cdrom_stop(dev);
                 }
                 break;
@@ -1824,7 +1858,7 @@ cdrom_audio_scan(cdrom_t *dev, const uint32_t pos)
     uint8_t       ret       = 0;
 
     if (dev->cd_status & CD_STATUS_HAS_AUDIO) {
-        cdrom_log(dev->log, "Audio Scan: MSF = %06x, type = %02x\n", pos, type);
+        cdrom_log(dev->log, "Audio Scan: MSF = %06x\n", pos);
 
         if (pos == 0xffffffff) {
             cdrom_log(dev->log, "(Type 0) Search from current position\n");
@@ -2093,9 +2127,10 @@ cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
     cdrom_get_current_subcodeq(dev, b);
 
     switch (dev->cd_status) {
-        default:                  case CD_STATUS_EMPTY:
-        case CD_STATUS_DATA_ONLY: case CD_STATUS_DVD:
-        case CD_STATUS_STOPPED:   case CD_STATUS_PLAYING_COMPLETED:
+        default:                     case CD_STATUS_EMPTY:
+        case CD_STATUS_DATA_ONLY:    case CD_STATUS_DVD:
+        case CD_STATUS_STOPPED:      case CD_STATUS_PLAYING_COMPLETED:
+        case CD_STATUS_DVD_REJECTED:
             ret = 0x03;
             break;
         case CD_STATUS_HOLD:
@@ -2444,7 +2479,7 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
         ecc_diff           = 0;
     }
 
-    if (dev->cd_status != CD_STATUS_EMPTY) {
+    if ((dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED)) {
         uint8_t *temp_b;
         uint8_t *b      = temp_b = buffer;
         int      audio  = 0;
@@ -2950,7 +2985,7 @@ cdrom_update_status(cdrom_t *dev)
     dev->cached_sector  = -1;
     dev->cdrom_capacity = dev->ops->get_last_block(dev->local);
 
-    if (dev->cd_status != CD_STATUS_EMPTY) {
+    if ((dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED)) {
         /* Signal media change to the emulated machine. */
         cdrom_insert(dev->id);
 
@@ -2992,9 +3027,14 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
 
         if ((dev->ops->is_empty != NULL) && dev->ops->is_empty(dev->local))
             dev->cd_status      = CD_STATUS_EMPTY;
-        else if (dev->ops->is_dvd(dev->local))
-            dev->cd_status      = CD_STATUS_DVD;
-        else
+        else if (dev->ops->is_dvd(dev->local)) {
+            if (cdrom_is_dvd(dev->type))
+                dev->cd_status      = CD_STATUS_DVD;
+            else {
+                warning("DVD image \"%s\" in a CD-only drive, reporting as empty\n", fn);
+                dev->cd_status      = CD_STATUS_DVD_REJECTED;
+            }
+        } else
             dev->cd_status      = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
                                                                     CD_STATUS_DATA_ONLY;
 
@@ -3008,7 +3048,7 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
     cdrom_toc_dump(dev);
 #endif
 
-    if (!skip_insert && (dev->cd_status != CD_STATUS_EMPTY)) {
+    if (!skip_insert && (dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED)) {
         /* Signal media change to the emulated machine. */
         cdrom_insert(dev->id);
 

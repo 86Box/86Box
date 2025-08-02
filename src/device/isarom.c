@@ -248,7 +248,7 @@ static const device_config_t isarom_config[] = {
     },
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0x00000,
@@ -557,7 +557,7 @@ static const device_config_t isarom_quad_config[] = {
 static const device_config_t lba_enhancer_config[] = {
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0xc8000,

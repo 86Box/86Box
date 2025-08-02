@@ -1391,10 +1391,10 @@ static const device_config_t ems5150_config[] = {
         .spinner        = { 0 },
         .selection      = {
             { .description = "Disabled", .value = 0x0000 },
-            { .description = "Board 1",  .value = 0x0208 },
-            { .description = "Board 2",  .value = 0x020a },
-            { .description = "Board 3",  .value = 0x020c },
-            { .description = "Board 4",  .value = 0x020e },
+            { .description = "208H",     .value = 0x0208 },
+            { .description = "20AH",     .value = 0x020a },
+            { .description = "20CH",     .value = 0x020c },
+            { .description = "20EH",     .value = 0x020e },
             { .description = ""                          }
         },
         .bios           = { { 0 } }

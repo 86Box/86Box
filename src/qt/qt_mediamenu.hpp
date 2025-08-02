@@ -17,7 +17,7 @@ public:
 
     void refresh(QMenu *parentMenu);
 
-    // because some 86box C-only code needs to call zip and
+    // because some 86box C-only code needs to call rdisk and
     // mo eject directly
     static std::shared_ptr<MediaMenu> ptr;
 
@@ -51,13 +51,13 @@ public:
     void clearImageHistory();
     void cdromUpdateMenu(int i);
 
-    void zipNewImage(int i);
-    void zipSelectImage(int i, bool wp);
-    void zipMount(int i, const QString &filename, bool wp);
-    void zipEject(int i);
-    void zipReloadPrev(int i);
-    void zipReload(int index, int slot);
-    void zipUpdateMenu(int i);
+    void rdiskNewImage(int i);
+    void rdiskSelectImage(int i, bool wp);
+    void rdiskMount(int i, const QString &filename, bool wp);
+    void rdiskEject(int i);
+    void rdiskReloadPrev(int i);
+    void rdiskReload(int index, int slot);
+    void rdiskUpdateMenu(int i);
 
     void moNewImage(int i);
     void moSelectImage(int i, bool wp);
@@ -84,7 +84,7 @@ private:
     QMap<int, QMenu *> cartridgeMenus;
     QMap<int, QMenu *> floppyMenus;
     QMap<int, QMenu *> cdromMenus;
-    QMap<int, QMenu *> zipMenus;
+    QMap<int, QMenu *> rdiskMenus;
     QMap<int, QMenu *> moMenus;
     QMap<int, QMenu *> netMenus;
 
@@ -111,8 +111,8 @@ private:
     int cdromEjectPos;
     int cdromImageHistoryPos[MAX_PREV_IMAGES];
 
-    int zipEjectPos;
-    int zipImageHistoryPos[MAX_PREV_IMAGES];
+    int rdiskEjectPos;
+    int rdiskImageHistoryPos[MAX_PREV_IMAGES];
 
     int moEjectPos;
     int moImageHistoryPos[MAX_PREV_IMAGES];

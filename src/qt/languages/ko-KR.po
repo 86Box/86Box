@@ -27,8 +27,11 @@ msgstr "Ctrl+Alt+Esc(&E)"
 msgid "&Pause"
 msgstr "일시정지(&P)"
 
-msgid "E&xit..."
-msgstr "끝내기(&X)..."
+msgid "Re&sume"
+msgstr ""
+
+msgid "E&xit"
+msgstr "끝내기(&X)"
 
 msgid "&View"
 msgstr "표시(&V)"
@@ -60,8 +63,8 @@ msgstr "OpenGL (3.0 Core)(&G)"
 msgid "&VNC"
 msgstr "VNC(&V)"
 
-msgid "Specify dimensions..."
-msgstr "창 크기 지정하기..."
+msgid "Specify &dimensions..."
+msgstr "창 크기 지정하기...(&D)"
 
 msgid "F&orce 4:3 display ratio"
 msgstr "화면 비율을 4:3으로 맞추기(&O)"
@@ -99,8 +102,8 @@ msgstr "7배(&7)"
 msgid "&8x"
 msgstr "8배(&8)"
 
-msgid "Filter method"
-msgstr "필터 형식"
+msgid "Fi&lter method"
+msgstr "필터 형식(&L)"
 
 msgid "&Nearest"
 msgstr "최근방 이웃 보간법(&N)"
@@ -144,8 +147,14 @@ msgstr "VGA 화면 종류(&T)"
 msgid "RGB &Color"
 msgstr "RGB 천연색(&C)"
 
+msgid "RGB (no brown)"
+msgstr ""
+
 msgid "&RGB Grayscale"
 msgstr "RGB 회색조(&R)"
+
+msgid "Generic RGBI color monitor"
+msgstr ""
 
 msgid "&Amber monitor"
 msgstr "주황색 모니터(&A)"
@@ -384,10 +393,19 @@ msgstr "사용 (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "동적 재컴파일"
 
+msgid "CPU frame size"
+msgstr ""
+
+msgid "Larger frames (less smooth)"
+msgstr ""
+
+msgid "Smaller frames (smoother)"
+msgstr ""
+
 msgid "Video:"
 msgstr "비디오 카드:"
 
-msgid "Video 2:"
+msgid "Video #2:"
 msgstr "비디오 카드 2:"
 
 msgid "Voodoo 1 or 2 Graphics"
@@ -398,6 +416,9 @@ msgstr "IBM 8514/A 그래픽"
 
 msgid "XGA Graphics"
 msgstr "XGA 그래픽"
+
+msgid "Keyboard:"
+msgstr ""
 
 msgid "Mouse:"
 msgstr "마우스:"
@@ -498,17 +519,20 @@ msgstr "병렬 포트 3"
 msgid "Parallel port 4"
 msgstr "병렬 포트 4"
 
-msgid "HD Controller:"
-msgstr "HD 컨트롤러:"
-
 msgid "FD Controller:"
 msgstr "FD 컨트롤러:"
+
+msgid "CD-ROM Controller:"
+msgstr ""
 
 msgid "Tertiary IDE Controller"
 msgstr "제3의 IDE 컨트롤러"
 
 msgid "Quaternary IDE Controller"
 msgstr "제4의 IDE 컨트롤러"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -530,6 +554,9 @@ msgstr "카세트 테이프"
 
 msgid "Hard disks:"
 msgstr "하드 디스크:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "새로 만들기(&N)..."
@@ -588,8 +615,8 @@ msgstr "CD-ROM 드라이브:"
 msgid "MO drives:"
 msgstr "광자기 드라이브:"
 
-msgid "ZIP drives:"
-msgstr "ZIP 드라이브:"
+msgid "Removable disk drives:"
+msgstr ""
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +626,9 @@ msgstr "ISA RTC 카드:"
 
 msgid "ISA Memory Expansion"
 msgstr "ISA 메모리 확장 카드"
+
+msgid "ISA ROM Cards"
+msgstr ""
 
 msgid "Card 1:"
 msgstr "카드 1:"
@@ -611,6 +641,15 @@ msgstr "카드 3:"
 
 msgid "Card 4:"
 msgstr "카드 4:"
+
+msgid "Generic ISA ROM Board"
+msgstr ""
+
+msgid "Generic Dual ISA ROM Board"
+msgstr ""
+
+msgid "Generic Quad ISA ROM Board"
+msgstr ""
 
 msgid "ISABugger device"
 msgstr "ISABugger 장치"
@@ -633,11 +672,17 @@ msgstr " - 일시 중지됨"
 msgid "Speed"
 msgstr "속도"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr ""
 
-msgid "ZIP images"
-msgstr "ZIP 이미지"
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
+msgid "Removable disk images"
+msgstr ""
+
+msgid "Image %1"
+msgstr ""
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box에서 사용 가능한 ROM 이미지를 찾을 수 없습니다.\n\nROM 세트를<a href=\"https://github.com/86Box/roms/releases/latest\">다운로드</a> 후 \"roms\" 디렉토리에 압축을 풀어 주세요."
@@ -777,11 +822,38 @@ msgstr "4축, 4버튼 조이스틱"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr ""
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr ""
+
+msgid "2-button gamepad(s)"
+msgstr ""
+
+msgid "2-button flight yoke"
+msgstr ""
+
+msgid "4-button gamepad"
+msgstr ""
+
+msgid "4-button flight yoke"
+msgstr ""
+
+msgid "2-button flight yoke with throttle"
+msgstr ""
+
+msgid "4-button flight yoke with throttle"
+msgstr ""
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr ""
 
 msgid "None"
 msgstr "없음"
@@ -791,6 +863,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
 msgstr "플로피 %1 (%2): %3"
+
+msgid "&Floppy %1 (%2): %3"
+msgstr "플로피 %1 (%2): %3(&F)"
 
 msgid "Advanced sector images"
 msgstr "어드밴스드 섹터 이미지"
@@ -812,6 +887,9 @@ msgstr "GhostPCL를 초기화할 수 없습니다"
 
 msgid "MO %1 (%2): %3"
 msgstr "광자기 %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "광자기 %1 (%2): %3(&M)"
 
 msgid "MO images"
 msgstr "광자기 이미지"
@@ -897,11 +975,17 @@ msgstr "계속"
 msgid "Cassette: %1"
 msgstr "카세트: %1"
 
+msgid "C&assette: %1"
+msgstr "카세트: %1(&A)"
+
 msgid "Cassette images"
 msgstr "카세트 이미지"
 
 msgid "Cartridge %1: %2"
 msgstr "카트리지 %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "카트리지 %1: %2(&T)"
 
 msgid "Cartridge images"
 msgstr "카트리지 이미지"
@@ -923,6 +1007,9 @@ msgstr "재시작"
 
 msgid "ACPI shutdown"
 msgstr "ACPI 종료"
+
+msgid "ACP&I shutdown"
+msgstr "ACP&I 종료"
 
 msgid "Hard disk (%1)"
 msgstr "하드 디스크 (%1)"
@@ -1209,41 +1296,41 @@ msgstr "MCA 장치"
 msgid "List of MCA devices:"
 msgstr "MCA 장치 목록:"
 
-msgid "Tablet tool"
-msgstr "태블릿 도구"
+msgid "&Tablet tool"
+msgstr "태블릿 도구(&T)"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt(OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Qt 소개"
+msgid "About &Qt"
+msgstr "&Qt 소개"
 
-msgid "MCA devices..."
-msgstr "MCA 장치..."
+msgid "&MCA devices..."
+msgstr "&MCA 장치..."
 
-msgid "Show non-primary monitors"
-msgstr "기본 모니터가 아닌 모니터 표시"
+msgid "Show non-&primary monitors"
+msgstr "기본 모니터가 아닌 모니터 표시(&P)"
 
-msgid "Open screenshots folder..."
-msgstr "스크린샷 폴더 열기..."
+msgid "Open screenshots &folder..."
+msgstr "스크린샷 폴더 열기...(&F)"
 
-msgid "Apply fullscreen stretch mode when maximized"
-msgstr "최대화 시 전체 화면 비율 적용"
+msgid "Appl&y fullscreen stretch mode when maximized"
+msgstr "최대화 시 전체 화면 비율 적용(&Y)"
 
-msgid "Cursor/Puck"
-msgstr "커서/퍽"
+msgid "&Cursor/Puck"
+msgstr "커서/퍽(&P)"
 
-msgid "Pen"
-msgstr "펜"
+msgid "&Pen"
+msgstr "펜(&P)"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "호스트 CD/DVD 드라이브(%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "호스트 CD/DVD 드라이브(%1:) (&H)"
 
 msgid "&Connected"
 msgstr "&커넥티드"
 
-msgid "Clear image history"
-msgstr "이미지 기록 지우기"
+msgid "Clear image &history"
+msgstr "이미지 기록 지우기(&H)"
 
 msgid "Create..."
 msgstr "만들기..."
@@ -1259,6 +1346,9 @@ msgstr "Null 드라이버"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "렌더링 동작"
@@ -1365,8 +1455,26 @@ msgstr "직렬 포트 패스스루 3"
 msgid "Serial port passthrough 4"
 msgstr "직렬 포트 패스스루 4"
 
-msgid "Renderer options..."
-msgstr "렌더러 옵션..."
+msgid "Renderer &options..."
+msgstr "렌더러 옵션...(&O)"
+
+msgid "PC/XT Keyboard"
+msgstr ""
+
+msgid "AT Keyboard"
+msgstr ""
+
+msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard"
+msgstr ""
+
+msgid "PS/55 Keyboard"
+msgstr ""
+
+msgid "Keys"
+msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "로지텍/마이크로소프트 버스 마우스"
@@ -1377,8 +1485,14 @@ msgstr "마이크로소프트 버스 마우스(인포트)"
 msgid "Mouse Systems Serial Mouse"
 msgstr "마우스 시스템 시리얼 마우스"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr ""
+
 msgid "Microsoft Serial Mouse"
 msgstr "마이크로소프트 직렬 마우스"
+
+msgid "Microsoft Serial BallPoint"
+msgstr ""
 
 msgid "Logitech Serial Mouse"
 msgstr "로지텍 직렬 마우스"
@@ -1386,8 +1500,14 @@ msgstr "로지텍 직렬 마우스"
 msgid "PS/2 Mouse"
 msgstr "PS/2 마우스"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M 마이크로터치(직렬)"
+
+msgid "Default Baud rate"
+msgstr ""
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] 표준 헤이즈 호환 모뎀"
@@ -1413,11 +1533,53 @@ msgstr "시스템 미디"
 msgid "MIDI Input Device"
 msgstr "미디 입력 장치"
 
-msgid "BIOS Address"
+msgid "BIOS file"
+msgstr ""
+
+msgid "BIOS file (ROM #1)"
+msgstr ""
+
+msgid "BIOS file (ROM #2)"
+msgstr ""
+
+msgid "BIOS file (ROM #3)"
+msgstr ""
+
+msgid "BIOS file (ROM #4)"
+msgstr ""
+
+msgid "BIOS address"
 msgstr "BIOS 주소"
+
+msgid "BIOS address (ROM #1)"
+msgstr ""
+
+msgid "BIOS address (ROM #2)"
+msgstr ""
+
+msgid "BIOS address (ROM #3)"
+msgstr ""
+
+msgid "BIOS address (ROM #4)"
+msgstr ""
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "BIOS 확장 ROM 쓰기 활성화"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr ""
+
+msgid "Linear framebuffer base"
+msgstr ""
 
 msgid "Address"
 msgstr "주소"
@@ -1427,6 +1589,18 @@ msgstr "IRQ"
 
 msgid "BIOS Revision"
 msgstr "BIOS 개정"
+
+msgid "BIOS Version"
+msgstr ""
+
+msgid "BIOS Language"
+msgstr ""
+
+msgid "IBM 5161 Expansion Unit"
+msgstr ""
+
+msgid "IBM Cassette Basic"
+msgstr ""
 
 msgid "Translate 26 -> 17"
 msgstr "번역 26 -> 17"
@@ -1442,6 +1616,18 @@ msgstr "색상 반전"
 
 msgid "BIOS size"
 msgstr "BIOS 크기"
+
+msgid "BIOS size (ROM #1)"
+msgstr ""
+
+msgid "BIOS size (ROM #2)"
+msgstr ""
+
+msgid "BIOS size (ROM #3)"
+msgstr ""
+
+msgid "BIOS size (ROM #4)"
+msgstr ""
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "C0000-C7FFF를 UMB로 매핑하기"
@@ -1517,6 +1703,9 @@ msgstr "리버브 레벨"
 
 msgid "Interpolation Method"
 msgstr "보간 방법"
+
+msgid "Dynamic Sample Loading"
+msgstr ""
 
 msgid "Reverb Output Gain"
 msgstr "리버브 출력의 게인"
@@ -1605,6 +1794,12 @@ msgstr "낮은 DMA"
 msgid "Enable Game port"
 msgstr "게임 포트 사용"
 
+msgid "SID Model"
+msgstr ""
+
+msgid "SID Filter Strength"
+msgstr ""
+
 msgid "Surround module"
 msgstr "서라운드 모듈"
 
@@ -1616,6 +1811,9 @@ msgstr "코덱 설정 시 코덱 인터럽트 올리기(일부 드라이버에 �
 
 msgid "SB Address"
 msgstr "SB 주소"
+
+msgid "Use EEPROM setting"
+msgstr ""
 
 msgid "WSS IRQ"
 msgstr "WSS IRQ"
@@ -1701,8 +1899,14 @@ msgstr "램닥 유형"
 msgid "Blend"
 msgstr "블렌드"
 
+msgid "Font"
+msgstr ""
+
 msgid "Bilinear filtering"
 msgstr "이중선형 필터링"
+
+msgid "Video chroma-keying"
+msgstr ""
 
 msgid "Dithering"
 msgstr "디더링"
@@ -1746,6 +1950,33 @@ msgstr "전송 속도"
 msgid "EMS mode"
 msgstr "EMS 모드"
 
+msgid "EMS Address"
+msgstr ""
+
+msgid "EMS 1 Address"
+msgstr ""
+
+msgid "EMS 2 Address"
+msgstr ""
+
+msgid "EMS Memory Size"
+msgstr ""
+
+msgid "EMS 1 Memory Size"
+msgstr ""
+
+msgid "EMS 2 Memory Size"
+msgstr ""
+
+msgid "Enable EMS"
+msgstr ""
+
+msgid "Enable EMS 1"
+msgstr ""
+
+msgid "Enable EMS 2"
+msgstr ""
+
 msgid "Address for > 2 MB"
 msgstr "2MB 이상의 주소"
 
@@ -1764,11 +1995,11 @@ msgstr "항상 선택한 속도로"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "BIOS 설정 + 핫키(POST 중 꺼짐)"
 
-msgid "64 kB starting from F0000"
-msgstr "64kB부터 F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB부터 F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "E0000에서 시작하는 128kB(주소 MSB 반전, 마지막 64KB 먼저)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "E0000에서 시작하는 128KB(주소 MSB 반전, 마지막 64 KB 먼저)"
 
 msgid "Sine"
 msgstr "사인"
@@ -1902,6 +2133,15 @@ msgstr "sRGB 보간"
 msgid "Linear interpolation"
 msgstr "선형 보간"
 
+msgid "Has secondary 8x8 character set"
+msgstr ""
+
+msgid "Has Quadcolor II daughter board"
+msgstr ""
+
+msgid "Alternate monochrome contrast"
+msgstr ""
+
 msgid "128 KB"
 msgstr "128 KB"
 
@@ -1935,6 +2175,9 @@ msgstr "Amber"
 msgid "Gray"
 msgstr "회색"
 
+msgid "Grayscale"
+msgstr ""
+
 msgid "Color"
 msgstr "색상"
 
@@ -1949,6 +2192,12 @@ msgstr "기타 언어"
 
 msgid "Bochs latest"
 msgstr "Bochs 최신 정보"
+
+msgid "Apply overscan deltas"
+msgstr ""
+
+msgid "Mono Interlaced"
+msgstr ""
 
 msgid "Mono Non-Interlaced"
 msgstr "모노 비인터레이스"
@@ -2031,6 +2280,9 @@ msgstr "통과 속도"
 msgid "Named Pipe (Server)"
 msgstr "네임드 파이프(서버)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "호스트 직렬 포트 패스스루"
 
@@ -2075,6 +2327,12 @@ msgstr "IBM 8514/A 클론(ISA)"
 
 msgid "Vendor"
 msgstr "제조사"
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr ""
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr ""
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "일반 PC/XT 메모리 확장 카드"
@@ -2147,3 +2405,72 @@ msgstr ""
 
 msgid "Could not load file %1"
 msgstr ""
+
+msgid "Key Bindings:"
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "Clear binding"
+msgstr ""
+
+msgid "Bind"
+msgstr ""
+
+msgid "Bind Key"
+msgstr ""
+
+msgid "Enter key combo:"
+msgstr ""
+
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
+msgstr ""
+
+msgid "Send Control+Alt+Del"
+msgstr ""
+
+msgid "Send Control+Alt+Escape"
+msgstr ""
+
+msgid "Toggle fullscreen"
+msgstr ""
+
+msgid "Screenshot"
+msgstr ""
+
+msgid "Release mouse pointer"
+msgstr ""
+
+msgid "Toggle pause"
+msgstr ""
+
+msgid "Toggle mute"
+msgstr ""
+
+msgid "Text files"
+msgstr ""
+
+msgid "ROM files"
+msgstr ""
+
+msgid "SoundFont files"
+msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "HD 컨트롤러:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIP 드라이브:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "ZIP 이미지"

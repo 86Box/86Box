@@ -50,7 +50,7 @@ extern "C" {
 #include <86box/cartridge.h>
 #include <86box/cassette.h>
 #include <86box/cdrom.h>
-#include <86box/zip.h>
+#include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/hdd.h>
 #include <86box/thread.h>
@@ -278,8 +278,8 @@ ui_sb_update_icon_wp(int tag, int state)
         case SB_FLOPPY:
             machine_status.fdd[item].write_prot = state > 0 ? true : false;
             break;
-        case SB_ZIP:
-            machine_status.zip[item].write_prot = state > 0 ? true : false;
+        case SB_RDISK:
+            machine_status.rdisk[item].write_prot = state > 0 ? true : false;
             break;
         case SB_MO:
             machine_status.mo[item].write_prot = state > 0 ? true : false;
@@ -312,8 +312,8 @@ ui_sb_update_icon_state(int tag, int state)
         case SB_CDROM:
             machine_status.cdrom[item].empty = state > 0 ? true : false;
             break;
-        case SB_ZIP:
-            machine_status.zip[item].empty = state > 0 ? true : false;
+        case SB_RDISK:
+            machine_status.rdisk[item].empty = state > 0 ? true : false;
             break;
         case SB_MO:
             machine_status.mo[item].empty = state > 0 ? true : false;
@@ -350,8 +350,8 @@ ui_sb_update_icon(int tag, int active)
         case SB_CDROM:
             machine_status.cdrom[item].active = active > 0 ? true : false;
             break;
-        case SB_ZIP:
-            machine_status.zip[item].active = active > 0 ? true : false;
+        case SB_RDISK:
+            machine_status.rdisk[item].active = active > 0 ? true : false;
             break;
         case SB_MO:
             machine_status.mo[item].active = active > 0 ? true : false;
@@ -386,8 +386,8 @@ ui_sb_update_icon_write(int tag, int write)
         case SB_CDROM:
             machine_status.cdrom[item].write_active = write > 0 ? true : false;
             break;
-        case SB_ZIP:
-            machine_status.zip[item].write_active = write > 0 ? true : false;
+        case SB_RDISK:
+            machine_status.rdisk[item].write_active = write > 0 ? true : false;
             break;
         case SB_MO:
             machine_status.mo[item].write_active = write > 0 ? true : false;

@@ -117,7 +117,7 @@ machine_zenith_init(const machine_t *model)
 
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
-    device_add(&keyboard_xt_zenith_device);
+    device_add(&kbc_xt_zenith_device);
 
     nmi_init();
 }

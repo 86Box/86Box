@@ -38,6 +38,7 @@ add_library(dev OBJECT
     isapnp.c
     kbc_at.c
     kbc_at_dev.c
+    kbc_xt.c
     keyboard.c
     keyboard_at.c
     keyboard_xt.c

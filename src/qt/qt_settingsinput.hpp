@@ -26,6 +26,9 @@ public slots:
     void onCurrentMachineChanged(int machineId);
 
 private slots:
+    void on_comboBoxKeyboard_currentIndexChanged(int index);
+    void on_pushButtonConfigureKeyboard_clicked();
+
     void on_comboBoxMouse_currentIndexChanged(int index);
     void on_pushButtonConfigureMouse_clicked();
 

@@ -110,11 +110,11 @@ static const device_config_t xi8088_config[] = {
         .type = CONFIG_SELECTION,
         .selection = {
             {
-                .description = "64 kB starting from F0000",
+                .description = "64 KB starting from F0000",
                 .value = 0
             },
             {
-                .description = "128 kB starting from E0000 (address MSB inverted, last 64KB first)",
+                .description = "128 KB starting from E0000 (address MSB inverted, last 64 KB first)",
                 .value = 1
             }
         },
@@ -204,7 +204,7 @@ machine_xt_xi8088_init(const machine_t *model)
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&keyboard_ps2_xi8088_device);
+    device_add(&kbc_ps2_xi8088_device);
     device_add(&port_6x_xi8088_device);
     nmi_init();
     device_add(&ibmat_nvr_device);

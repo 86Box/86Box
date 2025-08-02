@@ -88,7 +88,7 @@
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_interface.h>
-#include <86box/zip.h>
+#include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/scsi_disk.h>
 #include <86box/cdrom_image.h>
@@ -1056,47 +1056,50 @@ usage:
         vmm_enabled = 1;
         pclog("# VM Manager enabled. Path: %s\n", vmm_path);
     }
-    /*
-     * We are about to read the configuration file, which MAY
-     * put data into global variables (the hard- and floppy
-     * disks are an example) so we have to initialize those
-     * modules before we load the config..
-     */
-    hdd_init();
-    network_init();
-    mouse_init();
-    cdrom_global_init();
-    zip_global_init();
-    mo_global_init();
 
-    /* Initialize the keyboard accelerator list with default values */
-    for (int x = 0; x < NUM_ACCELS; x++) {
-        strcpy(acc_keys[x].name, def_acc_keys[x].name);
-        strcpy(acc_keys[x].desc, def_acc_keys[x].desc);
-        strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
-    }
+    if (!vmm_enabled) {
+        /*
+         * We are about to read the configuration file, which MAY
+         * put data into global variables (the hard- and floppy
+         * disks are an example) so we have to initialize those
+         * modules before we load the config..
+         */
+        hdd_init();
+        network_init();
+        mouse_init();
+        cdrom_global_init();
+        rdisk_global_init();
+        mo_global_init();
 
-    /* Load the configuration file. */
-    config_load();
+        /* Initialize the keyboard accelerator list with default values */
+        for (int x = 0; x < NUM_ACCELS; x++) {
+            strcpy(acc_keys[x].name, def_acc_keys[x].name);
+            strcpy(acc_keys[x].desc, def_acc_keys[x].desc);
+            strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
+        }
 
-    /* Clear the CMOS and/or BIOS flash file, if we were started with
-       the relevant parameter(s). */
-    if (clear_cmos) {
-        delete_nvr_file(0);
-        clear_cmos = 0;
-    }
+        /* Load the configuration file. */
+        config_load();
 
-    if (clear_flash) {
-        delete_nvr_file(1);
-        clear_flash = 0;
-    }
+        /* Clear the CMOS and/or BIOS flash file, if we were started with
+           the relevant parameter(s). */
+        if (clear_cmos) {
+            delete_nvr_file(0);
+            clear_cmos = 0;
+        }
 
-    for (uint8_t i = 0; i < FDD_NUM; i++) {
-        if (fn[i] != NULL) {
-            if (strlen(fn[i]) <= 511)
-                strncpy(floppyfns[i], fn[i], 511);
-            free(fn[i]);
-            fn[i] = NULL;
+        if (clear_flash) {
+            delete_nvr_file(1);
+            clear_flash = 0;
+        }
+
+        for (uint8_t i = 0; i < FDD_NUM; i++) {
+            if (fn[i] != NULL) {
+                if (strlen(fn[i]) <= 511)
+                    strncpy(floppyfns[i], fn[i], 511);
+                free(fn[i]);
+                fn[i] = NULL;
+            }
         }
     }
 
@@ -1395,7 +1398,7 @@ pc_reset_hard_close(void)
 
     cdrom_close();
 
-    zip_close();
+    rdisk_close();
 
     mo_close();
 
@@ -1446,6 +1449,8 @@ pc_reset_hard_init(void)
     scsi_reset();
     scsi_device_init();
 
+    ide_hard_reset();
+
     /* Initialize the actual machine and its basic modules. */
     machine_init();
 
@@ -1489,9 +1494,6 @@ pc_reset_hard_init(void)
 
     fdd_reset();
 
-    /* Reset the CD-ROM Controller module. */
-    cdrom_interface_reset();
-
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
@@ -1499,9 +1501,12 @@ pc_reset_hard_init(void)
 
     cdrom_hard_reset();
 
+    /* Reset the CD-ROM Controller module. */
+    cdrom_interface_reset();
+
     mo_hard_reset();
 
-    zip_hard_reset();
+    rdisk_hard_reset();
 
 
     /* Reset any ISA ROM cards. */
@@ -1664,7 +1669,7 @@ pc_close(UNUSED(thread_t *ptr))
 
     cdrom_close();
 
-    zip_close();
+    rdisk_close();
 
     mo_close();
 

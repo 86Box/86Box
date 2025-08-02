@@ -109,7 +109,7 @@ machine_at_kn97_init(const machine_t *model)
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&w83877f_device);
     device_add(&intel_flash_bxt_device);
     device_add(&lm78_device); /* fans: Chassis, CPU, Power; temperature: MB */
@@ -142,7 +142,7 @@ machine_at_lx6_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440lx_device);
     device_add(&piix4e_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83977tf_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
@@ -244,7 +244,7 @@ machine_at_ma30d_init(const machine_t *model)
     device_add(&i440lx_device);
     device_add(&piix4e_device);
     device_add(&nec_mate_unk_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&fdc37c67x_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
@@ -273,7 +273,7 @@ machine_at_p6i440e2_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 3, 4);
     device_add(&i440ex_device);
     device_add(&piix4_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83977tf_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x03, 256);
@@ -309,7 +309,7 @@ machine_at_p2bls_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83977ef_device);
 #if 0
     device_add(ics9xxx_get(ICS9150_08)); /* setting proper speeds requires some interaction with the AS97127F ASIC */
@@ -346,7 +346,7 @@ machine_at_lgibmx7g_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83977tf_device);
     device_add(&winbond_flash_w29c020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
@@ -379,7 +379,7 @@ machine_at_p3bf_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83977ef_device);
     device_add(ics9xxx_get(ICS9250_08));
     device_add(&sst_flash_39sf020_device);
@@ -416,7 +416,7 @@ machine_at_bf6_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
@@ -447,7 +447,7 @@ machine_at_bx6_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&w83977f_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
@@ -479,7 +479,7 @@ machine_at_ax6bc_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83977tf_device);
     device_add(&sst_flash_29ee020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
@@ -511,7 +511,7 @@ machine_at_atc6310bxii_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&slc90e66_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
@@ -542,7 +542,7 @@ machine_at_686bx_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83977tf_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
@@ -582,7 +582,7 @@ machine_at_p6sba_init(const machine_t *model)
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add(&w83977tf_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
     device_add(&w83781d_device);    /* fans: CPU1, CPU2, Thermal Control; temperatures: unused, CPU1, CPU2? */
@@ -655,7 +655,7 @@ machine_at_ficka6130_init(const machine_t *model)
     device_add(&via_apro_device);
     device_add(&via_vt82c596a_device);
     device_add(&w83877tf_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&sst_flash_29ee020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
@@ -688,7 +688,7 @@ machine_at_p3v133_init(const machine_t *model)
     device_add(&via_apro133_device);
     device_add(&via_vt82c596b_device);
     device_add(&w83977ef_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(ics9xxx_get(ICS9248_39));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
@@ -725,7 +725,7 @@ machine_at_p3v4x_init(const machine_t *model)
     device_add(&via_apro133a_device);
     device_add(&via_vt82c596b_device);
     device_add(&w83977ef_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(ics9xxx_get(ICS9250_18));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 512);
@@ -758,7 +758,7 @@ machine_at_gt694va_init(const machine_t *model)
     device_add(&via_apro133a_device);
     device_add(&via_vt82c596b_device);
     device_add(&w83977ef_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
     device_add(&w83782d_device);       /* fans: CPU, unused, unused; temperatures: System, CPU1, unused */
@@ -796,10 +796,10 @@ machine_at_vei8_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
-    device_add(&i440bx_device);
+    device_add(&i440zx_device);
     device_add(&piix4e_device);
     device_add(&fdc37m60x_370_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(ics9xxx_get(ICS9250_08));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 512);
@@ -828,7 +828,7 @@ machine_at_ms6168_common_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&voodoo_3_2000_agp_onboard_8m_device);
 
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
@@ -924,7 +924,7 @@ machine_at_p6f99_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   0, 0, 0, 0);
     device_add(&sis_5600_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&it8661f_device);
     device_add(&winbond_flash_w29c020_device);
 
@@ -957,7 +957,7 @@ machine_at_m747_init(const machine_t *model)
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   0, 0, 0, 0);
     device_add(&sis_5600_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&it8661f_device);
     device_add(&winbond_flash_w29c020_device);
 

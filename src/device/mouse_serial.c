@@ -480,7 +480,7 @@ ltsermouse_update_report_period(mouse_t *dev)
 }
 
 static void
-ltsermouse_switch_baud_rate(mouse_t *dev, int next_state)
+ltsermouse_switch_baud_rate(mouse_t *dev, int next_state, int prompt_off)
 {
     double word_lens[FORMATS_NUM] = {
         [FORMAT_BP1_ABS]   = 7.0 + 1.0, /* 7 data bits + even parity */
@@ -517,7 +517,7 @@ ltsermouse_switch_baud_rate(mouse_t *dev, int next_state)
     ltsermouse_set_report_period(dev, dev->rps);
 
     if (!dev->continuous && (next_state != STATE_BAUD_RATE)) {
-        if (dev->prompt)
+        if (dev->prompt && prompt_off)
             ltsermouse_set_prompt_mode(dev, 0);
 
         sermouse_transmit_report(dev, 0);
@@ -569,7 +569,7 @@ ltsermouse_process_command(mouse_t *dev)
             dev->buf[0] = 0x06;
             sermouse_transmit(dev, 1, 0, 0);
 
-            ltsermouse_switch_baud_rate(dev, STATE_BAUD_RATE);
+            ltsermouse_switch_baud_rate(dev, STATE_BAUD_RATE, 0);
             break;
 
         case 0x4a: /* Report Rate Selection commands */
@@ -614,7 +614,7 @@ ltsermouse_process_command(mouse_t *dev)
         case 0x58: /* Microsoft Compatible Format (3+1 byte 3-button, from the FreeBSD source code) */
             if ((dev->rev >= 0x02) && ((dev->command != 0x58) || (dev->rev > 0x04))) {
                 dev->format = dev->command & 0x1f;
-                ltsermouse_switch_baud_rate(dev, sermouse_next_state(dev));
+                ltsermouse_switch_baud_rate(dev, sermouse_next_state(dev), 0);
             }
             break;
 
@@ -706,7 +706,7 @@ ltsermouse_process_data(mouse_t *dev)
                     dev->bps = 9600;
                     break;
             }
-            ltsermouse_switch_baud_rate(dev, (dev->prompt || dev->continuous) ? STATE_IDLE : STATE_TRANSMIT_REPORT);
+            ltsermouse_switch_baud_rate(dev, (dev->prompt || dev->continuous) ? STATE_IDLE : STATE_TRANSMIT_REPORT, 0);
             break;
         default:
             dev->state = STATE_IDLE;
@@ -744,7 +744,7 @@ sermouse_reset(mouse_t *dev, int callback)
                 break;
         }
 
-    ltsermouse_switch_baud_rate(dev, callback ? STATE_TRANSMIT : STATE_IDLE);
+    ltsermouse_switch_baud_rate(dev, callback ? STATE_TRANSMIT : STATE_IDLE, 1);
 }
 
 static void

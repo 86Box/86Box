@@ -46,7 +46,10 @@ enum class Name {
     Disks,
     Floppy,
     CD,
+    RDisk,
+    MO,
     SCSIController,
+    StorageController,
     MidiOut,
     Joystick,
     Serial,
@@ -54,7 +57,11 @@ enum class Name {
     Audio,
     Voodoo,
     NIC,
+    Keyboard,
     Mouse,
+    IsaRtc,
+    IsaMem,
+    IsaRom,
     Unknown
 };
 Q_ENUM_NS(Name)
@@ -148,6 +155,7 @@ signals:
     void windowStatusChanged();
     void itemDataChanged();
     void clientProcessStatusChanged();
+    void configurationChanged(const QString &uuid);
 
 private:
     void loadSettings();
@@ -188,6 +196,7 @@ private:
     void dataReceived();
     void windowStatusChangeReceived(int status);
     void runningStatusChangeReceived(VMManagerProtocol::RunningState state);
+    void configurationChangeReceived();
     void processStatusChanged();
     void statusRefresh();
 };

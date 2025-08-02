@@ -62,11 +62,14 @@ VMManagerAddMachine(QWidget *parent) : QWizard(parent)
     setOption(HaveHelpButton, false);
     // setPixmap(LogoPixmap, QPixmap(":/settings/qt/icons/86Box-gray.ico"));
 
+#if 0
     connect(this, &QWizard::helpRequested, this, &VMManagerAddMachine::showHelp);
+#endif
 
     setWindowTitle(tr("Add new system wizard"));
 }
 
+#if 0
 void
 VMManagerAddMachine::showHelp()
 {
@@ -92,6 +95,7 @@ VMManagerAddMachine::showHelp()
     QMessageBox::information(this, tr("Add new system wizard help"), message);
     lastHelpMessage = message;
 }
+#endif
 
 IntroPage::
 IntroPage(QWidget *parent)
@@ -139,6 +143,17 @@ WithExistingConfigPage(QWidget *parent)
     topLabel->setWordWrap(true);
 
     existingConfiguration = new QPlainTextEdit();
+    const auto monospaceFont = new QFont();
+#ifdef Q_OS_WINDOWS
+    monospaceFont->setFamily("Consolas");
+#elif defined(Q_OS_MACOS)
+    monospaceFont->setFamily("Menlo");
+#else
+    monospaceFont->setFamily("Monospace");
+#endif
+    monospaceFont->setStyleHint(QFont::Monospace);
+    monospaceFont->setFixedPitch(true);
+    existingConfiguration->setFont(*monospaceFont);
     connect(existingConfiguration, &QPlainTextEdit::textChanged, this, &WithExistingConfigPage::completeChanged);
     registerField("existingConfiguration*", this, "configuration");
 

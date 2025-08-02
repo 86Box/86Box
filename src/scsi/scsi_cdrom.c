@@ -1048,7 +1048,7 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
 
     dev->sectors_num   = 0;
 
-    if (dev->drv->cd_status == CD_STATUS_EMPTY)
+    if ((dev->drv->cd_status == CD_STATUS_EMPTY) || (dev->drv->cd_status == CD_STATUS_DVD_REJECTED))
         scsi_cdrom_not_ready(dev);
     else if (dev->sector_pos > dev->drv->cdrom_capacity) {
         scsi_cdrom_lba_out_of_range(dev);
@@ -1242,10 +1242,10 @@ scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, const uint8_t *cdb)
             if (!(scsi_cdrom_command_flags[cdb[0]] & ALLOW_UA))
                 scsi_cdrom_insert((void *) dev);
 
-            ready = (dev->drv->cd_status != CD_STATUS_EMPTY);
+            ready = (dev->drv->cd_status != CD_STATUS_EMPTY) && (dev->drv->cd_status != CD_STATUS_DVD_REJECTED);
         }
     } else
-        ready = (dev->drv->cd_status != CD_STATUS_EMPTY);
+        ready = (dev->drv->cd_status != CD_STATUS_EMPTY) && (dev->drv->cd_status != CD_STATUS_DVD_REJECTED);
 
 skip_ready_check:
     /*
@@ -1325,9 +1325,17 @@ scsi_cdrom_update_sector_flags(scsi_cdrom_t *dev)
             dev->sector_type  = 0x08 | ((2048 / dev->drv->sector_size) << 4);
             dev->sector_flags = 0x0010;
             break;
+        case 2052:
+            dev->sector_type  = 0x18;
+            dev->sector_flags = 0x0030;
+            break;
         case 2056:
             dev->sector_type  = 0x18;
             dev->sector_flags = 0x0050;
+            break;
+        case 2060:
+            dev->sector_type  = 0x18;
+            dev->sector_flags = 0x0070;
             break;
         case 2324: case 2328:
             dev->sector_type  = (dev->drv->sector_size == 2328) ? 0x1a : 0x1b;
@@ -1437,7 +1445,8 @@ scsi_cdrom_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, uint8_t al
 {
     scsi_cdrom_t *dev                = (scsi_cdrom_t *) sc;
 
-    if ((dev->drv->cd_status == CD_STATUS_EMPTY) && dev->unit_attention) {
+    if (((dev->drv->cd_status == CD_STATUS_EMPTY) ||
+         (dev->drv->cd_status == CD_STATUS_DVD_REJECTED)) && dev->unit_attention) {
         /*
            If the drive is not ready, there is no reason to keep the UNIT ATTENTION
            condition present, as we only use it to mark disc changes.
@@ -2849,7 +2858,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                    Also, the max_len variable is reused as this command does otherwise not
                    use it, to avoid having to declare another variable.
                  */
-                if (dev->drv->cd_status == CD_STATUS_EMPTY)
+                if ((dev->drv->cd_status == CD_STATUS_EMPTY) || (dev->drv->cd_status == CD_STATUS_DVD_REJECTED))
                     max_len = 70; /* No media inserted. */
                 else if (dev->drv->cd_status == CD_STATUS_DVD)
                     max_len = 65; /* DVD. */
@@ -2926,7 +2935,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
                 alloc_length    = 0;
 
-                if (dev->drv->cd_status != CD_STATUS_EMPTY) {
+                if ((dev->drv->cd_status != CD_STATUS_EMPTY) && (dev->drv->cd_status != CD_STATUS_DVD_REJECTED)) {
                     if (dev->drv->cd_status == CD_STATUS_DVD) {
                         b[6] = (MMC_PROFILE_DVD_ROM >> 8) & 0xff;
                         b[7] = MMC_PROFILE_DVD_ROM & 0xff;
@@ -2950,7 +2959,8 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     alloc_length += 4;
                     b += 4;
 
-                    for (uint8_t i = 0; i < 2; i++) {
+                    int max_profiles = cdrom_is_dvd(dev->drv->type) ? 2 : 1;
+                    for (uint8_t i = 0; i < max_profiles; i++) {
                         b[0] = (profiles[i] >> 8) & 0xff;
                         b[1] = profiles[i] & 0xff;
 
@@ -2958,7 +2968,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                             b[2] |= 1;
 
                         alloc_length += 4;
-                       b += 4;
+                        b += 4;
                     }
                 }
                 if ((feature == 1) || ((cdb[1] & 3) < 2)) {
@@ -3026,7 +3036,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     alloc_length += 8;
                     b += 8;
                 }
-                if ((feature == 0x1f) || ((cdb[1] & 3) < 2)) {
+                if (cdrom_is_dvd(dev->drv->type) && ((feature == 0x1f) || ((cdb[1] & 3) < 2))) {
                     b[1] = 0x1f;
                     b[2] = (0 << 2) | 0x02 | 0x01; /* persistent and current */
                     b[3] = 0;
@@ -3096,7 +3106,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     gesn_event_header->notification_class |= GESN_MEDIA;
 
                     /* Bits 7-4 = Reserved, Bits 4-1 = Media Status. */
-                    if (dev->drv->cd_status == CD_STATUS_EMPTY)
+                    if ((dev->drv->cd_status == CD_STATUS_EMPTY) || (dev->drv->cd_status == CD_STATUS_DVD_REJECTED))
                         dev->buffer[4] = MEC_MEDIA_REMOVAL;
                     else
                         dev->buffer[4] = dev->unit_attention ? MEC_NEW_MEDIA : MEC_NO_CHANGE;

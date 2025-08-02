@@ -22,6 +22,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#define __USE_LARGEFILE64
+#include <sys/types.h>
+
+#if (defined(__HAIKU__) || defined(__unix__) || defined(__APPLE__)) && !defined(__linux__)
+#    define off64_t  off_t
+#endif
+
 #ifdef MAKECRCH
 #  include <stdio.h>
 #  ifndef DYNAMIC_CRC_TABLE
@@ -514,6 +521,44 @@ static void braid(crc_t ltl[][256], word_t big[][256], int n, int w) {
  * instructions.
  */
 #ifdef ARMCRC32
+
+/*
+  Return a(x) multiplied by b(x) modulo p(x), where p(x) is the CRC polynomial,
+  reflected. For speed, this requires that a not be zero.
+ */
+static crc_t multmodp(crc_t a, crc_t b) {
+    crc_t m, p;
+
+    m = (crc_t)1 << 31;
+    p = 0;
+    for (;;) {
+        if (a & m) {
+            p ^= b;
+            if ((a & (m - 1)) == 0)
+                break;
+        }
+        m >>= 1;
+        b = b & 1 ? (b >> 1) ^ POLY : b >> 1;
+    }
+    return p;
+}
+
+/*
+  Return x^(n * 2^k) modulo p(x). Requires that x2n_table[] has been
+  initialized.
+ */
+static crc_t x2nmodp(off64_t n, unsigned k) {
+    crc_t p;
+
+    p = (crc_t)1 << 31;           /* x^0 == 1 */
+    while (n) {
+        if (n & 1)
+            p = multmodp(x2n_table[k & 31], p);
+        n >>= 1;
+        k++;
+    }
+    return p;
+}
 
 /*
    Constants empirically determined to maximize speed. These values are from

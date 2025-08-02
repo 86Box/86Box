@@ -13,13 +13,13 @@ msgid "&Keyboard requires capture"
 msgstr "&Teclado requer captura"
 
 msgid "&Right CTRL is left ALT"
-msgstr "&CTRL direito é o ALT esquerdo"
+msgstr "CTR&L direito é o ALT esquerdo"
 
 msgid "&Hard Reset..."
 msgstr "&Reinicialização completa..."
 
 msgid "&Ctrl+Alt+Del"
-msgstr "&Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+&Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -27,17 +27,20 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Pausar"
 
-msgid "E&xit..."
-msgstr "&Sair..."
+msgid "Re&sume"
+msgstr "&Continuar"
+
+msgid "E&xit"
+msgstr "&Sair"
 
 msgid "&View"
 msgstr "&Exibir"
 
 msgid "&Hide status bar"
-msgstr "&Ocultar barra de status"
+msgstr "Ocultar barra de &status"
 
 msgid "Hide &toolbar"
-msgstr "Ocultar &barra de ferramenta"
+msgstr "Ocultar barra de &ferramenta"
 
 msgid "&Resizeable window"
 msgstr "&Janela redimensionável"
@@ -60,14 +63,14 @@ msgstr "Open&GL (Núcleo 3.0)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Especificar as dimensões..."
 
 msgid "F&orce 4:3 display ratio"
 msgstr "F&orçar proporção de tela em 4:3"
 
 msgid "&Window scale factor"
-msgstr "&Fator de redimensionamento da janela"
+msgstr "F&ator de redimensionamento da janela"
 
 msgid "&0.5x"
 msgstr "&0,5x"
@@ -99,8 +102,8 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
-msgstr "Método de filtragem"
+msgid "Fi&lter method"
+msgstr "Método d&e filtragem"
 
 msgid "&Nearest"
 msgstr "&Mais próximo"
@@ -115,7 +118,7 @@ msgid "&Fullscreen"
 msgstr "&Tela cheia"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Modo de &redimensionamento da tela cheia"
+msgstr "Modo de redimensionamento da tela &cheia"
 
 msgid "&Full screen stretch"
 msgstr "&Tela cheia redimensionada"
@@ -133,7 +136,7 @@ msgid "4:&3 Integer scale"
 msgstr "Redimensionamento com valores inteiros 4:&3"
 
 msgid "E&GA/(S)VGA settings"
-msgstr "Configurações de E&GA/(S)VGA"
+msgstr "Configurações de EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "Monitor VGA &invertido"
@@ -143,6 +146,9 @@ msgstr "&Tipo de tela VGA"
 
 msgid "RGB &Color"
 msgstr "&Cor RGB"
+
+msgid "RGB (no brown)"
+msgstr "RGB (sem marrom)"
 
 msgid "&RGB Grayscale"
 msgstr "Tons de cinza &RGB"
@@ -211,7 +217,7 @@ msgid "End trace"
 msgstr "Finalizar rastreamento"
 
 msgid "&Help"
-msgstr "&Ajuda"
+msgstr "Aj&uda"
 
 msgid "&Documentation..."
 msgstr "&Documentação..."
@@ -355,7 +361,7 @@ msgid "CPU type:"
 msgstr "Tipo de CPU:"
 
 msgid "Speed:"
-msgstr "Veloc.:"
+msgstr "Velocidade:"
 
 msgid "Frequency:"
 msgstr "Frequência:"
@@ -411,6 +417,9 @@ msgstr "Gráficos IBM 8514/A"
 msgid "XGA Graphics"
 msgstr "Gráficos XGA"
 
+msgid "Keyboard:"
+msgstr "Teclado:"
+
 msgid "Mouse:"
 msgstr "Mouse:"
 
@@ -454,7 +463,7 @@ msgid "Use FLOAT32 sound"
 msgstr "Usar som FLOAT32"
 
 msgid "FM synth driver"
-msgstr "Controlador de sint. FM"
+msgstr "Driver de sintetizador FM"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (mais preciso)"
@@ -510,17 +519,20 @@ msgstr "Porta paralela 3"
 msgid "Parallel port 4"
 msgstr "Porta paralela 4"
 
-msgid "HD Controller:"
-msgstr "Controlador HD:"
-
 msgid "FD Controller:"
 msgstr "Controlador FD:"
+
+msgid "CD-ROM Controller:"
+msgstr "Controlador de CD-ROM:"
 
 msgid "Tertiary IDE Controller"
 msgstr "Controlador IDE terciário"
 
 msgid "Quaternary IDE Controller"
 msgstr "Controlador IDE quaternário"
+
+msgid "Hard disk"
+msgstr "Disco rígido"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -542,6 +554,9 @@ msgstr "Cassete"
 
 msgid "Hard disks:"
 msgstr "Discos rígidos:"
+
+msgid "Firmware Version"
+msgstr "Versão de Firmware"
 
 msgid "&New..."
 msgstr "&Novo..."
@@ -600,8 +615,8 @@ msgstr "Unidades de CD-ROM:"
 msgid "MO drives:"
 msgstr "Unidades magneto-ópticas:"
 
-msgid "ZIP drives:"
-msgstr "Unidades ZIP:"
+msgid "Removable disk drives:"
+msgstr "Unidades de disco removível:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -626,18 +641,6 @@ msgstr "Placa 3:"
 
 msgid "Card 4:"
 msgstr "Placa 4:"
-
-msgid "Board 1"
-msgstr "Placa 1"
-
-msgid "Board 2"
-msgstr "Placa 2"
-
-msgid "Board 3"
-msgstr "Placa 3"
-
-msgid "Board 4"
-msgstr "Placa 4"
 
 msgid "Generic ISA ROM Board"
 msgstr "Placa ROM ISA Genérica"
@@ -669,11 +672,17 @@ msgstr " - PAUSADO"
 msgid "Speed"
 msgstr "Velocidade"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr "Disco removível %1 (%2): %3"
 
-msgid "ZIP images"
-msgstr "Imagens ZIP"
+msgid "&Removable disk %1 (%2): %3"
+msgstr "Disco &removível %1 (%2): %3"
+
+msgid "Removable disk images"
+msgstr "Imagens de disco removível"
+
+msgid "Image %1"
+msgstr "Imagem %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "O 86Box não conseguiu encontrar nenhuma imagem de ROM utilizável.\n\nPor favor, <a href=\"https://github.com/86Box/roms/releases/latest\">baixe</a> um conjunto de ROM e extraia no diretório \"roms\"."
@@ -823,7 +832,7 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Sistema de Controle de Voo Thrustmaster"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster SCV + Sistema de Controle de Leme"
+msgstr "SCV Thrustmaster + Sistema de Controle de Leme"
 
 msgid "2-button gamepad(s)"
 msgstr "Gamepad(s) de 2 botões"
@@ -855,6 +864,9 @@ msgstr "%1 MB (CCS: %2, %3, %4)"
 msgid "Floppy %1 (%2): %3"
 msgstr "Disquete %1 (%2): %3"
 
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Disquete %1 (%2): %3"
+
 msgid "Advanced sector images"
 msgstr "Imagens de setor avançado"
 
@@ -875,6 +887,9 @@ msgstr "Não foi possível inicializar o GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "Magneto-óptico %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&Magneto-óptico %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Imagens magneto-ópticas"
@@ -960,11 +975,17 @@ msgstr "Continuar"
 msgid "Cassette: %1"
 msgstr "Cassete: %1"
 
+msgid "C&assette: %1"
+msgstr "C&assete: %1"
+
 msgid "Cassette images"
 msgstr "Imagens de cassete"
 
 msgid "Cartridge %1: %2"
 msgstr "Cartucho %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Car&tucho %1: %2"
 
 msgid "Cartridge images"
 msgstr "Imagens de cartucho"
@@ -986,6 +1007,9 @@ msgstr "Reinicialização completa"
 
 msgid "ACPI shutdown"
 msgstr "Desligamento por ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Desligamento por ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Disco rígido (%1)"
@@ -1134,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1272,41 +1299,41 @@ msgstr "Dispositivos MCA"
 msgid "List of MCA devices:"
 msgstr "Lista de dispositivos MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Ferramenta para tablet"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Sobre o Qt"
+msgid "About &Qt"
+msgstr "Sobre o &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Dispositivos MCA..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Mostrar monitores não primários"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Abrir pasta de capturas de tela..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Aplicar modo de ampliação em tela cheia quando maximizado"
 
-msgid "Cursor/Puck"
-msgstr "Cursor/Puck"
+msgid "&Cursor/Puck"
+msgstr "&Cursor/Puck"
 
-msgid "Pen"
-msgstr "Caneta"
+msgid "&Pen"
+msgstr "C&aneta"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Unidade de CD/DVD do anfitrião (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Unidade de CD/DVD do anfitrião (%1:)"
 
 msgid "&Connected"
 msgstr "&Conectado"
 
-msgid "Clear image history"
-msgstr "Limpar histórico de imagens"
+msgid "Clear image &history"
+msgstr "Limpar histórico de imagens(&H)"
 
 msgid "Create..."
 msgstr "Criar..."
@@ -1322,6 +1349,9 @@ msgstr "Driver nulo"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Comportamento de renderização"
@@ -1428,8 +1458,26 @@ msgstr "Passagem de porta serial 3"
 msgid "Serial port passthrough 4"
 msgstr "Passagem de porta serial 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Opções do renderizador..."
+
+msgid "PC/XT Keyboard"
+msgstr "Teclado PC/XT"
+
+msgid "AT Keyboard"
+msgstr "Teclado AT"
+
+msgid "AX Keyboard"
+msgstr "Teclado AX"
+
+msgid "PS/2 Keyboard"
+msgstr "Teclado PS/2"
+
+msgid "PS/55 Keyboard"
+msgstr "Teclado PS/55"
+
+msgid "Keys"
+msgstr "Teclas"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Mouse de barramento Logitech/Microsoft"
@@ -1446,14 +1494,23 @@ msgstr "Mouse de barramento Mouse Systems"
 msgid "Microsoft Serial Mouse"
 msgstr "Mouse serial Microsoft"
 
+msgid "Microsoft Serial BallPoint"
+msgstr "Mouse serial Microsoft BallPoint"
+
 msgid "Logitech Serial Mouse"
 msgstr "Mouse serial Logitech"
 
 msgid "PS/2 Mouse"
 msgstr "Mouse PS/2"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr "Mouse PS/2 QuickPort"
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serial)"
+
+msgid "Default Baud rate"
+msgstr "Taxa de transmissão padrão"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Modem padrão compatível com Hayes"
@@ -1494,7 +1551,7 @@ msgstr "Arquivo do BIOS (ROM #3)"
 msgid "BIOS file (ROM #4)"
 msgstr "Arquivo do BIOS (ROM #4)"
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "Endereço do BIOS"
 
 msgid "BIOS address (ROM #1)"
@@ -1538,9 +1595,6 @@ msgstr "Revisão do BIOS"
 
 msgid "BIOS Version"
 msgstr "Versão do BIOS"
-
-msgid "BIOS Versions"
-msgstr "Versões de BIOS"
 
 msgid "BIOS Language"
 msgstr "Idioma do BIOS"
@@ -1663,7 +1717,7 @@ msgid "Reversed stereo"
 msgstr "Estéreo invertido"
 
 msgid "Nice ramp"
-msgstr "Bela rampa"
+msgstr "Rampa suave"
 
 msgid "Hz"
 msgstr "Hz"
@@ -1786,7 +1840,7 @@ msgid "Enable CMS"
 msgstr "Ativar o CMS"
 
 msgid "Mixer"
-msgstr "Misturador"
+msgstr "Mixer"
 
 msgid "High DMA"
 msgstr "DMA alto"
@@ -1853,6 +1907,9 @@ msgstr "Fonte"
 
 msgid "Bilinear filtering"
 msgstr "Filtragem bilinear"
+
+msgid "Video chroma-keying"
+msgstr "Chroma-keying de vídeo"
 
 msgid "Dithering"
 msgstr "Pontilhamento"
@@ -1941,11 +1998,11 @@ msgstr "Sempre na velocidade selecionada"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Configuração do BIOS + teclas de atalho (desativadas durante o POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB a partir de F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB a partir de F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB a partir de E0000 (endereço MSB invertido, os últimos 64 kB primeiro)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB a partir de E0000 (endereço MSB invertido, os últimos 64 KB primeiro)"
 
 msgid "Sine"
 msgstr "Senoidal"
@@ -2188,7 +2245,7 @@ msgid "Generic Text Printer"
 msgstr "Impressora de texto genérica"
 
 msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "Impressora matricial de pontos ESC/P genérica"
+msgstr "Impressora matricial ESC/P genérica"
 
 msgid "Generic PostScript Printer"
 msgstr "Impressora PostScript genérica"
@@ -2212,7 +2269,7 @@ msgid "Host Serial Device"
 msgstr "Dispositivo serial host"
 
 msgid "Name of pipe"
-msgstr "Nome do tubo"
+msgstr "Nome do pipe"
 
 msgid "Data bits"
 msgstr "Bits de dados"
@@ -2224,7 +2281,10 @@ msgid "Baud Rate of Passthrough"
 msgstr "Taxa de transmissão de passagem"
 
 msgid "Named Pipe (Server)"
-msgstr "Pipe nomeado (servidor)"
+msgstr "Pipe nomeado (Servidor)"
+
+msgid "Named Pipe (Client)"
+msgstr "Pipe nomeado (Cliente)"
 
 msgid "Host Serial Passthrough"
 msgstr "Passagem da porta serial do host"
@@ -2287,7 +2347,7 @@ msgid "Unable to find Dot-Matrix fonts"
 msgstr "Não foi possível localizar os fontes matriciais de pontos"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial de pontos ESC/P genérica."
+msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial ESC/P genérica."
 
 msgid "Inhibit multimedia keys"
 msgstr "Inibir teclas multimídia"
@@ -2370,6 +2430,12 @@ msgstr "Vincular tecla"
 msgid "Enter key combo:"
 msgstr "Pressione combinação de teclas:"
 
+msgid "Bind conflict"
+msgstr "Conflito de vínculo"
+
+msgid "This key combo is already in use."
+msgstr "Esta combinação de teclas já está em uso."
+
 msgid "Send Control+Alt+Del"
 msgstr "Enviar Control+Alt+Del"
 
@@ -2393,9 +2459,6 @@ msgstr "Alternar mudo"
 
 msgid "Text files"
 msgstr "Arquivos de texto"
-
-msgid "ROM files (*.bin *.rom)|*.bin,*.rom"
-msgstr "Arquivos de ROM (*.bin *.rom)|*.bin,*.rom"
 
 msgid "ROM files"
 msgstr "Arquivos de ROM"

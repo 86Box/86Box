@@ -88,6 +88,8 @@ add_library(ui STATIC
     qt_openglrenderer.cpp
     qt_openglrenderer.hpp
     qt_glsl_parser.cpp
+    qt_about.cpp
+    qt_about.hpp
 
     qt_settings.cpp
     qt_settings.hpp
@@ -187,14 +189,6 @@ add_library(ui STATIC
     qt_mediahistorymanager.cpp
     qt_mediahistorymanager.hpp
 
-    qt_updatecheck.cpp
-    qt_updatecheck.hpp
-    qt_updatecheckdialog.cpp
-    qt_updatecheckdialog.hpp
-    qt_updatecheckdialog.ui
-    qt_updatedetails.cpp
-    qt_updatedetails.hpp
-    qt_updatedetails.ui
     qt_downloader.cpp
     qt_downloader.hpp
 
@@ -245,6 +239,19 @@ add_library(ui STATIC
     qt_iconindicators.cpp
 )
 
+if(EMU_BUILD_NUM)
+    target_sources(ui PRIVATE
+        qt_updatecheck.cpp
+        qt_updatecheck.hpp
+        qt_updatecheckdialog.cpp
+        qt_updatecheckdialog.hpp
+        qt_updatecheckdialog.ui
+        qt_updatedetails.cpp
+        qt_updatedetails.hpp
+        qt_updatedetails.ui
+    )
+endif()
+
 if(RTMIDI)
     target_compile_definitions(ui PRIVATE USE_RTMIDI)
 endif()
@@ -284,6 +291,15 @@ if(WIN32 AND NOT SDL_JOYSTICK)
     target_sources(plat PRIVATE win_joystick_rawinput.c)
     target_link_libraries(86Box hid)
 else()
+    find_package(SDL2 REQUIRED)
+    include_directories(${SDL2_INCLUDE_DIRS})
+    if(STATIC_BUILD AND TARGET SDL2::SDL2-static)
+        target_link_libraries(86Box SDL2::SDL2-static)
+    elseif(TARGET SDL2::SDL2)
+        target_link_libraries(86Box SDL2::SDL2)
+    else()
+        target_link_libraries(86Box ${SDL2_LIBRARIES})
+    endif()
     target_sources(plat PRIVATE sdl_joystick.c)
 endif()
 

@@ -84,10 +84,11 @@ static const mo_drive_type_t mo_drive_types[KNOWN_MO_DRIVE_TYPES] = {
 };
 
 enum {
-    MO_BUS_DISABLED = 0,
-    MO_BUS_ATAPI    = 5,
-    MO_BUS_SCSI     = 6,
-    MO_BUS_USB      = 7
+    MO_BUS_DISABLED =  0,
+    MO_BUS_LPT      =  6,
+    MO_BUS_ATAPI    =  8,
+    MO_BUS_SCSI     =  9,
+    MO_BUS_USB      = 10
 };
 
 typedef struct mo_drive_t {

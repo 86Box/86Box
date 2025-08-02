@@ -1212,7 +1212,7 @@ svga_recalctimings(svga_t *svga)
             int y_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_y >> 1);
             int x_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_x >> 1);
             video_wait_for_buffer_monitor(svga->monitor_index);
-            memset(svga->monitor->target_buffer->dat, 0, svga->monitor->target_buffer->w * svga->monitor->target_buffer->h * 4);
+            memset(svga->monitor->target_buffer->dat, 0, (size_t) svga->monitor->target_buffer->w * svga->monitor->target_buffer->h * 4);
             video_blit_memtoscreen_monitor(x_start, y_start, svga->monitor->mon_xsize + x_add, svga->monitor->mon_ysize + y_add, svga->monitor_index);
             video_wait_for_buffer_monitor(svga->monitor_index);
             svga->dpms_ui = 1;
@@ -1443,8 +1443,10 @@ svga_poll(void *priv)
                 svga->memaddr_backup = (svga->memaddr_backup << 2);
 
                 svga->scanline = 0;
-                if (svga->attrregs[0x10] & 0x20)
-                    svga->panning_blank = 1;
+                if (svga->attrregs[0x10] & 0x20) {
+                    svga->scrollcache   = 0;
+                    svga->x_add         = svga->left_overscan;
+                }
             }
         }
         if (svga->vc == svga->dispend) {
@@ -1534,27 +1536,6 @@ svga_poll(void *priv)
             svga->dispon   = 1;
             svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
 
-            svga->linecountff = 0;
-
-            svga->hwcursor_on    = 0;
-            svga->hwcursor_latch = svga->hwcursor;
-
-            svga->dac_hwcursor_on    = 0;
-            svga->dac_hwcursor_latch = svga->dac_hwcursor;
-
-            svga->overlay_on    = 0;
-            svga->overlay_latch = svga->overlay;
-
-            svga->panning_blank = 0;
-        }
-
-        if (svga->scanline == (svga->crtc[10] & 31))
-            svga->cursorvisible = 1;
-
-        if (svga->panning_blank) {
-            svga->scrollcache = 0;
-            svga->x_add       = svga->left_overscan;
-        } else {
             svga->scrollcache = (svga->attrregs[0x13] & 0x0f);
             if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
                 if (svga->seqregs[1] & 1)
@@ -1574,7 +1555,20 @@ svga_poll(void *priv)
                 svga->scrollcache <<= 1;
 
             svga->x_add = svga->left_overscan - svga->scrollcache;
+
+            svga->linecountff = 0;
+
+            svga->hwcursor_on    = 0;
+            svga->hwcursor_latch = svga->hwcursor;
+
+            svga->dac_hwcursor_on    = 0;
+            svga->dac_hwcursor_latch = svga->dac_hwcursor;
+
+            svga->overlay_on    = 0;
+            svga->overlay_latch = svga->overlay;
         }
+        if (svga->scanline == (svga->crtc[10] & 31))
+            svga->cursorvisible = 1;
     }
 }
 

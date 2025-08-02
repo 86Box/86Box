@@ -27,8 +27,11 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Pausa"
 
-msgid "E&xit..."
-msgstr "A&vsluta..."
+msgid "Re&sume"
+msgstr ""
+
+msgid "E&xit"
+msgstr "A&vsluta"
 
 msgid "&View"
 msgstr "&Visa"
@@ -60,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Ange mått..."
 
 msgid "F&orce 4:3 display ratio"
@@ -99,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "Filtermetod"
 
 msgid "&Nearest"
@@ -144,8 +147,14 @@ msgstr "Skärmtyp för &VGA"
 msgid "RGB &Color"
 msgstr "RGB &färg"
 
+msgid "RGB (no brown)"
+msgstr ""
+
 msgid "&RGB Grayscale"
 msgstr "&RGB gråskala"
+
+msgid "Generic RGBI color monitor"
+msgstr ""
 
 msgid "&Amber monitor"
 msgstr "&Bärnstensfärgad skärm"
@@ -384,6 +393,15 @@ msgstr "Aktiverad (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Dynamisk omkompilering"
 
+msgid "CPU frame size"
+msgstr ""
+
+msgid "Larger frames (less smooth)"
+msgstr ""
+
+msgid "Smaller frames (smoother)"
+msgstr ""
+
 msgid "Video:"
 msgstr "Bildskärmskort:"
 
@@ -398,6 +416,9 @@ msgstr "IBM 8514/A-grafik"
 
 msgid "XGA Graphics"
 msgstr "XGA-grafik"
+
+msgid "Keyboard:"
+msgstr ""
 
 msgid "Mouse:"
 msgstr "Mus:"
@@ -498,17 +519,20 @@ msgstr "Parallellport 3"
 msgid "Parallel port 4"
 msgstr "Parallellport 4"
 
-msgid "HD Controller:"
-msgstr "Styrenhet för hårddisk:"
-
 msgid "FD Controller:"
 msgstr "Styrenhet för diskett:"
+
+msgid "CD-ROM Controller:"
+msgstr ""
 
 msgid "Tertiary IDE Controller"
 msgstr "Tertiär IDE-kontroller"
 
 msgid "Quaternary IDE Controller"
 msgstr "Kvartär IDE-kontroller"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -530,6 +554,9 @@ msgstr "Kassettband"
 
 msgid "Hard disks:"
 msgstr "Hårddiskar:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Ny..."
@@ -588,8 +615,8 @@ msgstr "CD-ROM-enheter:"
 msgid "MO drives:"
 msgstr "MO-enheter:"
 
-msgid "ZIP drives:"
-msgstr "Zip-enheter:"
+msgid "Removable disk drives:"
+msgstr ""
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +626,9 @@ msgstr "ISA realtidsklocka:"
 
 msgid "ISA Memory Expansion"
 msgstr "ISA minnesexpansion"
+
+msgid "ISA ROM Cards"
+msgstr ""
 
 msgid "Card 1:"
 msgstr "Kort 1:"
@@ -611,6 +641,15 @@ msgstr "Kort 3:"
 
 msgid "Card 4:"
 msgstr "Kort 4:"
+
+msgid "Generic ISA ROM Board"
+msgstr ""
+
+msgid "Generic Dual ISA ROM Board"
+msgstr ""
+
+msgid "Generic Quad ISA ROM Board"
+msgstr ""
 
 msgid "ISABugger device"
 msgstr "ISABugger-enhet"
@@ -633,11 +672,17 @@ msgstr " - PAUSAD"
 msgid "Speed"
 msgstr "Hastighet"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr ""
 
-msgid "ZIP images"
-msgstr "Zip-avbildningar"
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
+msgid "Removable disk images"
+msgstr ""
+
+msgid "Image %1"
+msgstr ""
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box kunde inte hitta några användbara ROM-avbildningar.\n\nVänligen <a href=\"https://github.com/86Box/roms/releases/latest\">ladda ner</a> en ROM-uppsättning och extrahera den till mappen \"roms\"."
@@ -777,11 +822,38 @@ msgstr "Styrspak med 4 axlar och 4 knappar"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr ""
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr ""
+
+msgid "2-button gamepad(s)"
+msgstr ""
+
+msgid "2-button flight yoke"
+msgstr ""
+
+msgid "4-button gamepad"
+msgstr ""
+
+msgid "4-button flight yoke"
+msgstr ""
+
+msgid "2-button flight yoke with throttle"
+msgstr ""
+
+msgid "4-button flight yoke with throttle"
+msgstr ""
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr ""
 
 msgid "None"
 msgstr "Ingen"
@@ -791,6 +863,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
 msgstr "Diskett %1 (%2): %3"
+
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Diskett %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Avancerade sektoravbildningar"
@@ -812,6 +887,9 @@ msgstr "Ej möjligt att initialisera GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "MO-avbildningar"
@@ -897,11 +975,17 @@ msgstr "Fortsätt"
 msgid "Cassette: %1"
 msgstr "Kassettband: %1"
 
+msgid "C&assette: %1"
+msgstr "K&assettband: %1"
+
 msgid "Cassette images"
 msgstr "Kassettbandsavbildningar"
 
 msgid "Cartridge %1: %2"
 msgstr "Kassett %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Ka&ssett %1: %2"
 
 msgid "Cartridge images"
 msgstr "Kassettavbildningar"
@@ -923,6 +1007,9 @@ msgstr "Hård omstart"
 
 msgid "ACPI shutdown"
 msgstr "ACPI-avstängning"
+
+msgid "ACP&I shutdown"
+msgstr "ACP&I-avstängning"
 
 msgid "Hard disk (%1)"
 msgstr "Hårddisk (%1)"
@@ -1209,40 +1296,40 @@ msgstr "MCA-enheter"
 msgid "List of MCA devices:"
 msgstr "Lista på MCA-enheter:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Plattverktyg"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Om Qt"
+msgid "About &Qt"
+msgstr "Om &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "MCA-enheter..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Visa icke-primära skärmar"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Öppna skärmbildsmappen..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Tillämpa sträckläge för helskärm när den är maximerad"
 
-msgid "Cursor/Puck"
-msgstr "Pekare/puck"
+msgid "&Cursor/Puck"
+msgstr "&Pekare/puck"
 
-msgid "Pen"
-msgstr "Penna"
+msgid "&Pen"
+msgstr "P&enna"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Värdenhet för CD/DVD (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Värdenhet för CD/DVD (%1:)"
 
 msgid "&Connected"
 msgstr "&Ansluten"
 
-msgid "Clear image history"
+msgid "Clear image &history"
 msgstr "Rensa historik för avbildningar"
 
 msgid "Create..."
@@ -1365,8 +1452,26 @@ msgstr "Serieport passthrough 3"
 msgid "Serial port passthrough 4"
 msgstr "Serieport passthrough 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Renderingsalternativ..."
+
+msgid "PC/XT Keyboard"
+msgstr ""
+
+msgid "AT Keyboard"
+msgstr ""
+
+msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard"
+msgstr ""
+
+msgid "PS/55 Keyboard"
+msgstr ""
+
+msgid "Keys"
+msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Logitech/Microsoft-buss-mus"
@@ -1377,8 +1482,14 @@ msgstr "Microsoft-buss-mus (InPort)"
 msgid "Mouse Systems Serial Mouse"
 msgstr "Mouse Systems seriemus"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr ""
+
 msgid "Microsoft Serial Mouse"
 msgstr "Microsoft seriemus"
+
+msgid "Microsoft Serial BallPoint"
+msgstr ""
 
 msgid "Logitech Serial Mouse"
 msgstr "Logitech seriemus"
@@ -1386,8 +1497,14 @@ msgstr "Logitech seriemus"
 msgid "PS/2 Mouse"
 msgstr "PS/2-mus"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serie)"
+
+msgid "Default Baud rate"
+msgstr ""
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Standard Hayes-kompatibelt modem"
@@ -1413,11 +1530,53 @@ msgstr "System-MIDI"
 msgid "MIDI Input Device"
 msgstr "Indataenhet för MIDI"
 
-msgid "BIOS Address"
+msgid "BIOS file"
+msgstr ""
+
+msgid "BIOS file (ROM #1)"
+msgstr ""
+
+msgid "BIOS file (ROM #2)"
+msgstr ""
+
+msgid "BIOS file (ROM #3)"
+msgstr ""
+
+msgid "BIOS file (ROM #4)"
+msgstr ""
+
+msgid "BIOS address"
 msgstr "BIOS-adress"
+
+msgid "BIOS address (ROM #1)"
+msgstr ""
+
+msgid "BIOS address (ROM #2)"
+msgstr ""
+
+msgid "BIOS address (ROM #3)"
+msgstr ""
+
+msgid "BIOS address (ROM #4)"
+msgstr ""
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Aktivera ROM-skrivningar för utökat BIOS"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr ""
+
+msgid "Linear framebuffer base"
+msgstr ""
 
 msgid "Address"
 msgstr "Adress"
@@ -1427,6 +1586,18 @@ msgstr "IRQ"
 
 msgid "BIOS Revision"
 msgstr "BIOS revision"
+
+msgid "BIOS Version"
+msgstr ""
+
+msgid "BIOS Language"
+msgstr ""
+
+msgid "IBM 5161 Expansion Unit"
+msgstr ""
+
+msgid "IBM Cassette Basic"
+msgstr ""
 
 msgid "Translate 26 -> 17"
 msgstr "Översätt 26 -> 17"
@@ -1442,6 +1613,18 @@ msgstr "Invertera färger"
 
 msgid "BIOS size"
 msgstr "Storlek på BIOS"
+
+msgid "BIOS size (ROM #1)"
+msgstr ""
+
+msgid "BIOS size (ROM #2)"
+msgstr ""
+
+msgid "BIOS size (ROM #3)"
+msgstr ""
+
+msgid "BIOS size (ROM #4)"
+msgstr ""
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Kartlägg C0000-C7FFF som UMB"
@@ -1517,6 +1700,9 @@ msgstr "Reverb nivå"
 
 msgid "Interpolation Method"
 msgstr "Interpoleringsmetod"
+
+msgid "Dynamic Sample Loading"
+msgstr ""
 
 msgid "Reverb Output Gain"
 msgstr "Reverb utmatningsförstärkning"
@@ -1605,6 +1791,12 @@ msgstr "Låg DMA"
 msgid "Enable Game port"
 msgstr "Aktivera spelport"
 
+msgid "SID Model"
+msgstr ""
+
+msgid "SID Filter Strength"
+msgstr ""
+
 msgid "Surround module"
 msgstr "Sorround-modul"
 
@@ -1616,6 +1808,9 @@ msgstr "Öka avbrottsnummer för CODEC vid CODEC-installation (krävs av vissa d
 
 msgid "SB Address"
 msgstr "Adress för SB"
+
+msgid "Use EEPROM setting"
+msgstr ""
 
 msgid "WSS IRQ"
 msgstr "WSS IRQ"
@@ -1701,8 +1896,14 @@ msgstr "RAMDAC-typ"
 msgid "Blend"
 msgstr "Blanda"
 
+msgid "Font"
+msgstr ""
+
 msgid "Bilinear filtering"
 msgstr "Bilinjär filtrering"
+
+msgid "Video chroma-keying"
+msgstr ""
 
 msgid "Dithering"
 msgstr "Dithering"
@@ -1746,6 +1947,33 @@ msgstr "Överföringshastighet"
 msgid "EMS mode"
 msgstr "EMS-läge"
 
+msgid "EMS Address"
+msgstr ""
+
+msgid "EMS 1 Address"
+msgstr ""
+
+msgid "EMS 2 Address"
+msgstr ""
+
+msgid "EMS Memory Size"
+msgstr ""
+
+msgid "EMS 1 Memory Size"
+msgstr ""
+
+msgid "EMS 2 Memory Size"
+msgstr ""
+
+msgid "Enable EMS"
+msgstr ""
+
+msgid "Enable EMS 1"
+msgstr ""
+
+msgid "Enable EMS 2"
+msgstr ""
+
 msgid "Address for > 2 MB"
 msgstr "Adress till > 2 MB"
 
@@ -1764,11 +1992,11 @@ msgstr "Alltid vid den valda hastigheten"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "BIOS-inställningar + Snabbtangenter (av under POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB som börjar från F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB som börjar från F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB som börjar från E0000 (adress MSB inverterad, de sista 64KB först)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB som börjar från E0000 (adress MSB inverterad, de sista 64 KB först)"
 
 msgid "Sine"
 msgstr "Sinus"
@@ -1902,6 +2130,15 @@ msgstr "sRGB-interpolering"
 msgid "Linear interpolation"
 msgstr "Linjär interpolering"
 
+msgid "Has secondary 8x8 character set"
+msgstr ""
+
+msgid "Has Quadcolor II daughter board"
+msgstr ""
+
+msgid "Alternate monochrome contrast"
+msgstr ""
+
 msgid "128 KB"
 msgstr "128 KB"
 
@@ -1935,6 +2172,9 @@ msgstr "Bärnstensfärgad"
 msgid "Gray"
 msgstr "Grå"
 
+msgid "Grayscale"
+msgstr ""
+
 msgid "Color"
 msgstr "Färg"
 
@@ -1949,6 +2189,12 @@ msgstr "Andra språk"
 
 msgid "Bochs latest"
 msgstr "Bochs senaste"
+
+msgid "Apply overscan deltas"
+msgstr ""
+
+msgid "Mono Interlaced"
+msgstr ""
 
 msgid "Mono Non-Interlaced"
 msgstr "Ej sammanflätad monokrom"
@@ -2030,6 +2276,9 @@ msgstr "Passthroughns Baudhastighet"
 
 msgid "Named Pipe (Server)"
 msgstr "Namngiven pipe (server)"
+
+msgid "Named Pipe (Client)"
+msgstr ""
 
 msgid "Host Serial Passthrough"
 msgstr "Värd-seriepassthrough"
@@ -2153,3 +2402,72 @@ msgstr "Flytta ner"
 
 msgid "Could not load file %1"
 msgstr "Kunde inte ladda fil %1"
+
+msgid "Key Bindings:"
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "Clear binding"
+msgstr ""
+
+msgid "Bind"
+msgstr ""
+
+msgid "Bind Key"
+msgstr ""
+
+msgid "Enter key combo:"
+msgstr ""
+
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
+msgstr ""
+
+msgid "Send Control+Alt+Del"
+msgstr ""
+
+msgid "Send Control+Alt+Escape"
+msgstr ""
+
+msgid "Toggle fullscreen"
+msgstr ""
+
+msgid "Screenshot"
+msgstr ""
+
+msgid "Release mouse pointer"
+msgstr ""
+
+msgid "Toggle pause"
+msgstr ""
+
+msgid "Toggle mute"
+msgstr ""
+
+msgid "Text files"
+msgstr ""
+
+msgid "ROM files"
+msgstr ""
+
+msgid "SoundFont files"
+msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "Styrenhet för hårddisk:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "Zip-enheter:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "Zip-avbildningar"
