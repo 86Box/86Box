@@ -783,8 +783,8 @@ load_ports(void)
         lpt_ports[c].enabled = !!ini_section_get_int(cat, temp, (c == 0) ? 1 : 0);
 
         sprintf(temp, "lpt%d_device", c + 1);
-        p                   = ini_section_get_string(cat, temp, "none");
-        lpt_ports[c].device = lpt_device_get_from_internal_name(p);
+        p                    = ini_section_get_string(cat, temp, "none");
+        lpt_ports[c].device  = lpt_device_get_from_internal_name(p);
     }
 
 #if 0
@@ -2659,8 +2659,7 @@ save_ports(void)
         if (lpt_ports[c].device == 0)
             ini_section_delete_var(cat, temp);
         else
-            ini_section_set_string(cat, temp,
-                                   lpt_device_get_internal_name(lpt_ports[c].device));
+            ini_section_set_string(cat, temp, lpt_device_get_internal_name(lpt_ports[c].device));
     }
 
 #if 0

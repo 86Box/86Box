@@ -107,8 +107,10 @@ extern const device_t ide_qua_pnp_device;
 
 extern const device_t mcide_device;
 
-extern const device_t xta_wdxt150_device; /* xta_wdxt150 */
-extern const device_t xta_hd20_device;    /* EuroPC internal */
+extern const device_t xta_wdxt150_device;         /* xta_wdxt150 */
+extern const device_t xta_hd20_device;            /* EuroPC internal */
+extern const device_t xta_st50x_device;           /* ST-50X */
+extern const device_t xta_st50x_pc5086_device;    /* ST-50X (PC-5086) */
 
 extern const device_t xtide_device;            /* xtide_xt */
 extern const device_t xtide_at_device;         /* xtide_at */
@@ -126,5 +128,7 @@ extern int             hdc_has_config(int hdc);
 extern const device_t *hdc_get_device(int hdc);
 extern int             hdc_get_flags(int hdc);
 extern int             hdc_available(int hdc);
+
+extern void xta_handler(void *priv, int set);
 
 #endif /*EMU_HDC_H*/

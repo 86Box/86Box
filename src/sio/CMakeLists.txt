@@ -18,6 +18,7 @@
 add_library(sio OBJECT
     sio_acc3221.c
     sio_ali5123.c
+    sio_f82c606.c
     sio_f82c710.c
     sio_82091aa.c
     sio_fdc37c6xx.c

@@ -155,7 +155,9 @@ typedef struct amstrad_t {
 
     /* Video stuff. */
     amsvid_t *vid;
+
     fdc_t    *fdc;
+    lpt_t    *lpt;
 } amstrad_t;
 
 uint32_t amstrad_latch;
@@ -2884,8 +2886,10 @@ machine_amstrad_init(const machine_t *model, int type)
 
     nmi_init();
 
-    lpt1_remove_ams();
-    lpt2_remove();
+    ams->lpt = device_add_inst(&lpt_port_device, 1);
+
+    lpt1_remove_ams(ams->lpt);
+    lpt_set_next_inst(255);
 
     io_sethandler(0x0378, 3,
                   ams_read, NULL, NULL, ams_write, NULL, NULL, ams);

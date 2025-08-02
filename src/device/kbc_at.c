@@ -8,13 +8,11 @@
  *
  *          Intel 8042 (AT keyboard controller) emulation.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          EngiNerd, <webmaster.crrc@yahoo.it>
  *
- *          Copyright 2023 Miran Grca.
- *          Copyright 2023 EngiNerd.
+ *          Copyright 2023-2025 Miran Grca.
+ *          Copyright 2023-2025 EngiNerd.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -29,23 +27,18 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/pic.h>
-#include <86box/pit.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
-#include <86box/ppi.h>
 #include <86box/mem.h>
 #include <86box/device.h>
+#include <86box/dma.h>
 #include <86box/machine.h>
 #include <86box/m_at_t3100e.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
-#include <86box/sound.h>
-#include <86box/snd_speaker.h>
+#include <86box/pci.h>
 #include <86box/video.h>
 #include <86box/keyboard.h>
-
-#include <86box/dma.h>
-#include <86box/pci.h>
 
 #define STAT_PARITY        0x80
 #define STAT_RTIMEOUT      0x40

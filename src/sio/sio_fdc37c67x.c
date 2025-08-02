@@ -52,6 +52,7 @@ typedef struct fdc37c67x_t {
     int       cur_reg;
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t    *lpt;
 } fdc37c67x_t;
 
 static void    fdc37c67x_write(uint16_t port, uint8_t val, void *priv);
@@ -130,13 +131,13 @@ fdc37c67x_lpt_handler(fdc37c67x_t *dev)
     if (lpt_irq > 15)
         lpt_irq = 0xff;
 
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
     if (global_enable && local_enable) {
         ld_port = make_port(dev, 3) & 0xFFFC;
         if ((ld_port >= 0x0100) && (ld_port <= 0x0FFC))
-            lpt1_setup(ld_port);
+            lpt_port_setup(dev->lpt, ld_port);
     }
-    lpt1_irq(lpt_irq);
+    lpt_port_irq(dev->lpt, lpt_irq);
 }
 
 static void
@@ -597,6 +598,8 @@ fdc37c67x_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt     = device_add_inst(&lpt_port_device, 1);
 
     dev->chip_id = info->local & 0xff;
 

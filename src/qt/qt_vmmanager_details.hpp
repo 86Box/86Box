@@ -55,6 +55,7 @@ private:
     VMManagerDetailSection *networkSection;
     VMManagerDetailSection *inputSection;
     VMManagerDetailSection *portsSection;
+    VMManagerDetailSection *otherSection;
 
     QFileInfoList screenshots;
     int           screenshotIndex = 0;

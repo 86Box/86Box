@@ -39,6 +39,7 @@
 #include <86box/nmi.h>
 #include <86box/mem.h>
 #include <86box/device.h>
+#include <86box/lpt.h>
 #include <86box/nvr.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>

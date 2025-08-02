@@ -26,10 +26,10 @@
 #include "cpu.h"
 #include <86box/io.h>
 #include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/pit.h>
 #include <86box/mem.h>
-#include <86box/device.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
 #include <86box/vid_colorplus.h>
@@ -357,7 +357,9 @@ colorplus_standalone_init(UNUSED(const device_t *info))
     mem_mapping_add(&colorplus->cga.mapping, 0xb8000, 0x08000, colorplus_read, NULL, NULL, colorplus_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, colorplus);
     io_sethandler(0x03d0, 0x0010, colorplus_in, NULL, NULL, colorplus_out, NULL, NULL, colorplus);
 
-    lpt3_setup(LPT_MDA_ADDR);
+    colorplus->lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_port_setup(colorplus->lpt, LPT_MDA_ADDR);
+    lpt_set_3bc_used(1);
 
     return colorplus;
 }

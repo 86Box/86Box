@@ -50,6 +50,7 @@ add_library(dev OBJECT
     mouse_microtouch_touchscreen.c
     mouse_ps2.c
     mouse_serial.c
+    mouse_upc.c
     nec_mate_unk.c
     novell_cardkey.c
     pci_bridge.c

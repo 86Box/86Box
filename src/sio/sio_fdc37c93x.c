@@ -78,6 +78,7 @@ typedef struct fdc37c93x_t {
     acpi_t       *acpi;
     void         *kbc;
     serial_t     *uart[2];
+    lpt_t        *lpt;
 } fdc37c93x_t;
 
 static void    fdc37c93x_write(uint16_t port, uint8_t val, void *priv);
@@ -807,13 +808,13 @@ fdc37c93x_lpt_handler(fdc37c93x_t *dev)
 
     if (dev->lpt_base != old_base) {
         if ((old_base >= 0x0100) && (old_base <= 0x0ffc))
-            lpt1_remove();
+            lpt_port_remove(dev->lpt);
 
         if ((dev->lpt_base >= 0x0100) && (dev->lpt_base <= 0x0ffc))
-            lpt1_setup(dev->lpt_base);
+            lpt_port_setup(dev->lpt, dev->lpt_base);
     }
 
-    lpt1_irq(lpt_irq);
+    lpt_port_irq(dev->lpt, lpt_irq);
 }
 
 static void
@@ -1797,6 +1798,8 @@ fdc37c93x_init(const device_t *info)
 
     dev->uart[0]   = device_add_inst(&ns16550_device, 1);
     dev->uart[1]   = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt       = device_add_inst(&lpt_port_device, 1);
 
     dev->chip_id   = info->local & FDC37C93X_CHIP_ID;
     dev->kbc_type  = info->local & FDC37C93X_KBC;

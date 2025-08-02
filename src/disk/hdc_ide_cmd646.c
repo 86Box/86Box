@@ -570,6 +570,12 @@ cmd646_reset(void *priv)
 
         dev->regs[0x50] = 0x40;       /* Enable Base address register R/W;
                                          If 0, they return 0 and are read-only 8 */
+
+        /* Blank base addresses */
+        dev->regs[0x10] = 0x01;
+        dev->regs[0x14] = 0x01;
+        dev->regs[0x18] = 0x01;
+        dev->regs[0x1c] = 0x01;
     } else {
         dev->regs[0x06] = 0x80;
         dev->regs[0x09] = dev->local; /* Programming interface */

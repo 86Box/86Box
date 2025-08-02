@@ -27,11 +27,11 @@
 #include <86box/86box.h>
 #include <86box/io.h>
 #include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/pit.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
-#include <86box/device.h>
 #include <86box/video.h>
 #include <86box/vid_mda.h>
 #include <86box/plat_unused.h>
@@ -453,7 +453,9 @@ mda_standalone_init(UNUSED(const device_t *info))
 
     mda_init(mda);
 
-    lpt3_setup(LPT_MDA_ADDR);
+    mda->lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_port_setup(mda->lpt, LPT_MDA_ADDR);
+    lpt_set_3bc_used(1);
 
     return mda;
 }

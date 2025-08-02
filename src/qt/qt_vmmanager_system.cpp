@@ -50,11 +50,22 @@ extern "C" {
 #include <86box/thread.h>    // required for network.h
 #include <86box/timer.h>     // required for network.h and fdd.h
 #include <86box/cdrom.h>
+#include <86box/cdrom_interface.h>
 #include <86box/scsi.h>
+#include <86box/scsi_device.h> // required for rdisk.h and mo.h
+#include <86box/rdisk.h>
+#include <86box/mo.h>
 #include <86box/fdd.h>
+#include <86box/fdc_ext.h>
+#include <86box/hdc.h>
 #include <86box/gameport.h>
+#include <86box/isartc.h>
+#include <86box/isamem.h>
+#include <86box/isarom.h>
+#include <86box/lpt.h>
 #include <86box/midi.h>
 #include <86box/network.h>
+#include <86box/keyboard.h>
 #include <86box/mouse.h>
 }
 
@@ -521,8 +532,10 @@ VMManagerSystem::setupVars() {
     auto network_config      = getCategory("Network");
     auto input_config        = getCategory("Input devices");
     auto floppy_cdrom_config = getCategory("Floppy and CD-ROM drives");
-    auto scsi_config         = getCategory("Storage controllers");
+    auto rdisk_mo_config     = getCategory("Other removable devices");
+    auto storage_config      = getCategory("Storage controllers");
     auto ports_config        = getCategory("Ports (COM & LPT)");
+    auto other_config        = getCategory("Other peripherals");
     // auto general_config = getCategory("General");
     // auto config_uuid = QString("Not set");
     // if(!general_config["uuid"].isEmpty()) {
@@ -545,17 +558,39 @@ VMManagerSystem::setupVars() {
     }
     display_table[Display::Name::Machine] = machine_name;
 
-    // CPU: Combine name with speed
-    auto cpu_name = QString();
+    // CPU: Combine name with speed and FPU
+    QString cpu_name = "Unknown";
     while (cpu_families[i].package != 0) {
         if (cpu_families[i].internal_name == machine_config["cpu_family"]) {
+            int j = 0;
             cpu_name = QString("%1 %2").arg(cpu_families[i].manufacturer, cpu_families[i].name);
+            while (cpu_families[i].cpus[j].cpu_type != 0) {
+                if (cpu_families[i].cpus[j].rspeed == machine_config["cpu_speed"].toUInt()) {
+                    auto cpu_speed = QString(cpu_families[i].cpus[j].name).split("/").at(0).split(" (").at(0);
+                    cpu_name.append(cpu_speed.prepend(" / "));
+                    cpu_name.append(QCoreApplication::translate("", "MHz").prepend(' '));
+                    if (machine_config.contains("fpu_type") && (machine_config["fpu_type"] != QString("none")) && (machine_config["fpu_type"] != QString("internal"))) {
+                        int k = 0;
+                        while (cpu_families[i].cpus[j].fpus[k].internal_name != nullptr) {
+                            if (QString(cpu_families[i].cpus[j].fpus[k].internal_name) == machine_config["fpu_type"]) {
+                                cpu_name.append(QString(cpu_families[i].cpus[j].fpus[k].name).prepend(", "));
+                                cpu_name.append(QCoreApplication::translate("", "FPU").prepend(' '));
+                                break;
+                            }
+                            k++;
+                        }
+                    }
+                    break;
+                }
+                j++;
+            }
+            break;
         }
         i++;
     }
-    int speed_display = machine_config["cpu_speed"].toInt() / 1000000;
-    cpu_name.append(QString::number(speed_display).prepend(" / "));
-    cpu_name.append(QCoreApplication::translate("", "MHz").prepend(' '));
+//    int speed_display = machine_config["cpu_speed"].toInt() / 1000000;
+//    cpu_name.append(QString::number(speed_display).prepend(" / "));
+//    cpu_name.append(QCoreApplication::translate("", "MHz").prepend(' '));
     display_table[Display::Name::CPU] = cpu_name;
 
     // Memory
@@ -569,10 +604,40 @@ VMManagerSystem::setupVars() {
     int video_int = video_get_video_from_internal_name(video_config["gfxcard"].toUtf8().data());
     const device_t* video_dev = video_card_getdevice(video_int);
     display_table[Display::Name::Video] = DeviceConfig::DeviceName(video_dev, video_get_internal_name(video_int), 1);
-    if (!video_config["voodoo"].isEmpty()) {
-        // FIXME: Come back to this later to add more for secondary video
-//        display_table[Display::Name::Video].append(" (with voodoo)");
-        display_table[Display::Name::Voodoo] = "Voodoo enabled";
+
+    // Secondary video
+    if (video_config.contains("gfxcard_2")) {
+        int video2_int = video_get_video_from_internal_name(video_config["gfxcard_2"].toUtf8().data());
+        const device_t* video2_dev = video_card_getdevice(video2_int);
+        display_table[Display::Name::Video].append(DeviceConfig::DeviceName(video2_dev, video_get_internal_name(video2_int), 1).prepend(VMManagerDetailSection::sectionSeparator));
+    }
+
+    // Add-on video that's not Voodoo
+    if (video_config.contains("8514a") && (video_config["8514a"] != 0))
+        display_table[Display::Name::Video].append(tr("IBM 8514/A Graphics").prepend(VMManagerDetailSection::sectionSeparator));
+    if (video_config.contains("xga") && (video_config["xga"] != 0))
+        display_table[Display::Name::Video].append(tr("XGA Graphics").prepend(VMManagerDetailSection::sectionSeparator));
+    if (video_config.contains("da2") && (video_config["da2"] != 0))
+        display_table[Display::Name::Video].append(tr("IBM PS/55 Display Adapter Graphics").prepend(VMManagerDetailSection::sectionSeparator));
+
+    // Voodoo
+    if (video_config.contains("voodoo") && (video_config["voodoo"] != 0)) {
+        auto voodoo_config = getCategory(DeviceConfig::DeviceName(&voodoo_device, "voodoo", 0));
+        int voodoo_type = voodoo_config["type"].toInt();
+        QString voodoo_name;
+        switch (voodoo_type) {
+            case 0:
+            default:
+                voodoo_name = tr("3Dfx Voodoo Graphics");
+                break;
+            case 1:
+                voodoo_name = tr("Obsidian SB50 + Amethyst (2 TMUs)");
+                break;
+            case 2:
+                voodoo_name = tr("3Dfx Voodoo 2");
+                break;
+        }
+        display_table[Display::Name::Voodoo] = voodoo_name;
     }
 
     // Drives
@@ -617,25 +682,31 @@ VMManagerSystem::setupVars() {
         }
         int diskSizeRaw = (cylinders.toInt() * heads.toInt() * sectors.toInt()) >> 11;
         QString diskSizeFinal;
-        QString unit = "MiB";
+        QString unit = tr("MiB");
         if(diskSizeRaw > 1000) {
-            unit = "GiB";
+            unit = tr("GiB");
             diskSizeFinal = QString::number(diskSizeRaw * 1.0 / 1000, 'f', 1);
         } else {
             diskSizeFinal = QString::number(diskSizeRaw);
         }
         // Only prefix each disk when there are multiple disks
-        QString diskNumberDisplay = disks.count() > 1 ? QString("Disk %1: ").arg(disk_number) : "";
+        QString diskNumberDisplay = disks.count() > 1 ? tr("Disk %1: ").arg(disk_number) : "";
         new_disk_display.append(QString("%1%2 %3 (%4)").arg(diskNumberDisplay, diskSizeFinal, unit, bus_type.toUpper()));
     }
     if(new_disk_display.isEmpty()) {
-        new_disk_display = "No disks";
+        new_disk_display = tr("No disks");
     }
     display_table[Display::Name::Disks] = new_disk_display;
 
     // Floppy & CD-ROM
     QStringList floppyDevices;
     QStringList cdromDevices;
+    // Special case: first two 5.25" 360k FDDs which don't get saved to the .cfg
+    for (int i = 0; i < 2; i++) {
+        if (!floppy_cdrom_config.contains(QString("fdd_0%1_type").arg(i + 1)))
+            floppyDevices.append(QString(fdd_getname(fdd_get_from_internal_name((char *) "525_2dd"))));
+    }
+
     static auto floppy_match = QRegularExpression("fdd_\\d\\d_type", QRegularExpression::CaseInsensitiveOption);
     static auto cdrom_match  = QRegularExpression("cdrom_\\d\\d_type", QRegularExpression::CaseInsensitiveOption);
     for(const auto& key: floppy_cdrom_config.keys()) {
@@ -677,16 +748,55 @@ VMManagerSystem::setupVars() {
     display_table[Display::Name::Floppy] = floppyDevices.join(VMManagerDetailSection::sectionSeparator);
     display_table[Display::Name::CD]     = cdromDevices.join(VMManagerDetailSection::sectionSeparator);
 
+    // Removable disks & MO
+    QStringList rdiskDevices;
+    QStringList moDevices;
+    static auto rdisk_match = QRegularExpression("rdisk_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption);
+    static auto zip_match   = QRegularExpression("zip_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption); // Legacy ZIP drive entries
+    static auto mo_match    = QRegularExpression("mo_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption);
+    for(const auto& key: rdisk_mo_config.keys()) {
+        if(key.contains(rdisk_match) || key.contains(zip_match)) {
+            auto device_number = key.split("_").at(1);
+            auto rdisk_parameters = QString(rdisk_mo_config[key]);
+            auto rdisk_type = rdisk_parameters.split(",").at(0).toInt();
+            if (key.contains(zip_match))
+                rdisk_type++;
+            auto rdisk_bus =  rdisk_parameters.split(",").at(1).trimmed().toUpper();
+
+            if((rdisk_type >= 0) && (rdisk_type < KNOWN_RDISK_DRIVE_TYPES)) {
+                if(!rdisk_bus.isEmpty())
+                    rdisk_bus = QString(" (%1)").arg(rdisk_bus);
+                rdiskDevices.append(QString("%1 %2%3").arg(rdisk_drive_types[rdisk_type].vendor, rdisk_drive_types[rdisk_type].model, rdisk_bus));
+            }
+        }
+        if(key.contains(mo_match)) {
+            auto device_number = key.split("_").at(1);
+            auto mo_parameters = QString(rdisk_mo_config[key]);
+            auto mo_type = mo_parameters.split(",").at(0).toInt();
+            auto mo_bus  = mo_parameters.split(",").at(1).trimmed().toUpper();
+
+            if((mo_type >= 0) && (mo_type < KNOWN_MO_DRIVE_TYPES)) {
+                if(!mo_bus.isEmpty())
+                    mo_bus = QString(" (%1)").arg(mo_bus);
+                moDevices.append(QString("%1 %2%3").arg(mo_drive_types[mo_type].vendor, mo_drive_types[mo_type].model, mo_bus));
+            }
+        }
+    }
+
+    display_table[Display::Name::RDisk] = rdiskDevices.join(VMManagerDetailSection::sectionSeparator);
+    display_table[Display::Name::MO]    = moDevices.join(VMManagerDetailSection::sectionSeparator);
+
+
     // SCSI controllers
     QStringList scsiControllers;
     static auto scsi_match = QRegularExpression("scsicard_\\d", QRegularExpression::CaseInsensitiveOption);
-    for(const auto& key: scsi_config.keys()) {
+    for(const auto& key: storage_config.keys()) {
         if(key.contains(scsi_match)) {
             auto device_number = key.split("_").at(1);
-            auto scsi_internal_name = QString(scsi_config[key]);
+            auto scsi_internal_name = QString(storage_config[key]);
             auto scsi_id = scsi_card_get_from_internal_name(scsi_internal_name.toUtf8().data());
             auto scsi_device = scsi_card_getdevice(scsi_id);
-            auto scsi_name = QString(scsi_device->name);
+            auto scsi_name = DeviceConfig::DeviceName(scsi_device, scsi_card_get_internal_name(scsi_id), 1);
             if(!scsi_name.isEmpty()) {
                 scsiControllers.append(scsi_name);
             }
@@ -694,14 +804,94 @@ VMManagerSystem::setupVars() {
     }
     display_table[Display::Name::SCSIController] = scsiControllers.join(VMManagerDetailSection::sectionSeparator);
 
+    // Hard and floppy disk controllers
+    QStringList storageControllers;
+    static auto fdc_match = QRegularExpression("fdc(_\\d)?", QRegularExpression::CaseInsensitiveOption); // futureproofing
+    static auto hdc_match = QRegularExpression("hdc(_\\d)?", QRegularExpression::CaseInsensitiveOption);
+    for(const auto& key: storage_config.keys()) {
+        if(key.contains(fdc_match)) {
+            QString device_number;
+            if (!key.contains('_'))
+                device_number = "1";
+            else // futureproofing
+             device_number = key.split("_").at(1);
+            auto fdc_internal_name = QString(storage_config[key]);
+            if (!fdc_internal_name.isEmpty() && (fdc_internal_name != "none") && (fdc_internal_name != "internal")) {
+                auto fdc_id = fdc_card_get_from_internal_name(fdc_internal_name.toUtf8().data());
+                auto fdc_device = fdc_card_getdevice(fdc_id);
+                auto fdc_name = DeviceConfig::DeviceName(fdc_device, fdc_card_get_internal_name(fdc_id), 1);
+                if(!fdc_name.isEmpty()) {
+                    storageControllers.append(fdc_name);
+                }
+            }
+        }
+        if(key.contains(hdc_match)) {
+            QString device_number;
+            if (!key.contains('_')) // legacy hdc entry
+                device_number = "1";
+            else
+             device_number = key.split("_").at(1);
+            auto hdc_internal_name = QString(storage_config[key]);
+            if (!hdc_internal_name.isEmpty() && (hdc_internal_name != "none") && (hdc_internal_name != "internal")) {
+                auto hdc_id = hdc_get_from_internal_name(hdc_internal_name.toUtf8().data());
+                auto hdc_device = hdc_get_device(hdc_id);
+                auto hdc_name = DeviceConfig::DeviceName(hdc_device, hdc_get_internal_name(hdc_id), 1);
+                if(!hdc_name.isEmpty()) {
+                    storageControllers.append(hdc_name);
+                }
+            }
+        }
+    }
+
+    // CD-ROM controller
+    if (storage_config.contains("cdrom_interface")) {
+        auto cdrom_intf_internal_name = storage_config["cdrom_interface"];
+        if (!cdrom_intf_internal_name.isEmpty() && (cdrom_intf_internal_name != "none") && (cdrom_intf_internal_name != "internal")) {
+            auto cdrom_intf_dev = cdrom_interface_get_from_internal_name(cdrom_intf_internal_name.toUtf8().data());
+            auto cdrom_intf_dev_name = DeviceConfig::DeviceName(cdrom_interface_get_device(cdrom_intf_dev), cdrom_interface_get_internal_name(cdrom_intf_dev), 1);
+            storageControllers.append(cdrom_intf_dev_name);
+        }
+    }
+
+    // Legacy tertiary/quaternary IDE
+    QString ide_ter_internal_name = "ide_ter";
+    QString ide_qua_internal_name = "ide_qua";
+    if (storage_config.contains(ide_ter_internal_name) && (storage_config[ide_ter_internal_name].toInt() != 0))
+        storageControllers.append(DeviceConfig::DeviceName(hdc_get_device(hdc_get_from_internal_name(ide_ter_internal_name.toUtf8().data())), ide_ter_internal_name.toUtf8().constData(), 1));
+    if (storage_config.contains(ide_qua_internal_name) && (storage_config[ide_qua_internal_name].toInt() != 0))
+        storageControllers.append(DeviceConfig::DeviceName(hdc_get_device(hdc_get_from_internal_name(ide_qua_internal_name.toUtf8().data())), ide_qua_internal_name.toUtf8().constData(), 1));
+
+    display_table[Display::Name::StorageController] = storageControllers.join(VMManagerDetailSection::sectionSeparator);
+
     // Audio
-    int sound_int = sound_card_get_from_internal_name(audio_config["sndcard"].toUtf8().data());
-    const device_t* audio_dev = sound_card_getdevice(sound_int);
-    display_table[Display::Name::Audio] = DeviceConfig::DeviceName(audio_dev, sound_card_get_internal_name(sound_int), 1);
+    QStringList sndCards;
+    static auto sndcard_match = QRegularExpression("sndcard\\d?", QRegularExpression::CaseInsensitiveOption);
+    for(const auto& key: audio_config.keys()) {
+        if(key.contains(sndcard_match)) {
+            auto device_number = key.right(1);
+            if(device_number == "d") // card #1 has no number
+                device_number == "1";
+            auto audio_internal_name = QString(audio_config[key]);
+            auto audio_id = sound_card_get_from_internal_name(audio_internal_name.toUtf8().data());
+            auto audio_device = sound_card_getdevice(audio_id);
+            auto audio_name = DeviceConfig::DeviceName(audio_device, sound_card_get_internal_name(audio_id), 1);
+            if(!audio_name.isEmpty()) {
+                sndCards.append(audio_name);
+            }
+        }
+    }
+    if(audio_config.contains("mpu401_standalone")) {
+        sndCards.append(tr("Standalone MPU-401"));
+    }
+    if(sndCards.isEmpty()) {
+        sndCards.append(tr("None"));
+    }
+    display_table[Display::Name::Audio] = sndCards.join(VMManagerDetailSection::sectionSeparator);
 
     // MIDI
     QString midiOutDev;
-    if(auto midi_out_device = QString(audio_config["midi_device"]); !midi_out_device.isEmpty()) {
+    if (audio_config.contains("midi_device")) {
+        auto midi_out_device = QString(audio_config["midi_device"]);
         auto midi_device_int = midi_out_device_get_from_internal_name(midi_out_device.toUtf8().data());
         auto midi_out = midi_out_device_getdevice(midi_device_int);
         if(auto midiDevName = QString(midi_out->name);  !midiDevName.isEmpty()) {
@@ -715,7 +905,7 @@ VMManagerSystem::setupVars() {
     // midi_in_device (input)
 
     // Network
-    QString nicList;
+    QStringList nicList;
     static auto nic_match = QRegularExpression("net_\\d\\d_card", QRegularExpression::CaseInsensitiveOption);
     for(const auto& key: network_config.keys()) {
         if(key.contains(nic_match)) {
@@ -723,14 +913,16 @@ VMManagerSystem::setupVars() {
             auto nic_internal_name = QString(network_config[key]);
             auto nic_id = network_card_get_from_internal_name(nic_internal_name.toUtf8().data());
             auto nic = network_card_getdevice(nic_id);
-            auto nic_name = QString(nic->name);
-            // Add separator for each subsequent value, skipping the first
-            if(!nicList.isEmpty()) {
-                nicList.append(QString("%1").arg(VMManagerDetailSection::sectionSeparator));
-            }
+            auto nic_name = DeviceConfig::DeviceName(nic, network_card_get_internal_name(nic_id), 1);
             auto net_type_key = QString("net_%1_net_type").arg(device_number);
             auto net_type = network_config[net_type_key];
             if (!net_type.isEmpty()) {
+                if (net_type == "slirp")
+                    net_type = "SLiRP";
+                else if (net_type == "pcap")
+                    net_type = "PCap";
+                else
+                    net_type = net_type.toUpper();
                 nicList.append(nic_name + " (" + net_type + ")");
             } else {
                 nicList.append(nic_name);
@@ -739,21 +931,30 @@ VMManagerSystem::setupVars() {
         }
     }
     if(nicList.isEmpty()) {
-        nicList = "None";
+        nicList.append(tr("None"));
     }
-    display_table[Display::Name::NIC] = nicList;
+    display_table[Display::Name::NIC] = nicList.join(VMManagerDetailSection::sectionSeparator);
+
+    // Input (Keyboard)
+    if (input_config.contains("keyboard_type")) {
+        auto keyboard_internal_name = input_config["keyboard_type"];
+        auto keyboard_dev = keyboard_get_from_internal_name(keyboard_internal_name.toUtf8().data());
+        auto keyboard_dev_name = DeviceConfig::DeviceName(keyboard_get_device(keyboard_dev), keyboard_get_internal_name(keyboard_dev), 0);
+        display_table[Display::Name::Keyboard] = keyboard_dev_name;
+    }
 
     // Input (Mouse)
     auto mouse_internal_name = input_config["mouse_type"];
     auto mouse_dev = mouse_get_from_internal_name(mouse_internal_name.toUtf8().data());
-    auto mouse_dev_name = mouse_get_name(mouse_dev);
+    auto mouse_dev_name = DeviceConfig::DeviceName(mouse_get_device(mouse_dev), mouse_get_internal_name(mouse_dev), 0);
     display_table[Display::Name::Mouse] = mouse_dev_name;
 
     // Input (joystick)
     QString joystickDevice;
-    if(auto joystick_internal = QString(input_config["joystick_type"]); !joystick_internal.isEmpty()) {
+    if(input_config.contains("joystick_type")) {
+        auto joystick_internal = QString(input_config["joystick_type"]);
         auto joystick_dev = joystick_get_from_internal_name(joystick_internal.toUtf8().data());
-        if (auto joystickName = QString(joystick_get_name(joystick_dev)); !joystickName.isEmpty()) {
+        if (auto joystickName = tr(joystick_get_name(joystick_dev)); !joystickName.isEmpty()) {
             joystickDevice = joystickName;
         }
     }
@@ -801,16 +1002,67 @@ VMManagerSystem::setupVars() {
             break;
     }
     portIndex = 0;
+    bool hasLptDevices = false;
     while (true) {
-        if (lpt_enabled[portIndex])
-            lptFinal.append(QString("LPT%1").arg(portIndex + 1));
+        if (lpt_enabled[portIndex]) {
+            auto lpt_device_key = QString("lpt%1_device").arg(portIndex + 1);
+            QString lpt_device_name = "";
+            if (ports_config.contains(lpt_device_key)) {
+                auto lpt_internal_name = QString(ports_config[lpt_device_key]);
+                auto lpt_id = lpt_device_get_from_internal_name(lpt_internal_name.toUtf8().data());
+                lpt_device_name = " (" + tr(lpt_device_get_name(lpt_id)) + ")";
+                hasLptDevices = true;
+            }
+            lptFinal.append(QString("LPT%1%2").arg(portIndex + 1).arg(lpt_device_name));
+        }
         ++portIndex;
         if (portIndex == PARALLEL_MAX)
             break;
     }
-    display_table[Display::Name::Serial]   = serialFinal.empty() ?  tr("None") : serialFinal.join(", ");
-    display_table[Display::Name::Parallel] = lptFinal.empty()    ?  tr("None") : lptFinal.join(", ");
+    display_table[Display::Name::Serial]   = (serialFinal.empty() ?  tr("None") : serialFinal.join(", "));
+    display_table[Display::Name::Parallel] = (lptFinal.empty()    ?  tr("None") : lptFinal.join((hasLptDevices ? VMManagerDetailSection::sectionSeparator : ", ")));
 
+    // ISA RTC
+    if (other_config.contains("isartc_type")) {
+        auto isartc_internal_name = other_config["isartc_type"];
+        auto isartc_dev = isartc_get_from_internal_name(isartc_internal_name.toUtf8().data());
+        auto isartc_dev_name = DeviceConfig::DeviceName(isartc_get_device(isartc_dev), isartc_get_internal_name(isartc_dev), 0);
+        display_table[Display::Name::IsaRtc] = isartc_dev_name;
+    }
+
+    // ISA RAM
+    QStringList IsaMemCards;
+    static auto isamem_match = QRegularExpression("isamem\\d_type", QRegularExpression::CaseInsensitiveOption);
+    for(const auto& key: other_config.keys()) {
+        if(key.contains(isamem_match)) {
+            auto device_number = QString(key.split("_").at(0).right(1).toInt() + 1);
+            auto isamem_internal_name = QString(other_config[key]);
+            auto isamem_id = isamem_get_from_internal_name(isamem_internal_name.toUtf8().data());
+            auto isamem_device = isamem_get_device(isamem_id);
+            auto isamem_name = DeviceConfig::DeviceName(isamem_device, isamem_get_internal_name(isamem_id), 0);
+            if(!isamem_name.isEmpty()) {
+                IsaMemCards.append(isamem_name);
+            }
+        }
+    }
+    display_table[Display::Name::IsaMem] = IsaMemCards.join(VMManagerDetailSection::sectionSeparator);
+
+    // ISA ROM
+    QStringList IsaRomCards;
+    static auto isarom_match = QRegularExpression("isarom\\d_type", QRegularExpression::CaseInsensitiveOption);
+    for(const auto& key: other_config.keys()) {
+        if(key.contains(isarom_match)) {
+            auto device_number = QString(key.split("_").at(0).right(1).toInt() + 1);
+            auto isarom_internal_name = QString(other_config[key]);
+            auto isarom_id = isarom_get_from_internal_name(isarom_internal_name.toUtf8().data());
+            auto isarom_device = isarom_get_device(isarom_id);
+            auto isarom_name = DeviceConfig::DeviceName(isarom_device, isarom_get_internal_name(isarom_id), 0);
+            if(!isarom_name.isEmpty()) {
+                IsaRomCards.append(isarom_name);
+            }
+        }
+    }
+    display_table[Display::Name::IsaRom] = IsaRomCards.join(VMManagerDetailSection::sectionSeparator);
 }
 
 bool

@@ -8,6 +8,7 @@
 #include <86box/86box.h>
 #include <86box/filters.h>
 #include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/machine.h>
 #include <86box/sound.h>
@@ -128,7 +129,9 @@ const lpt_device_t lpt_dac_device = {
     .read_status      = dac_read_status,
     .read_ctrl        = NULL,
     .epp_write_data   = NULL,
-    .epp_request_read = NULL
+    .epp_request_read = NULL,
+    .priv             = NULL,
+    .lpt              = NULL
 };
 
 const lpt_device_t lpt_dac_stereo_device = {
@@ -143,5 +146,7 @@ const lpt_device_t lpt_dac_stereo_device = {
     .read_status      = dac_read_status,
     .read_ctrl        = NULL,
     .epp_write_data   = NULL,
-    .epp_request_read = NULL
+    .epp_request_read = NULL,
+    .priv             = NULL,
+    .lpt              = NULL
 };

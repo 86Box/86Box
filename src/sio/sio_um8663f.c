@@ -61,7 +61,9 @@ typedef struct um8663f_t {
     uint8_t regs[5];
 
     fdc_t    *fdc;
+
     serial_t *uart[2];
+    lpt_t *   lpt;
 } um8663f_t;
 
 static void
@@ -102,16 +104,16 @@ um8663f_uart_handler(um8663f_t *dev, int port)
 static void
 um8663f_lpt_handler(um8663f_t *dev)
 {
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
     if (dev->regs[0] & 0x08) {
         switch ((dev->regs[1] >> 3) & 0x01) {
             case 0x01:
-                lpt1_setup(LPT1_ADDR);
-                lpt1_irq(LPT1_IRQ);
+                lpt_port_setup(dev->lpt, LPT1_ADDR);
+                lpt_port_irq(dev->lpt, LPT1_IRQ);
                 break;
             case 0x00:
-                lpt1_setup(LPT2_ADDR);
-                lpt1_irq(LPT2_IRQ);
+                lpt_port_setup(dev->lpt, LPT2_ADDR);
+                lpt_port_irq(dev->lpt, LPT2_IRQ);
                 break;
 
             default:
@@ -230,8 +232,8 @@ um8663f_reset(void *priv)
     serial_remove(dev->uart[1]);
     serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
-    lpt1_remove();
-    lpt1_setup(LPT1_ADDR);
+    lpt_port_remove(dev->lpt);
+    lpt_port_setup(dev->lpt, LPT1_ADDR);
 
     fdc_reset(dev->fdc);
     fdc_remove(dev->fdc);
@@ -267,6 +269,8 @@ um8663f_init(UNUSED(const device_t *info))
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
 
     dev->ide = info->local & 0xff;
     if (dev->ide < IDE_BUS_MAX)

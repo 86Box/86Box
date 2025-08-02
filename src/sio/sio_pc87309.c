@@ -50,6 +50,7 @@ typedef struct pc87309_t {
     void     *kbc;
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t    *lpt
 } pc87309_t;
 
 enum {
@@ -66,7 +67,7 @@ enum {
 #define LD_MAX LD_MOUSE
 
 static void    fdc_handler(pc87309_t *dev);
-static void    lpt1_handler(pc87309_t *dev);
+static void    lpt_handler(pc87309_t *dev);
 static void    serial_handler(pc87309_t *dev, int uart);
 static void    kbc_handler(pc87309_t *dev);
 static void    pc87309_write(uint16_t port, uint8_t val, void *priv);
@@ -103,7 +104,7 @@ pc87309_pm_write(uint16_t port, uint8_t val, void *priv)
         switch (dev->pm_idx) {
             case 0x00:
                 fdc_handler(dev);
-                lpt1_handler(dev);
+                lpt_handler(dev);
                 serial_handler(dev, 1);
                 serial_handler(dev, 0);
                 break;
@@ -193,7 +194,7 @@ fdc_handler(pc87309_t *dev)
 }
 
 static void
-lpt1_handler(pc87309_t *dev)
+lpt_handler(pc87309_t *dev)
 {
     uint8_t  active = (dev->ld_regs[LD_LPT][0x00] & 0x01) &&
                       (dev->pm[0x00] & 0x10);
@@ -203,11 +204,11 @@ lpt1_handler(pc87309_t *dev)
 
     if (active && (addr <= 0xfffc)) {
         pc87309_log("Enabling LPT1 on %04X...\n", addr);
-        lpt1_setup(addr);
+        lpt_port_setup(dev->lpt, addr);
     } else
-        lpt1_setup(0xffff);
+        lpt_port_setup(dev->lpt, 0xffff);
 
-    lpt1_irq(irq);
+    lpt_port_irq(dev->lpt, irq);
 }
 
 static void
@@ -330,7 +331,7 @@ pc87309_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case LD_LPT:
                     dev->ld_regs[ld][reg] = val;
-                    lpt1_handler(dev);
+                    lpt_handler(dev);
                     break;
                 case LD_UART2:
                     dev->ld_regs[ld][reg] = val;
@@ -372,7 +373,7 @@ pc87309_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case LD_LPT:
                     dev->ld_regs[ld][reg] = (old & 0xfc) | (val & 0x03);
-                    lpt1_handler(dev);
+                    lpt_handler(dev);
                     break;
                 case LD_UART2:
                     dev->ld_regs[ld][reg] = val;
@@ -403,7 +404,7 @@ pc87309_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case LD_LPT:
                     dev->ld_regs[ld][reg] = (old & 0x03) | (val & 0xfc);
-                    lpt1_handler(dev);
+                    lpt_handler(dev);
                     break;
                 case LD_UART2:
                     dev->ld_regs[ld][reg] = (old & 0x07) | (val & 0xf8);
@@ -456,7 +457,7 @@ pc87309_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case LD_LPT:
                     dev->ld_regs[ld][reg] = val;
-                    lpt1_handler(dev);
+                    lpt_handler(dev);
                     break;
                 case LD_UART2:
                     dev->ld_regs[ld][reg] = val;
@@ -492,7 +493,7 @@ pc87309_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case LD_LPT:
                     dev->ld_regs[ld][reg] = val;
-                    lpt1_handler(dev);
+                    lpt_handler(dev);
                     break;
                 case LD_UART2:
                     dev->ld_regs[ld][reg] = val;
@@ -524,7 +525,7 @@ pc87309_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case LD_LPT:
                     dev->ld_regs[ld][reg] = val;
-                    lpt1_handler(dev);
+                    lpt_handler(dev);
                     break;
                 case LD_UART2: case LD_UART1:
                     dev->ld_regs[ld][reg] = val;
@@ -658,7 +659,7 @@ pc87309_reset(void *priv)
 
     kbc_handler(dev);
     fdc_handler(dev);
-    lpt1_handler(dev);
+    lpt_handler(dev);
     serial_handler(dev, 0);
     serial_handler(dev, 1);
     pm_handler(dev);
@@ -684,6 +685,8 @@ pc87309_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
 
     switch (info->local & PCX730X_KBC) {
         default:

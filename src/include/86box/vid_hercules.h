@@ -60,6 +60,7 @@ typedef struct {
 
     int     cols[256][2][2];
 
+    lpt_t  *lpt;
     uint8_t *vram;
     int      monitor_index;
     int      prev_monitor_index;

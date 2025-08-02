@@ -27,9 +27,9 @@
 #include <86box/rom.h>
 #include <86box/io.h>
 #include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/pit.h>
-#include <86box/device.h>
 #include <86box/video.h>
 #include <86box/vid_hercules.h>
 #include <86box/plat_unused.h>
@@ -606,7 +606,9 @@ hercules_init(UNUSED(const device_t *info))
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_hercules);
 
     /* Force the LPT3 port to be enabled. */
-    lpt3_setup(LPT_MDA_ADDR);
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_port_setup(dev->lpt, LPT_MDA_ADDR);
+    lpt_set_3bc_used(1);
 
     return dev;
 }

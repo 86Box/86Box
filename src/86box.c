@@ -1265,6 +1265,11 @@ pc_init_modules(void)
 
     machine_status_init();
 
+    serial_set_next_inst(0);
+
+    lpt_set_3bc_used(0);
+    lpt_set_next_inst(0);
+
     for (c = 0; c <= 0x7ff; c++) {
         int64_t exp = c - 1023; /* 1023 = BIAS64 */
         exp_pow_table[c] = pow(2.0, (double) exp);
@@ -1379,10 +1384,6 @@ pc_reset_hard_close(void)
 
     lpt_devices_close();
 
-#ifdef UNCOMMENT_LATER
-    lpt_close();
-#endif
-
     nvr_save();
     nvr_close();
 
@@ -1411,6 +1412,9 @@ pc_reset_hard_close(void)
     cpu_close();
 
     serial_set_next_inst(0);
+
+    lpt_set_3bc_used(0);
+    lpt_set_next_inst(0);
 }
 
 /*
@@ -1472,6 +1476,7 @@ pc_reset_hard_init(void)
 
     /* Initialize parallel devices. */
     /* note: PLIP LPT side has to be initialized before the network side */
+    lpt_standalone_init();
     lpt_devices_init();
 
     /* Reset and reconfigure the serial ports. */

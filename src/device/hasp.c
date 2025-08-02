@@ -28,8 +28,8 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
-#include <86box/lpt.h>
 #include <86box/device.h>
+#include <86box/lpt.h>
 
 #define HASP_BYTEARRAY(...) \
     {                       \

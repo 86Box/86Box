@@ -48,6 +48,7 @@ typedef struct w83977f_t {
     int       type;
     int       hefras;
     fdc_t    *fdc;
+    lpt_t    *lpt;
     serial_t *uart[2];
 } w83977f_t;
 
@@ -108,21 +109,12 @@ w83977f_lpt_handler(w83977f_t *dev)
     if (io_len == 8)
         io_mask = 0xff8;
 
-    if (dev->id == 1) {
-        lpt2_remove();
+    lpt_port_remove(dev->lpt);
 
-        if ((dev->dev_regs[1][0x00] & 0x01) && (dev->regs[0x22] & 0x08) && (io_base >= 0x100) && (io_base <= io_mask))
-            lpt2_setup(io_base);
+    if ((dev->dev_regs[1][0x00] & 0x01) && (dev->regs[0x22] & 0x08) && (io_base >= 0x100) && (io_base <= io_mask))
+        lpt_port_setup(dev->lpt, io_base);
 
-        lpt2_irq(dev->dev_regs[1][0x40] & 0x0f);
-    } else {
-        lpt1_remove();
-
-        if ((dev->dev_regs[1][0x00] & 0x01) && (dev->regs[0x22] & 0x08) && (io_base >= 0x100) && (io_base <= io_mask))
-            lpt1_setup(io_base);
-
-        lpt1_irq(dev->dev_regs[1][0x40] & 0x0f);
-    }
+    lpt_port_irq(dev->lpt, dev->dev_regs[1][0x40] & 0x0f);
 }
 
 static void
@@ -607,6 +599,8 @@ w83977f_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16550_device, (next_id << 1) + 1);
     dev->uart[1] = device_add_inst(&ns16550_device, (next_id << 1) + 2);
+
+    dev->lpt     = device_add_inst(&lpt_port_device, next_id + 1);
 
     w83977f_reset(dev);
 
