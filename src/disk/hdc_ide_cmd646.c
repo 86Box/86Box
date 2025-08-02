@@ -562,10 +562,10 @@ cmd646_reset(void *priv)
     dev->regs[0x03] = 0x06;
     dev->regs[0x04] = 0x00;
     dev->regs[0x07] = 0x02;       /* DEVSEL timing: 01 medium */
+    dev->regs[0x09] = dev->local; /* Programming interface */
     if ((dev->local & CMD_TYPE_648) && (dev->local & CMD648_RAID)) {
         dev->regs[0x06] = 0x90;
         dev->regs[0x08] = 0x02;
-        dev->regs[0x09] = 0x00;       /* Programming interface */
         dev->regs[0x0a] = 0x04;       /* RAID controller */
 
         dev->regs[0x50] = 0x40;       /* Enable Base address register R/W;
@@ -578,7 +578,6 @@ cmd646_reset(void *priv)
         dev->regs[0x1c] = 0x01;
     } else {
         dev->regs[0x06] = 0x80;
-        dev->regs[0x09] = dev->local; /* Programming interface */
         dev->regs[0x0a] = 0x01;       /* IDE controller */
     }
     dev->regs[0x0b] = 0x01;       /* Mass storage controller */
@@ -587,7 +586,7 @@ cmd646_reset(void *priv)
         for (int i = 0; i < 4; i++)
             dev->regs[0x2c + i] = dev->regs[i];
 
-    if ((dev->regs[0x09] & 0x8a) == 0x8a) {
+    if ((dev->regs[0x0a] == 0x01) && ((dev->regs[0x09] & 0x8a) == 0x8a)) {
         dev->regs[0x50] = 0x40; /* Enable Base address register R/W;
                                    If 0, they return 0 and are read-only 8 */
 
