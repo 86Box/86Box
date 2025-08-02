@@ -59,6 +59,9 @@ enum class Name {
     NIC,
     Keyboard,
     Mouse,
+    IsaRtc,
+    IsaMem,
+    IsaRom,
     Unknown
 };
 Q_ENUM_NS(Name)

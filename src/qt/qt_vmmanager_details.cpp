@@ -67,6 +67,9 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     portsSection = new VMManagerDetailSection(tr("Ports", "Header for Input section in VM Manager Details"));
     ui->leftColumn->layout()->addWidget(portsSection);
 
+    otherSection = new VMManagerDetailSection(tr("Other devices", "Header for Other devices section in VM Manager Details"));
+    ui->leftColumn->layout()->addWidget(otherSection);
+
     // This is like adding a spacer
     leftColumnLayout->addStretch();
 
@@ -270,6 +273,11 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
     portsSection->addSection(tr("Serial ports"), passed_sysconfig->getDisplayValue(Display::Name::Serial));
     portsSection->addSection(tr("Parallel ports"), passed_sysconfig->getDisplayValue(Display::Name::Parallel));
 
+    // Other devices
+    otherSection->clear();
+    otherSection->addSection(tr("ISA RTC"), passed_sysconfig->getDisplayValue(Display::Name::IsaRtc));
+    otherSection->addSection(tr("ISA RAM"), passed_sysconfig->getDisplayValue(Display::Name::IsaMem));
+    otherSection->addSection(tr("ISA ROM"), passed_sysconfig->getDisplayValue(Display::Name::IsaRom));
 }
 
 void
