@@ -77,8 +77,9 @@ typedef struct fdc37m60x_t {
     uint16_t sio_index_port;
 
     fdc_t    *fdc;
-    serial_t *uart[2];
 
+    serial_t *uart[2];
+    lpt_t    *lpt;
 } fdc37m60x_t;
 
 static void fdc37m60x_fdc_handler(fdc37m60x_t *dev);
@@ -213,11 +214,11 @@ fdc37m60x_uart_handler(uint8_t num, fdc37m60x_t *dev)
 void
 fdc37m60x_lpt_handler(fdc37m60x_t *dev)
 {
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
 
     if (ENABLED(3) || (POWER_CONTROL & 0x08)) {
-        lpt1_setup(BASE_ADDRESS(3));
-        lpt1_irq(IRQ(3) & 0xf);
+        lpt_port_setup(dev->lpt, BASE_ADDRESS(3));
+        lpt_port_irq(dev->lpt, IRQ(3) & 0xf);
         fdc37m60x_log("SMC60x-LPT: BASE %04x IRQ %d\n", BASE_ADDRESS(3), IRQ(3) & 0xf);
     }
 }
@@ -310,8 +311,11 @@ fdc37m60x_init(const device_t *info)
     SIO_INDEX_PORT = info->local;
 
     dev->fdc     = device_add(&fdc_at_smc_device);
+
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt     = device_add_inst(&lpt_port_device, 1);
 
     io_sethandler(SIO_INDEX_PORT, 0x0002, fdc37m60x_read, NULL, NULL, fdc37m60x_write, NULL, NULL, dev);
 

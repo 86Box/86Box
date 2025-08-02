@@ -2108,5 +2108,7 @@ const lpt_device_t lpt_prt_escp_device = {
     .read_status      = read_status,
     .read_ctrl        = read_ctrl,
     .epp_write_data   = NULL,
-    .epp_request_read = NULL
+    .epp_request_read = NULL,
+    .priv             = NULL,
+    .lpt              = NULL
 };

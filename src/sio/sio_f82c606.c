@@ -57,6 +57,7 @@ typedef struct upc_t {
     nvr_t    *nvr;
     void     *gameport;
     serial_t *uart[2];
+    lpt_t    *lpt;
 } upc_t;
 
 #ifdef ENABLE_F82C606_LOG
@@ -87,8 +88,7 @@ f82c606_update_ports(upc_t *dev, int set)
 
     serial_remove(dev->uart[0]);
     serial_remove(dev->uart[1]);
-    lpt1_remove();
-    lpt2_remove();
+    lpt_port_remove(dev->lpt);
 
     nvr_at_handler(0, ((uint16_t) dev->regs[3]) << 2, dev->nvr);
     nvr_at_handler(0, 0x70, dev->nvr);
@@ -174,8 +174,8 @@ f82c606_update_ports(upc_t *dev, int set)
     }
 
     if (dev->regs[0] & 8) {
-        lpt1_setup(((uint16_t) dev->regs[6]) << 2);
-        lpt1_irq(lpt1_int);
+        lpt_port_setup(dev->lpt, ((uint16_t) dev->regs[6]) << 2);
+        lpt_port_irq(dev->lpt, lpt1_int);
         f82c606_log("LPT1 at %04X, IRQ %i\n", ((uint16_t) dev->regs[6]) << 2, lpt1_int);
     }
 
@@ -296,13 +296,15 @@ f82c606_close(void *priv)
 static void *
 f82c606_init(const device_t *info)
 {
-    upc_t *dev = (upc_t *) calloc(1, sizeof(upc_t));
+    upc_t *dev    = (upc_t *) calloc(1, sizeof(upc_t));
 
     dev->nvr      = device_add(&at_nvr_old_device);
     dev->gameport = gameport_add(&gameport_sio_device);
 
-    dev->uart[0] = device_add_inst(&ns16450_device, 1);
-    dev->uart[1] = device_add_inst(&ns16450_device, 2);
+    dev->uart[0]   = device_add_inst(&ns16450_device, 1);
+    dev->uart[1]   = device_add_inst(&ns16450_device, 2);
+
+    dev->lpt       = device_add_inst(&lpt_port_device, 1);
 
     io_sethandler(0x02fa, 0x0001, NULL, NULL, NULL, f82c606_config_write, NULL, NULL, dev);
     io_sethandler(0x03fa, 0x0001, NULL, NULL, NULL, f82c606_config_write, NULL, NULL, dev);

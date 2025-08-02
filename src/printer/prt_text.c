@@ -525,5 +525,7 @@ const lpt_device_t lpt_prt_text_device = {
     .read_status      = read_status,
     .read_ctrl        = NULL,
     .epp_write_data   = NULL,
-    .epp_request_read = NULL
+    .epp_request_read = NULL,
+    .priv             = NULL,
+    .lpt              = NULL
 };

@@ -27,6 +27,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
@@ -499,7 +500,9 @@ const lpt_device_t lpt_plip_device = {
     .read_status      = plip_read_status,
     .read_ctrl        = NULL,
     .epp_write_data   = NULL,
-    .epp_request_read = NULL
+    .epp_request_read = NULL,
+    .priv             = NULL,
+    .lpt              = NULL
 };
 
 const device_t plip_device = {

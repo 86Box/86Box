@@ -47,6 +47,7 @@ typedef struct ali5123_t {
     int       cur_reg;
     fdc_t    *fdc;
     serial_t *uart[3];
+    lpt_t    *lpt;
 } ali5123_t;
 
 static void    ali5123_write(uint16_t port, uint8_t val, void *priv);
@@ -95,47 +96,47 @@ ali5123_lpt_handler(ali5123_t *dev)
     if (lpt_dma >= 4)
         lpt_dma = 0xff;
 
-    lpt1_remove();
-    lpt_set_fifo_threshold(0, (dev->ld_regs[3][0xf0] & 0x78) >> 3);
+    lpt_port_remove(dev->lpt);
+    lpt_set_fifo_threshold(dev->lpt, (dev->ld_regs[3][0xf0] & 0x78) >> 3);
     if ((lpt_mode == 0x04) && (dev->ld_regs[3][0xf1] & 0x80))
         lpt_mode = 0x00;
     switch (lpt_mode) {
         default:
         case 0x04:
-            lpt_set_epp(0, 0);
-            lpt_set_ecp(0, 0);
-            lpt_set_ext(0, 0);
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 0);
             break;
         case 0x00:
-            lpt_set_epp(0, 0);
-            lpt_set_ecp(0, 0);
-            lpt_set_ext(0, 1);
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 1);
             break;
         case 0x01: case 0x05:
             mask = 0xfff8;
-            lpt_set_epp(0, 1);
-            lpt_set_ecp(0, 0);
-            lpt_set_ext(0, 0);
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 0);
             break;
         case 0x02:
-            lpt_set_epp(0, 0);
-            lpt_set_ecp(0, 1);
-            lpt_set_ext(0, 0);
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
             break;
         case 0x03: case 0x07:
             mask = 0xfff8;
-            lpt_set_epp(0, 1);
-            lpt_set_ecp(0, 1);
-            lpt_set_ext(0, 0);
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
             break;
     }
     if (global_enable && local_enable) {
         ld_port = (make_port(dev, 3) & 0xfffc) & mask;
         if ((ld_port >= 0x0100) && (ld_port <= (0x0ffc & mask)))
-            lpt1_setup(ld_port);
+            lpt_port_setup(dev->lpt, ld_port);
     }
-    lpt1_irq(lpt_irq);
-    lpt_port_dma(0, lpt_dma);
+    lpt_port_irq(dev->lpt, lpt_irq);
+    lpt_port_dma(dev->lpt, lpt_dma);
 }
 
 static void
@@ -515,6 +516,7 @@ ali5123_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
     dev->uart[2] = device_add_inst(&ns16550_device, 3);
+    dev->lpt     = device_add_inst(&lpt_port_device, 1);
 
     dev->chip_id = info->local & 0xff;
 

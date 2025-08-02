@@ -82,6 +82,7 @@ typedef struct {
     uint8_t ps1_e0_regs[256];
 
     serial_t *uart;
+    lpt_t    *lpt;
 } ps1_t;
 
 static void
@@ -135,7 +136,7 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x0102:
             if (!(ps->ps1_94 & 0x80)) {
-                lpt1_remove();
+                lpt_port_remove(ps->lpt);
                 serial_remove(ps->uart);
                 if (val & 0x04) {
                     if (val & 0x08)
@@ -146,13 +147,13 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
                 if (val & 0x10) {
                     switch ((val >> 5) & 3) {
                         case 0:
-                            lpt1_setup(LPT_MDA_ADDR);
+                            lpt_port_setup(ps->lpt, LPT_MDA_ADDR);
                             break;
                         case 1:
-                            lpt1_setup(LPT1_ADDR);
+                            lpt_port_setup(ps->lpt, LPT1_ADDR);
                             break;
                         case 2:
-                            lpt1_setup(LPT2_ADDR);
+                            lpt_port_setup(ps->lpt, LPT2_ADDR);
                             break;
 
                         default:
@@ -314,9 +315,9 @@ ps1_setup(int model)
                   ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
 
     ps->uart = device_add_inst(&ns16450_device, 1);
-
-    lpt1_remove();
-    lpt1_setup(LPT_MDA_ADDR);
+    ps->lpt  = device_add_inst(&lpt_port_device, 1);
+    lpt_port_remove(ps->lpt);
+    lpt_port_setup(ps->lpt, LPT_MDA_ADDR);
 
     mem_remap_top(384);
 
@@ -345,7 +346,7 @@ ps1_setup(int model)
                     0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
         }
 
-        lpt2_remove();
+        lpt_set_next_inst(255);
 
         device_add(&ps1snd_device);
 

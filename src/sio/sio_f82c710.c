@@ -71,6 +71,7 @@ typedef struct upc_t {
     void     *mouse;
     void     *hdc_xta;
     serial_t *uart;
+    lpt_t    *lpt;
 } upc_t;
 
 #ifdef ENABLE_F82C710_LOG
@@ -110,15 +111,15 @@ lpt_handler(upc_t *dev)
 {
     uint16_t lpt_addr = 0x0000;
 
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
 
     if (dev->regs[0x00] & 0x08) {
         lpt_addr = dev->regs[0x06] << 2;
 
-        lpt1_setup(lpt_addr);
-        lpt1_irq(dev->lpt_irq);
+        lpt_port_setup(dev->lpt, lpt_addr);
+        lpt_port_irq(dev->lpt, dev->lpt_irq);
 
-        lpt_set_ext(0, !!(dev->regs[0x01] & 0x40));
+        lpt_set_ext(dev->lpt, !!(dev->regs[0x01] & 0x40));
     }
 }
 
@@ -350,16 +351,17 @@ f82c710_init(const device_t *info)
     upc_t *dev = (upc_t *) calloc(1, sizeof(upc_t));
 
     if (strstr(machine_get_internal_name(), "5086") != NULL)
-        dev->fdc = device_add(&fdc_at_actlow_device);
+        dev->fdc        = device_add(&fdc_at_actlow_device);
     else
-        dev->fdc = device_add(&fdc_at_device);
+        dev->fdc        = device_add(&fdc_at_device);
 
-    dev->uart = device_add_inst(&ns16450_device, 1);
+    dev->uart       = device_add_inst(&ns16450_device, 1);
+    dev->lpt        = device_add_inst(&lpt_port_device, 1);
 
-    dev->mouse = device_add_params(&mouse_upc_device, (void *) (uintptr_t) (is8086 ? 2 : 12));
+    dev->mouse      = device_add_params(&mouse_upc_device, (void *) (uintptr_t) (is8086 ? 2 : 12));
 
     dev->serial_irq = device_get_config_int("serial_irq");
-    dev->lpt_irq = device_get_config_int("lpt_irq");
+    dev->lpt_irq    = device_get_config_int("lpt_irq");
 
     io_sethandler(0x02fa, 0x0001, NULL, NULL, NULL, f82c710_config_write, NULL, NULL, dev);
     io_sethandler(0x03fa, 0x0001, NULL, NULL, NULL, f82c710_config_write, NULL, NULL, dev);

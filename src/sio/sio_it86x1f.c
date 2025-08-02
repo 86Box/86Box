@@ -243,6 +243,7 @@ typedef struct it86x1f_t {
 
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t    *lpt;
     void     *gameport;
 } it86x1f_t;
 
@@ -290,11 +291,11 @@ it8661f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
             break;
 
         case 3:
-            lpt1_remove();
+            lpt_port_remove(dev->lpt);
 
             if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) {
                 it86x1f_log("IT86x1F: LPT enabled at port %04X IRQ %d\n", config->io[0].base, config->irq[0].irq);
-                lpt1_setup(config->io[0].base);
+                lpt_port_setup(dev->lpt, config->io[0].base);
             } else {
                 it86x1f_log("IT86x1F: LPT disabled\n");
             }
@@ -777,7 +778,7 @@ it86x1f_reset(it86x1f_t *dev)
 
     serial_remove(dev->uart[1]);
 
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
 
     isapnp_enable_card(dev->pnp_card, ISAPNP_CARD_DISABLE);
 
@@ -821,6 +822,8 @@ it86x1f_init(UNUSED(const device_t *info))
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
 
     dev->gameport = gameport_add(&gameport_sio_device);
 

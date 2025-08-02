@@ -74,7 +74,7 @@ typedef struct pc87311_t {
     uint16_t  irq;
     fdc_t    *fdc_controller;
     serial_t *uart[2];
-
+    lpt_t    *lpt;
 } pc87311_t;
 
 void pc87311_fdc_handler(pc87311_t *dev);
@@ -202,7 +202,7 @@ pc87311_uart_handler(uint8_t num, pc87311_t *dev)
 void
 pc87311_lpt_handler(pc87311_t *dev)
 {
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
     switch (LPT_BA) {
         case 0:
             dev->base = LPT1_ADDR;
@@ -220,8 +220,8 @@ pc87311_lpt_handler(pc87311_t *dev)
         default:
             break;
     }
-    lpt1_setup(dev->base);
-    lpt1_irq(dev->irq);
+    lpt_port_setup(dev->lpt, dev->base);
+    lpt_port_irq(dev->lpt, dev->irq);
     pc87311_log("PC87311-LPT: BASE %04x IRQ %01x\n", dev->base, dev->irq);
 }
 
@@ -277,6 +277,7 @@ pc87311_init(const device_t *info)
     dev->fdc_controller = device_add(&fdc_at_nsc_device);
     dev->uart[0]        = device_add_inst(&ns16450_device, 1);
     dev->uart[1]        = device_add_inst(&ns16450_device, 2);
+    dev->lpt            = device_add_inst(&lpt_port_device, 1);
 
     if (HAS_IDE_FUNCTIONALITY)
         device_add(&ide_isa_2ch_device);
