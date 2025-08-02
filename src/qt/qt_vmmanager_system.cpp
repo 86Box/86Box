@@ -50,11 +50,14 @@ extern "C" {
 #include <86box/thread.h>    // required for network.h
 #include <86box/timer.h>     // required for network.h and fdd.h
 #include <86box/cdrom.h>
+#include <86box/cdrom_interface.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h> // required for rdisk.h and mo.h
 #include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/fdd.h>
+#include <86box/fdc_ext.h>
+#include <86box/hdc.h>
 #include <86box/gameport.h>
 #include <86box/midi.h>
 #include <86box/network.h>
@@ -525,6 +528,7 @@ VMManagerSystem::setupVars() {
     auto input_config        = getCategory("Input devices");
     auto floppy_cdrom_config = getCategory("Floppy and CD-ROM drives");
     auto rdisk_mo_config     = getCategory("Other removable devices");
+    auto storage_config      = getCategory("Storage controllers");
     auto ports_config        = getCategory("Ports (COM & LPT)");
     // auto general_config = getCategory("General");
     // auto config_uuid = QString("Not set");
@@ -780,10 +784,10 @@ VMManagerSystem::setupVars() {
     // SCSI controllers
     QStringList scsiControllers;
     static auto scsi_match = QRegularExpression("scsicard_\\d", QRegularExpression::CaseInsensitiveOption);
-    for(const auto& key: scsi_config.keys()) {
+    for(const auto& key: storage_config.keys()) {
         if(key.contains(scsi_match)) {
             auto device_number = key.split("_").at(1);
-            auto scsi_internal_name = QString(scsi_config[key]);
+            auto scsi_internal_name = QString(storage_config[key]);
             auto scsi_id = scsi_card_get_from_internal_name(scsi_internal_name.toUtf8().data());
             auto scsi_device = scsi_card_getdevice(scsi_id);
             auto scsi_name = QString(scsi_device->name);
@@ -793,6 +797,65 @@ VMManagerSystem::setupVars() {
         }
     }
     display_table[Display::Name::SCSIController] = scsiControllers.join(VMManagerDetailSection::sectionSeparator);
+
+    // Hard and floppy disk controllers
+    QStringList storageControllers;
+    static auto fdc_match = QRegularExpression("fdc(_\\d)?", QRegularExpression::CaseInsensitiveOption); // futureproofing
+    static auto hdc_match = QRegularExpression("hdc(_\\d)?", QRegularExpression::CaseInsensitiveOption);
+    for(const auto& key: storage_config.keys()) {
+        if(key.contains(fdc_match)) {
+            QString device_number;
+            if (!key.contains('_'))
+                device_number = "1";
+            else // futureproofing
+             device_number = key.split("_").at(1);
+            auto fdc_internal_name = QString(storage_config[key]);
+            if (!fdc_internal_name.isEmpty() && (fdc_internal_name != "none") && (fdc_internal_name != "internal")) {
+                auto fdc_id = fdc_card_get_from_internal_name(fdc_internal_name.toUtf8().data());
+                auto fdc_device = fdc_card_getdevice(fdc_id);
+                auto fdc_name = DeviceConfig::DeviceName(fdc_device, fdc_card_get_internal_name(fdc_id), 1);
+                if(!fdc_name.isEmpty()) {
+                    storageControllers.append(fdc_name);
+                }
+            }
+        }
+        if(key.contains(hdc_match)) {
+            QString device_number;
+            if (!key.contains('_')) // legacy hdc entry
+                device_number = "1";
+            else
+             device_number = key.split("_").at(1);
+            auto hdc_internal_name = QString(storage_config[key]);
+            if (!hdc_internal_name.isEmpty() && (hdc_internal_name != "none") && (hdc_internal_name != "internal")) {
+                auto hdc_id = hdc_get_from_internal_name(hdc_internal_name.toUtf8().data());
+                auto hdc_device = hdc_get_device(hdc_id);
+                auto hdc_name = DeviceConfig::DeviceName(hdc_device, hdc_get_internal_name(hdc_id), 1);
+                if(!hdc_name.isEmpty()) {
+                    storageControllers.append(hdc_name);
+                }
+            }
+        }
+    }
+
+    // CD-ROM controller
+    if (storage_config.contains("cdrom_interface")) {
+        auto cdrom_intf_internal_name = storage_config["cdrom_interface"];
+        if (!cdrom_intf_internal_name.isEmpty() && (cdrom_intf_internal_name != "none") && (cdrom_intf_internal_name != "internal")) {
+            auto cdrom_intf_dev = cdrom_interface_get_from_internal_name(cdrom_intf_internal_name.toUtf8().data());
+            auto cdrom_intf_dev_name = DeviceConfig::DeviceName(cdrom_interface_get_device(cdrom_intf_dev), cdrom_interface_get_internal_name(cdrom_intf_dev), 1);
+            storageControllers.append(cdrom_intf_dev_name);
+        }
+    }
+
+    // Legacy tertiary/quaternary IDE
+    QString ide_ter_internal_name = "ide_ter";
+    QString ide_qua_internal_name = "ide_qua";
+    if (storage_config.contains(ide_ter_internal_name) && (storage_config[ide_ter_internal_name].toInt() != 0))
+        storageControllers.append(DeviceConfig::DeviceName(hdc_get_device(hdc_get_from_internal_name(ide_ter_internal_name.toUtf8().data())), ide_ter_internal_name.toUtf8().constData(), 1));
+    if (storage_config.contains(ide_qua_internal_name) && (storage_config[ide_qua_internal_name].toInt() != 0))
+        storageControllers.append(DeviceConfig::DeviceName(hdc_get_device(hdc_get_from_internal_name(ide_qua_internal_name.toUtf8().data())), ide_qua_internal_name.toUtf8().constData(), 1));
+
+    display_table[Display::Name::StorageController] = storageControllers.join(VMManagerDetailSection::sectionSeparator);
 
     // Audio
     int sound_int = sound_card_get_from_internal_name(audio_config["sndcard"].toUtf8().data());

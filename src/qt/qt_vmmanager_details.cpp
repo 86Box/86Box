@@ -248,6 +248,7 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
     storageSection->addSection("Removable disks", passed_sysconfig->getDisplayValue(Display::Name::RDisk));
     storageSection->addSection("MO", passed_sysconfig->getDisplayValue(Display::Name::MO));
     storageSection->addSection("SCSI", passed_sysconfig->getDisplayValue(Display::Name::SCSIController));
+    storageSection->addSection("Controllers", passed_sysconfig->getDisplayValue(Display::Name::StorageController));
 
     // Audio
     audioSection->clear();

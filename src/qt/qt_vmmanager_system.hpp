@@ -49,6 +49,7 @@ enum class Name {
     RDisk,
     MO,
     SCSIController,
+    StorageController,
     MidiOut,
     Joystick,
     Serial,
