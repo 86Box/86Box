@@ -18374,8 +18374,9 @@ machine_has_bus(int m, int bus_flags)
     /* TODO: Move the KBD flags to the machine table! */ 
     if ((bus_flags & MACHINE_BUS_XT_KBD) && 
         !(machines[m].bus_flags & MACHINE_BUS_ISA16) && 
-        !(machines[m].bus_flags & MACHINE_BUS_PS2_PORTS)) 
-        ret |= MACHINE_BUS_XT_KBD; 
+        (!(machines[m].bus_flags & MACHINE_BUS_PS2_PORTS) ||
+        !(strcmp(machine_get_internal_name(), "pc5086"))))
+        ret |= MACHINE_BUS_XT_KBD;
 
 #ifdef ONLY_AT_KBD_ON_AT_KBC 
     if ((bus_flags & MACHINE_BUS_AT_KBD) && 

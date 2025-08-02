@@ -484,6 +484,8 @@ load_input_devices(void)
     p = ini_section_get_string(cat, "keyboard_type", NULL);
     if (p != NULL)
         keyboard_type = keyboard_get_from_internal_name(p);
+    else if (strstr(machine_get_internal_name(), "pc5086"))
+        keyboard_type = KEYBOARD_TYPE_PC_XT;
     else if (machine_has_bus(machine, MACHINE_BUS_PS2_PORTS)) {
         if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
             keyboard_type = KEYBOARD_TYPE_PS55;
