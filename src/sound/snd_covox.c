@@ -285,10 +285,6 @@ static const device_config_t soundmasterplus_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "0x220", .value = 0x220 },
-            { .description = "0x240", .value = 0x240 },
-            { .description = "0x280", .value = 0x280 },
-            { .description = "0x2c0", .value = 0x2c0 },
             { .description = "0x330", .value = 0x330 },
             { .description = "0x338", .value = 0x338 },
             { .description = ""                      }
