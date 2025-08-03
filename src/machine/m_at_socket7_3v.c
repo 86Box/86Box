@@ -106,10 +106,9 @@ machine_at_thor_common_init(const machine_t *model, int has_video)
     if (has_video && (gfxcard[0] == VID_INTERNAL))
         device_add(machine_get_vid_device(machine));
 
-    device_add(&kbc_ps2_intel_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&pc87306_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 }
 
@@ -359,10 +358,9 @@ machine_at_endeavor_init(const machine_t *model)
     if (sound_card_current[0] == SOUND_INTERNAL)
         machine_snd = device_add(machine_get_snd_device(machine));
 
-    device_add(&kbc_ps2_intel_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&pc87306_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -457,8 +455,7 @@ machine_at_pb640_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
-    device_add(&kbc_ps2_intel_ami_pci_device);
-    device_add(&pc87306_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -546,7 +543,7 @@ machine_at_acerm3a_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_VIDEO,       4, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX5 | FDC37C93X_NORMAL));
 
     device_add(&sst_flash_29ee010_device);
 
@@ -718,8 +715,7 @@ machine_at_p55t2s_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&kbc_ps2_ami_pci_device);
-    device_add(&pc87306_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -784,7 +780,7 @@ machine_at_gw2kma_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C932 | FDC37C93X_FR));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_FR));
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -945,7 +941,7 @@ machine_at_vectra54_init(const machine_t *model)
 
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C932 | FDC37C93X_NORMAL));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_NORMAL));
     device_add(&sst_flash_29ee010_device);
 
     return ret;

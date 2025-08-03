@@ -188,7 +188,7 @@ machine_at_acerv60n_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      2, 3, 4, 1);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX5 | FDC37C93X_NORMAL));
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 128);
 
@@ -421,7 +421,7 @@ machine_at_m6mi_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX5 | FDC37C93X_NORMAL));
     device_add(&intel_flash_bxt_device);
 
     return ret;

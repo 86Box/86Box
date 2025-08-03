@@ -1181,6 +1181,12 @@ MediaMenu::nicUpdateMenu(int i)
         case NET_TYPE_TAP:
             netType = "TAP";
             break;
+        case NET_TYPE_NMSWITCH:
+            netType = "Local Switch";
+            break;
+        case NET_TYPE_NRSWITCH:
+            netType = "Remote Switch";
+            break;
     }
 
     QString devName = DeviceConfig::DeviceName(network_card_getdevice(net_cards_conf[i].device_num), network_card_get_internal_name(net_cards_conf[i].device_num), 1);

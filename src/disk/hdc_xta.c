@@ -1024,7 +1024,6 @@ xta_init_common(const device_t *info, int type)
     dev->sw   = 0xff;        /* all switches off */
     dev->type = type;
 
-
     /* Do per-controller-type setup. */
     switch (dev->type) {
         case 0: /* WDXT-150, with BIOS */
@@ -1446,7 +1445,6 @@ const device_t xta_st50x_device = {
     .force_redraw  = NULL,
     .config        = st50x_config
 };
-
 
 const device_t xta_st50x_pc5086_device = {
     .name          = "ST-50X Fixed Disk Controller  (PC5086)",

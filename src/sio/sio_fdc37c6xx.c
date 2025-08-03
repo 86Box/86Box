@@ -109,24 +109,76 @@ set_serial_addr(fdc37c6xx_t *dev, int port)
 static void
 lpt_handler(fdc37c6xx_t *dev)
 {
-    lpt_port_remove(dev->lpt);
-    switch (dev->regs[1] & 3) {
-        case 1:
-            lpt_port_setup(dev->lpt, LPT_MDA_ADDR);
-            lpt_port_irq(dev->lpt, LPT_MDA_IRQ);
+    uint16_t lpt_port     = 0x0000;
+    uint16_t mask         = 0xfffc;
+    uint8_t  local_enable = 1;
+    uint8_t  lpt_irq      = LPT1_IRQ;
+    /* DMA is guesswork - what channel do boards actually use? */
+    uint8_t  lpt_dma      = 3;
+    uint8_t  lpt_ext      = !(dev->regs[1] & 0x08);
+    uint8_t  lpt_mode     = (dev->chip_id >= 0x65) ? (dev->regs[4] & 0x03) : 0x00;
+
+    switch (dev->regs[1] & 0x03) {
+        case 0x01:
+            lpt_port     = LPT_MDA_ADDR;
+            lpt_irq      = LPT_MDA_IRQ;
             break;
-        case 2:
-            lpt_port_setup(dev->lpt, LPT1_ADDR);
-            lpt_port_irq(dev->lpt, LPT1_IRQ /*LPT2_IRQ*/);
+        case 0x02:
+            lpt_port     = LPT1_ADDR;
+            lpt_irq      = LPT1_IRQ /*LPT2_IRQ*/;
             break;
-        case 3:
-            lpt_port_setup(dev->lpt, LPT2_ADDR);
-            lpt_port_irq(dev->lpt, LPT1_IRQ /*LPT2_IRQ*/);
+        case 0x03:
+            lpt_port     = LPT2_ADDR;
+            lpt_irq      = LPT1_IRQ /*LPT2_IRQ*/;
             break;
 
         default:
+            local_enable = 0;
             break;
     }
+
+    if (lpt_irq > 15)
+        lpt_irq = 0xff;
+
+    if (lpt_dma >= 4)
+        lpt_dma = 0xff;
+
+    lpt_port_remove(dev->lpt);
+    lpt_set_fifo_threshold(dev->lpt, dev->regs[0x0a] & 0x0f);
+    if (lpt_ext)  switch (lpt_mode) {
+        default:
+        case 0x00:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 1);
+            break;
+        case 0x01:
+            mask = 0xfff8;
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x02:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x03:
+            mask = 0xfff8;
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+    } else {
+        lpt_set_epp(dev->lpt, 0);
+        lpt_set_ecp(dev->lpt, 0);
+        lpt_set_ext(dev->lpt, 0);
+    }
+
+    if (local_enable && (lpt_port >= 0x0100) && (lpt_port <= (0x0ffc & mask)))
+        lpt_port_setup(dev->lpt, lpt_port);
+
+    lpt_port_irq(dev->lpt, lpt_irq);
 }
 
 static void
@@ -252,8 +304,8 @@ fdc37c6xx_reset(fdc37c6xx_t *dev)
     serial_remove(dev->uart[1]);
     serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
-    lpt1_remove();
-    lpt1_setup(LPT1_ADDR);
+    lpt_port_remove(dev->lpt);
+    lpt_port_setup(dev->lpt, LPT1_ADDR);
 
     fdc_reset(dev->fdc);
     fdc_remove(dev->fdc);

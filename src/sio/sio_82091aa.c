@@ -54,7 +54,7 @@ fdc_handler(i82091aa_t *dev)
 }
 
 static void
-lpt1_handler(i82091aa_t *dev)
+lpt_handler(i82091aa_t *dev)
 {
     uint16_t lpt_port = LPT1_ADDR;
 
@@ -177,7 +177,7 @@ i82091aa_write(uint16_t port, uint8_t val, void *priv)
         case 0x20:
             *reg = (val & 0xef);
             if (valxor & 0x07)
-                lpt1_handler(dev);
+                lpt_handler(dev);
             break;
         case 0x21:
             *reg = (val & 0x2f);
@@ -237,7 +237,7 @@ i82091aa_reset(i82091aa_t *dev)
     fdc_reset(dev->fdc);
 
     fdc_handler(dev);
-    lpt1_handler(dev);
+    lpt_handler(dev);
     serial_handler(dev, 0);
     serial_handler(dev, 1);
     serial_set_clock_src(dev->uart[0], (24000000.0 / 13.0));

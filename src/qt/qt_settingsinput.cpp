@@ -121,10 +121,13 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     int has_int_kbd = !!machine_has_flags(machineId, MACHINE_KEYBOARD);
 
     for (int i = 0; i < keyboard_get_ndev(); ++i) {
-        const auto *dev  = keyboard_get_device(i);
-        int         ikbd = (i == KEYBOARD_TYPE_INTERNAL);
+        const auto *dev           = keyboard_get_device(i);
+        int         ikbd          = (i == KEYBOARD_TYPE_INTERNAL);
 
-        if ((ikbd != has_int_kbd) || !device_is_valid(dev, machineId))
+        int         pc5086_filter = (strstr(keyboard_get_internal_name(i), "ps") &&
+                                    strstr(machine_get_internal_name_ex(machineId), "pc5086"));
+
+        if ((ikbd != has_int_kbd) || !device_is_valid(dev, machineId) || pc5086_filter)
             continue;
 
         QString name = DeviceConfig::DeviceName(dev, keyboard_get_internal_name(i), 0);

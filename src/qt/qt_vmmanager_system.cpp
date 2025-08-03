@@ -613,15 +613,15 @@ VMManagerSystem::setupVars() {
     }
 
     // Add-on video that's not Voodoo
-    if (video_config.contains("8514a") && (video_config["8514a"] != 0))
+    if (video_config.contains("8514a") && (video_config["8514a"].toInt() != 0))
         display_table[Display::Name::Video].append(tr("IBM 8514/A Graphics").prepend(VMManagerDetailSection::sectionSeparator));
-    if (video_config.contains("xga") && (video_config["xga"] != 0))
+    if (video_config.contains("xga") && (video_config["xga"].toInt() != 0))
         display_table[Display::Name::Video].append(tr("XGA Graphics").prepend(VMManagerDetailSection::sectionSeparator));
-    if (video_config.contains("da2") && (video_config["da2"] != 0))
+    if (video_config.contains("da2") && (video_config["da2"].toInt() != 0))
         display_table[Display::Name::Video].append(tr("IBM PS/55 Display Adapter Graphics").prepend(VMManagerDetailSection::sectionSeparator));
 
     // Voodoo
-    if (video_config.contains("voodoo") && (video_config["voodoo"] != 0)) {
+    if (video_config.contains("voodoo") && (video_config["voodoo"].toInt() != 0)) {
         auto voodoo_config = getCategory(DeviceConfig::DeviceName(&voodoo_device, "voodoo", 0));
         int voodoo_type = voodoo_config["type"].toInt();
         QString voodoo_name;
@@ -921,6 +921,10 @@ VMManagerSystem::setupVars() {
                     net_type = "SLiRP";
                 else if (net_type == "pcap")
                     net_type = "PCap";
+                else if (net_type == "nmswitch")
+                    net_type = tr("Local Switch");
+                else if (net_type == "nrswitch")
+                    net_type = tr("Remote Switch");
                 else
                     net_type = net_type.toUpper();
                 nicList.append(nic_name + " (" + net_type + ")");
@@ -1035,7 +1039,7 @@ VMManagerSystem::setupVars() {
     static auto isamem_match = QRegularExpression("isamem\\d_type", QRegularExpression::CaseInsensitiveOption);
     for(const auto& key: other_config.keys()) {
         if(key.contains(isamem_match)) {
-            auto device_number = QString(key.split("_").at(0).right(1).toInt() + 1);
+            auto device_number = QString("%1").arg(key.split("_").at(0).right(1).toInt() + 1);
             auto isamem_internal_name = QString(other_config[key]);
             auto isamem_id = isamem_get_from_internal_name(isamem_internal_name.toUtf8().data());
             auto isamem_device = isamem_get_device(isamem_id);
@@ -1052,7 +1056,7 @@ VMManagerSystem::setupVars() {
     static auto isarom_match = QRegularExpression("isarom\\d_type", QRegularExpression::CaseInsensitiveOption);
     for(const auto& key: other_config.keys()) {
         if(key.contains(isarom_match)) {
-            auto device_number = QString(key.split("_").at(0).right(1).toInt() + 1);
+            auto device_number = QString("%1").arg(key.split("_").at(0).right(1).toInt() + 1);
             auto isarom_internal_name = QString(other_config[key]);
             auto isarom_id = isarom_get_from_internal_name(isarom_internal_name.toUtf8().data());
             auto isarom_device = isarom_get_device(isarom_id);

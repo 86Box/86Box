@@ -3221,7 +3221,7 @@ const machine_t machines[] = {
         .name = "[ISA] Olivetti M290/AT&T 6286 WGS", 
         .internal_name = "m290", 
         .type = MACHINE_TYPE_286, 
-        .chipset = MACHINE_CHIPSET_PROPRIETARY, /* Machine has chipset: VLSI TOPCAT */
+        .chipset = MACHINE_CHIPSET_PROPRIETARY, /* Yes, it's M290 with 98/86 gate array, not M290-30 with VLSI TOPCAT chipset. */
         .init = machine_at_m290_init, 
         .p1_handler = NULL, 
         .gpio_handler = NULL, 
@@ -18663,8 +18663,9 @@ machine_has_bus(int m, int bus_flags)
     /* TODO: Move the KBD flags to the machine table! */ 
     if ((bus_flags & MACHINE_BUS_XT_KBD) && 
         !(machines[m].bus_flags & MACHINE_BUS_ISA16) && 
-        !(machines[m].bus_flags & MACHINE_BUS_PS2_PORTS)) 
-        ret |= MACHINE_BUS_XT_KBD; 
+        (!(machines[m].bus_flags & MACHINE_BUS_PS2_PORTS) ||
+        !(strcmp(machine_get_internal_name(), "pc5086"))))
+        ret |= MACHINE_BUS_XT_KBD;
 
 #ifdef ONLY_AT_KBD_ON_AT_KBC 
     if ((bus_flags & MACHINE_BUS_AT_KBD) && 

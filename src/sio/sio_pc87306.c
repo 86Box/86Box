@@ -23,6 +23,7 @@
 #include <86box/io.h>
 #include <86box/timer.h>
 #include <86box/device.h>
+#include <86box/keyboard.h>
 #include <86box/lpt.h>
 #include <86box/mem.h>
 #include <86box/nvr.h>
@@ -42,8 +43,10 @@ typedef struct pc87306_t {
     uint8_t   regs[29];
     uint8_t   gpio[2];
     uint16_t  gpioba;
+    uint16_t  kbc_type;
     int       cur_reg;
     fdc_t    *fdc;
+    void     *kbc;
     serial_t *uart[2];
     lpt_t    *lpt;
     nvr_t    *nvr;
@@ -246,6 +249,15 @@ serial_handler(pc87306_t *dev, int uart)
 }
 
 static void
+kbc_handler(pc87306_t *dev)
+{
+    kbc_at_handler(0, 0x0060, dev->kbc);
+
+    if (dev->regs[0x05] & 0x01)
+        kbc_at_handler(1, 0x0060, dev->kbc);
+}
+
+static void
 pc87306_write(uint16_t port, uint8_t val, void *priv)
 {
     pc87306_t *dev = (pc87306_t *) priv;
@@ -350,6 +362,8 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
                 nvr_lock_set(0x00, 256, !!(val & 0x80), dev->nvr);
             break;
         case 0x05:
+            if (valxor & 0x01)
+                kbc_handler(dev);
             if (valxor & 0x08)
                 nvr_at_handler(!!(val & 0x08), 0x0070, dev->nvr);
             if (valxor & 0x20)
@@ -495,6 +509,8 @@ pc87306_init(UNUSED(const device_t *info))
 {
     pc87306_t *dev = (pc87306_t *) calloc(1, sizeof(pc87306_t));
 
+    dev->kbc_type  = info->local & PCX730X_KBC;
+
     dev->fdc = device_add(&fdc_at_nsc_device);
 
     dev->uart[0x00] = device_add_inst(&ns16550_device, 1);
@@ -503,6 +519,19 @@ pc87306_init(UNUSED(const device_t *info))
     dev->lpt = device_add_inst(&lpt_port_device, 1);
 
     dev->nvr = device_add(&at_mb_nvr_device);
+
+    switch (dev->kbc_type) {
+        case PCX730X_AMI:
+        default:
+            dev->kbc = device_add(&kbc_ps2_intel_ami_pci_device);
+            break;
+        case PCX730X_PHOENIX_42:
+            dev->kbc = device_add(&kbc_ps2_phoenix_device);
+            break;
+        case PCX730X_PHOENIX_42I:
+            dev->kbc = device_add(&kbc_ps2_phoenix_pci_device);
+            break;
+    }
 
     dev->gpio[0] = dev->gpio[1] = 0xff;
 

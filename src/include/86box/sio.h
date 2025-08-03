@@ -45,27 +45,26 @@ extern const device_t fdc37c666_device;
 extern const device_t fdc37c669_device;
 extern const device_t fdc37c669_370_device;
 
-extern const device_t fdc37c67x_device;
-
 #define FDC37C93X_NORMAL     0x0002
 #define FDC37C93X_FR         0x0003
 #define FDC37C93X_APM        0x0030
 #define FDC37C93X_CHIP_ID    0x00ff
 
-#define FDC37C931            0x0100    /* Compaq KBC firmware and configuration registers on GPIO ports. */
-#define FDC37C932            0x0200    /* AMI '5' Megakey KBC firmware. */
-#define FDC37C933            0x0300    /* IBM KBC firmware. */
-#define FDC37C935            0x0500    /* Phoenix Multikey/42 1.38 KBC firmware. */
-#define FDC37C937            0x0700    /* Phoenix Multikey/42i 4.16 KBC firmware. */
-#define FDC37C93X_KBC        0x0f00
+#define FDC37XXX1            0x0100    /* Compaq KBC firmware and configuration registers on GPIO ports. */
+#define FDC37XXX2            0x0200    /* AMI '5' Megakey KBC firmware. */
+#define FDC37XXX3            0x0300    /* IBM KBC firmware. */
+#define FDC37XXX5            0x0500    /* Phoenix Multikey/42 1.38 KBC firmware. */
+#define FDC37XXX7            0x0700    /* Phoenix Multikey/42i 4.16 KBC firmware. */
+#define FDC37XXXX_KBC        0x0f00
 
 #define FDC37C93X_NO_NVR     0x1000
-#define FDC37C93X_370        0x2000
+#define FDC37XXXX_370        0x2000
 
 extern const device_t fdc37c93x_device;
 
 extern const device_t fdc37m60x_device;
-extern const device_t fdc37m60x_370_device;
+
+extern const device_t fdc37c67x_device;
 
 /* ITE */
 extern const device_t it8661f_device;
@@ -85,16 +84,6 @@ extern const device_t i82091aa_ide_device;
 extern const device_t pc87310_device;
 
 /* National Semiconductors */
-extern const device_t pc87306_device;
-extern const device_t pc87311_device;
-extern const device_t pc87311_ide_device;
-extern const device_t pc87332_device;
-extern const device_t pc87332_398_device;
-extern const device_t pc87332_398_ide_device;
-extern const device_t pc87332_398_ide_sec_device;
-extern const device_t pc87332_398_ide_fdcon_device;
-
-/* National Semiconductors PC87307 / PC87309 */
 #define PCX7307_PC87307      0x00c0
 #define PCX7307_PC97307      0x00cf
 
@@ -109,6 +98,17 @@ extern const device_t pc87332_398_ide_fdcon_device;
 
 #define PCX730X_15C          0x2000
 
+extern const device_t pc87306_device;
+
+extern const device_t pc87311_device;
+extern const device_t pc87311_ide_device;
+extern const device_t pc87332_device;
+extern const device_t pc87332_398_device;
+extern const device_t pc87332_398_ide_device;
+extern const device_t pc87332_398_ide_sec_device;
+extern const device_t pc87332_398_ide_fdcon_device;
+
+/* National Semiconductors PC87307 / PC87309 */
 extern const device_t pc87307_device;
 
 extern const device_t pc87309_device;

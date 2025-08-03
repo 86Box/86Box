@@ -58,8 +58,9 @@ machine_xt_compaq_deskpro_init(const machine_t *model)
     nmi_init();
     standalone_gameport_type = &gameport_200_device;
 
-    lpt1_remove();
-    lpt1_setup(LPT_MDA_ADDR);
+    lpt_t *lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_port_setup(lpt, LPT_MDA_ADDR);
+    lpt_set_3bc_used(1);
 
     return ret;
 }
@@ -86,8 +87,9 @@ machine_xt_compaq_portable_init(const machine_t *model)
     if (joystick_type)
         device_add(&gameport_200_device);
 
-    lpt1_remove();
-    lpt1_setup(LPT_MDA_ADDR);
+    lpt_t *lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_port_setup(lpt, LPT_MDA_ADDR);
+    lpt_set_3bc_used(1);
 
     return ret;
 }

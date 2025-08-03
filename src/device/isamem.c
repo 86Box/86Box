@@ -107,6 +107,7 @@
 #define ISAMEM_BRAT_CARD       14
 #define ISAMEM_EV165A_CARD     15
 #define ISAMEM_LOTECH_EMS_CARD 16
+#define ISAMEM_MPLUS2_CARD     17
 
 #define ISAMEM_DEBUG           0
 
@@ -495,6 +496,7 @@ isamem_init(const device_t *info)
         case ISAMEM_SYSTEMCARD_CARD: /* Microsoft SystemCard */
         case ISAMEM_P5PAK_CARD:      /* Paradise Systems 5-PAK */
         case ISAMEM_A6PAK_CARD:      /* AST SixPakPlus */
+        case ISAMEM_MPLUS2_CARD:     /* AST MegaPlus II */
             dev->total_size = device_get_config_int("size");
             dev->start_addr = device_get_config_int("start");
             tot             = dev->total_size;
@@ -2094,6 +2096,54 @@ static const device_t iab_device = {
 };
 #endif /* USE_ISAMEM_IAB */
 
+static const device_config_t mplus2_config[] = {
+  // clang-format off
+    {
+        .name           = "size",
+        .description    = "Memory Size",
+        .type           = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int    = 64,
+        .file_filter    = "",
+        .spinner        = {
+            .min  = 0,
+            .max  = 512,
+            .step = 64
+        },
+        .selection      = { { 0 } }
+    },
+    {
+        .name           = "start",
+        .description    = "Start Address",
+        .type           = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int    = 256,
+        .file_filter    = "",
+        .spinner        = {
+            .min  = 64,
+            .max  = 576,
+            .step = 64
+        },
+        .selection      = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_t mplus2_device = {
+    .name          = "AST MegaPlus II",
+    .internal_name = "mplus2",
+    .flags         = DEVICE_ISA,
+    .local         = ISAMEM_MPLUS2_CARD,
+    .init          = isamem_init,
+    .close         = isamem_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = mplus2_config
+};
+
 static const struct {
     const device_t *dev;
 } boards[] = {
@@ -2127,6 +2177,7 @@ static const struct {
     { &iab_device          },
 #endif /* USE_ISAMEM_IAB */
     { &lotech_ems_device   },
+    { &mplus2_device       },
     { NULL                 }
     // clang-format on
 };
