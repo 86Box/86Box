@@ -49,6 +49,7 @@
 #include "cpu.h"
 
 #define DC390_ROM             "roms/scsi/esp_pci/INT13.BIN"
+#define AM53C974_3_01_AMD_ROM "roms/scsi/esp_pci/ebrom.bin"
 #define AM53C974_3_43_ROM     "roms/scsi/esp_pci/2974BIOS.BIN"
 #define AM53C974_4_00_ROM     "roms/scsi/esp_pci/2974bios-4-00.bin"
 #define AM53C974_5_00_ROM     "roms/scsi/esp_pci/2974bios-5-00.bin"
@@ -425,8 +426,6 @@ esp_set_tc(esp_t *dev, uint32_t dmalen)
     esp_log("OLDTC=%d, DMALEN=%d.\n", old_tc, dmalen);
     if (old_tc && !dmalen)
         dev->rregs[ESP_RSTAT] |= STAT_TC;
-    else if (!old_tc && dmalen)
-        dev->rregs[ESP_RSTAT] &= ~STAT_TC;
 }
 
 static uint32_t
@@ -667,7 +666,6 @@ esp_hard_reset(esp_t *dev)
     dev->tchi_written    = 0;
     dev->asc_mode = ESP_ASC_MODE_DIS;
     dev->rregs[ESP_CFG1] = dev->mca ? dev->HostID : 7;
-    dev->rregs[ESP_TCHI] = dev->mca ? 0 : TCHI_AM53C974;
 
     esp_log("ESP Reset\n");
 
@@ -1430,18 +1428,17 @@ esp_reg_read(esp_t *dev, uint32_t saddr)
             /* Clear sequence step, interrupt register and all status bits
             except TC */
             ret                   = dev->rregs[ESP_RINTR];
-            if (dev->rregs[ESP_RSTAT] & STAT_INT) {
-                dev->rregs[ESP_RINTR] = 0;
-                dev->rregs[ESP_RSTAT] &= ~(0x08 | STAT_PE | STAT_GE);
-                esp_lower_irq(dev);
-            }
+            dev->rregs[ESP_RINTR] = 0;
+            dev->rregs[ESP_RSTAT] &= ~(0x08 | STAT_PE | STAT_GE | STAT_TC);
+            esp_lower_irq(dev);
             esp_log("Read Interrupt=%02x (old).\n", ret);
             break;
         case ESP_TCHI: /* Return the unique id if the value has never been written */
             if (!dev->mca && !dev->tchi_written)
-                dev->rregs[ESP_TCHI] = TCHI_AM53C974;
+                ret = TCHI_AM53C974;
+            else
+                ret = dev->rregs[ESP_TCHI];
 
-            ret = dev->rregs[ESP_TCHI];
             esp_log("Read TCHI Register=%02x.\n", ret);
             break;
         case ESP_RFLAGS:
@@ -1558,7 +1555,6 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                 case CMD_MSGACC:
                     dev->asc_mode = ESP_ASC_MODE_DIS;
                     dev->rregs[ESP_RINTR] |= INTR_DC;
-                    dev->rregs[ESP_RSEQ]   = 0;
                     dev->rregs[ESP_RFLAGS] = 0;
                     esp_log("ESP SCSI MSGACC IRQ\n");
                     esp_raise_irq(dev);
@@ -2376,6 +2372,7 @@ dc390_init(const device_t *info)
     esp_t *dev = calloc(1, sizeof(esp_t));
     const char *bios_rev = NULL;
     uint32_t mask = 0;
+    uint32_t size = 0x8000;
 
     dev->bus = scsi_get_bus();
 
@@ -2401,8 +2398,10 @@ dc390_init(const device_t *info)
             dev->bios_path   = (char *) device_get_bios_file(info, bios_rev, 0);
             if (!strcmp(bios_rev, "v3_43"))
                 mask = 0x4000;
+            else if (!strcmp(bios_rev, "v3_01_amd"))
+                size = 0x4000;
 
-            rom_init(&dev->bios, dev->bios_path, dev->BIOSBase, 0x8000, 0x7fff, mask, MEM_MAPPING_EXTERNAL);
+            rom_init(&dev->bios, dev->bios_path, dev->BIOSBase, size, size - 1, mask, MEM_MAPPING_EXTERNAL);
         } else
             rom_init(&dev->bios, DC390_ROM, dev->BIOSBase, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     }
@@ -2657,13 +2656,22 @@ static const device_config_t am53c974a_bios_enable_config[] = {
         .name           = "bios_rev",
         .description    = "BIOS Revision",
         .type           = CONFIG_BIOS,
-        .default_string = "v3_43",
+        .default_string = "v3_01_amd",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .bios           = {
             {
-                .name          = "Version 3.43",
+                .name          = "Version 3.01 (AMD)",
+                .internal_name = "v3_01_amd",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { AM53C974_3_01_AMD_ROM, "" }
+            },
+            {
+                .name          = "Version 3.43 (Dawicontrol)",
                 .internal_name = "v3_43",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2672,7 +2680,7 @@ static const device_config_t am53c974a_bios_enable_config[] = {
                 .files         = { AM53C974_3_43_ROM, "" }
             },
             {
-                .name          = "Version 4.00",
+                .name          = "Version 4.00 (Dawicontrol)",
                 .internal_name = "v4_00",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2681,7 +2689,7 @@ static const device_config_t am53c974a_bios_enable_config[] = {
                 .files         = { AM53C974_4_00_ROM, "" }
             },
             {
-                .name          = "Version 5.00",
+                .name          = "Version 5.00 (Dawicontrol)",
                 .internal_name = "v5_00",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2690,7 +2698,7 @@ static const device_config_t am53c974a_bios_enable_config[] = {
                 .files         = { AM53C974_5_00_ROM, "" }
             },
             {
-                .name          = "Version 5.11",
+                .name          = "Version 5.11 (Dawicontrol)",
                 .internal_name = "v5_11",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
