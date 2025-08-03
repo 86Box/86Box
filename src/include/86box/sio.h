@@ -84,22 +84,6 @@ extern const device_t i82091aa_ide_device;
 extern const device_t pc87310_device;
 
 /* National Semiconductors */
-#define PC8730X_AMI_MEGAKEY  FDC37XXX2
-#define PC8730X_PHOENIX_42   FDC37XXX5
-#define PC8730X_PHOENIX_42I  FDC37XXX7
-#define PC8730X_KBC          FDC37XXXX_KBC
-
-extern const device_t pc87306_device;
-
-extern const device_t pc87311_device;
-extern const device_t pc87311_ide_device;
-extern const device_t pc87332_device;
-extern const device_t pc87332_398_device;
-extern const device_t pc87332_398_ide_device;
-extern const device_t pc87332_398_ide_sec_device;
-extern const device_t pc87332_398_ide_fdcon_device;
-
-/* National Semiconductors PC87307 / PC87309 */
 #define PCX7307_PC87307      0x00c0
 #define PCX7307_PC97307      0x00cf
 
@@ -114,6 +98,17 @@ extern const device_t pc87332_398_ide_fdcon_device;
 
 #define PCX730X_15C          0x2000
 
+extern const device_t pc87306_device;
+
+extern const device_t pc87311_device;
+extern const device_t pc87311_ide_device;
+extern const device_t pc87332_device;
+extern const device_t pc87332_398_device;
+extern const device_t pc87332_398_ide_device;
+extern const device_t pc87332_398_ide_sec_device;
+extern const device_t pc87332_398_ide_fdcon_device;
+
+/* National Semiconductors PC87307 / PC87309 */
 extern const device_t pc87307_device;
 
 extern const device_t pc87309_device;

@@ -509,7 +509,7 @@ pc87306_init(UNUSED(const device_t *info))
 {
     pc87306_t *dev = (pc87306_t *) calloc(1, sizeof(pc87306_t));
 
-    dev->kbc_type  = info->local & PC8730X_KBC;
+    dev->kbc_type  = info->local & PCX730X_KBC;
 
     dev->fdc = device_add(&fdc_at_nsc_device);
 
@@ -521,14 +521,14 @@ pc87306_init(UNUSED(const device_t *info))
     dev->nvr = device_add(&at_mb_nvr_device);
 
     switch (dev->kbc_type) {
-        case PC8730X_AMI_MEGAKEY:
+        case PCX730X_AMI:
         default:
             dev->kbc = device_add(&kbc_ps2_intel_ami_pci_device);
             break;
-        case PC8730X_PHOENIX_42:
+        case PCX730X_PHOENIX_42:
             dev->kbc = device_add(&kbc_ps2_phoenix_device);
             break;
-        case PC8730X_PHOENIX_42I:
+        case PCX730X_PHOENIX_42I:
             dev->kbc = device_add(&kbc_ps2_phoenix_pci_device);
             break;
     }

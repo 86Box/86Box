@@ -108,7 +108,7 @@ machine_at_thor_common_init(const machine_t *model, int has_video)
 
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add_params(&pc87306_device, (void *) PC8730X_AMI_MEGAKEY);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 }
 
@@ -360,7 +360,7 @@ machine_at_endeavor_init(const machine_t *model)
 
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add_params(&pc87306_device, (void *) PC8730X_AMI_MEGAKEY);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -455,7 +455,7 @@ machine_at_pb640_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
-    device_add_params(&pc87306_device, (void *) PC8730X_AMI_MEGAKEY);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -715,7 +715,7 @@ machine_at_p55t2s_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add_params(&pc87306_device, (void *) PC8730X_AMI_MEGAKEY);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_device);
 
     return ret;
