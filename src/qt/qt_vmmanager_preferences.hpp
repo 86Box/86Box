@@ -37,6 +37,7 @@ private:
     QString settingsFile;
 private slots:
     void chooseDirectoryLocation();
+    void on_pushButtonLanguage_released();
 protected:
     void accept() override;
     void reject() override;

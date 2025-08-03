@@ -23,6 +23,8 @@
 #    include "qt_updatecheckdialog.hpp"
 #endif
 #include "qt_about.hpp"
+#include "qt_progsettings.hpp"
+#include "qt_util.hpp"
 
 #include <QLineEdit>
 #include <QStringListModel>
@@ -113,6 +115,7 @@ VMManagerMainWindow(QWidget *parent)
 
     // Inform the main view when preferences are updated
     connect(this, &VMManagerMainWindow::preferencesUpdated, vmm, &VMManagerMain::onPreferencesUpdated);
+    connect(this, &VMManagerMainWindow::languageUpdated, vmm, &VMManagerMain::onLanguageUpdated);
 
 }
 
@@ -151,6 +154,7 @@ VMManagerMainWindow::preferencesTriggered()
     const auto prefs = new VMManagerPreferences();
     if (prefs->exec() == QDialog::Accepted) {
         emit preferencesUpdated();
+        updateLanguage();
     }
 }
 
@@ -162,6 +166,27 @@ VMManagerMainWindow::saveSettings() const
     config->setStringValue("last_selection", currentSelection);
     // Sometimes required to ensure the settings save before the app exits
     config->sync();
+}
+
+void
+VMManagerMainWindow::updateLanguage()
+{
+    ProgSettings::loadTranslators(QCoreApplication::instance());
+    ProgSettings::reloadStrings();
+    ui->retranslateUi(this);
+    setWindowTitle(tr("%1 VM Manager").arg(EMU_NAME));
+    emit languageUpdated();
+}
+
+void
+VMManagerMainWindow::changeEvent(QEvent *event)
+{
+#ifdef Q_OS_WINDOWS
+    if (event->type() == QEvent::LanguageChange) {
+        QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
+    }
+#endif
+    QWidget::changeEvent(event);
 }
 
 void

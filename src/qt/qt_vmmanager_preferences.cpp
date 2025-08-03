@@ -18,12 +18,14 @@
 #include <QFileDialog>
 #include <QStyle>
 
+#include "qt_progsettings.hpp"
 #include "qt_vmmanager_preferences.hpp"
 #include "qt_vmmanager_config.hpp"
 #include "ui_qt_vmmanager_preferences.h"
 
 extern "C" {
 #include <86box/86box.h>
+#include <86box/config.h>
 #include <86box/version.h>
 }
 
@@ -43,6 +45,15 @@ VMManagerPreferences(QWidget *parent) : ui(new Ui::VMManagerPreferences)
         // If specified on command line
         ui->systemDirectory->setText(QDir(vmm_path).path());
     }
+
+    ui->comboBoxLanguage->setItemData(0, 0);
+    for (int i = 1; i < ProgSettings::languages.length(); i++) {
+        ui->comboBoxLanguage->addItem(ProgSettings::languages[i].second, i);
+        if (i == lang_id) {
+            ui->comboBoxLanguage->setCurrentIndex(ui->comboBoxLanguage->findData(i));
+        }
+    }
+    ui->comboBoxLanguage->model()->sort(Qt::AscendingOrder);
 
     // TODO: Defaults
 #if EMU_BUILD_NUM != 0
@@ -71,10 +82,20 @@ VMManagerPreferences::chooseDirectoryLocation()
 }
 
 void
+VMManagerPreferences::on_pushButtonLanguage_released()
+{
+    ui->comboBoxLanguage->setCurrentIndex(0);
+}
+
+void
 VMManagerPreferences::accept()
 {
     const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
     config->setStringValue("system_directory", ui->systemDirectory->text());
+
+    lang_id = ui->comboBoxLanguage->currentData().toInt();
+    config_save_global();
+
 #if EMU_BUILD_NUM != 0
     config->setStringValue("update_check", ui->updateCheckBox->isChecked() ? "1" : "0");
 #endif

@@ -36,6 +36,7 @@ public:
     ~VMManagerMainWindow() override;
 signals:
     void preferencesUpdated();
+    void languageUpdated();
 
 private:
     Ui::VMManagerMainWindow *ui;
@@ -46,6 +47,7 @@ private:
 public slots:
     void setStatusLeft(const QString &text) const;
     void setStatusRight(const QString &text) const;
+    void updateLanguage();
 
 private slots:
     void vmmSelectionChanged(const QModelIndex &currentSelection, QProcess::ProcessState processState) const;
@@ -60,6 +62,7 @@ private slots:
     void on_actionAbout_Qt_triggered();
 
 protected:
+    void changeEvent(QEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
 };
 
