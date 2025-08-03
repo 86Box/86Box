@@ -13,6 +13,7 @@
 #include <86box/io.h>
 #include <86box/midi.h>
 #include <86box/nmi.h>
+#include <86box/gameport.h>
 #include <86box/pic.h>
 #include <86box/sound.h>
 #include "cpu.h"
@@ -120,7 +121,9 @@ typedef struct gus_t {
     uint8_t sb_ctrl;
     int     sb_nmi;
 
+    uint8_t joy_trim;
     uint8_t reg_ctrl;
+    uint8_t jumper;
 
     uint8_t ad_status;
     uint8_t ad_data;
@@ -143,6 +146,8 @@ typedef struct gus_t {
 
     uint8_t usrr;
 
+    void   *gameport;
+
     uint8_t max_ctrl;
 
     ad1848_t ad1848;
@@ -158,6 +163,9 @@ int gusfreqs[] = {
 };
 
 double vol16bit[4096];
+
+void    gus_write(uint16_t addr, uint8_t val, void *priv);
+uint8_t gus_read(uint16_t addr, void *priv);
 
 void
 gus_update_int_status(gus_t *gus)
@@ -537,6 +545,10 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     gus->t2on          = 1;
                     break;
 
+                case 0x4B: /*Joystick trim DAC*/
+                    gus->joy_trim = val;
+                    break;
+
                 case 0x4c: /*Reset*/
                     gus->reset = val;
                     break;
@@ -634,9 +646,23 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     gus->gp2_addr = val;
                     break;
                 case 5:
-                    gus->usrr = 0;
+                    if (gus->type > GUS_CLASSIC)
+                        gus->usrr = 0;
                     break;
                 case 6:
+                    if (gus->type > GUS_CLASSIC) {
+                        if (!(val & 0x2) && (gus->jumper & 0x2))
+                            io_removehandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+                        else if ((val & 0x2) && !(gus->jumper & 0x2))
+                            io_sethandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+
+                        if (!(val & 0x4) && (gus->jumper & 0x4))
+                            gameport_remap(gus->gameport, 0x0);
+                        else if ((val & 0x4) && !(gus->jumper & 0x4))
+                            gameport_remap(gus->gameport, 0x201);
+
+                        gus->jumper = val;
+                    }
                     break;
 
                 default:
@@ -672,7 +698,8 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
             gus->sb_2xe = val;
             break;
         case 0x20f:
-            gus->reg_ctrl = val;
+            if (gus->type > GUS_CLASSIC)
+               gus->reg_ctrl = val;
             break;
         case 0x306:
         case 0x706:
@@ -746,10 +773,10 @@ gus_read(uint16_t addr, void *priv)
             return val;
 
         case 0x20F:
-            if (gus->type == GUS_MAX)
-                val = 0x02;
+            if (gus->type > GUS_CLASSIC)
+                val = gus->jumper;
             else
-                val = 0x00;
+                val = 0xff;
             break;
 
         case 0x302:
@@ -842,6 +869,9 @@ gus_read(uint16_t addr, void *priv)
                 case 0x49: /*Sampling control*/
                     return 0;
 
+                case 0x4B: /*Joystick trim DAC*/
+                    return gus->joy_trim;
+
                 case 0x00:
                 case 0x01:
                 case 0x02:
@@ -884,22 +914,24 @@ gus_read(uint16_t addr, void *priv)
             return 0;
 
         case 0x20b:
-            switch (gus->reg_ctrl & 0x07) {
-                case 1:
-                    val = gus->gp1;
-                    break;
-                case 2:
-                    val = gus->gp2;
-                    break;
-                case 3:
-                    val = gus->gp1_addr;
-                    break;
-                case 4:
-                    val = gus->gp2_addr;
-                    break;
+            if (gus->type > GUS_CLASSIC) {
+                switch (gus->reg_ctrl & 0x07) {
+                    case 1:
+                        val = gus->gp1;
+                        break;
+                    case 2:
+                        val = gus->gp2;
+                        break;
+                    case 3:
+                        val = gus->gp1_addr;
+                        break;
+                    case 4:
+                        val = gus->gp2_addr;
+                        break;
 
-                default:
-                    break;
+                    default:
+                        break;
+                }
             }
             break;
 
@@ -1292,6 +1324,7 @@ gus_reset(void *priv)
     gus->sb_ctrl = 0;
     gus->sb_nmi = 0;
 
+    gus->joy_trim = 29;
     gus->reg_ctrl = 0;
 
     gus->ad_status = 0;
@@ -1355,12 +1388,21 @@ gus_init(UNUSED(const device_t *info))
 
     gus->type = info->local;
 
+    gus->jumper = 0x06;
+
     gus->base = device_get_config_hex16("base");
 
     io_sethandler(gus->base, 0x0010, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
-    io_sethandler(0x0100 + gus->base, 0x0010, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_sethandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_sethandler(0x0102 + gus->base, 0x000e, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
     io_sethandler(0x0506 + gus->base, 0x0001, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
     io_sethandler(0x0388, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    if (gus->type == GUS_CLASSIC && device_get_config_int("gameport"))
+        gus->gameport = gameport_add(&gameport_201_device);
+    else {
+        gus->gameport = gameport_add(&gameport_pnp_1io_device);
+        gameport_remap(gus->gameport, 0x201);
+    }
 
     if (gus->type == GUS_MAX) {
         ad1848_init(&gus->ad1848, AD1848_TYPE_CS4231);
@@ -1440,6 +1482,17 @@ static const device_config_t gus_config[] = {
             { .description = "1 MB",   .value = 2 },
             { NULL                                }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
