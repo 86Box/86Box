@@ -613,15 +613,15 @@ VMManagerSystem::setupVars() {
     }
 
     // Add-on video that's not Voodoo
-    if (video_config.contains("8514a") && (video_config["8514a"] != 0))
+    if (video_config.contains("8514a") && (video_config["8514a"].toInt() != 0))
         display_table[Display::Name::Video].append(tr("IBM 8514/A Graphics").prepend(VMManagerDetailSection::sectionSeparator));
-    if (video_config.contains("xga") && (video_config["xga"] != 0))
+    if (video_config.contains("xga") && (video_config["xga"].toInt() != 0))
         display_table[Display::Name::Video].append(tr("XGA Graphics").prepend(VMManagerDetailSection::sectionSeparator));
-    if (video_config.contains("da2") && (video_config["da2"] != 0))
+    if (video_config.contains("da2") && (video_config["da2"].toInt() != 0))
         display_table[Display::Name::Video].append(tr("IBM PS/55 Display Adapter Graphics").prepend(VMManagerDetailSection::sectionSeparator));
 
     // Voodoo
-    if (video_config.contains("voodoo") && (video_config["voodoo"] != 0)) {
+    if (video_config.contains("voodoo") && (video_config["voodoo"].toInt() != 0)) {
         auto voodoo_config = getCategory(DeviceConfig::DeviceName(&voodoo_device, "voodoo", 0));
         int voodoo_type = voodoo_config["type"].toInt();
         QString voodoo_name;
