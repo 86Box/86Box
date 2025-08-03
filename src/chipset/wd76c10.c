@@ -113,9 +113,9 @@ typedef struct
     mem_mapping_t ram_mapping;
 
     nvr_t     *nvr;
-
-    fdc_t *fdc;
-    serial_t *uart[2];
+    fdc_t     *fdc;
+    serial_t  *uart[2];
+    lpt_t     *lpt;
 } wd76c10_t;
 
 static uint32_t bank_sizes[4] = { 0x00020000,      /*  64 Kbit X 16 = 1024 Kbit = 128 kB,  8x 8 */
@@ -911,19 +911,19 @@ wd76c10_ser_par_cs_recalc(wd76c10_t *dev)
     }
 
     /* LPT */
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
     switch ((dev->ser_par_cs >> 9) & 0x03) {
         case 1:
-            lpt1_setup(LPT_MDA_ADDR);
-            lpt1_irq(LPT1_IRQ);
+            lpt_port_setup(dev->lpt, LPT_MDA_ADDR);
+            lpt_port_irq(dev->lpt, LPT1_IRQ);
             break;
         case 2:
-            lpt1_setup(LPT1_ADDR);
-            lpt1_irq(LPT1_IRQ);
+            lpt_port_setup(dev->lpt, LPT1_ADDR);
+            lpt_port_irq(dev->lpt, LPT1_IRQ);
             break;
         case 3:
-            lpt1_setup(LPT2_ADDR);
-            lpt1_irq(LPT1_IRQ);
+            lpt_port_setup(dev->lpt, LPT2_ADDR);
+            lpt_port_irq(dev->lpt, LPT1_IRQ);
             break;
     }
 }
@@ -1173,8 +1173,8 @@ wd76c10_inw(uint16_t port, void *priv)
         case 0xd072:
             ret = (serial_read(0x0002, dev->uart[0]) & 0xc0) << 8;
             ret |= (serial_read(0x0002, dev->uart[1]) & 0xc0) << 6;
-            ret |= (lpt_read_port(0, 0x0002) & 0x0f) << 8;
-            ret |= lpt_read_port(0, 0x0000);
+            ret |= (lpt_read_port(dev->lpt, 0x0002) & 0x0f) << 8;
+            ret |= lpt_read_port(dev->lpt, 0x0000);
             break;
 
         case 0xe072:
@@ -1188,7 +1188,7 @@ wd76c10_inw(uint16_t port, void *priv)
             break;
 
         case 0xfc72:
-            ret = ((lpt_read_status(0) & 0x20) >> 2);
+            ret = ((lpt_read_status(dev->lpt) & 0x20) >> 2);
             ret |= (((uint16_t) dma_m) << 4);
             ret |= dev->toggle;
             dev->toggle ^= 0x8000;
@@ -1303,6 +1303,7 @@ wd76c10_init(UNUSED(const device_t *info))
     dev->nvr = device_add(&amstrad_megapc_nvr_device);
     dev->uart[0] = device_add_inst(&ns16450_device, 1);
     dev->uart[1] = device_add_inst(&ns16450_device, 2);
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
     dev->fdc = device_add(&fdc_at_device);
     device_add(&ide_isa_device);
 

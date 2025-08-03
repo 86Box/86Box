@@ -120,22 +120,6 @@ extern void               lpt_port_dma(lpt_t *dev, uint8_t dma);
 extern void               lpt_port_remove(lpt_t *dev);
 extern void               lpt1_remove_ams(lpt_t *dev);
 
-#define lpt1_setup(a)     lpt_port_setup(0, a)
-#define lpt1_irq(a)       lpt_port_irq(0, a)
-#define lpt1_remove()     lpt_port_remove(0)
-
-#define lpt2_setup(a)     lpt_port_setup(1, a)
-#define lpt2_irq(a)       lpt_port_irq(1, a)
-#define lpt2_remove()     lpt_port_remove(1)
-
-#define lpt3_setup(a)     lpt_port_setup(2, a)
-#define lpt3_irq(a)       lpt_port_irq(2, a)
-#define lpt3_remove()     lpt_port_remove(2)
-
-#define lpt4_setup(a)     lpt_port_setup(3, a)
-#define lpt4_irq(a)       lpt_port_irq(3, a)
-#define lpt4_remove()     lpt_port_remove(3)
-
 extern void               lpt_devices_init(void);
 extern void               lpt_devices_close(void);
 
