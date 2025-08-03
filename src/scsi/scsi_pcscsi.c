@@ -2668,7 +2668,7 @@ static const device_config_t am53c974a_bios_enable_config[] = {
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 16384,
-                .files         = { AM53C974_3_43_ROM, "" }
+                .files         = { AM53C974_3_01_AMD_ROM, "" }
             },
             {
                 .name          = "Version 3.43 (Dawicontrol)",
