@@ -252,8 +252,8 @@ fdc37c6xx_reset(fdc37c6xx_t *dev)
     serial_remove(dev->uart[1]);
     serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
-    lpt_port_remove(lpt->port);
-    lpt_port_setup(lpt->port, LPT1_ADDR);
+    lpt_port_remove(dev->lpt);
+    lpt_port_setup(dev->lpt, LPT1_ADDR);
 
     fdc_reset(dev->fdc);
     fdc_remove(dev->fdc);
