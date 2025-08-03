@@ -1877,13 +1877,13 @@ fdc37c93x_init(const device_t *info)
     dev->lpt       = device_add_inst(&lpt_port_device, 1);
 
     dev->chip_id   = info->local & FDC37C93X_CHIP_ID;
-    dev->kbc_type  = info->local & FDC37C93X_KBC;
+    dev->kbc_type  = info->local & FDC37XXXX_KBC;
 
     dev->is_apm    = (dev->chip_id == FDC37C93X_APM);
-    dev->is_compaq = (dev->kbc_type == FDC37C931);
+    dev->is_compaq = (dev->kbc_type == FDC37XXX1);
 
     dev->has_nvr   = !(info->local & FDC37C93X_NO_NVR);
-    dev->port_370  = !!(info->local & FDC37C93X_370);
+    dev->port_370  = !!(info->local & FDC37XXXX_370);
 
     if (dev->has_nvr) {
         dev->nvr = device_add(&amstrad_megapc_nvr_device);
@@ -1912,20 +1912,20 @@ fdc37c93x_init(const device_t *info)
     }
 
     switch (dev->kbc_type) {
-        case FDC37C931:
+        case FDC37XXX1:
             dev->kbc = device_add(&kbc_ps2_compaq_device);
             break;
-        case FDC37C932:
+        case FDC37XXX2:
             dev->kbc = device_add(&kbc_ps2_intel_ami_pci_device);
             break;
-        case FDC37C933:
+        case FDC37XXX3:
         default:
             dev->kbc = device_add(&kbc_ps2_pci_device);
             break;
-        case FDC37C935:
+        case FDC37XXX5:
             dev->kbc = device_add(&kbc_ps2_phoenix_device);
             break;
-        case FDC37C937:
+        case FDC37XXX7:
             dev->kbc = device_add(&kbc_ps2_phoenix_pci_device);
             break;
     }

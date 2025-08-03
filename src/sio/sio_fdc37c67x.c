@@ -743,11 +743,11 @@ fdc37c67x_init(const device_t *info)
 
     dev->lpt       = device_add_inst(&lpt_port_device, 1);
 
-    dev->kbc_type  = info->local & FDC37C93X_KBC;
+    dev->kbc_type  = info->local & FDC37XXXX_KBC;
 
-    dev->is_compaq = (dev->kbc_type == FDC37C931);
+    dev->is_compaq = (dev->kbc_type == FDC37XXX1);
 
-    dev->port_370  = !!(info->local & FDC37C93X_370);
+    dev->port_370  = !!(info->local & FDC37XXXX_370);
 
     dev->max_ld    = 8;
 
@@ -759,20 +759,20 @@ fdc37c67x_init(const device_t *info)
     }
 
     switch (dev->kbc_type) {
-        case FDC37C931:
+        case FDC37XXX1:
             dev->kbc = device_add(&kbc_ps2_compaq_device);
             break;
-        case FDC37C932:
+        case FDC37XXX2:
             dev->kbc = device_add(&kbc_ps2_intel_ami_pci_device);
             break;
-        case FDC37C933:
+        case FDC37XXX3:
         default:
             dev->kbc = device_add(&kbc_ps2_pci_device);
             break;
-        case FDC37C935:
+        case FDC37XXX5:
             dev->kbc = device_add(&kbc_ps2_phoenix_device);
             break;
-        case FDC37C937:
+        case FDC37XXX7:
             dev->kbc = device_add(&kbc_ps2_phoenix_pci_device);
             break;
     }
