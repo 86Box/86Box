@@ -366,7 +366,7 @@ mouse_upc_init(const device_t *info)
 {
     void *dev = NULL;
 
-    if (info->local)
+    if (info->local == 1)
         dev = mouse_upc_init_common(1, device_get_config_int("irq"));
     else
         dev = mouse_upc_init_common(0, info->local);

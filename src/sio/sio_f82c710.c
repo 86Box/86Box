@@ -134,7 +134,6 @@ ide_handler(upc_t *dev)
 
     if (dev->regs[0x0c] & 0x80) {
         if (dev->regs[0x0c] & 0x40) {
-            /* TODO: See what IDE mode the Amstrad PC5086 uses. */
             if (dev->xta && (dev->hdc_xta != NULL))
                 xta_handler(dev->hdc_xta, 1);
         } else {
@@ -382,6 +381,8 @@ f82c710_pc5086_init(const device_t *info)
        dev->hdc_xta = device_add(&xta_st50x_pc5086_device);
 
     dev->xta = 1;
+
+    f82c710_reset(dev);
 
     return dev;
 }
