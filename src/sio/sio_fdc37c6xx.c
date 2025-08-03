@@ -221,13 +221,10 @@ fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
             else
                 dev->cur_reg = val;
         } else {
-            if (dev->cur_reg > dev->max_reg) {
-                pclog("[W] %02X = %02X\n", dev->cur_reg, val);
+            if (dev->cur_reg > dev->max_reg)
                 return;
-            }
 
             valxor                  = val ^ dev->regs[dev->cur_reg];
-            pclog("[W] %02X = %02X\n", dev->cur_reg, val);
             dev->regs[dev->cur_reg] = val;
 
             switch (dev->cur_reg) {
