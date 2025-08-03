@@ -246,7 +246,7 @@ pc87311_ide_handler(pc87311_t *dev)
 void
 pc87311_enable(pc87311_t *dev)
 {
-    (FUNCTION_ENABLE & 0x01) ? pc87311_lpt_handler(dev) : lpt1_remove();
+    (FUNCTION_ENABLE & 0x01) ? pc87311_lpt_handler(dev) : lpt_port_remove(dev->lpt);
     (FUNCTION_ENABLE & 0x02) ? pc87311_uart_handler(0, dev) : serial_remove(dev->uart[0]);
     (FUNCTION_ENABLE & 0x04) ? pc87311_uart_handler(1, dev) : serial_remove(dev->uart[1]);
     (FUNCTION_ENABLE & 0x08) ? pc87311_fdc_handler(dev) : fdc_remove(dev->fdc_controller);

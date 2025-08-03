@@ -83,7 +83,7 @@ f82c606_update_ports(upc_t *dev, int set)
 {
     uint8_t uart1_int = 0xff;
     uint8_t uart2_int = 0xff;
-    uint8_t lpt1_int  = 0xff;
+    uint8_t lpt_int   = 0xff;
     int     nvr_int   = -1;
 
     serial_remove(dev->uart[0]);
@@ -136,7 +136,7 @@ f82c606_update_ports(upc_t *dev, int set)
             uart1_int = 5;
             break;
         case 0x0c:
-            lpt1_int = LPT2_IRQ;
+            lpt_int = LPT2_IRQ;
             break;
 
         default:
@@ -151,7 +151,7 @@ f82c606_update_ports(upc_t *dev, int set)
             uart2_int = 7;
             break;
         case 0x03:
-            lpt1_int = LPT1_IRQ;
+            lpt_int = LPT1_IRQ;
             break;
 
         default:
@@ -175,8 +175,8 @@ f82c606_update_ports(upc_t *dev, int set)
 
     if (dev->regs[0] & 8) {
         lpt_port_setup(dev->lpt, ((uint16_t) dev->regs[6]) << 2);
-        lpt_port_irq(dev->lpt, lpt1_int);
-        f82c606_log("LPT1 at %04X, IRQ %i\n", ((uint16_t) dev->regs[6]) << 2, lpt1_int);
+        lpt_port_irq(dev->lpt, lpt_int);
+        f82c606_log("LPT1 at %04X, IRQ %i\n", ((uint16_t) dev->regs[6]) << 2, lpt_int);
     }
 
     nvr_at_handler(1, ((uint16_t) dev->regs[3]) << 2, dev->nvr);
