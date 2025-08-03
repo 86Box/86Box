@@ -1039,7 +1039,7 @@ VMManagerSystem::setupVars() {
     static auto isamem_match = QRegularExpression("isamem\\d_type", QRegularExpression::CaseInsensitiveOption);
     for(const auto& key: other_config.keys()) {
         if(key.contains(isamem_match)) {
-            auto device_number = QString(key.split("_").at(0).right(1).toInt() + 1);
+            auto device_number = QString("%1").arg(key.split("_").at(0).right(1).toInt() + 1);
             auto isamem_internal_name = QString(other_config[key]);
             auto isamem_id = isamem_get_from_internal_name(isamem_internal_name.toUtf8().data());
             auto isamem_device = isamem_get_device(isamem_id);
@@ -1056,7 +1056,7 @@ VMManagerSystem::setupVars() {
     static auto isarom_match = QRegularExpression("isarom\\d_type", QRegularExpression::CaseInsensitiveOption);
     for(const auto& key: other_config.keys()) {
         if(key.contains(isarom_match)) {
-            auto device_number = QString(key.split("_").at(0).right(1).toInt() + 1);
+            auto device_number = QString("%1").arg(key.split("_").at(0).right(1).toInt() + 1);
             auto isarom_internal_name = QString(other_config[key]);
             auto isarom_id = isarom_get_from_internal_name(isarom_internal_name.toUtf8().data());
             auto isarom_device = isarom_get_device(isarom_id);
