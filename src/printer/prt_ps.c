@@ -26,6 +26,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
+#include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/lpt.h>
