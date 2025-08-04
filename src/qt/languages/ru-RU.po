@@ -1590,6 +1590,12 @@ msgstr "Адрес"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr "IRQ последовательного порта"
+
+msgid "Parallel port IRQ"
+msgstr "IRQ параллельного порта"
+
 msgid "BIOS Revision"
 msgstr "Версия BIOS"
 
@@ -1814,6 +1820,9 @@ msgstr "Поднимать прерывание кодека при настро
 
 msgid "SB Address"
 msgstr "Адрес SB"
+
+msgid "Adlib Address"
+msgstr "Адрес AdLib"
 
 msgid "Use EEPROM setting"
 msgstr "Использовать настройку EEPROM"
