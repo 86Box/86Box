@@ -570,5 +570,5 @@ const lpt_device_t lpt_prt_text_device = {
     .epp_request_read = NULL,
     .priv             = NULL,
     .lpt              = NULL,
-    .cfgdevice        = &prt_text_device
+    .cfgdevice        = (device_t *) &prt_text_device
 };

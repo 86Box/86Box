@@ -2156,5 +2156,5 @@ const lpt_device_t lpt_prt_escp_device = {
     .epp_request_read = NULL,
     .priv             = NULL,
     .lpt              = NULL,
-    .cfgdevice        = &prt_escp_device
+    .cfgdevice        = (device_t *) &prt_escp_device
 };
