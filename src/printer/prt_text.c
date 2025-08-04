@@ -64,12 +64,13 @@
 #include <86box/printer.h>
 #include <86box/prt_devs.h>
 #include "cpu.h"
+#include <86box/prt_papersizes.h>
 
 #define FULL_PAGE 1 /* set if no top/bot margins */
 
 /* Default page values (for now.) */
-#define PAGE_WIDTH   8.5 /* standard U.S. Letter */
-#define PAGE_HEIGHT  11
+#define PAGE_WIDTH  LETTER_PAGE_WIDTH
+#define PAGE_HEIGHT LETTER_PAGE_HEIGHT
 #define PAGE_LMARGIN 0.25 /* 0.25" left and right */
 #define PAGE_RMARGIN 0.25
 #if FULL_PAGE

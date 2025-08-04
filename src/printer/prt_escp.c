@@ -72,15 +72,18 @@
 #include <86box/png_struct.h>
 #include <86box/printer.h>
 #include <86box/prt_devs.h>
+#include <86box/prt_papersizes.h>
 
 /* Default page values (for now.) */
 #define COLOR_BLACK  7 << 5
-#define PAGE_WIDTH   8.5 /* standard U.S. Letter */
-#define PAGE_HEIGHT  11.0
+#define PAGE_WIDTH  LETTER_PAGE_WIDTH
+#define PAGE_HEIGHT LETTER_PAGE_HEIGHT
+#if 0
 #define PAGE_LMARGIN 0.0
 #define PAGE_RMARGIN PAGE_WIDTH
 #define PAGE_TMARGIN 0.0
 #define PAGE_BMARGIN PAGE_HEIGHT
+#endif
 #define PAGE_DPI     360
 #define PAGE_CPI     10.0 /* standard 10 cpi */
 #define PAGE_LPI     6.0  /* standard 6 lpi */
