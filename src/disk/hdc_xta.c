@@ -1387,7 +1387,7 @@ static const device_config_t st50x_config[] = {
     // clang-format off
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0xc8000,
