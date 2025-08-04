@@ -9,6 +9,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/device.h>
 #include <86box/io.h>
 #include <86box/fifo.h>
 #include <86box/timer.h>
@@ -42,23 +43,22 @@ const lpt_device_t lpt_none_device = {
 };
 
 static const struct {
-    const char         *internal_name;
     const lpt_device_t *device;
 } lpt_devices[] = {
   // clang-format off
-    {"none",            &lpt_none_device          },
-    {"dss",             &dss_device               },
-    {"lpt_dac",         &lpt_dac_device           },
-    {"lpt_dac_stereo",  &lpt_dac_stereo_device    },
-    {"text_prt",        &lpt_prt_text_device      },
-    {"dot_matrix",      &lpt_prt_escp_device      },
-    {"postscript",      &lpt_prt_ps_device        },
+    { &lpt_none_device          },
+    { &dss_device               },
+    { &lpt_dac_device           },
+    { &lpt_dac_stereo_device    },
+    { &lpt_prt_text_device      },
+    { &lpt_prt_escp_device      },
+    { &lpt_prt_ps_device        },
 #ifdef USE_PCL
-    {"pcl",             &lpt_prt_pcl_device       },
+    { &lpt_prt_pcl_device       },
 #endif
-    {"plip",            &lpt_plip_device          },
-    {"dongle_savquest", &lpt_hasp_savquest_device },
-    {"",                NULL                      }
+    { &lpt_plip_device          },
+    { &lpt_hasp_savquest_device },
+    { NULL                      }
   // clang-format on
 };
 
@@ -80,31 +80,59 @@ lpt_log(const char *fmt, ...)
 #    define lpt_log(fmt, ...)
 #endif
 
+const device_t *
+lpt_device_getdevice(const int id)
+{
+    return (device_t *) lpt_devices[id].device->cfgdevice;
+}
+
+int
+lpt_device_has_config(const int id)
+{
+    int   c                    = 0;
+    const device_t        *dev = (device_t *) lpt_devices[id].device->cfgdevice;
+    const device_config_t *config;
+    if (dev == NULL)
+        return 0;
+
+    if (dev->config == NULL)
+        return 0;
+
+    config = dev->config;
+
+    while (config->type != CONFIG_END) {
+        c++;
+        config++;
+    }
+
+    return (c > 0) ? 1 : 0;
+}
+
 const char *
 lpt_device_get_name(const int id)
 {
-    if (strlen(lpt_devices[id].internal_name) == 0)
-        return NULL;
     if (lpt_devices[id].device == NULL)
-        return "None";
+        return NULL;
+
     return lpt_devices[id].device->name;
 }
 
 const char *
 lpt_device_get_internal_name(const int id)
 {
-    if (strlen(lpt_devices[id].internal_name) == 0)
+    if (lpt_devices[id].device == NULL)
         return NULL;
-    return lpt_devices[id].internal_name;
+
+    return lpt_devices[id].device->internal_name;
 }
 
 int
-lpt_device_get_from_internal_name(const char *s)
+lpt_device_get_from_internal_name(const char *str)
 {
     int c = 0;
 
-    while (strlen(lpt_devices[c].internal_name) != 0) {
-        if (strcmp(lpt_devices[c].internal_name, s) == 0)
+    while (lpt_devices[c].device != NULL) {
+        if (!strcmp(lpt_devices[c].device->internal_name, str))
             return c;
         c++;
     }
