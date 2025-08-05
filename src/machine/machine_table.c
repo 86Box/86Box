@@ -6458,7 +6458,7 @@ const machine_t machines[] = {
         .flags = MACHINE_APM, 
         .ram = { 
             .min = 1024, 
-            .max = 49152, 
+            .max = 65536, 
             .step = 1024 
         }, 
         .nvrmask = 127, 
@@ -8324,7 +8324,7 @@ const machine_t machines[] = {
         .flags = MACHINE_SUPER_IO | MACHINE_IDE | MACHINE_APM, 
         .ram = { 
             .min = 1024, 
-            .max = 32768, 
+            .max = 131072, 
             .step = 1024 
         }, 
         .nvrmask = 127, 
@@ -8365,7 +8365,7 @@ const machine_t machines[] = {
         .flags = MACHINE_APM, 
         .ram = { 
             .min = 1024, 
-            .max = 40960, 
+            .max = 131072,
             .step = 1024 
         }, 
         .nvrmask = 127, 
@@ -8704,8 +8704,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2, 
         .flags = MACHINE_SUPER_IO | MACHINE_IDE | MACHINE_APM, /* Has onboard video: C&T F65545 */ 
         .ram = { 
-            .min = 1024, 
-            .max = 32768, 
+            .min = 8192, 
+            .max = 73728, 
             .step = 1024 
         }, 
         .nvrmask = 255, 
