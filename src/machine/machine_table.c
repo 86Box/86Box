@@ -12094,7 +12094,8 @@ const machine_t machines[] = {
         .snd_device = NULL, 
         .net_device = NULL 
     }, 
-    /* This likely has Phoenix KBC firmware. */ 
+    /* KBC firmware is unknown. No commands outside of the base PS/2 */ 
+    /* KBC command set are used. */ 
     { 
         .name = "[VLSI SuperCore] Micronics M54Si", 
         .internal_name = "m54si", 
@@ -13145,7 +13146,8 @@ const machine_t machines[] = {
     }, 
  
     /* VLSI Wildcat */ 
-    /* KBC firmware is unknown (probably Phoenix?) and no PS/2 port is present */ 
+    /* KBC firmware is unknown. No PS/2 port is present and no commands outside */ 
+    /* of the base AT KBC command set are used. */ 
     { 
         .name = "[VLSI Wildcat] Zeos Pantera Wildcat", 
         .internal_name = "zeoswildcat", 
