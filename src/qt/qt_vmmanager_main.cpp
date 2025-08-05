@@ -349,7 +349,7 @@ illegal_chars:
     });
 
     // Initial default details view
-    vm_details = new VMManagerDetails();
+    vm_details = new VMManagerDetails(ui->detailsArea);
     ui->detailsArea->layout()->addWidget(vm_details);
     const QItemSelectionModel *selection_model = ui->listView->selectionModel();
 
@@ -784,6 +784,14 @@ VMManagerMain::onLanguageUpdated()
     if (vm_model->rowCount(QModelIndex()) > 0)
         vm_details->updateData(selected_sysconfig);
 }
+
+#ifdef Q_OS_WINDOWS
+void
+VMManagerMain::onDarkModeUpdated()
+{
+    vm_details->updateStyle();
+}
+#endif
 
 int
 VMManagerMain::getActiveMachineCount()

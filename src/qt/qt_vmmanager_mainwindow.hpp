@@ -37,6 +37,9 @@ public:
 signals:
     void preferencesUpdated();
     void languageUpdated();
+#ifdef Q_OS_WINDOWS
+    void darkModeUpdated();
+#endif
 
 private:
     Ui::VMManagerMainWindow *ui;
@@ -48,6 +51,9 @@ public slots:
     void setStatusLeft(const QString &text) const;
     void setStatusRight(const QString &text) const;
     void updateLanguage();
+#ifdef Q_OS_WINDOWS
+    void updateDarkMode();
+#endif
 
 private slots:
     void vmmSelectionChanged(const QModelIndex &currentSelection, QProcess::ProcessState processState) const;
