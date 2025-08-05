@@ -251,6 +251,8 @@ vl82c59x_write(int func, int addr, uint8_t val, void *priv)
             case 0x5F:
             case 0x60:
             case 0x62:
+                /* Apricot XEN-PC Ruby/Jade BIOS requires bit 2 to be set or */
+                /* CMOS setup hangs on subsequent runs after NVRAM is initialized */
                 dev->pci_conf[addr] = val;
                 break;
             case 0x64: /* A-B SMRAM regs */
@@ -280,7 +282,7 @@ vl82c59x_write(int func, int addr, uint8_t val, void *priv)
             case 0x7A:
                 dev->pci_conf[addr] = val;
                 break;
-            case 0x7C: /* Appears to be SMRAM enable for the E region */
+            case 0x7C: /* MISCSSET, bit 7 is SMRAM enable (for the E region) */
                 /* io.c logging shows BIOSes setting Bit 7 here */
                 dev->pci_conf[addr] = val;
                 vl82c59x_smram(dev);
@@ -343,6 +345,9 @@ vl82c59x_sb_write(int func, int addr, uint8_t val, void *priv)
             case 0x58:
             case 0x59:
             case 0x5A:
+                /* Has at least one GPIO bit. Compaq Presario 700/900 586 BIOS */
+                /* uses bit 2 as an output to set the onboard ES688's base I/O */
+                /* address. Bit 2 cleared = 220, bit 2 set = 240 */
             case 0x5C: /* Interrupt Assertion Level Register */
             case 0x5D:
                 dev->pci_conf_sb[addr] = val;
