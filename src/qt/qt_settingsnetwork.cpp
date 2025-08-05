@@ -358,7 +358,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
 #endif
 #ifdef USE_NETSWITCH
         } else if (net_cards_conf[i].net_type == NET_TYPE_NMSWITCH) {
-            auto *promisc_value = findChild<QCheckBox *>(QString("promiscBox%1").arg(i + 1));
+            auto *promisc_value = findChild<QCheckBox *>(QString("boxPromisc%1").arg(i + 1));
             promisc_value->setCheckState(net_cards_conf[i].promisc_mode == 1 ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
             auto *switch_group_value = findChild<QSpinBox *>(QString("switchSpinner%1").arg(i + 1));
             switch_group_value->setValue(net_cards_conf[i].switch_group + 1);

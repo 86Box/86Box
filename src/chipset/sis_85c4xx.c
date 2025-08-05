@@ -596,15 +596,6 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
 
                 switch (rel_reg) {
                     case 0x00:
-                        if (dev->is_471) {
-                            if (val & 0x01) {
-                                kbc_at_set_fast_reset(0);
-                                cpu_cpurst_on_sr = 1;
-                            } else {
-                                kbc_at_set_fast_reset(1);
-                                cpu_cpurst_on_sr = 0;
-                            }
-                        }
                         break;
 
                     case 0x01:

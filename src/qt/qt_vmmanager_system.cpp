@@ -870,7 +870,7 @@ VMManagerSystem::setupVars() {
         if(key.contains(sndcard_match)) {
             auto device_number = key.right(1);
             if(device_number == "d") // card #1 has no number
-                device_number == "1";
+                device_number = "1";
             auto audio_internal_name = QString(audio_config[key]);
             auto audio_id = sound_card_get_from_internal_name(audio_internal_name.toUtf8().data());
             auto audio_device = sound_card_getdevice(audio_id);
