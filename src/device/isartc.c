@@ -410,11 +410,16 @@ mm67_read(uint16_t port, void *priv)
             break;
 
         case MM67_AL_MSEC:
+        case MM67_MSEC:
             ret                = dev->nvr.regs[reg] & 0xf0;
             break;
 
         case MM67_AL_DOW:
             ret                = dev->nvr.regs[reg] & 0x0f;
+            break;
+
+        case MM67_DOW:
+            ret                = dev->nvr.regs[reg] & 0x07;
             break;
 
         default:
