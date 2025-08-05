@@ -25,6 +25,11 @@
 #include <stdarg.h>
 #endif
 
+#if defined(__HAIKU__)
+/* Doesn't compile on Haiku without this include */
+#include <stdlib.h>
+#endif
+
 /* Configuration values. */
 #define GFXCARD_MAX  2
 #define SERIAL_MAX   8
