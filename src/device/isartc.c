@@ -92,8 +92,8 @@
 #define ISARTC_MPLUS2  5
 #define ISARTC_MM58167 10
 
-#define ISARTC_ROM_MM58167_1 "roms/rtc/glatick/GLaTICK_0.8.5_NS_RP.ROM"
-#define ISARTC_ROM_MM58167_2 "roms/rtc/glatick/GLaTICK_0.8.5_86B.ROM"
+#define ISARTC_ROM_MM58167_1 "roms/rtc/glatick/GLaTICK_0.8.8_NS_86B.ROM"  /* Generic 58167, AST or EV-170 */
+#define ISARTC_ROM_MM58167_2 "roms/rtc/glatick/GLaTICK_0.8.8_NS_86B2.ROM" /* PII-147 */
 
 #define ISARTC_DEBUG  0
 
@@ -410,11 +410,16 @@ mm67_read(uint16_t port, void *priv)
             break;
 
         case MM67_AL_MSEC:
+        case MM67_MSEC:
             ret                = dev->nvr.regs[reg] & 0xf0;
             break;
 
         case MM67_AL_DOW:
             ret                = dev->nvr.regs[reg] & 0x0f;
+            break;
+
+        case MM67_DOW:
+            ret                = dev->nvr.regs[reg] & 0x07;
             break;
 
         default:

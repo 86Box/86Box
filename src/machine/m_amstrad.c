@@ -2247,7 +2247,7 @@ ams_write(uint16_t port, uint8_t val, void *priv)
         case 0x0378:
         case 0x0379:
         case 0x037a:
-            lpt_write(port, val, &lpt_ports[0]);
+            lpt_write(port, val, ams->lpt);
             break;
 
         case 0xdead:
@@ -2267,7 +2267,7 @@ ams_read(uint16_t port, void *priv)
 
     switch (port) {
         case 0x0378:
-            ret = lpt_read(port, &lpt_ports[0]);
+            ret = lpt_read(port, ams->lpt);
             break;
 
         case 0x0379: /* printer control, also set LK1-3.
@@ -2281,11 +2281,11 @@ ams_read(uint16_t port, void *priv)
                       *   1 Italian Language.
                       *   0 Diagnostic Mode.
                       */
-            ret = (lpt_read(port, &lpt_ports[0]) & 0xf8) | ams->language;
+            ret = (lpt_read(port, ams->lpt) & 0xf8) | ams->language;
             break;
 
         case 0x037a: /* printer status */
-            ret = lpt_read(port, &lpt_ports[0]) & 0x1f;
+            ret = lpt_read(port, ams->lpt) & 0x1f;
 
             switch (ams->type) {
                 case AMS_PC1512:
