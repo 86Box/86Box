@@ -684,8 +684,7 @@ msgstr "Immagini dischi rimovibili"
 msgid "Image %1"
 msgstr "Immagine %1"
 
-msgid ""
-"86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box non è in grado di trovare immagini ROM utilizzabili.\n\nSi prega di <a href=\"https://github.com/86Box/roms/releases/latest\">scaricare</a> un set di ROM ed estrarlo nella cartella \"roms\"."
 
 msgid "(empty)"
