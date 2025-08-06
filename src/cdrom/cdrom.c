@@ -345,7 +345,6 @@ cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const 
     int            ret = 1;
 
     if (!mode2 || (form != 1)) {
-#ifdef TEMPORARILY_DISABLE_CRC_CHECKING
         if (mode2 && (form == 1)) {
             const uint32_t crc = cdrom_crc32(0xffffffff, &(b[16]), 2056) ^ 0xffffffff;
 
@@ -355,7 +354,6 @@ cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const 
 
             ret = ret && (crc == (*(uint32_t *) &(b[2064])));
         }
-#endif
 
         cdrom_generate_ecc_data(dev, &(b[12]), mode2 && (form == 1));
 
