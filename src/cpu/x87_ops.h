@@ -22,6 +22,20 @@
  */
 #include <math.h>
 #include <fenv.h>
+#if defined(_MSC_VER) && !defined(__clang__)
+#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
+#        define X87_INLINE_ASM
+#    endif
+#else
+#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64 || defined __amd64__
+#        define X87_INLINE_ASM
+#    endif
+#endif
+
+#ifdef X87_INLINE_ASM
+#include <immintrin.h>
+#endif
+
 #include "x87_timings.h"
 #ifdef _MSC_VER
 #    include <intrin.h>
@@ -38,7 +52,9 @@ extern void fpu_log(const char *fmt, ...);
 
 extern double exp_pow_table[0x800];
 
+#ifndef X87_INLINE_ASM
 static int rounding_modes[4] = { FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO };
+#endif
 
 #define ST(x)             cpu_state.ST[((cpu_state.TOP + (x)) & 7)]
 
@@ -63,16 +79,6 @@ typedef union {
         uint64_t negative : 1;
     };
 } double_decompose_t;
-
-#if defined(_MSC_VER) && !defined(__clang__)
-#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
-#        define X87_INLINE_ASM
-#    endif
-#else
-#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64 || defined __amd64__
-#        define X87_INLINE_ASM
-#    endif
-#endif
 
 #ifdef FPU_8087
 #    define x87_div(dst, src1, src2)                    \
@@ -575,7 +581,7 @@ static int
 FPU_ILLEGAL_a16(UNUSED(uint32_t fetchdat))
 {
     geteaw();
-    wait(timing_rr, 0);
+    wait_cycs(timing_rr, 0);
     return 0;
 }
 #else

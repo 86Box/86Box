@@ -56,35 +56,46 @@ static const struct {
     // clang-format off
     { &device_none                 },
     { &device_internal             },
-    { &st506_xt_xebec_device       },
-    { &st506_xt_wdxt_gen_device    },
+    /* ISA */
+    { &xtide_acculogic_device      },
     { &st506_xt_dtc5150x_device    },
+    { &st506_xt_xebec_device       },
+    { &xtide_device                },
     { &st506_xt_st11_m_device      },
-    { &st506_xt_wd1002a_wx1_device },
-    { &st506_xt_wd1004a_wx1_device },
-    { &st506_at_wd1003_device      },
     { &st506_xt_st11_r_device      },
+    { &xta_st50x_device            },
+    { &st506_xt_victor_v86p_device },
     { &st506_xt_wd1002a_27x_device },
+    { &st506_xt_wd1002a_wx1_device },
     { &st506_xt_wd1004_27x_device  },
     { &st506_xt_wd1004a_27x_device },
-    { &st506_xt_victor_v86p_device },
-    { &esdi_at_wd1007vse1_device   },
+    { &st506_xt_wd1004a_wx1_device },
+    { &xta_wdxt150_device          },
+    { &st506_xt_wdxt_gen_device    },
+    /* ISA16 */
     { &ide_isa_device              },
     { &ide_isa_2ch_device          },
     { &xtide_at_device             },
     { &xtide_at_2ch_device         },
     { &xtide_at_ps2_device         },
     { &xtide_at_ps2_2ch_device     },
-    { &xta_wdxt150_device          },
-    { &xtide_acculogic_device      },
-    { &xtide_device                },
+    { &ide_ter_device              },
+    { &ide_qua_device              },
+    { &st506_at_wd1003_device      },
+    { &esdi_at_wd1007vse1_device   },
+    /* MCA */
     { &esdi_ps2_device             },
     { &esdi_integrated_device      },
-    { &ide_pci_device              },
-    { &ide_pci_2ch_device          },
+    { &mcide_device                },
+    /* VLB */
     { &ide_vlb_device              },
     { &ide_vlb_2ch_device          },
-    { &mcide_device                },
+    /* PCI */
+    { &ide_cmd646_ter_qua_device   },
+    { &ide_cmd648_ter_qua_device   },
+    { &ide_cmd649_ter_qua_device   },
+    { &ide_pci_device              },
+    { &ide_pci_2ch_device          },
     { NULL                         }
     // clang-format on
 };
@@ -103,18 +114,14 @@ hdc_init(void)
 void
 hdc_reset(void)
 {
-    hdc_log("HDC: reset(current=%d, internal=%d)\n",
-            hdc_current[0], (machines[machine].flags & MACHINE_HDC) ? 1 : 0);
+    for (int i = 0; i < HDC_MAX; i++) {
+        hdc_log("HDC %i: reset(current=%d, internal=%d)\n", i,
+                hdc_current[i], hdc_current[i] == HDC_INTERNAL);
 
-    /* If we have a valid controller, add its device. */
-    if (hdc_current[0] > HDC_INTERNAL)
-        device_add(controllers[hdc_current[0]].device);
-
-    /* Now, add the tertiary and/or quaternary IDE controllers. */
-    if (ide_ter_enabled)
-        device_add(&ide_ter_device);
-    if (ide_qua_enabled)
-        device_add(&ide_qua_device);
+        /* If we have a valid controller, add its device. */
+        if (hdc_current[i] > HDC_INTERNAL)
+            device_add_inst(controllers[hdc_current[i]].device, i + 1);
+    }
 }
 
 const char *
@@ -124,7 +131,7 @@ hdc_get_internal_name(int hdc)
 }
 
 int
-hdc_get_from_internal_name(char *s)
+hdc_get_from_internal_name(const char *s)
 {
     int c = 0;
 

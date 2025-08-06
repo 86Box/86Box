@@ -336,13 +336,13 @@ bochs_vbe_recalctimings(svga_t* svga)
 
         if (svga->bpp == 4) {
             svga->rowoffset = (dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] / 2) >> 3;
-            svga->ma_latch  = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
+            svga->memaddr_latch  = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
                               (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] >> 3);
 
             svga->fullchange = 3;
         } else {
             svga->rowoffset = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8));
-            svga->ma_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
+            svga->memaddr_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
                              (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));
             svga->fullchange = 3;
         }
@@ -470,11 +470,11 @@ bochs_vbe_outw(const uint16_t addr, const uint16_t val, void *priv)
                 svga_t *svga = &dev->svga;
                 if (svga->bpp == 4) {
                     svga->rowoffset = (dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] / 2) >> 3;
-                    svga->ma_latch  = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
+                    svga->memaddr_latch  = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
                                     (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] >> 3);
                 } else {
                     svga->rowoffset = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8));
-                    svga->ma_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
+                    svga->memaddr_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
                                     (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));
                 }
 
@@ -511,7 +511,7 @@ bochs_vbe_outw(const uint16_t addr, const uint16_t val, void *priv)
                 svga_recalctimings(&dev->svga);
                 if (!(val & VBE_DISPI_NOCLEARMEM)) {
                     memset(dev->svga.vram, 0,
-                           dev->vbe_regs[VBE_DISPI_INDEX_YRES] * dev->svga.rowoffset);
+                           (size_t) dev->vbe_regs[VBE_DISPI_INDEX_YRES] * dev->svga.rowoffset);
                 }
             } else
                 dev->svga.read_bank = dev->svga.write_bank = 0;
@@ -575,7 +575,7 @@ bochs_vbe_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -811,22 +811,22 @@ bochs_vbe_init(const device_t *info)
     dev->vram_size = device_get_config_int("memory") * (1 << 20);
 
     rom_init(&dev->bios_rom, "roms/video/bochs/VGABIOS-lgpl-latest.bin",
-             0xc0000, 0x10000, 0xffff, 0x0000,
+             0xc0000, 0x8000, 0x7fff, 0x0000,
              MEM_MAPPING_EXTERNAL);
 
     if (dev->id5_val == VBE_DISPI_ID4) {
         /* Patch the BIOS to match the PCI ID. */
         dev->bios_rom.rom[0x010c] = 0xee;
-        dev->bios_rom.rom[0x8dff] -= (0xee - 0x34);
+        dev->bios_rom.rom[0x7fff] -= (0xee - 0x34);
 
         dev->bios_rom.rom[0x010d] = 0x80;
-        dev->bios_rom.rom[0x8dff] -= (0x80 - 0x12);
+        dev->bios_rom.rom[0x7fff] -= (0x80 - 0x12);
 
         dev->bios_rom.rom[0x010e] = 0xef;
-        dev->bios_rom.rom[0x8dff] -= (0xef - 0x11);
+        dev->bios_rom.rom[0x7fff] -= (0xef - 0x11);
 
         dev->bios_rom.rom[0x010f] = 0xbe;
-        dev->bios_rom.rom[0x8dff] -= (0xbe - 0x11);
+        dev->bios_rom.rom[0x7fff] -= (0xbe - 0x11);
     }
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_bochs);

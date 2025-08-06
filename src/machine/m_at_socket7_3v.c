@@ -106,10 +106,9 @@ machine_at_thor_common_init(const machine_t *model, int has_video)
     if (has_video && (gfxcard[0] == VID_INTERNAL))
         device_add(machine_get_vid_device(machine));
 
-    device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&pc87306_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 }
 
@@ -125,7 +124,7 @@ machine_at_p54tp4xe_common_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x09, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
     device_add(&fdc37c665_device);
@@ -184,7 +183,7 @@ machine_at_exp8551_init(const machine_t *model)
     pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x11, PCI_CARD_NORMAL, 4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
     device_add(&w83787f_device);
@@ -359,10 +358,9 @@ machine_at_endeavor_init(const machine_t *model)
     if (sound_card_current[0] == SOUND_INTERNAL)
         machine_snd = device_add(machine_get_snd_device(machine));
 
-    device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&pc87306_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -390,7 +388,7 @@ machine_at_ms5119_init(const machine_t *model)
 
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83787f_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -455,10 +453,9 @@ machine_at_pb640_init(const machine_t *model)
     device_add(&piix_rev02_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5440_onboard_pci_device);
+        device_add(machine_get_vid_device(machine));
 
-    device_add(&keyboard_ps2_intel_ami_pci_device);
-    device_add(&pc87306_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -484,7 +481,7 @@ machine_at_mb500n_init(const machine_t *model)
     pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x11, PCI_CARD_NORMAL, 4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_no_mirq_device);
     device_add(&fdc37c665_device);
@@ -516,7 +513,7 @@ machine_at_fmb_init(const machine_t *model)
 
     device_add(&i430fx_device);
     device_add(&piix_no_mirq_device);
-    device_add(&keyboard_at_ami_device);
+    device_add(&kbc_at_ami_device);
     device_add(&w83787f_device);
     device_add(&intel_flash_bxt_device);
 
@@ -546,7 +543,7 @@ machine_at_acerm3a_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_VIDEO,       4, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c935_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX5 | FDC37C93X_NORMAL));
 
     device_add(&sst_flash_29ee010_device);
 
@@ -576,7 +573,7 @@ machine_at_ap53_init(const machine_t *model)
     pci_register_slot(0x06, PCI_CARD_VIDEO,       1, 2, 3, 4);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&fdc37c669_device);
     device_add(&intel_flash_bxt_device);
 
@@ -605,12 +602,96 @@ machine_at_8500tuc_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&um8669f_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;
 }
+
+int
+machine_at_d943_init(const machine_t *model)
+
+{
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+	
+    machine_at_common_init_ex(model, 2);
+    device_add(&amstrad_megapc_nvr_device);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_VIDEO,       4, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 2, 4, 1);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,	  2, 1, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 3, 2, 4);
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    device_add(&kbc_ps2_pci_device);
+    device_add(&fdc37c665_device);
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_EDO, 0x7, 256);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+static const device_config_t d943_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "d943",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 }, /*W1*/
+        .bios = {
+            { .name = "PhoenixBIOS 4.05 - Revision 1.02.943", .internal_name = "d943_oct96", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_oct96.bin", "" } },
+            { .name = "PhoenixBIOS 4.05 - Revision 1.03.943", .internal_name = "d943_dec96", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_dec96.bin", "" } },
+            { .name = "PhoenixBIOS 4.05 - Revision 1.05.943", .internal_name = "d943_sept97", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_sept97.bin", "" } },
+            { .name = "PhoenixBIOS 4.05 - Revision 1.06.943", .internal_name = "d943", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/d943/d943_oct97.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+
+
+const device_t d943_device = {
+    .name          = "Siemens-Nixdorf D943",
+    .internal_name = "d943_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = d943_config
+};
 
 int
 machine_at_p55t2s_init(const machine_t *model)
@@ -634,8 +715,7 @@ machine_at_p55t2s_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87306_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -663,7 +743,7 @@ machine_at_p5vxb_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83877f_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -700,22 +780,64 @@ machine_at_gw2kma_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&fdc37c932fr_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_FR));
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
 }
 
+static const device_config_t ap5s_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "ap5s",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "AwardBIOS v4.50PG - Revision R1.20", .internal_name = "ap5s_450pg", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/ap5s/ap5s120.bin", "" } },
+            { .name = "AwardBIOS v4.51PG - Revision R1.50", .internal_name = "ap5s_r150", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/ap5s/AP5S150.BIN", "" } },
+            { .name = "AwardBIOS v4.51PG - Revision R1.60", .internal_name = "ap5s", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/ap5s/ap5s160.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ap5s_device = {
+    .name          = "AOpen AP5S",
+    .internal_name = "ap5s_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ap5s_config
+};
+
 int
 machine_at_ap5s_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/ap5s/AP5S150.BIN",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     machine_at_common_init_ex(model, 2);
 
@@ -728,7 +850,7 @@ machine_at_ap5s_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&sis_5511_device);
-    device_add(&keyboard_ps2_ami_device);
+    device_add(&kbc_ps2_ami_device);
     device_add(&fdc37c665_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -757,7 +879,7 @@ machine_at_ms5124_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
 
     device_add(&sis_5511_device);
-    device_add(&keyboard_ps2_ami_device);
+    device_add(&kbc_ps2_ami_device);
     device_add(&w83787f_88h_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -786,7 +908,7 @@ machine_at_amis727_init(const machine_t *model)
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&sis_5511_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&kbc_ps2_intel_ami_pci_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
 
@@ -819,19 +941,64 @@ machine_at_vectra54_init(const machine_t *model)
 
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&fdc37c932_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_NORMAL));
     device_add(&sst_flash_29ee010_device);
 
     return ret;
 }
 
+static const device_config_t c5sbm2_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "5sbm2",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "AwardBIOS v4.50GP - Revision 07/17/1995", .internal_name = "5sbm2_v450gp", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5sbm2/5SBM0717.BIN", "" } },
+            { .name = "AwardBIOS v4.50PG - Revision 03/26/1996", .internal_name = "5sbm2", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5sbm2/5SBM0326.BIN", "" } },
+            { .name = "AwardBIOS v4.51PG - Revision 2.2 (by Unicore Software)", .internal_name = "5sbm2_451pg", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5sbm2/2A5ICC3A.BIN", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t c5sbm2_device = {
+    .name          = "Chaintech 5SBM/5SBM2 (M103)",
+    .internal_name = "5sbm2_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = c5sbm2_config
+};
+
 int
 machine_at_5sbm2_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/5sbm2/5SBM0717.BIN",
-                           0x000e0000, 131072, 0);
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
@@ -845,7 +1012,7 @@ machine_at_5sbm2_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 1, 2);
 
-    device_add(&keyboard_at_ami_device);
+    device_add(&kbc_at_ami_device);
     device_add(&sis_550x_device);
     device_add(&um8663af_device);
     device_add(&sst_flash_29ee010_device);
@@ -877,7 +1044,7 @@ machine_at_pc140_6260_init(const machine_t *model)
         device_add(&gd5436_onboard_pci_device);
 
     device_add(&sis_5511_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&fdc37c669_device);
     device_add(&sst_flash_29ee010_device);
 

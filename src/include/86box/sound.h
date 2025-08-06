@@ -12,9 +12,11 @@
  *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
- *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2024-2025 Jasmine Iwanek.
  */
 
 #ifndef EMU_SOUND_H
@@ -132,6 +134,12 @@ extern const device_t cmi8738_device;
 extern const device_t cmi8738_onboard_device;
 extern const device_t cmi8738_6ch_onboard_device;
 
+/* Covox ISA */
+extern const device_t voicemasterkey_device;
+extern const device_t soundmasterplus_device;
+extern const device_t isadacr0_device;
+extern const device_t isadacr1_device;
+
 /* Creative Labs Game Blaster */
 extern const device_t cms_device;
 
@@ -197,6 +205,7 @@ extern const device_t ct5880_onboard_device;
 
 /* Gravis UltraSound and UltraSound Max */
 extern const device_t gus_device;
+extern const device_t gus_max_device;
 
 /* IBM PS/1 Audio Card */
 extern const device_t ps1snd_device;
@@ -205,10 +214,16 @@ extern const device_t ps1snd_device;
 extern const device_t ssi2001_device;
 extern const device_t entertainer_device;
 
+/* Mindscape Music Board */
+extern const device_t mmb_device;
+
 /* Pro Audio Spectrum Plus, 16, and 16D */
 extern const device_t pasplus_device;
 extern const device_t pas16_device;
 extern const device_t pas16d_device;
+
+/* Rainbow Arts PC-Soundman */
+extern const device_t soundman_device;
 
 /* Tandy PSSJ */
 extern const device_t pssj_device;

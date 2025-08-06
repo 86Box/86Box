@@ -43,10 +43,11 @@ typedef struct pc87332_t {
     int       cur_reg;
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t    *lpt;
 } pc87332_t;
 
 static void
-lpt1_handler(pc87332_t *dev)
+lpt_handler(pc87332_t *dev)
 {
     int      temp;
     uint16_t lpt_port = LPT1_ADDR;
@@ -77,9 +78,9 @@ lpt1_handler(pc87332_t *dev)
     }
 
     if (lpt_port)
-        lpt1_setup(lpt_port);
+        lpt_port_setup(dev->lpt, lpt_port);
 
-    lpt1_irq(lpt_irq);
+    lpt_port_irq(dev->lpt, lpt_irq);
 }
 
 static void
@@ -189,9 +190,9 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
     switch (dev->cur_reg) {
         case 0:
             if (valxor & 1) {
-                lpt1_remove();
+                lpt_port_remove(dev->lpt);
                 if ((val & 1) && !(dev->regs[2] & 1))
-                    lpt1_handler(dev);
+                    lpt_handler(dev);
             }
             if (valxor & 2) {
                 serial_remove(dev->uart[0]);
@@ -213,9 +214,9 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 1:
             if (valxor & 3) {
-                lpt1_remove();
+                lpt_port_remove(dev->lpt);
                 if ((dev->regs[0] & 1) && !(dev->regs[2] & 1))
-                    lpt1_handler(dev);
+                    lpt_handler(dev);
             }
             if (valxor & 0xcc) {
                 serial_remove(dev->uart[0]);
@@ -230,14 +231,14 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 2:
             if (valxor & 1) {
-                lpt1_remove();
+                lpt_port_remove(dev->lpt);
                 serial_remove(dev->uart[0]);
                 serial_remove(dev->uart[1]);
                 fdc_remove(dev->fdc);
 
                 if (!(val & 1)) {
                     if (dev->regs[0] & 1)
-                        lpt1_handler(dev);
+                        lpt_handler(dev);
                     if (dev->regs[0] & 2)
                         serial_handler(dev, 0);
                     if (dev->regs[0] & 4)
@@ -247,9 +248,9 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
                 }
             }
             if (valxor & 8) {
-                lpt1_remove();
+                lpt_port_remove(dev->lpt);
                 if ((dev->regs[0] & 1) && !(dev->regs[2] & 1))
-                    lpt1_handler(dev);
+                    lpt_handler(dev);
             }
             break;
 
@@ -298,8 +299,8 @@ pc87332_reset(pc87332_t *dev)
         0 = 360 rpm @ 500 kbps for 3.5"
         1 = Default, 300 rpm @ 500, 300, 250, 1000 kbps for 3.5"
     */
-    lpt1_remove();
-    lpt1_handler(dev);
+    lpt_port_remove(dev->lpt);
+    lpt_handler(dev);
     serial_remove(dev->uart[0]);
     serial_remove(dev->uart[1]);
     serial_handler(dev, 0);
@@ -329,6 +330,8 @@ pc87332_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
 
     dev->has_ide = (info->local >> 8) & 0xff;
     dev->fdc_on  = (info->local >> 16) & 0xff;

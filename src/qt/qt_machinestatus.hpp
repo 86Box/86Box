@@ -67,7 +67,7 @@ public:
     static bool hasSCSI();
     static void iterateFDD(const std::function<void(int i)> &cb);
     static void iterateCDROM(const std::function<void(int i)> &cb);
-    static void iterateZIP(const std::function<void(int i)> &cb);
+    static void iterateRDisk(const std::function<void(int i)> &cb);
     static void iterateMO(const std::function<void(int i)> &cb);
     static void iterateNIC(const std::function<void(int i)> &cb);
 

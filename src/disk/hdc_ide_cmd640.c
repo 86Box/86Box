@@ -34,7 +34,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
-#include <86box/zip.h>
+#include <86box/rdisk.h>
 #include <86box/mo.h>
 
 typedef struct cmd640_t {
@@ -417,10 +417,10 @@ cmd640_reset(void *priv)
             (cdrom[i].ide_channel <= max_channel) && cdrom[i].priv)
             scsi_cdrom_reset((scsi_common_t *) cdrom[i].priv);
     }
-    for (i = 0; i < ZIP_NUM; i++) {
-        if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && (zip_drives[i].ide_channel >= min_channel) &&
-            (zip_drives[i].ide_channel <= max_channel) && zip_drives[i].priv)
-            zip_reset((scsi_common_t *) zip_drives[i].priv);
+    for (i = 0; i < RDISK_NUM; i++) {
+        if ((rdisk_drives[i].bus_type == RDISK_BUS_ATAPI) && (rdisk_drives[i].ide_channel >= min_channel) &&
+            (rdisk_drives[i].ide_channel <= max_channel) && rdisk_drives[i].priv)
+            rdisk_reset((scsi_common_t *) rdisk_drives[i].priv);
     }
     for (i = 0; i < MO_NUM; i++) {
         if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && (mo_drives[i].ide_channel >= min_channel) &&
@@ -667,7 +667,7 @@ const device_t ide_cmd640_pci_legacy_only_device = {
 };
 
 const device_t ide_cmd640_pci_single_channel_device = {
-    .name          = "CMD PCI-0640B PCI",
+    .name          = "CMD PCI-0640B PCI (Single Channel)",
     .internal_name = "ide_cmd640_pci_single_channel",
     .flags         = DEVICE_PCI,
     .local         = 0x2000a,
@@ -681,7 +681,7 @@ const device_t ide_cmd640_pci_single_channel_device = {
 };
 
 const device_t ide_cmd640_pci_single_channel_sec_device = {
-    .name          = "CMD PCI-0640B PCI",
+    .name          = "CMD PCI-0640B PCI (Single Channel, Secondary)",
     .internal_name = "ide_cmd640_pci_single_channel_sec",
     .flags         = DEVICE_PCI,
     .local         = 0x4000a,

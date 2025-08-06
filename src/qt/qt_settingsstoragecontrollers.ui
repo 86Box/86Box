@@ -29,13 +29,20 @@
    <item>
     <layout class="QGridLayout" name="gridLayout">
      <item row="0" column="0">
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="labelFD">
        <property name="text">
-        <string>HD Controller:</string>
+        <string>FD Controller:</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="2">
+     <item row="0" column="1">
+      <widget class="QComboBox" name="comboBoxFD">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="2">
       <widget class="QPushButton" name="pushButtonFD">
        <property name="text">
         <string>Configure</string>
@@ -43,89 +50,21 @@
       </widget>
      </item>
      <item row="1" column="0">
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>FD Controller:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="label_7">
+      <widget class="QLabel" name="labelCDInterface">
        <property name="text">
         <string>CD-ROM Controller:</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
+     <item row="1" column="1">
       <widget class="QComboBox" name="comboBoxCDInterface">
        <property name="maxVisibleItems">
         <number>30</number>
        </property>
       </widget>
      </item>
-     <item row="2" column="2">
+     <item row="1" column="2">
       <widget class="QPushButton" name="pushButtonCDInterface">
-       <property name="text">
-        <string>Configure</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QComboBox" name="comboBoxHD">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="2">
-      <widget class="QPushButton" name="pushButtonHD">
-       <property name="text">
-        <string>Configure</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QComboBox" name="comboBoxFD">
-       <property name="maxVisibleItems">
-        <number>30</number>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
-      <widget class="QCheckBox" name="checkBoxTertiaryIDE">
-       <property name="text">
-        <string>Tertiary IDE Controller</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="0">
-      <widget class="QCheckBox" name="checkBoxQuaternaryIDE">
-       <property name="text">
-        <string>Quaternary IDE Controller</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="2">
-      <widget class="QPushButton" name="pushButtonTertiaryIDE">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="text">
-        <string>Configure</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="2">
-      <widget class="QPushButton" name="pushButtonQuaternaryIDE">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
        <property name="text">
         <string>Configure</string>
        </property>
@@ -134,29 +73,132 @@
     </layout>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox">
+    <widget class="QGroupBox" name="groupBoxHD">
      <property name="title">
-      <string>SCSI</string>
+      <string>Hard disk</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout_3">
-      <item row="1" column="3">
-       <widget class="QPushButton" name="pushButtonSCSI2">
+     <layout class="QGridLayout" name="gridLayoutHD">
+      <item row="0" column="0">
+       <widget class="QLabel" name="labelHD1">
+        <property name="text">
+         <string>Controller 1:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QComboBox" name="comboBoxHD1">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QPushButton" name="pushButtonHD1">
         <property name="text">
          <string>Configure</string>
         </property>
        </widget>
       </item>
-      <item row="3" column="3">
-       <widget class="QPushButton" name="pushButtonSCSI4">
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelHD2">
+        <property name="text">
+         <string>Controller 2:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QComboBox" name="comboBoxHD2">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QPushButton" name="pushButtonHD2">
         <property name="text">
          <string>Configure</string>
         </property>
        </widget>
       </item>
       <item row="2" column="0">
-       <widget class="QLabel" name="label_6">
+       <widget class="QLabel" name="labelHD3">
         <property name="text">
          <string>Controller 3:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QComboBox" name="comboBoxHD3">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="3">
+       <widget class="QPushButton" name="pushButtonHD3">
+        <property name="text">
+         <string>Configure</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="labelHD4">
+        <property name="text">
+         <string>Controller 4:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="2">
+       <widget class="QComboBox" name="comboBoxHD4">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="3">
+       <widget class="QPushButton" name="pushButtonHD4">
+        <property name="text">
+         <string>Configure</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBoxSCSI">
+     <property name="title">
+      <string>SCSI</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayoutSCSI">
+      <item row="0" column="0">
+       <widget class="QLabel" name="labelSCSI1">
+        <property name="text">
+         <string>Controller 1:</string>
         </property>
        </widget>
       </item>
@@ -180,6 +222,13 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelSCSI2">
+        <property name="text">
+         <string>Controller 2:</string>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="2">
        <widget class="QComboBox" name="comboBoxSCSI2">
         <property name="sizePolicy">
@@ -190,6 +239,20 @@
         </property>
         <property name="maxVisibleItems">
          <number>30</number>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QPushButton" name="pushButtonSCSI2">
+        <property name="text">
+         <string>Configure</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="labelSCSI3">
+        <property name="text">
+         <string>Controller 3:</string>
         </property>
        </widget>
       </item>
@@ -206,6 +269,20 @@
         </property>
        </widget>
       </item>
+      <item row="2" column="3">
+       <widget class="QPushButton" name="pushButtonSCSI3">
+        <property name="text">
+         <string>Configure</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="labelSCSI4">
+        <property name="text">
+         <string>Controller 4:</string>
+        </property>
+       </widget>
+      </item>
       <item row="3" column="2">
        <widget class="QComboBox" name="comboBoxSCSI4">
         <property name="sizePolicy">
@@ -219,29 +296,8 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Controller 1:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Controller 2:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>Controller 4:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="3">
-       <widget class="QPushButton" name="pushButtonSCSI3">
+      <item row="3" column="3">
+       <widget class="QPushButton" name="pushButtonSCSI4">
         <property name="text">
          <string>Configure</string>
         </property>
@@ -258,43 +314,6 @@
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <property name="topMargin">
-      <number>0</number>
-     </property>
-     <property name="rightMargin">
-      <number>0</number>
-     </property>
-     <item>
-      <widget class="QCheckBox" name="checkBoxLbaEnhancer">
-       <property name="text">
-        <string>Vision Systems LBA Enhancer</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButtonConfigureLbaEnhancer">
-       <property name="text">
-        <string>Configure</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -309,6 +328,29 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>comboBoxFD</tabstop>
+  <tabstop>pushButtonFD</tabstop>
+  <tabstop>comboBoxCDInterface</tabstop>
+  <tabstop>pushButtonCDInterface</tabstop>
+  <tabstop>comboBoxHD1</tabstop>
+  <tabstop>pushButtonHD1</tabstop>
+  <tabstop>comboBoxHD2</tabstop>
+  <tabstop>pushButtonHD2</tabstop>
+  <tabstop>comboBoxHD3</tabstop>
+  <tabstop>pushButtonHD3</tabstop>
+  <tabstop>comboBoxHD4</tabstop>
+  <tabstop>pushButtonHD4</tabstop>
+  <tabstop>comboBoxSCSI1</tabstop>
+  <tabstop>pushButtonSCSI1</tabstop>
+  <tabstop>comboBoxSCSI2</tabstop>
+  <tabstop>pushButtonSCSI2</tabstop>
+  <tabstop>comboBoxSCSI3</tabstop>
+  <tabstop>pushButtonSCSI3</tabstop>
+  <tabstop>comboBoxSCSI4</tabstop>
+  <tabstop>pushButtonSCSI4</tabstop>
+  <tabstop>checkBoxCassette</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

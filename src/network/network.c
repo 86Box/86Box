@@ -85,36 +85,43 @@ static const NETWORK_CARD net_cards[] = {
     // clang-format off
     { &device_none                },
     { &device_internal            },
+    /* ISA */
     { &threec501_device           },
     { &threec503_device           },
-    { &pcnet_am79c960_device      },
-    { &pcnet_am79c961_device      },
-    { &de220p_device              },
     { &ne1000_compat_device       },
-    { &ne2000_compat_device       },
     { &ne2000_compat_8bit_device  },
     { &ne1000_device              },
-    { &ne2000_device              },
-    { &pcnet_am79c960_eb_device   },
-    { &rtl8019as_pnp_device       },
     { &wd8003e_device             },
     { &wd8003eb_device            },
     { &wd8013ebt_device           },
+    /* COM */
+    { &modem_device               },
+    /* LPT */
     { &plip_device                },
+    /* ISA16 */
+    { &pcnet_am79c960_device      },
+    { &pcnet_am79c961_device      },
+    { &de220p_device              },
+    { &ne2000_compat_device       },
+    { &ne2000_device              },
+    { &pcnet_am79c960_eb_device   },
+    { &rtl8019as_pnp_device       },
+    /* MCA */
     { &ethernext_mc_device        },
     { &wd8003eta_device           },
     { &wd8003ea_device            },
     { &wd8013epa_device           },
+    /* VLB */
+    { &pcnet_am79c960_vlb_device  },
+    /* PCI */
     { &pcnet_am79c973_device      },
     { &pcnet_am79c970a_device     },
+    { &dec_tulip_21140_device     },
+    { &dec_tulip_21040_device     },
     { &dec_tulip_device           },
+    { &dec_tulip_21140_vpc_device },
     { &rtl8029as_device           },
     { &rtl8139c_plus_device       },
-    { &dec_tulip_21140_device     },
-    { &dec_tulip_21140_vpc_device },
-    { &dec_tulip_21040_device     },
-    { &pcnet_am79c960_vlb_device  },
-    { &modem_device               },
     { NULL                        }
     // clang-format on
 };
@@ -490,6 +497,19 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
             card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name, net_drv_error);
             break;
 #endif
+#ifdef HAS_TAP
+        case NET_TYPE_TAP:
+            card->host_drv      = net_tap_drv;
+            card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name, net_drv_error);
+            break;
+#endif
+#ifdef USE_NETSWITCH
+        case NET_TYPE_NMSWITCH:
+        case NET_TYPE_NRSWITCH:
+            card->host_drv      = net_netswitch_drv;
+            card->host_drv.priv = card->host_drv.init(card, mac, &net_cards_conf[net_card_current], net_drv_error);
+            break;
+#endif /* USE_NETSWITCH */
         default:
             card->host_drv.priv = NULL;
             break;
@@ -501,6 +521,14 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
     if (!card->host_drv.priv) {
 
         if(net_cards_conf[net_card_current].net_type != NET_TYPE_NONE) {
+#ifdef USE_NETSWITCH
+            // FIXME: Hardcoded during dev
+            // FIXME: Remove when done!
+            if((net_cards_conf[net_card_current].net_type == NET_TYPE_NMSWITCH) ||
+                (net_cards_conf[net_card_current].net_type == NET_TYPE_NRSWITCH))
+                fatal("%s", net_drv_error);
+#endif /* USE_NETSWITCH */
+
             // We're here because of a failure
             swprintf(tempmsg, sizeof_w(tempmsg), L"%ls:\n\n%s\n\n%ls", plat_get_string(STRING_NET_ERROR), net_drv_error, plat_get_string(STRING_NET_ERROR_DESC));
             ui_msgbox(MBX_ERROR, tempmsg);

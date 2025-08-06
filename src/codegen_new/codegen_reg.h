@@ -16,59 +16,45 @@
 #define IREG_SIZE_Q        (5 << IREG_SIZE_SHIFT)
 
 enum {
-    IREG_EAX = 0,
-    IREG_ECX = 1,
-    IREG_EDX = 2,
-    IREG_EBX = 3,
-    IREG_ESP = 4,
-    IREG_EBP = 5,
-    IREG_ESI = 6,
-    IREG_EDI = 7,
+    IREG_EAX,
+    IREG_ECX,
+    IREG_EDX,
+    IREG_EBX,
+    IREG_ESP,
+    IREG_EBP,
+    IREG_ESI,
+    IREG_EDI,
 
-    IREG_flags_op  = 8,
-    IREG_flags_res = 9,
-    IREG_flags_op1 = 10,
-    IREG_flags_op2 = 11,
+    IREG_flags_op,
+    IREG_flags_res,
+    IREG_flags_op1,
+    IREG_flags_op2,
 
-    IREG_pc    = 12,
-    IREG_oldpc = 13,
+    IREG_pc,
+    IREG_oldpc,
 
-    IREG_eaaddr = 14,
-    IREG_ea_seg = 15,
-    IREG_op32   = 16,
-    IREG_ssegsx = 17,
+    IREG_eaaddr,
+    IREG_ea_seg,
+    IREG_op32,
+    IREG_ssegsx,
 
-    IREG_rm_mod_reg = 18,
+    IREG_rm_mod_reg,
 
-    IREG_acycs  = 19,
-    IREG_cycles = 20,
+    IREG_cycles,
 
-    IREG_CS_base = 21,
-    IREG_DS_base = 22,
-    IREG_ES_base = 23,
-    IREG_FS_base = 24,
-    IREG_GS_base = 25,
-    IREG_SS_base = 26,
+    IREG_CS_base,
+    IREG_DS_base,
+    IREG_ES_base,
+    IREG_FS_base,
+    IREG_GS_base,
+    IREG_SS_base,
 
-    IREG_CS_seg = 27,
-    IREG_DS_seg = 28,
-    IREG_ES_seg = 29,
-    IREG_FS_seg = 30,
-    IREG_GS_seg = 31,
-    IREG_SS_seg = 32,
-
-    /*Temporary registers are stored on the stack, and are not guaranteed to
-      be preserved across uOPs. They will not be written back if they will
-      not be read again.*/
-    IREG_temp0 = 33,
-    IREG_temp1 = 34,
-    IREG_temp2 = 35,
-    IREG_temp3 = 36,
-
-    IREG_FPU_TOP = 37,
-
-    IREG_temp0d = 38,
-    IREG_temp1d = 39,
+    IREG_CS_seg,
+    IREG_DS_seg,
+    IREG_ES_seg,
+    IREG_FS_seg,
+    IREG_GS_seg,
+    IREG_SS_seg,
 
     /*FPU stack registers are physical registers. Use IREG_ST() / IREG_tag()
       to access.
@@ -76,66 +62,79 @@ enum {
       used directly to index the stack. When it is clear, the difference
       between the current value of TOP and the value when the block was
       first compiled will be added to adjust for any changes in TOP.*/
-    IREG_ST0 = 40,
-    IREG_ST1 = 41,
-    IREG_ST2 = 42,
-    IREG_ST3 = 43,
-    IREG_ST4 = 44,
-    IREG_ST5 = 45,
-    IREG_ST6 = 46,
-    IREG_ST7 = 47,
+    IREG_ST0,
+    IREG_ST1,
+    IREG_ST2,
+    IREG_ST3,
+    IREG_ST4,
+    IREG_ST5,
+    IREG_ST6,
+    IREG_ST7,
 
-    IREG_tag0 = 48,
-    IREG_tag1 = 49,
-    IREG_tag2 = 50,
-    IREG_tag3 = 51,
-    IREG_tag4 = 52,
-    IREG_tag5 = 53,
-    IREG_tag6 = 54,
-    IREG_tag7 = 55,
+    IREG_tag0,
+    IREG_tag1,
+    IREG_tag2,
+    IREG_tag3,
+    IREG_tag4,
+    IREG_tag5,
+    IREG_tag6,
+    IREG_tag7,
 
-    IREG_ST0_i64 = 56,
-    IREG_ST1_i64 = 57,
-    IREG_ST2_i64 = 58,
-    IREG_ST3_i64 = 59,
-    IREG_ST4_i64 = 60,
-    IREG_ST5_i64 = 61,
-    IREG_ST6_i64 = 62,
-    IREG_ST7_i64 = 63,
+    IREG_ST0_i64,
+    IREG_ST1_i64,
+    IREG_ST2_i64,
+    IREG_ST3_i64,
+    IREG_ST4_i64,
+    IREG_ST5_i64,
+    IREG_ST6_i64,
+    IREG_ST7_i64,
 
-    IREG_MM0x = 64,
-    IREG_MM1x = 65,
-    IREG_MM2x = 66,
-    IREG_MM3x = 67,
-    IREG_MM4x = 68,
-    IREG_MM5x = 69,
-    IREG_MM6x = 70,
-    IREG_MM7x = 71,
+    IREG_MM0x,
+    IREG_MM1x,
+    IREG_MM2x,
+    IREG_MM3x,
+    IREG_MM4x,
+    IREG_MM5x,
+    IREG_MM6x,
+    IREG_MM7x,
 
-    IREG_NPXCx = 72,
-    IREG_NPXSx = 73,
+    IREG_NPXCx,
+    IREG_NPXSx,
 
-    IREG_flagsx  = 74,
-    IREG_eflagsx = 75,
+    IREG_flagsx,
+    IREG_eflagsx,
 
-    IREG_CS_limit_low = 76,
-    IREG_DS_limit_low = 77,
-    IREG_ES_limit_low = 78,
-    IREG_FS_limit_low = 79,
-    IREG_GS_limit_low = 80,
-    IREG_SS_limit_low = 81,
+    IREG_CS_limit_low,
+    IREG_DS_limit_low,
+    IREG_ES_limit_low,
+    IREG_FS_limit_low,
+    IREG_GS_limit_low,
+    IREG_SS_limit_low,
 
-    IREG_CS_limit_high = 82,
-    IREG_DS_limit_high = 83,
-    IREG_ES_limit_high = 84,
-    IREG_FS_limit_high = 85,
-    IREG_GS_limit_high = 86,
-    IREG_SS_limit_high = 87,
+    IREG_CS_limit_high,
+    IREG_DS_limit_high,
+    IREG_ES_limit_high,
+    IREG_FS_limit_high,
+    IREG_GS_limit_high,
+    IREG_SS_limit_high,
 
-    IREG_eaa16 = 88,
-    IREG_x87_op = 89,
+    IREG_eaa16,
+    IREG_x87_op,
 
-    IREG_COUNT = 90,
+    IREG_FPU_TOP,
+
+    /*Temporary registers are stored on the stack, and are not guaranteed to
+      be preserved across uOPs. They will not be written back if they will
+      not be read again.*/
+    IREG_temp0,
+    IREG_temp1,
+    IREG_temp2,
+    IREG_temp3,
+
+    IREG_temp0d,
+    IREG_temp1d,
+
+    IREG_COUNT,
 
     IREG_INVALID = 255,
 
@@ -279,6 +278,7 @@ ireg_seg_limit_high(x86seg *seg)
 }
 
 extern uint8_t reg_last_version[IREG_COUNT];
+extern uint64_t dirty_ir_regs[2];
 
 /*This version of the register must be calculated, regardless of whether it is
   apparently required or not. Do not optimise out.*/
@@ -363,10 +363,12 @@ codegen_reg_write(int reg, int uop_nr)
     int            last_version = reg_last_version[IREG_GET_REG(reg)];
     reg_version_t *version;
 
-#ifndef RELEASE_BUILD
-    if (IREG_GET_REG(reg) == IREG_INVALID)
-        fatal("codegen_reg_write - IREG_INVALID\n");
-#endif
+    if (dirty_ir_regs[(IREG_GET_REG(reg) >> 6) & 3] & (1ull << ((uint64_t)IREG_GET_REG(reg) & 0x3full))) {
+        dirty_ir_regs[(IREG_GET_REG(reg) >> 6) & 3] &= ~(1ull << ((uint64_t)IREG_GET_REG(reg) & 0x3full));
+        if ((IREG_GET_REG(reg) > IREG_EBX && IREG_GET_REG(reg) < IREG_temp0) && last_version > 0) {
+            reg_version[IREG_GET_REG(reg)][last_version].flags |= REG_FLAGS_REQUIRED;
+        }
+    }
     ireg.reg     = reg;
     ireg.version = last_version + 1;
 
@@ -376,12 +378,8 @@ codegen_reg_write(int reg, int uop_nr)
     }
 
     reg_last_version[IREG_GET_REG(reg)]++;
-#ifndef RELEASE_BUILD
-    if (!reg_last_version[IREG_GET_REG(reg)])
-        fatal("codegen_reg_write - version overflow\n");
-    else
-#endif
-        if (reg_last_version[IREG_GET_REG(reg)] > REG_VERSION_MAX)
+
+    if (reg_last_version[IREG_GET_REG(reg)] > REG_VERSION_MAX)
         CPU_BLOCK_END();
     if (reg_last_version[IREG_GET_REG(reg)] > max_version_refcount)
         max_version_refcount = reg_last_version[IREG_GET_REG(reg)];

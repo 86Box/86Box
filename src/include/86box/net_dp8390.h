@@ -41,89 +41,89 @@ typedef struct dp8390_t {
 
     /* Command Register - 00h read/write */
     struct CR_t {
-        int     stop;      /* STP - Software Reset command */
-        int     start;     /* START - start the NIC */
-        int     tx_packet; /* TXP - initiate packet transmission */
+        bool     stop;      /* STP - Software Reset command */
+        bool     start;     /* START - start the NIC */
+        bool     tx_packet; /* TXP - initiate packet transmission */
         uint8_t rdma_cmd;  /* RD0,RD1,RD2 - Remote DMA command */
         uint8_t pgsel;     /* PS0,PS1 - Page select */
     } CR;
 
     /* Interrupt Status Register - 07h read/write */
     struct ISR_t {
-        int pkt_rx;    /* PRX - packet received with no errors */
-        int pkt_tx;    /* PTX - packet txed with no errors */
-        int rx_err;    /* RXE - packet rxed with 1 or more errors */
-        int tx_err;    /* TXE - packet txed   "  " "    "    " */
-        int overwrite; /* OVW - rx buffer resources exhausted */
-        int cnt_oflow; /* CNT - network tally counter MSB's set */
-        int rdma_done; /* RDC - remote DMA complete */
-        int reset;     /* RST - reset status */
+        bool pkt_rx;    /* PRX - packet received with no errors */
+        bool pkt_tx;    /* PTX - packet txed with no errors */
+        bool rx_err;    /* RXE - packet rxed with 1 or more errors */
+        bool tx_err;    /* TXE - packet txed   "  " "    "    " */
+        bool overwrite; /* OVW - rx buffer resources exhausted */
+        bool cnt_oflow; /* CNT - network tally counter MSB's set */
+        bool rdma_done; /* RDC - remote DMA complete */
+        bool reset;     /* RST - reset status */
     } ISR;
 
     /* Interrupt Mask Register - 0fh write */
     struct IMR_t {
-        int rx_inte;    /* PRXE - packet rx interrupt enable */
-        int tx_inte;    /* PTXE - packet tx interrput enable */
-        int rxerr_inte; /* RXEE - rx error interrupt enable */
-        int txerr_inte; /* TXEE - tx error interrupt enable */
-        int overw_inte; /* OVWE - overwrite warn int enable */
-        int cofl_inte;  /* CNTE - counter o'flow int enable */
-        int rdma_inte;  /* RDCE - remote DMA complete int enable */
-        int reserved;   /* D7 - reserved */
+        bool rx_inte;    /* PRXE - packet rx interrupt enable */
+        bool tx_inte;    /* PTXE - packet tx interrput enable */
+        bool rxerr_inte; /* RXEE - rx error interrupt enable */
+        bool txerr_inte; /* TXEE - tx error interrupt enable */
+        bool overw_inte; /* OVWE - overwrite warn int enable */
+        bool cofl_inte;  /* CNTE - counter o'flow int enable */
+        bool rdma_inte;  /* RDCE - remote DMA complete int enable */
+        bool reserved;   /* D7 - reserved */
     } IMR;
 
     /* Data Configuration Register - 0eh write */
     struct DCR_t {
-        int     wdsize;    /* WTS - 8/16-bit select */
-        int     endian;    /* BOS - byte-order select */
-        int     longaddr;  /* LAS - long-address select */
-        int     loop;      /* LS  - loopback select */
-        int     auto_rx;   /* AR  - auto-remove rx pkts with remote DMA */
+        bool     wdsize;    /* WTS - 8/16-bit select */
+        bool     endian;    /* BOS - byte-order select */
+        bool     longaddr;  /* LAS - long-address select */
+        bool     loop;      /* LS  - loopback select */
+        bool     auto_rx;   /* AR  - auto-remove rx pkts with remote DMA */
         uint8_t fifo_size; /* FT0,FT1 - fifo threshold */
     } DCR;
 
     /* Transmit Configuration Register - 0dh write */
     struct TCR_t {
-        int     crc_disable; /* CRC - inhibit tx CRC */
+        bool     crc_disable; /* CRC - inhibit tx CRC */
         uint8_t loop_cntl;   /* LB0,LB1 - loopback control */
-        int     ext_stoptx;  /* ATD - allow tx disable by external mcast */
-        int     coll_prio;   /* OFST - backoff algorithm select */
+        bool     ext_stoptx;  /* ATD - allow tx disable by external mcast */
+        bool     coll_prio;   /* OFST - backoff algorithm select */
         uint8_t reserved;    /* D5,D6,D7 - reserved */
     } TCR;
 
     /* Transmit Status Register - 04h read */
     struct TSR_t {
-        int tx_ok;      /* PTX - tx complete without error */
-        int reserved;   /*  D1 - reserved */
-        int collided;   /* COL - tx collided >= 1 times */
-        int aborted;    /* ABT - aborted due to excessive collisions */
-        int no_carrier; /* CRS - carrier-sense lost */
-        int fifo_ur;    /* FU  - FIFO underrun */
-        int cd_hbeat;   /* CDH - no tx cd-heartbeat from transceiver */
-        int ow_coll;    /* OWC - out-of-window collision */
+        bool tx_ok;      /* PTX - tx complete without error */
+        bool reserved;   /*  D1 - reserved */
+        bool collided;   /* COL - tx collided >= 1 times */
+        bool aborted;    /* ABT - aborted due to excessive collisions */
+        bool no_carrier; /* CRS - carrier-sense lost */
+        bool fifo_ur;    /* FU  - FIFO underrun */
+        bool cd_hbeat;   /* CDH - no tx cd-heartbeat from transceiver */
+        bool ow_coll;    /* OWC - out-of-window collision */
     } TSR;
 
     /* Receive Configuration Register - 0ch write */
     struct RCR_t {
-        int     errors_ok; /* SEP - accept pkts with rx errors */
-        int     runts_ok;  /* AR  - accept < 64-byte runts */
-        int     broadcast; /* AB  - accept eth broadcast address */
-        int     multicast; /* AM  - check mcast hash array */
-        int     promisc;   /* PRO - accept all packets */
-        int     monitor;   /* MON - check pkts, but don't rx */
+        bool     errors_ok; /* SEP - accept pkts with rx errors */
+        bool     runts_ok;  /* AR  - accept < 64-byte runts */
+        bool     broadcast; /* AB  - accept eth broadcast address */
+        bool     multicast; /* AM  - check mcast hash array */
+        bool     promisc;   /* PRO - accept all packets */
+        bool     monitor;   /* MON - check pkts, but don't rx */
         uint8_t reserved;  /* D6,D7 - reserved */
     } RCR;
 
     /* Receive Status Register - 0ch read */
     struct RSR_t {
-        int rx_ok;       /* PRX - rx complete without error */
-        int bad_crc;     /* CRC - Bad CRC detected */
-        int bad_falign;  /* FAE - frame alignment error */
-        int fifo_or;     /* FO  - FIFO overrun */
-        int rx_missed;   /* MPA - missed packet error */
-        int rx_mbit;     /* PHY - unicast or mcast/bcast address match */
-        int rx_disabled; /* DIS - set when in monitor mode */
-        int deferred;    /* DFR - collision active */
+        bool rx_ok;       /* PRX - rx complete without error */
+        bool bad_crc;     /* CRC - Bad CRC detected */
+        bool bad_falign;  /* FAE - frame alignment error */
+        bool fifo_or;     /* FO  - FIFO overrun */
+        bool rx_missed;   /* MPA - missed packet error */
+        bool rx_mbit;     /* PHY - unicast or mcast/bcast address match */
+        bool rx_disabled; /* DIS - set when in monitor mode */
+        bool deferred;    /* DFR - collision active */
     } RSR;
 
     uint16_t local_dma;     /* 01,02h read ; current local DMA addr */

@@ -5,11 +5,15 @@
 #include <QLabel>
 #include <QEvent>
 #include <QFocusEvent>
+#include <QLabel>
 #include <QShortcut>
+#include <QIcon>
 
 #include <memory>
 #include <array>
 #include <atomic>
+
+#include "qt_vmmanager_protocol.hpp"
 
 class MediaMenu;
 class RendererStack;
@@ -61,6 +65,9 @@ signals:
 
     void showMessageForNonQtThread(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool* done);
     void getTitleForNonQtThread(wchar_t *title);
+
+    void vmmRunningStateChanged(VMManagerProtocol::RunningState state);
+    void vmmConfigurationChanged();
 public slots:
     void showSettings();
     void hardReset();
@@ -79,7 +86,7 @@ private slots:
     void on_actionCtrl_Alt_Esc_triggered();
     void on_actionHard_Reset_triggered();
     void on_actionRight_CTRL_is_left_ALT_triggered();
-    static void on_actionKeyboard_requires_capture_triggered();
+    void on_actionKeyboard_requires_capture_triggered();
     void on_actionResizable_window_triggered(bool checked);
     void on_actionInverted_VGA_monitor_triggered();
     void on_action0_5x_triggered();
@@ -189,7 +196,12 @@ private:
     friend class RendererStack; // For UI variable access by non-primary renderer windows.
     friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.
 
+    QLabel *caps_label, *scroll_label, *num_label, *kana_label;
+    QIcon caps_icon, scroll_icon, num_icon, kana_icon;
+    QIcon caps_icon_off, scroll_icon_off, num_icon_off, kana_icon_off;
+
     bool isShowMessage = false;
+    bool window_blocked = false;
 };
 
 #endif // QT_MAINWINDOW_HPP

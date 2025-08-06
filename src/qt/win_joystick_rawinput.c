@@ -96,15 +96,15 @@ typedef struct {
     } pov[MAX_JOY_POVS];
 } raw_joystick_t;
 
-int             joysticks_present = 0;
-joystick_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
-plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
+int                   joysticks_present = 0;
+joystick_state_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
+plat_joystick_state_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
 
 raw_joystick_t raw_joystick_state[MAX_PLAT_JOYSTICKS];
 
 /* We only use the first 32 buttons reported, from Usage ID 1-128 */
 void
-joystick_add_button(raw_joystick_t *rawjoy, plat_joystick_t *joy, USAGE usage)
+joystick_add_button(raw_joystick_t *rawjoy, plat_joystick_state_t *joy, USAGE usage)
 {
     if (joy->nr_buttons >= MAX_JOY_BUTTONS)
         return;
@@ -117,7 +117,7 @@ joystick_add_button(raw_joystick_t *rawjoy, plat_joystick_t *joy, USAGE usage)
 }
 
 void
-joystick_add_axis(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS prop)
+joystick_add_axis(raw_joystick_t *rawjoy, plat_joystick_state_t *joy, PHIDP_VALUE_CAPS prop)
 {
     if (joy->nr_axes >= MAX_JOY_AXES)
         return;
@@ -202,7 +202,7 @@ joystick_add_axis(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS
 }
 
 void
-joystick_add_pov(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS prop)
+joystick_add_pov(raw_joystick_t *rawjoy, plat_joystick_state_t *joy, PHIDP_VALUE_CAPS prop)
 {
     if (joy->nr_povs >= MAX_JOY_POVS)
         return;
@@ -217,11 +217,12 @@ joystick_add_pov(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS 
 }
 
 void
-joystick_get_capabilities(raw_joystick_t *rawjoy, plat_joystick_t *joy)
+joystick_get_capabilities(raw_joystick_t *rawjoy, plat_joystick_state_t *joy)
 {
     UINT              size     = 0;
     PHIDP_BUTTON_CAPS btn_caps = NULL;
     PHIDP_VALUE_CAPS  val_caps = NULL;
+    HIDP_CAPS         caps;
 
     /* Get preparsed data (HID data format) */
     GetRawInputDeviceInfoW(rawjoy->hdevice, RIDI_PREPARSEDDATA, NULL, &size);
@@ -229,7 +230,6 @@ joystick_get_capabilities(raw_joystick_t *rawjoy, plat_joystick_t *joy)
     if (GetRawInputDeviceInfoW(rawjoy->hdevice, RIDI_PREPARSEDDATA, rawjoy->data, &size) <= 0)
         fatal("joystick_get_capabilities: Failed to get preparsed data.\n");
 
-    HIDP_CAPS caps;
     HidP_GetCaps(rawjoy->data, &caps);
 
     /* Buttons */
@@ -276,7 +276,7 @@ end:
 }
 
 void
-joystick_get_device_name(raw_joystick_t *rawjoy, plat_joystick_t *joy, PRID_DEVICE_INFO info)
+joystick_get_device_name(raw_joystick_t *rawjoy, plat_joystick_state_t *joy, PRID_DEVICE_INFO info)
 {
     UINT   size                  = 0;
     WCHAR *device_name           = NULL;
@@ -340,9 +340,9 @@ joystick_init(void)
         if (info->hid.usUsage != HID_USAGE_GENERIC_JOYSTICK && info->hid.usUsage != HID_USAGE_GENERIC_GAMEPAD)
             goto end_loop;
 
-        plat_joystick_t *joy    = &plat_joystick_state[joysticks_present];
-        raw_joystick_t  *rawjoy = &raw_joystick_state[joysticks_present];
-        rawjoy->hdevice         = deviceList[i].hDevice;
+        plat_joystick_state_t *joy    = &plat_joystick_state[joysticks_present];
+        raw_joystick_t        *rawjoy = &raw_joystick_state[joysticks_present];
+        rawjoy->hdevice               = deviceList[i].hDevice;
 
         joystick_get_capabilities(rawjoy, joy);
         joystick_get_device_name(rawjoy, joy, info);
@@ -356,6 +356,7 @@ end_loop:
         free(info);
     }
 
+    free(deviceList);
     joystick_log("joystick_init: joysticks_present=%i\n", joysticks_present);
 
     /* Initialize the RawInput (joystick and gamepad) module. */

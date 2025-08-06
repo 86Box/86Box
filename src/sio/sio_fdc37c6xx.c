@@ -44,6 +44,7 @@ typedef struct fdc37c6xx_t {
     int       com4_addr;
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t    *lpt;
 } fdc37c6xx_t;
 
 static void
@@ -106,26 +107,78 @@ set_serial_addr(fdc37c6xx_t *dev, int port)
 }
 
 static void
-lpt1_handler(fdc37c6xx_t *dev)
+lpt_handler(fdc37c6xx_t *dev)
 {
-    lpt1_remove();
-    switch (dev->regs[1] & 3) {
-        case 1:
-            lpt1_setup(LPT_MDA_ADDR);
-            lpt1_irq(LPT_MDA_IRQ);
+    uint16_t lpt_port     = 0x0000;
+    uint16_t mask         = 0xfffc;
+    uint8_t  local_enable = 1;
+    uint8_t  lpt_irq      = LPT1_IRQ;
+    /* DMA is guesswork - what channel do boards actually use? */
+    uint8_t  lpt_dma      = 3;
+    uint8_t  lpt_ext      = !(dev->regs[1] & 0x08);
+    uint8_t  lpt_mode     = (dev->chip_id >= 0x65) ? (dev->regs[4] & 0x03) : 0x00;
+
+    switch (dev->regs[1] & 0x03) {
+        case 0x01:
+            lpt_port     = LPT_MDA_ADDR;
+            lpt_irq      = LPT_MDA_IRQ;
             break;
-        case 2:
-            lpt1_setup(LPT1_ADDR);
-            lpt1_irq(LPT1_IRQ /*LPT2_IRQ*/);
+        case 0x02:
+            lpt_port     = LPT1_ADDR;
+            lpt_irq      = LPT1_IRQ /*LPT2_IRQ*/;
             break;
-        case 3:
-            lpt1_setup(LPT2_ADDR);
-            lpt1_irq(LPT1_IRQ /*LPT2_IRQ*/);
+        case 0x03:
+            lpt_port     = LPT2_ADDR;
+            lpt_irq      = LPT1_IRQ /*LPT2_IRQ*/;
             break;
 
         default:
+            local_enable = 0;
             break;
     }
+
+    if (lpt_irq > 15)
+        lpt_irq = 0xff;
+
+    if (lpt_dma >= 4)
+        lpt_dma = 0xff;
+
+    lpt_port_remove(dev->lpt);
+    lpt_set_fifo_threshold(dev->lpt, dev->regs[0x0a] & 0x0f);
+    if (lpt_ext)  switch (lpt_mode) {
+        default:
+        case 0x00:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 1);
+            break;
+        case 0x01:
+            mask = 0xfff8;
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x02:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x03:
+            mask = 0xfff8;
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+    } else {
+        lpt_set_epp(dev->lpt, 0);
+        lpt_set_ecp(dev->lpt, 0);
+        lpt_set_ext(dev->lpt, 0);
+    }
+
+    if (local_enable && (lpt_port >= 0x0100) && (lpt_port <= (0x0ffc & mask)))
+        lpt_port_setup(dev->lpt, lpt_port);
+
+    lpt_port_irq(dev->lpt, lpt_irq);
 }
 
 static void
@@ -183,7 +236,7 @@ fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case 1:
                     if (valxor & 3)
-                        lpt1_handler(dev);
+                        lpt_handler(dev);
                     if (valxor & 0x60) {
                         set_com34_addr(dev);
                         set_serial_addr(dev, 0);
@@ -232,7 +285,7 @@ fdc37c6xx_read(uint16_t port, void *priv)
     uint8_t            ret = 0xff;
 
     if (dev->tries == 2) {
-        if (port == 0x3f1)
+        if ((port == 0x3f1) && (dev->cur_reg <= dev->max_reg))
             ret = dev->regs[dev->cur_reg];
     }
 
@@ -251,8 +304,8 @@ fdc37c6xx_reset(fdc37c6xx_t *dev)
     serial_remove(dev->uart[1]);
     serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
-    lpt1_remove();
-    lpt1_setup(LPT1_ADDR);
+    lpt_port_remove(dev->lpt);
+    lpt_port_setup(dev->lpt, LPT1_ADDR);
 
     fdc_reset(dev->fdc);
     fdc_remove(dev->fdc);
@@ -293,7 +346,7 @@ fdc37c6xx_reset(fdc37c6xx_t *dev)
     set_serial_addr(dev, 0);
     set_serial_addr(dev, 1);
 
-    lpt1_handler(dev);
+    lpt_handler(dev);
 
     fdc_handler(dev);
 
@@ -314,7 +367,10 @@ fdc37c6xx_init(const device_t *info)
 {
     fdc37c6xx_t *dev = (fdc37c6xx_t *) calloc(1, sizeof(fdc37c6xx_t));
 
-    dev->fdc = device_add(&fdc_at_smc_device);
+    if (dev->chip_id >= 0x63)
+        dev->fdc = device_add(&fdc_at_smc_device);
+    else
+        dev->fdc = device_add(&fdc_at_smc_661_device);
 
     dev->chip_id = info->local & 0xff;
     dev->has_ide = (info->local >> 8) & 0xff;
@@ -326,6 +382,8 @@ fdc37c6xx_init(const device_t *info)
         dev->uart[0] = device_add_inst(&ns16450_device, 1);
         dev->uart[1] = device_add_inst(&ns16450_device, 2);
     }
+
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
 
     io_sethandler(FDC_PRIMARY_ADDR, 0x0002,
                   fdc37c6xx_read, NULL, NULL, fdc37c6xx_write, NULL, NULL, dev);

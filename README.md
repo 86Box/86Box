@@ -26,9 +26,9 @@ Minimum system requirements and recommendations
 * macOS version: macOS High Sierra 10.13 or newer
 * 4 GB of RAM or higher
 
-Performance may vary depending on both host and guest configuration. Most emulation logic is executed in a single thread; therefore, systems with better IPC (instructions per clock) generally should be able to emulate higher clock speeds.
+Performance may vary depending on host and guest configuration. Most emulation logic is executed in a single thread. Therefore, systems with greater IPC (instructions per clock) capacity should be able to emulate higher clock speeds.
 
-It is also recommended to use a manager application with 86Box for easier handling of multiple virtual machines.
+For easier handling of multiple virtual machines, use a manager application:
 
 * [Avalonia 86](https://github.com/notBald/Avalonia86) by [notBald](https://github.com/notBald) (Windows and Linux)
 * [86Box Manager](https://github.com/86Box/86BoxManager) by [Overdoze](https://github.com/daviunic) (Windows only)
@@ -37,7 +37,7 @@ It is also recommended to use a manager application with 86Box for easier handli
 * [Linbox-qt5](https://github.com/Dungeonseeker/linbox-qt5) by [Dungeonseeker](https://github.com/Dungeonseeker/) (Linux focused, should work on Windows though untested)
 * [MacBox for 86Box](https://github.com/Moonif/MacBox) by [Moonif](https://github.com/Moonif) (MacOS only)
 
-It is also possible to use 86Box on its own with the `--vmpath`/`-P` command line option.
+To use 86Box on its own, use the `--vmpath`/`-P` command line option.
 
 Getting started
 ---------------
@@ -47,7 +47,7 @@ See [our documentation](https://86box.readthedocs.io/en/latest/index.html) for a
 Community
 ---------
 
-We operate an IRC channel and a Discord server for discussing 86Box, its development and anything related to retro computing. We look forward to hearing from you!
+We operate an IRC channel and a Discord server for discussing 86Box, its development, and anything related to retro computing. We look forward to hearing from you!
 
 [![Visit our IRC channel](https://kiwiirc.com/buttons/irc.ringoflightning.net/86Box.png)](https://kiwiirc.com/client/irc.ringoflightning.net/?nick=86box|?#86Box)
 

@@ -48,6 +48,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <stdarg.h>
 #include <wchar.h>
 #include <time.h>
@@ -933,7 +934,7 @@ nic_init(const device_t *info)
         if (dev->board != NE2K_ETHERNEXT_MC) {
             dev->base_address = device_get_config_hex16("base");
             dev->base_irq     = device_get_config_int("irq");
-            if ((dev->board == NE2K_NE2000) || (dev->board == NE2K_NE2000_COMPAT) || 
+            if ((dev->board == NE2K_NE2000) || (dev->board == NE2K_NE2000_COMPAT) ||
                 (dev->board == NE2K_NE2000_COMPAT_8BIT) ) {
                 dev->bios_addr = device_get_config_hex20("bios_addr");
                 dev->has_bios  = !!dev->bios_addr;
@@ -1061,7 +1062,7 @@ nic_init(const device_t *info)
             break;
     }
 
-    
+
     if (set_oui) {
         /* See if we have a local MAC address configured. */
         mac_oui = device_get_config_mac("mac_oui", -1);
@@ -1411,7 +1412,7 @@ static const device_config_t ne2000_config[] = {
     },
     {
         .name = "bios_addr",
-        .description = "BIOS Address",
+        .description = "BIOS address",
         .type = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0,
@@ -1509,7 +1510,7 @@ static const device_config_t ne2000_compat_config[] = {
     },
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0,
@@ -1601,7 +1602,7 @@ static const device_config_t ne2000_compat_8bit_config[] = {
     },
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0,
@@ -1742,7 +1743,7 @@ const device_t ne2000_compat_device = {
 const device_t ne2000_compat_8bit_device = {
     .name          = "NE2000 Compatible 8-bit",
     .internal_name = "ne2k8",
-    .flags         = DEVICE_ISA, 
+    .flags         = DEVICE_ISA,
     .local         = NE2K_NE2000_COMPAT_8BIT,
     .init          = nic_init,
     .close         = nic_close,

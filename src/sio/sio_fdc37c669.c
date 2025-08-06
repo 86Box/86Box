@@ -42,6 +42,7 @@ typedef struct fdc37c669_t {
     int       rw_locked;
     int       cur_reg;
     fdc_t    *fdc;
+    lpt_t    *lpt;
     serial_t *uart[2];
 } fdc37c669_t;
 
@@ -105,9 +106,9 @@ fdc37c669_lpt_handler(fdc37c669_t *dev)
 {
     uint8_t mask = ~(dev->regs[0x04] & 0x01);
 
-    lpt_port_remove(dev->id);
+    lpt_port_remove(dev->lpt);
     if ((dev->regs[0x01] & 0x04) && (dev->regs[0x23] >= 0x40))
-        lpt_port_setup(dev->id, ((uint16_t) (dev->regs[0x23] & mask)) << 2);
+        lpt_port_setup(dev->lpt, ((uint16_t) (dev->regs[0x23] & mask)) << 2);
 }
 
 static void
@@ -251,7 +252,7 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
             if (valxor & 0xf0)
                 fdc_set_irq(dev->fdc, val >> 4);
             if (valxor & 0x0f)
-                lpt_port_irq(dev->id, val & 0x0f);
+                lpt_port_irq(dev->lpt, val & 0x0f);
             break;
         case 0x28:
             dev->regs[dev->cur_reg] = val;
@@ -344,6 +345,8 @@ fdc37c669_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16550_device, (next_id << 1) + 1);
     dev->uart[1] = device_add_inst(&ns16550_device, (next_id << 1) + 2);
+
+    dev->lpt     = device_add_inst(&lpt_port_device, next_id + 1);
 
     io_sethandler(info->local ? FDC_SECONDARY_ADDR : (next_id ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR),
                   0x0002, fdc37c669_read, NULL, NULL, fdc37c669_write, NULL, NULL, dev);

@@ -759,7 +759,7 @@ ncr53c400_init(const device_t *info)
     scsi_bus->bus_device            = ncr->bus;
     scsi_bus->timer                 = ncr->timer;
     scsi_bus->priv                  = ncr->priv;
-    ncr400->status_ctrl             = STATUS_BUFFER_NOT_READY;
+    ncr400->status_ctrl             = 0x00;
     ncr400->buffer_host_pos         = 128;
     timer_add(&ncr400->timer, ncr53c400_callback, ncr400, 0);
 
@@ -821,7 +821,7 @@ corel_ls2000_available(void)
 static const device_config_t ncr53c400_mmio_config[] = {
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0xD8000,
@@ -860,8 +860,39 @@ static const device_config_t ncr53c400_mmio_config[] = {
 
 static const device_config_t rt1000b_config[] = {
     {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "v8_10r",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios = {
+            {
+                .name          = "Version 8.10R",
+                .internal_name = "v8_10r",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { RT1000B_810R_ROM, "" }
+            },
+            {
+                .name          = "Version 8.20R",
+                .internal_name = "v8_20r",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { RT1000B_820R_ROM, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0xD8000,
@@ -895,37 +926,6 @@ static const device_config_t rt1000b_config[] = {
         },
         .bios           = { { 0 } }
     },
-    {
-        .name           = "bios_ver",
-        .description    = "BIOS Revision",
-        .type           = CONFIG_BIOS,
-        .default_string = "v8_10r",
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios = {
-            {
-                .name          = "Version 8.10R",
-                .internal_name = "v8_10r",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 8192,
-                .files         = { RT1000B_810R_ROM, "" }
-            },
-            {
-                .name          = "Version 8.20R",
-                .internal_name = "v8_20r",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 8192,
-                .files         = { RT1000B_820R_ROM, "" }
-            },
-            { .files_no = 0 }
-        },
-    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
@@ -953,7 +953,7 @@ static const device_config_t rt1000b_mc_config[] = {
 static const device_config_t t130b_config[] = {
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0xD8000,

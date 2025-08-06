@@ -8,8 +8,6 @@
  *
  *          Implementation of the Flight Stick Pro.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
@@ -138,7 +136,7 @@ ch_flightstick_pro_a0_over(UNUSED(void *priv))
     //
 }
 
-const joystick_if_t joystick_ch_flightstick_pro = {
+const joystick_t joystick_ch_flightstick_pro = {
     .name          = "CH Flightstick Pro",
     .internal_name = "ch_flightstick_pro",
     .init          = ch_flightstick_pro_init,
@@ -156,7 +154,7 @@ const joystick_if_t joystick_ch_flightstick_pro = {
     .pov_names     = { "POV" }
 };
 
-const joystick_if_t joystick_ch_flightstick_pro_ch_pedals = {
+const joystick_t joystick_ch_flightstick_pro_ch_pedals = {
     .name          = "CH Flightstick Pro + CH Pedals",
     .internal_name = "ch_flightstick_pro_ch_pedals",
     .init          = ch_flightstick_pro_init,

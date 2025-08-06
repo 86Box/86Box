@@ -158,9 +158,9 @@ machine_xt_philips_common_init(const machine_t *model)
 
     nmi_init();
 
-    standalone_gameport_type = &gameport_device;
+    standalone_gameport_type = &gameport_200_device;
 
-    device_add(&keyboard_pc_device);
+    device_add(&kbc_pc_device);
 
     device_add(&philips_device);
 

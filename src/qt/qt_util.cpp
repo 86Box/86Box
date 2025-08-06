@@ -92,13 +92,41 @@ DlgFilter(std::initializer_list<QString> extensions, bool last)
     return " (" % temp.join(' ') % ")" % (!last ? ";;" : "");
 }
 
+QString
+DlgFilter(QStringList extensions, bool last)
+{
+    QStringList temp;
+
+    for (auto ext : extensions) {
+#ifdef Q_OS_UNIX
+        if (ext == "*") {
+            temp.append("*");
+            continue;
+        }
+        temp.append("*." % ext.toUpper());
+#endif
+        temp.append("*." % ext);
+    }
+
+#ifdef Q_OS_UNIX
+    temp.removeDuplicates();
+#endif
+    return " (" % temp.join(' ') % ")" % (!last ? ";;" : "");
+}
+
+
 QString currentUuid()
 {
-    auto configPath = QFileInfo(cfg_path).dir().canonicalPath();
-    if(!configPath.endsWith("/")) {
-        configPath.append("/");
+    return generateUuid(QString(cfg_path));
+}
+
+QString generateUuid(const QString &path)
+{
+    auto dirPath = QFileInfo(path).dir().canonicalPath();
+    if(!dirPath.endsWith("/")) {
+        dirPath.append("/");
     }
-    return QUuid::createUuidV5(QUuid{}, configPath).toString(QUuid::WithoutBraces);
+    return QUuid::createUuidV5(QUuid{}, dirPath).toString(QUuid::WithoutBraces);
 }
 
 bool compareUuid()

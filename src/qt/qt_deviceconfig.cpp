@@ -31,6 +31,7 @@
 #include <QLabel>
 #include <QDir>
 #include <QSettings>
+#include <QStringBuilder>
 
 extern "C" {
 #include <86box/86box.h>
@@ -45,6 +46,7 @@ extern "C" {
 
 #include "qt_filefield.hpp"
 #include "qt_models_common.hpp"
+#include "qt_util.hpp"
 #ifdef Q_OS_LINUX
 #    include <sys/stat.h>
 #    include <sys/sysmacros.h>
@@ -276,11 +278,35 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
             }
             case CONFIG_FNAME:
             {
-                auto *fileField = new FileField();
+                auto *fileField = new FileField(this);
                 fileField->setObjectName(config->name);
                 fileField->setFileName(selected);
-                fileField->setFilter(QString(config->file_filter).left(static_cast<int>(strcspn(config->file_filter,
-                                                                                                "|"))));
+                /* Get the actually used part of the filter */
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+                QString filter = QString(config->file_filter).left(static_cast<int>(strcspn(config->file_filter, "|")));
+#else
+                QString filter = QString(config->file_filter).split("|").at(0);
+#endif
+                /* Extract the description and the extension list */
+                QRegularExpressionMatch match = QRegularExpression("(.+) \\((.+)\\)$").match(filter);
+                QString description = match.captured(1);
+                QString extensions = match.captured(2);
+                /* Split the extension list up and strip the filename globs */
+                QRegularExpression re("\\*\\.(.*)");
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+                QStringList extensionList;
+                int i = 0;
+                while (extensions.section(' ', i, i) != "") {
+                    QString extension = re.match(extensions.section(' ', i, i)).captured(1);
+                    extensionList.append(extension);
+                    i++;
+                }
+#else
+                QStringList extensionList = extensions.split(" ");
+                for (int i = 0; i < extensionList.count(); i++)
+                    extensionList[i] = re.match(extensionList[i]).captured(1);
+#endif
+                fileField->setFilter(tr(description.toUtf8().constData()) % util::DlgFilter(extensionList) % tr("All files") % util::DlgFilter({ "*" }, true));
                 this->ui->formLayout->addRow(tr(config->description), fileField);
                 break;
             }
@@ -388,6 +414,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     }
                 case CONFIG_MIDI_OUT:
                 case CONFIG_MIDI_IN:
+                case CONFIG_INT:
                 case CONFIG_SELECTION:
                     {
                         auto *cbox = dc.findChild<QComboBox *>(config->name);

@@ -18,6 +18,12 @@
 #ifndef VIDEO_ATI_MACH8_H
 #define VIDEO_ATI_MACH8_H
 
+typedef enum {
+    ATI_68875 = 0,
+    ATI_68860,
+    RAMDAC_MAX
+} mach_ramdac_type;
+
 typedef struct mach_t {
     ati_eeprom_t eeprom;
     svga_t       svga;
@@ -39,7 +45,7 @@ typedef struct mach_t {
     uint8_t irq_state;
 
     int index;
-    int ramdac_type;
+    mach_ramdac_type ramdac_type;
     int old_mode;
 
     uint16_t config1;
@@ -137,6 +143,7 @@ typedef struct mach_t {
         int16_t  dx_end;
         int16_t  dy;
         int16_t  dy_end;
+        int16_t  dx_first_row_start;
         int16_t  dx_start;
         int16_t  dy_start;
         int16_t  cy;

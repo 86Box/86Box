@@ -16,7 +16,7 @@ class NewFloppyDialog : public QDialog {
 public:
     enum class MediaType {
         Floppy,
-        Zip,
+        RDisk,
         Mo,
     };
     enum class FileType {
@@ -42,7 +42,7 @@ private:
 
     bool create86f(const QString &filename, const disk_size_t &disk_size, uint8_t rpm_mode);
     bool createSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type);
-    bool createZipSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type, QProgressDialog &pbar);
+    bool createRDiskSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type, QProgressDialog &pbar);
     bool createMoSectorImage(const QString &filename, int8_t disk_size, FileType type, QProgressDialog &pbar);
 };
 

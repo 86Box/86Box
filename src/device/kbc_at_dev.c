@@ -8,11 +8,9 @@
  *
  *          AT / PS/2 attached device emulation.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2023 Miran Grca.
+ *          Copyright 2023-2025 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -22,23 +20,9 @@
 #define HAVE_STDARG_H
 #include <wchar.h>
 #include <86box/86box.h>
-#include "cpu.h"
-#include <86box/timer.h>
-#include <86box/io.h>
-#include <86box/pic.h>
-#include <86box/pit.h>
-#include <86box/ppi.h>
-#include <86box/mem.h>
 #include <86box/device.h>
-#include <86box/machine.h>
-#include <86box/m_at_t3100e.h>
-#include <86box/fdd.h>
-#include <86box/fdc.h>
-#include <86box/sound.h>
-#include <86box/snd_speaker.h>
-#include <86box/video.h>
-#include <86box/keyboard.h>
 #include <86box/plat_fallthrough.h>
+#include <86box/keyboard.h>
 
 #ifdef ENABLE_KBC_AT_DEV_LOG
 int kbc_at_dev_do_log = ENABLE_KBC_AT_DEV_LOG;
@@ -58,7 +42,7 @@ kbc_at_dev_log(const char *fmt, ...)
 #    define kbc_at_dev_log(fmt, ...)
 #endif
 
-static void
+void
 kbc_at_dev_queue_reset(atkbc_dev_t *dev, uint8_t reset_main)
 {
     if (reset_main) {
@@ -95,10 +79,6 @@ kbc_at_dev_queue_add(atkbc_dev_t *dev, uint8_t val, uint8_t main)
         dev->cmd_queue[dev->cmd_queue_end] = val;
         dev->cmd_queue_end                 = (dev->cmd_queue_end + 1) & 0xf;
     }
-
-    /* TODO: This should be done on actual send to host. */
-    if (val != 0xfe)
-        dev->last_scan_code = val;
 }
 
 static void
@@ -123,6 +103,8 @@ kbc_at_dev_poll(void *priv)
                 (dev->queue_start != dev->queue_end)) {
                 kbc_at_dev_log("%s: %02X (DATA) on channel 1\n", dev->name, dev->queue[dev->queue_start]);
                 dev->port->out_new   = dev->queue[dev->queue_start];
+                if (dev->port->out_new != 0xfe)
+                    dev->last_scan_code = dev->port->out_new;
                 dev->queue_start     = (dev->queue_start + 1) & dev->fifo_mask;
             }
             if (dev->ignore || !(*dev->scan) || dev->port->wantcmd)
@@ -143,6 +125,8 @@ kbc_at_dev_poll(void *priv)
             if ((dev->port->out_new == -1) && (dev->cmd_queue_start != dev->cmd_queue_end)) {
                 kbc_at_dev_log("%s: %02X (CMD ) on channel 1\n", dev->name, dev->cmd_queue[dev->cmd_queue_start]);
                 dev->port->out_new   = dev->cmd_queue[dev->cmd_queue_start];
+                if (dev->port->out_new != 0xfe)
+                    dev->last_scan_code = dev->port->out_new;
                 dev->cmd_queue_start = (dev->cmd_queue_start + 1) & 0xf;
             }
             if (dev->cmd_queue_start == dev->cmd_queue_end)
@@ -166,6 +150,8 @@ kbc_at_dev_poll(void *priv)
             if ((dev->port->out_new == -1) && (dev->cmd_queue_start != dev->cmd_queue_end)) {
                 kbc_at_dev_log("%s: %02X (CMD ) on channel 1\n", dev->name, dev->cmd_queue[dev->cmd_queue_start]);
                 dev->port->out_new   = dev->cmd_queue[dev->cmd_queue_start];
+                if (dev->port->out_new != 0xfe)
+                    dev->last_scan_code = dev->port->out_new;
                 dev->cmd_queue_start = (dev->cmd_queue_start + 1) & 0xf;
             }
             if (dev->cmd_queue_start == dev->cmd_queue_end)

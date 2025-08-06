@@ -95,7 +95,7 @@ machine_at_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add(&keyboard_at_device);
+    device_add(&kbc_at_device);
 }
 
 static void
@@ -103,7 +103,7 @@ machine_at_ibm_common_init(const machine_t *model)
 {
     machine_at_common_init_ex(model, 1);
 
-    device_add(&keyboard_at_device);
+    device_add(&kbc_at_device);
 
     mem_remap_top(384);
 
@@ -116,7 +116,7 @@ machine_at_ps2_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add(&keyboard_ps2_device);
+    device_add(&kbc_ps2_device);
 }
 
 void
@@ -154,32 +154,68 @@ machine_at_ps2_ide_init(const machine_t *model)
 static const device_config_t ibmat_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Version",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
         .default_string = "ibm5170_111585",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "62X082x (11/15/85)", .internal_name = "ibm5170_111585", .bios_type = BIOS_NORMAL,
-              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmat/BIOS_5170_15NOV85_U27.BIN", "roms/machines/ibmat/BIOS_5170_15NOV85_U47.BIN", "" } },
+        .default_int    = 0,
+        .file_filter    = "",
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "62X082x (11/15/85)",
+                .internal_name = "ibm5170_111585",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmat/BIOS_5170_15NOV85_U27.BIN", "roms/machines/ibmat/BIOS_5170_15NOV85_U47.BIN", "" }
+            },
+            {
+                .name          = "61X9266 (11/15/85) (Alt)",
+                .internal_name = "ibm5170_111585_alt",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmat/BIOS_5170_15NOV85_U27_61X9266.BIN", "roms/machines/ibmat/BIOS_5170_15NOV85_U47_61X9265.BIN", "" }
+            },
+            {
+                .name          = "648009x (06/10/85)",
+                .internal_name = "ibm5170_061085",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmat/BIOS_5170_10JUN85_U27.BIN", "roms/machines/ibmat/BIOS_5170_10JUN85_U47.BIN", "" }
+            },
+            {
+                .name          = "618102x (01/10/84)",
+                .internal_name = "ibm5170_011084",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmat/BIOS_5170_10JAN84_U27.BIN", "roms/machines/ibmat/BIOS_5170_10JAN84_U47.BIN", "" }
+            },
+            // The following are Diagnostic ROMs.
+            {
+                .name          = "Supersoft Diagnostics",
+                .internal_name = "diag_supersoft",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 2,
+                .size          = 65536,
+                .files         = { "roms/machines/diagnostic/5170_EVEN_LOW_U27_27256.bin", "roms/machines/diagnostic/5170_ODD_HIGH_U47_27256.bin", "" }
+            },
 
-            { .name = "61X9266 (11/15/85) (Alt)", .internal_name = "ibm5170_111585_alt", .bios_type = BIOS_NORMAL,
-              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmat/BIOS_5170_15NOV85_U27_61X9266.BIN", "roms/machines/ibmat/BIOS_5170_15NOV85_U47_61X9265.BIN", "" } },
-
-            { .name = "648009x (06/10/85)", .internal_name = "ibm5170_061085", .bios_type = BIOS_NORMAL,
-              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmat/BIOS_5170_10JUN85_U27.BIN", "roms/machines/ibmat/BIOS_5170_10JUN85_U47.BIN", "" } },
-
-            { .name = "618102x (01/10/84)", .internal_name = "ibm5170_011084", .bios_type = BIOS_NORMAL,
-              .files_no = 2, .local = 0, .size = 65536, .files = { "roms/machines/ibmat/BIOS_5170_10JAN84_U27.BIN", "roms/machines/ibmat/BIOS_5170_10JAN84_U47.BIN", "" } },
             { .files_no = 0 }
         },
     },
     {
-        .name = "enable_5161",
+        .name        = "enable_5161",
         .description = "IBM 5161 Expansion Unit",
-        .type = CONFIG_BINARY,
+        .type        = CONFIG_BINARY,
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
@@ -362,7 +398,7 @@ machine_at_siemens_init(const machine_t *model)
 
     machine_at_common_init_ex(model, 1);
 
-    device_add(&keyboard_at_siemens_device);
+    device_add(&kbc_at_siemens_device);
 
     mem_remap_top(384);
 
@@ -372,37 +408,3 @@ machine_at_siemens_init(const machine_t *model)
     return ret;
 }
 
-int
-machine_at_wellamerastar_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved("roms/machines/wellamerastar/W_3.031_L.BIN",
-                                "roms/machines/wellamerastar/W_3.031_H.BIN",
-                                0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_ibm_common_init(model);
-
-    return ret;
-}
-
-#ifdef USE_OPEN_AT
-int
-machine_at_openat_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/openat/bios.bin",
-                           0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_ibm_common_init(model);
-
-    return ret;
-}
-#endif /* USE_OPEN_AT */

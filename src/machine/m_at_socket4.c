@@ -41,6 +41,77 @@
 #include <86box/video.h>
 #include <86box/machine.h>
 
+int
+machine_at_v12p_init(const machine_t *model)
+
+{
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+	
+    machine_at_common_init(model);
+
+    device_add(&ide_isa_device);
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SCSI,        1, 4, 3, 2);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 2, 1, 4, 3);
+    pci_register_slot(0x03, PCI_CARD_NORMAL,      3, 2, 1, 4);
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      4, 0, 0, 0);
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      0, 0, 0, 0);
+    device_add(&i430lx_device);
+    device_add(&kbc_ps2_acer_pci_device);
+    device_add(&sio_zb_device);
+    device_add_params(&pc87310_device, (void *) (PC87310_ALI));
+    device_add(&amd_am28f010_flash_device);
+
+    return ret;
+}
+
+static const device_config_t v12p_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "v12p",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 }, /*W1*/
+        .bios = {
+            { .name = "Acer BIOS V1.2 - Revision R1.4", .internal_name = "v12p_r14", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/v12p/v12p_14.bin", "" } },
+            { .name = "Acer BIOS V1.2 - Revision R1.6", .internal_name = "v12p", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/v12p/v12p_16.bin", "" } },	  
+            { .files_no = 0 }            
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t v12p_device = {
+    .name          = "Acer V12P",
+    .internal_name = "v12p_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available	   = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = v12p_config
+};
+
 void
 machine_at_premiere_common_init(const machine_t *model, int pci_switch)
 {
@@ -56,9 +127,10 @@ machine_at_premiere_common_init(const machine_t *model, int pci_switch)
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 1, 3, 4);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 3, 2, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_phoenix_device);
+    device_add(&kbc_ps2_phoenix_device);
     device_add(&sio_zb_device);
-    device_add(&fdc37c665_device);
+    device_add(&ide_rz1000_pci_single_channel_device);
+    device_add(&fdc37c665_ide_sec_device);
     device_add(&intel_flash_bxt_ami_device);
 }
 
@@ -80,7 +152,7 @@ machine_at_sp4_common_init(const machine_t *model)
     pci_register_slot(0x09, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&sis_85c50x_device);
     device_add(&ide_cmd640_pci_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
 }
@@ -106,7 +178,7 @@ machine_at_excaliburpci_init(const machine_t *model)
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&fdc37c665_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&ide_cmd640_pci_legacy_only_device);
 
     device_add(&i430lx_device);
@@ -136,7 +208,7 @@ machine_at_p5mp3_init(const machine_t *model)
     pci_register_slot(0x03, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 03 = Slot 3 */
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&fdc_at_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
 
     device_add(&sio_zb_device);
     device_add(&catalyst_flash_device);
@@ -156,7 +228,9 @@ machine_at_dellxp60_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&amstrad_megapc_nvr_device);
     device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2);
@@ -169,7 +243,7 @@ machine_at_dellxp60_init(const machine_t *model)
     pci_register_slot(0x06, PCI_CARD_NORMAL,      2, 1, 3, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430lx_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&kbc_ps2_phoenix_device);
     device_add(&sio_zb_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_ami_device);
@@ -188,8 +262,10 @@ machine_at_opti560l_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
-    device_add(&ide_pci_2ch_device);
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&amstrad_megapc_nvr_device);
+    device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -198,7 +274,7 @@ machine_at_opti560l_init(const machine_t *model)
     pci_register_slot(0x08, PCI_CARD_NORMAL,      2, 1, 3, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430lx_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&kbc_ps2_phoenix_device);
     device_add(&sio_zb_device);
     device_add(&i82091aa_device);
     device_add(&intel_flash_bxt_ami_device);
@@ -218,7 +294,22 @@ machine_at_ambradp60_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_premiere_common_init(model, 0);
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&amstrad_megapc_nvr_device);
+    device_add(&ide_pci_device);
+
+    pci_init(PCI_CONFIG_TYPE_2);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_IDE,         0, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      3, 2, 1, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 1, 3, 4);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 3, 2, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&kbc_ps2_phoenix_device);
+    device_add(&sio_zb_device);
+    device_add(&fdc37c665_ide_pri_device);
+    device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i430lx_device);
 
@@ -238,7 +329,7 @@ machine_at_valuepointp60_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&ide_pci_2ch_device);
+    device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -248,9 +339,9 @@ machine_at_valuepointp60_init(const machine_t *model)
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 1, 3, 4);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 3, 2, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_ps1_pci_device);
+    device_add(&kbc_ps2_ps1_pci_device);
     device_add(&sio_device);
-    device_add(&fdc37c665_device);
+    device_add(&fdc37c665_ide_device);
     device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i430lx_device);
@@ -297,7 +388,7 @@ machine_at_award_common_init(const machine_t *model)
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&keyboard_at_ami_device);
+    device_add(&kbc_at_ami_device);
     device_add(&sio_zb_device);
     device_add(&intel_flash_bxt_device);
 }
@@ -348,7 +439,7 @@ machine_at_pb520r_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5434_onboard_pci_device);
 
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&sio_zb_device);
     device_add(&i82091aa_ide_device);
     device_add(&intel_flash_bxt_ami_device);
@@ -378,7 +469,7 @@ machine_at_m5pi_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430lx_device);	
     device_add(&sio_zb_device);	
-    device_add(&keyboard_ps2_phoenix_device);
+    device_add(&kbc_ps2_phoenix_device);
     device_add(&ide_w83769f_pci_single_channel_device);	
     device_add(&fdc37c665_ide_sec_device);
     device_add(&intel_flash_bxt_ami_device);
@@ -409,7 +500,7 @@ machine_at_globalyst330_p5_init(const machine_t *model)
     device_add(&opti5x7_pci_device);
     device_add(&opti822_device);
     device_add(&sst_flash_29ee010_device);
-    device_add(&keyboard_at_ami_device);
+    device_add(&kbc_at_ami_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -433,7 +524,7 @@ machine_at_excalibur_init(const machine_t *model)
     device_add(&opti5x7_device);
     device_add(&ide_opti611_vlb_device);
     device_add(&fdc37c661_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&kbc_ps2_intel_ami_pci_device);
 
     return ret;
 }
@@ -462,7 +553,7 @@ machine_at_p5vl_init(const machine_t *model)
     device_add(&opti5x7_pci_device);
     device_add(&opti822_device);
     device_add(&sst_flash_29ee010_device);
-    device_add(&keyboard_at_ami_device);
+    device_add(&kbc_at_ami_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -493,7 +584,7 @@ machine_at_excaliburpci2_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&fdc37c665_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&ide_cmd640_pci_legacy_only_device);
 
     device_add(&sis_85c50x_device);

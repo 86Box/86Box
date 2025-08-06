@@ -58,6 +58,18 @@ if(WIN32)
     target_link_libraries(86Box ws2_32)
 endif()
 
+if(NETSWITCH)
+    add_compile_definitions(USE_NETSWITCH)
+    list(APPEND net_sources
+	    net_netswitch.c
+        netswitch.c
+        pb_common.c
+        pb_encode.c
+        pb_decode.c
+        networkmessage.pb.c
+    )
+endif()
+
 if (UNIX)
     find_path(HAS_VDE "libvdeplug.h" PATHS ${VDE_INCLUDE_DIR} "/usr/include /usr/local/include" "/opt/homebrew/include" )
     if(HAS_VDE)
@@ -68,6 +80,15 @@ if (UNIX)
             add_compile_definitions(HAS_VDE)
             list(APPEND net_sources net_vde.c)
         endif()
+    endif()
+endif()
+if (UNIX AND NOT APPLE) # Support for TAP on Linux and BSD, supposedly.
+    find_path(HAS_TAP "linux/if_tun.h" PATHS ${TAP_INCLUDE_DIR} "/usr/include /usr/local/include" "/opt/homebrew/include" )
+    if(HAS_TAP)
+        add_compile_definitions(HAS_TAP)
+        list(APPEND net_sources net_tap.c)
+    else()
+        message(WARNING "TAP support not available. Are you on some BSD?")
     endif()
 endif()
 

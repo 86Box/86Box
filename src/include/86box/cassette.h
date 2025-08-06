@@ -75,7 +75,7 @@ void           pc_cas_del(pc_cassette_t *cas);
  * @short  Set the cassette file
  * @return True on error, false otherwise
  *****************************************************************************/
-int pc_cas_set_fname(pc_cassette_t *cas, const char *fname);
+int pc_cas_set_fname(pc_cassette_t *cas, char *fname);
 
 /*!***************************************************************************
  * @short  Get the cassette mode

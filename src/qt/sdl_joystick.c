@@ -33,10 +33,10 @@
 #include <86box/gameport.h>
 #include <86box/plat_unused.h>
 
-int                  joysticks_present = 0;
-joystick_t           joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
-plat_joystick_t      plat_joystick_state[MAX_PLAT_JOYSTICKS];
-static SDL_Joystick *sdl_joy[MAX_PLAT_JOYSTICKS];
+int                   joysticks_present = 0;
+joystick_state_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
+plat_joystick_state_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
+static SDL_Joystick  *sdl_joy[MAX_PLAT_JOYSTICKS];
 
 #ifndef M_PI
 #    define M_PI 3.14159265358979323846
@@ -45,8 +45,10 @@ static SDL_Joystick *sdl_joy[MAX_PLAT_JOYSTICKS];
 void
 joystick_init(void)
 {
+#ifdef _WIN32
     /* This is needed for SDL's Windows raw input backend to work properly without SDL video. */
     SDL_SetHint(SDL_HINT_JOYSTICK_THREAD, "1");
+#endif
 
     if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) != 0) {
         return;

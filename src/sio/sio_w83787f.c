@@ -86,6 +86,7 @@ typedef struct w83787f_t {
     int      ide_start;
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t    *lpt;
     void     *gameport;
 } w83787f_t;
 
@@ -195,10 +196,10 @@ w83787f_lpt_handler(w83787f_t *dev)
     if (dev->regs[4] & 0x80)
         enable = 0;
 
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
     if (enable) {
-        lpt1_setup(addr);
-        lpt1_irq(irq);
+        lpt_port_setup(dev->lpt, addr);
+        lpt_port_irq(dev->lpt, irq);
     }
 }
 
@@ -377,9 +378,9 @@ w83787f_reset(w83787f_t *dev)
 {
     uint16_t hefere = dev->reg_init & 0x0100;
 
-    lpt1_remove();
-    lpt1_setup(LPT1_ADDR);
-    lpt1_irq(LPT1_IRQ);
+    lpt_port_remove(dev->lpt);
+    lpt_port_setup(dev->lpt, LPT1_ADDR);
+    lpt_port_irq(dev->lpt, LPT1_IRQ);
 
     memset(dev->regs, 0, 0x2A);
 
@@ -451,6 +452,8 @@ w83787f_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
 
     dev->gameport = gameport_add(&gameport_sio_1io_device);
 

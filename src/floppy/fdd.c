@@ -212,18 +212,9 @@ int
 fdd_get_from_internal_name(char *s)
 {
     int   c = 0;
-    char *n;
-
-    /* TODO: Remove this once the migration period is over. */
-    if (!strcmp(s, "525_2hd_ps2"))
-        n = "525_2hd";
-    else if (!strcmp(s, "35_2hd_ps2"))
-        n = "35_2hd";
-    else
-        n = s;
 
     while (strlen(drive_types[c].internal_name)) {
-        if (!strcmp((char *) drive_types[c].internal_name, n))
+        if (!strcmp((char *) drive_types[c].internal_name, s))
             return c;
         c++;
     }
@@ -467,12 +458,18 @@ fdd_load(int drive, char *fn)
     int         c = 0;
     int         size;
     const char *p;
-    FILE *      fp;
+    FILE       *fp;
+    int         offs = 0;
 
     fdd_log("FDD: loading drive %d with '%s'\n", drive, fn);
 
     if (!fn)
         return;
+    if (strstr(fn, "wp://") == fn) {
+        offs = 5;
+        ui_writeprot[drive] = 1;
+    }
+    fn += offs;
     p = path_get_extension(fn);
     if (!p)
         return;
@@ -485,13 +482,14 @@ fdd_load(int drive, char *fn)
         while (loaders[c].ext) {
             if (!strcasecmp(p, (char *) loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1)) {
                 driveloaders[drive] = c;
-                if (floppyfns[drive] != fn)
-                    strcpy(floppyfns[drive], fn);
+                if (floppyfns[drive] != (fn - offs))
+                    strcpy(floppyfns[drive], fn - offs);
                 d86f_setup(drive);
-                loaders[c].load(drive, floppyfns[drive]);
+                loaders[c].load(drive, floppyfns[drive] + offs);
                 drive_empty[drive] = 0;
                 fdd_forced_seek(drive, 0);
                 fdd_changed[drive] = 1;
+                ui_sb_update_icon_wp(SB_FLOPPY | drive, ui_writeprot[drive]);
                 return;
             }
             c++;
@@ -541,7 +539,7 @@ fdd_hole(int drive)
 static __inline uint64_t
 fdd_byteperiod(int drive)
 {
-    if (!fdd_get_turbo(drive) && drives[drive].byteperiod)
+    if (drives[drive].byteperiod)
         return drives[drive].byteperiod(drive);
     else
         return 32ULL * TIMER_USEC;

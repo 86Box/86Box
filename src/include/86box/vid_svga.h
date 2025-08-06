@@ -30,6 +30,7 @@
 #    define FLAG_S3_911_16BIT 256
 #    define FLAG_512K_MASK    512
 #    define FLAG_NO_SHIFT3    1024 /* Needed for Bochs VBE. */
+#    define FLAG_PRECISETIME  2048 /* Needed for Copper demo if on dynarec. */
 struct monitor_t;
 
 typedef struct hwcursor_t {
@@ -100,12 +101,12 @@ typedef struct svga_t {
     int dispon;
     int hdisp_on;
     int vc;
-    int sc;
+    int scanline;
     int linepos;
     int vslines;
     int linecountff;
     int oddeven;
-    int con;
+    int cursorvisible;
     int cursoron;
     int blink;
     int scrollcache;
@@ -116,6 +117,7 @@ typedef struct svga_t {
     int lastline_draw;
     int displine;
     int fullchange;
+    int left_overscan;
     int x_add;
     int y_add;
     int pan;
@@ -135,6 +137,9 @@ typedef struct svga_t {
     int packed_4bpp;
     int ps_bit_bug;
     int ati_4color;
+    int vblankend;
+    int render_line_offset;
+    int start_retrace_latch;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM
@@ -151,15 +156,15 @@ typedef struct svga_t {
     uint32_t  charseta;
     uint32_t  charsetb;
     uint32_t  adv_flags;
-    uint32_t  ma_latch;
+    uint32_t  memaddr_latch;
     uint32_t  ca_adj;
-    uint32_t  ma;
-    uint32_t  maback;
+    uint32_t  memaddr;
+    uint32_t  memaddr_backup;
     uint32_t  write_bank;
     uint32_t  read_bank;
     uint32_t  extra_banks[2];
     uint32_t  banked_mask;
-    uint32_t  ca;
+    uint32_t  cursoraddr;
     uint32_t  overscan_color;
     uint32_t *map8;
     uint32_t  pallook[512];
@@ -279,6 +284,10 @@ typedef struct svga_t {
       If mode 13h appears in a reddish-brown background (0x88) with dark green text (0x8F),
       you should set this flag when entering that mode*/
     int disable_blink;
+
+    /*Force special shifter bypass logic for 8-bpp lowres modes.
+      Needed if the screen is squished on certain S3 cards.*/
+    int force_shifter_bypass;
 
     /*Force CRTC to dword mode, regardless of CR14/CR17. Required for S3 enhanced mode*/
     int force_dword_mode;
@@ -403,15 +412,15 @@ uint32_t svga_lookup_lut_ram(svga_t* svga, uint32_t val);
 
 /* We need a way to add a device with a pointer to a parent device so it can attach itself to it, and
    possibly also a second ATi 68860 RAM DAC type that auto-sets SVGA render on RAM DAC render change. */
-extern void    ati68860_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga);
-extern uint8_t ati68860_ramdac_in(uint16_t addr, void *priv, svga_t *svga);
+extern void    ati68860_ramdac_out(uint16_t addr, uint8_t val, int is_8514, void *priv, svga_t *svga);
+extern uint8_t ati68860_ramdac_in(uint16_t addr, int is_8514, void *priv, svga_t *svga);
 extern void    ati68860_set_ramdac_type(void *priv, int type);
 extern void    ati68860_ramdac_set_render(void *priv, svga_t *svga);
 extern void    ati68860_ramdac_set_pallook(void *priv, int i, uint32_t col);
 extern void    ati68860_hwcursor_draw(svga_t *svga, int displine);
 
-extern void    ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga);
-extern uint8_t ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga);
+extern void    ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, int is_8514, void *priv, svga_t *svga);
+extern uint8_t ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, int is_8514, void *priv, svga_t *svga);
 
 extern void    att49x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t att49x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);

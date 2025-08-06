@@ -13,7 +13,7 @@
  *              Jasmine Iwanek <jasmine@iwanek.co.uk>
  *
  *              Copyright 2021      Andreas J. Reichel.
- *              Copyright 2021-2022 Jasmine Iwanek.
+ *              Copyright 2021-2025 Jasmine Iwanek.
  */
 
 #include <stdarg.h>
@@ -222,10 +222,15 @@ serial_passthrough_dev_init(const device_t *info)
 }
 
 const char *serpt_mode_names[SERPT_MODES_MAX] = {
-    [SERPT_MODE_VCON]    = "vcon",
-    [SERPT_MODE_TCPSRV]  = "tcpsrv",
-    [SERPT_MODE_TCPCLNT] = "tcpclnt",
-    [SERPT_MODE_HOSTSER] = "hostser",
+#ifdef _WIN32
+    [SERPT_MODE_NPIPE_SRV]  = "npipesrv",
+    [SERPT_MODE_NPIPE_CLNT] = "npipeclnt",
+#else
+    [SERPT_MODE_VCON]       = "vcon",
+#endif
+    [SERPT_MODE_TCP_SRV]    = "tcpsrv",
+    [SERPT_MODE_TCP_CLNT]   = "tcpclnt",
+    [SERPT_MODE_HOSTSER]    = "hostser",
 };
 
 // clang-format off
@@ -240,19 +245,17 @@ static const device_config_t serial_passthrough_config[] = {
         .spinner        = { 0 },
         .selection      = {
 #ifdef _WIN32
-            { .description = "Named Pipe (Server)",             .value = SERPT_MODE_VCON    },
-#if 0 /* TODO */
-            { .description = "Named Pipe (Client)",             .value = SERPT_MODE_VCON    },
-#endif
+            { .description = "Named Pipe (Server)",             .value = SERPT_MODE_NPIPE_SRV  },
+            { .description = "Named Pipe (Client)",             .value = SERPT_MODE_NPIPE_CLNT },
 #else /* _WIN32 */
-            { .description = "Pseudo Terminal/Virtual Console", .value = SERPT_MODE_VCON    },
+            { .description = "Pseudo Terminal/Virtual Console", .value = SERPT_MODE_VCON       },
 #endif /* _WIN32 */
 #if 0 /* TODO */
-            { .description = "TCP Server",                      .value = SERPT_MODE_TCPSRV  },
-            { .description = "TCP Client",                      .value = SERPT_MODE_TCPCLNT },
+            { .description = "TCP Server",                      .value = SERPT_MODE_TCP_SRV    },
+            { .description = "TCP Client",                      .value = SERPT_MODE_TCP_CLNT   },
 #endif
-            { .description = "Host Serial Passthrough",         .value = SERPT_MODE_HOSTSER },
-            { .description = ""                                                             }
+            { .description = "Host Serial Passthrough",         .value = SERPT_MODE_HOSTSER    },
+            { .description = ""                                                                }
         },
         .bios           = { { 0 } }
     },

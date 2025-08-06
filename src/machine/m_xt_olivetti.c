@@ -39,6 +39,7 @@
 #include <86box/nmi.h>
 #include <86box/mem.h>
 #include <86box/device.h>
+#include <86box/lpt.h>
 #include <86box/nvr.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
@@ -1918,7 +1919,7 @@ m19_vid_out(uint16_t addr, uint8_t val, void *priv)
     /* activating plantronics mode */
     if (addr == 0x3dd) {
         /* already in graphics mode */
-        if ((val & 0x30) && (vid->ogc.cga.cgamode & 0x2))
+        if ((val & 0x30) && (vid->ogc.cga.cgamode & CGA_MODE_FLAG_GRAPHICS))
             vid->mode = PLANTRONICS_MODE;
         else
             vid->mode = OLIVETTI_OGC_MODE;
@@ -2325,7 +2326,7 @@ machine_xt_m24_init(const machine_t *model)
     /* Address 66-67 = mainboard dip-switch settings */
     io_sethandler(0x0065, 3, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
 
-    standalone_gameport_type = &gameport_device;
+    standalone_gameport_type = &gameport_200_device;
 
     nmi_init();
 
@@ -2366,8 +2367,8 @@ machine_xt_m240_init(const machine_t *model)
     m24_kbd_t *m24_kbd;
     nvr_t     *nvr;
 
-    ret = bios_load_interleaved("roms/machines/m240/olivetti_m240_pchj_2.11_low.bin",
-                                "roms/machines/m240/olivetti_m240_pchk_2.11_high.bin",
+    ret = bios_load_interleaved("roms/machines/m240/olivetti_m240_pchm_2.12_low.bin",
+                                "roms/machines/m240/olivetti_m240_pchl_2.12_high.bin",
                                 0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
@@ -2397,7 +2398,7 @@ machine_xt_m240_init(const machine_t *model)
         device_add(&fdc_at_device); /* io.c logs clearly show it using port 3F7 */
 
     if (joystick_type)
-        device_add(&gameport_device);
+        device_add(&gameport_200_device);
 
     nmi_init();
 
@@ -2451,7 +2452,7 @@ machine_xt_m19_init(const machine_t *model)
     m19_vid_init(vid);
     device_add_ex(&m19_vid_device, vid);
 
-    device_add(&keyboard_xt_olivetti_device);
+    device_add(&kbc_xt_olivetti_device);
 
     pit_set_clock((uint32_t) 14318184.0);
 

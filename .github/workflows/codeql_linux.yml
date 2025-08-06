@@ -3,33 +3,42 @@ name: CodeQL Analysis (Linux)
 on:
 
   push:
+    branches: [ "master" ]
     paths:
       - src/**
       - cmake/**
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
+      - "!.github/workflows/**"
       - .github/workflows/codeql_linux.yml
       - vcpkg.json
       - "!**/Makefile*"
 
   pull_request:
+    branches: [ "master" ]
     paths:
       - src/**
       - cmake/**
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
-      - .github/workflows/**
+      - "!.github/workflows/**"
       - .github/workflows/codeql_linux.yml
       - vcpkg.json
       - "!**/Makefile*"
+
+  schedule:
+    - cron: '22 11 * * 0'
 
 jobs:
 
   analyze-linux:
 
-    name: "Analyze Linux GCC 11 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
+    name: "Analyze (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
 
     runs-on: ubuntu-22.04
+
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
 
     permissions:
       actions: read
@@ -43,12 +52,12 @@ jobs:
         build:
 #          - name: Regular
 #            preset: regular
-#          - name: Debug
-#            preset: debug
-#            slug: -Debug
-          - name: Dev
+          - name: Debug
             preset: dev_debug
-            slug: -Dev
+            slug: -Debug
+#          - name: Dev
+#            preset: development
+#            slug: -Dev
         dynarec:
           - name: ODR
             new: off
@@ -59,6 +68,7 @@ jobs:
         ui:
           - name: SDL GUI
             qt: off
+            static: on
           - name: Qt GUI
             qt: on
             slug: -Qt
@@ -90,6 +100,11 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install Build Wrapper
+        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v5
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -106,9 +121,23 @@ jobs:
           -D QT=${{ matrix.ui.qt }}
 
       - name: Build
-        run: cmake --build build
+        run: |
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{matrix.language}}"
+
+      - name: SonarQube Scan
+        if: matrix.build.preset == 'dev_debug' && matrix.dynarec.new == 'on' && matrix.ui.qt == 'on' && env.SONAR_TOKEN != ''
+#        if: 0
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#          SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
+        with:
+           # Consult https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
+           args: >
+             --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 

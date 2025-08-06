@@ -89,10 +89,11 @@
 #define ISARTC_P5PAK   2
 #define ISARTC_A6PAK   3
 #define ISARTC_VENDEX  4
+#define ISARTC_MPLUS2  5
 #define ISARTC_MM58167 10
 
-#define ISARTC_ROM_MM58167_1 "roms/rtc/glatick/GLaTICK_0.8.5_NS_RP.ROM"
-#define ISARTC_ROM_MM58167_2 "roms/rtc/glatick/GLaTICK_0.8.5_86B.ROM"
+#define ISARTC_ROM_MM58167_1 "roms/rtc/glatick/GLaTICK_0.8.8_NS_86B.ROM"  /* Generic 58167, AST or EV-170 */
+#define ISARTC_ROM_MM58167_2 "roms/rtc/glatick/GLaTICK_0.8.8_NS_86B2.ROM" /* PII-147 */
 
 #define ISARTC_DEBUG  0
 
@@ -409,11 +410,16 @@ mm67_read(uint16_t port, void *priv)
             break;
 
         case MM67_AL_MSEC:
+        case MM67_MSEC:
             ret                = dev->nvr.regs[reg] & 0xf0;
             break;
 
         case MM67_AL_DOW:
             ret                = dev->nvr.regs[reg] & 0x0f;
+            break;
+
+        case MM67_DOW:
+            ret                = dev->nvr.regs[reg] & 0x07;
             break;
 
         default:
@@ -532,8 +538,8 @@ isartc_init(const device_t *info)
     switch (dev->board) {
         case ISARTC_MM58167: /* Generic MM58167 RTC */
             {
-                int rom_addr = device_get_config_hex20("bios_addr");
-                if (rom_addr != -1)
+                uint32_t rom_addr = device_get_config_hex20("bios_addr");
+                if (rom_addr != 0)
                     rom_init(&dev->rom, ISARTC_ROM_MM58167_1,
                              rom_addr, 0x0800, 0x7ff, 0, MEM_MAPPING_EXTERNAL);
 
@@ -563,8 +569,9 @@ isartc_init(const device_t *info)
             dev->year        = MM67_AL_HUNTEN; /* year, NON STANDARD */
             break;
 
-        case ISARTC_P5PAK: /* Paradise Systems 5PAK */
-        case ISARTC_A6PAK: /* AST SixPakPlus */
+        case ISARTC_P5PAK:  /* Paradise Systems 5PAK */
+        case ISARTC_A6PAK:  /* AST SixPakPlus */
+        case ISARTC_MPLUS2: /* AST MegaPlus II */
             dev->flags |= FLAG_YEAR80;
             dev->base_addr   = 0x02c0;
             dev->base_addrsz = 32;
@@ -786,6 +793,42 @@ static const device_t a6pak_device = {
     .config        = a6pak_config
 };
 
+static const device_config_t mplus2_config[] = {
+  // clang-format off
+    {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int    = -1,
+        .file_filter    = "",
+        .spinner        = { 0 },
+        .selection      = {
+            { "Disabled", -1 },
+            { "IRQ2",      2 },
+            { "IRQ3",      3 },
+            { "IRQ5",      5 },
+            { ""             }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_t mplus2_device = {
+    .name          = "AST MegaPlus II",
+    .internal_name = "mplus2",
+    .flags         = DEVICE_ISA,
+    .local         = ISARTC_MPLUS2,
+    .init          = isartc_init,
+    .close         = isartc_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = mplus2_config
+};
+
 static const device_config_t mm58167_config[] = {
   // clang-format off
     {
@@ -823,14 +866,14 @@ static const device_config_t mm58167_config[] = {
     },
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0xcc000,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "Disabled", .value = -1      },
+            { .description = "Disabled", .value = 0x00000 },
             { .description = "C800H",    .value = 0xc8000 },
             { .description = "CA00H",    .value = 0xca000 },
             { .description = "CC00H",    .value = 0xcc000 },
@@ -897,6 +940,7 @@ static const struct {
     { &pii147_device  },
     { &p5pak_device   },
     { &a6pak_device   },
+    { &mplus2_device  },
     { &mm58167_device },
     { NULL            }
     // clang-format on
@@ -919,12 +963,12 @@ isartc_get_internal_name(int board)
 }
 
 int
-isartc_get_from_internal_name(char *s)
+isartc_get_from_internal_name(const char *str)
 {
     int c = 0;
 
     while (boards[c].dev != NULL) {
-        if (!strcmp(boards[c].dev->internal_name, s))
+        if (!strcmp(boards[c].dev->internal_name, str))
             return c;
         c++;
     }

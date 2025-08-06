@@ -753,7 +753,7 @@ opLOCK(uint32_t fetchdat)
         return 0;
     cpu_state.pc++;
 
-    ILLEGAL_ON((fetchdat & 0xff) == 0x90);
+    ILLEGAL_ON(((fetchdat & 0xff) == 0x90) || ((fetchdat & 0xff) == 0xec));
 
     CLOCK_CYCLES(4);
     PREFETCH_PREFIX();

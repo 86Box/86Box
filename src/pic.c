@@ -639,6 +639,25 @@ pic_reset_hard(void)
 }
 
 void
+pic_toggle_latch(int is_ps2)
+{
+    pic_kbd_latch(0x00);
+    pic_mouse_latch(0x00);
+
+    /* Explicitly reset the latches. */
+    kbd_latch = mouse_latch = 0;
+    latched_irqs = 0x0000;
+
+    /* The situation is as follows: There is a giant mess when it comes to these latches on real hardware,
+       to the point that there's even boards with board-level latched that get used in place of the latches
+       on the chipset, therefore, I'm just doing this here for the sake of simplicity. */
+    if (is_ps2) {
+        pic_kbd_latch(0x01);
+        pic_mouse_latch(0x01);
+    }
+}
+
+void
 pic_init(void)
 {
     pic_reset_hard();
@@ -673,6 +692,13 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
     uint16_t w;
     uint16_t lines = level ? 0x0000 : num;
     pic_t   *dev;
+
+    /*
+       Do this because some emulated cards will, for whatever reason, attempt to
+       raise an IRQ at init when the PIC has not yet been properly initialized.
+     */
+    if (update_pending == NULL)
+        return;
 
     /* Make sure to ignore all slave IRQ's, and in case of AT+,
        translate IRQ 2 to IRQ 9. */

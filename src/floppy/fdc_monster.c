@@ -162,7 +162,7 @@ static const device_config_t monster_fdc_config[] = {
 #endif
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0xc8000,
@@ -183,7 +183,7 @@ static const device_config_t monster_fdc_config[] = {
 #if 0
     {
         .name           = "bios_size",
-        .description    = "BIOS Size:",
+        .description    = "BIOS size",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 32,

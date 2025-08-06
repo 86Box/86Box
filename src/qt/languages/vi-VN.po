@@ -27,8 +27,11 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "Tạm &dừng"
 
-msgid "E&xit..."
-msgstr "Th&oát..."
+msgid "Re&sume"
+msgstr ""
+
+msgid "E&xit"
+msgstr "Th&oát"
 
 msgid "&View"
 msgstr "&Xem"
@@ -60,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Tự nhập độ &phân giải..."
 
 msgid "F&orce 4:3 display ratio"
@@ -99,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "&Bộ lọc hình ảnh"
 
 msgid "&Nearest"
@@ -144,8 +147,14 @@ msgstr "L&oại màn VGA"
 msgid "RGB &Color"
 msgstr "Màu R&GB"
 
+msgid "RGB (no brown)"
+msgstr ""
+
 msgid "&RGB Grayscale"
 msgstr "Thang xám RG&B"
+
+msgid "Generic RGBI color monitor"
+msgstr ""
 
 msgid "&Amber monitor"
 msgstr "Màn hình vàng hổ phách (amber)"
@@ -384,6 +393,15 @@ msgstr "Bật (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Bộ tái biên dịch động (Dynamic Recompiler)"
 
+msgid "CPU frame size"
+msgstr ""
+
+msgid "Larger frames (less smooth)"
+msgstr ""
+
+msgid "Smaller frames (smoother)"
+msgstr ""
+
 msgid "Video:"
 msgstr "Video:"
 
@@ -398,6 +416,9 @@ msgstr "Đồ họa IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Đồ họa XGA"
+
+msgid "Keyboard:"
+msgstr ""
 
 msgid "Mouse:"
 msgstr "Chuột:"
@@ -498,17 +519,20 @@ msgstr "Cổng parallel 3"
 msgid "Parallel port 4"
 msgstr "Cổng parallel 4"
 
-msgid "HD Controller:"
-msgstr "Bộ điều khiển ổ cứng:"
-
 msgid "FD Controller:"
 msgstr "Bộ điều khiển ổ mềm:"
+
+msgid "CD-ROM Controller:"
+msgstr ""
 
 msgid "Tertiary IDE Controller"
 msgstr "Bộ điều khiển IDE thứ ba"
 
 msgid "Quaternary IDE Controller"
 msgstr "Bộ điều khiển IDE thứ tư"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -530,6 +554,9 @@ msgstr "Cassette"
 
 msgid "Hard disks:"
 msgstr "Đĩa cứng:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "Tạ&o mới..."
@@ -588,8 +615,8 @@ msgstr "Ổ đĩa CD-ROM:"
 msgid "MO drives:"
 msgstr "Ổ đĩa MO:"
 
-msgid "ZIP drives:"
-msgstr "Ổ đĩa ZIP:"
+msgid "Removable disk drives:"
+msgstr ""
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +626,9 @@ msgstr "ISA RTC:"
 
 msgid "ISA Memory Expansion"
 msgstr "Mở rộng bộ nhớ qua ISA"
+
+msgid "ISA ROM Cards"
+msgstr ""
 
 msgid "Card 1:"
 msgstr "Thẻ 1:"
@@ -611,6 +641,15 @@ msgstr "Thẻ 3:"
 
 msgid "Card 4:"
 msgstr "Thẻ 4:"
+
+msgid "Generic ISA ROM Board"
+msgstr ""
+
+msgid "Generic Dual ISA ROM Board"
+msgstr ""
+
+msgid "Generic Quad ISA ROM Board"
+msgstr ""
 
 msgid "ISABugger device"
 msgstr "Thiết bị ISABugger"
@@ -630,17 +669,20 @@ msgstr "Lỗi nghiêm trọng"
 msgid " - PAUSED"
 msgstr " - TẠM DỪNG"
 
-msgid "Press %s to return to windowed mode."
-msgstr "Bấm %s để quay lại chế độ cửa sổ."
-
 msgid "Speed"
 msgstr "Vận tốc"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr ""
 
-msgid "ZIP images"
-msgstr "Ảnh đĩa ZIP"
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
+msgid "Removable disk images"
+msgstr ""
+
+msgid "Image %1"
+msgstr ""
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box không tìm được bản ROM nào.\n\nVui lòng <a href=\"https://github.com/86Box/roms/releases/latest\">tải về</a> bộ ROM và trích xuất về thư mục \"roms\"."
@@ -717,11 +759,11 @@ msgstr "Thiết bị ngoại vi khác"
 msgid "Click to capture mouse"
 msgstr "Nhấp vào khung hình để 'nhốt' chuột vào"
 
-msgid "Press %s to release mouse"
-msgstr "Nhấn %s để thả chuột"
+msgid "Press %1 to release mouse"
+msgstr "Nhấn %1 để thả chuột"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "Nhấn %s hoặc nhấp chuột giữa để thả chuột"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Nhấn %1 hoặc nhấp chuột giữa để thả chuột"
 
 msgid "Bus"
 msgstr "Bus"
@@ -780,11 +822,38 @@ msgstr "Cần điều khiển bốn trục, bốn nút"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr ""
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr ""
+
+msgid "2-button gamepad(s)"
+msgstr ""
+
+msgid "2-button flight yoke"
+msgstr ""
+
+msgid "4-button gamepad"
+msgstr ""
+
+msgid "4-button flight yoke"
+msgstr ""
+
+msgid "2-button flight yoke with throttle"
+msgstr ""
+
+msgid "4-button flight yoke with throttle"
+msgstr ""
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr ""
 
 msgid "None"
 msgstr "Không có"
@@ -794,6 +863,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
 msgstr "Đĩa mềm %1 (%2): %3"
+
+msgid "&Floppy %1 (%2): %3"
+msgstr "Đĩa &mềm %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Ảnh (đĩa) sector nâng cao"
@@ -815,6 +887,9 @@ msgstr "Không thể khởi tạo GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "M&O %1 (%2): %3"
+msgstr "M&O %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Ảnh đĩa MO"
@@ -864,9 +939,6 @@ msgstr "Cần có %1 để tự động chuyển đổi file PostScript qua PDF.
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "Cần có %1 để tự động chuyển đổi file PCL qua PDF.\n\nMọi tài liệu được đưa qua máy in generic PCL sẽ lưu ở dạng Printer Command Language (.pcl)."
 
-msgid "Entering fullscreen mode"
-msgstr "Đang tiến vào chế độ toàn màn hình"
-
 msgid "Don't show this message again"
 msgstr "Không hiện thông báo này nữa"
 
@@ -903,11 +975,17 @@ msgstr "Tiếp tục"
 msgid "Cassette: %1"
 msgstr "Cassette: %1"
 
+msgid "C&assette: %1"
+msgstr "C&assette: %1"
+
 msgid "Cassette images"
 msgstr "Ảnh đĩa Cassette"
 
 msgid "Cartridge %1: %2"
 msgstr "Băng cartridge %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Băng car&tridge %1: %2"
 
 msgid "Cartridge images"
 msgstr "Ảnh đĩa băng cartridge"
@@ -929,6 +1007,9 @@ msgstr "Buộc khởi động lại"
 
 msgid "ACPI shutdown"
 msgstr "Tắt máy theo ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Tắt máy theo ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Ổ cứng (%1)"
@@ -1215,40 +1296,40 @@ msgstr "Thiết bị MCA"
 msgid "List of MCA devices:"
 msgstr "Danh sách các thiết bị MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Công cụ bảng nhập liệu"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "QT (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Về qt"
+msgid "About &Qt"
+msgstr "Về &qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Thiết bị MCA..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Hiển thị các màn hình phụ"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Mở thư mục ảnh chụp màn hình..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Co giãn toàn màn hình khi cực đại hóa cửa sổ"
 
-msgid "Cursor/Puck"
-msgstr "Con trỏ/puck"
+msgid "&Cursor/Puck"
+msgstr "&Con trỏ/puck"
 
-msgid "Pen"
-msgstr "Bút"
+msgid "&Pen"
+msgstr "&Bút"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Máy chủ CD/DVD ổ đĩa (%1 :)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Máy chủ CD/DVD ổ đĩa (%1 :)"
 
 msgid "&Connected"
 msgstr "&Đã kết nối"
 
-msgid "Clear image history"
+msgid "Clear image &history"
 msgstr "Xóa lịch sử ảnh đĩa"
 
 msgid "Create..."
@@ -1305,8 +1386,8 @@ msgstr "Lỗi khởi tạo OpenGL"
 msgid "\nFalling back to software rendering."
 msgstr "\nQuay trở lại kết xuất phần mềm."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Khi chọn hình ảnh phương tiện (CD-ROM, ổ mềm, v.v.), hộp thoại mở sẽ bắt đầu trong cùng thư mục với tệp cấu hình 86box. Cài đặt này có thể sẽ chỉ tạo ra sự khác biệt trên macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>Khi chọn hình ảnh phương tiện (CD-ROM, ổ mềm, v.v.), hộp thoại mở sẽ bắt đầu trong cùng thư mục với tệp cấu hình 86box. Cài đặt này có thể sẽ chỉ tạo ra sự khác biệt trên macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Cấu hình máy này có thể đã được di chuyển hoặc sao chép."
@@ -1371,8 +1452,26 @@ msgstr "Thông qua cổng serial 3"
 msgid "Serial port passthrough 4"
 msgstr "Thông qua cổng serial 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Tùy chọn kết xuất ..."
+
+msgid "PC/XT Keyboard"
+msgstr ""
+
+msgid "AT Keyboard"
+msgstr ""
+
+msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard"
+msgstr ""
+
+msgid "PS/55 Keyboard"
+msgstr ""
+
+msgid "Keys"
+msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Chuột bus Logitech/Microsoft"
@@ -1383,8 +1482,14 @@ msgstr "Chuột bus Microsoft (INPORT)"
 msgid "Mouse Systems Serial Mouse"
 msgstr "Chuột serial Mouse Systems"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr ""
+
 msgid "Microsoft Serial Mouse"
 msgstr "Chuột serial Microsoft"
+
+msgid "Microsoft Serial BallPoint"
+msgstr ""
 
 msgid "Logitech Serial Mouse"
 msgstr "Chuột serial Logitech"
@@ -1392,8 +1497,14 @@ msgstr "Chuột serial Logitech"
 msgid "PS/2 Mouse"
 msgstr "Chuột PS/2"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (Serial)"
+
+msgid "Default Baud rate"
+msgstr ""
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Modem tuân thủ tiêu chuẩn Hayes"
@@ -1419,11 +1530,53 @@ msgstr "MIDI của hệ thống"
 msgid "MIDI Input Device"
 msgstr "Thiết bị nhập MIDI"
 
-msgid "BIOS Address"
+msgid "BIOS file"
+msgstr ""
+
+msgid "BIOS file (ROM #1)"
+msgstr ""
+
+msgid "BIOS file (ROM #2)"
+msgstr ""
+
+msgid "BIOS file (ROM #3)"
+msgstr ""
+
+msgid "BIOS file (ROM #4)"
+msgstr ""
+
+msgid "BIOS address"
 msgstr "Địa chỉ BIOS"
+
+msgid "BIOS address (ROM #1)"
+msgstr ""
+
+msgid "BIOS address (ROM #2)"
+msgstr ""
+
+msgid "BIOS address (ROM #3)"
+msgstr ""
+
+msgid "BIOS address (ROM #4)"
+msgstr ""
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Kích hoạt ghi ROM mở rộng BIOS"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr ""
+
+msgid "Linear framebuffer base"
+msgstr ""
 
 msgid "Address"
 msgstr "Địa chỉ"
@@ -1433,6 +1586,18 @@ msgstr "IRQ"
 
 msgid "BIOS Revision"
 msgstr "Sửa đổi BIOS"
+
+msgid "BIOS Version"
+msgstr ""
+
+msgid "BIOS Language"
+msgstr ""
+
+msgid "IBM 5161 Expansion Unit"
+msgstr ""
+
+msgid "IBM Cassette Basic"
+msgstr ""
 
 msgid "Translate 26 -> 17"
 msgstr "Dịch 26 -> 17"
@@ -1448,6 +1613,18 @@ msgstr "Đảo ngược màu sắc"
 
 msgid "BIOS size"
 msgstr "Kích thước BIOS"
+
+msgid "BIOS size (ROM #1)"
+msgstr ""
+
+msgid "BIOS size (ROM #2)"
+msgstr ""
+
+msgid "BIOS size (ROM #3)"
+msgstr ""
+
+msgid "BIOS size (ROM #4)"
+msgstr ""
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Map C0000-C7FFF dưới dạng UMB"
@@ -1523,6 +1700,9 @@ msgstr "Mức độ hồi âm"
 
 msgid "Interpolation Method"
 msgstr "Phương pháp nội suy"
+
+msgid "Dynamic Sample Loading"
+msgstr ""
 
 msgid "Reverb Output Gain"
 msgstr "Tăng đầu ra hồi âm"
@@ -1611,6 +1791,12 @@ msgstr "DMA thấp"
 msgid "Enable Game port"
 msgstr "Bật cổng trò chơi"
 
+msgid "SID Model"
+msgstr ""
+
+msgid "SID Filter Strength"
+msgstr ""
+
 msgid "Surround module"
 msgstr "Mô đun vòm"
 
@@ -1622,6 +1808,9 @@ msgstr "Tăng ngắt CODEC trên thiết lập CODEC (cần bởi một số tr�
 
 msgid "SB Address"
 msgstr "Địa chỉ SB"
+
+msgid "Use EEPROM setting"
+msgstr ""
 
 msgid "WSS IRQ"
 msgstr "WSS IRQ"
@@ -1707,8 +1896,14 @@ msgstr "Loại RAMDAC"
 msgid "Blend"
 msgstr "Trộn"
 
+msgid "Font"
+msgstr ""
+
 msgid "Bilinear filtering"
 msgstr "Lọc song tuyến"
+
+msgid "Video chroma-keying"
+msgstr ""
 
 msgid "Dithering"
 msgstr "Ngân tán"
@@ -1752,6 +1947,33 @@ msgstr "Tốc độ truyền tải"
 msgid "EMS mode"
 msgstr "Chế độ EMS"
 
+msgid "EMS Address"
+msgstr ""
+
+msgid "EMS 1 Address"
+msgstr ""
+
+msgid "EMS 2 Address"
+msgstr ""
+
+msgid "EMS Memory Size"
+msgstr ""
+
+msgid "EMS 1 Memory Size"
+msgstr ""
+
+msgid "EMS 2 Memory Size"
+msgstr ""
+
+msgid "Enable EMS"
+msgstr ""
+
+msgid "Enable EMS 1"
+msgstr ""
+
+msgid "Enable EMS 2"
+msgstr ""
+
 msgid "Address for > 2 MB"
 msgstr "Địa chỉ cho > 2 MB"
 
@@ -1770,11 +1992,11 @@ msgstr "Luôn ở tốc độ đã chọn"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Cài đặt BIOS + phím nóng (TẮT trong POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kb bắt đầu từ f0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB bắt đầu từ f0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kb bắt đầu từ E0000 (địa chỉ MSB đảo ngược, 64kb cuối cùng)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB bắt đầu từ E0000 (địa chỉ MSB đảo ngược, 64 KB cuối cùng)"
 
 msgid "Sine"
 msgstr "Sin"
@@ -1908,6 +2130,15 @@ msgstr "Nội suy SRGB"
 msgid "Linear interpolation"
 msgstr "Nội suy tuyến tính"
 
+msgid "Has secondary 8x8 character set"
+msgstr ""
+
+msgid "Has Quadcolor II daughter board"
+msgstr ""
+
+msgid "Alternate monochrome contrast"
+msgstr ""
+
 msgid "128 KB"
 msgstr "128 KB"
 
@@ -1941,6 +2172,9 @@ msgstr "Màu hổ phách"
 msgid "Gray"
 msgstr "Màu xám"
 
+msgid "Grayscale"
+msgstr ""
+
 msgid "Color"
 msgstr "Màu sắc"
 
@@ -1955,6 +2189,12 @@ msgstr "Các ngôn ngữ khác"
 
 msgid "Bochs latest"
 msgstr "Bochs mới nhất"
+
+msgid "Apply overscan deltas"
+msgstr ""
+
+msgid "Mono Interlaced"
+msgstr ""
 
 msgid "Mono Non-Interlaced"
 msgstr "Đơn sắc không xen kẽ"
@@ -2037,6 +2277,9 @@ msgstr "Tốc độ baud của đường thông"
 msgid "Named Pipe (Server)"
 msgstr "Đường ống có tên (máy chủ)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Thông qua cổng serial của máy chủ"
 
@@ -2082,6 +2325,12 @@ msgstr "IBM 8514/A bản nhái (ISA)"
 msgid "Vendor"
 msgstr "Nhà sản xuất"
 
+msgid "30 Hz (JMP2 = 1)"
+msgstr ""
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr ""
+
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Chung mở rộng bộ nhớ qua PC/XT"
 
@@ -2104,9 +2353,6 @@ msgid "Ask for confirmation before hard resetting"
 msgstr ""
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
-
-msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"
@@ -2156,3 +2402,87 @@ msgstr ""
 
 msgid "Could not load file %1"
 msgstr ""
+
+msgid "Key Bindings:"
+msgstr ""
+
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "Clear binding"
+msgstr ""
+
+msgid "Bind"
+msgstr ""
+
+msgid "Bind Key"
+msgstr ""
+
+msgid "Enter key combo:"
+msgstr ""
+
+msgid "Send Control+Alt+Del"
+msgstr ""
+
+msgid "Send Control+Alt+Escape"
+msgstr ""
+
+msgid "Toggle fullscreen"
+msgstr ""
+
+msgid "Screenshot"
+msgstr ""
+
+msgid "Release mouse pointer"
+msgstr ""
+
+msgid "Toggle pause"
+msgstr ""
+
+msgid "Toggle mute"
+msgstr ""
+
+msgid "Text files"
+msgstr ""
+
+msgid "ROM files"
+msgstr ""
+
+msgid "SoundFont files"
+msgstr ""
+
+msgid "Local Switch"
+msgstr ""
+
+msgid "Remote Switch"
+msgstr ""
+
+msgid "Switch:"
+msgstr ""
+
+msgid "Hub Mode"
+msgstr ""
+
+msgid "Hostname:"
+msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "Bộ điều khiển ổ cứng:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "Ổ đĩa ZIP:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "Ảnh đĩa ZIP"

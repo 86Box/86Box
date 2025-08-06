@@ -50,7 +50,7 @@ enum {
     FORMAT_MM_SERIES = 0x13,
     FORMAT_PB_3BYTE,
     FORMAT_PB_5BYTE,
-    FORMAT_MSYSTEMS = 0x15,    /* Alias for FORMAT_PB_5BYTE. */
+    FORMAT_MSYSTEMS = 0x15, /* Alias for FORMAT_PB_5BYTE. */
     FORMAT_MS,
     FORMAT_HEX,
     FORMAT_MS_4BYTE,
@@ -59,45 +59,46 @@ enum {
 };
 
 typedef struct mouse_t {
-    const char *name;  /* name of this device */
+    const char *name; /* name of this device */
 
-    uint8_t     id[252];
-    uint8_t     buf[256];
+    uint8_t id[252];
+    uint8_t buf[256];
 
-    uint8_t     flags; /* device flags */
-    uint8_t     but; 
-    uint8_t     rts_toggle;
-    uint8_t     status;
-    uint8_t     format;
-    uint8_t     prompt;
+    uint8_t flags; /* device flags */
+    uint8_t but;
+    uint8_t rts_toggle;
+    uint8_t status;
+    uint8_t format;
+    uint8_t prompt;
 
-    uint8_t     continuous;
-    uint8_t     ib;
-    uint8_t     command;
-    uint8_t     buf_len;
-    uint8_t     report_mode;
-    uint8_t     id_len;
-    uint8_t     buf_pos;
-    uint8_t     rev;
+    uint8_t continuous;
+    uint8_t ib;
+    uint8_t command;
+    uint8_t buf_len;
+    uint8_t report_mode;
+    uint8_t id_len;
+    uint8_t buf_pos;
+    uint8_t rev;
 
-    int8_t      type;  /* type of this device */
-    int8_t      port;
+    int8_t type; /* type of this device */
+    int8_t port;
 
-    int         state;
+    int state;
 
-    int         bps;
-    int         rps;
+    int bps;
+    int default_bps;
+    int rps;
 
-    double      transmit_period;
-    double      report_period;
-    double      cur_period;
-    double      min_bit_period;
-    double      acc_time;
-    double      host_transmit_period;
+    double transmit_period;
+    double report_period;
+    double cur_period;
+    double min_bit_period;
+    double acc_time;
+    double host_transmit_period;
 
-    pc_timer_t  timer;
+    pc_timer_t timer;
 
-    serial_t *  serial;
+    serial_t *serial;
 } mouse_t;
 
 #define FLAG_INPORT  0x80 /* device is MS InPort */
@@ -128,7 +129,7 @@ mouse_serial_log(const char *fmt, ...)
 static void
 sermouse_set_period(mouse_t *dev, double period)
 {
-    dev->cur_period = period;    /* Needed for the recalculation of the timings. */
+    dev->cur_period = period; /* Needed for the recalculation of the timings. */
 
     timer_stop(&dev->timer);
 
@@ -160,7 +161,7 @@ sermouse_transmit_byte(mouse_t *dev, int do_next)
 static void
 sermouse_transmit(mouse_t *dev, int len, int from_report, int to_report)
 {
-    dev->state = to_report ? STATE_TRANSMIT_REPORT : STATE_TRANSMIT;
+    dev->state   = to_report ? STATE_TRANSMIT_REPORT : STATE_TRANSMIT;
     dev->buf_pos = 0;
     dev->buf_len = len;
 
@@ -186,7 +187,7 @@ sermouse_report_msystems(mouse_t *dev)
 {
     int delta_x = 0;
     int delta_y = 0;
-    int b = mouse_get_buttons_ex();
+    int b       = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 1, 0);
 
@@ -195,12 +196,12 @@ sermouse_report_msystems(mouse_t *dev)
     if (dev->but >= 3)
         dev->buf[0] |= (b & 0x04) ? 0x00 : 0x02; /* middle button */
     else
-        dev->buf[0] |= 0x02; /* middle button */
+        dev->buf[0] |= 0x02;                 /* middle button */
     dev->buf[0] |= (b & 0x02) ? 0x00 : 0x01; /* right button */
     dev->buf[1] = delta_x;
     dev->buf[2] = delta_y;
-    dev->buf[3] = delta_x;    /* same as byte 1 */
-    dev->buf[4] = delta_y;    /* same as byte 2 */
+    dev->buf[3] = delta_x; /* same as byte 1 */
+    dev->buf[4] = delta_y; /* same as byte 2 */
 
     return 5;
 }
@@ -210,7 +211,7 @@ sermouse_report_3bp(mouse_t *dev)
 {
     int delta_x = 0;
     int delta_y = 0;
-    int b = mouse_get_buttons_ex();
+    int b       = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 1, 0);
 
@@ -218,7 +219,7 @@ sermouse_report_3bp(mouse_t *dev)
     dev->buf[0] |= (b & 0x01) ? 0x04 : 0x00; /* left button */
     if (dev->but >= 3)
         dev->buf[0] |= (b & 0x04) ? 0x02 : 0x00; /* middle button */
-    dev->buf[0] |= (b & 0x02) ? 0x01 : 0x00; /* right button */
+    dev->buf[0] |= (b & 0x02) ? 0x01 : 0x00;     /* right button */
     dev->buf[1] = delta_x;
     dev->buf[2] = delta_y;
 
@@ -230,7 +231,7 @@ sermouse_report_mmseries(mouse_t *dev)
 {
     int delta_x = 0;
     int delta_y = 0;
-    int b = mouse_get_buttons_ex();
+    int b       = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -127, 127, 1, 0);
 
@@ -243,7 +244,7 @@ sermouse_report_mmseries(mouse_t *dev)
     dev->buf[0] |= (b & 0x01) ? 0x04 : 0x00; /* left button */
     if (dev->but >= 3)
         dev->buf[0] |= (b & 0x04) ? 0x02 : 0x00; /* middle button */
-    dev->buf[0] |= (b & 0x02) ? 0x01 : 0x00; /* right button */
+    dev->buf[0] |= (b & 0x02) ? 0x01 : 0x00;     /* right button */
     dev->buf[1] = ABS(delta_x) & 0x7f;
     dev->buf[2] = ABS(delta_y) & 0x7f;
     mouse_serial_log("MM series mouse report: %02X %02X %02X\n", dev->buf[0], dev->buf[1], dev->buf[2]);
@@ -256,7 +257,7 @@ sermouse_report_bp1(mouse_t *dev, int abs)
 {
     int delta_x = 0;
     int delta_y = 0;
-    int b = mouse_get_buttons_ex();
+    int b       = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -2048, 2047, 1, abs);
 
@@ -264,7 +265,7 @@ sermouse_report_bp1(mouse_t *dev, int abs)
     dev->buf[0] |= (b & 0x01) ? 0x10 : 0x00; /* left button */
     if (dev->but >= 3)
         dev->buf[0] |= (b & 0x04) ? 0x08 : 0x00; /* middle button */
-    dev->buf[0] |= (b & 0x02) ? 0x04 : 0x00; /* right button */
+    dev->buf[0] |= (b & 0x02) ? 0x04 : 0x00;     /* right button */
     dev->buf[1] = (delta_x & 0x3f);
     dev->buf[2] = ((delta_x >> 6) & 0x3f);
     dev->buf[3] = (delta_y & 0x3f);
@@ -277,17 +278,17 @@ static uint8_t
 sermouse_report_ms(mouse_t *dev)
 {
     uint8_t len;
-    int delta_x = 0;
-    int delta_y = 0;
-    int delta_z = 0;
-    int b = mouse_get_buttons_ex();
+    int     delta_x = 0;
+    int     delta_y = 0;
+    int     delta_z = 0;
+    int     b       = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 0, 0);
     mouse_subtract_z(&delta_z, -8, 7, 1);
 
     dev->buf[0] = 0x40;
-    dev->buf[0] |= (((delta_y >> 6) & 0x03) << 2);
-    dev->buf[0] |= ((delta_x >> 6) & 0x03);
+    dev->buf[0] |= ((((delta_y & 0xFF) >> 6) & 0x03) << 2);
+    dev->buf[0] |= (((delta_x & 0xFF) >> 6) & 0x03);
     if (b & 0x01)
         dev->buf[0] |= 0x20;
     if (b & 0x02)
@@ -295,7 +296,16 @@ sermouse_report_ms(mouse_t *dev)
     dev->buf[1] = delta_x & 0x3f;
     dev->buf[2] = delta_y & 0x3f;
     mouse_serial_log("Microsoft serial mouse report: %02X %02X %02X\n", dev->buf[0], dev->buf[1], dev->buf[2]);
-    if (dev->but == 3) {
+    if (dev->type == MOUSE_TYPE_MSBPOINT) {
+        len         = 4;
+        dev->buf[3] = 0;
+        if (b & 0x4)
+            dev->buf[3] |= 0x8;
+        if (b & 0x8)
+            dev->buf[3] |= 0x4;
+        dev->buf[3] |= !!(delta_y < 0) ? 0x2 : 0;
+        dev->buf[3] |= !!(delta_x < 0) ? 0x1 : 0;
+    } else if (dev->but == 3) {
         len = 3;
         if (dev->format == FORMAT_MS) {
             if (b & 0x04) {
@@ -325,18 +335,18 @@ sermouse_report_ms(mouse_t *dev)
 static uint8_t
 sermouse_report_hex(mouse_t *dev)
 {
-    char    ret[6] = { 0, 0, 0, 0, 0, 0 };
-    uint8_t but = 0x00;
-    int delta_x = 0;
-    int delta_y = 0;
-    int b = mouse_get_buttons_ex();
+    char    ret[6]  = { 0, 0, 0, 0, 0, 0 };
+    uint8_t but     = 0x00;
+    int     delta_x = 0;
+    int     delta_y = 0;
+    int     b       = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 1, 0);
 
     but |= (b & 0x01) ? 0x04 : 0x00; /* left button */
     if (dev->but >= 3)
         but |= (b & 0x04) ? 0x02 : 0x00; /* middle button */
-    but |= (b & 0x02) ? 0x01 : 0x00; /* right button */
+    but |= (b & 0x02) ? 0x01 : 0x00;     /* right button */
 
     sprintf(ret, "%01X%02X%02X", but & 0x0f, (int8_t) delta_x, (int8_t) delta_y);
 
@@ -441,14 +451,14 @@ ltsermouse_set_report_period(mouse_t *dev, int rps)
         sermouse_set_period(dev, 0.0);
 
         dev->report_period = 0.0;
-        dev->continuous = 1;
+        dev->continuous    = 1;
     } else {
 #if 0
         if (rps > dev->max_rps)
             rps = dev->max_rps;
 #endif
 
-        dev->continuous = 0;
+        dev->continuous    = 0;
         dev->report_period = 1000000.0 / ((double) rps);
         /* Actual spacing between reports. */
     }
@@ -470,21 +480,22 @@ ltsermouse_update_report_period(mouse_t *dev)
 }
 
 static void
-ltsermouse_switch_baud_rate(mouse_t *dev, int next_state)
+ltsermouse_switch_baud_rate(mouse_t *dev, int next_state, int prompt_off)
 {
     double word_lens[FORMATS_NUM] = {
-           [FORMAT_BP1_ABS]   = 7.0 + 1.0,    /* 7 data bits + even parity */
-           [FORMAT_BP1_REL]   = 7.0 + 1.0,    /* 7 data bits + even parity */
-           [FORMAT_MM_SERIES] = 8.0 + 1.0,    /* 8 data bits + odd parity */ 
-           [FORMAT_PB_3BYTE]  = 8.0,          /* 8 data bits + no parity */
-           [FORMAT_PB_5BYTE]  = 8.0,          /* 8 data bits + no parity */
-           [FORMAT_MS]        = 7.0,          /* 7 datas bits + no parity */
-           [FORMAT_HEX]       = 8.0,          /* 8 data bits + no parity */
-           [FORMAT_MS_4BYTE]  = 7.0,          /* 7 datas bits + no parity */
-           [FORMAT_MS_WHEEL]  = 7.0 };        /* 7 datas bits + no parity */
+        [FORMAT_BP1_ABS]   = 7.0 + 1.0, /* 7 data bits + even parity */
+        [FORMAT_BP1_REL]   = 7.0 + 1.0, /* 7 data bits + even parity */
+        [FORMAT_MM_SERIES] = 8.0 + 1.0, /* 8 data bits + odd parity */
+        [FORMAT_PB_3BYTE]  = 8.0,       /* 8 data bits + no parity */
+        [FORMAT_PB_5BYTE]  = 8.0,       /* 8 data bits + no parity */
+        [FORMAT_MS]        = 7.0,       /* 7 datas bits + no parity */
+        [FORMAT_HEX]       = 8.0,       /* 8 data bits + no parity */
+        [FORMAT_MS_4BYTE]  = 7.0,       /* 7 datas bits + no parity */
+        [FORMAT_MS_WHEEL]  = 7.0        /* 7 datas bits + no parity */
+    };
     double word_len = word_lens[dev->format];
 
-    word_len += 1.0 + 2.0;            /* 1 start bit + 2 stop bits */
+    word_len += 1.0 + 2.0; /* 1 start bit + 2 stop bits */
 
 #if 0
     dev->max_rps = (int) floor(((double) dev->bps) / (word_len * num_words));
@@ -506,7 +517,7 @@ ltsermouse_switch_baud_rate(mouse_t *dev, int next_state)
     ltsermouse_set_report_period(dev, dev->rps);
 
     if (!dev->continuous && (next_state != STATE_BAUD_RATE)) {
-        if (dev->prompt)
+        if (dev->prompt && prompt_off)
             ltsermouse_set_prompt_mode(dev, 0);
 
         sermouse_transmit_report(dev, 0);
@@ -531,18 +542,19 @@ sermouse_next_state(mouse_t *dev)
 static void
 ltsermouse_process_command(mouse_t *dev)
 {
-    int cmd_to_rps[9] = { 10, 20, 35, 70, 150, 0, -1, 100, 50 };
-    int b;
+    int     cmd_to_rps[9] = { 10, 20, 35, 70, 150, 0, -1, 100, 50 };
+    int     b;
     uint8_t format_codes[FORMATS_NUM] = {
-                        [FORMAT_BP1_ABS]   = 0x0c,
-                        [FORMAT_BP1_REL]   = 0x06,
-                        [FORMAT_MM_SERIES] = 0x0a,
-                        [FORMAT_PB_3BYTE]  = 0x00,
-                        [FORMAT_PB_5BYTE]  = 0x02,
-                        [FORMAT_MS]        = 0x0e,
-                        [FORMAT_HEX]       = 0x04,
-                        [FORMAT_MS_4BYTE]  = 0x08,         /* Guess */
-                        [FORMAT_MS_WHEEL]  = 0x08 };       /* Guess */
+        [FORMAT_BP1_ABS]   = 0x0c,
+        [FORMAT_BP1_REL]   = 0x06,
+        [FORMAT_MM_SERIES] = 0x0a,
+        [FORMAT_PB_3BYTE]  = 0x00,
+        [FORMAT_PB_5BYTE]  = 0x02,
+        [FORMAT_MS]        = 0x0e,
+        [FORMAT_HEX]       = 0x04,
+        [FORMAT_MS_4BYTE]  = 0x08, /* Guess */
+        [FORMAT_MS_WHEEL]  = 0x08  /* Guess */
+    };
     const char *copr = "\r\n(C) " COPYRIGHT_YEAR " 86Box, Revision 3.0";
 
     mouse_serial_log("ltsermouse_process_command(): %02X\n", dev->ib);
@@ -551,13 +563,13 @@ ltsermouse_process_command(mouse_t *dev)
     switch (dev->command) {
         case 0x20:
             /* Auto Baud Selection */
-            dev->bps = (int) floor(1000000.0 / dev->host_transmit_period);
+            dev->bps             = (int) floor(1000000.0 / dev->host_transmit_period);
             dev->transmit_period = dev->host_transmit_period;
 
             dev->buf[0] = 0x06;
             sermouse_transmit(dev, 1, 0, 0);
 
-            ltsermouse_switch_baud_rate(dev, STATE_BAUD_RATE);
+            ltsermouse_switch_baud_rate(dev, STATE_BAUD_RATE, 0);
             break;
 
         case 0x4a: /* Report Rate Selection commands */
@@ -569,7 +581,7 @@ ltsermouse_process_command(mouse_t *dev)
         case 0x4e:
         case 0x4f:
             dev->report_mode = dev->command;
-            dev->rps = cmd_to_rps[dev->command - 0x4a];
+            dev->rps         = cmd_to_rps[dev->command - 0x4a];
             ltsermouse_update_report_period(dev);
             break;
 
@@ -593,16 +605,16 @@ ltsermouse_process_command(mouse_t *dev)
             /* Absolute Bit Pad One Packed Binary Format */
             mouse_clear_coords();
             fallthrough;
-        case 0x42:    /* Relative Bit Pad One Packed Binary Format */
-        case 0x53:    /* MM Series Data Format */
-        case 0x54:    /* Three Byte Packed Binary Format */
-        case 0x55:    /* Five Byte Packed Binary Format (Mouse Systems-compatible) */
-        case 0x56:    /* Microsoft Compatible Format */
-        case 0x57:    /* Hexadecimal Format */
-        case 0x58:    /* Microsoft Compatible Format (3+1 byte 3-button, from the FreeBSD source code) */
+        case 0x42: /* Relative Bit Pad One Packed Binary Format */
+        case 0x53: /* MM Series Data Format */
+        case 0x54: /* Three Byte Packed Binary Format */
+        case 0x55: /* Five Byte Packed Binary Format (Mouse Systems-compatible) */
+        case 0x56: /* Microsoft Compatible Format */
+        case 0x57: /* Hexadecimal Format */
+        case 0x58: /* Microsoft Compatible Format (3+1 byte 3-button, from the FreeBSD source code) */
             if ((dev->rev >= 0x02) && ((dev->command != 0x58) || (dev->rev > 0x04))) {
                 dev->format = dev->command & 0x1f;
-                ltsermouse_switch_baud_rate(dev, sermouse_next_state(dev));
+                ltsermouse_switch_baud_rate(dev, sermouse_next_state(dev), 0);
             }
             break;
 
@@ -620,7 +632,7 @@ ltsermouse_process_command(mouse_t *dev)
             break;
         case 0x05:
             /* Diagnostic */
-            b = mouse_get_buttons_ex();
+            b           = mouse_get_buttons_ex();
             dev->buf[0] = ((b & 0x01) << 2) | ((b & 0x06) >> 1);
             dev->buf[1] = dev->buf[2] = 0x00;
             sermouse_transmit(dev, 3, 0, 0);
@@ -630,7 +642,7 @@ ltsermouse_process_command(mouse_t *dev)
             if (dev->rev >= 0x20) {
                 /* Format and Revision Number */
                 dev->buf[0] = format_codes[dev->format];
-                dev->buf[0] |= 0x10;    /* Revision 3.0, 0x00 would be Revision 2.0 */
+                dev->buf[0] |= 0x10; /* Revision 3.0, 0x00 would be Revision 2.0 */
                 sermouse_transmit(dev, 1, 0, 0);
             }
             break;
@@ -676,7 +688,7 @@ ltsermouse_process_data(mouse_t *dev)
 {
     mouse_serial_log("ltsermouse_process_data(): %02X (command = %02X)\n", dev->ib, dev->command);
 
-    switch(dev->command) {
+    switch (dev->command) {
         case 0x2a:
             switch (dev->ib) {
                 default:
@@ -694,7 +706,7 @@ ltsermouse_process_data(mouse_t *dev)
                     dev->bps = 9600;
                     break;
             }
-            ltsermouse_switch_baud_rate(dev, (dev->prompt || dev->continuous) ? STATE_IDLE : STATE_TRANSMIT_REPORT);
+            ltsermouse_switch_baud_rate(dev, (dev->prompt || dev->continuous) ? STATE_IDLE : STATE_TRANSMIT_REPORT, 0);
             break;
         default:
             dev->state = STATE_IDLE;
@@ -707,25 +719,32 @@ sermouse_reset(mouse_t *dev, int callback)
 {
     sermouse_set_period(dev, 0.0);
 
-    dev->bps = 1200;
-    dev->rps = 0;
+    if (dev->default_bps)
+        dev->bps = dev->default_bps;
+    else
+        dev->bps    = 1200;
+    dev->rps    = 0;
     dev->prompt = 0;
     if (dev->id[0] == 'H')
         dev->format = FORMAT_MSYSTEMS;
-    else  switch (dev->but) {
-        default:
-        case 2:
-            dev->format = FORMAT_MS;
-            break;
-        case 3:
-            dev->format = (dev->type == MOUSE_TYPE_LT3BUTTON) ? FORMAT_MS : FORMAT_MS_4BYTE;
-            break;
-        case 4:
-            dev->format = FORMAT_MS_WHEEL;
-            break;
-    }
+    else
+        switch (dev->but) {
+            default:
+            case 2:
+                dev->format = FORMAT_MS;
+                break;
+            case 3:
+                dev->format = (dev->type == MOUSE_TYPE_LT3BUTTON) ? FORMAT_MS : FORMAT_MS_4BYTE;
+                break;
+            case 4:
+                dev->format = FORMAT_MS_WHEEL;
+                break;
+            case 5:
+                dev->format = FORMAT_MS;
+                break;
+        }
 
-    ltsermouse_switch_baud_rate(dev, callback ? STATE_TRANSMIT : STATE_IDLE);
+    ltsermouse_switch_baud_rate(dev, callback ? STATE_TRANSMIT : STATE_IDLE, 1);
 }
 
 static void
@@ -840,7 +859,7 @@ sermouse_close(void *priv)
 static void *
 sermouse_init(const device_t *info)
 {
-    mouse_t *dev;
+    mouse_t *dev = (mouse_t *) calloc(1, sizeof(mouse_t));
     void (*rcr_callback)(struct serial_s *serial, void *priv);
     void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data);
     void (*transmit_period_callback)(struct serial_s *serial, void *priv,
@@ -850,34 +869,42 @@ sermouse_init(const device_t *info)
         uintptr_t irqbase = ((device_get_config_int("irq") << 16) |
                              (device_get_config_hex16("addr") << 20)) |
                              ns16450_device.local;
-        device_add_params(&ns16450_device, (void*)irqbase);
+        device_add_params(&ns16450_device, (void *) irqbase);
     }
 
-    dev = (mouse_t *) calloc(1, sizeof(mouse_t));
     dev->name = info->name;
-    dev->but  = device_get_config_int("buttons");
-    dev->rev  = device_get_config_int("revision");
+    dev->but  = (info->local == MOUSE_TYPE_MSBPOINT) ? 5 : device_get_config_int("buttons");
 
-    if (info->local == 0)
-        dev->rts_toggle  = 1;
+    if ((info->local == 0) || (info->local == MOUSE_TYPE_MSBPOINT))
+        dev->rts_toggle = 1;
     else
-        dev->rts_toggle  = device_get_config_int("rts_toggle");
+        dev->rts_toggle = device_get_config_int("rts_toggle");
 
     if (dev->but > 2)
         dev->flags |= FLAG_3BTN;
 
-    if (info->local == MOUSE_TYPE_MSYSTEMS || info->local == MOUSE_TYPE_MSYSTEMSB) {
-        dev->format    = 0;
-        dev->type      = info->local;
-        dev->id_len    = 1;
-        dev->id[0]     = 'H';
+    if (info->local == MOUSE_TYPE_MSBPOINT) {
+        dev->format = 7;
+        dev->status = 0x0f;
+        dev->type   = MOUSE_TYPE_MSBPOINT;
+        dev->id_len = 1;
+        dev->id[0]  = 'B';
+        dev->flags &= ~FLAG_3BTN;
+    } else if ((info->local == MOUSE_TYPE_MSYSTEMS) || (info->local == MOUSE_TYPE_MSYSTEMSB)) {
+        dev->format = 0;
+        dev->type   = info->local;
+        dev->id_len = 1;
+        dev->id[0]  = 'H';
     } else {
-        dev->format    = 7;
-        dev->status    = 0x0f;
-        dev->id_len    = 1;
-        dev->id[0]     = 'M';
-        if (info->local)
-            dev->rev  = device_get_config_int("revision");
+        dev->format = 7;
+        dev->status = 0x0f;
+        dev->id_len = 1;
+        dev->id[0]  = 'M';
+        if (info->local == 1) {
+            /* Logitech Serial Mouse */
+            dev->rev         = device_get_config_int("revision");
+            dev->default_bps = device_get_config_int("default_baud");
+        }
         switch (dev->but) {
             default:
             case 2:
@@ -900,8 +927,8 @@ sermouse_init(const device_t *info)
     dev->port = (info->local == MOUSE_TYPE_MSYSTEMSB) ? (SERIAL_MAX - 1) : device_get_config_int("port");
 
     /* Attach a serial port to the mouse. */
-    rcr_callback = dev->rts_toggle ? sermouse_callback : NULL;
-    dev_write = (info->local == 1) ? ltsermouse_write : NULL;
+    rcr_callback             = dev->rts_toggle ? sermouse_callback : NULL;
+    dev_write                = (info->local == 1) ? ltsermouse_write : NULL;
     transmit_period_callback = (info->local == 1) ? ltsermouse_transmit_period : NULL;
 
     dev->serial = serial_attach_ex(dev->port, rcr_callback, dev_write,
@@ -923,25 +950,28 @@ sermouse_init(const device_t *info)
     return dev;
 }
 
+#define SERMOUSE_PORT_CONFIG_COMMON                \
+    {                                              \
+        .name           = "port",                  \
+        .description    = "Serial Port",           \
+        .type           = CONFIG_SELECTION,        \
+        .default_string = NULL,                    \
+        .default_int    = 0,                       \
+        .file_filter    = NULL,                    \
+        .spinner        = { 0 },                   \
+        .selection      = {                        \
+            { .description = "COM1", .value = 0 }, \
+            { .description = "COM2", .value = 1 }, \
+            { .description = "COM3", .value = 2 }, \
+            { .description = "COM4", .value = 3 }, \
+            { .description = ""                 }  \
+        },                                         \
+        .bios           = { { 0 } }                \
+    }
+
 static const device_config_t msssermouse_config[] = {
-  // clang-format off
-    {
-        .name           = "port",
-        .description    = "Serial Port",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "COM1", .value = 0 },
-            { .description = "COM2", .value = 1 },
-            { .description = "COM3", .value = 2 },
-            { .description = "COM4", .value = 3 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
+    // clang-format off
+    SERMOUSE_PORT_CONFIG_COMMON,
     {
         .name           = "buttons",
         .description    = "Buttons",
@@ -969,7 +999,7 @@ static const device_config_t msssermouse_config[] = {
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 static const device_config_t mssbusmouse_config[] = {
@@ -1042,27 +1072,11 @@ static const device_config_t mssbusmouse_config[] = {
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
-  };
+};
 
 static const device_config_t mssermouse_config[] = {
-  // clang-format off
-    {
-        .name           = "port",
-        .description    = "Serial Port",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "COM1", .value = 0 },
-            { .description = "COM2", .value = 1 },
-            { .description = "COM3", .value = 2 },
-            { .description = "COM4", .value = 3 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
+    // clang-format off
+    SERMOUSE_PORT_CONFIG_COMMON,
     {
         .name           = "buttons",
         .description    = "Buttons",
@@ -1080,28 +1094,19 @@ static const device_config_t mssermouse_config[] = {
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
+};
+
+static const device_config_t msballpoint_config[] = {
+    // clang-format off
+    SERMOUSE_PORT_CONFIG_COMMON,
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
 };
 
 static const device_config_t ltsermouse_config[] = {
-  // clang-format off
-    {
-        .name           = "port",
-        .description    = "Serial Port",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "COM1", .value = 0 },
-            { .description = "COM2", .value = 1 },
-            { .description = "COM3", .value = 2 },
-            { .description = "COM4", .value = 3 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
+    // clang-format off
+    SERMOUSE_PORT_CONFIG_COMMON,
     {
         .name           = "buttons",
         .description    = "Buttons",
@@ -1135,18 +1140,35 @@ static const device_config_t ltsermouse_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "default_baud",
+        .description    = "Default Baud rate",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1200,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1200", .value = 1200 },
+            { .description = "2400", .value = 2400 },
+            { .description = "4800", .value = 4800 },
+            { .description = "9600", .value = 9600 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "rts_toggle",
         .description    = "RTS toggle",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
-        .default_int    = 0,
+        .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t mouse_mssystems_device = {
@@ -1189,6 +1211,20 @@ const device_t mouse_msserial_device = {
     .speed_changed = sermouse_speed_changed,
     .force_redraw  = NULL,
     .config        = mssermouse_config
+};
+
+const device_t mouse_msserial_ballpoint_device = {
+    .name          = "Microsoft Serial BallPoint",
+    .internal_name = "msballpoint",
+    .flags         = DEVICE_COM,
+    .local         = MOUSE_TYPE_MSBPOINT,
+    .init          = sermouse_init,
+    .close         = sermouse_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = sermouse_speed_changed,
+    .force_redraw  = NULL,
+    .config        = msballpoint_config
 };
 
 const device_t mouse_ltserial_device = {

@@ -16,6 +16,10 @@
 #          Copyright 2024      Jasmine Iwanek.
 #
 
+if(NOT CMAKE_TOP_LEVEL_PROCESSED)
+    message(FATAL_ERROR "Incorrect source directory specified. Delete your build directory and retry with the top-level directory instead")
+endif()
+
 if(APPLE)
     set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 endif()
@@ -99,7 +103,7 @@ if(INSTRUMENT)
     add_compile_definitions(USE_INSTRUMENT)
 endif()
 
-target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom zip mo hdd
+target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom rdisk mo hdd
     net print scsi sio snd utils vid voodoo plat ui)
 
 if(HAIKU)
@@ -147,16 +151,6 @@ if(APPLE)
     # Freetype is dynamically loaded by the emulator, however, we link it
     # on macOS so it gets copied to the bundle by the installation process
     target_link_libraries(86Box Freetype::Freetype)
-endif()
-
-find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
-if(STATIC_BUILD AND TARGET SDL2::SDL2-static)
-    target_link_libraries(86Box SDL2::SDL2-static)
-elseif(TARGET SDL2::SDL2)
-    target_link_libraries(86Box SDL2::SDL2)
-else()
-    target_link_libraries(86Box ${SDL2_LIBRARIES})
 endif()
 
 find_package(PNG REQUIRED)

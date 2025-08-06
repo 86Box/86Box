@@ -52,6 +52,7 @@ extern "C" {
 #include <86box/apm.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
+#include <86box/renderdefs.h>
 
 #ifdef USE_VNC
 #    include <86box/vnc.h>
@@ -91,11 +92,14 @@ extern bool cpu_thread_running;
 #    include <QVulkanFunctions>
 #endif
 
+void qt_set_sequence_auto_mnemonic(bool b);
+
 #include <array>
 #include <memory>
 #include <unordered_map>
 
 #include "qt_settings.hpp"
+#include "qt_about.hpp"
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
 #include "qt_util.hpp"
@@ -186,6 +190,57 @@ MainWindow::MainWindow(QWidget *parent)
     ui->menuEGA_S_VGA_settings->menuAction()->setMenuRole(QAction::NoRole);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
+
+    num_icon = QIcon(":/settings/qt/icons/num_lock_on.ico");
+    num_icon_off = QIcon(":/settings/qt/icons/num_lock_off.ico");
+    scroll_icon = QIcon(":/settings/qt/icons/scroll_lock_on.ico");
+    scroll_icon_off = QIcon(":/settings/qt/icons/scroll_lock_off.ico");
+    caps_icon = QIcon(":/settings/qt/icons/caps_lock_on.ico");
+    caps_icon_off = QIcon(":/settings/qt/icons/caps_lock_off.ico");
+    kana_icon = QIcon(":/settings/qt/icons/kana_lock_on.ico");
+    kana_icon_off = QIcon(":/settings/qt/icons/kana_lock_off.ico");
+
+    num_label = new QLabel;
+    num_label->setPixmap(num_icon_off.pixmap(QSize(16, 16)));
+    num_label->setToolTip(QShortcut::tr("Num Lock"));
+    statusBar()->addPermanentWidget(num_label);
+
+    caps_label = new QLabel;
+    caps_label->setPixmap(caps_icon_off.pixmap(QSize(16, 16)));
+    caps_label->setToolTip(QShortcut::tr("Caps Lock"));
+    statusBar()->addPermanentWidget(caps_label);
+
+    scroll_label = new QLabel;
+    scroll_label->setPixmap(scroll_icon_off.pixmap(QSize(16, 16)));
+    scroll_label->setToolTip(QShortcut::tr("Scroll Lock"));
+    statusBar()->addPermanentWidget(scroll_label);
+
+    kana_label = new QLabel;
+    kana_label->setPixmap(kana_icon_off.pixmap(QSize(16, 16)));
+    kana_label->setToolTip(QShortcut::tr("Kana Lock"));
+    statusBar()->addPermanentWidget(kana_label);
+
+    QTimer* ledKeyboardTimer = new QTimer(this);
+    ledKeyboardTimer->setTimerType(Qt::CoarseTimer);
+    ledKeyboardTimer->setInterval(1);
+    connect(ledKeyboardTimer, &QTimer::timeout, this, [this] () {
+        uint8_t caps, num, scroll, kana;
+        keyboard_get_states(&caps, &num, &scroll, &kana);
+
+        if (num_label->isVisible())
+            num_label->setPixmap(num ? this->num_icon.pixmap(QSize(16, 16)) : this->num_icon_off.pixmap(QSize(16, 16)));
+        if (caps_label->isVisible())
+            caps_label->setPixmap(caps ? this->caps_icon.pixmap(QSize(16, 16)) : this->caps_icon_off.pixmap(QSize(16, 16)));
+        if (scroll_label->isVisible())
+            scroll_label->setPixmap(scroll ? this->scroll_icon.pixmap(QSize(16, 16)) :
+                                                                      this->scroll_icon_off.pixmap(QSize(16, 16)));
+
+        if (kana_label->isVisible())
+            kana_label->setPixmap(kana ? this->kana_icon.pixmap(QSize(16, 16)) :
+                                                                this->kana_icon_off.pixmap(QSize(16, 16)));
+    });
+    ledKeyboardTimer->start();
+
 #ifdef Q_OS_WINDOWS
     util::setWin11RoundedCorners(this->winId(), (hide_status_bar ? false : true));
 #endif
@@ -213,6 +268,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this, &MainWindow::hardResetCompleted, this, [this]() {
         ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
+        num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+        scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+        caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+        int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
+                         (keyboard_type == KEYBOARD_TYPE_AX);
+        int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) &&
+                         !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
+        kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
         while (QApplication::overrideCursor())
             QApplication::restoreOverrideCursor();
 #ifdef USE_WACOM
@@ -244,8 +307,6 @@ MainWindow::MainWindow(QWidget *parent)
             }
         }
 #endif
-        ui->actionPause->setChecked(false);
-        ui->actionPause->setCheckable(false);
     });
     connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
 
@@ -265,7 +326,8 @@ MainWindow::MainWindow(QWidget *parent)
         mouse_capture = state ? 1 : 0;
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
-            this->grabKeyboard();
+            if (hook_enabled)
+                this->grabKeyboard();
             if (ui->stackedWidget->mouse_capture_func)
                 ui->stackedWidget->mouse_capture_func(this->windowHandle());
         } else {
@@ -275,6 +337,16 @@ MainWindow::MainWindow(QWidget *parent)
             }
             ui->stackedWidget->unsetCursor();
         }
+#ifndef Q_OS_MACOS
+        if (kbd_req_capture) {
+            qt_set_sequence_auto_mnemonic(!mouse_capture);
+            /* Hack to get the menubar to update the internal Alt+shortcut table */
+            if (!video_fullscreen) {
+                ui->menubar->hide();
+                ui->menubar->show();
+            }
+        }
+#endif
     });
 
     connect(qApp, &QGuiApplication::applicationStateChanged, [this](Qt::ApplicationState state) {
@@ -362,29 +434,17 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionEnable_Discord_integration->setEnabled(discord_loaded);
 #endif
 
-#if defined Q_OS_WINDOWS || defined Q_OS_MACOS
-    /* Make the option visible only if ANGLE is loaded. */
-    ui->actionHardware_Renderer_OpenGL_ES->setVisible(QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES);
-    if (QOpenGLContext::openGLModuleType() != QOpenGLContext::LibGLES && vid_api == 2)
-        vid_api = 1;
-#endif
-    ui->actionHardware_Renderer_OpenGL->setVisible(QOpenGLContext::openGLModuleType() != QOpenGLContext::LibGLES);
-    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES && vid_api == 1)
-        vid_api = 0;
-
     if ((QApplication::platformName().contains("eglfs") || QApplication::platformName() == "haiku")) {
-        if (vid_api >= 1)
+        if ((vid_api == RENDERER_OPENGL3) || (vid_api == RENDERER_VULKAN))
             fprintf(stderr, "OpenGL renderers are unsupported on %s.\n", QApplication::platformName().toUtf8().data());
-        vid_api = 0;
-        ui->actionHardware_Renderer_OpenGL->setVisible(false);
-        ui->actionHardware_Renderer_OpenGL_ES->setVisible(false);
+        vid_api = RENDERER_SOFTWARE;
         ui->actionVulkan->setVisible(false);
         ui->actionOpenGL_3_0_Core->setVisible(false);
     }
 
 #ifndef USE_VNC
-    if (vid_api == 5)
-        vid_api = 0;
+    if (vid_api == RENDERER_VNC)
+        vid_api = RENDERER_SOFTWARE;
     ui->actionVNC->setVisible(false);
 #endif
 
@@ -404,15 +464,13 @@ MainWindow::MainWindow(QWidget *parent)
     if (!vulkanAvailable)
 #endif
     {
-        if (vid_api == 4)
-            vid_api = 0;
+        if (vid_api == RENDERER_VULKAN)
+            vid_api = RENDERER_SOFTWARE;
         ui->actionVulkan->setVisible(false);
     }
 
     auto actGroup = new QActionGroup(this);
     actGroup->addAction(ui->actionSoftware_Renderer);
-    actGroup->addAction(ui->actionHardware_Renderer_OpenGL);
-    actGroup->addAction(ui->actionHardware_Renderer_OpenGL_ES);
     actGroup->addAction(ui->actionOpenGL_3_0_Core);
     actGroup->addAction(ui->actionVulkan);
     actGroup->addAction(ui->actionVNC);
@@ -421,7 +479,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(actGroup, &QActionGroup::triggered, [this](QAction *action) {
         vid_api = action->property("vid_api").toInt();
 #ifdef USE_VNC
-        if (vnc_enabled && vid_api != 5) {
+        if (vnc_enabled && vid_api != RENDERER_VNC) {
             startblit();
             vnc_enabled = 0;
             vnc_close();
@@ -433,23 +491,17 @@ MainWindow::MainWindow(QWidget *parent)
         switch (vid_api) {
             default:
                 break;
-            case 0:
+            case RENDERER_SOFTWARE:
                 newVidApi = RendererStack::Renderer::Software;
                 break;
-            case 1:
-                newVidApi = RendererStack::Renderer::OpenGL;
-                break;
-            case 2:
-                newVidApi = RendererStack::Renderer::OpenGLES;
-                break;
-            case 3:
+            case RENDERER_OPENGL3:
                 newVidApi = RendererStack::Renderer::OpenGL3;
                 break;
-            case 4:
+            case RENDERER_VULKAN:
                 newVidApi = RendererStack::Renderer::Vulkan;
                 break;
 #ifdef USE_VNC
-            case 5:
+            case RENDERER_VNC:
                 {
                     newVidApi = RendererStack::Renderer::Software;
                     startblit();
@@ -994,6 +1046,14 @@ void
 MainWindow::on_actionKeyboard_requires_capture_triggered()
 {
     kbd_req_capture ^= 1;
+#ifndef Q_OS_MACOS
+    qt_set_sequence_auto_mnemonic(!!kbd_req_capture);
+    /* Hack to get the menubar to update the internal Alt+shortcut table */
+    if (!video_fullscreen) {
+        ui->menubar->hide();
+        ui->menubar->show();
+    }
+#endif
 }
 
 void
@@ -1069,7 +1129,8 @@ MainWindow::on_actionSettings_triggered()
         case QDialog::Accepted:
             settings.save();
             config_changed = 2;
-			updateShortcuts();
+            updateShortcuts();
+            emit vmmConfigurationChanged();
             pc_reset_hard();
             break;
         case QDialog::Rejected:
@@ -1291,27 +1352,6 @@ MainWindow::on_actionFullscreen_triggered()
             emit resizeContents(vid_resize == 2 ? fixed_size_x : monitors[0].mon_scrnsz_x, vid_resize == 2 ? fixed_size_y : monitors[0].mon_scrnsz_y);
         }
     } else {
-        if (video_fullscreen_first) {
-            bool wasCaptured = mouse_capture == 1;
-
-			char strFullscreen[100];
-			sprintf(strFullscreen, qPrintable(tr("Press %s to return to windowed mode.")), acc_keys[FindAccelerator("fullscreen")].seq);
-
-            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), QString(strFullscreen), QMessageBox::Ok, this);
-            QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));
-            questionbox.setCheckBox(chkbox);
-            chkbox->setChecked(!video_fullscreen_first);
-
-            QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
-                video_fullscreen_first = (state == Qt::CheckState::Unchecked);
-            });
-            questionbox.exec();
-            config_save();
-
-            /* (re-capture mouse after dialog). */
-            if (wasCaptured)
-                emit setMouseCapture(true);
-        }
         video_fullscreen = 1;
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         ui->menubar->hide();
@@ -1413,7 +1453,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
 	}
 	
 
-    if (!dopause) {
+    if (!dopause && (!kbd_req_capture || mouse_capture)) {
         if (event->type() == QEvent::Shortcut) {
             auto shortcutEvent = (QShortcutEvent *) event;
             if (shortcutEvent->key() == ui->actionExit->shortcut()) {
@@ -1436,10 +1476,13 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
     if (receiver == this) {
         static auto curdopause = dopause;
         if (event->type() == QEvent::WindowBlocked) {
+            window_blocked = true;
             curdopause = dopause;
             plat_pause(isShowMessage ? 2 : 1);
             emit setMouseCapture(false);
+            releaseKeyboard();
         } else if (event->type() == QEvent::WindowUnblocked) {
+            window_blocked = false;
             plat_pause(curdopause);
         }
     }
@@ -1455,6 +1498,19 @@ MainWindow::refreshMediaMenu()
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
     ui->actionACPI_Shutdown->setEnabled(!!acpi_enabled);
+
+    num_label->setToolTip(QShortcut::tr("Num Lock"));
+    num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+    scroll_label->setToolTip(QShortcut::tr("Scroll Lock"));
+    scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+    caps_label->setToolTip(QShortcut::tr("Caps Lock"));
+    caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+    kana_label->setToolTip(QShortcut::tr("Kana Lock"));
+    int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
+                     (keyboard_type == KEYBOARD_TYPE_AX);
+    int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) &&
+                     !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
+    kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
 }
 
 void
@@ -1552,13 +1608,13 @@ MainWindow::getRenderWidgetSize()
 void
 MainWindow::focusInEvent(QFocusEvent *event)
 {
-    this->grabKeyboard();
+    //this->grabKeyboard();
 }
 
 void
 MainWindow::focusOutEvent(QFocusEvent *event)
 {
-    this->releaseKeyboard();
+    //this->releaseKeyboard();
 }
 
 void
@@ -1874,42 +1930,8 @@ MainWindow::on_actionAbout_Qt_triggered()
 void
 MainWindow::on_actionAbout_86Box_triggered()
 {
-    QMessageBox msgBox;
-    msgBox.setTextFormat(Qt::RichText);
-    QString versioninfo;
-#ifdef EMU_GIT_HASH
-    versioninfo = QString(" [%1]").arg(EMU_GIT_HASH);
-#endif
-#ifdef USE_DYNAREC
-#    ifdef USE_NEW_DYNAREC
-#        define DYNAREC_STR "new dynarec"
-#    else
-#        define DYNAREC_STR "old dynarec"
-#    endif
-#else
-#    define DYNAREC_STR "no dynarec"
-#endif
-    versioninfo.append(QString(" [%1, %2]").arg(QSysInfo::buildCpuArchitecture(), tr(DYNAREC_STR)));
-    msgBox.setText(QString("<b>%3%1%2</b>").arg(EMU_VERSION_FULL, versioninfo, tr("86Box v")));
-    msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
-    msgBox.setWindowTitle(tr("About 86Box"));
-    const auto closeButton = msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);
-    msgBox.setEscapeButton(closeButton);
-    const auto webSiteButton = msgBox.addButton(EMU_SITE, QMessageBox::ButtonRole::HelpRole);
-    webSiteButton->connect(webSiteButton, &QPushButton::released, []() {
-        QDesktopServices::openUrl(QUrl("https://" EMU_SITE));
-    });
-#ifdef RELEASE_BUILD
-    msgBox.setIconPixmap(QIcon(":/settings/qt/icons/86Box-green.ico").pixmap(32, 32));
-#elif defined ALPHA_BUILD
-    msgBox.setIconPixmap(QIcon(":/settings/qt/icons/86Box-red.ico").pixmap(32, 32));
-#elif defined BETA_BUILD
-    msgBox.setIconPixmap(QIcon(":/settings/qt/icons/86Box-yellow.ico").pixmap(32, 32));
-#else
-    msgBox.setIconPixmap(QIcon(":/settings/qt/icons/86Box-gray.ico").pixmap(32, 32));
-#endif
-    msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
-    msgBox.exec();
+    const auto msgBox = new About(this);
+    msgBox->exec();
 }
 
 void
@@ -2081,8 +2103,12 @@ MainWindow::updateUiPauseState()
                                     QIcon(":/menuicons/qt/icons/pause.ico");
     const auto tooltip_text = dopause ? QString(tr("Resume execution")) :
                                     QString(tr("Pause execution"));
+    const auto menu_text = dopause ? QString(tr("Re&sume")) :
+                                    QString(tr("&Pause"));
     ui->actionPause->setIcon(pause_icon);
     ui->actionPause->setToolTip(tooltip_text);
+    ui->actionPause->setText(menu_text);
+    emit vmmRunningStateChanged(static_cast<VMManagerProtocol::RunningState>(window_blocked ? (dopause ? VMManagerProtocol::RunningState::PausedWaiting : VMManagerProtocol::RunningState::RunningWaiting) : (VMManagerProtocol::RunningState)dopause));
 }
 
 void

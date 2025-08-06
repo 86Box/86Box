@@ -22,6 +22,11 @@
 #include <QIcon>
 #include <QStyleOption>
 
+extern "C" {
+#include <86box/86box.h>
+#include <86box/plat.h>
+}
+
 #ifdef Q_OS_WINDOWS
 #include <dwmapi.h>
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
@@ -37,7 +42,7 @@ StyleOverride::styleHint(
     QStyleHintReturn   *returnData) const
 {
     /* Disable using menu with alt key */
-    if (hint == QStyle::SH_MenuBar_AltKeyNavigation)
+    if (!vmm_enabled && (!kbd_req_capture || mouse_capture) && (hint == QStyle::SH_MenuBar_AltKeyNavigation))
         return 0;
 
     return QProxyStyle::styleHint(hint, option, widget, returnData);

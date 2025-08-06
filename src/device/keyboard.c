@@ -27,6 +27,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/machine.h>
+#include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/plat.h>
 
@@ -35,6 +36,38 @@
 uint16_t     scancode_map[768] = { 0 };
 
 int          keyboard_scan;
+
+typedef struct keyboard_t {
+    const device_t *device;
+} keyboard_t;
+
+int          keyboard_type = 0;
+
+static const device_t keyboard_internal_device = {
+    .name          = "Internal",
+    .internal_name = "internal",
+    .flags         = 0,
+    .local         = KEYBOARD_TYPE_INTERNAL,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+static keyboard_t keyboard_devices[] = {
+    // clang-format off
+    { &keyboard_internal_device        },
+    { &keyboard_pc_xt_device           },
+    { &keyboard_at_device              },
+    { &keyboard_ax_device              },
+    { &keyboard_ps2_device             },
+    { &keyboard_ps55_device            },
+    { NULL                             }
+    // clang-format on
+};
 
 #ifdef ENABLE_KBC_AT_LOG
 int kbc_at_do_log = ENABLE_KBC_AT_LOG;
@@ -64,10 +97,12 @@ static int keydelay[512];
 #endif
 static scancode *scan_table; /* scancode table for keyboard */
 
-static uint8_t caps_lock   = 0;
-static uint8_t num_lock    = 0;
-static uint8_t scroll_lock = 0;
-static uint8_t shift       = 0;
+static volatile uint8_t caps_lock    = 0;
+static volatile uint8_t num_lock     = 0;
+static volatile uint8_t scroll_lock  = 0;
+static volatile uint8_t kana_lock    = 0;
+static volatile uint8_t kbd_in_reset = 0;
+static uint8_t shift                 = 0;
 
 static int key5576mode = 0;
 
@@ -105,10 +140,12 @@ static scconvtbl scconv55_8a[18 + 1] =
 void
 keyboard_init(void)
 {
-    num_lock    = 0;
-    caps_lock   = 0;
-    scroll_lock = 0;
-    shift       = 0;
+    num_lock     = 0;
+    caps_lock    = 0;
+    scroll_lock  = 0;
+    kana_lock    = 0;
+    shift        = 0;
+    kbd_in_reset = 0;
 
     memset(recv_key, 0x00, sizeof(recv_key));
     memset(recv_key_ui, 0x00, sizeof(recv_key));
@@ -236,6 +273,9 @@ key_process(uint16_t scan, int down)
 void
 keyboard_input(int down, uint16_t scan)
 {
+    if (kbd_in_reset)
+        return;
+
     /* Special case for E1 1D, translate it to 0100 - special case. */
     if ((scan >> 8) == 0xe1) {
         if ((scan & 0xff) == 0x1d)
@@ -310,13 +350,16 @@ keyboard_input(int down, uint16_t scan)
                     shift &= ~0x80;
                     break;
                 case 0x03a: /* Caps Lock */
-                    caps_lock ^= 1;
+                    if (!(machine_has_bus(machine, MACHINE_AT) > 0))
+                        caps_lock ^= 1;
                     break;
                 case 0x045:
-                    num_lock ^= 1;
+                    if (!(machine_has_bus(machine, MACHINE_AT) > 0))
+                        num_lock ^= 1;
                     break;
                 case 0x046:
-                    scroll_lock ^= 1;
+                    if (!(machine_has_bus(machine, MACHINE_AT) > 0))
+                        scroll_lock ^= 1;
                     break;
 
                 default:
@@ -338,14 +381,26 @@ void
 keyboard_all_up(void)
 {
     for (unsigned short i = 0; i < 0x200; i++) {
-        if (recv_key_ui[i]) {
+        if (recv_key_ui[i])
             recv_key_ui[i] = 0;
-        }
+
         if (recv_key[i]) {
             recv_key[i] = 0;
             key_process(i, 0);
         }
     }
+}
+
+void
+keyboard_set_in_reset(uint8_t in_reset)
+{
+    kbd_in_reset = in_reset;
+}
+
+uint8_t
+keyboard_get_in_reset(void)
+{
+    return kbd_in_reset;
 }
 
 static uint8_t
@@ -367,11 +422,12 @@ keyboard_do_break(uint16_t scan)
    Caps Lock, Num Lock, and Scroll Lock when receving the "Set keyboard LEDs"
    command. */
 void
-keyboard_update_states(uint8_t cl, uint8_t nl, uint8_t sl)
+keyboard_update_states(uint8_t cl, uint8_t nl, uint8_t sl, uint8_t kl)
 {
     caps_lock   = cl;
     num_lock    = nl;
     scroll_lock = sl;
+    kana_lock   = kl;
 }
 
 uint8_t
@@ -381,7 +437,7 @@ keyboard_get_shift(void)
 }
 
 void
-keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl)
+keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl, uint8_t *kl)
 {
     if (cl)
         *cl = caps_lock;
@@ -389,6 +445,8 @@ keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl)
         *nl = num_lock;
     if (sl)
         *sl = scroll_lock;
+    if (kl)
+        *kl = kana_lock;
 }
 
 /* Called by the UI to update the states of Caps Lock, Num Lock, and Scroll Lock. */
@@ -432,7 +490,7 @@ keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl)
         }
     }
 
-    keyboard_update_states(cl, nl, sl);
+    keyboard_update_states(cl, nl, sl, kana_lock);
 }
 
 int
@@ -490,4 +548,58 @@ convert_scan_code(uint16_t scan_code)
         scan_code = 0xFFFF;
 
     return scan_code;
+}
+
+const char *
+keyboard_get_name(int keyboard)
+{
+    return (keyboard_devices[keyboard].device->name);
+}
+
+const char *
+keyboard_get_internal_name(int keyboard)
+{
+    return device_get_internal_name(keyboard_devices[keyboard].device);
+}
+
+int
+keyboard_get_from_internal_name(char *s)
+{
+    int c = 0;
+
+    while (keyboard_devices[c].device != NULL) {
+        if (!strcmp((char *) keyboard_devices[c].device->internal_name, s))
+            return c;
+        c++;
+    }
+
+    return 0;
+}
+
+int
+keyboard_has_config(int keyboard)
+{
+    if (keyboard_devices[keyboard].device == NULL)
+        return 0;
+
+    return (keyboard_devices[keyboard].device->config ? 1 : 0);
+}
+
+const device_t *
+keyboard_get_device(int keyboard)
+{
+    return (keyboard_devices[keyboard].device);
+}
+
+/* Return number of MOUSE types we know about. */
+int
+keyboard_get_ndev(void)
+{
+    return ((sizeof(keyboard_devices) / sizeof(keyboard_t)) - 1);
+}
+
+void
+keyboard_add_device(void)
+{
+    device_add(keyboard_devices[keyboard_type].device);
 }

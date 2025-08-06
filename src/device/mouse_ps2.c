@@ -10,7 +10,7 @@
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2023 Miran Grca.
+ *          Copyright 2023-2025 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdatomic.h>
@@ -21,7 +21,6 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
-#include "cpu.h"
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
@@ -333,13 +332,13 @@ ps2_poll(void *priv)
     atkbc_dev_t *dev = (atkbc_dev_t *) priv;
     int packet_size = (dev->flags & FLAG_INTMODE) ? 4 : 3;
 
-    int cond = (!mouse_capture && !video_fullscreen) || (!mouse_scan || !mouse_state_changed()) ||
-               ((dev->mode == MODE_STREAM) && (kbc_at_dev_queue_pos(dev, 1) >= (FIFO_SIZE - packet_size)));
+    int cond = (mouse_capture || video_fullscreen) && mouse_scan && (dev->mode == MODE_STREAM) &&
+               mouse_state_changed() && (kbc_at_dev_queue_pos(dev, 1) < (FIFO_SIZE - packet_size));
 
-    if (!cond && (dev->mode == MODE_STREAM))
+    if (cond)
         ps2_report_coordinates(dev, 1);
 
-    return cond;
+    return !cond;
 }
 
 /*
@@ -352,6 +351,9 @@ mouse_ps2_init(const device_t *info)
 {
     atkbc_dev_t *dev = kbc_at_dev_init(DEV_AUX);
     int      i;
+
+    if (info->local & MOUSE_TYPE_QPORT)
+        device_context(&mouse_upc_standalone_device);
 
     dev->name = info->name;
     dev->type = info->local;
@@ -381,6 +383,9 @@ mouse_ps2_init(const device_t *info)
         kbc_at_dev_reset(dev, 0);
 
     mouse_set_poll(ps2_poll, dev);
+
+    if (info->local & MOUSE_TYPE_QPORT)
+        device_context_restore();
 
     /* Return our private data to the I/O layer. */
     return dev;

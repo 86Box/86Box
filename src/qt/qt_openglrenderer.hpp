@@ -34,6 +34,7 @@
 #    include <QtOpenGLExtensions/QOpenGLExtensions>
 #endif
 
+#include <array>
 #include <atomic>
 #include <stdexcept>
 #include <tuple>

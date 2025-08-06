@@ -55,22 +55,22 @@
 #include <86box/plat_unused.h>
 
 static serial_t *cmd_uart;
+static lpt_t    *cmd_lpt;
 
 static void
 cbm_io_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
 {
-    lpt1_remove();
-    lpt2_remove();
+    lpt_port_remove(cmd_lpt);
 
     switch (val & 3) {
         case 1:
-            lpt1_setup(LPT_MDA_ADDR);
+            lpt_port_setup(cmd_lpt, LPT_MDA_ADDR);
             break;
         case 2:
-            lpt1_setup(LPT1_ADDR);
+            lpt_port_setup(cmd_lpt, LPT1_ADDR);
             break;
         case 3:
-            lpt1_setup(LPT2_ADDR);
+            lpt_port_setup(cmd_lpt, LPT2_ADDR);
             break;
 
         default:
@@ -116,6 +116,10 @@ machine_at_cmdpc_init(const machine_t *model)
         device_add(&fdc_at_device);
 
     cmd_uart = device_add(&ns8250_device);
+    serial_set_next_inst(1);
+
+    cmd_lpt  = device_add(&lpt_port_device);
+    lpt_set_next_inst(1);
 
     cbm_io_init();
 

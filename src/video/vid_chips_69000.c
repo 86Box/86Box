@@ -1098,7 +1098,7 @@ chips_69000_recalctimings(svga_t *svga)
         svga->hblank_end_val = ((svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00)) | (svga->crtc[0x3c] & 0b11000000);
         svga->hblank_end_mask = 0xff;
 
-        svga->ma_latch |= (svga->crtc[0x40] & 0xF) << 16;
+        svga->memaddr_latch |= (svga->crtc[0x40] & 0xF) << 16;
         svga->rowoffset |= (svga->crtc[0x41] & 0xF) << 8;
 
         svga->interlace = !!(svga->crtc[0x70] & 0x80);
@@ -1268,15 +1268,15 @@ chips_69000_process_pixel(chips_69000_t* chips, uint32_t pixel)
         if (chips->bitblt_running.bytes_per_pixel == 3) {
             pattern_pixel = chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
                                                         + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
-                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)), chips);
+                                                        + (3 * ((((chips->bitblt_running.bitblt.destination_addr / 3) & 7) + chips->bitblt_running.x) & 7)), chips);
 
             pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
                                                         + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
-                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 1, chips) << 8;
+                                                        + (3 * ((((chips->bitblt_running.bitblt.destination_addr / 3) & 7) + chips->bitblt_running.x) & 7)) + 1, chips) << 8;
 
             pattern_pixel |= chips_69000_readb_linear(chips->bitblt_running.bitblt.pat_addr
                                                         + (4 * 8 * ((vert_pat_alignment + chips->bitblt_running.y) & 7))
-                                                        + (3 * (((chips->bitblt_running.bitblt.destination_addr & 7) + chips->bitblt_running.x) & 7)) + 2, chips) << 16;
+                                                        + (3 * ((((chips->bitblt_running.bitblt.destination_addr / 3) & 7) + chips->bitblt_running.x) & 7)) + 2, chips) << 16;
         }
     }
     if (chips->bitblt_running.bytes_per_pixel == 2) {
@@ -2044,7 +2044,7 @@ chips_69000_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -2247,8 +2247,8 @@ chips_69000_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
 
         case 0x13:
-            chips->linear_mapping.base = val << 24;
             mem_mapping_disable(&chips->linear_mapping);
+            chips->linear_mapping.base = val << 24;
             if ((chips->pci_conf_status & PCI_COMMAND_MEM) &&
                 (chips->linear_mapping.base > 0x00000000))
                 mem_mapping_set_addr(&chips->linear_mapping, chips->linear_mapping.base, (1 << 24));
@@ -2785,6 +2785,8 @@ chips_69000_disable_handlers(chips_69000_t *chips)
     mem_mapping_disable(&chips->svga.mapping);
     if (!chips->on_board)
         mem_mapping_disable(&chips->bios_rom.mapping);
+
+    chips->linear_mapping.base = 0;
 
     /* Save all the mappings and the timers because they are part of linked lists. */
     reset_state->linear_mapping   = chips->linear_mapping;

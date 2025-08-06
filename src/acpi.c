@@ -36,6 +36,7 @@
 #include <86box/pit.h>
 #include <86box/apm.h>
 #include <86box/acpi.h>
+#include <86box/dma.h>
 #include <86box/machine.h>
 #include <86box/i2c.h>
 #include <86box/video.h>
@@ -1025,8 +1026,13 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
                         nvr_reg_write(0x000f, 0xff, dev->nvr);
                     }
 
-                    if (sus_typ & SUS_RESET_PCI)
+                    if (sus_typ & SUS_RESET_PCI) {
+                        /* DMA is part of the southbridge so it responds to PCI reset. */
+                        dma_reset();
+                        dma_set_at(1);
+
                         device_reset_all(DEVICE_PCI);
+                    }
 
                     if (sus_typ & SUS_RESET_CPU)
                         cpu_alt_reset = 0;
@@ -2387,6 +2393,14 @@ acpi_reset(void *priv)
         dev->regs.gpi_val = 0xfff57fc1;
         if (!strcmp(machine_get_internal_name(), "ficva503a") || !strcmp(machine_get_internal_name(), "6via90ap"))
             dev->regs.gpi_val |= 0x00000004;
+         /*
+            TriGem Delhi-III second GPI word:
+                - Bit 7 = Save CMOS (must be set);
+                - Bit 6 = Password jumper (must be set);
+                - Bit 5 = Enable Setup (must be set).
+         */
+        else if (!strcmp(machine_get_internal_name(), "delhi3"))
+            dev->regs.gpi_val |= 0x00008000;
     }
 
     if (acpi_power_on) {

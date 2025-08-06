@@ -193,8 +193,6 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
             cr0 = cpu_state.regs[cpu_rm].l;
             if (cpu_16bitbus)
                 cr0 |= 0x10;
-            if (!(cr0 & 0x80000000))
-                mmu_perm = 4;
             if (hascache && !(cr0 & (1 << 30)))
                 cpu_cache_int_enabled = 1;
             else
@@ -255,8 +253,6 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
             cr0 = cpu_state.regs[cpu_rm].l;
             if (cpu_16bitbus)
                 cr0 |= 0x10;
-            if (!(cr0 & 0x80000000))
-                mmu_perm = 4;
             if (hascache && !(cr0 & (1 << 30)))
                 cpu_cache_int_enabled = 1;
             else

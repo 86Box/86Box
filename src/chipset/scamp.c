@@ -840,7 +840,7 @@ recalc_sltptr(scamp_t *dev)
             recalc_ems(dev);
         }
     } else {
-        for (uint8_t i = 0; i < (sltptr / EMS_PGSIZE); i++)
+        for (uint32_t i = 0; i < (sltptr / EMS_PGSIZE); i++)
             scamp_mem_update_state(dev, i * EMS_PGSIZE, EMS_PGSIZE, 0x00, MEM_FMASK_SLOTBUS);
 
         for (uint8_t i = (sltptr / EMS_PGSIZE); i < 40; i++)
@@ -1177,7 +1177,7 @@ scamp_init(UNUSED(const device_t *info))
             dev->mem_flags[i] = MEM_FLAG_READ | MEM_FLAG_WRITE;
             scamp_mem_update_state(dev, i * EMS_PGSIZE, EMS_PGSIZE, 0x00, MEM_FMASK_RW);
 
-            if (i >= 60)
+            if (i >= 56)
                 scamp_mem_update_state(dev, i * EMS_PGSIZE, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
         }
     }

@@ -326,7 +326,6 @@ reset_common(int hard)
         resetreadlookup();
         makemod1table();
         cpu_set_edx();
-        mmu_perm = 4;
     }
     x86seg_reset();
 #ifdef USE_DYNAREC

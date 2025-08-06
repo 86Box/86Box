@@ -42,6 +42,7 @@ typedef struct i82091aa_t {
     uint16_t  base_address;
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t    *lpt;
 } i82091aa_t;
 
 static void
@@ -53,11 +54,11 @@ fdc_handler(i82091aa_t *dev)
 }
 
 static void
-lpt1_handler(i82091aa_t *dev)
+lpt_handler(i82091aa_t *dev)
 {
     uint16_t lpt_port = LPT1_ADDR;
 
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
 
     switch ((dev->regs[0x20] >> 1) & 0x03) {
         case 0x00:
@@ -78,9 +79,9 @@ lpt1_handler(i82091aa_t *dev)
     }
 
     if ((dev->regs[0x20] & 0x01) && lpt_port)
-        lpt1_setup(lpt_port);
+        lpt_port_setup(dev->lpt, lpt_port);
 
-    lpt1_irq((dev->regs[0x20] & 0x08) ? LPT1_IRQ : LPT2_IRQ);
+    lpt_port_irq(dev->lpt, (dev->regs[0x20] & 0x08) ? LPT1_IRQ : LPT2_IRQ);
 }
 
 static void
@@ -176,7 +177,7 @@ i82091aa_write(uint16_t port, uint8_t val, void *priv)
         case 0x20:
             *reg = (val & 0xef);
             if (valxor & 0x07)
-                lpt1_handler(dev);
+                lpt_handler(dev);
             break;
         case 0x21:
             *reg = (val & 0x2f);
@@ -236,7 +237,7 @@ i82091aa_reset(i82091aa_t *dev)
     fdc_reset(dev->fdc);
 
     fdc_handler(dev);
-    lpt1_handler(dev);
+    lpt_handler(dev);
     serial_handler(dev, 0);
     serial_handler(dev, 1);
     serial_set_clock_src(dev->uart[0], (24000000.0 / 13.0));
@@ -264,6 +265,8 @@ i82091aa_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
+    dev->lpt     = device_add_inst(&lpt_port_device, 1);
+
     dev->has_ide = (info->local >> 9) & 0x03;
 
     i82091aa_reset(dev);
@@ -286,6 +289,20 @@ const device_t i82091aa_device = {
     .internal_name = "i82091aa",
     .flags         = 0,
     .local         = 0x40,
+    .init          = i82091aa_init,
+    .close         = i82091aa_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t i82091aa_26e_device = {
+    .name          = "Intel 82091AA Super I/O (Port 26Eh)",
+    .internal_name = "i82091aa_26e",
+    .flags         = 0,
+    .local         = 0x140,
     .init          = i82091aa_init,
     .close         = i82091aa_close,
     .reset         = NULL,

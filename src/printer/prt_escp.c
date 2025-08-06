@@ -57,6 +57,7 @@
 #include FT_FREETYPE_H
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/device.h>
 #include "cpu.h"
 #include <86box/machine.h>
 #include <86box/timer.h>
@@ -71,15 +72,18 @@
 #include <86box/png_struct.h>
 #include <86box/printer.h>
 #include <86box/prt_devs.h>
+#include <86box/prt_papersizes.h>
 
 /* Default page values (for now.) */
 #define COLOR_BLACK  7 << 5
-#define PAGE_WIDTH   8.5 /* standard U.S. Letter */
-#define PAGE_HEIGHT  11.0
+#define PAGE_WIDTH  LETTER_PAGE_WIDTH
+#define PAGE_HEIGHT LETTER_PAGE_HEIGHT
+#if 0
 #define PAGE_LMARGIN 0.0
 #define PAGE_RMARGIN PAGE_WIDTH
 #define PAGE_TMARGIN 0.0
 #define PAGE_BMARGIN PAGE_HEIGHT
+#endif
 #define PAGE_DPI     360
 #define PAGE_CPI     10.0 /* standard 10 cpi */
 #define PAGE_LPI     6.0  /* standard 6 lpi */
@@ -1882,6 +1886,46 @@ write_data(uint8_t val, void *priv)
 }
 
 static void
+autofeed(uint8_t val, void *priv)
+{
+    escp_t *dev = (escp_t *) priv;
+
+    if (dev == NULL)
+        return;
+
+    dev->autofeed = ((val & 0x02) > 0);
+}
+
+static void
+strobe(uint8_t old, uint8_t val, void *priv)
+{
+    escp_t *dev = (escp_t *) priv;
+
+    if (dev == NULL)
+        return;
+
+    /* Data is strobed to the parallel printer on the falling edge of the
+       strobe bit. */
+    if (!(val & 0x01) && (old & 0x01)) {
+        /* Process incoming character. */
+        handle_char(dev, dev->data);
+
+        if (timer_is_enabled(&dev->timeout_timer)) {
+            timer_disable(&dev->timeout_timer);
+#ifdef USE_DYNAREC
+            if (cpu_use_dynarec)
+                update_tsc();
+#endif
+        }
+        /* ACK it, will be read on next READ STATUS. */
+        dev->ack = 1;
+        timer_set_delay_u64(&dev->pulse_timer, ISACONST);
+
+        timer_set_delay_u64(&dev->timeout_timer, 5000000 * TIMER_USEC);
+    }
+}
+
+static void
 write_ctrl(uint8_t val, void *priv)
 {
     escp_t *dev = (escp_t *) priv;
@@ -1907,6 +1951,13 @@ write_ctrl(uint8_t val, void *priv)
         /* Process incoming character. */
         handle_char(dev, dev->data);
 
+        if (timer_is_enabled(&dev->timeout_timer)) {
+            timer_disable(&dev->timeout_timer);
+#ifdef USE_DYNAREC
+            if (cpu_use_dynarec)
+                update_tsc();
+#endif
+        }
         /* ACK it, will be read on next READ STATUS. */
         dev->ack = 1;
         timer_set_delay_u64(&dev->pulse_timer, ISACONST);
@@ -1917,14 +1968,6 @@ write_ctrl(uint8_t val, void *priv)
     dev->ctrl = val;
 
     dev->autofeed = ((val & 0x02) > 0);
-}
-
-static uint8_t
-read_data(void *priv)
-{
-    const escp_t *dev = (escp_t *) priv;
-
-    return dev->data;
 }
 
 static uint8_t
@@ -2053,17 +2096,65 @@ escp_close(void *priv)
         free(dev->page);
     }
 
+    FT_Done_Face(dev->fontface);
     free(dev);
 }
 
-const lpt_device_t lpt_prt_escp_device = {
+// clang-format off
+#if 0
+static const device_config_t lpt_prt_escp_config[] = {
+    {
+        .name           = "paper_size",
+        .description    = "Paper Size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Letter", .value = 0 },
+            { .description = "A4",     .value = 1 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+#endif
+// clang-format on
+
+const device_t prt_escp_device = {
     .name          = "Generic ESC/P Dot-Matrix Printer",
     .internal_name = "dot_matrix",
-    .init          = escp_init,
-    .close         = escp_close,
-    .write_data    = write_data,
-    .write_ctrl    = write_ctrl,
-    .read_data     = read_data,
-    .read_status   = read_status,
-    .read_ctrl     = read_ctrl
+    .flags         = DEVICE_LPT,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+#if 0
+    .config        = lpt_prt_escp_config
+#else
+    .config        = NULL
+#endif
+};
+
+const lpt_device_t lpt_prt_escp_device = {
+    .name             = "Generic ESC/P Dot-Matrix Printer",
+    .internal_name    = "dot_matrix",
+    .init             = escp_init,
+    .close            = escp_close,
+    .write_data       = write_data,
+    .write_ctrl       = write_ctrl,
+    .autofeed         = autofeed,
+    .strobe           = strobe,
+    .read_status      = read_status,
+    .read_ctrl        = read_ctrl,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL,
+    .priv             = NULL,
+    .lpt              = NULL,
+    .cfgdevice        = (device_t *) &prt_escp_device
 };

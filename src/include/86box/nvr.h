@@ -99,6 +99,7 @@ extern const device_t ami_1994_nvr_device;
 extern const device_t ami_1995_nvr_device;
 extern const device_t via_nvr_device;
 extern const device_t p6rp4_nvr_device;
+extern const device_t martin_nvr_device;
 extern const device_t elt_nvr_device;
 #endif
 

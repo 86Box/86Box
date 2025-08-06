@@ -856,7 +856,7 @@ dma16_read(uint16_t addr, UNUSED(void *priv))
             break;
     }
 
-    dma_log("dma16_read(%08X) = %02X\n", port, ret);
+    dma_log("dma16_read(%08X) = %02X\n", addr, ret);
 
     return ret;
 }

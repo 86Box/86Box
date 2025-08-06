@@ -265,12 +265,16 @@ extern uint32_t biosmask;
 extern uint32_t biosaddr;
 
 extern int        readlookup[256];
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
 extern uintptr_t *readlookup2;
+#endif
 extern uintptr_t  old_rl2;
 extern uint8_t    uncached;
 extern int        readlnext;
 extern int        writelookup[256];
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
 extern uintptr_t *writelookup2;
+#endif
 extern int        writelnext;
 extern uint32_t   ram_mapped_addr[64];
 extern uint8_t    page_ff[4096];
@@ -288,7 +292,16 @@ extern mem_mapping_t bios_high_mapping;
 extern uint32_t mem_logical_addr;
 
 extern page_t  *pages;
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
 extern page_t **page_lookup;
+#endif
+
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+/* The lookup tables. */
+extern page_t *page_lookup[1048576];
+extern uintptr_t readlookup2[1048576];
+extern uintptr_t writelookup2[1048576];
+#endif
 
 extern uint32_t get_phys_virt;
 extern uint32_t get_phys_phys;
@@ -300,7 +313,6 @@ extern int writelnum;
 
 extern int memspeed[11];
 
-extern int     mmu_perm;
 extern uint8_t high_page; /* if a high (> 4 gb) page was detected */
 
 extern uint8_t *_mem_exec[MEM_MAPPINGS_NO];
@@ -458,6 +470,9 @@ extern void mem_a20_init(void);
 extern void mem_a20_recalc(void);
 
 extern void mem_init(void);
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+extern void mem_free(void);
+#endif
 extern void mem_close(void);
 extern void mem_zero(void);
 extern void mem_reset(void);
@@ -467,6 +482,8 @@ extern void mem_remap_top(int kb);
 extern void mem_remap_top_nomid(int kb);
 
 extern void umc_smram_recalc(uint32_t start, int set);
+
+extern void pcjr_waitstates(void *);
 
 extern mem_mapping_t *read_mapping[MEM_MAPPINGS_NO];
 extern mem_mapping_t *write_mapping[MEM_MAPPINGS_NO];

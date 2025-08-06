@@ -152,10 +152,11 @@ pc_cas_del(pc_cassette_t *cas)
 }
 
 int
-pc_cas_set_fname(pc_cassette_t *cas, const char *fname)
+pc_cas_set_fname(pc_cassette_t *cas, char *fname)
 {
     unsigned    n;
     const char *ext;
+    int         offs = 0;
 
     if (cas->close)
         fclose(cas->fp);
@@ -175,6 +176,13 @@ pc_cas_set_fname(pc_cassette_t *cas, const char *fname)
         ui_sb_update_icon_state(SB_CASSETTE, 1);
         return 0;
     }
+
+    if (strstr(fname, "wp://") == fname) {
+        offs                  = 5;
+        cassette_ui_writeprot = 1;
+    }
+
+    fname += offs;
 
     cas->fp = plat_fopen(fname, "r+b");
 
@@ -197,10 +205,10 @@ pc_cas_set_fname(pc_cassette_t *cas, const char *fname)
 
     n = strlen(fname);
 
-    cas->fname = malloc((n + 1) * sizeof(char));
+    cas->fname = malloc((n + offs + 1) * sizeof(char));
 
     if (cas->fname != NULL)
-        memcpy(cas->fname, fname, (n + 1) * sizeof(char));
+        memcpy(cas->fname, fname - offs, (n + offs + 1) * sizeof(char));
 
     if (n > 4) {
         ext = fname + (n - 4);
@@ -215,6 +223,8 @@ pc_cas_set_fname(pc_cassette_t *cas, const char *fname)
         else if (stricmp(ext, ".cas") == 0)
             pc_cas_set_pcm(cas, 0);
     }
+
+    ui_sb_update_icon_wp(SB_CASSETTE, cassette_ui_writeprot);
 
     return 0;
 }

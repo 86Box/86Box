@@ -27,8 +27,11 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Pausa"
 
-msgid "E&xit..."
-msgstr "E&sci..."
+msgid "Re&sume"
+msgstr ""
+
+msgid "E&xit"
+msgstr "E&sci"
 
 msgid "&View"
 msgstr "&Visualizza"
@@ -60,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Specifica dimensioni..."
 
 msgid "F&orce 4:3 display ratio"
@@ -99,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "Metodo filtro"
 
 msgid "&Nearest"
@@ -144,8 +147,14 @@ msgstr "Schermi VGA &"
 msgid "RGB &Color"
 msgstr "RGB &Color"
 
+msgid "RGB (no brown)"
+msgstr ""
+
 msgid "&RGB Grayscale"
 msgstr "&RGB Monocroma"
+
+msgid "Generic RGBI color monitor"
+msgstr ""
 
 msgid "&Amber monitor"
 msgstr "&Monitor ambra"
@@ -384,6 +393,15 @@ msgstr "Abilitata (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Ricompilatore dinamico"
 
+msgid "CPU frame size"
+msgstr ""
+
+msgid "Larger frames (less smooth)"
+msgstr ""
+
+msgid "Smaller frames (smoother)"
+msgstr ""
+
 msgid "Video:"
 msgstr "Video:"
 
@@ -398,6 +416,9 @@ msgstr "Grafica IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Grafica XGA"
+
+msgid "Keyboard:"
+msgstr ""
 
 msgid "Mouse:"
 msgstr "Mouse:"
@@ -498,17 +519,20 @@ msgstr "Porta parallela 3"
 msgid "Parallel port 4"
 msgstr "Porta parallela 4"
 
-msgid "HD Controller:"
-msgstr "Controller HD:"
-
 msgid "FD Controller:"
 msgstr "Controller FD:"
+
+msgid "CD-ROM Controller:"
+msgstr ""
 
 msgid "Tertiary IDE Controller"
 msgstr "Controller IDE terziario"
 
 msgid "Quaternary IDE Controller"
 msgstr "Controller IDE quaternario"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -530,6 +554,9 @@ msgstr "Cassetta"
 
 msgid "Hard disks:"
 msgstr "Hard disk:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Nuovo..."
@@ -588,8 +615,8 @@ msgstr "Unità CD-ROM:"
 msgid "MO drives:"
 msgstr "Unità magneto-ottiche:"
 
-msgid "ZIP drives:"
-msgstr "Unità ZIP:"
+msgid "Removable disk drives:"
+msgstr ""
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +626,9 @@ msgstr "RTC ISA:"
 
 msgid "ISA Memory Expansion"
 msgstr "Espansione memoria ISA"
+
+msgid "ISA ROM Cards"
+msgstr ""
 
 msgid "Card 1:"
 msgstr "Scheda 1:"
@@ -611,6 +641,15 @@ msgstr "Scheda 3:"
 
 msgid "Card 4:"
 msgstr "Scheda 4:"
+
+msgid "Generic ISA ROM Board"
+msgstr ""
+
+msgid "Generic Dual ISA ROM Board"
+msgstr ""
+
+msgid "Generic Quad ISA ROM Board"
+msgstr ""
 
 msgid "ISABugger device"
 msgstr "Dispositivo ISABugger"
@@ -630,17 +669,20 @@ msgstr "Errore fatale"
 msgid " - PAUSED"
 msgstr " - IN PAUSA"
 
-msgid "Press %s to return to windowed mode."
-msgstr "Usa %s per tornare alla modalità finestra."
-
 msgid "Speed"
 msgstr "Velocità"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr ""
 
-msgid "ZIP images"
-msgstr "Immagini ZIP"
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
+msgid "Removable disk images"
+msgstr ""
+
+msgid "Image %1"
+msgstr ""
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box non può trovare immagini ROM utilizzabili.\n\nSi prega di <a href=\"https://github.com/86Box/roms/releases/latest\">scaricare</a> un set di ROM ed estrarlo nella directory \"roms\"."
@@ -717,11 +759,11 @@ msgstr "Altre periferiche"
 msgid "Click to capture mouse"
 msgstr "Fare clic per catturare mouse"
 
-msgid "Press %s to release mouse"
-msgstr "Premi %s per rilasciare il mouse"
+msgid "Press %1 to release mouse"
+msgstr "Premi %1 per rilasciare il mouse"
 
-msgid "Press %s or middle button to release mouse"
-msgstr "Premi %s o pulsante centrale per rilasciare il mouse"
+msgid "Press %1 or middle button to release mouse"
+msgstr "Premi %1 o pulsante centrale per rilasciare il mouse"
 
 msgid "Bus"
 msgstr "Bus"
@@ -780,11 +822,38 @@ msgstr "Joystick da 4 assi, 4 pulsanti"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr ""
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr ""
+
+msgid "2-button gamepad(s)"
+msgstr ""
+
+msgid "2-button flight yoke"
+msgstr ""
+
+msgid "4-button gamepad"
+msgstr ""
+
+msgid "4-button flight yoke"
+msgstr ""
+
+msgid "2-button flight yoke with throttle"
+msgstr ""
+
+msgid "4-button flight yoke with throttle"
+msgstr ""
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr ""
 
 msgid "None"
 msgstr "Nessuno"
@@ -794,6 +863,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
 msgstr "Floppy %1 (%2): %3"
+
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Floppy %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Immagini da settori avanzati"
@@ -815,6 +887,9 @@ msgstr "Impossibile inizializzare GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Immagini MO"
@@ -861,11 +936,8 @@ msgstr "Configurazione invalida"
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr "%1 è richiesto per la conversione automatica di file PostScript a file PDF.\n\nQualsiasi documento mandato alla stampante generica PostScript sarà salvato come file PostScript (.ps)."
 
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 è richiesto per la conversione automatica di file PCL a file PDF.\n\nQualsiasi documento mandato alla stampante generica PCL sarà salvato come file Printer Command Language (.cl)."
-
-msgid "Entering fullscreen mode"
-msgstr "Entrando nella modalità schermo intero"
+msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "%1 è richiesto per la conversione automatica di file PCL a file PDF.\n\nQualsiasi documento mandato alla stampante generica PCL sarà salvato come file Printer Command Language (.pcl)."
 
 msgid "Don't show this message again"
 msgstr "Non mostrare più questo messaggio"
@@ -903,11 +975,17 @@ msgstr "Continua"
 msgid "Cassette: %1"
 msgstr "Cassetta: %1"
 
+msgid "C&assette: %1"
+msgstr "C&assetta: %1"
+
 msgid "Cassette images"
 msgstr "Immagini cassetta"
 
 msgid "Cartridge %1: %2"
 msgstr "Cartuccia %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Car&tuccia %1: %2"
 
 msgid "Cartridge images"
 msgstr "Immagini cartuccia"
@@ -929,6 +1007,9 @@ msgstr "Riavvia"
 
 msgid "ACPI shutdown"
 msgstr "Arresto ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Arresto ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Hard disk (%1)"
@@ -1077,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1215,41 +1299,41 @@ msgstr "Dispositivi MCA"
 msgid "List of MCA devices:"
 msgstr "Elenco dei dispositivi MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Strumento tablet"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Informazioni su Qt"
+msgid "About &Qt"
+msgstr "Informazioni su &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Dispositivi MCA..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Mostra i monitor non primari"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Aprire la cartella screenshot..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Applica la modalità adattamento schermo intero in modalità massimizzata"
 
-msgid "Cursor/Puck"
-msgstr "Cursore/Puck"
+msgid "&Cursor/Puck"
+msgstr "&Cursore/Puck"
 
-msgid "Pen"
-msgstr "Penna"
+msgid "&Pen"
+msgstr "&Penna"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Unità CD/DVD host (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Unità CD/DVD host (%1:)"
 
 msgid "&Connected"
 msgstr "&Connesso"
 
-msgid "Clear image history"
-msgstr "Cancella la cronologia delle immagini"
+msgid "Clear image &history"
+msgstr "Cancella la cr&onologia delle immagini"
 
 msgid "Create..."
 msgstr "Creare..."
@@ -1265,6 +1349,9 @@ msgstr "Driver nullo"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Comportamento di rendering"
@@ -1305,8 +1392,8 @@ msgstr "Errore nell'inizializzazione di OpenGL"
 msgid "\nFalling back to software rendering."
 msgstr "\nRicaduta sul rendering software."
 
-msgid "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
-msgstr "&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Quando si selezionano immagini multimediali (CD-ROM, floppy, ecc.) la finestra di dialogo di apertura si avvia nella stessa directory del file di configurazione di 86Box. Questa impostazione probabilmente farà la differenza solo su macOS.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;"
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>Quando si selezionano immagini multimediali (CD-ROM, floppy, ecc.) la finestra di dialogo di apertura si avvia nella stessa directory del file di configurazione di 86Box. Questa impostazione probabilmente farà la differenza solo su macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Questa macchina potrebbe essere stata spostata o copiata."
@@ -1371,8 +1458,26 @@ msgstr "Passaggio della porta seriale 3"
 msgid "Serial port passthrough 4"
 msgstr "Passaggio della porta seriale 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Opzioni del renderer..."
+
+msgid "PC/XT Keyboard"
+msgstr ""
+
+msgid "AT Keyboard"
+msgstr ""
+
+msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard"
+msgstr ""
+
+msgid "PS/55 Keyboard"
+msgstr ""
+
+msgid "Keys"
+msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Mouse bus Logitech/Microsoft"
@@ -1383,8 +1488,14 @@ msgstr "Mouse bus Microsoft (InPort)"
 msgid "Mouse Systems Serial Mouse"
 msgstr "Mouse seriale Mouse Systems"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr ""
+
 msgid "Microsoft Serial Mouse"
 msgstr "Mouse seriale Microsoft"
+
+msgid "Microsoft Serial BallPoint"
+msgstr ""
 
 msgid "Logitech Serial Mouse"
 msgstr "Mouse seriale Logitech"
@@ -1392,8 +1503,14 @@ msgstr "Mouse seriale Logitech"
 msgid "PS/2 Mouse"
 msgstr "Mouse PS/2"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (seriale)"
+
+msgid "Default Baud rate"
+msgstr ""
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Modem standard conforme a Hayes"
@@ -1419,11 +1536,53 @@ msgstr "MIDI di sistema"
 msgid "MIDI Input Device"
 msgstr "Dispositivo di ingresso MIDI"
 
-msgid "BIOS Address"
+msgid "BIOS file"
+msgstr ""
+
+msgid "BIOS file (ROM #1)"
+msgstr ""
+
+msgid "BIOS file (ROM #2)"
+msgstr ""
+
+msgid "BIOS file (ROM #3)"
+msgstr ""
+
+msgid "BIOS file (ROM #4)"
+msgstr ""
+
+msgid "BIOS address"
 msgstr "Indirizzo BIOS"
+
+msgid "BIOS address (ROM #1)"
+msgstr ""
+
+msgid "BIOS address (ROM #2)"
+msgstr ""
+
+msgid "BIOS address (ROM #3)"
+msgstr ""
+
+msgid "BIOS address (ROM #4)"
+msgstr ""
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Abilita scrittura al ROM dell'estensione del BIOS"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr ""
+
+msgid "Linear framebuffer base"
+msgstr ""
 
 msgid "Address"
 msgstr "Indirizzo"
@@ -1433,6 +1592,18 @@ msgstr "IRQ"
 
 msgid "BIOS Revision"
 msgstr "Revisione del BIOS"
+
+msgid "BIOS Version"
+msgstr ""
+
+msgid "BIOS Language"
+msgstr ""
+
+msgid "IBM 5161 Expansion Unit"
+msgstr ""
+
+msgid "IBM Cassette Basic"
+msgstr ""
 
 msgid "Translate 26 -> 17"
 msgstr "Tradurre 26 -> 17"
@@ -1448,6 +1619,18 @@ msgstr "Invertire i colori"
 
 msgid "BIOS size"
 msgstr "Dimensione del BIOS"
+
+msgid "BIOS size (ROM #1)"
+msgstr ""
+
+msgid "BIOS size (ROM #2)"
+msgstr ""
+
+msgid "BIOS size (ROM #3)"
+msgstr ""
+
+msgid "BIOS size (ROM #4)"
+msgstr ""
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Mappa C0000-C7FFF come UMB"
@@ -1523,6 +1706,9 @@ msgstr "Livello di riverbero"
 
 msgid "Interpolation Method"
 msgstr "Metodo di interpolazione"
+
+msgid "Dynamic Sample Loading"
+msgstr ""
 
 msgid "Reverb Output Gain"
 msgstr "Guadagno dell'uscita del riverbero"
@@ -1611,6 +1797,12 @@ msgstr "DMA basso"
 msgid "Enable Game port"
 msgstr "Abilita la porta giochi"
 
+msgid "SID Model"
+msgstr ""
+
+msgid "SID Filter Strength"
+msgstr ""
+
 msgid "Surround module"
 msgstr "Modulo surround"
 
@@ -1622,6 +1814,9 @@ msgstr "Solleva l'interrupt del CODEC all'impostazione del CODEC (necessario per
 
 msgid "SB Address"
 msgstr "Indirizzo SB"
+
+msgid "Use EEPROM setting"
+msgstr ""
 
 msgid "WSS IRQ"
 msgstr "IRQ WSS"
@@ -1707,8 +1902,14 @@ msgstr "Tipo di RAMDAC"
 msgid "Blend"
 msgstr "Miscela"
 
+msgid "Font"
+msgstr ""
+
 msgid "Bilinear filtering"
 msgstr "Filtraggio bilineare"
+
+msgid "Video chroma-keying"
+msgstr ""
 
 msgid "Dithering"
 msgstr "Dithering"
@@ -1752,6 +1953,33 @@ msgstr "Velocità di trasferimento"
 msgid "EMS mode"
 msgstr "Modalità EMS"
 
+msgid "EMS Address"
+msgstr ""
+
+msgid "EMS 1 Address"
+msgstr ""
+
+msgid "EMS 2 Address"
+msgstr ""
+
+msgid "EMS Memory Size"
+msgstr ""
+
+msgid "EMS 1 Memory Size"
+msgstr ""
+
+msgid "EMS 2 Memory Size"
+msgstr ""
+
+msgid "Enable EMS"
+msgstr ""
+
+msgid "Enable EMS 1"
+msgstr ""
+
+msgid "Enable EMS 2"
+msgstr ""
+
 msgid "Address for > 2 MB"
 msgstr "Indirizzo per > 2 MB"
 
@@ -1770,11 +1998,11 @@ msgstr "Sempre alla velocità selezionata"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Impostazione BIOS + Tasti di scelta rapida (disattivati durante il POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB a partire da F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB a partire da F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB a partire da E0000 (indirizzo MSB invertito, prima gli ultimi 64KB)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB a partire da E0000 (indirizzo MSB invertito, prima gli ultimi 64 KB)"
 
 msgid "Sine"
 msgstr "Sinusoidale"
@@ -1908,6 +2136,15 @@ msgstr "Interpolazione sRGB"
 msgid "Linear interpolation"
 msgstr "Interpolazione lineare"
 
+msgid "Has secondary 8x8 character set"
+msgstr ""
+
+msgid "Has Quadcolor II daughter board"
+msgstr ""
+
+msgid "Alternate monochrome contrast"
+msgstr ""
+
 msgid "128 KB"
 msgstr "128 KB"
 
@@ -1941,6 +2178,9 @@ msgstr "Ambra"
 msgid "Gray"
 msgstr "Grigio"
 
+msgid "Grayscale"
+msgstr ""
+
 msgid "Color"
 msgstr "Colore"
 
@@ -1955,6 +2195,12 @@ msgstr "Altre lingue"
 
 msgid "Bochs latest"
 msgstr "Bochs ultima versione"
+
+msgid "Apply overscan deltas"
+msgstr ""
+
+msgid "Mono Interlaced"
+msgstr ""
 
 msgid "Mono Non-Interlaced"
 msgstr "Mono non interlacciato"
@@ -2037,6 +2283,9 @@ msgstr "Velocità di trasmissione in baud del passaggio"
 msgid "Named Pipe (Server)"
 msgstr "Tubo denominato (Server)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Passaggio della porta seriale host"
 
@@ -2082,6 +2331,12 @@ msgstr "Clone IBM 8514/A (ISA)"
 msgid "Vendor"
 msgstr "Fabricante"
 
+msgid "30 Hz (JMP2 = 1)"
+msgstr ""
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr ""
+
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Espansione di memoria generica PC/XT"
 
@@ -2104,9 +2359,6 @@ msgid "Ask for confirmation before hard resetting"
 msgstr ""
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
-
-msgid "Display hotkey message when entering full-screen mode"
 msgstr ""
 
 msgid "Options"
@@ -2156,3 +2408,87 @@ msgstr ""
 
 msgid "Could not load file %1"
 msgstr ""
+
+msgid "Key Bindings:"
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "Clear binding"
+msgstr ""
+
+msgid "Bind"
+msgstr ""
+
+msgid "Bind Key"
+msgstr ""
+
+msgid "Enter key combo:"
+msgstr ""
+
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
+msgstr ""
+
+msgid "Send Control+Alt+Del"
+msgstr ""
+
+msgid "Send Control+Alt+Escape"
+msgstr ""
+
+msgid "Toggle fullscreen"
+msgstr ""
+
+msgid "Screenshot"
+msgstr ""
+
+msgid "Release mouse pointer"
+msgstr ""
+
+msgid "Toggle pause"
+msgstr ""
+
+msgid "Toggle mute"
+msgstr ""
+
+msgid "Text files"
+msgstr ""
+
+msgid "ROM files"
+msgstr ""
+
+msgid "SoundFont files"
+msgstr ""
+
+msgid "Local Switch"
+msgstr ""
+
+msgid "Remote Switch"
+msgstr ""
+
+msgid "Switch:"
+msgstr ""
+
+msgid "Hub Mode"
+msgstr ""
+
+msgid "Hostname:"
+msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "Controller HD:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "Unità ZIP:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "Immagini ZIP"

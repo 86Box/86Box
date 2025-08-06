@@ -35,6 +35,7 @@
 #include <86box/video.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
@@ -736,7 +737,7 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
                 if ((svga->crtcreg & 0x3f) < 0xE || (svga->crtcreg & 0x3f) > 0x10) {
                     if (((svga->crtcreg & 0x3f) == 0xc) || ((svga->crtcreg & 0x3f) == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -768,24 +769,24 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
                 if (!(mystique->type >= MGA_2164W))
                     svga->rowoffset <<= 1;
 
-                svga->ma_latch      = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) |
+                svga->memaddr_latch      = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) |
                                       (svga->crtc[0xc] << 8) | svga->crtc[0xd];
                 if ((mystique->pci_regs[0x41] & (OPTION_INTERLEAVE >> 8))) {
                     svga->rowoffset <<= 1;
-                    svga->ma_latch <<= 1;
+                    svga->memaddr_latch <<= 1;
                 }
 
                 if (!(mystique->type >= MGA_2164W))
-                    svga->ma_latch <<= 1;
+                    svga->memaddr_latch <<= 1;
 
-                if (svga->ma_latch != mystique->ma_latch_old) {
+                if (svga->memaddr_latch != mystique->ma_latch_old) {
                     if (svga->interlace && svga->oddeven)
-                        svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) +
-                                       (svga->ma_latch << 2) + (svga->rowoffset << 1);
+                        svga->memaddr_backup = (svga->memaddr_backup - (mystique->ma_latch_old << 2)) +
+                                       (svga->memaddr_latch << 2) + (svga->rowoffset << 1);
                     else
-                        svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) +
-                                       (svga->ma_latch << 2);
-                    mystique->ma_latch_old = svga->ma_latch;
+                        svga->memaddr_backup = (svga->memaddr_backup - (mystique->ma_latch_old << 2)) +
+                                       (svga->memaddr_latch << 2);
+                    mystique->ma_latch_old = svga->memaddr_latch;
                 }
             }
 
@@ -895,9 +896,9 @@ mystique_vblank_start(svga_t *svga)
     mystique_t *mystique = (mystique_t *) svga->priv;
 
     if (mystique->crtcext_regs[3] & CRTCX_R3_MGAMODE) {
-        svga->ma_latch      = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) | (svga->crtc[0xc] << 8) | svga->crtc[0xd];
+        svga->memaddr_latch      = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) | (svga->crtc[0xc] << 8) | svga->crtc[0xd];
         if (mystique->pci_regs[0x41] & (OPTION_INTERLEAVE >> 8))
-            svga->ma_latch <<= 1;
+            svga->memaddr_latch <<= 1;
     }
 }
 
@@ -984,29 +985,29 @@ mystique_recalctimings(svga_t *svga)
             svga->lut_map = !!(mystique->xmiscctrl & XMISCCTRL_RAMCS);
 
         if (mystique->type >= MGA_1064SG)
-            svga->ma_latch = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) | (svga->crtc[0xc] << 8) | svga->crtc[0xd];
+            svga->memaddr_latch = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) | (svga->crtc[0xc] << 8) | svga->crtc[0xd];
 
         if ((mystique->pci_regs[0x41] & (OPTION_INTERLEAVE >> 8))) {
             svga->rowoffset <<= 1;
             if (mystique->type >= MGA_1064SG)
-                svga->ma_latch <<= 1;
+                svga->memaddr_latch <<= 1;
         }
 
         if (mystique->type >= MGA_1064SG) {
             /*Mystique and later, unlike most SVGA cards, allows display start to take
               effect mid-screen*/
             if (!(mystique->type >= MGA_2164W))
-                svga->ma_latch <<= 1;
-            /* Only change maback so the new display start will take effect on the next
+                svga->memaddr_latch <<= 1;
+            /* Only change memaddr_backup so the new display start will take effect on the next
                horizontal retrace. */
-            if (svga->ma_latch != mystique->ma_latch_old) {
+            if (svga->memaddr_latch != mystique->ma_latch_old) {
                 if (svga->interlace && svga->oddeven)
-                    svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) +
-                                   (svga->ma_latch << 2) + (svga->rowoffset << 1);
+                    svga->memaddr_backup = (svga->memaddr_backup - (mystique->ma_latch_old << 2)) +
+                                   (svga->memaddr_latch << 2) + (svga->rowoffset << 1);
                 else
-                    svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) +
-                                   (svga->ma_latch << 2);
-                mystique->ma_latch_old = svga->ma_latch;
+                    svga->memaddr_backup = (svga->memaddr_backup - (mystique->ma_latch_old << 2)) +
+                                   (svga->memaddr_latch << 2);
+                mystique->ma_latch_old = svga->memaddr_latch;
             }
 
             if (!(mystique->type >= MGA_2164W))
@@ -1042,6 +1043,9 @@ mystique_recalctimings(svga_t *svga)
                 }
             } else {
                 switch (svga->bpp) {
+                    case 4:
+                        svga->render = svga_render_4bpp_highres;
+                        break;
                     case 8:
                         svga->render = svga_render_8bpp_highres;
                         break;
@@ -1061,6 +1065,9 @@ mystique_recalctimings(svga_t *svga)
             }
         } else {
             switch (svga->bpp) {
+                case 4:
+                    svga->render = svga_render_4bpp_highres;
+                    break;
                 case 8:
                     svga->render = svga_render_8bpp_highres;
                     break;
@@ -1104,6 +1111,7 @@ static void
 mystique_recalc_mapping(mystique_t *mystique)
 {
     svga_t *svga = &mystique->svga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     io_removehandler(0x03c0, 0x0020, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
     if ((mystique->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO) && (mystique->pci_regs[0x41] & 1))
@@ -1141,6 +1149,10 @@ mystique_recalc_mapping(mystique_t *mystique)
             case 0x4: /*64k at A0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                 svga->banked_mask = 0xffff;
+                if (xga_active && (svga->xga != NULL)) {
+                    xga->on = 0;
+                    mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+                }
                 break;
             case 0x8: /*32k at B0000*/
                 mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);

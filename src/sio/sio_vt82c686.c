@@ -44,6 +44,7 @@ typedef struct vt82c686_t {
     uint8_t   lpt_irq;
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t    *lpt;
 } vt82c686_t;
 
 static uint8_t
@@ -83,15 +84,15 @@ vt82c686_lpt_handler(vt82c686_t *dev)
     if (io_len == 8)
         io_mask = 0x3f8; /* EPP */
 
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
 
     if (((dev->regs[0x02] & 0x03) != 0x03) && !(dev->regs[0x0f] & 0x11) && (io_base >= 0x100) && (io_base <= io_mask))
-        lpt1_setup(io_base);
+        lpt_port_setup(dev->lpt, io_base);
 
     if (dev->lpt_irq) {
-        lpt1_irq(dev->lpt_irq);
+        lpt_port_irq(dev->lpt, dev->lpt_irq);
     } else {
-        lpt1_irq(0xff);
+        lpt_port_irq(dev->lpt, 0xff);
     }
 }
 
@@ -295,6 +296,7 @@ vt82c686_init(UNUSED(const device_t *info))
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
+    dev->lpt     = device_add_inst(&lpt_port_device, 1);
     dev->lpt_dma = 3;
 
     vt82c686_reset(dev);
