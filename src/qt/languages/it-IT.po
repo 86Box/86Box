@@ -1705,7 +1705,7 @@ msgid "Reverb Damping"
 msgstr "Smorzamento riverbero"
 
 msgid "Reverb Width"
-msgstr "Larghezza riverbero"
+msgstr "Ampiezza riverbero"
 
 msgid "Reverb Level"
 msgstr "Livello riverbero"
