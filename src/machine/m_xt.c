@@ -76,10 +76,10 @@ static const device_config_t ibmpc_config[] = {
             { .name = "5700051 (04/24/81)", .internal_name = "ibm5150_5700051", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc/BIOS_IBM5150_24APR81_5700051_U33.BIN", "" } },
 
-            // GlaBIOS for IBM PC
-            { .name = "GlaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
+            // GLaBIOS for IBM PC
+            { .name = "GLaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_8P.ROM", "" } },
-            { .name = "GlaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
+            { .name = "GLaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_VP.ROM", "" } },
 
             // The following are Diagnostic ROMs.
@@ -186,10 +186,10 @@ static const device_config_t ibmpc82_config[] = {
             { .name = "5000024 (08/16/82)", .internal_name = "ibm5150_5000024", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc82/BIOS_5150_16AUG82_5000024_U33.BIN", "" } },
 
-            // GlaBIOS for IBM PC
-            { .name = "GlaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
+            // GLaBIOS for IBM PC
+            { .name = "GLaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_8P.ROM", "" } },
-            { .name = "GlaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
+            { .name = "GLaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_VP.ROM", "" } },
 
             // The following are Diagnostic ROMs.
@@ -319,9 +319,9 @@ static const device_config_t ibmxt_config[] = {
                 .files         = { "roms/machines/ibmxt/BIOS_5160_16AUG82_U18_5000026.BIN", "roms/machines/ibmxt/BIOS_5160_16AUG82_U19_5000027.BIN", "" }
             },
 
-            // GlaBIOS for IBM XT
+            // GLaBIOS for IBM XT
             {
-                .name          = "GlaBIOS 0.2.5 (8088)",
+                .name          = "GLaBIOS 0.2.5 (8088)",
                 .internal_name = "glabios_025_8088",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -330,7 +330,7 @@ static const device_config_t ibmxt_config[] = {
                 .files         = { "roms/machines/glabios/GLABIOS_0.2.5_8X.ROM", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
             {
-                .name          = "GlaBIOS 0.2.5 (V20)",
+                .name          = "GLaBIOS 0.2.5 (V20)",
                 .internal_name = "glabios_025_v20",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -508,9 +508,9 @@ static const device_config_t ibmxt86_config[] = {
                 .files         = { "roms/machines/ibmxt86/BIOS_5160_10JAN86_U18_62X0852_27256_F800.BIN", "roms/machines/ibmxt86/BIOS_5160_10JAN86_U19_62X0853_27256_F000.BIN", "" }
             },
 
-            // GlaBIOS for IBM XT
+            // GLaBIOS for IBM XT
             {
-                .name          = "GlaBIOS 0.2.5 (8088)",
+                .name          = "GLaBIOS 0.2.5 (8088)",
                 .internal_name = "glabios_025_8088",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -519,7 +519,7 @@ static const device_config_t ibmxt86_config[] = {
                 .files         = { "roms/machines/glabios/GLABIOS_0.2.5_8X.ROM", "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
             },
             {
-                .name          = "GlaBIOS 0.2.5 (V20)",
+                .name          = "GLaBIOS 0.2.5 (V20)",
                 .internal_name = "glabios_025_v20",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -767,10 +767,10 @@ static const device_config_t jukopc_config[] = {
         .bios = {
             { .name = "Bios 2.30", .internal_name = "jukost", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 8192, .files = { "roms/machines/jukopc/000o001.bin", "" } },
-            // GlaBIOS for Juko ST
-            { .name = "GlaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
+            // GLaBIOS for Juko ST
+            { .name = "GLaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 8192, .files = { "roms/machines/glabios/GLABIOS_0.2.5_8S_2.ROM", "" } },
-            { .name = "GlaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
+            { .name = "GLaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 8192, .files = { "roms/machines/glabios/GLABIOS_0.2.5_VS_2.ROM", "" } },
             { .files_no = 0 }
         },
@@ -1092,10 +1092,10 @@ static const device_config_t vendex_config[] = {
         .bios = {
             { .name = "Bios 2.03C", .internal_name = "vendex", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 16384, .files = { "roms/machines/vendex/Vendex Turbo 888 XT - ROM BIOS - VER 2.03C.bin", "" } },
-            // GlaBIOS for Juko ST
-            { .name = "GlaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
+            // GLaBIOS for Vendex
+            { .name = "GLaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 16384, .files = { "roms/machines/glabios/GLABIOS_0.2.5_8TV.ROM", "" } },
-            { .name = "GlaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
+            { .name = "GLaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 16384, .files = { "roms/machines/glabios/GLABIOS_0.2.5_VTV.ROM", "" } },
             { .files_no = 0 }
         },
