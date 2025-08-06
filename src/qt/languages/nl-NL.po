@@ -1590,6 +1590,12 @@ msgstr "Adres"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr ""
+
+msgid "Parallel port IRQ"
+msgstr ""
+
 msgid "BIOS Revision"
 msgstr "BIOS Revisie"
 
@@ -1814,6 +1820,9 @@ msgstr "Verhoog CODEC interrupt bij CODEC setup (nodig voor sommige stuurprogram
 
 msgid "SB Address"
 msgstr "SB-adres"
+
+msgid "Adlib Address"
+msgstr ""
 
 msgid "Use EEPROM setting"
 msgstr ""

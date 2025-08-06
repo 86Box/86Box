@@ -1590,6 +1590,12 @@ msgstr "Dirección"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr ""
+
+msgid "Parallel port IRQ"
+msgstr ""
+
 msgid "BIOS Revision"
 msgstr "Revisión de BIOS"
 
@@ -1814,6 +1820,9 @@ msgstr "Activar la interrupción CODEC en la configuración CODEC (necesario par
 
 msgid "SB Address"
 msgstr "Dirección del SB"
+
+msgid "Adlib Address"
+msgstr ""
 
 msgid "Use EEPROM setting"
 msgstr ""

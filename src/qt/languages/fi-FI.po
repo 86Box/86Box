@@ -1590,6 +1590,12 @@ msgstr "Osoite"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr ""
+
+msgid "Parallel port IRQ"
+msgstr ""
+
 msgid "BIOS Revision"
 msgstr "BIOS-tarkistus"
 
@@ -1814,6 +1820,9 @@ msgstr "CODEC-keskeytyksen nostaminen CODEC-asennuksen yhteydessä (jotkut ohjai
 
 msgid "SB Address"
 msgstr "SB-osoite"
+
+msgid "Adlib Address"
+msgstr ""
 
 msgid "Use EEPROM setting"
 msgstr ""

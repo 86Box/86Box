@@ -1590,6 +1590,12 @@ msgstr "Adresa"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr ""
+
+msgid "Parallel port IRQ"
+msgstr ""
+
 msgid "BIOS Revision"
 msgstr "Revize BIOSu"
 
@@ -1814,6 +1820,9 @@ msgstr "Vyvolání přerušení CODEC při nastavení CODEC (potřebují někter
 
 msgid "SB Address"
 msgstr "Adresa SB"
+
+msgid "Adlib Address"
+msgstr ""
 
 msgid "Use EEPROM setting"
 msgstr ""
