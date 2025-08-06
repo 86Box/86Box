@@ -1590,6 +1590,12 @@ msgstr "Adresse"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr ""
+
+msgid "Parallel port IRQ"
+msgstr ""
+
 msgid "BIOS Revision"
 msgstr "BIOS-Revision"
 
@@ -1814,6 +1820,9 @@ msgstr "CODEC-Interrupt bei CODEC-Einrichtung auslösen (wird von einigen Treibe
 
 msgid "SB Address"
 msgstr "SB-Adresse"
+
+msgid "Adlib Address"
+msgstr ""
 
 msgid "Use EEPROM setting"
 msgstr "EEPROM-Einstellung verwenden"

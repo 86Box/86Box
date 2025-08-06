@@ -1326,7 +1326,7 @@ msgstr "&Curseur/Palette"
 msgid "&Pen"
 msgstr "&Stylo"
 
-msgid "Host CD/DVD Drive (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
 msgstr "&Lecteur CD/DVD hôte (%1:)"
 
 msgid "&Connected"
@@ -1590,6 +1590,12 @@ msgstr "Adresse"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr ""
+
+msgid "Parallel port IRQ"
+msgstr ""
+
 msgid "BIOS Revision"
 msgstr "Révision BIOS"
 
@@ -1814,6 +1820,9 @@ msgstr "Lever l'interruption CODEC lors de la configuration du CODEC (nécessair
 
 msgid "SB Address"
 msgstr "Adresse SB"
+
+msgid "Adlib Address"
+msgstr ""
 
 msgid "Use EEPROM setting"
 msgstr ""
