@@ -984,6 +984,9 @@ msgstr "Magnókazetta-képek"
 msgid "Cartridge %1: %2"
 msgstr "ROM-kazetta %1: %2"
 
+msgid "Car&tridge %1: %2"
+msgstr "ROM-kaze&tta %1: %2"
+
 msgid "Cartridge images"
 msgstr "ROM-kazetta képek"
 
@@ -1587,6 +1590,12 @@ msgstr "Cím:"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr ""
+
+msgid "Parallel port IRQ"
+msgstr ""
+
 msgid "BIOS Revision"
 msgstr "BIOS felülvizsgálata"
 
@@ -1811,6 +1820,9 @@ msgstr "CODEC megszakítás felemelése CODEC beállításakor (néhány illeszt
 
 msgid "SB Address"
 msgstr "SB cím"
+
+msgid "Adlib Address"
+msgstr ""
 
 msgid "Use EEPROM setting"
 msgstr ""
@@ -2489,4 +2501,3 @@ msgstr ""
 
 #~ msgid "ZIP images"
 #~ msgstr "ZIP-lemezképek"
-

@@ -1158,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr ""
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1587,6 +1590,12 @@ msgstr "주소"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr ""
+
+msgid "Parallel port IRQ"
+msgstr ""
+
 msgid "BIOS Revision"
 msgstr "BIOS 개정"
 
@@ -1811,6 +1820,9 @@ msgstr "코덱 설정 시 코덱 인터럽트 올리기(일부 드라이버에 �
 
 msgid "SB Address"
 msgstr "SB 주소"
+
+msgid "Adlib Address"
+msgstr ""
 
 msgid "Use EEPROM setting"
 msgstr ""
