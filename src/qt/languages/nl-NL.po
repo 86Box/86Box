@@ -28,7 +28,7 @@ msgid "&Pause"
 msgstr "&Pauze"
 
 msgid "Re&sume"
-msgstr ""
+msgstr "He&rvatten"
 
 msgid "E&xit"
 msgstr "&Afsluiten"
@@ -148,13 +148,13 @@ msgid "RGB &Color"
 msgstr "RGB &Kleur"
 
 msgid "RGB (no brown)"
-msgstr ""
+msgstr "RGN (geen bruin)"
 
 msgid "&RGB Grayscale"
 msgstr "&RGB grijstinten"
 
 msgid "Generic RGBI color monitor"
-msgstr ""
+msgstr "Generieke RGBI kleuren monitor"
 
 msgid "&Amber monitor"
 msgstr "&Amber monitor"
@@ -394,13 +394,13 @@ msgid "Dynamic Recompiler"
 msgstr "Dynamische Recompiler"
 
 msgid "CPU frame size"
-msgstr ""
+msgstr "CPU frame grootte"
 
 msgid "Larger frames (less smooth)"
-msgstr ""
+msgstr "Groter frames (minder vloeiend)"
 
 msgid "Smaller frames (smoother)"
-msgstr ""
+msgstr "Kleinere frames (vloeiender)"
 
 msgid "Video:"
 msgstr "Video:"
@@ -418,7 +418,7 @@ msgid "XGA Graphics"
 msgstr "XGA Graphics"
 
 msgid "Keyboard:"
-msgstr ""
+msgstr "Toetsenbord"
 
 msgid "Mouse:"
 msgstr "Muis:"
@@ -523,7 +523,7 @@ msgid "FD Controller:"
 msgstr "FD-Controller:"
 
 msgid "CD-ROM Controller:"
-msgstr ""
+msgstr "CD-ROM controller"
 
 msgid "Tertiary IDE Controller"
 msgstr "Tertiaire IDE-controller"
@@ -532,7 +532,7 @@ msgid "Quaternary IDE Controller"
 msgstr "Quaternaire IDE-controller"
 
 msgid "Hard disk"
-msgstr ""
+msgstr "Harde schijf"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -556,7 +556,7 @@ msgid "Hard disks:"
 msgstr "Harde schijven:"
 
 msgid "Firmware Version"
-msgstr ""
+msgstr "Firmware Versie"
 
 msgid "&New..."
 msgstr "&Nieuw..."
@@ -616,7 +616,7 @@ msgid "MO drives:"
 msgstr "MO-schijven:"
 
 msgid "Removable disk drives:"
-msgstr ""
+msgstr "Verwisselbare schijfstations"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -628,7 +628,7 @@ msgid "ISA Memory Expansion"
 msgstr "ISA-geheugenuitbreiding"
 
 msgid "ISA ROM Cards"
-msgstr ""
+msgstr "ISA ROM-kaart"
 
 msgid "Card 1:"
 msgstr "Kaart 1:"
@@ -643,13 +643,13 @@ msgid "Card 4:"
 msgstr "Kaart 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr ""
+msgstr "Generieke ISA ROM-kaart"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr ""
+msgstr "Generieke Dubbele ISA ROM-kaart"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr ""
+msgstr "Generieke Viervoudige ISA ROM-kaart"
 
 msgid "ISABugger device"
 msgstr "ISABugger-apparaat"
@@ -673,16 +673,16 @@ msgid "Speed"
 msgstr "Snelheid"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr ""
+msgstr "Verwijderbare schijf  %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr ""
+msgstr "&Verwijderbare schijf  %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr ""
+msgstr "Verwijderbare schijf image"
 
 msgid "Image %1"
-msgstr ""
+msgstr "Image %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box kon geen bruikbare ROM images vinden.\n\n<a href=\"https://github.com/86Box/roms/releases/latest\">Download</a> een ROM set en pak deze uit in de map \"roms\"."
@@ -823,7 +823,7 @@ msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
-msgstr ""
+msgstr "CH Flightstick Pro + CH Pedalen"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -832,28 +832,28 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control systeem"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr ""
+msgstr "Thrustmaster FCS + Roer Control Systeem"
 
 msgid "2-button gamepad(s)"
-msgstr ""
+msgstr "2-knops gamepad(s)"
 
 msgid "2-button flight yoke"
-msgstr ""
+msgstr "2-knops stuurknuppel"
 
 msgid "4-button gamepad"
-msgstr ""
+msgstr "4-knops gamepad"
 
 msgid "4-button flight yoke"
-msgstr ""
+msgstr "4-knops stuurknuppel"
 
 msgid "2-button flight yoke with throttle"
-msgstr ""
+msgstr "2-kops stuurknuppel met gashendel "
 
 msgid "4-button flight yoke with throttle"
-msgstr ""
+msgstr "2-kops stuurknuppel met gashendel"
 
 msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr ""
+msgstr "Win95 Stuurwiel (3 assen, 4 knoppen)"
 
 msgid "None"
 msgstr "Geen"
@@ -1462,22 +1462,22 @@ msgid "Renderer &options..."
 msgstr "Renderer-opties..."
 
 msgid "PC/XT Keyboard"
-msgstr ""
+msgstr "PC/XT Toetsenbord"
 
 msgid "AT Keyboard"
-msgstr ""
+msgstr "AT Toetsenbord"
 
 msgid "AX Keyboard"
-msgstr ""
+msgstr "AX Toetsenbord"
 
 msgid "PS/2 Keyboard"
-msgstr ""
+msgstr "PS/2 Toetsenbord"
 
 msgid "PS/55 Keyboard"
-msgstr ""
+msgstr "PS/55Toetsenbord"
 
 msgid "Keys"
-msgstr ""
+msgstr "Toetsen"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Logitech/Microsoft busmuis"
@@ -1489,13 +1489,13 @@ msgid "Mouse Systems Serial Mouse"
 msgstr "Mouse Systems seriële muis"
 
 msgid "Mouse Systems Bus Mouse"
-msgstr ""
+msgstr "Mouse Systems busmuis"
 
 msgid "Microsoft Serial Mouse"
-msgstr "Microsoft seriële muis"
+msgstr "Microsoft Seriële muis"
 
 msgid "Microsoft Serial BallPoint"
-msgstr ""
+msgstr "Microsoft seriële balmuis"
 
 msgid "Logitech Serial Mouse"
 msgstr "Logitech seriële muis"
@@ -1504,13 +1504,13 @@ msgid "PS/2 Mouse"
 msgstr "PS/2-muis"
 
 msgid "PS/2 QuickPort Mouse"
-msgstr ""
+msgstr "PS/2 QuickPort muis"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serieel)"
 
 msgid "Default Baud rate"
-msgstr ""
+msgstr "Standaard baudrate" 
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "COM] Standaard Hayes-compatibele modem "
@@ -1537,52 +1537,52 @@ msgid "MIDI Input Device"
 msgstr "MIDI-ingangsapparaat"
 
 msgid "BIOS file"
-msgstr ""
+msgstr "BIOS-bestand"
 
 msgid "BIOS file (ROM #1)"
-msgstr ""
+msgstr "BIOS-bestand (ROM #1)"
 
 msgid "BIOS file (ROM #2)"
-msgstr ""
+msgstr "BIOS-bestand (ROM #2)"
 
 msgid "BIOS file (ROM #3)"
-msgstr ""
+msgstr "BIOS-bestand (ROM #3)"
 
 msgid "BIOS file (ROM #4)"
-msgstr ""
+msgstr "BIOS-bestand (ROM #4)"
 
 msgid "BIOS address"
 msgstr "BIOS-adres"
 
 msgid "BIOS address (ROM #1)"
-msgstr ""
+msgstr "BIOS-adres (ROM #1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr ""
+msgstr "BIOS-adres (ROM #2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr ""
+msgstr "BIOS-adres (ROM #3)"
 
 msgid "BIOS address (ROM #4)"
-msgstr ""
+msgstr "BIOS-adres (ROM #4)"
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "BIOS-extensie ROM Writes inschakelen"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr ""
+msgstr "BIOS-extensie ROM Writes inschakelen (ROM #1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr ""
+msgstr "BIOS-extensie ROM Writes inschakelen (ROM #2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr ""
+msgstr "BIOS-extensie ROM Writes inschakelen (ROM #3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr ""
+msgstr "BIOS-extensie ROM Writes inschakelen (ROM #4)"
 
 msgid "Linear framebuffer base"
-msgstr ""
+msgstr "Lineaire framebuffer-basis"
 
 msgid "Address"
 msgstr "Adres"
@@ -1591,25 +1591,25 @@ msgid "IRQ"
 msgstr "IRQ"
 
 msgid "Serial port IRQ"
-msgstr ""
+msgstr "Seriële poort IRQ"
 
 msgid "Parallel port IRQ"
-msgstr ""
+msgstr "Parallelle poort IRQ"
 
 msgid "BIOS Revision"
 msgstr "BIOS Revisie"
 
 msgid "BIOS Version"
-msgstr ""
+msgstr "BIOS-versie"
 
 msgid "BIOS Language"
-msgstr ""
+msgstr "BIOS-taal"
 
 msgid "IBM 5161 Expansion Unit"
-msgstr ""
+msgstr "IBM 5161 Uitbreidingseenheid"
 
 msgid "IBM Cassette Basic"
-msgstr ""
+msgstr "IBM Cassette Basic"
 
 msgid "Translate 26 -> 17"
 msgstr "Vertaal 26 -> 17"
@@ -1627,16 +1627,16 @@ msgid "BIOS size"
 msgstr "BIOS-grootte"
 
 msgid "BIOS size (ROM #1)"
-msgstr ""
+msgstr "BIOS-grootte (ROM #1)"
 
 msgid "BIOS size (ROM #2)"
-msgstr ""
+msgstr "BIOS-grootte (ROM #1)"
 
 msgid "BIOS size (ROM #3)"
-msgstr ""
+msgstr "BIOS-grootte (ROM #3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr ""
+msgstr "BIOS-grootte (ROM #4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Geheugenadres C0000-C7FFF toewijzen aan UMB"
@@ -1714,7 +1714,7 @@ msgid "Interpolation Method"
 msgstr "Interpolatiemethode"
 
 msgid "Dynamic Sample Loading"
-msgstr ""
+msgstr "Dynamische sample-lading"
 
 msgid "Reverb Output Gain"
 msgstr "Reverbuitgang Versterking"
@@ -1804,10 +1804,10 @@ msgid "Enable Game port"
 msgstr "Game-poort inschakelen"
 
 msgid "SID Model"
-msgstr ""
+msgstr "SID-model"
 
 msgid "SID Filter Strength"
-msgstr ""
+msgstr "SID-filtersterkte"
 
 msgid "Surround module"
 msgstr "Surroundmodule"
@@ -1822,10 +1822,10 @@ msgid "SB Address"
 msgstr "SB-adres"
 
 msgid "Adlib Address"
-msgstr ""
+msgstr "Adlib-adres"
 
 msgid "Use EEPROM setting"
-msgstr ""
+msgstr "Gebruik EEPROM-instelling"
 
 msgid "WSS IRQ"
 msgstr "WSS IRQ"
@@ -1912,13 +1912,13 @@ msgid "Blend"
 msgstr "Mengen"
 
 msgid "Font"
-msgstr ""
+msgstr "Lettertype"
 
 msgid "Bilinear filtering"
 msgstr "Bilineaire filtering"
 
 msgid "Video chroma-keying"
-msgstr ""
+msgstr "Video chroma-keying"
 
 msgid "Dithering"
 msgstr "Dithering"
@@ -1963,31 +1963,31 @@ msgid "EMS mode"
 msgstr "EMS-modus"
 
 msgid "EMS Address"
-msgstr ""
+msgstr "EMS-adres"
 
 msgid "EMS 1 Address"
-msgstr ""
+msgstr "EMS 1 adres"
 
 msgid "EMS 2 Address"
-msgstr ""
+msgstr "EMS 2 adres"
 
 msgid "EMS Memory Size"
-msgstr ""
+msgstr "EMS-geheugengrootte"
 
 msgid "EMS 1 Memory Size"
-msgstr ""
+msgstr "EMS 1 geheugengrootte"
 
 msgid "EMS 2 Memory Size"
-msgstr ""
+msgstr "EMS 3 geheugengrootte"
 
 msgid "Enable EMS"
-msgstr ""
+msgstr "Schakel EMS in"
 
 msgid "Enable EMS 1"
-msgstr ""
+msgstr "Schakel EMS 1 in"
 
 msgid "Enable EMS 2"
-msgstr ""
+msgstr "Schakel EMS 2 in"
 
 msgid "Address for > 2 MB"
 msgstr "Adres voor > 2 MB"
@@ -2146,13 +2146,13 @@ msgid "Linear interpolation"
 msgstr "Lineaire interpolatie"
 
 msgid "Has secondary 8x8 character set"
-msgstr ""
+msgstr "Heeft secundaire 8x8 karakterset"
 
 msgid "Has Quadcolor II daughter board"
-msgstr ""
+msgstr "Heeft Quadcolor II dochterkaart"
 
 msgid "Alternate monochrome contrast"
-msgstr ""
+msgstr "Alternatief monochroom contrast"
 
 msgid "128 KB"
 msgstr "128 KB"
@@ -2188,7 +2188,7 @@ msgid "Gray"
 msgstr "Grijs"
 
 msgid "Grayscale"
-msgstr ""
+msgstr "Grijstinten"
 
 msgid "Color"
 msgstr "Kleur"
@@ -2206,10 +2206,10 @@ msgid "Bochs latest"
 msgstr "Bochs nieuwste"
 
 msgid "Apply overscan deltas"
-msgstr ""
+msgstr "Overscan-delta’s toepassen"
 
 msgid "Mono Interlaced"
-msgstr ""
+msgstr "Mono geïnterlaced "
 
 msgid "Mono Non-Interlaced"
 msgstr "Mono niet geïnterlaced"
@@ -2293,7 +2293,7 @@ msgid "Named Pipe (Server)"
 msgstr "Named Pipe (Server)"
 
 msgid "Named Pipe (Client)"
-msgstr ""
+msgstr "Named Pipe (Client)"
 
 msgid "Host Serial Passthrough"
 msgstr "Host seriële doorgave"
@@ -2341,10 +2341,10 @@ msgid "Vendor"
 msgstr "Leverancier"
 
 msgid "30 Hz (JMP2 = 1)"
-msgstr ""
+msgstr "30 Hz (JMP2 = 1)"
 
 msgid "60 Hz (JMP2 = 2)"
-msgstr ""
+msgstr "60 Hz (JMP2 = 2)"
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Generieke PC/XT geheugenuitbreiding"
@@ -2419,76 +2419,76 @@ msgid "Could not load file %1"
 msgstr "Kon bestand %1 niet laden"
 
 msgid "Key Bindings:"
-msgstr ""
+msgstr "Toetskoppelingen"
 
 msgid "Action"
-msgstr ""
+msgstr "Actie"
 
 msgid "Keybind"
-msgstr ""
+msgstr "Toetskoppeling"
 
 msgid "Clear binding"
-msgstr ""
+msgstr "Wis koppelinh"
 
 msgid "Bind"
-msgstr ""
+msgstr "Koppel"
 
 msgid "Bind Key"
-msgstr ""
+msgstr "Koppel toets"
 
 msgid "Enter key combo:"
-msgstr ""
+msgstr "Geef toetsencombinatie in:"
 
 msgid "Bind conflict"
-msgstr ""
+msgstr "Koppelconflict"
 
 msgid "This key combo is already in use."
-msgstr ""
+msgstr "Deze toetsencombinatie is al in gebruik"
 
 msgid "Send Control+Alt+Del"
-msgstr ""
+msgstr "Stuur Control+Alt+Del"
 
 msgid "Send Control+Alt+Escape"
-msgstr ""
+msgstr "Stuur Control+Alt+Escape"
 
 msgid "Toggle fullscreen"
-msgstr ""
+msgstr "Volledig scherm omschakelen"
 
 msgid "Screenshot"
-msgstr ""
+msgstr "Schermafbeelding"
 
 msgid "Release mouse pointer"
-msgstr ""
+msgstr "Geef muis vrij"
 
 msgid "Toggle pause"
-msgstr ""
+msgstr "Pause omschakelen"
 
 msgid "Toggle mute"
-msgstr ""
+msgstr "Geluiddemping omschakelen"
 
 msgid "Text files"
-msgstr ""
+msgstr "Tekstbestanden"
 
 msgid "ROM files"
-msgstr ""
+msgstr "ROM-bestanden"
 
 msgid "SoundFont files"
-msgstr ""
+msgstr "SoundFont-bestanden"
 
 msgid "Local Switch"
-msgstr ""
+msgstr "Lokale Switch"
 
 msgid "Remote Switch"
-msgstr ""
+msgstr "Externe Switch"
 
 msgid "Switch:"
-msgstr ""
+msgstr "Switch"
 
 msgid "Hub Mode"
-msgstr ""
+msgstr "Hub-modus"
 
 msgid "Hostname:"
-msgstr ""
+msgstr "Hostname"
 
 #~ msgid "HD Controller:"
 #~ msgstr "HD-controller:"
