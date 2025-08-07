@@ -107,6 +107,13 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             });
             killIcon.setEnabled(selected_sysconfig->process->state() == QProcess::Running);
 
+            QAction deleteAction(tr("&Delete"));
+            contextMenu.addAction(&deleteAction);
+            connect(&deleteAction, &QAction::triggered, [this, parent] {
+                deleteSystem(selected_sysconfig);
+            });
+            deleteAction.setEnabled(selected_sysconfig->process->state() == QProcess::NotRunning);
+
             contextMenu.addSeparator();
 
             QAction showRawConfigFile(tr("Show &config file"));
@@ -431,6 +438,25 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
                 ui->listView->setCurrentIndex(mapped_index);
                 delete new_system;
             });
+}
+
+
+void
+VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
+{
+    QMessageBox msgbox(QMessageBox::Icon::Warning, tr("Warning"), tr("Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!").arg(sysconfig->displayName), QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, qobject_cast<QWidget *>(this->parent()));
+    msgbox.exec();
+    if (msgbox.result() == QMessageBox::Yes) {
+        auto qrmdir = new QDir(sysconfig->config_dir);
+        if (const bool rmdirResult = qrmdir->removeRecursively(); !rmdirResult) {
+            QMessageBox::critical(this, tr("Remove directory failed"), tr("Some files in the machine's directory were unable to be deleted. Please delete them manually."));
+            return;
+        }
+        auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
+        config->remove(sysconfig->uuid);
+        vm_model->removeConfigFromModel(sysconfig);
+        delete sysconfig;
+    }
 }
 
 QStringList
