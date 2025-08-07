@@ -234,6 +234,7 @@ VMManagerSystem::loadSettings()
     }
     // qInfo() << "Loaded "<< config_file.filePath() << "status:" << settings.status();
 
+    settings.setIniCodec("UTF-8");
     // Clear out the config hash in case the config is reloaded
     for (const auto &outer_key : config_hash.keys()) {
         config_hash[outer_key].clear();
