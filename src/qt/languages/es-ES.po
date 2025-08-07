@@ -583,7 +583,7 @@ msgid "Sectors:"
 msgstr "Sectores:"
 
 msgid "Heads:"
-msgstr "Cabezal:"
+msgstr "Cabezales:"
 
 msgid "Cylinders:"
 msgstr "Cilindros:"
