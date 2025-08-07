@@ -349,14 +349,19 @@ VMManagerMain::newMachineWizard()
     const auto wizard = new VMManagerAddMachine(this);
     if (wizard->exec() == QDialog::Accepted) {
         const auto newName        = wizard->field("systemName").toString();
+#ifdef CUSTOM_SYSTEM_LOCATION
         const auto systemDir      = wizard->field("systemLocation").toString();
+#else
+        const auto systemDir      = QDir(vmm_path).path();
+#endif
         const auto existingConfiguration = wizard->field("existingConfiguration").toString();
-        addNewSystem(newName, systemDir, existingConfiguration);
+        const auto displayName           = wizard->field("displayName").toString();
+        addNewSystem(newName, systemDir, displayName, existingConfiguration);
     }
 }
 
 void
-VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QString &configFile)
+VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QString &displayName, const QString &configFile)
 {
     const auto newSytemDirectory = QDir(QDir::cleanPath(dir + "/" + name));
 
@@ -419,6 +424,8 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
                     delete new_system;
                     return;
                 }
+                auto added_system = vm_model->getConfigObjectForIndex(created_object);
+                added_system->setDisplayName(displayName);
                 // Get the index of the newly-created system and select it
                 const QModelIndex mapped_index = proxy_model->mapFromSource(created_object);
                 ui->listView->setCurrentIndex(mapped_index);
