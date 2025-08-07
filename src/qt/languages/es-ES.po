@@ -583,7 +583,7 @@ msgid "Sectors:"
 msgstr "Sectores:"
 
 msgid "Heads:"
-msgstr "Cabezas:"
+msgstr "Cabezal:"
 
 msgid "Cylinders:"
 msgstr "Cilindros:"
@@ -1279,7 +1279,7 @@ msgid "Development of the WinBox manager stopped in 2022 due to a lack of mainta
 msgstr "El desarrollo del gestor WinBox se detuvo en 2022 debido a la falta de mantenedores. Como dirigimos nuestros esfuerzos a hacer 86Box aún mejor, hemos tomado la decisión de dejar de dar soporte a WinBox como gestor.\n\nNo se proporcionarán más actualizaciones a través de WinBox, y puede encontrar un comportamiento incorrecto si continúa usándolo con versiones más nuevas de 86Box. Cualquier informe de error relacionado con el comportamiento de WinBox será cerrado como inválido.\n\nVaya a 86box.net para una lista de otros gestores que puede utilizar."
 
 msgid "Generate"
-msgstr "Vytvoř"
+msgstr "Generar"
 
 msgid "Joystick configuration"
 msgstr "Configuración del mando"
