@@ -161,7 +161,7 @@ int      window_remember;
 int      vid_resize;                                              /* (C) allow resizing */
 int      invert_display                         = 0;              /* (C) invert the display */
 int      suppress_overscan                      = 0;              /* (C) suppress overscans */
-int      lang_id                                = 0;              /* (C) language id */
+int      lang_id                                = 0;              /* (G) language id */
 int      scale                                  = 0;              /* (C) screen scale factor */
 int      dpi_scale                              = 0;              /* (C) DPI scaling of the emulated
                                                                          screen */
@@ -199,13 +199,13 @@ int      cpu                                    = 0;              /* (C) cpu typ
 int      fpu_type                               = 0;              /* (C) fpu type */
 int      fpu_softfloat                          = 0;              /* (C) fpu uses softfloat */
 int      time_sync                              = 0;              /* (C) enable time sync */
-int      confirm_reset                          = 1;              /* (C) enable reset confirmation */
-int      confirm_exit                           = 1;              /* (C) enable exit confirmation */
-int      confirm_save                           = 1;              /* (C) enable save confirmation */
+int      confirm_reset                          = 1;              /* (G) enable reset confirmation */
+int      confirm_exit                           = 1;              /* (G) enable exit confirmation */
+int      confirm_save                           = 1;              /* (G) enable save confirmation */
 int      enable_discord                         = 0;              /* (C) enable Discord integration */
 int      pit_mode                               = -1;             /* (C) force setting PIT mode */
 int      fm_driver                              = 0;              /* (C) select FM sound driver */
-int      open_dir_usr_path                      = 0;              /* (C) default file open dialog directory
+int      open_dir_usr_path                      = 0;              /* (G) default file open dialog directory
                                                                          of usr_path */
 int      video_fullscreen_scale_maximized       = 0;              /* (C) Whether fullscreen scaling settings
                                                                          also apply when maximized. */
@@ -215,7 +215,7 @@ int      hook_enabled                           = 1;              /* (C) Keyboar
 int      test_mode                              = 0;              /* (C) Test mode */
 char     uuid[MAX_UUID_LEN]                     = { '\0' };       /* (C) UUID or machine identifier */
 int      sound_muted                            = 0;              /* (C) Is sound muted? */
-int      inhibit_multimedia_keys;                                 /* (C) Inhibit multimedia keys on Windows. */
+int      inhibit_multimedia_keys;                                 /* (G) Inhibit multimedia keys on Windows. */
 int      force_10ms;                                              /* (C) Force 10ms CPU frame intervals. */
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
@@ -232,27 +232,27 @@ struct accelKey acc_keys[NUM_ACCELS];
 struct accelKey def_acc_keys[NUM_ACCELS] = {
 	{	.name="send_ctrl_alt_del", 	.desc="Send Control+Alt+Del",
 		.seq="Ctrl+F12" },
-		
-	{	.name="send_ctrl_alt_esc", 	.desc="Send Control+Alt+Escape", 	
+
+	{	.name="send_ctrl_alt_esc", 	.desc="Send Control+Alt+Escape",
 		.seq="Ctrl+F10" },
-		
-	{	.name="fullscreen", 		.desc="Toggle fullscreen", 				
+
+	{	.name="fullscreen", 		.desc="Toggle fullscreen",
 		.seq="Ctrl+Alt+PgUp" },
-		
-	{	.name="screenshot", 		.desc="Screenshot", 				
+
+	{	.name="screenshot", 		.desc="Screenshot",
 		.seq="Ctrl+F11" },
-		
-	{	.name="release_mouse", 		.desc="Release mouse pointer", 		
+
+	{	.name="release_mouse", 		.desc="Release mouse pointer",
 		.seq="Ctrl+End" },
-		
-	{	.name="hard_reset", 		.desc="Hard reset", 				
+
+	{	.name="hard_reset", 		.desc="Hard reset",
 		.seq="Ctrl+Alt+F12" },
-		
-	{	.name="pause", 				.desc="Toggle pause", 				
+
+	{	.name="pause", 				.desc="Toggle pause",
 		.seq="Ctrl+Alt+F1" },
-	
-	{	.name="mute", 				.desc="Toggle mute", 				
-		.seq="Ctrl+Alt+M" }	
+
+	{	.name="mute", 				.desc="Toggle mute",
+		.seq="Ctrl+Alt+M" }
 };
 
 char vmm_path[1024] = { '\0'}; /* TEMPORARY - VM manager path to scan for VMs */
@@ -276,6 +276,7 @@ extern double exp_pow_table[0x800];
 char  exe_path[2048]; /* path (dir) of executable */
 char  usr_path[1024]; /* path (dir) of user data */
 char  cfg_path[1024]; /* full path of config file */
+char  global_cfg_path[1024]; /* full path of config file */
 FILE *stdlog = NULL;  /* file to log output to */
 #if 0
 int   scrnsz_x = SCREEN_RES_X; /* current screen size, X */
@@ -313,7 +314,7 @@ static int suppr_seen = 1;
 void pclog_ensure_stdlog_open(void);
 #endif
 
-/* 
+/*
     Ensures STDLOG is open for pclog_ex and pclog_ex_cyclic
 */
 void pclog_ensure_stdlog_open(void)
@@ -621,6 +622,7 @@ pc_show_usage(char *s)
             "-M or --missing\t\t- dump missing machines and video cards\n"
             "-N or --noconfirm\t\t- do not ask for confirmation on quit\n"
             "-P or --vmpath path\t\t- set 'path' to be root for vm\n"
+            "-O or --global path\t\t- set 'path' to be global config file\n"
             "-R or --rompath path\t\t- set 'path' to be ROM path\n"
 #ifndef USE_SDL_UI
             "-S or --settings\t\t\t- show only the settings dialog\n"
@@ -660,6 +662,7 @@ pc_init(int argc, char *argv[])
     char            *ppath = NULL;
     char            *rpath = NULL;
     char            *cfg = NULL;
+    char            *global = NULL;
     char            *p;
     char             temp[2048];
     char            *fn[FDD_NUM] = { NULL };
@@ -779,6 +782,11 @@ usage:
 #ifdef DEPRECATE_USAGE
             deprecated = 0;
 #endif
+        } else if (!strcasecmp(argv[c], "--global") || !strcasecmp(argv[c], "-O")) {
+            if ((c + 1) == argc || plat_dir_check(argv[c + 1]))
+                goto usage;
+
+            global = argv[++c];
         } else if (!strcasecmp(argv[c], "--image") || !strcasecmp(argv[c], "-I")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -1010,6 +1018,14 @@ usage:
     /* At this point, we can safely create the full path name. */
     path_append_filename(cfg_path, usr_path, p);
 
+    /* Build the global configuration file path. */
+    if (global == NULL) {
+        plat_get_global_config_dir(global_cfg_path, sizeof(global_cfg_path));
+        path_append_filename(global_cfg_path, global_cfg_path, CONFIG_FILE);
+    } else {
+        strncpy(global_cfg_path, global, sizeof(global_cfg_path) - 1);
+    }
+
     /*
      * Get the current directory's name
      *
@@ -1051,6 +1067,7 @@ usage:
         pclog("# ROM path: %s\n", rom_path->path);
     }
 
+    pclog("# Global configuration file: %s\n", global_cfg_path);
     pclog("# Configuration file: %s\n#\n\n", cfg_path);
     if (strlen(vmm_path) != 0) {
         vmm_enabled = 1;

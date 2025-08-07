@@ -662,7 +662,7 @@ plat_chdir(char *path)
 }
 
 void
-plat_get_global_config_dir(char *outbuf, const uint8_t len)
+plat_get_global_config_dir(char *outbuf, const size_t len)
 {
     const auto dir = QDir(QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation)[0]);
     if (!dir.exists()) {
@@ -674,7 +674,7 @@ plat_get_global_config_dir(char *outbuf, const uint8_t len)
 }
 
 void
-plat_get_global_data_dir(char *outbuf, const uint8_t len)
+plat_get_global_data_dir(char *outbuf, const size_t len)
 {
     const auto dir = QDir(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation)[0]);
     if (!dir.exists()) {
