@@ -912,9 +912,9 @@ const device_t jega_device = {
 };
 
 const device_t jvga_device = {
-    .name          = "OKIVGA/H-2 (JVGA/H)",
+    .name          = "OKI VGA/H-2 (JVGA/H)",
     .internal_name = "jvga",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = jvga_standalone_init,
     .close         = jega_close,
