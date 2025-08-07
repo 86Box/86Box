@@ -261,6 +261,12 @@ NameAndLocationPage(QWidget *parent)
     systemLocationValidation->setWordWrap(true);
 #endif
 
+    const auto displayNameLabel = new QLabel(tr("Display Name (optional)"));
+    displayName           = new QLineEdit();
+    // Special event filter to override enter key
+    displayName->installEventFilter(this);
+    registerField("displayName*", displayName);
+
     const auto layout = new QGridLayout();
     layout->addWidget(topLabel, 0, 0, 1, -1);
     // Spacer row
@@ -282,6 +288,11 @@ NameAndLocationPage(QWidget *parent)
     layout->addWidget(systemLocationValidation, 6, 0, 1, -1);
     layout->setRowMinimumHeight(6, 20);
 #endif
+
+    // Another spacer
+    layout->setRowMinimumHeight(7, 20);
+    layout->addWidget(displayNameLabel, 8, 0);
+    layout->addWidget(displayName, 8, 1);
 
     setLayout(layout);
 
@@ -382,6 +393,10 @@ ConclusionPage(QWidget *parent)
     systemLocation      = new QLabel();
 #endif
 
+    displayNameLabel                = new QLabel(tr("Display name:"));
+    displayNameLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+    displayName                     = new QLabel();
+
     const auto layout = new QGridLayout();
     layout->addWidget(topLabel, 0, 0, 1, -1);
     layout->setRowMinimumHeight(1, 20);
@@ -391,6 +406,8 @@ ConclusionPage(QWidget *parent)
     layout->addWidget(systemLocationLabel, 3, 0);
     layout->addWidget(systemLocation, 3, 1);
 #endif
+    layout->addWidget(displayNameLabel, 4, 0);
+    layout->addWidget(displayName, 4, 1);
 
     setLayout(layout);
 }
@@ -404,9 +421,16 @@ ConclusionPage::initializePage()
     const auto nativePath = QDir::toNativeSeparators(finalPath);
 #endif
     const auto systemNameDisplay = field("systemName").toString();
+    const auto displayNameDisplay = field("displayName").toString();
 
     systemName->setText(systemNameDisplay);
 #ifdef CUSTOM_SYSTEM_LOCATION
     systemLocation->setText(nativePath);
 #endif
+    if (!displayNameDisplay.isEmpty())
+        displayName->setText(displayNameDisplay);
+    else {
+        displayNameLabel->setVisible(false);
+        displayName->setVisible(false);
+    }
 }

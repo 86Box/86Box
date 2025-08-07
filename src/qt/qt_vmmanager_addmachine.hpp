@@ -93,6 +93,7 @@ private:
 #ifdef CUSTOM_SYSTEM_LOCATION
     QLineEdit *systemLocation;
 #endif
+    QLineEdit *displayName;
     QLabel    *systemNameValidation;
 #ifdef CUSTOM_SYSTEM_LOCATION
     QLabel    *systemLocationValidation;
@@ -116,6 +117,8 @@ private:
 #ifdef CUSTOM_SYSTEM_LOCATION
     QLabel *systemLocation;
 #endif
+    QLabel *displayNameLabel;
+    QLabel *displayName;
 protected:
     void initializePage() override;
 };

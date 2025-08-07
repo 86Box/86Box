@@ -70,7 +70,7 @@ public slots:
     void shutdownForceButtonPressed() const;
     void searchSystems(const QString &text) const;
     void newMachineWizard();
-    void addNewSystem(const QString &name, const QString &dir, const QString &configFile = {});
+    void addNewSystem(const QString &name, const QString &dir, const QString &displayName = QString(), const QString &configFile = {});
 #if __GNUC__ >= 11
     [[nodiscard]] QStringList getSearchCompletionList() const;
 #else
