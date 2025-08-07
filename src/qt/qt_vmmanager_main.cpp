@@ -188,11 +188,19 @@ VMManagerMain::currentSelectionChanged(const QModelIndex &current,
         return;
     }
 
-    disconnect(selected_sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerMain::onConfigUpdated);
+    /* hack to prevent strange segfaults when adding a machine after
+       removing all machines previously */
+    if (selected_sysconfig->config_signal_connected == true) {
+        disconnect(selected_sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerMain::onConfigUpdated);
+        selected_sysconfig->config_signal_connected = false;
+    }
     const auto mapped_index = proxy_model->mapToSource(current);
     selected_sysconfig = vm_model->getConfigObjectForIndex(mapped_index);
     vm_details->updateData(selected_sysconfig);
-    connect(selected_sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerMain::onConfigUpdated);
+    if (selected_sysconfig->config_signal_connected == false) {
+        connect(selected_sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerMain::onConfigUpdated);
+        selected_sysconfig->config_signal_connected = true;
+    }
 
     // Emit that the selection changed, include with the process state
     emit selectionChanged(current, selected_sysconfig->process->state());
@@ -456,6 +464,14 @@ VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
         config->remove(sysconfig->uuid);
         vm_model->removeConfigFromModel(sysconfig);
         delete sysconfig;
+
+        if (vm_model->rowCount(QModelIndex()) <= 0) {
+            /* no machines left - get rid of the last machine's leftovers */
+            ui->detailsArea->layout()->removeWidget(vm_details);
+            delete vm_details;
+            vm_details = new VMManagerDetails();
+            ui->detailsArea->layout()->addWidget(vm_details);
+        }
     }
 }
 
