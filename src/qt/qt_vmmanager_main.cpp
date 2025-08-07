@@ -349,7 +349,11 @@ VMManagerMain::newMachineWizard()
     const auto wizard = new VMManagerAddMachine(this);
     if (wizard->exec() == QDialog::Accepted) {
         const auto newName        = wizard->field("systemName").toString();
+#ifdef CUSTOM_SYSTEM_LOCATION
         const auto systemDir      = wizard->field("systemLocation").toString();
+#else
+        const auto systemDir      = QDir(vmm_path).path();
+#endif
         const auto existingConfiguration = wizard->field("existingConfiguration").toString();
         addNewSystem(newName, systemDir, existingConfiguration);
     }

@@ -223,6 +223,7 @@ WithExistingConfigPage::isComplete() const
 NameAndLocationPage::
 NameAndLocationPage(QWidget *parent)
 {
+#ifdef CUSTOM_SYSTEM_LOCATION
     setTitle(tr("System name and location"));
 
 #if defined(_WIN32)
@@ -234,6 +235,10 @@ NameAndLocationPage(QWidget *parent)
 #endif
 
     const auto topLabel = new QLabel(tr("Enter the name of the system and choose the location"));
+#else
+    setTitle(tr("System name"));
+    const auto topLabel = new QLabel(tr("Enter the name of the system"));
+#endif
     topLabel->setWordWrap(true);
 
     const auto chooseDirectoryButton = new QPushButton();
@@ -246,6 +251,7 @@ NameAndLocationPage(QWidget *parent)
     registerField("systemName*", systemName);
     systemNameValidation = new QLabel();
 
+#ifdef CUSTOM_SYSTEM_LOCATION
     const auto systemLocationLabel = new QLabel(tr("System Location"));
     systemLocation           = new QLineEdit();
     // TODO: FIXME: This is using the CLI arg and needs to instead use a proper variable
@@ -253,6 +259,7 @@ NameAndLocationPage(QWidget *parent)
     registerField("systemLocation*", systemLocation);
     systemLocationValidation = new QLabel();
     systemLocationValidation->setWordWrap(true);
+#endif
 
     const auto layout = new QGridLayout();
     layout->addWidget(topLabel, 0, 0, 1, -1);
@@ -265,6 +272,7 @@ NameAndLocationPage(QWidget *parent)
     // Set height on validation because it may not always be present
     layout->setRowMinimumHeight(3, 20);
 
+#ifdef CUSTOM_SYSTEM_LOCATION
     // Another spacer
     layout->setRowMinimumHeight(4, 20);
     layout->addWidget(systemLocationLabel, 5, 0);
@@ -273,11 +281,13 @@ NameAndLocationPage(QWidget *parent)
     // Validation text
     layout->addWidget(systemLocationValidation, 6, 0, 1, -1);
     layout->setRowMinimumHeight(6, 20);
+#endif
 
     setLayout(layout);
 
-
+#ifdef CUSTOM_SYSTEM_LOCATION
     connect(chooseDirectoryButton, &QPushButton::clicked, this, &NameAndLocationPage::chooseDirectoryLocation);
+#endif
 }
 
 int
@@ -286,6 +296,7 @@ NameAndLocationPage::nextId() const
     return VMManagerAddMachine::Page_Conclusion;
 }
 
+#ifdef CUSTOM_SYSTEM_LOCATION
 void
 NameAndLocationPage::chooseDirectoryLocation()
 {
@@ -294,23 +305,31 @@ NameAndLocationPage::chooseDirectoryLocation()
     systemLocation->setText(QDir::toNativeSeparators(directory));
     emit completeChanged();
 }
+#endif
 bool
 NameAndLocationPage::isComplete() const
 {
     bool nameValid     = false;
+#ifdef CUSTOM_SYSTEM_LOCATION
     bool locationValid = false;
+#endif
     // return true if complete
     if (systemName->text().isEmpty()) {
         systemNameValidation->setText(tr("Please enter a system name"));
+#ifdef CUSTOM_SYSTEM_LOCATION
     } else if (!systemName->text().contains(dirValidate)) {
         systemNameValidation->setText(tr("System name cannot contain certain characters"));
     } else if (const QDir newDir = QDir::cleanPath(systemLocation->text() + "/" + systemName->text()); newDir.exists()) {
+#else
+    } else if (const QDir newDir = QDir::cleanPath(QString(vmm_path) + "/" + systemName->text()); newDir.exists()) {
+#endif
         systemNameValidation->setText(tr("System name already exists"));
     } else {
         systemNameValidation->clear();
         nameValid = true;
     }
 
+#ifdef CUSTOM_SYSTEM_LOCATION
     if (systemLocation->text().isEmpty()) {
         systemLocationValidation->setText(tr("Please enter a directory for the system"));
     } else if (const auto dir = QDir(systemLocation->text()); !dir.exists()) {
@@ -321,6 +340,9 @@ NameAndLocationPage::isComplete() const
     }
 
     return nameValid && locationValid;
+#else
+    return nameValid;
+#endif
 }
 bool
 NameAndLocationPage::eventFilter(QObject *watched, QEvent *event)
@@ -354,17 +376,21 @@ ConclusionPage(QWidget *parent)
     const auto systemNameLabel     = new QLabel(tr("System name:"));
     systemNameLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     systemName                     = new QLabel();
+#ifdef CUSTOM_SYSTEM_LOCATION
     const auto systemLocationLabel = new QLabel(tr("System location:"));
     systemLocationLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     systemLocation      = new QLabel();
+#endif
 
     const auto layout = new QGridLayout();
     layout->addWidget(topLabel, 0, 0, 1, -1);
     layout->setRowMinimumHeight(1, 20);
     layout->addWidget(systemNameLabel, 2, 0);
     layout->addWidget(systemName, 2, 1);
+#ifdef CUSTOM_SYSTEM_LOCATION
     layout->addWidget(systemLocationLabel, 3, 0);
     layout->addWidget(systemLocation, 3, 1);
+#endif
 
     setLayout(layout);
 }
@@ -373,10 +399,14 @@ ConclusionPage(QWidget *parent)
 void
 ConclusionPage::initializePage()
 {
+#ifdef CUSTOM_SYSTEM_LOCATION
     const auto finalPath = QDir::cleanPath(field("systemLocation").toString() + "/" + field("systemName").toString());
     const auto nativePath = QDir::toNativeSeparators(finalPath);
+#endif
     const auto systemNameDisplay = field("systemName").toString();
 
     systemName->setText(systemNameDisplay);
+#ifdef CUSTOM_SYSTEM_LOCATION
     systemLocation->setText(nativePath);
+#endif
 }
