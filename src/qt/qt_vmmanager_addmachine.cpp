@@ -110,7 +110,7 @@ IntroPage(QWidget *parent)
 
     newConfigRadioButton      = new QRadioButton(tr("New configuration"));
     // auto newDescription = new QLabel(tr("Choose this option to start with a fresh configuration."));
-    existingConfigRadioButton = new QRadioButton(tr("Use existing configuraion"));
+    existingConfigRadioButton = new QRadioButton(tr("Use existing configuration"));
     // auto existingDescription = new QLabel(tr("Use this option if you'd like to paste in the configuration file from an existing system."));
     newConfigRadioButton->setChecked(true);
 

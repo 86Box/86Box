@@ -618,7 +618,7 @@ pc_show_usage(char *s)
 #ifdef USE_INSTRUMENT
             "-J or --instrument name\t- set 'name' to be the profiling instrument\n"
 #endif
-            "-L or --logfile pat\t\t- set 'path' to be the logfile\n"
+            "-L or --logfile path\t\t- set 'path' to be the logfile\n"
             "-M or --missing\t\t- dump missing machines and video cards\n"
             "-N or --noconfirm\t\t- do not ask for confirmation on quit\n"
             "-P or --vmpath path\t\t- set 'path' to be root for vm\n"
