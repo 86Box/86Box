@@ -103,7 +103,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             });
             setSystemIcon.setEnabled(!selected_sysconfig->window_obscured);
 
-            QAction cloneMachine(tr("&Clone..."));
+            QAction cloneMachine(tr("C&lone..."));
             contextMenu.addAction(&cloneMachine);
             connect(&cloneMachine, &QAction::triggered, [this] {
                 QDialog dialog = QDialog(this);
