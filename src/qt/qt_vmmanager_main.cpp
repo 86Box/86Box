@@ -15,6 +15,8 @@
 *		Copyright 2024 cold-brewed
 */
 
+#include <QDirIterator>
+#include <QLabel>
 #include <QAbstractListModel>
 #include <QCompleter>
 #include <QDebug>
@@ -23,6 +25,11 @@
 #include <QMessageBox>
 #include <QStringListModel>
 #include <QTimer>
+#include <QProgressDialog>
+
+#include <filesystem>
+#include <thread>
+#include <atomic>
 
 #include "qt_vmmanager_main.hpp"
 #include "ui_qt_vmmanager_main.h"
@@ -95,6 +102,138 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
                 }
             });
             setSystemIcon.setEnabled(!selected_sysconfig->window_obscured);
+
+            QAction cloneMachine(tr("&Clone..."));
+            contextMenu.addAction(&cloneMachine);
+            connect(&cloneMachine, &QAction::triggered, [this] {
+                QDialog dialog = QDialog(this);
+                auto layout = new QVBoxLayout(&dialog);
+                layout->setSizeConstraint(QLayout::SetFixedSize);
+                layout->addWidget(new QLabel(tr("Virtual machine \"%1\" (%2) will be cloned into:").arg(selected_sysconfig->displayName, selected_sysconfig->config_dir)));
+                QLineEdit* edit = new QLineEdit(&dialog);
+                layout->addWidget(edit);
+                QLabel* errLabel = new QLabel(&dialog);
+                layout->addWidget(errLabel);
+                errLabel->setVisible(false);
+                QDialogButtonBox* buttonBox = new QDialogButtonBox(&dialog);
+                buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+                buttonBox->button(QDialogButtonBox::Ok)->setDisabled(true);
+                connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+                connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+                layout->addWidget(buttonBox);
+                connect(edit, &QLineEdit::textChanged, this, [this, errLabel, buttonBox] (const QString& text) {
+                    bool isSpaceOnly = true;
+#ifdef Q_OS_WINDOWS
+                    const char illegalChars[] = "<>:\"|?*\\/";
+#else
+                    const char illegalChars[] = "\\/";
+#endif
+                    for (const auto& curChar : text) {
+                        for (int i = 0; i < sizeof(illegalChars) - 1; i++) {
+                            if (illegalChars[i] == curChar) {
+                                goto illegal_chars;
+                            }
+                            if (!curChar.isSpace()) {
+                                isSpaceOnly = false;
+                            }
+                        }
+                    }
+                    errLabel->setVisible(false);
+                    buttonBox->button(QDialogButtonBox::Ok)->setDisabled(isSpaceOnly || text.isEmpty());
+                    if (QDir((QString(vmm_path) + "/") + text).exists() && buttonBox->button(QDialogButtonBox::Ok)->isEnabled()) {
+                        goto dir_already_exists;
+                    }
+                    return;
+dir_already_exists:
+                    errLabel->setText(tr("Directory %1 already exists").arg(QDir((QString(vmm_path) + "/") + text).canonicalPath()));
+                    errLabel->setVisible(true);
+                    buttonBox->button(QDialogButtonBox::Ok)->setDisabled(true);
+                    return;
+illegal_chars:
+                    QString illegalCharsDisplay;
+                    for (int i = 0; i < sizeof(illegalChars) - 1; i++) {
+                        illegalCharsDisplay.push_back(illegalChars[i]);
+                        illegalCharsDisplay.push_back(' ');
+                    }
+                    illegalCharsDisplay.chop(1);
+                    errLabel->setText(tr("You cannot use the following characters in the name: %1").arg(illegalCharsDisplay));
+                    errLabel->setVisible(true);
+                    buttonBox->button(QDialogButtonBox::Ok)->setDisabled(true);
+                    return;
+                });
+
+                if (dialog.exec() > 0) {
+                    std::atomic_bool finished{false};
+                    std::atomic_int errCode;
+                    auto vmDir = QDir(vmm_path).canonicalPath();
+                    vmDir.append("/");
+                    vmDir.append(edit->text());
+                    vmDir.append("/");
+
+                    if (!QDir(vmDir).mkpath(".")) {
+                        QMessageBox::critical(this, tr("Clone"), tr("Failed to create directory for cloned VM"), QMessageBox::Ok);
+                        return;
+                    }
+
+                    QProgressDialog* progDialog = new QProgressDialog(this);
+                    progDialog->setMaximum(0);
+                    progDialog->setMinimum(0);
+                    progDialog->setWindowFlags(progDialog->windowFlags() & ~Qt::WindowCloseButtonHint);
+                    progDialog->setFixedSize(progDialog->sizeHint());
+                    progDialog->setMinimumDuration(0);
+                    progDialog->setCancelButton(nullptr);
+                    progDialog->setAutoClose(false);
+                    progDialog->setAutoReset(false);
+                    progDialog->setAttribute(Qt::WA_DeleteOnClose, true);
+                    progDialog->setValue(0);
+                    progDialog->show();
+#ifdef _WIN32
+                    std::filesystem::path srcPath(selected_sysconfig->config_dir.toStdWString().c_str());
+                    std::filesystem::path dstPath(vmDir.toStdWString().c_str());
+#else
+                    std::filesystem::path srcPath(selected_sysconfig->config_dir.toUtf8().data());
+                    std::filesystem::path dstPath(vmDir.toUtf8().data());
+#endif
+                    std::thread copyThread([this, &finished, srcPath, dstPath, &errCode] {
+                        std::error_code code;
+                        code.clear();
+                        std::filesystem::copy(srcPath, dstPath, std::filesystem::copy_options::update_existing | std::filesystem::copy_options::recursive, code);
+                        errCode = code.value();
+                        finished = true;
+                    });
+                    while (!finished) {
+                        QApplication::processEvents();
+                    }
+                    copyThread.join();
+                    progDialog->close();
+                    if (errCode) {
+                        std::filesystem::remove_all(dstPath);
+                        QMessageBox::critical(this, tr("Clone"), tr("Failed to clone VM: %1").arg(errCode), QMessageBox::Ok);
+                        return;
+                    }
+
+                    QFileInfo configFileInfo(vmDir + CONFIG_FILE);
+                    if (configFileInfo.exists()) {
+                        const auto current_index = ui->listView->currentIndex();
+                        vm_model->reload(this);
+                        const auto created_object = vm_model->getIndexForConfigFile(configFileInfo);
+                        if (created_object.row() < 0) {
+                            // For some reason the index of the new object couldn't be determined. Fall back to the old index.
+                            ui->listView->setCurrentIndex(current_index);
+                            return;
+                        }
+                        auto added_system = vm_model->getConfigObjectForIndex(created_object);
+                        added_system->setDisplayName(edit->text());
+                        // Get the index of the newly-created system and select it
+                        const QModelIndex mapped_index = proxy_model->mapFromSource(created_object);
+                        ui->listView->setCurrentIndex(mapped_index);
+                    } else {
+                        std::filesystem::remove_all(dstPath);
+                        QMessageBox::critical(this, tr("Clone"), tr("Failed to clone VM for an unknown reason."), QMessageBox::Ok);
+                        return;
+                    }
+                }
+            });
 
             QAction killIcon(tr("&Kill"));
             contextMenu.addAction(&killIcon);
