@@ -302,7 +302,7 @@ static volatile atomic_int pause_ack = 0;
 
 #ifndef RELEASE_BUILD
 
-#define LOG_SIZE_BUFFER 1024            /* Log size buffer */
+#define LOG_SIZE_BUFFER 8192            /* Log size buffer */
 
 static char buff[LOG_SIZE_BUFFER];
 
@@ -363,8 +363,6 @@ pclog_ex(UNUSED(const char *fmt), UNUSED(va_list ap))
     fflush(stdlog);
 #endif
 }
-
-
 
 void
 pclog_toggle_suppr(void)
