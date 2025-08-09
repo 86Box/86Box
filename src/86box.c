@@ -643,7 +643,7 @@ pc_show_usage(char *s)
 #ifdef SHOW_EXTRA_PARAMS
             "-Y or --donothing\t\t- do not show any UI or run the emulation\n"
 #endif
-            "-Z or --lastvmpath\t\t- the last parameter is VM path rather than config\n"
+            "-Z or --lastvmpath\t\t- the last param. is VM path rather than config\n"
             "\nA config file can be specified. If none is, the default file will be used.\n",
             s);
 
