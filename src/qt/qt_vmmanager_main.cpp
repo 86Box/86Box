@@ -211,7 +211,7 @@ illegal_chars:
 
                 if (dialog.exec() > 0) {
                     std::atomic_bool finished{false};
-                    std::atomic_int errCode;
+                    std::atomic_bool errCode;
                     auto vmDir = QDir(vmm_path).canonicalPath();
                     vmDir.append("/");
                     vmDir.append(edit->text());
@@ -233,6 +233,7 @@ illegal_chars:
                     progDialog->setAutoReset(false);
                     progDialog->setAttribute(Qt::WA_DeleteOnClose, true);
                     progDialog->setValue(0);
+                    progDialog->setWindowTitle(tr("Clone"));
                     progDialog->show();
                     QString srcPath = selected_sysconfig->config_dir;
                     QString dstPath = vmDir;
@@ -246,9 +247,9 @@ illegal_chars:
                     }
                     copyThread.join();
                     progDialog->close();
-                    if (errCode) {
+                    if (!errCode) {
                         QDir(dstPath).removeRecursively();
-                        QMessageBox::critical(this, tr("Clone"), tr("Failed to clone VM: %1").arg(errCode), QMessageBox::Ok);
+                        QMessageBox::critical(this, tr("Clone"), tr("Failed to clone VM."), QMessageBox::Ok);
                         return;
                     }
 
@@ -269,7 +270,7 @@ illegal_chars:
                         ui->listView->setCurrentIndex(mapped_index);
                     } else {
                         QDir(dstPath).removeRecursively();
-                        QMessageBox::critical(this, tr("Clone"), tr("Failed to clone VM for an unknown reason."), QMessageBox::Ok);
+                        QMessageBox::critical(this, tr("Clone"), tr("Failed to clone VM."), QMessageBox::Ok);
                         return;
                     }
                 }
