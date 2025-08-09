@@ -366,7 +366,8 @@ et4000w32p_in(uint16_t addr, void *priv)
             }
             return svga->crtc[svga->crtcreg];
 
-        case 0x3da:
+        case 0x3da: {
+            uint8_t ret = 0xff;
             svga->attrff = 0;
 
             /*Bit 1 of the Input Status Register is required by the OS/2 and NT ET4000W32/I drivers to be set otherwise
@@ -375,7 +376,18 @@ et4000w32p_in(uint16_t addr, void *priv)
                 svga->cgastat &= ~0x32;
             else
                 svga->cgastat ^= 0x32;
-            return svga->cgastat;
+
+            ret = svga->cgastat;
+
+            if ((svga->fcr & 0x08) && svga->dispon)
+                ret |= 0x08;
+
+            if (ret & 0x08)
+                ret &= 0x7f;
+            else
+                ret |= 0x80;
+            return ret;
+        }
 
         case 0x210a:
         case 0x211a:
@@ -455,19 +467,19 @@ et4000w32p_recalctimings(svga_t *svga)
 
     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((svga->miscout >> 2) & 3, svga->clock_gen);
 
-    if (et4000->type != ET4000W32P_DIAMOND) {
+    if (et4000->type != ET4000W32P_DIAMOND && et4000->type != ET4000W32P_VIDEOMAGIC_REVB && et4000->type != ET4000W32P_CARDEX && et4000->type != ET4000W32P) {
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
             if (svga->gdcreg[5] & 0x40) {
                 switch (svga->bpp) {
                     case 8:
-                        svga->clock /= 2;
+                        svga->clock *= 2;
                         break;
                     case 15:
                     case 16:
-                        svga->clock /= 3;
+                        svga->clock *= 3;
                         break;
                     case 24:
-                        svga->clock /= 4;
+                        svga->clock *= 4;
                         break;
 
                     default:
