@@ -287,8 +287,8 @@ log_fatal(void *priv, const char *fmt, ...)
         free(log->cyclic_buff);
     }
 
-    va_start(ap, fmt);
     log_copy(log, fmt2, fmt, LOG_SIZE_BUFFER);
+    va_start(ap, fmt2);
     vsprintf(temp, fmt2, ap);
     fatal_ex(fmt2, ap);
     va_end(ap);
@@ -313,8 +313,8 @@ log_warning(void *priv, const char *fmt, ...)
         free(log->cyclic_buff);
     }
 
-    va_start(ap, fmt);
     log_copy(log, fmt2, fmt, LOG_SIZE_BUFFER);
+    va_start(ap, fmt2);
     vsprintf(temp, fmt2, ap);
     warning_ex(fmt2, ap);
     va_end(ap);
