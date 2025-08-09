@@ -288,10 +288,10 @@ log_fatal(void *priv, const char *fmt, ...)
     }
 
     log_copy(log, fmt2, fmt, LOG_SIZE_BUFFER);
-    va_start(ap, fmt2);
+    va_start(ap, fmt);
     vsprintf(temp, fmt2, ap);
-    fatal_ex(fmt2, ap);
     va_end(ap);
+    fatal(temp);
     exit(-1);
 }
 
@@ -314,10 +314,10 @@ log_warning(void *priv, const char *fmt, ...)
     }
 
     log_copy(log, fmt2, fmt, LOG_SIZE_BUFFER);
-    va_start(ap, fmt2);
+    va_start(ap, fmt);
     vsprintf(temp, fmt2, ap);
-    warning_ex(fmt2, ap);
     va_end(ap);
+    warning(temp, ap);
 }
 
 static void *
