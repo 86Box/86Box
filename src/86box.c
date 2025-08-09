@@ -300,9 +300,9 @@ static wchar_t mouse_msg[3][200];
 static volatile atomic_int do_pause_ack = 0;
 static volatile atomic_int pause_ack = 0;
 
-#ifndef RELEASE_BUILD
-
 #define LOG_SIZE_BUFFER 8192            /* Log size buffer */
+
+#ifndef RELEASE_BUILD
 
 static char buff[LOG_SIZE_BUFFER];
 
