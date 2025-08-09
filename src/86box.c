@@ -613,8 +613,10 @@ pc_show_usage(char *s)
             "-F or --fullscreen\t\t- start in fullscreen mode\n"
             "-G or --lang langid\t\t- start with specified language\n"
             "\t\t\t\t   (e.g. en-US, or system)\n"
+#ifdef SHOW_EXTRA_PARAMS
 #ifdef _WIN32
             "-H or --hwnd id,hwnd\t\t- sends back the main dialog's hwnd\n"
+#endif
 #endif
             "-I or --image d:path\t\t- load 'path' as floppy image on drive d\n"
 #ifdef USE_INSTRUMENT
