@@ -823,7 +823,7 @@ msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
-msgstr CH Flightstick Pro + CH Pedale"
+msgstr "CH Flightstick Pro + CH Pedale"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
