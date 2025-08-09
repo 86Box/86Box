@@ -385,11 +385,35 @@ pclog(UNUSED(const char *fmt), ...)
 #endif
 }
 
+/* Log something even in release builds. */
+void
+always_log(const char *fmt, ...)
+{
+    char    temp[LOG_SIZE_BUFFER];
+    va_list ap;
+
+    va_start(ap, fmt);
+
+    if (stdlog == NULL) {
+        if (log_path[0] != '\0') {
+            stdlog = plat_fopen(log_path, "w");
+            if (stdlog == NULL)
+                stdlog = stdout;
+        } else
+            stdlog = stdout;
+    }
+
+    vsprintf(temp, fmt, ap);
+    fprintf(stdlog, "%s", temp);
+    fflush(stdlog);
+    va_end(ap);
+}
+
 /* Log a fatal error, and display a UI message before exiting. */
 void
 fatal(const char *fmt, ...)
 {
-    char    temp[1024];
+    char    temp[LOG_SIZE_BUFFER];
     va_list ap;
     char   *sp;
 
@@ -437,7 +461,7 @@ fatal(const char *fmt, ...)
 void
 fatal_ex(const char *fmt, va_list ap)
 {
-    char  temp[1024];
+    char  temp[LOG_SIZE_BUFFER];
     char *sp;
 
     if (stdlog == NULL) {
@@ -480,7 +504,7 @@ fatal_ex(const char *fmt, va_list ap)
 void
 warning(const char *fmt, ...)
 {
-    char    temp[1024];
+    char    temp[LOG_SIZE_BUFFER];
     va_list ap;
     char   *sp;
 
@@ -516,7 +540,7 @@ warning(const char *fmt, ...)
 void
 warning_ex(const char *fmt, va_list ap)
 {
-    char  temp[1024];
+    char  temp[LOG_SIZE_BUFFER];
     char *sp;
 
     if (stdlog == NULL) {
@@ -651,7 +675,7 @@ pc_show_usage(char *s)
     ui_msgbox(MBX_ANSI | ((s == NULL) ? MBX_INFO : MBX_WARNING), p);
 #else
     if (s == NULL)
-        pclog("%s", p);
+        always_log("%s", p);
     else
         ui_msgbox(MBX_ANSI | MBX_WARNING, p);
 #endif
@@ -867,7 +891,7 @@ usage:
 
             lang_init = plat_language_code(argv[++c]);
             if (!lang_init)
-                printf("\nWarning: Invalid language code, ignoring --lang parameter.\n\n");
+                always_log("\nWarning: Invalid language code, ignoring --lang parameter.\n\n");
 
             // The return value of 0 only means that the code is invalid,
             //   not related to that translation is exists or not for the
