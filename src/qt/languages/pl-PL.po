@@ -984,7 +984,7 @@ msgstr "Obrazy kaset"
 msgid "Cartridge %1: %2"
 msgstr "Kartridż %1: %2"
 
-msgid "Cart&ridge %1: %2"
+msgid "Car&tridge %1: %2"
 msgstr "Kar&tridż %1: %2"
 
 msgid "Cartridge images"
@@ -1590,6 +1590,12 @@ msgstr "Adres"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr ""
+
+msgid "Parallel port IRQ"
+msgstr ""
+
 msgid "BIOS Revision"
 msgstr "Rewizja BIOS-u"
 
@@ -1814,6 +1820,9 @@ msgstr "Podnieś przerwanie CODEC podczas konfiguracji CODEC-a (wymagane przez n
 
 msgid "SB Address"
 msgstr "Adres SB"
+
+msgid "Adlib Address"
+msgstr ""
 
 msgid "Use EEPROM setting"
 msgstr "Użyj ustawień z EEPROM"

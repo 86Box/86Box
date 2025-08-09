@@ -1590,6 +1590,12 @@ msgstr "Endereço"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr "IRQ da Porta Serial"
+
+msgid "Parallel port IRQ"
+msgstr "IRQ da Porta Paralela"
+
 msgid "BIOS Revision"
 msgstr "Revisão do BIOS"
 
@@ -1813,7 +1819,10 @@ msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
 msgstr "Aumentar a interrupção do CODEC na configuração do CODEC (necessário para alguns drivers)"
 
 msgid "SB Address"
-msgstr "Endereço do SB"
+msgstr "Endereço da SB"
+
+msgid "Adlib Address"
+msgstr "Endereço da Adlib"
 
 msgid "Use EEPROM setting"
 msgstr "Usar configuração da EEPROM"
@@ -2467,16 +2476,16 @@ msgid "SoundFont files"
 msgstr "Arquivos SoundFont"
 
 msgid "Local Switch"
-msgstr ""
+msgstr "Switch Local"
 
 msgid "Remote Switch"
-msgstr ""
+msgstr "Switch Remoto"
 
 msgid "Switch:"
-msgstr ""
+msgstr "Switch:"
 
 msgid "Hub Mode"
-msgstr ""
+msgstr "Modo Hub"
 
 msgid "Hostname:"
-msgstr ""
+msgstr "Nome do Host:"

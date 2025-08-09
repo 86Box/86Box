@@ -103,17 +103,23 @@
 #  endif
 #endif
 
+/*
+   #ifdef this out because that code path does not currently produce the
+   correct results.
+ */
+#ifdef USE_ARMCRC32
 /* If available, use the ARM processor CRC32 instruction. */
 #if defined(__aarch64__) && defined(__ARM_FEATURE_CRC32) && W == 8
 #  define ARMCRC32
 #endif
+#endif
 
 #if defined(W) && (!defined(ARMCRC32) || defined(DYNAMIC_CRC_TABLE))
 /*
-  Swap the bytes in a word_t to convert between little and big endian. Any
-  self-respecting compiler will optimize this to a single machine byte-swap
-  instruction, if one is available. This assumes that word_t is either 32 bits
-  or 64 bits.
+   Swap the bytes in a word_t to convert between little and big endian. Any
+   self-respecting compiler will optimize this to a single machine byte-swap
+   instruction, if one is available. This assumes that word_t is either 32 bits
+   or 64 bits.
  */
 static word_t byte_swap(word_t word) {
 #  if W == 8

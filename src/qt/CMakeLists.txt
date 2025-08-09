@@ -62,6 +62,26 @@ if(APPLE AND USE_QT6)
     find_package(Qt6Gui/Qt6QICNSPlugin REQUIRED)
 endif()
 
+if (UNIX)
+    find_path(HAS_VDE "libvdeplug.h" PATHS ${VDE_INCLUDE_DIR} "/usr/include /usr/local/include" "/opt/homebrew/include" )
+    if(HAS_VDE)
+        find_library(VDE_LIB vdeplug)
+        if (NOT VDE_LIB)
+            message(WARNING "Could not find VDE. The library will not be bundled and any related features will be disabled.")
+        else()
+            add_compile_definitions(HAS_VDE)
+        endif()
+    endif()
+endif()
+if (UNIX AND NOT APPLE) # Support for TAP on Linux and BSD, supposedly.
+    find_path(HAS_TAP "linux/if_tun.h" PATHS ${TAP_INCLUDE_DIR} "/usr/include /usr/local/include" "/opt/homebrew/include" )
+    if(HAS_TAP)
+        add_compile_definitions(HAS_TAP)
+    else()
+        message(WARNING "TAP support not available. Are you on some BSD?")
+    endif()
+endif()
+
 add_library(plat STATIC
     qt.c
     qt_main.cpp

@@ -864,7 +864,7 @@ msgstr "%u MB (CHS値: %i、%i、%i)"
 msgid "Floppy %1 (%2): %3"
 msgstr "フロッピー %1 (%2): %3"
 
-msgid "Floppy %1 (%2): %3 (&F)"
+msgid "&Floppy %1 (%2): %3"
 msgstr "フロッピー %1 (%2): %3(&F)"
 
 msgid "Advanced sector images"
@@ -1590,6 +1590,12 @@ msgstr "アドレス"
 msgid "IRQ"
 msgstr "割り込み要求"
 
+msgid "Serial port IRQ"
+msgstr ""
+
+msgid "Parallel port IRQ"
+msgstr ""
+
 msgid "BIOS Revision"
 msgstr "BIOSリビジョン"
 
@@ -1814,6 +1820,9 @@ msgstr "CODECセットアップ時にCODEC割り込みを発生させる(一部�
 
 msgid "SB Address"
 msgstr "SBアドレス"
+
+msgid "Adlib Address"
+msgstr ""
 
 msgid "Use EEPROM setting"
 msgstr ""

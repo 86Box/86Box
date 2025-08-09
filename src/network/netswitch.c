@@ -454,7 +454,7 @@ ns_send_pb(NSCONN *conn, const netpkt_t *packet,int flags) {
             conn->stats.max_tx_packet = nc;
         }
         if(nc > MAX_FRAME_SEND_SIZE) {
-            conn->stats.total_fragments = fragment_count > 1 ? conn->stats.total_fragments += fragment_count : conn->stats.total_fragments;
+            conn->stats.total_fragments = fragment_count > 1 ? conn->stats.total_fragments + fragment_count : conn->stats.total_fragments;
         }
         conn->stats.total_tx_packets++;
         memcpy(conn->stats.last_tx_ethertype, &packet->data[12], 2);

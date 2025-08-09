@@ -888,8 +888,8 @@ msgstr "Không thể khởi tạo GhostPCL"
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
 
-msgid "M&O %1 (%2): %3"
-msgstr "M&O %1 (%2): %3"
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Ảnh đĩa MO"
@@ -1158,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1346,6 +1349,9 @@ msgstr "Trình điều khiển NULL"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Hành vi kết xuất"
@@ -1584,6 +1590,12 @@ msgstr "Địa chỉ"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr ""
+
+msgid "Parallel port IRQ"
+msgstr ""
+
 msgid "BIOS Revision"
 msgstr "Sửa đổi BIOS"
 
@@ -1808,6 +1820,9 @@ msgstr "Tăng ngắt CODEC trên thiết lập CODEC (cần bởi một số tr�
 
 msgid "SB Address"
 msgstr "Địa chỉ SB"
+
+msgid "Adlib Address"
+msgstr ""
 
 msgid "Use EEPROM setting"
 msgstr ""
@@ -2406,12 +2421,6 @@ msgstr ""
 msgid "Key Bindings:"
 msgstr ""
 
-msgid "Bind conflict"
-msgstr ""
-
-msgid "This key combo is already in use."
-msgstr ""
-
 msgid "Action"
 msgstr ""
 
@@ -2428,6 +2437,12 @@ msgid "Bind Key"
 msgstr ""
 
 msgid "Enter key combo:"
+msgstr ""
+
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
 msgstr ""
 
 msgid "Send Control+Alt+Del"

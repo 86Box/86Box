@@ -1158,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1346,6 +1349,9 @@ msgstr "Nulový ovládač"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Správanie pri vykresľovaní"
@@ -1584,6 +1590,12 @@ msgstr "Adresa"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr ""
+
+msgid "Parallel port IRQ"
+msgstr ""
+
 msgid "BIOS Revision"
 msgstr "Revízia systému BIOS"
 
@@ -1808,6 +1820,9 @@ msgstr "Zvýšenie prerušenia CODEC pri nastavení CODEC (potrebné v niektorý
 
 msgid "SB Address"
 msgstr "Adresa SB"
+
+msgid "Adlib Address"
+msgstr ""
 
 msgid "Use EEPROM setting"
 msgstr ""
