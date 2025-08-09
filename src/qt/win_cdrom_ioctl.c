@@ -49,6 +49,13 @@ typedef struct ioctl_t {
     WCHAR                   path[256];
 } ioctl_t;
 
+typedef struct _CDROM_FULL_TOC {
+  UCHAR                         Length[2];
+  UCHAR                         FirstCompleteSession;
+  UCHAR                         LastCompleteSession;
+  CDROM_TOC_FULL_TOC_DATA_BLOCK Descriptors[MAXIMUM_NUMBER_TRACKS + 2];
+} CDROM_FULL_TOC;
+
 static int ioctl_read_dvd_structure(const void *local, uint8_t layer, uint8_t format,
                                     uint8_t *buffer, uint32_t *info);
 
@@ -124,7 +131,7 @@ ioctl_read_normal_toc(ioctl_t *ioctl, uint8_t *toc_buf, int32_t *tracks_num)
 
     const int temp = DeviceIoControl(ioctl->handle, IOCTL_CDROM_READ_TOC_EX,
                                      &cur_read_toc_ex, sizeof(CDROM_READ_TOC_EX),
-                                     cur_full_toc, 65535,
+                                     cur_full_toc, sizeof(CDROM_TOC),
                                      (LPDWORD) &size, NULL);
     ioctl_log(ioctl->log, "temp = %i\n", temp);
 
@@ -179,7 +186,7 @@ ioctl_read_raw_toc(ioctl_t *ioctl)
     if (!ioctl->is_dvd) {
         status = DeviceIoControl(ioctl->handle, IOCTL_CDROM_READ_TOC_EX,
                                  &cur_read_toc_ex, sizeof(CDROM_READ_TOC_EX),
-                                 cur_full_toc, 65535,
+                                 cur_full_toc, sizeof(CDROM_FULL_TOC),
                                  (LPDWORD) &size, NULL);
         ioctl_log(ioctl->log, "status = %i\n", status);
     }

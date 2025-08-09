@@ -140,6 +140,18 @@ VMManagerModel::addConfigToModel(VMManagerSystem *system_config)
     connect(system_config, &VMManagerSystem::itemDataChanged, this, &VMManagerModel::modelDataChanged);
     endInsertRows();
 }
+
+void
+VMManagerModel::removeConfigFromModel(VMManagerSystem *system_config)
+{
+    const QModelIndex index = getIndexForConfigFile(system_config->config_file);
+    disconnect(system_config, &VMManagerSystem::itemDataChanged, this, &VMManagerModel::modelDataChanged);
+    beginRemoveRows(QModelIndex(), index.row(), index.row());
+    machines.remove(index.row());
+    endRemoveRows();
+    emit systemDataChanged();
+}
+
 void
 VMManagerModel::modelDataChanged()
 {

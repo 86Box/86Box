@@ -136,6 +136,7 @@ public:
     QProcess *process = new QProcess();
 
     bool window_obscured;
+    bool config_signal_connected = false;
 
     QString getDisplayValue(VMManager::Display::Name key);
     QFileInfoList getScreenshots();
