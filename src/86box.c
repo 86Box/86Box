@@ -595,7 +595,7 @@ extern void  device_find_all_descs(void);
 static void
 pc_show_usage(char *s)
 {
-    char p[4096] = { 0 };
+    char p[8192] = { 0 };
 
     sprintf(p,
             "\n%sUsage: 86box [options] [cfg-file]\n\n"
