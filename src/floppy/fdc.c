@@ -341,7 +341,8 @@ fdc_int(fdc_t *fdc, int set_fintr)
         ienable = !!(fdc->dor & 8);
 
     if (ienable) {
-        picint(1 << fdc->irq);
+        if (fdc->irq != 0xff)
+            picint(1 << fdc->irq);
 
         if (set_fintr)
             fdc->fintr = 1;
@@ -358,7 +359,7 @@ fdc_watchdog_poll(void *priv)
     if (fdc->watchdog_count)
         timer_advance_u64(&fdc->watchdog_timer, 1000 * TIMER_USEC);
     else {
-        if (fdc->dor & 0x20)
+        if ((fdc->dor & 0x20) && (fdc->irq != 0xff))
             picint(1 << fdc->irq);
     }
 }
