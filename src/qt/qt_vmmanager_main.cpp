@@ -27,7 +27,6 @@
 #include <QTimer>
 #include <QProgressDialog>
 
-#include <filesystem>
 #include <thread>
 #include <atomic>
 
@@ -35,6 +34,54 @@
 #include "ui_qt_vmmanager_main.h"
 #include "qt_vmmanager_model.hpp"
 #include "qt_vmmanager_addmachine.hpp"
+
+// https://stackoverflow.com/a/36460740
+bool copyPath(QString sourceDir, QString destinationDir, bool overWriteDirectory)
+{
+    QDir originDirectory(sourceDir);
+
+    if (! originDirectory.exists())
+    {
+        return false;
+    }
+
+    QDir destinationDirectory(destinationDir);
+
+    if(destinationDirectory.exists() && !overWriteDirectory)
+    {
+        return false;
+    }
+    else if(destinationDirectory.exists() && overWriteDirectory)
+    {
+        destinationDirectory.removeRecursively();
+    }
+
+    originDirectory.mkpath(destinationDir);
+
+    foreach (QString directoryName, originDirectory.entryList(QDir::Dirs | \
+                                                              QDir::NoDotAndDotDot))
+    {
+        QString destinationPath = destinationDir + "/" + directoryName;
+        originDirectory.mkpath(destinationPath);
+        copyPath(sourceDir + "/" + directoryName, destinationPath, overWriteDirectory);
+    }
+
+    foreach (QString fileName, originDirectory.entryList(QDir::Files))
+    {
+        QFile::copy(sourceDir + "/" + fileName, destinationDir + "/" + fileName);
+    }
+
+    /*! Possible race-condition mitigation? */
+    QDir finalDestination(destinationDir);
+    finalDestination.refresh();
+
+    if(finalDestination.exists())
+    {
+        return true;
+    }
+
+    return false;
+}
 
 VMManagerMain::VMManagerMain(QWidget *parent) :
     QWidget(parent), ui(new Ui::VMManagerMain), selected_sysconfig(new VMManagerSystem) {
@@ -187,18 +234,11 @@ illegal_chars:
                     progDialog->setAttribute(Qt::WA_DeleteOnClose, true);
                     progDialog->setValue(0);
                     progDialog->show();
-#ifdef _WIN32
-                    std::filesystem::path srcPath(selected_sysconfig->config_dir.toStdWString().c_str());
-                    std::filesystem::path dstPath(vmDir.toStdWString().c_str());
-#else
-                    std::filesystem::path srcPath(selected_sysconfig->config_dir.toUtf8().data());
-                    std::filesystem::path dstPath(vmDir.toUtf8().data());
-#endif
+                    QString srcPath = selected_sysconfig->config_dir;
+                    QString dstPath = vmDir;
+
                     std::thread copyThread([this, &finished, srcPath, dstPath, &errCode] {
-                        std::error_code code;
-                        code.clear();
-                        std::filesystem::copy(srcPath, dstPath, std::filesystem::copy_options::update_existing | std::filesystem::copy_options::recursive, code);
-                        errCode = code.value();
+                        errCode = copyPath(srcPath, dstPath, true);
                         finished = true;
                     });
                     while (!finished) {
@@ -207,7 +247,7 @@ illegal_chars:
                     copyThread.join();
                     progDialog->close();
                     if (errCode) {
-                        std::filesystem::remove_all(dstPath);
+                        QDir(dstPath).removeRecursively();
                         QMessageBox::critical(this, tr("Clone"), tr("Failed to clone VM: %1").arg(errCode), QMessageBox::Ok);
                         return;
                     }
@@ -228,7 +268,7 @@ illegal_chars:
                         const QModelIndex mapped_index = proxy_model->mapFromSource(created_object);
                         ui->listView->setCurrentIndex(mapped_index);
                     } else {
-                        std::filesystem::remove_all(dstPath);
+                        QDir(dstPath).removeRecursively();
                         QMessageBox::critical(this, tr("Clone"), tr("Failed to clone VM for an unknown reason."), QMessageBox::Ok);
                         return;
                     }
