@@ -1093,7 +1093,7 @@ msgid "Use regular expressions in search box"
 msgstr "Использовать регулярные выражения в поле поиска"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 машина(ы) в настоящее время активна(ы). Вы уверены, что все равно хотите выйти из менеджера виртуальной машины?"
+msgstr "%1 машина(ы) в настоящее время активна(ы). Вы уверены, что всё равно хотите выйти из менеджера виртуальной машины?"
 
 msgid "Add new system wizard"
 msgstr "Добавить новый мастер системы"
