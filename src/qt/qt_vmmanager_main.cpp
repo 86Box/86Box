@@ -176,7 +176,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
                     const char illegalChars[] = "\\/";
 #endif
                     for (const auto& curChar : text) {
-                        for (int i = 0; i < sizeof(illegalChars) - 1; i++) {
+                        for (size_t i = 0; i < sizeof(illegalChars) - 1; i++) {
                             if (illegalChars[i] == curChar) {
                                 goto illegal_chars;
                             }
@@ -198,7 +198,7 @@ dir_already_exists:
                     return;
 illegal_chars:
                     QString illegalCharsDisplay;
-                    for (int i = 0; i < sizeof(illegalChars) - 1; i++) {
+                    for (size_t i = 0; i < sizeof(illegalChars) - 1; i++) {
                         illegalCharsDisplay.push_back(illegalChars[i]);
                         illegalCharsDisplay.push_back(' ');
                     }
