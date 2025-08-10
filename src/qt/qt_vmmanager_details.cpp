@@ -60,12 +60,15 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     ui->leftColumn->layout()->addWidget(networkSection);
     // ui->leftColumn->layout()->addWidget(createHorizontalLine());
 
-    inputSection = new VMManagerDetailSection(tr("Input Devices", "Header for Input section in VM Manager Details"));
+    inputSection = new VMManagerDetailSection(tr("Input devices", "Header for Input section in VM Manager Details"));
     ui->leftColumn->layout()->addWidget(inputSection);
     // ui->leftColumn->layout()->addWidget(createHorizontalLine());
 
     portsSection = new VMManagerDetailSection(tr("Ports", "Header for Input section in VM Manager Details"));
     ui->leftColumn->layout()->addWidget(portsSection);
+
+    otherSection = new VMManagerDetailSection(tr("Other devices", "Header for Other devices section in VM Manager Details"));
+    ui->leftColumn->layout()->addWidget(otherSection);
 
     // This is like adding a spacer
     leftColumnLayout->addStretch();
@@ -198,6 +201,30 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
     startPauseButton->setEnabled(true);
     configureButton->setEnabled(true);
 
+    updateConfig(passed_sysconfig);
+    updateScreenshots(passed_sysconfig);
+
+    ui->systemLabel->setText(passed_sysconfig->displayName);
+    ui->statusLabel->setText(sysconfig->process->processId() == 0 ?
+        tr("Not running") :
+        QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())));
+    ui->notesTextEdit->setPlainText(passed_sysconfig->notes);
+    ui->notesTextEdit->setEnabled(true);
+
+    disconnect(sysconfig->process, &QProcess::stateChanged, this, &VMManagerDetails::updateProcessStatus);
+    connect(sysconfig->process, &QProcess::stateChanged, this, &VMManagerDetails::updateProcessStatus);
+
+    disconnect(sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerDetails::updateWindowStatus);
+    connect(sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerDetails::updateWindowStatus);
+
+    disconnect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
+    connect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
+
+    updateProcessStatus();
+}
+
+void
+VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
     // Each detail section here has its own VMManagerDetailSection.
     // When a system is selected in the list view it is updated here, through this object:
     // * First you clear it with VMManagerDetailSection::clear()
@@ -221,7 +248,10 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
     storageSection->addSection("Disks", passed_sysconfig->getDisplayValue(Display::Name::Disks));
     storageSection->addSection("Floppy", passed_sysconfig->getDisplayValue(Display::Name::Floppy));
     storageSection->addSection("CD-ROM", passed_sysconfig->getDisplayValue(Display::Name::CD));
+    storageSection->addSection("Removable disks", passed_sysconfig->getDisplayValue(Display::Name::RDisk));
+    storageSection->addSection("MO", passed_sysconfig->getDisplayValue(Display::Name::MO));
     storageSection->addSection("SCSI", passed_sysconfig->getDisplayValue(Display::Name::SCSIController));
+    storageSection->addSection("Controllers", passed_sysconfig->getDisplayValue(Display::Name::StorageController));
 
     // Audio
     audioSection->clear();
@@ -234,14 +264,24 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
 
     // Input
     inputSection->clear();
+    inputSection->addSection(tr("Keyboard"), passed_sysconfig->getDisplayValue(Display::Name::Keyboard));
     inputSection->addSection(tr("Mouse"), passed_sysconfig->getDisplayValue(Display::Name::Mouse));
     inputSection->addSection(tr("Joystick"), passed_sysconfig->getDisplayValue(Display::Name::Joystick));
 
     // Ports
     portsSection->clear();
-    portsSection->addSection(tr("Serial Ports"), passed_sysconfig->getDisplayValue(Display::Name::Serial));
-    portsSection->addSection(tr("Parallel Ports"), passed_sysconfig->getDisplayValue(Display::Name::Parallel));
+    portsSection->addSection(tr("Serial ports"), passed_sysconfig->getDisplayValue(Display::Name::Serial));
+    portsSection->addSection(tr("Parallel ports"), passed_sysconfig->getDisplayValue(Display::Name::Parallel));
 
+    // Other devices
+    otherSection->clear();
+    otherSection->addSection(tr("ISA RTC"), passed_sysconfig->getDisplayValue(Display::Name::IsaRtc));
+    otherSection->addSection(tr("ISA RAM"), passed_sysconfig->getDisplayValue(Display::Name::IsaMem));
+    otherSection->addSection(tr("ISA ROM"), passed_sysconfig->getDisplayValue(Display::Name::IsaRom));
+}
+
+void
+VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig) {
     // Disable screenshot navigation buttons by default
     ui->screenshotNext->setEnabled(false);
     ui->screenshotPrevious->setEnabled(false);
@@ -286,24 +326,6 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
         }
 #endif
     }
-
-    ui->systemLabel->setText(passed_sysconfig->displayName);
-    ui->statusLabel->setText(sysconfig->process->processId() == 0 ?
-        tr("Not running") :
-        QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())));
-    ui->notesTextEdit->setPlainText(passed_sysconfig->notes);
-    ui->notesTextEdit->setEnabled(true);
-
-    disconnect(sysconfig->process, &QProcess::stateChanged, this, &VMManagerDetails::updateProcessStatus);
-    connect(sysconfig->process, &QProcess::stateChanged, this, &VMManagerDetails::updateProcessStatus);
-
-    disconnect(sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerDetails::updateWindowStatus);
-    connect(sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerDetails::updateWindowStatus);
-
-    disconnect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
-    connect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
-
-    updateProcessStatus();
 }
 
 void

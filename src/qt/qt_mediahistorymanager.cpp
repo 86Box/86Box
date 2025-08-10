@@ -21,6 +21,9 @@
 #include <QStringBuilder>
 #include <utility>
 #include "qt_mediahistorymanager.hpp"
+#ifdef Q_OS_WINDOWS
+#include <windows.h>
+#endif
 
 extern "C" {
 #include <86box/timer.h>
@@ -30,7 +33,7 @@ extern "C" {
 #include <86box/fdd.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
-#include <86box/zip.h>
+#include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/path.h>
 }
@@ -111,8 +114,8 @@ MediaHistoryManager::maxDevicesSupported(ui::MediaType type)
             return CDROM_NUM;
         case ui::MediaType::Floppy:
             return FDD_NUM;
-        case ui::MediaType::Zip:
-            return ZIP_NUM;
+        case ui::MediaType::RDisk:
+            return RDISK_NUM;
         case ui::MediaType::Mo:
             return MO_NUM;
         case ui::MediaType::Cassette:
@@ -197,14 +200,16 @@ MediaHistoryManager::initialDeduplication()
                 case ui::MediaType::Optical:
                     current_image = cdrom[device_index].image_path;
                     break;
-                case ui::MediaType::Zip:
-                    current_image = zip_drives[device_index].image_path;
+                case ui::MediaType::RDisk:
+                    current_image = rdisk_drives[device_index].image_path;
                     break;
                 case ui::MediaType::Mo:
                     current_image = mo_drives[device_index].image_path;
                     break;
             }
             deduplicateList(device_history, QVector<QString>(1, current_image));
+            device_history = removeMissingImages(device_history);
+            device_history = pathAdjustFull(device_history);
             // Fill in missing, if any
             int missing = MAX_PREV_IMAGES - device_history.size();
             if (missing) {
@@ -213,6 +218,7 @@ MediaHistoryManager::initialDeduplication()
                 }
             }
             setHistoryListForDeviceIndex(device_index, device_type, device_history);
+            serializeImageHistoryType(device_type);
         }
     }
 }
@@ -231,8 +237,8 @@ MediaHistoryManager::getEmuHistoryVarForType(ui::MediaType type, int index)
             return &fdd_image_history[index][0];
         case ui::MediaType::Optical:
             return &cdrom[index].image_history[0];
-        case ui::MediaType::Zip:
-            return &zip_drives[index].image_history[0];
+        case ui::MediaType::RDisk:
+            return &rdisk_drives[index].image_history[0];
         case ui::MediaType::Mo:
             return &mo_drives[index].image_history[0];
     }
@@ -343,24 +349,42 @@ MediaHistoryManager::removeMissingImages(device_index_list_t &device_history)
 
         char temp[MAX_IMAGE_PATH_LEN * 2] = { 0 };
 
-        if (path_abs(checked_path.toUtf8().data())) {
-            if (checked_path.length() > (MAX_IMAGE_PATH_LEN - 1))
-                fatal("removeMissingImages(): checked_path.length() > %i\n", MAX_IMAGE_PATH_LEN - 1);
-            else
-                snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s", checked_path.toUtf8().constData());
+        if (checked_path.left(8) == "ioctl://") {
+            strncpy(temp, checked_path.toUtf8().data(), sizeof(temp));
+            temp[sizeof(temp) - 1] = '\0';
         } else {
-            if ((strlen(usr_path) + strlen(path_get_slash(usr_path)) + checked_path.length()) > (MAX_IMAGE_PATH_LEN - 1))
-                fatal("removeMissingImages(): Combined absolute path length > %i\n", MAX_IMAGE_PATH_LEN - 1);
+            QString path_only;
+            if (checked_path.left(5) == "wp://")
+                path_only = checked_path.right(checked_path.length() - 5);
             else
-                snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
-                         path_get_slash(usr_path), checked_path.toUtf8().constData());
+                path_only = checked_path;
+
+            if (path_abs(path_only.toUtf8().data())) {
+                if (path_only.length() > (MAX_IMAGE_PATH_LEN - 1))
+                    fatal("removeMissingImages(): path_only.length() > %i\n", MAX_IMAGE_PATH_LEN - 1);
+                else
+                    snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s", path_only.toUtf8().constData());
+            } else {
+                if ((strlen(usr_path) + strlen(path_get_slash(usr_path)) + path_only.length()) > (MAX_IMAGE_PATH_LEN - 1))
+                    fatal("removeMissingImages(): Combined absolute path length > %i\n", MAX_IMAGE_PATH_LEN - 1);
+                else
+                    snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
+                             path_get_slash(usr_path), path_only.toUtf8().constData());
+            }
+            path_normalize(temp);
         }
-        path_normalize(temp);
 
         QString qstr = QString::fromUtf8(temp);
         QFileInfo new_fi(qstr);
 
-        if ((new_fi.filePath().left(8) != "ioctl://") && !new_fi.exists()) {
+        bool file_exists = new_fi.exists();
+
+#ifdef Q_OS_WINDOWS
+        if (new_fi.filePath().left(8) == "ioctl://")
+            file_exists = (GetDriveType(new_fi.filePath().right(2).toUtf8().data()) == DRIVE_CDROM);
+#endif
+
+        if (!file_exists) {
             qWarning("Image file %s does not exist - removing from history", qPrintable(new_fi.filePath()));
             checked_path = "";
         }

@@ -223,6 +223,11 @@ extern uint8_t     fdc_get_diswr(fdc_t *fdc);
 extern void        fdc_set_diswr(fdc_t *fdc, uint8_t diswr);
 extern uint8_t     fdc_get_swap(fdc_t *fdc);
 extern void        fdc_set_swap(fdc_t *fdc, uint8_t swap);
+extern void        fdc_set_flags(fdc_t *fdc, int flags);
+extern void        fdc_clear_flags(fdc_t *fdc, int flags);
+extern void        fdc_set_fdd_changed(int drive, int changed);
+extern uint8_t     fdc_get_fdd_changed(int drive);
+extern uint8_t     fdc_get_shadow(fdc_t *fdc);
 
 extern void fdc_finishcompare(fdc_t *fdc, int satisfying);
 extern void fdc_finishread(fdc_t *fdc);

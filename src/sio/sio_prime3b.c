@@ -66,8 +66,9 @@ typedef struct prime3b_t {
     uint16_t com4_addr;
 
     fdc_t    *fdc_controller;
-    serial_t *uart[2];
 
+    serial_t *uart[2];
+    lpt_t    *lpt;
 } prime3b_t;
 
 void prime3b_fdc_handler(prime3b_t *dev);
@@ -175,9 +176,9 @@ void
 prime3b_lpt_handler(prime3b_t *dev)
 {
     uint16_t lpt_base = (ASR & 2) ? LPT_MDA_ADDR : (!(ASR & 1) ? LPT1_ADDR : LPT2_ADDR);
-    lpt1_remove();
-    lpt1_setup(lpt_base);
-    lpt1_irq(LPT1_IRQ);
+    lpt_port_remove(dev->lpt);
+    lpt_port_setup(dev->lpt, lpt_base);
+    lpt_port_irq(dev->lpt, LPT1_IRQ);
     prime3b_log("Prime3B-LPT: Enabled with base %03x\n", lpt_base);
 }
 
@@ -210,7 +211,7 @@ prime3b_enable(prime3b_t *dev)
             Note: 86Box LPT is simplistic and can't do ECP or EPP.
     */
 
-    !(FSR & 3) ? prime3b_lpt_handler(dev) : lpt1_remove();
+    !(FSR & 3) ? prime3b_lpt_handler(dev) : lpt_port_remove(dev->lpt);
     (FSR & 4) ? prime3b_uart_handler(0, dev) : serial_remove(dev->uart[0]);
     (FSR & 8) ? prime3b_uart_handler(1, dev) : serial_remove(dev->uart[1]);
     (FSR & 0x10) ? prime3b_fdc_handler(dev) : fdc_remove(dev->fdc_controller);
@@ -240,7 +241,7 @@ prime3b_powerdown(prime3b_t *dev)
         serial_remove(dev->uart[1]);
 
     if (PDR & 0x10)
-        lpt1_remove();
+        lpt_port_remove(dev->lpt);
 
     if (PDR & 1)
         PDR = old_base;
@@ -267,6 +268,7 @@ prime3b_init(const device_t *info)
     dev->fdc_controller = device_add(&fdc_at_device);
     dev->uart[0]        = device_add_inst(&ns16550_device, 1);
     dev->uart[1]        = device_add_inst(&ns16550_device, 2);
+    dev->lpt            = device_add_inst(&lpt_port_device, 1);
     if (HAS_IDE_FUNCTIONALITY)
         device_add(&ide_isa_device);
 

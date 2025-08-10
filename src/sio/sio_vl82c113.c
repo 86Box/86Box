@@ -143,7 +143,7 @@ vl82c113_init(UNUSED(const device_t *info))
     dev->nvr_base    = 0x0070;
 
     /* Commands are standard. */
-    dev->kbc         = device_add(&keyboard_at_device);
+    dev->kbc         = device_add(&kbc_at_device);
 
     vl82c113_reset(dev);
 

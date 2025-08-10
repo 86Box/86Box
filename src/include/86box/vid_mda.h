@@ -119,7 +119,8 @@ typedef struct mda_t {
     int32_t     prev_monitor_index;
     int32_t     monitor_type;           // Used for MDA Colour support (REV0 u64)
 
-    uint8_t *vram;
+    uint8_t    *vram;
+    lpt_t      *lpt;
 } mda_t;
 
 #define VIDEO_MONITOR_PROLOGUE()                        \

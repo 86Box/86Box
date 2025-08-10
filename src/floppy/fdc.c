@@ -335,14 +335,18 @@ fdc_int(fdc_t *fdc, int set_fintr)
 {
     int ienable = 0;
 
-    if (!(fdc->flags & FDC_FLAG_PCJR))
+    if (fdc->flags & FDC_FLAG_PS2_MCA)
+        ienable = 1;
+    else if (!(fdc->flags & FDC_FLAG_PCJR))
         ienable = !!(fdc->dor & 8);
 
-    if (ienable)
-        picint(1 << fdc->irq);
+    if (ienable) {
+        if (fdc->irq != 0xff)
+            picint(1 << fdc->irq);
 
-    if (set_fintr)
-        fdc->fintr = 1;
+        if (set_fintr)
+            fdc->fintr = 1;
+    }
     fdc_log("fdc_int(%i): fdc->fintr = %i\n", set_fintr, fdc->fintr);
 }
 
@@ -355,7 +359,7 @@ fdc_watchdog_poll(void *priv)
     if (fdc->watchdog_count)
         timer_advance_u64(&fdc->watchdog_timer, 1000 * TIMER_USEC);
     else {
-        if (fdc->dor & 0x20)
+        if ((fdc->dor & 0x20) && (fdc->irq != 0xff))
             picint(1 << fdc->irq);
     }
 }
@@ -433,6 +437,44 @@ void
 fdc_set_media_id(fdc_t *fdc, int id, int set)
 {
     fdc->media_id = (fdc->media_id & ~(1 << id)) | (set << id);
+}
+
+void
+fdc_set_flags(fdc_t *fdc, int flags)
+{
+    fdc->flags |= flags;
+}
+
+void
+fdc_clear_flags(fdc_t *fdc, int flags)
+{
+    fdc->flags &= ~flags;
+}
+
+void
+fdc_set_fdd_changed(int drive, int changed)
+{
+    if (changed)
+        fdd_changed[drive] = 1;
+}
+
+uint8_t
+fdc_get_fdd_changed(int drive)
+{
+    uint8_t ret = !!fdd_changed[drive];
+
+    return ret;
+}
+
+uint8_t
+fdc_get_shadow(fdc_t *fdc)
+{
+    uint8_t ret = (fdc->rate & 0x03) |
+                  ((fdc->pretrk & 0x07) << 2) |
+                  (fdc->power_down ? 0x40 : 0x00) |
+                  ((fdc_read(0x03f2, fdc) & 0x04) ? 0x80 : 0x00);
+
+    return ret;
 }
 
 int
@@ -762,9 +804,17 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 fdc->st0 &= ~0x07;
                 fdc->st0 |= (fdd_get_head(0) ? 4 : 0);
             } else {
-                if (!(val & 8) && (fdc->dor & 8)) {
-                    fdc->tc = 1;
-                    fdc_int(fdc, 1);
+                /*
+                   Writing this bit to logic "1" will enable the DRQ,
+                   nDACK, TC and FINTR outputs. This bit being a
+                   logic "0" will disable the nDACK and TC inputs, and
+                   hold the DRQ and FINTR outputs in a high
+                   impedance state.
+                 */
+                if (!(val & 8) && (fdc->dor & 8) && !(fdc->flags & FDC_FLAG_PS2_MCA)) {
+                    fdc->tc    = 1;
+                    fdc->fintr = 0;
+                    picintc(1 << fdc->irq);
                 }
                 if (!(val & 4)) {
                     fdd_stop(real_drive(fdc, val & 3));

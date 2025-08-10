@@ -98,8 +98,6 @@ machine_init_ex(int m)
         mem_reset();
         smbase = is_am486dxl ? 0x00060000 : 0x00030000;
 
-        lpt_init();
-
         if (cassette_enable)
             device_add(&cassette_device);
 

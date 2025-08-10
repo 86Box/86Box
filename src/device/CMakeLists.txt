@@ -38,6 +38,7 @@ add_library(dev OBJECT
     isapnp.c
     kbc_at.c
     kbc_at_dev.c
+    kbc_xt.c
     keyboard.c
     keyboard_at.c
     keyboard_xt.c
@@ -47,6 +48,7 @@ add_library(dev OBJECT
     mouse_microtouch_touchscreen.c
     mouse_ps2.c
     mouse_serial.c
+    mouse_upc.c
     nec_mate_unk.c
     novell_cardkey.c
     pci_bridge.c

@@ -64,10 +64,11 @@ typedef struct pc87310_t {
     uint8_t   regs[2];
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t    *lpt;
 } pc87310_t;
 
 static void
-lpt1_handler(pc87310_t *dev)
+lpt_handler(pc87310_t *dev)
 {
     int      temp;
     uint16_t lpt_port = LPT1_ADDR;
@@ -81,7 +82,7 @@ lpt1_handler(pc87310_t *dev)
      */
     temp = dev->regs[1] & 0x03;
 
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
 
     switch (temp) {
         case 0:
@@ -103,9 +104,9 @@ lpt1_handler(pc87310_t *dev)
     }
 
     if (lpt_port)
-        lpt1_setup(lpt_port);
+        lpt_port_setup(dev->lpt, lpt_port);
 
-    lpt1_irq(lpt_irq);
+    lpt_port_irq(dev->lpt, lpt_irq);
 }
 
 static void
@@ -187,7 +188,7 @@ pc87310_write(UNUSED(uint16_t port), uint8_t val, void *priv)
             /* Reconfigure parallel port. */
             if (valxor & 0x03)
                 /* Bits 1, 0: 1, 1 = Disable parallel port. */
-                lpt1_handler(dev);
+                lpt_handler(dev);
 
             /* Reconfigure serial ports. */
             if (valxor & 0x1c)
@@ -253,7 +254,7 @@ pc87310_reset(pc87310_t *dev)
 
     dev->tries   = 0;
 
-    lpt1_handler(dev);
+    lpt_handler(dev);
     serial_handler(dev);
     if (dev->flags & PC87310_IDE) {
         ide_pri_disable();
@@ -282,6 +283,8 @@ pc87310_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16450_device, 1);
     dev->uart[1] = device_add_inst(&ns16450_device, 2);
+
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
 
     if (dev->flags & PC87310_IDE)
         device_add((dev->flags & PC87310_ALI) ? &ide_vlb_device : &ide_isa_device);

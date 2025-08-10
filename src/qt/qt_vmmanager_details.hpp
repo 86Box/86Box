@@ -55,6 +55,7 @@ private:
     VMManagerDetailSection *networkSection;
     VMManagerDetailSection *inputSection;
     VMManagerDetailSection *portsSection;
+    VMManagerDetailSection *otherSection;
 
     QFileInfoList screenshots;
     int           screenshotIndex = 0;
@@ -67,6 +68,8 @@ private:
     QToolButton *configureButton;
     QToolButton *cadButton;
 
+    void updateConfig(VMManagerSystem *passed_sysconfig);
+    void updateScreenshots(VMManagerSystem *passed_sysconfig);
     static QWidget* createHorizontalLine(int leftSpacing = 25, int rightSpacing = 25);
     // QVBoxLayout *detailsLayout;
 private slots:

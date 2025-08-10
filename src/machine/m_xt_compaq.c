@@ -52,14 +52,15 @@ machine_xt_compaq_deskpro_init(const machine_t *model)
 
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
-    device_add(&keyboard_xt_compaq_device);
+    device_add(&kbc_xt_compaq_device);
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_xt_device);
     nmi_init();
-    standalone_gameport_type = &gameport_device;
+    standalone_gameport_type = &gameport_200_device;
 
-    lpt1_remove();
-    lpt1_setup(LPT_MDA_ADDR);
+    lpt_t *lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_port_setup(lpt, LPT_MDA_ADDR);
+    lpt_set_3bc_used(1);
 
     return ret;
 }
@@ -79,15 +80,16 @@ machine_xt_compaq_portable_init(const machine_t *model)
 
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
-    device_add(&keyboard_xt_compaq_device);
+    device_add(&kbc_xt_compaq_device);
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_xt_device);
     nmi_init();
     if (joystick_type)
-        device_add(&gameport_device);
+        device_add(&gameport_200_device);
 
-    lpt1_remove();
-    lpt1_setup(LPT_MDA_ADDR);
+    lpt_t *lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_port_setup(lpt, LPT_MDA_ADDR);
+    lpt_set_3bc_used(1);
 
     return ret;
 }

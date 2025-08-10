@@ -38,6 +38,7 @@ typedef struct acc3221_t {
     uint8_t   regs[256];
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t    *lpt;
 } acc3221_t;
 
 /* Configuration Register Index, BE (R/W):
@@ -302,10 +303,10 @@ typedef struct acc3221_t {
 static void
 acc3221_lpt_handle(acc3221_t *dev)
 {
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
 
     if (!(dev->regs[0xbe] & REG_BE_LPT1_DISABLE))
-        lpt1_setup(dev->regs[0xbf] << 2);
+        lpt_port_setup(dev->lpt, dev->regs[0xbf] << 2);
 }
 
 static void
@@ -436,9 +437,10 @@ acc3221_reset(acc3221_t *dev)
     serial_remove(dev->uart[1]);
     serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
-    lpt1_remove();
-    lpt1_setup(LPT1_ADDR);
-    lpt1_irq(LPT1_IRQ);
+    lpt_port_remove(dev->lpt);
+    lpt_port_setup(dev->lpt, LPT1_ADDR);
+
+    lpt_port_irq(dev->lpt, LPT1_IRQ);
 
     fdc_reset(dev->fdc);
 }
@@ -460,6 +462,8 @@ acc3221_init(UNUSED(const device_t *info))
 
     dev->uart[0] = device_add_inst(&ns16450_device, 1);
     dev->uart[1] = device_add_inst(&ns16450_device, 2);
+
+    dev->lpt     = device_add_inst(&lpt_port_device, 1);
 
     io_sethandler(0x00f2, 0x0002, acc3221_read, NULL, NULL, acc3221_write, NULL, NULL, dev);
 

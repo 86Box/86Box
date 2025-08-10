@@ -27,8 +27,11 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Pausa"
 
-msgid "E&xit..."
-msgstr "&Sortir ..."
+msgid "Re&sume"
+msgstr ""
+
+msgid "E&xit"
+msgstr "&Sortir"
 
 msgid "&View"
 msgstr "&Vista"
@@ -60,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "E&specificar dimensions ..."
 
 msgid "F&orce 4:3 display ratio"
@@ -99,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "&Mètode de filtrat"
 
 msgid "&Nearest"
@@ -144,8 +147,14 @@ msgstr "&Tipus de pantalla VGA"
 msgid "RGB &Color"
 msgstr "RGB &Color"
 
+msgid "RGB (no brown)"
+msgstr ""
+
 msgid "&RGB Grayscale"
 msgstr "RGB &Grisos"
+
+msgid "Generic RGBI color monitor"
+msgstr ""
 
 msgid "&Amber monitor"
 msgstr "Monitor & Ambre"
@@ -384,6 +393,15 @@ msgstr "Activat (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Recopilador Dinàmic"
 
+msgid "CPU frame size"
+msgstr ""
+
+msgid "Larger frames (less smooth)"
+msgstr ""
+
+msgid "Smaller frames (smoother)"
+msgstr ""
+
 msgid "Video:"
 msgstr "Vídeo:"
 
@@ -398,6 +416,9 @@ msgstr "Gràfics IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Gràfics XGA"
+
+msgid "Keyboard:"
+msgstr ""
 
 msgid "Mouse:"
 msgstr "Ratolí:"
@@ -498,17 +519,20 @@ msgstr "Port paral·lel 3"
 msgid "Parallel port 4"
 msgstr "Port paral·lel 4"
 
-msgid "HD Controller:"
-msgstr "Controlador de HD:"
-
 msgid "FD Controller:"
 msgstr "Controlador de FD:"
+
+msgid "CD-ROM Controller:"
+msgstr ""
 
 msgid "Tertiary IDE Controller"
 msgstr "Controlador IDE terciari"
 
 msgid "Quaternary IDE Controller"
 msgstr "Controlador IDE quaternari"
+
+msgid "Hard disk"
+msgstr ""
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -530,6 +554,9 @@ msgstr "Casset"
 
 msgid "Hard disks:"
 msgstr "Discs durs:"
+
+msgid "Firmware Version"
+msgstr ""
 
 msgid "&New..."
 msgstr "&Nou ..."
@@ -588,8 +615,8 @@ msgstr "Unitats de CD-ROM:"
 msgid "MO drives:"
 msgstr "Unitats MO:"
 
-msgid "ZIP drives:"
-msgstr "Unitats ZIP:"
+msgid "Removable disk drives:"
+msgstr ""
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +626,9 @@ msgstr "ISA RTC:"
 
 msgid "ISA Memory Expansion"
 msgstr "Expansió de memòria ISA"
+
+msgid "ISA ROM Cards"
+msgstr ""
 
 msgid "Card 1:"
 msgstr "Targeta 1:"
@@ -611,6 +641,15 @@ msgstr "Targeta 3:"
 
 msgid "Card 4:"
 msgstr "Targeta 4:"
+
+msgid "Generic ISA ROM Board"
+msgstr ""
+
+msgid "Generic Dual ISA ROM Board"
+msgstr ""
+
+msgid "Generic Quad ISA ROM Board"
+msgstr ""
 
 msgid "ISABugger device"
 msgstr "Dispositiu ISABugger"
@@ -633,11 +672,17 @@ msgstr " - EN PAUSA"
 msgid "Speed"
 msgstr "Velocitat"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr ""
 
-msgid "ZIP images"
-msgstr "Imatges ZIP"
+msgid "&Removable disk %1 (%2): %3"
+msgstr ""
+
+msgid "Removable disk images"
+msgstr ""
+
+msgid "Image %1"
+msgstr ""
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box no ha pogut trobar cap imatge ROM utilitzable.\n\nSi us plau, <a href=\"https://github.com/86Box/roms/releases/latest\">descarregueu</a> un conjunt de ROM i extreu-lo al directori \"roms\"."
@@ -777,11 +822,38 @@ msgstr "Joystick de 4 eixes, 4 botons"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr ""
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr ""
+
+msgid "2-button gamepad(s)"
+msgstr ""
+
+msgid "2-button flight yoke"
+msgstr ""
+
+msgid "4-button gamepad"
+msgstr ""
+
+msgid "4-button flight yoke"
+msgstr ""
+
+msgid "2-button flight yoke with throttle"
+msgstr ""
+
+msgid "4-button flight yoke with throttle"
+msgstr ""
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr ""
 
 msgid "None"
 msgstr "Cap"
@@ -791,6 +863,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
 msgstr "Disquet %1 (%2): %3"
+
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Disquet %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Imatges avançates del sector"
@@ -812,6 +887,9 @@ msgstr "No es pot inicialitzar GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Imatges MO"
@@ -897,11 +975,17 @@ msgstr "Continuar"
 msgid "Cassette: %1"
 msgstr "Casset: %1"
 
+msgid "C&assette: %1"
+msgstr "C&asset: %1"
+
 msgid "Cassette images"
 msgstr "Imatges de casset"
 
 msgid "Cartridge %1: %2"
 msgstr "Cartutx %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Car&tutx %1: %2"
 
 msgid "Cartridge images"
 msgstr "Imatges de cartutx"
@@ -923,6 +1007,9 @@ msgstr "Reinicialització completa"
 
 msgid "ACPI shutdown"
 msgstr "Apagada ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Apagada ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Disc dur (%1)"
@@ -1071,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1209,41 +1299,41 @@ msgstr "Dispositius MCA"
 msgid "List of MCA devices:"
 msgstr "Lista de dispositius MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Eina de tauleta"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "Quant a Qt"
+msgid "About &Qt"
+msgstr "Quant a &Qt"
 
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Dispositius MCA ..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Mostrar monitors no primaris"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Obrir la carpeta de captures de pantalla ..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Apliqueu el mode d’estirament de pantalla completa en màxima"
 
-msgid "Cursor/Puck"
-msgstr "Cursor/Puck"
+msgid "&Cursor/Puck"
+msgstr "&Cursor/Puck"
 
-msgid "Pen"
-msgstr "Ploma"
+msgid "&Pen"
+msgstr "&Ploma"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Unitat CD/DVD d'amfitrió (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Unitat CD/DVD d'amfitrió (%1:)"
 
 msgid "&Connected"
 msgstr "&Connectat"
 
-msgid "Clear image history"
-msgstr "Esborrar la història de imatges"
+msgid "Clear image &history"
+msgstr "Esborrar la &història de imatges"
 
 msgid "Create..."
 msgstr "Crear ..."
@@ -1259,6 +1349,9 @@ msgstr "Controlador nul"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Comportament del renderitzador"
@@ -1365,8 +1458,26 @@ msgstr "Pas del port sèrie 3"
 msgid "Serial port passthrough 4"
 msgstr "Pas del port sèrie 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Opcions del renderitzador ..."
+
+msgid "PC/XT Keyboard"
+msgstr ""
+
+msgid "AT Keyboard"
+msgstr ""
+
+msgid "AX Keyboard"
+msgstr ""
+
+msgid "PS/2 Keyboard"
+msgstr ""
+
+msgid "PS/55 Keyboard"
+msgstr ""
+
+msgid "Keys"
+msgstr ""
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Ratolí bus Logitech/Microsoft"
@@ -1377,8 +1488,14 @@ msgstr "Ratolí bus Microsoft (InPort)"
 msgid "Mouse Systems Serial Mouse"
 msgstr "Ratolí sèrie Mouse Systems"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr ""
+
 msgid "Microsoft Serial Mouse"
 msgstr "Ratolí sèrie Microsoft"
+
+msgid "Microsoft Serial BallPoint"
+msgstr ""
 
 msgid "Logitech Serial Mouse"
 msgstr "Ratolí sèrie Logitech"
@@ -1386,8 +1503,14 @@ msgstr "Ratolí sèrie Logitech"
 msgid "PS/2 Mouse"
 msgstr "Ratolí PS/2"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr ""
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (sèrie)"
+
+msgid "Default Baud rate"
+msgstr ""
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Mòdem estàndard, complint els Hayes"
@@ -1413,11 +1536,53 @@ msgstr "MIDI de sistema"
 msgid "MIDI Input Device"
 msgstr "Dispositiu d'entrada MIDI"
 
-msgid "BIOS Address"
+msgid "BIOS file"
+msgstr ""
+
+msgid "BIOS file (ROM #1)"
+msgstr ""
+
+msgid "BIOS file (ROM #2)"
+msgstr ""
+
+msgid "BIOS file (ROM #3)"
+msgstr ""
+
+msgid "BIOS file (ROM #4)"
+msgstr ""
+
+msgid "BIOS address"
 msgstr "Adreça de BIOS"
+
+msgid "BIOS address (ROM #1)"
+msgstr ""
+
+msgid "BIOS address (ROM #2)"
+msgstr ""
+
+msgid "BIOS address (ROM #3)"
+msgstr ""
+
+msgid "BIOS address (ROM #4)"
+msgstr ""
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Activar les escrits a la ROM extensor de BIOS"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr ""
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr ""
+
+msgid "Linear framebuffer base"
+msgstr ""
 
 msgid "Address"
 msgstr "Adreça"
@@ -1425,8 +1590,26 @@ msgstr "Adreça"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr ""
+
+msgid "Parallel port IRQ"
+msgstr ""
+
 msgid "BIOS Revision"
 msgstr "Revisió de la BIOS"
+
+msgid "BIOS Version"
+msgstr ""
+
+msgid "BIOS Language"
+msgstr ""
+
+msgid "IBM 5161 Expansion Unit"
+msgstr ""
+
+msgid "IBM Cassette Basic"
+msgstr ""
 
 msgid "Translate 26 -> 17"
 msgstr "Traduir 26 -> 17"
@@ -1442,6 +1625,18 @@ msgstr "Colors invertits"
 
 msgid "BIOS size"
 msgstr "Grandària de la BIOS"
+
+msgid "BIOS size (ROM #1)"
+msgstr ""
+
+msgid "BIOS size (ROM #2)"
+msgstr ""
+
+msgid "BIOS size (ROM #3)"
+msgstr ""
+
+msgid "BIOS size (ROM #4)"
+msgstr ""
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Mapa C0000-C7FFF com UMB"
@@ -1517,6 +1712,9 @@ msgstr "Nivell de reverberació"
 
 msgid "Interpolation Method"
 msgstr "Mètode d'interpolació"
+
+msgid "Dynamic Sample Loading"
+msgstr ""
 
 msgid "Reverb Output Gain"
 msgstr "Guany de sortida de reverberació"
@@ -1605,6 +1803,12 @@ msgstr "DMA baix"
 msgid "Enable Game port"
 msgstr "Activar port de joc"
 
+msgid "SID Model"
+msgstr ""
+
+msgid "SID Filter Strength"
+msgstr ""
+
 msgid "Surround module"
 msgstr "Mòdul Surround"
 
@@ -1616,6 +1820,12 @@ msgstr "Activar la interrupció del codec en la configuració del CODEC (necessa
 
 msgid "SB Address"
 msgstr "Adreça de SB"
+
+msgid "Adlib Address"
+msgstr ""
+
+msgid "Use EEPROM setting"
+msgstr ""
 
 msgid "WSS IRQ"
 msgstr "IRQ de WSS"
@@ -1701,8 +1911,14 @@ msgstr "Tipus de RAMDAC"
 msgid "Blend"
 msgstr "Barrejar"
 
+msgid "Font"
+msgstr ""
+
 msgid "Bilinear filtering"
 msgstr "Filtratge bilineal"
+
+msgid "Video chroma-keying"
+msgstr ""
 
 msgid "Dithering"
 msgstr "Dithering"
@@ -1746,6 +1962,33 @@ msgstr "Velocitat de transferència"
 msgid "EMS mode"
 msgstr "Mode EMS"
 
+msgid "EMS Address"
+msgstr ""
+
+msgid "EMS 1 Address"
+msgstr ""
+
+msgid "EMS 2 Address"
+msgstr ""
+
+msgid "EMS Memory Size"
+msgstr ""
+
+msgid "EMS 1 Memory Size"
+msgstr ""
+
+msgid "EMS 2 Memory Size"
+msgstr ""
+
+msgid "Enable EMS"
+msgstr ""
+
+msgid "Enable EMS 1"
+msgstr ""
+
+msgid "Enable EMS 2"
+msgstr ""
+
 msgid "Address for > 2 MB"
 msgstr "Adreça per a > 2 MB"
 
@@ -1764,11 +2007,11 @@ msgstr "Sempre a la velocitat seleccionada"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Configuració de la BIOS + Hotkeys (desactivat durant el POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB a partir de F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB a partir de F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB a partir de E0000 (MSB de adreça invertit, els darrers 64KB primer)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB a partir de E0000 (MSB de adreça invertit, els darrers 64 KB primer)"
 
 msgid "Sine"
 msgstr "Sinusoidal"
@@ -1902,6 +2145,15 @@ msgstr "Interpolació sRGB"
 msgid "Linear interpolation"
 msgstr "Interpolació lineal"
 
+msgid "Has secondary 8x8 character set"
+msgstr ""
+
+msgid "Has Quadcolor II daughter board"
+msgstr ""
+
+msgid "Alternate monochrome contrast"
+msgstr ""
+
 msgid "128 KB"
 msgstr "128 KB"
 
@@ -1935,6 +2187,9 @@ msgstr "Ambre"
 msgid "Gray"
 msgstr "Gris"
 
+msgid "Grayscale"
+msgstr ""
+
 msgid "Color"
 msgstr "Color"
 
@@ -1949,6 +2204,12 @@ msgstr "Altres idiomes"
 
 msgid "Bochs latest"
 msgstr "Bochs més recent"
+
+msgid "Apply overscan deltas"
+msgstr ""
+
+msgid "Mono Interlaced"
+msgstr ""
 
 msgid "Mono Non-Interlaced"
 msgstr "Monocrom no interlat"
@@ -2031,6 +2292,9 @@ msgstr "Taxa de baud de pas"
 msgid "Named Pipe (Server)"
 msgstr "Pipe anomenat (servidor)"
 
+msgid "Named Pipe (Client)"
+msgstr ""
+
 msgid "Host Serial Passthrough"
 msgstr "Pas del port sèrie amfitrió"
 
@@ -2075,6 +2339,12 @@ msgstr "Clon IBM 8514/A (ISA)"
 
 msgid "Vendor"
 msgstr "Frabricant"
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr ""
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr ""
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Expansió de memòria genèrica PC/XT"
@@ -2147,3 +2417,87 @@ msgstr ""
 
 msgid "Could not load file %1"
 msgstr ""
+
+msgid "Key Bindings:"
+msgstr ""
+
+msgid "Action"
+msgstr ""
+
+msgid "Keybind"
+msgstr ""
+
+msgid "Clear binding"
+msgstr ""
+
+msgid "Bind"
+msgstr ""
+
+msgid "Bind Key"
+msgstr ""
+
+msgid "Enter key combo:"
+msgstr ""
+
+msgid "Bind conflict"
+msgstr ""
+
+msgid "This key combo is already in use."
+msgstr ""
+
+msgid "Send Control+Alt+Del"
+msgstr ""
+
+msgid "Send Control+Alt+Escape"
+msgstr ""
+
+msgid "Toggle fullscreen"
+msgstr ""
+
+msgid "Screenshot"
+msgstr ""
+
+msgid "Release mouse pointer"
+msgstr ""
+
+msgid "Toggle pause"
+msgstr ""
+
+msgid "Toggle mute"
+msgstr ""
+
+msgid "Text files"
+msgstr ""
+
+msgid "ROM files"
+msgstr ""
+
+msgid "SoundFont files"
+msgstr ""
+
+msgid "Local Switch"
+msgstr ""
+
+msgid "Remote Switch"
+msgstr ""
+
+msgid "Switch:"
+msgstr ""
+
+msgid "Hub Mode"
+msgstr ""
+
+msgid "Hostname:"
+msgstr ""
+
+#~ msgid "HD Controller:"
+#~ msgstr "Controlador de HD:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "Unitats ZIP:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "Imatges ZIP"

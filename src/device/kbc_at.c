@@ -8,13 +8,11 @@
  *
  *          Intel 8042 (AT keyboard controller) emulation.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          EngiNerd, <webmaster.crrc@yahoo.it>
  *
- *          Copyright 2023 Miran Grca.
- *          Copyright 2023 EngiNerd.
+ *          Copyright 2023-2025 Miran Grca.
+ *          Copyright 2023-2025 EngiNerd.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -29,23 +27,18 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/pic.h>
-#include <86box/pit.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
-#include <86box/ppi.h>
 #include <86box/mem.h>
 #include <86box/device.h>
+#include <86box/dma.h>
 #include <86box/machine.h>
 #include <86box/m_at_t3100e.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
-#include <86box/sound.h>
-#include <86box/snd_speaker.h>
+#include <86box/pci.h>
 #include <86box/video.h>
 #include <86box/keyboard.h>
-
-#include <86box/dma.h>
-#include <86box/pci.h>
 
 #define STAT_PARITY        0x80
 #define STAT_RTIMEOUT      0x40
@@ -2668,7 +2661,15 @@ kbc_at_init(const device_t *info)
     dev->ports[1] = kbc_at_ports[1];
 
     /* The actual keyboard. */
-    device_add(&keyboard_at_generic_device);
+    if (keyboard_type == KEYBOARD_TYPE_INTERNAL) {
+        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+            device_add(((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? &keyboard_ps55_device :
+                       &keyboard_ax_device);
+        else
+            device_add_params(&keyboard_at_generic_device, (void *) (uintptr_t)
+                              (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? FLAG_PS2_KBD : 0x00));
+    } else
+        keyboard_add_device();
 
     fast_reset = 0x00;
 
@@ -2677,9 +2678,9 @@ kbc_at_init(const device_t *info)
     return dev;
 }
 
-const device_t keyboard_at_device = {
-    .name          = "PC/AT Keyboard",
-    .internal_name = "keyboard_at",
+const device_t kbc_at_device = {
+    .name          = "PC/AT Keyboard Controller",
+    .internal_name = "kbc_at",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_ISA | KBC_VEN_GENERIC,
     .init          = kbc_at_init,
@@ -2691,9 +2692,9 @@ const device_t keyboard_at_device = {
     .config        = NULL
 };
 
-const device_t keyboard_at_siemens_device = {
-    .name          = "PC/AT Keyboard",
-    .internal_name = "keyboard_at",
+const device_t kbc_at_siemens_device = {
+    .name          = "PC/AT Keyboard Controller",
+    .internal_name = "kbc_at",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_ISA | KBC_VEN_SIEMENS,
     .init          = kbc_at_init,
@@ -2705,9 +2706,9 @@ const device_t keyboard_at_siemens_device = {
     .config        = NULL
 };
 
-const device_t keyboard_at_ami_device = {
-    .name          = "PC/AT Keyboard (AMI)",
-    .internal_name = "keyboard_at_ami",
+const device_t kbc_at_ami_device = {
+    .name          = "PC/AT Keyboard Controller (AMI)",
+    .internal_name = "kbc_at_ami",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_ISA | KBC_VEN_AMI,
     .init          = kbc_at_init,
@@ -2719,9 +2720,9 @@ const device_t keyboard_at_ami_device = {
     .config        = NULL
 };
 
-const device_t keyboard_at_tg_ami_device = {
-    .name          = "PC/AT Keyboard (TriGem AMI)",
-    .internal_name = "keyboard_at_tg_ami",
+const device_t kbc_at_tg_ami_device = {
+    .name          = "PC/AT Keyboard Controller (TriGem AMI)",
+    .internal_name = "kbc_at_tg_ami",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_ISA | KBC_VEN_TRIGEM_AMI,
     .init          = kbc_at_init,
@@ -2733,9 +2734,9 @@ const device_t keyboard_at_tg_ami_device = {
     .config        = NULL
 };
 
-const device_t keyboard_at_toshiba_device = {
-    .name          = "PC/AT Keyboard (Toshiba)",
-    .internal_name = "keyboard_at_toshiba",
+const device_t kbc_at_toshiba_device = {
+    .name          = "PC/AT Keyboard Controller (Toshiba)",
+    .internal_name = "kbc_at_toshiba",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_ISA | KBC_VEN_TOSHIBA,
     .init          = kbc_at_init,
@@ -2747,9 +2748,9 @@ const device_t keyboard_at_toshiba_device = {
     .config        = NULL
 };
 
-const device_t keyboard_at_olivetti_device = {
-    .name          = "PC/AT Keyboard (Olivetti)",
-    .internal_name = "keyboard_at_olivetti",
+const device_t kbc_at_olivetti_device = {
+    .name          = "PC/AT Keyboard Controller (Olivetti)",
+    .internal_name = "kbc_at_olivetti",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_ISA | KBC_VEN_OLIVETTI,
     .init          = kbc_at_init,
@@ -2761,9 +2762,9 @@ const device_t keyboard_at_olivetti_device = {
     .config        = NULL
 };
 
-const device_t keyboard_at_ncr_device = {
-    .name          = "PC/AT Keyboard (NCR)",
-    .internal_name = "keyboard_at_ncr",
+const device_t kbc_at_ncr_device = {
+    .name          = "PC/AT Keyboard Controller (NCR)",
+    .internal_name = "kbc_at_ncr",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_ISA | KBC_VEN_NCR,
     .init          = kbc_at_init,
@@ -2775,9 +2776,9 @@ const device_t keyboard_at_ncr_device = {
     .config        = NULL
 };
 
-const device_t keyboard_at_compaq_device = {
-    .name          = "PC/AT Keyboard (Compaq)",
-    .internal_name = "keyboard_at_compaq",
+const device_t kbc_at_compaq_device = {
+    .name          = "PC/AT Keyboard Controller (Compaq)",
+    .internal_name = "kbc_at_compaq",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_ISA | KBC_VEN_COMPAQ,
     .init          = kbc_at_init,
@@ -2789,9 +2790,9 @@ const device_t keyboard_at_compaq_device = {
     .config        = NULL
 };
 
-const device_t keyboard_at_phoenix_device = {
-    .name          = "PC/AT Keyboard (Phoenix)",
-    .internal_name = "keyboard_at_phoenix",
+const device_t kbc_at_phoenix_device = {
+    .name          = "PC/AT Keyboard Controller (Phoenix)",
+    .internal_name = "kbc_at_phoenix",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_ISA | KBC_VEN_PHOENIX,
     .init          = kbc_at_init,
@@ -2803,9 +2804,9 @@ const device_t keyboard_at_phoenix_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_device = {
-    .name          = "PS/2 Keyboard",
-    .internal_name = "keyboard_ps2",
+const device_t kbc_ps2_device = {
+    .name          = "PS/2 Keyboard Controller",
+    .internal_name = "kbc_ps2",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
     .init          = kbc_at_init,
@@ -2817,9 +2818,9 @@ const device_t keyboard_ps2_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_ps1_device = {
-    .name          = "PS/2 Keyboard (IBM PS/1)",
-    .internal_name = "keyboard_ps2_ps1",
+const device_t kbc_ps2_ps1_device = {
+    .name          = "PS/2 Keyboard Controller (IBM PS/1)",
+    .internal_name = "kbc_ps2_ps1",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_IBM_PS1,
     .init          = kbc_at_init,
@@ -2831,9 +2832,9 @@ const device_t keyboard_ps2_ps1_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_ps1_pci_device = {
-    .name          = "PS/2 Keyboard (IBM PS/1)",
-    .internal_name = "keyboard_ps2_ps1_pci",
+const device_t kbc_ps2_ps1_pci_device = {
+    .name          = "PS/2 Keyboard Controller (IBM PS/1)",
+    .internal_name = "kbc_ps2_ps1_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_IBM_PS1,
     .init          = kbc_at_init,
@@ -2845,9 +2846,9 @@ const device_t keyboard_ps2_ps1_pci_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_xi8088_device = {
-    .name          = "PS/2 Keyboard (Xi8088)",
-    .internal_name = "keyboard_ps2_xi8088",
+const device_t kbc_ps2_xi8088_device = {
+    .name          = "PS/2 Keyboard Controller (Xi8088)",
+    .internal_name = "kbc_ps2_xi8088",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
     .init          = kbc_at_init,
@@ -2859,9 +2860,9 @@ const device_t keyboard_ps2_xi8088_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_ami_device = {
-    .name          = "PS/2 Keyboard (AMI)",
-    .internal_name = "keyboard_ps2_ami",
+const device_t kbc_ps2_ami_device = {
+    .name          = "PS/2 Keyboard Controller (AMI)",
+    .internal_name = "kbc_ps2_ami",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_AMI,
     .init          = kbc_at_init,
@@ -2873,9 +2874,9 @@ const device_t keyboard_ps2_ami_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_compaq_device = {
-    .name          = "PS/2 Keyboard (Compaq)",
-    .internal_name = "keyboard_at_compaq",
+const device_t kbc_ps2_compaq_device = {
+    .name          = "PS/2 Keyboard Controller (Compaq)",
+    .internal_name = "kbc_at_compaq",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_COMPAQ,
     .init          = kbc_at_init,
@@ -2887,9 +2888,9 @@ const device_t keyboard_ps2_compaq_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_holtek_device = {
-    .name          = "PS/2 Keyboard (Holtek)",
-    .internal_name = "keyboard_ps2_holtek",
+const device_t kbc_ps2_holtek_device = {
+    .name          = "PS/2 Keyboard Controller (Holtek)",
+    .internal_name = "kbc_ps2_holtek",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_AMI | KBC_FLAG_IS_ASIC,
     .init          = kbc_at_init,
@@ -2901,9 +2902,9 @@ const device_t keyboard_ps2_holtek_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_phoenix_device = {
-    .name          = "PS/2 Keyboard (Phoenix)",
-    .internal_name = "keyboard_ps2_phoenix",
+const device_t kbc_ps2_phoenix_device = {
+    .name          = "PS/2 Keyboard Controller (Phoenix)",
+    .internal_name = "kbc_ps2_phoenix",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_PHOENIX,
     .init          = kbc_at_init,
@@ -2915,9 +2916,9 @@ const device_t keyboard_ps2_phoenix_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_tg_ami_device = {
-    .name          = "PS/2 Keyboard (TriGem AMI)",
-    .internal_name = "keyboard_ps2_tg_ami",
+const device_t kbc_ps2_tg_ami_device = {
+    .name          = "PS/2 Keyboard Controller (TriGem AMI)",
+    .internal_name = "kbc_ps2_tg_ami",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_TRIGEM_AMI,
     .init          = kbc_at_init,
@@ -2929,9 +2930,9 @@ const device_t keyboard_ps2_tg_ami_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_mca_1_device = {
-    .name          = "PS/2 Keyboard (IBM PS/2 MCA Type 1)",
-    .internal_name = "keyboard_ps2_mca_1",
+const device_t kbc_ps2_mca_1_device = {
+    .name          = "PS/2 Keyboard Controller (IBM PS/2 MCA Type 1)",
+    .internal_name = "kbc_ps2_mca_1",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_IBM,
     .init          = kbc_at_init,
@@ -2943,9 +2944,9 @@ const device_t keyboard_ps2_mca_1_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_mca_2_device = {
-    .name          = "PS/2 Keyboard (IBM PS/2 MCA Type 2)",
-    .internal_name = "keyboard_ps2_mca_2",
+const device_t kbc_ps2_mca_2_device = {
+    .name          = "PS/2 Keyboard Controller (IBM PS/2 MCA Type 2)",
+    .internal_name = "kbc_ps2_mca_2",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_2 | KBC_VEN_IBM,
     .init          = kbc_at_init,
@@ -2957,9 +2958,9 @@ const device_t keyboard_ps2_mca_2_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_quadtel_device = {
-    .name          = "PS/2 Keyboard (Quadtel/MegaPC)",
-    .internal_name = "keyboard_ps2_quadtel",
+const device_t kbc_ps2_quadtel_device = {
+    .name          = "PS/2 Keyboard Controller (Quadtel/MegaPC)",
+    .internal_name = "kbc_ps2_quadtel",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_QUADTEL,
     .init          = kbc_at_init,
@@ -2971,9 +2972,9 @@ const device_t keyboard_ps2_quadtel_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_pci_device = {
-    .name          = "PS/2 Keyboard",
-    .internal_name = "keyboard_ps2_pci",
+const device_t kbc_ps2_pci_device = {
+    .name          = "PS/2 Keyboard Controller (PCI)",
+    .internal_name = "kbc_ps2_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
     .init          = kbc_at_init,
@@ -2985,9 +2986,9 @@ const device_t keyboard_ps2_pci_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_ami_pci_device = {
-    .name          = "PS/2 Keyboard (AMI)",
-    .internal_name = "keyboard_ps2_ami_pci",
+const device_t kbc_ps2_ami_pci_device = {
+    .name          = "PS/2 Keyboard Controller (PCI) (AMI)",
+    .internal_name = "kbc_ps2_ami_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_AMI,
     .init          = kbc_at_init,
@@ -2999,9 +3000,9 @@ const device_t keyboard_ps2_ami_pci_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_ali_pci_device = {
-    .name          = "PS/2 Keyboard (ALi M5123/M1543C)",
-    .internal_name = "keyboard_ps2_ali_pci",
+const device_t kbc_ps2_ali_pci_device = {
+    .name          = "PS/2 Keyboard Controller (PCI) (ALi M5123/M1543C)",
+    .internal_name = "kbc_ps2_ali_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_ALI,
     .init          = kbc_at_init,
@@ -3013,9 +3014,9 @@ const device_t keyboard_ps2_ali_pci_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_intel_ami_pci_device = {
-    .name          = "PS/2 Keyboard (AMI)",
-    .internal_name = "keyboard_ps2_intel_ami_pci",
+const device_t kbc_ps2_intel_ami_pci_device = {
+    .name          = "PS/2 Keyboard Controller (PCI) (AMI)",
+    .internal_name = "kbc_ps2_intel_ami_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
     .local         = KBC_TYPE_GREEN | KBC_VEN_AMI,
     .init          = kbc_at_init,
@@ -3027,9 +3028,9 @@ const device_t keyboard_ps2_intel_ami_pci_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_tg_ami_pci_device = {
-    .name          = "PS/2 Keyboard (TriGem AMI)",
-    .internal_name = "keyboard_ps2_tg_ami_pci",
+const device_t kbc_ps2_tg_ami_pci_device = {
+    .name          = "PS/2 Keyboard Controller (PCI) (TriGem AMI)",
+    .internal_name = "kbc_ps2_tg_ami_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_TRIGEM_AMI,
     .init          = kbc_at_init,
@@ -3041,9 +3042,9 @@ const device_t keyboard_ps2_tg_ami_pci_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_acer_pci_device = {
-    .name          = "PS/2 Keyboard (Acer 90M002A)",
-    .internal_name = "keyboard_ps2_acer_pci",
+const device_t kbc_ps2_acer_pci_device = {
+    .name          = "PS/2 Keyboard Controller (PCI) (Acer 90M002A)",
+    .internal_name = "kbc_ps2_acer_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_ACER,
     .init          = kbc_at_init,
@@ -3055,9 +3056,9 @@ const device_t keyboard_ps2_acer_pci_device = {
     .config        = NULL
 };
 
-const device_t keyboard_ps2_phoenix_pci_device = {
-    .name          = "PS/2 Keyboard (Phoenix)",
-    .internal_name = "keyboard_ps2_phoenix_pci",
+const device_t kbc_ps2_phoenix_pci_device = {
+    .name          = "PS/2 Keyboard Controller (PCI) (Phoenix)",
+    .internal_name = "kbc_ps2_phoenix_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_PHOENIX,
     .init          = kbc_at_init,

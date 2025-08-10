@@ -68,6 +68,7 @@ typedef struct w83877f_t {
     int       key_times;
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t    *lpt;
 } w83877f_t;
 
 static void    w83877f_write(uint16_t port, uint8_t val, void *priv);
@@ -166,9 +167,9 @@ w83877f_lpt_handler(w83877f_t *dev)
     uint8_t lpt_irq;
     uint8_t lpt_irqs[8] = { 0, 7, 9, 10, 11, 14, 15, 5 };
 
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
     if (!(dev->regs[4] & 0x80) && (dev->regs[0x23] & 0xc0))
-        lpt1_setup(make_port(dev, 0x23));
+        lpt_port_setup(dev->lpt, make_port(dev, 0x23));
 
     lpt_irq = 0xff;
 
@@ -176,7 +177,7 @@ w83877f_lpt_handler(w83877f_t *dev)
     if (lpt_irq == 0)
         lpt_irq = PRTIQS;
 
-    lpt1_irq(lpt_irq);
+    lpt_port_irq(dev->lpt, lpt_irq);
 }
 
 static void
@@ -450,6 +451,8 @@ w83877f_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
 
     dev->reg_init = info->local;
 

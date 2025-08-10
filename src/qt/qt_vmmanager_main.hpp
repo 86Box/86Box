@@ -18,8 +18,6 @@
 #ifndef QT_VMMANAGER_MAIN_H
 #define QT_VMMANAGER_MAIN_H
 
-#include "qt_updatecheck.hpp"
-
 #include <QWidget>
 #include "qt_vmmanager_model.hpp"
 #include "qt_vmmanager_details.hpp"
@@ -29,8 +27,12 @@
 
 extern "C" {
 #include <86box/86box.h> // for vmm_path
+#include <86box/version.h>
 }
 
+#if EMU_BUILD_NUM != 0
+#    include "qt_updatecheck.hpp"
+#endif
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class VMManagerMain; }
@@ -68,7 +70,8 @@ public slots:
     void shutdownForceButtonPressed() const;
     void searchSystems(const QString &text) const;
     void newMachineWizard();
-    void addNewSystem(const QString &name, const QString &dir, const QString &configFile = {});
+    void deleteSystem(VMManagerSystem *sysconfig);
+    void addNewSystem(const QString &name, const QString &dir, const QString &displayName = QString(), const QString &configFile = {});
 #if __GNUC__ >= 11
     [[nodiscard]] QStringList getSearchCompletionList() const;
 #else
@@ -76,6 +79,8 @@ public slots:
 #endif
     void modelDataChange();
     void onPreferencesUpdated();
+    void onConfigUpdated(const QString &uuid);
+    int  getActiveMachineCount();
 
 private:
     Ui::VMManagerMain *ui;

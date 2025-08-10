@@ -27,8 +27,11 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Пауза"
 
-msgid "E&xit..."
-msgstr "&Выход..."
+msgid "Re&sume"
+msgstr "В&озобновить"
+
+msgid "E&xit"
+msgstr "&Выход"
 
 msgid "&View"
 msgstr "&Вид"
@@ -60,7 +63,7 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "&Указать размеры главного окна..."
 
 msgid "F&orce 4:3 display ratio"
@@ -99,8 +102,8 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
-msgstr "Метод фильтрации"
+msgid "Fi&lter method"
+msgstr "Метод &фильтрации"
 
 msgid "&Nearest"
 msgstr "&Ближайший"
@@ -144,11 +147,11 @@ msgstr "&Тип экрана VGA"
 msgid "RGB &Color"
 msgstr "RGB &цветной"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB монохромный"
-
 msgid "RGB (no brown)"
 msgstr "RGB (без коричневого)"
+
+msgid "&RGB Grayscale"
+msgstr "&RGB монохромный"
 
 msgid "Generic RGBI color monitor"
 msgstr "Стандартный цветной монитор RGBI"
@@ -214,7 +217,7 @@ msgid "End trace"
 msgstr "Завершить трассировку"
 
 msgid "&Help"
-msgstr "&Помощь"
+msgstr "&Справка"
 
 msgid "&Documentation..."
 msgstr "&Документация..."
@@ -414,6 +417,9 @@ msgstr "Ускоритель IBM 8514/A"
 msgid "XGA Graphics"
 msgstr "Ускоритель XGA"
 
+msgid "Keyboard:"
+msgstr "Клавиатура:"
+
 msgid "Mouse:"
 msgstr "Мышь:"
 
@@ -513,17 +519,20 @@ msgstr "Параллельный порт LPT3"
 msgid "Parallel port 4"
 msgstr "Параллельный порт LPT4"
 
-msgid "HD Controller:"
-msgstr "Контроллер HD:"
-
 msgid "FD Controller:"
 msgstr "Контроллер FD:"
+
+msgid "CD-ROM Controller:"
+msgstr "Контроллер CD-ROM:"
 
 msgid "Tertiary IDE Controller"
 msgstr "Третичный IDE контроллер"
 
 msgid "Quaternary IDE Controller"
 msgstr "Четвертичный IDE контроллер"
+
+msgid "Hard disk"
+msgstr "Жёсткий диск"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -545,6 +554,9 @@ msgstr "Кассета"
 
 msgid "Hard disks:"
 msgstr "Жёсткие диски:"
+
+msgid "Firmware Version"
+msgstr "Версия прошивки"
 
 msgid "&New..."
 msgstr "&Создать..."
@@ -603,8 +615,8 @@ msgstr "Дисководы CD-ROM:"
 msgid "MO drives:"
 msgstr "Магнитооптические дисководы:"
 
-msgid "ZIP drives:"
-msgstr "ZIP дисководы:"
+msgid "Removable disk drives:"
+msgstr "Дисководы съёмных дисков:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -630,6 +642,15 @@ msgstr "Карта 3:"
 msgid "Card 4:"
 msgstr "Карта 4:"
 
+msgid "Generic ISA ROM Board"
+msgstr "Стандартная плата ПЗУ ISA"
+
+msgid "Generic Dual ISA ROM Board"
+msgstr "Стандартная плата на 2 ПЗУ ISA"
+
+msgid "Generic Quad ISA ROM Board"
+msgstr "Стандартная плата на 4 ПЗУ ISA"
+
 msgid "ISABugger device"
 msgstr "Устройство ISABugger"
 
@@ -651,11 +672,17 @@ msgstr " - ПАУЗА"
 msgid "Speed"
 msgstr "Скорость"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr "Съёмный диск %1 (%2): %3"
 
-msgid "ZIP images"
-msgstr "Образы ZIP"
+msgid "&Removable disk %1 (%2): %3"
+msgstr "&Съёмный диск %1 (%2): %3"
+
+msgid "Removable disk images"
+msgstr "Образы съёмных дисков"
+
+msgid "Image %1"
+msgstr "Образ %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box не смог найти ни одного подходящего для использования файла с ПЗУ.\n\nПожалуйста <a href=\"https://github.com/86Box/roms/releases/latest\">скачайте</a> набор ПЗУ и извлеките его в каталог \"roms\"."
@@ -774,20 +801,8 @@ msgstr "Неверное устройство PCap"
 msgid "2-axis, 2-button joystick(s)"
 msgstr "2-осевой, 2-кнопочный джойстик"
 
-msgid "2-button gamepad(s)"
-msgstr "2-кнопочный геймпад"
-
-msgid "2-button flight yoke"
-msgstr "2-кнопочный flight yoke"
-
 msgid "2-axis, 4-button joystick"
 msgstr "2-осевой, 4-кнопочный джойстик"
-
-msgid "4-button gamepad"
-msgstr "4-кнопочный геймпад"
-
-msgid "4-button flight yoke"
-msgstr "4-кнопочный flight yoke"
 
 msgid "2-axis, 6-button joystick"
 msgstr "2-осевой, 6-кнопочный джойстик"
@@ -798,17 +813,8 @@ msgstr "2-осевой, 8-кнопочный джойстик"
 msgid "3-axis, 2-button joystick"
 msgstr "3-осевой, 2-кнопочный джойстик"
 
-msgid "2-button flight yoke with throttle"
-msgstr "2-кнопочный flight yoke с дросселем"
-
 msgid "3-axis, 4-button joystick"
 msgstr "3-осевой, 4-кнопочный джойстик"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Руль Win95 (3-осевой, 4-кнопочный)"
-
-msgid "4-button flight yoke with throttle"
-msgstr "4-кнопочный flight yoke с дросселем"
 
 msgid "4-axis, 4-button joystick"
 msgstr "4-осевой, 4-кнопочный джойстик"
@@ -828,6 +834,27 @@ msgstr "Система управления полётом Thrustmaster"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Система управления рулем"
 
+msgid "2-button gamepad(s)"
+msgstr "2-кнопочный геймпад"
+
+msgid "2-button flight yoke"
+msgstr "2-кнопочный flight yoke"
+
+msgid "4-button gamepad"
+msgstr "4-кнопочный геймпад"
+
+msgid "4-button flight yoke"
+msgstr "4-кнопочный flight yoke"
+
+msgid "2-button flight yoke with throttle"
+msgstr "2-кнопочный flight yoke с дросселем"
+
+msgid "4-button flight yoke with throttle"
+msgstr "4-кнопочный flight yoke с дросселем"
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr "Руль Win95 (3-осевой, 4-кнопочный)"
+
 msgid "None"
 msgstr "Нет"
 
@@ -836,6 +863,9 @@ msgstr "%1 МБ (CHS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
 msgstr "Дисковод %1 (%2): %3"
+
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Дисковод %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Расширенные образы секторов"
@@ -857,6 +887,9 @@ msgstr "Невозможно инициализировать GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "Магнитооптический %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&Магнитооптический %1 (%2): %3"
 
 msgid "MO images"
 msgstr "Образы магнитооптических дисков"
@@ -942,11 +975,17 @@ msgstr "Продолжить"
 msgid "Cassette: %1"
 msgstr "Кассета: %1"
 
+msgid "C&assette: %1"
+msgstr "&Кассета: %1"
+
 msgid "Cassette images"
 msgstr "Образы кассет"
 
 msgid "Cartridge %1: %2"
 msgstr "Картридж %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Кар&тридж %1: %2"
 
 msgid "Cartridge images"
 msgstr "Образы картриджей"
@@ -968,6 +1007,9 @@ msgstr "Холодная перезагрузка"
 
 msgid "ACPI shutdown"
 msgstr "Сигнал завершения ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Сигнал завершения ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Жёсткий диск (%1)"
@@ -1116,6 +1158,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 КБ"
 
@@ -1254,41 +1299,41 @@ msgstr "Устройства MCA"
 msgid "List of MCA devices:"
 msgstr "Список устройств MCA:"
 
-msgid "Tablet tool"
-msgstr "Планшетный инструмент"
+msgid "&Tablet tool"
+msgstr "Планшетный &инструмент"
 
 msgid "Qt (OpenGL &ES)"
 msgstr "Qt (OpenGL &ES)"
 
-msgid "About Qt"
-msgstr "О Qt"
+msgid "About &Qt"
+msgstr "О &Qt"
 
-msgid "MCA devices..."
-msgstr "Устройства MCA..."
+msgid "&MCA devices..."
+msgstr "Устройства &MCA..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "&Показывать неосновные мониторы"
 
-msgid "Open screenshots folder..."
-msgstr "Открыть папку скриншотов..."
+msgid "Open screenshots &folder..."
+msgstr "Открыть папку &скриншотов..."
 
-msgid "Apply fullscreen stretch mode when maximized"
-msgstr "Применить полноэкранный режим растяжения при разворачивании окна"
+msgid "Appl&y fullscreen stretch mode when maximized"
+msgstr "Применить полно&экранный режим растяжения при разворачивании окна"
 
-msgid "Cursor/Puck"
-msgstr "Курсор/шайба"
+msgid "&Cursor/Puck"
+msgstr "&Курсор/шайба"
 
-msgid "Pen"
-msgstr "Ручка"
+msgid "&Pen"
+msgstr "&Ручка"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "CD/DVD Привод хоста (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "CD/DVD Привод &хоста (%1:)"
 
 msgid "&Connected"
 msgstr "&Кабель подключен"
 
-msgid "Clear image history"
-msgstr "Очистить историю образов"
+msgid "Clear image &history"
+msgstr "Очистить &историю образов"
 
 msgid "Create..."
 msgstr "Создать..."
@@ -1304,6 +1349,9 @@ msgstr "Нулевой драйвер"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Режим рендеринга"
@@ -1410,8 +1458,26 @@ msgstr "Сквозной последовательный порт COM3"
 msgid "Serial port passthrough 4"
 msgstr "Сквозной последовательный порт COM4"
 
-msgid "Renderer options..."
-msgstr "Параметры рендеринга..."
+msgid "Renderer &options..."
+msgstr "Параметры &рендеринга..."
+
+msgid "PC/XT Keyboard"
+msgstr "Клавиатура PC/XT"
+
+msgid "AT Keyboard"
+msgstr "Клавиатура AT"
+
+msgid "AX Keyboard"
+msgstr "Клавиатура AX"
+
+msgid "PS/2 Keyboard"
+msgstr "Клавиатура PS/2"
+
+msgid "PS/55 Keyboard"
+msgstr "Клавиатура PS/55"
+
+msgid "Keys"
+msgstr "Клавиши"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Bus-мышь Logitech/Microsoft"
@@ -1428,14 +1494,23 @@ msgstr "Bus-мышь Mouse Systems"
 msgid "Microsoft Serial Mouse"
 msgstr "COM-мышь Microsoft"
 
+msgid "Microsoft Serial BallPoint"
+msgstr "COM-мышь Microsoft BallPoint"
+
 msgid "Logitech Serial Mouse"
 msgstr "COM-мышь Logitech"
 
 msgid "PS/2 Mouse"
 msgstr "Мышь PS/2"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr "Мышь PS/2 QuickPort"
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (последовательный)"
+
+msgid "Default Baud rate"
+msgstr "Скорость передачи данных по умолчанию"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Стандартный Hayes-совместимый модем"
@@ -1476,7 +1551,7 @@ msgstr "Файл BIOS (ПЗУ #3)"
 msgid "BIOS file (ROM #4)"
 msgstr "Файл BIOS (ПЗУ #4)"
 
-msgid "BIOS Address"
+msgid "BIOS address"
 msgstr "Адрес BIOS"
 
 msgid "BIOS address (ROM #1)"
@@ -1515,14 +1590,17 @@ msgstr "Адрес"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr "IRQ последовательного порта"
+
+msgid "Parallel port IRQ"
+msgstr "IRQ параллельного порта"
+
 msgid "BIOS Revision"
 msgstr "Версия BIOS"
 
 msgid "BIOS Version"
 msgstr "Версия BIOS"
-
-msgid "BIOS Versions"
-msgstr "Версии BIOS"
 
 msgid "BIOS Language"
 msgstr "Язык BIOS"
@@ -1743,6 +1821,9 @@ msgstr "Поднимать прерывание кодека при настро
 msgid "SB Address"
 msgstr "Адрес SB"
 
+msgid "Adlib Address"
+msgstr "Адрес AdLib"
+
 msgid "Use EEPROM setting"
 msgstr "Использовать настройку EEPROM"
 
@@ -1833,20 +1914,11 @@ msgstr "Смесь"
 msgid "Font"
 msgstr "Шрифт"
 
-msgid "Has secondary 8x8 character set"
-msgstr "Вторичный набор символов 8x8"
-
-msgid "Has Quadcolor II daughter board"
-msgstr "Дочерняя плата Quadcolor II"
-
-msgid "Alternate monochrome contrast"
-msgstr "Альтернативный монохромный контраст"
+msgid "Bilinear filtering"
+msgstr "Билинейная фильтрация"
 
 msgid "Video chroma-keying"
 msgstr "Видео хромакеинг"
-
-msgid "Bilinear filtering"
-msgstr "Билинейная фильтрация"
 
 msgid "Dithering"
 msgstr "Дизеринг"
@@ -1935,10 +2007,10 @@ msgstr "Всегда на выбранной скорости"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Настройка BIOS + горячие клавиши (отключается во время POST)"
 
-msgid "64 kB starting from F0000"
+msgid "64 KB starting from F0000"
 msgstr "64 КБ, начиная с F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
 msgstr "128 КБ, начиная с E0000 (адрес MSB инвертирован, сначала последние 64 КБ)"
 
 msgid "Sine"
@@ -2072,6 +2144,15 @@ msgstr "Интерполяция sRGB"
 
 msgid "Linear interpolation"
 msgstr "Линейная интерполяция"
+
+msgid "Has secondary 8x8 character set"
+msgstr "Вторичный набор символов 8x8"
+
+msgid "Has Quadcolor II daughter board"
+msgstr "Дочерняя плата Quadcolor II"
+
+msgid "Alternate monochrome contrast"
+msgstr "Альтернативный монохромный контраст"
 
 msgid "128 KB"
 msgstr "128 КБ"
@@ -2358,6 +2439,12 @@ msgstr "Привязать клавишу"
 msgid "Enter key combo:"
 msgstr "Введите комбинацию клавиш:"
 
+msgid "Bind conflict"
+msgstr "Конфликт привязки"
+
+msgid "This key combo is already in use."
+msgstr "Эта комбинация клавиш уже используется."
+
 msgid "Send Control+Alt+Del"
 msgstr "Отправить Control+Alt+Del"
 
@@ -2387,3 +2474,30 @@ msgstr "Файлы ПЗУ"
 
 msgid "SoundFont files"
 msgstr "Файлы SoundFont"
+
+msgid "Local Switch"
+msgstr "Локальный коммутатор"
+
+msgid "Remote Switch"
+msgstr "Удалённый коммутатор"
+
+msgid "Switch:"
+msgstr "Номер коммутатора:"
+
+msgid "Hub Mode"
+msgstr "Режим концентратора"
+
+msgid "Hostname:"
+msgstr "Имя хоста:"
+
+#~ msgid "HD Controller:"
+#~ msgstr "Контроллер HD:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIP дисководы:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "Образы ZIP"

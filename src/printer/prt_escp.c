@@ -57,6 +57,7 @@
 #include FT_FREETYPE_H
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/device.h>
 #include "cpu.h"
 #include <86box/machine.h>
 #include <86box/timer.h>
@@ -71,15 +72,18 @@
 #include <86box/png_struct.h>
 #include <86box/printer.h>
 #include <86box/prt_devs.h>
+#include <86box/prt_papersizes.h>
 
 /* Default page values (for now.) */
 #define COLOR_BLACK  7 << 5
-#define PAGE_WIDTH   8.5 /* standard U.S. Letter */
-#define PAGE_HEIGHT  11.0
+#define PAGE_WIDTH  LETTER_PAGE_WIDTH
+#define PAGE_HEIGHT LETTER_PAGE_HEIGHT
+#if 0
 #define PAGE_LMARGIN 0.0
 #define PAGE_RMARGIN PAGE_WIDTH
 #define PAGE_TMARGIN 0.0
 #define PAGE_BMARGIN PAGE_HEIGHT
+#endif
 #define PAGE_DPI     360
 #define PAGE_CPI     10.0 /* standard 10 cpi */
 #define PAGE_LPI     6.0  /* standard 6 lpi */
@@ -2096,8 +2100,49 @@ escp_close(void *priv)
     free(dev);
 }
 
+// clang-format off
+#if 0
+static const device_config_t lpt_prt_escp_config[] = {
+    {
+        .name           = "paper_size",
+        .description    = "Paper Size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Letter", .value = 0 },
+            { .description = "A4",     .value = 1 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+#endif
+// clang-format on
+
+const device_t prt_escp_device = {
+    .name          = "Generic ESC/P Dot-Matrix Printer",
+    .internal_name = "dot_matrix",
+    .flags         = DEVICE_LPT,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+#if 0
+    .config        = lpt_prt_escp_config
+#else
+    .config        = NULL
+#endif
+};
+
 const lpt_device_t lpt_prt_escp_device = {
-    .name             = "Generic ESC/P Dot-Matrix",
+    .name             = "Generic ESC/P Dot-Matrix Printer",
     .internal_name    = "dot_matrix",
     .init             = escp_init,
     .close            = escp_close,
@@ -2108,5 +2153,8 @@ const lpt_device_t lpt_prt_escp_device = {
     .read_status      = read_status,
     .read_ctrl        = read_ctrl,
     .epp_write_data   = NULL,
-    .epp_request_read = NULL
+    .epp_request_read = NULL,
+    .priv             = NULL,
+    .lpt              = NULL,
+    .cfgdevice        = (device_t *) &prt_escp_device
 };

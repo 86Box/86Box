@@ -194,6 +194,9 @@ cmake_dependent_option(WACOM          "Wacom Input Devices"                     
 cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"        ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(NV3            "NVidia RIVA 128/128ZX (NV3/NV3T)"         ON    "DEV_BRANCH"  OFF)
 
+cmake_dependent_option(NETSWITCH      "Network Switch Support"                   ON    "DEV_BRANCH"  OFF)
+
+
 # Ditto but for Qt
 if(QT)
     option(USE_QT6 "Use Qt6 instead of Qt5" OFF)
@@ -230,7 +233,7 @@ if(NOT EMU_BUILD_NUM)
     set(EMU_BUILD_NUM 0)
 endif()
 if(NOT EMU_COPYRIGHT_YEAR)
-    set(EMU_COPYRIGHT_YEAR 2024)
+    set(EMU_COPYRIGHT_YEAR 2025)
 endif()
 
 # Libasan
@@ -238,5 +241,7 @@ if(LIBASAN)
     add_compile_options(-fsanitize=address)
     add_link_options(-fsanitize=address)
 endif()
+
+set(CMAKE_TOP_LEVEL_PROCESSED TRUE)
 
 add_subdirectory(src)

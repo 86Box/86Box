@@ -62,6 +62,26 @@ if(APPLE AND USE_QT6)
     find_package(Qt6Gui/Qt6QICNSPlugin REQUIRED)
 endif()
 
+if (UNIX)
+    find_path(HAS_VDE "libvdeplug.h" PATHS ${VDE_INCLUDE_DIR} "/usr/include /usr/local/include" "/opt/homebrew/include" )
+    if(HAS_VDE)
+        find_library(VDE_LIB vdeplug)
+        if (NOT VDE_LIB)
+            message(WARNING "Could not find VDE. The library will not be bundled and any related features will be disabled.")
+        else()
+            add_compile_definitions(HAS_VDE)
+        endif()
+    endif()
+endif()
+if (UNIX AND NOT APPLE) # Support for TAP on Linux and BSD, supposedly.
+    find_path(HAS_TAP "linux/if_tun.h" PATHS ${TAP_INCLUDE_DIR} "/usr/include /usr/local/include" "/opt/homebrew/include" )
+    if(HAS_TAP)
+        add_compile_definitions(HAS_TAP)
+    else()
+        message(WARNING "TAP support not available. Are you on some BSD?")
+    endif()
+endif()
+
 add_library(plat STATIC
     qt.c
     qt_main.cpp
@@ -88,6 +108,8 @@ add_library(ui STATIC
     qt_openglrenderer.cpp
     qt_openglrenderer.hpp
     qt_glsl_parser.cpp
+    qt_about.cpp
+    qt_about.hpp
 
     qt_settings.cpp
     qt_settings.hpp
@@ -195,14 +217,6 @@ add_library(ui STATIC
     qt_mediahistorymanager.cpp
     qt_mediahistorymanager.hpp
 
-    qt_updatecheck.cpp
-    qt_updatecheck.hpp
-    qt_updatecheckdialog.cpp
-    qt_updatecheckdialog.hpp
-    qt_updatecheckdialog.ui
-    qt_updatedetails.cpp
-    qt_updatedetails.hpp
-    qt_updatedetails.ui
     qt_downloader.cpp
     qt_downloader.hpp
 
@@ -253,6 +267,23 @@ add_library(ui STATIC
     qt_iconindicators.cpp
 )
 
+if(EMU_BUILD_NUM)
+    target_sources(ui PRIVATE
+        qt_updatecheck.cpp
+        qt_updatecheck.hpp
+        qt_updatecheckdialog.cpp
+        qt_updatecheckdialog.hpp
+        qt_updatecheckdialog.ui
+        qt_updatedetails.cpp
+        qt_updatedetails.hpp
+        qt_updatedetails.ui
+    )
+endif()
+
+if(NETSWITCH)
+    target_compile_definitions(ui PRIVATE USE_NETSWITCH)
+endif()
+
 if(RTMIDI)
     target_compile_definitions(ui PRIVATE USE_RTMIDI)
 endif()
@@ -292,6 +323,15 @@ if(WIN32 AND NOT SDL_JOYSTICK)
     target_sources(plat PRIVATE win_joystick_rawinput.c)
     target_link_libraries(86Box hid)
 else()
+    find_package(SDL2 REQUIRED)
+    include_directories(${SDL2_INCLUDE_DIRS})
+    if(STATIC_BUILD AND TARGET SDL2::SDL2-static)
+        target_link_libraries(86Box SDL2::SDL2-static)
+    elseif(TARGET SDL2::SDL2)
+        target_link_libraries(86Box SDL2::SDL2)
+    else()
+        target_link_libraries(86Box ${SDL2_LIBRARIES})
+    endif()
     target_sources(plat PRIVATE sdl_joystick.c)
 endif()
 

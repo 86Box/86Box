@@ -157,6 +157,7 @@ typedef struct um8669f_t {
 
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t *   lpt;
     uint8_t   ide;
     void     *gameport;
 } um8669f_t;
@@ -203,11 +204,11 @@ um8669f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
             break;
 
         case 3:
-            lpt1_remove();
+            lpt_port_remove(dev->lpt);
 
             if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) {
                 um8669f_log("UM8669F: LPT enabled at port %04X IRQ %d\n", config->io[0].base, config->irq[0].irq);
-                lpt1_setup(config->io[0].base);
+                lpt_port_setup(dev->lpt, config->io[0].base);
             } else {
                 um8669f_log("UM8669F: LPT disabled\n");
             }
@@ -301,7 +302,7 @@ um8669f_reset(um8669f_t *dev)
 
     serial_remove(dev->uart[1]);
 
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
 
     if (dev->ide < IDE_BUS_MAX)
         ide_remove_handlers(dev->ide);
@@ -338,6 +339,8 @@ um8669f_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
 
     dev->ide = info->local;
     if (dev->ide < IDE_BUS_MAX)

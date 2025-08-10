@@ -821,7 +821,7 @@ corel_ls2000_available(void)
 static const device_config_t ncr53c400_mmio_config[] = {
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0xD8000,
@@ -892,7 +892,7 @@ static const device_config_t rt1000b_config[] = {
     },
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0xD8000,
@@ -953,7 +953,7 @@ static const device_config_t rt1000b_mc_config[] = {
 static const device_config_t t130b_config[] = {
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
         .default_int    = 0xD8000,

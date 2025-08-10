@@ -27,6 +27,7 @@ add_library(mch OBJECT
     m_xt_zenith.c
     m_pcjr.c
     m_amstrad.c
+    m_amstrad_pc5x86.c
     m_europc.c
     m_elt.c
     m_xt_olivetti.c

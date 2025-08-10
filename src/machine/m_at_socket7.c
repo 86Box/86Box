@@ -79,7 +79,7 @@ machine_at_acerv35n_init(const machine_t *model)
     device_add(&i430hx_device);
     device_add(&piix3_device);
     /* The chip is not marked FR but the BIOS accesses register 06h of GPIO. */
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_FR));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX5 | FDC37C93X_FR));
     device_add(&sst_flash_29ee010_device);
 
     return ret;
@@ -111,7 +111,7 @@ machine_at_ap5vm_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&fdc37c665_device);
     device_add(&ncr53c810_onboard_pci_device);
     device_add(&intel_flash_bxt_device);
@@ -141,7 +141,7 @@ machine_at_p55t2p4_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&w83877f_device);
     device_add(&intel_flash_bxt_device);
 
@@ -170,7 +170,7 @@ machine_at_m7shi_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX5 | FDC37C93X_NORMAL));
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -244,8 +244,7 @@ machine_at_tc430hx_init(const machine_t *model)
 
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87306_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -283,8 +282,7 @@ machine_at_infinia7200_init(const machine_t *model)
 
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87306_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -342,8 +340,7 @@ machine_at_cu430hx_common_init(const machine_t *model)
 
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87306_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 }
 
@@ -415,8 +412,7 @@ machine_at_pcv90_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87306_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -461,7 +457,7 @@ machine_at_epc2102_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430hx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&kbc_ps2_intel_ami_pci_device);
     device_add(&i82091aa_device);
     device_add(&sst_flash_39sf010_device);
 
@@ -490,7 +486,7 @@ machine_at_p55tvp4_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device); // It uses the AMIKEY KBC
+    device_add(&kbc_ps2_ami_pci_device); // It uses the AMIKEY KBC
     device_add(&w83877f_device);
     device_add(&intel_flash_bxt_device);
 
@@ -518,7 +514,7 @@ machine_at_5ivg_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&prime3c_device);
     device_add(&intel_flash_bxt_device);
 
@@ -547,7 +543,7 @@ machine_at_8500tvxa_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 3, 2, 1);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&um8669f_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -578,7 +574,7 @@ machine_at_presario2240_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C932 | FDC37C93X_NORMAL));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_NORMAL));
     device_add(&sst_flash_29ee020_device);
 
     return ret;
@@ -608,7 +604,7 @@ machine_at_presario4500_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C931 | FDC37C93X_APM));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX1 | FDC37C93X_APM));
     device_add(&sst_flash_29ee020_device);
 
     return ret;
@@ -641,7 +637,7 @@ machine_at_dellhannibalp_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C932 | FDC37C93X_FR));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_FR));
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -669,7 +665,7 @@ machine_at_p55va_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C932 | FDC37C93X_FR));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_FR));
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -697,7 +693,7 @@ machine_at_brio80xx_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL | FDC37C93X_370));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX5 | FDC37C93X_NORMAL | FDC37XXXX_370));
     device_add(&sst_flash_29ee020_device);
 
     return ret;
@@ -734,8 +730,7 @@ machine_at_pb680_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87306_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -766,7 +761,7 @@ machine_at_pb810_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL | FDC37C93X_370));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX5 | FDC37C93X_NORMAL | FDC37XXXX_370));
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -794,7 +789,7 @@ machine_at_mb520n_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&fdc37c669_device);
     device_add(&intel_flash_bxt_device);
 
@@ -823,7 +818,7 @@ machine_at_i430vx_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&um8669f_device);
     device_add(&intel_flash_bxt_device);
 
@@ -861,7 +856,7 @@ machine_at_gw2kte_init(const machine_t *model)
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C932 | FDC37C93X_FR));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_FR));
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -890,8 +885,7 @@ machine_at_ma23c_init(const machine_t *model)
     device_add(&i430tx_device);
     device_add(&piix4_device);
     device_add(&nec_mate_unk_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&fdc37c67x_device);
+    device_add_params(&fdc37c67x_device, (void *) (FDC37XXX2 | FDC37XXXX_370));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
@@ -926,7 +920,7 @@ machine_at_nupro592_init(const machine_t *model)
 
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83977ef_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
@@ -963,7 +957,7 @@ machine_at_tx97_init(const machine_t *model)
     pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83877tf_acorp_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
@@ -1079,7 +1073,7 @@ machine_at_ym430tx_init(const machine_t *model)
     pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&w83977tf_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
@@ -1109,7 +1103,7 @@ machine_at_mb540n_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* PIIX4 */
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&um8669f_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
@@ -1140,7 +1134,7 @@ machine_at_56a5_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_NORMAL,      1, 2, 3, 4);
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&w83877f_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
@@ -1170,7 +1164,7 @@ machine_at_p5mms98_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83977tf_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
@@ -1202,7 +1196,7 @@ machine_at_richmond_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&it8671f_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
@@ -1235,8 +1229,7 @@ machine_at_tomahawk_init(const machine_t *model)
     pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
-    device_add(&fdc37c67x_device);
+    device_add_params(&fdc37c67x_device, (void *) (FDC37XXX2 | FDC37XXXX_370));
     device_add(&amd_flash_29f020a_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
     device_add(&lm78_device);      /* fans: Thermal, CPU, Chassis; temperature: unused */
@@ -1276,7 +1269,7 @@ machine_at_ficva502_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     device_add(&via_vpx_device);
     device_add(&via_vt82c586b_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&fdc37c669_370_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
@@ -1308,7 +1301,7 @@ machine_at_ficpa2012_init(const machine_t *model)
 
     device_add(&via_vp3_device);
     device_add(&via_vt82c586b_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&kbc_ps2_pci_device);
     device_add(&w83877f_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
@@ -1340,7 +1333,7 @@ machine_at_via809ds_init(const machine_t *model)
 
     device_add(&via_vp3_device);
     device_add(&via_vt82c586b_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&fdc37c669_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
@@ -1370,7 +1363,7 @@ machine_at_r534f_init(const machine_t *model)
     pci_register_slot(0x11, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&sis_5571_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83877f_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -1399,7 +1392,7 @@ machine_at_ms5146_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&sis_5571_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83877f_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -1428,7 +1421,7 @@ machine_at_cb52xsi_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&sis_5571_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&fdc37c669_370_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -1457,7 +1450,7 @@ machine_at_sp97xv_init(const machine_t *model)
     pci_register_slot(0x09, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x13, PCI_CARD_VIDEO,       1, 2, 3, 4);    /* On-chip SiS graphics, absent here. */
     device_add(&sis_5581_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83877f_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -1484,7 +1477,7 @@ machine_at_sq578_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
     device_add(&sis_5581_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83877tf_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -1512,7 +1505,7 @@ machine_at_ms5172_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
     device_add(&sis_5591_1997_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&kbc_ps2_ami_pci_device);
     device_add(&w83877tf_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -1546,6 +1539,35 @@ machine_at_m560_init(const machine_t *model)
     device_add(&ali1543_device); /* -5 */
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    return ret;
+}
+
+int
+machine_at_m5ata_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/m5ata/ATA1223.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x04, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x05, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x06, PCI_CARD_NORMAL,          4, 1, 2, 3);
+
+    device_add(&ali1531_device);
+    device_add(&ali1543_device); /* -5 */
+    spd_register(SPD_TYPE_SDRAM, 0x3, 64);
 
     return ret;
 }
@@ -1605,7 +1627,7 @@ machine_at_thunderbolt_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_NORMAL,      3, 0, 1, 2);
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37C935 | FDC37C93X_NORMAL | FDC37C93X_NO_NVR));
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX5 | FDC37C93X_NORMAL | FDC37C93X_NO_NVR));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 

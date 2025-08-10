@@ -8,8 +8,6 @@
  *
  *          Implementation of Thrust Master Flight Control System.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
@@ -148,7 +146,7 @@ tm_fcs_a0_over(UNUSED(void *priv))
     //
 }
 
-const joystick_if_t joystick_tm_fcs = {
+const joystick_t joystick_tm_fcs = {
     .name          = "Thrustmaster Flight Control System",
     .internal_name = "thrustmaster_fcs",
     .init          = tm_fcs_init,
@@ -166,7 +164,7 @@ const joystick_if_t joystick_tm_fcs = {
     .pov_names     = { "POV" }
 };
 
-const joystick_if_t joystick_tm_fcs_rcs = {
+const joystick_t joystick_tm_fcs_rcs = {
     .name          = "Thrustmaster FCS + Rudder Control System",
     .internal_name = "thrustmaster_fcs_rcs",
     .init          = tm_fcs_init,

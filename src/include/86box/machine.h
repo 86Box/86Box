@@ -85,23 +85,24 @@
 #define MACHINE_SOFTFLOAT_ONLY    0x00000001 /* sys requires SoftFloat FPU */
 #define MACHINE_VIDEO             0x00000002 /* sys has int video */
 #define MACHINE_VIDEO_8514A       0x00000004 /* sys has int video */
-#define MACHINE_VIDEO_XGA         0x00000008 /* sys has int video */
-#define MACHINE_VIDEO_ONLY        0x00000010 /* sys has fixed video */
-#define MACHINE_MOUSE             0x00000020 /* sys has int mouse */
-#define MACHINE_FDC               0x00000040 /* sys has int FDC */
-#define MACHINE_LPT_PRI           0x00000080 /* sys has int pri LPT */
-#define MACHINE_LPT_SEC           0x00000100 /* sys has int sec LPT */
-#define MACHINE_LPT_TER           0x00000200 /* sys has int ter LPT */
-#define MACHINE_PS2_KBC           0x00000400 /* sys has a PS/2 keyboard controller */
+#define MACHINE_VIDEO_ONLY        0x00000008 /* sys has fixed video */
+#define MACHINE_KEYBOARD          0x00000010 /* sys has int keyboard */
+#define MACHINE_AX                0x00000020 /* sys adheres to Japanese AX standard */
+#define MACHINE_KEYBOARD_JIS      0x00000020 /* sys has int keyboard which is Japanese (AX or PS/55) */
+#define MACHINE_MOUSE             0x00000040 /* sys has int mouse */
+#define MACHINE_FDC               0x00000080 /* sys has int FDC */
+#define MACHINE_LPT_PRI           0x00000100 /* sys has int pri LPT */
+#define MACHINE_LPT_SEC           0x00000200 /* sys has int sec LPT */
+#define MACHINE_LPT_TER           0x00000400 /* sys has int ter LPT */
+#define MACHINE_PS2_KBC           0x00000800 /* sys has a PS/2 keyboard controller */
                                              /* this is separate from having PS/2 ports */
-#define MACHINE_UART_PRI          0x00000800 /* sys has int pri UART */
-#define MACHINE_UART_SEC          0x00001000 /* sys has int sec UART */
-#define MACHINE_UART_TER          0x00002000 /* sys has int ter UART */
-#define MACHINE_UART_QUA          0x00004000 /* sys has int qua UART */
-#define MACHINE_GAMEPORT          0x00008000 /* sys has int game port */
-#define MACHINE_SOUND             0x00010000 /* sys has int sound */
-#define MACHINE_NIC               0x00020000 /* sys has int NIC */
-#define MACHINE_AX                0x00040000 /* sys adheres to Japanese AX standard */
+#define MACHINE_UART_PRI          0x00010800 /* sys has int pri UART */
+#define MACHINE_UART_SEC          0x00002000 /* sys has int sec UART */
+#define MACHINE_UART_TER          0x00004000 /* sys has int ter UART */
+#define MACHINE_UART_QUA          0x00008000 /* sys has int qua UART */
+#define MACHINE_GAMEPORT          0x00010000 /* sys has int game port */
+#define MACHINE_SOUND             0x00020000 /* sys has int sound */
+#define MACHINE_NIC               0x00040000 /* sys has int NIC */
 /* Feature flags for advanced devices. */
 #define MACHINE_APM               0x00080000 /* sys has APM */
 #define MACHINE_ACPI              0x00100000 /* sys has ACPI */
@@ -338,6 +339,7 @@ typedef struct _machine_ {
     uint32_t               gpio_acpi;
 #ifdef EMU_DEVICE_H
     const device_t        *device;
+    const device_t        *kbd_device;
     const device_t        *fdc_device;
     const device_t        *sio_device;
     const device_t        *vid_device;
@@ -345,6 +347,7 @@ typedef struct _machine_ {
     const device_t        *net_device;
 #else
     void                  *device;
+    void                  *kbd_device;
     void                  *fdc_device;
     void                  *sio_device;
     void                  *vid_device;
@@ -789,6 +792,7 @@ extern int machine_at_ms5146_init(const machine_t *);
 extern int machine_at_cb52xsi_init(const machine_t *);
 
 extern int machine_at_m560_init(const machine_t *);
+extern int machine_at_m5ata_init(const machine_t *);
 extern int machine_at_ms5164_init(const machine_t *);
 
 extern int machine_at_sp97xv_init(const machine_t *);
@@ -916,6 +920,9 @@ extern int machine_xt_m19_init(const machine_t *);
 
 /* m_pcjr.c */
 extern int machine_pcjr_init(const machine_t *);
+
+/* m_pc5086.c */
+extern int machine_pc5086_init(const machine_t *);
 
 /* m_ps1.c */
 extern int machine_ps1_m2011_init(const machine_t *);

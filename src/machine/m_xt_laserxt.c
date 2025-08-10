@@ -464,11 +464,11 @@ machine_xt_laserxt_common_init(const machine_t *model,int is_lxt3)
         device_add(&fdc_xt_device);
 
     nmi_init();
-    standalone_gameport_type = &gameport_device;
+    standalone_gameport_type = &gameport_200_device;
 
     device_add(is_lxt3 ? &lxt3_device : &laserxt_device);
 
-    device_add(&keyboard_xt_lxt3_device);
+    device_add(&kbc_xt_lxt3_device);
 }
 
 int
