@@ -13,7 +13,7 @@ msgid "&Keyboard requires capture"
 msgstr "&Tastatur benötigt das Einfangen des Mauszeigers"
 
 msgid "&Right CTRL is left ALT"
-msgstr "&Die rechte Strg-Taste ist die Linke Alt-Taste"
+msgstr "&Die rechte Strg-Taste ist die linke Alt-Taste"
 
 msgid "&Hard Reset..."
 msgstr "&Kaltstart..."
@@ -58,7 +58,7 @@ msgid "Qt (&OpenGL)"
 msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0-Kern)"
+msgstr "Open&GL (3.0 Core)"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -250,7 +250,7 @@ msgid "E&ject"
 msgstr "A&uswerfen"
 
 msgid "&Image..."
-msgstr "&Cartridgeabbild..."
+msgstr "&Abbild..."
 
 msgid "E&xport to 86F..."
 msgstr "&In das 86F-Format e&xportieren..."
@@ -355,7 +355,7 @@ msgid "Machine:"
 msgstr "System:"
 
 msgid "Configure"
-msgstr "Einstellen"
+msgstr "Konfigurieren"
 
 msgid "CPU type:"
 msgstr "CPU-Typ:"
@@ -625,7 +625,7 @@ msgid "ISA RTC:"
 msgstr "ISA-Echtzeituhr:"
 
 msgid "ISA Memory Expansion"
-msgstr "ISA-Speichererweiterung:"
+msgstr "ISA-Speichererweiterung"
 
 msgid "ISA ROM Cards"
 msgstr "ISA-ROM-Karte"
@@ -685,7 +685,7 @@ msgid "Image %1"
 msgstr "Abbild %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box konnte keine nutzbaren ROM-Dateien finden.\n\nBitte besuchen Sie <a href=\"https://github.com/86Box/roms/releases/latest\">download</a>, laden ein ROM-Set herunter und extrahieren dies in das \"roms\"-Verzeichnis."
+msgstr "86Box konnte keine nutzbaren ROM-Dateien finden.\n\nBitte besuchen Sie <a href=\"https://github.com/86Box/roms/releases/latest\">die Download-Seite</a>, laden ein ROM-Set herunter und extrahieren es in das \"roms\"-Verzeichnis."
 
 msgid "(empty)"
 msgstr "(leer)"
@@ -823,7 +823,7 @@ msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
-msgstr ""
+msgstr "CH Flightstick Pro + CH Pedale"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -832,7 +832,7 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr ""
+msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "2-button gamepad(s)"
 msgstr "2-Tasten-Gamepad(s)"
@@ -919,7 +919,7 @@ msgid "About 86Box"
 msgstr "Über 86Box"
 
 msgid "86Box v"
-msgstr "86Box Version "
+msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Ein Emulator für alte Computer\n\nAutoren: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne sowie andere.\n\nMit früheren Kernbeiträgen von Sarah Walker, leilei, JohnElliott, greatpsycho sowie andere.\n\nÜbersetzt von: dob205\n\nVeröffentlicht unter der GNU General Public License in der Version 2 oder neuer. Siehe LICENSE für mehr Informationen."
@@ -967,7 +967,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Zur Zeit wird eine nicht unterstützte Konfiguration geladen"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Das Filtern der CPU-Typen basierend auf dem ausgewählten System ist für dieses System deaktiviert.\n\nDies ermöglicht es, dass man eine sonst nicht mit dem ausgewählten System inkompatible CPU auswählen kann. Allerdings kann dies zu Inkompatiblilitäten mit dem BIOS des Systems oder anderen Programmen kommen.\n\nDas Aktivieren dieser Einstellung wird nicht unterstützt und sämtliche Bugreports können als \"ungültig\" geschlossen werden."
+msgstr "Das Filtern der CPU-Typen basierend auf dem ausgewählten System ist für dieses System deaktiviert.\n\nDies ermöglicht es, eine mit dem ausgewählten System inkompatible CPU auszuwählen. Allerdings kann dies zu Inkompatiblilitäten mit dem BIOS des Systems oder anderen Programmen kommen.\n\nDas Aktivieren dieser Einstellung wird nicht unterstützt und sämtliche Bugreports können als \"ungültig\" geschlossen werden."
 
 msgid "Continue"
 msgstr "Fortfahren"
@@ -1006,22 +1006,22 @@ msgid "Hard reset"
 msgstr "Kaltstart"
 
 msgid "ACPI shutdown"
-msgstr "ACPI basiertes Herunterfahren"
+msgstr "Über ACPI herunterfahren"
 
 msgid "ACP&I shutdown"
-msgstr "ACP&I basiertes Herunterfahren"
+msgstr "Über ACP&I herunterfahren"
 
 msgid "Hard disk (%1)"
 msgstr "Festplatte (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLL- oder ESDI CD-ROM-Laufwerke existieren nicht"
+msgstr "MFM/RLL- oder ESDI-CD-ROM-Laufwerke existieren nicht"
 
 msgid "Custom..."
 msgstr "Angepasst..."
 
 msgid "Custom (large)..."
-msgstr "Angepasst (Groß)..."
+msgstr "Angepasst (groß)..."
 
 msgid "Add New Hard Disk"
 msgstr "Neue Festplatte hinzufügen"
@@ -1030,10 +1030,10 @@ msgid "Add Existing Hard Disk"
 msgstr "Bestehende Festplatte hinzufügen"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI-Abbilder können nicht größer als 4 GB groß sein."
+msgstr "HDI-Abbilder können nicht größer als 4 GB sein."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "Festplattenabbilder können nicht größer als 127 GB groß sein."
+msgstr "Festplattenabbilder können nicht größer als 127 GB sein."
 
 msgid "Hard disk images"
 msgstr "Festplattenabbilder"
@@ -1057,10 +1057,10 @@ msgid "Disk image created"
 msgstr "Disk-Abbild wurde erstellt"
 
 msgid "Make sure the file exists and is readable."
-msgstr "Stell sicher, dass die Datei existiert und lesbar ist."
+msgstr "Stelle sicher, dass die Datei existiert und lesbar ist."
 
 msgid "Make sure the file is being saved to a writable directory."
-msgstr "Stell sicher, dass die Datei in ein Verzeichnis mit Schreibberechtigungen gespeichert wird."
+msgstr "Stelle sicher, dass die Datei in ein Verzeichnis mit Schreibberechtigungen gespeichert wird."
 
 msgid "Disk image too large"
 msgstr "Das Festplattenabbild ist zu groß"
@@ -1408,7 +1408,7 @@ msgid "I Copied It"
 msgstr "Ich habe es kopiert"
 
 msgid "86Box Monitor #"
-msgstr "86Box Monitor "
+msgstr "86Box-Monitor #"
 
 msgid "No MCA devices."
 msgstr "Keine MCA-Geräte."
@@ -1447,16 +1447,16 @@ msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x Schlüsselkarte"
 
 msgid "Serial port passthrough 1"
-msgstr "Durchreichung der Serielle Schnittstelle 1"
+msgstr "Serielle Schnittstelle 1 durchreichen"
 
 msgid "Serial port passthrough 2"
-msgstr "Durchreichung der Serielle Schnittstelle 2"
+msgstr "Serielle Schnittstelle 2 durchreichen"
 
 msgid "Serial port passthrough 3"
-msgstr "Durchreichung der Serielle Schnittstelle 3"
+msgstr "Serielle Schnittstelle 3 durchreichen"
 
 msgid "Serial port passthrough 4"
-msgstr "Durchreichung der Serielle Schnittstelle 4"
+msgstr "Serielle Schnittstelle 4 durchreichen"
 
 msgid "Renderer &options..."
 msgstr "Renderer-Optionen..."
@@ -1591,10 +1591,10 @@ msgid "IRQ"
 msgstr "IRQ"
 
 msgid "Serial port IRQ"
-msgstr ""
+msgstr "IRQ des seriellen Ports"
 
 msgid "Parallel port IRQ"
-msgstr ""
+msgstr "IRQ des parallelen Ports"
 
 msgid "BIOS Revision"
 msgstr "BIOS-Revision"
@@ -1609,7 +1609,7 @@ msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 Erweiterungseinheit"
 
 msgid "IBM Cassette Basic"
-msgstr ""
+msgstr "IBM Kassetten-Basic"
 
 msgid "Translate 26 -> 17"
 msgstr "Übersetzen 26 -> 17"
@@ -1822,7 +1822,7 @@ msgid "SB Address"
 msgstr "SB-Adresse"
 
 msgid "Adlib Address"
-msgstr ""
+msgstr "Adlib-Adresse"
 
 msgid "Use EEPROM setting"
 msgstr "EEPROM-Einstellung verwenden"
@@ -2269,13 +2269,13 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Kopierschutz-Dongle für Savage Quest"
 
 msgid "Serial Passthrough Device"
-msgstr "Gerät der Durchreichung der Serielle Schnittstelle"
+msgstr "Serielles Gerät durchreichen"
 
 msgid "Passthrough Mode"
-msgstr "Modus der Durchreichung"
+msgstr "Durchreich-Modus"
 
 msgid "Host Serial Device"
-msgstr "Host Serielles Gerät"
+msgstr "Serielles Gerät des Hosts"
 
 msgid "Name of pipe"
 msgstr "Name der Pipe"
@@ -2287,19 +2287,19 @@ msgid "Stop bits"
 msgstr "Stoppbits"
 
 msgid "Baud Rate of Passthrough"
-msgstr "Baudrate der Durchreichung"
+msgstr "Durchreich-Baudrate"
 
 msgid "Named Pipe (Server)"
-msgstr "Benanntes Pipe (Server)"
+msgstr "Benannte Pipe (Server)"
 
 msgid "Named Pipe (Client)"
-msgstr "Benanntes Pipe (Client)"
+msgstr "Benannte Pipe (Client)"
 
 msgid "Host Serial Passthrough"
-msgstr "Durchreichung der seriellen Schnittstelle des Hosts"
+msgstr "Serielle Schnittstelle des Hosts durchreichen"
 
 msgid "E&ject %1"
-msgstr "A&uswerfen %1"
+msgstr "%1 a&uswerfen"
 
 msgid "&Unmute"
 msgstr "&Ton einschalten"
@@ -2311,7 +2311,7 @@ msgid "High performance impact"
 msgstr "Hohe Auswirkung auf die Leistung"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] RAM-Diskette (maximale Geschwindigkeit)"
+msgstr "[Generic] RAM-Disk (maximale Geschwindigkeit)"
 
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Generisch] 1989 (3500 U/min)"
