@@ -291,7 +291,7 @@ log_fatal(void *priv, const char *fmt, ...)
     va_start(ap, fmt);
     vsprintf(temp, fmt2, ap);
     va_end(ap);
-    fatal(temp);
+    fatal("%s", temp);
     exit(-1);
 }
 
@@ -317,7 +317,7 @@ log_warning(void *priv, const char *fmt, ...)
     va_start(ap, fmt);
     vsprintf(temp, fmt2, ap);
     va_end(ap);
-    warning(temp, ap);
+    warning("%s", temp);
 }
 
 static void *
