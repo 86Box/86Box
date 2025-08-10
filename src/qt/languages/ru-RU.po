@@ -27,6 +27,9 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Пауза"
 
+msgid "Pause"
+msgstr "Пауза"
+
 msgid "Re&sume"
 msgstr "В&озобновить"
 
@@ -191,6 +194,9 @@ msgstr "&Инструменты"
 
 msgid "&Settings..."
 msgstr "&Настройки машины..."
+
+msgid "Settings..."
+msgstr "Настройки машины..."
 
 msgid "&Update status bar icons"
 msgstr "&Обновление значков строки состояния"
@@ -357,6 +363,9 @@ msgstr "Системная плата:"
 msgid "Configure"
 msgstr "Настройка"
 
+msgid "CPU:"
+msgstr "ЦП:"
+
 msgid "CPU type:"
 msgstr "Тип ЦП:"
 
@@ -455,6 +464,9 @@ msgstr "Устройство вывода MIDI:"
 
 msgid "MIDI In Device:"
 msgstr "Устройство ввода MIDI:"
+
+msgid "MIDI Out:"
+msgstr "Вывод MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "Отдельный MPU-401"
@@ -615,6 +627,12 @@ msgstr "Дисководы CD-ROM:"
 msgid "MO drives:"
 msgstr "Магнитооптические дисководы:"
 
+msgid "MO:"
+msgstr "Дисководы MO:"
+
+msgid "Removable disks:"
+msgstr "Cъёмные диски:"
+
 msgid "Removable disk drives:"
 msgstr "Дисководы съёмных дисков:"
 
@@ -741,11 +759,29 @@ msgstr "Сеть"
 msgid "Ports (COM & LPT)"
 msgstr "Порты (COM и LPT)"
 
+msgid "Ports"
+msgstr "Порты"
+
+msgid "Serial ports"
+msgstr "Последовательные порты"
+
+msgid "Parallel ports"
+msgstr "Параллельные порты"
+
 msgid "Storage controllers"
 msgstr "Контроллеры дисков"
 
 msgid "Hard disks"
 msgstr "Жёсткие диски"
+
+msgid "Disks:"
+msgstr "Диски:"
+
+msgid "Floppy:"
+msgstr "Дисководы:"
+
+msgid "Controllers:"
+msgstr "Контроллеры:"
 
 msgid "Floppy & CD-ROM drives"
 msgstr "Гибкие диски и CD-ROM"
@@ -755,6 +791,9 @@ msgstr "Другие съёмные устройства"
 
 msgid "Other peripherals"
 msgstr "Другая периферия"
+
+msgid "Other devices"
+msgstr "Другие устройства"
 
 msgid "Click to capture mouse"
 msgstr "Щёлкните мышью для захвата курсора"
@@ -900,6 +939,12 @@ msgstr "Добро пожаловать в 86Box!"
 msgid "Internal device"
 msgstr "Встроенное устройство"
 
+msgid "&File"
+msgstr "&Файл"
+
+msgid "&New machine..."
+msgstr "&Новая машина..."
+
 msgid "Exit"
 msgstr "Выход"
 
@@ -1004,6 +1049,270 @@ msgstr "Нажать Ctrl+Alt+Esc"
 
 msgid "Hard reset"
 msgstr "Холодная перезагрузка"
+
+msgid "Force shutdown"
+msgstr "Принудительное завершение работы"
+
+msgid "Start"
+msgstr "Пуск"
+
+msgid "Not running"
+msgstr "Не работает"
+
+msgid "Running"
+msgstr "Работает"
+
+msgid "Paused"
+msgstr "Приостановлено"
+
+msgid "waiting"
+msgstr "Ожидание"
+
+msgid "total"
+msgstr "Всего"
+
+msgid "System Directory:"
+msgstr "Системная папка:"
+
+msgid "Choose directory"
+msgstr "Выбрать папку"
+
+msgid "Choose configuration file"
+msgstr "Выбрать файл конфигурации"
+
+msgid "86Box configuration files (86box.cfg)"
+msgstr "Файлы конфигурации 86Box (86box.cfg)"
+
+msgid "Configuration read failed"
+msgstr "Сбой при чтении конфигурации"
+
+msgid "Unable to open the selected configuration file for reading: %1"
+msgstr "Невозможно открыть выбранный файл конфигурации для чтения: %1"
+
+msgid "Use regular expressions in search box"
+msgstr "Использовать регулярные выражения в поле поиска"
+
+msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%1 машина(ы) в настоящее время активна(ы). Вы уверены, что все равно хотите выйти из менеджера виртуальной машины?"
+
+msgid "Add new system wizard"
+msgstr "Добавить новый мастер системы"
+
+msgid "This is the into page."
+msgstr "Это в странице."
+
+msgid "No help has been added yet, you're on your own."
+msgstr "Пока еще не была добавлена, добавьте сами."
+
+msgid "Did you click help twice?"
+msgstr "Вы дважды нажимали на помощь?"
+
+msgid "Add new system wizard help"
+msgstr "Добавить новую помощь мастера системы"
+
+msgid "Introduction"
+msgstr "Введение"
+
+msgid "This will help you add a new system to 86Box."
+msgstr "Это поможет вам добавить новую систему в 86Box."
+
+msgid "New configuration"
+msgstr "Новая конфигурация"
+
+msgid "Complete"
+msgstr "Завершено"
+
+msgid "The wizard will now launch the configuration for the new system."
+msgstr "Мастер теперь запустит конфигурацию для новой системы."
+
+msgid "Use existing configuration"
+msgstr "Использовать существующую конфигурацию"
+
+msgid "Type some notes here"
+msgstr "Введите здесь несколько заметок"
+
+msgid "Paste the contents of the existing configuration file into the box below."
+msgstr "Вставьте содержимое существующего файла конфигурации в поле ниже."
+
+msgid "Load configuration from file"
+msgstr "Загрузить конфигурацию из файла"
+
+msgid "System Name"
+msgstr "Название системы"
+
+msgid "System name"
+msgstr "Название системы"
+
+msgid "System name:"
+msgstr "Название системы:"
+
+msgid "System name cannot contain certain characters"
+msgstr "Название системы не может содержать определённые символы"
+
+msgid "System name already exists"
+msgstr "Название системы уже существует"
+
+msgid "Please enter a directory for the system"
+msgstr "Пожалуйста, введите папку для системы"
+
+msgid "Directory does not exist"
+msgstr "Папка не существует"
+
+msgid "A new directory for the system will be created in the selected directory above"
+msgstr "Новая папка для системы будет создана в выбранной папке выше"
+
+msgid "System location:"
+msgstr "Расположение системы:"
+
+msgid "System name and location"
+msgstr "Название системы и расположение"
+
+msgid "Enter the name of the system and choose the location"
+msgstr "Введите название системы и выберите расположение"
+
+msgid "Enter the name of the system"
+msgstr "Введите название системы"
+
+msgid "Please enter a system name"
+msgstr "Пожалуйста, введите название системы"
+
+msgid "Display Name (optional)"
+msgstr "Отображаемое имя (опционально)"
+
+msgid "Display name:"
+msgstr "Отображаемое имя:"
+
+msgid "Set display name"
+msgstr "Установить отображаемое имя"
+
+msgid "Enter the new display name (blank to reset)"
+msgstr "Введите новое отображаемое имя (пусто, чтобы сбросить)"
+
+msgid "Change &display name..."
+msgstr "Изменить &отображаемое имя..."
+
+msgid "Context Menu"
+msgstr "Контекстное меню"
+
+msgid "&Open folder..."
+msgstr "&Открыть папку..."
+
+msgid "Open &printer tray..."
+msgstr "Открыть папку &принтера..."
+
+msgid "Set &icon..."
+msgstr "Установить &значёк..."
+
+msgid "Select an icon"
+msgstr "Выберите значёк"
+
+msgid "C&lone..."
+msgstr "К&лонировать..."
+
+msgid "Virtual machine \"%1\" (%2) will be cloned into:"
+msgstr "Виртуальная машина \"%1\" (%2) будет клонирована в:"
+
+msgid "Directory %1 already exists"
+msgstr "Папка %1 уже существует"
+
+msgid "You cannot use the following characters in the name: %1"
+msgstr "Вы не можете использовать следующие символы в имени: %1"
+
+msgid "Clone"
+msgstr "Клонировать"
+
+msgid "Failed to create directory for cloned VM"
+msgstr "Не удалось создать папку для клонированной виртуальной машины"
+
+msgid "Failed to clone VM."
+msgstr "Не удалось клонировать виртуальную машину."
+
+msgid "Directory in use"
+msgstr "Папка используется"
+
+msgid "The selected directory is already in use. Please select a different directory."
+msgstr "Выбранная папка уже используется. Пожалуйста, выберите другую папку."
+
+msgid "Create directory failed"
+msgstr "Не удалось создать папку"
+
+msgid "Unable to create the directory for the new system"
+msgstr "Невозможно создать папку для новой системы"
+
+msgid "Configuration write failed"
+msgstr "Не удалось записать файл конфигурации"
+
+msgid "Unable to open the configuration file at %1 for writing"
+msgstr "Невозможно открыть файл конфигурации в %1 для записи"
+
+msgid "Error adding system"
+msgstr "Ошибка добавления системы"
+
+msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
+msgstr "Аномальное прекращение программы при создании новой системы: выходной код %1, состояние выхода %2.\n\nСистема не будет добавлена."
+
+msgid "Remove directory failed"
+msgstr "Сбой при удалении папки"
+
+msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
+msgstr "Некоторые файлы в папке машины невозможно удалить. Пожалуйста, удалите их вручную."
+
+msgid "Build"
+msgstr "Сборка"
+
+msgid "Version"
+msgstr "Версия"
+
+msgid "An update to 86Box is available"
+msgstr "Доступно обновление для 86Box"
+
+msgid "Warning"
+msgstr "Внимание"
+
+msgid "&Kill"
+msgstr "&Уничтожить"
+
+msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
+msgstr "Уничтожение виртуальной машины может привести к потере данных. Делайте это только в том случае, если процесс 86Box завис.\n\nВы действительно хотите уничтожить виртуальную машину \"%1\"?"
+
+msgid "&Delete"
+msgstr "&Удалить"
+
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
+msgstr "Вы действительно хотите удалить виртуальную машину \"%1\" и все её файлы? Это действие не может быть отменено!"
+
+msgid "Show &config file"
+msgstr "Показать файл &конфигурации"
+
+msgid "No screenshot"
+msgstr "Нет скриншота"
+
+msgid "Search"
+msgstr "Поиск"
+
+msgid "Searching for VMs..."
+msgstr "Поиск виртуальных машин..."
+
+msgid "Found %1"
+msgstr "Найдено %1"
+
+msgid "System"
+msgstr "Система"
+
+msgid "Storage"
+msgstr "Диски"
+
+msgid "Disk %1: "
+msgstr "Диск %1: "
+
+msgid "No disks"
+msgstr "Нет дисков"
+
+msgid "Audio"
+msgstr "Аудио"
+
+msgid "Audio:"
+msgstr "Аудио:"
 
 msgid "ACPI shutdown"
 msgstr "Сигнал завершения ACPI"
@@ -1346,6 +1655,9 @@ msgstr "Неизвестная шина"
 
 msgid "Null Driver"
 msgstr "Нулевой драйвер"
+
+msgid "NIC:"
+msgstr "Сетевой адаптер:"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
