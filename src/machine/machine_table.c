@@ -14283,7 +14283,7 @@ const machine_t machines[] = {
             .min_multi = 1.5, 
             .max_multi = 3.5 
         }, 
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
+        .bus_flags = MACHINE_PS2_PCIONLY | MACHINE_BUS_USB, 
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: Cirrus Logic CL-GD5465 and internal sound: Yamaha YMF715 */
         .ram = { 
             .min = 8192, 
@@ -16346,7 +16346,7 @@ const machine_t machines[] = {
             .min_multi = 1.5, 
             .max_multi = 8.0 
         }, 
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, /* Has internal video: SGS Thompson Riva 128 AGP, network: NEC PK-UG-X006 (Intel 82558B chip) and sound: OAK Audia 3D (OTI-610) */ 
+        .bus_flags = MACHINE_PS2_PCIONLY | MACHINE_BUS_USB, /* Has internal video: SGS Thompson Riva 128 AGP, network: NEC PK-UG-X006 (Intel 82558B chip) and sound: OAK Audia 3D (OTI-610) for MA23D or YAMAHA YMF724 for MA30D */ 
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, 
         .ram = { 
             .min = 8192, 
