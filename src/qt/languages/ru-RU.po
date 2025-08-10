@@ -1201,10 +1201,10 @@ msgid "Open &printer tray..."
 msgstr "Открыть папку &принтера..."
 
 msgid "Set &icon..."
-msgstr "Установить &значёк..."
+msgstr "Установить &значок..."
 
 msgid "Select an icon"
-msgstr "Выберите значёк"
+msgstr "Выберите значок"
 
 msgid "C&lone..."
 msgstr "К&лонировать..."
