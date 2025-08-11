@@ -476,6 +476,7 @@ video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index)
     monitors[monitor_index].mon_blit_data_ptr->y             = y;
     monitors[monitor_index].mon_blit_data_ptr->w             = w;
     monitors[monitor_index].mon_blit_data_ptr->h             = h;
+    monitors[monitor_index].mon_renderedframes++;
 
     thread_set_event(monitors[monitor_index].mon_blit_data_ptr->wake_blit_thread);
     MTR_END("video", "video_blit_memtoscreen");
