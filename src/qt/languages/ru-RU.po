@@ -1099,10 +1099,10 @@ msgid "Add new system wizard"
 msgstr "Добавить новый мастер системы"
 
 msgid "This is the into page."
-msgstr "Это в странице."
+msgstr ""
 
 msgid "No help has been added yet, you're on your own."
-msgstr "Пока еще не была добавлена, добавьте сами."
+msgstr ""
 
 msgid "Did you click help twice?"
 msgstr "Вы дважды нажимали на помощь?"
@@ -1270,10 +1270,10 @@ msgid "Warning"
 msgstr "Внимание"
 
 msgid "&Kill"
-msgstr "&Уничтожить"
+msgstr "&Завершить процесс"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "Уничтожение виртуальной машины может привести к потере данных. Делайте это только в том случае, если процесс 86Box завис.\n\nВы действительно хотите уничтожить виртуальную машину \"%1\"?"
+msgstr "Принудительное завершение процесса виртуальной машины может привести к потере данных. Делайте это только в том случае, если процесс 86Box завис.\n\nВы действительно хотите принудительно завершить процесс виртуальной машины \"%1\"?"
 
 msgid "&Delete"
 msgstr "&Удалить"
