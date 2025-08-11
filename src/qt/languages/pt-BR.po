@@ -1278,8 +1278,8 @@ msgstr "Build"
 msgid "Version"
 msgstr "Versão"
 
-msgid "An update to 86Box is available!"
-msgstr "Uma atualização do 86Box está disponível!"
+msgid "<b>An update to 86Box is available!</b>"
+msgstr "<b>Uma atualização do 86Box está disponível!</b>"
 
 msgid "Warning"
 msgstr "Aviso"
