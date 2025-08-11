@@ -39,7 +39,7 @@ typedef struct pc873xx_t {
     uint8_t   tries;
     uint8_t   has_ide;
     uint8_t   fdc_on;
-    uint8_t   regs[15];
+    uint8_t   regs[256];
     uint16_t  base_addr;
     int       cur_reg;
     int       max_reg;

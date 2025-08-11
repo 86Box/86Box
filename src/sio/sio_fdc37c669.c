@@ -39,7 +39,7 @@ typedef struct fdc37c669_t {
     uint8_t   tries;
     uint8_t   has_ide;
     uint8_t   dma_map[4];
-    uint8_t   irq_map[10];
+    uint8_t   irq_map[16];
     uint8_t   regs[256];
     int       locked;
     int       rw_locked;

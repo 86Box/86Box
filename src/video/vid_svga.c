@@ -799,9 +799,10 @@ svga_recalctimings(svga_t *svga)
 
             if ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20)) {
                 if ((svga->gdcreg[5] & 0x60) == 0x00) {
-                    if (svga->seqregs[1] & 8) /*Low res (320)*/
+                    if (svga->seqregs[1] & 8) { /*Low res (320)*/
                         svga->render = svga_render_4bpp_lowres;
-                    else
+                        svga_log("4 bpp low res.\n");
+                    } else
                         svga->render = svga_render_4bpp_highres;
                 } else if ((svga->gdcreg[5] & 0x60) == 0x20) {
                     if (svga->seqregs[1] & 8) { /*Low res (320)*/
@@ -1045,11 +1046,11 @@ svga_recalctimings(svga_t *svga)
     crtcconst = svga->clock * svga->char_width;
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (dev->on)
-            crtcconst8514 = svga->clock_8514;
+            crtcconst8514 = svga->clock_8514 * 8;
     }
     if (xga_active && (svga->xga != NULL)) {
         if (xga->on)
-            crtcconst_xga = svga->clock_xga;
+            crtcconst_xga = svga->clock_xga * svga->char_width;
     }
 
 #ifdef ENABLE_SVGA_LOG
@@ -1093,7 +1094,6 @@ svga_recalctimings(svga_t *svga)
         if (dev->on) {
             disptime8514 = dev->h_total;
             _dispontime8514 = dev->h_disp_time;
-            svga_log("HTOTAL=%d, HDISP=%d.\n", dev->h_total, dev->h_disp);
         }
     }
 
@@ -1135,6 +1135,7 @@ svga_recalctimings(svga_t *svga)
         case 1: /*Plus 8514/A*/
             if (dev->on) {
                 _dispofftime8514 = disptime8514 - _dispontime8514;
+                svga_log("DISPTIME8514=%lf, off=%lf, DISPONTIME8514=%lf, CRTCCONST8514=%lf.\n", disptime8514, _dispofftime8514, _dispontime8514, crtcconst8514);
                 _dispontime8514 *= crtcconst8514;
                 _dispofftime8514 *= crtcconst8514;
 

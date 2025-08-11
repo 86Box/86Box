@@ -1278,7 +1278,7 @@ msgstr ""
 msgid "Version"
 msgstr ""
 
-msgid "An update to 86Box is available!"
+msgid "<b>An update to 86Box is available!</b>"
 msgstr ""
 
 msgid "Warning"
