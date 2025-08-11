@@ -1275,6 +1275,21 @@ msgstr ""
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
 msgstr ""
 
+msgid "&Wipe NVRAM"
+msgstr ""
+
+msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
+msgstr ""
+
+msgid "Success"
+msgstr ""
+
+msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
+msgstr ""
+
+msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgstr ""
+
 msgid "&Delete"
 msgstr ""
 
