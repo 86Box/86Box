@@ -1275,6 +1275,21 @@ msgstr "&Завершить процесс"
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
 msgstr "Принудительное завершение процесса виртуальной машины может привести к потере данных. Делайте это только в том случае, если процесс 86Box завис.\n\nВы действительно хотите принудительно завершить процесс виртуальной машины \"%1\"?"
 
+msgid "&Wipe NVRAM"
+msgstr "&Стереть NVRAM"
+
+msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
+msgstr "Это удалит все файлы NVRAM (и связанные) виртуальной машины, расположенной в подпапке \"nvr\". Вам придется снова реконфигурировать настройки BIOS (и, возможно, другие устройства внутри виртуальной машины), если применимо.\n\nВы уверены, что хотите стереть всё содержимое NVRAM виртуальной машины \"%1\"?"
+
+msgid "Success"
+msgstr "Успешно"
+
+msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
+msgstr "Успешно стёрто содержимое NVRAM виртуальной машины \"%1\""
+
+msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgstr "Произошла ошибка, пытаясь стереть содержимое NVRAM виртуальной машины \"%1\""
+
 msgid "&Delete"
 msgstr "&Удалить"
 
