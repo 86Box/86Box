@@ -26,7 +26,7 @@ UpdateDetails::
 UpdateDetails(const UpdateCheck::UpdateResult &updateResult, QWidget *parent) : QDialog(parent), ui(new Ui::UpdateDetails)
 {
     ui->setupUi(this);
-    ui->updateTitle->setText("<b>An update to 86Box is available!</b>");
+    ui->updateTitle->setText(tr(("<b>An update to 86Box is available!</b>"));
     QString currentVersionText;
     QString releaseType = updateResult.channel == UpdateCheck::UpdateChannel::Stable ? tr("version") : tr("build");
     if(!updateResult.currentVersion.isEmpty()) {
