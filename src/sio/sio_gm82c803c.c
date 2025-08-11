@@ -35,7 +35,7 @@ typedef struct gm82c803c_t {
     uint8_t   has_ide;
     uint8_t   dma_map[4];
     uint8_t   irq_map[10];
-    uint8_t   regs[16];
+    uint8_t   regs[256];
     int       cur_reg;
     fdc_t    *fdc;
     serial_t *uart[2];

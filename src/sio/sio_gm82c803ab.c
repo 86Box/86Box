@@ -35,7 +35,7 @@ typedef struct gm82c803ab_t {
     uint8_t   type;
     uint8_t   tries;
     uint8_t   has_ide;
-    uint8_t   regs[16];
+    uint8_t   regs[256];
     int       cur_reg;
     int       com3_addr;
     int       com4_addr;
