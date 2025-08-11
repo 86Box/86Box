@@ -225,7 +225,7 @@ MainWindow::MainWindow(QWidget *parent)
     frameRateTimer->setInterval(1000);
     frameRateTimer->setSingleShot(false);
     connect(frameRateTimer, &QTimer::timeout, [this, hertz_label] {
-        hertz_label->setText(QString("%1 Hz").arg(monitors[0].mon_actualrenderedframes));
+        hertz_label->setText(tr("%1 Hz").arg(monitors[0].mon_actualrenderedframes.load()));
     });
     statusBar()->addPermanentWidget(hertz_label);
     frameRateTimer->start(1000);
