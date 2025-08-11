@@ -57,8 +57,33 @@ static void
 lpt_handler(i82091aa_t *dev)
 {
     uint16_t lpt_port = LPT1_ADDR;
+    int      enable   = (dev->regs[0x20] & 0x01);
 
     lpt_port_remove(dev->lpt);
+
+    lpt_set_fifo_threshold(dev->lpt, (dev->regs[0x20] & 0x80) ? 15 : 8);
+
+    switch (dev->regs[0x20] & 0x60) {
+        default:
+        case 0x00:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x20:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 1);
+            break;
+        case 0x40:
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x60:
+            enable  = 0;
+            break;
+    }
 
     switch ((dev->regs[0x20] >> 1) & 0x03) {
         case 0x00:
@@ -78,7 +103,7 @@ lpt_handler(i82091aa_t *dev)
             break;
     }
 
-    if ((dev->regs[0x20] & 0x01) && lpt_port)
+    if (enable && lpt_port)
         lpt_port_setup(dev->lpt, lpt_port);
 
     lpt_port_irq(dev->lpt, (dev->regs[0x20] & 0x08) ? LPT1_IRQ : LPT2_IRQ);
@@ -176,7 +201,7 @@ i82091aa_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x20:
             *reg = (val & 0xef);
-            if (valxor & 0x07)
+            if (valxor & 0xe8)
                 lpt_handler(dev);
             break;
         case 0x21:
@@ -218,6 +243,8 @@ i82091aa_read(uint16_t port, void *priv)
 
     if (index)
         ret = dev->cur_reg;
+    else if (dev->cur_reg == 0x20)
+        ret = dev->regs[dev->cur_reg] | lpt_read_ecp_mode(dev->lpt);
     else if (dev->cur_reg < 0x51)
         ret = dev->regs[dev->cur_reg];
 
@@ -266,6 +293,7 @@ i82091aa_init(const device_t *info)
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
     dev->lpt     = device_add_inst(&lpt_port_device, 1);
+    lpt_set_cnfga_readout(dev->lpt, 0x90);
 
     dev->has_ide = (info->local >> 9) & 0x03;
 
@@ -288,63 +316,7 @@ const device_t i82091aa_device = {
     .name          = "Intel 82091AA Super I/O",
     .internal_name = "i82091aa",
     .flags         = 0,
-    .local         = 0x40,
-    .init          = i82091aa_init,
-    .close         = i82091aa_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t i82091aa_26e_device = {
-    .name          = "Intel 82091AA Super I/O (Port 26Eh)",
-    .internal_name = "i82091aa_26e",
-    .flags         = 0,
-    .local         = 0x140,
-    .init          = i82091aa_init,
-    .close         = i82091aa_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t i82091aa_398_device = {
-    .name          = "Intel 82091AA Super I/O (Port 398h)",
-    .internal_name = "i82091aa_398",
-    .flags         = 0,
-    .local         = 0x148,
-    .init          = i82091aa_init,
-    .close         = i82091aa_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t i82091aa_ide_pri_device = {
-    .name          = "Intel 82091AA Super I/O (With Primary IDE)",
-    .internal_name = "i82091aa_ide",
-    .flags         = 0,
-    .local         = 0x240,
-    .init          = i82091aa_init,
-    .close         = i82091aa_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t i82091aa_ide_device = {
-    .name          = "Intel 82091AA Super I/O (With IDE)",
-    .internal_name = "i82091aa_ide",
-    .flags         = 0,
-    .local         = 0x440,
+    .local         = 0,
     .init          = i82091aa_init,
     .close         = i82091aa_close,
     .reset         = NULL,

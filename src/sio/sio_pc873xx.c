@@ -6,9 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation of the NatSemi PC87332 Super I/O chip.
- *
- *
+ *          Emulation of the NatSemi PC87311 and PC87332 Super I/O chips.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
@@ -35,46 +33,65 @@
 #include <86box/fdc.h>
 #include <86box/sio.h>
 
-typedef struct pc87332_t {
+typedef struct pc873xx_t {
+    uint8_t   baddr;
+    uint8_t   is_332;
     uint8_t   tries;
     uint8_t   has_ide;
     uint8_t   fdc_on;
-    uint8_t   regs[15];
+    uint8_t   regs[256];
+    uint16_t  base_addr;
     int       cur_reg;
+    int       max_reg;
     fdc_t    *fdc;
     serial_t *uart[2];
     lpt_t    *lpt;
-} pc87332_t;
+} pc873xx_t;
 
 static void
-lpt_handler(pc87332_t *dev)
+lpt_handler(pc873xx_t *dev)
 {
     int      temp;
     uint16_t lpt_port = LPT1_ADDR;
-    uint8_t  lpt_irq  = LPT2_IRQ;
+    uint8_t  lpt_irq = LPT2_IRQ;
+    uint8_t  lpt_dma = ((dev->regs[0x18] & 0x06) >> 1);
 
-    temp = dev->regs[0x01] & 3;
+    lpt_port_remove(dev->lpt);
+
+    if (lpt_dma == 0x00)
+        lpt_dma = 0xff;
+
+    temp  = dev->regs[0x01] & 0x03;
 
     switch (temp) {
-        case 0:
+        case 0x00:
             lpt_port = LPT1_ADDR;
             lpt_irq  = (dev->regs[0x02] & 0x08) ? LPT1_IRQ : LPT2_IRQ;
             break;
-        case 1:
+        case 0x01:
             lpt_port = LPT_MDA_ADDR;
-            lpt_irq  = LPT_MDA_IRQ;
+            lpt_irq = LPT_MDA_IRQ;
             break;
-        case 2:
+        case 0x02:
             lpt_port = LPT2_ADDR;
             lpt_irq  = LPT2_IRQ;
             break;
-        case 3:
+        case 0x03:
             lpt_port = 0x000;
             lpt_irq  = 0xff;
             break;
 
         default:
             break;
+    }
+
+    lpt_set_ext(dev->lpt, !!(dev->regs[0x02] & 0x80));
+
+    if (dev->is_332) {
+        lpt_set_epp(dev->lpt, !!(dev->regs[0x04] & 0x01));
+        lpt_set_ecp(dev->lpt, !!(dev->regs[0x04] & 0x04));
+
+        lpt_port_dma(dev->lpt, lpt_dma);
     }
 
     if (lpt_port)
@@ -84,7 +101,7 @@ lpt_handler(pc87332_t *dev)
 }
 
 static void
-serial_handler(pc87332_t *dev, int uart)
+serial_handler(pc873xx_t *dev, int uart)
 {
     int temp;
 
@@ -142,7 +159,7 @@ serial_handler(pc87332_t *dev, int uart)
 }
 
 static void
-ide_handler(pc87332_t *dev)
+ide_handler(pc873xx_t *dev)
 {
     /* TODO: Make an ide_disable(channel) and ide_enable(channel) so we can simplify this. */
     if (dev->has_ide == 2) {
@@ -161,9 +178,9 @@ ide_handler(pc87332_t *dev)
 }
 
 static void
-pc87332_write(uint16_t port, uint8_t val, void *priv)
+pc873xx_write(uint16_t port, uint8_t val, void *priv)
 {
-    pc87332_t *dev = (pc87332_t *) priv;
+    pc873xx_t *dev = (pc873xx_t *) priv;
     uint8_t    index;
     uint8_t    valxor;
 
@@ -177,7 +194,7 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
         if (dev->tries) {
             valxor     = val ^ dev->regs[dev->cur_reg];
             dev->tries = 0;
-            if ((dev->cur_reg <= 14) && (dev->cur_reg != 8))
+            if ((dev->cur_reg <= dev->max_reg) && (dev->cur_reg != 8))
                 dev->regs[dev->cur_reg] = val;
             else
                 return;
@@ -187,69 +204,83 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
         }
     }
 
-    switch (dev->cur_reg) {
-        case 0:
-            if (valxor & 1) {
+    if (dev->cur_reg <= dev->max_reg)  switch (dev->cur_reg) {
+        case 0x00:
+            if (valxor & 0x01) {
                 lpt_port_remove(dev->lpt);
-                if ((val & 1) && !(dev->regs[2] & 1))
+                if ((val & 0x01) && !(dev->regs[0x02] & 0x01))
                     lpt_handler(dev);
             }
-            if (valxor & 2) {
+            if (valxor & 0x02) {
                 serial_remove(dev->uart[0]);
-                if ((val & 2) && !(dev->regs[2] & 1))
+                if ((val & 0x02) && !(dev->regs[0x02] & 0x01))
                     serial_handler(dev, 0);
             }
-            if (valxor & 4) {
+            if (valxor & 0x04) {
                 serial_remove(dev->uart[1]);
-                if ((val & 4) && !(dev->regs[2] & 1))
+                if ((val & 0x04) && !(dev->regs[0x02] & 0x01))
                     serial_handler(dev, 1);
             }
             if (valxor & 0x28) {
                 fdc_remove(dev->fdc);
-                if ((val & 8) && !(dev->regs[2] & 1))
+                if ((val & 0x08) && !(dev->regs[0x02] & 0x01))
                     fdc_set_base(dev->fdc, (val & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
             }
             if (dev->has_ide && (valxor & 0xc0))
                 ide_handler(dev);
             break;
-        case 1:
-            if (valxor & 3) {
+        case 0x01:
+            if (valxor & 0x03) {
                 lpt_port_remove(dev->lpt);
-                if ((dev->regs[0] & 1) && !(dev->regs[2] & 1))
+                if ((dev->regs[0x00] & 0x01) && !(dev->regs[0x02] & 0x01))
                     lpt_handler(dev);
             }
             if (valxor & 0xcc) {
                 serial_remove(dev->uart[0]);
-                if ((dev->regs[0] & 2) && !(dev->regs[2] & 1))
+                if ((dev->regs[0x00] & 0x02) && !(dev->regs[0x02] & 0x01))
                     serial_handler(dev, 0);
             }
             if (valxor & 0xf0) {
                 serial_remove(dev->uart[1]);
-                if ((dev->regs[0] & 4) && !(dev->regs[2] & 1))
+                if ((dev->regs[0x00] & 0x04) && !(dev->regs[0x02] & 0x01))
                     serial_handler(dev, 1);
             }
             break;
-        case 2:
-            if (valxor & 1) {
+        case 0x02:
+            if (valxor & 0x01) {
                 lpt_port_remove(dev->lpt);
                 serial_remove(dev->uart[0]);
                 serial_remove(dev->uart[1]);
                 fdc_remove(dev->fdc);
 
-                if (!(val & 1)) {
-                    if (dev->regs[0] & 1)
+                if (!(val & 0x01)) {
+                    if (dev->regs[0x00] & 0x01)
                         lpt_handler(dev);
-                    if (dev->regs[0] & 2)
+                    if (dev->regs[0x00] & 0x02)
                         serial_handler(dev, 0);
-                    if (dev->regs[0] & 4)
+                    if (dev->regs[0x00] & 0x04)
                         serial_handler(dev, 1);
-                    if (dev->regs[0] & 8)
-                        fdc_set_base(dev->fdc, (dev->regs[0] & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
+                    if (dev->regs[0x00] & 0x08)
+                        fdc_set_base(dev->fdc, (dev->regs[0x00] & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
                 }
             }
-            if (valxor & 8) {
+            if (valxor & 0x88) {
                 lpt_port_remove(dev->lpt);
-                if ((dev->regs[0] & 1) && !(dev->regs[2] & 1))
+                if ((dev->regs[0x00] & 0x01) && !(dev->regs[0x02] & 0x01))
+                    lpt_handler(dev);
+            }
+            break;
+        case 0x04:
+            if (valxor & 0x05) {
+                lpt_port_remove(dev->lpt);
+                if ((dev->regs[0x00] & 0x01) && !(dev->regs[0x02] & 0x01))
+                    lpt_handler(dev);
+            }
+            break;
+        case 0x06:
+            if (valxor & 0x08) {
+                lpt_port_remove(dev->lpt);
+                if ((dev->regs[0x00] & 0x01) && !(dev->regs[0x02] & 0x01))
                     lpt_handler(dev);
             }
             break;
@@ -260,9 +291,9 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
 }
 
 uint8_t
-pc87332_read(uint16_t port, void *priv)
+pc873xx_read(uint16_t port, void *priv)
 {
-    pc87332_t *dev = (pc87332_t *) priv;
+    pc873xx_t *dev = (pc873xx_t *) priv;
     uint8_t    ret = 0xff;
     uint8_t    index;
 
@@ -283,7 +314,7 @@ pc87332_read(uint16_t port, void *priv)
 }
 
 void
-pc87332_reset(pc87332_t *dev)
+pc873xx_reset(pc873xx_t *dev)
 {
     memset(dev->regs, 0, 15);
 
@@ -314,17 +345,17 @@ pc87332_reset(pc87332_t *dev)
 }
 
 static void
-pc87332_close(void *priv)
+pc873xx_close(void *priv)
 {
-    pc87332_t *dev = (pc87332_t *) priv;
+    pc873xx_t *dev = (pc873xx_t *) priv;
 
     free(dev);
 }
 
 static void *
-pc87332_init(const device_t *info)
+pc873xx_init(const device_t *info)
 {
-    pc87332_t *dev = (pc87332_t *) calloc(1, sizeof(pc87332_t));
+    pc873xx_t *dev = (pc873xx_t *) calloc(1, sizeof(pc873xx_t));
 
     dev->fdc = device_add(&fdc_at_nsc_device);
 
@@ -333,84 +364,45 @@ pc87332_init(const device_t *info)
 
     dev->lpt = device_add_inst(&lpt_port_device, 1);
 
-    dev->has_ide = (info->local >> 8) & 0xff;
-    dev->fdc_on  = (info->local >> 16) & 0xff;
-    pc87332_reset(dev);
+    dev->is_332  = !!(info->local & PC87332);
+    dev->max_reg = dev->is_332 ? 0x08 : 0x02;
 
-    if ((info->local & 0xff) == 0x01) {
-        io_sethandler(0x398, 0x0002,
-                      pc87332_read, NULL, NULL, pc87332_write, NULL, NULL, dev);
-    } else {
-        io_sethandler(0x02e, 0x0002,
-                      pc87332_read, NULL, NULL, pc87332_write, NULL, NULL, dev);
+    dev->has_ide = info->local & (PCX73XX_IDE_PRI | PCX73XX_IDE_SEC);
+    dev->fdc_on  = info->local & PCX73XX_FDC_ON;
+
+    dev->baddr   = (info->local & PCX730X_BADDR) >> PCX730X_BADDR_SHIFT;
+    pc873xx_reset(dev);
+
+    switch (dev->baddr) {
+        default:
+        case 0x00:
+            dev->base_addr = 0x0398;
+            break;
+        case 0x01:
+            dev->base_addr = 0x026e;
+            break;
+        case 0x02:
+            dev->base_addr = 0x015c;
+            break;
+        case 0x03:
+            /* Our PC87332 machine use this unless otherwise specified. */
+            dev->base_addr = 0x002e;
+            break;
     }
+
+    io_sethandler(dev->base_addr, 0x0002,
+                  pc873xx_read, NULL, NULL, pc873xx_write, NULL, NULL, dev);
 
     return dev;
 }
 
-const device_t pc87332_device = {
-    .name          = "National Semiconductor PC87332 Super I/O",
-    .internal_name = "pc87332",
+const device_t pc873xx_device = {
+    .name          = "National Semiconductor PC873xx Super I/O",
+    .internal_name = "pc873xx",
     .flags         = 0,
     .local         = 0x00,
-    .init          = pc87332_init,
-    .close         = pc87332_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t pc87332_398_device = {
-    .name          = "National Semiconductor PC87332 Super I/O (Port 398h)",
-    .internal_name = "pc87332_398",
-    .flags         = 0,
-    .local         = 0x01,
-    .init          = pc87332_init,
-    .close         = pc87332_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t pc87332_398_ide_device = {
-    .name          = "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE)",
-    .internal_name = "pc87332_398_ide",
-    .flags         = 0,
-    .local         = 0x101,
-    .init          = pc87332_init,
-    .close         = pc87332_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t pc87332_398_ide_sec_device = {
-    .name          = "National Semiconductor PC87332 Super I/O (Port 398h) (With Secondary IDE)",
-    .internal_name = "pc87332_398_ide_sec",
-    .flags         = 0,
-    .local         = 0x201,
-    .init          = pc87332_init,
-    .close         = pc87332_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t pc87332_398_ide_fdcon_device = {
-    .name          = "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE and FDC on)",
-    .internal_name = "pc87332_398_ide_fdcon",
-    .flags         = 0,
-    .local         = 0x10101,
-    .init          = pc87332_init,
-    .close         = pc87332_close,
+    .init          = pc873xx_init,
+    .close         = pc873xx_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = NULL,

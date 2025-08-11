@@ -81,6 +81,7 @@ const machine_filter_t machine_types[] = {
     { "[1978] 8086",                      MACHINE_TYPE_8086       }, 
     { "[1982] 80286",                     MACHINE_TYPE_286        }, 
     { "[1988] i386SX",                    MACHINE_TYPE_386SX      }, 
+    { "[1988] ALi M6117",                 MACHINE_TYPE_M6117      }, 
     { "[1992] 486SLC",                    MACHINE_TYPE_486SLC     }, 
     { "[1985] i386DX",                    MACHINE_TYPE_386DX      }, 
     { "[1989] i386DX/i486",               MACHINE_TYPE_386DX_486  }, 
@@ -4160,6 +4161,47 @@ const machine_t machines[] = {
         .snd_device = NULL, 
         .net_device = NULL 
     }, 
+    /* Has IBM AT KBC firmware. */ 
+    { 
+        .name = "[SCAT] Samsung Deskmaster 286", 
+        .internal_name = "deskmaster286", 
+        .type = MACHINE_TYPE_286, 
+        .chipset = MACHINE_CHIPSET_SCAT, 
+        .init = machine_at_deskmaster286_init, 
+        .p1_handler = NULL, 
+        .gpio_handler = NULL, 
+        .available_flag = MACHINE_AVAILABLE, 
+        .gpio_acpi_handler = NULL, 
+        .cpu = { 
+            .package = CPU_PKG_286, 
+            .block = CPU_BLOCK_NONE, 
+            .min_bus = 0, 
+            .max_bus = 0, 
+            .min_voltage = 0, 
+            .max_voltage = 0, 
+            .min_multi = 0, 
+            .max_multi = 0 
+        }, 
+        .bus_flags = MACHINE_PS2, 
+        .flags = MACHINE_IDE, /* Has internal video: C&T VGA 411 */ 
+        .ram = { 
+            .min = 512, 
+            .max = 8192, 
+            .step = 128 
+        }, 
+        .nvrmask = 127, 
+        .kbc_device = NULL, 
+        .kbc_p1 = 0xff, 
+        .gpio = 0xffffffff, 
+        .gpio_acpi = 0xffffffff, 
+        .device = NULL, 
+        .kbd_device = NULL, 
+        .fdc_device = NULL, 
+        .sio_device = NULL, 
+        .vid_device = NULL, 
+        .snd_device = NULL, 
+        .net_device = NULL 
+    }, 
     /* Has IBM PS/2 Type 1 KBC firmware. */ 
     { 
         .name = "[SCAT] Samsung SPC-4200P", 
@@ -4269,47 +4311,6 @@ const machine_t machines[] = {
             .min = 1024, 
             .max = 5120, 
             .step = 1024 
-        }, 
-        .nvrmask = 127, 
-        .kbc_device = NULL, 
-        .kbc_p1 = 0xff, 
-        .gpio = 0xffffffff, 
-        .gpio_acpi = 0xffffffff, 
-        .device = NULL, 
-        .kbd_device = NULL, 
-        .fdc_device = NULL, 
-        .sio_device = NULL, 
-        .vid_device = NULL, 
-        .snd_device = NULL, 
-        .net_device = NULL 
-    }, 
-    /* Has IBM AT KBC firmware. */ 
-    { 
-        .name = "[SCAT] Samsung Deskmaster 286", 
-        .internal_name = "deskmaster286", 
-        .type = MACHINE_TYPE_286, 
-        .chipset = MACHINE_CHIPSET_SCAT, 
-        .init = machine_at_deskmaster286_init, 
-        .p1_handler = NULL, 
-        .gpio_handler = NULL, 
-        .available_flag = MACHINE_AVAILABLE, 
-        .gpio_acpi_handler = NULL, 
-        .cpu = { 
-            .package = CPU_PKG_286, 
-            .block = CPU_BLOCK_NONE, 
-            .min_bus = 0, 
-            .max_bus = 0, 
-            .min_voltage = 0, 
-            .max_voltage = 0, 
-            .min_multi = 0, 
-            .max_multi = 0 
-        }, 
-        .bus_flags = MACHINE_PS2, 
-        .flags = MACHINE_IDE, /* Has internal video: C&T VGA 411 */ 
-        .ram = { 
-            .min = 512, 
-            .max = 8192, 
-            .step = 128 
         }, 
         .nvrmask = 127, 
         .kbc_device = NULL, 
@@ -4819,7 +4820,7 @@ const machine_t machines[] = {
         .snd_device = NULL, 
         .net_device = NULL 
     }, 
-            { 
+    { 
         .name = "[ALi M1409] Acer 100T", 
         .internal_name = "acer100t", 
         .type = MACHINE_TYPE_386SX, 
@@ -4857,88 +4858,6 @@ const machine_t machines[] = {
         .fdc_device = NULL, 
         .sio_device = NULL, 
         .vid_device = &oti077_acer100t_device, 
-        .snd_device = NULL, 
-        .net_device = NULL 
-    }, 
-    /* Has IBM PS/2 Type 1 KBC firmware. */ 
-    { 
-        .name = "[ALi M6117] Acrosser PJ-A511M", 
-        .internal_name = "pja511m", 
-        .type = MACHINE_TYPE_386SX, 
-        .chipset = MACHINE_CHIPSET_ALI_M6117, 
-        .init = machine_at_pja511m_init, 
-        .p1_handler = NULL, 
-        .gpio_handler = NULL, 
-        .available_flag = MACHINE_AVAILABLE, 
-        .gpio_acpi_handler = NULL, 
-        .cpu = { 
-            .package = CPU_PKG_M6117, 
-            .block = CPU_BLOCK_NONE, 
-            .min_bus = 0, 
-            .max_bus = 0, 
-            .min_voltage = 0, 
-            .max_voltage = 0, 
-            .min_multi = 0, 
-            .max_multi = 0 
-        }, 
-        .bus_flags = MACHINE_PS2, 
-        .flags = MACHINE_IDE, 
-        .ram = { 
-            .min = 1024, 
-            .max = 32768, 
-            .step = 1024 
-        }, 
-        .nvrmask = 127, 
-        .kbc_device = NULL, 
-        .kbc_p1 = 0xff, 
-        .gpio = 0xffffffff, 
-        .gpio_acpi = 0xffffffff, 
-        .device = NULL, 
-        .kbd_device = NULL, 
-        .fdc_device = NULL, 
-        .sio_device = NULL, 
-        .vid_device = NULL, 
-        .snd_device = NULL, 
-        .net_device = NULL 
-    }, 
-    /* Has IBM PS/2 Type 1 KBC firmware. */ 
-    { 
-        .name = "[ALi M6117] Protech ProX-1332", 
-        .internal_name = "prox1332", 
-        .type = MACHINE_TYPE_386SX, 
-        .chipset = MACHINE_CHIPSET_ALI_M6117, 
-        .init = machine_at_prox1332_init, 
-        .p1_handler = NULL, 
-        .gpio_handler = NULL, 
-        .available_flag = MACHINE_AVAILABLE, 
-        .gpio_acpi_handler = NULL, 
-        .cpu = { 
-            .package = CPU_PKG_M6117, 
-            .block = CPU_BLOCK_NONE, 
-            .min_bus = 0, 
-            .max_bus = 0, 
-            .min_voltage = 0, 
-            .max_voltage = 0, 
-            .min_multi = 0, 
-            .max_multi = 0 
-        }, 
-        .bus_flags = MACHINE_PS2, 
-        .flags = MACHINE_IDE, 
-        .ram = { 
-            .min = 1024, 
-            .max = 32768, 
-            .step = 1024 
-        }, 
-        .nvrmask = 127, 
-        .kbc_device = NULL, 
-        .kbc_p1 = 0xff, 
-        .gpio = 0xffffffff, 
-        .gpio_acpi = 0xffffffff, 
-        .device = NULL, 
-        .kbd_device = NULL, 
-        .fdc_device = NULL, 
-        .sio_device = NULL, 
-        .vid_device = NULL, 
         .snd_device = NULL, 
         .net_device = NULL 
     }, 
@@ -5556,6 +5475,90 @@ const machine_t machines[] = {
             .step = 1024 
         }, 
         .nvrmask = 63, 
+        .kbc_device = NULL, 
+        .kbc_p1 = 0xff, 
+        .gpio = 0xffffffff, 
+        .gpio_acpi = 0xffffffff, 
+        .device = NULL, 
+        .kbd_device = NULL, 
+        .fdc_device = NULL, 
+        .sio_device = NULL, 
+        .vid_device = NULL, 
+        .snd_device = NULL, 
+        .net_device = NULL 
+    }, 
+
+    /* ALi M6117 machines */
+    /* Has IBM PS/2 Type 1 KBC firmware. */ 
+    { 
+        .name = "[ALi M6117] Acrosser PJ-A511M", 
+        .internal_name = "pja511m", 
+        .type = MACHINE_TYPE_M6117, 
+        .chipset = MACHINE_CHIPSET_ALI_M6117, 
+        .init = machine_at_pja511m_init, 
+        .p1_handler = NULL, 
+        .gpio_handler = NULL, 
+        .available_flag = MACHINE_AVAILABLE, 
+        .gpio_acpi_handler = NULL, 
+        .cpu = { 
+            .package = CPU_PKG_M6117, 
+            .block = CPU_BLOCK_NONE, 
+            .min_bus = 0, 
+            .max_bus = 0, 
+            .min_voltage = 0, 
+            .max_voltage = 0, 
+            .min_multi = 0, 
+            .max_multi = 0 
+        }, 
+        .bus_flags = MACHINE_PS2, 
+        .flags = MACHINE_IDE, 
+        .ram = { 
+            .min = 1024, 
+            .max = 32768, 
+            .step = 1024 
+        }, 
+        .nvrmask = 127, 
+        .kbc_device = NULL, 
+        .kbc_p1 = 0xff, 
+        .gpio = 0xffffffff, 
+        .gpio_acpi = 0xffffffff, 
+        .device = NULL, 
+        .kbd_device = NULL, 
+        .fdc_device = NULL, 
+        .sio_device = NULL, 
+        .vid_device = NULL, 
+        .snd_device = NULL, 
+        .net_device = NULL 
+    }, 
+    /* Has IBM PS/2 Type 1 KBC firmware. */ 
+    { 
+        .name = "[ALi M6117] Protech ProX-1332", 
+        .internal_name = "prox1332", 
+        .type = MACHINE_TYPE_M6117, 
+        .chipset = MACHINE_CHIPSET_ALI_M6117, 
+        .init = machine_at_prox1332_init, 
+        .p1_handler = NULL, 
+        .gpio_handler = NULL, 
+        .available_flag = MACHINE_AVAILABLE, 
+        .gpio_acpi_handler = NULL, 
+        .cpu = { 
+            .package = CPU_PKG_M6117, 
+            .block = CPU_BLOCK_NONE, 
+            .min_bus = 0, 
+            .max_bus = 0, 
+            .min_voltage = 0, 
+            .max_voltage = 0, 
+            .min_multi = 0, 
+            .max_multi = 0 
+        }, 
+        .bus_flags = MACHINE_PS2, 
+        .flags = MACHINE_IDE, 
+        .ram = { 
+            .min = 1024, 
+            .max = 32768, 
+            .step = 1024 
+        }, 
+        .nvrmask = 127, 
         .kbc_device = NULL, 
         .kbc_p1 = 0xff, 
         .gpio = 0xffffffff, 
@@ -14574,7 +14577,7 @@ const machine_t machines[] = {
             .min_multi = 1.5, 
             .max_multi = 3.5 
         }, 
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, 
+        .bus_flags = MACHINE_PS2_PCIONLY | MACHINE_BUS_USB, 
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: Cirrus Logic CL-GD5465 and internal sound: Yamaha YMF715 */
         .ram = { 
             .min = 8192, 
@@ -16637,7 +16640,7 @@ const machine_t machines[] = {
             .min_multi = 1.5, 
             .max_multi = 8.0 
         }, 
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, /* Has internal video: SGS Thompson Riva 128 AGP, network: NEC PK-UG-X006 (Intel 82558B chip) and sound: OAK Audia 3D (OTI-610) */ 
+        .bus_flags = MACHINE_PS2_PCIONLY | MACHINE_BUS_USB, /* Has internal video: SGS Thompson Riva 128 AGP, network: NEC PK-UG-X006 (Intel 82558B chip) and sound: OAK Audia 3D (OTI-610) for MA23D or YAMAHA YMF724 for MA30D */ 
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, 
         .ram = { 
             .min = 8192, 
@@ -16787,10 +16790,9 @@ const machine_t machines[] = {
         .snd_device = NULL, 
         .net_device = NULL 
     }, 
-    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC 
+    /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC 
        firmware. */ 
- 
-{ 
+    {
         .name = "[i440BX] ABIT BX6", 
         .internal_name = "bx6", 
         .type = MACHINE_TYPE_SLOT1, 
@@ -16830,7 +16832,8 @@ const machine_t machines[] = {
         .snd_device = NULL, 
         .net_device = NULL 
     }, 
- 
+    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC 
+       firmware. */ 
     { 
         .name = "[i440BX] ABIT BF6", 
         .internal_name = "bf6", 

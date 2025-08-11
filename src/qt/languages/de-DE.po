@@ -13,7 +13,7 @@ msgid "&Keyboard requires capture"
 msgstr "&Tastatur benötigt das Einfangen des Mauszeigers"
 
 msgid "&Right CTRL is left ALT"
-msgstr "&Die rechte Strg-Taste ist die Linke Alt-Taste"
+msgstr "&Die rechte Strg-Taste ist die linke Alt-Taste"
 
 msgid "&Hard Reset..."
 msgstr "&Kaltstart..."
@@ -26,6 +26,9 @@ msgstr "Strg+Alt+&Esc"
 
 msgid "&Pause"
 msgstr "&Pause"
+
+msgid "Pause"
+msgstr ""
 
 msgid "Re&sume"
 msgstr "&Fortsetzen"
@@ -58,7 +61,7 @@ msgid "Qt (&OpenGL)"
 msgstr "Qt (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0-Kern)"
+msgstr "Open&GL (3.0 Core)"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -192,6 +195,9 @@ msgstr "&Werkzeuge"
 msgid "&Settings..."
 msgstr "&Optionen..."
 
+msgid "Settings..."
+msgstr ""
+
 msgid "&Update status bar icons"
 msgstr "&Statusleistenicons aktualisieren"
 
@@ -250,7 +256,7 @@ msgid "E&ject"
 msgstr "A&uswerfen"
 
 msgid "&Image..."
-msgstr "&Cartridgeabbild..."
+msgstr "&Abbild..."
 
 msgid "E&xport to 86F..."
 msgstr "&In das 86F-Format e&xportieren..."
@@ -355,7 +361,10 @@ msgid "Machine:"
 msgstr "System:"
 
 msgid "Configure"
-msgstr "Einstellen"
+msgstr "Konfigurieren"
+
+msgid "CPU:"
+msgstr ""
 
 msgid "CPU type:"
 msgstr "CPU-Typ:"
@@ -417,14 +426,26 @@ msgstr "IBM 8514/A-Grafik"
 msgid "XGA Graphics"
 msgstr "XGA-Grafik"
 
+msgid "IBM PS/55 Display Adapter Graphics"
+msgstr ""
+
 msgid "Keyboard:"
 msgstr "Tastatur:"
+
+msgid "Keyboard"
+msgstr ""
 
 msgid "Mouse:"
 msgstr "Maus:"
 
+msgid "Mouse"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "Joystick:"
+
+msgid "Joystick"
+msgstr ""
 
 msgid "Joystick 1..."
 msgstr "Joystick 1..."
@@ -455,6 +476,9 @@ msgstr "MIDI Ausgabegerät:"
 
 msgid "MIDI In Device:"
 msgstr "MIDI Eingabegerät:"
+
+msgid "MIDI Out:"
+msgstr ""
 
 msgid "Standalone MPU-401"
 msgstr "Eigenständiges-MPU-401-Gerät"
@@ -615,6 +639,12 @@ msgstr "CD-ROM-Laufwerke:"
 msgid "MO drives:"
 msgstr "MO-Laufwerke:"
 
+msgid "MO:"
+msgstr ""
+
+msgid "Removable disks:"
+msgstr ""
+
 msgid "Removable disk drives:"
 msgstr "Wechseldatenträger:"
 
@@ -625,7 +655,7 @@ msgid "ISA RTC:"
 msgstr "ISA-Echtzeituhr:"
 
 msgid "ISA Memory Expansion"
-msgstr "ISA-Speichererweiterung:"
+msgstr "ISA-Speichererweiterung"
 
 msgid "ISA ROM Cards"
 msgstr "ISA-ROM-Karte"
@@ -685,7 +715,7 @@ msgid "Image %1"
 msgstr "Abbild %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box konnte keine nutzbaren ROM-Dateien finden.\n\nBitte besuchen Sie <a href=\"https://github.com/86Box/roms/releases/latest\">download</a>, laden ein ROM-Set herunter und extrahieren dies in das \"roms\"-Verzeichnis."
+msgstr "86Box konnte keine nutzbaren ROM-Dateien finden.\n\nBitte besuchen Sie <a href=\"https://github.com/86Box/roms/releases/latest\">die Download-Seite</a>, laden ein ROM-Set herunter und extrahieren es in das \"roms\"-Verzeichnis."
 
 msgid "(empty)"
 msgstr "(leer)"
@@ -741,11 +771,29 @@ msgstr "Netzwerk"
 msgid "Ports (COM & LPT)"
 msgstr "Anschlüsse (COM + LPT)"
 
+msgid "Ports"
+msgstr ""
+
+msgid "Serial ports"
+msgstr ""
+
+msgid "Parallel ports"
+msgstr ""
+
 msgid "Storage controllers"
 msgstr "Speichercontroller"
 
 msgid "Hard disks"
 msgstr "Festplatten"
+
+msgid "Disks:"
+msgstr ""
+
+msgid "Floppy:"
+msgstr ""
+
+msgid "Controllers:"
+msgstr ""
 
 msgid "Floppy & CD-ROM drives"
 msgstr "Disketten- + CD-ROM-Laufwerke"
@@ -755,6 +803,9 @@ msgstr "Andere Wechsellaufwerke"
 
 msgid "Other peripherals"
 msgstr "Andere Peripheriegeräte"
+
+msgid "Other devices"
+msgstr ""
 
 msgid "Click to capture mouse"
 msgstr "Klicken zum Einfangen des Mauszeigers"
@@ -823,7 +874,7 @@ msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
-msgstr ""
+msgstr "CH Flightstick Pro + CH Pedale"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -832,7 +883,7 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr ""
+msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "2-button gamepad(s)"
 msgstr "2-Tasten-Gamepad(s)"
@@ -900,6 +951,15 @@ msgstr "Willkommen bei 86Box!"
 msgid "Internal device"
 msgstr "Interne Gerät"
 
+msgid "&File"
+msgstr ""
+
+msgid "&New machine..."
+msgstr ""
+
+msgid "&Check for updates..."
+msgstr ""
+
 msgid "Exit"
 msgstr "Beenden"
 
@@ -919,7 +979,7 @@ msgid "About 86Box"
 msgstr "Über 86Box"
 
 msgid "86Box v"
-msgstr "86Box Version "
+msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Ein Emulator für alte Computer\n\nAutoren: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne sowie andere.\n\nMit früheren Kernbeiträgen von Sarah Walker, leilei, JohnElliott, greatpsycho sowie andere.\n\nÜbersetzt von: dob205\n\nVeröffentlicht unter der GNU General Public License in der Version 2 oder neuer. Siehe LICENSE für mehr Informationen."
@@ -967,7 +1027,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Zur Zeit wird eine nicht unterstützte Konfiguration geladen"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Das Filtern der CPU-Typen basierend auf dem ausgewählten System ist für dieses System deaktiviert.\n\nDies ermöglicht es, dass man eine sonst nicht mit dem ausgewählten System inkompatible CPU auswählen kann. Allerdings kann dies zu Inkompatiblilitäten mit dem BIOS des Systems oder anderen Programmen kommen.\n\nDas Aktivieren dieser Einstellung wird nicht unterstützt und sämtliche Bugreports können als \"ungültig\" geschlossen werden."
+msgstr "Das Filtern der CPU-Typen basierend auf dem ausgewählten System ist für dieses System deaktiviert.\n\nDies ermöglicht es, eine mit dem ausgewählten System inkompatible CPU auszuwählen. Allerdings kann dies zu Inkompatiblilitäten mit dem BIOS des Systems oder anderen Programmen kommen.\n\nDas Aktivieren dieser Einstellung wird nicht unterstützt und sämtliche Bugreports können als \"ungültig\" geschlossen werden."
 
 msgid "Continue"
 msgstr "Fortfahren"
@@ -996,6 +1056,9 @@ msgstr "Fortsetzen"
 msgid "Pause execution"
 msgstr "Pausieren"
 
+msgid "Ctrl+Alt+Del"
+msgstr ""
+
 msgid "Press Ctrl+Alt+Del"
 msgstr "Strg+Alt+Entf drücken"
 
@@ -1005,23 +1068,284 @@ msgstr "Strg+Alt+Esc drücken"
 msgid "Hard reset"
 msgstr "Kaltstart"
 
+msgid "Force shutdown"
+msgstr ""
+
+msgid "Start"
+msgstr ""
+
+msgid "Not running"
+msgstr ""
+
+msgid "Running"
+msgstr ""
+
+msgid "Paused"
+msgstr ""
+
+msgid "Paused (Waiting)"
+msgstr ""
+
+msgid "Powered Off"
+msgstr ""
+
+msgid "waiting"
+msgstr ""
+
+msgid "total"
+msgstr ""
+
+msgid "System Directory:"
+msgstr ""
+
+msgid "Choose directory"
+msgstr ""
+
+msgid "Choose configuration file"
+msgstr ""
+
+msgid "86Box configuration files (86box.cfg)"
+msgstr ""
+
+msgid "Configuration read failed"
+msgstr ""
+
+msgid "Unable to open the selected configuration file for reading: %1"
+msgstr ""
+
+msgid "Use regular expressions in search box"
+msgstr ""
+
+msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr ""
+
+msgid "Add new system wizard"
+msgstr ""
+
+msgid "Introduction"
+msgstr ""
+
+msgid "This will help you add a new system to 86Box."
+msgstr ""
+
+msgid "New configuration"
+msgstr ""
+
+msgid "Complete"
+msgstr ""
+
+msgid "The wizard will now launch the configuration for the new system."
+msgstr ""
+
+msgid "Use existing configuration"
+msgstr ""
+
+msgid "Type some notes here"
+msgstr ""
+
+msgid "Paste the contents of the existing configuration file into the box below."
+msgstr ""
+
+msgid "Load configuration from file"
+msgstr ""
+
+msgid "System Name"
+msgstr ""
+
+msgid "System name"
+msgstr ""
+
+msgid "System name:"
+msgstr ""
+
+msgid "System name cannot contain certain characters"
+msgstr ""
+
+msgid "System name already exists"
+msgstr ""
+
+msgid "Please enter a directory for the system"
+msgstr ""
+
+msgid "Directory does not exist"
+msgstr ""
+
+msgid "A new directory for the system will be created in the selected directory above"
+msgstr ""
+
+msgid "System location:"
+msgstr ""
+
+msgid "System Location"
+msgstr ""
+
+msgid "System name and location"
+msgstr ""
+
+msgid "Enter the name of the system and choose the location"
+msgstr ""
+
+msgid "Enter the name of the system"
+msgstr ""
+
+msgid "Please enter a system name"
+msgstr ""
+
+msgid "Display Name (optional)"
+msgstr ""
+
+msgid "Display name:"
+msgstr ""
+
+msgid "Set display name"
+msgstr ""
+
+msgid "Enter the new display name (blank to reset)"
+msgstr ""
+
+msgid "Change &display name..."
+msgstr ""
+
+msgid "Context Menu"
+msgstr ""
+
+msgid "&Open folder..."
+msgstr ""
+
+msgid "Open &printer tray..."
+msgstr ""
+
+msgid "Set &icon..."
+msgstr ""
+
+msgid "Select an icon"
+msgstr ""
+
+msgid "C&lone..."
+msgstr ""
+
+msgid "Virtual machine \"%1\" (%2) will be cloned into:"
+msgstr ""
+
+msgid "Directory %1 already exists"
+msgstr ""
+
+msgid "You cannot use the following characters in the name: %1"
+msgstr ""
+
+msgid "Clone"
+msgstr ""
+
+msgid "Failed to create directory for cloned VM"
+msgstr ""
+
+msgid "Failed to clone VM."
+msgstr ""
+
+msgid "Directory in use"
+msgstr ""
+
+msgid "The selected directory is already in use. Please select a different directory."
+msgstr ""
+
+msgid "Create directory failed"
+msgstr ""
+
+msgid "Unable to create the directory for the new system"
+msgstr ""
+
+msgid "Configuration write failed"
+msgstr ""
+
+msgid "Unable to open the configuration file at %1 for writing"
+msgstr ""
+
+msgid "Error adding system"
+msgstr ""
+
+msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
+msgstr ""
+
+msgid "Remove directory failed"
+msgstr ""
+
+msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
+msgstr ""
+
+msgid "Build"
+msgstr ""
+
+msgid "Version"
+msgstr ""
+
+msgid "<b>An update to 86Box is available!</b>"
+msgstr ""
+
+msgid "Warning"
+msgstr ""
+
+msgid "&Kill"
+msgstr ""
+
+msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
+msgstr ""
+
+msgid "&Delete"
+msgstr ""
+
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
+msgstr ""
+
+msgid "Show &config file"
+msgstr ""
+
+msgid "No screenshot"
+msgstr ""
+
+msgid "Search"
+msgstr ""
+
+msgid "Searching for VMs..."
+msgstr ""
+
+msgid "Found %1"
+msgstr ""
+
+msgid "System"
+msgstr ""
+
+msgid "Storage"
+msgstr ""
+
+msgid "Disk %1: "
+msgstr ""
+
+msgid "No disks"
+msgstr ""
+
+msgid "Audio"
+msgstr ""
+
+msgid "Audio:"
+msgstr ""
+
 msgid "ACPI shutdown"
-msgstr "ACPI basiertes Herunterfahren"
+msgstr "Über ACPI herunterfahren"
 
 msgid "ACP&I shutdown"
-msgstr "ACP&I basiertes Herunterfahren"
+msgstr "Über ACP&I herunterfahren"
 
 msgid "Hard disk (%1)"
 msgstr "Festplatte (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLL- oder ESDI CD-ROM-Laufwerke existieren nicht"
+msgstr "MFM/RLL- oder ESDI-CD-ROM-Laufwerke existieren nicht"
 
 msgid "Custom..."
 msgstr "Angepasst..."
 
 msgid "Custom (large)..."
-msgstr "Angepasst (Groß)..."
+msgstr "Angepasst (groß)..."
 
 msgid "Add New Hard Disk"
 msgstr "Neue Festplatte hinzufügen"
@@ -1030,10 +1354,10 @@ msgid "Add Existing Hard Disk"
 msgstr "Bestehende Festplatte hinzufügen"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI-Abbilder können nicht größer als 4 GB groß sein."
+msgstr "HDI-Abbilder können nicht größer als 4 GB sein."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "Festplattenabbilder können nicht größer als 127 GB groß sein."
+msgstr "Festplattenabbilder können nicht größer als 127 GB sein."
 
 msgid "Hard disk images"
 msgstr "Festplattenabbilder"
@@ -1057,10 +1381,10 @@ msgid "Disk image created"
 msgstr "Disk-Abbild wurde erstellt"
 
 msgid "Make sure the file exists and is readable."
-msgstr "Stell sicher, dass die Datei existiert und lesbar ist."
+msgstr "Stelle sicher, dass die Datei existiert und lesbar ist."
 
 msgid "Make sure the file is being saved to a writable directory."
-msgstr "Stell sicher, dass die Datei in ein Verzeichnis mit Schreibberechtigungen gespeichert wird."
+msgstr "Stelle sicher, dass die Datei in ein Verzeichnis mit Schreibberechtigungen gespeichert wird."
 
 msgid "Disk image too large"
 msgstr "Das Festplattenabbild ist zu groß"
@@ -1347,6 +1671,9 @@ msgstr "Unbekannter Bus"
 msgid "Null Driver"
 msgstr "Nulltreiber"
 
+msgid "NIC:"
+msgstr ""
+
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
 
@@ -1408,13 +1735,16 @@ msgid "I Copied It"
 msgstr "Ich habe es kopiert"
 
 msgid "86Box Monitor #"
-msgstr "86Box Monitor "
+msgstr "86Box-Monitor #"
 
 msgid "No MCA devices."
 msgstr "Keine MCA-Geräte."
 
 msgid "MiB"
 msgstr "MiB"
+
+msgid "GiB"
+msgstr ""
 
 msgid "Network Card #1"
 msgstr "Netzwerkkarte 1"
@@ -1447,16 +1777,16 @@ msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x Schlüsselkarte"
 
 msgid "Serial port passthrough 1"
-msgstr "Durchreichung der Serielle Schnittstelle 1"
+msgstr "Serielle Schnittstelle 1 durchreichen"
 
 msgid "Serial port passthrough 2"
-msgstr "Durchreichung der Serielle Schnittstelle 2"
+msgstr "Serielle Schnittstelle 2 durchreichen"
 
 msgid "Serial port passthrough 3"
-msgstr "Durchreichung der Serielle Schnittstelle 3"
+msgstr "Serielle Schnittstelle 3 durchreichen"
 
 msgid "Serial port passthrough 4"
-msgstr "Durchreichung der Serielle Schnittstelle 4"
+msgstr "Serielle Schnittstelle 4 durchreichen"
 
 msgid "Renderer &options..."
 msgstr "Renderer-Optionen..."
@@ -1591,10 +1921,10 @@ msgid "IRQ"
 msgstr "IRQ"
 
 msgid "Serial port IRQ"
-msgstr ""
+msgstr "IRQ des seriellen Ports"
 
 msgid "Parallel port IRQ"
-msgstr ""
+msgstr "IRQ des parallelen Ports"
 
 msgid "BIOS Revision"
 msgstr "BIOS-Revision"
@@ -1609,7 +1939,7 @@ msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 Erweiterungseinheit"
 
 msgid "IBM Cassette Basic"
-msgstr ""
+msgstr "IBM Kassetten-Basic"
 
 msgid "Translate 26 -> 17"
 msgstr "Übersetzen 26 -> 17"
@@ -1822,7 +2152,7 @@ msgid "SB Address"
 msgstr "SB-Adresse"
 
 msgid "Adlib Address"
-msgstr ""
+msgstr "Adlib-Adresse"
 
 msgid "Use EEPROM setting"
 msgstr "EEPROM-Einstellung verwenden"
@@ -2223,6 +2553,9 @@ msgstr "Farbe (Kein Zeilensprungverfahren)"
 msgid "3Dfx Voodoo Graphics"
 msgstr "3Dfx Voodoo Grafik"
 
+msgid "3Dfx Voodoo 2"
+msgstr ""
+
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 TMUs)"
 
@@ -2269,13 +2602,13 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Kopierschutz-Dongle für Savage Quest"
 
 msgid "Serial Passthrough Device"
-msgstr "Gerät der Durchreichung der Serielle Schnittstelle"
+msgstr "Serielles Gerät durchreichen"
 
 msgid "Passthrough Mode"
-msgstr "Modus der Durchreichung"
+msgstr "Durchreich-Modus"
 
 msgid "Host Serial Device"
-msgstr "Host Serielles Gerät"
+msgstr "Serielles Gerät des Hosts"
 
 msgid "Name of pipe"
 msgstr "Name der Pipe"
@@ -2287,19 +2620,19 @@ msgid "Stop bits"
 msgstr "Stoppbits"
 
 msgid "Baud Rate of Passthrough"
-msgstr "Baudrate der Durchreichung"
+msgstr "Durchreich-Baudrate"
 
 msgid "Named Pipe (Server)"
-msgstr "Benanntes Pipe (Server)"
+msgstr "Benannte Pipe (Server)"
 
 msgid "Named Pipe (Client)"
-msgstr "Benanntes Pipe (Client)"
+msgstr "Benannte Pipe (Client)"
 
 msgid "Host Serial Passthrough"
-msgstr "Durchreichung der seriellen Schnittstelle des Hosts"
+msgstr "Serielle Schnittstelle des Hosts durchreichen"
 
 msgid "E&ject %1"
-msgstr "A&uswerfen %1"
+msgstr "%1 a&uswerfen"
 
 msgid "&Unmute"
 msgstr "&Ton einschalten"
@@ -2311,7 +2644,7 @@ msgid "High performance impact"
 msgstr "Hohe Auswirkung auf die Leistung"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] RAM-Diskette (maximale Geschwindigkeit)"
+msgstr "[Generic] RAM-Disk (maximale Geschwindigkeit)"
 
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Generisch] 1989 (3500 U/min)"
@@ -2489,6 +2822,84 @@ msgstr "Hub-Modus"
 
 msgid "Hostname:"
 msgstr "Hostname:"
+
+msgid "ISA RTC"
+msgstr ""
+
+msgid "ISA RAM"
+msgstr ""
+
+msgid "ISA ROM"
+msgstr ""
+
+msgid "&Wipe NVRAM"
+msgstr ""
+
+msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
+msgstr ""
+
+msgid "Success"
+msgstr ""
+
+msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
+msgstr ""
+
+msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgstr ""
+
+msgid "%1 VM Manager"
+msgstr ""
+
+msgid "%n disk(s)"
+msgstr ""
+
+msgid "Unknown Status"
+msgstr ""
+
+msgid "No Machines Found!"
+msgstr ""
+
+msgid "Check for updates on startup"
+msgstr ""
+
+msgid "Unable to determine release information"
+msgstr ""
+
+msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
+msgstr ""
+
+msgid "Update check complete"
+msgstr ""
+
+msgid "You are running the latest %1 version of 86Box: %2"
+msgstr ""
+
+msgid "version"
+msgstr ""
+
+msgid "build"
+msgstr ""
+
+msgid "You are currently running %1 <b>%2</b>. "
+msgstr ""
+
+msgid "<b>%1 %2</b> is now available. %3Would you like to visit the download page?"
+msgstr ""
+
+msgid "Visit download page"
+msgstr ""
+
+msgid "Update check"
+msgstr ""
+
+msgid "Checking for updates.."
+msgstr ""
+
+msgid "86Box Update"
+msgstr ""
+
+msgid "Release notes:"
+msgstr ""
 
 #~ msgid "HD Controller:"
 #~ msgstr "HDD-Controller:"

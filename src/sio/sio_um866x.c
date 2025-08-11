@@ -6,7 +6,8 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Implementation of the UMC UMF8663F Super I/O chip.
+ *          Implementation of the UMC UM82C862F, UM82C863F, UM86863F,
+ *          and UM8663BF Super I/O chips.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
@@ -35,25 +36,25 @@
 #include <86box/random.h>
 #include <86box/plat_unused.h>
 
-#ifdef ENABLE_UM8663F_LOG
-int um8663f_do_log = ENABLE_UM8663F_LOG;
+#ifdef ENABLE_UM866X_LOG
+int um866x_do_log = ENABLE_UM866X_LOG;
 
 static void
-um8663f_log(const char *fmt, ...)
+um866x_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (um8663f_do_log) {
+    if (um866x_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define um8663f_log(fmt, ...)
+#    define um866x_log(fmt, ...)
 #endif
 
-typedef struct um8663f_t {
+typedef struct um866x_t {
     uint8_t max_reg;
     uint8_t ide;
     uint8_t locked;
@@ -64,10 +65,10 @@ typedef struct um8663f_t {
 
     serial_t *uart[2];
     lpt_t *   lpt;
-} um8663f_t;
+} um866x_t;
 
 static void
-um8663f_fdc_handler(um8663f_t *dev)
+um866x_fdc_handler(um866x_t *dev)
 {
     fdc_remove(dev->fdc);
     if (dev->regs[0] & 0x01)
@@ -75,7 +76,7 @@ um8663f_fdc_handler(um8663f_t *dev)
 }
 
 static void
-um8663f_uart_handler(um8663f_t *dev, int port)
+um866x_uart_handler(um866x_t *dev, int port)
 {
     uint8_t shift     = (port + 1);
 
@@ -102,10 +103,32 @@ um8663f_uart_handler(um8663f_t *dev, int port)
 }
 
 static void
-um8663f_lpt_handler(um8663f_t *dev)
+um866x_lpt_handler(um866x_t *dev)
 {
+    int enabled = (dev->regs[0] & 0x08);
+
     lpt_port_remove(dev->lpt);
-    if (dev->regs[0] & 0x08) {
+    switch(dev->regs[1] & 0xc0) {
+        case 0x00:
+            enabled = 0;
+            break;
+        case 0x40:
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x80:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 1);
+            break;
+        case 0xc0:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+    }
+    if (enabled) {
         switch ((dev->regs[1] >> 3) & 0x01) {
             case 0x01:
                 lpt_port_setup(dev->lpt, LPT1_ADDR);
@@ -123,7 +146,7 @@ um8663f_lpt_handler(um8663f_t *dev)
 }
 
 static void
-um8663f_ide_handler(um8663f_t *dev)
+um866x_ide_handler(um866x_t *dev)
 {
     int board = dev->ide - 1;
 
@@ -137,12 +160,12 @@ um8663f_ide_handler(um8663f_t *dev)
 }
 
 static void
-um8663f_write(uint16_t port, uint8_t val, void *priv)
+um866x_write(uint16_t port, uint8_t val, void *priv)
 {
-    um8663f_t *dev = (um8663f_t *) priv;
+    um866x_t *dev = (um866x_t *) priv;
     uint8_t valxor;
 
-    um8663f_log("UM8663F: write(%04X, %02X)\n", port, val);
+    um866x_log("UM866X: write(%04X, %02X)\n", port, val);
 
     if (dev->locked) {
         if ((port == 0x108) && (val == 0xaa))
@@ -160,15 +183,15 @@ um8663f_write(uint16_t port, uint8_t val, void *priv)
                 /* Port enable register. */
                 case 0x00:
                     if (valxor & 0x10)
-                        um8663f_ide_handler(dev);
+                        um866x_ide_handler(dev);
                     if (valxor & 0x08)
-                        um8663f_lpt_handler(dev);
+                        um866x_lpt_handler(dev);
                     if (valxor & 0x04)
-                        um8663f_uart_handler(dev, 1);
+                        um866x_uart_handler(dev, 1);
                     if (valxor & 0x02)
-                        um8663f_uart_handler(dev, 0);
+                        um866x_uart_handler(dev, 0);
                     if (valxor & 0x01)
-                        um8663f_fdc_handler(dev);
+                        um866x_fdc_handler(dev);
                     break;
                 /*
                    Port configuration register:
@@ -184,16 +207,16 @@ um8663f_write(uint16_t port, uint8_t val, void *priv)
                    - Bit 0 = 0 = FDC is 370h, 1 = UART 2 is 3f0h.
                   */
                 case 0x01:
+                    if (valxor & 0xc8)
+                        um866x_lpt_handler(dev);
                     if (valxor & 0x10)
-                        um8663f_ide_handler(dev);
-                    if (valxor & 0x08)
-                        um8663f_lpt_handler(dev);
+                        um866x_ide_handler(dev);
                     if (valxor & 0x04)
-                        um8663f_uart_handler(dev, 1);
+                        um866x_uart_handler(dev, 1);
                     if (valxor & 0x02)
-                        um8663f_uart_handler(dev, 0);
+                        um866x_uart_handler(dev, 0);
                     if (valxor & 0x01)
-                        um8663f_fdc_handler(dev);
+                        um866x_fdc_handler(dev);
                     break;
             }
         }
@@ -201,9 +224,9 @@ um8663f_write(uint16_t port, uint8_t val, void *priv)
 }
 
 static uint8_t
-um8663f_read(uint16_t port, void *priv)
+um866x_read(uint16_t port, void *priv)
 {
-    const um8663f_t *dev = (um8663f_t *) priv;
+    const um866x_t *dev = (um866x_t *) priv;
     uint8_t          ret = 0xff;
 
     if (!dev->locked) {
@@ -216,15 +239,15 @@ um8663f_read(uint16_t port, void *priv)
         }
     }
 
-    um8663f_log("UM8663F: read(%04X) = %02X\n", port, ret);
+    um866x_log("UM866X: read(%04X) = %02X\n", port, ret);
 
     return ret;
 }
 
 static void
-um8663f_reset(void *priv)
+um866x_reset(void *priv)
 {
-    um8663f_t *dev = (um8663f_t *) priv;
+    um866x_t *dev = (um866x_t *) priv;
 
     serial_remove(dev->uart[0]);
     serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
@@ -243,27 +266,27 @@ um8663f_reset(void *priv)
     dev->regs[0x00] = (dev->ide > 0) ? 0x1f : 0x0f;
     dev->regs[0x01] = (dev->ide == 2) ? 0x0f : 0x1f;
 
-    um8663f_fdc_handler(dev);
-    um8663f_uart_handler(dev, 0);
-    um8663f_uart_handler(dev, 1);
-    um8663f_lpt_handler(dev);
-    um8663f_ide_handler(dev);
+    um866x_fdc_handler(dev);
+    um866x_uart_handler(dev, 0);
+    um866x_uart_handler(dev, 1);
+    um866x_lpt_handler(dev);
+    um866x_ide_handler(dev);
 
     dev->locked = 1;
 }
 
 static void
-um8663f_close(void *priv)
+um866x_close(void *priv)
 {
-    um8663f_t *dev = (um8663f_t *) priv;
+    um866x_t *dev = (um866x_t *) priv;
 
     free(dev);
 }
 
 static void *
-um8663f_init(UNUSED(const device_t *info))
+um866x_init(UNUSED(const device_t *info))
 {
-    um8663f_t *dev = (um8663f_t *) calloc(1, sizeof(um8663f_t));
+    um866x_t *dev = (um866x_t *) calloc(1, sizeof(um866x_t));
 
     dev->fdc = device_add(&fdc_at_smc_device);
 
@@ -279,147 +302,21 @@ um8663f_init(UNUSED(const device_t *info))
     dev->max_reg = info->local >> 8;
 
     if (dev->max_reg != 0x00)
-        io_sethandler(0x0108, 0x0002, um8663f_read, NULL, NULL, um8663f_write, NULL, NULL, dev);
+        io_sethandler(0x0108, 0x0002, um866x_read, NULL, NULL, um866x_write, NULL, NULL, dev);
 
-    um8663f_reset(dev);
+    um866x_reset(dev);
 
     return dev;
 }
 
-const device_t um82c862f_device = {
-    .name          = "UMC UM82C862F Super I/O",
-    .internal_name = "um82c862f",
+const device_t um866x_device = {
+    .name          = "UMC UM82C86x/866x Super I/O",
+    .internal_name = "um866x",
     .flags         = 0,
-    .local         = 0x0000,
-    .init          = um8663f_init,
-    .close         = um8663f_close,
-    .reset         = um8663f_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t um82c862f_ide_device = {
-    .name          = "UMC UM82C862F Super I/O (With IDE)",
-    .internal_name = "um82c862f_ide",
-    .flags         = 0,
-    .local         = 0x0001,
-    .init          = um8663f_init,
-    .close         = um8663f_close,
-    .reset         = um8663f_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t um82c863f_device = {
-    .name          = "UMC UM82C863F Super I/O",
-    .internal_name = "um82c863f",
-    .flags         = 0,
-    .local         = 0xc100,
-    .init          = um8663f_init,
-    .close         = um8663f_close,
-    .reset         = um8663f_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t um82c863f_ide_device = {
-    .name          = "UMC UM82C863F Super I/O (With IDE)",
-    .internal_name = "um82c863f_ide",
-    .flags         = 0,
-    .local         = 0xc101,
-    .init          = um8663f_init,
-    .close         = um8663f_close,
-    .reset         = um8663f_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t um8663af_device = {
-    .name          = "UMC UM8663AF Super I/O",
-    .internal_name = "um8663af",
-    .flags         = 0,
-    .local         = 0xc300,
-    .init          = um8663f_init,
-    .close         = um8663f_close,
-    .reset         = um8663f_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t um8663af_ide_device = {
-    .name          = "UMC UM8663AF Super I/O (With IDE)",
-    .internal_name = "um8663af_ide",
-    .flags         = 0,
-    .local         = 0xc301,
-    .init          = um8663f_init,
-    .close         = um8663f_close,
-    .reset         = um8663f_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t um8663af_ide_sec_device = {
-    .name          = "UMC UM8663AF Super I/O (With Secondary IDE)",
-    .internal_name = "um8663af_ide_sec",
-    .flags         = 0,
-    .local         = 0xc302,
-    .init          = um8663f_init,
-    .close         = um8663f_close,
-    .reset         = um8663f_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t um8663bf_device = {
-    .name          = "UMC UM8663BF Super I/O",
-    .internal_name = "um8663bf",
-    .flags         = 0,
-    .local         = 0xc400,
-    .init          = um8663f_init,
-    .close         = um8663f_close,
-    .reset         = um8663f_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t um8663bf_ide_device = {
-    .name          = "UMC UM8663BF Super I/O (With IDE)",
-    .internal_name = "um8663bf_ide",
-    .flags         = 0,
-    .local         = 0xc401,
-    .init          = um8663f_init,
-    .close         = um8663f_close,
-    .reset         = um8663f_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t um8663bf_ide_sec_device = {
-    .name          = "UMC UM8663BF Super I/O (With Secondary IDE)",
-    .internal_name = "um8663bf_ide_sec",
-    .flags         = 0,
-    .local         = 0xc402,
-    .init          = um8663f_init,
-    .close         = um8663f_close,
-    .reset         = um8663f_reset,
+    .local         = 0,
+    .init          = um866x_init,
+    .close         = um866x_close,
+    .reset         = um866x_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,

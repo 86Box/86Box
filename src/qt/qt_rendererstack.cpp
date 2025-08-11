@@ -45,6 +45,8 @@
 #include <QKeyEvent>
 #include <QWidget>
 
+#include <QTimer>
+
 #include <atomic>
 #include <mutex>
 #include <array>
@@ -96,6 +98,17 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     ui->setupUi(this);
 
     m_monitor_index = monitor_index;
+
+
+    if (monitor_index >= 1) {
+        QTimer* frameRateTimer = new QTimer(this);
+        frameRateTimer->setSingleShot(false);
+        frameRateTimer->setInterval(1000);
+        connect(frameRateTimer, &QTimer::timeout, [this] {
+            this->setWindowTitle(QObject::tr("86Box Monitor #") + QString::number(m_monitor_index + 1) + QString(" - ") + tr("%1 Hz").arg(monitors[m_monitor_index].mon_actualrenderedframes.load()));
+        });
+        frameRateTimer->start(1000);
+    }
 #if defined __unix__ && !defined __HAIKU__
     memset(auto_mouse_type, 0, sizeof (auto_mouse_type));
     mousedata.mouse_type = getenv("EMU86BOX_MOUSE");

@@ -125,12 +125,8 @@ lpt_handler(pc87306_t *dev)
     uint16_t lptba;
     uint16_t lpt_port = LPT1_ADDR;
     uint8_t  lpt_irq = LPT2_IRQ;
-    uint8_t  lpt_dma = ((dev->regs[0x18] & 0x06) >> 1);
 
     lpt_port_remove(dev->lpt);
-
-    if (lpt_dma == 0x00)
-        lpt_dma = 0xff;
 
     temp  = dev->regs[0x01] & 3;
     lptba = ((uint16_t) dev->regs[0x19]) << 2;
@@ -172,8 +168,6 @@ lpt_handler(pc87306_t *dev)
         lpt_port_setup(dev->lpt, lpt_port);
 
     lpt_port_irq(dev->lpt, lpt_irq);
-
-    lpt_port_dma(dev->lpt, lpt_dma);
 }
 
 static void
@@ -374,6 +368,8 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
                 fdc_update_enh_mode(dev->fdc, (val & 4) ? 1 : 0);
                 fdc_update_densel_polarity(dev->fdc, (val & 0x40) ? 1 : 0);
             }
+            if (valxor & 0x20)
+                lpt_set_cnfga_readout(dev->lpt, (val & 0x20) ? 0x18 : 0x10);
             break;
         case 0x0f:
             if (valxor)
@@ -470,6 +466,7 @@ pc87306_reset_common(void *priv)
         0 = 360 rpm @ 500 kbps for 3.5"
         1 = Default, 300 rpm @ 500, 300, 250, 1000 kbps for 3.5"
     */
+    lpt_set_cnfga_readout(dev->lpt, 0x10);
     lpt_port_remove(dev->lpt);
     lpt_handler(dev);
     serial_remove(dev->uart[0x00]);
@@ -517,6 +514,7 @@ pc87306_init(UNUSED(const device_t *info))
     dev->uart[0x01] = device_add_inst(&ns16550_device, 2);
 
     dev->lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_set_cnfga_readout(dev->lpt, 0x10);
 
     dev->nvr = device_add(&at_mb_nvr_device);
 

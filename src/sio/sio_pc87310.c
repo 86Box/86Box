@@ -85,16 +85,16 @@ lpt_handler(pc87310_t *dev)
     lpt_port_remove(dev->lpt);
 
     switch (temp) {
-        case 0:
+        case 0x00:
             lpt_port = LPT1_ADDR;
             break;
-        case 1:
+        case 0x01:
             lpt_port = LPT_MDA_ADDR;
             break;
-        case 2:
+        case 0x02:
             lpt_port = LPT2_ADDR;
             break;
-        case 3:
+        case 0x03:
             lpt_port = 0x000;
             lpt_irq  = 0xff;
             break;
@@ -195,15 +195,15 @@ pc87310_write(UNUSED(uint16_t port), uint8_t val, void *priv)
                 serial_handler(dev);
 
             /* Reconfigure IDE controller. */
-            if ((dev->flags & PC87310_IDE) && (valxor & 0x20))  {
+            if ((dev->flags & PCX73XX_IDE) && (valxor & 0x20))  {
                 pc87310_log("SIO: HDC disabled\n");
                 ide_pri_disable();
                 /* Bit 5: 1 = Disable IDE controller. */
                 if (!(val & 0x20)) {
                     pc87310_log("SIO: HDC enabled\n");
                     ide_set_base(0, 0x1f0);
-                   ide_set_side(0, 0x3f6);
-                     ide_pri_enable();
+                    ide_set_side(0, 0x3f6);
+                    ide_pri_enable();
                 }
             }
 
@@ -256,7 +256,7 @@ pc87310_reset(pc87310_t *dev)
 
     lpt_handler(dev);
     serial_handler(dev);
-    if (dev->flags & PC87310_IDE) {
+    if (dev->flags & PCX73XX_IDE) {
         ide_pri_disable();
         ide_pri_enable();
     }
@@ -285,17 +285,18 @@ pc87310_init(const device_t *info)
     dev->uart[1] = device_add_inst(&ns16450_device, 2);
 
     dev->lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_set_ext(dev->lpt, 1);
 
-    if (dev->flags & PC87310_IDE)
+    if (dev->flags & PCX73XX_IDE)
         device_add((dev->flags & PC87310_ALI) ? &ide_vlb_device : &ide_isa_device);
 
     pc87310_reset(dev);
 
-    io_sethandler(0x3f3, 0x0001,
+    io_sethandler(0x03f3, 0x0001,
                   pc87310_read, NULL, NULL, pc87310_write, NULL, NULL, dev);
 
     if (dev->flags & PC87310_ALI)
-        io_sethandler(0x3f1, 0x0001,
+        io_sethandler(0x03f1, 0x0001,
                       pc87310_read, NULL, NULL, pc87310_write, NULL, NULL, dev);
 
     return dev;

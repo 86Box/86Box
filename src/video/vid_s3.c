@@ -3719,6 +3719,8 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
+                                        svga->clock /= 2.0;
+                                        break;
                                     default:
                                         break;
                                 }
@@ -3749,6 +3751,8 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
+                                        svga->clock /= 2.0;
+                                        break;
                                     default:
                                         break;
                                 }
@@ -3804,6 +3808,7 @@ s3_recalctimings(svga_t *svga)
                                             /*SPEA specific drivers + its VBE RAM BIOS...*/
                                             svga->hdisp <<= 1;
                                             svga->dots_per_clock <<= 1;
+                                            svga->clock /= 2.0;
                                         }
                                         break;
                                     default:
@@ -3867,6 +3872,7 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
+                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -3883,6 +3889,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_NUMBER9_9FX_531:
                                 svga->hdisp >>= 1;
                                 svga->dots_per_clock >>= 1;
+                                svga->clock /= 2.0;
                                 break;
 
                             default:
@@ -3901,6 +3908,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
+                                svga->clock /= 2.0;
                                 /* TODO: Is this still needed? */
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
@@ -3912,6 +3920,7 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
+                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -4045,6 +4054,7 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
+                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -4067,6 +4077,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
+                                svga->clock /= 2.0;
                                 /* TODO: Is this still needed? */
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
@@ -4078,6 +4089,7 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
+                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -4153,6 +4165,7 @@ s3_recalctimings(svga_t *svga)
                     case S3_VISION864:
                         svga->hdisp = (svga->hdisp << 1) / 3;
                         svga->dots_per_clock = (svga->dots_per_clock << 1) / 3;
+                        svga->clock /= (2.0 / 3.0);
                         break;
 
                     case S3_VISION968:
@@ -4160,6 +4173,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_MIROVIDEO40SV_ERGO_968:
                                 svga->hdisp = (svga->hdisp / 3) << 2;
                                 svga->dots_per_clock = (svga->hdisp / 3) << 2;
+                                svga->clock /= (2.0 / 3.0);
                                 break;
                             default:
                                 break;
@@ -4190,6 +4204,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_NUMBER9_9FX_531:
                                 svga->hdisp >>= 1;
                                 svga->dots_per_clock >>= 1;
+                                svga->clock /= 2.0;
                                 break;
                             default:
                                 break;
@@ -4203,6 +4218,7 @@ s3_recalctimings(svga_t *svga)
                                     case 1024:
                                         svga->hdisp >>= 1;
                                         svga->dots_per_clock >>= 1;
+                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -4214,6 +4230,7 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
+                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -4235,6 +4252,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
+                                svga->clock /= 2.0;
                                 /* TODO: Is this still needed? */
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
@@ -4246,6 +4264,7 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
+                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
