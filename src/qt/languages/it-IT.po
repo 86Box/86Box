@@ -307,7 +307,7 @@ msgid "Preferences"
 msgstr "Preferenze"
 
 msgid "Sound Gain"
-msgstr "Guadagno del suono"
+msgstr "Guadagno suono"
 
 msgid "New Image"
 msgstr "Nuova immagine"
@@ -358,13 +358,13 @@ msgid "Machine type:"
 msgstr "Tipo di macchina:"
 
 msgid "Machine:"
-msgstr "Scheda madre:"
+msgstr "Macchina:"
 
 msgid "Configure"
 msgstr "Configura"
 
 msgid "CPU:"
-msgstr "CPU"
+msgstr "CPU:"
 
 msgid "CPU type:"
 msgstr "Tipo di CPU:"
@@ -391,13 +391,13 @@ msgid "Time synchronization"
 msgstr "Sincronizzazione dell'ora"
 
 msgid "Disabled"
-msgstr "Disabilitata"
+msgstr "Disabilitato"
 
 msgid "Enabled (local time)"
-msgstr "Abilitata (ora locale)"
+msgstr "Abilitato (ora locale)"
 
 msgid "Enabled (UTC)"
-msgstr "Abilitata (UTC)"
+msgstr "Abilitato (UTC)"
 
 msgid "Dynamic Recompiler"
 msgstr "Ricompilatore dinamico"
@@ -1225,7 +1225,7 @@ msgid "C&lone..."
 msgstr "C&lona..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
-msgstr "La macchina virtuale \"%1\" (%2) verrà clonata in:"
+msgstr "La macchina virtuale \"%1\" (%2) sarà clonata in:"
 
 msgid "Directory %1 already exists"
 msgstr "La directory %1 esiste già"
@@ -1278,8 +1278,8 @@ msgstr "Build"
 msgid "Version"
 msgstr "Versione"
 
-msgid "An update to 86Box is available!"
-msgstr "È disponibile un aggiornamento per 86Box!"
+msgid "<b>An update to 86Box is available!</b>"
+msgstr "<b>È disponibile un aggiornamento per 86Box!</b>"
 
 msgid "Warning"
 msgstr "Avviso"
@@ -1300,7 +1300,7 @@ msgid "Show &config file"
 msgstr "Mostra file di &configurazione"
 
 msgid "No screenshot"
-msgstr "Nessuna cattura"
+msgstr "Nessuna istantanea dello schermo"
 
 msgid "Search"
 msgstr "Cerca"
@@ -1603,7 +1603,7 @@ msgid "Development of the WinBox manager stopped in 2022 due to a lack of mainta
 msgstr "Lo sviluppo del gestore WinBox si è interrotto nel 2022 per mancanza di manutentori. Poiché i nostri sforzi sono rivolti a rendere 86Box ancora migliore, abbiamo deciso di non supportare più WinBox come gestore.\n\nNon saranno forniti ulteriori aggiornamenti tramite WinBox e si potrebbe riscontrare un comportamento non corretto se si continua a utilizzarlo con le versioni più recenti di 86Box. Tutte le segnalazioni di errori relative al comportamento di WinBox saranno chiuse in quanto non valide.\n\nPer un elenco di altri gestori utilizzabili, visitare 86box.net."
 
 msgid "Generate"
-msgstr "Generare"
+msgstr "Genera"
 
 msgid "Joystick configuration"
 msgstr "Configurazione del joystick"
@@ -1897,19 +1897,19 @@ msgid "BIOS address (ROM #4)"
 msgstr "Indirizzo BIOS (ROM #4)"
 
 msgid "Enable BIOS extension ROM Writes"
-msgstr "Abilita le scritture della ROM di espansione del BIOS"
+msgstr "Abilita scritture ROM di espansione del BIOS"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr "Abilita le scritture della ROM di espansione del BIOS (ROM #1)"
+msgstr "Abilita scritture ROM di espansione del BIOS (ROM #1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr "Abilita le scritture della ROM di espansione del BIOS (ROM #2)"
+msgstr "Abilita scritture ROM di espansione del BIOS (ROM #2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr "Abilita le scritture della ROM di espansione del BIOS (ROM #3)"
+msgstr "Abilita scritture ROM di espansione del BIOS (ROM #3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr "Abilita le scritture della ROM di espansione del BIOS (ROM #4)"
+msgstr "Abilita scritture ROM di espansione del BIOS (ROM #4)"
 
 msgid "Linear framebuffer base"
 msgstr "Base del framebuffer lineare"
@@ -2005,7 +2005,7 @@ msgid "SoundFont"
 msgstr "SoundFont"
 
 msgid "Output Gain"
-msgstr "Guadagno di uscita"
+msgstr "Guadagno uscita"
 
 msgid "Chorus"
 msgstr "Coro"
@@ -2053,7 +2053,7 @@ msgid "Reversed stereo"
 msgstr "Stereo invertito"
 
 msgid "Nice ramp"
-msgstr "Ampl. rampa migliorato"
+msgstr "Rampa di ampl. migliorata"
 
 msgid "Hz"
 msgstr "Hz"
@@ -2095,7 +2095,7 @@ msgid "TCP/IP listening port"
 msgstr "Porta di ascolto TCP/IP"
 
 msgid "Phonebook File"
-msgstr "File rubrica"
+msgstr "File di rubrica"
 
 msgid "Telnet emulation"
 msgstr "Emulazione Telnet"
@@ -2836,7 +2836,7 @@ msgid "&Wipe NVRAM"
 msgstr "&Cancella NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "Questa operazione eliminerà tutti i file NVRAM (e correlati) della macchina virtuale situati nella sottodirectory \"nvr\". Sarà necessario riconfigurare nuovamente le impostazioni del BIOS ed, eventualmente, di altri dispositivi all'interno della macchina virtuale.\n\nSei sicuro di voler cancellare tutto il contenuto della NVRAM della macchina virtuale \"%1\"?"
+msgstr "Questa operazione eliminerà tutti i file NVRAM (e correlati) della macchina virtuale situati nella sottodirectory \"nvr\". Sarà necessario riconfigurare nuovamente le impostazioni del BIOS e, eventualmente, di altri dispositivi all'interno della macchina virtuale.\n\nSei sicuro di voler cancellare tutto il contenuto della NVRAM della macchina virtuale \"%1\"?"
 
 msgid "Success"
 msgstr "Successo"
@@ -2848,7 +2848,7 @@ msgid "An error occured trying to wipe the NVRAM contents of the virtual machine
 msgstr "Si è verificato un errore durante il tentativo di cancellare il contenuto della NVRAM della macchina virtuale \"%1\""
 
 msgid "%1 VM Manager"
-msgstr "Gestore macchine virtuali %1"
+msgstr "Gestore macchine virtuali di %1"
 
 msgid "%n disk(s)"
 msgstr "%n disco/i"
@@ -2881,22 +2881,22 @@ msgid "build"
 msgstr "build"
 
 msgid "You are currently running %1 <b>%2</b>. "
-msgstr "Stai attualmente utilizzando %1 <b>%2</b>. "
+msgstr "Stai attualmente utilizzando la %1 <b>%2</b>. "
 
 msgid "<b>%1 %2</b> is now available. %3Would you like to visit the download page?"
-msgstr "<b>%1 %2</b> è ora disponibile. %3Vuoi visitare la pagina di download?"
+msgstr "La <b>%1 %2</b> è ora disponibile. %3Vuoi visitare la pagina per scaricare la nuova versione?"
 
 msgid "Visit download page"
-msgstr "Visita la pagina di download"
+msgstr "Visita la pagina"
 
 msgid "Update check"
-msgstr "Controlla aggiornamenti"
+msgstr "Controllo aggiornamenti"
 
 msgid "Checking for updates.."
 msgstr "Controllo degli aggiornamenti..."
 
 msgid "86Box Update"
-msgstr "Aggiornamento 86Box"
+msgstr "Aggiornamento di 86Box"
 
 msgid "Release notes:"
 msgstr "Note di rilascio:"
