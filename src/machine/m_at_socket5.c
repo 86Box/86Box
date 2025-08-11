@@ -783,7 +783,7 @@ machine_at_bravoms586_init(const machine_t *model)
     device_add(&vl82c59x_device);
     device_add(&intel_flash_bxt_device);
     device_add(&kbc_ps2_phoenix_device);
-    device_add(&fdc37c665_ide_sec_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&ide_cmd640_pci_single_channel_device);
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
@@ -818,7 +818,7 @@ machine_at_globalyst620_init(const machine_t *model)
     device_add(&intel_flash_bxt_device);
     device_add(&kbc_ps2_phoenix_device);
     device_add(&ide_cmd640_pci_single_channel_legacy_only_device);
-    device_add(&fdc37c665_ide_sec_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
@@ -849,7 +849,7 @@ machine_at_celebris5xx_init(const machine_t *model)
     device_add(&vl82c59x_device);
     device_add(&intel_flash_bxt_device);
     device_add(&kbc_ps2_phoenix_device);
-    device_add(&fdc37c665_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&ide_cmd640_pci_device);
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
@@ -880,7 +880,7 @@ machine_at_g586vpmc_init(const machine_t *model)
     device_add(&vl82c59x_device);
     device_add(&sst_flash_29ee010_device);
     device_add(&kbc_ps2_ami_pci_device);
-    device_add(&pc87332_398_device);
+    device_add_params(&pc873xx_device, (void *) (PC87332 | PCX730X_398));
     device_add(&ide_cmd646_device);
     return ret;
 }
@@ -909,7 +909,7 @@ machine_at_pb600_init(const machine_t *model)
     device_add(&vl82c59x_device);
     device_add(&intel_flash_bxt_device);
     device_add(&kbc_ps2_phoenix_device);
-    device_add(&fdc37c665_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&phoenix_486_jumper_pci_pb600_device);
     device_add(&ide_cmd640_pci_device);
     if (gfxcard[0] == VID_INTERNAL)
@@ -942,7 +942,7 @@ machine_at_m54si_init(const machine_t *model)
     device_add(&vl82c59x_device);
     device_add(&intel_flash_bxt_device);
     device_add(&kbc_ps2_phoenix_device);
-    device_add(&fdc37c665_ide_sec_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&ide_cmd640_pci_single_channel_device);
 
     return ret;
