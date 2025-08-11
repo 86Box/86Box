@@ -957,6 +957,9 @@ msgstr ""
 msgid "&New machine..."
 msgstr ""
 
+msgid "&Check for updates..."
+msgstr ""
+
 msgid "Exit"
 msgstr ""
 
@@ -1275,7 +1278,7 @@ msgstr ""
 msgid "Version"
 msgstr ""
 
-msgid "An update to 86Box is available"
+msgid "An update to 86Box is available!"
 msgstr ""
 
 msgid "Warning"
