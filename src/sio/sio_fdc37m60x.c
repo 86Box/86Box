@@ -347,7 +347,6 @@ fdc37m60x_write(uint16_t port, uint8_t val, void *priv)
                                         fdc_set_flags(dev->fdc, FDC_FLAG_PS2_MCA);
                                         break;
                                 }
-                                fdc_update_enh_mode(dev->fdc, val & 0x01);
                             }
                             if (valxor & 0x10)
                                 fdc_set_swap(dev->fdc, (val & 0x10) >> 4);

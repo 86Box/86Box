@@ -53,6 +53,7 @@ typedef struct lpt_t {
     uint8_t       epp;
     uint8_t       ecp;
     uint8_t       ecr;
+    uint8_t       ret_ecr;
     uint8_t       in_dat;
     uint8_t       fifo_stat;
     uint8_t       dma_stat;
@@ -61,8 +62,11 @@ typedef struct lpt_t {
     uint8_t       strobe;
     uint8_t       lv2;
     uint8_t       cnfga_readout;
+    uint8_t       cfg_regs_enabled;
     uint8_t       inst;
-    uint8_t       pad[5];
+    uint8_t       eir;
+    uint8_t       pad[2];
+    uint8_t       ext_regs[8];
     uint16_t      addr;
     uint16_t      id;
     uint16_t      pad0[2];
@@ -101,6 +105,8 @@ extern uint8_t             lpt_read(uint16_t port, void *priv);
 extern uint8_t             lpt_read_port(lpt_t *dev, uint16_t reg);
 
 extern uint8_t             lpt_read_status(lpt_t *dev);
+extern uint8_t             lpt_read_ecp_mode(lpt_t *dev);
+
 extern void                lpt_irq(void *priv, int raise);
 
 extern int                 lpt_device_get_from_internal_name(const char *str);
@@ -125,6 +131,7 @@ extern void                lpt_set_ext(lpt_t *dev, uint8_t ext);
 extern void                lpt_set_ecp(lpt_t *dev, uint8_t ecp);
 extern void                lpt_set_epp(lpt_t *dev, uint8_t epp);
 extern void                lpt_set_lv2(lpt_t *dev, uint8_t lv2);
+extern void                lpt_set_cfg_regs_enabled(lpt_t *dev, uint8_t cfg_regs_enabled);
 extern void                lpt_set_fifo_threshold(lpt_t *dev, int threshold);
 extern void                lpt_set_cnfga_readout(lpt_t *dev, const uint8_t cnfga_readout);
 extern void                lpt_port_setup(lpt_t *dev, uint16_t port);

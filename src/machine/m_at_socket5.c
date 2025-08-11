@@ -109,7 +109,7 @@ machine_at_d842_init(const machine_t *model)
     device_add(&kbc_ps2_pci_device);
     device_add(&i430nx_device);
     device_add(&sio_zb_device);
-    device_add(&fdc37c665_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -202,7 +202,7 @@ machine_at_p54np4_init(const machine_t *model)
     device_add(&i430nx_device);
     device_add(&sio_zb_device);
     device_add(&kbc_ps2_ami_pci_device);
-    device_add(&fdc37c665_ide_pri_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -250,7 +250,7 @@ machine_at_tek932_init(const machine_t *model)
     device_add(&i430nx_device);
     device_add(&sio_zb_device);
     device_add(&ide_vlb_device);
-    device_add(&fdc37c665_ide_pri_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -279,7 +279,7 @@ machine_at_acerv30_init(const machine_t *model)
     device_add(&i430fx_device);
     device_add(&piix_device);
     device_add(&kbc_ps2_acer_pci_device);
-    device_add(&fdc37c665_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
 
     device_add(&sst_flash_29ee010_device);
 
@@ -310,7 +310,7 @@ machine_at_apollo_init(const machine_t *model)
     device_add(&kbc_ps2_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&pc87332_398_device);
+    device_add_params(&pc873xx_device, (void *) (PC87332 | PCX730X_398));
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -346,7 +346,7 @@ machine_at_optiplexgxl_init(const machine_t *model)
     device_add(&kbc_ps2_phoenix_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&pc87332_device);
+    device_add_params(&pc873xx_device, (void *) (PC87332 | PCX730X_02E));
     device_add(&dell_jumper_device);
     device_add(&intel_flash_bxt_device);
 
@@ -437,7 +437,7 @@ machine_at_powermatev_init(const machine_t *model)
     device_add(&kbc_ps2_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&fdc37c665_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -466,7 +466,7 @@ machine_at_hawk_init(const machine_t *model)
     device_add(&kbc_ps2_tg_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&fdc37c665_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -497,7 +497,7 @@ machine_at_pt2000_init(const machine_t *model)
     device_add(&kbc_ps2_holtek_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&pc87332_398_device);
+    device_add_params(&pc873xx_device, (void *) (PC87332 | PCX730X_398));
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -579,7 +579,7 @@ machine_at_ncselp90_init(const machine_t *model)
     device_add(&sst_flash_29ee010_device);
     device_add(&kbc_ps2_ami_pci_device);
     device_add(&ide_opti611_vlb_device);
-    device_add(&fdc37c665_ide_sec_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&ide_vlb_2ch_device);
 
     return ret;
@@ -626,7 +626,7 @@ machine_at_sq588_init(const machine_t *model)
     device_add(&sis_85c50x_device);
     device_add(&ide_cmd640_pci_single_channel_device);
     device_add(&kbc_ps2_ami_pci_device);
-    device_add(&fdc37c665_ide_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&sst_flash_29ee010_device);
 
     return ret;
@@ -655,7 +655,7 @@ machine_at_p54sps_init(const machine_t *model)
     device_add(&sis_85c50x_device);
     device_add(&ide_pci_2ch_device);
     device_add(&kbc_at_ami_device);
-    device_add(&w83787f_device);
+    device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89));
     device_add(&sst_flash_29ee010_device);
 
     return ret;
@@ -686,7 +686,7 @@ machine_at_ms5109_init(const machine_t *model)
     device_add(&sis_550x_85c503_device);
     device_add(&ide_w83769f_pci_device);
     device_add(&kbc_ps2_ami_device);
-    device_add(&w83787f_device);
+    device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89));
     device_add(&sst_flash_29ee010_device);
 
     return ret;
@@ -720,7 +720,7 @@ machine_at_torino_init(const machine_t *model)
     device_add(&sis_550x_85c503_device);
     device_add(&ide_um8673f_device);
     device_add(&kbc_ps2_tg_ami_device);
-    device_add(&fdc37c665_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -752,7 +752,7 @@ machine_at_hot539_init(const machine_t *model)
     device_add(&umc_8886af_device);
     device_add(&sst_flash_29ee010_device);
     device_add(&kbc_ps2_ami_pci_device);
-    device_add(&um8663af_device);
+    device_add_params(&um866x_device, (void *) UM8663AF);
 
     return ret;
 }

@@ -81,7 +81,9 @@ typedef struct {
 typedef struct
 {
     uint8_t ep, p92;
+    uint8_t addr_sel;
 
+    uint8_t addr_regs[8];
     uint8_t vbios_states[4];
     uint8_t bios_states[8];
     uint8_t high_bios_states[8];
@@ -100,6 +102,7 @@ typedef struct
     };
 
     uint16_t ems_page_regs[40];
+    uint16_t lpt_base;
 
     int locked;
 
@@ -874,6 +877,92 @@ wd76c10_low_pages_recalc(wd76c10_t *dev)
 }
 
 static void
+wd73c30_reset(wd76c10_t *dev)
+{
+    dev->addr_sel = 0x00;
+
+    dev->addr_regs[0x00] = 0x00;
+    dev->addr_regs[0x01] = 0x00;
+    dev->addr_regs[0x05] = 0x00;
+
+    serial_set_type(dev->uart[0], SERIAL_16450);
+    serial_set_type(dev->uart[1], SERIAL_16450);
+
+    serial_set_clock_src(dev->uart[1], 1843200.0);
+    serial_set_clock_src(dev->uart[0], 1843200.0);
+
+    lpt_set_ext(dev->lpt, 0);
+}
+
+static void
+wd76c30_write(uint16_t port, uint8_t val, void *priv)
+{
+    wd76c10_t *dev = (wd76c10_t *) priv;
+
+    switch (port & 0x0007) {
+        case 0x0003:
+            dev->addr_sel = val;
+            switch (val & 0x60) {
+                case 0x00:
+                    serial_set_clock_src(dev->uart[1], 1843200.0);
+                    break;
+                case 0x20:
+                    serial_set_clock_src(dev->uart[1], 3072000.0);
+                    break;
+                case 0x40:
+                    serial_set_clock_src(dev->uart[1], 6000000.0);    /* What is MSTRX1? */
+                    break;
+                case 0x60:
+                    serial_set_clock_src(dev->uart[1], 8000000.0);
+                    break;
+            }
+            switch (val & 0x18) {
+                case 0x00:
+                    serial_set_clock_src(dev->uart[0], 1843200.0);
+                    break;
+                case 0x08:
+                    serial_set_clock_src(dev->uart[0], 3072000.0);
+                    break;
+                case 0x10:
+                    serial_set_clock_src(dev->uart[0], 6000000.0);    /* What is MSTRX1? */
+                    break;
+                case 0x18:
+                    serial_set_clock_src(dev->uart[0], 8000000.0);
+                    break;
+            }
+            break;
+        case 0x0007:
+            dev->addr_regs[dev->addr_sel & 0x07] = val;
+            switch (dev->addr_sel & 0x07) {
+                case 0x05:
+                    lpt_set_ext(dev->lpt, !!(val & 0x02));
+                    serial_set_type(dev->uart[0], (val & 0x01) ? SERIAL_16550 : SERIAL_16450);
+                    serial_set_type(dev->uart[1], (val & 0x01) ? SERIAL_16550 : SERIAL_16450);
+                    break;
+            }
+            break;
+    }
+}
+
+static uint8_t
+wd76c30_read(uint16_t port, void *priv)
+{
+    wd76c10_t *dev = (wd76c10_t *) priv;
+    uint8_t    ret = 0xff;
+
+    switch (port & 0x0007) {
+        case 0x0003:
+            ret = dev->addr_sel;
+            break;
+        case 0x0007:
+            ret = dev->addr_regs[dev->addr_sel & 0x07];
+            break;
+    }
+
+    return ret;
+}
+
+static void
 wd76c10_ser_par_cs_recalc(wd76c10_t *dev)
 {
     /* Serial B */
@@ -912,20 +1001,23 @@ wd76c10_ser_par_cs_recalc(wd76c10_t *dev)
 
     /* LPT */
     lpt_port_remove(dev->lpt);
+    if (dev->lpt_base != 0x0000)
+        io_removehandler(dev->lpt_base, 0x0008, wd76c30_read, NULL, NULL, wd76c30_write, NULL, NULL, dev);
+    dev->lpt_base = 0x0000;
     switch ((dev->ser_par_cs >> 9) & 0x03) {
         case 1:
-            lpt_port_setup(dev->lpt, LPT_MDA_ADDR);
-            lpt_port_irq(dev->lpt, LPT1_IRQ);
+            dev->lpt_base = LPT_MDA_ADDR;
             break;
         case 2:
-            lpt_port_setup(dev->lpt, LPT1_ADDR);
-            lpt_port_irq(dev->lpt, LPT1_IRQ);
+            dev->lpt_base = LPT1_ADDR;
             break;
         case 3:
-            lpt_port_setup(dev->lpt, LPT2_ADDR);
-            lpt_port_irq(dev->lpt, LPT1_IRQ);
+            dev->lpt_base = LPT2_ADDR;
             break;
     }
+    io_sethandler(dev->lpt_base, 0x0008, wd76c30_read, NULL, NULL, wd76c30_write, NULL, NULL, dev);
+    lpt_port_setup(dev->lpt, dev->lpt_base);
+    lpt_port_irq(dev->lpt, LPT1_IRQ);
 }
 
 static void
@@ -1238,6 +1330,8 @@ wd76c10_reset(void *priv)
     }
 
     nvr_lock_set(0x38, 0x08, 0x00, dev->nvr);
+
+    wd73c30_reset(dev);
 
     wd76c10_banks_recalc(dev);
     wd76c10_split_recalc(dev);
