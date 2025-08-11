@@ -141,6 +141,7 @@ enum ESPASCMode {
 
 #define CFG1_RESREPT     0x40
 
+#define TCHI_ESP100A     0x01
 #define TCHI_FAS100A     0x04
 #define TCHI_AM53C974    0x12
 
@@ -666,6 +667,7 @@ esp_hard_reset(esp_t *dev)
     dev->tchi_written    = 0;
     dev->asc_mode = ESP_ASC_MODE_DIS;
     dev->rregs[ESP_CFG1] = dev->mca ? dev->HostID : 7;
+    dev->sbac = 1 << 19;
 
     esp_log("ESP Reset\n");
 
@@ -716,7 +718,7 @@ esp_do_dma(esp_t *dev)
 
     len = esp_get_tc(dev);
 
-    esp_log("ESP SCSI Actual DMA len=%d, cfg3=%02x.\n", len, dev->rregs[ESP_CFG3]);
+    esp_log("ESP SCSI Actual DMA len=%d, cfg3=%02x, phase=%x.\n", len, dev->rregs[ESP_CFG3], esp_get_phase(dev));
 
     switch (esp_get_phase(dev)) {
         case STAT_MO:
@@ -1316,6 +1318,7 @@ handle_s_without_atn(void *priv)
     if (esp_select(dev) < 0)
         return;
 
+    esp_log("Selection without ATN.\n");
     esp_set_phase(dev, STAT_CD);
     dev->cmdfifo_cdb_offset = 0;
 
@@ -1333,6 +1336,7 @@ handle_satn(void *priv)
     if (esp_select(dev) < 0)
         return;
 
+    esp_log("Selection with ATN.\n");
     esp_set_phase(dev, STAT_MO);
 
     if (dev->dma)
@@ -1434,12 +1438,17 @@ esp_reg_read(esp_t *dev, uint32_t saddr)
             esp_log("Read Interrupt=%02x (old).\n", ret);
             break;
         case ESP_TCHI: /* Return the unique id if the value has never been written */
-            if (!dev->mca && !dev->tchi_written)
-                ret = TCHI_AM53C974;
-            else
-                ret = dev->rregs[ESP_TCHI];
+            if (!dev->tchi_written) {
+                if (dev->mca)
+                    ret = TCHI_ESP100A;
+                else
+                    ret = TCHI_AM53C974;
 
-            esp_log("Read TCHI Register=%02x.\n", ret);
+                esp_log("ChipID=%02x.\n", ret);
+            } else {
+                ret = dev->rregs[ESP_TCHI];
+                esp_log("Read TCHI Register=%02x.\n", ret);
+            }
             break;
         case ESP_RFLAGS:
             ret = fifo8_num_used(&dev->fifo);
@@ -1525,6 +1534,12 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                     break;
                 case CMD_BUSRESET:
                     esp_log("ESP Bus Reset val=%02x.\n", (dev->rregs[ESP_CFG1] & CFG1_RESREPT));
+                    if (dev->mca) {
+                        esp_lower_irq(dev);
+                        esp_hard_reset(dev);
+                    } else
+                        esp_pci_soft_reset(dev);
+
                     for (uint8_t i = 0; i < 16; i++) {
                         scsi_device_reset(&scsi_devices[dev->bus][i]);
                     }
@@ -1635,6 +1650,7 @@ esp_pci_dma_memory_rw(esp_t *dev, uint8_t *buf, uint32_t len, int dir)
     if (dev->dma_regs[DMA_WBC] < len)
         len = dev->dma_regs[DMA_WBC];
 
+    esp_log("DMA Length=%d.\n", len);
     if (dev->dma_regs[DMA_CMD] & DMA_CMD_MDL) {
         if (len) {
             dma_bm_read(dev->dma_regs[DMA_WMAC], (uint8_t *)&DMAPtr, 4, 4);
@@ -1681,16 +1697,18 @@ esp_pci_dma_memory_rw(esp_t *dev, uint8_t *buf, uint32_t len, int dir)
             }
         }
     } else {
-        addr = dev->dma_regs[DMA_WAC];
+        if (len) {
+            addr = dev->dma_regs[DMA_WAC];
 
-        if (expected_dir)
-            dma_bm_write(addr, buf, len, 4);
-        else
-            dma_bm_read(addr, buf, len, 4);
+            if (expected_dir)
+                dma_bm_write(addr, buf, len, 4);
+            else
+                dma_bm_read(addr, buf, len, 4);
 
-        /* update status registers */
-        dev->dma_regs[DMA_WBC] -= len;
-        dev->dma_regs[DMA_WAC] += len;
+            /* update status registers */
+            dev->dma_regs[DMA_WBC] -= len;
+            dev->dma_regs[DMA_WAC] += len;
+        }
     }
 
     esp_log("Finished count=%d.\n", dev->dma_regs[DMA_WBC]);
@@ -2184,7 +2202,7 @@ esp_pci_read(UNUSED(int func), int addr, void *priv)
         case 0x07:
             return esp_pci_regs[0x07] | 0x02;
         case 0x08:
-            return 0x10; /*Revision ID*/
+            return (dev->local == 1) ? 0 : 0x10; /*Revision ID*/
         case 0x09:
             return 0; /*Programming interface*/
         case 0x0A:
@@ -2363,7 +2381,7 @@ esp_pci_reset(void *priv)
 
     memcpy(dev, &reset_state, sizeof(esp_t));
 
-    dev->sbac = 1 << 19;
+    esp_pci_soft_reset(dev);
 }
 
 static void *
@@ -2650,6 +2668,44 @@ static const device_config_t bios_enable_config[] = {
   // clang-format on
 };
 
+static const device_config_t am53c974_bios_enable_config[] = {
+  // clang-format off
+    {
+        .name           = "bios_rev",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "v3_01_amd",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Version 3.01 (AMD)",
+                .internal_name = "v3_01_amd",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { AM53C974_3_01_AMD_ROM, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "bios",
+        .description    = "Enable BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
 static const device_config_t am53c974a_bios_enable_config[] = {
   // clang-format off
     {
@@ -2739,10 +2795,24 @@ const device_t dc390_pci_device = {
 };
 
 const device_t am53c974_pci_device = {
-    .name          = "AMD 53c974A PCI",
+    .name          = "AMD 53c974 PCI",
     .internal_name = "am53c974",
     .flags         = DEVICE_PCI,
     .local         = 1,
+    .init          = dc390_init,
+    .close         = esp_close,
+    .reset         = esp_pci_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = am53c974_bios_enable_config
+};
+
+const device_t am53c974a_pci_device = {
+    .name          = "AMD 53c974A PCI",
+    .internal_name = "am53c974a",
+    .flags         = DEVICE_PCI,
+    .local         = 2,
     .init          = dc390_init,
     .close         = esp_close,
     .reset         = esp_pci_reset,
