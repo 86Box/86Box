@@ -39,6 +39,9 @@ uint32_t nv3_render_to_chroma(nv3_color_expanded_t expanded);                   
 nv3_color_expanded_t nv3_render_expand_color(uint32_t color, nv3_grobj_t grobj);            // Convert a colour to full RGB10 format from the current working format.
 uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t color);       // Convert a colour from the current working format to RGB10 format.
 
+/* ROP */
+uint8_t nv3_render_translate_nvrop(nv3_grobj_t grobj, uint32_t rop);
+
 /* Pattern */
 void nv3_render_set_pattern_color(nv3_color_expanded_t pattern_colour, bool use_color1);
 

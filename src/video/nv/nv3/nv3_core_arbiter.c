@@ -108,11 +108,11 @@ uint32_t nv3_mmio_arbitrate_read(uint32_t address)
     else 
     {
         //nvplay stuff
-        #ifdef ENABLE_NV_LOG_ULTRA
-        warning("MMIO read arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning unmapped pattern]\n", address);
-        #else 
+        //#ifdef ENABLE_NV_LOG_ULTRA
+        //warning("MMIO read arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning unmapped pattern]\n", address);
+        //#else 
         nv_log("MMIO read arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning unmapped pattern]\n", address);
-        #endif
+        //#endif
 
         // The real hardware returns a garbage pattern
         return 0x00;
@@ -181,11 +181,11 @@ void nv3_mmio_arbitrate_write(uint32_t address, uint32_t value)
     else 
     {
         //nvplay stuff
-        #ifdef ENABLE_NV_LOG_ULTRA
-        warning("MMIO write arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning 0x00]\n", address);
-        #else 
+        //#ifdef ENABLE_NV_LOG_ULTRA
+        //warning("MMIO write arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning 0x00]\n", address);
+        //#else 
         nv_log("MMIO write arbitration failed, INVALID address NOT mapped to any GPU subsystem 0x%08x [returning 0x00]\n", address);
-        #endif
+        //#endif
 
         return;
     }

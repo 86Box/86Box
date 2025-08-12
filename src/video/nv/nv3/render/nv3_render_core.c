@@ -44,7 +44,7 @@ nv3_color_expanded_t nv3_render_expand_color(uint32_t color, nv3_grobj_t grobj)
     // grobj0 = seems to share the format of PGRAPH_CONTEXT_SWITCH register.
 
     uint8_t format = (grobj.grobj_0 & 0x07);
-    bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_ALPHA) & 0x01;
+    bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CTX_SWITCH_ALPHA) & 0x01;
 
     nv3_color_expanded_t color_final; 
     // set the pixel format
@@ -119,7 +119,7 @@ nv3_color_expanded_t nv3_render_expand_color(uint32_t color, nv3_grobj_t grobj)
 uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t color)
 {
     uint8_t format = (grobj.grobj_0 & 0x07);
-    bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_ALPHA) & 0x01;
+    bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CTX_SWITCH_ALPHA) & 0x01;
 
     nv_log_verbose_only("Downconverting Colour 0x%08x using pgraph_pixel_format 0x%x alpha enabled=%d\n", color, format, alpha_enabled);
 
@@ -168,7 +168,7 @@ uint32_t nv3_render_downconvert_color(nv3_grobj_t grobj, nv3_color_expanded_t co
 /* Runs the chroma key/color key test */
 bool nv3_render_chroma_test(uint32_t color, nv3_grobj_t grobj)
 {
-    bool chroma_enabled = ((grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_CHROMA_KEY) & 0x01);
+    bool chroma_enabled = ((grobj.grobj_0 >> NV3_PGRAPH_CTX_SWITCH_CHROMA_KEY) & 0x01);
 
     if (!chroma_enabled)
         return true;
@@ -239,7 +239,7 @@ uint32_t nv3_render_get_vram_address(nv3_coord_16_t position, nv3_grobj_t grobj)
 {
     uint32_t vram_x = position.x;
     uint32_t vram_y = position.y;
-    uint32_t current_buffer = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03; 
+    uint32_t current_buffer = (grobj.grobj_0 >> NV3_PGRAPH_CTX_SWITCH_SRC_BUFFER) & 0x03; 
 
     uint32_t framebuffer_bpp = nv3->nvbase.svga.bpp;
 
@@ -359,7 +359,7 @@ uint32_t nv3_render_read_pixel_32(nv3_coord_16_t position, nv3_grobj_t grobj)
 
 void nv3_render_write_pixel_to_buffer(nv3_coord_16_t position, uint32_t color, nv3_grobj_t grobj, uint32_t buffer)
 {
-    bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_ALPHA) & 0x01;
+    bool alpha_enabled = (grobj.grobj_0 >> NV3_PGRAPH_CTX_SWITCH_ALPHA) & 0x01;
 
     int32_t clip_end_x = nv3->pgraph.clip_start.x + nv3->pgraph.clip_size.x;
     int32_t clip_end_y = nv3->pgraph.clip_start.y + nv3->pgraph.clip_size.y;
@@ -428,6 +428,9 @@ void nv3_render_write_pixel_to_buffer(nv3_coord_16_t position, uint32_t color, n
         We use the pixel format of the destination buffer to achieve this (thanks frostbite2000)
     */
 
+    // translate the patch config to GDI rop
+    uint32_t final_rop = nv3_render_translate_nvrop(grobj, nv3->pgraph.rop);
+
     uint32_t destination_format = (nv3->pgraph.bpixel[buffer]) & 0x03;
 
     switch (destination_format)
@@ -435,7 +438,7 @@ void nv3_render_write_pixel_to_buffer(nv3_coord_16_t position, uint32_t color, n
         case bpixel_fmt_8bit:
             rop_src = color & 0xFF;
             rop_dst = nv3->nvbase.svga.vram[pixel_addr_vram];
-            nv3->nvbase.svga.vram[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, rop_src, rop_dst, rop_pattern) & 0xFF;
+            nv3->nvbase.svga.vram[pixel_addr_vram] = video_rop_gdi_ternary(final_rop, rop_src, rop_dst, rop_pattern) & 0xFF;
 
             nv3->nvbase.svga.changedvram[pixel_addr_vram >> 12] = changeframecount;
 
@@ -464,7 +467,7 @@ void nv3_render_write_pixel_to_buffer(nv3_coord_16_t position, uint32_t color, n
 
             rop_dst = vram_16[pixel_addr_vram];
 
-            vram_16[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, rop_src, rop_dst, rop_pattern) & 0xFFFF;
+            vram_16[pixel_addr_vram] = video_rop_gdi_ternary(final_rop, rop_src, rop_dst, rop_pattern) & 0xFFFF;
 
             nv3->nvbase.svga.changedvram[pixel_addr_vram >> 11] = changeframecount;
 
@@ -477,7 +480,7 @@ void nv3_render_write_pixel_to_buffer(nv3_coord_16_t position, uint32_t color, n
 
             rop_src = color;
             rop_dst = vram_32[pixel_addr_vram];
-            vram_32[pixel_addr_vram] = video_rop_gdi_ternary(nv3->pgraph.rop, rop_src, rop_dst, rop_pattern);
+            vram_32[pixel_addr_vram] = video_rop_gdi_ternary(final_rop, rop_src, rop_dst, rop_pattern);
 
             nv3->nvbase.svga.changedvram[pixel_addr_vram >> 10] = changeframecount;
 
@@ -788,4 +791,101 @@ void nv3_render_32bpp(uint32_t vram_start, nv3_coord_16_t screen_size)
             vram_current_position += 4; 
         }
     }
+}
+
+// Translate an "NV-ROP" into a GDI Ternary ROP
+uint8_t nv3_render_translate_nvrop(nv3_grobj_t grobj, uint32_t rop)
+{
+    // Credit to envytools for this function:
+    // https://github.com/envytools/envytools/blob/f102b82381f3f11cee113d16374c87091db039d9/nvhw/pgraph.c
+    // How does one even go about reverse engineering this (I'm sure the behaviour is simpler when you don't have to translate this but...) Marcelina is a legend.
+
+    uint32_t patch_config_rop = (grobj.grobj_0 >> NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG) & 0x1F;
+
+    /*    || patch_config_rop == NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_RSVD0*/
+    
+    // TODO: Blending
+	if (patch_config_rop == NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_SRC_BYPASS)    // 0x00 is used for "nothing here" it seems.
+		return VIDEO_ROP_SRC_COPY;
+
+	uint8_t res = 0;
+
+	int32_t swizzle[3];
+
+	if (patch_config_rop < 8) {
+		swizzle[0] = patch_config_rop >> 0 & 1;
+		swizzle[1] = patch_config_rop >> 1 & 1;
+		swizzle[2] = patch_config_rop >> 2 & 1;
+	} else if (patch_config_rop < 0x10) {
+		swizzle[0] = (patch_config_rop >> 0 & 1) + 1;
+		swizzle[1] = (patch_config_rop >> 1 & 1) + 1;
+		swizzle[2] = (patch_config_rop >> 2 & 1) + 1;
+	} else if (patch_config_rop == NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_PAT_SRC_DST) {
+		swizzle[0] = 0, swizzle[1] = 1, swizzle[2] = 2;
+	} else if (patch_config_rop == NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_PAT_DST_SRC) {
+		swizzle[0] = 1, swizzle[1] = 0, swizzle[2] = 2;
+	} else if (patch_config_rop == NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_SRC_PAT_DST) {
+		swizzle[0] = 0, swizzle[1] = 2, swizzle[2] = 1;
+	} else if (patch_config_rop == NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_SRC_DST_PAT) {
+		swizzle[0] = 2, swizzle[1] = 0, swizzle[2] = 1;
+	} else if (patch_config_rop == NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_DST_PAT_SRC) {
+		swizzle[0] = 1, swizzle[1] = 2, swizzle[2] = 0;
+	} else if (patch_config_rop == NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_DST_SRC_PAT) {
+		swizzle[0] = 2, swizzle[1] = 1, swizzle[2] = 0;
+	} else {
+        warning("NV3 ROP: Invalid patch configuration %02x!", rop);
+	}
+	if (patch_config_rop == 0) {
+		if (rop & 0x01)
+			res |= 0x11;
+		if (rop & 0x16)
+			res |= 0x44;
+		if (rop & 0x68)
+			res |= 0x22;
+		if (rop & 0x80)
+			res |= 0x88;
+	} else if (patch_config_rop == 0xf) {
+		if (rop & 0x01)
+			res |= 0x03;
+		if (rop & 0x16)
+			res |= 0x0c;
+		if (rop & 0x68)
+			res |= 0x30;
+		if (rop & 0x80)
+			res |= 0xc0;
+	} else {
+		int32_t i;
+		for (i = 0; i < 8; i++) {
+			int32_t s0 = i >> swizzle[0] & 1;
+			int32_t s1 = i >> swizzle[1] & 1;
+			int32_t s2 = i >> swizzle[2] & 1;
+			int32_t s = s2 << 2 | s1 << 1 | s0;
+			if (rop >> s & 1)
+				res |= 1 << i;
+		}
+	}
+	return res;
+
+    /*
+    uint32_t patch_config = (grobj.grobj_0 >> NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG) & 0x1F;
+
+    // Wtf do these even do?
+    switch (patch_config)
+    {
+        // don't do anything 
+        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_SRC_BYPASS:
+        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_RSVD0:
+        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_RSVD1:
+        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_RSVD2:
+        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_BLEND_RSVD0:
+        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_BLEND_RSVD1:
+        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_BLEND_RSVD2:
+        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_BLEND_RSVD3:
+        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_BLEND_RSVD4:
+            return src;
+        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_PAT_SRC_DST:    // S2SB
+            break;
+
+    }
+            */
 }

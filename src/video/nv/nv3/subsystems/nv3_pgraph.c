@@ -51,7 +51,7 @@ nv_register_t pgraph_registers[] = {
     { NV3_PGRAPH_INTR_EN_0, "PGRAPH Interrupt Enable 0", NULL, NULL },
     { NV3_PGRAPH_INTR_1, "PGRAPH Interrupt Status 1", NULL, NULL },
     { NV3_PGRAPH_INTR_EN_1, "PGRAPH Interrupt Enable 1", NULL, NULL },
-    { NV3_PGRAPH_CONTEXT_SWITCH, "PGRAPH DMA Context Switch", NULL, NULL },
+    { NV3_PGRAPH_CTX_SWITCH, "PGRAPH DMA Context Switch", NULL, NULL },
     { NV3_PGRAPH_CONTEXT_CONTROL, "PGRAPH DMA Context Control", NULL, NULL },
     { NV3_PGRAPH_CONTEXT_USER, "PGRAPH DMA Context User", NULL, NULL },
     //{ NV3_PGRAPH_CONTEXT_CACHE(0), "PGRAPH DMA Context Cache", NULL, NULL },
@@ -156,7 +156,7 @@ uint32_t nv3_pgraph_read(uint32_t address)
                 // In the future, these will most likely have their own functions...
 
                 // Context Swithcing (THIS IS CONTROLLED BY PFIFO!)
-                case NV3_PGRAPH_CONTEXT_SWITCH:
+                case NV3_PGRAPH_CTX_SWITCH:
                     ret = nv3->pgraph.context_switch;
                     break;
                 case NV3_PGRAPH_CONTEXT_CONTROL:
@@ -359,7 +359,7 @@ void nv3_pgraph_write(uint32_t address, uint32_t value)
                 // In the future, these will most likely have their own functions...
 
                 // Context Swithcing (THIS IS CONTROLLED BY PFIFO!)
-                case NV3_PGRAPH_CONTEXT_SWITCH:
+                case NV3_PGRAPH_CTX_SWITCH:
                     nv3->pgraph.context_switch = value;
                     break;
                 case NV3_PGRAPH_CONTEXT_CONTROL:
@@ -625,7 +625,7 @@ void nv3_pgraph_submit(uint32_t param, uint16_t method, uint8_t channel, uint8_t
     switch (method)
     {
         default:
-            // Object Method orchestration
+            // Object Method arbitration
             nv3_pgraph_arbitrate_method(param, method, channel, subchannel, class_id, context);
             break;
     }

@@ -121,12 +121,12 @@ uint32_t nv3_s2sb_line_buffer[NV3_MAX_HORIZONTAL_SIZE*NV3_MAX_VERTICAL_SIZE] = {
 
 void nv3_render_blit_screen2screen_for_buffer(nv3_grobj_t grobj, uint32_t dst_buffer)
 {
-if (nv3->pgraph.blit.size.x < NV3_MAX_HORIZONTAL_SIZE
+    if (nv3->pgraph.blit.size.x < NV3_MAX_HORIZONTAL_SIZE
     && nv3->pgraph.blit.size.y < NV3_MAX_VERTICAL_SIZE)
         memset(&nv3_s2sb_line_buffer, 0x00, (sizeof(uint32_t) * nv3->pgraph.blit.size.y) * (sizeof(uint32_t) * nv3->pgraph.blit.size.x));
 
     /* First calculate our source and destination buffer */
-    uint32_t src_buffer = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03;
+    uint32_t src_buffer = (grobj.grobj_0 >> NV3_PGRAPH_CTX_SWITCH_SRC_BUFFER) & 0x03;
 
     nv3_coord_16_t in_position = nv3->pgraph.blit.point_in;
     nv3_coord_16_t out_position = nv3->pgraph.blit.point_out;

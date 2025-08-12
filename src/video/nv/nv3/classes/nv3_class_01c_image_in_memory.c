@@ -31,7 +31,7 @@
 void nv3_class_01c_method(uint32_t param, uint32_t method_id, nv3_ramin_context_t context, nv3_grobj_t grobj)
 {
     /* We need this for a lot of methods, so may as well store it here. */
-    uint32_t src_buffer_id = (grobj.grobj_0 >> NV3_PGRAPH_CONTEXT_SWITCH_SRC_BUFFER) & 0x03;
+    uint32_t src_buffer_id = (grobj.grobj_0 >> NV3_PGRAPH_CTX_SWITCH_SRC_BUFFER) & 0x03;
     
 
     switch (method_id)
