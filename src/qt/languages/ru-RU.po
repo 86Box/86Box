@@ -28,7 +28,7 @@ msgid "&Pause"
 msgstr "&Пауза"
 
 msgid "Pause"
-msgstr ""
+msgstr "Пауза"
 
 msgid "Re&sume"
 msgstr "В&озобновить"
@@ -196,7 +196,7 @@ msgid "&Settings..."
 msgstr "&Настройки машины..."
 
 msgid "Settings..."
-msgstr ""
+msgstr "Настройки машины..."
 
 msgid "&Update status bar icons"
 msgstr "&Обновление значков строки состояния"
@@ -364,7 +364,7 @@ msgid "Configure"
 msgstr "Настройка"
 
 msgid "CPU:"
-msgstr ""
+msgstr "ЦП:"
 
 msgid "CPU type:"
 msgstr "Тип ЦП:"
@@ -427,25 +427,25 @@ msgid "XGA Graphics"
 msgstr "Ускоритель XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
-msgstr ""
+msgstr "IBM PS/55 Display Adapter Graphics"
 
 msgid "Keyboard:"
 msgstr "Клавиатура:"
 
 msgid "Keyboard"
-msgstr ""
+msgstr "Клавиатура"
 
 msgid "Mouse:"
 msgstr "Мышь:"
 
 msgid "Mouse"
-msgstr ""
+msgstr "Мышь"
 
 msgid "Joystick:"
 msgstr "Джойстик:"
 
 msgid "Joystick"
-msgstr ""
+msgstr "Джойстик"
 
 msgid "Joystick 1..."
 msgstr "Джойстик 1..."
@@ -478,7 +478,7 @@ msgid "MIDI In Device:"
 msgstr "Устройство ввода MIDI:"
 
 msgid "MIDI Out:"
-msgstr ""
+msgstr "Вывод MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "Отдельный MPU-401"
@@ -640,10 +640,10 @@ msgid "MO drives:"
 msgstr "Магнитооптические дисководы:"
 
 msgid "MO:"
-msgstr ""
+msgstr "Дисководы MO:"
 
 msgid "Removable disks:"
-msgstr ""
+msgstr "Cъёмные диски:"
 
 msgid "Removable disk drives:"
 msgstr "Дисководы съёмных дисков:"
@@ -772,13 +772,13 @@ msgid "Ports (COM & LPT)"
 msgstr "Порты (COM и LPT)"
 
 msgid "Ports"
-msgstr ""
+msgstr "Порты"
 
 msgid "Serial ports"
-msgstr ""
+msgstr "Последовательные порты"
 
 msgid "Parallel ports"
-msgstr ""
+msgstr "Параллельные порты"
 
 msgid "Storage controllers"
 msgstr "Контроллеры дисков"
@@ -787,13 +787,13 @@ msgid "Hard disks"
 msgstr "Жёсткие диски"
 
 msgid "Disks:"
-msgstr ""
+msgstr "Диски:"
 
 msgid "Floppy:"
-msgstr ""
+msgstr "Дисководы:"
 
 msgid "Controllers:"
-msgstr ""
+msgstr "Контроллеры:"
 
 msgid "Floppy & CD-ROM drives"
 msgstr "Гибкие диски и CD-ROM"
@@ -805,7 +805,7 @@ msgid "Other peripherals"
 msgstr "Другая периферия"
 
 msgid "Other devices"
-msgstr ""
+msgstr "Другие устройства"
 
 msgid "Click to capture mouse"
 msgstr "Щёлкните мышью для захвата курсора"
@@ -952,13 +952,13 @@ msgid "Internal device"
 msgstr "Встроенное устройство"
 
 msgid "&File"
-msgstr ""
+msgstr "&Файл"
 
 msgid "&New machine..."
-msgstr ""
+msgstr "&Новая машина..."
 
 msgid "&Check for updates..."
-msgstr ""
+msgstr "&Проверить обновления..."
 
 msgid "Exit"
 msgstr "Выход"
@@ -1057,7 +1057,7 @@ msgid "Pause execution"
 msgstr "Приостановить выполнение"
 
 msgid "Ctrl+Alt+Del"
-msgstr ""
+msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "Нажать Ctrl+Alt+Del"
@@ -1069,265 +1069,292 @@ msgid "Hard reset"
 msgstr "Холодная перезагрузка"
 
 msgid "Force shutdown"
-msgstr ""
+msgstr "Принудительное завершение работы"
 
 msgid "Start"
-msgstr ""
+msgstr "Пуск"
 
 msgid "Not running"
-msgstr ""
+msgstr "Не работает"
 
 msgid "Running"
-msgstr ""
+msgstr "Работает"
 
 msgid "Paused"
-msgstr ""
+msgstr "Приостановлено"
 
 msgid "Paused (Waiting)"
-msgstr ""
+msgstr "Приостановлено (Ожидание)"
 
 msgid "Powered Off"
-msgstr ""
+msgstr "Выключено"
 
 msgid "waiting"
-msgstr ""
+msgstr "Ожидание"
 
 msgid "total"
-msgstr ""
+msgstr "Всего"
 
 msgid "System Directory:"
-msgstr ""
+msgstr "Системная папка:"
 
 msgid "Choose directory"
-msgstr ""
+msgstr "Выбрать папку"
 
 msgid "Choose configuration file"
-msgstr ""
+msgstr "Выбрать файл конфигурации"
 
 msgid "86Box configuration files (86box.cfg)"
-msgstr ""
+msgstr "Файлы конфигурации 86Box (86box.cfg)"
 
 msgid "Configuration read failed"
-msgstr ""
+msgstr "Сбой при чтении конфигурации"
 
 msgid "Unable to open the selected configuration file for reading: %1"
-msgstr ""
+msgstr "Невозможно открыть выбранный файл конфигурации для чтения: %1"
 
 msgid "Use regular expressions in search box"
-msgstr ""
+msgstr "Использовать регулярные выражения в поле поиска"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr ""
+msgstr "%1 машина(ы) в настоящее время активна(ы). Вы уверены, что всё равно хотите выйти из менеджера виртуальной машины?"
 
 msgid "Add new system wizard"
+msgstr "Добавить новый мастер системы"
+
+msgid "This is the into page."
 msgstr ""
+
+msgid "No help has been added yet, you're on your own."
+msgstr ""
+
+msgid "Did you click help twice?"
+msgstr "Вы дважды нажимали на помощь?"
+
+msgid "Add new system wizard help"
+msgstr "Добавить новую помощь мастера системы"
 
 msgid "Introduction"
-msgstr ""
+msgstr "Введение"
 
 msgid "This will help you add a new system to 86Box."
-msgstr ""
+msgstr "Это поможет вам добавить новую систему в 86Box."
 
 msgid "New configuration"
-msgstr ""
+msgstr "Новая конфигурация"
 
 msgid "Complete"
-msgstr ""
+msgstr "Завершено"
 
 msgid "The wizard will now launch the configuration for the new system."
-msgstr ""
+msgstr "Мастер теперь запустит конфигурацию для новой системы."
 
 msgid "Use existing configuration"
-msgstr ""
+msgstr "Использовать существующую конфигурацию"
 
 msgid "Type some notes here"
-msgstr ""
+msgstr "Введите здесь несколько заметок"
 
 msgid "Paste the contents of the existing configuration file into the box below."
-msgstr ""
+msgstr "Вставьте содержимое существующего файла конфигурации в поле ниже."
 
 msgid "Load configuration from file"
-msgstr ""
+msgstr "Загрузить конфигурацию из файла"
 
 msgid "System Name"
-msgstr ""
+msgstr "Название системы"
 
 msgid "System name"
-msgstr ""
+msgstr "Название системы"
 
 msgid "System name:"
-msgstr ""
+msgstr "Название системы:"
 
 msgid "System name cannot contain certain characters"
-msgstr ""
+msgstr "Название системы не может содержать определённые символы"
 
 msgid "System name already exists"
-msgstr ""
+msgstr "Название системы уже существует"
 
 msgid "Please enter a directory for the system"
-msgstr ""
+msgstr "Пожалуйста, введите папку для системы"
 
 msgid "Directory does not exist"
-msgstr ""
+msgstr "Папка не существует"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr ""
+msgstr "Новая папка для системы будет создана в выбранной папке выше"
 
 msgid "System location:"
-msgstr ""
+msgstr "Расположение системы:"
 
 msgid "System Location"
-msgstr ""
+msgstr "Расположение Системы"
 
 msgid "System name and location"
-msgstr ""
+msgstr "Название системы и расположение"
 
 msgid "Enter the name of the system and choose the location"
-msgstr ""
+msgstr "Введите название системы и выберите расположение"
 
 msgid "Enter the name of the system"
-msgstr ""
+msgstr "Введите название системы"
 
 msgid "Please enter a system name"
-msgstr ""
+msgstr "Пожалуйста, введите название системы"
 
 msgid "Display Name (optional)"
-msgstr ""
+msgstr "Отображаемое имя (опционально)"
 
 msgid "Display name:"
-msgstr ""
+msgstr "Отображаемое имя:"
 
 msgid "Set display name"
-msgstr ""
+msgstr "Установить отображаемое имя"
 
 msgid "Enter the new display name (blank to reset)"
-msgstr ""
+msgstr "Введите новое отображаемое имя (пусто, чтобы сбросить)"
 
 msgid "Change &display name..."
-msgstr ""
+msgstr "Изменить &отображаемое имя..."
 
 msgid "Context Menu"
-msgstr ""
+msgstr "Контекстное меню"
 
 msgid "&Open folder..."
-msgstr ""
+msgstr "&Открыть папку..."
 
 msgid "Open &printer tray..."
-msgstr ""
+msgstr "Открыть папку &принтера..."
 
 msgid "Set &icon..."
-msgstr ""
+msgstr "Установить &значок..."
 
 msgid "Select an icon"
-msgstr ""
+msgstr "Выберите значок"
 
 msgid "C&lone..."
-msgstr ""
+msgstr "К&лонировать..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
-msgstr ""
+msgstr "Виртуальная машина \"%1\" (%2) будет клонирована в:"
 
 msgid "Directory %1 already exists"
-msgstr ""
+msgstr "Папка %1 уже существует"
 
 msgid "You cannot use the following characters in the name: %1"
-msgstr ""
+msgstr "Вы не можете использовать следующие символы в имени: %1"
 
 msgid "Clone"
-msgstr ""
+msgstr "Клонировать"
 
 msgid "Failed to create directory for cloned VM"
-msgstr ""
+msgstr "Не удалось создать папку для клонированной виртуальной машины"
 
 msgid "Failed to clone VM."
-msgstr ""
+msgstr "Не удалось клонировать виртуальную машину."
 
 msgid "Directory in use"
-msgstr ""
+msgstr "Папка используется"
 
 msgid "The selected directory is already in use. Please select a different directory."
-msgstr ""
+msgstr "Выбранная папка уже используется. Пожалуйста, выберите другую папку."
 
 msgid "Create directory failed"
-msgstr ""
+msgstr "Не удалось создать папку"
 
 msgid "Unable to create the directory for the new system"
-msgstr ""
+msgstr "Невозможно создать папку для новой системы"
 
 msgid "Configuration write failed"
-msgstr ""
+msgstr "Не удалось записать файл конфигурации"
 
 msgid "Unable to open the configuration file at %1 for writing"
-msgstr ""
+msgstr "Невозможно открыть файл конфигурации в %1 для записи"
 
 msgid "Error adding system"
-msgstr ""
+msgstr "Ошибка добавления системы"
 
 msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr ""
+msgstr "Аномальное прекращение программы при создании новой системы: выходной код %1, состояние выхода %2.\n\nСистема не будет добавлена."
 
 msgid "Remove directory failed"
-msgstr ""
+msgstr "Сбой при удалении папки"
 
 msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
-msgstr ""
+msgstr "Некоторые файлы в папке машины невозможно удалить. Пожалуйста, удалите их вручную."
 
 msgid "Build"
-msgstr ""
+msgstr "Сборка"
 
 msgid "Version"
-msgstr ""
+msgstr "Версия"
 
-msgid "<b>An update to 86Box is available!</b>"
-msgstr ""
+msgid "An update to 86Box is available"
+msgstr "Доступно обновление для 86Box"
 
 msgid "Warning"
-msgstr ""
+msgstr "Внимание"
 
 msgid "&Kill"
-msgstr ""
+msgstr "&Завершить процесс"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr ""
+msgstr "Принудительное завершение процесса виртуальной машины может привести к потере данных. Делайте это только в том случае, если процесс 86Box завис.\n\nВы действительно хотите принудительно завершить процесс виртуальной машины \"%1\"?"
+
+msgid "&Wipe NVRAM"
+msgstr "&Стереть NVRAM"
+
+msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
+msgstr "Это удалит все файлы NVRAM (и связанные) виртуальной машины, расположенной в подпапке \"nvr\". Вам придётся снова реконфигурировать настройки BIOS (и, возможно, другие устройства внутри виртуальной машины), если применимо.\n\nВы уверены, что хотите стереть всё содержимое NVRAM виртуальной машины \"%1\"?"
+
+msgid "Success"
+msgstr "Успешно"
+
+msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
+msgstr "Успешно стёрто содержимое NVRAM виртуальной машины \"%1\""
+
+msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgstr "Произошла ошибка, пытаясь стереть содержимое NVRAM виртуальной машины \"%1\""
 
 msgid "&Delete"
-msgstr ""
+msgstr "&Удалить"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr ""
+msgstr "Вы действительно хотите удалить виртуальную машину \"%1\" и все её файлы? Это действие не может быть отменено!"
 
 msgid "Show &config file"
-msgstr ""
+msgstr "Показать файл &конфигурации"
 
 msgid "No screenshot"
-msgstr ""
+msgstr "Нет скриншота"
 
 msgid "Search"
-msgstr ""
+msgstr "Поиск"
 
 msgid "Searching for VMs..."
-msgstr ""
+msgstr "Поиск виртуальных машин..."
 
 msgid "Found %1"
-msgstr ""
+msgstr "Найдено %1"
 
 msgid "System"
-msgstr ""
+msgstr "Система"
 
 msgid "Storage"
-msgstr ""
+msgstr "Диски"
 
 msgid "Disk %1: "
-msgstr ""
+msgstr "Диск %1: "
 
 msgid "No disks"
-msgstr ""
+msgstr "Нет дисков"
 
 msgid "Audio"
-msgstr ""
+msgstr "Аудио"
 
 msgid "Audio:"
-msgstr ""
+msgstr "Аудио:"
 
 msgid "ACPI shutdown"
 msgstr "Сигнал завершения ACPI"
@@ -1672,7 +1699,7 @@ msgid "Null Driver"
 msgstr "Нулевой драйвер"
 
 msgid "NIC:"
-msgstr ""
+msgstr "Сетевой адаптер:"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
@@ -1744,7 +1771,7 @@ msgid "MiB"
 msgstr "МиБ"
 
 msgid "GiB"
-msgstr ""
+msgstr "ГиБ"
 
 msgid "Network Card #1"
 msgstr "Сетевая карта 1"
@@ -2554,7 +2581,7 @@ msgid "3Dfx Voodoo Graphics"
 msgstr "Ускоритель 3Dfx Voodoo"
 
 msgid "3Dfx Voodoo 2"
-msgstr ""
+msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 TMU)"
@@ -2832,74 +2859,53 @@ msgstr ""
 msgid "ISA ROM"
 msgstr ""
 
-msgid "&Wipe NVRAM"
-msgstr ""
-
-msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr ""
-
-msgid "Success"
-msgstr ""
-
-msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr ""
-
-msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr ""
-
 msgid "%1 VM Manager"
 msgstr ""
 
 msgid "%n disk(s)"
-msgstr ""
+msgstr "%n диск(ов)"
 
 msgid "Unknown Status"
-msgstr ""
+msgstr "Неизвестный статус"
 
 msgid "No Machines Found!"
-msgstr ""
+msgstr "Машины не найдены!"
 
 msgid "Check for updates on startup"
-msgstr ""
+msgstr "Проверять обновления при запуске"
 
 msgid "Unable to determine release information"
-msgstr ""
+msgstr "Невозможно определить информацию о релизе"
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
-msgstr ""
+msgstr "Произошла ошибка при проверке обновлений:\n\n%1\n\nПожалуйста, попробуйте еще раз позже."
 
 msgid "Update check complete"
-msgstr ""
+msgstr "Проверка обновлений завершена"
 
 msgid "You are running the latest %1 version of 86Box: %2"
-msgstr ""
-
-msgid "version"
-msgstr ""
-
-msgid "build"
-msgstr ""
+msgstr "Вы запускаете последнюю %1 версию 86Box: %2"
 
 msgid "You are currently running %1 <b>%2</b>. "
-msgstr ""
+msgstr "Вы сейчас запускаете %1 <b>%2</b>. "
 
 msgid "<b>%1 %2</b> is now available. %3Would you like to visit the download page?"
-msgstr ""
+msgstr "<b>%1 %2</b> теперь доступно. %3Хотели бы вы посетить страницу загрузки?"
 
 msgid "Visit download page"
-msgstr ""
+msgstr "Посетите страницу загрузки"
 
 msgid "Update check"
-msgstr ""
+msgstr "Обновить проверку"
 
 msgid "Checking for updates.."
-msgstr ""
+msgstr "Проверка обновлений.."
 
 msgid "86Box Update"
-msgstr ""
+msgstr "Обновление 86Box"
 
 msgid "Release notes:"
-msgstr ""
+msgstr "Примечания к релизу:"
 
 #~ msgid "HD Controller:"
 #~ msgstr "Контроллер HD:"
