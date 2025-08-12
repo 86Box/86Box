@@ -49,16 +49,21 @@ void nv3_class_00d_method(uint32_t param, uint32_t method_id, nv3_ramin_context_
             nv_log("Method Execution: M2MF Pitch Out = 0x%08x", param);
             break;  
         case NV3_M2MF_SCANLINE_LENGTH_IN_BYTES:
-            nv3->pgraph.m2mf.line_length_in = param;
+            nv3->pgraph.m2mf.scanline_length = param;
             nv_log("Method Execution: M2MF Scanline Length in Bytes = 0x%08x", param);
             break;  
         case NV3_M2MF_NUM_SCANLINES:
-            nv3->pgraph.m2mf.line_count = param;
+            nv3->pgraph.m2mf.num_scanlines = param;
             nv_log("Method Execution: M2MF Num Scanlines = 0x%08x", param);
             break; 
         case NV3_M2MF_FORMAT:
             nv3->pgraph.m2mf.format = param; 
             nv_log("Method Execution: M2MF Format = 0x%08x", param);
+
+            // Format Done - start m2mf
+            
+            nv3_perform_dma_m2mf(grobj);
+
             break;
         case NV3_M2MF_NOTIFY:
             /* This is technically its own thing, but I don't know if it's ever a problem with how we've designed it */

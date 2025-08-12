@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/dma.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/rom.h> // DEPENDENT!!!
@@ -31,40 +32,126 @@
 /* Nvidia DMA Engine */
 
 void nv3_perform_dma_m2mf(nv3_grobj_t grobj)
-{  
-        switch (method_id)
+{    
+    // notify object base=grobj_1 >> 12
+    uint32_t notify_obj_base = grobj.grobj_1 >> 12; 
+
+    uint32_t notify_obj_info  = nv3_ramin_read32(notify_obj_base, nv3);
+    uint32_t notify_obj_limit = nv3_ramin_read32(notify_obj_base + 0x04, nv3);
+    uint32_t notify_obj_page  = nv3_ramin_read32(notify_obj_base + 0x08, nv3);
+
+    /* extract some important information*/
+    uint32_t info_adjust = notify_obj_info & 0xFFF;
+    bool info_pt_present = (notify_obj_info >> NV3_NOTIFICATION_PT_PRESENT) & 0x01;
+    uint8_t info_dma_target = (notify_obj_info >> NV3_NOTIFICATION_TARGET) & 0x03;
+
+    /* paging information */
+    bool page_is_present = notify_obj_page & 0x01;
+    bool page_is_readwrite = (notify_obj_page >> NV3_NOTIFICATION_PAGE_ACCESS);
+    uint32_t frame_base = notify_obj_page & 0xFFFFF000;
+
+    // This code is temporary and will probably be moved somewhere else
+    // Print torns of debug info
+    #ifdef DEBUG
+    nv_log_verbose_only("******* WARNING: IF THIS OPERATION FUCKS UP, RANDOM MEMORY WILL BE CORRUPTED, YOUR ENTIRE SYSTEM MAY BE HOSED *******\n");
+
+    nv_log_verbose_only("M2MF DMA Information:\n");
+    nv_log_verbose_only("Adjust Value: 0x%08x\n", info_adjust);
+    (info_pt_present) ? nv_log_verbose_only("Pagetable Present: True\n") : nv_log_verbose_only("Pagetable Present: False\n");
+
+    switch (info_dma_target)
     {
-        /* mthdCreate in software(?)*/
-        case NV3_ROOT_HI_IM_OBJECT_MCOBJECTYFACE:
-            //nv_log("mthdCreate obj_name=0x%08x\n", param);
-            nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
+        case NV3_DMA_TARGET_NODE_VRAM: 
+            nv_log_verbose_only("Notification Target: VRAM\n");
             break;
-        // set up the current notification request/object
-        // and check for double notifiers.
-        case NV3_SET_NOTIFY:
-            if (nv3->pgraph.notify_pending)
+        case NV3_DMA_TARGET_NODE_CART: 
+            nv_log_verbose_only("VERY BAD WARNING: Notification detected with Notification Target: Cartridge. THIS SHOULD NEVER HAPPEN!!!!!\n");
+            break;
+        case NV3_DMA_TARGET_NODE_PCI: 
+            (nv3->nvbase.bus_generation == nv_bus_pci) ? nv_log_verbose_only("Notification Target: PCI Bus\n") : nv_log_verbose_only("Notification Target: PCI Bus (On AGP card?)\n");
+            break;
+        case NV3_DMA_TARGET_NODE_AGP: 
+            (nv3->nvbase.bus_generation == nv_bus_agp_1x
+                || nv3->nvbase.bus_generation == nv_bus_agp_2x) ? nv_log_verbose_only("Notification Target: AGP Bus\n") : nv_log_verbose_only("Notification Target: AGP Bus (On PCI card?)\n");
+            break;
+    }
+
+    nv_log_verbose_only("Limit: 0x%08x\n", notify_obj_limit);
+    (page_is_present) ? nv_log_verbose_only("Page is present\n") : nv_log_verbose_only("Page is not present\n"); 
+    (page_is_readwrite) ? nv_log_verbose_only("Page is read-write\n") : nv_log_verbose_only("Page is read-only\n");
+    nv_log_verbose_only("Pageframe Address: 0x%08x\n", frame_base);
+    #endif
+
+    // set up the dma transfer. we need to translate to a physical address.
+    
+    uint32_t final_address = 0;
+
+    /* M2MF DMA only uses HW type */
+    
+    final_address = frame_base + info_adjust;
+
+    /* send the notification off */
+    nv_log("About to send M2MF DMA to 0x%08x (Check target)\n", final_address);
+
+    uint32_t offset_in = (nv3->pgraph.m2mf.offset_in);
+    uint32_t offset_out = (nv3->pgraph.m2mf.offset_out);
+
+    uint32_t pitch_in = nv3->pgraph.m2mf.pitch_in;
+    uint32_t pitch_out = nv3->pgraph.m2mf.pitch_out; 
+
+    // pitch out surely can't be 0
+    if (pitch_out == 0)
+        pitch_out = pitch_in;
+
+    uint32_t bytes_per_scanline = nv3->pgraph.m2mf.scanline_length;
+
+    uint8_t increment_in = (nv3->pgraph.m2mf.format) & 0x07;
+    uint8_t increment_out = (nv3->pgraph.m2mf.format >> NV3_M2MF_FORMAT_INPUT) & 0x07;
+ 
+    for (uint32_t scanline = 0; scanline < nv3->pgraph.m2mf.num_scanlines; scanline++)
+    {
+        for (uint32_t pixel = offset_in; pixel < (offset_in + bytes_per_scanline); pixel += increment_in)
+        {
+            nv3->nvbase.svga.vram[offset_out] = nv3->nvbase.svga.vram[offset_in];
+            offset_out += increment_out;
+        }
+
+        offset_in += pitch_in;
+        offset_out += pitch_out;
+    }
+
+    /*
+    switch (info_dma_target)
+    {
+        // for M2MF only NVM target node is used.
+
+        case NV3_DMA_TARGET_NODE_VRAM:
+           
+
+            uint32_t* vram_32 = (uint32_t*)nv3->nvbase.svga.vram;
+
+            break;
+        case NV3_DMA_TARGET_NODE_PCI:
+        case NV3_DMA_TARGET_NODE_AGP:
+            // Idk how to implement increments of more than 1 but only 1 increments seem to be used with these.
+            uint32_t size_in = nv3->pgraph.m2mf.num_scanlines * nv3->pgraph.m2mf.pitch_in;
+            uint32_t size_out = nv3->pgraph.m2mf.num_scanlines * nv3->pgraph.m2mf.pitch_out;
+
+            uint8_t* page_in = calloc(1, size_in);
+
+            for (uint32_t scanline = 0; scanline < nv3->pgraph.m2mf.num_scanlines; scanline++)
             {
-                nv_log("Executed method NV3_SET_NOTIFY with nv3->pgraph.notify_pending already set. param=0x%08x, method=0x%04x, grobj=0x%08x 0x%08x 0x%08x 0x%08x\n");
-                nv_log("IF THIS IS A DEBUG BUILD, YOU SHOULD SEE A CONTEXT BELOW");
-                nv3_debug_ramin_print_context_info(param, context);
-                nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_DOUBLE_NOTIFY);
                 
-                // disable
-                nv3->pgraph.notify_pending = false;
-                nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_DOUBLE_NOTIFY);
-                /* may need to disable fifo in this state */
-                return; 
             }
 
-            // set a notify as pending.
-            nv3->pgraph.notifier = param; 
-            nv3->pgraph.notify_pending = true; 
+            dma_bm_read(offset_in, page_in, size_in, size_in);
+            dma_bm_write(offset_out, page_in, size_out, size_out);
+
             break;
-        default:
-            nv_log("Shared Generic Methods: Invalid or Unimplemented method 0x%04x", method_id);
-            nv3_pgraph_interrupt_invalid(NV3_PGRAPH_INTR_1_SOFTWARE_METHOD_PENDING);
-            return;
     }
+*/
+    // we're done
+    nv3->pgraph.notify_pending = false;
 }
 
 
@@ -121,16 +208,16 @@ void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t
 
     switch (info_notification_target)
     {
-        case NV3_NOTIFICATION_TARGET_NVM: 
+        case NV3_DMA_TARGET_NODE_VRAM: 
             nv_log_verbose_only("Notification Target: VRAM\n");
             break;
-        case NV3_NOTIFICATION_TARGET_CART: 
+        case NV3_DMA_TARGET_NODE_CART: 
             nv_log_verbose_only("VERY BAD WARNING: Notification detected with Notification Target: Cartridge. THIS SHOULD NEVER HAPPEN!!!!!\n");
             break;
-        case NV3_NOTIFICATION_TARGET_PCI: 
+        case NV3_DMA_TARGET_NODE_PCI: 
             (nv3->nvbase.bus_generation == nv_bus_pci) ? nv_log_verbose_only("Notification Target: PCI Bus\n") : nv_log_verbose_only("Notification Target: PCI Bus (On AGP card?)\n");
             break;
-        case NV3_NOTIFICATION_TARGET_AGP: 
+        case NV3_DMA_TARGET_NODE_AGP: 
             (nv3->nvbase.bus_generation == nv_bus_agp_1x
                 || nv3->nvbase.bus_generation == nv_bus_agp_2x) ? nv_log_verbose_only("Notification Target: AGP Bus\n") : nv_log_verbose_only("Notification Target: AGP Bus (On PCI card?)\n");
             break;
@@ -166,7 +253,7 @@ void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t
     
     switch (info_notification_target)
     {
-        case NV3_NOTIFICATION_TARGET_NVM:
+        case NV3_DMA_TARGET_NODE_VRAM:
 
             uint32_t* vram_32 = (uint32_t*)nv3->nvbase.svga.vram;
 
@@ -176,8 +263,8 @@ void nv3_notify_if_needed(uint32_t name, uint32_t method_id, nv3_ramin_context_t
             vram_32[final_address + 2] = notify.info32;
             vram_32[final_address + 3] = (notify.info16 | notify.status);
             break;
-        case NV3_NOTIFICATION_TARGET_PCI:
-        case NV3_NOTIFICATION_TARGET_AGP:
+        case NV3_DMA_TARGET_NODE_PCI:
+        case NV3_DMA_TARGET_NODE_AGP:
             dma_bm_write(final_address, (uint8_t*)&notify, sizeof(nv3_notification_t), 4);
             break;
     }

@@ -803,7 +803,7 @@ uint8_t nv3_render_translate_nvrop(nv3_grobj_t grobj, uint32_t rop)
     uint32_t patch_config_rop = (grobj.grobj_0 >> NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG) & 0x1F;
 
     /*    || patch_config_rop == NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_RSVD0*/
-    
+
     // TODO: Blending
 	if (patch_config_rop == NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_SRC_BYPASS)    // 0x00 is used for "nothing here" it seems.
 		return VIDEO_ROP_SRC_COPY;
@@ -864,28 +864,6 @@ uint8_t nv3_render_translate_nvrop(nv3_grobj_t grobj, uint32_t rop)
 				res |= 1 << i;
 		}
 	}
+    
 	return res;
-
-    /*
-    uint32_t patch_config = (grobj.grobj_0 >> NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG) & 0x1F;
-
-    // Wtf do these even do?
-    switch (patch_config)
-    {
-        // don't do anything 
-        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_SRC_BYPASS:
-        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_RSVD0:
-        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_RSVD1:
-        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_RSVD2:
-        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_BLEND_RSVD0:
-        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_BLEND_RSVD1:
-        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_BLEND_RSVD2:
-        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_BLEND_RSVD3:
-        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_BLEND_RSVD4:
-            return src;
-        case NV3_PGRAPH_CTX_SWITCH_PATCH_CONFIG_PAT_SRC_DST:    // S2SB
-            break;
-
-    }
-            */
 }

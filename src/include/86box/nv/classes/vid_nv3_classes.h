@@ -124,12 +124,8 @@ typedef enum nv3_pgraph_class_e
 #define NV3_M2MF_FORMAT                                 0x0324
 
 // M2MF formats (IN and OUT ORed together)
-#define NV3_M2MF_FORMAT_INPUT_INC_1                     0x1
-#define NV3_M2MF_FORMAT_INPUT_INC_2                     0x2
-#define NV3_M2MF_FORMAT_INPUT_INC_4                     0x4
-#define NV3_M2MF_FORMAT_OUTPUT_INC_1                    0x100
-#define NV3_M2MF_FORMAT_OUTPUT_INC_2                    0x200
-#define NV3_M2MF_FORMAT_OUTPUT_INC_4                    0x400
+#define NV3_M2MF_FORMAT_INPUT                           0
+#define NV3_M2MF_FORMAT_OUTPUT                          8
 
 #define NV3_M2MF_NOTIFY                                 0x0328
 
@@ -596,8 +592,8 @@ typedef struct nv3_object_class_00D
     uint32_t offset_out;
     uint32_t pitch_in;
     uint32_t pitch_out;
-    uint32_t line_length_in;                        // Stride?
-    uint32_t line_count;
+    uint32_t scanline_length;                        // Stride?
+    uint32_t num_scanlines;
     uint8_t format;                                 // input increment 1 2 or 4, output increment 1 2 or 4 (represented by << 8)
     uint32_t buffer_notify;                         // Notify the Buffedr
 } nv3_memory_to_memory_format_t;

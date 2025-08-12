@@ -1054,10 +1054,10 @@ typedef struct nv3_pfb_s
 #define NV3_NOTIFICATION_INFO_ADJUST            0       // Wut
 #define NV3_NOTIFICATION_PT_PRESENT             16      // Determines if the pagetable exists.
 #define NV3_NOTIFICATION_TARGET                 24      // Determines where this notification goes
-#define NV3_NOTIFICATION_TARGET_NVM             0       // VRAM target for DMA
-#define NV3_NOTIFICATION_TARGET_CART            1       // "Cartridge" target for dma, only mentioned in a few places, !!! NV2 LEFTOVER !!!
-#define NV3_NOTIFICATION_TARGET_PCI             2       // Send the data to the host system over PCI
-#define NV3_NOTIFICATION_TARGET_AGP             3       // Send the data to the host system over AGP
+#define NV3_DMA_TARGET_NODE_VRAM             0       // VRAM target for DMA
+#define NV3_DMA_TARGET_NODE_CART            1       // "Cartridge" target for dma, only mentioned in a few places, !!! NV2 LEFTOVER !!!
+#define NV3_DMA_TARGET_NODE_PCI             2       // Send the data to the host system over PCI
+#define NV3_DMA_TARGET_NODE_AGP             3       // Send the data to the host system over AGP
 
 #define NV3_NOTIFICATION_PAGE_IS_PRESENT        0       // Determines if the page really exists
 #define NV3_NOTIFICATION_PAGE_ACCESS            1       // Determines the page access type
