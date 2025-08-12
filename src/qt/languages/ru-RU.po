@@ -1120,7 +1120,7 @@ msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM 
 msgstr "%1 машина(ы) в настоящее время активна(ы). Вы уверены, что всё равно хотите выйти из менеджера виртуальной машины?"
 
 msgid "Add new system wizard"
-msgstr "Добавить новый мастер системы"
+msgstr "Мастер добавления новой системы"
 
 msgid "This is the into page."
 msgstr ""
