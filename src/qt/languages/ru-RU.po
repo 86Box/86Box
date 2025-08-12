@@ -1122,18 +1122,6 @@ msgstr "%1 машина(ы) в настоящее время активна(ы).
 msgid "Add new system wizard"
 msgstr "Мастер добавления новой системы"
 
-msgid "This is the into page."
-msgstr ""
-
-msgid "No help has been added yet, you're on your own."
-msgstr ""
-
-msgid "Did you click help twice?"
-msgstr "Вы дважды нажимали на помощь?"
-
-msgid "Add new system wizard help"
-msgstr "Добавить новую помощь мастера системы"
-
 msgid "Introduction"
 msgstr "Введение"
 
