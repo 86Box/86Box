@@ -2884,7 +2884,7 @@ msgid "Update check complete"
 msgstr "Проверка обновлений завершена"
 
 msgid "You are running the latest %1 version of 86Box: %2"
-msgstr "Вы запускаете последнюю %1 версию 86Box: %2"
+msgstr "Вы используете последнюю %1 версию 86Box: %2"
 
 msgid "You are currently running %1 <b>%2</b>. "
 msgstr "Вы сейчас запускаете %1 <b>%2</b>. "
