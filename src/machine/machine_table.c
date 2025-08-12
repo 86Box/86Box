@@ -73,6 +73,7 @@ extern const device_t dells333sl_device;
 extern const device_t hot433a_device; 
 extern const device_t pbl300sx_device; 
 extern const device_t v12p_device; 
+extern const device_t po6000_device; 
 extern const device_t f82c710_pc5086_device; 
  
 const machine_filter_t machine_types[] = { 
@@ -15602,7 +15603,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &po6000_device,
 		.kbd_device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
