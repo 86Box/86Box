@@ -2896,7 +2896,7 @@ msgid "Visit download page"
 msgstr "Посетить страницу загрузки"
 
 msgid "Update check"
-msgstr "Обновить проверку"
+msgstr "Проверка обновлений"
 
 msgid "Checking for updates.."
 msgstr "Проверка обновлений.."
