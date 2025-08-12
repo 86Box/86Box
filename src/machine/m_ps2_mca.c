@@ -1601,7 +1601,9 @@ machine_ps2_common_init(const machine_t *model)
     nmi_mask = 0x80;
 
     ps2.uart = device_add_inst(&ns16550_device, 1);
+
     ps2.lpt  = device_add_inst(&lpt_port_device, 1);
+    lpt_set_ext(ps2.lpt, 1);
 
     ps2.has_e0000_hole = 0;
 }

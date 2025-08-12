@@ -130,6 +130,8 @@ typedef struct monitor_t {
     int                      mon_force_resize;
     int                      mon_fullchange;
     int                      mon_changeframecount;
+    int                      mon_renderedframes;
+    atomic_int               mon_actualrenderedframes;
     atomic_int               mon_screenshots;
     uint32_t                *mon_pal_lookup;
     int                     *mon_cga_palette;

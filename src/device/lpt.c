@@ -23,6 +23,7 @@
 #include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/network.h>
+#include <86box/plat_fallthrough.h>
 
 static int   next_inst               = 0;
 int          lpt_3bc_used            = 0;
@@ -321,7 +322,7 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
     lpt_t *dev  = (lpt_t *) priv;
     uint16_t    mask = 0x0407;
 
-    lpt_log("[W] %04X = %02X\n", port, val);
+    lpt_log("[W] %04X = %02X (ECR = %02X)\n", port, val, dev->ecr);
 
     /* This is needed so the parallel port at 3BC works. */
     if (dev->addr & 0x0004)
@@ -352,7 +353,7 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
 
         case 0x0002:
             if (dev->dt && dev->dt->write_ctrl && dev->dt->priv) {
-                if (dev->ecp)
+                if (dev->ecp && ((dev->ecr & 0xe0) >= 0x20))
                     dev->dt->write_ctrl((val & 0xfc) | dev->autofeed | dev->strobe, dev->dt->priv);
                 else
                     dev->dt->write_ctrl(val, dev->dt->priv);
@@ -378,7 +379,36 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
             }
             break;
 
-        case 0x0400: case 0x0404:
+        case 0x0404:
+            if (dev->cfg_regs_enabled) {
+                switch (dev->eir) {
+                    case 0x00:
+                        dev->ext_regs[0x00] = val & 0x31;
+                        break;
+                    case 0x02:
+                        dev->ext_regs[0x02] = val & 0xd0;
+                        if (dev->ext_regs[0x02] & 0x80)
+                            dev->ecr        = dev->ret_ecr;
+                        else  switch (dev->ret_ecr & 0xe0) {
+                            case 0x00: case 0x20:
+                            case 0x80:
+                                dev->ecr = (dev->ret_ecr & 0x1f) | 0x60;
+                                break;
+                        }
+                        break;
+                    case 0x04:
+                        dev->ext_regs[0x00] = val & 0x37;
+                        break;
+                    case 0x05:
+                        dev->ext_regs[0x00] = val;
+                        dev->cnfga_readout  = (val & 0x80) ? 0x1c : 0x14;
+                        dev->cnfgb_readout  = (dev->cnfgb_readout & 0xc0) | (val & 0x3b);
+                        break;
+                }
+                break;
+            } else
+                fallthrough;
+        case 0x0400:
             switch (dev->ecr >> 5) {
                 default:
                     break;
@@ -424,8 +454,21 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
 
                 dev->state = LPT_STATE_IDLE;
             }
-            dev->ecr        = val;
+            if (dev->ext_regs[0x02] & 0x80)
+                dev->ecr        = val;
+            else  switch (val & 0xe0) {
+                case 0x00: case 0x20:
+                case 0x80:
+                    dev->ecr = (val & 0x1f) | 0x60;
+                    break;
+            }
+            dev->ret_ecr    = val;
             lpt_ecp_update_irq(dev);
+            break;
+
+        case 0x0403: case 0x0407:
+            if (dev->cfg_regs_enabled)
+                dev->eir = val & 0x07;
             break;
 
         default:
@@ -520,6 +563,12 @@ lpt_read_status(lpt_t *dev)
 }
 
 uint8_t
+lpt_read_ecp_mode(lpt_t *dev)
+{
+    return ((dev->ret_ecr & 0xe0) == 0x60) ? 0x60 : 0x00;
+}
+
+uint8_t
 lpt_read(const uint16_t port, void *priv)
 {
     lpt_t    *dev  = (lpt_t *) priv;
@@ -567,7 +616,21 @@ lpt_read(const uint16_t port, void *priv)
             }
             break;
 
-        case 0x0400: case 0x0404:
+        case 0x0404:
+            if (dev->cfg_regs_enabled) {
+                switch (dev->eir) {
+                    default:
+                        ret = 0xff;
+                        break;
+                    case 0x00: case 0x02:
+                    case 0x04: case 0x05:
+                        ret = dev->ext_regs[dev->eir];
+                        break;
+                }
+                break;
+            } else
+                fallthrough;
+        case 0x0400:
             switch (dev->ecr >> 5) {
                 default:
                     break;
@@ -587,21 +650,28 @@ lpt_read(const uint16_t port, void *priv)
             }
             break;
 
-        case 0x0401: case 0x0405:
+        case 0x0405:
+            if (dev->cfg_regs_enabled) {
+                ret = 0x00;
+                break;
+            } else
+                fallthrough;
+        case 0x0401:
             if ((dev->ecr & 0xe0) == 0xe0) {
                 /* CNFGB */
-                ret = 0x08;
-                ret |= (dev->irq_state ? 0x40 : 0x00);
-                ret |= ((dev->irq == 0x05) ?  0x30 : 0x00);
-                if ((dev->dma >= 1) && (dev->dma <= 3))
-                    ret |= dev->dma;
+                ret = dev->cnfgb_readout | (dev->irq_state ? 0x40 : 0x00);
             }
             break;
 
         case 0x0402: case 0x0406:
-            ret = dev->ecr | dev->fifo_stat | (dev->dma_stat & 0x04);
+            ret = dev->ret_ecr | dev->fifo_stat | (dev->dma_stat & 0x04);
             ret |= (fifo_get_full(dev->fifo) ? 0x02 : 0x00);
             ret |= (fifo_get_empty(dev->fifo) ? 0x01 : 0x00);
+            break;
+
+        case 0x0403: case 0x0407:
+            if (dev->cfg_regs_enabled)
+                ret = dev->eir;
             break;
 
         default:
@@ -689,10 +759,24 @@ lpt_set_fifo_threshold(lpt_t *dev, const int threshold)
 }
 
 void
+lpt_set_cfg_regs_enabled(lpt_t *dev, const uint8_t cfg_regs_enabled)
+{
+    if (lpt_ports[dev->id].enabled)
+        dev->cfg_regs_enabled = cfg_regs_enabled;
+}
+
+void
 lpt_set_cnfga_readout(lpt_t *dev, const uint8_t cnfga_readout)
 {
     if (lpt_ports[dev->id].enabled)
         dev->cnfga_readout = cnfga_readout;
+}
+
+void
+lpt_set_cnfgb_readout(lpt_t *dev, const uint8_t cnfgb_readout)
+{
+    if (lpt_ports[dev->id].enabled)
+        dev->cnfgb_readout = (dev->cnfgb_readout & 0xc0) | (cnfgb_readout & 0x3f);
 }
 
 void
@@ -834,14 +918,21 @@ lpt_reset(void *priv)
             }
         }
 
-        dev->enable_irq = 0x00;
-        dev->ext        = !!(machine_has_bus(machine, MACHINE_BUS_MCA));
-        dev->epp        = 0;
-        dev->ecp        = 0;
-        dev->ecr        = 0x15;
-        dev->dat        = 0xff;
-        dev->fifo_stat  = 0x00;
-        dev->dma_stat   = 0x00;
+        dev->enable_irq       = 0x00;
+        dev->cfg_regs_enabled = 0;
+        dev->ext              = !!(machine_has_bus(machine, MACHINE_BUS_MCA));
+        dev->epp              = 0;
+        dev->ecp              = 0;
+        dev->ecr              = 0x15;
+        dev->ret_ecr          = 0x15;
+        dev->dat              = 0xff;
+        dev->fifo_stat        = 0x00;
+        dev->dma_stat         = 0x00;
+
+        memset(dev->ext_regs, 0x00, 8);
+        dev->ext_regs[0x02]   = 0x80;
+        dev->ext_regs[0x04]   = 0x07;
+        dev->cnfga_readout   &= 0xf7;
     }
 }
 
@@ -869,15 +960,21 @@ lpt_init(const device_t *info)
 
         lpt_port_zero(dev);
 
-        dev->addr          = 0xffff;
-        dev->irq           = 0xff;
-        dev->dma           = 0xff;
-        dev->enable_irq    = 0x00;
-        dev->ext           = 0;
-        dev->epp           = 0;
-        dev->ecp           = 0;
-        dev->ecr           = 0x15;
-        dev->cnfga_readout = 0x14;
+        dev->addr             = 0xffff;
+        dev->irq              = 0xff;
+        dev->dma              = 0xff;
+        dev->enable_irq       = 0x00;
+        dev->cfg_regs_enabled = 0;
+        dev->ext              = 0;
+        dev->epp              = 0;
+        dev->ecp              = 0;
+        dev->ecr              = 0x15;
+        dev->ret_ecr          = 0x15;
+        dev->cnfga_readout    = 0x10;
+        dev->cnfgb_readout    = 0x00;
+
+        memset(dev->ext_regs, 0x00, 8);
+        dev->ext_regs[0x02]   = 0x80;
 
         if (lpt_ports[dev->id].enabled) {
             if (info->local & 0xfff00000) {

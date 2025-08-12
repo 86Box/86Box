@@ -287,6 +287,22 @@ vid_table_log(const char *fmt, ...)
 #    define vid_table_log(fmt, ...)
 #endif
 
+static pc_timer_t framerate_timer;
+
+void
+video_update_framerates(void* priv)
+{
+    (void)priv;
+    int i = 0;
+
+    for (i = 0; i < GFXCARD_MAX; i++) {
+        monitors[i].mon_actualrenderedframes = monitors[i].mon_renderedframes;
+        monitors[i].mon_renderedframes = 0;
+    }
+
+    timer_on_auto(&framerate_timer, 1000 * 1000);
+}
+
 void
 video_reset_close(void)
 {
@@ -362,6 +378,7 @@ video_reset(int card)
         device_add(video_cards[card].device);
     }
 
+    timer_add(&framerate_timer, video_update_framerates, NULL, 1);
     was_reset = 1;
 }
 

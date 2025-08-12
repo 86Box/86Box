@@ -42,7 +42,9 @@ add_library(mch OBJECT
     m_ps2_isa.c
     m_ps2_mca.c
     m_at_compaq.c
-    m_at_286_386sx.c
+    m_at_286.c
+    m_at_386sx.c
+    m_at_m6117.c
     m_at_386dx_486.c
     m_at_socket4.c
     m_at_socket5.c

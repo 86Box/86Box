@@ -350,7 +350,7 @@ MediaHistoryManager::removeMissingImages(device_index_list_t &device_history)
         char temp[MAX_IMAGE_PATH_LEN * 2] = { 0 };
 
         if (checked_path.left(8) == "ioctl://") {
-            strncpy(temp, checked_path.toUtf8().data(), sizeof(temp));
+            strncpy(temp, checked_path.toUtf8().data(), sizeof(temp) - 10);
             temp[sizeof(temp) - 1] = '\0';
         } else {
             QString path_only;
