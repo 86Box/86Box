@@ -315,7 +315,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
             ret = (NV_PCI_DEVICE_NV3 & 0xFF);
             break;
         
-        case NV3_PCI_CFG_DEVICE_ID+1:
+        case NV3_PCI_CFG_DEVICE_ID + 1:
             ret = (NV_PCI_DEVICE_NV3 >> 8);
             break;
         
