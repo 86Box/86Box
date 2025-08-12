@@ -1290,8 +1290,8 @@ msgstr "Сборка"
 msgid "Version"
 msgstr "Версия"
 
-msgid "An update to 86Box is available"
-msgstr "Доступно обновление для 86Box"
+msgid "<b>An update to 86Box is available!</b>"
+msgstr "<b>Доступно обновление для 86Box!</b>"
 
 msgid "Warning"
 msgstr "Внимание"
