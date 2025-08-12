@@ -168,7 +168,7 @@ static const device_config_t po6000_config[] = {
 
 const device_t po6000_device = {
     .name          = "FIC PO-6000",
-    .internal_name = "po6000",
+    .internal_name = "po6000_device",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
