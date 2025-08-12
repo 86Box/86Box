@@ -416,7 +416,7 @@ w837x7_reset(w837x7_t *dev)
 
     w837x7_lpt_handler(dev);
     w837x7_serial_handler(dev, 0);
-    w837x7_serial_handler(dev, 0);
+    w837x7_serial_handler(dev, 1);
     w837x7_gameport_handler(dev);
     w837x7_ide_handler(dev);
 

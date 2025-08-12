@@ -1926,7 +1926,7 @@ machine_at_486vipio2_init(const machine_t *model)
     device_add(&via_vt82c505_device);
     device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89));
     device_add(&kbc_ps2_ami_pci_device);
-    device_add(&sst_flash_29ee010_device);
+    device_add(&winbond_flash_w29c010_device);
 
     return ret;
 }
