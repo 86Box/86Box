@@ -322,7 +322,7 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
     lpt_t *dev  = (lpt_t *) priv;
     uint16_t    mask = 0x0407;
 
-    lpt_log("[W] %04X = %02X\n", port, val);
+    lpt_log("[W] %04X = %02X (ECR = %02X)\n", port, val, dev->ecr);
 
     /* This is needed so the parallel port at 3BC works. */
     if (dev->addr & 0x0004)
@@ -353,7 +353,7 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
 
         case 0x0002:
             if (dev->dt && dev->dt->write_ctrl && dev->dt->priv) {
-                if (dev->ecp)
+                if (dev->ecp && ((dev->ecr & 0xe0) >= 0x20))
                     dev->dt->write_ctrl((val & 0xfc) | dev->autofeed | dev->strobe, dev->dt->priv);
                 else
                     dev->dt->write_ctrl(val, dev->dt->priv);
@@ -401,7 +401,8 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
                         break;
                     case 0x05:
                         dev->ext_regs[0x00] = val;
-                        dev->cnfga_readout = (val & 0x80) ? 0x1c : 0x14;
+                        dev->cnfga_readout  = (val & 0x80) ? 0x1c : 0x14;
+                        dev->cnfgb_readout  = (dev->cnfgb_readout & 0xc0) | (val & 0x3b);
                         break;
                 }
                 break;
@@ -658,11 +659,7 @@ lpt_read(const uint16_t port, void *priv)
         case 0x0401:
             if ((dev->ecr & 0xe0) == 0xe0) {
                 /* CNFGB */
-                ret = 0x08;
-                ret |= (dev->irq_state ? 0x40 : 0x00);
-                ret |= ((dev->irq == 0x05) ?  0x30 : 0x00);
-                if ((dev->dma >= 1) && (dev->dma <= 3))
-                    ret |= dev->dma;
+                ret = dev->cnfgb_readout | (dev->irq_state ? 0x40 : 0x00);
             }
             break;
 
@@ -773,6 +770,13 @@ lpt_set_cnfga_readout(lpt_t *dev, const uint8_t cnfga_readout)
 {
     if (lpt_ports[dev->id].enabled)
         dev->cnfga_readout = cnfga_readout;
+}
+
+void
+lpt_set_cnfgb_readout(lpt_t *dev, const uint8_t cnfgb_readout)
+{
+    if (lpt_ports[dev->id].enabled)
+        dev->cnfgb_readout = (dev->cnfgb_readout & 0xc0) | (cnfgb_readout & 0x3f);
 }
 
 void
@@ -967,6 +971,7 @@ lpt_init(const device_t *info)
         dev->ecr              = 0x15;
         dev->ret_ecr          = 0x15;
         dev->cnfga_readout    = 0x10;
+        dev->cnfgb_readout    = 0x00;
 
         memset(dev->ext_regs, 0x00, 8);
         dev->ext_regs[0x02]   = 0x80;

@@ -85,6 +85,7 @@ lpt_handler(pc873xx_t *dev)
             break;
     }
 
+    lpt_set_cnfgb_readout(dev->lpt, (lpt_irq == 5) ? 0x38 : 0x08);
     lpt_set_ext(dev->lpt, !!(dev->regs[0x02] & 0x80));
 
     if (dev->is_332) {
@@ -363,6 +364,7 @@ pc873xx_init(const device_t *info)
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
     dev->lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_set_cnfgb_readout(dev->lpt, 0x08);
 
     dev->is_332  = !!(info->local & PC87332);
     dev->max_reg = dev->is_332 ? 0x08 : 0x02;

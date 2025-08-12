@@ -293,7 +293,9 @@ i82091aa_init(const device_t *info)
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
     dev->lpt     = device_add_inst(&lpt_port_device, 1);
+
     lpt_set_cnfga_readout(dev->lpt, 0x90);
+    lpt_set_cnfgb_readout(dev->lpt, 0x00);
 
     dev->has_ide = (info->local >> 9) & 0x03;
 

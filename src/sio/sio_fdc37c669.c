@@ -33,6 +33,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include "cpu.h"
 
 typedef struct fdc37c669_t {
     uint8_t   id;
@@ -410,6 +411,7 @@ fdc37c669_init(const device_t *info)
     dev->uart[1] = device_add_inst(&ns16550_device, (next_id << 1) + 2);
 
     dev->lpt     = device_add_inst(&lpt_port_device, next_id + 1);
+    lpt_set_cnfgb_readout(dev->lpt, 0x00);
 
     io_sethandler((info->local & FDC37C6XX_370) ? FDC_SECONDARY_ADDR : (next_id ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR),
                   0x0002, fdc37c669_read, NULL, NULL, fdc37c669_write, NULL, NULL, dev);

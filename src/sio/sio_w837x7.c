@@ -147,16 +147,16 @@ w837x7_lpt_handler(w837x7_t *dev)
     uint8_t  lpt_mode     = (dev->regs[0x09] & 0x80) | (dev->regs[0x00] & 0x0c);
 
     switch (ptras) {
-        case 0x01:
+        case 0x00:
             lpt_port     = LPT_MDA_ADDR;
             lpt_irq      = LPT_MDA_IRQ;
             break;
-        case 0x02:
-            lpt_port     = LPT1_ADDR;
+        case 0x01:
+            lpt_port     = LPT2_ADDR;
             lpt_irq      = LPT1_IRQ /*LPT2_IRQ*/;
             break;
-        case 0x03:
-            lpt_port     = LPT2_ADDR;
+        case 0x02:
+            lpt_port     = LPT1_ADDR;
             lpt_irq      = LPT1_IRQ /*LPT2_IRQ*/;
             break;
 
@@ -449,6 +449,7 @@ w837x7_init(const device_t *info)
     dev->uart[1]   = device_add_inst(&ns16550_device, 2);
 
     dev->lpt       = device_add_inst(&lpt_port_device, 1);
+    lpt_set_cnfgb_readout(dev->lpt, 0x3f);
 
     dev->gameport  = gameport_add(&gameport_sio_1io_device);
 

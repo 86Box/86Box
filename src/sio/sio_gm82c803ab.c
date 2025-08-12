@@ -348,6 +348,7 @@ gm82c803ab_init(const device_t *info)
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
     dev->lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_set_cnfgb_readout(dev->lpt, 0x00);
 
     io_sethandler(0x0398, 0x0002,
                   gm82c803ab_read, NULL, NULL, gm82c803ab_write, NULL, NULL, dev);
