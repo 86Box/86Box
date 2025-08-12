@@ -112,7 +112,7 @@ machine_at_po6000_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/po6000/405F05C.ROM",
+    ret = bios_load_linear("roms/machines/po6000/405F03C.ROM",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
