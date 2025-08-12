@@ -84,6 +84,7 @@ static SCSI_CARD scsi_cards[] = {
     { &buslogic_445c_device,     },
     /* PCI */
     { &am53c974_pci_device,      },
+    { &am53c974a_pci_device,     },
     { &buslogic_958d_pci_device, },
     { &ncr53c810_pci_device,     },
     { &ncr53c815_pci_device,     },

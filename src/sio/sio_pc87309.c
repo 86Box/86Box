@@ -42,7 +42,7 @@ typedef struct pc87309_t {
     uint8_t   baddr;
     uint8_t   pm_idx;
     uint8_t   regs[48];
-    uint8_t   ld_regs[256][208];
+    uint8_t   ld_regs[256][256];
     uint8_t   pm[8];
     uint16_t  superio_base;
     uint16_t  pm_base;
