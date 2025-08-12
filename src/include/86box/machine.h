@@ -848,6 +848,7 @@ extern int machine_at_5sg100_init(const machine_t *);
 /* m_at_socket8.c */
 extern int machine_at_ap61_init(const machine_t *);
 extern int machine_at_p6rp4_init(const machine_t *);
+extern int machine_at_po6000_init(const machine_t *);
 
 extern int machine_at_686nx_init(const machine_t *);
 extern int machine_at_acerv60n_init(const machine_t *);
