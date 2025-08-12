@@ -224,6 +224,16 @@ MainWindow::MainWindow(QWidget *parent)
     kana_label->setToolTip(QShortcut::tr("Kana Lock"));
     statusBar()->addPermanentWidget(kana_label);
 
+    auto hertz_label = new QLabel;
+    QTimer* frameRateTimer = new QTimer(this);
+    frameRateTimer->setInterval(1000);
+    frameRateTimer->setSingleShot(false);
+    connect(frameRateTimer, &QTimer::timeout, [this, hertz_label] {
+        hertz_label->setText(tr("%1 Hz").arg(monitors[0].mon_actualrenderedframes.load()));
+    });
+    statusBar()->addPermanentWidget(hertz_label);
+    frameRateTimer->start(1000);
+
     QTimer* ledKeyboardTimer = new QTimer(this);
     ledKeyboardTimer->setTimerType(Qt::CoarseTimer);
     ledKeyboardTimer->setInterval(1);

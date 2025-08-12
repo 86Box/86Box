@@ -237,7 +237,7 @@ glslp_t *glslp_parse(const char *f) {
         int j;
         int len;
         int sublen;
-        char s[513], t[513], z[540];
+        char s[2049], t[2049], z[2076];
 
         memset(s, 0, sizeof(s));
         if (endswith(f, ".glsl"))

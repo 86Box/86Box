@@ -193,6 +193,8 @@ vt82c49x_recalc(vt82c49x_t *dev)
         default:
             break;
     }
+
+    flushmmucache_nopc();
 }
 
 static void

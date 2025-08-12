@@ -296,6 +296,9 @@ it8661f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
             if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) {
                 it86x1f_log("IT86x1F: LPT enabled at port %04X IRQ %d\n", config->io[0].base, config->irq[0].irq);
                 lpt_port_setup(dev->lpt, config->io[0].base);
+
+                lpt_port_irq(dev->lpt, config->irq[0].irq);
+                lpt_port_dma(dev->lpt, (config->dma[0].dma == ISAPNP_DMA_DISABLED) ? -1 : config->dma[0].dma);
             } else {
                 it86x1f_log("IT86x1F: LPT disabled\n");
             }
@@ -466,6 +469,13 @@ it86x1f_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
                 case 0x0f0:
                     dev->ldn_regs[ld][reg & 0x0f] = val & 0x0f;
                     fdc_set_swwp(dev->fdc, !!(val & 0x01));
+                    if (val & 0x02) {
+                        for (int i = 0; i < 4; i++)
+                            fdc_update_drvrate(dev->fdc, i, 1);
+                    } else {
+                        for (int i = 0; i < 4; i++)
+                            fdc_update_drvrate(dev->fdc, i, 0);
+                    }
                     fdc_set_swap(dev->fdc, !!(val & 0x04));
                     break;
 
@@ -484,6 +494,8 @@ it86x1f_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
 
                 case 0x3f0:
                     dev->ldn_regs[ld][reg & 0x0f] = val & 0x07;
+                    lpt_set_epp(dev->lpt, val & 0x01);
+                    lpt_set_ecp(dev->lpt, val & 0x02);
                     break;
 
                 case 0x4f0:
@@ -772,6 +784,9 @@ it86x1f_reset(it86x1f_t *dev)
 {
     it86x1f_log("IT86x1F: reset()\n");
 
+    for (int i = 0; i < 4; i++)
+        fdc_update_drvrate(dev->fdc, i, 0);
+
     fdc_reset(dev->fdc);
 
     serial_remove(dev->uart[0]);
@@ -779,6 +794,9 @@ it86x1f_reset(it86x1f_t *dev)
     serial_remove(dev->uart[1]);
 
     lpt_port_remove(dev->lpt);
+
+    lpt_set_epp(dev->lpt, 0);
+    lpt_set_ecp(dev->lpt, 0);
 
     isapnp_enable_card(dev->pnp_card, ISAPNP_CARD_DISABLE);
 
@@ -824,6 +842,9 @@ it86x1f_init(UNUSED(const device_t *info))
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
     dev->lpt = device_add_inst(&lpt_port_device, 1);
+
+    lpt_set_cnfgb_readout(dev->lpt, 0x00);
+    lpt_set_ext(dev->lpt, 1);
 
     dev->gameport = gameport_add(&gameport_sio_device);
 

@@ -346,7 +346,7 @@ NameAndLocationPage::isComplete() const
     } else if (const auto dir = QDir(systemLocation->text()); !dir.exists()) {
         systemLocationValidation->setText(tr("Directory does not exist"));
     } else {
-        systemLocationValidation->setText("A new directory for the system will be created in the selected directory above");
+        systemLocationValidation->setText(tr("A new directory for the system will be created in the selected directory above"));
         locationValid = true;
     }
 

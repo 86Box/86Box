@@ -168,6 +168,7 @@ ps2_isa_setup(int model, int cpu_type)
     ps2->uart = device_add_inst(&ns16450_device, 1);
 
     ps2->lpt  = device_add_inst(&lpt_port_device, 1);
+    lpt_set_ext(ps2->lpt, 1);
 
     lpt_port_remove(ps2->lpt);
     lpt_port_setup(ps2->lpt, LPT_MDA_ADDR);

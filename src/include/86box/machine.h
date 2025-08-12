@@ -164,31 +164,32 @@
 
 enum {
     MACHINE_TYPE_NONE       = 0,
-    MACHINE_TYPE_8088       = 1,
-    MACHINE_TYPE_8086       = 2,
-    MACHINE_TYPE_286        = 3,
-    MACHINE_TYPE_386SX      = 4,
-    MACHINE_TYPE_486SLC     = 5,
-    MACHINE_TYPE_386DX      = 6,
-    MACHINE_TYPE_386DX_486  = 7,
-    MACHINE_TYPE_486        = 8,
-    MACHINE_TYPE_486_S2     = 9,
-    MACHINE_TYPE_486_S3     = 10,
-    MACHINE_TYPE_486_S3_PCI = 11,
-    MACHINE_TYPE_486_MISC   = 12,
-    MACHINE_TYPE_SOCKET4    = 13,
-    MACHINE_TYPE_SOCKET5    = 14,
-    MACHINE_TYPE_SOCKET7_3V = 15,
-    MACHINE_TYPE_SOCKET7    = 16,
-    MACHINE_TYPE_SOCKETS7   = 17,
-    MACHINE_TYPE_SOCKET8    = 18,
-    MACHINE_TYPE_SLOT1      = 19,
-    MACHINE_TYPE_SLOT1_2    = 20,
-    MACHINE_TYPE_SLOT1_370  = 21,
-    MACHINE_TYPE_SLOT2      = 22,
-    MACHINE_TYPE_SOCKET370  = 23,
-    MACHINE_TYPE_MISC       = 24,
-    MACHINE_TYPE_MAX        = 25
+    MACHINE_TYPE_8088,
+    MACHINE_TYPE_8086,
+    MACHINE_TYPE_286,
+    MACHINE_TYPE_386SX,
+    MACHINE_TYPE_M6117,
+    MACHINE_TYPE_486SLC,
+    MACHINE_TYPE_386DX,
+    MACHINE_TYPE_386DX_486,
+    MACHINE_TYPE_486,
+    MACHINE_TYPE_486_S2,
+    MACHINE_TYPE_486_S3,
+    MACHINE_TYPE_486_S3_PCI,
+    MACHINE_TYPE_486_MISC,
+    MACHINE_TYPE_SOCKET4,
+    MACHINE_TYPE_SOCKET5,
+    MACHINE_TYPE_SOCKET7_3V,
+    MACHINE_TYPE_SOCKET7,
+    MACHINE_TYPE_SOCKETS7,
+    MACHINE_TYPE_SOCKET8,
+    MACHINE_TYPE_SLOT1,
+    MACHINE_TYPE_SLOT1_2,
+    MACHINE_TYPE_SLOT1_370,
+    MACHINE_TYPE_SLOT2,
+    MACHINE_TYPE_SOCKET370,
+    MACHINE_TYPE_MISC,
+    MACHINE_TYPE_MAX
 };
 
 enum {
@@ -440,78 +441,107 @@ extern void machine_at_ibm_common_ide_init(const machine_t *);
 extern void machine_at_ide_init(const machine_t *);
 extern void machine_at_ps2_ide_init(const machine_t *);
 
-extern int machine_at_ibm_init(const machine_t *);
+extern int  machine_at_ibm_init(const machine_t *);
 
 // IBM AT with custom BIOS
-extern int machine_at_ibmatami_init(const machine_t *);     // IBM AT with AMI BIOS
-extern int machine_at_ibmatpx_init(const machine_t *);      // IBM AT with Phoenix BIOS
-extern int machine_at_ibmatquadtel_init(const machine_t *); // IBM AT with Quadtel BIOS
+extern int  machine_at_ibmatami_init(const machine_t *);     // IBM AT with AMI BIOS
+extern int  machine_at_ibmatpx_init(const machine_t *);      // IBM AT with Phoenix BIOS
+extern int  machine_at_ibmatquadtel_init(const machine_t *); // IBM AT with Quadtel BIOS
 
-extern int machine_at_ibmxt286_init(const machine_t *);
+extern int  machine_at_ibmxt286_init(const machine_t *);
 
-extern int machine_at_pb286_init(const machine_t *);
+extern int  machine_at_pb286_init(const machine_t *);
 
-extern int machine_at_siemens_init(const machine_t *); // Siemens PCD-2L. N82330 discrete machine. It segfaults in some places
+extern int  machine_at_siemens_init(const machine_t *); // Siemens PCD-2L. N82330 discrete machine. It segfaults in some places
 
-extern int machine_at_wellamerastar_init(const machine_t *); // Wells American A*Star with custom award BIOS 
+/* m_at_286.c */
+/* ISA */
+extern int  machine_at_mr286_init(const machine_t *);
+extern int  machine_at_pc8_init(const machine_t *);
+extern int  machine_at_m290_init(const machine_t *);
 
-/* m_at_286_386sx.c */
-extern int machine_at_tg286m_init(const machine_t *);
-extern int machine_at_ama932j_init(const machine_t *);
-extern int machine_at_px286_init(const machine_t *);
-extern int machine_at_quadt286_init(const machine_t *);
-extern int machine_at_mr286_init(const machine_t *);
+/* C&T PC/AT */
+extern int  machine_at_dells200_init(const machine_t *);
+extern int  machine_at_super286c_init(const machine_t *);
+extern int  machine_at_at122_init(const machine_t *);
+extern int  machine_at_tuliptc7_init(const machine_t *);
 
-extern int machine_at_pbl300sx_init(const machine_t *);
-extern int machine_at_neat_init(const machine_t *);
-extern int machine_at_neat_ami_init(const machine_t *);
-extern int machine_at_ataripc4_init(const machine_t *);
+/* GC103 */
+extern int  machine_at_quadt286_init(const machine_t *);
+extern void machine_at_headland_common_init(const machine_t *model, int type);
+extern int  machine_at_tg286m_init(const machine_t *);
+/* Wells American A*Star with custom award BIOS. */
+extern int  machine_at_wellamerastar_init(const machine_t *);
 
-extern int machine_at_quadt386sx_init(const machine_t *);
+/* NEAT */
+extern int  machine_at_ataripc4_init(const machine_t *);
+extern int  machine_at_neat_ami_init(const machine_t *);
+extern int  machine_at_3302_init(const machine_t *);
+extern int  machine_at_px286_init(const machine_t *);
 
-extern int machine_at_award286_init(const machine_t *);
-extern int machine_at_gdc212m_init(const machine_t *);
-extern int machine_at_gw286ct_init(const machine_t *);
-extern int machine_at_drsm35286_init(const machine_t *);
-extern int machine_at_senor_scat286_init(const machine_t *);
-extern int machine_at_super286c_init(const machine_t *);
-extern int machine_at_super286tr_init(const machine_t *);
-extern int machine_at_spc4200p_init(const machine_t *);
-extern int machine_at_spc4216p_init(const machine_t *);
-extern int machine_at_spc4620p_init(const machine_t *);
-extern int machine_at_kmxc02_init(const machine_t *);
-extern int machine_at_deskmaster286_init(const machine_t *);
+/* SCAT */
+extern int  machine_at_gw286ct_init(const machine_t *);
+extern int  machine_at_gdc212m_init(const machine_t *);
+extern int  machine_at_award286_init(const machine_t *);
+extern int  machine_at_super286tr_init(const machine_t *);
+extern int  machine_at_drsm35286_init(const machine_t *);
+extern int  machine_at_deskmaster286_init(const machine_t *);
+extern int  machine_at_spc4200p_init(const machine_t *);
+extern int  machine_at_spc4216p_init(const machine_t *);
+extern int  machine_at_spc4620p_init(const machine_t *);
+extern int  machine_at_senor_scat286_init(const machine_t *);
 
-extern int machine_at_dells200_init(const machine_t *);
-extern int machine_at_at122_init(const machine_t *);
-extern int machine_at_tuliptc7_init(const machine_t *);
+/* m_at_386sx.c */
+/* ISA */
+extern int  machine_at_pc916sx_init(const machine_t *);
+extern int  machine_at_quadt386sx_init(const machine_t *);
 
-extern int machine_at_pc8_init(const machine_t *);
-extern int machine_at_3302_init(const machine_t *);
+/* ACC 2036 */
+extern int  machine_at_pbl300sx_init(const machine_t *);
 
-extern int machine_at_m290_init(const machine_t *);
+/* ALi M1217 */
+extern int  machine_at_arb1374_init(const machine_t *);
+extern int  machine_at_sbc350a_init(const machine_t *);
+extern int  machine_at_flytech386_init(const machine_t *);
+extern int  machine_at_325ax_init(const machine_t *);
+extern int  machine_at_mr1217_init(const machine_t *);
 
-extern int machine_at_shuttle386sx_init(const machine_t *);
-extern int machine_at_adi386sx_init(const machine_t *);
-extern int machine_at_cmdsl386sx16_init(const machine_t *);
-extern int machine_at_cmdsl386sx25_init(const machine_t *);
-extern int machine_at_dataexpert386sx_init(const machine_t *);
-extern int machine_at_dells333sl_init(const machine_t *);
-extern int machine_at_if386sx_init(const machine_t *);
-extern int machine_at_spc6033p_init(const machine_t *);
-extern int machine_at_wd76c10_init(const machine_t *);
-extern int machine_at_arb1374_init(const machine_t *);
-extern int machine_at_sbc350a_init(const machine_t *);
-extern int machine_at_flytech386_init(const machine_t *);
-extern int machine_at_325ax_init(const machine_t *);
-extern int machine_at_mr1217_init(const machine_t *);
-extern int machine_at_pja511m_init(const machine_t *);
-extern int machine_at_prox1332_init(const machine_t *);
-extern int machine_at_acer100t_init(const machine_t *);
+/* ALi M1409 */
+extern int  machine_at_acer100t_init(const machine_t *);
 
-extern int machine_at_awardsx_init(const machine_t *);
+/* HT18 */
+extern int  machine_at_ama932j_init(const machine_t *);
 
-extern int machine_at_pc916sx_init(const machine_t *);
+/* Intel 82335 */
+extern int  machine_at_adi386sx_init(const machine_t *);
+extern int  machine_at_shuttle386sx_init(const machine_t *);
+
+/* NEAT */
+extern int  machine_at_cmdsl386sx16_init(const machine_t *);
+extern int  machine_at_neat_init(const machine_t *);
+
+/* NEATsx */
+extern int  machine_at_if386sx_init(const machine_t *);
+
+/* OPTi 291 */
+extern int  machine_at_awardsx_init(const machine_t *);
+
+/* SCAMP */
+extern int  machine_at_cmdsl386sx25_init(const machine_t *);
+extern int  machine_at_dataexpert386sx_init(const machine_t *);
+extern int  machine_at_dells333sl_init(const machine_t *);
+extern int  machine_at_spc6033p_init(const machine_t *);
+
+/* SCATsx */
+extern int  machine_at_kmxc02_init(const machine_t *);
+
+/* WD76C10 */
+extern int  machine_at_wd76c10_init(const machine_t *);
+
+/* m_at_m6117.c */
+/* ALi M6117D */
+extern int  machine_at_pja511m_init(const machine_t *);
+extern int  machine_at_prox1332_init(const machine_t *);
 
 /* m_at_386dx_486.c */
 /* Note to jriwanek: When merging this into my branch, please make

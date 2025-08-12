@@ -86,14 +86,28 @@ vt82c686_lpt_handler(vt82c686_t *dev)
 
     lpt_port_remove(dev->lpt);
 
+    lpt_set_ext(dev->lpt, !!(dev->regs[0x10] & 0x80));
+
+    switch (dev->regs[0x10] & 0x03) {
+        case 0x01:
+            lpt_set_epp(dev->lpt, !!(dev->regs[0x10] & 0x20));
+            lpt_set_ecp(dev->lpt, 1);
+            break;
+        case 0x02:
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, !!(dev->regs[0x10] & 0x20));
+            break;
+    }
+
     if (((dev->regs[0x02] & 0x03) != 0x03) && !(dev->regs[0x0f] & 0x11) && (io_base >= 0x100) && (io_base <= io_mask))
         lpt_port_setup(dev->lpt, io_base);
 
-    if (dev->lpt_irq) {
+    if (dev->lpt_irq)
         lpt_port_irq(dev->lpt, dev->lpt_irq);
-    } else {
+    else
         lpt_port_irq(dev->lpt, 0xff);
-    }
+
+    lpt_port_dma(dev->lpt, dev->lpt_dma);
 }
 
 static void
@@ -178,6 +192,7 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x10:
             dev->regs[reg] &= 0xf4;
+            vt82c686_lpt_handler(dev);
             break;
 
         case 0x11:

@@ -42,7 +42,7 @@ typedef struct pc87309_t {
     uint8_t   baddr;
     uint8_t   pm_idx;
     uint8_t   regs[48];
-    uint8_t   ld_regs[256][208];
+    uint8_t   ld_regs[256][256];
     uint8_t   pm[8];
     uint16_t  superio_base;
     uint16_t  pm_base;
@@ -183,6 +183,7 @@ fdc_handler(pc87309_t *dev)
     uint8_t  active = (dev->ld_regs[LD_FDC][0x00] & 0x01) &&
                       (dev->pm[0x00] & 0x08);
     uint8_t  irq    = (dev->ld_regs[LD_FDC][0x40] & 0x0f);
+    uint8_t  dma    = (dev->ld_regs[LD_FDC][0x44] & 0x0f);
     uint16_t addr   = ((dev->ld_regs[LD_FDC][0x30] << 8) |
                       dev->ld_regs[LD_FDC][0x31]) & 0xfff8;
 
@@ -190,6 +191,7 @@ fdc_handler(pc87309_t *dev)
         pc87309_log("Enabling FDC on %04X, IRQ %i...\n", addr, irq);
         fdc_set_base(dev->fdc, addr);
         fdc_set_irq(dev->fdc, irq);
+        fdc_set_dma_ch(dev->fdc, dma);
     }
 }
 
@@ -199,16 +201,61 @@ lpt_handler(pc87309_t *dev)
     uint8_t  active = (dev->ld_regs[LD_LPT][0x00] & 0x01) &&
                       (dev->pm[0x00] & 0x10);
     uint8_t  irq    = (dev->ld_regs[LD_LPT][0x40] & 0x0f);
+    uint8_t  dma    = (dev->ld_regs[LD_LPT][0x44] & 0x0f);
     uint16_t addr   = (dev->ld_regs[LD_LPT][0x30] << 8) |
                       dev->ld_regs[LD_LPT][0x31];
+    uint8_t  mode   = (dev->ld_regs[LD_LPT][0xf0] >> 7);
+    uint16_t mask   = 0xfffc;
 
-    if (active && (addr <= 0xfffc)) {
+    if (irq > 15)
+        irq = 0xff;
+
+    if (dma >= 4)
+        dma = 0xff;
+
+    lpt_port_remove(dev->lpt);
+
+    switch (mode) {
+        default:
+        case 0x00:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x01:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 1);
+            break;
+        case 0x02: case 0x03:
+            mask = 0xfff8;
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x04:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x07:
+            mask = 0xfff8;
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+    }
+
+    lpt_set_cfg_regs_enabled(dev->lpt, !!(dev->ld_regs[LD_LPT][0xf0] & 0x10));
+
+    if (active && (addr <= (0xfffc & mask))) {
         pc87309_log("Enabling LPT1 on %04X...\n", addr);
-        lpt_port_setup(dev->lpt, addr);
+        lpt_port_setup(dev->lpt, addr & mask);
     } else
         lpt_port_setup(dev->lpt, 0xffff);
 
     lpt_port_irq(dev->lpt, irq);
+    lpt_port_dma(dev->lpt, dma);
 }
 
 static void
@@ -687,6 +734,7 @@ pc87309_init(const device_t *info)
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
     dev->lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_set_cnfga_readout(dev->lpt, 0x14);
 
     switch (info->local & PCX730X_KBC) {
         default:

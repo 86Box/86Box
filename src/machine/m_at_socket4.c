@@ -130,7 +130,7 @@ machine_at_premiere_common_init(const machine_t *model, int pci_switch)
     device_add(&kbc_ps2_phoenix_device);
     device_add(&sio_zb_device);
     device_add(&ide_rz1000_pci_single_channel_device);
-    device_add(&fdc37c665_ide_sec_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&intel_flash_bxt_ami_device);
 }
 
@@ -153,7 +153,7 @@ machine_at_sp4_common_init(const machine_t *model)
     device_add(&sis_85c50x_device);
     device_add(&ide_cmd640_pci_device);
     device_add(&kbc_ps2_ami_pci_device);
-    device_add(&fdc37c665_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_device);
 }
 
@@ -177,7 +177,7 @@ machine_at_excaliburpci_init(const machine_t *model)
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&fdc37c665_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&kbc_ps2_ami_pci_device);
     device_add(&ide_cmd640_pci_legacy_only_device);
 
@@ -245,7 +245,7 @@ machine_at_dellxp60_init(const machine_t *model)
     device_add(&i430lx_device);
     device_add(&kbc_ps2_phoenix_device);
     device_add(&sio_zb_device);
-    device_add(&fdc37c665_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -276,7 +276,7 @@ machine_at_opti560l_init(const machine_t *model)
     device_add(&i430lx_device);
     device_add(&kbc_ps2_phoenix_device);
     device_add(&sio_zb_device);
-    device_add(&i82091aa_device);
+    device_add_params(&i82091aa_device, (void *) I82091AA_022);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -308,7 +308,7 @@ machine_at_ambradp60_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&kbc_ps2_phoenix_device);
     device_add(&sio_zb_device);
-    device_add(&fdc37c665_ide_pri_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
     device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i430lx_device);
@@ -341,7 +341,7 @@ machine_at_valuepointp60_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&kbc_ps2_ps1_pci_device);
     device_add(&sio_device);
-    device_add(&fdc37c665_ide_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
     device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i430lx_device);
@@ -441,7 +441,7 @@ machine_at_pb520r_init(const machine_t *model)
 
     device_add(&kbc_ps2_pci_device);
     device_add(&sio_zb_device);
-    device_add(&i82091aa_ide_device);
+    device_add_params(&i82091aa_device, (void *) (I82091AA_022 | I82091AA_IDE_PRI));
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -471,7 +471,7 @@ machine_at_m5pi_init(const machine_t *model)
     device_add(&sio_zb_device);	
     device_add(&kbc_ps2_phoenix_device);
     device_add(&ide_w83769f_pci_single_channel_device);	
-    device_add(&fdc37c665_ide_sec_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
@@ -523,7 +523,7 @@ machine_at_excalibur_init(const machine_t *model)
 
     device_add(&opti5x7_device);
     device_add(&ide_opti611_vlb_device);
-    device_add(&fdc37c661_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C661);
     device_add(&kbc_ps2_intel_ami_pci_device);
 
     return ret;
@@ -583,7 +583,7 @@ machine_at_excaliburpci2_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    device_add(&fdc37c665_device);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&kbc_ps2_ami_pci_device);
     device_add(&ide_cmd640_pci_legacy_only_device);
 
