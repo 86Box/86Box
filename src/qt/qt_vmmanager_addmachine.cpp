@@ -58,7 +58,7 @@ VMManagerAddMachine(QWidget *parent) : QWizard(parent)
 #endif
 
     // Wizard wants to resize based on image. This keeps the size
-    setMinimumSize(size());
+    setFixedSize(QSize(550, size().height()));
     setOption(HaveHelpButton, false);
     // setPixmap(LogoPixmap, QPixmap(":/settings/qt/icons/86Box-gray.ico"));
 
