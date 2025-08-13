@@ -56,6 +56,7 @@ add_library(dev OBJECT
     pci_bridge.c
     phoenix_486_jumper.c
     postcard.c
+    radisys_config.c
     serial.c
     serial_passthrough.c
     smbus_ali7101.c
@@ -63,6 +64,7 @@ add_library(dev OBJECT
     smbus_sis5595.c
     tulip_jumper.c
     unittester.c
+    zenith_scratchpad.c
 )
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC)

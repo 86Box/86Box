@@ -62,10 +62,11 @@ typedef struct lpt_t {
     uint8_t       strobe;
     uint8_t       lv2;
     uint8_t       cnfga_readout;
+    uint8_t       cnfgb_readout;
     uint8_t       cfg_regs_enabled;
     uint8_t       inst;
     uint8_t       eir;
-    uint8_t       pad[2];
+    uint8_t       pad;
     uint8_t       ext_regs[8];
     uint16_t      addr;
     uint16_t      id;
@@ -134,9 +135,11 @@ extern void                lpt_set_lv2(lpt_t *dev, uint8_t lv2);
 extern void                lpt_set_cfg_regs_enabled(lpt_t *dev, uint8_t cfg_regs_enabled);
 extern void                lpt_set_fifo_threshold(lpt_t *dev, int threshold);
 extern void                lpt_set_cnfga_readout(lpt_t *dev, const uint8_t cnfga_readout);
+extern void                lpt_set_cnfgb_readout(lpt_t *dev, const uint8_t cnfgb_readout);
 extern void                lpt_port_setup(lpt_t *dev, uint16_t port);
 extern void                lpt_port_irq(lpt_t *dev, uint8_t irq);
 extern void                lpt_port_dma(lpt_t *dev, uint8_t dma);
+extern void                lpt1_dma(const uint8_t dma);
 extern void                lpt_port_remove(lpt_t *dev);
 extern void                lpt1_remove_ams(lpt_t *dev);
 

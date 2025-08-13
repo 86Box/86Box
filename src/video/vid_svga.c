@@ -1050,7 +1050,7 @@ svga_recalctimings(svga_t *svga)
     }
     if (xga_active && (svga->xga != NULL)) {
         if (xga->on)
-            crtcconst_xga = svga->clock_xga * svga->char_width;
+            crtcconst_xga = svga->clock_xga * 8;
     }
 
 #ifdef ENABLE_SVGA_LOG

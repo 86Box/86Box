@@ -27,15 +27,35 @@
     <number>0</number>
    </property>
    <item row="0" column="0">
-    <layout class="QGridLayout" name="gridLayoutLptDevs">
+    <layout class="QGridLayout" name="gridLayoutLptECPDMA">
      <item row="0" column="0">
+      <widget class="QLabel" name="labelLptECPDMA">
+       <property name="text">
+        <string>Internal LPT ECP DMA:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QComboBox" name="comboBoxLptECPDMA">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
       <widget class="QLabel" name="labelLpt1">
        <property name="text">
         <string>LPT1 Device:</string>
        </property>
       </widget>
      </item>
-     <item row="0" column="2">
+     <item row="1" column="2">
       <widget class="QComboBox" name="comboBoxLpt1">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -48,21 +68,21 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="3">
+     <item row="1" column="3">
       <widget class="QPushButton" name="pushButtonConfigureLpt1">
        <property name="text">
         <string>Configure</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="0">
+     <item row="2" column="0">
       <widget class="QLabel" name="labelLpt2">
        <property name="text">
         <string>LPT2 Device:</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="2">
+     <item row="2" column="2">
       <widget class="QComboBox" name="comboBoxLpt2">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -75,21 +95,21 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="3">
+     <item row="2" column="3">
       <widget class="QPushButton" name="pushButtonConfigureLpt2">
        <property name="text">
         <string>Configure</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="0">
+     <item row="3" column="0">
       <widget class="QLabel" name="labelLpt3">
        <property name="text">
         <string>LPT3 Device:</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="2">
+     <item row="3" column="2">
       <widget class="QComboBox" name="comboBoxLpt3">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -102,21 +122,21 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="3">
+     <item row="3" column="3">
       <widget class="QPushButton" name="pushButtonConfigureLpt3">
        <property name="text">
         <string>Configure</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
+     <item row="4" column="0">
       <widget class="QLabel" name="labelLpt4">
        <property name="text">
         <string>LPT4 Device:</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="2">
+     <item row="4" column="2">
       <widget class="QComboBox" name="comboBoxLpt4">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -129,7 +149,7 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="3">
+     <item row="4" column="3">
       <widget class="QPushButton" name="pushButtonConfigureLpt4">
        <property name="text">
         <string>Configure</string>

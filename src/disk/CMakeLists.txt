@@ -23,6 +23,7 @@ add_library(hdd OBJECT
     hdc_st506_xt.c
     hdc_st506_at.c
     hdc_xta.c
+    hdc_xta_ps1.c
     hdc_esdi_at.c
     hdc_esdi_mca.c
     hdc_xtide.c

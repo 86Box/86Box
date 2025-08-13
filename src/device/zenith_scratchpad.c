@@ -47,6 +47,7 @@
 #include <86box/io.h>
 #include <86box/video.h>
 #include <86box/plat_unused.h>
+#include <86box/chipset.h>
 
 typedef struct {
     mem_mapping_t scratchpad_mapping;
@@ -94,7 +95,7 @@ zenith_scratchpad_close(void *priv)
     free(dev);
 }
 
-static const device_t zenith_scratchpad_device = {
+const device_t zenith_scratchpad_device = {
     .name          = "Zenith scratchpad RAM",
     .internal_name = "zenith_scratchpad",
     .flags         = 0,
@@ -107,104 +108,3 @@ static const device_t zenith_scratchpad_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
-
-void
-machine_zenith_init(const machine_t *model)
-{
-    machine_common_init(model);
-
-    device_add(&zenith_scratchpad_device);
-
-    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
-
-    device_add(&kbc_xt_zenith_device);
-
-    nmi_init();
-}
-
-/*
- * Current bugs and limitations:
- * - missing NVRAM implementation
- */
-int
-machine_xt_z184_init(const machine_t *model)
-{
-    lpt_t *lpt = NULL;
-    int    ret;
-
-    ret = bios_load_linear("roms/machines/zdsupers/z184m v3.1d.10d",
-                           0x000f8000, 32768, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_zenith_init(model);
-
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_xt_device);
-
-    lpt = device_add_inst(&lpt_port_device, 1);
-    lpt_port_remove(lpt);
-    lpt_port_setup(lpt, LPT2_ADDR);
-    lpt_set_next_inst(255);
-
-    device_add(&ns8250_device);
-    /* So that serial_standalone_init() won't do anything. */
-    serial_set_next_inst(SERIAL_MAX - 1);
-
-    device_add(&cga_device);
-
-    return ret;
-}
-
-int
-machine_xt_z151_init(const machine_t *model)
-{
-    int ret;
-    ret = bios_load_linear("roms/machines/zdsz151/444-229-18.bin",
-                           0x000fc000, 32768, 0);
-    if (ret) {
-        bios_load_aux_linear("roms/machines/zdsz151/444-260-18.bin",
-                             0x000f8000, 16384, 0);
-    }
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_zenith_init(model);
-
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_xt_tandy_device);
-
-    return ret;
-}
-
-/*
- * Current bugs and limitations:
- * - Memory board support for EMS currently missing
- */
-int
-machine_xt_z159_init(const machine_t *model)
-{
-    lpt_t *lpt = NULL;
-    int    ret;
-
-    ret = bios_load_linear("roms/machines/zdsz159/z159m v2.9e.10d",
-                           0x000f8000, 32768, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_zenith_init(model);
-
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_xt_tandy_device);
-
-    /* parallel port is on the memory board */
-    lpt = device_add_inst(&lpt_port_device, 1);
-    lpt_port_remove(lpt);
-    lpt_port_setup(lpt, LPT2_ADDR);
-    lpt_set_next_inst(255);
-
-    return ret;
-}

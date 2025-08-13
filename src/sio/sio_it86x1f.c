@@ -842,6 +842,8 @@ it86x1f_init(UNUSED(const device_t *info))
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
     dev->lpt = device_add_inst(&lpt_port_device, 1);
+
+    lpt_set_cnfgb_readout(dev->lpt, 0x00);
     lpt_set_ext(dev->lpt, 1);
 
     dev->gameport = gameport_add(&gameport_sio_device);

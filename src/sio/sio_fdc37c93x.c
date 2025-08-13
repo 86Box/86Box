@@ -792,11 +792,13 @@ fdc37c93x_lpt_handler(fdc37c93x_t *dev)
 {
     uint16_t ld_port       = 0x0000;
     uint16_t mask          = 0xfffc;
-    uint8_t  global_enable = !!(dev->regs[0x22] & (1 << 3));
-    uint8_t  local_enable  = !!dev->ld_regs[3][0x30];
-    uint8_t  lpt_irq       = dev->ld_regs[3][0x70];
-    uint8_t  lpt_dma       = dev->ld_regs[3][0x74];
-    uint8_t  lpt_mode      = dev->ld_regs[3][0xf0] & 0x07;
+    uint8_t  global_enable   = !!(dev->regs[0x22] & (1 << 3));
+    uint8_t  local_enable    = !!dev->ld_regs[3][0x30];
+    uint8_t  lpt_irq         = dev->ld_regs[3][0x70];
+    uint8_t  lpt_dma         = dev->ld_regs[3][0x74];
+    uint8_t  lpt_mode        = dev->ld_regs[3][0xf0] & 0x07;
+    uint8_t  irq_readout[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x38, 0x00, 0x08,
+                                 0x00, 0x10, 0x18, 0x20, 0x00, 0x00, 0x28, 0x30 };
 
     if (lpt_irq > 15)
         lpt_irq = 0xff;
@@ -843,6 +845,9 @@ fdc37c93x_lpt_handler(fdc37c93x_t *dev)
     }
     lpt_port_irq(dev->lpt, lpt_irq);
     lpt_port_dma(dev->lpt, lpt_dma);
+
+    lpt_set_cnfgb_readout(dev->lpt, ((lpt_irq > 15) ? 0x00 : irq_readout[lpt_irq]) |
+                                    ((lpt_dma >= 4) ? 0x00 : lpt_dma));
 }
 
 static void

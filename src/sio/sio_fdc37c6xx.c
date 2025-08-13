@@ -30,6 +30,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include "cpu.h"
 
 typedef struct fdc37c6xx_t {
     uint8_t   max_reg;
@@ -225,7 +226,7 @@ fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
                         fdc_handler(dev);
                     break;
                 case 0x01:
-                    if (valxor & 0x03)
+                    if (valxor & 0x0b)
                         lpt_handler(dev);
                     if (valxor & 0x60) {
                         set_com34_addr(dev);
@@ -258,6 +259,10 @@ fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
                         fdc_update_densel_force(dev->fdc, (dev->regs[5] & 0x18) >> 3);
                     if (valxor & 0x20)
                         fdc_set_swap(dev->fdc, (dev->regs[5] & 0x20) >> 5);
+                    break;
+                case 0x0a:
+                    if (valxor)
+                        lpt_handler(dev);
                     break;
 
                 default:
@@ -374,6 +379,7 @@ fdc37c6xx_init(const device_t *info)
     }
 
     dev->lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_set_cnfgb_readout(dev->lpt, 0x00);
 
     if (info->local & FDC37C6XX_370)
         io_sethandler(FDC_SECONDARY_ADDR, 0x0002,

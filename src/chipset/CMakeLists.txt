@@ -30,12 +30,15 @@ add_library(chipset OBJECT
     ali1621.c
     ali6117.c
     ali1409.c
-    headland.c
-    ims8848.c
-    intel_82335.c
+    compaq.c
     compaq_386.c
     contaq_82c59x.c
     cs4031.c
+    grid1520.c
+    gc100.c
+    headland.c
+    ims8848.c
+    intel_82335.c
     intel_420ex.c
     intel_4x0.c
     intel_i450kx.c
@@ -43,6 +46,7 @@ add_library(chipset OBJECT
     intel_piix.c
     isa486c.c
     ../ioapic.c
+    laserxt.c
     neat.c
     olivetti_eva.c
     opti283.c
@@ -55,6 +59,7 @@ add_library(chipset OBJECT
     opti822.c
     opti895.c
     opti5x7.c
+    philips.c
     scamp.c
     scat.c
     sis_85c310.c
@@ -77,10 +82,9 @@ add_library(chipset OBJECT
     sis_5595_pmu.c
     sis_55xx.c
     sl82c461.c
+    stpc.c
     via_vt82c49x.c
     via_vt82c505.c
-    gc100.c
-    stpc.c
     umc_8886.c
     umc_hb4.c
     umc_8890.c
