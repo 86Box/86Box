@@ -519,6 +519,9 @@ msgstr "LPT3-apparaat:"
 msgid "LPT4 Device:"
 msgstr "LPT4-apparaat:"
 
+msgid "Internal LPT ECP DMA:"
+msgstr ""
+
 msgid "Serial port 1"
 msgstr "Seriële poort 1"
 

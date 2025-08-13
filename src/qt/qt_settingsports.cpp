@@ -122,6 +122,8 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
     else
         ui->comboBoxLptECPDMA->setEnabled(true);
 
+    c = 0;
+
     // LPT Device
     QComboBox *         cbox[PARALLEL_MAX]         = { 0 };
     QAbstractItemModel *models[PARALLEL_MAX]       = { 0 };

@@ -676,8 +676,7 @@ mouse_reset(void)
     /* Clear local data. */
     mouse_clear_coords();
     mouse_clear_buttons();
-    mouse_input_mode                  = 0;
-    mouse_timed                 = 1;
+    mouse_input_mode      = 0;
 
     /* If no mouse configured, we're done. */
     if (mouse_type == 0)
@@ -686,8 +685,7 @@ mouse_reset(void)
     timer_add(&mouse_timer, mouse_timer_poll, NULL, 0);
 
     /* Poll at 100 Hz, the default of a PS/2 mouse. */
-    sample_rate = 100.0;
-    timer_on_auto(&mouse_timer, 1000000.0 / sample_rate);
+    mouse_set_sample_rate(100.0);
 
     if ((mouse_type > 1) && (mouse_devices[mouse_type].device != NULL))
         mouse_priv = device_add(mouse_devices[mouse_type].device);
