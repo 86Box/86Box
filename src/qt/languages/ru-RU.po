@@ -520,7 +520,7 @@ msgid "LPT4 Device:"
 msgstr "Устройство LPT4:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr ""
+msgstr "DMA ECP встроенного LPT:"
 
 msgid "Serial port 1"
 msgstr "Последовательный порт COM1"
@@ -2836,13 +2836,13 @@ msgid "Hostname:"
 msgstr "Имя хоста:"
 
 msgid "ISA RTC"
-msgstr ""
+msgstr "ISA RTC"
 
 msgid "ISA RAM"
-msgstr ""
+msgstr "ISA ОЗУ"
 
 msgid "ISA ROM"
-msgstr ""
+msgstr "ISA ПЗУ"
 
 msgid "&Wipe NVRAM"
 msgstr "&Стереть NVRAM"
@@ -2857,10 +2857,10 @@ msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
 msgstr "Успешно стёрто содержимое NVRAM виртуальной машины \"%1\""
 
 msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr "Произошла ошибка, пытаясь стереть содержимое NVRAM виртуальной машины \"%1\""
+msgstr "Произошла ошибка при попытке стереть содержимое NVRAM виртуальной машины \"%1\""
 
 msgid "%1 VM Manager"
-msgstr ""
+msgstr "Менеджер виртуальных машин %1"
 
 msgid "%n disk(s)"
 msgstr "%n диск(ов)"
@@ -2927,6 +2927,9 @@ msgstr "Обновление 86Box"
 
 msgid "Release notes:"
 msgstr "Примечания к релизу:"
+
+msgid "%1 Hz"
+msgstr "%1 Гц"
 
 #~ msgid "HD Controller:"
 #~ msgstr "Контроллер HD:"

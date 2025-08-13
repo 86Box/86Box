@@ -2927,3 +2927,6 @@ msgstr ""
 
 msgid "Release notes:"
 msgstr ""
+
+msgid "%1 Hz"
+msgstr ""
