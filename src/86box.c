@@ -234,29 +234,46 @@ struct accelKey acc_keys[NUM_ACCELS];
 
 // Default accelerator key values
 struct accelKey def_acc_keys[NUM_ACCELS] = {
-	{	.name="send_ctrl_alt_del", 	.desc="Send Control+Alt+Del",
-		.seq="Ctrl+F12" },
-
-	{	.name="send_ctrl_alt_esc", 	.desc="Send Control+Alt+Escape",
-		.seq="Ctrl+F10" },
-
-	{	.name="fullscreen", 		.desc="Toggle fullscreen",
-		.seq="Ctrl+Alt+PgUp" },
-
-	{	.name="screenshot", 		.desc="Screenshot",
-		.seq="Ctrl+F11" },
-
-	{	.name="release_mouse", 		.desc="Release mouse pointer",
-		.seq="Ctrl+End" },
-
-	{	.name="hard_reset", 		.desc="Hard reset",
-		.seq="Ctrl+Alt+F12" },
-
-	{	.name="pause", 				.desc="Toggle pause",
-		.seq="Ctrl+Alt+F1" },
-
-	{	.name="mute", 				.desc="Toggle mute",
-		.seq="Ctrl+Alt+M" }
+    {
+        .name="send_ctrl_alt_del",
+        .desc="Send Control+Alt+Del",
+        .seq="Ctrl+F12"
+    },
+    {
+        .name="send_ctrl_alt_esc",
+        .desc="Send Control+Alt+Escape",
+        .seq="Ctrl+F10"
+    },
+    {
+        .name="fullscreen",
+        .desc="Toggle fullscreen",
+        .seq="Ctrl+Alt+PgUp"
+    },
+    {
+        .name="screenshot",
+        .desc="Screenshot",
+        .seq="Ctrl+F11"
+    },
+    {
+        .name="release_mouse",
+        .desc="Release mouse pointer",
+        .seq="Ctrl+End"
+    },
+    {
+        .name="hard_reset",
+        .desc="Hard reset",
+        .seq="Ctrl+Alt+F12"
+    },
+    {
+        .name="pause",
+        .desc="Toggle pause",
+        .seq="Ctrl+Alt+F1"
+    },
+    {
+        .name="mute",
+        .desc="Toggle mute",
+        .seq="Ctrl+Alt+M"
+    }
 };
 
 char vmm_path[1024] = { '\0' }; /* VM manager path to scan for VMs */
@@ -2008,13 +2025,11 @@ do_pause(int p)
 
 // Helper to find an accelerator key and return it's index in acc_keys
 int FindAccelerator(const char *name) {
-	for(int x=0;x<NUM_ACCELS;x++)
-	{
-		if(strcmp(acc_keys[x].name, name) == 0)
-		{
-			return(x);
-		}
-	}
-	// No key was found
-	return -1;
+    for (int x = 0; x < NUM_ACCELS; x++) {
+        if(strcmp(acc_keys[x].name, name) == 0)
+            return(x);
+    }
+
+    // No key was found
+    return -1;
 }
