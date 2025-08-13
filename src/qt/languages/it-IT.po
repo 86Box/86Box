@@ -1284,6 +1284,12 @@ msgstr "Build"
 msgid "Version"
 msgstr "Versione"
 
+msgid "An update to 86Box is available"
+msgstr "È disponibile un aggiornamento per 86Box"
+
+msgid "An error has occurred while checking for updates: %1"
+msgstr ""
+
 msgid "<b>An update to 86Box is available!</b>"
 msgstr "<b>È disponibile un aggiornamento per 86Box!</b>"
 
@@ -2876,6 +2882,12 @@ msgstr "Si è verificato un errore durante la verifica degli aggiornamenti:\n\n%
 
 msgid "Update check complete"
 msgstr "Controllo aggiornamenti completato"
+
+msgid "stable"
+msgstr ""
+
+msgid "beta"
+msgstr ""
 
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr "Stai utilizzando l'ultima versione %1 di 86Box: %2"

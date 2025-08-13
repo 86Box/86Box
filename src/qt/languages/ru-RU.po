@@ -1284,6 +1284,12 @@ msgstr "Сборка"
 msgid "Version"
 msgstr "Версия"
 
+msgid "An update to 86Box is available"
+msgstr "Доступно обновление для 86Box"
+
+msgid "An error has occurred while checking for updates: %1"
+msgstr "При проверке обновлений произошла ошибка: %1"
+
 msgid "<b>An update to 86Box is available!</b>"
 msgstr "<b>Доступно обновление для 86Box!</b>"
 
@@ -2877,14 +2883,20 @@ msgstr "Произошла ошибка при проверке обновлен
 msgid "Update check complete"
 msgstr "Проверка обновлений завершена"
 
+msgid "stable"
+msgstr "стабильную"
+
+msgid "beta"
+msgstr "бета"
+
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr "Вы используете последнюю %1 версию 86Box: %2"
 
 msgid "version"
-msgstr ""
+msgstr "версию"
 
 msgid "build"
-msgstr ""
+msgstr "сборку"
 
 msgid "You are currently running %1 <b>%2</b>. "
 msgstr "Вы сейчас используете %1 <b>%2</b>. "
