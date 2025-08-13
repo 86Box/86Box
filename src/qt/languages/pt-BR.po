@@ -427,7 +427,7 @@ msgid "XGA Graphics"
 msgstr "Gráficos XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
-msgstr "IBM PS/55 Display Adapter Graphics"
+msgstr "Gráficos IBM PS/55 Display Adapter"
 
 msgid "Keyboard:"
 msgstr "Teclado:"
@@ -518,6 +518,9 @@ msgstr "Dispositivo LPT3:"
 
 msgid "LPT4 Device:"
 msgstr "Dispositivo LPT4:"
+
+msgid "Internal LPT ECP DMA:"
+msgstr "DMA ECP LPT Interna:"
 
 msgid "Serial port 1"
 msgstr "Porta serial 1"
@@ -2551,7 +2554,7 @@ msgid "Color Non-Interlaced"
 msgstr "Colorido não entrelaçado"
 
 msgid "3Dfx Voodoo Graphics"
-msgstr "Gráficos 3Dfx Voodoo"
+msgstr "3Dfx Voodoo Graphics"
 
 msgid "3Dfx Voodoo 2"
 msgstr "3Dfx Voodoo 2"
