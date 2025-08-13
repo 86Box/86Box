@@ -104,7 +104,27 @@ UpdateDetails::visitDownloadPage(const UpdateCheck::UpdateChannel &channel)
             QDesktopServices::openUrl(QUrl("https://github.com/86Box/86Box/releases/latest"));
             break;
         case UpdateCheck::UpdateChannel::CI:
-            QDesktopServices::openUrl(QUrl("https://ci.86box.net/job/86Box/lastSuccessfulBuild/artifact/"));
+            QDesktopServices::openUrl(QUrl("https://86box.net/builds#"
+#ifdef Q_OS_WINDOWS
+                "win"
+#elif Q_OS_MACOS
+                "mac"
+#elif Q_OS_LINUX
+                "lin"
+#endif
+
+#if defined(__aarch64__) || defined(_M_ARM64)
+                "arm64"
+#elif defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(_M_X64)
+                "64"
+#endif
+
+#ifdef USE_NEW_DYNAREC
+                "ndr"
+#else
+                "odr"
+#endif
+            ));
             break;
     }
 }
