@@ -109,6 +109,7 @@ typedef struct mach_t {
         uint16_t src_y;
         int16_t  bres_count;
         uint16_t clock_sel;
+        uint16_t clock_sel_mode;
         uint16_t crt_pitch;
         uint16_t ge_pitch;
         uint16_t src_pitch;
