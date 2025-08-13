@@ -508,7 +508,7 @@ bm_poll(void *priv)
             dev->mouse_buttons |= 0x40;
 
         /* Set bits 3-5 according to button state changes. */
-        xor = ((dev->current_b ^ mouse_get_buttons_ex()) & 0x07) << 3;
+        xor = ((dev->current_b ^ dev->mouse_buttons) & 0x07) << 3;
         dev->mouse_buttons |= xor;
     }
 

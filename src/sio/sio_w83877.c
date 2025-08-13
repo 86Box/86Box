@@ -201,6 +201,8 @@ w83877_lpt_handler(w83877_t *dev)
 
     lpt_port_irq(dev->lpt, lpt_irq);
     lpt_port_dma(dev->lpt, dev->dma_map[dev->regs[0x26] & 0x03]);
+
+    lpt_set_cnfgb_readout(dev->lpt, ((dev->regs[0x26] & 0xe0) >> 2) | 0x07);
 }
 
 static void

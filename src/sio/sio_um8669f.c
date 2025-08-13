@@ -8,8 +8,6 @@
  *
  *          Emulation of the UMC UM8669F Super I/O chip.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          RichardG, <richardg867@gmail.com>
@@ -349,6 +347,8 @@ um8669f_init(const device_t *info)
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
     dev->lpt = device_add_inst(&lpt_port_device, 1);
+
+    lpt_set_cnfgb_readout(dev->lpt, 0x00);
     lpt_set_ext(dev->lpt, 1);
 
     dev->ide = (uint8_t) (info->local - 1);

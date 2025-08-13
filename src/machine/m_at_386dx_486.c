@@ -236,6 +236,7 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&et4000w32_onboard_device);
 
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C661 | FDC37C6XX_IDE_PRI));
     device_add(&kbc_ps2_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
@@ -1925,7 +1926,7 @@ machine_at_486vipio2_init(const machine_t *model)
     device_add(&via_vt82c505_device);
     device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89));
     device_add(&kbc_ps2_ami_pci_device);
-    device_add(&sst_flash_29ee010_device);
+    device_add(&winbond_flash_w29c010_device);
 
     return ret;
 }
