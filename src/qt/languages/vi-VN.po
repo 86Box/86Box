@@ -519,6 +519,9 @@ msgstr "Thiết bị LPT3:"
 msgid "LPT4 Device:"
 msgstr "Thiết bị LPT4:"
 
+msgid "Internal LPT ECP DMA:"
+msgstr ""
+
 msgid "Serial port 1"
 msgstr "Cổng serial 1"
 

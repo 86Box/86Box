@@ -519,6 +519,9 @@ msgstr "Zariadenie na LPT3:"
 msgid "LPT4 Device:"
 msgstr "Zariadenie na LPT4:"
 
+msgid "Internal LPT ECP DMA:"
+msgstr ""
+
 msgid "Serial port 1"
 msgstr "Povoliť port COM1"
 

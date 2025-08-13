@@ -519,6 +519,9 @@ msgstr "Устройство LPT3:"
 msgid "LPT4 Device:"
 msgstr "Устройство LPT4:"
 
+msgid "Internal LPT ECP DMA:"
+msgstr ""
+
 msgid "Serial port 1"
 msgstr "Последовательный порт COM1"
 
@@ -1289,21 +1292,6 @@ msgstr "&Завершить процесс"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
 msgstr "Принудительное завершение процесса виртуальной машины может привести к потере данных. Делайте это только в том случае, если процесс 86Box завис.\n\nВы действительно хотите принудительно завершить процесс виртуальной машины \"%1\"?"
-
-msgid "&Wipe NVRAM"
-msgstr "&Стереть NVRAM"
-
-msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "Это удалит все файлы NVRAM (и связанные) виртуальной машины, расположенной в подпапке \"nvr\". Вам придётся снова реконфигурировать настройки BIOS (и, возможно, другие устройства внутри виртуальной машины), если применимо.\n\nВы уверены, что хотите стереть всё содержимое NVRAM виртуальной машины \"%1\"?"
-
-msgid "Success"
-msgstr "Успешно"
-
-msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr "Успешно стёрто содержимое NVRAM виртуальной машины \"%1\""
-
-msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr "Произошла ошибка, пытаясь стереть содержимое NVRAM виртуальной машины \"%1\""
 
 msgid "&Delete"
 msgstr "&Удалить"
@@ -2847,6 +2835,21 @@ msgstr ""
 msgid "ISA ROM"
 msgstr ""
 
+msgid "&Wipe NVRAM"
+msgstr "&Стереть NVRAM"
+
+msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
+msgstr "Это удалит все файлы NVRAM (и связанные) виртуальной машины, расположенной в подпапке \"nvr\". Вам придётся снова реконфигурировать настройки BIOS (и, возможно, другие устройства внутри виртуальной машины), если применимо.\n\nВы уверены, что хотите стереть всё содержимое NVRAM виртуальной машины \"%1\"?"
+
+msgid "Success"
+msgstr "Успешно"
+
+msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
+msgstr "Успешно стёрто содержимое NVRAM виртуальной машины \"%1\""
+
+msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgstr "Произошла ошибка, пытаясь стереть содержимое NVRAM виртуальной машины \"%1\""
+
 msgid "%1 VM Manager"
 msgstr ""
 
@@ -2873,6 +2876,12 @@ msgstr "Проверка обновлений завершена"
 
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr "Вы используете последнюю %1 версию 86Box: %2"
+
+msgid "version"
+msgstr ""
+
+msgid "build"
+msgstr ""
 
 msgid "You are currently running %1 <b>%2</b>. "
 msgstr "Вы сейчас используете %1 <b>%2</b>. "
