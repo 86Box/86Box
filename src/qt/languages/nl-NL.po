@@ -1086,17 +1086,26 @@ msgstr "Actief"
 msgid "Paused"
 msgstr "Gepauzeerd"
 
-msgid "Paused (Waiting)"
-msgstr "Gepauzeerd (aan het wachtend)"
+msgid "Waiting"
+msgstr "aan het wachtend"
 
 msgid "Powered Off"
 msgstr "Sluit af"
 
-msgid "waiting"
-msgstr "aan het wachten"
+msgid "%n running"
+msgstr "%n actief"
 
-msgid "total"
-msgstr "totaal"
+msgid "%n paused"
+msgstr "%n gepauzeerd"
+
+msgid "%n waiting"
+msgstr "%n aan het wachten"
+
+msgid "%1 total"
+msgstr "%1 totaal"
+
+msgid "VMs: %1"
+msgstr "VMs: %1"
 
 msgid "System Directory:"
 msgstr "Systeemmap:"

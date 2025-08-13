@@ -1084,19 +1084,28 @@ msgid "Running"
 msgstr "Работает"
 
 msgid "Paused"
-msgstr "Приостановлено"
+msgstr "Приостановлена"
 
-msgid "Paused (Waiting)"
-msgstr "Приостановлено (Ожидание)"
-
-msgid "Powered Off"
-msgstr "Выключено"
-
-msgid "waiting"
+msgid "Waiting"
 msgstr "Ожидание"
 
-msgid "total"
-msgstr "Всего"
+msgid "Powered Off"
+msgstr "Выключена"
+
+msgid "%n running"
+msgstr "%n работает"
+
+msgid "%n paused"
+msgstr "%n приостановлено"
+
+msgid "%n waiting"
+msgstr "%n ожидает"
+
+msgid "%1 total"
+msgstr "всего %1"
+
+msgid "VMs: %1"
+msgstr "Машин: %1"
 
 msgid "System Directory:"
 msgstr "Системная папка:"

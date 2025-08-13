@@ -1086,16 +1086,25 @@ msgstr ""
 msgid "Paused"
 msgstr ""
 
-msgid "Paused (Waiting)"
+msgid "Waiting"
 msgstr ""
 
 msgid "Powered Off"
 msgstr ""
 
-msgid "waiting"
+msgid "%n running"
 msgstr ""
 
-msgid "total"
+msgid "%n paused"
+msgstr ""
+
+msgid "%n waiting"
+msgstr ""
+
+msgid "%1 total"
+msgstr ""
+
+msgid "VMs: %1"
 msgstr ""
 
 msgid "System Directory:"

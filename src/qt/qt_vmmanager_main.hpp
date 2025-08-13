@@ -103,7 +103,7 @@ private:
     void updateDisplayName(const QModelIndex &index);
     void loadSettings();
     [[nodiscard]] bool currentSelectionIsValid() const;
-    [[nodiscard]] QString totalCountString() const;
+    [[nodiscard]] QString machineCountString(QString states = "") const;
 #if EMU_BUILD_NUM != 0
     void backgroundUpdateCheckStart() const;
 #endif

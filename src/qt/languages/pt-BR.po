@@ -1087,16 +1087,25 @@ msgid "Paused"
 msgstr "Pausado"
 
 msgid "Paused (Waiting)"
-msgstr "Pausado (Esperando)"
+msgstr "Esperando"
 
 msgid "Powered Off"
 msgstr "Desligado"
 
-msgid "waiting"
-msgstr "esperando"
+msgid "%n running"
+msgstr "%n rodando"
 
-msgid "total"
-msgstr "total"
+msgid "%n paused"
+msgstr "%n pausado"
+
+msgid "%n waiting"
+msgstr "%n esperando"
+
+msgid "%1 total"
+msgstr "%1 total"
+
+msgid "VMs: %1"
+msgstr ""
 
 msgid "System Directory:"
 msgstr "Diretório do Sistema:"
