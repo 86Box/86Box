@@ -138,6 +138,18 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
                 }
             });
 
+            QAction openScreenshotsFolderAction(tr("Open screenshots &folder..."));
+            contextMenu.addAction(&openScreenshotsFolderAction);
+            connect(&openScreenshotsFolderAction, &QAction::triggered, [indexAt] {
+                if (const auto screenshotsDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/screenshots/"); !screenshotsDir.isEmpty()) {
+                    QDir dir(screenshotsDir);
+                    if (!dir.exists())
+                        dir.mkpath(".");
+                    
+                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
+                }
+            });
+
             QAction setSystemIcon(tr("Set &icon..."));
             contextMenu.addAction(&setSystemIcon);
             connect(&setSystemIcon, &QAction::triggered, [this] {
