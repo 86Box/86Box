@@ -759,6 +759,7 @@ machine_at_hot539_init(const machine_t *model)
     return ret;
 }
 
+/* VLSI SuperCore */
 int
 machine_at_bravoms586_init(const machine_t *model)
 {
@@ -791,38 +792,6 @@ machine_at_bravoms586_init(const machine_t *model)
         device_add(machine_get_vid_device(machine));
     device_add(&ast_readout_device); /* AST custom jumper readout */
     device_add(&ast_nvr_device); /* AST custom secondary NVR device */
-
-    return ret;
-}
-
-int
-machine_at_globalyst620_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/globalyst620/p107.bin",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init_ex(model, 2);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0F, PCI_CARD_VIDEO, 0, 0, 0, 0); /* Onboard device */
-    pci_register_slot(0x10, PCI_CARD_IDE, 0, 0, 0, 0); /* Onboard device */
-    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4); /* Slot 04 */
-    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1); /* Slot 05 */
-    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2); /* Slot 06 */
-    device_add(&vl82c59x_wildcat_device);
-    device_add(&intel_flash_bxt_device);
-    device_add(&kbc_ps2_phoenix_device);
-    device_add(&ide_cmd640_pci_single_channel_legacy_only_device);
-    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
-    if (gfxcard[0] == VID_INTERNAL)
-        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
@@ -888,6 +857,36 @@ machine_at_g586vpmc_init(const machine_t *model)
 }
 
 int
+machine_at_m54si_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/m54si/M54SI.03",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_IDE, 0, 0, 0, 0); /* Onboard device */
+    pci_register_slot(0x10, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    /* Slots are a guess since this BIOS won't work with pcireg */
+    device_add(&vl82c59x_device);
+    device_add(&intel_flash_bxt_device);
+    device_add(&kbc_ps2_phoenix_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
+    device_add(&ide_cmd640_pci_single_channel_device);
+
+    return ret;
+}
+
+int
 machine_at_pb600_init(const machine_t *model)
 {
     int ret;
@@ -920,12 +919,13 @@ machine_at_pb600_init(const machine_t *model)
     return ret;
 }
 
+/* VLSI Wildcat */
 int
-machine_at_m54si_init(const machine_t *model)
+machine_at_globalyst620_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/m54si/M54SI.03",
+    ret = bios_load_linear("roms/machines/globalyst620/p107.bin",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -936,16 +936,18 @@ machine_at_m54si_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0D, PCI_CARD_IDE, 0, 0, 0, 0); /* Onboard device */
-    pci_register_slot(0x10, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x11, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    /* Slots are a guess since this BIOS won't work with pcireg */
-    device_add(&vl82c59x_device);
+    pci_register_slot(0x0F, PCI_CARD_VIDEO, 0, 0, 0, 0); /* Onboard device */
+    pci_register_slot(0x10, PCI_CARD_IDE, 0, 0, 0, 0); /* Onboard device */
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4); /* Slot 04 */
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1); /* Slot 05 */
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2); /* Slot 06 */
+    device_add(&vl82c59x_wildcat_device);
     device_add(&intel_flash_bxt_device);
     device_add(&kbc_ps2_phoenix_device);
+    device_add(&ide_cmd640_pci_single_channel_legacy_only_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
-    device_add(&ide_cmd640_pci_single_channel_device);
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }

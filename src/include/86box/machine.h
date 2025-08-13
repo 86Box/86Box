@@ -895,12 +895,15 @@ extern int             machine_at_torino_init(const machine_t *);
 /* UMC 889x */
 extern int             machine_at_hot539_init(const machine_t *);
 
-extern int machine_at_bravoms586_init(const machine_t *);
-extern int machine_at_globalyst620_init(const machine_t *);
-extern int machine_at_celebris5xx_init(const machine_t *);
-extern int machine_at_g586vpmc_init(const machine_t *);
-extern int machine_at_m54si_init(const machine_t *);
-extern int machine_at_pb600_init(const machine_t *);
+/* VLSI SuperCore */
+extern int             machine_at_bravoms586_init(const machine_t *);
+extern int             machine_at_celebris5xx_init(const machine_t *);
+extern int             machine_at_g586vpmc_init(const machine_t *);
+extern int             machine_at_m54si_init(const machine_t *);
+extern int             machine_at_pb600_init(const machine_t *);
+
+/* VLSI Wildcat */
+extern int             machine_at_globalyst620_init(const machine_t *);
 
 /* m_at_socket7_3v.c */
 /* i430FX */
@@ -945,7 +948,8 @@ extern int             machine_at_ap5s_init(const machine_t *);
 extern int             machine_at_pc140_6260_init(const machine_t *);
 extern int             machine_at_ms5124_init(const machine_t *);
 
-extern int machine_at_zeoswildcat_init(const machine_t *);
+/* VLSI Wildcat */
+extern int             machine_at_zeoswildcat_init(const machine_t *);
 
 /* m_at_socket7.c */
 /* i430HX */
