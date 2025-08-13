@@ -253,6 +253,7 @@ typedef struct ibm8514_t {
     int     vdisp;
     int     vdisp2;
     int     disp_cntl;
+    int     disp_cntl_2;
     int     interlace;
     uint16_t subsys_cntl;
     uint8_t subsys_stat;
