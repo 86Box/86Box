@@ -82,7 +82,7 @@
           <enum>Qt::ClickFocus</enum>
          </property>
          <property name="placeholderText">
-          <string> Search</string>
+          <string>Search</string>
          </property>
          <property name="clearButtonEnabled">
           <bool>true</bool>
