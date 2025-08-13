@@ -1117,7 +1117,7 @@ msgid "Use regular expressions in search box"
 msgstr "Usar expressões regulares na caixa de pesquisa"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 máquina(s) estão ativas atualmente. Tem certeza que deseja encerrar o gerenciador de VM mesmo?"
+msgstr "%1 máquina(s) estão ativas atualmente. Tem certeza que deseja encerrar o gerenciador de VM assim mesmo?"
 
 msgid "Add new system wizard"
 msgstr "Assistente para novo sistema"
@@ -2848,7 +2848,7 @@ msgid "An error occured trying to wipe the NVRAM contents of the virtual machine
 msgstr "Um erro ocorreu ao tentar apagar o conteúdo NVRAM da máquina virtual \"%1\""
 
 msgid "%1 VM Manager"
-msgstr "%1 Gerenciador de VM"
+msgstr "Gerenciador de VM do %1"
 
 msgid "%n disk(s)"
 msgstr "%1 disco(s)"
@@ -2872,7 +2872,7 @@ msgid "Update check complete"
 msgstr "Verificação de atualização completada"
 
 msgid "You are running the latest %1 version of 86Box: %2"
-msgstr "Você está executando a última %1 versão do 86Box: %2"
+msgstr "Você está executando a última versão %1 do 86Box: %2"
 
 msgid "version"
 msgstr "versão"
