@@ -698,12 +698,16 @@ ht216_recalctimings(svga_t *svga)
                 if (((ht216->ht_regs[0xc8] & HT_REG_C8_E256) || (svga->gdcreg[5] & 0x40)) && (!svga->lowres || (ht216->ht_regs[0xf6] & 0x80))) {
                     if (high_res_256) {
                         svga->hdisp >>= 1;
+                        svga->dots_per_clock >>= 1;
+                        svga->clock /= 2;
                         ht216->adjust_cursor = 1;
                     }
                     svga->render = svga_render_8bpp_highres;
                 } else if (svga->lowres) {
                     if (high_res_256) {
                         svga->hdisp >>= 1;
+                        svga->dots_per_clock >>= 1;
+                        svga->clock /= 2;
                         ht216->adjust_cursor = 1;
                         svga->render         = svga_render_8bpp_highres;
                     } else {
@@ -726,6 +730,8 @@ ht216_recalctimings(svga_t *svga)
             } else if (svga->bpp == 15) {
                 svga->rowoffset <<= 1;
                 svga->hdisp >>= 1;
+                svga->dots_per_clock >>= 1;
+                svga->clock /= 2;
                 if ((svga->crtc[0x17] & 0x60) == 0x20) /*Would result in a garbled screen with trailing cursor glitches*/
                     svga->crtc[0x17] |= 0x40;
                 svga->render = svga_render_15bpp_highres;
