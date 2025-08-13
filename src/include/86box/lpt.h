@@ -139,6 +139,7 @@ extern void                lpt_set_cnfgb_readout(lpt_t *dev, const uint8_t cnfgb
 extern void                lpt_port_setup(lpt_t *dev, uint16_t port);
 extern void                lpt_port_irq(lpt_t *dev, uint8_t irq);
 extern void                lpt_port_dma(lpt_t *dev, uint8_t dma);
+extern void                lpt1_dma(const uint8_t dma);
 extern void                lpt_port_remove(lpt_t *dev);
 extern void                lpt1_remove_ams(lpt_t *dev);
 

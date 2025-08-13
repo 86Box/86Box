@@ -143,6 +143,24 @@
 #define MACHINE_PIIX3             (MACHINE_PIIX | MACHINE_USB)
 #define MACHINE_PIIX4             (MACHINE_PIIX3 | MACHINE_ACPI)
 
+#define MACHINE_DMA_0             0x00000001
+#define MACHINE_DMA_1             0x00000002
+#define MACHINE_DMA_2             0x00000004
+#define MACHINE_DMA_3             0x00000008
+#define MACHINE_DMA_DISABLED      0x00000010
+#define MACHINE_DMA_5             0x00000020
+#define MACHINE_DMA_6             0x00000040
+#define MACHINE_DMA_7             0x00000080
+#define MACHINE_DMA_JUMPERS_MASK  (MACHINE_DMA_0 | MACHINE_DMA_1 | MACHINE_DMA_2 | MACHINE_DMA_3 | \
+                                   MACHINE_DMA_DISABLED | MACHINE_DMA_5 | MACHINE_DMA_6 | MACHINE_DMA_7)
+#define MACHINE_DMA_USE_MBDMA     0x00000100
+#define MACHINE_DMA_USE_CONFIG    0x00000200
+#define MACHINE_DMA_EXT_CONFIG    (MACHINE_DMA_USE_MBDMA | MACHINE_DMA_USE_CONFIG)
+
+#define DMA_DISABLED                       4
+#define DMA_NONE                          -1
+#define DMA_ANY                           -1
+
 #define IS_ARCH(m, a) ((machines[m].bus_flags & (a)) ? 1 : 0)
 #define IS_AT(m)      (((machines[m].bus_flags & (MACHINE_BUS_ISA16 | MACHINE_BUS_EISA | MACHINE_BUS_VLB | MACHINE_BUS_MCA | MACHINE_BUS_PCI | MACHINE_BUS_PCMCIA | MACHINE_BUS_AGP | MACHINE_BUS_AC97)) && !(machines[m].bus_flags & MACHINE_PC98)) ? 1 : 0)
 
@@ -328,6 +346,8 @@ typedef struct _machine_ {
     const machine_memory_t ram;
     int                    ram_granularity;
     int                    nvrmask;
+    int                    jumpered_ecp_dma;
+    int                    default_jumpered_ecp_dma;
 #ifdef EMU_DEVICE_H
     const device_t        *kbc_device;
 #else
@@ -366,14 +386,14 @@ extern int                    machine;
 extern void *                 machine_snd;
 
 /* Core functions. */
-extern int         machine_count(void);
-extern int         machine_available(int m);
-extern const char *machine_getname(void);
-extern const char *machine_getname_ex(int m);
-extern const char *machine_get_internal_name(void);
-extern const char *machine_get_nvr_name(void);
-extern int         machine_get_machine_from_internal_name(const char *s);
-extern void        machine_init(void);
+extern int             machine_count(void);
+extern int             machine_available(int m);
+extern const char *    machine_getname(void);
+extern const char *    machine_getname_ex(int m);
+extern const char *    machine_get_internal_name(void);
+extern const char *    machine_get_nvr_name(void);
+extern int             machine_get_machine_from_internal_name(const char *s);
+extern void            machine_init(void);
 #ifdef EMU_DEVICE_H
 extern const device_t *machine_get_kbc_device(int m);
 extern const device_t *machine_get_device(int m);
@@ -383,53 +403,57 @@ extern const device_t *machine_get_vid_device(int m);
 extern const device_t *machine_get_snd_device(int m);
 extern const device_t *machine_get_net_device(int m);
 #endif
-extern const char *machine_get_internal_name_ex(int m);
-extern const char *machine_get_nvr_name_ex(int m);
-extern int         machine_get_nvrmask(int m);
-extern int         machine_has_flags(int m, int flags);
-extern int         machine_has_bus(int m, int bus_flags);
-extern int         machine_has_cartridge(int m);
-extern int         machine_get_min_ram(int m);
-extern int         machine_get_max_ram(int m);
-extern int         machine_get_ram_granularity(int m);
-extern int         machine_get_type(int m);
-extern int         machine_get_chipset(int m);
-extern void        machine_close(void);
-extern int         machine_has_mouse(void);
-extern int         machine_is_sony(void);
+extern const char *    machine_get_internal_name_ex(int m);
+extern const char *    machine_get_nvr_name_ex(int m);
+extern int             machine_get_nvrmask(int m);
+extern int             machine_has_flags(int m, int flags);
+extern int             machine_has_bus(int m, int bus_flags);
+extern int             machine_has_cartridge(int m);
+extern int             machine_has_jumpered_ecp_dma(int m, int dma);
+extern int             machine_get_default_jumpered_ecp_dma(int m);
+extern int             machine_map_jumpered_ecp_dma(int dma);
+extern const char *    machine_get_jumpered_ecp_dma_name(int dma);
+extern int             machine_get_min_ram(int m);
+extern int             machine_get_max_ram(int m);
+extern int             machine_get_ram_granularity(int m);
+extern int             machine_get_type(int m);
+extern int             machine_get_chipset(int m);
+extern void            machine_close(void);
+extern int             machine_has_mouse(void);
+extern int             machine_is_sony(void);
 
-extern uint8_t  machine_get_p1_default(void);
-extern uint8_t  machine_get_p1(void);
-extern void     machine_set_p1_default(uint8_t val);
-extern void     machine_set_p1(uint8_t val);
-extern void     machine_and_p1(uint8_t val);
-extern void     machine_init_p1(void);
-extern uint8_t  machine_handle_p1(uint8_t write, uint8_t val);
-extern uint32_t machine_get_gpio_default(void);
-extern uint32_t machine_get_gpio(void);
-extern void     machine_set_gpio_default(uint32_t val);
-extern void     machine_set_gpio(uint32_t val);
-extern void     machine_and_gpio(uint32_t val);
-extern void     machine_init_gpio(void);
-extern uint32_t machine_handle_gpio(uint8_t write, uint32_t val);
-extern uint32_t machine_get_gpio_acpi_default(void);
-extern uint32_t machine_get_gpio_acpi(void);
-extern void     machine_set_gpio_acpi_default(uint32_t val);
-extern void     machine_set_gpio_acpi(uint32_t val);
-extern void     machine_and_gpio_acpi(uint32_t val);
-extern void     machine_init_gpio_acpi(void);
-extern uint32_t machine_handle_gpio_acpi(uint8_t write, uint32_t val);
+extern uint8_t         machine_get_p1_default(void);
+extern uint8_t         machine_get_p1(void);
+extern void            machine_set_p1_default(uint8_t val);
+extern void            machine_set_p1(uint8_t val);
+extern void            machine_and_p1(uint8_t val);
+extern void            machine_init_p1(void);
+extern uint8_t         machine_handle_p1(uint8_t write, uint8_t val);
+extern uint32_t        machine_get_gpio_default(void);
+extern uint32_t        machine_get_gpio(void);
+extern void            machine_set_gpio_default(uint32_t val);
+extern void            machine_set_gpio(uint32_t val);
+extern void            machine_and_gpio(uint32_t val);
+extern void            machine_init_gpio(void);
+extern uint32_t        machine_handle_gpio(uint8_t write, uint32_t val);
+extern uint32_t        machine_get_gpio_acpi_default(void);
+extern uint32_t        machine_get_gpio_acpi(void);
+extern void            machine_set_gpio_acpi_default(uint32_t val);
+extern void            machine_set_gpio_acpi(uint32_t val);
+extern void            machine_and_gpio_acpi(uint32_t val);
+extern void            machine_init_gpio_acpi(void);
+extern uint32_t        machine_handle_gpio_acpi(uint8_t write, uint32_t val);
 
 /* Initialization functions for boards and systems. */
-extern void machine_common_init(const machine_t *);
+extern void            machine_common_init(const machine_t *);
 
 /* m_amstrad.c */
-extern int machine_pc1512_init(const machine_t *);
-extern int machine_pc1640_init(const machine_t *);
-extern int machine_pc200_init(const machine_t *);
-extern int machine_ppc512_init(const machine_t *);
-extern int machine_pc2086_init(const machine_t *);
-extern int machine_pc3086_init(const machine_t *);
+extern int             machine_pc1512_init(const machine_t *);
+extern int             machine_pc1640_init(const machine_t *);
+extern int             machine_pc200_init(const machine_t *);
+extern int             machine_ppc512_init(const machine_t *);
+extern int             machine_pc2086_init(const machine_t *);
+extern int             machine_pc3086_init(const machine_t *);
 
 /* m_at.c */
 extern void machine_at_common_init_ex(const machine_t *, int type);
@@ -456,92 +480,92 @@ extern int  machine_at_siemens_init(const machine_t *); // Siemens PCD-2L. N8233
 
 /* m_at_286.c */
 /* ISA */
-extern int  machine_at_mr286_init(const machine_t *);
-extern int  machine_at_pc8_init(const machine_t *);
-extern int  machine_at_m290_init(const machine_t *);
+extern int             machine_at_mr286_init(const machine_t *);
+extern int             machine_at_pc8_init(const machine_t *);
+extern int             machine_at_m290_init(const machine_t *);
 
 /* C&T PC/AT */
-extern int  machine_at_dells200_init(const machine_t *);
-extern int  machine_at_super286c_init(const machine_t *);
-extern int  machine_at_at122_init(const machine_t *);
-extern int  machine_at_tuliptc7_init(const machine_t *);
+extern int             machine_at_dells200_init(const machine_t *);
+extern int             machine_at_super286c_init(const machine_t *);
+extern int             machine_at_at122_init(const machine_t *);
+extern int             machine_at_tuliptc7_init(const machine_t *);
 
 /* GC103 */
-extern int  machine_at_quadt286_init(const machine_t *);
-extern void machine_at_headland_common_init(const machine_t *model, int type);
-extern int  machine_at_tg286m_init(const machine_t *);
+extern int             machine_at_quadt286_init(const machine_t *);
+extern void            machine_at_headland_common_init(const machine_t *model, int type);
+extern int             machine_at_tg286m_init(const machine_t *);
 /* Wells American A*Star with custom award BIOS. */
-extern int  machine_at_wellamerastar_init(const machine_t *);
+extern int             machine_at_wellamerastar_init(const machine_t *);
 
 /* NEAT */
-extern int  machine_at_ataripc4_init(const machine_t *);
-extern int  machine_at_neat_ami_init(const machine_t *);
-extern int  machine_at_3302_init(const machine_t *);
-extern int  machine_at_px286_init(const machine_t *);
+extern int             machine_at_ataripc4_init(const machine_t *);
+extern int             machine_at_neat_ami_init(const machine_t *);
+extern int             machine_at_3302_init(const machine_t *);
+extern int             machine_at_px286_init(const machine_t *);
 
 /* SCAT */
-extern int  machine_at_gw286ct_init(const machine_t *);
-extern int  machine_at_gdc212m_init(const machine_t *);
-extern int  machine_at_award286_init(const machine_t *);
-extern int  machine_at_super286tr_init(const machine_t *);
-extern int  machine_at_drsm35286_init(const machine_t *);
-extern int  machine_at_deskmaster286_init(const machine_t *);
-extern int  machine_at_spc4200p_init(const machine_t *);
-extern int  machine_at_spc4216p_init(const machine_t *);
-extern int  machine_at_spc4620p_init(const machine_t *);
-extern int  machine_at_senor_scat286_init(const machine_t *);
+extern int             machine_at_gw286ct_init(const machine_t *);
+extern int             machine_at_gdc212m_init(const machine_t *);
+extern int             machine_at_award286_init(const machine_t *);
+extern int             machine_at_super286tr_init(const machine_t *);
+extern int             machine_at_drsm35286_init(const machine_t *);
+extern int             machine_at_deskmaster286_init(const machine_t *);
+extern int             machine_at_spc4200p_init(const machine_t *);
+extern int             machine_at_spc4216p_init(const machine_t *);
+extern int             machine_at_spc4620p_init(const machine_t *);
+extern int             machine_at_senor_scat286_init(const machine_t *);
 
 /* m_at_386sx.c */
 /* ISA */
-extern int  machine_at_pc916sx_init(const machine_t *);
-extern int  machine_at_quadt386sx_init(const machine_t *);
+extern int             machine_at_pc916sx_init(const machine_t *);
+extern int             machine_at_quadt386sx_init(const machine_t *);
 
 /* ACC 2036 */
-extern int  machine_at_pbl300sx_init(const machine_t *);
+extern int             machine_at_pbl300sx_init(const machine_t *);
 
 /* ALi M1217 */
-extern int  machine_at_arb1374_init(const machine_t *);
-extern int  machine_at_sbc350a_init(const machine_t *);
-extern int  machine_at_flytech386_init(const machine_t *);
-extern int  machine_at_325ax_init(const machine_t *);
-extern int  machine_at_mr1217_init(const machine_t *);
+extern int             machine_at_arb1374_init(const machine_t *);
+extern int             machine_at_sbc350a_init(const machine_t *);
+extern int             machine_at_flytech386_init(const machine_t *);
+extern int             machine_at_325ax_init(const machine_t *);
+extern int             machine_at_mr1217_init(const machine_t *);
 
 /* ALi M1409 */
-extern int  machine_at_acer100t_init(const machine_t *);
+extern int             machine_at_acer100t_init(const machine_t *);
 
 /* HT18 */
-extern int  machine_at_ama932j_init(const machine_t *);
+extern int             machine_at_ama932j_init(const machine_t *);
 
 /* Intel 82335 */
-extern int  machine_at_adi386sx_init(const machine_t *);
-extern int  machine_at_shuttle386sx_init(const machine_t *);
+extern int             machine_at_adi386sx_init(const machine_t *);
+extern int             machine_at_shuttle386sx_init(const machine_t *);
 
 /* NEAT */
-extern int  machine_at_cmdsl386sx16_init(const machine_t *);
-extern int  machine_at_neat_init(const machine_t *);
+extern int             machine_at_cmdsl386sx16_init(const machine_t *);
+extern int             machine_at_neat_init(const machine_t *);
 
 /* NEATsx */
-extern int  machine_at_if386sx_init(const machine_t *);
+extern int             machine_at_if386sx_init(const machine_t *);
 
 /* OPTi 291 */
-extern int  machine_at_awardsx_init(const machine_t *);
+extern int             machine_at_awardsx_init(const machine_t *);
 
 /* SCAMP */
-extern int  machine_at_cmdsl386sx25_init(const machine_t *);
-extern int  machine_at_dataexpert386sx_init(const machine_t *);
-extern int  machine_at_dells333sl_init(const machine_t *);
-extern int  machine_at_spc6033p_init(const machine_t *);
+extern int             machine_at_cmdsl386sx25_init(const machine_t *);
+extern int             machine_at_dataexpert386sx_init(const machine_t *);
+extern int             machine_at_dells333sl_init(const machine_t *);
+extern int             machine_at_spc6033p_init(const machine_t *);
 
 /* SCATsx */
-extern int  machine_at_kmxc02_init(const machine_t *);
+extern int             machine_at_kmxc02_init(const machine_t *);
 
 /* WD76C10 */
-extern int  machine_at_wd76c10_init(const machine_t *);
+extern int             machine_at_wd76c10_init(const machine_t *);
 
 /* m_at_m6117.c */
 /* ALi M6117D */
-extern int  machine_at_pja511m_init(const machine_t *);
-extern int  machine_at_prox1332_init(const machine_t *);
+extern int             machine_at_pja511m_init(const machine_t *);
+extern int             machine_at_prox1332_init(const machine_t *);
 
 /* m_at_386dx_486.c */
 /* Note to jriwanek: When merging this into my branch, please make
