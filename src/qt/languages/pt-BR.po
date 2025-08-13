@@ -1161,9 +1161,6 @@ msgstr "Cole o conteúdo de uma configuração existente na caixa abaixo."
 msgid "Load configuration from file"
 msgstr "Carregar configuração do arquivo"
 
-msgid "System Name"
-msgstr "Nome do Sistema"
-
 msgid "System name"
 msgstr "Nome do sistema"
 
@@ -1188,9 +1185,6 @@ msgstr "Um novo diretório para o sistema será criado no diretório acima"
 msgid "System location:"
 msgstr "Local do sistema:"
 
-msgid "System Location"
-msgstr "Local do Sistema"
-
 msgid "System name and location"
 msgstr "Nome do sistema e local"
 
@@ -1203,8 +1197,8 @@ msgstr "Digite o nome do sistema"
 msgid "Please enter a system name"
 msgstr "Por favor digite um nome de sistema"
 
-msgid "Display Name (optional)"
-msgstr "Nome de exibição (opcional)"
+msgid "Display name (optional):"
+msgstr "Nome de exibição (opcional):"
 
 msgid "Display name:"
 msgstr "Nome de exibição:"

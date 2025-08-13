@@ -1161,9 +1161,6 @@ msgstr ""
 msgid "Load configuration from file"
 msgstr ""
 
-msgid "System Name"
-msgstr ""
-
 msgid "System name"
 msgstr ""
 
@@ -1188,9 +1185,6 @@ msgstr ""
 msgid "System location:"
 msgstr ""
 
-msgid "System Location"
-msgstr ""
-
 msgid "System name and location"
 msgstr ""
 
@@ -1203,7 +1197,7 @@ msgstr ""
 msgid "Please enter a system name"
 msgstr ""
 
-msgid "Display Name (optional)"
+msgid "Display name (optional):"
 msgstr ""
 
 msgid "Display name:"

@@ -212,7 +212,7 @@ NameAndLocationPage(QWidget *parent)
     const auto chooseDirectoryButton = new QPushButton();
     chooseDirectoryButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_DirIcon));
 
-    const auto systemNameLabel = new QLabel(tr("System Name"));
+    const auto systemNameLabel = new QLabel(tr("System name:"));
     systemName           = new QLineEdit();
     // Special event filter to override enter key
     systemName->installEventFilter(this);
@@ -220,7 +220,7 @@ NameAndLocationPage(QWidget *parent)
     systemNameValidation = new QLabel();
 
 #ifdef CUSTOM_SYSTEM_LOCATION
-    const auto systemLocationLabel = new QLabel(tr("System Location"));
+    const auto systemLocationLabel = new QLabel(tr("System location:"));
     systemLocation           = new QLineEdit();
     // TODO: FIXME: This is using the CLI arg and needs to instead use a proper variable
     systemLocation->setText(QDir::toNativeSeparators(vmm_path));
@@ -229,7 +229,7 @@ NameAndLocationPage(QWidget *parent)
     systemLocationValidation->setWordWrap(true);
 #endif
 
-    const auto displayNameLabel = new QLabel(tr("Display Name (optional)"));
+    const auto displayNameLabel = new QLabel(tr("Display name (optional):"));
     displayName           = new QLineEdit();
     // Special event filter to override enter key
     displayName->installEventFilter(this);
@@ -355,15 +355,18 @@ ConclusionPage(QWidget *parent)
     const auto systemNameLabel     = new QLabel(tr("System name:"));
     systemNameLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     systemName                     = new QLabel();
+    systemName->setWordWrap(true);
 #ifdef CUSTOM_SYSTEM_LOCATION
     const auto systemLocationLabel = new QLabel(tr("System location:"));
     systemLocationLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     systemLocation      = new QLabel();
+    systemLocation->setWordWrap(true);
 #endif
 
     displayNameLabel                = new QLabel(tr("Display name:"));
     displayNameLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     displayName                     = new QLabel();
+    displayName->setWordWrap(true);
 
     const auto layout = new QGridLayout();
     layout->addWidget(topLabel, 0, 0, 1, -1);
