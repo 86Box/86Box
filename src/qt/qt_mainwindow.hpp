@@ -163,6 +163,8 @@ private slots:
 
     void on_actionOpen_screenshots_folder_triggered();
 
+    void on_actionOpen_printer_tray_triggered();
+
     void on_actionApply_fullscreen_stretch_mode_when_maximized_triggered(bool checked);
 
 private:
