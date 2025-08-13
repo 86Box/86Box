@@ -2271,6 +2271,13 @@ MainWindow::on_actionOpen_screenshots_folder_triggered()
 }
 
 void
+MainWindow::on_actionOpen_printer_tray_triggered()
+{
+    static_cast<void>(QDir(QString(usr_path) + QString("/printer/")).mkpath("."));
+    QDesktopServices::openUrl(QUrl(QString("file:///") + usr_path + QString("/printer/")));
+}
+
+void
 MainWindow::on_actionApply_fullscreen_stretch_mode_when_maximized_triggered(bool checked)
 {
     video_fullscreen_scale_maximized = checked;
