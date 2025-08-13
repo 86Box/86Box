@@ -41,11 +41,6 @@ public:
     };
 
     explicit VMManagerAddMachine(QWidget *parent = nullptr);
-
-#if 0
-private slots:
-    void showHelp();
-#endif
 };
 
 class IntroPage : public QWizardPage {

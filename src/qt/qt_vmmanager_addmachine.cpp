@@ -62,40 +62,8 @@ VMManagerAddMachine(QWidget *parent) : QWizard(parent)
     setOption(HaveHelpButton, false);
     // setPixmap(LogoPixmap, QPixmap(":/settings/qt/icons/86Box-gray.ico"));
 
-#if 0
-    connect(this, &QWizard::helpRequested, this, &VMManagerAddMachine::showHelp);
-#endif
-
     setWindowTitle(tr("Add new system wizard"));
 }
-
-#if 0
-void
-VMManagerAddMachine::showHelp()
-{
-    // TBD
-    static QString lastHelpMessage;
-
-    QString message;
-
-    // Help will depend on the current page
-    switch (currentId()) {
-        case Page_Intro:
-            message = tr("This is the into page.");
-            break;
-        default:
-            message = tr("No help has been added yet, you're on your own.");
-            break;
-    }
-
-    if (lastHelpMessage == message) {
-        message = tr("Did you click help twice?");
-    }
-
-    QMessageBox::information(this, tr("Add new system wizard help"), message);
-    lastHelpMessage = message;
-}
-#endif
 
 IntroPage::
 IntroPage(QWidget *parent)
