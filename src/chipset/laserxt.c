@@ -1,4 +1,23 @@
-/*This is the chipset used in the LaserXT series model*/
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Implementation of the VTech LaserXT chipset.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *
+ *          Copyright 2008-2025 Sarah Walker.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2017-2025 Fred N. van Kempen.
+ *          Copyright 2025      Jasmine Iwanek.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -452,53 +471,3 @@ const device_t lxt3_device = {
     .force_redraw  = NULL,
     .config        = lxt3_config
 };
-
-static void
-machine_xt_laserxt_common_init(const machine_t *model,int is_lxt3)
-{
-    machine_common_init(model);
-
-    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
-
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_xt_device);
-
-    nmi_init();
-    standalone_gameport_type = &gameport_200_device;
-
-    device_add(is_lxt3 ? &lxt3_device : &laserxt_device);
-
-    device_add(&kbc_xt_lxt3_device);
-}
-
-int
-machine_xt_laserxt_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/ltxt/27c64.bin",
-                           0x000fe000, 8192, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_xt_laserxt_common_init(model, 0);
-
-    return ret;
-}
-
-int
-machine_xt_lxt3_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/lxt3/27c64d.bin",
-                           0x000fe000, 8192, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_xt_laserxt_common_init(model, 1);
-
-    return ret;
-}

@@ -19,6 +19,7 @@ add_library(sio OBJECT
     sio_82091aa.c
     sio_acc3221.c
     sio_ali5123.c
+    sio_cbm_io.c
     sio_gm82c803ab.c
     sio_gm82c803c.c
     sio_f82c606.c

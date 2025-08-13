@@ -62,6 +62,7 @@ add_library(dev OBJECT
     smbus_sis5595.c
     tulip_jumper.c
     unittester.c
+    zenith_scratchpad.c
 )
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC)
