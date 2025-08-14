@@ -113,9 +113,9 @@ UpdateDetails::visitDownloadPage(const UpdateCheck::UpdateChannel &channel)
             QDesktopServices::openUrl(QUrl("https://86box.net/builds#"
 #ifdef Q_OS_WINDOWS
                 "win"
-#elif Q_OS_MACOS
+#elif defined(Q_OS_MACOS)
                 "mac"
-#elif Q_OS_LINUX
+#elif defined(Q_OS_LINUX)
                 "lin"
 #endif
 
