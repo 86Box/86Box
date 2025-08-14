@@ -360,12 +360,12 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         } else if (net_cards_conf[i].net_type == NET_TYPE_NMSWITCH) {
             auto *promisc_value = findChild<QCheckBox *>(QString("boxPromisc%1").arg(i + 1));
             promisc_value->setCheckState(net_cards_conf[i].promisc_mode == 1 ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
-            auto *switch_group_value = findChild<QSpinBox *>(QString("switchSpinner%1").arg(i + 1));
+            auto *switch_group_value = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
             switch_group_value->setValue(net_cards_conf[i].switch_group + 1);
         } else if (net_cards_conf[i].net_type == NET_TYPE_NRSWITCH) {
-            auto *hostname_value = findChild<QLineEdit *>(QString("switchHostname%1").arg(i + 1));
+            auto *hostname_value = findChild<QLineEdit *>(QString("hostnameSwitch%1").arg(i + 1));
             hostname_value->setText(net_cards_conf[i].nrs_hostname);
-            auto *switch_group_value = findChild<QSpinBox *>(QString("switchSpinner%1").arg(i + 1));
+            auto *switch_group_value = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
             switch_group_value->setValue(net_cards_conf[i].switch_group + 1);
 #endif /* USE_NETSWITCH */
         }
