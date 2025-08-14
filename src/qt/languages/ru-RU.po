@@ -1284,6 +1284,12 @@ msgstr "Сборка"
 msgid "Version"
 msgstr "Версия"
 
+msgid "An update to 86Box is available: %1 %2"
+msgstr "Доступно обновление для 86Box: %1 %2"
+
+msgid "An error has occurred while checking for updates: %1"
+msgstr "При проверке обновлений произошла ошибка: %1"
+
 msgid "<b>An update to 86Box is available!</b>"
 msgstr "<b>Доступно обновление для 86Box!</b>"
 
@@ -2877,23 +2883,38 @@ msgstr "Произошла ошибка при проверке обновлен
 msgid "Update check complete"
 msgstr "Проверка обновлений завершена"
 
+msgid "stable"
+msgstr "стабильную"
+
+msgid "beta"
+msgstr "бета"
+
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr "Вы используете последнюю %1 версию 86Box: %2"
 
 msgid "version"
-msgstr ""
+msgstr "версия"
 
 msgid "build"
-msgstr ""
+msgstr "сборка"
 
-msgid "You are currently running %1 <b>%2</b>. "
-msgstr "Вы сейчас используете %1 <b>%2</b>. "
+msgid "You are currently running version <b>%1</b>."
+msgstr "Вы сейчас используете версию <b>%1</b>."
 
-msgid "<b>%1 %2</b> is now available. %3Would you like to visit the download page?"
-msgstr "<b>%1 %2</b> теперь доступно. %3Хотели бы вы посетить страницу загрузки?"
+msgid "<b>Version %1</b> is now available."
+msgstr "Доступна <b>версия %1</b>."
+
+msgid "You are currently running build <b>%1</b>."
+msgstr "Вы сейчас используете сборку <b>%1</b>."
+
+msgid "<b>Build %1</b> is now available."
+msgstr "Доступна <b>сборка %1</b>."
+
+msgid "Would you like to visit the download page?"
+msgstr "Открыть страницу загрузки?"
 
 msgid "Visit download page"
-msgstr "Посетить страницу загрузки"
+msgstr "Открыть страницу загрузки"
 
 msgid "Update check"
 msgstr "Проверка обновлений"

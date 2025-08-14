@@ -1284,6 +1284,12 @@ msgstr ""
 msgid "Version"
 msgstr ""
 
+msgid "An update to 86Box is available: %1 %2"
+msgstr ""
+
+msgid "An error has occurred while checking for updates: %1"
+msgstr ""
+
 msgid "<b>An update to 86Box is available!</b>"
 msgstr ""
 
@@ -2877,6 +2883,12 @@ msgstr ""
 msgid "Update check complete"
 msgstr ""
 
+msgid "stable"
+msgstr ""
+
+msgid "beta"
+msgstr ""
+
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr ""
 
@@ -2886,10 +2898,19 @@ msgstr ""
 msgid "build"
 msgstr ""
 
-msgid "You are currently running %1 <b>%2</b>. "
+msgid "You are currently running version <b>%1</b>."
 msgstr ""
 
-msgid "<b>%1 %2</b> is now available. %3Would you like to visit the download page?"
+msgid "<b>Version %1</b> is now available."
+msgstr ""
+
+msgid "You are currently running build <b>%1</b>."
+msgstr ""
+
+msgid "<b>Build %1</b> is now available."
+msgstr ""
+
+msgid "Would you like to visit the download page?"
 msgstr ""
 
 msgid "Visit download page"
