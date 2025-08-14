@@ -135,6 +135,7 @@ extern const device_t opti481_device;
 extern const device_t opti493_device;
 extern const device_t opti495slc_device;
 extern const device_t opti495sx_device;
+extern const device_t opti496_device;
 extern const device_t opti498_device;
 extern const device_t opti499_device;
 extern const device_t opti601_device;

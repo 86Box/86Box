@@ -92,6 +92,28 @@ machine_at_ga486l_init(const machine_t *model)
     return ret;
 }
 
+/* OPTi 493 */
+int
+machine_at_svc486wb_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/svc486wb/svc486wb-AM27C512DIP28.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti493_device);
+
+    device_add(&kbc_at_ami_device);
+    device_add(&ide_isa_device);
+
+    return ret;
+}
+
 /* OPTi 498 */
 int
 machine_at_mvi486_init(const machine_t *model)

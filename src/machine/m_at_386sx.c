@@ -447,6 +447,29 @@ machine_at_if386sx_init(const machine_t *model)
     return ret;
 }
 
+/* OPTi 283 */
+int
+machine_at_svc386sxp1_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/svc386sxp1/svc-386sx-am27c512dip28-6468c04f09d89320349795.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti283_device);
+    device_add(&kbc_at_ami_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
 /* OPTi 291 */
 int
 machine_at_awardsx_init(const machine_t *model)
