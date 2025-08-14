@@ -308,7 +308,7 @@ illegal_chars:
                     if (QDir(selected_sysconfig->config_dir + "/nvr/").removeRecursively())
                         QMessageBox::information(this, tr("Success"), tr("Successfully wiped the NVRAM contents of the virtual machine \"%1\"").arg(selected_sysconfig->displayName));
                     else {
-                        QMessageBox::critical(this, tr("Error"), tr("An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\"").arg(selected_sysconfig->displayName));
+                        QMessageBox::critical(this, tr("Error"), tr("An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\"").arg(selected_sysconfig->displayName));
                     }
                 }
             });

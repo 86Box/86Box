@@ -57,9 +57,6 @@ msgstr "渲染器(&N)"
 msgid "&Qt (Software)"
 msgstr "Qt (软件)(&Q)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (OpenGL)(&O)"
-
 msgid "Open&GL (3.0 Core)"
 msgstr "OpenGL (3.0 Core)(&G)"
 
@@ -1638,9 +1635,6 @@ msgstr "MCA 设备清单："
 msgid "&Tablet tool"
 msgstr "平板工具(&T)"
 
-msgid "Qt (OpenGL &ES)"
-msgstr "Qt（OpenGL &ES）"
-
 msgid "About &Qt"
 msgstr "关于 &Qt"
 
@@ -2856,7 +2850,7 @@ msgstr "成功"
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
 msgstr "已成功清除虚拟机 \"%1\" 的 NVRAM 内容"
 
-msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
 msgstr "尝试清除虚拟机 \"%1\" 的 NVRAM 内容时发生错误"
 
 msgid "%1 VM Manager"
@@ -2919,7 +2913,7 @@ msgstr "访问下载页面"
 msgid "Update check"
 msgstr "更新检查"
 
-msgid "Checking for updates.."
+msgid "Checking for updates..."
 msgstr "正在检查更新..."
 
 msgid "86Box Update"

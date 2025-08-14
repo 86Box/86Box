@@ -57,9 +57,6 @@ msgstr "Derley&ici"
 msgid "&Qt (Software)"
 msgstr "&Qt (Yazılım bazlı)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (&OpenGL bazlı)"
-
 msgid "Open&GL (3.0 Core)"
 msgstr "OpenG&L (Sürüm 3.0)"
 
@@ -1638,9 +1635,6 @@ msgstr "MCA cihazlarının listesi:"
 msgid "&Tablet tool"
 msgstr "Tablet aracı"
 
-msgid "Qt (OpenGL &ES)"
-msgstr "Qt (OpenGL &ES)"
-
 msgid "About &Qt"
 msgstr "&Qt hakkında"
 
@@ -2856,7 +2850,7 @@ msgstr ""
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
 msgstr ""
 
-msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
 msgstr ""
 
 msgid "%1 VM Manager"
@@ -2919,7 +2913,7 @@ msgstr ""
 msgid "Update check"
 msgstr ""
 
-msgid "Checking for updates.."
+msgid "Checking for updates..."
 msgstr ""
 
 msgid "86Box Update"
