@@ -1086,17 +1086,26 @@ msgstr "In esecuzione"
 msgid "Paused"
 msgstr "In pausa"
 
-msgid "Paused (Waiting)"
-msgstr "In pausa (In attesa)"
+msgid "Waiting"
+msgstr "In attesa"
 
 msgid "Powered Off"
 msgstr "Spento"
 
-msgid "waiting"
-msgstr "in attesa"
+msgid "%n running"
+msgstr "%n in esecuzione"
 
-msgid "total"
-msgstr "totale"
+msgid "%n paused"
+msgstr "%n in pausa"
+
+msgid "%n waiting"
+msgstr "%n In attesa"
+
+msgid "%1 total"
+msgstr "%1 totale"
+
+msgid "VMs: %1"
+msgstr ""
 
 msgid "System Directory:"
 msgstr "Directory Sistema:"
@@ -1152,9 +1161,6 @@ msgstr "Incolla il contenuto del file di configurazione esistente nella casella 
 msgid "Load configuration from file"
 msgstr "Carica configurazione da file"
 
-msgid "System Name"
-msgstr "Nome Sistema"
-
 msgid "System name"
 msgstr "Nome sistema"
 
@@ -1179,9 +1185,6 @@ msgstr "Verrà creata una nuova cartella per il sistema nella directory selezion
 msgid "System location:"
 msgstr "Posizione sistema:"
 
-msgid "System Location"
-msgstr "Posizione Sistema"
-
 msgid "System name and location"
 msgstr "Nome e posizione del sistema"
 
@@ -1194,8 +1197,8 @@ msgstr "Inserisci il nome del sistema"
 msgid "Please enter a system name"
 msgstr "Inserisci il nome del sistema"
 
-msgid "Display Name (optional)"
-msgstr "Nome Visualizzato (opzionale)"
+msgid "Display name (optional):"
+msgstr "Nome visualizzato (opzionale):"
 
 msgid "Display name:"
 msgstr "Nome visualizzato:"

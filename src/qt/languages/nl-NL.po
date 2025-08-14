@@ -1086,17 +1086,26 @@ msgstr "Actief"
 msgid "Paused"
 msgstr "Gepauzeerd"
 
-msgid "Paused (Waiting)"
-msgstr "Gepauzeerd (aan het wachtend)"
+msgid "Waiting"
+msgstr "aan het wachtend"
 
 msgid "Powered Off"
 msgstr "Sluit af"
 
-msgid "waiting"
-msgstr "aan het wachten"
+msgid "%n running"
+msgstr "%n actief"
 
-msgid "total"
-msgstr "totaal"
+msgid "%n paused"
+msgstr "%n gepauzeerd"
+
+msgid "%n waiting"
+msgstr "%n aan het wachten"
+
+msgid "%1 total"
+msgstr "%1 totaal"
+
+msgid "VMs: %1"
+msgstr "VMs: %1"
 
 msgid "System Directory:"
 msgstr "Systeemmap:"
@@ -1152,9 +1161,6 @@ msgstr "Plak de inhoud van het bestaande configuratiebestand in het vak hieronde
 msgid "Load configuration from file"
 msgstr "Laad configuratie van bestand"
 
-msgid "System Name"
-msgstr "Systeemnaam"
-
 msgid "System name"
 msgstr "Systeemnaam"
 
@@ -1179,9 +1185,6 @@ msgstr "Een nieuwe map voor het systeem wordt aangemaakt in de boven geselecteer
 msgid "System location:"
 msgstr "Systeemlocatie:"
 
-msgid "System Location"
-msgstr "Systeemlocatie"
-
 msgid "System name and location"
 msgstr "Systeemnaam en -locatie"
 
@@ -1194,8 +1197,8 @@ msgstr "Voer de naam in van het systeem"
 msgid "Please enter a system name"
 msgstr "Voer een naam in van het systeem"
 
-msgid "Display Name (optional)"
-msgstr "Weergavenaam (optioneel)"
+msgid "Display name (optional):"
+msgstr "Weergavenaam (optioneel):"
 
 msgid "Display name:"
 msgstr "Weergavenaam:"

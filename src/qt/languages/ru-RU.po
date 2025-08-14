@@ -1084,19 +1084,28 @@ msgid "Running"
 msgstr "Работает"
 
 msgid "Paused"
-msgstr "Приостановлено"
+msgstr "Приостановлена"
 
-msgid "Paused (Waiting)"
-msgstr "Приостановлено (Ожидание)"
-
-msgid "Powered Off"
-msgstr "Выключено"
-
-msgid "waiting"
+msgid "Waiting"
 msgstr "Ожидание"
 
-msgid "total"
-msgstr "Всего"
+msgid "Powered Off"
+msgstr "Выключена"
+
+msgid "%n running"
+msgstr "%n работает"
+
+msgid "%n paused"
+msgstr "%n приостановлено"
+
+msgid "%n waiting"
+msgstr "%n ожидает"
+
+msgid "%1 total"
+msgstr "всего %1"
+
+msgid "VMs: %1"
+msgstr "Машин: %1"
 
 msgid "System Directory:"
 msgstr "Системная папка:"
@@ -1152,9 +1161,6 @@ msgstr "Вставьте содержимое существующего фай�
 msgid "Load configuration from file"
 msgstr "Загрузить конфигурацию из файла"
 
-msgid "System Name"
-msgstr "Название системы"
-
 msgid "System name"
 msgstr "Название системы"
 
@@ -1179,9 +1185,6 @@ msgstr "Новая папка для системы будет создана в
 msgid "System location:"
 msgstr "Расположение системы:"
 
-msgid "System Location"
-msgstr "Расположение Системы"
-
 msgid "System name and location"
 msgstr "Название системы и расположение"
 
@@ -1194,8 +1197,8 @@ msgstr "Введите название системы"
 msgid "Please enter a system name"
 msgstr "Пожалуйста, введите название системы"
 
-msgid "Display Name (optional)"
-msgstr "Отображаемое имя (опционально)"
+msgid "Display name (optional):"
+msgstr "Отображаемое имя (необязательно):"
 
 msgid "Display name:"
 msgstr "Отображаемое имя:"

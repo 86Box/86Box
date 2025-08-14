@@ -334,7 +334,7 @@ VMManagerDetails::updateProcessStatus() {
     QString status_text = running ?
         QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())) :
         tr("Not running");
-    status_text.append(sysconfig->window_obscured ? QString(" (%1)").arg(tr("waiting")) : "");
+    status_text.append(sysconfig->window_obscured ? QString(" (%1)").arg(tr("Waiting")) : "");
     ui->statusLabel->setText(status_text);
     resetButton->setEnabled(running);
     stopButton->setEnabled(running);

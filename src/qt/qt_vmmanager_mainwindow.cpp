@@ -74,7 +74,7 @@ VMManagerMainWindow(QWidget *parent)
 
     const auto searchBar = new QLineEdit();
     searchBar->setMinimumWidth(150);
-    searchBar->setPlaceholderText(" " + tr("Search"));
+    searchBar->setPlaceholderText(tr("Search"));
     searchBar->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     searchBar->setClearButtonEnabled(true);
     // Spacer to make the search go all the way to the right

@@ -1086,17 +1086,26 @@ msgstr "正在运行"
 msgid "Paused"
 msgstr "已暂停"
 
-msgid "Paused (Waiting)"
-msgstr "暂停 (等待中)"
+msgid "Waiting"
+msgstr "等待中"
 
 msgid "Powered Off"
 msgstr "已关机"
 
-msgid "waiting"
-msgstr "等待中"
+msgid "%n running"
+msgstr "%n 正在运行"
 
-msgid "total"
-msgstr "总计"
+msgid "%n paused"
+msgstr "%n 已暂停"
+
+msgid "%n waiting"
+msgstr "%n 等待中"
+
+msgid "%1 total"
+msgstr "%1 总计"
+
+msgid "VMs: %1"
+msgstr ""
 
 msgid "System Directory:"
 msgstr "系统目录"
@@ -1152,9 +1161,6 @@ msgstr ""
 msgid "Load configuration from file"
 msgstr ""
 
-msgid "System Name"
-msgstr ""
-
 msgid "System name"
 msgstr ""
 
@@ -1179,9 +1185,6 @@ msgstr ""
 msgid "System location:"
 msgstr ""
 
-msgid "System Location"
-msgstr ""
-
 msgid "System name and location"
 msgstr ""
 
@@ -1194,7 +1197,7 @@ msgstr ""
 msgid "Please enter a system name"
 msgstr ""
 
-msgid "Display Name (optional)"
+msgid "Display name (optional):"
 msgstr ""
 
 msgid "Display name:"

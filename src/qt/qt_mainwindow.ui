@@ -110,8 +110,8 @@
     <addaction name="separator"/>
     <addaction name="actionMCA_devices"/>
     <addaction name="separator"/>
-    <addaction name="actionOpen_screenshots_folder"/>
     <addaction name="actionOpen_printer_tray"/>
+    <addaction name="actionOpen_screenshots_folder"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -844,14 +844,14 @@
     <number>3</number>
    </property>
   </action>
-  <action name="actionOpen_screenshots_folder">
-   <property name="text">
-    <string>Open screenshots &amp;folder...</string>
-   </property>
-  </action>
   <action name="actionOpen_printer_tray">
    <property name="text">
     <string>Open &amp;printer tray...</string>
+   </property>
+  </action>
+  <action name="actionOpen_screenshots_folder">
+   <property name="text">
+    <string>Open screenshots &amp;folder...</string>
    </property>
   </action>
   <action name="actionApply_fullscreen_stretch_mode_when_maximized">

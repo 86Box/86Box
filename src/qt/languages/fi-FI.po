@@ -1086,16 +1086,25 @@ msgstr ""
 msgid "Paused"
 msgstr ""
 
-msgid "Paused (Waiting)"
+msgid "Waiting"
 msgstr ""
 
 msgid "Powered Off"
 msgstr ""
 
-msgid "waiting"
+msgid "%n running"
 msgstr ""
 
-msgid "total"
+msgid "%n paused"
+msgstr ""
+
+msgid "%n waiting"
+msgstr ""
+
+msgid "%1 total"
+msgstr ""
+
+msgid "VMs: %1"
 msgstr ""
 
 msgid "System Directory:"
@@ -1152,9 +1161,6 @@ msgstr ""
 msgid "Load configuration from file"
 msgstr ""
 
-msgid "System Name"
-msgstr ""
-
 msgid "System name"
 msgstr ""
 
@@ -1179,9 +1185,6 @@ msgstr ""
 msgid "System location:"
 msgstr ""
 
-msgid "System Location"
-msgstr ""
-
 msgid "System name and location"
 msgstr ""
 
@@ -1194,7 +1197,7 @@ msgstr ""
 msgid "Please enter a system name"
 msgstr ""
 
-msgid "Display Name (optional)"
+msgid "Display name (optional):"
 msgstr ""
 
 msgid "Display name:"
