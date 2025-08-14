@@ -16384,7 +16384,7 @@ const machine_t machines[] = {
             .max = 524288,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .jumpered_ecp_dma = MACHINE_DMA_1,
         .default_jumpered_ecp_dma = 1,
         .kbc_device = NULL,
