@@ -801,7 +801,7 @@ load_ports(void)
     int           has_jumpers = machine_has_jumpered_ecp_dma(machine, DMA_ANY);
     int           def_jumper  = machine_get_default_jumpered_ecp_dma(machine);
 
-    jumpered_internal_ecp_dma = ini_section_get_int(cat, "jumpered_internal_ecp_dma", -1);
+    jumpered_internal_ecp_dma = ini_section_get_int(cat, "jumpered_internal_ecp_dma", def_jumper);
 
     if (!has_jumpers || (jumpered_internal_ecp_dma == def_jumper))
         ini_section_delete_var(cat, "jumpered_internal_ecp_dma");

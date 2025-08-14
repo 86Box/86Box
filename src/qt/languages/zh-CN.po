@@ -57,9 +57,6 @@ msgstr "渲染器(&N)"
 msgid "&Qt (Software)"
 msgstr "Qt (软件)(&Q)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (OpenGL)(&O)"
-
 msgid "Open&GL (3.0 Core)"
 msgstr "OpenGL (3.0 Core)(&G)"
 
@@ -1086,17 +1083,26 @@ msgstr "正在运行"
 msgid "Paused"
 msgstr "已暂停"
 
-msgid "Paused (Waiting)"
-msgstr "暂停 (等待中)"
+msgid "Waiting"
+msgstr "等待中"
 
 msgid "Powered Off"
 msgstr "已关机"
 
-msgid "waiting"
-msgstr "等待中"
+msgid "%n running"
+msgstr "%n 正在运行"
 
-msgid "total"
-msgstr "总计"
+msgid "%n paused"
+msgstr "%n 已暂停"
+
+msgid "%n waiting"
+msgstr "%n 等待中"
+
+msgid "%1 total"
+msgstr "%1 总计"
+
+msgid "VMs: %1"
+msgstr ""
 
 msgid "System Directory:"
 msgstr "系统目录"
@@ -1152,9 +1158,6 @@ msgstr ""
 msgid "Load configuration from file"
 msgstr ""
 
-msgid "System Name"
-msgstr ""
-
 msgid "System name"
 msgstr ""
 
@@ -1179,9 +1182,6 @@ msgstr ""
 msgid "System location:"
 msgstr ""
 
-msgid "System Location"
-msgstr ""
-
 msgid "System name and location"
 msgstr ""
 
@@ -1194,7 +1194,7 @@ msgstr ""
 msgid "Please enter a system name"
 msgstr ""
 
-msgid "Display Name (optional)"
+msgid "Display name (optional):"
 msgstr ""
 
 msgid "Display name:"
@@ -1279,6 +1279,12 @@ msgid "Build"
 msgstr ""
 
 msgid "Version"
+msgstr ""
+
+msgid "An update to 86Box is available: %1 %2"
+msgstr ""
+
+msgid "An error has occurred while checking for updates: %1"
 msgstr ""
 
 msgid "<b>An update to 86Box is available!</b>"
@@ -1628,9 +1634,6 @@ msgstr "MCA 设备清单："
 
 msgid "&Tablet tool"
 msgstr "平板工具(&T)"
-
-msgid "Qt (OpenGL &ES)"
-msgstr "Qt（OpenGL &ES）"
 
 msgid "About &Qt"
 msgstr "关于 &Qt"
@@ -2847,7 +2850,7 @@ msgstr "成功"
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
 msgstr "已成功清除虚拟机 \"%1\" 的 NVRAM 内容"
 
-msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
 msgstr "尝试清除虚拟机 \"%1\" 的 NVRAM 内容时发生错误"
 
 msgid "%1 VM Manager"
@@ -2874,6 +2877,12 @@ msgstr "检查更新：\n\n%1 时出错。\n\n请稍后再试。"
 msgid "Update check complete"
 msgstr "检查更新已完成"
 
+msgid "stable"
+msgstr ""
+
+msgid "beta"
+msgstr ""
+
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr "您正在运行 86Box 的最新 %1 版本：%2"
 
@@ -2883,11 +2892,20 @@ msgstr "版本"
 msgid "build"
 msgstr ""
 
-msgid "You are currently running %1 <b>%2</b>. "
-msgstr "您当前正在运行 %1 <b>%2</b> 。"
+msgid "You are currently running version <b>%1</b>."
+msgstr "您当前正在运行版本 <b>%1</b> 。"
 
-msgid "<b>%1 %2</b> is now available. %3Would you like to visit the download page?"
-msgstr "<b>%1 %2</b>现已可用。%3 您想访问下载页面吗？"
+msgid "<b>Version %1</b> is now available."
+msgstr "<b>版本 %1</b>现已可用。"
+
+msgid "You are currently running build <b>%1</b>."
+msgstr "您当前正在运行 build <b>%1</b> 。"
+
+msgid "<b>Build %1</b> is now available."
+msgstr "<b>Build %1</b>现已可用。"
+
+msgid "Would you like to visit the download page?"
+msgstr "您想访问下载页面吗？"
 
 msgid "Visit download page"
 msgstr "访问下载页面"
@@ -2895,7 +2913,7 @@ msgstr "访问下载页面"
 msgid "Update check"
 msgstr "更新检查"
 
-msgid "Checking for updates.."
+msgid "Checking for updates..."
 msgstr "正在检查更新..."
 
 msgid "86Box Update"

@@ -57,9 +57,6 @@ msgstr "&Renderizador"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (&OpenGL)"
-
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (Núcleo 3.0)"
 
@@ -427,7 +424,7 @@ msgid "XGA Graphics"
 msgstr "Gráficos XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
-msgstr "IBM PS/55 Display Adapter Graphics"
+msgstr "Gráficos IBM PS/55 Display Adapter"
 
 msgid "Keyboard:"
 msgstr "Teclado:"
@@ -520,7 +517,7 @@ msgid "LPT4 Device:"
 msgstr "Dispositivo LPT4:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr ""
+msgstr "DMA ECP LPT Interna:"
 
 msgid "Serial port 1"
 msgstr "Porta serial 1"
@@ -1087,16 +1084,25 @@ msgid "Paused"
 msgstr "Pausado"
 
 msgid "Paused (Waiting)"
-msgstr "Pausado (Esperando)"
+msgstr "Esperando"
 
 msgid "Powered Off"
 msgstr "Desligado"
 
-msgid "waiting"
-msgstr "esperando"
+msgid "%n running"
+msgstr "%n rodando"
 
-msgid "total"
-msgstr "total"
+msgid "%n paused"
+msgstr "%n pausado"
+
+msgid "%n waiting"
+msgstr "%n esperando"
+
+msgid "%1 total"
+msgstr "%1 total"
+
+msgid "VMs: %1"
+msgstr ""
 
 msgid "System Directory:"
 msgstr "Diretório do Sistema:"
@@ -1120,7 +1126,7 @@ msgid "Use regular expressions in search box"
 msgstr "Usar expressões regulares na caixa de pesquisa"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 máquina(s) estão ativas atualmente. Tem certeza que deseja encerrar o gerenciador de VM mesmo?"
+msgstr "%1 máquina(s) estão ativas atualmente. Tem certeza que deseja encerrar o gerenciador de VM assim mesmo?"
 
 msgid "Add new system wizard"
 msgstr "Assistente para novo sistema"
@@ -1152,9 +1158,6 @@ msgstr "Cole o conteúdo de uma configuração existente na caixa abaixo."
 msgid "Load configuration from file"
 msgstr "Carregar configuração do arquivo"
 
-msgid "System Name"
-msgstr "Nome do Sistema"
-
 msgid "System name"
 msgstr "Nome do sistema"
 
@@ -1179,9 +1182,6 @@ msgstr "Um novo diretório para o sistema será criado no diretório acima"
 msgid "System location:"
 msgstr "Local do sistema:"
 
-msgid "System Location"
-msgstr "Local do Sistema"
-
 msgid "System name and location"
 msgstr "Nome do sistema e local"
 
@@ -1194,8 +1194,8 @@ msgstr "Digite o nome do sistema"
 msgid "Please enter a system name"
 msgstr "Por favor digite um nome de sistema"
 
-msgid "Display Name (optional)"
-msgstr "Nome de exibição (opcional)"
+msgid "Display name (optional):"
+msgstr "Nome de exibição (opcional):"
 
 msgid "Display name:"
 msgstr "Nome de exibição:"
@@ -1280,6 +1280,12 @@ msgstr "Build"
 
 msgid "Version"
 msgstr "Versão"
+
+msgid "An update to 86Box is available: %1 %2"
+msgstr "Uma atualização do 86Box está disponível: %1 %2"
+
+msgid "An error has occurred while checking for updates: %1"
+msgstr ""
 
 msgid "<b>An update to 86Box is available!</b>"
 msgstr "<b>Uma atualização do 86Box está disponível!</b>"
@@ -1628,9 +1634,6 @@ msgstr "Lista de dispositivos MCA:"
 
 msgid "&Tablet tool"
 msgstr "Ferramenta para tablet"
-
-msgid "Qt (OpenGL &ES)"
-msgstr "Qt (OpenGL &ES)"
 
 msgid "About &Qt"
 msgstr "Sobre o &Qt"
@@ -2554,7 +2557,7 @@ msgid "Color Non-Interlaced"
 msgstr "Colorido não entrelaçado"
 
 msgid "3Dfx Voodoo Graphics"
-msgstr "Gráficos 3Dfx Voodoo"
+msgstr "3Dfx Voodoo Graphics"
 
 msgid "3Dfx Voodoo 2"
 msgstr "3Dfx Voodoo 2"
@@ -2847,11 +2850,11 @@ msgstr "Sucesso"
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
 msgstr "Conteúdo NVRAM da máquina virtual \"%1\" apagado com sucesso"
 
-msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
 msgstr "Um erro ocorreu ao tentar apagar o conteúdo NVRAM da máquina virtual \"%1\""
 
 msgid "%1 VM Manager"
-msgstr "%1 Gerenciador de VM"
+msgstr "Gerenciador de VM do %1"
 
 msgid "%n disk(s)"
 msgstr "%1 disco(s)"
@@ -2874,8 +2877,14 @@ msgstr "Ocorreu um erro ao verificar por atualizações:\n\n%1\n\nPor favor tent
 msgid "Update check complete"
 msgstr "Verificação de atualização completada"
 
+msgid "stable"
+msgstr ""
+
+msgid "beta"
+msgstr ""
+
 msgid "You are running the latest %1 version of 86Box: %2"
-msgstr "Você está executando a última %1 versão do 86Box: %2"
+msgstr "Você está executando a última versão %1 do 86Box: %2"
 
 msgid "version"
 msgstr "versão"
@@ -2883,11 +2892,20 @@ msgstr "versão"
 msgid "build"
 msgstr "build"
 
-msgid "You are currently running %1 <b>%2</b>. "
-msgstr "Você está executando atualmente %1 <b>%2</b>. "
+msgid "You are currently running version <b>%1</b>."
+msgstr "Você está executando atualmente versão <b>%1</b>."
 
-msgid "<b>%1 %2</b> is now available. %3Would you like to visit the download page?"
-msgstr "<b>%1 %2</b> está disponível. %3Gostaria de visitar a página de download?"
+msgid "<b>Version %1</b> is now available."
+msgstr "<b>Versão %2</b> está disponível."
+
+msgid "You are currently running build <b>%1</b>."
+msgstr "Você está executando atualmente build <b>%1</b>."
+
+msgid "<b>Build %1</b> is now available."
+msgstr "<b>Build %2</b> está disponível."
+
+msgid "Would you like to visit the download page?"
+msgstr "Gostaria de visitar a página de download?"
 
 msgid "Visit download page"
 msgstr "Visitar página de download"
@@ -2895,7 +2913,7 @@ msgstr "Visitar página de download"
 msgid "Update check"
 msgstr "Verificação de atualização"
 
-msgid "Checking for updates.."
+msgid "Checking for updates..."
 msgstr "Verificando por atualizações.."
 
 msgid "86Box Update"

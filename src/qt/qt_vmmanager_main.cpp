@@ -138,6 +138,18 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
                 }
             });
 
+            QAction openScreenshotsFolderAction(tr("Open screenshots &folder..."));
+            contextMenu.addAction(&openScreenshotsFolderAction);
+            connect(&openScreenshotsFolderAction, &QAction::triggered, [indexAt] {
+                if (const auto screenshotsDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/screenshots/"); !screenshotsDir.isEmpty()) {
+                    QDir dir(screenshotsDir);
+                    if (!dir.exists())
+                        dir.mkpath(".");
+                    
+                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
+                }
+            });
+
             QAction setSystemIcon(tr("Set &icon..."));
             contextMenu.addAction(&setSystemIcon);
             connect(&setSystemIcon, &QAction::triggered, [this] {
@@ -296,7 +308,7 @@ illegal_chars:
                     if (QDir(selected_sysconfig->config_dir + "/nvr/").removeRecursively())
                         QMessageBox::information(this, tr("Success"), tr("Successfully wiped the NVRAM contents of the virtual machine \"%1\"").arg(selected_sysconfig->displayName));
                     else {
-                        QMessageBox::critical(this, tr("Error"), tr("An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\"").arg(selected_sysconfig->displayName));
+                        QMessageBox::critical(this, tr("Error"), tr("An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\"").arg(selected_sysconfig->displayName));
                     }
                 }
             });
@@ -357,7 +369,7 @@ illegal_chars:
 
     // Set initial status bar after the event loop starts
     QTimer::singleShot(0, this, [this] {
-        emit updateStatusRight(totalCountString());
+        emit updateStatusRight(machineCountString());
     });
 
 #if EMU_BUILD_NUM != 0
@@ -686,10 +698,14 @@ VMManagerMain::getSearchCompletionList() const
 }
 
 QString
-VMManagerMain::totalCountString() const
+VMManagerMain::machineCountString(QString states) const
 {
     const auto count = vm_model->rowCount(QModelIndex());
-    return QString("%1 %2").arg(QString::number(count), tr("total"));
+    if (!states.isEmpty())
+        states.append(", ");
+    states.append(tr("%1 total").arg(count));
+
+    return tr("VMs: %1").arg(states);
 }
 
 void
@@ -701,14 +717,26 @@ VMManagerMain::modelDataChange()
     QStringList stats;
     for (auto it = modelStats.constBegin(); it != modelStats.constEnd(); ++it) {
         const auto &key = it.key();
-        stats.append(QString("%1 %2").arg(QString::number(modelStats[key]), key));
+        QString text = "";
+        switch (key) {
+            case VMManagerSystem::ProcessStatus::Running:
+                text = tr("%n running", "", modelStats[key]);
+                break;
+            case VMManagerSystem::ProcessStatus::Paused:
+                text = tr("%n paused", "", modelStats[key]);
+                break;
+            case VMManagerSystem::ProcessStatus::PausedWaiting:
+            case VMManagerSystem::ProcessStatus::RunningWaiting:
+                text = tr("%n waiting", "", modelStats[key]);
+                break;
+            default:
+                break;
+        }
+        if(!text.isEmpty())
+            stats.append(text);
     }
     auto states = stats.join(", ");
-    if (!modelStats.isEmpty()) {
-        states.append(", ");
-    }
-
-    emit updateStatusRight(states + totalCountString());
+    emit updateStatusRight(machineCountString(states));
 }
 
 void
@@ -747,16 +775,18 @@ void
 VMManagerMain::backgroundUpdateCheckComplete(const UpdateCheck::UpdateResult &result)
 {
     qDebug() << "Check complete: update available?" << result.updateAvailable;
-    auto type = result.channel == UpdateCheck::UpdateChannel::CI ? tr("Build") : tr("Version");
-    const auto updateMessage = QString("%1: %2 %3").arg( tr("An update to 86Box is available"), type, result.latestVersion);
-    emit updateStatusLeft(updateMessage);
+    if (result.updateAvailable) {
+        auto type = result.channel == UpdateCheck::UpdateChannel::CI ? tr("build") : tr("version");
+        const auto updateMessage = QString("An update to 86Box is available: %1 %2").arg(type, result.latestVersion);
+        emit updateStatusLeft(updateMessage);
+    }
 }
 
 void
 VMManagerMain::backgroundUpdateCheckError(const QString &errorMsg)
 {
     qDebug() << "Update check failed with the following error:" << errorMsg;
-    // TODO: Update the status bar
+    emit updateStatusLeft(tr("An error has occurred while checking for updates: %1").arg(errorMsg));
 }
 #endif
 

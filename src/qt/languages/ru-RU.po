@@ -57,9 +57,6 @@ msgstr "&Рендеринг"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (&OpenGL)"
-
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
 
@@ -520,7 +517,7 @@ msgid "LPT4 Device:"
 msgstr "Устройство LPT4:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr ""
+msgstr "DMA ECP встроенного LPT:"
 
 msgid "Serial port 1"
 msgstr "Последовательный порт COM1"
@@ -1084,19 +1081,28 @@ msgid "Running"
 msgstr "Работает"
 
 msgid "Paused"
-msgstr "Приостановлено"
+msgstr "Приостановлена"
 
-msgid "Paused (Waiting)"
-msgstr "Приостановлено (Ожидание)"
-
-msgid "Powered Off"
-msgstr "Выключено"
-
-msgid "waiting"
+msgid "Waiting"
 msgstr "Ожидание"
 
-msgid "total"
-msgstr "Всего"
+msgid "Powered Off"
+msgstr "Выключена"
+
+msgid "%n running"
+msgstr "%n работает"
+
+msgid "%n paused"
+msgstr "%n приостановлено"
+
+msgid "%n waiting"
+msgstr "%n ожидает"
+
+msgid "%1 total"
+msgstr "всего %1"
+
+msgid "VMs: %1"
+msgstr "Машин: %1"
 
 msgid "System Directory:"
 msgstr "Системная папка:"
@@ -1152,9 +1158,6 @@ msgstr "Вставьте содержимое существующего фай�
 msgid "Load configuration from file"
 msgstr "Загрузить конфигурацию из файла"
 
-msgid "System Name"
-msgstr "Название системы"
-
 msgid "System name"
 msgstr "Название системы"
 
@@ -1179,9 +1182,6 @@ msgstr "Новая папка для системы будет создана в
 msgid "System location:"
 msgstr "Расположение системы:"
 
-msgid "System Location"
-msgstr "Расположение Системы"
-
 msgid "System name and location"
 msgstr "Название системы и расположение"
 
@@ -1194,8 +1194,8 @@ msgstr "Введите название системы"
 msgid "Please enter a system name"
 msgstr "Пожалуйста, введите название системы"
 
-msgid "Display Name (optional)"
-msgstr "Отображаемое имя (опционально)"
+msgid "Display name (optional):"
+msgstr "Отображаемое имя (необязательно):"
 
 msgid "Display name:"
 msgstr "Отображаемое имя:"
@@ -1280,6 +1280,12 @@ msgstr "Сборка"
 
 msgid "Version"
 msgstr "Версия"
+
+msgid "An update to 86Box is available: %1 %2"
+msgstr "Доступно обновление для 86Box: %1 %2"
+
+msgid "An error has occurred while checking for updates: %1"
+msgstr "При проверке обновлений произошла ошибка: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
 msgstr "<b>Доступно обновление для 86Box!</b>"
@@ -1628,9 +1634,6 @@ msgstr "Список устройств MCA:"
 
 msgid "&Tablet tool"
 msgstr "Планшетный &инструмент"
-
-msgid "Qt (OpenGL &ES)"
-msgstr "Qt (OpenGL &ES)"
 
 msgid "About &Qt"
 msgstr "О &Qt"
@@ -2827,13 +2830,13 @@ msgid "Hostname:"
 msgstr "Имя хоста:"
 
 msgid "ISA RTC"
-msgstr ""
+msgstr "ISA RTC"
 
 msgid "ISA RAM"
-msgstr ""
+msgstr "ISA ОЗУ"
 
 msgid "ISA ROM"
-msgstr ""
+msgstr "ISA ПЗУ"
 
 msgid "&Wipe NVRAM"
 msgstr "&Стереть NVRAM"
@@ -2847,11 +2850,11 @@ msgstr "Успешно"
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
 msgstr "Успешно стёрто содержимое NVRAM виртуальной машины \"%1\""
 
-msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr "Произошла ошибка, пытаясь стереть содержимое NVRAM виртуальной машины \"%1\""
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgstr "Произошла ошибка при попытке стереть содержимое NVRAM виртуальной машины \"%1\""
 
 msgid "%1 VM Manager"
-msgstr ""
+msgstr "Менеджер виртуальных машин %1"
 
 msgid "%n disk(s)"
 msgstr "%n диск(ов)"
@@ -2874,35 +2877,53 @@ msgstr "Произошла ошибка при проверке обновлен
 msgid "Update check complete"
 msgstr "Проверка обновлений завершена"
 
+msgid "stable"
+msgstr "стабильную"
+
+msgid "beta"
+msgstr "бета"
+
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr "Вы используете последнюю %1 версию 86Box: %2"
 
 msgid "version"
-msgstr ""
+msgstr "версия"
 
 msgid "build"
-msgstr ""
+msgstr "сборка"
 
-msgid "You are currently running %1 <b>%2</b>. "
-msgstr "Вы сейчас используете %1 <b>%2</b>. "
+msgid "You are currently running version <b>%1</b>."
+msgstr "Вы сейчас используете версию <b>%1</b>."
 
-msgid "<b>%1 %2</b> is now available. %3Would you like to visit the download page?"
-msgstr "<b>%1 %2</b> теперь доступно. %3Хотели бы вы посетить страницу загрузки?"
+msgid "<b>Version %1</b> is now available."
+msgstr "Доступна <b>версия %1</b>."
+
+msgid "You are currently running build <b>%1</b>."
+msgstr "Вы сейчас используете сборку <b>%1</b>."
+
+msgid "<b>Build %1</b> is now available."
+msgstr "Доступна <b>сборка %1</b>."
+
+msgid "Would you like to visit the download page?"
+msgstr "Открыть страницу загрузки?"
 
 msgid "Visit download page"
-msgstr "Посетить страницу загрузки"
+msgstr "Открыть страницу загрузки"
 
 msgid "Update check"
 msgstr "Проверка обновлений"
 
-msgid "Checking for updates.."
-msgstr "Проверка обновлений.."
+msgid "Checking for updates..."
+msgstr "Проверка обновлений..."
 
 msgid "86Box Update"
 msgstr "Обновление 86Box"
 
 msgid "Release notes:"
 msgstr "Примечания к релизу:"
+
+msgid "%1 Hz"
+msgstr "%1 Гц"
 
 #~ msgid "HD Controller:"
 #~ msgstr "Контроллер HD:"

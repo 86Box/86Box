@@ -121,6 +121,7 @@ const machine_filter_t machine_chipsets[] = {
     { "OPTi 493",                   MACHINE_CHIPSET_OPTI_493            },
     { "OPTi 495SLC",                MACHINE_CHIPSET_OPTI_495SLC         },
     { "OPTi 495SX",                 MACHINE_CHIPSET_OPTI_495SX          },
+    { "OPTi 496",                   MACHINE_CHIPSET_OPTI_496            },
     { "OPTi 498",                   MACHINE_CHIPSET_OPTI_498            },
     { "OPTi 499",                   MACHINE_CHIPSET_OPTI_499            },
     { "OPTi 895/802G",              MACHINE_CHIPSET_OPTI_895_802G       },
@@ -5314,6 +5315,49 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Has AMI KBC firmware of uknown revision, maybe '8'. */
+    {
+        .name = "[OPTi 283] Silicon Valley SVC386SX/P1",
+        .internal_name = "svc386sxp1",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_OPTI_283,
+        .init = machine_at_svc386sxp1_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_APM,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .jumpered_ecp_dma = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has IBM AT KBC firmware. */
     {
         .name = "[OPTi 291] DTK PPM-3333P",
@@ -6908,6 +6952,49 @@ const machine_t machines[] = {
         .ram = {
             .min = 1024,
             .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .jumpered_ecp_dma = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Uses the AMIKey 'F' keyboard controller firmware. */
+    {
+        .name = "[OPTi 493] Silicon Valley Computer 486WB",
+        .internal_name = "svc486wb",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_OPTI_493,
+        .init = machine_at_svc486wb_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 20000000,
+            .max_bus = 33333333,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE | MACHINE_APM,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
             .step = 1024
         },
         .nvrmask = 127,
@@ -16602,7 +16689,7 @@ const machine_t machines[] = {
             .max = 524288,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .jumpered_ecp_dma = MACHINE_DMA_1,
         .default_jumpered_ecp_dma = 1,
         .kbc_device = NULL,

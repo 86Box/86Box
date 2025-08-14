@@ -28,12 +28,18 @@ UpdateDetails(const UpdateCheck::UpdateResult &updateResult, QWidget *parent) : 
     ui->setupUi(this);
     ui->updateTitle->setText(tr("<b>An update to 86Box is available!</b>"));
     QString currentVersionText;
-    QString releaseType = updateResult.channel == UpdateCheck::UpdateChannel::Stable ? tr("version") : tr("build");
-    if(!updateResult.currentVersion.isEmpty()) {
-        currentVersionText = tr("You are currently running %1 <b>%2</b>. ").arg(releaseType, updateResult.currentVersion);
+    QString latestVersionText;
+    if (updateResult.channel == UpdateCheck::UpdateChannel::Stable) {
+        currentVersionText = tr("You are currently running version <b>%1</b>.").arg(updateResult.currentVersion);
+        latestVersionText  = tr("<b>Version %1</b> is now available.").arg(updateResult.latestVersion);
+    } else {
+        currentVersionText = tr("You are currently running build <b>%1</b>.").arg(updateResult.currentVersion);
+        latestVersionText  = tr("<b>Build %1</b> is now available.").arg(updateResult.latestVersion);
     }
+    if (updateResult.currentVersion.isEmpty())
+        currentVersionText = "";
 
-    const auto updateDetailsText = tr("<b>%1 %2</b> is now available. %3Would you like to visit the download page?").arg(releaseType[0].toUpper() + releaseType.mid(1), updateResult.latestVersion, currentVersionText);
+    const auto updateDetailsText = QString("%1 %2%3").arg(latestVersionText, currentVersionText.append(' '), tr("Would you like to visit the download page?"));
     ui->updateDetails->setText(updateDetailsText);
 
     if(updateResult.channel == UpdateCheck::UpdateChannel::Stable) {
@@ -104,7 +110,27 @@ UpdateDetails::visitDownloadPage(const UpdateCheck::UpdateChannel &channel)
             QDesktopServices::openUrl(QUrl("https://github.com/86Box/86Box/releases/latest"));
             break;
         case UpdateCheck::UpdateChannel::CI:
-            QDesktopServices::openUrl(QUrl("https://ci.86box.net/job/86Box/lastSuccessfulBuild/artifact/"));
+            QDesktopServices::openUrl(QUrl("https://86box.net/builds#"
+#ifdef Q_OS_WINDOWS
+                "win"
+#elif defined(Q_OS_MACOS)
+                "mac"
+#elif defined(Q_OS_LINUX)
+                "lin"
+#endif
+
+#if defined(__aarch64__) || defined(_M_ARM64)
+                "arm64"
+#elif defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(_M_X64)
+                "64"
+#endif
+
+#ifdef USE_NEW_DYNAREC
+                "ndr"
+#else
+                "odr"
+#endif
+            ));
             break;
     }
 }

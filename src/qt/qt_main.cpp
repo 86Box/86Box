@@ -616,7 +616,7 @@ main(int argc, char *argv[])
 #    endif
 #endif
 
-    if (!pc_init_modules()) {
+    if (!pc_init_roms()) {
         QMessageBox fatalbox(QMessageBox::Icon::Critical, QObject::tr("No ROMs found"),
                              QObject::tr("86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."),
                              QMessageBox::Ok);
@@ -624,6 +624,9 @@ main(int argc, char *argv[])
         fatalbox.exec();
         return 6;
     }
+
+    if (!vmm_enabled)
+        pc_init_modules();
 
     if (vmm_enabled) {
         // VMManagerMain vmm;

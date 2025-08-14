@@ -57,9 +57,6 @@ msgstr ""
 msgid "&Qt (Software)"
 msgstr ""
 
-msgid "Qt (&OpenGL)"
-msgstr ""
-
 msgid "Open&GL (3.0 Core)"
 msgstr ""
 
@@ -1086,16 +1083,25 @@ msgstr ""
 msgid "Paused"
 msgstr ""
 
-msgid "Paused (Waiting)"
+msgid "Waiting"
 msgstr ""
 
 msgid "Powered Off"
 msgstr ""
 
-msgid "waiting"
+msgid "%n running"
 msgstr ""
 
-msgid "total"
+msgid "%n paused"
+msgstr ""
+
+msgid "%n waiting"
+msgstr ""
+
+msgid "%1 total"
+msgstr ""
+
+msgid "VMs: %1"
 msgstr ""
 
 msgid "System Directory:"
@@ -1152,9 +1158,6 @@ msgstr ""
 msgid "Load configuration from file"
 msgstr ""
 
-msgid "System Name"
-msgstr ""
-
 msgid "System name"
 msgstr ""
 
@@ -1179,9 +1182,6 @@ msgstr ""
 msgid "System location:"
 msgstr ""
 
-msgid "System Location"
-msgstr ""
-
 msgid "System name and location"
 msgstr ""
 
@@ -1194,7 +1194,7 @@ msgstr ""
 msgid "Please enter a system name"
 msgstr ""
 
-msgid "Display Name (optional)"
+msgid "Display name (optional):"
 msgstr ""
 
 msgid "Display name:"
@@ -1279,6 +1279,12 @@ msgid "Build"
 msgstr ""
 
 msgid "Version"
+msgstr ""
+
+msgid "An update to 86Box is available: %1 %2"
+msgstr ""
+
+msgid "An error has occurred while checking for updates: %1"
 msgstr ""
 
 msgid "<b>An update to 86Box is available!</b>"
@@ -1627,9 +1633,6 @@ msgid "List of MCA devices:"
 msgstr ""
 
 msgid "&Tablet tool"
-msgstr ""
-
-msgid "Qt (OpenGL &ES)"
 msgstr ""
 
 msgid "About &Qt"
@@ -2847,7 +2850,7 @@ msgstr ""
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
 msgstr ""
 
-msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
 msgstr ""
 
 msgid "%1 VM Manager"
@@ -2874,6 +2877,12 @@ msgstr ""
 msgid "Update check complete"
 msgstr ""
 
+msgid "stable"
+msgstr ""
+
+msgid "beta"
+msgstr ""
+
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr ""
 
@@ -2883,10 +2892,19 @@ msgstr ""
 msgid "build"
 msgstr ""
 
-msgid "You are currently running %1 <b>%2</b>. "
+msgid "You are currently running version <b>%1</b>."
 msgstr ""
 
-msgid "<b>%1 %2</b> is now available. %3Would you like to visit the download page?"
+msgid "<b>Version %1</b> is now available."
+msgstr ""
+
+msgid "You are currently running build <b>%1</b>."
+msgstr ""
+
+msgid "<b>Build %1</b> is now available."
+msgstr ""
+
+msgid "Would you like to visit the download page?"
 msgstr ""
 
 msgid "Visit download page"
@@ -2895,11 +2913,14 @@ msgstr ""
 msgid "Update check"
 msgstr ""
 
-msgid "Checking for updates.."
+msgid "Checking for updates..."
 msgstr ""
 
 msgid "86Box Update"
 msgstr ""
 
 msgid "Release notes:"
+msgstr ""
+
+msgid "%1 Hz"
 msgstr ""

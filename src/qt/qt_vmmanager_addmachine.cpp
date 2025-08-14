@@ -58,44 +58,12 @@ VMManagerAddMachine(QWidget *parent) : QWizard(parent)
 #endif
 
     // Wizard wants to resize based on image. This keeps the size
-    setMinimumSize(size());
+    setFixedSize(QSize(550, size().height()));
     setOption(HaveHelpButton, false);
     // setPixmap(LogoPixmap, QPixmap(":/settings/qt/icons/86Box-gray.ico"));
 
-#if 0
-    connect(this, &QWizard::helpRequested, this, &VMManagerAddMachine::showHelp);
-#endif
-
     setWindowTitle(tr("Add new system wizard"));
 }
-
-#if 0
-void
-VMManagerAddMachine::showHelp()
-{
-    // TBD
-    static QString lastHelpMessage;
-
-    QString message;
-
-    // Help will depend on the current page
-    switch (currentId()) {
-        case Page_Intro:
-            message = tr("This is the into page.");
-            break;
-        default:
-            message = tr("No help has been added yet, you're on your own.");
-            break;
-    }
-
-    if (lastHelpMessage == message) {
-        message = tr("Did you click help twice?");
-    }
-
-    QMessageBox::information(this, tr("Add new system wizard help"), message);
-    lastHelpMessage = message;
-}
-#endif
 
 IntroPage::
 IntroPage(QWidget *parent)
@@ -244,7 +212,7 @@ NameAndLocationPage(QWidget *parent)
     const auto chooseDirectoryButton = new QPushButton();
     chooseDirectoryButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_DirIcon));
 
-    const auto systemNameLabel = new QLabel(tr("System Name"));
+    const auto systemNameLabel = new QLabel(tr("System name:"));
     systemName           = new QLineEdit();
     // Special event filter to override enter key
     systemName->installEventFilter(this);
@@ -252,7 +220,7 @@ NameAndLocationPage(QWidget *parent)
     systemNameValidation = new QLabel();
 
 #ifdef CUSTOM_SYSTEM_LOCATION
-    const auto systemLocationLabel = new QLabel(tr("System Location"));
+    const auto systemLocationLabel = new QLabel(tr("System location:"));
     systemLocation           = new QLineEdit();
     // TODO: FIXME: This is using the CLI arg and needs to instead use a proper variable
     systemLocation->setText(QDir::toNativeSeparators(vmm_path));
@@ -261,7 +229,7 @@ NameAndLocationPage(QWidget *parent)
     systemLocationValidation->setWordWrap(true);
 #endif
 
-    const auto displayNameLabel = new QLabel(tr("Display Name (optional)"));
+    const auto displayNameLabel = new QLabel(tr("Display name (optional):"));
     displayName           = new QLineEdit();
     // Special event filter to override enter key
     displayName->installEventFilter(this);
@@ -387,15 +355,18 @@ ConclusionPage(QWidget *parent)
     const auto systemNameLabel     = new QLabel(tr("System name:"));
     systemNameLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     systemName                     = new QLabel();
+    systemName->setWordWrap(true);
 #ifdef CUSTOM_SYSTEM_LOCATION
     const auto systemLocationLabel = new QLabel(tr("System location:"));
     systemLocationLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     systemLocation      = new QLabel();
+    systemLocation->setWordWrap(true);
 #endif
 
     displayNameLabel                = new QLabel(tr("Display name:"));
     displayNameLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     displayName                     = new QLabel();
+    displayName->setWordWrap(true);
 
     const auto layout = new QGridLayout();
     layout->addWidget(topLabel, 0, 0, 1, -1);
