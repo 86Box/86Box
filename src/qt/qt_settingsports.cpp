@@ -96,7 +96,6 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
             first = j;
 
         QString name = tr(machine_get_jumpered_ecp_dma_name(i));
-        pclog("Found valid DMA channel: %s\n", name.toUtf8().data());
         int     row  = lptEcpDmaModel->rowCount();
         lptEcpDmaModel->insertRow(row);
         auto idx = lptEcpDmaModel->index(row, 0);

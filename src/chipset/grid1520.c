@@ -39,6 +39,7 @@
 #include <86box/rom.h>
 #include <86box/vid_cga.h>
 #include <86box/plat_unused.h>
+#include <86box/chipset.h>
 
 #define GRID_APPROM_SELECT 0x440
 #define GRID_APPROM_ENABLE 0x405
@@ -317,7 +318,7 @@ static void grid_reset(void *priv) {
     dev->grid_rom_select = 0;
 }
 
-const device_t grid_device = {
+const device_t grid1520_device = {
     .name          = "GRiDcase 1520 chipset",
     .internal_name = "grid1520",
     .flags         = 0,
@@ -330,26 +331,3 @@ const device_t grid_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
-
-int machine_at_grid1520_init(const machine_t *model) {
-    int ret = 0;
-
-    ret = bios_load_linear("roms/machines/grid1520/grid1520_891025.rom",
-                           0x000f8000, 0x8000, 0);
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_ide_init(model);
-    mem_remap_top(384);
-
-    device_add(&kbc_at_device);
-    // for now just select CGA with amber monitor 
-    //device_add(&cga_device);
-
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-
-    device_add(&grid_device);
-
-    return ret;
-}

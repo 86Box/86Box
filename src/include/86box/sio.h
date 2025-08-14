@@ -28,6 +28,9 @@ extern const device_t f82c606_device;
 extern const device_t f82c710_device;
 extern const device_t f82c710_pc5086_device;
 
+/* Commodore */
+extern const device_t cbm_io_device;
+
 /* SM(S)C */
 #define FDC37C651            0x00051
 #define FDC37C661            0x00061

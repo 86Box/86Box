@@ -130,8 +130,8 @@ mda_recalctimings(mda_t *mda)
     double _dispontime;
     double _dispofftime;
     double disptime;
-    disptime     = mda->crtc[MDA_CRTC_HTOTAL] + 1;
-    _dispontime  = mda->crtc[MDA_CRTC_HDISP];
+    disptime     = (mda->crtc[MDA_CRTC_HTOTAL] + 1) << 1;
+    _dispontime  = (mda->crtc[MDA_CRTC_HDISP]) << 1;
     _dispofftime = disptime - _dispontime;
     _dispontime *= MDACONST;
     _dispofftime *= MDACONST;

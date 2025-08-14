@@ -519,6 +519,9 @@ msgstr "LPT3 裝置:"
 msgid "LPT4 Device:"
 msgstr "LPT4 裝置:"
 
+msgid "Internal LPT ECP DMA:"
+msgstr ""
+
 msgid "Serial port 1"
 msgstr "序列埠 1"
 

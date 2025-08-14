@@ -117,15 +117,13 @@
  *                         bit 2 set for single-pixel LCD font
  *                         bits 0,1 for display font
  *
- *
- *
- * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: John Elliott, <jce@seasip.info>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          John Elliott, <jce@seasip.info>
  *
- *          Copyright 2017-2018 Fred N. van Kempen.
- *          Copyright 2016-2018 Miran Grca.
- *          Copyright 2008-2018 John Elliott.
+ *          Copyright 2008-2025 John Elliott.
+ *          Copyright 2017-2025 Fred N. van Kempen.
+ *          Copyright 2016-2025 Miran Grca.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
