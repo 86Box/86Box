@@ -575,7 +575,6 @@ foreach(po_file ${po_files})
         string(REGEX MATCH "[A-Z]+$" PO_COUNTRY ${PO_FILE_NAME})
 
         # Find the base Qt translation for the language and country
-        set(qt_translation_file_dest "qt_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
         if (EXISTS "${QT_TRANSLATIONS_DIR}/qtbase_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
             set(qt_translation_file "qtbase_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
         # Fall back to just the language if country isn't found
@@ -594,13 +593,9 @@ foreach(po_file ${po_files})
         # Copy the translation file to the build directory
         if (qt_translation_file)
             file(COPY "${QT_TRANSLATIONS_DIR}/${qt_translation_file}" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-            if (NOT (qt_translation_file STREQUAL qt_translation_file_dest))
-                # Rename the file for consistency
-                file(RENAME "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file}" "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file_dest}")
-            endif()
             # Add the file to the translations list
-            string(APPEND QT_TRANSLATIONS_LIST "        <file>${qt_translation_file_dest}</file>\n")
-            list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file_dest}")
+            string(APPEND QT_TRANSLATIONS_LIST "        <file>${qt_translation_file}</file>\n")
+            list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file}")
         endif()
     endif()
 
