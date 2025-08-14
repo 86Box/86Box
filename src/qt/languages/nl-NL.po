@@ -57,9 +57,6 @@ msgstr "Re&nderer"
 msgid "&Qt (Software)"
 msgstr "&Qt (software)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (&OpenGL)"
-
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
 
@@ -1638,9 +1635,6 @@ msgstr "Lijst van MCA-apparaten:"
 msgid "&Tablet tool"
 msgstr "Tablet-hulpmiddel"
 
-msgid "Qt (OpenGL &ES)"
-msgstr "Qt (OpenGL &ES)"
-
 msgid "About &Qt"
 msgstr "Over &Qt"
 
@@ -2856,7 +2850,7 @@ msgstr "Succes"
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
 msgstr "Wissen van NVRAM-inhoud van de virtuele machine \"%1\" geslaagd"
 
-msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
 msgstr "Fout bij Wissen van NVRAM-inhoud van de virtuele machine \"%1\""
 
 msgid "%1 VM Manager"
@@ -2919,8 +2913,8 @@ msgstr "Bezoek downloadpagina"
 msgid "Update check"
 msgstr "Updatecontrole"
 
-msgid "Checking for updates.."
-msgstr "Controleren op updates.."
+msgid "Checking for updates..."
+msgstr "Controleren op updates..."
 
 msgid "86Box Update"
 msgstr "86Box Update"

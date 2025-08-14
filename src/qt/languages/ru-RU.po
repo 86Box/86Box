@@ -57,9 +57,6 @@ msgstr "&Рендеринг"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (&OpenGL)"
-
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
 
@@ -1638,9 +1635,6 @@ msgstr "Список устройств MCA:"
 msgid "&Tablet tool"
 msgstr "Планшетный &инструмент"
 
-msgid "Qt (OpenGL &ES)"
-msgstr "Qt (OpenGL &ES)"
-
 msgid "About &Qt"
 msgstr "О &Qt"
 
@@ -2856,7 +2850,7 @@ msgstr "Успешно"
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
 msgstr "Успешно стёрто содержимое NVRAM виртуальной машины \"%1\""
 
-msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
 msgstr "Произошла ошибка при попытке стереть содержимое NVRAM виртуальной машины \"%1\""
 
 msgid "%1 VM Manager"
@@ -2919,8 +2913,8 @@ msgstr "Открыть страницу загрузки"
 msgid "Update check"
 msgstr "Проверка обновлений"
 
-msgid "Checking for updates.."
-msgstr "Проверка обновлений.."
+msgid "Checking for updates..."
+msgstr "Проверка обновлений..."
 
 msgid "86Box Update"
 msgstr "Обновление 86Box"
