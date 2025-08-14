@@ -197,29 +197,62 @@ ProgSettings::loadTranslators(QObject *parent)
         for (int i = 0; i < QLocale::system().uiLanguages().size(); i++) {
             localetofilename = QLocale::system().uiLanguages()[i];
             if (translator->load(QLatin1String("86box_") + localetofilename, QLatin1String(":/"))) {
-                qDebug() << "Translations loaded.\n";
+                qDebug() << "Translations loaded.";
                 QCoreApplication::installTranslator(translator);
-                if (!qtTranslator->load(QLatin1String("qtbase_") + localetofilename.replace('-', '_'), QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
-                    if (!qtTranslator->load(QLatin1String("qtbase_") + localetofilename.left(localetofilename.indexOf('-')), QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
-                        if (!qtTranslator->load(QLatin1String("qt_") + localetofilename.replace('-', '_'), QApplication::applicationDirPath() + "/./translations/"))
-                            qtTranslator->load(QLatin1String("qt_") + localetofilename.replace('-', '_'), QLatin1String(":/"));
-                if (QApplication::installTranslator(qtTranslator)) {
-                    qDebug() << "Qt translations loaded."
-                             << "\n";
-                }
+                /* First try qtbase */
+                if (!loadQtTranslations(QLatin1String("qtbase_") + localetofilename.replace('-', '_')))
+                    /* If that fails, try legacy qt_* translations */
+                    if (!loadQtTranslations(QLatin1String("qt_") + localetofilename.replace('-', '_')))
+                        qDebug() << "Failed to find Qt translations!";
+                if (QCoreApplication::installTranslator(qtTranslator))
+                    qDebug() << "Qt translations loaded.";
                 break;
             }
         }
     } else {
-        translator->load(QLatin1String("86box_") + languages[lang_id].first, QLatin1String(":/"));
+        if (translator->load(QLatin1String("86box_") + languages[lang_id].first, QLatin1String(":/")))
+            qDebug() << "Translations loaded.";
         QCoreApplication::installTranslator(translator);
-        if (!qtTranslator->load(QLatin1String("qtbase_") + QString(languages[lang_id].first).replace('-', '_'), QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
-            if (!qtTranslator->load(QLatin1String("qtbase_") + QString(languages[lang_id].first).left(QString(languages[lang_id].first).indexOf('-')), QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
-                if(!qtTranslator->load(QLatin1String("qt_") + QString(languages[lang_id].first).replace('-', '_'), QApplication::applicationDirPath() + "/./translations/"))
-                    qtTranslator->load(QLatin1String("qt_") + QString(languages[lang_id].first).replace('-', '_'), QLatin1String(":/"));
+        /* First try qtbase */
+        if (!loadQtTranslations(QLatin1String("qtbase_") + QString(languages[lang_id].first).replace('-', '_')))
+            /* If that fails, try legacy qt_* translations */
+            if (!loadQtTranslations(QLatin1String("qt_") + QString(languages[lang_id].first).replace('-', '_')))
+                qDebug() << "Failed to find Qt translations!";
 
-        QCoreApplication::installTranslator(qtTranslator);
+        if (QCoreApplication::installTranslator(qtTranslator))
+            qDebug() << "Qt translations loaded.";
     }
+}
+
+bool
+ProgSettings::loadQtTranslations(const QString name)
+{
+    QString name_lang_only = name.left(name.indexOf('_'));
+    /* System-wide translations */
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    if (qtTranslator->load(name, QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
+#else
+    if (qtTranslator->load(name, QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+#endif
+        return true;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    else if (qtTranslator->load(name_lang_only, QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
+#else
+    else if (qtTranslator->load(name_lang_only, QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+#endif
+        return true;
+    /* Bundled translations (embedded) */
+    else if (qtTranslator->load(name, QLatin1String(":/")))
+        return true;
+    else if (qtTranslator->load(name_lang_only, QLatin1String(":/")))
+        return true;
+    /* Bundled translations (external) */
+    else if (qtTranslator->load(name, QApplication::applicationDirPath() + "/./translations/"))
+        return true;
+    else if (qtTranslator->load(name_lang_only, QApplication::applicationDirPath() + "/./translations/"))
+        return true;
+    else
+        return false;
 }
 
 void
