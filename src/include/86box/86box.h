@@ -214,6 +214,7 @@ extern void update_mouse_msg(void);
 #if 0
 extern void pc_reload(wchar_t *fn);
 #endif
+extern int  pc_init_roms(void);
 extern int  pc_init_modules(void);
 extern int  pc_init(int argc, char *argv[]);
 extern void pc_close(void *threadid);

@@ -1184,11 +1184,10 @@ pc_full_speed(void)
 
 /* Initialize modules, ran once, after pc_init. */
 int
-pc_init_modules(void)
+pc_init_roms(void)
 {
     int     c;
     int     m;
-    wchar_t temp[512];
     char    tempc[512];
 
     if (dump_missing) {
@@ -1226,6 +1225,16 @@ pc_init_modules(void)
         return 0;
     }
     pc_log("A total of %d ROM sets have been loaded.\n", c);
+
+    return 1;
+}
+
+int
+pc_init_modules(void)
+{
+    int     c;
+    wchar_t temp[512];
+    char    tempc[512];
 
     /* Load the ROMs for the selected machine. */
     if (!machine_available(machine)) {
