@@ -1284,7 +1284,7 @@ msgstr ""
 msgid "Version"
 msgstr ""
 
-msgid "An update to 86Box is available"
+msgid "An update to 86Box is available: %1 %2"
 msgstr ""
 
 msgid "An error has occurred while checking for updates: %1"
@@ -2898,11 +2898,20 @@ msgstr "版本"
 msgid "build"
 msgstr ""
 
-msgid "You are currently running %1 <b>%2</b>. "
-msgstr "您当前正在运行 %1 <b>%2</b> 。"
+msgid "You are currently running version <b>%1</b>."
+msgstr "您当前正在运行版本 <b>%1</b> 。"
 
-msgid "<b>%1 %2</b> is now available. %3Would you like to visit the download page?"
-msgstr "<b>%1 %2</b>现已可用。%3 您想访问下载页面吗？"
+msgid "<b>Version %1</b> is now available."
+msgstr "<b>版本 %1</b>现已可用。"
+
+msgid "You are currently running build <b>%1</b>."
+msgstr "您当前正在运行 build <b>%1</b> 。"
+
+msgid "<b>Build %1</b> is now available."
+msgstr "<b>Build %1</b>现已可用。"
+
+msgid "Would you like to visit the download page?"
+msgstr "您想访问下载页面吗？"
 
 msgid "Visit download page"
 msgstr "访问下载页面"

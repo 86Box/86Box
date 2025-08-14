@@ -1284,8 +1284,8 @@ msgstr "Build"
 msgid "Version"
 msgstr "Versie"
 
-msgid "An update to 86Box is available"
-msgstr "Een update van 86Box is beschikbaar"
+msgid "An update to 86Box is available: %1 %2"
+msgstr "Een update van 86Box is beschikbaar: %1 %2"
 
 msgid "An error has occurred while checking for updates: %1"
 msgstr ""
@@ -2898,11 +2898,20 @@ msgstr "versie"
 msgid "build"
 msgstr "build"
 
-msgid "You are currently running %1 <b>%2</b>. "
-msgstr "Je gebruikt %1 <b>%2</b>. "
+msgid "You are currently running version <b>%1</b>."
+msgstr "Je gebruikt versie <b>%1</b>."
 
-msgid "<b>%1 %2</b> is now available. %3Would you like to visit the download page?"
-msgstr "<b>%1 %2</b> is nu beschikbaar. %3Wil je de downloadpagina bezoeken?"
+msgid "<b>Version %1</b> is now available."
+msgstr "<b>Versie %1</b> is nu beschikbaar."
+
+msgid "You are currently running build <b>%1</b>."
+msgstr "Je gebruikt build <b>%1</b>."
+
+msgid "<b>Build %1</b> is now available."
+msgstr "<b>Build %1</b> is nu beschikbaar."
+
+msgid "Would you like to visit the download page?"
+msgstr "Wil je de downloadpagina bezoeken?"
 
 msgid "Visit download page"
 msgstr "Bezoek downloadpagina"

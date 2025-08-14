@@ -776,8 +776,8 @@ VMManagerMain::backgroundUpdateCheckComplete(const UpdateCheck::UpdateResult &re
 {
     qDebug() << "Check complete: update available?" << result.updateAvailable;
     if (result.updateAvailable) {
-        auto type = result.channel == UpdateCheck::UpdateChannel::CI ? tr("Build") : tr("Version");
-        const auto updateMessage = QString("%1: %2 %3").arg( tr("An update to 86Box is available"), type, result.latestVersion);
+        auto type = result.channel == UpdateCheck::UpdateChannel::CI ? tr("build") : tr("version");
+        const auto updateMessage = QString("An update to 86Box is available: %1 %2").arg(type, result.latestVersion);
         emit updateStatusLeft(updateMessage);
     }
 }
