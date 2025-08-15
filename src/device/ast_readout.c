@@ -30,18 +30,29 @@
 #include <86box/plat_unused.h>
 
 /*
-    Bit 7 = Force flash;
-    Bit 6 = Password disable;
-    Bit 5 = Mono/Color primary video (0=Color/1=Mono);
-    Bit 4 = Setup disable (0=Enable Setup/1=Disable Setup);
-    Bit 3 = Enable onboard video (0=Enable/1=Disable);
-    Bit 2 = ????;
-    Bit 1 = ????;
-    Bit 0 = ????.
+    The AST readout device has multiple indexed registers that handle
+    jumper readout, software ECP DMA configuration and other unknown functions.
+
+    Register 0x00:
+    Bits 6-4 = ECP DMA configuration
+        010 (0x02) = DMA 0
+        101 (0x05) = DMA 1
+        111 (0x07) = DMA 3
+
+    Register 0x03:
+    Bit 7 = Force flash
+    Bit 6 = Password disable
+    Bit 5 = Mono/Color primary video (0=Color/1=Mono)
+    Bit 4 = Setup disable (0=Enable Setup/1=Disable Setup)
+    Bit 3 = Enable onboard video (0=Enable/1=Disable)
+    Bit 2 = ????
+    Bit 1 = ????
+    Bit 0 = ????
 */
 
 typedef struct ast_readout_t {
-    uint8_t jumper;
+    uint8_t index;
+    uint8_t jumper[4];
 } ast_readout_t;
 
 #ifdef ENABLE_AST_READOUT_LOG
@@ -63,20 +74,48 @@ ast_readout_log(const char *fmt, ...)
 #endif
 
 static void
-ast_readout_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
+ast_readout_write(uint16_t port, uint8_t val, void *priv)
 {
     ast_readout_t *dev = (ast_readout_t *) priv;
-    ast_readout_log("AST Bravo Readout: Write %02x\n", val);
-    //dev->jumper = val;
+    switch (port) {
+        case 0xE0:
+            ast_readout_log("[%04X:%08X] AST Bravo Readout: Set Index %02X\n", CS, cpu_state.pc, val);
+            dev->index = val;
+            break;
+        case 0xE1:
+            ast_readout_log("[%04X:%08X] AST Bravo Readout: Write %02X:%02X\n", CS, cpu_state.pc, dev->index, val);
+            if (dev->index == 0x03) {
+                dev->jumper[dev->index] = (val & 0x07);
+                if (gfxcard[0] != 0x01)
+                    dev->jumper[dev->index] |= 0x08;
+            }
+            else
+                dev->jumper[dev->index] = val;
+            break;
+        default:
+            break;
+    }
 }
 
 static uint8_t
-ast_readout_read(UNUSED(uint16_t addr), void *priv)
+ast_readout_read(uint16_t port, void *priv)
 {
     const ast_readout_t *dev = (ast_readout_t *) priv;
+    uint8_t          ret = 0xff;
 
-    ast_readout_log("AST Bravo Readout: Read %02x\n", dev->jumper);
-    return dev->jumper;
+    switch (port) {
+        case 0xE0:
+            ast_readout_log("[%04X:%08X] AST Bravo Readout: Read Index %02X\n", CS, cpu_state.pc, dev->index);
+            ret = dev->index;
+            break;
+        case 0xE1:
+            ast_readout_log("[%04X:%08X] AST Bravo Readout: Read %02X:%02X\n", CS, cpu_state.pc, dev->index, dev->jumper[dev->index]);
+            ret = dev->jumper[dev->index];
+            break;
+        default:
+            break;
+    }
+    return ret;
 }
 
 static void
@@ -84,9 +123,9 @@ ast_readout_reset(void *priv)
 {
     ast_readout_t *dev = (ast_readout_t *) priv;
 
-    dev->jumper = 0x06;
+    dev->jumper[0x03] = 0x06;
     if (gfxcard[0] != 0x01)
-        dev->jumper |= 0x08;
+        dev->jumper[0x03] |= 0x08;
 }
 
 static void
@@ -104,7 +143,7 @@ ast_readout_init(const device_t *info)
 
     ast_readout_reset(dev);
 
-    io_sethandler(0x00E1, 0x0001, ast_readout_read, NULL, NULL, ast_readout_write, NULL, NULL, dev);
+    io_sethandler(0x00E0, 0x0002, ast_readout_read, NULL, NULL, ast_readout_write, NULL, NULL, dev);
 
     return dev;
 }
