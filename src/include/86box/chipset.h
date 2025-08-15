@@ -151,6 +151,9 @@ extern const device_t opti5x7_pci_device;
 /* Philips */
 extern const device_t philips_device;
 
+/* Sanyo */
+extern const device_t sanyo_device;
+
 /* SiS */
 extern const device_t rabbit_device;
 extern const device_t sis_85c401_device;

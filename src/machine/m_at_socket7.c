@@ -801,6 +801,75 @@ machine_at_brio80xx_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t lgibmx52_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "lgibmx52",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "08/21/97", .internal_name = "lgibmx52_082197", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/lgibmx52/BIOS.ROM", "" } },
+            { .name = "03/26/99", .internal_name = "lgibmx52", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/lgibmx52/MS5136 LG IBM OEM.ROM", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t lgibmx52_device = {
+    .name          = "LG IBM Multinet x52 (MSI MS-5136)",
+    .internal_name = "lgibmx52_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = lgibmx52_config
+};
+
+int
+machine_at_lgibmx52_init(const machine_t *model)
+{
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    device_add(&kbc_ps2_ami_pci_device);
+    device_add_params(&w83877_device, (void *) (W83877F | W83877_3F0));
+    device_add(&winbond_flash_w29c010_device);
+
+    return ret;
+}
+
 /* The PB680 is a NV430VX, I'm assuming it has the same configuration bits as
    the TC430HX, hence the #define. */
 #define machine_at_nv430vx_gpio_init machine_at_tc430hx_gpio_init

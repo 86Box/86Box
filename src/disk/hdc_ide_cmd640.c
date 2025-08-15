@@ -45,7 +45,7 @@ typedef struct cmd640_t {
     uint8_t  pci;
     uint8_t  irq_state;
     uint8_t  pci_slot;
-    uint8_t  pad0;
+    uint8_t  force_on;
     uint8_t  regs[256];
     uint32_t local;
     int      irq_mode[2];
@@ -143,7 +143,7 @@ cmd640_ide_handlers(cmd640_t *dev)
         ide_set_base(0, main);
         ide_set_side(0, side);
 
-        if (dev->regs[0x04] & 0x01)
+        if ((dev->regs[0x04] & 0x01) || dev->force_on)
             ide_pri_enable();
     }
 
@@ -161,7 +161,7 @@ cmd640_ide_handlers(cmd640_t *dev)
         ide_set_base(1, main);
         ide_set_side(1, side);
 
-        if ((dev->regs[0x04] & 0x01) && (dev->regs[0x51] & 0x08))
+        if (((dev->regs[0x04] & 0x01) || dev->force_on) && (dev->regs[0x51] & 0x08))
             ide_sec_enable();
     }
 }
@@ -512,6 +512,7 @@ cmd640_init(const device_t *info)
     dev->local = info->local;
 
     dev->channels = ((info->local & 0x60000) >> 17) & 0x03;
+    dev->force_on = !!(info->local & 0x100000);
 
     if (info->flags & DEVICE_PCI) {
         device_add(&ide_pci_2ch_device);
