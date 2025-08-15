@@ -50,7 +50,11 @@ public:
     SettingsModel(QObject *parent)
         : QAbstractListModel(parent)
     {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        fontHeight = QFontMetrics(qApp->font()).height();
+#else
         fontHeight = QApplication::fontMetrics().height();
+#endif
     }
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
