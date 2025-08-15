@@ -3589,7 +3589,7 @@ const machine_t machines[] = {
     },
     /* Has unknown KBC firmware. */
     {
-        .name = "[ISA] Sharp AX 286",
+        .name = "[ISA] Sharp AX286D",
         .internal_name = "ax286",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_DISCRETE,
