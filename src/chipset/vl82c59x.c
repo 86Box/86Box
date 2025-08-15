@@ -397,8 +397,12 @@ vl82c59x_sb_write(int func, int addr, uint8_t val, void *priv)
             case 0x6F:
             case 0x70:
             case 0x71:
-            case 0x72: /* GPIO? */
-            case 0x73: /* GPIO? */
+            case 0x72: /* GPIO */
+                /* Compaq Presario and Prolinea use bits 6-4 for setting ECP DMA */
+                /* 011 (0x03) = DMA 3 (Default) */
+                /* 100 (0x04) = DMA 0 */
+                /* 111 (0x07) = DMA disabled */
+            case 0x73: /* GPIO */
                 dev->pci_conf_sb[addr] = val;
                 break;
             case 0x74: /* PCI Interrupt Connection Register (PCIINT0/1) */
