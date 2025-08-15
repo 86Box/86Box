@@ -86,24 +86,24 @@ ast_readout_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 0xE1:
             ast_readout_log("[%04X:%08X] AST Bravo Readout: Write %02X:%02X\n", CS, cpu_state.pc, dev->index, val);
-            if ((dev->index == 0x00) && (machine_has_jumpered_ecp_dma(machine, MACHINE_DMA_USE_CONFIG))) {
+            if ((dev->index == 0x00) && (!strcmp(machine_get_internal_name(), "bravoms586"))) {
                 uint8_t dmaval = ((val >> 4) & 0x07);
                 dev->jumper[dev->index] = val;
                 switch (dmaval) {
                     case 0x02:
-                        ast_readout_log("ECP DMA set to 0");
+                        ast_readout_log("ECP DMA set to 0\n");
                         lpt1_dma(0);
                         break;
                     case 0x05:
-                        ast_readout_log("ECP DMA set to 1");
+                        ast_readout_log("ECP DMA set to 1\n");
                         lpt1_dma(1);
                         break;
                     case 0x07:
-                        ast_readout_log("ECP DMA set to 3");
+                        ast_readout_log("ECP DMA set to 3\n");
                         lpt1_dma(3);
                         break;
                     default:
-                        ast_readout_log("Unknown ECP DMA!");
+                        ast_readout_log("Unknown ECP DMA!\n");
                         break;
                 }
             } else if (dev->index == 0x03) {
