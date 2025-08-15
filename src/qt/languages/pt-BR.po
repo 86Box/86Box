@@ -1081,19 +1081,19 @@ msgid "Running"
 msgstr "Rodando"
 
 msgid "Paused"
-msgstr "Pausado"
+msgstr "Pausada"
 
 msgid "Waiting"
 msgstr "Esperando"
 
 msgid "Powered Off"
-msgstr "Desligado"
+msgstr "Desligada"
 
 msgid "%n running"
 msgstr "%n rodando"
 
 msgid "%n paused"
-msgstr "%n pausado"
+msgstr "%n pausada"
 
 msgid "%n waiting"
 msgstr "%n esperando"
