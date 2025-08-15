@@ -1081,19 +1081,19 @@ msgid "Running"
 msgstr "Rodando"
 
 msgid "Paused"
-msgstr "Pausado"
+msgstr "Pausada"
 
-msgid "Paused (Waiting)"
+msgid "Waiting"
 msgstr "Esperando"
 
 msgid "Powered Off"
-msgstr "Desligado"
+msgstr "Desligada"
 
 msgid "%n running"
 msgstr "%n rodando"
 
 msgid "%n paused"
-msgstr "%n pausado"
+msgstr "%n pausada"
 
 msgid "%n waiting"
 msgstr "%n esperando"
@@ -1102,7 +1102,7 @@ msgid "%1 total"
 msgstr "%1 total"
 
 msgid "VMs: %1"
-msgstr ""
+msgstr "VMs: %1"
 
 msgid "System Directory:"
 msgstr "Diretório do Sistema:"
@@ -1285,7 +1285,7 @@ msgid "An update to 86Box is available: %1 %2"
 msgstr "Uma atualização do 86Box está disponível: %1 %2"
 
 msgid "An error has occurred while checking for updates: %1"
-msgstr ""
+msgstr "Ocorreu um erro ao verificar por atualizações: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
 msgstr "<b>Uma atualização do 86Box está disponível!</b>"
@@ -2878,10 +2878,10 @@ msgid "Update check complete"
 msgstr "Verificação de atualização completada"
 
 msgid "stable"
-msgstr ""
+msgstr "estável"
 
 msgid "beta"
-msgstr ""
+msgstr "beta"
 
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr "Você está executando a última versão %1 do 86Box: %2"
