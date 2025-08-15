@@ -517,7 +517,7 @@ msgid "LPT4 Device:"
 msgstr "LPT4 设备:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr ""
+msgstr "内置并口 ECP DMA"
 
 msgid "Serial port 1"
 msgstr "串口 1"
@@ -556,10 +556,10 @@ msgid "Quaternary IDE Controller"
 msgstr "第四 IDE 控制器"
 
 msgid "Hard disk"
-msgstr "硬盘控制器"
+msgstr "硬盘"
 
 msgid "SCSI"
-msgstr "SCSI 控制器"
+msgstr "SCSI"
 
 msgid "Controller 1:"
 msgstr "控制器 1:"
