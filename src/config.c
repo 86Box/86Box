@@ -2023,8 +2023,6 @@ config_load(void)
     int           i;
     ini_section_t c;
 
-    config_load_global();
-
     config_log("Loading VM config file '%s'...\n", cfg_path);
 
     memset(hdd, 0, sizeof(hard_disk_t));
