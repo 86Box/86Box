@@ -523,7 +523,11 @@ extern int             machine_at_neat_ami_init(const machine_t *);
 extern int             machine_at_3302_init(const machine_t *);
 extern int             machine_at_px286_init(const machine_t *);
 
+/* SCAMP */
+extern int             machine_at_pc7286_init(const machine_t *);
+
 /* SCAT */
+extern int             machine_at_pc5286_init(const machine_t *);
 extern int             machine_at_gw286ct_init(const machine_t *);
 extern int             machine_at_gdc212m_init(const machine_t *);
 extern int             machine_at_award286_init(const machine_t *);
