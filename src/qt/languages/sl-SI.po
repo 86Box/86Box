@@ -580,7 +580,7 @@ msgid "Hard disks:"
 msgstr "Trdi diski:"
 
 msgid "Firmware Version"
-msgstr ""
+msgstr "Različica programske opreme"
 
 msgid "&New..."
 msgstr "Nov..."
@@ -1057,7 +1057,7 @@ msgid "Pause execution"
 msgstr "Prekini izvajanje"
 
 msgid "Ctrl+Alt+Del"
-msgstr ""
+msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "Pritisni Ctrl+Alt+Del"
