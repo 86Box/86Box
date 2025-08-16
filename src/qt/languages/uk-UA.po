@@ -2451,6 +2451,9 @@ msgstr "256 КБ"
 msgid "Composite"
 msgstr "Композитний"
 
+msgid "True color"
+msgstr ""
+
 msgid "Old"
 msgstr "Старий"
 

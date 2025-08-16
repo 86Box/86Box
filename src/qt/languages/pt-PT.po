@@ -2217,6 +2217,9 @@ msgstr "Tipo de ecrã"
 msgid "Composite type"
 msgstr "Tipo composto"
 
+msgid "True color"
+msgstr ""
+
 msgid "RGB type"
 msgstr "Tipo RGB"
 

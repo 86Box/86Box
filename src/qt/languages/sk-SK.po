@@ -2217,6 +2217,9 @@ msgstr "Typ displeja"
 msgid "Composite type"
 msgstr "Kompozitný typ"
 
+msgid "True color"
+msgstr ""
+
 msgid "RGB type"
 msgstr "Typ RGB"
 

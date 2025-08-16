@@ -2448,6 +2448,9 @@ msgstr "256 КБ"
 msgid "Composite"
 msgstr "Композитное видео"
 
+msgid "True color"
+msgstr ""
+
 msgid "Old"
 msgstr "Старый"
 

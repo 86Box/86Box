@@ -2448,6 +2448,9 @@ msgstr "256 Kt"
 msgid "Composite"
 msgstr "Komposiitti"
 
+msgid "True color"
+msgstr ""
+
 msgid "Old"
 msgstr "Vanha"
 

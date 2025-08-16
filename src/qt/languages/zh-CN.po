@@ -2448,6 +2448,9 @@ msgstr "256 KB"
 msgid "Composite"
 msgstr "复合视频"
 
+msgid "True color"
+msgstr ""
+
 msgid "Old"
 msgstr "旧"
 
