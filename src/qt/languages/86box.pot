@@ -2448,6 +2448,9 @@ msgstr ""
 msgid "Composite"
 msgstr ""
 
+msgid "True color"
+msgstr ""
+
 msgid "Old"
 msgstr ""
 
