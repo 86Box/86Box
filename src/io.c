@@ -60,7 +60,6 @@ int   initialized = 0;
 io_t *io[NPORTS];
 io_t *io_last[NPORTS];
 
-// #define ENABLE_IO_LOG 1
 #ifdef ENABLE_IO_LOG
 int io_do_log = ENABLE_IO_LOG;
 
@@ -147,8 +146,6 @@ io_sethandler_common(uint16_t base, int size,
         q->next = NULL;
 
         io_last[base + c] = q;
-
-        q = NULL;
     }
 }
 

@@ -147,13 +147,6 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
     void     *priv     = NULL;
     int       c;
 
-    /*
-       IMPORTANT: This is needed to gracefully handle machine
-                  device addition if the relevant device is NULL.
-     */
-    if (dev == NULL)
-        return NULL;
-
     if (params != NULL) {
         init_dev = calloc(1, sizeof(device_t));
         memcpy(init_dev, dev, sizeof(device_t));
