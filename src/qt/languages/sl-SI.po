@@ -2925,6 +2925,15 @@ msgstr "Posodobitev programa 86Box"
 msgid "Release notes:"
 msgstr "Opombe različice:"
 
+msgid "Virtual machine crash"
+msgstr "Sesutje navidezne naprave"
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr "Proces navidezne naprave \"%1\" se je nepričakovano zaključil z izhodno kodo %2."
+
+msgid "The system will not be added."
+msgstr "Sistem ne bo dodan."
+
 #~ msgid "HD Controller:"
 #~ msgstr "Krmilnik trdega diska:"
 

@@ -1267,7 +1267,7 @@ msgid "Error adding system"
 msgstr "Error ao adicionar o sistema"
 
 msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr "Terminação abnormal do programa em criar o novo sistema: código de saida %1, código de estado %2.\n\nO sistema não será adicionado."
+msgstr "Terminação abnormal do programa em criar o novo sistema: código de saída %1, código de estado %2.\n\nO sistema não será adicionado."
 
 msgid "Remove directory failed"
 msgstr "Falha na remoção do directório"
@@ -2218,7 +2218,7 @@ msgid "Composite type"
 msgstr "Tipo composto"
 
 msgid "True color"
-msgstr "Verdadero cor"
+msgstr "Cor verdadeira"
 
 msgid "RGB type"
 msgstr "Tipo RGB"
@@ -2924,6 +2924,15 @@ msgstr "Atualização do 86Box"
 
 msgid "Release notes:"
 msgstr "Notas da versão:"
+
+msgid "Virtual machine crash"
+msgstr "Falecimento da máquina virtual"
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr "O processo da máquina virtual \"%1\" terminou inesperadamente com o código de saída %2."
+
+msgid "The system will not be added."
+msgstr "O sistema não será adicionado."
 
 #~ msgid "HD Controller:"
 #~ msgstr "Controlador HD:"

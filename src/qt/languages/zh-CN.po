@@ -2925,6 +2925,15 @@ msgstr "86Box 更新"
 msgid "Release notes:"
 msgstr "发行版说明"
 
+msgid "Virtual machine crash"
+msgstr ""
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr ""
+
+msgid "The system will not be added."
+msgstr ""
+
 #~ msgid "HD Controller:"
 #~ msgstr "硬盘控制器:"
 

@@ -2449,7 +2449,7 @@ msgid "Composite"
 msgstr "Composto"
 
 msgid "True color"
-msgstr ""
+msgstr "Cor verdadeira"
 
 msgid "Old"
 msgstr "Antiga"
@@ -2924,3 +2924,12 @@ msgstr "Atualização do 86Box"
 
 msgid "Release notes:"
 msgstr "Notas de lançamento:"
+
+msgid "Virtual machine crash"
+msgstr "Falecimento da máquina virtual"
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr "O processo da máquina virtual \"%1\" terminou inesperadamente com o código de saída %2."
+
+msgid "The system will not be added."
+msgstr "O sistema não será adicionado."

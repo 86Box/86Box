@@ -2925,6 +2925,15 @@ msgstr ""
 msgid "Release notes:"
 msgstr ""
 
+msgid "Virtual machine crash"
+msgstr ""
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr ""
+
+msgid "The system will not be added."
+msgstr ""
+
 #~ msgid "HD Controller:"
 #~ msgstr "Kiintolevyohjain:"
 
