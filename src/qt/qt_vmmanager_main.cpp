@@ -294,6 +294,7 @@ illegal_chars:
                 QMessageBox msgbox(QMessageBox::Warning, tr("Warning"), tr("Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?").arg(selected_sysconfig->displayName), QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, parent);
                 msgbox.exec();
                 if (msgbox.result() == QMessageBox::Yes) {
+                    disconnect(selected_sysconfig->process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), nullptr, nullptr);
                     selected_sysconfig->process->kill();
                 }
             });
@@ -616,13 +617,16 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
     const auto new_system = new VMManagerSystem(newSystemConfigFile.absoluteFilePath());
     new_system->launchSettings();
     // Handle this in a closure so we can capture the temporary new_system object
+    disconnect(new_system->process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), nullptr, nullptr);
     connect(new_system->process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             [=](const int exitCode, const QProcess::ExitStatus exitStatus) {
                 if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
                     qInfo().nospace().noquote() << "Abnormal program termination while creating new system: exit code " << exitCode << ", exit status " << exitStatus;
                     qInfo() << "Not adding system due to errors";
+                    QString errMsg = tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg(
+                                        (!displayName.isEmpty() ? displayName : name), QString::number(exitCode));
                     QMessageBox::critical(this, tr("Error adding system"),
-                                          tr("Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added.").arg(QString::number(exitCode), exitStatus));
+                                          QString("%1\n\n%2").arg(errMsg, tr("The system will not be added.")));
                     delete new_system;
                     return;
                 }
