@@ -2923,7 +2923,7 @@ msgid "86Box Update"
 msgstr ""
 
 msgid "Release notes:"
-msgstr "
+msgstr ""
 
 msgid "%1 Hz"
 msgstr "%1 Hz"
