@@ -10,7 +10,7 @@ msgid "&Action"
 msgstr "&Akce"
 
 msgid "&Keyboard requires capture"
-msgstr "&Klávesnice vyžaduje záběr"
+msgstr "&Klávesnice vyžaduje záběr myši"
 
 msgid "&Right CTRL is left ALT"
 msgstr "&Pravý Ctrl je levý Alt"
@@ -28,10 +28,10 @@ msgid "&Pause"
 msgstr "P&ozastavit"
 
 msgid "Pause"
-msgstr ""
+msgstr "Pozastavit"
 
 msgid "Re&sume"
-msgstr ""
+msgstr "&Obnovit"
 
 msgid "E&xit"
 msgstr "&Ukončit"
@@ -148,22 +148,22 @@ msgid "RGB &Color"
 msgstr "RGB &barevný"
 
 msgid "RGB (no brown)"
-msgstr ""
+msgstr "RGB (bez hnědé)"
 
 msgid "&RGB Grayscale"
 msgstr "&Odstíny šedi"
 
 msgid "Generic RGBI color monitor"
-msgstr ""
+msgstr "Obecný RGBI barevný monitor"
 
 msgid "&Amber monitor"
-msgstr "&Jantarová obrazovka"
+msgstr "&Jantarový monitor"
 
 msgid "&Green monitor"
-msgstr "&Zelená obrazovka"
+msgstr "&Zelený monitor"
 
 msgid "&White monitor"
-msgstr "&Bílá obrazovka"
+msgstr "&Bílý monitor"
 
 msgid "Grayscale &conversion type"
 msgstr "Převod na &odstíny šedi"
@@ -193,7 +193,7 @@ msgid "&Settings..."
 msgstr "&Nastavení..."
 
 msgid "Settings..."
-msgstr ""
+msgstr "Nastavení..."
 
 msgid "&Update status bar icons"
 msgstr "&Aktualizovat ikony stavového řádku"
@@ -361,10 +361,10 @@ msgid "Configure"
 msgstr "Nastavit"
 
 msgid "CPU:"
-msgstr ""
+msgstr "Procesor:"
 
 msgid "CPU type:"
-msgstr "Procesor:"
+msgstr "Typ procesoru:"
 
 msgid "Speed:"
 msgstr "Rychlost:"
@@ -400,13 +400,13 @@ msgid "Dynamic Recompiler"
 msgstr "Dynamický překladač"
 
 msgid "CPU frame size"
-msgstr ""
+msgstr "Velikost CPU rámců"
 
 msgid "Larger frames (less smooth)"
-msgstr ""
+msgstr "Větší rámce (méně plynulé)"
 
 msgid "Smaller frames (smoother)"
-msgstr ""
+msgstr "Menší rámce (plynulejší)"
 
 msgid "Video:"
 msgstr "Grafika:"
@@ -424,25 +424,25 @@ msgid "XGA Graphics"
 msgstr "Grafika XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
-msgstr ""
+msgstr "Grafika zobrazovacího adaptéru IBM PS/55"
 
 msgid "Keyboard:"
-msgstr ""
+msgstr "Klávesnice:"
 
 msgid "Keyboard"
-msgstr ""
+msgstr "Klávesnice"
 
 msgid "Mouse:"
 msgstr "Myš:"
 
 msgid "Mouse"
-msgstr ""
+msgstr "Myš"
 
 msgid "Joystick:"
 msgstr "Joystick:"
 
 msgid "Joystick"
-msgstr ""
+msgstr "Joystick"
 
 msgid "Joystick 1..."
 msgstr "Joystick 1..."
@@ -469,13 +469,13 @@ msgid "Sound card #4:"
 msgstr "Zvuková karta 4:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI výstup:"
+msgstr "Zařízení pro MIDI výstup:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI vstup:"
+msgstr "Zařízení pro MIDI vstup:"
 
 msgid "MIDI Out:"
-msgstr ""
+msgstr "MIDI výstup:"
 
 msgid "Standalone MPU-401"
 msgstr "Samostatný MPU-401"
@@ -517,7 +517,7 @@ msgid "LPT4 Device:"
 msgstr "Zařízení na LPT4:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr ""
+msgstr "DMA kanál ECP interního LPT portu:"
 
 msgid "Serial port 1"
 msgstr "Povolit port COM1"
@@ -547,7 +547,7 @@ msgid "FD Controller:"
 msgstr "Disketový řadič:"
 
 msgid "CD-ROM Controller:"
-msgstr ""
+msgstr "Řadič CD-ROM:"
 
 msgid "Tertiary IDE Controller"
 msgstr "Třetí řadič IDE"
@@ -556,7 +556,7 @@ msgid "Quaternary IDE Controller"
 msgstr "Čtvrtý řadič IDE"
 
 msgid "Hard disk"
-msgstr ""
+msgstr "Pevný disk"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -580,7 +580,7 @@ msgid "Hard disks:"
 msgstr "Pevné disky:"
 
 msgid "Firmware Version"
-msgstr ""
+msgstr "Verze firmware"
 
 msgid "&New..."
 msgstr "&Nový..."
@@ -643,10 +643,10 @@ msgid "MO:"
 msgstr ""
 
 msgid "Removable disks:"
-msgstr ""
+msgstr "Vyměnitelné disky:"
 
 msgid "Removable disk drives:"
-msgstr ""
+msgstr "Mechaniky vyměnitelných disků"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -658,7 +658,7 @@ msgid "ISA Memory Expansion"
 msgstr "ISA rozšíření paměti"
 
 msgid "ISA ROM Cards"
-msgstr ""
+msgstr "ISA karty s pamětí ROM"
 
 msgid "Card 1:"
 msgstr "Karta 1:"
@@ -673,13 +673,13 @@ msgid "Card 4:"
 msgstr "Karta 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr ""
+msgstr "Obecná ISA karta s pamětí ROM"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr ""
+msgstr "Obecná ISA karta se dvěmi pamětmi ROM"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr ""
+msgstr "Obecná ISA karta se čtyřmi pamětmi ROM"
 
 msgid "ISABugger device"
 msgstr "Zařízení ISABugger"
@@ -703,16 +703,16 @@ msgid "Speed"
 msgstr "Rychlost"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr ""
+msgstr "Vyměnitelný disk %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr ""
+msgstr "&Vyměnitelný disk %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr ""
+msgstr "Obrazy vyměnitelných disků"
 
 msgid "Image %1"
-msgstr ""
+msgstr "Obraz %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box nenalezl žádné použitelné image pamětí ROM.\n\n<a href=\"https://github.com/86Box/roms/releases/latest\">Stáhněte</a> sadu obrazů ROM a extrahujte ji do složky \"roms\"."
@@ -850,31 +850,31 @@ msgid "Invalid PCap device"
 msgstr "Neplatné PCap zařízení"
 
 msgid "2-axis, 2-button joystick(s)"
-msgstr "2osový, 2tlačítkový joystick"
+msgstr "Joystick s 2 osami a 2 tlačítky"
 
 msgid "2-axis, 4-button joystick"
-msgstr "2osový, 4tlačítkový joystick"
+msgstr "Joystick s 2 osami a 4 tlačítky"
 
 msgid "2-axis, 6-button joystick"
-msgstr "2osový, 6tlačítkový joystick"
+msgstr "Joystick s 2 osami a 6 tlačítky"
 
 msgid "2-axis, 8-button joystick"
-msgstr "2osový, 8tlačítkový joystick"
+msgstr "Joystick s 2 osami a 8 tlačítky"
 
 msgid "3-axis, 2-button joystick"
-msgstr "3osový, 2tlačítkový joystick"
+msgstr "Joystick s 3 osami a 2 tlačítky"
 
 msgid "3-axis, 4-button joystick"
-msgstr "3osový, 4tlačítkový joystick"
+msgstr "Joystick s 3 osami a 4 tlačítky"
 
 msgid "4-axis, 4-button joystick"
-msgstr "4osový, 4tlačítkový joystick"
+msgstr "Joystick s 4 osami a 4 tlačítky"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
-msgstr ""
+msgstr "CH Flighstick Pro + CH Pedals"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -883,28 +883,28 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr ""
+msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "2-button gamepad(s)"
-msgstr ""
+msgstr "Ovladač se 2 tlačítky"
 
 msgid "2-button flight yoke"
-msgstr ""
+msgstr "Letecký knipl se 2 tlačítky"
 
 msgid "4-button gamepad"
-msgstr ""
+msgstr "Ovladač se 4 tlačítky"
 
 msgid "4-button flight yoke"
-msgstr ""
+msgstr "Letecký knipl se 4 tlačítky"
 
 msgid "2-button flight yoke with throttle"
-msgstr ""
+msgstr "Letecký knipl s 2 tlačítky a pákou"
 
 msgid "4-button flight yoke with throttle"
-msgstr ""
+msgstr "Letecký knipl s 4 tlačítky a pákou"
 
 msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr ""
+msgstr "Volant pro Windows 95 (3 osy, 4 tlačítka)"
 
 msgid "None"
 msgstr "Žadné"
@@ -1462,7 +1462,7 @@ msgid "VHD files"
 msgstr "Soubory VHD"
 
 msgid "Select the parent VHD"
-msgstr "Vyberte nadřazený virtuální disk"
+msgstr "Vyberte nadřazený VHD disk"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
 msgstr "To může znamenat, že se obsahy nadřazeného disku změnily po vytvoření rozdílového disku.\n\nTato chyba také může nastat, pokud byl obraz disku kopírován nebo přesunut, nebo kvůli chybě v programu, který jej vytvořil.\n\nChcete časová razítka opravit?"
@@ -1471,7 +1471,7 @@ msgid "Parent and child disk timestamps do not match"
 msgstr "Časová razítka nadřazeného a podřazeného disku nesouhlasí"
 
 msgid "Could not fix VHD timestamp."
-msgstr "Nebylo možné opravit časové razítko VHD."
+msgstr "Nebylo možné opravit časové razítko VHD disku."
 
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
@@ -1609,10 +1609,10 @@ msgid "WinBox is no longer supported"
 msgstr "WinBox již není podporován"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "Vývoj správce WinBox byl zastaven v roce 2022 z důvodu nedostatku správců. Vzhledem k tomu, že naše úsilí směřujeme k tomu, abychom 86Box ještě vylepšili, rozhodli jsme se WinBox jako správce již nepodporovat.\n\nProstřednictvím WinBoxu nebudou poskytovány žádné další aktualizace a pokud jej budete nadále používat s novějšími verzemi 86Boxu, můžete se setkat s nesprávným chováním. Veškerá hlášení o chybách souvisejících s chováním WinBoxu budou uzavřena jako neplatná.\n\nSeznam dalších správců, které můžete používat, najdete na webu 86box.net."
+msgstr "Vývoj manažéru WinBox skončil v roce 2022 kvůli nedostatku vývojářů. Jelikož směřujeme naše úsilí k tomu, abychom udělali 86Box ještě lepší, rozhodli jsme se dále nepodporovat WinBox jakožto manažér.\n\nŽádné další aktualizace nebudou skrze WinBox nabízeny a můžete se setkat s nesprávným chováním při běhu s novejšími verzemi emulátoru 86Box. Jakékoliv nahlášené chyby související s manažérem WinBox budou řešeny jako neplatné.\n\nVizte 86box.net pro seznam jiných manažérů, které můžete používat."
 
 msgid "Generate"
-msgstr "Vytvoř"
+msgstr "Generovat"
 
 msgid "Joystick configuration"
 msgstr "Konfigurace joysticku"
@@ -1636,7 +1636,7 @@ msgid "&Tablet tool"
 msgstr "Nástroj pro tablety"
 
 msgid "About &Qt"
-msgstr "O programu &Qt"
+msgstr "O platformě &Qt"
 
 msgid "&MCA devices..."
 msgstr "Zařízení MCA ..."
@@ -1645,10 +1645,10 @@ msgid "Show non-&primary monitors"
 msgstr "Zobrazit neprimární monitory"
 
 msgid "Open screenshots &folder..."
-msgstr "Otevři složku screenshots..."
+msgstr "Otevřít složku se snímky obrazovky"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Použití režimu roztá&hnutí při celé obrazovce při maximalizaci"
+msgstr "Použít režim roztá&hnutí při celé obrazovce pro maximalizované okno"
 
 msgid "&Cursor/Puck"
 msgstr "&Kurzor/Puk"
@@ -1666,7 +1666,7 @@ msgid "Clear image &history"
 msgstr "Vymaž &historie snímků"
 
 msgid "Create..."
-msgstr "Vytvoř..."
+msgstr "Vytvořit..."
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Jednotka CD/DVD hostitele (%1)"
@@ -1678,19 +1678,19 @@ msgid "Null Driver"
 msgstr "Nulový ovladač"
 
 msgid "NIC:"
-msgstr ""
+msgstr "Síťový adaptér"
 
 msgid "NIC %1 (%2) %3"
-msgstr "NIC %1 (%2) %3"
+msgstr "Síťový adaptér %1 (%2) %3"
 
 msgid "&NIC %1 (%2) %3"
-msgstr "&NIC %1 (%2) %3"
+msgstr "&Síťový adaptér %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Chování vykreslování"
 
 msgid "Use target framerate:"
-msgstr "Použij cílovou snímkovou frekvenci:"
+msgstr "Použít cílovou snímkovou frekvenci:"
 
 msgid " fps"
 msgstr " fps"
@@ -1705,10 +1705,10 @@ msgid "Shaders"
 msgstr "Shadery"
 
 msgid "Remove"
-msgstr "Odstraň"
+msgstr "Odstranit"
 
 msgid "Browse..."
-msgstr "Prohlížejte..."
+msgstr "Browse..."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nepodařilo se vytvořit kontext OpenGL."
@@ -1750,19 +1750,19 @@ msgid "MiB"
 msgstr "MiB"
 
 msgid "GiB"
-msgstr ""
+msgstr "GiB"
 
 msgid "Network Card #1"
-msgstr "Síťová karta 1"
+msgstr "Síťový adaptér 1"
 
 msgid "Network Card #2"
-msgstr "Síťová karta 2"
+msgstr "Síťový adaptér 2"
 
 msgid "Network Card #3"
-msgstr "Síťová karta 3"
+msgstr "Síťový adaptér 3"
 
 msgid "Network Card #4"
-msgstr "Síťová karta 4"
+msgstr "Síťový adaptér 4"
 
 msgid "Mode:"
 msgstr "Režim:"
@@ -1780,7 +1780,7 @@ msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"
 
 msgid "Novell NetWare 2.x Key Card"
-msgstr "Klíčová karta Novell NetWare 2.x"
+msgstr "Karta s klíčem pro Novell NetWare 2.x"
 
 msgid "Serial port passthrough 1"
 msgstr "Průchod sériového portu 1"
@@ -1795,25 +1795,25 @@ msgid "Serial port passthrough 4"
 msgstr "Průchod sériového portu 4"
 
 msgid "Renderer &options..."
-msgstr "Možnosti vykreslovače..."
+msgstr "Možnosti rendereru..."
 
 msgid "PC/XT Keyboard"
-msgstr ""
+msgstr "Klávesnice PC/XT"
 
 msgid "AT Keyboard"
-msgstr ""
+msgstr "Klávesnice AT"
 
 msgid "AX Keyboard"
-msgstr ""
+msgstr "Klávesnice AX"
 
 msgid "PS/2 Keyboard"
-msgstr ""
+msgstr "Klávesnice PS/2"
 
 msgid "PS/55 Keyboard"
-msgstr ""
+msgstr "Klávesnice PS/55"
 
 msgid "Keys"
-msgstr ""
+msgstr "Klávesy"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Sběrnicová myš Logitech/Microsoft"
@@ -1825,13 +1825,13 @@ msgid "Mouse Systems Serial Mouse"
 msgstr "Sériová myš Mouse Systems"
 
 msgid "Mouse Systems Bus Mouse"
-msgstr ""
+msgstr "Sběrnicová myš Mouse Systems"
 
 msgid "Microsoft Serial Mouse"
 msgstr "Sériová myš Microsoft"
 
 msgid "Microsoft Serial BallPoint"
-msgstr ""
+msgstr "Sériová myš Microsoft BallPoint"
 
 msgid "Logitech Serial Mouse"
 msgstr "Sériová myš Logitech"
@@ -1840,13 +1840,13 @@ msgid "PS/2 Mouse"
 msgstr "Myš PS/2"
 
 msgid "PS/2 QuickPort Mouse"
-msgstr ""
+msgstr "Myš PS/2 QuickPort"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (sériová)"
 
 msgid "Default Baud rate"
-msgstr ""
+msgstr "Výchozí přenosová rychlost"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Modem kompatibilní se standardem Hayes"
@@ -1864,7 +1864,7 @@ msgid "Roland CM-32LN Emulation"
 msgstr "Emulace Roland CM-32LN"
 
 msgid "OPL4-ML Daughterboard"
-msgstr "Dceřiná deska OPL4-ML"
+msgstr "Dceřinná deska OPL4-ML"
 
 msgid "System MIDI"
 msgstr "Systémové MIDI"
@@ -1873,52 +1873,52 @@ msgid "MIDI Input Device"
 msgstr "Vstupní zařízení MIDI"
 
 msgid "BIOS file"
-msgstr ""
+msgstr "Soubor BIOS"
 
 msgid "BIOS file (ROM #1)"
-msgstr ""
+msgstr "Soubor BIOS (ROM 1)"
 
 msgid "BIOS file (ROM #2)"
-msgstr ""
+msgstr "Soubor BIOS (ROM 2)"
 
 msgid "BIOS file (ROM #3)"
-msgstr ""
+msgstr "Soubor BIOS (ROM 3)"
 
 msgid "BIOS file (ROM #4)"
-msgstr ""
+msgstr "Soubor BIOS (ROM 4)"
 
 msgid "BIOS address"
-msgstr "Adresa BIOSu"
+msgstr "Adresa BIOS"
 
 msgid "BIOS address (ROM #1)"
-msgstr ""
+msgstr "Adresa BIOS (ROM 4)"
 
 msgid "BIOS address (ROM #2)"
-msgstr ""
+msgstr "Adresa BIOS (ROM 4)"
 
 msgid "BIOS address (ROM #3)"
-msgstr ""
+msgstr "Adresa BIOS (ROM 4)"
 
 msgid "BIOS address (ROM #4)"
-msgstr ""
+msgstr "Adresa BIOS (ROM 4)"
 
 msgid "Enable BIOS extension ROM Writes"
-msgstr "Povolení zápisu do rozšiřující paměti ROM systému BIOS"
+msgstr "Povolit zápis do paměti ROM s rozšířením BIOS"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr ""
+msgstr "Povolit zápis do paměti ROM s rozšířením BIOS (ROM 1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr ""
+msgstr "Povolit zápis do paměti ROM s rozšířením BIOS (ROM 2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr ""
+msgstr "Povolit zápis do paměti ROM s rozšířením BIOS (ROM 3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr ""
+msgstr "Povolit zápis do paměti ROM s rozšířením BIOS (ROM 4)"
 
 msgid "Linear framebuffer base"
-msgstr ""
+msgstr "Začátek lineárního framebufferu"
 
 msgid "Address"
 msgstr "Adresa"
@@ -1927,28 +1927,28 @@ msgid "IRQ"
 msgstr "IRQ"
 
 msgid "Serial port IRQ"
-msgstr ""
+msgstr "Přerušení sériového portu"
 
 msgid "Parallel port IRQ"
-msgstr ""
+msgstr "Přerušení paralelního portu"
 
 msgid "BIOS Revision"
-msgstr "Revize BIOSu"
+msgstr "Revize BIOS"
 
 msgid "BIOS Version"
-msgstr ""
+msgstr "Verze BIOS"
 
 msgid "BIOS Language"
-msgstr ""
+msgstr "Jazyk BIOS"
 
 msgid "IBM 5161 Expansion Unit"
-msgstr ""
+msgstr "Rozšiřující jednotka IBM 5161"
 
 msgid "IBM Cassette Basic"
-msgstr ""
+msgstr "Kazetový Basic IBM"
 
 msgid "Translate 26 -> 17"
-msgstr "Přeložit 26 -> 17"
+msgstr "Překládat 26 -> 17"
 
 msgid "Language"
 msgstr "Jazyk"
@@ -1957,43 +1957,43 @@ msgid "Enable backlight"
 msgstr "Povolit podsvícení"
 
 msgid "Invert colors"
-msgstr "Invertování barev"
+msgstr "Převrátit barvy"
 
 msgid "BIOS size"
-msgstr "Velikost BIOSu"
+msgstr "Velikost BIOS"
 
 msgid "BIOS size (ROM #1)"
-msgstr ""
+msgstr "Velikost BIOS (ROM 1)"
 
 msgid "BIOS size (ROM #2)"
-msgstr ""
+msgstr "Velikost BIOS (ROM 2)"
 
 msgid "BIOS size (ROM #3)"
-msgstr ""
+msgstr "Velikost BIOS (ROM 3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr ""
+msgstr "Velikost BIOS (ROM 4)"
 
 msgid "Map C0000-C7FFF as UMB"
-msgstr "Mapovat C0000-C7FFF jako UMB"
+msgstr "Namapovat C0000-C7FFF jako UMB"
 
 msgid "Map C8000-CFFFF as UMB"
-msgstr "Mapovat C8000-CFFFF jako UMB"
+msgstr "Namapovat C8000-CFFFF jako UMB"
 
 msgid "Map D0000-D7FFF as UMB"
-msgstr "Mapovat D0000-D7FFF jako UMB"
+msgstr "Namapovat D0000-D7FFF jako UMB"
 
 msgid "Map D8000-DFFFF as UMB"
-msgstr "Mapovat D8000-DFFFF jako UMB"
+msgstr "Namapovat D8000-DFFFF jako UMB"
 
 msgid "Map E0000-E7FFF as UMB"
-msgstr "Mapovat E0000-E7FFF jako UMB"
+msgstr "Namapovat E0000-E7FFF jako UMB"
 
 msgid "Map E8000-EFFFF as UMB"
-msgstr "Mapovat E8000-EFFFF jako UMB"
+msgstr "Namapovat E8000-EFFFF jako UMB"
 
 msgid "JS9 Jumper (JIM)"
-msgstr "JS9 propojka (JIM)"
+msgstr "Jumper JS9 (JIM)"
 
 msgid "MIDI Output Device"
 msgstr "Výstupní zařízení MIDI"
@@ -2002,7 +2002,7 @@ msgid "MIDI Real time"
 msgstr "MIDI v reálném čase"
 
 msgid "MIDI Thru"
-msgstr "Průchozí vstupu MIDI"
+msgstr "Průchod vstupu MIDI"
 
 msgid "MIDI Clockout"
 msgstr "Odbíjení hodin MIDI"
@@ -2050,7 +2050,7 @@ msgid "Interpolation Method"
 msgstr "Metoda interpolace"
 
 msgid "Dynamic Sample Loading"
-msgstr ""
+msgstr "Dynamické načítání vzorků"
 
 msgid "Reverb Output Gain"
 msgstr "Zesílení výstupu dozvuku"
@@ -2083,7 +2083,7 @@ msgid "Show Crosshair"
 msgstr "Zobrazení křížového ukazatele"
 
 msgid "DMA"
-msgstr "DMA"
+msgstr "DMA kanál"
 
 msgid "MAC Address"
 msgstr "Adresa MAC"
@@ -2101,7 +2101,7 @@ msgid "TCP/IP listening port"
 msgstr "Naslouchací port TCP/IP"
 
 msgid "Phonebook File"
-msgstr "Soubor telefonního seznamu"
+msgstr "Soubor s telefonním seznamem"
 
 msgid "Telnet emulation"
 msgstr "Emulace Telnetu"
@@ -2113,7 +2113,7 @@ msgid "RAM size"
 msgstr "Velikost RAMu"
 
 msgid "Initial RAM size"
-msgstr "Počáteční velikost RAMu"
+msgstr "Počáteční velikost RAM"
 
 msgid "Serial Number"
 msgstr "Sériové číslo"
@@ -2122,28 +2122,28 @@ msgid "Host ID"
 msgstr "ID hostitele"
 
 msgid "FDC Address"
-msgstr "Adresa FDCu"
+msgstr "Adresa FDC"
 
 msgid "MPU-401 Address"
 msgstr "Adresa MPU-401"
 
 msgid "MPU-401 IRQ"
-msgstr "IRQ MPU-401"
+msgstr "Přerušení MPU-401"
 
 msgid "Receive MIDI input"
-msgstr "Příjem vstupu MIDI"
+msgstr "Přijímat vstup MIDI"
 
 msgid "Low DMA"
-msgstr "Nízký DMA"
+msgstr "Nízký DMA kanál"
 
 msgid "Enable Game port"
 msgstr "Povolit herní port"
 
 msgid "SID Model"
-msgstr ""
+msgstr "Model SID"
 
 msgid "SID Filter Strength"
-msgstr ""
+msgstr "Síla filtru SID"
 
 msgid "Surround module"
 msgstr "Modul Surround"
@@ -2158,16 +2158,16 @@ msgid "SB Address"
 msgstr "Adresa SB"
 
 msgid "Adlib Address"
-msgstr ""
+msgstr "Adresa Adlib"
 
 msgid "Use EEPROM setting"
-msgstr ""
+msgstr "Použít nastavení EEPROM"
 
 msgid "WSS IRQ"
 msgstr "IRQ WSS"
 
 msgid "WSS DMA"
-msgstr "DMA WSS"
+msgstr "DMA kanál WSS"
 
 msgid "Enable OPL"
 msgstr "Povolit OPL"
@@ -2176,7 +2176,7 @@ msgid "Receive MIDI input (MPU-401)"
 msgstr "Příjem vstupu MIDI (MPU-401)"
 
 msgid "SB low DMA"
-msgstr "Nízký DMA SB"
+msgstr "Nízký DMA kanál SB"
 
 msgid "6CH variant (6-channel)"
 msgstr "Varianta 6CH (6 kanálů)"
@@ -2185,13 +2185,13 @@ msgid "Enable CMS"
 msgstr "Povolit CMS"
 
 msgid "Mixer"
-msgstr "Směšovač"
+msgstr "Mixér"
 
 msgid "High DMA"
-msgstr "Vysoký DMA"
+msgstr "Vysoký DMA kanál"
 
 msgid "Control PC speaker"
-msgstr "Ovládát reproduktoru PC"
+msgstr "Ovládat PC Speaker"
 
 msgid "Memory size"
 msgstr "Velikost pamĕti"
@@ -2242,19 +2242,19 @@ msgid "MMIO Address"
 msgstr "Adresa MMIO"
 
 msgid "RAMDAC type"
-msgstr "Typ RAMDACu"
+msgstr "Typ RAMDAC"
 
 msgid "Blend"
-msgstr "Směs"
+msgstr "Smísit"
 
 msgid "Font"
-msgstr ""
+msgstr "Písmo"
 
 msgid "Bilinear filtering"
 msgstr "Bilineární filtrování"
 
 msgid "Video chroma-keying"
-msgstr ""
+msgstr "Barevné klíčování obrazu"
 
 msgid "Dithering"
 msgstr "Dithering"
@@ -2296,40 +2296,40 @@ msgid "Transfer Speed"
 msgstr "Rychlost přenosu"
 
 msgid "EMS mode"
-msgstr "Režím EMS"
+msgstr "Režim EMS"
 
 msgid "EMS Address"
-msgstr ""
+msgstr "Adresa EMS"
 
 msgid "EMS 1 Address"
-msgstr ""
+msgstr "Adresa EMS 1"
 
 msgid "EMS 2 Address"
-msgstr ""
+msgstr "Adresa EMS 2"
 
 msgid "EMS Memory Size"
-msgstr ""
+msgstr "Velikost paměti EMS"
 
 msgid "EMS 1 Memory Size"
-msgstr ""
+msgstr "Velikost paměti EMS 1"
 
 msgid "EMS 2 Memory Size"
-msgstr ""
+msgstr "Velikost paměti EMS 2"
 
 msgid "Enable EMS"
-msgstr ""
+msgstr "Povolit EMS"
 
 msgid "Enable EMS 1"
-msgstr ""
+msgstr "Povolit EMS 1"
 
 msgid "Enable EMS 2"
-msgstr ""
+msgstr "Povolit EMS 2"
 
 msgid "Address for > 2 MB"
 msgstr "Adresa pro > 2 MB"
 
 msgid "Frame Address"
-msgstr "Rámcová adresa"
+msgstr "Adresa rámce"
 
 msgid "USA"
 msgstr "Spojené státy"
@@ -2368,7 +2368,7 @@ msgid "Non-timed (original)"
 msgstr "Bez časování (originální)"
 
 msgid "45 Hz (JMP2 not populated)"
-msgstr "45 Hz (JMP2 není vyplněn)"
+msgstr "45 Hz (JMP2 není osazen)"
 
 msgid "Two"
 msgstr "Dvě"
@@ -2380,10 +2380,10 @@ msgid "Wheel"
 msgstr "Kolečko"
 
 msgid "Five + Wheel"
-msgstr "Pět + kolečko"
+msgstr "Pět s kolečkem"
 
 msgid "Five + 2 Wheels"
-msgstr ""
+msgstr "Pět se 2 kolečky"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 sériová / SMT3(R)V"
@@ -2446,10 +2446,10 @@ msgid "256 KB"
 msgstr "256 KB"
 
 msgid "Composite"
-msgstr "Kompozitný"
+msgstr "Kompozitní"
 
 msgid "True color"
-msgstr ""
+msgstr "True Color (24 bitů)"
 
 msgid "Old"
 msgstr "Starý"
@@ -2485,13 +2485,13 @@ msgid "Linear interpolation"
 msgstr "Lineární interpolace"
 
 msgid "Has secondary 8x8 character set"
-msgstr ""
+msgstr "Má druhou sadu 8x8 znaků"
 
 msgid "Has Quadcolor II daughter board"
-msgstr ""
+msgstr "Má dceřinnou desků Quadcolor II"
 
 msgid "Alternate monochrome contrast"
-msgstr ""
+msgstr "Alternativní monochromatický kontrast"
 
 msgid "128 KB"
 msgstr "128 KB"
@@ -2527,7 +2527,7 @@ msgid "Gray"
 msgstr "Šedý"
 
 msgid "Grayscale"
-msgstr ""
+msgstr "Odstíny šedi"
 
 msgid "Color"
 msgstr "Barevný"
@@ -2542,13 +2542,13 @@ msgid "Other languages"
 msgstr "Ostatní jazyky"
 
 msgid "Bochs latest"
-msgstr "Bochs nejnovější"
+msgstr "Nejnovější Bochs"
 
 msgid "Apply overscan deltas"
-msgstr ""
+msgstr "Použít delty přesahu"
 
 msgid "Mono Interlaced"
-msgstr ""
+msgstr "Monochromatický s prokládaním"
 
 msgid "Mono Non-Interlaced"
 msgstr "Monochromatický bez prokládání"
@@ -2563,7 +2563,7 @@ msgid "3Dfx Voodoo Graphics"
 msgstr "Grafický akcelerátor 3dfx Voodoo"
 
 msgid "3Dfx Voodoo 2"
-msgstr ""
+msgstr "Grafický akcelerátor 3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 jednotky TMU)"
@@ -2620,7 +2620,7 @@ msgid "Host Serial Device"
 msgstr "Hostitelské sériové zařízení"
 
 msgid "Name of pipe"
-msgstr "Název potrubí"
+msgstr "Název pojmenované roury"
 
 msgid "Data bits"
 msgstr "Datové bity"
@@ -2632,10 +2632,10 @@ msgid "Baud Rate of Passthrough"
 msgstr "Přenosová rychlost průchodu"
 
 msgid "Named Pipe (Server)"
-msgstr "Pojmenované potrubí (server)"
+msgstr "Pojmenovaná roura (server)"
 
 msgid "Named Pipe (Client)"
-msgstr ""
+msgstr "Pojmenovaná roura (klient)"
 
 msgid "Host Serial Passthrough"
 msgstr "Průchod sériového portu hostitele"
@@ -2644,7 +2644,7 @@ msgid "E&ject %1"
 msgstr "&Vyjmout %1"
 
 msgid "&Unmute"
-msgstr "&Roztišit"
+msgstr "&Zrušit ztišení"
 
 msgid "Softfloat FPU"
 msgstr "Softfloat FPU"
@@ -2653,28 +2653,28 @@ msgid "High performance impact"
 msgstr "Vysoký dopad na výkon"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] Disk RAM (max. rychlost)"
+msgstr "[Obecný] Disk RAM (max. rychlost)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr ""
+msgstr "[Obecný] 1989 (3500 ot./m)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr ""
+msgstr "[Obecný] 1992 (3600 ot./m)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr ""
+msgstr "[Obecný] 1994 (4500 ot./m)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr ""
+msgstr "[Obecný] 1996 (5400 ot./m)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr ""
+msgstr "[Obecný] 1997 (5400 ot./m)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr ""
+msgstr "[Obecný] 1998 (5400 ot./m)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr ""
+msgstr "[Obecný] 2000 (7200 ot./m)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Klon IBM 8514/A (ISA)"
@@ -2683,10 +2683,10 @@ msgid "Vendor"
 msgstr "Výrobce"
 
 msgid "30 Hz (JMP2 = 1)"
-msgstr ""
+msgstr "30 Hz (JMP2 = 1)"
 
 msgid "60 Hz (JMP2 = 2)"
-msgstr ""
+msgstr "60 Hz (JMP2 = 2)"
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Obecné rozšíření paměti PC/XT"
@@ -2695,151 +2695,151 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Obecné rozšíření paměti PC/AT"
 
 msgid "Unable to find Dot-Matrix fonts"
-msgstr "Nastala chyba při nachození jehličkových písem"
+msgstr "Nebylo možné nalézt písma pro jehličkovou tiskárnu"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "Pro emulaci obecné jehličkové tiskárny ESC/P jsou vyžadována písma TrueType ve složce \"roms/printer/fonts\"."
 
 msgid "Inhibit multimedia keys"
-msgstr ""
+msgstr "Potlačit stisk multimediálních kláves"
 
 msgid "Ask for confirmation before saving settings"
-msgstr ""
+msgstr "Vyžadovat potvrzení před uložením nastavení"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr ""
+msgstr "Vyžadovat potvrzení před resetováním"
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
+msgstr "Vyžadost potvrzení před ukončením"
 
 msgid "Options"
-msgstr ""
+msgstr "Možnosti"
 
 msgid "Model"
-msgstr ""
+msgstr "Model"
 
 msgid "Model:"
-msgstr ""
+msgstr "Model:"
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr ""
+msgstr "Selhala inicializace rendereru Vulkan."
 
 msgid "GLSL Error"
-msgstr ""
+msgstr "Chyba GLSL"
 
 msgid "Could not load shader: %1"
-msgstr ""
+msgstr "Nebylo možné načíst shader: %1"
 
 msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr ""
+msgstr "Je vyžadováno OpenGL verze 3.0 nebo větší. Současná verze GLSL je %1.%2"
 
 msgid "Could not load texture: %1"
-msgstr ""
+msgstr "Nebylo možné načíst texturu: %1"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr ""
+msgstr "Nebylo možné zkompilovat shader:\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr ""
+msgstr "Program nebyl spojen:\n\n%1"
 
 msgid "Shader Manager"
-msgstr ""
+msgstr "Správce shaderů"
 
 msgid "Shader Configuration"
-msgstr ""
+msgstr "Konfigurace shaderu"
 
 msgid "Add"
-msgstr ""
+msgstr "Přidat"
 
 msgid "Move up"
-msgstr ""
+msgstr "Posunout výš"
 
 msgid "Move down"
-msgstr ""
+msgstr "Posunout níž"
 
 msgid "Could not load file %1"
-msgstr ""
+msgstr "Nebylo možné načíst soubor %1"
 
 msgid "Key Bindings:"
-msgstr ""
+msgstr "Nastavení kláves"
 
 msgid "Action"
-msgstr ""
+msgstr "Akce"
 
 msgid "Keybind"
-msgstr ""
+msgstr "Klávesy"
 
 msgid "Clear binding"
-msgstr ""
+msgstr "Smazat nastavení"
 
 msgid "Bind"
-msgstr ""
+msgstr "Nastavit"
 
 msgid "Bind Key"
-msgstr ""
+msgstr "Nastavit klávesu"
 
 msgid "Enter key combo:"
-msgstr ""
+msgstr "Zadejte kombinaci kláves"
 
 msgid "Bind conflict"
-msgstr ""
+msgstr "Konflikt nastavení"
 
 msgid "This key combo is already in use."
-msgstr ""
+msgstr "Tato kombinace kláves je již použita."
 
 msgid "Send Control+Alt+Del"
-msgstr ""
+msgstr "Stisknout Ctrl+Alt+Del"
 
 msgid "Send Control+Alt+Escape"
-msgstr ""
+msgstr "Stisknout Ctrl+Alt+Esc"
 
 msgid "Toggle fullscreen"
-msgstr ""
+msgstr "Přepnout režim celé obrazovky"
 
 msgid "Screenshot"
-msgstr ""
+msgstr "Pořídit snímek obrazovky"
 
 msgid "Release mouse pointer"
-msgstr ""
+msgstr "Uvolnit kurzor myši"
 
 msgid "Toggle pause"
-msgstr ""
+msgstr "Pozastavit nebo obnovit"
 
 msgid "Toggle mute"
-msgstr ""
+msgstr "Přepnout ztišení"
 
 msgid "Text files"
-msgstr ""
+msgstr "Textové soubory"
 
 msgid "ROM files"
-msgstr ""
+msgstr "Soubory ROM"
 
 msgid "SoundFont files"
-msgstr ""
+msgstr "Soubory SoundFont"
 
 msgid "Local Switch"
-msgstr ""
+msgstr "Lokální switch"
 
 msgid "Remote Switch"
-msgstr ""
+msgstr "Vzdálený switch"
 
 msgid "Switch:"
-msgstr ""
+msgstr "Switch:"
 
 msgid "Hub Mode"
-msgstr ""
+msgstr "Režim hubu"
 
 msgid "Hostname:"
-msgstr ""
+msgstr "Hostitelské jméno"
 
 msgid "ISA RTC"
-msgstr ""
+msgstr "ISA hodiny"
 
 msgid "ISA RAM"
-msgstr ""
+msgstr "ISA paměť RAM"
 
 msgid "ISA ROM"
-msgstr ""
+msgstr "ISA paměť ROM"
 
 msgid "&Wipe NVRAM"
 msgstr ""
@@ -2925,14 +2925,5 @@ msgstr ""
 msgid "Release notes:"
 msgstr ""
 
-#~ msgid "HD Controller:"
-#~ msgstr "Řadič disku:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "Mechaniky ZIP:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "Obrazy ZIP disků"
+msgid "%1 Hz"
+msgstr "%1 Hz"
