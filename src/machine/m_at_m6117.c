@@ -59,7 +59,7 @@ machine_at_pja511m_init(const machine_t *model)
 
     device_add_inst_params(&fdc37c669_device, 1, (void *) FDC37C6XX_IDE_PRI);
     device_add_inst_params(&fdc37c669_device, 2, (void *) 0);
-    device_add(&kbc_ps2_ami_pci_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&ali6117d_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -80,7 +80,7 @@ machine_at_prox1332_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add_params(&fdc37c669_device, (void *) FDC37C6XX_370);
-    device_add(&kbc_ps2_ami_pci_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&ali6117d_device);
     device_add(&sst_flash_29ee010_device);
 

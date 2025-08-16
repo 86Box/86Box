@@ -62,7 +62,8 @@ machine_at_atc1762_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add(&ali1429g_device);
-    device_add(&kbc_ps2_ami_pci_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -84,7 +85,8 @@ machine_at_ecsal486_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&ali1429g_device);
-    device_add(&kbc_ps2_ami_pci_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -107,7 +109,9 @@ machine_at_ap4100aa_init(const machine_t *model)
 
     device_add(&ami_1994_nvr_device);
     device_add(&ali1429g_device);
-    device_add(&kbc_ps2_ami_pci_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     device_add(&ide_vlb_device);
     device_add_params(&um866x_device, (void *) UM8663BF);
 
@@ -133,7 +137,7 @@ machine_at_4gpv5_init(const machine_t *model)
 
     device_add(&contaq_82c596a_device);
 
-    device_add(&kbc_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -157,7 +161,7 @@ machine_at_greenb_init(const machine_t *model)
 
     device_add(&contaq_82c597_device);
 
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -174,7 +178,7 @@ machine_at_403tg_common_init(const machine_t *model, int nvr_hack)
 
     device_add(&opti895_device);
 
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -243,7 +247,9 @@ machine_at_acerv10_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&sis_85c461_device);
-    device_add(&kbc_ps2_acer_pci_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     device_add(&ide_isa_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
@@ -276,7 +282,8 @@ machine_at_win471_init(const machine_t *model)
         return ret;
 
     machine_at_sis_85c471_common_init(model);
-    device_add(&kbc_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -293,7 +300,8 @@ machine_at_vi15g_init(const machine_t *model)
         return ret;
 
     machine_at_sis_85c471_common_init(model);
-    device_add(&kbc_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -310,7 +318,8 @@ machine_at_vli486sv2g_init(const machine_t *model)
         return ret;
 
     machine_at_sis_85c471_common_init(model);
-    device_add(&kbc_ps2_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -330,7 +339,8 @@ machine_at_dvent4xx_init(const machine_t *model)
     device_add(&sis_85c471_device);
     device_add(&ide_cmd640_vlb_pri_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
-    device_add(&kbc_ps2_phoenix_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
@@ -350,7 +360,8 @@ machine_at_dtk486_init(const machine_t *model)
         return ret;
 
     machine_at_sis_85c471_common_init(model);
-    device_add(&kbc_at_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -367,7 +378,8 @@ machine_at_ami471_init(const machine_t *model)
         return ret;
 
     machine_at_sis_85c471_common_init(model);
-    device_add(&kbc_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -384,8 +396,10 @@ machine_at_px471_init(const machine_t *model)
         return ret;
 
     machine_at_sis_85c471_common_init(model);
+
     device_add(&ide_vlb_device);
-    device_add(&kbc_at_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -406,7 +420,8 @@ machine_at_tg486g_init(const machine_t *model)
     device_add(&sis_85c471_device);
     device_add(&ide_isa_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI));
-    device_add(&kbc_ps2_tg_ami_pci_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (gfxcard[0] != VID_INTERNAL) {
         for (uint16_t i = 0; i < 32768; i++)

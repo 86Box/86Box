@@ -136,7 +136,7 @@ machine_at_ibm_common_init(const machine_t *model)
 {
     machine_at_common_init_ex(model, 1);
 
-    device_add(&kbc_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     mem_remap_top(384);
 
@@ -358,12 +358,29 @@ machine_at_mr286_init(const machine_t *model)
         return ret;
 
     machine_at_common_ide_init(model);
-    device_add(&kbc_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
     return ret;
+}
+
+uint8_t
+machine_ncr_p1_handler(void)
+{
+    /* switch settings
+     * bit 7: keyboard disable
+     * bit 6: display type (0 color, 1 mono)
+     * bit 5: power-on default speed (0 high, 1 low)
+     * bit 4: sense RAM size (0 unsupported, 1 512k on system board)
+     * bit 3: coprocessor detect
+     * bit 2: unused
+     * bit 1: high/auto speed
+     * bit 0: dma mode
+     */
+    /* (B0 or F0) | 0x04 | (display on bit 6) | (fpu on bit 3) */
+    return (video_is_mda() ? 0x40 : 0x00) | (hasfpu ? 0x08 : 0x00) | 0x90;
 }
 
 /*
@@ -383,7 +400,7 @@ machine_at_pc8_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&kbc_at_ncr_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -411,7 +428,7 @@ machine_at_m290_init(const machine_t *model)
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&kbc_at_olivetti_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -524,7 +541,7 @@ machine_at_siemens_init(const machine_t *model)
 
     machine_at_common_init_ex(model, 1);
 
-    device_add(&kbc_at_siemens_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     mem_remap_top(384);
 
@@ -578,7 +595,7 @@ machine_at_super286c_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -652,7 +669,7 @@ machine_at_quadt286_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&kbc_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -665,7 +682,7 @@ machine_at_quadt286_init(const machine_t *model)
 void
 machine_at_headland_common_init(const machine_t *model, int type)
 {
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if ((type != 2) && (fdc_current[0] == FDC_INTERNAL))
         device_add(&fdc_at_device);
@@ -741,7 +758,7 @@ machine_at_neat_ami_init(const machine_t *model)
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -771,7 +788,7 @@ machine_at_3302_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
-    device_add(&kbc_at_ncr_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -788,7 +805,7 @@ machine_at_px286_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&kbc_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -829,17 +846,7 @@ machine_at_scat_init(const machine_t *model, int is_v4, int is_ami)
 {
     machine_at_common_init(model);
 
-    if ((machines[machine].bus_flags & MACHINE_BUS_PS2) && (strcmp(machine_get_internal_name(), "pc5286"))) {
-        if (is_ami)
-            device_add(&kbc_ps2_ami_device);
-        else
-            device_add(&kbc_ps2_device);
-    } else {
-        if (is_ami)
-            device_add(&kbc_at_ami_device);
-        else
-            device_add(&kbc_at_device);
-    }
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (is_v4)
         device_add(&scat_4_device);

@@ -61,8 +61,10 @@ machine_at_cs4031_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
+
     device_add(&cs4031_device);
-    device_add(&kbc_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -83,8 +85,10 @@ machine_at_ga486l_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
+
     device_add(&opti381_device);
-    device_add(&kbc_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -130,7 +134,7 @@ machine_at_mvi486_init(const machine_t *model)
 
     device_add(&opti498_device);
 
-    device_add(&kbc_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&ide_isa_device);
     device_add_params(&pc873xx_device, (void *) (PCX73XX_IDE_PRI | PCX730X_398));
@@ -143,8 +147,10 @@ static void
 machine_at_sis401_common_init(const machine_t *model)
 {
     machine_at_common_init(model);
+
     device_add(&sis_85c401_device);
-    device_add(&kbc_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -195,8 +201,10 @@ machine_at_av4_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
+
     device_add(&sis_85c460_device);
-    device_add(&kbc_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -267,7 +275,8 @@ machine_at_486vchd_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&via_vt82c49x_device);
-    device_add(&kbc_at_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -410,7 +419,7 @@ machine_at_genoa486_init(const machine_t *model)
     device_add(&compaq_genoa_device);
     device_add(&port_92_key_device);
 
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);

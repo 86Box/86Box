@@ -62,7 +62,7 @@ machine_at_pb410a_init(const machine_t *model)
 
     machine_at_ibm_common_ide_init(model);
 
-    device_add(&kbc_ps2_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&acc3221_device);
     device_add(&acc2168_device);
@@ -93,7 +93,7 @@ machine_at_acera1g_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5428_onboard_device);
 
-    device_add(&kbc_ps2_acer_pci_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add_params(&pc87310_device, (void *) (PC87310_ALI));
     device_add(&ide_ali5213_device);
@@ -111,7 +111,7 @@ machine_at_ali1429_common_init(const machine_t *model, int is_green)
     else
         device_add(&ali1429_device);
 
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -170,8 +170,11 @@ machine_at_pci400ca_init(const machine_t *model)
     pci_register_slot(0x04, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&kbc_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     device_add(&sio_device);
+
     device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i420tx_device);
@@ -203,7 +206,8 @@ machine_at_g486ip_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 03 = Slot 1 */
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 04 = Slot 2 */
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 05 = Slot 3 */
-    device_add(&kbc_ps2_ami_pci_device);                  /* AMI Megakey 1993 stanalone ('P') */
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&ims8848_device);
 
@@ -257,7 +261,7 @@ machine_at_cougar_init(const machine_t *model)
     device_add(&opti499_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
 
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -284,7 +288,7 @@ machine_at_decpclpv_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
-    device_add(&kbc_ps2_phoenix_pci_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&ide_isa_2ch_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C663 | FDC37C6XX_IDE_PRI));
@@ -340,7 +344,8 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
         device_add(&et4000w32_onboard_device);
 
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C661 | FDC37C6XX_IDE_PRI));
-    device_add(&kbc_ps2_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);

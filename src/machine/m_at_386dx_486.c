@@ -63,10 +63,12 @@ machine_at_exp4349_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&ali1429g_device);
-    device_add(&kbc_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
+
     return ret;
 }
 
@@ -92,6 +94,7 @@ machine_at_c747_init(const machine_t *model)
        desired behavior: command A9 does absolutely nothing.
      */
     device_add(&kbc_at_siemens_device);
+
     device_add_params(&um866x_device, (void *) (UM82C862F | UM866X_IDE_PRI));
 
     return ret;
@@ -104,7 +107,7 @@ machine_at_opti495_ami_common_init(const machine_t *model)
 
     device_add(&opti495sx_device);
 
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
