@@ -1054,7 +1054,7 @@ usage:
     /* Build the global configuration file path. */
     if (global == NULL) {
         plat_get_global_config_dir(global_cfg_path, sizeof(global_cfg_path));
-        path_append_filename(global_cfg_path, global_cfg_path, CONFIG_FILE);
+        path_append_filename(global_cfg_path, global_cfg_path, GLOBAL_CONFIG_FILE);
     } else {
         strncpy(global_cfg_path, global, sizeof(global_cfg_path) - 1);
     }

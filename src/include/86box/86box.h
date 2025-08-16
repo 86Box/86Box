@@ -38,9 +38,10 @@
 #define SCREEN_RES_Y 480
 
 /* Filename and pathname info. */
-#define CONFIG_FILE     "86box.cfg"
-#define NVR_PATH        "nvr"
-#define SCREENSHOT_PATH "screenshots"
+#define CONFIG_FILE        "86box.cfg"
+#define GLOBAL_CONFIG_FILE "86box_global.cfg"
+#define NVR_PATH           "nvr"
+#define SCREENSHOT_PATH    "screenshots"
 
 /* Recently used images */
 #define MAX_PREV_IMAGES    10
