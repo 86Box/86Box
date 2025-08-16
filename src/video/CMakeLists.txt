@@ -58,6 +58,7 @@ add_library(vid OBJECT
     vid_cga_quadcolor.c
     vid_cga_toshiba_t1000.c
     vid_cga_toshiba_t3100e.c
+    vid_cga_v6355.c
 
     # PCJr/Tandy
     vid_pcjr.c
