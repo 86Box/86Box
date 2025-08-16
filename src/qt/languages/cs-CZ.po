@@ -640,7 +640,7 @@ msgid "MO drives:"
 msgstr "Magnetooptické mechaniky:"
 
 msgid "MO:"
-msgstr ""
+msgstr "Magnetooptické:"
 
 msgid "Removable disks:"
 msgstr "Vyměnitelné disky:"
@@ -772,13 +772,13 @@ msgid "Ports (COM & LPT)"
 msgstr "COM a LPT porty"
 
 msgid "Ports"
-msgstr ""
+msgstr "Porty"
 
 msgid "Serial ports"
-msgstr ""
+msgstr "Sériové porty"
 
 msgid "Parallel ports"
-msgstr ""
+msgstr "Paralelné porty"
 
 msgid "Storage controllers"
 msgstr "Řadiče úložiště"
@@ -787,13 +787,13 @@ msgid "Hard disks"
 msgstr "Pevné disky"
 
 msgid "Disks:"
-msgstr ""
+msgstr "Disky"
 
 msgid "Floppy:"
-msgstr ""
+msgstr "Diskety:"
 
 msgid "Controllers:"
-msgstr ""
+msgstr "Řadiče:"
 
 msgid "Floppy & CD-ROM drives"
 msgstr "Disketové a CD-ROM mechaniky"
@@ -805,7 +805,7 @@ msgid "Other peripherals"
 msgstr "Jiné příslušenství"
 
 msgid "Other devices"
-msgstr ""
+msgstr "Jiné zařízení"
 
 msgid "Click to capture mouse"
 msgstr "Klikněte pro zabraní myši"
@@ -952,13 +952,13 @@ msgid "Internal device"
 msgstr "Vestavěné zařízení"
 
 msgid "&File"
-msgstr ""
+msgstr "&Soubor"
 
 msgid "&New machine..."
-msgstr ""
+msgstr "&Nový počítač..."
 
 msgid "&Check for updates..."
-msgstr ""
+msgstr "&Zkontroluj aktualizace..."
 
 msgid "Exit"
 msgstr "Ukončit"
@@ -1057,7 +1057,7 @@ msgid "Pause execution"
 msgstr "Pozastavit"
 
 msgid "Ctrl+Alt+Del"
-msgstr ""
+msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "Stisknout Ctrl+Alt+Delete"
@@ -1069,274 +1069,274 @@ msgid "Hard reset"
 msgstr "Resetovat"
 
 msgid "Force shutdown"
-msgstr ""
+msgstr "Nucené vypnutí"
 
 msgid "Start"
-msgstr ""
+msgstr "Začít"
 
 msgid "Not running"
-msgstr ""
+msgstr "Nefunguje"
 
 msgid "Running"
-msgstr ""
+msgstr "Funguje"
 
 msgid "Paused"
-msgstr ""
+msgstr "Pozastavený"
 
 msgid "Waiting"
-msgstr ""
+msgstr "Čekání"
 
 msgid "Powered Off"
-msgstr ""
+msgstr "Vypnutý"
 
 msgid "%n running"
-msgstr ""
+msgstr "%n fungují"
 
 msgid "%n paused"
-msgstr ""
+msgstr "%n pozostavených"
 
 msgid "%n waiting"
-msgstr ""
+msgstr "%n na čekání"
 
 msgid "%1 total"
-msgstr ""
+msgstr "%1 celkem"
 
 msgid "VMs: %1"
-msgstr ""
+msgstr "Počet VS: %1"
 
 msgid "System Directory:"
-msgstr ""
+msgstr "Systémový adresář:"
 
 msgid "Choose directory"
-msgstr ""
+msgstr "Vyberte adresář"
 
 msgid "Choose configuration file"
-msgstr ""
+msgstr "Vyberte konfigurační soubor"
 
 msgid "86Box configuration files (86box.cfg)"
-msgstr ""
+msgstr "Konfigurační soubory 86Box (86box.cfg)"
 
 msgid "Configuration read failed"
-msgstr ""
+msgstr "Chyba při čtení"
 
 msgid "Unable to open the selected configuration file for reading: %1"
-msgstr ""
+msgstr "Nelze otevřít vybraný konfigurační soubor pro čtení: %1"
 
 msgid "Use regular expressions in search box"
-msgstr ""
+msgstr "Použijte regulární výrazy v poli pro vyhledávání"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr ""
+msgstr "%1 strojů je aktuálně aktivních. Opravdu chcete ukončit správce virtuálních strojů?"
 
 msgid "Add new system wizard"
-msgstr ""
+msgstr "Průvodce přidáním nového systému"
 
 msgid "Introduction"
-msgstr ""
+msgstr "Úvod"
 
 msgid "This will help you add a new system to 86Box."
-msgstr ""
+msgstr "To vám pomůže přidat nový systém do 86Box."
 
 msgid "New configuration"
-msgstr ""
+msgstr "Nová konfigurace"
 
 msgid "Complete"
-msgstr ""
+msgstr "Kompletní"
 
 msgid "The wizard will now launch the configuration for the new system."
-msgstr ""
+msgstr "Průvodce nyní spustí konfiguraci nového systému."
 
 msgid "Use existing configuration"
-msgstr ""
+msgstr "Použít existující konfiguraci"
 
 msgid "Type some notes here"
-msgstr ""
+msgstr "Zde zadejte nějaké poznámky"
 
 msgid "Paste the contents of the existing configuration file into the box below."
-msgstr ""
+msgstr "Vložte obsah stávajícího konfiguračního souboru do pole níže."
 
 msgid "Load configuration from file"
-msgstr ""
+msgstr "Načíst konfiguraci ze souboru"
 
 msgid "System name"
-msgstr ""
+msgstr "Název systému"
 
 msgid "System name:"
-msgstr ""
+msgstr "Název systému:"
 
 msgid "System name cannot contain certain characters"
-msgstr ""
+msgstr "Název systému nesmí obsahovat určité znaky"
 
 msgid "System name already exists"
-msgstr ""
+msgstr "Název systému již existuje"
 
 msgid "Please enter a directory for the system"
-msgstr ""
+msgstr "Zadejte adresář pro systém"
 
 msgid "Directory does not exist"
-msgstr ""
+msgstr "Adresář neexistuje"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr ""
+msgstr "Ve výše vybraném adresáři bude vytvořen nový adresář pro systém"
 
 msgid "System location:"
-msgstr ""
+msgstr "Umístění systému:"
 
 msgid "System name and location"
-msgstr ""
+msgstr "Název systému a umístění"
 
 msgid "Enter the name of the system and choose the location"
-msgstr ""
+msgstr "Zadejte název systému a vyberte umístění"
 
 msgid "Enter the name of the system"
-msgstr ""
+msgstr "Zadejte název systému"
 
 msgid "Please enter a system name"
-msgstr ""
+msgstr "Zadejte název systému"
 
 msgid "Display name (optional):"
-msgstr ""
+msgstr "Zobrazované jméno (volitelné):"
 
 msgid "Display name:"
-msgstr ""
+msgstr "Zobrazované jméno:"
 
 msgid "Set display name"
-msgstr ""
+msgstr "Nastavit zobrazované jméno"
 
 msgid "Enter the new display name (blank to reset)"
-msgstr ""
+msgstr "Zadejte nové zobrazované jméno (prázdné pole pro resetování)"
 
 msgid "Change &display name..."
-msgstr ""
+msgstr "Změnit &zobrazované jméno..."
 
 msgid "Context Menu"
-msgstr ""
+msgstr "Kontextové menu"
 
 msgid "&Open folder..."
-msgstr ""
+msgstr "&Otevřít složku..."
 
 msgid "Open &printer tray..."
-msgstr ""
+msgstr "Otevřít zásobník &tiskárny..."
 
 msgid "Set &icon..."
-msgstr ""
+msgstr "Nastavit &ikonu..."
 
 msgid "Select an icon"
-msgstr ""
+msgstr "Vyberte ikonu"
 
 msgid "C&lone..."
-msgstr ""
+msgstr "K&lonovat..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
-msgstr ""
+msgstr "Virtuální stroj \"%1\" (%2) bude naklonován do:"
 
 msgid "Directory %1 already exists"
-msgstr ""
+msgstr "Adresář %1 již existuje."
 
 msgid "You cannot use the following characters in the name: %1"
-msgstr ""
+msgstr "V názvu nelze použít následující znaky: %1"
 
 msgid "Clone"
-msgstr ""
+msgstr "Klonovat"
 
 msgid "Failed to create directory for cloned VM"
-msgstr ""
+msgstr "Nepodařilo se vytvořit adresář pro klonovanou virtuální stroj"
 
 msgid "Failed to clone VM."
-msgstr ""
+msgstr "Klonování virtuálního počítače se nezdařilo."
 
 msgid "Directory in use"
-msgstr ""
+msgstr "Používaný adresář"
 
 msgid "The selected directory is already in use. Please select a different directory."
-msgstr ""
+msgstr "Vybraný adresář je již používán. Vyberte prosím jiný adresář."
 
 msgid "Create directory failed"
-msgstr ""
+msgstr "Vytvoření adresáře se nezdařilo"
 
 msgid "Unable to create the directory for the new system"
-msgstr ""
+msgstr "Nelze vytvořit adresář pro nový systém"
 
 msgid "Configuration write failed"
-msgstr ""
+msgstr "Konfigurace se nepodařilo zapsat"
 
 msgid "Unable to open the configuration file at %1 for writing"
-msgstr ""
+msgstr "Nelze otevřít konfigurační soubor v %1 pro zápis"
 
 msgid "Error adding system"
-msgstr ""
+msgstr "Chyba při přidávání systému"
 
 msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr ""
+msgstr "Abnormální ukončení programu při vytváření nového systému: kód ukončení %1, stav ukončení %2.\n\nSystém nebude přidán."
 
 msgid "Remove directory failed"
-msgstr ""
+msgstr "Odstranění adresáře se nezdařilo"
 
 msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
-msgstr ""
+msgstr "Některé soubory v adresáři zařízení nebylo možné odstranit. Odstraňte je prosím ručně."
 
 msgid "Build"
-msgstr ""
+msgstr "Build"
 
 msgid "Version"
-msgstr ""
+msgstr "Verze"
 
 msgid "An update to 86Box is available: %1 %2"
-msgstr ""
+msgstr "Je k dispozici aktualizace pro 86Box: %1 %2"
 
 msgid "An error has occurred while checking for updates: %1"
-msgstr ""
+msgstr "Při kontrole aktualizací došlo k chybě: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
-msgstr ""
+msgstr "<b>Je k dispozici aktualizace pro 86Box!</b>"
 
 msgid "Warning"
-msgstr ""
+msgstr "Varování"
 
 msgid "&Kill"
-msgstr ""
+msgstr "Nuceně &ukončit"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr ""
+msgstr "Ukončení virtuálního stroje může způsobit ztrátu dat. Proveďte to pouze v případě, že proces 86Box zamrzne.\n\nOpravdu chcete ukončit virtuální stroj \"%1\"?"
 
 msgid "&Delete"
-msgstr ""
+msgstr "&Odstranit"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr ""
+msgstr "Opravdu chcete odstranit virtuální počítač \"%1\" a všechny jeho soubory? Tuto akci nelze vrátit zpět!"
 
 msgid "Show &config file"
-msgstr ""
+msgstr "Zobrazit &konfigurační soubor"
 
 msgid "No screenshot"
-msgstr ""
+msgstr "Žádný snímek obrazovky"
 
 msgid "Search"
-msgstr ""
+msgstr "Hledat"
 
 msgid "Searching for VMs..."
-msgstr ""
+msgstr "Hledání virtuálních strojů..."
 
 msgid "Found %1"
-msgstr ""
+msgstr "Nalezeno %1"
 
 msgid "System"
-msgstr ""
+msgstr "System"
 
 msgid "Storage"
-msgstr ""
+msgstr "Úložiště"
 
 msgid "Disk %1: "
-msgstr ""
+msgstr "Disk %1: "
 
 msgid "No disks"
-msgstr ""
+msgstr "Žádné disky"
 
 msgid "Audio"
-msgstr ""
+msgstr "Zvuk"
 
 msgid "Audio:"
-msgstr ""
+msgstr "Zvuk:"
 
 msgid "ACPI shutdown"
 msgstr "Vypnout skrze rozhraní ACPI"
@@ -2842,97 +2842,97 @@ msgid "ISA ROM"
 msgstr "ISA paměť ROM"
 
 msgid "&Wipe NVRAM"
-msgstr ""
+msgstr "Vymazat NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr ""
+msgstr "Tímto se smažou všechny soubory NVRAM (a související soubory) virtuálního počítače umístěné v podadresáři \"nvr\". V případě potřeby budete muset znovu nakonfigurovat nastavení systému BIOS (a případně i dalších zařízení uvnitř virtuálního počítače).\n\nOpravdu chcete smazat veškerý obsah NVRAM virtuálního počítače \"%1\"?"
 
 msgid "Success"
-msgstr ""
+msgstr "Úspěch"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr ""
+msgstr "Úspěšně vymazán obsah NVRAM virtuálního počítače \"%1\""
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr ""
+msgstr "Při pokusu o vymazání obsahu NVRAM virtuálního počítače \"%1\" došlo k chybě"
 
 msgid "%1 VM Manager"
-msgstr ""
+msgstr "Správce virtuálních strojů %1"
 
 msgid "%n disk(s)"
-msgstr ""
+msgstr "%n počet disků"
 
 msgid "Unknown Status"
-msgstr ""
+msgstr "Neznámý stav"
 
 msgid "No Machines Found!"
-msgstr ""
+msgstr "Nebyly nalezeny žádné počítače!"
 
 msgid "Check for updates on startup"
-msgstr ""
+msgstr "Při spuštění zkontrolujte dostupnost aktualizací"
 
 msgid "Unable to determine release information"
-msgstr ""
+msgstr "Nelze určit informace o vydání"
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
-msgstr ""
+msgstr "Při kontrole aktualizací došlo k chybě:\n\n%1\n\nZkuste to prosím znovu později."
 
 msgid "Update check complete"
-msgstr ""
+msgstr "Kontrola aktualizací dokončena"
 
 msgid "stable"
-msgstr ""
+msgstr "stájí"
 
 msgid "beta"
-msgstr ""
+msgstr "beta"
 
 msgid "You are running the latest %1 version of 86Box: %2"
-msgstr ""
+msgstr "Používáte nejnovější %1 verzi 86Boxu: %2"
 
 msgid "version"
-msgstr ""
+msgstr "verze"
 
 msgid "build"
-msgstr ""
+msgstr "build"
 
 msgid "You are currently running version <b>%1</b>."
-msgstr ""
+msgstr "Právě používáte verzi <b>%1</b>."
 
 msgid "<b>Version %1</b> is now available."
-msgstr ""
+msgstr "<b>Verze %1</b> je nyní k dispozici."
 
 msgid "You are currently running build <b>%1</b>."
-msgstr ""
+msgstr "Právě používáte Build <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
-msgstr ""
+msgstr "<b>Build %1</b> je nyní k dispozici."
 
 msgid "Would you like to visit the download page?"
-msgstr ""
+msgstr "Chcete navštívit stránku pro stahování?"
 
 msgid "Visit download page"
-msgstr ""
+msgstr "Navštívit stránku pro stahování"
 
 msgid "Update check"
-msgstr ""
+msgstr "Kontrola aktualizací"
 
 msgid "Checking for updates..."
-msgstr ""
+msgstr "Kontrola aktualizací..."
 
 msgid "86Box Update"
-msgstr ""
+msgstr "Aktualizace 86Box"
 
 msgid "Release notes:"
-msgstr ""
+msgstr "Poznámky k vydání:"
 
 msgid "Virtual machine crash"
-msgstr ""
+msgstr "Havárie virtuálního stroje"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr ""
+msgstr "Proces virtuálního počítače \"%1\" byl neočekávaně ukončen s kódem ukončení %2."
 
 msgid "The system will not be added."
-msgstr ""
+msgstr "Systém nebude přidán."
 
 msgid "%1 Hz"
 msgstr "%1 Hz"
