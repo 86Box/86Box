@@ -805,7 +805,7 @@ msgid "Other peripherals"
 msgstr "Druga periferija"
 
 msgid "Other devices"
-msgstr ""
+msgstr "Druge naprave"
 
 msgid "Click to capture mouse"
 msgstr "Kliknite za zajem miške"
@@ -1678,7 +1678,7 @@ msgid "Null Driver"
 msgstr "Ničelni gonilnik"
 
 msgid "NIC:"
-msgstr ""
+msgstr "Omrežna kartica:"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
@@ -2716,10 +2716,10 @@ msgid "Options"
 msgstr "Možnosti"
 
 msgid "Model"
-msgstr ""
+msgstr "Model"
 
 msgid "Model:"
-msgstr ""
+msgstr "Model:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Inicializacija upodobljevalnika Vulkan ni uspela."

@@ -400,13 +400,13 @@ msgid "Dynamic Recompiler"
 msgstr "Recompilador dinâmico"
 
 msgid "CPU frame size"
-msgstr ""
+msgstr "Tamanho de blocos do CPU"
 
 msgid "Larger frames (less smooth)"
-msgstr ""
+msgstr "Blocos mais grandes (menos suave)"
 
 msgid "Smaller frames (smoother)"
-msgstr ""
+msgstr "Blocos mais pequenos (mais suave)"
 
 msgid "Video:"
 msgstr "Vídeo:"
@@ -715,7 +715,7 @@ msgid "Image %1"
 msgstr "Imagem %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "O 86Box não conseguiu encontrar nenhuma imagem ROM utilizável.\n\nPor favor, vá a href=\"https://github.com/86Box/roms/releases/latest\">descarregue</a> um pacote ROM e instale-o na pasta \"roms\"."
+msgstr "O 86Box não conseguiu encontrar nenhuma imagem ROM utilizável.\n\nPor favor, vá a <a href=\"https://github.com/86Box/roms/releases/latest\">descarregue</a> um pacote ROM e instale-o na pasta \"roms\"."
 
 msgid "(empty)"
 msgstr "(empty)"
@@ -805,7 +805,7 @@ msgid "Other peripherals"
 msgstr "Outros dispositivos"
 
 msgid "Other devices"
-msgstr ""
+msgstr "Outros dispositivos"
 
 msgid "Click to capture mouse"
 msgstr "Clique para capturar o rato"
@@ -874,7 +874,7 @@ msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
-msgstr ""
+msgstr "CH Flightstick Pro + CH Pedals"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -1678,7 +1678,7 @@ msgid "Null Driver"
 msgstr "Condutor nulo"
 
 msgid "NIC:"
-msgstr ""
+msgstr "Placa de rede:"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
