@@ -238,7 +238,8 @@ illegal_chars:
                     progDialog->setMaximum(0);
                     progDialog->setMinimum(0);
                     progDialog->setWindowFlags(progDialog->windowFlags() & ~Qt::WindowCloseButtonHint);
-                    progDialog->setFixedSize(progDialog->sizeHint());
+                    progDialog->setMinimumSize(progDialog->sizeHint());
+                    progDialog->setMaximumSize(progDialog->sizeHint());
                     progDialog->setMinimumDuration(0);
                     progDialog->setCancelButton(nullptr);
                     progDialog->setAutoClose(false);
