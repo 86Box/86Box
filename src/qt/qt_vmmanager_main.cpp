@@ -620,6 +620,7 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
     disconnect(new_system->process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), nullptr, nullptr);
     connect(new_system->process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             [=](const int exitCode, const QProcess::ExitStatus exitStatus) {
+                bool fail = false;
                 if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
                     qInfo().nospace().noquote() << "Abnormal program termination while creating new system: exit code " << exitCode << ", exit status " << exitStatus;
                     qInfo() << "Not adding system due to errors";
@@ -627,8 +628,7 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
                                         (!displayName.isEmpty() ? displayName : name), QString::number(exitCode));
                     QMessageBox::critical(this, tr("Error adding system"),
                                           QString("%1\n\n%2").arg(errMsg, tr("The system will not be added.")));
-                    delete new_system;
-                    return;
+                    fail = true;
                 }
                 // Create a new QFileInfo because the info from the old one may be cached
                 if (const auto fi = QFileInfo(new_system->config_file.absoluteFilePath()); !fi.exists()) {
@@ -638,6 +638,9 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
                     if (const bool result = qrmdir.rmdir(newSytemDirectory.path()); !result) {
                         qWarning() << "Error cleaning up the old directory for canceled operation. Continuing anyway.";
                     }
+                    fail = true;
+                }
+                if (fail) {
                     delete new_system;
                     return;
                 }
