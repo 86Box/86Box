@@ -271,7 +271,7 @@ msgid "&Folder..."
 msgstr "&Mapa..."
 
 msgid "Target &framerate"
-msgstr "&Ciljno št. sličic na sekundo"
+msgstr "&Ciljno št. kadrov na sekundo"
 
 msgid "&Sync with video"
 msgstr "&Sinhroniziraj z videom"
@@ -400,13 +400,13 @@ msgid "Dynamic Recompiler"
 msgstr "Dinamični prevajalnik"
 
 msgid "CPU frame size"
-msgstr "Velikost izvršnih fragmentov procesorja"
+msgstr "Velikost blokov procesorja"
 
 msgid "Larger frames (less smooth)"
-msgstr "Večji izvršni fragmenti (manj gladko)"
+msgstr "Večji bloki (manj gladko)"
 
 msgid "Smaller frames (smoother)"
-msgstr "Manjši izvršni fragmenti (bolj gladko)"
+msgstr "Manjši bloki (bolj gladko)"
 
 msgid "Video:"
 msgstr "Video:"
@@ -1690,7 +1690,7 @@ msgid "Render behavior"
 msgstr "Obnašanje pri upodabljanju"
 
 msgid "Use target framerate:"
-msgstr "Uporabi ciljno št. sličic na sekundo:"
+msgstr "Uporabi ciljno št. kadrov na sekundo:"
 
 msgid " fps"
 msgstr " fps"
