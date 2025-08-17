@@ -2448,6 +2448,9 @@ msgstr "256 KB"
 msgid "Composite"
 msgstr "합성"
 
+msgid "True color"
+msgstr ""
+
 msgid "Old"
 msgstr "Old"
 
@@ -2920,6 +2923,15 @@ msgid "86Box Update"
 msgstr ""
 
 msgid "Release notes:"
+msgstr ""
+
+msgid "Virtual machine crash"
+msgstr ""
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr ""
+
+msgid "The system will not be added."
 msgstr ""
 
 #~ msgid "HD Controller:"

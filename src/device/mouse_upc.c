@@ -226,6 +226,8 @@ mouse_upc_port_2_write(uint16_t port, uint8_t val, void *priv)
 
     if (dev->status & (STAT_CLEAR | STAT_RESET)) {
         /* TODO: Silently reset the mouse. */
+        dev->status &= ~STAT_RX_FULL;
+        dev->status |= (STAT_DEV_IDLE | STAT_TX_IDLE);
     }
 }
 

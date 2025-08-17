@@ -456,13 +456,57 @@ machine_at_pb286_init(const machine_t *model)
     int ret;
 
     ret = bios_load_interleaved("roms/machines/pb286/LB_V332P.BIN",
-                                "roms/machines/pb286/HB_V332P.BIN",
+                                "roms/machines/pb286/LB_V332P.BIN",
                                 0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
         return ret;
 
     machine_at_ibm_common_init(model);
+
+    return ret;
+}
+
+int
+machine_at_mbc17_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/mbc17/SAT200C_U45EVEN_FB3H2.bin",
+                                "roms/machines/mbc17/SAT200C_U44ODD_FB3J2.bin",
+                                0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+    device_add(&sanyo_device);
+
+    device_add(&kbc_at_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_ax286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ax286/AM27C512@DIP28_even.BIN",
+                                "roms/machines/ax286/AM27C512@DIP28_odd.BIN",
+                                0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+    device_add(&kbc_at_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
 
     return ret;
 }
@@ -754,13 +798,38 @@ machine_at_px286_init(const machine_t *model)
     return ret;
 }
 
+/* SCAMP */
+int
+machine_at_pc7286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pc7286/PC7286 BIOS (AM27C010@DIP32).BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&gd5401_onboard_device);
+
+    device_add_params(&dw90c50_device, (void *) DW90C50_IDE);
+    device_add(&vl82c113_device); /* The keyboard controller is part of the VL82c113. */
+
+    device_add(&vlsi_scamp_device);
+
+    return ret;
+}
+
 /* SCAT */
 static void
 machine_at_scat_init(const machine_t *model, int is_v4, int is_ami)
 {
     machine_at_common_init(model);
 
-    if (machines[machine].bus_flags & MACHINE_BUS_PS2) {
+    if ((machines[machine].bus_flags & MACHINE_BUS_PS2) && (strcmp(machine_get_internal_name(), "pc5286"))) {
         if (is_ami)
             device_add(&kbc_ps2_ami_device);
         else
@@ -779,6 +848,30 @@ machine_at_scat_init(const machine_t *model, int is_v4, int is_ami)
 }
 
 int
+machine_at_pc5286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pc5286/PC5286",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    /* Patch the checksum to avoid checksum error. */
+    if (rom[0xffff] == 0x2c)
+        rom[0xffff] = 0x2b;
+
+    machine_at_scat_init(model, 1, 0);
+
+    device_add(&f82c710_device);
+
+    device_add(&ide_isa_device);
+
+    return ret;
+}
+
+int
 machine_at_gw286ct_init(const machine_t *model)
 {
     int ret;
@@ -789,9 +882,9 @@ machine_at_gw286ct_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&f82c710_device);
-
     machine_at_scat_init(model, 1, 0);
+
+    device_add(&f82c710_device);
 
     device_add(&ide_isa_device);
 

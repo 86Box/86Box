@@ -3810,8 +3810,10 @@ scsi_cdrom_get_max(const ide_t *ide, UNUSED(const int ide_has_dma), const int ty
 static int
 scsi_cdrom_get_timings(const ide_t *ide, UNUSED(const int ide_has_dma), const int type)
 {
-    const scsi_cdrom_t *dev         = (scsi_cdrom_t *) ide->sc;
-    int                 has_dma     = cdrom_has_dma(dev->drv->type);
+    const scsi_cdrom_t *dev             = (scsi_cdrom_t *) ide->sc;
+    int                 has_dma         = cdrom_has_dma(dev->drv->type);
+    int                 pio_cyc_time[5] = { 600, 383, 240, 180, 120 };
+    int                 max_pio         = cdrom_get_transfer_max(dev->drv->type, TYPE_PIO);
     int                 ret;
 
     switch (type) {
@@ -3819,10 +3821,20 @@ scsi_cdrom_get_timings(const ide_t *ide, UNUSED(const int ide_has_dma), const in
             ret = has_dma ? 120 : 0;
             break;
         case TIMINGS_PIO:
-            ret = has_dma ? 120 : 0;
+            if (max_pio <= 0)
+                ret = 600;
+            else if (max_pio == 1)
+                ret = 383;
+            else
+                ret = 240;
             break;
         case TIMINGS_PIO_FC:
-            ret = 0;
+            if (max_pio > 4)
+                ret = 120;
+            else if (max_pio < 0)
+                ret = 600;
+            else
+                ret = pio_cyc_time[max_pio];
             break;
         default:
             ret = 0;

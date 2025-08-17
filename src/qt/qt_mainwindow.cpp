@@ -736,7 +736,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     setContextMenuPolicy(Qt::PreventContextMenu);
     /* Remove default Shift+F10 handler, which unfocuses keyboard input even with no context menu. */
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    connect(new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_F10), this), &QShortcut::activated, this, [](){});
+#else
     connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, [](){});
+#endif
 
     connect(this, &MainWindow::initRendererMonitor, this, &MainWindow::initRendererMonitorSlot);
     connect(this, &MainWindow::initRendererMonitorForNonQtThread, this, &MainWindow::initRendererMonitorSlot, Qt::BlockingQueuedConnection);
@@ -1047,7 +1051,9 @@ MainWindow::showEvent(QShowEvent *event)
     }
     if (window_remember && vid_resize == 1) {
         ui->stackedWidget->setFixedSize(window_w, window_h);
+#ifndef Q_OS_MACOS
         QApplication::processEvents();
+#endif
         this->adjustSize();
     }
 }

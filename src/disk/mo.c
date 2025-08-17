@@ -2016,7 +2016,7 @@ mo_get_max(UNUSED(const ide_t *ide), const int ide_has_dma, const int type)
 
     switch (type) {
         case TYPE_PIO:
-            ret = ide_has_dma ? 3 : 0;
+            ret = 3;
             break;
         case TYPE_SDMA:
         default:
@@ -2043,10 +2043,10 @@ mo_get_timings(UNUSED(const ide_t *ide), const int ide_has_dma, const int type)
             ret = ide_has_dma ? 0x96 : 0;
             break;
         case TIMINGS_PIO:
-            ret = ide_has_dma ? 0xb4 : 0;
+            ret = 0xf0;
             break;
         case TIMINGS_PIO_FC:
-            ret = ide_has_dma ? 0xb4 : 0;
+            ret = 0xb4;
             break;
         default:
             ret = 0;

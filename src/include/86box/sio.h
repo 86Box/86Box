@@ -31,6 +31,12 @@ extern const device_t f82c710_pc5086_device;
 /* Commodore */
 extern const device_t cbm_io_device;
 
+/* Dataworld 90C50 (COMBAT) */
+#define DW90C50_IDE          0x00001
+
+extern const device_t dw90c50_device;
+
+extern const device_t pc87310_device;
 /* SM(S)C */
 #define FDC37C651            0x00051
 #define FDC37C661            0x00061

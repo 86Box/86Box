@@ -137,7 +137,9 @@ typedef struct config_t {
 } config_t;
 #endif
 
+extern void config_load_global(void);
 extern void config_load(void);
+extern void config_save_global(void);
 extern void config_save(void);
 
 #ifdef EMU_INI_H

@@ -2448,6 +2448,9 @@ msgstr "256 КБ"
 msgid "Composite"
 msgstr "Композитное видео"
 
+msgid "True color"
+msgstr ""
+
 msgid "Old"
 msgstr "Старый"
 
@@ -2924,6 +2927,15 @@ msgstr "Примечания к релизу:"
 
 msgid "%1 Hz"
 msgstr "%1 Гц"
+
+msgid "Virtual machine crash"
+msgstr "Сбой виртуальной машины"
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr "Процесс виртуальной машины \"%1\" неожиданно завершился с кодом завершения %2."
+
+msgid "The system will not be added."
+msgstr "Система не будет добавлена."
 
 #~ msgid "HD Controller:"
 #~ msgstr "Контроллер HD:"

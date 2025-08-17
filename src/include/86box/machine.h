@@ -196,6 +196,7 @@ enum {
     MACHINE_TYPE_486_S3_PCI,
     MACHINE_TYPE_486_MISC,
     MACHINE_TYPE_SOCKET4,
+    MACHINE_TYPE_SOCKET4_5,
     MACHINE_TYPE_SOCKET5,
     MACHINE_TYPE_SOCKET7_3V,
     MACHINE_TYPE_SOCKET7,
@@ -500,6 +501,8 @@ extern int             machine_at_ibmatpx_init(const machine_t *);
 /* IBM AT with Quadtel BIOS */
 extern int             machine_at_ibmatquadtel_init(const machine_t *);
 extern int             machine_at_pb286_init(const machine_t *);
+extern int             machine_at_mbc17_init(const machine_t *);
+extern int             machine_at_ax286_init(const machine_t *);
 /* Siemens PCD-2L. N82330 discrete machine. It segfaults in some places */
 extern int             machine_at_siemens_init(const machine_t *);
 
@@ -522,7 +525,11 @@ extern int             machine_at_neat_ami_init(const machine_t *);
 extern int             machine_at_3302_init(const machine_t *);
 extern int             machine_at_px286_init(const machine_t *);
 
+/* SCAMP */
+extern int             machine_at_pc7286_init(const machine_t *);
+
 /* SCAT */
+extern int             machine_at_pc5286_init(const machine_t *);
 extern int             machine_at_gw286ct_init(const machine_t *);
 extern int             machine_at_gdc212m_init(const machine_t *);
 extern int             machine_at_award286_init(const machine_t *);
@@ -862,6 +869,11 @@ extern int             machine_at_p5vl_init(const machine_t *);
 extern int             machine_at_excaliburpci2_init(const machine_t *);
 extern void            machine_at_sp4_common_init(const machine_t *model);
 extern int             machine_at_p5sp4_init(const machine_t *);
+extern int             machine_at_ecs50x_init(const machine_t *);
+
+/* m_at_socket4_5.c */
+/* OPTi 597 */
+extern int             machine_at_pci56001_init(const machine_t *);
 
 /* m_at_socket5.c */
 /* i430NX */
@@ -987,6 +999,10 @@ extern int             machine_at_p5vxb_init(const machine_t *);
 extern int             machine_at_p55va_init(const machine_t *);
 extern int             machine_at_gw2kte_init(const machine_t *);
 extern int             machine_at_brio80xx_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  lgibmx52_device;
+#endif
+extern int             machine_at_lgibmx52_init(const machine_t *);
 extern int             machine_at_pb680_init(const machine_t *);
 extern int             machine_at_pb810_init(const machine_t *);
 extern int             machine_at_mb520n_init(const machine_t *);

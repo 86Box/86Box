@@ -401,11 +401,10 @@ extern const device_t gd5446_pci_device;
 extern const device_t gd5446_stb_pci_device;
 extern const device_t gd5480_pci_device;
 
-
-/* IBM CGA*/
+/* IBM CGA */
 extern const device_t cga_device;
 
-/* pravetz CGA */
+/* Pravetz CGA */
 extern const device_t cga_pravetz_device;
 
 /* Compaq CGA */
@@ -629,6 +628,9 @@ extern const device_t velocity_200_agp_device;
 
 /* Wyse 700 */
 extern const device_t wy700_device;
+
+/* Yamaha V6355 */
+extern const device_t v6355d_device;
 
 /* Tandy */
 extern const device_t tandy_1000_video_device; 

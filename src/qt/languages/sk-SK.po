@@ -2217,6 +2217,9 @@ msgstr "Typ displeja"
 msgid "Composite type"
 msgstr "Kompozitný typ"
 
+msgid "True color"
+msgstr ""
+
 msgid "RGB type"
 msgstr "Typ RGB"
 
@@ -2920,6 +2923,15 @@ msgid "86Box Update"
 msgstr ""
 
 msgid "Release notes:"
+msgstr ""
+
+msgid "Virtual machine crash"
+msgstr ""
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr ""
+
+msgid "The system will not be added."
 msgstr ""
 
 #~ msgid "HD Controller:"

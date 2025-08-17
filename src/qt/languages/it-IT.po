@@ -2448,6 +2448,9 @@ msgstr "256 KB"
 msgid "Composite"
 msgstr "Composito"
 
+msgid "True color"
+msgstr ""
+
 msgid "Old"
 msgstr "Vecchio"
 
@@ -2921,6 +2924,15 @@ msgstr "Aggiornamento di 86Box"
 
 msgid "Release notes:"
 msgstr "Note di rilascio:"
+
+msgid "Virtual machine crash"
+msgstr "Fallimento della macchina virtuale"
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr "Il processo della macchina virtuale \"%1\" è terminato inaspettatamente con il codice di uscita %2."
+
+msgid "The system will not be added."
+msgstr "Il sistema non sarà aggiunto."
 
 #~ msgid "HD Controller:"
 #~ msgstr "Controller HD:"

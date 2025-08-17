@@ -1896,6 +1896,7 @@ read_p1(atkbc_t *dev)
         ret = dev->p1 | fixed_bits;
 
     dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc);
+    pclog("P1 = %02X\n", dev->p1);
 
     return ret;
 }

@@ -1998,13 +1998,9 @@ load_keybinds(void)
     }
 }
 
-/* Load the specified or a default configuration file. */
 void
-config_load(void)
+config_load_global(void)
 {
-    int           i;
-    ini_section_t c;
-
     config_log("Loading global config file '%s'...\n", global_cfg_path);
 
     global = ini_read(global_cfg_path);
@@ -2018,6 +2014,16 @@ config_load(void)
     } else {
         load_global();
     }
+}
+
+/* Load the specified or a default configuration file. */
+void
+config_load(void)
+{
+    int           i;
+    ini_section_t c;
+
+    config_load_global();
 
     config_log("Loading VM config file '%s'...\n", cfg_path);
 
@@ -3420,11 +3426,16 @@ save_other_removable_devices(void)
 }
 
 void
-config_save(void)
+config_save_global(void)
 {
     save_global();                  /* Global */
-    ini_write(global, global_cfg_path);
 
+    ini_write(global, global_cfg_path);
+}
+
+void
+config_save(void)
+{
     save_general();                 /* General */
     for (uint8_t i = 0; i < MONITORS_NUM; i++)
         save_monitor(i);            /* Monitors */
@@ -3445,6 +3456,8 @@ config_save(void)
     save_keybinds();                /* Key bindings */
 
     ini_write(config, cfg_path);
+
+    config_save_global();
 }
 
 ini_t

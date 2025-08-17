@@ -114,6 +114,7 @@ video_cards[] = {
     { .device = &et4000_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &v7_vga_1024i_device,                           .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &wy700_device,                                  .flags = VIDEO_FLAG_TYPE_NONE },
+    { .device = &v6355d_device,                                 .flags = VIDEO_FLAG_TYPE_NONE },
     /* ISA16 */
     { .device = &mach64gx_isa_device,                           .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &gd5420_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE },

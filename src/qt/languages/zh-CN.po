@@ -517,7 +517,7 @@ msgid "LPT4 Device:"
 msgstr "LPT4 设备:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr ""
+msgstr "内置并口 ECP DMA"
 
 msgid "Serial port 1"
 msgstr "串口 1"
@@ -556,10 +556,10 @@ msgid "Quaternary IDE Controller"
 msgstr "第四 IDE 控制器"
 
 msgid "Hard disk"
-msgstr "硬盘控制器"
+msgstr "硬盘"
 
 msgid "SCSI"
-msgstr "SCSI 控制器"
+msgstr "SCSI"
 
 msgid "Controller 1:"
 msgstr "控制器 1:"
@@ -2448,6 +2448,9 @@ msgstr "256 KB"
 msgid "Composite"
 msgstr "复合视频"
 
+msgid "True color"
+msgstr ""
+
 msgid "Old"
 msgstr "旧"
 
@@ -2921,6 +2924,15 @@ msgstr "86Box 更新"
 
 msgid "Release notes:"
 msgstr "发行版说明"
+
+msgid "Virtual machine crash"
+msgstr ""
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr ""
+
+msgid "The system will not be added."
+msgstr ""
 
 #~ msgid "HD Controller:"
 #~ msgstr "硬盘控制器:"

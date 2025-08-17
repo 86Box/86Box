@@ -253,7 +253,11 @@ VMManagerSystem::loadSettings()
             QString setting_value;
             // QSettings will interpret lines with commas as QStringList.
             // Check for it and join them back to a string.
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            if (settings.value(key_name).typeId() == QMetaType::QStringList) {
+#else
             if (settings.value(key_name).type() == QVariant::StringList) {
+#endif
                 setting_value = settings.value(key_name).toStringList().join(", ");
             } else {
                 setting_value = settings.value(key_name).toString();
