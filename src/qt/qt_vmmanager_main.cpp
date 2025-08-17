@@ -114,41 +114,6 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             });
             nameChangeAction.setEnabled(!selected_sysconfig->window_obscured);
 
-            QAction openSystemFolderAction(tr("&Open folder..."));
-            contextMenu.addAction(&openSystemFolderAction);
-            connect(&openSystemFolderAction, &QAction::triggered, [indexAt] {
-                if (const auto configDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString(); !configDir.isEmpty()) {
-                    QDir dir(configDir);
-                    if (!dir.exists())
-                        dir.mkpath(".");
-                    
-                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
-                }
-            });
-
-            QAction openPrinterFolderAction(tr("Open &printer tray..."));
-            contextMenu.addAction(&openPrinterFolderAction);
-            connect(&openPrinterFolderAction, &QAction::triggered, [indexAt] {
-                if (const auto printerDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/printer/"); !printerDir.isEmpty()) {
-                    QDir dir(printerDir);
-                    if (!dir.exists())
-                        dir.mkpath(".");
-                    
-                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
-                }
-            });
-
-            QAction openScreenshotsFolderAction(tr("Open screenshots &folder..."));
-            contextMenu.addAction(&openScreenshotsFolderAction);
-            connect(&openScreenshotsFolderAction, &QAction::triggered, [indexAt] {
-                if (const auto screenshotsDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/screenshots/"); !screenshotsDir.isEmpty()) {
-                    QDir dir(screenshotsDir);
-                    if (!dir.exists())
-                        dir.mkpath(".");
-                    
-                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
-                }
-            });
 
             QAction setSystemIcon(tr("Set &icon..."));
             contextMenu.addAction(&setSystemIcon);
@@ -161,6 +126,8 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
                 }
             });
             setSystemIcon.setEnabled(!selected_sysconfig->window_obscured);
+
+            contextMenu.addSeparator();
 
             QAction cloneMachine(tr("C&lone..."));
             contextMenu.addAction(&cloneMachine);
@@ -322,6 +289,42 @@ illegal_chars:
             deleteAction.setEnabled(selected_sysconfig->process->state() == QProcess::NotRunning);
 
             contextMenu.addSeparator();
+
+            QAction openSystemFolderAction(tr("&Open folder..."));
+            contextMenu.addAction(&openSystemFolderAction);
+            connect(&openSystemFolderAction, &QAction::triggered, [indexAt] {
+                if (const auto configDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString(); !configDir.isEmpty()) {
+                    QDir dir(configDir);
+                    if (!dir.exists())
+                        dir.mkpath(".");
+                    
+                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
+                }
+            });
+
+            QAction openPrinterFolderAction(tr("Open &printer tray..."));
+            contextMenu.addAction(&openPrinterFolderAction);
+            connect(&openPrinterFolderAction, &QAction::triggered, [indexAt] {
+                if (const auto printerDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/printer/"); !printerDir.isEmpty()) {
+                    QDir dir(printerDir);
+                    if (!dir.exists())
+                        dir.mkpath(".");
+                    
+                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
+                }
+            });
+
+            QAction openScreenshotsFolderAction(tr("Open screenshots &folder..."));
+            contextMenu.addAction(&openScreenshotsFolderAction);
+            connect(&openScreenshotsFolderAction, &QAction::triggered, [indexAt] {
+                if (const auto screenshotsDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/screenshots/"); !screenshotsDir.isEmpty()) {
+                    QDir dir(screenshotsDir);
+                    if (!dir.exists())
+                        dir.mkpath(".");
+                    
+                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
+                }
+            });
 
             QAction showRawConfigFile(tr("Show &config file"));
             contextMenu.addAction(&showRawConfigFile);
