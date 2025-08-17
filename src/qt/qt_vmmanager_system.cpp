@@ -133,7 +133,8 @@ VMManagerSystem::scanForConfigs(QWidget* parent, const QString &searchPath)
     progDialog.setMinimum(0);
     progDialog.setMaximum(0);
     progDialog.setWindowFlags(progDialog.windowFlags() & ~Qt::WindowCloseButtonHint);
-    progDialog.setFixedSize(progDialog.sizeHint());
+    progDialog.setMinimumSize(progDialog.sizeHint());
+    progDialog.setMaximumSize(progDialog.sizeHint());
     QElapsedTimer scanTimer;
     scanTimer.start();
     QVector<VMManagerSystem *> system_configs;
