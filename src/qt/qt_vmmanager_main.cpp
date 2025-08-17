@@ -586,17 +586,17 @@ VMManagerMain::newMachineWizard()
 void
 VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QString &displayName, const QString &configFile)
 {
-    const auto newSytemDirectory = QDir(QDir::cleanPath(dir + "/" + name));
+    const auto newSystemDirectory = QDir(QDir::cleanPath(dir + "/" + name));
 
     // qt replaces `/` with native separators
-    const auto newSystemConfigFile = QFileInfo(newSytemDirectory.path() + "/" + "86box.cfg");
-    if (newSystemConfigFile.exists() || newSytemDirectory.exists()) {
+    const auto newSystemConfigFile = QFileInfo(newSystemDirectory.path() + "/" + "86box.cfg");
+    if (newSystemConfigFile.exists() || newSystemDirectory.exists()) {
         QMessageBox::critical(this, tr("Directory in use"), tr("The selected directory is already in use. Please select a different directory."));
         return;
     }
     // Create the directory
     const QDir qmkdir;
-    if (const bool mkdirResult = qmkdir.mkdir(newSytemDirectory.path()); !mkdirResult) {
+    if (const bool mkdirResult = qmkdir.mkdir(newSystemDirectory.path()); !mkdirResult) {
         QMessageBox::critical(this, tr("Create directory failed"), tr("Unable to create the directory for the new system"));
         return;
     }
@@ -635,7 +635,7 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
                     // No config file which means the cancel button was pressed in the settings dialog
                     // Attempt to clean up the directory that was created
                     const QDir qrmdir;
-                    if (const bool result = qrmdir.rmdir(newSytemDirectory.path()); !result) {
+                    if (const bool result = qrmdir.rmdir(newSystemDirectory.path()); !result) {
                         qWarning() << "Error cleaning up the old directory for canceled operation. Continuing anyway.";
                     }
                     fail = true;
