@@ -1102,7 +1102,7 @@ msgid "%1 total"
 msgstr "%1 total"
 
 msgid "VMs: %1"
-msgstr "VMs: %1"
+msgstr "MVs: %1"
 
 msgid "System Directory:"
 msgstr "Diretório do Sistema:"
@@ -1126,7 +1126,7 @@ msgid "Use regular expressions in search box"
 msgstr "Usar expressões regulares na caixa de pesquisa"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 máquina(s) estão ativas atualmente. Tem certeza que deseja encerrar o gerenciador de VM assim mesmo?"
+msgstr "%1 máquina(s) estão ativas atualmente. Tem certeza que deseja encerrar o gerenciador de MV mesmo assim?"
 
 msgid "Add new system wizard"
 msgstr "Assistente para novo sistema"
@@ -1240,10 +1240,10 @@ msgid "Clone"
 msgstr "Clonar"
 
 msgid "Failed to create directory for cloned VM"
-msgstr "Falha ao criar o diretório para a VM clonada"
+msgstr "Falha ao criar o diretório para a MV clonada"
 
 msgid "Failed to clone VM."
-msgstr "Falha ao clonar VM."
+msgstr "Falha ao clonar MV."
 
 msgid "Directory in use"
 msgstr "Diretório em uso"
@@ -1276,7 +1276,7 @@ msgid "Some files in the machine's directory were unable to be deleted. Please d
 msgstr "Alguns arquivos no diretório da máquina não puderam ser apagados. Por favor apágue-os manualmente."
 
 msgid "Build"
-msgstr "Build"
+msgstr "Compilação"
 
 msgid "Version"
 msgstr "Versão"
@@ -1315,7 +1315,7 @@ msgid "Search"
 msgstr "Procurar"
 
 msgid "Searching for VMs..."
-msgstr "Procurando por VMs..."
+msgstr "Procurando por MVs..."
 
 msgid "Found %1"
 msgstr "Encontrado %1"
@@ -2449,10 +2449,10 @@ msgid "Composite"
 msgstr "Composto"
 
 msgid "True color"
-msgstr "Cor verdadeira"
+msgstr "Cor real"
 
 msgid "Old"
-msgstr "Antiga"
+msgstr "Antigo"
 
 msgid "New"
 msgstr "Novo"
@@ -2845,7 +2845,7 @@ msgid "&Wipe NVRAM"
 msgstr "&Limpar NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "Isso irá apagar todos os arquivos NVRAM (e relacionados) da máquina virtual localizada no subdiretório \"nvr\". Você terá que reconfigurar as configurações do BIOS (e possívelmente outros dispositivos dentro da VM) novamente se aplicável.\n\nTem certeza que quer apagar todo o conteúdo NVRAM da máquina virtual \"%1\"?"
+msgstr "Isso irá apagar todos os arquivos NVRAM (e relacionados) da máquina virtual localizada no subdiretório \"nvr\". Você terá que reconfigurar as configurações do BIOS (e possívelmente outros dispositivos dentro da MV) novamente se aplicável.\n\nTem certeza que quer apagar todo o conteúdo NVRAM da máquina virtual \"%1\"?"
 
 msgid "Success"
 msgstr "Sucesso"
@@ -2857,7 +2857,7 @@ msgid "An error occurred trying to wipe the NVRAM contents of the virtual machin
 msgstr "Um erro ocorreu ao tentar apagar o conteúdo NVRAM da máquina virtual \"%1\""
 
 msgid "%1 VM Manager"
-msgstr "Gerenciador de VM do %1"
+msgstr "Gerenciador de MV do %1"
 
 msgid "%n disk(s)"
 msgstr "%1 disco(s)"
@@ -2893,19 +2893,19 @@ msgid "version"
 msgstr "versão"
 
 msgid "build"
-msgstr "build"
+msgstr "compilação"
 
 msgid "You are currently running version <b>%1</b>."
-msgstr "Você está executando atualmente versão <b>%1</b>."
+msgstr "Você está executando atualmente a versão <b>%1</b>."
 
 msgid "<b>Version %1</b> is now available."
 msgstr "<b>Versão %2</b> está disponível."
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "Você está executando atualmente build <b>%1</b>."
+msgstr "Você está executando atualmente a compilação <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
-msgstr "<b>Build %2</b> está disponível."
+msgstr "<b>Compilação %2</b> está disponível."
 
 msgid "Would you like to visit the download page?"
 msgstr "Gostaria de visitar a página de download?"
@@ -2926,7 +2926,7 @@ msgid "Release notes:"
 msgstr "Notas de lançamento:"
 
 msgid "Virtual machine crash"
-msgstr "Falecimento da máquina virtual"
+msgstr "Falha da máquina virtual"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
 msgstr "O processo da máquina virtual \"%1\" terminou inesperadamente com o código de saída %2."
