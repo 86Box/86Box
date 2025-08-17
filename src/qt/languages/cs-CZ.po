@@ -1266,9 +1266,6 @@ msgstr "Nebylo možné otevřít konfigurační soubor %1 pro zápis"
 msgid "Error adding system"
 msgstr "Chyba při přidávání systému"
 
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr "Abnormální ukončení programu při vytváření nového systému: kód ukončení %1, stav ukončení %2.\n\nSystém nebude přidán."
-
 msgid "Remove directory failed"
 msgstr "Odstranění adresáře se nezdařilo"
 

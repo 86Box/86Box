@@ -1266,9 +1266,6 @@ msgstr "Openen van configuratiebestand %1 voor wegschrijven niet mogelijk"
 msgid "Error adding system"
 msgstr "Fout bij toevoegen van systeem"
 
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr "Onverwachte beëindiging van programma tijdens het aanmaken van nieuw systeem: afsluitcode %1, afsluitstatus %2.\n\nHet systeem wordt niet toegevoegd."
-
 msgid "Remove directory failed"
 msgstr "Verwijderen map mislukt"
 
@@ -2925,6 +2922,9 @@ msgstr "86Box Update"
 msgid "Release notes:"
 msgstr "Release-opmerkingen:"
 
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
 msgid "Virtual machine crash"
 msgstr ""
 
@@ -2932,7 +2932,7 @@ msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exi
 msgstr ""
 
 msgid "The system will not be added."
-msgstr ""
+msgstr "Het systeem wordt niet toegevoegd."
 
 #~ msgid "HD Controller:"
 #~ msgstr "HD-controller:"
