@@ -400,9 +400,11 @@ ConclusionPage::initializePage()
 #ifdef CUSTOM_SYSTEM_LOCATION
     systemLocation->setText(nativePath);
 #endif
-    if (!displayNameDisplay.isEmpty())
+    if (!displayNameDisplay.isEmpty()) {
+        displayNameLabel->setVisible(true);
+        displayName->setVisible(true);
         displayName->setText(displayNameDisplay);
-    else {
+    } else {
         displayNameLabel->setVisible(false);
         displayName->setVisible(false);
     }
