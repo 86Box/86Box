@@ -332,6 +332,14 @@ illegal_chars:
             });
 
             contextMenu.exec(ui->listView->viewport()->mapToGlobal(pos));
+        } else {
+            QMenu contextMenu(tr("Context Menu"), ui->listView);
+
+            QAction newMachineAction(tr("New machine..."));
+            contextMenu.addAction(&newMachineAction);
+            connect(&newMachineAction, &QAction::triggered, this, &VMManagerMain::newMachineWizard);
+
+            contextMenu.exec(ui->listView->viewport()->mapToGlobal(pos));
         }
     });
 
