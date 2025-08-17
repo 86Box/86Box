@@ -1266,9 +1266,6 @@ msgstr "Невозможно открыть файл конфигурации в
 msgid "Error adding system"
 msgstr "Ошибка добавления системы"
 
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr "Аномальное прекращение программы при создании новой системы: выходной код %1, состояние выхода %2.\n\nСистема не будет добавлена."
-
 msgid "Remove directory failed"
 msgstr "Сбой при удалении папки"
 
@@ -2449,7 +2446,7 @@ msgid "Composite"
 msgstr "Композитное видео"
 
 msgid "True color"
-msgstr ""
+msgstr "True Color"
 
 msgid "Old"
 msgstr "Старый"

@@ -1266,9 +1266,6 @@ msgstr ""
 msgid "Error adding system"
 msgstr ""
 
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr ""
-
 msgid "Remove directory failed"
 msgstr ""
 
@@ -2924,6 +2921,9 @@ msgstr "86Box 更新"
 
 msgid "Release notes:"
 msgstr "发行版说明"
+
+msgid "%1 Hz"
+msgstr "%1 Hz"
 
 msgid "Virtual machine crash"
 msgstr ""

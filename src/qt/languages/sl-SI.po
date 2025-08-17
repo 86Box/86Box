@@ -1266,9 +1266,6 @@ msgstr "Napaka pri odpiranju datoteke z nastavitvami %1 za pisanje"
 msgid "Error adding system"
 msgstr "Napaka pri dodajanju sistema"
 
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr "Med ustvarjanjem novega sistema je prišlo do nenavadne prekinitev: izhodna koda %1, izhodni status %2.\n\nSistem ne bo dodan."
-
 msgid "Remove directory failed"
 msgstr "Napaka pri odstranjevanju imenika"
 
@@ -2924,6 +2921,9 @@ msgstr "Posodobitev programa 86Box"
 
 msgid "Release notes:"
 msgstr "Opombe različice:"
+
+msgid "%1 Hz"
+msgstr "%1 Hz"
 
 msgid "Virtual machine crash"
 msgstr "Sesutje navidezne naprave"

@@ -1266,9 +1266,6 @@ msgstr "Não foi possível abrir o ficheiro de configuração em %1 para a escri
 msgid "Error adding system"
 msgstr "Error ao adicionar o sistema"
 
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr "Terminação abnormal do programa em criar o novo sistema: código de saída %1, código de estado %2.\n\nO sistema não será adicionado."
-
 msgid "Remove directory failed"
 msgstr "Falha na remoção do directório"
 
@@ -2924,6 +2921,9 @@ msgstr "Atualização do 86Box"
 
 msgid "Release notes:"
 msgstr "Notas da versão:"
+
+msgid "%1 Hz"
+msgstr "%1 Hz"
 
 msgid "Virtual machine crash"
 msgstr "Falecimento da máquina virtual"
