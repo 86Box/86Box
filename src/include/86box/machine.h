@@ -875,6 +875,9 @@ extern int             machine_at_ecs50x_init(const machine_t *);
 /* OPTi 597 */
 extern int             machine_at_pci56001_init(const machine_t *);
 
+/* VLSI SuperCore */
+extern int             machine_at_celebris5xx_init(const machine_t *);
+
 /* m_at_socket5.c */
 /* i430NX */
 extern int             machine_at_ambradp90_init(const machine_t *);
@@ -916,7 +919,6 @@ extern int             machine_at_hot539_init(const machine_t *);
 
 /* VLSI SuperCore */
 extern int             machine_at_bravoms586_init(const machine_t *);
-extern int             machine_at_celebris5xx_init(const machine_t *);
 extern int             machine_at_g586vpmc_init(const machine_t *);
 extern int             machine_at_m54si_init(const machine_t *);
 extern int             machine_at_pb600_init(const machine_t *);

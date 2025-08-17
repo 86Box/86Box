@@ -11853,6 +11853,49 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* VLSI SuperCore */
+    /* This has Phoenix KBC firmware. */
+    {
+        .name = "[VLSI SuperCore] DEC Celebris 5xx",
+        .internal_name = "celebris5xx",
+        .type = MACHINE_TYPE_SOCKET4_5,
+        .chipset = MACHINE_CHIPSET_VLSI_SUPERCORE,
+        .init = machine_at_celebris5xx_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4 | CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_Cx6x86),
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 5000,
+            .min_multi = 1.0,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
+        .ram = {
+            .min = 4096,
+            .max = 131072,
+            .step = 4096
+        },
+        .nvrmask = 127,
+        .jumpered_ecp_dma = MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &s3_phoenix_vision864_pci_device,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
 
     /* Socket 5 machines */
     /* 430NX */
@@ -12897,48 +12940,6 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &gd5434_onboard_pci_device,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    /* This has Phoenix KBC firmware. */
-    {
-        .name = "[VLSI SuperCore] DEC Celebris 5xx",
-        .internal_name = "celebris5xx",
-        .type = MACHINE_TYPE_SOCKET5,
-        .chipset = MACHINE_CHIPSET_VLSI_SUPERCORE,
-        .init = machine_at_celebris5xx_init,
-        .p1_handler = NULL,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK(CPU_Cx6x86),
-            .min_bus = 50000000,
-            .max_bus = 66666667,
-            .min_voltage = 3520,
-            .max_voltage = 3520,
-            .min_multi = 1.5,
-            .max_multi = 2.0
-        },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
-        .ram = {
-            .min = 4096,
-            .max = 131072,
-            .step = 4096
-        },
-        .nvrmask = 127,
-        .jumpered_ecp_dma = MACHINE_DMA_3,
-        .default_jumpered_ecp_dma = 3,
-        .kbc_device = NULL,
-        .kbc_p1 = 0xff,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = &s3_phoenix_vision864_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },
