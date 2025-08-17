@@ -1107,6 +1107,9 @@ usage:
         pclog("# VM Manager enabled. Path: %s\n", vmm_path);
     }
 
+    /* Load the global configuration file. */
+    config_load_global();
+
     if (!vmm_enabled) {
         /*
          * We are about to read the configuration file, which MAY

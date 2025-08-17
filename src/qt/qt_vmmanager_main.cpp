@@ -759,6 +759,20 @@ VMManagerMain::onPreferencesUpdated()
     }
 }
 
+void
+VMManagerMain::onLanguageUpdated()
+{
+    vm_model->refreshConfigs();
+    /* Hack to work around details widgets not being re-translatable
+       without going through layers of abstraction */
+    ui->detailsArea->layout()->removeWidget(vm_details);
+    delete vm_details;
+    vm_details = new VMManagerDetails();
+    ui->detailsArea->layout()->addWidget(vm_details);
+    if (vm_model->rowCount(QModelIndex()) > 0)
+        vm_details->updateData(selected_sysconfig);
+}
+
 int
 VMManagerMain::getActiveMachineCount()
 {

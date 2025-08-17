@@ -79,6 +79,7 @@ public slots:
 #endif
     void modelDataChange();
     void onPreferencesUpdated();
+    void onLanguageUpdated();
     void onConfigUpdated(const QString &uuid);
     int  getActiveMachineCount();
 
