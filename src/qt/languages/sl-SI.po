@@ -1141,7 +1141,7 @@ msgid "New configuration"
 msgstr "Nove nastavitve"
 
 msgid "Complete"
-msgstr "Narejeno"
+msgstr "Dokončaj"
 
 msgid "The wizard will now launch the configuration for the new system."
 msgstr "Čarovnik bo zdaj zagnal nastavitev novega sistema."

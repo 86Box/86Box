@@ -1141,7 +1141,7 @@ msgid "New configuration"
 msgstr "Nuova configurazione"
 
 msgid "Complete"
-msgstr "Completato"
+msgstr "Completare"
 
 msgid "The wizard will now launch the configuration for the new system."
 msgstr "La procedura guidata avvierà ora la configurazione del nuovo sistema."
