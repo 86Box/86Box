@@ -5488,7 +5488,7 @@ const machine_t machines[] = {
     },
     /* Has AMI KBC firmware of uknown revision, maybe '8'. */
     {
-        .name = "[OPTi 283] Silicon Valley SVC386SX/P1",
+        .name = "[OPTi 283] Silicon Valley Computer SVC386SX/P1",
         .internal_name = "svc386sxp1",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_OPTI_283,
