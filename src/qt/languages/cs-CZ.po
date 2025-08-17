@@ -2449,7 +2449,7 @@ msgid "Composite"
 msgstr "Kompozitní"
 
 msgid "True color"
-msgstr "True Color (24 bitů)"
+msgstr "True Color"
 
 msgid "Old"
 msgstr "Starý"
