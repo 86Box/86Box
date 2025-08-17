@@ -4420,11 +4420,13 @@ s3_trio64v_recalctimings(svga_t *svga)
                     svga->render = svga_render_15bpp_highres;
                     svga->hdisp >>= 1;
                     svga->dots_per_clock >>= 1;
+                    svga->clock /= 2.0;
                     break;
                 case 16:
                     svga->render = svga_render_16bpp_highres;
                     svga->hdisp >>= 1;
                     svga->dots_per_clock >>= 1;
+                    svga->clock /= 2.0;
                     break;
                 case 24:
                     svga->render = svga_render_24bpp_highres;
@@ -4481,9 +4483,11 @@ s3_trio64v_recalctimings(svga_t *svga)
                 break;
             case 3: /*KRGB-16 (1.5.5.5)*/
                 svga->render = svga_render_15bpp_highres;
+                svga->clock /= 2.0;
                 break;
             case 5: /*RGB-16 (5.6.5)*/
                 svga->render = svga_render_16bpp_highres;
+                svga->clock /= 2.0;
                 break;
             case 6: /*RGB-24 (8.8.8)*/
                 svga->render = svga_render_24bpp_highres;
