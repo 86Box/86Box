@@ -556,7 +556,7 @@ msgid "Quaternary IDE Controller"
 msgstr "Controlador IDE quaternário"
 
 msgid "Hard disk"
-msgstr "Disko rígido"
+msgstr "Disco rígido"
 
 msgid "SCSI"
 msgstr "SCSI"
