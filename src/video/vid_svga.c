@@ -1146,6 +1146,7 @@ svga_recalctimings(svga_t *svga)
                 if (dev->dispofftime < TIMER_USEC)
                     dev->dispofftime = TIMER_USEC;
 
+                svga->monitor->mon_interlace = !!dev->interlace;
                 ibm8514_set_poll(svga);
             } else
                 svga_set_poll(svga);
@@ -1164,6 +1165,7 @@ svga_recalctimings(svga_t *svga)
                 if (xga->dispofftime < TIMER_USEC)
                     xga->dispofftime = TIMER_USEC;
 
+                svga->monitor->mon_interlace = !!xga->interlace;
                 xga_set_poll(svga);
             } else
                 svga_set_poll(svga);
@@ -1182,6 +1184,7 @@ svga_recalctimings(svga_t *svga)
                 if (dev->dispofftime < TIMER_USEC)
                     dev->dispofftime = TIMER_USEC;
 
+                svga->monitor->mon_interlace = !!dev->interlace;
                 ibm8514_set_poll(svga);
             } else if (xga->on) {
                 _dispofftime_xga = disptime_xga - _dispontime_xga;
@@ -1195,6 +1198,7 @@ svga_recalctimings(svga_t *svga)
                 if (xga->dispofftime < TIMER_USEC)
                     xga->dispofftime = TIMER_USEC;
 
+                svga->monitor->mon_interlace = !!xga->interlace;
                 xga_set_poll(svga);
             } else
                 svga_set_poll(svga);
@@ -1247,6 +1251,10 @@ svga_recalctimings(svga_t *svga)
         else
             svga->hdisp >>= 1;
     }
+
+    svga->monitor->mon_interlace = 0;
+    if (!svga->override && svga->interlace)
+        svga->monitor->mon_interlace = 1;
 }
 
 static void
