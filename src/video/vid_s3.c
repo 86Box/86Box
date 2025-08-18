@@ -2860,7 +2860,7 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
 
     switch (addr) {
         case 0x3c2:
-            if ((s3->chip == S3_VISION964) || (s3->chip == S3_VISION968) || (s3->chip == S3_86C928)) {
+            if ((s3->chip == S3_VISION964) || (s3->chip == S3_VISION968)) {
                 if ((s3->card_type != S3_SPEA_MERCURY_P64V) && (s3->card_type != S3_MIROVIDEO40SV_ERGO_968)) {
                     if (((val >> 2) & 3) != 3)
                         icd2061_write(svga->clock_gen, (val >> 2) & 3);
@@ -3131,7 +3131,10 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x42:
-                    if ((s3->chip == S3_VISION964) || (s3->chip == S3_VISION968) || (s3->chip == S3_86C928)) {
+                    if (((svga->miscout >> 2) & 3) == 3)
+                        s3_log("[%04X:%08X]: Write CRTC%02x=%02x.\n", CS, cpu_state.pc, svga->crtcreg, svga->crtc[svga->crtcreg]);
+
+                    if ((s3->chip == S3_VISION964) || (s3->chip == S3_VISION968)) {
                         if (((svga->miscout >> 2) & 3) == 3)
                             icd2061_write(svga->clock_gen, svga->crtc[0x42] & 0x0f);
                     }
@@ -3537,8 +3540,14 @@ s3_recalctimings(svga_t *svga)
             svga->rowoffset |= 0x100;
     } else if (svga->crtc[0x43] & 0x04)
         svga->rowoffset |= 0x100;
+
     if (!svga->rowoffset)
         svga->rowoffset = 0x100;
+
+    if ((((svga->miscout >> 2) & 3) == 3) && (s3->chip < S3_TRIO32))
+        clk_sel = svga->crtc[0x42] & 0x0f;
+
+    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
 
     if ((s3->chip == S3_VISION964) || (s3->chip == S3_86C928)) {
         if (s3->card_type == S3_ELSAWIN2KPROX_964)
@@ -3555,20 +3564,17 @@ s3_recalctimings(svga_t *svga)
     } else
         svga->interlace = !!(svga->crtc[0x42] & 0x20);
 
-    if ((((svga->miscout >> 2) & 3) == 3) && (s3->chip < S3_TRIO32))
-        clk_sel = svga->crtc[0x42] & 0x0f;
+    if (s3->chip >= S3_TRIO32) {
+        switch (svga->crtc[0x67] >> 4) {
+            case 3:
+            case 5:
+            case 7:
+                svga->clock /= 2;
+                break;
 
-    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
-
-    switch (svga->crtc[0x67] >> 4) {
-        case 3:
-        case 5:
-        case 7:
-            svga->clock /= 2;
-            break;
-
-        default:
-            break;
+            default:
+                break;
+        }
     }
 
     if (s3->chip <= S3_86C805) {
@@ -3656,6 +3662,7 @@ s3_recalctimings(svga_t *svga)
                     case S3_86C928:
                         switch (s3->card_type) {
                             case S3_METHEUS_86C928:
+                                s3_log("928 8bpp: ClockSel=%02x, width=%d, hdisp=%d, dotsperclock=%d.\n", clk_sel, s3->width, svga->hdisp, svga->dots_per_clock);
                                 switch (s3->width) {
                                     case 1280: /*Account for the 1280x1024 resolution*/
                                         switch (svga->hdisp) {
@@ -3824,8 +3831,10 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->card_type) {
                             case S3_METHEUS_86C928:
                                 if (!s3->color_16bit) {
+                                    s3_log("928 15bpp: ClockSel=%02x, width=%d, hdisp=%d, dotsperclock=%d.\n", clk_sel, s3->width, svga->hdisp, svga->dots_per_clock);
                                     svga->hdisp <<= 1;
                                     svga->dots_per_clock <<= 1;
+                                    svga->clock *= 2.0;
                                 }
                                 switch (svga->hdisp) { /*This might be a driver issue*/
                                     case 800:
@@ -3995,8 +4004,10 @@ s3_recalctimings(svga_t *svga)
                     case S3_86C928:
                         switch (s3->card_type) {
                             case S3_METHEUS_86C928:
+                                s3_log("928 16bpp: ClockSel=%02x, width=%d, hdisp=%d, dotsperclock=%d.\n", clk_sel, s3->width, svga->hdisp, svga->dots_per_clock);
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
+                                svga->clock *= 2.0;
                                 switch (svga->hdisp) { /*This might be a driver issue*/
                                     case 800:
                                         s3->width = 1024;
@@ -10389,8 +10400,8 @@ s3_init(const device_t *info)
             s3->packed_mmio   = 0;
             svga->crtc[0x5a]  = 0x0a;
             svga->ramdac      = device_add(&bt485_ramdac_device);
-            svga->clock_gen   = device_add(&icd2061_device);
-            svga->getclock    = icd2061_getclock;
+            svga->clock_gen   = device_add(&ics2494an_305_device);
+            svga->getclock    = ics2494_getclock;
             break;
 
         case S3_SPEA_MERCURY_LITE_PCI:
