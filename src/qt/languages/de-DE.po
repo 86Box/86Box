@@ -2889,8 +2889,8 @@ msgstr "Du nutzt bereits die aktuelleste %1 Version von 86Box: %2"
 msgid "version"
 msgstr "Version"
 
-msgid "Build"
-msgstr ""
+msgid "build"
+msgstr "Build"
 
 msgid "You are currently running version <b>%1</b>."
 msgstr "Du nutzt bereits die aktuelleste version <b>%1</b>."
