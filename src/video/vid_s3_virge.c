@@ -911,6 +911,7 @@ s3_virge_recalctimings(svga_t *svga)
                     if ((virge->chip != S3_VIRGEVX) && (virge->chip < S3_VIRGEGX2)) {
                         svga->hdisp >>= 1;
                         svga->dots_per_clock >>= 1;
+                        svga->clock /= 2.0;
                     }
                     break;
                 case 16:
@@ -918,6 +919,7 @@ s3_virge_recalctimings(svga_t *svga)
                     if ((virge->chip != S3_VIRGEVX) && (virge->chip < S3_VIRGEGX2)) {
                         svga->hdisp >>= 1;
                         svga->dots_per_clock >>= 1;
+                        svga->clock /= 2.0;
                     }
                     break;
                 case 24:
@@ -1010,9 +1012,13 @@ s3_virge_recalctimings(svga_t *svga)
                     break;
                 case 3: /*KRGB-16 (1.5.5.5)*/
                     svga->render = svga_render_15bpp_highres;
+                    if (virge->chip != S3_VIRGEVX)
+                        svga->clock /= 2.0;
                     break;
                 case 5: /*RGB-16 (5.6.5)*/
                     svga->render = svga_render_16bpp_highres;
+                    if (virge->chip != S3_VIRGEVX)
+                        svga->clock /= 2.0;
                     break;
                 case 6: /*RGB-24 (8.8.8)*/
                     svga->render = svga_render_24bpp_highres;
