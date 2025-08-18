@@ -388,7 +388,7 @@ msgid "Time synchronization"
 msgstr "Zeitsynchronisierung"
 
 msgid "Disabled"
-msgstr "Ausgeschaltet"
+msgstr "Ohne"
 
 msgid "Enabled (local time)"
 msgstr "Eingeschaltet (Lokale Uhrzeit)"
@@ -409,10 +409,10 @@ msgid "Smaller frames (smoother)"
 msgstr "Kleinere Frames (flüssiger)"
 
 msgid "Video:"
-msgstr "Videokarte:"
+msgstr "Grafikkarte:"
 
 msgid "Video #2:"
-msgstr "Videokarte 2:"
+msgstr "Grafikkarte 2:"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 oder 2 Grafik"
@@ -424,7 +424,7 @@ msgid "XGA Graphics"
 msgstr "XGA-Grafik"
 
 msgid "IBM PS/55 Display Adapter Graphics"
-msgstr ""
+msgstr "IBM PS/55 Grafik-Adapter"
 
 msgid "Keyboard:"
 msgstr "Tastatur:"
@@ -442,7 +442,7 @@ msgid "Joystick:"
 msgstr "Joystick:"
 
 msgid "Joystick"
-msgstr ""
+msgstr "Joystick"
 
 msgid "Joystick 1..."
 msgstr "Joystick 1..."
@@ -544,7 +544,7 @@ msgid "Parallel port 4"
 msgstr "Parallelport 4"
 
 msgid "FD Controller:"
-msgstr "FD-Controller:"
+msgstr "Disketten-Controller:"
 
 msgid "CD-ROM Controller:"
 msgstr "CD-ROM-Controller:"
@@ -763,7 +763,7 @@ msgid "Input devices"
 msgstr "Eingabegeräte"
 
 msgid "Sound"
-msgstr "Sound"
+msgstr "Ton"
 
 msgid "Network"
 msgstr "Netzwerk"
@@ -2650,7 +2650,7 @@ msgid "High performance impact"
 msgstr "Hohe Auswirkung auf die Leistung"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] RAM-Disk (maximale Geschwindigkeit)"
+msgstr "[Generisch] RAM-Disk (maximale Geschwindigkeit)"
 
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Generisch] 1989 (3500 U/min)"
