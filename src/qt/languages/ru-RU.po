@@ -1915,7 +1915,7 @@ msgid "Enable BIOS extension ROM Writes (ROM #4)"
 msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ #4)"
 
 msgid "Linear framebuffer base"
-msgstr "Линейная база кадрового буфера"
+msgstr "Линейный фреймбуфер"
 
 msgid "Address"
 msgstr "Адрес"
