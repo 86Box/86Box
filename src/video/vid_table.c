@@ -332,6 +332,8 @@ video_prepare(void)
         /* Do an inform on the default values, so that that there's some sane values initialized
            even if the device init function does not do an inform of its own. */
         video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_default, i);
+
+        monitors[i].mon_interlace = 0;
     }
 }
 
