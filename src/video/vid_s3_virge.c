@@ -5683,7 +5683,7 @@ static const device_config_t s3_virge_config[] = {
     },
     {
         .name           = "colorkey",
-        .description    = "Video color-keying",
+        .description    = "Video chroma-keying",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 1,
@@ -5735,7 +5735,7 @@ static const device_config_t s3_virge_stb_config[] = {
     },
     {
         .name           = "colorkey",
-        .description    = "Video color-keying",
+        .description    = "Video chroma-keying",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 1,
@@ -5772,7 +5772,7 @@ static const device_config_t s3_virge_357_config[] = {
     },
     {
         .name           = "colorkey",
-        .description    = "Video color-keying",
+        .description    = "Video chroma-keying",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 1,
@@ -5825,7 +5825,7 @@ static const device_config_t s3_trio3d2x_config[] = {
     },
     {
         .name           = "colorkey",
-        .description    = "Video color-keying",
+        .description    = "Video chroma-keying",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 1,
