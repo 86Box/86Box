@@ -1,7 +1,5 @@
 /*Current issues :
-  - missing screen->screen scaled blits with format conversion
   - missing YUV blits (YUV -> 32-bit, 24-bit, or 16-bit RGB now done)
-  - missing linestyle
   - missing wait for vsync
   - missing reversible lines
 
