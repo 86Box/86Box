@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <stdbool.h>
 #include <stdatomic.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -376,6 +377,8 @@ typedef struct virge_t {
     uint32_t dma_dbl_words;
     uint32_t dma_mmio_addr;
     uint32_t dma_data_type;
+
+    bool color_key_enabled;
 
     int pci;
     int is_agp;
@@ -4797,6 +4800,135 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
         }                              \
     } while (0)
 
+
+static bool
+s3_virge_colorkey(virge_t* virge, uint32_t x, uint32_t y)
+{
+    svga_t* svga = &virge->svga;
+    uint8_t comp_r = 0, comp_g = 0, comp_b = 0;
+    uint8_t comp_r_h = 0, comp_g_h = 0, comp_b_h = 0;
+    uint8_t r = 0, g = 0, b = 0;
+    uint8_t bytes_per_pel = 1;
+    uint8_t shift = ((virge->streams.chroma_ctrl >> 24) & 7) ^ 7;
+    bool is15bpp = false;
+
+    uint32_t base_addr = svga->memaddr_latch;
+    uint32_t stride = (virge->chip < S3_VIRGEGX2) ? virge->streams.pri_stride : (svga->rowoffset << 3);
+
+    bool chroma_key = false;
+    bool color_key = false;
+    bool alpha_key = false;
+
+    if (!virge->color_key_enabled)
+        return true;
+
+    if (y > 2048)
+        return true;
+
+    if (virge->chip >= S3_VIRGEGX2 && ((virge->streams.chroma_ctrl >> 29) & 3) == 0)
+        return true;
+    else if (!(virge->streams.chroma_ctrl & (1 << 28)))
+        return true;
+    
+    comp_r = (virge->streams.chroma_ctrl >> 16) & 0xFF;
+    comp_g = (virge->streams.chroma_ctrl >> 8) & 0xFF;
+    comp_b = (virge->streams.chroma_ctrl) & 0xFF;
+
+    comp_r_h = (virge->streams.chroma_upper_bound >> 16) & 0xFF;
+    comp_g_h = (virge->streams.chroma_upper_bound >> 8) & 0xFF;
+    comp_b_h = (virge->streams.chroma_upper_bound) & 0xFF;
+
+    if (svga->render == svga_render_32bpp_highres) bytes_per_pel = 4;
+    if (svga->render == svga_render_24bpp_highres) bytes_per_pel = 3;
+    if (svga->render == svga_render_16bpp_highres) bytes_per_pel = 2;
+    if (svga->render == svga_render_15bpp_highres) { bytes_per_pel = 2; is15bpp = true; }
+
+    if (virge->chip >= S3_VIRGEDX && bytes_per_pel == 1) {
+        // TODO: Is this right for GX2 and later? Windows 2000 sources indicate that this is the format for alpha keying, but it's never used.
+
+        /* Note for DX/GX:
+            If Bit 28 of Color/Chroma Key Control is 1:
+                Bit 29 = 0: Select color keying
+                Bit 29 = 1: Select alpha keying (lowest 8 bits of register used for compare)
+        */
+        uint8_t index = virge->streams.chroma_ctrl & 0xFF;
+        alpha_key = (virge->chip < S3_VIRGEGX2) ? (virge->streams.chroma_ctrl & (1 << 29)) : ((virge->streams.chroma_ctrl >> 29) & 3) == 1;
+        
+        if (alpha_key) {
+            comp_r = comp_g = comp_b = index;
+            comp_r_h = comp_g_h = comp_b_h = index;
+        }
+    }
+
+    if (alpha_key) {
+        uint8_t index = svga->vram[(base_addr + (stride * y) + x * bytes_per_pel) & svga->vram_mask];
+        return !!((index >> shift) == (comp_r >> shift));
+    } else {
+        switch (bytes_per_pel) {
+            case 1: {
+                uint8_t index = svga->vram[(base_addr + (stride * y) + x * bytes_per_pel) & svga->vram_mask];
+                r = svga->vgapal[index].r << 2;
+                g = svga->vgapal[index].g << 2;
+                b = svga->vgapal[index].b << 2;
+                break;
+            }
+            case 2: {
+                uint16_t col = *(uint16_t*)&svga->vram[(base_addr + (stride * y) + x * bytes_per_pel) & svga->vram_mask];
+                if (is15bpp) {
+                    r = ((col >> 10) & 0x1f) << 3;
+                    g = ((col >> 5) & 0x1f) << 3;
+                    b = (col & 0x1f) << 3;
+                } else {
+                    r = ((col >> 11) & 0x1f) << 3;
+                    g = ((col >> 5) & 0x3f) << 2;
+                    b = (col & 0x1f) << 3;
+                }
+                break;
+            }
+            case 3: {
+                uint8_t *col = &svga->vram[(base_addr + (stride * y) + x * bytes_per_pel) & svga->vram_mask];
+                r = col[0];
+                g = col[1];
+                b = col[2];
+                break;
+            }
+            case 4: {
+                uint32_t col = *(uint32_t*)&svga->vram[(base_addr + (stride * y) + x * bytes_per_pel) & svga->vram_mask];
+                r = (col >> 16) & 0xFF;
+                g = (col >> 8) & 0xFF;
+                b = col & 0xFF;
+                break;
+            }
+        }
+
+        r >>= shift;
+        g >>= shift;
+        b >>= shift;
+        comp_r >>= shift;
+        comp_g >>= shift;
+        comp_b >>= shift;
+        comp_r_h >>= shift;
+        comp_g_h >>= shift;
+        comp_b_h >>= shift;
+
+        if (virge->chip < S3_VIRGEGX2) {
+            color_key = true;
+            chroma_key = false;
+        } else {
+            color_key = ((virge->streams.chroma_ctrl >> 29) & 3) == 2;
+            chroma_key = ((virge->streams.chroma_ctrl >> 29) & 3) == 3;
+        }
+
+        if (color_key) {
+            return !!(r == comp_r && g == comp_g && b == comp_b);
+        } else {
+            return !!(r >= comp_r && r <= comp_r_h && g >= comp_g && g <= comp_g_h && b >= comp_b && b <= comp_b_h);
+        }
+    }
+
+    return true;
+}
+
 static void
 s3_virge_overlay_draw(svga_t *svga, int displine)
 {
@@ -4830,7 +4962,10 @@ s3_virge_overlay_draw(svga_t *svga, int displine)
     OVERLAY_SAMPLE();
 
     for (x = 0; x < x_size; x++) {
-        *p++ = r[x_read] | (g[x_read] << 8) | (b[x_read] << 16);
+        if (s3_virge_colorkey(virge, offset + x, displine - svga->y_add))
+            *p++ = r[x_read] | (g[x_read] << 8) | (b[x_read] << 16);
+        else
+            p++;
 
         svga->overlay_latch.h_acc += virge->streams.k1_horiz_scale;
         if (svga->overlay_latch.h_acc >= 0) {
@@ -5162,6 +5297,7 @@ s3_virge_init(const device_t *info)
     else
         virge->memory_size = device_get_config_int("memory");
 
+    virge->color_key_enabled = !!device_get_config_int("colorkey");
     virge->onboard = !!(info->local & 0x100);
 
     if (!virge->onboard)
@@ -5546,6 +5682,17 @@ static const device_config_t s3_virge_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "colorkey",
+        .description    = "Video color-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "dithering",
         .description    = "Dithering",
         .type           = CONFIG_BINARY,
@@ -5587,6 +5734,17 @@ static const device_config_t s3_virge_stb_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "colorkey",
+        .description    = "Video color-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "dithering",
         .description    = "Dithering",
         .type           = CONFIG_BINARY,
@@ -5606,6 +5764,17 @@ static const device_config_t s3_virge_357_config[] = {
         .name           = "bilinear",
         .description    = "Bilinear filtering",
         .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "colorkey",
+        .description    = "Video color-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
         .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -5646,6 +5815,17 @@ static const device_config_t s3_trio3d2x_config[] = {
     {
         .name           = "bilinear",
         .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "colorkey",
+        .description    = "Video color-keying",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 1,
