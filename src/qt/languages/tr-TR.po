@@ -2934,6 +2934,9 @@ msgstr ""
 msgid "The system will not be added."
 msgstr ""
 
+msgid "&Update mouse every CPU frame"
+msgstr ""
+
 #~ msgid "HD Controller:"
 #~ msgstr "Hard Disk Denetleyicisi:"
 

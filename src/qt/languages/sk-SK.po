@@ -2934,6 +2934,9 @@ msgstr "Systém nebude pridaný."
 msgid "%1 Hz"
 msgstr "%1 Hz"
 
+msgid "&Update mouse every CPU frame"
+msgstr "&Aktualizovať myš pri každom rámci CPU"
+
 #~ msgid "HD Controller:"
 #~ msgstr "Radič disku:"
 

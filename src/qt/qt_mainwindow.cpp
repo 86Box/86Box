@@ -678,6 +678,9 @@ MainWindow::MainWindow(QWidget *parent)
     if (do_auto_pause > 0) {
         ui->actionAuto_pause->setChecked(true);
     }
+    if (force_constant_mouse > 0) {
+        ui->actionUpdate_mouse_every_CPU_frame->setChecked(true);
+    }
 
 #ifdef Q_OS_MACOS
     ui->actionCtrl_Alt_Del->setShortcutVisibleInContextMenu(true);
@@ -1982,6 +1985,16 @@ MainWindow::on_actionAuto_pause_triggered()
 {
     do_auto_pause ^= 1;
     ui->actionAuto_pause->setChecked(do_auto_pause > 0 ? true : false);
+    config_save();
+}
+
+void
+MainWindow::on_actionUpdate_mouse_every_CPU_frame_triggered()
+{
+    force_constant_mouse ^= 1;
+    ui->actionUpdate_mouse_every_CPU_frame->setChecked(force_constant_mouse > 0 ? true : false);
+    mouse_update_sample_rate();
+    config_save();
 }
 
 void

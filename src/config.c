@@ -224,6 +224,7 @@ load_general(void)
     }
 
     do_auto_pause = ini_section_get_int(cat, "do_auto_pause", 0);
+    force_constant_mouse = ini_section_get_int(cat, "force_constant_mouse", 0);
 
     p = ini_section_get_string(cat, "uuid", NULL);
     if (p != NULL)
@@ -2040,13 +2041,14 @@ config_load(void)
         cpu_f = (cpu_family_t *) &cpu_families[0];
         cpu   = 0;
 
-        kbd_req_capture = 0;
-        hide_status_bar = 0;
-        hide_tool_bar   = 0;
-        scale           = 1;
-        machine         = machine_get_machine_from_internal_name("ibmpc");
-        dpi_scale       = 1;
-        do_auto_pause   = 0;
+        kbd_req_capture      = 0;
+        hide_status_bar      = 0;
+        hide_tool_bar        = 0;
+        scale                = 1;
+        machine              = machine_get_machine_from_internal_name("ibmpc");
+        dpi_scale            = 1;
+        do_auto_pause        = 0;
+        force_constant_mouse = 0;
 
         cpu_override_interpreter = 0;
 
@@ -2325,6 +2327,11 @@ save_general(void)
         ini_section_set_int(cat, "do_auto_pause", do_auto_pause);
     else
         ini_section_delete_var(cat, "do_auto_pause");
+
+    if (force_constant_mouse)
+        ini_section_set_int(cat, "force_constant_mouse", force_constant_mouse);
+    else
+        ini_section_delete_var(cat, "force_constant_mouse");
 
     char cpu_buf[128] = { 0 };
     plat_get_cpu_string(cpu_buf, 128);

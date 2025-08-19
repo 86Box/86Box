@@ -400,13 +400,13 @@ msgid "Dynamic Recompiler"
 msgstr "Ricompilatore dinamico"
 
 msgid "CPU frame size"
-msgstr "Dimensione fotogrammi CPU"
+msgstr "Dimensione blocchi CPU"
 
 msgid "Larger frames (less smooth)"
-msgstr "Fotogrammi più grandi (meno fluido)"
+msgstr "Blocchi più grandi (meno fluido)"
 
 msgid "Smaller frames (smoother)"
-msgstr "Fotogrammi più piccoli (più fluido)"
+msgstr "Blocchi più piccoli (più fluido)"
 
 msgid "Video:"
 msgstr "Video:"
@@ -2933,6 +2933,9 @@ msgstr "Il processo della macchina virtuale \"%1\" è terminato inaspettatamente
 
 msgid "The system will not be added."
 msgstr "Il sistema non verrà aggiunto."
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Aggiorano stato mouse ad ogni blocco CPU"
 
 #~ msgid "HD Controller:"
 #~ msgstr "Controller HD:"

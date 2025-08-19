@@ -2933,3 +2933,6 @@ msgstr "O processo da máquina virtual \"%1\" terminou inesperadamente com o có
 
 msgid "The system will not be added."
 msgstr "O sistema não será adicionado."
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Atualiza o estado do mouse em cada quadro do CPU"

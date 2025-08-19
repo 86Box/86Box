@@ -2934,6 +2934,9 @@ msgstr "Der Prozess der virtuellen Maschine \"%1\" wurde unerwartet mit dem Exit
 msgid "The system will not be added."
 msgstr "Das System wird nicht hinzugefügt werden."
 
+msgid "&Update mouse every CPU frame"
+msgstr "&Maus bei jedem CPU-Frame aktualisieren"
+
 #~ msgid "HD Controller:"
 #~ msgstr "Festplatten-Controller:"
 

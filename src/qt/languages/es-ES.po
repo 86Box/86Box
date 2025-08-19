@@ -2934,6 +2934,9 @@ msgstr "El proceso de la máquina virtual \"%1\" terminó inesperadamente con el
 msgid "The system will not be added."
 msgstr "El sistema no será añadido."
 
+msgid "&Update mouse every CPU frame"
+msgstr "&Actualiza el estado del ratón en cada bloco de CPU"
+
 #~ msgid "HD Controller:"
 #~ msgstr "Controladora HD:"
 

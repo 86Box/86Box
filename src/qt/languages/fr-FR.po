@@ -400,7 +400,7 @@ msgid "Dynamic Recompiler"
 msgstr "Recompilateur dynamique"
 
 msgid "CPU frame size"
-msgstr "Taille du bloc de CPU"
+msgstr "Taille du bloc de processeur"
 
 msgid "Larger frames (less smooth)"
 msgstr "Blocs plus grands (moins fluid)"
@@ -2933,6 +2933,9 @@ msgstr "Le processus de la machine virtuelle \"%1\" s'est arrêté de manière i
 
 msgid "The system will not be added."
 msgstr "Le système ne sera pas ajouté."
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Mettre à jour le statut du souris en qualquier bloc de processeur"
 
 #~ msgid "HD Controller:"
 #~ msgstr "Contrôleur HD:"

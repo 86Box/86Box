@@ -2933,3 +2933,6 @@ msgstr "Systém nebude přidán."
 
 msgid "%1 Hz"
 msgstr "%1 Hz"
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Aktualizovat myš při každém rámce CPU"

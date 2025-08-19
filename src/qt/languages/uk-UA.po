@@ -2934,6 +2934,9 @@ msgstr "Процес віртуальної машини \"%1\" несподів
 msgid "The system will not be added."
 msgstr "Система не буде додана."
 
+msgid "&Update mouse every CPU frame"
+msgstr "&Оновлювати мишу при кожному кадрі ЦП"
+
 #~ msgid "HD Controller:"
 #~ msgstr "Контролер HD:"
 

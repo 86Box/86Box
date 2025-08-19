@@ -171,6 +171,7 @@ extern int    fixed_size_y;
 extern int    sound_muted;                  /* (C) Is sound muted? */
 extern int    do_auto_pause;                /* (C) Auto-pause the emulator on focus loss */
 extern int    auto_paused;
+extern int    force_constant_mouse;         /* (C) Forst constant updating of the mouse */
 extern double mouse_sensitivity;            /* (C) Mouse sensitivity scale */
 #ifdef _Atomic
 extern _Atomic double mouse_x_error;        /* Mouse error accumulator - Y */

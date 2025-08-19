@@ -68,12 +68,14 @@
      <addaction name="actionPen"/>
      <addaction name="actionCursor_Puck"/>
     </widget>
-    <addaction name="actionAuto_pause"/>
+    <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
     <addaction name="actionKeyboard_requires_capture"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
-    <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
+    <addaction name="actionUpdate_mouse_every_CPU_frame"/>
+    <addaction name="separator"/>
+    <addaction name="actionAuto_pause"/>
     <addaction name="actionPause"/>
     <addaction name="separator"/>
     <addaction name="actionHard_Reset"/>
@@ -272,6 +274,14 @@
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
   </widget>
+  <action name="actionUpdate_mouse_every_CPU_frame">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Update mouse every CPU frame</string>
+   </property>
+  </action>
   <action name="actionAuto_pause">
    <property name="checkable">
     <bool>true</bool>

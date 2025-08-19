@@ -2934,6 +2934,9 @@ msgstr "Het proces van de virtuele machine \"%1\" is onverwacht beëindigd met e
 msgid "The system will not be added."
 msgstr "Het systeem wordt niet toegevoegd."
 
+msgid "&Update mouse every CPU frame"
+msgstr "&Muis bijwerken bij elk CPU-frame"
+
 #~ msgid "HD Controller:"
 #~ msgstr "HD-controller:"
 

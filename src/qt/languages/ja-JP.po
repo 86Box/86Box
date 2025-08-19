@@ -2934,6 +2934,9 @@ msgstr "仮想マシン\"%1\"のプロセスが、終了コード %2 で予期�
 msgid "The system will not be added."
 msgstr "システムは追加されません。"
 
+msgid "&Update mouse every CPU frame"
+msgstr "マウスをCPUフレームごとに更新(&U)"
+
 #~ msgid "HD Controller:"
 #~ msgstr "HDDコントローラー:"
 

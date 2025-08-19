@@ -2934,6 +2934,9 @@ msgstr "Proces virtualnog sistema \"%1\" neočekivano je završio s izlaznim kod
 msgid "The system will not be added."
 msgstr "Sistem neće biti dodan."
 
+msgid "&Update mouse every CPU frame"
+msgstr "&Ažuriraj status miša kod skavog bloka procesora"
+
 #~ msgid "HD Controller:"
 #~ msgstr "Kontroler tvrdog diska:"
 

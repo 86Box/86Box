@@ -2934,6 +2934,9 @@ msgstr "Proces navidezne naprave \"%1\" se je nepričakovano zaključil z izhodn
 msgid "The system will not be added."
 msgstr "Sistem ne bo dodan."
 
+msgid "&Update mouse every CPU frame"
+msgstr "&Posodibi stanje miške ob vsakem bloku procesorja"
+
 #~ msgid "HD Controller:"
 #~ msgstr "Krmilnik trdega diska:"
 

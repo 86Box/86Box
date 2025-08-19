@@ -2934,6 +2934,9 @@ msgstr "Tiến trình của máy ảo \"%1\" đã bị dừng bất thường v�
 msgid "The system will not be added."
 msgstr "Hệ thống sẽ không được thêm."
 
+msgid "&Update mouse every CPU frame"
+msgstr "&Cập nhật chuột mỗi cỡ khung CPU"
+
 #~ msgid "HD Controller:"
 #~ msgstr "Bộ điều khiển ổ cứng:"
 
