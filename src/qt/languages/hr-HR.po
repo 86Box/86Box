@@ -2948,3 +2948,21 @@ msgstr "&Ažuriraj status miša kod skavog bloka procesora"
 
 #~ msgid "ZIP images"
 #~ msgstr "ZIP slike"
+
+msgid "Hue"
+msgstr "Hue"
+
+msgid "Saturation"
+msgstr "Telítettség"
+
+msgid "Contrast"
+msgstr "Kontraszt"
+
+msgid "Brightness"
+msgstr "Fényerő"
+
+msgid "Sharpness"
+msgstr "Élesség"
+
+msgid "CGA composite settings..."
+msgstr "CGA összetett beállítások..."

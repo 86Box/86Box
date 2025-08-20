@@ -2948,3 +2948,21 @@ msgstr ""
 
 #~ msgid "ZIP images"
 #~ msgstr "ZIP imajları"
+
+msgid "Hue"
+msgstr "Hue"
+
+msgid "Saturation"
+msgstr "Doygunluk"
+
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgid "Brightness"
+msgstr "Parlaklık"
+
+msgid "Sharpness"
+msgstr "Keskinlik"
+
+msgid "CGA composite settings..."
+msgstr "CGA bileşik ayarları..."

@@ -361,6 +361,8 @@ colorplus_standalone_init(UNUSED(const device_t *info))
     lpt_port_setup(colorplus->lpt, LPT_MDA_ADDR);
     lpt_set_3bc_used(1);
 
+    monitors[monitor_index_global].mon_composite = colorplus->cga.composite;
+
     return colorplus;
 }
 

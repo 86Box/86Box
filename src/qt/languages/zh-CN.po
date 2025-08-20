@@ -2948,3 +2948,21 @@ msgstr ""
 
 #~ msgid "ZIP images"
 #~ msgstr "ZIP 映像"
+
+msgid "Hue"
+msgstr "色调"
+
+msgid "Saturation"
+msgstr "饱和度"
+
+msgid "Contrast"
+msgstr "对比"
+
+msgid "Brightness"
+msgstr "亮度"
+
+msgid "Sharpness"
+msgstr "锐度"
+
+msgid "CGA composite settings..."
+msgstr "CGA 复合设置..."

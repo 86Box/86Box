@@ -2948,3 +2948,21 @@ msgstr "&Mettre à jour le statut du souris en qualquier bloc de processeur"
 
 #~ msgid "ZIP images"
 #~ msgstr "Images ZIP"
+
+msgid "Hue"
+msgstr "Teinte"
+
+msgid "Saturation"
+msgstr "Saturation"
+
+msgid "Contrast"
+msgstr "Contraste"
+
+msgid "Brightness"
+msgstr "Luminosité"
+
+msgid "Sharpness"
+msgstr "Netteté"
+
+msgid "CGA composite settings..."
+msgstr "Paramètres composites CGA..."

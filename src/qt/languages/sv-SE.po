@@ -2948,3 +2948,21 @@ msgstr ""
 
 #~ msgid "ZIP images"
 #~ msgstr "Zip-avbildningar"
+
+msgid "Hue"
+msgstr "Hue"
+
+msgid "Saturation"
+msgstr "Mättnad"
+
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgid "Brightness"
+msgstr "Ljusstyrka"
+
+msgid "Sharpness"
+msgstr "Skärpa"
+
+msgid "CGA composite settings..."
+msgstr "CGA-kompositinställningar..."

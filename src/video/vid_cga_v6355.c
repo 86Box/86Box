@@ -1055,6 +1055,8 @@ v6355_standalone_init(const device_t *info) {
             break;
     }
 
+    monitors[monitor_index_global].mon_composite = (v6355->display_type == V6355_COMPOSITE);
+
     return v6355;
 }
 

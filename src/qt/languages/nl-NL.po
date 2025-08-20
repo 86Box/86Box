@@ -2948,3 +2948,21 @@ msgstr "&Muis bijwerken bij elk CPU-frame"
 
 #~ msgid "ZIP images"
 #~ msgstr "ZIP-images"
+
+msgid "Hue"
+msgstr "Hue"
+
+msgid "Saturation"
+msgstr "Verzadiging"
+
+msgid "Contrast"
+msgstr "Contrast"
+
+msgid "Brightness"
+msgstr "Helderheid"
+
+msgid "Sharpness"
+msgstr "Scherpte"
+
+msgid "CGA composite settings..."
+msgstr "CGA-composietinstellingen..."

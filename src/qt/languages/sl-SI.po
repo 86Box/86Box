@@ -2948,3 +2948,21 @@ msgstr "&Posodibi stanje miške ob vsakem bloku procesorja"
 
 #~ msgid "ZIP images"
 #~ msgstr "ZIP slike"
+
+msgid "Hue"
+msgstr "Hue"
+
+msgid "Saturation"
+msgstr "Nasičenost"
+
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgid "Brightness"
+msgstr "Svetlost"
+
+msgid "Sharpness"
+msgstr "Ostrina"
+
+msgid "CGA composite settings..."
+msgstr "CGA sestavljene nastavitve..."

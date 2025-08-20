@@ -334,6 +334,7 @@ video_prepare(void)
         video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_default, i);
 
         monitors[i].mon_interlace = 0;
+        monitors[i].mon_composite = 0;
     }
 }
 

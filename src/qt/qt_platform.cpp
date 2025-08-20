@@ -439,6 +439,8 @@ plat_pause(int p)
     }
 
     if ((!!p) == dopause) {
+        QTimer::singleShot(0, main_window, &MainWindow::updateUiPauseState);
+
 #ifdef Q_OS_WINDOWS
         if (source_hwnd)
             PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!p, (LPARAM) (HWND) main_window->winId());

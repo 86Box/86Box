@@ -2948,3 +2948,21 @@ msgstr "&Aggiorano stato mouse ad ogni blocco CPU"
 
 #~ msgid "ZIP images"
 #~ msgstr "Immagini ZIP"
+
+msgid "Hue"
+msgstr "Hue"
+
+msgid "Saturation"
+msgstr "Saturazione"
+
+msgid "Contrast"
+msgstr "Contrasto"
+
+msgid "Brightness"
+msgstr "Luminosità"
+
+msgid "Sharpness"
+msgstr "Nitidezza"
+
+msgid "CGA composite settings..."
+msgstr "Impostazioni composite CGA..."
