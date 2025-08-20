@@ -1266,9 +1266,6 @@ msgstr "Openen van configuratiebestand %1 voor wegschrijven niet mogelijk"
 msgid "Error adding system"
 msgstr "Fout bij toevoegen van systeem"
 
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr "Onverwachte beëindiging van programma tijdens het aanmaken van nieuw systeem: afsluitcode %1, afsluitstatus %2.\n\nHet systeem wordt niet toegevoegd."
-
 msgid "Remove directory failed"
 msgstr "Verwijderen map mislukt"
 
@@ -1285,7 +1282,7 @@ msgid "An update to 86Box is available: %1 %2"
 msgstr "Een update van 86Box is beschikbaar: %1 %2"
 
 msgid "An error has occurred while checking for updates: %1"
-msgstr ""
+msgstr "Er is een fout opgetreden tijdens het controleren op updates: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
 msgstr "<b> Een update van 86Box is beschikbaar!</b>"
@@ -2449,7 +2446,7 @@ msgid "Composite"
 msgstr "Composite"
 
 msgid "True color"
-msgstr ""
+msgstr "Echte kleur"
 
 msgid "Old"
 msgstr "Oud"
@@ -2881,10 +2878,10 @@ msgid "Update check complete"
 msgstr "Controleren op updates voltooid"
 
 msgid "stable"
-msgstr ""
+msgstr "stabiel"
 
 msgid "beta"
-msgstr ""
+msgstr "beta"
 
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr "Je gebruikt de nieuwste %1-versie van 86Box: %2"
@@ -2925,14 +2922,20 @@ msgstr "86Box Update"
 msgid "Release notes:"
 msgstr "Release-opmerkingen:"
 
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
 msgid "Virtual machine crash"
-msgstr ""
+msgstr "Crash van virtuele machine"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr ""
+msgstr "Het proces van de virtuele machine \"%1\" is onverwacht beëindigd met exitcode %2."
 
 msgid "The system will not be added."
-msgstr ""
+msgstr "Het systeem wordt niet toegevoegd."
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Muis bijwerken bij elk CPU-frame"
 
 #~ msgid "HD Controller:"
 #~ msgstr "HD-controller:"

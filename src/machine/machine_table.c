@@ -2330,7 +2330,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_MOUSE,
+        .flags = MACHINE_XTA | MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_MOUSE,
         .ram = {
             .min = 640,
             .max = 640,
@@ -5490,7 +5490,7 @@ const machine_t machines[] = {
     },
     /* Has AMI KBC firmware of uknown revision, maybe '8'. */
     {
-        .name = "[OPTi 283] Silicon Valley SVC386SX/P1",
+        .name = "[OPTi 283] Silicon Valley Computer SVC386SX/P1",
         .internal_name = "svc386sxp1",
         .type = MACHINE_TYPE_386SX,
         .chipset = MACHINE_CHIPSET_OPTI_283,

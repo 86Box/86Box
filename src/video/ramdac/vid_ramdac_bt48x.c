@@ -365,8 +365,11 @@ bt48x_recalctimings(void *priv, svga_t *svga)
     const bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) priv;
 
     svga->interlace = ramdac->cmd_r2 & 0x08;
-    if (ramdac->cmd_r3 & 0x08)
-        svga->hdisp *= 2; /* x2 clock multiplier */
+    if (ramdac->cmd_r3 & 0x08) {
+        svga->hdisp <<= 1; /* x2 clock multiplier */
+        svga->dots_per_clock <<= 1;
+        svga->clock *= 2.0;
+    }
 }
 
 void

@@ -139,6 +139,7 @@ typedef struct monitor_t {
     int                      mon_cga_palette_static; /* Whether it should not be freed by the API. */
     const video_timings_t   *mon_vid_timings;
     int                      mon_vid_type;
+    atomic_bool              mon_interlace;
     struct blit_data_struct *mon_blit_data_ptr;
 } monitor_t;
 

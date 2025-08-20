@@ -26,6 +26,7 @@
 #include <QCryptographicHash>
 #include <QtNetwork>
 #include <QElapsedTimer>
+#include <QMessageBox>
 #include <QProgressDialog>
 #include <QWindow>
 #include "qt_util.hpp"
@@ -132,7 +133,8 @@ VMManagerSystem::scanForConfigs(QWidget* parent, const QString &searchPath)
     progDialog.setMinimum(0);
     progDialog.setMaximum(0);
     progDialog.setWindowFlags(progDialog.windowFlags() & ~Qt::WindowCloseButtonHint);
-    progDialog.setFixedSize(progDialog.sizeHint());
+    progDialog.setMinimumSize(progDialog.sizeHint());
+    progDialog.setMaximumSize(progDialog.sizeHint());
     QElapsedTimer scanTimer;
     scanTimer.start();
     QVector<VMManagerSystem *> system_configs;
@@ -445,6 +447,8 @@ VMManagerSystem::launchMainProcess() {
     [=](const int exitCode, const QProcess::ExitStatus exitStatus){
         if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
             qInfo().nospace().noquote() << "Abnormal program termination while launching main process: exit code " <<  exitCode << ", exit status " << exitStatus;
+            QMessageBox::critical(this, tr("Virtual machine crash"),
+                                        tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg(displayName, QString::number(exitCode)));
             return;
         }
     });
@@ -498,6 +502,8 @@ VMManagerSystem::launchSettings() {
     [=](const int exitCode, const QProcess::ExitStatus exitStatus){
         if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
             qInfo().nospace().noquote() << "Abnormal program termination while launching settings: exit code " <<  exitCode << ", exit status " << exitStatus;
+            QMessageBox::critical(this, tr("Virtual machine crash"),
+                                        tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg(displayName, QString::number(exitCode)));
             return;
         }
 

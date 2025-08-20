@@ -559,13 +559,19 @@ mouse_get_buttons_ex(void)
 void
 mouse_set_sample_rate(double new_rate)
 {
-    mouse_timed = (new_rate > 0.0);
+    mouse_timed = !force_constant_mouse && (new_rate > 0.0);
 
     timer_stop(&mouse_timer);
 
     sample_rate = new_rate;
     if (mouse_timed)
         timer_on_auto(&mouse_timer, 1000000.0 / sample_rate);
+}
+
+void
+mouse_update_sample_rate(void)
+{
+    mouse_set_sample_rate(sample_rate);
 }
 
 /* Callback from the hardware driver. */

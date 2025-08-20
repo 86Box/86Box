@@ -556,7 +556,7 @@ msgid "Quaternary IDE Controller"
 msgstr "Controlador IDE quaternário"
 
 msgid "Hard disk"
-msgstr "Disko rígido"
+msgstr "Disco rígido"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -1141,7 +1141,7 @@ msgid "New configuration"
 msgstr "Nova configuração"
 
 msgid "Complete"
-msgstr "Completado"
+msgstr "Completar"
 
 msgid "The wizard will now launch the configuration for the new system."
 msgstr "Este assistente agora vai abrir as definições do novo sistema."
@@ -1265,9 +1265,6 @@ msgstr "Não foi possível abrir o ficheiro de configuração em %1 para a escri
 
 msgid "Error adding system"
 msgstr "Error ao adicionar o sistema"
-
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr "Terminação abnormal do programa em criar o novo sistema: código de saída %1, código de estado %2.\n\nO sistema não será adicionado."
 
 msgid "Remove directory failed"
 msgstr "Falha na remoção do directório"
@@ -2925,6 +2922,9 @@ msgstr "Atualização do 86Box"
 msgid "Release notes:"
 msgstr "Notas da versão:"
 
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
 msgid "Virtual machine crash"
 msgstr "Falecimento da máquina virtual"
 
@@ -2933,6 +2933,9 @@ msgstr "O processo da máquina virtual \"%1\" terminou inesperadamente com o có
 
 msgid "The system will not be added."
 msgstr "O sistema não será adicionado."
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Atualiza o estado do rato em cada bloco do CPU"
 
 #~ msgid "HD Controller:"
 #~ msgstr "Controlador HD:"

@@ -114,41 +114,6 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             });
             nameChangeAction.setEnabled(!selected_sysconfig->window_obscured);
 
-            QAction openSystemFolderAction(tr("&Open folder..."));
-            contextMenu.addAction(&openSystemFolderAction);
-            connect(&openSystemFolderAction, &QAction::triggered, [indexAt] {
-                if (const auto configDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString(); !configDir.isEmpty()) {
-                    QDir dir(configDir);
-                    if (!dir.exists())
-                        dir.mkpath(".");
-                    
-                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
-                }
-            });
-
-            QAction openPrinterFolderAction(tr("Open &printer tray..."));
-            contextMenu.addAction(&openPrinterFolderAction);
-            connect(&openPrinterFolderAction, &QAction::triggered, [indexAt] {
-                if (const auto printerDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/printer/"); !printerDir.isEmpty()) {
-                    QDir dir(printerDir);
-                    if (!dir.exists())
-                        dir.mkpath(".");
-                    
-                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
-                }
-            });
-
-            QAction openScreenshotsFolderAction(tr("Open screenshots &folder..."));
-            contextMenu.addAction(&openScreenshotsFolderAction);
-            connect(&openScreenshotsFolderAction, &QAction::triggered, [indexAt] {
-                if (const auto screenshotsDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/screenshots/"); !screenshotsDir.isEmpty()) {
-                    QDir dir(screenshotsDir);
-                    if (!dir.exists())
-                        dir.mkpath(".");
-                    
-                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
-                }
-            });
 
             QAction setSystemIcon(tr("Set &icon..."));
             contextMenu.addAction(&setSystemIcon);
@@ -161,6 +126,8 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
                 }
             });
             setSystemIcon.setEnabled(!selected_sysconfig->window_obscured);
+
+            contextMenu.addSeparator();
 
             QAction cloneMachine(tr("C&lone..."));
             contextMenu.addAction(&cloneMachine);
@@ -238,7 +205,8 @@ illegal_chars:
                     progDialog->setMaximum(0);
                     progDialog->setMinimum(0);
                     progDialog->setWindowFlags(progDialog->windowFlags() & ~Qt::WindowCloseButtonHint);
-                    progDialog->setFixedSize(progDialog->sizeHint());
+                    progDialog->setMinimumSize(progDialog->sizeHint());
+                    progDialog->setMaximumSize(progDialog->sizeHint());
                     progDialog->setMinimumDuration(0);
                     progDialog->setCancelButton(nullptr);
                     progDialog->setAutoClose(false);
@@ -294,6 +262,7 @@ illegal_chars:
                 QMessageBox msgbox(QMessageBox::Warning, tr("Warning"), tr("Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?").arg(selected_sysconfig->displayName), QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, parent);
                 msgbox.exec();
                 if (msgbox.result() == QMessageBox::Yes) {
+                    disconnect(selected_sysconfig->process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), nullptr, nullptr);
                     selected_sysconfig->process->kill();
                 }
             });
@@ -323,6 +292,42 @@ illegal_chars:
 
             contextMenu.addSeparator();
 
+            QAction openSystemFolderAction(tr("&Open folder..."));
+            contextMenu.addAction(&openSystemFolderAction);
+            connect(&openSystemFolderAction, &QAction::triggered, [indexAt] {
+                if (const auto configDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString(); !configDir.isEmpty()) {
+                    QDir dir(configDir);
+                    if (!dir.exists())
+                        dir.mkpath(".");
+                    
+                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
+                }
+            });
+
+            QAction openPrinterFolderAction(tr("Open &printer tray..."));
+            contextMenu.addAction(&openPrinterFolderAction);
+            connect(&openPrinterFolderAction, &QAction::triggered, [indexAt] {
+                if (const auto printerDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/printer/"); !printerDir.isEmpty()) {
+                    QDir dir(printerDir);
+                    if (!dir.exists())
+                        dir.mkpath(".");
+                    
+                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
+                }
+            });
+
+            QAction openScreenshotsFolderAction(tr("Open screenshots &folder..."));
+            contextMenu.addAction(&openScreenshotsFolderAction);
+            connect(&openScreenshotsFolderAction, &QAction::triggered, [indexAt] {
+                if (const auto screenshotsDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/screenshots/"); !screenshotsDir.isEmpty()) {
+                    QDir dir(screenshotsDir);
+                    if (!dir.exists())
+                        dir.mkpath(".");
+                    
+                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
+                }
+            });
+
             QAction showRawConfigFile(tr("Show &config file"));
             contextMenu.addAction(&showRawConfigFile);
             connect(&showRawConfigFile, &QAction::triggered, [this, indexAt] {
@@ -330,6 +335,14 @@ illegal_chars:
                     showTextFileContents(indexAt.data(Qt::DisplayRole).toString(), configFile);
                 }
             });
+
+            contextMenu.exec(ui->listView->viewport()->mapToGlobal(pos));
+        } else {
+            QMenu contextMenu(tr("Context Menu"), ui->listView);
+
+            QAction newMachineAction(tr("New machine..."));
+            contextMenu.addAction(&newMachineAction);
+            connect(&newMachineAction, &QAction::triggered, this, &VMManagerMain::newMachineWizard);
 
             contextMenu.exec(ui->listView->viewport()->mapToGlobal(pos));
         }
@@ -585,17 +598,17 @@ VMManagerMain::newMachineWizard()
 void
 VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QString &displayName, const QString &configFile)
 {
-    const auto newSytemDirectory = QDir(QDir::cleanPath(dir + "/" + name));
+    const auto newSystemDirectory = QDir(QDir::cleanPath(dir + "/" + name));
 
     // qt replaces `/` with native separators
-    const auto newSystemConfigFile = QFileInfo(newSytemDirectory.path() + "/" + "86box.cfg");
-    if (newSystemConfigFile.exists() || newSytemDirectory.exists()) {
+    const auto newSystemConfigFile = QFileInfo(newSystemDirectory.path() + "/" + "86box.cfg");
+    if (newSystemConfigFile.exists() || newSystemDirectory.exists()) {
         QMessageBox::critical(this, tr("Directory in use"), tr("The selected directory is already in use. Please select a different directory."));
         return;
     }
     // Create the directory
     const QDir qmkdir;
-    if (const bool mkdirResult = qmkdir.mkdir(newSytemDirectory.path()); !mkdirResult) {
+    if (const bool mkdirResult = qmkdir.mkdir(newSystemDirectory.path()); !mkdirResult) {
         QMessageBox::critical(this, tr("Create directory failed"), tr("Unable to create the directory for the new system"));
         return;
     }
@@ -616,24 +629,30 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
     const auto new_system = new VMManagerSystem(newSystemConfigFile.absoluteFilePath());
     new_system->launchSettings();
     // Handle this in a closure so we can capture the temporary new_system object
+    disconnect(new_system->process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), nullptr, nullptr);
     connect(new_system->process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             [=](const int exitCode, const QProcess::ExitStatus exitStatus) {
+                bool fail = false;
                 if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
                     qInfo().nospace().noquote() << "Abnormal program termination while creating new system: exit code " << exitCode << ", exit status " << exitStatus;
                     qInfo() << "Not adding system due to errors";
+                    QString errMsg = tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg(
+                                        (!displayName.isEmpty() ? displayName : name), QString::number(exitCode));
                     QMessageBox::critical(this, tr("Error adding system"),
-                                          tr("Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added.").arg(QString::number(exitCode), exitStatus));
-                    delete new_system;
-                    return;
+                                          QString("%1\n\n%2").arg(errMsg, tr("The system will not be added.")));
+                    fail = true;
                 }
                 // Create a new QFileInfo because the info from the old one may be cached
                 if (const auto fi = QFileInfo(new_system->config_file.absoluteFilePath()); !fi.exists()) {
                     // No config file which means the cancel button was pressed in the settings dialog
                     // Attempt to clean up the directory that was created
                     const QDir qrmdir;
-                    if (const bool result = qrmdir.rmdir(newSytemDirectory.path()); !result) {
+                    if (const bool result = qrmdir.rmdir(newSystemDirectory.path()); !result) {
                         qWarning() << "Error cleaning up the old directory for canceled operation. Continuing anyway.";
                     }
+                    fail = true;
+                }
+                if (fail) {
                     delete new_system;
                     return;
                 }
@@ -749,6 +768,20 @@ VMManagerMain::onPreferencesUpdated()
     if (oldRegexSearch != regexSearch) {
         ui->searchBar->clear();
     }
+}
+
+void
+VMManagerMain::onLanguageUpdated()
+{
+    vm_model->refreshConfigs();
+    /* Hack to work around details widgets not being re-translatable
+       without going through layers of abstraction */
+    ui->detailsArea->layout()->removeWidget(vm_details);
+    delete vm_details;
+    vm_details = new VMManagerDetails();
+    ui->detailsArea->layout()->addWidget(vm_details);
+    if (vm_model->rowCount(QModelIndex()) > 0)
+        vm_details->updateData(selected_sysconfig);
 }
 
 int

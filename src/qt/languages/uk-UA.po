@@ -28,10 +28,10 @@ msgid "&Pause"
 msgstr "&Пауза"
 
 msgid "Pause"
-msgstr ""
+msgstr "Пауза"
 
 msgid "Re&sume"
-msgstr ""
+msgstr "В&ідновити"
 
 msgid "E&xit"
 msgstr "&Вихід"
@@ -148,13 +148,13 @@ msgid "RGB &Color"
 msgstr "RGB &кольоровий"
 
 msgid "RGB (no brown)"
-msgstr ""
+msgstr "RGB (без коричневого)"
 
 msgid "&RGB Grayscale"
 msgstr "&RGB монохромний"
 
 msgid "Generic RGBI color monitor"
-msgstr ""
+msgstr "Стандартний кольоровий монітор RGBI"
 
 msgid "&Amber monitor"
 msgstr "&Бурштиновий відтінок"
@@ -193,7 +193,7 @@ msgid "&Settings..."
 msgstr "&Налаштування машини..."
 
 msgid "Settings..."
-msgstr ""
+msgstr "Налаштування машини..."
 
 msgid "&Update status bar icons"
 msgstr "&Обновлення значків рядка стану"
@@ -361,7 +361,7 @@ msgid "Configure"
 msgstr "Налаштування"
 
 msgid "CPU:"
-msgstr ""
+msgstr "ЦП:"
 
 msgid "CPU type:"
 msgstr "Тип ЦП:"
@@ -400,13 +400,13 @@ msgid "Dynamic Recompiler"
 msgstr "Динамічний рекомпілятор"
 
 msgid "CPU frame size"
-msgstr ""
+msgstr "Розмір кадру ЦП"
 
 msgid "Larger frames (less smooth)"
-msgstr ""
+msgstr "Великі кадри (менш плавні)"
 
 msgid "Smaller frames (smoother)"
-msgstr ""
+msgstr "Менші кадри (більш плавні)"
 
 msgid "Video:"
 msgstr "Відеокарта:"
@@ -424,25 +424,25 @@ msgid "XGA Graphics"
 msgstr "Прискорювач XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
-msgstr ""
+msgstr "IBM PS/55 Display Adapter Graphics"
 
 msgid "Keyboard:"
-msgstr ""
+msgstr "Клавіатура:"
 
 msgid "Keyboard"
-msgstr ""
+msgstr "Клавіатура"
 
 msgid "Mouse:"
 msgstr "Миша:"
 
 msgid "Mouse"
-msgstr ""
+msgstr "Миша"
 
 msgid "Joystick:"
 msgstr "Джойстик:"
 
 msgid "Joystick"
-msgstr ""
+msgstr "Джойстик"
 
 msgid "Joystick 1..."
 msgstr "Джойстик 1..."
@@ -475,7 +475,7 @@ msgid "MIDI In Device:"
 msgstr "MIDI In при-ій:"
 
 msgid "MIDI Out:"
-msgstr ""
+msgstr "MIDI Out:"
 
 msgid "Standalone MPU-401"
 msgstr "Окремий MPU-401"
@@ -517,7 +517,7 @@ msgid "LPT4 Device:"
 msgstr "Пристрій LPT4:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr ""
+msgstr "DMA ECP вбудованого LPT:"
 
 msgid "Serial port 1"
 msgstr "Послідов. порт COM1"
@@ -547,7 +547,7 @@ msgid "FD Controller:"
 msgstr "Контролер FD:"
 
 msgid "CD-ROM Controller:"
-msgstr ""
+msgstr "Контролер CD-ROM:"
 
 msgid "Tertiary IDE Controller"
 msgstr "Третинний IDE контролер"
@@ -556,7 +556,7 @@ msgid "Quaternary IDE Controller"
 msgstr "Четвертинний IDE контролер"
 
 msgid "Hard disk"
-msgstr ""
+msgstr "Жорсткий диск"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -580,7 +580,7 @@ msgid "Hard disks:"
 msgstr "Жорсткі диски:"
 
 msgid "Firmware Version"
-msgstr ""
+msgstr "Версія прошивки"
 
 msgid "&New..."
 msgstr "&Створити..."
@@ -640,13 +640,13 @@ msgid "MO drives:"
 msgstr "Магнітооптичні дисководи:"
 
 msgid "MO:"
-msgstr ""
+msgstr "Дисководи MO:"
 
 msgid "Removable disks:"
-msgstr ""
+msgstr "Знімні диски:"
 
 msgid "Removable disk drives:"
-msgstr ""
+msgstr "Дисководи знімних дисків:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -658,7 +658,7 @@ msgid "ISA Memory Expansion"
 msgstr "Карта розширення пам'яті (ISA)"
 
 msgid "ISA ROM Cards"
-msgstr ""
+msgstr "Карти ПЗУ ISA"
 
 msgid "Card 1:"
 msgstr "Карта 1:"
@@ -673,13 +673,13 @@ msgid "Card 4:"
 msgstr "Карта 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr ""
+msgstr "Стандартна плата ПЗУ ISA"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr ""
+msgstr "Стандартна плата на 2 ПЗУ ISA"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr ""
+msgstr "Стандартна плата на 4 ПЗУ ISA"
 
 msgid "ISABugger device"
 msgstr "Пристрій ISABugger"
@@ -703,16 +703,16 @@ msgid "Speed"
 msgstr "Швидкість"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr ""
+msgstr "Знімний диск %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr ""
+msgstr "&Знімний диск %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr ""
+msgstr "Образи знімних дисків"
 
 msgid "Image %1"
-msgstr ""
+msgstr "Образ %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box не зміг знайти жодного відповідного для використання файлу з ПЗУ.\n\nБудь ласка <a href=\"https://github.com/86Box/roms/releases/latest\">завантажте</a> набір ПЗУ і витягніть його в каталог \"roms\"."
@@ -772,13 +772,13 @@ msgid "Ports (COM & LPT)"
 msgstr "Порти (COM и LPT)"
 
 msgid "Ports"
-msgstr ""
+msgstr "Порти"
 
 msgid "Serial ports"
-msgstr ""
+msgstr "Послідовні порти"
 
 msgid "Parallel ports"
-msgstr ""
+msgstr "Паралельні порти"
 
 msgid "Storage controllers"
 msgstr "Контролери дисків"
@@ -787,13 +787,13 @@ msgid "Hard disks"
 msgstr "Жорсткі диски"
 
 msgid "Disks:"
-msgstr ""
+msgstr "Диски:"
 
 msgid "Floppy:"
-msgstr ""
+msgstr "Дисководи:"
 
 msgid "Controllers:"
-msgstr ""
+msgstr "Контролери:"
 
 msgid "Floppy & CD-ROM drives"
 msgstr "Гнучкі диски і CD-ROM"
@@ -805,7 +805,7 @@ msgid "Other peripherals"
 msgstr "Інша периферія"
 
 msgid "Other devices"
-msgstr ""
+msgstr "Інші пристрої"
 
 msgid "Click to capture mouse"
 msgstr "Клацніть мишею для захвату курсора"
@@ -874,7 +874,7 @@ msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
-msgstr ""
+msgstr "CH Flightstick Pro + CH Педалі"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -883,28 +883,28 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Система управління польотом Thrustmaster"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr ""
+msgstr "Thrustmaster FCS + Система управління кермом"
 
 msgid "2-button gamepad(s)"
-msgstr ""
+msgstr "4-кнопковий геймпад"
 
 msgid "2-button flight yoke"
-msgstr ""
+msgstr "2-кнопковий flight yoke"
 
 msgid "4-button gamepad"
-msgstr ""
+msgstr "4-кнопковий геймпад"
 
 msgid "4-button flight yoke"
-msgstr ""
+msgstr "4-кнопковий flight yoke"
 
 msgid "2-button flight yoke with throttle"
-msgstr ""
+msgstr "2-кнопковий flight yoke з дроселем"
 
 msgid "4-button flight yoke with throttle"
-msgstr ""
+msgstr "4-кнопковий flight yoke з дроселем"
 
 msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr ""
+msgstr "Кермо Win95 (3-осьове, 4-кнопкове)"
 
 msgid "None"
 msgstr "Ні"
@@ -952,13 +952,13 @@ msgid "Internal device"
 msgstr "Вбудований пристрій"
 
 msgid "&File"
-msgstr ""
+msgstr "&Файл"
 
 msgid "&New machine..."
-msgstr ""
+msgstr "&Нова машина..."
 
 msgid "&Check for updates..."
-msgstr ""
+msgstr "&Перевірити оновлення..."
 
 msgid "Exit"
 msgstr "Вихід"
@@ -1057,7 +1057,7 @@ msgid "Pause execution"
 msgstr "Призупинити виконання"
 
 msgid "Ctrl+Alt+Del"
-msgstr ""
+msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "Натиснути Ctrl+Alt+Del"
@@ -1069,274 +1069,271 @@ msgid "Hard reset"
 msgstr "Холодне перезавантаження"
 
 msgid "Force shutdown"
-msgstr ""
+msgstr "Примусове завершення роботи"
 
 msgid "Start"
-msgstr ""
+msgstr "Пуск"
 
 msgid "Not running"
-msgstr ""
+msgstr "Не працює"
 
 msgid "Running"
-msgstr ""
+msgstr "Працює"
 
 msgid "Paused"
-msgstr ""
+msgstr "Призупинено"
 
 msgid "Waiting"
-msgstr ""
+msgstr "Очікування"
 
 msgid "Powered Off"
-msgstr ""
+msgstr "Вимкнено"
 
 msgid "%n running"
-msgstr ""
+msgstr "%n працює"
 
 msgid "%n paused"
-msgstr ""
+msgstr "%n призупинено"
 
 msgid "%n waiting"
-msgstr ""
+msgstr "%n очікує"
 
 msgid "%1 total"
-msgstr ""
+msgstr "всього %1"
 
 msgid "VMs: %1"
-msgstr ""
+msgstr "Машин: %1"
 
 msgid "System Directory:"
-msgstr ""
+msgstr "Системна папка:"
 
 msgid "Choose directory"
-msgstr ""
+msgstr "Вибрати папку"
 
 msgid "Choose configuration file"
-msgstr ""
+msgstr "Вибрати файл конфігурації"
 
 msgid "86Box configuration files (86box.cfg)"
-msgstr ""
+msgstr "Файли конфігурації 86Box (86box.cfg)"
 
 msgid "Configuration read failed"
-msgstr ""
+msgstr "Збій під час читання конфігурації"
 
 msgid "Unable to open the selected configuration file for reading: %1"
-msgstr ""
+msgstr "Неможливо відкрити вибраний файл конфігурації для читання: %1"
 
 msgid "Use regular expressions in search box"
-msgstr ""
+msgstr "Використовувати регулярні вирази в полі пошуку"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr ""
+msgstr "%1 машина(и) наразі активна(і). Ви впевнені, що все одно хочете вийти з менеджера віртуальної машини?"
 
 msgid "Add new system wizard"
-msgstr ""
+msgstr "Майстер додавання нової системи"
 
 msgid "Introduction"
-msgstr ""
+msgstr "Вступ"
 
 msgid "This will help you add a new system to 86Box."
-msgstr ""
+msgstr "Це допоможе вам додати нову систему в 86Box."
 
 msgid "New configuration"
-msgstr ""
+msgstr "Нова конфігурація"
 
 msgid "Complete"
-msgstr ""
+msgstr "Завершено"
 
 msgid "The wizard will now launch the configuration for the new system."
-msgstr ""
+msgstr "Майстер тепер запустить конфігурацію для нової системи."
 
 msgid "Use existing configuration"
-msgstr ""
+msgstr "Використовувати існуючу конфігурацію"
 
 msgid "Type some notes here"
-msgstr ""
+msgstr "Введіть тут кілька нотаток"
 
 msgid "Paste the contents of the existing configuration file into the box below."
-msgstr ""
+msgstr "Вставте вміст існуючого файлу конфігурації в поле нижче."
 
 msgid "Load configuration from file"
-msgstr ""
+msgstr "Завантажити конфігурацію з файлу"
 
 msgid "System name"
-msgstr ""
+msgstr "Назва системи"
 
 msgid "System name:"
-msgstr ""
+msgstr "Назва системи:"
 
 msgid "System name cannot contain certain characters"
-msgstr ""
+msgstr "Назва системи не може містити певні символи"
 
 msgid "System name already exists"
-msgstr ""
+msgstr "Назва системи вже існує"
 
 msgid "Please enter a directory for the system"
-msgstr ""
+msgstr "Будь ласка, введіть папку для системи"
 
 msgid "Directory does not exist"
-msgstr ""
+msgstr "Папка не існує"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr ""
+msgstr "Нова папка для системи буде створена у вибраній папці вище"
 
 msgid "System location:"
-msgstr ""
+msgstr "Розташування системи:"
 
 msgid "System name and location"
-msgstr ""
+msgstr "Назва системи та розташування"
 
 msgid "Enter the name of the system and choose the location"
-msgstr ""
+msgstr "Введіть назву системи та виберіть розташування"
 
 msgid "Enter the name of the system"
-msgstr ""
+msgstr "Введіть назву системи"
 
 msgid "Please enter a system name"
-msgstr ""
+msgstr "Будь ласка, введіть назву системи"
 
 msgid "Display name (optional):"
-msgstr ""
+msgstr "Відображуване ім'я (необов'язково):"
 
 msgid "Display name:"
-msgstr ""
+msgstr "Відображуване ім'я:"
 
 msgid "Set display name"
-msgstr ""
+msgstr "Встановити відображуване ім'я"
 
 msgid "Enter the new display name (blank to reset)"
-msgstr ""
+msgstr "Введіть нове відображуване ім'я (порожнє, щоб скинути)"
 
 msgid "Change &display name..."
-msgstr ""
+msgstr "Змінити &відображуване ім'я..."
 
 msgid "Context Menu"
-msgstr ""
+msgstr "Контекстне меню"
 
 msgid "&Open folder..."
-msgstr ""
+msgstr "&Відкрити папку..."
 
 msgid "Open &printer tray..."
-msgstr ""
+msgstr "Відкрити папку &принтера..."
 
 msgid "Set &icon..."
-msgstr ""
+msgstr "Встановити &значок..."
 
 msgid "Select an icon"
-msgstr ""
+msgstr "Виберіть значок"
 
 msgid "C&lone..."
-msgstr ""
+msgstr "К&лонувати..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
-msgstr ""
+msgstr "Віртуальна машина \"%1\" (%2) буде клонована в:"
 
 msgid "Directory %1 already exists"
-msgstr ""
+msgstr "Папка %1 вже існує"
 
 msgid "You cannot use the following characters in the name: %1"
-msgstr ""
+msgstr "Ви не можете використовувати наступні символи в імені: %1"
 
 msgid "Clone"
-msgstr ""
+msgstr "Клонувати"
 
 msgid "Failed to create directory for cloned VM"
-msgstr ""
+msgstr "Не вдалося створити папку для клонованої віртуальної машини"
 
 msgid "Failed to clone VM."
-msgstr ""
+msgstr "Не вдалося клонувати віртуальну машину."
 
 msgid "Directory in use"
-msgstr ""
+msgstr "Папка використовується"
 
 msgid "The selected directory is already in use. Please select a different directory."
-msgstr ""
+msgstr "Вибрана папка вже використовується. Будь ласка, виберіть іншу папку."
 
 msgid "Create directory failed"
-msgstr ""
+msgstr "Не вдалося створити папку"
 
 msgid "Unable to create the directory for the new system"
-msgstr ""
+msgstr "Неможливо створити папку для нової системи"
 
 msgid "Configuration write failed"
-msgstr ""
+msgstr "Не вдалося записати файл конфігурації"
 
 msgid "Unable to open the configuration file at %1 for writing"
-msgstr ""
+msgstr "Неможливо відкрити файл конфігурації в %1 для запису"
 
 msgid "Error adding system"
-msgstr ""
-
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr ""
+msgstr "Помилка додавання системи"
 
 msgid "Remove directory failed"
-msgstr ""
+msgstr "Збій під час видалення папки"
 
 msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
-msgstr ""
+msgstr "Деякі файли в папці машини неможливо видалити. Будь ласка, видаліть їх вручну."
 
 msgid "Build"
-msgstr ""
+msgstr "Збірка"
 
 msgid "Version"
-msgstr ""
+msgstr "Версія"
 
 msgid "An update to 86Box is available: %1 %2"
-msgstr ""
+msgstr "Доступне оновлення для 86Box: %1 %2"
 
 msgid "An error has occurred while checking for updates: %1"
-msgstr ""
+msgstr "Під час перевірки оновлень сталася помилка: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
-msgstr ""
+msgstr "<b>Доступне оновлення для 86Box!</b>"
 
 msgid "Warning"
-msgstr ""
+msgstr "Увага"
 
 msgid "&Kill"
-msgstr ""
+msgstr "&Завершити процес"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr ""
+msgstr "Примусове завершення процесу віртуальної машини може призвести до втрати даних. Робіть це тільки в тому випадку, якщо процес 86Box завис.\n\nВи дійсно хочете примусово завершити процес віртуальної машини \"%1\"?"
 
 msgid "&Delete"
-msgstr ""
+msgstr "&Видалити"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr ""
+msgstr "Ви дійсно хочете видалити віртуальну машину \"%1\" і всі її файли? Цю дію не можна скасувати!"
 
 msgid "Show &config file"
-msgstr ""
+msgstr "Показати файл &конфігурації"
 
 msgid "No screenshot"
-msgstr ""
+msgstr "Немає скріншоту"
 
 msgid "Search"
-msgstr ""
+msgstr "Пошук"
 
 msgid "Searching for VMs..."
-msgstr ""
+msgstr "Пошук віртуальних машин..."
 
 msgid "Found %1"
-msgstr ""
+msgstr "Знайдено %1"
 
 msgid "System"
-msgstr ""
+msgstr "Система"
 
 msgid "Storage"
-msgstr ""
+msgstr "Диски"
 
 msgid "Disk %1: "
-msgstr ""
+msgstr "Диск %1: "
 
 msgid "No disks"
-msgstr ""
+msgstr "Немає дисків"
 
 msgid "Audio"
-msgstr ""
+msgstr "Аудіо"
 
 msgid "Audio:"
-msgstr ""
+msgstr "Аудіо:"
 
 msgid "ACPI shutdown"
 msgstr "Сигнал завершення ACPI"
@@ -1465,10 +1462,7 @@ msgid "Select the parent VHD"
 msgstr "Виберіть батьківський VHD"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr ""
-"Це може означати, що батьківський образ був змінений після того, як було створено диференційований образ.\n\nЦе також може статися, якщо файли зображення були переміщені або скопійовані, або через помилку в програмі, що створила цей диск.\n"
-" \n"
-"Ви хочете виправити тимчасові позначки?"
+msgstr "Це може означати, що батьківський образ був змінений після того, як було створено диференційований образ.\n\nЦе також може статися, якщо файли зображення були переміщені або скопійовані, або через помилку в програмі, що створила цей диск.\n\nВи хочете виправити тимчасові позначки?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Тимчасові мітки батьківського та дочірнього дисків не співпадають"
@@ -1681,7 +1675,7 @@ msgid "Null Driver"
 msgstr "Нульовий драйвер"
 
 msgid "NIC:"
-msgstr ""
+msgstr "NIC:"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
@@ -1753,7 +1747,7 @@ msgid "MiB"
 msgstr "МіБ"
 
 msgid "GiB"
-msgstr ""
+msgstr "GiB"
 
 msgid "Network Card #1"
 msgstr "Мережева карта 1"
@@ -1801,22 +1795,22 @@ msgid "Renderer &options..."
 msgstr "Параметри рендерингу..."
 
 msgid "PC/XT Keyboard"
-msgstr ""
+msgstr "Клавіатура PC/XT"
 
 msgid "AT Keyboard"
-msgstr ""
+msgstr "Клавіатура AT"
 
 msgid "AX Keyboard"
-msgstr ""
+msgstr "Клавіатура AX"
 
 msgid "PS/2 Keyboard"
-msgstr ""
+msgstr "Клавіатура PS/2"
 
 msgid "PS/55 Keyboard"
-msgstr ""
+msgstr "Клавіатура PS/55"
 
 msgid "Keys"
-msgstr ""
+msgstr "Клавіші"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Шинна миша Logitech/Microsoft"
@@ -1828,13 +1822,13 @@ msgid "Mouse Systems Serial Mouse"
 msgstr "Послідовна миша Mouse Systems"
 
 msgid "Mouse Systems Bus Mouse"
-msgstr ""
+msgstr "Шинна миша Mouse Systems"
 
 msgid "Microsoft Serial Mouse"
 msgstr "Послідовна миша Microsoft"
 
 msgid "Microsoft Serial BallPoint"
-msgstr ""
+msgstr "Послідовна миша Microsoft BallPoint"
 
 msgid "Logitech Serial Mouse"
 msgstr "Послідовна миша Logitech"
@@ -1843,13 +1837,13 @@ msgid "PS/2 Mouse"
 msgstr "Миша PS/2"
 
 msgid "PS/2 QuickPort Mouse"
-msgstr ""
+msgstr "Миша PS/2 QuickPort"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (послідовна)"
 
 msgid "Default Baud rate"
-msgstr ""
+msgstr "Швидкість передачі даних за замовчуванням"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Стандартний модем, сумісний зі стандартом Hayes"
@@ -1876,52 +1870,52 @@ msgid "MIDI Input Device"
 msgstr "Пристрій введення MIDI"
 
 msgid "BIOS file"
-msgstr ""
+msgstr "Файл BIOS"
 
 msgid "BIOS file (ROM #1)"
-msgstr ""
+msgstr "Файл BIOS (ПЗУ #1)"
 
 msgid "BIOS file (ROM #2)"
-msgstr ""
+msgstr "Файл BIOS (ПЗУ #2)"
 
 msgid "BIOS file (ROM #3)"
-msgstr ""
+msgstr "Файл BIOS (ПЗУ #3)"
 
 msgid "BIOS file (ROM #4)"
-msgstr ""
+msgstr "Файл BIOS (ПЗУ #4)"
 
 msgid "BIOS address"
 msgstr "Адреса BIOS"
 
 msgid "BIOS address (ROM #1)"
-msgstr ""
+msgstr "Адреса BIOS (ПЗУ #1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr ""
+msgstr "Адреса BIOS (ПЗУ #2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr ""
+msgstr "Адреса BIOS (ПЗУ #3)"
 
 msgid "BIOS address (ROM #4)"
-msgstr ""
+msgstr "Адреса BIOS (ПЗУ #4)"
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Увімкнути розширення BIOS Записи в ПЗУ"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr ""
+msgstr "Увімкнути розширення BIOS Записи в ПЗУ (ПЗУ #1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr ""
+msgstr "Увімкнути розширення BIOS Записи в ПЗУ (ПЗУ #2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr ""
+msgstr "Увімкнути розширення BIOS Записи в ПЗУ (ПЗУ #3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr ""
+msgstr "Увімкнути розширення BIOS Записи в ПЗУ (ПЗУ #4)"
 
 msgid "Linear framebuffer base"
-msgstr ""
+msgstr "Лінійний фреймбуфер"
 
 msgid "Address"
 msgstr "Адреса"
@@ -1930,25 +1924,25 @@ msgid "IRQ"
 msgstr "IRQ"
 
 msgid "Serial port IRQ"
-msgstr ""
+msgstr "IRQ послідовного порту"
 
 msgid "Parallel port IRQ"
-msgstr ""
+msgstr "IRQ паралельного порту"
 
 msgid "BIOS Revision"
 msgstr "Ревізія BIOS"
 
 msgid "BIOS Version"
-msgstr ""
+msgstr "Версія BIOS"
 
 msgid "BIOS Language"
-msgstr ""
+msgstr "Мова BIOS"
 
 msgid "IBM 5161 Expansion Unit"
-msgstr ""
+msgstr "Блок розширення IBM 5161"
 
 msgid "IBM Cassette Basic"
-msgstr ""
+msgstr "Касетний бейсік IBM"
 
 msgid "Translate 26 -> 17"
 msgstr "Перекладіть 26 -> 17"
@@ -1966,16 +1960,16 @@ msgid "BIOS size"
 msgstr "Розмір BIOS"
 
 msgid "BIOS size (ROM #1)"
-msgstr ""
+msgstr "Розмір BIOS (ПЗУ 1)"
 
 msgid "BIOS size (ROM #2)"
-msgstr ""
+msgstr "Розмір BIOS (ПЗУ 2)"
 
 msgid "BIOS size (ROM #3)"
-msgstr ""
+msgstr "Розмір BIOS (ПЗУ 3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr ""
+msgstr "Розмір BIOS (ПЗУ 4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Зіставлення C0000-C7FFF як UMB"
@@ -2053,7 +2047,7 @@ msgid "Interpolation Method"
 msgstr "Метод інтерполяції"
 
 msgid "Dynamic Sample Loading"
-msgstr ""
+msgstr "Динамічне завантаження семплів"
 
 msgid "Reverb Output Gain"
 msgstr "Посилення виходу реверберації"
@@ -2143,10 +2137,10 @@ msgid "Enable Game port"
 msgstr "Увімкнути ігровий порт"
 
 msgid "SID Model"
-msgstr ""
+msgstr "Модель SID"
 
 msgid "SID Filter Strength"
-msgstr ""
+msgstr "Сила фільтра SID"
 
 msgid "Surround module"
 msgstr "Модуль об'ємного звучання"
@@ -2161,10 +2155,10 @@ msgid "SB Address"
 msgstr "Адреса SB"
 
 msgid "Adlib Address"
-msgstr ""
+msgstr "Адреса AdLib"
 
 msgid "Use EEPROM setting"
-msgstr ""
+msgstr "Використовувати налаштування EEPROM"
 
 msgid "WSS IRQ"
 msgstr "IRQ WSS"
@@ -2251,13 +2245,13 @@ msgid "Blend"
 msgstr "Суміш"
 
 msgid "Font"
-msgstr ""
+msgstr "Шрифт"
 
 msgid "Bilinear filtering"
 msgstr "Білінійна фільтрація"
 
 msgid "Video chroma-keying"
-msgstr ""
+msgstr "Відео хромакеїнг"
 
 msgid "Dithering"
 msgstr "Дизеринг"
@@ -2302,31 +2296,31 @@ msgid "EMS mode"
 msgstr "Режим EMS"
 
 msgid "EMS Address"
-msgstr ""
+msgstr "Адреса EMS"
 
 msgid "EMS 1 Address"
-msgstr ""
+msgstr "Адреса EMS 1"
 
 msgid "EMS 2 Address"
-msgstr ""
+msgstr "Адреса EMS 2"
 
 msgid "EMS Memory Size"
-msgstr ""
+msgstr "Розмір пам'яті EMS"
 
 msgid "EMS 1 Memory Size"
-msgstr ""
+msgstr "Розмір пам'яті EMS 1"
 
 msgid "EMS 2 Memory Size"
-msgstr ""
+msgstr "Розмір пам'яті EMS 2"
 
 msgid "Enable EMS"
-msgstr ""
+msgstr "Увімкнути EMS"
 
 msgid "Enable EMS 1"
-msgstr ""
+msgstr "Увімкнути EMS 1"
 
 msgid "Enable EMS 2"
-msgstr ""
+msgstr "Увімкнути EMS 2"
 
 msgid "Address for > 2 MB"
 msgstr "Адреса для > 2 МБ"
@@ -2386,7 +2380,7 @@ msgid "Five + Wheel"
 msgstr "П'ять + колесо"
 
 msgid "Five + 2 Wheels"
-msgstr ""
+msgstr "П'ять + 2 колеса"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 послідовна / SMT3(R)V"
@@ -2452,7 +2446,7 @@ msgid "Composite"
 msgstr "Композитний"
 
 msgid "True color"
-msgstr ""
+msgstr "True Color"
 
 msgid "Old"
 msgstr "Старий"
@@ -2488,13 +2482,13 @@ msgid "Linear interpolation"
 msgstr "Лінійна інтерполяція"
 
 msgid "Has secondary 8x8 character set"
-msgstr ""
+msgstr "Вторинний набір символів 8x8"
 
 msgid "Has Quadcolor II daughter board"
-msgstr ""
+msgstr "Дочірня плата Quadcolor II"
 
 msgid "Alternate monochrome contrast"
-msgstr ""
+msgstr "Альтернативний монохромний контраст"
 
 msgid "128 KB"
 msgstr "128 КБ"
@@ -2530,7 +2524,7 @@ msgid "Gray"
 msgstr "Сірий"
 
 msgid "Grayscale"
-msgstr ""
+msgstr "Монохромний"
 
 msgid "Color"
 msgstr "Кольоровий"
@@ -2548,10 +2542,10 @@ msgid "Bochs latest"
 msgstr "Bochs останній"
 
 msgid "Apply overscan deltas"
-msgstr ""
+msgstr "Застосувати дельти вильотів розгортки"
 
 msgid "Mono Interlaced"
-msgstr ""
+msgstr "Монохромний інтерлейсний"
 
 msgid "Mono Non-Interlaced"
 msgstr "Монохромний неінтерлейсний"
@@ -2566,7 +2560,7 @@ msgid "3Dfx Voodoo Graphics"
 msgstr "Прискорювач 3Dfx Voodoo"
 
 msgid "3Dfx Voodoo 2"
-msgstr ""
+msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 TMU)"
@@ -2638,7 +2632,7 @@ msgid "Named Pipe (Server)"
 msgstr "Іменований пайп (сервер)"
 
 msgid "Named Pipe (Client)"
-msgstr ""
+msgstr "Іменований пайп (клієнт)"
 
 msgid "Host Serial Passthrough"
 msgstr "Пропуск послідовного порту хоста"
@@ -2656,28 +2650,28 @@ msgid "High performance impact"
 msgstr "Високий вплив на продуктивність"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] Диск оперативної пам'яті (макс. швидкість)"
+msgstr "[Стандартний] Диск оперативної пам'яті (макс. швидкість)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr ""
+msgstr "[Стандартний] 1989 (3500 RPM)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr ""
+msgstr "[Стандартний] 1992 (3600 RPM)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr ""
+msgstr "[Стандартний] 1994 (4500 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr ""
+msgstr "[Стандартний] 1996 (5400 RPM)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr ""
+msgstr "[Стандартний] 1997 (5400 RPM)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr ""
+msgstr "[Стандартний] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr ""
+msgstr "[Стандартний] 2000 (7200 RPM)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Клон IBM 8514/A (ISA)"
@@ -2704,238 +2698,244 @@ msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for t
 msgstr "Шрифти TrueType у каталозі \"roms/printer/fonts\" потрібні для емуляції загального матричного принтера Generic ESC/P."
 
 msgid "Inhibit multimedia keys"
-msgstr ""
+msgstr "Перехоплювати мультимедійні клавіші"
 
 msgid "Ask for confirmation before saving settings"
-msgstr ""
+msgstr "Запитувати підтвердження перед збереженням налаштувань"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr ""
+msgstr "Запитувати підтвердження перед холодним перезавантаженням"
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
+msgstr "Запитувати підтвердження перед виходом"
 
 msgid "Options"
-msgstr ""
+msgstr "Параметри"
 
 msgid "Model"
-msgstr ""
+msgstr "Модель"
 
 msgid "Model:"
-msgstr ""
+msgstr "Модель:"
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr ""
+msgstr "Не вдалося ініціалізувати рендеринг Vulkan."
 
 msgid "GLSL Error"
-msgstr ""
+msgstr "Помилка GLSL"
 
 msgid "Could not load shader: %1"
-msgstr ""
+msgstr "Не вдалося завантажити шейдер: %1"
 
 msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr ""
+msgstr "Потрібна OpenGL версії 3.0 або вище. Поточна версія GLSL %1.%2"
 
 msgid "Could not load texture: %1"
-msgstr ""
+msgstr "Не вдалося завантажити текстуру: %1"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr ""
+msgstr "Не вдалося скомпілювати шейдер:\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr ""
+msgstr "Не вдалося скомпонувати шейдер:\n\n%1"
 
 msgid "Shader Manager"
-msgstr ""
+msgstr "Управління шейдерами"
 
 msgid "Shader Configuration"
-msgstr ""
+msgstr "Конфігурація шейдера"
 
 msgid "Add"
-msgstr ""
+msgstr "Додати"
 
 msgid "Move up"
-msgstr ""
+msgstr "Вгору"
 
 msgid "Move down"
-msgstr ""
+msgstr "Вниз"
 
 msgid "Could not load file %1"
-msgstr ""
+msgstr "Не вдалося завантажити файл %1"
 
 msgid "Key Bindings:"
-msgstr ""
+msgstr "Прив'язки клавіш:"
 
 msgid "Action"
-msgstr ""
+msgstr "Дія"
 
 msgid "Keybind"
-msgstr ""
+msgstr "Прив'язка клавіш"
 
 msgid "Clear binding"
-msgstr ""
+msgstr "Очистити прив'язку"
 
 msgid "Bind"
-msgstr ""
+msgstr "Прив'язка"
 
 msgid "Bind Key"
-msgstr ""
+msgstr "Прив'язати клавішу"
 
 msgid "Enter key combo:"
-msgstr ""
+msgstr "Введіть комбінацію клавіш:"
 
 msgid "Bind conflict"
-msgstr ""
+msgstr "Конфлікт прив'язки"
 
 msgid "This key combo is already in use."
-msgstr ""
+msgstr "Ця комбінація клавіш вже використовується."
 
 msgid "Send Control+Alt+Del"
-msgstr ""
+msgstr "Надіслати Control+Alt+Del"
 
 msgid "Send Control+Alt+Escape"
-msgstr ""
+msgstr "Надіслати Control+Alt+Escape"
 
 msgid "Toggle fullscreen"
-msgstr ""
+msgstr "Переключити повноекранний режим"
 
 msgid "Screenshot"
-msgstr ""
+msgstr "Скріншот"
 
 msgid "Release mouse pointer"
-msgstr ""
+msgstr "Відпустити вказівник миші"
 
 msgid "Toggle pause"
-msgstr ""
+msgstr "Переключити паузу"
 
 msgid "Toggle mute"
-msgstr ""
+msgstr "Переключити беззвучний режим"
 
 msgid "Text files"
-msgstr ""
+msgstr "Текстові файли"
 
 msgid "ROM files"
-msgstr ""
+msgstr "Файли ПЗУ"
 
 msgid "SoundFont files"
-msgstr ""
+msgstr "Файли SoundFont"
 
 msgid "Local Switch"
-msgstr ""
+msgstr "Локальний комутатор"
 
 msgid "Remote Switch"
-msgstr ""
+msgstr "Віддалений комутатор"
 
 msgid "Switch:"
-msgstr ""
+msgstr "Номер комутатора:"
 
 msgid "Hub Mode"
-msgstr ""
+msgstr "Режим концентратора"
 
 msgid "Hostname:"
-msgstr ""
+msgstr "Ім'я хоста:"
 
 msgid "ISA RTC"
-msgstr ""
+msgstr "ISA RTC"
 
 msgid "ISA RAM"
-msgstr ""
+msgstr "ISA ОЗУ"
 
 msgid "ISA ROM"
-msgstr ""
+msgstr "ISA ПЗУ"
 
 msgid "&Wipe NVRAM"
-msgstr ""
+msgstr "&Стерти NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr ""
+msgstr "Це видалить всі файли NVRAM (і пов'язані) віртуальної машини, розташованої в підпапці «nvr». Вам доведеться знову налаштувати BIOS (і, можливо, інші пристрої всередині віртуальної машини), якщо це необхідно. Ви впевнені, що хочете стерти весь вміст NVRAM віртуальної машини \"%1\"?"
 
 msgid "Success"
-msgstr ""
+msgstr "Успішно"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr ""
+msgstr "Успішно стерто вміст NVRAM віртуальної машини \"%1\""
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr ""
+msgstr "Сталася помилка при спробі стерти вміст NVRAM віртуальної машини \"%1\""
 
 msgid "%1 VM Manager"
-msgstr ""
+msgstr "Менеджер віртуальних машин %1"
 
 msgid "%n disk(s)"
-msgstr ""
+msgstr "%n диск(ів)"
 
 msgid "Unknown Status"
-msgstr ""
+msgstr "Невідомий статус"
 
 msgid "No Machines Found!"
-msgstr ""
+msgstr "Машини не знайдені!"
 
 msgid "Check for updates on startup"
-msgstr ""
+msgstr "Перевіряти оновлення під час запуску"
 
 msgid "Unable to determine release information"
-msgstr ""
+msgstr "Неможливо визначити інформацію про реліз"
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
-msgstr ""
+msgstr "Сталася помилка під час перевірки оновлень:\n\n%1\n\nБудь ласка, спробуйте ще раз пізніше."
 
 msgid "Update check complete"
-msgstr ""
+msgstr "Перевірка оновлень завершена"
 
 msgid "stable"
-msgstr ""
+msgstr "стабільну"
 
 msgid "beta"
-msgstr ""
+msgstr "бета"
 
 msgid "You are running the latest %1 version of 86Box: %2"
-msgstr ""
+msgstr "Ви використовуєте останню %1 версію 86Box: %2"
 
 msgid "version"
-msgstr ""
+msgstr "версія"
 
 msgid "build"
-msgstr ""
+msgstr "збірка"
 
 msgid "You are currently running version <b>%1</b>."
-msgstr ""
+msgstr "Ви зараз використовуєте версію <b>%1</b>."
 
 msgid "<b>Version %1</b> is now available."
-msgstr ""
+msgstr "Доступна <b>версія %1</b>."
 
 msgid "You are currently running build <b>%1</b>."
-msgstr ""
+msgstr "Ви зараз використовуєте збірку <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
-msgstr ""
+msgstr "Доступна <b>збірка %1</b>."
 
 msgid "Would you like to visit the download page?"
-msgstr ""
+msgstr "Відкрити сторінку завантаження?"
 
 msgid "Visit download page"
-msgstr ""
+msgstr "Відкрити сторінку завантаження"
 
 msgid "Update check"
-msgstr ""
+msgstr "Перевірка оновлень"
 
 msgid "Checking for updates..."
-msgstr ""
+msgstr "Перевірка оновлень..."
 
 msgid "86Box Update"
-msgstr ""
+msgstr "Оновлення 86Box"
 
 msgid "Release notes:"
-msgstr ""
+msgstr "Примітки до релізу:"
+
+msgid "%1 Hz"
+msgstr "%1 Гц"
 
 msgid "Virtual machine crash"
-msgstr ""
+msgstr "Збій віртуальної машини"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr ""
+msgstr "Процес віртуальної машини \"%1\" несподівано завершився з кодом завершення %2."
 
 msgid "The system will not be added."
-msgstr ""
+msgstr "Система не буде додана."
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Оновлювати мишу при кожному кадрі ЦП"
 
 #~ msgid "HD Controller:"
 #~ msgstr "Контролер HD:"

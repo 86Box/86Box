@@ -456,7 +456,7 @@ machine_at_pb286_init(const machine_t *model)
     int ret;
 
     ret = bios_load_interleaved("roms/machines/pb286/LB_V332P.BIN",
-                                "roms/machines/pb286/LB_V332P.BIN",
+                                "roms/machines/pb286/HB_V332P.BIN",
                                 0x000f0000, 65536, 0);
 
     if (bios_only || !ret)

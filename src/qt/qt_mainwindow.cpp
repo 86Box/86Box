@@ -191,6 +191,16 @@ MainWindow::MainWindow(QWidget *parent)
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
 
+    auto hertz_label = new QLabel;
+    QTimer* frameRateTimer = new QTimer(this);
+    frameRateTimer->setInterval(1000);
+    frameRateTimer->setSingleShot(false);
+    connect(frameRateTimer, &QTimer::timeout, [this, hertz_label] {
+        hertz_label->setText(tr("%1 Hz").arg(QString::number(monitors[0].mon_actualrenderedframes.load()) + (monitors[0].mon_interlace ? "i" : "")));
+    });
+    statusBar()->addPermanentWidget(hertz_label);
+    frameRateTimer->start(1000);
+
     num_icon = QIcon(":/settings/qt/icons/num_lock_on.ico");
     num_icon_off = QIcon(":/settings/qt/icons/num_lock_off.ico");
     scroll_icon = QIcon(":/settings/qt/icons/scroll_lock_on.ico");
@@ -219,16 +229,6 @@ MainWindow::MainWindow(QWidget *parent)
     kana_label->setPixmap(kana_icon_off.pixmap(QSize(16, 16)));
     kana_label->setToolTip(QShortcut::tr("Kana Lock"));
     statusBar()->addPermanentWidget(kana_label);
-
-    auto hertz_label = new QLabel;
-    QTimer* frameRateTimer = new QTimer(this);
-    frameRateTimer->setInterval(1000);
-    frameRateTimer->setSingleShot(false);
-    connect(frameRateTimer, &QTimer::timeout, [this, hertz_label] {
-        hertz_label->setText(tr("%1 Hz").arg(monitors[0].mon_actualrenderedframes.load()));
-    });
-    statusBar()->addPermanentWidget(hertz_label);
-    frameRateTimer->start(1000);
 
     QTimer* ledKeyboardTimer = new QTimer(this);
     ledKeyboardTimer->setTimerType(Qt::CoarseTimer);
@@ -677,6 +677,9 @@ MainWindow::MainWindow(QWidget *parent)
     }
     if (do_auto_pause > 0) {
         ui->actionAuto_pause->setChecked(true);
+    }
+    if (force_constant_mouse > 0) {
+        ui->actionUpdate_mouse_every_CPU_frame->setChecked(true);
     }
 
 #ifdef Q_OS_MACOS
@@ -1982,6 +1985,16 @@ MainWindow::on_actionAuto_pause_triggered()
 {
     do_auto_pause ^= 1;
     ui->actionAuto_pause->setChecked(do_auto_pause > 0 ? true : false);
+    config_save();
+}
+
+void
+MainWindow::on_actionUpdate_mouse_every_CPU_frame_triggered()
+{
+    force_constant_mouse ^= 1;
+    ui->actionUpdate_mouse_every_CPU_frame->setChecked(force_constant_mouse > 0 ? true : false);
+    mouse_update_sample_rate();
+    config_save();
 }
 
 void

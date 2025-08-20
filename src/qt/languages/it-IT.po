@@ -400,13 +400,13 @@ msgid "Dynamic Recompiler"
 msgstr "Ricompilatore dinamico"
 
 msgid "CPU frame size"
-msgstr "Dimensione fotogrammi CPU"
+msgstr "Dimensione blocchi CPU"
 
 msgid "Larger frames (less smooth)"
-msgstr "Fotogrammi più grandi (meno fluido)"
+msgstr "Blocchi più grandi (meno fluido)"
 
 msgid "Smaller frames (smoother)"
-msgstr "Fotogrammi più piccoli (più fluido)"
+msgstr "Blocchi più piccoli (più fluido)"
 
 msgid "Video:"
 msgstr "Video:"
@@ -478,7 +478,7 @@ msgid "MIDI Out:"
 msgstr "Uscita MIDI:"
 
 msgid "Standalone MPU-401"
-msgstr "MPU-401 autonomo"
+msgstr "Scheda dedicata MPU-401"
 
 msgid "Use FLOAT32 sound"
 msgstr "Usa suono FLOAT32"
@@ -517,7 +517,7 @@ msgid "LPT4 Device:"
 msgstr "Dispositivo LPT4:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr ""
+msgstr "DMA LPT ECP interna"
 
 msgid "Serial port 1"
 msgstr "Porta seriale 1"
@@ -1096,13 +1096,13 @@ msgid "%n paused"
 msgstr "%n in pausa"
 
 msgid "%n waiting"
-msgstr "%n In attesa"
+msgstr "%n in attesa"
 
 msgid "%1 total"
 msgstr "%1 totale"
 
 msgid "VMs: %1"
-msgstr ""
+msgstr "Macchine virtuali: %1"
 
 msgid "System Directory:"
 msgstr "Directory Sistema:"
@@ -1141,7 +1141,7 @@ msgid "New configuration"
 msgstr "Nuova configurazione"
 
 msgid "Complete"
-msgstr "Completato"
+msgstr "Completare"
 
 msgid "The wizard will now launch the configuration for the new system."
 msgstr "La procedura guidata avvierà ora la configurazione del nuovo sistema."
@@ -1266,9 +1266,6 @@ msgstr "Impossibile aprire il file di configurazione in %1 per la scrittura"
 msgid "Error adding system"
 msgstr "Errore durante l'aggiunta del sistema"
 
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr "Il programma è stato terminato in modo anomalo durante la creazione del nuovo sistema: codice di uscita %1, stato di uscita %2.\n\nIl sistema non verrà aggiunto."
-
 msgid "Remove directory failed"
 msgstr "Rimozione directory non riuscita"
 
@@ -1285,7 +1282,7 @@ msgid "An update to 86Box is available: %1 %2"
 msgstr "È disponibile un aggiornamento per 86Box: %1 %2"
 
 msgid "An error has occurred while checking for updates: %1"
-msgstr ""
+msgstr "Si è verificato un errore durante la ricerca degli aggiornamenti: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
 msgstr "<b>È disponibile un aggiornamento per 86Box!</b>"
@@ -2449,7 +2446,7 @@ msgid "Composite"
 msgstr "Composito"
 
 msgid "True color"
-msgstr ""
+msgstr "Milioni di colori"
 
 msgid "Old"
 msgstr "Vecchio"
@@ -2869,7 +2866,7 @@ msgid "No Machines Found!"
 msgstr "Nessuna macchina trovata!"
 
 msgid "Check for updates on startup"
-msgstr "Controlla gli aggiornamenti all'avvio"
+msgstr "Verifica la disponibilità degli aggiornamenti all'avvio"
 
 msgid "Unable to determine release information"
 msgstr "Impossibile determinare le informazioni sulla versione"
@@ -2878,13 +2875,13 @@ msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later.
 msgstr "Si è verificato un errore durante la verifica degli aggiornamenti:\n\n%1\n\nRiprova più tardi."
 
 msgid "Update check complete"
-msgstr "Controllo aggiornamenti completato"
+msgstr "Ricerca degli aggiornamenti completata"
 
 msgid "stable"
-msgstr ""
+msgstr "stabile"
 
 msgid "beta"
-msgstr ""
+msgstr "beta"
 
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr "Stai utilizzando l'ultima versione %1 di 86Box: %2"
@@ -2914,10 +2911,10 @@ msgid "Visit download page"
 msgstr "Visita la pagina"
 
 msgid "Update check"
-msgstr "Controllo aggiornamenti"
+msgstr "Verifica disponibilità degli aggiornamenti"
 
 msgid "Checking for updates..."
-msgstr "Controllo degli aggiornamenti..."
+msgstr "Ricerca degli aggiornamenti..."
 
 msgid "86Box Update"
 msgstr "Aggiornamento di 86Box"
@@ -2925,14 +2922,20 @@ msgstr "Aggiornamento di 86Box"
 msgid "Release notes:"
 msgstr "Note di rilascio:"
 
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
 msgid "Virtual machine crash"
-msgstr "Fallimento della macchina virtuale"
+msgstr "Arresto anomalo della macchina virtuale"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
 msgstr "Il processo della macchina virtuale \"%1\" è terminato inaspettatamente con il codice di uscita %2."
 
 msgid "The system will not be added."
-msgstr "Il sistema non sarà aggiunto."
+msgstr "Il sistema non verrà aggiunto."
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Aggiorano stato mouse ad ogni blocco CPU"
 
 #~ msgid "HD Controller:"
 #~ msgstr "Controller HD:"

@@ -1266,9 +1266,6 @@ msgstr "Невозможно открыть файл конфигурации в
 msgid "Error adding system"
 msgstr "Ошибка добавления системы"
 
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr "Аномальное прекращение программы при создании новой системы: выходной код %1, состояние выхода %2.\n\nСистема не будет добавлена."
-
 msgid "Remove directory failed"
 msgstr "Сбой при удалении папки"
 
@@ -1918,7 +1915,7 @@ msgid "Enable BIOS extension ROM Writes (ROM #4)"
 msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ #4)"
 
 msgid "Linear framebuffer base"
-msgstr "Линейная база кадрового буфера"
+msgstr "Линейный фреймбуфер"
 
 msgid "Address"
 msgstr "Адрес"
@@ -2449,7 +2446,7 @@ msgid "Composite"
 msgstr "Композитное видео"
 
 msgid "True color"
-msgstr ""
+msgstr "True Color"
 
 msgid "Old"
 msgstr "Старый"
@@ -2936,6 +2933,9 @@ msgstr "Процесс виртуальной машины \"%1\" неожида
 
 msgid "The system will not be added."
 msgstr "Система не будет добавлена."
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Обновлять мышь при каждом кадре ЦП"
 
 #~ msgid "HD Controller:"
 #~ msgstr "Контроллер HD:"

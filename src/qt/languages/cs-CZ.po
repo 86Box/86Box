@@ -646,7 +646,7 @@ msgid "Removable disks:"
 msgstr "Vyměnitelné disky:"
 
 msgid "Removable disk drives:"
-msgstr "Mechaniky vyměnitelných disků"
+msgstr "Mechaniky vyměnitelných disků:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -787,7 +787,7 @@ msgid "Hard disks"
 msgstr "Pevné disky"
 
 msgid "Disks:"
-msgstr "Disky"
+msgstr "Disky:"
 
 msgid "Floppy:"
 msgstr "Disketové jednotky:"
@@ -874,7 +874,7 @@ msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flighstick Pro + CH Pedals"
+msgstr "CH Flightstick Pro + CH Pedals"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -1102,7 +1102,7 @@ msgid "%1 total"
 msgstr "%1 celkem"
 
 msgid "VMs: %1"
-msgstr ""
+msgstr "Virtuálních počítačů: %1"
 
 msgid "System Directory:"
 msgstr "Systémový adresář:"
@@ -1265,9 +1265,6 @@ msgstr "Nebylo možné otevřít konfigurační soubor %1 pro zápis"
 
 msgid "Error adding system"
 msgstr "Chyba při přidávání systému"
-
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr "Abnormální ukončení programu při vytváření nového systému: kód ukončení %1, stav ukončení %2.\n\nSystém nebude přidán."
 
 msgid "Remove directory failed"
 msgstr "Odstranění adresáře se nezdařilo"
@@ -1678,7 +1675,7 @@ msgid "Null Driver"
 msgstr "Nulový ovladač"
 
 msgid "NIC:"
-msgstr "Síťový adaptér"
+msgstr "Síťový adaptér:"
 
 msgid "NIC %1 (%2) %3"
 msgstr "Síťový adaptér %1 (%2) %3"
@@ -2449,7 +2446,7 @@ msgid "Composite"
 msgstr "Kompozitní"
 
 msgid "True color"
-msgstr "True Color (24 bitů)"
+msgstr "True Color"
 
 msgid "Old"
 msgstr "Starý"
@@ -2554,7 +2551,7 @@ msgid "Mono Non-Interlaced"
 msgstr "Monochromatický bez prokládání"
 
 msgid "Color Interlaced"
-msgstr "Barevný prokládaný"
+msgstr "Barevný s prokládaním"
 
 msgid "Color Non-Interlaced"
 msgstr "Barevný bez prokládání"
@@ -2710,7 +2707,7 @@ msgid "Ask for confirmation before hard resetting"
 msgstr "Vyžadovat potvrzení před resetováním"
 
 msgid "Ask for confirmation before quitting"
-msgstr "Vyžadost potvrzení před ukončením"
+msgstr "Vyžadovat potvrzení před ukončením"
 
 msgid "Options"
 msgstr "Možnosti"
@@ -2866,7 +2863,7 @@ msgid "Unknown Status"
 msgstr "Neznámý stav"
 
 msgid "No Machines Found!"
-msgstr ""
+msgstr "Žádné počítače nalezeny!"
 
 msgid "Check for updates on startup"
 msgstr "Zkontrolovat aktualizace při spuštění"
@@ -2936,3 +2933,6 @@ msgstr "Systém nebude přidán."
 
 msgid "%1 Hz"
 msgstr "%1 Hz"
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Aktualizovat myš při každém rámce CPU"

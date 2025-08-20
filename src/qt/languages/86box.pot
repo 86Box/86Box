@@ -1266,9 +1266,6 @@ msgstr ""
 msgid "Error adding system"
 msgstr ""
 
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr ""
-
 msgid "Remove directory failed"
 msgstr ""
 
@@ -2935,4 +2932,7 @@ msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exi
 msgstr ""
 
 msgid "The system will not be added."
+msgstr ""
+
+msgid "&Update mouse every CPU frame"
 msgstr ""

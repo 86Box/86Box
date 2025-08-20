@@ -58,7 +58,13 @@ VMManagerAddMachine(QWidget *parent) : QWizard(parent)
 #endif
 
     // Wizard wants to resize based on image. This keeps the size
-    setFixedSize(QSize(550, size().height()));
+#ifdef Q_OS_WINDOWS
+    setMinimumSize(QSize(550, size().height()));
+    setMaximumSize(QSize(550, size().height()));
+    setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, true);
+#else
+    setMinimumSize(size());
+#endif
     setOption(HaveHelpButton, false);
     // setPixmap(LogoPixmap, QPixmap(":/settings/qt/icons/86Box-gray.ico"));
 
@@ -398,9 +404,11 @@ ConclusionPage::initializePage()
 #ifdef CUSTOM_SYSTEM_LOCATION
     systemLocation->setText(nativePath);
 #endif
-    if (!displayNameDisplay.isEmpty())
+    if (!displayNameDisplay.isEmpty()) {
+        displayNameLabel->setVisible(true);
+        displayName->setVisible(true);
         displayName->setText(displayNameDisplay);
-    else {
+    } else {
         displayNameLabel->setVisible(false);
         displayName->setVisible(false);
     }

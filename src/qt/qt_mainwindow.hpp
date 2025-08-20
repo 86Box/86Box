@@ -81,6 +81,7 @@ private slots:
     void on_actionSettings_triggered();
     void on_actionExit_triggered();
     void on_actionAuto_pause_triggered();
+    void on_actionUpdate_mouse_every_CPU_frame_triggered();
     void on_actionPause_triggered();
     void on_actionCtrl_Alt_Del_triggered();
     void on_actionCtrl_Alt_Esc_triggered();

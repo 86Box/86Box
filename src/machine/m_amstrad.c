@@ -66,6 +66,7 @@
 #include <86box/lpt.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/hdc.h>
 #include <86box/sound.h>
 #include <86box/snd_speaker.h>
 #include <86box/video.h>
@@ -2966,6 +2967,7 @@ machine_amstrad_init(const machine_t *model, int type)
                 device_context(&vid_pc3086_device);
                 ams->language = device_get_config_int("language");
                 device_context_restore();
+                device_add(&xta_wdxt150_pc3086_device);
                 device_add(&paradise_pvga1a_pc3086_device);
                 break;
 
