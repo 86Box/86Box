@@ -2937,6 +2937,24 @@ msgstr "Система не будет добавлена."
 msgid "&Update mouse every CPU frame"
 msgstr "&Обновлять мышь при каждом кадре ЦП"
 
+msgid "Hue"
+msgstr "Тон"
+
+msgid "Saturation"
+msgstr "Насыщенность"
+
+msgid "Contrast"
+msgstr "Контраст"
+
+msgid "Brightness"
+msgstr "Яркость"
+
+msgid "Sharpness"
+msgstr "Резкость"
+
+msgid "CGA composite settings..."
+msgstr "Настройки композитного видео CGA..."
+
 #~ msgid "HD Controller:"
 #~ msgstr "Контроллер HD:"
 
@@ -2948,3 +2966,4 @@ msgstr "&Обновлять мышь при каждом кадре ЦП"
 
 #~ msgid "ZIP images"
 #~ msgstr "Образы ZIP"
+

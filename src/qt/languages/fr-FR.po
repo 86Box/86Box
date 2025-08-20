@@ -70,7 +70,7 @@ msgid "F&orce 4:3 display ratio"
 msgstr "F&orcer le ratio 4:3"
 
 msgid "&Window scale factor"
-msgstr "&Echelle de facteur"
+msgstr "Facteur d'&Echelle"
 
 msgid "&0.5x"
 msgstr "&0.5x"
@@ -292,7 +292,7 @@ msgid "&75 fps"
 msgstr "&75 images par seconde"
 
 msgid "&VSync"
-msgstr "Synchronisation &verticale"
+msgstr "Synchronisation &Verticale"
 
 msgid "&Select shader..."
 msgstr "Sé&lectionnez le shader..."
@@ -403,10 +403,10 @@ msgid "CPU frame size"
 msgstr "Taille du bloc de processeur"
 
 msgid "Larger frames (less smooth)"
-msgstr "Blocs plus grands (moins fluid)"
+msgstr "Blocs plus grands (moins fluide)"
 
 msgid "Smaller frames (smoother)"
-msgstr "Blocs plus petits (plus fluid)"
+msgstr "Blocs plus petits (plus fluide)"
 
 msgid "Video:"
 msgstr "Vidéo:"
@@ -1027,7 +1027,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Vous chargez une configuration non prise en charge"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Le filtre du type du processeur basé par rapport à la machine sélectionnée est désactivé pour cette machine émulée.\n\nCela permet de sélectionner un processeur qui est de base incompatible avec la machine sélectionné. Cependant, il pourrait y avoir des incompatibilités avec le BIOS de la machine ou autres logiciels.\n\nL'activation de cette configuration non officiellement prise en charge implique que tout rapport de bogue peut être fermé étant considéré comme invalide."
+msgstr "Le filtre du type du processeur basé par rapport à la machine sélectionnée est désactivé pour cette machine émulée.\n\nCela permet de sélectionner un processeur qui est de base incompatible avec la machine sélectionnée. Cependant, il pourrait y avoir des incompatibilités avec le BIOS de la machine ou autres logiciels.\n\nL'activation de cette configuration non officiellement prise en charge implique que tout rapport de bogue peut être fermé étant considéré comme invalide."
 
 msgid "Continue"
 msgstr "Continuer"
@@ -1075,10 +1075,10 @@ msgid "Start"
 msgstr "Démarrer"
 
 msgid "Not running"
-msgstr "Ne fonctionne pas"
+msgstr "Inactive"
 
 msgid "Running"
-msgstr "Fonctionne"
+msgstr "Active"
 
 msgid "Paused"
 msgstr "En pause"
@@ -1087,10 +1087,10 @@ msgid "Waiting"
 msgstr "En attente"
 
 msgid "Powered Off"
-msgstr "Éteint"
+msgstr "Éteinte"
 
 msgid "%n running"
-msgstr "%n fonctionne"
+msgstr "%n démarrée"
 
 msgid "%n paused"
 msgstr "%n en pause"
@@ -1255,7 +1255,7 @@ msgid "Create directory failed"
 msgstr "Échec de la création du répertoire"
 
 msgid "Unable to create the directory for the new system"
-msgstr "Impossible de créer le répertoire pour le nouveau système."
+msgstr "Impossible de créer le répertoire pour le nouveau système"
 
 msgid "Configuration write failed"
 msgstr "Échec de l'écriture de la configuration"
@@ -1291,7 +1291,7 @@ msgid "Warning"
 msgstr "Avertissement"
 
 msgid "&Kill"
-msgstr "&Résilier de force"
+msgstr "Fo&rcer Extinction"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
 msgstr "La fermeture forcée d'une machine virtuelle peut entraîner une perte de données. Ne procédez ainsi que si le processus 86Box est bloqué.\n\nVoulez-vous vraiment fermer la machine virtuelle \"%1\" ?"
@@ -1810,7 +1810,7 @@ msgid "PS/55 Keyboard"
 msgstr "Clavier PS/55"
 
 msgid "Keys"
-msgstr "Clés"
+msgstr "Touches"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Souris bus Logitech/Microsoft"
@@ -1942,7 +1942,7 @@ msgid "IBM 5161 Expansion Unit"
 msgstr "Unité d'extension IBM 5161"
 
 msgid "IBM Cassette Basic"
-msgstr "BASIC pour cassette IBM"
+msgstr "BASIC Cassette IBM"
 
 msgid "Translate 26 -> 17"
 msgstr "Traduire 26 -> 17"
@@ -2101,7 +2101,7 @@ msgid "Phonebook File"
 msgstr "Fichier d'annuaire"
 
 msgid "Telnet emulation"
-msgstr "Émulation de Telnet"
+msgstr "Émulation Telnet"
 
 msgid "RAM Address"
 msgstr "Adresse RAM"
@@ -2692,7 +2692,7 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Extension mémoire générique PC/AT"
 
 msgid "Unable to find Dot-Matrix fonts"
-msgstr "Impossible de trouver les polices matricielles."
+msgstr "Impossible de trouver les polices matricielles"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "Les polices TrueType dans le répertoire \"roms/printer/fonts\" sont nécessaires à l'émulation de l'imprimante générique ESC/P matricielle."
@@ -2773,16 +2773,16 @@ msgid "Bind"
 msgstr "Lier"
 
 msgid "Bind Key"
-msgstr "Lier le clé"
+msgstr "Lier touche"
 
 msgid "Enter key combo:"
-msgstr "Entrez la combinaison de clés:"
+msgstr "Entrez la combinaison de touches:"
 
 msgid "Bind conflict"
 msgstr "Conflit de raccourci"
 
 msgid "This key combo is already in use."
-msgstr "Cette combinaison de clés est déjà utilisée."
+msgstr "Cette combinaison de touches est déjà utilisée"
 
 msgid "Send Control+Alt+Del"
 msgstr "Envoyer Ctrl+Alt+Suppr"
@@ -2935,7 +2935,25 @@ msgid "The system will not be added."
 msgstr "Le système ne sera pas ajouté."
 
 msgid "&Update mouse every CPU frame"
-msgstr "&Mettre à jour le statut du souris en qualquier bloc de processeur"
+msgstr "&Mettre à jour le statut souris à chaque frame CPU"
+
+msgid "Hue"
+msgstr "Teinte"
+
+msgid "Saturation"
+msgstr "Saturation"
+
+msgid "Contrast"
+msgstr "Contraste"
+
+msgid "Brightness"
+msgstr "Luminosité"
+
+msgid "Sharpness"
+msgstr "Netteté"
+
+msgid "CGA composite settings..."
+msgstr "Réglages du mode composite CGA..."
 
 #~ msgid "HD Controller:"
 #~ msgstr "Contrôleur HD:"

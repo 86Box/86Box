@@ -2937,6 +2937,24 @@ msgstr "Система не буде додана."
 msgid "&Update mouse every CPU frame"
 msgstr "&Оновлювати мишу при кожному кадрі ЦП"
 
+msgid "Hue"
+msgstr "Відтінок"
+
+msgid "Saturation"
+msgstr "Насичення"
+
+msgid "Contrast"
+msgstr "Контраст"
+
+msgid "Brightness"
+msgstr "Яскравість"
+
+msgid "Sharpness"
+msgstr "Гострота"
+
+msgid "CGA composite settings..."
+msgstr "Налаштування композитного відео CGA..."
+
 #~ msgid "HD Controller:"
 #~ msgstr "Контролер HD:"
 

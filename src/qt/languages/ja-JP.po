@@ -2937,6 +2937,24 @@ msgstr "システムは追加されません。"
 msgid "&Update mouse every CPU frame"
 msgstr "マウスをCPUフレームごとに更新(&U)"
 
+msgid "Hue"
+msgstr "色相"
+
+msgid "Saturation"
+msgstr "飽和"
+
+msgid "Contrast"
+msgstr "対比"
+
+msgid "Brightness"
+msgstr "明るさ"
+
+msgid "Sharpness"
+msgstr "シャープネス"
+
+msgid "CGA composite settings..."
+msgstr "CGA複合モードの設定..."
+
 #~ msgid "HD Controller:"
 #~ msgstr "HDDコントローラー:"
 

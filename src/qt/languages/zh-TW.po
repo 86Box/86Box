@@ -2937,6 +2937,24 @@ msgstr ""
 msgid "&Update mouse every CPU frame"
 msgstr ""
 
+msgid "Hue"
+msgstr "色調"
+
+msgid "Saturation"
+msgstr "飽和度"
+
+msgid "Contrast"
+msgstr "對比"
+
+msgid "Brightness"
+msgstr "亮度"
+
+msgid "Sharpness"
+msgstr "銳利度"
+
+msgid "CGA composite settings..."
+msgstr "CGA 複合模式的設定..."
+
 #~ msgid "HD Controller:"
 #~ msgstr "硬碟控制器:"
 

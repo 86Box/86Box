@@ -2937,6 +2937,24 @@ msgstr ""
 msgid "&Update mouse every CPU frame"
 msgstr ""
 
+msgid "Hue"
+msgstr "Renk tonu"
+
+msgid "Saturation"
+msgstr "Doygunluk"
+
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgid "Brightness"
+msgstr "Parlaklık"
+
+msgid "Sharpness"
+msgstr "Keskinlik"
+
+msgid "CGA composite settings..."
+msgstr "CGA kompozit modunun ayarları..."
+
 #~ msgid "HD Controller:"
 #~ msgstr "Hard Disk Denetleyicisi:"
 

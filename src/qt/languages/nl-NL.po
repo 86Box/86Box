@@ -2937,6 +2937,24 @@ msgstr "Het systeem wordt niet toegevoegd."
 msgid "&Update mouse every CPU frame"
 msgstr "&Muis bijwerken bij elk CPU-frame"
 
+msgid "Hue"
+msgstr "Kleurtoon"
+
+msgid "Saturation"
+msgstr "Verzadiging"
+
+msgid "Contrast"
+msgstr "Contrast"
+
+msgid "Brightness"
+msgstr "Helderheid"
+
+msgid "Sharpness"
+msgstr "Scherpte"
+
+msgid "CGA composite settings..."
+msgstr "Instellingen van de CGA-compositemodus..."
+
 #~ msgid "HD Controller:"
 #~ msgstr "HD-controller:"
 

@@ -788,6 +788,8 @@ cga_standalone_init(UNUSED(const device_t *info))
             break;
     }
 
+    monitors[monitor_index_global].mon_composite = !!cga->composite;
+
     return cga;
 }
 

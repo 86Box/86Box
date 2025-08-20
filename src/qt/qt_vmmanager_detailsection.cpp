@@ -143,7 +143,6 @@ VMManagerDetailSection::addSection(const QString &name, const QString &value, Di
 {
     const auto new_section = DetailSection { name, value};
     sections.push_back(new_section);
-    setSections();
 }
 
 void
@@ -154,8 +153,50 @@ VMManagerDetailSection::setupMainLayout()
     mainLayout = new QVBoxLayout;
 }
 void
-VMManagerDetailSection::clearContentsSetupGrid()
+VMManagerDetailSection::setSections()
 {
+    int row = 0;
+
+    for (const auto& section : sections) {
+        QStringList sectionsToAdd = section.value.split(sectionSeparator);
+        QLabel *labelKey = nullptr;
+
+        for (const auto& line : sectionsToAdd) {
+            if (line.isEmpty()) {
+                // Don't bother adding entries if the values are blank
+                continue;
+            }
+
+            const auto labelValue = new QLabel();
+            labelValue->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+            labelValue->setTextInteractionFlags(labelValue->textInteractionFlags() | Qt::TextSelectableByMouse);
+            labelValue->setText(line);
+            frameGridLayout->addWidget(labelValue, row, 1, Qt::AlignLeft);
+
+            if (!labelKey) {
+                labelKey = new QLabel();
+                labelKey->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+                labelKey->setTextInteractionFlags(labelValue->textInteractionFlags());
+                labelKey->setText(QCoreApplication::translate("", QString(section.name + ":").toUtf8().data()));
+                frameGridLayout->addWidget(labelKey, row, 0, Qt::AlignLeft);
+            }
+
+            const auto hSpacer = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
+            frameGridLayout->addItem(hSpacer, row, 2);
+            row++;
+        }
+    }
+
+    collapseButton->setContent(ui->detailFrame);
+    if (sections.size())
+        setVisible(true);
+}
+void
+VMManagerDetailSection::clear()
+{
+    sections.clear();
+    setVisible(false);
+
     // Clear everything out
     if(frameGridLayout) {
         while(frameGridLayout->count()) {
@@ -168,75 +209,9 @@ VMManagerDetailSection::clearContentsSetupGrid()
 
     delete frameGridLayout;
     frameGridLayout = new QGridLayout();
-    qint32 *left = nullptr, *top = nullptr, *right = nullptr, *bottom = nullptr;
-    frameGridLayout->getContentsMargins(left, top, right, bottom);
     frameGridLayout->setContentsMargins(getMargins(MarginSection::DisplayGrid));
     ui->detailFrame->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     ui->detailFrame->setLayout(frameGridLayout);
-}
-void
-VMManagerDetailSection::setSections()
-{
-    clearContentsSetupGrid();
-    int row = 0;
-
-
-    for ( const auto& section : sections) {
-        // if the string contains the separator (defined elsewhere) then split and
-        // add each entry on a new line. Otherwise, just add the one.
-        QStringList sectionsToAdd;
-        if(section.value.contains(sectionSeparator)) {
-            sectionsToAdd = section.value.split(sectionSeparator);
-        } else {
-            sectionsToAdd.push_back(section.value);
-        }
-        bool keyAdded = false;
-        for(const auto&line : sectionsToAdd) {
-            if(line.isEmpty()) {
-                // Don't bother adding entries if the values are blank
-                continue;
-            }
-            const auto labelKey = new QLabel();
-            labelKey->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-            const auto labelValue = new QLabel();
-            labelKey->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
-            labelValue->setTextInteractionFlags(labelValue->textInteractionFlags() | Qt::TextSelectableByMouse);
-            labelKey->setTextInteractionFlags(labelValue->textInteractionFlags() | Qt::TextSelectableByMouse);
-
-            // Reduce the text size for the label
-            // First, get the existing font
-            auto smaller_font = labelValue->font();
-            // Get a smaller size
-            // Not sure if I like the smaller size, back to regular for now
-            // auto smaller_size = 0.85 * smaller_font.pointSize();
-            const auto smaller_size = 1 * smaller_font.pointSize();
-            // Set the font to the smaller size
-            smaller_font.setPointSizeF(smaller_size);
-            // Assign that new, smaller font to the label
-            labelKey->setFont(smaller_font);
-            labelValue->setFont(smaller_font);
-
-            labelKey->setText(QCoreApplication::translate("", QString(section.name + ":").toUtf8().data()));
-            labelValue->setText(line);
-            if(!keyAdded) {
-                frameGridLayout->addWidget(labelKey, row, 0, Qt::AlignLeft);
-                keyAdded = true;
-            }
-            frameGridLayout->addWidget(labelValue, row, 1, Qt::AlignLeft);
-            const auto hSpacer = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
-            frameGridLayout->addItem(hSpacer, row, 2);
-            row++;
-        }
-    }
-    collapseButton->setContent(ui->detailFrame);
-    if (sections.size())
-        setVisible(true);
-}
-void
-VMManagerDetailSection::clear()
-{
-    sections.clear();
-    setVisible(false);
 }
 
 // QT for Linux and Windows doesn't have the same default margins as QT on MacOS.

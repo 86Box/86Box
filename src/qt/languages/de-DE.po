@@ -2937,6 +2937,24 @@ msgstr "Das System wird nicht hinzugefügt werden."
 msgid "&Update mouse every CPU frame"
 msgstr "&Maus bei jedem CPU-Frame aktualisieren"
 
+msgid "Hue"
+msgstr "Farbton"
+
+msgid "Saturation"
+msgstr "Sättigung"
+
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgid "Brightness"
+msgstr "Helligkeit"
+
+msgid "Sharpness"
+msgstr "Schärfe"
+
+msgid "CGA composite settings..."
+msgstr "Optionen des CGA-Composite-Modus..."
+
 #~ msgid "HD Controller:"
 #~ msgstr "Festplatten-Controller:"
 

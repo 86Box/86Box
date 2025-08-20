@@ -34,6 +34,15 @@ VMManagerListViewDelegate::VMManagerListViewDelegate(QObject *parent)
     : QStyledItemDelegate(parent),
     m_ptr(new VMManagerListViewDelegateStyle)
 {
+    default_icon = QIcon(":/settings/qt/icons/86Box-gray.ico");
+    stop_icon = QApplication::style()->standardIcon(QStyle::SP_MediaStop);
+    running_icon = QIcon(":/menuicons/qt/icons/run.ico");
+    stopped_icon = QIcon(":/menuicons/qt/icons/acpi_shutdown.ico");
+    paused_icon = QIcon(":/menuicons/qt/icons/pause.ico");
+    unknown_icon = QApplication::style()->standardIcon(QStyle::SP_MessageBoxQuestion);
+
+    highlight_color = QColor("#616161");
+    bg_color = QColor("#272727");
 }
 
 VMManagerListViewDelegate::~VMManagerListViewDelegate()
@@ -56,34 +65,33 @@ void VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewI
                                               -m_ptr->margins.bottom()));
 
     // The status icon represents the current state of the vm. Initially set to a default state.
-    QIcon status_icon = QApplication::style()->standardIcon(QStyle::SP_MediaStop);
     auto process_variant = index.data(VMManagerModel::Roles::ProcessStatus);
     auto process_status = process_variant.value<VMManagerSystem::ProcessStatus>();
     // The main icon, configurable. Falls back to default if it cannot be loaded.
-    auto customIcom = index.data(VMManagerModel::Roles::Icon).toString();
-    opt.icon = QIcon(":/settings/qt/icons/86Box-gray.ico");
-    if(!customIcom.isEmpty()) {
-        if (const auto customPixmap = QPixmap(customIcom); !customPixmap.isNull()) {
+    auto customIcon = index.data(VMManagerModel::Roles::Icon).toString();
+    opt.icon = default_icon;
+    if (!customIcon.isEmpty()) {
+        const auto customPixmap = QPixmap(customIcon);
+        if (!customPixmap.isNull())
             opt.icon = customPixmap;
-        }
     }
-    // opt.icon = QIcon(":/settings/qt/icons/86Box-gray.ico");
 
     // Set the status icon based on the process status
+    QIcon status_icon;
     switch(process_status) {
         case VMManagerSystem::ProcessStatus::Running:
-            status_icon = QIcon(":/menuicons/qt/icons/run.ico");
+            status_icon = running_icon;
             break;
         case VMManagerSystem::ProcessStatus::Stopped:
-            status_icon = QIcon(":/menuicons/qt/icons/acpi_shutdown.ico");
+            status_icon = stopped_icon;
             break;
         case VMManagerSystem::ProcessStatus::PausedWaiting:
         case VMManagerSystem::ProcessStatus::RunningWaiting:
         case VMManagerSystem::ProcessStatus::Paused:
-            status_icon = QIcon(":/menuicons/qt/icons/pause.ico");
+            status_icon = paused_icon;
             break;
         default:
-            status_icon = QApplication::style()->standardIcon(QStyle::SP_MessageBoxQuestion);
+            status_icon = unknown_icon;
     }
 
 
@@ -105,13 +113,13 @@ void VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewI
         // When selected, only draw the highlighted part until the horizontal separator
         int offset = 2;
         auto highlightRect = rect.adjusted(0, 0, 0, -offset);
-        painter->fillRect(highlightRect, windows_light_mode ? palette.highlight().color() : QColor("#616161"));
+        painter->fillRect(highlightRect, windows_light_mode ? palette.highlight().color() : highlight_color);
         // Then fill the remainder with the normal color
         auto regularRect = rect.adjusted(0, rect.height()-offset, 0, 0);
-        painter->fillRect(regularRect, windows_light_mode ? palette.light().color() : QColor("#272727"));
+        painter->fillRect(regularRect, windows_light_mode ? palette.light().color() : bg_color);
     } else {
         // Otherwise just draw the background color as usual
-        painter->fillRect(rect, windows_light_mode ? palette.light().color() : QColor("#272727"));
+        painter->fillRect(rect, windows_light_mode ? palette.light().color() : bg_color);
     }
 
     // Draw bottom line. Last line gets a different color

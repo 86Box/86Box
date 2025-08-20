@@ -2937,6 +2937,24 @@ msgstr ""
 msgid "&Update mouse every CPU frame"
 msgstr ""
 
+msgid "Hue"
+msgstr "Färgton"
+
+msgid "Saturation"
+msgstr "Mättnad"
+
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgid "Brightness"
+msgstr "Ljusstyrka"
+
+msgid "Sharpness"
+msgstr "Skärpa"
+
+msgid "CGA composite settings..."
+msgstr "Inställningar för CGA-kompositläget..."
+
 #~ msgid "HD Controller:"
 #~ msgstr "Styrenhet för hårddisk:"
 

@@ -278,6 +278,7 @@ typedef struct ibm8514_t {
     int      _8514on;
     int      _8514crt;
     PALETTE  _8514pal;
+    uint8_t  ven_clock;
 
     latch8514_t latch;
 

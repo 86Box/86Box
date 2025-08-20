@@ -2937,6 +2937,24 @@ msgstr "Hệ thống sẽ không được thêm."
 msgid "&Update mouse every CPU frame"
 msgstr "&Cập nhật chuột mỗi cỡ khung CPU"
 
+msgid "Hue"
+msgstr "Màu sắc"
+
+msgid "Saturation"
+msgstr "Độ bão hòa"
+
+msgid "Contrast"
+msgstr "Sự tương phản"
+
+msgid "Brightness"
+msgstr "Độ sáng"
+
+msgid "Sharpness"
+msgstr "Độ sắc nét"
+
+msgid "CGA composite settings..."
+msgstr "Cài đặt chế độ tổng hợp CGA..."
+
 #~ msgid "HD Controller:"
 #~ msgstr "Bộ điều khiển ổ cứng:"
 
