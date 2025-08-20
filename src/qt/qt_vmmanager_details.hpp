@@ -68,6 +68,9 @@ private:
     QToolButton *configureButton;
     QToolButton *cadButton;
 
+    QIcon pauseIcon;
+    QIcon runIcon;
+
     void updateConfig(VMManagerSystem *passed_sysconfig);
     void updateScreenshots(VMManagerSystem *passed_sysconfig);
     static QWidget* createHorizontalLine(int leftSpacing = 25, int rightSpacing = 25);

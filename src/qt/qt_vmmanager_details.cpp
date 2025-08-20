@@ -115,9 +115,12 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     }
     ui->ssNavTBHolder->setStyleSheet(toolButtonStyleSheet);
 
+    pauseIcon = QIcon(":/menuicons/qt/icons/pause.ico");
+    runIcon = QIcon(":/menuicons/qt/icons/run.ico");
+
     // Experimenting
     startPauseButton = new QToolButton();
-    startPauseButton->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
+    startPauseButton->setIcon(runIcon);
     startPauseButton->setAutoRaise(true);
     startPauseButton->setEnabled(false);
     startPauseButton->setToolTip(tr("Start"));
@@ -192,10 +195,10 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
     bool running = sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running ||
         sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::RunningWaiting;
     if(running) {
-        startPauseButton->setIcon(QIcon(":/menuicons/qt/icons/pause.ico"));
+        startPauseButton->setIcon(pauseIcon);
         connect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::pauseButtonPressed);
     } else {
-        startPauseButton->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
+        startPauseButton->setIcon(runIcon);
         connect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::startButtonPressed);
     }
     startPauseButton->setEnabled(true);
@@ -341,10 +344,10 @@ VMManagerDetails::updateProcessStatus() {
     cadButton->setEnabled(running);
     if(running) {
         if(sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running) {
-            startPauseButton->setIcon(QIcon(":/menuicons/qt/icons/pause.ico"));
+            startPauseButton->setIcon(pauseIcon);
             startPauseButton->setToolTip(tr("Pause"));
         } else {
-            startPauseButton->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
+            startPauseButton->setIcon(runIcon);
             startPauseButton->setToolTip(tr("Continue"));
         }
 
@@ -352,7 +355,7 @@ VMManagerDetails::updateProcessStatus() {
         disconnect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::startButtonPressed);
         connect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::pauseButtonPressed);
     } else {
-        startPauseButton->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
+        startPauseButton->setIcon(runIcon);
         disconnect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::pauseButtonPressed);
         disconnect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::startButtonPressed);
         connect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::startButtonPressed);
