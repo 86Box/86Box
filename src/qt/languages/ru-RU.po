@@ -2965,4 +2965,4 @@ msgid "Sharpness"
 msgstr "Резкость"
 
 msgid "CGA composite settings..."
-msgstr "Настройки композита CGA..."
+msgstr "Настройки композитного видео CGA..."
