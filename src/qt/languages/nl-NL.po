@@ -2937,20 +2937,8 @@ msgstr "Het systeem wordt niet toegevoegd."
 msgid "&Update mouse every CPU frame"
 msgstr "&Muis bijwerken bij elk CPU-frame"
 
-#~ msgid "HD Controller:"
-#~ msgstr "HD-controller:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP-schijven:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "ZIP-images"
-
 msgid "Hue"
-msgstr "Hue"
+msgstr "Kleurtoon"
 
 msgid "Saturation"
 msgstr "Verzadiging"
@@ -2965,4 +2953,16 @@ msgid "Sharpness"
 msgstr "Scherpte"
 
 msgid "CGA composite settings..."
-msgstr "CGA-composietinstellingen..."
+msgstr "Instellingen van de CGA-compositemodus..."
+
+#~ msgid "HD Controller:"
+#~ msgstr "HD-controller:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIP-schijven:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "ZIP-images"

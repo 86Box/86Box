@@ -2937,18 +2937,6 @@ msgstr "システムは追加されません。"
 msgid "&Update mouse every CPU frame"
 msgstr "マウスをCPUフレームごとに更新(&U)"
 
-#~ msgid "HD Controller:"
-#~ msgstr "HDDコントローラー:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIPドライブ:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "ZIPイメージ"
-
 msgid "Hue"
 msgstr "色相"
 
@@ -2965,4 +2953,16 @@ msgid "Sharpness"
 msgstr "シャープネス"
 
 msgid "CGA composite settings..."
-msgstr "CGA コンポジット設定..."
+msgstr "CGA複合モードの設定..."
+
+#~ msgid "HD Controller:"
+#~ msgstr "HDDコントローラー:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIPドライブ:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "ZIPイメージ"

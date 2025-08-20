@@ -2950,7 +2950,7 @@ msgid "Brightness"
 msgstr "Jas"
 
 msgid "Sharpness"
-msgstr "Ostrý"
+msgstr "Ostrota"
 
 msgid "CGA composite settings..."
-msgstr "Kompozitní nastavení CGA..."
+msgstr "Nastavení kompozitního režimu CGA..."

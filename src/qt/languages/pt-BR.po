@@ -2953,4 +2953,4 @@ msgid "Sharpness"
 msgstr "Nitidez"
 
 msgid "CGA composite settings..."
-msgstr "Configurações compostas CGA..."
+msgstr "Configurações do modo composto CGA..."

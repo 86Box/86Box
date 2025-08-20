@@ -2937,18 +2937,6 @@ msgstr "Система не буде додана."
 msgid "&Update mouse every CPU frame"
 msgstr "&Оновлювати мишу при кожному кадрі ЦП"
 
-#~ msgid "HD Controller:"
-#~ msgstr "Контролер HD:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP дисководи:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "Образи ZIP"
-
 msgid "Hue"
 msgstr "Відтінок"
 
@@ -2965,4 +2953,16 @@ msgid "Sharpness"
 msgstr "Гострота"
 
 msgid "CGA composite settings..."
-msgstr "Комбіновані налаштування CGA..."
+msgstr "Налаштування композитного відео CGA..."
+
+#~ msgid "HD Controller:"
+#~ msgstr "Контролер HD:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIP дисководи:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "Образи ZIP"

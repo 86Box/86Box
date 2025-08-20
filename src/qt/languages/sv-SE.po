@@ -2937,20 +2937,8 @@ msgstr ""
 msgid "&Update mouse every CPU frame"
 msgstr ""
 
-#~ msgid "HD Controller:"
-#~ msgstr "Styrenhet för hårddisk:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "Zip-enheter:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "Zip-avbildningar"
-
 msgid "Hue"
-msgstr "Hue"
+msgstr "Färgton"
 
 msgid "Saturation"
 msgstr "Mättnad"
@@ -2965,4 +2953,16 @@ msgid "Sharpness"
 msgstr "Skärpa"
 
 msgid "CGA composite settings..."
-msgstr "CGA-kompositinställningar..."
+msgstr "Inställningar för CGA-kompositläget..."
+
+#~ msgid "HD Controller:"
+#~ msgstr "Styrenhet för hårddisk:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "Zip-enheter:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "Zip-avbildningar"

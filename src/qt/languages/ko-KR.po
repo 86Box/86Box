@@ -2937,18 +2937,6 @@ msgstr ""
 msgid "&Update mouse every CPU frame"
 msgstr ""
 
-#~ msgid "HD Controller:"
-#~ msgstr "HD 컨트롤러:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP 드라이브:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "ZIP 이미지"
-
 msgid "Hue"
 msgstr "색조"
 
@@ -2965,4 +2953,16 @@ msgid "Sharpness"
 msgstr "선명도"
 
 msgid "CGA composite settings..."
-msgstr "CGA 복합 설정..."
+msgstr "CGA 복합 모드의 설정..."
+
+#~ msgid "HD Controller:"
+#~ msgstr "HD 컨트롤러:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIP 드라이브:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "ZIP 이미지"

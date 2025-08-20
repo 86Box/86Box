@@ -2953,4 +2953,4 @@ msgid "Sharpness"
 msgstr "Ostrość"
 
 msgid "CGA composite settings..."
-msgstr "Ustawienia kompozytowe CGA..."
+msgstr "Ustawienia trybu kompozytowego CGA..."

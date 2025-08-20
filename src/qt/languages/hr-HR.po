@@ -2937,6 +2937,24 @@ msgstr "Sistem neće biti dodan."
 msgid "&Update mouse every CPU frame"
 msgstr "&Ažuriraj status miša kod skavog bloka procesora"
 
+msgid "Hue"
+msgstr "Boja"
+
+msgid "Saturation"
+msgstr "Zasićenost"
+
+msgid "Contrast"
+msgstr "Konstrast"
+
+msgid "Brightness"
+msgstr "Svjetlina"
+
+msgid "Sharpness"
+msgstr "Oštrina"
+
+msgid "CGA composite settings..."
+msgstr "Opcije kompozitnog načina CGA..."
+
 #~ msgid "HD Controller:"
 #~ msgstr "Kontroler tvrdog diska:"
 
@@ -2949,20 +2967,3 @@ msgstr "&Ažuriraj status miša kod skavog bloka procesora"
 #~ msgid "ZIP images"
 #~ msgstr "ZIP slike"
 
-msgid "Hue"
-msgstr "Hue"
-
-msgid "Saturation"
-msgstr "Telítettség"
-
-msgid "Contrast"
-msgstr "Kontraszt"
-
-msgid "Brightness"
-msgstr "Fényerő"
-
-msgid "Sharpness"
-msgstr "Élesség"
-
-msgid "CGA composite settings..."
-msgstr "CGA összetett beállítások..."

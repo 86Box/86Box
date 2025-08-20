@@ -2937,20 +2937,8 @@ msgstr ""
 msgid "&Update mouse every CPU frame"
 msgstr ""
 
-#~ msgid "HD Controller:"
-#~ msgstr "Hard Disk Denetleyicisi:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP sürücüleri:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "ZIP imajları"
-
 msgid "Hue"
-msgstr "Hue"
+msgstr "Renk tonu"
 
 msgid "Saturation"
 msgstr "Doygunluk"
@@ -2965,4 +2953,16 @@ msgid "Sharpness"
 msgstr "Keskinlik"
 
 msgid "CGA composite settings..."
-msgstr "CGA bileşik ayarları..."
+msgstr "CGA kompozit modunun ayarları..."
+
+#~ msgid "HD Controller:"
+#~ msgstr "Hard Disk Denetleyicisi:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIP sürücüleri:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "ZIP imajları"

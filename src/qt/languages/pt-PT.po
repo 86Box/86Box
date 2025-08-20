@@ -2212,7 +2212,7 @@ msgid "Display type"
 msgstr "Tipo de ecrã"
 
 msgid "Composite type"
-msgstr "Tipo composto"
+msgstr "Tipo compósito"
 
 msgid "True color"
 msgstr "Cor verdadeira"
@@ -2965,4 +2965,4 @@ msgid "Sharpness"
 msgstr "Nitidez"
 
 msgid "CGA composite settings..."
-msgstr "Configurações compostas CGA..."
+msgstr "Definições do modo compósito CGA..."

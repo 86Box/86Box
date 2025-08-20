@@ -2937,20 +2937,8 @@ msgstr "Hệ thống sẽ không được thêm."
 msgid "&Update mouse every CPU frame"
 msgstr "&Cập nhật chuột mỗi cỡ khung CPU"
 
-#~ msgid "HD Controller:"
-#~ msgstr "Bộ điều khiển ổ cứng:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "Ổ đĩa ZIP:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "Ảnh đĩa ZIP"
-
 msgid "Hue"
-msgstr "Huế"
+msgstr "Màu sắc"
 
 msgid "Saturation"
 msgstr "Độ bão hòa"
@@ -2965,4 +2953,16 @@ msgid "Sharpness"
 msgstr "Độ sắc nét"
 
 msgid "CGA composite settings..."
-msgstr "Cài đặt composite CGA..."
+msgstr "Cài đặt chế độ tổng hợp CGA..."
+
+#~ msgid "HD Controller:"
+#~ msgstr "Bộ điều khiển ổ cứng:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "Ổ đĩa ZIP:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "Ảnh đĩa ZIP"

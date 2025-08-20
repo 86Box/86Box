@@ -2937,20 +2937,8 @@ msgstr "Das System wird nicht hinzugefügt werden."
 msgid "&Update mouse every CPU frame"
 msgstr "&Maus bei jedem CPU-Frame aktualisieren"
 
-#~ msgid "HD Controller:"
-#~ msgstr "Festplatten-Controller:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP-Laufwerke:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "ZIP-Abbilder"
-
 msgid "Hue"
-msgstr "Hue"
+msgstr "Farbton"
 
 msgid "Saturation"
 msgstr "Sättigung"
@@ -2965,4 +2953,16 @@ msgid "Sharpness"
 msgstr "Schärfe"
 
 msgid "CGA composite settings..."
-msgstr "CGA-Kompositeinstellungen..."
+msgstr "Optionen des CGA-Composite-Modus..."
+
+#~ msgid "HD Controller:"
+#~ msgstr "Festplatten-Controller:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "ZIP-Laufwerke:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "ZIP-Abbilder"

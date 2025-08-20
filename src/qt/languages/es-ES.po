@@ -2937,18 +2937,6 @@ msgstr "El sistema no será añadido."
 msgid "&Update mouse every CPU frame"
 msgstr "&Actualiza el estado del ratón en cada bloco de CPU"
 
-#~ msgid "HD Controller:"
-#~ msgstr "Controladora HD:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "Unidades ZIP:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "Imagenes ZIP"
-
 msgid "Hue"
 msgstr "Tono"
 
@@ -2965,4 +2953,16 @@ msgid "Sharpness"
 msgstr "Nitidez"
 
 msgid "CGA composite settings..."
-msgstr "Configuración compuesta CGA..."
+msgstr "Configuración del modo compuesto CGA..."
+
+#~ msgid "HD Controller:"
+#~ msgstr "Controladora HD:"
+
+#~ msgid "ZIP drives:"
+#~ msgstr "Unidades ZIP:"
+
+#~ msgid "ZIP %1 %2 (%3): %4"
+#~ msgstr "ZIP %1 %2 (%3): %4"
+
+#~ msgid "ZIP images"
+#~ msgstr "Imagenes ZIP"
