@@ -2948,3 +2948,21 @@ msgstr "&Aktualizovať myš pri každom rámci CPU"
 
 #~ msgid "ZIP images"
 #~ msgstr "Obrazy ZIP diskov"
+
+msgid "Hue"
+msgstr "Odtieň"
+
+msgid "Saturation"
+msgstr "Sýtosť"
+
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgid "Brightness"
+msgstr "Jas"
+
+msgid "Sharpness"
+msgstr "Ostrý"
+
+msgid "CGA composite settings..."
+msgstr "Kompozitné nastavenia CGA..."

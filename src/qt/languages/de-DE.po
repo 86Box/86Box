@@ -2948,3 +2948,21 @@ msgstr "&Maus bei jedem CPU-Frame aktualisieren"
 
 #~ msgid "ZIP images"
 #~ msgstr "ZIP-Abbilder"
+
+msgid "Hue"
+msgstr "Hue"
+
+msgid "Saturation"
+msgstr "Sättigung"
+
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgid "Brightness"
+msgstr "Helligkeit"
+
+msgid "Sharpness"
+msgstr "Schärfe"
+
+msgid "CGA composite settings..."
+msgstr "CGA-Kompositeinstellungen..."

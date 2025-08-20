@@ -2936,3 +2936,21 @@ msgstr "%1 Hz"
 
 msgid "&Update mouse every CPU frame"
 msgstr "&Aktualizovat myš při každém rámce CPU"
+
+msgid "Hue"
+msgstr "Hue"
+
+msgid "Saturation"
+msgstr "Saturace"
+
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgid "Brightness"
+msgstr "Jas"
+
+msgid "Sharpness"
+msgstr "Ostrý"
+
+msgid "CGA composite settings..."
+msgstr "Kompozitní nastavení CGA..."

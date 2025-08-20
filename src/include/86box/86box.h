@@ -126,6 +126,11 @@ extern int      scale;                      /* (C) screen scale factor */
 extern int      dpi_scale;                  /* (C) DPI scaling of the emulated screen */
 extern int      vid_api;                    /* (C) video renderer */
 extern int      vid_cga_contrast;           /* (C) video */
+extern int      vid_cga_comp_brightness;    /* (C) CGA composite brightness */
+extern int      vid_cga_comp_sharpness;     /* (C) CGA composite sharpness */
+extern int      vid_cga_comp_hue;           /* (C) CGA composite hue */
+extern int      vid_cga_comp_saturation;    /* (C) CGA composite saturation */
+extern int      vid_cga_comp_contrast;      /* (C) CGA composite saturation */
 extern int      video_fullscreen;           /* (C) video */
 extern int      video_fullscreen_scale;     /* (C) video */
 extern int      enable_overscan;            /* (C) video */
