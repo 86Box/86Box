@@ -14,7 +14,11 @@
  *
  *          Copyright 2025 win2kgamer
  */
+
+#ifdef ENABLE_AST_READOUT_LOG
 #include <stdarg.h>
+#endif
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +34,7 @@
 #include <86box/plat_unused.h>
 #include <86box/lpt.h>
 #include <86box/machine.h>
+#include <86box/log.h>
 
 /*
     The AST readout device has multiple indexed registers that handle
@@ -55,19 +60,20 @@
 typedef struct ast_readout_t {
     uint8_t index;
     uint8_t jumper[4];
+
+    void * log; // New logging system
 } ast_readout_t;
 
 #ifdef ENABLE_AST_READOUT_LOG
 int ast_readout_do_log = ENABLE_AST_READOUT_LOG;
 
 static void
-ast_readout_log(const char *fmt, ...)
+ast_readout_log(void *priv, const char *fmt, ...)
 {
-    va_list ap;
-
     if (ast_readout_do_log) {
+        va_list ap;
         va_start(ap, fmt);
-        pclog_ex(fmt, ap);
+        log_out(priv, fmt, ap);
         va_end(ap);
     }
 }
@@ -81,29 +87,29 @@ ast_readout_write(uint16_t port, uint8_t val, void *priv)
     ast_readout_t *dev = (ast_readout_t *) priv;
     switch (port) {
         case 0xE0:
-            ast_readout_log("[%04X:%08X] AST Bravo Readout: Set Index %02X\n", CS, cpu_state.pc, val);
+            ast_readout_log(dev->log, "[%04X:%08X] AST Bravo Readout: Set Index %02X\n", CS, cpu_state.pc, val);
             dev->index = val;
             break;
         case 0xE1:
-            ast_readout_log("[%04X:%08X] AST Bravo Readout: Write %02X:%02X\n", CS, cpu_state.pc, dev->index, val);
+            ast_readout_log(dev->log, "[%04X:%08X] AST Bravo Readout: Write %02X:%02X\n", CS, cpu_state.pc, dev->index, val);
             if ((dev->index == 0x00) && (!strcmp(machine_get_internal_name(), "bravoms586"))) {
                 uint8_t dmaval = ((val >> 4) & 0x07);
                 dev->jumper[dev->index] = val;
                 switch (dmaval) {
                     case 0x02:
-                        ast_readout_log("ECP DMA set to 0\n");
+                        ast_readout_log(dev->log, "ECP DMA set to 0\n");
                         lpt1_dma(0);
                         break;
                     case 0x05:
-                        ast_readout_log("ECP DMA set to 1\n");
+                        ast_readout_log(dev->log, "ECP DMA set to 1\n");
                         lpt1_dma(1);
                         break;
                     case 0x07:
-                        ast_readout_log("ECP DMA set to 3\n");
+                        ast_readout_log(dev->log, "ECP DMA set to 3\n");
                         lpt1_dma(3);
                         break;
                     default:
-                        ast_readout_log("Unknown ECP DMA!\n");
+                        ast_readout_log(dev->log, "Unknown ECP DMA!\n");
                         break;
                 }
             } else if (dev->index == 0x03) {
@@ -127,11 +133,11 @@ ast_readout_read(uint16_t port, void *priv)
 
     switch (port) {
         case 0xE0:
-            ast_readout_log("[%04X:%08X] AST Bravo Readout: Read Index %02X\n", CS, cpu_state.pc, dev->index);
+            ast_readout_log(dev->log, "[%04X:%08X] AST Bravo Readout: Read Index %02X\n", CS, cpu_state.pc, dev->index);
             ret = dev->index;
             break;
         case 0xE1:
-            ast_readout_log("[%04X:%08X] AST Bravo Readout: Read %02X:%02X\n", CS, cpu_state.pc, dev->index, dev->jumper[dev->index]);
+            ast_readout_log(dev->log, "[%04X:%08X] AST Bravo Readout: Read %02X:%02X\n", CS, cpu_state.pc, dev->index, dev->jumper[dev->index]);
             ret = dev->jumper[dev->index];
             break;
         default:
@@ -155,6 +161,11 @@ ast_readout_close(void *priv)
 {
     ast_readout_t *dev = (ast_readout_t *) priv;
 
+    if (dev->log != NULL) {
+        log_close(dev->log);
+        dev->log = NULL;
+    }
+
     free(dev);
 }
 
@@ -162,6 +173,8 @@ static void *
 ast_readout_init(const device_t *info)
 {
     ast_readout_t *dev = (ast_readout_t *) calloc(1, sizeof(ast_readout_t));
+
+    dev->log = log_open("AST Readout");
 
     ast_readout_reset(dev);
 
