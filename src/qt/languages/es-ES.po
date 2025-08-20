@@ -2948,3 +2948,21 @@ msgstr "&Actualiza el estado del ratón en cada bloco de CPU"
 
 #~ msgid "ZIP images"
 #~ msgstr "Imagenes ZIP"
+
+msgid "Hue"
+msgstr "Tono"
+
+msgid "Saturation"
+msgstr "Saturación"
+
+msgid "Contrast"
+msgstr "Contraste"
+
+msgid "Brightness"
+msgstr "Brillo"
+
+msgid "Sharpness"
+msgstr "Nitidez"
+
+msgid "CGA composite settings..."
+msgstr "Configuración compuesta CGA..."

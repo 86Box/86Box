@@ -2948,3 +2948,21 @@ msgstr "&Cập nhật chuột mỗi cỡ khung CPU"
 
 #~ msgid "ZIP images"
 #~ msgstr "Ảnh đĩa ZIP"
+
+msgid "Hue"
+msgstr "Huế"
+
+msgid "Saturation"
+msgstr "Độ bão hòa"
+
+msgid "Contrast"
+msgstr "Sự tương phản"
+
+msgid "Brightness"
+msgstr "Độ sáng"
+
+msgid "Sharpness"
+msgstr "Độ sắc nét"
+
+msgid "CGA composite settings..."
+msgstr "Cài đặt composite CGA..."

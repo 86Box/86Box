@@ -2948,3 +2948,21 @@ msgstr "&Оновлювати мишу при кожному кадрі ЦП"
 
 #~ msgid "ZIP images"
 #~ msgstr "Образи ZIP"
+
+msgid "Hue"
+msgstr "Відтінок"
+
+msgid "Saturation"
+msgstr "Насичення"
+
+msgid "Contrast"
+msgstr "Контраст"
+
+msgid "Brightness"
+msgstr "Яскравість"
+
+msgid "Sharpness"
+msgstr "Гострота"
+
+msgid "CGA composite settings..."
+msgstr "Комбіновані налаштування CGA..."

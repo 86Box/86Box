@@ -2936,3 +2936,21 @@ msgstr ""
 
 msgid "&Update mouse every CPU frame"
 msgstr ""
+
+msgid "Hue"
+msgstr "Barwa"
+
+msgid "Saturation"
+msgstr "Nasycenie"
+
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgid "Brightness"
+msgstr "Jasność"
+
+msgid "Sharpness"
+msgstr "Ostrość"
+
+msgid "CGA composite settings..."
+msgstr "Ustawienia kompozytowe CGA..."
