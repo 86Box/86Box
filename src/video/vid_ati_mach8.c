@@ -2784,27 +2784,34 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
                 if (!(dev->accel.advfunc_cntl & 0x04)) {
                     dev->hdisp = 640;
                     dev->vdisp = 480;
-                    mach_log("Mach: EEPROM 640x480: %04x.\n", mach->eeprom.data[7]);
-                    switch (mach->eeprom.data[7] & 0xff) {
-                        case 0x00: /*640x480 60Hz Non-interlaced*/
-                        default:
-                            dev->h_total = 0x64;
-                            dev->v_total = 0x0419;
-                            dev->v_syncstart = 0x03d7;
-                            mach->accel.clock_sel_mode = 0x50;
-                            break;
-                        case 0x01: /*640x480 72Hz Non-interlaced*/
-                            dev->h_total = 0x6a;
-                            dev->v_total = 0x040c;
-                            dev->v_syncstart = 0x03d1;
-                            mach->accel.clock_sel_mode = 0x24;
-                            break;
-                        case 0x03: /*640x480 72Hz Non-interlaced Alt*/
-                            dev->h_total = 0x71;
-                            dev->v_total = 0x04ca;
-                            dev->v_syncstart = 0x0422;
-                            mach->accel.clock_sel_mode = 0x6c;
-                            break;
+                    if (ATI_8514A_ULTRA) {
+                        dev->h_total = (mach->eeprom.data[0x11] & 0xff) + 1;
+                        dev->v_total = mach->eeprom.data[0x0d] + 1;
+                        dev->v_syncstart = mach->eeprom.data[9] + 1;
+                        mach->accel.clock_sel_mode = (mach->eeprom.data[4] & 0xff) << 2;
+                    } else {
+                        mach_log("Mach: EEPROM 640x480: %04x.\n", mach->eeprom.data[7]);
+                        switch (mach->eeprom.data[7] & 0xff) {
+                            case 0x00: /*640x480 60Hz Non-interlaced*/
+                            default:
+                                dev->h_total = 0x64;
+                                dev->v_total = 0x0419;
+                                dev->v_syncstart = 0x03d7;
+                                mach->accel.clock_sel_mode = 0x50;
+                                break;
+                            case 0x01: /*640x480 72Hz Non-interlaced*/
+                                dev->h_total = 0x6a;
+                                dev->v_total = 0x040c;
+                                dev->v_syncstart = 0x03d1;
+                                mach->accel.clock_sel_mode = 0x24;
+                                break;
+                            case 0x03: /*640x480 72Hz Non-interlaced Alt*/
+                                dev->h_total = 0x71;
+                                dev->v_total = 0x04ca;
+                                dev->v_syncstart = 0x0422;
+                                mach->accel.clock_sel_mode = 0x6c;
+                                break;
+                        }
                     }
                 }
                 break;
@@ -2812,7 +2819,73 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
                 if (dev->accel.advfunc_cntl & 0x04) {
                     dev->hdisp = 1024;
                     dev->vdisp = 768;
-                    mach_log("Mach: EEPROM 1024x768: %04x.\n", mach->eeprom.data[9]);
+                    if (ATI_8514A_ULTRA) {
+                        dev->h_total = ((mach->eeprom.data[0x11] >> 8) & 0xff) + 1;
+                        dev->v_total = mach->eeprom.data[0x0c] + 1;
+                        dev->v_syncstart = mach->eeprom.data[8] + 1;
+                        mach->accel.clock_sel_mode = ((mach->eeprom.data[4] >> 8) & 0xff) << 2;
+                    } else {
+                        pclog("Mach: EEPROM 1024x768: %04x.\n", mach->eeprom.data[9]);
+                        switch (mach->eeprom.data[9] & 0xff) {
+                            case 0x00: /*1024x768 76Hz Non-interlaced*/
+                                dev->h_total = 0xa3;
+                                dev->v_total = 0x064b;
+                                dev->v_syncstart = 0x060c;
+                                mach->accel.clock_sel_mode = 0x2c;
+                                break;
+
+                            case 0x01: /*1024x768 87Hz Interlaced*/
+                            default:
+                                dev->h_total = 0x9e;
+                                dev->v_total = 0x0669;
+                                dev->v_syncstart = 0x0601;
+                                mach->accel.clock_sel_mode = 0x1c;
+                                break;
+                            case 0x02: /*1024x768 60Hz Non-interlaced*/
+                                dev->h_total = 0xa8;
+                                dev->v_total = 0x064a;
+                                dev->v_syncstart = 0x0603;
+                                mach->accel.clock_sel_mode = 0x3c;
+                                break;
+                            case 0x04: /*1024x768 70Hz Non-interlaced*/
+                                dev->h_total = 0xa6;
+                                dev->v_total = 0x064a;
+                                dev->v_syncstart = 0x0603;
+                                mach->accel.clock_sel_mode = 0x38;
+                                break;
+                            case 0x08: /*1024x768 72Hz Non-interlaced*/
+                                dev->h_total = 0xa1;
+                                dev->v_total = 0x064a;
+                                dev->v_syncstart = 0x0603;
+                                mach->accel.clock_sel_mode = 0x38;
+                                break;
+                            case 0x82: /*1024x768 66Hz Non-interlaced*/
+                                dev->h_total = 0xac;
+                                dev->v_total = 0x065c;
+                                dev->v_syncstart = 0x060b;
+                                mach->accel.clock_sel_mode = 0x38;
+                                break;
+                        }
+                    }
+                }
+                break;
+
+            default:
+                break;
+        }
+        svga_recalctimings(svga);
+    } else if ((dev->disp_cntl_2 >> 5) == 2) { /*Reset 8514/A to defaults if needed.*/
+        if (dev->accel.advfunc_cntl & 0x04) {
+            if (dev->hdisp == 640) {
+                dev->hdisp = 1024;
+                dev->vdisp = 768;
+                if (ATI_8514A_ULTRA) {
+                    dev->h_total = ((mach->eeprom.data[0x11] >> 8) & 0xff) + 1;
+                    dev->v_total = mach->eeprom.data[0x0c] + 1;
+                    dev->v_syncstart = mach->eeprom.data[8] + 1;
+                    mach->accel.clock_sel_mode = ((mach->eeprom.data[4] >> 8) & 0xff) << 2;
+                } else {
+                    pclog("Mach Reset: EEPROM 1024x768: %04x.\n", mach->eeprom.data[9]);
                     switch (mach->eeprom.data[9] & 0xff) {
                         case 0x00: /*1024x768 76Hz Non-interlaced*/
                             dev->h_total = 0xa3;
@@ -2820,7 +2893,6 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
                             dev->v_syncstart = 0x060c;
                             mach->accel.clock_sel_mode = 0x2c;
                             break;
-
                         case 0x01: /*1024x768 87Hz Interlaced*/
                         default:
                             dev->h_total = 0x9e;
@@ -2854,84 +2926,40 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
                             break;
                     }
                 }
-                break;
-
-            default:
-                break;
-        }
-        svga_recalctimings(svga);
-    } else if ((dev->disp_cntl_2 >> 5) == 2) { /*Reset 8514/A to defaults if needed.*/
-        if (dev->accel.advfunc_cntl & 0x04) {
-            if (dev->hdisp == 640) {
-                dev->hdisp = 1024;
-                dev->vdisp = 768;
-                mach_log("Mach Reset: EEPROM 1024x768: %04x.\n", mach->eeprom.data[9]);
-                switch (mach->eeprom.data[9] & 0xff) {
-                    case 0x00: /*1024x768 76Hz Non-interlaced*/
-                        dev->h_total = 0xa3;
-                        dev->v_total = 0x064b;
-                        dev->v_syncstart = 0x060c;
-                        mach->accel.clock_sel_mode = 0x2c;
-                        break;
-                    case 0x01: /*1024x768 87Hz Interlaced*/
-                    default:
-                        dev->h_total = 0x9e;
-                        dev->v_total = 0x0669;
-                        dev->v_syncstart = 0x0601;
-                        mach->accel.clock_sel_mode = 0x1c;
-                        break;
-                    case 0x02: /*1024x768 60Hz Non-interlaced*/
-                        dev->h_total = 0xa8;
-                        dev->v_total = 0x064a;
-                        dev->v_syncstart = 0x0603;
-                        mach->accel.clock_sel_mode = 0x3c;
-                        break;
-                    case 0x04: /*1024x768 70Hz Non-interlaced*/
-                        dev->h_total = 0xa6;
-                        dev->v_total = 0x064a;
-                        dev->v_syncstart = 0x0603;
-                        mach->accel.clock_sel_mode = 0x38;
-                        break;
-                    case 0x08: /*1024x768 72Hz Non-interlaced*/
-                        dev->h_total = 0xa1;
-                        dev->v_total = 0x064a;
-                        dev->v_syncstart = 0x0603;
-                        mach->accel.clock_sel_mode = 0x38;
-                        break;
-                    case 0x82: /*1024x768 66Hz Non-interlaced*/
-                        dev->h_total = 0xac;
-                        dev->v_total = 0x065c;
-                        dev->v_syncstart = 0x060b;
-                        mach->accel.clock_sel_mode = 0x38;
-                        break;
-                }
                 svga_recalctimings(svga);
             }
         } else {
             if (dev->hdisp == 1024) {
                 dev->hdisp = 640;
                 dev->vdisp = 480;
-                mach_log("Mach Reset: EEPROM 640x480: %04x.\n", mach->eeprom.data[7]);
-                switch (mach->eeprom.data[7] & 0xff) {
-                    case 0x00: /*640x480 60Hz Non-interlaced*/
-                    default:
-                        dev->h_total = 0x64;
-                        dev->v_total = 0x0419;
-                        dev->v_syncstart = 0x03d7;
-                        mach->accel.clock_sel_mode = 0x50;
-                        break;
-                    case 0x01: /*640x480 72Hz Non-interlaced*/
-                        dev->h_total = 0x6a;
-                        dev->v_total = 0x040c;
-                        dev->v_syncstart = 0x03d1;
-                        mach->accel.clock_sel_mode = 0x24;
-                        break;
-                    case 0x03: /*640x480 72Hz Non-interlaced Alt*/
-                        dev->h_total = 0x71;
-                        dev->v_total = 0x04ca;
-                        dev->v_syncstart = 0x0422;
-                        mach->accel.clock_sel_mode = 0x6c;
-                        break;
+                if (ATI_8514A_ULTRA) {
+                    dev->h_total = (mach->eeprom.data[0x11] & 0xff) + 1;
+                    dev->v_total = mach->eeprom.data[0x0d] + 1;
+                    dev->v_syncstart = mach->eeprom.data[9] + 1;
+                    mach->accel.clock_sel_mode = (mach->eeprom.data[4] & 0xff) << 2;
+                } else {
+                    mach_log("Mach: EEPROM 640x480: %04x.\n", mach->eeprom.data[7]);
+                    switch (mach->eeprom.data[7] & 0xff) {
+                        case 0x00: /*640x480 60Hz Non-interlaced*/
+                        default:
+                            dev->h_total = 0x64;
+                            dev->v_total = 0x0419;
+                            dev->v_syncstart = 0x03d7;
+                            mach->accel.clock_sel_mode = 0x50;
+                            break;
+                        case 0x01: /*640x480 72Hz Non-interlaced*/
+                            dev->h_total = 0x6a;
+                            dev->v_total = 0x040c;
+                            dev->v_syncstart = 0x03d1;
+                            mach->accel.clock_sel_mode = 0x24;
+                            break;
+                        case 0x03: /*640x480 72Hz Non-interlaced Alt*/
+                            dev->h_total = 0x71;
+                            dev->v_total = 0x04ca;
+                            dev->v_syncstart = 0x0422;
+                            mach->accel.clock_sel_mode = 0x6c;
+                            break;
+                    }
                 }
                 svga_recalctimings(svga);
             }
@@ -3003,8 +3031,8 @@ ati8514_recalctimings(svga_t *svga)
         dev->h_disp_time = dev->h_disp >> 3;
 
         svga->clock_8514 = (cpuclock * (double) (1ULL << 32)) / svga->getclock8514((dev->ven_clock >> 2) & 0x0f, svga->clock_gen8514) / 2.0;
-        if ((((dev->ven_clock >> 2) & 0x0f) == 0x09) && (dev->h_total == 0x6b))
-            svga->clock_8514 /= 2.0;
+        if (dev->ven_clock & 0x40)
+            svga->clock_8514 *= 2.0;
 
         if (dev->interlace)
             dev->dispend >>= 1;
