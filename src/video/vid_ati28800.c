@@ -568,7 +568,7 @@ ati28800k_init(const device_t *info)
               ati28800k_in, ati28800k_out,
               NULL,
               NULL);
-    ati28800->svga.clock_gen = device_add(&ati18810_device);
+    ati28800->svga.clock_gen = device_add(&ati18810_28800_device);
     ati28800->svga.getclock  = ics2494_getclock;
 
     io_sethandler(0x01ce, 0x0002, ati28800k_in, NULL, NULL, ati28800k_out, NULL, NULL, ati28800);
@@ -646,7 +646,7 @@ ati28800_init(const device_t *info)
               ati28800_in, ati28800_out,
               NULL,
               NULL);
-    ati28800->svga.clock_gen = device_add(&ati18810_device);
+    ati28800->svga.clock_gen = device_add(&ati18810_28800_device);
     ati28800->svga.getclock  = ics2494_getclock;
 
     io_sethandler(0x01ce, 2,
