@@ -61,8 +61,10 @@ public:
     ~VMManagerDetailSection() override;
 
     void addSection(const QString &name, const QString &value, VMManager::Display::Name displayField = VMManager::Display::Name::Unknown);
+    void setSections();
     void clear();
 
+    QLabel *tableLabel;
     CollapseButton *collapseButton;
 //    QGridLayout *buttonGridLayout;
     QGridLayout *frameGridLayout;
@@ -82,7 +84,6 @@ private:
     void setSectionName(const QString &name);
     void setupMainLayout();
     void clearContentsSetupGrid();
-    void setSections();
 
     static QMargins getMargins(MarginSection section);
 

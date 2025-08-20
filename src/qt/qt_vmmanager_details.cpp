@@ -281,6 +281,15 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
     otherSection->addSection(tr("ISA RTC"), passed_sysconfig->getDisplayValue(Display::Name::IsaRtc));
     otherSection->addSection(tr("ISA RAM"), passed_sysconfig->getDisplayValue(Display::Name::IsaMem));
     otherSection->addSection(tr("ISA ROM"), passed_sysconfig->getDisplayValue(Display::Name::IsaRom));
+
+    systemSection->setSections();
+    videoSection->setSections();
+    storageSection->setSections();
+    audioSection->setSections();
+    networkSection->setSections();
+    inputSection->setSections();
+    portsSection->setSections();
+    otherSection->setSections();
 }
 
 void
