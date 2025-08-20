@@ -143,7 +143,6 @@ VMManagerDetailSection::addSection(const QString &name, const QString &value, Di
 {
     const auto new_section = DetailSection { name, value};
     sections.push_back(new_section);
-    setSections();
 }
 
 void
@@ -154,30 +153,8 @@ VMManagerDetailSection::setupMainLayout()
     mainLayout = new QVBoxLayout;
 }
 void
-VMManagerDetailSection::clearContentsSetupGrid()
-{
-    // Clear everything out
-    if(frameGridLayout) {
-        while(frameGridLayout->count()) {
-            QLayoutItem * cur_item = frameGridLayout->takeAt(0);
-            if(cur_item->widget())
-                delete cur_item->widget();
-            delete cur_item;
-        }
-    }
-
-    delete frameGridLayout;
-    frameGridLayout = new QGridLayout();
-    qint32 *left = nullptr, *top = nullptr, *right = nullptr, *bottom = nullptr;
-    frameGridLayout->getContentsMargins(left, top, right, bottom);
-    frameGridLayout->setContentsMargins(getMargins(MarginSection::DisplayGrid));
-    ui->detailFrame->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-    ui->detailFrame->setLayout(frameGridLayout);
-}
-void
 VMManagerDetailSection::setSections()
 {
-    clearContentsSetupGrid();
     int row = 0;
 
 
@@ -191,6 +168,19 @@ VMManagerDetailSection::setSections()
             sectionsToAdd.push_back(section.value);
         }
         bool keyAdded = false;
+
+        // Reduce the text size for the label
+        // First, get the existing font
+        auto reference_label = new QLabel();
+        auto smaller_font = reference_label->font();
+        // Get a smaller size
+        // Not sure if I like the smaller size, back to regular for now
+        // auto smaller_size = 0.85 * smaller_font.pointSize();
+        const auto smaller_size = 1 * smaller_font.pointSize();
+        // Set the font to the smaller size
+        smaller_font.setPointSizeF(smaller_size);
+        delete reference_label;
+
         for(const auto&line : sectionsToAdd) {
             if(line.isEmpty()) {
                 // Don't bother adding entries if the values are blank
@@ -203,15 +193,6 @@ VMManagerDetailSection::setSections()
             labelValue->setTextInteractionFlags(labelValue->textInteractionFlags() | Qt::TextSelectableByMouse);
             labelKey->setTextInteractionFlags(labelValue->textInteractionFlags() | Qt::TextSelectableByMouse);
 
-            // Reduce the text size for the label
-            // First, get the existing font
-            auto smaller_font = labelValue->font();
-            // Get a smaller size
-            // Not sure if I like the smaller size, back to regular for now
-            // auto smaller_size = 0.85 * smaller_font.pointSize();
-            const auto smaller_size = 1 * smaller_font.pointSize();
-            // Set the font to the smaller size
-            smaller_font.setPointSizeF(smaller_size);
             // Assign that new, smaller font to the label
             labelKey->setFont(smaller_font);
             labelValue->setFont(smaller_font);
@@ -237,6 +218,24 @@ VMManagerDetailSection::clear()
 {
     sections.clear();
     setVisible(false);
+
+    // Clear everything out
+    if(frameGridLayout) {
+        while(frameGridLayout->count()) {
+            QLayoutItem * cur_item = frameGridLayout->takeAt(0);
+            if(cur_item->widget())
+                delete cur_item->widget();
+            delete cur_item;
+        }
+    }
+
+    delete frameGridLayout;
+    frameGridLayout = new QGridLayout();
+    qint32 *left = nullptr, *top = nullptr, *right = nullptr, *bottom = nullptr;
+    frameGridLayout->getContentsMargins(left, top, right, bottom);
+    frameGridLayout->setContentsMargins(getMargins(MarginSection::DisplayGrid));
+    ui->detailFrame->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+    ui->detailFrame->setLayout(frameGridLayout);
 }
 
 // QT for Linux and Windows doesn't have the same default margins as QT on MacOS.
@@ -284,7 +283,7 @@ void CollapseButton::setButtonText(const QString &text) {
 void CollapseButton::setContent(QWidget *content) {
     assert(content != nullptr);
     content_              = content;
-    const auto animation_ = new QPropertyAnimation(content_, "maximumHeight"); // QObject with auto delete
+    /*const auto animation_ = new QPropertyAnimation(content_, "maximumHeight"); // QObject with auto delete
     animation_->setStartValue(0);
     animation_->setEasingCurve(QEasingCurve::InOutQuad);
     animation_->setDuration(300);
@@ -294,16 +293,16 @@ void CollapseButton::setContent(QWidget *content) {
     animator_.addAnimation(animation_);
     if (!isChecked()) {
         content->setMaximumHeight(0);
-    }
+    }*/
 }
 
 void CollapseButton::hideContent() {
-    animator_.setDirection(QAbstractAnimation::Backward);
-    animator_.start();
+    /*animator_.setDirection(QAbstractAnimation::Backward);
+    animator_.start();*/
 }
 
 void CollapseButton::showContent() {
-    animator_.setDirection(QAbstractAnimation::Forward);
-    animator_.start();
+    /*animator_.setDirection(QAbstractAnimation::Forward);
+    animator_.start();*/
 }
 

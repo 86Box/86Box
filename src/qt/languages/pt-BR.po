@@ -2935,7 +2935,7 @@ msgid "The system will not be added."
 msgstr "O sistema não será adicionado."
 
 msgid "&Update mouse every CPU frame"
-msgstr "&Atualiza o estado do mouse em cada quadro do CPU"
+msgstr "At&ualiza o estado do mouse em cada quadro do CPU"
 
 msgid "Hue"
 msgstr "Matiz"

@@ -63,5 +63,15 @@ public:
                    const QModelIndex &index) const override;
 private:
     VMManagerListViewDelegateStyle *m_ptr;
+
+    QIcon default_icon;
+    QIcon stop_icon;
+    QIcon running_icon;
+    QIcon stopped_icon;
+    QIcon paused_icon;
+    QIcon unknown_icon;
+
+    QColor bg_color;
+    QColor highlight_color;
 };
 #endif // QT_VMMANAGER_LISTVIEWDELEGATE_H

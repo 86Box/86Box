@@ -28,7 +28,7 @@ msgid "&Pause"
 msgstr "&Pauza"
 
 msgid "Pause"
-msgstr ""
+msgstr "Pauza"
 
 msgid "Re&sume"
 msgstr "&Wznów"
@@ -49,7 +49,7 @@ msgid "&Resizeable window"
 msgstr "&Okno o zmiennym rozmiarze"
 
 msgid "R&emember size && position"
-msgstr "P&amiętaj rozmiar &i pozycję"
+msgstr "P&amiętaj rozmiar i pozycję"
 
 msgid "Re&nderer"
 msgstr "Re&nderer"
@@ -193,7 +193,7 @@ msgid "&Settings..."
 msgstr "&Ustawienia..."
 
 msgid "Settings..."
-msgstr ""
+msgstr "Ustawienia..."
 
 msgid "&Update status bar icons"
 msgstr "&Aktualizuj ikony na pasku statusu"
@@ -220,7 +220,7 @@ msgid "End trace"
 msgstr "Zakończ śledzenie"
 
 msgid "&Help"
-msgstr "&Pomoc"
+msgstr "Pomo&c"
 
 msgid "&Documentation..."
 msgstr "&Dokumentacja..."
@@ -361,7 +361,7 @@ msgid "Configure"
 msgstr "Konfiguruj"
 
 msgid "CPU:"
-msgstr ""
+msgstr "Procesor:"
 
 msgid "CPU type:"
 msgstr "Rodzaj procesora:"
@@ -424,25 +424,25 @@ msgid "XGA Graphics"
 msgstr "Grafika XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
-msgstr ""
+msgstr "Karta graficzna IBM PS/55"
 
 msgid "Keyboard:"
 msgstr "Klawiatura:"
 
 msgid "Keyboard"
-msgstr ""
+msgstr "Klawiatura"
 
 msgid "Mouse:"
 msgstr "Mysz:"
 
 msgid "Mouse"
-msgstr ""
+msgstr "Mysz"
 
 msgid "Joystick:"
 msgstr "Joystick:"
 
 msgid "Joystick"
-msgstr ""
+msgstr "Joystick"
 
 msgid "Joystick 1..."
 msgstr "Joystick 1..."
@@ -475,7 +475,7 @@ msgid "MIDI In Device:"
 msgstr "Urządzenie wejściowe MIDI:"
 
 msgid "MIDI Out:"
-msgstr ""
+msgstr "Wyjście MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "Samodzielne urządzenie MPU-401"
@@ -517,7 +517,7 @@ msgid "LPT4 Device:"
 msgstr "Urządzenie LPT4:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr ""
+msgstr "Wewnętrzne DMA LPT ECP:"
 
 msgid "Serial port 1"
 msgstr "Port szeregowy 1"
@@ -640,10 +640,10 @@ msgid "MO drives:"
 msgstr "Napędy MO:"
 
 msgid "MO:"
-msgstr ""
+msgstr "MO:"
 
 msgid "Removable disks:"
-msgstr ""
+msgstr "Dyski wymienne:"
 
 msgid "Removable disk drives:"
 msgstr "Stacje dysków wymiennych:"
@@ -742,16 +742,16 @@ msgid "Surface images"
 msgstr "Obrazy powierzchni"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Maszyna \"%hs\" nie jest dostępna, ponieważ brakuje ROM-ów w katalogu roms/machines. Przełączanie na dostępną maszynę."
+msgstr "Maszyna „%hs” nie jest dostępna, ponieważ brakuje ROM-ów w katalogu roms/machines. Przełączanie na dostępną maszynę."
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Karta wideo \"%hs\" nie jest dostępna, ponieważ brakuje ROM-ów w katalogu roms/video. Przełączanie na dostępną kartę graficzną."
+msgstr "Karta wideo „%hs” nie jest dostępna, ponieważ brakuje ROM-ów w katalogu roms/video. Przełączanie na dostępną kartę graficzną."
 
 msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Karta wideo 2 \"%hs\" nie jest dostępna, ponieważ brakuje ROM-ów w katalogu roms/video. Wyłączenie drugiej karty graficznej."
+msgstr "Karta wideo 2 „%hs” nie jest dostępna, ponieważ brakuje ROM-ów w katalogu roms/video. Wyłączenie drugiej karty graficznej."
 
 msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Urządzenie \"%hs\" nie jest dostępne, ponieważ brakuje ROM-ów. Ignorowanie urządzenia."
+msgstr "Urządzenie „%hs” nie jest dostępne, ponieważ brakuje ROM-ów. Ignorowanie urządzenia."
 
 msgid "Machine"
 msgstr "Maszyna"
@@ -772,13 +772,13 @@ msgid "Ports (COM & LPT)"
 msgstr "Porty (COM & LPT)"
 
 msgid "Ports"
-msgstr ""
+msgstr "Porty"
 
 msgid "Serial ports"
-msgstr ""
+msgstr "Porty szeregowe"
 
 msgid "Parallel ports"
-msgstr ""
+msgstr "Porty równoległe"
 
 msgid "Storage controllers"
 msgstr "Kontrolery pamięci masowej"
@@ -787,13 +787,13 @@ msgid "Hard disks"
 msgstr "Dyski twarde"
 
 msgid "Disks:"
-msgstr ""
+msgstr "Dyski:"
 
 msgid "Floppy:"
-msgstr ""
+msgstr "Dyskietki:"
 
 msgid "Controllers:"
-msgstr ""
+msgstr "Kontrolery:"
 
 msgid "Floppy & CD-ROM drives"
 msgstr "Napędy dyskietek i CD-ROM"
@@ -805,7 +805,7 @@ msgid "Other peripherals"
 msgstr "Inne urządzenia peryferyjne"
 
 msgid "Other devices"
-msgstr ""
+msgstr "Inne urządzenia"
 
 msgid "Click to capture mouse"
 msgstr "Kliknij, by przechwycić mysz"
@@ -952,16 +952,16 @@ msgid "Internal device"
 msgstr "Urządzenie wewnętrzne"
 
 msgid "&File"
-msgstr ""
+msgstr "&Plik"
 
 msgid "&New machine..."
-msgstr ""
+msgstr "&Nowa maszyna..."
 
 msgid "&Check for updates..."
-msgstr ""
+msgstr "&Sprawdź aktualizacje..."
 
 msgid "Exit"
-msgstr "Zakończ"
+msgstr "Za&kończ"
 
 msgid "No ROMs found"
 msgstr "Nie znaleziono ROM-ów"
@@ -982,7 +982,7 @@ msgid "86Box v"
 msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Emulator starych komputerów\n\nAutorzy: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, i inni.\n\nZ wcześniejszym wkładem od Sarah Walker, leilei, JohnElliott, greatpsycho i innych.\n\nPrzetłumaczony przez: Fanta-Shokata, Lili1228\n\nWydany na licencji GNU General Public License w wersji 2 lub nowszej. Zobacz LICENSE aby uzyskać więcej informacji."
+msgstr "Emulator starych komputerów\n\nAutorzy: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, i inni.\n\nZ wcześniejszym wkładem od Sarah Walker, leilei, JohnElliott, greatpsycho i innych.\n\nPrzetłumaczony przez: Lili1228\n\nWydany na licencji GNU General Public License w wersji 2 lub nowszej. Zobacz LICENSE aby uzyskać więcej informacji."
 
 msgid "Hardware not available"
 msgstr "Sprzęt niedostępny"
@@ -1057,7 +1057,7 @@ msgid "Pause execution"
 msgstr "Zatrzymaj wykonywanie"
 
 msgid "Ctrl+Alt+Del"
-msgstr ""
+msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "Naciśnij Ctrl+Alt+Del"
@@ -1069,271 +1069,271 @@ msgid "Hard reset"
 msgstr "Twardy reset"
 
 msgid "Force shutdown"
-msgstr ""
+msgstr "Wymuś zamknięcie"
 
 msgid "Start"
-msgstr ""
+msgstr "Uruchom"
 
 msgid "Not running"
-msgstr ""
+msgstr "Wyłączona"
 
 msgid "Running"
-msgstr ""
+msgstr "Uruchomiona"
 
 msgid "Paused"
-msgstr ""
+msgstr "Wstrzymana"
 
 msgid "Waiting"
-msgstr ""
+msgstr "Oczekiwanie"
 
 msgid "Powered Off"
-msgstr ""
+msgstr "Wyłączona"
 
 msgid "%n running"
-msgstr ""
+msgstr "%n uruchomion(a/e/ych)"
 
 msgid "%n paused"
-msgstr ""
+msgstr "%n wstrzyman(a/e/ych)"
 
 msgid "%n waiting"
-msgstr ""
+msgstr "%n oczekując(a/e/ych)"
 
 msgid "%1 total"
-msgstr ""
+msgstr "Łącznie %1"
 
 msgid "VMs: %1"
-msgstr ""
+msgstr "Maszyny wirtualne: %1"
 
 msgid "System Directory:"
-msgstr ""
+msgstr "Folder systemowy:"
 
 msgid "Choose directory"
-msgstr ""
+msgstr "Wybierz folder"
 
 msgid "Choose configuration file"
-msgstr ""
+msgstr "Wybierz plik konfiguracyjny"
 
 msgid "86Box configuration files (86box.cfg)"
-msgstr ""
+msgstr "Pliki konfiguracyjne 86Boxa (86box.cfg)"
 
 msgid "Configuration read failed"
-msgstr ""
+msgstr "Nieudany odczyt konfiguracji"
 
 msgid "Unable to open the selected configuration file for reading: %1"
-msgstr ""
+msgstr "Nie udało się otworzyć wybranego pliku konfiguracyjnego do odczytu: %1"
 
 msgid "Use regular expressions in search box"
-msgstr ""
+msgstr "Użyj wyrażeń regularnych w polu wyszukiwania"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr ""
+msgstr "Liczba obecnie aktywnych maszyn: %1. Czy na pewno chcesz, mimo to, wyjść z menedżera maszyn wirtualnych?"
 
 msgid "Add new system wizard"
-msgstr ""
+msgstr "Kreator dodawania nowego systemu"
 
 msgid "Introduction"
-msgstr ""
+msgstr "Wstęp"
 
 msgid "This will help you add a new system to 86Box."
-msgstr ""
+msgstr "Ten kreator pomoże Ci dodać nowy system do 86Boxa."
 
 msgid "New configuration"
-msgstr ""
+msgstr "Nowa konfiguracja"
 
 msgid "Complete"
-msgstr ""
+msgstr "Ukończono"
 
 msgid "The wizard will now launch the configuration for the new system."
-msgstr ""
+msgstr "Kreator teraz uruchomi konfigurację dla nowego systemu."
 
 msgid "Use existing configuration"
-msgstr ""
+msgstr "Użyj istniejącej konfiguracji"
 
 msgid "Type some notes here"
-msgstr ""
+msgstr "Wpisz tutaj swoje notatki"
 
 msgid "Paste the contents of the existing configuration file into the box below."
-msgstr ""
+msgstr "Wklej zawartość istniejącego pliku konfiguracyjnego w poniższe pole."
 
 msgid "Load configuration from file"
-msgstr ""
+msgstr "Wczytaj konfigurację z pliku"
 
 msgid "System name"
-msgstr ""
+msgstr "Nazwa systemu"
 
 msgid "System name:"
-msgstr ""
+msgstr "Nazwa systemu:"
 
 msgid "System name cannot contain certain characters"
-msgstr ""
+msgstr "Nazwa systemu nie może zawierać niektórych znaków"
 
 msgid "System name already exists"
-msgstr ""
+msgstr "Nazwa systemu już istnieje"
 
 msgid "Please enter a directory for the system"
-msgstr ""
+msgstr "Wprowadź folder dla systemu"
 
 msgid "Directory does not exist"
-msgstr ""
+msgstr "Folder nie istnieje"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr ""
+msgstr "Zostanie utworzony nowy folder dla systemu w wybranym powyżej folderze"
 
 msgid "System location:"
-msgstr ""
+msgstr "Lokalizacja systemu:"
 
 msgid "System name and location"
-msgstr ""
+msgstr "Nazwa i lokalizacja systemu"
 
 msgid "Enter the name of the system and choose the location"
-msgstr ""
+msgstr "Podaj nazwę system i wybierz jego lokalizację"
 
 msgid "Enter the name of the system"
-msgstr ""
+msgstr "Podaj nazwę systemu"
 
 msgid "Please enter a system name"
-msgstr ""
+msgstr "Proszę podać nazwę systemu"
 
 msgid "Display name (optional):"
-msgstr ""
+msgstr "Nazwa wyświetlana (opcjonalne):"
 
 msgid "Display name:"
-msgstr ""
+msgstr "Nazwa wyświetlana:"
 
 msgid "Set display name"
-msgstr ""
+msgstr "Ustaw nazwę wyświetlaną"
 
 msgid "Enter the new display name (blank to reset)"
-msgstr ""
+msgstr "Podaj nową nazwę wyświetlaną (wyczyść, by zresetować)"
 
 msgid "Change &display name..."
-msgstr ""
+msgstr "Zmień wyświetlaną &nazwę..."
 
 msgid "Context Menu"
-msgstr ""
+msgstr "Menu kontekstowe"
 
 msgid "&Open folder..."
-msgstr ""
+msgstr "&Otwórz folder..."
 
 msgid "Open &printer tray..."
-msgstr ""
+msgstr "Otwórz &tackę drukarki..."
 
 msgid "Set &icon..."
-msgstr ""
+msgstr "&Ustaw ikonę..."
 
 msgid "Select an icon"
-msgstr ""
+msgstr "Wybierz ikonę"
 
 msgid "C&lone..."
-msgstr ""
+msgstr "&Klonuj..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
-msgstr ""
+msgstr "Maszyna wirtualna „%1” (%2) zostanie sklonowana jako:"
 
 msgid "Directory %1 already exists"
-msgstr ""
+msgstr "Folder %1 już istnieje"
 
 msgid "You cannot use the following characters in the name: %1"
-msgstr ""
+msgstr "Nie możesz użyć następujących znaków w nazwie: %1"
 
 msgid "Clone"
-msgstr ""
+msgstr "Klonuj"
 
 msgid "Failed to create directory for cloned VM"
-msgstr ""
+msgstr "Nie udało się stworzyć folderu dla klonowanej maszyny wirtualnej"
 
 msgid "Failed to clone VM."
-msgstr ""
+msgstr "Nie udało się sklonować maszyny wirtualnej."
 
 msgid "Directory in use"
-msgstr ""
+msgstr "Folder w użyciu"
 
 msgid "The selected directory is already in use. Please select a different directory."
-msgstr ""
+msgstr "Wybrany folder jest już w użyciu. Proszę wybrać inny folder."
 
 msgid "Create directory failed"
-msgstr ""
+msgstr "Nieudane utworzenie folderu"
 
 msgid "Unable to create the directory for the new system"
-msgstr ""
+msgstr "Nie udało się utworzyć folderu dla nowego systemu"
 
 msgid "Configuration write failed"
-msgstr ""
+msgstr "Nieudany zapis konfiguracji"
 
 msgid "Unable to open the configuration file at %1 for writing"
-msgstr ""
+msgstr "Nie udało się otworzyć pliku %1 do zapisu"
 
 msgid "Error adding system"
-msgstr ""
+msgstr "Błąd dodawania systemu"
 
 msgid "Remove directory failed"
-msgstr ""
+msgstr "Nieudane usunięcie folderu"
 
 msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
-msgstr ""
+msgstr "Nie udało się usunąć niektórych plików w folderze maszyny wirtualnej. Proszę usunąć je ręcznie."
 
 msgid "Build"
-msgstr ""
+msgstr "Kompilacja"
 
 msgid "Version"
-msgstr ""
+msgstr "Wersja"
 
 msgid "An update to 86Box is available: %1 %2"
-msgstr ""
+msgstr "Dostępna jest aktualizacja 86Boxa: %1 %2"
 
 msgid "An error has occurred while checking for updates: %1"
-msgstr ""
+msgstr "Wystąpił błąd podczas sprawdzania aktualizacji %1"
 
 msgid "<b>An update to 86Box is available!</b>"
-msgstr ""
+msgstr "<b>Dostępna jest aktualizacja 86Boxa!</b>"
 
 msgid "Warning"
-msgstr ""
+msgstr "Ostrzeżenie"
 
 msgid "&Kill"
-msgstr ""
+msgstr "&Zabij"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr ""
+msgstr "Zabicie maszyny wirtualnej może spowodować utratę danych. Zrób to tylko, jeśli proces 86Boxa się zawiesił.\n\nCzy na pewno chcesz zabić maszynę wirtualną „%1”?"
 
 msgid "&Delete"
-msgstr ""
+msgstr "&Usuń"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr ""
+msgstr "Czy na pewno chcesz usunąć maszynę wirtualną „%1” i jej wszystkie pliki? Tej operacji nie można cofnąć!"
 
 msgid "Show &config file"
-msgstr ""
+msgstr "&Pokaż plik konfiguracyjny"
 
 msgid "No screenshot"
-msgstr ""
+msgstr "Brak zrzutów ekranu"
 
 msgid "Search"
-msgstr ""
+msgstr "Szukanie"
 
 msgid "Searching for VMs..."
-msgstr ""
+msgstr "Szukanie maszyn wirtualnych..."
 
 msgid "Found %1"
-msgstr ""
+msgstr "Znaleziono %1"
 
 msgid "System"
-msgstr ""
+msgstr "System"
 
 msgid "Storage"
-msgstr ""
+msgstr "Pamięć"
 
 msgid "Disk %1: "
-msgstr ""
+msgstr "Dysk %1: "
 
 msgid "No disks"
-msgstr ""
+msgstr "Brak dysków"
 
 msgid "Audio"
-msgstr ""
+msgstr "Dźwięk"
 
 msgid "Audio:"
-msgstr ""
+msgstr "Dźwięk:"
 
 msgid "ACPI shutdown"
 msgstr "Wyłączenie ACPI"
@@ -1639,10 +1639,10 @@ msgid "&MCA devices..."
 msgstr "Urządzenia MCA..."
 
 msgid "Show non-&primary monitors"
-msgstr "Pokaż monitory inne niż podstawowe"
+msgstr "Pokaż monitory &inne niż podstawowe"
 
 msgid "Open screenshots &folder..."
-msgstr "Otwórz folder zrzutów ekranu..."
+msgstr "Otwórz folder zrzutów &ekranu..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Zastosowanie trybu rozciągania na pełnym ekranie w stanie zmaksymalizowanym"
@@ -1675,7 +1675,7 @@ msgid "Null Driver"
 msgstr "Null Driver"
 
 msgid "NIC:"
-msgstr ""
+msgstr "NIC:"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
@@ -1729,13 +1729,13 @@ msgid "This machine might have been moved or copied."
 msgstr "To urządzenie mogło zostać przeniesione lub skopiowane."
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "Aby zapewnić prawidłową funkcjonalność sieci, 86Box musi wiedzieć, czy to urządzenie zostało przeniesione lub skopiowane.\n\nW przypadku braku pewności, wybrać opcję \"Zostało skopiowane\"."
+msgstr "Aby zapewnić prawidłową funkcjonalność sieci, 86Box musi wiedzieć, czy to maszyna zostało przeniesiona albo skopiowana.\n\nW przypadku braku pewności, wybierz opcję „Została skopiowana”."
 
 msgid "I Moved It"
-msgstr "Zostało przeniesione"
+msgstr "Została przeniesiona"
 
 msgid "I Copied It"
-msgstr "Zostało skopiowane"
+msgstr "Została skopiowana"
 
 msgid "86Box Monitor #"
 msgstr "86Box Monitor "
@@ -1747,7 +1747,7 @@ msgid "MiB"
 msgstr "MiB"
 
 msgid "GiB"
-msgstr ""
+msgstr "GiB"
 
 msgid "Network Card #1"
 msgstr "Karta sieciowa nr 1"
@@ -1924,10 +1924,10 @@ msgid "IRQ"
 msgstr "IRQ"
 
 msgid "Serial port IRQ"
-msgstr ""
+msgstr "IRQ portu szeregowego"
 
 msgid "Parallel port IRQ"
-msgstr ""
+msgstr "IRQ portu równoległego"
 
 msgid "BIOS Revision"
 msgstr "Rewizja BIOS-u"
@@ -2155,7 +2155,7 @@ msgid "SB Address"
 msgstr "Adres SB"
 
 msgid "Adlib Address"
-msgstr ""
+msgstr "Adres Adlib"
 
 msgid "Use EEPROM setting"
 msgstr "Użyj ustawień z EEPROM"
@@ -2206,7 +2206,7 @@ msgid "GUS type"
 msgstr "Typ GUS"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr "Włącz polecenie 0x04 \"Wyjdź z 86Boxa\""
+msgstr "Włącz polecenie 0x04 „Wyjdź z 86Boxa”"
 
 msgid "Display type"
 msgstr "Typ ekranu"
@@ -2215,7 +2215,7 @@ msgid "Composite type"
 msgstr "Typ kompozytowy"
 
 msgid "True color"
-msgstr ""
+msgstr "Prawdziwy kolor"
 
 msgid "RGB type"
 msgstr "Typ RGB"
@@ -2560,7 +2560,7 @@ msgid "3Dfx Voodoo Graphics"
 msgstr "Grafika 3Dfx Voodoo"
 
 msgid "3Dfx Voodoo 2"
-msgstr ""
+msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 jednostki TMU)"
@@ -2695,7 +2695,7 @@ msgid "Unable to find Dot-Matrix fonts"
 msgstr "Nie można znaleźć fontów igłowych"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "Fonty TrueType w katalogu \"roms/printer/fonts\" są wymagane do emulacji generycznej drukarki igłowej ESC/P."
+msgstr "Fonty TrueType w katalogu „roms/printer/fonts” są wymagane do emulacji generycznej drukarki igłowej ESC/P."
 
 msgid "Inhibit multimedia keys"
 msgstr "Przejmij klawisze multimedialne"
@@ -2815,127 +2815,127 @@ msgid "SoundFont files"
 msgstr "Pliki SoundFont"
 
 msgid "Local Switch"
-msgstr ""
+msgstr "Switch lokalny"
 
 msgid "Remote Switch"
-msgstr ""
+msgstr "Switch zdalny"
 
 msgid "Switch:"
-msgstr ""
+msgstr "Switch:"
 
 msgid "Hub Mode"
-msgstr ""
+msgstr "Tryb hub"
 
 msgid "Hostname:"
-msgstr ""
+msgstr "Nazwa komputera:"
 
 msgid "ISA RTC"
-msgstr ""
+msgstr "ISA RTC"
 
 msgid "ISA RAM"
-msgstr ""
+msgstr "ISA RAM"
 
 msgid "ISA ROM"
-msgstr ""
+msgstr "ISA ROM"
 
 msgid "&Wipe NVRAM"
-msgstr ""
+msgstr "&Wyczyść NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr ""
+msgstr "To usunie wszystkie pliki NVRAM (i powiązane) maszyny wirtualnej, zlokalizowane w podkatalogu „nvr”. Będziesz musieć przekonfigurować BIOS (i prawdopodobnie inne urządzenia w maszynie wirtualnej), jeśli dotyczy.\n\nCzy na pewno chcesz wyczyścić całą zawartość NVRAM maszyny wirtualnej \"%1\"?"
 
 msgid "Success"
-msgstr ""
+msgstr "Sukces"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr ""
+msgstr "Pomyślnie wyczyszczono zawartość NVRAM maszyny wirtualnej „%1”"
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr ""
+msgstr "Wystąpił błąd podczas próby wyczyszczenia zawartości NVRAM maszyny wirtualnej „%1”"
 
 msgid "%1 VM Manager"
-msgstr ""
+msgstr "Menedżer maszyn wirtualnych %1"
 
 msgid "%n disk(s)"
-msgstr ""
+msgstr "%n dysk(i/ów)"
 
 msgid "Unknown Status"
-msgstr ""
+msgstr "Status nieznany"
 
 msgid "No Machines Found!"
-msgstr ""
+msgstr "Nie znaleziono maszyn!"
 
 msgid "Check for updates on startup"
-msgstr ""
+msgstr "Sprawdzaj aktualizacje przy starcie"
 
 msgid "Unable to determine release information"
-msgstr ""
+msgstr "Nie udało się ustalić informacji o wydaniu"
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
-msgstr ""
+msgstr "Wystąpił błąd podczas sprawdzania aktualizacji:\n\n%1\n\nSpróbuj ponownie później."
 
 msgid "Update check complete"
-msgstr ""
+msgstr "Sprawdzanie aktualizacji ukończone"
 
 msgid "stable"
-msgstr ""
+msgstr "stabilnej"
 
 msgid "beta"
-msgstr ""
+msgstr "beta"
 
 msgid "You are running the latest %1 version of 86Box: %2"
-msgstr ""
+msgstr "Używasz najnowszej wersji %1 86Boxa: %2"
 
 msgid "version"
-msgstr ""
+msgstr "wersja"
 
 msgid "build"
-msgstr ""
+msgstr "kompilacja"
 
 msgid "You are currently running version <b>%1</b>."
-msgstr ""
+msgstr "Aktualnie używasz wersji <b>%1</b>."
 
 msgid "<b>Version %1</b> is now available."
-msgstr ""
+msgstr "<b>Wersja %1</b> jest teraz dostępna."
 
 msgid "You are currently running build <b>%1</b>."
-msgstr ""
+msgstr "Aktualnie używasz kompilacji <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
-msgstr ""
+msgstr "<b>Kompilacja %1</b> jest teraz dostępna."
 
 msgid "Would you like to visit the download page?"
-msgstr ""
+msgstr "Czy chcesz odwiedzić stronę pobierania?"
 
 msgid "Visit download page"
-msgstr ""
+msgstr "Odwiedź stronę pobierania"
 
 msgid "Update check"
-msgstr ""
+msgstr "Sprawdzanie aktualizacji"
 
 msgid "Checking for updates..."
-msgstr ""
+msgstr "Sprawdzanie aktualizacji..."
 
 msgid "86Box Update"
-msgstr ""
+msgstr "Aktualizacja 86Boxa"
 
 msgid "Release notes:"
-msgstr ""
+msgstr "Uwagi do wydania:"
 
 msgid "%1 Hz"
 msgstr "%1 Hz"
 
 msgid "Virtual machine crash"
-msgstr ""
+msgstr "Awaria maszyny wirtualnej"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr ""
+msgstr "Proces maszyny wirtualnej „%1” zakończył się nieoczekiwanie z kodem błędu %2."
 
 msgid "The system will not be added."
-msgstr ""
+msgstr "System nie będzie dodany."
 
 msgid "&Update mouse every CPU frame"
-msgstr ""
+msgstr "Aktualizuj &mysz z każdą ramką CPU"
 
 msgid "Hue"
 msgstr "Barwa"
