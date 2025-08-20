@@ -2950,7 +2950,7 @@ msgstr "&Обновлять мышь при каждом кадре ЦП"
 #~ msgstr "Образы ZIP"
 
 msgid "Hue"
-msgstr "Оттенок"
+msgstr "Тон"
 
 msgid "Saturation"
 msgstr "Насыщенность"
