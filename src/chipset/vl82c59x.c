@@ -78,6 +78,7 @@ typedef struct vl82c59x_t {
 
     uint16_t   pmio;
     uint8_t    pmio_set;
+    uint8_t    pmreg;
 
     smram_t   *smram[4];
     port_92_t *port_92;
@@ -174,6 +175,7 @@ vl82c59x_pm_write(uint16_t addr, uint8_t val, void *priv)
     if ((dev->pci_conf_sb[0x6D] & 0x80) && (dev->pci_conf_sb[0x60] & 0x80)) {
         vl82c59x_log(dev->log, "I/O port SMI trigger!\n");
         dev->pci_conf_sb[0x61] = 0x80;
+        dev->pmreg = val;
         smi_raise();
     }
 
@@ -185,6 +187,7 @@ vl82c59x_pm_read(uint16_t addr, void *priv)
     vl82c59x_t *dev = (vl82c59x_t *) priv;
     uint8_t ret = 0x00;
 
+    ret = dev->pmreg;
     vl82c59x_log(dev->log, "VL82c593 ISA: [R] (%04X) = %02X\n", addr, ret);
 
     return ret;
