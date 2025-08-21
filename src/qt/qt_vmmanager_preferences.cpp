@@ -37,7 +37,7 @@ VMManagerPreferences(QWidget *parent) : ui(new Ui::VMManagerPreferences)
     connect(ui->dirSelectButton, &QPushButton::clicked, this, &VMManagerPreferences::chooseDirectoryLocation);
 
     const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
-    const auto configSystemDir = vmm_path_cfg;
+    const auto configSystemDir = QString(vmm_path_cfg);
     if(!configSystemDir.isEmpty()) {
         // Prefer this one
         ui->systemDirectory->setText(configSystemDir);
@@ -92,7 +92,7 @@ VMManagerPreferences::accept()
 {
     const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
 
-    vmm_path_cfg = ui->systemDirectory->text();
+    vmm_path_cfg = ui->systemDirectory->text().toUtf8().constData();
     lang_id = ui->comboBoxLanguage->currentData().toInt();
     config_save_global();
 
