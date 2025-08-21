@@ -721,14 +721,8 @@ msgstr "Flyttbara disk-avbildningar"
 msgid "Image %1"
 msgstr "Avbildning %1"
 
-msgid ""
-"86Box could not find any usable ROM images.\n"
-"\n"
-"Please <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr ""
-"86Box kunde inte hitta några användbara ROM-avbildningar.\n"
-"\n"
-"Vänligen <a href=\"https://github.com/86Box/roms/releases/latest\">ladda ner</a> en ROM-uppsättning och extrahera den till mappen \"roms\"."
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Box kunde inte hitta några användbara ROM-avbildningar.\n\nVänligen <a href=\"https://github.com/86Box/roms/releases/latest\">ladda ner</a> en ROM-uppsättning och extrahera den till mappen \"roms\"."
 
 msgid "(empty)"
 msgstr "(tom)"
@@ -896,7 +890,7 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr ""
+msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "2-button gamepad(s)"
 msgstr "Handkontroll(er) med två knappar"
@@ -1070,7 +1064,7 @@ msgid "Pause execution"
 msgstr "Pausa exekvering"
 
 msgid "Ctrl+Alt+Del"
-msgstr ""
+msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "Tryck på Ctrl+Alt+Del"
@@ -1955,7 +1949,7 @@ msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 expansionsenhet"
 
 msgid "IBM Cassette Basic"
-msgstr ""
+msgstr "IBM Cassette Basic"
 
 msgid "Translate 26 -> 17"
 msgstr "Översätt 26 -> 17"
@@ -2264,7 +2258,7 @@ msgid "Bilinear filtering"
 msgstr "Bilinjär filtrering"
 
 msgid "Video chroma-keying"
-msgstr ""
+msgstr "Video chroma-keying"
 
 msgid "Dithering"
 msgstr "Dithering"
@@ -2459,7 +2453,7 @@ msgid "Composite"
 msgstr "Komposit"
 
 msgid "True color"
-msgstr ""
+msgstr "True color"
 
 msgid "Old"
 msgstr "Gammal"
@@ -2573,7 +2567,7 @@ msgid "3Dfx Voodoo Graphics"
 msgstr "3Dfx Voodoo-grafik"
 
 msgid "3Dfx Voodoo 2"
-msgstr ""
+msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 TMUs)"
