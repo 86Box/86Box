@@ -1012,7 +1012,7 @@ msgid "Don't reset"
 msgstr "Hayır"
 
 msgid "CD-ROM images"
-msgstr "CD-ROM imajları"
+msgstr "CD-ROM görüntüleri"
 
 msgid "%1 Device Configuration"
 msgstr "%1 Cihaz Yapılandırması"
@@ -2638,7 +2638,7 @@ msgid "Host Serial Passthrough"
 msgstr "Ana Sistem Seri Geçişi"
 
 msgid "E&ject %1"
-msgstr "%1 imajını &çıkar"
+msgstr "%1 görüntüsünü &çıkar"
 
 msgid "&Unmute"
 msgstr "&Sesi aç"
