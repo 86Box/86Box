@@ -17,6 +17,7 @@
 
 #include <QFileDialog>
 #include <QStyle>
+#include <cstring>
 
 #include "qt_progsettings.hpp"
 #include "qt_vmmanager_preferences.hpp"
@@ -92,7 +93,7 @@ VMManagerPreferences::accept()
 {
     const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
 
-    vmm_path_cfg = ui->systemDirectory->text().toUtf8().constData();
+    strncpy(vmm_path_cfg, ui->systemDirectory->text().toUtf8().constData(), sizeof(vmm_path_cfg) - 1);
     lang_id = ui->comboBoxLanguage->currentData().toInt();
     config_save_global();
 
