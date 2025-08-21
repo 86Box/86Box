@@ -136,6 +136,15 @@ load_global(void)
         mouse_sensitivity = 0.1;
     else if (mouse_sensitivity > 2.0)
         mouse_sensitivity = 2.0;
+
+    vmm_disabled = ini_section_get_int(cat, "vmm_disabled", -1);
+
+    p = ini_section_get_string(cat, "vmm_path", NULL);
+    if (p != NULL)
+        strncpy(vmm_path, p, sizeof(vmm_path) - 1);
+    else
+        // [todo] plat_vmm_path()
+        vmm_path[0] = 0;
 }
 
 /* Load "General" section. */
@@ -2200,6 +2209,13 @@ save_global(void)
         ini_section_set_double(cat, "mouse_sensitivity", mouse_sensitivity);
     else
         ini_section_delete_var(cat, "mouse_sensitivity");
+
+    if (vmm_disabled != -1)
+        ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
+    else
+        ini_section_delete_var(cat, "vmm_disabled");
+
+    ini_section_set_string(cat, "vmm_path", vmm_path);
 }
 
 /* Save "General" section. */

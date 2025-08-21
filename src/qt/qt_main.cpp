@@ -584,7 +584,7 @@ main(int argc, char *argv[])
         return 0;
     }
 
-    if (!vmm_enabled)
+    if (!start_vmm)
 #ifdef Q_OS_MACOS
         qt_set_sequence_auto_mnemonic(false);
 #else
@@ -625,10 +625,10 @@ main(int argc, char *argv[])
         return 6;
     }
 
-    if (!vmm_enabled)
+    if (!start_vmm)
         pc_init_modules();
 
-    if (vmm_enabled) {
+    if (start_vmm) {
         // VMManagerMain vmm;
         // // Hackish until there is a proper solution
         // QApplication::setApplicationName("86Box VM Manager");

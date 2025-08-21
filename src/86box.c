@@ -219,6 +219,7 @@ int      sound_muted                            = 0;              /* (C) Is soun
 int      jumpered_internal_ecp_dma              = 0;              /* (C) Jumpered internal EPC DMA */
 int      inhibit_multimedia_keys;                                 /* (G) Inhibit multimedia keys on Windows. */
 int      force_10ms;                                              /* (C) Force 10ms CPU frame intervals. */
+int      vmm_disabled                           = -1;             /* (G) disable built-in manager */
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
                                                                      present */
@@ -258,7 +259,7 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
 };
 
 char vmm_path[1024] = { '\0'}; /* TEMPORARY - VM manager path to scan for VMs */
-int  vmm_enabled = 0;
+int  start_vmm = 1;
 
 /* Statistics. */
 extern int mmuflush;
@@ -707,9 +708,6 @@ pc_init(int argc, char *argv[])
     time_t           now;
     int              c;
     int              lvmp = 0;
-#ifdef DEPRECATE_USAGE
-    int              deprecated = 1;
-#endif
 #ifdef ENABLE_NG
     int ng = 0;
 #endif
@@ -799,9 +797,7 @@ usage:
                 goto usage;
 
             ppath = argv[++c];
-#ifdef DEPRECATE_USAGE
-            deprecated = 0;
-#endif
+            start_vmm = 0;
         } else if (!strcasecmp(argv[c], "--rompath") || !strcasecmp(argv[c], "-R")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -813,9 +809,7 @@ usage:
                 goto usage;
 
             cfg = argv[++c];
-#ifdef DEPRECATE_USAGE
-            deprecated = 0;
-#endif
+            start_vmm = 0;
         } else if (!strcasecmp(argv[c], "--global") || !strcasecmp(argv[c], "-O")) {
             if ((c + 1) == argc || plat_dir_check(argv[c + 1]))
                 goto usage;
@@ -924,20 +918,11 @@ usage:
         else
             cfg = argv[c++];
 
-#ifdef DEPRECATE_USAGE
-        deprecated = 0;
-#endif
+        start_vmm = 0;
     }
 
     if (c != argc)
         goto usage;
-
-#ifdef DEPRECATE_USAGE
-    if (deprecated)
-        pc_show_usage("Running 86Box without a specified VM path and/or configuration\n"
-                      "file has been deprected. Please specify one or use a manager\n"
-                      "(Avalonia 86 is recommended).\n\n");
-#endif
 
     path_slash(usr_path);
     path_slash(rom_path);
@@ -1104,14 +1089,25 @@ usage:
     pclog("# Global configuration file: %s\n", global_cfg_path);
     pclog("# Configuration file: %s\n#\n\n", cfg_path);
     if (strlen(vmm_path) != 0) {
-        vmm_enabled = 1;
+        start_vmm = 1;
         pclog("# VM Manager enabled. Path: %s\n", vmm_path);
     }
 
     /* Load the global configuration file. */
     config_load_global();
 
-    if (!vmm_enabled) {
+    if (vmm_disabled && start_vmm) {
+#ifdef DEPRECATE_USAGE        
+        if (vmm_disabled < 0) {
+            pc_show_usage("Running 86Box without a specified VM path and/or configuration\n"
+                          "file has been deprecated. Please specify one or use a manager\n"
+                          "(Avalonia 86 is recommended).\n\n");
+        }
+#endif
+        start_vmm = 0;
+    }
+
+    if (!start_vmm) {
         /*
          * We are about to read the configuration file, which MAY
          * put data into global variables (the hard- and floppy
