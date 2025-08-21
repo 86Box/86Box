@@ -1105,7 +1105,7 @@ usage:
         /* -E specified on the command line. */
         start_vmm = 1;
     } else {
-        strncpy(vmm_path, vmm_path_cfg, sizeof(vmm_path) - 1)
+        strncpy(vmm_path, vmm_path_cfg, sizeof(vmm_path) - 1);
     }
 
     if (start_vmm) {        
