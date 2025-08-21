@@ -66,8 +66,8 @@ msgstr "VNC(&V)"
 msgid "Specify &dimensions..."
 msgstr "ディメンションを指定...(&D)"
 
-msgid "F&orce 4:3 display ratio"
-msgstr "4:3の縦横比を強制表示(&O)"
+msgid "Force &4:3 display ratio"
+msgstr "4:3の縦横比を強制表示(&4)"
 
 msgid "&Window scale factor"
 msgstr "ウィンドウの表示倍率(&W)"

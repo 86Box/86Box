@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "E&specificar dimensiones..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "F&orzar ratio 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Forzar ratio &4:3"
 
 msgid "&Window scale factor"
 msgstr "&Factor de escalado de ventana"
@@ -118,7 +118,7 @@ msgid "&Fullscreen"
 msgstr "&Pantalla completa"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Escalado pantalla completa"
+msgstr "Esca&lado pantalla completa"
 
 msgid "&Full screen stretch"
 msgstr "&Estirar"
@@ -178,7 +178,7 @@ msgid "&Average"
 msgstr "&Media"
 
 msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "&Overscan CGA/PCjr/Tandy/EGA/(S)VGA"
+msgstr "Overscan CGA/PCjr/Tandy/E&GA/(S)VGA"
 
 msgid "Change contrast for &monochrome display"
 msgstr "Cambiar contraste para pantalla &monocroma"
@@ -220,7 +220,7 @@ msgid "End trace"
 msgstr "Terminar traza"
 
 msgid "&Help"
-msgstr "&Ayuda"
+msgstr "Ay&uda"
 
 msgid "&Documentation..."
 msgstr "&Documentación..."
@@ -1639,13 +1639,13 @@ msgid "&MCA devices..."
 msgstr "Dispositivos MCA ..."
 
 msgid "Show non-&primary monitors"
-msgstr "Mostrar monitores no primarios"
+msgstr "Mostrar monitores no prim&arios"
 
 msgid "Open screenshots &folder..."
 msgstr "Abrir la carpeta screenshots..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Usar escalado pantalla completa en modalidad maximizada"
+msgstr "&Usar escalado pantalla completa en modalidad maximizada"
 
 msgid "&Cursor/Puck"
 msgstr "&Cursor/Puck"
@@ -1792,7 +1792,7 @@ msgid "Serial port passthrough 4"
 msgstr "Paso de puerto serie 4"
 
 msgid "Renderer &options..."
-msgstr "Opciones del renderizador..."
+msgstr "Opc&iones del renderizador..."
 
 msgid "PC/XT Keyboard"
 msgstr "Teclado PC/XT"

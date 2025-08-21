@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "Pencere &boyutunu belirle..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "4:3 görüntü oranına &zorla"
+msgid "Force &4:3 display ratio"
+msgstr "&4:3 görüntü oranına zorla"
 
 msgid "&Window scale factor"
 msgstr "Pencere &boyutu ölçeği"

@@ -43,7 +43,7 @@ msgid "&Hide status bar"
 msgstr "Ocultar barra de &status"
 
 msgid "Hide &toolbar"
-msgstr "Ocultar barra de &ferramenta"
+msgstr "Ocultar barra de &ferramentas"
 
 msgid "&Resizeable window"
 msgstr "&Janela redimensionável"
@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "Especificar as dimensões..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "F&orçar proporção de tela em 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Forçar proporção de tela em &4:3"
 
 msgid "&Window scale factor"
 msgstr "F&ator de redimensionamento da janela"
@@ -1639,13 +1639,13 @@ msgid "&MCA devices..."
 msgstr "Dispositivos MCA..."
 
 msgid "Show non-&primary monitors"
-msgstr "Mostrar monitores não primários"
+msgstr "Mostrar monitores não &primários"
 
 msgid "Open screenshots &folder..."
 msgstr "Abrir pasta de capturas de tela..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Aplicar modo de ampliação em tela cheia quando maximizado"
+msgstr "Apl&icar modo de ampliação em tela cheia quando maximizado"
 
 msgid "&Cursor/Puck"
 msgstr "&Cursor/Puck"
@@ -1792,7 +1792,7 @@ msgid "Serial port passthrough 4"
 msgstr "Passagem de porta serial 4"
 
 msgid "Renderer &options..."
-msgstr "Opções do renderizador..."
+msgstr "&Opções do renderizador..."
 
 msgid "PC/XT Keyboard"
 msgstr "Teclado PC/XT"

@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "&Zadať veľkosť..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "&Zachovať pomer strán 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Zachovať pomer strán &4:3"
 
 msgid "&Window scale factor"
 msgstr "&Násobné zväčšenie okna"

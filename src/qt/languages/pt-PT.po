@@ -40,10 +40,10 @@ msgid "&View"
 msgstr "&Ver"
 
 msgid "&Hide status bar"
-msgstr "&Ocultar barra de estado"
+msgstr "Ocultar &barra de estado"
 
 msgid "Hide &toolbar"
-msgstr "Hide &toolbar"
+msgstr "Ocultar barra de &ferramentas"
 
 msgid "&Resizeable window"
 msgstr "&Janela redimensionável"
@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "&Especificar dimensões..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "&Forçar rácio de visualização 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Forçar rácio de visualização &4:3"
 
 msgid "&Window scale factor"
 msgstr "F&actor de escala de janela"
@@ -103,7 +103,7 @@ msgid "&8x"
 msgstr "&8x"
 
 msgid "Fi&lter method"
-msgstr "Método de filtragem"
+msgstr "Método de fil&tragem"
 
 msgid "&Nearest"
 msgstr "&Mais próximo"
@@ -115,10 +115,10 @@ msgid "Hi&DPI scaling"
 msgstr "Escala Hi&DPI"
 
 msgid "&Fullscreen"
-msgstr "E&crã cheio"
+msgstr "Ecrã c&heio"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Modo &de estiramento na tela cheia"
+msgstr "M&odo de estiramento na tela cheia"
 
 msgid "&Full screen stretch"
 msgstr "&Estiramento na tela cheia"
@@ -181,7 +181,7 @@ msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
 msgstr "Overscan de CGA/PCjr/Tandy/E&GA/(S)VGA"
 
 msgid "Change contrast for &monochrome display"
-msgstr "Mudar &contraste para ecrã monocromático"
+msgstr "Mudar contraste para ecrã &monocromático"
 
 msgid "&Media"
 msgstr "&Media"
@@ -220,7 +220,7 @@ msgid "End trace"
 msgstr "Terminar o rastreio"
 
 msgid "&Help"
-msgstr "&Ajuda"
+msgstr "Aj&uda"
 
 msgid "&Documentation..."
 msgstr "&Documentação..."
@@ -1639,13 +1639,13 @@ msgid "&MCA devices..."
 msgstr "Dispositivos MCA..."
 
 msgid "Show non-&primary monitors"
-msgstr "Mostrar monitores não primários"
+msgstr "Mostrar monitores não &primários"
 
 msgid "Open screenshots &folder..."
 msgstr "Abrir a pasta de capturas de ecrã..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Aplicar o modo de estiramento na tela cheia quando maximizado"
+msgstr "Apl&icar o modo de estiramento na tela cheia quando maximizado"
 
 msgid "&Cursor/Puck"
 msgstr "&Cursor/Puck"
@@ -1792,7 +1792,7 @@ msgid "Serial port passthrough 4"
 msgstr "Passagem da porta de série 4"
 
 msgid "Renderer &options..."
-msgstr "Opções do renderizador..."
+msgstr "Opções do re&nderizador..."
 
 msgid "PC/XT Keyboard"
 msgstr "Teclado PC/XT"
