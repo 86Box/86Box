@@ -2952,5 +2952,8 @@ msgstr ""
 msgid "Sharpness"
 msgstr ""
 
-msgid "CGA composite settings..."
+msgid "&CGA composite settings..."
+msgstr ""
+
+msgid "CGA composite settings"
 msgstr ""

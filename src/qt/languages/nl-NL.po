@@ -2952,17 +2952,8 @@ msgstr "Helderheid"
 msgid "Sharpness"
 msgstr "Scherpte"
 
-msgid "CGA composite settings..."
-msgstr "Instellingen van de CGA-compositemodus..."
+msgid "&CGA composite settings..."
+msgstr "Instellingen van de &CGA-compositemodus..."
 
-#~ msgid "HD Controller:"
-#~ msgstr "HD-controller:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP-schijven:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "ZIP-images"
+msgid "CGA composite settings"
+msgstr "Instellingen van de CGA-compositemodus"

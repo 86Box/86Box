@@ -2952,17 +2952,8 @@ msgstr "Svetlost"
 msgid "Sharpness"
 msgstr "Ostrina"
 
-msgid "CGA composite settings..."
-msgstr "Nastavitve kompozitnega načina CGA..."
+msgid "&CGA composite settings..."
+msgstr "Nastavitve kompozitnega načina &CGA..."
 
-#~ msgid "HD Controller:"
-#~ msgstr "Krmilnik trdega diska:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "Pogoni ZIP:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "ZIP slike"
+msgid "CGA composite settings"
+msgstr "Nastavitve kompozitnega načina CGA"

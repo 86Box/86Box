@@ -2952,17 +2952,8 @@ msgstr "亮度"
 msgid "Sharpness"
 msgstr "銳利度"
 
-msgid "CGA composite settings..."
-msgstr "CGA 複合模式的設定..."
+msgid "&CGA composite settings..."
+msgstr "CGA 複合模式的設定...(&C)"
 
-#~ msgid "HD Controller:"
-#~ msgstr "硬碟控制器:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP 磁碟機:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "ZIP 映像"
+msgid "CGA composite settings"
+msgstr "CGA 複合模式的設定"

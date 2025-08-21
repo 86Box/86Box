@@ -2952,18 +2952,8 @@ msgstr "Яркость"
 msgid "Sharpness"
 msgstr "Резкость"
 
-msgid "CGA composite settings..."
-msgstr "Настройки композитного видео CGA..."
+msgid "&CGA composite settings..."
+msgstr "Настройки композитного видео &CGA..."
 
-#~ msgid "HD Controller:"
-#~ msgstr "Контроллер HD:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP дисководы:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "Образы ZIP"
-
+msgid "CGA composite settings"
+msgstr "Настройки композитного видео CGA"

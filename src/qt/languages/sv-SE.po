@@ -2952,17 +2952,8 @@ msgstr "Ljusstyrka"
 msgid "Sharpness"
 msgstr "Skärpa"
 
-msgid "CGA composite settings..."
-msgstr "Inställningar för CGA-kompositläget..."
+msgid "&CGA composite settings..."
+msgstr "Inställningar för &CGA-kompositläget..."
 
-#~ msgid "HD Controller:"
-#~ msgstr "Styrenhet för hårddisk:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "Zip-enheter:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "Zip-avbildningar"
+msgid "CGA composite settings"
+msgstr "Inställningar för CGA-kompositläget"

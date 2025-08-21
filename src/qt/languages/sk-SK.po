@@ -2922,6 +2922,9 @@ msgstr "Aktualizácia 86Box"
 msgid "Release notes:"
 msgstr "Poznámky k vydaniu:"
 
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
 msgid "Virtual machine crash"
 msgstr "Havária virtuálneho počítača"
 
@@ -2930,9 +2933,6 @@ msgstr "Proces virtuálneho počítača \"%1\" bol neočakávane ukončený s k�
 
 msgid "The system will not be added."
 msgstr "Systém nebude pridaný."
-
-msgid "%1 Hz"
-msgstr "%1 Hz"
 
 msgid "&Update mouse every CPU frame"
 msgstr "&Aktualizovať myš pri každom rámci CPU"
@@ -2952,17 +2952,8 @@ msgstr "Jas"
 msgid "Sharpness"
 msgstr "Ostrota"
 
-msgid "CGA composite settings..."
-msgstr "Nastavenia kompozitného režimu CGA..."
+msgid "&CGA composite settings..."
+msgstr "Nastavenia kompozitného režimu &CGA..."
 
-#~ msgid "HD Controller:"
-#~ msgstr "Radič disku:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "Mechaniky ZIP:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "Obrazy ZIP diskov"
+msgid "CGA composite settings"
+msgstr "Nastavenia kompozitného režimu CGA"

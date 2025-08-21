@@ -112,13 +112,13 @@ msgid "&Linear"
 msgstr "&Linear"
 
 msgid "Hi&DPI scaling"
-msgstr "Escala Hi&DPI"
+msgstr "Escala &HiDPI"
 
 msgid "&Fullscreen"
 msgstr "&Tela cheia"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Modo de redimensionamento da tela &cheia"
+msgstr "Modo de re&dimensionamento da tela cheia"
 
 msgid "&Full screen stretch"
 msgstr "&Tela cheia redimensionada"
@@ -2952,5 +2952,8 @@ msgstr "Brilho"
 msgid "Sharpness"
 msgstr "Nitidez"
 
-msgid "CGA composite settings..."
-msgstr "Configurações do modo composto CGA..."
+msgid "&CGA composite settings..."
+msgstr "Configurações do modo composto &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Configurações do modo composto CGA"

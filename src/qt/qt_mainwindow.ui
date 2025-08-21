@@ -891,7 +891,7 @@
   </action>
   <action name="actionCGA_composite_settings">
    <property name="text">
-    <string>CGA composite settings...</string>
+    <string>&amp;CGA composite settings...</string>
    </property>
   </action>
  </widget>
