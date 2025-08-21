@@ -162,7 +162,7 @@
     </widget>
     <widget class="QMenu" name="menuEGA_S_VGA_settings">
      <property name="title">
-      <string>E&amp;GA/(S)VGA settings</string>
+      <string>EGA/(S)&amp;VGA settings</string>
      </property>
      <widget class="QMenu" name="menuVGA_screen_type">
       <property name="title">
@@ -891,7 +891,7 @@
   </action>
   <action name="actionCGA_composite_settings">
    <property name="text">
-    <string>CGA composite settings...</string>
+    <string>&amp;CGA composite settings...</string>
    </property>
   </action>
  </widget>

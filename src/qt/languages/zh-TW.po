@@ -135,8 +135,8 @@ msgstr "整數比例(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整數比例(&3)"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "EGA/(S)VGA 設定(&G)"
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)VGA 設定(&V)"
 
 msgid "&Inverted VGA monitor"
 msgstr "VGA 顯示器反色顯示(&I)"
@@ -2952,17 +2952,8 @@ msgstr "亮度"
 msgid "Sharpness"
 msgstr "銳利度"
 
-msgid "CGA composite settings..."
-msgstr "CGA 複合模式的設定..."
+msgid "&CGA composite settings..."
+msgstr "CGA 複合模式的設定...(&C)"
 
-#~ msgid "HD Controller:"
-#~ msgstr "硬碟控制器:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP 磁碟機:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "ZIP 映像"
+msgid "CGA composite settings"
+msgstr "CGA 複合模式的設定"

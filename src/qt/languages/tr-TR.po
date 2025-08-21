@@ -135,7 +135,7 @@ msgstr "Tam &sayı ölçeklemesi"
 msgid "4:&3 Integer scale"
 msgstr "Tam sayı ölçeklemesi (4:&3)"
 
-msgid "E&GA/(S)VGA settings"
+msgid "EGA/(S)&VGA settings"
 msgstr "EGA/&(S)VGA ayarları"
 
 msgid "&Inverted VGA monitor"
@@ -2952,17 +2952,8 @@ msgstr "Parlaklık"
 msgid "Sharpness"
 msgstr "Keskinlik"
 
-msgid "CGA composite settings..."
-msgstr "CGA kompozit modunun ayarları..."
+msgid "&CGA composite settings..."
+msgstr "&CGA kompozit modunun ayarları..."
 
-#~ msgid "HD Controller:"
-#~ msgstr "Hard Disk Denetleyicisi:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP sürücüleri:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "ZIP imajları"
+msgid "CGA composite settings"
+msgstr "CGA kompozit modunun ayarları"

@@ -135,8 +135,8 @@ msgstr "&Scala intera"
 msgid "4:&3 Integer scale"
 msgstr "Scala intera 4:&3"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Impostazioni E&GA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Impostazioni EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Monitor VGA invertito"
@@ -2952,17 +2952,8 @@ msgstr "Luminosità"
 msgid "Sharpness"
 msgstr "Nitidezza"
 
-msgid "CGA composite settings..."
-msgstr "Impostazioni del modo composito CGA..."
+msgid "&CGA composite settings..."
+msgstr "Impostazioni del modo composito &CGA..."
 
-#~ msgid "HD Controller:"
-#~ msgstr "Controller HD:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "Unità ZIP:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "Immagini ZIP"
+msgid "CGA composite settings"
+msgstr "Impostazioni del modo composito CGA"

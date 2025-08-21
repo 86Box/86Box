@@ -135,8 +135,8 @@ msgstr "&Celoštevilsko raztezanje"
 msgid "4:&3 Integer scale"
 msgstr "Celoštevilsko raztezanje 4:&3"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Nastavitve E&GA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Nastavitve EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Obrni barve zaslona VGA"
@@ -2952,17 +2952,8 @@ msgstr "Svetlost"
 msgid "Sharpness"
 msgstr "Ostrina"
 
-msgid "CGA composite settings..."
-msgstr "Nastavitve kompozitnega načina CGA..."
+msgid "&CGA composite settings..."
+msgstr "Nastavitve kompozitnega načina &CGA..."
 
-#~ msgid "HD Controller:"
-#~ msgstr "Krmilnik trdega diska:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "Pogoni ZIP:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "ZIP slike"
+msgid "CGA composite settings"
+msgstr "Nastavitve kompozitnega načina CGA"

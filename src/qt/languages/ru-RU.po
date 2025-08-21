@@ -135,8 +135,8 @@ msgstr "&Целочисленное масштабирование"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Целочисленное масштабирование"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Настройки E&GA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Настройки EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Инвертировать цвета VGA"
@@ -2952,18 +2952,8 @@ msgstr "Яркость"
 msgid "Sharpness"
 msgstr "Резкость"
 
-msgid "CGA composite settings..."
-msgstr "Настройки композитного видео CGA..."
+msgid "&CGA composite settings..."
+msgstr "Настройки композитного видео &CGA..."
 
-#~ msgid "HD Controller:"
-#~ msgstr "Контроллер HD:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP дисководы:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "Образы ZIP"
-
+msgid "CGA composite settings"
+msgstr "Настройки композитного видео CGA"

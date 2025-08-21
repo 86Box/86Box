@@ -135,8 +135,8 @@ msgstr "整数倍(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整数倍(&3)"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "E&GA/(S)VGAの設定"
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)&VGAの設定"
 
 msgid "&Inverted VGA monitor"
 msgstr "色反転(&I)"
@@ -2952,17 +2952,8 @@ msgstr "明るさ"
 msgid "Sharpness"
 msgstr "シャープネス"
 
-msgid "CGA composite settings..."
-msgstr "CGA複合モードの設定..."
+msgid "&CGA composite settings..."
+msgstr "CGA複合モードの設定...(&C)"
 
-#~ msgid "HD Controller:"
-#~ msgstr "HDDコントローラー:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIPドライブ:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "ZIPイメージ"
+msgid "CGA composite settings"
+msgstr "CGA複合モードの設定"
