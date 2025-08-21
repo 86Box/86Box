@@ -635,8 +635,10 @@ main(int argc, char *argv[])
         // QApplication::setApplicationDisplayName("86Box VM Manager");
         // vmm.show();
         // vmm.exec();
-        const auto vmm_main_window = new VMManagerMainWindow();
-        vmm_main_window->show();
+        QTimer::singleShot(0, [] {
+            const auto vmm_main_window = new VMManagerMainWindow();
+            vmm_main_window->show();
+        });
         QApplication::exec();
         return 0;
     }
