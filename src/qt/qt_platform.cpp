@@ -697,7 +697,7 @@ plat_get_temp_dir(char *outbuf, const uint8_t len)
 void
 plat_get_vmm_dir(char *outbuf, const size_t len)
 {
-    const auto dir = QDir(QStandardPaths::standardLocations(QStandardPaths::HomeLocation)[0]).filePath("86Box VMs");
+    const auto dir = QDir(QDir::home().filePath("86Box VMs"));
 
     if (!dir.exists()) {
         if (!dir.mkpath(".")) {
