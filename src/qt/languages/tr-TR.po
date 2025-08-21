@@ -135,7 +135,7 @@ msgstr "Tam &sayı ölçeklemesi"
 msgid "4:&3 Integer scale"
 msgstr "Tam sayı ölçeklemesi (4:&3)"
 
-msgid "E&GA/(S)VGA settings"
+msgid "EGA/(S)&VGA settings"
 msgstr "EGA/&(S)VGA ayarları"
 
 msgid "&Inverted VGA monitor"

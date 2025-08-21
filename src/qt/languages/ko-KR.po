@@ -135,8 +135,8 @@ msgstr "정수배 확대(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 정수배 확대(&3)"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "E&GA/(S)VGA 설정"
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)&VGA 설정"
 
 msgid "&Inverted VGA monitor"
 msgstr "색상 반전된 VGA 모니터(&I)"

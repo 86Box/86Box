@@ -135,7 +135,7 @@ msgstr ""
 msgid "4:&3 Integer scale"
 msgstr ""
 
-msgid "E&GA/(S)VGA settings"
+msgid "EGA/(S)&VGA settings"
 msgstr ""
 
 msgid "&Inverted VGA monitor"

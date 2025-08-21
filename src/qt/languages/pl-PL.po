@@ -135,8 +135,8 @@ msgstr "&Skalowanie całkowite"
 msgid "4:&3 Integer scale"
 msgstr "Skalowanie całkowite 4:&3"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Ustawienia E&GA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Ustawienia EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Odwrócony monitor VGA"

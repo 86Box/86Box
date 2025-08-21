@@ -135,8 +135,8 @@ msgstr "&Scala intera"
 msgid "4:&3 Integer scale"
 msgstr "Scala intera 4:&3"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Impostazioni E&GA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Impostazioni EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Monitor VGA invertito"

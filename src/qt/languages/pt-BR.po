@@ -135,7 +135,7 @@ msgstr "&Redimensionamento com valores inteiros"
 msgid "4:&3 Integer scale"
 msgstr "Redimensionamento com valores inteiros 4:&3"
 
-msgid "E&GA/(S)VGA settings"
+msgid "EGA/(S)&VGA settings"
 msgstr "Configurações de EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"

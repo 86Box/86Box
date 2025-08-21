@@ -135,8 +135,8 @@ msgstr "&Celočíselné škálování"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Celočíselné škálování"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Nastavení pro E&GA a (S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Nastavení pro EGA a (S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Převrátit barvy"

@@ -135,8 +135,8 @@ msgstr "&Skala till heltal"
 msgid "4:&3 Integer scale"
 msgstr "Skala till heltal i 4:&3"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "E&GA/(S)VGA-inställningar"
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)&VGA-inställningar"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Inverterad VGA-skärm"

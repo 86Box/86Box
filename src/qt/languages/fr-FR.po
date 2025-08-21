@@ -135,8 +135,8 @@ msgstr "&Echelle entière"
 msgid "4:&3 Integer scale"
 msgstr "Echelle entière 4:&3"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Réglages E&GA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Réglages EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "Moniteur VGA &Inversé"

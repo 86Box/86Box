@@ -135,8 +135,8 @@ msgstr "&Cijelobrojno skaliranje"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Cijelobrojno skaliranje"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "E&GA/(S)VGA postavke"
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)&VGA postavke"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Obrni boje zaslona VGA"

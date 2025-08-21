@@ -135,8 +135,8 @@ msgstr "整數比例(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整數比例(&3)"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "EGA/(S)VGA 設定(&G)"
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)VGA 設定(&V)"
 
 msgid "&Inverted VGA monitor"
 msgstr "VGA 顯示器反色顯示(&I)"
