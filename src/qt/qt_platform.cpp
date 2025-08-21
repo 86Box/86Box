@@ -695,6 +695,20 @@ plat_get_temp_dir(char *outbuf, const uint8_t len)
 }
 
 void
+plat_get_vmm_dir(char *outbuf, const size_t len)
+{
+    const auto dir = QDir(QStandardPaths::standardLocations(QStandardPaths::HomeLocation)[0]).filePath("86Box VMs");
+
+    if (!dir.exists()) {
+        if (!dir.mkpath(".")) {
+            qWarning("Failed to create VMs directory %s", dir.absolutePath().toUtf8().constData());
+        }
+    }
+
+    strncpy(outbuf, dir.canonicalPath().toUtf8().constData(), len);
+}
+
+void
 plat_init_rom_paths(void)
 {
     auto paths = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
