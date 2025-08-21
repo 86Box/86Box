@@ -1080,15 +1080,9 @@ usage:
 
     pclog("#\n# %ls v%ls logfile, created %s\n#\n",
           EMU_NAME_W, EMU_VERSION_FULL_W, temp);
-    pclog("# VM: %s\n#\n", vm_name);
-    pclog("# Emulator path: %s\n", exe_path);
-    pclog("# Userfiles path: %s\n", usr_path);
-    for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
-        pclog("# ROM path: %s\n", rom_path->path);
-    }
 
+    pclog("# Emulator path: %s\n", exe_path);
     pclog("# Global configuration file: %s\n", global_cfg_path);
-    pclog("# Configuration file: %s\n#\n\n", cfg_path);
 
     /* Load the global configuration file. */
     config_load_global();
@@ -1108,11 +1102,19 @@ usage:
         strncpy(vmm_path, vmm_path_cfg, sizeof(vmm_path) - 1);
     }
 
-    if (start_vmm) {        
+    if (start_vmm) {
         pclog("# VM Manager enabled. Path: %s\n", vmm_path);
     } else
 #endif
     {
+        pclog("# VM: %s\n#\n", vm_name);
+        pclog("# Configuration file: %s\n#\n\n", cfg_path);
+        pclog("# Userfiles path: %s\n", usr_path);
+
+        for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+            pclog("# ROM path: %s\n", rom_path->path);
+        }
+
         /*
          * We are about to read the configuration file, which MAY
          * put data into global variables (the hard- and floppy
