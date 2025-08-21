@@ -584,7 +584,7 @@ main(int argc, char *argv[])
         return 0;
     }
 
-    if (!vmm_enabled)
+    if (!start_vmm)
 #ifdef Q_OS_MACOS
         qt_set_sequence_auto_mnemonic(false);
 #else
@@ -625,21 +625,22 @@ main(int argc, char *argv[])
         return 6;
     }
 
-    if (!vmm_enabled)
-        pc_init_modules();
-
-    if (vmm_enabled) {
+    if (start_vmm) {
         // VMManagerMain vmm;
         // // Hackish until there is a proper solution
         // QApplication::setApplicationName("86Box VM Manager");
         // QApplication::setApplicationDisplayName("86Box VM Manager");
         // vmm.show();
         // vmm.exec();
-        const auto vmm_main_window = new VMManagerMainWindow();
-        vmm_main_window->show();
+        QTimer::singleShot(0, [] {
+            const auto vmm_main_window = new VMManagerMainWindow();
+            vmm_main_window->show();
+        });
         QApplication::exec();
         return 0;
     }
+
+    pc_init_modules();
 
     // UUID / copy / move detection
     if(!util::compareUuid()) {

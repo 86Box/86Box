@@ -42,7 +42,7 @@ StyleOverride::styleHint(
     QStyleHintReturn   *returnData) const
 {
     /* Disable using menu with alt key */
-    if (!vmm_enabled && (!kbd_req_capture || mouse_capture) && (hint == QStyle::SH_MenuBar_AltKeyNavigation))
+    if (!start_vmm && (!kbd_req_capture || mouse_capture) && (hint == QStyle::SH_MenuBar_AltKeyNavigation))
         return 0;
 
     return QProxyStyle::styleHint(hint, option, widget, returnData);
