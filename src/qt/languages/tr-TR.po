@@ -148,7 +148,7 @@ msgid "RGB &Color"
 msgstr "RGB (&Çok renkli)"
 
 msgid "RGB (no brown)"
-msgstr "RGB (kahverengi olmadan)"
+msgstr "RGB (kahverengi yok)"
 
 msgid "&RGB Grayscale"
 msgstr "RGB (&Gri tonlu)"
