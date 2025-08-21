@@ -135,8 +135,8 @@ msgstr "&Echelle entière"
 msgid "4:&3 Integer scale"
 msgstr "Echelle entière 4:&3"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Réglages E&GA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Réglages EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "Moniteur VGA &Inversé"
@@ -2952,17 +2952,8 @@ msgstr "Luminosité"
 msgid "Sharpness"
 msgstr "Netteté"
 
-msgid "CGA composite settings..."
-msgstr "Réglages du mode composite CGA..."
+msgid "&CGA composite settings..."
+msgstr "Réglages du mode composite &CGA..."
 
-#~ msgid "HD Controller:"
-#~ msgstr "Contrôleur HD:"
-
-#~ msgid "ZIP drives:"
-#~ msgstr "Lecteurs ZIP:"
-
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
-
-#~ msgid "ZIP images"
-#~ msgstr "Images ZIP"
+msgid "CGA composite settings"
+msgstr "Réglages du mode composite CGA"

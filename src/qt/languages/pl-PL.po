@@ -135,8 +135,8 @@ msgstr "&Skalowanie całkowite"
 msgid "4:&3 Integer scale"
 msgstr "Skalowanie całkowite 4:&3"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Ustawienia E&GA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Ustawienia EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Odwrócony monitor VGA"
@@ -2214,9 +2214,6 @@ msgstr "Typ ekranu"
 msgid "Composite type"
 msgstr "Typ kompozytowy"
 
-msgid "True color"
-msgstr "Prawdziwy kolor"
-
 msgid "RGB type"
 msgstr "Typ RGB"
 
@@ -2447,6 +2444,9 @@ msgstr "256 KB"
 
 msgid "Composite"
 msgstr "Kompozyt"
+
+msgid "True color"
+msgstr "Prawdziwy kolor"
 
 msgid "Old"
 msgstr "Stary"
@@ -2952,5 +2952,8 @@ msgstr "Jasność"
 msgid "Sharpness"
 msgstr "Ostrość"
 
-msgid "CGA composite settings..."
-msgstr "Ustawienia trybu kompozytowego CGA..."
+msgid "&CGA composite settings..."
+msgstr "Ustawienia trybu kompozytowego &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Ustawienia trybu kompozytowego CGA"

@@ -135,8 +135,8 @@ msgstr "&Celočíselné škálování"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Celočíselné škálování"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Nastavení pro E&GA a (S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Nastavení pro EGA a (S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Převrátit barvy"
@@ -2922,6 +2922,9 @@ msgstr "Aktualizace 86Box"
 msgid "Release notes:"
 msgstr "Poznámky k vydání:"
 
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
 msgid "Virtual machine crash"
 msgstr "Havárie virtuálního počítače"
 
@@ -2930,9 +2933,6 @@ msgstr "Proces virtuálního počítače \"%1\" byl neočekávaně ukončen s k�
 
 msgid "The system will not be added."
 msgstr "Systém nebude přidán."
-
-msgid "%1 Hz"
-msgstr "%1 Hz"
 
 msgid "&Update mouse every CPU frame"
 msgstr "&Aktualizovat myš při každém rámce CPU"
@@ -2952,5 +2952,8 @@ msgstr "Jas"
 msgid "Sharpness"
 msgstr "Ostrota"
 
-msgid "CGA composite settings..."
-msgstr "Nastavení kompozitního režimu CGA..."
+msgid "&CGA composite settings..."
+msgstr "Nastavení kompozitního režimu &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Nastavení kompozitního režimu CGA"
