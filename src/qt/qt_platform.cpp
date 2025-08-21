@@ -697,16 +697,8 @@ plat_get_temp_dir(char *outbuf, const uint8_t len)
 void
 plat_get_vmm_dir(char *outbuf, const size_t len)
 {
-    auto dir = QDir::home();
-    dir.setPath("86Box VMs");
-
-    if (!dir.exists()) {
-        if (!dir.mkpath(".")) {
-            qWarning("Failed to create VMs directory %s", dir.absolutePath().toUtf8().constData());
-        }
-    }
-
-    strncpy(outbuf, dir.canonicalPath().toUtf8().constData(), len);
+    const auto path = QDir::home().filePath("86Box VMs");
+    strncpy(outbuf, path.toUtf8().constData(), len);
 }
 
 void
