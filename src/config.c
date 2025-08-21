@@ -2023,12 +2023,10 @@ config_load_global(void)
     if (global == NULL) {
         global = ini_new();
 
-        lang_id = plat_language_code(DEFAULT_LANGUAGE);
-
         config_log("Global config file not present or invalid!\n");
-    } else {
-        load_global();
     }
+
+    load_global();
 }
 
 /* Load the specified or a default configuration file. */
