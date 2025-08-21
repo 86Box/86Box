@@ -17,6 +17,7 @@
 
 #include <QFileDialog>
 #include <QStyle>
+#include <cstring>
 
 #include "qt_progsettings.hpp"
 #include "qt_vmmanager_preferences.hpp"
@@ -37,7 +38,7 @@ VMManagerPreferences(QWidget *parent) : ui(new Ui::VMManagerPreferences)
     connect(ui->dirSelectButton, &QPushButton::clicked, this, &VMManagerPreferences::chooseDirectoryLocation);
 
     const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
-    const auto configSystemDir = config->getStringValue("system_directory");
+    const auto configSystemDir = QString(vmm_path_cfg);
     if(!configSystemDir.isEmpty()) {
         // Prefer this one
         ui->systemDirectory->setText(configSystemDir);
@@ -91,8 +92,8 @@ void
 VMManagerPreferences::accept()
 {
     const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
-    config->setStringValue("system_directory", ui->systemDirectory->text());
 
+    strncpy(vmm_path_cfg, ui->systemDirectory->text().toUtf8().constData(), sizeof(vmm_path_cfg) - 1);
     lang_id = ui->comboBoxLanguage->currentData().toInt();
     config_save_global();
 

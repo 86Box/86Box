@@ -136,6 +136,14 @@ load_global(void)
         mouse_sensitivity = 0.1;
     else if (mouse_sensitivity > 2.0)
         mouse_sensitivity = 2.0;
+
+    vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
+
+    p = ini_section_get_string(cat, "vmm_path", NULL);
+    if (p != NULL)
+        strncpy(vmm_path_cfg, p, sizeof(vmm_path_cfg) - 1);
+    else
+        plat_get_vmm_dir(vmm_path_cfg, sizeof(vmm_path_cfg));
 }
 
 /* Load "General" section. */
@@ -2015,12 +2023,10 @@ config_load_global(void)
     if (global == NULL) {
         global = ini_new();
 
-        lang_id = plat_language_code(DEFAULT_LANGUAGE);
-
         config_log("Global config file not present or invalid!\n");
-    } else {
-        load_global();
     }
+
+    load_global();
 }
 
 /* Load the specified or a default configuration file. */
@@ -2200,6 +2206,16 @@ save_global(void)
         ini_section_set_double(cat, "mouse_sensitivity", mouse_sensitivity);
     else
         ini_section_delete_var(cat, "mouse_sensitivity");
+
+    if (vmm_disabled != 0)
+        ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
+    else
+        ini_section_delete_var(cat, "vmm_disabled");
+
+    if (vmm_path_cfg[0] != 0)
+        ini_section_set_string(cat, "vmm_path", vmm_path_cfg);
+    else
+        ini_section_delete_var(cat, "vmm_path");
 }
 
 /* Save "General" section. */

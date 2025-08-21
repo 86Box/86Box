@@ -116,12 +116,12 @@ extern uint64_t instru_run_ms;
 #define window_y monitor_settings[0].mon_window_y
 #define window_w monitor_settings[0].mon_window_w
 #define window_h monitor_settings[0].mon_window_h
-extern int      inhibit_multimedia_keys;    /* (C) Inhibit multimedia keys on Windows. */
+extern int      inhibit_multimedia_keys;    /* (G) Inhibit multimedia keys on Windows. */
 extern int      window_remember;
 extern int      vid_resize;                 /* (C) allow resizing */
 extern int      invert_display;             /* (C) invert the display */
 extern int      suppress_overscan;          /* (C) suppress overscans */
-extern int      lang_id;                    /* (C) language id */
+extern int      lang_id;                    /* (G) language id */
 extern int      scale;                      /* (C) screen scale factor */
 extern int      dpi_scale;                  /* (C) DPI scaling of the emulated screen */
 extern int      vid_api;                    /* (C) video renderer */
@@ -160,9 +160,9 @@ extern int      fpu_type;                   /* (C) fpu type */
 extern int      fpu_softfloat;              /* (C) fpu uses softfloat */
 extern int      time_sync;                  /* (C) enable time sync */
 extern int      hdd_format_type;            /* (C) hard disk file format */
-extern int      confirm_reset;              /* (C) enable reset confirmation */
-extern int      confirm_exit;               /* (C) enable exit confirmation */
-extern int      confirm_save;               /* (C) enable save confirmation */
+extern int      confirm_reset;              /* (G) enable reset confirmation */
+extern int      confirm_exit;               /* (G) enable exit confirmation */
+extern int      confirm_save;               /* (G) enable save confirmation */
 extern int      enable_discord;             /* (C) enable Discord integration */
 extern int      force_10ms;                 /* (C) force 10ms CPU frame interval */
 extern int      jumpered_internal_ecp_dma;  /* (C) Jumpered internal EPC DMA */
@@ -177,7 +177,7 @@ extern int    sound_muted;                  /* (C) Is sound muted? */
 extern int    do_auto_pause;                /* (C) Auto-pause the emulator on focus loss */
 extern int    auto_paused;
 extern int    force_constant_mouse;         /* (C) Force constant updating of the mouse */
-extern double mouse_sensitivity;            /* (C) Mouse sensitivity scale */
+extern double mouse_sensitivity;            /* (G) Mouse sensitivity scale */
 #ifdef _Atomic
 extern _Atomic double mouse_x_error;        /* Mouse error accumulator - Y */
 extern _Atomic double mouse_y_error;        /* Mouse error accumulator - Y */
@@ -185,6 +185,8 @@ extern _Atomic double mouse_y_error;        /* Mouse error accumulator - Y */
 extern int    pit_mode;                     /* (C) force setting PIT mode */
 extern int    fm_driver;                    /* (C) select FM sound driver */
 extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
+extern int    vmm_disabled;                 /* (G) disable built-in manager */
+extern char   vmm_path_cfg[1024];           /* (G) VMs path (unless -E is used) */
 
 extern char exe_path[2048];     /* path (dir) of executable */
 extern char usr_path[1024];     /* path (dir) of user data */
@@ -193,7 +195,7 @@ extern char global_cfg_path[1024]; /* full path of global config file */
 extern int  open_dir_usr_path;  /* default file open dialog directory of usr_path */
 extern char uuid[MAX_UUID_LEN]; /* UUID or machine identifier */
 extern char vmm_path[1024];       /* VM Manager path to scan (temporary) */
-extern int  vmm_enabled;
+extern int  start_vmm;
 #ifndef USE_NEW_DYNAREC
 extern FILE *stdlog; /* file to log output to */
 #endif
