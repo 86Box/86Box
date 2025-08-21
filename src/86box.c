@@ -1086,6 +1086,7 @@ usage:
 
     /* Load the global configuration file. */
     config_load_global();
+    config_save_global(); // hack
 
     /* Determine whether to start the VM manager. */
 #ifndef USE_SDL_UI
