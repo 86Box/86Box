@@ -625,9 +625,6 @@ main(int argc, char *argv[])
         return 6;
     }
 
-    if (!start_vmm)
-        pc_init_modules();
-
     if (start_vmm) {
         // VMManagerMain vmm;
         // // Hackish until there is a proper solution
@@ -640,6 +637,8 @@ main(int argc, char *argv[])
         QApplication::exec();
         return 0;
     }
+
+    pc_init_modules();
 
     // UUID / copy / move detection
     if(!util::compareUuid()) {
