@@ -219,7 +219,7 @@ int      sound_muted                            = 0;              /* (C) Is soun
 int      jumpered_internal_ecp_dma              = 0;              /* (C) Jumpered internal EPC DMA */
 int      inhibit_multimedia_keys;                                 /* (G) Inhibit multimedia keys on Windows. */
 int      force_10ms;                                              /* (C) Force 10ms CPU frame intervals. */
-int      vmm_disabled                           = -1;             /* (G) disable built-in manager */
+int      vmm_disabled                           = 0;             /* (G) disable built-in manager */
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
                                                                      present */
@@ -1097,13 +1097,6 @@ usage:
     config_load_global();
 
     if (vmm_disabled && start_vmm) {
-#ifdef DEPRECATE_USAGE        
-        if (vmm_disabled < 0) {
-            pc_show_usage("Running 86Box without a specified VM path and/or configuration\n"
-                          "file has been deprecated. Please specify one or use a manager\n"
-                          "(Avalonia 86 is recommended).\n\n");
-        }
-#endif
         start_vmm = 0;
     }
 

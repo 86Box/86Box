@@ -137,7 +137,7 @@ load_global(void)
     else if (mouse_sensitivity > 2.0)
         mouse_sensitivity = 2.0;
 
-    vmm_disabled = ini_section_get_int(cat, "vmm_disabled", -1);
+    vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
 
     p = ini_section_get_string(cat, "vmm_path", NULL);
     if (p != NULL)
@@ -2209,7 +2209,7 @@ save_global(void)
     else
         ini_section_delete_var(cat, "mouse_sensitivity");
 
-    if (vmm_disabled != -1)
+    if (vmm_disabled != 0)
         ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
     else
         ini_section_delete_var(cat, "vmm_disabled");
