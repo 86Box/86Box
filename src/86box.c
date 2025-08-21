@@ -219,7 +219,8 @@ int      sound_muted                            = 0;              /* (C) Is soun
 int      jumpered_internal_ecp_dma              = 0;              /* (C) Jumpered internal EPC DMA */
 int      inhibit_multimedia_keys;                                 /* (G) Inhibit multimedia keys on Windows. */
 int      force_10ms;                                              /* (C) Force 10ms CPU frame intervals. */
-int      vmm_disabled                           = 0;             /* (G) disable built-in manager */
+int      vmm_disabled                           = 0;              /* (G) disable built-in manager */
+char     vmm_path_cfg[1024]                     = { '\0' };       /* (G) VMs path (unless -E is used)*/
 
 int      other_ide_present = 0;                                   /* IDE controllers from non-IDE cards are
                                                                      present */
@@ -632,7 +633,7 @@ pc_show_usage(char *s)
 #ifdef _WIN32
             "-D or --debug\t\t\t- force debug output logging\n"
 #endif
-#if 1
+#ifndef USE_SDL_UI
             "-E or --vmmpath\t\t- vm manager path\n"
 #endif
             "-F or --fullscreen\t\t- start in fullscreen mode\n"
@@ -773,7 +774,7 @@ usage:
         } else if (!strcasecmp(argv[c], "--debug") || !strcasecmp(argv[c], "-D")) {
             force_debug = 1;
 #endif
-//#ifdef ENABLE_NG
+#ifndef USE_SDL_UI
         } else if (!strcasecmp(argv[c], "--vmmpath") ||
                    !strcasecmp(argv[c], "-E")) {
             /* Using this variable for vm manager path
@@ -784,7 +785,7 @@ usage:
                 memcpy(vmm_path, vp, sizeof(vmm_path));
             else
                 memcpy(vmm_path, vp, strlen(vp) + 1);
-            //#endif
+#endif
         } else if (!strcasecmp(argv[c], "--fullscreen") || !strcasecmp(argv[c], "-F")) {
             start_in_fullscreen = 1;
         } else if (!strcasecmp(argv[c], "--logfile") || !strcasecmp(argv[c], "-L")) {
@@ -1088,19 +1089,30 @@ usage:
 
     pclog("# Global configuration file: %s\n", global_cfg_path);
     pclog("# Configuration file: %s\n#\n\n", cfg_path);
-    if (strlen(vmm_path) != 0) {
-        start_vmm = 1;
-        pclog("# VM Manager enabled. Path: %s\n", vmm_path);
-    }
 
     /* Load the global configuration file. */
     config_load_global();
 
-    if (vmm_disabled && start_vmm) {
+#ifndef USE_SDL_UI
+    if (vmm_disabled)
+#endif
+    {
         start_vmm = 0;
     }
 
-    if (!start_vmm) {
+#ifndef USE_SDL_UI
+    if (strlen(vmm_path) != 0) {
+        /* -E specified on the command line. */
+        start_vmm = 1;
+    } else {
+        strncpy(vmm_path, vmm_path_cfg, sizeof(vmm_path) - 1)
+    }
+
+    if (start_vmm) {        
+        pclog("# VM Manager enabled. Path: %s\n", vmm_path);
+    } else
+#endif
+    {
         /*
          * We are about to read the configuration file, which MAY
          * put data into global variables (the hard- and floppy

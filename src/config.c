@@ -141,9 +141,9 @@ load_global(void)
 
     p = ini_section_get_string(cat, "vmm_path", NULL);
     if (p != NULL)
-        strncpy(vmm_path, p, sizeof(vmm_path) - 1);
+        strncpy(vmm_path_cfg, p, sizeof(vmm_path_cfg) - 1);
     else
-        plat_get_vmm_dir(vmm_path, sizeof(vmm_path));
+        plat_get_vmm_dir(vmm_path_cfg, sizeof(vmm_path_cfg));
 }
 
 /* Load "General" section. */
@@ -2214,8 +2214,8 @@ save_global(void)
     else
         ini_section_delete_var(cat, "vmm_disabled");
 
-    if (vmm_path[0] != 0)
-        ini_section_set_string(cat, "vmm_path", vmm_path);
+    if (vmm_path_cfg[0] != 0)
+        ini_section_set_string(cat, "vmm_path", vmm_path_cfg);
     else
         ini_section_delete_var(cat, "vmm_path");
 }
