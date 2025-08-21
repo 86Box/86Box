@@ -1087,6 +1087,7 @@ usage:
     /* Load the global configuration file. */
     config_load_global();
 
+    /* Determine whether to start the VM manager. */
 #ifndef USE_SDL_UI
     if (vmm_disabled)
 #endif
@@ -1104,6 +1105,7 @@ usage:
 
     if (start_vmm) {
         pclog("# VM Manager enabled. Path: %s\n", vmm_path);
+        strncpy(usr_path, vmm_path, sizeof(usr_path) - 1);
     } else
 #endif
     {
