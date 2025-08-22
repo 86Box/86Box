@@ -288,7 +288,6 @@ machine_at_acer100t_init(const machine_t *model)
     machine_at_ps2_ide_init(model);
 
     device_add(&ali1409_device);
-    device_add(&ali5105_device);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&oti077_acer100t_device);
