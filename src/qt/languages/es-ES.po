@@ -46,7 +46,7 @@ msgid "Hide &toolbar"
 msgstr "Ocultar &barra de herramientas"
 
 msgid "&Resizeable window"
-msgstr "&Ventana redimensionable"
+msgstr "Ven&tana redimensionable"
 
 msgid "R&emember size && position"
 msgstr "&Recordar tamaño y posición"
