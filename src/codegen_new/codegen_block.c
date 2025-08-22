@@ -244,6 +244,11 @@ codegen_reset(void)
             block->phys_2 = 0;
             delete_block(block);
         }
+
+        if (codeblock[c].head_mem_block)
+            codegen_allocator_free(codeblock[c].head_mem_block);
+
+        codeblock[c].head_mem_block = NULL;        
     }
 
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
@@ -436,6 +441,7 @@ void
 codegen_delete_random_block(int required_mem_block)
 {
     int block_nr = rand() & BLOCK_MASK;
+    int cntr = 0;
 
     while (1) {
         if (block_nr && block_nr != block_current) {
@@ -447,6 +453,9 @@ codegen_delete_random_block(int required_mem_block)
             }
         }
         block_nr = (block_nr + 1) & BLOCK_MASK;
+        cntr++;
+        if (cntr >= (BLOCK_SIZE + 1))
+            return;
     }
 }
 

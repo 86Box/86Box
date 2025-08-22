@@ -45,6 +45,7 @@ codegen_allocator_init(void)
             mem_blocks[c].next = 0;
     }
     mem_block_free_list = 1;
+    codegen_allocator_usage = 0;
 }
 
 mem_block_t *
@@ -60,6 +61,10 @@ codegen_allocator_allocate(mem_block_t *parent, int code_block)
 
         if (block->code_block && block->code_block != code_block)
             codegen_delete_block(&codeblock[block->code_block]);
+
+        if (codegen_allocator_usage >= (int)(MEM_BLOCK_NR * 0.9) && !mem_block_free_list) {
+            codegen_delete_random_block(1);
+        }
     }
 
     /*Remove from free list*/
@@ -83,9 +88,14 @@ codegen_allocator_free(mem_block_t *block)
 {
     int block_nr = (((uintptr_t) block - (uintptr_t) mem_blocks) / sizeof(mem_block_t)) + 1;
 
+    if (!block)
+        return;
+
     while (1) {
         int next_block_nr = block->next;
-        codegen_allocator_usage--;
+
+        if (codegen_allocator_usage)
+            codegen_allocator_usage--;
 
         block->next         = mem_block_free_list;
         block->code_block   = BLOCK_INVALID;
