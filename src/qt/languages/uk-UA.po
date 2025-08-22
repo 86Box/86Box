@@ -774,11 +774,11 @@ msgstr "Порти (COM и LPT)"
 msgid "Ports"
 msgstr "Порти"
 
-msgid "Serial ports"
-msgstr "Послідовні порти"
+msgid "Serial ports:"
+msgstr "Послідовні порти:"
 
-msgid "Parallel ports"
-msgstr "Паралельні порти"
+msgid "Parallel ports:"
+msgstr "Паралельні порти:"
 
 msgid "Storage controllers"
 msgstr "Контролери дисків"
@@ -2829,14 +2829,11 @@ msgstr "Режим концентратора"
 msgid "Hostname:"
 msgstr "Ім'я хоста:"
 
-msgid "ISA RTC"
-msgstr "ISA RTC"
+msgid "ISA RAM:"
+msgstr "ISA ОЗУ:"
 
-msgid "ISA RAM"
-msgstr "ISA ОЗУ"
-
-msgid "ISA ROM"
-msgstr "ISA ПЗУ"
+msgid "ISA ROM:"
+msgstr "ISA ПЗУ:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Стерти NVRAM"

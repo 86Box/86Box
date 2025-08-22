@@ -774,10 +774,10 @@ msgstr ""
 msgid "Ports"
 msgstr ""
 
-msgid "Serial ports"
+msgid "Serial ports:"
 msgstr ""
 
-msgid "Parallel ports"
+msgid "Parallel ports:"
 msgstr ""
 
 msgid "Storage controllers"
@@ -2829,13 +2829,10 @@ msgstr ""
 msgid "Hostname:"
 msgstr ""
 
-msgid "ISA RTC"
+msgid "ISA RAM:"
 msgstr ""
 
-msgid "ISA RAM"
-msgstr ""
-
-msgid "ISA ROM"
+msgid "ISA ROM:"
 msgstr ""
 
 msgid "&Wipe NVRAM"

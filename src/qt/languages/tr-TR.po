@@ -774,11 +774,11 @@ msgstr "Bağlantı noktaları (COM & LPT)"
 msgid "Ports"
 msgstr "Bağlantı noktaları"
 
-msgid "Serial ports"
-msgstr "Seri bağlantı noktaları"
+msgid "Serial ports:"
+msgstr "Seri bağlantı noktaları:"
 
-msgid "Parallel ports"
-msgstr "Paralel bağlantı noktaları"
+msgid "Parallel ports:"
+msgstr "Paralel bağlantı noktaları:"
 
 msgid "Storage controllers"
 msgstr "Depolama denetleyicileri"
@@ -2829,14 +2829,11 @@ msgstr "Hub Modu"
 msgid "Hostname:"
 msgstr "Ana bilgisayar adı"
 
-msgid "ISA RTC"
-msgstr "ISA RTC"
+msgid "ISA RAM:"
+msgstr "ISA RAM:"
 
-msgid "ISA RAM"
-msgstr "ISA RAM"
-
-msgid "ISA ROM"
-msgstr "ISA ROM"
+msgid "ISA ROM:"
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "NVRAM'i te&mizle"

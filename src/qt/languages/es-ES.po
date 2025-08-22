@@ -774,11 +774,11 @@ msgstr "Puertos (COM y LPT)"
 msgid "Ports"
 msgstr "Puertos"
 
-msgid "Serial ports"
-msgstr "Puertos serie"
+msgid "Serial ports:"
+msgstr "Puertos serie:"
 
-msgid "Parallel ports"
-msgstr "Puertos paralelos"
+msgid "Parallel ports:"
+msgstr "Puertos paralelos:"
 
 msgid "Storage controllers"
 msgstr "Controladoras de Almacenamiento"
@@ -2829,14 +2829,11 @@ msgstr "Modo de concentrador"
 msgid "Hostname:"
 msgstr "Nombre de host:"
 
-msgid "ISA RTC"
-msgstr "RTC ISA"
+msgid "ISA RAM:"
+msgstr "RAM ISA:"
 
-msgid "ISA RAM"
-msgstr "RAM ISA"
-
-msgid "ISA ROM"
-msgstr "ROM ISA"
+msgid "ISA ROM:"
+msgstr "ROM ISA:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Limpiar el NVRAM"
