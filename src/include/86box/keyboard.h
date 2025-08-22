@@ -286,6 +286,7 @@ extern const device_t kbc_ps2_mca_2_device;
 extern const device_t kbc_ps2_olivetti_device;
 extern const device_t kbc_ps2_phoenix_device;
 extern const device_t kbc_ps2_quadtel_device;
+extern const device_t kbc_ps2_sis_device;
 extern const device_t kbc_ps2_umc_device;
 extern const device_t kbc_ps2_via_device;
 extern const device_t kbc_ps2_tg_ami_device;

@@ -87,6 +87,7 @@
 #define KBC_VEN_CHIPS      0x40
 #define KBC_VEN_HOLTEK     0x44
 #define KBC_VEN_UMC        0x48
+#define KBC_VEN_SIS        0x4c
 #define KBC_VEN_MASK       0x7c
 
 #define KBC_FLAG_IS_ASIC   0x80000000
@@ -136,7 +137,7 @@ typedef struct atkbc_t {
     uint8_t irq_state;
     uint8_t do_irq;
     uint8_t is_asic;
-    uint8_t pad;
+    uint8_t kblock_switch;
 
     uint8_t mem[0x100];
 
@@ -173,6 +174,8 @@ typedef struct atkbc_t {
 kbc_at_port_t  *kbc_at_ports[2] = { NULL, NULL };
 
 static uint8_t  kbc_ami_revision    = '8';
+static uint8_t  kbc_ami_is_clone    = 0;
+
 static uint8_t  kbc_award_revision  = 0x42;
 
 static uint8_t  kbc_chips_revision  = 0xa6;
@@ -1051,6 +1054,8 @@ write_cmd_ami(void *priv, uint8_t val)
     atkbc_t *dev     = (atkbc_t *) priv;
     uint8_t  kbc_ven = dev->flags & KBC_VEN_MASK;
     uint8_t  ret     = 1;
+    char    *copr    = NULL;
+    int      coprlen = 0;
 
     switch (val) {
         default:
@@ -1070,8 +1075,45 @@ write_cmd_ami(void *priv, uint8_t val)
             break;
 
         case 0xa0: /* copyright message */
-            kbc_at_queue_add(dev, 0x28);
-            kbc_at_queue_add(dev, 0x00);
+            switch (kbc_ami_revision) {
+                case 0x35:
+                    copr    = "(C)1994 AMI";
+                    coprlen = strlen(copr) + 1;
+                    break;
+                case 0x38:
+                case 0x42: case 0x44:
+                case 0x45:
+                    copr    = "(C) AMERICAN MEGATRENDS INC.";
+                    coprlen = strlen(copr);    /* No trailing zero. */
+                    break;
+                case 0x46:
+                    copr    = "(C)1990 AMERICAN MEGATRENDS INC";
+                    coprlen = strlen(copr) + 1;
+                    break;
+                case 0x48:
+                    copr    = "(C)1992 AMERICAN MEGATRENDS INC";
+                    coprlen = strlen(copr) + 1;
+                    break;
+                case 0x50: case 0x52:
+                    copr    = "(C)1993 AMI";
+                    coprlen = strlen(copr) + 1;
+                    break;
+                case 0x5a:
+                    if ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_GREEN)
+                        /*
+                                      (   C   )   1   9   9   0       A   M   I
+                           But TriGem forgot to reencrypt it.
+                                                                                */
+                        copr    = "\xFA\x97\xDA\xD9\xD8\xD8\xF9\xFB\xD7\x56\xD6";
+                    else
+                        copr    = "(C)1990 AMERICAN MEGATRENDS INC";
+                    coprlen = strlen(copr) + 1;
+                    break;
+            }
+
+            for (int i = 0; i < coprlen; i++)
+                kbc_at_queue_add(dev, copr[i]);
+
             ret = 0;
             break;
 
@@ -1278,6 +1320,187 @@ write_cmd_ami(void *priv, uint8_t val)
 
         case 0xef: /* ??? - sent by AMI486 */
             kbc_at_log("ATkbc: ??? - sent by AMI486\n");
+            ret = 0;
+            break;
+    }
+
+    return ret;
+}
+
+static uint8_t
+write_cmd_data_sis(void *priv, uint8_t val)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    switch (dev->command) {
+        /* 0x40 - 0x5F are aliases for 0x60-0x7F */
+        case 0x40 ... 0x5f:
+            kbc_at_log("ATkbc: SIS - alias write to %02X\n", dev->command & 0x1f);
+            dev->mem[(dev->command & 0x1f) + 0x20] = val;
+            if (dev->command == 0x60)
+                write_cmd(dev, val);
+            return 0;
+
+        case 0xcb: /* set keyboard mode */
+            kbc_at_log("ATkbc: SIS - set keyboard mode\n");
+            dev->ami_flags = val;
+            dev->misc_flags &= ~FLAG_PS2;
+            if (val & 0x01) {
+                kbc_at_log("ATkbc: SIS: Emulate PS/2 keyboard\n");
+                dev->misc_flags |= FLAG_PS2;
+                kbc_at_do_poll = kbc_at_poll_ps2;
+            } else {
+                kbc_at_log("ATkbc: SIS: Emulate AT keyboard\n");
+                kbc_at_do_poll = kbc_at_poll_at;
+            }
+            return 0;
+
+        default:
+            break;
+    }
+
+    return 1;
+}
+
+static uint8_t
+write_cmd_sis(void *priv, uint8_t val)
+{
+    atkbc_t *dev     = (atkbc_t *) priv;
+    uint8_t  ret     = 1;
+
+    switch (val) {
+        default:
+            break;
+
+        case 0x00 ... 0x1f:
+            kbc_at_log("ATkbc: SIS - alias read from %08X\n", val);
+            kbc_delay_to_ob(dev, dev->mem[val + 0x20], 0, 0x00);
+            ret = 0;
+            break;
+
+        case 0x40 ... 0x5f:
+            kbc_at_log("ATkbc: SIS - alias write to %08X\n", dev->command);
+            dev->wantdata = 1;
+            dev->state    = STATE_KBC_PARAM;
+            ret = 0;
+            break;
+
+        case 0xa0: /* copyright message */
+            kbc_at_queue_add(dev, 0x28);
+            kbc_at_queue_add(dev, 0x00);
+            ret = 0;
+            break;
+
+        case 0xa1: /* get controller version */
+            kbc_at_log("ATkbc: SIS - get controller version\n");
+            kbc_delay_to_ob(dev, 'H', 0, 0x00);
+            ret = 0;
+            break;
+
+        case 0xa4: /* write clock = low */
+            if (!(dev->misc_flags & FLAG_PS2)) {
+                kbc_at_log("ATkbc: SIS - write clock = low\n");
+                dev->misc_flags &= ~FLAG_CLOCK;
+                ret = 0;
+            }
+            break;
+
+        case 0xa5: /* write clock = high */
+            if (!(dev->misc_flags & FLAG_PS2)) {
+                kbc_at_log("ATkbc: SIS - write clock = high\n");
+                dev->misc_flags |= FLAG_CLOCK;
+                ret = 0;
+            }
+            break;
+
+        case 0xa6: /* read clock */
+            if (!(dev->misc_flags & FLAG_PS2)) {
+                kbc_at_log("ATkbc: SIS - read clock\n");
+                kbc_delay_to_ob(dev, (dev->misc_flags & FLAG_CLOCK) ? 0xff : 0x00, 0, 0x00);
+                ret = 0;
+            }
+            break;
+
+        case 0xa7: /* write cache bad */
+            if (!(dev->misc_flags & FLAG_PS2)) {
+                kbc_at_log("ATkbc: SIS - write cache bad\n");
+                dev->misc_flags &= FLAG_CACHE;
+                ret = 0;
+            }
+            break;
+
+        case 0xa8: /* write cache good */
+            if (!(dev->misc_flags & FLAG_PS2)) {
+                kbc_at_log("ATkbc: SIS - write cache good\n");
+                dev->misc_flags |= FLAG_CACHE;
+                ret = 0;
+            }
+            break;
+
+        case 0xa9: /* read cache */
+            if (!(dev->misc_flags & FLAG_PS2)) {
+                kbc_at_log("ATkbc: SIS - read cache\n");
+                kbc_delay_to_ob(dev, (dev->misc_flags & FLAG_CACHE) ? 0xff : 0x00, 0, 0x00);
+                ret = 0;
+            }
+            break;
+
+        case 0xb0 ... 0xb1:
+            /* set KBC lines P10-P11 (P1 bits 0-1) low */
+            if (!(dev->misc_flags & FLAG_PS2)) {
+                kbc_at_log("ATkbc: set KBC lines P10-P11 (P1 bits 0-3) low\n");
+                dev->p1 &= ~(1 << (val & 0x03));
+                kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+                dev->pending++;
+                ret = 0;
+            }
+            break;
+
+        case 0xb8 ... 0xb9:
+            /* set KBC lines P10-P11 (P1 bits 0-1) high */
+            kbc_at_log("ATkbc: set KBC lines P10-P11 (P1 bits 0-3) high\n");
+            if (!(dev->misc_flags & FLAG_PS2)) {
+                dev->p1 |= (1 << (val & 0x03));
+                kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+                dev->pending++;
+            }
+            ret = 0;
+            break;
+
+        case 0xc1: /* set port P17 to 0 & KBLOCK disabled */
+            kbc_at_log("ATkbc: SIS - set port P17 to 0 & KBLOCK disabled\n");
+            if (!dev->kblock_switch)
+                dev->p1 &= 0x7f;
+            ret = 0;
+            break;
+        case 0xc7: /* set port P17 to 1 */
+            kbc_at_log("ATkbc: SIS - set port P17 to 1\n");
+            if (!dev->kblock_switch)
+                dev->p1 |= 0x80;
+            ret = 0;
+            break;
+
+        case 0xca: /* read keyboard mode */
+            kbc_at_log("ATkbc: AMI - read keyboard mode\n");
+            kbc_delay_to_ob(dev, dev->ami_flags, 0, 0x00);
+            ret = 0;
+            break;
+
+        case 0xcb: /* set keyboard mode */
+            kbc_at_log("ATkbc: AMI - set keyboard mode\n");
+            dev->wantdata  = 1;
+            dev->state     = STATE_KBC_PARAM;
+            ret = 0;
+            break;
+
+        case 0xd6: /* enable KBLOCK switch */
+            kbc_at_log("ATkbc: SIS - enable KBLOCK switch\n");
+            dev->kblock_switch = 1;
+            ret = 0;
+            break;
+        case 0xd7: /* disable KBLOCK switch */
+            kbc_at_log("ATkbc: SIS - disable KBLOCK switch\n");
+            dev->kblock_switch = 0;
             ret = 0;
             break;
     }
@@ -2809,6 +3032,8 @@ kbc_at_init(const device_t *info)
 
     dev = (atkbc_t *) calloc(1, sizeof(atkbc_t));
 
+    dev->kblock_switch = 1;
+
     dev->flags = info->local;
 
     dev->is_asic = !!(info->local & KBC_FLAG_IS_ASIC);
@@ -2880,6 +3105,7 @@ kbc_at_init(const device_t *info)
 
         case KBC_VEN_AMI:
         case KBC_VEN_HOLTEK:
+            kbc_ami_is_clone = !!(info->local & 0x010000);
             if ((info->local & 0xff00) != 0x0000)
                 kbc_ami_revision = (info->local >> 8) & 0xff;
             else if ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_GREEN)
@@ -2912,6 +3138,16 @@ kbc_at_init(const device_t *info)
                 kbc_ami_revision = 0x48;
 
             dev->write_cmd_ven = write_cmd_umc;
+            break;
+
+        case KBC_VEN_SIS:
+            if ((info->local & 0xff00) != 0x0000)
+                kbc_ami_revision = (info->local >> 8) & 0xff;
+            else
+                kbc_ami_revision = 0x48;
+
+            dev->write_cmd_data_ven = write_cmd_data_sis;
+            dev->write_cmd_ven = write_cmd_sis;
             break;
 
         case KBC_VEN_CHIPS:
@@ -3397,6 +3633,20 @@ const device_t kbc_ps2_quadtel_device = {
     .internal_name = "kbc_ps2_quadtel",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_QUADTEL,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t kbc_ps2_sis_device = {
+    .name          = "PS/2 Keyboard Controller (SiS 5xxx)",
+    .internal_name = "kbc_ps2_sis",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_SIS,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
