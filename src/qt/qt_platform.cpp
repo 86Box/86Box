@@ -666,7 +666,7 @@ plat_chdir(char *path)
 void
 plat_get_global_config_dir(char *outbuf, const size_t len)
 {
-    const auto dir = QDir(QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation)[0]);
+    const auto dir = QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
     if (!dir.exists()) {
         if (!dir.mkpath(".")) {
             qWarning("Failed to create global configuration directory %s", dir.absolutePath().toUtf8().constData());
