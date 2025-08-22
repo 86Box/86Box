@@ -157,7 +157,7 @@ msgid "Generic RGBI color monitor"
 msgstr "Monitor a colores RGBI genérico"
 
 msgid "&Amber monitor"
-msgstr "Monitor &Ámbar"
+msgstr "Monitor Ámb&ar"
 
 msgid "&Green monitor"
 msgstr "Monitor &Verde"

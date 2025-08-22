@@ -157,13 +157,13 @@ msgid "Generic RGBI color monitor"
 msgstr "Monitor a colori RGBI generico"
 
 msgid "&Amber monitor"
-msgstr "&Monitor ambra"
+msgstr "Monitor &ambra"
 
 msgid "&Green monitor"
-msgstr "&Monitor verde"
+msgstr "Monitor &verde"
 
 msgid "&White monitor"
-msgstr "&Monitor bianco"
+msgstr "Monitor &bianco"
 
 msgid "Grayscale &conversion type"
 msgstr "Conversione &scala di grigi"

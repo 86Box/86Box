@@ -145,7 +145,7 @@ msgid "VGA screen &type"
 msgstr "&VGA-Bildschirmtyp"
 
 msgid "RGB &Color"
-msgstr "&RGB-Farbe"
+msgstr "RGB-&Farbe"
 
 msgid "RGB (no brown)"
 msgstr "RGB (ohne Braun)"
