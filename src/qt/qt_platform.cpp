@@ -697,7 +697,11 @@ plat_get_temp_dir(char *outbuf, const uint8_t len)
 void
 plat_get_vmm_dir(char *outbuf, const size_t len)
 {
+#ifdef Q_OS_WINDOWS
     const auto path = QDir::home().filePath("86Box VMs");
+#else
+    const auto path = QDir(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation)[0]).filePath("Virtual Machines");
+#endif
     strncpy(outbuf, path.toUtf8().constData(), len);
 }
 
