@@ -40,7 +40,7 @@ msgid "&View"
 msgstr "&Vue"
 
 msgid "&Hide status bar"
-msgstr "&Masquer la barre de status"
+msgstr "Masquer &la barre de status"
 
 msgid "Hide &toolbar"
 msgstr "Masquer la &barre d'outils"
@@ -52,7 +52,7 @@ msgid "R&emember size && position"
 msgstr "S&auvegarder taille && position"
 
 msgid "Re&nderer"
-msgstr "Moteur de &rendu vidéo"
+msgstr "Moteur de re&ndu vidéo"
 
 msgid "&Qt (Software)"
 msgstr "&Qt (Logiciel)"
@@ -64,10 +64,10 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify &dimensions..."
-msgstr "Spécifier dimensions..."
+msgstr "Spécifier dimen&sions..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "F&orcer le ratio 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Forcer le ratio &4:3"
 
 msgid "&Window scale factor"
 msgstr "Facteur d'&Echelle"
@@ -103,7 +103,7 @@ msgid "&8x"
 msgstr "&8x"
 
 msgid "Fi&lter method"
-msgstr "Méthode de Filtre"
+msgstr "Mét&hode de Filtre"
 
 msgid "&Nearest"
 msgstr "&Plus proche"
@@ -118,7 +118,7 @@ msgid "&Fullscreen"
 msgstr "&Plein écran"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Mode plein écran &étiré"
+msgstr "Mode plein écran é&tiré"
 
 msgid "&Full screen stretch"
 msgstr "&Plein écran étiré"
@@ -220,7 +220,7 @@ msgid "End trace"
 msgstr "Arrêter traces"
 
 msgid "&Help"
-msgstr "&Aide"
+msgstr "Ai&de"
 
 msgid "&Documentation..."
 msgstr "&Documentation..."
@@ -1639,13 +1639,13 @@ msgid "&MCA devices..."
 msgstr "Dispositifs MCA..."
 
 msgid "Show non-&primary monitors"
-msgstr "Afficher les moniteurs non primaires"
+msgstr "Afficher les moniteurs non pr&imaires"
 
 msgid "Open screenshots &folder..."
 msgstr "Ouvrir le dossier des captures d'écran..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Appliquer le mode élargi plein écran lorsque la fenêtre est maximisée"
+msgstr "Appli&quer le mode élargi plein écran lorsque la fenêtre est maximisée"
 
 msgid "&Cursor/Puck"
 msgstr "&Curseur/Palette"
@@ -1792,7 +1792,7 @@ msgid "Serial port passthrough 4"
 msgstr "Transfert du port série 4"
 
 msgid "Renderer &options..."
-msgstr "Options du rendu..."
+msgstr "&Options du rendu..."
 
 msgid "PC/XT Keyboard"
 msgstr "Clavier PC/XT"
@@ -2767,7 +2767,7 @@ msgid "Keybind"
 msgstr "Raccourci clavier"
 
 msgid "Clear binding"
-msgstr "Supprimer la raccourci"
+msgstr "Supprimer le raccourci"
 
 msgid "Bind"
 msgstr "Lier"
