@@ -41,10 +41,10 @@ VMManagerPreferences(QWidget *parent) : ui(new Ui::VMManagerPreferences)
     const auto configSystemDir = QString(vmm_path_cfg);
     if(!configSystemDir.isEmpty()) {
         // Prefer this one
-        ui->systemDirectory->setText(configSystemDir);
+        ui->systemDirectory->setText(QDir::toNativeSeparators(configSystemDir));
     } else if(!QString(vmm_path).isEmpty()) {
         // If specified on command line
-        ui->systemDirectory->setText(QDir(vmm_path).path());
+        ui->systemDirectory->setText(QDir::toNativeSeparators(QDir(vmm_path).path()));
     }
 
     ui->comboBoxLanguage->setItemData(0, 0);
@@ -92,7 +92,7 @@ VMManagerPreferences::accept()
 {
     const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
 
-    strncpy(vmm_path_cfg, ui->systemDirectory->text().toUtf8().constData(), sizeof(vmm_path_cfg) - 1);
+    strncpy(vmm_path_cfg, QDir::cleanPath(ui->systemDirectory->text()).toUtf8().constData(), sizeof(vmm_path_cfg) - 1);
     lang_id = ui->comboBoxLanguage->currentData().toInt();
     config_save_global();
 
