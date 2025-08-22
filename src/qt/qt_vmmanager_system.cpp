@@ -139,7 +139,7 @@ VMManagerSystem::scanForConfigs(QWidget* parent, const QString &searchPath)
     scanTimer.start();
     QVector<VMManagerSystem *> system_configs;
 
-    const auto config_file_name = QString("86box.cfg");
+    const auto config_file_name = QString(CONFIG_FILE);
     const QStringList filters = {config_file_name};
     QStringList matches;
     QString search_directory;

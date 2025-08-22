@@ -601,7 +601,7 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
     const auto newSystemDirectory = QDir(QDir::cleanPath(dir + "/" + name));
 
     // qt replaces `/` with native separators
-    const auto newSystemConfigFile = QFileInfo(newSystemDirectory.path() + "/" + "86box.cfg");
+    const auto newSystemConfigFile = QFileInfo(newSystemDirectory.path() + "/" + CONFIG_FILE);
     if (newSystemConfigFile.exists() || newSystemDirectory.exists()) {
         QMessageBox::critical(this, tr("Directory in use"), tr("The selected directory is already in use. Please select a different directory."));
         return;
