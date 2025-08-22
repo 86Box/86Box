@@ -7,6 +7,7 @@
 #    include <windows.h>
 #endif
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +19,59 @@
 
 #include "codegen.h"
 #include "codegen_allocator.h"
+#include "codegen_backend.h"
+
+struct mem_code_block_t;
+
+typedef struct mem_code_block_t
+{
+    struct mem_code_block_t* prev;
+    struct mem_code_block_t* next;
+
+    int number;
+} mem_code_block_t;
+
+static bool valid_code_blocks[BLOCK_SIZE];
+static mem_code_block_t mem_code_blocks[BLOCK_SIZE];
+static mem_code_block_t* mem_code_block_head = NULL;
+static mem_code_block_t* mem_code_block_tail = NULL;
+
+static void
+remove_from_block_list(mem_code_block_t* block)
+{
+    valid_code_blocks[block->number] = 0;
+    if (block->prev) {
+        block->prev->next = block->next;
+        if (block->next) {
+            block->next->prev = block->prev;
+        } else {
+            mem_code_block_tail = block->prev;
+        }
+    } else if (block->next) {
+        mem_code_block_head = block->next;
+        if (mem_code_block_head && mem_code_block_head->next) {
+            mem_code_block_head->next->prev = mem_code_block_head;
+        }
+    } else if (block == mem_code_block_head) {
+        mem_code_block_head = mem_code_block_tail = NULL;
+    }
+    block->next = block->prev = NULL;
+}
+
+static void
+add_to_block_list(int code_block)
+{
+    if (!mem_code_block_head) {
+        mem_code_block_head = &mem_code_blocks[code_block];
+        mem_code_block_head->number = code_block;
+        mem_code_block_tail = mem_code_block_head;
+    } else {
+        mem_code_block_tail->next = &mem_code_blocks[code_block];
+        mem_code_blocks[code_block].prev = mem_code_block_tail;
+        mem_code_block_tail = &mem_code_blocks[code_block];
+        mem_code_blocks[code_block].number = code_block;
+    }
+}
 
 typedef struct mem_block_t {
     uint32_t offset; /*Offset into mem_block_alloc*/
@@ -53,15 +107,24 @@ codegen_allocator_allocate(mem_block_t *parent, int code_block)
     mem_block_t *block;
     uint32_t     block_nr;
 
-    while (!mem_block_free_list) {
-        /*Pick a random memory block and free the owning code block*/
-        block_nr = rand() & MEM_BLOCK_MASK;
-        block    = &mem_blocks[block_nr];
-
-        if (block->code_block && block->code_block != code_block)
-            codegen_delete_block(&codeblock[block->code_block]);
+    if (!mem_block_free_list) {
+        if (mem_code_block_head == mem_code_block_tail) {
+            fatal("Out of memory blocks!\n");
+        } else {
+            mem_code_block_t* mem_code_block = mem_code_block_head;
+            while (mem_code_block) {
+                if (code_block != block->code_block) {
+                    codegen_delete_block(&codeblock[mem_code_block->number]);
+                    if (mem_block_free_list)
+                        goto block_allocate;
+                }
+                mem_code_block = mem_code_block->next;
+            }
+            fatal("Out of memory blocks!\n");
+        }
     }
 
+block_allocate:
     /*Remove from free list*/
     block_nr            = mem_block_free_list;
     block               = &mem_blocks[block_nr - 1];
@@ -72,8 +135,14 @@ codegen_allocator_allocate(mem_block_t *parent, int code_block)
         /*Add to parent list*/
         block->next  = parent->next;
         parent->next = block_nr;
-    } else
+    } else {
         block->next = 0;
+        
+        if (!valid_code_blocks[code_block]) {
+            valid_code_blocks[code_block] = 1;
+            add_to_block_list(code_block);
+        }
+    }
 
     codegen_allocator_usage++;
     return block;
@@ -82,6 +151,9 @@ void
 codegen_allocator_free(mem_block_t *block)
 {
     int block_nr = (((uintptr_t) block - (uintptr_t) mem_blocks) / sizeof(mem_block_t)) + 1;
+
+    if (valid_code_blocks[block->code_block])
+        remove_from_block_list(&mem_code_blocks[block->code_block]);
 
     while (1) {
         int next_block_nr = block->next;
