@@ -93,7 +93,7 @@ machine_at_c747_init(const machine_t *model)
        No idea what KBC it actually has but this produces the
        desired behavior: command A9 does absolutely nothing.
      */
-    device_add(&kbc_at_siemens_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add_params(&um866x_device, (void *) (UM82C862F | UM866X_IDE_PRI));
 

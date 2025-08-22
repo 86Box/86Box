@@ -152,7 +152,7 @@ machine_at_pbl300sx_init(const machine_t *model)
     machine_at_common_init(model);
     device_add(&acc2036_device);
 
-    device_add(&kbc_ps2_phoenix_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&um866x_device, (void *) (UM82C862F | UM866X_IDE_PRI));
 
     if (gfxcard[0] == VID_INTERNAL)
@@ -434,7 +434,7 @@ machine_at_if386sx_init(const machine_t *model)
     machine_at_common_init_ex(model, 2);
     device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
 
-    device_add(&kbc_at_phoenix_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&neat_sx_device);
 
@@ -467,7 +467,7 @@ machine_at_svc386sxp1_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&opti283_device);
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);

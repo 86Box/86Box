@@ -285,7 +285,7 @@ machine_at_portableii_init(const machine_t *model)
     device_add(&compaq_device);
 
     machine_at_common_init(model);
-    device_add(&kbc_at_compaq_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -316,7 +316,7 @@ machine_at_portableiii_init(const machine_t *model)
     device_add(&compaq_device);
 
     machine_at_common_init(model);
-    device_add(&kbc_at_compaq_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -333,7 +333,7 @@ machine_at_grid1520_init(const machine_t *model) {
     machine_at_common_ide_init(model);
     mem_remap_top(384);
 
-    device_add(&kbc_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     // for now just select CGA with amber monitor 
     //device_add(&cga_device);
 
@@ -499,7 +499,7 @@ machine_at_mbc17_init(const machine_t *model)
     machine_at_common_ide_init(model);
     device_add(&sanyo_device);
 
-    device_add(&kbc_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -520,7 +520,7 @@ machine_at_ax286_init(const machine_t *model)
         return ret;
 
     machine_at_common_ide_init(model);
-    device_add(&kbc_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -562,7 +562,7 @@ machine_at_ctat_common_init(const machine_t *model)
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&kbc_at_phoenix_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 }
 
 int
@@ -735,7 +735,7 @@ machine_at_ataripc4_init(const machine_t *model)
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }

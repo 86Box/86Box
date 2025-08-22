@@ -63,7 +63,7 @@ machine_at_rycleopardlx_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&opti283_device);
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);

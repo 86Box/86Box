@@ -63,7 +63,7 @@ machine_at_pci56001_init(const machine_t *model)
     device_add(&opti5x7_pci_device);
     device_add(&opti822_device);
     device_add(&sst_flash_29ee010_device);
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
