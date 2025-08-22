@@ -273,14 +273,14 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
 
     // Ports
     portsSection->clear();
-    portsSection->addSection("Serial ports", passed_sysconfig->getDisplayValue(Display::Name::Serial));
-    portsSection->addSection("Parallel ports", passed_sysconfig->getDisplayValue(Display::Name::Parallel));
+    portsSection->addSection(tr("Serial ports"), passed_sysconfig->getDisplayValue(Display::Name::Serial));
+    portsSection->addSection(tr("Parallel ports"), passed_sysconfig->getDisplayValue(Display::Name::Parallel));
 
     // Other devices
     otherSection->clear();
-    otherSection->addSection("ISA RTC", passed_sysconfig->getDisplayValue(Display::Name::IsaRtc));
-    otherSection->addSection("ISA RAM", passed_sysconfig->getDisplayValue(Display::Name::IsaMem));
-    otherSection->addSection("ISA ROM", passed_sysconfig->getDisplayValue(Display::Name::IsaRom));
+    otherSection->addSection(tr("ISA RTC"), passed_sysconfig->getDisplayValue(Display::Name::IsaRtc));
+    otherSection->addSection(tr("ISA RAM"), passed_sysconfig->getDisplayValue(Display::Name::IsaMem));
+    otherSection->addSection(tr("ISA ROM"), passed_sysconfig->getDisplayValue(Display::Name::IsaRom));
 
     systemSection->setSections();
     videoSection->setSections();
