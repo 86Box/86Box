@@ -715,7 +715,7 @@ msgid "Image %1"
 msgstr "Obraz %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box nenalezl žádné použitelné image pamětí ROM.\n\n<a href=\"https://github.com/86Box/roms/releases/latest\">Stáhněte</a> sadu obrazů ROM a extrahujte ji do složky \"roms\"."
+msgstr "86Box nenalezl žádné použitelné obrazy pamětí ROM.\n\n<a href=\"https://github.com/86Box/roms/releases/latest\">Stáhněte</a> sadu obrazů ROM a extrahujte ji do složky \"roms\"."
 
 msgid "(empty)"
 msgstr "(prázdné)"
@@ -1141,7 +1141,7 @@ msgid "New configuration"
 msgstr "Nová konfigurace"
 
 msgid "Complete"
-msgstr "Dokončit"
+msgstr "Závěr"
 
 msgid "The wizard will now launch the configuration for the new system."
 msgstr "Průvodce nyní spustí konfiguraci nového systému."
