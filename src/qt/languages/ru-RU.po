@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "&Указать размеры главного окна..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "У&становить соотношение сторон 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Установить соотношение сторон &4:3"
 
 msgid "&Window scale factor"
 msgstr "&Масштаб окна"

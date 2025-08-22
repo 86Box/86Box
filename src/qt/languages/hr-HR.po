@@ -66,7 +66,7 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "Odrediti veličinu..."
 
-msgid "F&orce 4:3 display ratio"
+msgid "Force &4:3 display ratio"
 msgstr "&4:3 omjer prikaza"
 
 msgid "&Window scale factor"
@@ -220,7 +220,7 @@ msgid "End trace"
 msgstr "&Svrši praćenje"
 
 msgid "&Help"
-msgstr "&Pomoć"
+msgstr "P&omoć"
 
 msgid "&Documentation..."
 msgstr "&Dokumentacija..."

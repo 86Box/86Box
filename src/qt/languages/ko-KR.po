@@ -66,8 +66,8 @@ msgstr "VNC(&V)"
 msgid "Specify &dimensions..."
 msgstr "창 크기 지정하기...(&D)"
 
-msgid "F&orce 4:3 display ratio"
-msgstr "화면 비율을 4:3으로 맞추기(&O)"
+msgid "Force &4:3 display ratio"
+msgstr "화면 비율을 4:3으로 맞추기(&4)"
 
 msgid "&Window scale factor"
 msgstr "창 표시 배율(&W)"
