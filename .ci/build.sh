@@ -472,7 +472,7 @@ then
 		mv "archive_tmp_universal/$merge_src.app" "$app_bundle_name"
 
 		# Sign final app bundle.
-		arch -"$(uname -m)" codesign --force --deep -s - "$app_bundle_name"
+		arch -"$(uname -m)" codesign --force --deep -s - -o runtime --entitlements src/mac/entitlements.plist --timestamp "$app_bundle_name"
 
 		# Create zip.
 		echo [-] Creating artifact archive
@@ -905,7 +905,7 @@ then
 		fi
 
 		# Sign app bundle, unless we're in an universal build.
-		[ $skip_archive -eq 0 ] && codesign --force --deep -s - "archive_tmp/"*".app"
+		[ $skip_archive -eq 0 ] && codesign --force --deep -s - -o runtime --entitlements src/mac/entitlements.plist --timestamp "archive_tmp/"*".app"
 	elif [ "$BUILD_TAG" = "precondition" ]
 	then
 		# Continue with no app bundle on a dry build.
