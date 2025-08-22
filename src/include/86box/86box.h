@@ -194,7 +194,7 @@ extern char cfg_path[1024];     /* full path of config file */
 extern char global_cfg_path[1024]; /* full path of global config file */
 extern int  open_dir_usr_path;  /* default file open dialog directory of usr_path */
 extern char uuid[MAX_UUID_LEN]; /* UUID or machine identifier */
-extern char vmm_path[1024];       /* VM Manager path to scan (temporary) */
+extern char vmm_path[1024];       /* VM Manager path to scan */
 extern int  start_vmm;
 #ifndef USE_NEW_DYNAREC
 extern FILE *stdlog; /* file to log output to */

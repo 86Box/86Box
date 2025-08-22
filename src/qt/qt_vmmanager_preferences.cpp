@@ -77,8 +77,7 @@ VMManagerPreferences()
 void
 VMManagerPreferences::chooseDirectoryLocation()
 {
-    // TODO: FIXME: This is pulling in the CLI directory! Needs to be set properly elsewhere
-    const auto directory = QFileDialog::getExistingDirectory(this, tr("Choose directory"), QDir(vmm_path).path());
+    const auto directory = QFileDialog::getExistingDirectory(this, tr("Choose directory"), ui->systemDirectory->text());
     ui->systemDirectory->setText(QDir::toNativeSeparators(directory));
 }
 
