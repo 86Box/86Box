@@ -1215,7 +1215,7 @@ msgstr "Kontextové menu"
 msgid "&Open folder..."
 msgstr "&Otvoriť priečinok..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Otvoriť zásobník &tlačiarne..."
 
 msgid "Set &icon..."

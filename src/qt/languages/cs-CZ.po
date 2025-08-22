@@ -1215,7 +1215,7 @@ msgstr "Kontextová nabídka"
 msgid "&Open folder..."
 msgstr "&Otevřít složku..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Otevřít zásobník &tiskárny..."
 
 msgid "Set &icon..."

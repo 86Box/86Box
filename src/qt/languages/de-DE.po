@@ -202,7 +202,7 @@ msgid "Take s&creenshot"
 msgstr "S&creenshot aufnehmen"
 
 msgid "S&ound"
-msgstr "T&on"
+msgstr "&Ton"
 
 msgid "&Preferences..."
 msgstr "&Einstellungen..."
@@ -1215,8 +1215,8 @@ msgstr "Kontextmenü"
 msgid "&Open folder..."
 msgstr "&Ordner öffnen"
 
-msgid "Open &printer tray..."
-msgstr "Druckerausgabe öffnen..."
+msgid "Open p&rinter tray..."
+msgstr "D&ruckerausgabe öffnen..."
 
 msgid "Set &icon..."
 msgstr "&Symbol setzen"
@@ -1642,7 +1642,7 @@ msgid "Show non-&primary monitors"
 msgstr "Nicht-primäre Monitore anzeigen"
 
 msgid "Open screenshots &folder..."
-msgstr "Ordner „screenshots“ öffnen..."
+msgstr "Ordner „screenshots“ ö&ffnen..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Vollbild-S&treckmodus aktivieren, wenn das Fenster maximiert ist"

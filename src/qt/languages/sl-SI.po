@@ -1215,7 +1215,7 @@ msgstr "Kontekstni meni"
 msgid "&Open folder..."
 msgstr "&Odpri mapo..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Odpri pladenj &tiskalnika..."
 
 msgid "Set &icon..."

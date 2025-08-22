@@ -199,7 +199,7 @@ msgid "&Update status bar icons"
 msgstr "&Aggiorna icone della barra di stato"
 
 msgid "Take s&creenshot"
-msgstr "Cattura schermata"
+msgstr "&Cattura schermata"
 
 msgid "S&ound"
 msgstr "A&udio"
@@ -208,7 +208,7 @@ msgid "&Preferences..."
 msgstr "&Preferenze..."
 
 msgid "Enable &Discord integration"
-msgstr "Abilita &integrazione Discord"
+msgstr "Abilita integrazione &Discord"
 
 msgid "Sound &gain..."
 msgstr "Guadagno &suono..."
@@ -1215,7 +1215,7 @@ msgstr "Menu contestuale"
 msgid "&Open folder..."
 msgstr "&Apri cartella..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Apri vassoio &stampante..."
 
 msgid "Set &icon..."
@@ -1642,7 +1642,7 @@ msgid "Show non-&primary monitors"
 msgstr "Mostra i monitor non &primari"
 
 msgid "Open screenshots &folder..."
-msgstr "Apri la cartella screenshots..."
+msgstr "Apri la ca&rtella screenshots..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Applica adattamento sc&hermo intero in modalità massimizzata"

@@ -1215,7 +1215,7 @@ msgstr "Contextmenu"
 msgid "&Open folder..."
 msgstr "&Open map..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Open &papierlade..."
 
 msgid "Set &icon..."
