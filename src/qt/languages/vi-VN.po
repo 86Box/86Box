@@ -774,11 +774,11 @@ msgstr "Cổng (COM và LPT)"
 msgid "Ports"
 msgstr "Cổng"
 
-msgid "Serial ports"
-msgstr "Cổng serial"
+msgid "Serial ports:"
+msgstr "Cổng serial:"
 
-msgid "Parallel ports"
-msgstr "Cổng parallel"
+msgid "Parallel ports:"
+msgstr "Cổng parallel:"
 
 msgid "Storage controllers"
 msgstr "Vi điều khiển bộ nhớ ổ cứng"
@@ -2829,14 +2829,11 @@ msgstr "Chế độ hub"
 msgid "Hostname:"
 msgstr "Tên host:"
 
-msgid "ISA RTC"
-msgstr "ISA RTC"
+msgid "ISA RAM:"
+msgstr "ISA RAM:"
 
-msgid "ISA RAM"
-msgstr "ISA RAM"
-
-msgid "ISA ROM"
-msgstr "ISA ROM"
+msgid "ISA ROM:"
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "Xóa sạch NVRAM"

@@ -774,11 +774,11 @@ msgstr "Porty (COM & LPT)"
 msgid "Ports"
 msgstr "Porty"
 
-msgid "Serial ports"
-msgstr "Porty szeregowe"
+msgid "Serial ports:"
+msgstr "Porty szeregowe:"
 
-msgid "Parallel ports"
-msgstr "Porty równoległe"
+msgid "Parallel ports:"
+msgstr "Porty równoległe:"
 
 msgid "Storage controllers"
 msgstr "Kontrolery pamięci masowej"
@@ -2829,14 +2829,11 @@ msgstr "Tryb hub"
 msgid "Hostname:"
 msgstr "Nazwa komputera:"
 
-msgid "ISA RTC"
-msgstr "ISA RTC"
+msgid "ISA RAM:"
+msgstr "ISA RAM:"
 
-msgid "ISA RAM"
-msgstr "ISA RAM"
-
-msgid "ISA ROM"
-msgstr "ISA ROM"
+msgid "ISA ROM:"
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Wyczyść NVRAM"

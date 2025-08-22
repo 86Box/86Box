@@ -139,22 +139,10 @@ VMManagerSystem::scanForConfigs(QWidget* parent, const QString &searchPath)
     scanTimer.start();
     QVector<VMManagerSystem *> system_configs;
 
-    const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
-    auto systemDirConfig = config->getStringValue("system_directory");
-
-    const auto config_file_name = QString("86box.cfg");
+    const auto config_file_name = QString(CONFIG_FILE);
     const QStringList filters = {config_file_name};
     QStringList matches;
-    // TODO: Preferences. Once I get the CLI args worked out.
-    // For now it just takes vmm_path from the CLI
     QString search_directory;
-    // if(searchPath.isEmpty()) {
-    //     // If the location isn't specified in function call, use the one loaded
-    //     // from the config file
-    //     search_directory = systemDirConfig;
-    // } else {
-    //     search_directory = searchPath;
-    // }
 
     search_directory = searchPath.isEmpty()? vmm_path : searchPath;
 

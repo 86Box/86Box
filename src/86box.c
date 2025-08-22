@@ -259,7 +259,7 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
 		.seq="Ctrl+Alt+M" }
 };
 
-char vmm_path[1024] = { '\0'}; /* TEMPORARY - VM manager path to scan for VMs */
+char vmm_path[1024] = { '\0' }; /* VM manager path to scan for VMs */
 int  start_vmm = 1;
 
 /* Statistics. */
