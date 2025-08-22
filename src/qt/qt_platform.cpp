@@ -361,7 +361,9 @@ path_append_filename(char *dest, const char *s1, const char *s2)
     if (!dest || !s1 || !s2)
         return;
 
-    snprintf(dest, dest_size, "%s", s1);
+    if (dest != s1)
+        snprintf(dest, dest_size, "%s", s1);
+
     len = strlen(dest);
 
     if (len > 0 && dest[len - 1] != '/' && dest[len - 1] != '\\') {
@@ -666,7 +668,7 @@ plat_chdir(char *path)
 void
 plat_get_global_config_dir(char *outbuf, const size_t len)
 {
-    const auto dir = QDir(QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation)[0]);
+    const auto dir = QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
     if (!dir.exists()) {
         if (!dir.mkpath(".")) {
             qWarning("Failed to create global configuration directory %s", dir.absolutePath().toUtf8().constData());
@@ -678,7 +680,7 @@ plat_get_global_config_dir(char *outbuf, const size_t len)
 void
 plat_get_global_data_dir(char *outbuf, const size_t len)
 {
-    const auto dir = QDir(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation)[0]);
+    const auto dir = QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
     if (!dir.exists()) {
         if (!dir.mkpath(".")) {
             qWarning("Failed to create global data directory %s", dir.absolutePath().toUtf8().constData());
@@ -690,14 +692,18 @@ plat_get_global_data_dir(char *outbuf, const size_t len)
 void
 plat_get_temp_dir(char *outbuf, const uint8_t len)
 {
-    const auto dir = QDir(QStandardPaths::standardLocations(QStandardPaths::TempLocation)[0]);
+    const auto dir = QDir(QStandardPaths::writableLocation(QStandardPaths::TempLocation));
     strncpy(outbuf, dir.canonicalPath().toUtf8().constData(), len);
 }
 
 void
 plat_get_vmm_dir(char *outbuf, const size_t len)
 {
+#ifdef Q_OS_WINDOWS
     const auto path = QDir::home().filePath("86Box VMs");
+#else
+    const auto path = QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)).filePath("Virtual Machines");
+#endif
     strncpy(outbuf, path.toUtf8().constData(), len);
 }
 

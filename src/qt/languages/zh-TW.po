@@ -66,8 +66,8 @@ msgstr "VNC(&V)"
 msgid "Specify &dimensions..."
 msgstr "指定視窗大小...(&D)"
 
-msgid "F&orce 4:3 display ratio"
-msgstr "強制 4:3 顯示比例(&O)"
+msgid "Force &4:3 display ratio"
+msgstr "強制 4:3 顯示比例(&4)"
 
 msgid "&Window scale factor"
 msgstr "視窗縮放係數(&W)"

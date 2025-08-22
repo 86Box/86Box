@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "Afmetingen opgeven..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "F&orceer 4:3 beeldverhouding"
+msgid "Force &4:3 display ratio"
+msgstr "Forceer &4:3 beeldverhouding"
 
 msgid "&Window scale factor"
 msgstr "&Venster schaalfactor"

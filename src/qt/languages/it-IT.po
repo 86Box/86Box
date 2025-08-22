@@ -40,7 +40,7 @@ msgid "&View"
 msgstr "&Visualizza"
 
 msgid "&Hide status bar"
-msgstr "&Nascondi barra di stato"
+msgstr "Nascondi ba&rra di stato"
 
 msgid "Hide &toolbar"
 msgstr "Nascondi &barra degli strumenti"
@@ -64,13 +64,13 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify &dimensions..."
-msgstr "Specifica dimensioni..."
+msgstr "Specifica dim&ensioni..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "F&orza rapporto d'aspetto 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Forza rapporto d'aspetto &4:3"
 
 msgid "&Window scale factor"
-msgstr "&Fattore di scala della finestra"
+msgstr "Fa&ttore di scala della finestra"
 
 msgid "&0.5x"
 msgstr "&0,5x"
@@ -103,7 +103,7 @@ msgid "&8x"
 msgstr "&8x"
 
 msgid "Fi&lter method"
-msgstr "Metodo filtro"
+msgstr "Metodo fi&ltro"
 
 msgid "&Nearest"
 msgstr "&Più vicino"
@@ -118,7 +118,7 @@ msgid "&Fullscreen"
 msgstr "&Schermo intero"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Modalità adattamento &schermo intero"
+msgstr "Modalità &adattamento schermo intero"
 
 msgid "&Full screen stretch"
 msgstr "&Adatta a schermo intero"
@@ -142,7 +142,7 @@ msgid "&Inverted VGA monitor"
 msgstr "&Monitor VGA invertito"
 
 msgid "VGA screen &type"
-msgstr "Schermi VGA &"
+msgstr "Schermi &VGA"
 
 msgid "RGB &Color"
 msgstr "RGB a &Colori"
@@ -181,7 +181,7 @@ msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
 msgstr "Sovrascansione CGA/PCjr/Tandy/E&GA/(S)VGA"
 
 msgid "Change contrast for &monochrome display"
-msgstr "Modifica il contrasto per &schermi monocromatici"
+msgstr "Modifica il contrasto per schermi &monocromatici"
 
 msgid "&Media"
 msgstr "&Dispositivi"
@@ -220,7 +220,7 @@ msgid "End trace"
 msgstr "Fine traccia"
 
 msgid "&Help"
-msgstr "&Aiuto"
+msgstr "Ai&uto"
 
 msgid "&Documentation..."
 msgstr "&Documentazione..."
@@ -1639,13 +1639,13 @@ msgid "&MCA devices..."
 msgstr "Dispositivi MCA..."
 
 msgid "Show non-&primary monitors"
-msgstr "Mostra i monitor non primari"
+msgstr "Mostra i monitor non &primari"
 
 msgid "Open screenshots &folder..."
 msgstr "Apri la cartella screenshots..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Applica adattamento schermo intero in modalità massimizzata"
+msgstr "Applica adattamento sc&hermo intero in modalità massimizzata"
 
 msgid "&Cursor/Puck"
 msgstr "&Cursore/Puck"
@@ -1792,7 +1792,7 @@ msgid "Serial port passthrough 4"
 msgstr "Porta seriale passante 4"
 
 msgid "Renderer &options..."
-msgstr "Opzioni renderizzatore..."
+msgstr "&Opzioni renderizzatore..."
 
 msgid "PC/XT Keyboard"
 msgstr "Tastiera PC/XT"

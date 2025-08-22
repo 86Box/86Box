@@ -37,7 +37,7 @@ msgid "E&xit"
 msgstr "Be&enden"
 
 msgid "&View"
-msgstr "&Ansicht"
+msgstr "A&nsicht"
 
 msgid "&Hide status bar"
 msgstr "&Statusleiste ausblenden"
@@ -46,10 +46,10 @@ msgid "Hide &toolbar"
 msgstr "&Werkzeugleiste ausblenden"
 
 msgid "&Resizeable window"
-msgstr "&Größenverstellbares Fenster"
+msgstr "G&rößenverstellbares Fenster"
 
 msgid "R&emember size && position"
-msgstr "&Größe && Position merken"
+msgstr "Größe && &Position merken"
 
 msgid "Re&nderer"
 msgstr "Re&nderer"
@@ -64,9 +64,9 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify &dimensions..."
-msgstr "Fenstergröße einstellen..."
+msgstr "Fenstergröße &einstellen..."
 
-msgid "F&orce 4:3 display ratio"
+msgid "Force &4:3 display ratio"
 msgstr "&4:3-Seitenverhältnis erzwingen"
 
 msgid "&Window scale factor"
@@ -103,7 +103,7 @@ msgid "&8x"
 msgstr "&8x"
 
 msgid "Fi&lter method"
-msgstr "Filterungsmethode"
+msgstr "Filterungsmet&hode"
 
 msgid "&Nearest"
 msgstr "&Nächster Nachbar"
@@ -115,10 +115,10 @@ msgid "Hi&DPI scaling"
 msgstr "Hi&DPI-Skalierung"
 
 msgid "&Fullscreen"
-msgstr "&Vollbild"
+msgstr "Vo&llbild"
 
 msgid "Fullscreen &stretch mode"
-msgstr "&Vollbild-Skalierungsmodus"
+msgstr "Vollbild-S&kalierungsmodus"
 
 msgid "&Full screen stretch"
 msgstr "&Vollbild-Streckung"
@@ -1645,7 +1645,7 @@ msgid "Open screenshots &folder..."
 msgstr "Ordner „screenshots“ öffnen..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Vollbild-Streckmodus aktivieren, wenn das Fenster maximiert ist"
+msgstr "Vollbild-S&treckmodus aktivieren, wenn das Fenster maximiert ist"
 
 msgid "&Cursor/Puck"
 msgstr "&Mauszeiger/Puck"
@@ -1792,7 +1792,7 @@ msgid "Serial port passthrough 4"
 msgstr "Serielle Schnittstelle 4 durchreichen"
 
 msgid "Renderer &options..."
-msgstr "Renderer-Optionen..."
+msgstr "Renderer-&Optionen..."
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT-Tastatur"
