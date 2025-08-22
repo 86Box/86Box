@@ -774,11 +774,11 @@ msgstr "COM a LPT porty"
 msgid "Ports"
 msgstr "Porty"
 
-msgid "Serial ports"
-msgstr "Sériové porty"
+msgid "Serial ports:"
+msgstr "Sériové porty:"
 
-msgid "Parallel ports"
-msgstr "Paralelní porty"
+msgid "Parallel ports:"
+msgstr "Paralelní porty:"
 
 msgid "Storage controllers"
 msgstr "Řadiče úložiště"
@@ -2829,14 +2829,11 @@ msgstr "Režim hubu"
 msgid "Hostname:"
 msgstr "Hostitelské jméno"
 
-msgid "ISA RTC"
-msgstr "ISA hodiny"
+msgid "ISA RAM:"
+msgstr "ISA paměť RAM:"
 
-msgid "ISA RAM"
-msgstr "ISA paměť RAM"
-
-msgid "ISA ROM"
-msgstr "ISA paměť ROM"
+msgid "ISA ROM:"
+msgstr "ISA paměť ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Vymazat NVRAM"

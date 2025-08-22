@@ -774,11 +774,11 @@ msgstr "Portar (COM & LPT)"
 msgid "Ports"
 msgstr "Portar"
 
-msgid "Serial ports"
-msgstr "Serieportar"
+msgid "Serial ports:"
+msgstr "Serieportar:"
 
-msgid "Parallel ports"
-msgstr "Parallelportar"
+msgid "Parallel ports:"
+msgstr "Parallelportar:"
 
 msgid "Storage controllers"
 msgstr "Styrenheter för lagring"
@@ -2829,14 +2829,11 @@ msgstr "Hubb-läge"
 msgid "Hostname:"
 msgstr "Värdnamn:"
 
-msgid "ISA RTC"
-msgstr "ISA RTC"
+msgid "ISA RAM:"
+msgstr "ISA RAM:"
 
-msgid "ISA RAM"
-msgstr "ISA RAM"
-
-msgid "ISA ROM"
-msgstr "ISA ROM"
+msgid "ISA ROM:"
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Rensa NVRAM"

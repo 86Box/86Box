@@ -774,11 +774,11 @@ msgstr "Poorten (COM & LPT)"
 msgid "Ports"
 msgstr "Poorten"
 
-msgid "Serial ports"
-msgstr "Seriële poorten"
+msgid "Serial ports:"
+msgstr "Seriële poorten:"
 
-msgid "Parallel ports"
-msgstr "Parallelle poorten"
+msgid "Parallel ports:"
+msgstr "Parallelle poorten:"
 
 msgid "Storage controllers"
 msgstr "Opslagcontrollers"
@@ -2829,14 +2829,11 @@ msgstr "Hub-modus"
 msgid "Hostname:"
 msgstr "Hostname"
 
-msgid "ISA RTC"
-msgstr "ISA RTC"
+msgid "ISA RAM:"
+msgstr "ISA RAM:"
 
-msgid "ISA RAM"
-msgstr "ISA RAM"
-
-msgid "ISA ROM"
-msgstr "ISA ROM"
+msgid "ISA ROM:"
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "NVRAM &wissen"

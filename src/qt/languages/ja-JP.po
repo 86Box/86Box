@@ -774,11 +774,11 @@ msgstr "ポート (COM/LPT)"
 msgid "Ports"
 msgstr "ポート"
 
-msgid "Serial ports"
-msgstr "シリアルポート"
+msgid "Serial ports:"
+msgstr "シリアルポート:"
 
-msgid "Parallel ports"
-msgstr "パラレルポート"
+msgid "Parallel ports:"
+msgstr "パラレルポート:"
 
 msgid "Storage controllers"
 msgstr "ストレージコントローラ"
@@ -2829,14 +2829,11 @@ msgstr "ハブモード"
 msgid "Hostname:"
 msgstr "ホスト名:"
 
-msgid "ISA RTC"
-msgstr "ISA RTC"
+msgid "ISA RAM:"
+msgstr "ISA RAM:"
 
-msgid "ISA RAM"
-msgstr "ISA RAM"
-
-msgid "ISA ROM"
-msgstr "ISA ROM"
+msgid "ISA ROM:"
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "NVRAMを消去する(&W)"

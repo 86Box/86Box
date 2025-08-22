@@ -774,11 +774,11 @@ msgstr "Vrata (COM & LPT)"
 msgid "Ports"
 msgstr "Vrata"
 
-msgid "Serial ports"
-msgstr "Serijska vrata"
+msgid "Serial ports:"
+msgstr "Serijska vrata:"
 
-msgid "Parallel ports"
-msgstr "Paralelna vrata"
+msgid "Parallel ports:"
+msgstr "Paralelna vrata:"
 
 msgid "Storage controllers"
 msgstr "Krmilniki shrambe"
@@ -2829,14 +2829,11 @@ msgstr "Način koncentratorja"
 msgid "Hostname:"
 msgstr "Ime gostitelja:"
 
-msgid "ISA RTC"
-msgstr "RČ ura ISA"
+msgid "ISA RAM:"
+msgstr "RAM ISA:"
 
-msgid "ISA RAM"
-msgstr "RAM ISA"
-
-msgid "ISA ROM"
-msgstr "ROM ISA"
+msgid "ISA ROM:"
+msgstr "ROM ISA:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Izbriši NVRAM"

@@ -601,7 +601,7 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
     const auto newSystemDirectory = QDir(QDir::cleanPath(dir + "/" + name));
 
     // qt replaces `/` with native separators
-    const auto newSystemConfigFile = QFileInfo(newSystemDirectory.path() + "/" + "86box.cfg");
+    const auto newSystemConfigFile = QFileInfo(newSystemDirectory.path() + "/" + CONFIG_FILE);
     if (newSystemConfigFile.exists() || newSystemDirectory.exists()) {
         QMessageBox::critical(this, tr("Directory in use"), tr("The selected directory is already in use. Please select a different directory."));
         return;
@@ -774,6 +774,7 @@ void
 VMManagerMain::onLanguageUpdated()
 {
     vm_model->refreshConfigs();
+    modelDataChange();
     /* Hack to work around details widgets not being re-translatable
        without going through layers of abstraction */
     ui->detailsArea->layout()->removeWidget(vm_details);
@@ -810,7 +811,7 @@ VMManagerMain::backgroundUpdateCheckComplete(const UpdateCheck::UpdateResult &re
     qDebug() << "Check complete: update available?" << result.updateAvailable;
     if (result.updateAvailable) {
         auto type = result.channel == UpdateCheck::UpdateChannel::CI ? tr("build") : tr("version");
-        const auto updateMessage = QString("An update to 86Box is available: %1 %2").arg(type, result.latestVersion);
+        const auto updateMessage = tr("An update to 86Box is available: %1 %2").arg(type, result.latestVersion);
         emit updateStatusLeft(updateMessage);
     }
 }

@@ -149,7 +149,6 @@ WithExistingConfigPage(QWidget *parent)
 void
 WithExistingConfigPage::chooseExistingConfigFile()
 {
-    // TODO: FIXME: This is using the CLI arg and needs to instead use a proper variable
     const auto startDirectory = QString(vmm_path);
     const auto selectedConfigFile = QFileDialog::getOpenFileName(this, tr("Choose configuration file"),
                                                 startDirectory,
@@ -228,7 +227,6 @@ NameAndLocationPage(QWidget *parent)
 #ifdef CUSTOM_SYSTEM_LOCATION
     const auto systemLocationLabel = new QLabel(tr("System location:"));
     systemLocation           = new QLineEdit();
-    // TODO: FIXME: This is using the CLI arg and needs to instead use a proper variable
     systemLocation->setText(QDir::toNativeSeparators(vmm_path));
     registerField("systemLocation*", systemLocation);
     systemLocationValidation = new QLabel();
@@ -285,7 +283,6 @@ NameAndLocationPage::nextId() const
 void
 NameAndLocationPage::chooseDirectoryLocation()
 {
-    // TODO: FIXME: This is pulling in the CLI directory! Needs to be set properly elsewhere
     const auto directory = QFileDialog::getExistingDirectory(this, "Choose directory", QDir(vmm_path).path());
     systemLocation->setText(QDir::toNativeSeparators(directory));
     emit completeChanged();
