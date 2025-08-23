@@ -1793,7 +1793,6 @@ ps55_mca_board_model_50t_init(void)
     ps2.split_addr = mem_size * 1024;
     /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
     mca_init(5);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     ps2.planar_read = ps55_model_50t_read;
     ps2.planar_write = ps55_model_50tv_write;
@@ -1837,7 +1836,6 @@ ps55_mca_board_model_50v_init(void)
     ps2.split_addr = mem_size * 1024;
     /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
     mca_init(5);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     ps2.planar_read = ps55_model_50v_read;
     ps2.planar_write = ps55_model_50tv_write;
@@ -1889,7 +1887,7 @@ ps55_mca_board_model_50v_init(void)
 }
 
 int
-machine_ps55_model_50t_init(const machine_t* model)
+machine_ps55_model_50t_init(const machine_t *model)
 {
     int ret;
 
@@ -1914,11 +1912,13 @@ machine_ps55_model_50t_init(const machine_t* model)
     ps2.planar_id = 0xffee;
     ps55_mca_board_model_50t_init();
 
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     return ret;
 }
 
 int
-machine_ps55_model_50v_init(const machine_t* model)
+machine_ps55_model_50v_init(const machine_t *model)
 {
     int ret;
 
@@ -1938,6 +1938,8 @@ machine_ps55_model_50v_init(const machine_t* model)
     */
     ps2.planar_id = 0xf1ff;
     ps55_mca_board_model_50v_init();
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }

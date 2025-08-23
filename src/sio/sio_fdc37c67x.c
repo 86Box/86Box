@@ -767,17 +767,17 @@ fdc37c67x_init(const device_t *info)
             dev->kbc = device_add(&kbc_ps2_compaq_device);
             break;
         case FDC37XXX2:
-            dev->kbc = device_add(&kbc_ps2_intel_ami_pci_device);
+            dev->kbc = device_add_params(&kbc_ps2_ami_device, (void *) 0x00003500);
             break;
         case FDC37XXX3:
         default:
-            dev->kbc = device_add(&kbc_ps2_pci_device);
+            dev->kbc = device_add(&kbc_ps2_device);
             break;
         case FDC37XXX5:
-            dev->kbc = device_add(&kbc_ps2_phoenix_device);
+            dev->kbc = device_add_params(&kbc_ps2_phoenix_device, (void *) 0x00013800);
             break;
         case FDC37XXX7:
-            dev->kbc = device_add(&kbc_ps2_phoenix_pci_device);
+            dev->kbc = device_add_params(&kbc_ps2_phoenix_device, (void *) 0x00041600);
             break;
     }
 

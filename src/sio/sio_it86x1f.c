@@ -32,6 +32,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/gameport.h>
+#include <86box/keyboard.h>
 #include <86box/sio.h>
 #include <86box/isapnp.h>
 #include <86box/plat_fallthrough.h>
@@ -853,6 +854,9 @@ it86x1f_init(UNUSED(const device_t *info))
     CHIP_ID = it86x1f_models[i].chip_id;
     dev->unlock_id = it86x1f_models[i].unlock_id;
     io_sethandler(0x279, 1, NULL, NULL, NULL, it86x1f_write_unlock, NULL, NULL, dev);
+
+    if (info->local == ITE_IT8671F)
+        device_add_params(&kbc_ps2_ami_device, (void *) 0x00004800);
 
     it86x1f_reset(dev);
 

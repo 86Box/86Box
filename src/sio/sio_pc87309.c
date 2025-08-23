@@ -737,16 +737,16 @@ pc87309_init(const device_t *info)
     lpt_set_cnfga_readout(dev->lpt, 0x14);
 
     switch (info->local & PCX730X_KBC) {
-        default:
         case PCX730X_AMI:
-            dev->kbc = device_add(&kbc_ps2_intel_ami_pci_device);
+        default:
+            dev->kbc = device_add_params(&kbc_ps2_ami_device, (void *) 0x00003500);
             break;
         /* Optiplex! */
         case PCX730X_PHOENIX_42:
-            dev->kbc = device_add(&kbc_ps2_phoenix_device);
+            dev->kbc = device_add_params(&kbc_ps2_phoenix_device, (void *) 0x00013700);
             break;
         case PCX730X_PHOENIX_42I:
-            dev->kbc = device_add(&kbc_ps2_phoenix_pci_device);
+            dev->kbc = device_add_params(&kbc_ps2_phoenix_device, (void *) 0x00041600);
             break;
     }
 
