@@ -1803,9 +1803,7 @@ pipc_init(const device_t *info)
     }
 
     if (machine_get_kbc_device(machine) == NULL)
-        device_add_params(machine_has_bus(machine, MACHINE_BUS_PS2) ?
-                                          &kbc_ps2_via_device : &kbc_at_via_device,
-                          (void *) (uintptr_t) kbc_params);
+        device_add_params(&kbc_at_via_device, (void *) (uintptr_t) kbc_params);
 
     return dev;
 }

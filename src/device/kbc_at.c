@@ -107,7 +107,9 @@ typedef struct atkbc_t {
     uint8_t irq_state;
     uint8_t do_irq;
     uint8_t is_asic;
+    uint8_t is_green;
     uint8_t kblock_switch;
+    uint8_t is_type2;
 
     uint8_t mem[0x100];
 
@@ -242,7 +244,7 @@ kbc_translate(atkbc_t *dev, uint8_t val)
 {
     int      xt_mode   = (dev->mem[0x20] & 0x20) && !(dev->misc_flags & FLAG_PS2);
     /* The IBM AT keyboard controller firmware does not apply translation in XT mode. */
-    int      translate = !xt_mode && ((dev->mem[0x20] & 0x40) || ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2));
+    int      translate = !xt_mode && ((dev->mem[0x20] & 0x40) || (dev->is_type2));
     uint8_t  kbc_ven   = dev->flags & KBC_VEN_MASK;
     int      ret       = - 1;
 
@@ -885,7 +887,7 @@ write_cmd(atkbc_t *dev, uint8_t val)
     kbc_at_log("ATkbc: write command byte: %02X (old: %02X)\n", val, dev->mem[0x20]);
 
     /* PS/2 type 2 keyboard controllers always force the XLAT bit to 0. */
-    if ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2) {
+    if (dev->is_type2) {
         val &= ~CCB_TRANSLATE;
         dev->mem[0x20] &= ~CCB_TRANSLATE;
     } else if (!(dev->misc_flags & FLAG_PS2)) {
@@ -1066,7 +1068,7 @@ write_cmd_ami(void *priv, uint8_t val)
                     coprlen = strlen(copr) + 1;
                     break;
                 case 0x5a:
-                    if ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_GREEN)
+                    if (dev->is_green)
                         /*
                                       (   C   )   1   9   9   0       A   M   I
                            But TriGem forgot to reencrypt it.
@@ -2362,7 +2364,7 @@ kbc_at_process_cmd(void *priv)
             case 0xaa: /* self-test */
                 kbc_at_log("ATkbc: self-test\n");
 
-                if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
+                if (machine_has_flags_ex(MACHINE_PS2_KBC)) {
                     if (dev->state != STATE_RESET) {
                         kbc_at_log("ATkbc: self-test reinitialization\n");
                         /*
@@ -2743,7 +2745,7 @@ kbc_at_port_1_read(uint16_t port, void *priv)
     atkbc_t *dev     = (atkbc_t *) priv;
     uint8_t  ret     = 0xff;
 
-    if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1)
+    if (machine_has_flags_ex(MACHINE_PS2_KBC))
         cycles -= ISA_CYCLES(8);
 
     ret = dev->ob;
@@ -2768,7 +2770,7 @@ kbc_at_port_2_read(uint16_t port, void *priv)
     atkbc_t *dev     = (atkbc_t *) priv;
     uint8_t  ret     = 0xff;
 
-    if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1)
+    if (machine_has_flags_ex(MACHINE_PS2_KBC))
         cycles -= ISA_CYCLES(8);
 
     ret = dev->status;
@@ -2804,10 +2806,10 @@ kbc_at_reset(void *priv)
 
     dev->sc_or = 0;
 
-    dev->ami_flags = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 0x01 : 0x00;
+    dev->ami_flags = (machine_has_flags_ex(MACHINE_PS2_KBC)) ? 0x01 : 0x00;
     dev->misc_flags &= FLAG_PCI;
 
-    if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
+    if (machine_has_flags_ex(MACHINE_PS2_KBC)) {
         dev->misc_flags |= FLAG_PS2;
         kbc_at_do_poll = kbc_at_poll_ps2;
         if (dev->irq[1] != 0xffff)
@@ -2824,7 +2826,7 @@ kbc_at_reset(void *priv)
     dev->misc_flags |= FLAG_CACHE;
 
     dev->p2 = 0xcd;
-    if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
+    if (machine_has_flags_ex(MACHINE_PS2_KBC)) {
         write_p2(dev, 0x4b);
     } else {
         /* The real thing writes CF and then AND's it with BF. */
@@ -2840,7 +2842,7 @@ kbc_at_close(void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
 #ifdef OLD_CODE
-    int max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 2 : 1;
+    int max_ports = machine_has_flags_ex(MACHINE_PS2_KBC) ? 2 : 1;
 #else
     int max_ports = 2;
 #endif
@@ -2891,7 +2893,7 @@ kbc_at_set_irq(int num, uint16_t irq, void *priv)
     atkbc_t *dev = (atkbc_t *) priv;
 
     if (dev->irq[num] != 0xffff) {
-        if ((num == 0) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_1))
+        if ((num == 0) && !machine_has_flags_ex(MACHINE_PS2_KBC))
             picintclevel(1 << dev->irq[num], &dev->irq_state);
         else
             picintc(1 << dev->irq[num]);
@@ -2912,7 +2914,8 @@ kbc_at_init(const device_t *info)
 
     dev->flags = info->local;
 
-    dev->is_asic = !!(info->local & KBC_FLAG_IS_ASIC);
+    dev->is_asic  = !!(info->local & KBC_FLAG_IS_ASIC);
+    dev->is_type2 = !!(info->local & KBC_FLAG_IS_TYPE2);
 
     video_reset(gfxcard[0]);
     kbc_at_reset(dev);
@@ -2974,6 +2977,7 @@ kbc_at_init(const device_t *info)
             break;
 
         case KBC_VEN_AMI_TRIGEM:
+            dev->is_green = !!(info->local & KBC_FLAG_IS_GREEN);
             kbc_ami_revision = 'Z';
             dev->write_cmd_data_ven = write_cmd_data_ami;
             dev->write_cmd_ven = write_cmd_ami;
@@ -2981,27 +2985,8 @@ kbc_at_init(const device_t *info)
 
         case KBC_VEN_AMI:
         case KBC_VEN_HOLTEK:
-            kbc_ami_is_clone = !!(info->local & 0x010000);
-            if ((info->local & 0xff00) != 0x0000)
-                kbc_ami_revision = (info->local >> 8) & 0xff;
-            else if ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_GREEN)
-                kbc_ami_revision = '5';
-            else if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
-                if (cpu_64bitbus)
-                    kbc_ami_revision = 'R';
-                else if (is486)
-                    kbc_ami_revision = 'P';
-                else
-                    kbc_ami_revision = 'H';
-            } else if (is386 && !is486) {
-                if (cpu_16bitbus)
-                    kbc_ami_revision = 'D';
-                else
-                    kbc_ami_revision = 'B';
-            } else if (!is386)
-                kbc_ami_revision = '8';
-            else
-                kbc_ami_revision = 'F';
+            kbc_ami_is_clone = !!(info->local & KBC_FLAG_IS_CLONE);
+            kbc_ami_revision = (info->local >> 8) & 0xff;
 
             dev->write_cmd_data_ven = write_cmd_data_ami;
             dev->write_cmd_ven = write_cmd_ami;
@@ -3051,11 +3036,7 @@ kbc_at_init(const device_t *info)
             break;
     }
 
-#ifdef OLD_CODE
-    max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 2 : 1;
-#else
     max_ports = 2;
-#endif
 
     for (int i = 0; i < max_ports; i++) {
         kbc_at_ports[i] = (kbc_at_port_t *) calloc(1, sizeof(kbc_at_port_t));
@@ -3068,11 +3049,11 @@ kbc_at_init(const device_t *info)
     /* The actual keyboard. */
     if (keyboard_type == KEYBOARD_TYPE_INTERNAL) {
         if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
-            device_add(((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? &keyboard_ps55_device :
+            device_add(machine_has_flags_ex(MACHINE_PS2_KBC) ? &keyboard_ps55_device :
                        &keyboard_ax_device);
         else
             device_add_params(&keyboard_at_generic_device, (void *) (uintptr_t)
-                              (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? FLAG_PS2_KBD : 0x00));
+                              (machine_has_flags_ex(MACHINE_PS2_KBC) ? FLAG_PS2_KBD : 0x00));
     } else
         keyboard_add_device();
 
@@ -3087,7 +3068,7 @@ const device_t kbc_at_device = {
     .name          = "PC/AT Keyboard Controller",
     .internal_name = "kbc_at",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_GENERIC,
+    .local         = KBC_VEN_GENERIC,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3097,11 +3078,25 @@ const device_t kbc_at_device = {
     .config        = NULL
 };
 
-const device_t kbc_at_siemens_device = {
-    .name          = "PC/AT Keyboard Controller",
+const device_t kbc_at_acer_device = {
+    .name          = "PC/AT Keyboard (Acer 90M002A)",
+    .internal_name = "keyboard_at_acer",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_VEN_ACER,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t kbc_at_ali_device = {
+    .name          = "PC/AT Keyboard Controller (ALi M5123/M1543C)",
     .internal_name = "kbc_at",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_SIEMENS,
+    .local         = KBC_VEN_ALI,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3115,7 +3110,7 @@ const device_t kbc_at_ami_device = {
     .name          = "PC/AT Keyboard Controller (AMI)",
     .internal_name = "kbc_at_ami",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_AMI,
+    .local         = KBC_VEN_AMI,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3125,25 +3120,11 @@ const device_t kbc_at_ami_device = {
     .config        = NULL
 };
 
-const device_t kbc_at_holtek_device = {
-    .name          = "PC/AT Keyboard (Holtek)",
-    .internal_name = "keyboard_at_holtek",
+const device_t kbc_at_ami_tg_device = {
+    .name          = "PC/AT Keyboard Controller (TriGem AMI)",
+    .internal_name = "kbc_at_ami_tg",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_HOLTEK | KBC_FLAG_IS_ASIC,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_at_umc_device = {
-    .name          = "PC/AT Keyboard (UMC)",
-    .internal_name = "keyboard_at_umc",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_UMC | KBC_FLAG_IS_ASIC,
+    .local         = KBC_VEN_AMI_TRIGEM,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3157,7 +3138,7 @@ const device_t kbc_at_award_device = {
     .name          = "PC/AT Keyboard (Award)",
     .internal_name = "keyboard_at_award",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_AWARD,
+    .local         = KBC_VEN_AWARD,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3171,91 +3152,7 @@ const device_t kbc_at_chips_device = {
     .name          = "PC/AT Keyboard (C&T)",
     .internal_name = "keyboard_at_chips",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_CHIPS,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_at_quadtel_device = {
-    .name          = "PC/AT Keyboard (Quadtel)",
-    .internal_name = "keyboard_at_quadtel",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_QUADTEL,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_at_tg_ami_device = {
-    .name          = "PC/AT Keyboard Controller (TriGem AMI)",
-    .internal_name = "kbc_at_tg_ami",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_AMI_TRIGEM,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_at_toshiba_device = {
-    .name          = "PC/AT Keyboard Controller (Toshiba)",
-    .internal_name = "kbc_at_toshiba",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_TOSHIBA,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_at_olivetti_device = {
-    .name          = "PC/AT Keyboard Controller (Olivetti)",
-    .internal_name = "kbc_at_olivetti",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_OLIVETTI,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_at_ncr_device = {
-    .name          = "PC/AT Keyboard Controller (NCR)",
-    .internal_name = "kbc_at_ncr",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_NCR,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_at_via_device = {
-    .name          = "PC/AT Keyboard (VIA)",
-    .internal_name = "keyboard_at_via",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_VIA | KBC_FLAG_IS_ASIC,
+    .local         = KBC_VEN_CHIPS,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3269,7 +3166,63 @@ const device_t kbc_at_compaq_device = {
     .name          = "PC/AT Keyboard Controller (Compaq)",
     .internal_name = "kbc_at_compaq",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_COMPAQ,
+    .local         = KBC_VEN_COMPAQ,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t kbc_at_holtek_device = {
+    .name          = "PC/AT Keyboard (Holtek)",
+    .internal_name = "keyboard_at_holtek",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_VEN_HOLTEK | KBC_FLAG_IS_ASIC,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t kbc_at_ibm_mca_device = {
+    .name          = "PC/AT Keyboard Controller (IBM PS/2 MCA)",
+    .internal_name = "kbc_at_ibm_mca",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_VEN_IBM,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t kbc_at_ncr_device = {
+    .name          = "PC/AT Keyboard Controller (NCR)",
+    .internal_name = "kbc_at_ncr",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_VEN_NCR,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t kbc_at_olivetti_device = {
+    .name          = "PC/AT Keyboard Controller (Olivetti)",
+    .internal_name = "kbc_at_olivetti",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_VEN_OLIVETTI,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3283,7 +3236,7 @@ const device_t kbc_at_phoenix_device = {
     .name          = "PC/AT Keyboard Controller (Phoenix)",
     .internal_name = "kbc_at_phoenix",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_PHOENIX,
+    .local         = KBC_VEN_PHOENIX,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3293,11 +3246,11 @@ const device_t kbc_at_phoenix_device = {
     .config        = NULL
 };
 
-const device_t kbc_ps2_device = {
-    .name          = "PS/2 Keyboard Controller",
-    .internal_name = "kbc_ps2",
+const device_t kbc_at_quadtel_device = {
+    .name          = "PC/AT Keyboard (Quadtel)",
+    .internal_name = "keyboard_at_quadtel",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
+    .local         = KBC_VEN_QUADTEL,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3307,11 +3260,11 @@ const device_t kbc_ps2_device = {
     .config        = NULL
 };
 
-const device_t kbc_ps2_xi8088_device = {
-    .name          = "PS/2 Keyboard Controller (Xi8088)",
-    .internal_name = "kbc_ps2_xi8088",
+const device_t kbc_at_siemens_device = {
+    .name          = "PC/AT Keyboard Controller",
+    .internal_name = "kbc_at_siemens",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
+    .local         = KBC_VEN_SIEMENS,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3321,11 +3274,11 @@ const device_t kbc_ps2_xi8088_device = {
     .config        = NULL
 };
 
-const device_t kbc_ps2_acer_device = {
-    .name          = "PS/2 Keyboard (Acer 90M002A)",
-    .internal_name = "keyboard_ps2_acer_pci",
+const device_t kbc_at_sis_device = {
+    .name          = "PC/AT Keyboard Controller (SiS 5xxx)",
+    .internal_name = "kbc_at_sis",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_ACER,
+    .local         = KBC_VEN_SIS,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3335,11 +3288,11 @@ const device_t kbc_ps2_acer_device = {
     .config        = NULL
 };
 
-const device_t kbc_ps2_ami_device = {
-    .name          = "PS/2 Keyboard Controller (AMI)",
-    .internal_name = "kbc_ps2_ami",
+const device_t kbc_at_toshiba_device = {
+    .name          = "PC/AT Keyboard Controller (Toshiba)",
+    .internal_name = "kbc_at_toshiba",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_AMI,
+    .local         = KBC_VEN_TOSHIBA,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3349,11 +3302,11 @@ const device_t kbc_ps2_ami_device = {
     .config        = NULL
 };
 
-const device_t kbc_ps2_compaq_device = {
-    .name          = "PS/2 Keyboard Controller (Compaq)",
-    .internal_name = "kbc_at_compaq",
+const device_t kbc_at_umc_device = {
+    .name          = "PC/AT Keyboard (UMC)",
+    .internal_name = "keyboard_at_umc",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_COMPAQ,
+    .local         = KBC_VEN_UMC | KBC_FLAG_IS_ASIC,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3363,11 +3316,11 @@ const device_t kbc_ps2_compaq_device = {
     .config        = NULL
 };
 
-const device_t kbc_ps2_holtek_device = {
-    .name          = "PS/2 Keyboard Controller (Holtek)",
-    .internal_name = "kbc_ps2_holtek",
+const device_t kbc_at_via_device = {
+    .name          = "PC/AT Keyboard (VIA)",
+    .internal_name = "keyboard_at_via",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_HOLTEK | KBC_FLAG_IS_ASIC,
+    .local         = KBC_VEN_VIA | KBC_FLAG_IS_ASIC,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3377,138 +3330,11 @@ const device_t kbc_ps2_holtek_device = {
     .config        = NULL
 };
 
-
-const device_t kbc_ps2_umc_device = {
-    .name          = "PS/2 Keyboard (UMC)",
-    .internal_name = "keyboard_ps2_umc",
+const device_t kbc_at_xi8088_device = {
+    .name          = "PC/AT Keyboard Controller (Xi8088)",
+    .internal_name = "kbc_at_xi8088",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_UMC | KBC_FLAG_IS_ASIC,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_award_device = {
-    .name          = "PS/2 Keyboard (Award)",
-    .internal_name = "keyboard_ps2_award",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_AWARD,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_via_device = {
-    .name          = "PS/2 Keyboard (VIA)",
-    .internal_name = "keyboard_ps2_via",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_VIA | KBC_FLAG_IS_ASIC,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_phoenix_device = {
-    .name          = "PS/2 Keyboard Controller (Phoenix)",
-    .internal_name = "kbc_ps2_phoenix",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_PHOENIX,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_tg_ami_device = {
-    .name          = "PS/2 Keyboard Controller (TriGem AMI)",
-    .internal_name = "kbc_ps2_tg_ami",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_AMI_TRIGEM,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_mca_1_device = {
-    .name          = "PS/2 Keyboard Controller (IBM PS/2 MCA Type 1)",
-    .internal_name = "kbc_ps2_mca_1",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_IBM,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_mca_2_device = {
-    .name          = "PS/2 Keyboard Controller (IBM PS/2 MCA Type 2)",
-    .internal_name = "kbc_ps2_mca_2",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_2 | KBC_VEN_IBM,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_quadtel_device = {
-    .name          = "PS/2 Keyboard Controller (Quadtel/MegaPC)",
-    .internal_name = "kbc_ps2_quadtel",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_QUADTEL,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_sis_device = {
-    .name          = "PS/2 Keyboard Controller (SiS 5xxx)",
-    .internal_name = "kbc_ps2_sis",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_SIS,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_ali_device = {
-    .name          = "PS/2 Keyboard Controller (ALi M5123/M1543C)",
-    .internal_name = "kbc_ps2_ali_pci",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_ALI,
+    .local         = KBC_VEN_GENERIC,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,

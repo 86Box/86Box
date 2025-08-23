@@ -1398,9 +1398,10 @@ machine_at_hot433a_init(const machine_t *model)
         device_add_params(&um8669f_device, (void *) 0);
     device_add(&winbond_flash_w29c010_device);
     if (is_award)
-        device_add_params(&kbc_ps2_holtek_device, (void *) model->kbc_params);
+        machine_force_ps2(1);
     else
-        device_add_params(&kbc_at_holtek_device, (void *) model->kbc_params);
+        machine_force_ps2(0);
+    device_add_params(&kbc_at_holtek_device, (void *) model->kbc_params);
 
     pic_toggle_latch(is_award);
 

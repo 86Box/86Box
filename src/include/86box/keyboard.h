@@ -129,34 +129,35 @@ typedef struct scancode {
 #define RSHIFT_ON               0x104
 #define RSHIFT_OFF              0x105
 
-#define KBC_TYPE_ISA             0x00 /* AT ISA-based chips */
-#define KBC_TYPE_PS2_1           0x01 /* PS2 on PS/2, type 1 */
-#define KBC_TYPE_PS2_2           0x02 /* PS2 on PS/2, type 2 */
-#define KBC_TYPE_GREEN           0x03 /* PS2 green controller */
-#define KBC_TYPE_MASK            0x03
+#define KBC_TYPE_AT              0x00 /* AT */
+#define KBC_TYPE_PS2             0x01 /* PS2 on PS/2, type 1 */
+#define KBC_TYPE_MASK            0x01
 
 #define KBC_VEN_GENERIC          0x00
-#define KBC_VEN_ACER             0x04
-#define KBC_VEN_ALI              0x08
-#define KBC_VEN_AMI              0x0c
-#define KBC_VEN_AMI_TRIGEM       0x10
-#define KBC_VEN_AWARD            0x14
-#define KBC_VEN_CHIPS            0x18
-#define KBC_VEN_COMPAQ           0x1c
-#define KBC_VEN_HOLTEK           0x20
-#define KBC_VEN_IBM              0x24
-#define KBC_VEN_NCR              0x28
-#define KBC_VEN_OLIVETTI         0x2c
-#define KBC_VEN_QUADTEL          0x30
-#define KBC_VEN_PHOENIX          0x34
-#define KBC_VEN_SIEMENS          0x38
-#define KBC_VEN_TOSHIBA          0x3c
-#define KBC_VEN_VIA              0x40
-#define KBC_VEN_UMC              0x44
-#define KBC_VEN_SIS              0x48
-#define KBC_VEN_MASK             0x7c
+#define KBC_VEN_ACER             0x02
+#define KBC_VEN_ALI              0x04
+#define KBC_VEN_AMI              0x06
+#define KBC_VEN_AMI_TRIGEM       0x08
+#define KBC_VEN_AWARD            0x0a
+#define KBC_VEN_CHIPS            0x0c
+#define KBC_VEN_COMPAQ           0x0e
+#define KBC_VEN_HOLTEK           0x10
+#define KBC_VEN_IBM              0x12
+#define KBC_VEN_NCR              0x14
+#define KBC_VEN_OLIVETTI         0x16
+#define KBC_VEN_QUADTEL          0x18
+#define KBC_VEN_PHOENIX          0x1a
+#define KBC_VEN_SIEMENS          0x1c
+#define KBC_VEN_TOSHIBA          0x1e
+#define KBC_VEN_VIA              0x20
+#define KBC_VEN_UMC              0x22
+#define KBC_VEN_SIS              0x24
+#define KBC_VEN_MASK             0x3e
 
 #define KBC_FLAG_IS_ASIC   0x80000000
+#define KBC_FLAG_IS_CLONE  0x40000000
+#define KBC_FLAG_IS_GREEN  0x20000000
+#define KBC_FLAG_IS_TYPE2  0x10000000
 
 #ifdef __cplusplus
 extern "C" {
@@ -202,39 +203,25 @@ extern const device_t kbc_xt_fe2010_device;
 extern const device_t kbc_xtclone_device;
 
 extern const device_t kbc_at_device;
+extern const device_t kbc_at_acer_device;
+extern const device_t kbc_at_ali_device;
 extern const device_t kbc_at_ami_device;
+extern const device_t kbc_at_ami_tg_device;
 extern const device_t kbc_at_award_device;
 extern const device_t kbc_at_chips_device;
 extern const device_t kbc_at_compaq_device;
 extern const device_t kbc_at_holtek_device;
+extern const device_t kbc_at_ibm_mca_device;
 extern const device_t kbc_at_ncr_device;
 extern const device_t kbc_at_olivetti_device;
 extern const device_t kbc_at_phoenix_device;
 extern const device_t kbc_at_quadtel_device;
 extern const device_t kbc_at_siemens_device;
-extern const device_t kbc_at_tg_ami_device;
+extern const device_t kbc_at_sis_device;
 extern const device_t kbc_at_toshiba_device;
 extern const device_t kbc_at_umc_device;
 extern const device_t kbc_at_via_device;
-
-extern const device_t kbc_ps2_device;
-extern const device_t kbc_ps2_acer_device;
-extern const device_t kbc_ps2_ali_device;
-extern const device_t kbc_ps2_ami_device;
-extern const device_t kbc_ps2_award_device;
-extern const device_t kbc_ps2_compaq_device;
-extern const device_t kbc_ps2_holtek_device;
-extern const device_t kbc_ps2_mca_1_device;
-extern const device_t kbc_ps2_mca_2_device;
-extern const device_t kbc_ps2_olivetti_device;
-extern const device_t kbc_ps2_phoenix_device;
-extern const device_t kbc_ps2_quadtel_device;
-extern const device_t kbc_ps2_sis_device;
-extern const device_t kbc_ps2_umc_device;
-extern const device_t kbc_ps2_via_device;
-extern const device_t kbc_ps2_tg_ami_device;
-extern const device_t kbc_ps2_tg_ami_green_device;
-extern const device_t kbc_ps2_xi8088_device;
+extern const device_t kbc_at_xi8088_device;
 
 extern const device_t keyboard_pc_xt_device;
 extern const device_t keyboard_at_device;

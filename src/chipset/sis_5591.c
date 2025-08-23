@@ -179,7 +179,7 @@ sis_5591_init(UNUSED(const device_t *info))
     else
         dev->pmu = device_add_linked(&sis_5595_pmu_device, dev->sis);
 
-    device_add_params(&kbc_ps2_sis_device, (void *) 0x00000000);
+    device_add_params(&kbc_at_sis_device, (void *) 0x00000000);
 
     return dev;
 }

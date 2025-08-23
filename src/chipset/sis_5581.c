@@ -167,7 +167,7 @@ sis_5581_init(UNUSED(const device_t *info))
     dev->ide = device_add_linked(&sis_5582_ide_device, dev->sis);
     dev->usb = device_add_linked(&sis_5582_usb_device, dev->sis);
 
-    device_add_params(&kbc_ps2_sis_device, (void *) 0x00000000);
+    device_add_params(&kbc_at_sis_device, (void *) 0x00000000);
 
     return dev;
 }

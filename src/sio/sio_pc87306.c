@@ -537,13 +537,13 @@ pc87306_init(UNUSED(const device_t *info))
     switch (dev->kbc_type) {
         case PCX730X_AMI:
         default:
-            dev->kbc = device_add_params(&kbc_ps2_ami_device, (void *) 0x00003500);
+            dev->kbc = device_add_params(&kbc_at_ami_device, (void *) 0x00003500);
             break;
         case PCX730X_PHOENIX_42:
-            dev->kbc = device_add_params(&kbc_ps2_phoenix_device, (void *) 0x00013700);
+            dev->kbc = device_add_params(&kbc_at_phoenix_device, (void *) 0x00013700);
             break;
         case PCX730X_PHOENIX_42I:
-            dev->kbc = device_add_params(&kbc_ps2_phoenix_device, (void *) 0x00041600);
+            dev->kbc = device_add_params(&kbc_at_phoenix_device, (void *) 0x00041600);
             break;
     }
 

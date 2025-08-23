@@ -420,8 +420,7 @@ umc_8886_init(const device_t *info)
     }
 
     if (machine_get_kbc_device(machine) == NULL)
-        device_add(machine_has_bus(machine, MACHINE_BUS_PS2) ?
-                                            &kbc_ps2_umc_device : &kbc_at_umc_device);
+        device_add(&kbc_at_umc_device);
 
     umc_8886_reset(dev);
 
