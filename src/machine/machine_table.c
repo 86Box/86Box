@@ -19831,7 +19831,8 @@ machine_generic_p1_handler(void)
 uint8_t
 machine_get_p1(uint8_t kbc_p1)
 {
-    uint8_t ret = 0xff;
+    uint8_t low_bits = ((machine_p1 >> 8) + 1) & 0x03;
+    uint8_t ret      = 0xff;
 
     if (machines[machine].p1_handler)
         ret = machines[machine].p1_handler();
@@ -19843,6 +19844,8 @@ machine_get_p1(uint8_t kbc_p1)
     ret ^= ((machine_p1 >> 16) & 0xff);
 
     ret &= kbc_p1;
+
+    machine_p1 = (machine_p1 & 0xfffffcff) | (low_bits << 8);
 
     return ret;
 }

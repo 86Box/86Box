@@ -140,6 +140,7 @@ machine_init(void)
 {
     bios_only = 0;
 
+    machine_set_p1_default(machines[machine].kbc_p1);
     machine_set_ps2();
 
     (void) machine_init_ex(machine);

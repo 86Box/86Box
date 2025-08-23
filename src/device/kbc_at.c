@@ -2269,7 +2269,9 @@ read_p1(atkbc_t *dev)
               Compaq: Reserved;
               NCR: DMA mode.
      */
-    uint8_t ret = machine_get_p1(dev->p1);
+    uint8_t ret = machine_get_p1(dev->p1) | (dev->p1 & 0x03);
+
+    dev->p1 = ((dev->p1 + 1) & 0x03) | (dev->p1 & 0xfc);
 
     return ret;
 }
@@ -2367,14 +2369,7 @@ kbc_at_process_cmd(void *priv)
                 if (machine_has_flags_ex(MACHINE_PS2_KBC)) {
                     if (dev->state != STATE_RESET) {
                         kbc_at_log("ATkbc: self-test reinitialization\n");
-                        /*
-                           Yes, the firmware has an OR, but we need to make sure
-                           to keep any forcibly lowered bytes lowered.
-
-                           TODO: Proper P1 implementation, with OR and AND flags
-                                 in the machine table.
-                         */
-                        dev->p1 = dev->p1 & 0xff;
+                        dev->p1 |= 0xff;
                         write_p2(dev, 0x4b);
                         if (dev->irq[1] != 0xffff)
                             picintc(1 << dev->irq[1]);
@@ -2394,14 +2389,7 @@ kbc_at_process_cmd(void *priv)
                 } else {
                     if (dev->state != STATE_RESET) {
                         kbc_at_log("ATkbc: self-test reinitialization\n");
-                        /*
-                           Yes, the firmware has an OR, but we need to make sure
-                           to keep any forcibly lowered bytes lowered.
-
-                           TODO: Proper P1 implementation, with OR and AND flags
-                                 in the machine table.
-                         */
-                        dev->p1 = dev->p1 & 0xff;
+                        dev->p1 |= 0xff;
                         write_p2(dev, 0xcf);
                         if (dev->irq[0] != 0xffff)
                             picintclevel(1 << dev->irq[0], &dev->irq_state);
