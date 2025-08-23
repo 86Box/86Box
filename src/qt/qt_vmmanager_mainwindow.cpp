@@ -116,6 +116,9 @@ VMManagerMainWindow(QWidget *parent)
     // Inform the main view when preferences are updated
     connect(this, &VMManagerMainWindow::preferencesUpdated, vmm, &VMManagerMain::onPreferencesUpdated);
     connect(this, &VMManagerMainWindow::languageUpdated, vmm, &VMManagerMain::onLanguageUpdated);
+#ifdef Q_OS_WINDOWS
+    connect(this, &VMManagerMainWindow::darkModeUpdated, vmm, &VMManagerMain::onDarkModeUpdated);
+#endif
 
 }
 
@@ -177,6 +180,15 @@ VMManagerMainWindow::updateLanguage()
     setWindowTitle(tr("%1 VM Manager").arg(EMU_NAME));
     emit languageUpdated();
 }
+
+
+#ifdef Q_OS_WINDOWS
+void
+VMManagerMainWindow::updateDarkMode()
+{
+    emit darkModeUpdated();
+}
+#endif
 
 void
 VMManagerMainWindow::changeEvent(QEvent *event)

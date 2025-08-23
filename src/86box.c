@@ -234,29 +234,46 @@ struct accelKey acc_keys[NUM_ACCELS];
 
 // Default accelerator key values
 struct accelKey def_acc_keys[NUM_ACCELS] = {
-	{	.name="send_ctrl_alt_del", 	.desc="Send Control+Alt+Del",
-		.seq="Ctrl+F12" },
-
-	{	.name="send_ctrl_alt_esc", 	.desc="Send Control+Alt+Escape",
-		.seq="Ctrl+F10" },
-
-	{	.name="fullscreen", 		.desc="Toggle fullscreen",
-		.seq="Ctrl+Alt+PgUp" },
-
-	{	.name="screenshot", 		.desc="Screenshot",
-		.seq="Ctrl+F11" },
-
-	{	.name="release_mouse", 		.desc="Release mouse pointer",
-		.seq="Ctrl+End" },
-
-	{	.name="hard_reset", 		.desc="Hard reset",
-		.seq="Ctrl+Alt+F12" },
-
-	{	.name="pause", 				.desc="Toggle pause",
-		.seq="Ctrl+Alt+F1" },
-
-	{	.name="mute", 				.desc="Toggle mute",
-		.seq="Ctrl+Alt+M" }
+    {
+        .name="send_ctrl_alt_del",
+        .desc="Send Control+Alt+Del",
+        .seq="Ctrl+F12"
+    },
+    {
+        .name="send_ctrl_alt_esc",
+        .desc="Send Control+Alt+Escape",
+        .seq="Ctrl+F10"
+    },
+    {
+        .name="fullscreen",
+        .desc="Toggle fullscreen",
+        .seq="Ctrl+Alt+PgUp"
+    },
+    {
+        .name="screenshot",
+        .desc="Screenshot",
+        .seq="Ctrl+F11"
+    },
+    {
+        .name="release_mouse",
+        .desc="Release mouse pointer",
+        .seq="Ctrl+End"
+    },
+    {
+        .name="hard_reset",
+        .desc="Hard reset",
+        .seq="Ctrl+Alt+F12"
+    },
+    {
+        .name="pause",
+        .desc="Toggle pause",
+        .seq="Ctrl+Alt+F1"
+    },
+    {
+        .name="mute",
+        .desc="Toggle mute",
+        .seq="Ctrl+Alt+M"
+    }
 };
 
 char vmm_path[1024] = { '\0' }; /* VM manager path to scan for VMs */
@@ -1593,8 +1610,9 @@ pc_reset_hard_init(void)
        the chances of the SCSI controller ending up on the bridge. */
     video_voodoo_init();
 
-    if (joystick_type)
-        gameport_update_joystick_type(); /* installs game port if no device provides one, must be late */
+    /* installs first game port if no device provides one, must be late */
+    if (joystick_type[0])
+        gameport_update_joystick_type(0);
 
     ui_sb_update_panes();
 
@@ -1802,7 +1820,7 @@ pc_run(void)
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     }
 #endif
-    joystick_process();
+    joystick_process(0); // Gameport 0
     endblit();
 
     /* Done with this frame, update statistics. */
@@ -2007,13 +2025,11 @@ do_pause(int p)
 
 // Helper to find an accelerator key and return it's index in acc_keys
 int FindAccelerator(const char *name) {
-	for(int x=0;x<NUM_ACCELS;x++)
-	{
-		if(strcmp(acc_keys[x].name, name) == 0)
-		{
-			return(x);
-		}
-	}
-	// No key was found
-	return -1;
+    for (int x = 0; x < NUM_ACCELS; x++) {
+        if(strcmp(acc_keys[x].name, name) == 0)
+            return(x);
+    }
+
+    // No key was found
+    return -1;
 }

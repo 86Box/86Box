@@ -19,6 +19,15 @@
 #include "ui_qt_vmmanager_detailsection.h"
 
 #include <QPushButton>
+#include "qt_util.hpp"
+
+#define HEADER_STYLESHEET_LIGHT "background-color: palette(midlight);"
+#ifdef Q_OS_WINDOWS
+#    define HEADER_STYLESHEET_DARK "background-color: #616161;"
+#    define BACKGROUND_STYLESHEET_DARK "background-color: #272727;"
+#else
+#    define HEADER_STYLESHEET_DARK "background-color: palette(mid);"
+#endif
 
 const QString VMManagerDetailSection::sectionSeparator = ";";
 using namespace VMManager;
@@ -40,21 +49,18 @@ VMManagerDetailSection(const QString &sectionName)
 
     // Simple method to try and determine if light mode is enabled on the host
 #ifdef Q_OS_WINDOWS
-    extern bool windows_is_light_theme();
-    const bool lightMode = windows_is_light_theme();
+    const bool lightMode = util::isWindowsLightTheme();
 #else
     const bool lightMode = QApplication::palette().window().color().value() > QApplication::palette().windowText().color().value();
 #endif
     // Alternate layout
-    if ( lightMode) {
-        ui->collapseButtonHolder->setStyleSheet("background-color: palette(midlight);");
+    if (lightMode) {
+        ui->collapseButtonHolder->setStyleSheet(HEADER_STYLESHEET_LIGHT);
     } else {
 #ifdef Q_OS_WINDOWS
-        ui->outerFrame->setStyleSheet("background-color: #272727;");
-        ui->collapseButtonHolder->setStyleSheet("background-color: #616161;");
-#else
-        ui->collapseButtonHolder->setStyleSheet("background-color: palette(mid);");
+        ui->outerFrame->setStyleSheet(BACKGROUND_STYLESHEET_DARK);
 #endif
+        ui->collapseButtonHolder->setStyleSheet(HEADER_STYLESHEET_DARK);
     }
     const auto sectionLabel = new QLabel(sectionName);
     sectionLabel->setStyleSheet(sectionLabel->styleSheet().append("font-weight: bold;"));
@@ -213,6 +219,21 @@ VMManagerDetailSection::clear()
     ui->detailFrame->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     ui->detailFrame->setLayout(frameGridLayout);
 }
+
+#ifdef Q_OS_WINDOWS
+void
+VMManagerDetailSection::updateStyle()
+{
+    const bool lightMode = util::isWindowsLightTheme();
+    if (lightMode) {
+        ui->outerFrame->setStyleSheet("");
+        ui->collapseButtonHolder->setStyleSheet(HEADER_STYLESHEET_LIGHT);
+    } else {
+        ui->outerFrame->setStyleSheet(BACKGROUND_STYLESHEET_DARK);
+        ui->collapseButtonHolder->setStyleSheet(HEADER_STYLESHEET_DARK);
+    }
+}
+#endif
 
 // QT for Linux and Windows doesn't have the same default margins as QT on MacOS.
 // For consistency in appearance we'll have to return the margins on a per-OS basis

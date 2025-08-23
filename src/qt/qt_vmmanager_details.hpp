@@ -42,7 +42,17 @@ public:
     void updateProcessStatus();
 
     void updateWindowStatus();
+
+#ifdef Q_OS_WINDOWS
+    void updateStyle();
+#endif
+
 //    CollapseButton *systemCollapseButton;
+
+#ifdef Q_OS_WINDOWS
+signals:
+    void styleUpdated();
+#endif
 
 private:
     Ui::VMManagerDetails *ui;
