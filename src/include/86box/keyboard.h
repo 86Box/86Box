@@ -129,30 +129,26 @@ typedef struct scancode {
 #define RSHIFT_ON               0x104
 #define RSHIFT_OFF              0x105
 
-#define KBC_TYPE_AT              0x00 /* AT */
-#define KBC_TYPE_PS2             0x01 /* PS2 on PS/2, type 1 */
-#define KBC_TYPE_MASK            0x01
-
 #define KBC_VEN_GENERIC          0x00
-#define KBC_VEN_ACER             0x02
-#define KBC_VEN_ALI              0x04
-#define KBC_VEN_AMI              0x06
-#define KBC_VEN_AMI_TRIGEM       0x08
-#define KBC_VEN_AWARD            0x0a
-#define KBC_VEN_CHIPS            0x0c
-#define KBC_VEN_COMPAQ           0x0e
-#define KBC_VEN_HOLTEK           0x10
-#define KBC_VEN_IBM              0x12
-#define KBC_VEN_NCR              0x14
-#define KBC_VEN_OLIVETTI         0x16
-#define KBC_VEN_QUADTEL          0x18
-#define KBC_VEN_PHOENIX          0x1a
-#define KBC_VEN_SIEMENS          0x1c
-#define KBC_VEN_TOSHIBA          0x1e
-#define KBC_VEN_VIA              0x20
-#define KBC_VEN_UMC              0x22
-#define KBC_VEN_SIS              0x24
-#define KBC_VEN_MASK             0x3e
+#define KBC_VEN_ACER             0x01
+#define KBC_VEN_ALI              0x02
+#define KBC_VEN_AMI              0x03
+#define KBC_VEN_AMI_TRIGEM       0x04
+#define KBC_VEN_AWARD            0x05
+#define KBC_VEN_CHIPS            0x06
+#define KBC_VEN_COMPAQ           0x07
+#define KBC_VEN_HOLTEK           0x08
+#define KBC_VEN_IBM              0x09
+#define KBC_VEN_NCR              0x0a
+#define KBC_VEN_OLIVETTI         0x0b
+#define KBC_VEN_QUADTEL          0x0c
+#define KBC_VEN_PHOENIX          0x0d
+#define KBC_VEN_SIEMENS          0x0e
+#define KBC_VEN_TOSHIBA          0x0f
+#define KBC_VEN_VIA              0x10
+#define KBC_VEN_UMC              0x11
+#define KBC_VEN_SIS              0x12
+#define KBC_VEN_MASK             0x1f
 
 #define KBC_FLAG_IS_ASIC   0x80000000
 #define KBC_FLAG_IS_CLONE  0x40000000
