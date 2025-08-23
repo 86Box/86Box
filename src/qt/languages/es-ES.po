@@ -31,7 +31,7 @@ msgid "Pause"
 msgstr "Pausa"
 
 msgid "Re&sume"
-msgstr "&Continuar"
+msgstr "Co&ntinuar"
 
 msgid "E&xit"
 msgstr "&Salir"
@@ -1600,7 +1600,7 @@ msgid "Fast"
 msgstr "Rápida"
 
 msgid "&Auto-pause on focus loss"
-msgstr "&Pausa automática al perder el foco"
+msgstr "Pa&usa automática al perder el foco"
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox ya no recibe soporte"

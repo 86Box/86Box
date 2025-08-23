@@ -13,7 +13,7 @@ msgid "&Keyboard requires capture"
 msgstr "&Tastiera richiede la cattura"
 
 msgid "&Right CTRL is left ALT"
-msgstr "&CTRL destro è ALT sinistro"
+msgstr "CTRL &destro è ALT sinistro"
 
 msgid "&Hard Reset..."
 msgstr "&Riavvia..."
@@ -31,7 +31,7 @@ msgid "Pause"
 msgstr "Pausa"
 
 msgid "Re&sume"
-msgstr "&Riprendi"
+msgstr "R&iprendi"
 
 msgid "E&xit"
 msgstr "E&sci"
@@ -247,7 +247,7 @@ msgid "&Rewind to the beginning"
 msgstr "Ri&avvolgi all'inizio"
 
 msgid "&Fast forward to the end"
-msgstr "A&vanti veloce alla fine"
+msgstr "A&vanti veloce fino alla fine"
 
 msgid "E&ject"
 msgstr "&Espelli"
@@ -1075,7 +1075,7 @@ msgid "Start"
 msgstr "Avvia"
 
 msgid "Not running"
-msgstr "Sospeso"
+msgstr "Inattivo"
 
 msgid "Running"
 msgstr "In esecuzione"
@@ -1141,7 +1141,7 @@ msgid "New configuration"
 msgstr "Nuova configurazione"
 
 msgid "Complete"
-msgstr "Completare"
+msgstr "Completamento"
 
 msgid "The wizard will now launch the configuration for the new system."
 msgstr "La procedura guidata avvierà ora la configurazione del nuovo sistema."
@@ -1600,7 +1600,7 @@ msgid "Fast"
 msgstr "Veloce"
 
 msgid "&Auto-pause on focus loss"
-msgstr "&Pausa automatica se in secondo piano"
+msgstr "Pa&usa automatica se in secondo piano"
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox non è più supportato"
@@ -2932,7 +2932,7 @@ msgid "The system will not be added."
 msgstr "Il sistema non verrà aggiunto."
 
 msgid "&Update mouse every CPU frame"
-msgstr "&Aggiorano stato mouse ad ogni blocco CPU"
+msgstr "&Aggiorna stato del mouse ad ogni blocco della CPU"
 
 msgid "Hue"
 msgstr "Tinta"
@@ -2950,7 +2950,7 @@ msgid "Sharpness"
 msgstr "Nitidezza"
 
 msgid "&CGA composite settings..."
-msgstr "Impostazioni del modo composito &CGA..."
+msgstr "Impostazioni video composito &CGA..."
 
 msgid "CGA composite settings"
-msgstr "Impostazioni del modo composito CGA"
+msgstr "Impostazioni video composito CGA"
