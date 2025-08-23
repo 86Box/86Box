@@ -2825,7 +2825,7 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
                         dev->v_syncstart = mach->eeprom.data[8] + 1;
                         mach->accel.clock_sel_mode = ((mach->eeprom.data[4] >> 8) & 0xff) << 2;
                     } else {
-                        pclog("Mach: EEPROM 1024x768: %04x.\n", mach->eeprom.data[9]);
+                        mach_log("Mach: EEPROM 1024x768: %04x.\n", mach->eeprom.data[9]);
                         switch (mach->eeprom.data[9] & 0xff) {
                             case 0x00: /*1024x768 76Hz Non-interlaced*/
                                 dev->h_total = 0xa3;
@@ -2885,7 +2885,7 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
                     dev->v_syncstart = mach->eeprom.data[8] + 1;
                     mach->accel.clock_sel_mode = ((mach->eeprom.data[4] >> 8) & 0xff) << 2;
                 } else {
-                    pclog("Mach Reset: EEPROM 1024x768: %04x.\n", mach->eeprom.data[9]);
+                    mach_log("Mach Reset: EEPROM 1024x768: %04x.\n", mach->eeprom.data[9]);
                     switch (mach->eeprom.data[9] & 0xff) {
                         case 0x00: /*1024x768 76Hz Non-interlaced*/
                             dev->h_total = 0xa3;
@@ -4066,9 +4066,9 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
         case 0x52ef:
             mach_log("ATI 8514/A: (0x%04x) ScratchPad0 val=%04x.\n", port, val);
             if (len == 2)
-                mach->accel.scratch0 = val;
+                dev->accel.scratch0 = val;
             else {
-                WRITE8(port, mach->accel.scratch0, val);
+                WRITE8(port, dev->accel.scratch0, val);
             }
             break;
 
@@ -4076,9 +4076,9 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
         case 0x56ef:
             mach_log("ATI 8514/A: (0x%04x) ScratchPad1 val=%04x.\n", port, val);
             if (len == 2)
-                mach->accel.scratch1 = val;
+                dev->accel.scratch1 = val;
             else {
-                WRITE8(port, mach->accel.scratch1, val);
+                WRITE8(port, dev->accel.scratch1, val);
             }
             break;
 
@@ -4119,6 +4119,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             else {
                 WRITE8(port, mach->accel.max_waitstates, val);
             }
+            mach_log("ATI 8514/A: (0x%04x) val=0x%02x, len=%d.\n", port, val, len);
             break;
 
         case 0x6eee:
@@ -4208,8 +4209,10 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                     svga_recalctimings(svga);
 
                 mach32_updatemapping(mach, svga);
-            } else
-                ati_eeprom_write(&mach->eeprom, !!(mach->accel.ext_ge_config & 0x04), !!(mach->accel.ext_ge_config & 0x02), !!(mach->accel.ext_ge_config & 0x01));
+            } else {
+                if (mach->accel.ext_ge_config & 0x80)
+                    ati_eeprom_write(&mach->eeprom, !!(mach->accel.ext_ge_config & 0x04), !!(mach->accel.ext_ge_config & 0x02), !!(mach->accel.ext_ge_config & 0x01));
+            }
             break;
 
         case 0x7eee:
@@ -5161,27 +5164,16 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
 
         case 0x52ee:
         case 0x52ef:
-            READ8(port, mach->accel.scratch0);
-            if (mach->mca_bus) {
-                if (svga->ext8514 != NULL) {
-                    temp = (((dev->bios_rom.mapping.base >> 7) - 0x1000) >> 4);
-                    if (port & 1)
-                        temp |= 0x01;
-                } else {
-                    if (mach->accel.scratch0 == 0x1234)
-                        temp = 0x0000;
-                }
-            } else {
-                mach_log("ScratchPad0=%x.\n", mach->accel.scratch0);
-                if (mach->accel.scratch0 == 0x1234)
-                    temp = 0x0000;
-            }
+            READ8(port, dev->accel.scratch0);
+            mach_log("ScratchPad0=%x.\n", dev->accel.scratch0);
+            if (dev->accel.scratch0 == 0x1234)
+                temp = 0x0000;
             break;
 
         case 0x56ee:
         case 0x56ef:
-            READ8(port, mach->accel.scratch1);
-            mach_log("ScratchPad1=%x.\n", mach->accel.scratch1);
+            READ8(port, dev->accel.scratch1);
+            mach_log("ScratchPad1=%x.\n", dev->accel.scratch1);
             break;
 
         case 0x5eee:
@@ -7325,6 +7317,38 @@ mach_reset(void *priv)
 
         *mach = *reset_state;
     }
+}
+
+uint8_t
+ati8514_rom_readb(uint32_t addr, void *priv)
+{
+    const ibm8514_t *dev = (ibm8514_t *) priv;
+    const rom_t  *rom = &dev->bios_rom;
+    uint8_t ret;
+
+    mach_log("ROM1RB=%05x, ", addr);
+
+    addr &= 0x1fff;
+    ret = rom->rom[addr];
+
+    mach_log("ReadBAddr1=%03x, ret=%02x.\n", addr, ret);
+    return (ret);
+}
+
+uint16_t
+ati8514_rom_readw(uint32_t addr, void *priv)
+{
+    const ibm8514_t *dev = (ibm8514_t *) priv;
+    const rom_t  *rom = &dev->bios_rom;
+    uint16_t ret;
+
+    mach_log("ROM1RW=%05x, ", addr);
+
+    addr &= 0x1fff;
+    ret = (*(uint16_t *) &(rom->rom[addr]));
+
+    mach_log("ReadWAddr1=%03x, ret=%04x.\n", addr, ret);
+    return (ret);
 }
 
 static void *
