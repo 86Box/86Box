@@ -34,7 +34,7 @@ msgid "Re&sume"
 msgstr "&Fortsetzen"
 
 msgid "E&xit"
-msgstr "Be&enden"
+msgstr "&Beenden"
 
 msgid "&View"
 msgstr "A&nsicht"

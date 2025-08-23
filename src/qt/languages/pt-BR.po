@@ -64,7 +64,7 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify &dimensions..."
-msgstr "Especificar as dimensões..."
+msgstr "Especificar as dime&nsões..."
 
 msgid "Force &4:3 display ratio"
 msgstr "Forçar proporção de tela em &4:3"
@@ -1600,7 +1600,7 @@ msgid "Fast"
 msgstr "Rápido"
 
 msgid "&Auto-pause on focus loss"
-msgstr "Pausa &automática ao perder o foco"
+msgstr "Pa&usa automática ao perder o foco"
 
 msgid "WinBox is no longer supported"
 msgstr "O WinBox não é mais suportado"
@@ -2932,7 +2932,7 @@ msgid "The system will not be added."
 msgstr "O sistema não será adicionado."
 
 msgid "&Update mouse every CPU frame"
-msgstr "At&ualiza o estado do mouse em cada quadro do CPU"
+msgstr "&Atualiza o estado do mouse em cada quadro do CPU"
 
 msgid "Hue"
 msgstr "Matiz"

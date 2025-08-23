@@ -10,7 +10,7 @@ msgid "&Action"
 msgstr "&Action"
 
 msgid "&Keyboard requires capture"
-msgstr "&Capturer le clavier"
+msgstr "C&apturer le clavier"
 
 msgid "&Right CTRL is left ALT"
 msgstr "CTRL &Droite devient ALT Gauche"
@@ -1600,7 +1600,7 @@ msgid "Fast"
 msgstr "Rapide"
 
 msgid "&Auto-pause on focus loss"
-msgstr "&Pause automatique à perte de focus"
+msgstr "Pa&use automatique à perte de focus"
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox n'est plus pris en charge"
