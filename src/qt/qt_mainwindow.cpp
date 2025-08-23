@@ -1985,9 +1985,12 @@ MainWindow::on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered()
 void
 MainWindow::on_actionChange_contrast_for_monochrome_display_triggered()
 {
+    startblit();
     vid_cga_contrast ^= 1;
-    cgapal_rebuild();
+    for (int i = 0; i < MONITORS_NUM; i++)
+        cgapal_rebuild_monitor(i);
     config_save();
+    endblit();
 }
 
 void
