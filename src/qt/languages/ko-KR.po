@@ -1129,7 +1129,7 @@ msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM 
 msgstr "현재 %1대의 머신이 활성화되어 있습니다. 가상 머신 관리자를 종료하시겠습니까?"
 
 msgid "Add new system wizard"
-msgstr "새 시스템 마법사 추가"
+msgstr "새로운 시스템을 추가하는 마법사"
 
 msgid "Introduction"
 msgstr "서론"

@@ -517,7 +517,7 @@ msgid "LPT4 Device:"
 msgstr "LPT4 设备:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr "内置并口 ECP DMA"
+msgstr "内部LPT的ECP的DMA:"
 
 msgid "Serial port 1"
 msgstr "串口 1"
@@ -706,7 +706,7 @@ msgid "Removable disk %1 (%2): %3"
 msgstr "可移动磁盘 (ZIP) %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr "可移动磁盘 (ZIP) %1 (%2): %3(&R)"
+msgstr "可移动磁盘(&R) (ZIP) %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "可移动磁盘 (ZIP) 映像"
@@ -916,7 +916,7 @@ msgid "Floppy %1 (%2): %3"
 msgstr "软盘 %1 (%2): %3"
 
 msgid "&Floppy %1 (%2): %3"
-msgstr "软盘 %1 (%2): %3(&F)"
+msgstr "软盘(&F) %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "高级扇区映像"
@@ -940,7 +940,7 @@ msgid "MO %1 (%2): %3"
 msgstr "磁光盘 %1 (%2): %3"
 
 msgid "&MO %1 (%2): %3"
-msgstr "磁光盘 %1 (%2): %3(&M)"
+msgstr "磁光盘(&M) %1 (%2): %3"
 
 msgid "MO images"
 msgstr "磁光盘映像"
@@ -955,10 +955,10 @@ msgid "&File"
 msgstr "文件(&F)"
 
 msgid "&New machine..."
-msgstr "新建计算机(&N)"
+msgstr "新建计算机(&N)..."
 
 msgid "&Check for updates..."
-msgstr "检查更新(&C)"
+msgstr "检查更新(&C)..."
 
 msgid "Exit"
 msgstr "退出"
@@ -1129,7 +1129,7 @@ msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM 
 msgstr "%1 计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
 
 msgid "Add new system wizard"
-msgstr "添加新系统向导"
+msgstr "新增系統的精靈"
 
 msgid "Introduction"
 msgstr "介绍"
@@ -1207,25 +1207,25 @@ msgid "Enter the new display name (blank to reset)"
 msgstr "输入新的显示名称 (留空以重置)"
 
 msgid "Change &display name..."
-msgstr "更改显示名称..."
+msgstr "更改显示名称(&D)..."
 
 msgid "Context Menu"
 msgstr "上下文菜单"
 
 msgid "&Open folder..."
-msgstr "打开文件夹..."
+msgstr "打开文件夹(&O)..."
 
 msgid "Open p&rinter tray..."
-msgstr "打开打印机托盘..."
+msgstr "打开打印机托盘(&R)..."
 
 msgid "Set &icon..."
-msgstr "设置图标..."
+msgstr "设置图标(&I)..."
 
 msgid "Select an icon"
 msgstr "选择一个图标"
 
 msgid "C&lone..."
-msgstr "克隆..."
+msgstr "克隆(&L)..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "虚拟机 \"%1\" (%2) 将被克隆到:"
@@ -1291,19 +1291,19 @@ msgid "Warning"
 msgstr "警告"
 
 msgid "&Kill"
-msgstr "终止(&K)"
+msgstr "强制终止(&K)"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "\"%1\"?: 终止虚拟机可能会导致数据丢失。只有当 86Box 进程卡住时才执行此操作。你真的想终止虚拟机“%1”吗？"
+msgstr "强制终止虚拟机可能导致数据丢失。仅在86Box进程卡住时才执行此操作。\n\n您确定要强制终止虚拟机 \"%1\" 吗？"
 
 msgid "&Delete"
 msgstr "删除(&D)"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "你真的想删除虚拟机\"%1\"及其所有文件吗？此操作无法撤消！"
+msgstr "你真的想删除虚拟机 \"%1\" 及其所有文件吗？此操作无法撤消！"
 
 msgid "Show &config file"
-msgstr " 显示配置文件(&C)"
+msgstr "显示配置文件(&C)"
 
 msgid "No screenshot"
 msgstr "无截图"
@@ -1828,7 +1828,7 @@ msgid "Microsoft Serial Mouse"
 msgstr "Microsoft 串行鼠标"
 
 msgid "Microsoft Serial BallPoint"
-msgstr "Microsoft 串行轨迹球"
+msgstr "Microsoft Ballpoint 串行鼠标"
 
 msgid "Logitech Serial Mouse"
 msgstr "Logitech 串行鼠标"
@@ -1873,46 +1873,46 @@ msgid "BIOS file"
 msgstr "BIOS 文件"
 
 msgid "BIOS file (ROM #1)"
-msgstr "BIOS 文件 (ROM #1)"
+msgstr "BIOS 文件 (ROM 1)"
 
 msgid "BIOS file (ROM #2)"
-msgstr "BIOS 文件 (ROM #2)"
+msgstr "BIOS 文件 (ROM 2)"
 
 msgid "BIOS file (ROM #3)"
-msgstr "BIOS 文件 (ROM #3)"
+msgstr "BIOS 文件 (ROM 3)"
 
 msgid "BIOS file (ROM #4)"
-msgstr "BIOS 文件 (ROM #4)"
+msgstr "BIOS 文件 (ROM 4)"
 
 msgid "BIOS address"
 msgstr "BIOS 地址"
 
 msgid "BIOS address (ROM #1)"
-msgstr "BIOS 地址 (ROM #1)"
+msgstr "BIOS 地址 (ROM 1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr "BIOS 地址 (ROM #2)"
+msgstr "BIOS 地址 (ROM 2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr "BIOS 地址 (ROM #3)"
+msgstr "BIOS 地址 (ROM 3)"
 
 msgid "BIOS address (ROM #4)"
-msgstr "BIOS 地址 (ROM #4)"
+msgstr "BIOS 地址 (ROM 4)"
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "启用 BIOS 扩展 ROM 写入功能"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr "启用 BIOS 扩展 ROM 写入功能 (ROM #1)"
+msgstr "启用 BIOS 扩展 ROM 写入功能 (ROM 1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr "启用 BIOS 扩展 ROM 写入功能 (ROM #2)"
+msgstr "启用 BIOS 扩展 ROM 写入功能 (ROM 2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr "启用 BIOS 扩展 ROM 写入功能 (ROM #3)"
+msgstr "启用 BIOS 扩展 ROM 写入功能 (ROM 3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr "启用 BIOS 扩展 ROM 写入功能 (ROM #4)"
+msgstr "启用 BIOS 扩展 ROM 写入功能 (ROM 4)"
 
 msgid "Linear framebuffer base"
 msgstr "线性帧缓冲基址"
@@ -1924,10 +1924,10 @@ msgid "IRQ"
 msgstr "IRQ"
 
 msgid "Serial port IRQ"
-msgstr "串行端口 IRQ"
+msgstr "串口的 IRQ"
 
 msgid "Parallel port IRQ"
-msgstr "并行端口 IRQ"
+msgstr "并行端口的 IRQ"
 
 msgid "BIOS Revision"
 msgstr "BIOS 修订版"
@@ -1960,16 +1960,16 @@ msgid "BIOS size"
 msgstr "BIOS 大小"
 
 msgid "BIOS size (ROM #1)"
-msgstr "BIOS 大小 (ROM #1)"
+msgstr "BIOS 大小 (ROM 1)"
 
 msgid "BIOS size (ROM #2)"
-msgstr "BIOS 大小 (ROM #2)"
+msgstr "BIOS 大小 (ROM 2)"
 
 msgid "BIOS size (ROM #3)"
-msgstr "BIOS 大小 (ROM #3)"
+msgstr "BIOS 大小 (ROM 3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr "BIOS 大小 (ROM #4)"
+msgstr "BIOS 大小 (ROM 4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "将 C0000-C7FFF 映射为 UMB"
@@ -2047,7 +2047,7 @@ msgid "Interpolation Method"
 msgstr "插值法"
 
 msgid "Dynamic Sample Loading"
-msgstr "动态采样加载"
+msgstr "样品的动态加载"
 
 msgid "Reverb Output Gain"
 msgstr "混响输出增益"
@@ -2887,7 +2887,7 @@ msgid "version"
 msgstr "版本"
 
 msgid "build"
-msgstr "构建"
+msgstr "版本"
 
 msgid "You are currently running version <b>%1</b>."
 msgstr "您当前正在运行版本 <b>%1</b> 。"
@@ -2896,10 +2896,10 @@ msgid "<b>Version %1</b> is now available."
 msgstr "<b>版本 %1</b>现已可用。"
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "您当前正在运行 build <b>%1</b> 。"
+msgstr "您当前正在运行版本 <b>%1</b> 。"
 
 msgid "<b>Build %1</b> is now available."
-msgstr "<b>Build %1</b>现已可用。"
+msgstr "<b>版本 %1</b>现已可用。"
 
 msgid "Would you like to visit the download page?"
 msgstr "您想访问下载页面吗？"
@@ -2926,7 +2926,7 @@ msgid "Virtual machine crash"
 msgstr "虚拟机崩溃"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr "虚拟机\"%1\"的进程意外终止，退出代码为 %2。"
+msgstr "虚拟机 \"%1\" 的进程意外终止，退出代码为 %2。"
 
 msgid "The system will not be added."
 msgstr "系统将不会被添加。"

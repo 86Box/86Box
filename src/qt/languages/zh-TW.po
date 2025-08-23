@@ -28,10 +28,10 @@ msgid "&Pause"
 msgstr "暫停(&P)"
 
 msgid "Pause"
-msgstr ""
+msgstr "暫停"
 
 msgid "Re&sume"
-msgstr ""
+msgstr "恢復"
 
 msgid "E&xit"
 msgstr "退出(&X)"
@@ -148,13 +148,13 @@ msgid "RGB &Color"
 msgstr "RGB 彩色(&C)"
 
 msgid "RGB (no brown)"
-msgstr ""
+msgstr "RGB (無棕色)"
 
 msgid "&RGB Grayscale"
 msgstr "RGB 灰度(&R)"
 
 msgid "Generic RGBI color monitor"
-msgstr ""
+msgstr "通用 RGBI 彩色監視器"
 
 msgid "&Amber monitor"
 msgstr "琥珀色單色顯示器(&A)"
@@ -193,7 +193,7 @@ msgid "&Settings..."
 msgstr "設定(&S)..."
 
 msgid "Settings..."
-msgstr ""
+msgstr "設定..."
 
 msgid "&Update status bar icons"
 msgstr "更新狀態列圖示(&U)"
@@ -361,7 +361,7 @@ msgid "Configure"
 msgstr "設定"
 
 msgid "CPU:"
-msgstr ""
+msgstr "CPU:"
 
 msgid "CPU type:"
 msgstr "CPU 類型:"
@@ -400,13 +400,13 @@ msgid "Dynamic Recompiler"
 msgstr "動態重編譯器"
 
 msgid "CPU frame size"
-msgstr ""
+msgstr "CPU 框架大小"
 
 msgid "Larger frames (less smooth)"
-msgstr ""
+msgstr "較大的框架 (較不平滑)"
 
 msgid "Smaller frames (smoother)"
-msgstr ""
+msgstr "更小的框架 (更平滑)"
 
 msgid "Video:"
 msgstr "顯示卡:"
@@ -424,25 +424,25 @@ msgid "XGA Graphics"
 msgstr "XGA Graphics"
 
 msgid "IBM PS/55 Display Adapter Graphics"
-msgstr ""
+msgstr "IBM PS/55 顯示介面卡圖形"
 
 msgid "Keyboard:"
-msgstr ""
+msgstr "鍵盤:"
 
 msgid "Keyboard"
-msgstr ""
+msgstr "鍵盤"
 
 msgid "Mouse:"
 msgstr "滑鼠:"
 
 msgid "Mouse"
-msgstr ""
+msgstr "滑鼠"
 
 msgid "Joystick:"
 msgstr "搖桿:"
 
 msgid "Joystick"
-msgstr ""
+msgstr "搖桿"
 
 msgid "Joystick 1..."
 msgstr "搖桿 1..."
@@ -475,7 +475,7 @@ msgid "MIDI In Device:"
 msgstr "MIDI 輸入裝置:"
 
 msgid "MIDI Out:"
-msgstr ""
+msgstr "MIDI 輸出:"
 
 msgid "Standalone MPU-401"
 msgstr "獨立 MPU-401"
@@ -517,7 +517,7 @@ msgid "LPT4 Device:"
 msgstr "LPT4 裝置:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr ""
+msgstr "內部 LPT 的 ECP 的 DMA:"
 
 msgid "Serial port 1"
 msgstr "序列埠 1"
@@ -547,7 +547,7 @@ msgid "FD Controller:"
 msgstr "軟碟控制器:"
 
 msgid "CD-ROM Controller:"
-msgstr ""
+msgstr "CD-ROM 控制器"
 
 msgid "Tertiary IDE Controller"
 msgstr "第三 IDE 控制器"
@@ -556,7 +556,7 @@ msgid "Quaternary IDE Controller"
 msgstr "第四 IDE 控制器"
 
 msgid "Hard disk"
-msgstr ""
+msgstr "硬碟"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -580,7 +580,7 @@ msgid "Hard disks:"
 msgstr "硬碟:"
 
 msgid "Firmware Version"
-msgstr ""
+msgstr "韌體版本"
 
 msgid "&New..."
 msgstr "新增(&N)..."
@@ -640,13 +640,13 @@ msgid "MO drives:"
 msgstr "磁光碟機:"
 
 msgid "MO:"
-msgstr ""
+msgstr "磁光:"
 
 msgid "Removable disks:"
-msgstr ""
+msgstr "可移除:"
 
 msgid "Removable disk drives:"
-msgstr ""
+msgstr "可移除磁碟:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -658,7 +658,7 @@ msgid "ISA Memory Expansion"
 msgstr "ISA 記憶體擴充"
 
 msgid "ISA ROM Cards"
-msgstr ""
+msgstr "ISA ROM 擴充卡"
 
 msgid "Card 1:"
 msgstr "擴充卡 1:"
@@ -673,13 +673,13 @@ msgid "Card 4:"
 msgstr "擴充卡 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr ""
+msgstr "通用 ISA ROM 板"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr ""
+msgstr "通用雙 ISA ROM 板"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr ""
+msgstr "通用四通道 ISA ROM 板"
 
 msgid "ISABugger device"
 msgstr "ISABugger 裝置"
@@ -703,16 +703,16 @@ msgid "Speed"
 msgstr "速度"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr ""
+msgstr "可移除磁碟 %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr ""
+msgstr "可移除磁碟(&R) %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr ""
+msgstr "可移除磁碟影像"
 
 msgid "Image %1"
-msgstr ""
+msgstr "影像 %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box 找不到任何可用的 ROM 映像。\n\n請<a href=\"https://github.com/86Box/roms/releases/latest\">下載</a> ROM 套件並將其解壓到 \"roms\" 資料夾。"
@@ -772,13 +772,13 @@ msgid "Ports (COM & LPT)"
 msgstr "連接埠 (COM 和 LPT)"
 
 msgid "Ports"
-msgstr ""
+msgstr "連接埠"
 
 msgid "Serial ports:"
-msgstr ""
+msgstr "序列連接埠:"
 
 msgid "Parallel ports:"
-msgstr ""
+msgstr "平行埠:"
 
 msgid "Storage controllers"
 msgstr "存儲控制器"
@@ -787,13 +787,13 @@ msgid "Hard disks"
 msgstr "硬碟"
 
 msgid "Disks:"
-msgstr ""
+msgstr "磁碟:"
 
 msgid "Floppy:"
-msgstr ""
+msgstr "軟盤:"
 
 msgid "Controllers:"
-msgstr ""
+msgstr "控制器:"
 
 msgid "Floppy & CD-ROM drives"
 msgstr "軟碟/光碟機"
@@ -805,7 +805,7 @@ msgid "Other peripherals"
 msgstr "其他周邊裝置"
 
 msgid "Other devices"
-msgstr ""
+msgstr "其他裝置"
 
 msgid "Click to capture mouse"
 msgstr "點擊視窗捕捉滑鼠"
@@ -874,7 +874,7 @@ msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
-msgstr ""
+msgstr "CH Flightstick Pro + CH Pedals"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -883,28 +883,28 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr ""
+msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "2-button gamepad(s)"
-msgstr ""
+msgstr "2 鍵遊戲手柄"
 
 msgid "2-button flight yoke"
-msgstr ""
+msgstr "2 按鈕飛行搖桿"
 
 msgid "4-button gamepad"
-msgstr ""
+msgstr "4 鍵遊戲手柄"
 
 msgid "4-button flight yoke"
-msgstr ""
+msgstr "4 按鈕飛行搖桿"
 
 msgid "2-button flight yoke with throttle"
-msgstr ""
+msgstr "2 按鈕飛行搖桿，含節流閥"
 
 msgid "4-button flight yoke with throttle"
-msgstr ""
+msgstr "4 按鈕飛行搖桿，含節流閥"
 
 msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr ""
+msgstr "Win95 方向盤 (3 軸, 4 鍵搖桿)"
 
 msgid "None"
 msgstr "無"
@@ -952,13 +952,13 @@ msgid "Internal device"
 msgstr "內部裝置"
 
 msgid "&File"
-msgstr ""
+msgstr "檔案(&F)"
 
 msgid "&New machine..."
-msgstr ""
+msgstr "新機器(&N)..."
 
 msgid "&Check for updates..."
-msgstr ""
+msgstr "檢查更新(&C)..."
 
 msgid "Exit"
 msgstr "退出"
@@ -1057,7 +1057,7 @@ msgid "Pause execution"
 msgstr "暫停執行"
 
 msgid "Ctrl+Alt+Del"
-msgstr ""
+msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "按下 Ctrl+Alt+Del"
@@ -1069,271 +1069,271 @@ msgid "Hard reset"
 msgstr "硬重設"
 
 msgid "Force shutdown"
-msgstr ""
+msgstr "強制關機"
 
 msgid "Start"
-msgstr ""
+msgstr "開始"
 
 msgid "Not running"
-msgstr ""
+msgstr "未執行"
 
 msgid "Running"
-msgstr ""
+msgstr "運行"
 
 msgid "Paused"
-msgstr ""
+msgstr "已暫停"
 
 msgid "Waiting"
-msgstr ""
+msgstr "等待"
 
 msgid "Powered Off"
-msgstr ""
+msgstr "電源關閉"
 
 msgid "%n running"
-msgstr ""
+msgstr "%n 運行"
 
 msgid "%n paused"
-msgstr ""
+msgstr "%n 已暫停"
 
 msgid "%n waiting"
-msgstr ""
+msgstr "%n 等待"
 
 msgid "%1 total"
-msgstr ""
+msgstr "%1 總計"
 
 msgid "VMs: %1"
-msgstr ""
+msgstr "虛擬機器：%1"
 
 msgid "System Directory:"
-msgstr ""
+msgstr "系統目錄:"
 
 msgid "Choose directory"
-msgstr ""
+msgstr "選擇目錄"
 
 msgid "Choose configuration file"
-msgstr ""
+msgstr "選擇組態檔案"
 
 msgid "86Box configuration files (86box.cfg)"
-msgstr ""
+msgstr "86Box 配置檔案 (86box.cfg)"
 
 msgid "Configuration read failed"
-msgstr ""
+msgstr "設定讀取失敗"
 
 msgid "Unable to open the selected configuration file for reading: %1"
-msgstr ""
+msgstr "無法開啟選取的設定檔進行讀取: %1"
 
 msgid "Use regular expressions in search box"
-msgstr ""
+msgstr "在搜尋方塊中使用正則表達式"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr ""
+msgstr "%1 台機器目前處於活動狀態。您確定要退出虛擬機器管理員嗎？"
 
 msgid "Add new system wizard"
-msgstr ""
+msgstr "新增系統精靈"
 
 msgid "Introduction"
-msgstr ""
+msgstr "簡介"
 
 msgid "This will help you add a new system to 86Box."
-msgstr ""
+msgstr "這將有助於您在 86Box 中加入新系統。"
 
 msgid "New configuration"
-msgstr ""
+msgstr "新配置"
 
 msgid "Complete"
-msgstr ""
+msgstr "完成"
 
 msgid "The wizard will now launch the configuration for the new system."
-msgstr ""
+msgstr "精靈現在會啟動新系統的組態。"
 
 msgid "Use existing configuration"
-msgstr ""
+msgstr "使用現有組態"
 
 msgid "Type some notes here"
-msgstr ""
+msgstr "在此輸入一些備註"
 
 msgid "Paste the contents of the existing configuration file into the box below."
-msgstr ""
+msgstr "將現有組態檔案的內容貼到下面的方塊中。"
 
 msgid "Load configuration from file"
-msgstr ""
+msgstr "從檔案載入設定"
 
 msgid "System name"
-msgstr ""
+msgstr "系統名稱"
 
 msgid "System name:"
-msgstr ""
+msgstr "系統名稱:"
 
 msgid "System name cannot contain certain characters"
-msgstr ""
+msgstr "系統名稱不能包含特定字元"
 
 msgid "System name already exists"
-msgstr ""
+msgstr "系統名稱已存在"
 
 msgid "Please enter a directory for the system"
-msgstr ""
+msgstr "請輸入系統目錄"
 
 msgid "Directory does not exist"
-msgstr ""
+msgstr "目錄不存在"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr ""
+msgstr "系統的新目錄將會在上述選取的目錄中建立"
 
 msgid "System location:"
-msgstr ""
+msgstr "系統位置:"
 
 msgid "System name and location"
-msgstr ""
+msgstr "系統名稱和位置"
 
 msgid "Enter the name of the system and choose the location"
-msgstr ""
+msgstr "輸入系統名稱並選擇位置"
 
 msgid "Enter the name of the system"
-msgstr ""
+msgstr "輸入系統名稱"
 
 msgid "Please enter a system name"
-msgstr ""
+msgstr "請輸入系統名稱"
 
 msgid "Display name (optional):"
-msgstr ""
+msgstr "顯示名稱 (可選):"
 
 msgid "Display name:"
-msgstr ""
+msgstr "顯示名稱:"
 
 msgid "Set display name"
-msgstr ""
+msgstr "設定顯示名稱"
 
 msgid "Enter the new display name (blank to reset)"
-msgstr ""
+msgstr "輸入新的顯示名稱 (空白表示重設)"
 
 msgid "Change &display name..."
-msgstr ""
+msgstr "變更顯示名稱(&D)..."
 
 msgid "Context Menu"
-msgstr ""
+msgstr "內容選單"
 
 msgid "&Open folder..."
-msgstr ""
+msgstr "開啟資料夾(&O)..."
 
 msgid "Open p&rinter tray..."
-msgstr ""
+msgstr "打開印表機托盤(&R)..."
 
 msgid "Set &icon..."
-msgstr ""
+msgstr "設定圖示(&I)..."
 
 msgid "Select an icon"
-msgstr ""
+msgstr "選擇圖示"
 
 msgid "C&lone..."
-msgstr ""
+msgstr "克隆(&L)..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
-msgstr ""
+msgstr "虛擬機器 \"%1\" (%2) 將被複製到:"
 
 msgid "Directory %1 already exists"
-msgstr ""
+msgstr "目錄 %1 已經存在"
 
 msgid "You cannot use the following characters in the name: %1"
-msgstr ""
+msgstr "您不能在名稱中使用下列字元：%1"
 
 msgid "Clone"
-msgstr ""
+msgstr "克隆"
 
 msgid "Failed to create directory for cloned VM"
-msgstr ""
+msgstr "為複製的虛擬機器建立目錄失敗"
 
 msgid "Failed to clone VM."
-msgstr ""
+msgstr "複製虛擬機器失敗。"
 
 msgid "Directory in use"
-msgstr ""
+msgstr "使用中的目錄"
 
 msgid "The selected directory is already in use. Please select a different directory."
-msgstr ""
+msgstr "所選目錄已被使用。請選擇其他目錄。"
 
 msgid "Create directory failed"
-msgstr ""
+msgstr "建立目錄失敗"
 
 msgid "Unable to create the directory for the new system"
-msgstr ""
+msgstr "無法為新系統建立目錄"
 
 msgid "Configuration write failed"
-msgstr ""
+msgstr "設定寫入失敗"
 
 msgid "Unable to open the configuration file at %1 for writing"
-msgstr ""
+msgstr "無法開啟 %1 的設定檔進行寫入"
 
 msgid "Error adding system"
-msgstr ""
+msgstr "錯誤新增系統"
 
 msgid "Remove directory failed"
-msgstr ""
+msgstr "移除目錄失敗"
 
 msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
-msgstr ""
+msgstr "機器目錄中的某些檔案無法刪除。請手動刪除它們。"
 
 msgid "Build"
-msgstr ""
+msgstr "建置"
 
 msgid "Version"
-msgstr ""
+msgstr "版本"
 
 msgid "An update to 86Box is available: %1 %2"
-msgstr ""
+msgstr "86Box 的更新可用: %1 %2"
 
 msgid "An error has occurred while checking for updates: %1"
-msgstr ""
+msgstr "檢查更新時發生錯誤: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
-msgstr ""
+msgstr "<b>86Box 的更新可用！</b>"
 
 msgid "Warning"
-msgstr ""
+msgstr "警告"
 
 msgid "&Kill"
-msgstr ""
+msgstr "強制終止(&K)"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr ""
+msgstr "強行終止虛擬機器可能會導致資料遺失。只有在 86Box 過程卡住時才執行此操作。\n\n您真的希望強制終止虛擬機器 \"%1\"？"
 
 msgid "&Delete"
-msgstr ""
+msgstr "刪除(&D)"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr ""
+msgstr "您真的想要刪除虛擬機器 \"%1\" 及其所有檔案嗎？此操作無法撤銷！"
 
 msgid "Show &config file"
-msgstr ""
+msgstr "顯示設定檔(&C)"
 
 msgid "No screenshot"
-msgstr ""
+msgstr "沒有截圖"
 
 msgid "Search"
-msgstr ""
+msgstr "搜尋"
 
 msgid "Searching for VMs..."
-msgstr ""
+msgstr "搜尋虛擬機器..."
 
 msgid "Found %1"
-msgstr ""
+msgstr "找到 %1"
 
 msgid "System"
-msgstr ""
+msgstr "系統"
 
 msgid "Storage"
-msgstr ""
+msgstr "儲存"
 
 msgid "Disk %1: "
-msgstr ""
+msgstr "磁碟 %1: "
 
 msgid "No disks"
-msgstr ""
+msgstr "無磁碟"
 
 msgid "Audio"
-msgstr ""
+msgstr "音訊"
 
 msgid "Audio:"
-msgstr ""
+msgstr "音訊:"
 
 msgid "ACPI shutdown"
 msgstr "ACPI 關機"
@@ -1675,7 +1675,7 @@ msgid "Null Driver"
 msgstr "空驅動程式"
 
 msgid "NIC:"
-msgstr ""
+msgstr "NIC:"
 
 msgid "NIC %1 (%2) %3"
 msgstr "網路卡 %1 (%2) %3"
@@ -1747,7 +1747,7 @@ msgid "MiB"
 msgstr "MiB"
 
 msgid "GiB"
-msgstr ""
+msgstr "GiB"
 
 msgid "Network Card #1"
 msgstr "網路卡 1"
@@ -1795,22 +1795,22 @@ msgid "Renderer &options..."
 msgstr "渲染器選項...(&O)"
 
 msgid "PC/XT Keyboard"
-msgstr ""
+msgstr "PC/XT 鍵盤"
 
 msgid "AT Keyboard"
-msgstr ""
+msgstr "AT 鍵盤"
 
 msgid "AX Keyboard"
-msgstr ""
+msgstr "AX 鍵盤"
 
 msgid "PS/2 Keyboard"
-msgstr ""
+msgstr "PS/2 鍵盤"
 
 msgid "PS/55 Keyboard"
-msgstr ""
+msgstr "PS/55 鍵盤"
 
 msgid "Keys"
-msgstr ""
+msgstr "鑰匙"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Logitech/Microsoft 匯流排滑鼠"
@@ -1822,13 +1822,13 @@ msgid "Mouse Systems Serial Mouse"
 msgstr "Mouse Systems 序列滑鼠"
 
 msgid "Mouse Systems Bus Mouse"
-msgstr ""
+msgstr "Mouse Systems 匯流排滑鼠"
 
 msgid "Microsoft Serial Mouse"
 msgstr "Microsoft 序列滑鼠"
 
 msgid "Microsoft Serial BallPoint"
-msgstr ""
+msgstr "Microsoft BallPoint 序列滑鼠"
 
 msgid "Logitech Serial Mouse"
 msgstr "Logitech 序列滑鼠"
@@ -1837,13 +1837,13 @@ msgid "PS/2 Mouse"
 msgstr "PS/2 滑鼠"
 
 msgid "PS/2 QuickPort Mouse"
-msgstr ""
+msgstr "PS/2 QuickPort 滑鼠"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (序列)"
 
 msgid "Default Baud rate"
-msgstr ""
+msgstr "預設波特率"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] 標準 Hayes 相容的數據機"
@@ -1870,52 +1870,52 @@ msgid "MIDI Input Device"
 msgstr "MIDI 輸入裝置"
 
 msgid "BIOS file"
-msgstr ""
+msgstr "BIOS 檔案"
 
 msgid "BIOS file (ROM #1)"
-msgstr ""
+msgstr "BIOS 檔案 (ROM 1)"
 
 msgid "BIOS file (ROM #2)"
-msgstr ""
+msgstr "BIOS 檔案 (ROM 2)"
 
 msgid "BIOS file (ROM #3)"
-msgstr ""
+msgstr "BIOS 檔案 (ROM 3)"
 
 msgid "BIOS file (ROM #4)"
-msgstr ""
+msgstr "BIOS 檔案 (ROM 4)"
 
 msgid "BIOS address"
 msgstr "BIOS 位址"
 
 msgid "BIOS address (ROM #1)"
-msgstr ""
+msgstr "BIOS 位址 (ROM 1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr ""
+msgstr "BIOS 位址 (ROM 2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr ""
+msgstr "BIOS 位址 (ROM 3)"
 
 msgid "BIOS address (ROM #4)"
-msgstr ""
+msgstr "BIOS 位址 (ROM 4)"
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "啟用 BIOS 擴充 ROM 寫入"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr ""
+msgstr "啟用 BIOS 擴充 ROM 寫入 (ROM 1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr ""
+msgstr "啟用 BIOS 擴充 ROM 寫入 (ROM 2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr ""
+msgstr "啟用 BIOS 擴充 ROM 寫入 (ROM 3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr ""
+msgstr "啟用 BIOS 擴充 ROM 寫入 (ROM 4)"
 
 msgid "Linear framebuffer base"
-msgstr ""
+msgstr "線性圖框緩衝記憶體的底座"
 
 msgid "Address"
 msgstr "位址"
@@ -1924,25 +1924,25 @@ msgid "IRQ"
 msgstr "IRQ"
 
 msgid "Serial port IRQ"
-msgstr ""
+msgstr "序列埠的 IRQ"
 
 msgid "Parallel port IRQ"
-msgstr ""
+msgstr "平行埠的 IRQ"
 
 msgid "BIOS Revision"
 msgstr "BIOS 版本"
 
 msgid "BIOS Version"
-msgstr ""
+msgstr "BIOS 版本"
 
 msgid "BIOS Language"
-msgstr ""
+msgstr "BIOS 語言"
 
 msgid "IBM 5161 Expansion Unit"
-msgstr ""
+msgstr "IBM 5161 擴充裝置"
 
 msgid "IBM Cassette Basic"
-msgstr ""
+msgstr "IBM 磁帶式 BASIC"
 
 msgid "Translate 26 -> 17"
 msgstr "轉換 26 -> 17"
@@ -1960,16 +1960,16 @@ msgid "BIOS size"
 msgstr "BIOS 大小"
 
 msgid "BIOS size (ROM #1)"
-msgstr ""
+msgstr "BIOS 大小 (ROM )"
 
 msgid "BIOS size (ROM #2)"
-msgstr ""
+msgstr "BIOS 大小 (ROM 2)"
 
 msgid "BIOS size (ROM #3)"
-msgstr ""
+msgstr "BIOS 大小 (ROM 3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr ""
+msgstr "BIOS 大小 (ROM 4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "映射 C0000-C7FFF 為 UMB"
@@ -2047,7 +2047,7 @@ msgid "Interpolation Method"
 msgstr "插值方法"
 
 msgid "Dynamic Sample Loading"
-msgstr ""
+msgstr "樣品的動態載入"
 
 msgid "Reverb Output Gain"
 msgstr "迴響輸出增益"
@@ -2137,10 +2137,10 @@ msgid "Enable Game port"
 msgstr "啟用遊戲埠"
 
 msgid "SID Model"
-msgstr ""
+msgstr "SID 型號"
 
 msgid "SID Filter Strength"
-msgstr ""
+msgstr "SID 過濾強度"
 
 msgid "Surround module"
 msgstr "環繞聲模組"
@@ -2155,10 +2155,10 @@ msgid "SB Address"
 msgstr "SB 位址"
 
 msgid "Adlib Address"
-msgstr ""
+msgstr "Adlib 位址"
 
 msgid "Use EEPROM setting"
-msgstr ""
+msgstr "使用 EEPROM 中的設定"
 
 msgid "WSS IRQ"
 msgstr "WSS IRQ"
@@ -2245,13 +2245,13 @@ msgid "Blend"
 msgstr "混合"
 
 msgid "Font"
-msgstr ""
+msgstr "字型"
 
 msgid "Bilinear filtering"
 msgstr "雙線性濾波"
 
 msgid "Video chroma-keying"
-msgstr ""
+msgstr "視訊色鍵"
 
 msgid "Dithering"
 msgstr "抖動"
@@ -2296,31 +2296,31 @@ msgid "EMS mode"
 msgstr "EMS 模式"
 
 msgid "EMS Address"
-msgstr ""
+msgstr "EMS 位址"
 
 msgid "EMS 1 Address"
-msgstr ""
+msgstr "EMS 1 位址"
 
 msgid "EMS 2 Address"
-msgstr ""
+msgstr "EMS 2 位址"
 
 msgid "EMS Memory Size"
-msgstr ""
+msgstr "EMS 記憶體大小"
 
 msgid "EMS 1 Memory Size"
-msgstr ""
+msgstr "EMS 1 記憶體大小"
 
 msgid "EMS 2 Memory Size"
-msgstr ""
+msgstr "EMS 2 記憶體大小"
 
 msgid "Enable EMS"
-msgstr ""
+msgstr "啟用 EMS"
 
 msgid "Enable EMS 1"
-msgstr ""
+msgstr "啟用 EMS 1"
 
 msgid "Enable EMS 2"
-msgstr ""
+msgstr "啟用 EMS 2"
 
 msgid "Address for > 2 MB"
 msgstr "> 2 MB 的位址"
@@ -2380,7 +2380,7 @@ msgid "Five + Wheel"
 msgstr "五鍵 + 滾輪"
 
 msgid "Five + 2 Wheels"
-msgstr ""
+msgstr "五鍵 + 2 滾輪"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 序列 / SMT3(R)V"
@@ -2446,7 +2446,7 @@ msgid "Composite"
 msgstr "複合視訊"
 
 msgid "True color"
-msgstr ""
+msgstr "真實色彩"
 
 msgid "Old"
 msgstr "舊"
@@ -2482,13 +2482,13 @@ msgid "Linear interpolation"
 msgstr "線性插補"
 
 msgid "Has secondary 8x8 character set"
-msgstr ""
+msgstr "具有輔助 8x8 字元集"
 
 msgid "Has Quadcolor II daughter board"
-msgstr ""
+msgstr "具有 Quadcolor II 子板"
 
 msgid "Alternate monochrome contrast"
-msgstr ""
+msgstr "交替單色對比"
 
 msgid "128 KB"
 msgstr "128 KB"
@@ -2524,7 +2524,7 @@ msgid "Gray"
 msgstr "灰色"
 
 msgid "Grayscale"
-msgstr ""
+msgstr "灰階"
 
 msgid "Color"
 msgstr "顏色"
@@ -2542,10 +2542,10 @@ msgid "Bochs latest"
 msgstr "Bochs 最新"
 
 msgid "Apply overscan deltas"
-msgstr ""
+msgstr "套用過掃描三角區"
 
 msgid "Mono Interlaced"
-msgstr ""
+msgstr "單色隔行扫描"
 
 msgid "Mono Non-Interlaced"
 msgstr "單色非隔行掃描"
@@ -2560,7 +2560,7 @@ msgid "3Dfx Voodoo Graphics"
 msgstr "3Dfx Voodoo 圖形"
 
 msgid "3Dfx Voodoo 2"
-msgstr ""
+msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 TMU)"
@@ -2632,7 +2632,7 @@ msgid "Named Pipe (Server)"
 msgstr "已命名管道 (伺服器)"
 
 msgid "Named Pipe (Client)"
-msgstr ""
+msgstr "已命名管道 (用戶端)"
 
 msgid "Host Serial Passthrough"
 msgstr "主機序列埠的直通"
@@ -2650,28 +2650,28 @@ msgid "High performance impact"
 msgstr "對效能影響大"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] RAM 磁碟 (最大速度)"
+msgstr "[通用] RAM 磁碟 (最大速度)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr ""
+msgstr "[通用] 1989 (3500 轉速)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr ""
+msgstr "[通用] 1992 (3600 轉速)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr ""
+msgstr "[通用] 1994 (4500 轉速)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr ""
+msgstr "[通用] 1996 (5400 轉速)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr ""
+msgstr "[通用] 1997 (5400 轉速)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr ""
+msgstr "[通用] 1998 (5400 轉速)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr ""
+msgstr "[通用] 2000 (7200 轉速)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A 克隆 (ISA)"
@@ -2680,10 +2680,10 @@ msgid "Vendor"
 msgstr "製造商"
 
 msgid "30 Hz (JMP2 = 1)"
-msgstr ""
+msgstr "30 Hz (JMP2 = 1)"
 
 msgid "60 Hz (JMP2 = 2)"
-msgstr ""
+msgstr "60 Hz (JMP2 = 2)"
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "通用 PC/XT 記憶體擴充"
@@ -2698,241 +2698,241 @@ msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for t
 msgstr "通用 ESC/P 點矩陣印表機的模擬需要 \"roms/printer/fonts\" 目錄中的 TrueType 字體。"
 
 msgid "Inhibit multimedia keys"
-msgstr ""
+msgstr "禁止多媒體按鍵"
 
 msgid "Ask for confirmation before saving settings"
-msgstr ""
+msgstr "儲存設定前要求確認"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr ""
+msgstr "硬體重設前要求確認"
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
+msgstr "退出前請先確認"
 
 msgid "Options"
-msgstr ""
+msgstr "選項"
 
 msgid "Model"
-msgstr ""
+msgstr "型號"
 
 msgid "Model:"
-msgstr ""
+msgstr "型號:"
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr ""
+msgstr "初始化 Vulkan 渲染器失敗。"
 
 msgid "GLSL Error"
-msgstr ""
+msgstr "GLSL 錯誤"
 
 msgid "Could not load shader: %1"
-msgstr ""
+msgstr "無法載入著色器: %1"
 
 msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr ""
+msgstr "需要 OpenGL 版本 3.0 或更高。目前的 GLSL 版本為 %1.%2"
 
 msgid "Could not load texture: %1"
-msgstr ""
+msgstr "無法載入材質: %1"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr ""
+msgstr "無法編譯著色器:\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr ""
+msgstr "程式未連結:\n\n%1"
 
 msgid "Shader Manager"
-msgstr ""
+msgstr "著色器管理員"
 
 msgid "Shader Configuration"
-msgstr ""
+msgstr "著色器組態"
 
 msgid "Add"
-msgstr ""
+msgstr "新增"
 
 msgid "Move up"
-msgstr ""
+msgstr "上移"
 
 msgid "Move down"
-msgstr ""
+msgstr "下移"
 
 msgid "Could not load file %1"
-msgstr ""
+msgstr "無法載入檔案 %1"
 
 msgid "Key Bindings:"
-msgstr ""
+msgstr "按鍵綁定:"
 
 msgid "Action"
-msgstr ""
+msgstr "行動"
 
 msgid "Keybind"
-msgstr ""
+msgstr "鍵盤綁定"
 
 msgid "Clear binding"
-msgstr ""
+msgstr "透明裝訂"
 
 msgid "Bind"
-msgstr ""
+msgstr "綁定"
 
 msgid "Bind Key"
-msgstr ""
+msgstr "綁定按鍵"
 
 msgid "Enter key combo:"
-msgstr ""
+msgstr "輸入組合鍵:"
 
 msgid "Bind conflict"
-msgstr ""
+msgstr "綁定衝突"
 
 msgid "This key combo is already in use."
-msgstr ""
+msgstr "此組合鍵已在使用中。"
 
 msgid "Send Control+Alt+Del"
-msgstr ""
+msgstr "傳送 Control+Alt+Del"
 
 msgid "Send Control+Alt+Escape"
-msgstr ""
+msgstr "傳送 Control+Alt+Escape"
 
 msgid "Toggle fullscreen"
-msgstr ""
+msgstr "切換全螢幕"
 
 msgid "Screenshot"
-msgstr ""
+msgstr "螢幕截圖"
 
 msgid "Release mouse pointer"
-msgstr ""
+msgstr "放開滑鼠游標"
 
 msgid "Toggle pause"
-msgstr ""
+msgstr "切換暫停"
 
 msgid "Toggle mute"
-msgstr ""
+msgstr "切換靜音"
 
 msgid "Text files"
-msgstr ""
+msgstr "文字檔案"
 
 msgid "ROM files"
-msgstr ""
+msgstr "ROM 檔案"
 
 msgid "SoundFont files"
-msgstr ""
+msgstr "SoundFont 檔案"
 
 msgid "Local Switch"
-msgstr ""
+msgstr "本地交換器"
 
 msgid "Remote Switch"
-msgstr ""
+msgstr "遙控交換器"
 
 msgid "Switch:"
-msgstr ""
+msgstr "交換器:"
 
 msgid "Hub Mode"
-msgstr ""
+msgstr "集線器模式"
 
 msgid "Hostname:"
-msgstr ""
+msgstr "主機名稱:"
 
 msgid "ISA RAM:"
-msgstr ""
+msgstr "ISA RAM:"
 
 msgid "ISA ROM:"
-msgstr ""
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
-msgstr ""
+msgstr "清除(&W) NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr ""
+msgstr "這將刪除位於 (\"nvr\" 子目錄中的) 虛擬機器的所有 NVRAM (和相關) 檔案。如果適用的話，您必須重新設定 BIOS (可能還有虛擬機器內的其他裝置) 設定。\n\n您確定要清除虛擬機 \"%1\" 的所有 NVRAM 內容嗎？"
 
 msgid "Success"
-msgstr ""
+msgstr "成功"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr ""
+msgstr "成功清除虛擬機 \"%1\" 的 NVRAM 內容"
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr ""
+msgstr "嘗試清除虛擬機 \"%1\" 的 NVRAM 內容時發生錯誤"
 
 msgid "%1 VM Manager"
-msgstr ""
+msgstr "%1 虛擬機器管理員"
 
 msgid "%n disk(s)"
-msgstr ""
+msgstr "%n 磁碟"
 
 msgid "Unknown Status"
-msgstr ""
+msgstr "狀態不明"
 
 msgid "No Machines Found!"
-msgstr ""
+msgstr "找不到機器!"
 
 msgid "Check for updates on startup"
-msgstr ""
+msgstr "啟動時檢查更新"
 
 msgid "Unable to determine release information"
-msgstr ""
+msgstr "無法確定釋放資訊"
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
-msgstr ""
+msgstr "檢查更新時出錯:\n'\n%1\n\n請稍後再試。"
 
 msgid "Update check complete"
-msgstr ""
+msgstr "更新檢查完成"
 
 msgid "stable"
-msgstr ""
+msgstr "穩定"
 
 msgid "beta"
-msgstr ""
+msgstr "測試版"
 
 msgid "You are running the latest %1 version of 86Box: %2"
-msgstr ""
+msgstr "您正在執行 86Box 的最新 %1 版本: %2"
 
 msgid "version"
-msgstr ""
+msgstr "版本"
 
 msgid "build"
-msgstr ""
+msgstr "建置"
 
 msgid "You are currently running version <b>%1</b>."
-msgstr ""
+msgstr "您目前執行的是 <b>%1</b> 版本。"
 
 msgid "<b>Version %1</b> is now available."
-msgstr ""
+msgstr "<b>版本 %1</b> 現在可用。"
 
 msgid "You are currently running build <b>%1</b>."
-msgstr ""
+msgstr "您目前執行的是 <b>%1</b> 建置。"
 
 msgid "<b>Build %1</b> is now available."
-msgstr ""
+msgstr "<b>建置 %1</b> 現在可用。"
 
 msgid "Would you like to visit the download page?"
-msgstr ""
+msgstr "您要造訪下載頁面嗎？"
 
 msgid "Visit download page"
-msgstr ""
+msgstr "造訪下載頁面"
 
 msgid "Update check"
-msgstr ""
+msgstr "更新檢查"
 
 msgid "Checking for updates..."
-msgstr ""
+msgstr "檢查更新..."
 
 msgid "86Box Update"
-msgstr ""
+msgstr "86Box 更新"
 
 msgid "Release notes:"
-msgstr ""
+msgstr "發佈說明:"
 
 msgid "%1 Hz"
 msgstr "%1 Hz"
 
 msgid "Virtual machine crash"
-msgstr ""
+msgstr "虛擬機當機"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr ""
+msgstr "虛擬機 \"%1\" 的進程以退出代碼 %2 意外終止。"
 
 msgid "The system will not be added."
-msgstr ""
+msgstr "系統將不會新增。"
 
 msgid "&Update mouse every CPU frame"
-msgstr ""
+msgstr "每 CPU 幀更新滑鼠(&U)"
 
 msgid "Hue"
 msgstr "色調"
