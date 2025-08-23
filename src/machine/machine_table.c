@@ -3609,7 +3609,7 @@ const machine_t machines[] = {
     },
     /* Has unknown KBC firmware. */
     {
-        .name = "[ISA] Sanyo MBC-17",
+        .name = "[ISA] Sanyo MBC-17PLUS",
         .internal_name = "mbc17",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_DISCRETE,
