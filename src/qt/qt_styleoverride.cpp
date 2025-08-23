@@ -15,6 +15,7 @@
  *          Copyright 2022 Teemu Korhonen
  */
 #include "qt_styleoverride.hpp"
+#include "qt_util.hpp"
 
 #include <QComboBox>
 #include <QAbstractItemView>
@@ -64,8 +65,7 @@ StyleOverride::polish(QWidget *widget)
         }
         widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
 #ifdef Q_OS_WINDOWS
-        extern bool windows_is_light_theme();
-        BOOL DarkMode = !windows_is_light_theme();
+        BOOL DarkMode = !util::isWindowsLightTheme();
         DwmSetWindowAttribute((HWND)widget->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID)&DarkMode, sizeof(DarkMode));
 #endif
     }

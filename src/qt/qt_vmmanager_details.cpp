@@ -19,12 +19,19 @@
 #include <QDebug>
 #include <QStyle>
 
+#include "qt_util.hpp"
 #include "qt_vmmanager_details.hpp"
 #include "ui_qt_vmmanager_details.h"
 
+#define TOOLBUTTON_STYLESHEET_LIGHT "QToolButton {background: transparent; border: none; padding: 5px} QToolButton:hover {background: palette(midlight)} QToolButton:pressed {background: palette(mid)}"
 #ifdef Q_OS_WINDOWS
-extern bool windows_is_light_theme();
+#    define TOOLBUTTON_STYLESHEET_DARK "QToolButton {padding: 5px}"
+#    define SCREENSHOTBORDER_STYLESHEET_DARK "QLabel { border: 1px solid gray }"
+#else
+#    define TOOLBUTTON_STYLESHEET_DARK "QToolButton {background: transparent; border: none; padding: 5px} QToolButton:hover {background: palette(dark)} QToolButton:pressed {background: palette(mid)}"
 #endif
+#define SCROLLAREA_STYLESHEET_LIGHT "QWidget {background-color: palette(light)} QScrollBar{ background-color: none }"
+#define SYSTEMLABEL_STYLESHEET_LIGHT "background-color: palette(midlight);"
 
 using namespace VMManager;
 
@@ -100,18 +107,14 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     QString toolButtonStyleSheet;
     // Simple method to try and determine if light mode is enabled
 #ifdef Q_OS_WINDOWS
-    const bool lightMode = windows_is_light_theme();
+    const bool lightMode = util::isWindowsLightTheme();
 #else
     const bool lightMode = QApplication::palette().window().color().value() > QApplication::palette().windowText().color().value();
 #endif
     if (lightMode) {
-        toolButtonStyleSheet = "QToolButton {background: transparent; border: none; padding: 5px} QToolButton:hover {background: palette(midlight)} QToolButton:pressed {background: palette(mid)}";
+        toolButtonStyleSheet = TOOLBUTTON_STYLESHEET_LIGHT;
     } else {
-#ifndef Q_OS_WINDOWS
-        toolButtonStyleSheet = "QToolButton {background: transparent; border: none; padding: 5px} QToolButton:hover {background: palette(dark)} QToolButton:pressed {background: palette(mid)}";
-#else
-        toolButtonStyleSheet = "QToolButton {padding: 5px}";
-#endif
+        toolButtonStyleSheet = TOOLBUTTON_STYLESHEET_DARK;
     }
     ui->ssNavTBHolder->setStyleSheet(toolButtonStyleSheet);
 
@@ -150,6 +153,17 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
 
     ui->notesTextEdit->setEnabled(false);
 
+#ifdef Q_OS_WINDOWS
+    connect(this, &VMManagerDetails::styleUpdated, systemSection, &VMManagerDetailSection::updateStyle);
+    connect(this, &VMManagerDetails::styleUpdated, videoSection, &VMManagerDetailSection::updateStyle);
+    connect(this, &VMManagerDetails::styleUpdated, storageSection, &VMManagerDetailSection::updateStyle);
+    connect(this, &VMManagerDetails::styleUpdated, audioSection, &VMManagerDetailSection::updateStyle);
+    connect(this, &VMManagerDetails::styleUpdated, networkSection, &VMManagerDetailSection::updateStyle);
+    connect(this, &VMManagerDetails::styleUpdated, inputSection, &VMManagerDetailSection::updateStyle);
+    connect(this, &VMManagerDetails::styleUpdated, portsSection, &VMManagerDetailSection::updateStyle);
+    connect(this, &VMManagerDetails::styleUpdated, otherSection, &VMManagerDetailSection::updateStyle);
+#endif
+
     sysconfig = new VMManagerSystem();
 }
 
@@ -163,12 +177,11 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
     // Set the scrollarea background but also set the scroll bar to none. Otherwise it will also
     // set the scrollbar background to the same.
 #ifdef Q_OS_WINDOWS
-    extern bool windows_is_light_theme();
-    if (windows_is_light_theme())
+    if (util::isWindowsLightTheme())
 #endif
     {
-        ui->scrollArea->setStyleSheet("QWidget {background-color: palette(light)} QScrollBar{ background-color: none }");
-        ui->systemLabel->setStyleSheet("background-color: palette(midlight);");
+        ui->scrollArea->setStyleSheet(SCROLLAREA_STYLESHEET_LIGHT);
+        ui->systemLabel->setStyleSheet(SYSTEMLABEL_STYLESHEET_LIGHT);
     }
     // Margins are a little different on macos
 #ifdef Q_OS_MACOS
@@ -331,8 +344,8 @@ VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig) {
         ui->screenshot->setEnabled(false);
         ui->screenshot->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 #ifdef Q_OS_WINDOWS
-        if (!windows_is_light_theme()) {
-            ui->screenshot->setStyleSheet("QLabel { border: 1px solid gray }");
+        if (!util::isWindowsLightTheme()) {
+            ui->screenshot->setStyleSheet(SCREENSHOTBORDER_STYLESHEET_DARK);
         } else {
             ui->screenshot->setStyleSheet("");
         }
@@ -389,6 +402,32 @@ VMManagerDetails::updateWindowStatus()
     qInfo("Window status changed: %i", sysconfig->window_obscured);
     updateProcessStatus();
 }
+
+#ifdef Q_OS_WINDOWS
+void
+VMManagerDetails::updateStyle()
+{
+    QString toolButtonStyleSheet;
+    const bool lightMode = util::isWindowsLightTheme();
+    if (lightMode) {
+        toolButtonStyleSheet = TOOLBUTTON_STYLESHEET_LIGHT;
+        ui->scrollArea->setStyleSheet(SCROLLAREA_STYLESHEET_LIGHT);
+        ui->systemLabel->setStyleSheet(SYSTEMLABEL_STYLESHEET_LIGHT);
+        if (!ui->screenshot->isEnabled())
+            ui->screenshot->setStyleSheet("");
+    } else {
+        toolButtonStyleSheet = TOOLBUTTON_STYLESHEET_DARK;
+        ui->scrollArea->setStyleSheet("");
+        ui->systemLabel->setStyleSheet("");
+        if (!ui->screenshot->isEnabled())
+            ui->screenshot->setStyleSheet(SCREENSHOTBORDER_STYLESHEET_DARK);
+    }
+    ui->ssNavTBHolder->setStyleSheet(toolButtonStyleSheet);
+    ui->toolButtonHolder->setStyleSheet(toolButtonStyleSheet);
+
+    emit styleUpdated();
+}
+#endif
 
 QWidget *
 VMManagerDetails::createHorizontalLine(const int leftSpacing, const int rightSpacing)

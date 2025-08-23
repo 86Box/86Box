@@ -18,12 +18,9 @@
 
 #include <QApplication>
 
+#include "qt_util.hpp"
 #include "qt_vmmanager_listviewdelegate.hpp"
 #include "qt_vmmanager_model.hpp"
-
-#ifdef Q_OS_WINDOWS
-extern bool windows_is_light_theme();
-#endif
 
 
 // Thanks to scopchanov https://github.com/scopchanov/SO-MessageLog
@@ -52,7 +49,7 @@ void VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewI
                                       const QModelIndex &index) const {
     bool windows_light_mode = true;
 #ifdef Q_OS_WINDOWS
-    windows_light_mode = windows_is_light_theme();
+    windows_light_mode = util::isWindowsLightTheme();
 #endif
     QStyleOptionViewItem opt(option);
     initStyleOption(&opt, index);

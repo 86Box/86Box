@@ -80,6 +80,9 @@ public slots:
     void modelDataChange();
     void onPreferencesUpdated();
     void onLanguageUpdated();
+#ifdef Q_OS_WINDOWS
+    void onDarkModeUpdated();
+#endif
     void onConfigUpdated(const QString &uuid);
     int  getActiveMachineCount();
 

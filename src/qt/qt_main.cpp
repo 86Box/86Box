@@ -66,6 +66,7 @@ extern "C" {
 #    include "qt_rendererstack.hpp"
 #    include "qt_winrawinputfilter.hpp"
 #    include "qt_winmanagerfilter.hpp"
+#    include "qt_vmmanager_windarkmodefilter.hpp"
 #    include <86box/win.h>
 #    include <shobjidl.h>
 #    include <windows.h>
@@ -514,10 +515,6 @@ main_thread_fn()
 
 static std::thread *main_thread;
 
-#ifdef Q_OS_WINDOWS
-extern bool windows_is_light_theme();
-#endif
-
 int
 main(int argc, char *argv[])
 {
@@ -548,7 +545,7 @@ main(int argc, char *argv[])
     }
     QApplication::setAttribute(Qt::AA_NativeWindows);
 
-    if (!windows_is_light_theme()) {
+    if (!util::isWindowsLightTheme()) {
         QFile f(":qdarkstyle/dark/darkstyle.qss");
 
         if (!f.exists())   {
@@ -558,6 +555,10 @@ main(int argc, char *argv[])
             QTextStream ts(&f);
             qApp->setStyleSheet(ts.readAll());
         }
+        QPalette palette(qApp->palette());
+        palette.setColor(QPalette::Link, Qt::white);
+        palette.setColor(QPalette::LinkVisited, Qt::lightGray);
+        qApp->setPalette(palette);
     }
 #endif
 
@@ -632,8 +633,19 @@ main(int argc, char *argv[])
         // QApplication::setApplicationDisplayName("86Box VM Manager");
         // vmm.show();
         // vmm.exec();
+#ifdef Q_OS_WINDOWS
+        auto darkModeFilter = std::unique_ptr<WindowsDarkModeFilter>(new WindowsDarkModeFilter());
+        if (darkModeFilter) {
+            qApp->installNativeEventFilter(darkModeFilter.get());
+        }
+        QTimer::singleShot(0, [&darkModeFilter] {
+#else
         QTimer::singleShot(0, [] {
+#endif
             const auto vmm_main_window = new VMManagerMainWindow();
+#ifdef Q_OS_WINDOWS
+            darkModeFilter.get()->setWindow(vmm_main_window);
+#endif
             vmm_main_window->show();
         });
         QApplication::exec();
