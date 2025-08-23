@@ -348,7 +348,7 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
                         fdc_set_base(dev->fdc, (dev->regs[0x00] & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
                 }
             }
-            if (valxor & 0x08) {
+            if (valxor & 0x88) {
                 lpt_port_remove(dev->lpt);
                 if ((dev->regs[0x00] & 1) && !(dev->regs[0x02] & 1))
                     lpt_handler(dev);
