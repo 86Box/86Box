@@ -197,7 +197,7 @@ MainWindow::MainWindow(QWidget *parent)
     QTimer* frameRateTimer = new QTimer(this);
     frameRateTimer->setInterval(1000);
     frameRateTimer->setSingleShot(false);
-    connect(frameRateTimer, &QTimer::timeout, [this, hertz_label] {
+    connect(frameRateTimer, &QTimer::timeout, [hertz_label] {
         hertz_label->setText(tr("%1 Hz").arg(QString::number(monitors[0].mon_actualrenderedframes.load()) + (monitors[0].mon_interlace ? "i" : "")));
     });
     statusBar()->addPermanentWidget(hertz_label);
@@ -306,7 +306,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::QueuedConnection);
 
-    connect(this, &MainWindow::setTitle, this, [this, toolbar_label](const QString &title) {
+    connect(this, &MainWindow::setTitle, this, [toolbar_label](const QString &title) {
         if (dopause && !hide_tool_bar) {
             toolbar_label->setText(toolbar_label->text() + tr(" - PAUSED"));
             return;
