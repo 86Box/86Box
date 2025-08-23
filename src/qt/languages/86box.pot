@@ -66,7 +66,7 @@ msgstr ""
 msgid "Specify &dimensions..."
 msgstr ""
 
-msgid "F&orce 4:3 display ratio"
+msgid "Force &4:3 display ratio"
 msgstr ""
 
 msgid "&Window scale factor"
@@ -135,7 +135,7 @@ msgstr ""
 msgid "4:&3 Integer scale"
 msgstr ""
 
-msgid "E&GA/(S)VGA settings"
+msgid "EGA/(S)&VGA settings"
 msgstr ""
 
 msgid "&Inverted VGA monitor"
@@ -774,10 +774,10 @@ msgstr ""
 msgid "Ports"
 msgstr ""
 
-msgid "Serial ports"
+msgid "Serial ports:"
 msgstr ""
 
-msgid "Parallel ports"
+msgid "Parallel ports:"
 msgstr ""
 
 msgid "Storage controllers"
@@ -1215,7 +1215,7 @@ msgstr ""
 msgid "&Open folder..."
 msgstr ""
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr ""
 
 msgid "Set &icon..."
@@ -2829,13 +2829,10 @@ msgstr ""
 msgid "Hostname:"
 msgstr ""
 
-msgid "ISA RTC"
+msgid "ISA RAM:"
 msgstr ""
 
-msgid "ISA RAM"
-msgstr ""
-
-msgid "ISA ROM"
+msgid "ISA ROM:"
 msgstr ""
 
 msgid "&Wipe NVRAM"
@@ -2935,4 +2932,25 @@ msgid "The system will not be added."
 msgstr ""
 
 msgid "&Update mouse every CPU frame"
+msgstr ""
+
+msgid "Hue"
+msgstr ""
+
+msgid "Saturation"
+msgstr ""
+
+msgid "Contrast"
+msgstr ""
+
+msgid "Brightness"
+msgstr ""
+
+msgid "Sharpness"
+msgstr ""
+
+msgid "&CGA composite settings..."
+msgstr ""
+
+msgid "CGA composite settings"
 msgstr ""

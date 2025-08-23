@@ -139,22 +139,10 @@ VMManagerSystem::scanForConfigs(QWidget* parent, const QString &searchPath)
     scanTimer.start();
     QVector<VMManagerSystem *> system_configs;
 
-    const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
-    auto systemDirConfig = config->getStringValue("system_directory");
-
-    const auto config_file_name = QString("86box.cfg");
+    const auto config_file_name = QString(CONFIG_FILE);
     const QStringList filters = {config_file_name};
     QStringList matches;
-    // TODO: Preferences. Once I get the CLI args worked out.
-    // For now it just takes vmm_path from the CLI
     QString search_directory;
-    // if(searchPath.isEmpty()) {
-    //     // If the location isn't specified in function call, use the one loaded
-    //     // from the config file
-    //     search_directory = systemDirConfig;
-    // } else {
-    //     search_directory = searchPath;
-    // }
 
     search_directory = searchPath.isEmpty()? vmm_path : searchPath;
 
@@ -634,10 +622,12 @@ VMManagerSystem::setupVars() {
         display_table[Display::Name::Video].append(tr("IBM PS/55 Display Adapter Graphics").prepend(VMManagerDetailSection::sectionSeparator));
 
     // Voodoo
+    QString voodoo_name = "";
     if (video_config.contains("voodoo") && (video_config["voodoo"].toInt() != 0)) {
-        auto voodoo_config = getCategory(DeviceConfig::DeviceName(&voodoo_device, "voodoo", 0));
+        char temp[512];
+        device_get_name(&voodoo_device, 0, temp);
+        auto voodoo_config = getCategory(QString(temp));
         int voodoo_type = voodoo_config["type"].toInt();
-        QString voodoo_name;
         switch (voodoo_type) {
             case 0:
             default:
@@ -650,8 +640,8 @@ VMManagerSystem::setupVars() {
                 voodoo_name = tr("3Dfx Voodoo 2");
                 break;
         }
-        display_table[Display::Name::Voodoo] = voodoo_name;
     }
+    display_table[Display::Name::Voodoo] = voodoo_name;
 
     // Drives
     // First the number of disks
@@ -1040,12 +1030,13 @@ VMManagerSystem::setupVars() {
     display_table[Display::Name::Parallel] = (lptFinal.empty()    ?  tr("None") : lptFinal.join((hasLptDevices ? VMManagerDetailSection::sectionSeparator : ", ")));
 
     // ISA RTC
+    QString isartc_dev_name = "";
     if (other_config.contains("isartc_type")) {
         auto isartc_internal_name = other_config["isartc_type"];
         auto isartc_dev = isartc_get_from_internal_name(isartc_internal_name.toUtf8().data());
-        auto isartc_dev_name = DeviceConfig::DeviceName(isartc_get_device(isartc_dev), isartc_get_internal_name(isartc_dev), 0);
-        display_table[Display::Name::IsaRtc] = isartc_dev_name;
+        isartc_dev_name = DeviceConfig::DeviceName(isartc_get_device(isartc_dev), isartc_get_internal_name(isartc_dev), 0);
     }
+    display_table[Display::Name::IsaRtc] = isartc_dev_name;
 
     // ISA RAM
     QStringList IsaMemCards;

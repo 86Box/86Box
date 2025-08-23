@@ -66,7 +66,7 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "Odrediti veličinu..."
 
-msgid "F&orce 4:3 display ratio"
+msgid "Force &4:3 display ratio"
 msgstr "&4:3 omjer prikaza"
 
 msgid "&Window scale factor"
@@ -135,8 +135,8 @@ msgstr "&Cijelobrojno skaliranje"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Cijelobrojno skaliranje"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "E&GA/(S)VGA postavke"
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)&VGA postavke"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Obrni boje zaslona VGA"
@@ -220,7 +220,7 @@ msgid "End trace"
 msgstr "&Svrši praćenje"
 
 msgid "&Help"
-msgstr "&Pomoć"
+msgstr "P&omoć"
 
 msgid "&Documentation..."
 msgstr "&Dokumentacija..."
@@ -774,11 +774,11 @@ msgstr "Vrata (COM & LPT)"
 msgid "Ports"
 msgstr "Vrata"
 
-msgid "Serial ports"
-msgstr "Serijska vrata"
+msgid "Serial ports:"
+msgstr "Serijska vrata:"
 
-msgid "Parallel ports"
-msgstr "Paralelna vrata"
+msgid "Parallel ports:"
+msgstr "Paralelna vrata:"
 
 msgid "Storage controllers"
 msgstr "Kontroleri za diskove"
@@ -1215,7 +1215,7 @@ msgstr "Kontekstni izbornik"
 msgid "&Open folder..."
 msgstr "&Otvori mapu..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Otvori ladicu &pisača..."
 
 msgid "Set &icon..."
@@ -2829,14 +2829,11 @@ msgstr "Način čvorišta"
 msgid "Hostname:"
 msgstr "Naziv hosta:"
 
-msgid "ISA RTC"
-msgstr "Sat u stvarnom vremenu ISA"
+msgid "ISA RAM:"
+msgstr "RAM ISA:"
 
-msgid "ISA RAM"
-msgstr "RAM ISA"
-
-msgid "ISA ROM"
-msgstr "ROM ISA"
+msgid "ISA ROM:"
+msgstr "ROM ISA:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Obriši NVRAM"
@@ -2937,14 +2934,23 @@ msgstr "Sistem neće biti dodan."
 msgid "&Update mouse every CPU frame"
 msgstr "&Ažuriraj status miša kod skavog bloka procesora"
 
-#~ msgid "HD Controller:"
-#~ msgstr "Kontroler tvrdog diska:"
+msgid "Hue"
+msgstr "Boja"
 
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP pogoni:"
+msgid "Saturation"
+msgstr "Zasićenost"
 
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
+msgid "Contrast"
+msgstr "Konstrast"
 
-#~ msgid "ZIP images"
-#~ msgstr "ZIP slike"
+msgid "Brightness"
+msgstr "Svjetlina"
+
+msgid "Sharpness"
+msgstr "Oštrina"
+
+msgid "&CGA composite settings..."
+msgstr "Opcije kompozitnog načina &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Opcije kompozitnog načina CGA"

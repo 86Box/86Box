@@ -54,7 +54,7 @@
      <x>0</x>
      <y>0</y>
      <width>724</width>
-     <height>23</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAction">
@@ -162,7 +162,7 @@
     </widget>
     <widget class="QMenu" name="menuEGA_S_VGA_settings">
      <property name="title">
-      <string>E&amp;GA/(S)VGA settings</string>
+      <string>EGA/(S)&amp;VGA settings</string>
      </property>
      <widget class="QMenu" name="menuVGA_screen_type">
       <property name="title">
@@ -205,6 +205,7 @@
     <addaction name="actionFullscreen"/>
     <addaction name="menuFullscreen_stretch_mode"/>
     <addaction name="actionApply_fullscreen_stretch_mode_when_maximized"/>
+    <addaction name="actionCGA_composite_settings"/>
     <addaction name="menuEGA_S_VGA_settings"/>
     <addaction name="separator"/>
     <addaction name="actionCGA_PCjr_Tandy_EGA_S_VGA_overscan"/>
@@ -232,7 +233,7 @@
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
    <property name="contextMenuPolicy">
-    <enum>Qt::PreventContextMenu</enum>
+    <enum>Qt::ContextMenuPolicy::PreventContextMenu</enum>
    </property>
    <property name="windowTitle">
     <string notr="true">toolBar</string>
@@ -244,7 +245,7 @@
     <bool>false</bool>
    </property>
    <property name="allowedAreas">
-    <set>Qt::TopToolBarArea</set>
+    <set>Qt::ToolBarArea::TopToolBarArea</set>
    </property>
    <property name="iconSize">
     <size>
@@ -253,7 +254,7 @@
     </size>
    </property>
    <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonIconOnly</enum>
+    <enum>Qt::ToolButtonStyle::ToolButtonIconOnly</enum>
    </property>
    <property name="floatable">
     <bool>false</bool>
@@ -368,7 +369,7 @@
     <string>E&amp;xit</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::QuitRole</enum>
+    <enum>QAction::MenuRole::QuitRole</enum>
    </property>
   </action>
   <action name="actionSettings">
@@ -380,7 +381,7 @@
     <string>&amp;Settings...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::NoRole</enum>
+    <enum>QAction::MenuRole::NoRole</enum>
    </property>
    <property name="iconVisibleInMenu">
     <bool>false</bool>
@@ -439,7 +440,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>F&amp;orce 4:3 display ratio</string>
+    <string>Force &amp;4:3 display ratio</string>
    </property>
   </action>
   <action name="actionHiDPI_scaling">
@@ -682,7 +683,7 @@
     <bool>false</bool>
    </property>
    <property name="menuRole">
-    <enum>QAction::AboutQtRole</enum>
+    <enum>QAction::MenuRole::AboutQtRole</enum>
    </property>
   </action>
   <action name="actionAbout_86Box">
@@ -690,7 +691,7 @@
     <string>&amp;About 86Box...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::AboutRole</enum>
+    <enum>QAction::MenuRole::AboutRole</enum>
    </property>
   </action>
   <action name="actionDocumentation">
@@ -743,7 +744,7 @@
     <string>&amp;Preferences...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::PreferencesRole</enum>
+    <enum>QAction::MenuRole::PreferencesRole</enum>
    </property>
   </action>
   <action name="actionEnable_Discord_integration">
@@ -816,7 +817,7 @@
     <string>Renderer &amp;options...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::NoRole</enum>
+    <enum>QAction::MenuRole::NoRole</enum>
    </property>
   </action>
   <action name="actionVulkan">
@@ -856,7 +857,7 @@
   </action>
   <action name="actionOpen_printer_tray">
    <property name="text">
-    <string>Open &amp;printer tray...</string>
+    <string>Open p&amp;rinter tray...</string>
    </property>
   </action>
   <action name="actionOpen_screenshots_folder">
@@ -886,6 +887,11 @@
    </property>
    <property name="text">
     <string>&amp;Pen</string>
+   </property>
+  </action>
+  <action name="actionCGA_composite_settings">
+   <property name="text">
+    <string>&amp;CGA composite settings...</string>
    </property>
   </action>
  </widget>

@@ -40,7 +40,7 @@ msgid "&View"
 msgstr "&Visualizza"
 
 msgid "&Hide status bar"
-msgstr "&Nascondi barra di stato"
+msgstr "Nascondi ba&rra di stato"
 
 msgid "Hide &toolbar"
 msgstr "Nascondi &barra degli strumenti"
@@ -64,13 +64,13 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify &dimensions..."
-msgstr "Specifica dimensioni..."
+msgstr "Specifica dim&ensioni..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "F&orza rapporto d'aspetto 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Forza rapporto d'aspetto &4:3"
 
 msgid "&Window scale factor"
-msgstr "&Fattore di scala della finestra"
+msgstr "Fa&ttore di scala della finestra"
 
 msgid "&0.5x"
 msgstr "&0,5x"
@@ -103,7 +103,7 @@ msgid "&8x"
 msgstr "&8x"
 
 msgid "Fi&lter method"
-msgstr "Metodo filtro"
+msgstr "Metodo fi&ltro"
 
 msgid "&Nearest"
 msgstr "&Più vicino"
@@ -118,7 +118,7 @@ msgid "&Fullscreen"
 msgstr "&Schermo intero"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Modalità adattamento &schermo intero"
+msgstr "Modalità &adattamento schermo intero"
 
 msgid "&Full screen stretch"
 msgstr "&Adatta a schermo intero"
@@ -135,14 +135,14 @@ msgstr "&Scala intera"
 msgid "4:&3 Integer scale"
 msgstr "Scala intera 4:&3"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Impostazioni E&GA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Impostazioni EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Monitor VGA invertito"
 
 msgid "VGA screen &type"
-msgstr "Schermi VGA &"
+msgstr "Schermi &VGA"
 
 msgid "RGB &Color"
 msgstr "RGB a &Colori"
@@ -157,13 +157,13 @@ msgid "Generic RGBI color monitor"
 msgstr "Monitor a colori RGBI generico"
 
 msgid "&Amber monitor"
-msgstr "&Monitor ambra"
+msgstr "Monitor &ambra"
 
 msgid "&Green monitor"
-msgstr "&Monitor verde"
+msgstr "Monitor &verde"
 
 msgid "&White monitor"
-msgstr "&Monitor bianco"
+msgstr "Monitor &bianco"
 
 msgid "Grayscale &conversion type"
 msgstr "Conversione &scala di grigi"
@@ -181,7 +181,7 @@ msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
 msgstr "Sovrascansione CGA/PCjr/Tandy/E&GA/(S)VGA"
 
 msgid "Change contrast for &monochrome display"
-msgstr "Modifica il contrasto per &schermi monocromatici"
+msgstr "Modifica il contrasto per schermi &monocromatici"
 
 msgid "&Media"
 msgstr "&Dispositivi"
@@ -199,7 +199,7 @@ msgid "&Update status bar icons"
 msgstr "&Aggiorna icone della barra di stato"
 
 msgid "Take s&creenshot"
-msgstr "Cattura schermata"
+msgstr "&Cattura schermata"
 
 msgid "S&ound"
 msgstr "A&udio"
@@ -208,7 +208,7 @@ msgid "&Preferences..."
 msgstr "&Preferenze..."
 
 msgid "Enable &Discord integration"
-msgstr "Abilita &integrazione Discord"
+msgstr "Abilita integrazione &Discord"
 
 msgid "Sound &gain..."
 msgstr "Guadagno &suono..."
@@ -220,7 +220,7 @@ msgid "End trace"
 msgstr "Fine traccia"
 
 msgid "&Help"
-msgstr "&Aiuto"
+msgstr "Ai&uto"
 
 msgid "&Documentation..."
 msgstr "&Documentazione..."
@@ -247,7 +247,7 @@ msgid "&Rewind to the beginning"
 msgstr "Ri&avvolgi all'inizio"
 
 msgid "&Fast forward to the end"
-msgstr "A&vanti veloce alla fine"
+msgstr "A&vanti veloce fino alla fine"
 
 msgid "E&ject"
 msgstr "&Espelli"
@@ -774,11 +774,11 @@ msgstr "Porte (COM e LPT)"
 msgid "Ports"
 msgstr "Porte"
 
-msgid "Serial ports"
-msgstr "Porte seriali"
+msgid "Serial ports:"
+msgstr "Porte seriali:"
 
-msgid "Parallel ports"
-msgstr "Porte parallele"
+msgid "Parallel ports:"
+msgstr "Porte parallele:"
 
 msgid "Storage controllers"
 msgstr "Controller di archiviazione"
@@ -1075,7 +1075,7 @@ msgid "Start"
 msgstr "Avvia"
 
 msgid "Not running"
-msgstr "Sospeso"
+msgstr "Inattivo"
 
 msgid "Running"
 msgstr "In esecuzione"
@@ -1141,7 +1141,7 @@ msgid "New configuration"
 msgstr "Nuova configurazione"
 
 msgid "Complete"
-msgstr "Completare"
+msgstr "Completamento"
 
 msgid "The wizard will now launch the configuration for the new system."
 msgstr "La procedura guidata avvierà ora la configurazione del nuovo sistema."
@@ -1215,7 +1215,7 @@ msgstr "Menu contestuale"
 msgid "&Open folder..."
 msgstr "&Apri cartella..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Apri vassoio &stampante..."
 
 msgid "Set &icon..."
@@ -1639,13 +1639,13 @@ msgid "&MCA devices..."
 msgstr "Dispositivi MCA..."
 
 msgid "Show non-&primary monitors"
-msgstr "Mostra i monitor non primari"
+msgstr "Mostra i monitor non &primari"
 
 msgid "Open screenshots &folder..."
-msgstr "Apri la cartella screenshots..."
+msgstr "Apri la ca&rtella screenshots..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Applica adattamento schermo intero in modalità massimizzata"
+msgstr "Applica adattamento sc&hermo intero in modalità massimizzata"
 
 msgid "&Cursor/Puck"
 msgstr "&Cursore/Puck"
@@ -1792,7 +1792,7 @@ msgid "Serial port passthrough 4"
 msgstr "Porta seriale passante 4"
 
 msgid "Renderer &options..."
-msgstr "Opzioni renderizzatore..."
+msgstr "&Opzioni renderizzatore..."
 
 msgid "PC/XT Keyboard"
 msgstr "Tastiera PC/XT"
@@ -2829,14 +2829,11 @@ msgstr "Modalità Hub"
 msgid "Hostname:"
 msgstr "Nome host:"
 
-msgid "ISA RTC"
-msgstr "RTC ISA"
+msgid "ISA RAM:"
+msgstr "RAM ISA:"
 
-msgid "ISA RAM"
-msgstr "RAM ISA"
-
-msgid "ISA ROM"
-msgstr "ROM ISA"
+msgid "ISA ROM:"
+msgstr "ROM ISA:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Cancella NVRAM"
@@ -2935,16 +2932,25 @@ msgid "The system will not be added."
 msgstr "Il sistema non verrà aggiunto."
 
 msgid "&Update mouse every CPU frame"
-msgstr "&Aggiorano stato mouse ad ogni blocco CPU"
+msgstr "&Aggiorna stato del mouse ad ogni blocco della CPU"
 
-#~ msgid "HD Controller:"
-#~ msgstr "Controller HD:"
+msgid "Hue"
+msgstr "Tinta"
 
-#~ msgid "ZIP drives:"
-#~ msgstr "Unità ZIP:"
+msgid "Saturation"
+msgstr "Saturazione"
 
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
+msgid "Contrast"
+msgstr "Contrasto"
 
-#~ msgid "ZIP images"
-#~ msgstr "Immagini ZIP"
+msgid "Brightness"
+msgstr "Luminosità"
+
+msgid "Sharpness"
+msgstr "Nitidezza"
+
+msgid "&CGA composite settings..."
+msgstr "Impostazioni video composito &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Impostazioni video composito CGA"

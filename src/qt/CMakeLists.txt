@@ -257,6 +257,7 @@ add_library(ui STATIC
 
     qt_iconindicators.hpp
     qt_iconindicators.cpp
+    qt_cgasettingsdialog.hpp qt_cgasettingsdialog.cpp qt_cgasettingsdialog.ui
 )
 
 if(EMU_BUILD_NUM)
@@ -373,6 +374,8 @@ if (WIN32)
     target_sources(ui PRIVATE
         qt_winrawinputfilter.hpp
         qt_winrawinputfilter.cpp
+        qt_vmmanager_windarkmodefilter.hpp
+        qt_vmmanager_windarkmodefilter.cpp
         qt_winmanagerfilter.hpp
         qt_winmanagerfilter.cpp
     )

@@ -37,7 +37,7 @@ msgid "E&xit"
 msgstr "Be&enden"
 
 msgid "&View"
-msgstr "&Ansicht"
+msgstr "A&nsicht"
 
 msgid "&Hide status bar"
 msgstr "&Statusleiste ausblenden"
@@ -46,10 +46,10 @@ msgid "Hide &toolbar"
 msgstr "&Werkzeugleiste ausblenden"
 
 msgid "&Resizeable window"
-msgstr "&Größenverstellbares Fenster"
+msgstr "G&rößenverstellbares Fenster"
 
 msgid "R&emember size && position"
-msgstr "&Größe && Position merken"
+msgstr "Größe && &Position merken"
 
 msgid "Re&nderer"
 msgstr "Re&nderer"
@@ -64,9 +64,9 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify &dimensions..."
-msgstr "Fenstergröße einstellen..."
+msgstr "Fenstergröße &einstellen..."
 
-msgid "F&orce 4:3 display ratio"
+msgid "Force &4:3 display ratio"
 msgstr "&4:3-Seitenverhältnis erzwingen"
 
 msgid "&Window scale factor"
@@ -103,7 +103,7 @@ msgid "&8x"
 msgstr "&8x"
 
 msgid "Fi&lter method"
-msgstr "Filterungsmethode"
+msgstr "Filterungsmet&hode"
 
 msgid "&Nearest"
 msgstr "&Nächster Nachbar"
@@ -115,10 +115,10 @@ msgid "Hi&DPI scaling"
 msgstr "Hi&DPI-Skalierung"
 
 msgid "&Fullscreen"
-msgstr "&Vollbild"
+msgstr "Vo&llbild"
 
 msgid "Fullscreen &stretch mode"
-msgstr "&Vollbild-Skalierungsmodus"
+msgstr "Vollbild-S&kalierungsmodus"
 
 msgid "&Full screen stretch"
 msgstr "&Vollbild-Streckung"
@@ -135,8 +135,8 @@ msgstr "&Integer-Skalierung"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Integer-Skalierung"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "E&GA/(S)VGA-Einstellungen"
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)&VGA-Einstellungen"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Invertierte VGA-Anzeige"
@@ -145,7 +145,7 @@ msgid "VGA screen &type"
 msgstr "&VGA-Bildschirmtyp"
 
 msgid "RGB &Color"
-msgstr "&RGB-Farbe"
+msgstr "RGB-&Farbe"
 
 msgid "RGB (no brown)"
 msgstr "RGB (ohne Braun)"
@@ -202,7 +202,7 @@ msgid "Take s&creenshot"
 msgstr "S&creenshot aufnehmen"
 
 msgid "S&ound"
-msgstr "T&on"
+msgstr "&Ton"
 
 msgid "&Preferences..."
 msgstr "&Einstellungen..."
@@ -774,11 +774,11 @@ msgstr "Anschlüsse (COM + LPT)"
 msgid "Ports"
 msgstr "Anschlüsse"
 
-msgid "Serial ports"
-msgstr "Serielle Anschlüsse"
+msgid "Serial ports:"
+msgstr "Serielle Anschlüsse:"
 
-msgid "Parallel ports"
-msgstr "Parallele Anschlüsse"
+msgid "Parallel ports:"
+msgstr "Parallele Anschlüsse:"
 
 msgid "Storage controllers"
 msgstr "Speichercontroller"
@@ -1215,8 +1215,8 @@ msgstr "Kontextmenü"
 msgid "&Open folder..."
 msgstr "&Ordner öffnen"
 
-msgid "Open &printer tray..."
-msgstr "Druckerausgabe öffnen..."
+msgid "Open p&rinter tray..."
+msgstr "D&ruckerausgabe öffnen..."
 
 msgid "Set &icon..."
 msgstr "&Symbol setzen"
@@ -1642,10 +1642,10 @@ msgid "Show non-&primary monitors"
 msgstr "Nicht-primäre Monitore anzeigen"
 
 msgid "Open screenshots &folder..."
-msgstr "Ordner „screenshots“ öffnen..."
+msgstr "Ordner „screenshots“ ö&ffnen..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Vollbild-Streckmodus aktivieren, wenn das Fenster maximiert ist"
+msgstr "Vollbild-S&treckmodus aktivieren, wenn das Fenster maximiert ist"
 
 msgid "&Cursor/Puck"
 msgstr "&Mauszeiger/Puck"
@@ -1792,7 +1792,7 @@ msgid "Serial port passthrough 4"
 msgstr "Serielle Schnittstelle 4 durchreichen"
 
 msgid "Renderer &options..."
-msgstr "Renderer-Optionen..."
+msgstr "Renderer-&Optionen..."
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT-Tastatur"
@@ -2829,13 +2829,10 @@ msgstr "Hub-Modus"
 msgid "Hostname:"
 msgstr "Hostname:"
 
-msgid "ISA RTC"
+msgid "ISA RAM:"
 msgstr ""
 
-msgid "ISA RAM"
-msgstr ""
-
-msgid "ISA ROM"
+msgid "ISA ROM:"
 msgstr ""
 
 msgid "&Wipe NVRAM"
@@ -2937,14 +2934,23 @@ msgstr "Das System wird nicht hinzugefügt werden."
 msgid "&Update mouse every CPU frame"
 msgstr "&Maus bei jedem CPU-Frame aktualisieren"
 
-#~ msgid "HD Controller:"
-#~ msgstr "Festplatten-Controller:"
+msgid "Hue"
+msgstr "Farbton"
 
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP-Laufwerke:"
+msgid "Saturation"
+msgstr "Sättigung"
 
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
+msgid "Contrast"
+msgstr "Kontrast"
 
-#~ msgid "ZIP images"
-#~ msgstr "ZIP-Abbilder"
+msgid "Brightness"
+msgstr "Helligkeit"
+
+msgid "Sharpness"
+msgstr "Schärfe"
+
+msgid "&CGA composite settings..."
+msgstr "Optionen des &CGA-Composite-Modus..."
+
+msgid "CGA composite settings"
+msgstr "Optionen des CGA-Composite-Modus"

@@ -40,7 +40,7 @@ msgid "&View"
 msgstr "&Vue"
 
 msgid "&Hide status bar"
-msgstr "&Masquer la barre de status"
+msgstr "Masquer &la barre de status"
 
 msgid "Hide &toolbar"
 msgstr "Masquer la &barre d'outils"
@@ -52,7 +52,7 @@ msgid "R&emember size && position"
 msgstr "S&auvegarder taille && position"
 
 msgid "Re&nderer"
-msgstr "Moteur de &rendu vidéo"
+msgstr "Moteur de re&ndu vidéo"
 
 msgid "&Qt (Software)"
 msgstr "&Qt (Logiciel)"
@@ -64,13 +64,13 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify &dimensions..."
-msgstr "Spécifier dimensions..."
+msgstr "Spécifier dimen&sions..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "F&orcer le ratio 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Forcer le ratio &4:3"
 
 msgid "&Window scale factor"
-msgstr "&Echelle de facteur"
+msgstr "Facteur d'&Echelle"
 
 msgid "&0.5x"
 msgstr "&0.5x"
@@ -103,7 +103,7 @@ msgid "&8x"
 msgstr "&8x"
 
 msgid "Fi&lter method"
-msgstr "Méthode de Filtre"
+msgstr "Mét&hode de Filtre"
 
 msgid "&Nearest"
 msgstr "&Plus proche"
@@ -118,7 +118,7 @@ msgid "&Fullscreen"
 msgstr "&Plein écran"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Mode plein écran &étiré"
+msgstr "Mode plein écran é&tiré"
 
 msgid "&Full screen stretch"
 msgstr "&Plein écran étiré"
@@ -135,8 +135,8 @@ msgstr "&Echelle entière"
 msgid "4:&3 Integer scale"
 msgstr "Echelle entière 4:&3"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Réglages E&GA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Réglages EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "Moniteur VGA &Inversé"
@@ -199,7 +199,7 @@ msgid "&Update status bar icons"
 msgstr "Mettre à jour la barre de stat&us"
 
 msgid "Take s&creenshot"
-msgstr "Copie &d'écran"
+msgstr "Copie d'é&cran"
 
 msgid "S&ound"
 msgstr "S&on"
@@ -220,7 +220,7 @@ msgid "End trace"
 msgstr "Arrêter traces"
 
 msgid "&Help"
-msgstr "&Aide"
+msgstr "Ai&de"
 
 msgid "&Documentation..."
 msgstr "&Documentation..."
@@ -292,7 +292,7 @@ msgid "&75 fps"
 msgstr "&75 images par seconde"
 
 msgid "&VSync"
-msgstr "Synchronisation &verticale"
+msgstr "Synchronisation &Verticale"
 
 msgid "&Select shader..."
 msgstr "Sé&lectionnez le shader..."
@@ -403,10 +403,10 @@ msgid "CPU frame size"
 msgstr "Taille du bloc de processeur"
 
 msgid "Larger frames (less smooth)"
-msgstr "Blocs plus grands (moins fluid)"
+msgstr "Blocs plus grands (moins fluide)"
 
 msgid "Smaller frames (smoother)"
-msgstr "Blocs plus petits (plus fluid)"
+msgstr "Blocs plus petits (plus fluide)"
 
 msgid "Video:"
 msgstr "Vidéo:"
@@ -774,11 +774,11 @@ msgstr "Ports (COM et LPT)"
 msgid "Ports"
 msgstr "Ports"
 
-msgid "Serial ports"
-msgstr "Ports série"
+msgid "Serial ports:"
+msgstr "Ports série:"
 
-msgid "Parallel ports"
-msgstr "Ports parallèles"
+msgid "Parallel ports:"
+msgstr "Ports parallèles:"
 
 msgid "Storage controllers"
 msgstr "Contrôleurs de stockage"
@@ -1027,7 +1027,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Vous chargez une configuration non prise en charge"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Le filtre du type du processeur basé par rapport à la machine sélectionnée est désactivé pour cette machine émulée.\n\nCela permet de sélectionner un processeur qui est de base incompatible avec la machine sélectionné. Cependant, il pourrait y avoir des incompatibilités avec le BIOS de la machine ou autres logiciels.\n\nL'activation de cette configuration non officiellement prise en charge implique que tout rapport de bogue peut être fermé étant considéré comme invalide."
+msgstr "Le filtre du type du processeur basé par rapport à la machine sélectionnée est désactivé pour cette machine émulée.\n\nCela permet de sélectionner un processeur qui est de base incompatible avec la machine sélectionnée. Cependant, il pourrait y avoir des incompatibilités avec le BIOS de la machine ou autres logiciels.\n\nL'activation de cette configuration non officiellement prise en charge implique que tout rapport de bogue peut être fermé étant considéré comme invalide."
 
 msgid "Continue"
 msgstr "Continuer"
@@ -1075,10 +1075,10 @@ msgid "Start"
 msgstr "Démarrer"
 
 msgid "Not running"
-msgstr "Ne fonctionne pas"
+msgstr "Inactive"
 
 msgid "Running"
-msgstr "Fonctionne"
+msgstr "Active"
 
 msgid "Paused"
 msgstr "En pause"
@@ -1087,10 +1087,10 @@ msgid "Waiting"
 msgstr "En attente"
 
 msgid "Powered Off"
-msgstr "Éteint"
+msgstr "Éteinte"
 
 msgid "%n running"
-msgstr "%n fonctionne"
+msgstr "%n démarrée"
 
 msgid "%n paused"
 msgstr "%n en pause"
@@ -1215,7 +1215,7 @@ msgstr "Menu contextuel"
 msgid "&Open folder..."
 msgstr "&Ouvrir le dossier..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Ouvrez le bac de l'&imprimante..."
 
 msgid "Set &icon..."
@@ -1243,7 +1243,7 @@ msgid "Failed to create directory for cloned VM"
 msgstr "Échec de la création du répertoire pour la machine virtuelle clonée"
 
 msgid "Failed to clone VM."
-msgstr "Échec de la clonage de la machine virtuelle."
+msgstr "Échec du clonage de la machine virtuelle."
 
 msgid "Directory in use"
 msgstr "Répertoire utilisé"
@@ -1255,7 +1255,7 @@ msgid "Create directory failed"
 msgstr "Échec de la création du répertoire"
 
 msgid "Unable to create the directory for the new system"
-msgstr "Impossible de créer le répertoire pour le nouveau système."
+msgstr "Impossible de créer le répertoire pour le nouveau système"
 
 msgid "Configuration write failed"
 msgstr "Échec de l'écriture de la configuration"
@@ -1291,7 +1291,7 @@ msgid "Warning"
 msgstr "Avertissement"
 
 msgid "&Kill"
-msgstr "&Résilier de force"
+msgstr "Fo&rcer Extinction"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
 msgstr "La fermeture forcée d'une machine virtuelle peut entraîner une perte de données. Ne procédez ainsi que si le processus 86Box est bloqué.\n\nVoulez-vous vraiment fermer la machine virtuelle \"%1\" ?"
@@ -1639,13 +1639,13 @@ msgid "&MCA devices..."
 msgstr "Dispositifs MCA..."
 
 msgid "Show non-&primary monitors"
-msgstr "Afficher les moniteurs non primaires"
+msgstr "Afficher les moniteurs non pr&imaires"
 
 msgid "Open screenshots &folder..."
-msgstr "Ouvrir le dossier des captures d'écran..."
+msgstr "Ouvrir le do&ssier des captures d'écran..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Appliquer le mode élargi plein écran lorsque la fenêtre est maximisée"
+msgstr "Appli&quer le mode élargi plein écran lorsque la fenêtre est maximisée"
 
 msgid "&Cursor/Puck"
 msgstr "&Curseur/Palette"
@@ -1792,7 +1792,7 @@ msgid "Serial port passthrough 4"
 msgstr "Transfert du port série 4"
 
 msgid "Renderer &options..."
-msgstr "Options du rendu..."
+msgstr "&Options du rendu..."
 
 msgid "PC/XT Keyboard"
 msgstr "Clavier PC/XT"
@@ -1810,7 +1810,7 @@ msgid "PS/55 Keyboard"
 msgstr "Clavier PS/55"
 
 msgid "Keys"
-msgstr "Clés"
+msgstr "Touches"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Souris bus Logitech/Microsoft"
@@ -1942,7 +1942,7 @@ msgid "IBM 5161 Expansion Unit"
 msgstr "Unité d'extension IBM 5161"
 
 msgid "IBM Cassette Basic"
-msgstr "BASIC pour cassette IBM"
+msgstr "BASIC Cassette IBM"
 
 msgid "Translate 26 -> 17"
 msgstr "Traduire 26 -> 17"
@@ -2101,7 +2101,7 @@ msgid "Phonebook File"
 msgstr "Fichier d'annuaire"
 
 msgid "Telnet emulation"
-msgstr "Émulation de Telnet"
+msgstr "Émulation Telnet"
 
 msgid "RAM Address"
 msgstr "Adresse RAM"
@@ -2692,7 +2692,7 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Extension mémoire générique PC/AT"
 
 msgid "Unable to find Dot-Matrix fonts"
-msgstr "Impossible de trouver les polices matricielles."
+msgstr "Impossible de trouver les polices matricielles"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
 msgstr "Les polices TrueType dans le répertoire \"roms/printer/fonts\" sont nécessaires à l'émulation de l'imprimante générique ESC/P matricielle."
@@ -2767,22 +2767,22 @@ msgid "Keybind"
 msgstr "Raccourci clavier"
 
 msgid "Clear binding"
-msgstr "Supprimer la raccourci"
+msgstr "Supprimer le raccourci"
 
 msgid "Bind"
 msgstr "Lier"
 
 msgid "Bind Key"
-msgstr "Lier le clé"
+msgstr "Lier touche"
 
 msgid "Enter key combo:"
-msgstr "Entrez la combinaison de clés:"
+msgstr "Entrez la combinaison de touches:"
 
 msgid "Bind conflict"
 msgstr "Conflit de raccourci"
 
 msgid "This key combo is already in use."
-msgstr "Cette combinaison de clés est déjà utilisée."
+msgstr "Cette combinaison de touches est déjà utilisée."
 
 msgid "Send Control+Alt+Del"
 msgstr "Envoyer Ctrl+Alt+Suppr"
@@ -2829,14 +2829,11 @@ msgstr "Mode concentrateur"
 msgid "Hostname:"
 msgstr "Nom d'hôte:"
 
-msgid "ISA RTC"
-msgstr "RTC ISA"
+msgid "ISA RAM:"
+msgstr "RAM ISA:"
 
-msgid "ISA RAM"
-msgstr "RAM ISA"
-
-msgid "ISA ROM"
-msgstr "ROM ISA"
+msgid "ISA ROM:"
+msgstr "ROM ISA:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Effacer la mémoire NVRAM"
@@ -2854,7 +2851,7 @@ msgid "An error occurred trying to wipe the NVRAM contents of the virtual machin
 msgstr "Une erreur s'est produite lors de la tentative d'effacement du contenu NVRAM de la machine virtuelle \"%1\""
 
 msgid "%1 VM Manager"
-msgstr "Gestionnaire de machines virtuelles de"
+msgstr "Gestionnaire de machines virtuelles de %1"
 
 msgid "%n disk(s)"
 msgstr "%n disque(s)"
@@ -2902,7 +2899,7 @@ msgid "You are currently running build <b>%1</b>."
 msgstr "Vous exécutez actuellement le build <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
-msgstr "<b>Le build %1</b> est désormais disponible."
+msgstr "<b>Le Build %1</b> est désormais disponible."
 
 msgid "Would you like to visit the download page?"
 msgstr "Souhaitez-vous visiter la page de téléchargement ?"
@@ -2935,16 +2932,25 @@ msgid "The system will not be added."
 msgstr "Le système ne sera pas ajouté."
 
 msgid "&Update mouse every CPU frame"
-msgstr "&Mettre à jour le statut du souris en qualquier bloc de processeur"
+msgstr "&Mettre à jour le statut souris à chaque frame CPU"
 
-#~ msgid "HD Controller:"
-#~ msgstr "Contrôleur HD:"
+msgid "Hue"
+msgstr "Teinte"
 
-#~ msgid "ZIP drives:"
-#~ msgstr "Lecteurs ZIP:"
+msgid "Saturation"
+msgstr "Saturation"
 
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
+msgid "Contrast"
+msgstr "Contraste"
 
-#~ msgid "ZIP images"
-#~ msgstr "Images ZIP"
+msgid "Brightness"
+msgstr "Luminosité"
+
+msgid "Sharpness"
+msgstr "Netteté"
+
+msgid "&CGA composite settings..."
+msgstr "Réglages du mode composite &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Réglages du mode composite CGA"

@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "Afmetingen opgeven..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "F&orceer 4:3 beeldverhouding"
+msgid "Force &4:3 display ratio"
+msgstr "Forceer &4:3 beeldverhouding"
 
 msgid "&Window scale factor"
 msgstr "&Venster schaalfactor"
@@ -135,8 +135,8 @@ msgstr "&Integerschaal"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 integerschaal"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "E&GA/(S)VGA-instellingen"
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)&VGA-instellingen"
 
 msgid "&Inverted VGA monitor"
 msgstr "Ge&ïnverteerde VGA-monitor"
@@ -774,11 +774,11 @@ msgstr "Poorten (COM & LPT)"
 msgid "Ports"
 msgstr "Poorten"
 
-msgid "Serial ports"
-msgstr "Seriële poorten"
+msgid "Serial ports:"
+msgstr "Seriële poorten:"
 
-msgid "Parallel ports"
-msgstr "Parallelle poorten"
+msgid "Parallel ports:"
+msgstr "Parallelle poorten:"
 
 msgid "Storage controllers"
 msgstr "Opslagcontrollers"
@@ -1215,7 +1215,7 @@ msgstr "Contextmenu"
 msgid "&Open folder..."
 msgstr "&Open map..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Open &papierlade..."
 
 msgid "Set &icon..."
@@ -2829,14 +2829,11 @@ msgstr "Hub-modus"
 msgid "Hostname:"
 msgstr "Hostname"
 
-msgid "ISA RTC"
-msgstr "ISA RTC"
+msgid "ISA RAM:"
+msgstr "ISA RAM:"
 
-msgid "ISA RAM"
-msgstr "ISA RAM"
-
-msgid "ISA ROM"
-msgstr "ISA ROM"
+msgid "ISA ROM:"
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "NVRAM &wissen"
@@ -2937,14 +2934,23 @@ msgstr "Het systeem wordt niet toegevoegd."
 msgid "&Update mouse every CPU frame"
 msgstr "&Muis bijwerken bij elk CPU-frame"
 
-#~ msgid "HD Controller:"
-#~ msgstr "HD-controller:"
+msgid "Hue"
+msgstr "Kleurtoon"
 
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP-schijven:"
+msgid "Saturation"
+msgstr "Verzadiging"
 
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
+msgid "Contrast"
+msgstr "Contrast"
 
-#~ msgid "ZIP images"
-#~ msgstr "ZIP-images"
+msgid "Brightness"
+msgstr "Helderheid"
+
+msgid "Sharpness"
+msgstr "Scherpte"
+
+msgid "&CGA composite settings..."
+msgstr "Instellingen van de &CGA-compositemodus..."
+
+msgid "CGA composite settings"
+msgstr "Instellingen van de CGA-compositemodus"

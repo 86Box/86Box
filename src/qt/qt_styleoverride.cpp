@@ -15,6 +15,7 @@
  *          Copyright 2022 Teemu Korhonen
  */
 #include "qt_styleoverride.hpp"
+#include "qt_util.hpp"
 
 #include <QComboBox>
 #include <QAbstractItemView>
@@ -42,7 +43,7 @@ StyleOverride::styleHint(
     QStyleHintReturn   *returnData) const
 {
     /* Disable using menu with alt key */
-    if (!vmm_enabled && (!kbd_req_capture || mouse_capture) && (hint == QStyle::SH_MenuBar_AltKeyNavigation))
+    if (!start_vmm && (!kbd_req_capture || mouse_capture) && (hint == QStyle::SH_MenuBar_AltKeyNavigation))
         return 0;
 
     return QProxyStyle::styleHint(hint, option, widget, returnData);
@@ -64,8 +65,7 @@ StyleOverride::polish(QWidget *widget)
         }
         widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
 #ifdef Q_OS_WINDOWS
-        extern bool windows_is_light_theme();
-        BOOL DarkMode = !windows_is_light_theme();
+        BOOL DarkMode = !util::isWindowsLightTheme();
         DwmSetWindowAttribute((HWND)widget->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID)&DarkMode, sizeof(DarkMode));
 #endif
     }

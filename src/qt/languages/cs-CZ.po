@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "&Zadat velikost..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "&Dodržovat poměr stran 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Dodržovat poměr stran &4:3"
 
 msgid "&Window scale factor"
 msgstr "&Násobek zvětšení okna"
@@ -135,8 +135,8 @@ msgstr "&Celočíselné škálování"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Celočíselné škálování"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Nastavení pro E&GA a (S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Nastavení pro EGA a (S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Převrátit barvy"
@@ -715,7 +715,7 @@ msgid "Image %1"
 msgstr "Obraz %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box nenalezl žádné použitelné image pamětí ROM.\n\n<a href=\"https://github.com/86Box/roms/releases/latest\">Stáhněte</a> sadu obrazů ROM a extrahujte ji do složky \"roms\"."
+msgstr "86Box nenalezl žádné použitelné obrazy pamětí ROM.\n\n<a href=\"https://github.com/86Box/roms/releases/latest\">Stáhněte</a> sadu obrazů ROM a extrahujte ji do složky \"roms\"."
 
 msgid "(empty)"
 msgstr "(prázdné)"
@@ -774,11 +774,11 @@ msgstr "COM a LPT porty"
 msgid "Ports"
 msgstr "Porty"
 
-msgid "Serial ports"
-msgstr "Sériové porty"
+msgid "Serial ports:"
+msgstr "Sériové porty:"
 
-msgid "Parallel ports"
-msgstr "Paralelní porty"
+msgid "Parallel ports:"
+msgstr "Paralelní porty:"
 
 msgid "Storage controllers"
 msgstr "Řadiče úložiště"
@@ -1090,19 +1090,19 @@ msgid "Powered Off"
 msgstr "Vypnuto"
 
 msgid "%n running"
-msgstr "%n běží"
+msgstr "%n běžících"
 
 msgid "%n paused"
-msgstr "%n pozastaveno"
+msgstr "%n pozastavených"
 
 msgid "%n waiting"
-msgstr "%n čeká"
+msgstr "%n čekajících"
 
 msgid "%1 total"
 msgstr "%1 celkem"
 
 msgid "VMs: %1"
-msgstr "Virtuálních počítačů: %1"
+msgstr "Počet virtuálních počítačů: %1"
 
 msgid "System Directory:"
 msgstr "Systémový adresář:"
@@ -1141,7 +1141,7 @@ msgid "New configuration"
 msgstr "Nová konfigurace"
 
 msgid "Complete"
-msgstr "Dokončit"
+msgstr "Závěr"
 
 msgid "The wizard will now launch the configuration for the new system."
 msgstr "Průvodce nyní spustí konfiguraci nového systému."
@@ -1215,7 +1215,7 @@ msgstr "Kontextová nabídka"
 msgid "&Open folder..."
 msgstr "&Otevřít složku..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Otevřít zásobník &tiskárny..."
 
 msgid "Set &icon..."
@@ -1360,10 +1360,10 @@ msgid "Add Existing Hard Disk"
 msgstr "Přidat existující pevný disk"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "Obraz disku formátu HDI nemůžou být větší než 4 GB."
+msgstr "Obrazy disku formátu HDI nemůžou být větší než 4 GB."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "Obraz disku nemůžou být větší než 127 GB."
+msgstr "Obrazy disku nemůžou být větší než 127 GB."
 
 msgid "Hard disk images"
 msgstr "Obrazy pevného disku"
@@ -1375,7 +1375,7 @@ msgid "Unable to write file"
 msgstr "Nebylo možné zapisovat do souboru"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "Obraz disku ve formátu HDI nebo HDX s velikostí sektoru jinou než 512 bajtů nejsou podporovány."
+msgstr "Obrazy disku ve formátu HDI nebo HDX s velikostí sektoru jinou než 512 bajtů nejsou podporovány."
 
 msgid "Disk image file already exists"
 msgstr "Soubor obrazu disku již existuje"
@@ -1462,7 +1462,7 @@ msgid "Select the parent VHD"
 msgstr "Vyberte nadřazený VHD disk"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "To může znamenat, že se obsahy nadřazeného disku změnily po vytvoření rozdílového disku.\n\nTato chyba také může nastat, pokud byl obraz disku kopírován nebo přesunut, nebo kvůli chybě v programu, který jej vytvořil.\n\nChcete časová razítka opravit?"
+msgstr "Toto může znamenat, že se obsahy nadřazeného disku změnily po vytvoření rozdílového disku.\n\nTato chyba také může nastat, pokud byl obraz disku kopírován nebo přesunut, nebo kvůli chybě v programu, který jej vytvořil.\n\nChcete časová razítka opravit?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Časová razítka nadřazeného a podřazeného disku nesouhlasí"
@@ -1729,13 +1729,13 @@ msgid "This machine might have been moved or copied."
 msgstr "Tento počítač mohl být přemístěn nebo zkopírován."
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "Pro zajištění správné funkce sítě potřebuje 86Box vědět, zda byl tento počítač přesunut nebo zkopírován.\n\nJestliže si nejste jisti, zvolte \"Zkopíroval jsem ho\"."
+msgstr "Pro zajištění správné funkce sítě potřebuje 86Box vědět, zda byl tento počítač přesunut nebo zkopírován.\n\nJestliže si nejste jisti, zvolte možnost \"Zkopíroval jsem jej\"."
 
 msgid "I Moved It"
-msgstr "Přesunul jsem ho"
+msgstr "Přesunul jsem jej"
 
 msgid "I Copied It"
-msgstr "Zkopíroval jsem ho"
+msgstr "Zkopíroval jsem jej"
 
 msgid "86Box Monitor #"
 msgstr "86Box Monitor "
@@ -1795,19 +1795,19 @@ msgid "Renderer &options..."
 msgstr "Možnosti rendereru..."
 
 msgid "PC/XT Keyboard"
-msgstr "Klávesnice PC/XT"
+msgstr "PC/XT klávesnice"
 
 msgid "AT Keyboard"
-msgstr "Klávesnice AT"
+msgstr "AT klávesnice"
 
 msgid "AX Keyboard"
-msgstr "Klávesnice AX"
+msgstr "AX klávesnice"
 
 msgid "PS/2 Keyboard"
-msgstr "Klávesnice PS/2"
+msgstr "PS/2 klávesnice"
 
 msgid "PS/55 Keyboard"
-msgstr "Klávesnice PS/55"
+msgstr "PS/55 klávesnice"
 
 msgid "Keys"
 msgstr "Klávesy"
@@ -1834,10 +1834,10 @@ msgid "Logitech Serial Mouse"
 msgstr "Sériová myš Logitech"
 
 msgid "PS/2 Mouse"
-msgstr "Myš PS/2"
+msgstr "PS/2 myš"
 
 msgid "PS/2 QuickPort Mouse"
-msgstr "Myš PS/2 QuickPort"
+msgstr "PS/2 myš QuickPort"
 
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (sériová)"
@@ -2002,7 +2002,7 @@ msgid "MIDI Thru"
 msgstr "Průchod vstupu MIDI"
 
 msgid "MIDI Clockout"
-msgstr "Odbíjení hodin MIDI"
+msgstr "Výstup MIDI hodin"
 
 msgid "SoundFont"
 msgstr "SoundFont"
@@ -2077,7 +2077,7 @@ msgid "Controller"
 msgstr "Řadič"
 
 msgid "Show Crosshair"
-msgstr "Zobrazení křížového ukazatele"
+msgstr "Zobrazit zaměřovací kříž"
 
 msgid "DMA"
 msgstr "DMA kanál"
@@ -2149,7 +2149,7 @@ msgid "CODEC"
 msgstr "CODEC"
 
 msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Vyvolání přerušení CODEC při nastavení CODEC (potřebují některé ovladače)"
+msgstr "Vyvolát přerušení CODEC při nastavení CODEC (potřebují některé ovladače)"
 
 msgid "SB Address"
 msgstr "Adresa SB"
@@ -2829,14 +2829,11 @@ msgstr "Režim hubu"
 msgid "Hostname:"
 msgstr "Hostitelské jméno"
 
-msgid "ISA RTC"
-msgstr "ISA hodiny"
+msgid "ISA RAM:"
+msgstr "ISA paměť RAM:"
 
-msgid "ISA RAM"
-msgstr "ISA paměť RAM"
-
-msgid "ISA ROM"
-msgstr "ISA paměť ROM"
+msgid "ISA ROM:"
+msgstr "ISA paměť ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Vymazat NVRAM"
@@ -2863,7 +2860,7 @@ msgid "Unknown Status"
 msgstr "Neznámý stav"
 
 msgid "No Machines Found!"
-msgstr "Žádné počítače nalezeny!"
+msgstr "Žádné počítače nebyly nalezeny!"
 
 msgid "Check for updates on startup"
 msgstr "Zkontrolovat aktualizace při spuštění"
@@ -2922,6 +2919,9 @@ msgstr "Aktualizace 86Box"
 msgid "Release notes:"
 msgstr "Poznámky k vydání:"
 
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
 msgid "Virtual machine crash"
 msgstr "Havárie virtuálního počítače"
 
@@ -2931,8 +2931,26 @@ msgstr "Proces virtuálního počítače \"%1\" byl neočekávaně ukončen s k�
 msgid "The system will not be added."
 msgstr "Systém nebude přidán."
 
-msgid "%1 Hz"
-msgstr "%1 Hz"
-
 msgid "&Update mouse every CPU frame"
-msgstr "&Aktualizovat myš při každém rámce CPU"
+msgstr "&Aktualizovat myš při každém CPU rámci"
+
+msgid "Hue"
+msgstr "Odstín"
+
+msgid "Saturation"
+msgstr "Sytost"
+
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgid "Brightness"
+msgstr "Jas"
+
+msgid "Sharpness"
+msgstr "Ostrost"
+
+msgid "&CGA composite settings..."
+msgstr "Nastavení kompozitního výstupu &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Nastavení kompozitního výstupu CGA"

@@ -140,6 +140,7 @@ typedef struct monitor_t {
     const video_timings_t   *mon_vid_timings;
     int                      mon_vid_type;
     atomic_bool              mon_interlace;
+    atomic_bool              mon_composite;
     struct blit_data_struct *mon_blit_data_ptr;
 } monitor_t;
 

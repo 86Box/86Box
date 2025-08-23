@@ -47,14 +47,10 @@ VMManagerAddMachine(QWidget *parent) : QWizard(parent)
 
 #ifndef Q_OS_MACOS
     setWizardStyle(ModernStyle);
-    // setPixmap(LogoPixmap, scaledPixmap);
-    // setPixmap(LogoPixmap, wizardPixmap);
-    // setPixmap(WatermarkPixmap, scaledPixmap);
-    setPixmap(WatermarkPixmap, wizardPixmap);
+    setPixmap(LogoPixmap, QPixmap(":assets/addvm-logo.png"));
 #else
-    // macos
-    // setPixmap(BackgroundPixmap, scaledPixmap);
-    setPixmap(BackgroundPixmap, wizardPixmap);
+    setWizardStyle(MacStyle);
+    setPixmap(BackgroundPixmap, QPixmap(":/assets/86box-wizard.png"));
 #endif
 
     // Wizard wants to resize based on image. This keeps the size
@@ -66,7 +62,6 @@ VMManagerAddMachine(QWidget *parent) : QWizard(parent)
     setMinimumSize(size());
 #endif
     setOption(HaveHelpButton, false);
-    // setPixmap(LogoPixmap, QPixmap(":/settings/qt/icons/86Box-gray.ico"));
 
     setWindowTitle(tr("Add new system wizard"));
 }
@@ -76,7 +71,7 @@ IntroPage(QWidget *parent)
 {
     setTitle(tr("Introduction"));
 
-    setPixmap(QWizard::WatermarkPixmap, QPixmap(":/assets/qt/assets/86box.png"));
+    setPixmap(QWizard::WatermarkPixmap, QPixmap(":assets/addvm-watermark.png"));
 
     topLabel = new QLabel(tr("This will help you add a new system to 86Box."));
     // topLabel = new QLabel(tr("This will help you add a new system to 86Box.\n\n Choose \"New configuration\" if you'd like to create a new machine.\n\nChoose \"Use existing configuration\" if you'd like to paste in an existing configuration from elsewhere."));
@@ -112,9 +107,7 @@ WithExistingConfigPage::
 WithExistingConfigPage(QWidget *parent)
 {
     setTitle(tr("Use existing configuration"));
-
-    const auto topLabel = new QLabel(tr("Paste the contents of the existing configuration file into the box below."));
-    topLabel->setWordWrap(true);
+    setSubTitle(tr("Paste the contents of the existing configuration file into the box below."));
 
     existingConfiguration = new QPlainTextEdit();
     const auto monospaceFont = new QFont();
@@ -132,7 +125,6 @@ WithExistingConfigPage(QWidget *parent)
     registerField("existingConfiguration*", this, "configuration");
 
     const auto layout = new QVBoxLayout();
-    layout->addWidget(topLabel);
     layout->addWidget(existingConfiguration);
     const auto loadFileButton = new QPushButton();
     const auto loadFileLabel = new QLabel(tr("Load configuration from file"));
@@ -149,7 +141,6 @@ WithExistingConfigPage(QWidget *parent)
 void
 WithExistingConfigPage::chooseExistingConfigFile()
 {
-    // TODO: FIXME: This is using the CLI arg and needs to instead use a proper variable
     const auto startDirectory = QString(vmm_path);
     const auto selectedConfigFile = QFileDialog::getOpenFileName(this, tr("Choose configuration file"),
                                                 startDirectory,
@@ -208,12 +199,11 @@ NameAndLocationPage(QWidget *parent)
     dirValidate = QRegularExpression(R"(^[^/]+$)");
 #endif
 
-    const auto topLabel = new QLabel(tr("Enter the name of the system and choose the location"));
+    setSubTitle(tr("Enter the name of the system and choose the location"));
 #else
     setTitle(tr("System name"));
-    const auto topLabel = new QLabel(tr("Enter the name of the system"));
+    setSubTitle(tr("Enter the name of the system"));
 #endif
-    topLabel->setWordWrap(true);
 
     const auto chooseDirectoryButton = new QPushButton();
     chooseDirectoryButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_DirIcon));
@@ -228,7 +218,6 @@ NameAndLocationPage(QWidget *parent)
 #ifdef CUSTOM_SYSTEM_LOCATION
     const auto systemLocationLabel = new QLabel(tr("System location:"));
     systemLocation           = new QLineEdit();
-    // TODO: FIXME: This is using the CLI arg and needs to instead use a proper variable
     systemLocation->setText(QDir::toNativeSeparators(vmm_path));
     registerField("systemLocation*", systemLocation);
     systemLocationValidation = new QLabel();
@@ -242,7 +231,6 @@ NameAndLocationPage(QWidget *parent)
     registerField("displayName*", displayName);
 
     const auto layout = new QGridLayout();
-    layout->addWidget(topLabel, 0, 0, 1, -1);
     // Spacer row
     layout->setRowMinimumHeight(1, 20);
     layout->addWidget(systemNameLabel, 2, 0);
@@ -285,7 +273,6 @@ NameAndLocationPage::nextId() const
 void
 NameAndLocationPage::chooseDirectoryLocation()
 {
-    // TODO: FIXME: This is pulling in the CLI directory! Needs to be set properly elsewhere
     const auto directory = QFileDialog::getExistingDirectory(this, "Choose directory", QDir(vmm_path).path());
     systemLocation->setText(QDir::toNativeSeparators(directory));
     emit completeChanged();
@@ -354,6 +341,8 @@ ConclusionPage::
 ConclusionPage(QWidget *parent)
 {
     setTitle(tr("Complete"));
+
+    setPixmap(QWizard::WatermarkPixmap, QPixmap(":assets/addvm-watermark.png"));
 
     topLabel = new QLabel(tr("The wizard will now launch the configuration for the new system."));
     topLabel->setWordWrap(true);

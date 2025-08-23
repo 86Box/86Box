@@ -83,6 +83,8 @@
         <file alias="86box-yellow.png">qt/assets/86box-yellow.png</file>
         <file alias="86box.png">qt/assets/86box.png</file>
         <file alias="86box-wizard.png">qt/assets/86box-wizard.png</file>
+        <file alias="addvm-logo.png">qt/assets/addvm-logo.png</file>
+        <file alias="addvm-watermark.png">qt/assets/addvm-watermark.png</file>
     </qresource>
     <qresource prefix="/systemicons">
         <file alias="cpq_deskpro.png">qt/assets/systemicons/cpq_deskpro.png</file>

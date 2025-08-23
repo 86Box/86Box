@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "&Zadať veľkosť..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "&Zachovať pomer strán 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Zachovať pomer strán &4:3"
 
 msgid "&Window scale factor"
 msgstr "&Násobné zväčšenie okna"
@@ -135,8 +135,8 @@ msgstr "&Celočíselné škálovanie"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Celočíselné škálovanie"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Nastavenia pre E&GA a (S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Nastavenia pre EGA a (S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Obrátiť farby"
@@ -774,11 +774,11 @@ msgstr "COM a LPT porty"
 msgid "Ports"
 msgstr "Porty"
 
-msgid "Serial ports"
-msgstr "Sériové porty"
+msgid "Serial ports:"
+msgstr "Sériové porty:"
 
-msgid "Parallel ports"
-msgstr "Paralelné porty"
+msgid "Parallel ports:"
+msgstr "Paralelné porty:"
 
 msgid "Storage controllers"
 msgstr "Radiče úložiska"
@@ -1215,7 +1215,7 @@ msgstr "Kontextové menu"
 msgid "&Open folder..."
 msgstr "&Otvoriť priečinok..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Otvoriť zásobník &tlačiarne..."
 
 msgid "Set &icon..."
@@ -2829,14 +2829,11 @@ msgstr "Režim hubu"
 msgid "Hostname:"
 msgstr "Hostiteľské meno"
 
-msgid "ISA RTC"
-msgstr "ISA hodiny"
+msgid "ISA RAM:"
+msgstr "ISA pamäť RAM:"
 
-msgid "ISA RAM"
-msgstr "ISA pamäť RAM"
-
-msgid "ISA ROM"
-msgstr "ISA pamäť ROM"
+msgid "ISA ROM:"
+msgstr "ISA pamäť ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Vymazať NVRAM"
@@ -2922,6 +2919,9 @@ msgstr "Aktualizácia 86Box"
 msgid "Release notes:"
 msgstr "Poznámky k vydaniu:"
 
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
 msgid "Virtual machine crash"
 msgstr "Havária virtuálneho počítača"
 
@@ -2931,20 +2931,26 @@ msgstr "Proces virtuálneho počítača \"%1\" bol neočakávane ukončený s k�
 msgid "The system will not be added."
 msgstr "Systém nebude pridaný."
 
-msgid "%1 Hz"
-msgstr "%1 Hz"
-
 msgid "&Update mouse every CPU frame"
 msgstr "&Aktualizovať myš pri každom rámci CPU"
 
-#~ msgid "HD Controller:"
-#~ msgstr "Radič disku:"
+msgid "Hue"
+msgstr "Odtieň"
 
-#~ msgid "ZIP drives:"
-#~ msgstr "Mechaniky ZIP:"
+msgid "Saturation"
+msgstr "Saturácia"
 
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
+msgid "Contrast"
+msgstr "Kontrast"
 
-#~ msgid "ZIP images"
-#~ msgstr "Obrazy ZIP diskov"
+msgid "Brightness"
+msgstr "Jas"
+
+msgid "Sharpness"
+msgstr "Ostrota"
+
+msgid "&CGA composite settings..."
+msgstr "Nastavenia kompozitného režimu &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Nastavenia kompozitného režimu CGA"

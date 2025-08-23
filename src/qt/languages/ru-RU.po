@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "&Указать размеры главного окна..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "У&становить соотношение сторон 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Установить соотношение сторон &4:3"
 
 msgid "&Window scale factor"
 msgstr "&Масштаб окна"
@@ -135,8 +135,8 @@ msgstr "&Целочисленное масштабирование"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Целочисленное масштабирование"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Настройки E&GA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Настройки EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Инвертировать цвета VGA"
@@ -774,11 +774,11 @@ msgstr "Порты (COM и LPT)"
 msgid "Ports"
 msgstr "Порты"
 
-msgid "Serial ports"
-msgstr "Последовательные порты"
+msgid "Serial ports:"
+msgstr "Последовательные порты:"
 
-msgid "Parallel ports"
-msgstr "Параллельные порты"
+msgid "Parallel ports:"
+msgstr "Параллельные порты:"
 
 msgid "Storage controllers"
 msgstr "Контроллеры дисков"
@@ -1215,7 +1215,7 @@ msgstr "Контекстное меню"
 msgid "&Open folder..."
 msgstr "&Открыть папку..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Открыть папку &принтера..."
 
 msgid "Set &icon..."
@@ -2829,14 +2829,11 @@ msgstr "Режим концентратора"
 msgid "Hostname:"
 msgstr "Имя хоста:"
 
-msgid "ISA RTC"
-msgstr "ISA RTC"
+msgid "ISA RAM:"
+msgstr "ISA ОЗУ:"
 
-msgid "ISA RAM"
-msgstr "ISA ОЗУ"
-
-msgid "ISA ROM"
-msgstr "ISA ПЗУ"
+msgid "ISA ROM:"
+msgstr "ISA ПЗУ:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Стереть NVRAM"
@@ -2937,14 +2934,23 @@ msgstr "Система не будет добавлена."
 msgid "&Update mouse every CPU frame"
 msgstr "&Обновлять мышь при каждом кадре ЦП"
 
-#~ msgid "HD Controller:"
-#~ msgstr "Контроллер HD:"
+msgid "Hue"
+msgstr "Тон"
 
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP дисководы:"
+msgid "Saturation"
+msgstr "Насыщенность"
 
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
+msgid "Contrast"
+msgstr "Контраст"
 
-#~ msgid "ZIP images"
-#~ msgstr "Образы ZIP"
+msgid "Brightness"
+msgstr "Яркость"
+
+msgid "Sharpness"
+msgstr "Резкость"
+
+msgid "&CGA composite settings..."
+msgstr "Настройки композитного видео &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Настройки композитного видео CGA"

@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "Tự nhập độ &phân giải..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "Giữ n&guyên khung hình 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Giữ nguyên khung hình &4:3"
 
 msgid "&Window scale factor"
 msgstr "Đổi &tỷ lệ cửa sổ"
@@ -135,8 +135,8 @@ msgstr "Căn tỷ lệ số nguyên"
 msgid "4:&3 Integer scale"
 msgstr "Căn tỷ lệ 4:3 số nguyên"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Cài đặt EGA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Cài đặt EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "Đảo mà&u VGA"
@@ -774,11 +774,11 @@ msgstr "Cổng (COM và LPT)"
 msgid "Ports"
 msgstr "Cổng"
 
-msgid "Serial ports"
-msgstr "Cổng serial"
+msgid "Serial ports:"
+msgstr "Cổng serial:"
 
-msgid "Parallel ports"
-msgstr "Cổng parallel"
+msgid "Parallel ports:"
+msgstr "Cổng parallel:"
 
 msgid "Storage controllers"
 msgstr "Vi điều khiển bộ nhớ ổ cứng"
@@ -1215,7 +1215,7 @@ msgstr "Menu ngữ cảnh"
 msgid "&Open folder..."
 msgstr "Mở thư mục"
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Mở khay máy in"
 
 msgid "Set &icon..."
@@ -2829,14 +2829,11 @@ msgstr "Chế độ hub"
 msgid "Hostname:"
 msgstr "Tên host:"
 
-msgid "ISA RTC"
-msgstr "ISA RTC"
+msgid "ISA RAM:"
+msgstr "ISA RAM:"
 
-msgid "ISA RAM"
-msgstr "ISA RAM"
-
-msgid "ISA ROM"
-msgstr "ISA ROM"
+msgid "ISA ROM:"
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "Xóa sạch NVRAM"
@@ -2937,14 +2934,23 @@ msgstr "Hệ thống sẽ không được thêm."
 msgid "&Update mouse every CPU frame"
 msgstr "&Cập nhật chuột mỗi cỡ khung CPU"
 
-#~ msgid "HD Controller:"
-#~ msgstr "Bộ điều khiển ổ cứng:"
+msgid "Hue"
+msgstr "Màu sắc"
 
-#~ msgid "ZIP drives:"
-#~ msgstr "Ổ đĩa ZIP:"
+msgid "Saturation"
+msgstr "Độ bão hòa"
 
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
+msgid "Contrast"
+msgstr "Sự tương phản"
 
-#~ msgid "ZIP images"
-#~ msgstr "Ảnh đĩa ZIP"
+msgid "Brightness"
+msgstr "Độ sáng"
+
+msgid "Sharpness"
+msgstr "Độ sắc nét"
+
+msgid "&CGA composite settings..."
+msgstr "Cài đặt chế độ tổng hợp &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Cài đặt chế độ tổng hợp CGA"

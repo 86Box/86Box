@@ -66,8 +66,8 @@ msgstr "VNC(&V)"
 msgid "Specify &dimensions..."
 msgstr "指定視窗大小...(&D)"
 
-msgid "F&orce 4:3 display ratio"
-msgstr "強制 4:3 顯示比例(&O)"
+msgid "Force &4:3 display ratio"
+msgstr "強制 4:3 顯示比例(&4)"
 
 msgid "&Window scale factor"
 msgstr "視窗縮放係數(&W)"
@@ -135,8 +135,8 @@ msgstr "整數比例(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整數比例(&3)"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "EGA/(S)VGA 設定(&G)"
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)VGA 設定(&V)"
 
 msgid "&Inverted VGA monitor"
 msgstr "VGA 顯示器反色顯示(&I)"
@@ -774,10 +774,10 @@ msgstr "連接埠 (COM 和 LPT)"
 msgid "Ports"
 msgstr ""
 
-msgid "Serial ports"
+msgid "Serial ports:"
 msgstr ""
 
-msgid "Parallel ports"
+msgid "Parallel ports:"
 msgstr ""
 
 msgid "Storage controllers"
@@ -1215,7 +1215,7 @@ msgstr ""
 msgid "&Open folder..."
 msgstr ""
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr ""
 
 msgid "Set &icon..."
@@ -2829,13 +2829,10 @@ msgstr ""
 msgid "Hostname:"
 msgstr ""
 
-msgid "ISA RTC"
+msgid "ISA RAM:"
 msgstr ""
 
-msgid "ISA RAM"
-msgstr ""
-
-msgid "ISA ROM"
+msgid "ISA ROM:"
 msgstr ""
 
 msgid "&Wipe NVRAM"
@@ -2937,14 +2934,23 @@ msgstr ""
 msgid "&Update mouse every CPU frame"
 msgstr ""
 
-#~ msgid "HD Controller:"
-#~ msgstr "硬碟控制器:"
+msgid "Hue"
+msgstr "色調"
 
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIP 磁碟機:"
+msgid "Saturation"
+msgstr "飽和度"
 
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
+msgid "Contrast"
+msgstr "對比"
 
-#~ msgid "ZIP images"
-#~ msgstr "ZIP 映像"
+msgid "Brightness"
+msgstr "亮度"
+
+msgid "Sharpness"
+msgstr "銳利度"
+
+msgid "&CGA composite settings..."
+msgstr "CGA 複合模式的設定...(&C)"
+
+msgid "CGA composite settings"
+msgstr "CGA 複合模式的設定"

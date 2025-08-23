@@ -901,6 +901,14 @@ plat_get_temp_dir(char *outbuf, uint8_t len)
     path_slash(outbuf);
 }
 
+void
+plat_get_vmm_dir(char *outbuf, const size_t len)
+{
+    // Return empty string. SDL 86Box does not have a VM manager
+    if (len > 0)
+        outbuf[0] = 0;
+}
+
 bool
 process_media_commands_3(uint8_t *id, char *fn, uint8_t *wp, int cmdargc)
 {
@@ -1476,7 +1484,7 @@ joystick_close(void)
 }
 
 void
-joystick_process(void)
+joystick_process(uint8_t gp)
 {
     /* No-op. */
 }

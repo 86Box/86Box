@@ -17,6 +17,7 @@
 
 #include <QFileDialog>
 #include <QStyle>
+#include <cstring>
 
 #include "qt_progsettings.hpp"
 #include "qt_vmmanager_preferences.hpp"
@@ -37,13 +38,13 @@ VMManagerPreferences(QWidget *parent) : ui(new Ui::VMManagerPreferences)
     connect(ui->dirSelectButton, &QPushButton::clicked, this, &VMManagerPreferences::chooseDirectoryLocation);
 
     const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
-    const auto configSystemDir = config->getStringValue("system_directory");
+    const auto configSystemDir = QString(vmm_path_cfg);
     if(!configSystemDir.isEmpty()) {
         // Prefer this one
-        ui->systemDirectory->setText(configSystemDir);
+        ui->systemDirectory->setText(QDir::toNativeSeparators(configSystemDir));
     } else if(!QString(vmm_path).isEmpty()) {
         // If specified on command line
-        ui->systemDirectory->setText(QDir(vmm_path).path());
+        ui->systemDirectory->setText(QDir::toNativeSeparators(QDir(vmm_path).path()));
     }
 
     ui->comboBoxLanguage->setItemData(0, 0);
@@ -76,9 +77,9 @@ VMManagerPreferences()
 void
 VMManagerPreferences::chooseDirectoryLocation()
 {
-    // TODO: FIXME: This is pulling in the CLI directory! Needs to be set properly elsewhere
-    const auto directory = QFileDialog::getExistingDirectory(this, tr("Choose directory"), QDir(vmm_path).path());
-    ui->systemDirectory->setText(QDir::toNativeSeparators(directory));
+    const auto directory = QFileDialog::getExistingDirectory(this, tr("Choose directory"), ui->systemDirectory->text());
+    if (!directory.isEmpty())
+        ui->systemDirectory->setText(QDir::toNativeSeparators(directory));
 }
 
 void
@@ -91,8 +92,8 @@ void
 VMManagerPreferences::accept()
 {
     const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
-    config->setStringValue("system_directory", ui->systemDirectory->text());
 
+    strncpy(vmm_path_cfg, QDir::cleanPath(ui->systemDirectory->text()).toUtf8().constData(), sizeof(vmm_path_cfg) - 1);
     lang_id = ui->comboBoxLanguage->currentData().toInt();
     config_save_global();
 

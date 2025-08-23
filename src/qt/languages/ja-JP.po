@@ -66,8 +66,8 @@ msgstr "VNC(&V)"
 msgid "Specify &dimensions..."
 msgstr "ディメンションを指定...(&D)"
 
-msgid "F&orce 4:3 display ratio"
-msgstr "4:3の縦横比を強制表示(&O)"
+msgid "Force &4:3 display ratio"
+msgstr "4:3の縦横比を強制表示(&4)"
 
 msgid "&Window scale factor"
 msgstr "ウィンドウの表示倍率(&W)"
@@ -135,8 +135,8 @@ msgstr "整数倍(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整数倍(&3)"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "E&GA/(S)VGAの設定"
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)&VGAの設定"
 
 msgid "&Inverted VGA monitor"
 msgstr "色反転(&I)"
@@ -774,11 +774,11 @@ msgstr "ポート (COM/LPT)"
 msgid "Ports"
 msgstr "ポート"
 
-msgid "Serial ports"
-msgstr "シリアルポート"
+msgid "Serial ports:"
+msgstr "シリアルポート:"
 
-msgid "Parallel ports"
-msgstr "パラレルポート"
+msgid "Parallel ports:"
+msgstr "パラレルポート:"
 
 msgid "Storage controllers"
 msgstr "ストレージコントローラ"
@@ -1215,8 +1215,8 @@ msgstr "コンテキストメニュー"
 msgid "&Open folder..."
 msgstr "フォルダーを開く(&O)..."
 
-msgid "Open &printer tray..."
-msgstr "プリンタートレイを開く(&P)..."
+msgid "Open p&rinter tray..."
+msgstr "プリンタートレイを開く(&R)..."
 
 msgid "Set &icon..."
 msgstr "アイコンを設定(&I)..."
@@ -2829,14 +2829,11 @@ msgstr "ハブモード"
 msgid "Hostname:"
 msgstr "ホスト名:"
 
-msgid "ISA RTC"
-msgstr "ISA RTC"
+msgid "ISA RAM:"
+msgstr "ISA RAM:"
 
-msgid "ISA RAM"
-msgstr "ISA RAM"
-
-msgid "ISA ROM"
-msgstr "ISA ROM"
+msgid "ISA ROM:"
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "NVRAMを消去する(&W)"
@@ -2937,14 +2934,23 @@ msgstr "システムは追加されません。"
 msgid "&Update mouse every CPU frame"
 msgstr "マウスをCPUフレームごとに更新(&U)"
 
-#~ msgid "HD Controller:"
-#~ msgstr "HDDコントローラー:"
+msgid "Hue"
+msgstr "色相"
 
-#~ msgid "ZIP drives:"
-#~ msgstr "ZIPドライブ:"
+msgid "Saturation"
+msgstr "飽和"
 
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
+msgid "Contrast"
+msgstr "対比"
 
-#~ msgid "ZIP images"
-#~ msgstr "ZIPイメージ"
+msgid "Brightness"
+msgstr "明るさ"
+
+msgid "Sharpness"
+msgstr "シャープネス"
+
+msgid "&CGA composite settings..."
+msgstr "CGA複合モードの設定...(&C)"
+
+msgid "CGA composite settings"
+msgstr "CGA複合モードの設定"

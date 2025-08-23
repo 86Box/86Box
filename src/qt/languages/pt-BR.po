@@ -43,7 +43,7 @@ msgid "&Hide status bar"
 msgstr "Ocultar barra de &status"
 
 msgid "Hide &toolbar"
-msgstr "Ocultar barra de &ferramenta"
+msgstr "Ocultar barra de &ferramentas"
 
 msgid "&Resizeable window"
 msgstr "&Janela redimensionável"
@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "Especificar as dimensões..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "F&orçar proporção de tela em 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Forçar proporção de tela em &4:3"
 
 msgid "&Window scale factor"
 msgstr "F&ator de redimensionamento da janela"
@@ -112,13 +112,13 @@ msgid "&Linear"
 msgstr "&Linear"
 
 msgid "Hi&DPI scaling"
-msgstr "Escala Hi&DPI"
+msgstr "Escala &HiDPI"
 
 msgid "&Fullscreen"
 msgstr "&Tela cheia"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Modo de redimensionamento da tela &cheia"
+msgstr "Modo de re&dimensionamento da tela cheia"
 
 msgid "&Full screen stretch"
 msgstr "&Tela cheia redimensionada"
@@ -135,7 +135,7 @@ msgstr "&Redimensionamento com valores inteiros"
 msgid "4:&3 Integer scale"
 msgstr "Redimensionamento com valores inteiros 4:&3"
 
-msgid "E&GA/(S)VGA settings"
+msgid "EGA/(S)&VGA settings"
 msgstr "Configurações de EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
@@ -157,7 +157,7 @@ msgid "Generic RGBI color monitor"
 msgstr "Monitor colorido RGBI genérico"
 
 msgid "&Amber monitor"
-msgstr "Monitor &âmbar"
+msgstr "Monitor âmb&ar"
 
 msgid "&Green monitor"
 msgstr "Monitor &verde"
@@ -774,11 +774,11 @@ msgstr "Portas (COM & LPT)"
 msgid "Ports"
 msgstr "Portas"
 
-msgid "Serial ports"
-msgstr "Portas seriais"
+msgid "Serial ports:"
+msgstr "Portas seriais:"
 
-msgid "Parallel ports"
-msgstr "Portas Paralelas"
+msgid "Parallel ports:"
+msgstr "Portas Paralelas:"
 
 msgid "Storage controllers"
 msgstr "Controladores de armaz."
@@ -1215,7 +1215,7 @@ msgstr "Menu de contexto"
 msgid "&Open folder..."
 msgstr "Abrir &pasta..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Abrir fila da &impressora..."
 
 msgid "Set &icon..."
@@ -1639,13 +1639,13 @@ msgid "&MCA devices..."
 msgstr "Dispositivos MCA..."
 
 msgid "Show non-&primary monitors"
-msgstr "Mostrar monitores não primários"
+msgstr "Mostrar monitores não &primários"
 
 msgid "Open screenshots &folder..."
-msgstr "Abrir pasta de capturas de tela..."
+msgstr "Ab&rir pasta de capturas de tela..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Aplicar modo de ampliação em tela cheia quando maximizado"
+msgstr "Apl&icar modo de ampliação em tela cheia quando maximizado"
 
 msgid "&Cursor/Puck"
 msgstr "&Cursor/Puck"
@@ -1792,7 +1792,7 @@ msgid "Serial port passthrough 4"
 msgstr "Passagem de porta serial 4"
 
 msgid "Renderer &options..."
-msgstr "Opções do renderizador..."
+msgstr "&Opções do renderizador..."
 
 msgid "PC/XT Keyboard"
 msgstr "Teclado PC/XT"
@@ -2829,14 +2829,11 @@ msgstr "Modo Hub"
 msgid "Hostname:"
 msgstr "Nome do Host:"
 
-msgid "ISA RTC"
-msgstr "RTC ISA"
+msgid "ISA RAM:"
+msgstr "RAM ISA:"
 
-msgid "ISA RAM"
-msgstr "RAM ISA"
-
-msgid "ISA ROM"
-msgstr "ROM ISA"
+msgid "ISA ROM:"
+msgstr "ROM ISA:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Limpar NVRAM"
@@ -2935,4 +2932,25 @@ msgid "The system will not be added."
 msgstr "O sistema não será adicionado."
 
 msgid "&Update mouse every CPU frame"
-msgstr "&Atualiza o estado do mouse em cada quadro do CPU"
+msgstr "At&ualiza o estado do mouse em cada quadro do CPU"
+
+msgid "Hue"
+msgstr "Matiz"
+
+msgid "Saturation"
+msgstr "Saturação"
+
+msgid "Contrast"
+msgstr "Contraste"
+
+msgid "Brightness"
+msgstr "Brilho"
+
+msgid "Sharpness"
+msgstr "Nitidez"
+
+msgid "&CGA composite settings..."
+msgstr "Configurações do modo composto &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Configurações do modo composto CGA"

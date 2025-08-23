@@ -66,8 +66,8 @@ msgstr "&VNC"
 msgid "Specify &dimensions..."
 msgstr "&Določi velikost..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "&Vsili razmerje zaslona 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Vsili razmerje zaslona &4:3"
 
 msgid "&Window scale factor"
 msgstr "&Faktor povečave okna"
@@ -135,8 +135,8 @@ msgstr "&Celoštevilsko raztezanje"
 msgid "4:&3 Integer scale"
 msgstr "Celoštevilsko raztezanje 4:&3"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Nastavitve E&GA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Nastavitve EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Obrni barve zaslona VGA"
@@ -774,11 +774,11 @@ msgstr "Vrata (COM & LPT)"
 msgid "Ports"
 msgstr "Vrata"
 
-msgid "Serial ports"
-msgstr "Serijska vrata"
+msgid "Serial ports:"
+msgstr "Serijska vrata:"
 
-msgid "Parallel ports"
-msgstr "Paralelna vrata"
+msgid "Parallel ports:"
+msgstr "Paralelna vrata:"
 
 msgid "Storage controllers"
 msgstr "Krmilniki shrambe"
@@ -1215,7 +1215,7 @@ msgstr "Kontekstni meni"
 msgid "&Open folder..."
 msgstr "&Odpri mapo..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Odpri pladenj &tiskalnika..."
 
 msgid "Set &icon..."
@@ -2829,14 +2829,11 @@ msgstr "Način koncentratorja"
 msgid "Hostname:"
 msgstr "Ime gostitelja:"
 
-msgid "ISA RTC"
-msgstr "RČ ura ISA"
+msgid "ISA RAM:"
+msgstr "RAM ISA:"
 
-msgid "ISA RAM"
-msgstr "RAM ISA"
-
-msgid "ISA ROM"
-msgstr "ROM ISA"
+msgid "ISA ROM:"
+msgstr "ROM ISA:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Izbriši NVRAM"
@@ -2937,14 +2934,23 @@ msgstr "Sistem ne bo dodan."
 msgid "&Update mouse every CPU frame"
 msgstr "&Posodibi stanje miške ob vsakem bloku procesorja"
 
-#~ msgid "HD Controller:"
-#~ msgstr "Krmilnik trdega diska:"
+msgid "Hue"
+msgstr "Hue"
 
-#~ msgid "ZIP drives:"
-#~ msgstr "Pogoni ZIP:"
+msgid "Saturation"
+msgstr "Nasičenost"
 
-#~ msgid "ZIP %1 %2 (%3): %4"
-#~ msgstr "ZIP %1 %2 (%3): %4"
+msgid "Contrast"
+msgstr "Kontrast"
 
-#~ msgid "ZIP images"
-#~ msgstr "ZIP slike"
+msgid "Brightness"
+msgstr "Svetlost"
+
+msgid "Sharpness"
+msgstr "Ostrina"
+
+msgid "&CGA composite settings..."
+msgstr "Nastavitve kompozitnega načina &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Nastavitve kompozitnega načina CGA"
