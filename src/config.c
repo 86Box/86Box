@@ -529,62 +529,63 @@ load_input_devices(void)
     else
         mouse_type = 0;
 
+    uint8_t joy_insn = 0;
     p = ini_section_get_string(cat, "joystick_type", NULL);
     if (p != NULL) {
-        joystick_type = joystick_get_from_internal_name(p);
+        joystick_type[joy_insn] = joystick_get_from_internal_name(p);
 
-        if (!joystick_type) {
+        if (!joystick_type[joy_insn]) {
             /* Try to read an integer for backwards compatibility with old configs */
             if (!strcmp(p, "0"))
                 /* Workaround for ini_section_get_int returning 0 on non-integer data */
-                joystick_type = joystick_get_from_internal_name("2axis_2button");
+                joystick_type[joy_insn] = joystick_get_from_internal_name("2axis_2button");
             else {
                 int js = ini_section_get_int(cat, "joystick_type", 8);
                 switch (js) {
                     case JS_TYPE_2AXIS_4BUTTON:
-                        joystick_type = joystick_get_from_internal_name("2axis_4button");
+                        joystick_type[joy_insn] = joystick_get_from_internal_name("2axis_4button");
                         break;
                     case JS_TYPE_2AXIS_6BUTTON:
-                        joystick_type = joystick_get_from_internal_name("2axis_6button");
+                        joystick_type[joy_insn] = joystick_get_from_internal_name("2axis_6button");
                         break;
                     case JS_TYPE_2AXIS_8BUTTON:
-                        joystick_type = joystick_get_from_internal_name("2axis_8button");
+                        joystick_type[joy_insn] = joystick_get_from_internal_name("2axis_8button");
                         break;
                     case JS_TYPE_4AXIS_4BUTTON:
-                        joystick_type = joystick_get_from_internal_name("4axis_4button");
+                        joystick_type[joy_insn] = joystick_get_from_internal_name("4axis_4button");
                         break;
                     case JS_TYPE_CH_FLIGHTSTICK_PRO:
-                        joystick_type = joystick_get_from_internal_name("ch_flightstick_pro");
+                        joystick_type[joy_insn] = joystick_get_from_internal_name("ch_flightstick_pro");
                         break;
                     case JS_TYPE_SIDEWINDER_PAD:
-                        joystick_type = joystick_get_from_internal_name("sidewinder_pad");
+                        joystick_type[joy_insn] = joystick_get_from_internal_name("sidewinder_pad");
                         break;
                     case JS_TYPE_THRUSTMASTER_FCS:
-                        joystick_type = joystick_get_from_internal_name("thrustmaster_fcs");
+                        joystick_type[joy_insn] = joystick_get_from_internal_name("thrustmaster_fcs");
                         break;
                     default:
-                        joystick_type = JS_TYPE_NONE;
+                        joystick_type[joy_insn] = JS_TYPE_NONE;
                         break;
                 }
             }
         }
     } else
-        joystick_type = JS_TYPE_NONE;
+        joystick_type[joy_insn] = JS_TYPE_NONE;
 
-    for (int js = 0; js < joystick_get_max_joysticks(joystick_type); js++) {
+    for (int js = 0; js < joystick_get_max_joysticks(joystick_type[joy_insn]); js++) {
         sprintf(temp, "joystick_%i_nr", js);
         joystick_state[0][js].plat_joystick_nr = ini_section_get_int(cat, temp, 0);
 
         if (joystick_state[0][js].plat_joystick_nr) {
-            for (int axis_nr = 0; axis_nr < joystick_get_axis_count(joystick_type); axis_nr++) {
+            for (int axis_nr = 0; axis_nr < joystick_get_axis_count(joystick_type[joy_insn]); axis_nr++) {
                 sprintf(temp, "joystick_%i_axis_%i", js, axis_nr);
                 joystick_state[0][js].axis_mapping[axis_nr] = ini_section_get_int(cat, temp, axis_nr);
             }
-            for (int button_nr = 0; button_nr < joystick_get_button_count(joystick_type); button_nr++) {
+            for (int button_nr = 0; button_nr < joystick_get_button_count(joystick_type[joy_insn]); button_nr++) {
                 sprintf(temp, "joystick_%i_button_%i", js, button_nr);
                 joystick_state[0][js].button_mapping[button_nr] = ini_section_get_int(cat, temp, button_nr);
             }
-            for (int pov_nr = 0; pov_nr < joystick_get_pov_count(joystick_type); pov_nr++) {
+            for (int pov_nr = 0; pov_nr < joystick_get_pov_count(joystick_type[joy_insn]); pov_nr++) {
                 sprintf(temp, "joystick_%i_pov_%i", js, pov_nr);
                 p                                   = ini_section_get_string(cat, temp, "0, 0");
                 joystick_state[0][js].pov_mapping[pov_nr][0] = joystick_state[0][js].pov_mapping[pov_nr][1] = 0;
@@ -2552,7 +2553,8 @@ save_input_devices(void)
 
     ini_section_set_string(cat, "mouse_type", mouse_get_internal_name(mouse_type));
 
-    if (!joystick_type) {
+    uint8_t joy_insn = 0;
+    if (!joystick_type[joy_insn]) {
         ini_section_delete_var(cat, "joystick_type");
 
         for (int js = 0; js < MAX_PLAT_JOYSTICKS; js++) {
@@ -2573,22 +2575,22 @@ save_input_devices(void)
             }
         }
     } else {
-        ini_section_set_string(cat, "joystick_type", joystick_get_internal_name(joystick_type));
+        ini_section_set_string(cat, "joystick_type", joystick_get_internal_name(joystick_type[joy_insn]));
 
-        for (int js = 0; js < joystick_get_max_joysticks(joystick_type); js++) {
+        for (int js = 0; js < joystick_get_max_joysticks(joystick_type[joy_insn]); js++) {
             sprintf(tmp2, "joystick_%i_nr", js);
             ini_section_set_int(cat, tmp2, joystick_state[0][js].plat_joystick_nr);
 
             if (joystick_state[0][js].plat_joystick_nr) {
-                for (int axis_nr = 0; axis_nr < joystick_get_axis_count(joystick_type); axis_nr++) {
+                for (int axis_nr = 0; axis_nr < joystick_get_axis_count(joystick_type[joy_insn]); axis_nr++) {
                     sprintf(tmp2, "joystick_%i_axis_%i", js, axis_nr);
                     ini_section_set_int(cat, tmp2, joystick_state[0][js].axis_mapping[axis_nr]);
                 }
-                for (int button_nr = 0; button_nr < joystick_get_button_count(joystick_type); button_nr++) {
+                for (int button_nr = 0; button_nr < joystick_get_button_count(joystick_type[joy_insn]); button_nr++) {
                     sprintf(tmp2, "joystick_%i_button_%i", js, button_nr);
                     ini_section_set_int(cat, tmp2, joystick_state[0][js].button_mapping[button_nr]);
                 }
-                for (int pov_nr = 0; pov_nr < joystick_get_pov_count(joystick_type); pov_nr++) {
+                for (int pov_nr = 0; pov_nr < joystick_get_pov_count(joystick_type[joy_insn]); pov_nr++) {
                     sprintf(tmp2, "joystick_%i_pov_%i", js, pov_nr);
                     sprintf(temp, "%i, %i", joystick_state[0][js].pov_mapping[pov_nr][0],
                             joystick_state[0][js].pov_mapping[pov_nr][1]);

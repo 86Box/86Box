@@ -119,7 +119,7 @@ extern "C" {
 
 extern int gameport_available(int port);
 #ifdef EMU_DEVICE_H
-extern const device_t *gameport_getdevice(int port);
+extern const device_t *gameport_get_device(int port);
 #endif
 extern int         gameport_has_config(int port);
 extern const char *gameport_get_internal_name(int port);
@@ -151,11 +151,11 @@ extern plat_joystick_state_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
 extern joystick_state_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
 extern int                   joysticks_present;
 
-extern int joystick_type;
+extern int joystick_type[GAMEPORT_MAX];
 
 extern void joystick_init(void);
 extern void joystick_close(void);
-extern void joystick_process(void);
+extern void joystick_process(uint8_t gp);
 
 extern const char *joystick_get_name(int js);
 extern const char *joystick_get_internal_name(int js);
@@ -168,7 +168,7 @@ extern const char *joystick_get_axis_name(int js, int id);
 extern const char *joystick_get_button_name(int js, int id);
 extern const char *joystick_get_pov_name(int js, int id);
 
-extern void  gameport_update_joystick_type(void);
+extern void  gameport_update_joystick_type(uint8_t gp);
 extern void  gameport_remap(void *priv, uint16_t address);
 extern void *gameport_add(const device_t *gameport_type);
 

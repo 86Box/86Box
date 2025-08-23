@@ -1484,7 +1484,7 @@ joystick_close(void)
 }
 
 void
-joystick_process(void)
+joystick_process(uint8_t gp)
 {
     /* No-op. */
 }
