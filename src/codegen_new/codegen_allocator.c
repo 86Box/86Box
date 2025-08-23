@@ -115,11 +115,13 @@ codegen_allocator_allocate(mem_block_t *parent, int code_block)
             while (mem_code_block) {
                 if (code_block != mem_code_block->number) {
                     codegen_delete_block(&codeblock[mem_code_block->number]);
-                    if (mem_block_free_list)
-                        goto block_allocate;
                 }
                 mem_code_block = mem_code_block->next;
             }
+
+            if (mem_block_free_list)
+                goto block_allocate;
+
             fatal("Out of memory blocks!\n");
         }
     }
