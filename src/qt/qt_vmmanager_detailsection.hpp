@@ -74,6 +74,10 @@ public:
 
     static const QString sectionSeparator;
 
+#ifdef Q_OS_WINDOWS
+public slots:
+    void updateStyle();
+#endif
 
 private:
     enum class MarginSection {
