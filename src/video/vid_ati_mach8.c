@@ -2475,7 +2475,7 @@ mach_out(uint16_t addr, uint8_t val, void *priv)
             if ((svga->crtcreg == 7) && ((svga->crtc[0x11] & 0x80) || (mach->regs[0xb4] & 0x40)) && !(mach->regs[0xb4] & 0x80))
                 val = (svga->crtc[7] & ~0x10) | (val & 0x10);
             if (mach->regs[0xb8] & 0x04) {
-                if ((svga->crtcreg < 0x0a) && (svga->crtcreg > 0x0d))
+                if ((svga->crtcreg < 0x0a) || (svga->crtcreg > 0x0d))
                     return;
             }
             if (mach->regs[0xb4] & 0x04) {

@@ -1082,6 +1082,8 @@ usage:
 #ifdef _WIN32
     if (localtime_s(&time_buf, &now) == 0)
         info = &time_buf;
+    else
+        info = NULL;
 #else
     info = localtime_r(&now, &time_buf);
 #endif

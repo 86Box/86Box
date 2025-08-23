@@ -2073,10 +2073,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 char     fn[2048] = { 0 };
                 fseek(fp, mds_footer.fn_offs, SEEK_SET);
                 if (mds_footer.fn_is_wide) {
-                    int len = 0;
                     for (int i = 0; i < 256; i++) {
                         fread(&(wfn[i]), 1, 2, fp);
-                        len++;
                         if (wfn[i] == 0x0000)
                             break;
                     }
