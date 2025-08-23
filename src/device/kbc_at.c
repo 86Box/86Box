@@ -62,36 +62,6 @@
 #define CCB_MASK           0x68
 #define MODE_MASK          0x6c
 
-#define KBC_TYPE_ISA       0x00 /* AT ISA-based chips */
-#define KBC_TYPE_PS2_1     0x01 /* PS2 on PS/2, type 1 */
-#define KBC_TYPE_PS2_2     0x02 /* PS2 on PS/2, type 2 */
-#define KBC_TYPE_GREEN     0x03 /* PS2 green controller */
-#define KBC_TYPE_MASK      0x03
-
-#define KBC_VEN_GENERIC    0x00
-#define KBC_VEN_IBM_PS1    0x04
-#define KBC_VEN_TOSHIBA    0x08
-#define KBC_VEN_OLIVETTI   0x0c
-#define KBC_VEN_AMI        0x10
-#define KBC_VEN_TRIGEM_AMI 0x14
-#define KBC_VEN_QUADTEL    0x18
-#define KBC_VEN_PHOENIX    0x1c
-#define KBC_VEN_ACER       0x20
-#define KBC_VEN_NCR        0x24
-#define KBC_VEN_ALI        0x28
-#define KBC_VEN_SIEMENS    0x2c
-#define KBC_VEN_COMPAQ     0x30
-#define KBC_VEN_IBM        0x34
-#define KBC_VEN_AWARD      0x38
-#define KBC_VEN_VIA        0x3c
-#define KBC_VEN_CHIPS      0x40
-#define KBC_VEN_HOLTEK     0x44
-#define KBC_VEN_UMC        0x48
-#define KBC_VEN_SIS        0x4c
-#define KBC_VEN_MASK       0x7c
-
-#define KBC_FLAG_IS_ASIC   0x80000000
-
 #define FLAG_CLOCK         0x01
 #define FLAG_CACHE         0x02
 #define FLAG_PS2           0x04
@@ -402,7 +372,7 @@ kbc_send_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
     if (temp == -1)
         return;
 
-    if ((kbc_ven == KBC_VEN_AMI) || (kbc_ven == KBC_VEN_TRIGEM_AMI) ||
+    if ((kbc_ven == KBC_VEN_AMI) || (kbc_ven == KBC_VEN_AMI_TRIGEM) ||
         (kbc_ven == KBC_VEN_HOLTEK) || (kbc_ven == KBC_VEN_UMC) ||
         (dev->misc_flags & FLAG_PS2))
         stat_hi |= ((dev->p1 & 0x80) ? 0x10 : 0x00);
@@ -429,10 +399,7 @@ kbc_send_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
         if (dev->irq[0] != 0xffff)
             picintlevel(1 << dev->irq[0], &dev->irq_state);
 
-#ifdef WRONG_CONDITION
-    if ((dev->channel > 0) || dev->is_asic || (kbc_ven == KBC_VEN_IBM_PS1) || (kbc_ven == KBC_VEN_IBM))
-#endif
-        kbc_do_irq(dev);
+    kbc_do_irq(dev);
 
     dev->ob = temp;
 }
@@ -2235,11 +2202,6 @@ write_cmd_toshiba(void *priv, uint8_t val)
 static uint8_t
 read_p1(atkbc_t *dev)
 {
-    uint8_t  kbc_ven       = dev->flags & KBC_VEN_MASK;
-    uint8_t  ret           = 0xff;
-    uint8_t  current_drive;
-    uint8_t  fixed_bits;
-
     /*
                                                                             P1 bits: 76543210
                                                                             -----------------
@@ -2305,93 +2267,7 @@ read_p1(atkbc_t *dev)
               Compaq: Reserved;
               NCR: DMA mode.
      */
-    fixed_bits = 4;
-
-    /* The SMM handlers of Intel AMI Pentium BIOS'es expect bit 6 to be set. */
-    if ((kbc_ven == KBC_VEN_AMI) && ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_GREEN))
-        fixed_bits |= 0x40;
-
-    if (!strcmp(machine_get_internal_name(), "dells333sl"))
-        /*
-           Dell System 333s/L:
-               - Bit 5: Stuck in reboot loop if clear.
-         */
-        ret = 0x20 | (video_is_mda() ? 0x40 : 0x00);
-    else if (kbc_ven == KBC_VEN_IBM_PS1) {
-        current_drive = fdc_get_current_drive();
-        /* (B0 or F0) | (fdd_is_525(current_drive) on bit 6) */
-        ret = dev->p1 | fixed_bits | (fdd_is_525(current_drive) ? 0x40 : 0x00);
-    } else if (kbc_ven == KBC_VEN_NCR) {
-        /* Switch settings:
-               - Bit 7: Keyboard disable;
-               - Bit 6: Display type (0 color, 1 mono);
-               - Bit 5: Power-on default speed (0 high, 1 low);
-               - Bit 4: Sense RAM size (0 unsupported, 1 512k on system board);
-               - Bit 3: Coprocessor detect;
-               - Bit 2: Unused;
-               - Bit 1: High/Auto speed;
-               - Bit 0: DMA mode.
-
-           (B0 or F0) | 0x04 | (display on bit 6) | (fpu on bit 3)
-         */
-        ret = (dev->p1 | fixed_bits | (video_is_mda() ? 0x40 : 0x00) |
-               (hasfpu ? 0x08 : 0x00)) & 0xdf;
-    } else if (kbc_ven == KBC_VEN_TRIGEM_AMI) {
-        /* Switch settings:
-               - Bit 3, 2:
-                     - 1, 1: TriGem logo;
-                     - 1, 0: Garbled logo;
-                     - 0, 1: Epson logo;
-                     - 0, 0: Generic AMI logo.
-         */
-        if (dev->misc_flags & FLAG_PCI)
-            fixed_bits |= 8;
-
-        /* (B0 or F0) | (0x04 or 0x0c) */
-        ret = dev->p1 | fixed_bits;
-    } else if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) &&
-        ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_GREEN)) {
-        if (!strcmp(machine_get_internal_name(), "dell466np"))
-            /*
-               Dell 466/NP:
-                   - Bit 2: Keyboard fuse (must be set);
-                   - Bit 4: Password disable jumper (must be clear);
-                   - Bit 5: Manufacturing jumper (must be set).
-             */
-            ret = 0x24;
-        else if (!strcmp(machine_get_internal_name(), "optiplex_gxl"))
-            /*
-               Dell OptiPlex GXL/GXM:
-                   - Bit 3: Password disable jumper (must be clear);
-                   - Bit 4: Keyboard fuse (must be set);
-                   - Bit 5: Manufacturing jumper (must be set).
-             */
-            ret = 0x30;
-        else if (!strcmp(machine_get_internal_name(), "dellplato") ||
-                   !strcmp(machine_get_internal_name(), "dellhannibalp") ||
-                   !strcmp(machine_get_internal_name(), "dellxp60"))
-            /*
-               Dell Dimension XPS Pxxx & Pxxxa/Mxxxa:
-                   - Bit 3: Password disable jumper (must be clear);
-                   - Bit 4: Clear CMOS jumper (must be set).
-             */
-            ret = 0x10;
-        else {
-            /* (B0 or F0) | (0x08 or 0x0c) */
-            ret = ((dev->p1 | fixed_bits) & 0xf0) |
-                  (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0x08 : 0x0c);
-
-            if (!strcmp(machine_get_internal_name(), "alfredo"))
-                ret &= 0xef;
-        }
-    } else if (kbc_ven == KBC_VEN_COMPAQ)
-        ret = dev->p1 | (hasfpu ? 0x00 : 0x04);
-    else
-        /* (B0 or F0) | (0x04 or 0x44) */
-        ret = dev->p1 | fixed_bits;
-
-    dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc);
-    pclog("P1 = %02X\n", dev->p1);
+    uint8_t ret = machine_get_p1(dev->p1);
 
     return ret;
 }
@@ -3097,7 +2973,7 @@ kbc_at_init(const device_t *info)
             dev->write_cmd_ven = write_cmd_ami;
             break;
 
-        case KBC_VEN_TRIGEM_AMI:
+        case KBC_VEN_AMI_TRIGEM:
             kbc_ami_revision = 'Z';
             dev->write_cmd_data_ven = write_cmd_data_ami;
             dev->write_cmd_ven = write_cmd_ami;
@@ -3323,7 +3199,7 @@ const device_t kbc_at_tg_ami_device = {
     .name          = "PC/AT Keyboard Controller (TriGem AMI)",
     .internal_name = "kbc_at_tg_ami",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_TRIGEM_AMI,
+    .local         = KBC_TYPE_ISA | KBC_VEN_AMI_TRIGEM,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3422,34 +3298,6 @@ const device_t kbc_ps2_device = {
     .internal_name = "kbc_ps2",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_ps1_device = {
-    .name          = "PS/2 Keyboard Controller (IBM PS/1)",
-    .internal_name = "kbc_ps2_ps1",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_IBM_PS1,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_ps1_pci_device = {
-    .name          = "PS/2 Keyboard Controller (IBM PS/1)",
-    .internal_name = "kbc_ps2_ps1_pci",
-    .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_IBM_PS1,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3590,7 +3438,7 @@ const device_t kbc_ps2_tg_ami_device = {
     .name          = "PS/2 Keyboard Controller (TriGem AMI)",
     .internal_name = "kbc_ps2_tg_ami",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_TRIGEM_AMI,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_AMI_TRIGEM,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -3656,95 +3504,11 @@ const device_t kbc_ps2_sis_device = {
     .config        = NULL
 };
 
-const device_t kbc_ps2_pci_device = {
-    .name          = "PS/2 Keyboard Controller (PCI)",
-    .internal_name = "kbc_ps2_pci",
-    .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_ami_pci_device = {
-    .name          = "PS/2 Keyboard Controller (PCI) (AMI)",
-    .internal_name = "kbc_ps2_ami_pci",
-    .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_AMI,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_ali_pci_device = {
-    .name          = "PS/2 Keyboard Controller (PCI) (ALi M5123/M1543C)",
+const device_t kbc_ps2_ali_device = {
+    .name          = "PS/2 Keyboard Controller (ALi M5123/M1543C)",
     .internal_name = "kbc_ps2_ali_pci",
-    .flags         = DEVICE_KBC | DEVICE_PCI,
+    .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_PS2_1 | KBC_VEN_ALI,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_intel_ami_pci_device = {
-    .name          = "PS/2 Keyboard Controller (PCI) (AMI)",
-    .internal_name = "kbc_ps2_intel_ami_pci",
-    .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_GREEN | KBC_VEN_AMI,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_tg_ami_pci_device = {
-    .name          = "PS/2 Keyboard Controller (PCI) (TriGem AMI)",
-    .internal_name = "kbc_ps2_tg_ami_pci",
-    .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_TRIGEM_AMI,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_acer_pci_device = {
-    .name          = "PS/2 Keyboard Controller (PCI) (Acer 90M002A)",
-    .internal_name = "kbc_ps2_acer_pci",
-    .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_ACER,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t kbc_ps2_phoenix_pci_device = {
-    .name          = "PS/2 Keyboard Controller (PCI) (Phoenix)",
-    .internal_name = "kbc_ps2_phoenix_pci",
-    .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_PHOENIX,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,

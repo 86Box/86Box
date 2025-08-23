@@ -1294,10 +1294,10 @@ w83977_init(const device_t *info)
 
     switch (dev->kbc_type) {
         case W83977_AMI:
-            dev->kbc = device_add(&kbc_ps2_ami_pci_device);
+            dev->kbc = device_add_params(&kbc_ps2_ami_device, (void *) 0x00004800);
             break;
         case W83977_PHOENIX:
-            dev->kbc = device_add(&kbc_ps2_phoenix_device);
+            dev->kbc = device_add_params(&kbc_ps2_phoenix_device, (void *) 0x00041900);
             break;
     }
 
