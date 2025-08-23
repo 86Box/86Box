@@ -361,7 +361,7 @@ msgid "Configure"
 msgstr "配置"
 
 msgid "CPU:"
-msgstr ""
+msgstr "CPU:"
 
 msgid "CPU type:"
 msgstr "CPU 类型:"
@@ -430,19 +430,19 @@ msgid "Keyboard:"
 msgstr "键盘:"
 
 msgid "Keyboard"
-msgstr ""
+msgstr "键盘"
 
 msgid "Mouse:"
 msgstr "鼠标:"
 
 msgid "Mouse"
-msgstr ""
+msgstr "鼠标"
 
 msgid "Joystick:"
 msgstr "操纵杆:"
 
 msgid "Joystick"
-msgstr ""
+msgstr "操纵杆"
 
 msgid "Joystick 1..."
 msgstr "操纵杆 1..."
@@ -475,7 +475,7 @@ msgid "MIDI In Device:"
 msgstr "MIDI 输入设备:"
 
 msgid "MIDI Out:"
-msgstr ""
+msgstr "MIDI 输出:"
 
 msgid "Standalone MPU-401"
 msgstr "独立 MPU-401"
@@ -640,13 +640,13 @@ msgid "MO drives:"
 msgstr "磁光盘驱动器:"
 
 msgid "MO:"
-msgstr ""
+msgstr "磁光:"
 
 msgid "Removable disks:"
-msgstr ""
+msgstr "可移动磁盘 (ZIP):"
 
 msgid "Removable disk drives:"
-msgstr "可移动磁盘 (ZIP) 驱动器"
+msgstr "可移动磁盘 (ZIP) 驱动器:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -772,13 +772,13 @@ msgid "Ports (COM & LPT)"
 msgstr "端口 (COM 和 LPT)"
 
 msgid "Ports"
-msgstr ""
+msgstr "端口"
 
 msgid "Serial ports:"
-msgstr ""
+msgstr "串行端口:"
 
 msgid "Parallel ports:"
-msgstr ""
+msgstr "并行端口:"
 
 msgid "Storage controllers"
 msgstr "存储控制器"
@@ -787,13 +787,13 @@ msgid "Hard disks"
 msgstr "硬盘"
 
 msgid "Disks:"
-msgstr ""
+msgstr "硬盘:"
 
 msgid "Floppy:"
-msgstr ""
+msgstr "软盘:"
 
 msgid "Controllers:"
-msgstr ""
+msgstr "控制器:"
 
 msgid "Floppy & CD-ROM drives"
 msgstr "软盘/光盘驱动器"
@@ -805,7 +805,7 @@ msgid "Other peripherals"
 msgstr "其他外围设备"
 
 msgid "Other devices"
-msgstr ""
+msgstr "其他设备"
 
 msgid "Click to capture mouse"
 msgstr "单击窗口捕捉鼠标"
@@ -874,7 +874,7 @@ msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
-msgstr ""
+msgstr "CH Flightstick Pro + CH Pedals"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -883,28 +883,28 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr ""
+msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "2-button gamepad(s)"
-msgstr ""
+msgstr "2键游戏手柄"
 
 msgid "2-button flight yoke"
-msgstr ""
+msgstr "2 按钮飞行摇杆"
 
 msgid "4-button gamepad"
-msgstr ""
+msgstr "4 按钮游戏手柄"
 
 msgid "4-button flight yoke"
-msgstr ""
+msgstr "4 按钮飞行摇杆"
 
 msgid "2-button flight yoke with throttle"
-msgstr ""
+msgstr "2 按钮带油门飞行摇杆"
 
 msgid "4-button flight yoke with throttle"
-msgstr ""
+msgstr "4 按钮带油门飞行摇杆"
 
 msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr ""
+msgstr "Win95 方向盘 (3轴, 4键)"
 
 msgid "None"
 msgstr "无"
@@ -1057,7 +1057,7 @@ msgid "Pause execution"
 msgstr "暂停执行"
 
 msgid "Ctrl+Alt+Del"
-msgstr ""
+msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "按下 Ctrl+Alt+Del"
@@ -1102,7 +1102,7 @@ msgid "%1 total"
 msgstr "%1 总计"
 
 msgid "VMs: %1"
-msgstr ""
+msgstr "虚拟机: %1"
 
 msgid "System Directory:"
 msgstr "系统目录"
@@ -1132,208 +1132,208 @@ msgid "Add new system wizard"
 msgstr "添加新系统向导"
 
 msgid "Introduction"
-msgstr ""
+msgstr "介绍"
 
 msgid "This will help you add a new system to 86Box."
-msgstr ""
+msgstr "这将帮助您在86Box中添加一个新系统。"
 
 msgid "New configuration"
-msgstr ""
+msgstr "新配置"
 
 msgid "Complete"
-msgstr ""
+msgstr "完成"
 
 msgid "The wizard will now launch the configuration for the new system."
-msgstr ""
+msgstr "向导现在将启动新系统的配置。"
 
 msgid "Use existing configuration"
-msgstr ""
+msgstr "使用现有配置"
 
 msgid "Type some notes here"
-msgstr ""
+msgstr "在此处键入一些备注"
 
 msgid "Paste the contents of the existing configuration file into the box below."
-msgstr ""
+msgstr "将现有配置文件内容粘贴到下面的框中。"
 
 msgid "Load configuration from file"
-msgstr ""
+msgstr "从文件加载配置"
 
 msgid "System name"
-msgstr ""
+msgstr "系统名称"
 
 msgid "System name:"
-msgstr ""
+msgstr "系统名称:"
 
 msgid "System name cannot contain certain characters"
-msgstr ""
+msgstr "系统名称不能包含某些字符"
 
 msgid "System name already exists"
-msgstr ""
+msgstr "系统名称已存在"
 
 msgid "Please enter a directory for the system"
-msgstr ""
+msgstr "请为系统输入一个目录"
 
 msgid "Directory does not exist"
-msgstr ""
+msgstr "目录不存在"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr ""
+msgstr "将在上方选定的目录中为系统创建一个新目录"
 
 msgid "System location:"
-msgstr ""
+msgstr "系统位置:"
 
 msgid "System name and location"
-msgstr ""
+msgstr "系统名称和位置"
 
 msgid "Enter the name of the system and choose the location"
-msgstr ""
+msgstr "输入系统名称并选择位置"
 
 msgid "Enter the name of the system"
-msgstr ""
+msgstr "输入系统名称"
 
 msgid "Please enter a system name"
-msgstr ""
+msgstr "请输入系统名称"
 
 msgid "Display name (optional):"
-msgstr ""
+msgstr "显示名称 (可选)"
 
 msgid "Display name:"
-msgstr ""
+msgstr "显示名称:"
 
 msgid "Set display name"
-msgstr ""
+msgstr "设置显示名称"
 
 msgid "Enter the new display name (blank to reset)"
-msgstr ""
+msgstr "输入新的显示名称 (留空以重置)"
 
 msgid "Change &display name..."
-msgstr ""
+msgstr "更改显示名称..."
 
 msgid "Context Menu"
-msgstr ""
+msgstr "上下文菜单"
 
 msgid "&Open folder..."
-msgstr ""
+msgstr "打开文件夹..."
 
 msgid "Open p&rinter tray..."
-msgstr ""
+msgstr "打开打印机托盘..."
 
 msgid "Set &icon..."
-msgstr ""
+msgstr "设置图标..."
 
 msgid "Select an icon"
-msgstr ""
+msgstr "选择一个图标"
 
 msgid "C&lone..."
-msgstr ""
+msgstr "克隆..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
-msgstr ""
+msgstr "虚拟机 \"%1\" (%2) 将被克隆到:"
 
 msgid "Directory %1 already exists"
-msgstr ""
+msgstr "目录 %1 已存在"
 
 msgid "You cannot use the following characters in the name: %1"
-msgstr ""
+msgstr " %1: 名称中不能使用以下字符: %1"
 
 msgid "Clone"
-msgstr ""
+msgstr "克隆"
 
 msgid "Failed to create directory for cloned VM"
-msgstr ""
+msgstr "创建克隆虚拟机目录失败"
 
 msgid "Failed to clone VM."
-msgstr ""
+msgstr "克隆虚拟机失败。"
 
 msgid "Directory in use"
-msgstr ""
+msgstr "目录正在使用中"
 
 msgid "The selected directory is already in use. Please select a different directory."
-msgstr ""
+msgstr "所选目录已被占用，请选择另一个目录。"
 
 msgid "Create directory failed"
-msgstr ""
+msgstr "创建目录失败"
 
 msgid "Unable to create the directory for the new system"
-msgstr ""
+msgstr "无法为新系统创建目录"
 
 msgid "Configuration write failed"
-msgstr ""
+msgstr "配置写入失败"
 
 msgid "Unable to open the configuration file at %1 for writing"
-msgstr ""
+msgstr "无法打开 %1 的配置文件进行写入"
 
 msgid "Error adding system"
-msgstr ""
+msgstr "添加系统时出错"
 
 msgid "Remove directory failed"
-msgstr ""
+msgstr "移除目录失败"
 
 msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
-msgstr ""
+msgstr "无法删除该机器目录中的某些文件。请手动删除。"
 
 msgid "Build"
-msgstr ""
+msgstr "构建"
 
 msgid "Version"
-msgstr ""
+msgstr "版本"
 
 msgid "An update to 86Box is available: %1 %2"
-msgstr ""
+msgstr "86Box 有可用更新：%1 %2"
 
 msgid "An error has occurred while checking for updates: %1"
-msgstr ""
+msgstr "检查更新时发生错误：%1"
 
 msgid "<b>An update to 86Box is available!</b>"
-msgstr ""
+msgstr "<b>86Box 有可用更新！</b>"
 
 msgid "Warning"
-msgstr ""
+msgstr "警告"
 
 msgid "&Kill"
-msgstr ""
+msgstr "终止(&K)"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr ""
+msgstr "\"%1\"?: 终止虚拟机可能会导致数据丢失。只有当 86Box 进程卡住时才执行此操作。你真的想终止虚拟机“%1”吗？"
 
 msgid "&Delete"
-msgstr ""
+msgstr "删除(&D)"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr ""
+msgstr "你真的想删除虚拟机\"%1\"及其所有文件吗？此操作无法撤消！"
 
 msgid "Show &config file"
-msgstr ""
+msgstr " 显示配置文件(&C)"
 
 msgid "No screenshot"
-msgstr ""
+msgstr "无截图"
 
 msgid "Search"
-msgstr ""
+msgstr "搜索"
 
 msgid "Searching for VMs..."
-msgstr ""
+msgstr "正在搜索虚拟机..."
 
 msgid "Found %1"
-msgstr ""
+msgstr "已找到 %1"
 
 msgid "System"
-msgstr ""
+msgstr "系统"
 
 msgid "Storage"
-msgstr ""
+msgstr "存储"
 
 msgid "Disk %1: "
-msgstr ""
+msgstr "磁盘 %1"
 
 msgid "No disks"
-msgstr ""
+msgstr "无磁盘"
 
 msgid "Audio"
-msgstr ""
+msgstr "音频"
 
 msgid "Audio:"
-msgstr ""
+msgstr "音频:"
 
 msgid "ACPI shutdown"
 msgstr "ACPI 关机"
@@ -1675,7 +1675,7 @@ msgid "Null Driver"
 msgstr "空驱动程序"
 
 msgid "NIC:"
-msgstr ""
+msgstr "网卡:"
 
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
@@ -1747,7 +1747,7 @@ msgid "MiB"
 msgstr "兆字节"
 
 msgid "GiB"
-msgstr ""
+msgstr "吉字节"
 
 msgid "Network Card #1"
 msgstr "网卡 1"
@@ -2446,7 +2446,7 @@ msgid "Composite"
 msgstr "复合视频"
 
 msgid "True color"
-msgstr ""
+msgstr "真彩色"
 
 msgid "Old"
 msgstr "旧"
@@ -2560,7 +2560,7 @@ msgid "3Dfx Voodoo Graphics"
 msgstr "3Dfx Voodoo 图形"
 
 msgid "3Dfx Voodoo 2"
-msgstr ""
+msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst（2 个 TMU）"
@@ -2806,34 +2806,34 @@ msgid "Toggle mute"
 msgstr "切换静音"
 
 msgid "Text files"
-msgstr ""
+msgstr "文本文件"
 
 msgid "ROM files"
-msgstr ""
+msgstr "ROM 文件"
 
 msgid "SoundFont files"
-msgstr ""
+msgstr "SoundFont 文件"
 
 msgid "Local Switch"
-msgstr ""
+msgstr "本地开关"
 
 msgid "Remote Switch"
-msgstr ""
+msgstr "远程开关"
 
 msgid "Switch:"
-msgstr ""
+msgstr "开关："
 
 msgid "Hub Mode"
-msgstr ""
+msgstr "集线器模式"
 
 msgid "Hostname:"
-msgstr ""
+msgstr "主机名："
 
 msgid "ISA RAM:"
-msgstr ""
+msgstr "ISA 内存："
 
 msgid "ISA ROM:"
-msgstr ""
+msgstr "SA ROM："
 
 msgid "&Wipe NVRAM"
 msgstr "清除 NVRAM(&W)"
@@ -2875,10 +2875,10 @@ msgid "Update check complete"
 msgstr "检查更新已完成"
 
 msgid "stable"
-msgstr ""
+msgstr "稳定的"
 
 msgid "beta"
-msgstr ""
+msgstr "测试版"
 
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr "您正在运行 86Box 的最新 %1 版本：%2"
@@ -2887,7 +2887,7 @@ msgid "version"
 msgstr "版本"
 
 msgid "build"
-msgstr ""
+msgstr "构建"
 
 msgid "You are currently running version <b>%1</b>."
 msgstr "您当前正在运行版本 <b>%1</b> 。"
@@ -2923,16 +2923,16 @@ msgid "%1 Hz"
 msgstr "%1 Hz"
 
 msgid "Virtual machine crash"
-msgstr ""
+msgstr "虚拟机崩溃"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr ""
+msgstr "虚拟机\"%1\"的进程意外终止，退出代码为 %2。"
 
 msgid "The system will not be added."
-msgstr ""
+msgstr "系统将不会被添加。"
 
 msgid "&Update mouse every CPU frame"
-msgstr ""
+msgstr "每 CPU 帧更新鼠标(&U)"
 
 msgid "Hue"
 msgstr "色调"
