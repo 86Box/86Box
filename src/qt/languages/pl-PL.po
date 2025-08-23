@@ -1215,7 +1215,7 @@ msgstr "Menu kontekstowe"
 msgid "&Open folder..."
 msgstr "&Otwórz folder..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Otwórz &tackę drukarki..."
 
 msgid "Set &icon..."

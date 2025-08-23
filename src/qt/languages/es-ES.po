@@ -157,7 +157,7 @@ msgid "Generic RGBI color monitor"
 msgstr "Monitor a colores RGBI genérico"
 
 msgid "&Amber monitor"
-msgstr "Monitor &Ámbar"
+msgstr "Monitor Ámb&ar"
 
 msgid "&Green monitor"
 msgstr "Monitor &Verde"
@@ -199,7 +199,7 @@ msgid "&Update status bar icons"
 msgstr "&Actualizar iconos en barra de estado"
 
 msgid "Take s&creenshot"
-msgstr "Tomar c&aptura"
+msgstr "Tomar cap&tura"
 
 msgid "S&ound"
 msgstr "S&onido"
@@ -1215,7 +1215,7 @@ msgstr "Menú de contexto"
 msgid "&Open folder..."
 msgstr "&Abrir carpeta..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Abrir bandeja de la &impresora..."
 
 msgid "Set &icon..."
@@ -1642,7 +1642,7 @@ msgid "Show non-&primary monitors"
 msgstr "Mostrar monitores no prim&arios"
 
 msgid "Open screenshots &folder..."
-msgstr "Abrir la carpeta screenshots..."
+msgstr "Abrir la ca&rpeta screenshots..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "&Usar escalado pantalla completa en modalidad maximizada"

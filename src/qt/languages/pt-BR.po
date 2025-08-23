@@ -157,7 +157,7 @@ msgid "Generic RGBI color monitor"
 msgstr "Monitor colorido RGBI genérico"
 
 msgid "&Amber monitor"
-msgstr "Monitor &âmbar"
+msgstr "Monitor âmb&ar"
 
 msgid "&Green monitor"
 msgstr "Monitor &verde"
@@ -1215,7 +1215,7 @@ msgstr "Menu de contexto"
 msgid "&Open folder..."
 msgstr "Abrir &pasta..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Abrir fila da &impressora..."
 
 msgid "Set &icon..."
@@ -1642,7 +1642,7 @@ msgid "Show non-&primary monitors"
 msgstr "Mostrar monitores não &primários"
 
 msgid "Open screenshots &folder..."
-msgstr "Abrir pasta de capturas de tela..."
+msgstr "Ab&rir pasta de capturas de tela..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Apl&icar modo de ampliação em tela cheia quando maximizado"

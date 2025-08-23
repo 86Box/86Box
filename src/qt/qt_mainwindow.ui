@@ -857,7 +857,7 @@
   </action>
   <action name="actionOpen_printer_tray">
    <property name="text">
-    <string>Open &amp;printer tray...</string>
+    <string>Open p&amp;rinter tray...</string>
    </property>
   </action>
   <action name="actionOpen_screenshots_folder">

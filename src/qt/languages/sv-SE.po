@@ -1215,7 +1215,7 @@ msgstr "Innehållsmeny"
 msgid "&Open folder..."
 msgstr "&Öppna mapp..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Öppna &skrivarfack..."
 
 msgid "Set &icon..."
