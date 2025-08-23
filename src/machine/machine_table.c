@@ -14263,7 +14263,6 @@ const machine_t machines[] = {
         .nvrmask = 127,
         .jumpered_ecp_dma = 0,
         .default_jumpered_ecp_dma = -1,
-        .kbc_device = NULL,
         .kbc_device = &kbc_at_device,
         .kbc_params = KBC_VEN_HOLTEK | 0x00004800,
         .kbc_p1 = 0x00000cf0,
