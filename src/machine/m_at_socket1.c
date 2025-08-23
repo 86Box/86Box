@@ -112,7 +112,7 @@ machine_at_svc486wb_init(const machine_t *model)
 
     device_add(&opti493_device);
 
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&ide_isa_device);
 
     return ret;
@@ -230,7 +230,7 @@ machine_at_advantage40xxd_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
-    device_add(&kbc_ps2_phoenix_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&um866x_device, (void *) (UM82C863F | UM866X_IDE_PRI));
 
     device_add(&intel_flash_bxt_device);
@@ -252,7 +252,7 @@ machine_at_dtk461_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add(&sl82c461_device);
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -395,7 +395,7 @@ machine_at_isa486c_init(const machine_t *model)
     device_add(&isa486c_device);
     device_add(&port_92_key_device);
 
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);

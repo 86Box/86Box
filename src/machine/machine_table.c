@@ -166,10 +166,7 @@ const machine_filter_t machine_chipsets[] = {
     { "WD76C10",                    MACHINE_CHIPSET_WD76C10             }
 };
 
-/* Machines to add before machine freeze:
-   - TMC Mycomp PCI54ST;
-   - Zeos Quadtel 486.
-
+/*
    NOTE: The AMI MegaKey tests were done on a real Intel Advanced/ATX
      (thanks, MrKsoft for running my AMIKEY.COM on it), but the
      technical specifications of the other Intel machines confirm
@@ -183,16 +180,6 @@ const machine_filter_t machine_chipsets[] = {
      indicates that the sequence is a leftover of whatever AMI
      BIOS (likely a laptop one since the AMIKey-3 is a laptop KBC
      firmware!) Intel forked.
-
-   NOTE: The VIA VT82C42N returns 0x46 ('F') in command 0xA1 (so it
-     emulates the AMI KF/AMIKey KBC firmware), and 0x42 ('B') in
-     command 0xAF.
-     The version on the VIA VT82C686B southbridge also returns
-     'F' in command 0xA1, but 0x45 ('E') in command 0xAF.
-     The version on the VIA VT82C586B southbridge also returns
-     'F' in command 0xA1, but 0x44 ('D') in command 0xAF.
-     The version on the VIA VT82C586A southbridge also returns
-     'F' in command 0xA1, but 0x43 ('C') in command 0xAF.
 
    NOTE: The AMI MegaKey commands blanked in the technical reference
      are CC and and C4, which are Set P14 High and Set P14 Low,
@@ -10944,9 +10931,9 @@ const machine_t machines[] = {
         .nvrmask = 255,
         .jumpered_ecp_dma = 0,
         .default_jumpered_ecp_dma = -1,
-        .kbc_device = &kbc_at_holtek_device,
+        .kbc_device = &kbc_ps2_holtek_device,
         .kbc_params = 0x00004800,
-        .kbc_p1 = 0x000004f0,
+        .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = &hot433a_device,
@@ -18760,8 +18747,8 @@ const machine_t machines[] = {
         .nvrmask = 255,
         .jumpered_ecp_dma = 0,
         .default_jumpered_ecp_dma = -1,
-        .kbc_device = NULL,
-        .kbc_params = 0x00000000,
+        .kbc_device = &kbc_ps2_ami_device,
+        .kbc_params = 0x00004800,
         .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,

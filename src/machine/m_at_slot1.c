@@ -140,7 +140,7 @@ machine_at_kn97_init(const machine_t *model)
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&kbc_ps2_pci_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&w83877_device, (void *) (W83877F | W83877_3F0));
     device_add(&intel_flash_bxt_device);
     device_add(&lm78_device); /* fans: Chassis, CPU, Power; temperature: MB */
@@ -772,7 +772,6 @@ machine_at_ficka6130_init(const machine_t *model)
     device_add(&via_apro_device);
     device_add(&via_vt82c596a_device);
     device_add_params(&w83877_device, (void *) (W83877TF | W83877_3F0));
-    device_add(&kbc_ps2_ami_pci_device);
     device_add(&sst_flash_29ee020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
@@ -916,7 +915,6 @@ machine_at_p6f99_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   0, 0, 0, 0);
     device_add(&sis_5600_device);
-    device_add(&kbc_ps2_ami_pci_device);
     device_add(&it8661f_device);
     device_add(&winbond_flash_w29c020_device);
 
@@ -949,7 +947,6 @@ machine_at_m747_init(const machine_t *model)
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   0, 0, 0, 0);
     device_add(&sis_5600_device);
-    device_add(&kbc_ps2_ami_pci_device);
     device_add(&it8661f_device);
     device_add(&winbond_flash_w29c020_device);
 

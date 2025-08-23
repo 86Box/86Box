@@ -817,11 +817,10 @@ machine_at_t3100e_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
 
-    device_add(&kbc_at_toshiba_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
-    if (fdc_current[0] == FDC_INTERNAL) {
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
-    }
 
     /* Hook up system control port */
     io_sethandler(0x8084, 0x0001,
