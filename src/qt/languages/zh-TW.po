@@ -1215,7 +1215,7 @@ msgstr ""
 msgid "&Open folder..."
 msgstr ""
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr ""
 
 msgid "Set &icon..."

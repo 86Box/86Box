@@ -1215,8 +1215,8 @@ msgstr "コンテキストメニュー"
 msgid "&Open folder..."
 msgstr "フォルダーを開く(&O)..."
 
-msgid "Open &printer tray..."
-msgstr "プリンタートレイを開く(&P)..."
+msgid "Open p&rinter tray..."
+msgstr "プリンタートレイを開く(&R)..."
 
 msgid "Set &icon..."
 msgstr "アイコンを設定(&I)..."

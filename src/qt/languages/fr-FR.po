@@ -199,7 +199,7 @@ msgid "&Update status bar icons"
 msgstr "Mettre à jour la barre de stat&us"
 
 msgid "Take s&creenshot"
-msgstr "Copie &d'écran"
+msgstr "Copie d'é&cran"
 
 msgid "S&ound"
 msgstr "S&on"
@@ -1215,7 +1215,7 @@ msgstr "Menu contextuel"
 msgid "&Open folder..."
 msgstr "&Ouvrir le dossier..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Ouvrez le bac de l'&imprimante..."
 
 msgid "Set &icon..."
@@ -1642,7 +1642,7 @@ msgid "Show non-&primary monitors"
 msgstr "Afficher les moniteurs non pr&imaires"
 
 msgid "Open screenshots &folder..."
-msgstr "Ouvrir le dossier des captures d'écran..."
+msgstr "Ouvrir le do&ssier des captures d'écran..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Appli&quer le mode élargi plein écran lorsque la fenêtre est maximisée"

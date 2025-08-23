@@ -1215,7 +1215,7 @@ msgstr "Контекстное меню"
 msgid "&Open folder..."
 msgstr "&Открыть папку..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Открыть папку &принтера..."
 
 msgid "Set &icon..."

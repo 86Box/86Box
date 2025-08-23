@@ -1215,7 +1215,7 @@ msgstr "Menu ngữ cảnh"
 msgid "&Open folder..."
 msgstr "Mở thư mục"
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Mở khay máy in"
 
 msgid "Set &icon..."

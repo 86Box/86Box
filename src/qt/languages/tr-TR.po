@@ -1215,7 +1215,7 @@ msgstr "Bağlam Menüsü"
 msgid "&Open folder..."
 msgstr "Klas&örü aç..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Yazıcı te&psisini aç..."
 
 msgid "Set &icon..."
