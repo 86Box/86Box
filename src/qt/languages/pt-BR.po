@@ -64,7 +64,7 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify &dimensions..."
-msgstr "Especificar as dimensões..."
+msgstr "Especificar as dime&nsões..."
 
 msgid "Force &4:3 display ratio"
 msgstr "Forçar proporção de tela em &4:3"
