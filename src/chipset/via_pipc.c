@@ -1775,7 +1775,7 @@ pipc_init(const device_t *info)
         acpi_set_irq_mode(dev->acpi, 0);
     }
 
-    uint32_t kbc_params = 0x00004200;
+    uint32_t kbc_params = 0x00424600;
     /*
        NOTE: The VIA VT82C42N returns 0x46 ('F') in command 0xA1 (so it
              emulates the AMI KF/AMIKey KBC firmware), and 0x42 ('B') in
@@ -1791,19 +1791,21 @@ pipc_init(const device_t *info)
     switch (dev->local) {
         /* 596A, 596B, 686B, and 8231 are guesses because we have no probes yet. */
         case VIA_PIPC_586A: case VIA_PIPC_596A:
-            kbc_params = 0x00004300;
+            kbc_params = 0x00434600;
             break;
         case VIA_PIPC_586B: case VIA_PIPC_596B:
-            kbc_params = 0x00004400;
+            kbc_params = 0x00444600;
             break;
         case VIA_PIPC_686A: case VIA_PIPC_686B:
         case VIA_PIPC_8231:
-            kbc_params = 0x00004500;
+            kbc_params = 0x00454600;
             break;
     }
 
+    kbc_params |= KBC_VEN_VIA;
+
     if (machine_get_kbc_device(machine) == NULL)
-        device_add_params(&kbc_at_via_device, (void *) (uintptr_t) kbc_params);
+        device_add_params(&kbc_at_device, (void *) (uintptr_t) kbc_params);
 
     return dev;
 }

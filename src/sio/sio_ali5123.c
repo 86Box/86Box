@@ -530,7 +530,7 @@ ali5123_init(const device_t *info)
     io_sethandler(FDC_PRIMARY_ADDR, 0x0002,
                   ali5123_read, NULL, NULL, ali5123_write, NULL, NULL, dev);
 
-    device_add(&kbc_at_ali_device);
+    device_add_params(&kbc_at_device, (void *) KBC_VEN_ALI);
 
     return dev;
 }

@@ -1919,20 +1919,20 @@ fdc37c93x_init(const device_t *info)
 
     switch (dev->kbc_type) {
         case FDC37XXX1:
-            dev->kbc = device_add(&kbc_at_compaq_device);
+            dev->kbc = device_add_params(&kbc_at_device, (void *) KBC_VEN_COMPAQ);
             break;
         case FDC37XXX2:
-            dev->kbc = device_add_params(&kbc_at_ami_device, (void *) 0x00003500);
+            dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_AMI | 0x00003500));
             break;
         case FDC37XXX3:
         default:
             dev->kbc = device_add(&kbc_at_device);
             break;
         case FDC37XXX5:
-            dev->kbc = device_add_params(&kbc_at_phoenix_device, (void *) 0x00013800);
+            dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_PHOENIX | 0x00013800));
             break;
         case FDC37XXX7:
-            dev->kbc = device_add_params(&kbc_at_phoenix_device, (void *) 0x00041600);
+            dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_PHOENIX | 0x00041600));
             break;
     }
 

@@ -1401,7 +1401,7 @@ machine_at_hot433a_init(const machine_t *model)
         machine_force_ps2(1);
     else
         machine_force_ps2(0);
-    device_add_params(&kbc_at_holtek_device, (void *) model->kbc_params);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     pic_toggle_latch(is_award);
 

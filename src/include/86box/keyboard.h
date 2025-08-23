@@ -199,25 +199,6 @@ extern const device_t kbc_xt_fe2010_device;
 extern const device_t kbc_xtclone_device;
 
 extern const device_t kbc_at_device;
-extern const device_t kbc_at_acer_device;
-extern const device_t kbc_at_ali_device;
-extern const device_t kbc_at_ami_device;
-extern const device_t kbc_at_ami_tg_device;
-extern const device_t kbc_at_award_device;
-extern const device_t kbc_at_chips_device;
-extern const device_t kbc_at_compaq_device;
-extern const device_t kbc_at_holtek_device;
-extern const device_t kbc_at_ibm_mca_device;
-extern const device_t kbc_at_ncr_device;
-extern const device_t kbc_at_olivetti_device;
-extern const device_t kbc_at_phoenix_device;
-extern const device_t kbc_at_quadtel_device;
-extern const device_t kbc_at_siemens_device;
-extern const device_t kbc_at_sis_device;
-extern const device_t kbc_at_toshiba_device;
-extern const device_t kbc_at_umc_device;
-extern const device_t kbc_at_via_device;
-extern const device_t kbc_at_xi8088_device;
 
 extern const device_t keyboard_pc_xt_device;
 extern const device_t keyboard_at_device;

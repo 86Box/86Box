@@ -856,7 +856,7 @@ it86x1f_init(UNUSED(const device_t *info))
     io_sethandler(0x279, 1, NULL, NULL, NULL, it86x1f_write_unlock, NULL, NULL, dev);
 
     if (info->local == ITE_IT8671F)
-        device_add_params(&kbc_at_ami_device, (void *) 0x00004800);
+        device_add_params(&kbc_at_device, (void *) (KBC_VEN_AMI | 0x00004800));
 
     it86x1f_reset(dev);
 
