@@ -93,7 +93,7 @@ machine_at_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add(&kbc_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 }
 
 void
@@ -101,7 +101,7 @@ machine_at_ps2_init(const machine_t *model)
 {
     machine_at_common_init(model);
 
-    device_add(&kbc_ps2_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 }
 
 void

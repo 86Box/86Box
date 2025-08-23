@@ -51,6 +51,12 @@
 #include <86box/sound.h>
 
 /* ISA */
+uint8_t
+machine_compaq_p1_handler(void)
+{
+    return machine_generic_p1_handler() | (hasfpu ? 0x00 : 0x04);
+}
+
 static void
 machine_at_deskpro386_common_init(const machine_t *model)
 {
@@ -62,7 +68,8 @@ machine_at_deskpro386_common_init(const machine_t *model)
     device_add(&compaq_386_device);
 
     machine_at_common_init(model);
-    device_add(&kbc_at_compaq_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 }
 
 int
@@ -122,7 +129,8 @@ machine_at_portableiii386_init(const machine_t *model)
     device_add(&compaq_386_device);
 
     machine_at_common_init(model);
-    device_add(&kbc_at_compaq_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -140,6 +148,7 @@ machine_at_micronics386_init(const machine_t *model)
         return ret;
 
     machine_at_init(model);
+
     device_add(&port_92_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
@@ -161,6 +170,7 @@ machine_at_micronics386px_init(const machine_t *model)
         return ret;
 
     machine_at_init(model);
+
     device_add(&port_92_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
@@ -182,8 +192,10 @@ machine_at_acc386_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
+
     device_add(&acc2168_device);
-    device_add(&kbc_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -205,12 +217,13 @@ machine_at_ecs386_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
+
     device_add(&cs8230_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -228,12 +241,13 @@ machine_at_spc6000a_init(const machine_t *model)
         return ret;
 
     machine_at_common_init_ex(model, 1);
+
     device_add(&cs8230_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&kbc_at_ami_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -250,8 +264,10 @@ machine_at_tandy4000_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
+
     device_add(&cs8230_device);
-    device_add(&kbc_at_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -269,11 +285,13 @@ machine_at_ecs386v_init(const machine_t *model)
                            0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
-    return ret;
+        return ret;
 
     machine_at_common_init(model);
+
     device_add(&ali1429_device);
-    device_add(&kbc_ps2_intel_ami_pci_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -296,7 +314,8 @@ machine_at_dataexpert386wb_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&opti391_device);
-    device_add(&kbc_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -320,7 +339,7 @@ machine_at_opti495_init(const machine_t *model)
 
     device_add(&opti495slc_device);
 
-    device_add(&kbc_at_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -341,8 +360,10 @@ machine_at_asus3863364k_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
+
     device_add(&rabbit_device);
-    device_add(&kbc_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -362,8 +383,10 @@ machine_at_asus386_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
+
     device_add(&rabbit_device);
-    device_add(&kbc_at_ami_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);

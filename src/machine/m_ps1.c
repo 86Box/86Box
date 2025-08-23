@@ -395,11 +395,20 @@ ps1_common_init(const machine_t *model)
     dma16_init();
     pic2_init();
 
-    device_add(&kbc_ps2_ps1_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&port_6x_device);
 
     /* Audio uses ports 200h and 202-207h, so only initialize gameport on 201h. */
     standalone_gameport_type = &gameport_201_device;
+}
+
+uint8_t
+machine_ps1_p1_handler(void)
+{
+    const uint8_t current_drive = fdc_get_current_drive();
+
+    /* (B0 or F0) | (fdd_is_525(current_drive) on bit 6) */
+    return 0xb0 | (fdd_is_525(current_drive) ? 0x40 : 0x00);
 }
 
 int

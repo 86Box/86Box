@@ -734,7 +734,7 @@ machine_xt_compaq_portable_init(const machine_t *model)
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_xt_device);
     nmi_init();
-    if (joystick_type)
+    if (joystick_type[0])
         device_add(&gameport_200_device);
 
     lpt_t *lpt = device_add_inst(&lpt_port_device, 1);

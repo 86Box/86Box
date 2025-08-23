@@ -794,6 +794,12 @@ upper_write_raml(uint32_t addr, uint32_t val, void *priv)
     *(uint32_t *) &ram[addr] = val;
 }
 
+uint8_t
+machine_t3100e_p1_handler(void)
+{
+    return (t3100e_mono_get() & 1) ? 0xff : 0xbf;
+}
+
 int
 machine_at_t3100e_init(const machine_t *model)
 {
@@ -811,11 +817,10 @@ machine_at_t3100e_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
 
-    device_add(&kbc_at_toshiba_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
-    if (fdc_current[0] == FDC_INTERNAL) {
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
-    }
 
     /* Hook up system control port */
     io_sethandler(0x8084, 0x0001,

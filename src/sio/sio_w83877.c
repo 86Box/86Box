@@ -408,6 +408,8 @@ w83877_write(uint16_t port, uint8_t val, void *priv)
         case 0x26:
             if (valxor & 0x0f)
                 w83877_lpt_handler(dev);
+            if (valxor & 0xf0)
+                w83877_fdc_handler(dev);
             break;
         case 0x27:
             if (valxor & 0xef)
