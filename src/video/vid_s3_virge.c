@@ -6014,20 +6014,6 @@ const device_t s3_virge_357_agp_device = {
     .config        = s3_virge_357_config
 };
 
-const device_t s3_diamond_stealth_4000_pci_device = {
-    .name          = "S3 ViRGE/GX2 (Diamond Stealth 3D 4000) PCI",
-    .internal_name = "stealth3d_4000_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_DIAMOND_STEALTH3D_4000,
-    .init          = s3_virge_init,
-    .close         = s3_virge_close,
-    .reset         = s3_virge_reset,
-    .available     = s3_virge_357_diamond_available,
-    .speed_changed = s3_virge_speed_changed,
-    .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_357_config
-};
-
 const device_t s3_diamond_stealth_4000_agp_device = {
     .name          = "S3 ViRGE/GX2 (Diamond Stealth 3D 4000) AGP",
     .internal_name = "stealth3d_4000_agp",
