@@ -517,7 +517,7 @@ msgid "LPT4 Device:"
 msgstr "LPT4 设备:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr "内部LPT的ECP的DMA:"
+msgstr "内部 LPT 的 ECP DMA:"
 
 msgid "Serial port 1"
 msgstr "串口 1"
@@ -640,7 +640,7 @@ msgid "MO drives:"
 msgstr "磁光盘驱动器:"
 
 msgid "MO:"
-msgstr "磁光:"
+msgstr "磁光盘:"
 
 msgid "Removable disks:"
 msgstr "可移动磁盘 (ZIP):"
@@ -886,7 +886,7 @@ msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "2-button gamepad(s)"
-msgstr "2键游戏手柄"
+msgstr "2 按钮游戏手柄"
 
 msgid "2-button flight yoke"
 msgstr "2 按钮飞行摇杆"
@@ -904,7 +904,7 @@ msgid "4-button flight yoke with throttle"
 msgstr "4 按钮带油门飞行摇杆"
 
 msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Win95 方向盘 (3轴, 4键)"
+msgstr "Win95 方向盘 (3 轴, 4 键)"
 
 msgid "None"
 msgstr "无"
@@ -1129,7 +1129,7 @@ msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM 
 msgstr "%1 计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
 
 msgid "Add new system wizard"
-msgstr "新增系統的精靈"
+msgstr "新增系统向导"
 
 msgid "Introduction"
 msgstr "介绍"
@@ -1387,10 +1387,10 @@ msgid "Disk image created"
 msgstr "已创建磁盘映像"
 
 msgid "Make sure the file exists and is readable."
-msgstr "请确定此文件已存在并可读取。"
+msgstr "请确定此文件存在并可读取。"
 
 msgid "Make sure the file is being saved to a writable directory."
-msgstr "请确定此文件保存在可写目录中。"
+msgstr "请确定此文件保存在可写入目录中。"
 
 msgid "Disk image too large"
 msgstr "磁盘映像太大"
@@ -2047,7 +2047,7 @@ msgid "Interpolation Method"
 msgstr "插值法"
 
 msgid "Dynamic Sample Loading"
-msgstr "样品的动态加载"
+msgstr "采样的动态加载"
 
 msgid "Reverb Output Gain"
 msgstr "混响输出增益"
@@ -2605,7 +2605,7 @@ msgid "Parallel Line Internet Protocol"
 msgstr "Parallel Line Internet Protocol"
 
 msgid "Protection Dongle for Savage Quest"
-msgstr "Savage Quest保护加密狗"
+msgstr "Savage Quest 保护加密狗"
 
 msgid "Serial Passthrough Device"
 msgstr "串行端口直通设备"
@@ -2815,13 +2815,13 @@ msgid "SoundFont files"
 msgstr "SoundFont 文件"
 
 msgid "Local Switch"
-msgstr "本地开关"
+msgstr "本地交换机"
 
 msgid "Remote Switch"
-msgstr "远程开关"
+msgstr "远程交换机"
 
 msgid "Switch:"
-msgstr "开关："
+msgstr "交换机："
 
 msgid "Hub Mode"
 msgstr "集线器模式"
@@ -2833,7 +2833,7 @@ msgid "ISA RAM:"
 msgstr "ISA 内存："
 
 msgid "ISA ROM:"
-msgstr "SA ROM："
+msgstr "ISA ROM："
 
 msgid "&Wipe NVRAM"
 msgstr "清除 NVRAM(&W)"
@@ -2875,7 +2875,7 @@ msgid "Update check complete"
 msgstr "检查更新已完成"
 
 msgid "stable"
-msgstr "稳定的"
+msgstr "稳定版"
 
 msgid "beta"
 msgstr "测试版"
@@ -2887,7 +2887,7 @@ msgid "version"
 msgstr "版本"
 
 msgid "build"
-msgstr "版本"
+msgstr "构建"
 
 msgid "You are currently running version <b>%1</b>."
 msgstr "您当前正在运行版本 <b>%1</b> 。"
@@ -2896,10 +2896,10 @@ msgid "<b>Version %1</b> is now available."
 msgstr "<b>版本 %1</b>现已可用。"
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "您当前正在运行版本 <b>%1</b> 。"
+msgstr "您当前正在运行构建 <b>%1</b> 。"
 
 msgid "<b>Build %1</b> is now available."
-msgstr "<b>版本 %1</b>现已可用。"
+msgstr "<b>构建 %1</b>现已可用。"
 
 msgid "Would you like to visit the download page?"
 msgstr "您想访问下载页面吗？"
@@ -2932,7 +2932,7 @@ msgid "The system will not be added."
 msgstr "系统将不会被添加。"
 
 msgid "&Update mouse every CPU frame"
-msgstr "每 CPU 帧更新鼠标(&U)"
+msgstr "逐 CPU 帧更新鼠标(&U)"
 
 msgid "Hue"
 msgstr "色调"
@@ -2950,7 +2950,7 @@ msgid "Sharpness"
 msgstr "锐度"
 
 msgid "&CGA composite settings..."
-msgstr "CGA 复合模式的设置...(&C)"
+msgstr "CGA 复合模式设置...(&C)"
 
 msgid "CGA composite settings"
-msgstr "CGA 复合模式的设置"
+msgstr "CGA 复合模式设置"
