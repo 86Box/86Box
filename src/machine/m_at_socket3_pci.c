@@ -539,6 +539,7 @@ machine_at_ninja_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 1, 2, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 1, 2, 1);
 
+    machine_force_ps2(1);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&intel_flash_bxt_ami_device);
