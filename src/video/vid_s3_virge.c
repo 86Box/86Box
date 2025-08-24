@@ -5766,8 +5766,8 @@ static const device_config_t s3_virge_357_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
+            { .description = "2 MB", .value = 2 },
             { .description = "4 MB", .value = 4 },
-            { .description = "8 MB", .value = 8 },
             { .description = ""                 }
         },
         .bios           = { { 0 } }
