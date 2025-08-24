@@ -758,6 +758,22 @@ pc_init(int argc, char *argv[])
     path_slash(exe_path);
 
     /*
+     * Determine if we are running in portable mode.
+     *
+     * We enable portable mode if the EXE path
+     * contains the global config file.
+     */
+    path_append_filename(global, exe_path, GLOBAL_CONFIG_FILE);
+
+    FILE *fp = fopen(global, "r");
+    if (fp) {
+        portable_mode = 1;
+        fclose(fp);
+    }
+
+    global = NULL;
+
+    /*
      * Get the current working directory.
      *
      * This is normally the directory from where the
