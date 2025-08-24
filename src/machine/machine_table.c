@@ -15049,7 +15049,7 @@ const machine_t machines[] = {
     {
         .name = "[i430VX] Gateway 2000 Tigereye",
         .internal_name = "gw2kte",
-        .type = MACHINE_TYPE_SOCKET7_3V,
+        .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_INTEL_430VX,
         .init = machine_at_gw2kte_init,
         .p1_handler = machine_generic_p1_handler,
