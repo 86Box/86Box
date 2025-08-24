@@ -60,6 +60,7 @@ QVector<QPair<QString, QString>> ProgSettings::languages = {
     { "ja-JP",  "Japanese (Japan)"         },
     { "ko-KR",  "Korean (Korea)"           },
     { "nl-NL",  "Dutch (Netherlands)"      },
+    { "nb-NO",  "Norwegian (Bokmål)"       },
     { "pl-PL",  "Polish (Poland)"          },
     { "pt-BR",  "Portuguese (Brazil)"      },
     { "pt-PT",  "Portuguese (Portugal)"    },
