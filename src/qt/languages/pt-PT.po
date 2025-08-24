@@ -13,7 +13,7 @@ msgid "&Keyboard requires capture"
 msgstr "&Teclado requere captura"
 
 msgid "&Right CTRL is left ALT"
-msgstr "&CTRL direito é ALT esquerdo"
+msgstr "CTRL &direito é ALT esquerdo"
 
 msgid "&Hard Reset..."
 msgstr "&Reinicialização completa..."
@@ -31,7 +31,7 @@ msgid "Pause"
 msgstr "Pausa"
 
 msgid "Re&sume"
-msgstr "Re&tomar"
+msgstr "Reto&mar"
 
 msgid "E&xit"
 msgstr "&Sair"
@@ -1600,7 +1600,7 @@ msgid "Fast"
 msgstr "Rápido"
 
 msgid "&Auto-pause on focus loss"
-msgstr "Pausa &automática na perda de focagem"
+msgstr "Pa&usa automática na perda de focagem"
 
 msgid "WinBox is no longer supported"
 msgstr "O WinBox não é mais suportado"
