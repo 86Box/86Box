@@ -15047,9 +15047,9 @@ const machine_t machines[] = {
     /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
     {
-        .name = "[i430VX] Gateway 2000 Tigereye",
+        .name = "[i430VX] Gateway 2000 Htman",
         .internal_name = "gw2kte",
-        .type = MACHINE_TYPE_SOCKET7_3V,
+        .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_INTEL_430VX,
         .init = machine_at_gw2kte_init,
         .p1_handler = machine_generic_p1_handler,
@@ -15058,16 +15058,17 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
             .min_bus = 50000000,
             .max_bus = 66666667,
-            .min_voltage = 3380,
+            .min_voltage = 2200,
             .max_voltage = 3520,
             .min_multi = 1.5,
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -15086,7 +15087,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = NULL,
+        .snd_device = &sb_vibra16c_onboard_device,
         .net_device = NULL
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
