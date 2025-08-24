@@ -9723,7 +9723,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCIV,
+        .bus_flags = MACHINE_PS2_PCIV,
         .flags = MACHINE_SUPER_IO | MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
