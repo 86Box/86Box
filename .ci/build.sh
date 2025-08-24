@@ -48,6 +48,13 @@
 #     architecture when invoking build.sh (either standalone or as part of an universal build)
 #   - port and sed are called through sudo to manage dependencies; make sure those are configured
 #     as NOPASSWD in /etc/sudoers if you're doing unattended builds
+#   - Binaries are ad-hoc signed by default; specify a keychain name in ~/86box-keychain-name.txt
+#     and password in ~/86box-keychain-password.txt to sign binaries with the first developer
+#     certificate found inside that keychain.
+#   - Notarization uses credentials stored in the same keychain used for signing. To save these
+#     credentials, you must find the keychain's file path, run notarytool store-credentials with
+#     --keychain pointed at that path, and specify the profile name you passed to notarytool in
+#     ~/86box-keychain-notarytool.txt
 #
 
 # Define common functions.
@@ -124,6 +131,70 @@ save_buildtag() {
 	[ -n "$2" ] && local contents="$2"
 	echo "$contents" > "$cache_dir/buildtag.$1"
 	return $?
+}
+
+mac_keychain() {
+	keychain_name=$(cat ~/86box-keychain-name.txt)
+	if [ -n "$keychain_name" ]
+	then
+		echo $keychain_name
+		security list-keychains -d user -s $(security list-keychains -d user | grep -Fv "/$keychain_name" | sed -e s/\"//g) "$keychain_name"
+		security unlock-keychain -p "$(cat ~/86box-keychain-password.txt)" "$keychain_name"
+		return $?
+	fi
+}
+mac_signidentity() {
+	if keychain_name=$(mac_keychain)
+	then
+		if [ -n "$keychain_name" ]
+		then
+			cert_name=$(security find-identity -v -p codesigning "$keychain_name" | perl -nle 'print for /([0-9A-F]+) "Developer ID Application: /')
+			if [ -n "$cert_name" ]
+			then
+				echo [-] Using signing certificate [$cert_name] in keychain [$keychain_name] >&2
+				echo "--keychain $keychain_name -s $cert_name"
+				return 0
+			else
+				echo -n [!] Keychain [$keychain_name] has no developer certificate >&2
+			fi
+		else
+			echo -n [!] No keychain specified >&2
+		fi
+	else
+		echo -n [!] Keychain [$keychain_name] failed to unlock >&2
+	fi
+	echo , using ad-hoc signing. >&2
+	echo "-s -"
+}
+mac_notarize() {
+	if keychain_name=$(mac_keychain)
+	then
+		if [ -n "$keychain_name" ]
+		then
+			keychain_profile=$(cat ~/86box-keychain-notarytool.txt)
+			if [ -n "$keychain_profile" ]
+			then
+				keychain_path=$(security list-keychains -d user | grep -F "/$keychain_name" | sed -e s/\"//g)
+				if [ -n "$keychain_path" ]
+				then
+					echo [-] Notarizing with profile [$keychain_profile] in keychain [$keychain_name]
+					# FIXME: needs a stapling system
+					xcrun notarytool submit "$1" --keychain-profile "$keychain_profile" --keychain "$keychain_path" --no-wait
+					return 0
+				else
+					echo -n [!] File path for keychain $keychain_name not found >&2
+				fi
+			else
+				echo -n [!] No keychain profile specified >&2
+			fi
+		else
+			echo -n [!] No keychain specified >&2
+		fi
+	else
+		echo -n [!] Keychain $keychain_name failed to unlock >&2
+	fi
+	echo , skipping notarization. >&2
+	return 1
 }
 
 # Set common variables.
@@ -472,12 +543,13 @@ then
 		mv "archive_tmp_universal/$merge_src.app" "$app_bundle_name"
 
 		# Sign final app bundle.
-		arch -"$(uname -m)" codesign --force --deep -s - -o runtime --entitlements src/mac/entitlements.plist --timestamp "$app_bundle_name"
+		arch -"$(uname -m)" codesign --force --deep $(mac_signidentity) -o runtime --entitlements src/mac/entitlements.plist --timestamp "$app_bundle_name"
 
 		# Create zip.
 		echo [-] Creating artifact archive
 		cd archive_tmp
-		zip --symlinks -r "$cwd/$package_name.zip" .
+		zip_name="$cwd/$package_name.zip"
+		zip --symlinks -r "$zip_name" .
 		status=$?
 
 		# Check if the archival succeeded.
@@ -486,6 +558,9 @@ then
 			echo [!] Artifact archive creation failed with status [$status]
 			exit 7
 		fi
+
+		# Notarize the compressed app bundle.
+		mac_notarize "$zip_name"
 
 		# All good.
 		echo [-] Universal build of [$package_name] for [$arch] with flags [$cmake_flags] successful
@@ -905,7 +980,7 @@ then
 		fi
 
 		# Sign app bundle, unless we're in an universal build.
-		[ $skip_archive -eq 0 ] && codesign --force --deep -s - -o runtime --entitlements src/mac/entitlements.plist --timestamp "archive_tmp/"*".app"
+		[ $skip_archive -eq 0 ] && codesign --force --deep $(mac_signidentity) -o runtime --entitlements src/mac/entitlements.plist --timestamp "archive_tmp/"*".app"
 	elif [ "$BUILD_TAG" = "precondition" ]
 	then
 		# Continue with no app bundle on a dry build.
@@ -1104,7 +1179,8 @@ elif is_mac
 then
 	# Create zip.
 	cd archive_tmp
-	zip --symlinks -r "$cwd/$package_name.zip" .
+	zip_name="$cwd/$package_name.zip"
+	zip --symlinks -r "$zip_name" .
 	status=$?
 else
 	# Determine AppImage runtime architecture.
@@ -1179,6 +1255,9 @@ then
 	echo [!] Artifact archive creation failed with status [$status]
 	exit 7
 fi
+
+# Notarize the compressed app bundle if we're on macOS.
+is_mac && mac_notarize "$zip_name"
 
 # All good.
 echo [-] Build of [$package_name] for [$arch] with flags [$cmake_flags] successful
