@@ -910,7 +910,7 @@ msgid "None"
 msgstr "なし"
 
 msgid "%1 MB (CHS: %2, %3, %4)"
-msgstr "%u MB (CHS値: %i、%i、%i)"
+msgstr "%1 MB (CHS値: %2、%3、%4)"
 
 msgid "Floppy %1 (%2): %3"
 msgstr "フロッピー %1 (%2): %3"
