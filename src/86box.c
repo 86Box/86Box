@@ -228,6 +228,8 @@ int      other_scsi_present = 0;                                  /* SCSI contro
                                                                      present */
 
 int      is_pcjr = 0;                                             /* The current machine is PCjr. */
+int      portable_mode = 0;                                       /* We are running in portable mode
+                                                                     (global dirs = exe path) */
 
 // Accelerator key array
 struct accelKey acc_keys[NUM_ACCELS];
