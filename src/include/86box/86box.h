@@ -198,7 +198,7 @@ extern int  open_dir_usr_path;     /* default file open dialog directory of usr_
 extern char uuid[MAX_UUID_LEN];    /* UUID or machine identifier */
 extern char vmm_path[1024];        /* VM Manager path to scan */
 extern int  start_vmm;             /* the current execution will start the manager */
-extern int  portable_mode          /* we are running in portable mode 
+extern int  portable_mode;         /* we are running in portable mode 
                                       (global dirs = exe path) */
 
 #ifndef USE_NEW_DYNAREC
