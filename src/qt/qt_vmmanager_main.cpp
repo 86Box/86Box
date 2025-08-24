@@ -304,7 +304,7 @@ illegal_chars:
                 }
             });
 
-            QAction openPrinterFolderAction(tr("Open &printer tray..."));
+            QAction openPrinterFolderAction(tr("Open p&rinter tray..."));
             contextMenu.addAction(&openPrinterFolderAction);
             connect(&openPrinterFolderAction, &QAction::triggered, [indexAt] {
                 if (const auto printerDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/printer/"); !printerDir.isEmpty()) {
