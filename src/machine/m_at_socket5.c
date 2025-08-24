@@ -575,6 +575,8 @@ machine_at_pat54pv_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&opti5x7_device);
+
+    machine_force_ps2(1);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
