@@ -155,15 +155,15 @@ mac_signidentity() {
 				echo "--keychain $keychain_name -s $cert_name"
 				return 0
 			else
-				echo -n [!] Keychain [$keychain_name] has no developer certificate >&2
+				err="Keychain [$keychain_name] has no developer certificate"
 			fi
 		else
-			echo -n [!] No keychain specified >&2
+			err="No keychain specified"
 		fi
 	else
-		echo -n [!] Keychain [$keychain_name] failed to unlock >&2
+		err="Keychain [$keychain_name] failed to unlock"
 	fi
-	echo , using ad-hoc signing. >&2
+	echo [!] $err, falling back to ad-hoc signing >&2
 	echo "-s -"
 }
 mac_notarize() {
@@ -174,7 +174,7 @@ mac_notarize() {
 			keychain_profile=$(cat ~/86box-keychain-notarytool.txt)
 			if [ -n "$keychain_profile" ]
 			then
-				keychain_path=$(security list-keychains -d user | grep -F "/$keychain_name" | sed -e s/\"//g)
+				keychain_path=$(security list-keychains -d user | grep -F "/$keychain_name" | sed -e s/\ \*\"//g)
 				if [ -n "$keychain_path" ]
 				then
 					echo [-] Notarizing with profile [$keychain_profile] in keychain [$keychain_name]
@@ -182,18 +182,18 @@ mac_notarize() {
 					xcrun notarytool submit "$1" --keychain-profile "$keychain_profile" --keychain "$keychain_path" --no-wait
 					return 0
 				else
-					echo -n [!] File path for keychain $keychain_name not found >&2
+					err="File path for keychain [$keychain_name] not found"
 				fi
 			else
-				echo -n [!] No keychain profile specified >&2
+				err="No keychain profile specified"
 			fi
 		else
-			echo -n [!] No keychain specified >&2
+			err="No keychain specified"
 		fi
 	else
-		echo -n [!] Keychain $keychain_name failed to unlock >&2
+		err="Keychain [$keychain_name] failed to unlock"
 	fi
-	echo , skipping notarization. >&2
+	echo [!] $err, skipping notarization
 	return 1
 }
 
