@@ -755,6 +755,7 @@ pc_init(int argc, char *argv[])
         path_get_dirname(exe_path, p);
 #endif
 
+    path_normalize(exe_path);
     path_slash(exe_path);
 
     /*
