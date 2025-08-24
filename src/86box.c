@@ -763,15 +763,13 @@ pc_init(int argc, char *argv[])
      * We enable portable mode if the EXE path
      * contains the global config file.
      */
-    path_append_filename(global, exe_path, GLOBAL_CONFIG_FILE);
+    path_append_filename(temp, exe_path, GLOBAL_CONFIG_FILE);
 
-    FILE *fp = fopen(global, "r");
+    FILE *fp = fopen(temp, "r");
     if (fp) {
         portable_mode = 1;
         fclose(fp);
     }
-
-    global = NULL;
 
     /*
      * Get the current working directory.
