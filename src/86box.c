@@ -1112,6 +1112,10 @@ usage:
     pclog("#\n# %ls v%ls logfile, created %s\n#\n",
           EMU_NAME_W, EMU_VERSION_FULL_W, temp);
 
+    if (portable_mode) {
+        pclog("# Portable mode enabled.\n");
+    }
+
     pclog("# Emulator path: %s\n", exe_path);
     pclog("# Global configuration file: %s\n", global_cfg_path);
 
