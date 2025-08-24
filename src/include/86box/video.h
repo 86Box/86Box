@@ -130,6 +130,8 @@ typedef struct monitor_t {
     int                      mon_force_resize;
     int                      mon_fullchange;
     int                      mon_changeframecount;
+    int                      mon_renderedframes;
+    atomic_int               mon_actualrenderedframes;
     atomic_int               mon_screenshots;
     uint32_t                *mon_pal_lookup;
     int                     *mon_cga_palette;
@@ -137,6 +139,8 @@ typedef struct monitor_t {
     int                      mon_cga_palette_static; /* Whether it should not be freed by the API. */
     const video_timings_t   *mon_vid_timings;
     int                      mon_vid_type;
+    atomic_bool              mon_interlace;
+    atomic_bool              mon_composite;
     struct blit_data_struct *mon_blit_data_ptr;
 } monitor_t;
 
@@ -399,11 +403,10 @@ extern const device_t gd5446_pci_device;
 extern const device_t gd5446_stb_pci_device;
 extern const device_t gd5480_pci_device;
 
-
-/* IBM CGA*/
+/* IBM CGA */
 extern const device_t cga_device;
 
-/* pravetz CGA */
+/* Pravetz CGA */
 extern const device_t cga_pravetz_device;
 
 /* Compaq CGA */
@@ -573,7 +576,6 @@ extern const device_t s3_diamond_stealth_2000pro_pci_device;
 extern const device_t s3_virge_385_pci_device;
 extern const device_t s3_virge_357_pci_device;
 extern const device_t s3_virge_357_agp_device;
-extern const device_t s3_diamond_stealth_4000_pci_device;
 extern const device_t s3_diamond_stealth_4000_agp_device;
 extern const device_t s3_trio3d2x_pci_device;
 extern const device_t s3_trio3d2x_agp_device;
@@ -627,6 +629,9 @@ extern const device_t velocity_200_agp_device;
 
 /* Wyse 700 */
 extern const device_t wy700_device;
+
+/* Yamaha V6355 */
+extern const device_t v6355d_device;
 
 /* Tandy */
 extern const device_t tandy_1000_video_device; 

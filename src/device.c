@@ -349,12 +349,6 @@ device_reset_all(uint32_t match_flags)
                 devices[c]->reset(device_priv[c]);
         }
     }
-
-#ifdef UNCOMMENT_LATER
-    /* TODO: Actually convert the LPT devices to device_t's. */
-    if ((match_flags == DEVICE_ALL) || (match_flags == DEVICE_PCI))
-        lpt_reset();
-#endif
 }
 
 void *
@@ -469,7 +463,6 @@ device_get_bios_local(const device_t *dev, const char *internal_name)
                            (bios->name != NULL) &&
                            (bios->internal_name != NULL) &&
                            (bios->files_no != 0)) {
-                        printf("Internal name was: %s", internal_name);
                         if (!strcmp(internal_name, bios->internal_name))
                             return bios->local;
                         bios++;
@@ -666,9 +659,9 @@ device_get_name(const device_t *dev, int bus, char *name)
             fbus = strstr(tname, sbus);
             if (fbus == tname)
                 strcat(name, tname + strlen(sbus) + 1);
-            /* Special case to not strip the "oPCI" from "Ensoniq AudioPCI" or
-               the "-ISA" from "AMD PCnet-ISA". */
-            else if ((fbus == NULL) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-') || (*(fbus - 2) == 'r'))
+            /* Special case to not strip the "oPCI" from "Ensoniq AudioPCI",
+               the "-ISA" from "AMD PCnet-ISA" or the " PCI" from "CMD PCI-064x". */
+            else if ((fbus == NULL) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-') || (*(fbus - 2) == 'r') || ((fbus[0] == 'P') && (fbus[1] == 'C') && (fbus[2] == 'I') && (fbus[3] == '-')))
                 strcat(name, tname);
             else {
                 strncat(name, tname, fbus - tname - 1);

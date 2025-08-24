@@ -13,7 +13,7 @@ msgid "&Keyboard requires capture"
 msgstr "&Teclado requere captura"
 
 msgid "&Right CTRL is left ALT"
-msgstr "&CTRL direito é ALT esquerdo"
+msgstr "CTRL &direito é ALT esquerdo"
 
 msgid "&Hard Reset..."
 msgstr "&Reinicialização completa..."
@@ -27,17 +27,23 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Pausa"
 
-msgid "E&xit..."
-msgstr "&Sair..."
+msgid "Pause"
+msgstr "Pausa"
+
+msgid "Re&sume"
+msgstr "Reto&mar"
+
+msgid "E&xit"
+msgstr "&Sair"
 
 msgid "&View"
 msgstr "&Ver"
 
 msgid "&Hide status bar"
-msgstr "&Ocultar barra de estado"
+msgstr "Ocultar &barra de estado"
 
 msgid "Hide &toolbar"
-msgstr "Hide &toolbar"
+msgstr "Ocultar barra de &ferramentas"
 
 msgid "&Resizeable window"
 msgstr "&Janela redimensionável"
@@ -51,20 +57,17 @@ msgstr "&Renderizador"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (&OpenGL)"
-
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (Núcleo 3.0)"
 
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "&Especificar dimensões..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "&Forçar rácio de visualização 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Forçar rácio de visualização &4:3"
 
 msgid "&Window scale factor"
 msgstr "F&actor de escala de janela"
@@ -99,8 +102,8 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
-msgstr "Método de filtragem"
+msgid "Fi&lter method"
+msgstr "Método de fil&tragem"
 
 msgid "&Nearest"
 msgstr "&Mais próximo"
@@ -112,10 +115,10 @@ msgid "Hi&DPI scaling"
 msgstr "Escala Hi&DPI"
 
 msgid "&Fullscreen"
-msgstr "E&crã cheio"
+msgstr "Ecrã c&heio"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Modo &de estiramento na tela cheia"
+msgstr "M&odo de estiramento na tela cheia"
 
 msgid "&Full screen stretch"
 msgstr "&Estiramento na tela cheia"
@@ -132,8 +135,8 @@ msgstr "Escala &inteira"
 msgid "4:&3 Integer scale"
 msgstr "Escala inteira 4:&3"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "Definições E&GA/(S)VGA"
+msgid "EGA/(S)&VGA settings"
+msgstr "Definições EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "Monitor VGA &invertido"
@@ -144,8 +147,14 @@ msgstr "&Tipo de ecrã VGA"
 msgid "RGB &Color"
 msgstr "&Cores RGB"
 
+msgid "RGB (no brown)"
+msgstr "RGB (sem castanho)"
+
 msgid "&RGB Grayscale"
 msgstr "&RGB em escala de cinzentos"
+
+msgid "Generic RGBI color monitor"
+msgstr "Monitor RGBI genérico em cores"
 
 msgid "&Amber monitor"
 msgstr "Monitor âmb&ar"
@@ -172,7 +181,7 @@ msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
 msgstr "Overscan de CGA/PCjr/Tandy/E&GA/(S)VGA"
 
 msgid "Change contrast for &monochrome display"
-msgstr "Mudar &contraste para ecrã monocromático"
+msgstr "Mudar contraste para ecrã &monocromático"
 
 msgid "&Media"
 msgstr "&Media"
@@ -183,11 +192,14 @@ msgstr "&Ferramentas"
 msgid "&Settings..."
 msgstr "&Definições..."
 
+msgid "Settings..."
+msgstr "Definições..."
+
 msgid "&Update status bar icons"
 msgstr "&Atualizar ícones da barra de estado"
 
 msgid "Take s&creenshot"
-msgstr "Gravar imagem de ecrã"
+msgstr "Gravar imagem de &ecrã"
 
 msgid "S&ound"
 msgstr "&Som"
@@ -196,7 +208,7 @@ msgid "&Preferences..."
 msgstr "&Preferências..."
 
 msgid "Enable &Discord integration"
-msgstr "Ativar integração com &Discord"
+msgstr "Ativar integração com D&iscord"
 
 msgid "Sound &gain..."
 msgstr "&Ganho de som..."
@@ -208,7 +220,7 @@ msgid "End trace"
 msgstr "Terminar o rastreio"
 
 msgid "&Help"
-msgstr "&Ajuda"
+msgstr "Aj&uda"
 
 msgid "&Documentation..."
 msgstr "&Documentação..."
@@ -348,6 +360,9 @@ msgstr "Máquina:"
 msgid "Configure"
 msgstr "Configurar"
 
+msgid "CPU:"
+msgstr ""
+
 msgid "CPU type:"
 msgstr "Tipo do CPU:"
 
@@ -384,6 +399,15 @@ msgstr "Ativada (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Recompilador dinâmico"
 
+msgid "CPU frame size"
+msgstr "Tamanho de blocos do CPU"
+
+msgid "Larger frames (less smooth)"
+msgstr "Blocos mais grandes (menos suave)"
+
+msgid "Smaller frames (smoother)"
+msgstr "Blocos mais pequenos (mais suave)"
+
 msgid "Video:"
 msgstr "Vídeo:"
 
@@ -399,11 +423,26 @@ msgstr "Gráficos IBM 8514/A"
 msgid "XGA Graphics"
 msgstr "Gráficos XGA"
 
+msgid "IBM PS/55 Display Adapter Graphics"
+msgstr "Adaptador de apresentação gráfica IBM PS/55"
+
+msgid "Keyboard:"
+msgstr "Teclado:"
+
+msgid "Keyboard"
+msgstr "Teclado"
+
 msgid "Mouse:"
 msgstr "Rato:"
 
+msgid "Mouse"
+msgstr "Rato"
+
 msgid "Joystick:"
 msgstr "Joystick:"
+
+msgid "Joystick"
+msgstr "Joystick"
 
 msgid "Joystick 1..."
 msgstr "Joystick 1..."
@@ -434,6 +473,9 @@ msgstr "Disp. saída MIDI:"
 
 msgid "MIDI In Device:"
 msgstr "Disp. entrada MIDI:"
+
+msgid "MIDI Out:"
+msgstr "Saída MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "MPU-401 autónomo"
@@ -474,6 +516,9 @@ msgstr "Dispositivo LPT3:"
 msgid "LPT4 Device:"
 msgstr "Dispositivo LPT4:"
 
+msgid "Internal LPT ECP DMA:"
+msgstr "DMA do ECP do LPT interno:"
+
 msgid "Serial port 1"
 msgstr "Porta de série 1"
 
@@ -498,17 +543,20 @@ msgstr "Porta paralela 3"
 msgid "Parallel port 4"
 msgstr "Porta paralela 4"
 
-msgid "HD Controller:"
-msgstr "Controlador HD:"
-
 msgid "FD Controller:"
 msgstr "Controlador FD:"
+
+msgid "CD-ROM Controller:"
+msgstr "Controlador CD-ROM:"
 
 msgid "Tertiary IDE Controller"
 msgstr "Controlador IDE terciário"
 
 msgid "Quaternary IDE Controller"
 msgstr "Controlador IDE quaternário"
+
+msgid "Hard disk"
+msgstr "Disco rígido"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -530,6 +578,9 @@ msgstr "Cassete"
 
 msgid "Hard disks:"
 msgstr "Discos rígidos:"
+
+msgid "Firmware Version"
+msgstr "Versão de firmware"
 
 msgid "&New..."
 msgstr "&Novo..."
@@ -588,8 +639,14 @@ msgstr "Unidades CD-ROM:"
 msgid "MO drives:"
 msgstr "Unidades magneto-ópticas:"
 
-msgid "ZIP drives:"
-msgstr "Unidades ZIP:"
+msgid "MO:"
+msgstr "Magneto-ópticos:"
+
+msgid "Removable disks:"
+msgstr "Discos amovíveis:"
+
+msgid "Removable disk drives:"
+msgstr "Unidades de disco amovível:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +656,9 @@ msgstr "ISA RTC:"
 
 msgid "ISA Memory Expansion"
 msgstr "Expansão de memória ISA"
+
+msgid "ISA ROM Cards"
+msgstr "Placas ROM ISA"
 
 msgid "Card 1:"
 msgstr "Placa 1:"
@@ -611,6 +671,15 @@ msgstr "Placa 3:"
 
 msgid "Card 4:"
 msgstr "Placa 4:"
+
+msgid "Generic ISA ROM Board"
+msgstr "Placa ROM ISA genérica"
+
+msgid "Generic Dual ISA ROM Board"
+msgstr "Placa ROM ISA dual genérica"
+
+msgid "Generic Quad ISA ROM Board"
+msgstr "Placa ROM ISA quad genérica"
 
 msgid "ISABugger device"
 msgstr "Dispositivo ISABugger"
@@ -633,14 +702,20 @@ msgstr " - EM PAUSA"
 msgid "Speed"
 msgstr "Velocidade"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr "Disco amovível %1 (%2): %3"
 
-msgid "ZIP images"
-msgstr "Imagens ZIP"
+msgid "&Removable disk %1 (%2): %3"
+msgstr "&Disco amovível %1 (%2): %3"
+
+msgid "Removable disk images"
+msgstr "Imagens de disco amovível"
+
+msgid "Image %1"
+msgstr "Imagem %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "O 86Box não conseguiu encontrar nenhuma imagem ROM utilizável.\n\nPor favor, vá a href=\"https://github.com/86Box/roms/releases/latest\">descarregue</a> um pacote ROM e instale-o na pasta \"roms\"."
+msgstr "O 86Box não conseguiu encontrar nenhuma imagem ROM utilizável.\n\nPor favor, vá a <a href=\"https://github.com/86Box/roms/releases/latest\">descarregue</a> um pacote ROM e instale-o na pasta \"roms\"."
 
 msgid "(empty)"
 msgstr "(empty)"
@@ -696,11 +771,29 @@ msgstr "Rede"
 msgid "Ports (COM & LPT)"
 msgstr "Portas (COM e LPT)"
 
+msgid "Ports"
+msgstr "Portas"
+
+msgid "Serial ports:"
+msgstr "Portas série:"
+
+msgid "Parallel ports:"
+msgstr "Portas paralelas:"
+
 msgid "Storage controllers"
 msgstr "Dispositivos de armazenamento"
 
 msgid "Hard disks"
 msgstr "Discos rígidos"
+
+msgid "Disks:"
+msgstr "Discos:"
+
+msgid "Floppy:"
+msgstr "Disquete:"
+
+msgid "Controllers:"
+msgstr "Controladores:"
 
 msgid "Floppy & CD-ROM drives"
 msgstr "Unidades de disquete e CD-ROM"
@@ -709,6 +802,9 @@ msgid "Other removable devices"
 msgstr "Outros dispostivos removíveis"
 
 msgid "Other peripherals"
+msgstr "Outros dispositivos"
+
+msgid "Other devices"
 msgstr "Outros dispositivos"
 
 msgid "Click to capture mouse"
@@ -777,11 +873,38 @@ msgstr "Joystick de 4 eixos, 4 botões"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr "CH Flightstick Pro + CH Pedals"
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr "Thrustmaster FCS + Rudder Control System"
+
+msgid "2-button gamepad(s)"
+msgstr "Manípulo(s) de jogos de 2 botões"
+
+msgid "2-button flight yoke"
+msgstr "Manípulo de voo de 2 botões"
+
+msgid "4-button gamepad"
+msgstr "Manípulo(s) de jogos de 4 botões"
+
+msgid "4-button flight yoke"
+msgstr "Manípulo de voo de 4 botões"
+
+msgid "2-button flight yoke with throttle"
+msgstr "Manípulo de voo de 2 botões com acelerador"
+
+msgid "4-button flight yoke with throttle"
+msgstr "Manípulo de voo de 4 botões com acelerador"
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr "Volante Win95 (de 3 eixos, 4 botões)"
 
 msgid "None"
 msgstr "Nenhum"
@@ -791,6 +914,9 @@ msgstr "%1 MB (CCS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
 msgstr "Disquete %1 (%2): %3"
+
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Disquete %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Imagens avançadas de sector"
@@ -813,6 +939,9 @@ msgstr "Não foi possível inicializar o GhostPCL"
 msgid "MO %1 (%2): %3"
 msgstr "Magneto-óptico %1 (%2): %3"
 
+msgid "&MO %1 (%2): %3"
+msgstr "&Magneto-óptico %1 (%2): %3"
+
 msgid "MO images"
 msgstr "Imagens magneto-ópticas"
 
@@ -821,6 +950,15 @@ msgstr "Bem-vindos ao 86Box!"
 
 msgid "Internal device"
 msgstr "Dispositivo integrado"
+
+msgid "&File"
+msgstr "&Ficheiro"
+
+msgid "&New machine..."
+msgstr "&Nova máquina"
+
+msgid "&Check for updates..."
+msgstr "&Verificar para atualizações..."
 
 msgid "Exit"
 msgstr "Sair"
@@ -897,11 +1035,17 @@ msgstr "Continuar"
 msgid "Cassette: %1"
 msgstr "Cassete: %1"
 
+msgid "C&assette: %1"
+msgstr "C&assete: %1"
+
 msgid "Cassette images"
 msgstr "Imagens de cassete"
 
 msgid "Cartridge %1: %2"
 msgstr "Cartucho %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Car&tucho %1: %2"
 
 msgid "Cartridge images"
 msgstr "Imagens de cartucho"
@@ -912,6 +1056,9 @@ msgstr "Retomar execução"
 msgid "Pause execution"
 msgstr "Pausar execução"
 
+msgid "Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del"
+
 msgid "Press Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del"
 
@@ -921,8 +1068,278 @@ msgstr "Ctrl+Alt+Esc"
 msgid "Hard reset"
 msgstr "Reinicialização completa"
 
+msgid "Force shutdown"
+msgstr "Desligamento forçado"
+
+msgid "Start"
+msgstr "Iniciar"
+
+msgid "Not running"
+msgstr "Não em execução"
+
+msgid "Running"
+msgstr "Em execução"
+
+msgid "Paused"
+msgstr "Em pausa"
+
+msgid "Waiting"
+msgstr "Em espera"
+
+msgid "Powered Off"
+msgstr "Desligado"
+
+msgid "%n running"
+msgstr "%n em execução"
+
+msgid "%n paused"
+msgstr "%n em pausa"
+
+msgid "%n waiting"
+msgstr "%n em espera"
+
+msgid "%1 total"
+msgstr "%1 total"
+
+msgid "VMs: %1"
+msgstr "MVs: %1"
+
+msgid "System Directory:"
+msgstr "Directório de sistema:"
+
+msgid "Choose directory"
+msgstr "Escolher directório"
+
+msgid "Choose configuration file"
+msgstr "Escolher ficheiro de configuração"
+
+msgid "86Box configuration files (86box.cfg)"
+msgstr "Ficheiros de configuração do 86Box (86box.cfg)"
+
+msgid "Configuration read failed"
+msgstr "Falha na leitura da configuração"
+
+msgid "Unable to open the selected configuration file for reading: %1"
+msgstr "Não foi possível abrir o ficheir de configurção seleccionado para leitura: %1"
+
+msgid "Use regular expressions in search box"
+msgstr "Usa expressões regulares na caixa de procura"
+
+msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%1 máquina(s) estão actualmente activas. Quer mesmo sair do gerenciador de MVs"
+
+msgid "Add new system wizard"
+msgstr "Assistende de adicionamento do novo sistema"
+
+msgid "Introduction"
+msgstr "Introdução"
+
+msgid "This will help you add a new system to 86Box."
+msgstr "Esto ajudará-lhe a adicinar um novo sistema ao 86Box."
+
+msgid "New configuration"
+msgstr "Nova configuração"
+
+msgid "Complete"
+msgstr "Completar"
+
+msgid "The wizard will now launch the configuration for the new system."
+msgstr "Este assistente agora vai abrir as definições do novo sistema."
+
+msgid "Use existing configuration"
+msgstr "Utilizar configuração existente"
+
+msgid "Type some notes here"
+msgstr "Escreve algumas notas aqui"
+
+msgid "Paste the contents of the existing configuration file into the box below."
+msgstr "Colar o conteúdo do firecheiro da configuração existente na caixa em baixo."
+
+msgid "Load configuration from file"
+msgstr "Carregar configuração a partir do ficheiro"
+
+msgid "System name"
+msgstr "Nome do sistema"
+
+msgid "System name:"
+msgstr "Nome do sistema:"
+
+msgid "System name cannot contain certain characters"
+msgstr "O nome do sistem não pode conter alguns caracteres"
+
+msgid "System name already exists"
+msgstr "O nome do sistema já existe"
+
+msgid "Please enter a directory for the system"
+msgstr "Por favor entre o directório para o sistema"
+
+msgid "Directory does not exist"
+msgstr "O directório não existe"
+
+msgid "A new directory for the system will be created in the selected directory above"
+msgstr "O novo directório para o sistema será criado no directorio selecciado em cima"
+
+msgid "System location:"
+msgstr "Localização do sistema:"
+
+msgid "System name and location"
+msgstr "Nome e localização do sistema"
+
+msgid "Enter the name of the system and choose the location"
+msgstr "Escreve o nome do sistema e escolha a localização"
+
+msgid "Enter the name of the system"
+msgstr "Escreve o nome do sistema"
+
+msgid "Please enter a system name"
+msgstr "Por favor, escreve o nome do sistema"
+
+msgid "Display name (optional):"
+msgstr "Nome apresentado (opcional):"
+
+msgid "Display name:"
+msgstr "Nome apresentado:"
+
+msgid "Set display name"
+msgstr "Definir o nome apresentado"
+
+msgid "Enter the new display name (blank to reset)"
+msgstr "Escreve o nome apresentado (vazio para repor)"
+
+msgid "Change &display name..."
+msgstr "Alterar o nome &apresentado..."
+
+msgid "Context Menu"
+msgstr "Menu de contexto"
+
+msgid "&Open folder..."
+msgstr "&Abrir pasta..."
+
+msgid "Open p&rinter tray..."
+msgstr "Abrir &bandeja de impressora..."
+
+msgid "Set &icon..."
+msgstr "Definir &ícone..."
+
+msgid "Select an icon"
+msgstr "Seleccionar um ícone"
+
+msgid "C&lone..."
+msgstr "C&lonar..."
+
+msgid "Virtual machine \"%1\" (%2) will be cloned into:"
+msgstr "A máquina virtual \"%1\" (%2) será clonada para:"
+
+msgid "Directory %1 already exists"
+msgstr "O directório %1 já existe"
+
+msgid "You cannot use the following characters in the name: %1"
+msgstr "Não pode usar os caracteres seguintes no nome: %1"
+
+msgid "Clone"
+msgstr "Clonar"
+
+msgid "Failed to create directory for cloned VM"
+msgstr "Falha na criação do directório para a MV clonada"
+
+msgid "Failed to clone VM."
+msgstr "Falha na clonaçào da MV."
+
+msgid "Directory in use"
+msgstr "Directório em uso"
+
+msgid "The selected directory is already in use. Please select a different directory."
+msgstr "O directório seleccionado já está em uso. Por favor, escolhe um directório differente."
+
+msgid "Create directory failed"
+msgstr "Falha na criação do directório"
+
+msgid "Unable to create the directory for the new system"
+msgstr "Não foi possível criar a pasta para o novo sistema"
+
+msgid "Configuration write failed"
+msgstr "Falha na escritura da configuração"
+
+msgid "Unable to open the configuration file at %1 for writing"
+msgstr "Não foi possível abrir o ficheiro de configuração em %1 para a escritura"
+
+msgid "Error adding system"
+msgstr "Error ao adicionar o sistema"
+
+msgid "Remove directory failed"
+msgstr "Falha na remoção do directório"
+
+msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
+msgstr "Não foi possível eliminar alguns ficheiros no directório da máquina. Por favor, elimene-las manualmente."
+
+msgid "Build"
+msgstr "Compilação"
+
+msgid "Version"
+msgstr "Versão"
+
+msgid "An update to 86Box is available: %1 %2"
+msgstr "Está disponível uma atualização pelo 86Box: %1 %2"
+
+msgid "An error has occurred while checking for updates: %1"
+msgstr "Ha occurrido um error na verificação das atualizações: %1"
+
+msgid "<b>An update to 86Box is available!</b>"
+msgstr "<b>É disponível uma atualização para o 86Box!</b>"
+
+msgid "Warning"
+msgstr "Aviso"
+
+msgid "&Kill"
+msgstr "&Terminar"
+
+msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
+msgstr "Terminar uma máquina virtual pode causar a perdida de dados. Faça-o só se o processo 86Box bloqueia-se.\n\nTem cerza que quiser terminal a máquina virtual \"%1\"?"
+
+msgid "&Delete"
+msgstr "&Apagar"
+
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
+msgstr "Tem certeza de que quiser apagar a máquina virtual \"%1\" e todos os seus ficheiros? Esta ação não pode ser desfeita!"
+
+msgid "Show &config file"
+msgstr "Mostrar ficheiro de &configuração"
+
+msgid "No screenshot"
+msgstr "Sem capturas de ecrã"
+
+msgid "Search"
+msgstr "Procurar"
+
+msgid "Searching for VMs..."
+msgstr "A procurar para MVs..."
+
+msgid "Found %1"
+msgstr "%1 encontrado"
+
+msgid "System"
+msgstr "Sistema"
+
+msgid "Storage"
+msgstr "Armazenamento"
+
+msgid "Disk %1: "
+msgstr "Disco %1: "
+
+msgid "No disks"
+msgstr "Sem discos"
+
+msgid "Audio"
+msgstr "Som"
+
+msgid "Audio:"
+msgstr "Som:"
+
 msgid "ACPI shutdown"
 msgstr "Encerramento ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "Encerramento ACP&I"
 
 msgid "Hard disk (%1)"
 msgstr "Disco rígido (%1)"
@@ -1071,6 +1488,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1180,7 +1600,7 @@ msgid "Fast"
 msgstr "Rápido"
 
 msgid "&Auto-pause on focus loss"
-msgstr "Pausa &automática na perda de focagem"
+msgstr "Pa&usa automática na perda de focagem"
 
 msgid "WinBox is no longer supported"
 msgstr "O WinBox não é mais suportado"
@@ -1209,41 +1629,38 @@ msgstr "Dispositivos MCA"
 msgid "List of MCA devices:"
 msgstr "Lista de dispositivos MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Ferramenta para tablet"
 
-msgid "Qt (OpenGL &ES)"
-msgstr "Qt (OpenGL &ES)"
+msgid "About &Qt"
+msgstr "Acerca do &Qt"
 
-msgid "About Qt"
-msgstr "Acerca do Qt"
-
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Dispositivos MCA..."
 
-msgid "Show non-primary monitors"
-msgstr "Mostrar monitores não primários"
+msgid "Show non-&primary monitors"
+msgstr "Mostrar monitores não &primários"
 
-msgid "Open screenshots folder..."
-msgstr "Abrir a pasta de capturas de ecrã..."
+msgid "Open screenshots &folder..."
+msgstr "Abrir a pas&ta de capturas de ecrã..."
 
-msgid "Apply fullscreen stretch mode when maximized"
-msgstr "Aplicar o modo de estiramento na tela cheia quando maximizado"
+msgid "Appl&y fullscreen stretch mode when maximized"
+msgstr "Apl&icar o modo de estiramento na tela cheia quando maximizado"
 
-msgid "Cursor/Puck"
-msgstr "Cursor/Puck"
+msgid "&Cursor/Puck"
+msgstr "&Cursor/Puck"
 
-msgid "Pen"
-msgstr "Caneta"
+msgid "&Pen"
+msgstr "C&aneta"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Unidade de CD/DVD do anfitrião (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Unidade de CD/DVD do anfitrião (%1:)"
 
 msgid "&Connected"
 msgstr "&Conectado"
 
-msgid "Clear image history"
-msgstr "Limpar o histórico de imagens"
+msgid "Clear image &history"
+msgstr "Limpar o histórico de imagens(&H)"
 
 msgid "Create..."
 msgstr "Criar..."
@@ -1257,8 +1674,14 @@ msgstr "Autocarro desconhecido"
 msgid "Null Driver"
 msgstr "Condutor nulo"
 
+msgid "NIC:"
+msgstr "Placa de rede:"
+
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Comportamento de renderização"
@@ -1323,6 +1746,9 @@ msgstr "Não há dispositivos MCA."
 msgid "MiB"
 msgstr "MiB"
 
+msgid "GiB"
+msgstr "GiB"
+
 msgid "Network Card #1"
 msgstr "Placa de rede 1"
 
@@ -1365,20 +1791,44 @@ msgstr "Passagem da porta de série 3"
 msgid "Serial port passthrough 4"
 msgstr "Passagem da porta de série 4"
 
-msgid "Renderer options..."
-msgstr "Opções do renderizador..."
+msgid "Renderer &options..."
+msgstr "Opções do re&nderizador..."
+
+msgid "PC/XT Keyboard"
+msgstr "Teclado PC/XT"
+
+msgid "AT Keyboard"
+msgstr "Teclado AT"
+
+msgid "AX Keyboard"
+msgstr "Teclado AX"
+
+msgid "PS/2 Keyboard"
+msgstr "Teclado PS/2"
+
+msgid "PS/55 Keyboard"
+msgstr "Teclado PS/55"
+
+msgid "Keys"
+msgstr "Teclas"
 
 msgid "Logitech/Microsoft Bus Mouse"
-msgstr "Rato Logitech/Microsoft Bus"
+msgstr "Rato bus Logitech/Microsoft"
 
 msgid "Microsoft Bus Mouse (InPort)"
-msgstr "Rato Microsoft Bus (InPort)"
+msgstr "Rato bus Microsoft (InPort)"
 
 msgid "Mouse Systems Serial Mouse"
-msgstr "Sistemas de ratos Rato de série"
+msgstr "Rato de série Mouse Systems"
+
+msgid "Mouse Systems Bus Mouse"
+msgstr "Rato bus Mouse Systems"
 
 msgid "Microsoft Serial Mouse"
 msgstr "Rato de série Microsoft"
+
+msgid "Microsoft Serial BallPoint"
+msgstr "Rato de série Microsoft BallPoint"
 
 msgid "Logitech Serial Mouse"
 msgstr "Rato de série Logitech"
@@ -1386,8 +1836,14 @@ msgstr "Rato de série Logitech"
 msgid "PS/2 Mouse"
 msgstr "Rato PS/2"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr "Rato PS/2 QuickPort"
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (série)"
+
+msgid "Default Baud rate"
+msgstr "Velocidade de transmissão padrão"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Modem padrão compatível com Hayes"
@@ -1413,11 +1869,53 @@ msgstr "Sistema MIDI"
 msgid "MIDI Input Device"
 msgstr "Dispositivo de entrada MIDI"
 
-msgid "BIOS Address"
+msgid "BIOS file"
+msgstr "Ficheiro BIOS"
+
+msgid "BIOS file (ROM #1)"
+msgstr "Ficheiro BIOS (ROM no. 1)"
+
+msgid "BIOS file (ROM #2)"
+msgstr "Ficheiro BIOS (ROM no. 2)"
+
+msgid "BIOS file (ROM #3)"
+msgstr "Ficheiro BIOS (ROM no. 3)"
+
+msgid "BIOS file (ROM #4)"
+msgstr "Ficheiro BIOS (ROM no. 4)"
+
+msgid "BIOS address"
 msgstr "Endereço da BIOS"
+
+msgid "BIOS address (ROM #1)"
+msgstr "Endereço da BIOS (ROM no. 1)"
+
+msgid "BIOS address (ROM #2)"
+msgstr "Endereço da BIOS (ROM no. 2)"
+
+msgid "BIOS address (ROM #3)"
+msgstr "Endereço da BIOS (ROM no. 3)"
+
+msgid "BIOS address (ROM #4)"
+msgstr "Endereço da BIOS (ROM no. 4)"
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Ativar as escritas de ROM de extensão da BIOS"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr "Ativar as escritas de ROM de extensão da BIOS (ROM no. 1)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr "Ativar as escritas de ROM de extensão da BIOS (ROM no. 2)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr "Ativar as escritas de ROM de extensão da BIOS (ROM no. 3)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr "Ativar as escritas de ROM de extensão da BIOS (ROM no. 4)"
+
+msgid "Linear framebuffer base"
+msgstr "Base do buffer de quadros linear"
 
 msgid "Address"
 msgstr "Endereço"
@@ -1425,8 +1923,26 @@ msgstr "Endereço"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr "IRQ da porta série"
+
+msgid "Parallel port IRQ"
+msgstr "IRQ da porta paralela"
+
 msgid "BIOS Revision"
 msgstr "Revisão da BIOS"
+
+msgid "BIOS Version"
+msgstr "Versão da BIOS"
+
+msgid "BIOS Language"
+msgstr "Idioma da BIOS"
+
+msgid "IBM 5161 Expansion Unit"
+msgstr "Unidade de expansão IBM 5161"
+
+msgid "IBM Cassette Basic"
+msgstr "BASIC de cassete IBM"
 
 msgid "Translate 26 -> 17"
 msgstr "Traduzir 26 -> 17"
@@ -1442,6 +1958,18 @@ msgstr "Inverter cores"
 
 msgid "BIOS size"
 msgstr "Tamanho da BIOS"
+
+msgid "BIOS size (ROM #1)"
+msgstr "Tamanho da BIOS (ROM no. 1)"
+
+msgid "BIOS size (ROM #2)"
+msgstr "Tamanho da BIOS (ROM no. 2)"
+
+msgid "BIOS size (ROM #3)"
+msgstr "Tamanho da BIOS (ROM no. 3)"
+
+msgid "BIOS size (ROM #4)"
+msgstr "Tamanho da BIOS (ROM no. 4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Mapear C0000-C7FFF como UMB"
@@ -1517,6 +2045,9 @@ msgstr "Nível de reverberação"
 
 msgid "Interpolation Method"
 msgstr "Método de interpolação"
+
+msgid "Dynamic Sample Loading"
+msgstr "Carregamento dinámico de amostras"
 
 msgid "Reverb Output Gain"
 msgstr "Ganho da saída do reverb"
@@ -1605,6 +2136,12 @@ msgstr "DMA baixo"
 msgid "Enable Game port"
 msgstr "Ativar a porta de jogos"
 
+msgid "SID Model"
+msgstr "Modelo do SID"
+
+msgid "SID Filter Strength"
+msgstr "Força do filtro do SID"
+
 msgid "Surround module"
 msgstr "Módulo Surround"
 
@@ -1616,6 +2153,12 @@ msgstr "Ativar a interrupção do CODEC na configuração do CODEC (necessário 
 
 msgid "SB Address"
 msgstr "Endereço SB"
+
+msgid "Adlib Address"
+msgstr "Endereço Adlib"
+
+msgid "Use EEPROM setting"
+msgstr "Utilizar a definição da EEPROM"
 
 msgid "WSS IRQ"
 msgstr "WSS IRQ"
@@ -1669,7 +2212,7 @@ msgid "Display type"
 msgstr "Tipo de ecrã"
 
 msgid "Composite type"
-msgstr "Tipo composto"
+msgstr "Tipo compósito"
 
 msgid "RGB type"
 msgstr "Tipo RGB"
@@ -1701,8 +2244,14 @@ msgstr "Tipo de RAMDAC"
 msgid "Blend"
 msgstr "Mistura"
 
+msgid "Font"
+msgstr "Tipo de letra"
+
 msgid "Bilinear filtering"
 msgstr "Filtragem bilinear"
+
+msgid "Video chroma-keying"
+msgstr "Utilizar a chave chroma do vídeo"
 
 msgid "Dithering"
 msgstr "Dithering"
@@ -1746,6 +2295,33 @@ msgstr "Velocidade de transferência"
 msgid "EMS mode"
 msgstr "Modo EMS"
 
+msgid "EMS Address"
+msgstr "Endereço da EMS"
+
+msgid "EMS 1 Address"
+msgstr "Endereço da EMS 1"
+
+msgid "EMS 2 Address"
+msgstr "Endereço da EMS 2"
+
+msgid "EMS Memory Size"
+msgstr "Tamanho da memória EMS"
+
+msgid "EMS 1 Memory Size"
+msgstr "Tamanho da memória EMS 1"
+
+msgid "EMS 2 Memory Size"
+msgstr "Tamanho da memória EMS 2"
+
+msgid "Enable EMS"
+msgstr "Activar a EMS"
+
+msgid "Enable EMS 1"
+msgstr "Activar a EMS 1"
+
+msgid "Enable EMS 2"
+msgstr "Activar a EMS 2"
+
 msgid "Address for > 2 MB"
 msgstr "Endereço para > 2 MB"
 
@@ -1764,11 +2340,11 @@ msgstr "Sempre à velocidade selecionada"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Definição da BIOS + Teclas de atalho (desligadas durante o POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB a partir de F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB a partir de F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB a partir de E0000 (endereço MSB invertido, os últimos 64KB primeiro)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB a partir de E0000 (endereço MSB invertido, os últimos 64 KB primeiro)"
 
 msgid "Sine"
 msgstr "Sinusoidal"
@@ -1804,7 +2380,7 @@ msgid "Five + Wheel"
 msgstr "Cinco + Roda"
 
 msgid "Five + 2 Wheels"
-msgstr ""
+msgstr "Cinco + 2 Rodas"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 série / SMT3(R)V"
@@ -1869,6 +2445,9 @@ msgstr "256 KB"
 msgid "Composite"
 msgstr "Compósito"
 
+msgid "True color"
+msgstr "Cor verdadeira"
+
 msgid "Old"
 msgstr "Antigo"
 
@@ -1901,6 +2480,15 @@ msgstr "interpolação sRGB"
 
 msgid "Linear interpolation"
 msgstr "Interpolação linear"
+
+msgid "Has secondary 8x8 character set"
+msgstr "Tem conjunto de caracters 8x8 secundário"
+
+msgid "Has Quadcolor II daughter board"
+msgstr "Tem a placa filha Quadcolor II"
+
+msgid "Alternate monochrome contrast"
+msgstr "Contrasto monocromático alternativo"
 
 msgid "128 KB"
 msgstr "128 KB"
@@ -1935,6 +2523,9 @@ msgstr "Âmbar"
 msgid "Gray"
 msgstr "Cinzento"
 
+msgid "Grayscale"
+msgstr "Escala de cinzentos"
+
 msgid "Color"
 msgstr "Cor"
 
@@ -1950,6 +2541,12 @@ msgstr "Outros idiomas"
 msgid "Bochs latest"
 msgstr "Bochs mais recente"
 
+msgid "Apply overscan deltas"
+msgstr "Aplicr deltas do overscan"
+
+msgid "Mono Interlaced"
+msgstr "Monocromático entrelaçado"
+
 msgid "Mono Non-Interlaced"
 msgstr "Monocromático não entrelaçado"
 
@@ -1961,6 +2558,9 @@ msgstr "Cor não entrelaçado"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "Gráficos 3Dfx Voodoo"
+
+msgid "3Dfx Voodoo 2"
+msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 unidades TMU)"
@@ -2031,6 +2631,9 @@ msgstr "Taxa de transmissão de passagem"
 msgid "Named Pipe (Server)"
 msgstr "Tubo nomeado (servidor)"
 
+msgid "Named Pipe (Client)"
+msgstr "Tubo nomeado (cliente)"
+
 msgid "Host Serial Passthrough"
 msgstr "Passagem da porta de série do anfitrião"
 
@@ -2047,34 +2650,40 @@ msgid "High performance impact"
 msgstr "Elevado impacto no desempenho"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] Disco RAM (velocidade máxima)"
+msgstr "[Genérico] Disco RAM (velocidade máxima)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr ""
+msgstr "[Genérico] 1989 (3500 RPM)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr ""
+msgstr "[Genérico] 1992 (3600 RPM)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr ""
+msgstr "[Genérico] 1994 (4500 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr ""
+msgstr "[Genérico] 1996 (5400 RPM)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr ""
+msgstr "[Genérico] 1997 (5400 RPM)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr ""
+msgstr "[Genérico] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr ""
+msgstr "[Genérico] 2000 (7200 RPM)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Clone IBM 8514/A (ISA)"
 
 msgid "Vendor"
 msgstr "Fabricante"
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr "30 Hz (JMP2 = 1)"
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr "60 Hz (JMP2 = 2)"
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Expansão de memória genérica PC/XT"
@@ -2089,61 +2698,259 @@ msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for t
 msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial de pontos ESC/P genérica"
 
 msgid "Inhibit multimedia keys"
-msgstr ""
+msgstr "Deshabilitar teclas de multimídia"
 
 msgid "Ask for confirmation before saving settings"
-msgstr ""
+msgstr "Pedir confirmação antes de salvar as definições"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr ""
+msgstr "Pedir confirmação antes da reinicialização completa"
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
+msgstr "Pedir confirmação antes de sair"
 
 msgid "Options"
-msgstr ""
+msgstr "Opções"
 
 msgid "Model"
-msgstr ""
+msgstr "Modelo"
 
 msgid "Model:"
-msgstr ""
+msgstr "Modelo:"
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr ""
+msgstr "Falha na inicialização do renderizador Vulkan."
 
 msgid "GLSL Error"
-msgstr ""
+msgstr "Erro de GLSL"
 
 msgid "Could not load shader: %1"
-msgstr ""
+msgstr "Não foi possível carregar o shader: %1"
 
 msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr ""
+msgstr "É requerida a versão 3.0 ou mais nova do OpenGL. A versão actual de GLSL é %1.%2"
 
 msgid "Could not load texture: %1"
-msgstr ""
+msgstr "Não foi possível carregar a textura: %1"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr ""
+msgstr "Não foi possível compilar o shader:\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr ""
+msgstr "Programa não ligado:\n\n%1"
 
 msgid "Shader Manager"
-msgstr ""
+msgstr "Gerenciador de shaders"
 
 msgid "Shader Configuration"
-msgstr ""
+msgstr "Configuração do shader"
 
 msgid "Add"
-msgstr ""
+msgstr "Adicionar"
 
 msgid "Move up"
-msgstr ""
+msgstr "Mover para cima"
 
 msgid "Move down"
-msgstr ""
+msgstr "Mover para baixo"
 
 msgid "Could not load file %1"
-msgstr ""
+msgstr "Não foi possível carregar o ficheiro %1"
+
+msgid "Key Bindings:"
+msgstr "Teclas de atalho:"
+
+msgid "Action"
+msgstr "Ação"
+
+msgid "Keybind"
+msgstr "Atalho"
+
+msgid "Clear binding"
+msgstr "Limpar atalho"
+
+msgid "Bind"
+msgstr "Definir"
+
+msgid "Bind Key"
+msgstr "Definir tecla"
+
+msgid "Enter key combo:"
+msgstr "Escrever a combinação de teclas:"
+
+msgid "Bind conflict"
+msgstr "Conflicto entre atalhos"
+
+msgid "This key combo is already in use."
+msgstr "Esta combinação de teclas já está em uso."
+
+msgid "Send Control+Alt+Del"
+msgstr "Enviar Control+Alt+Del"
+
+msgid "Send Control+Alt+Escape"
+msgstr "Enviar Control+Alt+Escape"
+
+msgid "Toggle fullscreen"
+msgstr "Alternar o modo em ecrã cheio"
+
+msgid "Screenshot"
+msgstr "Captura de ecrã"
+
+msgid "Release mouse pointer"
+msgstr "Soltar o ponteiro do rato"
+
+msgid "Toggle pause"
+msgstr "Alternar a pausa"
+
+msgid "Toggle mute"
+msgstr "Alternar o estado silenciado"
+
+msgid "Text files"
+msgstr "Ficheiros de texto"
+
+msgid "ROM files"
+msgstr "Ficheiros da ROM"
+
+msgid "SoundFont files"
+msgstr "Ficheiros SoundFont"
+
+msgid "Local Switch"
+msgstr "Comutador local"
+
+msgid "Remote Switch"
+msgstr "Comutador remoto"
+
+msgid "Switch:"
+msgstr "Comutador"
+
+msgid "Hub Mode"
+msgstr "Modo de concentrador"
+
+msgid "Hostname:"
+msgstr "Nome de anfitrião:"
+
+msgid "ISA RAM:"
+msgstr "RAM ISA:"
+
+msgid "ISA ROM:"
+msgstr "ROM ISA:"
+
+msgid "&Wipe NVRAM"
+msgstr "&Limpar a NVRAM"
+
+msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
+msgstr "Esto vai apagar todos of ficheirosa da NVRAM (e relacionados) da máquina virtual localizados no subdirectório \"nvr\". Terá que reconfigurar as definições da BIOS (e possívelmente dos outros dispositivos na MV) de novo se aplicável.\n\nTem certeza de que quiser limpar todos os conteúdos da NVRAM da máquina virtual \"%1\"?"
+
+msgid "Success"
+msgstr "Éxito"
+
+msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
+msgstr "Os conteúdos da NVRAM da máquina virtual \"%1\" foram limpados com éxito"
+
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgstr "Occorreu um error na tentativa de limpar os conteúdos da NVRAM da máquina virtual \"%1\""
+
+msgid "%1 VM Manager"
+msgstr "Gerenciador de MVs de %1"
+
+msgid "%n disk(s)"
+msgstr "%n disco(s)"
+
+msgid "Unknown Status"
+msgstr "Estado desconhecido"
+
+msgid "No Machines Found!"
+msgstr "Nenhuma máquina encontrada!"
+
+msgid "Check for updates on startup"
+msgstr "Verificar para atualizações ao iniciar"
+
+msgid "Unable to determine release information"
+msgstr "Não foi possível determinar as informações da versão"
+
+msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
+msgstr "Occorreu um error na verificação para atualizações:\n\n%1\n\nPor favor, entente de novo mais tarde."
+
+msgid "Update check complete"
+msgstr "Verificaçõ para atualizacões completeda"
+
+msgid "stable"
+msgstr "estável"
+
+msgid "beta"
+msgstr "beta"
+
+msgid "You are running the latest %1 version of 86Box: %2"
+msgstr "Está a utilizar a última versão %1 do 86Box: %2"
+
+msgid "version"
+msgstr "versão"
+
+msgid "build"
+msgstr "compilação"
+
+msgid "You are currently running version <b>%1</b>."
+msgstr "Atualmente está a utilizar a versão <b>%1</b>."
+
+msgid "<b>Version %1</b> is now available."
+msgstr "<b>A versão %1</b> está agora disponível."
+
+msgid "You are currently running build <b>%1</b>."
+msgstr "Atualmente está a utilizar a compilação <b>%1</b>."
+
+msgid "<b>Build %1</b> is now available."
+msgstr "<b>A compilação %1</b> está agora disponível."
+
+msgid "Would you like to visit the download page?"
+msgstr "Quiser visitar a pagina de transferências?"
+
+msgid "Visit download page"
+msgstr "Visitar a pagina de transferências"
+
+msgid "Update check"
+msgstr "Verificar atualizações"
+
+msgid "Checking for updates..."
+msgstr "A verificar para atualizações..."
+
+msgid "86Box Update"
+msgstr "Atualização do 86Box"
+
+msgid "Release notes:"
+msgstr "Notas da versão:"
+
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
+msgid "Virtual machine crash"
+msgstr "Falecimento da máquina virtual"
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr "O processo da máquina virtual \"%1\" terminou inesperadamente com o código de saída %2."
+
+msgid "The system will not be added."
+msgstr "O sistema não será adicionado."
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Atualiza o estado do rato em cada bloco do CPU"
+
+msgid "Hue"
+msgstr "Matiz"
+
+msgid "Saturation"
+msgstr "Saturação"
+
+msgid "Contrast"
+msgstr "Contraste"
+
+msgid "Brightness"
+msgstr "Brilho"
+
+msgid "Sharpness"
+msgstr "Nitidez"
+
+msgid "&CGA composite settings..."
+msgstr "Definições do modo compósito &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Definições do modo compósito CGA"

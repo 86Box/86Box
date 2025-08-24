@@ -9,11 +9,9 @@
  *          Implementation of the SMC FDC37C663 and FDC37C665 Super
  *          I/O Chips.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -32,6 +30,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include "cpu.h"
 
 typedef struct fdc37c6xx_t {
     uint8_t   max_reg;
@@ -44,6 +43,7 @@ typedef struct fdc37c6xx_t {
     int       com4_addr;
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t    *lpt;
 } fdc37c6xx_t;
 
 static void
@@ -106,26 +106,73 @@ set_serial_addr(fdc37c6xx_t *dev, int port)
 }
 
 static void
-lpt1_handler(fdc37c6xx_t *dev)
+lpt_handler(fdc37c6xx_t *dev)
 {
-    lpt1_remove();
-    switch (dev->regs[1] & 3) {
-        case 1:
-            lpt1_setup(LPT_MDA_ADDR);
-            lpt1_irq(LPT_MDA_IRQ);
+    uint16_t lpt_port     = 0x0000;
+    uint16_t mask         = 0xfffc;
+    uint8_t  local_enable = 1;
+    uint8_t  lpt_irq      = LPT1_IRQ;
+    uint8_t  lpt_ext      = !(dev->regs[1] & 0x08);
+    uint8_t  lpt_mode     = (dev->chip_id >= 0x65) ? (dev->regs[4] & 0x03) : 0x00;
+
+    switch (dev->regs[1] & 0x03) {
+        case 0x01:
+            lpt_port     = LPT_MDA_ADDR;
+            lpt_irq      = LPT_MDA_IRQ;
             break;
-        case 2:
-            lpt1_setup(LPT1_ADDR);
-            lpt1_irq(LPT1_IRQ /*LPT2_IRQ*/);
+        case 0x02:
+            lpt_port     = LPT1_ADDR;
+            lpt_irq      = LPT1_IRQ /*LPT2_IRQ*/;
             break;
-        case 3:
-            lpt1_setup(LPT2_ADDR);
-            lpt1_irq(LPT1_IRQ /*LPT2_IRQ*/);
+        case 0x03:
+            lpt_port     = LPT2_ADDR;
+            lpt_irq      = LPT1_IRQ /*LPT2_IRQ*/;
             break;
 
         default:
+            local_enable = 0;
             break;
     }
+
+    if (lpt_irq > 15)
+        lpt_irq = 0xff;
+
+    lpt_port_remove(dev->lpt);
+    lpt_set_fifo_threshold(dev->lpt, dev->regs[0x0a] & 0x0f);
+    if (lpt_ext)  switch (lpt_mode) {
+        default:
+        case 0x00:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 1);
+            break;
+        case 0x01:
+            mask = 0xfff8;
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x02:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x03:
+            mask = 0xfff8;
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+    } else {
+        lpt_set_epp(dev->lpt, 0);
+        lpt_set_ecp(dev->lpt, 0);
+        lpt_set_ext(dev->lpt, 0);
+    }
+
+    if (local_enable && (lpt_port >= 0x0100) && (lpt_port <= (0x0ffc & mask)))
+        lpt_port_setup(dev->lpt, lpt_port);
+
+    lpt_port_irq(dev->lpt, lpt_irq);
 }
 
 static void
@@ -139,19 +186,16 @@ fdc_handler(fdc37c6xx_t *dev)
 static void
 ide_handler(fdc37c6xx_t *dev)
 {
-    /* TODO: Make an ide_disable(channel) and ide_enable(channel) so we can simplify this. */
-    if (dev->has_ide == 2) {
-        ide_sec_disable();
-        ide_set_base(1, (dev->regs[0x05] & 0x02) ? 0x170 : 0x1f0);
-        ide_set_side(1, (dev->regs[0x05] & 0x02) ? 0x376 : 0x3f6);
+    if (dev->has_ide > 0) {
+        int ide_id = dev->has_ide - 1;
+
+        ide_handlers(ide_id, 0);
+
+        ide_set_base_addr(ide_id, 0, (dev->regs[0x05] & 0x02) ? 0x0170 : 0x01f0);
+        ide_set_base_addr(ide_id, 1, (dev->regs[0x05] & 0x02) ? 0x0376 : 0x03f6);
+
         if (dev->regs[0x00] & 0x01)
-            ide_sec_enable();
-    } else if (dev->has_ide == 1) {
-        ide_pri_disable();
-        ide_set_base(0, (dev->regs[0x05] & 0x02) ? 0x170 : 0x1f0);
-        ide_set_side(0, (dev->regs[0x05] & 0x02) ? 0x376 : 0x3f6);
-        if (dev->regs[0x00] & 0x01)
-            ide_pri_enable();
+            ide_handlers(ide_id, 1);
     }
 }
 
@@ -175,38 +219,38 @@ fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
             dev->regs[dev->cur_reg] = val;
 
             switch (dev->cur_reg) {
-                case 0:
+                case 0x00:
                     if (dev->has_ide && (valxor & 0x01))
                         ide_handler(dev);
                     if (valxor & 0x10)
                         fdc_handler(dev);
                     break;
-                case 1:
-                    if (valxor & 3)
-                        lpt1_handler(dev);
+                case 0x01:
+                    if (valxor & 0x0b)
+                        lpt_handler(dev);
                     if (valxor & 0x60) {
                         set_com34_addr(dev);
                         set_serial_addr(dev, 0);
                         set_serial_addr(dev, 1);
                     }
                     break;
-                case 2:
-                    if (valxor & 7)
+                case 0x02:
+                    if (valxor & 0x07)
                         set_serial_addr(dev, 0);
                     if (valxor & 0x70)
                         set_serial_addr(dev, 1);
                     break;
-                case 3:
-                    if (valxor & 2)
-                        fdc_update_enh_mode(dev->fdc, (dev->regs[3] & 2) ? 1 : 0);
+                case 0x03:
+                    if (valxor & 0x02)
+                        fdc_update_enh_mode(dev->fdc, !!(dev->regs[0x03] & 0x02));
                     break;
-                case 4:
+                case 0x04:
                     if (valxor & 0x10)
                         set_serial_addr(dev, 0);
                     if (valxor & 0x20)
                         set_serial_addr(dev, 1);
                     break;
-                case 5:
+                case 0x05:
                     if (valxor & 0x01)
                         fdc_handler(dev);
                     if (dev->has_ide && (valxor & 0x02))
@@ -215,6 +259,10 @@ fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
                         fdc_update_densel_force(dev->fdc, (dev->regs[5] & 0x18) >> 3);
                     if (valxor & 0x20)
                         fdc_set_swap(dev->fdc, (dev->regs[5] & 0x20) >> 5);
+                    break;
+                case 0x0a:
+                    if (valxor)
+                        lpt_handler(dev);
                     break;
 
                 default:
@@ -232,7 +280,7 @@ fdc37c6xx_read(uint16_t port, void *priv)
     uint8_t            ret = 0xff;
 
     if (dev->tries == 2) {
-        if ((port == 0x3f1) && (dev->cur_reg <= dev->max_reg))
+        if ((port == 0x03f1) && (dev->cur_reg <= dev->max_reg))
             ret = dev->regs[dev->cur_reg];
     }
 
@@ -251,8 +299,8 @@ fdc37c6xx_reset(fdc37c6xx_t *dev)
     serial_remove(dev->uart[1]);
     serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
-    lpt1_remove();
-    lpt1_setup(LPT1_ADDR);
+    lpt_port_remove(dev->lpt);
+    lpt_port_setup(dev->lpt, LPT1_ADDR);
 
     fdc_reset(dev->fdc);
     fdc_remove(dev->fdc);
@@ -293,7 +341,7 @@ fdc37c6xx_reset(fdc37c6xx_t *dev)
     set_serial_addr(dev, 0);
     set_serial_addr(dev, 1);
 
-    lpt1_handler(dev);
+    lpt_handler(dev);
 
     fdc_handler(dev);
 
@@ -330,175 +378,26 @@ fdc37c6xx_init(const device_t *info)
         dev->uart[1] = device_add_inst(&ns16450_device, 2);
     }
 
-    io_sethandler(FDC_PRIMARY_ADDR, 0x0002,
-                  fdc37c6xx_read, NULL, NULL, fdc37c6xx_write, NULL, NULL, dev);
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_set_cnfgb_readout(dev->lpt, 0x00);
+
+    if (info->local & FDC37C6XX_370)
+        io_sethandler(FDC_SECONDARY_ADDR, 0x0002,
+                      fdc37c6xx_read, NULL, NULL, fdc37c6xx_write, NULL, NULL, dev);
+    else
+        io_sethandler(FDC_PRIMARY_ADDR, 0x0002,
+                      fdc37c6xx_read, NULL, NULL, fdc37c6xx_write, NULL, NULL, dev);
 
     fdc37c6xx_reset(dev);
 
     return dev;
 }
 
-/* The three appear to differ only in the chip ID, if I
-   understood their datasheets correctly. */
-const device_t fdc37c651_device = {
-    .name          = "SMC FDC37C651 Super I/O",
-    .internal_name = "fdc37c651",
+const device_t fdc37c6xx_device = {
+    .name          = "SMC FDC37C6xx Super I/O",
+    .internal_name = "fdc37c6xx",
     .flags         = 0,
-    .local         = 0x51,
-    .init          = fdc37c6xx_init,
-    .close         = fdc37c6xx_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc37c651_ide_device = {
-    .name          = "SMC FDC37C651 Super I/O (With IDE)",
-    .internal_name = "fdc37c651_ide",
-    .flags         = 0,
-    .local         = 0x151,
-    .init          = fdc37c6xx_init,
-    .close         = fdc37c6xx_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc37c661_device = {
-    .name          = "SMC FDC37C661 Super I/O",
-    .internal_name = "fdc37c661",
-    .flags         = 0,
-    .local         = 0x61,
-    .init          = fdc37c6xx_init,
-    .close         = fdc37c6xx_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc37c661_ide_device = {
-    .name          = "SMC FDC37C661 Super I/O (With IDE)",
-    .internal_name = "fdc37c661_ide",
-    .flags         = 0,
-    .local         = 0x161,
-    .init          = fdc37c6xx_init,
-    .close         = fdc37c6xx_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc37c661_ide_sec_device = {
-    .name          = "SMC FDC37C661 Super I/O (With Secondary IDE)",
-    .internal_name = "fdc37c661_ide_sec",
-    .flags         = 0,
-    .local         = 0x261,
-    .init          = fdc37c6xx_init,
-    .close         = fdc37c6xx_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc37c663_device = {
-    .name          = "SMC FDC37C663 Super I/O",
-    .internal_name = "fdc37c663",
-    .flags         = 0,
-    .local         = 0x63,
-    .init          = fdc37c6xx_init,
-    .close         = fdc37c6xx_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc37c663_ide_device = {
-    .name          = "SMC FDC37C663 Super I/O (With IDE)",
-    .internal_name = "fdc37c663_ide",
-    .flags         = 0,
-    .local         = 0x163,
-    .init          = fdc37c6xx_init,
-    .close         = fdc37c6xx_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc37c665_device = {
-    .name          = "SMC FDC37C665 Super I/O",
-    .internal_name = "fdc37c665",
-    .flags         = 0,
-    .local         = 0x65,
-    .init          = fdc37c6xx_init,
-    .close         = fdc37c6xx_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc37c665_ide_device = {
-    .name          = "SMC FDC37C665 Super I/O (With IDE)",
-    .internal_name = "fdc37c665_ide",
-    .flags         = 0,
-    .local         = 0x265,
-    .init          = fdc37c6xx_init,
-    .close         = fdc37c6xx_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc37c665_ide_pri_device = {
-    .name          = "SMC FDC37C665 Super I/O (With Primary IDE)",
-    .internal_name = "fdc37c665_ide_pri",
-    .flags         = 0,
-    .local         = 0x165,
-    .init          = fdc37c6xx_init,
-    .close         = fdc37c6xx_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc37c665_ide_sec_device = {
-    .name          = "SMC FDC37C665 Super I/O (With Secondary IDE)",
-    .internal_name = "fdc37c665_ide_sec",
-    .flags         = 0,
-    .local         = 0x265,
-    .init          = fdc37c6xx_init,
-    .close         = fdc37c6xx_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc37c666_device = {
-    .name          = "SMC FDC37C666 Super I/O",
-    .internal_name = "fdc37c666",
-    .flags         = 0,
-    .local         = 0x66,
+    .local         = 0,
     .init          = fdc37c6xx_init,
     .close         = fdc37c6xx_close,
     .reset         = NULL,

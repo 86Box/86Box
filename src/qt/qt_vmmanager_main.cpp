@@ -15,6 +15,8 @@
 *		Copyright 2024 cold-brewed
 */
 
+#include <QDirIterator>
+#include <QLabel>
 #include <QAbstractListModel>
 #include <QCompleter>
 #include <QDebug>
@@ -23,16 +25,67 @@
 #include <QMessageBox>
 #include <QStringListModel>
 #include <QTimer>
+#include <QProgressDialog>
+
+#include <thread>
+#include <atomic>
 
 #include "qt_vmmanager_main.hpp"
 #include "ui_qt_vmmanager_main.h"
 #include "qt_vmmanager_model.hpp"
 #include "qt_vmmanager_addmachine.hpp"
 
+// https://stackoverflow.com/a/36460740
+bool copyPath(QString sourceDir, QString destinationDir, bool overWriteDirectory)
+{
+    QDir originDirectory(sourceDir);
+
+    if (! originDirectory.exists())
+    {
+        return false;
+    }
+
+    QDir destinationDirectory(destinationDir);
+
+    if(destinationDirectory.exists() && !overWriteDirectory)
+    {
+        return false;
+    }
+    else if(destinationDirectory.exists() && overWriteDirectory)
+    {
+        destinationDirectory.removeRecursively();
+    }
+
+    originDirectory.mkpath(destinationDir);
+
+    foreach (QString directoryName, originDirectory.entryList(QDir::Dirs | \
+                                                              QDir::NoDotAndDotDot))
+    {
+        QString destinationPath = destinationDir + "/" + directoryName;
+        originDirectory.mkpath(destinationPath);
+        copyPath(sourceDir + "/" + directoryName, destinationPath, overWriteDirectory);
+    }
+
+    foreach (QString fileName, originDirectory.entryList(QDir::Files))
+    {
+        QFile::copy(sourceDir + "/" + fileName, destinationDir + "/" + fileName);
+    }
+
+    /*! Possible race-condition mitigation? */
+    QDir finalDestination(destinationDir);
+    finalDestination.refresh();
+
+    if(finalDestination.exists())
+    {
+        return true;
+    }
+
+    return false;
+}
+
 VMManagerMain::VMManagerMain(QWidget *parent) :
     QWidget(parent), ui(new Ui::VMManagerMain), selected_sysconfig(new VMManagerSystem) {
     ui->setupUi(this);
-    this->setWindowTitle("86Box VM Manager");
 
     // Set up the main listView
     ui->listView->setItemDelegate(new VMManagerListViewDelegate);
@@ -53,7 +106,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
         if (indexAt.isValid()) {
             QMenu contextMenu(tr("Context Menu"), ui->listView);
 
-            QAction nameChangeAction(tr("Change display name"));
+            QAction nameChangeAction(tr("Change &display name..."));
             contextMenu.addAction(&nameChangeAction);
             // Use a lambda to call a function so indexAt can be passed
             connect(&nameChangeAction, &QAction::triggered, ui->listView, [this, indexAt] {
@@ -61,19 +114,8 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             });
             nameChangeAction.setEnabled(!selected_sysconfig->window_obscured);
 
-            QAction openSystemFolderAction(tr("Open folder"));
-            contextMenu.addAction(&openSystemFolderAction);
-            connect(&openSystemFolderAction, &QAction::triggered, [indexAt] {
-                if (const auto configDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString(); !configDir.isEmpty()) {
-                    QDir dir(configDir);
-                    if (!dir.exists())
-                        dir.mkpath(".");
-                    
-                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
-                }
-            });
 
-            QAction setSystemIcon(tr("Set icon"));
+            QAction setSystemIcon(tr("Set &icon..."));
             contextMenu.addAction(&setSystemIcon);
             connect(&setSystemIcon, &QAction::triggered, [this] {
                 IconSelectionDialog dialog(":/systemicons/");
@@ -85,20 +127,208 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             });
             setSystemIcon.setEnabled(!selected_sysconfig->window_obscured);
 
+            contextMenu.addSeparator();
+
+            QAction cloneMachine(tr("C&lone..."));
+            contextMenu.addAction(&cloneMachine);
+            connect(&cloneMachine, &QAction::triggered, [this] {
+                QDialog dialog = QDialog(this);
+                auto layout = new QVBoxLayout(&dialog);
+                layout->setSizeConstraint(QLayout::SetFixedSize);
+                layout->addWidget(new QLabel(tr("Virtual machine \"%1\" (%2) will be cloned into:").arg(selected_sysconfig->displayName, selected_sysconfig->config_dir)));
+                QLineEdit* edit = new QLineEdit(&dialog);
+                layout->addWidget(edit);
+                QLabel* errLabel = new QLabel(&dialog);
+                layout->addWidget(errLabel);
+                errLabel->setVisible(false);
+                QDialogButtonBox* buttonBox = new QDialogButtonBox(&dialog);
+                buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+                buttonBox->button(QDialogButtonBox::Ok)->setDisabled(true);
+                connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+                connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+                layout->addWidget(buttonBox);
+                connect(edit, &QLineEdit::textChanged, this, [errLabel, buttonBox] (const QString& text) {
+                    bool isSpaceOnly = true;
+#ifdef Q_OS_WINDOWS
+                    const char illegalChars[] = "<>:\"|?*\\/";
+#else
+                    const char illegalChars[] = "\\/";
+#endif
+                    for (const auto& curChar : text) {
+                        for (size_t i = 0; i < sizeof(illegalChars) - 1; i++) {
+                            if (illegalChars[i] == curChar) {
+                                goto illegal_chars;
+                            }
+                            if (!curChar.isSpace()) {
+                                isSpaceOnly = false;
+                            }
+                        }
+                    }
+                    errLabel->setVisible(false);
+                    buttonBox->button(QDialogButtonBox::Ok)->setDisabled(isSpaceOnly || text.isEmpty());
+                    if (QDir((QString(vmm_path) + "/") + text).exists() && buttonBox->button(QDialogButtonBox::Ok)->isEnabled()) {
+                        goto dir_already_exists;
+                    }
+                    return;
+dir_already_exists:
+                    errLabel->setText(tr("Directory %1 already exists").arg(QDir((QString(vmm_path) + "/") + text).canonicalPath()));
+                    errLabel->setVisible(true);
+                    buttonBox->button(QDialogButtonBox::Ok)->setDisabled(true);
+                    return;
+illegal_chars:
+                    QString illegalCharsDisplay;
+                    for (size_t i = 0; i < sizeof(illegalChars) - 1; i++) {
+                        illegalCharsDisplay.push_back(illegalChars[i]);
+                        illegalCharsDisplay.push_back(' ');
+                    }
+                    illegalCharsDisplay.chop(1);
+                    errLabel->setText(tr("You cannot use the following characters in the name: %1").arg(illegalCharsDisplay));
+                    errLabel->setVisible(true);
+                    buttonBox->button(QDialogButtonBox::Ok)->setDisabled(true);
+                    return;
+                });
+
+                if (dialog.exec() > 0) {
+                    std::atomic_bool finished{false};
+                    std::atomic_bool errCode;
+                    auto vmDir = QDir(vmm_path).canonicalPath();
+                    vmDir.append("/");
+                    vmDir.append(edit->text());
+                    vmDir.append("/");
+
+                    if (!QDir(vmDir).mkpath(".")) {
+                        QMessageBox::critical(this, tr("Clone"), tr("Failed to create directory for cloned VM"), QMessageBox::Ok);
+                        return;
+                    }
+
+                    QProgressDialog* progDialog = new QProgressDialog(this);
+                    progDialog->setMaximum(0);
+                    progDialog->setMinimum(0);
+                    progDialog->setWindowFlags(progDialog->windowFlags() & ~Qt::WindowCloseButtonHint);
+                    progDialog->setMinimumSize(progDialog->sizeHint());
+                    progDialog->setMaximumSize(progDialog->sizeHint());
+                    progDialog->setMinimumDuration(0);
+                    progDialog->setCancelButton(nullptr);
+                    progDialog->setAutoClose(false);
+                    progDialog->setAutoReset(false);
+                    progDialog->setAttribute(Qt::WA_DeleteOnClose, true);
+                    progDialog->setValue(0);
+                    progDialog->setWindowTitle(tr("Clone"));
+                    progDialog->show();
+                    QString srcPath = selected_sysconfig->config_dir;
+                    QString dstPath = vmDir;
+
+                    std::thread copyThread([&finished, srcPath, dstPath, &errCode] {
+                        errCode = copyPath(srcPath, dstPath, true);
+                        finished = true;
+                    });
+                    while (!finished) {
+                        QApplication::processEvents();
+                    }
+                    copyThread.join();
+                    progDialog->close();
+                    if (!errCode) {
+                        QDir(dstPath).removeRecursively();
+                        QMessageBox::critical(this, tr("Clone"), tr("Failed to clone VM."), QMessageBox::Ok);
+                        return;
+                    }
+
+                    QFileInfo configFileInfo(vmDir + CONFIG_FILE);
+                    if (configFileInfo.exists()) {
+                        const auto current_index = ui->listView->currentIndex();
+                        vm_model->reload(this);
+                        const auto created_object = vm_model->getIndexForConfigFile(configFileInfo);
+                        if (created_object.row() < 0) {
+                            // For some reason the index of the new object couldn't be determined. Fall back to the old index.
+                            ui->listView->setCurrentIndex(current_index);
+                            return;
+                        }
+                        auto added_system = vm_model->getConfigObjectForIndex(created_object);
+                        added_system->setDisplayName(edit->text());
+                        // Get the index of the newly-created system and select it
+                        const QModelIndex mapped_index = proxy_model->mapFromSource(created_object);
+                        ui->listView->setCurrentIndex(mapped_index);
+                    } else {
+                        QDir(dstPath).removeRecursively();
+                        QMessageBox::critical(this, tr("Clone"), tr("Failed to clone VM."), QMessageBox::Ok);
+                        return;
+                    }
+                }
+            });
+
             QAction killIcon(tr("&Kill"));
             contextMenu.addAction(&killIcon);
             connect(&killIcon, &QAction::triggered, [this, parent] {
-                QMessageBox msgbox(QMessageBox::Warning, tr("Warning"), tr("Killing a virtual machine can cause data loss. Only do this if 86Box.exe process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?").arg(selected_sysconfig->displayName), QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, parent);
+                QMessageBox msgbox(QMessageBox::Warning, tr("Warning"), tr("Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?").arg(selected_sysconfig->displayName), QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, parent);
                 msgbox.exec();
                 if (msgbox.result() == QMessageBox::Yes) {
+                    disconnect(selected_sysconfig->process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), nullptr, nullptr);
                     selected_sysconfig->process->kill();
                 }
             });
             killIcon.setEnabled(selected_sysconfig->process->state() == QProcess::Running);
 
+            QAction clrNvram(tr("&Wipe NVRAM"));
+            contextMenu.addAction(&clrNvram);
+            connect(&clrNvram, &QAction::triggered, [this, parent] {
+                QMessageBox msgbox(QMessageBox::Warning, tr("Warning"), tr("This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?").arg(selected_sysconfig->displayName), QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, parent);
+                msgbox.exec();
+                if (msgbox.result() == QMessageBox::Yes) {
+                    if (QDir(selected_sysconfig->config_dir + "/nvr/").removeRecursively())
+                        QMessageBox::information(this, tr("Success"), tr("Successfully wiped the NVRAM contents of the virtual machine \"%1\"").arg(selected_sysconfig->displayName));
+                    else {
+                        QMessageBox::critical(this, tr("Error"), tr("An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\"").arg(selected_sysconfig->displayName));
+                    }
+                }
+            });
+            clrNvram.setEnabled(selected_sysconfig->process->state() == QProcess::NotRunning);
+
+            QAction deleteAction(tr("&Delete"));
+            contextMenu.addAction(&deleteAction);
+            connect(&deleteAction, &QAction::triggered, [this] {
+                deleteSystem(selected_sysconfig);
+            });
+            deleteAction.setEnabled(selected_sysconfig->process->state() == QProcess::NotRunning);
+
             contextMenu.addSeparator();
 
-            QAction showRawConfigFile(tr("Show config file"));
+            QAction openSystemFolderAction(tr("&Open folder..."));
+            contextMenu.addAction(&openSystemFolderAction);
+            connect(&openSystemFolderAction, &QAction::triggered, [indexAt] {
+                if (const auto configDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString(); !configDir.isEmpty()) {
+                    QDir dir(configDir);
+                    if (!dir.exists())
+                        dir.mkpath(".");
+                    
+                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
+                }
+            });
+
+            QAction openPrinterFolderAction(tr("Open p&rinter tray..."));
+            contextMenu.addAction(&openPrinterFolderAction);
+            connect(&openPrinterFolderAction, &QAction::triggered, [indexAt] {
+                if (const auto printerDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/printer/"); !printerDir.isEmpty()) {
+                    QDir dir(printerDir);
+                    if (!dir.exists())
+                        dir.mkpath(".");
+                    
+                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
+                }
+            });
+
+            QAction openScreenshotsFolderAction(tr("Open screenshots &folder..."));
+            contextMenu.addAction(&openScreenshotsFolderAction);
+            connect(&openScreenshotsFolderAction, &QAction::triggered, [indexAt] {
+                if (const auto screenshotsDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/screenshots/"); !screenshotsDir.isEmpty()) {
+                    QDir dir(screenshotsDir);
+                    if (!dir.exists())
+                        dir.mkpath(".");
+                    
+                    QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
+                }
+            });
+
+            QAction showRawConfigFile(tr("Show &config file"));
             contextMenu.addAction(&showRawConfigFile);
             connect(&showRawConfigFile, &QAction::triggered, [this, indexAt] {
                 if (const auto configFile = indexAt.data(VMManagerModel::Roles::ConfigFile).toString(); !configFile.isEmpty()) {
@@ -107,11 +337,19 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             });
 
             contextMenu.exec(ui->listView->viewport()->mapToGlobal(pos));
+        } else {
+            QMenu contextMenu(tr("Context Menu"), ui->listView);
+
+            QAction newMachineAction(tr("New machine..."));
+            contextMenu.addAction(&newMachineAction);
+            connect(&newMachineAction, &QAction::triggered, this, &VMManagerMain::newMachineWizard);
+
+            contextMenu.exec(ui->listView->viewport()->mapToGlobal(pos));
         }
     });
 
     // Initial default details view
-    vm_details = new VMManagerDetails();
+    vm_details = new VMManagerDetails(ui->detailsArea);
     ui->detailsArea->layout()->addWidget(vm_details);
     const QItemSelectionModel *selection_model = ui->listView->selectionModel();
 
@@ -123,8 +361,11 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
         ui->listView->setCurrentIndex(first_index);
     }
 
+    connect(ui->listView, &QListView::doubleClicked, this, &VMManagerMain::startButtonPressed);
+
     // Load and apply settings
     loadSettings();
+    ui->splitter->setSizes({ui->detailsArea->width(), (ui->listView->minimumWidth() * 2)});
 
     // Set up search bar
     connect(ui->searchBar, &QLineEdit::textChanged, this, &VMManagerMain::searchSystems);
@@ -141,7 +382,7 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
 
     // Set initial status bar after the event loop starts
     QTimer::singleShot(0, this, [this] {
-        emit updateStatusRight(totalCountString());
+        emit updateStatusRight(machineCountString());
     });
 
 #if EMU_BUILD_NUM != 0
@@ -167,9 +408,19 @@ VMManagerMain::currentSelectionChanged(const QModelIndex &current,
         return;
     }
 
+    /* hack to prevent strange segfaults when adding a machine after
+       removing all machines previously */
+    if (selected_sysconfig->config_signal_connected == true) {
+        disconnect(selected_sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerMain::onConfigUpdated);
+        selected_sysconfig->config_signal_connected = false;
+    }
     const auto mapped_index = proxy_model->mapToSource(current);
     selected_sysconfig = vm_model->getConfigObjectForIndex(mapped_index);
     vm_details->updateData(selected_sysconfig);
+    if (selected_sysconfig->config_signal_connected == false) {
+        connect(selected_sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerMain::onConfigUpdated);
+        selected_sysconfig->config_signal_connected = true;
+    }
 
     // Emit that the selection changed, include with the process state
     emit selectionChanged(current, selected_sysconfig->process->state());
@@ -182,19 +433,6 @@ VMManagerMain::settingsButtonPressed() {
         return;
     }
     selected_sysconfig->launchSettings();
-    // If the process is already running, the system will be instructed to open its settings window.
-    // Otherwise the process will be launched and will need to be tracked here.
-    if (!selected_sysconfig->isProcessRunning()) {
-        connect(selected_sysconfig->process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            [=](const int exitCode, const QProcess::ExitStatus exitStatus){
-                if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
-                    qInfo().nospace().noquote() << "Abnormal program termination while launching settings: exit code " <<  exitCode << ", exit status " << exitStatus;
-                    return;
-                }
-                selected_sysconfig->reloadConfig();
-                vm_details->updateData(selected_sysconfig);
-            });
-    }
 }
 
 void
@@ -308,6 +546,12 @@ VMManagerMain::currentSelectionIsValid() const
     return ui->listView->currentIndex().isValid() && selected_sysconfig->isValid();
 }
 
+void
+VMManagerMain::onConfigUpdated(const QString &uuid)
+{
+    if (selected_sysconfig->uuid == uuid)
+        vm_details->updateData(selected_sysconfig);
+}
 // Used from MainWindow during app exit to obtain and persist the current selection
 QString
 VMManagerMain::getCurrentSelection() const
@@ -340,26 +584,31 @@ VMManagerMain::newMachineWizard()
     const auto wizard = new VMManagerAddMachine(this);
     if (wizard->exec() == QDialog::Accepted) {
         const auto newName        = wizard->field("systemName").toString();
+#ifdef CUSTOM_SYSTEM_LOCATION
         const auto systemDir      = wizard->field("systemLocation").toString();
+#else
+        const auto systemDir      = QDir(vmm_path).path();
+#endif
         const auto existingConfiguration = wizard->field("existingConfiguration").toString();
-        addNewSystem(newName, systemDir, existingConfiguration);
+        const auto displayName           = wizard->field("displayName").toString();
+        addNewSystem(newName, systemDir, displayName, existingConfiguration);
     }
 }
 
 void
-VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QString &configFile)
+VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QString &displayName, const QString &configFile)
 {
-    const auto newSytemDirectory = QDir(QDir::cleanPath(dir + "/" + name));
+    const auto newSystemDirectory = QDir(QDir::cleanPath(dir + "/" + name));
 
     // qt replaces `/` with native separators
-    const auto newSystemConfigFile = QFileInfo(newSytemDirectory.path() + "/" + "86box.cfg");
-    if (newSystemConfigFile.exists() || newSytemDirectory.exists()) {
+    const auto newSystemConfigFile = QFileInfo(newSystemDirectory.path() + "/" + CONFIG_FILE);
+    if (newSystemConfigFile.exists() || newSystemDirectory.exists()) {
         QMessageBox::critical(this, tr("Directory in use"), tr("The selected directory is already in use. Please select a different directory."));
         return;
     }
     // Create the directory
     const QDir qmkdir;
-    if (const bool mkdirResult = qmkdir.mkdir(newSytemDirectory.path()); !mkdirResult) {
+    if (const bool mkdirResult = qmkdir.mkdir(newSystemDirectory.path()); !mkdirResult) {
         QMessageBox::critical(this, tr("Create directory failed"), tr("Unable to create the directory for the new system"));
         return;
     }
@@ -380,24 +629,30 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
     const auto new_system = new VMManagerSystem(newSystemConfigFile.absoluteFilePath());
     new_system->launchSettings();
     // Handle this in a closure so we can capture the temporary new_system object
+    disconnect(new_system->process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), nullptr, nullptr);
     connect(new_system->process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             [=](const int exitCode, const QProcess::ExitStatus exitStatus) {
+                bool fail = false;
                 if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
                     qInfo().nospace().noquote() << "Abnormal program termination while creating new system: exit code " << exitCode << ", exit status " << exitStatus;
                     qInfo() << "Not adding system due to errors";
+                    QString errMsg = tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg(
+                                        (!displayName.isEmpty() ? displayName : name), QString::number(exitCode));
                     QMessageBox::critical(this, tr("Error adding system"),
-                                          tr("Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added.").arg(QString::number(exitCode), exitStatus));
-                    delete new_system;
-                    return;
+                                          QString("%1\n\n%2").arg(errMsg, tr("The system will not be added.")));
+                    fail = true;
                 }
                 // Create a new QFileInfo because the info from the old one may be cached
                 if (const auto fi = QFileInfo(new_system->config_file.absoluteFilePath()); !fi.exists()) {
                     // No config file which means the cancel button was pressed in the settings dialog
                     // Attempt to clean up the directory that was created
                     const QDir qrmdir;
-                    if (const bool result = qrmdir.rmdir(newSytemDirectory.path()); !result) {
+                    if (const bool result = qrmdir.rmdir(newSystemDirectory.path()); !result) {
                         qWarning() << "Error cleaning up the old directory for canceled operation. Continuing anyway.";
                     }
+                    fail = true;
+                }
+                if (fail) {
                     delete new_system;
                     return;
                 }
@@ -410,11 +665,40 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
                     delete new_system;
                     return;
                 }
+                auto added_system = vm_model->getConfigObjectForIndex(created_object);
+                added_system->setDisplayName(displayName);
                 // Get the index of the newly-created system and select it
                 const QModelIndex mapped_index = proxy_model->mapFromSource(created_object);
                 ui->listView->setCurrentIndex(mapped_index);
                 delete new_system;
             });
+}
+
+
+void
+VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
+{
+    QMessageBox msgbox(QMessageBox::Icon::Warning, tr("Warning"), tr("Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!").arg(sysconfig->displayName), QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, qobject_cast<QWidget *>(this->parent()));
+    msgbox.exec();
+    if (msgbox.result() == QMessageBox::Yes) {
+        auto qrmdir = new QDir(sysconfig->config_dir);
+        if (const bool rmdirResult = qrmdir->removeRecursively(); !rmdirResult) {
+            QMessageBox::critical(this, tr("Remove directory failed"), tr("Some files in the machine's directory were unable to be deleted. Please delete them manually."));
+            return;
+        }
+        auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
+        config->remove(sysconfig->uuid);
+        vm_model->removeConfigFromModel(sysconfig);
+        delete sysconfig;
+
+        if (vm_model->rowCount(QModelIndex()) <= 0) {
+            /* no machines left - get rid of the last machine's leftovers */
+            ui->detailsArea->layout()->removeWidget(vm_details);
+            delete vm_details;
+            vm_details = new VMManagerDetails();
+            ui->detailsArea->layout()->addWidget(vm_details);
+        }
+    }
 }
 
 QStringList
@@ -433,10 +717,14 @@ VMManagerMain::getSearchCompletionList() const
 }
 
 QString
-VMManagerMain::totalCountString() const
+VMManagerMain::machineCountString(QString states) const
 {
     const auto count = vm_model->rowCount(QModelIndex());
-    return QString("%1 %2").arg(QString::number(count), tr("total"));
+    if (!states.isEmpty())
+        states.append(", ");
+    states.append(tr("%1 total").arg(count));
+
+    return tr("VMs: %1").arg(states);
 }
 
 void
@@ -448,14 +736,26 @@ VMManagerMain::modelDataChange()
     QStringList stats;
     for (auto it = modelStats.constBegin(); it != modelStats.constEnd(); ++it) {
         const auto &key = it.key();
-        stats.append(QString("%1 %2").arg(QString::number(modelStats[key]), key));
+        QString text = "";
+        switch (key) {
+            case VMManagerSystem::ProcessStatus::Running:
+                text = tr("%n running", "", modelStats[key]);
+                break;
+            case VMManagerSystem::ProcessStatus::Paused:
+                text = tr("%n paused", "", modelStats[key]);
+                break;
+            case VMManagerSystem::ProcessStatus::PausedWaiting:
+            case VMManagerSystem::ProcessStatus::RunningWaiting:
+                text = tr("%n waiting", "", modelStats[key]);
+                break;
+            default:
+                break;
+        }
+        if(!text.isEmpty())
+            stats.append(text);
     }
     auto states = stats.join(", ");
-    if (!modelStats.isEmpty()) {
-        states.append(", ");
-    }
-
-    emit updateStatusRight(states + totalCountString());
+    emit updateStatusRight(machineCountString(states));
 }
 
 void
@@ -468,6 +768,35 @@ VMManagerMain::onPreferencesUpdated()
     if (oldRegexSearch != regexSearch) {
         ui->searchBar->clear();
     }
+}
+
+void
+VMManagerMain::onLanguageUpdated()
+{
+    vm_model->refreshConfigs();
+    modelDataChange();
+    /* Hack to work around details widgets not being re-translatable
+       without going through layers of abstraction */
+    ui->detailsArea->layout()->removeWidget(vm_details);
+    delete vm_details;
+    vm_details = new VMManagerDetails();
+    ui->detailsArea->layout()->addWidget(vm_details);
+    if (vm_model->rowCount(QModelIndex()) > 0)
+        vm_details->updateData(selected_sysconfig);
+}
+
+#ifdef Q_OS_WINDOWS
+void
+VMManagerMain::onDarkModeUpdated()
+{
+    vm_details->updateStyle();
+}
+#endif
+
+int
+VMManagerMain::getActiveMachineCount()
+{
+    return vm_model->getActiveMachineCount();
 }
 
 #if EMU_BUILD_NUM != 0
@@ -488,16 +817,18 @@ void
 VMManagerMain::backgroundUpdateCheckComplete(const UpdateCheck::UpdateResult &result)
 {
     qDebug() << "Check complete: update available?" << result.updateAvailable;
-    auto type = result.channel == UpdateCheck::UpdateChannel::CI ? tr("Build") : tr("Version");
-    const auto updateMessage = QString("%1: %2 %3").arg( tr("An update to 86Box is available"), type, result.latestVersion);
-    emit updateStatusLeft(updateMessage);
+    if (result.updateAvailable) {
+        auto type = result.channel == UpdateCheck::UpdateChannel::CI ? tr("build") : tr("version");
+        const auto updateMessage = tr("An update to 86Box is available: %1 %2").arg(type, result.latestVersion);
+        emit updateStatusLeft(updateMessage);
+    }
 }
 
 void
 VMManagerMain::backgroundUpdateCheckError(const QString &errorMsg)
 {
     qDebug() << "Update check failed with the following error:" << errorMsg;
-    // TODO: Update the status bar
+    emit updateStatusLeft(tr("An error has occurred while checking for updates: %1").arg(errorMsg));
 }
 #endif
 
@@ -520,10 +851,21 @@ VMManagerMain::showTextFileContents(const QString &title, const QString &path)
     displayFile.close();
 
     const auto textDisplayDialog = new QDialog(this);
-    textDisplayDialog->setFixedSize(QSize(540, 360));
+    textDisplayDialog->setMinimumSize(QSize(540, 360));
     textDisplayDialog->setWindowTitle(QString("%1 - %2").arg(title, fi.fileName()));
 
     const auto textEdit = new QPlainTextEdit();
+    const auto monospaceFont = new QFont();
+#ifdef Q_OS_WINDOWS
+    monospaceFont->setFamily("Consolas");
+#elif defined(Q_OS_MACOS)
+    monospaceFont->setFamily("Menlo");
+#else
+    monospaceFont->setFamily("Monospace");
+#endif
+    monospaceFont->setStyleHint(QFont::Monospace);
+    monospaceFont->setFixedPitch(true);
+    textEdit->setFont(*monospaceFont);
     textEdit->setReadOnly(true);
     textEdit->setPlainText(configFileContents);
     const auto buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok);

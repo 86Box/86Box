@@ -8,11 +8,9 @@
  *
  *          Implementation of Miscellaneous, Fake, Hypervisor machines.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -65,8 +63,7 @@ machine_at_vpc2007_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i440bx_no_agp_device);
     device_add(&piix4e_device);
-    device_add(&w83977f_370_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add_params(&w83977_device, (void *) (W83977F | W83977_370 | W83977_AMI | W83977_NO_NVR));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256); /* real VPC provides invalid SPD data */
 

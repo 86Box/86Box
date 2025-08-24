@@ -24,8 +24,8 @@ msgstr "Unable to initialise GhostPCL"
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 msgstr "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behaviour will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 
-msgid "Apply fullscreen stretch mode when maximized"
-msgstr "Apply fullscreen stretch mode when maximised"
+msgid "Appl&y fullscreen stretch mode when maximized"
+msgstr "Appl&y fullscreen stretch mode when maximised"
 
 msgid "Failed to initialize network driver"
 msgstr "Failed to initialise network driver"
@@ -74,3 +74,6 @@ msgstr "Colour"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Failed to initialise Vulkan renderer."
+
+msgid "True color"
+msgstr "True colour"

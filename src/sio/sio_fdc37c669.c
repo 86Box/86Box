@@ -33,15 +33,20 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include "cpu.h"
 
 typedef struct fdc37c669_t {
     uint8_t   id;
     uint8_t   tries;
-    uint8_t   regs[42];
+    uint8_t   has_ide;
+    uint8_t   dma_map[4];
+    uint8_t   irq_map[16];
+    uint8_t   regs[256];
     int       locked;
     int       rw_locked;
     int       cur_reg;
     fdc_t    *fdc;
+    lpt_t    *lpt;
     serial_t *uart[2];
 } fdc37c669_t;
 
@@ -69,6 +74,7 @@ static void
 fdc37c669_fdc_handler(fdc37c669_t *dev)
 {
     fdc_remove(dev->fdc);
+
     if (dev->regs[0x20] & 0xc0)
         fdc_set_base(dev->fdc, ((uint16_t) dev->regs[0x20]) << 2);
 }
@@ -81,6 +87,7 @@ fdc37c669_uart_handler(fdc37c669_t *dev, uint8_t uart)
     uint8_t uart_shift = ((uart ^ 1) << 2);
 
     serial_remove(dev->uart[uart]);
+
     if ((dev->regs[0x02] & pwrdn_mask) && (dev->regs[uart_reg] & 0xc0))
         serial_setup(dev->uart[0], ((uint16_t) dev->regs[0x24]) << 2,
                      (dev->regs[0x28] >> uart_shift) & 0x0f);
@@ -105,9 +112,40 @@ fdc37c669_lpt_handler(fdc37c669_t *dev)
 {
     uint8_t mask = ~(dev->regs[0x04] & 0x01);
 
-    lpt_port_remove(dev->id);
+    lpt_port_remove(dev->lpt);
+
+    if (dev->regs[0x01] & 0x08) {
+        lpt_set_ext(dev->lpt, 0);
+
+        lpt_set_epp(dev->lpt, 0);
+        lpt_set_ecp(dev->lpt, 0);
+    } else {
+        lpt_set_ext(dev->lpt, 1);
+
+        lpt_set_epp(dev->lpt, dev->regs[0x04] & 0x01);
+        lpt_set_ecp(dev->lpt, dev->regs[0x04] & 0x02);
+    }
+
+    lpt_set_fifo_threshold(dev->lpt, dev->regs[0x0a] & 0x0f);
+
     if ((dev->regs[0x01] & 0x04) && (dev->regs[0x23] >= 0x40))
-        lpt_port_setup(dev->id, ((uint16_t) (dev->regs[0x23] & mask)) << 2);
+        lpt_port_setup(dev->lpt, ((uint16_t) (dev->regs[0x23] & mask)) << 2);
+}
+
+static void
+ide_handler(fdc37c669_t *dev)
+{
+    if (dev->has_ide > 0) {
+        int ide_id = dev->has_ide - 1;
+
+        ide_handlers(ide_id, 0);
+
+        ide_set_base_addr(ide_id, 0, ((uint16_t) (dev->regs[0x21] & 0xfc)) << 2);
+        ide_set_base_addr(ide_id, 1, (((uint16_t) (dev->regs[0x22] & 0xfc)) << 2) | 0x0006);
+
+        if ((dev->regs[0x00] & 0x03) == 0x02)
+            ide_handlers(ide_id, 1);
+    }
 }
 
 static void
@@ -138,12 +176,14 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
     } else if (!dev->rw_locked || (dev->cur_reg > 0x0f))  switch (dev->cur_reg) {
         case 0x00:
             dev->regs[dev->cur_reg] = (dev->regs[dev->cur_reg] & 0x74) | (val & 0x8b);
-            if (!dev->id && (valxor & 8))
+            if (!dev->id && (valxor & 0x08))
                 fdc_set_power_down(dev->fdc, !(val & 0x08));
+            if (!dev->id && (valxor & 0x03))
+                ide_handler(dev);
             break;
         case 0x01:
             dev->regs[dev->cur_reg] = (dev->regs[dev->cur_reg] & 0x73) | (val & 0x8c);
-            if (valxor & 0x04)
+            if (valxor & 0x0c)
                 fdc37c669_lpt_handler(dev);
             if (valxor & 0x80)
                 dev->rw_locked = !(val & 0x80);
@@ -157,6 +197,17 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x03:
             dev->regs[dev->cur_reg] = (dev->regs[dev->cur_reg] & 0x08) | (val & 0xf7);
+            if ((valxor & 0x60) && (dev->fdc != NULL)) {
+                fdc_clear_flags(dev->fdc, FDC_FLAG_PS2 | FDC_FLAG_PS2_MCA);
+                switch (val & 0x0c) {
+                    case 0x00:
+                        fdc_set_flags(dev->fdc, FDC_FLAG_PS2);
+                        break;
+                    case 0x20:
+                        fdc_set_flags(dev->fdc, FDC_FLAG_PS2_MCA);
+                        break;
+                }
+            }
             if (!dev->id && (valxor & 0x02))
                 fdc_update_enh_mode(dev->fdc, !!(val & 0x02));
             break;
@@ -190,6 +241,8 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x0a:
             dev->regs[dev->cur_reg] = (dev->regs[dev->cur_reg] & 0xf0) | (val & 0x0f);
+            if (valxor & 0x0f)
+                fdc37c669_lpt_handler(dev);
             break;
         case 0x0b:
             dev->regs[dev->cur_reg] = val;
@@ -222,9 +275,13 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x21:
             dev->regs[dev->cur_reg] = val & 0xfc;
+            if (!dev->id && (valxor & 0xfc))
+                ide_handler(dev);
             break;
         case 0x22:
             dev->regs[dev->cur_reg] = (dev->regs[dev->cur_reg] & 0x03) | (val & 0xfc);
+            if (!dev->id && (valxor & 0xfc))
+                ide_handler(dev);
             break;
         case 0x23:
             dev->regs[dev->cur_reg] = val;
@@ -245,13 +302,15 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
             dev->regs[dev->cur_reg] = val;
             if (valxor & 0xf0)
                 fdc_set_dma_ch(dev->fdc, val >> 4);
+            if (valxor & 0x0f)
+                lpt_port_dma(dev->lpt, val & 0x0f);
             break;
         case 0x27:
             dev->regs[dev->cur_reg] = val;
             if (valxor & 0xf0)
                 fdc_set_irq(dev->fdc, val >> 4);
             if (valxor & 0x0f)
-                lpt_port_irq(dev->id, val & 0x0f);
+                lpt_port_irq(dev->lpt, val & 0x0f);
             break;
         case 0x28:
             dev->regs[dev->cur_reg] = val;
@@ -305,9 +364,13 @@ fdc37c669_reset(void *priv)
     dev->regs[0x21] = 0x3c;
     dev->regs[0x22] = 0x3d;
 
-    if (dev->id != 1) {
+    if (!dev->id) {
         fdc_reset(dev->fdc);
+
         fdc37c669_fdc_handler(dev);
+        fdc_clear_flags(dev->fdc, FDC_FLAG_PS2 | FDC_FLAG_PS2_MCA);
+
+        ide_handler(dev);
     }
 
     fdc37c669_uart_handler(dev, 0);
@@ -339,14 +402,34 @@ fdc37c669_init(const device_t *info)
 
     dev->id = next_id;
 
-    if (next_id != 1)
-        dev->fdc = device_add(&fdc_at_smc_device);
+    if (next_id != 1) {
+        dev->fdc     = device_add(&fdc_at_smc_device);
+        dev->has_ide = (info->local >> 8) & 0xff;
+    }
 
     dev->uart[0] = device_add_inst(&ns16550_device, (next_id << 1) + 1);
     dev->uart[1] = device_add_inst(&ns16550_device, (next_id << 1) + 2);
 
-    io_sethandler(info->local ? FDC_SECONDARY_ADDR : (next_id ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR),
+    dev->lpt     = device_add_inst(&lpt_port_device, next_id + 1);
+    lpt_set_cnfgb_readout(dev->lpt, 0x00);
+
+    io_sethandler((info->local & FDC37C6XX_370) ? FDC_SECONDARY_ADDR : (next_id ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR),
                   0x0002, fdc37c669_read, NULL, NULL, fdc37c669_write, NULL, NULL, dev);
+
+    dev->dma_map[0] = 4;
+    for (int i = 1; i < 4; i++)
+        dev->dma_map[i] = i;
+
+    memset(dev->irq_map, 0xff, 16);
+    dev->irq_map[0]  = 0xff;
+    for (int i = 1; i < 7; i++)
+         dev->irq_map[i] = i;
+    dev->irq_map[1]  = 5;
+    dev->irq_map[5]  = 7;
+    dev->irq_map[7]  = 0xff;    /* Reserved. */
+    dev->irq_map[8]  = 10;
+    dev->irq_map[9]  = 9;       /* This is used by the Acrosser PJ-A511M for IRQ 9. */
+    dev->irq_map[11] = 11;      /* This is used by the Acrosser PJ-A511M for IRQ 11. */
 
     fdc37c669_reset(dev);
 
@@ -360,20 +443,6 @@ const device_t fdc37c669_device = {
     .internal_name = "fdc37c669",
     .flags         = 0,
     .local         = 0,
-    .init          = fdc37c669_init,
-    .close         = fdc37c669_close,
-    .reset         = fdc37c669_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc37c669_370_device = {
-    .name          = "SMC FDC37C669 Super I/O (Port 370h)",
-    .internal_name = "fdc37c669_370",
-    .flags         = 0,
-    .local         = 1,
     .init          = fdc37c669_init,
     .close         = fdc37c669_close,
     .reset         = fdc37c669_reset,

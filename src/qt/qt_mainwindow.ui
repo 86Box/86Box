@@ -54,7 +54,7 @@
      <x>0</x>
      <y>0</y>
      <width>724</width>
-     <height>23</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAction">
@@ -63,17 +63,19 @@
     </property>
     <widget class="QMenu" name="menuTablet_tool">
      <property name="title">
-      <string>Tablet tool</string>
+      <string>&amp;Tablet tool</string>
      </property>
      <addaction name="actionPen"/>
      <addaction name="actionCursor_Puck"/>
     </widget>
-    <addaction name="actionAuto_pause"/>
+    <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
     <addaction name="actionKeyboard_requires_capture"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
-    <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
+    <addaction name="actionUpdate_mouse_every_CPU_frame"/>
+    <addaction name="separator"/>
+    <addaction name="actionAuto_pause"/>
     <addaction name="actionPause"/>
     <addaction name="separator"/>
     <addaction name="actionHard_Reset"/>
@@ -110,6 +112,7 @@
     <addaction name="separator"/>
     <addaction name="actionMCA_devices"/>
     <addaction name="separator"/>
+    <addaction name="actionOpen_printer_tray"/>
     <addaction name="actionOpen_screenshots_folder"/>
    </widget>
    <widget class="QMenu" name="menuView">
@@ -142,7 +145,7 @@
     </widget>
     <widget class="QMenu" name="menuFilter_method">
      <property name="title">
-      <string>Filter method</string>
+      <string>Fi&amp;lter method</string>
      </property>
      <addaction name="actionNearest"/>
      <addaction name="actionLinear"/>
@@ -159,7 +162,7 @@
     </widget>
     <widget class="QMenu" name="menuEGA_S_VGA_settings">
      <property name="title">
-      <string>E&amp;GA/(S)VGA settings</string>
+      <string>EGA/(S)&amp;VGA settings</string>
      </property>
      <widget class="QMenu" name="menuVGA_screen_type">
       <property name="title">
@@ -202,6 +205,7 @@
     <addaction name="actionFullscreen"/>
     <addaction name="menuFullscreen_stretch_mode"/>
     <addaction name="actionApply_fullscreen_stretch_mode_when_maximized"/>
+    <addaction name="actionCGA_composite_settings"/>
     <addaction name="menuEGA_S_VGA_settings"/>
     <addaction name="separator"/>
     <addaction name="actionCGA_PCjr_Tandy_EGA_S_VGA_overscan"/>
@@ -229,7 +233,7 @@
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
    <property name="contextMenuPolicy">
-    <enum>Qt::PreventContextMenu</enum>
+    <enum>Qt::ContextMenuPolicy::PreventContextMenu</enum>
    </property>
    <property name="windowTitle">
     <string notr="true">toolBar</string>
@@ -241,7 +245,7 @@
     <bool>false</bool>
    </property>
    <property name="allowedAreas">
-    <set>Qt::TopToolBarArea</set>
+    <set>Qt::ToolBarArea::TopToolBarArea</set>
    </property>
    <property name="iconSize">
     <size>
@@ -250,7 +254,7 @@
     </size>
    </property>
    <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonIconOnly</enum>
+    <enum>Qt::ToolButtonStyle::ToolButtonIconOnly</enum>
    </property>
    <property name="floatable">
     <bool>false</bool>
@@ -271,6 +275,14 @@
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
   </widget>
+  <action name="actionUpdate_mouse_every_CPU_frame">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Update mouse every CPU frame</string>
+   </property>
+  </action>
   <action name="actionAuto_pause">
    <property name="checkable">
     <bool>true</bool>
@@ -341,9 +353,6 @@
    </property>
   </action>
   <action name="actionPause">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
      <normaloff>:/menuicons/qt/icons/pause.ico</normaloff>:/menuicons/qt/icons/pause.ico</iconset>
@@ -357,10 +366,10 @@
   </action>
   <action name="actionExit">
    <property name="text">
-    <string>Exit</string>
+    <string>E&amp;xit</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::QuitRole</enum>
+    <enum>QAction::MenuRole::QuitRole</enum>
    </property>
   </action>
   <action name="actionSettings">
@@ -372,7 +381,7 @@
     <string>&amp;Settings...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::NoRole</enum>
+    <enum>QAction::MenuRole::NoRole</enum>
    </property>
    <property name="iconVisibleInMenu">
     <bool>false</bool>
@@ -423,7 +432,7 @@
   </action>
   <action name="actionSpecify_dimensions">
    <property name="text">
-    <string>Specify dimensions...</string>
+    <string>Specify &amp;dimensions...</string>
    </property>
   </action>
   <action name="actionForce_4_3_display_ratio">
@@ -431,7 +440,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>F&amp;orce 4:3 display ratio</string>
+    <string>Force &amp;4:3 display ratio</string>
    </property>
   </action>
   <action name="actionHiDPI_scaling">
@@ -668,13 +677,13 @@
   </action>
   <action name="actionAbout_Qt">
    <property name="text">
-    <string>About Qt</string>
+    <string>About &amp;Qt</string>
    </property>
    <property name="visible">
     <bool>false</bool>
    </property>
    <property name="menuRole">
-    <enum>QAction::AboutQtRole</enum>
+    <enum>QAction::MenuRole::AboutQtRole</enum>
    </property>
   </action>
   <action name="actionAbout_86Box">
@@ -682,7 +691,7 @@
     <string>&amp;About 86Box...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::AboutRole</enum>
+    <enum>QAction::MenuRole::AboutRole</enum>
    </property>
   </action>
   <action name="actionDocumentation">
@@ -735,7 +744,7 @@
     <string>&amp;Preferences...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::PreferencesRole</enum>
+    <enum>QAction::MenuRole::PreferencesRole</enum>
    </property>
   </action>
   <action name="actionEnable_Discord_integration">
@@ -766,7 +775,7 @@
      <normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</iconset>
    </property>
    <property name="text">
-    <string>ACPI shutdown</string>
+    <string>ACP&amp;I shutdown</string>
    </property>
    <property name="toolTip">
     <string>ACPI shutdown</string>
@@ -805,10 +814,10 @@
   </action>
   <action name="actionRenderer_options">
    <property name="text">
-    <string>Renderer options...</string>
+    <string>Renderer &amp;options...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::NoRole</enum>
+    <enum>QAction::MenuRole::NoRole</enum>
    </property>
   </action>
   <action name="actionVulkan">
@@ -824,7 +833,7 @@
   </action>
   <action name="actionMCA_devices">
    <property name="text">
-    <string>MCA devices...</string>
+    <string>&amp;MCA devices...</string>
    </property>
   </action>
   <action name="actionShow_non_primary_monitors">
@@ -832,7 +841,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Show non-primary monitors</string>
+    <string>Show non-&amp;primary monitors</string>
    </property>
   </action>
   <action name="actionVNC">
@@ -840,15 +849,20 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>VNC</string>
+    <string>&amp;VNC</string>
    </property>
    <property name="vid_api" stdset="0">
     <number>3</number>
    </property>
   </action>
+  <action name="actionOpen_printer_tray">
+   <property name="text">
+    <string>Open p&amp;rinter tray...</string>
+   </property>
+  </action>
   <action name="actionOpen_screenshots_folder">
    <property name="text">
-    <string>Open screenshots folder...</string>
+    <string>Open screenshots &amp;folder...</string>
    </property>
   </action>
   <action name="actionApply_fullscreen_stretch_mode_when_maximized">
@@ -856,7 +870,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Apply fullscreen stretch mode when maximized</string>
+    <string>Appl&amp;y fullscreen stretch mode when maximized</string>
    </property>
   </action>
   <action name="actionCursor_Puck">
@@ -864,7 +878,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Cursor/Puck</string>
+    <string>&amp;Cursor/Puck</string>
    </property>
   </action>
   <action name="actionPen">
@@ -872,7 +886,12 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Pen</string>
+    <string>&amp;Pen</string>
+   </property>
+  </action>
+  <action name="actionCGA_composite_settings">
+   <property name="text">
+    <string>&amp;CGA composite settings...</string>
    </property>
   </action>
  </widget>

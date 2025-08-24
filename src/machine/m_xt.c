@@ -6,18 +6,16 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Standard PC/AT implementation.
+ *          Implementation of PC and XT machines.
  *
- *
- *
- * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2017-2020 Fred N. van Kempen.
- *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2008-2025 Sarah Walker.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2017-2025 Fred N. van Kempen.
  *          Copyright 2025      Jasmine Iwanek.
  */
 #include <stdio.h>
@@ -33,8 +31,11 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
+#include <86box/lpt.h>
 #include <86box/hdc.h>
 #include <86box/gameport.h>
+#include <86box/serial.h>
+#include <86box/sio.h>
 #include <86box/ibm_5161.h>
 #include <86box/keyboard.h>
 #include <86box/rom.h>
@@ -46,6 +47,7 @@
 
 extern const device_t vendex_xt_rtc_onboard_device;
 
+/* 8088 */
 static void
 machine_xt_common_init(const machine_t *model, int fixed_floppy)
 {
@@ -57,7 +59,7 @@ machine_xt_common_init(const machine_t *model, int fixed_floppy)
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
     nmi_init();
-    standalone_gameport_type = &gameport_device;
+    standalone_gameport_type = &gameport_200_device;
 }
 
 static const device_config_t ibmpc_config[] = {
@@ -76,11 +78,11 @@ static const device_config_t ibmpc_config[] = {
             { .name = "5700051 (04/24/81)", .internal_name = "ibm5150_5700051", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc/BIOS_IBM5150_24APR81_5700051_U33.BIN", "" } },
 
-            // GlaBIOS for IBM PC
-            { .name = "GlaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_8P.ROM", "" } },
-            { .name = "GlaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_VP.ROM", "" } },
+            // GLaBIOS for IBM PC
+            { .name = "GLaBIOS 0.4.0 (8088)", .internal_name = "glabios_040_8088", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.4.0_8P.ROM", "" } },
+            { .name = "GLaBIOS 0.4.0 (V20)", .internal_name = "glabios_040_v20", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.4.0_VP.ROM", "" } },
 
             // The following are Diagnostic ROMs.
             { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
@@ -123,7 +125,7 @@ const device_t ibmpc_device = {
 };
 
 int
-machine_pc_init(const machine_t *model)
+machine_ibmpc_init(const machine_t *model)
 {
     int         ret = 0;
     int         ret2;
@@ -160,7 +162,7 @@ machine_pc_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_pc_device);
+    device_add(&kbc_pc_device);
 
     machine_xt_common_init(model, 0);
 
@@ -186,11 +188,11 @@ static const device_config_t ibmpc82_config[] = {
             { .name = "5000024 (08/16/82)", .internal_name = "ibm5150_5000024", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc82/BIOS_5150_16AUG82_5000024_U33.BIN", "" } },
 
-            // GlaBIOS for IBM PC
-            { .name = "GlaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_8P.ROM", "" } },
-            { .name = "GlaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.2.5_VP.ROM", "" } },
+            // GLaBIOS for IBM PC
+            { .name = "GLaBIOS 0.4.0 (8088)", .internal_name = "glabios_040_8088", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.4.0_8P.ROM", "" } },
+            { .name = "GLaBIOS 0.4.0 (V20)", .internal_name = "glabios_040_v20", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.4.0_VP.ROM", "" } },
 
             // The following are Diagnostic ROMs.
             { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
@@ -233,7 +235,7 @@ const device_t ibmpc82_device = {
 };
 
 int
-machine_pc82_init(const machine_t *model)
+machine_ibmpc82_init(const machine_t *model)
 {
     int         ret = 0;
     int         ret2;
@@ -270,7 +272,7 @@ machine_pc82_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_pc82_device);
+    device_add(&kbc_pc82_device);
 
     machine_xt_common_init(model, 0);
 
@@ -319,24 +321,24 @@ static const device_config_t ibmxt_config[] = {
                 .files         = { "roms/machines/ibmxt/BIOS_5160_16AUG82_U18_5000026.BIN", "roms/machines/ibmxt/BIOS_5160_16AUG82_U19_5000027.BIN", "" }
             },
 
-            // GlaBIOS for IBM XT
+            // GLaBIOS for IBM XT
             {
-                .name          = "GlaBIOS 0.2.5 (8088)",
-                .internal_name = "glabios_025_8088",
+                .name          = "GLaBIOS 0.4.0 (8088)",
+                .internal_name = "glabios_040_8088",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
                 .local         = 1,
                 .size          = 40960,
-                .files         = { "roms/machines/glabios/GLABIOS_0.2.5_8X.ROM", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_8X.ROM", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
             {
-                .name          = "GlaBIOS 0.2.5 (V20)",
-                .internal_name = "glabios_025_v20",
+                .name          = "GLaBIOS 0.4.0 (V20)",
+                .internal_name = "glabios_040_v20",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
                 .local         = 1,
                 .size          = 40960,
-                .files         = { "roms/machines/glabios/GLABIOS_0.2.5_VX.ROM", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_VX.ROM", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
 
             // The following are Diagnostic ROMs.
@@ -401,7 +403,7 @@ const device_t ibmxt_device = {
 };
 
 int
-machine_xt_init(const machine_t *model)
+machine_ibmxt_init(const machine_t *model)
 {
     int         ret = 0;
     uint8_t     enable_5161;
@@ -441,30 +443,12 @@ machine_xt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt_device);
+    device_add(&kbc_xt_device);
 
     machine_xt_common_init(model, 0);
 
     if (enable_5161)
         device_add(&ibm_5161_device);
-
-    return ret;
-}
-
-int
-machine_genxt_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/genxt/pcxt.rom",
-                           0x000fe000, 8192, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    device_add(&keyboard_xt_device);
-
-    machine_xt_common_init(model, 0);
 
     return ret;
 }
@@ -508,24 +492,24 @@ static const device_config_t ibmxt86_config[] = {
                 .files         = { "roms/machines/ibmxt86/BIOS_5160_10JAN86_U18_62X0852_27256_F800.BIN", "roms/machines/ibmxt86/BIOS_5160_10JAN86_U19_62X0853_27256_F000.BIN", "" }
             },
 
-            // GlaBIOS for IBM XT
+            // GLaBIOS for IBM XT
             {
-                .name          = "GlaBIOS 0.2.5 (8088)",
-                .internal_name = "glabios_025_8088",
+                .name          = "GLaBIOS 0.4.0 (8088)",
+                .internal_name = "glabios_040_8088",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
                 .local         = 1,
                 .size          = 65536,
-                .files         = { "roms/machines/glabios/GLABIOS_0.2.5_8X.ROM", "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_8X.ROM", "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
             },
             {
-                .name          = "GlaBIOS 0.2.5 (V20)",
-                .internal_name = "glabios_025_v20",
+                .name          = "GLaBIOS 0.4.0 (V20)",
+                .internal_name = "glabios_040_v20",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
                 .local         = 1,
                 .size          = 65536,
-                .files         = { "roms/machines/glabios/GLABIOS_0.2.5_VX.ROM", "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_VX.ROM", "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
             },
 
             // The following are Diagnostic ROMs.
@@ -585,7 +569,7 @@ const device_t ibmxt86_device = {
 };
 
 int
-machine_xt86_init(const machine_t *model)
+machine_ibmxt86_init(const machine_t *model)
 {
     int         ret = 0;
     uint8_t     enable_5161;
@@ -619,7 +603,7 @@ machine_xt86_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt86_device);
+    device_add(&kbc_xt86_device);
 
     machine_xt_common_init(model, 0);
 
@@ -632,7 +616,7 @@ machine_xt86_init(const machine_t *model)
 static void
 machine_xt_clone_init(const machine_t *model, int fixed_floppy)
 {
-    device_add(&keyboard_xtclone_device);
+    device_add(&kbc_xtclone_device);
 
     machine_xt_common_init(model, fixed_floppy);
 }
@@ -669,39 +653,14 @@ machine_xt_amixt_init(const machine_t *model)
     return ret;
 }
 
-int
-machine_xt_tuliptc8_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/tuliptc8/tulip-bios_xt_compact_2.bin",
-                           0x000fc000, 16384, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    device_add(&keyboard_xt_fe2010_device);
-
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-
-    machine_common_init(model);
-
-    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
-
-    nmi_init();
-    standalone_gameport_type = &gameport_device;
-
-    device_add(&amstrad_megapc_nvr_device);
-
-    return ret;
-}
-
-// TODO
-// Onboard EGA Graphics (NSI Logic EVC315-S on early boards STMicroelectronics EGA on later revisions)
-// RTC
-// Adaptec ACB-2072 RLL Controller Card (Optional)
-// Atari PCM1 Mouse Support
+/*
+   TODO:
+   - Onboard EGA Graphics (NSI Logic EVC315-S on early boards
+                           STMicroelectronics EGA on later revisions);
+   - RTC;
+   - Adaptec ACB-2072 RLL Controller Card (Optional);
+   - Atari PCM1 Mouse Support.
+ */
 int
 machine_xt_ataripc3_init(const machine_t *model)
 {
@@ -723,17 +682,64 @@ machine_xt_ataripc3_init(const machine_t *model)
 }
 
 int
-machine_xt_znic_init(const machine_t *model)
+machine_xt_bw230_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/znic/ibmzen.rom",
+    ret = bios_load_linear("roms/machines/bw230/bondwell.bin",
                            0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
         return ret;
 
     machine_xt_clone_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_mpc1600_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/mpc1600/mpc4.34_merged.bin",
+                           0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_pc82_device);
+
+    machine_xt_common_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_compaq_portable_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/portable/compaq portable plus 100666-001 rev c u47.bin",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_common_init(model);
+
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
+
+    device_add(&kbc_xt_compaq_device);
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_xt_device);
+    nmi_init();
+    if (joystick_type[0])
+        device_add(&gameport_200_device);
+
+    lpt_t *lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_port_setup(lpt, LPT_MDA_ADDR);
+    lpt_set_3bc_used(1);
 
     return ret;
 }
@@ -754,6 +760,124 @@ machine_xt_dtk_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_xt_pcspirit_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pcspirit/u1101.bin",
+                           0x000fe000, 16384, 0);
+
+    if (ret) {
+        bios_load_aux_linear("roms/machines/pcspirit/u1103.bin",
+                             0x000fc000, 8192, 0);
+    }
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_pc82_device);
+
+    machine_xt_common_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_genxt_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/genxt/pcxt.rom",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_xt_device);
+
+    machine_xt_common_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_glabios_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/glabios/GLABIOS_0.4.0_8X.ROM",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_xt_device);
+
+    machine_xt_common_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_top88_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/top88/Hyosung Topstar 88T - BIOS version 3.0.bin",
+                           0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    /* On-board FDC cannot be disabled */
+    machine_xt_clone_init(model, 1);
+
+    return ret;
+}
+
+static void
+machine_xt_hyundai_common_init(const machine_t *model, int fixed_floppy)
+{
+    device_add(&kbc_xt_hyundai_device);
+
+    machine_xt_common_init(model, fixed_floppy);
+}
+
+int
+machine_xt_super16t_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/super16t/Hyundai SUPER-16T - System BIOS HEA v1.12Ta (16k)(MBM27128)(1986).BIN",
+                           0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    /* On-board FDC cannot be disabled */
+    machine_xt_hyundai_common_init(model, 1);
+
+    return ret;
+}
+
+int
+machine_xt_super16te_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/super16te/Hyundai SUPER-16TE - System BIOS v2.00Id (16k)(D27128A)(1989).BIN",
+                           0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    /* On-board FDC cannot be disabled */
+    machine_xt_hyundai_common_init(model, 1);
+
+    return ret;
+}
+
 static const device_config_t jukopc_config[] = {
     // clang-format off
     {
@@ -767,11 +891,11 @@ static const device_config_t jukopc_config[] = {
         .bios = {
             { .name = "Bios 2.30", .internal_name = "jukost", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 8192, .files = { "roms/machines/jukopc/000o001.bin", "" } },
-            // GlaBIOS for Juko ST
-            { .name = "GlaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { "roms/machines/glabios/GLABIOS_0.2.5_8S_2.ROM", "" } },
-            { .name = "GlaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { "roms/machines/glabios/GLABIOS_0.2.5_VS_2.ROM", "" } },
+            // GLaBIOS for Juko ST
+            { .name = "GLaBIOS 0.4.0 (8088)", .internal_name = "glabios_040_8088", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 8192, .files = { "roms/machines/glabios/GLABIOS_0.4.0_8S.ROM", "" } },
+            { .name = "GLaBIOS 0.4.0 (V20)", .internal_name = "glabios_040_v20", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 8192, .files = { "roms/machines/glabios/GLABIOS_0.4.0_VS.ROM", "" } },
             { .files_no = 0 }
         },
     },
@@ -817,6 +941,92 @@ machine_xt_jukopc_init(const machine_t *model)
 }
 
 int
+machine_xt_kaypropc_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/kaypropc/Kaypro_v2.03K.bin",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_xt_clone_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_micoms_xl7turbo_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/mxl7t/XL7_TURBO.BIN",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_xt_device);
+
+    machine_xt_common_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_pc500_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pc500/rom404.bin",
+                           0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_pc_device);
+
+    machine_xt_common_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_pc700_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pc700/multitech pc-700 3.1.bin",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_pc_device);
+
+    machine_xt_common_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_pc4i_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pc4i/NCR_PC4i_BIOSROM_1985.BIN",
+                           0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_xt_clone_init(model, 0);
+
+    return ret;
+}
+
+int
 machine_xt_openxt_init(const machine_t *model)
 {
     int ret;
@@ -832,22 +1042,39 @@ machine_xt_openxt_init(const machine_t *model)
     return ret;
 }
 
+static void
+machine_xt_philips_common_init(const machine_t *model)
+{
+    machine_common_init(model);
+
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
+
+    nmi_init();
+
+    standalone_gameport_type = &gameport_200_device;
+
+    device_add(&kbc_pc_device);
+
+    device_add(&philips_device);
+
+    device_add(&xta_hd20_device);
+}
+
 int
-machine_xt_pcxt_init(const machine_t *model)
+machine_xt_p3105_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/pcxt/u18.rom",
-                           0x000f8000, 65536, 0);
-    if (ret) {
-        bios_load_aux_linear("roms/machines/pcxt/u19.rom",
-                             0x000f0000, 32768, 0);
-    }
+    ret = bios_load_linear("roms/machines/p3105/philipsnms9100.bin",
+                           0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model, 0);
+    machine_xt_philips_common_init(model);
+
+    /* On-board FDC cannot be disabled */
+    device_add(&fdc_xt_device);
 
     return ret;
 }
@@ -863,55 +1090,9 @@ machine_xt_pxxt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt_device);
+    device_add(&kbc_xt_device);
 
     machine_xt_common_init(model, 0);
-
-    return ret;
-}
-
-int
-machine_xt_iskra3104_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved("roms/machines/iskra3104/198.bin",
-                                "roms/machines/iskra3104/199.bin",
-                                0x000fc000, 16384, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_xt_clone_init(model, 0);
-
-    return ret;
-}
-
-int
-machine_xt_maz1016_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved("roms/machines/maz1016/e1.bin",
-                                "roms/machines/maz1016/e4.bin",
-                                0x000fc000, 49152, 0);
-
-    if (ret) {
-        bios_load_aux_interleaved("roms/machines/maz1016/e2.bin",
-                                  "roms/machines/maz1016/e5.bin",
-                                  0x000f8000, 16384, 0);
-
-        bios_load_aux_interleaved("roms/machines/maz1016/e3.bin",
-                                  "roms/machines/maz1016/e6b.bin",
-                                  0x000f4000, 16384, 0);
-    }
-
-    if (bios_only || !ret)
-        return ret;
-
-    loadfont("roms/machines/maz1016/crt-8.bin", 0);
-
-    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -943,7 +1124,7 @@ machine_xt_pravetz16_imko4_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_pravetz_device);
+    device_add(&kbc_pravetz_device);
 
     machine_xt_common_init(model, 0);
 
@@ -961,7 +1142,7 @@ machine_xt_pravetz16s_cpu12p_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt_device);
+    device_add(&kbc_xt_device);
 
     machine_xt_common_init(model, 0);
 
@@ -969,29 +1150,11 @@ machine_xt_pravetz16s_cpu12p_init(const machine_t *model)
 }
 
 int
-machine_xt_micoms_xl7turbo_init(const machine_t *model)
+machine_xt_pb8810_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/mxl7t/XL7_TURBO.BIN",
-                           0x000fe000, 8192, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    device_add(&keyboard_xt_device);
-
-    machine_xt_common_init(model, 0);
-
-    return ret;
-}
-
-int
-machine_xt_pc4i_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/pc4i/NCR_PC4i_BIOSROM_1985.BIN",
+    ret = bios_load_linear("roms/machines/pb8810/pb8088-8810-633acc631aba0345517682.bin",
                            0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
@@ -1003,78 +1166,38 @@ machine_xt_pc4i_init(const machine_t *model)
 }
 
 int
-machine_xt_mpc1600_init(const machine_t *model)
+machine_xt_sansx16_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/mpc1600/mpc4.34_merged.bin",
+    ret = bios_load_linear("roms/machines/sansx16/tmm27128ad.bin.bin",
                            0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_pc82_device);
-
-    machine_xt_common_init(model, 0);
+    /* On-board FDC cannot be disabled */
+    machine_xt_clone_init(model, 1);
 
     return ret;
 }
 
 int
-machine_xt_pcspirit_init(const machine_t *model)
+machine_xt_pcxt_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/pcspirit/u1101.bin",
-                           0x000fe000, 16384, 0);
-
+    ret = bios_load_linear("roms/machines/pcxt/u18.rom",
+                           0x000f8000, 65536, 0);
     if (ret) {
-        bios_load_aux_linear("roms/machines/pcspirit/u1103.bin",
-                             0x000fc000, 8192, 0);
+        bios_load_aux_linear("roms/machines/pcxt/u19.rom",
+                             0x000f0000, 32768, 0);
     }
 
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_pc82_device);
-
-    machine_xt_common_init(model, 0);
-
-    return ret;
-}
-
-int
-machine_xt_pc700_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/pc700/multitech pc-700 3.1.bin",
-                           0x000fe000, 8192, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    device_add(&keyboard_pc_device);
-
-    machine_xt_common_init(model, 0);
-
-    return ret;
-}
-
-int
-machine_xt_pc500_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/pc500/rom404.bin",
-                           0x000f8000, 32768, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    device_add(&keyboard_pc_device);
-
-    machine_xt_common_init(model, 0);
+    machine_xt_clone_init(model, 0);
 
     return ret;
 }
@@ -1092,11 +1215,11 @@ static const device_config_t vendex_config[] = {
         .bios = {
             { .name = "Bios 2.03C", .internal_name = "vendex", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 16384, .files = { "roms/machines/vendex/Vendex Turbo 888 XT - ROM BIOS - VER 2.03C.bin", "" } },
-            // GlaBIOS for Juko ST
-            { .name = "GlaBIOS 0.2.5 (8088)", .internal_name = "glabios_025_8088", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 16384, .files = { "roms/machines/glabios/GLABIOS_0.2.5_8TV.ROM", "" } },
-            { .name = "GlaBIOS 0.2.5 (V20)", .internal_name = "glabios_025_v20", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 16384, .files = { "roms/machines/glabios/GLABIOS_0.2.5_VTV.ROM", "" } },
+            // GLaBIOS for Vendex
+            { .name = "GLaBIOS 0.4.0 (8088)", .internal_name = "glabios_040_8088", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 16384, .files = { "roms/machines/glabios/GLABIOS_0.4.0_8TV.ROM", "" } },
+            { .name = "GLaBIOS 0.4.0 (V20)", .internal_name = "glabios_040_v20", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 16384, .files = { "roms/machines/glabios/GLABIOS_0.4.0_VTV.ROM", "" } },
             { .files_no = 0 }
         },
     },
@@ -1144,70 +1267,45 @@ machine_xt_vendex_init(const machine_t *model)
 }
 
 static void
-machine_xt_hyundai_common_init(const machine_t *model, int fixed_floppy)
+machine_xt_laserxt_common_init(const machine_t *model,int is_lxt3)
 {
-    device_add(&keyboard_xt_hyundai_device);
+    machine_common_init(model);
 
-    machine_xt_common_init(model, fixed_floppy);
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_xt_device);
+
+    nmi_init();
+    standalone_gameport_type = &gameport_200_device;
+
+    device_add(is_lxt3 ? &lxt3_device : &laserxt_device);
+
+    device_add(&kbc_xt_lxt3_device);
 }
 
 int
-machine_xt_super16t_init(const machine_t *model)
+machine_xt_laserxt_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/super16t/Hyundai SUPER-16T - System BIOS HEA v1.12Ta (16k)(MBM27128)(1986).BIN",
-                           0x000fc000, 16384, 0);
+    ret = bios_load_linear("roms/machines/ltxt/27c64.bin",
+                           0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
         return ret;
 
-    /* On-board FDC cannot be disabled */
-    machine_xt_hyundai_common_init(model, 1);
+    machine_xt_laserxt_common_init(model, 0);
 
     return ret;
 }
 
 int
-machine_xt_super16te_init(const machine_t *model)
+machine_xt_znic_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/super16te/Hyundai SUPER-16TE - System BIOS v2.00Id (16k)(D27128A)(1989).BIN",
-                           0x000fc000, 16384, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    /* On-board FDC cannot be disabled */
-    machine_xt_hyundai_common_init(model, 1);
-
-    return ret;
-}
-
-int
-machine_xt_top88_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/top88/Hyosung Topstar 88T - BIOS version 3.0.bin",
-                           0x000fc000, 16384, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    /* On-board FDC cannot be disabled */
-    machine_xt_clone_init(model, 1);
-
-    return ret;
-}
-
-int
-machine_xt_kaypropc_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/kaypropc/Kaypro_v2.03K.bin",
+    ret = bios_load_linear("roms/machines/znic/ibmzen.rom",
                            0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
@@ -1218,39 +1316,129 @@ machine_xt_kaypropc_init(const machine_t *model)
     return ret;
 }
 
+static void
+machine_zenith_common_init(const machine_t *model)
+{
+    machine_common_init(model);
+
+    device_add(&zenith_scratchpad_device);
+
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
+
+    device_add(&kbc_xt_zenith_device);
+
+    nmi_init();
+}
+
 int
-machine_xt_sansx16_init(const machine_t *model)
+machine_xt_z151_init(const machine_t *model)
 {
     int ret;
-
-    ret = bios_load_linear("roms/machines/sansx16/tmm27128ad.bin.bin",
-                           0x000fc000, 16384, 0);
+    ret = bios_load_linear("roms/machines/zdsz151/444-229-18.bin",
+                           0x000fc000, 32768, 0);
+    if (ret) {
+        bios_load_aux_linear("roms/machines/zdsz151/444-260-18.bin",
+                             0x000f8000, 16384, 0);
+    }
 
     if (bios_only || !ret)
         return ret;
 
-    /* On-board FDC cannot be disabled */
-    machine_xt_clone_init(model, 1);
+    machine_zenith_common_init(model);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_xt_tandy_device);
 
     return ret;
 }
 
+/*
+ * Current bugs and limitations:
+ * - Memory board support for EMS currently missing
+ */
 int
-machine_xt_bw230_init(const machine_t *model)
+machine_xt_z159_init(const machine_t *model)
 {
-    int ret;
+    lpt_t *lpt = NULL;
+    int    ret;
 
-    ret = bios_load_linear("roms/machines/bw230/bondwell.bin",
-                           0x000fe000, 8192, 0);
+    ret = bios_load_linear("roms/machines/zdsz159/z159m v2.9e.10d",
+                           0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model, 0);
+    machine_zenith_common_init(model);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_xt_tandy_device);
+
+    /* parallel port is on the memory board */
+    lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_port_remove(lpt);
+    lpt_port_setup(lpt, LPT2_ADDR);
+    lpt_set_next_inst(255);
 
     return ret;
 }
 
+/*
+ * Current bugs and limitations:
+ * - missing NVRAM implementation
+ */
+int
+machine_xt_z184_init(const machine_t *model)
+{
+    lpt_t *lpt = NULL;
+    int    ret;
+
+    ret = bios_load_linear("roms/machines/zdsupers/z184m v3.1d.10d",
+                           0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_zenith_common_init(model);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_xt_device);
+
+    lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_port_remove(lpt);
+    lpt_port_setup(lpt, LPT2_ADDR);
+    lpt_set_next_inst(255);
+
+    device_add(&ns8250_device);
+    /* So that serial_standalone_init() won't do anything. */
+    serial_set_next_inst(SERIAL_MAX - 1);
+
+    device_add(&cga_device);
+
+    return ret;
+}
+
+/* GC100A */
+int
+machine_xt_p3120_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/p3120/philips_p3120.bin",
+                           0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_xt_philips_common_init(model);
+
+    device_add(&gc100a_device);
+
+    device_add(&fdc_at_device);
+
+    return ret;
+}
+
+/* V20 */
 int
 machine_xt_v20xt_init(const machine_t *model)
 {
@@ -1268,12 +1456,122 @@ machine_xt_v20xt_init(const machine_t *model)
 }
 
 int
-machine_xt_pb8810_init(const machine_t *model)
+machine_xt_tuliptc8_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/pb8810/pb8088-8810-633acc631aba0345517682.bin",
+    ret = bios_load_linear("roms/machines/tuliptc8/tulip-bios_xt_compact_2.bin",
                            0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_xt_fe2010_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    machine_common_init(model);
+
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
+
+    nmi_init();
+    standalone_gameport_type = &gameport_200_device;
+
+    device_add(&amstrad_megapc_nvr_device);
+
+    return ret;
+}
+
+/* 8086 */
+int
+machine_xt_compaq_deskpro_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/deskpro/Compaq - BIOS - Revision J - 106265-002.bin",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_common_init(model);
+
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
+
+    device_add(&kbc_xt_compaq_device);
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_xt_device);
+    nmi_init();
+    standalone_gameport_type = &gameport_200_device;
+
+    lpt_t *lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_port_setup(lpt, LPT_MDA_ADDR);
+    lpt_set_3bc_used(1);
+
+    return ret;
+}
+
+int
+machine_xt_pc5086_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pc5086/sys_rom.bin",
+                                 0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_common_init(model);
+
+    device_add(&ct_82c100_device);
+    device_add(&f82c710_pc5086_device);
+
+    device_add(&kbc_xt_device);
+
+    device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
+
+    return ret;
+}
+
+int
+machine_xt_maz1016_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/maz1016/e1.bin",
+                                "roms/machines/maz1016/e4.bin",
+                                0x000fc000, 49152, 0);
+
+    if (ret) {
+        bios_load_aux_interleaved("roms/machines/maz1016/e2.bin",
+                                  "roms/machines/maz1016/e5.bin",
+                                  0x000f8000, 16384, 0);
+
+        bios_load_aux_interleaved("roms/machines/maz1016/e3.bin",
+                                  "roms/machines/maz1016/e6b.bin",
+                                  0x000f4000, 16384, 0);
+    }
+
+    if (bios_only || !ret)
+        return ret;
+
+    loadfont("roms/machines/maz1016/crt-8.bin", 0);
+
+    machine_xt_clone_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_iskra3104_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/iskra3104/198.bin",
+                                "roms/machines/iskra3104/199.bin",
+                                0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
         return ret;
@@ -1284,19 +1582,17 @@ machine_xt_pb8810_init(const machine_t *model)
 }
 
 int
-machine_xt_glabios_init(const machine_t *model)
+machine_xt_lxt3_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/glabios/GLABIOS_0.2.6_8X_012324.ROM",
+    ret = bios_load_linear("roms/machines/lxt3/27c64d.bin",
                            0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
         return ret;
 
-    device_add(&keyboard_xt_device);
-
-    machine_xt_common_init(model, 0);
+    machine_xt_laserxt_common_init(model, 1);
 
     return ret;
 }

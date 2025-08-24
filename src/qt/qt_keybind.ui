@@ -22,7 +22,7 @@
         <string>Enter key combo:</string>
        </property>
        <property name="alignment">
-        <set>Qt::AlignmentFlag::AlignCenter</set>
+        <set>Qt::AlignCenter</set>
        </property>
       </widget>
      </item>
@@ -31,17 +31,17 @@
    <item>
     <widget class="Line" name="line">
      <property name="orientation">
-      <enum>Qt::Orientation::Horizontal</enum>
+      <enum>Qt::Horizontal</enum>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
-      <enum>Qt::Orientation::Horizontal</enum>
+      <enum>Qt::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
      </property>
     </widget>
    </item>

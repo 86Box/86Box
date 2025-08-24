@@ -51,12 +51,15 @@ public:
     [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation,
                         int role) const override;
     void addConfigToModel(VMManagerSystem *system_config);
+    void removeConfigFromModel(VMManagerSystem *system_config);
 
     [[nodiscard]] VMManagerSystem * getConfigObjectForIndex(const QModelIndex &index) const;
     QModelIndex getIndexForConfigFile(const QFileInfo& config_file);
     void reload(QWidget* parent = nullptr);
     void updateDisplayName(const QModelIndex &index, const QString &newDisplayName);
-    QHash <QString, int> getProcessStats();
+    QMap<VMManagerSystem::ProcessStatus, int> getProcessStats();
+    int getActiveMachineCount();
+    void refreshConfigs();
 signals:
     void systemDataChanged();
 

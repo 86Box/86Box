@@ -27,6 +27,7 @@
 #include "qt_util.hpp"
 
 #ifdef Q_OS_WINDOWS
+#    include <windows.h>
 #    include <dwmapi.h>
 #    ifndef DWMWA_WINDOW_CORNER_PREFERENCE
 #        define DWMWA_WINDOW_CORNER_PREFERENCE 33
@@ -62,6 +63,36 @@ screenOfWidget(QWidget *widget)
 }
 
 #ifdef Q_OS_WINDOWS
+
+bool
+isWindowsLightTheme(void) {
+    // based on https://stackoverflow.com/questions/51334674/how-to-detect-windows-10-light-dark-mode-in-win32-application
+
+    // The value is expected to be a REG_DWORD, which is a signed 32-bit little-endian
+    auto buffer = std::vector<char>(4);
+    auto cbData = static_cast<DWORD>(buffer.size() * sizeof(char));
+    auto res = RegGetValueW(
+        HKEY_CURRENT_USER,
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+        L"AppsUseLightTheme",
+        RRF_RT_REG_DWORD, // expected value type
+        nullptr,
+        buffer.data(),
+        &cbData);
+
+    if (res != ERROR_SUCCESS) {
+        return 1;
+    }
+
+    // convert bytes written to our buffer to an int, assuming little-endian
+    auto i = int(buffer[3] << 24 |
+        buffer[2] << 16 |
+        buffer[1] << 8 |
+        buffer[0]);
+
+    return i == 1;
+}
+
 void
 setWin11RoundedCorners(WId hwnd, bool enable)
 {
@@ -117,11 +148,16 @@ DlgFilter(QStringList extensions, bool last)
 
 QString currentUuid()
 {
-    auto configPath = QFileInfo(cfg_path).dir().canonicalPath();
-    if(!configPath.endsWith("/")) {
-        configPath.append("/");
+    return generateUuid(QString(cfg_path));
+}
+
+QString generateUuid(const QString &path)
+{
+    auto dirPath = QFileInfo(path).dir().canonicalPath();
+    if(!dirPath.endsWith("/")) {
+        dirPath.append("/");
     }
-    return QUuid::createUuidV5(QUuid{}, configPath).toString(QUuid::WithoutBraces);
+    return QUuid::createUuidV5(QUuid{}, dirPath).toString(QUuid::WithoutBraces);
 }
 
 bool compareUuid()

@@ -47,7 +47,7 @@
 #    undef CLAMP
 #endif
 
-#define BIOS_MACH8_ROM_PATH  "roms/video/mach8/11301113140_4k.BIN"
+#define BIOS_MACH8_ROM_PATH  "roms/video/mach8/11301113140_ROM.BIN"
 
 static void     ibm8514_accel_outb(uint16_t port, uint8_t val, void *priv);
 static void     ibm8514_accel_outw(uint16_t port, uint16_t val, void *priv);
@@ -333,6 +333,9 @@ void
 ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+
+    if (dev == NULL)
+        return;
 
     if (port & 0x8000) {
         if ((port != 0xe2e8) && (port != 0xe2e9) && (port != 0xe6e8) && (port != 0xe6e9)) {
@@ -743,6 +746,9 @@ ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
+    if (dev == NULL)
+        return;
+
     if (port & 0x8000) {
         if (dev->accel.cmd_back) {
             dev->fifo_idx++;
@@ -776,6 +782,9 @@ ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len)
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     uint16_t temp = 0;
     int      cmd  = 0;
+
+    if (dev == NULL)
+        return 0xffff;
 
     switch (port) {
         case 0x82e8:
@@ -3921,7 +3930,7 @@ ibm8514_mca_reset(void *priv)
 
     ibm8514_log("MCA reset.\n");
     dev->on = 0;
-    if (dev->extensions)
+    if (dev->extensions == ATI)
         ati8514_mca_write(0x102, 0, svga);
     else
         ibm8514_mca_write(0x102, 0, svga);
@@ -3941,6 +3950,8 @@ ibm8514_vblank_start(void *priv)
 static void *
 ibm8514_init(const device_t *info)
 {
+    FILE    *fp;
+    uint8_t *rom_load = NULL;
     uint32_t bios_addr = 0;
     uint16_t bios_rom_eeprom = 0x0000;
 
@@ -3970,33 +3981,46 @@ ibm8514_init(const device_t *info)
     dev->extensions = device_get_config_int("extensions");
     bios_addr = device_get_config_hex20("bios_addr");
     if (dev->type & DEVICE_MCA)
-        bios_addr = 0xc6000;
+        bios_addr = 0xc6800;
 
     switch (dev->extensions) {
         case ATI:
             if (rom_present(BIOS_MACH8_ROM_PATH)) {
                 mach_t * mach = (mach_t *) calloc(1, sizeof(mach_t));
                 svga->ext8514 = mach;
+                fp = rom_fopen(BIOS_MACH8_ROM_PATH, "rb");
+                if (bios_addr & 0x800)
+                    (void) fseek(fp, 0x000, SEEK_SET);
+                else
+                    (void) fseek(fp, 0x800, SEEK_SET);
 
-                rom_init(&dev->bios_rom,
-                         BIOS_MACH8_ROM_PATH,
-                         bios_addr, 0x1000, 0xfff,
-                         0, MEM_MAPPING_EXTERNAL);
+                rom_load = malloc(0x2000);
+                (void) !fread(rom_load, 0x2000, 1, fp);
+                (void) fclose(fp);
+                memset(&dev->bios_rom, 0x00, sizeof(rom_t));
 
+                dev->bios_rom.rom = rom_load;
+                dev->bios_rom.mask = 0x1fff;
+                mem_mapping_add(&dev->bios_rom.mapping, bios_addr, 0x2000,
+                                ati8514_rom_readb, ati8514_rom_readw, NULL,
+                                NULL, NULL, NULL,
+                                dev->bios_rom.rom, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM_WS, dev);
                 ati8514_init(svga, svga->ext8514, svga->dev8514);
-                mach->accel.scratch0 = ((bios_addr >> 7) - 0x1000) >> 4;
-                bios_rom_eeprom = mach->accel.scratch0;
                 if (dev->type & DEVICE_MCA) {
+                    dev->accel.scratch0 = (((bios_addr >> 7) - 0x1000) >> 4);
+                    dev->accel.scratch0 |= ((dev->accel.scratch0 + 0x01) << 8);
+                    bios_rom_eeprom = dev->accel.scratch0;
                     dev->pos_regs[0] = 0x88;
                     dev->pos_regs[1] = 0x80;
-                    mach->eeprom.data[0] = 0x0000;
-                    mach->eeprom.data[1] = bios_rom_eeprom | ((bios_rom_eeprom | 0x01) << 8);
-                    ibm8514_log("EEPROM Data1=%04x.\n", mach->eeprom.data[1]);
+                    mach->eeprom.data[1] = bios_rom_eeprom;
                     mca_add(ati8514_mca_read, ati8514_mca_write, ibm8514_mca_feedb, ibm8514_mca_reset, svga);
                     ati_eeprom_load_mach8(&mach->eeprom, "ati8514_mca.nvr", 1);
                     mem_mapping_disable(&dev->bios_rom.mapping);
-                } else
+                } else {
+                    dev->accel.scratch0 = ((bios_addr >> 7) - 0x1000) >> 4;
+                    dev->accel.scratch0 |= ((dev->accel.scratch0 + 0x01) << 8);
                     ati_eeprom_load_mach8(&mach->eeprom, "ati8514.nvr", 0);
+                }
                 break;
             }
 
@@ -4087,24 +4111,35 @@ static const device_config_t isa_ext8514_config[] = {
     },
     {
         .name           = "bios_addr",
-        .description    = "BIOS Address",
+        .description    = "BIOS address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
-        .default_int    = 0xc8000,
+        .default_int    = 0xc8800,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
             { .description = "C800h", .value = 0xc8000 },
+            { .description = "C880h", .value = 0xc8800 },
             { .description = "CA00h", .value = 0xca000 },
+            { .description = "CA80h", .value = 0xca800 },
             { .description = "CC00h", .value = 0xcc000 },
+            { .description = "CC80h", .value = 0xcc800 },
             { .description = "CE00h", .value = 0xce000 },
+            { .description = "CE80h", .value = 0xce800 },
             { .description = "D000h", .value = 0xd0000 },
+            { .description = "D080h", .value = 0xd0800 },
             { .description = "D200h", .value = 0xd2000 },
+            { .description = "D280h", .value = 0xd2800 },
             { .description = "D400h", .value = 0xd4000 },
+            { .description = "D480h", .value = 0xd4800 },
             { .description = "D600h", .value = 0xd6000 },
+            { .description = "D680h", .value = 0xd6800 },
             { .description = "D800h", .value = 0xd8000 },
+            { .description = "D880h", .value = 0xd8800 },
             { .description = "DA00h", .value = 0xda000 },
+            { .description = "DA80h", .value = 0xda800 },
             { .description = "DC00h", .value = 0xdc000 },
+            { .description = "DC80h", .value = 0xdc800 },
             { .description = "DE00h", .value = 0xde000 },
             { .description = ""                        }
         },

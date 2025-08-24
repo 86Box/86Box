@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>86Box VM Manager</string>
   </property>
   <widget class="QWidget" name="centralwidget"/>
   <widget class="QMenuBar" name="menubar">
@@ -25,29 +25,44 @@
    </property>
    <widget class="QMenu" name="menuTools">
     <property name="title">
-     <string>Tools</string>
+     <string>&amp;Tools</string>
     </property>
     <addaction name="actionPreferences"/>
     <addaction name="actionCheck_for_updates"/>
    </widget>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>File</string>
+     <string>&amp;File</string>
     </property>
     <addaction name="actionNew_Machine"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="actionDocumentation"/>
+    <addaction name="actionAbout_86Box"/>
+    <addaction name="actionAbout_Qt"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuTools"/>
+   <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
+   <property name="autoFillBackground">
+    <bool>true</bool>
+   </property>
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
    <property name="movable">
     <bool>false</bool>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::TopToolBarArea</set>
    </property>
    <property name="iconSize">
     <size>
@@ -56,7 +71,7 @@
     </size>
    </property>
    <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonStyle::ToolButtonIconOnly</enum>
+    <enum>Qt::ToolButtonIconOnly</enum>
    </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
@@ -64,18 +79,14 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionNew_Machine"/>
+   <addaction name="separator"/>
    <addaction name="actionStartPause"/>
    <addaction name="actionHard_Reset"/>
    <addaction name="actionForce_Shutdown"/>
    <addaction name="actionCtrl_Alt_Del"/>
    <addaction name="actionSettings"/>
-   <addaction name="actionNew_Machine"/>
   </widget>
-  <action name="actionDo_something">
-   <property name="text">
-    <string>Do something</string>
-   </property>
-  </action>
   <action name="actionStartPause">
    <property name="checkable">
     <bool>true</bool>
@@ -85,7 +96,7 @@
      <normaloff>:/menuicons/qt/icons/run.ico</normaloff>:/menuicons/qt/icons/run.ico</iconset>
    </property>
    <property name="text">
-    <string>Start</string>
+    <string>&amp;Start</string>
    </property>
    <property name="iconVisibleInMenu">
     <bool>false</bool>
@@ -112,7 +123,7 @@
      <normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</iconset>
    </property>
    <property name="text">
-    <string>Force shutdown</string>
+    <string>&amp;Force shutdown</string>
    </property>
    <property name="toolTip">
     <string>Force shutdown</string>
@@ -157,7 +168,7 @@
     <string>&amp;Settings...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
+    <enum>QAction::NoRole</enum>
    </property>
    <property name="iconVisibleInMenu">
     <bool>false</bool>
@@ -169,21 +180,21 @@
      <normaloff>:/settings/qt/icons/86Box-yellow.ico</normaloff>:/settings/qt/icons/86Box-yellow.ico</iconset>
    </property>
    <property name="text">
-    <string>New Machine</string>
+    <string>&amp;New machine...</string>
    </property>
    <property name="toolTip">
-    <string>New Machine</string>
+    <string>New machine...</string>
    </property>
   </action>
   <action name="actionPreferences">
    <property name="text">
-    <string>Preferences</string>
+    <string>&amp;Preferences...</string>
    </property>
    <property name="toolTip">
-    <string>Preferences</string>
+    <string>Preferences...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::MenuRole::PreferencesRole</enum>
+    <enum>QAction::PreferencesRole</enum>
    </property>
   </action>
   <action name="actionStart">
@@ -195,7 +206,7 @@
      <normaloff>:/menuicons/qt/icons/run.ico</normaloff>:/menuicons/qt/icons/run.ico</iconset>
    </property>
    <property name="text">
-    <string>Start</string>
+    <string>&amp;Start</string>
    </property>
    <property name="iconVisibleInMenu">
     <bool>false</bool>
@@ -203,18 +214,39 @@
   </action>
   <action name="actionCheck_for_updates">
    <property name="text">
-    <string>Check for updates</string>
+    <string>&amp;Check for updates...</string>
    </property>
   </action>
   <action name="actionExit">
-   <property name="icon">
-    <iconset theme="QIcon::ThemeIcon::ApplicationExit"/>
-   </property>
    <property name="text">
-    <string>&amp;Exit</string>
+    <string>E&amp;xit</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::MenuRole::QuitRole</enum>
+    <enum>QAction::QuitRole</enum>
+   </property>
+  </action>
+  <action name="actionDocumentation">
+   <property name="text">
+    <string>&amp;Documentation...</string>
+   </property>
+  </action>
+  <action name="actionAbout_86Box">
+   <property name="text">
+    <string>&amp;About 86Box...</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutRole</enum>
+   </property>
+  </action>
+  <action name="actionAbout_Qt">
+   <property name="text">
+    <string>About &amp;Qt</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutQtRole</enum>
    </property>
   </action>
  </widget>

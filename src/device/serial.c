@@ -476,6 +476,12 @@ serial_set_clock_src(serial_t *dev, double clock_src)
 }
 
 void
+serial_set_type(serial_t *dev, uint8_t type)
+{
+    dev->type = type;
+}
+
+void
 serial_write(uint16_t addr, uint8_t val, void *priv)
 {
     serial_t *dev = (serial_t *) priv;
@@ -743,6 +749,14 @@ serial_read(uint16_t addr, void *priv)
     }
 
     serial_log("UART: [%04X:%08X] Read %02X from port %02X\n", CS, cpu_state.pc, ret, addr);
+    return ret;
+}
+
+uint8_t
+serial_get_shadow(serial_t *dev)
+{
+    uint8_t ret = dev->fcr;
+
     return ret;
 }
 

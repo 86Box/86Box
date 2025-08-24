@@ -1,3 +1,21 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Adlib emulation.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2024-2025 Jasmine Iwanek.
+ */
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -33,7 +51,7 @@ adlib_log(const char *fmt, ...)
 #    define adlib_log(fmt, ...)
 #endif
 
-typedef struct adlib_t {
+typedef struct adlib_s {
     fm_drv_t opl;
 
     uint8_t pos_regs[8];

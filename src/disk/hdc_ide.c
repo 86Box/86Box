@@ -46,7 +46,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdd.h>
-#include <86box/zip.h>
+#include <86box/rdisk.h>
 #include <86box/version.h>
 
 /* Bits of 'atastat' */
@@ -234,9 +234,7 @@ static uint8_t ide_qua_pnp_rom[] = {
     0x79, 0x00
 };
 
-ide_t *ide_drives[IDE_NUM];
-int    ide_ter_enabled = 0;
-int    ide_qua_enabled = 0;
+ide_t *ide_drives[IDE_NUM] = { 0 };
 
 static void ide_atapi_callback(ide_t *ide);
 static void ide_callback(void *priv);
@@ -482,7 +480,7 @@ static int
 ide_get_max(const ide_t *ide, const int type)
 {
     const int       ata_4     = ide_is_ata4(ide_boards[ide->board]);
-    const int       max[2][4] = { { 0, -1, -1, -1 }, { 4, 2, 2, 5 } };
+    const int       max[2][4] = { { 3, -1, -1, -1 }, { 4, 2, 2, 5 } };
     int             ret;
 
     if (ide->type == IDE_ATAPI)
@@ -497,7 +495,7 @@ static int
 ide_get_timings(const ide_t *ide, const int type)
 {
     const int       ata_4         = ide_is_ata4(ide_boards[ide->board]);
-    const int       timings[2][3] = { { 0, 0, 0 }, { 120, 120, 0 } };
+    const int       timings[2][3] = { { 0, 240, 180 }, { 120, 120, 120 } };
     int             ret;
 
     if (ide->type == IDE_ATAPI)
@@ -668,8 +666,9 @@ ide_identify(ide_t *ide)
     ide->buffer[88]                   = 0x0000;
 
     if (max_pio >= 3) {
+        ide->buffer[49] |= 0x0c00;
         ide->buffer[53] |= 0x0002;
-        ide->buffer[67] = ide_get_timings(ide, TIMINGS_PIO);
+        ide->buffer[67] = ide_get_timings(ide, TIMINGS_PIO_FC);
         ide->buffer[68] = ide_get_timings(ide, TIMINGS_PIO_FC);
         for (i = 3; i <= max_pio; i++)
             ide->buffer[64] |= (1 << (i - 3));
@@ -712,12 +711,8 @@ ide_identify(ide_t *ide)
     }
 
     if (ide->mdma_mode != -1) {
-        d = (ide->mdma_mode & 0xff);
-        d <<= 8;
-        if ((ide->mdma_mode & 0x300) == 0x000) {
-            if ((ide->mdma_mode & 0xff) >= 3)
-                ide->buffer[64] |= d;
-        } else if ((ide->mdma_mode & 0x300) == 0x100)
+        d = (ide->mdma_mode & 0xff) << 8;
+        if ((ide->mdma_mode & 0x300) == 0x100)
             ide->buffer[62] |= d;
         else if ((ide->mdma_mode & 0x300) == 0x200)
             ide->buffer[63] |= d;
@@ -831,6 +826,7 @@ ide_set_features(ide_t *ide)
     int     mode;
     int     submode;
     int     max;
+    int     max_pio_submode;
 
     features      = ide->tf->cylprecomp;
     features_data = ide->tf->secount;
@@ -846,9 +842,10 @@ ide_set_features(ide_t *ide)
 
             switch (mode) {
                 case 0x00: /* PIO default */
-                    if (submode != 0)
+                    max             = ide_get_max(ide, TYPE_PIO);
+                    max_pio_submode = (max >= 3) ? 1 : 0;
+                    if (submode > max_pio_submode)
                         return 0;
-                    max            = ide_get_max(ide, TYPE_PIO);
                     ide->mdma_mode = (1 << max);
                     ide_log("IDE %02X: Setting DPIO mode: %02X, %08X\n", ide->channel,
                             submode, ide->mdma_mode);
@@ -2828,20 +2825,23 @@ ide_board_close(int board)
 
     ide_log("ide_board_close(%i)\n", board);
 
-    if ((ide_boards[board] == NULL) || !ide_boards[board]->inited)
+    if (ide_boards[board] == NULL)
         return;
 
     ide_log("IDE: Closing board %i...\n", board);
 
-    timer_stop(&ide_boards[board]->timer);
+    if (ide_boards[board]->inited) {
+        timer_stop(&ide_boards[board]->timer);
 
-    ide_clear_bus_master(board);
+        ide_clear_bus_master(board);
+    }
 
     /* Close hard disk image files (if previously open) */
     for (uint8_t d = 0; d < 2; d++) {
         c = (board << 1) + d;
 
-        ide_boards[board]->ide[d] = NULL;
+        if (ide_boards[board]->inited)
+            ide_boards[board]->ide[d] = NULL;
 
         dev = ide_drives[c];
 
@@ -3263,6 +3263,16 @@ ide_close(UNUSED(void *priv))
             ide_boards[i] = NULL;
         }
     }
+}
+
+void
+ide_hard_reset(void)
+{
+    for (int i = 0; i < IDE_BUS_MAX; i++)
+        ide_boards[i] = NULL;
+
+    for (int i = 0; i < IDE_NUM; i++)
+        ide_drives[i] = NULL;
 }
 
 static uint8_t

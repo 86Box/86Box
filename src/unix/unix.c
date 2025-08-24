@@ -64,8 +64,8 @@ int             fixed_size_x = 640;
 int             fixed_size_y = 480;
 extern int      title_set;
 extern wchar_t  sdl_win_title[512];
-plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
-joystick_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
+plat_joystick_state_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
+joystick_state_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
 int             joysticks_present;
 SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
@@ -873,7 +873,7 @@ plat_init_rom_paths(void)
 #undef TMP_PATH_BUFSIZE
 
 void
-plat_get_global_config_dir(char *outbuf, const uint8_t len)
+plat_get_global_config_dir(char *outbuf, const size_t len)
 {
     char *prefPath = SDL_GetPrefPath(NULL, "86Box");
     strncpy(outbuf, prefPath, len);
@@ -882,7 +882,7 @@ plat_get_global_config_dir(char *outbuf, const uint8_t len)
 }
 
 void
-plat_get_global_data_dir(char *outbuf, const uint8_t len)
+plat_get_global_data_dir(char *outbuf, const size_t len)
 {
     char *prefPath = SDL_GetPrefPath(NULL, "86Box");
     strncpy(outbuf, prefPath, len);
@@ -899,6 +899,14 @@ plat_get_temp_dir(char *outbuf, uint8_t len)
     }
     strncpy(outbuf, tmpdir, len);
     path_slash(outbuf);
+}
+
+void
+plat_get_vmm_dir(char *outbuf, const size_t len)
+{
+    // Return empty string. SDL 86Box does not have a VM manager
+    if (len > 0)
+        outbuf[0] = 0;
 }
 
 bool
@@ -947,6 +955,11 @@ void (*f_rl_callback_handler_remove)(void) = NULL;
 #else
 #    define LIBEDIT_LIBRARY "libedit.so"
 #endif
+
+void ui_sb_update_icon_wp(int tag, int state)
+{
+    /* No-op */
+}
 
 uint32_t
 timer_onesec(uint32_t interval, UNUSED(void *param))
@@ -1001,12 +1014,12 @@ monitor_thread(UNUSED(void *param))
                     printf(
                         "fddload <id> <filename> <wp> - Load floppy disk image into drive <id>.\n"
                         "cdload <id> <filename> - Load CD-ROM image into drive <id>.\n"
-                        "zipload <id> <filename> <wp> - Load ZIP image into ZIP drive <id>.\n"
+                        "rdiskload <id> <filename> <wp> - Load removable disk image into removable disk drive <id>.\n"
                         "cartload <id> <filename> <wp> - Load cartridge image into cartridge drive <id>.\n"
                         "moload <id> <filename> <wp> - Load MO image into MO drive <id>.\n\n"
                         "fddeject <id> - eject disk from floppy drive <id>.\n"
                         "cdeject <id> - eject disc from CD-ROM drive <id>.\n"
-                        "zipeject <id> - eject ZIP image from ZIP drive <id>.\n"
+                        "rdiskeject <id> - eject removable disk image from removable disk drive <id>.\n"
                         "carteject <id> - eject cartridge from drive <id>.\n"
                         "moeject <id> - eject image from MO drive <id>.\n\n"
                         "hardreset - hard reset the emulated system.\n"
@@ -1111,8 +1124,8 @@ monitor_thread(UNUSED(void *param))
                     mo_eject(atoi(xargv[1]));
                 } else if (strncasecmp(xargv[0], "carteject", 8) == 0 && cmdargc >= 2) {
                     cartridge_eject(atoi(xargv[1]));
-                } else if (strncasecmp(xargv[0], "zipeject", 8) == 0 && cmdargc >= 2) {
-                    zip_eject(atoi(xargv[1]));
+                } else if (strncasecmp(xargv[0], "rdiskeject", 8) == 0 && cmdargc >= 2) {
+                    rdisk_eject(atoi(xargv[1]));
                 } else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4) {
                     uint8_t id;
                     uint8_t wp;
@@ -1179,7 +1192,7 @@ monitor_thread(UNUSED(void *param))
                         printf("Inserting tape into cartridge holder %hhu: %s\n", id, fn);
                         cartridge_mount(id, fn, wp);
                     }
-                } else if (strncasecmp(xargv[0], "zipload", 7) == 0 && cmdargc >= 4) {
+                } else if (strncasecmp(xargv[0], "rdiskload", 7) == 0 && cmdargc >= 4) {
                     uint8_t id;
                     uint8_t wp;
                     bool    err = false;
@@ -1198,8 +1211,8 @@ monitor_thread(UNUSED(void *param))
                         if (fn[strlen(fn) - 1] == '\''
                             || fn[strlen(fn) - 1] == '"')
                             fn[strlen(fn) - 1] = '\0';
-                        printf("Inserting disk into ZIP drive %c: %s\n", id + 'A', fn);
-                        zip_mount(id, fn, wp);
+                        printf("Inserting disk into removable disk drive %c: %s\n", id + 'A', fn);
+                        rdisk_mount(id, fn, wp);
                     }
                 }
                 free(line);
@@ -1223,11 +1236,12 @@ main(int argc, char **argv)
     ret = pc_init(argc, argv);
     if (ret == 0)
         return 0;
-    if (!pc_init_modules()) {
+    if (!pc_init_roms()) {
         ui_msgbox_header(MBX_FATAL, L"No ROMs found.", L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
         SDL_Quit();
         return 6;
     }
+    pc_init_modules();
 
     for (uint8_t i = 1; i < GFXCARD_MAX; i++)
         gfxcard[i]  = 0;
@@ -1470,7 +1484,7 @@ joystick_close(void)
 }
 
 void
-joystick_process(void)
+joystick_process(uint8_t gp)
 {
     /* No-op. */
 }

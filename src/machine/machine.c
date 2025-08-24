@@ -98,8 +98,6 @@ machine_init_ex(int m)
         mem_reset();
         smbase = is_am486dxl ? 0x00060000 : 0x00030000;
 
-        lpt_init();
-
         if (cassette_enable)
             device_add(&cassette_device);
 
@@ -141,6 +139,10 @@ void
 machine_init(void)
 {
     bios_only = 0;
+
+    machine_set_p1_default(machines[machine].kbc_p1);
+    machine_set_ps2();
+
     (void) machine_init_ex(machine);
 }
 

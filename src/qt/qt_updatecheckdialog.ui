@@ -6,9 +6,21 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>350</width>
-    <height>134</height>
+    <width>400</width>
+    <height>130</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>400</width>
+    <height>130</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>400</width>
+    <height>130</height>
+   </size>
   </property>
   <property name="sizePolicy">
    <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
@@ -17,7 +29,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Update check</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -29,7 +41,7 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string>Checking for updates..</string>
+      <string>Checking for updates...</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>

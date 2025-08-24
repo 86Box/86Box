@@ -33,6 +33,8 @@
 #include "qt_rendererstack.hpp"
 #include "qt_renderercommon.hpp"
 
+#include "qt_cgasettingsdialog.hpp"
+
 extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
@@ -92,11 +94,14 @@ extern bool cpu_thread_running;
 #    include <QVulkanFunctions>
 #endif
 
+void qt_set_sequence_auto_mnemonic(bool b);
+
 #include <array>
 #include <memory>
 #include <unordered_map>
 
 #include "qt_settings.hpp"
+#include "qt_about.hpp"
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
 #include "qt_util.hpp"
@@ -188,6 +193,16 @@ MainWindow::MainWindow(QWidget *parent)
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
 
+    auto hertz_label = new QLabel;
+    QTimer* frameRateTimer = new QTimer(this);
+    frameRateTimer->setInterval(1000);
+    frameRateTimer->setSingleShot(false);
+    connect(frameRateTimer, &QTimer::timeout, [hertz_label] {
+        hertz_label->setText(tr("%1 Hz").arg(QString::number(monitors[0].mon_actualrenderedframes.load()) + (monitors[0].mon_interlace ? "i" : "")));
+    });
+    statusBar()->addPermanentWidget(hertz_label);
+    frameRateTimer->start(1000);
+
     num_icon = QIcon(":/settings/qt/icons/num_lock_on.ico");
     num_icon_off = QIcon(":/settings/qt/icons/num_lock_off.ico");
     scroll_icon = QIcon(":/settings/qt/icons/scroll_lock_on.ico");
@@ -268,9 +283,11 @@ MainWindow::MainWindow(QWidget *parent)
         num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
-        /* TODO: Base this on keyboard type instead when that's done. */
-        kana_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
-                               machine_has_flags(machine, MACHINE_AX));
+        int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
+                         (keyboard_type == KEYBOARD_TYPE_AX);
+        int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) &&
+                         !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
+        kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
         while (QApplication::overrideCursor())
             QApplication::restoreOverrideCursor();
 #ifdef USE_WACOM
@@ -278,11 +295,18 @@ MainWindow::MainWindow(QWidget *parent)
 #else
         ui->menuTablet_tool->menuAction()->setVisible(false);
 #endif
+
+        bool enable_comp_option = false;
+        for (int i = 0; i < MONITORS_NUM; i++) {
+            if (monitors[i].mon_composite) { enable_comp_option = true; break; }
+        }
+
+        ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
     });
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::QueuedConnection);
 
-    connect(this, &MainWindow::setTitle, this, [this, toolbar_label](const QString &title) {
+    connect(this, &MainWindow::setTitle, this, [toolbar_label](const QString &title) {
         if (dopause && !hide_tool_bar) {
             toolbar_label->setText(toolbar_label->text() + tr(" - PAUSED"));
             return;
@@ -302,8 +326,6 @@ MainWindow::MainWindow(QWidget *parent)
             }
         }
 #endif
-        ui->actionPause->setChecked(false);
-        ui->actionPause->setCheckable(false);
     });
     connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
 
@@ -334,6 +356,16 @@ MainWindow::MainWindow(QWidget *parent)
             }
             ui->stackedWidget->unsetCursor();
         }
+#ifndef Q_OS_MACOS
+        if (kbd_req_capture) {
+            qt_set_sequence_auto_mnemonic(!mouse_capture);
+            /* Hack to get the menubar to update the internal Alt+shortcut table */
+            if (!video_fullscreen) {
+                ui->menubar->hide();
+                ui->menubar->show();
+            }
+        }
+#endif
     });
 
     connect(qApp, &QGuiApplication::applicationStateChanged, [this](Qt::ApplicationState state) {
@@ -655,6 +687,9 @@ MainWindow::MainWindow(QWidget *parent)
     if (do_auto_pause > 0) {
         ui->actionAuto_pause->setChecked(true);
     }
+    if (force_constant_mouse > 0) {
+        ui->actionUpdate_mouse_every_CPU_frame->setChecked(true);
+    }
 
 #ifdef Q_OS_MACOS
     ui->actionCtrl_Alt_Del->setShortcutVisibleInContextMenu(true);
@@ -713,7 +748,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     setContextMenuPolicy(Qt::PreventContextMenu);
     /* Remove default Shift+F10 handler, which unfocuses keyboard input even with no context menu. */
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    connect(new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_F10), this), &QShortcut::activated, this, [](){});
+#else
     connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, [](){});
+#endif
 
     connect(this, &MainWindow::initRendererMonitor, this, &MainWindow::initRendererMonitorSlot);
     connect(this, &MainWindow::initRendererMonitorForNonQtThread, this, &MainWindow::initRendererMonitorSlot, Qt::BlockingQueuedConnection);
@@ -1024,7 +1063,9 @@ MainWindow::showEvent(QShowEvent *event)
     }
     if (window_remember && vid_resize == 1) {
         ui->stackedWidget->setFixedSize(window_w, window_h);
+#ifndef Q_OS_MACOS
         QApplication::processEvents();
+#endif
         this->adjustSize();
     }
 }
@@ -1033,6 +1074,14 @@ void
 MainWindow::on_actionKeyboard_requires_capture_triggered()
 {
     kbd_req_capture ^= 1;
+#ifndef Q_OS_MACOS
+    qt_set_sequence_auto_mnemonic(!!kbd_req_capture);
+    /* Hack to get the menubar to update the internal Alt+shortcut table */
+    if (!video_fullscreen) {
+        ui->menubar->hide();
+        ui->menubar->show();
+    }
+#endif
 }
 
 void
@@ -1108,7 +1157,8 @@ MainWindow::on_actionSettings_triggered()
         case QDialog::Accepted:
             settings.save();
             config_changed = 2;
-			updateShortcuts();
+            updateShortcuts();
+            emit vmmConfigurationChanged();
             pc_reset_hard();
             break;
         case QDialog::Rejected:
@@ -1431,7 +1481,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
 	}
 	
 
-    if (!dopause) {
+    if (!dopause && (!kbd_req_capture || mouse_capture)) {
         if (event->type() == QEvent::Shortcut) {
             auto shortcutEvent = (QShortcutEvent *) event;
             if (shortcutEvent->key() == ui->actionExit->shortcut()) {
@@ -1456,7 +1506,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         if (event->type() == QEvent::WindowBlocked) {
             window_blocked = true;
             curdopause = dopause;
-            plat_pause(isShowMessage ? 2 : 1);
+            plat_pause(isNonPause ? dopause : (isShowMessage ? 2 : 1));
             emit setMouseCapture(false);
             releaseKeyboard();
         } else if (event->type() == QEvent::WindowUnblocked) {
@@ -1484,8 +1534,18 @@ MainWindow::refreshMediaMenu()
     caps_label->setToolTip(QShortcut::tr("Caps Lock"));
     caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
     kana_label->setToolTip(QShortcut::tr("Kana Lock"));
-    kana_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
-                           machine_has_flags(machine, MACHINE_AX));
+    int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
+                     (keyboard_type == KEYBOARD_TYPE_AX);
+    int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) &&
+                     !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
+    kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
+
+    bool enable_comp_option = false;
+    for (int i = 0; i < MONITORS_NUM; i++) {
+        if (monitors[i].mon_composite) { enable_comp_option = true; break; }
+    }
+
+    ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
 }
 
 void
@@ -1905,42 +1965,8 @@ MainWindow::on_actionAbout_Qt_triggered()
 void
 MainWindow::on_actionAbout_86Box_triggered()
 {
-    QMessageBox msgBox;
-    msgBox.setTextFormat(Qt::RichText);
-    QString versioninfo;
-#ifdef EMU_GIT_HASH
-    versioninfo = QString(" [%1]").arg(EMU_GIT_HASH);
-#endif
-#ifdef USE_DYNAREC
-#    ifdef USE_NEW_DYNAREC
-#        define DYNAREC_STR "new dynarec"
-#    else
-#        define DYNAREC_STR "old dynarec"
-#    endif
-#else
-#    define DYNAREC_STR "no dynarec"
-#endif
-    versioninfo.append(QString(" [%1, %2]").arg(QSysInfo::buildCpuArchitecture(), tr(DYNAREC_STR)));
-    msgBox.setText(QString("<b>%3%1%2</b>").arg(EMU_VERSION_FULL, versioninfo, tr("86Box v")));
-    msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
-    msgBox.setWindowTitle(tr("About 86Box"));
-    const auto closeButton = msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);
-    msgBox.setEscapeButton(closeButton);
-    const auto webSiteButton = msgBox.addButton(EMU_SITE, QMessageBox::ButtonRole::HelpRole);
-    webSiteButton->connect(webSiteButton, &QPushButton::released, []() {
-        QDesktopServices::openUrl(QUrl("https://" EMU_SITE));
-    });
-#ifdef RELEASE_BUILD
-    msgBox.setIconPixmap(QIcon(":/settings/qt/icons/86Box-green.ico").pixmap(32, 32));
-#elif defined ALPHA_BUILD
-    msgBox.setIconPixmap(QIcon(":/settings/qt/icons/86Box-red.ico").pixmap(32, 32));
-#elif defined BETA_BUILD
-    msgBox.setIconPixmap(QIcon(":/settings/qt/icons/86Box-yellow.ico").pixmap(32, 32));
-#else
-    msgBox.setIconPixmap(QIcon(":/settings/qt/icons/86Box-gray.ico").pixmap(32, 32));
-#endif
-    msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
-    msgBox.exec();
+    const auto msgBox = new About(this);
+    msgBox->exec();
 }
 
 void
@@ -1959,9 +1985,12 @@ MainWindow::on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered()
 void
 MainWindow::on_actionChange_contrast_for_monochrome_display_triggered()
 {
+    startblit();
     vid_cga_contrast ^= 1;
-    cgapal_rebuild();
+    for (int i = 0; i < MONITORS_NUM; i++)
+        cgapal_rebuild_monitor(i);
     config_save();
+    endblit();
 }
 
 void
@@ -1975,6 +2004,16 @@ MainWindow::on_actionAuto_pause_triggered()
 {
     do_auto_pause ^= 1;
     ui->actionAuto_pause->setChecked(do_auto_pause > 0 ? true : false);
+    config_save();
+}
+
+void
+MainWindow::on_actionUpdate_mouse_every_CPU_frame_triggered()
+{
+    force_constant_mouse ^= 1;
+    ui->actionUpdate_mouse_every_CPU_frame->setChecked(force_constant_mouse > 0 ? true : false);
+    mouse_update_sample_rate();
+    config_save();
 }
 
 void
@@ -2112,8 +2151,11 @@ MainWindow::updateUiPauseState()
                                     QIcon(":/menuicons/qt/icons/pause.ico");
     const auto tooltip_text = dopause ? QString(tr("Resume execution")) :
                                     QString(tr("Pause execution"));
+    const auto menu_text = dopause ? QString(tr("Re&sume")) :
+                                    QString(tr("&Pause"));
     ui->actionPause->setIcon(pause_icon);
     ui->actionPause->setToolTip(tooltip_text);
+    ui->actionPause->setText(menu_text);
     emit vmmRunningStateChanged(static_cast<VMManagerProtocol::RunningState>(window_blocked ? (dopause ? VMManagerProtocol::RunningState::PausedWaiting : VMManagerProtocol::RunningState::RunningWaiting) : (VMManagerProtocol::RunningState)dopause));
 }
 
@@ -2267,6 +2309,13 @@ MainWindow::on_actionOpen_screenshots_folder_triggered()
 }
 
 void
+MainWindow::on_actionOpen_printer_tray_triggered()
+{
+    static_cast<void>(QDir(QString(usr_path) + QString("/printer/")).mkpath("."));
+    QDesktopServices::openUrl(QUrl(QString("file:///") + usr_path + QString("/printer/")));
+}
+
+void
 MainWindow::on_actionApply_fullscreen_stretch_mode_when_maximized_triggered(bool checked)
 {
     video_fullscreen_scale_maximized = checked;
@@ -2299,3 +2348,14 @@ void MainWindow::on_actionACPI_Shutdown_triggered()
 {
     acpi_pwrbut_pressed = 1;
 }
+
+void MainWindow::on_actionCGA_composite_settings_triggered()
+{
+    isNonPause = true;
+    CGASettingsDialog dialog;
+    dialog.setModal(true);
+    dialog.exec();
+    isNonPause = false;
+    config_save();
+}
+

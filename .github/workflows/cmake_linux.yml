@@ -3,9 +3,7 @@ name: CMake (Linux)
 on:
 
   push:
-    branches:
-      - main
-
+    branches: [ "main" ]
     paths:
       - src/**
       - cmake/**
@@ -17,6 +15,7 @@ on:
       - "!**/Makefile*"
 
   pull_request:
+    branches: [ "main" ]
     paths:
       - src/**
       - cmake/**
@@ -57,10 +56,12 @@ jobs:
         ui:
           - name: SDL GUI
             qt: off
+            qt6: off
             static: on
-          - name: Qt GUI
+          - name: Qt 5 GUI
             qt: on
-            slug: -Qt
+            qt6: off
+            slug: -Qt5
             packages: >-
               qtbase5-dev
               qtbase5-private-dev
@@ -68,6 +69,20 @@ jobs:
               qttranslations5-l10n
               libevdev-dev
               libxkbcommon-x11-dev
+          - name: Qt 6 GUI
+            qt: on
+            qt6: on
+            slug: -Qt6
+            packages: >-
+              qt6-base-dev
+              qt6-base-private-dev
+              qt6-tools-dev
+              qt6-tools-dev-tools
+              qt6-l10n-tools
+              qt6-translations-l10n
+              libevdev-dev
+              libxkbcommon-x11-dev
+              libvulkan-dev
         environment:
           - arch: x86_64
             toolchain: ./cmake/flags-gcc-x86_64.cmake
@@ -113,6 +128,7 @@ jobs:
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D QT=${{ matrix.ui.qt }}
+          -D USE_QT6=${{ matrix.ui.qt6 }}
 
       - name: Build
         run: |

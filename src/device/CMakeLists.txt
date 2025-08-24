@@ -38,6 +38,7 @@ add_library(dev OBJECT
     isapnp.c
     kbc_at.c
     kbc_at_dev.c
+    kbc_xt.c
     keyboard.c
     keyboard_at.c
     keyboard_xt.c
@@ -47,11 +48,13 @@ add_library(dev OBJECT
     mouse_microtouch_touchscreen.c
     mouse_ps2.c
     mouse_serial.c
+    mouse_upc.c
     nec_mate_unk.c
     novell_cardkey.c
     pci_bridge.c
     phoenix_486_jumper.c
     postcard.c
+    radisys_config.c
     serial.c
     serial_passthrough.c
     smbus_ali7101.c
@@ -59,6 +62,7 @@ add_library(dev OBJECT
     smbus_sis5595.c
     tulip_jumper.c
     unittester.c
+    zenith_scratchpad.c
 )
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC)

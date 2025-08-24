@@ -152,6 +152,14 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
 {
     const int was_empty = mo_is_empty(dev->id);
     int       ret       = 0;
+    int       offs      = 0;
+
+    if (strstr(fn, "wp://") == fn) {
+        offs                = 5;
+        dev->drv->read_only = 1;
+    }
+
+    fn += offs;
 
     if (dev->drv == NULL)
         mo_eject(dev->id);
@@ -202,7 +210,7 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
                     log_fatal(dev->log, "mo_load(): Error seeking to the beginning of "
                               "the file\n");
 
-                strncpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path) - 1);
+                strncpy(dev->drv->image_path, fn - offs, sizeof(dev->drv->image_path) - 1);
 
                 ret = 1;
             } else
@@ -218,6 +226,9 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
         if (was_empty)
             mo_insert((mo_t *) dev);
     }
+
+    if (ret)
+        ui_sb_update_icon_wp(SB_MO | dev->id, dev->drv->read_only);
 }
 
 void
@@ -2005,7 +2016,7 @@ mo_get_max(UNUSED(const ide_t *ide), const int ide_has_dma, const int type)
 
     switch (type) {
         case TYPE_PIO:
-            ret = ide_has_dma ? 3 : 0;
+            ret = 3;
             break;
         case TYPE_SDMA:
         default:
@@ -2032,10 +2043,10 @@ mo_get_timings(UNUSED(const ide_t *ide), const int ide_has_dma, const int type)
             ret = ide_has_dma ? 0x96 : 0;
             break;
         case TIMINGS_PIO:
-            ret = ide_has_dma ? 0xb4 : 0;
+            ret = 0xf0;
             break;
         case TIMINGS_PIO_FC:
-            ret = ide_has_dma ? 0xb4 : 0;
+            ret = 0xb4;
             break;
         default:
             ret = 0;

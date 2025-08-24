@@ -6,252 +6,535 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation of the SMSC FDC37M60x Super I/O
+ *          Implementation of the SMC FDC37M60x Super I/O Chips.
  *
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *
- * Authors: Tiseno100
- *
- *          Copyright 2020 Tiseno100
+ *          Copyright 2025 Miran Grca.
  */
-#include <stdarg.h>
-#include <stdio.h>
+#include <inttypes.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/io.h>
 #include <86box/timer.h>
 #include <86box/device.h>
-#include <86box/keyboard.h>
+#include <86box/pci.h>
+#include <86box/pic.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/keyboard.h>
+#include <86box/machine.h>
+#include <86box/apm.h>
+#include <86box/plat.h>
+#include <86box/plat_unused.h>
+#include <86box/video.h>
 #include <86box/sio.h>
-
-#define SIO_INDEX_PORT dev->sio_index_port
-#define INDEX          dev->index
-
-/* Current Logical Device Number */
-#define CURRENT_LOGICAL_DEVICE dev->regs[0x07]
-
-/* Global Device Configuration */
-#define ENABLED(ld)      dev->device_regs[ld][0x30]
-#define BASE_ADDRESS(ld) ((dev->device_regs[ld][0x60] << 8) | (dev->device_regs[ld][0x61]))
-#define IRQ(ld)          dev->device_regs[ld][0x70]
-#define DMA(ld)          dev->device_regs[ld][0x74]
-
-/* Miscellaneous Chip Functionality */
-#define SOFT_RESET    (val & 0x01)
-#define POWER_CONTROL dev->regs[0x22]
-
-#ifdef ENABLE_FDC37M60X_LOG
-int fdc37m60x_do_log = ENABLE_FDC37M60X_LOG;
-
-static void
-fdc37m60x_log(const char *fmt, ...)
-{
-    va_list ap;
-
-    if (fdc37m60x_do_log) {
-        va_start(ap, fmt);
-        pclog_ex(fmt, ap);
-        va_end(ap);
-    }
-}
-#else
-#    define fdc37m60x_log(fmt, ...)
-#endif
+#include "cpu.h"
 
 typedef struct fdc37m60x_t {
-    uint8_t  index;
-    uint8_t  regs[256];
-    uint8_t  device_regs[10][256];
-    uint8_t  cfg_lock;
-    uint8_t  ide_function;
-    uint16_t sio_index_port;
-
-    fdc_t    *fdc;
-    serial_t *uart[2];
-
+    uint8_t       is_compaq;
+    uint8_t       max_ld;
+    uint8_t       tries;
+    uint8_t       port_370;
+    uint8_t       regs[48];
+    uint8_t       ld_regs[11][256];
+    uint16_t      kbc_type;
+    uint16_t      superio_base;
+    uint16_t      fdc_base;
+    uint16_t      lpt_base;
+    uint16_t      kbc_base;
+    uint16_t      uart_base[2];
+    int           locked;
+    int           cur_reg;
+    fdc_t        *fdc;
+    void         *kbc;
+    serial_t     *uart[2];
+    lpt_t        *lpt;
 } fdc37m60x_t;
 
-static void fdc37m60x_fdc_handler(fdc37m60x_t *dev);
-static void fdc37m60x_uart_handler(uint8_t num, fdc37m60x_t *dev);
-static void fdc37m60x_lpt_handler(fdc37m60x_t *dev);
-static void fdc37m60x_logical_device_handler(fdc37m60x_t *dev);
-static void fdc37m60x_reset(void *priv);
+static void    fdc37m60x_write(uint16_t port, uint8_t val, void *priv);
+static uint8_t fdc37m60x_read(uint16_t port, void *priv);
 
-static void
-fdc37m60x_write(uint16_t addr, uint8_t val, void *priv)
+static uint16_t
+make_port_superio(const fdc37m60x_t *dev)
 {
-    fdc37m60x_t *dev = (fdc37m60x_t *) priv;
+    const uint16_t r0 = dev->regs[0x26];
+    const uint16_t r1 = dev->regs[0x27];
 
-    if (addr & 1) {
-        if (!dev->cfg_lock) {
-            switch (INDEX) {
-                /* Global Configuration */
-                case 0x02:
-                    dev->regs[INDEX] = val;
-                    if (SOFT_RESET)
-                        fdc37m60x_reset(dev);
-                    break;
+    const uint16_t p = (r1 << 8) + r0;
 
-                case 0x07:
-                    CURRENT_LOGICAL_DEVICE = val;
-                    break;
-
-                case 0x22:
-                    POWER_CONTROL = val & 0x3f;
-                    break;
-
-                case 0x23:
-                    dev->regs[INDEX] = val & 0x3f;
-                    break;
-
-                case 0x24:
-                    dev->regs[INDEX] = val & 0x4e;
-                    break;
-
-                case 0x2b:
-                case 0x2c:
-                case 0x2d:
-                case 0x2e:
-                case 0x2f:
-                    dev->regs[INDEX] = val;
-                    break;
-
-                /* Device Configuration */
-                case 0x30:
-                case 0x60:
-                case 0x61:
-                case 0x70:
-                case 0x74:
-                case 0xf0:
-                case 0xf1:
-                case 0xf2:
-                case 0xf3:
-                case 0xf4:
-                case 0xf5:
-                case 0xf6:
-                case 0xf7:
-                    if (CURRENT_LOGICAL_DEVICE <= 0x81) /* Avoid Overflow */
-                        dev->device_regs[CURRENT_LOGICAL_DEVICE][INDEX] = (INDEX == 0x30) ? (val & 1) : val;
-                    fdc37m60x_logical_device_handler(dev);
-                    break;
-
-                default:
-                    break;
-            }
-        }
-    } else {
-        /* Enter/Escape Configuration Mode */
-        if (val == 0x55)
-            dev->cfg_lock = 0;
-        else if (!dev->cfg_lock && (val == 0xaa))
-            dev->cfg_lock = 1;
-        else if (!dev->cfg_lock)
-            INDEX = val;
-    }
+    return p;
 }
 
-static uint8_t
-fdc37m60x_read(uint16_t addr, void *priv)
+static uint16_t
+make_port(const fdc37m60x_t *dev, const uint8_t ld)
 {
-    const fdc37m60x_t *dev = (fdc37m60x_t *) priv;
-    uint8_t            ret = 0xff;
+    const uint16_t r0 = dev->ld_regs[ld][0x60];
+    const uint16_t r1 = dev->ld_regs[ld][0x61];
 
-    if (addr & 1)
-        ret = (INDEX >= 0x30) ? dev->device_regs[CURRENT_LOGICAL_DEVICE][INDEX] : dev->regs[INDEX];
+    const uint16_t p = (r0 << 8) + r1;
 
-    return ret;
+    return p;
+}
+
+static void
+fdc37m60x_superio_handler(fdc37m60x_t *dev)
+{
+    if (!dev->is_compaq) {
+        if (dev->superio_base != 0x0000)
+            io_removehandler(dev->superio_base, 0x0002,
+                             fdc37m60x_read, NULL, NULL, fdc37m60x_write, NULL, NULL, dev);
+        dev->superio_base = make_port_superio(dev);
+        if (dev->superio_base != 0x0000)
+            io_sethandler(dev->superio_base, 0x0002,
+                          fdc37m60x_read, NULL, NULL, fdc37m60x_write, NULL, NULL, dev);
+    }
 }
 
 static void
 fdc37m60x_fdc_handler(fdc37m60x_t *dev)
 {
-    fdc_remove(dev->fdc);
+    const uint8_t  global_enable = !!(dev->regs[0x22] & (1 << 0));
+    const uint8_t  local_enable  = !!dev->ld_regs[0][0x30];
+    const uint16_t old_base      = dev->fdc_base;
 
-    if (ENABLED(0) || (POWER_CONTROL & 0x01)) {
-        fdc_set_base(dev->fdc, BASE_ADDRESS(0));
-        fdc_set_irq(dev->fdc, IRQ(0) & 0xf);
-        fdc_set_dma_ch(dev->fdc, DMA(0) & 0x07);
-        fdc37m60x_log("SMC60x-FDC: BASE %04x IRQ %d DMA %d\n", BASE_ADDRESS(0), IRQ(0) & 0xf, DMA(0) & 0x07);
+    dev->fdc_base = 0x0000;
+
+    if (global_enable && local_enable)
+        dev->fdc_base = make_port(dev, 0) & 0xfff8;
+
+    if (dev->fdc_base != old_base) {
+        if ((old_base >= 0x0100) && (old_base <= 0x0ff8))
+            fdc_remove(dev->fdc);
+
+        if ((dev->fdc_base >= 0x0100) && (dev->fdc_base <= 0x0ff8))
+            fdc_set_base(dev->fdc, dev->fdc_base);
     }
-
-    fdc_update_enh_mode(dev->fdc, dev->device_regs[0][0xf0] & 0x01);
-
-    fdc_update_densel_force(dev->fdc, (dev->device_regs[0][0xf1] & 0xc) >> 2);
-
-    fdc_update_rwc(dev->fdc, 3, (dev->device_regs[0][0xf2] & 0xc0) >> 6);
-    fdc_update_rwc(dev->fdc, 2, (dev->device_regs[0][0xf2] & 0x30) >> 4);
-    fdc_update_rwc(dev->fdc, 1, (dev->device_regs[0][0xf2] & 0x0c) >> 2);
-    fdc_update_rwc(dev->fdc, 0, (dev->device_regs[0][0xf2] & 0x03));
-
-    fdc_update_drvrate(dev->fdc, 0, (dev->device_regs[0][0xf4] & 0x18) >> 3);
-    fdc_update_drvrate(dev->fdc, 1, (dev->device_regs[0][0xf5] & 0x18) >> 3);
-    fdc_update_drvrate(dev->fdc, 2, (dev->device_regs[0][0xf6] & 0x18) >> 3);
-    fdc_update_drvrate(dev->fdc, 3, (dev->device_regs[0][0xf7] & 0x18) >> 3);
 }
 
 static void
-fdc37m60x_uart_handler(uint8_t num, fdc37m60x_t *dev)
-{
-    serial_remove(dev->uart[num & 1]);
-
-    if (ENABLED(4 + (num & 1)) || (POWER_CONTROL & (1 << (4 + (num & 1))))) {
-        serial_setup(dev->uart[num & 1], BASE_ADDRESS(4 + (num & 1)), IRQ(4 + (num & 1)) & 0xf);
-        fdc37m60x_log("SMC60x-UART%d: BASE %04x IRQ %d\n", num & 1, BASE_ADDRESS(4 + (num & 1)), IRQ(4 + (num & 1)) & 0xf);
-    }
-}
-
-void
 fdc37m60x_lpt_handler(fdc37m60x_t *dev)
 {
-    lpt1_remove();
+    uint16_t ld_port         = 0x0000;
+    uint16_t mask            = 0xfffc;
+    uint8_t  global_enable   = !!(dev->regs[0x22] & (1 << 3));
+    uint8_t  local_enable    = !!dev->ld_regs[3][0x30];
+    uint8_t  lpt_irq         = dev->ld_regs[3][0x70];
+    uint8_t  lpt_dma         = dev->ld_regs[3][0x74];
+    uint8_t  lpt_mode        = dev->ld_regs[3][0xf0] & 0x07;
+    uint8_t  irq_readout[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x38, 0x00, 0x08,
+                                 0x00, 0x10, 0x18, 0x20, 0x00, 0x00, 0x28, 0x30 };
 
-    if (ENABLED(3) || (POWER_CONTROL & 0x08)) {
-        lpt1_setup(BASE_ADDRESS(3));
-        lpt1_irq(IRQ(3) & 0xf);
-        fdc37m60x_log("SMC60x-LPT: BASE %04x IRQ %d\n", BASE_ADDRESS(3), IRQ(3) & 0xf);
+    if (lpt_irq > 15)
+        lpt_irq = 0xff;
+
+    if (lpt_dma >= 4)
+        lpt_dma = 0xff;
+
+    lpt_port_remove(dev->lpt);
+    lpt_set_fifo_threshold(dev->lpt, (dev->ld_regs[3][0xf0] & 0x78) >> 3);
+    switch (lpt_mode) {
+        default:
+        case 0x04:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x00:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 1);
+            break;
+        case 0x01: case 0x05:
+            mask = 0xfff8;
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 0);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x02:
+            lpt_set_epp(dev->lpt, 0);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
+        case 0x03: case 0x07:
+            mask = 0xfff8;
+            lpt_set_epp(dev->lpt, 1);
+            lpt_set_ecp(dev->lpt, 1);
+            lpt_set_ext(dev->lpt, 0);
+            break;
     }
+    if (global_enable && local_enable) {
+        ld_port = (make_port(dev, 3) & 0xfffc) & mask;
+        if ((ld_port >= 0x0100) && (ld_port <= (0x0ffc & mask)))
+            lpt_port_setup(dev->lpt, ld_port);
+    }
+    lpt_port_irq(dev->lpt, lpt_irq);
+    lpt_port_dma(dev->lpt, lpt_dma);
+
+    lpt_set_cnfgb_readout(dev->lpt, ((lpt_irq > 15) ? 0x00 : irq_readout[lpt_irq]) |
+                                    ((lpt_dma >= 4) ? 0x00 : lpt_dma));
 }
 
-void
-fdc37m60x_logical_device_handler(fdc37m60x_t *dev)
+static void
+fdc37m60x_serial_handler(fdc37m60x_t *dev, const int uart)
 {
-    /* Register 07h:
-        Device 0: FDC
-        Device 3: LPT
-        Device 4: UART1
-        Device 5: UART2
-     */
+    const uint8_t  uart_no       = 4 + uart;
+    const uint8_t  global_enable = !!(dev->regs[0x22] & (1 << uart_no));
+    const uint8_t  local_enable  = !!dev->ld_regs[uart_no][0x30];
+    const uint16_t old_base      = dev->uart_base[uart];
+    double         clock_src     = 24000000.0 / 13.0;
 
-    switch (CURRENT_LOGICAL_DEVICE) {
+    dev->uart_base[uart] = 0x0000;
+
+    if (global_enable && local_enable)
+        dev->uart_base[uart] = make_port(dev, uart_no) & 0xfff8;
+
+    if (dev->uart_base[uart] != old_base) {
+        if ((old_base >= 0x0100) && (old_base <= 0x0ff8))
+            serial_remove(dev->uart[uart]);
+
+        if ((dev->uart_base[uart] >= 0x0100) && (dev->uart_base[uart] <= 0x0ff8))
+            serial_setup(dev->uart[uart], dev->uart_base[uart], dev->ld_regs[uart_no][0x70]);
+    }
+
+    switch (dev->ld_regs[uart_no][0xf0] & 0x03) {
         case 0x00:
-            fdc37m60x_fdc_handler(dev);
+            clock_src = 24000000.0 / 13.0;
             break;
-
+        case 0x01:
+            clock_src = 24000000.0 / 12.0;
+            break;
+        case 0x02:
+            clock_src = 24000000.0 / 1.0;
+            break;
         case 0x03:
-            fdc37m60x_lpt_handler(dev);
-            break;
-
-        case 0x04:
-            fdc37m60x_uart_handler(0, dev);
-            break;
-
-        case 0x05:
-            fdc37m60x_uart_handler(1, dev);
+            clock_src = 24000000.0 / 1.625;
             break;
 
         default:
             break;
     }
+
+    serial_set_clock_src(dev->uart[uart], clock_src);
+
+    /*
+       TODO: If UART 2's own IRQ pin is also enabled when shared,
+             it should also be asserted.
+     */
+    if (dev->ld_regs[4][0xf0] & 0x80) {
+        serial_irq(dev->uart[0], dev->ld_regs[4][0x70]);
+        serial_irq(dev->uart[1], dev->ld_regs[4][0x70]);
+    } else
+        serial_irq(dev->uart[uart], dev->ld_regs[uart_no][0x70]);
+}
+
+static void
+fdc37m60x_kbc_handler(fdc37m60x_t *dev)
+{
+    const uint8_t  local_enable = !!dev->ld_regs[7][0x30];
+    const uint16_t old_base = dev->kbc_base;
+
+    dev->kbc_base = local_enable ? 0x0060 : 0x0000;
+
+    if (dev->kbc_base != old_base)
+        kbc_at_handler(local_enable, dev->kbc_base, dev->kbc);
+
+    kbc_at_set_irq(0, dev->ld_regs[7][0x70], dev->kbc);
+    kbc_at_set_irq(1, dev->ld_regs[7][0x72], dev->kbc);
+}
+
+static void
+fdc37m60x_state_change(fdc37m60x_t *dev, const uint8_t locked)
+{
+    dev->locked = locked;
+    fdc_3f1_enable(dev->fdc, !locked);
+}
+
+static void
+fdc37m60x_write(uint16_t port, uint8_t val, void *priv)
+{
+    fdc37m60x_t *dev    = (fdc37m60x_t *) priv;
+    uint8_t      index  = !(port & 1);
+    uint8_t      valxor;
+
+    if (port == 0x00fb) {
+        fdc37m60x_state_change(dev, 1);
+        dev->tries = 0;
+    } else if (port == 0x00f9)
+        fdc37m60x_state_change(dev, 0);
+    else if (index) {
+        if ((!dev->is_compaq) && (val == 0x55) && !dev->locked) {
+            fdc37m60x_state_change(dev, 1);
+            dev->tries = 0;
+        } else if (dev->locked) {
+            if ((!dev->is_compaq) && (val == 0xaa))
+                fdc37m60x_state_change(dev, 0);
+            else
+                dev->cur_reg = val;
+        } else if ((!dev->is_compaq) && dev->tries)
+            dev->tries = 0;
+    } else if (dev->locked) {
+        if (dev->cur_reg < 0x30) {
+            valxor = val ^ dev->regs[dev->cur_reg];
+
+            switch (dev->cur_reg) {
+                case 0x02:
+                    dev->regs[dev->cur_reg] = val;
+                    if (val == 0x02)
+                        fdc37m60x_state_change(dev, 0);
+                    break;
+                case 0x07: case 0x26:
+                case 0x2b ... 0x2f:
+                    dev->regs[dev->cur_reg] = val;
+                    break;
+                case 0x22:
+                    dev->regs[dev->cur_reg] = val & 0x39;
+
+                    if (valxor & 0x01)
+                        fdc37m60x_fdc_handler(dev);
+                    if (valxor & 0x08)
+                        fdc37m60x_lpt_handler(dev);
+                    if (valxor & 0x10)
+                        fdc37m60x_serial_handler(dev, 0);
+                    if (valxor & 0x20)
+                        fdc37m60x_serial_handler(dev, 1);
+                    break;
+                case 0x23:
+                    dev->regs[dev->cur_reg] = val & 0x39;
+                    break;
+                case 0x24:
+                    dev->regs[dev->cur_reg] = val & 0x4e;
+                    break;
+                case 0x27:
+                    dev->regs[dev->cur_reg] = val;
+                    fdc37m60x_superio_handler(dev);
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            valxor = val ^ dev->ld_regs[dev->regs[7]][dev->cur_reg];
+
+            if (dev->regs[7] <= dev->max_ld)  switch (dev->regs[7]) {
+                case 0x00:    /* FDD */
+                    switch (dev->cur_reg) {
+                        case 0x30:
+                        case 0x60: case 0x61:
+                        case 0x70:
+                        case 0x74:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+
+                            if ((dev->cur_reg == 0x30) && (val & 0x01))
+                                dev->regs[0x22] |= 0x01;
+                            if (valxor)
+                                fdc37m60x_fdc_handler(dev);
+                            break;
+                        case 0xf0:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xef;
+
+                            if (valxor & 0x01)
+                                fdc_update_enh_mode(dev->fdc, val & 0x01);
+                            if (valxor & 0x0c) {
+                                fdc_clear_flags(dev->fdc, FDC_FLAG_PS2 | FDC_FLAG_PS2_MCA);
+                                switch (val & 0x0c) {
+                                    case 0x00:
+                                        fdc_set_flags(dev->fdc, FDC_FLAG_PS2);
+                                        break;
+                                    case 0x04:
+                                        fdc_set_flags(dev->fdc, FDC_FLAG_PS2_MCA);
+                                        break;
+                                }
+                            }
+                            if (valxor & 0x10)
+                                fdc_set_swap(dev->fdc, (val & 0x10) >> 4);
+                            break;
+                        case 0xf1:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xfc;
+
+                            if (valxor & 0x0c)
+                                fdc_update_densel_force(dev->fdc, (val & 0xc) >> 2);
+                            break;
+                        case 0xf2:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+
+                            if (valxor & 0xc0)
+                                fdc_update_rwc(dev->fdc, 3, (val & 0xc0) >> 6);
+                            if (valxor & 0x30)
+                                fdc_update_rwc(dev->fdc, 2, (val & 0x30) >> 4);
+                            if (valxor & 0x0c)
+                                fdc_update_rwc(dev->fdc, 1, (val & 0x0c) >> 2);
+                            if (valxor & 0x03)
+                                fdc_update_rwc(dev->fdc, 0, (val & 0x03));
+                            break;
+                        case 0xf4 ... 0xf7:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x5b;
+
+                            if (valxor & 0x18)
+                                fdc_update_drvrate(dev->fdc, dev->cur_reg - 0xf4,
+                                                   (val & 0x18) >> 3);
+                            break;
+                    }
+                    break;
+                case 0x03:    /* Parallel Port */
+                    switch (dev->cur_reg) {
+                        case 0x30:
+                        case 0x60: case 0x61:
+                        case 0x70:
+                        case 0x74:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+
+                            if ((dev->cur_reg == 0x30) && (val & 0x01))
+                                dev->regs[0x22] |= 0x08;
+                            if (valxor)
+                                fdc37m60x_lpt_handler(dev);
+                            break;
+                        case 0xf0:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+                            if (valxor & 0x7f)
+                                fdc37m60x_lpt_handler(dev);
+                            break;
+                    }
+                    break;
+                case 0x04:    /* Serial port 1 */
+                    switch (dev->cur_reg) {
+                        case 0x30:
+                        case 0x60: case 0x61:
+                        case 0x70:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+
+                            if ((dev->cur_reg == 0x30) && (val & 0x01))
+                                dev->regs[0x22] |= 0x10;
+                            if (valxor)
+                                fdc37m60x_serial_handler(dev, 0);
+                            break;
+                        case 0xf0:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x83;
+
+                            if (valxor & 0x83) {
+                                fdc37m60x_serial_handler(dev, 0);
+                                fdc37m60x_serial_handler(dev, 1);
+                            }
+                            break;
+                    }
+                    break;
+                case 0x05:    /* Serial port 2 */
+                    switch (dev->cur_reg) {
+                        case 0x30:
+                        case 0x60: case 0x61:
+                        case 0x62: case 0x63:
+                        case 0x70:
+                        case 0x74:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+
+                            if ((dev->cur_reg == 0x30) && (val & 0x01))
+                                dev->regs[0x22] |= 0x20;
+                            if (valxor)
+                                fdc37m60x_serial_handler(dev, 1);
+                            break;
+                        case 0xf0:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x03;
+
+                            if (valxor & 0x03) {
+                                fdc37m60x_serial_handler(dev, 0);
+                                fdc37m60x_serial_handler(dev, 1);
+                            }
+                            break;
+                        case 0xf1:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x7f;
+                            break;
+                        case 0xf2:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+                            break;
+                    }
+                    break;
+                case 0x07:    /* Keyboard */
+                    switch (dev->cur_reg) {
+                        case 0x30:
+                        case 0x70: case 0x72:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+
+                            if (valxor)
+                                fdc37m60x_kbc_handler(dev);
+                            break;
+                        case 0xf0:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x84;
+                            break;
+                    }
+                    break;
+                case 0x08:    /* Aux. I/O */
+                    switch (dev->cur_reg) {
+                        case 0x30:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+                            break;
+                        case 0xb8:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+                            break;
+                        case 0xc0:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = (dev->ld_regs[dev->regs[7]][dev->cur_reg] & 0xe4) | (val & 0x1b);
+                            break;
+                        case 0xc1:
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x0f;
+                            for (int i = 0; i < 4; i++)
+                                fdc_set_fdd_changed(i, !!(val & (1 << i)));
+                            break;
+                    }
+                    break;
+            }
+        }
+    }
+}
+
+static uint8_t
+fdc37m60x_read(uint16_t port, void *priv)
+{
+    fdc37m60x_t *dev   = (fdc37m60x_t *) priv;
+    uint8_t      index = (port & 1) ? 0 : 1;
+    uint8_t      ret   = 0xff;
+
+    /* Compaq Presario 4500: Unlock at FB, Register at EA, Data at EB, Lock at F9. */
+    if ((port == 0xea) || (port == 0xf9) || (port == 0xfb))
+        index = 1;
+    else if (port == 0xeb)
+        index = 0;
+
+    if (dev->locked) {
+        if (index)
+            ret = dev->cur_reg;
+        else {
+            if (dev->cur_reg < 0x30) {
+                if (dev->cur_reg == 0x20)
+                    ret = 0x47;
+                else
+                    ret = dev->regs[dev->cur_reg];
+            } else if (dev->regs[7] <= dev->max_ld) {
+                if ((dev->regs[7] == 0x00) && (dev->cur_reg == 0xf2))
+                    ret = (fdc_get_rwc(dev->fdc, 0) | (fdc_get_rwc(dev->fdc, 1) << 2) |
+                          (fdc_get_rwc(dev->fdc, 2) << 4) | (fdc_get_rwc(dev->fdc, 3) << 6));
+                else if ((dev->regs[7] == 0x08) && (dev->cur_reg == 0xc1)) {
+                    ret = dev->ld_regs[dev->regs[7]][dev->cur_reg] & 0xf0;
+                    for (int i = 0; i < 4; i++)
+                        ret |= (fdc_get_fdd_changed(i) << i);
+                } else if ((dev->regs[7] == 0x08) && (dev->cur_reg == 0xc2))
+                    ret = fdc_get_shadow(dev->fdc);
+                else if ((dev->regs[7] == 0x08) && (dev->cur_reg == 0xc3))
+                    ret = serial_get_shadow(dev->uart[0]);
+                else if ((dev->regs[7] == 0x08) && (dev->cur_reg == 0xc4))
+                    ret = serial_get_shadow(dev->uart[1]);
+                else if ((dev->regs[7] != 0x06) || (dev->cur_reg != 0xf3))
+                    ret = dev->ld_regs[dev->regs[7]][dev->cur_reg];
+            }
+        }
+    }
+
+    return ret;
 }
 
 static void
@@ -259,40 +542,80 @@ fdc37m60x_reset(void *priv)
 {
     fdc37m60x_t *dev = (fdc37m60x_t *) priv;
 
-    memset(dev->regs, 0, sizeof(dev->regs));
-    for (uint8_t i = 0; i < 10; i++)
-        memset(dev->device_regs[i], 0, sizeof(dev->device_regs[i]));
+    memset(dev->regs, 0x00, sizeof(dev->regs));
 
     dev->regs[0x20] = 0x47;
+    dev->regs[0x22] = 0x39;
     dev->regs[0x24] = 0x04;
-    dev->regs[0x26] = SIO_INDEX_PORT & 0xf;
-    dev->regs[0x27] = (SIO_INDEX_PORT >> 4) & 0xf;
+    dev->regs[0x26] = dev->port_370 ? 0x70 : 0xf0;
+    dev->regs[0x27] = 0x03;
 
-    /* FDC Registers */
-    dev->device_regs[0][0x60] = 0x03; /* Base Address */
-    dev->device_regs[0][0x61] = 0xf0;
-    dev->device_regs[0][0x70] = 0x06;
-    dev->device_regs[0][0x74] = 0x02;
-    dev->device_regs[0][0xf0] = 0x0e;
-    dev->device_regs[0][0xf2] = 0xff;
+    for (uint8_t i = 0; i <= 0x0a; i++)
+        memset(dev->ld_regs[i], 0x00, 256);
 
-    /* LPT Port */
-    dev->device_regs[3][0x74] = 0x04;
-    dev->device_regs[3][0xf0] = 0x3c;
+    /* Logical device 0: FDD */
+    dev->ld_regs[0x00][0x30] = 0x00;
+    dev->ld_regs[0x00][0x60] = 0x03;
+    dev->ld_regs[0x00][0x61] = 0xf0;
+    dev->ld_regs[0x00][0x70] = 0x06;
+    dev->ld_regs[0x00][0x74] = 0x02;
+    dev->ld_regs[0x00][0xf0] = 0x0e;
+    dev->ld_regs[0x00][0xf2] = 0xff;
 
-    /* UART1 */
-    dev->device_regs[4][0x74] = 0x04;
-    dev->device_regs[4][0xf1] = 0x02;
-    dev->device_regs[4][0xf2] = 0x03;
+    /* Logical device 3: Parallel Port */
+    dev->ld_regs[0x03][0x30] = 0x00;
+    dev->ld_regs[0x03][0x60] = 0x03;
+    dev->ld_regs[0x03][0x61] = 0x78;
+    dev->ld_regs[0x03][0x70] = 0x07;
+    dev->ld_regs[0x03][0x74] = 0x04;
+    dev->ld_regs[0x03][0xf0] = 0x3c;
 
-    /* AUX */
-    dev->device_regs[8][0xc0] = 0x06;
-    dev->device_regs[8][0xc1] = 0x03;
+    /* Logical device 4: Serial Port 1 */
+    dev->ld_regs[0x04][0x30] = 0x00;
+    dev->ld_regs[0x04][0x60] = 0x03;
+    dev->ld_regs[0x04][0x61] = 0xf8;
+    dev->ld_regs[0x04][0x70] = 0x04;
+    serial_irq(dev->uart[0], dev->ld_regs[4][0x70]);
+
+    /* Logical device 5: Serial Port 2 */
+    dev->ld_regs[0x05][0x30] = 0x00;
+    dev->ld_regs[0x05][0x60] = 0x02;
+    dev->ld_regs[0x05][0x61] = 0xf8;
+    dev->ld_regs[0x05][0x70] = 0x03;
+    dev->ld_regs[0x05][0x74] = 0x04;
+    dev->ld_regs[0x05][0xf1] = 0x02;
+    dev->ld_regs[0x05][0xf2] = 0x03;
+    serial_irq(dev->uart[1], dev->ld_regs[5][0x70]);
+
+    /* Logical device 7: Keyboard */
+    dev->ld_regs[0x07][0x30] = 0x00;
+    dev->ld_regs[0x07][0x61] = 0x60;
+    dev->ld_regs[0x07][0x70] = 0x01;
+
+    /* Logical device 8: Auxiliary I/O */
+    dev->ld_regs[0x08][0x30] = 0x00;
+    dev->ld_regs[0x08][0x60] = 0x00;
+    dev->ld_regs[0x08][0x61] = 0x00;
+    dev->ld_regs[0x08][0xc0] = 0x06;
+    dev->ld_regs[0x08][0xc1] = 0x03;
+
+    fdc37m60x_lpt_handler(dev);
+    fdc37m60x_serial_handler(dev, 0);
+    fdc37m60x_serial_handler(dev, 1);
+
+    fdc_clear_flags(dev->fdc, FDC_FLAG_PS2 | FDC_FLAG_PS2_MCA);
+    fdc_reset(dev->fdc);
 
     fdc37m60x_fdc_handler(dev);
-    fdc37m60x_uart_handler(0, dev);
-    fdc37m60x_uart_handler(1, dev);
-    fdc37m60x_lpt_handler(dev);
+
+    for (int i = 0; i < 4; i++)
+        fdc_set_fdd_changed(i, 1);
+
+    fdc37m60x_kbc_handler(dev);
+
+    fdc37m60x_superio_handler(dev);
+
+    dev->locked = 0;
 }
 
 static void
@@ -307,13 +630,54 @@ static void *
 fdc37m60x_init(const device_t *info)
 {
     fdc37m60x_t *dev = (fdc37m60x_t *) calloc(1, sizeof(fdc37m60x_t));
-    SIO_INDEX_PORT = info->local;
 
-    dev->fdc     = device_add(&fdc_at_smc_device);
-    dev->uart[0] = device_add_inst(&ns16550_device, 1);
-    dev->uart[1] = device_add_inst(&ns16550_device, 2);
+    dev->fdc = device_add(&fdc_at_smc_device);
 
-    io_sethandler(SIO_INDEX_PORT, 0x0002, fdc37m60x_read, NULL, NULL, fdc37m60x_write, NULL, NULL, dev);
+    dev->uart[0]   = device_add_inst(&ns16550_device, 1);
+    dev->uart[1]   = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt       = device_add_inst(&lpt_port_device, 1);
+
+    dev->kbc_type  = info->local & FDC37XXXX_KBC;
+
+    dev->is_compaq = (dev->kbc_type == FDC37XXX1);
+
+    dev->port_370  = !!(info->local & FDC37XXXX_370);
+
+    dev->max_ld    = 8;
+
+    if (dev->is_compaq) {
+        io_sethandler(0x0f9, 0x0001,
+                      fdc37m60x_read, NULL, NULL, fdc37m60x_write, NULL, NULL, dev);
+        io_sethandler(0x0fb, 0x0001,
+                      fdc37m60x_read, NULL, NULL, fdc37m60x_write, NULL, NULL, dev);
+    }
+
+    switch (dev->kbc_type) {
+        case FDC37XXX1:
+            dev->kbc = device_add_params(&kbc_at_device, (void *) KBC_VEN_COMPAQ);
+            break;
+        case FDC37XXX2:
+            dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_AMI | 0x00003500));
+            break;
+        case FDC37XXX3:
+        default:
+            dev->kbc = device_add(&kbc_at_device);
+            break;
+        case FDC37XXX5:
+            dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_PHOENIX | 0x00013800));
+            break;
+        case FDC37XXX7:
+            dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_PHOENIX | 0x00041600));
+            break;
+    }
+
+    /* Set the defaults here so the ports can be removed by fdc37m60x_reset(). */
+    dev->fdc_base     = 0x03f0;
+    dev->lpt_base     = 0x0378;
+    dev->uart_base[0] = 0x03f8;
+    dev->uart_base[1] = 0x02f8;
+    dev->kbc_base     = 0x0060;
 
     fdc37m60x_reset(dev);
 
@@ -321,27 +685,13 @@ fdc37m60x_init(const device_t *info)
 }
 
 const device_t fdc37m60x_device = {
-    .name          = "SMSC FDC37M60X",
+    .name          = "SMC FDC37C93x Super I/O",
     .internal_name = "fdc37m60x",
     .flags         = 0,
-    .local         = FDC_PRIMARY_ADDR,
+    .local         = 0,
     .init          = fdc37m60x_init,
     .close         = fdc37m60x_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc37m60x_370_device = {
-    .name          = "SMSC FDC37M60X with 10K Pull Up Resistor",
-    .internal_name = "fdc37m60x_370",
-    .flags         = 0,
-    .local         = FDC_SECONDARY_ADDR,
-    .init          = fdc37m60x_init,
-    .close         = fdc37m60x_close,
-    .reset         = NULL,
+    .reset         = fdc37m60x_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,

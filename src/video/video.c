@@ -476,6 +476,7 @@ video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index)
     monitors[monitor_index].mon_blit_data_ptr->y             = y;
     monitors[monitor_index].mon_blit_data_ptr->w             = w;
     monitors[monitor_index].mon_blit_data_ptr->h             = h;
+    monitors[monitor_index].mon_renderedframes++;
 
     thread_set_event(monitors[monitor_index].mon_blit_data_ptr->wake_blit_thread);
     MTR_END("video", "video_blit_memtoscreen");
@@ -1058,20 +1059,20 @@ loadfont_common(FILE *fp, int format)
                 for (uint16_t c = d; c < d + 256; c++) {
                     (void) !fread(&fontdatm[c][8], 1, 8, fp);
                 }
-                for (uint16_t c = d + 256; c < d + 512; c++) {
+                for (uint32_t c = d + 256; c < d + 512; c++) {
                     (void) !fread(&fontdatm[c][8], 1, 8, fp);
                 }
-                for (uint16_t c = d; c < d + 256; c++) {
+                for (uint32_t c = d; c < d + 256; c++) {
                     (void) !fread(&fontdatm[c][0], 1, 8, fp);
                 }
-                for (uint16_t c = d + 256; c < d + 512; c++) {
+                for (uint32_t c = d + 256; c < d + 512; c++) {
                     (void) !fread(&fontdatm[c][0], 1, 8, fp);
                 }
                 fseek(fp, 4096, SEEK_CUR); /* Skip blank section */
-                for (uint16_t c = d; c < d + 256; c++) {
+                for (uint32_t c = d; c < d + 256; c++) {
                     (void) !fread(&fontdat[c][0], 1, 8, fp);
                 }
-                for (uint16_t c = d + 256; c < d + 512; c++) {
+                for (uint32_t c = d + 256; c < d + 512; c++) {
                     (void) !fread(&fontdat[c][0], 1, 8, fp);
                 }
             }

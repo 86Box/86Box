@@ -67,8 +67,6 @@ typedef union {
 
 typedef struct ibm8514_t {
     rom_t bios_rom;
-    rom_t bios_rom2;
-    mem_mapping_t bios_mapping;
     uint8_t *rom1;
     uint8_t *rom2;
     hwcursor8514_t hwcursor;
@@ -107,6 +105,8 @@ typedef struct ibm8514_t {
     uint64_t  dispofftime;
 
     struct {
+        uint16_t scratch0;
+        uint16_t scratch1;
         uint16_t subsys_cntl;
         uint16_t setup_md;
         uint16_t advfunc_cntl;
@@ -253,6 +253,7 @@ typedef struct ibm8514_t {
     int     vdisp;
     int     vdisp2;
     int     disp_cntl;
+    int     disp_cntl_2;
     int     interlace;
     uint16_t subsys_cntl;
     uint8_t subsys_stat;
@@ -277,6 +278,7 @@ typedef struct ibm8514_t {
     int      _8514on;
     int      _8514crt;
     PALETTE  _8514pal;
+    uint8_t  ven_clock;
 
     latch8514_t latch;
 

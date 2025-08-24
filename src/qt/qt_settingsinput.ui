@@ -24,14 +24,14 @@
     <number>0</number>
    </property>
    <item row="0" column="0">
-    <widget class="QLabel" name="labelMouse">
+    <widget class="QLabel" name="labelKeyboard">
      <property name="text">
-      <string>Mouse:</string>
+      <string>Keyboard:</string>
      </property>
     </widget>
    </item>
    <item row="0" column="1" colspan="2">
-    <widget class="QComboBox" name="comboBoxMouse">
+    <widget class="QComboBox" name="comboBoxKeyboard">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -44,7 +44,7 @@
     </widget>
    </item>
    <item row="0" column="3">
-    <widget class="QPushButton" name="pushButtonConfigureMouse">
+    <widget class="QPushButton" name="pushButtonConfigureKeyboard">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -57,58 +57,91 @@
     </widget>
    </item>
    <item row="1" column="0">
-    <widget class="QLabel" name="labelJoystick">
+    <widget class="QLabel" name="labelMouse">
      <property name="text">
-      <string>Joystick:</string>
+      <string>Mouse:</string>
      </property>
     </widget>
    </item>
    <item row="1" column="1" colspan="2">
-    <widget class="QComboBox" name="comboBoxJoystick">
+    <widget class="QComboBox" name="comboBoxMouse">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="maxVisibleItems">
       <number>30</number>
      </property>
     </widget>
    </item>
+   <item row="1" column="3">
+    <widget class="QPushButton" name="pushButtonConfigureMouse">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string>Configure</string>
+     </property>
+    </widget>
+   </item>
    <item row="2" column="0">
-    <widget class="QPushButton" name="pushButtonJoystick1">
+    <widget class="QLabel" name="labelJoystick0">
+     <property name="text">
+      <string>Joystick:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1" colspan="2">
+    <widget class="QComboBox" name="comboBoxJoystick0">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QPushButton" name="pushButtonJoystick01">
      <property name="text">
       <string>Joystick 1...</string>
      </property>
     </widget>
    </item>
-   <item row="2" column="1">
-    <widget class="QPushButton" name="pushButtonJoystick2">
+   <item row="3" column="1">
+    <widget class="QPushButton" name="pushButtonJoystick02">
      <property name="text">
       <string>Joystick 2...</string>
      </property>
     </widget>
    </item>
-   <item row="2" column="2">
-    <widget class="QPushButton" name="pushButtonJoystick3">
+   <item row="3" column="2">
+    <widget class="QPushButton" name="pushButtonJoystick03">
      <property name="text">
       <string>Joystick 3...</string>
      </property>
     </widget>
    </item>
-   <item row="2" column="3">
-    <widget class="QPushButton" name="pushButtonJoystick4">
+   <item row="3" column="3">
+    <widget class="QPushButton" name="pushButtonJoystick04">
      <property name="text">
       <string>Joystick 4...</string>
      </property>
     </widget>
    </item>
-   <item row="3" column="0">
+   <item row="4" column="0">
     <widget class="QLabel" name="labelKeys">
      <property name="text">
       <string>Key Bindings:</string>
      </property>
     </widget>
    </item>
-   <item row="4" column="0" colspan="4">
+   <item row="5" column="0" colspan="4">
     <widget class="QTableWidget" name="tableKeys">
      <property name="editTriggers">
-      <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+      <set>QAbstractItemView::NoEditTriggers</set>
      </property>
      <property name="tabKeyNavigation">
       <bool>false</bool>
@@ -120,11 +153,11 @@
       <bool>true</bool>
      </property>
      <property name="selectionBehavior">
-      <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+      <enum>QAbstractItemView::SelectRows</enum>
      </property>
     </widget>
    </item>
-   <item row="5" column="2">
+   <item row="6" column="2">
     <widget class="QPushButton" name="pushButtonClearBind">
      <property name="enabled">
       <bool>false</bool>
@@ -134,7 +167,7 @@
      </property>
     </widget>
    </item>
-   <item row="5" column="3">
+   <item row="6" column="3">
     <widget class="QPushButton" name="pushButtonBind">
      <property name="enabled">
       <bool>false</bool>

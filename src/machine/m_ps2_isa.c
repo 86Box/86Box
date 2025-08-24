@@ -39,6 +39,7 @@ typedef struct {
         ps2_190;
 
     serial_t *uart;
+    lpt_t    *lpt;
 } ps2_isa_t;
 
 static void
@@ -53,7 +54,7 @@ ps2_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x0102:
             if (!(ps2->ps2_94 & 0x80)) {
-                lpt1_remove();
+                lpt_port_remove(ps2->lpt);
                 serial_remove(ps2->uart);
                 if (val & 0x04) {
                     if (val & 0x08)
@@ -64,13 +65,13 @@ ps2_write(uint16_t port, uint8_t val, void *priv)
                 if (val & 0x10) {
                     switch ((val >> 5) & 3) {
                         case 0:
-                            lpt1_setup(LPT_MDA_ADDR);
+                            lpt_port_setup(ps2->lpt, LPT_MDA_ADDR);
                             break;
                         case 1:
-                            lpt1_setup(LPT1_ADDR);
+                            lpt_port_setup(ps2->lpt, LPT1_ADDR);
                             break;
                         case 2:
-                            lpt1_setup(LPT2_ADDR);
+                            lpt_port_setup(ps2->lpt, LPT2_ADDR);
                             break;
 
                         default:
@@ -166,8 +167,11 @@ ps2_isa_setup(int model, int cpu_type)
 
     ps2->uart = device_add_inst(&ns16450_device, 1);
 
-    lpt1_remove();
-    lpt1_setup(LPT_MDA_ADDR);
+    ps2->lpt  = device_add_inst(&lpt_port_device, 1);
+    lpt_set_ext(ps2->lpt, 1);
+
+    lpt_port_remove(ps2->lpt);
+    lpt_port_setup(ps2->lpt, LPT_MDA_ADDR);
 
     device_add(&port_92_device);
 
@@ -197,7 +201,7 @@ ps2_isa_common_init(const machine_t *model)
     dma16_init();
     pic2_init();
 
-    device_add(&keyboard_ps2_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&port_6x_ps2_device);
 }
 

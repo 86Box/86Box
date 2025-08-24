@@ -15,9 +15,11 @@ QString DlgFilter(QStringList extensions, bool last = false);
 /* Returns screen the widget is on */
 QScreen *screenOfWidget(QWidget *widget);
 #ifdef Q_OS_WINDOWS
+bool isWindowsLightTheme(void);
 void setWin11RoundedCorners(WId hwnd, bool enable);
 #endif
 QString currentUuid();
+QString generateUuid(const QString &path);
 void storeCurrentUuid();
 bool compareUuid();
 void generateNewMacAdresses();

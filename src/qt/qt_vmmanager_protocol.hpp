@@ -54,6 +54,7 @@ public:
         WindowBlocked,
         WindowUnblocked,
         RunningStateChanged,
+        ConfigurationChanged,
         WinIdMessage,
         UnknownMessage,
     };

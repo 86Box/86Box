@@ -113,6 +113,12 @@ VMManagerModel::reload(QWidget* parent)
     // TODO: Remove missing configs
 }
 
+void
+VMManagerModel::refreshConfigs() {
+    for ( const auto& each_config : machines)
+        each_config->reloadConfig();
+}
+
 QModelIndex
 VMManagerModel::getIndexForConfigFile(const QFileInfo& config_file)
 {
@@ -134,6 +140,18 @@ VMManagerModel::addConfigToModel(VMManagerSystem *system_config)
     connect(system_config, &VMManagerSystem::itemDataChanged, this, &VMManagerModel::modelDataChanged);
     endInsertRows();
 }
+
+void
+VMManagerModel::removeConfigFromModel(VMManagerSystem *system_config)
+{
+    const QModelIndex index = getIndexForConfigFile(system_config->config_file);
+    disconnect(system_config, &VMManagerSystem::itemDataChanged, this, &VMManagerModel::modelDataChanged);
+    beginRemoveRows(QModelIndex(), index.row(), index.row());
+    machines.remove(index.row());
+    endRemoveRows();
+    emit systemDataChanged();
+}
+
 void
 VMManagerModel::modelDataChanged()
 {
@@ -149,15 +167,23 @@ VMManagerModel::updateDisplayName(const QModelIndex &index, const QString &newDi
     machines.at(index.row())->setDisplayName(newDisplayName);
     modelDataChanged();
 }
-QHash<QString, int>
+QMap<VMManagerSystem::ProcessStatus, int>
 VMManagerModel::getProcessStats()
 {
-    QHash<QString, int> stats;
+    QMap<VMManagerSystem::ProcessStatus, int> stats;
     for (const auto& system: machines) {
-        if (system->getProcessStatus() != VMManagerSystem::ProcessStatus::Stopped) {
-            auto statusString = system->getProcessStatusString();
-            stats[statusString] += 1;
-        }
+        stats[system->getProcessStatus()] += 1;
     }
     return stats;
+}
+
+int
+VMManagerModel::getActiveMachineCount()
+{
+    int running = 0;
+    for (const auto& system: machines) {
+        if (system->getProcessStatus() != VMManagerSystem::ProcessStatus::Stopped)
+            running++;
+    }
+    return running;
 }

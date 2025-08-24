@@ -133,11 +133,13 @@ typedef struct config_t {
 
     /* Other removable devices category */
     storage_cfg_t cdrom[CDROM_NUM]; /* CD-ROM drives */
-    storage_cfg_t rdisk[ZIP_NUM];   /* Removable disk drives */
+    storage_cfg_t rdisk[RDISK_NUM]; /* Removable disk drives */
 } config_t;
 #endif
 
+extern void config_load_global(void);
 extern void config_load(void);
+extern void config_save_global(void);
 extern void config_save(void);
 
 #ifdef EMU_INI_H

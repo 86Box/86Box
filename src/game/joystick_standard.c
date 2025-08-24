@@ -274,7 +274,7 @@ joystick_standard_a0_over(UNUSED(void *priv))
     //
 }
 
-const joystick_if_t joystick_2axis_2button = {
+const joystick_t joystick_2axis_2button = {
     .name          = "2-axis, 2-button joystick(s)",
     .internal_name = "2axis_2button",
     .init          = joystick_standard_init,
@@ -292,7 +292,7 @@ const joystick_if_t joystick_2axis_2button = {
     .pov_names     = { NULL }
 };
 
-const joystick_if_t joystick_2button_gamepad = {
+const joystick_t joystick_2button_gamepad = {
     .name          = "2-button gamepad(s)",
     .internal_name = "2button_gamepad",
     .init          = joystick_standard_init,
@@ -310,7 +310,7 @@ const joystick_if_t joystick_2button_gamepad = {
     .pov_names     = { NULL }
 };
 
-const joystick_if_t joystick_2button_flight_yoke = {
+const joystick_t joystick_2button_flight_yoke = {
     .name          = "2-button flight yoke",
     .internal_name = "2button_flight_yoke",
     .init          = joystick_standard_init,
@@ -328,7 +328,7 @@ const joystick_if_t joystick_2button_flight_yoke = {
     .pov_names     = { NULL }
 };
 
-const joystick_if_t joystick_2axis_4button = {
+const joystick_t joystick_2axis_4button = {
     .name          = "2-axis, 4-button joystick",
     .internal_name = "2axis_4button",
     .init          = joystick_standard_init,
@@ -346,7 +346,7 @@ const joystick_if_t joystick_2axis_4button = {
     .pov_names     = { NULL }
 };
 
-const joystick_if_t joystick_4button_gamepad = {
+const joystick_t joystick_4button_gamepad = {
     .name          = "4-button gamepad",
     .internal_name = "4button_gamepad",
     .init          = joystick_standard_init,
@@ -364,7 +364,7 @@ const joystick_if_t joystick_4button_gamepad = {
     .pov_names     = { NULL }
 };
 
-const joystick_if_t joystick_4button_flight_yoke = {
+const joystick_t joystick_4button_flight_yoke = {
     .name          = "4-button flight yoke",
     .internal_name = "4button_flight_yoke",
     .init          = joystick_standard_init,
@@ -382,7 +382,7 @@ const joystick_if_t joystick_4button_flight_yoke = {
     .pov_names     = { NULL }
 };
 
-const joystick_if_t joystick_3axis_2button = {
+const joystick_t joystick_3axis_2button = {
     .name          = "3-axis, 2-button joystick",
     .internal_name = "3axis_2button",
     .init          = joystick_standard_init,
@@ -400,7 +400,7 @@ const joystick_if_t joystick_3axis_2button = {
     .pov_names     = { NULL }
 };
 
-const joystick_if_t joystick_2button_yoke_throttle = {
+const joystick_t joystick_2button_yoke_throttle = {
     .name          = "2-button flight yoke with throttle",
     .internal_name = "2button_yoke_throttle",
     .init          = joystick_standard_init,
@@ -418,7 +418,7 @@ const joystick_if_t joystick_2button_yoke_throttle = {
     .pov_names     = { NULL }
 };
 
-const joystick_if_t joystick_3axis_4button = {
+const joystick_t joystick_3axis_4button = {
     .name          = "3-axis, 4-button joystick",
     .internal_name = "3axis_4button",
     .init          = joystick_standard_init,
@@ -436,7 +436,7 @@ const joystick_if_t joystick_3axis_4button = {
     .pov_names     = { NULL }
 };
 
-const joystick_if_t joystick_4button_yoke_throttle = {
+const joystick_t joystick_4button_yoke_throttle = {
     .name          = "4-button flight yoke with throttle",
     .internal_name = "4button_yoke_throttle",
     .init          = joystick_standard_init,
@@ -454,7 +454,7 @@ const joystick_if_t joystick_4button_yoke_throttle = {
     .pov_names     = { NULL }
 };
 
-const joystick_if_t joystick_win95_steering_wheel = {
+const joystick_t joystick_win95_steering_wheel = {
     .name          = "Win95 Steering Wheel (3-axis, 4-button)",
     .internal_name = "win95_steering_wheel",
     .init          = joystick_standard_init,
@@ -472,7 +472,7 @@ const joystick_if_t joystick_win95_steering_wheel = {
     .pov_names     = { NULL }
 };
 
-const joystick_if_t joystick_4axis_4button = {
+const joystick_t joystick_4axis_4button = {
     .name          = "4-axis, 4-button joystick",
     .internal_name = "4axis_4button",
     .init          = joystick_standard_init,
@@ -490,7 +490,7 @@ const joystick_if_t joystick_4axis_4button = {
     .pov_names     = { NULL }
 };
 
-const joystick_if_t joystick_2axis_6button = {
+const joystick_t joystick_2axis_6button = {
     .name          = "2-axis, 6-button joystick",
     .internal_name = "2axis_6button",
     .init          = joystick_standard_init,
@@ -508,7 +508,7 @@ const joystick_if_t joystick_2axis_6button = {
     .pov_names     = { NULL }
 };
 
-const joystick_if_t joystick_2axis_8button = {
+const joystick_t joystick_2axis_8button = {
     .name          = "2-axis, 8-button joystick",
     .internal_name = "2axis_8button",
     .init          = joystick_standard_init,

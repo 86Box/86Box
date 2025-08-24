@@ -457,6 +457,8 @@ compaq_cga_init(const device_t *info)
 
     dev->crtc[9] = 13;
 
+    monitors[monitor_index_global].mon_composite = !!dev->composite;
+
     return dev;
 }
 

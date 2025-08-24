@@ -86,7 +86,7 @@ machine_v86p_init(const machine_t *model)
     device_add(&ct_82c100_device);
     device_add(&f82c606_device);
 
-    device_add(&keyboard_xt_device);
+    device_add(&kbc_xt_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_xt_device);

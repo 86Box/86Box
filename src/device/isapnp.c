@@ -1117,13 +1117,17 @@ isapnp_enable_card(void *priv, uint8_t enable)
             /* Enable or disable the card. */
             if (!!enable ^ !!card->enable)
                 card->state = (enable == ISAPNP_CARD_FORCE_CONFIG) ? PNP_STATE_CONFIG : PNP_STATE_WAIT_FOR_KEY;
+            int old_enable = card->enable;
             card->enable = enable;
 
             /* Invalidate other references if we're disabling this card. */
-            if (!card->enable) {
+            if ((card->enable) && (dev->current_ld_card != NULL) && (dev->current_ld_card != card)) {
+                dev->current_ld      = NULL;
+                dev->current_ld_card = NULL;
+            } if (!card->enable) {
                 if (dev->isolated_card == card)
                     dev->isolated_card = NULL;
-                if (dev->current_ld_card == card) {
+                if ((dev->current_ld_card == card) && (old_enable != ISAPNP_CARD_FORCE_CONFIG)) {
                     dev->current_ld      = NULL;
                     dev->current_ld_card = NULL;
                 }

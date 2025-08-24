@@ -50,7 +50,11 @@ public:
     SettingsModel(QObject *parent)
         : QAbstractListModel(parent)
     {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        fontHeight = QFontMetrics(qApp->font()).height();
+#else
         fontHeight = QApplication::fontMetrics().height();
+#endif
     }
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
@@ -164,24 +168,24 @@ Settings::Settings(QWidget *parent)
     connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
             &SettingsOtherRemovable::reloadBusChannels_MO);
     connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_ZIP);
+            &SettingsOtherRemovable::reloadBusChannels_RDisk);
     connect(harddisks, &SettingsHarddisks::driveChannelChanged, floppyCdrom,
             &SettingsFloppyCDROM::reloadBusChannels);
     connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
             &SettingsOtherRemovable::reloadBusChannels_MO);
     connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_ZIP);
+            &SettingsOtherRemovable::reloadBusChannels_RDisk);
     connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, harddisks,
             &SettingsHarddisks::reloadBusChannels);
     connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, floppyCdrom,
             &SettingsFloppyCDROM::reloadBusChannels);
     connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, otherRemovable,
-            &SettingsOtherRemovable::reloadBusChannels_ZIP);
-    connect(otherRemovable, &SettingsOtherRemovable::zipChannelChanged, harddisks,
+            &SettingsOtherRemovable::reloadBusChannels_RDisk);
+    connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, harddisks,
             &SettingsHarddisks::reloadBusChannels);
-    connect(otherRemovable, &SettingsOtherRemovable::zipChannelChanged, floppyCdrom,
+    connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, floppyCdrom,
             &SettingsFloppyCDROM::reloadBusChannels);
-    connect(otherRemovable, &SettingsOtherRemovable::zipChannelChanged, otherRemovable,
+    connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
             &SettingsOtherRemovable::reloadBusChannels_MO);
 
     connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,

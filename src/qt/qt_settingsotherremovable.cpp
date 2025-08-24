@@ -23,7 +23,7 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/scsi_device.h>
 #include <86box/mo.h>
-#include <86box/zip.h>
+#include <86box/rdisk.h>
 }
 
 #include <QStandardItemModel>
@@ -38,6 +38,13 @@ moDriveTypeName(int i)
 {
     return QString("%1 %2 %3").arg(mo_drive_types[i].vendor, mo_drive_types[i].model,
                                    mo_drive_types[i].revision);
+}
+
+static QString
+rdiskDriveTypeName(int i)
+{
+    return QString("%1 %2 %3").arg(rdisk_drive_types[i].vendor, rdisk_drive_types[i].model,
+                                   rdisk_drive_types[i].revision);
 }
 
 static void
@@ -65,27 +72,16 @@ setMOBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t
 }
 
 static void
-setMOType(QAbstractItemModel *model, const QModelIndex &idx, uint32_t type)
-{
-    auto i = idx.siblingAtColumn(1);
-    if (idx.siblingAtColumn(0).data(Qt::UserRole).toUInt() == MO_BUS_DISABLED)
-        model->setData(i, QCoreApplication::translate("", "None"));
-    else
-        model->setData(i, moDriveTypeName(type));
-    model->setData(i, type, Qt::UserRole);
-}
-
-static void
-setZIPBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
+setRDiskBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
 {
     QIcon icon;
     switch (bus) {
-        case ZIP_BUS_DISABLED:
-            icon = QIcon(":/settings/qt/icons/zip_disabled.ico");
+        case RDISK_BUS_DISABLED:
+            icon = QIcon(":/settings/qt/icons/rdisk_disabled.ico");
             break;
-        case ZIP_BUS_ATAPI:
-        case ZIP_BUS_SCSI:
-            icon = QIcon(":/settings/qt/icons/zip.ico");
+        case RDISK_BUS_ATAPI:
+        case RDISK_BUS_SCSI:
+            icon = QIcon(":/settings/qt/icons/rdisk.ico");
             break;
 
         default:
@@ -100,11 +96,25 @@ setZIPBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_
 }
 
 static void
-setZIPType(QAbstractItemModel *model, const QModelIndex &idx, bool is250)
+setMOType(QAbstractItemModel *model, const QModelIndex &idx, uint32_t type)
 {
     auto i = idx.siblingAtColumn(1);
-    model->setData(i, is250 ? "ZIP 250" : "ZIP 100");
-    model->setData(i, is250, Qt::UserRole);
+    if (idx.siblingAtColumn(0).data(Qt::UserRole).toUInt() == MO_BUS_DISABLED)
+        model->setData(i, QCoreApplication::translate("", "None"));
+    else
+        model->setData(i, moDriveTypeName(type));
+    model->setData(i, type, Qt::UserRole);
+}
+
+static void
+setRDiskType(QAbstractItemModel *model, const QModelIndex &idx, uint32_t type)
+{
+    auto i = idx.siblingAtColumn(1);
+    if (idx.siblingAtColumn(0).data(Qt::UserRole).toUInt() == RDISK_BUS_DISABLED)
+        model->setData(i, QCoreApplication::translate("", "None"));
+    else
+        model->setData(i, rdiskDriveTypeName(type));
+    model->setData(i, type, Qt::UserRole);
 }
 
 SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
@@ -114,6 +124,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     ui->setupUi(this);
 
     Harddrives::populateRemovableBuses(ui->comboBoxMOBus->model());
+    ui->comboBoxMOBus->model()->removeRows(3, ui->comboBoxMOBus->model()->rowCount() - 3);
     auto *model = ui->comboBoxMOType->model();
     for (uint32_t i = 0; i < KNOWN_MO_DRIVE_TYPES; i++) {
         Models::AddEntry(model, moDriveTypeName(i), i);
@@ -136,24 +147,30 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     connect(ui->tableViewMO->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &SettingsOtherRemovable::onMORowChanged);
     ui->tableViewMO->setCurrentIndex(model->index(0, 0));
 
-    Harddrives::populateRemovableBuses(ui->comboBoxZIPBus->model());
+    Harddrives::populateRemovableBuses(ui->comboBoxRDiskBus->model());
+    if ((ui->comboBoxRDiskBus->model()->rowCount() - 3) > 0)
+      ui->comboBoxRDiskBus->model()->removeRows(3, ui->comboBoxRDiskBus->model()->rowCount() - 3);
+    model = ui->comboBoxRDiskType->model();
+    for (uint32_t i = 0; i < KNOWN_RDISK_DRIVE_TYPES; i++) {
+        Models::AddEntry(model, rdiskDriveTypeName(i), i);
+    }
 
     model = new QStandardItemModel(0, 2, this);
-    ui->tableViewZIP->setModel(model);
+    ui->tableViewRDisk->setModel(model);
     model->setHeaderData(0, Qt::Horizontal, tr("Bus"));
     model->setHeaderData(1, Qt::Horizontal, tr("Type"));
-    model->insertRows(0, ZIP_NUM);
-    for (int i = 0; i < ZIP_NUM; i++) {
+    model->insertRows(0, RDISK_NUM);
+    for (int i = 0; i < RDISK_NUM; i++) {
         auto idx = model->index(i, 0);
-        setZIPBus(model, idx, zip_drives[i].bus_type, zip_drives[i].res);
-        setZIPType(model, idx, zip_drives[i].is_250 > 0);
-        Harddrives::busTrackClass->device_track(1, DEV_ZIP, zip_drives[i].bus_type, zip_drives[i].bus_type == ZIP_BUS_ATAPI ? zip_drives[i].ide_channel : zip_drives[i].scsi_device_id);
+        setRDiskBus(model, idx, rdisk_drives[i].bus_type, rdisk_drives[i].res);
+        setRDiskType(model, idx.siblingAtColumn(1), rdisk_drives[i].type);
+        Harddrives::busTrackClass->device_track(1, DEV_MO, rdisk_drives[i].bus_type, rdisk_drives[i].bus_type == RDISK_BUS_ATAPI ? rdisk_drives[i].ide_channel : rdisk_drives[i].scsi_device_id);
     }
-    ui->tableViewZIP->resizeColumnsToContents();
-    ui->tableViewZIP->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    ui->tableViewRDisk->resizeColumnsToContents();
+    ui->tableViewRDisk->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
 
-    connect(ui->tableViewZIP->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &SettingsOtherRemovable::onZIPRowChanged);
-    ui->tableViewZIP->setCurrentIndex(model->index(0, 0));
+    connect(ui->tableViewRDisk->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &SettingsOtherRemovable::onRDiskRowChanged);
+    ui->tableViewRDisk->setCurrentIndex(model->index(0, 0));
 }
 
 SettingsOtherRemovable::~SettingsOtherRemovable()
@@ -173,13 +190,13 @@ SettingsOtherRemovable::save()
         mo_drives[i].type     = model->index(i, 1).data(Qt::UserRole).toUInt();
     }
 
-    model = ui->tableViewZIP->model();
-    for (uint8_t i = 0; i < ZIP_NUM; i++) {
-        zip_drives[i].fp       = NULL;
-        zip_drives[i].priv     = NULL;
-        zip_drives[i].bus_type = model->index(i, 0).data(Qt::UserRole).toUInt();
-        zip_drives[i].res      = model->index(i, 0).data(Qt::UserRole + 1).toUInt();
-        zip_drives[i].is_250   = model->index(i, 1).data(Qt::UserRole).toBool() ? 1 : 0;
+    model = ui->tableViewRDisk->model();
+    for (uint8_t i = 0; i < RDISK_NUM; i++) {
+        rdisk_drives[i].fp       = NULL;
+        rdisk_drives[i].priv     = NULL;
+        rdisk_drives[i].bus_type = model->index(i, 0).data(Qt::UserRole).toUInt();
+        rdisk_drives[i].res      = model->index(i, 0).data(Qt::UserRole + 1).toUInt();
+        rdisk_drives[i].type     = model->index(i, 1).data(Qt::UserRole).toUInt();
     }
 }
 
@@ -205,24 +222,24 @@ SettingsOtherRemovable::onMORowChanged(const QModelIndex &current)
 }
 
 void
-SettingsOtherRemovable::onZIPRowChanged(const QModelIndex &current)
+SettingsOtherRemovable::onRDiskRowChanged(const QModelIndex &current)
 {
     uint8_t bus     = current.siblingAtColumn(0).data(Qt::UserRole).toUInt();
     uint8_t channel = current.siblingAtColumn(0).data(Qt::UserRole + 1).toUInt();
-    bool    is250   = current.siblingAtColumn(1).data(Qt::UserRole).toBool();
+    uint8_t type    = current.siblingAtColumn(1).data(Qt::UserRole).toUInt();
 
-    ui->comboBoxZIPBus->setCurrentIndex(-1);
-    const auto *model = ui->comboBoxZIPBus->model();
+    ui->comboBoxRDiskBus->setCurrentIndex(-1);
+    const auto *model = ui->comboBoxRDiskBus->model();
     auto        match = model->match(model->index(0, 0), Qt::UserRole, bus);
     if (!match.isEmpty())
-        ui->comboBoxZIPBus->setCurrentIndex(match.first().row());
+        ui->comboBoxRDiskBus->setCurrentIndex(match.first().row());
 
-    model = ui->comboBoxZIPChannel->model();
+    model = ui->comboBoxRDiskChannel->model();
     match = model->match(model->index(0, 0), Qt::UserRole, channel);
     if (!match.isEmpty())
-        ui->comboBoxZIPChannel->setCurrentIndex(match.first().row());
-    ui->checkBoxZIP250->setChecked(is250);
-    enableCurrentlySelectedChannel_ZIP();
+        ui->comboBoxRDiskChannel->setCurrentIndex(match.first().row());
+    ui->comboBoxRDiskType->setCurrentIndex(type);
+    enableCurrentlySelectedChannel_RDisk();
 }
 
 void
@@ -232,6 +249,15 @@ SettingsOtherRemovable::reloadBusChannels_MO() {
                                     ui->comboBoxMOBus->currentData().toInt(), Harddrives::busTrackClass);
     ui->comboBoxMOChannel->setCurrentIndex(selected);
     enableCurrentlySelectedChannel_MO();
+}
+
+void
+SettingsOtherRemovable::reloadBusChannels_RDisk() {
+    auto selected = ui->comboBoxRDiskChannel->currentIndex();
+    Harddrives::populateBusChannels(ui->comboBoxRDiskChannel->model(),
+                                    ui->comboBoxRDiskBus->currentData().toInt(), Harddrives::busTrackClass);
+    ui->comboBoxRDiskChannel->setCurrentIndex(selected);
+    enableCurrentlySelectedChannel_RDisk();
 }
 
 void
@@ -247,15 +273,27 @@ SettingsOtherRemovable::on_comboBoxMOBus_currentIndexChanged(int index)
 }
 
 void
+SettingsOtherRemovable::on_comboBoxRDiskBus_currentIndexChanged(int index)
+{
+    if (index >= 0) {
+        int  bus     = ui->comboBoxRDiskBus->currentData().toInt();
+        bool enabled = (bus != RDISK_BUS_DISABLED);
+        ui->comboBoxRDiskChannel->setEnabled(enabled);
+        ui->comboBoxRDiskType->setEnabled(enabled);
+        Harddrives::populateBusChannels(ui->comboBoxRDiskChannel->model(), bus, Harddrives::busTrackClass);
+    }
+}
+
+void
 SettingsOtherRemovable::on_comboBoxMOBus_activated(int)
 {
     auto i = ui->tableViewMO->selectionModel()->currentIndex().siblingAtColumn(0);
     Harddrives::busTrackClass->device_track(0, DEV_MO, ui->tableViewMO->model()->data(i,
                                             Qt::UserRole).toInt(), ui->tableViewMO->model()->data(i,
                                             Qt::UserRole + 1).toInt());
-    ui->comboBoxMOChannel->setCurrentIndex(ui->comboBoxMOBus->currentData().toUInt() ==
-        MO_BUS_ATAPI ? Harddrives::busTrackClass->next_free_ide_channel() :
-        Harddrives::busTrackClass->next_free_scsi_id());
+    ui->comboBoxMOChannel->setCurrentIndex(ui->comboBoxMOBus->currentData().toUInt() == MO_BUS_ATAPI ?
+                                           Harddrives::busTrackClass->next_free_ide_channel() :
+                                           Harddrives::busTrackClass->next_free_scsi_id());
     ui->tableViewMO->model()->data(i, Qt::UserRole + 1);
     setMOBus(ui->tableViewMO->model(),
              ui->tableViewMO->selectionModel()->currentIndex(),
@@ -273,6 +311,32 @@ SettingsOtherRemovable::on_comboBoxMOBus_activated(int)
 }
 
 void
+SettingsOtherRemovable::on_comboBoxRDiskBus_activated(int)
+{
+    auto i = ui->tableViewRDisk->selectionModel()->currentIndex().siblingAtColumn(0);
+    Harddrives::busTrackClass->device_track(0, DEV_RDISK, ui->tableViewRDisk->model()->data(i,
+                                            Qt::UserRole).toInt(), ui->tableViewRDisk->model()->data(i,
+                                            Qt::UserRole + 1).toInt());
+    ui->comboBoxRDiskChannel->setCurrentIndex(ui->comboBoxRDiskBus->currentData().toUInt() == RDISK_BUS_ATAPI ?
+                                            Harddrives::busTrackClass->next_free_ide_channel() :
+                                            Harddrives::busTrackClass->next_free_scsi_id());
+    ui->tableViewRDisk->model()->data(i, Qt::UserRole + 1);
+    setRDiskBus(ui->tableViewRDisk->model(),
+                ui->tableViewRDisk->selectionModel()->currentIndex(),
+                ui->comboBoxRDiskBus->currentData().toUInt(),
+                ui->comboBoxRDiskChannel->currentData().toUInt());
+    setRDiskType(ui->tableViewRDisk->model(),
+                 ui->tableViewRDisk->selectionModel()->currentIndex(),
+                 ui->comboBoxRDiskType->currentData().toUInt());
+    ui->tableViewRDisk->resizeColumnsToContents();
+    ui->tableViewRDisk->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    Harddrives::busTrackClass->device_track(1, DEV_RDISK, ui->tableViewRDisk->model()->data(i,
+                                            Qt::UserRole).toInt(), ui->tableViewRDisk->model()->data(i,
+                                            Qt::UserRole + 1).toInt());
+    emit rdiskChannelChanged();
+}
+
+void
 SettingsOtherRemovable::enableCurrentlySelectedChannel_MO()
 {
     const auto *item_model = qobject_cast<QStandardItemModel*>(ui->comboBoxMOChannel->model());
@@ -282,6 +346,15 @@ SettingsOtherRemovable::enableCurrentlySelectedChannel_MO()
         item->setEnabled(true);
 }
 
+void
+SettingsOtherRemovable::enableCurrentlySelectedChannel_RDisk()
+{
+    const auto *item_model = qobject_cast<QStandardItemModel*>(ui->comboBoxRDiskChannel->model());
+    const auto index = ui->comboBoxRDiskChannel->currentIndex();
+    auto *item = item_model->item(index);
+    if (item)
+        item->setEnabled(true);
+}
 void
 SettingsOtherRemovable::on_comboBoxMOChannel_activated(int)
 {
@@ -300,6 +373,23 @@ SettingsOtherRemovable::on_comboBoxMOChannel_activated(int)
 }
 
 void
+SettingsOtherRemovable::on_comboBoxRDiskChannel_activated(int)
+{
+    auto i = ui->tableViewRDisk->selectionModel()->currentIndex().siblingAtColumn(0);
+    Harddrives::busTrackClass->device_track(0, DEV_RDISK, ui->tableViewRDisk->model()->data(i,
+                                            Qt::UserRole).toInt(), ui->tableViewRDisk->model()->data(i,
+                                            Qt::UserRole + 1).toInt());
+    setRDiskBus(ui->tableViewRDisk->model(),
+              ui->tableViewRDisk->selectionModel()->currentIndex(),
+              ui->comboBoxRDiskBus->currentData().toUInt(),
+              ui->comboBoxRDiskChannel->currentData().toUInt());
+    Harddrives::busTrackClass->device_track(1, DEV_RDISK, ui->tableViewRDisk->model()->data(i,
+                                            Qt::UserRole).toInt(),
+                                            ui->tableViewRDisk->model()->data(i, Qt::UserRole + 1).toInt());
+    emit rdiskChannelChanged();
+}
+
+void
 SettingsOtherRemovable::on_comboBoxMOType_activated(int)
 {
     setMOType(ui->tableViewMO->model(),
@@ -310,77 +400,11 @@ SettingsOtherRemovable::on_comboBoxMOType_activated(int)
 }
 
 void
-SettingsOtherRemovable::reloadBusChannels_ZIP() {
-    auto selected = ui->comboBoxZIPChannel->currentIndex();
-    Harddrives::populateBusChannels(ui->comboBoxZIPChannel->model(),
-                                    ui->comboBoxZIPBus->currentData().toInt(), Harddrives::busTrackClass);
-    ui->comboBoxZIPChannel->setCurrentIndex(selected);
-    enableCurrentlySelectedChannel_ZIP();
-}
-
-void
-SettingsOtherRemovable::on_comboBoxZIPBus_currentIndexChanged(int index)
+SettingsOtherRemovable::on_comboBoxRDiskType_activated(int)
 {
-    if (index >= 0) {
-        int  bus     = ui->comboBoxZIPBus->currentData().toInt();
-        bool enabled = (bus != ZIP_BUS_DISABLED);
-        ui->comboBoxZIPChannel->setEnabled(enabled);
-        ui->checkBoxZIP250->setEnabled(enabled);
-        Harddrives::populateBusChannels(ui->comboBoxZIPChannel->model(), bus, Harddrives::busTrackClass);
-    }
-}
-
-void
-SettingsOtherRemovable::on_comboBoxZIPBus_activated(int)
-{
-    auto i = ui->tableViewZIP->selectionModel()->currentIndex().siblingAtColumn(0);
-    Harddrives::busTrackClass->device_track(0, DEV_ZIP, ui->tableViewZIP->model()->data(i,
-                                            Qt::UserRole).toInt(), ui->tableViewZIP->model()->data(i,
-                                            Qt::UserRole + 1).toInt());
-    ui->comboBoxZIPChannel->setCurrentIndex(ui->comboBoxZIPBus->currentData().toUInt() == ZIP_BUS_ATAPI ?
-                                            Harddrives::busTrackClass->next_free_ide_channel() :
-                                            Harddrives::busTrackClass->next_free_scsi_id());
-    setZIPBus(ui->tableViewZIP->model(),
-              ui->tableViewZIP->selectionModel()->currentIndex(),
-              ui->comboBoxZIPBus->currentData().toUInt(),
-              ui->comboBoxZIPChannel->currentData().toUInt());
-    Harddrives::busTrackClass->device_track(1, DEV_ZIP, ui->tableViewZIP->model()->data(i,
-                                            Qt::UserRole).toInt(), ui->tableViewZIP->model()->data(i,
-                                            Qt::UserRole + 1).toInt());
-    emit zipChannelChanged();
-}
-
-void
-SettingsOtherRemovable::enableCurrentlySelectedChannel_ZIP()
-{
-    const auto *item_model = qobject_cast<QStandardItemModel*>(ui->comboBoxZIPChannel->model());
-    const auto index = ui->comboBoxZIPChannel->currentIndex();
-    auto *item = item_model->item(index);
-    if (item)
-        item->setEnabled(true);
-}
-
-void
-SettingsOtherRemovable::on_comboBoxZIPChannel_activated(int)
-{
-    auto i = ui->tableViewZIP->selectionModel()->currentIndex().siblingAtColumn(0);
-    Harddrives::busTrackClass->device_track(0, DEV_ZIP, ui->tableViewZIP->model()->data(i,
-                                            Qt::UserRole).toInt(), ui->tableViewZIP->model()->data(i,
-                                            Qt::UserRole + 1).toInt());
-    setZIPBus(ui->tableViewZIP->model(),
-              ui->tableViewZIP->selectionModel()->currentIndex(),
-              ui->comboBoxZIPBus->currentData().toUInt(),
-              ui->comboBoxZIPChannel->currentData().toUInt());
-    Harddrives::busTrackClass->device_track(1, DEV_ZIP, ui->tableViewZIP->model()->data(i,
-                                            Qt::UserRole).toInt(),
-                                            ui->tableViewZIP->model()->data(i, Qt::UserRole + 1).toInt());
-    emit zipChannelChanged();
-}
-
-void
-SettingsOtherRemovable::on_checkBoxZIP250_stateChanged(int state)
-{
-    setZIPType(ui->tableViewZIP->model(),
-               ui->tableViewZIP->selectionModel()->currentIndex(),
-               state == Qt::Checked);
+    setRDiskType(ui->tableViewRDisk->model(),
+                 ui->tableViewRDisk->selectionModel()->currentIndex(),
+                 ui->comboBoxRDiskType->currentData().toUInt());
+    ui->tableViewRDisk->resizeColumnsToContents();
+    ui->tableViewRDisk->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
 }

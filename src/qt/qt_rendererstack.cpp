@@ -45,6 +45,8 @@
 #include <QKeyEvent>
 #include <QWidget>
 
+#include <QTimer>
+
 #include <atomic>
 #include <mutex>
 #include <array>
@@ -96,6 +98,17 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     ui->setupUi(this);
 
     m_monitor_index = monitor_index;
+
+
+    if (monitor_index >= 1) {
+        QTimer* frameRateTimer = new QTimer(this);
+        frameRateTimer->setSingleShot(false);
+        frameRateTimer->setInterval(1000);
+        connect(frameRateTimer, &QTimer::timeout, [this] {
+            this->setWindowTitle(QObject::tr("86Box Monitor #") + QString::number(m_monitor_index + 1) + QString(" - ") + tr("%1 Hz").arg(QString::number(monitors[m_monitor_index].mon_actualrenderedframes.load()) + (monitors[m_monitor_index].mon_interlace ? "i" : "")));
+        });
+        frameRateTimer->start(1000);
+    }
 #if defined __unix__ && !defined __HAIKU__
     memset(auto_mouse_type, 0, sizeof (auto_mouse_type));
     mousedata.mouse_type = getenv("EMU86BOX_MOUSE");
@@ -170,7 +183,11 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
     rw_hwnd        = (HWND) this->winId();                
 #endif
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    if (!dopause && this->geometry().contains(m_monitor_index >= 1 ? event->globalPosition().toPoint() : event->position().toPoint()) &&
+#else
     if (!dopause && this->geometry().contains(m_monitor_index >= 1 ? event->globalPos() : event->pos()) &&
+#endif
         (event->button() == Qt::LeftButton) && !mouse_capture &&
         (isMouseDown & 1) && (kbd_req_capture || (mouse_get_buttons() != 0)) &&
         (mouse_input_mode == 0)) {
@@ -493,8 +510,13 @@ RendererStack::event(QEvent* event)
 
         if (m_monitor_index >= 1) {
             if (mouse_input_mode >= 1) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                mouse_x_abs       = (mouse_event->position().x()) / (double)width();
+                mouse_y_abs       = (mouse_event->position().y()) / (double)height();
+#else
                 mouse_x_abs       = (mouse_event->localPos().x()) / (double)width();
                 mouse_y_abs       = (mouse_event->localPos().y()) / (double)height();
+#endif
                 if (!mouse_tablet_in_proximity)
                     mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
                 mouse_x_abs -= rendererWindow->destinationF.left();
@@ -514,8 +536,13 @@ RendererStack::event(QEvent* event)
 
 #ifdef Q_OS_WINDOWS
         if (mouse_input_mode == 0) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            mouse_x_abs           = (mouse_event->position().x()) / (double)width();
+            mouse_y_abs           = (mouse_event->position().y()) / (double)height();
+#else
             mouse_x_abs           = (mouse_event->localPos().x()) / (double)width();
             mouse_y_abs           = (mouse_event->localPos().y()) / (double)height();
+#endif
             mouse_x_abs          -= rendererWindow->destinationF.left();
             mouse_y_abs          -= rendererWindow->destinationF.top();
 
@@ -531,8 +558,13 @@ RendererStack::event(QEvent* event)
         }
 #endif
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        mouse_x_abs               = (mouse_event->position().x()) / (double)width();
+        mouse_y_abs               = (mouse_event->position().y()) / (double)height();
+#else
         mouse_x_abs               = (mouse_event->localPos().x()) / (double)width();
         mouse_y_abs               = (mouse_event->localPos().y()) / (double)height();
+#endif
         mouse_x_abs              -= rendererWindow->destinationF.left();
         mouse_y_abs              -= rendererWindow->destinationF.top();
 

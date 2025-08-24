@@ -2,15 +2,18 @@
    see COPYING for more details
 */
 #include <stdarg.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/device.h>
 #include <86box/io.h>
 #include <86box/fifo.h>
 #include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/dma.h>
 #include <86box/lpt.h>
 #include <86box/pic.h>
@@ -20,8 +23,16 @@
 #include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/network.h>
+#include <86box/plat_fallthrough.h>
 
-lpt_port_t lpt_ports[PARALLEL_MAX];
+static int    next_inst               = 0;
+static int    lpt_3bc_used            = 0;
+
+static lpt_t *lpt1;
+
+lpt_port_t    lpt_ports[PARALLEL_MAX];
+
+lpt_device_t  lpt_devs[PARALLEL_MAX];
 
 const lpt_device_t lpt_none_device = {
     .name          = "None",
@@ -35,23 +46,22 @@ const lpt_device_t lpt_none_device = {
 };
 
 static const struct {
-    const char         *internal_name;
     const lpt_device_t *device;
 } lpt_devices[] = {
   // clang-format off
-    {"none",            &lpt_none_device          },
-    {"dss",             &dss_device               },
-    {"lpt_dac",         &lpt_dac_device           },
-    {"lpt_dac_stereo",  &lpt_dac_stereo_device    },
-    {"text_prt",        &lpt_prt_text_device      },
-    {"dot_matrix",      &lpt_prt_escp_device      },
-    {"postscript",      &lpt_prt_ps_device        },
+    { &lpt_none_device          },
+    { &dss_device               },
+    { &lpt_dac_device           },
+    { &lpt_dac_stereo_device    },
+    { &lpt_prt_text_device      },
+    { &lpt_prt_escp_device      },
+    { &lpt_prt_ps_device        },
 #ifdef USE_PCL
-    {"pcl",             &lpt_prt_pcl_device       },
+    { &lpt_prt_pcl_device       },
 #endif
-    {"plip",            &lpt_plip_device          },
-    {"dongle_savquest", &lpt_hasp_savquest_device },
-    {"",                NULL                      }
+    { &lpt_plip_device          },
+    { &lpt_hasp_savquest_device },
+    { NULL                      }
   // clang-format on
 };
 
@@ -73,31 +83,59 @@ lpt_log(const char *fmt, ...)
 #    define lpt_log(fmt, ...)
 #endif
 
+const device_t *
+lpt_device_getdevice(const int id)
+{
+    return (device_t *) lpt_devices[id].device->cfgdevice;
+}
+
+int
+lpt_device_has_config(const int id)
+{
+    int   c                    = 0;
+    const device_t        *dev = (device_t *) lpt_devices[id].device->cfgdevice;
+    const device_config_t *config;
+    if (dev == NULL)
+        return 0;
+
+    if (dev->config == NULL)
+        return 0;
+
+    config = dev->config;
+
+    while (config->type != CONFIG_END) {
+        c++;
+        config++;
+    }
+
+    return (c > 0) ? 1 : 0;
+}
+
 const char *
 lpt_device_get_name(const int id)
 {
-    if (strlen(lpt_devices[id].internal_name) == 0)
-        return NULL;
     if (lpt_devices[id].device == NULL)
-        return "None";
+        return NULL;
+
     return lpt_devices[id].device->name;
 }
 
 const char *
 lpt_device_get_internal_name(const int id)
 {
-    if (strlen(lpt_devices[id].internal_name) == 0)
+    if (lpt_devices[id].device == NULL)
         return NULL;
-    return lpt_devices[id].internal_name;
+
+    return lpt_devices[id].device->internal_name;
 }
 
 int
-lpt_device_get_from_internal_name(const char *s)
+lpt_device_get_from_internal_name(const char *str)
 {
     int c = 0;
 
-    while (strlen(lpt_devices[c].internal_name) != 0) {
-        if (strcmp(lpt_devices[c].internal_name, s) == 0)
+    while (lpt_devices[c].device != NULL) {
+        if (!strcmp(lpt_devices[c].device->internal_name, str))
             return c;
         c++;
     }
@@ -109,10 +147,17 @@ void
 lpt_devices_init(void)
 {
     for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
-        lpt_ports[i].dt = (lpt_device_t *) lpt_devices[lpt_ports[i].device].device;
+        lpt_t *dev = lpt_devs[i].lpt;
 
-        if (lpt_ports[i].dt && lpt_ports[i].dt->init)
-            lpt_ports[i].priv = lpt_ports[i].dt->init(&lpt_ports[i]);
+        if (lpt_devices[lpt_ports[i].device].device != NULL) {
+            memcpy(&(lpt_devs[i]), (lpt_device_t *) lpt_devices[lpt_ports[i].device].device, sizeof(lpt_device_t));
+
+            if (lpt_devs[i].init)
+                lpt_devs[i].priv = lpt_devs[i].init(dev);
+        } else
+            memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
+
+        lpt_devs[i].lpt = dev;
     }
 }
 
@@ -120,22 +165,20 @@ void
 lpt_devices_close(void)
 {
     for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
-        lpt_port_t *dev = &lpt_ports[i];
+        if (lpt_devs[i].close)
+            lpt_devs[i].close(lpt_devs[i].priv);
 
-        if (lpt_ports[i].dt && lpt_ports[i].dt->close)
-            dev->dt->close(dev->priv);
-
-        dev->dt = NULL;
+        memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
     }
 }
 
 static uint8_t
-lpt_get_ctrl_raw(const lpt_port_t *dev)
+lpt_get_ctrl_raw(const lpt_t *dev)
 {
     uint8_t ret;
 
-    if (dev->dt && dev->dt->read_ctrl && dev->priv)
-        ret = (dev->dt->read_ctrl(dev->priv) & 0xef) | dev->enable_irq;
+    if (dev->dt && dev->dt->read_ctrl && dev->dt->priv)
+        ret = (dev->dt->read_ctrl(dev->dt->priv) & 0xef) | dev->enable_irq;
     else
         ret = 0xc0 | dev->ctrl | dev->enable_irq;
 
@@ -143,13 +186,13 @@ lpt_get_ctrl_raw(const lpt_port_t *dev)
 }
 
 static uint8_t
-lpt_is_epp(const lpt_port_t *dev)
+lpt_is_epp(const lpt_t *dev)
 {
     return (dev->epp || ((dev->ecp) && ((dev->ecr & 0xe0) == 0x80)));
 }
 
 static uint8_t
-lpt_get_ctrl(const lpt_port_t *dev)
+lpt_get_ctrl(const lpt_t *dev)
 {
     uint8_t ret = lpt_get_ctrl_raw(dev);
 
@@ -160,7 +203,7 @@ lpt_get_ctrl(const lpt_port_t *dev)
 }
 
 static void
-lpt_write_fifo(lpt_port_t *dev, const uint8_t val, const uint8_t tag)
+lpt_write_fifo(lpt_t *dev, const uint8_t val, const uint8_t tag)
 {
     if (!fifo_get_full(dev->fifo)) {
         fifo_write_evt_tagged(tag, val, dev->fifo);
@@ -171,7 +214,7 @@ lpt_write_fifo(lpt_port_t *dev, const uint8_t val, const uint8_t tag)
 }
 
 static void
-lpt_ecp_update_irq(lpt_port_t *dev)
+lpt_ecp_update_irq(lpt_t *dev)
 {
     if (!(dev->ecr & 0x04) && ((dev->fifo_stat | dev->dma_stat) & 0x04))
         picintlevel(1 << dev->irq, &dev->irq_state);
@@ -180,19 +223,19 @@ lpt_ecp_update_irq(lpt_port_t *dev)
 }
 
 static void
-lpt_autofeed(lpt_port_t *dev, const uint8_t val)
+lpt_autofeed(lpt_t *dev, const uint8_t val)
 {
-    if (dev->dt && dev->dt->autofeed && dev->priv)
-        dev->dt->autofeed(val, dev->priv);
+    if (dev->dt && dev->dt->autofeed && dev->dt->priv)
+        dev->dt->autofeed(val, dev->dt->priv);
 
     dev->autofeed = val;
 }
 
 static void
-lpt_strobe(lpt_port_t *dev, const uint8_t val)
+lpt_strobe(lpt_t *dev, const uint8_t val)
 {
-    if (dev->dt && dev->dt->strobe && dev->priv)
-        dev->dt->strobe(dev->strobe, val, dev->priv);
+    if (dev->dt && dev->dt->strobe && dev->dt->priv)
+        dev->dt->strobe(dev->strobe, val, dev->dt->priv);
 
     dev->strobe = val;
 }
@@ -200,7 +243,7 @@ lpt_strobe(lpt_port_t *dev, const uint8_t val)
 static void
 lpt_fifo_out_callback(void *priv)
 {
-    lpt_port_t *dev = (lpt_port_t *) priv;
+    lpt_t *dev = (lpt_t *) priv;
 
     switch (dev->state) {
         default:
@@ -241,8 +284,8 @@ lpt_fifo_out_callback(void *priv)
 
                 /* We do not currently support sending commands. */
                 if (tag == 0x01) {
-                    if (dev->dt && dev->dt->write_data && dev->priv)
-                        dev->dt->write_data(val, dev->priv);
+                    if (dev->dt && dev->dt->write_data && dev->dt->priv)
+                        dev->dt->write_data(val, dev->dt->priv);
 
                     lpt_strobe(dev, 1);
                     lpt_strobe(dev, 0);
@@ -278,10 +321,10 @@ lpt_fifo_out_callback(void *priv)
 void
 lpt_write(const uint16_t port, const uint8_t val, void *priv)
 {
-    lpt_port_t *dev  = (lpt_port_t *) priv;
+    lpt_t *dev  = (lpt_t *) priv;
     uint16_t    mask = 0x0407;
 
-    lpt_log("[W] %04X = %02X\n", port, val);
+    lpt_log("[W] %04X = %02X (ECR = %02X)\n", port, val, dev->ecr);
 
     /* This is needed so the parallel port at 3BC works. */
     if (dev->addr & 0x0004)
@@ -294,15 +337,15 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
                     /* AFIFO */
                     lpt_write_fifo(dev, val, 0x00);
                 else if (!(dev->ecr & 0xc0) && (!(dev->ecr & 0x20) || !(lpt_get_ctrl_raw(dev) & 0x20)) &&
-                           dev->dt && dev->dt->write_data && dev->priv)
+                           dev->dt && dev->dt->write_data && dev->dt->priv)
                     /* DATAR */
-                    dev->dt->write_data(val, dev->priv);
+                    dev->dt->write_data(val, dev->dt->priv);
                 dev->dat = val;
             } else {
                 /* DTR */
                 if ((!dev->ext || !(lpt_get_ctrl_raw(dev) & 0x20)) && dev->dt &&
-                    dev->dt->write_data && dev->priv)
-                    dev->dt->write_data(val, dev->priv);
+                    dev->dt->write_data && dev->dt->priv)
+                    dev->dt->write_data(val, dev->dt->priv);
                 dev->dat = val;
             }
             break;
@@ -311,11 +354,11 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
             break;
 
         case 0x0002:
-            if (dev->dt && dev->dt->write_ctrl && dev->priv) {
-                if (dev->ecp)
-                    dev->dt->write_ctrl((val & 0xfc) | dev->autofeed | dev->strobe, dev->priv);
+            if (dev->dt && dev->dt->write_ctrl && dev->dt->priv) {
+                if (dev->ecp && ((dev->ecr & 0xe0) >= 0x20))
+                    dev->dt->write_ctrl((val & 0xfc) | dev->autofeed | dev->strobe, dev->dt->priv);
                 else
-                    dev->dt->write_ctrl(val, dev->priv);
+                    dev->dt->write_ctrl(val, dev->dt->priv);
             }
             dev->ctrl       = val;
             dev->enable_irq = val & 0x10;
@@ -326,19 +369,48 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
 
         case 0x0003:
             if (lpt_is_epp(dev)) {
-                if (dev->dt && dev->dt->epp_write_data && dev->priv)
-                    dev->dt->epp_write_data(1, val, dev->priv);
+                if (dev->dt && dev->dt->epp_write_data && dev->dt->priv)
+                    dev->dt->epp_write_data(1, val, dev->dt->priv);
             }
             break;
 
         case 0x0004 ... 0x0007:
             if (lpt_is_epp(dev)) {
-                if (dev->dt && dev->dt->epp_write_data && dev->priv)
-                    dev->dt->epp_write_data(0, val, dev->priv);
+                if (dev->dt && dev->dt->epp_write_data && dev->dt->priv)
+                    dev->dt->epp_write_data(0, val, dev->dt->priv);
             }
             break;
 
-        case 0x0400: case 0x0404:
+        case 0x0404:
+            if (dev->cfg_regs_enabled) {
+                switch (dev->eir) {
+                    case 0x00:
+                        dev->ext_regs[0x00] = val & 0x31;
+                        break;
+                    case 0x02:
+                        dev->ext_regs[0x02] = val & 0xd0;
+                        if (dev->ext_regs[0x02] & 0x80)
+                            dev->ecr        = dev->ret_ecr;
+                        else  switch (dev->ret_ecr & 0xe0) {
+                            case 0x00: case 0x20:
+                            case 0x80:
+                                dev->ecr = (dev->ret_ecr & 0x1f) | 0x60;
+                                break;
+                        }
+                        break;
+                    case 0x04:
+                        dev->ext_regs[0x00] = val & 0x37;
+                        break;
+                    case 0x05:
+                        dev->ext_regs[0x00] = val;
+                        dev->cnfga_readout  = (val & 0x80) ? 0x1c : 0x14;
+                        dev->cnfgb_readout  = (dev->cnfgb_readout & 0xc0) | (val & 0x3b);
+                        break;
+                }
+                break;
+            } else
+                fallthrough;
+        case 0x0400:
             switch (dev->ecr >> 5) {
                 default:
                     break;
@@ -384,8 +456,21 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
 
                 dev->state = LPT_STATE_IDLE;
             }
-            dev->ecr        = val;
+            if (dev->ext_regs[0x02] & 0x80)
+                dev->ecr        = val;
+            else  switch (val & 0xe0) {
+                case 0x00: case 0x20:
+                case 0x80:
+                    dev->ecr = (val & 0x1f) | 0x60;
+                    break;
+            }
+            dev->ret_ecr    = val;
             lpt_ecp_update_irq(dev);
+            break;
+
+        case 0x0403: case 0x0407:
+            if (dev->cfg_regs_enabled)
+                dev->eir = val & 0x07;
             break;
 
         default:
@@ -396,7 +481,7 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
 static void
 lpt_fifo_d_ready_evt(void *priv)
 {
-    lpt_port_t *dev = (lpt_port_t *) priv;
+    lpt_t *dev = (lpt_t *) priv;
 
     if (!(dev->ecr & 0x08)) {
         if (lpt_get_ctrl_raw(dev) & 0x20)
@@ -411,7 +496,7 @@ lpt_fifo_d_ready_evt(void *priv)
 void
 lpt_write_to_fifo(void *priv, const uint8_t val)
 {
-    lpt_port_t *dev = (lpt_port_t *) priv;
+    lpt_t *dev = (lpt_t *) priv;
 
     if (dev->ecp) {
         if (((dev->ecr & 0xe0) == 0x20) && (lpt_get_ctrl_raw(dev) & 0x20))
@@ -435,13 +520,13 @@ lpt_write_to_fifo(void *priv, const uint8_t val)
 void
 lpt_write_to_dat(void *priv, const uint8_t val)
 {
-    lpt_port_t *dev = (lpt_port_t *) priv;
+    lpt_t *dev = (lpt_t *) priv;
 
     dev->dat = val;
 }
 
 static uint8_t
-lpt_read_fifo(const lpt_port_t *dev)
+lpt_read_fifo(const lpt_t *dev)
 {
     uint8_t ret = 0xff;
 
@@ -452,9 +537,8 @@ lpt_read_fifo(const lpt_port_t *dev)
 }
 
 uint8_t
-lpt_read_status(const int port)
+lpt_read_status(lpt_t *dev)
 {
-    lpt_port_t *dev      = &lpt_ports[port];
     uint8_t     low_bits = 0x07;
     uint8_t     ret;
 
@@ -472,8 +556,8 @@ lpt_read_status(const int port)
             low_bits |= 0x04;
     }
 
-    if (dev->dt && dev->dt->read_status && dev->priv)
-        ret = (dev->dt->read_status(dev->priv) & 0xf8) | low_bits;
+    if (dev->dt && dev->dt->read_status && dev->dt->priv)
+        ret = (dev->dt->read_status(dev->dt->priv) & 0xf8) | low_bits;
     else
         ret = 0xd8 | low_bits;
 
@@ -481,11 +565,17 @@ lpt_read_status(const int port)
 }
 
 uint8_t
+lpt_read_ecp_mode(lpt_t *dev)
+{
+    return ((dev->ret_ecr & 0xe0) == 0x60) ? 0x60 : 0x00;
+}
+
+uint8_t
 lpt_read(const uint16_t port, void *priv)
 {
-    const lpt_port_t *dev      = (lpt_port_t *) priv;
-    uint16_t          mask     = 0x0407;
-    uint8_t           ret      = 0xff;
+    lpt_t    *dev  = (lpt_t *) priv;
+    uint16_t  mask = 0x0407;
+    uint8_t   ret  = 0xff;
 
     /* This is needed so the parallel port at 3BC works. */
     if (dev->addr & 0x0004)
@@ -503,7 +593,7 @@ lpt_read(const uint16_t port, void *priv)
             break;
 
         case 0x0001:
-            ret = lpt_read_status(dev->id);
+            ret = lpt_read_status(dev);
             break;
 
         case 0x0002:
@@ -514,21 +604,35 @@ lpt_read(const uint16_t port, void *priv)
 
         case 0x0003:
             if (lpt_is_epp(dev)) {
-                if (dev->dt && dev->dt->epp_request_read && dev->priv)
-                    dev->dt->epp_request_read(1, dev->priv);
+                if (dev->dt && dev->dt->epp_request_read && dev->dt->priv)
+                    dev->dt->epp_request_read(1, dev->dt->priv);
                 ret = dev->dat;
             }
             break;
 
         case 0x0004 ... 0x0007:
             if (lpt_is_epp(dev)) {
-                if (dev->dt && dev->dt->epp_request_read && dev->priv)
-                    dev->dt->epp_request_read(0, dev->priv);
+                if (dev->dt && dev->dt->epp_request_read && dev->dt->priv)
+                    dev->dt->epp_request_read(0, dev->dt->priv);
                 ret = dev->dat;
             }
             break;
 
-        case 0x0400: case 0x0404:
+        case 0x0404:
+            if (dev->cfg_regs_enabled) {
+                switch (dev->eir) {
+                    default:
+                        ret = 0xff;
+                        break;
+                    case 0x00: case 0x02:
+                    case 0x04: case 0x05:
+                        ret = dev->ext_regs[dev->eir];
+                        break;
+                }
+                break;
+            } else
+                fallthrough;
+        case 0x0400:
             switch (dev->ecr >> 5) {
                 default:
                     break;
@@ -543,26 +647,33 @@ lpt_read(const uint16_t port, void *priv)
                     break;
                 case 7:
                     /* CNFGA */
-                    ret = 0x14;
+                    ret = dev->cnfga_readout;
                     break;
             }
             break;
 
-        case 0x0401: case 0x0405:
+        case 0x0405:
+            if (dev->cfg_regs_enabled) {
+                ret = 0x00;
+                break;
+            } else
+                fallthrough;
+        case 0x0401:
             if ((dev->ecr & 0xe0) == 0xe0) {
                 /* CNFGB */
-                ret = 0x08;
-                ret |= (dev->irq_state ? 0x40 : 0x00);
-                ret |= ((dev->irq == 0x05) ?  0x30 : 0x00);
-                if ((dev->dma >= 1) && (dev->dma <= 3))
-                    ret |= dev->dma;
+                ret = dev->cnfgb_readout | (dev->irq_state ? 0x40 : 0x00);
             }
             break;
 
         case 0x0402: case 0x0406:
-            ret = dev->ecr | dev->fifo_stat | (dev->dma_stat & 0x04);
+            ret = dev->ret_ecr | dev->fifo_stat | (dev->dma_stat & 0x04);
             ret |= (fifo_get_full(dev->fifo) ? 0x02 : 0x00);
             ret |= (fifo_get_empty(dev->fifo) ? 0x01 : 0x00);
+            break;
+
+        case 0x0403: case 0x0407:
+            if (dev->cfg_regs_enabled)
+                ret = dev->eir;
             break;
 
         default:
@@ -575,17 +686,15 @@ lpt_read(const uint16_t port, void *priv)
 }
 
 uint8_t
-lpt_read_port(const int port, const uint16_t reg)
+lpt_read_port(lpt_t *dev, const uint16_t reg)
 {
-    lpt_port_t *dev = &(lpt_ports[port]);
-
     return lpt_read(reg, dev);
 }
 
 void
 lpt_irq(void *priv, const int raise)
 {
-    lpt_port_t *dev = (lpt_port_t *) priv;
+    lpt_t *dev = (lpt_t *) priv;
 
     if (dev->enable_irq) {
         if (dev->irq != 0xff) {
@@ -617,79 +726,163 @@ lpt_irq(void *priv, const int raise)
 }
 
 void
-lpt_set_ext(const int port, const uint8_t ext)
+lpt_set_ext(lpt_t *dev, const uint8_t ext)
 {
-    if (lpt_ports[port].enabled)
-        lpt_ports[port].ext = ext;
+    if (lpt_ports[dev->id].enabled)
+        dev->ext = ext;
 }
 
 void
-lpt_set_ecp(const int port, const uint8_t ecp)
+lpt_set_ecp(lpt_t *dev, const uint8_t ecp)
 {
-    if (lpt_ports[port].enabled)
-        lpt_ports[port].ecp = ecp;
+    if (lpt_ports[dev->id].enabled)
+        dev->ecp = ecp;
 }
 
 void
-lpt_set_epp(const int port, const uint8_t epp)
+lpt_set_epp(lpt_t *dev, const uint8_t epp)
 {
-    if (lpt_ports[port].enabled)
-        lpt_ports[port].epp = epp;
+    if (lpt_ports[dev->id].enabled)
+        dev->epp = epp;
 }
 
 void
-lpt_set_lv2(const int port, const uint8_t lv2)
+lpt_set_lv2(lpt_t *dev, const uint8_t lv2)
 {
-    if (lpt_ports[port].enabled)
-        lpt_ports[port].lv2 = lv2;
+    if (lpt_ports[dev->id].enabled)
+        dev->lv2 = lv2;
 }
 
 void
-lpt_set_fifo_threshold(const int port, const int threshold)
+lpt_set_fifo_threshold(lpt_t *dev, const int threshold)
 {
-    if (lpt_ports[port].enabled)
-        fifo_set_trigger_len(lpt_ports[port].fifo, threshold);
+    if (lpt_ports[dev->id].enabled)
+        fifo_set_trigger_len(dev->fifo, threshold);
 }
 
 void
-lpt_close(void)
+lpt_set_cfg_regs_enabled(lpt_t *dev, const uint8_t cfg_regs_enabled)
 {
-    for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
-        if (lpt_ports[i].enabled) {
-            fifo_close(lpt_ports[i].fifo);
-            lpt_ports[i].fifo       = NULL;
+    if (lpt_ports[dev->id].enabled)
+        dev->cfg_regs_enabled = cfg_regs_enabled;
+}
 
-            timer_disable(&lpt_ports[i].fifo_out_timer);
+void
+lpt_set_cnfga_readout(lpt_t *dev, const uint8_t cnfga_readout)
+{
+    if (lpt_ports[dev->id].enabled)
+        dev->cnfga_readout = cnfga_readout;
+}
+
+void
+lpt_set_cnfgb_readout(lpt_t *dev, const uint8_t cnfgb_readout)
+{
+    if (lpt_ports[dev->id].enabled)
+        dev->cnfgb_readout = (dev->cnfgb_readout & 0xc0) | (cnfgb_readout & 0x3f);
+}
+
+void
+lpt_port_setup(lpt_t *dev, const uint16_t port)
+{
+    if (lpt_ports[dev->id].enabled) {
+        if ((dev->addr != 0x0000) && (dev->addr != 0xffff)) {
+            io_removehandler(dev->addr, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
+            io_removehandler(dev->addr + 0x0400, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
         }
+        if ((port != 0x0000) && (port != 0xffff)) {
+            lpt_log("Set handler: %04X-%04X\n", port, port + 0x0003);
+            io_sethandler(port, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
+            if (dev->epp)
+                io_sethandler(port + 0x0003, 0x0005, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
+            if (dev->ecp || dev->lv2) {
+                io_sethandler(port + 0x0400, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
+                if (dev->epp)
+                    io_sethandler(port + 0x0404, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
+            }
+        }
+        dev->addr = port;
+    } else
+        dev->addr = 0xffff;
+}
+
+void
+lpt_port_irq(lpt_t *dev, const uint8_t irq)
+{
+    if (lpt_ports[dev->id].enabled)
+        dev->irq = irq;
+    else
+        dev->irq = 0xff;
+
+    lpt_log("Port %i IRQ = %02X\n", dev->id, irq);
+}
+
+void
+lpt_port_dma(lpt_t *dev, const uint8_t dma)
+{
+    if (lpt_ports[dev->id].enabled)
+        dev->dma = dma;
+    else
+        dev->dma = 0xff;
+
+    lpt_log("Port %i DMA = %02X\n", dev->id, dma);
+}
+
+void
+lpt1_dma(const uint8_t dma)
+{
+    if (lpt1 != NULL)
+        lpt_port_dma(lpt1, dma);
+}
+
+void
+lpt_port_remove(lpt_t *dev)
+{
+    if (lpt_ports[dev->id].enabled && (dev->addr != 0xffff)) {
+        io_removehandler(dev->addr, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
+        io_removehandler(dev->addr + 0x0400, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
+
+        dev->addr = 0xffff;
     }
 }
 
 void
-lpt_port_zero(lpt_port_t *dev)
+lpt1_remove_ams(lpt_t *dev)
 {
-    lpt_port_t temp = { 0 };
+    if (dev->enabled)
+        io_removehandler(dev->addr + 1, 0x0002, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
+}
+
+void
+lpt_speed_changed(void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    if (timer_is_enabled(&dev->fifo_out_timer)) {
+        timer_disable(&dev->fifo_out_timer);
+        timer_set_delay_u64(&dev->fifo_out_timer, (uint64_t) ((1000000.0 / 2500000.0) * (double) TIMER_USEC));
+    }
+}
+
+void
+lpt_port_zero(lpt_t *dev)
+{
+    lpt_t temp = { 0 };
 
     temp.irq            = dev->irq;
     temp.id             = dev->id;
-    temp.device         = dev->device;
     temp.dt             = dev->dt;
-    temp.priv           = dev->priv;
-    temp.enabled        = dev->enabled;
     temp.fifo           = dev->fifo;
     temp.fifo_out_timer = dev->fifo_out_timer;
 
-    if (dev->enabled)
-        lpt_port_remove(dev->id);
+    if (lpt_ports[dev->id].enabled)
+        lpt_port_remove(dev);
 
-    memset(dev, 0x00, sizeof(lpt_port_t));
+    memset(dev, 0x00, sizeof(lpt_t));
 
     dev->addr           = 0xffff;
     dev->irq            = temp.irq;
     dev->id             = temp.id;
-    dev->device         = temp.device;
     dev->dt             = temp.dt;
-    dev->priv           = temp.priv;
-    dev->enabled        = temp.enabled;
     dev->fifo           = temp.fifo;
     dev->fifo_out_timer = temp.fifo_out_timer;
 
@@ -697,138 +890,171 @@ lpt_port_zero(lpt_port_t *dev)
         dev->ext = 1;
 }
 
-void
-lpt_reset(void)
+static void
+lpt_close(void *priv)
 {
-    for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
-        if (lpt_ports[i].enabled)
-            if (timer_is_enabled(&lpt_ports[i].fifo_out_timer))
-                timer_disable(&lpt_ports[i].fifo_out_timer);
+    lpt_t *dev = (lpt_t *) priv;
 
-        lpt_port_zero(&(lpt_ports[i]));
+    if (lpt_ports[dev->id].enabled) {
+        fifo_close(dev->fifo);
+        dev->fifo       = NULL;
 
-        if (lpt_ports[i].enabled) {
-            if (lpt_ports[i].irq_state) {
-                if (lpt_ports[i].irq == 0xff)
-                    lpt_ports[i].irq_state = 0x00;
-                else {
-                    picintclevel(lpt_ports[i].irq, &lpt_ports[i].irq_state);
-                    picintc(lpt_ports[i].irq);
-                }
+        timer_disable(&dev->fifo_out_timer);
+
+    }
+
+    if (lpt1 == dev)
+        lpt1 = NULL;
+
+    free(dev);
+}
+
+static void
+lpt_reset(void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    if (lpt_ports[dev->id].enabled)
+        if (timer_is_enabled(&dev->fifo_out_timer))
+            timer_disable(&dev->fifo_out_timer);
+
+    lpt_port_zero(dev);
+
+    if (lpt_ports[dev->id].enabled) {
+        if (dev->irq_state) {
+            if (dev->irq == 0xff)
+                dev->irq_state = 0x00;
+            else {
+                picintclevel(dev->irq, &dev->irq_state);
+                picintc(dev->irq);
             }
-
-            lpt_ports[i].enable_irq = 0x00;
-            lpt_ports[i].ext        = !!(machine_has_bus(machine, MACHINE_BUS_MCA));
-            lpt_ports[i].epp        = 0;
-            lpt_ports[i].ecp        = 0;
-            lpt_ports[i].ecr        = 0x15;
-            lpt_ports[i].dat        = 0xff;
-            lpt_ports[i].fifo_stat  = 0x00;
-            lpt_ports[i].dma_stat   = 0x00;
         }
+
+        dev->enable_irq       = 0x00;
+        dev->cfg_regs_enabled = 0;
+        dev->ext              = !!(machine_has_bus(machine, MACHINE_BUS_MCA));
+        dev->epp              = 0;
+        dev->ecp              = 0;
+        dev->ecr              = 0x15;
+        dev->ret_ecr          = 0x15;
+        dev->dat              = 0xff;
+        dev->fifo_stat        = 0x00;
+        dev->dma_stat         = 0x00;
+
+        memset(dev->ext_regs, 0x00, 8);
+        dev->ext_regs[0x02]   = 0x80;
+        dev->ext_regs[0x04]   = 0x07;
+        dev->cnfga_readout   &= 0xf7;
     }
 }
 
-void
-lpt_init(void)
+static void *
+lpt_init(const device_t *info)
 {
+    lpt_t *dev = (lpt_t *) calloc(1, sizeof(lpt_t));
+    int orig_inst   = next_inst;
+
     const uint16_t default_ports[PARALLEL_MAX] = { LPT1_ADDR, LPT2_ADDR, LPT_MDA_ADDR, LPT4_ADDR };
     const uint8_t  default_irqs[PARALLEL_MAX]  = { LPT1_IRQ, LPT2_IRQ, LPT_MDA_IRQ, LPT4_IRQ };
 
-    for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
-        lpt_ports[i].id         = i;
-        lpt_ports[i].dt         = NULL;
-        lpt_ports[i].priv       = NULL;
-        lpt_ports[i].fifo       = NULL;
-        memset(&lpt_ports[i].fifo_out_timer, 0x00, sizeof(pc_timer_t));
+    if (info->local & 0xFFF00000)
+        next_inst = PARALLEL_MAX - 1;
 
-        lpt_port_zero(&(lpt_ports[i]));
+    dev->id = next_inst;
 
-        lpt_ports[i].addr       = 0xffff;
-        lpt_ports[i].irq        = 0xff;
-        lpt_ports[i].dma        = 0xff;
-        lpt_ports[i].enable_irq = 0x00;
-        lpt_ports[i].ext        = 0;
-        lpt_ports[i].epp        = 0;
-        lpt_ports[i].ecp        = 0;
-        lpt_ports[i].ecr        = 0x15;
+    if (lpt_ports[next_inst].enabled || (info->local & 0xFFF00000)) {
+        lpt_log("Adding parallel port %i...\n", next_inst);
+        dev->dt         = &(lpt_devs[next_inst]);
+        dev->dt->lpt    = dev;
 
-        if (lpt_ports[i].enabled) {
-            lpt_port_setup(i, default_ports[i]);
-            lpt_port_irq(i, default_irqs[i]);
+        dev->fifo       = NULL;
+        memset(&dev->fifo_out_timer, 0x00, sizeof(pc_timer_t));
 
-            lpt_ports[i].fifo       = fifo16_init();
+        lpt_port_zero(dev);
 
-            fifo_set_trigger_len(lpt_ports[i].fifo, 8);
+        dev->addr             = 0xffff;
+        dev->irq              = 0xff;
+        if ((jumpered_internal_ecp_dma >= 0) && (jumpered_internal_ecp_dma != 4))
+            dev->dma              = jumpered_internal_ecp_dma;
+        else
+            dev->dma              = 0xff;
+        dev->enable_irq       = 0x00;
+        dev->cfg_regs_enabled = 0;
+        dev->ext              = 0;
+        dev->epp              = 0;
+        dev->ecp              = 0;
+        dev->ecr              = 0x15;
+        dev->ret_ecr          = 0x15;
+        dev->cnfga_readout    = 0x10;
+        dev->cnfgb_readout    = 0x00;
 
-            fifo_set_d_ready_evt(lpt_ports[i].fifo, lpt_fifo_d_ready_evt);
-            fifo_set_priv(lpt_ports[i].fifo, &lpt_ports[i]);
+        memset(dev->ext_regs, 0x00, 8);
+        dev->ext_regs[0x02]   = 0x80;
 
-            timer_add(&lpt_ports[i].fifo_out_timer, lpt_fifo_out_callback, &lpt_ports[i], 0);
-        }
-    }
-}
-
-void
-lpt_port_setup(const int i, const uint16_t port)
-{
-    if (lpt_ports[i].enabled) {
-        if ((lpt_ports[i].addr != 0x0000) && (lpt_ports[i].addr != 0xffff)) {
-            io_removehandler(lpt_ports[i].addr, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
-            io_removehandler(lpt_ports[i].addr + 0x0400, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
-        }
-        if ((port != 0x0000) && (port != 0xffff)) {
-            lpt_log("Set handler: %04X-%04X\n", port, port + 0x0003);
-            io_sethandler(port, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
-            if (lpt_ports[i].epp)
-                io_sethandler(port + 0x0003, 0x0005, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
-            if (lpt_ports[i].ecp || lpt_ports[i].lv2) {
-                io_sethandler(port + 0x0400, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
-                if (lpt_ports[i].epp)
-                    io_sethandler(port + 0x0404, 0x0003, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
+        if (lpt_ports[dev->id].enabled) {
+            if (info->local & 0xfff00000) {
+                lpt_port_setup(dev, info->local >> 20);
+                lpt_port_irq(dev, (info->local >> 16) & 0xF);
+                next_inst          = orig_inst;
+            } else {
+                if ((dev->id == 2) && (lpt_3bc_used)) {
+                    lpt_port_setup(dev, LPT1_ADDR);
+                    lpt_port_irq(dev, LPT1_IRQ);
+                } else {
+                    lpt_port_setup(dev, default_ports[dev->id]);
+                    lpt_port_irq(dev, default_irqs[dev->id]);
+                }
             }
+
+            dev->fifo       = fifo16_init();
+
+            fifo_set_trigger_len(dev->fifo, 8);
+
+            fifo_set_d_ready_evt(dev->fifo, lpt_fifo_d_ready_evt);
+            fifo_set_priv(dev->fifo, dev);
+
+            timer_add(&dev->fifo_out_timer, lpt_fifo_out_callback, dev, 0);
         }
-        lpt_ports[i].addr = port;
-    } else
-        lpt_ports[i].addr = 0xffff;
-}
-
-void
-lpt_port_irq(const int i, const uint8_t irq)
-{
-    if (lpt_ports[i].enabled)
-        lpt_ports[i].irq = irq;
-    else
-        lpt_ports[i].irq = 0xff;
-
-    lpt_log("Port %i IRQ = %02X\n", i, irq);
-}
-
-void
-lpt_port_dma(const int i, const uint8_t dma)
-{
-    if (lpt_ports[i].enabled)
-        lpt_ports[i].dma = dma;
-    else
-        lpt_ports[i].dma = 0xff;
-
-    lpt_log("Port %i DMA = %02X\n", i, dma);
-}
-
-void
-lpt_port_remove(const int i)
-{
-    if (lpt_ports[i].enabled && (lpt_ports[i].addr != 0xffff)) {
-        io_removehandler(lpt_ports[i].addr, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
-        io_removehandler(lpt_ports[i].addr + 0x0400, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[i]);
-
-        lpt_ports[i].addr = 0xffff;
     }
+
+    if (!(info->local & 0xfff00000))
+        next_inst++;
+
+    if (lpt1 == NULL)
+        lpt1 = dev;
+
+    return dev;
 }
 
 void
-lpt1_remove_ams(void)
+lpt_set_next_inst(int ni)
 {
-    if (lpt_ports[0].enabled)
-        io_removehandler(lpt_ports[0].addr + 1, 0x0002, lpt_read, NULL, NULL, lpt_write, NULL, NULL, &lpt_ports[0]);
+    next_inst = ni;
 }
+
+void
+lpt_set_3bc_used(int is_3bc_used)
+{
+    lpt_3bc_used = is_3bc_used;
+}
+
+void
+lpt_standalone_init(void)
+{
+    while (next_inst < (PARALLEL_MAX - 1))
+        device_add_inst(&lpt_port_device, next_inst + 1);
+};
+
+const device_t lpt_port_device = {
+    .name          = "Parallel Port",
+    .internal_name = "lpt",
+    .flags         = 0,
+    .local         = 0,
+    .init          = lpt_init,
+    .close         = lpt_close,
+    .reset         = lpt_reset,
+    .available     = NULL,
+    .speed_changed = lpt_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};

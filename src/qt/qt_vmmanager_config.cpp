@@ -33,6 +33,9 @@ VMManagerConfig::VMManagerConfig(const ConfigType type, const QString& section)
     config_type = type;
 
     settings = new QSettings(configFile, QSettings::IniFormat, this);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    settings->setIniCodec("UTF-8");
+#endif
     settings->setFallbacksEnabled(false);
     if(type == ConfigType::System && !section.isEmpty()) {
         settings->beginGroup(section);

@@ -41,9 +41,6 @@ public:
     };
 
     explicit VMManagerAddMachine(QWidget *parent = nullptr);
-
-private slots:
-    void showHelp();
 };
 
 class IntroPage : public QWizardPage {
@@ -88,12 +85,17 @@ public:
     [[nodiscard]] int nextId() const override;
 private:
     QLineEdit *systemName;
+#ifdef CUSTOM_SYSTEM_LOCATION
     QLineEdit *systemLocation;
+#endif
+    QLineEdit *displayName;
     QLabel    *systemNameValidation;
+#ifdef CUSTOM_SYSTEM_LOCATION
     QLabel    *systemLocationValidation;
     QRegularExpression dirValidate;
 private slots:
     void chooseDirectoryLocation();
+#endif
 protected:
     [[nodiscard]] bool isComplete() const override;
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -107,7 +109,11 @@ public:
 private:
     QLabel *topLabel;
     QLabel *systemName;
+#ifdef CUSTOM_SYSTEM_LOCATION
     QLabel *systemLocation;
+#endif
+    QLabel *displayNameLabel;
+    QLabel *displayName;
 protected:
     void initializePage() override;
 };

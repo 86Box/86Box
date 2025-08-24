@@ -36,6 +36,10 @@ public:
     ~VMManagerMainWindow() override;
 signals:
     void preferencesUpdated();
+    void languageUpdated();
+#ifdef Q_OS_WINDOWS
+    void darkModeUpdated();
+#endif
 
 private:
     Ui::VMManagerMainWindow *ui;
@@ -46,15 +50,25 @@ private:
 public slots:
     void setStatusLeft(const QString &text) const;
     void setStatusRight(const QString &text) const;
+    void updateLanguage();
+#ifdef Q_OS_WINDOWS
+    void updateDarkMode();
+#endif
 
 private slots:
     void vmmSelectionChanged(const QModelIndex &currentSelection, QProcess::ProcessState processState) const;
     void preferencesTriggered();
-    static void checkForUpdatesTriggered();
+#if EMU_BUILD_NUM != 0
+    void checkForUpdatesTriggered();
+#endif
 
     void on_actionExit_triggered();
+    void on_actionDocumentation_triggered();
+    void on_actionAbout_86Box_triggered();
+    void on_actionAbout_Qt_triggered();
 
 protected:
+    void changeEvent(QEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
 };
 

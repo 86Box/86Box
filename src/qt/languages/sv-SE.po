@@ -7,10 +7,10 @@ msgstr ""
 "X-Source-Language: en_US\n"
 
 msgid "&Action"
-msgstr ""
+msgstr "&Handling"
 
 msgid "&Keyboard requires capture"
-msgstr "Tangentbord behöver uppfångas"
+msgstr "&Tangentbord behöver uppfångas"
 
 msgid "&Right CTRL is left ALT"
 msgstr "&Höger CTRL är vänster ALT"
@@ -27,8 +27,14 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Pausa"
 
-msgid "E&xit..."
-msgstr "A&vsluta..."
+msgid "Pause"
+msgstr "&Pausa"
+
+msgid "Re&sume"
+msgstr "Fo&rtsätt"
+
+msgid "E&xit"
+msgstr "A&vsluta"
 
 msgid "&View"
 msgstr "&Visa"
@@ -51,20 +57,17 @@ msgstr "Re&nderare"
 msgid "&Qt (Software)"
 msgstr "&Qt (Mjukvara)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (&OpenGL)"
-
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
 
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
-msgstr "Ange mått..."
+msgid "Specify &dimensions..."
+msgstr "Ange &mått..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "T&vinga 4:3 bildförhållande"
+msgid "Force &4:3 display ratio"
+msgstr "Tvinga &4:3 bildförhållande"
 
 msgid "&Window scale factor"
 msgstr "&Skalningsfaktor för fönster"
@@ -99,8 +102,8 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
-msgstr "Filtermetod"
+msgid "Fi&lter method"
+msgstr "Fi&ltermetod"
 
 msgid "&Nearest"
 msgstr "&Närmsta"
@@ -109,7 +112,7 @@ msgid "&Linear"
 msgstr "&Linjär"
 
 msgid "Hi&DPI scaling"
-msgstr "Hög&DPI-skalning"
+msgstr "Hög &DPI-skalning"
 
 msgid "&Fullscreen"
 msgstr "&Helskärm"
@@ -132,8 +135,8 @@ msgstr "&Skala till heltal"
 msgid "4:&3 Integer scale"
 msgstr "Skala till heltal i 4:&3"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "E&GA/(S)VGA-inställningar"
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)&VGA-inställningar"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Inverterad VGA-skärm"
@@ -144,8 +147,14 @@ msgstr "Skärmtyp för &VGA"
 msgid "RGB &Color"
 msgstr "RGB &färg"
 
+msgid "RGB (no brown)"
+msgstr "RGB (utan brunt)"
+
 msgid "&RGB Grayscale"
 msgstr "&RGB gråskala"
+
+msgid "Generic RGBI color monitor"
+msgstr "Allmän RGBI färgskärm"
 
 msgid "&Amber monitor"
 msgstr "&Bärnstensfärgad skärm"
@@ -182,6 +191,9 @@ msgstr "&Verktyg"
 
 msgid "&Settings..."
 msgstr "&Inställningar..."
+
+msgid "Settings..."
+msgstr "Inställningar..."
 
 msgid "&Update status bar icons"
 msgstr "&Uppdatera statusfältets ikoner"
@@ -348,6 +360,9 @@ msgstr "Maskin:"
 msgid "Configure"
 msgstr "Konfigurera"
 
+msgid "CPU:"
+msgstr "Processor:"
+
 msgid "CPU type:"
 msgstr "Processortyp:"
 
@@ -384,6 +399,15 @@ msgstr "Aktiverad (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Dynamisk omkompilering"
 
+msgid "CPU frame size"
+msgstr "Ramstorlek för processor"
+
+msgid "Larger frames (less smooth)"
+msgstr "Större ramar (mindre smidigt)"
+
+msgid "Smaller frames (smoother)"
+msgstr "Mindre ramar (smidigare)"
+
 msgid "Video:"
 msgstr "Bildskärmskort:"
 
@@ -399,11 +423,26 @@ msgstr "IBM 8514/A-grafik"
 msgid "XGA Graphics"
 msgstr "XGA-grafik"
 
+msgid "IBM PS/55 Display Adapter Graphics"
+msgstr "IBM PS/55 bildskärmsadapter"
+
+msgid "Keyboard:"
+msgstr "Tangentbord:"
+
+msgid "Keyboard"
+msgstr "Tangentbord"
+
 msgid "Mouse:"
 msgstr "Mus:"
 
+msgid "Mouse"
+msgstr "Mus"
+
 msgid "Joystick:"
 msgstr "Styrspak:"
+
+msgid "Joystick"
+msgstr "Styrspak"
 
 msgid "Joystick 1..."
 msgstr "Styrspak 1..."
@@ -434,6 +473,9 @@ msgstr "Enhet för MIDI-utdata:"
 
 msgid "MIDI In Device:"
 msgstr "Enhet för MIDI-indata:"
+
+msgid "MIDI Out:"
+msgstr "MIDI-utgång:"
 
 msgid "Standalone MPU-401"
 msgstr "Fristående MPU-401"
@@ -474,6 +516,9 @@ msgstr "LPT3-enhet:"
 msgid "LPT4 Device:"
 msgstr "LPT4-enhet:"
 
+msgid "Internal LPT ECP DMA:"
+msgstr "Intern LPT ECP DMA:"
+
 msgid "Serial port 1"
 msgstr "Serieport 1"
 
@@ -498,17 +543,20 @@ msgstr "Parallellport 3"
 msgid "Parallel port 4"
 msgstr "Parallellport 4"
 
-msgid "HD Controller:"
-msgstr "Styrenhet för hårddisk:"
-
 msgid "FD Controller:"
 msgstr "Styrenhet för diskett:"
+
+msgid "CD-ROM Controller:"
+msgstr "Styrenhet för CD-ROM:"
 
 msgid "Tertiary IDE Controller"
 msgstr "Tertiär IDE-kontroller"
 
 msgid "Quaternary IDE Controller"
 msgstr "Kvartär IDE-kontroller"
+
+msgid "Hard disk"
+msgstr "Hårddisk"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -530,6 +578,9 @@ msgstr "Kassettband"
 
 msgid "Hard disks:"
 msgstr "Hårddiskar:"
+
+msgid "Firmware Version"
+msgstr "Firmware-version"
 
 msgid "&New..."
 msgstr "&Ny..."
@@ -588,8 +639,14 @@ msgstr "CD-ROM-enheter:"
 msgid "MO drives:"
 msgstr "MO-enheter:"
 
-msgid "ZIP drives:"
-msgstr "Zip-enheter:"
+msgid "MO:"
+msgstr "MO:"
+
+msgid "Removable disks:"
+msgstr "Flyttbara diskar:"
+
+msgid "Removable disk drives:"
+msgstr "Enheter för flyttbara diskar:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +656,9 @@ msgstr "ISA realtidsklocka:"
 
 msgid "ISA Memory Expansion"
 msgstr "ISA minnesexpansion"
+
+msgid "ISA ROM Cards"
+msgstr "ISA ROM-kort"
 
 msgid "Card 1:"
 msgstr "Kort 1:"
@@ -611,6 +671,15 @@ msgstr "Kort 3:"
 
 msgid "Card 4:"
 msgstr "Kort 4:"
+
+msgid "Generic ISA ROM Board"
+msgstr "Allmän ISA ROM-kort"
+
+msgid "Generic Dual ISA ROM Board"
+msgstr "Allmän dubbel ISA ROM-kort"
+
+msgid "Generic Quad ISA ROM Board"
+msgstr "Allmän fyrdubbel ISA ROM-kort"
 
 msgid "ISABugger device"
 msgstr "ISABugger-enhet"
@@ -633,11 +702,17 @@ msgstr " - PAUSAD"
 msgid "Speed"
 msgstr "Hastighet"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr "Flyttbar disk %1 (%2): %3"
 
-msgid "ZIP images"
-msgstr "Zip-avbildningar"
+msgid "&Removable disk %1 (%2): %3"
+msgstr "&Flyttbar disk %1 (%2): %3"
+
+msgid "Removable disk images"
+msgstr "Flyttbara disk-avbildningar"
+
+msgid "Image %1"
+msgstr "Avbildning %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box kunde inte hitta några användbara ROM-avbildningar.\n\nVänligen <a href=\"https://github.com/86Box/roms/releases/latest\">ladda ner</a> en ROM-uppsättning och extrahera den till mappen \"roms\"."
@@ -696,11 +771,29 @@ msgstr "Nätverk"
 msgid "Ports (COM & LPT)"
 msgstr "Portar (COM & LPT)"
 
+msgid "Ports"
+msgstr "Portar"
+
+msgid "Serial ports:"
+msgstr "Serieportar:"
+
+msgid "Parallel ports:"
+msgstr "Parallelportar:"
+
 msgid "Storage controllers"
 msgstr "Styrenheter för lagring"
 
 msgid "Hard disks"
 msgstr "Hårddiskar"
+
+msgid "Disks:"
+msgstr "Diskar:"
+
+msgid "Floppy:"
+msgstr "Diskett:"
+
+msgid "Controllers:"
+msgstr "Styrenheter:"
 
 msgid "Floppy & CD-ROM drives"
 msgstr "Diskett- och CD-ROM-enheter"
@@ -710,6 +803,9 @@ msgstr "Andra flyttbara enheter"
 
 msgid "Other peripherals"
 msgstr "Andra tillbehör"
+
+msgid "Other devices"
+msgstr "Andra enheter"
 
 msgid "Click to capture mouse"
 msgstr "Klicka för att fånga upp musen"
@@ -742,7 +838,7 @@ msgid "Default"
 msgstr "Standard"
 
 msgid "%1 Wait state(s)"
-msgstr ""
+msgstr "%1 Wait state(s)"
 
 msgid "Type"
 msgstr "Typ"
@@ -777,11 +873,38 @@ msgstr "Styrspak med 4 axlar och 4 knappar"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr "CH Flightstick Pro + CH-pedaler"
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr "Thrustmaster FCS + Rudder Control System"
+
+msgid "2-button gamepad(s)"
+msgstr "Handkontroll(er) med två knappar"
+
+msgid "2-button flight yoke"
+msgstr "Styrspak med två knappar"
+
+msgid "4-button gamepad"
+msgstr "Handkontroll med fyra knappar"
+
+msgid "4-button flight yoke"
+msgstr "Styrspak med fyra knappar"
+
+msgid "2-button flight yoke with throttle"
+msgstr "Styrspak med två knappar och gas"
+
+msgid "4-button flight yoke with throttle"
+msgstr "Styrspak med fyra knappar och gas"
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr "Win95-ratt (tre axlar, fyra knappar)"
 
 msgid "None"
 msgstr "Ingen"
@@ -791,6 +914,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
 msgstr "Diskett %1 (%2): %3"
+
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Diskett %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Avancerade sektoravbildningar"
@@ -813,6 +939,9 @@ msgstr "Ej möjligt att initialisera GhostPCL"
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
 
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
+
 msgid "MO images"
 msgstr "MO-avbildningar"
 
@@ -821,6 +950,15 @@ msgstr "Välkommen till 86Box!"
 
 msgid "Internal device"
 msgstr "Intern enhet"
+
+msgid "&File"
+msgstr "&Fil"
+
+msgid "&New machine..."
+msgstr "&Ny maskin..."
+
+msgid "&Check for updates..."
+msgstr "&Leta efter uppdateringar..."
 
 msgid "Exit"
 msgstr "Avsluta"
@@ -897,11 +1035,17 @@ msgstr "Fortsätt"
 msgid "Cassette: %1"
 msgstr "Kassettband: %1"
 
+msgid "C&assette: %1"
+msgstr "K&assettband: %1"
+
 msgid "Cassette images"
 msgstr "Kassettbandsavbildningar"
 
 msgid "Cartridge %1: %2"
 msgstr "Kassett %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Ka&ssett %1: %2"
 
 msgid "Cartridge images"
 msgstr "Kassettavbildningar"
@@ -912,6 +1056,9 @@ msgstr "Fortsätt exekvering"
 msgid "Pause execution"
 msgstr "Pausa exekvering"
 
+msgid "Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del"
+
 msgid "Press Ctrl+Alt+Del"
 msgstr "Tryck på Ctrl+Alt+Del"
 
@@ -921,8 +1068,278 @@ msgstr "Tryck på Ctrl+Alt+Esc"
 msgid "Hard reset"
 msgstr "Hård omstart"
 
+msgid "Force shutdown"
+msgstr "Tvinga avstängning"
+
+msgid "Start"
+msgstr "Starta"
+
+msgid "Not running"
+msgstr "Körs ej"
+
+msgid "Running"
+msgstr "Körs"
+
+msgid "Paused"
+msgstr "Pausad"
+
+msgid "Waiting"
+msgstr "Väntar"
+
+msgid "Powered Off"
+msgstr "Avstängd"
+
+msgid "%n running"
+msgstr "%n körs"
+
+msgid "%n paused"
+msgstr "%n pausad"
+
+msgid "%n waiting"
+msgstr "%n väntar"
+
+msgid "%1 total"
+msgstr "%1 sammanlagt"
+
+msgid "VMs: %1"
+msgstr "VM: %1"
+
+msgid "System Directory:"
+msgstr "Systemmapp:"
+
+msgid "Choose directory"
+msgstr "Välj mapp"
+
+msgid "Choose configuration file"
+msgstr "Välj konfigurationsfil"
+
+msgid "86Box configuration files (86box.cfg)"
+msgstr "86Box konfigurationsfiler (86box.cfg)"
+
+msgid "Configuration read failed"
+msgstr "Kunde inte läsa konfiguration"
+
+msgid "Unable to open the selected configuration file for reading: %1"
+msgstr "Kunde inte läsa den valda konfigurationsfilen: %1"
+
+msgid "Use regular expressions in search box"
+msgstr "Använd vanliga uttryck i sökfältet"
+
+msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%1 maskin(er) är aktiva. Är du säker på att du vill avsluta VM-hanteraren ändå?"
+
+msgid "Add new system wizard"
+msgstr "Guiden Lägg till nytt system"
+
+msgid "Introduction"
+msgstr "Introduktion"
+
+msgid "This will help you add a new system to 86Box."
+msgstr "Detta kommer att hjälpa dig lägga till ett nytt system till 86Box."
+
+msgid "New configuration"
+msgstr "Ny konfiguration"
+
+msgid "Complete"
+msgstr "Färdig"
+
+msgid "The wizard will now launch the configuration for the new system."
+msgstr "Guiden kommer nu starta konfigurationen för det nya systemet."
+
+msgid "Use existing configuration"
+msgstr "Använd befintlig konfiguration"
+
+msgid "Type some notes here"
+msgstr "Skriv anteckningar här"
+
+msgid "Paste the contents of the existing configuration file into the box below."
+msgstr "Klistra in innehållet i den befintliga konfigurationsfilen i fältet nedanför."
+
+msgid "Load configuration from file"
+msgstr "Ladda konfiguration från fil"
+
+msgid "System name"
+msgstr "Systemnamn"
+
+msgid "System name:"
+msgstr "Systemnamn:"
+
+msgid "System name cannot contain certain characters"
+msgstr "Systemnamnet kan inte innehålla vissa tecken"
+
+msgid "System name already exists"
+msgstr "Systemnamnet finns redan"
+
+msgid "Please enter a directory for the system"
+msgstr "Välj en mapp till systemet"
+
+msgid "Directory does not exist"
+msgstr "Mappen finns inte"
+
+msgid "A new directory for the system will be created in the selected directory above"
+msgstr "En ny mapp till systemet kommer att skapas i den valda mappen ovanför"
+
+msgid "System location:"
+msgstr "Systemplats:"
+
+msgid "System name and location"
+msgstr "Systemnamn och plats"
+
+msgid "Enter the name of the system and choose the location"
+msgstr "Ange namn på systemet och välj plats"
+
+msgid "Enter the name of the system"
+msgstr "Ange namn på systemet"
+
+msgid "Please enter a system name"
+msgstr "Ange ett systemnamn"
+
+msgid "Display name (optional):"
+msgstr "Visningsnamn (valfritt):"
+
+msgid "Display name:"
+msgstr "Visningsnamn:"
+
+msgid "Set display name"
+msgstr "Ställ in visningsnamn"
+
+msgid "Enter the new display name (blank to reset)"
+msgstr "Ange nytt visningsnamn (tom för att återställa)"
+
+msgid "Change &display name..."
+msgstr "Ändra &visningsnamn..."
+
+msgid "Context Menu"
+msgstr "Innehållsmeny"
+
+msgid "&Open folder..."
+msgstr "&Öppna mapp..."
+
+msgid "Open p&rinter tray..."
+msgstr "Öppna &skrivarfack..."
+
+msgid "Set &icon..."
+msgstr "Ställ in &ikon..."
+
+msgid "Select an icon"
+msgstr "Välj en ikon"
+
+msgid "C&lone..."
+msgstr "K&lona..."
+
+msgid "Virtual machine \"%1\" (%2) will be cloned into:"
+msgstr "Virtuell maskin \"%1\" (%2) kommer att klonas till:"
+
+msgid "Directory %1 already exists"
+msgstr "Mapp %1 finns redan"
+
+msgid "You cannot use the following characters in the name: %1"
+msgstr "Du kan inte använda följande tecken i namnet: %1"
+
+msgid "Clone"
+msgstr "Klona"
+
+msgid "Failed to create directory for cloned VM"
+msgstr "Kunde inte skapa mapp för klonad VM"
+
+msgid "Failed to clone VM."
+msgstr "Kunde inte klona VM."
+
+msgid "Directory in use"
+msgstr "Mapp används"
+
+msgid "The selected directory is already in use. Please select a different directory."
+msgstr "Den valda mappen används redan. Välj en annan mapp."
+
+msgid "Create directory failed"
+msgstr "Kunde inte skapa mapp"
+
+msgid "Unable to create the directory for the new system"
+msgstr "Kunde inte skapa mapp för nytt system"
+
+msgid "Configuration write failed"
+msgstr "Kunde inte skriva konfiguration"
+
+msgid "Unable to open the configuration file at %1 for writing"
+msgstr "Kunde inte skriva till konfigurationsfil på %1"
+
+msgid "Error adding system"
+msgstr "Fel vid tillägg av system"
+
+msgid "Remove directory failed"
+msgstr "Kunde inte ta bort mapp"
+
+msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
+msgstr "Några filer i maskinens mapp kunde inte tas bort. Ta bort de manuellt."
+
+msgid "Build"
+msgstr "Build"
+
+msgid "Version"
+msgstr "Version"
+
+msgid "An update to 86Box is available: %1 %2"
+msgstr "En uppdatering till 86Box är tillgänglig: %1 %2"
+
+msgid "An error has occurred while checking for updates: %1"
+msgstr "Vid kontroll av uppdateringar uppstod ett fel: %1"
+
+msgid "<b>An update to 86Box is available!</b>"
+msgstr "<b>En uppdatering till 86Box är tillgänglig!</b>"
+
+msgid "Warning"
+msgstr "Varning"
+
+msgid "&Kill"
+msgstr "&Döda"
+
+msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
+msgstr "Att döda en virtuell maskin kan orsaka dataförlust. Gör detta endast om 86Box-processen hänger sig.\n\nVill du verkligen döda virtuella maskinen \"%1\"?"
+
+msgid "&Delete"
+msgstr "&Ta bort"
+
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
+msgstr "Vill du verkligen ta bort virtuella maskinen \"%1\" och alla dess filer? Denna handling kan inte ångras!"
+
+msgid "Show &config file"
+msgstr "Visa &konfigurationsfil"
+
+msgid "No screenshot"
+msgstr "Inga skärmbilder"
+
+msgid "Search"
+msgstr "Sök"
+
+msgid "Searching for VMs..."
+msgstr "Söker efter VM..."
+
+msgid "Found %1"
+msgstr "Hittade %1"
+
+msgid "System"
+msgstr "System"
+
+msgid "Storage"
+msgstr "Lagring"
+
+msgid "Disk %1: "
+msgstr "Disk %1:"
+
+msgid "No disks"
+msgstr "Inga diskar"
+
+msgid "Audio"
+msgstr "Ljud"
+
+msgid "Audio:"
+msgstr "Ljud:"
+
 msgid "ACPI shutdown"
 msgstr "ACPI-avstängning"
+
+msgid "ACP&I shutdown"
+msgstr "ACP&I-avstängning"
 
 msgid "Hard disk (%1)"
 msgstr "Hårddisk (%1)"
@@ -1071,6 +1488,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1209,40 +1629,37 @@ msgstr "MCA-enheter"
 msgid "List of MCA devices:"
 msgstr "Lista på MCA-enheter:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Plattverktyg"
 
-msgid "Qt (OpenGL &ES)"
-msgstr "Qt (OpenGL &ES)"
+msgid "About &Qt"
+msgstr "Om &Qt"
 
-msgid "About Qt"
-msgstr "Om Qt"
-
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "MCA-enheter..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Visa icke-primära skärmar"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Öppna skärmbildsmappen..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Tillämpa sträckläge för helskärm när den är maximerad"
 
-msgid "Cursor/Puck"
-msgstr "Pekare/puck"
+msgid "&Cursor/Puck"
+msgstr "&Pekare/puck"
 
-msgid "Pen"
-msgstr "Penna"
+msgid "&Pen"
+msgstr "P&enna"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "Värdenhet för CD/DVD (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Värdenhet för CD/DVD (%1:)"
 
 msgid "&Connected"
 msgstr "&Ansluten"
 
-msgid "Clear image history"
+msgid "Clear image &history"
 msgstr "Rensa historik för avbildningar"
 
 msgid "Create..."
@@ -1257,8 +1674,14 @@ msgstr "Okänd buss"
 msgid "Null Driver"
 msgstr "Tom drivrutin"
 
+msgid "NIC:"
+msgstr "NIC:"
+
 msgid "NIC %1 (%2) %3"
 msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Renderingsbeteende"
@@ -1276,7 +1699,7 @@ msgid "Synchronize with video"
 msgstr "Synkronisera med bild"
 
 msgid "Shaders"
-msgstr ""
+msgstr "Shaders"
 
 msgid "Remove"
 msgstr "Ta bort"
@@ -1323,6 +1746,9 @@ msgstr "Inga MCA-enheter."
 msgid "MiB"
 msgstr "MiB"
 
+msgid "GiB"
+msgstr "GiB"
+
 msgid "Network Card #1"
 msgstr "Nätverkskort #1"
 
@@ -1365,20 +1791,44 @@ msgstr "Serieport passthrough 3"
 msgid "Serial port passthrough 4"
 msgstr "Serieport passthrough 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Renderingsalternativ..."
 
+msgid "PC/XT Keyboard"
+msgstr "PC/XT-tangentbord"
+
+msgid "AT Keyboard"
+msgstr "AT-tangenbord"
+
+msgid "AX Keyboard"
+msgstr "AX-tangentbord"
+
+msgid "PS/2 Keyboard"
+msgstr "PS/2-tangentbord"
+
+msgid "PS/55 Keyboard"
+msgstr "PS/55-tangentbord"
+
+msgid "Keys"
+msgstr "Tangenter"
+
 msgid "Logitech/Microsoft Bus Mouse"
-msgstr "Logitech/Microsoft-buss-mus"
+msgstr "Logitech/Microsoft Bus-mus"
 
 msgid "Microsoft Bus Mouse (InPort)"
-msgstr "Microsoft-buss-mus (InPort)"
+msgstr "Microsoft Bus-mus (InPort)"
 
 msgid "Mouse Systems Serial Mouse"
 msgstr "Mouse Systems seriemus"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr "Mouse Systems Bus-mus"
+
 msgid "Microsoft Serial Mouse"
 msgstr "Microsoft seriemus"
+
+msgid "Microsoft Serial BallPoint"
+msgstr "Microsoft serie-BallPoint"
 
 msgid "Logitech Serial Mouse"
 msgstr "Logitech seriemus"
@@ -1386,8 +1836,14 @@ msgstr "Logitech seriemus"
 msgid "PS/2 Mouse"
 msgstr "PS/2-mus"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr "PS/2 QuickPort-mus"
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serie)"
+
+msgid "Default Baud rate"
+msgstr "Standard Baudhastighet"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Standard Hayes-kompatibelt modem"
@@ -1413,11 +1869,53 @@ msgstr "System-MIDI"
 msgid "MIDI Input Device"
 msgstr "Indataenhet för MIDI"
 
-msgid "BIOS Address"
+msgid "BIOS file"
+msgstr "BIOS-fil"
+
+msgid "BIOS file (ROM #1)"
+msgstr "BIOS-fil (ROM #1)"
+
+msgid "BIOS file (ROM #2)"
+msgstr "BIOS-fil (ROM #2)"
+
+msgid "BIOS file (ROM #3)"
+msgstr "BIOS-fil (ROM #3)"
+
+msgid "BIOS file (ROM #4)"
+msgstr "BIOS-fil (ROM #4)"
+
+msgid "BIOS address"
 msgstr "BIOS-adress"
+
+msgid "BIOS address (ROM #1)"
+msgstr "BIOS-adress (ROM #1)"
+
+msgid "BIOS address (ROM #2)"
+msgstr "BIOS-adress (ROM #2)"
+
+msgid "BIOS address (ROM #3)"
+msgstr "BIOS-adress (ROM #3)"
+
+msgid "BIOS address (ROM #4)"
+msgstr "BIOS-adress (ROM #4)"
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Aktivera ROM-skrivningar för utökat BIOS"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr "Aktivera ROM-skrivningar för utökat BIOS (ROM #1)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr "Aktivera ROM-skrivningar för utökat BIOS (ROM #2)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr "Aktivera ROM-skrivningar för utökat BIOS (ROM #3)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr "Aktivera ROM-skrivningar för utökat BIOS (ROM #4)"
+
+msgid "Linear framebuffer base"
+msgstr "Linjär bas för skärmbuffert"
 
 msgid "Address"
 msgstr "Adress"
@@ -1425,8 +1923,26 @@ msgstr "Adress"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr "IRQ för serieport"
+
+msgid "Parallel port IRQ"
+msgstr "IRQ för parallelport"
+
 msgid "BIOS Revision"
-msgstr "BIOS revision"
+msgstr "BIOS-revision"
+
+msgid "BIOS Version"
+msgstr "BIOS-version"
+
+msgid "BIOS Language"
+msgstr "BIOS-språk"
+
+msgid "IBM 5161 Expansion Unit"
+msgstr "IBM 5161 expansionsenhet"
+
+msgid "IBM Cassette Basic"
+msgstr "IBM Cassette Basic"
 
 msgid "Translate 26 -> 17"
 msgstr "Översätt 26 -> 17"
@@ -1442,6 +1958,18 @@ msgstr "Invertera färger"
 
 msgid "BIOS size"
 msgstr "Storlek på BIOS"
+
+msgid "BIOS size (ROM #1)"
+msgstr "Storlek på BIOS (ROM #1)"
+
+msgid "BIOS size (ROM #2)"
+msgstr "Storlek på BIOS (ROM #2)"
+
+msgid "BIOS size (ROM #3)"
+msgstr "Storlek på BIOS (ROM #3)"
+
+msgid "BIOS size (ROM #4)"
+msgstr "Storlek på BIOS (BIOS #4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Kartlägg C0000-C7FFF som UMB"
@@ -1517,6 +2045,9 @@ msgstr "Reverb nivå"
 
 msgid "Interpolation Method"
 msgstr "Interpoleringsmetod"
+
+msgid "Dynamic Sample Loading"
+msgstr "Dynamisk sampelladdning"
 
 msgid "Reverb Output Gain"
 msgstr "Reverb utmatningsförstärkning"
@@ -1605,6 +2136,12 @@ msgstr "Låg DMA"
 msgid "Enable Game port"
 msgstr "Aktivera spelport"
 
+msgid "SID Model"
+msgstr "SID-modell"
+
+msgid "SID Filter Strength"
+msgstr "SID filetstyrka"
+
 msgid "Surround module"
 msgstr "Sorround-modul"
 
@@ -1616,6 +2153,12 @@ msgstr "Öka avbrottsnummer för CODEC vid CODEC-installation (krävs av vissa d
 
 msgid "SB Address"
 msgstr "Adress för SB"
+
+msgid "Adlib Address"
+msgstr "Adlib-adress"
+
+msgid "Use EEPROM setting"
+msgstr "Använd EEPROM-inställning"
 
 msgid "WSS IRQ"
 msgstr "WSS IRQ"
@@ -1701,8 +2244,14 @@ msgstr "RAMDAC-typ"
 msgid "Blend"
 msgstr "Blanda"
 
+msgid "Font"
+msgstr "Typsnitt"
+
 msgid "Bilinear filtering"
 msgstr "Bilinjär filtrering"
+
+msgid "Video chroma-keying"
+msgstr "Video chroma-keying"
 
 msgid "Dithering"
 msgstr "Dithering"
@@ -1746,6 +2295,33 @@ msgstr "Överföringshastighet"
 msgid "EMS mode"
 msgstr "EMS-läge"
 
+msgid "EMS Address"
+msgstr "EMS-adress"
+
+msgid "EMS 1 Address"
+msgstr "EMS 1-adress"
+
+msgid "EMS 2 Address"
+msgstr "EMS 2-adress"
+
+msgid "EMS Memory Size"
+msgstr "EMS minnesstorlek"
+
+msgid "EMS 1 Memory Size"
+msgstr "EMS 1 minnesstorlek"
+
+msgid "EMS 2 Memory Size"
+msgstr "EMS 2 minnesstorlek"
+
+msgid "Enable EMS"
+msgstr "Aktivera EMS"
+
+msgid "Enable EMS 1"
+msgstr "Aktivera EMS 1"
+
+msgid "Enable EMS 2"
+msgstr "Aktivera EMS 2"
+
 msgid "Address for > 2 MB"
 msgstr "Adress till > 2 MB"
 
@@ -1764,11 +2340,11 @@ msgstr "Alltid vid den valda hastigheten"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "BIOS-inställningar + Snabbtangenter (av under POST)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB som börjar från F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB som börjar från F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB som börjar från E0000 (adress MSB inverterad, de sista 64KB först)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB som börjar från E0000 (adress MSB inverterad, de sista 64 KB först)"
 
 msgid "Sine"
 msgstr "Sinus"
@@ -1804,7 +2380,7 @@ msgid "Five + Wheel"
 msgstr "Fem med hjul"
 
 msgid "Five + 2 Wheels"
-msgstr ""
+msgstr "Fem med två hjul"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 serie / SMT3(R)V"
@@ -1869,6 +2445,9 @@ msgstr "256 KB"
 msgid "Composite"
 msgstr "Komposit"
 
+msgid "True color"
+msgstr "True color"
+
 msgid "Old"
 msgstr "Gammal"
 
@@ -1901,6 +2480,15 @@ msgstr "sRGB-interpolering"
 
 msgid "Linear interpolation"
 msgstr "Linjär interpolering"
+
+msgid "Has secondary 8x8 character set"
+msgstr "Har sekundär 8x8 teckenuppsättning"
+
+msgid "Has Quadcolor II daughter board"
+msgstr "Har Quadcolor II dotterkort"
+
+msgid "Alternate monochrome contrast"
+msgstr "Alternativ monokrom kontrast"
 
 msgid "128 KB"
 msgstr "128 KB"
@@ -1935,6 +2523,9 @@ msgstr "Bärnstensfärgad"
 msgid "Gray"
 msgstr "Grå"
 
+msgid "Grayscale"
+msgstr "Gråskala"
+
 msgid "Color"
 msgstr "Färg"
 
@@ -1950,6 +2541,12 @@ msgstr "Andra språk"
 msgid "Bochs latest"
 msgstr "Bochs senaste"
 
+msgid "Apply overscan deltas"
+msgstr "Tillämpa delta för överskanning"
+
+msgid "Mono Interlaced"
+msgstr "Monokrom sammanflätad"
+
 msgid "Mono Non-Interlaced"
 msgstr "Ej sammanflätad monokrom"
 
@@ -1961,6 +2558,9 @@ msgstr "Ej sammanflätad färg"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "3Dfx Voodoo-grafik"
+
+msgid "3Dfx Voodoo 2"
+msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 TMUs)"
@@ -2030,6 +2630,9 @@ msgstr "Passthroughns Baudhastighet"
 
 msgid "Named Pipe (Server)"
 msgstr "Namngiven pipe (server)"
+
+msgid "Named Pipe (Client)"
+msgstr "Namngiven pipe (klient)"
 
 msgid "Host Serial Passthrough"
 msgstr "Värd-seriepassthrough"
@@ -2116,7 +2719,7 @@ msgid "Model:"
 msgstr "Modell:"
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr "Kunde inte initialisera Vulkan-renderaren"
+msgstr "Kunde inte initialisera Vulkan-renderaren."
 
 msgid "GLSL Error"
 msgstr "GLSL-fel"
@@ -2153,3 +2756,201 @@ msgstr "Flytta ner"
 
 msgid "Could not load file %1"
 msgstr "Kunde inte ladda fil %1"
+
+msgid "Key Bindings:"
+msgstr "Tangentbindningar:"
+
+msgid "Action"
+msgstr "Handling"
+
+msgid "Keybind"
+msgstr "Tangenbindning"
+
+msgid "Clear binding"
+msgstr "Rensa bindningar"
+
+msgid "Bind"
+msgstr "Bind"
+
+msgid "Bind Key"
+msgstr "Bind tangent"
+
+msgid "Enter key combo:"
+msgstr "Ange tangentkombination:"
+
+msgid "Bind conflict"
+msgstr "Bindningskonflikt"
+
+msgid "This key combo is already in use."
+msgstr "Denna tangentkombination används redan."
+
+msgid "Send Control+Alt+Del"
+msgstr "Skicka Ctrl+Alt+Del"
+
+msgid "Send Control+Alt+Escape"
+msgstr "Skicka Ctrl+Alt+Esc"
+
+msgid "Toggle fullscreen"
+msgstr "Helskärm"
+
+msgid "Screenshot"
+msgstr "Skärmbild"
+
+msgid "Release mouse pointer"
+msgstr "Släpp muspekare"
+
+msgid "Toggle pause"
+msgstr "Pausa"
+
+msgid "Toggle mute"
+msgstr "Tysta"
+
+msgid "Text files"
+msgstr "Textfiler"
+
+msgid "ROM files"
+msgstr "ROM-filer"
+
+msgid "SoundFont files"
+msgstr "SoundFont-filer"
+
+msgid "Local Switch"
+msgstr "Lokal switch"
+
+msgid "Remote Switch"
+msgstr "Fjärr-switch"
+
+msgid "Switch:"
+msgstr "Switch:"
+
+msgid "Hub Mode"
+msgstr "Hubb-läge"
+
+msgid "Hostname:"
+msgstr "Värdnamn:"
+
+msgid "ISA RAM:"
+msgstr "ISA RAM:"
+
+msgid "ISA ROM:"
+msgstr "ISA ROM:"
+
+msgid "&Wipe NVRAM"
+msgstr "&Rensa NVRAM"
+
+msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
+msgstr "Detta kommer att ta bort alla NVRAM och relaterade filer från den virtuella maskinen i undermappen \"nvr\". Du kommer att behöva omkonfigurera BIOS och möjligen andra enheter inuti VM om applicerbart.\n\nÄr du säker på att du vill tömma allt NVRAM-innehåll för den virtuella maskinen \"%1\"?"
+
+msgid "Success"
+msgstr "Lyckades"
+
+msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
+msgstr "Lyckades tömma allt NVRAM-innehåll för den virtuella maskinen \"%1\"."
+
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgstr "Ett fel uppstod vid försök att tömma NVRAM-innehållet för den virtuella maskinen \"%1\"."
+
+msgid "%1 VM Manager"
+msgstr "%1 VM-hanterare"
+
+msgid "%n disk(s)"
+msgstr "%n disk(ar)"
+
+msgid "Unknown Status"
+msgstr "Ökänd status"
+
+msgid "No Machines Found!"
+msgstr "Inga maskiner hittades!"
+
+msgid "Check for updates on startup"
+msgstr "Sök efter uppdateringar vid start"
+
+msgid "Unable to determine release information"
+msgstr "Kunde inte bestämma information för släpp"
+
+msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
+msgstr "Ett fel uppstod vid sökning av uppdateringar:\n\n%1\n\nFörsök igen senare."
+
+msgid "Update check complete"
+msgstr "Uppdateringskontroll klar"
+
+msgid "stable"
+msgstr "stable"
+
+msgid "beta"
+msgstr "beta"
+
+msgid "You are running the latest %1 version of 86Box: %2"
+msgstr "Du kör den senaste %1 versionen av 86Box: %2"
+
+msgid "version"
+msgstr "version"
+
+msgid "build"
+msgstr "build"
+
+msgid "You are currently running version <b>%1</b>."
+msgstr "Du kör just ny version <b>%1</b>."
+
+msgid "<b>Version %1</b> is now available."
+msgstr "<b>Version %1</b> finns nu tillgänglig."
+
+msgid "You are currently running build <b>%1</b>."
+msgstr "Du kör just nu build <b>%1</b>."
+
+msgid "<b>Build %1</b> is now available."
+msgstr "<b>Build %1</b> finns nu tillgänglig."
+
+msgid "Would you like to visit the download page?"
+msgstr "Vill du besöka nedladdningssidan?"
+
+msgid "Visit download page"
+msgstr "Besök nedladdningssida"
+
+msgid "Update check"
+msgstr "Leta efter uppdateringar"
+
+msgid "Checking for updates..."
+msgstr "Letar efter uppdateringar..."
+
+msgid "86Box Update"
+msgstr "86Box-uppdatering"
+
+msgid "Release notes:"
+msgstr "Information om släpp:"
+
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
+msgid "Virtual machine crash"
+msgstr "Virtuell maskin-krasch"
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr "Den virtuella maskinen \"%1\"s process har avslutats oväntad med kod %2."
+
+msgid "The system will not be added."
+msgstr "Systemet kommer inte att läggas till."
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Uppdatera mus varje processorram"
+
+msgid "Hue"
+msgstr "Färgton"
+
+msgid "Saturation"
+msgstr "Mättnad"
+
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgid "Brightness"
+msgstr "Ljusstyrka"
+
+msgid "Sharpness"
+msgstr "Skärpa"
+
+msgid "&CGA composite settings..."
+msgstr "Inställningar för &CGA-kompositläget..."
+
+msgid "CGA composite settings"
+msgstr "Inställningar för CGA-kompositläget"

@@ -42,7 +42,17 @@ public:
     void updateProcessStatus();
 
     void updateWindowStatus();
+
+#ifdef Q_OS_WINDOWS
+    void updateStyle();
+#endif
+
 //    CollapseButton *systemCollapseButton;
+
+#ifdef Q_OS_WINDOWS
+signals:
+    void styleUpdated();
+#endif
 
 private:
     Ui::VMManagerDetails *ui;
@@ -55,6 +65,7 @@ private:
     VMManagerDetailSection *networkSection;
     VMManagerDetailSection *inputSection;
     VMManagerDetailSection *portsSection;
+    VMManagerDetailSection *otherSection;
 
     QFileInfoList screenshots;
     int           screenshotIndex = 0;
@@ -67,6 +78,11 @@ private:
     QToolButton *configureButton;
     QToolButton *cadButton;
 
+    QIcon pauseIcon;
+    QIcon runIcon;
+
+    void updateConfig(VMManagerSystem *passed_sysconfig);
+    void updateScreenshots(VMManagerSystem *passed_sysconfig);
     static QWidget* createHorizontalLine(int leftSpacing = 25, int rightSpacing = 25);
     // QVBoxLayout *detailsLayout;
 private slots:

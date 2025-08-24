@@ -625,7 +625,7 @@ europc_boot(UNUSED(const device_t *info))
         mouse_bus_set_irq(sys->mouse, 2);
         /* Configure the port for (Bus Mouse Compatible) Mouse. */
         b |= 0x01;
-    } else if (joystick_type)
+    } else if (joystick_type[0])
         b |= 0x02; /* enable port as joysticks */
     sys->nvr.regs[MRTC_CONF_C] = b;
 
@@ -651,7 +651,7 @@ europc_boot(UNUSED(const device_t *info))
                   jim_read, NULL, NULL, jim_write, NULL, NULL, sys);
 
     /* Only after JIM has been initialized. */
-    (void) device_add(&keyboard_xt_device);
+    (void) device_add(&kbc_xt_device);
 
     /* Enable and set up the FDC. */
     (void) device_add(&fdc_xt_device);

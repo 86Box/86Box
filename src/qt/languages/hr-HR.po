@@ -27,8 +27,14 @@ msgstr "Ctrl+Alt+&Esc"
 msgid "&Pause"
 msgstr "&Pauza"
 
-msgid "E&xit..."
-msgstr "Iz&laz..."
+msgid "Pause"
+msgstr "Pauza"
+
+msgid "Re&sume"
+msgstr "Na&stavi"
+
+msgid "E&xit"
+msgstr "Iz&laz"
 
 msgid "&View"
 msgstr "&Pogled"
@@ -51,19 +57,16 @@ msgstr "&Renderer"
 msgid "&Qt (Software)"
 msgstr "&Qt (Softver)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (&OpenGL)"
-
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 jezgra)"
 
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify dimensions..."
+msgid "Specify &dimensions..."
 msgstr "Odrediti veličinu..."
 
-msgid "F&orce 4:3 display ratio"
+msgid "Force &4:3 display ratio"
 msgstr "&4:3 omjer prikaza"
 
 msgid "&Window scale factor"
@@ -99,7 +102,7 @@ msgstr "&7x"
 msgid "&8x"
 msgstr "&8x"
 
-msgid "Filter method"
+msgid "Fi&lter method"
 msgstr "Metoda filtriranja"
 
 msgid "&Nearest"
@@ -132,8 +135,8 @@ msgstr "&Cijelobrojno skaliranje"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Cijelobrojno skaliranje"
 
-msgid "E&GA/(S)VGA settings"
-msgstr "E&GA/(S)VGA postavke"
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)&VGA postavke"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Obrni boje zaslona VGA"
@@ -144,8 +147,14 @@ msgstr "&Tip zaslona VGA"
 msgid "RGB &Color"
 msgstr "RGB u &boji"
 
+msgid "RGB (no brown)"
+msgstr "RGB (bez smeđe)"
+
 msgid "&RGB Grayscale"
 msgstr "&RGB u nijansama sive boje"
+
+msgid "Generic RGBI color monitor"
+msgstr "Generični RGBI monitor u boji"
 
 msgid "&Amber monitor"
 msgstr "&Jantarni zaslon"
@@ -183,6 +192,9 @@ msgstr "&Alati"
 msgid "&Settings..."
 msgstr "&Opcije..."
 
+msgid "Settings..."
+msgstr "Opcije..."
+
 msgid "&Update status bar icons"
 msgstr "&Ažuriraj ikone statusnog redka"
 
@@ -208,7 +220,7 @@ msgid "End trace"
 msgstr "&Svrši praćenje"
 
 msgid "&Help"
-msgstr "&Pomoć"
+msgstr "P&omoć"
 
 msgid "&Documentation..."
 msgstr "&Dokumentacija..."
@@ -348,6 +360,9 @@ msgstr "Sistem:"
 msgid "Configure"
 msgstr "Namjesti"
 
+msgid "CPU:"
+msgstr "Procesor:"
+
 msgid "CPU type:"
 msgstr "Tip procesora:"
 
@@ -384,6 +399,15 @@ msgstr "Uključeno (UTC)"
 msgid "Dynamic Recompiler"
 msgstr "Dinamički rekompilator"
 
+msgid "CPU frame size"
+msgstr "Veličina blokova procesora"
+
+msgid "Larger frames (less smooth)"
+msgstr "Veći blokovi (manje glatko)"
+
+msgid "Smaller frames (smoother)"
+msgstr "Manji blokovi (glatkije)"
+
 msgid "Video:"
 msgstr "Video:"
 
@@ -399,11 +423,26 @@ msgstr "IBM 8514/A grafika"
 msgid "XGA Graphics"
 msgstr "XGA grafika"
 
+msgid "IBM PS/55 Display Adapter Graphics"
+msgstr "Grafika adaptera za prikaz IBM PS/55"
+
+msgid "Keyboard:"
+msgstr "Tipkovinca:"
+
+msgid "Keyboard"
+msgstr "Tipkovnica"
+
 msgid "Mouse:"
 msgstr "Miš:"
 
+msgid "Mouse"
+msgstr "Miš"
+
 msgid "Joystick:"
 msgstr "Palica za igru:"
+
+msgid "Joystick"
+msgstr "Palica za igru"
 
 msgid "Joystick 1..."
 msgstr "Palica za igru 1..."
@@ -434,6 +473,9 @@ msgstr "Izlazni uređaj MIDI:"
 
 msgid "MIDI In Device:"
 msgstr "Ulazni uređaj MIDI:"
+
+msgid "MIDI Out:"
+msgstr "Izlaz MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "Samostalni MPU-401"
@@ -474,6 +516,9 @@ msgstr "Uređaj LPT3:"
 msgid "LPT4 Device:"
 msgstr "Uređaj LPT4:"
 
+msgid "Internal LPT ECP DMA:"
+msgstr "DMA ECP unutrašnjeg LPT-a:"
+
 msgid "Serial port 1"
 msgstr "Serijska vrata 1"
 
@@ -498,17 +543,20 @@ msgstr "Paralelna vrata 3"
 msgid "Parallel port 4"
 msgstr "Paralelna vrata 4"
 
-msgid "HD Controller:"
-msgstr "Kontroler tvrdog diska:"
-
 msgid "FD Controller:"
 msgstr "Kontroler diskete:"
+
+msgid "CD-ROM Controller:"
+msgstr "Kontroler CD-ROM:"
 
 msgid "Tertiary IDE Controller"
 msgstr "Tercijarni IDE kontroler"
 
 msgid "Quaternary IDE Controller"
 msgstr "Kvaternarni IDE kontroler"
+
+msgid "Hard disk"
+msgstr "Tvrdi disk"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -530,6 +578,9 @@ msgstr "Audio kaseta"
 
 msgid "Hard disks:"
 msgstr "Tvrdi diskovi:"
+
+msgid "Firmware Version"
+msgstr "Verzija firmvera"
 
 msgid "&New..."
 msgstr "&Novi..."
@@ -588,8 +639,14 @@ msgstr "CD-ROM pogoni:"
 msgid "MO drives:"
 msgstr "MO pogoni:"
 
-msgid "ZIP drives:"
-msgstr "ZIP pogoni:"
+msgid "MO:"
+msgstr "MO:"
+
+msgid "Removable disks:"
+msgstr "Izmjenjivi diskovi:"
+
+msgid "Removable disk drives:"
+msgstr "Pogoni izmjenjivih diskova:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -599,6 +656,9 @@ msgstr "Sat stvarnog vremena (RTC):"
 
 msgid "ISA Memory Expansion"
 msgstr "Proširenje memorije ISA"
+
+msgid "ISA ROM Cards"
+msgstr "Kartice ISA sa ROM-om"
 
 msgid "Card 1:"
 msgstr "Kartica 1:"
@@ -611,6 +671,15 @@ msgstr "Kartica 3:"
 
 msgid "Card 4:"
 msgstr "Kartica 4:"
+
+msgid "Generic ISA ROM Board"
+msgstr "Generična kartica ISA s ROM-om"
+
+msgid "Generic Dual ISA ROM Board"
+msgstr "Generična kartica ISA s dva ROM-a"
+
+msgid "Generic Quad ISA ROM Board"
+msgstr "Generična kartica ISA s četiri ROM-a"
 
 msgid "ISABugger device"
 msgstr "Uređaj ISABugger"
@@ -633,11 +702,17 @@ msgstr " - ZASTAO"
 msgid "Speed"
 msgstr "Brzina"
 
-msgid "ZIP %1 %2 (%3): %4"
-msgstr "ZIP %1 %2 (%3): %4"
+msgid "Removable disk %1 (%2): %3"
+msgstr "Izmjenjivi disk %1 (%2): %3"
 
-msgid "ZIP images"
-msgstr "ZIP slike"
+msgid "&Removable disk %1 (%2): %3"
+msgstr "&Izmjenjivi disk %1 (%2): %3"
+
+msgid "Removable disk images"
+msgstr "Slike izmjenjivih diskova"
+
+msgid "Image %1"
+msgstr "Slika %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box nije mogao pronaći upotrebljive ROM datoteke.\n\nMolimte posjetite <a href=\"https://github.com/86Box/roms/releases/latest\"></a> sknite paket s ROM datotekama i ekstrahirajte paket u mapu \"roms\"."
@@ -696,11 +771,29 @@ msgstr "Mreža"
 msgid "Ports (COM & LPT)"
 msgstr "Vrata (COM & LPT)"
 
+msgid "Ports"
+msgstr "Vrata"
+
+msgid "Serial ports:"
+msgstr "Serijska vrata:"
+
+msgid "Parallel ports:"
+msgstr "Paralelna vrata:"
+
 msgid "Storage controllers"
 msgstr "Kontroleri za diskove"
 
 msgid "Hard disks"
 msgstr "Tvrdi diskovi"
+
+msgid "Disks:"
+msgstr "Diskovi:"
+
+msgid "Floppy:"
+msgstr "Diskete:"
+
+msgid "Controllers:"
+msgstr "Kontroleri:"
 
 msgid "Floppy & CD-ROM drives"
 msgstr "Floppy & CD-ROM pogoni"
@@ -710,6 +803,9 @@ msgstr "Ostali uklonjivi uređaji"
 
 msgid "Other peripherals"
 msgstr "Ostali periferni uređaji"
+
+msgid "Other devices"
+msgstr "Ostali uređaji"
 
 msgid "Click to capture mouse"
 msgstr "Kliknite da uhvatite miš"
@@ -765,7 +861,7 @@ msgstr "Palica za igru s 2 osi, 6 tipke"
 msgid "2-axis, 8-button joystick"
 msgstr "Palica za igru s 2 osi, 8 tipke"
 
-msgid "3-axis, 2-button joystick(s)"
+msgid "3-axis, 2-button joystick"
 msgstr "Palica za igru s 3 osi, 2 tipke"
 
 msgid "3-axis, 4-button joystick"
@@ -777,11 +873,38 @@ msgstr "Palica za igru s 4 osi, 4 tipke"
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr "CH Flightstick Pro + CH Pedals"
+
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr "Thrustmaster FCS + Rudder Control System"
+
+msgid "2-button gamepad(s)"
+msgstr "Gamepad(ovi) s 2 tipke"
+
+msgid "2-button flight yoke"
+msgstr "Jaram za letenje s 2 tipke"
+
+msgid "4-button gamepad"
+msgstr "Gamepad s 4 tipke"
+
+msgid "4-button flight yoke"
+msgstr "Jaram za letenje s 4 tipke"
+
+msgid "2-button flight yoke with throttle"
+msgstr "Jaram za letenje s 2 tipke i gasom"
+
+msgid "4-button flight yoke with throttle"
+msgstr "Jaram za letenje s 4 tipke i gasom"
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr "Volan Win95 (3 osi, 4 tipke)"
 
 msgid "None"
 msgstr "Bez"
@@ -791,6 +914,9 @@ msgstr "%1 MB (CHS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
 msgstr "Disketa %1 (%2): %3"
+
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Disketa %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Napredne sektorske slike"
@@ -813,6 +939,9 @@ msgstr "Nije moguće inicijalizirati GhostPCL"
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
 
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
+
 msgid "MO images"
 msgstr "MO slike"
 
@@ -821,6 +950,15 @@ msgstr "Dobrodošli u 86Box!"
 
 msgid "Internal device"
 msgstr "Uunutarnji uređaj"
+
+msgid "&File"
+msgstr "&Datoteka"
+
+msgid "&New machine..."
+msgstr "&Novi sistem..."
+
+msgid "&Check for updates..."
+msgstr "&Provjeri ažuriranja..."
 
 msgid "Exit"
 msgstr "Izlazi"
@@ -897,11 +1035,17 @@ msgstr "Nastavi"
 msgid "Cassette: %1"
 msgstr "Audio kaseta: %1"
 
+msgid "C&assette: %1"
+msgstr "&Audio kaseta: %1"
+
 msgid "Cassette images"
 msgstr "Slike audio kasete"
 
 msgid "Cartridge %1: %2"
 msgstr "Kaseta %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "&Kaseta %1: %2"
 
 msgid "Cartridge images"
 msgstr "Slike kasete"
@@ -912,6 +1056,9 @@ msgstr "Nastavi"
 msgid "Pause execution"
 msgstr "Pauziraj"
 
+msgid "Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del"
+
 msgid "Press Ctrl+Alt+Del"
 msgstr "Stisni Ctrl+Alt+Del"
 
@@ -921,8 +1068,278 @@ msgstr "Stisni Ctrl+Alt+Esc"
 msgid "Hard reset"
 msgstr "Ponovno pokretanje"
 
+msgid "Force shutdown"
+msgstr "Prisilno isključi"
+
+msgid "Start"
+msgstr "Pokreni"
+
+msgid "Not running"
+msgstr "Se ne pokreće"
+
+msgid "Running"
+msgstr "Se pokreće"
+
+msgid "Paused"
+msgstr "Pauziran"
+
+msgid "Waiting"
+msgstr "Čeka"
+
+msgid "Powered Off"
+msgstr "Isključen"
+
+msgid "%n running"
+msgstr "%n se ppokreće"
+
+msgid "%n paused"
+msgstr "%n pauziranih"
+
+msgid "%n waiting"
+msgstr "%n čeka"
+
+msgid "%1 total"
+msgstr "%1 ukupno"
+
+msgid "VMs: %1"
+msgstr "Virtualnih sistema: %1"
+
+msgid "System Directory:"
+msgstr "Sistemski direktorij:"
+
+msgid "Choose directory"
+msgstr "Odaberite direktorij"
+
+msgid "Choose configuration file"
+msgstr "Odaberite datoteku s konfiguracijom"
+
+msgid "86Box configuration files (86box.cfg)"
+msgstr "Konfiguracijske datoteke programa 86Box (86box.cfg)"
+
+msgid "Configuration read failed"
+msgstr "Čitanje konfiguracije nije uspjelo"
+
+msgid "Unable to open the selected configuration file for reading: %1"
+msgstr "Nije moguće otvoriti odabranu konfiguracijsku datoteku za čitanje: %1"
+
+msgid "Use regular expressions in search box"
+msgstr "U polju za pretraživanje koristite regularne izraze"
+
+msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "Broj trenutno aktivnih računala je %1. Jeste li sigurni da ipak želite izaći iz upravitelja virtualnih sistema?"
+
+msgid "Add new system wizard"
+msgstr "Čarobnjak za dodavanje novog sistema"
+
+msgid "Introduction"
+msgstr "Uvod"
+
+msgid "This will help you add a new system to 86Box."
+msgstr "Ovo će vam pomoći da dodate novi sistem u 86Box."
+
+msgid "New configuration"
+msgstr "Nova konfiguracija"
+
+msgid "Complete"
+msgstr "Završi"
+
+msgid "The wizard will now launch the configuration for the new system."
+msgstr "Čarobnjak će sada pokrenuti konfiguraciju za novi sustav."
+
+msgid "Use existing configuration"
+msgstr "Koristi postojeću konfiguraciju"
+
+msgid "Type some notes here"
+msgstr "Ovdje upišite neke bilješke"
+
+msgid "Paste the contents of the existing configuration file into the box below."
+msgstr "Zalijepite sadržaj postojeće konfiguracijske datoteke u okvir ispod."
+
+msgid "Load configuration from file"
+msgstr "Učitaj konfiguraciju iz datoteke"
+
+msgid "System name"
+msgstr "Naziv sistema"
+
+msgid "System name:"
+msgstr "Naziv sistema:"
+
+msgid "System name cannot contain certain characters"
+msgstr "Naziv sistema ne može sadržavati određene znakove"
+
+msgid "System name already exists"
+msgstr "Naziv sistema već postoji"
+
+msgid "Please enter a directory for the system"
+msgstr "Molimo unesite direktorij za sistem"
+
+msgid "Directory does not exist"
+msgstr "Direktorij ne postoji"
+
+msgid "A new directory for the system will be created in the selected directory above"
+msgstr "Novi direktorij za sistem bit će kreiran u odabranom direktoriju iznad"
+
+msgid "System location:"
+msgstr "Lokacija sistema:"
+
+msgid "System name and location"
+msgstr "Naziv i lokacija sistema"
+
+msgid "Enter the name of the system and choose the location"
+msgstr "Unesite naziv sistema i odaberite lokaciju"
+
+msgid "Enter the name of the system"
+msgstr "Unesite naziv sistema"
+
+msgid "Please enter a system name"
+msgstr "Unesite naziv sistema"
+
+msgid "Display name (optional):"
+msgstr "Prikazno ime (neobavezno):"
+
+msgid "Display name:"
+msgstr "Prikazno ime:"
+
+msgid "Set display name"
+msgstr "Postavi prikazno ime"
+
+msgid "Enter the new display name (blank to reset)"
+msgstr "Unesite novo prikazno ime (prazno za ponovo postaviti)"
+
+msgid "Change &display name..."
+msgstr "Promijeni &prikazno ime..."
+
+msgid "Context Menu"
+msgstr "Kontekstni izbornik"
+
+msgid "&Open folder..."
+msgstr "&Otvori mapu..."
+
+msgid "Open p&rinter tray..."
+msgstr "Otvori ladicu &pisača..."
+
+msgid "Set &icon..."
+msgstr "Postavi &ikonu..."
+
+msgid "Select an icon"
+msgstr "Odaberite ikonu"
+
+msgid "C&lone..."
+msgstr "K&loniraj..."
+
+msgid "Virtual machine \"%1\" (%2) will be cloned into:"
+msgstr "Virtualni sistem \"%1\" (%2) bit će kloniran u:"
+
+msgid "Directory %1 already exists"
+msgstr "Direktorij %1 već postoji"
+
+msgid "You cannot use the following characters in the name: %1"
+msgstr "U nazivu ne možete koristiti sljedeće znakove: %1"
+
+msgid "Clone"
+msgstr "Kloniraj"
+
+msgid "Failed to create directory for cloned VM"
+msgstr "Nije uspjelo stvaranje direktorija za klonirani VM"
+
+msgid "Failed to clone VM."
+msgstr "Kloniranje virtualnog stroja nije uspjelo."
+
+msgid "Directory in use"
+msgstr "Direktorij u uporebi"
+
+msgid "The selected directory is already in use. Please select a different directory."
+msgstr "Odabrani direktorij je već u upotrebi. Molimo odaberite drugi direktorij."
+
+msgid "Create directory failed"
+msgstr "Izrada direktorija nije uspjela"
+
+msgid "Unable to create the directory for the new system"
+msgstr "Nije moguće stvoriti direktorij za novi sustav"
+
+msgid "Configuration write failed"
+msgstr "Pisanje konfiguracije nije uspjelo"
+
+msgid "Unable to open the configuration file at %1 for writing"
+msgstr "Nije moguće otvoriti konfiguracijsku datoteku na %1 za pisanje"
+
+msgid "Error adding system"
+msgstr "Pogreška pri dodavanju sistema"
+
+msgid "Remove directory failed"
+msgstr "Uklanjanje direktorija nije uspjelo"
+
+msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
+msgstr "Neke datoteke u direktoriju sistema nisu mogle biti izbrisane. Izbrišite ih ručno."
+
+msgid "Build"
+msgstr "Build"
+
+msgid "Version"
+msgstr "Verzija"
+
+msgid "An update to 86Box is available: %1 %2"
+msgstr "Dostupno je ažuriranje za 86Box: %1 %2"
+
+msgid "An error has occurred while checking for updates: %1"
+msgstr "Došlo je do greške prilikom provjere ažuriranja: %1"
+
+msgid "<b>An update to 86Box is available!</b>"
+msgstr "<b>Dostupno je ažuriranje za 86Box!</b>"
+
+msgid "Warning"
+msgstr "Upozorenje"
+
+msgid "&Kill"
+msgstr "&Prisilno prekini"
+
+msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
+msgstr "Prisilno prekidanje virtualnog stroja može uzrokovati gubitak podataka. Učinite to samo ako se 86Box proces zaglavi.\n\nŽelite li zaista ubiti virtualni stroj \"%1\"?"
+
+msgid "&Delete"
+msgstr "&Izbriši"
+
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
+msgstr "Želite li zaista izbrisati virtualni stroj \"%1\" i sve njegove datoteke? Ovu radnju nije moguće poništiti!"
+
+msgid "Show &config file"
+msgstr "Prikaži &konfiguracijsku datoteku"
+
+msgid "No screenshot"
+msgstr "Nema snimke zaslona"
+
+msgid "Search"
+msgstr "Pretraživanje"
+
+msgid "Searching for VMs..."
+msgstr "Traženje virtualnih sistema..."
+
+msgid "Found %1"
+msgstr "Pronađeno %1"
+
+msgid "System"
+msgstr "Sistem"
+
+msgid "Storage"
+msgstr "Diskovi"
+
+msgid "Disk %1: "
+msgstr "Disk %1: "
+
+msgid "No disks"
+msgstr "Nema diskova"
+
+msgid "Audio"
+msgstr "Zvuk"
+
+msgid "Audio:"
+msgstr "Zvuk:"
+
 msgid "ACPI shutdown"
 msgstr "ACPI bazirano gašenje"
+
+msgid "ACP&I shutdown"
+msgstr "ACP&I bazirano gašenje"
 
 msgid "Hard disk (%1)"
 msgstr "Tvrdi disk (%1)"
@@ -1071,6 +1488,9 @@ msgstr "ATAPI"
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
 msgid "160 KB"
 msgstr "160 KB"
 
@@ -1209,41 +1629,38 @@ msgstr "Uređaji MCA"
 msgid "List of MCA devices:"
 msgstr "Spisak uređaja MCA:"
 
-msgid "Tablet tool"
+msgid "&Tablet tool"
 msgstr "Alat za tablet"
 
-msgid "Qt (OpenGL &ES)"
-msgstr "Qt (OpenGL &ES)"
+msgid "About &Qt"
+msgstr "O programu &Qt"
 
-msgid "About Qt"
-msgstr "O programu Qt"
-
-msgid "MCA devices..."
+msgid "&MCA devices..."
 msgstr "Uređaji MCA ..."
 
-msgid "Show non-primary monitors"
+msgid "Show non-&primary monitors"
 msgstr "Prikaži neprimarne monitore"
 
-msgid "Open screenshots folder..."
+msgid "Open screenshots &folder..."
 msgstr "Otvori mapu snimaka zaslona..."
 
-msgid "Apply fullscreen stretch mode when maximized"
+msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Primijeni način cijelozaslonskog rastezanja u maksimiziranom načinu"
 
-msgid "Cursor/Puck"
-msgstr "Kursor/Pak"
+msgid "&Cursor/Puck"
+msgstr "&Kursor/Pak"
 
-msgid "Pen"
-msgstr "Olovka"
+msgid "&Pen"
+msgstr "&Olovka"
 
-msgid "Host CD/DVD Drive (%1:)"
-msgstr "CD/DVD pogon nositelja (%1:)"
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "CD/DVD pogon &nositelja (%1:)"
 
 msgid "&Connected"
 msgstr "&Povezan"
 
-msgid "Clear image history"
-msgstr "Očisti povijest slika"
+msgid "Clear image &history"
+msgstr "Očisti &povijest slika"
 
 msgid "Create..."
 msgstr "Stvori..."
@@ -1257,8 +1674,14 @@ msgstr "Nepoznata sabirnica"
 msgid "Null Driver"
 msgstr "Nulti upravljački program"
 
+msgid "NIC:"
+msgstr "Mrežna kartica:"
+
 msgid "NIC %1 (%2) %3"
-msgstr "NIC %1 (%2) %3"
+msgstr "Mrežna kartica %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&Mrežna kartica %1 (%2) %3"
 
 msgid "Render behavior"
 msgstr "Ponašanje rendera"
@@ -1323,6 +1746,9 @@ msgstr "Nema uređaja MCA."
 msgid "MiB"
 msgstr "MiB"
 
+msgid "GiB"
+msgstr "GiB"
+
 msgid "Network Card #1"
 msgstr "Mrežna kartica 1"
 
@@ -1365,8 +1791,26 @@ msgstr "Prolaz serijskih vrata 3"
 msgid "Serial port passthrough 4"
 msgstr "Prolaz serijskih vrata 4"
 
-msgid "Renderer options..."
+msgid "Renderer &options..."
 msgstr "Opcije rendera..."
+
+msgid "PC/XT Keyboard"
+msgstr "Tipkovnica PC/XT"
+
+msgid "AT Keyboard"
+msgstr "Tipkovnica AT"
+
+msgid "AX Keyboard"
+msgstr "Tipkovnica AX"
+
+msgid "PS/2 Keyboard"
+msgstr "Tipkovnica PS/2"
+
+msgid "PS/55 Keyboard"
+msgstr "Tipkovnica PS/55"
+
+msgid "Keys"
+msgstr "Tipke"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Sabirnički miš Logitech/Microsoft"
@@ -1377,8 +1821,14 @@ msgstr "Sabirnički miš Microsoft (InPort)"
 msgid "Mouse Systems Serial Mouse"
 msgstr "Serijski miš Mouse Systems"
 
+msgid "Mouse Systems Bus Mouse"
+msgstr "Sabirnički miš Mouse Systems"
+
 msgid "Microsoft Serial Mouse"
 msgstr "Serijski miš Microsoft"
+
+msgid "Microsoft Serial BallPoint"
+msgstr "Serijski miš Microsoft BallPoint"
 
 msgid "Logitech Serial Mouse"
 msgstr "Serijski miš Logitech"
@@ -1386,8 +1836,14 @@ msgstr "Serijski miš Logitech"
 msgid "PS/2 Mouse"
 msgstr "Miš PS/2"
 
+msgid "PS/2 QuickPort Mouse"
+msgstr "Miš PS/2 QuickPort"
+
 msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (serijski)"
+
+msgid "Default Baud rate"
+msgstr "Zadana brzina prijenosa podataka"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] Standardni modem, usklađen s standardom Hayesom"
@@ -1413,11 +1869,53 @@ msgstr "Sistemski MIDI"
 msgid "MIDI Input Device"
 msgstr "Ulazni uređaj MIDI"
 
-msgid "BIOS Address"
+msgid "BIOS file"
+msgstr "Datoteka BIOS-a"
+
+msgid "BIOS file (ROM #1)"
+msgstr "Datoteka BIOS-a (ROM 1)"
+
+msgid "BIOS file (ROM #2)"
+msgstr "Datoteka BIOS-a (ROM 2)"
+
+msgid "BIOS file (ROM #3)"
+msgstr "Datoteka BIOS-a (ROM 3)"
+
+msgid "BIOS file (ROM #4)"
+msgstr "Datoteka BIOS-a (ROM 4)"
+
+msgid "BIOS address"
 msgstr "Adresa BIOS-a"
+
+msgid "BIOS address (ROM #1)"
+msgstr "Adresa BIOS-a (ROM 1)"
+
+msgid "BIOS address (ROM #2)"
+msgstr "Adresa BIOS-a (ROM 2)"
+
+msgid "BIOS address (ROM #3)"
+msgstr "Adresa BIOS-a (ROM 3)"
+
+msgid "BIOS address (ROM #4)"
+msgstr "Adresa BIOS-a (ROM 4)"
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Omogući pisanje u ROM proširenja BIOS-a"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr "Omogući pisanje u ROM proširenja BIOS-a (ROM 1)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr "Omogući pisanje u ROM proširenja BIOS-a (ROM 2)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr "Omogući pisanje u ROM proširenja BIOS-a (ROM 3)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr "Omogući pisanje u ROM proširenja BIOS-a (ROM 4)"
+
+msgid "Linear framebuffer base"
+msgstr "Osnovna adresa linearnog framebuffera"
 
 msgid "Address"
 msgstr "Adresa"
@@ -1425,8 +1923,26 @@ msgstr "Adresa"
 msgid "IRQ"
 msgstr "IRQ"
 
+msgid "Serial port IRQ"
+msgstr "IRQ serijskih vrata"
+
+msgid "Parallel port IRQ"
+msgstr "IRQ paralelnih vrata"
+
 msgid "BIOS Revision"
 msgstr "Revizija BIOS-a"
+
+msgid "BIOS Version"
+msgstr "Verzija BIOS-a"
+
+msgid "BIOS Language"
+msgstr "Jezik BIOS-a"
+
+msgid "IBM 5161 Expansion Unit"
+msgstr "Jedinica za proširenj IBM 5161"
+
+msgid "IBM Cassette Basic"
+msgstr "Kasetni BASIC IBM"
 
 msgid "Translate 26 -> 17"
 msgstr "Prevedi 26 -> 17"
@@ -1442,6 +1958,18 @@ msgstr "Invertiraj boje"
 
 msgid "BIOS size"
 msgstr "Veličina BIOS-a"
+
+msgid "BIOS size (ROM #1)"
+msgstr "Veličina BIOS-a (ROM 1)"
+
+msgid "BIOS size (ROM #2)"
+msgstr "Veličina BIOS-a (ROM 2)"
+
+msgid "BIOS size (ROM #3)"
+msgstr "Veličina BIOS-a (ROM 3)"
+
+msgid "BIOS size (ROM #4)"
+msgstr "Veličina BIOS-a (ROM 4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Mapiraj C0000-C7FFF kao UMB"
@@ -1517,6 +2045,9 @@ msgstr "Nivo odjeka"
 
 msgid "Interpolation Method"
 msgstr "Metoda interpolacije"
+
+msgid "Dynamic Sample Loading"
+msgstr "Dinamičko učitavanje uzoraka"
 
 msgid "Reverb Output Gain"
 msgstr "Pojačavanje izlaza odjeka"
@@ -1605,6 +2136,12 @@ msgstr "Niski DMA"
 msgid "Enable Game port"
 msgstr "Omogoći vrata za igru"
 
+msgid "SID Model"
+msgstr "Model SID-a"
+
+msgid "SID Filter Strength"
+msgstr "Jačina filtra SID-a"
+
 msgid "Surround module"
 msgstr "Modul Surround"
 
@@ -1616,6 +2153,12 @@ msgstr "Podigni prekid CODEC na postavljanju CODEC-a (potrebno nekim upravljačk
 
 msgid "SB Address"
 msgstr "Adresa SB-a"
+
+msgid "Adlib Address"
+msgstr "Adresa Adlib"
+
+msgid "Use EEPROM setting"
+msgstr "Koristi postavku iz EEPROM-a"
 
 msgid "WSS IRQ"
 msgstr "IRQ WSS-a"
@@ -1701,8 +2244,14 @@ msgstr "Vrsta RAMDAC-a"
 msgid "Blend"
 msgstr "Miješaj"
 
+msgid "Font"
+msgstr "Font"
+
 msgid "Bilinear filtering"
 msgstr "Bilinearno filtriranje"
+
+msgid "Video chroma-keying"
+msgstr "Kroma ključanje prikaza"
 
 msgid "Dithering"
 msgstr "Podrhtavanje"
@@ -1746,6 +2295,33 @@ msgstr "Brzina prijenosa"
 msgid "EMS mode"
 msgstr "Načina EMS"
 
+msgid "EMS Address"
+msgstr "Adresa EMS"
+
+msgid "EMS 1 Address"
+msgstr "Adresa EMS 1"
+
+msgid "EMS 2 Address"
+msgstr "Adresa EMS 2"
+
+msgid "EMS Memory Size"
+msgstr "Veličina memorije EMS"
+
+msgid "EMS 1 Memory Size"
+msgstr "Veličina memorije EMS 1"
+
+msgid "EMS 2 Memory Size"
+msgstr "Veličina memorije EMS 2"
+
+msgid "Enable EMS"
+msgstr "Omogući EMS"
+
+msgid "Enable EMS 1"
+msgstr "Omogući EMS 1"
+
+msgid "Enable EMS 2"
+msgstr "Omogući EMS 2"
+
 msgid "Address for > 2 MB"
 msgstr "Adresa za > 2 MB"
 
@@ -1764,11 +2340,11 @@ msgstr "Uvijek na odabranoj brzini"
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Konfiguracija BIOS-a + Tipkovni prečaci (onemogućeni tekom POST-a)"
 
-msgid "64 kB starting from F0000"
-msgstr "64 kB od F0000"
+msgid "64 KB starting from F0000"
+msgstr "64 KB od F0000"
 
-msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
-msgstr "128 kB od E0000 (MSB adrese invertiran, poslednjih 64KB prvo)"
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB od E0000 (MSB adrese invertiran, poslednjih 64 KB prvo)"
 
 msgid "Sine"
 msgstr "Sinusni"
@@ -1804,7 +2380,7 @@ msgid "Five + Wheel"
 msgstr "Pet + kotač"
 
 msgid "Five + 2 Wheels"
-msgstr ""
+msgstr "Pet + 2 kotača"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 serijski / SMT3(R)V"
@@ -1869,6 +2445,9 @@ msgstr "256 KB"
 msgid "Composite"
 msgstr "Kompozitni"
 
+msgid "True color"
+msgstr "Prave boje"
+
 msgid "Old"
 msgstr "Stara"
 
@@ -1902,17 +2481,26 @@ msgstr "Interpolacija sRGB"
 msgid "Linear interpolation"
 msgstr "Linearna interpolacija"
 
+msgid "Has secondary 8x8 character set"
+msgstr "Ima sekundarni skup znakova 8x8"
+
+msgid "Has Quadcolor II daughter board"
+msgstr "Ima kćerinsku ploču Quadcolor II"
+
+msgid "Alternate monochrome contrast"
+msgstr "Alternativni crno-bijeli kontrast"
+
 msgid "128 KB"
 msgstr "128 KB"
 
 msgid "Monochrome (5151/MDA) (white)"
-msgstr "Crno-biljeli (5151/MDA) (bijeli)"
+msgstr "Crno-bijeli (5151/MDA) (bijeli)"
 
 msgid "Monochrome (5151/MDA) (green)"
-msgstr "Crno-biljeli (5151/MDA) (zeleni)"
+msgstr "Crno-bijeli (5151/MDA) (zeleni)"
 
 msgid "Monochrome (5151/MDA) (amber)"
-msgstr "Crno-biljeli (5151/MDA) (jantarni)"
+msgstr "Crno-bijeli (5151/MDA) (jantarni)"
 
 msgid "Color 40x25 (5153/CGA)"
 msgstr "Bojni 40x25 (5153/CGA)"
@@ -1935,6 +2523,9 @@ msgstr "Jantarna"
 msgid "Gray"
 msgstr "Siva"
 
+msgid "Grayscale"
+msgstr "Nijanse sive"
+
 msgid "Color"
 msgstr "Bojna"
 
@@ -1950,8 +2541,14 @@ msgstr "Ostali jezici"
 msgid "Bochs latest"
 msgstr "Bochs poslednji"
 
+msgid "Apply overscan deltas"
+msgstr "Primijeni delte viška slike"
+
+msgid "Mono Interlaced"
+msgstr "Crno-bijeli s preplitanjem"
+
 msgid "Mono Non-Interlaced"
-msgstr "Crno-biljeli bez preplitanja"
+msgstr "Crno-bijeli bez preplitanja"
 
 msgid "Color Interlaced"
 msgstr "Bojni s preplitanjem"
@@ -1961,6 +2558,9 @@ msgstr "Bojni bez preplitanja"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "3dfx Voodoo grafika"
+
+msgid "3Dfx Voodoo 2"
+msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 jednote TMU)"
@@ -2031,6 +2631,9 @@ msgstr "Baudova brzina prolaza"
 msgid "Named Pipe (Server)"
 msgstr "Imenovani vod (server)"
 
+msgid "Named Pipe (Client)"
+msgstr "Imenovani vod (klijent)"
+
 msgid "Host Serial Passthrough"
 msgstr "Prolaz serijskih vrata nositelja"
 
@@ -2047,34 +2650,40 @@ msgid "High performance impact"
 msgstr "Visoki učinak na brzinu izvršavanja"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] Disk RAM (najviša brzina)"
+msgstr "[Generični] Disk RAM (najviša brzina)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr ""
+msgstr "[Generični] 1989 (3500 okr./min)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr ""
+msgstr "[Generični] 1992 (3600 okr./min)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr ""
+msgstr "[Generični] 1994 (4500 okr./min)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr ""
+msgstr "[Generični] (5400 okr./min)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr ""
+msgstr "[Generični] (5400 okr./min)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr ""
+msgstr "[Generični] (5400 okr./min)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr ""
+msgstr "[Generični] (7200 okr./min)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Klon IBM 8514/A (ISA)"
 
 msgid "Vendor"
 msgstr "Proizvođać"
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr "30 Hz (JMP2 = 1)"
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr "60 Hz (JMP2 = 2)"
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Generičko proširenje memorije PC/XT"
@@ -2089,61 +2698,259 @@ msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for t
 msgstr "TrueType fontovi u mapi \"roms/printer/fonts\" potrebni su za emulaciju generičnog matričnog pisača ESC/P."
 
 msgid "Inhibit multimedia keys"
-msgstr ""
+msgstr "Blokiraj multimedijske tipke"
 
 msgid "Ask for confirmation before saving settings"
-msgstr ""
+msgstr "Zatraži potvrdu prije spremanja opcija"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr ""
+msgstr "Zatraži potvrdu prije ponovnog pokretanja"
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
+msgstr "Zatraži potvrdu prije izlaza"
 
 msgid "Options"
-msgstr ""
+msgstr "Opcije"
 
 msgid "Model"
-msgstr ""
+msgstr "Model"
 
 msgid "Model:"
-msgstr ""
+msgstr "Model:"
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr ""
+msgstr "Nije uspjelo inicijaliziranje renderera Vulkan."
 
 msgid "GLSL Error"
-msgstr ""
+msgstr "Greška GLSL"
 
 msgid "Could not load shader: %1"
-msgstr ""
+msgstr "Nije moguće učitati shader: %1"
 
 msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr ""
+msgstr "Potrebna je OpenGL verzija 3.0 ili novija. Trenutna GLSL verzija je %1.%2"
 
 msgid "Could not load texture: %1"
-msgstr ""
+msgstr "Nije moguće učitati teksturu: %1"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr ""
+msgstr "Nije moguće kompajlirati shader:\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr ""
+msgstr "Program nije povezan:\n\n%1"
 
 msgid "Shader Manager"
-msgstr ""
+msgstr "Upravitelj shadera"
 
 msgid "Shader Configuration"
-msgstr ""
+msgstr "Konfiguracija shadera"
 
 msgid "Add"
-msgstr ""
+msgstr "Dodaj"
 
 msgid "Move up"
-msgstr ""
+msgstr "Pomakni gore"
 
 msgid "Move down"
-msgstr ""
+msgstr "Pomakni dolje"
 
 msgid "Could not load file %1"
-msgstr ""
+msgstr "Nije moguće učitati datoteku %1"
+
+msgid "Key Bindings:"
+msgstr "Veze tipki:"
+
+msgid "Action"
+msgstr "Akcija"
+
+msgid "Keybind"
+msgstr "Povezivanje tipki"
+
+msgid "Clear binding"
+msgstr "Očisti vezivanje"
+
+msgid "Bind"
+msgstr "Poveži"
+
+msgid "Bind Key"
+msgstr "Poveži tipku"
+
+msgid "Enter key combo:"
+msgstr "Unesite kombinaciju tipki:"
+
+msgid "Bind conflict"
+msgstr "Sukob vezanja"
+
+msgid "This key combo is already in use."
+msgstr "Ova kombinacija tipki je već u upotrebi."
+
+msgid "Send Control+Alt+Del"
+msgstr "Pošalji Control+Alt+Del"
+
+msgid "Send Control+Alt+Escape"
+msgstr "Pošalji Control+Alt+Escape"
+
+msgid "Toggle fullscreen"
+msgstr "Uključi/isključi cijelozaslonski način"
+
+msgid "Screenshot"
+msgstr "Snimka zaslona"
+
+msgid "Release mouse pointer"
+msgstr "Otpusti pokazivač miša"
+
+msgid "Toggle pause"
+msgstr "Uključi/isključi pauzu"
+
+msgid "Toggle mute"
+msgstr "Uključi/isključi zvuk"
+
+msgid "Text files"
+msgstr "Tekstualne datoteke"
+
+msgid "ROM files"
+msgstr "Datoteke ROM"
+
+msgid "SoundFont files"
+msgstr "Datoteke SoundFont"
+
+msgid "Local Switch"
+msgstr "Lokalni prekidač"
+
+msgid "Remote Switch"
+msgstr "Udaljeni prekidač"
+
+msgid "Switch:"
+msgstr "Prekidač:"
+
+msgid "Hub Mode"
+msgstr "Način čvorišta"
+
+msgid "Hostname:"
+msgstr "Naziv hosta:"
+
+msgid "ISA RAM:"
+msgstr "RAM ISA:"
+
+msgid "ISA ROM:"
+msgstr "ROM ISA:"
+
+msgid "&Wipe NVRAM"
+msgstr "&Obriši NVRAM"
+
+msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
+msgstr "Ovim će se izbrisati sve NVRAM (i povezane) datoteke virtualnog sistema koji se nalazi u poddirektoriju \"nvr\". Morat ćete ponovno konfigurirati postavke BIOS-a (i eventualno drugih uređaja unutar virtualnog sistema) ako je primjenjivo.\n\nJeste li sigurni da želite izbrisati sav NVRAM sadržaj virtualnog sistema \"%1\"?"
+
+msgid "Success"
+msgstr "Uspjeh"
+
+msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
+msgstr "Uspješno obrisan sadržaj NVRAM-a virtualnog sistema \"%1\""
+
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgstr "Došlo je do pogreške pri pokušaju brisanja NVRAM sadržaja virtualnog sistema \"%1\""
+
+msgid "%1 VM Manager"
+msgstr "Upravitelj virtualnih sistema programa %1"
+
+msgid "%n disk(s)"
+msgstr "%n disk(ova)"
+
+msgid "Unknown Status"
+msgstr "Nepoznat status"
+
+msgid "No Machines Found!"
+msgstr "Nisu pronađeni sistemovi!"
+
+msgid "Check for updates on startup"
+msgstr "Provjeri ažuriranja pri pokretanju"
+
+msgid "Unable to determine release information"
+msgstr "Nije moguće utvrditi informacije o izdanju"
+
+msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
+msgstr "Došlo je do pogreške prilikom provjere ažuriranja:\n\n%1\n\nMolimo pokušajte ponovno kasnije."
+
+msgid "Update check complete"
+msgstr "Provjera ažuriranja dovršena"
+
+msgid "stable"
+msgstr "stabilnu"
+
+msgid "beta"
+msgstr "beta"
+
+msgid "You are running the latest %1 version of 86Box: %2"
+msgstr "Koristite najnoviju %1 verziju programa 86Box: %2"
+
+msgid "version"
+msgstr "verzija"
+
+msgid "build"
+msgstr "build"
+
+msgid "You are currently running version <b>%1</b>."
+msgstr "Trenutno koristite verziju <b>%1</b>."
+
+msgid "<b>Version %1</b> is now available."
+msgstr "<b>Verzija %1</b> je sada dostupna."
+
+msgid "You are currently running build <b>%1</b>."
+msgstr "Trenutno koristite build <b>%1</b>."
+
+msgid "<b>Build %1</b> is now available."
+msgstr "<b>Build %1</b> je sada dostupan."
+
+msgid "Would you like to visit the download page?"
+msgstr "Želite li posjetiti stranicu za preuzimanje?"
+
+msgid "Visit download page"
+msgstr "Posjetiti stranicu za preuzimanje"
+
+msgid "Update check"
+msgstr "Provjera ažuriranja"
+
+msgid "Checking for updates..."
+msgstr "Provjera ažuriranja..."
+
+msgid "86Box Update"
+msgstr "Ažuriranje programa 86Box"
+
+msgid "Release notes:"
+msgstr "Bilješke o izdanju:"
+
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
+msgid "Virtual machine crash"
+msgstr "Neočekivani prekid rada virtualnog sistema"
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr "Proces virtualnog sistema \"%1\" neočekivano je završio s izlaznim kodom %2."
+
+msgid "The system will not be added."
+msgstr "Sistem neće biti dodan."
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Ažuriraj status miša kod skavog bloka procesora"
+
+msgid "Hue"
+msgstr "Boja"
+
+msgid "Saturation"
+msgstr "Zasićenost"
+
+msgid "Contrast"
+msgstr "Konstrast"
+
+msgid "Brightness"
+msgstr "Svjetlina"
+
+msgid "Sharpness"
+msgstr "Oštrina"
+
+msgid "&CGA composite settings..."
+msgstr "Opcije kompozitnog načina &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Opcije kompozitnog načina CGA"

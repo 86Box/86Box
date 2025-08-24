@@ -49,7 +49,7 @@ extern int ui_msgbox_header(int flags, void *header, void *message);
 #define SB_CARTRIDGE  0x10
 #define SB_FLOPPY     0x20
 #define SB_CDROM      0x30
-#define SB_ZIP        0x40
+#define SB_RDISK      0x40
 #define SB_MO         0x50
 #define SB_HDD        0x60
 #define SB_NETWORK    0x70
@@ -67,6 +67,7 @@ extern void     ui_sb_update_tip(int meaning);
 extern void     ui_sb_update_icon(int tag, int active);
 extern void     ui_sb_update_icon_write(int tag, int write);
 extern void     ui_sb_update_icon_state(int tag, int state);
+extern void     ui_sb_update_icon_wp(int tag, int state);
 extern void     ui_sb_set_text_w(wchar_t *wstr);
 extern void     ui_sb_set_text(char *str);
 extern void     ui_sb_bugui(char *str);

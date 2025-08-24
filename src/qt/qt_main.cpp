@@ -66,6 +66,7 @@ extern "C" {
 #    include "qt_rendererstack.hpp"
 #    include "qt_winrawinputfilter.hpp"
 #    include "qt_winmanagerfilter.hpp"
+#    include "qt_vmmanager_windarkmodefilter.hpp"
 #    include <86box/win.h>
 #    include <shobjidl.h>
 #    include <windows.h>
@@ -441,9 +442,6 @@ main_thread_fn()
     int      frames;
 
     QThread::currentThread()->setPriority(QThread::HighestPriority);
-#ifdef _WIN32
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-#endif
     plat_set_thread_name(nullptr, "main_thread_fn");
     framecountx = 0;
     // title_update = 1;
@@ -517,10 +515,6 @@ main_thread_fn()
 
 static std::thread *main_thread;
 
-#ifdef Q_OS_WINDOWS
-extern bool windows_is_light_theme();
-#endif
-
 int
 main(int argc, char *argv[])
 {
@@ -551,7 +545,7 @@ main(int argc, char *argv[])
     }
     QApplication::setAttribute(Qt::AA_NativeWindows);
 
-    if (!windows_is_light_theme()) {
+    if (!util::isWindowsLightTheme()) {
         QFile f(":qdarkstyle/dark/darkstyle.qss");
 
         if (!f.exists())   {
@@ -561,16 +555,18 @@ main(int argc, char *argv[])
             QTextStream ts(&f);
             qApp->setStyleSheet(ts.readAll());
         }
+        QPalette palette(qApp->palette());
+        palette.setColor(QPalette::Link, Qt::white);
+        palette.setColor(QPalette::LinkVisited, Qt::lightGray);
+        qApp->setPalette(palette);
     }
 #endif
 
-    qt_set_sequence_auto_mnemonic(false);
     Q_INIT_RESOURCE(qt_resources);
     Q_INIT_RESOURCE(qt_translations);
     QSurfaceFormat fmt = QSurfaceFormat::defaultFormat();
     fmt.setSwapInterval(0);
     QSurfaceFormat::setDefaultFormat(fmt);
-    app.setStyle(new StyleOverride());
 
 #ifdef __APPLE__
     CocoaEventFilter cocoafilter;
@@ -588,6 +584,14 @@ main(int argc, char *argv[])
     if (!pc_init(argc, argv)) {
         return 0;
     }
+
+    if (!start_vmm)
+#ifdef Q_OS_MACOS
+        qt_set_sequence_auto_mnemonic(false);
+#else
+        qt_set_sequence_auto_mnemonic(!!kbd_req_capture);
+#endif
+    app.setStyle(new StyleOverride());
 
     bool startMaximized = window_remember && monitor_settings[0].mon_window_maximized;
     fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
@@ -613,7 +617,7 @@ main(int argc, char *argv[])
 #    endif
 #endif
 
-    if (!pc_init_modules()) {
+    if (!pc_init_roms()) {
         QMessageBox fatalbox(QMessageBox::Icon::Critical, QObject::tr("No ROMs found"),
                              QObject::tr("86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."),
                              QMessageBox::Ok);
@@ -621,6 +625,34 @@ main(int argc, char *argv[])
         fatalbox.exec();
         return 6;
     }
+
+    if (start_vmm) {
+        // VMManagerMain vmm;
+        // // Hackish until there is a proper solution
+        // QApplication::setApplicationName("86Box VM Manager");
+        // QApplication::setApplicationDisplayName("86Box VM Manager");
+        // vmm.show();
+        // vmm.exec();
+#ifdef Q_OS_WINDOWS
+        auto darkModeFilter = std::unique_ptr<WindowsDarkModeFilter>(new WindowsDarkModeFilter());
+        if (darkModeFilter) {
+            qApp->installNativeEventFilter(darkModeFilter.get());
+        }
+        QTimer::singleShot(0, [&darkModeFilter] {
+#else
+        QTimer::singleShot(0, [] {
+#endif
+            const auto vmm_main_window = new VMManagerMainWindow();
+#ifdef Q_OS_WINDOWS
+            darkModeFilter.get()->setWindow(vmm_main_window);
+#endif
+            vmm_main_window->show();
+        });
+        QApplication::exec();
+        return 0;
+    }
+
+    pc_init_modules();
 
     // UUID / copy / move detection
     if(!util::compareUuid()) {
@@ -664,6 +696,11 @@ main(int argc, char *argv[])
 #endif
 
     if (settings_only) {
+        VMManagerClientSocket manager_socket;
+        if (qgetenv("VMM_86BOX_SOCKET").size()) {
+            manager_socket.IPCConnect(qgetenv("VMM_86BOX_SOCKET"));
+            manager_socket.clientRunningStateChanged(VMManagerProtocol::RunningState::PausedWaiting);
+        }
         Settings settings;
         if (settings.exec() == QDialog::Accepted) {
             settings.save();
@@ -682,19 +719,6 @@ main(int argc, char *argv[])
         warningbox.exec();
         if (warningbox.result() == QDialog::Accepted)
               return 0;
-    }
-
-    if (vmm_enabled) {
-        // VMManagerMain vmm;
-        // // Hackish until there is a proper solution
-        // QApplication::setApplicationName("86Box VM Manager");
-        // QApplication::setApplicationDisplayName("86Box VM Manager");
-        // vmm.show();
-        // vmm.exec();
-        const auto vmm_main_window = new VMManagerMainWindow();
-        vmm_main_window->show();
-        QApplication::exec();
-        return 0;
     }
 
 #ifdef DISCORD
@@ -806,6 +830,7 @@ main(int argc, char *argv[])
             emit main_window->close();
         });
         QObject::connect(main_window, &MainWindow::vmmRunningStateChanged, &manager_socket, &VMManagerClientSocket::clientRunningStateChanged);
+        QObject::connect(main_window, &MainWindow::vmmConfigurationChanged, &manager_socket, &VMManagerClientSocket::configurationChanged);
         main_window->installEventFilter(&manager_socket);
 
         manager_socket.sendWinIdMessage(main_window->winId());

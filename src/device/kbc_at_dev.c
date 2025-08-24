@@ -8,11 +8,9 @@
  *
  *          AT / PS/2 attached device emulation.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2023 Miran Grca.
+ *          Copyright 2023-2025 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -22,23 +20,9 @@
 #define HAVE_STDARG_H
 #include <wchar.h>
 #include <86box/86box.h>
-#include "cpu.h"
-#include <86box/timer.h>
-#include <86box/io.h>
-#include <86box/pic.h>
-#include <86box/pit.h>
-#include <86box/ppi.h>
-#include <86box/mem.h>
 #include <86box/device.h>
-#include <86box/machine.h>
-#include <86box/m_at_t3100e.h>
-#include <86box/fdd.h>
-#include <86box/fdc.h>
-#include <86box/sound.h>
-#include <86box/snd_speaker.h>
-#include <86box/video.h>
-#include <86box/keyboard.h>
 #include <86box/plat_fallthrough.h>
+#include <86box/keyboard.h>
 
 #ifdef ENABLE_KBC_AT_DEV_LOG
 int kbc_at_dev_do_log = ENABLE_KBC_AT_DEV_LOG;

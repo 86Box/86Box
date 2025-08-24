@@ -29,8 +29,6 @@
  *          - Some DOS stuff will write to 0x201 while a packet is
  *            being transferred. This seems to be ignored.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
@@ -244,7 +242,7 @@ sw_a0_over(void *priv)
     timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * 10000);
 }
 
-const joystick_if_t joystick_sw_pad = {
+const joystick_t joystick_sw_pad = {
     .name          = "Microsoft SideWinder Pad",
     .internal_name = "sidewinder_pad",
     .init          = sw_init,

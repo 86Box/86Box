@@ -138,9 +138,9 @@ typedef struct svga_t {
     int ps_bit_bug;
     int ati_4color;
     int vblankend;
-    int panning_blank;
     int render_line_offset;
     int start_retrace_latch;
+    int vga_mode;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM
@@ -348,6 +348,8 @@ extern void     ati8514_out(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t  ati8514_in(uint16_t addr, void *priv);
 extern void     ati8514_recalctimings(svga_t *svga);
 extern uint8_t  ati8514_mca_read(int port, void *priv);
+extern uint8_t  ati8514_rom_readb(uint32_t addr, void *priv);
+extern uint16_t ati8514_rom_readw(uint32_t addr, void *priv);
 extern void     ati8514_mca_write(int port, uint8_t val, void *priv);
 extern void     ati8514_pos_write(uint16_t port, uint8_t val, void *priv);
 extern void     ati8514_init(svga_t *svga, void *ext8514, void *dev8514);
@@ -498,9 +500,12 @@ extern const device_t bt485a_ramdac_device;
 extern const device_t gendac_ramdac_device;
 extern const device_t ibm_rgb528_ramdac_device;
 extern const device_t ics2494an_305_device;
-extern const device_t ati18810_device;
-extern const device_t ati18811_0_device;
-extern const device_t ati18811_1_device;
+extern const device_t ati18810_28800_device;
+extern const device_t ati18811_0_28800_device;
+extern const device_t ati18811_1_28800_device;
+extern const device_t ati18810_mach32_device;
+extern const device_t ati18811_0_mach32_device;
+extern const device_t ati18811_1_mach32_device;
 extern const device_t ics2595_device;
 extern const device_t icd2061_device;
 extern const device_t ics9161_device;

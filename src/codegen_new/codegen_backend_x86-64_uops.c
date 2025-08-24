@@ -636,9 +636,10 @@ codegen_FCHS(codeblock_t *block, uop_t *uop)
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_D(dest_size) && REG_IS_D(src_size_a)) {
-        host_x86_MOVQ_XREG_XREG(block, REG_XMM_TEMP, src_reg_a);
-        host_x86_PXOR_XREG_XREG(block, dest_reg, dest_reg);
-        host_x86_SUBSD_XREG_XREG(block, dest_reg, REG_XMM_TEMP);
+        host_x86_MOVQ_XREG_XREG(block, dest_reg, src_reg_a);
+        host_x86_MOV64_REG_IMM(block, REG_RCX, 0x8000000000000000);
+        host_x86_MOVQ_XREG_REG(block, REG_XMM_TEMP, REG_RCX);
+        host_x86_PXOR_XREG_XREG(block, dest_reg, REG_XMM_TEMP);
     }
 #    ifdef RECOMPILER_DEBUG
     else
