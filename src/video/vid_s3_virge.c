@@ -5758,6 +5758,22 @@ static const device_config_t s3_virge_stb_config[] = {
 static const device_config_t s3_virge_357_config[] = {
     // clang-format off
     {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+
+   {
         .name           = "bilinear",
         .description    = "Bilinear filtering",
         .type           = CONFIG_BINARY,
