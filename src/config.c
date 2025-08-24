@@ -140,10 +140,17 @@ load_global(void)
     vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
 
     p = ini_section_get_string(cat, "vmm_path", NULL);
-    if (p != NULL)
-        strncpy(vmm_path_cfg, p, sizeof(vmm_path_cfg) - 1);
-    else
+    if (p != NULL) {
+        /* Convert relative paths to absolute in portable mode */
+        if (portable_mode && !path_abs(p)) {
+            path_append_filename(vmm_path_cfg, exe_path, p);
+            path_normalize(vmm_path_cfg);
+        } else {
+            strncpy(vmm_path_cfg, p, sizeof(vmm_path_cfg) - 1);
+        }
+    } else {
         plat_get_vmm_dir(vmm_path_cfg, sizeof(vmm_path_cfg));
+    }
 }
 
 /* Load "General" section. */
@@ -1620,7 +1627,7 @@ load_other_removable_devices(void)
 
         sprintf(temp, "zip_%02i_image_path", c + 1);
         p = ini_section_get_string(cat, temp, "");
-        
+
         sprintf(temp, "zip_%02i_writeprot", c + 1);
         rdisk_drives[c].read_only =  ini_section_get_int(cat, temp, 0);
         ini_section_delete_var(cat, temp);
@@ -1724,7 +1731,7 @@ load_other_removable_devices(void)
 
         sprintf(temp, "rdisk_%02i_image_path", c + 1);
         p = ini_section_get_string(cat, temp, "");
-        
+
         sprintf(temp, "rdisk_%02i_writeprot", c + 1);
         rdisk_drives[c].read_only =  ini_section_get_int(cat, temp, 0);
         ini_section_delete_var(cat, temp);
@@ -2213,10 +2220,16 @@ save_global(void)
     else
         ini_section_delete_var(cat, "vmm_disabled");
 
-    if (vmm_path_cfg[0] != 0)
-        ini_section_set_string(cat, "vmm_path", vmm_path_cfg);
-    else
+    if (vmm_path_cfg[0] != 0) {
+        /* Save path as relative to the EXE path in portable mode */
+        if (portable_mode && path_abs(vmm_path_cfg) && !strnicmp(vmm_path_cfg, exe_path, strlen(exe_path))) {
+            ini_section_set_string(cat, "vmm_path", &vmm_path_cfg[strlen(exe_path)]);
+        } else {
+            ini_section_set_string(cat, "vmm_path", vmm_path_cfg);
+        }
+    } else {
         ini_section_delete_var(cat, "vmm_path");
+    }
 }
 
 /* Save "General" section. */

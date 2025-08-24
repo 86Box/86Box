@@ -228,6 +228,8 @@ int      other_scsi_present = 0;                                  /* SCSI contro
                                                                      present */
 
 int      is_pcjr = 0;                                             /* The current machine is PCjr. */
+int      portable_mode = 0;                                       /* We are running in portable mode
+                                                                     (global dirs = exe path) */
 
 // Accelerator key array
 struct accelKey acc_keys[NUM_ACCELS];
@@ -753,7 +755,22 @@ pc_init(int argc, char *argv[])
         path_get_dirname(exe_path, p);
 #endif
 
+    path_normalize(exe_path);
     path_slash(exe_path);
+
+    /*
+     * Determine if we are running in portable mode.
+     *
+     * We enable portable mode if the EXE path
+     * contains the global config file.
+     */
+    path_append_filename(temp, exe_path, GLOBAL_CONFIG_FILE);
+
+    FILE *fp = fopen(temp, "r");
+    if (fp) {
+        portable_mode = 1;
+        fclose(fp);
+    }
 
     /*
      * Get the current working directory.
@@ -1095,6 +1112,10 @@ usage:
 
     pclog("#\n# %ls v%ls logfile, created %s\n#\n",
           EMU_NAME_W, EMU_VERSION_FULL_W, temp);
+
+    if (portable_mode) {
+        pclog("# Portable mode enabled.\n");
+    }
 
     pclog("# Emulator path: %s\n", exe_path);
     pclog("# Global configuration file: %s\n", global_cfg_path);

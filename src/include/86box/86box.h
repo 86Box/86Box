@@ -42,6 +42,8 @@
 #define GLOBAL_CONFIG_FILE "86box_global.cfg"
 #define NVR_PATH           "nvr"
 #define SCREENSHOT_PATH    "screenshots"
+#define VMM_PATH		   "Virtual Machines"
+#define VMM_PATH_WINDOWS   "86Box VMs"
 
 /* Recently used images */
 #define MAX_PREV_IMAGES    10
@@ -188,14 +190,17 @@ extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
 extern int    vmm_disabled;                 /* (G) disable built-in manager */
 extern char   vmm_path_cfg[1024];           /* (G) VMs path (unless -E is used) */
 
-extern char exe_path[2048];     /* path (dir) of executable */
-extern char usr_path[1024];     /* path (dir) of user data */
-extern char cfg_path[1024];     /* full path of config file */
+extern char exe_path[2048];        /* path (dir) of executable */
+extern char usr_path[1024];        /* path (dir) of user data */
+extern char cfg_path[1024];        /* full path of config file */
 extern char global_cfg_path[1024]; /* full path of global config file */
-extern int  open_dir_usr_path;  /* default file open dialog directory of usr_path */
-extern char uuid[MAX_UUID_LEN]; /* UUID or machine identifier */
-extern char vmm_path[1024];       /* VM Manager path to scan */
-extern int  start_vmm;
+extern int  open_dir_usr_path;     /* default file open dialog directory of usr_path */
+extern char uuid[MAX_UUID_LEN];    /* UUID or machine identifier */
+extern char vmm_path[1024];        /* VM Manager path to scan */
+extern int  start_vmm;             /* the current execution will start the manager */
+extern int  portable_mode;         /* we are running in portable mode 
+                                      (global dirs = exe path) */
+
 #ifndef USE_NEW_DYNAREC
 extern FILE *stdlog; /* file to log output to */
 #endif
