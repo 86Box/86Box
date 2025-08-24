@@ -138,7 +138,7 @@ mac_keychain() {
 	if [ -n "$keychain_name" ]
 	then
 		echo $keychain_name
-		security list-keychains -d user -s $(security list-keychains -d user | grep -Fv "/$keychain_name" | sed -e s/\"//g) "$keychain_name"
+		security list-keychains -d user -s $(security list-keychains -d user | grep -Fv "/$keychain_name" | sed -e s/\ \*\"//g) "$keychain_name"
 		security unlock-keychain -p "$(cat ~/86box-keychain-password.txt)" "$keychain_name"
 		return $?
 	fi
@@ -180,7 +180,7 @@ mac_notarize() {
 					echo [-] Notarizing with profile [$keychain_profile] in keychain [$keychain_name]
 					# FIXME: needs a stapling system
 					xcrun notarytool submit "$1" --keychain-profile "$keychain_profile" --keychain "$keychain_path" --no-wait
-					return 0
+					return $?
 				else
 					err="File path for keychain [$keychain_name] not found"
 				fi
