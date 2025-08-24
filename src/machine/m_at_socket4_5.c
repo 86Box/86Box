@@ -95,7 +95,7 @@ machine_at_celebris5xx_init(const machine_t *model)
 
     device_add(&vl82c59x_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&kbc_ps2_phoenix_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&ide_cmd640_pci_device);
     if (gfxcard[0] == VID_INTERNAL)

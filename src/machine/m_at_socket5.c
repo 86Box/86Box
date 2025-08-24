@@ -784,7 +784,7 @@ machine_at_bravoms586_init(const machine_t *model)
 
     device_add(&vl82c59x_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&kbc_ps2_phoenix_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&ide_cmd640_pci_single_channel_device);
     if (gfxcard[0] == VID_INTERNAL)
@@ -818,7 +818,7 @@ machine_at_g586vpmc_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_IDE, 0, 0, 0, 0);
     device_add(&vl82c59x_device);
     device_add(&sst_flash_29ee010_device);
-    device_add(&kbc_ps2_ami_pci_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&pc873xx_device, (void *) (PC87332 | PCX730X_398));
     device_add(&ide_cmd646_device);
     return ret;
@@ -847,7 +847,7 @@ machine_at_m54si_init(const machine_t *model)
     /* Slots are a guess since this BIOS won't work with pcireg */
     device_add(&vl82c59x_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&kbc_ps2_phoenix_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&ide_cmd640_pci_single_channel_device);
 
@@ -877,7 +877,7 @@ machine_at_pb600_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 3, 4, 1);
     device_add(&vl82c59x_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&kbc_ps2_phoenix_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&phoenix_486_jumper_pci_pb600_device);
     device_add(&ide_cmd640_pci_device);
@@ -911,7 +911,7 @@ machine_at_globalyst620_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2); /* Slot 06 */
     device_add(&vl82c59x_wildcat_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&kbc_ps2_phoenix_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&ide_cmd640_pci_single_channel_legacy_only_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     if (gfxcard[0] == VID_INTERNAL)
