@@ -2503,16 +2503,8 @@ image_read_sector(const void *local, uint8_t *buffer,
                      for (int j = 0; j < 8; j++)
                           buffer[2352 + (i << 3) + j] = ((q[i] >> (7 - j)) & 0x01) << 6;
             }
-        } else
-            image_log(img->log, "[BAD] cdrom_read_sector(%08X): track %02X, index %02X, %016"
-                      PRIX64 ", %i, %i, %i, %i\n",
-                      lba, track, index, idx->start, trk->sector_size, track_is_raw,
-                      trk->mode, trk->form);            
-    } else
-        image_log(img->log, "[N/A] cdrom_read_sector(%08X): track %02X, index %02X, %016"
-                  PRIX64 ", %i, %i, %i, %i\n",
-                  lba, track, index, idx->start, trk->sector_size, track_is_raw,
-                  trk->mode, trk->form);
+        }
+    }
 
     return ret;
 }
