@@ -2829,9 +2829,6 @@ msgstr "Hubitila"
 msgid "Hostname:"
 msgstr "Isäntänimi:"
 
-msgid "ISA RTC"
-msgstr ""
-
 msgid "ISA RAM:"
 msgstr ""
 
