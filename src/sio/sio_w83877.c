@@ -85,7 +85,6 @@ w83877_remap(w83877_t *dev)
     io_removehandler(FDC_PRIMARY_ADDR, 0x0002,
                      w83877_read, NULL, NULL, w83877_write, NULL, NULL, dev);
     dev->base_address = (hefras ? FDC_PRIMARY_ADDR : 0x250);
-    pclog("Base address = %04X\n", dev->base_address);
     io_sethandler(dev->base_address, hefras ? 0x0002 : 0x0003,
                   w83877_read, NULL, NULL, w83877_write, NULL, NULL, dev);
     dev->key_times = hefras + 1;
