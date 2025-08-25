@@ -10,6 +10,8 @@
 
 class StyleOverride : public QProxyStyle {
 public:
+    using QProxyStyle::QProxyStyle;
+
     int styleHint(
         StyleHint           hint,
         const QStyleOption *option     = nullptr,
