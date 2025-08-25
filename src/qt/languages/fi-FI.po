@@ -2826,16 +2826,16 @@ msgstr "Kytkin:"
 msgid "Hub Mode"
 msgstr "Hubitila"
 
-msgid "Isäntänimi:"
-msgstr ""
+msgid "Hostname:"
+msgstr "Isäntänimi:"
 
 msgid "ISA RTC"
 msgstr ""
 
-msgid "ISA RAM"
+msgid "ISA RAM:"
 msgstr ""
 
-msgid "ISA ROM"
+msgid "ISA ROM:"
 msgstr ""
 
 msgid "&Wipe NVRAM"
