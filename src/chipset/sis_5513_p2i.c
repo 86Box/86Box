@@ -24,8 +24,9 @@
 #include <86box/io.h>
 #include "cpu.h"
 #include <86box/timer.h>
-
 #include <86box/dma.h>
+#include <86box/lpt.h>
+#include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/nvr.h>
 #include <86box/hdd.h>
@@ -319,6 +320,8 @@ sis_5513_00_pci_to_isa_write(int addr, uint8_t val, sis_5513_pci_to_isa_t *dev)
 
         case 0x62: /* On-board Device DMA Control Register */
             dev->pci_conf[addr] = val;
+            if (machine_has_jumpered_ecp_dma(machine, MACHINE_DMA_USE_MBDMA))
+                lpt1_dma(((val & 0x08) || ((val & 0x07) == 0x04)) ? 0xff : (val & 0x07));
             break;
 
         case 0x63: /* IDEIRQ Remapping Control Register */

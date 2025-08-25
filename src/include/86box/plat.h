@@ -146,6 +146,7 @@ extern void     plat_get_exe_name(char *s, int size);
 extern void     plat_get_global_config_dir(char *outbuf, size_t len);
 extern void     plat_get_global_data_dir(char *outbuf, size_t len);
 extern void     plat_get_temp_dir(char *outbuf, uint8_t len);
+extern void     plat_get_vmm_dir(char *outbuf, size_t len);
 extern void     plat_init_rom_paths(void);
 extern int      plat_dir_check(char *path);
 extern int      plat_dir_create(char *path);

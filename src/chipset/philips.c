@@ -8,11 +8,9 @@
  *
  *          Emulation of the Philips XT-compatible machines.
  *
- *
- *
  * Authors: EngiNerd <webmaster.crrc@yahoo.it>
  *
- *          Copyright 2020-2021 EngiNerd.
+ *          Copyright 2020-2025 EngiNerd.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -148,60 +146,3 @@ const device_t philips_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
-
-void
-machine_xt_philips_common_init(const machine_t *model)
-{
-    machine_common_init(model);
-
-    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
-
-    nmi_init();
-
-    standalone_gameport_type = &gameport_200_device;
-
-    device_add(&kbc_pc_device);
-
-    device_add(&philips_device);
-
-    device_add(&xta_hd20_device);
-}
-
-int
-machine_xt_p3105_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/p3105/philipsnms9100.bin",
-                           0x000fc000, 16384, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_xt_philips_common_init(model);
-
-    /* On-board FDC cannot be disabled */
-    device_add(&fdc_xt_device);
-
-    return ret;
-}
-
-int
-machine_xt_p3120_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/p3120/philips_p3120.bin",
-                           0x000f8000, 32768, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_xt_philips_common_init(model);
-
-    device_add(&gc100a_device);
-
-    device_add(&fdc_at_device);
-
-    return ret;
-}

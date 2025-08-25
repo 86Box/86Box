@@ -762,6 +762,8 @@ tandy_vid_init(tandy_t *dev)
                   tandy_vid_in, NULL, NULL, tandy_vid_out, NULL, NULL, dev);
 
     dev->vid     = vid;
+
+    monitors[monitor_index_global].mon_composite = !!vid->composite;
 }
 
 const device_config_t vid_config[] = {

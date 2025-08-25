@@ -419,6 +419,9 @@ umc_8886_init(const device_t *info)
         device_add(&ide_um8673f_device);
     }
 
+    if (machine_get_kbc_device(machine) == NULL)
+        device_add_params(&kbc_at_device, (void *) KBC_VEN_UMC);
+
     umc_8886_reset(dev);
 
     return dev;

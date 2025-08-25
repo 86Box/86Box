@@ -357,7 +357,7 @@ f82c710_init(const device_t *info)
     dev->uart       = device_add_inst(&ns16450_device, 1);
     dev->lpt        = device_add_inst(&lpt_port_device, 1);
 
-    dev->mouse      = device_add_params(&mouse_upc_device, (void *) (uintptr_t) (is8086 ? 2 : 12));
+    dev->mouse      = device_add_params(&mouse_upc_device, (void *) (uintptr_t) (is286 ? 12 : 2));
 
     dev->serial_irq = device_get_config_int("serial_irq");
     dev->lpt_irq    = device_get_config_int("lpt_irq");

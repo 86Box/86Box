@@ -167,15 +167,12 @@ VMManagerModel::updateDisplayName(const QModelIndex &index, const QString &newDi
     machines.at(index.row())->setDisplayName(newDisplayName);
     modelDataChanged();
 }
-QHash<QString, int>
+QMap<VMManagerSystem::ProcessStatus, int>
 VMManagerModel::getProcessStats()
 {
-    QHash<QString, int> stats;
+    QMap<VMManagerSystem::ProcessStatus, int> stats;
     for (const auto& system: machines) {
-        if (system->getProcessStatus() != VMManagerSystem::ProcessStatus::Stopped) {
-            auto statusString = system->getProcessStatusString();
-            stats[statusString] += 1;
-        }
+        stats[system->getProcessStatus()] += 1;
     }
     return stats;
 }

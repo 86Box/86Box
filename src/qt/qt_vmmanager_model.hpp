@@ -57,7 +57,7 @@ public:
     QModelIndex getIndexForConfigFile(const QFileInfo& config_file);
     void reload(QWidget* parent = nullptr);
     void updateDisplayName(const QModelIndex &index, const QString &newDisplayName);
-    QHash <QString, int> getProcessStats();
+    QMap<VMManagerSystem::ProcessStatus, int> getProcessStats();
     int getActiveMachineCount();
     void refreshConfigs();
 signals:

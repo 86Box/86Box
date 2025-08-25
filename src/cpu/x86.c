@@ -283,7 +283,7 @@ reset_common(int hard)
         cr0 = 1 << 30;
     else
         cr0 = 0;
-    if (is386 && !is486 && (fpu_type == FPU_387))
+    if (is386 && !is486 && ((fpu_type == FPU_387) || (fpu_type == FPU_NONE)))
         cr0 |= 0x10;
     cpu_cache_int_enabled = 0;  
     cpu_update_waitstates();

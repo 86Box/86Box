@@ -47,6 +47,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/usb.h>
+#include <86box/lpt.h>
 #include <86box/machine.h>
 #include <86box/smbus.h>
 #include <86box/chipset.h>
@@ -618,6 +619,13 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                 }
                 break;
             case 0x76:
+                if (dev->type > 1)
+                    fregs[addr] = val & 0x87;
+                else if (dev->type <= 4)
+                    fregs[addr] = val & 0x8f;
+                if ((dev->type == 1) && machine_has_jumpered_ecp_dma(machine, MACHINE_DMA_USE_MBDMA))
+                    lpt1_dma(((val & 0x08) || ((val & 0x07) == 0x04)) ? 0xff : (val & 0x07));
+                break;
             case 0x77:
                 if (dev->type > 1)
                     fregs[addr] = val & 0x87;

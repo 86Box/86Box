@@ -114,6 +114,7 @@ extern void            mouse_subtract_w(int *delta_w, int min, int max, int inve
 extern void            mouse_set_buttons_ex(int b);
 extern int             mouse_get_buttons_ex(void);
 extern void            mouse_set_sample_rate(double new_rate);
+extern void            mouse_update_sample_rate(void);
 extern void            mouse_set_buttons(int buttons);
 extern void            mouse_get_abs_coords(double *x_abs, double *y_abs);
 extern void            mouse_process(void);

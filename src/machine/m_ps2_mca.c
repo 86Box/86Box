@@ -1160,7 +1160,6 @@ ps2_mca_board_model_50_init(void)
 
     mem_remap_top(384);
     mca_init(4);
-    device_add(&kbc_ps2_mca_2_device);
 
     ps2.planar_read  = model_50_read;
     ps2.planar_write = model_50_write;
@@ -1181,7 +1180,6 @@ ps2_mca_board_model_60_init(void)
 
     mem_remap_top(384);
     mca_init(8);
-    device_add(&kbc_ps2_mca_2_device);
 
     ps2.planar_read  = model_50_read;
     ps2.planar_write = model_50_write;
@@ -1241,7 +1239,6 @@ ps2_mca_board_model_55sx_init(int has_sec_nvram, int slots)
     }
 
     mca_init(slots);
-    device_add(&kbc_ps2_mca_1_device);
 
     if (has_sec_nvram)
         device_add(&ps2_nvr_55ls_device);
@@ -1420,7 +1417,6 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 
     ps2.split_addr = mem_size * 1024;
     mca_init(slots);
-    device_add(&kbc_ps2_mca_1_device);
 
     ps2.planar_read  = model_70_type3_read;
     ps2.planar_write = model_70_type3_write;
@@ -1513,7 +1509,6 @@ ps2_mca_board_model_80_type2_init(void)
 
     ps2.split_addr = mem_size * 1024;
     mca_init(8);
-    device_add(&kbc_ps2_mca_1_device);
 
     ps2.planar_read  = model_80_read;
     ps2.planar_write = model_80_write;
@@ -1628,6 +1623,8 @@ machine_ps2_model_50_init(const machine_t *model)
     ps2.planar_id = 0xfbff;
     ps2_mca_board_model_50_init();
 
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     return ret;
 }
 
@@ -1651,6 +1648,8 @@ machine_ps2_model_60_init(const machine_t *model)
     ps2.planar_id = 0xf7ff;
     ps2_mca_board_model_60_init();
 
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     return ret;
 }
 
@@ -1670,6 +1669,8 @@ machine_ps2_model_55sx_init(const machine_t *model)
 
     ps2.planar_id = 0xfbff;
     ps2_mca_board_model_55sx_init(0, 4);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -1691,6 +1692,8 @@ machine_ps2_model_65sx_init(const machine_t *model)
     ps2.planar_id = 0xe3ff;
     ps2_mca_board_model_55sx_init(1, 8);
 
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     return ret;
 }
 
@@ -1710,6 +1713,8 @@ machine_ps2_model_70_type3_init(const machine_t *model)
 
     ps2.planar_id = 0xf9ff;
     ps2_mca_board_model_70_type34_init(0, 4);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -1731,6 +1736,8 @@ machine_ps2_model_80_init(const machine_t *model)
     ps2.planar_id = 0xfdff;
     ps2_mca_board_model_80_type2_init();
 
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     return ret;
 }
 
@@ -1750,6 +1757,8 @@ machine_ps2_model_80_axx_init(const machine_t *model)
 
     ps2.planar_id = 0xfff9;
     ps2_mca_board_model_70_type34_init(0, 8);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -1771,6 +1780,8 @@ machine_ps2_model_70_type4_init(const machine_t *model)
     ps2.planar_id = 0xf9ff;
     ps2_mca_board_model_70_type34_init(1, 4);
 
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     return ret;
 }
 
@@ -1782,7 +1793,6 @@ ps55_mca_board_model_50t_init(void)
     ps2.split_addr = mem_size * 1024;
     /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
     mca_init(5);
-    device_add(&kbc_ps2_mca_1_device);
 
     ps2.planar_read = ps55_model_50t_read;
     ps2.planar_write = ps55_model_50tv_write;
@@ -1826,7 +1836,6 @@ ps55_mca_board_model_50v_init(void)
     ps2.split_addr = mem_size * 1024;
     /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
     mca_init(5);
-    device_add(&kbc_ps2_mca_1_device);
 
     ps2.planar_read = ps55_model_50v_read;
     ps2.planar_write = ps55_model_50tv_write;
@@ -1878,7 +1887,7 @@ ps55_mca_board_model_50v_init(void)
 }
 
 int
-machine_ps55_model_50t_init(const machine_t* model)
+machine_ps55_model_50t_init(const machine_t *model)
 {
     int ret;
 
@@ -1903,11 +1912,13 @@ machine_ps55_model_50t_init(const machine_t* model)
     ps2.planar_id = 0xffee;
     ps55_mca_board_model_50t_init();
 
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     return ret;
 }
 
 int
-machine_ps55_model_50v_init(const machine_t* model)
+machine_ps55_model_50v_init(const machine_t *model)
 {
     int ret;
 
@@ -1927,6 +1938,8 @@ machine_ps55_model_50v_init(const machine_t* model)
     */
     ps2.planar_id = 0xf1ff;
     ps55_mca_board_model_50v_init();
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }

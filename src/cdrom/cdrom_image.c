@@ -941,6 +941,13 @@ image_process(cd_image_t *img)
                     }
                 }
 
+                if ((ci->type == INDEX_NORMAL) && (((int64_t) ci->file_start) < 0LL)) {
+                    ci->type        = INDEX_ZERO;
+                    ci->length      = 150;
+                    ci->file_start  = 0ULL;
+                    ci->file_length = 0ULL;
+                }
+
                 if ((ci->type < INDEX_SPECIAL) || (ci->type > INDEX_NORMAL)) {
                     image_log(img->log, "    [TRACK   ] %02X, INDEX %02X, ATTR %02X,\n",
                               ci->type, j,
@@ -1470,6 +1477,7 @@ image_load_cue(cd_image_t *img, const char *cuefile)
     uint8_t        session                       = 1;
     int            last_t                        = -1;
     int            is_viso                       = 0;
+    int            lo_cmd                        = 0;
     int            lead[3]                       = { 0 };
     int            error;
     char           pathname[MAX_FILENAME_LENGTH];
@@ -1604,6 +1612,9 @@ image_load_cue(cd_image_t *img, const char *cuefile)
             last_t           = t;
             ct               = image_insert_track(img, session, t);
 
+            for (int i = 2; i >= 0; i--)
+                ct->idx[i].type = INDEX_NONE;
+
             ct->form         = 0;
             ct->mode         = 0;
 
@@ -1707,6 +1718,7 @@ image_load_cue(cd_image_t *img, const char *cuefile)
                 if (space < (line + strlen(line))) {
                     (void) image_cue_get_keyword(&command, &space);
                     if (!strcmp(command, "LEAD-OUT")) {
+                        lo_cmd               = 1;
                         ct                   = &(img->tracks[lead[2]]);
                         /*
                            Mark it this way so file pointers on it are not
@@ -1723,6 +1735,25 @@ image_load_cue(cd_image_t *img, const char *cuefile)
                         image_log(img->log, "    [LEAD-OUT] Initialization %s\n",
                                   success ? "successful" : "failed");
                     } else if (!strcmp(command, "SESSION")) {
+                        if (!lo_cmd) {
+                            ct                   = &(img->tracks[lead[2]]);
+                            /*
+                               Mark it this way so file pointers on it are not
+                               going to be adjusted.
+                             */
+                            last_t               = -1;
+                            ct->sector_size      = last;
+                            ci                   = &(ct->idx[1]);
+                            ci->type             = INDEX_ZERO;
+                            ci->file             = tf;
+                            ci->file_start       = 0;
+                            ci->file_length      = 0;
+                            ci->length           = (2 * 60 * 75) + (30 * 75);
+
+                            image_log(img->log, "    [LEAD-OUT] Initialization successful\n");
+                        }
+
+                        lo_cmd               = 0;
                         session              = image_cue_get_number(&space);
 
                         if (session > 1) {
@@ -2073,10 +2104,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 char     fn[2048] = { 0 };
                 fseek(fp, mds_footer.fn_offs, SEEK_SET);
                 if (mds_footer.fn_is_wide) {
-                    int len = 0;
                     for (int i = 0; i < 256; i++) {
                         fread(&(wfn[i]), 1, 2, fp);
-                        len++;
                         if (wfn[i] == 0x0000)
                             break;
                     }
@@ -2414,10 +2443,10 @@ image_read_sector(const void *local, uint8_t *buffer,
                 }
             }
 
-            if (idx->type >= INDEX_NORMAL) {
+            if (idx->type >= INDEX_NORMAL)
                 /* Read the data from the file. */
                 ret = idx->file->read(idx->file, buffer, seek, trk->sector_size);
-            } else
+            else
                 /* Index is not in the file, no read to fail here. */
                 ret = 1;
 

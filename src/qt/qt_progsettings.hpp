@@ -49,6 +49,7 @@ private slots:
 
 private:
     Ui::ProgSettings *ui;
+    static bool loadQtTranslations(const QString name);
 
     friend class MainWindow;
     double mouseSensitivity;

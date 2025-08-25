@@ -719,4 +719,6 @@ pcjr_vid_init(pcjr_t *pcjr)
     else
         cga_palette = (display_type << 1);
     cgapal_rebuild();
+
+    monitors[monitor_index_global].mon_composite = !!pcjr->composite;
 }

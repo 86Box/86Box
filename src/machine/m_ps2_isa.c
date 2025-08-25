@@ -201,7 +201,7 @@ ps2_isa_common_init(const machine_t *model)
     dma16_init();
     pic2_init();
 
-    device_add(&kbc_ps2_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&port_6x_ps2_device);
 }
 

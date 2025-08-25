@@ -42,7 +42,17 @@ public:
     void updateProcessStatus();
 
     void updateWindowStatus();
+
+#ifdef Q_OS_WINDOWS
+    void updateStyle();
+#endif
+
 //    CollapseButton *systemCollapseButton;
+
+#ifdef Q_OS_WINDOWS
+signals:
+    void styleUpdated();
+#endif
 
 private:
     Ui::VMManagerDetails *ui;
@@ -67,6 +77,9 @@ private:
     QToolButton *stopButton;
     QToolButton *configureButton;
     QToolButton *cadButton;
+
+    QIcon pauseIcon;
+    QIcon runIcon;
 
     void updateConfig(VMManagerSystem *passed_sysconfig);
     void updateScreenshots(VMManagerSystem *passed_sysconfig);

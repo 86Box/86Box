@@ -43,7 +43,7 @@ msgid "&Hide status bar"
 msgstr "Ocultar barra de &status"
 
 msgid "Hide &toolbar"
-msgstr "Ocultar barra de &ferramenta"
+msgstr "Ocultar barra de &ferramentas"
 
 msgid "&Resizeable window"
 msgstr "&Janela redimensionável"
@@ -57,9 +57,6 @@ msgstr "&Renderizador"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (&OpenGL)"
-
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (Núcleo 3.0)"
 
@@ -67,10 +64,10 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify &dimensions..."
-msgstr "Especificar as dimensões..."
+msgstr "Especificar as dime&nsões..."
 
-msgid "F&orce 4:3 display ratio"
-msgstr "F&orçar proporção de tela em 4:3"
+msgid "Force &4:3 display ratio"
+msgstr "Forçar proporção de tela em &4:3"
 
 msgid "&Window scale factor"
 msgstr "F&ator de redimensionamento da janela"
@@ -115,13 +112,13 @@ msgid "&Linear"
 msgstr "&Linear"
 
 msgid "Hi&DPI scaling"
-msgstr "Escala Hi&DPI"
+msgstr "Escala &HiDPI"
 
 msgid "&Fullscreen"
 msgstr "&Tela cheia"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Modo de redimensionamento da tela &cheia"
+msgstr "Modo de re&dimensionamento da tela cheia"
 
 msgid "&Full screen stretch"
 msgstr "&Tela cheia redimensionada"
@@ -138,7 +135,7 @@ msgstr "&Redimensionamento com valores inteiros"
 msgid "4:&3 Integer scale"
 msgstr "Redimensionamento com valores inteiros 4:&3"
 
-msgid "E&GA/(S)VGA settings"
+msgid "EGA/(S)&VGA settings"
 msgstr "Configurações de EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
@@ -160,7 +157,7 @@ msgid "Generic RGBI color monitor"
 msgstr "Monitor colorido RGBI genérico"
 
 msgid "&Amber monitor"
-msgstr "Monitor &âmbar"
+msgstr "Monitor âmb&ar"
 
 msgid "&Green monitor"
 msgstr "Monitor &verde"
@@ -427,7 +424,7 @@ msgid "XGA Graphics"
 msgstr "Gráficos XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
-msgstr "IBM PS/55 Display Adapter Graphics"
+msgstr "Gráficos IBM PS/55 Display Adapter"
 
 msgid "Keyboard:"
 msgstr "Teclado:"
@@ -518,6 +515,9 @@ msgstr "Dispositivo LPT3:"
 
 msgid "LPT4 Device:"
 msgstr "Dispositivo LPT4:"
+
+msgid "Internal LPT ECP DMA:"
+msgstr "DMA ECP LPT Interna:"
 
 msgid "Serial port 1"
 msgstr "Porta serial 1"
@@ -774,11 +774,11 @@ msgstr "Portas (COM & LPT)"
 msgid "Ports"
 msgstr "Portas"
 
-msgid "Serial ports"
-msgstr "Portas seriais"
+msgid "Serial ports:"
+msgstr "Portas seriais:"
 
-msgid "Parallel ports"
-msgstr "Portas Paralelas"
+msgid "Parallel ports:"
+msgstr "Portas Paralelas:"
 
 msgid "Storage controllers"
 msgstr "Controladores de armaz."
@@ -1081,19 +1081,28 @@ msgid "Running"
 msgstr "Rodando"
 
 msgid "Paused"
-msgstr "Pausado"
+msgstr "Pausada"
 
-msgid "Paused (Waiting)"
-msgstr "Pausado (Esperando)"
+msgid "Waiting"
+msgstr "Esperando"
 
 msgid "Powered Off"
-msgstr "Desligado"
+msgstr "Desligada"
 
-msgid "waiting"
-msgstr "esperando"
+msgid "%n running"
+msgstr "%n rodando"
 
-msgid "total"
-msgstr "total"
+msgid "%n paused"
+msgstr "%n pausada"
+
+msgid "%n waiting"
+msgstr "%n esperando"
+
+msgid "%1 total"
+msgstr "%1 total"
+
+msgid "VMs: %1"
+msgstr "MVs: %1"
 
 msgid "System Directory:"
 msgstr "Diretório do Sistema:"
@@ -1117,7 +1126,7 @@ msgid "Use regular expressions in search box"
 msgstr "Usar expressões regulares na caixa de pesquisa"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 máquina(s) estão ativas atualmente. Tem certeza que deseja encerrar o gerenciador de VM mesmo?"
+msgstr "%1 máquina(s) estão ativas atualmente. Tem certeza que deseja encerrar o gerenciador de MV mesmo assim?"
 
 msgid "Add new system wizard"
 msgstr "Assistente para novo sistema"
@@ -1149,9 +1158,6 @@ msgstr "Cole o conteúdo de uma configuração existente na caixa abaixo."
 msgid "Load configuration from file"
 msgstr "Carregar configuração do arquivo"
 
-msgid "System Name"
-msgstr "Nome do Sistema"
-
 msgid "System name"
 msgstr "Nome do sistema"
 
@@ -1176,9 +1182,6 @@ msgstr "Um novo diretório para o sistema será criado no diretório acima"
 msgid "System location:"
 msgstr "Local do sistema:"
 
-msgid "System Location"
-msgstr "Local do Sistema"
-
 msgid "System name and location"
 msgstr "Nome do sistema e local"
 
@@ -1191,8 +1194,8 @@ msgstr "Digite o nome do sistema"
 msgid "Please enter a system name"
 msgstr "Por favor digite um nome de sistema"
 
-msgid "Display Name (optional)"
-msgstr "Nome de exibição (opcional)"
+msgid "Display name (optional):"
+msgstr "Nome de exibição (opcional):"
 
 msgid "Display name:"
 msgstr "Nome de exibição:"
@@ -1212,7 +1215,7 @@ msgstr "Menu de contexto"
 msgid "&Open folder..."
 msgstr "Abrir &pasta..."
 
-msgid "Open &printer tray..."
+msgid "Open p&rinter tray..."
 msgstr "Abrir fila da &impressora..."
 
 msgid "Set &icon..."
@@ -1237,10 +1240,10 @@ msgid "Clone"
 msgstr "Clonar"
 
 msgid "Failed to create directory for cloned VM"
-msgstr "Falha ao criar o diretório para a VM clonada"
+msgstr "Falha ao criar o diretório para a MV clonada"
 
 msgid "Failed to clone VM."
-msgstr "Falha ao clonar VM."
+msgstr "Falha ao clonar MV."
 
 msgid "Directory in use"
 msgstr "Diretório em uso"
@@ -1263,9 +1266,6 @@ msgstr "Impossível abrir o arquivo de configuração %1 para escrita"
 msgid "Error adding system"
 msgstr "Erro adicionando sistema"
 
-msgid "Abnormal program termination while creating new system: exit code %1, exit status %2.\n\nThe system will not be added."
-msgstr "Término anormal do programa ao criar novo sistema: código de saída %1, estado de saída %2.\n\nO sistema não será adicionado."
-
 msgid "Remove directory failed"
 msgstr "Falha ao remover diretório"
 
@@ -1273,10 +1273,16 @@ msgid "Some files in the machine's directory were unable to be deleted. Please d
 msgstr "Alguns arquivos no diretório da máquina não puderam ser apagados. Por favor apágue-os manualmente."
 
 msgid "Build"
-msgstr "Build"
+msgstr "Compilação"
 
 msgid "Version"
 msgstr "Versão"
+
+msgid "An update to 86Box is available: %1 %2"
+msgstr "Uma atualização do 86Box está disponível: %1 %2"
+
+msgid "An error has occurred while checking for updates: %1"
+msgstr "Ocorreu um erro ao verificar por atualizações: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
 msgstr "<b>Uma atualização do 86Box está disponível!</b>"
@@ -1306,7 +1312,7 @@ msgid "Search"
 msgstr "Procurar"
 
 msgid "Searching for VMs..."
-msgstr "Procurando por VMs..."
+msgstr "Procurando por MVs..."
 
 msgid "Found %1"
 msgstr "Encontrado %1"
@@ -1594,7 +1600,7 @@ msgid "Fast"
 msgstr "Rápido"
 
 msgid "&Auto-pause on focus loss"
-msgstr "Pausa &automática ao perder o foco"
+msgstr "Pa&usa automática ao perder o foco"
 
 msgid "WinBox is no longer supported"
 msgstr "O WinBox não é mais suportado"
@@ -1626,9 +1632,6 @@ msgstr "Lista de dispositivos MCA:"
 msgid "&Tablet tool"
 msgstr "Ferramenta para tablet"
 
-msgid "Qt (OpenGL &ES)"
-msgstr "Qt (OpenGL &ES)"
-
 msgid "About &Qt"
 msgstr "Sobre o &Qt"
 
@@ -1636,13 +1639,13 @@ msgid "&MCA devices..."
 msgstr "Dispositivos MCA..."
 
 msgid "Show non-&primary monitors"
-msgstr "Mostrar monitores não primários"
+msgstr "Mostrar monitores não &primários"
 
 msgid "Open screenshots &folder..."
-msgstr "Abrir pasta de capturas de tela..."
+msgstr "Ab&rir pasta de capturas de tela..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Aplicar modo de ampliação em tela cheia quando maximizado"
+msgstr "Apl&icar modo de ampliação em tela cheia quando maximizado"
 
 msgid "&Cursor/Puck"
 msgstr "&Cursor/Puck"
@@ -1789,7 +1792,7 @@ msgid "Serial port passthrough 4"
 msgstr "Passagem de porta serial 4"
 
 msgid "Renderer &options..."
-msgstr "Opções do renderizador..."
+msgstr "&Opções do renderizador..."
 
 msgid "PC/XT Keyboard"
 msgstr "Teclado PC/XT"
@@ -2442,8 +2445,11 @@ msgstr "256 KB"
 msgid "Composite"
 msgstr "Composto"
 
+msgid "True color"
+msgstr "Cor real"
+
 msgid "Old"
-msgstr "Antiga"
+msgstr "Antigo"
 
 msgid "New"
 msgstr "Novo"
@@ -2551,7 +2557,7 @@ msgid "Color Non-Interlaced"
 msgstr "Colorido não entrelaçado"
 
 msgid "3Dfx Voodoo Graphics"
-msgstr "Gráficos 3Dfx Voodoo"
+msgstr "3Dfx Voodoo Graphics"
 
 msgid "3Dfx Voodoo 2"
 msgstr "3Dfx Voodoo 2"
@@ -2823,20 +2829,17 @@ msgstr "Modo Hub"
 msgid "Hostname:"
 msgstr "Nome do Host:"
 
-msgid "ISA RTC"
-msgstr "RTC ISA"
+msgid "ISA RAM:"
+msgstr "RAM ISA:"
 
-msgid "ISA RAM"
-msgstr "RAM ISA"
-
-msgid "ISA ROM"
-msgstr "ROM ISA"
+msgid "ISA ROM:"
+msgstr "ROM ISA:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Limpar NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "Isso irá apagar todos os arquivos NVRAM (e relacionados) da máquina virtual localizada no subdiretório \"nvr\". Você terá que reconfigurar as configurações do BIOS (e possívelmente outros dispositivos dentro da VM) novamente se aplicável.\n\nTem certeza que quer apagar todo o conteúdo NVRAM da máquina virtual \"%1\"?"
+msgstr "Isso irá apagar todos os arquivos NVRAM (e relacionados) da máquina virtual localizada no subdiretório \"nvr\". Você terá que reconfigurar as configurações do BIOS (e possívelmente outros dispositivos dentro da MV) novamente se aplicável.\n\nTem certeza que quer apagar todo o conteúdo NVRAM da máquina virtual \"%1\"?"
 
 msgid "Success"
 msgstr "Sucesso"
@@ -2844,11 +2847,11 @@ msgstr "Sucesso"
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
 msgstr "Conteúdo NVRAM da máquina virtual \"%1\" apagado com sucesso"
 
-msgid "An error occured trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
 msgstr "Um erro ocorreu ao tentar apagar o conteúdo NVRAM da máquina virtual \"%1\""
 
 msgid "%1 VM Manager"
-msgstr "%1 Gerenciador de VM"
+msgstr "Gerenciador de MV do %1"
 
 msgid "%n disk(s)"
 msgstr "%1 disco(s)"
@@ -2871,20 +2874,35 @@ msgstr "Ocorreu um erro ao verificar por atualizações:\n\n%1\n\nPor favor tent
 msgid "Update check complete"
 msgstr "Verificação de atualização completada"
 
+msgid "stable"
+msgstr "estável"
+
+msgid "beta"
+msgstr "beta"
+
 msgid "You are running the latest %1 version of 86Box: %2"
-msgstr "Você está executando a última %1 versão do 86Box: %2"
+msgstr "Você está executando a última versão %1 do 86Box: %2"
 
 msgid "version"
 msgstr "versão"
 
 msgid "build"
-msgstr "build"
+msgstr "compilação"
 
-msgid "You are currently running %1 <b>%2</b>. "
-msgstr "Você está executando atualmente %1 <b>%2</b>. "
+msgid "You are currently running version <b>%1</b>."
+msgstr "Você está executando atualmente a versão <b>%1</b>."
 
-msgid "<b>%1 %2</b> is now available. %3Would you like to visit the download page?"
-msgstr "<b>%1 %2</b> está disponível. %3Gostaria de visitar a página de download?"
+msgid "<b>Version %1</b> is now available."
+msgstr "<b>Versão %2</b> está disponível."
+
+msgid "You are currently running build <b>%1</b>."
+msgstr "Você está executando atualmente a compilação <b>%1</b>."
+
+msgid "<b>Build %1</b> is now available."
+msgstr "<b>Compilação %2</b> está disponível."
+
+msgid "Would you like to visit the download page?"
+msgstr "Gostaria de visitar a página de download?"
 
 msgid "Visit download page"
 msgstr "Visitar página de download"
@@ -2892,7 +2910,7 @@ msgstr "Visitar página de download"
 msgid "Update check"
 msgstr "Verificação de atualização"
 
-msgid "Checking for updates.."
+msgid "Checking for updates..."
 msgstr "Verificando por atualizações.."
 
 msgid "86Box Update"
@@ -2900,3 +2918,39 @@ msgstr "Atualização do 86Box"
 
 msgid "Release notes:"
 msgstr "Notas de lançamento:"
+
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
+msgid "Virtual machine crash"
+msgstr "Falha da máquina virtual"
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr "O processo da máquina virtual \"%1\" terminou inesperadamente com o código de saída %2."
+
+msgid "The system will not be added."
+msgstr "O sistema não será adicionado."
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Atualiza o estado do mouse em cada quadro do CPU"
+
+msgid "Hue"
+msgstr "Matiz"
+
+msgid "Saturation"
+msgstr "Saturação"
+
+msgid "Contrast"
+msgstr "Contraste"
+
+msgid "Brightness"
+msgstr "Brilho"
+
+msgid "Sharpness"
+msgstr "Nitidez"
+
+msgid "&CGA composite settings..."
+msgstr "Configurações do modo composto &CGA..."
+
+msgid "CGA composite settings"
+msgstr "Configurações do modo composto CGA"

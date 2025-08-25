@@ -117,15 +117,13 @@
  *                         bit 2 set for single-pixel LCD font
  *                         bits 0,1 for display font
  *
- *
- *
- * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: John Elliott, <jce@seasip.info>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          John Elliott, <jce@seasip.info>
  *
- *          Copyright 2017-2018 Fred N. van Kempen.
- *          Copyright 2016-2018 Miran Grca.
- *          Copyright 2008-2018 John Elliott.
+ *          Copyright 2008-2025 John Elliott.
+ *          Copyright 2017-2025 Fred N. van Kempen.
+ *          Copyright 2016-2025 Miran Grca.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -796,6 +794,12 @@ upper_write_raml(uint32_t addr, uint32_t val, void *priv)
     *(uint32_t *) &ram[addr] = val;
 }
 
+uint8_t
+machine_t3100e_p1_handler(void)
+{
+    return (t3100e_mono_get() & 1) ? 0xff : 0xbf;
+}
+
 int
 machine_at_t3100e_init(const machine_t *model)
 {
@@ -813,11 +817,10 @@ machine_at_t3100e_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
 
-    device_add(&kbc_at_toshiba_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
-    if (fdc_current[0] == FDC_INTERNAL) {
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
-    }
 
     /* Hook up system control port */
     io_sethandler(0x8084, 0x0001,

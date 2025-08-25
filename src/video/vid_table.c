@@ -114,6 +114,7 @@ video_cards[] = {
     { .device = &et4000_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &v7_vga_1024i_device,                           .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &wy700_device,                                  .flags = VIDEO_FLAG_TYPE_NONE },
+    { .device = &v6355d_device,                                 .flags = VIDEO_FLAG_TYPE_NONE },
     /* ISA16 */
     { .device = &mach64gx_isa_device,                           .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &gd5420_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE },
@@ -229,7 +230,6 @@ video_cards[] = {
     { .device = &s3_diamond_stealth_2000pro_pci_device,         .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &s3_virge_385_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &s3_virge_357_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE },
-    { .device = &s3_diamond_stealth_4000_pci_device,            .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &s3_trio3d2x_pci_device,                        .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &millennium_device,                             .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &millennium_ii_device,                          .flags = VIDEO_FLAG_TYPE_NONE },
@@ -335,6 +335,9 @@ video_prepare(void)
         /* Do an inform on the default values, so that that there's some sane values initialized
            even if the device init function does not do an inform of its own. */
         video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_default, i);
+
+        monitors[i].mon_interlace = 0;
+        monitors[i].mon_composite = 0;
     }
 }
 

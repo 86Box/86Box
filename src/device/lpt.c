@@ -25,12 +25,14 @@
 #include <86box/network.h>
 #include <86box/plat_fallthrough.h>
 
-static int   next_inst               = 0;
-int          lpt_3bc_used            = 0;
+static int    next_inst               = 0;
+static int    lpt_3bc_used            = 0;
 
-lpt_port_t   lpt_ports[PARALLEL_MAX];
+static lpt_t *lpt1;
 
-lpt_device_t lpt_devs[PARALLEL_MAX];
+lpt_port_t    lpt_ports[PARALLEL_MAX];
+
+lpt_device_t  lpt_devs[PARALLEL_MAX];
 
 const lpt_device_t lpt_none_device = {
     .name          = "None",
@@ -826,6 +828,13 @@ lpt_port_dma(lpt_t *dev, const uint8_t dma)
 }
 
 void
+lpt1_dma(const uint8_t dma)
+{
+    if (lpt1 != NULL)
+        lpt_port_dma(lpt1, dma);
+}
+
+void
 lpt_port_remove(lpt_t *dev)
 {
     if (lpt_ports[dev->id].enabled && (dev->addr != 0xffff)) {
@@ -893,6 +902,9 @@ lpt_close(void *priv)
         timer_disable(&dev->fifo_out_timer);
 
     }
+
+    if (lpt1 == dev)
+        lpt1 = NULL;
 
     free(dev);
 }
@@ -962,7 +974,10 @@ lpt_init(const device_t *info)
 
         dev->addr             = 0xffff;
         dev->irq              = 0xff;
-        dev->dma              = 0xff;
+        if ((jumpered_internal_ecp_dma >= 0) && (jumpered_internal_ecp_dma != 4))
+            dev->dma              = jumpered_internal_ecp_dma;
+        else
+            dev->dma              = 0xff;
         dev->enable_irq       = 0x00;
         dev->cfg_regs_enabled = 0;
         dev->ext              = 0;
@@ -1004,6 +1019,9 @@ lpt_init(const device_t *info)
 
     if (!(info->local & 0xfff00000))
         next_inst++;
+
+    if (lpt1 == NULL)
+        lpt1 = dev;
 
     return dev;
 }

@@ -61,8 +61,10 @@ public:
     ~VMManagerDetailSection() override;
 
     void addSection(const QString &name, const QString &value, VMManager::Display::Name displayField = VMManager::Display::Name::Unknown);
+    void setSections();
     void clear();
 
+    QLabel *tableLabel;
     CollapseButton *collapseButton;
 //    QGridLayout *buttonGridLayout;
     QGridLayout *frameGridLayout;
@@ -72,6 +74,10 @@ public:
 
     static const QString sectionSeparator;
 
+#ifdef Q_OS_WINDOWS
+public slots:
+    void updateStyle();
+#endif
 
 private:
     enum class MarginSection {
@@ -82,7 +88,6 @@ private:
     void setSectionName(const QString &name);
     void setupMainLayout();
     void clearContentsSetupGrid();
-    void setSections();
 
     static QMargins getMargins(MarginSection section);
 

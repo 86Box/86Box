@@ -31,7 +31,11 @@ Downloader(const DownloadLocation downloadLocation, QObject *parent)
     : QObject(parent)
     , file(nullptr)
     , reply(nullptr)
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    , variantData(QMetaType(QMetaType::UnknownType))
+#else
     , variantData(QVariant::Invalid)
+#endif
 {
     char PATHBUF[256];
     switch (downloadLocation) {

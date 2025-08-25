@@ -108,6 +108,7 @@
 
 #define WD_REV_1_BIOS_FILE "roms/hdd/xta/idexywd2.bin"
 #define WD_REV_2_BIOS_FILE "roms/hdd/xta/infowdbios.rom"
+#define PC3086_BIOS_FILE   "roms/machines/pc3086/c800.bin"
 #define ST50X_BIOS_FILE    "roms/hdd/xta/ST05XBIO.BIN"
 #define PC5086_BIOS_FILE   "roms/machines/pc5086/c800.bin"
 
@@ -1032,7 +1033,7 @@ xta_init_common(const device_t *info, int type)
             fn            = (char *) device_get_bios_file(info, bios_rev, 0);
             /* Revision 2 actually supports 2 drives using drive select. */
             if (!strcmp(bios_rev, "rev_1"))
-                 max           = 1;
+                max           = 1;
 #ifdef SELECTABLE_BASE
             dev->base     = device_get_config_hex16("base");
 #else
@@ -1041,15 +1042,22 @@ xta_init_common(const device_t *info, int type)
             dev->irq      = device_get_config_int("irq");
             dev->rom_addr = device_get_config_hex20("bios_addr");
             dev->dma      = 3;
+        case 1: /* Amstrad PC3086 */
+            dev->name     = "WDXT-150 PC3086";
+            dev->rom_addr = 0xc8000;
+            fn            = PC3086_BIOS_FILE;
+            dev->base     = 0x0320;
+            dev->irq      = 5;
+            dev->dma      = 3;
             break;
 
-        case 1: /* EuroPC */
-        case 3: /* Amstrad PC5086 */
+        case 2: /* EuroPC */
+        case 5: /* Amstrad PC5086 */
             switch (dev->type) {
-                case 1:
+                case 2:
                     dev->name     = "HD20";
                     break;
-                case 3:
+                case 5:
                     dev->name     = "ST-50X PC5086";
                     dev->rom_addr = 0xc8000;
                     fn            = PC5086_BIOS_FILE;
@@ -1060,10 +1068,10 @@ xta_init_common(const device_t *info, int type)
             dev->irq      = 5;
             dev->dma      = 3;
             break;
-        case 2: /* Seagate ST-05X Standalone */
+        case 3: /* Seagate ST-05X Standalone */
         case 4: /* Seagate ST-05X Standalone secondary device */
             switch (dev->type) {
-                case 2:
+                case 3:
                     dev->name     = "ST-50X PRI";
                     dev->rom_addr = device_get_config_hex20("bios_addr");
                     fn            = ST50X_BIOS_FILE;
@@ -1206,7 +1214,51 @@ xta_init_common(const device_t *info, int type)
                     else
                         dev->sw = (dev->sw & (c ? 0xf3 : 0xfc)) | (0x02 << (c << 1));
                 }
-            } else if ((dev->type >= 2) && (dev->type <= 4)) {
+            } else if (dev->type == 1) {
+                /*
+                   WDXT-150, Revision 3 (Amstrad PC3086) switches:
+                       - Drive 0, bits 1,0:
+                           - With bit 4 set:
+                               - 0,0 = 612/4/17;
+                               - 0,1 = 615/6/17;
+                               - 1,0 = 977/5/17;
+                               - 1,1 = 615/4/17.
+                           - With bit 4 clear:
+                               - 0,0 = 971/4/17;
+                               - 0,1 = 976/6/17;
+                               - 1,0 = 1024/5/17;
+                               - 1,1 = 976/4/17.
+                       - Drive 1, bits 3,2:
+                           - With bit 4 set:
+                               - 0,0 = 612/4/17;
+                               - 0,1 = 615/6/17;
+                               - 1,0 = 977/5/17;
+                               - 1,1 = 615/4/17.
+                           - With bit 4 clear:
+                               - 0,0 = 971/4/17;
+                               - 0,1 = 976/6/17;
+                               - 1,0 = 1024/5/17;
+                               - 1,1 = 976/4/17.
+                 */
+                if (drive->tracks == 971)
+                    dev->sw = ((dev->sw & 0xef) & (c ? 0xf3 : 0xfc)) | (0x00 << (c << 1));
+                else if (drive->tracks == 976) {
+                    if (drive->hpc == 6)
+                        dev->sw = ((dev->sw & 0xef) & (c ? 0xf3 : 0xfc)) | (0x01 << (c << 1));
+                    else
+                        dev->sw = ((dev->sw & 0xef) & (c ? 0xf3 : 0xfc)) | (0x03 << (c << 1));
+                } else if (drive->tracks == 1024)
+                    dev->sw = ((dev->sw & 0xef) & (c ? 0xf3 : 0xfc)) | (0x02 << (c << 1));
+                else if (drive->tracks == 615) {
+                    if (drive->hpc == 6)
+                        dev->sw = (dev->sw & (c ? 0xf3 : 0xfc)) | (0x01 << (c << 1));
+                    else
+                        dev->sw = (dev->sw & (c ? 0xf3 : 0xfc)) | (0x03 << (c << 1));
+                } else if (drive->tracks == 612)
+                    dev->sw = (dev->sw & (c ? 0xf3 : 0xfc)) | (0x00 << (c << 1));
+                else
+                    dev->sw = (dev->sw & (c ? 0xf3 : 0xfc)) | (0x02 << (c << 1));
+            } else if ((dev->type >= 3) && (dev->type <= 5)) {
                 /*
                    Bits 1, 0:
                        - 1, 1 = 615/4/17 (20 MB);
@@ -1418,11 +1470,25 @@ const device_t xta_wdxt150_device = {
     .config        = wdxt150_config
 };
 
+const device_t xta_wdxt150_pc3086_device = {
+    .name          = "WDXT-150 XTA Fixed Disk Controller (PC3086)",
+    .internal_name = "xta_wdxt150",
+    .flags         = DEVICE_ISA,
+    .local         = 1,
+    .init          = xta_init,
+    .close         = xta_close,
+    .reset         = NULL,
+    .available     = NULL /*xta_available*/,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = wdxt150_config
+};
+
 const device_t xta_hd20_device = {
     .name          = "EuroPC HD20 Fixed Disk Controller",
     .internal_name = "xta_hd20",
     .flags         = DEVICE_ISA,
-    .local         = 1,
+    .local         = 2,
     .init          = xta_init,
     .close         = xta_close,
     .reset         = NULL,
@@ -1436,7 +1502,7 @@ const device_t xta_st50x_device = {
     .name          = "ST-50X Fixed Disk Controller",
     .internal_name = "xta_st50x",
     .flags         = DEVICE_ISA,
-    .local         = 2,
+    .local         = 3,
     .init          = xta_st50x_init,
     .close         = xta_st50x_close,
     .reset         = NULL,
@@ -1447,10 +1513,10 @@ const device_t xta_st50x_device = {
 };
 
 const device_t xta_st50x_pc5086_device = {
-    .name          = "ST-50X Fixed Disk Controller  (PC5086)",
+    .name          = "ST-50X Fixed Disk Controller (PC5086)",
     .internal_name = "xta_st50x_pc5086",
     .flags         = DEVICE_ISA,
-    .local         = 3,
+    .local         = 5,
     .init          = xta_init,
     .close         = xta_close,
     .reset         = NULL,

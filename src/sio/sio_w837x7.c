@@ -233,8 +233,8 @@ w837x7_ide_handler(w837x7_t *dev)
 
         ide_handlers(ide_id, 0);
 
-        ide_set_base_addr(ide_id, 0, (dev->regs[0x00] & 0x40) ? 0x0170 : 0x01f0);
-        ide_set_base_addr(ide_id, 1, (dev->regs[0x00] & 0x40) ? 0x0376 : 0x03f6);
+        ide_set_base_addr(ide_id, 0, (dev->regs[0x00] & 0x40) ? 0x01f0 : 0x0170);
+        ide_set_base_addr(ide_id, 1, (dev->regs[0x00] & 0x40) ? 0x03f6 : 0x0376);
 
         if (!(dev->regs[0x00] & 0x80))
             ide_handlers(ide_id, 1);

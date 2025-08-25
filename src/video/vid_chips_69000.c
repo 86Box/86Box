@@ -1102,10 +1102,8 @@ chips_69000_recalctimings(svga_t *svga)
         svga->rowoffset |= (svga->crtc[0x41] & 0xF) << 8;
 
         svga->interlace = !!(svga->crtc[0x70] & 0x80);
-
-        if (svga->hdisp == 1280 && svga->dispend == 1024) {
-            svga->interlace = 0;
-        }
+        if (svga->interlace)
+            svga->dispend >>= 1;
 
         switch (chips->ext_regs[0x81] & 0xF) {
             default:
@@ -1146,6 +1144,8 @@ chips_69000_recalctimings(svga_t *svga)
 
             if (svga->dispend > (((chips->flat_panel_regs[0x30] | ((chips->flat_panel_regs[0x35] & 0xF) << 8)) + 1))) {
                 svga->dispend = svga->vsyncstart = svga->vblankstart = ((chips->flat_panel_regs[0x30] | ((chips->flat_panel_regs[0x35] & 0xF) << 8)) + 1);
+                if (svga->interlace)
+                    svga->dispend >>= 1;
             }
             //svga->hdisp = ((chips->flat_panel_regs[0x20] | ((chips->flat_panel_regs[0x25] & 0xF) << 8)) + 1) << 3;
             //svga->htotal = ((chips->flat_panel_regs[0x23] | ((chips->flat_panel_regs[0x26] & 0xF) << 8)) + 5) << 3;
