@@ -2063,8 +2063,6 @@ MainWindow::on_actionHiDPI_scaling_triggered()
 void
 MainWindow::on_actionHide_status_bar_triggered()
 {
-    auto w = ui->stackedWidget->width();
-    auto h = ui->stackedWidget->height();
     hide_status_bar ^= 1;
     ui->actionHide_status_bar->setChecked(hide_status_bar);
     statusBar()->setVisible(!hide_status_bar);
@@ -2076,7 +2074,7 @@ MainWindow::on_actionHide_status_bar_triggered()
     } else {
         int vid_resize_orig = vid_resize;
         vid_resize          = 0;
-        emit resizeContents(w, h);
+        emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
         vid_resize = vid_resize_orig;
         if (vid_resize == 1)
             setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
@@ -2086,8 +2084,6 @@ MainWindow::on_actionHide_status_bar_triggered()
 void
 MainWindow::on_actionHide_tool_bar_triggered()
 {
-    auto w = ui->stackedWidget->width();
-    auto h = ui->stackedWidget->height();
     hide_tool_bar ^= 1;
     ui->actionHide_tool_bar->setChecked(hide_tool_bar);
     ui->toolBar->setVisible(!hide_tool_bar);
@@ -2096,7 +2092,7 @@ MainWindow::on_actionHide_tool_bar_triggered()
     } else {
         int vid_resize_orig = vid_resize;
         vid_resize          = 0;
-        emit resizeContents(w, h);
+        emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
         vid_resize = vid_resize_orig;
         if (vid_resize == 1)
             setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
