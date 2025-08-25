@@ -774,11 +774,11 @@ msgstr "Portit (COM & LPT)"
 msgid "Ports"
 msgstr "Portit"
 
-msgid "Serial ports"
-msgstr "Sarjaportit"
+msgid "Serial ports:"
+msgstr "Sarjaportit:"
 
-msgid "Parallel ports"
-msgstr "Rinnakkaisportit"
+msgid "Parallel ports:"
+msgstr "Rinnakkaisportit:"
 
 msgid "Storage controllers"
 msgstr "Tallennusohjaimet"
@@ -2826,16 +2826,13 @@ msgstr "Kytkin:"
 msgid "Hub Mode"
 msgstr "Hubitila"
 
-msgid "Isäntänimi:"
+msgid "Hostname:"
+msgstr "Isäntänimi:"
+
+msgid "ISA RAM:"
 msgstr ""
 
-msgid "ISA RTC"
-msgstr ""
-
-msgid "ISA RAM"
-msgstr ""
-
-msgid "ISA ROM"
+msgid "ISA ROM:"
 msgstr ""
 
 msgid "&Wipe NVRAM"
