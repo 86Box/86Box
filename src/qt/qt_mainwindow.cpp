@@ -1655,11 +1655,12 @@ MainWindow::focusOutEvent(QFocusEvent *event)
 void
 MainWindow::on_actionResizable_window_triggered(bool checked)
 {
+    hide();
     if (checked) {
         vid_resize = 1;
-        setWindowFlag(Qt::WindowMaximizeButtonHint, true);
-        setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
+        setWindowFlag(Qt::WindowMaximizeButtonHint, true);
         for (int i = 1; i < MONITORS_NUM; i++) {
             if (monitors[i].target_buffer) {
                 renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint, true);
