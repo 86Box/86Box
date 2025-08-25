@@ -22,5 +22,6 @@
 
 extern void *ddc_init(void *i2c);
 extern void  ddc_close(void *eeprom);
+extern void *ddc_create_default_edid(ssize_t* size_out);
 
 #endif /*EMU_VID_DDC_H*/

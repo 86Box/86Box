@@ -231,6 +231,9 @@ int      is_pcjr = 0;                                             /* The current
 int      portable_mode = 0;                                       /* We are running in portable mode
                                                                      (global dirs = exe path) */
 
+int      monitor_edid = 0;                                        /* (C) Which EDID to use. 0=default, 1=custom. */
+char     monitor_edid_path[1024] = { 0 };                         /* (C) Path to custom EDID */
+
 // Accelerator key array
 struct accelKey acc_keys[NUM_ACCELS];
 

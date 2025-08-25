@@ -501,6 +501,11 @@ load_video(void)
             p = "none";
         gfxcard[i] = video_get_video_from_internal_name(p);
     }
+
+    monitor_edid = ini_section_get_int(cat, "monitor_edid", 0);
+
+    monitor_edid_path[0] = 0;
+    strncpy(monitor_edid_path, ini_section_get_string(cat, "monitor_edid_path", (char*)""), sizeof(monitor_edid_path));
 }
 
 /* Load "Input Devices" section. */
@@ -2487,6 +2492,15 @@ save_video(void)
     ini_section_set_string(cat, "gfxcard",
                            video_get_internal_name(gfxcard[0]));
 
+    if (monitor_edid)
+        ini_section_set_int(cat, "monitor_edid", monitor_edid);
+    else
+        ini_section_delete_var(cat, "monitor_edid");
+
+    if (monitor_edid_path[0])
+        ini_section_set_string(cat, "monitor_edid_path", monitor_edid_path);
+    else
+        ini_section_delete_var(cat, "monitor_edid_path");
 
     if (vid_cga_comp_brightness)
         ini_section_set_int(cat, "vid_cga_comp_brightness", vid_cga_comp_brightness);
