@@ -2955,5 +2955,14 @@ msgstr "&CGA:n komposiittiasetukset..."
 msgid "CGA composite settings"
 msgstr "CGA:n komposiittiasetukset"
 
+msgid "Monitor EDID"
+msgstr "Monitorin EDID"
+
+msgid "Export..."
+msgstr "Viedä..."
+
+msgid "Export EDID"
+msgstr "Vie EDID"
+
 msgid "EDID file \"%ls\" is too large."
 msgstr "EDID-tiedosto \"%ls\" on liian suuri."

@@ -2962,7 +2962,7 @@ msgid "Export..."
 msgstr ""
 
 msgid "Export EDID"
-msgid ""
+msgstr ""
 
 msgid "EDID file \"%ls\" is too large."
 msgstr ""
