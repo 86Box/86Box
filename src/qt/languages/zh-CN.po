@@ -2965,4 +2965,4 @@ msgid "Export EDID"
 msgstr "导出EDID"
 
 msgid "EDID file \"%ls\" is too large."
-msgstr "EDID文件\"%ls\"过大。"
+msgstr "EDID文件 \"%ls\" 过大。"
