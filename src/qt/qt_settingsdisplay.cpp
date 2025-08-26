@@ -339,7 +339,7 @@ void SettingsDisplay::on_radioButtonCustom_clicked()
 
 void SettingsDisplay::on_pushButtonExportDefault_clicked()
 {
-    auto str = QFileDialog::getSaveFileName(this, tr("Export EDID..."));
+    auto str = QFileDialog::getSaveFileName(this, tr("Export EDID"));
     if (!str.isEmpty()) {
         QFile file(str);
         if (file.open(QFile::WriteOnly)) {
