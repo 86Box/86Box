@@ -351,7 +351,7 @@ static const device_config_t vs440fx_config[] = {
 };
 
 const device_t vs440fx_device = {
-    .name          = "Intel TC430HX (Tucson)",
+    .name          = "Intel VS440FX (Venus)",
     .internal_name = "vs440fx_device",
     .flags         = 0,
     .local         = 0,
