@@ -258,8 +258,13 @@ ddc_init(void *i2c)
             wchar_t errmsg[2048] = { 0 };
             wchar_t path[2048] = { 0 };
 
+#ifdef _WIN32
             mbstoc16s(path, monitor_edid_path, sizeof_w(path));
+#else
+            mbstowcs(path, monitor_edid_path, sizeof_w(path));
+#endif
             swprintf(errmsg, sizeof_w(errmsg), plat_get_string(STRING_EDID_TOO_LARGE), path);
+            ui_msgbox_header(MBX_ERROR, L"EDID", errmsg);
             fclose(file);
             goto default_init;
         }
