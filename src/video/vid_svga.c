@@ -1146,7 +1146,6 @@ svga_recalctimings(svga_t *svga)
                 if (dev->dispofftime < TIMER_USEC)
                     dev->dispofftime = TIMER_USEC;
 
-                svga->monitor->mon_interlace = !!dev->interlace;
                 ibm8514_set_poll(svga);
             } else
                 svga_set_poll(svga);
@@ -1165,7 +1164,6 @@ svga_recalctimings(svga_t *svga)
                 if (xga->dispofftime < TIMER_USEC)
                     xga->dispofftime = TIMER_USEC;
 
-                svga->monitor->mon_interlace = !!xga->interlace;
                 xga_set_poll(svga);
             } else
                 svga_set_poll(svga);
@@ -1184,7 +1182,6 @@ svga_recalctimings(svga_t *svga)
                 if (dev->dispofftime < TIMER_USEC)
                     dev->dispofftime = TIMER_USEC;
 
-                svga->monitor->mon_interlace = !!dev->interlace;
                 ibm8514_set_poll(svga);
             } else if (xga->on) {
                 _dispofftime_xga = disptime_xga - _dispontime_xga;
@@ -1198,7 +1195,6 @@ svga_recalctimings(svga_t *svga)
                 if (xga->dispofftime < TIMER_USEC)
                     xga->dispofftime = TIMER_USEC;
 
-                svga->monitor->mon_interlace = !!xga->interlace;
                 xga_set_poll(svga);
             } else
                 svga_set_poll(svga);
@@ -1253,8 +1249,34 @@ svga_recalctimings(svga_t *svga)
     }
 
     svga->monitor->mon_interlace = 0;
-    if (!svga->override && svga->interlace)
-        svga->monitor->mon_interlace = 1;
+    if (!svga->override) {
+        switch (set_timer) {
+            default:
+            case 0: /*VGA only*/
+                svga->monitor->mon_interlace = !!svga->interlace;
+                break;
+            case 1: /*Plus 8514/A*/
+                if (dev->on)
+                    svga->monitor->mon_interlace = !!dev->interlace;
+                else
+                    svga->monitor->mon_interlace = !!svga->interlace;
+                break;
+            case 2: /*Plus XGA*/
+                if (xga->on)
+                    svga->monitor->mon_interlace = !!xga->interlace;
+                else
+                    svga->monitor->mon_interlace = !!svga->interlace;
+                break;
+            case 3: /*Plus 8514/A and XGA*/
+                if (dev->on)
+                    svga->monitor->mon_interlace = !!dev->interlace;
+                else if (xga->on)
+                    svga->monitor->mon_interlace = !!xga->interlace;
+                else
+                    svga->monitor->mon_interlace = !!svga->interlace;
+                break;
+        }
+    }
 }
 
 static void
