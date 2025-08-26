@@ -34,6 +34,7 @@
 #include <86box/device.h>
 #include <86box/video.h>
 #include <86box/vid_v6355.h>
+#include <86box/vid_cga.h>
 #include <86box/vid_cga_comp.h>
 #include <86box/plat_unused.h>
 
@@ -617,99 +618,6 @@ v6355_render_process(v6355_t *v6355, int line)
     }
 }
 
-static uint8_t
-v6355_interpolate_srgb(uint8_t co1, uint8_t co2, double fraction)
-{
-    uint8_t ret = ((co2 - co1) * fraction + co1);
-
-    return ret;
-}
-
-static uint8_t
-v6355_interpolate_linear(uint8_t co1, uint8_t co2, double fraction)
-{
-    double c1, c2;
-    double r1, r2;
-    uint8_t ret;
-
-    c1 = ((double) co1) / 255.0;
-    c1 = pow((co1 >= 0) ? c1 : -c1, 2.19921875);
-    if (co1 <= 0)
-        c1 = -c1;
-    c2 = ((double) co2) / 255.0;
-    c2 = pow((co2 >= 0) ? c2 : -c2, 2.19921875);
-    if (co2 <= 0)
-        c2 = -c2;
-    r1 = ((c2 - c1) * fraction + c1);
-    r2 = pow((r1 >= 0.0) ? r1 : -r1, 1.0 / 2.19921875);
-    if (r1 <= 0.0)
-        r2 = -r2;
-    ret = (uint8_t) round(r2 * 255.0);
-
-    return ret;
-}
-
-static color_t
-v6355_interpolate_lookup(v6355_t *v6355, color_t color1, color_t color2, UNUSED(double fraction))
-{
-    color_t ret;
-    uint8_t dt = v6355->double_type - DOUBLE_INTERPOLATE_SRGB;
-
-    ret.a = 0x00;
-    ret.r = interp_lut[dt][color1.r][color2.r];
-    ret.g = interp_lut[dt][color1.g][color2.g];
-    ret.b = interp_lut[dt][color1.b][color2.b];
-
-    return ret;
-}
-
-static void
-v6355_interpolate(v6355_t *v6355, int x, int y, int w, int h)
-{
-    double quotient = 0.5;
-
-    for (int i = y; i < (y + h); i++) {
-        if (i & 1)  for (int j = x; j < (x + w); j++) {
-            int prev = i - 1;
-            int next = i + 1;
-            color_t prev_color, next_color;
-            color_t black;
-            color_t interim_1, interim_2;
-            color_t final;
-
-            if (i < 0)
-                continue;
-
-            black.color = 0x00000000;
-
-            if ((prev >= 0) && (prev < (y + h)))
-                prev_color.color = buffer32->line[prev][j];
-            else
-                prev_color.color = 0x00000000;
-
-            if ((next >= 0) && (next < (y + h)))
-                next_color.color = buffer32->line[next][j];
-            else
-                next_color.color = 0x00000000;
-
-            interim_1 = v6355_interpolate_lookup(v6355, prev_color, black, quotient);
-            interim_2 = v6355_interpolate_lookup(v6355, black, next_color, quotient);
-            final     = v6355_interpolate_lookup(v6355, interim_1, interim_2, quotient);
-
-            buffer32->line[i][j] = final.color;
-        }
-    }
-}
-
-static void
-v6355_blit_memtoscreen(v6355_t *v6355, int x, int y, int w, int h)
-{
-    if (v6355->double_type > DOUBLE_SIMPLE)
-        v6355_interpolate(v6355, x, y, w, h);
-
-    video_blit_memtoscreen(x, y, w, h);
-}
-
 static void
 v6355_poll(void *priv)
 {
@@ -779,19 +687,17 @@ v6355_poll(void *priv)
                     v6355_render(v6355, (v6355->displine << 1) + 1);
                     break;
             }
-       } else {
-            switch (v6355->double_type) {
-                default:
-                    v6355_render_blank(v6355, v6355->displine << 1);
-                    break;
-                case DOUBLE_NONE:
-                    v6355_render_blank(v6355, v6355->displine);
-                    break;
-                case DOUBLE_SIMPLE:
-                    v6355_render_blank(v6355, v6355->displine << 1);
-                    v6355_render_blank(v6355, (v6355->displine << 1) + 1);
-                    break;
-            }
+       } else  switch (v6355->double_type) {
+            default:
+                v6355_render_blank(v6355, v6355->displine << 1);
+                break;
+            case DOUBLE_NONE:
+                v6355_render_blank(v6355, v6355->displine);
+                break;
+            case DOUBLE_SIMPLE:
+                v6355_render_blank(v6355, v6355->displine << 1);
+                v6355_render_blank(v6355, (v6355->displine << 1) + 1);
+                break;
         }
 
         switch (v6355->double_type) {
@@ -879,9 +785,7 @@ v6355_poll(void *priv)
                     v6355->lastline++;
 
                     xs_temp = x;
-                    ys_temp = v6355->lastline - v6355->firstline;
-                    if (v6355->double_type > DOUBLE_NONE)
-                        ys_temp <<= 1;
+                    ys_temp = (v6355->lastline - v6355->firstline) << 1;
 
                     if ((xs_temp > 0) && (ys_temp > 0)) {
                         if (xs_temp < 64)
@@ -903,21 +807,7 @@ v6355_poll(void *priv)
                                 video_force_resize_set(0);
                         }
 
-                        if (v6355->double_type > DOUBLE_NONE) {
-                            if (enable_overscan)
-                                v6355_blit_memtoscreen(v6355, 0, (v6355->firstline - 4) << 1,
-                                                       xsize, ((v6355->lastline - v6355->firstline) << 1) + 16);
-                            else
-                                v6355_blit_memtoscreen(v6355, 8, v6355->firstline << 1,
-                                                       xsize, (v6355->lastline - v6355->firstline) << 1);
-                        } else {
-                            if (enable_overscan)
-                                video_blit_memtoscreen(0, v6355->firstline - 4,
-                                                       xsize, (v6355->lastline - v6355->firstline) + 8);
-                            else
-                                video_blit_memtoscreen(8, v6355->firstline,
-                                                       xsize, v6355->lastline - v6355->firstline);
-                        }
+                        cga_do_blit(xsize, v6355->firstline, v6355->lastline, v6355->double_type);
                     }
 
                     frames++;
@@ -1035,13 +925,7 @@ v6355_standalone_init(const device_t *info) {
     update_cga16_color(v6355->cgamode);
 
     v6355->double_type = device_get_config_int("double_type");
-
-    for (uint16_t i = 0; i < 256; i++) {
-        for (uint16_t j = 0; j < 256; j++) {
-            interp_lut[0][i][j] = v6355_interpolate_srgb(i, j, 0.5);
-            interp_lut[1][i][j] = v6355_interpolate_linear(i, j, 0.5);
-        }
-    }
+    cga_interpolate_init();
 
     switch(device_get_config_int("font")) {
         case 0:

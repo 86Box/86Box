@@ -454,10 +454,10 @@ cga_interpolate_linear(uint8_t co1, uint8_t co2, double fraction)
 }
 
 static color_t
-cga_interpolate_lookup(cga_t *cga, color_t color1, color_t color2, UNUSED(double fraction))
+cga_interpolate_lookup(color_t color1, color_t color2, int double_type)
 {
     color_t ret;
-    uint8_t dt = cga->double_type - DOUBLE_INTERPOLATE_SRGB;
+    uint8_t dt = double_type - DOUBLE_INTERPOLATE_SRGB;
 
     ret.a = 0x00;
     ret.r = interp_lut[dt][color1.r][color2.r];
@@ -468,10 +468,8 @@ cga_interpolate_lookup(cga_t *cga, color_t color1, color_t color2, UNUSED(double
 }
 
 static void
-cga_interpolate(cga_t *cga, int x, int y, int w, int h)
+cga_interpolate(int x, int y, int w, int h, int double_type)
 {
-    double quotient = 0.5;
-
     for (int i = y; i < (y + h); i++) {
         if (i & 1)  for (int j = x; j < (x + w); j++) {
             int prev = i - 1;
@@ -496,22 +494,55 @@ cga_interpolate(cga_t *cga, int x, int y, int w, int h)
             else
                 next_color.color = 0x00000000;
 
-            interim_1 = cga_interpolate_lookup(cga, prev_color, black, quotient);
-            interim_2 = cga_interpolate_lookup(cga, black, next_color, quotient);
-            final     = cga_interpolate_lookup(cga, interim_1, interim_2, quotient);
+            interim_1 = cga_interpolate_lookup(prev_color, black, double_type);
+            interim_2 = cga_interpolate_lookup(black, next_color, double_type);
+            final     = cga_interpolate_lookup(interim_1, interim_2, double_type);
 
             buffer32->line[i][j] = final.color;
         }
     }
 }
 
-static void
-cga_blit_memtoscreen(cga_t *cga, int x, int y, int w, int h)
+void
+cga_interpolate_init(void)
 {
-    if (cga->double_type > DOUBLE_SIMPLE)
-        cga_interpolate(cga, x, y, w, h);
+    for (uint16_t i = 0; i < 256; i++) {
+        for (uint16_t j = 0; j < 256; j++) {
+            interp_lut[0][i][j] = cga_interpolate_srgb(i, j, 0.5);
+            interp_lut[1][i][j] = cga_interpolate_linear(i, j, 0.5);
+        }
+    }
+}
+
+static void
+cga_blit_memtoscreen(int x, int y, int w, int h, int double_type)
+{
+    if (double_type > DOUBLE_SIMPLE)
+        cga_interpolate(x, y, w, h, double_type);
 
     video_blit_memtoscreen(x, y, w, h);
+}
+
+void
+cga_do_blit(int vid_xsize, int firstline, int lastline, int double_type)
+{
+    if (double_type > DOUBLE_NONE) {
+        if (enable_overscan)
+            cga_blit_memtoscreen(0, (firstline - 4) << 1,
+                                 vid_xsize, ((lastline - firstline) << 1) + 16,
+                                 double_type);
+        else
+            cga_blit_memtoscreen(8, firstline << 1,
+                                 vid_xsize, (lastline - firstline) << 1,
+                                 double_type);
+    } else {
+        if (enable_overscan)
+            video_blit_memtoscreen(0, firstline - 4,
+                                   vid_xsize, (lastline - firstline) + 8);
+        else
+            video_blit_memtoscreen(8, firstline,
+                                   vid_xsize, lastline - firstline);
+    }
 }
 
 void
@@ -553,19 +584,17 @@ cga_poll(void *priv)
                     cga_render(cga, (cga->displine << 1) + 1);
                     break;
             }
-        } else {
-            switch (cga->double_type) {
-                default:
-                    cga_render_blank(cga, cga->displine << 1);
-                    break;
-                case DOUBLE_NONE:
-                    cga_render_blank(cga, cga->displine);
-                    break;
-                case DOUBLE_SIMPLE:
-                    cga_render_blank(cga, cga->displine << 1);
-                    cga_render_blank(cga, (cga->displine << 1) + 1);
-                    break;
-            }
+        } else  switch (cga->double_type) {
+            default:
+                cga_render_blank(cga, cga->displine << 1);
+                break;
+            case DOUBLE_NONE:
+                cga_render_blank(cga, cga->displine);
+                break;
+            case DOUBLE_SIMPLE:
+                cga_render_blank(cga, cga->displine << 1);
+                cga_render_blank(cga, (cga->displine << 1) + 1);
+                break;
         }
 
         switch (cga->double_type) {
@@ -651,9 +680,7 @@ cga_poll(void *priv)
                     cga->lastline++;
 
                     xs_temp = x;
-                    ys_temp = cga->lastline - cga->firstline;
-                    if (cga->double_type > DOUBLE_NONE)
-                        ys_temp <<= 1;
+                    ys_temp = (cga->lastline - cga->firstline) << 1;
 
                     if ((xs_temp > 0) && (ys_temp > 0)) {
                         if (xs_temp < 64)
@@ -667,30 +694,13 @@ cga_poll(void *priv)
                             (ys_temp != ysize) || video_force_resize_get())) {
                             xsize = xs_temp;
                             ysize = ys_temp;
-                            if (cga->double_type > DOUBLE_NONE)
-                                set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
-                            else
-                                set_screen_size(xsize, ysize + (enable_overscan ? 8 : 0));
+                            set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
 
                             if (video_force_resize_get())
                                 video_force_resize_set(0);
                         }
 
-                        if (cga->double_type > DOUBLE_NONE) {
-                            if (enable_overscan)
-                                cga_blit_memtoscreen(cga, 0, (cga->firstline - 4) << 1,
-                                                     xsize, ((cga->lastline - cga->firstline) << 1) + 16);
-                            else
-                                cga_blit_memtoscreen(cga, 8, cga->firstline << 1,
-                                                     xsize, (cga->lastline - cga->firstline) << 1);
-                        } else {
-                            if (enable_overscan)
-                                video_blit_memtoscreen(0, cga->firstline - 4,
-                                                       xsize, (cga->lastline - cga->firstline) + 8);
-                            else
-                                video_blit_memtoscreen(8, cga->firstline,
-                                                       xsize, cga->lastline - cga->firstline);
-                        }
+                        cga_do_blit(xsize, cga->firstline, cga->lastline, cga->double_type);
                     }
 
                     frames++;
@@ -768,13 +778,7 @@ cga_standalone_init(UNUSED(const device_t *info))
     update_cga16_color(cga->cgamode);
 
     cga->double_type = device_get_config_int("double_type");
-
-    for (uint16_t i = 0; i < 256; i++) {
-        for (uint16_t j = 0; j < 256; j++) {
-            interp_lut[0][i][j] = cga_interpolate_srgb(i, j, 0.5);
-            interp_lut[1][i][j] = cga_interpolate_linear(i, j, 0.5);
-        }
-    }
+    cga_interpolate_init();
 
     switch(device_get_config_int("font")) {
         case 0:

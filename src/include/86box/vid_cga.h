@@ -116,13 +116,15 @@ typedef struct cga_t {
     int double_type;
 } cga_t;
 
-void    cga_init(cga_t *cga);
-void    cga_out(uint16_t addr, uint8_t val, void *priv);
-uint8_t cga_in(uint16_t addr, void *priv);
-void    cga_write(uint32_t addr, uint8_t val, void *priv);
-uint8_t cga_read(uint32_t addr, void *priv);
-void    cga_recalctimings(cga_t *cga);
-void    cga_poll(void *priv);
+extern void    cga_init(cga_t *cga);
+extern void    cga_out(uint16_t addr, uint8_t val, void *priv);
+extern uint8_t cga_in(uint16_t addr, void *priv);
+extern void    cga_write(uint32_t addr, uint8_t val, void *priv);
+extern uint8_t cga_read(uint32_t addr, void *priv);
+extern void    cga_recalctimings(cga_t *cga);
+extern void    cga_interpolate_init(void);
+extern void    cga_do_blit(int vid_xsize, int firstline, int lastline, int double_type);
+extern void    cga_poll(void *priv);
 
 //#ifdef EMU_DEVICE_H
 //extern const device_config_t cga_config[];
