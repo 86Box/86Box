@@ -113,8 +113,6 @@ static uint8_t crtcmask[32] = {
     0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-static uint8_t interp_lut[2][256][256];
-
 static video_timings_t timing_v6355 = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
 static uint8_t mdamap[256][2][2];
@@ -798,10 +796,7 @@ v6355_poll(void *priv)
                         if (((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
                             xsize = xs_temp;
                             ysize = ys_temp;
-                            if (v6355->double_type > DOUBLE_NONE)
-                                set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
-                            else
-                                set_screen_size(xsize, ysize + (enable_overscan ? 8 : 0));
+                            set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
 
                             if (video_force_resize_get())
                                 video_force_resize_set(0);

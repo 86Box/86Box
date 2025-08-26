@@ -123,6 +123,7 @@ extern void    cga_write(uint32_t addr, uint8_t val, void *priv);
 extern uint8_t cga_read(uint32_t addr, void *priv);
 extern void    cga_recalctimings(cga_t *cga);
 extern void    cga_interpolate_init(void);
+extern void    cga_blit_memtoscreen(int x, int y, int w, int h, int double_type);
 extern void    cga_do_blit(int vid_xsize, int firstline, int lastline, int double_type);
 extern void    cga_poll(void *priv);
 

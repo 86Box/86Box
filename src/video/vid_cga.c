@@ -514,7 +514,7 @@ cga_interpolate_init(void)
     }
 }
 
-static void
+void
 cga_blit_memtoscreen(int x, int y, int w, int h, int double_type)
 {
     if (double_type > DOUBLE_SIMPLE)

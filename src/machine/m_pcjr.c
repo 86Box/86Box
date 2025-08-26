@@ -790,6 +790,23 @@ static const device_config_t pcjr_config[] = {
         }
     },
     {
+        .name           = "double_type",
+        .description    = "Line doubling type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = DOUBLE_NONE,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",                 .value = DOUBLE_NONE               },
+            { .description = "Simple doubling",      .value = DOUBLE_SIMPLE             },
+            { .description = "sRGB interpolation",   .value = DOUBLE_INTERPOLATE_SRGB   },
+            { .description = "Linear interpolation", .value = DOUBLE_INTERPOLATE_LINEAR },
+            { .description = ""                                                         }
+        },
+        .bios           = { { 0 } }
+    },
+    {
         .name = "apply_hd",
         .description = "Apply overscan deltas",
         .type = CONFIG_BINARY,
