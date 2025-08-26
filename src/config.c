@@ -534,7 +534,7 @@ load_video(void)
     monitor_edid = ini_section_get_int(cat, "monitor_edid", 0);
 
     monitor_edid_path[0] = 0;
-    strncpy(monitor_edid_path, ini_section_get_string(cat, "monitor_edid_path", (char*)""), sizeof(monitor_edid_path));
+    strncpy(monitor_edid_path, ini_section_get_string(cat, "monitor_edid_path", (char*)""), sizeof(monitor_edid_path) - 1);
 }
 
 /* Load "Input Devices" section. */
