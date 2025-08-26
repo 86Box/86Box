@@ -496,8 +496,8 @@ vid_poll_1512(void *priv)
         else
             x = (vid->crtc[1] << 4) + 16;
 
-        video_process_8(x, vid->displine << 1);
-        video_process_8(x, (vid->displine << 1) + 1);
+        video_process_8((x < 64) ? 656 : x, vid->displine << 1);
+        video_process_8((x < 64) ? 656 : x, (vid->displine << 1) + 1);
 
         vid->scanline = scanline_old;
         if (vid->vsynctime)
