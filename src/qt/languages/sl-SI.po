@@ -2954,3 +2954,15 @@ msgstr "Nastavitve kompozitnega načina &CGA..."
 
 msgid "CGA composite settings"
 msgstr "Nastavitve kompozitnega načina CGA"
+
+msgid "Monitor EDID"
+msgstr "EDID monitorja"
+
+msgid "Export..."
+msgstr "Izvoz..."
+
+msgid "Export EDID"
+msgstr "Izvoz EDID"
+
+msgid "EDID file \"%ls\" is too large."
+msgstr "Datoteka EDID \"%ls\" je prevelika."

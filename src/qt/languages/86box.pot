@@ -2954,3 +2954,15 @@ msgstr ""
 
 msgid "CGA composite settings"
 msgstr ""
+
+msgid "Monitor EDID"
+msgstr ""
+
+msgid "Export..."
+msgstr ""
+
+msgid "Export EDID"
+msgid ""
+
+msgid "EDID file \"%ls\" is too large."
+msgstr ""

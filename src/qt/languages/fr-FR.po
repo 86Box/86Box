@@ -2954,3 +2954,6 @@ msgstr "Réglages du mode composite &CGA..."
 
 msgid "CGA composite settings"
 msgstr "Réglages du mode composite CGA"
+
+msgid "EDID file \"%ls\" is too large."
+msgstr "Le fichier EDID \"%ls\" est trop volumineux."

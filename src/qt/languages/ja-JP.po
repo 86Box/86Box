@@ -2954,3 +2954,15 @@ msgstr "CGA複合モードの設定...(&C)"
 
 msgid "CGA composite settings"
 msgstr "CGA複合モードの設定"
+
+msgid "Monitor EDID"
+msgstr "モニターのEDID"
+
+msgid "Export..."
+msgstr "エクスポート..."
+
+msgid "Export EDID"
+msgstr "EDIDのエクスポート"
+
+msgid "EDID file \"%ls\" is too large."
+msgstr "EDIDファイル \"%ls\" が大きすぎます。"

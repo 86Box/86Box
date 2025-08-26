@@ -2954,3 +2954,15 @@ msgstr "CGA 复合模式设置...(&C)"
 
 msgid "CGA composite settings"
 msgstr "CGA 复合模式设置"
+
+msgid "Monitor EDID"
+msgstr "显示器的EDID"
+
+msgid "Export..."
+msgstr "导出..."
+
+msgid "Export EDID"
+msgstr "导出EDID"
+
+msgid "EDID file \"%ls\" is too large."
+msgstr "EDID文件 \"%ls\" 过大。"
