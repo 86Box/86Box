@@ -42,25 +42,6 @@
 
 /* i430NX */
 int
-machine_at_ambradp90_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear_combined("roms/machines/ambradp90/1002AX1P.BIO",
-                                    "roms/machines/ambradp90/1002AX1P.BI1",
-                                    0x1d000, 128);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_premiere_common_init(model, PCI_CAN_SWITCH_TYPE);
-
-    device_add(&i430nx_device);
-
-    return ret;
-}
-
-int
 machine_at_p54np4_init(const machine_t *model)
 {
     int ret;
@@ -91,25 +72,6 @@ machine_at_p54np4_init(const machine_t *model)
 }
 
 int
-machine_at_dellplato_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear_combined("roms/machines/dellplato/1016AX1J.BIO",
-                                    "roms/machines/dellplato/1016AX1J.BI1",
-                                    0x1d000, 128);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_premiere_common_init(model, PCI_CAN_SWITCH_TYPE);
-
-    device_add(&i430nx_device);
-
-    return ret;
-}
-
-int
 machine_at_586ip_init(const machine_t *model)
 {
     int ret;
@@ -127,17 +89,60 @@ machine_at_586ip_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t plato_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "plato",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "AMBRA DP90 PCI", .internal_name = "ambradp90", .bios_type = BIOS_NORMAL, 
+              .files_no = 2, .local = 0, .size = 131072, .files = { "roms/machines/plato/1002AX1P.BIO", "roms/machines/plato/1002AX1P.BI1", "" } },
+            { .name = "Dell Dimension XPS Pxxx", .internal_name = "dellplato", .bios_type = BIOS_NORMAL, 
+              .files_no = 2, .local = 0, .size = 131072, .files = { "roms/machines/plato/1016AX1J.BIO", "roms/machines/plato/1016AX1J.BI1", "" } },
+            { .name = "Intel Premiere/PCI II (Plato)", .internal_name = "plato", .bios_type = BIOS_NORMAL, 
+              .files_no = 2, .local = 0, .size = 131072, .files = { "roms/machines/plato/1016ax1_.bio", "roms/machines/plato/1016ax1_.bi1", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t plato_device = {
+    .name          = "Intel Premiere/PCI II (Plato)",
+    .internal_name = "plato_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = plato_config
+};
+
 int
 machine_at_plato_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
+    const char* fn2;
 
-    ret = bios_load_linear_combined("roms/machines/plato/1016ax1_.bio",
-                                    "roms/machines/plato/1016ax1_.bi1",
-                                    0x1d000, 128);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    fn2 = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 1);
+    ret = bios_load_linear_combined(fn, fn2, 0x1d000, 128);
+    device_context_restore();
 
     machine_at_premiere_common_init(model, PCI_CAN_SWITCH_TYPE);
 

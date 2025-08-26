@@ -100,9 +100,56 @@ machine_at_c747_init(const machine_t *model)
     return ret;
 }
 
-static void
-machine_at_opti495_ami_common_init(const machine_t *model)
+static const device_config_t opti495_ami_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "ami495",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "AMI 060692", .internal_name = "ami495", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/ami495/opt495sx.ami", "" } },
+            { .name = "MR BIOS V1.60", .internal_name = "mr495", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/ami495/opt495sx.mr", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t opti495_ami_device = {
+    .name          = "DataExpert SX495",
+    .internal_name = "opti495_ami_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = opti495_ami_config
+};
+
+int
+machine_at_opti495_ami_init(const machine_t *model)
 {
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000f0000, 65536, 0);
+
     machine_at_common_init(model);
 
     device_add(&opti495sx_device);
@@ -111,36 +158,6 @@ machine_at_opti495_ami_common_init(const machine_t *model)
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
-}
-
-int
-machine_at_opti495_ami_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/ami495/opt495sx.ami",
-                           0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_opti495_ami_common_init(model);
-
-    return ret;
-}
-
-int
-machine_at_opti495_mr_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/mr495/opt495sx.mr",
-                           0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_opti495_ami_common_init(model);
 
     return ret;
 }

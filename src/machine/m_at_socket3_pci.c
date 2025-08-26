@@ -287,9 +287,57 @@ machine_at_ms4145_init(const machine_t *model)
 }
 
 /* OPTi 802G */
-static void
-machine_at_pc330_6573_common_init(const machine_t *model)
+static const device_config_t pc330_6573_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "pc330_6573",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "IBM Aptiva 510/710/Vision", .internal_name = "aptiva510", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pc330_6573/aptiva510_$IMAGES.USF", "" } },
+            { .name = "IBM PC 330 (type 6573)", .internal_name = "pc330_6573", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pc330_6573/$IMAGES.USF", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pc330_6573_device = {
+    .name          = "IBM PC 330 (type 6573)",
+    .internal_name = "pc330_6573_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pc330_6573_config
+};
+
+int
+machine_at_pc330_6573_init(const machine_t *model)
 {
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
     machine_at_common_init_ex(model, 2);
     device_add(&ide_vlb_2ch_device);
 
@@ -315,36 +363,6 @@ machine_at_pc330_6573_common_init(const machine_t *model)
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&ide_opti611_vlb_device);
     device_add(&intel_flash_bxt_device);
-}
-
-int
-machine_at_aptiva510_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/aptiva510/$IMAGES.USF",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_pc330_6573_common_init(model);
-
-    return ret;
-}
-
-int
-machine_at_pc330_6573_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/pc330_6573/$IMAGES.USF",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_pc330_6573_common_init(model);
 
     return ret;
 }
@@ -1373,9 +1391,6 @@ machine_at_hot433a_init(const machine_t *model)
     fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
-
-    if (bios_only || !ret)
-        return ret;
 
     machine_at_common_init_ex(model, 2);
     if (is_award)

@@ -344,6 +344,35 @@ machine_at_d824_init(const machine_t *model)
 
 /* VLSI 82C486 */
 int
+machine_at_pcs44c_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pcs44c/V032004G.25",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&vl82c486_device);
+    device_add(&tulip_jumper_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&oti077_pcs44c_device);
+     
+    device_add(&vl82c113_device);
+
+    device_add(&ide_isa_device);
+    device_add_params(&pc873xx_device, (void *) (PCX73XX_IDE_PRI | PCX730X_398));
+
+    device_add(&intel_flash_bxt_device);
+    
+    return ret;
+}
+
+int
 machine_at_tuliptc38_init(const machine_t *model)
 {
     int ret;
