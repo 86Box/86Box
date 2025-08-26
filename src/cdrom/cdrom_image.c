@@ -81,8 +81,9 @@ typedef struct track_t {
     uint8_t       form;
     uint8_t       subch_type;
     uint8_t       skip;
+    uint8_t       max_index;
     uint32_t      sector_size;
-    track_index_t idx[3];
+    track_index_t idx[100];
 } track_t;
 
 /*
@@ -526,7 +527,7 @@ image_get_track(const cd_image_t *img, const uint32_t sector)
 
     for (int i = 0; i < img->tracks_num; i++) {
         track_t *ct = &(img->tracks[i]);
-        for (int j = 0; j < 3; j++) {
+        for (int j = 0; j <= ct->max_index; j++) {
             const track_index_t *ci = &(ct->idx[j]);
             if ((ci->type >= INDEX_ZERO) && (ci->length != 0ULL) &&
                 ((sector + 150) >= ci->start) && ((sector + 150) <= (ci->start + ci->length - 1))) {
@@ -548,7 +549,7 @@ image_get_track_and_index(const cd_image_t *img, const uint32_t sector,
 
     for (int i = 0; i < img->tracks_num; i++) {
         track_t *ct = &(img->tracks[i]);
-        if ((ct->point >= 1) && (ct->point <= 99))  for (int j = 0; j < 3; j++) {
+        if ((ct->point >= 1) && (ct->point <= 99))  for (int j = 0; j <= ct->max_index; j++) {
             track_index_t *ci = &(ct->idx[j]);
             if ((ci->type >= INDEX_ZERO) && (ci->length != 0ULL) &&
                 ((sector + 150) >= ci->start) && ((sector + 150) <= (ci->start + ci->length - 1))) {
@@ -795,8 +796,10 @@ image_insert_track(cd_image_t *img, const uint8_t session, const uint8_t point)
 
     memset(ct, 0x00, sizeof(track_t));
 
-    ct->session = session;
-    ct->point   = point;
+    ct->max_index = 2;
+
+    ct->session   = session;
+    ct->point     = point;
 
     for (int i = 0; i < 3; i++)
         ct->idx[i].type = (point > 99) ? INDEX_SPECIAL : INDEX_NONE;
@@ -925,7 +928,7 @@ image_process(cd_image_t *img)
     for (int i = (img->tracks_num - 1); i >= 0; i--) {
         ct = &(img->tracks[map[i]]);
         if (ct->idx[1].type != INDEX_SPECIAL) {
-            for (int j = 2; j >= 0; j--) {
+            for (int j = ct->max_index; j >= 0; j--) {
                 ci = &(ct->idx[j]);
 
                 /*
@@ -1013,7 +1016,7 @@ image_process(cd_image_t *img)
                 session_changed = 1;
             }
 
-            for (int j = 0; j < 3; j++) {
+            for (int j = 0; j < ct->max_index; j++) {
                 ci = &(ct->idx[j]);
 
                 if ((ci->type < INDEX_SPECIAL) || (ci->type > INDEX_NORMAL)) {
@@ -1167,7 +1170,7 @@ image_process(cd_image_t *img)
                     if (lt->mode == 2)
                         disc_type = 0x20;
 
-                    for (int j = 0; j < 3; j++) {
+                    for (int j = 0; j <= ct->max_index; j++) {
                         ci = &(ct->idx[j]);
                         ci->type   = INDEX_ZERO;
                         ci->start  = (lt->point * 60 * 75) + (disc_type * 75);
@@ -1201,7 +1204,7 @@ image_process(cd_image_t *img)
                     ct->mode = lt->mode;
                     ct->form = lt->form;
 
-                    for (int j = 0; j < 3; j++) {
+                    for (int j = 0; j <= ct->max_index; j++) {
                         ci = &(ct->idx[j]);
                         ci->type   = INDEX_ZERO;
                         ci->start  = (lt->point * 60 * 75);
@@ -1240,7 +1243,7 @@ image_process(cd_image_t *img)
                          */
                         const track_index_t *li = &(lt->idx[2]);
 
-                        for (int j = 0; j < 3; j++) {
+                        for (int j = 0; j <= ct->max_index; j++) {
                             image_log(img->log, "    [TRACK   ] %02X/%02X, INDEX %02X, "
                                       "ATTR %02X, MODE %02X/%02X, %8s,\n",
                                       ct->session,
@@ -1323,7 +1326,7 @@ image_process(cd_image_t *img)
     image_log(img->log, "Final tracks list:\n");
     for (int i = 0; i < img->tracks_num; i++) {
         ct = &(img->tracks[i]);
-        for (int j = 0; j < 3; j++) {
+        for (int j = 0; j <= ct->max_index; j++) {
             ci = &(ct->idx[j]);
             image_log(img->log, "    [TRACK   ] %02X INDEX %02X: [%8s, %016" PRIX64 "]\n",
                       ct->point, j,
@@ -1601,7 +1604,7 @@ image_load_cue(cd_image_t *img, const char *cuefile)
                  */
                 ct = &(img->tracks[img->tracks_num - 1]);
 
-                for (int i = 2; i >= 0; i--) {
+                for (int i = ct->max_index; i >= 0; i--) {
                     if (ct->idx[i].file == NULL)
                         ct->idx[i].file = tf;
                     else
@@ -1667,6 +1670,9 @@ image_load_cue(cd_image_t *img, const char *cuefile)
         } else if (!strcmp(command, "INDEX")) {
             int t            = image_cue_get_number(&line);
             ci               = &(ct->idx[t]);
+
+            if (t > ct->max_index)
+                ct->max_index    = t;
 
             ci->type         = INDEX_NORMAL;
             ci->file         = tf;
@@ -1815,7 +1821,7 @@ image_load_cue(cd_image_t *img, const char *cuefile)
             break;
     }
 
-    if (success && (ct != NULL))  for (int i = 2; i >= 0; i--) {
+    if (success && (ct != NULL))  for (int i = ct->max_index; i >= 0; i--) {
         if (ct->idx[i].file == NULL)
             ct->idx[i].file = tf;
         else
