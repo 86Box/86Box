@@ -234,7 +234,7 @@ void *
 ddc_init(void *i2c)
 {
     ssize_t edid_size = 0;
-    void* edid_bytes = NULL;
+    uint8_t* edid_bytes = NULL;
     if (monitor_edid == 1 && monitor_edid_path[0]) {
         FILE* file = plat_fopen(monitor_edid_path, "rb");
 
@@ -254,6 +254,16 @@ ddc_init(void *i2c)
             goto default_init;
         }
 
+        if (edid_size > 256) {
+            wchar_t errmsg[2048] = { 0 };
+            wchar_t path[2048] = { 0 };
+
+            mbstoc16s(path, monitor_edid_path, sizeof_w(path));
+            swprintf(errmsg, sizeof_w(errmsg), plat_get_string(STRING_EDID_TOO_LARGE), path);
+            fclose(file);
+            goto default_init;
+        }
+
         edid_bytes = calloc(1, edid_size);
         if (!edid_bytes) {
             fclose(file);
@@ -264,6 +274,30 @@ ddc_init(void *i2c)
             free(edid_bytes);
             fclose(file);
             goto default_init;
+        }
+
+        if (edid_size < 128) {
+            edid_bytes = realloc(edid_bytes, 128);
+            edid_size = 128;
+        } else if (edid_size < 256) {
+            edid_bytes = realloc(edid_bytes, 256);
+            edid_size = 256;
+        }
+
+        {
+            int checksum = 0;
+            for (uint8_t c = 0; c < 127; c++)
+                checksum += edid_bytes[c];
+            edid_bytes[127] = 256 - checksum;
+
+            if (edid_size == 256) {
+                checksum = 0;
+
+                for (uint8_t c = 128; c < 255; c++) {
+                    checksum += edid_bytes[c];
+                }
+                edid_bytes[255] = 256 - checksum;
+            }
         }
 
         fclose(file);

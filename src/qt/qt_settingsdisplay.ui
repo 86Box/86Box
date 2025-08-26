@@ -118,7 +118,7 @@
         <item>
          <widget class="QRadioButton" name="radioButtonCustom">
           <property name="text">
-           <string>Custom</string>
+           <string>Custom...</string>
           </property>
          </widget>
         </item>

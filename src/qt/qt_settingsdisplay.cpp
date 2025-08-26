@@ -77,7 +77,7 @@ SettingsDisplay::save()
     da2_standalone_enabled     = ui->checkBoxDa2->isChecked() ? 1 : 0;
     monitor_edid               = ui->radioButtonCustom->isChecked() ? 1 : 0;
 
-    strncpy(monitor_edid_path, ui->lineEdit->fileName().toUtf8(), sizeof(monitor_edid_path) - 1);
+    strncpy(monitor_edid_path, ui->lineEdit->fileName().toUtf8().data(), sizeof(monitor_edid_path) - 1);
 }
 
 void
