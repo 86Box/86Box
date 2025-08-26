@@ -2956,7 +2956,7 @@ msgid "CGA composite settings"
 msgstr "Réglages du mode composite CGA"
 
 msgid "Monitor EDID"
-msgstr "Surveiller EDID"
+msgstr "Écran EDID"
 
 msgid "Export..."
 msgstr "Exporter..."
