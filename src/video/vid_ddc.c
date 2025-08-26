@@ -25,6 +25,7 @@
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
 #include <86box/plat.h>
+#include <86box/ui.h>
 
 #define PIXEL_MM(px) (((px) * 25.4) / 96.0)
 #define STANDARD_TIMING(slot, width, aspect_ratio, refresh)                             \
