@@ -17,8 +17,11 @@
 #include "qt_settingsdisplay.hpp"
 #include "ui_qt_settingsdisplay.h"
 
+#include "qt_util.hpp"
+
 #include <QDebug>
 #include <QFileDialog>
+#include <QStringBuilder>
 
 extern "C" {
 #include <86box/86box.h>
@@ -42,6 +45,9 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
 
     for (uint8_t i = 0; i < GFXCARD_MAX; i ++)
         videoCard[i] = gfxcard[i];
+
+    ui->lineEdit->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+
     onCurrentMachineChanged(machine);
 }
 
@@ -333,10 +339,10 @@ void SettingsDisplay::on_radioButtonCustom_clicked()
 
 void SettingsDisplay::on_pushButtonExportDefault_clicked()
 {
-    auto str = QFileDialog::getSaveFileName(this, tr("Export"));
+    auto str = QFileDialog::getSaveFileName(this, tr("Export EDID..."));
     if (!str.isEmpty()) {
         QFile file(str);
-        if (file.open(QFile::ReadOnly)) {
+        if (file.open(QFile::WriteOnly)) {
             ssize_t size = 0;
             auto bytes = ddc_create_default_edid(&size);
             file.write((char*)bytes, size);
