@@ -2954,3 +2954,15 @@ msgstr "Optionen des &CGA-Composite-Modus..."
 
 msgid "CGA composite settings"
 msgstr "Optionen des CGA-Composite-Modus"
+
+msgid "Monitor EDID"
+msgstr "EDID des Monitors"
+
+msgid "Export..."
+msgstr "Exportieren..."
+
+msgid "Export EDID"
+msgstr "EDID exportieren"
+
+msgid "EDID file \"%ls\" is too large."
+msgstr "Die EDID-Datei \"%ls\" ist zu groß."

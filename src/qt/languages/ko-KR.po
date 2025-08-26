@@ -2954,3 +2954,15 @@ msgstr "CGA 복합 모드의 설정...(&C)"
 
 msgid "CGA composite settings"
 msgstr "CGA 복합 모드의 설정"
+
+msgid "Monitor EDID"
+msgstr "모니터의 EDID"
+
+msgid "Export..."
+msgstr "수출..."
+
+msgid "Export EDID"
+msgstr "EDID 내보내기"
+
+msgid "EDID file \"%ls\" is too large."
+msgstr "EDID 파일 \"%ls\"가 너무 큽니다."

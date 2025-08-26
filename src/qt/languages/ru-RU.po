@@ -2954,3 +2954,15 @@ msgstr "Настройки композитного видео &CGA..."
 
 msgid "CGA composite settings"
 msgstr "Настройки композитного видео CGA"
+
+msgid "Monitor EDID"
+msgstr "EDID монитора"
+
+msgid "Export..."
+msgstr "Экспорт..."
+
+msgid "Export EDID"
+msgstr "Экспорт EDID"
+
+msgid "EDID file \"%ls\" is too large."
+msgstr "Файл EDID \"%ls\" слишком велик."
