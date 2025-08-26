@@ -10,7 +10,7 @@ msgid "&Action"
 msgstr "&Ação"
 
 msgid "&Keyboard requires capture"
-msgstr "&Teclado requer captura"
+msgstr "O &teclado requer captura"
 
 msgid "&Right CTRL is left ALT"
 msgstr "CTR&L direito é o ALT esquerdo"
@@ -400,10 +400,10 @@ msgid "Dynamic Recompiler"
 msgstr "Recompilador dinâmico"
 
 msgid "CPU frame size"
-msgstr "Tamanho de quadro do CPU"
+msgstr "Tamanho do quadro da CPU"
 
 msgid "Larger frames (less smooth)"
-msgstr "Quadros largos (menos suave)"
+msgstr "Quadros maiores (menos suave)"
 
 msgid "Smaller frames (smoother)"
 msgstr "Quadros menores (mais suave)"
@@ -412,7 +412,7 @@ msgid "Video:"
 msgstr "Vídeo:"
 
 msgid "Video #2:"
-msgstr "Vídeo 2:"
+msgstr "Vídeo nº 2:"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Gráficos Voodoo 1 ou 2"
@@ -424,7 +424,7 @@ msgid "XGA Graphics"
 msgstr "Gráficos XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
-msgstr "Gráficos IBM PS/55 Display Adapter"
+msgstr "Gráficos do Adaptador de Vídeo IBM PS/55"
 
 msgid "Keyboard:"
 msgstr "Teclado:"
@@ -457,16 +457,16 @@ msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
 msgid "Sound card #1:"
-msgstr "Placa de som 1:"
+msgstr "Placa de som nº 1:"
 
 msgid "Sound card #2:"
-msgstr "Placa de som 2:"
+msgstr "Placa de som nº 2:"
 
 msgid "Sound card #3:"
-msgstr "Placa de som 3:"
+msgstr "Placa de som nº 3:"
 
 msgid "Sound card #4:"
-msgstr "Placa de som 4:"
+msgstr "Placa de som nº 4:"
 
 msgid "MIDI Out Device:"
 msgstr "Disp. de saída MIDI:"
@@ -478,7 +478,7 @@ msgid "MIDI Out:"
 msgstr "Saída MIDI:"
 
 msgid "Standalone MPU-401"
-msgstr "MPU-401 independente"
+msgstr "MPU-401 autônomo"
 
 msgid "Use FLOAT32 sound"
 msgstr "Usar som FLOAT32"
@@ -544,7 +544,7 @@ msgid "Parallel port 4"
 msgstr "Porta paralela 4"
 
 msgid "FD Controller:"
-msgstr "Controlador FD:"
+msgstr "Controlador de disquete:"
 
 msgid "CD-ROM Controller:"
 msgstr "Controlador de CD-ROM:"
@@ -580,7 +580,7 @@ msgid "Hard disks:"
 msgstr "Discos rígidos:"
 
 msgid "Firmware Version"
-msgstr "Versão de Firmware"
+msgstr "Versão do Firmware"
 
 msgid "&New..."
 msgstr "&Novo..."
@@ -673,13 +673,13 @@ msgid "Card 4:"
 msgstr "Placa 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr "Placa ROM ISA Genérica"
+msgstr "Placa de ROM ISA Genérica"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr "Placa Dual ROM ISA Genérica"
+msgstr "Placa de ROM ISA Dupla Genérica"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr "Placa Quad ROM ISA Genérica"
+msgstr "Placa de ROM ISA Quádrupla Genérica"
 
 msgid "ISABugger device"
 msgstr "Dispositivo ISABugger"
@@ -715,7 +715,7 @@ msgid "Image %1"
 msgstr "Imagem %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "O 86Box não conseguiu encontrar nenhuma imagem de ROM utilizável.\n\nPor favor, <a href=\"https://github.com/86Box/roms/releases/latest\">baixe</a> um conjunto de ROM e extraia no diretório \"roms\"."
+msgstr "O 86Box não conseguiu encontrar nenhuma imagem de ROM utilizável.\n\nPor favor, <a href=\"https://github.com/86Box/roms/releases/latest\">baixe</a> um conjunto de ROMs e extraia-o para o diretório \"roms\"."
 
 msgid "(empty)"
 msgstr "(vazio)"
@@ -748,7 +748,7 @@ msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video
 msgstr "A placa de vídeo \"%hs\" não está disponível devido à falta de ROMs no diretório roms/video. Mudando para uma placa de vídeo disponível."
 
 msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "A placa de vídeo 2 \"%hs\" não está disponível devido à falta de ROMs no diretório roms/video. Desativando a segunda placa vídeo."
+msgstr "A placa de vídeo 2 \"%hs\" não está disponível devido à falta de ROMs no diretório roms/video. Desativando a segunda placa de vídeo."
 
 msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
 msgstr "O dispositivo \"%hs\" não está disponível devido à falta de ROMs. Ignorando o dispositivo."
@@ -862,19 +862,19 @@ msgid "2-axis, 8-button joystick"
 msgstr "Joystick de 2 eixos, 8 botões"
 
 msgid "3-axis, 2-button joystick"
-msgstr "Joystick padrão de 3 eixos, 2 botões"
+msgstr "Joystick de 3 eixos, 2 botões"
 
 msgid "3-axis, 4-button joystick"
-msgstr "Joystick padrão de 3 eixos, 4 botões"
+msgstr "Joystick de 3 eixos, 4 botões"
 
 msgid "4-axis, 4-button joystick"
-msgstr "Joystick padrão de 4 eixos, 4 botões"
+msgstr "Joystick de 4 eixos, 4 botões"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedais"
+msgstr "CH Flightstick Pro + Pedais CH"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -1090,7 +1090,7 @@ msgid "Powered Off"
 msgstr "Desligada"
 
 msgid "%n running"
-msgstr "%n rodando"
+msgstr "%n executando"
 
 msgid "%n paused"
 msgstr "%n pausada"
@@ -1120,7 +1120,7 @@ msgid "Configuration read failed"
 msgstr "Falha ao ler a configuração"
 
 msgid "Unable to open the selected configuration file for reading: %1"
-msgstr "Impossível abrir o arquivo de configuração selecionado para leitura: %1"
+msgstr "Não foi possível abrir o arquivo de configuração selecionado para leitura: %1"
 
 msgid "Use regular expressions in search box"
 msgstr "Usar expressões regulares na caixa de pesquisa"
@@ -1171,7 +1171,7 @@ msgid "System name already exists"
 msgstr "O nome do sistema já existe"
 
 msgid "Please enter a directory for the system"
-msgstr "Por favor digite um diretório para o sistema"
+msgstr "Por favor, digite um diretório para o sistema"
 
 msgid "Directory does not exist"
 msgstr "O diretório não existe"
@@ -1183,7 +1183,7 @@ msgid "System location:"
 msgstr "Local do sistema:"
 
 msgid "System name and location"
-msgstr "Nome do sistema e local"
+msgstr "Nome e local do sistema"
 
 msgid "Enter the name of the system and choose the location"
 msgstr "Digite o nome do sistema e escolha o local"
@@ -1291,10 +1291,10 @@ msgid "Warning"
 msgstr "Aviso"
 
 msgid "&Kill"
-msgstr "&Matar"
+msgstr "&Forçar encerramento"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "Matar uma máquina virtual pode causar perda de dados. Só faça isso se o processo do 86Box travar.\n\nTem certeza que deseja matar a máquina virtual \"%1\"?"
+msgstr "Forçar o encerramento de uma máquina virtual pode causar perda de dados. Só faça isso se o processo do 86Box travar.\n\nTem certeza que deseja forçar o encerramento da máquina virtual \"%1\"?"
 
 msgid "&Delete"
 msgstr "&Apagar"
@@ -1306,7 +1306,7 @@ msgid "Show &config file"
 msgstr "Mostrar arquivo de &configuração"
 
 msgid "No screenshot"
-msgstr "Sem captura"
+msgstr "Nenhuma captura de tela"
 
 msgid "Search"
 msgstr "Procurar"
@@ -1402,7 +1402,7 @@ msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "O arquivo selecionado será sobrescrito. Você tem certeza de que deseja usá-lo?"
 
 msgid "Unsupported disk image"
-msgstr "Imagem de disco sem suporte"
+msgstr "Imagem de disco não suportada"
 
 msgid "Overwrite"
 msgstr "Sobrescrever"
@@ -1630,13 +1630,13 @@ msgid "List of MCA devices:"
 msgstr "Lista de dispositivos MCA:"
 
 msgid "&Tablet tool"
-msgstr "Ferramenta para tablet"
+msgstr "Ferramenta para &tablet"
 
 msgid "About &Qt"
 msgstr "Sobre o &Qt"
 
 msgid "&MCA devices..."
-msgstr "Dispositivos MCA..."
+msgstr "Dispositivos &MCA..."
 
 msgid "Show non-&primary monitors"
 msgstr "Mostrar monitores não &primários"
@@ -1660,7 +1660,7 @@ msgid "&Connected"
 msgstr "&Conectado"
 
 msgid "Clear image &history"
-msgstr "Limpar histórico de imagens(&H)"
+msgstr "Limpar &histórico de imagens"
 
 msgid "Create..."
 msgstr "Criar..."
@@ -1738,7 +1738,7 @@ msgid "I Copied It"
 msgstr "Copiei"
 
 msgid "86Box Monitor #"
-msgstr "Monitor 86Box #"
+msgstr "Monitor 86Box nº"
 
 msgid "No MCA devices."
 msgstr "Nenhum dispositivo MCA."
@@ -1750,16 +1750,16 @@ msgid "GiB"
 msgstr "GiB"
 
 msgid "Network Card #1"
-msgstr "Placa de rede 1"
+msgstr "Placa de rede nº 1"
 
 msgid "Network Card #2"
-msgstr "Placa de rede 2"
+msgstr "Placa de rede nº 2"
 
 msgid "Network Card #3"
-msgstr "Placa de rede 3"
+msgstr "Placa de rede nº 3"
 
 msgid "Network Card #4"
-msgstr "Placa de rede 4"
+msgstr "Placa de rede nº 4"
 
 msgid "Mode:"
 msgstr "Modo:"
@@ -1861,7 +1861,7 @@ msgid "Roland CM-32LN Emulation"
 msgstr "Emulação do Roland CM-32LN"
 
 msgid "OPL4-ML Daughterboard"
-msgstr "Placa Filha OPL4-ML"
+msgstr "Placa-filha OPL4-ML"
 
 msgid "System MIDI"
 msgstr "Sistema MIDI"
@@ -1873,46 +1873,46 @@ msgid "BIOS file"
 msgstr "Arquivo do BIOS"
 
 msgid "BIOS file (ROM #1)"
-msgstr "Arquivo do BIOS (ROM #1)"
+msgstr "Arquivo do BIOS (ROM nº 1)"
 
 msgid "BIOS file (ROM #2)"
-msgstr "Arquivo do BIOS (ROM #2)"
+msgstr "Arquivo do BIOS (ROM nº 2)"
 
 msgid "BIOS file (ROM #3)"
-msgstr "Arquivo do BIOS (ROM #3)"
+msgstr "Arquivo do BIOS (ROM nº 3)"
 
 msgid "BIOS file (ROM #4)"
-msgstr "Arquivo do BIOS (ROM #4)"
+msgstr "Arquivo do BIOS (ROM nº 4)"
 
 msgid "BIOS address"
 msgstr "Endereço do BIOS"
 
 msgid "BIOS address (ROM #1)"
-msgstr "Endereço do BIOS (ROM #1)"
+msgstr "Endereço do BIOS (ROM nº 1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr "Endereço do BIOS (ROM #2)"
+msgstr "Endereço do BIOS (ROM nº 2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr "Endereço do BIOS (ROM #3)"
+msgstr "Endereço do BIOS (ROM nº 3)"
 
 msgid "BIOS address (ROM #4)"
-msgstr "Endereço do BIOS (ROM #4)"
+msgstr "Endereço do BIOS (ROM nº 4)"
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Habilitar gravações na ROM de extensão do BIOS"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr "Habilitar gravações na ROM de extensão do BIOS (ROM #1)"
+msgstr "Habilitar gravações na ROM de extensão do BIOS (ROM nº 1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr "Habilitar gravações na ROM de extensão do BIOS (ROM #2)"
+msgstr "Habilitar gravações na ROM de extensão do BIOS (ROM nº 2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr "Habilitar gravações na ROM de extensão do BIOS (ROM #3)"
+msgstr "Habilitar gravações na ROM de extensão do BIOS (ROM nº 3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr "Habilitar gravações na ROM de extensão do BIOS (ROM #4)"
+msgstr "Habilitar gravações na ROM de extensão do BIOS (ROM nº 4)"
 
 msgid "Linear framebuffer base"
 msgstr "Base do framebuffer linear"
@@ -1924,10 +1924,10 @@ msgid "IRQ"
 msgstr "IRQ"
 
 msgid "Serial port IRQ"
-msgstr "IRQ da Porta Serial"
+msgstr "IRQ da porta serial"
 
 msgid "Parallel port IRQ"
-msgstr "IRQ da Porta Paralela"
+msgstr "IRQ da porta paralela"
 
 msgid "BIOS Revision"
 msgstr "Revisão do BIOS"
@@ -1960,16 +1960,16 @@ msgid "BIOS size"
 msgstr "Tamanho do BIOS"
 
 msgid "BIOS size (ROM #1)"
-msgstr "Tamanho do BIOS (ROM #1)"
+msgstr "Tamanho do BIOS (ROM nº 1)"
 
 msgid "BIOS size (ROM #2)"
-msgstr "Tamanho do BIOS (ROM #2)"
+msgstr "Tamanho do BIOS (ROM nº 2)"
 
 msgid "BIOS size (ROM #3)"
-msgstr "Tamanho do BIOS (ROM #3)"
+msgstr "Tamanho do BIOS (ROM nº 3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr "Tamanho do BIOS (ROM #4)"
+msgstr "Tamanho do BIOS (ROM nº 4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Mapear C0000-C7FFF como UMB"
@@ -2047,7 +2047,7 @@ msgid "Interpolation Method"
 msgstr "Método de interpolação"
 
 msgid "Dynamic Sample Loading"
-msgstr "Carregamento dinâmico de amostra"
+msgstr "Carregamento dinâmico de amostras"
 
 msgid "Reverb Output Gain"
 msgstr "Ganho da saída da reverberação"
@@ -2116,7 +2116,7 @@ msgid "Serial Number"
 msgstr "Número de série"
 
 msgid "Host ID"
-msgstr "ID do host"
+msgstr "ID do anfitrião"
 
 msgid "FDC Address"
 msgstr "Endereço da FDC"
@@ -2161,10 +2161,10 @@ msgid "Use EEPROM setting"
 msgstr "Usar configuração da EEPROM"
 
 msgid "WSS IRQ"
-msgstr "WSS IRQ"
+msgstr "IRQ WSS"
 
 msgid "WSS DMA"
-msgstr "WSS DMA"
+msgstr "DMA WSS"
 
 msgid "Enable OPL"
 msgstr "Ativar OPL"
@@ -2251,7 +2251,7 @@ msgid "Bilinear filtering"
 msgstr "Filtragem bilinear"
 
 msgid "Video chroma-keying"
-msgstr "Chroma-keying de vídeo"
+msgstr "Chroma key de vídeo"
 
 msgid "Dithering"
 msgstr "Pontilhamento"
@@ -2650,7 +2650,7 @@ msgid "High performance impact"
 msgstr "Alto impacto no desempenho"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Genérico] Disco RAM (velocidade máxima)"
+msgstr "[Genérico] Disco RAM (velocidade máx.)"
 
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Genérico] 1989 (3500 RPM)"
@@ -2725,25 +2725,25 @@ msgid "GLSL Error"
 msgstr "Erro GLSL"
 
 msgid "Could not load shader: %1"
-msgstr "Impossível carregar o shader: %1"
+msgstr "Não foi possível carregar o shader: %1"
 
 msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
 msgstr "OpenGL versão 3.0 ou superior é exigido. Versão atual GLSL é %1.%2"
 
 msgid "Could not load texture: %1"
-msgstr "Impossível carregar a textura: %1"
+msgstr "Não foi possível carregar a textura: %1"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr "Impossível compilar o shader:\n\n%1"
+msgstr "Não foi possível compilar o shader:\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr "Programa não linkado:\n\n%1"
+msgstr "Programa não vinculado:\n\n%1"
 
 msgid "Shader Manager"
-msgstr "Gerenciador de Shader"
+msgstr "Gerenciador de Shaders"
 
 msgid "Shader Configuration"
-msgstr "Configuração de Shader"
+msgstr "Configuração de Shaders"
 
 msgid "Add"
 msgstr "Adicionar"
@@ -2755,7 +2755,7 @@ msgid "Move down"
 msgstr "Mover para baixo"
 
 msgid "Could not load file %1"
-msgstr "Impossível carregar arquivo %1"
+msgstr "Não foi possível carregar o arquivo %1"
 
 msgid "Key Bindings:"
 msgstr "Atalhos:"
@@ -2779,7 +2779,7 @@ msgid "Enter key combo:"
 msgstr "Pressione combinação de teclas:"
 
 msgid "Bind conflict"
-msgstr "Conflito de vínculo"
+msgstr "Conflito de atalho"
 
 msgid "This key combo is already in use."
 msgstr "Esta combinação de teclas já está em uso."
@@ -2827,7 +2827,7 @@ msgid "Hub Mode"
 msgstr "Modo Hub"
 
 msgid "Hostname:"
-msgstr "Nome do Host:"
+msgstr "Nome do anfitrião:"
 
 msgid "ISA RAM:"
 msgstr "RAM ISA:"
@@ -2866,7 +2866,7 @@ msgid "Check for updates on startup"
 msgstr "Verificar atualizações ao iniciar"
 
 msgid "Unable to determine release information"
-msgstr "Impossível determinar informações do lançamento"
+msgstr "Não foi possível determinar as informações da versão"
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
 msgstr "Ocorreu um erro ao verificar por atualizações:\n\n%1\n\nPor favor tente mais tarde."
@@ -2893,13 +2893,13 @@ msgid "You are currently running version <b>%1</b>."
 msgstr "Você está executando atualmente a versão <b>%1</b>."
 
 msgid "<b>Version %1</b> is now available."
-msgstr "<b>Versão %2</b> está disponível."
+msgstr "A <b>versão %1</b> já está disponível."
 
 msgid "You are currently running build <b>%1</b>."
 msgstr "Você está executando atualmente a compilação <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
-msgstr "<b>Compilação %2</b> está disponível."
+msgstr "A <b>compilação %1</b> já está disponível."
 
 msgid "Would you like to visit the download page?"
 msgstr "Gostaria de visitar a página de download?"
@@ -2911,7 +2911,7 @@ msgid "Update check"
 msgstr "Verificação de atualização"
 
 msgid "Checking for updates..."
-msgstr "Verificando por atualizações.."
+msgstr "Verificando por atualizações..."
 
 msgid "86Box Update"
 msgstr "Atualização do 86Box"
@@ -2932,7 +2932,7 @@ msgid "The system will not be added."
 msgstr "O sistema não será adicionado."
 
 msgid "&Update mouse every CPU frame"
-msgstr "&Atualiza o estado do mouse em cada quadro do CPU"
+msgstr "&Atualiza o estado do mouse em cada quadro da CPU"
 
 msgid "Hue"
 msgstr "Matiz"
