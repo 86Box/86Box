@@ -895,6 +895,8 @@
    </property>
    <property name="text">
     <string>&amp;Pen</string>
+   </property>
+  </action>
   <action name="actionDebug_GPUDebug_VRAM">
     <property name="text">
       <string>GPU Debug - VRAM Viewer</string>
