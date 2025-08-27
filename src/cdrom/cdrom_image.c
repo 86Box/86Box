@@ -1016,7 +1016,7 @@ image_process(cd_image_t *img)
                 session_changed = 1;
             }
 
-            for (int j = 0; j < ct->max_index; j++) {
+            for (int j = 0; j <= ct->max_index; j++) {
                 ci = &(ct->idx[j]);
 
                 if ((ci->type < INDEX_SPECIAL) || (ci->type > INDEX_NORMAL)) {
