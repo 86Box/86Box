@@ -774,11 +774,11 @@ msgstr "Portit (COM & LPT)"
 msgid "Ports"
 msgstr "Portit"
 
-msgid "Serial ports"
-msgstr "Sarjaportit"
+msgid "Serial ports:"
+msgstr "Sarjaportit:"
 
-msgid "Parallel ports"
-msgstr "Rinnakkaisportit"
+msgid "Parallel ports:"
+msgstr "Rinnakkaisportit:"
 
 msgid "Storage controllers"
 msgstr "Tallennusohjaimet"
@@ -2826,16 +2826,13 @@ msgstr "Kytkin:"
 msgid "Hub Mode"
 msgstr "Hubitila"
 
-msgid "Isäntänimi:"
+msgid "Hostname:"
+msgstr "Isäntänimi:"
+
+msgid "ISA RAM:"
 msgstr ""
 
-msgid "ISA RTC"
-msgstr ""
-
-msgid "ISA RAM"
-msgstr ""
-
-msgid "ISA ROM"
+msgid "ISA ROM:"
 msgstr ""
 
 msgid "&Wipe NVRAM"
@@ -2957,3 +2954,15 @@ msgstr "&CGA:n komposiittiasetukset..."
 
 msgid "CGA composite settings"
 msgstr "CGA:n komposiittiasetukset"
+
+msgid "Monitor EDID"
+msgstr "Monitorin EDID"
+
+msgid "Export..."
+msgstr "Viedä..."
+
+msgid "Export EDID"
+msgstr "Vie EDID"
+
+msgid "EDID file \"%ls\" is too large."
+msgstr "EDID-tiedosto \"%ls\" on liian suuri."

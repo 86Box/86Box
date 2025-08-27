@@ -111,40 +111,6 @@ machine_at_v12p_init(const machine_t *model)
 }
 
 int
-machine_at_ambradp60_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear_combined("roms/machines/ambradp60/1004AF1P.BIO",
-                                    "roms/machines/ambradp60/1004AF1P.BI1",
-                                    0x1c000, 128);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init_ex(model, 2);
-
-    device_add(&amstrad_megapc_nvr_device);
-    device_add(&ide_pci_device);
-
-    pci_init(PCI_CONFIG_TYPE_2);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_IDE,         0, 0, 0, 0);
-    pci_register_slot(0x06, PCI_CARD_NORMAL,      3, 2, 1, 4);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 1, 3, 4);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 3, 2, 4);
-    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-    device_add(&sio_zb_device);
-    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
-    device_add(&intel_flash_bxt_ami_device);
-
-    device_add(&i430lx_device);
-
-    return ret;
-}
-
-int
 machine_at_excaliburpci_init(const machine_t *model)
 {
     int ret;
@@ -200,40 +166,6 @@ machine_at_p5mp3_init(const machine_t *model)
     device_add(&i430lx_device);
     device_add(&sio_zb_device);
     device_add(&catalyst_flash_device);
-
-    return ret;
-}
-
-int
-machine_at_dellxp60_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear_inverted("roms/machines/dellxp60/XP60-A08.ROM",
-                                    0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init_ex(model, 2);
-
-    device_add(&amstrad_megapc_nvr_device);
-    device_add(&ide_pci_device);
-
-    pci_init(PCI_CONFIG_TYPE_2);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    /* Not: 00, 02, 03, 04, 05, 06, 07, 08, 09, 0A, 0B, 0C, 0D, 0E, 0F. */
-    /* Yes: 01, 10, 11, 12, 13, 14. */
-    pci_register_slot(0x01, PCI_CARD_NORMAL,      1, 3, 2, 4);
-    pci_register_slot(0x04, PCI_CARD_NORMAL,      4, 4, 3, 3);
-    pci_register_slot(0x05, PCI_CARD_NORMAL,      1, 4, 3, 2);
-    pci_register_slot(0x06, PCI_CARD_NORMAL,      2, 1, 3, 4);
-    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&i430lx_device);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-    device_add(&sio_zb_device);
-    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add(&intel_flash_bxt_ami_device);
 
     return ret;
 }
@@ -341,6 +273,94 @@ machine_at_valuepointp60_init(const machine_t *model)
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&mach32_onboard_pci_device);
+
+    return ret;
+}
+
+static const device_config_t batman_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "batman",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "AMBRA DP60 PCI", .internal_name = "ambradp60", .bios_type = BIOS_NORMAL, 
+              .files_no = 2, .local = 0, .size = 131072, .files = { "roms/machines/batman/1004AF1P.BIO", "roms/machines/batman/1004AF1P.BI1", "" } },
+            { .name = "Dell Dimension XPS P60", .internal_name = "dellxp60", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/batman/aptiva510_$IMAGES.USF", "" } },
+            { .name = "Intel Premiere/PCI (Batman)", .internal_name = "batman", .bios_type = BIOS_NORMAL, 
+              .files_no = 2, .local = 0, .size = 131072, .files = { "roms/machines/batman/1008AF1_.BIO", "roms/machines/batman/1008AF1_.BI1", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t batman_device = {
+    .name          = "Intel Premiere/PCI (Batman)",
+    .internal_name = "batman_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = batman_config
+};
+
+int
+machine_at_batman_init(const machine_t *model)
+{
+    int ret = 0;
+    const char* fn;
+    const char* fn2;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    int is_dell = !strcmp(device_get_config_bios("bios"), "dellxp60");
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    if (is_dell)
+        ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    else {
+        fn2 = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 1);
+        ret = bios_load_linear_combined(fn, fn2, 0x1c000, 128);
+    }
+    device_context_restore();
+
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&amstrad_megapc_nvr_device);
+    device_add(&ide_pci_device);
+
+    pci_init(PCI_CONFIG_TYPE_2);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_IDE,         0, 0, 0, 0);
+    if (is_dell) {
+        pci_register_slot(0x04, PCI_CARD_NORMAL,      4, 4, 3, 3);
+        pci_register_slot(0x05, PCI_CARD_NORMAL,      1, 4, 3, 2);
+        pci_register_slot(0x06, PCI_CARD_NORMAL,      2, 1, 3, 4);
+    } else {
+        pci_register_slot(0x06, PCI_CARD_NORMAL,      3, 2, 1, 4);
+        pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 1, 3, 4);
+        pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 3, 2, 4);
+    }
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add(&sio_zb_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
+    device_add(&intel_flash_bxt_ami_device);
+
+    device_add(&i430lx_device);
 
     return ret;
 }

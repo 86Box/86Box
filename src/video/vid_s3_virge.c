@@ -5758,6 +5758,22 @@ static const device_config_t s3_virge_stb_config[] = {
 static const device_config_t s3_virge_357_config[] = {
     // clang-format off
     {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+
+   {
         .name           = "bilinear",
         .description    = "Bilinear filtering",
         .type           = CONFIG_BINARY,
@@ -6009,20 +6025,6 @@ const device_t s3_virge_357_agp_device = {
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
     .available     = s3_virge_357_available,
-    .speed_changed = s3_virge_speed_changed,
-    .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_357_config
-};
-
-const device_t s3_diamond_stealth_4000_pci_device = {
-    .name          = "S3 ViRGE/GX2 (Diamond Stealth 3D 4000) PCI",
-    .internal_name = "stealth3d_4000_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_DIAMOND_STEALTH3D_4000,
-    .init          = s3_virge_init,
-    .close         = s3_virge_close,
-    .reset         = s3_virge_reset,
-    .available     = s3_virge_357_diamond_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
     .config        = s3_virge_357_config

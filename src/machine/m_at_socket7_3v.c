@@ -42,9 +42,57 @@
 #include <86box/sound.h>
 
 /* i430FX */
-static void
-machine_at_p54tp4xe_common_init(const machine_t *model)
+static const device_config_t p54tp4xe_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "p54tp4xe",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "Award BIOS v4.51PG", .internal_name = "p54tp4xe", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/p54tp4xe/t15i0302.awd", "" } },
+            { .name = "MR BIOS V3.30", .internal_name = "p54tp4xe_mr", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/p54tp4xe/TRITON.BIO", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t p54tp4xe_device = {
+    .name          = "ASUS P/I-P55TP4XE",
+    .internal_name = "p54tp4xe_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = p54tp4xe_config
+};
+
+int
+machine_at_p54tp4xe_init(const machine_t *model)
 {
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
     machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
@@ -59,36 +107,6 @@ machine_at_p54tp4xe_common_init(const machine_t *model)
     device_add(&piix_device);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_device);
-}
-
-int
-machine_at_p54tp4xe_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/p54tp4xe/t15i0302.awd",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_p54tp4xe_common_init(model);
-
-    return ret;
-}
-
-int
-machine_at_p54tp4xe_mr_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/p54tp4xe/TRITON.BIO",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_p54tp4xe_common_init(model);
 
     return ret;
 }
@@ -121,6 +139,76 @@ machine_at_exp8551_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_at_vectra54_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/vectra54/GT0724.22",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_VIDEO,       0, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&s3_phoenix_trio64_onboard_pci_device);
+
+    device_add(&i430fx_device);
+    device_add(&piix_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_NORMAL));
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
+static const device_config_t thor_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "thor",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "Gateway 2000 (AMIBIOS)", .internal_name = "gw2katx", .bios_type = BIOS_NORMAL, 
+              .files_no = 2, .local = 0, .size = 131072, .files = { "roms/machines/thor/1003CN0T.BIO", "roms/machines/thor/1003CN0T.BI1", "" } },
+            { .name = "Intel (AMIBIOS)", .internal_name = "thor", .bios_type = BIOS_NORMAL, 
+              .files_no = 2, .local = 0, .size = 131072, .files = { "roms/machines/thor/1006cn0_.bio", "roms/machines/thor/1006cn0_.bi1", "" } },
+            { .name = "Intel (MR BIOS)", .internal_name = "mrthor", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/thor/mr_atx.bio", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t thor_device = {
+    .name          = "Intel Advanced/ATX (Thor)",
+    .internal_name = "thor_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = thor_config
+};
 
 static void
 machine_at_thor_gpio_init(void)
@@ -167,9 +255,29 @@ machine_at_thor_gpio_init(void)
     machine_set_gpio_default(gpio);
 }
 
-static void
-machine_at_thor_common_init(const machine_t *model, int has_video)
+int
+machine_at_thor_init(const machine_t *model)
 {
+    int ret = 0;
+    const char* fn;
+    const char* fn2;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    int is_mr     = !strcmp(device_get_config_bios("bios"), "mrthor");
+    int has_video = !strcmp(device_get_config_bios("bios"), "thor");
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    if (is_mr)
+        ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    else {
+        fn2 = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 1);
+        ret = bios_load_linear_combined(fn, fn2, 0x20000, 128);
+    }
+    device_context_restore();
+
     machine_at_common_init_ex(model, 2);
     machine_at_thor_gpio_init();
 
@@ -189,86 +297,6 @@ machine_at_thor_common_init(const machine_t *model, int has_video)
     device_add(&piix_device);
     device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
-}
-
-int
-machine_at_gw2katx_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear_combined("roms/machines/gw2katx/1003CN0T.BIO",
-                                    "roms/machines/gw2katx/1003CN0T.BI1",
-                                    0x20000, 128);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_thor_common_init(model, 0);
-
-    return ret;
-}
-
-int
-machine_at_vectra54_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/vectra54/GT0724.22",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init_ex(model, 2);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0D, PCI_CARD_VIDEO,       0, 0, 0, 0);
-    pci_register_slot(0x06, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_slot(0x07, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);
-
-    if (gfxcard[0] == VID_INTERNAL)
-        device_add(&s3_phoenix_trio64_onboard_pci_device);
-
-    device_add(&i430fx_device);
-    device_add(&piix_device);
-    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_NORMAL));
-    device_add(&sst_flash_29ee010_device);
-
-    return ret;
-}
-
-int
-machine_at_thor_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear_combined("roms/machines/thor/1006cn0_.bio",
-                                    "roms/machines/thor/1006cn0_.bi1",
-                                    0x20000, 128);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_thor_common_init(model, 1);
-
-    return ret;
-}
-
-int
-machine_at_mrthor_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/mrthor/mr_atx.bio",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_thor_common_init(model, 0);
 
     return ret;
 }

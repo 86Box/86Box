@@ -19,7 +19,7 @@ msgid "&Hard Reset..."
 msgstr "&Hard Reset..."
 
 msgid "&Ctrl+Alt+Del"
-msgstr "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Suppr"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -1057,7 +1057,7 @@ msgid "Pause execution"
 msgstr "Pause de l'exécution"
 
 msgid "Ctrl+Alt+Del"
-msgstr "Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Suppr"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "Appuyer sur Ctrl+Alt+Suppr"
@@ -2954,3 +2954,15 @@ msgstr "Réglages du mode composite &CGA..."
 
 msgid "CGA composite settings"
 msgstr "Réglages du mode composite CGA"
+
+msgid "Monitor EDID"
+msgstr "Écran EDID"
+
+msgid "Export..."
+msgstr "Exporter..."
+
+msgid "Export EDID"
+msgstr "Exporter l'EDID"
+
+msgid "EDID file \"%ls\" is too large."
+msgstr "Le fichier EDID \"%ls\" est trop volumineux."

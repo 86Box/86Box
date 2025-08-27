@@ -28,9 +28,10 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
-
+#include <86box/keyboard.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc.h>
+#include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/nmi.h>
 #include <86box/pic.h>
@@ -484,6 +485,9 @@ ali1489_init(UNUSED(const device_t *info))
 
     dev->port_92 = device_add(&port_92_pci_device);
     dev->smram   = smram_add();
+
+    if (machine_get_kbc_device(machine) == NULL)
+        device_add_params(&kbc_at_device, (void *) KBC_VEN_ALI);
 
     ali1489_defaults(dev);
 

@@ -2954,3 +2954,15 @@ msgstr "Cài đặt chế độ tổng hợp &CGA..."
 
 msgid "CGA composite settings"
 msgstr "Cài đặt chế độ tổng hợp CGA"
+
+msgid "Monitor EDID"
+msgstr "EDID của màn hình"
+
+msgid "Export..."
+msgstr "Xuất khẩu..."
+
+msgid "Export EDID"
+msgstr "Xuất khẩu EDID"
+
+msgid "EDID file \"%ls\" is too large."
+msgstr "Tệp EDID \"%ls\" quá lớn."

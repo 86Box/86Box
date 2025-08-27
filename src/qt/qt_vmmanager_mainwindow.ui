@@ -28,6 +28,7 @@
      <string>&amp;Tools</string>
     </property>
     <addaction name="actionPreferences"/>
+    <addaction name="actionRemember_size_and_position"/>
     <addaction name="actionCheck_for_updates"/>
    </widget>
    <widget class="QMenu" name="menuFile">
@@ -184,6 +185,14 @@
    </property>
    <property name="toolTip">
     <string>New machine...</string>
+   </property>
+  </action>
+  <action name="actionRemember_size_and_position">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>R&amp;emember size &amp;&amp; position</string>
    </property>
   </action>
   <action name="actionPreferences">

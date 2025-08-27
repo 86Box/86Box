@@ -167,9 +167,59 @@ machine_at_greenb_init(const machine_t *model)
 }
 
 /* OPTi 895 */
-static void
-machine_at_403tg_common_init(const machine_t *model, int nvr_hack)
+static const device_config_t j403tg_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "403tg",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "AMI 060692", .internal_name = "403tg", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/403tg/403TG.BIN", "" } },
+            { .name = "AMI 060692", .internal_name = "403tg_d", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/403tg/J403TGRevD.BIN", "" } },
+            { .name = "AMI 060692", .internal_name = "403tg_d_mr", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/403tg/MRBiosOPT895.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t j403tg_device = {
+    .name          = "Jetway J-403TG",
+    .internal_name = "403tg_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = j403tg_config
+};
+
+int
+machine_at_403tg_init(const machine_t *model)
 {
+    int ret = 0;
+    const char* fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    int nvr_hack = !strcmp(device_get_config_bios("bios"), "403tg_d");
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000f0000, 65536, 0);
+
     if (nvr_hack) {
         machine_at_common_init_ex(model, 2);
         device_add(&ami_1994_nvr_device);
@@ -182,52 +232,6 @@ machine_at_403tg_common_init(const machine_t *model, int nvr_hack)
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
-}
-
-int
-machine_at_403tg_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/403tg/403TG.BIN",
-                           0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_403tg_common_init(model, 0);
-
-    return ret;
-}
-
-int
-machine_at_403tg_d_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/403tg_d/J403TGRevD.BIN",
-                           0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_403tg_common_init(model, 1);
-
-    return ret;
-}
-
-int
-machine_at_403tg_d_mr_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/403tg_d/MRBiosOPT895.bin",
-                           0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_403tg_common_init(model, 0);
 
     return ret;
 }

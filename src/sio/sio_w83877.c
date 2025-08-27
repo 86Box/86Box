@@ -462,14 +462,25 @@ w83877_reset(w83877_t *dev)
 {
     fdc_reset(dev->fdc);
 
-    memset(dev->regs, 0, 0x2A);
+    memset(dev->regs, 0, 256);
     dev->regs[0x03] = 0x30;
-    dev->regs[0x07] = 0xF5;
+    dev->regs[0x07] = 0xf5;
     dev->regs[0x09] = (dev->reg_init >> 8) & 0xff;
-    dev->regs[0x0a] = 0x1F;
+    dev->regs[0x0a] = 0x1f;
     dev->regs[0x0c] = 0x28;
-    dev->regs[0x0d] = 0xA3;
-    dev->regs[0x16] = dev->reg_init & 0xff;
+    dev->regs[0x0d] = 0xa3;
+    dev->regs[0x16] = (dev->reg_init & 0xff) | 0x02;
+    dev->regs[0x1e] = 0x81;
+    dev->regs[0x20] = 0xfc;
+    dev->regs[0x21] = 0x7c;
+    dev->regs[0x22] = 0xfd;
+    dev->regs[0x23] = 0xde;
+    dev->regs[0x24] = 0xfe;
+    dev->regs[0x25] = 0xbe;
+    dev->regs[0x26] = 0x23;
+    dev->regs[0x27] = 0x65;
+    dev->regs[0x28] = 0x43;
+    dev->regs[0x29] = 0x62;
 
     w83877_fdc_handler(dev);
     fdc_clear_flags(dev->fdc, FDC_FLAG_PS2 | FDC_FLAG_PS2_MCA);

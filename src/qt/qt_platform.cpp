@@ -649,6 +649,7 @@ ProgSettings::reloadStrings()
     translatedstrings[STRING_NET_ERROR_DESC]            = QCoreApplication::translate("", "The network configuration will be switched to the null driver").toStdWString();
     translatedstrings[STRING_ESCP_ERROR_TITLE]          = QCoreApplication::translate("", "Unable to find Dot-Matrix fonts").toStdWString();
     translatedstrings[STRING_ESCP_ERROR_DESC]           = QCoreApplication::translate("", "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer.").toStdWString();
+    translatedstrings[STRING_EDID_TOO_LARGE]            = QCoreApplication::translate("", "EDID file \"%ls\" is too large.").toStdWString();
 }
 
 wchar_t *
@@ -668,25 +669,37 @@ plat_chdir(char *path)
 void
 plat_get_global_config_dir(char *outbuf, const size_t len)
 {
-    const auto dir = QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
-    if (!dir.exists()) {
-        if (!dir.mkpath(".")) {
-            qWarning("Failed to create global configuration directory %s", dir.absolutePath().toUtf8().constData());
+    if (portable_mode) {
+        strncpy(outbuf, exe_path, len);
+    } else {
+        const auto dir = QDir(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation));
+        if (!dir.exists()) {
+            if (!dir.mkpath(".")) {
+                qWarning("Failed to create global configuration directory %s", dir.absolutePath().toUtf8().constData());
+            }
         }
+        strncpy(outbuf, dir.canonicalPath().toUtf8().constData(), len);
     }
-    strncpy(outbuf, dir.canonicalPath().toUtf8().constData(), len);
+
+    path_slash(outbuf);
 }
 
 void
 plat_get_global_data_dir(char *outbuf, const size_t len)
 {
-    const auto dir = QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
-    if (!dir.exists()) {
-        if (!dir.mkpath(".")) {
-            qWarning("Failed to create global data directory %s", dir.absolutePath().toUtf8().constData());
+    if (portable_mode) {
+        strncpy(outbuf, exe_path, len);
+    } else {
+        const auto dir = QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+        if (!dir.exists()) {
+            if (!dir.mkpath(".")) {
+                qWarning("Failed to create global data directory %s", dir.absolutePath().toUtf8().constData());
+            }
         }
+        strncpy(outbuf, dir.canonicalPath().toUtf8().constData(), len);
     }
-    strncpy(outbuf, dir.canonicalPath().toUtf8().constData(), len);
+
+    path_slash(outbuf);
 }
 
 void
@@ -694,17 +707,26 @@ plat_get_temp_dir(char *outbuf, const uint8_t len)
 {
     const auto dir = QDir(QStandardPaths::writableLocation(QStandardPaths::TempLocation));
     strncpy(outbuf, dir.canonicalPath().toUtf8().constData(), len);
+    path_slash(outbuf);
 }
 
 void
 plat_get_vmm_dir(char *outbuf, const size_t len)
 {
+    QString path;
+
+    if (portable_mode) {
+        path = QDir(exe_path).filePath(VMM_PATH);
+    } else {
 #ifdef Q_OS_WINDOWS
-    const auto path = QDir::home().filePath("86Box VMs");
+        path = QDir::home().filePath(VMM_PATH_WINDOWS);
 #else
-    const auto path = QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)).filePath("Virtual Machines");
+        path = QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)).filePath(VMM_PATH);
 #endif
+    }
+
     strncpy(outbuf, path.toUtf8().constData(), len);
+    path_slash(outbuf);
 }
 
 void

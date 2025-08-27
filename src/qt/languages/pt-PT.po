@@ -952,7 +952,7 @@ msgid "Internal device"
 msgstr "Dispositivo integrado"
 
 msgid "&File"
-msgstr "&Ficheiro"
+msgstr "F&icheiro"
 
 msgid "&New machine..."
 msgstr "&Nova máquina"
@@ -2954,3 +2954,15 @@ msgstr "Definições do modo compósito &CGA..."
 
 msgid "CGA composite settings"
 msgstr "Definições do modo compósito CGA"
+
+msgid "Monitor EDID"
+msgstr "EDID do monitor"
+
+msgid "Export..."
+msgstr "Exportar..."
+
+msgid "Export EDID"
+msgstr "Exportar EDID"
+
+msgid "EDID file \"%ls\" is too large."
+msgstr "O ficheiro EDID \"%ls\" é demasiado grande."

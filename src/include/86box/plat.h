@@ -52,7 +52,8 @@ enum {
     STRING_GHOSTPCL_ERROR_TITLE,      /* "Unable to initialize GhostPCL" */
     STRING_GHOSTPCL_ERROR_DESC,       /* "gpcl6dll32.dll/gpcl6dll64.dll/libgpcl6 is required..." */
     STRING_ESCP_ERROR_TITLE,          /* "Unable to find Dot-Matrix fonts" */
-    STRING_ESCP_ERROR_DESC            /* "TrueType fonts in the \"roms/printer/fonts\" directory..." */
+    STRING_ESCP_ERROR_DESC,           /* "TrueType fonts in the \"roms/printer/fonts\" directory..." */
+    STRING_EDID_TOO_LARGE,            /* "EDID file \"%ls\" is too large (%lld bytes)." */
 };
 
 /* The Win32 API uses _wcsicmp. */

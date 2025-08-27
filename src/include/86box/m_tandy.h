@@ -47,6 +47,7 @@ typedef struct t1kvid_t {
     int      fullchange;
     int      vsynctime;
     int      vadj;
+    int      double_type;
     uint16_t memaddr;
     uint16_t memaddr_backup;
 
