@@ -1610,7 +1610,9 @@ image_load_cue(cd_image_t *img, const char *cuefile)
                     else
                         break;
                 }
-            }
+            } else if ((t == 0) && (line[strlen(line) - 2] == ' ') &&
+                       (line[strlen(line) - 1] == '0'))
+                t = 1;
 
             last_t           = t;
             ct               = image_insert_track(img, session, t);
