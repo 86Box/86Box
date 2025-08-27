@@ -876,6 +876,9 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
             svga->write_bank    = (val & 0x3ff) << 15;
             svga->read_bank     = ((val >> 10) & 0x3ff) << 15;
             svga->packed_chain4 = !!(val & 0x00100000);
+            svga->fast          = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) &&
+                                  ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) &&
+                                  !(svga->adv_flags & FLAG_ADDR_BY8);;
             break;
 
         case PLL_pllCtrl0:
@@ -3435,16 +3438,6 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
               banshee_hwcursor_draw,
               banshee_overlay_draw);
     banshee->svga.vsync_callback = banshee_vsync_callback;
-
-    /* This is apparently needed for Tie Fighter to work correctly. */
-    banshee->svga.read = svga_read;
-    banshee->svga.readw = NULL;
-    banshee->svga.readl = NULL;
-    banshee->svga.write = svga_write;
-    banshee->svga.writew = NULL;
-    banshee->svga.writel = NULL;
-    mem_mapping_set_handler(&banshee->svga.mapping, svga_read, NULL, NULL,
-                    svga_write, NULL, NULL);
 
     mem_mapping_add(&banshee->linear_mapping, 0, 0, banshee_read_linear,
                     banshee_read_linear_w,
