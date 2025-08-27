@@ -3436,16 +3436,6 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
               banshee_overlay_draw);
     banshee->svga.vsync_callback = banshee_vsync_callback;
 
-    /* This is apparently needed for Tie Fighter to work correctly. */
-    banshee->svga.read = svga_read;
-    banshee->svga.readw = NULL;
-    banshee->svga.readl = NULL;
-    banshee->svga.write = svga_write;
-    banshee->svga.writew = NULL;
-    banshee->svga.writel = NULL;
-    mem_mapping_set_handler(&banshee->svga.mapping, svga_read, NULL, NULL,
-                    svga_write, NULL, NULL);
-
     mem_mapping_add(&banshee->linear_mapping, 0, 0, banshee_read_linear,
                     banshee_read_linear_w,
                     banshee_read_linear_l,
