@@ -2966,3 +2966,9 @@ msgstr "EDID'i dışa aktar"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "EDID dosyası \"%ls\" çok büyük."
+
+msgid "OpenGL input scale"
+msgstr "OpenGL'nin giriş ölçeği"
+
+msgid "OpenGL input stretch mode"
+msgstr "OpenGL'nin giriş germe modu"

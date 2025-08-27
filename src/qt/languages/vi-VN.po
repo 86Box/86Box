@@ -2966,3 +2966,9 @@ msgstr "Xuất khẩu EDID"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "Tệp EDID \"%ls\" quá lớn."
+
+msgid "OpenGL input scale"
+msgstr "Độ phân giải đầu vào của OpenGL"
+
+msgid "OpenGL input stretch mode"
+msgstr "Chế độ kéo giãn đầu vào của OpenGL"

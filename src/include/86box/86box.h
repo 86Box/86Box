@@ -140,6 +140,8 @@ extern int      force_43;                   /* (C) video */
 extern int      video_filter_method;        /* (C) video */
 extern int      video_vsync;                /* (C) video */
 extern int      video_framerate;            /* (C) video */
+extern double   video_gl_input_scale;       /* (C) OpenGL 3.x input scale */
+extern int      video_gl_input_scale_mode;  /* (C) OpenGL 3.x input stretch mode */
 extern int      gfxcard[GFXCARD_MAX];       /* (C) graphics/video card */
 extern int      bugger_enabled;             /* (C) enable ISAbugger */
 extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */
