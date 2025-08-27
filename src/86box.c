@@ -894,7 +894,7 @@ usage:
             do_nothing = 1;
         } else if (!strcasecmp(argv[c], "--nohook") || !strcasecmp(argv[c], "-W")) {
             hook_enabled = 0;
-        } else if (!strcasecmp(argv[c], "--clearboth") || !strcasecmp(argv[c], "-X")) {
+        } else if (!strcasecmp(argv[c], "--clear") || !strcasecmp(argv[c], "-X")) {
             if ((c + 1) == argc)
                 goto usage;
 
