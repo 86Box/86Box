@@ -330,7 +330,9 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 case 4:
                     svga->chain2_write = !(val & 4);
                     svga->chain4       = (svga->chain4 & ~8) | (val & 8);
-                    svga->fast         = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) && ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) && !(svga->adv_flags & FLAG_ADDR_BY8);
+                    svga->fast         = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) &&
+                                        ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) &&
+                                        !(svga->adv_flags & FLAG_ADDR_BY8);
                     break;
 
                 default:
@@ -431,7 +433,9 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                     break;
             }
             svga->gdcreg[svga->gdcaddr & 15] = val;
-            svga->fast                       = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) && ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only);
+            svga->fast                       = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) &&
+                                               ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) &&
+                                                !(svga->adv_flags & FLAG_ADDR_BY8);;
             if (((svga->gdcaddr & 15) == 5 && (val ^ o) & 0x70) || ((svga->gdcaddr & 15) == 6 && (val ^ o) & 1)) {
                 svga_log("GDCADDR%02x recalc.\n", svga->gdcaddr & 0x0f);
                 svga_recalctimings(svga);

@@ -2592,7 +2592,7 @@ msgstr ""
 msgid "Generic Text Printer"
 msgstr ""
 
-msgid "Generic ESC/P Dot-Matrix Printer"
+msgid "Generic ESC/P 2 Dot-Matrix Printer"
 msgstr ""
 
 msgid "Generic PostScript Printer"
@@ -2694,7 +2694,7 @@ msgstr ""
 msgid "Unable to find Dot-Matrix fonts"
 msgstr ""
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr ""
 
 msgid "Inhibit multimedia keys"
@@ -2965,4 +2965,10 @@ msgid "Export EDID"
 msgstr ""
 
 msgid "EDID file \"%ls\" is too large."
+msgstr ""
+
+msgid "OpenGL input scale"
+msgstr ""
+
+msgid "OpenGL input stretch mode"
 msgstr ""

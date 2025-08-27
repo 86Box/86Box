@@ -2592,8 +2592,8 @@ msgstr "Stereo-LPT-DAC"
 msgid "Generic Text Printer"
 msgstr "Yleinen tekstitulostin"
 
-msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "Yleinen ESC/P pistematriisitulostin"
+msgid "Generic ESC/P 2 Dot-Matrix Printer"
+msgstr "Yleinen ESC/P 2 pistematriisitulostin"
 
 msgid "Generic PostScript Printer"
 msgstr "Yleinen PostScript-tulostin"
@@ -2694,8 +2694,8 @@ msgstr "Yleinen PC/AT-muistilaajennus"
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Pistematriisifontteja ei löydy"
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "\"roms/printer/fonts\"-hakemiston TrueType-fontteja vaaditaan ESC/P-pistematriisitulostimen emulointiin."
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "\"roms/printer/fonts\"-hakemiston TrueType-fontteja vaaditaan ESC/P 2-pistematriisitulostimen emulointiin."
 
 msgid "Inhibit multimedia keys"
 msgstr "Estä multimedianäppäimet"
@@ -2966,3 +2966,9 @@ msgstr "Vie EDID"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "EDID-tiedosto \"%ls\" on liian suuri."
+
+msgid "OpenGL input scale"
+msgstr "OpenGL:n syöttöasteikko"
+
+msgid "OpenGL input stretch mode"
+msgstr "OpenGL:n syötteen venytystila"

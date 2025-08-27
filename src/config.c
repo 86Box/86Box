@@ -227,6 +227,9 @@ load_general(void)
     video_framerate = ini_section_get_int(cat, "video_gl_framerate", -1);
     video_vsync     = ini_section_get_int(cat, "video_gl_vsync", 0);
 
+    video_gl_input_scale      = ini_section_get_double(cat, "video_gl_input_scale", 1.0);
+    video_gl_input_scale_mode = ini_section_get_int(cat, "video_gl_input_scale_mode", FULLSCR_SCALE_FULL);
+
     window_remember = ini_section_get_int(cat, "window_remember", 0);
     if (window_remember) {
         p = ini_section_get_string(cat, "window_coordinates", NULL);
@@ -2397,6 +2400,18 @@ save_general(void)
         ini_section_set_int(cat, "do_auto_pause", do_auto_pause);
     else
         ini_section_delete_var(cat, "do_auto_pause");
+
+    if (video_gl_input_scale != 1.0) {
+        ini_section_set_double(cat, "video_gl_input_scale", video_gl_input_scale);
+    } else {
+        ini_section_delete_var(cat, "video_gl_input_scale");
+    }
+
+    if (video_gl_input_scale_mode != FULLSCR_SCALE_FULL) {
+        ini_section_set_int(cat, "video_gl_input_scale_mode", video_gl_input_scale_mode);
+    } else {
+        ini_section_delete_var(cat, "video_gl_input_scale_mode");
+    }
 
     if (force_constant_mouse)
         ini_section_set_int(cat, "force_constant_mouse", force_constant_mouse);

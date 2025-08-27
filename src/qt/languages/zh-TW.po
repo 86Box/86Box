@@ -2592,8 +2592,8 @@ msgstr "立體聲 LPT DAC"
 msgid "Generic Text Printer"
 msgstr "通用文字印表機"
 
-msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "通用 ESC/P 點矩陣印表機"
+msgid "Generic ESC/P 2 Dot-Matrix Printer"
+msgstr "通用 ESC/P 2 點矩陣印表機"
 
 msgid "Generic PostScript Printer"
 msgstr "通用 PostScript 印表機"
@@ -2694,8 +2694,8 @@ msgstr "通用 PC/AT 記憶體擴充"
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "無法找到點矩陣字型"
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "通用 ESC/P 點矩陣印表機的模擬需要 \"roms/printer/fonts\" 目錄中的 TrueType 字體。"
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "通用 ESC/P 2 點矩陣印表機的模擬需要 \"roms/printer/fonts\" 目錄中的 TrueType 字體。"
 
 msgid "Inhibit multimedia keys"
 msgstr "禁止多媒體按鍵"
@@ -2966,3 +2966,9 @@ msgstr "匯出 EDID"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "EDID 檔案 \"%ls\" 太大。"
+
+msgid "OpenGL input scale"
+msgstr "OpenGL 的輸入比例"
+
+msgid "OpenGL input stretch mode"
+msgstr "OpenGL 的輸入拉伸模式"

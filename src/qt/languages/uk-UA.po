@@ -2592,8 +2592,8 @@ msgstr "Стерео LPT ЦАП"
 msgid "Generic Text Printer"
 msgstr "Загальний текстовий принтер"
 
-msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "Загальний матричний принтер ESC/P"
+msgid "Generic ESC/P 2 Dot-Matrix Printer"
+msgstr "Загальний матричний принтер ESC/P 2"
 
 msgid "Generic PostScript Printer"
 msgstr "Загальний принтер PostScript"
@@ -2694,8 +2694,8 @@ msgstr "Загальне розширення пам'яті PC/AT"
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Неможливо знайти матричні шрифти"
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "Шрифти TrueType у каталозі \"roms/printer/fonts\" потрібні для емуляції загального матричного принтера Generic ESC/P."
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Шрифти TrueType у каталозі \"roms/printer/fonts\" потрібні для емуляції загального матричного принтера Generic ESC/P 2."
 
 msgid "Inhibit multimedia keys"
 msgstr "Перехоплювати мультимедійні клавіші"
@@ -2966,3 +2966,9 @@ msgstr "Експорт EDID"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "Файл EDID \"%ls\" занадто великий."
+
+msgid "OpenGL input scale"
+msgstr "Шкала введення OpenGL"
+
+msgid "OpenGL input stretch mode"
+msgstr "Режим розтягування вхідних даних OpenGL"

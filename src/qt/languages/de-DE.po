@@ -2592,8 +2592,8 @@ msgstr "Stereo-LPT-DAC"
 msgid "Generic Text Printer"
 msgstr "Generischer Textdrucker"
 
-msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "Allgemeiner ESC/P-Nadel-Drucker"
+msgid "Generic ESC/P 2 Dot-Matrix Printer"
+msgstr "Allgemeiner ESC/P 2-Nadel-Drucker"
 
 msgid "Generic PostScript Printer"
 msgstr "Generischer PostScript-Drucker"
@@ -2694,8 +2694,8 @@ msgstr "Generische PC/AT-Speichererweiterung"
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Nadel-Schriften konnten nicht gefunden werden"
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "TrueType-Schriften in das \"roms/printer/fonts\"-Verzeichnis sind für die Allgemeines ESC/P Nadel-Druckers erforderlich."
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "TrueType-Schriften in das \"roms/printer/fonts\"-Verzeichnis sind für die Allgemeines ESC/P 2 Nadel-Druckers erforderlich."
 
 msgid "Inhibit multimedia keys"
 msgstr "Multimedia-Tasten unterdrücken"
@@ -2966,3 +2966,9 @@ msgstr "EDID exportieren"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "Die EDID-Datei \"%ls\" ist zu groß."
+
+msgid "OpenGL input scale"
+msgstr "Eingabeskala von OpenGL"
+
+msgid "OpenGL input stretch mode"
+msgstr "Eingabestreckungsmodus von OpenGL"

@@ -2592,8 +2592,8 @@ msgstr "DAC LPT stereo"
 msgid "Generic Text Printer"
 msgstr "Stampante di testo generica"
 
-msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "Stampante a matrice di punti ESC/P generica"
+msgid "Generic ESC/P 2 Dot-Matrix Printer"
+msgstr "Stampante a matrice di punti ESC/P 2 generica"
 
 msgid "Generic PostScript Printer"
 msgstr "Stampante PostScript generica"
@@ -2694,8 +2694,8 @@ msgstr "Espansione di memoria PC/AT generica"
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Impossibile trovare i caratteri a matrice di punti"
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "I caratteri TrueType presenti nella directory \"roms/printer/fonts\" sono necessari per l'emulazione della stampante a matrice di punti ESC/P generica."
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "I caratteri TrueType presenti nella directory \"roms/printer/fonts\" sono necessari per l'emulazione della stampante a matrice di punti ESC/P 2 generica."
 
 msgid "Inhibit multimedia keys"
 msgstr "Inibisci i tasti multimediali"
@@ -2966,3 +2966,9 @@ msgstr "Esporta EDID"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "Il file EDID \"%ls\" è troppo grande."
+
+msgid "OpenGL input scale"
+msgstr "Scala di input di OpenGL"
+
+msgid "OpenGL input stretch mode"
+msgstr "Modalità di allungamento dell'input di OpenGL"

@@ -2592,8 +2592,8 @@ msgstr "Stereofónny prevodník LPT DAC"
 msgid "Generic Text Printer"
 msgstr "Generická textová tlačiareň"
 
-msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "Generická ihličková tlačiareň ESC/P"
+msgid "Generic ESC/P 2 Dot-Matrix Printer"
+msgstr "Generická ihličková tlačiareň ESC/P 2"
 
 msgid "Generic PostScript Printer"
 msgstr "Generická tlačiareň PostScript"
@@ -2694,8 +2694,8 @@ msgstr "Všeobecné rozšírenie pamäte PC/AT"
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Nastala chyba pri hľadaní ihličkových písem"
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "Písma TrueType v adresári \"roms/printer/fonts\" sú potrebné na emuláciu generickej ihličkovej tlačiarne ESC/P."
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Písma TrueType v adresári \"roms/printer/fonts\" sú potrebné na emuláciu generickej ihličkovej tlačiarne ESC/P 2."
 
 msgid "Inhibit multimedia keys"
 msgstr "Potlačiť stlačenie multimediálnych klávesov"
@@ -2966,3 +2966,9 @@ msgstr "Exportovať EDID"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "Súbor EDID \"%ls\" je príliš veľký."
+
+msgid "OpenGL input scale"
+msgstr "Vstupná stupnica OpenGL"
+
+msgid "OpenGL input stretch mode"
+msgstr "Režim rozťahovania vstupu OpenGL"

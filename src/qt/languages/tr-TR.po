@@ -2592,8 +2592,8 @@ msgstr "Stereo LPT DAC"
 msgid "Generic Text Printer"
 msgstr "Genel Metin Yazıcı"
 
-msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "Genel ESC/P Dot-Matrix Yazıcı"
+msgid "Generic ESC/P 2 Dot-Matrix Printer"
+msgstr "Genel ESC/P 2 Dot-Matrix Yazıcı"
 
 msgid "Generic PostScript Printer"
 msgstr "Genel PostScript Yazıcı"
@@ -2694,8 +2694,8 @@ msgstr "Genel PC/AT Bellek Artırıcı"
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Dot-Matrix yazı tipleri bulunamıyor"
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "Genel ESC/P Dot-Matrix yazıcısının emülasyonu için \"roms/printer/fonts\" dizininde TrueType yazı tiplerinin bulunması gereklidir."
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Genel ESC/P 2 Dot-Matrix yazıcısının emülasyonu için \"roms/printer/fonts\" dizininde TrueType yazı tiplerinin bulunması gereklidir."
 
 msgid "Inhibit multimedia keys"
 msgstr "Multimedya tuşlarını engelle"
@@ -2966,3 +2966,9 @@ msgstr "EDID'i dışa aktar"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "EDID dosyası \"%ls\" çok büyük."
+
+msgid "OpenGL input scale"
+msgstr "OpenGL'nin giriş ölçeği"
+
+msgid "OpenGL input stretch mode"
+msgstr "OpenGL'nin giriş germe modu"

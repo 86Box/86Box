@@ -2592,8 +2592,8 @@ msgstr "Convertisseur numérique stéréo LPT"
 msgid "Generic Text Printer"
 msgstr "Imprimante texte générique"
 
-msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "Imprimante matricielle générique ESC/P"
+msgid "Generic ESC/P 2 Dot-Matrix Printer"
+msgstr "Imprimante matricielle générique ESC/P 2"
 
 msgid "Generic PostScript Printer"
 msgstr "Imprimante PostScript générique"
@@ -2694,8 +2694,8 @@ msgstr "Extension mémoire générique PC/AT"
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Impossible de trouver les polices matricielles"
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "Les polices TrueType dans le répertoire \"roms/printer/fonts\" sont nécessaires à l'émulation de l'imprimante générique ESC/P matricielle."
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Les polices TrueType dans le répertoire \"roms/printer/fonts\" sont nécessaires à l'émulation de l'imprimante générique ESC/P 2 matricielle."
 
 msgid "Inhibit multimedia keys"
 msgstr "Désactiver les touches multimédia"
@@ -2966,3 +2966,9 @@ msgstr "Exporter l'EDID"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "Le fichier EDID \"%ls\" est trop volumineux."
+
+msgid "OpenGL input scale"
+msgstr "Échelle d'entrée d'OpenGL"
+
+msgid "OpenGL input stretch mode"
+msgstr "Mode d'étirement des données d'entrée d'OpenGL"

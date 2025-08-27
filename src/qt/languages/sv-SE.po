@@ -2592,8 +2592,8 @@ msgstr "Stereo LPT DAC"
 msgid "Generic Text Printer"
 msgstr "Allmän textskrivare"
 
-msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "Allmän ESC/P punktmatrisskrivare"
+msgid "Generic ESC/P 2 Dot-Matrix Printer"
+msgstr "Allmän ESC/P 2 punktmatrisskrivare"
 
 msgid "Generic PostScript Printer"
 msgstr "Allmän PostScript-skrivare"
@@ -2694,8 +2694,8 @@ msgstr "Allmän minnesexpansion PC/AT"
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Kunde inte hitta typsnitt för punktmatris"
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "TrueType-typsnitt i mappen \"roms/printer/fonts\" krävs för emulering av den allmänna ESC/P punktmatrisskrivaren."
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "TrueType-typsnitt i mappen \"roms/printer/fonts\" krävs för emulering av den allmänna ESC/P 2 punktmatrisskrivaren."
 
 msgid "Inhibit multimedia keys"
 msgstr "Hindra multimediatangenter"
@@ -2966,3 +2966,9 @@ msgstr "Exportera EDID"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "EDID-filen \"%ls\" är för stor."
+
+msgid "OpenGL input scale"
+msgstr "Inmatningsskala för OpenGL"
+
+msgid "OpenGL input stretch mode"
+msgstr "Inmatningssträckningsläge för OpenGL"

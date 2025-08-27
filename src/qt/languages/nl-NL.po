@@ -2592,8 +2592,8 @@ msgstr "Stereo LPT DAC"
 msgid "Generic Text Printer"
 msgstr "Generieke tekstprinter"
 
-msgid "Generic ESC/P Dot-Matrix Printer"
-msgstr "Generieke ESC/P dot-matrix-printer"
+msgid "Generic ESC/P 2 Dot-Matrix Printer"
+msgstr "Generieke ESC/P 2 dot-matrix-printer"
 
 msgid "Generic PostScript Printer"
 msgstr "Generieke PostScript-printer"
@@ -2694,8 +2694,8 @@ msgstr "Generieke PC/AT geheugenuitbreiding"
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Dot-matrix-lettertypen niet gevonden"
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
-msgstr "TrueType lettertypen in de map \"roms/printer/fonts\" zijn nodig voor de emulatie van de generieke ESC/P dot-matrix-printer."
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "TrueType lettertypen in de map \"roms/printer/fonts\" zijn nodig voor de emulatie van de generieke ESC/P 2 dot-matrix-printer."
 
 msgid "Inhibit multimedia keys"
 msgstr "Multimedia-toetsen blokkeren"
@@ -2966,3 +2966,9 @@ msgstr "EDID exporteren"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "Het EDID-bestand \"%ls\" is te groot."
+
+msgid "OpenGL input scale"
+msgstr "Invoerschaal van OpenGL"
+
+msgid "OpenGL input stretch mode"
+msgstr "Input stretch-modus van OpenGL"
