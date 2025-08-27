@@ -1784,21 +1784,6 @@ MainWindow::on_actionInverted_VGA_monitor_triggered()
 }
 
 static void
-update_scaled_checkboxes_gl(Ui::MainWindow *ui, QAction *selected)
-{
-    ui->action_0_5x_2->setChecked(ui->action_0_5x_2 == selected);
-    ui->action_1x_2->setChecked(ui->action_1x_2 == selected);
-    ui->action1_5x_2->setChecked(ui->action1_5x_2 == selected);
-    ui->action_2x_2->setChecked(ui->action_2x_2 == selected);
-    ui->action_3x_2->setChecked(ui->action_3x_2 == selected);
-    ui->action_4x_2->setChecked(ui->action_4x_2 == selected);
-    ui->action_5x_2->setChecked(ui->action_5x_2 == selected);
-    ui->action_6x_2->setChecked(ui->action_6x_2 == selected);
-    ui->action_7x_2->setChecked(ui->action_7x_2 == selected);
-    ui->action_8x_2->setChecked(ui->action_8x_2 == selected);
-}
-
-static void
 update_scaled_checkboxes(Ui::MainWindow *ui, QAction *selected)
 {
     ui->action0_5x->setChecked(ui->action0_5x == selected);
