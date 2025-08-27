@@ -897,6 +897,11 @@
     <string>&amp;Pen</string>
    </property>
   </action>
+  <action name="actionCGA_composite_settings">
+   <property name="text">
+    <string>&amp;CGA composite settings...</string>
+   </property>
+  </action>
   <action name="actionDebug_GPUDebug_VRAM">
     <property name="text">
       <string>GPU Debug - VRAM Viewer</string>
