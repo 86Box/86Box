@@ -425,6 +425,16 @@ VMManagerSystem::launchMainProcess() {
     QStringList args;
     args << "--vmpath" << config_dir;
     args << "--vmname" << displayName;
+    if (rom_path[0] != '\0')
+        args << "--rompath" << QString(rom_path);
+    if (global_cfg_overridden)
+        args << "--global" << QString(global_cfg_path);
+    if (!hook_enabled)
+        args << "--nohook";
+    if (start_in_fullscreen)
+        args << "--fullscreen";
+    if (!confirm_exit_cmdl)
+        args << "--noconfirm";
     process->setProgram(program);
     process->setArguments(args);
     qDebug() << Q_FUNC_INFO << " Full Command:" << process->program() << " " << process->arguments();
@@ -481,6 +491,10 @@ VMManagerSystem::launchSettings() {
     QStringList open_command_args;
     QStringList args;
     args << "--vmpath" << config_dir << "--settings";
+    if (rom_path[0] != '\0')
+        args << "--rompath" << QString(rom_path);
+    if (global_cfg_overridden)
+        args << "--global" << QString(global_cfg_path);
     process->setProgram(program);
     process->setArguments(args);
     qDebug() << Q_FUNC_INFO << " Full Command:" << process->program() << " " << process->arguments();

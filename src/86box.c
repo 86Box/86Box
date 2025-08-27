@@ -230,6 +230,7 @@ int      other_scsi_present = 0;                                  /* SCSI contro
 int      is_pcjr = 0;                                             /* The current machine is PCjr. */
 int      portable_mode = 0;                                       /* We are running in portable mode
                                                                      (global dirs = exe path) */
+int      global_cfg_overridden = 0;                               /* Global config file was overriden on command line */
 
 int      monitor_edid = 0;                                        /* (C) Which EDID to use. 0=default, 1=custom. */
 char     monitor_edid_path[1024] = { 0 };                         /* (C) Path to custom EDID */
@@ -852,6 +853,7 @@ usage:
             if ((c + 1) == argc || plat_dir_check(argv[c + 1]))
                 goto usage;
 
+            global_cfg_overridden = 1;
             global = argv[++c];
         } else if (!strcasecmp(argv[c], "--image") || !strcasecmp(argv[c], "-I")) {
             if ((c + 1) == argc)
