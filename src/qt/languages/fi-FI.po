@@ -2966,3 +2966,9 @@ msgstr "Vie EDID"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "EDID-tiedosto \"%ls\" on liian suuri."
+
+msgid "OpenGL input scale"
+msgstr "OpenGL:n syöttöasteikko"
+
+msgid "OpenGL input stretch mode"
+msgstr "OpenGL:n syötteen venytystila"

@@ -234,6 +234,9 @@ int      portable_mode = 0;                                       /* We are runn
 int      monitor_edid = 0;                                        /* (C) Which EDID to use. 0=default, 1=custom. */
 char     monitor_edid_path[1024] = { 0 };                         /* (C) Path to custom EDID */
 
+double   video_gl_input_scale = 1.0;                              /* (C) OpenGL 3.x input scale */
+int      video_gl_input_scale_mode = FULLSCR_SCALE_FULL;          /* (C) OpenGL 3.x input stretch mode */
+
 // Accelerator key array
 struct accelKey acc_keys[NUM_ACCELS];
 

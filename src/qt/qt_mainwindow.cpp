@@ -530,6 +530,8 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
         }
         ui->stackedWidget->switchRenderer(newVidApi);
+        ui->menuOpenGL_input_scale->setEnabled(newVidApi == RendererStack::Renderer::OpenGL3);
+        ui->menuOpenGL_input_stretch_mode->setEnabled(newVidApi == RendererStack::Renderer::OpenGL3);
         if (!show_second_monitors)
             return;
         for (int i = 1; i < MONITORS_NUM; i++) {
@@ -549,6 +551,41 @@ MainWindow::MainWindow(QWidget *parent)
             emit actGroup->triggered(action);
             break;
         }
+
+    ui->action_0_5x_2->setChecked(video_gl_input_scale < 1.0);
+    ui->action_1x_2->setChecked(video_gl_input_scale >= 1.0 && video_gl_input_scale < 1.5);
+    ui->action1_5x_2->setChecked(video_gl_input_scale >= 1.5 && video_gl_input_scale < 2.0);
+    ui->action_2x_2->setChecked(video_gl_input_scale >= 2.0 && video_gl_input_scale < 3.0);
+    ui->action_3x_2->setChecked(video_gl_input_scale >= 3.0 && video_gl_input_scale < 4.0);
+    ui->action_4x_2->setChecked(video_gl_input_scale >= 4.0 && video_gl_input_scale < 5.0);
+    ui->action_5x_2->setChecked(video_gl_input_scale >= 5.0 && video_gl_input_scale < 6.0);
+    ui->action_6x_2->setChecked(video_gl_input_scale >= 6.0 && video_gl_input_scale < 7.0);
+    ui->action_7x_2->setChecked(video_gl_input_scale >= 7.0 && video_gl_input_scale < 8.0);
+    ui->action_8x_2->setChecked(video_gl_input_scale >= 8.0);
+
+    actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->action_0_5x_2);
+    actGroup->addAction(ui->action_1x_2);
+    actGroup->addAction(ui->action1_5x_2);
+    actGroup->addAction(ui->action_2x_2);
+    actGroup->addAction(ui->action_3x_2);
+    actGroup->addAction(ui->action_4x_2);
+    actGroup->addAction(ui->action_5x_2);
+    actGroup->addAction(ui->action_6x_2);
+    actGroup->addAction(ui->action_7x_2);
+    actGroup->addAction(ui->action_8x_2);
+    connect(actGroup, &QActionGroup::triggered, this, [this](QAction* action) {
+        if (action == ui->action_0_5x_2) video_gl_input_scale = 0.5;
+        if (action == ui->action_1x_2) video_gl_input_scale = 1;
+        if (action == ui->action1_5x_2) video_gl_input_scale = 1.5;
+        if (action == ui->action_2x_2) video_gl_input_scale = 2;
+        if (action == ui->action_3x_2) video_gl_input_scale = 3;
+        if (action == ui->action_4x_2) video_gl_input_scale = 4;
+        if (action == ui->action_5x_2) video_gl_input_scale = 5;
+        if (action == ui->action_6x_2) video_gl_input_scale = 6;
+        if (action == ui->action_7x_2) video_gl_input_scale = 7;
+        if (action == ui->action_8x_2) video_gl_input_scale = 8;
+    });
 
     switch (scale) {
         default:
@@ -633,6 +670,38 @@ MainWindow::MainWindow(QWidget *parent)
     actGroup->addAction(ui->actionFullScreen_keepRatio);
     actGroup->addAction(ui->actionFullScreen_int);
     actGroup->addAction(ui->actionFullScreen_int43);
+    switch (video_gl_input_scale_mode) {
+        default:
+            break;
+        case FULLSCR_SCALE_FULL:
+            ui->action_Full_screen_stretch_gl->setChecked(true);
+            break;
+        case FULLSCR_SCALE_43:
+            ui->action_4_3_gl->setChecked(true);
+            break;
+        case FULLSCR_SCALE_KEEPRATIO:
+            ui->action_Square_pixels_keep_ratio_gl->setChecked(true);
+            break;
+        case FULLSCR_SCALE_INT:
+            ui->action_Integer_scale_gl->setChecked(true);
+            break;
+        case FULLSCR_SCALE_INT43:
+            ui->action4_3_Integer_scale_gl->setChecked(true);
+            break;
+    }
+    actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->action_Full_screen_stretch_gl);
+    actGroup->addAction(ui->action_4_3_gl);
+    actGroup->addAction(ui->action_Square_pixels_keep_ratio_gl);
+    actGroup->addAction(ui->action_Integer_scale_gl);
+    actGroup->addAction(ui->action4_3_Integer_scale_gl);
+    connect(actGroup, &QActionGroup::triggered, this, [this](QAction* action) {
+        if (action == ui->action_Full_screen_stretch_gl) video_gl_input_scale_mode = FULLSCR_SCALE_FULL;
+        if (action == ui->action_4_3_gl) video_gl_input_scale_mode = FULLSCR_SCALE_43;
+        if (action == ui->action_Square_pixels_keep_ratio_gl) video_gl_input_scale_mode = FULLSCR_SCALE_KEEPRATIO;
+        if (action == ui->action_Integer_scale_gl) video_gl_input_scale_mode = FULLSCR_SCALE_INT;
+        if (action == ui->action4_3_Integer_scale_gl) video_gl_input_scale_mode = FULLSCR_SCALE_INT43;
+    });
     switch (video_grayscale) {
         default:
             break;
@@ -1712,6 +1781,21 @@ void
 MainWindow::on_actionInverted_VGA_monitor_triggered()
 {
     video_toggle_option(ui->actionInverted_VGA_monitor, &invert_display);
+}
+
+static void
+update_scaled_checkboxes_gl(Ui::MainWindow *ui, QAction *selected)
+{
+    ui->action_0_5x_2->setChecked(ui->action_0_5x_2 == selected);
+    ui->action_1x_2->setChecked(ui->action_1x_2 == selected);
+    ui->action1_5x_2->setChecked(ui->action1_5x_2 == selected);
+    ui->action_2x_2->setChecked(ui->action_2x_2 == selected);
+    ui->action_3x_2->setChecked(ui->action_3x_2 == selected);
+    ui->action_4x_2->setChecked(ui->action_4x_2 == selected);
+    ui->action_5x_2->setChecked(ui->action_5x_2 == selected);
+    ui->action_6x_2->setChecked(ui->action_6x_2 == selected);
+    ui->action_7x_2->setChecked(ui->action_7x_2 == selected);
+    ui->action_8x_2->setChecked(ui->action_8x_2 == selected);
 }
 
 static void

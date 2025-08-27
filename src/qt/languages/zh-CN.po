@@ -2966,3 +2966,9 @@ msgstr "导出EDID"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "EDID文件 \"%ls\" 过大。"
+
+msgid "OpenGL input scale"
+msgstr "OpenGL的输入比例"
+
+msgid "OpenGL input stretch mode"
+msgstr "OpenGL的输入拉伸模式"
