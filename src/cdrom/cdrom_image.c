@@ -2240,7 +2240,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
         image_log(img->log, "Final tracks list:\n");
         for (int i = 0; i < img->tracks_num; i++) {
             ct = &(img->tracks[i]);
-            for (int j = 0; j < 3; j++) {
+            for (int j = 0; j <= ct->max_index; j++) {
                 ci = &(ct->idx[j]);
                     image_log(img->log, "    [TRACK   ] %02X INDEX %02X: [%8s, %016" PRIX64 "]\n",
                           ct->point, j,
@@ -2278,7 +2278,7 @@ image_clear_tracks(cd_image_t *img)
             cur = &img->tracks[i];
 
             if (((cur->point >= 1) && (cur->point <= 99)) ||
-                (cur->point == 0xa2))  for (int j = 0; j < 3; j++) {
+                (cur->point == 0xa2))  for (int j = 0; j <= cur->max_index; j++) {
                     idx = &(cur->idx[j]);
                     /* Make sure we do not attempt to close a NULL file. */
                     if ((idx->file != NULL) && (idx->type == INDEX_NORMAL)) {
