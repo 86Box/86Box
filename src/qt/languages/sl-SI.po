@@ -2966,3 +2966,9 @@ msgstr "Izvoz EDID"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "Datoteka EDID \"%ls\" je prevelika."
+
+msgid "OpenGL input scale"
+msgstr "Vhodna lestvica OpenGL"
+
+msgid "OpenGL input stretch mode"
+msgstr "Način raztezanja vhoda OpenGL"

@@ -2966,3 +2966,9 @@ msgstr ""
 
 msgid "EDID file \"%ls\" is too large."
 msgstr ""
+
+msgid "OpenGL input scale"
+msgstr ""
+
+msgid "OpenGL input stretch mode"
+msgstr ""

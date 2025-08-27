@@ -2966,3 +2966,9 @@ msgstr "EDID 내보내기"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "EDID 파일 \"%ls\"가 너무 큽니다."
+
+msgid "OpenGL input scale"
+msgstr "OpenGL 입력 스케일"
+
+msgid "OpenGL input stretch mode"
+msgstr "OpenGL 입력 스트레치 모드"

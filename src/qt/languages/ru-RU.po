@@ -2966,3 +2966,9 @@ msgstr "Экспорт EDID"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "Файл EDID \"%ls\" слишком велик."
+
+msgid "OpenGL input scale"
+msgstr "Масштаб ввода OpenGL"
+
+msgid "OpenGL input stretch mode"
+msgstr "Режим растяжения ввода OpenGL"
