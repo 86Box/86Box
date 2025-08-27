@@ -1241,7 +1241,7 @@ image_process(cd_image_t *img)
                            second or afterwards session of a multi-session Cue sheet, calculate
                            the starting time and update all the indexes accordingly.
                          */
-                        const track_index_t *li = &(lt->idx[2]);
+                        const track_index_t *li = &(lt->idx[lt->max_index]);
 
                         for (int j = 0; j <= ct->max_index; j++) {
                             image_log(img->log, "    [TRACK   ] %02X/%02X, INDEX %02X, "
