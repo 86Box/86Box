@@ -30,6 +30,9 @@
       <property name="rightMargin">
        <number>0</number>
       </property>
+      <property name="sizeConstraint">
+       <enum>QLayout::SizeConstraint::SetFixedSize</enum>
+      </property>
       <item>
        <widget class="QLabel" name="systemDirectory">
         <property name="text">
