@@ -2974,10 +2974,10 @@ msgid "OpenGL input stretch mode"
 msgstr "Режим растяжения ввода OpenGL"
 
 msgid "Color scheme"
-msgstr "Цветовая гамма"
+msgstr "Цветовая схема"
 
 msgid "Light"
-msgstr "Свет"
+msgstr "Светлая"
 
 msgid "Dark"
-msgstr "Темный"
+msgstr "Тёмная"
