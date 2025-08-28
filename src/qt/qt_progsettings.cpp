@@ -138,6 +138,7 @@ ProgSettings::accept()
     connect(main_window, &MainWindow::updateStatusBarTip, main_window->status.get(), &MachineStatus::updateTip);
     connect(main_window, &MainWindow::statusBarMessage, main_window->status.get(), &MachineStatus::message, Qt::QueuedConnection);
     mouse_sensitivity = mouseSensitivity;
+    config_save_global();
     QDialog::accept();
 }
 

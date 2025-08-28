@@ -1081,6 +1081,7 @@ VMManagerSystem::startServer() {
         connect(socket_server, &VMManagerServerSocket::windowStatusChanged, this, &VMManagerSystem::windowStatusChangeReceived);
         connect(socket_server, &VMManagerServerSocket::runningStatusChanged, this, &VMManagerSystem::runningStatusChangeReceived);
         connect(socket_server, &VMManagerServerSocket::configurationChanged, this, &VMManagerSystem::configurationChangeReceived);
+        connect(socket_server, &VMManagerServerSocket::globalConfigurationChanged, this, &VMManagerSystem::globalConfigurationChanged);
         connect(socket_server, &VMManagerServerSocket::winIdReceived, this, [this] (WId id) { this->id = id; });
         return true;
     } else {
@@ -1122,6 +1123,12 @@ QString
 VMManagerSystem::getDisplayValue(Display::Name key)
 {
     return (display_table.contains(key)) ? display_table[key] : "";
+}
+
+void
+VMManagerSystem::sendGlobalConfigurationChanged()
+{
+    socket_server->serverSendMessage(VMManagerProtocol::ManagerMessage::GlobalConfigurationChanged);
 }
 
 void

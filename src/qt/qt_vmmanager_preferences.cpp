@@ -24,6 +24,11 @@
 #include "qt_vmmanager_config.hpp"
 #include "ui_qt_vmmanager_preferences.h"
 
+#ifdef Q_OS_WINDOWS
+#include "qt_vmmanager_windarkmodefilter.hpp"
+extern WindowsDarkModeFilter* vmm_dark_mode_filter;
+#endif
+
 extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
@@ -66,7 +71,13 @@ VMManagerPreferences(QWidget *parent) : ui(new Ui::VMManagerPreferences)
     const auto useRegexSearch = config->getStringValue("regex_search").toInt();
     ui->regexSearchCheckBox->setChecked(useRegexSearch);
 
+    ui->radioButtonSystem->setChecked(color_scheme == 0);
+    ui->radioButtonLight->setChecked(color_scheme == 1);
+    ui->radioButtonDark->setChecked(color_scheme == 2);
 
+#ifndef Q_OS_WINDOWS
+    ui->groupBoxColorScheme->setHidden(true);
+#endif
 }
 
 VMManagerPreferences::~
@@ -95,6 +106,7 @@ VMManagerPreferences::accept()
 
     strncpy(vmm_path_cfg, QDir::cleanPath(ui->systemDirectory->text()).toUtf8().constData(), sizeof(vmm_path_cfg) - 1);
     lang_id = ui->comboBoxLanguage->currentData().toInt();
+    color_scheme = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
     config_save_global();
 
 #if EMU_BUILD_NUM != 0
