@@ -57,8 +57,13 @@ plat_serpt_read(void *priv, uint8_t *data)
     fd_set                rdfds;
 
     switch (dev->mode) {
+        case SERPT_MODE_HOSTSER: {
+            if (read(dev->master_fd, data, 1) > 0) {
+                return 1;
+            }
+            return 0;
+        }
         case SERPT_MODE_VCON:
-        case SERPT_MODE_HOSTSER:
             FD_ZERO(&rdfds);
             FD_SET(dev->master_fd, &rdfds);
             tv.tv_sec  = 0;
