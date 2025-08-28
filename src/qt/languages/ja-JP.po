@@ -2593,7 +2593,7 @@ msgid "Generic Text Printer"
 msgstr "汎用テキスト・プリンタ"
 
 msgid "Generic ESC/P 2 Dot-Matrix Printer"
-msgstr "汎用ESC/Pドットマトリクスプリンタ"
+msgstr "汎用ESC/P 2ドットマトリクスプリンタ"
 
 msgid "Generic PostScript Printer"
 msgstr "汎用ポストスクリプトプリンタ"
@@ -2695,7 +2695,7 @@ msgid "Unable to find Dot-Matrix fonts"
 msgstr "ドットマトリクスフォントが見つかりません"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "汎用ESC/Pドットマトリクスプリンタのエミュレーションには、roms/printer/fontsディレクトリ内のTrueTypeフォントが必要です。"
+msgstr "汎用ESC/P 2ドットマトリクスプリンタのエミュレーションには、roms/printer/fontsディレクトリ内のTrueTypeフォントが必要です。"
 
 msgid "Inhibit multimedia keys"
 msgstr "マルチメディアキーを無効にする"
