@@ -14,6 +14,9 @@
    <string>Preferences</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="sizeConstraint">
+     <enum>QLayout::SizeConstraint::SetFixedSize</enum>
+   </property>
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
@@ -29,9 +32,6 @@
       </property>
       <property name="rightMargin">
        <number>0</number>
-      </property>
-      <property name="sizeConstraint">
-       <enum>QLayout::SizeConstraint::SetFixedSize</enum>
       </property>
       <item>
        <widget class="QLabel" name="systemDirectory">
