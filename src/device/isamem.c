@@ -2100,7 +2100,7 @@ static const device_config_t mplus2_config[] = {
   // clang-format off
     {
         .name           = "size",
-        .description    = "Memory Size",
+        .description    = "Memory size",
         .type           = CONFIG_SPINNER,
         .default_string = "",
         .default_int    = 64,
