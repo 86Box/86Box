@@ -519,6 +519,7 @@ int
 main(int argc, char *argv[])
 {
 #ifdef Q_OS_WINDOWS
+    bool wasDarkTheme = false;
     /* Check if Windows supports UTF-8 */
     if (GetACP() == CP_UTF8)
 	    acp_utf8 = 1;
@@ -554,6 +555,7 @@ main(int argc, char *argv[])
             f.open(QFile::ReadOnly | QFile::Text);
             QTextStream ts(&f);
             qApp->setStyleSheet(ts.readAll());
+            wasDarkTheme = true;
         }
         QPalette palette(qApp->palette());
         palette.setColor(QPalette::Link, Qt::white);
@@ -584,6 +586,16 @@ main(int argc, char *argv[])
     if (!pc_init(argc, argv)) {
         return 0;
     }
+
+#ifdef Q_OS_WINDOWS
+    if (util::isWindowsLightTheme() && wasDarkTheme) {
+        qApp->setStyleSheet("");
+        QPalette palette(qApp->palette());
+        palette.setColor(QPalette::Link, Qt::blue);
+        palette.setColor(QPalette::LinkVisited, Qt::magenta);
+        qApp->setPalette(palette);
+    }
+#endif
 
     if (!start_vmm)
 #ifdef Q_OS_MACOS
@@ -864,6 +876,10 @@ main(int argc, char *argv[])
 
     /* Initialize the rendering window, or fullscreen. */
     QTimer::singleShot(0, &app, [] {
+#ifdef Q_OS_WINDOWS
+        extern bool NewDarkMode;
+        NewDarkMode = util::isWindowsLightTheme();
+#endif
         pc_reset_hard_init();
 
         /* Set the PAUSE mode depending on the renderer. */

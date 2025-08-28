@@ -206,6 +206,8 @@ extern int  portable_mode;         /* we are running in portable mode
 extern int  monitor_edid;                   /* (C) Which EDID to use. 0=default, 1=custom. */
 extern char monitor_edid_path[1024];        /* (C) Path to custom EDID */
 
+extern int color_scheme;                    /* (C) Color scheme of UI (Windows-only) */
+
 #ifndef USE_NEW_DYNAREC
 extern FILE *stdlog; /* file to log output to */
 #endif
