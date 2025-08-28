@@ -129,6 +129,7 @@ public slots:
     void shutdownForceButtonPressed();
     void cadButtonPressed();
     void reloadConfig();
+    void sendGlobalConfigurationChanged();
 public:
     QDateTime timestamp();
     void setIcon(const QString &newIcon);
@@ -157,6 +158,7 @@ signals:
     void itemDataChanged();
     void clientProcessStatusChanged();
     void configurationChanged(const QString &uuid);
+    void globalConfigurationChanged();
 
 private:
     void loadSettings();

@@ -76,6 +76,7 @@ signals:
     void windowStatusChanged(int status);
     void runningStatusChanged(VMManagerProtocol::RunningState state);
     void configurationChanged();
+    void globalConfigurationChanged();
     void winIdReceived(WId id);
 
 

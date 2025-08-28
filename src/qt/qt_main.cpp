@@ -515,6 +515,10 @@ main_thread_fn()
 
 static std::thread *main_thread;
 
+#ifdef Q_OS_WINDOWS
+WindowsDarkModeFilter* vmm_dark_mode_filter = nullptr;
+#endif
+
 int
 main(int argc, char *argv[])
 {
@@ -657,6 +661,8 @@ main(int argc, char *argv[])
             const auto vmm_main_window = new VMManagerMainWindow();
 #ifdef Q_OS_WINDOWS
             darkModeFilter.get()->setWindow(vmm_main_window);
+            // HACK
+            vmm_dark_mode_filter = darkModeFilter.get();
 #endif
             vmm_main_window->show();
         });
@@ -843,6 +849,7 @@ main(int argc, char *argv[])
         });
         QObject::connect(main_window, &MainWindow::vmmRunningStateChanged, &manager_socket, &VMManagerClientSocket::clientRunningStateChanged);
         QObject::connect(main_window, &MainWindow::vmmConfigurationChanged, &manager_socket, &VMManagerClientSocket::configurationChanged);
+        QObject::connect(main_window, &MainWindow::vmmGlobalConfigurationChanged, &manager_socket, &VMManagerClientSocket::globalConfigurationChanged);
         main_window->installEventFilter(&manager_socket);
 
         manager_socket.sendWinIdMessage(main_window->winId());

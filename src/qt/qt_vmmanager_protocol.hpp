@@ -43,6 +43,7 @@ public:
         ResetVM,
         RequestShutdown,
         ForceShutdown,
+        GlobalConfigurationChanged,
         UnknownMessage,
     };
 
@@ -56,6 +57,7 @@ public:
         RunningStateChanged,
         ConfigurationChanged,
         WinIdMessage,
+        GlobalConfigurationChanged,
         UnknownMessage,
     };
     Q_ENUM(ClientMessage);
