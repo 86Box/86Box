@@ -2244,7 +2244,9 @@ void
 MainWindow::on_actionPreferences_triggered()
 {
     ProgSettings progsettings(this);
-    progsettings.exec();
+    if (progsettings.exec() == QDialog::Accepted) {
+        emit vmmGlobalConfigurationChanged();
+    }
 }
 
 void

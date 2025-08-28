@@ -31,9 +31,12 @@
 #include <atomic>
 
 #include "qt_vmmanager_main.hpp"
+#include "qt_vmmanager_mainwindow.hpp"
 #include "ui_qt_vmmanager_main.h"
 #include "qt_vmmanager_model.hpp"
 #include "qt_vmmanager_addmachine.hpp"
+
+extern VMManagerMainWindow* vmm_main_window;
 
 // https://stackoverflow.com/a/36460740
 bool copyPath(QString sourceDir, QString destinationDir, bool overWriteDirectory)
@@ -348,6 +351,10 @@ illegal_chars:
         }
     });
 
+    connect(vm_model, &VMManagerModel::globalConfigurationChanged, this, [this] () {
+        vmm_main_window->updateSettings();
+    });
+
     // Initial default details view
     vm_details = new VMManagerDetails(ui->detailsArea);
     ui->detailsArea->layout()->addWidget(vm_details);
@@ -398,6 +405,12 @@ illegal_chars:
 VMManagerMain::~VMManagerMain() {
     delete ui;
     delete vm_model;
+}
+
+void
+VMManagerMain::updateGlobalSettings()
+{
+    vmm_main_window->updateSettings();
 }
 
 void
@@ -767,6 +780,10 @@ VMManagerMain::onPreferencesUpdated()
     regexSearch = config->getStringValue("regex_search").toInt();
     if (oldRegexSearch != regexSearch) {
         ui->searchBar->clear();
+    }
+
+    if (vm_model) {
+        vm_model->sendGlobalConfigurationChanged();
     }
 }
 

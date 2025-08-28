@@ -18,6 +18,7 @@
 #include "qt_vmmanager_mainwindow.hpp"
 #include "qt_vmmanager_main.hpp"
 #include "qt_vmmanager_preferences.hpp"
+#include "qt_vmmanager_windarkmodefilter.hpp"
 #include "ui_qt_vmmanager_mainwindow.h"
 #if EMU_BUILD_NUM != 0
 #    include "qt_updatecheckdialog.hpp"
@@ -30,7 +31,16 @@
 #include <QStringListModel>
 #include <QCompleter>
 #include <QCloseEvent>
-#include <QDesktopServices> 
+#include <QDesktopServices>
+
+extern "C"
+{
+extern void config_load_global();
+extern void config_save_global();
+}
+
+VMManagerMainWindow* vmm_main_window = nullptr;
+extern WindowsDarkModeFilter* vmm_dark_mode_filter;
 
 VMManagerMainWindow::
 VMManagerMainWindow(QWidget *parent)
@@ -40,6 +50,8 @@ VMManagerMainWindow(QWidget *parent)
     , statusRight(new QLabel)
 {
     ui->setupUi(this);
+
+    vmm_main_window = this;
 
     // Connect signals from the VMManagerMain widget
     connect(vmm, &VMManagerMain::selectionChanged, this, &VMManagerMainWindow::vmmSelectionChanged);
@@ -118,6 +130,7 @@ VMManagerMainWindow(QWidget *parent)
     connect(this, &VMManagerMainWindow::languageUpdated, vmm, &VMManagerMain::onLanguageUpdated);
 #ifdef Q_OS_WINDOWS
     connect(this, &VMManagerMainWindow::darkModeUpdated, vmm, &VMManagerMain::onDarkModeUpdated);
+    connect(this, &VMManagerMainWindow::preferencesUpdated, [this] () { vmm_dark_mode_filter->reselectDarkMode(); });
 #endif
 
     {
@@ -185,6 +198,14 @@ VMManagerMainWindow::preferencesTriggered()
         emit preferencesUpdated();
         updateLanguage();
     }
+}
+
+void
+VMManagerMainWindow::updateSettings()
+{
+    config_load_global();
+    emit preferencesUpdated();
+    updateLanguage();
 }
 
 void

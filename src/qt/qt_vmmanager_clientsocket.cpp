@@ -23,6 +23,7 @@
 
 extern "C" {
 #include "86box/plat.h"
+#include "86box/config.h"
 }
 
 VMManagerClientSocket::VMManagerClientSocket(QObject* obj) : server_connected(false)
@@ -183,6 +184,15 @@ VMManagerClientSocket::jsonReceived(const QJsonObject &json)
         case VMManagerProtocol::ManagerMessage::RequestStatus:
             qDebug("Status request command received from manager");
             break;
+        case VMManagerProtocol::ManagerMessage::GlobalConfigurationChanged:
+            {
+                config_load_global();
+#ifdef Q_OS_WINDOWS
+                void selectDarkMode();
+                selectDarkMode();
+#endif
+                break;
+            }
         default:
             qDebug("Unknown client message type received:");
             qDebug() << json;
@@ -246,6 +256,12 @@ VMManagerClientSocket::clientRunningStateChanged(VMManagerProtocol::RunningState
     }
     extra_object["status"] = static_cast<int>(state);
     sendMessageWithObject(VMManagerProtocol::ClientMessage::RunningStateChanged, extra_object);
+}
+
+void
+VMManagerClientSocket::globalConfigurationChanged() const
+{
+    sendMessage(VMManagerProtocol::ClientMessage::GlobalConfigurationChanged);
 }
 
 void

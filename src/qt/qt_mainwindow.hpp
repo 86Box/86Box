@@ -68,6 +68,7 @@ signals:
 
     void vmmRunningStateChanged(VMManagerProtocol::RunningState state);
     void vmmConfigurationChanged();
+    void vmmGlobalConfigurationChanged();
 public slots:
     void showSettings();
     void hardReset();
