@@ -52,7 +52,8 @@ WindowsDarkModeFilter::nativeEventFilter(const QByteArray &eventType, void *mess
 
         if ((msg != nullptr) && (msg->message == WM_SETTINGCHANGE)) {
             if ((((void *) msg->lParam) != nullptr) &&
-                (wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0)) {
+                (wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0) &&
+                color_scheme == 0) {
 
                 bool OldDarkMode = NewDarkMode;
 

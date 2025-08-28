@@ -2972,3 +2972,15 @@ msgstr ""
 
 msgid "OpenGL input stretch mode"
 msgstr ""
+
+msgid "Color scheme"
+msgstr ""
+
+msgid "System"
+msgstr ""
+
+msgid "Light"
+msgstr ""
+
+msgid "Dark"
+msgstr ""

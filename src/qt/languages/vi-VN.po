@@ -2972,3 +2972,12 @@ msgstr "Độ phân giải đầu vào của OpenGL"
 
 msgid "OpenGL input stretch mode"
 msgstr "Chế độ kéo giãn đầu vào của OpenGL"
+
+msgid "Color scheme"
+msgstr "Bảng màu"
+
+msgid "Light"
+msgstr "Ánh sáng"
+
+msgid "Dark"
+msgstr "Tối"

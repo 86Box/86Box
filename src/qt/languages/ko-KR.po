@@ -2972,3 +2972,12 @@ msgstr "OpenGL 입력 스케일"
 
 msgid "OpenGL input stretch mode"
 msgstr "OpenGL 입력 스트레치 모드"
+
+msgid "Color scheme"
+msgstr "색상 구성"
+
+msgid "Light"
+msgstr "빛"
+
+msgid "Dark"
+msgstr "어둠"

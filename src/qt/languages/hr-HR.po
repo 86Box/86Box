@@ -2972,3 +2972,12 @@ msgstr "Ulazna skala OpenGL-a"
 
 msgid "OpenGL input stretch mode"
 msgstr "Način rastezanja ulaza u OpenGL-u"
+
+msgid "Color scheme"
+msgstr "Shema boja"
+
+msgid "Light"
+msgstr "Svjetlo"
+
+msgid "Dark"
+msgstr "Tamno"

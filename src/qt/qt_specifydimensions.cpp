@@ -118,5 +118,7 @@ SpecifyDimensions::on_SpecifyDimensions_accepted()
                 + main_window->menuBar()->height()
                 + (main_window->statusBar()->height() * !hide_status_bar)
                 + (main_window->ui->toolBar->height() * !hide_tool_bar));
+        window_w = ui->spinBoxWidth->value();
+        window_h = ui->spinBoxHeight->value();
     }
 }

@@ -2972,3 +2972,12 @@ msgstr "Vstupní měřítko OpenGL"
 
 msgid "OpenGL input stretch mode"
 msgstr "režim roztažení vstupu OpenGL"
+
+msgid "Color scheme"
+msgstr "Barevné schéma"
+
+msgid "Light"
+msgstr "Světlo"
+
+msgid "Dark"
+msgstr "Tmavá"
