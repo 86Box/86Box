@@ -145,7 +145,7 @@ VMManagerDetailSection::setSectionName(const QString &name)
 }
 
 void
-VMManagerDetailSection::addSection(const QString &name, const QString &value, Display::Name displayField)
+VMManagerDetailSection::addSection(const QString &name, const QString &value, VMManager::Display::Name displayField)
 {
     const auto new_section = DetailSection { name, value};
     sections.push_back(new_section);
