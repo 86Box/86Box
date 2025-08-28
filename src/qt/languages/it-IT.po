@@ -2972,3 +2972,12 @@ msgstr "Scala di input di OpenGL"
 
 msgid "OpenGL input stretch mode"
 msgstr "Modalità di allungamento dell'input di OpenGL"
+
+msgid "Color scheme"
+msgstr "Combinazione di colori"
+
+msgid "Light"
+msgstr "Luce"
+
+msgid "Dark"
+msgstr "Scuro"

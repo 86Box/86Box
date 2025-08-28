@@ -2972,3 +2972,12 @@ msgstr "Invoerschaal van OpenGL"
 
 msgid "OpenGL input stretch mode"
 msgstr "Input stretch-modus van OpenGL"
+
+msgid "Color scheme"
+msgstr "Kleurenschema"
+
+msgid "Light"
+msgstr "Licht"
+
+msgid "Dark"
+msgstr "Donker"

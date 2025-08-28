@@ -2972,3 +2972,12 @@ msgstr "Масштаб ввода OpenGL"
 
 msgid "OpenGL input stretch mode"
 msgstr "Режим растяжения ввода OpenGL"
+
+msgid "Color scheme"
+msgstr "Цветовая схема"
+
+msgid "Light"
+msgstr "Светлая"
+
+msgid "Dark"
+msgstr "Тёмная"

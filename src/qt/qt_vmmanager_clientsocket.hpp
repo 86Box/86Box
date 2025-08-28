@@ -45,6 +45,7 @@ signals:
 public slots:
     void clientRunningStateChanged(VMManagerProtocol::RunningState state) const;
     void configurationChanged() const;
+    void globalConfigurationChanged() const;
 
 private:
     QString server_name;

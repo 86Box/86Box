@@ -370,18 +370,6 @@ write_data(uint8_t val, void *priv)
 }
 
 static void
-autofeed(uint8_t val, void *priv)
-{
-    prnt_t *dev = (prnt_t *) priv;
-
-    if (dev == NULL)
-        return;
-
-    /* set autofeed value */
-    dev->autofeed = val & 0x02 ? 1 : 0;
-}
-
-static void
 strobe(uint8_t old, uint8_t val, void *priv)
 {
     prnt_t *dev = (prnt_t *) priv;
@@ -418,7 +406,7 @@ write_ctrl(uint8_t val, void *priv)
         return;
 
     /* set autofeed value */
-    dev->autofeed = val & 0x02 ? 1 : 0;
+    dev->autofeed = (val & 0x02) ? 1 : 0;
 
     if (val & 0x08) { /* SELECT */
         /* select printer */
@@ -562,7 +550,6 @@ const lpt_device_t lpt_prt_text_device = {
     .close            = prnt_close,
     .write_data       = write_data,
     .write_ctrl       = write_ctrl,
-    .autofeed         = autofeed,
     .strobe           = strobe,
     .read_status      = read_status,
     .read_ctrl        = NULL,

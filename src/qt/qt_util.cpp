@@ -66,6 +66,10 @@ screenOfWidget(QWidget *widget)
 
 bool
 isWindowsLightTheme(void) {
+    if (color_scheme != 0) {
+        return (color_scheme == 1);
+    }
+
     // based on https://stackoverflow.com/questions/51334674/how-to-detect-windows-10-light-dark-mode-in-win32-application
 
     // The value is expected to be a REG_DWORD, which is a signed 32-bit little-endian

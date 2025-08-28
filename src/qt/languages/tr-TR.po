@@ -2972,3 +2972,12 @@ msgstr "OpenGL'nin giriş ölçeği"
 
 msgid "OpenGL input stretch mode"
 msgstr "OpenGL'nin giriş germe modu"
+
+msgid "Color scheme"
+msgstr "Renk şeması"
+
+msgid "Light"
+msgstr "Işık"
+
+msgid "Dark"
+msgstr "Karanlık"

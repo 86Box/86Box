@@ -95,6 +95,8 @@ VMManagerProtocol::getClientMessageType(const QJsonObject &json_document)
         return VMManagerProtocol::ClientMessage::ConfigurationChanged;
     } else if (message_type == "WinIdMessage") {
         return VMManagerProtocol::ClientMessage::WinIdMessage;
+    } else if (message_type == "GlobalConfigurationChanged") {
+        return VMManagerProtocol::ClientMessage::GlobalConfigurationChanged;
     }
     return VMManagerProtocol::ClientMessage::UnknownMessage;
 }
@@ -119,6 +121,8 @@ VMManagerProtocol::getManagerMessageType(const QJsonObject &json_document)
         return VMManagerProtocol::ManagerMessage::RequestShutdown;
     } if (message_type == "ForceShutdown") {
         return VMManagerProtocol::ManagerMessage::ForceShutdown;
+    } if (message_type == "GlobalConfigurationChanged") {
+        return VMManagerProtocol::ManagerMessage::GlobalConfigurationChanged;
     }
     return VMManagerProtocol::ManagerMessage::UnknownMessage;
 }
