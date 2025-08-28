@@ -520,7 +520,7 @@ update_font(escp_t *dev)
     } else
         switch (dev->lq_typeface) {
             case TYPEFACE_ROMAN:
-                fn = FONT_FILE_ROMAN;
+                fn = (dev->font_style & STYLE_PROP) ? FONT_FILE_ROMAN : FONT_FILE_COURIER;
                 break;
             case TYPEFACE_SANSSERIF:
                 fn = FONT_FILE_SANSSERIF;
@@ -890,7 +890,7 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 0x21: /* master select (ESC !) */
-                dev->cpi = dev->esc_parms[0] & 0x01 ? 12.0 : 10.0;
+                dev->cpi = (dev->esc_parms[0]) & 0x01 ? 12.0 : 10.0;
 
                 /* Reset first seven bits. */
                 dev->font_style &= 0xFF80;
@@ -1045,7 +1045,7 @@ process_char(escp_t *dev, uint8_t ch)
                 update_font(dev);
                 break;
 
-            case 0x47: /* select dobule-strike printing (ESC G) */
+            case 0x47: /* select double-strike printing (ESC G) */
                 dev->font_style |= STYLE_DOUBLESTRIKE;
                 break;
 
@@ -1098,7 +1098,7 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 0x52: /* select an intl character set (ESC R) */
-                if (dev->esc_parms[0] <= 13 || dev->esc_parms[0] == 64) {
+                if ((dev->esc_parms[0] <= 13) || (dev->esc_parms[0] == 64)) {
                     if (dev->esc_parms[0] == 64)
                         dev->esc_parms[0] = 14;
 
@@ -1118,9 +1118,9 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 0x53: /* select superscript/subscript printing (ESC S) */
-                if (dev->esc_parms[0] == 0 || dev->esc_parms[0] == '0')
+                if ((dev->esc_parms[0] == 0) || (dev->esc_parms[0] == '0'))
                     dev->font_style |= STYLE_SUBSCRIPT;
-                if (dev->esc_parms[0] == 1 || dev->esc_parms[1] == '1')
+                if ((dev->esc_parms[0] == 1) || (dev->esc_parms[1] == '1'))
                     dev->font_style |= STYLE_SUPERSCRIPT;
                 update_font(dev);
                 break;
@@ -1137,9 +1137,9 @@ process_char(escp_t *dev, uint8_t ch)
             case 0x57: /* turn double-width printing on/off (ESC W) */
                 if (!dev->multipoint_mode) {
                     dev->hmi = -1;
-                    if (dev->esc_parms[0] == 0 || dev->esc_parms[0] == '0')
+                    if ((dev->esc_parms[0] == 0) || (dev->esc_parms[0] == '0'))
                         dev->font_style &= ~STYLE_DOUBLEWIDTH;
-                    if (dev->esc_parms[0] == 1 || dev->esc_parms[0] == '1')
+                    if ((dev->esc_parms[0] == 1) || (dev->esc_parms[0] == '1'))
                         dev->font_style |= STYLE_DOUBLEWIDTH;
                     update_font(dev);
                 }
@@ -1216,9 +1216,9 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 0x6b: /* select typeface (ESC k) */
-                if (dev->esc_parms[0] <= 11 || dev->esc_parms[0] == 30 || dev->esc_parms[0] == 31) {
+                if ((dev->esc_parms[0] <= 11) || (dev->esc_parms[0] == 30) ||
+                    (dev->esc_parms[0] == 31))
                     dev->lq_typeface = dev->esc_parms[0];
-                }
                 update_font(dev);
                 break;
 
@@ -1229,9 +1229,9 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 0x70: /* Turn proportional mode on/off (ESC p) */
-                if (dev->esc_parms[0] == 0 || dev->esc_parms[0] == '0')
+                if ((dev->esc_parms[0] == 0) || (dev->esc_parms[0] == '0'))
                     dev->font_style &= ~STYLE_PROP;
-                if (dev->esc_parms[0] == 1 || dev->esc_parms[0] == '1') {
+                if ((dev->esc_parms[0] == 1) || (dev->esc_parms[0] == '1')) {
                     dev->font_style |= STYLE_PROP;
                     dev->print_quality = QUALITY_LQ;
                 }
@@ -1264,20 +1264,20 @@ process_char(escp_t *dev, uint8_t ch)
 
             case 0x77: /* turn double-height printing on/off (ESC w) */
                 if (!dev->multipoint_mode) {
-                    if (dev->esc_parms[0] == 0 || dev->esc_parms[0] == '0')
+                    if ((dev->esc_parms[0] == 0) || (dev->esc_parms[0] == '0'))
                         dev->font_style &= ~STYLE_DOUBLEHEIGHT;
-                    if (dev->esc_parms[0] == 1 || dev->esc_parms[0] == '1')
+                    if ((dev->esc_parms[0] == 1) || (dev->esc_parms[0] == '1'))
                         dev->font_style |= STYLE_DOUBLEHEIGHT;
                     update_font(dev);
                 }
                 break;
 
             case 0x78: /* select LQ or draft (ESC x) */
-                if (dev->esc_parms[0] == 0 || dev->esc_parms[0] == '0') {
+                if ((dev->esc_parms[0] == 0) || (dev->esc_parms[0] == '0')) {
                     dev->print_quality = QUALITY_DRAFT;
                     dev->font_style |= STYLE_CONDENSED;
                 }
-                if (dev->esc_parms[0] == 1 || dev->esc_parms[0] == '1') {
+                if ((dev->esc_parms[0] == 1) || (dev->esc_parms[0] == '1')) {
                     dev->print_quality = QUALITY_LQ;
                     dev->font_style &= ~STYLE_CONDENSED;
                 }
