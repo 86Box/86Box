@@ -25,7 +25,6 @@ typedef struct lpt_device_s {
     void          (*close)(void *priv);
     void          (*write_data)(uint8_t val, void *priv);
     void          (*write_ctrl)(uint8_t val, void *priv);
-    void          (*autofeed)(uint8_t val,void *priv);
     void          (*strobe)(uint8_t old, uint8_t val,void *priv);
     uint8_t       (*read_status)(void *priv);
     uint8_t       (*read_ctrl)(void *priv);

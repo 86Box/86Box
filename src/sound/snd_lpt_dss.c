@@ -139,7 +139,6 @@ const lpt_device_t dss_device = {
     .init             = dss_init,
     .close            = dss_close,
     .write_data       = dss_write_data,
-    .autofeed         = NULL,
     .strobe           = NULL,
     .write_ctrl       = dss_write_ctrl,
     .read_status      = dss_read_status,

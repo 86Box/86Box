@@ -223,15 +223,6 @@ lpt_ecp_update_irq(lpt_t *dev)
 }
 
 static void
-lpt_autofeed(lpt_t *dev, const uint8_t val)
-{
-    if (dev->dt && dev->dt->autofeed && dev->dt->priv)
-        dev->dt->autofeed(val, dev->dt->priv);
-
-    dev->autofeed = val;
-}
-
-static void
 lpt_strobe(lpt_t *dev, const uint8_t val)
 {
     if (dev->dt && dev->dt->strobe && dev->dt->priv)
@@ -257,8 +248,6 @@ lpt_fifo_out_callback(void *priv)
                 ret = DMA_NODATA;
             else
                 ret = dma_channel_read(dev->dma);
-
-            lpt_log("DMA %02X: %08X\n", dev->dma, ret);
 
             if (ret != DMA_NODATA) {
                 fifo_write_evt_tagged(0x01, (uint8_t) (ret & 0xff), dev->fifo);
@@ -299,7 +288,6 @@ lpt_fifo_out_callback(void *priv)
                         dev->dma_stat = 0x04;
                         dev->state = LPT_STATE_IDLE;
                         lpt_ecp_update_irq(dev);
-                        lpt_autofeed(dev, 0);
                     } else {
                         dev->state = LPT_STATE_READ_DMA;
 
@@ -312,8 +300,6 @@ lpt_fifo_out_callback(void *priv)
             } else if (!fifo_get_empty(dev->fifo))
                 timer_advance_u64(&dev->fifo_out_timer,
                                   (uint64_t) ((1000000.0 / 2500000.0) * (double) TIMER_USEC));
-            else
-                lpt_autofeed(dev, 0);
             break;
     }
 }
@@ -354,13 +340,11 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
             break;
 
         case 0x0002:
-            if (dev->dt && dev->dt->write_ctrl && dev->dt->priv) {
-                if (dev->ecp && ((dev->ecr & 0xe0) >= 0x20))
-                    dev->dt->write_ctrl((val & 0xfc) | dev->autofeed | dev->strobe, dev->dt->priv);
-                else
-                    dev->dt->write_ctrl(val, dev->dt->priv);
-            }
+            if (dev->dt && dev->dt->write_ctrl && dev->dt->priv)
+                dev->dt->write_ctrl(val, dev->dt->priv);
             dev->ctrl       = val;
+            dev->strobe     = val & 0x01;
+            dev->autofeed   = val & 0x02;
             dev->enable_irq = val & 0x10;
             if (!(val & 0x10) && (dev->irq != 0xff))
                 picintc(1 << dev->irq);
@@ -430,11 +414,6 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
             break;
 
         case 0x0402: case 0x0406:
-            if (!(val & 0x0c))
-                lpt_autofeed(dev, 0x00);
-            else
-                lpt_autofeed(dev, 0x02);
-
             if ((dev->ecr & 0x04) && !(val & 0x04)) {
                 dev->dma_stat  = 0x00;
                 fifo_reset(dev->fifo);
