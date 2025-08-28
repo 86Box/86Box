@@ -208,6 +208,15 @@ rz1000_reset(void *priv)
     dev->regs[0x0a] = 0x01;       /* IDE controller */
     dev->regs[0x0b] = 0x01;       /* Mass storage controller */
 
+    dev->regs[0x10] = 0xf1;
+    dev->regs[0x11] = 0x01;
+    dev->regs[0x14] = 0xf5;
+    dev->regs[0x15] = 0x03;
+    dev->regs[0x18] = 0x71;
+    dev->regs[0x19] = 0x01;
+    dev->regs[0x1c] = 0x75;
+    dev->regs[0x1d] = 0x03;
+
     dev->irq_mode[0] = dev->irq_mode[1] = 0;
     dev->irq_pin                        = PCI_INTA;
     dev->irq_line                       = 14;
