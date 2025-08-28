@@ -942,7 +942,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;Square pixels (keep ratio)</string>
+    <string>&amp;Square pixels (Keep ratio)</string>
    </property>
   </action>
   <action name="action_Integer_scale_gl">
