@@ -96,8 +96,13 @@ ProgSettings::ProgSettings(QWidget *parent)
     ui->checkBoxConfirmSave->setChecked(confirm_save);
     ui->checkBoxConfirmHardReset->setChecked(confirm_reset);
 
+    ui->radioButtonSystem->setChecked(color_scheme == 0);
+    ui->radioButtonLight->setChecked(color_scheme == 1);
+    ui->radioButtonDark->setChecked(color_scheme == 2);
+
 #ifndef Q_OS_WINDOWS
     ui->checkBoxMultimediaKeys->setHidden(true);
+    ui->groupBox->setHidden(true);
 #endif
 }
 
@@ -110,6 +115,13 @@ ProgSettings::accept()
     confirm_save            = ui->checkBoxConfirmSave->isChecked() ? 1 : 0;
     confirm_reset           = ui->checkBoxConfirmHardReset->isChecked() ? 1 : 0;
     inhibit_multimedia_keys = ui->checkBoxMultimediaKeys->isChecked() ? 1 : 0;
+
+    color_scheme = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
+
+#ifdef Q_OS_WINDOWS
+    extern void selectDarkMode();
+    selectDarkMode();
+#endif
 
     loadTranslators(QCoreApplication::instance());
     reloadStrings();
@@ -126,6 +138,7 @@ ProgSettings::accept()
     connect(main_window, &MainWindow::updateStatusBarTip, main_window->status.get(), &MachineStatus::updateTip);
     connect(main_window, &MainWindow::statusBarMessage, main_window->status.get(), &MachineStatus::message, Qt::QueuedConnection);
     mouse_sensitivity = mouseSensitivity;
+    config_save_global();
     QDialog::accept();
 }
 

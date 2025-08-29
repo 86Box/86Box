@@ -2972,3 +2972,12 @@ msgstr "Échelle d'entrée d'OpenGL"
 
 msgid "OpenGL input stretch mode"
 msgstr "Mode d'étirement des données d'entrée d'OpenGL"
+
+msgid "Color scheme"
+msgstr "Palette de couleurs"
+
+msgid "Light"
+msgstr "Lumière"
+
+msgid "Dark"
+msgstr "Sombre"

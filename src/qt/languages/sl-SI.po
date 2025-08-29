@@ -2972,3 +2972,12 @@ msgstr "Vhodna lestvica OpenGL"
 
 msgid "OpenGL input stretch mode"
 msgstr "Način raztezanja vhoda OpenGL"
+
+msgid "Color scheme"
+msgstr "Barvna shema"
+
+msgid "Light"
+msgstr "Svetloba"
+
+msgid "Dark"
+msgstr "Temno"

@@ -143,6 +143,10 @@ add_library(vid OBJECT
 
 )
 
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    target_include_directories(vid PRIVATE /usr/local/include)
+endif()
+
 if(G100)
     target_compile_definitions(vid PRIVATE USE_G100)
 endif()

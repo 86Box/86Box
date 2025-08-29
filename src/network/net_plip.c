@@ -494,7 +494,6 @@ const lpt_device_t lpt_plip_device = {
     .close            = plip_close,
     .write_data       = plip_write_data,
     .write_ctrl       = plip_write_ctrl,
-    .autofeed         = NULL,
     .strobe           = NULL,
     .read_status      = plip_read_status,
     .read_ctrl        = NULL,

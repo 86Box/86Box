@@ -2972,3 +2972,12 @@ msgstr "OpenGL:n syöttöasteikko"
 
 msgid "OpenGL input stretch mode"
 msgstr "OpenGL:n syötteen venytystila"
+
+msgid "Color scheme"
+msgstr "Värimaailma"
+
+msgid "Light"
+msgstr "Valo"
+
+msgid "Dark"
+msgstr "Tumma"
