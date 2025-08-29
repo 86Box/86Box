@@ -285,8 +285,8 @@ static const device_config_t soundmasterplus_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "0x330", .value = 0x330 },
-            { .description = "0x338", .value = 0x338 },
+            { .description = "0x22e", .value = 0x22e },
+            { .description = "0x24e", .value = 0x24e },
             { .description = ""                      }
         },
         .bios           = { { 0 } }
