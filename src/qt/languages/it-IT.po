@@ -1684,7 +1684,7 @@ msgid "&NIC %1 (%2) %3"
 msgstr "&Scheda di rete %1 (%2) %3"
 
 msgid "Render behavior"
-msgstr "Comportamento renderizzazione"
+msgstr "Impostazioni di renderizzazione"
 
 msgid "Use target framerate:"
 msgstr "Utilizza l'obiettivo &fotogrammi:"
@@ -2932,7 +2932,7 @@ msgid "The system will not be added."
 msgstr "Il sistema non verrà aggiunto."
 
 msgid "&Update mouse every CPU frame"
-msgstr "&Aggiorna stato del mouse ad ogni blocco della CPU"
+msgstr "Forza &aggiornamento stato del mouse"
 
 msgid "Hue"
 msgstr "Tinta"
@@ -2968,16 +2968,16 @@ msgid "EDID file \"%ls\" is too large."
 msgstr "Il file EDID \"%ls\" è troppo grande."
 
 msgid "OpenGL input scale"
-msgstr "Scala di input di OpenGL"
+msgstr "Scala ingresso OpenGL"
 
 msgid "OpenGL input stretch mode"
-msgstr "Modalità di allungamento dell'input di OpenGL"
+msgstr "Modalità adattamento ingresso OpenGL"
 
 msgid "Color scheme"
-msgstr "Combinazione di colori"
+msgstr "Modalità colori"
 
 msgid "Light"
-msgstr "Luce"
+msgstr "Chiara"
 
 msgid "Dark"
-msgstr "Scuro"
+msgstr "Scura"
