@@ -43,6 +43,7 @@ extern uint32_t ini_section_get_uint(ini_section_t section, const char *name, ui
 extern float    ini_section_get_float(ini_section_t section, const char *name, float def);
 #endif
 extern double   ini_section_get_double(ini_section_t section, const char *name, double def);
+extern int      ini_section_get_hex12(ini_section_t section, const char *name, int def);
 extern int      ini_section_get_hex16(ini_section_t section, const char *name, int def);
 extern int      ini_section_get_hex20(ini_section_t section, const char *name, int def);
 extern int      ini_section_get_mac(ini_section_t section, const char *name, int def);
@@ -54,6 +55,7 @@ extern void     ini_section_set_uint(ini_section_t section, const char *name, ui
 extern void     ini_section_set_float(ini_section_t section, const char *name, float val);
 #endif
 extern void     ini_section_set_double(ini_section_t section, const char *name, double val);
+extern void     ini_section_set_hex12(ini_section_t section, const char *name, int val);
 extern void     ini_section_set_hex16(ini_section_t section, const char *name, int val);
 extern void     ini_section_set_hex20(ini_section_t section, const char *name, int val);
 extern void     ini_section_set_mac(ini_section_t section, const char *name, int val);
@@ -69,6 +71,7 @@ extern int      ini_has_entry(ini_section_t self, const char *name);
 #define ini_get_float(ini, head, name, def)   ini_section_get_float(ini_find_section(ini, head), name, def)
 #endif
 #define ini_get_double(ini, head, name, def)  ini_section_get_double(ini_find_section(ini, head), name, def)
+#define ini_get_hex12(ini, head, name, def)   ini_section_get_hex12(ini_find_section(ini, head), name, def)
 #define ini_get_hex16(ini, head, name, def)   ini_section_get_hex16(ini_find_section(ini, head), name, def)
 #define ini_get_hex20(ini, head, name, def)   ini_section_get_hex20(ini_find_section(ini, head), name, def)
 #define ini_get_mac(ini, head, name, def)     ini_section_get_mac(ini_find_section(ini, head), name, def)
@@ -81,6 +84,7 @@ extern int      ini_has_entry(ini_section_t self, const char *name);
 #define ini_set_float(ini, head, name, val)  ini_section_set_float(ini_find_or_create_section(ini, head), name, val)
 #endif
 #define ini_set_double(ini, head, name, val)  ini_section_set_double(ini_find_or_create_section(ini, head), name, val)
+#define ini_set_hex12(ini, head, name, val)   ini_section_set_hex12(ini_find_or_create_section(ini, head), name, val)
 #define ini_set_hex16(ini, head, name, val)   ini_section_set_hex16(ini_find_or_create_section(ini, head), name, val)
 #define ini_set_hex20(ini, head, name, val)   ini_section_set_hex20(ini_find_or_create_section(ini, head), name, val)
 #define ini_set_mac(ini, head, name, val)     ini_section_set_mac(ini_find_or_create_section(ini, head), name, val)
