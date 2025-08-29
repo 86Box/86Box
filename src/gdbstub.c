@@ -1791,6 +1791,24 @@ gdbstub_init(void)
         return;
     }
 
+    int yes = 1;
+    if (setsockopt(gdbstub_socket, SOL_SOCKET, SO_REUSEADDR,
+#ifdef _WIN32
+                   (const char *) &yes,
+#else
+                   &yes,
+#endif
+                   sizeof(yes)) == -1) {
+        pclog("GDB Stub: setsockopt SO_REUSEADDR failed\n");
+        return;
+    }
+
+#ifdef _WIN32
+    if (setsockopt(gdbstub_socket, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (const char *) &yes, sizeof(yes)) == -1) {
+        pclog("GDB Stub: setsockopt SO_EXCLUSIVEADDRUSE failed\n");
+    }
+#endif
+
     /* Bind GDB server socket. */
     int                port      = 12345;
     struct sockaddr_in bind_addr = {
