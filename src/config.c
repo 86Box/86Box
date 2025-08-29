@@ -162,7 +162,7 @@ load_scan_code_mappings(void)
     char          temp[512];
 
     for (int c = 0; c < 768; c++) {
-        sprintf(temp, "scan_code_mapping_%03X", c);
+        sprintf(temp, "%03X", c);
 
         int mapping = ini_section_get_hex12(cat, temp, c);
 
@@ -2306,7 +2306,7 @@ save_scan_code_mappings(void)
     char          temp[512];
 
     for (int c = 0; c < 768; c++) {
-        sprintf(temp, "scan_code_mapping_%03X", c);
+        sprintf(temp, "%03X", c);
 
         if (scancode_config_map[c] == c)
             ini_section_delete_var(cat, temp);
