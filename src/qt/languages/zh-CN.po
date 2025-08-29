@@ -1114,7 +1114,7 @@ msgid "Choose configuration file"
 msgstr "选择配置文件"
 
 msgid "86Box configuration files (86box.cfg)"
-msgstr "86Box 配置文件 (86box.cfg)"
+msgstr "86Box 配置文件（86box.cfg）"
 
 msgid "Configuration read failed"
 msgstr "读取配置失败"
@@ -1606,7 +1606,7 @@ msgid "WinBox is no longer supported"
 msgstr "WinBox 不再受支持"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "由于缺乏维护者，WinBox 管理器的开发工作于 2022 年停止。由于我们正努力将 86Box 做得更好，因此决定不再支持 WinBox 作为管理器。\n\nWinBox 将不再提供更新，如果你继续在 86Box 的新版本中使用 WinBox，可能会遇到不正确的行为。任何与 WinBox 行为相关的错误报告都将被视为无效而关闭。\n\n请访问 86box.net，查看你可以使用的其他管理器列表。"
+msgstr "由于缺乏维护者，WinBox 管理器的开发工作已于 2022 年停止。由于我们正努力将 86Box 做得更好，因此决定不再支持 WinBox 作为管理器。\n\nWinBox 将不再提供更新，如果你继续在 86Box 的新版本中使用 WinBox，可能会遇到不正确的行为。任何与 WinBox 行为相关的错误报告都将被视为无效而关闭。\n\n请访问 86box.net，查看你可以使用的其他管理器列表。"
 
 msgid "Generate"
 msgstr "生成"
@@ -2047,7 +2047,7 @@ msgid "Interpolation Method"
 msgstr "插值法"
 
 msgid "Dynamic Sample Loading"
-msgstr "采样的动态加载"
+msgstr "动态采样加载"
 
 msgid "Reverb Output Gain"
 msgstr "混响输出增益"
@@ -2977,7 +2977,7 @@ msgid "Color scheme"
 msgstr "配色方案"
 
 msgid "Light"
-msgstr "光"
+msgstr "亮色"
 
 msgid "Dark"
-msgstr "黑暗"
+msgstr "暗色"
