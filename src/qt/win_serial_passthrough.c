@@ -106,7 +106,6 @@ void
 plat_serpt_set_params(void *priv)
 {
     const serial_passthrough_t *dev = (serial_passthrough_t *) priv;
-    WINBOOL result;
 
     if (dev->mode == SERPT_MODE_HOSTSER) {
         DCB serialattr = { 0 };
@@ -150,7 +149,7 @@ plat_serpt_set_params(void *priv)
             }
         }
 
-        result = SetCommState((HANDLE) dev->master_fd, &serialattr);
+        (void) SetCommState((HANDLE) dev->master_fd, &serialattr);
 
         {
             DWORD msrstate;
