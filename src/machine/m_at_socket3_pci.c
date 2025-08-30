@@ -588,7 +588,7 @@ machine_at_sb486p_init(const machine_t *model)
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
-    device_add_params(&i82091aa_device, (void *) I82091AA_022);
+    device_add_params(&i82091aa_device, (void *) I82091AA_26E);
     device_add(&i420ex_device);
 
     return ret;
