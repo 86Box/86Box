@@ -1211,6 +1211,7 @@ machine_at_ecs486_init(const machine_t *model)
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_device);
 
+    machine_force_ps2(1);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
