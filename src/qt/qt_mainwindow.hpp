@@ -176,7 +176,9 @@ private:
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
 
-    void adjustToForce43(int suggestedW = -1, int suggestedH = -1);
+    static bool s_adjustingForce43; // guard against recursion
+	void adjustForForce43(const QSize &newWinSize);
+    
 	void updateShortcuts();
     void     processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
