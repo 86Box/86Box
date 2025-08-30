@@ -588,7 +588,7 @@ machine_at_sb486p_init(const machine_t *model)
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
-    device_add_params(&i82091aa_device, (void *) I82091AA_022);
+    device_add_params(&i82091aa_device, (void *) I82091AA_26E);
     device_add(&i420ex_device);
 
     return ret;
@@ -1211,6 +1211,7 @@ machine_at_ecs486_init(const machine_t *model)
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
     device_add(&intel_flash_bxt_device);
 
+    machine_force_ps2(1);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
@@ -1387,7 +1388,7 @@ machine_at_hot433a_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    int is_award = !strcmp(device_get_config_bios("bios"), "hot433a_award");
+    int is_award = !strcmp(device_get_config_bios("bios"), "hot433a_v451pg");
     fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();

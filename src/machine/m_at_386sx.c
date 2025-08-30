@@ -408,6 +408,7 @@ machine_at_cmdsl386sx16_init(const machine_t *model)
         device_add(&fdc_at_device);
 
     device_add(&neat_device);
+    device_add(&ide_isa_device);
     /* Two serial ports - on the real hardware SL386SX-16, they are on the single UMC UM82C452. */
     device_add_inst(&ns16450_device, 1);
     device_add_inst(&ns16450_device, 2);
