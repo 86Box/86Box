@@ -1603,20 +1603,69 @@ machine_ps2_common_init(const machine_t *model)
     ps2.has_e0000_hole = 0;
 }
 
+static const device_config_t ps2_model_50_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "ibmps2_m50",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "IBM PS/2 model 50", .internal_name = "ibmps2_m50", .bios_type = BIOS_NORMAL, 
+              .files_no = 4, .local = 0, .size = 131072, .files = { "roms/machines/ibmps2_m50/90x7420.zm13",
+                                                                    "roms/machines/ibmps2_m50/90x7429.zm18",
+                                                                    "roms/machines/ibmps2_m50/90x7423.zm14",
+                                                                    "roms/machines/ibmps2_m50/90x7426.zm16", "" } },
+            { .name = "IBM PS/2 model 50Z", .internal_name = "ibmps2_m50z", .bios_type = BIOS_NORMAL, 
+              .files_no = 2, .local = 0, .size = 131072, .files = { "roms/machines/ibmps2_m50/15F8366.BIN",
+                                                                    "roms/machines/ibmps2_m50/15F8365.BIN", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ps2_model_50_device = {
+    .name          = "IBM PS/2 model 50",
+    .internal_name = "ps2_model_50_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ps2_model_50_config
+};
+
 int
 machine_ps2_model_50_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn[4];
 
-    ret = bios_load_interleaved("roms/machines/ibmps2_m50/90x7420.zm13",
-                                "roms/machines/ibmps2_m50/90x7429.zm18",
-                                0x000f0000, 131072, 0);
-    ret &= bios_load_aux_interleaved("roms/machines/ibmps2_m50/90x7423.zm14",
-                                     "roms/machines/ibmps2_m50/90x7426.zm16",
-                                     0x000e0000, 65536, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    int is_50z = !strcmp(device_get_config_bios("bios"), "ibmps2_m50z");
+    if (is_50z) {
+        for (int i = 0; i < 2; i++)
+            fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
+        ret = bios_load_interleaved(fn[0], fn[1], 0x000e0000, 131072, 0);
+    } else {
+        for (int i = 0; i < 4; i++)
+            fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
+        ret = bios_load_interleaved(fn[0], fn[1], 0x000f0000, 131072, 0);
+        ret &= bios_load_aux_interleaved(fn[2], fn[3], 0x000e0000, 65536, 0);
+    }
+    device_context_restore();
 
     machine_ps2_common_init(model);
 

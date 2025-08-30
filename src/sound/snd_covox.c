@@ -95,17 +95,17 @@ covox_write(uint16_t addr, uint8_t val, void *priv)
     switch (addr) {
         case 0x221: // Soundman
         case 0x229: // Soundman
-        case 0x22f: // Soundman, voicemasterkey
+        case 0x22f: // Soundman, voicemasterkey soundmasterplus
         case 0x231: //                                           isadac-r1?
-        case 0x24f: //           voicemasterkey
+        case 0x24f: //           voicemasterkey soundmasterplus
         case 0x279: //                                           isadac-r0 (lPT2)
         case 0x28f: //           voicemasterkey
         case 0x2cf: //           voicemasterkey
         case 0x301: // Soundman
         case 0x309: // Soundman
         case 0x30f: // soundman
-        case 0x331: //                          soundmasterplus
-        case 0x339: //                          soundmasterplus
+        case 0x331: //
+        case 0x339: //
         case 0x371: //                                           isadac-r0
         case 0x379: //                                           isadac-r0 (lPT1)
         case 0x381: //                                           isadac-r0
@@ -281,12 +281,12 @@ static const device_config_t soundmasterplus_config[] = {
         .description    = "Address",
         .type           = CONFIG_HEX16,
         .default_string = NULL,
-        .default_int    = 0x330,
+        .default_int    = 0x22e,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "0x330", .value = 0x330 },
-            { .description = "0x338", .value = 0x338 },
+            { .description = "0x22e", .value = 0x22e },
+            { .description = "0x24e", .value = 0x24e },
             { .description = ""                      }
         },
         .bios           = { { 0 } }

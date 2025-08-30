@@ -1743,28 +1743,27 @@ image_load_cue(cd_image_t *img, const char *cuefile)
                         image_log(img->log, "    [LEAD-OUT] Initialization %s\n",
                                   success ? "successful" : "failed");
                     } else if (!strcmp(command, "SESSION")) {
-                        if (!lo_cmd) {
-                            ct                   = &(img->tracks[lead[2]]);
-                            /*
-                               Mark it this way so file pointers on it are not
-                               going to be adjusted.
-                             */
-                            last_t               = -1;
-                            ct->sector_size      = last;
-                            ci                   = &(ct->idx[1]);
-                            ci->type             = INDEX_ZERO;
-                            ci->file             = tf;
-                            ci->file_start       = 0;
-                            ci->file_length      = 0;
-                            ci->length           = (2 * 60 * 75) + (30 * 75);
-
-                            image_log(img->log, "    [LEAD-OUT] Initialization successful\n");
-                        }
-
-                        lo_cmd               = 0;
                         session              = image_cue_get_number(&space);
 
                         if (session > 1) {
+                            if (!lo_cmd) {
+                                ct                   = &(img->tracks[lead[2]]);
+                                /*
+                                   Mark it this way so file pointers on it are not
+                                   going to be adjusted.
+                                 */
+                                last_t               = -1;
+                                ct->sector_size      = last;
+                                ci                   = &(ct->idx[1]);
+                                ci->type             = INDEX_ZERO;
+                                ci->file             = tf;
+                                ci->file_start       = 0;
+                                ci->file_length      = 0;
+                                ci->length           = (2 * 60 * 75) + (30 * 75);
+
+                                image_log(img->log, "    [LEAD-OUT] Initialization successful\n");
+                            }
+
                             ct = image_insert_track(img, session - 1, 0xb0);
                             /*
                                Mark it this way so file pointers on it are not
@@ -1800,6 +1799,8 @@ image_load_cue(cd_image_t *img, const char *cuefile)
                                 (void) image_insert_track(img, session, 0xa0 + i);
                             }
                         }
+
+                        lo_cmd               = 0;
 
                         image_log(img->log, "    [SESSION ] Initialization successful\n");
                     }

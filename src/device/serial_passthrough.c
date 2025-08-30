@@ -75,6 +75,8 @@ host_to_serial_cb(void *priv)
 
     uint8_t byte;
 
+    plat_serpt_set_line_state(priv);
+
     /* write_fifo has no failure indication, but if we write to fast, the host
      * can never fetch the bytes in time, so check if the fifo is full if in
      * fifo mode or if lsr has bit 0 set if not in fifo mode */

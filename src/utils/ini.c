@@ -783,6 +783,25 @@ ini_section_get_double(ini_section_t self, const char *name, double def)
 }
 
 int
+ini_section_get_hex12(ini_section_t self, const char *name, int def)
+{
+    section_t     *section = (section_t *) self;
+    const entry_t *entry;
+    unsigned int   value = 0;
+
+    if (section == NULL)
+        return def;
+
+    entry = find_entry(section, name);
+    if (entry == NULL)
+        return def;
+
+    sscanf(entry->data, "%03X", &value);
+
+    return value;
+}
+
+int
 ini_section_get_hex16(ini_section_t self, const char *name, int def)
 {
     section_t     *section = (section_t *) self;
@@ -941,6 +960,23 @@ ini_section_set_double(ini_section_t self, const char *name, double val)
 
     sprintf(ent->data, "%lg", val);
     mbstowcs(ent->wdata, ent->data, 512);
+}
+
+void
+ini_section_set_hex12(ini_section_t self, const char *name, int val)
+{
+    section_t *section = (section_t *) self;
+    entry_t   *ent;
+
+    if (section == NULL)
+        return;
+
+    ent = find_entry(section, name);
+    if (ent == NULL)
+        ent = create_entry(section, name);
+
+    sprintf(ent->data, "%03X", val);
+    mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
 }
 
 void

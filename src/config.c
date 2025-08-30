@@ -154,6 +154,25 @@ load_global(void)
     }
 }
 
+/* Load scan code mappings. */
+static void
+load_scan_code_mappings(void)
+{
+    ini_section_t cat = ini_find_section(config, "Scan code mappings");
+    char          temp[512];
+
+    for (int c = 0; c < 768; c++) {
+        sprintf(temp, "%03X", c);
+
+        int mapping = ini_section_get_hex12(cat, temp, c);
+
+        if (mapping == c)
+            ini_section_delete_var(cat, temp);
+        else
+            scancode_config_map[c] = mapping;
+    }
+}
+
 /* Load "General" section. */
 static void
 load_general(void)
@@ -2091,6 +2110,9 @@ config_load(void)
 #endif
     memset(rdisk_drives, 0, sizeof(rdisk_drive_t));
 
+    for (int i = 0; i < 768; i++)
+        scancode_config_map[i] = i;
+
     config = ini_read(cfg_path);
 
     if (config == NULL) {
@@ -2167,6 +2189,7 @@ config_load(void)
         load_general();                 /* General */
         for (i = 0; i < MONITORS_NUM; i++)
             load_monitor(i);            /* Monitors */
+        load_scan_code_mappings();      /* Scan code mappings */
         load_machine();                 /* Machine */
         load_video();                   /* Video */
         load_input_devices();           /* Input devices */
@@ -2273,6 +2296,25 @@ save_global(void)
     } else {
         ini_section_delete_var(cat, "vmm_path");
     }
+}
+
+/* Save scan code mappings. */
+static void
+save_scan_code_mappings(void)
+{
+    ini_section_t cat = ini_find_section(config, "Scan code mappings");
+    char          temp[512];
+
+    for (int c = 0; c < 768; c++) {
+        sprintf(temp, "%03X", c);
+
+        if (scancode_config_map[c] == c)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_hex12(cat, temp, scancode_config_map[c]);
+    }
+
+    ini_delete_section_if_empty(config, cat);
 }
 
 /* Save "General" section. */
@@ -3571,6 +3613,7 @@ config_save(void)
     save_general();                 /* General */
     for (uint8_t i = 0; i < MONITORS_NUM; i++)
         save_monitor(i);            /* Monitors */
+    save_scan_code_mappings();      /* Scan code mappings */
     save_machine();                 /* Machine */
     save_video();                   /* Video */
     save_input_devices();           /* Input devices */

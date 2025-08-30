@@ -1073,6 +1073,9 @@ extern int             machine_at_sq578_init(const machine_t *);
 extern int             machine_at_ms5172_init(const machine_t *);
 
 /* ALi ALADDiN IV+ */
+#ifdef EMU_DEVICE_H
+extern const device_t  m5ata_device;
+#endif
 extern int             machine_at_m5ata_init(const machine_t *);
 extern int             machine_at_ms5164_init(const machine_t *);
 extern int             machine_at_m560_init(const machine_t *);
@@ -1261,6 +1264,9 @@ extern const device_t  ps1_hdc_device;
 extern int             machine_ps2_m30_286_init(const machine_t *);
 
 /* m_ps2_mca.c */
+#ifdef EMU_DEVICE_H
+extern const device_t  ps2_model_50_device;
+#endif
 extern int             machine_ps2_model_50_init(const machine_t *);
 extern int             machine_ps2_model_60_init(const machine_t *);
 extern int             machine_ps2_model_55sx_init(const machine_t *);
