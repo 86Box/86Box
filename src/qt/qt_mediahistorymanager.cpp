@@ -381,7 +381,7 @@ MediaHistoryManager::removeMissingImages(device_index_list_t &device_history)
 
 #ifdef Q_OS_WINDOWS
         if (new_fi.filePath().left(8) == "ioctl://")
-            file_exists = (GetDriveType(new_fi.filePath().right(2).toUtf8().data()) == DRIVE_CDROM);
+            file_exists = (GetDriveTypeA(new_fi.filePath().right(2).toUtf8().data()) == DRIVE_CDROM);
 #endif
 
         if (!file_exists) {
