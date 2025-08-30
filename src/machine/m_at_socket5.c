@@ -249,6 +249,7 @@ machine_at_tek932_init(const machine_t *model)
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 3, 2, 4);
+    machine_force_ps2(1);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&i430nx_device);
     device_add(&sio_zb_device);
