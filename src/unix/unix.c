@@ -875,19 +875,21 @@ plat_init_rom_paths(void)
 void
 plat_get_global_config_dir(char *outbuf, const size_t len)
 {
-    char *prefPath = SDL_GetPrefPath(NULL, "86Box");
-    strncpy(outbuf, prefPath, len);
-    path_slash(outbuf);
-    SDL_free(prefPath);
+    return plat_get_global_data_dir(outbuf, len);
 }
 
 void
 plat_get_global_data_dir(char *outbuf, const size_t len)
 {
-    char *prefPath = SDL_GetPrefPath(NULL, "86Box");
-    strncpy(outbuf, prefPath, len);
+    if (portable_mode) {
+        strncpy(outbuf, exe_path, len);
+    } else {
+        char *prefPath = SDL_GetPrefPath(NULL, "86Box");
+        strncpy(outbuf, prefPath, len);
+        SDL_free(prefPath);
+    }
+
     path_slash(outbuf);
-    SDL_free(prefPath);
 }
 
 void

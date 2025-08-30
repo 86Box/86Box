@@ -1386,6 +1386,8 @@ OpenGLRenderer::getOptions(QWidget *parent)
     return new OpenGLShaderManagerDialog(parent);
 }
 
+extern void standalone_scale(QRect &destination, int width, int height, QRect source, int scalemode);
+
 void
 OpenGLRenderer::render()
 {
@@ -1428,19 +1430,16 @@ OpenGLRenderer::render()
     {
         struct shader_pass *pass = &active_shader->scene;
 
-        struct {
-            uint32_t x;
-            uint32_t y;
-            uint32_t w;
-            uint32_t h;
-        } rect;
-        rect.x = 0;
-        rect.y = 0;
-        rect.w = source.width();
-        rect.h = source.height();
+        QRect rect;
+        rect.setX(0);
+        rect.setY(0);
+        rect.setWidth(source.width() * video_gl_input_scale);
+        rect.setHeight(source.height() * video_gl_input_scale);
 
-        pass->state.input_size[0] = pass->state.output_size[0] = rect.w;
-        pass->state.input_size[1] = pass->state.output_size[1] = rect.h;
+        standalone_scale(rect, source.width(), source.height(), rect, video_gl_input_scale_mode);
+
+        pass->state.input_size[0] = pass->state.output_size[0] = rect.width();
+        pass->state.input_size[1] = pass->state.output_size[1] = rect.height();
 
         pass->state.input_texture_size[0] = pass->state.output_texture_size[0] = next_pow2(pass->state.output_size[0]);
         pass->state.input_texture_size[1] = pass->state.output_texture_size[1] = next_pow2(pass->state.output_size[1]);

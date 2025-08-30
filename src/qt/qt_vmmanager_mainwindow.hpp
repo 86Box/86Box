@@ -34,6 +34,7 @@ class VMManagerMainWindow final : public QMainWindow
 public:
     explicit VMManagerMainWindow(QWidget *parent = nullptr);
     ~VMManagerMainWindow() override;
+    void updateSettings();
 signals:
     void preferencesUpdated();
     void languageUpdated();

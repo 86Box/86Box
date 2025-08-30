@@ -4,7 +4,7 @@
  *          using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
  *          spanning the era between 1981 and 1995.
  *
- *          Implementation of the Generic ESC/P Dot-Matrix printer.
+ *          Implementation of the Generic ESC/P 2 Dot-Matrix printer.
  *
  *
  *
@@ -283,10 +283,9 @@ static const uint16_t codepages[15] = {
 /* "patches" to the codepage for the international charsets
  * these bytes patch the following 12 positions of the char table, in order:
  * 0x23  0x24  0x40  0x5b  0x5c  0x5d  0x5e  0x60  0x7b  0x7c  0x7d  0x7e
- * TODO: Implement the missing international charsets
  */
 static const uint16_t intCharSets[15][12] = {
-    {0x0023,  0x0024, 0x0040, 0x005b, 0x005c, 0x005d, /* 0 USA */
+    { 0x0023, 0x0024, 0x0040, 0x005b, 0x005c, 0x005d, /* 0 USA */
       0x005e, 0x0060, 0x007b, 0x007c, 0x007d, 0x007e},
 
     { 0x0023, 0x0024, 0x00e0, 0x00ba, 0x00e7, 0x00a7, /* 1 France */
@@ -298,7 +297,7 @@ static const uint16_t intCharSets[15][12] = {
     { 0x00a3, 0x0024, 0x0040, 0x005b, 0x005c, 0x005d, /* 3 UK */
       0x005e, 0x0060, 0x007b, 0x007c, 0x007d, 0x007e},
 
-    { 0x0023, 0x0024, 0x0040, 0x00c6, 0x00d8, 0x00c5, /* 4 Denmark (1) */
+    { 0x0023, 0x0024, 0x0040, 0x00c6, 0x00d8, 0x00c5, /* 4 Denmark I */
       0x005e, 0x0060, 0x00e6, 0x00f8, 0x00e5, 0x007e},
 
     { 0x0023, 0x00a4, 0x00c9, 0x00c4, 0x00d6, 0x00c5, /* 5 Sweden */
@@ -307,28 +306,28 @@ static const uint16_t intCharSets[15][12] = {
     { 0x0023, 0x0024, 0x0040, 0x00ba, 0x005c, 0x00e9, /* 6 Italy */
       0x005e, 0x00f9, 0x00e0, 0x00f2, 0x00e8, 0x00ec},
 
-    { 0x0023, 0x0024, 0x0040, 0x005b, 0x005c, 0x005d, /* 7 Spain 1 */
-      0x005e, 0x0060, 0x007b, 0x007c, 0x007d, 0x007e}, /* TODO */
+    { 0x20a7, 0x0024, 0x0040, 0x00a1, 0x00d1, 0x00bf, /* 7 Spain I */
+      0x005e, 0x0060, 0x00a8, 0x00f1, 0x007d, 0x007e},
 
-    { 0x0023, 0x0024, 0x0040, 0x005b, 0x005c, 0x005d, /* 8 Japan (English) */
-      0x005e, 0x0060, 0x007b, 0x007c, 0x007d, 0x007e}, /* TODO */
+    { 0x0023, 0x0024, 0x0040, 0x005b, 0x00a5, 0x005d, /* 8 Japan (Eng) */
+      0x005e, 0x0060, 0x007b, 0x007c, 0x007d, 0x007e},
 
-    { 0x0023, 0x0024, 0x0040, 0x005b, 0x005c, 0x005d, /* 9 Norway */
-      0x005e, 0x0060, 0x007b, 0x007c, 0x007d, 0x007e}, /* TODO */
+    { 0x0023, 0x00a4, 0x00c9, 0x00c6, 0x00d8, 0x00c5, /* 9 Norway */
+      0x00dc, 0x00e9, 0x00e6, 0x00f8, 0x00e5, 0x00fc},
 
-    { 0x0023, 0x0024, 0x0040, 0x005b, 0x005c, 0x005d, /* 10 Denmark (2) */
-      0x005e, 0x0060, 0x007b, 0x007c, 0x007d, 0x007e}, /* TODO */
+    { 0x0023, 0x0024, 0x00c9, 0x00c6, 0x00d8, 0x00c5, /* 10 Denmark II */
+      0x00dc, 0x00e9, 0x00e6, 0x00f8, 0x00e5, 0x00fc},
 
-    { 0x0023, 0x0024, 0x0040, 0x005b, 0x005c, 0x005d, /* 11 Spain (2) */
-      0x005e, 0x0060, 0x007b, 0x007c, 0x007d, 0x007e}, /* TODO */
+    { 0x0023, 0x0024, 0x00e1, 0x00a1, 0x00d1, 0x00bf, /* 11 Spain II */
+      0x00e9, 0x0060, 0x00ed, 0x00f1, 0x00f3, 0x00fa},
 
-    { 0x0023, 0x0024, 0x0040, 0x005b, 0x005c, 0x005d, /* 12 Latin America */
-      0x005e, 0x0060, 0x007b, 0x007c, 0x007d, 0x007e}, /* TODO */
+    { 0x0023, 0x0024, 0x00e1, 0x00a1, 0x00d1, 0x00bf, /* 12 Lat America */
+      0x00e9, 0x00fc, 0x00ed, 0x00f1, 0x00f3, 0x00fa},
 
-    { 0x0023, 0x0024, 0x0040, 0x005b, 0x005c, 0x005d, /* 13 Korea */
-      0x005e, 0x0060, 0x007b, 0x007c, 0x007d, 0x007e}, /* TODO */
+    { 0x0023, 0x0024, 0x0040, 0x005b, 0x20a9, 0x005d, /* 13 Korea */
+      0x005e, 0x0060, 0x007b, 0x007c, 0x007d, 0x007e},
 
-    { 0x0023, 0x0024, 0x00a7, 0x00c4, 0x0027, 0x0022, /* 14 Legal */
+    { 0x0023, 0x0024, 0x00a7, 0x00ba, 0x2019, 0x201d, /* 64 Legal */
       0x00b6, 0x0060, 0x00a9, 0x00ae, 0x2020, 0x2122}
 };
 
@@ -521,7 +520,7 @@ update_font(escp_t *dev)
     } else
         switch (dev->lq_typeface) {
             case TYPEFACE_ROMAN:
-                fn = FONT_FILE_ROMAN;
+                fn = (dev->font_style & STYLE_PROP) ? FONT_FILE_ROMAN : FONT_FILE_COURIER;
                 break;
             case TYPEFACE_SANSSERIF:
                 fn = FONT_FILE_SANSSERIF;
@@ -891,7 +890,7 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 0x21: /* master select (ESC !) */
-                dev->cpi = dev->esc_parms[0] & 0x01 ? 12.0 : 10.0;
+                dev->cpi = (dev->esc_parms[0]) & 0x01 ? 12.0 : 10.0;
 
                 /* Reset first seven bits. */
                 dev->font_style &= 0xFF80;
@@ -1046,7 +1045,7 @@ process_char(escp_t *dev, uint8_t ch)
                 update_font(dev);
                 break;
 
-            case 0x47: /* select dobule-strike printing (ESC G) */
+            case 0x47: /* select double-strike printing (ESC G) */
                 dev->font_style |= STYLE_DOUBLESTRIKE;
                 break;
 
@@ -1099,8 +1098,8 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 0x52: /* select an intl character set (ESC R) */
-                if (dev->esc_parms[0] <= 13 || dev->esc_parms[0] == '@') {
-                    if (dev->esc_parms[0] == '@')
+                if ((dev->esc_parms[0] <= 13) || (dev->esc_parms[0] == 64)) {
+                    if (dev->esc_parms[0] == 64)
                         dev->esc_parms[0] = 14;
 
                     dev->curr_cpmap[0x23] = intCharSets[dev->esc_parms[0]][0];
@@ -1119,9 +1118,9 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 0x53: /* select superscript/subscript printing (ESC S) */
-                if (dev->esc_parms[0] == 0 || dev->esc_parms[0] == '0')
+                if ((dev->esc_parms[0] == 0) || (dev->esc_parms[0] == '0'))
                     dev->font_style |= STYLE_SUBSCRIPT;
-                if (dev->esc_parms[0] == 1 || dev->esc_parms[1] == '1')
+                if ((dev->esc_parms[0] == 1) || (dev->esc_parms[1] == '1'))
                     dev->font_style |= STYLE_SUPERSCRIPT;
                 update_font(dev);
                 break;
@@ -1138,9 +1137,9 @@ process_char(escp_t *dev, uint8_t ch)
             case 0x57: /* turn double-width printing on/off (ESC W) */
                 if (!dev->multipoint_mode) {
                     dev->hmi = -1;
-                    if (dev->esc_parms[0] == 0 || dev->esc_parms[0] == '0')
+                    if ((dev->esc_parms[0] == 0) || (dev->esc_parms[0] == '0'))
                         dev->font_style &= ~STYLE_DOUBLEWIDTH;
-                    if (dev->esc_parms[0] == 1 || dev->esc_parms[0] == '1')
+                    if ((dev->esc_parms[0] == 1) || (dev->esc_parms[0] == '1'))
                         dev->font_style |= STYLE_DOUBLEWIDTH;
                     update_font(dev);
                 }
@@ -1217,9 +1216,9 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 0x6b: /* select typeface (ESC k) */
-                if (dev->esc_parms[0] <= 11 || dev->esc_parms[0] == 30 || dev->esc_parms[0] == 31) {
+                if ((dev->esc_parms[0] <= 11) || (dev->esc_parms[0] == 30) ||
+                    (dev->esc_parms[0] == 31))
                     dev->lq_typeface = dev->esc_parms[0];
-                }
                 update_font(dev);
                 break;
 
@@ -1230,9 +1229,9 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 0x70: /* Turn proportional mode on/off (ESC p) */
-                if (dev->esc_parms[0] == 0 || dev->esc_parms[0] == '0')
+                if ((dev->esc_parms[0] == 0) || (dev->esc_parms[0] == '0'))
                     dev->font_style &= ~STYLE_PROP;
-                if (dev->esc_parms[0] == 1 || dev->esc_parms[0] == '1') {
+                if ((dev->esc_parms[0] == 1) || (dev->esc_parms[0] == '1')) {
                     dev->font_style |= STYLE_PROP;
                     dev->print_quality = QUALITY_LQ;
                 }
@@ -1265,20 +1264,20 @@ process_char(escp_t *dev, uint8_t ch)
 
             case 0x77: /* turn double-height printing on/off (ESC w) */
                 if (!dev->multipoint_mode) {
-                    if (dev->esc_parms[0] == 0 || dev->esc_parms[0] == '0')
+                    if ((dev->esc_parms[0] == 0) || (dev->esc_parms[0] == '0'))
                         dev->font_style &= ~STYLE_DOUBLEHEIGHT;
-                    if (dev->esc_parms[0] == 1 || dev->esc_parms[0] == '1')
+                    if ((dev->esc_parms[0] == 1) || (dev->esc_parms[0] == '1'))
                         dev->font_style |= STYLE_DOUBLEHEIGHT;
                     update_font(dev);
                 }
                 break;
 
             case 0x78: /* select LQ or draft (ESC x) */
-                if (dev->esc_parms[0] == 0 || dev->esc_parms[0] == '0') {
+                if ((dev->esc_parms[0] == 0) || (dev->esc_parms[0] == '0')) {
                     dev->print_quality = QUALITY_DRAFT;
                     dev->font_style |= STYLE_CONDENSED;
                 }
-                if (dev->esc_parms[0] == 1 || dev->esc_parms[0] == '1') {
+                if ((dev->esc_parms[0] == 1) || (dev->esc_parms[0] == '1')) {
                     dev->print_quality = QUALITY_LQ;
                     dev->font_style &= ~STYLE_CONDENSED;
                 }
@@ -1886,17 +1885,6 @@ write_data(uint8_t val, void *priv)
 }
 
 static void
-autofeed(uint8_t val, void *priv)
-{
-    escp_t *dev = (escp_t *) priv;
-
-    if (dev == NULL)
-        return;
-
-    dev->autofeed = ((val & 0x02) > 0);
-}
-
-static void
 strobe(uint8_t old, uint8_t val, void *priv)
 {
     escp_t *dev = (escp_t *) priv;
@@ -2124,7 +2112,7 @@ static const device_config_t lpt_prt_escp_config[] = {
 // clang-format on
 
 const device_t prt_escp_device = {
-    .name          = "Generic ESC/P Dot-Matrix Printer",
+    .name          = "Generic ESC/P 2 Dot-Matrix Printer",
     .internal_name = "dot_matrix",
     .flags         = DEVICE_LPT,
     .local         = 0,
@@ -2142,13 +2130,12 @@ const device_t prt_escp_device = {
 };
 
 const lpt_device_t lpt_prt_escp_device = {
-    .name             = "Generic ESC/P Dot-Matrix Printer",
+    .name             = "Generic ESC/P 2 Dot-Matrix Printer",
     .internal_name    = "dot_matrix",
     .init             = escp_init,
     .close            = escp_close,
     .write_data       = write_data,
     .write_ctrl       = write_ctrl,
-    .autofeed         = autofeed,
     .strobe           = strobe,
     .read_status      = read_status,
     .read_ctrl        = read_ctrl,

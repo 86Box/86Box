@@ -23,6 +23,7 @@ VMManagerModel::VMManagerModel() {
     for ( const auto& each_config : machines_vec) {
         machines.append(each_config);
         connect(each_config, &VMManagerSystem::itemDataChanged, this, &VMManagerModel::modelDataChanged);
+        connect(each_config, &VMManagerSystem::globalConfigurationChanged, this, &VMManagerModel::globalConfigurationChanged);
     }
 }
 
@@ -138,6 +139,7 @@ VMManagerModel::addConfigToModel(VMManagerSystem *system_config)
     beginInsertRows(QModelIndex(), this->rowCount(QModelIndex()), this->rowCount(QModelIndex()));
     machines.append(system_config);
     connect(system_config, &VMManagerSystem::itemDataChanged, this, &VMManagerModel::modelDataChanged);
+    connect(system_config, &VMManagerSystem::globalConfigurationChanged, this, &VMManagerModel::globalConfigurationChanged);
     endInsertRows();
 }
 
@@ -175,6 +177,16 @@ VMManagerModel::getProcessStats()
         stats[system->getProcessStatus()] += 1;
     }
     return stats;
+}
+
+void
+VMManagerModel::sendGlobalConfigurationChanged()
+{
+    for (auto& system: machines) {
+        if (system->getProcessStatus() != VMManagerSystem::ProcessStatus::Stopped) {
+            system->sendGlobalConfigurationChanged();
+        }
+    }
 }
 
 int

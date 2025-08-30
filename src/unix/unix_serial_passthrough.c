@@ -36,6 +36,7 @@
 #include <sys/select.h>
 #include <stdint.h>
 #include <sys/select.h>
+#include <sys/ioctl.h>
 
 #include <86box/86box.h>
 #include <86box/log.h>
@@ -48,6 +49,35 @@
 
 #define LOG_PREFIX "serial_passthrough: "
 
+void
+plat_serpt_set_line_state(void *priv)
+{
+    serial_passthrough_t *dev = (serial_passthrough_t *) priv;
+    int setstate = 0, clrstate = 0, curstate = 0;
+    if (dev->mode != SERPT_MODE_HOSTSER)
+        return;
+    
+    if (dev->serial->lcr & (1 << 6)) {
+        tcsendbreak(dev->master_fd, 0);
+    }
+
+    ioctl(dev->master_fd, TIOCMGET, &curstate);
+
+    clrstate |= !(dev->serial->mctrl & 1) ? TIOCM_DTR : 0;
+    clrstate |= !(dev->serial->mctrl & 2) ? TIOCM_RTS : 0;
+
+    setstate |= (dev->serial->mctrl & 1) ? TIOCM_DTR : 0;
+    setstate |= (dev->serial->mctrl & 2) ? TIOCM_RTS : 0;
+
+    ioctl(dev->master_fd, TIOCMBIS, &setstate);
+    ioctl(dev->master_fd, TIOCMBIC, &clrstate);
+
+    serial_set_cts(dev->serial, !!(curstate & TIOCM_CTS));
+    serial_set_dcd(dev->serial, !!(curstate & TIOCM_CAR));
+    serial_set_dsr(dev->serial, !!(curstate & TIOCM_DSR));
+    serial_set_ri(dev->serial, !!(curstate & TIOCM_RI));
+}
+
 int
 plat_serpt_read(void *priv, uint8_t *data)
 {
@@ -57,8 +87,13 @@ plat_serpt_read(void *priv, uint8_t *data)
     fd_set                rdfds;
 
     switch (dev->mode) {
+        case SERPT_MODE_HOSTSER: {
+            if (read(dev->master_fd, data, 1) > 0) {
+                return 1;
+            }
+            return 0;
+        }
         case SERPT_MODE_VCON:
-        case SERPT_MODE_HOSTSER:
             FD_ZERO(&rdfds);
             FD_SET(dev->master_fd, &rdfds);
             tv.tv_sec  = 0;
@@ -189,6 +224,7 @@ plat_serpt_set_params(void *priv)
                 term_attr.c_cflag |= CMSPAR;
 #endif
         }
+        term_attr.c_iflag &= ~(IXON | IXOFF);
         tcsetattr(dev->master_fd, TCSANOW, &term_attr);
 #undef BAUDRATE_RANGE
     }

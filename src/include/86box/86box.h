@@ -42,6 +42,8 @@
 #define GLOBAL_CONFIG_FILE "86box_global.cfg"
 #define NVR_PATH           "nvr"
 #define SCREENSHOT_PATH    "screenshots"
+#define VMM_PATH		   "Virtual Machines"
+#define VMM_PATH_WINDOWS   "86Box VMs"
 
 /* Recently used images */
 #define MAX_PREV_IMAGES    10
@@ -138,6 +140,8 @@ extern int      force_43;                   /* (C) video */
 extern int      video_filter_method;        /* (C) video */
 extern int      video_vsync;                /* (C) video */
 extern int      video_framerate;            /* (C) video */
+extern double   video_gl_input_scale;       /* (C) OpenGL 3.x input scale */
+extern int      video_gl_input_scale_mode;  /* (C) OpenGL 3.x input stretch mode */
 extern int      gfxcard[GFXCARD_MAX];       /* (C) graphics/video card */
 extern int      bugger_enabled;             /* (C) enable ISAbugger */
 extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */
@@ -188,14 +192,22 @@ extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
 extern int    vmm_disabled;                 /* (G) disable built-in manager */
 extern char   vmm_path_cfg[1024];           /* (G) VMs path (unless -E is used) */
 
-extern char exe_path[2048];     /* path (dir) of executable */
-extern char usr_path[1024];     /* path (dir) of user data */
-extern char cfg_path[1024];     /* full path of config file */
+extern char exe_path[2048];        /* path (dir) of executable */
+extern char usr_path[1024];        /* path (dir) of user data */
+extern char cfg_path[1024];        /* full path of config file */
 extern char global_cfg_path[1024]; /* full path of global config file */
-extern int  open_dir_usr_path;  /* default file open dialog directory of usr_path */
-extern char uuid[MAX_UUID_LEN]; /* UUID or machine identifier */
-extern char vmm_path[1024];       /* VM Manager path to scan */
-extern int  start_vmm;
+extern int  open_dir_usr_path;     /* default file open dialog directory of usr_path */
+extern char uuid[MAX_UUID_LEN];    /* UUID or machine identifier */
+extern char vmm_path[1024];        /* VM Manager path to scan */
+extern int  start_vmm;             /* the current execution will start the manager */
+extern int  portable_mode;         /* we are running in portable mode 
+                                      (global dirs = exe path) */
+
+extern int  monitor_edid;                   /* (C) Which EDID to use. 0=default, 1=custom. */
+extern char monitor_edid_path[1024];        /* (C) Path to custom EDID */
+
+extern int color_scheme;                    /* (C) Color scheme of UI (Windows-only) */
+
 #ifndef USE_NEW_DYNAREC
 extern FILE *stdlog; /* file to log output to */
 #endif

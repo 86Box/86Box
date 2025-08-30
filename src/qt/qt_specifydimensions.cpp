@@ -112,4 +112,13 @@ SpecifyDimensions::on_SpecifyDimensions_accepted()
     }
     main_window->show();
     emit main_window->updateWindowRememberOption();
+
+    if (vid_resize == 1) {
+        main_window->resize(ui->spinBoxWidth->value() / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.), (ui->spinBoxHeight->value() / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.))
+                + main_window->menuBar()->height()
+                + (main_window->statusBar()->height() * !hide_status_bar)
+                + (main_window->ui->toolBar->height() * !hide_tool_bar));
+        window_w = ui->spinBoxWidth->value();
+        window_h = ui->spinBoxHeight->value();
+    }
 }

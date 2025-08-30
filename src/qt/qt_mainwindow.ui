@@ -186,6 +186,31 @@
      <addaction name="menuVGA_screen_type"/>
      <addaction name="menuGrayscale_conversion_type"/>
     </widget>
+    <widget class="QMenu" name="menuOpenGL_input_stretch_mode">
+     <property name="title">
+      <string>OpenGL input stretch mode</string>
+     </property>
+     <addaction name="action_Full_screen_stretch_gl"/>
+     <addaction name="action_4_3_gl"/>
+     <addaction name="action_Square_pixels_keep_ratio_gl"/>
+     <addaction name="action_Integer_scale_gl"/>
+     <addaction name="action4_3_Integer_scale_gl"/>
+    </widget>
+    <widget class="QMenu" name="menuOpenGL_input_scale">
+     <property name="title">
+      <string>OpenGL input scale</string>
+     </property>
+     <addaction name="action_0_5x_2"/>
+     <addaction name="action_1x_2"/>
+     <addaction name="action1_5x_2"/>
+     <addaction name="action_2x_2"/>
+     <addaction name="action_3x_2"/>
+     <addaction name="action_4x_2"/>
+     <addaction name="action_5x_2"/>
+     <addaction name="action_6x_2"/>
+     <addaction name="action_7x_2"/>
+     <addaction name="action_8x_2"/>
+    </widget>
     <addaction name="actionHide_tool_bar"/>
     <addaction name="actionHide_status_bar"/>
     <addaction name="separator"/>
@@ -195,6 +220,8 @@
     <addaction name="separator"/>
     <addaction name="menuRenderer"/>
     <addaction name="actionRenderer_options"/>
+    <addaction name="menuOpenGL_input_stretch_mode"/>
+    <addaction name="menuOpenGL_input_scale"/>
     <addaction name="separator"/>
     <addaction name="actionSpecify_dimensions"/>
     <addaction name="actionForce_4_3_display_ratio"/>
@@ -892,6 +919,134 @@
   <action name="actionCGA_composite_settings">
    <property name="text">
     <string>&amp;CGA composite settings...</string>
+   </property>
+  </action>
+  <action name="action_Full_screen_stretch_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Full screen stretch</string>
+   </property>
+  </action>
+  <action name="action_4_3_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;4:3</string>
+   </property>
+  </action>
+  <action name="action_Square_pixels_keep_ratio_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Square pixels (Keep ratio)</string>
+   </property>
+  </action>
+  <action name="action_Integer_scale_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Integer scale</string>
+   </property>
+  </action>
+  <action name="action4_3_Integer_scale_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>4:&amp;3 Integer scale</string>
+   </property>
+  </action>
+  <action name="action_1x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;1x</string>
+   </property>
+  </action>
+  <action name="action_0_5x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;0.5x</string>
+   </property>
+  </action>
+  <action name="action_1x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;1x</string>
+   </property>
+  </action>
+  <action name="action1_5x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>1.&amp;5x</string>
+   </property>
+  </action>
+  <action name="action_2x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;2x</string>
+   </property>
+  </action>
+  <action name="action_3x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;3x</string>
+   </property>
+  </action>
+  <action name="action_4x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;4x</string>
+   </property>
+  </action>
+  <action name="action_5x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;5x</string>
+   </property>
+  </action>
+  <action name="action_6x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;6x</string>
+   </property>
+  </action>
+  <action name="action_7x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;7x</string>
+   </property>
+  </action>
+  <action name="action_8x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;8x</string>
    </property>
   </action>
  </widget>

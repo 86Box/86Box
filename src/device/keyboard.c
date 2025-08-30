@@ -33,7 +33,8 @@
 
 #include "cpu.h"
 
-uint16_t     scancode_map[768] = { 0 };
+uint16_t     scancode_map[768]        = { 0 };
+uint16_t     scancode_config_map[768] = { 0 };
 
 int          keyboard_scan;
 
@@ -89,11 +90,11 @@ kbc_at_log(const char* fmt, ...)
 
 void (*keyboard_send)(uint16_t val);
 
-static int recv_key[512] = { 0 }; /* keyboard input buffer */
-static int recv_key_ui[512] = { 0 }; /* keyboard input buffer */
-static int oldkey[512];
+static int recv_key[768] = { 0 }; /* keyboard input buffer */
+static int recv_key_ui[768] = { 0 }; /* keyboard input buffer */
+static int oldkey[768];
 #if 0
-static int keydelay[512];
+static int keydelay[768];
 #endif
 static scancode *scan_table; /* scancode table for keyboard */
 
@@ -201,6 +202,8 @@ key_process(uint16_t scan, int down)
 
     if (!keyboard_scan || (keyboard_send == NULL))
         return;
+
+    scan = scancode_config_map[scan];
 
     oldkey[scan] = down;
 

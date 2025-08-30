@@ -83,6 +83,26 @@ plat_serpt_write_vcon(serial_passthrough_t *dev, uint8_t data)
 }
 
 void
+plat_serpt_set_line_state(void *priv)
+{
+    const serial_passthrough_t *dev = (serial_passthrough_t *) priv;
+
+    if (dev->mode == SERPT_MODE_HOSTSER) {
+        DWORD msrstate;
+        EscapeCommFunction((HANDLE) dev->master_fd, (dev->serial->mctrl & 1) ? SETDTR : CLRDTR);
+        EscapeCommFunction((HANDLE) dev->master_fd, (dev->serial->mctrl & 2) ? SETRTS : CLRRTS);
+        EscapeCommFunction((HANDLE) dev->master_fd, (dev->serial->lcr & (1 << 6) ? SETBREAK : CLRBREAK));
+
+        if (GetCommModemStatus((HANDLE) dev->master_fd, &msrstate)) {
+            serial_set_dcd(dev->serial, !!(msrstate & MS_RLSD_ON));
+            serial_set_dsr(dev->serial, !!(msrstate & MS_DSR_ON));
+            serial_set_cts(dev->serial, !!(msrstate & MS_CTS_ON));
+            serial_set_ri(dev->serial, !!(msrstate & MS_RING_ON));
+        }
+    }
+}
+
+void
 plat_serpt_set_params(void *priv)
 {
     const serial_passthrough_t *dev = (serial_passthrough_t *) priv;
@@ -108,6 +128,13 @@ plat_serpt_set_params(void *priv)
         BAUDRATE_RANGE(dev->baudrate, 57600, 115200);
         BAUDRATE_RANGE(dev->baudrate, 115200, 0xFFFFFFFF);
 
+        serialattr.fRtsControl     = RTS_CONTROL_ENABLE;
+        serialattr.fDtrControl     = DTR_CONTROL_ENABLE;
+        serialattr.fDsrSensitivity = FALSE;
+        serialattr.fAbortOnError   = FALSE;
+
+        serialattr.fInX     = FALSE;
+        serialattr.fOutX    = FALSE;
         serialattr.ByteSize = dev->data_bits;
         serialattr.StopBits = (dev->serial->lcr & 0x04) ? TWOSTOPBITS : ONESTOPBIT;
         if (!(dev->serial->lcr & 0x08)) {
@@ -122,7 +149,21 @@ plat_serpt_set_params(void *priv)
             }
         }
 
-        SetCommState((HANDLE) dev->master_fd, &serialattr);
+        (void) SetCommState((HANDLE) dev->master_fd, &serialattr);
+
+        {
+            DWORD msrstate;
+            EscapeCommFunction((HANDLE) dev->master_fd, (dev->serial->mctrl & 1) ? SETDTR : CLRDTR);
+            EscapeCommFunction((HANDLE) dev->master_fd, (dev->serial->mctrl & 2) ? SETRTS : CLRRTS);
+            EscapeCommFunction((HANDLE) dev->master_fd, (dev->serial->lcr & (1 << 6) ? SETBREAK : CLRBREAK));
+
+            if (GetCommModemStatus((HANDLE) dev->master_fd, &msrstate)) {
+                serial_set_dcd(dev->serial, !!(msrstate & MS_RLSD_ON));
+                serial_set_dsr(dev->serial, !!(msrstate & MS_DSR_ON));
+                serial_set_cts(dev->serial, !!(msrstate & MS_CTS_ON));
+                serial_set_ri(dev->serial, !!(msrstate & MS_RING_ON));
+            }
+        }
 #undef BAUDRATE_RANGE
     }
 }

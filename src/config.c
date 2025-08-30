@@ -128,6 +128,7 @@ load_global(void)
     confirm_reset = ini_section_get_int(cat, "confirm_reset", 1);
     confirm_exit  = ini_section_get_int(cat, "confirm_exit", 1);
     confirm_save  = ini_section_get_int(cat, "confirm_save", 1);
+    color_scheme  = ini_section_get_int(cat, "color_scheme", 0);
 
     inhibit_multimedia_keys = ini_section_get_int(cat, "inhibit_multimedia_keys", 0);
 
@@ -140,10 +141,36 @@ load_global(void)
     vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
 
     p = ini_section_get_string(cat, "vmm_path", NULL);
-    if (p != NULL)
-        strncpy(vmm_path_cfg, p, sizeof(vmm_path_cfg) - 1);
-    else
+    if (p != NULL) {
+        /* Convert relative paths to absolute in portable mode */
+        if (portable_mode && !path_abs(p)) {
+            path_append_filename(vmm_path_cfg, exe_path, p);
+            path_normalize(vmm_path_cfg);
+        } else {
+            strncpy(vmm_path_cfg, p, sizeof(vmm_path_cfg) - 1);
+        }
+    } else {
         plat_get_vmm_dir(vmm_path_cfg, sizeof(vmm_path_cfg));
+    }
+}
+
+/* Load scan code mappings. */
+static void
+load_scan_code_mappings(void)
+{
+    ini_section_t cat = ini_find_section(config, "Scan code mappings");
+    char          temp[512];
+
+    for (int c = 0; c < 768; c++) {
+        sprintf(temp, "%03X", c);
+
+        int mapping = ini_section_get_hex12(cat, temp, c);
+
+        if (mapping == c)
+            ini_section_delete_var(cat, temp);
+        else
+            scancode_config_map[c] = mapping;
+    }
 }
 
 /* Load "General" section. */
@@ -220,6 +247,9 @@ load_general(void)
     video_framerate = ini_section_get_int(cat, "video_gl_framerate", -1);
     video_vsync     = ini_section_get_int(cat, "video_gl_vsync", 0);
 
+    video_gl_input_scale      = ini_section_get_double(cat, "video_gl_input_scale", 1.0);
+    video_gl_input_scale_mode = ini_section_get_int(cat, "video_gl_input_scale_mode", FULLSCR_SCALE_FULL);
+
     window_remember = ini_section_get_int(cat, "window_remember", 0);
     if (window_remember) {
         p = ini_section_get_string(cat, "window_coordinates", NULL);
@@ -271,44 +301,73 @@ static void
 load_machine(void)
 {
     ini_section_t cat = ini_find_section(config, "Machine");
+    ini_section_t migration_cat;
     const char   *p;
     const char   *migrate_from = NULL;
+    const char   *migrate_bios = NULL;
     int           c;
     int           i;
     int           j;
     int           speed;
     double        multi;
 
+    static const struct {
+        const char *old;
+        const char *new;
+        const char *new_bios;
+    } machine_migrations[] = {
+        { .old = "tandy", .new = "tandy1000sx", .new_bios = NULL },
+        { .old = "mr1217", .new = "325ax", .new_bios = "mr1217" },
+        { .old = "deskpro386_05_1988", .new = "deskpro386", .new_bios = "deskpro386_05_1988" },
+        { .old = "mr495", .new = "ami495", .new_bios = "mr495" },
+        { .old = "403tg_d", .new = "403tg", .new_bios = "403tg_d" },
+        { .old = "403tg_d_mr", .new = "403tg", .new_bios = "403tg_d_mr" },
+        { .old = "aptiva510", .new = "pc330_6573", .new_bios = "aptiva510" },
+        { .old = "ambradp60", .new = "batman", .new_bios = "ambradp60" },
+        { .old = "dellxp60", .new = "batman", .new_bios = "dellxp60" },
+        { .old = "586mc1", .new = "586is", .new_bios = NULL },
+        { .old = "ambradp90", .new = "plato", .new_bios = "ambradp90" },
+        { .old = "dellplato", .new = "plato", .new_bios = "dellplato" },
+        { .old = "430nx", .new = "586ip", .new_bios = NULL },
+        { .old = "p54tp4xe_mr", .new = "p54tp4xe", .new_bios = "p54tp4xe_mr" },
+        { .old = "gw2katx", .new = "thor", .new_bios = "gw2katx" },
+        { .old = "mrthor", .new = "thor", .new_bios = "mrthor" },
+        { .old = "equium5200", .new = "cu430hx", .new_bios = "equium5200" },
+        { .old = "infinia7200", .new = "tc430hx", .new_bios = "infinia7200" },
+        { .old = "dellvenus", .new = "vs440fx", .new_bios = "dellvenus" },
+        { .old = "gw2kvenus", .new = "vs440fx", .new_bios = "gw2kvenus" },
+        { 0 }
+    };
+
     p = ini_section_get_string(cat, "machine", NULL);
     if (p != NULL) {
-        migrate_from = p;
         /* Migrate renamed machines. */
-        if (!strcmp(p, "tandy"))
-            machine = machine_get_machine_from_internal_name("tandy1000sx");
-        else if (!strcmp(p, "430nx"))
-            machine = machine_get_machine_from_internal_name("586ip");
-        else if (!strcmp(p, "586mc1"))
-            machine = machine_get_machine_from_internal_name("586is");
-        else {
-            machine      = machine_get_machine_from_internal_name(p);
-            migrate_from = NULL;
+        for (i = 0; machine_migrations[i].old; i++) {
+            if (!strcmp(p, machine_migrations[i].old)) {
+                machine      = machine_get_machine_from_internal_name(machine_migrations[i].new);
+                migrate_from = p;
+                if ((migrate_bios = machine_migrations[i].new_bios)) {
+                    migration_cat = ini_find_or_create_section(config, machine_get_device(machine)->name);
+                    ini_section_set_string(migration_cat, "bios", migrate_bios);
+                }
+                break;
+            }
         }
-    } else
+        if (!migrate_from)
+            machine = machine_get_machine_from_internal_name(p);
+    } else {
         machine = 0;
+    }
 
     if (machine >= machine_count())
         machine = machine_count() - 1;
 
-    /* Copy NVR files when migrating a machine to a new internal name. */
-    if (migrate_from) {
+    /* Copy NVR files when migrating a machine to a new NVR name. */
+    if (migrate_from && strcmp(migrate_bios ? migrate_bios : migrate_from, machine_get_nvr_name())) {
         char old_fn[256];
-        strcpy(old_fn, migrate_from);
-        strcat(old_fn, ".");
-        c = strlen(old_fn);
+        c = snprintf(old_fn, sizeof(old_fn), "%s.", migrate_from);
         char new_fn[256];
-        strcpy(new_fn, machines[machine].internal_name);
-        strcat(new_fn, ".");
-        i = strlen(new_fn);
+        i = snprintf(new_fn, sizeof(new_fn), "%s.", machine_get_nvr_name());
 
         /* Iterate through NVR files. */
         DIR *dirp = opendir(nvr_path("."));
@@ -494,6 +553,11 @@ load_video(void)
             p = "none";
         gfxcard[i] = video_get_video_from_internal_name(p);
     }
+
+    monitor_edid = ini_section_get_int(cat, "monitor_edid", 0);
+
+    monitor_edid_path[0] = 0;
+    strncpy(monitor_edid_path, ini_section_get_string(cat, "monitor_edid_path", (char*)""), sizeof(monitor_edid_path) - 1);
 }
 
 /* Load "Input Devices" section. */
@@ -1620,7 +1684,7 @@ load_other_removable_devices(void)
 
         sprintf(temp, "zip_%02i_image_path", c + 1);
         p = ini_section_get_string(cat, temp, "");
-        
+
         sprintf(temp, "zip_%02i_writeprot", c + 1);
         rdisk_drives[c].read_only =  ini_section_get_int(cat, temp, 0);
         ini_section_delete_var(cat, temp);
@@ -1724,7 +1788,7 @@ load_other_removable_devices(void)
 
         sprintf(temp, "rdisk_%02i_image_path", c + 1);
         p = ini_section_get_string(cat, temp, "");
-        
+
         sprintf(temp, "rdisk_%02i_writeprot", c + 1);
         rdisk_drives[c].read_only =  ini_section_get_int(cat, temp, 0);
         ini_section_delete_var(cat, temp);
@@ -2046,6 +2110,9 @@ config_load(void)
 #endif
     memset(rdisk_drives, 0, sizeof(rdisk_drive_t));
 
+    for (int i = 0; i < 768; i++)
+        scancode_config_map[i] = i;
+
     config = ini_read(cfg_path);
 
     if (config == NULL) {
@@ -2122,6 +2189,7 @@ config_load(void)
         load_general();                 /* General */
         for (i = 0; i < MONITORS_NUM; i++)
             load_monitor(i);            /* Monitors */
+        load_scan_code_mappings();      /* Scan code mappings */
         load_machine();                 /* Machine */
         load_video();                   /* Video */
         load_input_devices();           /* Input devices */
@@ -2178,6 +2246,11 @@ save_global(void)
         ini_section_set_string(cat, "language", buffer);
     }
 
+    if (color_scheme)
+        ini_section_set_int(cat, "color_scheme", color_scheme);
+    else
+        ini_section_delete_var(cat, "color_scheme");
+
     if (open_dir_usr_path)
         ini_section_set_int(cat, "open_dir_usr_path", open_dir_usr_path);
     else
@@ -2213,10 +2286,35 @@ save_global(void)
     else
         ini_section_delete_var(cat, "vmm_disabled");
 
-    if (vmm_path_cfg[0] != 0)
-        ini_section_set_string(cat, "vmm_path", vmm_path_cfg);
-    else
+    if (vmm_path_cfg[0] != 0) {
+        /* Save path as relative to the EXE path in portable mode */
+        if (portable_mode && path_abs(vmm_path_cfg) && !strnicmp(vmm_path_cfg, exe_path, strlen(exe_path))) {
+            ini_section_set_string(cat, "vmm_path", &vmm_path_cfg[strlen(exe_path)]);
+        } else {
+            ini_section_set_string(cat, "vmm_path", vmm_path_cfg);
+        }
+    } else {
         ini_section_delete_var(cat, "vmm_path");
+    }
+}
+
+/* Save scan code mappings. */
+static void
+save_scan_code_mappings(void)
+{
+    ini_section_t cat = ini_find_section(config, "Scan code mappings");
+    char          temp[512];
+
+    for (int c = 0; c < 768; c++) {
+        sprintf(temp, "%03X", c);
+
+        if (scancode_config_map[c] == c)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_hex12(cat, temp, scancode_config_map[c]);
+    }
+
+    ini_delete_section_if_empty(config, cat);
 }
 
 /* Save "General" section. */
@@ -2351,6 +2449,18 @@ save_general(void)
     else
         ini_section_delete_var(cat, "do_auto_pause");
 
+    if (video_gl_input_scale != 1.0) {
+        ini_section_set_double(cat, "video_gl_input_scale", video_gl_input_scale);
+    } else {
+        ini_section_delete_var(cat, "video_gl_input_scale");
+    }
+
+    if (video_gl_input_scale_mode != FULLSCR_SCALE_FULL) {
+        ini_section_set_int(cat, "video_gl_input_scale_mode", video_gl_input_scale_mode);
+    } else {
+        ini_section_delete_var(cat, "video_gl_input_scale_mode");
+    }
+
     if (force_constant_mouse)
         ini_section_set_int(cat, "force_constant_mouse", force_constant_mouse);
     else
@@ -2474,6 +2584,15 @@ save_video(void)
     ini_section_set_string(cat, "gfxcard",
                            video_get_internal_name(gfxcard[0]));
 
+    if (monitor_edid)
+        ini_section_set_int(cat, "monitor_edid", monitor_edid);
+    else
+        ini_section_delete_var(cat, "monitor_edid");
+
+    if (monitor_edid_path[0])
+        ini_section_set_string(cat, "monitor_edid_path", monitor_edid_path);
+    else
+        ini_section_delete_var(cat, "monitor_edid_path");
 
     if (vid_cga_comp_brightness)
         ini_section_set_int(cat, "vid_cga_comp_brightness", vid_cga_comp_brightness);
@@ -3494,6 +3613,7 @@ config_save(void)
     save_general();                 /* General */
     for (uint8_t i = 0; i < MONITORS_NUM; i++)
         save_monitor(i);            /* Monitors */
+    save_scan_code_mappings();      /* Scan code mappings */
     save_machine();                 /* Machine */
     save_video();                   /* Video */
     save_input_devices();           /* Input devices */

@@ -323,17 +323,6 @@ process_data(ps_t *dev)
 }
 
 static void
-ps_autofeed(uint8_t val, void *priv)
-{
-    ps_t *dev = (ps_t *) priv;
-
-    if (dev == NULL)
-        return;
-
-    dev->autofeed = val & 0x02 ? true : false;
-}
-
-static void
 ps_strobe(uint8_t old, uint8_t val, void *priv)
 {
     ps_t *dev = (ps_t *) priv;
@@ -533,7 +522,6 @@ const lpt_device_t lpt_prt_ps_device = {
     .close            = ps_close,
     .write_data       = ps_write_data,
     .write_ctrl       = ps_write_ctrl,
-    .autofeed         = ps_autofeed,
     .strobe           = ps_strobe,
     .read_status      = ps_read_status,
     .read_ctrl        = NULL,
@@ -551,7 +539,6 @@ const lpt_device_t lpt_prt_pcl_device = {
     .close            = ps_close,
     .write_data       = ps_write_data,
     .write_ctrl       = ps_write_ctrl,
-    .autofeed         = ps_autofeed,
     .strobe           = ps_strobe,
     .read_status      = ps_read_status,
     .read_ctrl        = NULL,

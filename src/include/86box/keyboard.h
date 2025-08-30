@@ -165,6 +165,7 @@ extern uint8_t keyboard_mode;
 extern int     keyboard_scan;
 
 extern uint16_t scancode_map[768];
+extern uint16_t scancode_config_map[768];
 
 extern void (*keyboard_send)(uint16_t val);
 extern void kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val));

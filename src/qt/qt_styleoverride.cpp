@@ -22,6 +22,7 @@
 #include <QPixmap>
 #include <QIcon>
 #include <QStyleOption>
+#include <QMainWindow>
 
 extern "C" {
 #include <86box/86box.h>
@@ -61,7 +62,14 @@ StyleOverride::polish(QWidget *widget)
                 widget->setFixedSize(QSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX));
                 widget->layout()->setSizeConstraint(QLayout::SetFixedSize);
             }
-            widget->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, true);
+            if (!qobject_cast<QMainWindow *>(widget)) {
+                widget->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, true);
+            }
+
+            if (qobject_cast<QMainWindow *>(widget)) {
+                widget->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, vid_resize != 1);
+                widget->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
+            }
         }
         widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
 #ifdef Q_OS_WINDOWS
