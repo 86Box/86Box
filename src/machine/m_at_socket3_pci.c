@@ -1388,7 +1388,7 @@ machine_at_hot433a_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    int is_award = !strcmp(device_get_config_bios("bios"), "hot433a_award");
+    int is_award = !strcmp(device_get_config_bios("bios"), "hot433a_v451pg");
     fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
