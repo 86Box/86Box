@@ -304,7 +304,6 @@ load_machine(void)
     ini_section_t migration_cat;
     const char   *p;
     const char   *migrate_from = NULL;
-    const char   *migrate_bios = NULL;
     int           c;
     int           i;
     int           j;
@@ -346,9 +345,9 @@ load_machine(void)
             if (!strcmp(p, machine_migrations[i].old)) {
                 machine      = machine_get_machine_from_internal_name(machine_migrations[i].new);
                 migrate_from = p;
-                if ((migrate_bios = machine_migrations[i].new_bios)) {
+                if (machine_migrations[i].new_bios) {
                     migration_cat = ini_find_or_create_section(config, machine_get_device(machine)->name);
-                    ini_section_set_string(migration_cat, "bios", migrate_bios);
+                    ini_section_set_string(migration_cat, "bios", machine_migrations[i].new_bios);
                 }
                 break;
             }
@@ -363,7 +362,7 @@ load_machine(void)
         machine = machine_count() - 1;
 
     /* Copy NVR files when migrating a machine to a new NVR name. */
-    if (migrate_from && strcmp(migrate_bios ? migrate_bios : migrate_from, machine_get_nvr_name())) {
+    if (migrate_from && strcmp(migrate_from, machine_get_nvr_name())) {
         char old_fn[256];
         c = snprintf(old_fn, sizeof(old_fn), "%s.", migrate_from);
         char new_fn[256];
