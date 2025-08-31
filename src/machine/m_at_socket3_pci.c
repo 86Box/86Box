@@ -277,7 +277,7 @@ machine_at_ms4145_init(const machine_t *model)
     pci_register_slot(0x06, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&ali1489_device);
-    device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89));
+    device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_88));
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
