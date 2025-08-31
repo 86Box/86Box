@@ -293,6 +293,7 @@ hostser_write(uint8_t *buf, ssize_t len, void *priv)
 static host_baudrate_t
 hostser_find_baud(uint32_t baud)
 {
+    /* Search the host's common baud rate table for the closest match to the specified baud rate. */
     uint32_t lbound = 0;
     uint32_t hbound;
     int i;
@@ -363,7 +364,7 @@ hostser_port_config(void *priv)
 
             /* Set configuration. */
             if (!SetCommState(dev->fd, &port_config)) {
-                /* Failed, try again with closest match baud rate. */
+                /* Failed, try again with the closest common baud rate. */
                 port_config.BaudRate = hostser_find_baud(dev->port->com.baud);
                 if (!SetCommState(dev->fd, &port_config))
                     hostser_log(dev->log, "SetCommState failed (%08X)\n", GetLastError());
@@ -456,7 +457,7 @@ hostser_port_config(void *priv)
             if (ioctl(dev->fd, TCSETS2, &port_config))
 #    endif
             {
-                /* Failed or we're not in a BOTHER system, try again with closest match baud rate. */
+                /* Failed or we're not in a BOTHER system, try again with the closest common baud rate. */
 #    ifdef CBAUD
                 port_config.c_cflag &= ~CBAUD;
 #        ifdef IBSHIFT
