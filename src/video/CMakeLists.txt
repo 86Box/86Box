@@ -139,6 +139,10 @@ add_library(vid OBJECT
     nv/nv_base.c
     nv/nv_rivatimer.c
 
+    # NVidia NV1
+    nv/nv1/nv1_core.c
+    nv/nv1/nv1_core_config.c
+
     # NVidia RIVA 128 - Subsystems
     nv/nv3/nv3_core.c 
     nv/nv3/nv3_core_config.c 
@@ -191,6 +195,10 @@ add_library(vid OBJECT
     nv/nv3/render/nv3_render_core.c
     nv/nv3/render/nv3_render_primitives.c   
     nv/nv3/render/nv3_render_blit.c   
+
+    # NVidia RIVA TNT/TNT2 - Core
+    nv/nv4/nv4_core.c
+    nv/nv4/nv4_core_config.c
 
     # Generic
     vid_bochs_vbe.c
