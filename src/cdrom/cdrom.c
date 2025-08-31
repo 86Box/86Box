@@ -344,7 +344,7 @@ cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const 
 {
     int            ret = 1;
 
-    if ((dev->cd_status != CD_STATUS_DVD) && (!mode2 || (form == 1))) {
+    if (!dev->no_check && (dev->cd_status != CD_STATUS_DVD) && (!mode2 || (form == 1))) {
         if (mode2 && (form == 1)) {
             const uint32_t crc = cdrom_crc32(0xffffffff, &(b[16]), 2056) ^ 0xffffffff;
 

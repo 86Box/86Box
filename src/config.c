@@ -1463,6 +1463,9 @@ load_floppy_and_cdrom_drives(void)
         sprintf(temp, "cdrom_%02i_speed", c + 1);
         cdrom[c].speed = ini_section_get_int(cat, temp, 8);
 
+        sprintf(temp, "cdrom_%02i_no_check", c + 1);
+        cdrom[c].no_check = ini_section_get_int(cat, temp, 0);
+
         sprintf(temp, "cdrom_%02i_type", c + 1);
         p = ini_section_get_string(cat, temp, cdrom[c].bus_type == CDROM_BUS_MKE ? "cr563" : "86cd");
         /* TODO: Configuration migration, remove when no longer needed. */
@@ -3404,6 +3407,12 @@ save_floppy_and_cdrom_drives(void)
     for (c = 0; c < CDROM_NUM; c++) {
         sprintf(temp, "cdrom_%02i_host_drive", c + 1);
         ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "cdrom_%02i_no_check", c + 1);
+        if (cdrom[c].no_check)
+            ini_section_set_int(cat, temp, cdrom[c].no_check);
+        else
+            ini_section_delete_var(cat, temp);
 
         sprintf(temp, "cdrom_%02i_speed", c + 1);
         if ((cdrom[c].bus_type == 0) || (cdrom[c].speed == 8))

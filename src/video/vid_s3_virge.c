@@ -852,9 +852,15 @@ s3_virge_recalctimings(svga_t *svga)
     if (svga->crtc[0x5e] & 0x04)
         svga->vblankstart |= 0x400;
     if (svga->crtc[0x5e] & 0x10)
-        svga->vsyncstart |= 0x400;
+    svga->vsyncstart |= 0x400;
+    svga->split       = svga->crtc[0x18];
+    if (svga->crtc[7] & 0x10)
+        svga->split |= 0x100;
+    if (svga->crtc[9] & 0x40)
+        svga->split |= 0x200;
     if (svga->crtc[0x5e] & 0x40)
         svga->split |= 0x400;
+    svga->split++;
     svga->interlace = svga->crtc[0x42] & 0x20;
 
     if (((svga->miscout >> 2) & 3) == 3) {
