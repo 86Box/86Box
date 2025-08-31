@@ -83,6 +83,11 @@ typedef struct ibm_rgb528_ramdac_t {
     uint8_t              cursor_array;
     uint8_t              cursor_hotspot_x;
     uint8_t              cursor_hotspot_y;
+    uint8_t              misc_clock;
+    uint8_t              pix_f_ref_div;
+    uint8_t              pix_f[16];
+    uint8_t              pix_n[8];
+    uint8_t              pix_m[8];
 } ibm_rgb528_ramdac_t;
 
 void
@@ -606,11 +611,72 @@ ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *s
         case 0x06:
             if ((ramdac->index < 0x0100) || (ramdac->index > 0x04ff) || ramdac->cursor_array)
                 ramdac->indexed_data[ramdac->index] = val;
+
+
             switch (ramdac->index) {
                 case 0x00a:
                 case 0x00c:
                     ibm_rgb528_set_bpp(ramdac, svga);
                     break;
+                case 0x014:
+                    if (ramdac->indexed_data[0x0002] & 0x01) {
+                        switch (ramdac->indexed_data[0x0010]) {
+                            case 0x00:
+                            case 0x02:
+                                ramdac->pix_f_ref_div = val;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    break;
+                case 0x020:
+                case 0x022:
+                case 0x024:
+                case 0x026:
+                case 0x028:
+                case 0x02a:
+                case 0x02c:
+                case 0x02e:
+                    if (ramdac->indexed_data[0x0002] & 0x01) {
+                        switch (ramdac->indexed_data[0x0010] & 0x07) {
+                            case 0x00:
+                            case 0x02:
+                                ramdac->pix_f[ramdac->index - 0x0020] = val;
+                                break;
+                            case 0x01:
+                            case 0x03:
+                                ramdac->pix_m[(ramdac->index - 0x0020) >> 1] = val;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    break;
+                case 0x021:
+                case 0x023:
+                case 0x025:
+                case 0x027:
+                case 0x029:
+                case 0x02b:
+                case 0x02d:
+                case 0x02f:
+                    if (ramdac->indexed_data[0x0002] & 0x01) {
+                        switch (ramdac->indexed_data[0x010] & 0x07) {
+                            case 0x00:
+                            case 0x02:
+                                ramdac->pix_f[ramdac->index - 0x0020] = val;
+                                break;
+                            case 0x01:
+                            case 0x03:
+                                ramdac->pix_n[(ramdac->index - 0x0020) >> 1] = val;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    break;
+
                 case 0x030:
                     switch (val & 0xc0) {
                         case 0x00:
@@ -722,7 +788,7 @@ ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *s
             if (ramdac->indx_cntl) {
                 if (ramdac->index == 0x00ff)
                     ramdac->cursor_array = 0;
-                ramdac->index = (ramdac->index + 1) & 0x07ff;
+                ramdac->index++;
             }
             break;
         case 0x07:
@@ -794,7 +860,7 @@ ibm_rgb528_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
             if (ramdac->indx_cntl) {
                 if (ramdac->index == 0x00ff)
                     ramdac->cursor_array = 0;
-                ramdac->index = (ramdac->index + 1) & 0x07ff;
+                ramdac->index++;
             }
             break;
         case 0x07:
@@ -844,6 +910,55 @@ ibm_rgb528_recalctimings(void *priv, svga_t *svga)
             }
         }
     }
+}
+
+float
+ibm_rgb528_getclock(int clock, void *priv)
+{
+    const ibm_rgb528_ramdac_t *ramdac          = (ibm_rgb528_ramdac_t *) priv;
+    int                        pll_vco_div_cnt;
+    int                        pll_df;
+    int                        pll_ref_div_cnt;
+    int                        ddot_divs[8]    = { 1, 2, 4, 8, 16, 1, 1, 1 };
+    int                        ddot_div        = ddot_divs[(ramdac->indexed_data[0x0002] >> 1) & 0x07];
+    float                      f_pll;
+
+    clock                                     &= 0x03;
+
+    if (ramdac->indexed_data[0x0002] & 0x01) {
+        switch (ramdac->indexed_data[0x0010] & 0x07) {
+            case 0x00:
+            default:
+                pll_vco_div_cnt = ramdac->pix_f[clock] & 0x3f;
+                pll_df = 8 >> (ramdac->pix_f[clock] >> 6);
+                pll_ref_div_cnt = ramdac->pix_f_ref_div & 0x1f;
+                break;
+            case 0x01:
+                pll_vco_div_cnt = ramdac->pix_m[clock] & 0x3f;
+                pll_df = 8 >> (ramdac->pix_m[clock] >> 6);
+                pll_ref_div_cnt = ramdac->pix_n[clock] & 0x1f;
+                break;
+            case 0x02:
+                pll_vco_div_cnt = ramdac->pix_f[ramdac->indexed_data[0x0011] & 0x0f] & 0x3f;
+                pll_df = 8 >> (ramdac->pix_f[ramdac->indexed_data[0x0011] & 0x0f] >> 6);
+                pll_ref_div_cnt = ramdac->pix_f_ref_div & 0x1f;
+                break;
+            case 0x03:
+                pll_vco_div_cnt = ramdac->pix_m[ramdac->indexed_data[0x0011] & 0x07] & 0x3f;
+                pll_df = 8 >> (ramdac->pix_m[ramdac->indexed_data[0x0011] & 0x07] >> 6);
+                pll_ref_div_cnt = ramdac->pix_n[ramdac->indexed_data[0x0011] & 0x07] & 0x1f;
+                break;
+        }
+    } else {
+        pll_vco_div_cnt = ramdac->indexed_data[0x0016] & 0x3f;
+        pll_df = 8 >> (ramdac->indexed_data[0x0016] >> 6);
+        pll_ref_div_cnt = ramdac->indexed_data[0x0015] & 0x1f;
+    }
+
+    f_pll = 28322000.0f * (float) (pll_vco_div_cnt + 65) / (float) (pll_ref_div_cnt * pll_df);
+    f_pll /= (float) ddot_div;
+
+    return f_pll;
 }
 
 void
