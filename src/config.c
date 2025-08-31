@@ -884,6 +884,10 @@ load_ports(void)
 
     if (!has_jumpers || (jumpered_internal_ecp_dma == def_jumper))
         ini_section_delete_var(cat, "jumpered_internal_ecp_dma");
+    else if (has_jumpers && !(machine_has_jumpered_ecp_dma(machine, jumpered_internal_ecp_dma))) {
+        jumpered_internal_ecp_dma = def_jumper;
+        ini_section_delete_var(cat, "jumpered_internal_ecp_dma");
+    }
 
     for (int c = 0; c < (SERIAL_MAX - 1); c++) {
         sprintf(temp, "serial%d_enabled", c + 1);
@@ -2908,7 +2912,10 @@ save_ports(void)
 
     if (!has_jumpers || (jumpered_internal_ecp_dma == def_jumper))
         ini_section_delete_var(cat, "jumpered_internal_ecp_dma");
-    else
+    else if (has_jumpers && !(machine_has_jumpered_ecp_dma(machine, jumpered_internal_ecp_dma))) {
+        jumpered_internal_ecp_dma = def_jumper;
+        ini_section_set_int(cat, "jumpered_internal_ecp_dma", jumpered_internal_ecp_dma);
+    } else
         ini_section_set_int(cat, "jumpered_internal_ecp_dma", jumpered_internal_ecp_dma);
 
     for (int c = 0; c < (SERIAL_MAX - 1); c++) {

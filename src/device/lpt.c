@@ -319,7 +319,7 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
     switch (port & mask) {
         case 0x0000:
             if (dev->ecp) {
-                if ((dev->ecr & 0xe0) == 0x60)
+                if (((dev->ecr & 0xe0) == 0x40) || ((dev->ecr & 0xe0) == 0x60))
                     /* AFIFO */
                     lpt_write_fifo(dev, val, 0x00);
                 else if (!(dev->ecr & 0xc0) && (!(dev->ecr & 0x20) || !(lpt_get_ctrl_raw(dev) & 0x20)) &&
@@ -424,7 +424,7 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
                         timer_set_delay_u64(&dev->fifo_out_timer, (uint64_t) ((1000000.0 / 2500000.0) * (double) TIMER_USEC));
                 } else {
                     dev->state = LPT_STATE_WRITE_FIFO;
-                    if (lpt_get_ctrl_raw(dev) & 0x20)
+                    if (((dev->ecr & 0xe0) == 0x40) || (lpt_get_ctrl_raw(dev) & 0x20))
                         dev->fifo_stat = fifo_get_ready(dev->fifo) ? 0x04 : 0x00;
                     else
                         dev->fifo_stat = fifo_get_ready(dev->fifo) ? 0x00 : 0x04;
@@ -463,7 +463,7 @@ lpt_fifo_d_ready_evt(void *priv)
     lpt_t *dev = (lpt_t *) priv;
 
     if (!(dev->ecr & 0x08)) {
-        if (lpt_get_ctrl_raw(dev) & 0x20)
+        if (((dev->ecr & 0xe0) == 0x40) || (lpt_get_ctrl_raw(dev) & 0x20))
             dev->fifo_stat = fifo_get_ready(dev->fifo) ? 0x04 : 0x00;
         else
             dev->fifo_stat = fifo_get_ready(dev->fifo) ? 0x00 : 0x04;
@@ -480,6 +480,8 @@ lpt_write_to_fifo(void *priv, const uint8_t val)
     if (dev->ecp) {
         if (((dev->ecr & 0xe0) == 0x20) && (lpt_get_ctrl_raw(dev) & 0x20))
             dev->dat = val;
+        else if (((dev->ecr & 0xe0) == 0x40) && !fifo_get_full(dev->fifo))
+            fifo_write_evt_tagged(0x01, val, dev->fifo);
         else if (((dev->ecr & 0xe0) == 0x60) && (lpt_get_ctrl_raw(dev) & 0x20) &&
             !fifo_get_full(dev->fifo))
             fifo_write_evt_tagged(0x01, val, dev->fifo);
