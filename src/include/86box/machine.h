@@ -1046,6 +1046,9 @@ extern int             machine_at_via809ds_init(const machine_t *);
 /* SiS 5571 */
 extern int             machine_at_cb52xsi_init(const machine_t *);
 extern int             machine_at_ms5146_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  r534f_device;
+#endif
 extern int             machine_at_r534f_init(const machine_t *);
 
 /* SiS 5581 */
