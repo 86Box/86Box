@@ -2953,13 +2953,11 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
 
     switch (addr) {
         case 0x3c2:
-            if (s3->chip == S3_VISION964) {
-                if (s3->card_type != S3_ELSAWIN2KPROX_964) {
+                if (svga->getclock == icd2061_getclock) {
                     if (((val >> 2) & 3) != 3)
                         icd2061_write(svga->clock_gen, (val >> 2) & 3);
                 }
-            }
-            break;
+                break;
 
         case 0x3c5:
             if (s3->chip == S3_TRIO64V2) {
@@ -3167,8 +3165,6 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                         svga->hwcursor.x /= 3;
                     else if ((s3->chip <= S3_86C805) && s3->color_16bit)
                         svga->hwcursor.x >>= 1;
-                    else if ((s3->chip == S3_TRIO32) && ((svga->bpp == 15) || (svga->bpp == 16)))
-                        svga->hwcursor.x >>= 1;
                     break;
 
                 case 0x4a:
@@ -3231,11 +3227,9 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     if (((svga->miscout >> 2) & 3) == 3)
                         s3_log("[%04X:%08X]: Write CRTC%02x=%02x.\n", CS, cpu_state.pc, svga->crtcreg, svga->crtc[svga->crtcreg]);
 
-                    if (s3->chip == S3_VISION964) {
-                        if (s3->card_type != S3_ELSAWIN2KPROX_964) {
-                            if (((svga->miscout >> 2) & 3) == 3)
-                                icd2061_write(svga->clock_gen, svga->crtc[0x42] & 0x0f);
-                        }
+                    if (svga->getclock == icd2061_getclock) {
+                        if (((svga->miscout >> 2) & 3) == 3)
+                            icd2061_write(svga->clock_gen, val & 0x0f);
                     }
                     break;
 
@@ -3350,8 +3344,6 @@ s3_in(uint16_t addr, void *priv)
         case 0x3c7:
         case 0x3c8:
         case 0x3c9:
-        case 0x3ca: /*0x3c6 alias*/
-        case 0x3cb: /*0x3c7 alias*/
             rs2 = (svga->crtc[0x55] & 0x01) || !!(svga->crtc[0x43] & 2);
             if (s3->chip >= S3_TRIO32)
                 return svga_in(addr, svga);
@@ -3414,6 +3406,11 @@ s3_in(uint16_t addr, void *priv)
                         temp |= svga->crtc[0x42] & 0x0f;
                     else
                         temp |= ((svga->miscout >> 2) & 3);
+                    if (s3->elsa_eeprom) {
+                        temp &= 0xaf;
+                        if ((svga->crtc[0x5c] & 0x10) && nmc93cxx_eeprom_read(s3->eeprom))
+                            temp |= 0x10;
+                    }
                     return temp;
                 case 0x69:
                     return s3->ma_ext;
@@ -3637,6 +3634,7 @@ s3_recalctimings(svga_t *svga)
         svga->split++;
         if (s3->accel.advfunc_cntl & 0x01)
             svga->split = 0x7fff;
+        s3_log("SPLIT=%d, crtc5e bit 6=%02x, advfunccntl bit 0=%x.\n", svga->split, svga->crtc[0x5e] & 0x40, s3->accel.advfunc_cntl & 0x01);
         if (svga->crtc[0x51] & 0x30)
             svga->rowoffset |= (svga->crtc[0x51] & 0x30) << 4;
         else if (svga->crtc[0x43] & 0x04)
@@ -3649,6 +3647,7 @@ s3_recalctimings(svga_t *svga)
 
     if ((((svga->miscout >> 2) & 3) == 3) && (s3->chip < S3_TRIO32))
         clk_sel = svga->crtc[0x42] & 0x0f;
+
     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
 
     if ((s3->chip == S3_VISION964) || (s3->chip == S3_86C928)) {
@@ -3855,11 +3854,25 @@ s3_recalctimings(svga_t *svga)
                                     svga->hdisp -= 32;
                                 break;
                             case S3_ELSAWIN2KPROX:
+                                s3_log("S3 width 8bpp=%d, hdisp=%d.\n", s3->width, svga->hdisp);
                                 switch (s3->width) {
                                     case 1280:
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
+                                        break;
+                                    case 2048:
+                                        if (!svga->interlace) {
+                                            if (svga->dispend >= 1024) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        } else {
+                                            if (svga->dispend >= 512) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        }
                                         break;
                                     default:
                                         break;
@@ -3983,6 +3996,19 @@ s3_recalctimings(svga_t *svga)
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
                                         break;
+                                    case 2048:
+                                        if (!svga->interlace) {
+                                            if (svga->dispend >= 1024) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        } else {
+                                            if (svga->dispend >= 512) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        }
+                                        break;
                                     default:
                                         break;
                                 }
@@ -4029,6 +4055,19 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
+                                        break;
+                                    case 2048:
+                                        if (!svga->interlace) {
+                                            if (svga->dispend >= 1024) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        } else {
+                                            if (svga->dispend >= 512) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        }
                                         break;
                                     default:
                                         break;
@@ -4165,6 +4204,19 @@ s3_recalctimings(svga_t *svga)
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
                                         break;
+                                    case 2048:
+                                        if (!svga->interlace) {
+                                            if (svga->dispend >= 1024) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        } else {
+                                            if (svga->dispend >= 512) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        }
+                                        break;
                                     default:
                                         break;
                                 }
@@ -4198,6 +4250,19 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
+                                        break;
+                                    case 2048:
+                                        if (!svga->interlace) {
+                                            if (svga->dispend >= 1024) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        } else {
+                                            if (svga->dispend >= 512) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        }
                                         break;
                                     default:
                                         break;
@@ -4338,6 +4403,19 @@ s3_recalctimings(svga_t *svga)
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
                                         break;
+                                    case 2048:
+                                        if (!svga->interlace) {
+                                            if (svga->dispend >= 1024) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        } else {
+                                            if (svga->dispend >= 512) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        }
+                                        break;
                                     default:
                                         break;
                                 }
@@ -4370,6 +4448,19 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
+                                        break;
+                                    case 2048:
+                                        if (!svga->interlace) {
+                                            if (svga->dispend >= 1024) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        } else {
+                                            if (svga->dispend >= 512) {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                            }
+                                        }
                                         break;
                                     default:
                                         break;
@@ -4451,7 +4542,7 @@ s3_trio64v_recalctimings(svga_t *svga)
         svga->vblankstart |= 0x400;
     if (svga->crtc[0x5e] & 0x10)
         svga->vsyncstart |= 0x400;
-    svga->split       = svga->crtc[0x18];
+    svga->split = svga->crtc[0x18];
     if (svga->crtc[7] & 0x10)
         svga->split |= 0x100;
     if (svga->crtc[9] & 0x40)
@@ -4459,6 +4550,7 @@ s3_trio64v_recalctimings(svga_t *svga)
     if (svga->crtc[0x5e] & 0x40)
         svga->split |= 0x400;
     svga->split++;
+
     svga->interlace = svga->crtc[0x42] & 0x20;
 
     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
@@ -6132,6 +6224,7 @@ s3_accel_write_w(uint32_t addr, uint16_t val, void *priv)
         } else {
             switch (addr & (addr_mask - 1)) {
                 case 0x83c8:
+                case 0x83ca:
                 case 0x83d4:
                     s3_accel_write(addr, val, s3);
                     s3_accel_write(addr + 1, val >> 8, s3);
@@ -6326,54 +6419,7 @@ s3_accel_read(uint32_t addr, void *priv)
         if ((addr >= 0x08000) && (addr <= 0x0803f))
             return s3_pci_read(0, addr & 0xff, s3);
         switch (addr & 0x1ffff) {
-            case 0x83b0:
-            case 0x83b1:
-            case 0x83b2:
-            case 0x83b3:
-            case 0x83b4:
-            case 0x83b5:
-            case 0x83b6:
-            case 0x83b7:
-            case 0x83b8:
-            case 0x83b9:
-            case 0x83ba:
-            case 0x83bb:
-            case 0x83bc:
-            case 0x83bd:
-            case 0x83be:
-            case 0x83bf:
-            case 0x83c0:
-            case 0x83c1:
-            case 0x83c2:
-            case 0x83c3:
-            case 0x83c4:
-            case 0x83c5:
-            case 0x83c6:
-            case 0x83c7:
-            case 0x83c8:
-            case 0x83c9:
-            case 0x83ca:
-            case 0x83cb:
-            case 0x83cc:
-            case 0x83cd:
-            case 0x83ce:
-            case 0x83cf:
-            case 0x83d0:
-            case 0x83d1:
-            case 0x83d2:
-            case 0x83d3:
-            case 0x83d4:
-            case 0x83d5:
-            case 0x83d6:
-            case 0x83d7:
-            case 0x83d8:
-            case 0x83d9:
-            case 0x83da:
-            case 0x83db:
-            case 0x83dc:
-            case 0x83dd:
-            case 0x83de:
-            case 0x83df:
+            case 0x83b0 ... 0x83df:
                 return s3_in(addr & 0x3ff, s3);
             case 0x8504:
                 return s3->subsys_stat;
@@ -9598,6 +9644,14 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                     } else
                         update = 1;
 
+                    if (s3->bpp == 2) {
+                        src_dat &= 0xff;
+                        pat_dat &= 0xff;
+                    } else if (s3->bpp == 1) {
+                        src_dat &= 0xffff;
+                        pat_dat &= 0xffff;
+                    }
+
                     if (update) {
                         READ(s3->accel.dest + s3->accel.dx, dest_dat);
 
@@ -9656,6 +9710,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                     if (cpu_input /* && (s3->accel.multifunc[0xa] & 0xc0) == 0x80*/)
                         return;
                     if (s3->accel.sy < 0) {
+                        s3->accel.destx_distp = s3->accel.dx;
+                        s3->accel.desty_axstp = s3->accel.dy;
                         return;
                     }
                 }
@@ -10489,10 +10545,8 @@ s3_init(const device_t *info)
             svga->ramdac    = device_add(&att491_ramdac_device);
             svga->clock_gen = device_add(&av9194_device);
             svga->getclock  = av9194_getclock;
-            if (info->local == S3_WINNER1000_805) {
+            if (info->local == S3_WINNER1000_805)
                 s3->elsa_eeprom = 1;
-                sprintf(s3->nvr_path, "s3_elsa_1k_805_%i.nvr", device_get_instance());
-            }
             break;
 
         case S3_86C805_ONBOARD:
@@ -10749,14 +10803,20 @@ s3_init(const device_t *info)
         switch (s3->card_type) {
             case S3_WINNER1000_805:
                 s3->eeprom_data[0x02] = 0x091a;
+                s3->eeprom_data[0x07] = 0x83d6;
+                s3->eeprom_data[0x08] = 0x83d6;
                 snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_s3_winner_1k_805_%d.nvr", s3->eeprom_inst);
                 break;
             case S3_ELSAWIN2KPROX:
                 s3->eeprom_data[0x02] = 0x094a;
+                s3->eeprom_data[0x07] = 0xf424;
+                s3->eeprom_data[0x08] = 0xf424;
                 snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_s3_winner_2k_pro_x8_968_%d.nvr", s3->eeprom_inst);
                 break;
             case S3_ELSAWIN2KPROX_964:
                 s3->eeprom_data[0x02] = 0x094a;
+                s3->eeprom_data[0x07] = 0xf424;
+                s3->eeprom_data[0x08] = 0xf424;
                 snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_s3_winner_2k_pro_x8_964_%d.nvr", s3->eeprom_inst);
                 break;
             default:
@@ -10764,16 +10824,9 @@ s3_init(const device_t *info)
         }
 
         s3->eeprom_data[0x05] = 0x0040;
-        s3->eeprom_data[0x07] = 0xf424;
-        s3->eeprom_data[0x08] = 0xf424;
-        // s3->eeprom_data[0x09] = 0x0500;
-        // s3->eeprom_data[0x0b] = 0x0640;
-        // s3->eeprom_data[0x0c] = 0x04b0;
         s3->eeprom_data[0x0b] = 0x0c80;
         s3->eeprom_data[0x0c] = 0x0a00;
         s3->eeprom_data[0x0d] = 0x0001;
-        for (uint8_t i = 0; i < 0x32; i++)
-            s3->eeprom_data[0x0e + i] = 0xffff;
 
         checksum = s3_calc_crc16(64, s3->eeprom_data);
 
