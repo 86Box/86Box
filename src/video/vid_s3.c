@@ -3627,6 +3627,7 @@ s3_recalctimings(svga_t *svga)
             svga->vblankstart = svga->dispend; /*Applies only to Enhanced modes*/
         if (svga->crtc[0x5e] & 0x10)
             svga->vsyncstart |= 0x400;
+        svga->split       = svga->crtc[0x18];
         if (svga->crtc[7] & 0x10)
             svga->split |= 0x100;
         if (svga->crtc[9] & 0x40)
@@ -3849,6 +3850,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
+                                svga->clock *= 2.0;
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
@@ -4015,6 +4017,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
+                                svga->clock *= 2.0;
                                 /* TODO: Is this still needed? */
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
@@ -4183,6 +4186,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
+                                svga->clock *= 2.0;
                                 /* TODO: Is this still needed? */
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
@@ -4354,6 +4358,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
+                                svga->clock *= 2.0;
                                 /* TODO: Is this still needed? */
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
@@ -4446,6 +4451,7 @@ s3_trio64v_recalctimings(svga_t *svga)
         svga->vblankstart |= 0x400;
     if (svga->crtc[0x5e] & 0x10)
         svga->vsyncstart |= 0x400;
+    svga->split       = svga->crtc[0x18];
     if (svga->crtc[7] & 0x10)
         svga->split |= 0x100;
     if (svga->crtc[9] & 0x40)
@@ -10335,8 +10341,8 @@ s3_init(const device_t *info)
 
         case S3_VISION968:
             switch (info->local) {
-                case S3_DIAMOND_STEALTH64_968:
                 case S3_ELSAWIN2KPROX:
+                case S3_DIAMOND_STEALTH64_968:
                 case S3_PHOENIX_VISION968:
                 case S3_NUMBER9_9FX_771:
                     svga->dac_hwcursor_draw = ibm_rgb528_hwcursor_draw;
@@ -10578,6 +10584,7 @@ s3_init(const device_t *info)
                     svga->clock_gen = svga->ramdac;
                     svga->getclock  = ibm_rgb528_getclock;
                     s3->elsa_eeprom = 1;
+                    ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 28322000.0f);
                     break;
                 default:
                     svga->ramdac = device_add(&bt485_ramdac_device);
@@ -10620,7 +10627,11 @@ s3_init(const device_t *info)
                     svga->getclock  = ibm_rgb528_getclock;
                     if (info->local == S3_ELSAWIN2KPROX) {
                         s3->elsa_eeprom = 1;
-                    }
+                        ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 28322000.0f);
+                    } else if (info->local != S3_DIAMOND_STEALTH64_968)
+                        ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 16000000.0f);
+                    else
+                        ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 14318184.0f);
                     break;
                 default:
                     svga->ramdac    = device_add(&tvp3026_ramdac_device);

@@ -88,6 +88,7 @@ typedef struct ibm_rgb528_ramdac_t {
     uint8_t              pix_f[16];
     uint8_t              pix_n[8];
     uint8_t              pix_m[8];
+    float                ref_clock;
 } ibm_rgb528_ramdac_t;
 
 void
@@ -612,23 +613,13 @@ ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *s
             if ((ramdac->index < 0x0100) || (ramdac->index > 0x04ff) || ramdac->cursor_array)
                 ramdac->indexed_data[ramdac->index] = val;
 
-
             switch (ramdac->index) {
                 case 0x00a:
                 case 0x00c:
                     ibm_rgb528_set_bpp(ramdac, svga);
                     break;
                 case 0x014:
-                    if (ramdac->indexed_data[0x0002] & 0x01) {
-                        switch (ramdac->indexed_data[0x0010]) {
-                            case 0x00:
-                            case 0x02:
-                                ramdac->pix_f_ref_div = val;
-                                break;
-                            default:
-                                break;
-                        }
-                    }
+                    ramdac->pix_f_ref_div = val;
                     break;
                 case 0x020:
                 case 0x022:
@@ -955,7 +946,7 @@ ibm_rgb528_getclock(int clock, void *priv)
         pll_ref_div_cnt = ramdac->indexed_data[0x0015] & 0x1f;
     }
 
-    f_pll = 28322000.0f * (float) (pll_vco_div_cnt + 65) / (float) (pll_ref_div_cnt * pll_df);
+    f_pll = ramdac->ref_clock * (float) (pll_vco_div_cnt + 65) / (float) (pll_ref_div_cnt * pll_df);
     f_pll /= (float) ddot_div;
 
     return f_pll;
@@ -1065,17 +1056,38 @@ ibm_rgb528_hwcursor_draw(svga_t *svga, int displine)
         svga->dac_hwcursor_latch.addr += pitch;
 }
 
+void
+ibm_rgb528_ramdac_set_ref_clock(void *priv, svga_t *svga, float ref_clock)
+{
+    ibm_rgb528_ramdac_t *ramdac = (ibm_rgb528_ramdac_t *) priv;
+
+    if (ramdac)
+        ramdac->ref_clock = ref_clock;
+
+    svga_recalctimings(svga);
+}
+
 void *
 ibm_rgb528_ramdac_init(UNUSED(const device_t *info))
 {
     ibm_rgb528_ramdac_t *ramdac = (ibm_rgb528_ramdac_t *) malloc(sizeof(ibm_rgb528_ramdac_t));
     memset(ramdac, 0, sizeof(ibm_rgb528_ramdac_t));
 
-    ramdac->smlc_part = 0x0100;
+    ramdac->smlc_part            = 0x0100;
+    ramdac->ref_clock            = 14318184.0f;
 
     ramdac->indexed_data[0x0008] = 0x0001;
+    ramdac->indexed_data[0x0014] = 0x0005;
     ramdac->indexed_data[0x0015] = 0x0008;
     ramdac->indexed_data[0x0016] = 0x0041;
+    ramdac->indexed_data[0x0020] = 0x0005;
+    ramdac->indexed_data[0x0021] = 0x000e;
+
+    ramdac->pix_f_ref_div = 0x0005;
+    ramdac->pix_f[0] = 0x0005;
+    ramdac->pix_f[1] = 0x000e;
+    ramdac->pix_m[0] = 0x0005;
+    ramdac->pix_n[0] = 0x000e;
 
     return ramdac;
 }
