@@ -9373,7 +9373,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
@@ -12100,7 +12100,7 @@ const machine_t machines[] = {
             .max_multi = 1.5
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE | MACHINE_APM,
+        .flags = MACHINE_PS2_KBC | MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 2048,
             .max = 262144,
