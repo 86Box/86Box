@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <86Box/nv/vid_nv.h>
 
 extern const device_config_t nv1_config[];                              // Config for RIVA 128 (revision A/B)
 
@@ -151,6 +152,12 @@ extern const device_config_t nv1_config[];                              // Confi
 //
 #define NV1_PROM                                    0x601000
 #define NV1_PROM_SIZE                               32768
+
+// Structures
+typedef struct nv1_s
+{
+    nv_base_t nvbase;   // Base Nvidia structure
+} nv1_t;
 
 // Device Core
 void        nv1_init();
