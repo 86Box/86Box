@@ -28,18 +28,8 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
-#include <86box/vid_ati_eeprom.h>
 #include <86box/net_eeprom_nmc93cxx.h>
 #include <86box/plat_unused.h>
-
-struct nmc93cxx_eeprom_t {
-    ati_eeprom_t dev;
-    uint8_t  addrbits;
-    uint16_t size;
-    char     filename[1024];
-};
-
-typedef struct nmc93cxx_eeprom_t nmc93cxx_eeprom_t;
 
 #ifdef ENABLE_NMC93CXX_EEPROM_LOG
 int nmc93cxx_eeprom_do_log = ENABLE_NMC93CXX_EEPROM_LOG;
@@ -110,6 +100,16 @@ nmc93cxx_eeprom_init(const device_t *info)
     return eeprom;
 }
 
+static void
+nmc93cxx_eeprom_save(nmc93cxx_eeprom_t *eeprom)
+{
+    FILE *fp = nvr_fopen(eeprom->filename, "wb");
+    if (!fp)
+        return;
+    fwrite(eeprom->dev.data, 2, eeprom->size, fp);
+    fclose(fp);
+}
+
 void
 nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int eedi)
 {
@@ -133,21 +133,25 @@ nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int eedi)
             uint8_t subcommand = address >> (eeprom->addrbits - 2);
             if (command == 0 && subcommand == 2) {
                 /* Erase all. */
-                for (address = 0; address < eeprom->size; address++) {
+                for (address = 0; address < eeprom->size; address++)
                     eeprom->dev.data[address] = 0xffff;
-                }
+
+                nmc93cxx_eeprom_save(eeprom);
             } else if (command == 3) {
                 /* Erase word. */
                 eeprom->dev.data[address] = 0xffff;
-            } else if (tick >= 2 + 2 + eeprom->addrbits + 16) {
+                nmc93cxx_eeprom_save(eeprom);
+            } else if (tick >= (2 + 2 + eeprom->addrbits + 16)) {
                 if (command == 1) {
                     /* Write word. */
                     eeprom->dev.data[address] &= eeprom->dev.dat;
+                    nmc93cxx_eeprom_save(eeprom);
                 } else if (command == 0 && subcommand == 1) {
                     /* Write all. */
-                    for (address = 0; address < eeprom->size; address++) {
+                    for (address = 0; address < eeprom->size; address++)
                         eeprom->dev.data[address] &= eeprom->dev.dat;
-                    }
+
+                    nmc93cxx_eeprom_save(eeprom);
                 }
             }
         }
@@ -252,12 +256,7 @@ static void
 nmc93cxx_eeprom_close(void *priv)
 {
     nmc93cxx_eeprom_t *eeprom = (nmc93cxx_eeprom_t *) priv;
-    FILE              *fp     = nvr_fopen(eeprom->filename, "wb");
-    if (fp) {
-        fwrite(eeprom->dev.data, 2, eeprom->size, fp);
-        fclose(fp);
-    }
-    free(priv);
+    free(eeprom);
 }
 
 uint16_t *

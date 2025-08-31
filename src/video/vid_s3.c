@@ -33,6 +33,8 @@
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/rom.h>
+#include <86box/net_eeprom_nmc93cxx.h>
+#include <86box/nvr.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
 #include <86box/video.h>
@@ -196,10 +198,12 @@ typedef struct
 } fifo_entry_t;
 
 typedef struct s3_t {
+    char nvr_path[128];
     mem_mapping_t linear_mapping;
     mem_mapping_t mmio_mapping;
     mem_mapping_t new_mmio_mapping;
 
+    int elsa_eeprom;
     uint8_t has_bios;
     rom_t   bios_rom;
 
@@ -393,7 +397,11 @@ typedef struct s3_t {
     bool color_key_enabled;
 
     uint8_t thread_run, serialport;
+    uint8_t eeprom_inst;
+    uint16_t eeprom_data[128];
     void   *i2c, *ddc;
+
+    nmc93cxx_eeprom_t *eeprom;
 
     int vram;
 
@@ -2639,7 +2647,7 @@ s3_trio64v_colorkey(s3_t* s3, uint32_t x, uint32_t y)
     if (!(s3->streams.chroma_ctrl & (1 << 28))) {
         return true;
     }
-    
+
     comp_r = (s3->streams.chroma_ctrl >> 16) & 0xFF;
     comp_g = (s3->streams.chroma_ctrl >> 8) & 0xFF;
     comp_b = (s3->streams.chroma_ctrl) & 0xFF;
@@ -2648,7 +2656,7 @@ s3_trio64v_colorkey(s3_t* s3, uint32_t x, uint32_t y)
     if (svga->render == svga_render_24bpp_highres) bytes_per_pel = 3;
     if (svga->render == svga_render_16bpp_highres) bytes_per_pel = 2;
     if (svga->render == svga_render_15bpp_highres) { bytes_per_pel = 2; is15bpp = true; }
-    
+
     switch (bytes_per_pel) {
         case 1: {
             uint8_t index = svga->vram[(base_addr + (stride * y) + x * bytes_per_pel) & svga->vram_mask];
@@ -2695,7 +2703,7 @@ s3_trio64v_colorkey(s3_t* s3, uint32_t x, uint32_t y)
 
     return !!(r == comp_r && g == comp_g && b == comp_b);
 }
-    
+
 static void
 s3_trio64v_overlay_draw(svga_t *svga, int displine)
 {
@@ -2945,8 +2953,8 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
 
     switch (addr) {
         case 0x3c2:
-            if ((s3->chip == S3_VISION964) || (s3->chip == S3_VISION968)) {
-                if ((s3->card_type != S3_SPEA_MERCURY_P64V) && (s3->card_type != S3_MIROVIDEO40SV_ERGO_968)) {
+            if (s3->chip == S3_VISION964) {
+                if (s3->card_type != S3_ELSAWIN2KPROX_964) {
                     if (((val >> 2) & 3) != 3)
                         icd2061_write(svga->clock_gen, (val >> 2) & 3);
                 }
@@ -3008,7 +3016,11 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3C9:
         case 0x3CA: /*0x3c6 alias*/
         case 0x3CB: /*0x3c7 alias*/
-            rs2 = (svga->crtc[0x55] & 0x01) || !!(svga->crtc[0x43] & 2);
+            if ((svga->crtc[0x55] & 0x03) == 0x00)
+                rs2 = !!(svga->crtc[0x43] & 2);
+            else
+                rs2 = (svga->crtc[0x55] & 0x01);
+            // rs2 = (svga->crtc[0x55] & 0x01) || !!(svga->crtc[0x43] & 2);
             if (s3->chip >= S3_TRIO32)
                 svga_out(addr, val, svga);
             else if ((s3->chip == S3_VISION964 && s3->card_type != S3_ELSAWIN2KPROX_964) || (s3->chip == S3_86C928)) {
@@ -3072,8 +3084,8 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x5c:
-                    if ((val & 0xa0) == 0x80)
-                        i2c_gpio_set(s3->i2c, !!(val & 0x40), !!(val & 0x10));
+                    if (s3->elsa_eeprom)
+                        nmc93cxx_eeprom_write(s3->eeprom, !!(val & 0x80), !!(val & 0x40), !!(val & 0x10));
                     if (s3->card_type == S3_PHOENIX_VISION868 || s3->card_type == S3_PHOENIX_VISION968) {
                         if ((val & 0x20) && (!(svga->crtc[0x55] & 0x01) && !(svga->crtc[0x43] & 2)))
                             svga->dac_addr |= 0x20;
@@ -3155,6 +3167,8 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                         svga->hwcursor.x /= 3;
                     else if ((s3->chip <= S3_86C805) && s3->color_16bit)
                         svga->hwcursor.x >>= 1;
+                    else if ((s3->chip == S3_TRIO32) && ((svga->bpp == 15) || (svga->bpp == 16)))
+                        svga->hwcursor.x >>= 1;
                     break;
 
                 case 0x4a:
@@ -3217,9 +3231,11 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     if (((svga->miscout >> 2) & 3) == 3)
                         s3_log("[%04X:%08X]: Write CRTC%02x=%02x.\n", CS, cpu_state.pc, svga->crtcreg, svga->crtc[svga->crtcreg]);
 
-                    if ((s3->chip == S3_VISION964) || (s3->chip == S3_VISION968)) {
-                        if (((svga->miscout >> 2) & 3) == 3)
-                            icd2061_write(svga->clock_gen, svga->crtc[0x42] & 0x0f);
+                    if (s3->chip == S3_VISION964) {
+                        if (s3->card_type != S3_ELSAWIN2KPROX_964) {
+                            if (((svga->miscout >> 2) & 3) == 3)
+                                icd2061_write(svga->clock_gen, svga->crtc[0x42] & 0x0f);
+                        }
                     }
                     break;
 
@@ -3304,6 +3320,10 @@ s3_in(uint16_t addr, void *priv)
             break;
 
         case 0x3c2:
+            if (s3->elsa_eeprom) {
+                temp = nmc93cxx_eeprom_read(s3->eeprom) ? 0x10 : 0x00;
+                return (svga_in(addr, svga) & 0xef) | temp;
+            }
             if (s3->chip <= S3_86C924)
                 return svga_in(addr, svga) | 0x10;
             break;
@@ -3389,17 +3409,11 @@ s3_in(uint16_t addr, void *priv)
                 case 0x51:
                     return (svga->crtc[0x51] & 0xf0) | ((s3->bank >> 2) & 0xc) | ((s3->ma_ext >> 2) & 3);
                 case 0x5c: /* General Output Port Register */
-                    temp = svga->crtc[0x5c] & 0xa0;
+                    temp = svga->crtc[0x5c] & 0xf0;
                     if (((svga->miscout >> 2) & 3) == 3)
                         temp |= svga->crtc[0x42] & 0x0f;
                     else
                         temp |= ((svga->miscout >> 2) & 3);
-                    if ((temp & 0xa0) == 0xa0) {
-                        if ((svga->crtc[0x5c] & 0x40) && i2c_gpio_get_scl(s3->i2c))
-                            temp |= 0x40;
-                        if ((svga->crtc[0x5c] & 0x10) && i2c_gpio_get_sda(s3->i2c))
-                            temp |= 0x10;
-                    }
                     return temp;
                 case 0x69:
                     return s3->ma_ext;
@@ -3613,8 +3627,14 @@ s3_recalctimings(svga_t *svga)
             svga->vblankstart = svga->dispend; /*Applies only to Enhanced modes*/
         if (svga->crtc[0x5e] & 0x10)
             svga->vsyncstart |= 0x400;
+        svga->split       = svga->crtc[0x18];
+        if (svga->crtc[7] & 0x10)
+            svga->split |= 0x100;
+        if (svga->crtc[9] & 0x40)
+            svga->split |= 0x200;
         if (svga->crtc[0x5e] & 0x40)
             svga->split |= 0x400;
+        svga->split++;
         if (s3->accel.advfunc_cntl & 0x01)
             svga->split = 0x7fff;
         if (svga->crtc[0x51] & 0x30)
@@ -3629,7 +3649,6 @@ s3_recalctimings(svga_t *svga)
 
     if ((((svga->miscout >> 2) & 3) == 3) && (s3->chip < S3_TRIO32))
         clk_sel = svga->crtc[0x42] & 0x0f;
-
     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
 
     if ((s3->chip == S3_VISION964) || (s3->chip == S3_86C928)) {
@@ -3809,7 +3828,6 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
-                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -3832,6 +3850,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
+                                svga->clock *= 2.0;
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
@@ -3841,7 +3860,6 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
-                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -3964,7 +3982,6 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
-                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -4000,7 +4017,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
-                                svga->clock /= 2.0;
+                                svga->clock *= 2.0;
                                 /* TODO: Is this still needed? */
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
@@ -4012,7 +4029,6 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
-                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -4148,7 +4164,6 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
-                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -4171,7 +4186,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
-                                svga->clock /= 2.0;
+                                svga->clock *= 2.0;
                                 /* TODO: Is this still needed? */
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
@@ -4183,7 +4198,6 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
-                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -4267,7 +4281,6 @@ s3_recalctimings(svga_t *svga)
                             case S3_MIROVIDEO40SV_ERGO_968:
                                 svga->hdisp = (svga->hdisp / 3) << 2;
                                 svga->dots_per_clock = (svga->hdisp / 3) << 2;
-                                svga->clock /= (2.0 / 3.0);
                                 break;
                             default:
                                 break;
@@ -4324,7 +4337,6 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
-                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -4346,7 +4358,7 @@ s3_recalctimings(svga_t *svga)
                             case S3_SPEA_MERCURY_P64V:
                                 svga->hdisp <<= 1;
                                 svga->dots_per_clock <<= 1;
-                                svga->clock /= 2.0;
+                                svga->clock *= 2.0;
                                 /* TODO: Is this still needed? */
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
@@ -4358,7 +4370,6 @@ s3_recalctimings(svga_t *svga)
                                     case 1600:
                                         svga->hdisp <<= 1;
                                         svga->dots_per_clock <<= 1;
-                                        svga->clock /= 2.0;
                                         break;
                                     default:
                                         break;
@@ -4440,8 +4451,14 @@ s3_trio64v_recalctimings(svga_t *svga)
         svga->vblankstart |= 0x400;
     if (svga->crtc[0x5e] & 0x10)
         svga->vsyncstart |= 0x400;
+    svga->split       = svga->crtc[0x18];
+    if (svga->crtc[7] & 0x10)
+        svga->split |= 0x100;
+    if (svga->crtc[9] & 0x40)
+        svga->split |= 0x200;
     if (svga->crtc[0x5e] & 0x40)
         svga->split |= 0x400;
+    svga->split++;
     svga->interlace = svga->crtc[0x42] & 0x20;
 
     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
@@ -6114,9 +6131,10 @@ s3_accel_write_w(uint32_t addr, uint16_t val, void *priv)
             s3_queue(s3, addr & addr_mask, val, FIFO_WRITE_WORD);
         } else {
             switch (addr & (addr_mask - 1)) {
+                case 0x83c8:
                 case 0x83d4:
-                    s3_accel_write_fifo(s3, addr, val);
-                    s3_accel_write_fifo(s3, addr + 1, val >> 8);
+                    s3_accel_write(addr, val, s3);
+                    s3_accel_write(addr + 1, val >> 8, s3);
                     break;
                 case 0xff20:
                     s3_accel_write_fifo(s3, addr, val);
@@ -9935,6 +9953,27 @@ s3_reset(void *priv)
     }
 }
 
+static uint16_t
+s3_calc_crc16(int ndata, uint16_t *data)
+{
+    int i;
+    int j;
+    int s;
+    uint16_t crc16;
+    uint16_t d;
+
+    crc16 = 0;
+    for (i = 1; i < ndata; i++) {
+        d = data[i];
+        for (j = 0; j < 16; j++) {
+            s = (crc16 >> 1) + (crc16 >> 14) + (crc16 >> 15) + d + 1;
+            crc16 = (crc16 << 1) | (s & 1);
+            d >>= 1;
+        }
+    }
+    return crc16;
+}
+
 static void *
 s3_init(const device_t *info)
 {
@@ -9946,6 +9985,10 @@ s3_init(const device_t *info)
     svga_t     *svga  = &s3->svga;
     int         vram;
     uint32_t    vram_size;
+    nmc93cxx_eeprom_params_t params;
+    char        eeprom_filename[1024] = { 0 };
+    char        filename[1024] = { 0 };
+    uint16_t    checksum;
 
     switch (info->local) {
         case S3_ORCHID_86C911:
@@ -10298,8 +10341,8 @@ s3_init(const device_t *info)
 
         case S3_VISION968:
             switch (info->local) {
-                case S3_DIAMOND_STEALTH64_968:
                 case S3_ELSAWIN2KPROX:
+                case S3_DIAMOND_STEALTH64_968:
                 case S3_PHOENIX_VISION968:
                 case S3_NUMBER9_9FX_771:
                     svga->dac_hwcursor_draw = ibm_rgb528_hwcursor_draw;
@@ -10381,6 +10424,8 @@ s3_init(const device_t *info)
 
     s3->accel_start = s3_accel_start;
 
+    s3->elsa_eeprom = 0;
+
     switch (s3->card_type) {
         case S3_ORCHID_86C911:
         case S3_DIAMOND_STEALTH_VRAM:
@@ -10444,6 +10489,10 @@ s3_init(const device_t *info)
             svga->ramdac    = device_add(&att491_ramdac_device);
             svga->clock_gen = device_add(&av9194_device);
             svga->getclock  = av9194_getclock;
+            if (info->local == S3_WINNER1000_805) {
+                s3->elsa_eeprom = 1;
+                sprintf(s3->nvr_path, "s3_elsa_1k_805_%i.nvr", device_get_instance());
+            }
             break;
 
         case S3_86C805_ONBOARD:
@@ -10532,8 +10581,10 @@ s3_init(const device_t *info)
             switch (info->local) {
                 case S3_ELSAWIN2KPROX_964:
                     svga->ramdac = device_add(&ibm_rgb528_ramdac_device);
-                    svga->clock_gen = device_add(&icd2061_device);
-                    svga->getclock  = icd2061_getclock;
+                    svga->clock_gen = svga->ramdac;
+                    svga->getclock  = ibm_rgb528_getclock;
+                    s3->elsa_eeprom = 1;
+                    ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 28322000.0f);
                     break;
                 default:
                     svga->ramdac = device_add(&bt485_ramdac_device);
@@ -10572,8 +10623,15 @@ s3_init(const device_t *info)
                 case S3_PHOENIX_VISION968:
                 case S3_NUMBER9_9FX_771:
                     svga->ramdac    = device_add(&ibm_rgb528_ramdac_device);
-                    svga->clock_gen = device_add(&icd2061_device);
-                    svga->getclock  = icd2061_getclock;
+                    svga->clock_gen = svga->ramdac;
+                    svga->getclock  = ibm_rgb528_getclock;
+                    if (info->local == S3_ELSAWIN2KPROX) {
+                        s3->elsa_eeprom = 1;
+                        ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 28322000.0f);
+                    } else if (info->local != S3_DIAMOND_STEALTH64_968)
+                        ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 16000000.0f);
+                    else
+                        ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 14318184.0f);
                     break;
                 default:
                     svga->ramdac    = device_add(&tvp3026_ramdac_device);
@@ -10682,6 +10740,55 @@ s3_init(const device_t *info)
 
     s3->i2c = i2c_gpio_init("ddc_s3");
     s3->ddc = ddc_init(i2c_gpio_get_bus(s3->i2c));
+
+    if (s3->elsa_eeprom) {
+        s3->eeprom_inst = device_get_instance();
+
+        s3->eeprom_data[0x01] = 0x3353;
+
+        switch (s3->card_type) {
+            case S3_WINNER1000_805:
+                s3->eeprom_data[0x02] = 0x091a;
+                snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_s3_winner_1k_805_%d.nvr", s3->eeprom_inst);
+                break;
+            case S3_ELSAWIN2KPROX:
+                s3->eeprom_data[0x02] = 0x094a;
+                snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_s3_winner_2k_pro_x8_968_%d.nvr", s3->eeprom_inst);
+                break;
+            case S3_ELSAWIN2KPROX_964:
+                s3->eeprom_data[0x02] = 0x094a;
+                snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_s3_winner_2k_pro_x8_964_%d.nvr", s3->eeprom_inst);
+                break;
+            default:
+                break;
+        }
+
+        s3->eeprom_data[0x05] = 0x0040;
+        s3->eeprom_data[0x07] = 0xf424;
+        s3->eeprom_data[0x08] = 0xf424;
+        // s3->eeprom_data[0x09] = 0x0500;
+        // s3->eeprom_data[0x0b] = 0x0640;
+        // s3->eeprom_data[0x0c] = 0x04b0;
+        s3->eeprom_data[0x0b] = 0x0c80;
+        s3->eeprom_data[0x0c] = 0x0a00;
+        s3->eeprom_data[0x0d] = 0x0001;
+        for (uint8_t i = 0; i < 0x32; i++)
+            s3->eeprom_data[0x0e + i] = 0xffff;
+
+        checksum = s3_calc_crc16(64, s3->eeprom_data);
+
+        s3->eeprom_data[0x00] = checksum;
+        params.nwords          = 64;
+        params.default_content = s3->eeprom_data;
+        params.filename        = filename;
+        snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, s3->eeprom_inst);
+        s3->eeprom = device_add_inst_params(&nmc93cxx_device, s3->eeprom_inst, &params);
+        if (s3->eeprom == NULL) {
+            free(s3);
+            return NULL;
+        }
+    }
+
     s3->accel.multifunc[0xd] = 0xd000;
     s3->accel.multifunc[0xe] = 0xe000;
 
