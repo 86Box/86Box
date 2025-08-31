@@ -60,8 +60,10 @@ public:
     QMap<VMManagerSystem::ProcessStatus, int> getProcessStats();
     int getActiveMachineCount();
     void refreshConfigs();
+    void sendGlobalConfigurationChanged();
 signals:
     void systemDataChanged();
+    void globalConfigurationChanged();
 
 private:
     QVector<VMManagerSystem *> machines;

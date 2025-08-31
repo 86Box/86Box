@@ -1643,8 +1643,9 @@ nic_init(const device_t *info)
         params.nwords          = 64;
         params.default_content = (uint16_t *) s->eeprom_data;
         params.filename        = filename;
-        snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, device_get_instance());
-        s->eeprom = device_add_params(&nmc93cxx_device, &params);
+        int inst               = device_get_instance();
+        snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, inst);
+        s->eeprom = device_add_inst_params(&nmc93cxx_device, inst, &params);
         if (s->eeprom == NULL) {
             free(s);
             return NULL;

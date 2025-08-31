@@ -876,6 +876,9 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
             svga->write_bank    = (val & 0x3ff) << 15;
             svga->read_bank     = ((val >> 10) & 0x3ff) << 15;
             svga->packed_chain4 = !!(val & 0x00100000);
+            svga->fast          = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) &&
+                                  ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) &&
+                                  !(svga->adv_flags & FLAG_ADDR_BY8);;
             break;
 
         case PLL_pllCtrl0:

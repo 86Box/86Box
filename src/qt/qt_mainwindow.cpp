@@ -175,6 +175,8 @@ extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
 
 extern MainWindow *main_window;
 
+bool MainWindow::s_adjustingForce43 = false;
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -512,6 +514,8 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
         }
         ui->stackedWidget->switchRenderer(newVidApi);
+        ui->menuOpenGL_input_scale->setEnabled(newVidApi == RendererStack::Renderer::OpenGL3);
+        ui->menuOpenGL_input_stretch_mode->setEnabled(newVidApi == RendererStack::Renderer::OpenGL3);
         if (!show_second_monitors)
             return;
         for (int i = 1; i < MONITORS_NUM; i++) {
@@ -531,6 +535,41 @@ MainWindow::MainWindow(QWidget *parent)
             emit actGroup->triggered(action);
             break;
         }
+
+    ui->action_0_5x_2->setChecked(video_gl_input_scale < 1.0);
+    ui->action_1x_2->setChecked(video_gl_input_scale >= 1.0 && video_gl_input_scale < 1.5);
+    ui->action1_5x_2->setChecked(video_gl_input_scale >= 1.5 && video_gl_input_scale < 2.0);
+    ui->action_2x_2->setChecked(video_gl_input_scale >= 2.0 && video_gl_input_scale < 3.0);
+    ui->action_3x_2->setChecked(video_gl_input_scale >= 3.0 && video_gl_input_scale < 4.0);
+    ui->action_4x_2->setChecked(video_gl_input_scale >= 4.0 && video_gl_input_scale < 5.0);
+    ui->action_5x_2->setChecked(video_gl_input_scale >= 5.0 && video_gl_input_scale < 6.0);
+    ui->action_6x_2->setChecked(video_gl_input_scale >= 6.0 && video_gl_input_scale < 7.0);
+    ui->action_7x_2->setChecked(video_gl_input_scale >= 7.0 && video_gl_input_scale < 8.0);
+    ui->action_8x_2->setChecked(video_gl_input_scale >= 8.0);
+
+    actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->action_0_5x_2);
+    actGroup->addAction(ui->action_1x_2);
+    actGroup->addAction(ui->action1_5x_2);
+    actGroup->addAction(ui->action_2x_2);
+    actGroup->addAction(ui->action_3x_2);
+    actGroup->addAction(ui->action_4x_2);
+    actGroup->addAction(ui->action_5x_2);
+    actGroup->addAction(ui->action_6x_2);
+    actGroup->addAction(ui->action_7x_2);
+    actGroup->addAction(ui->action_8x_2);
+    connect(actGroup, &QActionGroup::triggered, this, [this](QAction* action) {
+        if (action == ui->action_0_5x_2) video_gl_input_scale = 0.5;
+        if (action == ui->action_1x_2) video_gl_input_scale = 1;
+        if (action == ui->action1_5x_2) video_gl_input_scale = 1.5;
+        if (action == ui->action_2x_2) video_gl_input_scale = 2;
+        if (action == ui->action_3x_2) video_gl_input_scale = 3;
+        if (action == ui->action_4x_2) video_gl_input_scale = 4;
+        if (action == ui->action_5x_2) video_gl_input_scale = 5;
+        if (action == ui->action_6x_2) video_gl_input_scale = 6;
+        if (action == ui->action_7x_2) video_gl_input_scale = 7;
+        if (action == ui->action_8x_2) video_gl_input_scale = 8;
+    });
 
     switch (scale) {
         default:
@@ -615,6 +654,38 @@ MainWindow::MainWindow(QWidget *parent)
     actGroup->addAction(ui->actionFullScreen_keepRatio);
     actGroup->addAction(ui->actionFullScreen_int);
     actGroup->addAction(ui->actionFullScreen_int43);
+    switch (video_gl_input_scale_mode) {
+        default:
+            break;
+        case FULLSCR_SCALE_FULL:
+            ui->action_Full_screen_stretch_gl->setChecked(true);
+            break;
+        case FULLSCR_SCALE_43:
+            ui->action_4_3_gl->setChecked(true);
+            break;
+        case FULLSCR_SCALE_KEEPRATIO:
+            ui->action_Square_pixels_keep_ratio_gl->setChecked(true);
+            break;
+        case FULLSCR_SCALE_INT:
+            ui->action_Integer_scale_gl->setChecked(true);
+            break;
+        case FULLSCR_SCALE_INT43:
+            ui->action4_3_Integer_scale_gl->setChecked(true);
+            break;
+    }
+    actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->action_Full_screen_stretch_gl);
+    actGroup->addAction(ui->action_4_3_gl);
+    actGroup->addAction(ui->action_Square_pixels_keep_ratio_gl);
+    actGroup->addAction(ui->action_Integer_scale_gl);
+    actGroup->addAction(ui->action4_3_Integer_scale_gl);
+    connect(actGroup, &QActionGroup::triggered, this, [this](QAction* action) {
+        if (action == ui->action_Full_screen_stretch_gl) video_gl_input_scale_mode = FULLSCR_SCALE_FULL;
+        if (action == ui->action_4_3_gl) video_gl_input_scale_mode = FULLSCR_SCALE_43;
+        if (action == ui->action_Square_pixels_keep_ratio_gl) video_gl_input_scale_mode = FULLSCR_SCALE_KEEPRATIO;
+        if (action == ui->action_Integer_scale_gl) video_gl_input_scale_mode = FULLSCR_SCALE_INT;
+        if (action == ui->action4_3_Integer_scale_gl) video_gl_input_scale_mode = FULLSCR_SCALE_INT43;
+    });
     switch (video_grayscale) {
         default:
             break;
@@ -973,11 +1044,75 @@ void MainWindow::updateShortcuts()
 	ui->actionMute_Unmute->setShortcut(seq);
 }
 		
+void 
+MainWindow::adjustForForce43(const QSize &newWinSize)
+{
+    // Only act in resizable mode with Force 4:3 enabled and not fullscreen
+    if (!(vid_resize == 1 && force_43 > 0) || video_fullscreen || s_adjustingForce43)
+        return;
+
+    s_adjustingForce43 = true;
+
+    // Height consumed by menu/status/toolbars
+    int chromeH = menuBar()->height()
+                + (hide_status_bar ? 0 : statusBar()->height())
+                + (hide_tool_bar   ? 0 : ui->toolBar->height());
+
+    // Compute client area size in device‑independent pixels
+    double dpr = (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.0);
+    int winW = newWinSize.width();
+    int winH = newWinSize.height();
+    int clientW = static_cast<int>(winW / dpr);
+    int clientH = static_cast<int>((winH - chromeH) / dpr);
+
+    if (clientW <= 0 || clientH <= 0) {
+        s_adjustingForce43 = false;
+        return;
+    }
+
+    // Decide which dimension the user changed most – adjust the other
+    int curW = static_cast<int>(width() / dpr);
+    int curH = static_cast<int>((height() - chromeH) / dpr);
+    bool widthChanged = std::abs(clientW - curW) >= std::abs(clientH - curH);
+
+    int targetW, targetH;
+    if (widthChanged) {
+        // user dragged width – compute matching height for 4:3
+        targetW = clientW;
+        targetH = (clientW * 3) / 4;
+    } else {
+        // user dragged height – compute matching width for 4:3
+        targetH = clientH;
+        targetW = (clientH * 4) / 3;
+    }
+
+    // Convert back to window size including chrome and apply
+    int newW = static_cast<int>(targetW * dpr);
+    int newH = static_cast<int>(targetH * dpr) + chromeH;
+    if (newW != winW || newH != winH)
+        resize(newW, newH);
+
+    // Update emulator framebuffer size and notify platform
+    monitors[0].mon_scrnsz_x = targetW;
+    monitors[0].mon_scrnsz_y = targetH;
+    plat_resize_request(targetW, targetH, 0);
+
+    // Allow renderer widget to grow and recompute scaling
+    ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    ui->stackedWidget->onResize(width(), height());
+
+    s_adjustingForce43 = false;
+}
+
 void
 MainWindow::resizeEvent(QResizeEvent *event)
 {
     //qDebug() << pos().x() + event->size().width();
     //qDebug() << pos().y() + event->size().height();
+	
+    // Enforce 4:3 aspect ratio in resizable mode when the option is set
+    adjustForForce43(event->size());
+	
     if (vid_resize == 1 || video_fullscreen)
         return;
 
@@ -1463,7 +1598,8 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
 		if (event->type() == QEvent::KeyPress)
 		{
 			QKeyEvent *ke = (QKeyEvent *) event;
-			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse"))
+			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("release_mouse") ||
+                (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse"))
 			{
 				plat_mouse_capture(0);
 			}
@@ -1473,31 +1609,38 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
 		{
 			QKeyEvent *ke = (QKeyEvent *) event;
 			
-			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot"))
+			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("screenshot")
+                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot"))
 			{
 				ui->actionTake_screenshot->trigger();
 			}
-			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen"))
+			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("fullscreen")
+                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen"))
 			{
 				ui->actionFullscreen->trigger();
 			}
-			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset"))
+			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("hard_reset")
+                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset"))
 			{
 				ui->actionHard_Reset->trigger();
 			}
-			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_del"))
+			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("send_ctrl_alt_del")
+                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_del"))
 			{
 				ui->actionCtrl_Alt_Del->trigger();
 			}
-			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_esc"))
+			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("send_ctrl_alt_esc")
+                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_esc"))
 			{
 				ui->actionCtrl_Alt_Esc->trigger();
 			}
-			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("pause"))
+			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("pause")
+                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("pause"))
 			{
 				ui->actionPause->trigger();
 			}
-			if ((QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("mute"))
+			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("mute")
+                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("mute"))
 			{
 				ui->actionMute_Unmute->trigger();
 			}
@@ -2024,6 +2167,17 @@ void
 MainWindow::on_actionForce_4_3_display_ratio_triggered()
 {
     video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
+
+    // When turning on Force 4:3 in resizable mode, immediately snap to 4:3
+    if (vid_resize == 1 && !video_fullscreen) {
+        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        if (force_43 > 0) {
+            adjustForForce43(size());
+        } else {
+            // Turning off: refresh renderer scaling
+            ui->stackedWidget->onResize(width(), height());
+        }
+    }
 }
 
 void
@@ -2089,6 +2243,9 @@ MainWindow::on_actionHiDPI_scaling_triggered()
 void
 MainWindow::on_actionHide_status_bar_triggered()
 {
+    auto w = ui->stackedWidget->width() * (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.);
+    auto h = ui->stackedWidget->height() * (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.);
+
     hide_status_bar ^= 1;
     ui->actionHide_status_bar->setChecked(hide_status_bar);
     statusBar()->setVisible(!hide_status_bar);
@@ -2100,7 +2257,7 @@ MainWindow::on_actionHide_status_bar_triggered()
     } else {
         int vid_resize_orig = vid_resize;
         vid_resize          = 0;
-        emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
+        emit resizeContents(vid_resize_orig ? w : monitors[0].mon_scrnsz_x, vid_resize_orig ? h : monitors[0].mon_scrnsz_y);
         vid_resize = vid_resize_orig;
         if (vid_resize == 1)
             setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
@@ -2110,6 +2267,9 @@ MainWindow::on_actionHide_status_bar_triggered()
 void
 MainWindow::on_actionHide_tool_bar_triggered()
 {
+    auto w = ui->stackedWidget->width() * (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.);
+    auto h = ui->stackedWidget->height() * (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.);
+
     hide_tool_bar ^= 1;
     ui->actionHide_tool_bar->setChecked(hide_tool_bar);
     ui->toolBar->setVisible(!hide_tool_bar);
@@ -2118,7 +2278,7 @@ MainWindow::on_actionHide_tool_bar_triggered()
     } else {
         int vid_resize_orig = vid_resize;
         vid_resize          = 0;
-        emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
+        emit resizeContents(vid_resize_orig ? w : monitors[0].mon_scrnsz_x, vid_resize_orig ? h : monitors[0].mon_scrnsz_y);
         vid_resize = vid_resize_orig;
         if (vid_resize == 1)
             setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
@@ -2193,7 +2353,9 @@ void
 MainWindow::on_actionPreferences_triggered()
 {
     ProgSettings progsettings(this);
-    progsettings.exec();
+    if (progsettings.exec() == QDialog::Accepted) {
+        emit vmmGlobalConfigurationChanged();
+    }
 }
 
 void

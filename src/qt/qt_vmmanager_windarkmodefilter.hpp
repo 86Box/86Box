@@ -39,6 +39,7 @@ public:
     WindowsDarkModeFilter() = default;
     void setWindow(VMManagerMainWindow *window);
     bool nativeEventFilter(const QByteArray &eventType, void *message, result_t *result) override;
+    void reselectDarkMode();
 
 private:
     VMManagerMainWindow *window;

@@ -3,7 +3,6 @@ name: CMake (Linux)
 on:
 
   push:
-    branches: [ "master" ]
     paths:
       - src/**
       - cmake/**
@@ -15,7 +14,6 @@ on:
       - "!**/Makefile*"
 
   pull_request:
-    branches: [ "master" ]
     paths:
       - src/**
       - cmake/**

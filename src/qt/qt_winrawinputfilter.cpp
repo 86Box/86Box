@@ -74,7 +74,9 @@ extern void    win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 #include "qt_util.hpp"
 #include "ui_qt_mainwindow.h"
 
-static bool NewDarkMode = FALSE;
+bool NewDarkMode = FALSE;
+
+extern MainWindow* main_window;
 
 struct
 {
@@ -307,6 +309,56 @@ device_change(WPARAM wParam, LPARAM lParam)
     }
 }
 
+void
+selectDarkMode()
+{
+    bool OldDarkMode = NewDarkMode;
+
+    if (!util::isWindowsLightTheme()) {
+        QFile f(":qdarkstyle/dark/darkstyle.qss");
+
+        if (!f.exists())
+            printf("Unable to set stylesheet, file not found\n");
+        else {
+            f.open(QFile::ReadOnly | QFile::Text);
+            QTextStream ts(&f);
+            qApp->setStyleSheet(ts.readAll());
+        }
+        QPalette palette(qApp->palette());
+        palette.setColor(QPalette::Link, Qt::white);
+        palette.setColor(QPalette::LinkVisited, Qt::lightGray);
+        qApp->setPalette(palette);
+        NewDarkMode = TRUE;
+    } else {
+        qApp->setStyleSheet("");
+        QPalette palette(qApp->palette());
+        palette.setColor(QPalette::Link, Qt::blue);
+        palette.setColor(QPalette::LinkVisited, Qt::magenta);
+        qApp->setPalette(palette);
+        NewDarkMode = FALSE;
+    }
+
+    if (NewDarkMode != OldDarkMode)
+        QTimer::singleShot(1000, []() {
+            BOOL DarkMode = NewDarkMode;
+            DwmSetWindowAttribute((HWND) main_window->winId(),
+                                  DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                  (LPCVOID) &DarkMode,
+                                  sizeof(DarkMode));
+
+            main_window->resizeContents(monitors[0].mon_scrnsz_x,
+                                        monitors[0].mon_scrnsz_y);
+
+            for (int i = 1; i < MONITORS_NUM; i++) {
+                auto mon = &(monitors[i]);
+
+                if ((main_window->renderers[i] != nullptr) && !main_window->renderers[i]->isHidden())
+                    main_window->resizeContentsMonitor(mon->mon_scrnsz_x,
+                                                       mon->mon_scrnsz_y, i);
+            }
+        });
+}
+
 bool
 WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *message, result_t *result)
 {
@@ -328,7 +380,8 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                 return true;
             case WM_SETTINGCHANGE:
                 if ((((void *) msg->lParam) != nullptr) &&
-                    (wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0)) {
+                    (wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0) &&
+                    color_scheme == 0) {
 
                     bool OldDarkMode = NewDarkMode;
 #if 0

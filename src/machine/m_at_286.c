@@ -225,23 +225,6 @@ machine_at_ibmxt286_init(const machine_t *model)
 }
 
 int
-machine_at_ibmatami_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved("roms/machines/ibmatami/BIOS_5170_30APR89_U27_AMI_27256.BIN",
-                                "roms/machines/ibmatami/BIOS_5170_30APR89_U47_AMI_27256.BIN",
-                                0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_ibm_common_init(model);
-
-    return ret;
-}
-
-int
 machine_at_cmdpc_init(const machine_t *model)
 {
     int ret;
@@ -434,7 +417,7 @@ machine_at_m290_init(const machine_t *model)
 }
 
 int
-machine_at_ibmatpx_init(const machine_t *model)
+machine_at_pxat_init(const machine_t *model)
 {
     int ret;
 
@@ -451,7 +434,7 @@ machine_at_ibmatpx_init(const machine_t *model)
 }
 
 int
-machine_at_ibmatquadtel_init(const machine_t *model)
+machine_at_quadtat_init(const machine_t *model)
 {
     int ret;
 
@@ -547,6 +530,23 @@ machine_at_siemens_init(const machine_t *model)
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_tbunk286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ibmatami/BIOS_5170_30APR89_U27_AMI_27256.BIN",
+                                "roms/machines/ibmatami/BIOS_5170_30APR89_U47_AMI_27256.BIN",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ibm_common_init(model);
 
     return ret;
 }

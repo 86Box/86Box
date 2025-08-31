@@ -86,6 +86,11 @@
 #define STAT_IFULL    0x02
 #define STAT_OFULL    0x01
 
+#define DOUBLE_NONE               0
+#define DOUBLE_SIMPLE             1
+#define DOUBLE_INTERPOLATE_SRGB   2
+#define DOUBLE_INTERPOLATE_LINEAR 3
+
 typedef struct amsvid_t {
     rom_t      bios_rom;    /* 1640 */
     cga_t      cga;         /* 1640/200 */
@@ -123,6 +128,7 @@ typedef struct amsvid_t {
     int        vsynctime;
     int        fullchange;
     int        vadj;
+    int        double_type;
     uint16_t   memaddr;
     uint16_t   memaddr_backup;
     int        dispon;
@@ -339,15 +345,12 @@ vid_read_1512(uint32_t addr, void *priv)
 }
 
 static void
-vid_poll_1512(void *priv)
+ams1512_render(amsvid_t *vid, int line)
 {
-    amsvid_t *vid = (amsvid_t *) priv;
     uint16_t  cursoraddr  = (vid->crtc[15] | (vid->crtc[14] << 8)) & 0x3fff;
     int       drawcursor;
     int       x;
     int       c;
-    int       xs_temp;
-    int       ys_temp;
     uint8_t   chr;
     uint8_t   attr;
     uint16_t  dat;
@@ -356,7 +359,142 @@ vid_poll_1512(void *priv)
     uint16_t  dat4;
     int       cols[4];
     int       col;
+
+    for (c = 0; c < 8; c++) {
+        if ((vid->cgamode & 0x12) == 0x12) {
+            buffer32->line[line][c] = buffer32->line[(line) + 1][c] = (vid->border & 15) + 16;
+            if (vid->cgamode & CGA_MODE_FLAG_HIGHRES) {
+                buffer32->line[line][c + (vid->crtc[1] << 3) + 8] = buffer32->line[(line) + 1][c + (vid->crtc[1] << 3) + 8] = 0;
+            } else {
+                buffer32->line[line][c + (vid->crtc[1] << 4) + 8] = buffer32->line[(line) + 1][c + (vid->crtc[1] << 4) + 8] = 0;
+            }
+        } else {
+            buffer32->line[line][c] = buffer32->line[(line) + 1][c] = (vid->cgacol & 15) + 16;
+            if (vid->cgamode & CGA_MODE_FLAG_HIGHRES) {
+                buffer32->line[line][c + (vid->crtc[1] << 3) + 8] = buffer32->line[(line) + 1][c + (vid->crtc[1] << 3) + 8] = (vid->cgacol & 15) + 16;
+            } else {
+                buffer32->line[line][c + (vid->crtc[1] << 4) + 8] = buffer32->line[(line) + 1][c + (vid->crtc[1] << 4) + 8] = (vid->cgacol & 15) + 16;
+            }
+        }
+    }
+    if (vid->cgamode & CGA_MODE_FLAG_HIGHRES) {
+        for (x = 0; x < 80; x++) {
+            chr        = vid->vram[(vid->memaddr<< 1) & 0x3fff];
+            attr       = vid->vram[((vid->memaddr<< 1) + 1) & 0x3fff];
+            drawcursor = ((vid->memaddr== cursoraddr) && vid->cursorvisible && vid->cursoron);
+            if (vid->cgamode & CGA_MODE_FLAG_BLINK) {
+                cols[1] = (attr & 15) + 16;
+                cols[0] = ((attr >> 4) & 7) + 16;
+                if ((vid->blink & 16) && (attr & 0x80) && !drawcursor)
+                    cols[1] = cols[0];
+            } else {
+                cols[1] = (attr & 15) + 16;
+                cols[0] = (attr >> 4) + 16;
+            }
+            if (drawcursor)
+                for (c = 0; c < 8; c++)
+                    buffer32->line[line][(x << 3) + c + 8] =
+                        cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+            else
+                for (c = 0; c < 8; c++)
+                    buffer32->line[line][(x << 3) + c + 8] =
+                        cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
+            vid->memaddr++;
+        }
+    } else if (!(vid->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
+        for (x = 0; x < 40; x++) {
+            chr        = vid->vram[(vid->memaddr<< 1) & 0x3fff];
+            attr       = vid->vram[((vid->memaddr<< 1) + 1) & 0x3fff];
+            drawcursor = ((vid->memaddr == cursoraddr)  && vid->cursorvisible && vid->cursoron);
+                    
+            if (vid->cgamode & CGA_MODE_FLAG_BLINK) {
+                cols[1] = (attr & 15) + 16;
+                cols[0] = ((attr >> 4) & 7) + 16;
+                if ((vid->blink & 16) && (attr & 0x80))
+                    cols[1] = cols[0];
+            } else {
+                cols[1] = (attr & 15) + 16;
+                cols[0] = (attr >> 4) + 16;
+            }
+            vid->memaddr++;
+            if (drawcursor)
+                for (c = 0; c < 8; c++)
+                    buffer32->line[line][(x << 4) + (c << 1) + 8] =
+                    buffer32->line[line][(x << 4) + (c << 1) + 1 + 8] =
+                        cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+            else
+                for (c = 0; c < 8; c++)
+                    buffer32->line[line][(x << 4) + (c << 1) + 8] =
+                    buffer32->line[line][(x << 4) + (c << 1) + 1 + 8] =
+                        cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
+        }
+    } else if (!(vid->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) {
+        cols[0] = (vid->cgacol & 15) | 16;
+        col     = (vid->cgacol & 16) ? 24 : 16;
+        if (vid->cgamode & CGA_MODE_FLAG_BW) {
+            cols[1] = col | 3;
+            cols[2] = col | 4;
+            cols[3] = col | 7;
+        } else if (vid->cgacol & 32) {
+            cols[1] = col | 3;
+            cols[2] = col | 5;
+            cols[3] = col | 7;
+        } else {
+            cols[1] = col | 2;
+            cols[2] = col | 4;
+            cols[3] = col | 6;
+        }
+        for (x = 0; x < 40; x++) {
+            dat = (vid->vram[((vid->memaddr<< 1) & 0x1fff) + ((vid->scanline & 1) * 0x2000)] << 8) |
+                  vid->vram[((vid->memaddr<< 1) & 0x1fff) + ((vid->scanline & 1) * 0x2000) + 1];
+            vid->memaddr++;
+            for (c = 0; c < 8; c++) {
+                buffer32->line[line][(x << 4) + (c << 1) + 8] =
+                buffer32->line[line][(x << 4) + (c << 1) + 1 + 8] = cols[dat >> 14];
+                dat <<= 2;
+            }
+        }
+    } else {
+        for (x = 0; x < 40; x++) {
+            cursoraddr   = ((vid->memaddr<< 1) & 0x1fff) + ((vid->scanline & 1) * 0x2000);
+            dat  = (vid->vram[cursoraddr] << 8) | vid->vram[cursoraddr + 1];
+            dat2 = (vid->vram[cursoraddr + 0x4000] << 8) | vid->vram[cursoraddr + 0x4001];
+            dat3 = (vid->vram[cursoraddr + 0x8000] << 8) | vid->vram[cursoraddr + 0x8001];
+            dat4 = (vid->vram[cursoraddr + 0xc000] << 8) | vid->vram[cursoraddr + 0xc001];
+
+            vid->memaddr++;
+            for (c = 0; c < 16; c++) {
+                buffer32->line[line][(x << 4) + c + 8] =  (((dat >> 15) | ((dat2 >> 15) << 1) |
+                                                          ((dat3 >> 15) << 2) | ((dat4 >> 15) << 3)) & (vid->cgacol & 15)) + 16;
+                dat <<= 1;
+                dat2 <<= 1;
+                dat3 <<= 1;
+                dat4 <<= 1;
+            }
+        }
+    }
+}
+
+static void
+ams1512_render_blank(amsvid_t *vid, int line)
+{
+    int cols = ((vid->cgamode & 0x12) == 0x12) ? 0 : (vid->cgacol & 15) + 16;
+
+    if (vid->cgamode & CGA_MODE_FLAG_HIGHRES)
+        hline(buffer32, 0, line, (vid->crtc[1] << 3) + 16, cols);
+    else
+        hline(buffer32, 0, line, (vid->crtc[1] << 4) + 16, cols);
+}
+
+static void
+vid_poll_1512(void *priv)
+{
+    amsvid_t *vid = (amsvid_t *) priv;
+    int       x;
+    int       xs_temp;
+    int       ys_temp;
     int       scanline_old;
+    int       old_ma;
 
     if (!vid->linepos) {
         timer_advance_u64(&vid->timer, vid->dispofftime);
@@ -369,126 +507,32 @@ vid_poll_1512(void *priv)
                 video_wait_for_buffer();
             }
             vid->lastline = vid->displine;
-            for (c = 0; c < 8; c++) {
-                if ((vid->cgamode & 0x12) == 0x12) {
-                    buffer32->line[vid->displine << 1][c] = buffer32->line[(vid->displine << 1) + 1][c] = (vid->border & 15) + 16;
-                    if (vid->cgamode & CGA_MODE_FLAG_HIGHRES) {
-                        buffer32->line[vid->displine << 1][c + (vid->crtc[1] << 3) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 3) + 8] = 0;
-                    } else {
-                        buffer32->line[vid->displine << 1][c + (vid->crtc[1] << 4) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 4) + 8] = 0;
-                    }
-                } else {
-                    buffer32->line[vid->displine << 1][c] = buffer32->line[(vid->displine << 1) + 1][c] = (vid->cgacol & 15) + 16;
-                    if (vid->cgamode & CGA_MODE_FLAG_HIGHRES) {
-                        buffer32->line[vid->displine << 1][c + (vid->crtc[1] << 3) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 3) + 8] = (vid->cgacol & 15) + 16;
-                    } else {
-                        buffer32->line[vid->displine << 1][c + (vid->crtc[1] << 4) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 4) + 8] = (vid->cgacol & 15) + 16;
-                    }
-                }
+            switch (vid->double_type) {
+                default:
+                    ams1512_render(vid, vid->displine << 1);
+                    ams1512_render_blank(vid, (vid->displine << 1) + 1);
+                    break;
+                case DOUBLE_NONE:
+                    ams1512_render(vid, vid->displine);
+                    break;
+                case DOUBLE_SIMPLE:
+                    old_ma = vid->memaddr;
+                    ams1512_render(vid, vid->displine << 1);
+                    vid->memaddr = old_ma;
+                    ams1512_render(vid, (vid->displine << 1) + 1);
+                    break;
             }
-            if (vid->cgamode & CGA_MODE_FLAG_HIGHRES) {
-                for (x = 0; x < 80; x++) {
-                    chr        = vid->vram[(vid->memaddr<< 1) & 0x3fff];
-                    attr       = vid->vram[((vid->memaddr<< 1) + 1) & 0x3fff];
-                    drawcursor = ((vid->memaddr== cursoraddr) && vid->cursorvisible && vid->cursoron);
-                    if (vid->cgamode & CGA_MODE_FLAG_BLINK) {
-                        cols[1] = (attr & 15) + 16;
-                        cols[0] = ((attr >> 4) & 7) + 16;
-                        if ((vid->blink & 16) && (attr & 0x80) && !drawcursor)
-                            cols[1] = cols[0];
-                    } else {
-                        cols[1] = (attr & 15) + 16;
-                        cols[0] = (attr >> 4) + 16;
-                    }
-                    if (drawcursor) {
-                        for (c = 0; c < 8; c++) {
-                            buffer32->line[vid->displine << 1][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] = cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
-                        }
-                    } else {
-                        for (c = 0; c < 8; c++) {
-                            buffer32->line[vid->displine << 1][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] = cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
-                        }
-                    }
-                    vid->memaddr++;
-                }
-            } else if (!(vid->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
-                for (x = 0; x < 40; x++) {
-                    chr        = vid->vram[(vid->memaddr<< 1) & 0x3fff];
-                    attr       = vid->vram[((vid->memaddr<< 1) + 1) & 0x3fff];
-                    drawcursor = ((vid->memaddr == cursoraddr) 
-                    && vid->cursorvisible && vid->cursoron);
-                    
-                    if (vid->cgamode & CGA_MODE_FLAG_BLINK) {
-                        cols[1] = (attr & 15) + 16;
-                        cols[0] = ((attr >> 4) & 7) + 16;
-                        if ((vid->blink & 16) && (attr & 0x80))
-                            cols[1] = cols[0];
-                    } else {
-                        cols[1] = (attr & 15) + 16;
-                        cols[0] = (attr >> 4) + 16;
-                    }
-                    vid->memaddr++;
-                    if (drawcursor) {
-                        for (c = 0; c < 8; c++) {
-                            buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 8] = buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
-                        }
-                    } else {
-                        for (c = 0; c < 8; c++) {
-                            buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 8] = buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
-                        }
-                    }
-                }
-            } else if (!(vid->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) {
-                cols[0] = (vid->cgacol & 15) | 16;
-                col     = (vid->cgacol & 16) ? 24 : 16;
-                if (vid->cgamode & CGA_MODE_FLAG_BW) {
-                    cols[1] = col | 3;
-                    cols[2] = col | 4;
-                    cols[3] = col | 7;
-                } else if (vid->cgacol & 32) {
-                    cols[1] = col | 3;
-                    cols[2] = col | 5;
-                    cols[3] = col | 7;
-                } else {
-                    cols[1] = col | 2;
-                    cols[2] = col | 4;
-                    cols[3] = col | 6;
-                }
-                for (x = 0; x < 40; x++) {
-                    dat = (vid->vram[((vid->memaddr<< 1) & 0x1fff) + ((vid->scanline & 1) * 0x2000)] << 8) | vid->vram[((vid->memaddr<< 1) & 0x1fff) + ((vid->scanline & 1) * 0x2000) + 1];
-                    vid->memaddr++;
-                    for (c = 0; c < 8; c++) {
-                        buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 8] = buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] = cols[dat >> 14];
-                        dat <<= 2;
-                    }
-                }
-            } else {
-                for (x = 0; x < 40; x++) {
-                    cursoraddr   = ((vid->memaddr<< 1) & 0x1fff) + ((vid->scanline & 1) * 0x2000);
-                    dat  = (vid->vram[cursoraddr] << 8) | vid->vram[cursoraddr + 1];
-                    dat2 = (vid->vram[cursoraddr + 0x4000] << 8) | vid->vram[cursoraddr + 0x4001];
-                    dat3 = (vid->vram[cursoraddr + 0x8000] << 8) | vid->vram[cursoraddr + 0x8001];
-                    dat4 = (vid->vram[cursoraddr + 0xc000] << 8) | vid->vram[cursoraddr + 0xc001];
-
-                    vid->memaddr++;
-                    for (c = 0; c < 16; c++) {
-                        buffer32->line[vid->displine << 1][(x << 4) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + c + 8] = (((dat >> 15) | ((dat2 >> 15) << 1) | ((dat3 >> 15) << 2) | ((dat4 >> 15) << 3)) & (vid->cgacol & 15)) + 16;
-                        dat <<= 1;
-                        dat2 <<= 1;
-                        dat3 <<= 1;
-                        dat4 <<= 1;
-                    }
-                }
-            }
-        } else {
-            cols[0] = ((vid->cgamode & 0x12) == 0x12) ? 0 : (vid->cgacol & 15) + 16;
-            if (vid->cgamode & CGA_MODE_FLAG_HIGHRES) {
-                hline(buffer32, 0, (vid->displine << 1), (vid->crtc[1] << 3) + 16, cols[0]);
-                hline(buffer32, 0, (vid->displine << 1) + 1, (vid->crtc[1] << 3) + 16, cols[0]);
-            } else {
-                hline(buffer32, 0, (vid->displine << 1), (vid->crtc[1] << 4) + 16, cols[0]);
-                hline(buffer32, 0, (vid->displine << 1), (vid->crtc[1] << 4) + 16, cols[0]);
-            }
+        } else  switch (vid->double_type) {
+            default:
+                ams1512_render_blank(vid, vid->displine << 1);
+                break;
+            case DOUBLE_NONE:
+                ams1512_render_blank(vid, vid->displine);
+                break;
+            case DOUBLE_SIMPLE:
+                ams1512_render_blank(vid, vid->displine << 1);
+                ams1512_render_blank(vid, (vid->displine << 1) + 1);
+                break;
         }
 
         if (vid->cgamode & CGA_MODE_FLAG_HIGHRES)
@@ -496,8 +540,15 @@ vid_poll_1512(void *priv)
         else
             x = (vid->crtc[1] << 4) + 16;
 
-        video_process_8(x, vid->displine << 1);
-        video_process_8(x, (vid->displine << 1) + 1);
+        switch (vid->double_type) {
+            default:
+                video_process_8((x < 64) ? 656 : x, vid->displine << 1);
+                video_process_8((x < 64) ? 656 : x, (vid->displine << 1) + 1);
+                break;
+            case DOUBLE_NONE:
+                video_process_8((x < 64) ? 656 : x, vid->displine);
+                break;
+        }
 
         vid->scanline = scanline_old;
         if (vid->vsynctime)
@@ -576,13 +627,7 @@ vid_poll_1512(void *priv)
                             video_force_resize_set(0);
                     }
 
-                    if (enable_overscan) {
-                        video_blit_memtoscreen(0, (vid->firstline - 4) << 1,
-                                               xsize, ((vid->lastline - vid->firstline) + 8) << 1);
-                    } else {
-                        video_blit_memtoscreen(8, vid->firstline << 1,
-                                               xsize, (vid->lastline - vid->firstline) << 1);
-                    }
+                    cga_do_blit(xsize, vid->firstline, vid->lastline, vid->double_type);
                 }
 
                 video_res_x = xsize;
@@ -644,6 +689,9 @@ vid_init_1512(amstrad_t *ams)
     cga_palette = (device_get_config_int("display_type") << 1);
     cgapal_rebuild();
 
+    vid->double_type = device_get_config_int("double_type");
+    cga_interpolate_init();
+
     ams->vid = vid;
 }
 
@@ -680,6 +728,23 @@ const device_config_t vid_1512_config[] = {
             { .description = "PC-MM (Monochrome)", .value = 3 },
             { .description = ""                               }
         }
+    },
+    {
+        .name           = "double_type",
+        .description    = "Line doubling type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = DOUBLE_NONE,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",                 .value = DOUBLE_NONE               },
+            { .description = "Simple doubling",      .value = DOUBLE_SIMPLE             },
+            { .description = "sRGB interpolation",   .value = DOUBLE_INTERPOLATE_SRGB   },
+            { .description = "Linear interpolation", .value = DOUBLE_INTERPOLATE_LINEAR },
+            { .description = ""                                                         }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name = "codepage",
@@ -852,6 +917,10 @@ vid_init_1640(amstrad_t *ams)
     cga_palette = 0;
     cgapal_rebuild();
 
+    vid->double_type = device_get_config_int("double_type");
+    vid->cga.double_type = device_get_config_int("double_type");
+    cga_interpolate_init();
+
     ams->vid = vid;
 }
 
@@ -875,6 +944,23 @@ vid_speed_changed_1640(void *priv)
 
 const device_config_t vid_1640_config[] = {
   // clang-format off
+    {
+        .name           = "double_type",
+        .description    = "Line doubling type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = DOUBLE_NONE,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",                 .value = DOUBLE_NONE               },
+            { .description = "Simple doubling",      .value = DOUBLE_SIMPLE             },
+            { .description = "sRGB interpolation",   .value = DOUBLE_INTERPOLATE_SRGB   },
+            { .description = "Linear interpolation", .value = DOUBLE_INTERPOLATE_LINEAR },
+            { .description = ""                                                         }
+        },
+        .bios           = { { 0 } }
+    },
     {
         .name = "language",
         .description = "BIOS language",
