@@ -170,6 +170,7 @@ else()
 endif()
 
 add_subdirectory(cdrom)
+add_subdirectory(char)
 add_subdirectory(chipset)
 
 add_subdirectory(cpu)
