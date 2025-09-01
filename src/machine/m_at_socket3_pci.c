@@ -291,16 +291,16 @@ static const device_config_t pc330_6573_config[] = {
     // clang-format off
     {
         .name = "bios",
-        .description = "BIOS Version",
+        .description = "BIOS Language",
         .type = CONFIG_BIOS,
         .default_string = "pc330_6573",
         .default_int = 0,
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "IBM Aptiva 510/710/Vision", .internal_name = "aptiva510", .bios_type = BIOS_NORMAL, 
+            { .name = "Japanese (Aptiva 510/710/Vision)", .internal_name = "aptiva510", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pc330_6573/aptiva510_$IMAGES.USF", "" } },
-            { .name = "IBM PC 330 (type 6573)", .internal_name = "pc330_6573", .bios_type = BIOS_NORMAL, 
+            { .name = "English (PC 330, type 6573)", .internal_name = "pc330_6573", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pc330_6573/$IMAGES.USF", "" } },
             { .files_no = 0 }
         },
