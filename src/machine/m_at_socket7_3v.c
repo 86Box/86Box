@@ -53,7 +53,7 @@ static const device_config_t p54tp4xe_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "Award Modular BIOS v4.51PG", .internal_name = "p54tp4xe", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision 0302", .internal_name = "p54tp4xe", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/p54tp4xe/t15i0302.awd", "" } },
             { .name = "MR BIOS V3.30", .internal_name = "p54tp4xe_mr", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/p54tp4xe/TRITON.BIO", "" } },
