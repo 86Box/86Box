@@ -30,7 +30,6 @@ extern "C"
     {
         std::regex regexLib("^([a-f0-9]{32}|[a-f0-9 ]{47})$", std::regex_constants::egrep);
         FILE* file;
-        pclog("Parse %s\n", path);
         try {
             bool bom = ini_detect_bom(path);
             {
@@ -54,7 +53,7 @@ extern "C"
                             return false;
                         }
 
-                        if (str.find("edid-decode") == std::string::npos) {
+                        if (str.find("edid-decode (hex):") == std::string::npos) {
                             return false;
                         }
                     }
