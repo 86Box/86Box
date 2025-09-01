@@ -278,7 +278,7 @@ ddc_init_with_custom_edid(char *edid_path, void *i2c)
     uint8_t *edid_bytes = malloc(size);
     memcpy(edid_bytes, buffer, size);
 
-    return i2c_eeprom_init(i2c, 0x50, edid_bytes, size);
+    return i2c_eeprom_init(i2c, 0x50, edid_bytes, size, 0);
 }
 
 void *
@@ -293,7 +293,7 @@ ddc_init(void *i2c)
     }
 
     uint8_t *edid_bytes;
-    size_t edid_size = ddc_generate_default_edid(&edid_bytes);
+    size_t   edid_size = ddc_create_default_edid(&edid_bytes);
     return i2c_eeprom_init(i2c, 0x50, edid_bytes, edid_size, 0);
 }
 
