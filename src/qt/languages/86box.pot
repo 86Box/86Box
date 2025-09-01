@@ -2136,6 +2136,9 @@ msgstr ""
 msgid "Enable Game port"
 msgstr ""
 
+msgid "Enable Adlib ports"
+msgstr ""
+
 msgid "SID Model"
 msgstr ""
 

@@ -46,6 +46,7 @@ enum {
 enum {
     GUS_CLASSIC = 0,
     GUS_MAX     = 1,
+    GUS_ACE     = 2,
 };
 
 typedef struct gus_t {
@@ -651,15 +652,17 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     break;
                 case 6:
                     if (gus->type > GUS_CLASSIC) {
-                        if (!(val & 0x2) && (gus->jumper & 0x2))
-                            io_removehandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
-                        else if ((val & 0x2) && !(gus->jumper & 0x2))
-                            io_sethandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+                        if (gus->type != GUS_ACE) {
+                            if (!(val & 0x2) && (gus->jumper & 0x2))
+                                io_removehandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+                            else if ((val & 0x2) && !(gus->jumper & 0x2))
+                                io_sethandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
 
-                        if (!(val & 0x4) && (gus->jumper & 0x4))
-                            gameport_remap(gus->gameport, 0x0);
-                        else if ((val & 0x4) && !(gus->jumper & 0x4))
-                            gameport_remap(gus->gameport, 0x201);
+                            if (!(val & 0x4) && (gus->jumper & 0x4))
+                                gameport_remap(gus->gameport, 0x0);
+                            else if ((val & 0x4) && !(gus->jumper & 0x4))
+                                gameport_remap(gus->gameport, 0x201);
+                        }
 
                         gus->jumper = val;
                     }
@@ -899,6 +902,8 @@ gus_read(uint16_t addr, void *priv)
         case 0x706:
             if (gus->type == GUS_MAX)
                 val = 0x0a; /* GUS MAX */
+            else if (gus->type == GUS_ACE)
+                val = 0x30; /* GUS ACE */
             else
                 val = 0xff; /*Pre 3.7 - no mixer*/
             break;
@@ -943,8 +948,11 @@ gus_read(uint16_t addr, void *priv)
         case 0x20e:
             return gus->sb_2xe;
 
-        case 0x208:
         case 0x388:
+            if ((gus->type == GUS_ACE) && !device_get_config_int("adlib_ports"))
+                break;
+            fallthrough;
+        case 0x208:
             if (gus->tctrl & GUS_TIMER_CTRL_AUTO)
                 val = gus->sb_2xa;
             else {
@@ -959,9 +967,11 @@ gus_read(uint16_t addr, void *priv)
 #ifdef OLD_NMI_BEHAVIOR
             nmi = 0;
 #endif /* OLD_NMI_BEHAVIOR */
-            fallthrough;
-        case 0x389:
             val = gus->ad_data;
+            break;
+        case 0x389:
+            if ((gus->type != GUS_ACE) || device_get_config_int("adlib_ports"))
+                val = gus->ad_data;
             break;
 
         case 0x20A:
@@ -1393,13 +1403,14 @@ gus_init(UNUSED(const device_t *info))
     gus->base = device_get_config_hex16("base");
 
     io_sethandler(gus->base, 0x0010, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
-    io_sethandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    if (gus->type != GUS_ACE)
+        io_sethandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
     io_sethandler(0x0102 + gus->base, 0x000e, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
     io_sethandler(0x0506 + gus->base, 0x0001, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
     io_sethandler(0x0388, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
     if (gus->type == GUS_CLASSIC && device_get_config_int("gameport"))
         gus->gameport = gameport_add(&gameport_201_device);
-    else {
+    else if (gus->type != GUS_ACE) {
         gus->gameport = gameport_add(&gameport_pnp_1io_device);
         gameport_remap(gus->gameport, 0x201);
     }
@@ -1418,7 +1429,7 @@ gus_init(UNUSED(const device_t *info))
 
     sound_add_handler(gus_get_buffer, gus);
 
-    if (device_get_config_int("receive_input"))
+    if ((gus->type != GUS_ACE) && (device_get_config_int("receive_input")))
         midi_in_handler(1, gus_input_msg, gus_input_sysex, gus);
 
     return gus;
@@ -1561,6 +1572,57 @@ static const device_config_t gus_max_config[] = {
 // clang-format off
 };
 
+static const device_config_t gus_ace_config[] = {
+    // clang-format off
+    {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x260,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "210H", .value = 0x210 },
+            { .description = "220H", .value = 0x220 },
+            { .description = "230H", .value = 0x230 },
+            { .description = "240H", .value = 0x240 },
+            { .description = "250H", .value = 0x250 },
+            { .description = "260H", .value = 0x260 },
+            { NULL                                  }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gus_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value = 1 },
+            { .description = "1 MB",   .value = 2 },
+            { NULL                                }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "adlib_ports",
+        .description    = "Enable Adlib ports",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format off
+};
+
 const device_t gus_device = {
     .name          = "Gravis UltraSound",
     .internal_name = "gus",
@@ -1587,4 +1649,18 @@ const device_t gus_max_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_max_config
+};
+
+const device_t gus_ace_device = {
+    .name          = "Gravis UltraSound ACE",
+    .internal_name = "gusace",
+    .flags         = DEVICE_ISA16,
+    .local         = GUS_ACE,
+    .init          = gus_init,
+    .close         = gus_close,
+    .reset         = gus_reset,
+    .available     = NULL,
+    .speed_changed = gus_speed_changed,
+    .force_redraw  = NULL,
+    .config        = gus_ace_config
 };

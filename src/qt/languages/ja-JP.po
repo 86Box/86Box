@@ -2136,6 +2136,9 @@ msgstr "低DMA"
 msgid "Enable Game port"
 msgstr "ゲームポートを有効にする"
 
+msgid "Enable Adlib ports"
+msgstr "Adlibポートを有効にする"
+
 msgid "SID Model"
 msgstr "SIDモデル"
 

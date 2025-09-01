@@ -2136,6 +2136,9 @@ msgstr "Lav DMA"
 msgid "Enable Game port"
 msgstr "Aktiver spillport"
 
+msgid "Enable Adlib ports"
+msgstr "Aktiver Adlib-porter"
+
 msgid "SID Model"
 msgstr "SID-modell"
 
