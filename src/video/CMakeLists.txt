@@ -44,6 +44,7 @@ add_library(vid OBJECT
 
     # DDC / monitor identification stuff
     vid_ddc.c
+    vid_ddc_custom.c
 
     # CARDS start here
 

@@ -23,6 +23,8 @@
 #include <QFileDialog>
 #include <QStringBuilder>
 
+#include <cstdint>
+
 extern "C" {
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -343,11 +345,10 @@ void SettingsDisplay::on_pushButtonExportDefault_clicked()
     if (!str.isEmpty()) {
         QFile file(str);
         if (file.open(QFile::WriteOnly)) {
-            ssize_t size = 0;
-            auto bytes = ddc_create_default_edid(&size);
+            uint8_t *bytes = nullptr;
+            auto size = ddc_create_default_edid(&bytes);
             file.write((char*)bytes, size);
             file.close();
         }
     }
 }
-
