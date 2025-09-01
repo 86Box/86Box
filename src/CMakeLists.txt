@@ -48,7 +48,6 @@ add_executable(86Box
     nvr_at.c
     nvr_ps2.c
     machine_status.c
-    edid_parse.cpp
 )
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
