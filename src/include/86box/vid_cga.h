@@ -125,6 +125,7 @@ extern void    cga_recalctimings(cga_t *cga);
 extern void    cga_interpolate_init(void);
 extern void    cga_blit_memtoscreen(int x, int y, int w, int h, int double_type);
 extern void    cga_do_blit(int vid_xsize, int firstline, int lastline, int double_type);
+extern void    cga_do_blit_tandy(int vid_xsize, int firstline, int lastline, int double_type, int hsync_offset, int vsync_offset);
 extern void    cga_poll(void *priv);
 
 //#ifdef EMU_DEVICE_H
