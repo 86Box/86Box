@@ -38,7 +38,7 @@ extern "C"
                 file = plat_fopen(path, "rb");
                 if (file) {
                     std::string str;
-                    size_t size;
+                    ssize_t size;
                     if (!fseek(file, 0, SEEK_END)) {
                         size = ftell(file);
                         if (size != -1) {
@@ -64,7 +64,6 @@ extern "C"
             }
             file = plat_fopen(path, "rb");
             if (file) {
-                char* buf = NULL;
                 size_t size = 0;
                 std::string edid_decode_text;
                 fseek(file, 0, SEEK_END);
@@ -100,7 +99,7 @@ extern "C"
                         *size_out = vals.size();
                         if (vals.size() > 256)
                             return false;
-                        for (int i = 0; i < vals.size(); i++) {
+                        for (size_t i = 0; i < vals.size(); i++) {
                             out[i] = (uint8_t)std::strtoul(&vals[i][0], nullptr, 16);
                         }
                         return true;
