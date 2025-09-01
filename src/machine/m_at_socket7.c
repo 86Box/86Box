@@ -830,9 +830,9 @@ static const device_config_t lgibmx52_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "08/21/97", .internal_name = "lgibmx52_082197", .bios_type = BIOS_NORMAL, 
+            { .name = "PhoenixBIOS 4.05 - Revision 08/21/97", .internal_name = "lgibmx52_082197", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/lgibmx52/BIOS.ROM", "" } },
-            { .name = "03/26/99", .internal_name = "lgibmx52", .bios_type = BIOS_NORMAL, 
+            { .name = "PhoenixBIOS 4.05 - Revision 03/26/99", .internal_name = "lgibmx52", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/lgibmx52/MS5136 LG IBM OEM.ROM", "" } },
             { .files_no = 0 }
         },
@@ -1601,9 +1601,9 @@ static const device_config_t r534f_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "06/12/1998", .internal_name = "r534f_1998", .bios_type = BIOS_NORMAL,
+            { .name = "Award Modular BIOS v4.51PG - Revision 06/12/1998", .internal_name = "r534f_1998", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/r534f/r534f008-1998.bin", "" } },
-            { .name = "03/13/2000 (Unicore)", .internal_name = "r534f", .bios_type = BIOS_NORMAL,
+            { .name = "Award Modular BIOS v4.51PG - Revision 03/13/2000 (by Unicore Software)", .internal_name = "r534f", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/r534f/r534f008.bin", "" } },
             { .files_no = 0 }
         },
@@ -1753,9 +1753,9 @@ static const device_config_t m5ata_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "12/23/97", .internal_name = "m5ata", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision 12/23/97", .internal_name = "m5ata", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/m5ata/ATA1223.BIN", "" } },
-            { .name = "05/27/98", .internal_name = "m5ata_0527b", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision 05/27/98", .internal_name = "m5ata_0527b", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/m5ata/ATA0527B.BIN", "" } },
             { .files_no = 0 }
         },
