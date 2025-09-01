@@ -174,7 +174,8 @@ lpt_handler(pc87306_t *dev)
 
     lpt_port_irq(dev->lpt, lpt_irq);
 
-    if ((dev->regs[0x18] & 0x06) != 0x00)
+    if (((jumpered_internal_ecp_dma < 0) || (jumpered_internal_ecp_dma == 4)) &&
+        ((dev->regs[0x18] & 0x06) != 0x00))
         lpt_port_dma(dev->lpt, (dev->regs[0x18] & 0x08) ? 3 : 1);
 }
 

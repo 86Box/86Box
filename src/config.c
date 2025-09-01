@@ -884,6 +884,10 @@ load_ports(void)
 
     if (!has_jumpers || (jumpered_internal_ecp_dma == def_jumper))
         ini_section_delete_var(cat, "jumpered_internal_ecp_dma");
+    else if (has_jumpers && !(machine_has_jumpered_ecp_dma(machine, jumpered_internal_ecp_dma))) {
+        jumpered_internal_ecp_dma = def_jumper;
+        ini_section_delete_var(cat, "jumpered_internal_ecp_dma");
+    }
 
     for (int c = 0; c < (SERIAL_MAX - 1); c++) {
         sprintf(temp, "serial%d_enabled", c + 1);
@@ -1462,6 +1466,9 @@ load_floppy_and_cdrom_drives(void)
 
         sprintf(temp, "cdrom_%02i_speed", c + 1);
         cdrom[c].speed = ini_section_get_int(cat, temp, 8);
+
+        sprintf(temp, "cdrom_%02i_no_check", c + 1);
+        cdrom[c].no_check = ini_section_get_int(cat, temp, 0);
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
         p = ini_section_get_string(cat, temp, cdrom[c].bus_type == CDROM_BUS_MKE ? "cr563" : "86cd");
@@ -2905,7 +2912,10 @@ save_ports(void)
 
     if (!has_jumpers || (jumpered_internal_ecp_dma == def_jumper))
         ini_section_delete_var(cat, "jumpered_internal_ecp_dma");
-    else
+    else if (has_jumpers && !(machine_has_jumpered_ecp_dma(machine, jumpered_internal_ecp_dma))) {
+        jumpered_internal_ecp_dma = def_jumper;
+        ini_section_set_int(cat, "jumpered_internal_ecp_dma", jumpered_internal_ecp_dma);
+    } else
         ini_section_set_int(cat, "jumpered_internal_ecp_dma", jumpered_internal_ecp_dma);
 
     for (int c = 0; c < (SERIAL_MAX - 1); c++) {
@@ -3404,6 +3414,12 @@ save_floppy_and_cdrom_drives(void)
     for (c = 0; c < CDROM_NUM; c++) {
         sprintf(temp, "cdrom_%02i_host_drive", c + 1);
         ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "cdrom_%02i_no_check", c + 1);
+        if (cdrom[c].no_check)
+            ini_section_set_int(cat, temp, cdrom[c].no_check);
+        else
+            ini_section_delete_var(cat, temp);
 
         sprintf(temp, "cdrom_%02i_speed", c + 1);
         if ((cdrom[c].bus_type == 0) || (cdrom[c].speed == 8))

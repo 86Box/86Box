@@ -136,7 +136,7 @@ reset_ps(ps_t *dev)
     dev->buffer_pos = 0;
 
     timer_disable(&dev->pulse_timer);
-    timer_disable(&dev->timeout_timer);
+    timer_stop(&dev->timeout_timer);
 }
 
 static void
@@ -253,7 +253,7 @@ timeout_timer(void *priv)
 
     write_buffer(dev, true);
 
-    timer_disable(&dev->timeout_timer);
+    timer_stop(&dev->timeout_timer);
 }
 
 static void
@@ -333,8 +333,8 @@ ps_strobe(uint8_t old, uint8_t val, void *priv)
     if (!(val & 0x01) && (old & 0x01)) {
         process_data(dev);
 
-        if (timer_is_enabled(&dev->timeout_timer)) {
-            timer_disable(&dev->timeout_timer);
+        if (timer_is_on(&dev->timeout_timer)) {
+            timer_stop(&dev->timeout_timer);
 #ifdef USE_DYNAREC
             if (cpu_use_dynarec)
                 update_tsc();
@@ -344,7 +344,7 @@ ps_strobe(uint8_t old, uint8_t val, void *priv)
         dev->ack = true;
 
         timer_set_delay_u64(&dev->pulse_timer, ISACONST);
-        timer_set_delay_u64(&dev->timeout_timer, 5000000 * TIMER_USEC);
+        timer_on_auto(&dev->timeout_timer, 5000000.0);
     }
 }
 
@@ -371,8 +371,8 @@ ps_write_ctrl(uint8_t val, void *priv)
     if (!(val & 0x01) && (dev->ctrl & 0x01)) {
         process_data(dev);
 
-        if (timer_is_enabled(&dev->timeout_timer)) {
-            timer_disable(&dev->timeout_timer);
+        if (timer_is_on(&dev->timeout_timer)) {
+            timer_stop(&dev->timeout_timer);
 #ifdef USE_DYNAREC
             if (cpu_use_dynarec)
                 update_tsc();
@@ -382,7 +382,7 @@ ps_write_ctrl(uint8_t val, void *priv)
         dev->ack = true;
 
         timer_set_delay_u64(&dev->pulse_timer, ISACONST);
-        timer_set_delay_u64(&dev->timeout_timer, 5000000 * TIMER_USEC);
+        timer_on_auto(&dev->timeout_timer, 5000000.0);
     }
 
     dev->ctrl = val;

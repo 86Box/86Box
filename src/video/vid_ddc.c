@@ -14,6 +14,7 @@
  *
  *          Copyright 2020 RichardG.
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -231,13 +232,36 @@ ddc_create_default_edid(ssize_t* size_out)
     return edid;
 }
 
+extern bool parse_edid_decode_file(const char* path, uint8_t* out, ssize_t* size);
+
 void *
 ddc_init(void *i2c)
 {
     ssize_t edid_size = 0;
     uint8_t* edid_bytes = NULL;
     if (monitor_edid == 1 && monitor_edid_path[0]) {
-        FILE* file = plat_fopen(monitor_edid_path, "rb");
+        FILE* file;
+        {
+            edid_bytes = calloc(1, 256);
+            if (parse_edid_decode_file(monitor_edid_path, edid_bytes, &edid_size) == false) {
+                if (edid_size > 256) {
+                    wchar_t errmsg[2048] = { 0 };
+                    wchar_t path[2048] = { 0 };
+
+#ifdef _WIN32
+                    mbstoc16s(path, monitor_edid_path, sizeof_w(path));
+#else
+                    mbstowcs(path, monitor_edid_path, sizeof_w(path));
+#endif
+                    swprintf(errmsg, sizeof_w(errmsg), plat_get_string(STRING_EDID_TOO_LARGE), path);
+                    ui_msgbox_header(MBX_ERROR, L"EDID", errmsg);
+                }
+                free(edid_bytes);
+            } else {
+                goto calculate_cksum;
+            }
+        }
+        file = plat_fopen(monitor_edid_path, "rb");
 
         if (!file)
             goto default_init;
@@ -282,6 +306,8 @@ ddc_init(void *i2c)
             goto default_init;
         }
 
+        fclose(file);
+calculate_cksum:
         if (edid_size < 128) {
             edid_bytes = realloc(edid_bytes, 128);
             edid_size = 128;
@@ -306,7 +332,6 @@ ddc_init(void *i2c)
             }
         }
 
-        fclose(file);
         return i2c_eeprom_init(i2c, 0x50, edid_bytes, edid_size, 0);
     }
 default_init:
