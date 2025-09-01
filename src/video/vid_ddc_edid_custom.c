@@ -1,3 +1,22 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Custom monitor EDID file loader.
+ *
+ *
+ *
+ * Authors: Cacodemon345,
+ *          David Hrdlička, <hrdlickadavid@outlook.com>
+ *
+ *          Copyright 2025 Cacodemon.
+ *          Copyright 2025 David Hrdlička.
+ */
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
