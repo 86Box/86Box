@@ -40,6 +40,7 @@ ddc_load_edid(char *path, uint8_t *buf, size_t size)
     FILE   *fp   = fopen(path, "rb");
     size_t  offset = 0;
     uint8_t temp[64];
+    long    pos;
 
     if (!fp) {
         return 0;
@@ -66,6 +67,12 @@ ddc_load_edid(char *path, uint8_t *buf, size_t size)
         return 0;
     }
 
+#ifdef _WIN32
+    // Disable buffering on Windows because of a UCRT bug.
+    // https://developercommunity.visualstudio.com/t/fseek-ftell-fail-in-text-mode-for-unix-style-text/425878
+    setvbuf(fp, NULL, _IONBF, 0);
+#endif
+
     // Skip the UTF-8 BOM, if any.
     if (fread(temp, 1, 3, fp) != 3) {
         fclose(fp);
@@ -73,10 +80,10 @@ ddc_load_edid(char *path, uint8_t *buf, size_t size)
     };
 
     if (temp[0] != 0xEF || temp[1] != 0xBB || temp[2] != 0xBF) {
-        fseek(fp, -3, SEEK_CUR);
+        rewind(fp);
     }
 
-    // Find the `edid-decode (hex):` header
+    // Find the `edid-decode (hex):` header.
     do {
         if (!fgets(temp, sizeof(temp), fp)) {
             fclose(fp);
@@ -85,17 +92,18 @@ ddc_load_edid(char *path, uint8_t *buf, size_t size)
     } while (strncmp(temp, EDID_DECODE_HEADER, sizeof(EDID_DECODE_HEADER) - 1));
 
     while (offset + EDID_BLOCK_SIZE <= size) {
-        // Skip any whitespace before the next block
+        // Skip any whitespace before the next block.
         do {
+            pos = ftell(fp);
             if (!fgets(temp, sizeof(temp), fp)) {
                 fclose(fp);
                 return offset;
             }
         } while (strspn(temp, " \t\r\n") == strlen(temp));
 
-        fseek(fp, -strlen(temp), SEEK_CUR);
+        fseek(fp, pos, SEEK_SET);
 
-        // Read the block
+        // Read the block.
         size_t block = read_block(fp, buf + offset);
 
         if (block != EDID_BLOCK_SIZE) {
