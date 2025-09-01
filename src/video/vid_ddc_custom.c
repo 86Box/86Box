@@ -11,7 +11,7 @@
 static size_t
 read_block(FILE *fp, uint8_t *buf)
 {
-    uint8_t temp[64];
+    char    temp[64];
     size_t  read = 0;
 
     for (int i = 0; i < 8; i++) {
@@ -39,7 +39,7 @@ ddc_load_edid(char *path, uint8_t *buf, size_t size)
 {
     FILE   *fp   = fopen(path, "rb");
     size_t  offset = 0;
-    uint8_t temp[64];
+    char    temp[64];
     long    pos;
 
     if (!fp) {
