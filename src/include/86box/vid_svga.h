@@ -444,6 +444,8 @@ extern void    ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *
 extern uint8_t ibm_rgb528_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
 extern void    ibm_rgb528_recalctimings(void *priv, svga_t *svga);
 extern void    ibm_rgb528_hwcursor_draw(svga_t *svga, int displine);
+extern float   ibm_rgb528_getclock(int clock, void *priv);
+extern void    ibm_rgb528_ramdac_set_ref_clock(void *priv, svga_t *svga, float ref_clock);
 
 extern void  icd2061_write(void *priv, int val);
 extern float icd2061_getclock(int clock, void *priv);

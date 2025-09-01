@@ -108,25 +108,27 @@ um866x_lpt_handler(um866x_t *dev)
     int enabled = (dev->regs[0] & 0x08);
 
     lpt_port_remove(dev->lpt);
-    switch(dev->regs[1] & 0xc0) {
-        case 0x00:
-            enabled = 0;
-            break;
-        case 0x40:
-            lpt_set_epp(dev->lpt, 1);
-            lpt_set_ecp(dev->lpt, 0);
-            lpt_set_ext(dev->lpt, 0);
-            break;
-        case 0x80:
-            lpt_set_epp(dev->lpt, 0);
-            lpt_set_ecp(dev->lpt, 0);
-            lpt_set_ext(dev->lpt, 1);
-            break;
-        case 0xc0:
-            lpt_set_epp(dev->lpt, 0);
-            lpt_set_ecp(dev->lpt, 1);
-            lpt_set_ext(dev->lpt, 0);
-            break;
+    if (dev->max_reg != 0x00) {
+        switch(dev->regs[1] & 0xc0) {
+            case 0x00:
+                enabled = 0;
+                break;
+            case 0x40:
+                lpt_set_epp(dev->lpt, 1);
+                lpt_set_ecp(dev->lpt, 0);
+                lpt_set_ext(dev->lpt, 0);
+                break;
+            case 0x80:
+                lpt_set_epp(dev->lpt, 0);
+                lpt_set_ecp(dev->lpt, 0);
+                lpt_set_ext(dev->lpt, 1);
+                break;
+            case 0xc0:
+                lpt_set_epp(dev->lpt, 0);
+                lpt_set_ecp(dev->lpt, 1);
+                lpt_set_ext(dev->lpt, 0);
+                break;
+        }
     }
     if (enabled) {
         switch ((dev->regs[1] >> 3) & 0x01) {
