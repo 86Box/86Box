@@ -46,7 +46,7 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
     for (uint8_t i = 0; i < GFXCARD_MAX; i ++)
         videoCard[i] = gfxcard[i];
 
-    ui->lineEdit->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+    ui->lineEdit->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid", "txt" }) % tr("All files") % util::DlgFilter({ "*" }, true));
 
     onCurrentMachineChanged(machine);
 }
