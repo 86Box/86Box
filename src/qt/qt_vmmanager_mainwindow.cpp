@@ -130,7 +130,7 @@ VMManagerMainWindow(QWidget *parent)
     connect(this, &VMManagerMainWindow::languageUpdated, vmm, &VMManagerMain::onLanguageUpdated);
 #ifdef Q_OS_WINDOWS
     connect(this, &VMManagerMainWindow::darkModeUpdated, vmm, &VMManagerMain::onDarkModeUpdated);
-    connect(this, &VMManagerMainWindow::preferencesUpdated, [this] () { vmm_dark_mode_filter->reselectDarkMode(); });
+    connect(this, &VMManagerMainWindow::preferencesUpdated, [] () { vmm_dark_mode_filter->reselectDarkMode(); });
 #endif
 
     {
