@@ -306,6 +306,7 @@ set_ip(uint16_t new_ip)
 static void
 startx86(void)
 {
+#if 0
     AL = 0x04;
     cycles_forward(1);
     outb(0x0008, AL);
@@ -441,6 +442,7 @@ C18:
     cycles_forward(1);
     outb(0x000b, AL);
     cycles_forward(1);
+#endif
 
     /* Reset takes 6 cycles before first fetch. */
     pclog("startx86() begin:\n");
