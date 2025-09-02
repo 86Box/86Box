@@ -424,9 +424,9 @@ enum {
 };
 
 enum {
-    DMA_STATE_IDLE = 0,
-    DMA_STATE_PRI,
-    DMA_STATE_SEC
+    MGA_DMA_STATE_IDLE = 0,
+    MGA_DMA_STATE_PRI,
+    MGA_DMA_STATE_SEC
 };
 
 typedef struct {
@@ -1600,7 +1600,7 @@ mystique_ctrl_read_b(uint32_t addr, void *priv)
             case REG_STATUS + 2:
                 ret = (mystique->status >> 16) & 0xff;
                 if (mystique->busy || ((mystique->blitter_submit_refcount + mystique->blitter_submit_dma_refcount) != mystique->blitter_complete_refcount) || !FIFO_EMPTY
-                || mystique->dma.state != DMA_STATE_IDLE || mystique->softrap_pending || mystique->endprdmasts_pending)
+                || mystique->dma.state != MGA_DMA_STATE_IDLE || mystique->softrap_pending || mystique->endprdmasts_pending)
                     ret |= (STATUS_DWGENGSTS >> 16);
                 break;
             case REG_STATUS + 3:
@@ -2179,7 +2179,7 @@ mystique_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
 
         case REG_OPMODE:
             thread_wait_mutex(mystique->dma.lock);
-            mystique->dma.state = DMA_STATE_IDLE; /* Interrupt DMA. */
+            mystique->dma.state = MGA_DMA_STATE_IDLE; /* Interrupt DMA. */
             thread_release_mutex(mystique->dma.lock);
             mystique->dmamod = (val >> 2) & 3;
             mystique_queue(mystique, addr & 0x3fff, val, FIFO_WRITE_CTRL_BYTE);
@@ -2200,10 +2200,10 @@ mystique_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
             thread_wait_mutex(mystique->dma.lock);
             WRITE8(addr, mystique->dma.primaddress, val);
             mystique->dma.pri_state = 0;
-            if (mystique->dma.state == DMA_STATE_IDLE && !(mystique->softrap_pending || mystique->endprdmasts_pending || !mystique->softrap_status_read)) {
+            if (mystique->dma.state == MGA_DMA_STATE_IDLE && !(mystique->softrap_pending || mystique->endprdmasts_pending || !mystique->softrap_status_read)) {
                 mystique->dma.words_expected = 0;
             }
-            mystique->dma.state = DMA_STATE_IDLE;
+            mystique->dma.state = MGA_DMA_STATE_IDLE;
             thread_release_mutex(mystique->dma.lock);
             break;
 
@@ -2240,7 +2240,7 @@ mystique_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
             thread_wait_mutex(mystique->dma.lock);
             mystique->dma.pri_state               = 0;
             mystique->dma.sec_state               = 0;
-            mystique->dma.state                   = DMA_STATE_IDLE;
+            mystique->dma.state                   = MGA_DMA_STATE_IDLE;
             mystique->dma.words_expected          = 0;
             thread_release_mutex(mystique->dma.lock);
             break;
@@ -2599,12 +2599,12 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
 
         case REG_SECEND:
             mystique->dma.secend = val;
-            if (mystique->dma.state != DMA_STATE_SEC && (mystique->dma.secaddress & DMA_ADDR_MASK) != (mystique->dma.secend & DMA_ADDR_MASK))
-                mystique->dma.state = DMA_STATE_SEC;
+            if (mystique->dma.state != MGA_DMA_STATE_SEC && (mystique->dma.secaddress & DMA_ADDR_MASK) != (mystique->dma.secend & DMA_ADDR_MASK))
+                mystique->dma.state = MGA_DMA_STATE_SEC;
             break;
 
         case REG_SOFTRAP:
-            mystique->dma.state           = DMA_STATE_IDLE;
+            mystique->dma.state           = MGA_DMA_STATE_IDLE;
             mystique->dma.pri_state       = 0;
             mystique->dma.words_expected  = 0;
             mystique->endprdmasts_pending = 1;
@@ -2683,11 +2683,11 @@ mystique_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
             thread_wait_mutex(mystique->dma.lock);
             mystique->dma.primend = val;
             //pclog("PRIMADDRESS = 0x%08X, PRIMEND = 0x%08X\n", mystique->dma.primaddress, mystique->dma.primend);
-            if (mystique->dma.state == DMA_STATE_IDLE && (mystique->dma.primaddress & DMA_ADDR_MASK) != (mystique->dma.primend & DMA_ADDR_MASK)) {
+            if (mystique->dma.state == MGA_DMA_STATE_IDLE && (mystique->dma.primaddress & DMA_ADDR_MASK) != (mystique->dma.primend & DMA_ADDR_MASK)) {
                 mystique->endprdmasts_pending = 0;
                 mystique->status &= ~STATUS_ENDPRDMASTS;
 
-                mystique->dma.state     = DMA_STATE_PRI;
+                mystique->dma.state     = MGA_DMA_STATE_PRI;
                 //mystique->dma.pri_state = 0;
                 wake_fifo_thread(mystique);
             }
@@ -2699,7 +2699,7 @@ mystique_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
             {
                 mystique->dma.primaddress = mystique->dma.primend;
                 mystique->endprdmasts_pending = 1;
-                mystique->dma.state = DMA_STATE_IDLE;
+                mystique->dma.state = MGA_DMA_STATE_IDLE;
             }
             thread_release_mutex(mystique->dma.lock);
             break;
@@ -2935,7 +2935,7 @@ run_dma(mystique_t *mystique)
         return;
     }
 
-    if (mystique->dma.state == DMA_STATE_IDLE) {
+    if (mystique->dma.state == MGA_DMA_STATE_IDLE) {
         if (!(mystique->status & STATUS_ENDPRDMASTS))
         {
             /* Force this to appear. */
@@ -2945,14 +2945,14 @@ run_dma(mystique_t *mystique)
         return;
     }
 
-    while (words_transferred < DMA_MAX_WORDS && mystique->dma.state != DMA_STATE_IDLE) {
+    while (words_transferred < DMA_MAX_WORDS && mystique->dma.state != MGA_DMA_STATE_IDLE) {
         switch (atomic_load(&mystique->dma.state)) {
-            case DMA_STATE_PRI:
+            case MGA_DMA_STATE_PRI:
                 switch (mystique->dma.primaddress & DMA_MODE_MASK) {
                     case DMA_MODE_REG:
                         if ((mystique->dma.primaddress & DMA_ADDR_MASK) == (mystique->dma.primend & DMA_ADDR_MASK)) {
                             mystique->endprdmasts_pending = 1;
-                            mystique->dma.state           = DMA_STATE_IDLE;
+                            mystique->dma.state           = MGA_DMA_STATE_IDLE;
                             break;
                         }
                         if (mystique->dma.pri_state == 0 && !mystique->dma.words_expected) {
@@ -2965,7 +2965,7 @@ run_dma(mystique_t *mystique)
 
                         if ((mystique->dma.primaddress & DMA_ADDR_MASK) == (mystique->dma.primend & DMA_ADDR_MASK)) {
                             mystique->endprdmasts_pending = 1;
-                            mystique->dma.state           = DMA_STATE_IDLE;
+                            mystique->dma.state           = MGA_DMA_STATE_IDLE;
                             break;
                         }
 
@@ -3000,31 +3000,31 @@ run_dma(mystique_t *mystique)
                         mystique->dma.pri_header >>= 8;
                         mystique->dma.pri_state = (mystique->dma.pri_state + 1) & 3;
 
-                        if (mystique->dma.state == DMA_STATE_SEC) {
+                        if (mystique->dma.state == MGA_DMA_STATE_SEC) {
                             mystique->dma.sec_state = 0;
                         }
                         else if ((mystique->dma.primaddress & DMA_ADDR_MASK) == (mystique->dma.primend & DMA_ADDR_MASK)) {
                             mystique->endprdmasts_pending = 1;
-                            mystique->dma.state           = DMA_STATE_IDLE;
+                            mystique->dma.state           = MGA_DMA_STATE_IDLE;
                         }
                         break;
 
                     default:
-                        fatal("DMA_STATE_PRI: mode %i\n", mystique->dma.primaddress & DMA_MODE_MASK);
+                        fatal("MGA_DMA_STATE_PRI: mode %i\n", mystique->dma.primaddress & DMA_MODE_MASK);
                 }
                 break;
 
-            case DMA_STATE_SEC:
+            case MGA_DMA_STATE_SEC:
                 switch (mystique->dma.secaddress & DMA_MODE_MASK) {
                     case DMA_MODE_REG:
                         if ((mystique->dma.secaddress & DMA_ADDR_MASK) >= (mystique->dma.secend & DMA_ADDR_MASK)) {
                             if ((mystique->dma.primaddress & DMA_ADDR_MASK) == (mystique->dma.primend & DMA_ADDR_MASK)) {
                                 mystique->endprdmasts_pending = 1;
-                                mystique->dma.state           = DMA_STATE_IDLE;
+                                mystique->dma.state           = MGA_DMA_STATE_IDLE;
                                 mystique->dma.pri_state       = 0;
                                 mystique->dma.words_expected  = 0;
                             } else {
-                                mystique->dma.state = DMA_STATE_PRI;
+                                mystique->dma.state = MGA_DMA_STATE_PRI;
                                 mystique->dma.words_expected = 0;
                                 mystique->dma.pri_state = 0;
                             }
@@ -3039,11 +3039,11 @@ run_dma(mystique_t *mystique)
                         if ((mystique->dma.secaddress & DMA_ADDR_MASK) >= (mystique->dma.secend & DMA_ADDR_MASK)) {
                             if ((mystique->dma.primaddress & DMA_ADDR_MASK) == (mystique->dma.primend & DMA_ADDR_MASK)) {
                                 mystique->endprdmasts_pending = 1;
-                                mystique->dma.state           = DMA_STATE_IDLE;
+                                mystique->dma.state           = MGA_DMA_STATE_IDLE;
                                 mystique->dma.pri_state       = 0;
                                 mystique->dma.words_expected  = 0;
                             } else {
-                                mystique->dma.state = DMA_STATE_PRI;
+                                mystique->dma.state = MGA_DMA_STATE_PRI;
                                 mystique->dma.words_expected = 0;
                                 mystique->dma.pri_state = 0;
                             }
@@ -3073,11 +3073,11 @@ run_dma(mystique_t *mystique)
                         if ((mystique->dma.secaddress & DMA_ADDR_MASK) >= (mystique->dma.secend & DMA_ADDR_MASK)) {
                             if ((mystique->dma.primaddress & DMA_ADDR_MASK) == (mystique->dma.primend & DMA_ADDR_MASK)) {
                                 mystique->endprdmasts_pending = 1;
-                                mystique->dma.state           = DMA_STATE_IDLE;
+                                mystique->dma.state           = MGA_DMA_STATE_IDLE;
                                 mystique->dma.pri_state       = 0;
                                 mystique->dma.words_expected  = 0;
                             } else {
-                                mystique->dma.state = DMA_STATE_PRI;
+                                mystique->dma.state = MGA_DMA_STATE_PRI;
                                 mystique->dma.words_expected = 0;
                                 mystique->dma.pri_state = 0;
                             }
@@ -3090,11 +3090,11 @@ run_dma(mystique_t *mystique)
                             if ((mystique->dma.secaddress & DMA_ADDR_MASK) >= (mystique->dma.secend & DMA_ADDR_MASK)) {
                                 if ((mystique->dma.primaddress & DMA_ADDR_MASK) == (mystique->dma.primend & DMA_ADDR_MASK)) {
                                     mystique->endprdmasts_pending = 1;
-                                    mystique->dma.state           = DMA_STATE_IDLE;
+                                    mystique->dma.state           = MGA_DMA_STATE_IDLE;
                                     mystique->dma.words_expected = 0;
                                     mystique->dma.pri_state = 0;
                                 } else {
-                                    mystique->dma.state = DMA_STATE_PRI;
+                                    mystique->dma.state = MGA_DMA_STATE_PRI;
                                     mystique->dma.words_expected = 0;
                                     mystique->dma.pri_state = 0;
                                 }
@@ -3110,11 +3110,11 @@ run_dma(mystique_t *mystique)
                             if ((mystique->dma.secaddress & DMA_ADDR_MASK) >= (mystique->dma.secend & DMA_ADDR_MASK)) {
                                 if ((mystique->dma.primaddress & DMA_ADDR_MASK) == (mystique->dma.primend & DMA_ADDR_MASK)) {
                                     mystique->endprdmasts_pending = 1;
-                                    mystique->dma.state           = DMA_STATE_IDLE;
+                                    mystique->dma.state           = MGA_DMA_STATE_IDLE;
                                     mystique->dma.words_expected = 0;
                                     mystique->dma.pri_state = 0;
                                 } else {
-                                    mystique->dma.state = DMA_STATE_PRI;
+                                    mystique->dma.state = MGA_DMA_STATE_PRI;
                                     mystique->dma.words_expected = 0;
                                     mystique->dma.pri_state = 0;
                                 }
@@ -3123,7 +3123,7 @@ run_dma(mystique_t *mystique)
                         break;
 
                     default:
-                        fatal("DMA_STATE_SEC: mode %i\n", mystique->dma.secaddress & DMA_MODE_MASK);
+                        fatal("MGA_DMA_STATE_SEC: mode %i\n", mystique->dma.secaddress & DMA_MODE_MASK);
                 }
                 break;
 
@@ -3145,7 +3145,7 @@ fifo_thread(void *priv)
         thread_wait_event(mystique->wake_fifo_thread, -1);
         thread_reset_event(mystique->wake_fifo_thread);
 
-        while (!FIFO_EMPTY || mystique->dma.state != DMA_STATE_IDLE) {
+        while (!FIFO_EMPTY || mystique->dma.state != MGA_DMA_STATE_IDLE) {
             int words_transferred = 0;
 
             while (!FIFO_EMPTY && words_transferred < 100) {
