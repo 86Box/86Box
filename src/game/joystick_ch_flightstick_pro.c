@@ -136,6 +136,24 @@ ch_flightstick_pro_a0_over(UNUSED(void *priv))
     //
 }
 
+const joystick_t joystick_ch_flightstick = {
+    .name          = "CH Flightstick",
+    .internal_name = "ch_flightstick",
+    .init          = ch_flightstick_init,
+    .close         = ch_flightstick_close,
+    .read          = ch_flightstick_read,
+    .write         = ch_flightstick_write,
+    .read_axis     = ch_flightstick_read_axis,
+    .a0_over       = ch_flightstick_a0_over,
+    .axis_count    = 3,
+    .button_count  = 2,
+    .pov_count     = 1,
+    .max_joysticks = 1,
+    .axis_names    = { "X axis", "Y axis", "Throttle" },
+    .button_names  = { "Button 1", "Button 2" },
+    .pov_names     = { NULL }
+};
+
 const joystick_t joystick_ch_flightstick_pro = {
     .name          = "CH Flightstick Pro",
     .internal_name = "ch_flightstick_pro",
@@ -170,4 +188,22 @@ const joystick_t joystick_ch_flightstick_pro_ch_pedals = {
     .axis_names    = { "X axis", "Y axis", "Throttle", "Rudder" },
     .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
     .pov_names     = { "POV" }
+};
+
+const joystick_t joystick_ch_virtual_pilot = {
+    .name          = "CH Virtual Pilot",
+    .internal_name = "ch_virtual_pilot",
+    .init          = ch_virtual_pilot_init,
+    .close         = ch_virtual_pilot_close,
+    .read          = ch_virtual_pilot_read,
+    .write         = ch_virtual_pilot_write,
+    .read_axis     = ch_virtual_pilot_read_axis,
+    .a0_over       = ch_virtual_pilot_a0_over,
+    .axis_count    = 3,
+    .button_count  = 2,
+    .pov_count     = 1,
+    .max_joysticks = 1,
+    .axis_names    = { "X axis", "Y axis", "Throttle" },
+    .button_names  = { "Button 1", "Button 2" },
+    .pov_names     = { NULL }
 };

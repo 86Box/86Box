@@ -292,42 +292,6 @@ const joystick_t joystick_2axis_2button = {
     .pov_names     = { NULL }
 };
 
-const joystick_t joystick_2button_gamepad = {
-    .name          = "2-button gamepad(s)",
-    .internal_name = "2button_gamepad",
-    .init          = joystick_standard_init,
-    .close         = joystick_standard_close,
-    .read          = joystick_standard_read,
-    .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis,
-    .a0_over       = joystick_standard_a0_over,
-    .axis_count    = 2,
-    .button_count  = 2,
-    .pov_count     = 0,
-    .max_joysticks = 2,
-    .axis_names    = { "X axis", "Y axis" },
-    .button_names  = { "Button 1", "Button 2" },
-    .pov_names     = { NULL }
-};
-
-const joystick_t joystick_2button_flight_yoke = {
-    .name          = "2-button flight yoke",
-    .internal_name = "2button_flight_yoke",
-    .init          = joystick_standard_init,
-    .close         = joystick_standard_close,
-    .read          = joystick_standard_read,
-    .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis,
-    .a0_over       = joystick_standard_a0_over,
-    .axis_count    = 2,
-    .button_count  = 2,
-    .pov_count     = 0,
-    .max_joysticks = 2,
-    .axis_names    = { "Roll axis", "Pitch axis" },
-    .button_names  = { "Trigger", "Button 2" },
-    .pov_names     = { NULL }
-};
-
 const joystick_t joystick_2axis_4button = {
     .name          = "2-axis, 4-button joystick",
     .internal_name = "2axis_4button",
@@ -342,150 +306,6 @@ const joystick_t joystick_2axis_4button = {
     .pov_count     = 0,
     .max_joysticks = 1,
     .axis_names    = { "X axis", "Y axis" },
-    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
-    .pov_names     = { NULL }
-};
-
-const joystick_t joystick_4button_gamepad = {
-    .name          = "4-button gamepad",
-    .internal_name = "4button_gamepad",
-    .init          = joystick_standard_init,
-    .close         = joystick_standard_close,
-    .read          = joystick_standard_read_4button,
-    .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_4button,
-    .a0_over       = joystick_standard_a0_over,
-    .axis_count    = 2,
-    .button_count  = 4,
-    .pov_count     = 0,
-    .max_joysticks = 1,
-    .axis_names    = { "X axis", "Y axis" },
-    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
-    .pov_names     = { NULL }
-};
-
-const joystick_t joystick_4button_flight_yoke = {
-    .name          = "4-button flight yoke",
-    .internal_name = "4button_flight_yoke",
-    .init          = joystick_standard_init,
-    .close         = joystick_standard_close,
-    .read          = joystick_standard_read_4button,
-    .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_4button,
-    .a0_over       = joystick_standard_a0_over,
-    .axis_count    = 2,
-    .button_count  = 4,
-    .pov_count     = 0,
-    .max_joysticks = 1,
-    .axis_names    = { "Roll axis", "Pitch axis" },
-    .button_names  = { "Trigger", "Button 2", "Button 3", "Button 4" },
-    .pov_names     = { NULL }
-};
-
-const joystick_t joystick_3axis_2button = {
-    .name          = "3-axis, 2-button joystick",
-    .internal_name = "3axis_2button",
-    .init          = joystick_standard_init,
-    .close         = joystick_standard_close,
-    .read          = joystick_standard_read,
-    .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_3axis,
-    .a0_over       = joystick_standard_a0_over,
-    .axis_count    = 3,
-    .button_count  = 2,
-    .pov_count     = 0,
-    .max_joysticks = 1,
-    .axis_names    = { "X axis", "Y axis", "Z axis" },
-    .button_names  = { "Button 1", "Button 2" },
-    .pov_names     = { NULL }
-};
-
-const joystick_t joystick_2button_yoke_throttle = {
-    .name          = "2-button flight yoke with throttle",
-    .internal_name = "2button_yoke_throttle",
-    .init          = joystick_standard_init,
-    .close         = joystick_standard_close,
-    .read          = joystick_standard_read,
-    .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_3axis,
-    .a0_over       = joystick_standard_a0_over,
-    .axis_count    = 3,
-    .button_count  = 2,
-    .pov_count     = 0,
-    .max_joysticks = 1,
-    .axis_names    = { "Roll axis", "Pitch axis", "Throttle axis" },
-    .button_names  = { "Trigger", "Button 2" },
-    .pov_names     = { NULL }
-};
-
-const joystick_t joystick_3axis_4button = {
-    .name          = "3-axis, 4-button joystick",
-    .internal_name = "3axis_4button",
-    .init          = joystick_standard_init,
-    .close         = joystick_standard_close,
-    .read          = joystick_standard_read_4button,
-    .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_3axis,
-    .a0_over       = joystick_standard_a0_over,
-    .axis_count    = 3,
-    .button_count  = 4,
-    .pov_count     = 0,
-    .max_joysticks = 1,
-    .axis_names    = { "X axis", "Y axis", "Z axis" },
-    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
-    .pov_names     = { NULL }
-};
-
-const joystick_t joystick_4button_yoke_throttle = {
-    .name          = "4-button flight yoke with throttle",
-    .internal_name = "4button_yoke_throttle",
-    .init          = joystick_standard_init,
-    .close         = joystick_standard_close,
-    .read          = joystick_standard_read_4button,
-    .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_3axis,
-    .a0_over       = joystick_standard_a0_over,
-    .axis_count    = 3,
-    .button_count  = 4,
-    .pov_count     = 0,
-    .max_joysticks = 1,
-    .axis_names    = { "Roll axis", "Pitch axis", "Throttle axis" },
-    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
-    .pov_names     = { NULL }
-};
-
-const joystick_t joystick_win95_steering_wheel = {
-    .name          = "Win95 Steering Wheel (3-axis, 4-button)",
-    .internal_name = "win95_steering_wheel",
-    .init          = joystick_standard_init,
-    .close         = joystick_standard_close,
-    .read          = joystick_standard_read_4button,
-    .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_3axis,
-    .a0_over       = joystick_standard_a0_over,
-    .axis_count    = 3,
-    .button_count  = 4,
-    .pov_count     = 0,
-    .max_joysticks = 1,
-    .axis_names    = { "Steering axis", "Accelerator axis", "Brake axis" },
-    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
-    .pov_names     = { NULL }
-};
-
-const joystick_t joystick_4axis_4button = {
-    .name          = "4-axis, 4-button joystick",
-    .internal_name = "4axis_4button",
-    .init          = joystick_standard_init,
-    .close         = joystick_standard_close,
-    .read          = joystick_standard_read_4button,
-    .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_4axis,
-    .a0_over       = joystick_standard_a0_over,
-    .axis_count    = 4,
-    .button_count  = 4,
-    .pov_count     = 0,
-    .max_joysticks = 1,
-    .axis_names    = { "X axis", "Y axis", "Z axis", "zX axis" },
     .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
     .pov_names     = { NULL }
 };
@@ -523,5 +343,299 @@ const joystick_t joystick_2axis_8button = {
     .max_joysticks = 1,
     .axis_names    = { "X axis", "Y axis" },
     .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4", "Button 5", "Button 6", "Button 7", "Button 8" },
+    .pov_names     = { NULL }
+};
+
+const joystick_t joystick_2button_flight_yoke = {
+    .name          = "2-button flight yoke",
+    .internal_name = "2button_flight_yoke",
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis,
+    .a0_over       = joystick_standard_a0_over,
+    .axis_count    = 2,
+    .button_count  = 2,
+    .pov_count     = 0,
+    .max_joysticks = 2,
+    .axis_names    = { "Roll axis", "Pitch axis" },
+    .button_names  = { "Trigger", "Button 2" },
+    .pov_names     = { NULL }
+};
+
+const joystick_t joystick_2button_yoke_throttle = {
+    .name          = "2-button flight yoke w/throttle",
+    .internal_name = "2button_yoke_throttle",
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_3axis,
+    .a0_over       = joystick_standard_a0_over,
+    .axis_count    = 3,
+    .button_count  = 2,
+    .pov_count     = 0,
+    .max_joysticks = 1,
+    .axis_names    = { "Roll axis", "Pitch axis", "Throttle axis" },
+    .button_names  = { "Trigger", "Button 2" },
+    .pov_names     = { NULL }
+};
+
+const joystick_t joystick_2button_gamepad = {
+    .name          = "2-button gamepad(s)",
+    .internal_name = "2button_gamepad",
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis,
+    .a0_over       = joystick_standard_a0_over,
+    .axis_count    = 2,
+    .button_count  = 2,
+    .pov_count     = 0,
+    .max_joysticks = 2,
+    .axis_names    = { "X axis", "Y axis" },
+    .button_names  = { "Button 1", "Button 2" },
+    .pov_names     = { NULL }
+};
+
+const joystick_t joystick_3axis_2button = {
+    .name          = "3-axis, 2-button joystick",
+    .internal_name = "3axis_2button",
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_3axis,
+    .a0_over       = joystick_standard_a0_over,
+    .axis_count    = 3,
+    .button_count  = 2,
+    .pov_count     = 0,
+    .max_joysticks = 1,
+    .axis_names    = { "X axis", "Y axis", "Z axis" },
+    .button_names  = { "Button 1", "Button 2" },
+    .pov_names     = { NULL }
+};
+
+const joystick_t joystick_3axis_4button = {
+    .name          = "3-axis, 4-button joystick",
+    .internal_name = "3axis_4button",
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_4button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_3axis,
+    .a0_over       = joystick_standard_a0_over,
+    .axis_count    = 3,
+    .button_count  = 4,
+    .pov_count     = 0,
+    .max_joysticks = 1,
+    .axis_names    = { "X axis", "Y axis", "Z axis" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { NULL }
+};
+
+const joystick_t joystick_4axis_4button = {
+    .name          = "4-axis, 4-button joystick",
+    .internal_name = "4axis_4button",
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_4button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_4axis,
+    .a0_over       = joystick_standard_a0_over,
+    .axis_count    = 4,
+    .button_count  = 4,
+    .pov_count     = 0,
+    .max_joysticks = 1,
+    .axis_names    = { "X axis", "Y axis", "Z axis", "zX axis" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { NULL }
+};
+
+const joystick_t joystick_4button_flight_yoke = {
+    .name          = "4-button flight yoke",
+    .internal_name = "4button_flight_yoke",
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_4button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_4button,
+    .a0_over       = joystick_standard_a0_over,
+    .axis_count    = 2,
+    .button_count  = 4,
+    .pov_count     = 0,
+    .max_joysticks = 1,
+    .axis_names    = { "Roll axis", "Pitch axis" },
+    .button_names  = { "Trigger", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { NULL }
+};
+
+const joystick_t joystick_4button_yoke_throttle = {
+    .name          = "4-button flight yoke w/throttle",
+    .internal_name = "4button_yoke_throttle",
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_4button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_3axis,
+    .a0_over       = joystick_standard_a0_over,
+    .axis_count    = 3,
+    .button_count  = 4,
+    .pov_count     = 0,
+    .max_joysticks = 1,
+    .axis_names    = { "Roll axis", "Pitch axis", "Throttle axis" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { NULL }
+};
+
+const joystick_t joystick_4button_gamepad = {
+    .name          = "4-button gamepad",
+    .internal_name = "4button_gamepad",
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_4button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_4button,
+    .a0_over       = joystick_standard_a0_over,
+    .axis_count    = 2,
+    .button_count  = 4,
+    .pov_count     = 0,
+    .max_joysticks = 1,
+    .axis_names    = { "X axis", "Y axis" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { NULL }
+};
+
+const joystick_t joystick_4button_joystick = {
+    .name          = "4-button joystick",
+    .internal_name = "4button_joystick",
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis,
+    .a0_over       = joystick_standard_a0_over,
+    .axis_count    = 2,
+    .button_count  = 4,
+    .pov_count     = 0,
+    .max_joysticks = 1,
+    .axis_names    = { "X axis", "Y axis" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { NULL }
+};
+
+const joystick_t joystick_4button_joystick_pov = {
+    .name          = "4-button joystick w/POV",
+    .internal_name = "4button_joystick_pov",
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_4button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_4axis,
+    .a0_over       = joystick_standard_a0_over,
+    .axis_count    = 4,
+    .button_count  = 4,
+    .pov_count     = 1,
+    .max_joysticks = 1,
+    .axis_names    = { "X axis", "Y axis", NULL, "Rudder" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { "POV" }
+};
+
+const joystick_t joystick_4button_joystick_pov_throttle = {
+    .name          = "4-button joystick w/POV and throttle",
+    .internal_name = "4button_joystick_pov_throttle",
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_4button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_4axis,
+    .a0_over       = joystick_standard_a0_over,
+    .axis_count    = 4,
+    .button_count  = 4,
+    .pov_count     = 1,
+    .max_joysticks = 1,
+    .axis_names    = { "X axis", "Y axis", "Throttle", "Rudder" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { "POV" }
+};
+
+const joystick_t joystick_5button_gamepad_throttle = {
+    .name          = "5-button gamepad w/throttle",
+    .internal_name = "5button_gamepad_throttle",
+};
+
+const joystick_t joystick_5button_joystick_pov = {
+    .name          = "5-button joystick w/POV",
+    .internal_name = "5button_joystick_pov",
+};
+
+const joystick_t joystick_5button_joystick_throttle = {
+    .name          = "5-button joystick w/throttle",
+    .internal_name = "5button_joystick_throttle",
+};
+
+const joystick_t joystick_6button_yoke_twopovs = {
+    .name          = "6-button flight yoke w/two POVs",
+    .internal_name = "6button_yoke_twopov",
+};
+
+const joystick_t joystick_6button_yoke_twopovs_throttle = {
+    .name          = "6-button flight yoke w/two POVs and throttle",
+    .internal_name = "6button_yoke_twopov_throttle",
+};
+
+const joystick_t joystick_6button_gamepad_throttle = {
+    .name          = "6-button gamepad",
+    .internal_name = "6button_gamepad",
+};
+
+const joystick_t joystick_6button_joystick = {
+    .name          = "6-button joystick",
+    .internal_name = "6button_joystick",
+};
+
+const joystick_t joystick_6button_joystick_pov = {
+    .name          = "6-button joystick w/POV",
+    .internal_name = "6button_joystick_pov",
+};
+
+const joystick_t joystick_6button_joystick_pov_throttle = {
+    .name          = "6-button joystick w/POV and throttle",
+    .internal_name = "6button_joystick_pov_throttle",
+};
+
+const joystick_t joystick_6button_joystick_twopovs = {
+    .name          = "6-button joystick w/two POVs",
+    .internal_name = "6button_joystick_twopov",
+};
+
+const joystick_t joystick_6button_joystick_twopovs_throttle = {
+    .name          = "6-button joystick w/two POVs and throttle",
+    .internal_name = "6button_joystick_twopov_throttle",
+};
+
+const joystick_t joystick_steering_wheel_rudder = {
+    .name          = "Steering wheel w/rudder axis pedals",
+    .internal_name = "steering_wheel_rudder",
+};
+
+const joystick_t joystick_win95_steering_wheel = {
+    .name          = "Win95 Steering Wheel (3-axis, 4-button)",
+    .internal_name = "win95_steering_wheel",
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_4button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_3axis,
+    .a0_over       = joystick_standard_a0_over,
+    .axis_count    = 3,
+    .button_count  = 4,
+    .pov_count     = 0,
+    .max_joysticks = 1,
+    .axis_names    = { "Steering axis", "Accelerator axis", "Brake axis" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
     .pov_names     = { NULL }
 };

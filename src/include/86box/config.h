@@ -90,6 +90,7 @@ typedef struct config_t {
     /* Input devices category */
     int mouse_type;               /* Mouse type */
     int joystick_type;            /* Joystick type */
+    int joystick_rudder_enabled;  /* Rudder/Pedals enabled */
 
     /* Sound category */
     int sound_card;               /* Sound card */

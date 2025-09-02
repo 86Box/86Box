@@ -960,7 +960,8 @@ VMManagerSystem::setupVars() {
     QString joystickDevice;
     if(input_config.contains("joystick_type")) {
         auto joystick_internal = QString(input_config["joystick_type"]);
-        auto joystick_dev = joystick_get_from_internal_name(joystick_internal.toUtf8().data());
+        auto joystick_dev      = joystick_get_from_internal_name(joystick_internal.toUtf8().data());
+        auto joystick_dev_name = joystick_dev.append("Rudder/Pedals");
         if (auto joystickName = tr(joystick_get_name(joystick_dev)); !joystickName.isEmpty()) {
             joystickDevice = joystickName;
         }

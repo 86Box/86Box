@@ -173,11 +173,47 @@ const joystick_t joystick_tm_fcs_rcs = {
     .write         = tm_fcs_write,
     .read_axis     = tm_fcs_rcs_read_axis,
     .a0_over       = tm_fcs_a0_over,
-    .axis_count    = 3,
+    .axis_count    = 4,
     .button_count  = 4,
     .pov_count     = 1,
     .max_joysticks = 1,
-    .axis_names    = { "X axis", "Y axis", "Rudder" },
+    .axis_names    = { "X axis", "Y axis", NULL, "Rudder" },
     .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
     .pov_names     = { "POV" }
+};
+
+const joystick_t joystick_tm_ft12_wa = {
+    .name          = "Thrustmaster Formula T1/T2 with adapter",
+    .internal_name = "thrustmaster_ft12_wa",
+    .init          = tm_ft12_init,
+    .close         = tm_ft12_close,
+    .read          = tm_ft12_read,
+    .write         = tm_ft12_write,
+    .read_axis     = tm_ft12_read_axis,
+    .a0_over       = tm_ft12_a0_over,
+    .axis_count    = 2,
+    .button_count  = 4,
+    .pov_count     = 0,
+    .max_joysticks = 1,
+    .axis_names    = { "Steering axis", "Accelerator axis" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { NULL }
+};
+
+const joystick_t joystick_tm_ft12_woa = {
+    .name          = "Thrustmaster Formula T1/T2 without adapter",
+    .internal_name = "thrustmaster_ft12_woa",
+    .init          = tm_ft12_init,
+    .close         = tm_ft12_close,
+    .read          = tm_ft12_read,
+    .write         = tm_ft12_write,
+    .read_axis     = tm_ft12_read_axis,
+    .a0_over       = tm_ft12_a0_over,
+    .axis_count    = 1,
+    .button_count  = 4,
+    .pov_count     = 0,
+    .max_joysticks = 1,
+    .axis_names    = { "Steering axis" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { NULL }
 };

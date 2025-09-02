@@ -242,8 +242,19 @@ sw_a0_over(void *priv)
     timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * 10000);
 }
 
+const joystick_t joystick_sw_3d_pro = {
+    .name          = "Microsoft SideWinder 3D Pro",
+    .internal_name = "sidewinder_3d_pro",
+    .init          = sw_init,
+    .close         = sw_close,
+    .read          = sw_read,
+    .write         = sw_write,
+    .read_axis     = sw_read_axis,
+    .a0_over       = sw_a0_over,
+};
+
 const joystick_t joystick_sw_pad = {
-    .name          = "Microsoft SideWinder Pad",
+    .name          = "Microsoft SideWinder game pad",
     .internal_name = "sidewinder_pad",
     .init          = sw_init,
     .close         = sw_close,
@@ -258,4 +269,15 @@ const joystick_t joystick_sw_pad = {
     .axis_names    = { "X axis", "Y axis" },
     .button_names  = { "A", "B", "C", "X", "Y", "Z", "L", "R", "Start", "M" },
     .pov_names     = { NULL }
+};
+
+const joystick_t joystick_sw_precision_pro = {
+    .name          = "Microsoft SideWinder Precision Pro",
+    .internal_name = "sidewinder_precision_pro",
+    .init          = sw_init,
+    .close         = sw_close,
+    .read          = sw_read,
+    .write         = sw_write,
+    .read_axis     = sw_read_axis,
+    .a0_over       = sw_a0_over,
 };
