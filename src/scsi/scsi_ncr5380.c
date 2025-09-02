@@ -95,9 +95,6 @@ ncr5380_reset(ncr_t *ncr)
 
     ncr->timer(ncr->priv, 0.0);
 
-    for (int i = 0; i < 8; i++)
-        scsi_device_reset(&scsi_devices[ncr->bus][i]);
-
     scsi_bus->state = STATE_IDLE;
     scsi_bus->clear_req = 0;
     scsi_bus->wait_complete = 0;

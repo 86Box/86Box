@@ -162,6 +162,7 @@ ioctl_is_empty(const void *local)
     return 1;
 }
 
+#if 0
 static int
 ioctl_ext_medium_changed(UNUSED(void *local))
 {
@@ -174,6 +175,7 @@ ioctl_ext_medium_changed(UNUSED(void *local))
 
     return ret;
 }
+#endif
 
 static void
 ioctl_close(void *local)

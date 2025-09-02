@@ -16,7 +16,7 @@
 #include <86box/cartridge.h>
 #include <86box/cassette.h>
 #include <86box/cdrom.h>
-#include <86box/zip.h>
+#include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/hdd.h>
 #include <86box/thread.h>
@@ -36,9 +36,9 @@ machine_status_init(void)
         machine_status.cdrom[i].empty  = (strlen(cdrom[i].image_path) == 0);
         machine_status.cdrom[i].active = false;
     }
-    for (size_t i = 0; i < ZIP_NUM; i++) {
-        machine_status.zip[i].empty  = (strlen(zip_drives[i].image_path) == 0);
-        machine_status.zip[i].active = false;
+    for (size_t i = 0; i < RDISK_NUM; i++) {
+        machine_status.rdisk[i].empty  = (strlen(rdisk_drives[i].image_path) == 0);
+        machine_status.rdisk[i].active = false;
     }
     for (size_t i = 0; i < MO_NUM; i++) {
         machine_status.mo[i].empty  = (strlen(mo_drives[i].image_path) == 0);

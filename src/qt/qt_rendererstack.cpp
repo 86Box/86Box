@@ -21,7 +21,6 @@
 #include "qt_rendererstack.hpp"
 #include "ui_qt_rendererstack.h"
 
-#include "qt_hardwarerenderer.hpp"
 #include "qt_openglrenderer.hpp"
 #include "qt_softwarerenderer.hpp"
 #include "qt_vulkanwindowrenderer.hpp"
@@ -38,9 +37,33 @@
 
 #include <QScreen>
 #include <QMessageBox>
+#include <QTouchEvent>
+#include <QStringBuilder>
+
+#include <QPainter>
+#include <QEvent>
+#include <QKeyEvent>
+#include <QWidget>
+
+#include <QTimer>
+
+#include <atomic>
+#include <mutex>
+#include <array>
+#include <vector>
+#include <memory>
+#include <QApplication>
+
+#ifdef WAYLAND
+#    include "wl_mouse.hpp"
+#endif
 
 #ifdef __APPLE__
 #    include <CoreGraphics/CoreGraphics.h>
+#endif
+
+#ifdef Q_OS_WINDOWS
+#    include <windows.h>
 #endif
 
 extern "C" {
@@ -59,10 +82,17 @@ struct mouseinputdata {
 static mouseinputdata mousedata;
 
 extern MainWindow *main_window;
+
+#ifdef Q_OS_WINDOWS
+HWND   rw_hwnd;
+#endif
+
 RendererStack::RendererStack(QWidget *parent, int monitor_index)
     : QStackedWidget(parent)
     , ui(new Ui::RendererStack)
 {
+    setAttribute(Qt::WA_AcceptTouchEvents, true);
+    rendererTakesScreenshots = false;
 #ifdef Q_OS_WINDOWS
     int raw = 1;
 #else
@@ -72,8 +102,19 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     ui->setupUi(this);
 
     m_monitor_index = monitor_index;
+
+
+    if (monitor_index >= 1) {
+        QTimer* frameRateTimer = new QTimer(this);
+        frameRateTimer->setSingleShot(false);
+        frameRateTimer->setInterval(1000);
+        connect(frameRateTimer, &QTimer::timeout, [this] {
+            this->setWindowTitle(QObject::tr("86Box Monitor #") + QString::number(m_monitor_index + 1) + QString(" - ") + tr("%1 Hz").arg(QString::number(monitors[m_monitor_index].mon_actualrenderedframes.load()) + (monitors[m_monitor_index].mon_interlace ? "i" : "")));
+        });
+        frameRateTimer->start(1000);
+    }
 #if defined __unix__ && !defined __HAIKU__
-    char auto_mouse_type[16];
+    memset(auto_mouse_type, 0, sizeof (auto_mouse_type));
     mousedata.mouse_type = getenv("EMU86BOX_MOUSE");
     if (!mousedata.mouse_type || (mousedata.mouse_type[0] == '\0') || !stricmp(mousedata.mouse_type, "auto")) {
         if (QApplication::platformName().contains("wayland"))
@@ -142,7 +183,15 @@ int ignoreNextMouseEvent = 1;
 void
 RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
+#ifdef Q_OS_WINDOWS
+    rw_hwnd        = (HWND) this->winId();                
+#endif
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    if (!dopause && this->geometry().contains(m_monitor_index >= 1 ? event->globalPosition().toPoint() : event->position().toPoint()) &&
+#else
     if (!dopause && this->geometry().contains(m_monitor_index >= 1 ? event->globalPos() : event->pos()) &&
+#endif
         (event->button() == Qt::LeftButton) && !mouse_capture &&
         (isMouseDown & 1) && (kbd_req_capture || (mouse_get_buttons() != 0)) &&
         (mouse_input_mode == 0)) {
@@ -155,7 +204,7 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
     }
     if (mouse_capture && (event->button() == Qt::MiddleButton) && (mouse_get_buttons() < 3)) {
         plat_mouse_capture(0);
-        this->setCursor(Qt::ArrowCursor);
+        this->unsetCursor();
         isMouseDown &= ~1;
         return;
     }
@@ -205,9 +254,13 @@ RendererStack::wheelEvent(QWheelEvent *event)
         return;
     }
 
+#if !defined(Q_OS_WINDOWS) && !defined(__APPLE__)
     double numSteps = (double) event->angleDelta().y() / 120.0;
+    double numStepsW = (double) event->angleDelta().x() / 120.0;
 
     mouse_set_z((int) numSteps);
+    mouse_set_w((int) numStepsW);
+#endif
     event->accept();
 }
 
@@ -243,7 +296,9 @@ RendererStack::mouseMoveEvent(QMouseEvent *event)
         leaveEvent((QEvent *) event);
         ignoreNextMouseEvent--;
     }
+#if !defined _WIN32
     QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
+#endif
     ignoreNextMouseEvent = 2;
     oldPos               = event->pos();
 #endif
@@ -269,7 +324,7 @@ RendererStack::leaveEvent(QEvent *event)
 {
     mousedata.mouse_tablet_in_proximity = 0;
 
-    if (mouse_input_mode == 1 && QApplication::overrideCursor()) {
+    if (mouse_input_mode >= 1 && QApplication::overrideCursor()) {
         while (QApplication::overrideCursor())
             QApplication::restoreOverrideCursor();
     }
@@ -287,7 +342,8 @@ RendererStack::leaveEvent(QEvent *event)
 void
 RendererStack::switchRenderer(Renderer renderer)
 {
-    startblit();
+    //startblit();
+    switchInProgress = true;
     if (current) {
         rendererWindow->finalize();
         removeWidget(current.get());
@@ -305,6 +361,7 @@ RendererStack::switchRenderer(Renderer renderer)
 void
 RendererStack::createRenderer(Renderer renderer)
 {
+    rendererTakesScreenshots = false;
     switch (renderer) {
         default:
         case Renderer::Software:
@@ -319,34 +376,17 @@ RendererStack::createRenderer(Renderer renderer)
 #endif
             }
             break;
-        case Renderer::OpenGL:
-            {
-                this->createWinId();
-                auto hw        = new HardwareRenderer(this);
-                rendererWindow = hw;
-                connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
-                current.reset(this->createWindowContainer(hw, this));
-                break;
-            }
-        case Renderer::OpenGLES:
-            {
-                this->createWinId();
-                auto hw        = new HardwareRenderer(this, HardwareRenderer::RenderType::OpenGLES);
-                rendererWindow = hw;
-                connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
-                current.reset(this->createWindowContainer(hw, this));
-                break;
-            }
         case Renderer::OpenGL3:
             {
                 this->createWinId();
+                this->rendererTakesScreenshots = true;
                 auto hw        = new OpenGLRenderer(this);
                 rendererWindow = hw;
                 connect(this, &RendererStack::blitToRenderer, hw, &OpenGLRenderer::onBlit, Qt::QueuedConnection);
                 connect(hw, &OpenGLRenderer::initialized, [=]() {
                     /* Buffers are available only after initialization. */
                     imagebufs = rendererWindow->getBuffers();
-                    endblit();
+                    switchInProgress = false;
                     emit rendererChanged();
                 });
                 connect(hw, &OpenGLRenderer::errorInitializing, [=]() {
@@ -365,7 +405,7 @@ RendererStack::createRenderer(Renderer renderer)
                 try {
                     hw = new VulkanWindowRenderer(this);
                 } catch (std::runtime_error &e) {
-                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", e.what() + QString("\nFalling back to software rendering."), QMessageBox::Ok);
+                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", e.what() + tr("\nFalling back to software rendering."), QMessageBox::Ok);
                     msgBox->setAttribute(Qt::WA_DeleteOnClose);
                     msgBox->show();
                     imagebufs = {};
@@ -378,12 +418,12 @@ RendererStack::createRenderer(Renderer renderer)
                 connect(hw, &VulkanWindowRenderer::rendererInitialized, [=]() {
                     /* Buffers are available only after initialization. */
                     imagebufs = rendererWindow->getBuffers();
-                    endblit();
+                    switchInProgress = false;
                     emit rendererChanged();
                 });
                 connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
                     /* Renderer could not initialize, fallback to software. */
-                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", QString("Failed to initialize Vulkan renderer.\nFalling back to software rendering."), QMessageBox::Ok);
+                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", tr("Failed to initialize Vulkan renderer.") % tr("\nFalling back to software rendering."), QMessageBox::Ok);
                     msgBox->setAttribute(Qt::WA_DeleteOnClose);
                     msgBox->show();
                     imagebufs = {};
@@ -394,8 +434,9 @@ RendererStack::createRenderer(Renderer renderer)
             }
 #endif
     }
-    if (current.get() == nullptr)
+    if (current.get() == nullptr) {
         return;
+    }
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);
     current->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -404,11 +445,13 @@ RendererStack::createRenderer(Renderer renderer)
 
     this->setStyleSheet("background-color: black");
 
+    rendererWindow->r_monitor_index = m_monitor_index;
+
     currentBuf = 0;
 
     if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan) {
         imagebufs = rendererWindow->getBuffers();
-        endblit();
+        switchInProgress = false;
         emit rendererChanged();
     }
 }
@@ -418,7 +461,7 @@ void
 RendererStack::blit(int x, int y, int w, int h)
 {
     if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) ||
-        (w > 2048) || (h > 2048) ||
+        (w > 2048) || (h > 2048) || (switchInProgress) ||
         (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() ||
         std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
         video_blit_complete_monitor(m_monitor_index);
@@ -434,7 +477,7 @@ RendererStack::blit(int x, int y, int w, int h)
         video_copy(scanline, &(monitors[m_monitor_index].target_buffer->line[y1][x]), w * 4);
     }
 
-    if (monitors[m_monitor_index].mon_screenshots) {
+    if (monitors[m_monitor_index].mon_screenshots && !rendererTakesScreenshots) {
         video_screenshot_monitor((uint32_t *) imagebits, x, y, 2048, m_monitor_index);
     }
     video_blit_complete_monitor(m_monitor_index);
@@ -471,25 +514,171 @@ RendererStack::event(QEvent* event)
 
         if (m_monitor_index >= 1) {
             if (mouse_input_mode >= 1) {
-                mouse_x_abs       = (mouse_event->localPos().x()) / (long double)width();
-                mouse_y_abs       = (mouse_event->localPos().y()) / (long double)height();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                mouse_x_abs       = (mouse_event->position().x()) / (double)width();
+                mouse_y_abs       = (mouse_event->position().y()) / (double)height();
+#else
+                mouse_x_abs       = (mouse_event->localPos().x()) / (double)width();
+                mouse_y_abs       = (mouse_event->localPos().y()) / (double)height();
+#endif
                 if (!mouse_tablet_in_proximity)
                     mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+                mouse_x_abs -= rendererWindow->destinationF.left();
+                mouse_y_abs -= rendererWindow->destinationF.top();
+
+                if (mouse_x_abs < 0) mouse_x_abs = 0;
+                if (mouse_y_abs < 0) mouse_y_abs = 0;
+
+                mouse_x_abs /= rendererWindow->destinationF.width();
+                mouse_y_abs /= rendererWindow->destinationF.height();
+
+                if (mouse_x_abs > 1) mouse_x_abs = 1;
+                if (mouse_y_abs > 1) mouse_y_abs = 1;
             }
             return QStackedWidget::event(event);
         }
 
 #ifdef Q_OS_WINDOWS
         if (mouse_input_mode == 0) {
-            mouse_x_abs           = (mouse_event->localPos().x()) / (long double)width();
-            mouse_y_abs           = (mouse_event->localPos().y()) / (long double)height();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            mouse_x_abs           = (mouse_event->position().x()) / (double)width();
+            mouse_y_abs           = (mouse_event->position().y()) / (double)height();
+#else
+            mouse_x_abs           = (mouse_event->localPos().x()) / (double)width();
+            mouse_y_abs           = (mouse_event->localPos().y()) / (double)height();
+#endif
+            mouse_x_abs          -= rendererWindow->destinationF.left();
+            mouse_y_abs          -= rendererWindow->destinationF.top();
+
+            if (mouse_x_abs < 0) mouse_x_abs = 0;
+            if (mouse_y_abs < 0) mouse_y_abs = 0;
+
+            mouse_x_abs /= rendererWindow->destinationF.width();
+            mouse_y_abs /= rendererWindow->destinationF.height();
+
+            if (mouse_x_abs > 1) mouse_x_abs = 1;
+            if (mouse_y_abs > 1) mouse_y_abs = 1;
             return QStackedWidget::event(event);
         }
 #endif
 
-        mouse_x_abs               = (mouse_event->localPos().x()) / (long double)width();
-        mouse_y_abs               = (mouse_event->localPos().y()) / (long double)height();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        mouse_x_abs               = (mouse_event->position().x()) / (double)width();
+        mouse_y_abs               = (mouse_event->position().y()) / (double)height();
+#else
+        mouse_x_abs               = (mouse_event->localPos().x()) / (double)width();
+        mouse_y_abs               = (mouse_event->localPos().y()) / (double)height();
+#endif
+        mouse_x_abs              -= rendererWindow->destinationF.left();
+        mouse_y_abs              -= rendererWindow->destinationF.top();
+
+        if (mouse_x_abs < 0) mouse_x_abs = 0;
+        if (mouse_y_abs < 0) mouse_y_abs = 0;
+
+        mouse_x_abs /= rendererWindow->destinationF.width();
+        mouse_y_abs /= rendererWindow->destinationF.height();
+
+        if (mouse_x_abs > 1) mouse_x_abs = 1;
+        if (mouse_y_abs > 1) mouse_y_abs = 1;
         mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+    } else switch (event->type()) {
+        case QEvent::TouchBegin:
+        case QEvent::TouchUpdate:
+        {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+            QTouchEvent* touchevent = (QTouchEvent*)event;
+            if (mouse_input_mode == 0) break;
+            if (touchevent->touchPoints().count()) {
+                mouse_x_abs  = (touchevent->touchPoints()[0].pos().x()) / (double)width();
+                mouse_y_abs  = (touchevent->touchPoints()[0].pos().y()) / (double)height();
+                mouse_x_abs -= rendererWindow->destinationF.left();
+                mouse_y_abs -= rendererWindow->destinationF.top();
+        
+                if (mouse_x_abs < 0) mouse_x_abs = 0;
+                if (mouse_y_abs < 0) mouse_y_abs = 0;
+        
+                mouse_x_abs /= rendererWindow->destinationF.width();
+                mouse_y_abs /= rendererWindow->destinationF.height();
+
+                if (mouse_x_abs > 1) mouse_x_abs = 1;
+                if (mouse_y_abs > 1) mouse_y_abs = 1;
+            }
+            mouse_set_buttons_ex(mouse_get_buttons_ex() | 1);
+            touchevent->accept();
+            return true;
+#else
+            QTouchEvent* touchevent = (QTouchEvent*)event;
+            if (mouse_input_mode == 0) break;
+            if (touchevent->pointCount()) {
+                mouse_x_abs  = (touchevent->point(0).position().x()) / (double)width();
+                mouse_y_abs  = (touchevent->point(0).position().y()) / (double)height();
+                mouse_x_abs -= rendererWindow->destinationF.left();
+                mouse_y_abs -= rendererWindow->destinationF.top();
+        
+                if (mouse_x_abs < 0) mouse_x_abs = 0;
+                if (mouse_y_abs < 0) mouse_y_abs = 0;
+        
+                mouse_x_abs /= rendererWindow->destinationF.width();
+                mouse_y_abs /= rendererWindow->destinationF.height();
+
+                if (mouse_x_abs > 1) mouse_x_abs = 1;
+                if (mouse_y_abs > 1) mouse_y_abs = 1;
+            }
+            mouse_set_buttons_ex(mouse_get_buttons_ex() | 1);
+            touchevent->accept();
+            return true;
+#endif
+        }
+        case QEvent::TouchEnd:
+        case QEvent::TouchCancel:
+        {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+            QTouchEvent* touchevent = (QTouchEvent*)event;
+            if (mouse_input_mode == 0) break;
+            if (touchevent->touchPoints().count()) {
+                mouse_x_abs = (touchevent->touchPoints()[0].pos().x()) / (double)width();
+                mouse_y_abs = (touchevent->touchPoints()[0].pos().y()) / (double)height();
+                mouse_x_abs              -= rendererWindow->destinationF.left();
+                mouse_y_abs              -= rendererWindow->destinationF.top();
+        
+                if (mouse_x_abs < 0) mouse_x_abs = 0;
+                if (mouse_y_abs < 0) mouse_y_abs = 0;
+        
+                mouse_x_abs /= rendererWindow->destinationF.width();
+                mouse_y_abs /= rendererWindow->destinationF.height();
+
+                if (mouse_x_abs > 1) mouse_x_abs = 1;
+                if (mouse_y_abs > 1) mouse_y_abs = 1;
+            }
+            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~1);
+            touchevent->accept();
+            return true;
+#else
+            QTouchEvent* touchevent = (QTouchEvent*)event;
+            if (mouse_input_mode == 0) break;
+            if (touchevent->pointCount()) {
+                mouse_x_abs = (touchevent->point(0).position().x()) / (double)width();
+                mouse_y_abs = (touchevent->point(0).position().y()) / (double)height();
+                mouse_x_abs              -= rendererWindow->destinationF.left();
+                mouse_y_abs              -= rendererWindow->destinationF.top();
+        
+                if (mouse_x_abs < 0) mouse_x_abs = 0;
+                if (mouse_y_abs < 0) mouse_y_abs = 0;
+        
+                mouse_x_abs /= rendererWindow->destinationF.width();
+                mouse_y_abs /= rendererWindow->destinationF.height();
+
+                if (mouse_x_abs > 1) mouse_x_abs = 1;
+                if (mouse_y_abs > 1) mouse_y_abs = 1;
+            }
+            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~1);
+            touchevent->accept();
+            return true;
+#endif
+        }
+
+        default:
+            return QStackedWidget::event(event);
     }
 
     return QStackedWidget::event(event);
@@ -505,6 +694,14 @@ RendererStack::setFocusRenderer()
 void
 RendererStack::onResize(int width, int height)
 {
+#ifdef Q_OS_WINDOWS
+    if (mouse_capture) {
+        RECT rect;
+        if (GetWindowRect((HWND)this->winId(), &rect)) {
+            ClipCursor(&rect);
+        }
+    }
+#endif
     if (rendererWindow) {
         rendererWindow->r_monitor_index = m_monitor_index;
         rendererWindow->onResize(width, height);

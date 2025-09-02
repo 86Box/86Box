@@ -27,22 +27,48 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/machine.h>
+#include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/plat.h>
 
 #include "cpu.h"
 
-uint16_t     scancode_map[768] = { 0 };
+uint16_t     scancode_map[768]        = { 0 };
+uint16_t     scancode_config_map[768] = { 0 };
 
 int          keyboard_scan;
 
-/* F8+F12 */
-uint16_t key_prefix_1_1 = 0x042;     /* F8 */
-uint16_t key_prefix_1_2 = 0x000;     /* Invalid */
-uint16_t key_prefix_2_1 = 0x000;     /* Invalid */
-uint16_t key_prefix_2_2 = 0x000;     /* Invalid */
-uint16_t key_uncapture_1 = 0x058;    /* F12 */
-uint16_t key_uncapture_2 = 0x000;    /* Invalid */
+typedef struct keyboard_t {
+    const device_t *device;
+} keyboard_t;
+
+int          keyboard_type = 0;
+
+static const device_t keyboard_internal_device = {
+    .name          = "Internal",
+    .internal_name = "internal",
+    .flags         = 0,
+    .local         = KEYBOARD_TYPE_INTERNAL,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+static keyboard_t keyboard_devices[] = {
+    // clang-format off
+    { &keyboard_internal_device        },
+    { &keyboard_pc_xt_device           },
+    { &keyboard_at_device              },
+    { &keyboard_ax_device              },
+    { &keyboard_ps2_device             },
+    { &keyboard_ps55_device            },
+    { NULL                             }
+    // clang-format on
+};
 
 #ifdef ENABLE_KBC_AT_LOG
 int kbc_at_do_log = ENABLE_KBC_AT_LOG;
@@ -64,18 +90,20 @@ kbc_at_log(const char* fmt, ...)
 
 void (*keyboard_send)(uint16_t val);
 
-static int recv_key[512] = { 0 }; /* keyboard input buffer */
-static int recv_key_ui[512] = { 0 }; /* keyboard input buffer */
-static int oldkey[512];
+static int recv_key[768] = { 0 }; /* keyboard input buffer */
+static int recv_key_ui[768] = { 0 }; /* keyboard input buffer */
+static int oldkey[768];
 #if 0
-static int keydelay[512];
+static int keydelay[768];
 #endif
 static scancode *scan_table; /* scancode table for keyboard */
 
-static uint8_t caps_lock   = 0;
-static uint8_t num_lock    = 0;
-static uint8_t scroll_lock = 0;
-static uint8_t shift       = 0;
+static volatile uint8_t caps_lock    = 0;
+static volatile uint8_t num_lock     = 0;
+static volatile uint8_t scroll_lock  = 0;
+static volatile uint8_t kana_lock    = 0;
+static volatile uint8_t kbd_in_reset = 0;
+static uint8_t shift                 = 0;
 
 static int key5576mode = 0;
 
@@ -84,34 +112,6 @@ typedef struct {
     const uint8_t mk[4];
     const uint8_t brk[4];
 } scconvtbl;
-
-/* Is this a left-over of something planned earlier? */
-#ifdef USE_SCCONV55_82
-static scconvtbl scconv55_82[18 + 1] =
-{
-    // clang-format off
-      {.sc = 0x02 , .mk = {    0x5f,   0 }, .brk = { 0xf0, 0x5f,   0 } }, /* '1' -> 'Clear/ /SysRq' */
-      {.sc = 0x03 , .mk = {    0x48,   0 }, .brk = { 0xf0, 0x48,   0 } }, /* '2' -> '終了 (Exit)' */
-      {.sc = 0x04 , .mk = {    0x38,   0 }, .brk = { 0xf0, 0x38,   0 } }, /* '3' -> 'メッセージ (Message)/ /応答 (Respond)' */
-      {.sc = 0x05 , .mk = {    0x30,   0 }, .brk = { 0xf0, 0x30,   0 } }, /* '4' -> 'サイズ変換 (Change Size)/ /横倍角 (2x Width)' */
-      {.sc = 0x06 , .mk = {    0x20,   0 }, .brk = { 0xf0, 0x20,   0 } }, /* '5' -> '単語登録 (Register Word)/ /再交換 (Re-change)' */
-      {.sc = 0x07 , .mk = {    0x28,   0 }, .brk = { 0xf0, 0x28,   0 } }, /* '6' -> '漢字 (Kanji)/ /番号 (Number)' */
-      {.sc = 0x08 , .mk = {    0x60,   0 }, .brk = { 0xf0, 0x60,   0 } }, /* '7' -> '取消 (Cancel)' */
-      {.sc = 0x09 , .mk = {    0x40,   0 }, .brk = { 0xf0, 0x40,   0 } }, /* '8' -> 'コピー (Copy)/ /移動 (Move)' */
-      {.sc = 0x3d , .mk = {    0x1f,   0 }, .brk = { 0xf0, 0x1f,   0 } }, /* 'F3' -> 'Cr Bnk/領域呼出 (Call Range)/All Cr/登録 (Register)' */
-      {.sc = 0x3e , .mk = {    0x27,   0 }, .brk = { 0xf0, 0x27,   0 } }, /* 'F4' -> '割込み (Interrupt)' */
-      {.sc = 0x3f , .mk = {    0x2f,   0 }, .brk = { 0xf0, 0x2f,   0 } }, /* 'F5' -> 'UF1' */
-      {.sc = 0x40 , .mk = {    0x5e,   0 }, .brk = { 0xf0, 0x5e,   0 } }, /* 'F6' -> 'UF2' */
-      {.sc = 0x41 , .mk = {    0x08,   0 }, .brk = { 0xf0, 0x08,   0 } }, /* 'F7' -> 'UF3' */
-      {.sc = 0x42 , .mk = {    0x10,   0 }, .brk = { 0xf0, 0x10,   0 } }, /* 'F8' -> 'UF4' */
-      {.sc = 0x43 , .mk = {    0x50,   0 }, .brk = { 0xf0, 0x50,   0 } }, /* 'F9' -> 'EOF/Erase/ErInp' */
-      {.sc = 0x44 , .mk = {    0x18,   0 }, .brk = { 0xf0, 0x18,   0 } }, /* 'F10' -> 'Attn/ /CrSel' */
-      {.sc = 0x57 , .mk = {    0x17,   0 }, .brk = { 0xf0, 0x17,   0 } }, /* 'F11' -> 'PA1/ /DvCncl' */
-      {.sc = 0x58 , .mk = {    0x37,   0 }, .brk = { 0xf0, 0x37,   0 } }, /* 'F12' -> 'PA2/ /PA3' */
-      {.sc = 0 , .mk = { 0 }, .brk = { 0 } } /* end */
-    // clang-format on
-};
-#endif
 
 static scconvtbl scconv55_8a[18 + 1] =
 {
@@ -141,7 +141,19 @@ static scconvtbl scconv55_8a[18 + 1] =
 void
 keyboard_init(void)
 {
+    num_lock     = 0;
+    caps_lock    = 0;
+    scroll_lock  = 0;
+    kana_lock    = 0;
+    shift        = 0;
+    kbd_in_reset = 0;
+
     memset(recv_key, 0x00, sizeof(recv_key));
+    memset(recv_key_ui, 0x00, sizeof(recv_key));
+    memset(oldkey, 0x00, sizeof(recv_key));
+#if 0
+    memset(key_delay, 0x00, sizeof(recv_key));
+#endif
 
     keyboard_scan = 1;
     scan_table    = NULL;
@@ -190,6 +202,8 @@ key_process(uint16_t scan, int down)
 
     if (!keyboard_scan || (keyboard_send == NULL))
         return;
+
+    scan = scancode_config_map[scan];
 
     oldkey[scan] = down;
 
@@ -262,6 +276,9 @@ key_process(uint16_t scan, int down)
 void
 keyboard_input(int down, uint16_t scan)
 {
+    if (kbd_in_reset)
+        return;
+
     /* Special case for E1 1D, translate it to 0100 - special case. */
     if ((scan >> 8) == 0xe1) {
         if ((scan & 0xff) == 0x1d)
@@ -336,13 +353,16 @@ keyboard_input(int down, uint16_t scan)
                     shift &= ~0x80;
                     break;
                 case 0x03a: /* Caps Lock */
-                    caps_lock ^= 1;
+                    if (!(machine_has_bus(machine, MACHINE_AT) > 0))
+                        caps_lock ^= 1;
                     break;
                 case 0x045:
-                    num_lock ^= 1;
+                    if (!(machine_has_bus(machine, MACHINE_AT) > 0))
+                        num_lock ^= 1;
                     break;
                 case 0x046:
-                    scroll_lock ^= 1;
+                    if (!(machine_has_bus(machine, MACHINE_AT) > 0))
+                        scroll_lock ^= 1;
                     break;
 
                 default:
@@ -358,6 +378,32 @@ keyboard_input(int down, uint16_t scan)
         recv_key[scan & 0x1ff] = down;
         key_process(scan & 0x1ff, down);
     }
+}
+
+void
+keyboard_all_up(void)
+{
+    for (unsigned short i = 0; i < 0x200; i++) {
+        if (recv_key_ui[i])
+            recv_key_ui[i] = 0;
+
+        if (recv_key[i]) {
+            recv_key[i] = 0;
+            key_process(i, 0);
+        }
+    }
+}
+
+void
+keyboard_set_in_reset(uint8_t in_reset)
+{
+    kbd_in_reset = in_reset;
+}
+
+uint8_t
+keyboard_get_in_reset(void)
+{
+    return kbd_in_reset;
 }
 
 static uint8_t
@@ -379,11 +425,12 @@ keyboard_do_break(uint16_t scan)
    Caps Lock, Num Lock, and Scroll Lock when receving the "Set keyboard LEDs"
    command. */
 void
-keyboard_update_states(uint8_t cl, uint8_t nl, uint8_t sl)
+keyboard_update_states(uint8_t cl, uint8_t nl, uint8_t sl, uint8_t kl)
 {
     caps_lock   = cl;
     num_lock    = nl;
     scroll_lock = sl;
+    kana_lock   = kl;
 }
 
 uint8_t
@@ -393,7 +440,7 @@ keyboard_get_shift(void)
 }
 
 void
-keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl)
+keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl, uint8_t *kl)
 {
     if (cl)
         *cl = caps_lock;
@@ -401,6 +448,8 @@ keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl)
         *nl = num_lock;
     if (sl)
         *sl = scroll_lock;
+    if (kl)
+        *kl = kana_lock;
 }
 
 /* Called by the UI to update the states of Caps Lock, Num Lock, and Scroll Lock. */
@@ -444,7 +493,7 @@ keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl)
         }
     }
 
-    keyboard_update_states(cl, nl, sl);
+    keyboard_update_states(cl, nl, sl, kana_lock);
 }
 
 int
@@ -485,19 +534,6 @@ keyboard_isfsexit_up(void)
     return (!recv_key_ui[0x01d] && !recv_key_ui[0x11d] && !recv_key_ui[0x038] && !recv_key_ui[0x138] && !recv_key_ui[0x051] && !recv_key_ui[0x151]);
 }
 
-/* Do we have the mouse uncapture combination in the keyboard buffer? */
-int
-keyboard_ismsexit(void)
-{
-    if ((key_prefix_2_1 != 0x000) || (key_prefix_2_2 != 0x000))
-        return ((recv_key_ui[key_prefix_1_1] || recv_key_ui[key_prefix_1_2]) &&
-                (recv_key_ui[key_prefix_2_1] || recv_key_ui[key_prefix_2_2]) &&
-                (recv_key_ui[key_uncapture_1] || recv_key_ui[key_uncapture_2]));
-    else
-        return ((recv_key_ui[key_prefix_1_1] || recv_key_ui[key_prefix_1_2]) &&
-                (recv_key_ui[key_uncapture_1] || recv_key_ui[key_uncapture_2]));
-}
-
 /* This is so we can disambiguate scan codes that would otherwise conflict and get
    passed on incorrectly. */
 uint16_t
@@ -515,4 +551,58 @@ convert_scan_code(uint16_t scan_code)
         scan_code = 0xFFFF;
 
     return scan_code;
+}
+
+const char *
+keyboard_get_name(int keyboard)
+{
+    return (keyboard_devices[keyboard].device->name);
+}
+
+const char *
+keyboard_get_internal_name(int keyboard)
+{
+    return device_get_internal_name(keyboard_devices[keyboard].device);
+}
+
+int
+keyboard_get_from_internal_name(char *s)
+{
+    int c = 0;
+
+    while (keyboard_devices[c].device != NULL) {
+        if (!strcmp((char *) keyboard_devices[c].device->internal_name, s))
+            return c;
+        c++;
+    }
+
+    return 0;
+}
+
+int
+keyboard_has_config(int keyboard)
+{
+    if (keyboard_devices[keyboard].device == NULL)
+        return 0;
+
+    return (keyboard_devices[keyboard].device->config ? 1 : 0);
+}
+
+const device_t *
+keyboard_get_device(int keyboard)
+{
+    return (keyboard_devices[keyboard].device);
+}
+
+/* Return number of MOUSE types we know about. */
+int
+keyboard_get_ndev(void)
+{
+    return ((sizeof(keyboard_devices) / sizeof(keyboard_t)) - 1);
+}
+
+void
+keyboard_add_device(void)
+{
+    device_add(keyboard_devices[keyboard_type].device);
 }

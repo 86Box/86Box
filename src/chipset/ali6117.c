@@ -26,6 +26,7 @@
 #include <86box/io.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/device.h>

@@ -82,10 +82,12 @@ SOCKET
 plat_netsocket_accept(SOCKET socket)
 {
     SOCKET clientsocket = accept(socket, NULL, NULL);
+    u_long yes          = 1;
 
     if (clientsocket == INVALID_SOCKET)
         return -1;
 
+    ioctlsocket(clientsocket, FIONBIO, &yes);
     return clientsocket;
 }
 

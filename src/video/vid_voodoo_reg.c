@@ -965,10 +965,12 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *priv)
             if (chip & CHIP_TREX0) {
                 voodoo->params.textureMode[0] = val;
                 voodoo->params.tformat[0]     = (val >> 8) & 0xf;
+                voodoo_recalc_tex(voodoo, 0);
             }
             if (chip & CHIP_TREX1) {
                 voodoo->params.textureMode[1] = val;
                 voodoo->params.tformat[1]     = (val >> 8) & 0xf;
+                voodoo_recalc_tex(voodoo, 1);
             }
             break;
         case SST_tLOD:

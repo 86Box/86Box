@@ -23,7 +23,7 @@ public:
     ~DeviceConfig() override;
 
     static void    ConfigureDevice(const _device_ *device, int instance = 0,
-                                   Settings *settings = nullptr);
+                                   Settings *settings = qobject_cast<Settings *>(Settings::settings));
     static QString DeviceName(const _device_ *device, const char *internalName, int bus);
 
 private:

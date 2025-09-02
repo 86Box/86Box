@@ -361,28 +361,28 @@ f82c425_text_row(f82c425_t *f82c425)
     int      cursorline;
     int      blink;
     uint16_t addr;
-    uint8_t  sc;
-    uint16_t ma      = (f82c425->cga.crtc[0x0d] | (f82c425->cga.crtc[0x0c] << 8)) & 0x3fff;
-    uint16_t ca      = (f82c425->cga.crtc[0x0f] | (f82c425->cga.crtc[0x0e] << 8)) & 0x3fff;
-    uint8_t  sl      = f82c425->cga.crtc[9] + 1;
-    int      columns = f82c425->cga.crtc[1];
+    uint8_t  scanline;
+    uint16_t memaddr      = (f82c425->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (f82c425->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+    uint16_t cursoraddr      = (f82c425->cga.crtc[0x0f] | (f82c425->cga.crtc[0x0e] << 8)) & 0x3fff;
+    uint8_t  sl      = f82c425->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1;
+    int      columns = f82c425->cga.crtc[CGA_CRTC_HDISP];
 
-    sc   = (f82c425->displine) & 7;
-    addr = ((ma & ~1) + (f82c425->displine >> 3) * columns) * 2;
-    ma += (f82c425->displine >> 3) * columns;
+    scanline   = (f82c425->displine) & 7;
+    addr = ((memaddr & ~1) + (f82c425->displine >> 3) * columns) * 2;
+    memaddr += (f82c425->displine >> 3) * columns;
 
-    if ((f82c425->cga.crtc[0x0a] & 0x60) == 0x20) {
+    if ((f82c425->cga.crtc[CGA_CRTC_CURSOR_START] & 0x60) == 0x20) {
         cursorline = 0;
     } else {
-        cursorline = ((f82c425->cga.crtc[0x0a] & 0x0F) <= sc) && ((f82c425->cga.crtc[0x0b] & 0x0F) >= sc);
+        cursorline = ((f82c425->cga.crtc[CGA_CRTC_CURSOR_START] & 0x0F) <= scanline) && ((f82c425->cga.crtc[CGA_CRTC_CURSOR_END] & 0x0F) >= scanline);
     }
 
     for (int x = 0; x < columns; x++) {
         chr        = f82c425->vram[(addr + 2 * x) & 0x3FFF];
         attr       = f82c425->vram[(addr + 2 * x + 1) & 0x3FFF];
-        drawcursor = ((ma == ca) && cursorline && (f82c425->cga.cgamode & 0x8) && (f82c425->cga.cgablink & 0x10));
+        drawcursor = ((memaddr == cursoraddr) && cursorline && (f82c425->cga.cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && (f82c425->cga.cgablink & 0x10));
 
-        blink = ((f82c425->cga.cgablink & 0x10) && (f82c425->cga.cgamode & 0x20) && (attr & 0x80) && !drawcursor);
+        blink = ((f82c425->cga.cgablink & 0x10) && (f82c425->cga.cgamode & CGA_MODE_FLAG_BLINK) && (attr & 0x80) && !drawcursor);
 
         if (drawcursor) {
             colors[0] = smartmap[~attr & 0xff][0];
@@ -398,16 +398,16 @@ f82c425_text_row(f82c425_t *f82c425)
         if (f82c425->cga.cgamode & 0x01) {
             /* High resolution (80 cols) */
             for (c = 0; c < sl; c++) {
-                (buffer32->line[f82c425->displine])[(x << 3) + c] = colors[(fontdat[chr][sc] & (1 << (c ^ 7))) ? 1 : 0];
+                (buffer32->line[f82c425->displine])[(x << 3) + c] = colors[(fontdat[chr][scanline] & (1 << (c ^ 7))) ? 1 : 0];
             }
         } else {
             /* Low resolution (40 columns, stretch pixels horizontally) */
             for (c = 0; c < sl; c++) {
-                (buffer32->line[f82c425->displine])[(x << 4) + c * 2] = (buffer32->line[f82c425->displine])[(x << 4) + c * 2 + 1] = colors[(fontdat[chr][sc] & (1 << (c ^ 7))) ? 1 : 0];
+                (buffer32->line[f82c425->displine])[(x << 4) + c * 2] = (buffer32->line[f82c425->displine])[(x << 4) + c * 2 + 1] = colors[(fontdat[chr][scanline] & (1 << (c ^ 7))) ? 1 : 0];
             }
         }
 
-        ++ma;
+        ++memaddr;
     }
 }
 
@@ -418,9 +418,9 @@ f82c425_cgaline6(f82c425_t *f82c425)
     uint8_t  dat;
     uint16_t addr;
 
-    uint16_t ma = (f82c425->cga.crtc[0x0d] | (f82c425->cga.crtc[0x0c] << 8)) & 0x3fff;
+    uint16_t memaddr = (f82c425->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (f82c425->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
 
-    addr = ((f82c425->displine) & 1) * 0x2000 + (f82c425->displine >> 1) * 80 + ((ma & ~1) << 1);
+    addr = ((f82c425->displine) & 1) * 0x2000 + (f82c425->displine >> 1) * 80 + ((memaddr & ~1) << 1);
 
     for (uint8_t x  = 0; x < 80; x++) {
         dat = f82c425->vram[addr & 0x3FFF];
@@ -442,8 +442,8 @@ f82c425_cgaline4(f82c425_t *f82c425)
     uint8_t  pattern;
     uint16_t addr;
 
-    uint16_t ma = (f82c425->cga.crtc[0x0d] | (f82c425->cga.crtc[0x0c] << 8)) & 0x3fff;
-    addr        = ((f82c425->displine) & 1) * 0x2000 + (f82c425->displine >> 1) * 80 + ((ma & ~1) << 1);
+    uint16_t memaddr = (f82c425->cga.crtc[CGA_CRTC_START_ADDR_LOW] | (f82c425->cga.crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+    addr        = ((f82c425->displine) & 1) * 0x2000 + (f82c425->displine >> 1) * 80 + ((memaddr & ~1) << 1);
 
     for (uint8_t x = 0; x < 80; x++) {
         dat = f82c425->vram[addr & 0x3FFF];
@@ -526,7 +526,7 @@ f82c425_poll(void *priv)
             f82c425->displine = 0;
             f82c425->cga.cgastat &= ~8;
             f82c425->dispon = 1;
-        } else if (f82c425->displine == (f82c425->cga.crtc[9] + 1) * f82c425->cga.crtc[6]) {
+        } else if (f82c425->displine == (f82c425->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1) * f82c425->cga.crtc[CGA_CRTC_VDISP]) {
             /* Start of VSYNC */
             f82c425->cga.cgastat |= 8;
             f82c425->dispon = 0;

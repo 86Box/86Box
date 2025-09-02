@@ -306,6 +306,7 @@ struct ir_data_t;
 x86seg     *codegen_generate_ea(struct ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc, uint32_t op_32, int stack_offset);
 extern void codegen_check_seg_read(codeblock_t *block, struct ir_data_t *ir, x86seg *seg);
 extern void codegen_check_seg_write(codeblock_t *block, struct ir_data_t *ir, x86seg *seg);
+extern void codegen_check_regs(void);
 
 extern int codegen_purge_purgable_list(void);
 /*Delete a random code block to free memory. This is obviously quite expensive, and

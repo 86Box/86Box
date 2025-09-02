@@ -6,15 +6,22 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Windows raw input native filter for QT
+ *          Windows raw input native filter for Qt
  *
  *
  *
  * Authors: Teemu Korhonen
  *          Miran Grca, <mgrca8@gmail.com>
+ *          Sam Latinga
+ *          Cacodemon345
  *
  *          Copyright 2021 Teemu Korhonen
  *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 1997-2025 Sam Latinga
+ *          Copyright 2024-2025 Cacodemon345.
+ * 
+ * See this header for SDL3 code license:
+ * https://github.com/libsdl-org/SDL/blob/8e5fe0ea61dc87b29ca9a6119324221df0113bcf/src/video/windows/SDL_windowsrawinput.c#L1
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,6 +37,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+
+/* Mouse RawInput code taken from SDL3. */
 
 #include "qt_winrawinputfilter.hpp"
 
@@ -62,60 +71,165 @@ extern void    win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 #include <memory>
 
 #include "qt_rendererstack.hpp"
+#include "qt_util.hpp"
 #include "ui_qt_mainwindow.h"
 
-bool windows_is_light_theme() {
-    // based on https://stackoverflow.com/questions/51334674/how-to-detect-windows-10-light-dark-mode-in-win32-application
+bool NewDarkMode = FALSE;
 
-    // The value is expected to be a REG_DWORD, which is a signed 32-bit little-endian
-    auto buffer = std::vector<char>(4);
-    auto cbData = static_cast<DWORD>(buffer.size() * sizeof(char));
-    auto res = RegGetValueW(
-        HKEY_CURRENT_USER,
-        L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-        L"AppsUseLightTheme",
-        RRF_RT_REG_DWORD, // expected value type
-        nullptr,
-        buffer.data(),
-        &cbData);
+extern MainWindow* main_window;
 
-    if (res != ERROR_SUCCESS) {
-        return 1;
+struct
+{
+    HANDLE done_event = 0, ready_event = 0;
+    std::atomic_bool done{false};
+
+    size_t rawinput_offset = 0, rawinput_size = 0;
+    uint8_t* rawinput = nullptr;
+
+    HANDLE thread = 0;
+} win_rawinput_data;
+
+static void
+win_poll_mouse(void)
+{
+    // Yes, this is a thing in C++.
+    auto* data = &win_rawinput_data;
+    uint32_t size, i, count, total = 0;
+    RAWINPUT *input;
+    //static int64_t ms_time = plat_get_ticks();
+    
+    if (data->rawinput_offset == 0) {
+        BOOL isWow64;
+
+        data->rawinput_offset = sizeof(RAWINPUTHEADER);
+        if (IsWow64Process(GetCurrentProcess(), &isWow64) && isWow64) {
+            // We're going to get 64-bit data, so use the 64-bit RAWINPUTHEADER size
+            data->rawinput_offset += 8;
+        }
     }
 
-    // convert bytes written to our buffer to an int, assuming little-endian
-    auto i = int(buffer[3] << 24 |
-        buffer[2] << 16 |
-        buffer[1] << 8 |
-        buffer[0]);
+    input = (RAWINPUT *)data->rawinput;
+    for (;;) {
+        size = data->rawinput_size - (UINT)((BYTE *)input - data->rawinput);
+        count = GetRawInputBuffer(input, &size, sizeof(RAWINPUTHEADER));
+        if (count == 0 || count == (UINT)-1) {
+            if (!data->rawinput || (count == (UINT)-1 && GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
+                const UINT RAWINPUT_BUFFER_SIZE_INCREMENT = 96;   // 2 64-bit raw mouse packets
+                BYTE *rawinput = (BYTE *)realloc(data->rawinput, data->rawinput_size + RAWINPUT_BUFFER_SIZE_INCREMENT);
+                if (!rawinput) {
+                    break;
+                }
+                input = (RAWINPUT *)(rawinput + ((BYTE *)input - data->rawinput));
+                data->rawinput = rawinput;
+                data->rawinput_size += RAWINPUT_BUFFER_SIZE_INCREMENT;
+            } else {
+                break;
+            }
+        } else {
+            total += count;
 
-    return i == 1;
+            // Advance input to the end of the buffer
+            while (count--) {
+                input = NEXTRAWINPUTBLOCK(input);
+            }
+        }
+    }
+
+    if (total > 0) {
+        for (i = 0, input = (RAWINPUT *)data->rawinput; i < total; ++i, input = NEXTRAWINPUTBLOCK(input)) {
+            if (input->header.dwType == RIM_TYPEMOUSE) {
+                RAWMOUSE *rawmouse = (RAWMOUSE *)((BYTE *)input + data->rawinput_offset);
+                if (mouse_capture)
+                    WindowsRawInputFilter::mouse_handle(rawmouse);
+            }
+        }
+    }
+
+    //qDebug() << "Mouse delay: " << (plat_get_ticks() - ms_time);
+    //ms_time = plat_get_ticks();
+}
+
+static DWORD
+win_rawinput_thread(void* param)
+{
+    RAWINPUTDEVICE rid = {
+        .usUsagePage = 0x01,
+        .usUsage     = 0x02,
+        .dwFlags     = 0,
+        .hwndTarget  = nullptr
+    };
+    auto window = CreateWindowEx(0, TEXT("Message"), NULL, 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, NULL, NULL);
+    if (!window) {
+        return 0;
+    }
+
+    rid.hwndTarget = window;
+    if (!RegisterRawInputDevices(&rid, 1, sizeof(rid))) {
+        DestroyWindow(window);
+        return 0;
+    }
+
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+
+    SetEvent(win_rawinput_data.ready_event);
+
+    while (!win_rawinput_data.done) {
+        DWORD result = MsgWaitForMultipleObjects(1, &win_rawinput_data.done_event, FALSE, INFINITE, QS_RAWINPUT);
+
+        if (result != (WAIT_OBJECT_0 + 1)) {
+            break;
+        }
+
+        // Clear the queue status so MsgWaitForMultipleObjects() will wait again
+        (void)GetQueueStatus(QS_RAWINPUT);
+
+        win_poll_mouse();
+    }
+
+    rid.dwFlags |= RIDEV_REMOVE;
+    rid.hwndTarget = NULL;
+    
+    RegisterRawInputDevices(&rid, 1, sizeof(rid));
+    DestroyWindow(window);
+    return 0;
 }
 
 extern "C" void win_joystick_handle(PRAWINPUT);
 std::unique_ptr<WindowsRawInputFilter>
 WindowsRawInputFilter::Register(MainWindow *window)
 {
-    RAWINPUTDEVICE rid[2] = {
+    RAWINPUTDEVICE rid[1] = {
         {
             .usUsagePage = 0x01,
             .usUsage     = 0x06,
             .dwFlags     = RIDEV_NOHOTKEYS,
             .hwndTarget  = nullptr
-        },
-        {
-            .usUsagePage = 0x01,
-            .usUsage     = 0x02,
-            .dwFlags     = 0,
-            .hwndTarget  = nullptr
         }
     };
 
-    if (hook_enabled && (RegisterRawInputDevices(&(rid[1]), 1, sizeof(rid[0])) == FALSE))
-            return std::unique_ptr<WindowsRawInputFilter>(nullptr);
-    else if (!hook_enabled && (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE))
-            return std::unique_ptr<WindowsRawInputFilter>(nullptr);
+    if (!hook_enabled) {
+        RegisterRawInputDevices(rid, 1, sizeof(rid[0]));
+    }
 
+    win_rawinput_data.done_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    win_rawinput_data.ready_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+
+    if (!win_rawinput_data.done_event || !win_rawinput_data.ready_event) {
+        warning("Failed to create RawInput events.");
+
+        goto conclude;
+    }
+
+    win_rawinput_data.thread = CreateThread(nullptr, 0, win_rawinput_thread, nullptr, 0, nullptr);
+    if (win_rawinput_data.thread) {
+        HANDLE handles[2] = { win_rawinput_data.ready_event, win_rawinput_data.thread };
+
+        WaitForMultipleObjects(2, handles, FALSE, INFINITE);
+    } else {
+        warning("Failed to create RawInput thread.");
+    }
+
+conclude:
     std::unique_ptr<WindowsRawInputFilter> inputfilter(new WindowsRawInputFilter(window));
 
     return inputfilter;
@@ -133,51 +247,38 @@ WindowsRawInputFilter::WindowsRawInputFilter(MainWindow *window)
 
 WindowsRawInputFilter::~WindowsRawInputFilter()
 {
-    RAWINPUTDEVICE rid[2] = {
+    win_rawinput_data.done = true;
+    if (win_rawinput_data.done_event)
+        SetEvent(win_rawinput_data.done_event);
+    if (win_rawinput_data.thread)
+        WaitForSingleObject(win_rawinput_data.thread, INFINITE);
+    RAWINPUTDEVICE rid =
         {
             .usUsagePage = 0x01,
             .usUsage     = 0x06,
             .dwFlags     = RIDEV_REMOVE,
             .hwndTarget  = NULL
-        },
-        {
-             .usUsagePage = 0x01,
-             .usUsage     = 0x02,
-             .dwFlags     = RIDEV_REMOVE,
-             .hwndTarget  = NULL
-        }
-    };
+        };
 
-    if (hook_enabled)
-        RegisterRawInputDevices(&(rid[1]), 1, sizeof(rid[0]));
-    else
-        RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
+    if (!hook_enabled)
+        RegisterRawInputDevices(&rid, 1, sizeof(rid));
+
+    free(win_rawinput_data.rawinput);
 }
 
 static void
 notify_drives(ULONG unitmask, int empty)
 {
-    char p[1024] = { 0 };
+    if (unitmask & cdrom_assigned_letters)  for (int i = 0; i < CDROM_NUM; i++) {
+        cdrom_t *dev = &(cdrom[i]);
 
-    for (int i = 0; i < 26; ++i) {
-        if (unitmask & 0x1) {
-            cdrom_t *dev = NULL;
-
-            sprintf(p, "ioctl://\\\\.\\%c:", 'A' + i);
-
-            for (int i = 0; i < CDROM_NUM; i++)
-                if (!stricmp(cdrom[i].image_path, p)) {
-                    dev = &(cdrom[i]);
-                    if (empty)
-                        cdrom_set_empty(dev);
-                    else
-                        cdrom_update_status(dev);
-                    // pclog("CD-ROM %i      : Drive notified of media %s\n",
-                          // dev->id, empty ? "removal" : "change");
-                }
+        if ((dev->host_letter != 0xff) &&
+            (unitmask & (1 << dev->host_letter))) {
+            if (empty)
+                cdrom_set_empty(dev);
+            else
+                cdrom_update_status(dev);
         }
-
-        unitmask = unitmask >> 1;
     }
 }
 
@@ -208,6 +309,56 @@ device_change(WPARAM wParam, LPARAM lParam)
     }
 }
 
+void
+selectDarkMode()
+{
+    bool OldDarkMode = NewDarkMode;
+
+    if (!util::isWindowsLightTheme()) {
+        QFile f(":qdarkstyle/dark/darkstyle.qss");
+
+        if (!f.exists())
+            printf("Unable to set stylesheet, file not found\n");
+        else {
+            f.open(QFile::ReadOnly | QFile::Text);
+            QTextStream ts(&f);
+            qApp->setStyleSheet(ts.readAll());
+        }
+        QPalette palette(qApp->palette());
+        palette.setColor(QPalette::Link, Qt::white);
+        palette.setColor(QPalette::LinkVisited, Qt::lightGray);
+        qApp->setPalette(palette);
+        NewDarkMode = TRUE;
+    } else {
+        qApp->setStyleSheet("");
+        QPalette palette(qApp->palette());
+        palette.setColor(QPalette::Link, Qt::blue);
+        palette.setColor(QPalette::LinkVisited, Qt::magenta);
+        qApp->setPalette(palette);
+        NewDarkMode = FALSE;
+    }
+
+    if (NewDarkMode != OldDarkMode)
+        QTimer::singleShot(1000, []() {
+            BOOL DarkMode = NewDarkMode;
+            DwmSetWindowAttribute((HWND) main_window->winId(),
+                                  DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                  (LPCVOID) &DarkMode,
+                                  sizeof(DarkMode));
+
+            main_window->resizeContents(monitors[0].mon_scrnsz_x,
+                                        monitors[0].mon_scrnsz_y);
+
+            for (int i = 1; i < MONITORS_NUM; i++) {
+                auto mon = &(monitors[i]);
+
+                if ((main_window->renderers[i] != nullptr) && !main_window->renderers[i]->isHidden())
+                    main_window->resizeContentsMonitor(mon->mon_scrnsz_x,
+                                                       mon->mon_scrnsz_y, i);
+            }
+        });
+}
+
 bool
 WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *message, result_t *result)
 {
@@ -229,9 +380,18 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                 return true;
             case WM_SETTINGCHANGE:
                 if ((((void *) msg->lParam) != nullptr) &&
-                    (wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0)) {
+                    (wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0) &&
+                    color_scheme == 0) {
 
-                    if (!windows_is_light_theme()) {
+                    bool OldDarkMode = NewDarkMode;
+#if 0
+                    if (do_auto_pause && !dopause) {
+                        auto_paused = 1;
+                        plat_pause(1);
+                    }
+#endif
+
+                    if (!util::isWindowsLightTheme()) {
                         QFile f(":qdarkstyle/dark/darkstyle.qss");
 
                         if (!f.exists())
@@ -239,45 +399,47 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                         else {
                             f.open(QFile::ReadOnly | QFile::Text);
                             QTextStream ts(&f);
-                           qApp->setStyleSheet(ts.readAll());
+                            qApp->setStyleSheet(ts.readAll());
                         }
-                        QTimer::singleShot(1000, [this] () {
-                            BOOL DarkMode  = TRUE;
-                            auto vid_stack = (RendererStack::Renderer) vid_api;
-                            DwmSetWindowAttribute((HWND) window->winId(),
-                                                  DWMWA_USE_IMMERSIVE_DARK_MODE,
-                                                  (LPCVOID) &DarkMode,
-                                                  sizeof(DarkMode));
-                            window->ui->stackedWidget->switchRenderer(vid_stack);
-                            for (int i = 1; i < MONITORS_NUM; i++) {
-                                if ((window->renderers[i] != nullptr) &&
-                                    !window->renderers[i]->isHidden())
-                                    window->renderers[i]->switchRenderer(vid_stack);
-                            }
-                        });
+                        QPalette palette(qApp->palette());
+                        palette.setColor(QPalette::Link, Qt::white);
+                        palette.setColor(QPalette::LinkVisited, Qt::lightGray);
+                        qApp->setPalette(palette);
+                        NewDarkMode = TRUE;
                     } else {
                         qApp->setStyleSheet("");
-                        QTimer::singleShot(1000, [this] () {
-                            BOOL DarkMode = FALSE;
-                            DwmSetWindowAttribute((HWND) window->winId(),
-                                                  DWMWA_USE_IMMERSIVE_DARK_MODE,
-                                                  (LPCVOID) &DarkMode,
-                                                  sizeof(DarkMode));
-                        });
+                        QPalette palette(qApp->palette());
+                        palette.setColor(QPalette::Link, Qt::blue);
+                        palette.setColor(QPalette::LinkVisited, Qt::magenta);
+                        qApp->setPalette(palette);
+                        NewDarkMode = FALSE;
                     }
 
-                    QTimer::singleShot(1000, [this] () {
+                    if (NewDarkMode != OldDarkMode)  QTimer::singleShot(1000, [this] () {
+                        BOOL DarkMode = NewDarkMode;
+                        DwmSetWindowAttribute((HWND) window->winId(),
+                                              DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                              (LPCVOID) &DarkMode,
+                                              sizeof(DarkMode));
+
                         window->resizeContents(monitors[0].mon_scrnsz_x,
                                                monitors[0].mon_scrnsz_y);
+
                         for (int i = 1; i < MONITORS_NUM; i++) {
                             auto           mon = &(monitors[i]);
 
                             if ((window->renderers[i] != nullptr) &&
                                 !window->renderers[i]->isHidden())
                                 window->resizeContentsMonitor(mon->mon_scrnsz_x,
-                                                              mon->mon_scrnsz_y,
-                                                              i);
+                                mon->mon_scrnsz_y, i);
                         }
+
+#if 0
+                        if (auto_paused) {
+                            plat_pause(0);
+                            auto_paused = 0;
+                        }
+#endif
                     });
                 }
                 break;
@@ -312,10 +474,6 @@ WindowsRawInputFilter::handle_input(HRAWINPUT input)
             case RIM_TYPEKEYBOARD:
                 keyboard_handle(raw);
                 break;
-            case RIM_TYPEMOUSE:
-                if (mouse_capture)
-                    mouse_handle(raw);
-                break;
             case RIM_TYPEHID:
                 win_joystick_handle(raw);
                 break;
@@ -335,12 +493,13 @@ WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
 }
 
 void
-WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
+WindowsRawInputFilter::mouse_handle(RAWMOUSE* raw)
 {
-    RAWMOUSE   state = raw->data.mouse;
+    RAWMOUSE   state = *raw;
     static int x, delta_x;
     static int y, delta_y;
     static int b, delta_z;
+    static int delta_w;
 
     b = mouse_get_buttons_ex();
 
@@ -378,6 +537,12 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
     } else
         delta_z = 0;
 
+    if (state.usButtonFlags & RI_MOUSE_HWHEEL) {
+        delta_w = (SHORT) state.usButtonData / 120;
+        mouse_set_w(delta_w);
+    } else
+        delta_w = 0;
+
     if (state.usFlags & MOUSE_MOVE_ABSOLUTE) {
         /* absolute mouse, i.e. RDP or VNC
          * seems to work fine for RDP on Windows 10
@@ -395,7 +560,7 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
 
     mouse_scale(delta_x, delta_y);
 
-    HWND wnd = (HWND)window->winId();
+    /* HWND wnd = (HWND)window->winId();
 
     RECT rect;
 
@@ -404,5 +569,5 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
     int left = rect.left + (rect.right - rect.left) / 2;
     int top = rect.top + (rect.bottom - rect.top) / 2;
 
-    SetCursorPos(left, top);
+    SetCursorPos(left, top); */
 }

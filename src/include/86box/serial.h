@@ -135,7 +135,6 @@ extern serial_t *serial_attach_ex_2(int port,
         serial_attach_ex(port, rcr_callback, dev_write, NULL, NULL, priv);
 
 extern void      serial_remove(serial_t *dev);
-extern void      serial_set_type(serial_t *dev, int type);
 extern void      serial_setup(serial_t *dev, uint16_t addr, uint8_t irq);
 extern void      serial_irq(serial_t *dev, uint8_t irq);
 extern void      serial_clear_fifo(serial_t *dev);
@@ -143,6 +142,7 @@ extern void      serial_write_fifo(serial_t *dev, uint8_t dat);
 extern void      serial_set_next_inst(int ni);
 extern void      serial_standalone_init(void);
 extern void      serial_set_clock_src(serial_t *dev, double clock_src);
+extern void      serial_set_type(serial_t *dev, uint8_t type);
 extern void      serial_reset_port(serial_t *dev);
 extern uint8_t   serial_read(uint16_t addr, void *priv);
 extern void      serial_device_timeout(void *priv);
@@ -151,6 +151,7 @@ extern void      serial_set_dsr(serial_t *dev, uint8_t enabled);
 extern void      serial_set_dcd(serial_t *dev, uint8_t enabled);
 extern void      serial_set_ri(serial_t *dev, uint8_t enabled);
 extern int       serial_get_ri(serial_t *dev);
+extern uint8_t   serial_get_shadow(serial_t *dev);
 
 extern const device_t ns8250_device;
 extern const device_t ns8250_pcjr_device;

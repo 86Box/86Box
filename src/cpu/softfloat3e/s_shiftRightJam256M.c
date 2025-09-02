@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =============================================================================*/
 
+#include <stddef.h>
 #include <stdint.h>
 #include "primitiveTypes.h"
 
@@ -64,7 +65,7 @@ void softfloat_shiftRightJam256M(const uint64_t *aPtr, uint32_t dist, uint64_t *
 {
     uint64_t wordJam;
     uint32_t wordDist;
-    uint64_t *ptr;
+    uint64_t *ptr = NULL;
     uint8_t i, innerDist;
 
     wordJam = 0;
@@ -89,7 +90,7 @@ void softfloat_shiftRightJam256M(const uint64_t *aPtr, uint32_t dist, uint64_t *
                 aPtr,
                 innerDist,
                 zPtr + indexMultiwordLoBut(4, wordDist)
-           );
+            );
             if (! wordDist) goto wordJam;
         } else {
             aPtr += indexWordLo(4 - wordDist);

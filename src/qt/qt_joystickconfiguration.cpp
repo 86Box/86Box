@@ -27,10 +27,11 @@ extern "C" {
 #include <QDialogButtonBox>
 #include "qt_models_common.hpp"
 
-JoystickConfiguration::JoystickConfiguration(int type, int joystick_nr, QWidget *parent)
+JoystickConfiguration::JoystickConfiguration(int type, uint8_t gameport_nr, int joystick_nr, QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::JoystickConfiguration)
     , type(type)
+    , gameport_nr(gameport_nr)
     , joystick_nr(joystick_nr)
 {
     ui->setupUi(this);
@@ -41,7 +42,7 @@ JoystickConfiguration::JoystickConfiguration(int type, int joystick_nr, QWidget 
         Models::AddEntry(model, plat_joystick_state[c].name, c + 1);
     }
 
-    ui->comboBoxDevice->setCurrentIndex(joystick_state[0][joystick_nr].plat_joystick_nr);
+    ui->comboBoxDevice->setCurrentIndex(joystick_state[gameport_nr][joystick_nr].plat_joystick_nr);
     layout()->setSizeConstraint(QLayout::SetFixedSize);
 }
 
@@ -119,7 +120,7 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
         }
 
         int nr_axes = plat_joystick_state[joystick].nr_axes;
-        int mapping = joystick_state[0][joystick_nr].axis_mapping[c];
+        int mapping = joystick_state[gameport_nr][joystick_nr].axis_mapping[c];
         if (mapping & POV_X)
             cbox->setCurrentIndex(nr_axes + (mapping & 3) * 2);
         else if (mapping & POV_Y)
@@ -147,7 +148,7 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
             Models::AddEntry(model, plat_joystick_state[joystick].button[d].name, 0);
         }
 
-        cbox->setCurrentIndex(joystick_state[0][joystick_nr].button_mapping[c]);
+        cbox->setCurrentIndex(joystick_state[gameport_nr][joystick_nr].button_mapping[c]);
 
         ui->ct->addWidget(label, row, 0);
         ui->ct->addWidget(cbox, row, 1);
@@ -179,7 +180,7 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
             Models::AddEntry(model, plat_joystick_state[joystick].axis[d].name, 0);
         }
 
-        int mapping = joystick_state[0][joystick_nr].pov_mapping[c / 2][c & 1];
+        int mapping = joystick_state[gameport_nr][joystick_nr].pov_mapping[c / 2][c & 1];
         int nr_povs = plat_joystick_state[joystick].nr_povs;
         if (mapping & POV_X)
             cbox->setCurrentIndex((mapping & 3) * 2);

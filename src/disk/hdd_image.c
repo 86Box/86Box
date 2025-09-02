@@ -56,7 +56,9 @@ typedef struct hdd_image_t {
 hdd_image_t hdd_images[HDD_NUM];
 
 static char  empty_sector[512];
+#ifndef __unix__
 static char *empty_sector_1mb;
+#endif
 
 #ifdef ENABLE_HDD_IMAGE_LOG
 int hdd_image_do_log = ENABLE_HDD_IMAGE_LOG;

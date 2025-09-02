@@ -17,87 +17,139 @@
 #define LPT6_IRQ  5
 #endif
 
-typedef struct lpt_device_t {
-    const char *name;
-    const char *internal_name;
+typedef struct lpt_device_s {
+    const char   *name;
+    const char   *internal_name;
 
-    void   *(*init)(void *lpt);
-    void    (*close)(void *priv);
-    void    (*write_data)(uint8_t val, void *priv);
-    void    (*write_ctrl)(uint8_t val, void *priv);
-    uint8_t (*read_data)(void *priv);
-    uint8_t (*read_status)(void *priv);
-    uint8_t (*read_ctrl)(void *priv);
+    void         *(*init)(void *lpt);
+    void          (*close)(void *priv);
+    void          (*write_data)(uint8_t val, void *priv);
+    void          (*write_ctrl)(uint8_t val, void *priv);
+    void          (*strobe)(uint8_t old, uint8_t val,void *priv);
+    uint8_t       (*read_status)(void *priv);
+    uint8_t       (*read_ctrl)(void *priv);
+    void          (*epp_write_data)(uint8_t is_addr, uint8_t val, void *priv);
+    void          (*epp_request_read)(uint8_t is_addr, void *priv);
+
+    void         *priv;
+    struct lpt_t *lpt;
+//#ifdef EMU_DEVICE_H
+//    struct device_t *cfgdevice;
+//#else
+    void            *cfgdevice;
+//#endif
 } lpt_device_t;
 
-extern void lpt_init(void);
-extern void lpt_port_setup(int i, uint16_t port);
-extern void lpt_port_irq(int i, uint8_t irq);
-extern void lpt_port_remove(int i);
-extern void lpt1_remove_ams(void);
-
-#define lpt1_setup(a) lpt_port_setup(0, a)
-#define lpt1_irq(a)   lpt_port_irq(0, a)
-#define lpt1_remove() lpt_port_remove(0)
-
-#define lpt2_setup(a) lpt_port_setup(1, a)
-#define lpt2_irq(a)   lpt_port_irq(1, a)
-#define lpt2_remove() lpt_port_remove(1)
-
-#define lpt3_setup(a) lpt_port_setup(2, a)
-#define lpt3_irq(a)   lpt_port_irq(2, a)
-#define lpt3_remove() lpt_port_remove(2)
-
-#define lpt4_setup(a) lpt_port_setup(3, a)
-#define lpt4_irq(a)   lpt_port_irq(3, a)
-#define lpt4_remove() lpt_port_remove(3)
-
-#if 0
-#define lpt5_setup(a) lpt_port_setup(4, a)
-#define lpt5_irq(a)   lpt_port_irq(4, a)
-#define lpt5_remove() lpt_port_remove(4)
-
-#define lpt6_setup(a) lpt_port_setup(5, a)
-#define lpt6_irq(a)   lpt_port_irq(5, a)
-#define lpt6_remove() lpt_port_remove(5)
-#endif
-
-void lpt_devices_init(void);
-void lpt_devices_close(void);
-
-typedef struct lpt_port_t {
+#ifdef _TIMER_H_
+typedef struct lpt_t {
     uint8_t       enabled;
     uint8_t       irq;
+    uint8_t       irq_state;
+    uint8_t       dma;
     uint8_t       dat;
     uint8_t       ctrl;
+    uint8_t       ext;
+    uint8_t       epp;
+    uint8_t       ecp;
+    uint8_t       ecr;
+    uint8_t       ret_ecr;
+    uint8_t       in_dat;
+    uint8_t       fifo_stat;
+    uint8_t       dma_stat;
+    uint8_t       state;
+    uint8_t       autofeed;
+    uint8_t       strobe;
+    uint8_t       lv2;
+    uint8_t       cnfga_readout;
+    uint8_t       cnfgb_readout;
+    uint8_t       cfg_regs_enabled;
+    uint8_t       inst;
+    uint8_t       eir;
+    uint8_t       pad;
+    uint8_t       ext_regs[8];
     uint16_t      addr;
-    uint16_t      pad0;
-    int           device;
+    uint16_t      id;
+    uint16_t      pad0[2];
     int           enable_irq;
     lpt_device_t *dt;
-    void         *priv;
+#ifdef FIFO_H
+    fifo16_t *    fifo;
+#else
+    void *        fifo;
+#endif
+
+    pc_timer_t    fifo_out_timer;
+} lpt_t;
+#endif /* _TIMER_H_ */
+
+typedef struct lpt_port_s {
+    uint8_t       enabled;
+
+    int           device;
 } lpt_port_t;
 
 extern lpt_port_t lpt_ports[PARALLEL_MAX];
 
-extern void    lpt_write(uint16_t port, uint8_t val, void *priv);
-extern uint8_t lpt_read(uint16_t port, void *priv);
+typedef enum {
+    LPT_STATE_IDLE = 0,
+    LPT_STATE_READ_DMA,
+    LPT_STATE_WRITE_FIFO
+} lpt_state_t;
 
-extern uint8_t lpt_read_port(int port, uint16_t reg);
+extern void                lpt_write(uint16_t port, uint8_t val, void *priv);
 
-extern uint8_t lpt_read_status(int port);
-extern void    lpt_irq(void *priv, int raise);
+extern void                lpt_write_to_fifo(void *priv, uint8_t val);
 
-extern const char *lpt_device_get_name(int id);
-extern const char *lpt_device_get_internal_name(int id);
+extern uint8_t             lpt_read(uint16_t port, void *priv);
 
-extern int lpt_device_get_from_internal_name(char *s);
+extern uint8_t             lpt_read_port(lpt_t *dev, uint16_t reg);
 
-extern const lpt_device_t lpt_dac_device;
-extern const lpt_device_t lpt_dac_stereo_device;
+extern uint8_t             lpt_read_status(lpt_t *dev);
+extern uint8_t             lpt_read_ecp_mode(lpt_t *dev);
 
-extern const lpt_device_t dss_device;
+extern void                lpt_irq(void *priv, int raise);
 
-extern const lpt_device_t lpt_hasp_savquest_device;
+extern int                 lpt_device_get_from_internal_name(const char *str);
+
+extern const char         *lpt_device_get_name(int id);
+extern const char         *lpt_device_get_internal_name(int id);
+
+#ifdef EMU_DEVICE_H
+extern const device_t     *lpt_device_getdevice(const int id);
+#endif
+
+extern int                 lpt_device_has_config(const int id);
+
+extern const lpt_device_t  lpt_dac_device;
+extern const lpt_device_t  lpt_dac_stereo_device;
+
+extern const lpt_device_t  dss_device;
+
+extern const lpt_device_t  lpt_hasp_savquest_device;
+
+extern void                lpt_set_ext(lpt_t *dev, uint8_t ext);
+extern void                lpt_set_ecp(lpt_t *dev, uint8_t ecp);
+extern void                lpt_set_epp(lpt_t *dev, uint8_t epp);
+extern void                lpt_set_lv2(lpt_t *dev, uint8_t lv2);
+extern void                lpt_set_cfg_regs_enabled(lpt_t *dev, uint8_t cfg_regs_enabled);
+extern void                lpt_set_fifo_threshold(lpt_t *dev, int threshold);
+extern void                lpt_set_cnfga_readout(lpt_t *dev, const uint8_t cnfga_readout);
+extern void                lpt_set_cnfgb_readout(lpt_t *dev, const uint8_t cnfgb_readout);
+extern void                lpt_port_setup(lpt_t *dev, uint16_t port);
+extern void                lpt_port_irq(lpt_t *dev, uint8_t irq);
+extern void                lpt_port_dma(lpt_t *dev, uint8_t dma);
+extern void                lpt1_dma(const uint8_t dma);
+extern void                lpt_port_remove(lpt_t *dev);
+extern void                lpt1_remove_ams(lpt_t *dev);
+
+extern void                lpt_devices_init(void);
+extern void                lpt_devices_close(void);
+
+extern void                lpt_set_next_inst(int ni);
+extern void                lpt_set_3bc_used(int is_3bc_used);
+
+extern void                lpt_standalone_init(void);
+
+extern const device_t      lpt_port_device;
 
 #endif /*EMU_LPT_H*/

@@ -80,10 +80,12 @@ typedef struct stpc_serial_t {
 } stpc_serial_t;
 
 typedef struct stpc_lpt_t {
-    uint8_t unlocked;
-    uint8_t offset;
-    uint8_t reg1;
-    uint8_t reg4;
+    uint8_t  unlocked;
+    uint8_t  offset;
+    uint8_t  reg1;
+    uint8_t  reg4;
+
+    lpt_t   *lpt;
 } stpc_lpt_t;
 
 #ifdef ENABLE_STPC_LOG
@@ -977,22 +979,22 @@ stpc_lpt_handlers(stpc_lpt_t *dev, uint8_t val)
 {
     const uint8_t new_addr = (val & 0x03);
 
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
 
     switch (new_addr) {
         case 0x1:
             stpc_log("STPC: Remapping parallel port to LPT3\n");
-            lpt1_setup(LPT_MDA_ADDR);
+            lpt_port_setup(dev->lpt, LPT_MDA_ADDR);
             break;
 
         case 0x2:
             stpc_log("STPC: Remapping parallel port to LPT1\n");
-            lpt1_setup(LPT1_ADDR);
+            lpt_port_setup(dev->lpt, LPT1_ADDR);
             break;
 
         case 0x3:
             stpc_log("STPC: Remapping parallel port to LPT2\n");
-            lpt1_setup(LPT2_ADDR);
+            lpt_port_setup(dev->lpt, LPT2_ADDR);
             break;
 
         default:
@@ -1062,6 +1064,8 @@ stpc_lpt_init(UNUSED(const device_t *info))
     stpc_log("STPC: lpt_init()\n");
 
     stpc_lpt_t *dev = (stpc_lpt_t *) calloc(1, sizeof(stpc_lpt_t));
+
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
 
     stpc_lpt_reset(dev);
 

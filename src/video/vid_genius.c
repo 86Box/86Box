@@ -387,7 +387,7 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
     int            cw = 9;  /* Each character is 9 pixels wide */
     uint8_t        chr;
     uint8_t        attr;
-    uint8_t        sc;
+    uint8_t        scanline;
     uint8_t        ctrl;
     const uint8_t *crtc;
     uint8_t        bitmap[2];
@@ -398,8 +398,8 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
     int            drawcursor;
     int            cursorline;
     uint16_t       addr;
-    uint16_t       ma       = (genius->mda_crtc[13] | (genius->mda_crtc[12] << 8)) & 0x3fff;
-    uint16_t       ca       = (genius->mda_crtc[15] | (genius->mda_crtc[14] << 8)) & 0x3fff;
+    uint16_t       memaddr       = (genius->mda_crtc[13] | (genius->mda_crtc[12] << 8)) & 0x3fff;
+    uint16_t       cursoraddr       = (genius->mda_crtc[15] | (genius->mda_crtc[14] << 8)) & 0x3fff;
     const uint8_t *framebuf = genius->vram + 0x10000;
     uint32_t       col;
     uint32_t       dl = genius->displine;
@@ -416,14 +416,14 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
 #if 0
     if (genius->genius_charh & 0x10) {
         row = ((dl >> 1) / charh);
-        sc  = ((dl >> 1) % charh);
+        scanline  = ((dl >> 1) % charh);
     } else {
         row = (dl / charh);
-        sc  = (dl % charh);
+        scanline  = (dl % charh);
     }
 #else
         row = (dl / charh);
-        sc  = (dl % charh);
+        scanline  = (dl % charh);
 #endif
     } else {
         if ((genius->displine < 512) || (genius->displine >= 912))
@@ -439,23 +439,23 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
         charh = crtc[9] + 1;
 
         row = ((dl >> 1) / charh);
-        sc  = ((dl >> 1) % charh);
+        scanline  = ((dl >> 1) % charh);
     }
 
-    ma = (crtc[13] | (crtc[12] << 8)) & 0x3fff;
-    ca = (crtc[15] | (crtc[14] << 8)) & 0x3fff;
+    memaddr = (crtc[13] | (crtc[12] << 8)) & 0x3fff;
+    cursoraddr = (crtc[15] | (crtc[14] << 8)) & 0x3fff;
 
-    addr = ((ma & ~1) + row * w) * 2;
+    addr = ((memaddr & ~1) + row * w) * 2;
 
     if (!mda)
         dl += 512;
 
-    ma += (row * w);
+    memaddr += (row * w);
 
     if ((crtc[10] & 0x60) == 0x20)
         cursorline = 0;
     else
-        cursorline = ((crtc[10] & 0x1F) <= sc) && ((crtc[11] & 0x1F) >= sc);
+        cursorline = ((crtc[10] & 0x1F) <= scanline) && ((crtc[11] & 0x1F) >= scanline);
 
     for (int x = 0; x < w; x++) {
 #if 0
@@ -467,7 +467,7 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
         chr  = framebuf[(addr + 2 * x) & 0x3FFF];
         attr = framebuf[(addr + 2 * x + 1) & 0x3FFF];
 
-        drawcursor = ((ma == ca) && cursorline && genius->enabled && (ctrl & 8));
+        drawcursor = ((memaddr == cursoraddr) && cursorline && genius->enabled && (ctrl & 8));
 
         switch (crtc[10] & 0x60) {
             case 0x00:
@@ -487,7 +487,7 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
             attr &= 0x7F;
 
         /* MDA underline */
-        if (mda && (sc == charh) && ((attr & 7) == 1)) {
+        if (mda && (scanline == charh) && ((attr & 7) == 1)) {
             col = mdaattr[attr][blink][1];
 
             if (genius->genius_control & 0x20)
@@ -504,9 +504,9 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
             }
         } else { /* Draw 8 pixels of character */
             if (mda)
-                bitmap[0] = fontdat8x12[chr][sc];
+                bitmap[0] = fontdat8x12[chr][scanline];
             else
-                bitmap[0] = fontdat[chr][sc];
+                bitmap[0] = fontdat[chr][scanline];
 
             for (c = 0; c < 8; c++) {
                 col = mdaattr[attr][blink][(bitmap[0] & (1 << (c ^ 7))) ? 1 : 0];
@@ -563,7 +563,7 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
                     }
                 }
             }
-            ++ma;
+            ++memaddr;
         }
     }
 }

@@ -133,6 +133,8 @@ typedef struct ide_s {
     uint8_t (*phase_data_out)(scsi_common_t *sc);
     void    (*command_stop)(scsi_common_t *sc);
     void    (*bus_master_error)(scsi_common_t *sc);
+    void    (*read)(scsi_common_t *sc);
+    void    (*write)(scsi_common_t *sc);
 #else
     void *  get_max;
     void *  get_timings;
@@ -176,9 +178,6 @@ enum {
     TIMINGS_PIO_FC = 2
 };
 
-extern int ide_ter_enabled;
-extern int ide_qua_enabled;
-
 #ifdef SCSI_DEVICE_H
 extern ide_t *ide_get_drive(int ch);
 extern void   ide_irq(ide_t *ide, int set, int log);
@@ -199,7 +198,7 @@ extern uint8_t  ide_read_alt_status(uint16_t addr, void *priv);
 extern uint16_t ide_readw(uint16_t addr, void *priv);
 
 extern void ide_set_bus_master(int board,
-                               int (*dma)(uint8_t *data, int transfer_length, int out, void *priv),
+                               int (*dma)(uint8_t *data, int transfer_length, int total_length, int out, void *priv),
                                void (*set_irq)(uint8_t status, void *priv), void *priv);
 
 extern void win_cdrom_eject(uint8_t id);
@@ -227,6 +226,8 @@ extern void ide_padstr8(uint8_t *buf, int buf_size, const char *src);
 
 extern uint8_t ide_read_ali_75(void);
 extern uint8_t ide_read_ali_76(void);
+
+extern void    ide_hard_reset(void);
 
 /* Legacy #define's. */
 #define ide_irq_raise(ide) ide_irq(ide, 1, 1)

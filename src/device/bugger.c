@@ -84,7 +84,10 @@ static uint8_t bug_spcfg; /* serial port configuration */
 #define FIFO_LEN 256
 static uint8_t  bug_buff[FIFO_LEN]; /* serial port data buffer */
 static uint8_t *bug_bptr;
-#define UISTR_LEN 24
+
+static char LED_R[] = "<font color=\"#EE0000\">R</font>";
+static char LED_G[] = "<font color=\"#00CC00\">G</font>";
+#define UISTR_LEN (17 + 8 * sizeof(LED_G) + 8 * sizeof(LED_R))
 static char bug_str[UISTR_LEN]; /* UI output string */
 
 extern void ui_sb_bugui(char *__str);
@@ -112,16 +115,16 @@ static void
 bug_setui(void)
 {
     /* Format all current info in a string. */
-    sprintf(bug_str, "%02X:%02X %c%c%c%c%c%c%c%c-%c%c%c%c%c%c%c%c",
+    sprintf(bug_str, "<tt>%02X:%02X %s%s%s%s%s%s%s%s-%s%s%s%s%s%s%s%s</tt>",
             bug_seg2, bug_seg1,
-            (bug_ledg & 0x80) ? 'G' : 'g', (bug_ledg & 0x40) ? 'G' : 'g',
-            (bug_ledg & 0x20) ? 'G' : 'g', (bug_ledg & 0x10) ? 'G' : 'g',
-            (bug_ledg & 0x08) ? 'G' : 'g', (bug_ledg & 0x04) ? 'G' : 'g',
-            (bug_ledg & 0x02) ? 'G' : 'g', (bug_ledg & 0x01) ? 'G' : 'g',
-            (bug_ledr & 0x80) ? 'R' : 'r', (bug_ledr & 0x40) ? 'R' : 'r',
-            (bug_ledr & 0x20) ? 'R' : 'r', (bug_ledr & 0x10) ? 'R' : 'r',
-            (bug_ledr & 0x08) ? 'R' : 'r', (bug_ledr & 0x04) ? 'R' : 'r',
-            (bug_ledr & 0x02) ? 'R' : 'r', (bug_ledr & 0x01) ? 'R' : 'r');
+            (bug_ledg & 0x80) ? LED_G : "g", (bug_ledg & 0x40) ? LED_G : "g",
+            (bug_ledg & 0x20) ? LED_G : "g", (bug_ledg & 0x10) ? LED_G : "g",
+            (bug_ledg & 0x08) ? LED_G : "g", (bug_ledg & 0x04) ? LED_G : "g",
+            (bug_ledg & 0x02) ? LED_G : "g", (bug_ledg & 0x01) ? LED_G : "g",
+            (bug_ledr & 0x80) ? LED_R : "r", (bug_ledr & 0x40) ? LED_R : "r",
+            (bug_ledr & 0x20) ? LED_R : "r", (bug_ledr & 0x10) ? LED_R : "r",
+            (bug_ledr & 0x08) ? LED_R : "r", (bug_ledr & 0x04) ? LED_R : "r",
+            (bug_ledr & 0x02) ? LED_R : "r", (bug_ledr & 0x01) ? LED_R : "r");
 
     /* Send formatted string to the UI. */
     ui_sb_bugui(bug_str);

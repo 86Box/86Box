@@ -272,11 +272,18 @@ reset_common(int hard)
     msr.fcr        = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
     msw            = 0;
     new_ne         = 0;
+    x87_op         = 0;
+
+    ccr0 = ccr1 = ccr2 = ccr3 = ccr4 = ccr5 = ccr6 = ccr7 = 0;
+    ccr4 = 0x85;
+    cyrix.arr[3].base = 0x30000;
+    cyrix.arr[3].size = 65536;
+
     if (hascache)
         cr0 = 1 << 30;
     else
         cr0 = 0;
-    if (is386 && !is486 && (fpu_type == FPU_387))
+    if (is386 && !is486 && ((fpu_type == FPU_387) || (fpu_type == FPU_NONE)))
         cr0 |= 0x10;
     cpu_cache_int_enabled = 0;  
     cpu_update_waitstates();
@@ -319,7 +326,6 @@ reset_common(int hard)
         resetreadlookup();
         makemod1table();
         cpu_set_edx();
-        mmu_perm = 4;
     }
     x86seg_reset();
 #ifdef USE_DYNAREC

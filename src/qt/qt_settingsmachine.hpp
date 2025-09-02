@@ -18,24 +18,19 @@ public:
 
 signals:
     void currentMachineChanged(int machineId);
+
 private slots:
     void on_pushButtonConfigure_clicked();
-
-private slots:
     void on_comboBoxFPU_currentIndexChanged(int index);
-
-private slots:
     void on_comboBoxSpeed_currentIndexChanged(int index);
-
-private slots:
     void on_comboBoxCPU_currentIndexChanged(int index);
-
-private slots:
     void on_comboBoxMachine_currentIndexChanged(int index);
-
-private slots:
     void on_comboBoxMachineType_currentIndexChanged(int index);
     void on_checkBoxFPUSoftfloat_stateChanged(int state);
+
+    void on_radioButtonSmallerFrames_clicked();
+
+    void on_radioButtonLargerFrames_clicked();
 
 private:
     Ui::SettingsMachine *ui;

@@ -37,6 +37,7 @@ CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, 
                 return true;
             }
             if ([event type] == NSEventTypeScrollWheel) {
+                mouse_set_w(-[event deltaX]);
                 mouse_set_z([event deltaY]);
                 return true;
             }

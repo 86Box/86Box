@@ -8,8 +8,6 @@
  *
  *          Implementation of the Flight Stick Pro.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
@@ -112,13 +110,33 @@ ch_flightstick_pro_read_axis(UNUSED(void *priv), int axis)
     }
 }
 
+static int
+ch_flightstick_pro_ch_pedals_read_axis(UNUSED(void *priv), int axis)
+{
+    if (!JOYSTICK_PRESENT(0, 0))
+        return AXIS_NOT_PRESENT;
+
+    switch (axis) {
+        case 0:
+            return joystick_state[0][0].axis[0];
+        case 1:
+            return joystick_state[0][0].axis[1];
+        case 2:
+            return joystick_state[0][0].axis[3];
+        case 3:
+            return joystick_state[0][0].axis[2];
+        default:
+            return 0;
+    }
+}
+
 static void
 ch_flightstick_pro_a0_over(UNUSED(void *priv))
 {
     //
 }
 
-const joystick_if_t joystick_ch_flightstick_pro = {
+const joystick_t joystick_ch_flightstick_pro = {
     .name          = "CH Flightstick Pro",
     .internal_name = "ch_flightstick_pro",
     .init          = ch_flightstick_pro_init,
@@ -132,6 +150,24 @@ const joystick_if_t joystick_ch_flightstick_pro = {
     .pov_count     = 1,
     .max_joysticks = 1,
     .axis_names    = { "X axis", "Y axis", "Throttle" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { "POV" }
+};
+
+const joystick_t joystick_ch_flightstick_pro_ch_pedals = {
+    .name          = "CH Flightstick Pro + CH Pedals",
+    .internal_name = "ch_flightstick_pro_ch_pedals",
+    .init          = ch_flightstick_pro_init,
+    .close         = ch_flightstick_pro_close,
+    .read          = ch_flightstick_pro_read,
+    .write         = ch_flightstick_pro_write,
+    .read_axis     = ch_flightstick_pro_ch_pedals_read_axis,
+    .a0_over       = ch_flightstick_pro_a0_over,
+    .axis_count    = 4,
+    .button_count  = 4,
+    .pov_count     = 1,
+    .max_joysticks = 1,
+    .axis_names    = { "X axis", "Y axis", "Throttle", "Rudder" },
     .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
     .pov_names     = { "POV" }
 };

@@ -62,6 +62,26 @@ if(APPLE AND USE_QT6)
     find_package(Qt6Gui/Qt6QICNSPlugin REQUIRED)
 endif()
 
+if (UNIX)
+    find_path(HAS_VDE "libvdeplug.h" PATHS ${VDE_INCLUDE_DIR} "/usr/include /usr/local/include" "/opt/homebrew/include" )
+    if(HAS_VDE)
+        find_library(VDE_LIB vdeplug)
+        if (NOT VDE_LIB)
+            message(WARNING "Could not find VDE. The library will not be bundled and any related features will be disabled.")
+        else()
+            add_compile_definitions(HAS_VDE)
+        endif()
+    endif()
+endif()
+if (UNIX AND NOT APPLE) # Support for TAP on Linux and BSD, supposedly.
+    find_path(HAS_TAP "linux/if_tun.h" PATHS ${TAP_INCLUDE_DIR} "/usr/include /usr/local/include" "/opt/homebrew/include" )
+    if(HAS_TAP)
+        add_compile_definitions(HAS_TAP)
+    else()
+        message(WARNING "TAP support not available. Are you on some BSD?")
+    endif()
+endif()
+
 add_library(plat STATIC
     qt.c
     qt_main.cpp
@@ -85,15 +105,11 @@ add_library(ui STATIC
     qt_renderercommon.hpp
     qt_softwarerenderer.cpp
     qt_softwarerenderer.hpp
-    qt_hardwarerenderer.cpp
-    qt_hardwarerenderer.hpp
     qt_openglrenderer.cpp
     qt_openglrenderer.hpp
-    qt_opengloptions.cpp
-    qt_opengloptions.hpp
-    qt_opengloptionsdialog.cpp
-    qt_opengloptionsdialog.hpp
-    qt_opengloptionsdialog.ui
+    qt_glsl_parser.cpp
+    qt_about.cpp
+    qt_about.hpp
 
     qt_settings.cpp
     qt_settings.hpp
@@ -141,6 +157,11 @@ add_library(ui STATIC
     qt_joystickconfiguration.cpp
     qt_joystickconfiguration.hpp
     qt_joystickconfiguration.ui
+    qt_keybind.cpp
+    qt_keybind.hpp
+    qt_keybind.ui
+    qt_singlekeyseqedit.cpp
+    qt_singlekeyseqedit.hpp
 
     qt_filefield.cpp
     qt_filefield.hpp
@@ -188,9 +209,73 @@ add_library(ui STATIC
     qt_mediahistorymanager.cpp
     qt_mediahistorymanager.hpp
 
+    qt_downloader.cpp
+    qt_downloader.hpp
+
+    qt_vmmanager_clientsocket.cpp
+    qt_vmmanager_clientsocket.hpp
+    qt_vmmanager_serversocket.cpp
+    qt_vmmanager_serversocket.hpp
+    qt_vmmanager_protocol.cpp
+    qt_vmmanager_protocol.hpp
+    qt_vmmanager_details.hpp
+    qt_vmmanager_details.cpp
+    qt_vmmanager_details.ui
+    qt_vmmanager_addmachine.cpp
+    qt_vmmanager_addmachine.hpp
+    qt_vmmanager_detailsection.cpp
+    qt_vmmanager_detailsection.hpp
+    qt_vmmanager_detailsection.ui
+    qt_vmmanager_listviewdelegate.hpp
+    qt_vmmanager_listviewdelegate.cpp
+    qt_vmmanager_preferences.cpp
+    qt_vmmanager_preferences.hpp
+    qt_vmmanager_preferences.ui
+    qt_vmmanager_main.hpp
+    qt_vmmanager_main.cpp
+    qt_vmmanager_main.ui
+    qt_vmmanager_model.cpp
+    qt_vmmanager_model.hpp
+    qt_vmmanager_system.cpp
+    qt_vmmanager_system.hpp
+    qt_vmmanager_config.cpp
+    qt_vmmanager_config.hpp
+    qt_vmmanager_mainwindow.cpp
+    qt_vmmanager_mainwindow.hpp
+    qt_vmmanager_mainwindow.ui
+
     ../qt_resources.qrc
     ./qdarkstyle/dark/darkstyle.qrc
+
+    qt_openglshadermanagerdialog.hpp
+    qt_openglshadermanagerdialog.cpp
+    qt_openglshadermanagerdialog.ui
+
+    qt_openglshaderconfig.hpp
+    qt_openglshaderconfig.cpp
+    qt_openglshaderconfig.ui
+
+    qt_iconindicators.hpp
+    qt_iconindicators.cpp
+    qt_cgasettingsdialog.hpp qt_cgasettingsdialog.cpp qt_cgasettingsdialog.ui
 )
+
+if(EMU_BUILD_NUM)
+    target_sources(ui PRIVATE
+        qt_updatecheck.cpp
+        qt_updatecheck.hpp
+        qt_updatecheckdialog.cpp
+        qt_updatecheckdialog.hpp
+        qt_updatecheckdialog.ui
+        qt_updatedetails.cpp
+        qt_updatedetails.hpp
+        qt_updatedetails.ui
+    )
+endif()
+
+if(NETSWITCH)
+    target_compile_definitions(ui PRIVATE USE_NETSWITCH)
+endif()
 
 if(RTMIDI)
     target_compile_definitions(ui PRIVATE USE_RTMIDI)
@@ -198,6 +283,10 @@ endif()
 
 if(WACOM)
     target_compile_definitions(ui PRIVATE USE_WACOM)
+endif()
+
+if(CDROM_MITSUMI)
+    target_compile_definitions(ui PRIVATE USE_CDROM_MITSUMI)
 endif()
 
 if(WIN32)
@@ -227,6 +316,15 @@ if(WIN32 AND NOT SDL_JOYSTICK)
     target_sources(plat PRIVATE win_joystick_rawinput.c)
     target_link_libraries(86Box hid)
 else()
+    find_package(SDL2 REQUIRED)
+    include_directories(${SDL2_INCLUDE_DIRS})
+    if(STATIC_BUILD AND TARGET SDL2::SDL2-static)
+        target_link_libraries(86Box SDL2::SDL2-static)
+    elseif(TARGET SDL2::SDL2)
+        target_link_libraries(86Box SDL2::SDL2)
+    else()
+        target_link_libraries(86Box ${SDL2_LIBRARIES})
+    endif()
     target_sources(plat PRIVATE sdl_joystick.c)
 endif()
 
@@ -276,6 +374,8 @@ if (WIN32)
     target_sources(ui PRIVATE
         qt_winrawinputfilter.hpp
         qt_winrawinputfilter.cpp
+        qt_vmmanager_windarkmodefilter.hpp
+        qt_vmmanager_windarkmodefilter.cpp
         qt_winmanagerfilter.hpp
         qt_winmanagerfilter.cpp
     )
@@ -398,6 +498,7 @@ endif()
 
 if (UNIX AND NOT APPLE AND NOT HAIKU)
     target_sources(ui PRIVATE x11_util.c)
+    target_link_libraries(plat PRIVATE ${CMAKE_DL_LIBS})
 
     find_package(X11 REQUIRED)
     target_link_libraries(ui PRIVATE X11::X11 X11::Xi)
@@ -437,6 +538,7 @@ if (UNIX AND NOT APPLE AND NOT HAIKU)
                 set(WL_SOURCE_VAR)
                 ecm_add_wayland_client_protocol(WL_SOURCE_VAR PROTOCOL ${CMAKE_SOURCE_DIR}/wl_protocols/relative-pointer-unstable-v1.xml BASENAME relative-pointer-unstable-v1)
                 ecm_add_wayland_client_protocol(WL_SOURCE_VAR PROTOCOL ${CMAKE_SOURCE_DIR}/wl_protocols/pointer-constraints-unstable-v1.xml BASENAME pointer-constraints-unstable-v1)
+                ecm_add_wayland_client_protocol(WL_SOURCE_VAR PROTOCOL ${CMAKE_SOURCE_DIR}/wl_protocols/keyboard-shortcuts-inhibit-unstable-v1.xml BASENAME keyboard-shortcuts-inhibit-unstable-v1)
                 target_include_directories(ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${Qt${QT_MAJOR}Gui_PRIVATE_INCLUDE_DIRS})
                 target_sources(ui PRIVATE ${WL_SOURCE_VAR} wl_mouse.cpp)
                 if (XKBCOMMON_FOUND)
@@ -476,7 +578,6 @@ foreach(po_file ${po_files})
         string(REGEX MATCH "[A-Z]+$" PO_COUNTRY ${PO_FILE_NAME})
 
         # Find the base Qt translation for the language and country
-        set(qt_translation_file_dest "qt_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
         if (EXISTS "${QT_TRANSLATIONS_DIR}/qtbase_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
             set(qt_translation_file "qtbase_${PO_LANGUAGE}_${PO_COUNTRY}.qm")
         # Fall back to just the language if country isn't found
@@ -495,13 +596,9 @@ foreach(po_file ${po_files})
         # Copy the translation file to the build directory
         if (qt_translation_file)
             file(COPY "${QT_TRANSLATIONS_DIR}/${qt_translation_file}" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-            if (NOT (qt_translation_file STREQUAL qt_translation_file_dest))
-                # Rename the file for consistency
-                file(RENAME "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file}" "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file_dest}")
-            endif()
             # Add the file to the translations list
-            string(APPEND QT_TRANSLATIONS_LIST "        <file>${qt_translation_file_dest}</file>\n")
-            list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file_dest}")
+            string(APPEND QT_TRANSLATIONS_LIST "        <file>${qt_translation_file}</file>\n")
+            list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/${qt_translation_file}")
         endif()
     endif()
 

@@ -17,6 +17,8 @@
  *          Copyright 2020-2025 Miran Grca.
  *          Copyright 2020-2025 Fred N. van Kempen
  */
+#define _GNU_SOURCE
+#include <inttypes.h>
 #ifdef ENABLE_MO_LOG
 #include <stdarg.h>
 #endif
@@ -63,7 +65,7 @@ const uint8_t mo_command_flags[0x100] = {
     [0x0a]          = IMPLEMENTED | CHECK_READY,
     [0x0b]          = IMPLEMENTED | CHECK_READY,
     [0x12]          = IMPLEMENTED | ALLOW_UA,
-    [0x13]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0x13]          = IMPLEMENTED | CHECK_READY,
     [0x15]          = IMPLEMENTED,
     [0x16]          = IMPLEMENTED | SCSI_ONLY,
     [0x17]          = IMPLEMENTED | SCSI_ONLY,
@@ -74,8 +76,7 @@ const uint8_t mo_command_flags[0x100] = {
     [0x25]          = IMPLEMENTED | CHECK_READY,
     [0x28]          = IMPLEMENTED | CHECK_READY,
     [0x2a ... 0x2c] = IMPLEMENTED | CHECK_READY,
-    [0x2e]          = IMPLEMENTED | CHECK_READY,
-    [0x2f]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0x2e ... 0x2f] = IMPLEMENTED | CHECK_READY,
     [0x41]          = IMPLEMENTED | CHECK_READY,
     [0x55]          = IMPLEMENTED,
     [0x5a]          = IMPLEMENTED,
@@ -151,6 +152,14 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
 {
     const int was_empty = mo_is_empty(dev->id);
     int       ret       = 0;
+    int       offs      = 0;
+
+    if (strstr(fn, "wp://") == fn) {
+        offs                = 5;
+        dev->drv->read_only = 1;
+    }
+
+    fn += offs;
 
     if (dev->drv == NULL)
         mo_eject(dev->id);
@@ -172,9 +181,9 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
         }
 
         if (ret) {
-            fseek(dev->drv->fp, 0, SEEK_END);
+            fseeko64(dev->drv->fp, 0, SEEK_END);
 
-            uint32_t     size  = (uint32_t) ftell(dev->drv->fp);
+            uint64_t     size  = (uint64_t) ftello64(dev->drv->fp);
             unsigned int found = 0;
 
             if (is_mdi) {
@@ -184,21 +193,24 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
             } else
                 dev->drv->base = 0;
 
+            dev->drv->supported = 0;
+
             for (uint8_t i = 0; i < KNOWN_MO_TYPES; i++) {
-                if (size == (mo_types[i].sectors * mo_types[i].bytes_per_sector)) {
+                if (size == ((uint64_t) mo_types[i].sectors * mo_types[i].bytes_per_sector)) {
                     found                 = 1;
                     dev->drv->medium_size = mo_types[i].sectors;
                     dev->drv->sector_size = mo_types[i].bytes_per_sector;
+                    dev->drv->supported   = mo_drive_types[dev->drv->type].supported_media[i];
                     break;
                 }
             }
 
             if (found) {
-                if (fseek(dev->drv->fp, dev->drv->base, SEEK_SET) == -1)
+                if (fseeko64(dev->drv->fp, (uint64_t) dev->drv->base, SEEK_SET) == -1)
                     log_fatal(dev->log, "mo_load(): Error seeking to the beginning of "
                               "the file\n");
 
-                strncpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path) - 1);
+                strncpy(dev->drv->image_path, fn - offs, sizeof(dev->drv->image_path) - 1);
 
                 ret = 1;
             } else
@@ -214,6 +226,9 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
         if (was_empty)
             mo_insert((mo_t *) dev);
     }
+
+    if (ret)
+        ui_sb_update_icon_wp(SB_MO | dev->id, dev->drv->read_only);
 }
 
 void
@@ -433,7 +448,8 @@ mo_update_request_length(mo_t *dev, int len, int block_len)
         case 0xa8:
         case 0xaa:
             /* Round it to the nearest 2048 bytes. */
-            dev->max_transfer_len = (dev->max_transfer_len >> 9) << 9;
+            dev->max_transfer_len = (dev->max_transfer_len / dev->drv->sector_size) *
+                                    dev->drv->sector_size;
 
             /*
                Make sure total length is not bigger than sum of the lengths of
@@ -481,19 +497,16 @@ mo_bus_speed(mo_t *dev)
 {
     double ret = -1.0;
 
-    if (dev && dev->drv && (dev->drv->bus_type == MO_BUS_SCSI)) {
-        dev->callback = -1.0; /* Speed depends on SCSI controller */
-        return 0.0;
-    } else {
-        if (dev && dev->drv)
-            ret = ide_atapi_get_period(dev->drv->ide_channel);
-        if (ret == -1.0) {
-            if (dev)
-                dev->callback = -1.0;
-            return 0.0;
-        } else
-            return ret * 1000000.0;
+    if (dev && dev->drv)
+        ret = ide_atapi_get_period(dev->drv->ide_channel);
+
+    if (ret == -1.0) {
+        if (dev)
+            dev->callback = -1.0;
+        ret = 0.0;
     }
+
+    return ret;
 }
 
 static void
@@ -504,18 +517,10 @@ mo_command_common(mo_t *dev)
     dev->tf->pos    = 0;
     if (dev->packet_status == PHASE_COMPLETE)
         dev->callback = 0.0;
-    else {
-        double bytes_per_second;
-
-        if (dev->drv->bus_type == MO_BUS_SCSI) {
-            dev->callback = -1.0; /* Speed depends on SCSI controller */
-            return;
-        } else
-            bytes_per_second = mo_bus_speed(dev);
-
-        const double period = 1000000.0 / bytes_per_second;
-        dev->callback       = period * (double) (dev->packet_len);
-    }
+    else if (dev->drv->bus_type == MO_BUS_SCSI)
+        dev->callback = -1.0; /* Speed depends on SCSI controller */
+    else
+        dev->callback = mo_bus_speed(dev) * (double) (dev->packet_len);
 
     mo_set_callback(dev);
 }
@@ -590,7 +595,10 @@ mo_data_command_finish(mo_t *dev, int len, const int block_len,
                 mo_command_write_dma(dev);
         } else {
             mo_update_request_length(dev, len, block_len);
-            if (direction == 0)
+            if ((dev->drv->bus_type != MO_BUS_SCSI) &&
+                (dev->tf->request_length == 0))
+                mo_command_complete(dev);
+            else if (direction == 0)
                 mo_command_read(dev);
             else
                 mo_command_write(dev);
@@ -631,6 +639,7 @@ mo_cmd_error(mo_t *dev)
     dev->callback          = 50.0 * MO_TIME;
     mo_set_callback(dev);
     ui_sb_update_icon(SB_MO | dev->id, 0);
+    ui_sb_update_icon_write(SB_MO | dev->id, 0);
     mo_log(dev->log, "[%02X] ERROR: %02X/%02X/%02X\n", dev->current_cdb[0], mo_sense_key,
            mo_asc, mo_ascq);
 }
@@ -647,6 +656,7 @@ mo_unit_attention(mo_t *dev)
     dev->callback      = 50.0 * MO_TIME;
     mo_set_callback(dev);
     ui_sb_update_icon(SB_MO | dev->id, 0);
+    ui_sb_update_icon_write(SB_MO | dev->id, 0);
     mo_log(dev->log, "UNIT ATTENTION\n");
 }
 
@@ -793,52 +803,54 @@ mo_invalid_field_pl(mo_t *dev, const uint32_t field)
 }
 
 static int
-mo_blocks(mo_t *dev, int32_t *len, int out)
+mo_blocks(mo_t *dev, int32_t *len, const int out)
 {
-    int ret = 0;
-
+    int ret = 1;
     *len    = 0;
 
-    if (!dev->sector_len)
-        mo_command_complete(dev);
-    else {
+    if (dev->sector_len > 0) {
         mo_log(dev->log, "%sing %i blocks starting from %i...\n", out ? "Writ" : "Read",
                dev->requested_blocks, dev->sector_pos);
 
-        if (dev->sector_pos >= dev->drv->medium_size) {
-            mo_log(dev->log, "Trying to %s beyond the end of disk\n", out ? "write" : "read");
+        if (!dev->drv->supported) {
+            mo_log(dev->log, "Trying to %s an unsupported medium\n",
+                   out ? "write" : "read");
+            out ? mo_write_error(dev) : mo_read_error(dev);
+            ret = 0;
+        } else if (dev->sector_pos >= dev->drv->medium_size) {
+            mo_log(dev->log, "Trying to %s beyond the end of disk\n",
+                   out ? "write" : "read");
             mo_lba_out_of_range(dev);
+            ret = 0;
         } else {
-            *len = dev->requested_blocks * dev->drv->sector_size;
-            ret  = 1;
+            *len    = dev->requested_blocks * dev->drv->sector_size;
 
             for (int i = 0; i < dev->requested_blocks; i++) {
-                if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos * dev->drv->sector_size) + (i * dev->drv->sector_size), SEEK_SET) == -1) {
+                if (fseeko64(dev->drv->fp, (uint64_t) dev->drv->base +
+                             (uint64_t) (dev->sector_pos * dev->drv->sector_size),
+                    SEEK_SET) == -1) {
                     if (out)
                         mo_write_error(dev);
                     else
                         mo_read_error(dev);
-
                     ret = -1;
                 } else {
-                    if (!feof(dev->drv->fp))
+                    if (feof(dev->drv->fp))
                         break;
 
                     if (out) {
                         if (fwrite(dev->buffer + (i * dev->drv->sector_size), 1,
-                                  dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size) {
+                                   dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size) {
                             mo_log(dev->log, "mo_blocks(): Error writing data\n");
                             mo_write_error(dev);
                             ret = -1;
                         } else
                             fflush(dev->drv->fp);
-                    } else {
-                        if (fread(dev->buffer + (i * dev->drv->sector_size), 1,
-                                  dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size) {
-                            mo_log(dev->log, "mo_blocks(): Error reading data\n");
-                            mo_read_error(dev);
-                            ret = -1;
-                        }
+                    } else if (fread(dev->buffer + (i * dev->drv->sector_size), 1,
+                                     dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size) {
+                        mo_log(dev->log, "mo_blocks(): Error reading data\n");
+                        mo_read_error(dev);
+                        ret = -1;
                     }
                 }
 
@@ -849,11 +861,15 @@ mo_blocks(mo_t *dev, int32_t *len, int out)
             }
 
             if (ret == 1) {
-                mo_log(dev->log, "%s %i bytes of blocks...\n", out ? "Written" : "Read", *len);
+                mo_log(dev->log, "%s %i bytes of blocks...\n", out ? "Written" :
+                       "Read", *len);
 
                 dev->sector_len -= dev->requested_blocks;
             }
         }
+    } else {
+        mo_command_complete(dev);
+        ret = 0;
     }
 
     return ret;
@@ -888,8 +904,8 @@ mo_format(mo_t *dev)
 
     mo_log(dev->log, "Formatting media...\n");
 
-    fseek(dev->drv->fp, 0, SEEK_END);
-    long size = ftell(dev->drv->fp);
+    fseeko64(dev->drv->fp, 0, SEEK_END);
+    int64_t size = ftello64(dev->drv->fp);
 
 #ifdef _WIN32
     LARGE_INTEGER liSize;
@@ -953,7 +969,11 @@ mo_erase(mo_t *dev)
     mo_log(dev->log, "Erasing %i blocks starting from %i...\n",
            dev->sector_len, dev->sector_pos);
 
-    if (dev->sector_pos >= dev->drv->medium_size) {
+    if (!dev->drv->supported) {
+        mo_log(dev->log, "Trying to erase an unsupported medium\n");
+        mo_write_error(dev);
+        return 0;
+    } else if (dev->sector_pos >= dev->drv->medium_size) {
         mo_log(dev->log, "Trying to erase beyond the end of disk\n");
         mo_lba_out_of_range(dev);
         return 0;
@@ -962,8 +982,9 @@ mo_erase(mo_t *dev)
     mo_buf_alloc(dev, dev->drv->sector_size);
     memset(dev->buffer, 0, dev->drv->sector_size);
 
-    fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos * dev->drv->sector_size),
-          SEEK_SET);
+    fseeko64(dev->drv->fp, dev->drv->base +
+             ((uint64_t) dev->sector_pos * dev->drv->sector_size),
+             SEEK_SET);
 
     for (i = 0; i < dev->requested_blocks; i++) {
         if (feof(dev->drv->fp))
@@ -1347,6 +1368,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                 mo_buf_alloc(dev, dev->packet_len);
 
                 const int ret = mo_blocks(dev, &alloc_length, 0);
+                alloc_length  = dev->requested_blocks * dev->drv->sector_size;
 
                 if (ret > 0) {
                     dev->requested_blocks = max_len;
@@ -1383,6 +1405,9 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                 mo_set_phase(dev, SCSI_PHASE_STATUS);
                 mo_command_complete(dev);
                 break;
+            } else if (!dev->drv->supported) {
+                mo_read_error(dev);
+                break;
             }
             fallthrough;
         case GPCMD_WRITE_6:
@@ -1391,7 +1416,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_WRITE_12:
         case GPCMD_WRITE_AND_VERIFY_12:
             mo_set_phase(dev, SCSI_PHASE_DATA_OUT);
-            alloc_length = 512;
+            alloc_length = dev->drv->sector_size;
 
             switch (cdb[0]) {
                 case GPCMD_VERIFY_6:
@@ -1430,7 +1455,9 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                     break;
             }
 
-            if (dev->sector_pos > (mo_types[dev->drv->type].sectors - 1))
+            if (!dev->drv->supported)
+                mo_write_error(dev);
+            else if (dev->sector_pos >= dev->drv->medium_size)
                 mo_lba_out_of_range(dev);
             else {
                 if (dev->sector_len) {
@@ -1441,14 +1468,14 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                     mo_buf_alloc(dev, dev->packet_len);
 
                     dev->requested_blocks = max_len;
-                    dev->packet_len       = max_len << 9;
+                    dev->packet_len       = max_len * dev->drv->sector_size;
 
                     mo_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
 
-                    mo_data_command_finish(dev, dev->packet_len, 512,
+                    mo_data_command_finish(dev, dev->packet_len, dev->drv->sector_size,
                                            dev->packet_len, 1);
 
-                    ui_sb_update_icon(SB_MO | dev->id,
+                    ui_sb_update_icon_write(SB_MO | dev->id,
                                       dev->packet_status != PHASE_COMPLETE);
                 } else {
                     mo_set_phase(dev, SCSI_PHASE_STATUS);
@@ -1461,7 +1488,8 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
             break;
 
         case GPCMD_WRITE_SAME_10:
-            alloc_length = 512;
+            mo_set_phase(dev, SCSI_PHASE_DATA_OUT);
+            alloc_length = dev->drv->sector_size;
 
             if ((cdb[1] & 6) == 6)
                 mo_invalid_field(dev, cdb[1]);
@@ -1469,7 +1497,9 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                 dev->sector_len = (cdb[7] << 8) | cdb[8];
                 dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
 
-                if (dev->sector_pos > (mo_types[dev->drv->type].sectors - 1))
+                if (!dev->drv->supported)
+                    mo_write_error(dev);
+                else if (dev->sector_pos >= dev->drv->medium_size)
                     mo_lba_out_of_range(dev);
                 else if (dev->sector_len) {
                     mo_buf_alloc(dev, alloc_length);
@@ -1480,10 +1510,11 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
 
                     mo_set_phase(dev, SCSI_PHASE_DATA_OUT);
 
-                    mo_data_command_finish(dev, 512, 512,
+                    mo_data_command_finish(dev, dev->drv->sector_size,
+                                           dev->drv->sector_size,
                                            alloc_length, 1);
 
-                    ui_sb_update_icon(SB_MO | dev->id,
+                    ui_sb_update_icon_write(SB_MO | dev->id,
                                       dev->packet_status != PHASE_COMPLETE);
                 } else {
                     mo_set_phase(dev, SCSI_PHASE_STATUS);
@@ -1829,7 +1860,7 @@ static uint8_t
 mo_phase_data_out(scsi_common_t *sc)
 {
     mo_t *         dev         = (mo_t *) sc;
-    const uint32_t last_sector = mo_types[dev->drv->type].sectors - 1;
+    const uint32_t last_sector = dev->drv->medium_size - 1;
     int            len         = 0;
     uint8_t        error       = 0;
     uint32_t       last_to_write;
@@ -1877,7 +1908,8 @@ mo_phase_data_out(scsi_common_t *sc)
                     dev->buffer[6] = (s >> 8) & 0xff;
                     dev->buffer[7] = s & 0xff;
                 }
-                if (fseek(dev->drv->fp, (i * dev->drv->sector_size), SEEK_SET) == -1)
+                if (fseeko64(dev->drv->fp,
+                             ((uint64_t) i * dev->drv->sector_size), SEEK_SET) == -1)
                     mo_write_error(dev);
                 if (feof(dev->drv->fp))
                     break;
@@ -1911,6 +1943,9 @@ mo_phase_data_out(scsi_common_t *sc)
                 block_desc_len = 0;
 
             pos = hdr_len + block_desc_len;
+            mo_log(dev->log, "Block descriptor: %08X %08X %08X %08X %08X %08X %08X %08X\n",
+                   dev->buffer[hdr_len], dev->buffer[hdr_len + 1], dev->buffer[hdr_len + 2], dev->buffer[hdr_len + 3],
+                   dev->buffer[hdr_len + 4], dev->buffer[hdr_len + 5], dev->buffer[hdr_len + 6], dev->buffer[hdr_len + 7]);
 
             while (1) {
                 if (pos >= param_list_len) {
@@ -1981,7 +2016,7 @@ mo_get_max(UNUSED(const ide_t *ide), const int ide_has_dma, const int type)
 
     switch (type) {
         case TYPE_PIO:
-            ret = ide_has_dma ? 3 : 0;
+            ret = 3;
             break;
         case TYPE_SDMA:
         default:
@@ -2008,10 +2043,10 @@ mo_get_timings(UNUSED(const ide_t *ide), const int ide_has_dma, const int type)
             ret = ide_has_dma ? 0x96 : 0;
             break;
         case TIMINGS_PIO:
-            ret = ide_has_dma ? 0xb4 : 0;
+            ret = 0xf0;
             break;
         case TIMINGS_PIO_FC:
-            ret = ide_has_dma ? 0xb4 : 0;
+            ret = 0xb4;
             break;
         default:
             ret = 0;

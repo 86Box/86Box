@@ -32,6 +32,7 @@
 #include <86box/86box.h>
 #include <86box/sound.h>
 #include <86box/device.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/snd_opl.h>
 #include <86box/plat_unused.h>

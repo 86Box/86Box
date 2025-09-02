@@ -23,6 +23,7 @@
 #include <86box/io.h>
 #include <86box/timer.h>
 #include <86box/device.h>
+#include <86box/keyboard.h>
 #include <86box/lpt.h>
 #include <86box/mem.h>
 #include <86box/nvr.h>
@@ -42,9 +43,12 @@ typedef struct pc87306_t {
     uint8_t   regs[29];
     uint8_t   gpio[2];
     uint16_t  gpioba;
+    uint16_t  kbc_type;
     int       cur_reg;
     fdc_t    *fdc;
+    void     *kbc;
     serial_t *uart[2];
+    lpt_t    *lpt;
     nvr_t    *nvr;
 } pc87306_t;
 
@@ -115,12 +119,15 @@ pc87306_gpio_handler(pc87306_t *dev)
 }
 
 static void
-lpt1_handler(pc87306_t *dev)
+lpt_handler(pc87306_t *dev)
 {
     int      temp;
     uint16_t lptba;
-    uint16_t lpt_port = LPT1_ADDR;
-    uint8_t  lpt_irq = LPT2_IRQ;
+    uint16_t lpt_port      = LPT1_ADDR;
+    uint8_t  lpt_irq       = LPT2_IRQ;
+    uint8_t  cnfgb_readout = 0x08;
+
+    lpt_port_remove(dev->lpt);
 
     temp  = dev->regs[0x01] & 3;
     lptba = ((uint16_t) dev->regs[0x19]) << 2;
@@ -153,10 +160,23 @@ lpt1_handler(pc87306_t *dev)
     if (dev->regs[0x1b] & 0x10)
         lpt_irq = (dev->regs[0x1b] & 0x20) ? 7 : 5;
 
-    if (lpt_port)
-        lpt1_setup(lpt_port);
+    cnfgb_readout |= (lpt_irq == 5) ? 0x30 : 0x00;
+    cnfgb_readout |= (dev->regs[0x18] & 0x06) >> 1;
 
-    lpt1_irq(lpt_irq);
+    lpt_set_cnfgb_readout(dev->lpt, cnfgb_readout);
+    lpt_set_ext(dev->lpt, !!(dev->regs[0x02] & 0x80));
+
+    lpt_set_epp(dev->lpt, !!(dev->regs[0x04] & 0x01));
+    lpt_set_ecp(dev->lpt, !!(dev->regs[0x04] & 0x04));
+
+    if (lpt_port)
+        lpt_port_setup(dev->lpt, lpt_port);
+
+    lpt_port_irq(dev->lpt, lpt_irq);
+
+    if (((jumpered_internal_ecp_dma < 0) || (jumpered_internal_ecp_dma == 4)) &&
+        ((dev->regs[0x18] & 0x06) != 0x00))
+        lpt_port_dma(dev->lpt, (dev->regs[0x18] & 0x08) ? 3 : 1);
 }
 
 static void
@@ -169,7 +189,7 @@ serial_handler(pc87306_t *dev, int uart)
     uint8_t pnp_shift;
     uint8_t irq;
 
-    temp = (dev->regs[1] >> (2 << uart)) & 3;
+    temp = (dev->regs[0x01] >> (2 << uart)) & 3;
 
     fer_shift = 2 << uart;       /* 2 for UART 1, 4 for UART 2 */
     pnp_shift = 2 + (uart << 2); /* 2 for UART 1, 6 for UART 2 */
@@ -188,7 +208,7 @@ serial_handler(pc87306_t *dev, int uart)
             serial_setup(dev->uart[uart], COM2_ADDR, irq);
             break;
         case 2:
-            switch ((dev->regs[1] >> 6) & 3) {
+            switch ((dev->regs[0x01] >> 6) & 3) {
                 case 0:
                     serial_setup(dev->uart[uart], COM3_ADDR, irq);
                     break;
@@ -207,7 +227,7 @@ serial_handler(pc87306_t *dev, int uart)
             }
             break;
         case 3:
-            switch ((dev->regs[1] >> 6) & 3) {
+            switch ((dev->regs[0x01] >> 6) & 3) {
                 case 0:
                     serial_setup(dev->uart[uart], COM4_ADDR, irq);
                     break;
@@ -229,6 +249,15 @@ serial_handler(pc87306_t *dev, int uart)
         default:
             break;
     }
+}
+
+static void
+kbc_handler(pc87306_t *dev)
+{
+    kbc_at_handler(0, 0x0060, dev->kbc);
+
+    if (dev->regs[0x05] & 0x01)
+        kbc_at_handler(1, 0x0060, dev->kbc);
 }
 
 static void
@@ -264,54 +293,54 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
 
     switch (dev->cur_reg) {
         case 0x00:
-            if (valxor & 1) {
-                lpt1_remove();
-                if ((val & 1) && !(dev->regs[2] & 1))
-                    lpt1_handler(dev);
+            if (valxor & 0x01) {
+                lpt_port_remove(dev->lpt);
+                if ((val & 1) && !(dev->regs[0x02] & 1))
+                    lpt_handler(dev);
             }
-            if (valxor & 2) {
-                serial_remove(dev->uart[0]);
-                if ((val & 2) && !(dev->regs[2] & 1))
+            if (valxor & 0x02) {
+                serial_remove(dev->uart[0x00]);
+                if ((val & 2) && !(dev->regs[0x02] & 1))
                     serial_handler(dev, 0);
             }
-            if (valxor & 4) {
-                serial_remove(dev->uart[1]);
-                if ((val & 4) && !(dev->regs[2] & 1))
+            if (valxor & 0x04) {
+                serial_remove(dev->uart[0x01]);
+                if ((val & 4) && !(dev->regs[0x02] & 1))
                     serial_handler(dev, 1);
             }
             if (valxor & 0x28) {
                 fdc_remove(dev->fdc);
-                if ((val & 8) && !(dev->regs[2] & 1))
+                if ((val & 8) && !(dev->regs[0x02] & 1))
                     fdc_set_base(dev->fdc, (val & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
             }
             break;
         case 0x01:
-            if (valxor & 3) {
-                lpt1_remove();
-                if ((dev->regs[0] & 1) && !(dev->regs[2] & 1))
-                    lpt1_handler(dev);
+            if (valxor & 0x03) {
+                lpt_port_remove(dev->lpt);
+                if ((dev->regs[0x00] & 1) && !(dev->regs[0x02] & 1))
+                    lpt_handler(dev);
             }
             if (valxor & 0xcc) {
-                serial_remove(dev->uart[0]);
-                if ((dev->regs[0] & 2) && !(dev->regs[2] & 1))
+                serial_remove(dev->uart[0x00]);
+                if ((dev->regs[0x00] & 2) && !(dev->regs[0x02] & 1))
                     serial_handler(dev, 0);
             }
             if (valxor & 0xf0) {
-                serial_remove(dev->uart[1]);
-                if ((dev->regs[0] & 4) && !(dev->regs[2] & 1))
+                serial_remove(dev->uart[0x01]);
+                if ((dev->regs[0x00] & 4) && !(dev->regs[0x02] & 1))
                     serial_handler(dev, 1);
             }
             break;
         case 0x02:
             if (valxor & 0x01) {
-                lpt1_remove();
+                lpt_port_remove(dev->lpt);
                 serial_remove(dev->uart[0x00]);
                 serial_remove(dev->uart[0x01]);
                 fdc_remove(dev->fdc);
 
                 if (!(val & 1)) {
                     if (dev->regs[0x00] & 0x01)
-                        lpt1_handler(dev);
+                        lpt_handler(dev);
                     if (dev->regs[0x00] & 0x02)
                         serial_handler(dev, 0);
                     if (dev->regs[0x00] & 0x04)
@@ -320,17 +349,24 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
                         fdc_set_base(dev->fdc, (dev->regs[0x00] & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
                 }
             }
-            if (valxor & 0x08) {
-                lpt1_remove();
+            if (valxor & 0x88) {
+                lpt_port_remove(dev->lpt);
                 if ((dev->regs[0x00] & 1) && !(dev->regs[0x02] & 1))
-                    lpt1_handler(dev);
+                    lpt_handler(dev);
             }
             break;
         case 0x04:
+            if (valxor & (0x05)) {
+                lpt_port_remove(dev->lpt);
+                if ((dev->regs[0x00] & 0x01) && !(dev->regs[0x02] & 0x01))
+                    lpt_handler(dev);
+            }
             if (valxor & 0x80)
                 nvr_lock_set(0x00, 256, !!(val & 0x80), dev->nvr);
             break;
         case 0x05:
+            if (valxor & 0x01)
+                kbc_handler(dev);
             if (valxor & 0x08)
                 nvr_at_handler(!!(val & 0x08), 0x0070, dev->nvr);
             if (valxor & 0x20)
@@ -341,6 +377,8 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
                 fdc_update_enh_mode(dev->fdc, (val & 4) ? 1 : 0);
                 fdc_update_densel_polarity(dev->fdc, (val & 0x40) ? 1 : 0);
             }
+            if (valxor & 0x20)
+                lpt_set_cnfga_readout(dev->lpt, (val & 0x20) ? 0x18 : 0x10);
             break;
         case 0x0f:
             if (valxor)
@@ -352,30 +390,37 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
             if (valxor & 0x30)
                 pc87306_gpio_handler(dev);
             break;
+        case 0x18:
+            if (valxor & (0x0e)) {
+                lpt_port_remove(dev->lpt);
+                if ((dev->regs[0x00] & 0x01) && !(dev->regs[0x02] & 0x01))
+                    lpt_handler(dev);
+            }
+            break;
         case 0x19:
             if (valxor) {
-                lpt1_remove();
-                if ((dev->regs[0] & 1) && !(dev->regs[2] & 1))
-                    lpt1_handler(dev);
+                lpt_port_remove(dev->lpt);
+                if ((dev->regs[0x00] & 1) && !(dev->regs[0x02] & 1))
+                    lpt_handler(dev);
             }
             break;
         case 0x1b:
             if (valxor & 0x70) {
-                lpt1_remove();
+                lpt_port_remove(dev->lpt);
                 if (!(val & 0x40))
-                    dev->regs[0x19] = 0xEF;
-                if ((dev->regs[0] & 1) && !(dev->regs[2] & 1))
-                    lpt1_handler(dev);
+                    dev->regs[0x19] = 0xef;
+                if ((dev->regs[0x00] & 1) && !(dev->regs[0x02] & 1))
+                    lpt_handler(dev);
             }
             break;
         case 0x1c:
             if (valxor) {
-                serial_remove(dev->uart[0]);
-                serial_remove(dev->uart[1]);
+                serial_remove(dev->uart[0x00]);
+                serial_remove(dev->uart[0x01]);
 
-                if ((dev->regs[0] & 2) && !(dev->regs[2] & 1))
+                if ((dev->regs[0x00] & 2) && !(dev->regs[0x02] & 1))
                     serial_handler(dev, 0);
-                if ((dev->regs[0] & 4) && !(dev->regs[2] & 1))
+                if ((dev->regs[0x00] & 4) && !(dev->regs[0x02] & 1))
                     serial_handler(dev, 1);
             }
             break;
@@ -394,15 +439,21 @@ pc87306_read(uint16_t port, void *priv)
 
     index = (port & 1) ? 0 : 1;
 
-    dev->tries = 0;
-
-    if (index)
+    if (dev->tries == 0xff) {
+        ret = 0x88;
+        dev->tries = 0xfe;
+    } else if (dev->tries == 0xfe) {
+        ret = 0x00;
+        dev->tries = 0;
+    } else if (index) {
         ret = dev->cur_reg & 0x1f;
-    else {
+        dev->tries = 0;
+    } else {
         if (dev->cur_reg == 8)
             ret = 0x70;
         else if (dev->cur_reg < 28)
             ret = dev->regs[dev->cur_reg];
+        dev->tries = 0;
     }
 
     return ret;
@@ -414,6 +465,8 @@ pc87306_reset_common(void *priv)
     pc87306_t *dev = (pc87306_t *) priv;
 
     memset(dev->regs, 0, 29);
+
+    dev->tries = 0xff;
 
     dev->regs[0x00] = 0x0B;
     dev->regs[0x01] = 0x01;
@@ -430,10 +483,11 @@ pc87306_reset_common(void *priv)
         0 = 360 rpm @ 500 kbps for 3.5"
         1 = Default, 300 rpm @ 500, 300, 250, 1000 kbps for 3.5"
     */
-    lpt1_remove();
-    lpt1_handler(dev);
-    serial_remove(dev->uart[0]);
-    serial_remove(dev->uart[1]);
+    lpt_set_cnfga_readout(dev->lpt, 0x10);
+    lpt_port_remove(dev->lpt);
+    lpt_handler(dev);
+    serial_remove(dev->uart[0x00]);
+    serial_remove(dev->uart[0x01]);
     serial_handler(dev, 0);
     serial_handler(dev, 1);
     fdc_reset(dev->fdc);
@@ -469,12 +523,30 @@ pc87306_init(UNUSED(const device_t *info))
 {
     pc87306_t *dev = (pc87306_t *) calloc(1, sizeof(pc87306_t));
 
+    dev->kbc_type  = info->local & PCX730X_KBC;
+
     dev->fdc = device_add(&fdc_at_nsc_device);
 
-    dev->uart[0] = device_add_inst(&ns16550_device, 1);
-    dev->uart[1] = device_add_inst(&ns16550_device, 2);
+    dev->uart[0x00] = device_add_inst(&ns16550_device, 1);
+    dev->uart[0x01] = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
+    lpt_set_cnfga_readout(dev->lpt, 0x10);
 
     dev->nvr = device_add(&at_mb_nvr_device);
+
+    switch (dev->kbc_type) {
+        case PCX730X_AMI:
+        default:
+            dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_AMI | 0x00003500));
+            break;
+        case PCX730X_PHOENIX_42:
+            dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_PHOENIX | 0x00013700));
+            break;
+        case PCX730X_PHOENIX_42I:
+            dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_PHOENIX | 0x00041600));
+            break;
+    }
 
     dev->gpio[0] = dev->gpio[1] = 0xff;
 

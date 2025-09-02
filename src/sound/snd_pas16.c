@@ -789,6 +789,13 @@ pas16_in(uint16_t port, void *priv)
                 scsi_bus = &pas16->scsi->ncr.scsibus;
                 /* Bits 0-6 must absolutely be set for SCSI hard disk drivers to work. */
                 ret = (((scsi_bus->tx_mode != PIO_TX_BUS) && (pas16->scsi->status & 0x04)) << 7) | 0x7f;
+                if ((scsi_bus->tx_mode == PIO_TX_BUS) && !(ret & 0x80))
+                    ret |= 0x80;
+
+                if ((pas16->scsi->status & 0x06) == 0x00)
+                    ret = 0x00;
+
+                pas16_log("%04X:%08X: Port %04x read ret=%02x, status=%02x, txmode=%x, repeat=%d, total=%d.\n", CS, cpu_state.pc, port + pas16->base, ret, pas16->scsi->status & 0x06, scsi_bus->tx_mode, scsi_bus->data_repeat, MIN(511, scsi_bus->total_len));
             }
             break;
         case 0x5c03:
@@ -1190,6 +1197,7 @@ pas16_scsi_callback(void *priv)
 
     t128_callback(pas16->scsi);
 
+    pas16_log("TimeOutStatus=%02x, t128stat=%02x.\n", pas16->timeout_status, dev->status);
     if ((scsi_bus->tx_mode != PIO_TX_BUS) && (dev->status & 0x04)) {
         timer_stop(&pas16->scsi_timer);
         pas16->timeout_status &= 0x7f;
@@ -1744,7 +1752,7 @@ static uint16_t
 pas16_readdmaw_stereo(pas16_t *pas16)
 {
     uint16_t ret;
-    uint16_t ticks = (pas16->sys_conf_1 & 0x02) ? (1 + (pas16->dma < 5)) : 2;
+    uint16_t ticks = (pas16->sys_conf_1 & 0x02) ? (1 + (pas16->dma < 5)) : 1;
 
     ret = pas16_dma_readw(pas16, ticks);
 

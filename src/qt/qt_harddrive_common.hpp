@@ -9,6 +9,7 @@ class SettingsBusTracking;
 
 namespace Harddrives {
 void                        populateBuses(QAbstractItemModel *model);
+void                        populateCDROMBuses(QAbstractItemModel *model);
 void                        populateRemovableBuses(QAbstractItemModel *model);
 void                        populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusTracking *sbt = nullptr);
 void                        populateSpeeds(QAbstractItemModel *model, int bus);

@@ -288,6 +288,7 @@ cmd_unsupported(esdi_t *dev)
     dev->irq_in_progress = 1;
     set_irq(dev);
     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
 }
 
 static void
@@ -309,6 +310,7 @@ device_not_present(esdi_t *dev)
     dev->irq_in_progress = 1;
     set_irq(dev);
     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
 }
 
 static void
@@ -330,6 +332,7 @@ rba_out_of_range(esdi_t *dev)
     dev->irq_in_progress = 1;
     set_irq(dev);
     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
 }
 
 static void
@@ -351,6 +354,7 @@ defective_block(esdi_t *dev)
     dev->irq_in_progress = 1;
     set_irq(dev);
     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
 }
 
 static void
@@ -368,6 +372,7 @@ complete_command_status(esdi_t *dev)
     dev->status_data[5] = (dev->rba - 1) >> 8;
     dev->status_data[6] = 0; /*Number of blocks requiring error recovery*/
     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
 }
 
 #define ESDI_ADAPTER_ONLY()                      \
@@ -696,6 +701,7 @@ esdi_callback(void *priv)
             dev->irq_in_progress = 1;
             set_irq(dev);
             ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+            ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
             break;
 
         case CMD_GET_DEV_CONFIG:
@@ -744,6 +750,7 @@ esdi_callback(void *priv)
             dev->irq_in_progress = 1;
             set_irq(dev);
             ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+            ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
             break;
 
         case CMD_GET_POS_INFO:
@@ -764,6 +771,7 @@ esdi_callback(void *priv)
             dev->irq_in_progress = 1;
             set_irq(dev);
             ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+            ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
             break;
 
         case 0x10:
@@ -817,6 +825,7 @@ esdi_callback(void *priv)
                     dev->irq_in_progress = 1;
                     set_irq(dev);
                     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+                    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
                     break;
 
                 default:

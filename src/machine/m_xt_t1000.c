@@ -899,7 +899,7 @@ machine_xt_t1000_init(const machine_t *model)
     machine_common_init(model);
 
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
-    device_add(&keyboard_xt_t1x00_device);
+    device_add(&kbc_xt_t1x00_device);
     t1000.fdc = device_add(&fdc_xt_device);
     nmi_init();
 
@@ -957,7 +957,7 @@ machine_xt_t1200_init(const machine_t *model)
                     NULL, MEM_MAPPING_EXTERNAL, &t1000);
 
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
-    device_add(&keyboard_xt_t1x00_device);
+    device_add(&kbc_xt_t1x00_device);
     t1000.fdc = device_add(&fdc_xt_t1x00_device);
     nmi_init();
 

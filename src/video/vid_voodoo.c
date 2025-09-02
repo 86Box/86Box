@@ -530,6 +530,7 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                         voodoo_recalc(voodoo);
                         voodoo->front_offset = voodoo->params.front_offset;
                     }
+                    svga_recalctimings(voodoo->svga);
                 }
                 break;
             case SST_fbiInit1:

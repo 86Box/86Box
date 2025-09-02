@@ -96,3 +96,4 @@ AppDir:
 AppImage:
   arch: !ENV '${arch_appimage}'
   file_name: !ENV '${appimage_path}'
+  comp: gzip

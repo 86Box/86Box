@@ -218,6 +218,7 @@ codegen_CALL_FUNC_RESULT(codeblock_t *block, uop_t *uop)
 static int
 codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
 {
+    host_arm64_mov_imm(block, REG_ARG0, uop->imm_data);
     host_arm64_call(block, uop->p);
     host_arm64_CBNZ(block, REG_X0, (uintptr_t) codegen_exit_rout);
 
@@ -931,6 +932,8 @@ codegen_MEM_LOAD_REG(codeblock_t *block, uop_t *uop)
     host_arm64_ADD_REG(block, REG_X0, seg_reg, addr_reg, 0);
     if (uop->imm_data)
         host_arm64_ADD_IMM(block, REG_X0, REG_X0, uop->imm_data);
+    if (uop->is_a16)
+        host_arm64_AND_IMM(block, REG_X0, REG_X0, 0xffff);
     if (REG_IS_B(dest_size) || REG_IS_BH(dest_size)) {
         host_arm64_call(block, codegen_mem_load_byte);
     } else if (REG_IS_W(dest_size)) {

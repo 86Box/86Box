@@ -26,17 +26,23 @@
    <property name="bottomMargin">
     <number>0</number>
    </property>
-   <item row="5" column="0">
-    <widget class="QLabel" name="label_3">
+   <item row="0" column="0">
+    <widget class="QLabel" name="labelSoundCard1">
      <property name="text">
-      <string>MIDI In Device:</string>
+      <string>Sound card #1:</string>
      </property>
     </widget>
    </item>
-   <item row="0" column="0">
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>Sound card #1:</string>
+   <item row="0" column="1">
+    <widget class="QComboBox" name="comboBoxSoundCard1">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
     </widget>
    </item>
@@ -48,9 +54,22 @@
     </widget>
    </item>
    <item row="1" column="0">
-    <widget class="QLabel" name="label_4">
+    <widget class="QLabel" name="labelSoundCard2">
      <property name="text">
       <string>Sound card #2:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QComboBox" name="comboBoxSoundCard2">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
     </widget>
    </item>
@@ -62,9 +81,22 @@
     </widget>
    </item>
    <item row="2" column="0">
-    <widget class="QLabel" name="label_5">
+    <widget class="QLabel" name="labelSoundCard3">
      <property name="text">
       <string>Sound card #3:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QComboBox" name="comboBoxSoundCard3">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
     </widget>
    </item>
@@ -75,11 +107,23 @@
      </property>
     </widget>
    </item>
-
    <item row="3" column="0">
-    <widget class="QLabel" name="label_6">
+    <widget class="QLabel" name="labelSoundCard4">
      <property name="text">
       <string>Sound card #4:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QComboBox" name="comboBoxSoundCard4">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
     </widget>
    </item>
@@ -90,46 +134,10 @@
      </property>
     </widget>
    </item>
-
-
-   <item row="5" column="1">
-    <widget class="QComboBox" name="comboBoxMidiIn">
-     <property name="maxVisibleItems">
-      <number>30</number>
-     </property>
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-    </widget>
-   </item>
    <item row="4" column="0">
-    <widget class="QLabel" name="label_2">
+    <widget class="QLabel" name="labelMidiOut">
      <property name="text">
       <string>MIDI Out Device:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="0">
-    <widget class="QCheckBox" name="checkBoxMPU401">
-     <property name="text">
-      <string>Standalone MPU-401</string>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="3">
-    <widget class="QPushButton" name="pushButtonConfigureMPU401">
-     <property name="text">
-      <string>Configure</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="3">
-    <widget class="QPushButton" name="pushButtonConfigureMidiIn">
-     <property name="text">
-      <string>Configure</string>
      </property>
     </widget>
    </item>
@@ -153,6 +161,47 @@
      </property>
     </widget>
    </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="labelMidiIn">
+     <property name="text">
+      <string>MIDI In Device:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QComboBox" name="comboBoxMidiIn">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="3">
+    <widget class="QPushButton" name="pushButtonConfigureMidiIn">
+     <property name="text">
+      <string>Configure</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QCheckBox" name="checkBoxMPU401">
+     <property name="text">
+      <string>Standalone MPU-401</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="3">
+    <widget class="QPushButton" name="pushButtonConfigureMPU401">
+     <property name="text">
+      <string>Configure</string>
+     </property>
+    </widget>
+   </item>
    <item row="10" column="0">
     <widget class="QCheckBox" name="checkBoxFloat32">
      <property name="text">
@@ -171,7 +220,7 @@
      <property name="title">
       <string>FM synth driver</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_1">
+     <layout class="QVBoxLayout" name="verticalLayoutFM">
       <item>
        <widget class="QRadioButton" name="radioButtonNuked">
         <property name="text">
@@ -201,58 +250,6 @@
       </size>
      </property>
     </spacer>
-   </item>
-   <item row="0" column="1">
-    <widget class="QComboBox" name="comboBoxSoundCard1">
-     <property name="maxVisibleItems">
-      <number>30</number>
-     </property>
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1">
-    <widget class="QComboBox" name="comboBoxSoundCard2">
-     <property name="maxVisibleItems">
-      <number>30</number>
-     </property>
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="1">
-    <widget class="QComboBox" name="comboBoxSoundCard3">
-     <property name="maxVisibleItems">
-      <number>30</number>
-     </property>
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="1">
-    <widget class="QComboBox" name="comboBoxSoundCard4">
-     <property name="maxVisibleItems">
-      <number>30</number>
-     </property>
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-    </widget>
    </item>
   </layout>
  </widget>

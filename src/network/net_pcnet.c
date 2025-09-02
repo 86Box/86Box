@@ -3256,8 +3256,12 @@ const device_t pcnet_am79c960_eb_device = {
     .config        = pcnet_isa_config
 };
 
+/*
+   Used to be incorrectly called "AMD PCnet-VL" but the real name of the chip is "AMD PCnet-32" per the relevant datasheet.
+   https://theretroweb.com/chip/documentation/am79c965-66c24a7e6969d347126123.pdf
+*/
 const device_t pcnet_am79c960_vlb_device = {
-    .name          = "AMD PCnet-VL",
+    .name          = "AMD PCnet-32",
     .internal_name = "pcnetvlb",
     .flags         = DEVICE_VLB,
     .local         = DEV_AM79C960_VLB,

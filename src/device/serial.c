@@ -27,6 +27,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/machine.h>
 #include <86box/io.h>
@@ -475,6 +476,12 @@ serial_set_clock_src(serial_t *dev, double clock_src)
 }
 
 void
+serial_set_type(serial_t *dev, uint8_t type)
+{
+    dev->type = type;
+}
+
+void
 serial_write(uint16_t addr, uint8_t val, void *priv)
 {
     serial_t *dev = (serial_t *) priv;
@@ -745,6 +752,14 @@ serial_read(uint16_t addr, void *priv)
     return ret;
 }
 
+uint8_t
+serial_get_shadow(serial_t *dev)
+{
+    uint8_t ret = dev->fcr;
+
+    return ret;
+}
+
 void
 serial_remove(serial_t *dev)
 {
@@ -883,10 +898,10 @@ serial_close(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
 
-    next_inst--;
-
-    if (com_ports[dev->inst].enabled)
+    if (dev->sd) {
+        memset(dev->sd, 0, sizeof(serial_device_t));
         fifo_close(dev->rcvr_fifo);
+    }
 
     free(dev);
 }
@@ -896,7 +911,7 @@ serial_reset(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
 
-    if (com_ports[dev->inst].enabled) {
+    if (dev->sd) {
         timer_disable(&dev->transmit_timer);
         timer_disable(&dev->timeout_timer);
         timer_disable(&dev->receive_timer);
@@ -929,16 +944,26 @@ static void *
 serial_init(const device_t *info)
 {
     serial_t *dev = (serial_t *) calloc(1, sizeof(serial_t));
+    int orig_inst = next_inst;
+
+    if (info->local & 0xFFF00000)
+        next_inst = SERIAL_MAX - 1;
 
     dev->inst = next_inst;
 
-    if (com_ports[next_inst].enabled) {
+    if (com_ports[next_inst].enabled || (info->local & 0xFFF00000)) {
         serial_log("Adding serial port %i...\n", next_inst);
         dev->type = info->local;
         memset(&(serial_devices[next_inst]), 0, sizeof(serial_device_t));
         dev->sd         = &(serial_devices[next_inst]);
         dev->sd->serial = dev;
-        if (next_inst == 6)
+
+        if (info->local & 0xfff00000) {
+            dev->base_address = info->local >> 20;
+            dev->irq          = (info->local >> 16) & 0xF;
+            io_sethandler(dev->base_address, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, dev);
+            next_inst = orig_inst;
+        } else if (next_inst == 6)
             serial_setup(dev, COM7_ADDR, COM7_IRQ);
         else if (next_inst == 5)
             serial_setup(dev, COM6_ADDR, COM6_IRQ);
@@ -983,7 +1008,8 @@ serial_init(const device_t *info)
         serial_reset_port(dev);
     }
 
-    next_inst++;
+    if (!(info->local & 0xfff00000))
+        next_inst++;
 
     return dev;
 }
@@ -997,7 +1023,7 @@ serial_set_next_inst(int ni)
 void
 serial_standalone_init(void)
 {
-    while (next_inst < SERIAL_MAX)
+    while (next_inst < (SERIAL_MAX - 1))
         device_add_inst(&ns8250_device, next_inst + 1);
 };
 

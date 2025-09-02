@@ -846,6 +846,7 @@ VulkanWindowRenderer::createRenderer()
 void
 VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
 {
+    this->pixelRatio = devicePixelRatio();
     onResize(width(), height());
 
     QVulkanWindow::resizeEvent(event);
@@ -868,8 +869,10 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
     if (isExposed())
         requestUpdate();
     buf_usage[0].clear();
-    if (origSource != source)
+    if (origSource != source) {
+        this->pixelRatio = devicePixelRatio();
         onResize(this->width(), this->height());
+    }
 }
 
 uint32_t

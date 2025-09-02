@@ -63,12 +63,14 @@
 #include <86box/lpt.h>
 #include <86box/printer.h>
 #include <86box/prt_devs.h>
+#include "cpu.h"
+#include <86box/prt_papersizes.h>
 
 #define FULL_PAGE 1 /* set if no top/bot margins */
 
 /* Default page values (for now.) */
-#define PAGE_WIDTH   8.5 /* standard U.S. Letter */
-#define PAGE_HEIGHT  11
+#define PAGE_WIDTH  LETTER_PAGE_WIDTH
+#define PAGE_HEIGHT LETTER_PAGE_HEIGHT
 #define PAGE_LMARGIN 0.25 /* 0.25" left and right */
 #define PAGE_RMARGIN 0.25
 #if FULL_PAGE
@@ -212,7 +214,7 @@ timeout_timer(void *priv)
     if (dev->page->dirty)
         new_page(dev);
 
-    timer_disable(&dev->timeout_timer);
+    timer_stop(&dev->timeout_timer);
 }
 
 static void
@@ -242,7 +244,7 @@ reset_printer(prnt_t *dev)
     plat_tempfile(dev->filename, NULL, ".txt");
 
     timer_disable(&dev->pulse_timer);
-    timer_disable(&dev->timeout_timer);
+    timer_stop(&dev->timeout_timer);
 }
 
 static int
@@ -368,6 +370,34 @@ write_data(uint8_t val, void *priv)
 }
 
 static void
+strobe(uint8_t old, uint8_t val, void *priv)
+{
+    prnt_t *dev = (prnt_t *) priv;
+
+    if (dev == NULL)
+        return;
+
+    if (!(val & 0x01) && (old & 0x01)) { /* STROBE */
+        /* Process incoming character. */
+        handle_char(dev);
+
+        if (timer_is_on(&dev->timeout_timer)) {
+            timer_stop(&dev->timeout_timer);
+#ifdef USE_DYNAREC
+            if (cpu_use_dynarec)
+                update_tsc();
+#endif
+        }
+
+        /* ACK it, will be read on next READ STATUS. */
+        dev->ack = 1;
+
+        timer_set_delay_u64(&dev->pulse_timer, ISACONST);
+        timer_on_auto(&dev->timeout_timer, 5000000.0);
+    }
+}
+
+static void
 write_ctrl(uint8_t val, void *priv)
 {
     prnt_t *dev = (prnt_t *) priv;
@@ -376,7 +406,7 @@ write_ctrl(uint8_t val, void *priv)
         return;
 
     /* set autofeed value */
-    dev->autofeed = val & 0x02 ? 1 : 0;
+    dev->autofeed = (val & 0x02) ? 1 : 0;
 
     if (val & 0x08) { /* SELECT */
         /* select printer */
@@ -397,8 +427,16 @@ write_ctrl(uint8_t val, void *priv)
         /* ACK it, will be read on next READ STATUS. */
         dev->ack = 1;
 
+        if (timer_is_on(&dev->timeout_timer)) {
+            timer_stop(&dev->timeout_timer);
+#ifdef USE_DYNAREC
+            if (cpu_use_dynarec)
+                update_tsc();
+#endif
+        }
+
         timer_set_delay_u64(&dev->pulse_timer, ISACONST);
-        timer_set_delay_u64(&dev->timeout_timer, 5000000 * TIMER_USEC);
+        timer_on_auto(&dev->timeout_timer, 5000000.0);
     }
 
     dev->ctrl = val;
@@ -464,14 +502,60 @@ prnt_close(void *priv)
     free(dev);
 }
 
-const lpt_device_t lpt_prt_text_device = {
+// clang-format off
+#if 0
+static const device_config_t lpt_prt_text_config[] = {
+    {
+        .name           = "paper_size",
+        .description    = "Paper Size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Letter", .value = 0 },
+            { .description = "A4",     .value = 1 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+#endif
+// clang-format on
+
+const device_t prt_text_device = {
     .name          = "Generic Text Printer",
     .internal_name = "text_prt",
-    .init          = prnt_init,
-    .close         = prnt_close,
-    .write_data    = write_data,
-    .write_ctrl    = write_ctrl,
-    .read_data     = NULL,
-    .read_status   = read_status,
-    .read_ctrl     = NULL
+    .flags         = DEVICE_LPT,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+#if 0
+    .config        = lpt_prt_text_config
+#else
+    .config        = NULL
+#endif
+};
+
+const lpt_device_t lpt_prt_text_device = {
+    .name             = "Generic Text Printer",
+    .internal_name    = "text_prt",
+    .init             = prnt_init,
+    .close            = prnt_close,
+    .write_data       = write_data,
+    .write_ctrl       = write_ctrl,
+    .strobe           = strobe,
+    .read_status      = read_status,
+    .read_ctrl        = NULL,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL,
+    .priv             = NULL,
+    .lpt              = NULL,
+    .cfgdevice        = (device_t *) &prt_text_device
 };

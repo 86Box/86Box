@@ -11,7 +11,7 @@ class JoystickConfiguration : public QDialog {
     Q_OBJECT
 
 public:
-    explicit JoystickConfiguration(int type, int joystick_nr, QWidget *parent = nullptr);
+    explicit JoystickConfiguration(int type, uint8_t gameport_nr, int joystick_nr, QWidget *parent = nullptr);
     ~JoystickConfiguration();
 
     int selectedDevice();
@@ -25,6 +25,7 @@ private:
     Ui::JoystickConfiguration *ui;
     QList<QWidget *>           widgets;
     int                        type;
+    int                        gameport_nr;
     int                        joystick_nr;
 };
 

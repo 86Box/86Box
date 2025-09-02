@@ -2549,6 +2549,12 @@ rtl8139_io_writeb(uint32_t addr, uint8_t val, void *priv)
 
             break;
 
+        case RxConfig:
+            rtl8139_log("RxConfig write(b) val=0x%02x\n", val);
+            rtl8139_RxConfig_write(s,
+                (rtl8139_RxConfig_read(s) & 0xFFFFFF00) | val);
+            break;
+
         default:
             rtl8139_log("not implemented write(b) addr=0x%x val=0x%02x\n", addr, val);
             break;
@@ -3288,8 +3294,8 @@ nic_init(const device_t *info)
     params.nwords          = 64;
     params.default_content = (uint16_t *) s->eeprom_data;
     params.filename        = filename;
-    snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, device_get_instance());
-    s->eeprom = device_add_params(&nmc93cxx_device, &params);
+    snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, s->inst);
+    s->eeprom = device_add_inst_params(&nmc93cxx_device, s->inst, &params);
     if (s->eeprom == NULL) {
         free(s);
         return NULL;

@@ -35,25 +35,147 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
     for (int i = 0; i < NET_CARD_MAX; ++i) {
         auto *nic_cbox      = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         auto *net_type_cbox = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
-        auto *intf_cbox     = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
+
+        auto *intf_label = findChild<QLabel *>(QString("labelIntf%1").arg(i + 1));
+        auto *intf_cbox  = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
+
         auto *conf_btn      = findChild<QPushButton *>(QString("pushButtonConf%1").arg(i + 1));
-        auto *socket_line   = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
+//        auto *net_type_conf_btn      = findChild<QPushButton *>(QString("pushButtonNetTypeConf%1").arg(i + 1));
 
-        int  netType         = net_type_cbox->currentData().toInt();
-        bool adaptersEnabled =  netType == NET_TYPE_NONE
-                            ||  netType == NET_TYPE_SLIRP
-                            ||  netType == NET_TYPE_VDE
-                            || (netType == NET_TYPE_PCAP && intf_cbox->currentData().toInt() > 0);
+        auto *vde_socket_label = findChild<QLabel *>(QString("labelSocketVDENIC%1").arg(i + 1));
+        auto *socket_line      = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
 
+        auto *bridge_label = findChild<QLabel *>(QString("labelBridgeTAPNIC%1").arg(i + 1));
+        auto *bridge_line  = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i + 1));
+
+        auto *option_list_label = findChild<QLabel *>(QString("labelOptionList%1").arg(i + 1));
+        auto *option_list_line  = findChild<QWidget *>(QString("lineOptionList%1").arg(i + 1));
+
+        // Switch group
+        auto *switch_group_label = findChild<QLabel *>(QString("labelSwitch%1").arg(i + 1));
+//        auto *switch_group_hlayout = findChild<QHBoxLayout *>(QString("HLayoutSwitch%1").arg(i + 1));
+//        auto *switch_group_hspacer = findChild<QWidget *>(QString("horizontalSpacerSwitch%1").arg(i + 1));
+        auto *switch_group_value = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
+        switch_group_value->setMinimum(1);
+        switch_group_value->setMaximum(10);
+
+        // Promiscuous option
+        auto *promisc_label  = findChild<QLabel *>(QString("labelPromisc%1").arg(i + 1));
+        auto *promisc_value = findChild<QCheckBox *>(QString("boxPromisc%1").arg(i + 1));
+
+        // Remote switch hostname
+        auto *hostname_label = findChild<QLabel *>(QString("labelHostname%1").arg(i + 1));
+        auto *hostname_value = findChild<QLineEdit *>(QString("hostnameSwitch%1").arg(i + 1));
+
+        bridge_line->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_TAP);
         intf_cbox->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_PCAP);
-        nic_cbox->setEnabled(adaptersEnabled);
-        int netCard = nic_cbox->currentData().toInt();
-        if ((i == 0) && (netCard == NET_INTERNAL))
-            conf_btn->setEnabled(adaptersEnabled && machine_has_flags(machineId, MACHINE_NIC) &&
-                                 device_has_config(machine_get_net_device(machineId)));
-        else
-            conf_btn->setEnabled(adaptersEnabled && network_card_has_config(nic_cbox->currentData().toInt()));
-        socket_line->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_VDE);
+        conf_btn->setEnabled(network_card_has_config(nic_cbox->currentData().toInt()));
+//        net_type_conf_btn->setEnabled(network_type_has_config(netType));
+
+        // NEW STUFF
+        // Make all options invisible by default
+
+        // Switch group
+        switch_group_label->setVisible(false);
+        switch_group_value->setVisible(false);
+//        switch_group_hspacer->setVisible(false);
+
+        // Promiscuous options
+        promisc_label->setVisible(false);
+        promisc_value->setVisible(false);
+
+        // Hostname
+        hostname_label->setVisible(false);
+        hostname_value->setVisible(false);
+
+        // Option list label and line
+        option_list_label->setVisible(false);
+        option_list_line->setVisible(false);
+
+        // VDE
+        vde_socket_label->setVisible(false);
+        socket_line->setVisible(false);
+
+        // TAP
+        bridge_label->setVisible(false);
+        bridge_line->setVisible(false);
+
+        // PCAP
+        intf_cbox->setVisible(false);
+        intf_label->setVisible(false);
+
+        // Don't enable anything unless there's a nic selected
+        if(nic_cbox->currentData().toInt() != 0) {
+            // Then only enable as needed based on network type
+            switch (net_type_cbox->currentData().toInt()) {
+#ifdef HAS_VDE
+                case NET_TYPE_VDE:
+                    // option_list_label->setText("VDE Options");
+                    option_list_label->setVisible(true);
+                    option_list_line->setVisible(true);
+
+                    vde_socket_label->setVisible(true);
+                    socket_line->setVisible(true);
+                    break;
+#endif
+
+                case NET_TYPE_PCAP:
+                    // option_list_label->setText("PCAP Options");
+                    option_list_label->setVisible(true);
+                    option_list_line->setVisible(true);
+
+                    intf_cbox->setVisible(true);
+                    intf_label->setVisible(true);
+                    break;
+
+#if defined(__unix__) || defined(__APPLE__)
+                case NET_TYPE_TAP:
+                    // option_list_label->setText("TAP Options");
+                    option_list_label->setVisible(true);
+                    option_list_line->setVisible(true);
+
+                    bridge_label->setVisible(true);
+                    bridge_line->setVisible(true);
+                    break;
+#endif
+
+#ifdef USE_NETSWITCH
+                    case NET_TYPE_NMSWITCH:
+//                    option_list_label->setText("Local Switch Options");
+                    option_list_label->setVisible(true);
+                    option_list_line->setVisible(true);
+
+                    // Switch group
+                    switch_group_label->setVisible(true);
+                    switch_group_value->setVisible(true);
+//                    switch_group_hspacer->setVisible(false);
+
+                    // Promiscuous options
+                    promisc_label->setVisible(true);
+                    promisc_value->setVisible(true);
+                    break;
+
+                case NET_TYPE_NRSWITCH:
+//                    option_list_label->setText("Remote Switch Options");
+                    option_list_label->setVisible(true);
+                    option_list_line->setVisible(true);
+
+                    // Switch group
+                    switch_group_label->setVisible(true);
+                    switch_group_value->setVisible(true);
+//                    switch_group_hspacer->setVisible(false);
+
+                    // Hostname
+                    hostname_label->setVisible(true);
+                    hostname_value->setVisible(true);
+                    break;
+#endif /* USE_NETSWITCH */
+
+                case NET_TYPE_SLIRP:
+                default:
+                    break;
+            }
+        }
     }
 }
 
@@ -85,17 +207,42 @@ SettingsNetwork::save()
 {
     for (int i = 0; i < NET_CARD_MAX; ++i) {
         auto *cbox                   = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
+#ifdef HAS_VDE
         auto *socket_line            = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
+#endif
+#if defined(__unix__) || defined(__APPLE__)
+        auto *bridge_line            = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i + 1));
+#endif
         net_cards_conf[i].device_num = cbox->currentData().toInt();
         cbox                         = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
         net_cards_conf[i].net_type   = cbox->currentData().toInt();
         cbox                         = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
+#ifdef USE_NETSWITCH
+        auto *hostname_value         = findChild<QLineEdit *>(QString("hostnameSwitch%1").arg(i + 1));
+        auto *promisc_value          = findChild<QCheckBox *>(QString("boxPromisc%1").arg(i + 1));
+        auto *switch_group_value     = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
+#endif /* USE_NETSWITCH */
         memset(net_cards_conf[i].host_dev_name, '\0', sizeof(net_cards_conf[i].host_dev_name));
-        if (net_cards_conf[i].net_type == NET_TYPE_PCAP) {
+        if (net_cards_conf[i].net_type == NET_TYPE_PCAP)
             strncpy(net_cards_conf[i].host_dev_name, network_devs[cbox->currentData().toInt()].device, sizeof(net_cards_conf[i].host_dev_name) - 1);
-        } else if (net_cards_conf[i].net_type == NET_TYPE_VDE) {
+#ifdef HAS_VDE
+        else if (net_cards_conf[i].net_type == NET_TYPE_VDE)
             strncpy(net_cards_conf[i].host_dev_name, socket_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
+#endif
+#if defined(__unix__) || defined(__APPLE__)
+        else if (net_cards_conf[i].net_type == NET_TYPE_TAP)
+            strncpy(net_cards_conf[i].host_dev_name, bridge_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
+#endif
+#ifdef USE_NETSWITCH
+        else if (net_cards_conf[i].net_type == NET_TYPE_NRSWITCH) {
+            memset(net_cards_conf[i].nrs_hostname, '\0', sizeof(net_cards_conf[i].nrs_hostname));
+            strncpy(net_cards_conf[i].nrs_hostname, hostname_value->text().toUtf8().constData(), sizeof(net_cards_conf[i].nrs_hostname) - 1);
+            net_cards_conf[i].switch_group = switch_group_value->value() - 1;
+        } else if (net_cards_conf[i].net_type == NET_TYPE_NMSWITCH) {
+            net_cards_conf[i].promisc_mode = promisc_value->isChecked();
+            net_cards_conf[i].switch_group = switch_group_value->value() - 1;
         }
+#endif /* USE_NETSWITCH */
     }
 }
 
@@ -104,57 +251,79 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
 {
     this->machineId = machineId;
 
-    int c           = 0;
-    int selectedRow = 0;
+    int                 c                           = 0;
+    int                 selectedRow                 = 0;
 
-    for (int i = 0; i < NET_CARD_MAX; ++i) {
-        auto *cbox       = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
-        auto *model      = cbox->model();
-        auto  removeRows = model->rowCount();
-        c                = 0;
-        selectedRow      = 0;
+    // Network Card
+    QComboBox          *cbox_[NET_CARD_MAX]         = { 0 };
+    QAbstractItemModel *models[NET_CARD_MAX]        = { 0 };
+    int                 removeRows_[NET_CARD_MAX]   = { 0 };
+    int                 selectedRows[NET_CARD_MAX]  = { 0 };
+    int                 m_has_net                   = machine_has_flags(machineId, MACHINE_NIC);
 
-        while (true) {
-            /* Skip "internal" if machine doesn't have it or this is not the primary card. */
-            if ((c == 1) && ((i > 0) || (machine_has_flags(machineId, MACHINE_NIC) == 0))) {
-                c++;
-                continue;
-            }
+    for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
+        cbox_[i]       = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
+        models[i]      = cbox_[i]->model();
+        removeRows_[i] = models[i]->rowCount();
+    }
 
-            auto name = DeviceConfig::DeviceName(network_card_getdevice(c), network_card_get_internal_name(c), 1);
-            if (name.isEmpty()) {
-                break;
-            }
+    c = 0;
+    while (true) {
+        const QString name = DeviceConfig::DeviceName(network_card_getdevice(c),
+                                                      network_card_get_internal_name(c), 1);
 
-            if (network_card_available(c) && device_is_valid(network_card_getdevice(c), machineId)) {
-                int row = Models::AddEntry(model, name, c);
-                if (c == net_cards_conf[i].device_num) {
-                    selectedRow = row - removeRows;
+        if (name.isEmpty())
+            break;
+
+        if (network_card_available(c)) {
+            if (device_is_valid(network_card_getdevice(c), machineId)) {
+                for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
+                    if ((c != 1) || ((i == 0) && m_has_net)) {
+                        int row = Models::AddEntry(models[i], name, c);
+
+                        if (c == net_cards_conf[i].device_num)
+                            selectedRows[i] = row - removeRows_[i];
+                    }
                 }
             }
-            c++;
         }
 
-        model->removeRows(0, removeRows);
-        cbox->setEnabled(model->rowCount() > 0);
-        cbox->setCurrentIndex(-1);
-        cbox->setCurrentIndex(selectedRow);
+       c++;
+    }
 
-        cbox       = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
-        model      = cbox->model();
-        removeRows = model->rowCount();
+    for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
+        models[i]->removeRows(0, removeRows_[i]);
+        cbox_[i]->setEnabled(models[i]->rowCount() > 1);
+        cbox_[i]->setCurrentIndex(-1);
+        cbox_[i]->setCurrentIndex(selectedRows[i]);
+
+        auto cbox       = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
+        auto model      = cbox->model();
+        auto removeRows = model->rowCount();
         Models::AddEntry(model, tr("Null Driver"), NET_TYPE_NONE);
         Models::AddEntry(model, "SLiRP", NET_TYPE_SLIRP);
 
-        if (network_ndev > 1) {
+        if (network_ndev > 1)
             Models::AddEntry(model, "PCap", NET_TYPE_PCAP);
-        }
-        if (network_devmap.has_vde) {
+
+#ifdef HAS_VDE
+        if (network_devmap.has_vde)
             Models::AddEntry(model, "VDE", NET_TYPE_VDE);
-        }
+#endif
         
+#if defined(__unix__) || defined(__APPLE__)
+        Models::AddEntry(model, "TAP", NET_TYPE_TAP);
+#endif
+
+#ifdef USE_NETSWITCH
+        Models::AddEntry(model, "Local Switch", NET_TYPE_NMSWITCH);
+#ifdef ENABLE_NET_NRSWITCH
+        Models::AddEntry(model, "Remote Switch", NET_TYPE_NRSWITCH);
+#endif /* ENABLE_NET_NRSWITCH */
+#endif /* USE_NETSWITCH */
+
         model->removeRows(0, removeRows);
-        cbox->setCurrentIndex(net_cards_conf[i].net_type);
+        cbox->setCurrentIndex(cbox->findData(net_cards_conf[i].net_type));
 
         selectedRow = 0;
 
@@ -171,11 +340,34 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             }
             model->removeRows(0, removeRows);
             cbox->setCurrentIndex(selectedRow);
-        }  
+        }
+
         if (net_cards_conf[i].net_type == NET_TYPE_VDE) {
+#ifdef HAS_VDE
             QString currentVdeSocket = net_cards_conf[i].host_dev_name;
             auto editline = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i+1));
             editline->setText(currentVdeSocket);
+#else
+            ;
+#endif
+#if defined(__unix__) || defined(__APPLE__)
+        } else if (net_cards_conf[i].net_type == NET_TYPE_TAP) {
+            QString currentTapDevice = net_cards_conf[i].host_dev_name;
+            auto editline = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i+1));
+            editline->setText(currentTapDevice);
+#endif
+#ifdef USE_NETSWITCH
+        } else if (net_cards_conf[i].net_type == NET_TYPE_NMSWITCH) {
+            auto *promisc_value = findChild<QCheckBox *>(QString("boxPromisc%1").arg(i + 1));
+            promisc_value->setCheckState(net_cards_conf[i].promisc_mode == 1 ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
+            auto *switch_group_value = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
+            switch_group_value->setValue(net_cards_conf[i].switch_group + 1);
+        } else if (net_cards_conf[i].net_type == NET_TYPE_NRSWITCH) {
+            auto *hostname_value = findChild<QLineEdit *>(QString("hostnameSwitch%1").arg(i + 1));
+            hostname_value->setText(net_cards_conf[i].nrs_hostname);
+            auto *switch_group_value = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
+            switch_group_value->setValue(net_cards_conf[i].switch_group + 1);
+#endif /* USE_NETSWITCH */
         }
     }
 }
@@ -183,9 +375,8 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
 void
 SettingsNetwork::on_comboIndexChanged(int index)
 {
-    if (index < 0) {
+    if (index < 0)
         return;
-    }
 
     enableElements(ui);
 }
@@ -193,33 +384,33 @@ SettingsNetwork::on_comboIndexChanged(int index)
 void
 SettingsNetwork::on_pushButtonConf1_clicked()
 {
-    int netCard = ui->comboBoxNIC1->currentData().toInt();
-    auto *device = network_card_getdevice(netCard);
+    int   netCard = ui->comboBoxNIC1->currentData().toInt();
+    auto *device  = network_card_getdevice(netCard);
     if (netCard == NET_INTERNAL)
         device = machine_get_net_device(machineId);
-    DeviceConfig::ConfigureDevice(device, 1, qobject_cast<Settings *>(Settings::settings));
+    DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
 SettingsNetwork::on_pushButtonConf2_clicked()
 {
-    int netCard = ui->comboBoxNIC2->currentData().toInt();
-    auto *device = network_card_getdevice(netCard);
-    DeviceConfig::ConfigureDevice(device, 2, qobject_cast<Settings *>(Settings::settings));
+    int   netCard = ui->comboBoxNIC2->currentData().toInt();
+    auto *device  = network_card_getdevice(netCard);
+    DeviceConfig::ConfigureDevice(device, 2);
 }
 
 void
 SettingsNetwork::on_pushButtonConf3_clicked()
 {
-    int netCard = ui->comboBoxNIC3->currentData().toInt();
-    auto *device = network_card_getdevice(netCard);
-    DeviceConfig::ConfigureDevice(device, 3, qobject_cast<Settings *>(Settings::settings));
+    int   netCard = ui->comboBoxNIC3->currentData().toInt();
+    auto *device  = network_card_getdevice(netCard);
+    DeviceConfig::ConfigureDevice(device, 3);
 }
 
 void
 SettingsNetwork::on_pushButtonConf4_clicked()
 {
-    int netCard = ui->comboBoxNIC4->currentData().toInt();
-    auto *device = network_card_getdevice(netCard);
-    DeviceConfig::ConfigureDevice(device, 4, qobject_cast<Settings *>(Settings::settings));
+    int   netCard = ui->comboBoxNIC4->currentData().toInt();
+    auto *device  = network_card_getdevice(netCard);
+    DeviceConfig::ConfigureDevice(device, 4);
 }

@@ -1113,7 +1113,7 @@ loadcscall(uint16_t seg)
 
                                 x86seg_log("Type %04X\n", type);
                                 if (type == 0x0c00) {
-                                    PUSHL_SEL(oldss);
+                                    is586 ? PUSHL(oldss) : PUSHL_SEL(oldss);
                                     PUSHL(oldsp2);
                                     if (cpu_state.abrt) {
                                         SS  = oldss;
@@ -1334,6 +1334,12 @@ pmoderetf(int is32, uint16_t off)
     if (CPL == (seg & 0x0003)) {
         x86seg_log("RETF CPL = RPL  %04X\n", segdat[2]);
         switch (segdat[2] & 0x1f00) {
+            case 0x1000:
+            case 0x1100:
+            case 0x1200:
+            case 0x1300:
+                 /* Data segment, apparently valid when CPL is the same, used by MS LINK for DOS. */
+                 fallthrough;
             case 0x1800:
             case 0x1900:
             case 0x1a00:
@@ -1384,6 +1390,12 @@ pmoderetf(int is32, uint16_t off)
         cycles -= timing_retf_pm;
     } else {
         switch (segdat[2] & 0x1f00) {
+            case 0x1000:
+            case 0x1100:
+            case 0x1200:
+            case 0x1300:
+                 /* Data segment, apparently valid when CPL is the same, used by MS LINK for DOS. */
+                 fallthrough;
             case 0x1800:
             case 0x1900:
             case 0x1a00:
@@ -1605,6 +1617,12 @@ pmodeint(int num, int soft)
                 return;
             }
             switch (segdat2[2] & 0x1f00) {
+                case 0x1000:
+                case 0x1100:
+                case 0x1200:
+                case 0x1300:
+                     /* Data segment, apparently valid when CPL is the same, used by MS CodeView for DOS. */
+                     fallthrough;
                 case 0x1800:
                 case 0x1900:
                 case 0x1a00:
@@ -1678,10 +1696,17 @@ pmodeint(int num, int soft)
                         cpl_override = 1;
                         if (type >= 0x0800) {
                             if (cpu_state.eflags & VM_FLAG) {
-                                PUSHL_SEL(GS);
-                                PUSHL_SEL(FS);
-                                PUSHL_SEL(DS);
-                                PUSHL_SEL(ES);
+                                if (is586) {
+                                    PUSHL(GS);
+                                    PUSHL(FS);
+                                    PUSHL(DS);
+                                    PUSHL(ES);
+                                } else {
+                                    PUSHL_SEL(GS);
+                                    PUSHL_SEL(FS);
+                                    PUSHL_SEL(DS);
+                                    PUSHL_SEL(ES);
+                                }
                                 if (cpu_state.abrt)
                                     return;
                                 op_loadseg(0, &cpu_state.seg_ds);
@@ -1689,10 +1714,10 @@ pmodeint(int num, int soft)
                                 op_loadseg(0, &cpu_state.seg_fs);
                                 op_loadseg(0, &cpu_state.seg_gs);
                             }
-                            PUSHL_SEL(oldss);
+                            is586 ? PUSHL(oldss) : PUSHL_SEL(oldss);
                             PUSHL(oldsp);
                             PUSHL(cpu_state.flags | (cpu_state.eflags << 16));
-                            PUSHL_SEL(CS);
+                            is586 ? PUSHL(CS) : PUSHL_SEL(CS);
                             PUSHL(cpu_state.pc);
                             if (cpu_state.abrt)
                                 return;
@@ -1728,7 +1753,7 @@ pmodeint(int num, int soft)
                     }
                     if (type > 0x0800) {
                         PUSHL(cpu_state.flags | (cpu_state.eflags << 16));
-                        PUSHL_SEL(CS);
+                        is586 ? PUSHL(CS) : PUSHL_SEL(CS);
                         PUSHL(cpu_state.pc);
                         if (cpu_state.abrt)
                             return;
@@ -1976,6 +2001,12 @@ pmodeiret(int is32)
     }
 
     switch (segdat[2] & 0x1f00) {
+        case 0x1000:
+        case 0x1100:
+        case 0x1200:
+        case 0x1300:
+             /* Data segment, apparently valid when CPL is the same, used by MS CodeView for DOS. */
+             fallthrough;
         case 0x1800:
         case 0x1900:
         case 0x1a00:
@@ -2574,19 +2605,17 @@ cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg)
                 cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
             else
                 cpu_cur_status |= CPU_STATUS_NOTFLATDS;
-#ifdef USE_DYNAREC
-            codegen_flat_ds = 0;
-#endif
         }
+
+        if (seg == &cpu_state.seg_cs)
+            set_use32(segdat[3] & 0x40);
+
         if (seg == &cpu_state.seg_ss) {
             if (seg->base == 0 && seg->limit_low == 0 && seg->limit_high == 0xffffffff)
                 cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
             else
                 cpu_cur_status |= CPU_STATUS_NOTFLATSS;
             set_stack32((segdat[3] & 0x40) ? 1 : 0);
-#ifdef USE_DYNAREC
-            codegen_flat_ss = 0;
-#endif
         }
     }
 }

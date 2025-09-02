@@ -30,7 +30,7 @@ typedef struct t128_t {
     uint8_t status;
     uint8_t buffer[512];
     uint8_t ext_ram[0x80];
-    uint8_t block_count;
+    uint32_t block_count;
 
     int block_loaded;
     int pos, host_pos;
@@ -39,6 +39,7 @@ typedef struct t128_t {
 
     int bios_enabled;
     uint8_t pos_regs[8];
+    int type;
 
     pc_timer_t timer;
 } t128_t;

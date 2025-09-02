@@ -23,6 +23,9 @@
 #include <math.h>
 #include <86box/86box.h>
 #include <86box/i2c.h>
+#include <86box/vid_ddc.h>
+#include <86box/plat.h>
+#include <86box/ui.h>
 
 #define PIXEL_MM(px) (((px) * 25.4) / 96.0)
 #define STANDARD_TIMING(slot, width, aspect_ratio, refresh)                             \
@@ -126,8 +129,8 @@ typedef struct {
     uint8_t padding[15], checksum2;
 } edid_t;
 
-void *
-ddc_init(void *i2c)
+size_t
+ddc_create_default_edid(uint8_t **out)
 {
     edid_t *edid = malloc(sizeof(edid_t));
     memset(edid, 0, sizeof(edid_t));
@@ -222,8 +225,78 @@ ddc_init(void *i2c)
         edid->checksum2 += edid_bytes[c];
     edid->checksum2 = 256 - edid->checksum2;
 
-    return i2c_eeprom_init(i2c, 0x50, edid_bytes, sizeof(edid_t), 0);
+    if (out) {
+        *out = edid_bytes;
+    }
+
+    return sizeof(edid_t);
 }
+
+void *
+ddc_init_with_custom_edid(char *edid_path, void *i2c)
+{
+    uint8_t buffer[384] = { 0 };
+    size_t  size        = ddc_load_edid(edid_path, buffer, sizeof(buffer));
+
+    if (size > 256) {
+        wchar_t errmsg[2048] = { 0 };
+        wchar_t path[2048]   = { 0 };
+
+#ifdef _WIN32
+        mbstoc16s(path, monitor_edid_path, sizeof_w(path));
+#else
+        mbstowcs(path, monitor_edid_path, sizeof_w(path));
+#endif
+        swprintf(errmsg, sizeof_w(errmsg), plat_get_string(STRING_EDID_TOO_LARGE), path);
+        ui_msgbox_header(MBX_ERROR, L"EDID", errmsg);
+
+        return NULL;
+    } else if (size == 0) {
+        return NULL;
+    } else if (size < 128) {
+        size = 128;
+    } else if (size < 256) {
+        size = 256;
+    }
+
+    int checksum = 0;
+    for (int i = 0; i < 127; i++) {
+        checksum += buffer[i];
+    }
+
+    buffer[127] = 256 - checksum;
+
+    if (size == 256) {
+        checksum = 0;
+
+        for (int i = 128; i < 255; i++) {
+            checksum += buffer[i];
+        }
+        buffer[255] = 256 - checksum;
+    }
+
+    uint8_t *edid_bytes = malloc(size);
+    memcpy(edid_bytes, buffer, size);
+
+    return i2c_eeprom_init(i2c, 0x50, edid_bytes, size, 0);
+}
+
+void *
+ddc_init(void *i2c)
+{
+    if (monitor_edid && monitor_edid_path[0]) {
+        void *ret = ddc_init_with_custom_edid(monitor_edid_path, i2c);
+
+        if (ret) {
+            return ret;
+        }
+    }
+
+    uint8_t *edid_bytes;
+    size_t   edid_size = ddc_create_default_edid(&edid_bytes);
+    return i2c_eeprom_init(i2c, 0x50, edid_bytes, edid_size, 0);
+}
+
 
 void
 ddc_close(void *eeprom)

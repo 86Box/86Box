@@ -34,6 +34,8 @@ typedef struct host_reg_set_t {
 static host_reg_set_t host_reg_set;
 static host_reg_set_t host_fp_reg_set;
 
+uint64_t dirty_ir_regs[2] = { 0, 0 };
+
 enum {
     REG_BYTE,
     REG_WORD,
@@ -169,6 +171,9 @@ struct
     [IREG_GS_limit_high] = { REG_DWORD,         &cpu_state.seg_gs.limit_high,       REG_INTEGER, REG_PERMANENT},
     [IREG_SS_limit_high] = { REG_DWORD,         &cpu_state.seg_ss.limit_high,       REG_INTEGER, REG_PERMANENT},
 
+    [IREG_eaa16] = { REG_WORD,         &cpu_state.eaaddr,                  REG_INTEGER, REG_PERMANENT},
+    [IREG_x87_op] = { REG_WORD,         &x87_op,                            REG_INTEGER, REG_PERMANENT},
+
  /*Temporary registers are stored on the stack, and are not guaranteed to
   be preserved across uOPs. They will not be written back if they will
   not be read again.*/
@@ -181,15 +186,36 @@ struct
     [IREG_temp1d] = { REG_DOUBLE,        (void *) 48,                        REG_FP,      REG_VOLATILE },
 };
 
+static const uint8_t native_requested_sizes[9][8] = 
+{
+    [REG_BYTE][IREG_SIZE_B >> IREG_SIZE_SHIFT]          = 1,
+    [REG_FPU_ST_BYTE][IREG_SIZE_B >> IREG_SIZE_SHIFT]   = 1,
+    [REG_WORD][IREG_SIZE_W >> IREG_SIZE_SHIFT]          = 1,
+    [REG_DWORD][IREG_SIZE_L >> IREG_SIZE_SHIFT]         = 1,
+    [REG_QWORD][IREG_SIZE_D >> IREG_SIZE_SHIFT]         = 1,
+    [REG_FPU_ST_QWORD][IREG_SIZE_D >> IREG_SIZE_SHIFT]  = 1,
+    [REG_DOUBLE][IREG_SIZE_D >> IREG_SIZE_SHIFT]        = 1,
+    [REG_FPU_ST_DOUBLE][IREG_SIZE_D >> IREG_SIZE_SHIFT] = 1,
+    [REG_QWORD][IREG_SIZE_Q >> IREG_SIZE_SHIFT]         = 1,
+    [REG_FPU_ST_QWORD][IREG_SIZE_Q >> IREG_SIZE_SHIFT]  = 1,
+    [REG_DOUBLE][IREG_SIZE_Q >> IREG_SIZE_SHIFT]        = 1,
+    [REG_FPU_ST_DOUBLE][IREG_SIZE_Q >> IREG_SIZE_SHIFT] = 1,
+
+    [REG_POINTER][(sizeof(void *) == 4) ? (IREG_SIZE_L >> IREG_SIZE_SHIFT) : (IREG_SIZE_Q >> IREG_SIZE_SHIFT)] = 1
+};
+
 void
 codegen_reg_mark_as_required(void)
 {
-    for (uint8_t reg = 0; reg < IREG_COUNT; reg++) {
+    /* This used to start from IREG_EAX, now only starts from IREG_ESP since the first 4 registers are never optimized out. */
+    /* It also no longer iterates through volatile registers unnecessarily. */
+    for (uint8_t reg = IREG_ESP; reg < IREG_temp0; reg++) {
         int last_version = reg_last_version[reg];
 
-        if (last_version > 0 && ireg_data[reg].is_volatile == REG_PERMANENT)
+        if (last_version > 0)
             reg_version[reg][last_version].flags |= REG_FLAGS_REQUIRED;
     }
+    dirty_ir_regs[0] = dirty_ir_regs[1] = 0;
 }
 
 int
@@ -198,29 +224,21 @@ reg_is_native_size(ir_reg_t ir_reg)
     int native_size    = ireg_data[IREG_GET_REG(ir_reg.reg)].native_size;
     int requested_size = IREG_GET_SIZE(ir_reg.reg);
 
-    switch (native_size) {
-        case REG_BYTE:
-        case REG_FPU_ST_BYTE:
-            return (requested_size == IREG_SIZE_B);
-        case REG_WORD:
-            return (requested_size == IREG_SIZE_W);
-        case REG_DWORD:
-            return (requested_size == IREG_SIZE_L);
-        case REG_QWORD:
-        case REG_FPU_ST_QWORD:
-        case REG_DOUBLE:
-        case REG_FPU_ST_DOUBLE:
-            return ((requested_size == IREG_SIZE_D) || (requested_size == IREG_SIZE_Q));
-        case REG_POINTER:
-            if (sizeof(void *) == 4)
-                return (requested_size == IREG_SIZE_L);
-            return (requested_size == IREG_SIZE_Q);
+    return native_requested_sizes[native_size][requested_size >> IREG_SIZE_SHIFT];
+}
 
-        default:
-            fatal("get_reg_is_native_size: unknown native size %i\n", native_size);
+void
+codegen_check_regs(void)
+{
+    int i = 0;
+    for (i = 0; i < IREG_COUNT; i++) {
+        if (ireg_data[i].is_volatile == REG_VOLATILE)
+            continue;
+
+        if (ireg_data[i].p && ((uintptr_t)ireg_data[i].p - (uintptr_t)&cpu_state) >= sizeof(cpu_state)) {
+            fatal("Register number %d outside cpu_state!\n", i);
+        }
     }
-
-    return 0;
 }
 
 void
@@ -238,6 +256,8 @@ codegen_reg_reset(void)
     host_fp_reg_set.reg_list = codegen_host_fp_reg_list;
     host_fp_reg_set.locked   = 0;
     host_fp_reg_set.nr_regs  = CODEGEN_HOST_FP_REGS;
+
+    dirty_ir_regs[0] = dirty_ir_regs[1] = 0;
 
     for (c = 0; c < IREG_COUNT; c++) {
         reg_last_version[c]        = 0;

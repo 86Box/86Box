@@ -843,6 +843,7 @@ opREPNE(uint32_t fetchdat)
 
     CLOCK_CYCLES(2);
     PREFETCH_PREFIX();
+    rep_op = fetchdat & 0xff;
     if (x86_2386_opcodes_REPNE[(fetchdat & 0xff) | cpu_state.op32])
         return x86_2386_opcodes_REPNE[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
     return x86_2386_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
@@ -857,6 +858,7 @@ opREPE(uint32_t fetchdat)
 
     CLOCK_CYCLES(2);
     PREFETCH_PREFIX();
+    rep_op = fetchdat & 0xff;
     if (x86_2386_opcodes_REPE[(fetchdat & 0xff) | cpu_state.op32])
         return x86_2386_opcodes_REPE[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
     return x86_2386_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);

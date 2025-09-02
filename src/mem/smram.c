@@ -59,9 +59,12 @@ smram_read(uint32_t addr, void *priv)
     const smram_t *dev      = (smram_t *) priv;
     uint32_t       new_addr = addr - dev->host_base + dev->ram_base;
 
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     if (new_addr >= (1 << 30))
         return mem_read_ram_2gb(new_addr, priv);
-    else if (!use_separate_smram || (new_addr >= 0xa0000))
+    else
+#endif
+    if (!use_separate_smram || (new_addr >= 0xa0000))
         return mem_read_ram(new_addr, priv);
     else
         return dev->mapping.exec[addr - dev->host_base];
@@ -73,9 +76,12 @@ smram_readw(uint32_t addr, void *priv)
     smram_t *dev      = (smram_t *) priv;
     uint32_t new_addr = addr - dev->host_base + dev->ram_base;
 
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     if (new_addr >= (1 << 30))
         return mem_read_ram_2gbw(new_addr, priv);
-    else if (!use_separate_smram || (new_addr >= 0xa0000))
+    else
+#endif
+    if (!use_separate_smram || (new_addr >= 0xa0000))
         return mem_read_ramw(new_addr, priv);
     else
         return *(uint16_t *) &(dev->mapping.exec[addr - dev->host_base]);
@@ -87,9 +93,12 @@ smram_readl(uint32_t addr, void *priv)
     smram_t *dev      = (smram_t *) priv;
     uint32_t new_addr = addr - dev->host_base + dev->ram_base;
 
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     if (new_addr >= (1 << 30))
         return mem_read_ram_2gbl(new_addr, priv);
-    else if (!use_separate_smram || (new_addr >= 0xa0000))
+    else
+#endif
+    if (!use_separate_smram || (new_addr >= 0xa0000))
         return mem_read_raml(new_addr, priv);
     else
         return *(uint32_t *) &(dev->mapping.exec[addr - dev->host_base]);

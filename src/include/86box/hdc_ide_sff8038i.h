@@ -56,6 +56,11 @@ typedef struct sff8038i_t
     int      irq_level;
     int      irq_pin;
     int      pci_irq_line;
+
+    uint8_t  (*ven_write)(uint16_t port, uint8_t val, void *priv);
+    uint8_t  (*ven_read)(uint16_t port, uint8_t val, void *priv);
+
+    void     *priv;
 } sff8038i_t;
 
 extern const device_t sff8038i_device;
@@ -63,7 +68,7 @@ extern const device_t sff8038i_device;
 extern void sff_bus_master_handler(sff8038i_t *dev, int enabled, uint16_t base);
 
 extern void sff_bus_master_set_irq(uint8_t status, void *priv);
-extern int sff_bus_master_dma(uint8_t *data, int transfer_length, int out, void *priv);
+extern int  sff_bus_master_dma(uint8_t *data, int transfer_length, int total_length, int out, void *priv);
 
 extern void    sff_bus_master_write(uint16_t port, uint8_t val, void *priv);
 extern uint8_t sff_bus_master_read(uint16_t port, void *priv);
@@ -77,5 +82,8 @@ extern void sff_set_irq_mode(sff8038i_t *dev, int irq_mode);
 extern void sff_set_irq_pin(sff8038i_t *dev, int irq_pin);
 extern void sff_set_irq_level(sff8038i_t *dev, int irq_level);
 extern void sff_set_mirq(sff8038i_t *dev, uint8_t mirq);
+
+extern void sff_set_ven_handlers(sff8038i_t *dev, uint8_t (*ven_write)(uint16_t port, uint8_t val, void *priv),
+                                 uint8_t (*ven_read)(uint16_t port, uint8_t val, void *priv), void *priv);
 
 #endif /*EMU_HDC_IDE_SFF8038I_H*/

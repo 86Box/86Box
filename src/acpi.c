@@ -36,6 +36,7 @@
 #include <86box/pit.h>
 #include <86box/apm.h>
 #include <86box/acpi.h>
+#include <86box/dma.h>
 #include <86box/machine.h>
 #include <86box/i2c.h>
 #include <86box/video.h>
@@ -211,7 +212,10 @@ acpi_update_irq(acpi_t *dev)
 
     if ((dev->regs.pmcntrl & 0x01) && sci_level)  switch (dev->irq_mode) {
         default:
-            picintlevel(1 << dev->irq_line, &dev->irq_state);
+            if (dev->irq_line != 0)
+                picintlevel(1 << dev->irq_line, &dev->irq_state);
+            else
+                dev->irq_state = 1;
             break;
         case 1:
             pci_set_irq(dev->slot, dev->irq_pin, &dev->irq_state);
@@ -223,7 +227,10 @@ acpi_update_irq(acpi_t *dev)
             break;
     } else  switch (dev->irq_mode) {
         default:
-            picintclevel(1 << dev->irq_line, &dev->irq_state);
+            if (dev->irq_line != 0)
+                picintclevel(1 << dev->irq_line, &dev->irq_state);
+            else
+                dev->irq_state = 0;
             break;
         case 1:
             pci_clear_irq(dev->slot, dev->irq_pin, &dev->irq_state);
@@ -1019,8 +1026,13 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
                         nvr_reg_write(0x000f, 0xff, dev->nvr);
                     }
 
-                    if (sus_typ & SUS_RESET_PCI)
+                    if (sus_typ & SUS_RESET_PCI) {
+                        /* DMA is part of the southbridge so it responds to PCI reset. */
+                        dma_reset();
+                        dma_set_at(1);
+
                         device_reset_all(DEVICE_PCI);
+                    }
 
                     if (sus_typ & SUS_RESET_CPU)
                         cpu_alt_reset = 0;
@@ -2361,26 +2373,40 @@ acpi_reset(void *priv)
         dev->regs.gporeg[i] = dev->gporeg_default[i];
     if (dev->vendor == VEN_VIA_596B) {
         dev->regs.gpo_val = 0x7fffffff;
-        /* FIC VA-503A:
-           - Bit 11: ATX power (active high)
-           - Bit  4: 80-conductor cable on primary IDE channel (active low)
-           - Bit  3: 80-conductor cable on secondary IDE channel (active low)
-           - Bit  2: password cleared (active low)
-           ASUS P3V4X:
-           - Bit 15: 80-conductor cable on secondary IDE channel (active low)
-           - Bit  5: 80-conductor cable on primary IDE channel (active low)
-           BCM GT694VA:
-           - Bit 19: 80-conductor cable on secondary IDE channel (active low)
-           - Bit 17: 80-conductor cable on primary IDE channel (active low)
-           ASUS CUV4X-LS:
-           - Bit  2: 80-conductor cable on secondary IDE channel (active low)
-           - Bit  1: 80-conductor cable on primary IDE channel (active low)
-           Acorp 6VIA90AP:
-           - Bit  3: 80-conductor cable on secondary IDE channel (active low)
-           - Bit  1: 80-conductor cable on primary IDE channel (active low) */
+        /*
+           - FIC VA-503A:
+               - Bit 11: ATX power (active high);
+               - Bit  4: 80-conductor cable on primary IDE channel (active low);
+               - Bit  3: 80-conductor cable on secondary IDE channel (active low);
+               - Bit  2: password cleared (active low).
+           - ASUS P3V4X:
+               - Bit 15: 80-conductor cable on secondary IDE channel (active low);
+               - Bit  5: 80-conductor cable on primary IDE channel (active low).
+           - BCM GT694VA:
+               - Bit 19: 80-conductor cable on secondary IDE channel (active low);
+               - Bit 17: 80-conductor cable on primary IDE channel (active low).
+           - ASUS CUV4X-LS:
+               - Bit  2: 80-conductor cable on secondary IDE channel (active low);
+               - Bit  1: 80-conductor cable on primary IDE channel (active low).
+           - Acorp 6VIA90AP:
+               - Bit  3: 80-conductor cable on secondary IDE channel (active low);
+               - Bit  1: 80-conductor cable on primary IDE channel (active low).
+           - FIC KA-6130:
+               - Bit 19: password cleared (active low).
+         */
         dev->regs.gpi_val = 0xfff57fc1;
         if (!strcmp(machine_get_internal_name(), "ficva503a") || !strcmp(machine_get_internal_name(), "6via90ap"))
             dev->regs.gpi_val |= 0x00000004;
+        else if (!strcmp(machine_get_internal_name(), "ficka6130"))
+            dev->regs.gpi_val |= 0x00080000;
+         /*
+            TriGem Delhi-III second GPI word:
+                - Bit 7 = Save CMOS (must be set);
+                - Bit 6 = Password jumper (must be set);
+                - Bit 5 = Enable Setup (must be set).
+         */
+        else if (!strcmp(machine_get_internal_name(), "delhi3"))
+            dev->regs.gpi_val |= 0x00008000;
     }
 
     if (acpi_power_on) {

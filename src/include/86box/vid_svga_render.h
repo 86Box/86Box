@@ -23,11 +23,11 @@
 extern int firstline_draw;
 extern int lastline_draw;
 extern int displine;
-extern int sc;
+extern int scanline;
 
-extern uint32_t ma;
-extern uint32_t ca;
-extern int      con;
+extern uint32_t memaddr;
+extern uint32_t cursoraddr;
+extern int      cursorvisible;
 extern int      cursoron;
 extern int      cgablink;
 
@@ -55,13 +55,10 @@ extern void svga_render_4bpp_lowres(svga_t *svga);
 extern void svga_render_4bpp_highres(svga_t *svga);
 extern void svga_render_8bpp_lowres(svga_t *svga);
 extern void svga_render_8bpp_highres(svga_t *svga);
+extern void svga_render_4bpp_tseng_highres(svga_t *svga);
 extern void svga_render_8bpp_clone_highres(svga_t *svga);
 extern void svga_render_8bpp_tseng_lowres(svga_t *svga);
 extern void svga_render_8bpp_tseng_highres(svga_t *svga);
-extern void svga_render_8bpp_gs_lowres(svga_t *svga);
-extern void svga_render_8bpp_gs_highres(svga_t *svga);
-extern void svga_render_8bpp_rgb_lowres(svga_t *svga);
-extern void svga_render_8bpp_rgb_highres(svga_t *svga);
 extern void svga_render_15bpp_lowres(svga_t *svga);
 extern void svga_render_15bpp_highres(svga_t *svga);
 extern void svga_render_15bpp_mix_lowres(svga_t *svga);

@@ -35,6 +35,7 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_voodoo_common.h>
+#include <86box/vid_voodoo_banshee.h>
 #include <86box/vid_voodoo_banshee_blitter.h>
 #include <86box/vid_voodoo_fb.h>
 #include <86box/vid_voodoo_fifo.h>
@@ -166,7 +167,10 @@ cmdfifo_get(voodoo_t *voodoo)
         }
     }
 
-    val = *(uint32_t *) &voodoo->fb_mem[voodoo->cmdfifo_rp & voodoo->fb_mask];
+    if (voodoo->cmdfifo_in_agp)
+        val = mem_readl_phys(voodoo->cmdfifo_rp);
+    else
+        val = *(uint32_t *) &voodoo->fb_mem[voodoo->cmdfifo_rp & voodoo->fb_mask];
 
     if (!voodoo->cmdfifo_in_sub)
         voodoo->cmdfifo_depth_rd++;
@@ -200,7 +204,10 @@ cmdfifo_get_2(voodoo_t *voodoo)
         }
     }
 
-    val = *(uint32_t *) &voodoo->fb_mem[voodoo->cmdfifo_rp_2 & voodoo->fb_mask];
+    if (voodoo->cmdfifo_in_agp_2)
+        val = mem_readl_phys(voodoo->cmdfifo_rp_2);
+    else
+        val = *(uint32_t *) &voodoo->fb_mem[voodoo->cmdfifo_rp_2 & voodoo->fb_mask];
 
     if (!voodoo->cmdfifo_in_sub_2)
         voodoo->cmdfifo_depth_rd_2++;
@@ -362,9 +369,21 @@ voodoo_fifo_thread(void *param)
                             break;
 
                         case 3: /*JMP local frame buffer*/
-                            voodoo->cmdfifo_rp = (header >> 4) & 0xfffffc;
+                            voodoo->cmdfifo_rp     = (header >> 4) & 0xfffffc;
+                            voodoo->cmdfifo_in_agp = 0;
 #if 0
-                            voodoo_fifo_log("JMP to %08x %04x\n", voodoo->cmdfifo_rp, header);
+                            voodoo_fifo_log("JMP LFB to %08x %04x\n", voodoo->cmdfifo_rp, header);
+#endif
+                            break;
+
+                        case 4: /*JMP AGP*/
+                            if (UNLIKELY(voodoo->type < VOODOO_BANSHEE))
+                                fatal("CMDFIFO0: Not Banshee %08x\n", header);
+
+                            voodoo->cmdfifo_rp     = ((header >> 4) & 0x1fffffc) | (cmdfifo_get(voodoo) << 25);
+                            voodoo->cmdfifo_in_agp = 1;
+#if 0
+                            voodoo_fifo_log("JMP AGP to %08x %04x\n", voodoo->cmdfifo_rp, header);
 #endif
                             break;
 
@@ -573,6 +592,23 @@ voodoo_fifo_thread(void *param)
                     }
                     break;
 
+                case 6:
+                    if (UNLIKELY(voodoo->type < VOODOO_BANSHEE)) {
+                        fatal("CMDFIFO6: Not Banshee %08x %08x\n", header, voodoo->cmdfifo_rp);
+                    } else {
+                        uint32_t val = cmdfifo_get(voodoo);
+                        banshee_cmd_write(voodoo->priv, 0x00, val >> 5);            /* agpReqSize */
+                        banshee_cmd_write(voodoo->priv, 0x04, cmdfifo_get(voodoo)); /* agpHostAddressLow */
+                        banshee_cmd_write(voodoo->priv, 0x08, cmdfifo_get(voodoo)); /* agpHostAddressHigh */
+                        banshee_cmd_write(voodoo->priv, 0x0c, cmdfifo_get(voodoo)); /* agpGraphicsAddress */
+                        banshee_cmd_write(voodoo->priv, 0x10, cmdfifo_get(voodoo)); /* agpGraphicsStride */
+                        banshee_cmd_write(voodoo->priv, 0x14, (val & 0x18) | 0x00); /* agpMoveCMD - start transfer */
+#if 0
+                        voodoo_fifo_log("CMDFIFO6 addr=%08x num=%i\n", addr, banshee->agpReqSize);
+#endif
+                    }
+                    break;
+
                 default:
                     fatal("Bad CMDFIFO packet %08x %08x\n", header, voodoo->cmdfifo_rp);
             }
@@ -624,9 +660,21 @@ voodoo_fifo_thread(void *param)
                             break;
 
                         case 3: /*JMP local frame buffer*/
-                            voodoo->cmdfifo_rp_2 = (header >> 4) & 0xfffffc;
+                            voodoo->cmdfifo_rp_2     = (header >> 4) & 0xfffffc;
+                            voodoo->cmdfifo_in_agp_2 = 0;
 #if 0
-                            voodoo_fifo_log("JMP to %08x %04x\n", voodoo->cmdfifo_rp, header);
+                            voodoo_fifo_log("JMP LFB to %08x %04x\n", voodoo->cmdfifo_rp_2, header);
+#endif
+                            break;
+
+                        case 4: /*JMP AGP*/
+                            if (UNLIKELY(voodoo->type < VOODOO_BANSHEE))
+                                fatal("CMDFIFO0: Not Banshee %08x\n", header);
+
+                            voodoo->cmdfifo_rp_2     = ((header >> 4) & 0x1fffffc) | (cmdfifo_get_2(voodoo) << 25);
+                            voodoo->cmdfifo_in_agp_2 = 1;
+#if 0
+                            voodoo_fifo_log("JMP AGP to %08x %04x\n", voodoo->cmdfifo_rp_2, header);
 #endif
                             break;
 
@@ -832,6 +880,23 @@ voodoo_fifo_thread(void *param)
 
                         default:
                             fatal("CMDFIFO packet 5 bad space %08x %08x\n", header, voodoo->cmdfifo_rp);
+                    }
+                    break;
+
+                case 6:
+                    if (UNLIKELY(voodoo->type < VOODOO_BANSHEE)) {
+                        fatal("CMDFIFO6: Not Banshee %08x %08x\n", header, voodoo->cmdfifo_rp);
+                    } else {
+                        uint32_t val = cmdfifo_get_2(voodoo);
+                        banshee_cmd_write(voodoo->priv, 0x00, val >> 5);              /* agpReqSize */
+                        banshee_cmd_write(voodoo->priv, 0x04, cmdfifo_get_2(voodoo)); /* agpHostAddressLow */
+                        banshee_cmd_write(voodoo->priv, 0x08, cmdfifo_get_2(voodoo)); /* agpHostAddressHigh */
+                        banshee_cmd_write(voodoo->priv, 0x0c, cmdfifo_get_2(voodoo)); /* agpGraphicsAddress */
+                        banshee_cmd_write(voodoo->priv, 0x10, cmdfifo_get_2(voodoo)); /* agpGraphicsStride */
+                        banshee_cmd_write(voodoo->priv, 0x14, (val & 0x18) | 0x20);   /* agpMoveCMD - start transfer */
+#if 0
+                        voodoo_fifo_log("CMDFIFO6 addr=%08x num=%i\n", addr, banshee->agpReqSize);
+#endif
                     }
                     break;
 

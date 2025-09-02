@@ -87,36 +87,45 @@ enum {
 enum {
     CPU_PKG_8088             = (1 << 0),
     CPU_PKG_8088_EUROPC      = (1 << 1),
-    CPU_PKG_8086             = (1 << 2),
-    CPU_PKG_8086_MAZOVIA     = (1 << 3),
-    CPU_PKG_188              = (1 << 4),
-    CPU_PKG_186              = (1 << 5),
-    CPU_PKG_286              = (1 << 6),
-    CPU_PKG_386SX            = (1 << 7),
-    CPU_PKG_386DX            = (1 << 8),
-    CPU_PKG_386DX_DESKPRO386 = (1 << 9),
-    CPU_PKG_M6117            = (1 << 10),
-    CPU_PKG_386SLC_IBM       = (1 << 11),
-    CPU_PKG_486SLC           = (1 << 12),
-    CPU_PKG_486SLC_IBM       = (1 << 13),
-    CPU_PKG_486BL            = (1 << 14),
-    CPU_PKG_486DLC           = (1 << 15),
-    CPU_PKG_SOCKET1          = (1 << 16),
-    CPU_PKG_SOCKET3          = (1 << 17),
-    CPU_PKG_SOCKET3_PC330    = (1 << 18),
-    CPU_PKG_STPC             = (1 << 19),
-    CPU_PKG_SOCKET4          = (1 << 20),
-    CPU_PKG_SOCKET5_7        = (1 << 21),
-    CPU_PKG_SOCKET8          = (1 << 22),
-    CPU_PKG_SLOT1            = (1 << 23),
-    CPU_PKG_SLOT2            = (1 << 24),
-    CPU_PKG_SOCKET370        = (1 << 25)
+    CPU_PKG_8088_VTECH       = (1 << 2),
+    CPU_PKG_8086             = (1 << 3),
+    CPU_PKG_8086_MAZOVIA     = (1 << 4),
+    CPU_PKG_8086_VTECH       = (1 << 5),
+    CPU_PKG_188              = (1 << 6),
+    CPU_PKG_186              = (1 << 7),
+    CPU_PKG_286              = (1 << 8),
+    CPU_PKG_386SX            = (1 << 9),
+    CPU_PKG_386DX            = (1 << 10),
+    CPU_PKG_386DX_DESKPRO386 = (1 << 11),
+    CPU_PKG_M6117            = (1 << 12),
+    CPU_PKG_386SLC_IBM       = (1 << 13),
+    CPU_PKG_486SLC           = (1 << 14),
+    CPU_PKG_486SLC_IBM       = (1 << 15),
+    CPU_PKG_486BL            = (1 << 16),
+    CPU_PKG_486DLC           = (1 << 17),
+    CPU_PKG_SOCKET1          = (1 << 18),
+    CPU_PKG_SOCKET3          = (1 << 19),
+    CPU_PKG_SOCKET3_PC330    = (1 << 20),
+    CPU_PKG_STPC             = (1 << 21),
+    CPU_PKG_SOCKET4          = (1 << 22),
+    CPU_PKG_SOCKET5_7        = (1 << 23),
+    CPU_PKG_SOCKET8          = (1 << 24),
+    CPU_PKG_SLOT1            = (1 << 25),
+    CPU_PKG_SLOT2            = (1 << 26),
+    CPU_PKG_SOCKET370        = (1 << 27)
 };
 
 #define CPU_SUPPORTS_DYNAREC 1
 #define CPU_REQUIRES_DYNAREC 2
 #define CPU_ALTERNATE_XTAL   4
 #define CPU_FIXED_MULTIPLIER 8
+
+#define CCR1_USE_SMI  (1 << 1)
+#define CCR1_SMAC     (1 << 2)
+#define CCR1_SM3      (1 << 7)
+
+#define CCR3_SMI_LOCK (1 << 0)
+#define CCR3_NMI_EN   (1 << 1)
 
 #if (defined __amd64__ || defined _M_X64)
 #    define LOOKUP_INV -1LL
@@ -326,7 +335,10 @@ typedef struct {
     uint8_t tag[8];
 
     x86seg  *ea_seg;
-    uint32_t eaaddr;
+    union {
+        uint32_t eaaddr;
+        uint16_t eaa16[2];
+    };
 
     int      flags_op;
     uint32_t flags_res;
@@ -369,7 +381,7 @@ typedef struct {
     MMX_REG MM[8];
 
 #ifdef USE_NEW_DYNAREC
-#    if defined(__APPLE__) && defined(__aarch64__)
+#    if (defined(__APPLE__) && defined(__aarch64__)) || defined(__aarch64__)
     uint64_t old_fp_control;
     uint64_t new_fp_control;
 #    else
@@ -404,6 +416,8 @@ typedef struct {
     uint16_t eflags;
 
     uint32_t _smbase;
+
+    uint32_t x87_op;
 } cpu_state_t;
 
 #define in_smm   cpu_state._in_smm
@@ -511,6 +525,7 @@ extern int is286;
 extern int is386;
 extern int is6117;
 extern int is486;
+extern int is586;
 extern int is_am486;
 extern int is_am486dxl;
 extern int is_pentium;
@@ -586,6 +601,16 @@ extern uint32_t dr[8];
 extern uint32_t _tr[8];
 extern uint32_t cache_index;
 extern uint8_t  _cache[2048];
+
+/* For the Cyrix 6x86(MX) */
+extern uint8_t ccr0;
+extern uint8_t ccr1;
+extern uint8_t ccr2;
+extern uint8_t ccr3;
+extern uint8_t ccr4;
+extern uint8_t ccr5;
+extern uint8_t ccr6;
+extern uint8_t ccr7;
 
 /*Segments -
   _cs,_ds,_es,_ss are the segment structures
@@ -760,6 +785,8 @@ typedef struct {
     } arr[8];
     uint32_t smhr;
 } cyrix_t;
+
+#define x87_op cpu_state.x87_op
 
 extern uint32_t addr64;
 extern uint32_t addr64_2;

@@ -16,6 +16,10 @@
 #          Copyright 2024      Jasmine Iwanek.
 #
 
+if(NOT CMAKE_TOP_LEVEL_PROCESSED)
+    message(FATAL_ERROR "Incorrect source directory specified. Delete your build directory and retry with the top-level directory instead")
+endif()
+
 if(APPLE)
     set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 endif()
@@ -23,8 +27,6 @@ endif()
 add_executable(86Box
     86box.c
     config.c
-    log.c
-    random.c
     timer.c
     io.c
     acpi.c
@@ -41,15 +43,11 @@ add_executable(86Box
     pci.c
     mca.c
     usb.c
-    fifo.c
-    fifo8.c
     device.c
     nvr.c
     nvr_at.c
     nvr_ps2.c
     machine_status.c
-    ini.c
-    cJSON.c
 )
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -105,8 +103,12 @@ if(INSTRUMENT)
     add_compile_definitions(USE_INSTRUMENT)
 endif()
 
-target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom zip mo hdd
-    net print scsi sio snd vid voodoo plat ui)
+target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom rdisk mo hdd
+    net print scsi sio snd utils vid voodoo plat ui)
+
+if(HAIKU)
+    target_link_libraries(86Box be)
+endif()
 
 if(WIN32 AND ARCH STREQUAL "i386")
     if(MINGW)
@@ -149,16 +151,6 @@ if(APPLE)
     # Freetype is dynamically loaded by the emulator, however, we link it
     # on macOS so it gets copied to the bundle by the installation process
     target_link_libraries(86Box Freetype::Freetype)
-endif()
-
-find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
-if(STATIC_BUILD AND TARGET SDL2::SDL2-static)
-    target_link_libraries(86Box SDL2::SDL2-static)
-elseif(TARGET SDL2::SDL2)
-    target_link_libraries(86Box SDL2::SDL2)
-else()
-    target_link_libraries(86Box ${SDL2_LIBRARIES})
 endif()
 
 find_package(PNG REQUIRED)
@@ -223,7 +215,6 @@ elseif(APPLE AND NOT QT)
     COMPONENT Runtime)
 endif()
 
-
 # Install the PDB file on Windows builds
 if(MSVC)
     # CMake fully supports PDB files on MSVC-compatible compilers
@@ -253,7 +244,9 @@ add_subdirectory(printer)
 add_subdirectory(sio)
 add_subdirectory(scsi)
 add_subdirectory(sound)
+add_subdirectory(utils)
 add_subdirectory(video)
+
 if (APPLE)
     add_subdirectory(mac)
 endif()
@@ -263,4 +256,8 @@ if (QT)
 else()
     add_compile_definitions(USE_SDL_UI)
     add_subdirectory(unix)
+endif()
+
+if(CMAKE_SYSTEM_NAME MATCHES "NetBSD")
+    add_custom_command(TARGET 86Box POST_BUILD COMMAND paxctl ARGS +m $<TARGET_FILE:86Box> COMMENT "Disable PaX MPROTECT")
 endif()

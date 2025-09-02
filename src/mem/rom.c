@@ -97,7 +97,8 @@ rom_check(const char *fn)
     else {
         fp = fopen(fn, "rb");
         ret = (fp != NULL);
-        fclose(fp);
+        if (fp != NULL)
+            fclose(fp);
     }
 
     return ret;
@@ -133,6 +134,9 @@ rom_fopen(const char *fn, char *mode)
 {
     char        temp[1024];
     FILE       *fp = NULL;
+
+    if ((fn == NULL) || (mode == NULL))
+        return NULL;
 
     if (strstr(fn, "roms/") == fn) {
         /* Relative path */
@@ -244,6 +248,57 @@ rom_readl(uint32_t addr, void *priv)
     return (*(uint32_t *) &rom->rom[(addr - rom->mapping.base) & rom->mask]);
 }
 
+void
+rom_write(uint32_t addr, uint8_t val, void *priv)
+{
+    const rom_t *rom = (rom_t *) priv;
+
+#ifdef ROM_TRACE
+    if (rom->mapping.base == ROM_TRACE)
+        rom_log("ROM: write byte from BIOS at %06lX\n", addr);
+#endif
+
+    if (addr < rom->mapping.base)
+        return;
+    if (addr >= (rom->mapping.base + rom->sz))
+        return;
+    rom->rom[(addr - rom->mapping.base) & rom->mask] = val;
+}
+
+void
+rom_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    rom_t *rom = (rom_t *) priv;
+
+#ifdef ROM_TRACE
+    if (rom->mapping.base == ROM_TRACE)
+        rom_log("ROM: write word from BIOS at %06lX\n", addr);
+#endif
+
+    if (addr < (rom->mapping.base - 1))
+        return;
+    if (addr >= (rom->mapping.base + rom->sz))
+        return;
+    *(uint16_t *) &rom->rom[(addr - rom->mapping.base) & rom->mask] = val;
+}
+
+void
+rom_writel(uint32_t addr, uint32_t val, void *priv)
+{
+    rom_t *rom = (rom_t *) priv;
+
+#ifdef ROM_TRACE
+    if (rom->mapping.base == ROM_TRACE)
+        rom_log("ROM: write long from BIOS at %06lX\n", addr);
+#endif
+
+    if (addr < (rom->mapping.base - 3))
+        return;
+    if (addr >= (rom->mapping.base + rom->sz))
+        return;
+    *(uint32_t *) &rom->rom[(addr - rom->mapping.base) & rom->mask] = val;
+}
+
 int
 rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
@@ -269,11 +324,12 @@ rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz, int off, uint8_t 
         }
         for (int i = 0; i < (sz >> 1); i++) {
             if (fread(ptr + (addr + (i << 1) + 1), 1, 1, fp) != 1)
-                fatal("rom_load_linear(): Error reading od data\n");
+                fatal("rom_load_linear(): Error reading odd data\n");
         }
     }
 
-    (void) fclose(fp);
+    if (fp != NULL)
+        (void) fclose(fp);
 
     return 1;
 }
@@ -302,7 +358,8 @@ rom_load_linear(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
             fatal("rom_load_linear(): Error reading data\n");
     }
 
-    (void) fclose(fp);
+    if (fp != NULL)
+        (void) fclose(fp);
 
     return 1;
 }
@@ -346,7 +403,8 @@ rom_load_linear_inverted(const char *fn, uint32_t addr, int sz, int off, uint8_t
         }
     }
 
-    (void) fclose(fp);
+    if (fp != NULL)
+        (void) fclose(fp);
 
     return 1;
 }
@@ -387,8 +445,10 @@ rom_load_interleaved(const char *fnl, const char *fnh, uint32_t addr, int sz, in
         }
     }
 
-    (void) fclose(fph);
-    (void) fclose(fpl);
+    if (fph != NULL)
+        (void) fclose(fph);
+    if (fpl != NULL)
+        (void) fclose(fpl);
 
     return 1;
 }

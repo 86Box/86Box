@@ -278,7 +278,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size, const in
 
     alGetSourcei(source[src], AL_BUFFERS_PROCESSED, &processed);
     if (processed >= 1) {
-        const double gain = pow(10.0, (double) sound_gain / 20.0);
+        const double gain = sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0);
         alListenerf(AL_GAIN, (float) gain);
 
         alSourceUnqueueBuffers(source[src], 1, &buffer);

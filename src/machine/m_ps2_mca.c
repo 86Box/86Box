@@ -105,6 +105,7 @@ static struct ps2_t {
     int pending_cache_miss;
 
     serial_t *uart;
+    lpt_t    *lpt;
 
     vga_t* mb_vga;
     int has_e0000_hole;
@@ -477,7 +478,7 @@ model_50_write(uint16_t port, uint8_t val)
 {
     switch (port) {
         case 0x102:
-            lpt1_remove();
+            lpt_port_remove(ps2.lpt);
             serial_remove(ps2.uart);
             if (val & 0x04) {
                 if (val & 0x08)
@@ -488,13 +489,13 @@ model_50_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_setup(LPT_MDA_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_setup(LPT1_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_setup(LPT2_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT2_ADDR);
                         break;
 
                     default:
@@ -609,7 +610,7 @@ model_55sx_write(uint16_t port, uint8_t val)
 {
     switch (port) {
         case 0x102:
-            lpt1_remove();
+            lpt_port_remove(ps2.lpt);
             serial_remove(ps2.uart);
             if (val & 0x04) {
                 if (val & 0x08)
@@ -620,13 +621,13 @@ model_55sx_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_setup(LPT_MDA_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_setup(LPT1_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_setup(LPT2_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT2_ADDR);
                         break;
 
                     default:
@@ -668,7 +669,7 @@ model_70_type3_write(uint16_t port, uint8_t val)
 {
     switch (port) {
         case 0x102:
-            lpt1_remove();
+            lpt_port_remove(ps2.lpt);
             serial_remove(ps2.uart);
             if (val & 0x04) {
                 if (val & 0x08)
@@ -679,13 +680,13 @@ model_70_type3_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_setup(LPT_MDA_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_setup(LPT1_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_setup(LPT2_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT2_ADDR);
                         break;
 
                     default:
@@ -722,7 +723,7 @@ model_80_write(uint16_t port, uint8_t val)
 {
     switch (port) {
         case 0x102:
-            lpt1_remove();
+            lpt_port_remove(ps2.lpt);
             serial_remove(ps2.uart);
             if (val & 0x04) {
                 if (val & 0x08)
@@ -733,13 +734,13 @@ model_80_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_setup(LPT_MDA_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_setup(LPT1_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_setup(LPT2_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT2_ADDR);
                         break;
 
                     default:
@@ -775,7 +776,7 @@ ps55_model_50tv_write(uint16_t port, uint8_t val)
     ps2_mca_log(" Write SysBrd %04X %02X %04X:%04X\n", port, val, cs >> 4, cpu_state.pc);
     switch (port) {
         case 0x102:
-            lpt1_remove();
+            lpt_port_remove(ps2.lpt);
             serial_remove(ps2.uart);
             if (val & 0x04) {
                 if (val & 0x08)
@@ -786,13 +787,13 @@ ps55_model_50tv_write(uint16_t port, uint8_t val)
             if (val & 0x10) {
                 switch ((val >> 5) & 3) {
                     case 0:
-                        lpt1_setup(LPT_MDA_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
                         break;
                     case 1:
-                        lpt1_setup(LPT1_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT1_ADDR);
                         break;
                     case 2:
-                        lpt1_setup(LPT2_ADDR);
+                        lpt_port_setup(ps2.lpt, LPT2_ADDR);
                         break;
                     default:
                         break;
@@ -1032,7 +1033,7 @@ ps2_mca_board_common_init(void)
 
     ps2.setup = 0xff;
 
-    lpt1_setup(LPT_MDA_ADDR);
+    lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
 }
 
 static uint8_t
@@ -1159,7 +1160,6 @@ ps2_mca_board_model_50_init(void)
 
     mem_remap_top(384);
     mca_init(4);
-    device_add(&keyboard_ps2_mca_2_device);
 
     ps2.planar_read  = model_50_read;
     ps2.planar_write = model_50_write;
@@ -1180,7 +1180,6 @@ ps2_mca_board_model_60_init(void)
 
     mem_remap_top(384);
     mca_init(8);
-    device_add(&keyboard_ps2_mca_2_device);
 
     ps2.planar_read  = model_50_read;
     ps2.planar_write = model_50_write;
@@ -1240,7 +1239,6 @@ ps2_mca_board_model_55sx_init(int has_sec_nvram, int slots)
     }
 
     mca_init(slots);
-    device_add(&keyboard_ps2_mca_1_device);
 
     if (has_sec_nvram)
         device_add(&ps2_nvr_55ls_device);
@@ -1419,7 +1417,6 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 
     ps2.split_addr = mem_size * 1024;
     mca_init(slots);
-    device_add(&keyboard_ps2_mca_1_device);
 
     ps2.planar_read  = model_70_type3_read;
     ps2.planar_write = model_70_type3_write;
@@ -1512,7 +1509,6 @@ ps2_mca_board_model_80_type2_init(void)
 
     ps2.split_addr = mem_size * 1024;
     mca_init(8);
-    device_add(&keyboard_ps2_mca_1_device);
 
     ps2.planar_read  = model_80_read;
     ps2.planar_write = model_80_write;
@@ -1601,28 +1597,82 @@ machine_ps2_common_init(const machine_t *model)
 
     ps2.uart = device_add_inst(&ns16550_device, 1);
 
+    ps2.lpt  = device_add_inst(&lpt_port_device, 1);
+    lpt_set_ext(ps2.lpt, 1);
+
     ps2.has_e0000_hole = 0;
 }
+
+static const device_config_t ps2_model_50_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "ibmps2_m50",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "IBM PS/2 model 50", .internal_name = "ibmps2_m50", .bios_type = BIOS_NORMAL, 
+              .files_no = 4, .local = 0, .size = 131072, .files = { "roms/machines/ibmps2_m50/90x7420.zm13",
+                                                                    "roms/machines/ibmps2_m50/90x7429.zm18",
+                                                                    "roms/machines/ibmps2_m50/90x7423.zm14",
+                                                                    "roms/machines/ibmps2_m50/90x7426.zm16", "" } },
+            { .name = "IBM PS/2 model 50Z", .internal_name = "ibmps2_m50z", .bios_type = BIOS_NORMAL, 
+              .files_no = 2, .local = 0, .size = 131072, .files = { "roms/machines/ibmps2_m50/15F8366.BIN",
+                                                                    "roms/machines/ibmps2_m50/15F8365.BIN", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ps2_model_50_device = {
+    .name          = "IBM PS/2 model 50",
+    .internal_name = "ps2_model_50_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ps2_model_50_config
+};
 
 int
 machine_ps2_model_50_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn[4];
 
-    ret = bios_load_interleaved("roms/machines/ibmps2_m50/90x7420.zm13",
-                                "roms/machines/ibmps2_m50/90x7429.zm18",
-                                0x000f0000, 131072, 0);
-    ret &= bios_load_aux_interleaved("roms/machines/ibmps2_m50/90x7423.zm14",
-                                     "roms/machines/ibmps2_m50/90x7426.zm16",
-                                     0x000e0000, 65536, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    int is_50z = !strcmp(device_get_config_bios("bios"), "ibmps2_m50z");
+    if (is_50z) {
+        for (int i = 0; i < 2; i++)
+            fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
+        ret = bios_load_interleaved(fn[0], fn[1], 0x000e0000, 131072, 0);
+    } else {
+        for (int i = 0; i < 4; i++)
+            fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
+        ret = bios_load_interleaved(fn[0], fn[1], 0x000f0000, 131072, 0);
+        ret &= bios_load_aux_interleaved(fn[2], fn[3], 0x000e0000, 65536, 0);
+    }
+    device_context_restore();
 
     machine_ps2_common_init(model);
 
     ps2.planar_id = 0xfbff;
     ps2_mca_board_model_50_init();
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -1647,6 +1697,8 @@ machine_ps2_model_60_init(const machine_t *model)
     ps2.planar_id = 0xf7ff;
     ps2_mca_board_model_60_init();
 
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     return ret;
 }
 
@@ -1666,6 +1718,8 @@ machine_ps2_model_55sx_init(const machine_t *model)
 
     ps2.planar_id = 0xfbff;
     ps2_mca_board_model_55sx_init(0, 4);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -1687,6 +1741,8 @@ machine_ps2_model_65sx_init(const machine_t *model)
     ps2.planar_id = 0xe3ff;
     ps2_mca_board_model_55sx_init(1, 8);
 
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     return ret;
 }
 
@@ -1706,6 +1762,8 @@ machine_ps2_model_70_type3_init(const machine_t *model)
 
     ps2.planar_id = 0xf9ff;
     ps2_mca_board_model_70_type34_init(0, 4);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -1727,6 +1785,8 @@ machine_ps2_model_80_init(const machine_t *model)
     ps2.planar_id = 0xfdff;
     ps2_mca_board_model_80_type2_init();
 
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     return ret;
 }
 
@@ -1746,6 +1806,8 @@ machine_ps2_model_80_axx_init(const machine_t *model)
 
     ps2.planar_id = 0xfff9;
     ps2_mca_board_model_70_type34_init(0, 8);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -1767,6 +1829,8 @@ machine_ps2_model_70_type4_init(const machine_t *model)
     ps2.planar_id = 0xf9ff;
     ps2_mca_board_model_70_type34_init(1, 4);
 
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     return ret;
 }
 
@@ -1778,7 +1842,6 @@ ps55_mca_board_model_50t_init(void)
     ps2.split_addr = mem_size * 1024;
     /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
     mca_init(5);
-    device_add(&keyboard_ps2_mca_1_device);
 
     ps2.planar_read = ps55_model_50t_read;
     ps2.planar_write = ps55_model_50tv_write;
@@ -1822,7 +1885,6 @@ ps55_mca_board_model_50v_init(void)
     ps2.split_addr = mem_size * 1024;
     /* The slot 5 is reserved for the Integrated Fixed Disk II (an internal ESDI hard drive). */
     mca_init(5);
-    device_add(&keyboard_ps2_mca_1_device);
 
     ps2.planar_read = ps55_model_50v_read;
     ps2.planar_write = ps55_model_50tv_write;
@@ -1874,7 +1936,7 @@ ps55_mca_board_model_50v_init(void)
 }
 
 int
-machine_ps55_model_50t_init(const machine_t* model)
+machine_ps55_model_50t_init(const machine_t *model)
 {
     int ret;
 
@@ -1899,11 +1961,13 @@ machine_ps55_model_50t_init(const machine_t* model)
     ps2.planar_id = 0xffee;
     ps55_mca_board_model_50t_init();
 
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
     return ret;
 }
 
 int
-machine_ps55_model_50v_init(const machine_t* model)
+machine_ps55_model_50v_init(const machine_t *model)
 {
     int ret;
 
@@ -1923,6 +1987,8 @@ machine_ps55_model_50v_init(const machine_t* model)
     */
     ps2.planar_id = 0xf1ff;
     ps55_mca_board_model_50v_init();
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }

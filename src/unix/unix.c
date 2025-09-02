@@ -2,6 +2,9 @@
 #    define _FILE_OFFSET_BITS   64
 #    define _LARGEFILE64_SOURCE 1
 #endif
+#ifdef __HAIKU__
+#include <OS.h>
+#endif
 #include <SDL.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -38,6 +41,7 @@
 #include <86box/device.h>
 #include <86box/gameport.h>
 #include <86box/unix_sdl.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/version.h>
@@ -60,16 +64,13 @@ int             fixed_size_x = 640;
 int             fixed_size_y = 480;
 extern int      title_set;
 extern wchar_t  sdl_win_title[512];
-plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
-joystick_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
+plat_joystick_state_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
+joystick_state_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
 int             joysticks_present;
 SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
 static int      exit_event         = 0;
 static int      fullscreen_pending = 0;
-uint32_t        lang_id  = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
-uint32_t        lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
-char            icon_set[256] = "";                  /* name of the iconset to be used */
 
 static const uint16_t sdl_to_xt[0x200] = {
     [SDL_SCANCODE_ESCAPE]       = 0x01,
@@ -207,22 +208,33 @@ dynld_module(const char *name, dllimp_t *table)
     return modhandle;
 }
 
+#define TMPFILE_BUFSIZE 1024  // Assumed max buffer size
 void
 plat_tempfile(char *bufp, char *prefix, char *suffix)
 {
     struct tm     *calendertime;
     struct timeval t;
     time_t         curtime;
+    size_t         used = 0;
 
     if (prefix != NULL)
-        sprintf(bufp, "%s-", prefix);
-    else
-        strcpy(bufp, "");
+        used = snprintf(bufp, TMPFILE_BUFSIZE, "%s-", prefix);
+    else if (TMPFILE_BUFSIZE > 0)
+        bufp[0] = '\0';
+
     gettimeofday(&t, NULL);
     curtime      = time(NULL);
     calendertime = localtime(&curtime);
-    sprintf(&bufp[strlen(bufp)], "%d%02d%02d-%02d%02d%02d-%03ld%s", calendertime->tm_year, calendertime->tm_mon, calendertime->tm_mday, calendertime->tm_hour, calendertime->tm_min, calendertime->tm_sec, t.tv_usec / 1000, suffix);
+
+    if (used < TMPFILE_BUFSIZE) {
+        snprintf(bufp + used, TMPFILE_BUFSIZE - used,
+                 "%d%02d%02d-%02d%02d%02d-%03" PRId32 "%s",
+                 calendertime->tm_year, calendertime->tm_mon, calendertime->tm_mday,
+                 calendertime->tm_hour, calendertime->tm_min, calendertime->tm_sec,
+                 (int32_t)(t.tv_usec / 1000), suffix);
+    }
 }
+#undef TMPFILE_BUFSIZE
 
 int
 plat_getcwd(char *bufp, int max)
@@ -278,6 +290,8 @@ plat_get_string(int i)
             return L"Hardware not available";
         case STRING_MONITOR_SLEEP:
             return L"Monitor in sleep mode";
+        case STRING_EDID_TOO_LARGE:
+            return "EDID file \"%ls\" is too large.";
     }
     return L"";
 }
@@ -471,6 +485,12 @@ ui_sb_update_icon(UNUSED(int tag), UNUSED(int active))
 }
 
 void
+ui_sb_update_icon_write(UNUSED(int tag), UNUSED(int active))
+{
+    /* No-op. */
+}
+
+void
 plat_delay_ms(uint32_t count)
 {
     SDL_Delay(count);
@@ -558,7 +578,7 @@ main_thread(UNUSED(void *param))
         old_time = new_time;
         if (drawits > 0 && !dopause) {
             /* Yes, so do one frame now. */
-            drawits -= 10;
+            drawits -= force_10ms ? 10 : 1;
             if (drawits > 50)
                 drawits = 0;
 
@@ -566,7 +586,7 @@ main_thread(UNUSED(void *param))
             pc_run();
 
             /* Every 200 frames we save the machine status. */
-            if (++frames >= 200 && nvr_dosave) {
+            if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
                 nvr_save();
                 nvr_dosave = 0;
                 frames     = 0;
@@ -776,82 +796,102 @@ plat_pause(int p)
     }
 }
 
+#define TMP_PATH_BUFSIZE 1024
 void
 plat_init_rom_paths(void)
 {
 #ifndef __APPLE__
-    if (getenv("XDG_DATA_HOME")) {
-        char xdg_rom_path[1024] = { 0 };
-
-        strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);
-        path_slash(xdg_rom_path);
-        strncat(xdg_rom_path, "86Box/", 1023);
-
-        if (!plat_dir_check(xdg_rom_path))
+    const char *xdg_data_home = getenv("XDG_DATA_HOME");
+    if (xdg_data_home) {
+        char xdg_rom_path[TMP_PATH_BUFSIZE] = {0};
+        size_t used = snprintf(xdg_rom_path, sizeof(xdg_rom_path), "%s/", xdg_data_home);
+        if (used < sizeof(xdg_rom_path))
+            used += snprintf(xdg_rom_path + used, sizeof(xdg_rom_path) - used, "86Box/");
+        if (used < sizeof(xdg_rom_path) && !plat_dir_check(xdg_rom_path))
             plat_dir_create(xdg_rom_path);
-        strcat(xdg_rom_path, "roms/");
-
-        if (!plat_dir_check(xdg_rom_path))
+        if (used < sizeof(xdg_rom_path))
+            used += snprintf(xdg_rom_path + used, sizeof(xdg_rom_path) - used, "roms/");
+        if (used < sizeof(xdg_rom_path) && !plat_dir_check(xdg_rom_path))
             plat_dir_create(xdg_rom_path);
-        rom_add_path(xdg_rom_path);
+        if (used < sizeof(xdg_rom_path))
+            rom_add_path(xdg_rom_path);
     } else {
-        char home_rom_path[1024] = { 0 };
-
-        snprintf(home_rom_path, 1024, "%s/.local/share/86Box/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
-
-        if (!plat_dir_check(home_rom_path))
-            plat_dir_create(home_rom_path);
-        strcat(home_rom_path, "roms/");
-
-        if (!plat_dir_check(home_rom_path))
-            plat_dir_create(home_rom_path);
-        rom_add_path(home_rom_path);
-    }
-    if (getenv("XDG_DATA_DIRS")) {
-        char *xdg_rom_paths      = strdup(getenv("XDG_DATA_DIRS"));
-        char *xdg_rom_paths_orig = xdg_rom_paths;
-        char *cur_xdg_rom_path   = NULL;
-
-        if (xdg_rom_paths) {
-            while (xdg_rom_paths[strlen(xdg_rom_paths) - 1] == ':') {
-                xdg_rom_paths[strlen(xdg_rom_paths) - 1] = '\0';
-            }
-            while ((cur_xdg_rom_path = local_strsep(&xdg_rom_paths, ":")) != NULL) {
-                char real_xdg_rom_path[1024] = { '\0' };
-                strcat(real_xdg_rom_path, cur_xdg_rom_path);
-                path_slash(real_xdg_rom_path);
-                strcat(real_xdg_rom_path, "86Box/roms/");
-                rom_add_path(real_xdg_rom_path);
-            }
+        const char *home = getenv("HOME");
+        if (!home) {
+            struct passwd *pw = getpwuid(getuid());
+            if (pw)
+                home = pw->pw_dir;
         }
-        free(xdg_rom_paths_orig);
+
+        if (home) {
+            char home_rom_path[TMP_PATH_BUFSIZE] = {0};
+            size_t used = snprintf(home_rom_path, sizeof(home_rom_path),
+                                   "%s/.local/share/86Box/", home);
+            if (used < sizeof(home_rom_path) && !plat_dir_check(home_rom_path))
+                plat_dir_create(home_rom_path);
+            if (used < sizeof(home_rom_path))
+                used += snprintf(home_rom_path + used,
+                                 sizeof(home_rom_path) - used, "roms/");
+            if (used < sizeof(home_rom_path) && !plat_dir_check(home_rom_path))
+                plat_dir_create(home_rom_path);
+            if (used < sizeof(home_rom_path))
+                rom_add_path(home_rom_path);
+        }
+    }
+
+    const char *xdg_data_dirs = getenv("XDG_DATA_DIRS");
+    if (xdg_data_dirs) {
+        char *xdg_rom_paths = strdup(xdg_data_dirs);
+        if (xdg_rom_paths) {
+            // Trim trailing colons
+            size_t len = strlen(xdg_rom_paths);
+            while (len > 0 && xdg_rom_paths[len - 1] == ':')
+                xdg_rom_paths[--len] = '\0';
+
+            char *saveptr = NULL;
+            char *cur_xdg = strtok_r(xdg_rom_paths, ":", &saveptr);
+            while (cur_xdg) {
+                char real_xdg_rom_path[TMP_PATH_BUFSIZE] = {0};
+                size_t used = snprintf(real_xdg_rom_path,
+                                       sizeof(real_xdg_rom_path),
+                                       "%s/86Box/roms/", cur_xdg);
+                if (used < sizeof(real_xdg_rom_path))
+                    rom_add_path(real_xdg_rom_path);
+                cur_xdg = strtok_r(NULL, ":", &saveptr);
+            }
+
+            free(xdg_rom_paths);
+        }
     } else {
         rom_add_path("/usr/local/share/86Box/roms/");
         rom_add_path("/usr/share/86Box/roms/");
     }
 #else
-    char  default_rom_path[1024] = { '\0' };
+    char default_rom_path[TMP_PATH_BUFSIZE] = {0};
     getDefaultROMPath(default_rom_path);
     rom_add_path(default_rom_path);
 #endif
 }
+#undef TMP_PATH_BUFSIZE
 
 void
-plat_get_global_config_dir(char *outbuf, const uint8_t len)
+plat_get_global_config_dir(char *outbuf, const size_t len)
 {
-    char *prefPath = SDL_GetPrefPath(NULL, "86Box");
-    strncpy(outbuf, prefPath, len);
-    path_slash(outbuf);
-    SDL_free(prefPath);
+    return plat_get_global_data_dir(outbuf, len);
 }
 
 void
-plat_get_global_data_dir(char *outbuf, const uint8_t len)
+plat_get_global_data_dir(char *outbuf, const size_t len)
 {
-    char *prefPath = SDL_GetPrefPath(NULL, "86Box");
-    strncpy(outbuf, prefPath, len);
+    if (portable_mode) {
+        strncpy(outbuf, exe_path, len);
+    } else {
+        char *prefPath = SDL_GetPrefPath(NULL, "86Box");
+        strncpy(outbuf, prefPath, len);
+        SDL_free(prefPath);
+    }
+
     path_slash(outbuf);
-    SDL_free(prefPath);
 }
 
 void
@@ -863,6 +903,14 @@ plat_get_temp_dir(char *outbuf, uint8_t len)
     }
     strncpy(outbuf, tmpdir, len);
     path_slash(outbuf);
+}
+
+void
+plat_get_vmm_dir(char *outbuf, const size_t len)
+{
+    // Return empty string. SDL 86Box does not have a VM manager
+    if (len > 0)
+        outbuf[0] = 0;
 }
 
 bool
@@ -911,6 +959,11 @@ void (*f_rl_callback_handler_remove)(void) = NULL;
 #else
 #    define LIBEDIT_LIBRARY "libedit.so"
 #endif
+
+void ui_sb_update_icon_wp(int tag, int state)
+{
+    /* No-op */
+}
 
 uint32_t
 timer_onesec(uint32_t interval, UNUSED(void *param))
@@ -965,12 +1018,12 @@ monitor_thread(UNUSED(void *param))
                     printf(
                         "fddload <id> <filename> <wp> - Load floppy disk image into drive <id>.\n"
                         "cdload <id> <filename> - Load CD-ROM image into drive <id>.\n"
-                        "zipload <id> <filename> <wp> - Load ZIP image into ZIP drive <id>.\n"
+                        "rdiskload <id> <filename> <wp> - Load removable disk image into removable disk drive <id>.\n"
                         "cartload <id> <filename> <wp> - Load cartridge image into cartridge drive <id>.\n"
                         "moload <id> <filename> <wp> - Load MO image into MO drive <id>.\n\n"
                         "fddeject <id> - eject disk from floppy drive <id>.\n"
                         "cdeject <id> - eject disc from CD-ROM drive <id>.\n"
-                        "zipeject <id> - eject ZIP image from ZIP drive <id>.\n"
+                        "rdiskeject <id> - eject removable disk image from removable disk drive <id>.\n"
                         "carteject <id> - eject cartridge from drive <id>.\n"
                         "moeject <id> - eject image from MO drive <id>.\n\n"
                         "hardreset - hard reset the emulated system.\n"
@@ -1075,8 +1128,8 @@ monitor_thread(UNUSED(void *param))
                     mo_eject(atoi(xargv[1]));
                 } else if (strncasecmp(xargv[0], "carteject", 8) == 0 && cmdargc >= 2) {
                     cartridge_eject(atoi(xargv[1]));
-                } else if (strncasecmp(xargv[0], "zipeject", 8) == 0 && cmdargc >= 2) {
-                    zip_eject(atoi(xargv[1]));
+                } else if (strncasecmp(xargv[0], "rdiskeject", 8) == 0 && cmdargc >= 2) {
+                    rdisk_eject(atoi(xargv[1]));
                 } else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4) {
                     uint8_t id;
                     uint8_t wp;
@@ -1143,7 +1196,7 @@ monitor_thread(UNUSED(void *param))
                         printf("Inserting tape into cartridge holder %hhu: %s\n", id, fn);
                         cartridge_mount(id, fn, wp);
                     }
-                } else if (strncasecmp(xargv[0], "zipload", 7) == 0 && cmdargc >= 4) {
+                } else if (strncasecmp(xargv[0], "rdiskload", 7) == 0 && cmdargc >= 4) {
                     uint8_t id;
                     uint8_t wp;
                     bool    err = false;
@@ -1162,8 +1215,8 @@ monitor_thread(UNUSED(void *param))
                         if (fn[strlen(fn) - 1] == '\''
                             || fn[strlen(fn) - 1] == '"')
                             fn[strlen(fn) - 1] = '\0';
-                        printf("Inserting disk into ZIP drive %c: %s\n", id + 'A', fn);
-                        zip_mount(id, fn, wp);
+                        printf("Inserting disk into removable disk drive %c: %s\n", id + 'A', fn);
+                        rdisk_mount(id, fn, wp);
                     }
                 }
                 free(line);
@@ -1187,11 +1240,12 @@ main(int argc, char **argv)
     ret = pc_init(argc, argv);
     if (ret == 0)
         return 0;
-    if (!pc_init_modules()) {
+    if (!pc_init_roms()) {
         ui_msgbox_header(MBX_FATAL, L"No ROMs found.", L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
         SDL_Quit();
         return 6;
     }
+    pc_init_modules();
 
     for (uint8_t i = 1; i < GFXCARD_MAX; i++)
         gfxcard[i]  = 0;
@@ -1337,9 +1391,6 @@ main(int argc, char **argv)
                     }
             }
         }
-        if (mouse_capture && keyboard_ismsexit()) {
-            plat_mouse_capture(0);
-        }
         if (blitreq) {
             extern void sdl_blit(int x, int y, int w, int h);
             sdl_blit(params.x, params.y, params.w, params.h);
@@ -1375,8 +1426,8 @@ plat_vidapi_name(UNUSED(int i))
     return "default";
 }
 
-/* Sets up the program language before initialization. */
-uint32_t
+/* Converts the language code string to a numeric language ID */
+int
 plat_language_code(UNUSED(char *langcode))
 {
     /* or maybe not */
@@ -1397,24 +1448,28 @@ plat_set_thread_name(void *thread, const char *name)
     if (thread) /* Apple pthread can only set self's name */
         return;
     char truncated[64];
-#elif defined(Q_OS_NETBSD)
+#elif defined(__NetBSD__)
     char truncated[64];
+#elif defined(__HAIKU__)
+    char truncated[32];
 #else
     char truncated[16];
 #endif
     strncpy(truncated, name, sizeof(truncated) - 1);
 #ifdef __APPLE__
     pthread_setname_np(truncated);
-#elif defined(Q_OS_NETBSD)
+#elif defined(__NetBSD__)
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, "%s");
+#elif defined(__HAIKU__)
+    rename_thread(find_thread(NULL), truncated);
 #else
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
 #endif
 }
 
-/* Converts back the language code to LCID */
+/* Converts the numeric language ID to a language code string */
 void
-plat_language_code_r(UNUSED(uint32_t lcid), UNUSED(char *outbuf), UNUSED(int len))
+plat_language_code_r(UNUSED(int id), UNUSED(char *outbuf), UNUSED(int len))
 {
     /* or maybe not */
     return;
@@ -1433,7 +1488,7 @@ joystick_close(void)
 }
 
 void
-joystick_process(void)
+joystick_process(uint8_t gp)
 {
     /* No-op. */
 }

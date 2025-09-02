@@ -214,7 +214,7 @@ static const device_config_t compaticard_ii_config[] = {
     },
     {
         .name           = "dma",
-        .description    = "DMA channel",
+        .description    = "DMA",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 2,
@@ -272,7 +272,7 @@ static const device_config_t compaticard_iv_config[] = {
     },
     {
         .name           = "dma",
-        .description    = "DMA channel",
+        .description    = "DMA",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 2,

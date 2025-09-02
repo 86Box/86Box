@@ -1,3 +1,46 @@
+
+#ifdef X87_INLINE_ASM
+static inline double float_add(double src, double val, int round)
+{
+    int rounding_mode_orig;
+
+    __m128d xmm_src = _mm_load_sd(&src);
+    __m128d xmm_dst = _mm_load_sd(&val);
+    __m128d xmm_res;
+
+    rounding_mode_orig = _MM_GET_ROUNDING_MODE();
+    if (round == 0) _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);
+    if (round == 1) _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
+    if (round == 2) _MM_SET_ROUNDING_MODE(_MM_ROUND_UP);
+    if (round == 3) _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
+
+    xmm_res = _mm_add_sd(xmm_src, xmm_dst);
+
+    _MM_SET_ROUNDING_MODE(rounding_mode_orig);
+
+    return _mm_cvtsd_f64(xmm_res);
+}
+
+#define DO_FADD(use_var)                                               \
+    do                                                                 \
+    {                                                                  \
+        ST(0) = float_add(ST(0), use_var, (cpu_state.npxc >> 10) & 3); \
+    }                                                                  \
+    while (0)
+
+#else
+#define DO_FADD(use_var)                                               \
+    do                                                                 \
+    {                                                                  \
+        if ((cpu_state.npxc >> 10) & 3)                                \
+            fesetround(rounding_modes[(cpu_state.npxc >> 10) & 3]);    \
+        ST(0) += use_var;                                              \
+        if ((cpu_state.npxc >> 10) & 3)                                \
+            fesetround(FE_TONEAREST);                                  \
+    }                                                                  \
+    while (0)
+#endif
+
 #define opFPU(name, optype, a_size, load_var, get, use_var, cycle_postfix)                                                                         \
     static int opFADD##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                 \
     {                                                                                                                                              \
@@ -8,11 +51,7 @@
         load_var = get();                                                                                                                          \
         if (cpu_state.abrt)                                                                                                                        \
             return 1;                                                                                                                              \
-        if ((cpu_state.npxc >> 10) & 3)                                                                                                            \
-            fesetround(rounding_modes[(cpu_state.npxc >> 10) & 3]);                                                                                \
-        ST(0) += use_var;                                                                                                                          \
-        if ((cpu_state.npxc >> 10) & 3)                                                                                                            \
-            fesetround(FE_TONEAREST);                                                                                                              \
+        DO_FADD(use_var);                                                                                                                          \
         FP_TAG_VALID;                                                                                                                              \
         CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fadd##cycle_postfix) : ((x87_timings.fadd##cycle_postfix) * cpu_multi));           \
         CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fadd##cycle_postfix) : ((x87_concurrency.fadd##cycle_postfix) * cpu_multi)); \

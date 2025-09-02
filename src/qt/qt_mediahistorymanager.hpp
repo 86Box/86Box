@@ -45,7 +45,7 @@ Q_NAMESPACE
 enum class MediaType {
     Floppy,
     Optical,
-    Zip,
+    RDisk,
     Mo,
     Cassette,
     Cartridge
@@ -62,7 +62,7 @@ typedef QHash<ui::MediaType, device_media_history_t> master_list_t;
 static const MediaType AllSupportedMediaHistoryTypes[] = {
     MediaType::Optical,
     MediaType::Floppy,
-    MediaType::Zip,
+    MediaType::RDisk,
     MediaType::Mo,
     MediaType::Cassette,
     MediaType::Cartridge

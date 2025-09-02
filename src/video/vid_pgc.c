@@ -2342,23 +2342,23 @@ pgc_cga_text(pgc_t *dev, int w)
     int            drawcursor = 0;
     uint32_t       cols[2];
     int            pitch = (dev->mapram[0x3e9] + 1) * 2;
-    uint16_t       sc    = (dev->displine & 0x0f) % pitch;
-    uint16_t       ma    = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
-    uint16_t       ca    = (dev->mapram[0x3ef] | (dev->mapram[0x3ee] << 8)) & 0x3fff;
+    uint16_t       scanline    = (dev->displine & 0x0f) % pitch;
+    uint16_t       memaddr    = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
+    uint16_t       cursoraddr    = (dev->mapram[0x3ef] | (dev->mapram[0x3ee] << 8)) & 0x3fff;
     const uint8_t *addr;
     uint32_t       val;
     int            cw = (w == 80) ? 8 : 16;
 
-    addr = &dev->cga_vram[((ma + ((dev->displine / pitch) * w)) * 2) & 0x3ffe];
-    ma += (dev->displine / pitch) * w;
+    addr = &dev->cga_vram[((memaddr + ((dev->displine / pitch) * w)) * 2) & 0x3ffe];
+    memaddr += (dev->displine / pitch) * w;
 
     for (int x = 0; x < w; x++) {
         chr  = *addr++;
         attr = *addr++;
 
         /* Cursor enabled? */
-        if (ma == ca && (dev->cgablink & 8) && (dev->mapram[0x3ea] & 0x60) != 0x20) {
-            drawcursor = ((dev->mapram[0x3ea] & 0x1f) <= (sc >> 1)) && ((dev->mapram[0x3eb] & 0x1f) >= (sc >> 1));
+        if (memaddr == cursoraddr && (dev->cgablink & 8) && (dev->mapram[0x3ea] & 0x60) != 0x20) {
+            drawcursor = ((dev->mapram[0x3ea] & 0x1f) <= (scanline >> 1)) && ((dev->mapram[0x3eb] & 0x1f) >= (scanline >> 1));
         } else
             drawcursor = 0;
 
@@ -2374,9 +2374,9 @@ pgc_cga_text(pgc_t *dev, int w)
 
         for (int c = 0; c < cw; c++) {
             if (drawcursor)
-                val = cols[(fontdatm[chr + dev->fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ 0x0f;
+                val = cols[(fontdatm[chr + dev->fontbase][scanline] & (1 << (c ^ 7))) ? 1 : 0] ^ 0x0f;
             else
-                val = cols[(fontdatm[chr + dev->fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0];
+                val = cols[(fontdatm[chr + dev->fontbase][scanline] & (1 << (c ^ 7))) ? 1 : 0];
             if (cw == 8) /* 80x25 CGA text screen. */
                 buffer32->line[dev->displine][(x * cw) + c] = val;
             else { /* 40x25 CGA text screen. */
@@ -2385,7 +2385,7 @@ pgc_cga_text(pgc_t *dev, int w)
             }
         }
 
-        ma++;
+        memaddr++;
     }
 }
 
@@ -2395,7 +2395,7 @@ pgc_cga_gfx40(pgc_t *dev)
 {
     uint32_t       cols[4];
     int            col;
-    uint16_t       ma = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
+    uint16_t       memaddr = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
     const uint8_t *addr;
     uint16_t       dat;
 
@@ -2422,9 +2422,9 @@ pgc_cga_gfx40(pgc_t *dev)
     }
 
     for (uint8_t x = 0; x < 40; x++) {
-        addr = &dev->cga_vram[(ma + 2 * x + 80 * (dev->displine >> 2) + 0x2000 * ((dev->displine >> 1) & 1)) & 0x3fff];
+        addr = &dev->cga_vram[(memaddr + 2 * x + 80 * (dev->displine >> 2) + 0x2000 * ((dev->displine >> 1) & 1)) & 0x3fff];
         dat  = (addr[0] << 8) | addr[1];
-        dev->ma++;
+        dev->memaddr++;
         for (uint8_t c = 0; c < 8; c++) {
             buffer32->line[dev->displine][(x << 4) + (c << 1)] = buffer32->line[dev->displine][(x << 4) + (c << 1) + 1] = cols[dat >> 14];
             dat <<= 2;
@@ -2437,7 +2437,7 @@ void
 pgc_cga_gfx80(pgc_t *dev)
 {
     uint32_t       cols[2];
-    uint16_t       ma = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
+    uint16_t       memaddr = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
     const uint8_t *addr;
     uint16_t       dat;
 
@@ -2445,9 +2445,9 @@ pgc_cga_gfx80(pgc_t *dev)
     cols[1] = (dev->mapram[0x3d9] & 15) + 16;
 
     for (uint8_t x = 0; x < 40; x++) {
-        addr = &dev->cga_vram[(ma + 2 * x + 80 * (dev->displine >> 2) + 0x2000 * ((dev->displine >> 1) & 1)) & 0x3fff];
+        addr = &dev->cga_vram[(memaddr + 2 * x + 80 * (dev->displine >> 2) + 0x2000 * ((dev->displine >> 1) & 1)) & 0x3fff];
         dat  = (addr[0] << 8) | addr[1];
-        dev->ma++;
+        dev->memaddr++;
         for (uint8_t c = 0; c < 16; c++) {
             buffer32->line[dev->displine][(x << 4) + c] = cols[dat >> 15];
             dat <<= 1;

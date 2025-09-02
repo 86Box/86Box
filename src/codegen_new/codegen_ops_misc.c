@@ -533,8 +533,8 @@ ropCWDE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0); \
         codegen_check_seg_read(block, ir, target_seg);                                         \
-        uop_MEM_LOAD_REG(ir, IREG_temp0_W, ireg_seg_base(target_seg), IREG_eaaddr);            \
-        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 2);  \
+        uop_MEM_LOAD_REG(ir, IREG_temp0_W, ireg_seg_base(target_seg), (op_32 & 0x200) ? IREG_eaaddr : IREG_eaa16); \
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), (op_32 & 0x200) ? IREG_eaaddr : IREG_eaa16, 2); \
         uop_LOAD_SEG(ir, seg, IREG_temp1_W);                                                   \
         uop_MOV(ir, IREG_16(dest_reg), IREG_temp0_W);                                          \
                                                                                                \
@@ -556,8 +556,8 @@ ropCWDE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0); \
         codegen_check_seg_read(block, ir, target_seg);                                         \
-        uop_MEM_LOAD_REG(ir, IREG_temp0, ireg_seg_base(target_seg), IREG_eaaddr);              \
-        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 4);  \
+        uop_MEM_LOAD_REG(ir, IREG_temp0, ireg_seg_base(target_seg), (op_32 & 0x200) ? IREG_eaaddr : IREG_eaa16);              \
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), (op_32 & 0x200) ? IREG_eaaddr : IREG_eaa16, 4);  \
         uop_LOAD_SEG(ir, seg, IREG_temp1_W);                                                   \
         uop_MOV(ir, IREG_32(dest_reg), IREG_temp0);                                            \
                                                                                                \

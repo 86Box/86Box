@@ -26,7 +26,7 @@
 #endif
 
 #define MOUSE_TYPE_NONE     0 /* no mouse configured */
-#define MOUSE_TYPE_INTERNAL 1 /* achine has internal mouse */
+#define MOUSE_TYPE_INTERNAL 1 /* machine has internal mouse */
 #define MOUSE_TYPE_LOGIBUS  2 /* Logitech/ATI Bus Mouse */
 #define MOUSE_TYPE_INPORT   3 /* Microsoft InPort Mouse */
 #if 0
@@ -41,7 +41,11 @@
 #define MOUSE_TYPE_PS2       11 /* PS/2 series Bus Mouse */
 #define MOUSE_TYPE_WACOM     12 /* WACOM tablet */
 #define MOUSE_TYPE_WACOMARTP 13 /* WACOM tablet (ArtPad) */
+#define MOUSE_TYPE_MSYSTEMSB 14 /* Mouse Systems bus mouse */
+#define MOUSE_TYPE_MSBPOINT  15 /* Microsoft Serial BallPoint mouse */
+#define MOUSE_TYPE_PS2_QPORT 27 /* PS/2 QuickPort series Bus Mouse */
 
+#define MOUSE_TYPE_QPORT     0x40 /* Mouse is an on-board version of one of the above. */
 #define MOUSE_TYPE_ONBOARD   0x80 /* Mouse is an on-board version of one of the above. */
 
 
@@ -68,9 +72,13 @@ extern const device_t mouse_msinport_device;
 extern const device_t mouse_genibus_device;
 #    endif
 extern const device_t mouse_mssystems_device;
+extern const device_t mouse_mssystems_bus_device;
 extern const device_t mouse_msserial_device;
+extern const device_t mouse_msserial_ballpoint_device;
 extern const device_t mouse_ltserial_device;
 extern const device_t mouse_ps2_device;
+extern const device_t mouse_upc_device;
+extern const device_t mouse_upc_standalone_device;
 #    ifdef USE_WACOM
 extern const device_t mouse_wacom_device;
 extern const device_t mouse_wacom_artpad_device;
@@ -100,9 +108,13 @@ extern void            mouse_scale_axis(int axis, int val);
 extern void            mouse_set_z(int z);
 extern void            mouse_clear_z(void);
 extern void            mouse_subtract_z(int *delta_z, int min, int max, int invert);
+extern void            mouse_set_w(int w);
+extern void            mouse_clear_w(void);
+extern void            mouse_subtract_w(int *delta_w, int min, int max, int invert);
 extern void            mouse_set_buttons_ex(int b);
 extern int             mouse_get_buttons_ex(void);
 extern void            mouse_set_sample_rate(double new_rate);
+extern void            mouse_update_sample_rate(void);
 extern void            mouse_set_buttons(int buttons);
 extern void            mouse_get_abs_coords(double *x_abs, double *y_abs);
 extern void            mouse_process(void);
@@ -123,6 +135,11 @@ extern void            mouse_close(void);
 extern void            mouse_init(void);
 
 extern void            mouse_bus_set_irq(void *priv, int irq);
+
+extern void            mouse_upc_port_handler(int num, int set, uint16_t port, void *priv);
+extern void            mouse_upc_handler(int set, uint16_t port, void *priv);
+
+extern void            mouse_upc_set_irq(int num, uint16_t irq, void *priv);
 
 #ifdef __cplusplus
 }

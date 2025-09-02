@@ -8,11 +8,11 @@
  *
  *          Mitsumi CD-ROM emulation for the ISA bus.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2022 Miran Grca.
+ *          Copyright 2022      Miran Grca.
+ *          Copyright 2024-2025 Jasmine Iwanek.
  */
 #ifndef CDROM_MITSUMI_H
 #define CDROM_MITSUMI_H

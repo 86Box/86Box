@@ -8,8 +8,6 @@
  *
  *          Emulation of the UMC UM8669F Super I/O chip.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          RichardG, <richardg867@gmail.com>
@@ -92,7 +90,8 @@ static uint8_t um8669f_pnp_rom[] = {
 
     0x15, 0x41, 0xd0, 0x04, 0x00, 0x01,             /* logical device PNP0400, can participate in boot */
     0x22, 0xfa, 0x1f,                               /* IRQ 1/3/4/5/6/7/8/9/10/11/12 */
-    0x47, 0x00, 0x00, 0x01, 0xf8, 0x03, 0x08, 0x08, /* I/O 0x100-0x3F8, decodes 10-bit, 8-byte alignment, 8 addresses */
+    0x2a, 0x0f, 0x0c,                               /* DMA 0/1/2/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+    0x47, 0x01, 0x00, 0x01, 0xf8, 0x0f, 0x08, 0x08, /* I/O 0x100-0x3F8, decodes 16-bit, 8-byte alignment, 8 addresses */
 
     0x15, 0x41, 0xd0, 0x06, 0x00, 0x01,             /* logical device PNP0600, can participate in boot */
     0x22, 0xfa, 0x1f,                               /* IRQ 1/3/4/5/6/7/8/9/10/11/12 */
@@ -120,7 +119,8 @@ static const isapnp_device_config_t um8669f_pnp_defaults[] = {
     }, {
         .activate = 1,
         .io = { { .base = LPT1_ADDR }, },
-        .irq = { { .irq = LPT1_IRQ }, }
+        .irq = { { .irq = LPT1_IRQ }, },
+        .dma = { { .dma = 3 }, }
     }, {
         .activate = 0,
         .io = { { .base = 0x1f0 }, },
@@ -157,6 +157,7 @@ typedef struct um8669f_t {
 
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t *   lpt;
     uint8_t   ide;
     void     *gameport;
 } um8669f_t;
@@ -203,11 +204,14 @@ um8669f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
             break;
 
         case 3:
-            lpt1_remove();
+            lpt_port_remove(dev->lpt);
 
             if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) {
                 um8669f_log("UM8669F: LPT enabled at port %04X IRQ %d\n", config->io[0].base, config->irq[0].irq);
-                lpt1_setup(config->io[0].base);
+                lpt_port_setup(dev->lpt, config->io[0].base);
+
+                lpt_port_irq(dev->lpt, config->irq[0].irq);
+                lpt_port_dma(dev->lpt, (config->dma[0].dma == ISAPNP_DMA_DISABLED) ? -1 : config->dma[0].dma);
             } else {
                 um8669f_log("UM8669F: LPT disabled\n");
             }
@@ -267,6 +271,9 @@ um8669f_write(uint16_t port, uint8_t val, void *priv)
             if (dev->cur_reg == 0xc1) {
                 um8669f_log("UM8669F: ISAPnP %sabled\n", (val & 0x80) ? "en" : "dis");
                 isapnp_enable_card(dev->pnp_card, (val & 0x80) ? ISAPNP_CARD_FORCE_CONFIG : ISAPNP_CARD_DISABLE);
+            } else if (dev->cur_reg == 0xc0) {
+                lpt_set_epp(dev->lpt, val & 0x08);
+                lpt_set_ecp(dev->lpt, val & 0x10);
             }
         }
     }
@@ -301,7 +308,10 @@ um8669f_reset(um8669f_t *dev)
 
     serial_remove(dev->uart[1]);
 
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
+
+    lpt_set_epp(dev->lpt, 0);
+    lpt_set_ecp(dev->lpt, 0);
 
     if (dev->ide < IDE_BUS_MAX)
         ide_remove_handlers(dev->ide);
@@ -339,7 +349,12 @@ um8669f_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    dev->ide = info->local;
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
+
+    lpt_set_cnfgb_readout(dev->lpt, 0x00);
+    lpt_set_ext(dev->lpt, 1);
+
+    dev->ide = (uint8_t) (info->local - 1);
     if (dev->ide < IDE_BUS_MAX)
         device_add(&ide_isa_device);
 
@@ -357,35 +372,7 @@ const device_t um8669f_device = {
     .name          = "UMC UM8669F Super I/O",
     .internal_name = "um8669f",
     .flags         = 0,
-    .local         = 0xff,
-    .init          = um8669f_init,
-    .close         = um8669f_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t um8669f_ide_device = {
-    .name          = "UMC UM8669F Super I/O (With IDE)",
-    .internal_name = "um8669f_ide",
-    .flags         = 0,
     .local         = 0,
-    .init          = um8669f_init,
-    .close         = um8669f_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t um8669f_ide_sec_device = {
-    .name          = "UMC UM8669F Super I/O (With Secondary IDE)",
-    .internal_name = "um8669f_ide_sec",
-    .flags         = 0,
-    .local         = 1,
     .init          = um8669f_init,
     .close         = um8669f_close,
     .reset         = NULL,

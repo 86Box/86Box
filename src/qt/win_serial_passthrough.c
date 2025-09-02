@@ -13,7 +13,7 @@
  *              Jasmine Iwanek <jasmine@iwanek.co.uk>
  *
  *              Copyright 2021      Andreas J. Reichel
- *              Copyright 2021-2023 Jasmine Iwanek
+ *              Copyright 2021-2025 Jasmine Iwanek
  */
 
 #define _XOPEN_SOURCE 500
@@ -46,9 +46,9 @@ plat_serpt_close(void *priv)
     fclose(dev->master_fd);
 #endif
     FlushFileBuffers((HANDLE) dev->master_fd);
-    if (dev->mode == SERPT_MODE_VCON)
+    if (dev->mode == SERPT_MODE_NPIPE_SRV)
         DisconnectNamedPipe((HANDLE) dev->master_fd);
-    if (dev->mode == SERPT_MODE_HOSTSER) {
+    else if (dev->mode == SERPT_MODE_HOSTSER) {
         SetCommState((HANDLE) dev->master_fd, (DCB *) dev->backend_priv);
         free(dev->backend_priv);
     }
@@ -83,6 +83,26 @@ plat_serpt_write_vcon(serial_passthrough_t *dev, uint8_t data)
 }
 
 void
+plat_serpt_set_line_state(void *priv)
+{
+    const serial_passthrough_t *dev = (serial_passthrough_t *) priv;
+
+    if (dev->mode == SERPT_MODE_HOSTSER) {
+        DWORD msrstate;
+        EscapeCommFunction((HANDLE) dev->master_fd, (dev->serial->mctrl & 1) ? SETDTR : CLRDTR);
+        EscapeCommFunction((HANDLE) dev->master_fd, (dev->serial->mctrl & 2) ? SETRTS : CLRRTS);
+        EscapeCommFunction((HANDLE) dev->master_fd, (dev->serial->lcr & (1 << 6) ? SETBREAK : CLRBREAK));
+
+        if (GetCommModemStatus((HANDLE) dev->master_fd, &msrstate)) {
+            serial_set_dcd(dev->serial, !!(msrstate & MS_RLSD_ON));
+            serial_set_dsr(dev->serial, !!(msrstate & MS_DSR_ON));
+            serial_set_cts(dev->serial, !!(msrstate & MS_CTS_ON));
+            serial_set_ri(dev->serial, !!(msrstate & MS_RING_ON));
+        }
+    }
+}
+
+void
 plat_serpt_set_params(void *priv)
 {
     const serial_passthrough_t *dev = (serial_passthrough_t *) priv;
@@ -108,6 +128,13 @@ plat_serpt_set_params(void *priv)
         BAUDRATE_RANGE(dev->baudrate, 57600, 115200);
         BAUDRATE_RANGE(dev->baudrate, 115200, 0xFFFFFFFF);
 
+        serialattr.fRtsControl     = RTS_CONTROL_ENABLE;
+        serialattr.fDtrControl     = DTR_CONTROL_ENABLE;
+        serialattr.fDsrSensitivity = FALSE;
+        serialattr.fAbortOnError   = FALSE;
+
+        serialattr.fInX     = FALSE;
+        serialattr.fOutX    = FALSE;
         serialattr.ByteSize = dev->data_bits;
         serialattr.StopBits = (dev->serial->lcr & 0x04) ? TWOSTOPBITS : ONESTOPBIT;
         if (!(dev->serial->lcr & 0x08)) {
@@ -122,7 +149,21 @@ plat_serpt_set_params(void *priv)
             }
         }
 
-        SetCommState((HANDLE) dev->master_fd, &serialattr);
+        (void) SetCommState((HANDLE) dev->master_fd, &serialattr);
+
+        {
+            DWORD msrstate;
+            EscapeCommFunction((HANDLE) dev->master_fd, (dev->serial->mctrl & 1) ? SETDTR : CLRDTR);
+            EscapeCommFunction((HANDLE) dev->master_fd, (dev->serial->mctrl & 2) ? SETRTS : CLRRTS);
+            EscapeCommFunction((HANDLE) dev->master_fd, (dev->serial->lcr & (1 << 6) ? SETBREAK : CLRBREAK));
+
+            if (GetCommModemStatus((HANDLE) dev->master_fd, &msrstate)) {
+                serial_set_dcd(dev->serial, !!(msrstate & MS_RLSD_ON));
+                serial_set_dsr(dev->serial, !!(msrstate & MS_DSR_ON));
+                serial_set_cts(dev->serial, !!(msrstate & MS_CTS_ON));
+                serial_set_ri(dev->serial, !!(msrstate & MS_RING_ON));
+            }
+        }
 #undef BAUDRATE_RANGE
     }
 }
@@ -133,7 +174,8 @@ plat_serpt_write(void *priv, uint8_t data)
     serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     switch (dev->mode) {
-        case SERPT_MODE_VCON:
+        case SERPT_MODE_NPIPE_SRV:
+        case SERPT_MODE_NPIPE_CLNT:
         case SERPT_MODE_HOSTSER:
             plat_serpt_write_vcon(dev, data);
             break;
@@ -157,7 +199,8 @@ plat_serpt_read(void *priv, uint8_t *data)
     int                   res = 0;
 
     switch (dev->mode) {
-        case SERPT_MODE_VCON:
+        case SERPT_MODE_NPIPE_SRV:
+        case SERPT_MODE_NPIPE_CLNT:
         case SERPT_MODE_HOSTSER:
             res = plat_serpt_read_vcon(dev, data);
             break;
@@ -184,6 +227,42 @@ open_pseudo_terminal(serial_passthrough_t *dev)
         return 0;
     }
     pclog("Named Pipe @ %s\n", ascii_pipe_name);
+    return 1;
+}
+
+static int
+connect_named_pipe_client(serial_passthrough_t *dev)
+{
+    char ascii_pipe_name[1024] = { 0 };
+    size_t len = strlen(dev->named_pipe);
+    if ((len + 1) >= sizeof(ascii_pipe_name))
+        memcpy(ascii_pipe_name, dev->named_pipe, sizeof(ascii_pipe_name));
+    else
+        memcpy(ascii_pipe_name, dev->named_pipe, len + 1);
+
+    HANDLE hPipe = CreateFileA(
+        ascii_pipe_name,            // pipe name
+        GENERIC_READ | GENERIC_WRITE,
+        0,                          // no sharing
+        NULL,                       // default security attributes
+        OPEN_EXISTING,              // open existing pipe
+        0,                          // default attributes
+        NULL);                      // no template file
+
+    if (hPipe == INVALID_HANDLE_VALUE) {
+        DWORD error = GetLastError();
+        wchar_t errorMsg[1024] = { 0 };
+        wchar_t finalMsg[1024] = { 0 };
+        FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorMsg, 1024, NULL);
+        swprintf(finalMsg, 1024, L"Named Pipe (client, named_pipe=\"%hs\", port=COM%d): %ls\n", ascii_pipe_name, dev->port + 1, errorMsg);
+        ui_msgbox(MBX_ERROR | MBX_FATAL, finalMsg);
+        return 0;
+    }
+
+    DWORD mode = PIPE_READMODE_BYTE | PIPE_NOWAIT;
+    SetNamedPipeHandleState(hPipe, &mode, NULL, NULL);
+    dev->master_fd = (intptr_t) hPipe;
+    pclog("Named Pipe client connected to %s\n", ascii_pipe_name);
     return 1;
 }
 
@@ -222,15 +301,18 @@ plat_serpt_open_device(void *priv)
     serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     switch (dev->mode) {
-        case SERPT_MODE_VCON:
-            if (open_pseudo_terminal(dev)) {
+        case SERPT_MODE_NPIPE_SRV:
+            if (open_pseudo_terminal(dev))
                 return 0;
-            }
+            break;
+        case SERPT_MODE_NPIPE_CLNT:
+            if (connect_named_pipe_client(dev))
+                return 0;
             break;
         case SERPT_MODE_HOSTSER:
-            if (open_host_serial_port(dev)) {
+            if (open_host_serial_port(dev))
                 return 0;
-            }
+            break;
         default:
             break;
     }

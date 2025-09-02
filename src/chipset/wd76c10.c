@@ -65,9 +65,10 @@ wd76c10_log(const char *fmt, ...)
 #endif
 
 typedef struct {
-    uint32_t enable;
+    uint32_t phys_on, enable;
     uint32_t virt_addr, phys_addr;
     uint32_t virt_size, phys_size;
+    uint32_t adj_virt_addr, adj_virt_size;
 } ram_bank_t;
 
 typedef struct {
@@ -80,7 +81,9 @@ typedef struct {
 typedef struct
 {
     uint8_t ep, p92;
+    uint8_t addr_sel;
 
+    uint8_t addr_regs[8];
     uint8_t vbios_states[4];
     uint8_t bios_states[8];
     uint8_t high_bios_states[8];
@@ -99,10 +102,12 @@ typedef struct
     };
 
     uint16_t ems_page_regs[40];
+    uint16_t lpt_base;
 
     int locked;
 
     uint32_t mem_top, hmwp_base;
+    uint32_t fast;
 
     ram_bank_t ram_banks[5];
 
@@ -111,15 +116,49 @@ typedef struct
     mem_mapping_t ram_mapping;
 
     nvr_t     *nvr;
-
-    fdc_t *fdc;
-    serial_t *uart[2];
+    fdc_t     *fdc;
+    serial_t  *uart[2];
+    lpt_t     *lpt;
 } wd76c10_t;
 
 static uint32_t bank_sizes[4] = { 0x00020000,      /*  64 Kbit X 16 = 1024 Kbit = 128 kB,  8x 8 */
                                   0x00080000,      /* 256 Kbit X 16 = 4096 Kbit = 512 kB,  9x 9 */
                                   0x00200000,      /*   1 Mbit X 16 =   16 Mbit =   2 MB, 10x10 */
                                   0x00800000 };    /*   4 Mbit X 16 =   64 Mbit =   8 MB, 11x11 */
+
+static uint32_t
+wd76c10_calc_phys(uint32_t row, uint32_t col, uint32_t size, uint32_t a0)
+{
+    uint32_t ret = WD76C10_ADDR_INVALID;
+
+    switch (size) {
+        default:
+            ret = WD76C10_ADDR_INVALID;
+            break;
+        case 0x00020000:
+            row = (row & 0x0000ff) << 9;
+            col = (col & 0x0000ff) << 1;
+            ret = row | col | a0;
+            break;
+        case 0x00080000:
+            row = (row & 0x0001ff) << 10;
+            col = (col & 0x0001ff) << 1;
+            ret = row | col | a0;
+            break;
+        case 0x00200000:
+            row = (row & 0x0003ff) << 11;
+            col = (col & 0x0003ff) << 1;
+            ret = row | col | a0;
+            break;
+        case 0x00800000:
+            row = (row & 0x0007ff) << 12;
+            col = (col & 0x0007ff) << 1;
+            ret = row | col | a0;
+            break;
+    }
+
+    return ret;
+}
 
 static uint32_t
 wd76c10_calc_addr(wd76c10_t *dev, uint32_t addr)
@@ -159,20 +198,303 @@ wd76c10_calc_addr(wd76c10_t *dev, uint32_t addr)
         ret = WD76C10_ADDR_INVALID;
 
     /* Then, handle the physical memory banks. */
+    int      ilv4  = (dev->mem_ctl >> 8) & 4;
+    int8_t   add   = 0;
+    uint32_t pg    = (dev->mem_ctl & 0x0800);
+    uint32_t nrt   = WD76C10_ADDR_INVALID;
+
+    if (ret != WD76C10_ADDR_INVALID) {
+        if (dev->fast)  for (int8_t i = 0; i < 4; i++) {
+            rb = &(dev->ram_banks[i]);
+
+            uint32_t ret2  = ret - rb->phys_addr;
+
+            if (rb->phys_on && (ret >= rb->phys_addr) &&
+                (ret < (rb->phys_addr + rb->phys_size))) {
+                if (ret2 < rb->phys_size)
+                    nrt = ret2 + rb->phys_addr;
+                break;
+            }
+        } else  for (int8_t i = 0; i < 4; i++) {
+            rb = &(dev->ram_banks[i]);
+
+            int      ilv2  = (dev->mem_ctl >> 8) & (1 << (i >> 1));
+            uint32_t size  = rb->virt_size;
+            uint32_t ret2  = ret - rb->virt_addr;
+            uint32_t ret4  = ret2;
+            uint32_t row   = WD76C10_ADDR_INVALID;
+            uint32_t col   = WD76C10_ADDR_INVALID;
+            uint32_t rb_or = 0;
+
+            if (ilv4) {
+                size <<= 2;
+                switch (rb->virt_size) {
+                    default:
+                        ret4 = WD76C10_ADDR_INVALID;
+                        break;
+                    case 0x00020000:
+                        if (pg) {
+                            row   = (ret2 >> 9) & 0x0000fc;
+                            row  |= (ret2 >> 17) & 0x000001;
+                            row  |= ((ret2 >> 19) & 0x000001) << 1;
+                            row  |= ((ret2 >> 18) & 0x000001) << 8;
+                            row  |= ((ret2 >> 20) & 0x000001) << 9;
+                            row  |= ((ret2 >> 22) & 0x000001) << 10;
+                            col   = (ret2 >> 1) & 0x000007ff;
+                            rb_or = (ret2 >> 9) & 0x000003;
+                        } else
+                            ret4  = WD76C10_ADDR_INVALID;
+                        break;
+                    case 0x00080000:
+                        if (pg) {
+                            row   = (ret2 >> 9) & 0x0000f8;
+                            row  |= (ret2 >> 17) & 0x000001;
+                            row  |= ((ret2 >> 19) & 0x000001) << 1;
+                            row  |= ((ret2 >> 21) & 0x000001) << 2;
+                            row  |= ((ret2 >> 18) & 0x000001) << 8;
+                            row  |= ((ret2 >> 20) & 0x000001) << 9;
+                            row  |= ((ret2 >> 22) & 0x000001) << 10;
+                            col   = (ret2 >> 1) & 0x000007ff;
+                            rb_or = (ret2 >> 10) & 0x000003;
+                        } else
+                            ret4  = WD76C10_ADDR_INVALID;
+                        break;
+                    case 0x00200000:
+                        if (pg) {
+                            row   = (ret2 >> 9) & 0x0000f0;
+                            row  |= (ret2 >> 17) & 0x000001;
+                            row  |= ((ret2 >> 19) & 0x000001) << 1;
+                            row  |= ((ret2 >> 21) & 0x000001) << 2;
+                            row  |= ((ret2 >> 23) & 0x000001) << 3;
+                            row  |= ((ret2 >> 18) & 0x000001) << 8;
+                            row  |= ((ret2 >> 20) & 0x000001) << 9;
+                            row  |= ((ret2 >> 22) & 0x000001) << 10;
+                            col   = (ret2 >> 1) & 0x000007ff;
+                            rb_or = (ret2 >> 11) & 0x000003;
+                        } else
+                            ret4  = WD76C10_ADDR_INVALID;
+                        break;
+                    case 0x00800000:
+                        if (pg) {
+                            row   = (ret2 >> 9) & 0x0000e0;
+                            row  |= (ret2 >> 17) & 0x000001;
+                            row  |= ((ret2 >> 19) & 0x000001) << 1;
+                            row  |= ((ret2 >> 21) & 0x000001) << 2;
+                            row  |= ((ret2 >> 23) & 0x000001) << 3;
+                            row  |= ((ret2 >> 24) & 0x000001) << 4;
+                            row  |= ((ret2 >> 18) & 0x000001) << 8;
+                            row  |= ((ret2 >> 20) & 0x000001) << 9;
+                            row  |= ((ret2 >> 22) & 0x000001) << 10;
+                            col   = (ret2 >> 1) & 0x000007ff;
+                            rb_or = (ret2 >> 12) & 0x000003;
+                        } else
+                            ret4  = WD76C10_ADDR_INVALID;
+                        break;
+                }
+                add = 3;
+            } else if (ilv2) {
+                size <<= 1;
+                switch (rb->virt_size) {
+                    default:
+                        ret4 = WD76C10_ADDR_INVALID;
+                        break;
+                    case 0x00020000:
+                        if (pg) {
+                            row   = (ret2 >> 9) & 0x0000fe;
+                            row  |= (ret2 >> 17) & 0x000001;
+                            row  |= ((ret2 >> 18) & 0x000001) << 8;
+                            row  |= ((ret2 >> 20) & 0x000001) << 9;
+                            row  |= ((ret2 >> 22) & 0x000001) << 10;
+                            col   = (ret2 >> 1) & 0x000007ff;
+                            rb_or = (ret2 >> 9) & 0x000001;
+                        } else {
+                            row   = (ret2 >> 1) & 0x0007fe;
+                            row  |= (ret2 >> 13) & 0x000001;
+                            col   = (ret2 >> 9) & 0x0000ef;
+                            col  |= ((ret2 >> 17) & 0x000001) << 4;
+                            col  |= ((ret2 >> 18) & 0x000001) << 8;
+                            col  |= ((ret2 >> 20) & 0x000001) << 9;
+                            col  |= ((ret2 >> 22) & 0x000001) << 10;
+                            rb_or = (ret2 >> 1) & 0x000001;
+                        }
+                        break;
+                    case 0x00080000:
+                        if (pg) {
+                            row  = (ret2 >> 9) & 0x0000fc;
+                            row  |= (ret2 >> 17) & 0x000001;
+                            row  |= ((ret2 >> 19) & 0x000001) << 1;
+                            row  |= ((ret2 >> 18) & 0x000001) << 8;
+                            row  |= ((ret2 >> 20) & 0x000001) << 9;
+                            row  |= ((ret2 >> 22) & 0x000001) << 10;
+                            col   = (ret2 >> 1) & 0x000007ff;
+                            rb_or = (ret2 >> 10) & 0x000001;
+                        } else {
+                            row   = (ret2 >> 1) & 0x0007fe;
+                            row  |= (ret2 >> 13) & 0x000001;
+                            col   = (ret2 >> 9) & 0x0000ee;
+                            col  |= (ret2 >> 17) & 0x000001;
+                            col  |= ((ret2 >> 19) & 0x000001) << 4;
+                            col  |= ((ret2 >> 18) & 0x000001) << 8;
+                            col  |= ((ret2 >> 20) & 0x000001) << 9;
+                            col  |= ((ret2 >> 22) & 0x000001) << 10;
+                            rb_or = (ret2 >> 1) & 0x000001;
+                        }
+                        break;
+                    case 0x00200000:
+                        if (pg) {
+                            row   = (ret2 >> 9) & 0x0000f8;
+                            row  |= (ret2 >> 17) & 0x000001;
+                            row  |= ((ret2 >> 19) & 0x000001) << 1;
+                            row  |= ((ret2 >> 21) & 0x000001) << 2;
+                            row  |= ((ret2 >> 18) & 0x000001) << 8;
+                            row  |= ((ret2 >> 20) & 0x000001) << 9;
+                            row  |= ((ret2 >> 22) & 0x000001) << 10;
+                            col   = (ret2 >> 1) & 0x000007ff;
+                            rb_or = (ret2 >> 11) & 0x000001;
+                        } else {
+                            row   = (ret2 >> 1) & 0x0007fe;
+                            row  |= (ret2 >> 13) & 0x000001;
+                            col   = (ret2 >> 9) & 0x0000ec;
+                            col  |= (ret2 >> 17) & 0x000001;
+                            col  |= ((ret2 >> 19) & 0x000001) << 1;
+                            col  |= ((ret2 >> 21) & 0x000001) << 4;
+                            col  |= ((ret2 >> 18) & 0x000001) << 8;
+                            col  |= ((ret2 >> 20) & 0x000001) << 9;
+                            col  |= ((ret2 >> 22) & 0x000001) << 10;
+                            rb_or = (ret2 >> 1) & 0x000001;
+                        }
+                        break;
+                    case 0x00800000:
+                        if (pg) {
+                            row =  (ret2 >> 9) & 0x0000f0;
+                            row  |= (ret2 >> 17) & 0x000001;
+                            row  |= ((ret2 >> 19) & 0x000001) << 1;
+                            row  |= ((ret2 >> 21) & 0x000001) << 2;
+                            row  |= ((ret2 >> 23) & 0x000001) << 3;
+                            row  |= ((ret2 >> 18) & 0x000001) << 8;
+                            row  |= ((ret2 >> 20) & 0x000001) << 9;
+                            row  |= ((ret2 >> 22) & 0x000001) << 10;
+                            col   = (ret2 >> 1) & 0x000007ff;
+                            rb_or = (ret2 >> 12) & 0x000001;
+                        } else {
+                            row   = (ret2 >> 1) & 0x0007fe;
+                            row  |= (ret2 >> 13) & 0x000001;
+                            col   = (ret2 >> 9) & 0x0000e0;
+                            col  |= (ret2 >> 17) & 0x000001;
+                            col  |= ((ret2 >> 19) & 0x000001) << 1;
+                            col  |= ((ret2 >> 21) & 0x000001) << 2;
+                            col  |= ((ret2 >> 23) & 0x000001) << 3;
+                            col  |= ((ret2 >> 12) & 0x000001) << 4;
+                            col  |= ((ret2 >> 18) & 0x000001) << 8;
+                            col  |= ((ret2 >> 20) & 0x000001) << 9;
+                            col  |= ((ret2 >> 22) & 0x000001) << 10;
+                            rb_or = (ret2 >> 1) & 0x000001;
+                        }
+                        break;
+                }
+                add = 1;
+            } else if (pg)  switch (rb->virt_size) {
+                default:
+                    ret4 = WD76C10_ADDR_INVALID;
+                    break;
+                case 0x00020000:
+                    row  = (ret2 >> 9) & 0x0000ff;
+                    row |= ((ret2 >> 18) & 0x000001) << 8;
+                    row |= ((ret2 >> 20) & 0x000001) << 9;
+                    row |= ((ret2 >> 22) & 0x000001) << 10;
+                    col  = (ret2 >> 1) & 0x0007ff;
+                    break;
+                case 0x00080000:
+                    row  = (ret2 >> 9) & 0x0000fe;
+                    row |= (ret2 >> 17) & 0x000001;
+                    row |= ((ret2 >> 18) & 0x000001) << 8;
+                    row |= ((ret2 >> 20) & 0x000001) << 9;
+                    row |= ((ret2 >> 22) & 0x000001) << 10;
+                    col  = (ret2 >> 1) & 0x0007ff;
+                    break;
+                case 0x00200000:
+                    row  = (ret2 >> 9) & 0x0000fc;
+                    row |= (ret2 >> 17) & 0x000001;
+                    row |= ((ret2 >> 19) & 0x000001) << 1;
+                    row |= ((ret2 >> 18) & 0x000001) << 8;
+                    row |= ((ret2 >> 20) & 0x000001) << 9;
+                    row |= ((ret2 >> 22) & 0x000001) << 10;
+                    col  = (ret2 >> 1) & 0x0007ff;
+                    break;
+                case 0x00800000:
+                    row  = (ret2 >> 9) & 0x0000f8;
+                    row |= (ret2 >> 17) & 0x000001;
+                    row |= ((ret2 >> 19) & 0x000001) << 1;
+                    row |= ((ret2 >> 21) & 0x000001) << 2;
+                    row |= ((ret2 >> 18) & 0x000001) << 8;
+                    row |= ((ret2 >> 20) & 0x000001) << 9;
+                    row |= ((ret2 >> 22) & 0x000001) << 10;
+                    col  = (ret2 >> 1) & 0x0007ff;
+                    break;
+            } else  switch (rb->virt_size) {
+                default:
+                    ret4 = WD76C10_ADDR_INVALID;
+                    break;
+                case 0x00020000:
+                    row  = (ret2 >> 1) & 0x0007ff;
+                    col  = (ret2 >> 9) & 0x0000ff;
+                    col |= ((ret2 >> 18) & 0x000001) << 8;
+                    col |= ((ret2 >> 20) & 0x000001) << 9;
+                    col |= ((ret2 >> 22) & 0x000001) << 10;
+                    break;
+                case 0x00080000:
+                    row  = (ret2 >> 1) & 0x0007ff;
+                    col  = (ret2 >> 9) & 0x0000fe;
+                    col |= (ret2 >> 17) & 0x000001;
+                    col |= ((ret2 >> 18) & 0x000001) << 8;
+                    col |= ((ret2 >> 20) & 0x000001) << 9;
+                    col |= ((ret2 >> 22) & 0x000001) << 10;
+                    break;
+                case 0x00200000:
+                    row  = (ret2 >> 1) & 0x0007ff;
+                    col  = (ret2 >> 9) & 0x0000fc;
+                    col |= (ret2 >> 17) & 0x000001;
+                    col |= ((ret2 >> 19) & 0x000001) << 1;
+                    col |= ((ret2 >> 18) & 0x000001) << 8;
+                    col |= ((ret2 >> 20) & 0x000001) << 9;
+                    col |= ((ret2 >> 22) & 0x000001) << 10;
+                    break;
+                case 0x00800000:
+                    row  = (ret2 >> 1) & 0x0007ff;
+                    col  = (ret2 >> 9) & 0x0000f8;
+                    col |= (ret2 >> 17) & 0x000001;
+                    col |= ((ret2 >> 19) & 0x000001) << 1;
+                    col |= ((ret2 >> 21) & 0x000001) << 2;
+                    col |= ((ret2 >> 18) & 0x000001) << 8;
+                    col |= ((ret2 >> 20) & 0x000001) << 9;
+                    col |= ((ret2 >> 22) & 0x000001) << 10;
+                    break;
+            }
+
+            if (row != WD76C10_ADDR_INVALID) {
+                ret4 = wd76c10_calc_phys(row & 0x0007ff, col & 0x0007ff,
+                                         rb->phys_size, ret2 & 0x000001);
+
+                if (ilv4 || ilv2)
+                    rb = &(dev->ram_banks[i | rb_or]);
+
+                i += add;
+            }
+
+            if (rb->enable && (ret >= rb->virt_addr) &&
+                (ret < (rb->virt_addr + size))) {
+                if ((ret4 != WD76C10_ADDR_INVALID) && (rb->phys_size > 0x00000000))
+                    nrt = ret4 + rb->phys_addr;
+                break;
+            }
+        }
+
+        ret = nrt;
+    }
+
     if (ret >= (mem_size << 10))
         /* The physical memory address is too high or disabled, which is invalid. */
         ret = WD76C10_ADDR_INVALID;
-    /* Otherwise, map it to the correct bank so the BIOS can auto-size it correctly. */
-    else for (uint8_t i = 0; i < 4; i++) {
-        rb = &(dev->ram_banks[i]);
-        if (rb->enable && (ret >= rb->virt_addr) && (ret < (rb->virt_addr + rb->virt_size))) {
-            if (rb->phys_size == 0x00000000)
-                ret = WD76C10_ADDR_INVALID;
-            else
-                ret = ((ret - rb->virt_addr) % rb->phys_size) + rb->phys_addr;
-            break;
-        }
-    }
 
     return ret;
 }
@@ -185,8 +507,12 @@ wd76c10_read_ram(uint32_t addr, void *priv)
 
     addr = wd76c10_calc_addr(dev, addr);
 
-    if (addr != WD76C10_ADDR_INVALID)
-        ret = mem_read_ram(addr, priv);
+    if (addr != WD76C10_ADDR_INVALID) {
+        if (dev->fast)
+            ret = mem_read_ram(addr, priv);
+        else
+            ret = ram[addr];
+    }
 
     return ret;
 }
@@ -199,8 +525,12 @@ wd76c10_read_ramw(uint32_t addr, void *priv)
 
     addr = wd76c10_calc_addr(dev, addr);
 
-    if (addr != WD76C10_ADDR_INVALID)
-        ret = mem_read_ramw(addr, priv);
+    if (addr != WD76C10_ADDR_INVALID) {
+        if (dev->fast)
+            ret = mem_read_ramw(addr, priv);
+        else
+            ret = *(uint16_t *) &(ram[addr]);
+    }
 
     return ret;
 }
@@ -212,8 +542,12 @@ wd76c10_write_ram(uint32_t addr, uint8_t val, void *priv)
 
     addr = wd76c10_calc_addr(dev, addr);
 
-    if (addr != WD76C10_ADDR_INVALID)
-        mem_write_ram(addr, val, priv);
+    if (addr != WD76C10_ADDR_INVALID) {
+        if (dev->fast)
+            mem_write_ram(addr, val, priv);
+        else
+            ram[addr] = val;
+    }
 }
 
 static void
@@ -223,8 +557,12 @@ wd76c10_write_ramw(uint32_t addr, uint16_t val, void *priv)
 
     addr = wd76c10_calc_addr(dev, addr);
 
-    if (addr != WD76C10_ADDR_INVALID)
-        mem_write_ramw(addr, val, priv);
+    if (addr != WD76C10_ADDR_INVALID) {
+        if (dev->fast)
+            mem_write_ramw(addr, val, priv);
+        else
+            *(uint16_t *) &(ram[addr]) = val;
+    }
 }
 
 static void
@@ -258,6 +596,9 @@ wd76c10_recalc_exec(wd76c10_t *dev, uint32_t base, uint32_t size)
 static void
 wd76c10_banks_recalc(wd76c10_t *dev)
 {
+    int match = 0;
+    dev->fast = 0;
+
     for (uint8_t i = 0; i < 4; i++) {
         ram_bank_t *rb = &(dev->ram_banks[i]);
         uint8_t bit = i << 1;
@@ -266,8 +607,42 @@ wd76c10_banks_recalc(wd76c10_t *dev)
         rb->enable = (dev->split_sa >> bit) & 0x01;
         rb->virt_addr = ((uint32_t) dev->bank_bases[i]) << 17;
 
+        if (rb->enable) {
+            rb->adj_virt_addr = rb->virt_addr;
+            rb->adj_virt_size = rb->virt_size;
+
+            if (dev->mem_ctl & 0x0400)
+                rb->adj_virt_addr += (i * rb->adj_virt_size);
+            else if ((dev->mem_ctl >> 8) & (1 << (i >> 1)))
+                rb->adj_virt_addr += ((i & 1) * rb->adj_virt_size);
+        } else {
+            rb->adj_virt_addr = WD76C10_ADDR_INVALID;
+            rb->adj_virt_size = 0x00000000;
+        }
+
+        if ((rb->enable == rb->phys_on) &&
+            (rb->adj_virt_addr == rb->phys_addr) &&
+            (rb->adj_virt_size == rb->phys_size))
+            match++;
+    }
+
+    dev->fast = (match == 4);
+
+    for (uint8_t i = 0; i < 4; i++) {
+        ram_bank_t *rb = &(dev->ram_banks[i]);
+
         if (cpu_use_exec)
             wd76c10_recalc_exec(dev, rb->virt_addr, rb->virt_size);
+
+        wd76c10_log("Bank %i (%s), physical: %i, %08X-%08X, "
+                    "virtual: %i, %08X-%08X, adj.: %i, %08X-%08X\n",
+                    i, dev->fast ? "FAST" : "SLOW",
+                    rb->phys_on,
+                    rb->phys_addr, rb->phys_addr + rb->phys_size - 1,
+                    rb->enable,
+                    rb->virt_addr, rb->virt_addr + rb->virt_size - 1,
+                    rb->enable,
+                    rb->adj_virt_addr, rb->adj_virt_addr + rb->adj_virt_size - 1);
     }
 }
 
@@ -469,7 +844,7 @@ wd76c10_pf_loc_recalc(wd76c10_t *dev)
     uint8_t ems_page;
     uint32_t base;
 
-    for (uint8_t i = (0x031 + pf_loc); i <= (0x037 + pf_loc); i++) {
+    for (uint16_t i = (0x031 + pf_loc); i <= (0x037 + pf_loc); i++) {
         ems_page = (i - 0x10) & 0xf7;
         dev->mem_pages[i] = ems_page;
         base = ((uint32_t) i) << 14;
@@ -499,6 +874,92 @@ wd76c10_low_pages_recalc(wd76c10_t *dev)
         if (cpu_use_exec)
             wd76c10_recalc_exec(dev, dev->ems_pages[ems_page].virt, 0x00004000);
     }
+}
+
+static void
+wd73c30_reset(wd76c10_t *dev)
+{
+    dev->addr_sel = 0x00;
+
+    dev->addr_regs[0x00] = 0x00;
+    dev->addr_regs[0x01] = 0x00;
+    dev->addr_regs[0x05] = 0x00;
+
+    serial_set_type(dev->uart[0], SERIAL_16450);
+    serial_set_type(dev->uart[1], SERIAL_16450);
+
+    serial_set_clock_src(dev->uart[1], 1843200.0);
+    serial_set_clock_src(dev->uart[0], 1843200.0);
+
+    lpt_set_ext(dev->lpt, 0);
+}
+
+static void
+wd76c30_write(uint16_t port, uint8_t val, void *priv)
+{
+    wd76c10_t *dev = (wd76c10_t *) priv;
+
+    switch (port & 0x0007) {
+        case 0x0003:
+            dev->addr_sel = val;
+            switch (val & 0x60) {
+                case 0x00:
+                    serial_set_clock_src(dev->uart[1], 1843200.0);
+                    break;
+                case 0x20:
+                    serial_set_clock_src(dev->uart[1], 3072000.0);
+                    break;
+                case 0x40:
+                    serial_set_clock_src(dev->uart[1], 6000000.0);    /* What is MSTRX1? */
+                    break;
+                case 0x60:
+                    serial_set_clock_src(dev->uart[1], 8000000.0);
+                    break;
+            }
+            switch (val & 0x18) {
+                case 0x00:
+                    serial_set_clock_src(dev->uart[0], 1843200.0);
+                    break;
+                case 0x08:
+                    serial_set_clock_src(dev->uart[0], 3072000.0);
+                    break;
+                case 0x10:
+                    serial_set_clock_src(dev->uart[0], 6000000.0);    /* What is MSTRX1? */
+                    break;
+                case 0x18:
+                    serial_set_clock_src(dev->uart[0], 8000000.0);
+                    break;
+            }
+            break;
+        case 0x0007:
+            dev->addr_regs[dev->addr_sel & 0x07] = val;
+            switch (dev->addr_sel & 0x07) {
+                case 0x05:
+                    lpt_set_ext(dev->lpt, !!(val & 0x02));
+                    serial_set_type(dev->uart[0], (val & 0x01) ? SERIAL_16550 : SERIAL_16450);
+                    serial_set_type(dev->uart[1], (val & 0x01) ? SERIAL_16550 : SERIAL_16450);
+                    break;
+            }
+            break;
+    }
+}
+
+static uint8_t
+wd76c30_read(uint16_t port, void *priv)
+{
+    wd76c10_t *dev = (wd76c10_t *) priv;
+    uint8_t    ret = 0xff;
+
+    switch (port & 0x0007) {
+        case 0x0003:
+            ret = dev->addr_sel;
+            break;
+        case 0x0007:
+            ret = dev->addr_regs[dev->addr_sel & 0x07];
+            break;
+    }
+
+    return ret;
 }
 
 static void
@@ -539,21 +1000,24 @@ wd76c10_ser_par_cs_recalc(wd76c10_t *dev)
     }
 
     /* LPT */
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
+    if (dev->lpt_base != 0x0000)
+        io_removehandler(dev->lpt_base, 0x0008, wd76c30_read, NULL, NULL, wd76c30_write, NULL, NULL, dev);
+    dev->lpt_base = 0x0000;
     switch ((dev->ser_par_cs >> 9) & 0x03) {
         case 1:
-            lpt1_setup(LPT_MDA_ADDR);
-            lpt1_irq(LPT1_IRQ);
+            dev->lpt_base = LPT_MDA_ADDR;
             break;
         case 2:
-            lpt1_setup(LPT1_ADDR);
-            lpt1_irq(LPT1_IRQ);
+            dev->lpt_base = LPT1_ADDR;
             break;
         case 3:
-            lpt1_setup(LPT2_ADDR);
-            lpt1_irq(LPT1_IRQ);
+            dev->lpt_base = LPT2_ADDR;
             break;
     }
+    io_sethandler(dev->lpt_base, 0x0008, wd76c30_read, NULL, NULL, wd76c30_write, NULL, NULL, dev);
+    lpt_port_setup(dev->lpt, dev->lpt_base);
+    lpt_port_irq(dev->lpt, LPT1_IRQ);
 }
 
 static void
@@ -801,8 +1265,8 @@ wd76c10_inw(uint16_t port, void *priv)
         case 0xd072:
             ret = (serial_read(0x0002, dev->uart[0]) & 0xc0) << 8;
             ret |= (serial_read(0x0002, dev->uart[1]) & 0xc0) << 6;
-            ret |= (lpt_read_port(0, 0x0002) & 0x0f) << 8;
-            ret |= lpt_read_port(0, 0x0000);
+            ret |= (lpt_read_port(dev->lpt, 0x0002) & 0x0f) << 8;
+            ret |= lpt_read_port(dev->lpt, 0x0000);
             break;
 
         case 0xe072:
@@ -816,7 +1280,7 @@ wd76c10_inw(uint16_t port, void *priv)
             break;
 
         case 0xfc72:
-            ret = ((lpt_read_status(0) & 0x20) >> 2);
+            ret = ((lpt_read_status(dev->lpt) & 0x20) >> 2);
             ret |= (((uint16_t) dma_m) << 4);
             ret |= dev->toggle;
             dev->toggle ^= 0x8000;
@@ -867,6 +1331,8 @@ wd76c10_reset(void *priv)
 
     nvr_lock_set(0x38, 0x08, 0x00, dev->nvr);
 
+    wd73c30_reset(dev);
+
     wd76c10_banks_recalc(dev);
     wd76c10_split_recalc(dev);
     wd76c10_dis_mem_recalc(dev);
@@ -899,11 +1365,22 @@ wd76c10_init(UNUSED(const device_t *info))
             }
         }
         if (size != 0x00000000) {
+            rb->phys_on   = 1;
             rb->phys_addr = accum_mem;
             rb->phys_size = size;
+            wd76c10_log("Bank %i size: %5i KiB, starting at %5i KiB\n", i, rb->phys_size >> 10, rb->phys_addr >> 10);
             total_mem -= size;
             accum_mem += size;
-        }
+        } else
+            rb->phys_addr = WD76C10_ADDR_INVALID;
+    }
+
+    if (mem_size == 3072) {
+        /* Reorganize the banks a bit so, we have 2048, 0, 512, 512. */
+        ram_bank_t rt = dev->ram_banks[3];
+        dev->ram_banks[3] = dev->ram_banks[2];
+        dev->ram_banks[2] = dev->ram_banks[1];
+        dev->ram_banks[1] = rt;
     }
 
     rb = &(dev->ram_banks[4]);
@@ -920,6 +1397,7 @@ wd76c10_init(UNUSED(const device_t *info))
     dev->nvr = device_add(&amstrad_megapc_nvr_device);
     dev->uart[0] = device_add_inst(&ns16450_device, 1);
     dev->uart[1] = device_add_inst(&ns16450_device, 2);
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
     dev->fdc = device_add(&fdc_at_device);
     device_add(&ide_isa_device);
 

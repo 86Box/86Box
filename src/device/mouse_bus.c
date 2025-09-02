@@ -508,7 +508,7 @@ bm_poll(void *priv)
             dev->mouse_buttons |= 0x40;
 
         /* Set bits 3-5 according to button state changes. */
-        xor = ((dev->current_b ^ mouse_get_buttons_ex()) & 0x07) << 3;
+        xor = ((dev->current_b ^ dev->mouse_buttons) & 0x07) << 3;
         dev->mouse_buttons |= xor;
     }
 
@@ -815,7 +815,7 @@ static const device_config_t ms_config[] = {
 const device_t mouse_logibus_device = {
     .name          = "Logitech/Microsoft Bus Mouse",
     .internal_name = "logibus",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA | DEVICE_SIDECAR,
     .local         = MOUSE_TYPE_LOGIBUS,
     .init          = bm_init,
     .close         = bm_close,
@@ -843,7 +843,7 @@ const device_t mouse_logibus_onboard_device = {
 const device_t mouse_msinport_device = {
     .name          = "Microsoft Bus Mouse (InPort)",
     .internal_name = "msbus",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA | DEVICE_SIDECAR,
     .local         = MOUSE_TYPE_INPORT,
     .init          = bm_init,
     .close         = bm_close,

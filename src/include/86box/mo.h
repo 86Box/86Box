@@ -51,10 +51,10 @@ static const mo_type_t mo_types[KNOWN_MO_TYPES] = {
 };
 
 typedef struct mo_drive_type_t {
-    const char vendor[9];
-    const char model[16];
-    const char revision[5];
-    int8_t     supported_media[KNOWN_MO_TYPES];
+    const char *vendor;
+    const char *model;
+    const char *revision;
+    int8_t      supported_media[KNOWN_MO_TYPES];
 } mo_drive_type_t;
 
 #define KNOWN_MO_DRIVE_TYPES 22
@@ -84,10 +84,11 @@ static const mo_drive_type_t mo_drive_types[KNOWN_MO_DRIVE_TYPES] = {
 };
 
 enum {
-    MO_BUS_DISABLED = 0,
-    MO_BUS_ATAPI    = 5,
-    MO_BUS_SCSI     = 6,
-    MO_BUS_USB      = 7
+    MO_BUS_DISABLED =  0,
+    MO_BUS_LPT      =  6,
+    MO_BUS_ATAPI    =  8,
+    MO_BUS_SCSI     =  9,
+    MO_BUS_USB      = 10
 };
 
 typedef struct mo_drive_t {
@@ -110,33 +111,35 @@ typedef struct mo_drive_t {
     uint8_t            pad;
     uint8_t            pad0;
 
-    FILE *             fp;
-    void *             priv;
+    FILE              *fp;
+    void              *priv;
 
     char               image_path[1024];
     char               prev_image_path[1024];
 
-    char *             image_history[MO_IMAGE_HISTORY];
+    char              *image_history[MO_IMAGE_HISTORY];
 
     uint32_t           type;
     uint32_t           medium_size;
     uint32_t           base;
     uint16_t           sector_size;
+
+    int                supported;
 } mo_drive_t;
 
 typedef struct mo_t {
     mode_sense_pages_t ms_pages_saved;
 
-    mo_drive_t *       drv;
+    mo_drive_t        *drv;
 #ifdef EMU_IDE_H
-    ide_tf_t *         tf;
+    ide_tf_t          *tf;
 #else
-    void *             tf;
+    void              *tf;
 #endif
 
     void *             log;
 
-    uint8_t *          buffer;
+    uint8_t           *buffer;
     uint8_t            atapi_cdb[16];
     uint8_t            current_cdb[16];
     uint8_t            sense[256];
@@ -161,6 +164,7 @@ typedef struct mo_t {
     uint32_t           sector_pos;
     uint32_t           sector_len;
     uint32_t           packet_len;
+    uint32_t           block_len;
 
     double             callback;
 

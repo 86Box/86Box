@@ -27,6 +27,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/nmi.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/mem.h>

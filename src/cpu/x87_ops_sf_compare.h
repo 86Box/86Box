@@ -459,6 +459,34 @@ sf_FTST(uint32_t fetchdat)
     return 0;
 }
 
+#ifndef FPU_8087
+static int
+sf_FTSTP(uint32_t fetchdat)
+{
+    const floatx80            Const_Z = packFloatx80(0, 0x0000, 0);
+    struct softfloat_status_t status;
+    int                       rc;
+
+    FP_ENTER();
+    FPU_check_pending_exceptions();
+    cpu_state.pc++;
+    clear_C1();
+    if (IS_TAG_EMPTY(0)) {
+        FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
+        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
+    } else {
+        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        rc     = extF80_compare_normal(FPU_read_regi(0), Const_Z, &status);
+        setcc(FPU_status_word_flags_fpu_compare(rc));
+        FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);
+        FPU_pop();
+    }
+    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.ftst) : (x87_timings.ftst * cpu_multi));
+    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.ftst) : (x87_concurrency.ftst * cpu_multi));
+    return 0;
+}
+#endif
+
 static int
 sf_FXAM(UNUSED(uint32_t fetchdat))
 {
