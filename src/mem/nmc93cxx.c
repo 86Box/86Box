@@ -28,7 +28,7 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
-#include <86box/net_eeprom_nmc93cxx.h>
+#include <86box/nmc93cxx.h>
 #include <86box/plat_unused.h>
 
 #ifdef ENABLE_NMC93CXX_EEPROM_LOG
@@ -256,7 +256,12 @@ static void
 nmc93cxx_eeprom_close(void *priv)
 {
     nmc93cxx_eeprom_t *eeprom = (nmc93cxx_eeprom_t *) priv;
-    free(eeprom);
+    FILE              *fp     = nvr_fopen(eeprom->filename, "wb");
+    if (fp) {
+        fwrite(eeprom->dev.data, 2, eeprom->size, fp);
+        fclose(fp);
+    }
+    free(priv);
 }
 
 uint16_t *
