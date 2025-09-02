@@ -1069,7 +1069,7 @@ biu_resume_on_queue_read(void)
 {
     // pclog("biu_resume_on_queue_read(%i, %i)\n", pfq_pos, biu_state);
     if ((biu_next_state == BIU_STATE_IDLE) && (pfq_pos == 3))
-        pfq_switch_to_pf(3);
+        pfq_switch_to_pf(0);
 }
 
 /* Fetches a byte from the prefetch queue, or from memory if the queue has
