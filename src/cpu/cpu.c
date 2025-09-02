@@ -1080,6 +1080,9 @@ cpu_set(void)
             timing_jmp_rm             = 12;
             timing_jmp_pm             = 27;
             timing_jmp_pm_gate        = 45;
+
+            if (cpu_s->cpu_type == CPU_386DX)
+                cpu_cache_ext_enabled = 1;
             break;
 
         case CPU_486SLC:
@@ -1161,6 +1164,9 @@ cpu_set(void)
             timing_jmp_pm_gate        = 37;
 
             timing_misaligned = 3;
+
+            if (cpu_s->cpu_type == CPU_386DX)
+                cpu_cache_ext_enabled = 1;
             break;
 
         case CPU_i486SX_SLENH:
@@ -4473,13 +4479,6 @@ cpu_update_waitstates(void)
     if (cpu_cache_int_enabled) {
         /* Disable prefetch emulation */
         cpu_prefetch_cycles = 0;
-    } else if (cpu_waitstates && (cpu_s->cpu_type >= CPU_286 && cpu_s->cpu_type <= CPU_386DX)) {
-        /* Waitstates override */
-        cpu_prefetch_cycles = cpu_waitstates + 1;
-        cpu_cycles_read     = cpu_waitstates + 1;
-        cpu_cycles_read_l   = (cpu_16bitbus ? 2 : 1) * (cpu_waitstates + 1);
-        cpu_cycles_write    = cpu_waitstates + 1;
-        cpu_cycles_write_l  = (cpu_16bitbus ? 2 : 1) * (cpu_waitstates + 1);
     } else if (cpu_cache_ext_enabled) {
         /* Use cache timings */
         cpu_prefetch_cycles = cpu_s->cache_read_cycles;
@@ -4487,6 +4486,13 @@ cpu_update_waitstates(void)
         cpu_cycles_read_l   = (cpu_16bitbus ? 2 : 1) * cpu_s->cache_read_cycles;
         cpu_cycles_write    = cpu_s->cache_write_cycles;
         cpu_cycles_write_l  = (cpu_16bitbus ? 2 : 1) * cpu_s->cache_write_cycles;
+    } else if (cpu_waitstates && (cpu_s->cpu_type >= CPU_286 && cpu_s->cpu_type <= CPU_386DX)) {
+        /* Waitstates override */
+        cpu_prefetch_cycles = cpu_waitstates + 1;
+        cpu_cycles_read     = cpu_waitstates + 1;
+        cpu_cycles_read_l   = (cpu_16bitbus ? 2 : 1) * (cpu_waitstates + 1);
+        cpu_cycles_write    = cpu_waitstates + 1;
+        cpu_cycles_write_l  = (cpu_16bitbus ? 2 : 1) * (cpu_waitstates + 1);
     } else {
         /* Use memory timings */
         cpu_prefetch_cycles = cpu_s->mem_read_cycles;
