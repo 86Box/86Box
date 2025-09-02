@@ -351,7 +351,7 @@ illegal_chars:
         }
     });
 
-    connect(vm_model, &VMManagerModel::globalConfigurationChanged, this, [this] () {
+    connect(vm_model, &VMManagerModel::globalConfigurationChanged, this, [] () {
         vmm_main_window->updateSettings();
     });
 
