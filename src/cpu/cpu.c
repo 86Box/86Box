@@ -1165,8 +1165,7 @@ cpu_set(void)
 
             timing_misaligned = 3;
 
-            if (cpu_s->cpu_type == CPU_386DX)
-                cpu_cache_ext_enabled = 1;
+            cpu_cache_ext_enabled = 1;
             break;
 
         case CPU_i486SX_SLENH:
