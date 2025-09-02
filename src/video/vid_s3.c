@@ -33,7 +33,7 @@
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/rom.h>
-#include <86box/net_eeprom_nmc93cxx.h>
+#include <86box/nmc93cxx.h>
 #include <86box/nvr.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
@@ -4807,10 +4807,10 @@ s3_updatemapping(s3_t *s3)
                     break;
             }
             s3->linear_base &= ~(s3->linear_size - 1);
-            if (s3->linear_base == 0xa0000) {
+            if ((s3->linear_base == 0xa0000) || (s3->linear_size == 0x10000)) {
                 mem_mapping_disable(&s3->linear_mapping);
                 if (!(svga->crtc[0x53] & 0x10)) {
-                    mem_mapping_set_addr(&svga->mapping, s3->linear_base, 0x10000);
+                    mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                     svga->banked_mask = 0xffff;
                 }
             } else {
@@ -5071,6 +5071,7 @@ s3_accel_in(uint16_t port, void *priv)
                 if (FIFO_FULL)
                     temp = 0xff;
             }
+            s3_log("Read port=%04x, val=%02x.\n", port, temp);
             return temp;
         case 0x8119:
         case 0x9949:
@@ -5127,7 +5128,7 @@ s3_accel_in(uint16_t port, void *priv)
                     s3->data_available = 0;
                 }
             }
-            s3_log("FIFO Status Temp=%02x.\n", temp);
+            s3_log("Read port=%04x, val=%02x.\n", port, temp);
             return temp;
 
         case 0x9d48:

@@ -43,7 +43,7 @@
 #include <86box/device.h>
 #include <86box/thread.h>
 #include <86box/network.h>
-#include <86box/net_eeprom_nmc93cxx.h>
+#include <86box/nmc93cxx.h>
 #include <86box/nvr.h>
 #include "cpu.h"
 #include <86box/plat_unused.h>
