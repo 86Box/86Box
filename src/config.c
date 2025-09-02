@@ -211,6 +211,8 @@ load_general(void)
     rctrl_is_lalt = ini_section_get_int(cat, "rctrl_is_lalt", 0);
     update_icons  = ini_section_get_int(cat, "update_icons", 1);
 
+    start_in_fullscreen = ini_section_get_int(cat, "start_in_fullscreen", 0);
+
     window_remember = ini_section_get_int(cat, "window_remember", 0);
 
     if (!window_remember && !(vid_resize & 2))
@@ -2409,6 +2411,11 @@ save_general(void)
         ini_section_set_int(cat, "window_remember", window_remember);
     else
         ini_section_delete_var(cat, "window_remember");
+
+    if (video_fullscreen)
+        ini_section_set_int(cat, "start_in_fullscreen", video_fullscreen);
+    else
+        ini_section_delete_var(cat, "start_in_fullscreen");
 
     if (vid_resize & 2) {
         sprintf(temp, "%ix%i", fixed_size_x, fixed_size_y);
