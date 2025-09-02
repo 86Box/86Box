@@ -98,7 +98,7 @@ ddc_load_edid(char *path, uint8_t *buf, size_t size)
         return 0;
     };
 
-    if (temp[0] != 0xEF || temp[1] != 0xBB || temp[2] != 0xBF) {
+    if ((uint8_t) temp[0] != 0xEF || (uint8_t) temp[1] != 0xBB || (uint8_t) temp[2] != 0xBF) {
         rewind(fp);
     }
 
