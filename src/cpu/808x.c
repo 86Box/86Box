@@ -22,6 +22,8 @@
 #include <string.h>
 #include <wchar.h>
 
+#include "i8080.h"
+
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -290,6 +292,63 @@ x808x_log(const char *fmt, ...)
 #else
 #    define x808x_log(fmt, ...)
 #endif
+
+static i8080 emulated_processor;
+static bool cpu_md_write_disable = 1;
+
+static void
+set_if(int cond)
+{
+    cpu_state.flags = (cpu_state.flags & ~I_FLAG) | (cond ? I_FLAG : 0);
+}
+
+void
+sync_from_i8080(void)
+{
+    AL = emulated_processor.a;
+    BH = emulated_processor.h;
+    BL = emulated_processor.l;
+    CH = emulated_processor.b;
+    CL = emulated_processor.c;
+    DH = emulated_processor.d;
+    DL = emulated_processor.e;
+    BP = emulated_processor.sp;
+    
+    cpu_state.pc = emulated_processor.pc;
+    cpu_state.flags &= 0xFF00;
+    cpu_state.flags |= emulated_processor.sf << 7;
+    cpu_state.flags |= emulated_processor.zf << 6;
+    cpu_state.flags |= emulated_processor.hf << 4;
+    cpu_state.flags |= emulated_processor.pf << 2;
+    cpu_state.flags |= 1 << 1;
+    cpu_state.flags |= emulated_processor.cf << 0;
+    set_if(emulated_processor.iff);
+}
+
+void
+sync_to_i8080(void)
+{
+    if (!is_nec)
+        return;
+    emulated_processor.a  = AL;
+    emulated_processor.h  = BH;
+    emulated_processor.l  = BL;
+    emulated_processor.b  = CH;
+    emulated_processor.c  = CL;
+    emulated_processor.d  = DH;
+    emulated_processor.e  = DL;
+    emulated_processor.sp = BP;
+    emulated_processor.pc = cpu_state.pc;
+    emulated_processor.iff = !!(cpu_state.flags & I_FLAG);
+
+    emulated_processor.sf = (cpu_state.flags >> 7) & 1;
+    emulated_processor.zf = (cpu_state.flags >> 6) & 1;
+    emulated_processor.hf = (cpu_state.flags >> 4) & 1;
+    emulated_processor.pf = (cpu_state.flags >> 2) & 1;
+    emulated_processor.cf = (cpu_state.flags >> 0) & 1;
+
+    emulated_processor.interrupt_delay = noint;
+}
 
 uint16_t
 get_last_addr(void)
@@ -710,12 +769,6 @@ static void
 set_cf(int cond)
 {
     cpu_state.flags = (cpu_state.flags & ~C_FLAG) | (cond ? C_FLAG : 0);
-}
-
-static void
-set_if(int cond)
-{
-    cpu_state.flags = (cpu_state.flags & ~I_FLAG) | (cond ? I_FLAG : 0);
 }
 
 static void
@@ -1392,6 +1445,96 @@ int_o(void)
     }
 }
 #endif
+
+#ifdef UNUSED_8080_FUNCTIONS
+/* Calls an interrupt. */
+static void
+interrupt(uint16_t addr)
+{
+    uint16_t old_cs, old_ip;
+    uint16_t new_cs, new_ip;
+    uint16_t tempf;
+
+    if (!(cpu_state.flags & MD_FLAG) && is_nec) {
+        sync_from_i8080();
+        x808x_log("CALLN/INT#/NMI#\n");
+    }
+
+    addr <<= 2;
+    cpu_state.eaaddr = addr;
+    old_cs           = CS;
+    new_ip = readmemw(0, cpu_state.eaaddr);
+    do_cycles(1);
+    cpu_state.eaaddr = (cpu_state.eaaddr + 2) & 0xffff;
+    new_cs      = readmemw(0, cpu_state.eaaddr);
+    biu_suspend_fetch();
+    biu_queue_flush();
+    ovr_seg = NULL;
+    tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
+    push(&tempf);
+    cpu_state.flags &= ~(I_FLAG | T_FLAG);
+    if (is_nec)
+        cpu_state.flags |= MD_FLAG;
+    push(&old_cs);
+    old_ip = cpu_state.pc;
+    load_cs(new_cs);
+    set_ip(new_ip);
+    push(&old_ip);
+}
+
+/* Ditto, but for breaking into emulation mode. */
+static void
+interrupt_brkem(uint16_t addr)
+{
+    uint16_t old_cs, old_ip;
+    uint16_t new_cs, new_ip;
+    uint16_t tempf;
+
+    addr <<= 2;
+    cpu_state.eaaddr = addr;
+    old_cs           = CS;
+    new_ip = readmemw(0, cpu_state.eaaddr);
+    do_cycles(1);
+    cpu_state.eaaddr = (cpu_state.eaaddr + 2) & 0xffff;
+    new_cs      = readmemw(0, cpu_state.eaaddr);
+    biu_suspend_fetch();
+    biu_queue_flush();
+    ovr_seg = NULL;
+    tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
+    push(&tempf);
+    cpu_state.flags      &= ~(MD_FLAG);
+    cpu_md_write_disable  = 0;
+    push(&old_cs);
+    old_ip = cpu_state.pc;
+    load_cs(new_cs);
+    set_ip(new_ip);
+    push(&old_ip);
+    sync_to_i8080();
+    x808x_log("BRKEM mode\n");
+}
+#endif
+
+void
+retem_i8080(void)
+{
+    sync_from_i8080();
+
+    biu_suspend_fetch();
+    biu_queue_flush();
+
+    set_ip(pop());
+    load_cs(pop());
+    cpu_state.flags = pop();
+
+    emulated_processor.iff = !!(cpu_state.flags & I_FLAG);
+
+    cpu_md_write_disable = 1;
+
+    noint      = 1;
+    nmi_enable = 1;
+
+    x808x_log("RETEM mode\n");
+}
 
 void
 interrupt_808x(uint16_t addr)
