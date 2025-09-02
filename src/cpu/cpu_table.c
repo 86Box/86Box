@@ -2096,7 +2096,7 @@ const cpu_family_t cpu_families[] = {
                 .cpu_flags          = 0,
                 .mem_read_cycles    = 4,
                 .mem_write_cycles   = 4,
-                .cache_read_cycles  = 3,
+                .cache_read_cycles  = 2,
                 .cache_write_cycles = 3,
                 .atclk_div          = 3
             },
@@ -2113,8 +2113,8 @@ const cpu_family_t cpu_families[] = {
                 .cpu_flags          = 0,
                 .mem_read_cycles    = 6,
                 .mem_write_cycles   = 6,
-                .cache_read_cycles  = 3,
-                .cache_write_cycles = 3,
+                .cache_read_cycles  = 2,
+                .cache_write_cycles = 2,
                 .atclk_div          = 4
             },
             {
@@ -2130,8 +2130,8 @@ const cpu_family_t cpu_families[] = {
                 .cpu_flags          = 0,
                 .mem_read_cycles    = 7,
                 .mem_write_cycles   = 7,
-                .cache_read_cycles  = 3,
-                .cache_write_cycles = 3,
+                .cache_read_cycles  = 2,
+                .cache_write_cycles = 2,
                 .atclk_div          = 5
             },
             { .name = "", 0 }
