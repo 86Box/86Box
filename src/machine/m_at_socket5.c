@@ -322,6 +322,35 @@ machine_at_apollo_init(const machine_t *model)
 }
 
 int
+machine_at_advantage8100p_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined("roms/machines/advantage8100p/1006bs0_.bio",
+                                    "roms/machines/advantage8100p/1006bs0_.bi1",
+                                    0x20000, 128);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+    machine_at_zappa_gpio_init();
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&i430fx_device);
+    device_add(&piix_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
+    device_add(&intel_flash_bxt_ami_device);
+
+    return ret;
+}
+
+int
 machine_at_optiplexgxl_init(const machine_t *model)
 {
     int ret;
