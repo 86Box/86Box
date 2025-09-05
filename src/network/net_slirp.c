@@ -476,7 +476,7 @@ int slirp_card_num = 2;
 void *
 net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv), char *netdrv_errbuf)
 {
-    pclog("SLiRP: initializing with range %d...\n", slirp_card_num);
+    slirp_log("SLiRP: initializing with range %d...\n", slirp_card_num);
     net_slirp_t *slirp = calloc(1, sizeof(net_slirp_t));
     memcpy(slirp->mac_addr, mac_addr, sizeof(slirp->mac_addr));
     slirp->card = (netcard_t *) card;
