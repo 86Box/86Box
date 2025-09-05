@@ -277,7 +277,7 @@ machine_at_ms4145_init(const machine_t *model)
     pci_register_slot(0x06, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&ali1489_device);
-    device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89));
+    device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_88));
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
@@ -291,17 +291,17 @@ static const device_config_t pc330_6573_config[] = {
     // clang-format off
     {
         .name = "bios",
-        .description = "BIOS Version",
+        .description = "BIOS Language",
         .type = CONFIG_BIOS,
         .default_string = "pc330_6573",
         .default_int = 0,
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "IBM Aptiva 510/710/Vision", .internal_name = "aptiva510", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pc330_6573/aptiva510_$IMAGES.USF", "" } },
-            { .name = "IBM PC 330 (type 6573)", .internal_name = "pc330_6573", .bios_type = BIOS_NORMAL, 
+            { .name = "English (PC 330, type 6573)", .internal_name = "pc330_6573", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pc330_6573/$IMAGES.USF", "" } },
+            { .name = "Japanese (Aptiva 510/710/Vision)", .internal_name = "aptiva510", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pc330_6573/aptiva510_$IMAGES.USF", "" } },
             { .files_no = 0 }
         },
     },
@@ -1354,7 +1354,7 @@ static const device_config_t hot433a_config[] = {
         .bios = {
             { .name = "AMIBIOS 5 (101094) - Revision 433AUS33", .internal_name = "hot433a", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/hot433/433AUS33.ROM", "" } },
-            { .name = "AwardBIOS v4.51PG - Revision 2.5 (by eSupport)", .internal_name = "hot433a_v451pg", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision 2.5 (by eSupport)", .internal_name = "hot433a_v451pg", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/hot433/2A4X5H21.BIN", "" } },
             { .files_no = 0 }
         },

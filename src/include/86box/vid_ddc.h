@@ -20,8 +20,9 @@
 #ifndef EMU_VID_DDC_H
 #define EMU_VID_DDC_H
 
-extern void *ddc_init(void *i2c);
-extern void  ddc_close(void *eeprom);
-extern void *ddc_create_default_edid(ssize_t* size_out);
+extern void  *ddc_init(void *i2c);
+extern void   ddc_close(void *eeprom);
+extern size_t ddc_create_default_edid(uint8_t **size_out);
+extern size_t ddc_load_edid(char *path, uint8_t *buf, size_t size);
 
 #endif /*EMU_VID_DDC_H*/

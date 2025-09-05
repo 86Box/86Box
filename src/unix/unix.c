@@ -290,6 +290,8 @@ plat_get_string(int i)
             return L"Hardware not available";
         case STRING_MONITOR_SLEEP:
             return L"Monitor in sleep mode";
+        case STRING_EDID_TOO_LARGE:
+            return "EDID file \"%ls\" is too large.";
     }
     return L"";
 }

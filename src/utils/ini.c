@@ -316,7 +316,7 @@ ini_close(ini_t ini)
     free(list);
 }
 
-static int
+int
 ini_detect_bom(const char *fn)
 {
     FILE         *fp;

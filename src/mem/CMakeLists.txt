@@ -21,6 +21,7 @@ add_library(mem OBJECT
     intel_flash.c
     mem.c
     mmu_2386.c
+    nmc93cxx.c
     rom.c
     row.c
     smram.c

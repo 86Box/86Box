@@ -975,7 +975,7 @@ write_cmd_data_ami(void *priv, uint8_t val)
             return 0;
 
         case 0xc1:
-            kbc_at_log("ATkbc: AMI MegaKey - write %02X to P1\n", val);
+            kbc_at_log("ATkbc: AMI - write %02X to P1\n", val);
             dev->p1 = val;
             return 0;
 
@@ -1160,11 +1160,14 @@ write_cmd_ami(void *priv, uint8_t val)
 
         case 0xaf: /* set extended controller RAM */
             if ((kbc_ven != KBC_VEN_SIEMENS) && (kbc_ven != KBC_VEN_ALI)) {
-                kbc_at_log("ATkbc: set extended controller RAM\n");
-                dev->wantdata      = 1;
-                dev->state         = STATE_KBC_PARAM;
-                dev->command_phase = 1;
-                ret = 0;
+                if (((kbc_ami_revision >= 'H') && (kbc_ami_revision < 'X')) ||
+                    (kbc_ami_revision = '5')) {
+                    kbc_at_log("ATkbc: set extended controller RAM\n");
+                    dev->wantdata      = 1;
+                    dev->state         = STATE_KBC_PARAM;
+                    dev->command_phase = 1;
+                    ret = 0;
+                }
             }
             break;
 
@@ -1214,27 +1217,33 @@ write_cmd_ami(void *priv, uint8_t val)
             break;
 
         case 0xc1: /* write P1 */
-            kbc_at_log("ATkbc: AMI MegaKey - write P1\n");
+            kbc_at_log("ATkbc: AMI - write P1\n");
             dev->wantdata  = 1;
             dev->state     = STATE_KBC_PARAM;
             ret = 0;
             break;
 
         case 0xc4:
-            /* set KBC line P14 low */
-            kbc_at_log("ATkbc: set KBC line P14 (P1 bit 4) low\n");
-            dev->p1 &= 0xef;
-            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
-            dev->pending++;
-            ret = 0;
+            if (((kbc_ami_revision >= 'P') && (kbc_ami_revision < 'X')) ||
+                (kbc_ami_revision = '5')) {
+                /* set KBC line P14 low */
+                kbc_at_log("ATkbc: set KBC line P14 (P1 bit 4) low\n");
+                dev->p1 &= 0xef;
+                kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+                dev->pending++;
+                ret = 0;
+            }
             break;
         case 0xc5:
-            /* set KBC line P15 low */
-            kbc_at_log("ATkbc: set KBC line P15 (P1 bit 5) low\n");
-            dev->p1 &= 0xdf;
-            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
-            dev->pending++;
-            ret = 0;
+            if (((kbc_ami_revision >= 'P') && (kbc_ami_revision < 'X')) ||
+                (kbc_ami_revision = '5')) {
+                /* set KBC line P15 low */
+                kbc_at_log("ATkbc: set KBC line P15 (P1 bit 5) low\n");
+                dev->p1 &= 0xdf;
+                kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+                dev->pending++;
+                ret = 0;
+            }
             break;
 
         case 0xc8:
@@ -1271,20 +1280,26 @@ write_cmd_ami(void *priv, uint8_t val)
             break;
 
         case 0xcc:
-            /* set KBC line P14 high */
-            kbc_at_log("ATkbc: set KBC line P14 (P1 bit 4) high\n");
-            dev->p1 |= 0x10;
-            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
-            dev->pending++;
-            ret = 0;
+            if (((kbc_ami_revision >= 'P') && (kbc_ami_revision < 'X')) ||
+                (kbc_ami_revision = '5')) {
+                /* set KBC line P14 high */
+                kbc_at_log("ATkbc: set KBC line P14 (P1 bit 4) high\n");
+                dev->p1 |= 0x10;
+                kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+                dev->pending++;
+                ret = 0;
+            }
             break;
         case 0xcd:
             /* set KBC line P15 high */
-            kbc_at_log("ATkbc: set KBC line P15 (P1 bit 5) high\n");
-            dev->p1 |= 0x20;
-            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
-            dev->pending++;
-            ret = 0;
+            if (((kbc_ami_revision >= 'P') && (kbc_ami_revision < 'X')) ||
+                (kbc_ami_revision = '5')) {
+                kbc_at_log("ATkbc: set KBC line P15 (P1 bit 5) high\n");
+                dev->p1 |= 0x20;
+                kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+                dev->pending++;
+                ret = 0;
+            }
             break;
 
         case 0xef: /* ??? - sent by AMI486 */

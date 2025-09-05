@@ -367,6 +367,8 @@ typedef struct cdrom {
     uint8_t            host_letter;
     uint8_t            mode2;
 
+    int                no_check;
+
     uint8_t            _F_LUT[_LUT_SIZE];
     uint8_t            _B_LUT[_LUT_SIZE];
 

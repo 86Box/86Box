@@ -151,14 +151,14 @@ static const device_config_t cu430hx_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "Intel CU430HX (Cumberland)", .internal_name = "cu430hx", .bios_type = BIOS_NORMAL, 
-              .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/cu430hx/1006DK0_.BIO", "roms/machines/cu430hx/1006DK0_.BI1",
-                                                                    "roms/machines/cu430hx/1006DK0_.BI2", "roms/machines/cu430hx/1006DK0_.BI3",
-                                                                    "roms/machines/cu430hx/1006DK0_.RCV", "" } },
-            { .name = "Toshiba Equium 5200D", .internal_name = "equium5200", .bios_type = BIOS_NORMAL, 
+            { .name = "Intel AMIBIOS - Revision 1.00.03.DK08 (Toshiba Equium 5200D)", .internal_name = "equium5200", .bios_type = BIOS_NORMAL, 
               .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/cu430hx/1003DK08.BIO", "roms/machines/cu430hx/1003DK08.BI1",
                                                                     "roms/machines/cu430hx/1003DK08.BI2", "roms/machines/cu430hx/1003DK08.BI3",
                                                                     "roms/machines/cu430hx/1003DK08.RCV", "" } },
+            { .name = "Intel AMIBIOS - Revision 1.00.06.DK0", .internal_name = "cu430hx", .bios_type = BIOS_NORMAL, 
+              .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/cu430hx/1006DK0_.BIO", "roms/machines/cu430hx/1006DK0_.BI1",
+                                                                    "roms/machines/cu430hx/1006DK0_.BI2", "roms/machines/cu430hx/1006DK0_.BI3",
+                                                                    "roms/machines/cu430hx/1006DK0_.RCV", "" } },
             { .files_no = 0 }
         },
     },
@@ -262,11 +262,11 @@ static const device_config_t tc430hx_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "Intel TC430HX (Tucson)", .internal_name = "tc430hx", .bios_type = BIOS_NORMAL, 
+            { .name = "Intel AMIBIOS - Revision 1.00.07.DH0", .internal_name = "tc430hx", .bios_type = BIOS_NORMAL, 
               .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/tc430hx/1007DH0_.BIO", "roms/machines/tc430hx/1007DH0_.BI1",
                                                                     "roms/machines/tc430hx/1007DH0_.BI2", "roms/machines/tc430hx/1007DH0_.BI3",
                                                                     "roms/machines/tc430hx/1007DH0_.RCV", "" } },
-            { .name = "Toshiba Infinia 7201", .internal_name = "infinia7200", .bios_type = BIOS_NORMAL, 
+            { .name = "Intel AMIBIOS - Revision 1.00.08.DH08 (Toshiba Infinia 7201)", .internal_name = "infinia7200", .bios_type = BIOS_NORMAL, 
               .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/tc430hx/1008DH08.BIO", "roms/machines/tc430hx/1008DH08.BI1",
                                                                     "roms/machines/tc430hx/1008DH08.BI2", "roms/machines/tc430hx/1008DH08.BI3",
                                                                     "roms/machines/tc430hx/1008DH08.RCV", "" } },
@@ -830,9 +830,9 @@ static const device_config_t lgibmx52_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "08/21/97", .internal_name = "lgibmx52_082197", .bios_type = BIOS_NORMAL, 
+            { .name = "PhoenixBIOS 4.05 - Revision 08/21/97", .internal_name = "lgibmx52_082197", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/lgibmx52/BIOS.ROM", "" } },
-            { .name = "03/26/99", .internal_name = "lgibmx52", .bios_type = BIOS_NORMAL, 
+            { .name = "PhoenixBIOS 4.05 - Revision 03/26/99", .internal_name = "lgibmx52", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/lgibmx52/MS5136 LG IBM OEM.ROM", "" } },
             { .files_no = 0 }
         },
@@ -1590,16 +1590,56 @@ machine_at_ms5146_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t r534f_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "r534f_1998",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "Award Modular BIOS v4.51PG - Revision 06/12/1998", .internal_name = "r534f_1998", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/r534f/r534f008-1998.bin", "" } },
+            { .name = "Award Modular BIOS v4.51PG - Revision 03/13/2000 (by Unicore Software)", .internal_name = "r534f", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/r534f/r534f008.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t r534f_device = {
+    .name          = "Rise R534F",
+    .internal_name = "r534f_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = r534f_config
+};
+
 int
 machine_at_r534f_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/r534f/r534f008.bin",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     machine_at_common_init_ex(model, 2);
 
@@ -1713,9 +1753,9 @@ static const device_config_t m5ata_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "12/23/97", .internal_name = "m5ata", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision 12/23/97", .internal_name = "m5ata", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/m5ata/ATA1223.BIN", "" } },
-            { .name = "05/27/98", .internal_name = "m5ata_0527b", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision 05/27/98", .internal_name = "m5ata_0527b", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/m5ata/ATA0527B.BIN", "" } },
             { .files_no = 0 }
         },

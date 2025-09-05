@@ -281,7 +281,7 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         int         cpuId       = ui->comboBoxSpeed->currentData().toInt();
         uint        cpuType     = cpuFamily->cpus[cpuId].cpu_type;
 
-        if ((cpuType >= CPU_286) && (cpuType <= CPU_386DX)) {
+        if ((cpuType >= CPU_286) && (cpuType < CPU_386DX)) {
             ui->comboBoxWaitStates->setEnabled(true);
             ui->comboBoxWaitStates->setCurrentIndex(cpu_waitstates);
         } else {

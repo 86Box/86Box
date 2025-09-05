@@ -390,7 +390,7 @@ w837x7_reset(w837x7_t *dev)
 
     if (dev->has_ide == 0x02)
         dev->regs[0x00] = 0x90;
-    else if (dev->has_ide == 0x01)
+    else
         dev->regs[0x00] = 0xd0;
 
     if (dev->ide_start)

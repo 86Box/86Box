@@ -31,7 +31,7 @@
 #include <86box/device.h>
 #include <86box/thread.h>
 #include <86box/network.h>
-#include <86box/net_eeprom_nmc93cxx.h>
+#include <86box/nmc93cxx.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include <86box/bswap.h>

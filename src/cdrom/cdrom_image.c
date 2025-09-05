@@ -1975,7 +1975,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
     success = 2;
 
     fseek(fp, 0, SEEK_SET);
-    fread(&mds_hdr, 1, sizeof(mds_hdr_t), fp);
+    if (fread(&mds_hdr, 1, sizeof(mds_hdr_t), fp) != sizeof(mds_hdr_t))
+        return 0;
 
     if (memcmp(mds_hdr.file_sig, "MEDIA DESCRIPTOR", 16)) {
 #ifdef ENABLE_IMAGE_LOG
@@ -2004,12 +2005,14 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
     if (img->is_dvd) {
         if (mds_hdr.disc_struct_offs != 0x00) {
             fseek(fp, mds_hdr.disc_struct_offs, SEEK_SET);
-            fread(&(img->dstruct.layers[0]), 1, sizeof(layer_t), fp);
+            if (fread(&(img->dstruct.layers[0]), 1, sizeof(layer_t), fp) != sizeof(layer_t))
+                return 0;
             img->has_dstruct = 1;
 
             if (((img->dstruct.layers[0].f0[2] & 0x60) >> 4) == 0x01) {
                 fseek(fp, mds_hdr.disc_struct_offs, SEEK_SET);
-                fread(&(img->dstruct.layers[1]), 1, sizeof(layer_t), fp);
+                if (fread(&(img->dstruct.layers[1]), 1, sizeof(layer_t), fp) != sizeof(layer_t))
+                    return 0;
                 img->has_dstruct++;
             }
         }
@@ -2043,14 +2046,17 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
 
     if (mds_hdr.dpm_blocks_offs != 0x00) {
         fseek(fp, mds_hdr.dpm_blocks_offs, SEEK_SET);
-        fread(&mds_dpm_blocks_num, 1, sizeof(uint32_t), fp);
+        if (fread(&mds_dpm_blocks_num, 1, sizeof(uint32_t), fp) != sizeof(uint32_t))
+            return 0;
 
         if (mds_dpm_blocks_num > 0)  for (int b = 0; b < mds_dpm_blocks_num; b++) {
             fseek(fp, mds_hdr.dpm_blocks_offs + 4 + (b * 4), SEEK_SET);
-            fread(&mds_dpm_block_offs, 1, sizeof(uint32_t), fp);
+            if (fread(&mds_dpm_block_offs, 1, sizeof(uint32_t), fp) != sizeof(uint32_t))
+                return 0;
 
             fseek(fp, mds_dpm_block_offs, SEEK_SET);
-            fread(&mds_dpm_block, 1, sizeof(mds_dpm_block_t), fp);
+            if (fread(&mds_dpm_block, 1, sizeof(mds_dpm_block_t), fp) != sizeof(mds_dpm_block_t))
+                return 0;
 
             /* We currently only support the bad sectors block and not (yet) actual DPM. */
             if (mds_dpm_block.type == 0x00000002) {
@@ -2058,7 +2064,9 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 img->bad_sectors_num = mds_dpm_block.entries;
                 img->bad_sectors     = (uint32_t *) malloc(img->bad_sectors_num * sizeof(uint32_t));
                 fseek(fp, mds_dpm_block_offs + sizeof(mds_dpm_block_t), SEEK_SET);
-                fread(img->bad_sectors, 1, img->bad_sectors_num * sizeof(uint32_t), fp);
+                int read_size = img->bad_sectors_num * sizeof(uint32_t);
+                if (fread(img->bad_sectors, 1, read_size, fp) != read_size)
+                    return 0;
                 break;
             }
         }
@@ -2066,11 +2074,13 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
 
     for (int s = 0; s < mds_hdr.sess_num; s++) {
         fseek(fp, mds_hdr.sess_blocks_offs + (s * sizeof(mds_sess_block_t)), SEEK_SET);
-        fread(&mds_sess_block, 1, sizeof(mds_sess_block_t), fp);
+        if (fread(&mds_sess_block, 1, sizeof(mds_sess_block_t), fp) != sizeof(mds_sess_block_t))
+            return 0;
 
         for (int t = 0; t < mds_sess_block.all_blocks_num; t++) {
             fseek(fp, mds_sess_block.trk_blocks_offs + (t * sizeof(mds_trk_block_t)), SEEK_SET);
-            fread(&mds_trk_block, 1, sizeof(mds_trk_block_t), fp);
+            if (fread(&mds_trk_block, 1, sizeof(mds_trk_block_t), fp) != sizeof(mds_trk_block_t))
+                return 0;
 
             if (last_t != -1) {
                 /*
@@ -2097,7 +2107,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 mds_trk_ex_block.trk_sectors = mds_trk_block.ex_offs;
             } else if (mds_trk_block.ex_offs != 0ULL) {
                 fseek(fp, mds_trk_block.ex_offs, SEEK_SET);
-                fread(&mds_trk_ex_block, 1, sizeof(mds_trk_ex_block), fp);
+                if (fread(&mds_trk_ex_block, 1, sizeof(mds_trk_ex_block), fp) != sizeof(mds_trk_ex_block))
+                    return 0;
             }
 
             uint32_t astart = mds_trk_block.start_sect - mds_trk_ex_block.pregap;
@@ -2107,20 +2118,23 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
 
             if (mds_trk_block.footer_offs != 0ULL)  for (uint32_t ff = 0; ff < mds_trk_block.files_num; ff++) {
                 fseek(fp, mds_trk_block.footer_offs + (ff * sizeof(mds_footer_t)), SEEK_SET);
-                fread(&mds_footer, 1, sizeof(mds_footer_t), fp);
+                if (fread(&mds_footer, 1, sizeof(mds_footer_t), fp) != sizeof(mds_footer_t))
+                    return 0;
 
                 uint16_t wfn[2048] = { 0 };
                 char     fn[2048] = { 0 };
                 fseek(fp, mds_footer.fn_offs, SEEK_SET);
                 if (mds_footer.fn_is_wide) {
                     for (int i = 0; i < 256; i++) {
-                        fread(&(wfn[i]), 1, 2, fp);
+                        if (fread(&(wfn[i]), 1, 2, fp) != 2)
+                            return 0;
                         if (wfn[i] == 0x0000)
                             break;
                     }
                     (void) utf16_to_utf8(wfn, 2048, (uint8_t *) fn, 2048);
                 } else  for (int i = 0; i < 512; i++) {
-                    fread(&fn[i], 1, 1, fp);
+                    if (fread(&fn[i], 1, 1, fp) != 1)
+                        return 0;
                     if (fn[i] == 0x00)
                         break;
                 }
