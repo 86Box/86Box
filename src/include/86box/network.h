@@ -105,6 +105,7 @@ typedef struct netcard_conf_t {
 
 extern netcard_conf_t net_cards_conf[NET_CARD_MAX];
 extern uint16_t       net_card_current;
+extern int            slirp_card_num;
 
 typedef int (*NETRXCB)(void *, uint8_t *, int);
 typedef int (*NETSETLINKSTATE)(void *, uint32_t link_state);

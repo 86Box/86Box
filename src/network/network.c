@@ -608,6 +608,7 @@ network_reset(void)
     ui_sb_update_icon(SB_NETWORK, 0);
     ui_sb_update_icon_write(SB_NETWORK, 0);
 
+    slirp_card_num = 2;
 #ifdef ENABLE_NETWORK_LOG
     network_dump_mutex = thread_create_mutex();
 #endif
