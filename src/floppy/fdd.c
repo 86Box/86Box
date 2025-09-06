@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
+#include <stdlib.h>
+
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
@@ -39,6 +41,43 @@
 #include <86box/fdd_mfm.h>
 #include <86box/fdd_td0.h>
 #include <86box/fdc.h>
+#include <86box/sound.h>
+
+static int16_t *load_wav(const char *filename, int *sample_count);
+
+// TODO:
+// 1. Implement spindle motor spin-up and spin-down
+// 2. Implement sound support for all drives (not only for drive 0)
+
+static int16_t *spindlemotor_wav               = NULL;
+static int      spindlemotor_wav_samples       = 0;
+static char    *spindlemotor_wav_filename      = "mitsumi_spindle_motor_loop_48000_16_1_PCM.wav";
+static int16_t *steptrackup_wav[80];
+static int      steptrackup_wav_samples[80];
+static int16_t *steptrackdown_wav[80];
+static int      steptrackdown_wav_samples[80];
+static int16_t *seekmultipletracks_wav[79]; // Seek 2, 3, 4 ... 80 tracks = 79 sounds
+static int      seekmultipletracks_wav_samples[79];
+
+static int      spindlemotor_pos[FDD_NUM] = {};
+static int      spindlemotor_playing[FDD_NUM] = {};
+
+// WAV-header
+typedef struct {
+    char     riff[4];
+    uint32_t size;
+    char     wave[4];
+    char     fmt[4];
+    uint32_t fmt_size;
+    uint16_t audio_format;
+    uint16_t num_channels;
+    uint32_t sample_rate;
+    uint32_t byte_rate;
+    uint16_t block_align;
+    uint16_t bits_per_sample;
+    char     data[4];
+    uint32_t data_size;
+} wav_header_t;
 
 /* Flags:
    Bit  0:  300 rpm supported;
@@ -461,8 +500,6 @@ fdd_load(int drive, char *fn)
     FILE       *fp;
     int         offs = 0;
 
-    fdd_log("FDD: loading drive %d with '%s'\n", drive, fn);
-
     if (!fn)
         return;
     if (strstr(fn, "wp://") == fn) {
@@ -495,7 +532,6 @@ fdd_load(int drive, char *fn)
             c++;
         }
     }
-    fdd_log("FDD: could not load '%s' %s\n", fn, p);
     drive_empty[drive] = 1;
     fdd_set_head(drive, 0);
     memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
@@ -505,8 +541,6 @@ fdd_load(int drive, char *fn)
 void
 fdd_close(int drive)
 {
-    fdd_log("FDD: closing drive %d\n", drive);
-
     d86f_stop(drive); /* Call this first of all to make sure the 86F poll is back to idle state. */
     if (loaders[driveloaders[drive]].close)
         loaders[driveloaders[drive]].close(drive);
@@ -548,11 +582,16 @@ fdd_byteperiod(int drive)
 void
 fdd_set_motor_enable(int drive, int motor_enable)
 {
-    /* I think here is where spin-up and spin-down should be implemented. */
-    if (motor_enable && !motoron[drive])
+    if (motor_enable && !motoron[drive]) {
+        // Motor starting up
+        spindlemotor_pos[drive]     = 0;
+        spindlemotor_playing[drive] = 1;
         timer_set_delay_u64(&fdd_poll_time[drive], fdd_byteperiod(drive));
-    else if (!motor_enable)
+    } else if (!motor_enable) {
+        // Motor stopping
+        spindlemotor_playing[drive] = 0;
         timer_disable(&fdd_poll_time[drive]);
+    }
     motoron[drive] = motor_enable;
 }
 
@@ -675,10 +714,14 @@ fdd_init(void)
 {
     int i;
 
+    spindlemotor_wav = load_wav(spindlemotor_wav_filename, &spindlemotor_wav_samples);
+    
     for (i = 0; i < FDD_NUM; i++) {
         drives[i].poll       = 0;
         drives[i].seek       = 0;
         drives[i].readsector = 0;
+        spindlemotor_pos[i]     = 0;
+        spindlemotor_playing[i] = 0;
     }
 
     img_init();
@@ -690,10 +733,122 @@ fdd_init(void)
     for (i = 0; i < FDD_NUM; i++) {
         fdd_load(i, floppyfns[i]);
     }
+
+    sound_fdd_thread_init();
 }
 
 void
 fdd_do_writeback(int drive)
 {
     d86f_handler[drive].writeback(drive);
+}
+
+static int16_t *
+load_wav(const char *filename, int *sample_count)
+{
+    FILE *f = fopen(filename, "rb");
+
+    if (!f) {
+        return NULL;
+    }
+
+    wav_header_t hdr;
+    if (fread(&hdr, sizeof(hdr), 1, f) != 1) {
+        fclose(f);
+        return NULL;
+    }
+
+    if (memcmp(hdr.riff, "RIFF", 4) || memcmp(hdr.wave, "WAVE", 4) || memcmp(hdr.fmt, "fmt ", 4) || memcmp(hdr.data, "data", 4)) {
+        fclose(f);
+        return NULL;
+    }
+
+    // Accept both mono and stereo, 16-bit PCM
+    if (hdr.audio_format != 1 || hdr.bits_per_sample != 16 || (hdr.num_channels != 1 && hdr.num_channels != 2)) {
+        fclose(f);
+        return NULL;
+    }
+
+    int      input_samples = hdr.data_size / 2; // 2 bytes per sample
+    int16_t *input_data    = malloc(hdr.data_size);
+    if (!input_data) {
+        fclose(f);
+        return NULL;
+    }
+
+    if (fread(input_data, 1, hdr.data_size, f) != hdr.data_size) {
+        free(input_data);
+        fclose(f);
+        return NULL;
+    }
+    fclose(f);
+
+    int16_t *output_data;
+    int      output_samples;
+
+    if (hdr.num_channels == 1) {
+        // Convert mono to stereo
+        output_samples = input_samples;                               // Number of stereo sample pairs
+        output_data    = malloc(input_samples * 2 * sizeof(int16_t)); // Allocate for stereo
+        if (!output_data) {
+            free(input_data);
+            return NULL;
+        }
+
+        // Convert mono to stereo by duplicating each sample
+        for (int i = 0; i < input_samples; i++) {
+            output_data[i * 2]     = input_data[i]; // Left channel
+            output_data[i * 2 + 1] = input_data[i]; // Right channel
+        }
+
+        free(input_data);
+    } else {
+        // Already stereo
+        output_data    = input_data;
+        output_samples = input_samples / 2; // Number of stereo sample pairs
+    }
+
+    if (sample_count)
+        *sample_count = output_samples;
+
+    return output_data;
+}
+
+void
+fdd_audio_callback(int16_t *buffer, int length)
+{
+    // Clear buffer
+    memset(buffer, 0, length * sizeof(int16_t));
+
+    // Check if any motor is running
+    int any_motor_running = 0;
+    for (int drive = 0; drive < FDD_NUM; drive++) {
+        if (motoron[drive]) {
+            any_motor_running = 1;
+        }
+    }
+
+    float *float_buffer = (float*)buffer;
+    int samples_in_buffer = length / 2;
+
+    if (any_motor_running && spindlemotor_wav && spindlemotor_wav_samples > 0) {
+        for (int i = 0; i < samples_in_buffer; i++) {
+            // Only for fdd0
+            int wav_pos = spindlemotor_pos[0];
+            
+            // int16 -> float conversion
+            float left_sample = (float)spindlemotor_wav[wav_pos * 2] / 32768.0f;
+            float right_sample = (float)spindlemotor_wav[wav_pos * 2 + 1] / 32768.0f;
+            
+            float_buffer[i * 2] = left_sample;
+            float_buffer[i * 2 + 1] = right_sample;
+            
+            spindlemotor_pos[0]++;
+            
+            // Loop back to beginning for sample, when end is reached
+            if (spindlemotor_pos[0] >= spindlemotor_wav_samples) {
+                spindlemotor_pos[0] = 0;
+            }
+        }
+    }
 }
