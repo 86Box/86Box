@@ -38,7 +38,7 @@
 #include <86box/timer.h>
 #include <86box/snd_mpu401.h>
 #include <86box/sound.h>
-#include <86box/fdd.h>
+#include <86box/fdd_audio.h>
 
 typedef struct {
     const device_t *device;
