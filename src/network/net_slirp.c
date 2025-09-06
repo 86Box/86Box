@@ -470,13 +470,13 @@ net_slirp_thread(void *priv)
 }
 #endif
 
-static int slirp_card_num = 2;
+int slirp_card_num = 2;
 
 /* Initialize SLiRP for use. */
 void *
 net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv), char *netdrv_errbuf)
 {
-    slirp_log("SLiRP: initializing...\n");
+    slirp_log("SLiRP: initializing with range %d...\n", slirp_card_num);
     net_slirp_t *slirp = calloc(1, sizeof(net_slirp_t));
     memcpy(slirp->mac_addr, mac_addr, sizeof(slirp->mac_addr));
     slirp->card = (netcard_t *) card;
@@ -639,7 +639,6 @@ net_slirp_close(void *priv)
     }
     free(slirp->pkt.data);
     free(slirp);
-    slirp_card_num--;
 }
 
 const netdrv_t net_slirp_drv = {
