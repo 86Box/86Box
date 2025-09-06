@@ -29,6 +29,7 @@ typedef struct scsi_disk_t {
     void *             log;
 
     uint8_t *          temp_buffer;
+    size_t             temp_buffer_sz;
     uint8_t            atapi_cdb[16];
     uint8_t            current_cdb[16];
     uint8_t            sense[256];

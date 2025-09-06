@@ -53,7 +53,7 @@ static const device_config_t p54tp4xe_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "Award BIOS v4.51PG", .internal_name = "p54tp4xe", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision 0302", .internal_name = "p54tp4xe", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/p54tp4xe/t15i0302.awd", "" } },
             { .name = "MR BIOS V3.30", .internal_name = "p54tp4xe_mr", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/p54tp4xe/TRITON.BIO", "" } },
@@ -183,11 +183,11 @@ static const device_config_t thor_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "Gateway 2000 (AMIBIOS)", .internal_name = "gw2katx", .bios_type = BIOS_NORMAL, 
+            { .name = "Intel AMIBIOS - Revision 1.00.03.CN0T (Gateway 2000)", .internal_name = "gw2katx", .bios_type = BIOS_NORMAL, 
               .files_no = 2, .local = 0, .size = 131072, .files = { "roms/machines/thor/1003CN0T.BIO", "roms/machines/thor/1003CN0T.BI1", "" } },
-            { .name = "Intel (AMIBIOS)", .internal_name = "thor", .bios_type = BIOS_NORMAL, 
+            { .name = "Intel AMIBIOS - Revision 1.00.06.CN0", .internal_name = "thor", .bios_type = BIOS_NORMAL, 
               .files_no = 2, .local = 0, .size = 131072, .files = { "roms/machines/thor/1006cn0_.bio", "roms/machines/thor/1006cn0_.bi1", "" } },
-            { .name = "Intel (MR BIOS)", .internal_name = "mrthor", .bios_type = BIOS_NORMAL, 
+            { .name = "MR BIOS V3.28", .internal_name = "mrthor", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/thor/mr_atx.bio", "" } },
             { .files_no = 0 }
         },
@@ -798,11 +798,11 @@ static const device_config_t c5sbm2_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "AwardBIOS v4.50GP - Revision 07/17/1995", .internal_name = "5sbm2_v450gp", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.50GP - Revision 07/17/1995", .internal_name = "5sbm2_v450gp", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5sbm2/5SBM0717.BIN", "" } },
-            { .name = "AwardBIOS v4.50PG - Revision 03/26/1996", .internal_name = "5sbm2", .bios_type = BIOS_NORMAL,
+            { .name = "Award Modular BIOS v4.50PG - Revision 03/26/1996", .internal_name = "5sbm2", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5sbm2/5SBM0326.BIN", "" } },
-            { .name = "AwardBIOS v4.51PG - Revision 2.2 (by Unicore Software)", .internal_name = "5sbm2_451pg", .bios_type = BIOS_NORMAL,
+            { .name = "Award Modular BIOS v4.51PG - Revision 2.2 (by Unicore Software)", .internal_name = "5sbm2_451pg", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5sbm2/2A5ICC3A.BIN", "" } },
             { .files_no = 0 }
         },
@@ -901,11 +901,11 @@ static const device_config_t ap5s_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "AwardBIOS v4.50PG - Revision R1.20", .internal_name = "ap5s_450pg", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.50PG - Revision R1.20", .internal_name = "ap5s_450pg", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/ap5s/ap5s120.bin", "" } },
-            { .name = "AwardBIOS v4.51PG - Revision R1.50", .internal_name = "ap5s_r150", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision R1.50", .internal_name = "ap5s_r150", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/ap5s/AP5S150.BIN", "" } },
-            { .name = "AwardBIOS v4.51PG - Revision R1.60", .internal_name = "ap5s", .bios_type = BIOS_NORMAL,
+            { .name = "Award Modular BIOS v4.51PG - Revision R1.60", .internal_name = "ap5s", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/ap5s/ap5s160.bin", "" } },
             { .files_no = 0 }
         },

@@ -623,8 +623,15 @@ static void
 scsi_disk_buf_alloc(scsi_disk_t *dev, uint32_t len)
 {
     scsi_disk_log(dev->log, "Allocated buffer length: %i\n", len);
-    if (dev->temp_buffer == NULL)
+    if (dev->temp_buffer == NULL) {
         dev->temp_buffer = (uint8_t *) malloc(len);
+        dev->temp_buffer_sz = len;
+    }
+    if (len > dev->temp_buffer_sz) {
+        uint8_t *buf = (uint8_t *) realloc(dev->temp_buffer, len);
+        dev->temp_buffer = buf;
+        dev->temp_buffer_sz = len;
+    }
 }
 
 static void
