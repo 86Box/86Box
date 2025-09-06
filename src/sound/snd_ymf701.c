@@ -286,7 +286,8 @@ ymf701_reg_write(uint16_t addr, uint8_t val, void *priv)
                         sb_dsp_setirq(&ymf701->sb->dsp, ymf701->cur_irq);
                         sb_dsp_setdma8(&ymf701->sb->dsp, ymf701->cur_dma);
                         ymf701_add_opl(ymf701);
-                        io_sethandler(ymf701->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ymf701->sb);
+                        if (ymf701->cur_addr != 0x00)
+                            io_sethandler(ymf701->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ymf701->sb);
                         break;
                     case 0x03: /* MPU/OPL/Gameport Config */
                         ymf701->regs[0x03] = val;
