@@ -12165,6 +12165,50 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* The AST Advantage! 8100P is based on Intel MN430FX. */
+    {
+        .name = "[i430FX] AST Advantage! 8100P",
+        .internal_name = "advantage8100p",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_advantage8100p_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_Cx6x86),
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .jumpered_ecp_dma = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device = NULL,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000044f0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has Dell KBC firmware. */
     {
         .name = "[i430FX] Dell OptiPlex GXL/GXM",

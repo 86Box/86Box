@@ -910,6 +910,7 @@ extern int             machine_at_tek932_init(const machine_t *);
 /* i430FX */
 extern int             machine_at_acerv30_init(const machine_t *);
 extern int             machine_at_apollo_init(const machine_t *);
+extern int             machine_at_advantage8100p_init(const machine_t *);
 extern int             machine_at_optiplexgxl_init(const machine_t *);
 extern int             machine_at_pt2000_init(const machine_t *);
 extern int             machine_at_zappa_init(const machine_t *);
