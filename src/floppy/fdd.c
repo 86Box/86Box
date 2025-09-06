@@ -41,17 +41,38 @@
 #include <86box/fdd_mfm.h>
 #include <86box/fdd_td0.h>
 #include <86box/fdc.h>
-#include <86box/sound.h>
+#include <86box/sound.h>    
 
 static int16_t *load_wav(const char *filename, int *sample_count);
 
 // TODO:
-// 1. Implement spindle motor spin-up and spin-down
-// 2. Implement sound support for all drives (not only for drive 0)
+// OK 1. Implement spindle motor spin-up and spin-down
+// 2. Move audio emulation to separate code file
+// 3. Implement sound support for all drives (not only for drive 0)
+// 4. Single sector read/write sound emulation
+// 5. Multi-track seek sound emulation
+// 6. Limit sound emulation only for 3,5" 300 rpm drives, until we have sound samples for other rpm drives
 
-static int16_t *spindlemotor_wav               = NULL;
-static int      spindlemotor_wav_samples       = 0;
-static char    *spindlemotor_wav_filename      = "mitsumi_spindle_motor_loop_48000_16_1_PCM.wav";
+// Motor sound states
+typedef enum {
+    MOTOR_STATE_STOPPED = 0,
+    MOTOR_STATE_STARTING,
+    MOTOR_STATE_RUNNING,
+    MOTOR_STATE_STOPPING
+} motor_state_t;
+
+static int16_t *spindlemotor_start_wav          = NULL;
+static int      spindlemotor_start_wav_samples  = 0;
+static char    *spindlemotor_start_wav_filename = "mitsumi_spindle_motor_start_48000_16_1_PCM.wav";
+
+static int16_t *spindlemotor_loop_wav          = NULL;
+static int      spindlemotor_loop_wav_samples  = 0;
+static char    *spindlemotor_loop_wav_filename = "mitsumi_spindle_motor_loop_48000_16_1_PCM.wav";
+
+static int16_t *spindlemotor_stop_wav          = NULL;
+static int      spindlemotor_stop_wav_samples  = 0;
+static char    *spindlemotor_stop_wav_filename = "mitsumi_spindle_motor_stop_48000_16_1_PCM.wav";
+
 static int16_t *steptrackup_wav[80];
 static int      steptrackup_wav_samples[80];
 static int16_t *steptrackdown_wav[80];
@@ -59,8 +80,14 @@ static int      steptrackdown_wav_samples[80];
 static int16_t *seekmultipletracks_wav[79]; // Seek 2, 3, 4 ... 80 tracks = 79 sounds
 static int      seekmultipletracks_wav_samples[79];
 
-static int      spindlemotor_pos[FDD_NUM] = {};
-static int      spindlemotor_playing[FDD_NUM] = {};
+static int           spindlemotor_pos[FDD_NUM]                    = {};
+static motor_state_t spindlemotor_state[FDD_NUM]                  = {};
+static float         spindlemotor_fade_volume[FDD_NUM]            = {};
+static int           spindlemotor_fade_samples_remaining[FDD_NUM] = {};
+
+// Fade duration: 75ms at 48kHz = 3600 samples
+#define FADE_DURATION_MS 75
+#define FADE_SAMPLES     (48000 * FADE_DURATION_MS / 1000)
 
 // WAV-header
 typedef struct {
@@ -127,7 +154,7 @@ int writeprot[FDD_NUM];
 int fwriteprot[FDD_NUM];
 int fdd_changed[FDD_NUM];
 int ui_writeprot[FDD_NUM] = { 0, 0, 0, 0 };
-int drive_empty[FDD_NUM] = { 1, 1, 1, 1 };
+int drive_empty[FDD_NUM]  = { 1, 1, 1, 1 };
 
 DRIVE drives[FDD_NUM];
 
@@ -140,43 +167,43 @@ d86f_handler_t d86f_handler[FDD_NUM];
 static const struct
 {
     const char *ext;
-    void        (*load)(int drive, char *fn);
-    void        (*close)(int drive);
-    int         size;
+    void (*load)(int drive, char *fn);
+    void (*close)(int drive);
+    int size;
 } loaders[] = {
-    { "001",  img_load,  img_close,  -1},
-    { "002",  img_load,  img_close,  -1},
-    { "003",  img_load,  img_close,  -1},
-    { "004",  img_load,  img_close,  -1},
-    { "005",  img_load,  img_close,  -1},
-    { "006",  img_load,  img_close,  -1},
-    { "007",  img_load,  img_close,  -1},
-    { "008",  img_load,  img_close,  -1},
-    { "009",  img_load,  img_close,  -1},
-    { "010",  img_load,  img_close,  -1},
-    { "12",   img_load,  img_close,  -1},
-    { "144",  img_load,  img_close,  -1},
-    { "360",  img_load,  img_close,  -1},
-    { "720",  img_load,  img_close,  -1},
-    { "86F",  d86f_load, d86f_close, -1},
-    { "BIN",  img_load,  img_close,  -1},
-    { "CQ",   img_load,  img_close,  -1},
-    { "CQM",  img_load,  img_close,  -1},
-    { "DDI",  img_load,  img_close,  -1},
-    { "DSK",  img_load,  img_close,  -1},
-    { "FDI",  fdi_load,  fdi_close,  -1},
-    { "FDF",  img_load,  img_close,  -1},
-    { "FLP",  img_load,  img_close,  -1},
-    { "HDM",  img_load,  img_close,  -1},
-    { "IMA",  img_load,  img_close,  -1},
-    { "IMD",  imd_load,  imd_close,  -1},
-    { "IMG",  img_load,  img_close,  -1},
-    { "JSON", pcjs_load, pcjs_close, -1},
-    { "MFM",  mfm_load,  mfm_close,  -1},
-    { "TD0",  td0_load,  td0_close,  -1},
-    { "VFD",  img_load,  img_close,  -1},
-    { "XDF",  img_load,  img_close,  -1},
-    { 0,      0,         0,          0 }
+    { "001",  img_load,  img_close,  -1 },
+    { "002",  img_load,  img_close,  -1 },
+    { "003",  img_load,  img_close,  -1 },
+    { "004",  img_load,  img_close,  -1 },
+    { "005",  img_load,  img_close,  -1 },
+    { "006",  img_load,  img_close,  -1 },
+    { "007",  img_load,  img_close,  -1 },
+    { "008",  img_load,  img_close,  -1 },
+    { "009",  img_load,  img_close,  -1 },
+    { "010",  img_load,  img_close,  -1 },
+    { "12",   img_load,  img_close,  -1 },
+    { "144",  img_load,  img_close,  -1 },
+    { "360",  img_load,  img_close,  -1 },
+    { "720",  img_load,  img_close,  -1 },
+    { "86F",  d86f_load, d86f_close, -1 },
+    { "BIN",  img_load,  img_close,  -1 },
+    { "CQ",   img_load,  img_close,  -1 },
+    { "CQM",  img_load,  img_close,  -1 },
+    { "DDI",  img_load,  img_close,  -1 },
+    { "DSK",  img_load,  img_close,  -1 },
+    { "FDI",  fdi_load,  fdi_close,  -1 },
+    { "FDF",  img_load,  img_close,  -1 },
+    { "FLP",  img_load,  img_close,  -1 },
+    { "HDM",  img_load,  img_close,  -1 },
+    { "IMA",  img_load,  img_close,  -1 },
+    { "IMD",  imd_load,  imd_close,  -1 },
+    { "IMG",  img_load,  img_close,  -1 },
+    { "JSON", pcjs_load, pcjs_close, -1 },
+    { "MFM",  mfm_load,  mfm_close,  -1 },
+    { "TD0",  td0_load,  td0_close,  -1 },
+    { "VFD",  img_load,  img_close,  -1 },
+    { "XDF",  img_load,  img_close,  -1 },
+    { 0,      0,         0,          0  }
 };
 
 static const struct {
@@ -186,35 +213,35 @@ static const struct {
     const char *internal_name;
 } drive_types[] = {
     /* None */
-    { 0, 0, "None", "none" },
+    { 0,  0,                                                                                                       "None",                    "none"            },
     /* 5.25" 1DD */
-    { 43, FLAG_RPM_300 | FLAG_525 | FLAG_HOLE0, "5.25\" 180k", "525_1dd" },
+    { 43, FLAG_RPM_300 | FLAG_525 | FLAG_HOLE0,                                                                    "5.25\" 180k",             "525_1dd"         },
     /* 5.25" DD */
-    { 43, FLAG_RPM_300 | FLAG_525 | FLAG_DS | FLAG_HOLE0, "5.25\" 360k", "525_2dd" },
+    { 43, FLAG_RPM_300 | FLAG_525 | FLAG_DS | FLAG_HOLE0,                                                          "5.25\" 360k",             "525_2dd"         },
     /* 5.25" QD */
-    { 86, FLAG_RPM_300 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_DOUBLE_STEP, "5.25\" 720k", "525_2qd" },
+    { 86, FLAG_RPM_300 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_DOUBLE_STEP,                                       "5.25\" 720k",             "525_2qd"         },
     /* 5.25" HD */
-    { 86, FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_PS2, "5.25\" 1.2M", "525_2hd" },
+    { 86, FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_PS2,               "5.25\" 1.2M",             "525_2hd"         },
     /* 5.25" HD Dual RPM */
-    { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "5.25\" 1.2M 300/360 RPM", "525_2hd_dualrpm" },
+    { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP,           "5.25\" 1.2M 300/360 RPM", "525_2hd_dualrpm" },
     /* 3.5" 1DD */
-    { 86, FLAG_RPM_300 | FLAG_HOLE0 | FLAG_DOUBLE_STEP, "3.5\" 360k", "35_1dd" },
+    { 86, FLAG_RPM_300 | FLAG_HOLE0 | FLAG_DOUBLE_STEP,                                                            "3.5\" 360k",              "35_1dd"          },
     /* 3.5" DD, Equivalent to TEAC FD-235F */
-    { 86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_DOUBLE_STEP, "3.5\" 720k", "35_2dd" },
+    { 86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_DOUBLE_STEP,                                                  "3.5\" 720k",              "35_2dd"          },
     /* 3.5" HD, Equivalent to TEAC FD-235HF */
-    { 86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_PS2, "3.5\" 1.44M", "35_2hd" },
+    { 86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_PS2,                          "3.5\" 1.44M",             "35_2hd"          },
     /* TODO: 3.5" DD, Equivalent to TEAC FD-235GF */
-//    { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "3.5\" 1.25M", "35_2hd_2mode" },
+    //    { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "3.5\" 1.25M", "35_2hd_2mode" },
     /* 3.5" HD PC-98 */
-    { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_INVERT_DENSEL, "3.5\" 1.25M PC-98", "35_2hd_nec" },
+    { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_INVERT_DENSEL, "3.5\" 1.25M PC-98",       "35_2hd_nec"      },
     /* 3.5" HD 3-Mode, Equivalent to TEAC FD-235HG */
-    { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "3.5\" 1.44M 300/360 RPM", "35_2hd_3mode" },
+    { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP,                      "3.5\" 1.44M 300/360 RPM", "35_2hd_3mode"    },
     /* 3.5" ED, Equivalent to TEAC FD-235J */
-    { 86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_HOLE2 | FLAG_DOUBLE_STEP, "3.5\" 2.88M", "35_2ed" },
+    { 86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_HOLE2 | FLAG_DOUBLE_STEP,                        "3.5\" 2.88M",             "35_2ed"          },
     /* 3.5" ED Dual RPM, Equivalent to TEAC FD-335J */
-    { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_HOLE2 | FLAG_DOUBLE_STEP, "3.5\" 2.88M 300/360 RPM", "35_2ed_dualrpm" },
+    { 86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_HOLE2 | FLAG_DOUBLE_STEP,         "3.5\" 2.88M 300/360 RPM", "35_2ed_dualrpm"  },
     /* End of list */
-    { -1, -1, "", "" }
+    { -1, -1,                                                                                                      "",                        ""                }
 };
 
 #ifdef ENABLE_FDD_LOG
@@ -235,6 +262,23 @@ fdd_log(const char *fmt, ...)
 #    define fdd_log(fmt, ...)
 #endif
 
+static const char *
+motor_state_name(motor_state_t state)
+{
+    switch (state) {
+        case MOTOR_STATE_STOPPED:
+            return "STOPPED";
+        case MOTOR_STATE_STARTING:
+            return "STARTING";
+        case MOTOR_STATE_RUNNING:
+            return "RUNNING";
+        case MOTOR_STATE_STOPPING:
+            return "STOPPING";
+        default:
+            return "UNKNOWN";
+    }
+}
+
 char *
 fdd_getname(int type)
 {
@@ -250,7 +294,7 @@ fdd_get_internal_name(int type)
 int
 fdd_get_from_internal_name(char *s)
 {
-    int   c = 0;
+    int c = 0;
 
     while (strlen(drive_types[c].internal_name)) {
         if (!strcmp((char *) drive_types[c].internal_name, s))
@@ -503,7 +547,7 @@ fdd_load(int drive, char *fn)
     if (!fn)
         return;
     if (strstr(fn, "wp://") == fn) {
-        offs = 5;
+        offs                = 5;
         ui_writeprot[drive] = 1;
     }
     fn += offs;
@@ -584,13 +628,27 @@ fdd_set_motor_enable(int drive, int motor_enable)
 {
     if (motor_enable && !motoron[drive]) {
         // Motor starting up
-        spindlemotor_pos[drive]     = 0;
-        spindlemotor_playing[drive] = 1;
+        if (spindlemotor_state[drive] == MOTOR_STATE_STOPPING) {
+            // Interrupt stop sequence and transition back to loop
+            spindlemotor_state[drive]                  = MOTOR_STATE_RUNNING;
+            spindlemotor_pos[drive]                    = 0;
+            spindlemotor_fade_volume[drive]            = 1.0f;
+            spindlemotor_fade_samples_remaining[drive] = 0;
+        } else {
+            // Normal startup
+            spindlemotor_state[drive]                  = MOTOR_STATE_STARTING;
+            spindlemotor_pos[drive]                    = 0;
+            spindlemotor_fade_volume[drive]            = 1.0f;
+            spindlemotor_fade_samples_remaining[drive] = 0;
+        }
         timer_set_delay_u64(&fdd_poll_time[drive], fdd_byteperiod(drive));
-    } else if (!motor_enable) {
+    } else if (!motor_enable && motoron[drive]) {
         // Motor stopping
-        spindlemotor_playing[drive] = 0;
-        timer_disable(&fdd_poll_time[drive]);
+        spindlemotor_state[drive]                  = MOTOR_STATE_STOPPING;
+        spindlemotor_pos[drive]                    = 0;
+        spindlemotor_fade_volume[drive]            = 1.0f;
+        spindlemotor_fade_samples_remaining[drive] = FADE_SAMPLES;
+        // Don't disable timer yet - let the stop sound finish
     }
     motoron[drive] = motor_enable;
 }
@@ -714,14 +772,18 @@ fdd_init(void)
 {
     int i;
 
-    spindlemotor_wav = load_wav(spindlemotor_wav_filename, &spindlemotor_wav_samples);
-    
+    spindlemotor_start_wav = load_wav(spindlemotor_start_wav_filename, &spindlemotor_start_wav_samples);
+    spindlemotor_loop_wav  = load_wav(spindlemotor_loop_wav_filename, &spindlemotor_loop_wav_samples);
+    spindlemotor_stop_wav  = load_wav(spindlemotor_stop_wav_filename, &spindlemotor_stop_wav_samples);
+
     for (i = 0; i < FDD_NUM; i++) {
-        drives[i].poll       = 0;
-        drives[i].seek       = 0;
-        drives[i].readsector = 0;
-        spindlemotor_pos[i]     = 0;
-        spindlemotor_playing[i] = 0;
+        drives[i].poll                         = 0;
+        drives[i].seek                         = 0;
+        drives[i].readsector                   = 0;
+        spindlemotor_pos[i]                    = 0;
+        spindlemotor_state[i]                  = MOTOR_STATE_STOPPED;
+        spindlemotor_fade_volume[i]            = 1.0f;
+        spindlemotor_fade_samples_remaining[i] = 0;
     }
 
     img_init();
@@ -747,10 +809,8 @@ static int16_t *
 load_wav(const char *filename, int *sample_count)
 {
     FILE *f = fopen(filename, "rb");
-
-    if (!f) {
+    if (!f)
         return NULL;
-    }
 
     wav_header_t hdr;
     if (fread(&hdr, sizeof(hdr), 1, f) != 1) {
@@ -820,35 +880,109 @@ fdd_audio_callback(int16_t *buffer, int length)
     // Clear buffer
     memset(buffer, 0, length * sizeof(int16_t));
 
-    // Check if any motor is running
-    int any_motor_running = 0;
+    // Check if any motor is running or transitioning
+    int any_motor_active = 0;
     for (int drive = 0; drive < FDD_NUM; drive++) {
-        if (motoron[drive]) {
-            any_motor_running = 1;
+        if (spindlemotor_state[drive] != MOTOR_STATE_STOPPED) {
+            any_motor_active = 1;
+            break;
         }
     }
 
-    float *float_buffer = (float*)buffer;
-    int samples_in_buffer = length / 2;
+    if (!any_motor_active)
+        return;
 
-    if (any_motor_running && spindlemotor_wav && spindlemotor_wav_samples > 0) {
-        for (int i = 0; i < samples_in_buffer; i++) {
-            // Only for fdd0
-            int wav_pos = spindlemotor_pos[0];
-            
-            // int16 -> float conversion
-            float left_sample = (float)spindlemotor_wav[wav_pos * 2] / 32768.0f;
-            float right_sample = (float)spindlemotor_wav[wav_pos * 2 + 1] / 32768.0f;
-            
-            float_buffer[i * 2] = left_sample;
-            float_buffer[i * 2 + 1] = right_sample;
-            
-            spindlemotor_pos[0]++;
-            
-            // Loop back to beginning for sample, when end is reached
-            if (spindlemotor_pos[0] >= spindlemotor_wav_samples) {
-                spindlemotor_pos[0] = 0;
-            }
+    float *float_buffer      = (float *) buffer;
+    int    samples_in_buffer = length / 2;
+
+    // Process audio for drive 0 only for now
+    int drive = 0;
+
+    if (spindlemotor_state[drive] == MOTOR_STATE_STOPPED)
+        return;
+
+    for (int i = 0; i < samples_in_buffer; i++) {
+        float left_sample  = 0.0f;
+        float right_sample = 0.0f;
+
+        switch (spindlemotor_state[drive]) {
+            case MOTOR_STATE_STARTING:
+                if (spindlemotor_start_wav && spindlemotor_pos[drive] < spindlemotor_start_wav_samples) {
+                    // Play start sound
+                    left_sample  = (float) spindlemotor_start_wav[spindlemotor_pos[drive] * 2] / 32768.0f;
+                    right_sample = (float) spindlemotor_start_wav[spindlemotor_pos[drive] * 2 + 1] / 32768.0f;
+                    spindlemotor_pos[drive]++;
+                } else {
+                    // Start sound finished, transition to loop
+                    spindlemotor_state[drive] = MOTOR_STATE_RUNNING;
+                    spindlemotor_pos[drive]   = 0;
+                }
+                break;
+
+            case MOTOR_STATE_RUNNING:
+                if (spindlemotor_loop_wav && spindlemotor_loop_wav_samples > 0) {
+                    // Play loop sound
+                    left_sample  = (float) spindlemotor_loop_wav[spindlemotor_pos[drive] * 2] / 32768.0f;
+                    right_sample = (float) spindlemotor_loop_wav[spindlemotor_pos[drive] * 2 + 1] / 32768.0f;
+                    spindlemotor_pos[drive]++;
+
+                    // Loop back to beginning
+                    if (spindlemotor_pos[drive] >= spindlemotor_loop_wav_samples) {
+                        spindlemotor_pos[drive] = 0;
+                    }
+                }
+                break;
+
+            case MOTOR_STATE_STOPPING:
+                if (spindlemotor_fade_samples_remaining[drive] > 0) {
+                    // Mix fading loop sound with rising stop sound
+                    float loop_volume = spindlemotor_fade_volume[drive];
+                    float stop_volume = 1.0f - loop_volume;
+
+                    float loop_left = 0.0f, loop_right = 0.0f;
+                    float stop_left = 0.0f, stop_right = 0.0f;
+
+                    // Get loop sample (continue from current position)
+                    if (spindlemotor_loop_wav && spindlemotor_loop_wav_samples > 0) {
+                        int loop_pos = spindlemotor_pos[drive] % spindlemotor_loop_wav_samples;
+                        loop_left    = (float) spindlemotor_loop_wav[loop_pos * 2] / 32768.0f;
+                        loop_right   = (float) spindlemotor_loop_wav[loop_pos * 2 + 1] / 32768.0f;
+                    }
+
+                    // Get stop sample
+                    if (spindlemotor_stop_wav && spindlemotor_pos[drive] < spindlemotor_stop_wav_samples) {
+                        stop_left  = (float) spindlemotor_stop_wav[spindlemotor_pos[drive] * 2] / 32768.0f;
+                        stop_right = (float) spindlemotor_stop_wav[spindlemotor_pos[drive] * 2 + 1] / 32768.0f;
+                    }
+
+                    // Mix the sounds
+                    left_sample  = loop_left * loop_volume + stop_left * stop_volume;
+                    right_sample = loop_right * loop_volume + stop_right * stop_volume;
+
+                    spindlemotor_pos[drive]++;
+                    spindlemotor_fade_samples_remaining[drive]--;
+
+                    // Update fade volume
+                    spindlemotor_fade_volume[drive] = (float) spindlemotor_fade_samples_remaining[drive] / FADE_SAMPLES;
+                } else {
+                    // Fade completed, play remaining stop sound
+                    if (spindlemotor_stop_wav && spindlemotor_pos[drive] < spindlemotor_stop_wav_samples) {
+                        left_sample  = (float) spindlemotor_stop_wav[spindlemotor_pos[drive] * 2] / 32768.0f;
+                        right_sample = (float) spindlemotor_stop_wav[spindlemotor_pos[drive] * 2 + 1] / 32768.0f;
+                        spindlemotor_pos[drive]++;
+                    } else {
+                        // Stop sound finished
+                        spindlemotor_state[drive] = MOTOR_STATE_STOPPED;
+                        timer_disable(&fdd_poll_time[drive]);
+                    }
+                }
+                break;
+
+            default:
+                break;
         }
+
+        float_buffer[i * 2]     = left_sample;
+        float_buffer[i * 2 + 1] = right_sample;
     }
 }
