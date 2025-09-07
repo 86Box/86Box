@@ -57,6 +57,9 @@ extern void fdd_audio_close(void);
 /* Motor control for audio */
 extern void fdd_audio_set_motor_enable(int drive, int motor_enable);
 
+/* Single sector movement audio */
+extern void fdd_audio_play_single_track_step(int drive, int from_track, int to_track);
+
 /* Audio callback function */
 extern void fdd_audio_callback(int16_t *buffer, int length);
 

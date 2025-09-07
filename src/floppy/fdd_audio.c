@@ -29,9 +29,11 @@
 // OK 1. Implement spindle motor spin-up and spin-down
 // OK 2. Move audio emulation to separate code file
 // OK 3. Implement sound support for all drives (not only for drive 0)
-// 4. Single sector read/write sound emulation
+// OK 4. Single sector read/write sound emulation
 // 5. Multi-track seek sound emulation
 // 6. Limit sound emulation only for 3,5" 300 rpm drives, until we have sound samples for other rpm drives
+// 7. Volume control for drive sounds
+// 8. Configuration option to enable/disable drive sounds
 
 /* Audio sample structure */
 typedef struct {
@@ -39,6 +41,12 @@ typedef struct {
     int16_t    *buffer;
     int         samples;
 } audio_sample_t;
+
+/* Single step audio state */
+typedef struct {
+    int             position;
+    int             active;
+} single_step_state_t;
 
 /* Static audio sample definitions */
 static audio_sample_t spindlemotor_start = {
@@ -59,15 +67,21 @@ static audio_sample_t spindlemotor_stop = {
     .samples  = 0
 };
 
-static audio_sample_t steptrackup[80];
-static audio_sample_t steptrackdown[80];
-static audio_sample_t seekmultipletracks[79]; /* Seek 2, 3, 4 ... 80 tracks = 79 sounds */
+static audio_sample_t single_track_step = {
+    .filename = "mitsumi_track_step_48000_16_1_PCM.wav",
+    .buffer   = NULL,
+    .samples  = 0
+};
+
 
 /* Audio state for each drive */
 static int           spindlemotor_pos[FDD_NUM]                    = {};
 static motor_state_t spindlemotor_state[FDD_NUM]                  = {};
 static float         spindlemotor_fade_volume[FDD_NUM]            = {};
 static int           spindlemotor_fade_samples_remaining[FDD_NUM] = {};
+
+/* Single step audio state for each drive */
+static single_step_state_t single_step_state[FDD_NUM] = {};
 
 /* External references to FDD timer and motoron state */
 extern pc_timer_t fdd_poll_time[FDD_NUM];
@@ -171,22 +185,7 @@ fdd_audio_init(void)
     spindlemotor_start.buffer = load_wav(spindlemotor_start.filename, &spindlemotor_start.samples);
     spindlemotor_loop.buffer  = load_wav(spindlemotor_loop.filename, &spindlemotor_loop.samples);
     spindlemotor_stop.buffer  = load_wav(spindlemotor_stop.filename, &spindlemotor_stop.samples);
-
-    /* Initialize seek sound arrays */
-    for (i = 0; i < 80; i++) {
-        steptrackup[i].filename   = NULL;
-        steptrackup[i].buffer     = NULL;
-        steptrackup[i].samples    = 0;
-        steptrackdown[i].filename = NULL;
-        steptrackdown[i].buffer   = NULL;
-        steptrackdown[i].samples  = 0;
-    }
-
-    for (i = 0; i < 79; i++) {
-        seekmultipletracks[i].filename = NULL;
-        seekmultipletracks[i].buffer   = NULL;
-        seekmultipletracks[i].samples  = 0;
-    }
+    single_track_step.buffer  = load_wav(single_track_step.filename, &single_track_step.samples);
 
     /* Initialize audio state for all drives */
     for (i = 0; i < FDD_NUM; i++) {
@@ -194,6 +193,10 @@ fdd_audio_init(void)
         spindlemotor_state[i]                  = MOTOR_STATE_STOPPED;
         spindlemotor_fade_volume[i]            = 1.0f;
         spindlemotor_fade_samples_remaining[i] = 0;
+        
+        /* Initialize single step state */
+        single_step_state[i].position = 0;
+        single_step_state[i].active   = 0;
     }
 
     /* Initialize sound thread */
@@ -203,9 +206,6 @@ fdd_audio_init(void)
 void
 fdd_audio_close(void)
 {
-    int i;
-
-    /* Free loaded audio samples using the new structure */
     if (spindlemotor_start.buffer) {
         free(spindlemotor_start.buffer);
         spindlemotor_start.buffer = NULL;
@@ -221,27 +221,10 @@ fdd_audio_close(void)
         spindlemotor_stop.buffer = NULL;
         spindlemotor_stop.samples = 0;
     }
-
-    /* Free seek sound arrays */
-    for (i = 0; i < 80; i++) {
-        if (steptrackup[i].buffer) {
-            free(steptrackup[i].buffer);
-            steptrackup[i].buffer = NULL;
-            steptrackup[i].samples = 0;
-        }
-        if (steptrackdown[i].buffer) {
-            free(steptrackdown[i].buffer);
-            steptrackdown[i].buffer = NULL;
-            steptrackdown[i].samples = 0;
-        }
-    }
-
-    for (i = 0; i < 79; i++) {
-        if (seekmultipletracks[i].buffer) {
-            free(seekmultipletracks[i].buffer);
-            seekmultipletracks[i].buffer = NULL;
-            seekmultipletracks[i].samples = 0;
-        }
+    if (single_track_step.buffer) {
+        free(single_track_step.buffer);
+        single_track_step.buffer = NULL;
+        single_track_step.samples = 0;
     }
 
     /* End sound thread */
@@ -272,8 +255,19 @@ fdd_audio_set_motor_enable(int drive, int motor_enable)
         spindlemotor_pos[drive]                    = 0;
         spindlemotor_fade_volume[drive]            = 1.0f;
         spindlemotor_fade_samples_remaining[drive] = FADE_SAMPLES;
-        /* Note: Don't disable timer here - responsibility lies with fdd.c */
     }
+}
+
+void
+fdd_audio_play_single_track_step(int drive, int from_track, int to_track)
+{
+    if (drive < 0 || drive >= FDD_NUM)
+        return;
+    if (abs(from_track - to_track) != 1)
+        return; /* Only single track movements */
+    
+    single_step_state[drive].position = 0;
+    single_step_state[drive].active   = 1;
 }
 
 void
@@ -282,16 +276,16 @@ fdd_audio_callback(int16_t *buffer, int length)
     /* Clear buffer */
     memset(buffer, 0, length * sizeof(int16_t));
 
-    /* Check if any motor is running or transitioning */
-    int any_motor_active = 0;
+    /* Check if any motor is running or transitioning, or any single step is active */
+    int any_audio_active = 0;
     for (int drive = 0; drive < FDD_NUM; drive++) {
-        if (spindlemotor_state[drive] != MOTOR_STATE_STOPPED) {
-            any_motor_active = 1;
+        if (spindlemotor_state[drive] != MOTOR_STATE_STOPPED || single_step_state[drive].active) {
+            any_audio_active = 1;
             break;
         }
     }
 
-    if (!any_motor_active)
+    if (!any_audio_active)
         return;
 
     float *float_buffer      = (float *) buffer;
@@ -299,88 +293,106 @@ fdd_audio_callback(int16_t *buffer, int length)
 
     /* Process audio for all drives */
     for (int drive = 0; drive < FDD_NUM; drive++) {
-        if (spindlemotor_state[drive] == MOTOR_STATE_STOPPED)
-            continue;
-
         for (int i = 0; i < samples_in_buffer; i++) {
             float left_sample  = 0.0f;
             float right_sample = 0.0f;
 
-            switch (spindlemotor_state[drive]) {
-                case MOTOR_STATE_STARTING:
-                    if (spindlemotor_start.buffer && spindlemotor_pos[drive] < spindlemotor_start.samples) {
-                        /* Play start sound */
-                        left_sample  = (float) spindlemotor_start.buffer[spindlemotor_pos[drive] * 2] / 32768.0f;
-                        right_sample = (float) spindlemotor_start.buffer[spindlemotor_pos[drive] * 2 + 1] / 32768.0f;
-                        spindlemotor_pos[drive]++;
-                    } else {
-                        /* Start sound finished, transition to loop */
-                        spindlemotor_state[drive] = MOTOR_STATE_RUNNING;
-                        spindlemotor_pos[drive]   = 0;
-                    }
-                    break;
-
-                case MOTOR_STATE_RUNNING:
-                    if (spindlemotor_loop.buffer && spindlemotor_loop.samples > 0) {
-                        /* Play loop sound */
-                        left_sample  = (float) spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2] / 32768.0f;
-                        right_sample = (float) spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2 + 1] / 32768.0f;
-                        spindlemotor_pos[drive]++;
-
-                        /* Loop back to beginning */
-                        if (spindlemotor_pos[drive] >= spindlemotor_loop.samples) {
-                            spindlemotor_pos[drive] = 0;
-                        }
-                    }
-                    break;
-
-                case MOTOR_STATE_STOPPING:
-                    if (spindlemotor_fade_samples_remaining[drive] > 0) {
-                        /* Mix fading loop sound with rising stop sound */
-                        float loop_volume = spindlemotor_fade_volume[drive];
-                        float stop_volume = 1.0f - loop_volume;
-
-                        float loop_left = 0.0f, loop_right = 0.0f;
-                        float stop_left = 0.0f, stop_right = 0.0f;
-
-                        /* Get loop sample (continue from current position) */
-                        if (spindlemotor_loop.buffer && spindlemotor_loop.samples > 0) {
-                            int loop_pos = spindlemotor_pos[drive] % spindlemotor_loop.samples;
-                            loop_left    = (float) spindlemotor_loop.buffer[loop_pos * 2] / 32768.0f;
-                            loop_right   = (float) spindlemotor_loop.buffer[loop_pos * 2 + 1] / 32768.0f;
-                        }
-
-                        /* Get stop sample */
-                        if (spindlemotor_stop.buffer && spindlemotor_pos[drive] < spindlemotor_stop.samples) {
-                            stop_left  = (float) spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2] / 32768.0f;
-                            stop_right = (float) spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2 + 1] / 32768.0f;
-                        }
-
-                        /* Mix the sounds */
-                        left_sample  = loop_left * loop_volume + stop_left * stop_volume;
-                        right_sample = loop_right * loop_volume + stop_right * stop_volume;
-
-                        spindlemotor_pos[drive]++;
-                        spindlemotor_fade_samples_remaining[drive]--;
-
-                        /* Update fade volume */
-                        spindlemotor_fade_volume[drive] = (float) spindlemotor_fade_samples_remaining[drive] / FADE_SAMPLES;
-                    } else {
-                        /* Fade completed, play remaining stop sound */
-                        if (spindlemotor_stop.buffer && spindlemotor_pos[drive] < spindlemotor_stop.samples) {
-                            left_sample  = (float) spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2] / 32768.0f;
-                            right_sample = (float) spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2 + 1] / 32768.0f;
+            /* Process motor audio */
+            if (spindlemotor_state[drive] != MOTOR_STATE_STOPPED) {
+                switch (spindlemotor_state[drive]) {
+                    case MOTOR_STATE_STARTING:
+                        if (spindlemotor_start.buffer && spindlemotor_pos[drive] < spindlemotor_start.samples) {
+                            /* Play start sound */
+                            left_sample  = (float) spindlemotor_start.buffer[spindlemotor_pos[drive] * 2] / 32768.0f;
+                            right_sample = (float) spindlemotor_start.buffer[spindlemotor_pos[drive] * 2 + 1] / 32768.0f;
                             spindlemotor_pos[drive]++;
                         } else {
-                            /* Stop sound finished */
-                            spindlemotor_state[drive] = MOTOR_STATE_STOPPED;
-                            /* Note: Timer disabling is handled by fdd.c, not here */
+                            /* Start sound finished, transition to loop */
+                            spindlemotor_state[drive] = MOTOR_STATE_RUNNING;
+                            spindlemotor_pos[drive]   = 0;
                         }
-                    }
-                    break;
+                        break;
 
-                default:
-                    break;
+                    case MOTOR_STATE_RUNNING:
+                        if (spindlemotor_loop.buffer && spindlemotor_loop.samples > 0) {
+                            /* Play loop sound */
+                            left_sample  = (float) spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2] / 32768.0f;
+                            right_sample = (float) spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2 + 1] / 32768.0f;
+                            spindlemotor_pos[drive]++;
+
+                            /* Loop back to beginning */
+                            if (spindlemotor_pos[drive] >= spindlemotor_loop.samples) {
+                                spindlemotor_pos[drive] = 0;
+                            }
+                        }
+                        break;
+
+                    case MOTOR_STATE_STOPPING:
+                        if (spindlemotor_fade_samples_remaining[drive] > 0) {
+                            /* Mix fading loop sound with rising stop sound */
+                            float loop_volume = spindlemotor_fade_volume[drive];
+                            float stop_volume = 1.0f - loop_volume;
+
+                            float loop_left = 0.0f, loop_right = 0.0f;
+                            float stop_left = 0.0f, stop_right = 0.0f;
+
+                            /* Get loop sample (continue from current position) */
+                            if (spindlemotor_loop.buffer && spindlemotor_loop.samples > 0) {
+                                int loop_pos = spindlemotor_pos[drive] % spindlemotor_loop.samples;
+                                loop_left    = (float) spindlemotor_loop.buffer[loop_pos * 2] / 32768.0f;
+                                loop_right   = (float) spindlemotor_loop.buffer[loop_pos * 2 + 1] / 32768.0f;
+                            }
+
+                            /* Get stop sample */
+                            if (spindlemotor_stop.buffer && spindlemotor_pos[drive] < spindlemotor_stop.samples) {
+                                stop_left  = (float) spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2] / 32768.0f;
+                                stop_right = (float) spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2 + 1] / 32768.0f;
+                            }
+
+                            /* Mix the sounds */
+                            left_sample  = loop_left * loop_volume + stop_left * stop_volume;
+                            right_sample = loop_right * loop_volume + stop_right * stop_volume;
+
+                            spindlemotor_pos[drive]++;
+                            spindlemotor_fade_samples_remaining[drive]--;
+
+                            /* Update fade volume */
+                            spindlemotor_fade_volume[drive] = (float) spindlemotor_fade_samples_remaining[drive] / FADE_SAMPLES;
+                        } else {
+                            /* Fade completed, play remaining stop sound */
+                            if (spindlemotor_stop.buffer && spindlemotor_pos[drive] < spindlemotor_stop.samples) {
+                                left_sample  = (float) spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2] / 32768.0f;
+                                right_sample = (float) spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2 + 1] / 32768.0f;
+                                spindlemotor_pos[drive]++;
+                            } else {
+                                /* Stop sound finished */
+                                spindlemotor_state[drive] = MOTOR_STATE_STOPPED;
+                                /* Note: Timer disabling is handled by fdd.c, not here */
+                            }
+                        }
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            /* Process single step audio */
+            if (single_step_state[drive].active) {                
+                if (single_track_step.buffer && single_step_state[drive].position < single_track_step.samples) {
+                    /* Mix step sound with motor sound */
+                    float step_left  = (float) single_track_step.buffer[single_step_state[drive].position * 2] / 32768.0f;
+                    float step_right = (float) single_track_step.buffer[single_step_state[drive].position * 2 + 1] / 32768.0f;
+                    
+                    left_sample  += step_left;
+                    right_sample += step_right;
+                    
+                    single_step_state[drive].position++;
+                } else {
+                    /* Step sound finished */
+                    single_step_state[drive].active = 0;
+                    single_step_state[drive].position = 0;
+                }
             }
 
             /* Mix this drive's audio into the buffer */

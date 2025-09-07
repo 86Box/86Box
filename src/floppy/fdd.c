@@ -253,6 +253,8 @@ fdd_seek(int drive, int track_diff)
     if (!track_diff)
         return;
 
+    int old_track = fdd[drive].track;
+
     fdd[drive].track += track_diff;
 
     if (fdd[drive].track < 0)
@@ -262,6 +264,11 @@ fdd_seek(int drive, int track_diff)
         fdd[drive].track = drive_types[fdd[drive].type].max_track;
 
     fdd_changed[drive] = 0;
+
+    /* Trigger single step audio for single sector movements */
+    if (abs(track_diff) == 1) {
+        fdd_audio_play_single_track_step(drive, old_track, fdd[drive].track);
+    }
 
     fdd_do_seek(drive, fdd[drive].track);
 }
