@@ -2157,6 +2157,12 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         addbyte(0xc2);
     }
 
+    addbyte(0xf3); /*MOVQ XMM15(colbfog), XMM0 */
+    addbyte(0x44);
+    addbyte(0x0f);
+    addbyte(0x7e);
+    addbyte(0xf8);
+
     if (params->fogMode & FOG_ENABLE) {
         if (params->fogMode & FOG_CONSTANT) {
             addbyte(0x66); /*MOVD XMM3, params->fogColor[ESI]*/
@@ -2580,17 +2586,17 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 addbyte(0xef);
                 addbyte(0xe4);
                 break;
-            case AFUNC_ASATURATE:
-                addbyte(0x66); /*PMULLW XMM4, XMM11(minus_254)*/
+            case AFUNC_ACOLORBEFOREFOG:
+                addbyte(0x66); /*PMULLW XMM4, XMM15(colbfog)*/
                 addbyte(0x41);
                 addbyte(0x0f);
                 addbyte(0xd5);
-                addbyte(0xe3);
+                addbyte(0xe7);
                 addbyte(0xf3); /*MOVQ XMM5, XMM4*/
                 addbyte(0x0f);
                 addbyte(0x7e);
                 addbyte(0xec);
-                addbyte(0x66); /*PADDW XMM4, alookup[1*8]*/
+                addbyte(0x66); /*PADDW XMM4, R10(alookup)[1*8]*/
                 addbyte(0x41);
                 addbyte(0x0f);
                 addbyte(0xfd);
@@ -2610,6 +2616,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 addbyte(0x71);
                 addbyte(0xd4);
                 addbyte(8);
+                break;
         }
 
         switch (src_afunc) {
@@ -2762,7 +2769,36 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 addbyte(0xef);
                 addbyte(0xc0);
                 break;
-            case AFUNC_ACOLORBEFOREFOG:
+            case AFUNC_ASATURATE:
+                addbyte(0x66); /*PMULLW XMM0, XMM11(minus_254)*/
+                addbyte(0x41);
+                addbyte(0x0f);
+                addbyte(0xd5);
+                addbyte(0xc3);
+                addbyte(0xf3); /*MOVQ XMM5, XMM0*/
+                addbyte(0x0f);
+                addbyte(0x7e);
+                addbyte(0xe8);
+                addbyte(0x66); /*PADDW XMM0, alookup[1*8]*/
+                addbyte(0x41);
+                addbyte(0x0f);
+                addbyte(0xfd);
+                addbyte(0x42);
+                addbyte(8 * 2);
+                addbyte(0x66); /*PSRLW XMM5, 8*/
+                addbyte(0x0f);
+                addbyte(0x71);
+                addbyte(0xd5);
+                addbyte(8);
+                addbyte(0x66); /*PADDW XMM0, XMM5*/
+                addbyte(0x0f);
+                addbyte(0xfd);
+                addbyte(0xc5);
+                addbyte(0x66); /*PSRLW XMM0, 8*/
+                addbyte(0x0f);
+                addbyte(0x71);
+                addbyte(0xd0);
+                addbyte(8);
                 break;
         }
 

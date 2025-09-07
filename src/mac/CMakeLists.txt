@@ -11,10 +11,12 @@
 # Authors: dob205,
 #          Jerome Vernet
 #          David Hrdlička, <hrdlickadavid@outlook.com>
+#          Jasmine Iwanek, <jriwanek@gmail.com>
 #
 #          Copyright 2021 dob205.
 #          Copyright 2021 Jerome Vernet.
 #          Copyright 2021 David Hrdlička.
+#          Copyright 2024 Jasmine Iwanek.
 #
 
 # Pick the bundle icon depending on the release channel
@@ -50,4 +52,4 @@ set_target_properties(86Box
 
 #set(XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "YES")
 #set(XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-")
-#set(XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS ${CMAKE_CURRENT_SOURCE_DIR}/mac/codesign/dev/app.entitlements)
+#set(XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS ${CMAKE_CURRENT_SOURCE_DIR}/mac/entitlements.plist)

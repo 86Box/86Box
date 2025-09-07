@@ -1,5 +1,5 @@
 #define INC_DEC_OP(name, reg, inc, setflags)           \
-    static int op##name(uint32_t fetchdat)             \
+    static int op##name(UNUSED(uint32_t fetchdat))     \
     {                                                  \
         setflags(reg, 1);                              \
         reg += inc;                                    \

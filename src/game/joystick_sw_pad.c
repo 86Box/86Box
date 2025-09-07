@@ -29,8 +29,6 @@
  *          - Some DOS stuff will write to 0x201 while a packet is
  *            being transferred. This seems to be ignored.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
@@ -64,7 +62,6 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/gameport.h>
-#include <86box/joystick_sw_pad.h>
 #include <86box/plat_unused.h>
 
 typedef struct sw_data {
@@ -93,9 +90,7 @@ sw_timer_over(void *priv)
     if (sw->poll_left == 1 && !sw->poll_clock)
         timer_advance_u64(&sw->poll_timer, TIMER_USEC * 160);
     else if (sw->poll_left)
-        timer_advance_u64(&sw->poll_timer, TIMER_USEC * 5);
-    else
-        timer_disable(&sw->poll_timer);
+        timer_set_delay_u64(&sw->poll_timer, TIMER_USEC * 5);
 }
 
 static void
@@ -122,8 +117,7 @@ sw_parity(uint16_t data)
 static void *
 sw_init(void)
 {
-    sw_data *sw = (sw_data *) malloc(sizeof(sw_data));
-    memset(sw, 0, sizeof(sw_data));
+    sw_data *sw = (sw_data *) calloc(1, sizeof(sw_data));
 
     timer_add(&sw->poll_timer, sw_timer_over, sw, 0);
     timer_add(&sw->trigger_timer, sw_trigger_timer_over, sw, 0);
@@ -145,7 +139,7 @@ sw_read(void *priv)
     sw_data *sw   = (sw_data *) priv;
     uint8_t  temp = 0;
 
-    if (!JOYSTICK_PRESENT(0))
+    if (!JOYSTICK_PRESENT(0, 0))
         return 0xff;
 
     if (timer_is_enabled(&sw->poll_timer)) {
@@ -171,14 +165,12 @@ sw_write(void *priv)
     sw_data *sw              = (sw_data *) priv;
     int64_t  time_since_last = timer_get_remaining_us(&sw->trigger_timer);
 
-    if (!JOYSTICK_PRESENT(0))
+    if (!JOYSTICK_PRESENT(0, 0))
         return;
-
-    timer_process();
 
     if (!sw->poll_left) {
         sw->poll_clock = 1;
-        timer_set_delay_u64(&sw->poll_timer, TIMER_USEC * 50);
+        timer_set_delay_u64(&sw->poll_timer, TIMER_USEC * 40);
 
         if (time_since_last > 9900 && time_since_last < 9940) {
             sw->poll_mode = 0;
@@ -196,24 +188,24 @@ sw_write(void *priv)
                 sw->poll_data = 1;
             }
 
-            for (uint8_t c = 0; c < 4; c++) {
+            for (uint8_t js = 0; js < 4; js++) {
                 uint16_t data = 0x3fff;
 
-                if (!JOYSTICK_PRESENT(c))
+                if (!JOYSTICK_PRESENT(0, js))
                     break;
 
-                if (joystick_state[c].axis[1] < -16383)
+                if (joystick_state[0][js].axis[1] < -16383)
                     data &= ~1;
-                if (joystick_state[c].axis[1] > 16383)
+                if (joystick_state[0][js].axis[1] > 16383)
                     data &= ~2;
-                if (joystick_state[c].axis[0] > 16383)
+                if (joystick_state[0][js].axis[0] > 16383)
                     data &= ~4;
-                if (joystick_state[c].axis[0] < -16383)
+                if (joystick_state[0][js].axis[0] < -16383)
                     data &= ~8;
 
-                for (uint8_t b = 0; b < 10; b++) {
-                    if (joystick_state[c].button[b])
-                        data &= ~(1 << (b + 4));
+                for (uint8_t button_nr = 0; button_nr < 10; button_nr++) {
+                    if (joystick_state[0][js].button[button_nr])
+                        data &= ~(1 << (button_nr + 4));
                 }
 
                 if (sw_parity(data))
@@ -221,10 +213,10 @@ sw_write(void *priv)
 
                 if (sw->poll_mode) {
                     sw->poll_left += 5;
-                    sw->poll_data |= (data << (c * 15 + 3));
+                    sw->poll_data |= (data << (js * 15 + 3));
                 } else {
                     sw->poll_left += 15;
-                    sw->poll_data |= (data << (c * 15 + 1));
+                    sw->poll_data |= (data << (js * 15 + 1));
                 }
             }
         }
@@ -236,7 +228,7 @@ sw_write(void *priv)
 static int
 sw_read_axis(UNUSED(void *priv), UNUSED(int axis))
 {
-    if (!JOYSTICK_PRESENT(0))
+    if (!JOYSTICK_PRESENT(0, 0))
         return AXIS_NOT_PRESENT;
 
     return 0; /*No analogue support on Sidewinder game pad*/
@@ -250,7 +242,7 @@ sw_a0_over(void *priv)
     timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * 10000);
 }
 
-const joystick_if_t joystick_sw_pad = {
+const joystick_t joystick_sw_pad = {
     .name          = "Microsoft SideWinder Pad",
     .internal_name = "sidewinder_pad",
     .init          = sw_init,

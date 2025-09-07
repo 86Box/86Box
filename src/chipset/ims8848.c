@@ -381,8 +381,7 @@ ims8848_close(void *priv)
 static void *
 ims8848_init(UNUSED(const device_t *info))
 {
-    ims8848_t *dev = (ims8848_t *) malloc(sizeof(ims8848_t));
-    memset(dev, 0, sizeof(ims8848_t));
+    ims8848_t *dev = (ims8848_t *) calloc(1, sizeof(ims8848_t));
 
     device_add(&port_92_device);
 
@@ -416,7 +415,7 @@ const device_t ims8848_device = {
     .init          = ims8848_init,
     .close         = ims8848_close,
     .reset         = ims8848_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

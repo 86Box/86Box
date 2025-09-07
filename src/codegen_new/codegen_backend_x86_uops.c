@@ -10,6 +10,7 @@
 #    include "x86_ops.h"
 #    include "x86seg_common.h"
 #    include "x86seg.h"
+#    include "x87_sf.h"
 #    include "386_common.h"
 #    include "codegen.h"
 #    include "codegen_allocator.h"
@@ -220,6 +221,7 @@ codegen_CALL_FUNC_RESULT(codeblock_t *block, uop_t *uop)
 static int
 codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
 {
+    host_x86_MOV32_STACK_IMM(block, STACK_ARG0, uop->imm_data);
     host_x86_CALL(block, uop->p);
     host_x86_TEST32_REG(block, REG_EAX, REG_EAX);
     host_x86_JNZ(block, codegen_exit_rout);
@@ -677,7 +679,7 @@ codegen_FTST(codeblock_t *block, uop_t *uop)
         host_x86_XOR32_REG_REG(block, REG_EAX, REG_EAX);
         host_x86_COMISD_XREG_XREG(block, src_reg_a, REG_XMM_TEMP);
         host_x86_LAHF(block);
-        host_x86_AND16_REG_IMM(block, REG_EAX, C0 | C2 | C3);
+        host_x86_AND16_REG_IMM(block, REG_EAX, FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         if (dest_reg != REG_EAX) {
             host_x86_MOV16_REG_REG(block, dest_reg, REG_EAX);
             host_x86_MOV32_REG_REG(block, REG_EAX, REG_ECX);
@@ -725,7 +727,7 @@ codegen_FCOM(codeblock_t *block, uop_t *uop)
         host_x86_XOR32_REG_REG(block, REG_EAX, REG_EAX);
         host_x86_COMISD_XREG_XREG(block, src_reg_a, src_reg_b);
         host_x86_LAHF(block);
-        host_x86_AND16_REG_IMM(block, REG_EAX, C0 | C2 | C3);
+        host_x86_AND16_REG_IMM(block, REG_EAX, FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         if (dest_reg != REG_EAX) {
             host_x86_MOV16_REG_REG(block, dest_reg, REG_EAX);
             host_x86_MOV32_REG_REG(block, REG_EAX, REG_ECX);
@@ -980,8 +982,12 @@ codegen_MEM_LOAD_REG(codeblock_t *block, uop_t *uop)
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
 
     host_x86_LEA_REG_REG(block, REG_ESI, seg_reg, addr_reg);
-    if (uop->imm_data)
+    if (uop->imm_data) {
         host_x86_ADD32_REG_IMM(block, REG_ESI, uop->imm_data);
+        if (uop->is_a16) {
+            host_x86_AND32_REG_IMM(block, REG_ESI, 0x0000ffff);
+        }
+    }
     if (REG_IS_B(dest_size)) {
         host_x86_CALL(block, codegen_mem_load_byte);
     } else if (REG_IS_W(dest_size)) {

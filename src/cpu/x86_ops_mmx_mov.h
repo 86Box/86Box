@@ -110,7 +110,6 @@ opMOVD_mm_l_a32(uint32_t fetchdat)
     return 0;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 /*Cyrix maps both MOVD and SMINT to the same opcode*/
 static int
 opMOVD_mm_l_a16_cx(uint32_t fetchdat)
@@ -170,7 +169,6 @@ opMOVD_mm_l_a32_cx(uint32_t fetchdat)
 
     return 0;
 }
-#endif
 
 static int
 opMOVQ_q_mm_a16(uint32_t fetchdat)

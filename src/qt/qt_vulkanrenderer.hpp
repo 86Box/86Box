@@ -31,6 +31,8 @@
 ** OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
 **
 ****************************************************************************/
+#ifndef VULKANRENDERER_HPP
+#define VULKANRENDERER_HPP
 
 #include <QVulkanWindow>
 #include <QImage>
@@ -90,4 +92,6 @@ private:
 
     QMatrix4x4 m_proj;
 };
-#endif
+#endif // QT_CONFIG(vulkan)
+
+#endif // VULKANRENDERER_HPP

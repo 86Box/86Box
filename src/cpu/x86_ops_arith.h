@@ -313,7 +313,7 @@
         return 0;                                                                                           \
     }                                                                                                       \
                                                                                                             \
-    static int op##name##_EAX_imm(uint32_t fetchdat)                                                        \
+    static int op##name##_EAX_imm(UNUSED(uint32_t fetchdat))                                                \
     {                                                                                                       \
         uint32_t dst = EAX;                                                                                 \
         uint32_t src = getlong();                                                                           \
@@ -581,7 +581,7 @@ opCMP_AX_imm(uint32_t fetchdat)
 }
 
 static int
-opCMP_EAX_imm(uint32_t fetchdat)
+opCMP_EAX_imm(UNUSED(uint32_t fetchdat))
 {
     uint32_t src = getlong();
 
@@ -747,7 +747,7 @@ opTEST_AX(uint32_t fetchdat)
     return 0;
 }
 static int
-opTEST_EAX(uint32_t fetchdat)
+opTEST_EAX(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp = getlong();
     if (cpu_state.abrt)

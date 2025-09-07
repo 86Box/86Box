@@ -130,8 +130,7 @@ rabbit_close(void *priv)
 static void *
 rabbit_init(UNUSED(const device_t *info))
 {
-    rabbit_t *dev = (rabbit_t *) malloc(sizeof(rabbit_t));
-    memset(dev, 0, sizeof(rabbit_t));
+    rabbit_t *dev = (rabbit_t *) calloc(1, sizeof(rabbit_t));
 
     io_sethandler(0x0022, 0x0002, rabbit_read, NULL, NULL, rabbit_write, NULL, NULL, dev);
 
@@ -146,7 +145,7 @@ const device_t rabbit_device = {
     .init          = rabbit_init,
     .close         = rabbit_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

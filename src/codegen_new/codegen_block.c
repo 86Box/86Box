@@ -12,6 +12,7 @@
 #include "x86_ops.h"
 #include "x86seg_common.h"
 #include "x86seg.h"
+#include "x87_sf.h"
 #include "x87.h"
 
 #include "386_common.h"
@@ -216,6 +217,7 @@ block_free_list_get(void)
 void
 codegen_init(void)
 {
+    codegen_check_regs();
     codegen_allocator_init();
 
     codegen_backend_init();

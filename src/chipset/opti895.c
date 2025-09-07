@@ -16,6 +16,7 @@
  *          Copyright 2008-2020 Tiseno100.
  *          Copyright 2016-2020 Miran Grca.
  */
+#include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -41,6 +42,9 @@ typedef struct opti895_t {
 
     smram_t *smram;
 } opti895_t;
+
+static uint8_t masks[0x10] = { 0x3f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe,
+                               0xe3, 0xff, 0xe3, 0xff, 0x00, 0xff, 0xff, 0xff };
 
 #ifdef ENABLE_OPTI895_LOG
 int opti895_do_log = ENABLE_OPTI895_LOG;
@@ -153,8 +157,12 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
             }
             break;
         case 0x24:
-            if (((dev->idx >= 0x20) && (dev->idx <= 0x2f)) || ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
-                dev->regs[dev->idx] = val;
+            if (((dev->idx >= 0x20) && (dev->idx <= 0x2f) && (dev->idx != 0x2c)) ||
+                ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
+                if (dev->idx > 0x2f)
+                    dev->regs[dev->idx] = val;
+                else
+                    dev->regs[dev->idx] = val & masks[dev->idx - 0x20];
                 opti895_log("dev->regs[%04x] = %08x\n", dev->idx, val);
 
                 /* TODO: Registers 0x30-0x3F for OPTi 802GP and 898. */
@@ -174,6 +182,27 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x24:
                         smram_state_change(dev->smram, 0, !!(val & 0x80));
                         break;
+
+                    case 0x25: {
+                        double bus_clk;
+                        switch (val & 0x03) {
+                            default:
+                            case 0x00:
+                                 bus_clk = cpu_busspeed / 6.0;
+                                 break;
+                            case 0x01:
+                                 bus_clk = cpu_busspeed / 5.0;
+                                 break;
+                            case 0x02:
+                                 bus_clk = cpu_busspeed / 4.0;
+                                 break;
+                            case 0x03:
+                                 bus_clk = cpu_busspeed / 3.0;
+                                 break;
+                        }
+                        cpu_set_isa_speed((int) round(bus_clk));
+                        break;
+                    }
 
                     case 0xe0:
                         if (!(val & 0x01))
@@ -217,7 +246,8 @@ opti895_read(uint16_t addr, void *priv)
             break;
         case 0x24:
             /* TODO: Registers 0x30-0x3F for OPTi 802GP and 898. */
-            if (((dev->idx >= 0x20) && (dev->idx <= 0x2f)) || ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
+            if (((dev->idx >= 0x20) && (dev->idx <= 0x2f) && (dev->idx != 0x2c)) ||
+                ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
                 ret = dev->regs[dev->idx];
                 if (dev->idx == 0xe0)
                     ret = (ret & 0xf6) | (in_smm ? 0x00 : 0x08) | !!dev->forced_green;
@@ -251,8 +281,7 @@ opti895_close(void *priv)
 static void *
 opti895_init(const device_t *info)
 {
-    opti895_t *dev = (opti895_t *) malloc(sizeof(opti895_t));
-    memset(dev, 0, sizeof(opti895_t));
+    opti895_t *dev = (opti895_t *) calloc(1, sizeof(opti895_t));
 
     device_add(&port_92_device);
 
@@ -287,6 +316,8 @@ opti895_init(const device_t *info)
 
     smram_enable(dev->smram, 0x00030000, 0x000b0000, 0x00010000, 0, 1);
 
+    cpu_set_isa_speed((int) round(cpu_busspeed / 6.0));
+
     return dev;
 }
 
@@ -298,7 +329,7 @@ const device_t opti802g_device = {
     .init          = opti895_init,
     .close         = opti895_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -312,7 +343,7 @@ const device_t opti802g_pci_device = {
     .init          = opti895_init,
     .close         = opti895_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -326,7 +357,7 @@ const device_t opti895_device = {
     .init          = opti895_init,
     .close         = opti895_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

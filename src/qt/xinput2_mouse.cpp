@@ -132,7 +132,7 @@ xinput2_proc()
         XGenericEventCookie *cookie = (XGenericEventCookie *) &ev.xcookie;
         XNextEvent(disp, (XEvent *) &ev);
 
-        if (XGetEventData(disp, cookie) && (cookie->type == GenericEvent) && (cookie->extension == xi2opcode)) {
+        if (XGetEventData(disp, cookie) && (cookie->type == GenericEvent) && (cookie->extension == xi2opcode) && mouse_capture) {
             const XIRawEvent *rawev     = (const XIRawEvent *) cookie->data;
             double            coords[2] = { 0.0 };
 
@@ -214,8 +214,6 @@ common_motion:
                         }
 
                         prev_time = rawev->time;
-                        if (!mouse_capture)
-                            break;
                         XWindowAttributes winattrib {};
                         if (XGetWindowAttributes(disp, main_window->winId(), &winattrib)) {
                             auto globalPoint = main_window->mapToGlobal(QPoint(main_window->width() / 2, main_window->height() / 2));

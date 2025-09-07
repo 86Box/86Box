@@ -110,6 +110,7 @@ typedef struct _isapnp_card_ {
 } isapnp_card_t;
 
 typedef struct {
+    uint8_t  in_isolation;
     uint8_t  reg;
     uint8_t  key_pos : 5;
     uint16_t read_data_addr;
@@ -119,6 +120,25 @@ typedef struct {
     isapnp_card_t   *current_ld_card;
     isapnp_device_t *current_ld;
 } isapnp_t;
+
+static isapnp_device_t *
+isapnp_create_ld(isapnp_card_t *card)
+{
+    /* Allocate logical device. */
+    isapnp_device_t *ld = calloc(1, sizeof(isapnp_device_t));
+
+    /* Add to the end of the card's logical device list. */
+    isapnp_device_t *prev_ld = card->first_ld;
+    if (prev_ld) {
+        while (prev_ld->next)
+            prev_ld = prev_ld->next;
+        prev_ld->next = ld;
+    } else {
+        card->first_ld = ld;
+    }
+
+    return ld;
+}
 
 static void
 isapnp_device_config_changed(isapnp_card_t *card, isapnp_device_t *ld)
@@ -136,6 +156,8 @@ isapnp_device_config_changed(isapnp_card_t *card, isapnp_device_t *ld)
         card->config.mem[i].size = (ld->regs[reg_base + 3] << 16) | (ld->regs[reg_base + 4] << 8);
         if (ld->regs[reg_base + 2] & 0x01) /* upper limit */
             card->config.mem[i].size -= card->config.mem[i].base;
+        else
+            card->config.mem[i].size = (card->config.mem[i].size | 0xff) ^ 0xffffffff;
     }
     for (uint8_t i = 0; i < 4; i++) {
         reg_base                   = (i == 0) ? 0x76 : (0x80 + (16 * i));
@@ -313,6 +335,8 @@ isapnp_read_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uint
 
         case 0x05: /* Status */
             ret = 0x00;
+            if (dev->in_isolation)
+                ret = 0x01;
             CHECK_CURRENT_CARD();
 
             isapnp_log("ISAPnP: Query status for CSN %02X\n", card->csn);
@@ -485,15 +509,16 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
         case 0x03: /* Wake[CSN] */
             isapnp_log("ISAPnP: Wake[%02X]\n", val);
             card = dev->first_card;
+            if (val == 0)
+                dev->in_isolation |= 1;
             while (card) {
                 if (card->csn == val) {
                     card->rom_pos     = 0;
                     card->id_checksum = isapnp_init_key[0];
                     if (card->state == PNP_STATE_SLEEP)
                         card->state = (val == 0) ? PNP_STATE_ISOLATION : PNP_STATE_CONFIG;
-                } else {
+                } else
                     card->state = PNP_STATE_SLEEP;
-                }
 
                 card = card->next;
             }
@@ -505,6 +530,7 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
                 isapnp_set_csn(dev->isolated_card, val);
                 dev->isolated_card->state = PNP_STATE_CONFIG;
                 dev->isolated_card        = NULL;
+                dev->in_isolation         = 0;
             } else {
                 isapnp_log("ISAPnP: Set CSN %02X but no card is isolated\n", val);
             }
@@ -525,8 +551,12 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
                 ld = ld->next;
             }
 
-            if (!ld)
-                isapnp_log("ISAPnP: CSN %02X has no device %02X\n", card->csn, val);
+            if (!ld) {
+                isapnp_log("ISAPnP: CSN %02X has no device %02X, creating one\n", card->csn, val);
+                dev->current_ld_card    = card;
+                dev->current_ld         = isapnp_create_ld(card);
+                dev->current_ld->number = val;
+            }
 
             break;
 
@@ -649,7 +679,7 @@ isapnp_write_data(UNUSED(uint16_t addr), uint8_t val, void *priv)
 static void *
 isapnp_init(UNUSED(const device_t *info))
 {
-    isapnp_t *dev = (isapnp_t *) malloc(sizeof(isapnp_t));
+    isapnp_t *dev = (isapnp_t *) calloc(1, sizeof(isapnp_t));
     memset(dev, 0, sizeof(isapnp_t));
 
     io_sethandler(0x279, 1, NULL, NULL, NULL, isapnp_write_addr, NULL, NULL, dev);
@@ -698,8 +728,7 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
     if (!dev)
         dev = (isapnp_t *) device_add(&isapnp_device);
 
-    isapnp_card_t *card = (isapnp_card_t *) malloc(sizeof(isapnp_card_t));
-    memset(card, 0, sizeof(isapnp_card_t));
+    isapnp_card_t *card = (isapnp_card_t *) calloc(1, sizeof(isapnp_card_t));
 
     card->enable           = 1;
     card->priv             = priv;
@@ -737,7 +766,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
     isapnp_log("ISAPnP: Parsing ROM resources for card %c%c%c%02X%02X (serial %08X)\n", '@' + ((vendor >> 10) & 0x1f), '@' + ((vendor >> 5) & 0x1f), '@' + (vendor & 0x1f), card->rom[2], card->rom[3], (card->rom[7] << 24) | (card->rom[6] << 16) | (card->rom[5] << 8) | card->rom[4]);
     const char *df_priority[]  = { "good", "acceptable", "sub-optimal", "unknown priority" };
     const char *mem_control[]  = { "8-bit", "16-bit", "8/16-bit", "32-bit" };
-    const char *dma_transfer[] = { "8-bit", "8/16-bit", "16-bit", "unknown" };
+    const char *dma_transfer[] = { "8-bit", "8/16-bit", "16-bit", "Reserved" };
     const char *dma_speed[]    = { "compatibility", "Type A", "Type B", "Type F" };
 #endif
     uint16_t         i        = 9;
@@ -756,8 +785,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
     uint8_t          mem_range_df    = 0;
     uint8_t          mem_range_32_df = 0;
     uint32_t         len;
-    isapnp_device_t *ld      = NULL;
-    isapnp_device_t *prev_ld = NULL;
+    isapnp_device_t *ld = NULL;
 
     /* Check if this is an existing card which already has logical devices.
        Any new logical devices will be added to the list after existing ones.
@@ -784,10 +812,25 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                             break;
                         }
 
-                        isapnp_log("ISAPnP: >>%s Memory range %d with %d bytes at %06X-%06X, align %d",
-                                   in_df ? ">" : "", mem_range,
-                                   *((uint16_t *) &card->rom[i + 10]) << 8, *((uint16_t *) &card->rom[i + 4]) << 8, ((card->rom[i + 3] & 0x4) ? 0 : (*((uint16_t *) &card->rom[i + 4]) << 8)) + (*((uint16_t *) &card->rom[i + 6]) << 8),
-                                   (*((uint16_t *) &card->rom[i + 8]) + 1) << 16);
+                        isapnp_log("ISAPnP: >>%s Memory range %d with %d bytes at %06X-%06X to %06X-%06X, align %d",
+                                   /* %s   */ in_df ? ">" : "",
+                                   /* %d   */ mem_range,
+                                   /* %d   */ *((uint16_t *) &card->rom[i + 8]),
+                                   /* %06X */ *((uint16_t *) &card->rom[i + 4]) << 8,
+                                   /* %06X */ ((card->rom[i + 3] & 0x4) ?
+                                              /* High address. */
+                                              (*((uint16_t *) &card->rom[i + 10]) << 8) :
+                                              /* Range. */
+                                              (*((uint16_t *) &card->rom[i + 4]) << 8)) +
+                                              (*((uint16_t *) &card->rom[i + 10]) << 8),
+                                   /* %06X */ *((uint16_t *) &card->rom[i + 6]) << 8,
+                                   /* %06X */ ((card->rom[i + 3] & 0x4) ?
+                                              /* High address. */
+                                              (*((uint16_t *) &card->rom[i + 10]) << 8) :
+                                              /* Range. */
+                                              (*((uint16_t *) &card->rom[i + 6]) << 8)) +
+                                              (*((uint16_t *) &card->rom[i + 10]) << 8),
+                                   /* %d   */ *((uint16_t *) &card->rom[i + 8]));
                         res = 1 << mem_range;
                         mem_range++;
                     } else {
@@ -801,9 +844,25 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                             break;
                         }
 
-                        isapnp_log("ISAPnP: >>%s 32-bit memory range %d with %d bytes at %08X-%08X, align %d", in_df ? ">" : "", mem_range_32,
-                                   *((uint32_t *) &card->rom[i + 16]) << 8, *((uint32_t *) &card->rom[i + 4]) << 8, ((card->rom[i + 3] & 0x4) ? 0 : (*((uint32_t *) &card->rom[i + 4]) << 8)) + (*((uint32_t *) &card->rom[i + 8]) << 8),
-                                   *((uint32_t *) &card->rom[i + 12]));
+                        isapnp_log("ISAPnP: >>%s 32-bit memory range %d with %d bytes at %08X-%08X, align %d",
+                                   /* %s   */ in_df ? ">" : "",
+                                   /* %d   */ mem_range_32,
+                                   /* %d   */ *((uint32_t *) &card->rom[i + 12]),
+                                   /* %08X */ *((uint32_t *) &card->rom[i + 4]),
+                                   /* %08X */ ((card->rom[i + 3] & 0x4) ?
+                                              /* High address. */
+                                              *((uint32_t *) &card->rom[i + 16]) :
+                                              /* Range. */
+                                              *((uint32_t *) &card->rom[i + 4])) +
+                                              *((uint32_t *) &card->rom[i + 16]),
+                                   /* %08X */ *((uint32_t *) &card->rom[i + 8]),
+                                   /* %08X */ ((card->rom[i + 3] & 0x4) ?
+                                              /* High address. */
+                                              *((uint32_t *) &card->rom[i + 16]) :
+                                              /* Range. */
+                                              *((uint32_t *) &card->rom[i + 8])) +
+                                              *((uint32_t *) &card->rom[i + 16]),
+                                   /* %d   */ *((uint32_t *) &card->rom[i + 12]));
                         res = 1 << (4 + mem_range_32);
                         mem_range_32++;
                     }
@@ -874,18 +933,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                         memset(ld->io_len, 0, sizeof(ld->io_len));
                     } else {
                         /* Create logical device. */
-                        ld = (isapnp_device_t *) malloc(sizeof(isapnp_device_t));
-                        memset(ld, 0, sizeof(isapnp_device_t));
-
-                        /* Add to end of list. */
-                        prev_ld = card->first_ld;
-                        if (prev_ld) {
-                            while (prev_ld->next)
-                                prev_ld = prev_ld->next;
-                            prev_ld->next = ld;
-                        } else {
-                            card->first_ld = ld;
-                        }
+                        ld = isapnp_create_ld(card);
                     }
 
                     /* Set and increment logical device number. */
@@ -937,9 +985,9 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                 case 0x05: /* DMA */
                     isapnp_log("ISAPnP: >>%s DMA index %d with mask %02X, %s, %sbus master, %scount by byte, %scount by word, %s speed\n", in_df ? ">" : "", dma++, card->rom[i + 1],
                                dma_transfer[card->rom[i + 2] & 3],
-                               (card->rom[i + 2] & 0x04) ? "not " : "",
-                               (card->rom[i + 2] & 0x08) ? "not " : "",
-                               (card->rom[i + 2] & 0x10) ? "not " : "",
+                               (card->rom[i + 2] & 0x04) ? "" : "not ",
+                               (card->rom[i + 2] & 0x08) ? "" : "not ",
+                               (card->rom[i + 2] & 0x10) ? "" : "not ",
                                dma_speed[(card->rom[i + 2] >> 5) & 3]);
                     break;
 #endif
@@ -1004,6 +1052,29 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
 
                     break;
 
+                case 0x09: /* Fixed I/O port */
+                    if (!ld) {
+                        isapnp_log("ISAPnP: >>%s Fixed I/O descriptor with no logical device\n", in_df ? ">" : "");
+                        break;
+                    }
+
+                    if (io > 7) {
+                        isapnp_log("ISAPnP: >>%s Fixed I/O descriptor overflow (%d)\n", in_df ? ">" : "", io++);
+                        break;
+                    }
+
+                    isapnp_log("ISAPnP: >>%s Fixed I/O range %d with %d ports at %04X\n", in_df ? ">" : "", io, card->rom[i + 3], *((uint16_t *) &card->rom[i + 1]));
+
+                    /* Fixed I/O port ranges of this kind are always 10-bit. */
+                    ld->io_16bit &= ~(1 << io);
+
+                    if (card->rom[i + 3] > ld->io_len[io])
+                        ld->io_len[io] = card->rom[i + 3];
+
+                    io++;
+
+                    break;
+
                 case 0x0f: /* end tag */
                     /* Calculate checksum. */
                     res = 0x00;
@@ -1046,13 +1117,17 @@ isapnp_enable_card(void *priv, uint8_t enable)
             /* Enable or disable the card. */
             if (!!enable ^ !!card->enable)
                 card->state = (enable == ISAPNP_CARD_FORCE_CONFIG) ? PNP_STATE_CONFIG : PNP_STATE_WAIT_FOR_KEY;
+            int old_enable = card->enable;
             card->enable = enable;
 
             /* Invalidate other references if we're disabling this card. */
-            if (!card->enable) {
+            if ((card->enable) && (dev->current_ld_card != NULL) && (dev->current_ld_card != card)) {
+                dev->current_ld      = NULL;
+                dev->current_ld_card = NULL;
+            } if (!card->enable) {
                 if (dev->isolated_card == card)
                     dev->isolated_card = NULL;
-                if (dev->current_ld_card == card) {
+                if ((dev->current_ld_card == card) && (old_enable != ISAPNP_CARD_FORCE_CONFIG)) {
                     dev->current_ld      = NULL;
                     dev->current_ld_card = NULL;
                 }
@@ -1159,7 +1234,7 @@ static const device_t isapnp_device = {
     .init          = isapnp_init,
     .close         = isapnp_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

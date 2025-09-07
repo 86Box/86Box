@@ -9,6 +9,7 @@
 #include "x86seg_common.h"
 #include "x86seg.h"
 #include "386_common.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include "codegen.h"
 #include "codegen_accumulate.h"
@@ -18,7 +19,7 @@
 #include "codegen_ops_helpers.h"
 
 uint32_t
-ropFLD1(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropFLD1(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uop_FP_ENTER(ir);
     uop_MOV_IMM(ir, IREG_temp0, 1);
@@ -29,7 +30,7 @@ ropFLD1(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
     return op_pc;
 }
 uint32_t
-ropFLDZ(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropFLDZ(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uop_FP_ENTER(ir);
     uop_MOV_IMM(ir, IREG_temp0, 0);

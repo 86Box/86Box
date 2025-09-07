@@ -6,15 +6,22 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Windows raw input native filter for QT
+ *          Windows raw input native filter for Qt
  *
  *
  *
  * Authors: Teemu Korhonen
  *          Miran Grca, <mgrca8@gmail.com>
+ *          Sam Latinga
+ *          Cacodemon345
  *
  *          Copyright 2021 Teemu Korhonen
  *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 1997-2025 Sam Latinga
+ *          Copyright 2024-2025 Cacodemon345.
+ * 
+ * See this header for SDL3 code license:
+ * https://github.com/libsdl-org/SDL/blob/8e5fe0ea61dc87b29ca9a6119324221df0113bcf/src/video/windows/SDL_windowsrawinput.c#L1
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,42 +38,198 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+/* Mouse RawInput code taken from SDL3. */
+
 #include "qt_winrawinputfilter.hpp"
 
 #include <QMenuBar>
+#include <QFile>
+#include <QTextStream>
+#include <QApplication>
+#include <QTimer>
 
 #include <atomic>
 
 #include <windows.h>
+#include <dwmapi.h>
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
 
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/plat.h>
 #include <86box/86box.h>
+#include <86box/cdrom.h>
+#include <86box/video.h>
+#include <dbt.h>
+#include <strsafe.h>
+
+extern void    win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 
 #include <array>
 #include <memory>
 
 #include "qt_rendererstack.hpp"
+#include "qt_util.hpp"
+#include "ui_qt_mainwindow.h"
+
+bool NewDarkMode = FALSE;
+
+extern MainWindow* main_window;
+
+struct
+{
+    HANDLE done_event = 0, ready_event = 0;
+    std::atomic_bool done{false};
+
+    size_t rawinput_offset = 0, rawinput_size = 0;
+    uint8_t* rawinput = nullptr;
+
+    HANDLE thread = 0;
+} win_rawinput_data;
+
+static void
+win_poll_mouse(void)
+{
+    // Yes, this is a thing in C++.
+    auto* data = &win_rawinput_data;
+    uint32_t size, i, count, total = 0;
+    RAWINPUT *input;
+    //static int64_t ms_time = plat_get_ticks();
+    
+    if (data->rawinput_offset == 0) {
+        BOOL isWow64;
+
+        data->rawinput_offset = sizeof(RAWINPUTHEADER);
+        if (IsWow64Process(GetCurrentProcess(), &isWow64) && isWow64) {
+            // We're going to get 64-bit data, so use the 64-bit RAWINPUTHEADER size
+            data->rawinput_offset += 8;
+        }
+    }
+
+    input = (RAWINPUT *)data->rawinput;
+    for (;;) {
+        size = data->rawinput_size - (UINT)((BYTE *)input - data->rawinput);
+        count = GetRawInputBuffer(input, &size, sizeof(RAWINPUTHEADER));
+        if (count == 0 || count == (UINT)-1) {
+            if (!data->rawinput || (count == (UINT)-1 && GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
+                const UINT RAWINPUT_BUFFER_SIZE_INCREMENT = 96;   // 2 64-bit raw mouse packets
+                BYTE *rawinput = (BYTE *)realloc(data->rawinput, data->rawinput_size + RAWINPUT_BUFFER_SIZE_INCREMENT);
+                if (!rawinput) {
+                    break;
+                }
+                input = (RAWINPUT *)(rawinput + ((BYTE *)input - data->rawinput));
+                data->rawinput = rawinput;
+                data->rawinput_size += RAWINPUT_BUFFER_SIZE_INCREMENT;
+            } else {
+                break;
+            }
+        } else {
+            total += count;
+
+            // Advance input to the end of the buffer
+            while (count--) {
+                input = NEXTRAWINPUTBLOCK(input);
+            }
+        }
+    }
+
+    if (total > 0) {
+        for (i = 0, input = (RAWINPUT *)data->rawinput; i < total; ++i, input = NEXTRAWINPUTBLOCK(input)) {
+            if (input->header.dwType == RIM_TYPEMOUSE) {
+                RAWMOUSE *rawmouse = (RAWMOUSE *)((BYTE *)input + data->rawinput_offset);
+                if (mouse_capture)
+                    WindowsRawInputFilter::mouse_handle(rawmouse);
+            }
+        }
+    }
+
+    //qDebug() << "Mouse delay: " << (plat_get_ticks() - ms_time);
+    //ms_time = plat_get_ticks();
+}
+
+static DWORD
+win_rawinput_thread(void* param)
+{
+    RAWINPUTDEVICE rid = {
+        .usUsagePage = 0x01,
+        .usUsage     = 0x02,
+        .dwFlags     = 0,
+        .hwndTarget  = nullptr
+    };
+    auto window = CreateWindowEx(0, TEXT("Message"), NULL, 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, NULL, NULL);
+    if (!window) {
+        return 0;
+    }
+
+    rid.hwndTarget = window;
+    if (!RegisterRawInputDevices(&rid, 1, sizeof(rid))) {
+        DestroyWindow(window);
+        return 0;
+    }
+
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+
+    SetEvent(win_rawinput_data.ready_event);
+
+    while (!win_rawinput_data.done) {
+        DWORD result = MsgWaitForMultipleObjects(1, &win_rawinput_data.done_event, FALSE, INFINITE, QS_RAWINPUT);
+
+        if (result != (WAIT_OBJECT_0 + 1)) {
+            break;
+        }
+
+        // Clear the queue status so MsgWaitForMultipleObjects() will wait again
+        (void)GetQueueStatus(QS_RAWINPUT);
+
+        win_poll_mouse();
+    }
+
+    rid.dwFlags |= RIDEV_REMOVE;
+    rid.hwndTarget = NULL;
+    
+    RegisterRawInputDevices(&rid, 1, sizeof(rid));
+    DestroyWindow(window);
+    return 0;
+}
 
 extern "C" void win_joystick_handle(PRAWINPUT);
 std::unique_ptr<WindowsRawInputFilter>
 WindowsRawInputFilter::Register(MainWindow *window)
 {
-    RAWINPUTDEVICE rid[2] = {
-        {.usUsagePage = 0x01,
-         .usUsage     = 0x06,
-         .dwFlags     = RIDEV_NOHOTKEYS,
-         .hwndTarget  = nullptr},
-        { .usUsagePage = 0x01,
-         .usUsage     = 0x02,
-         .dwFlags     = 0,
-         .hwndTarget  = nullptr}
+    RAWINPUTDEVICE rid[1] = {
+        {
+            .usUsagePage = 0x01,
+            .usUsage     = 0x06,
+            .dwFlags     = RIDEV_NOHOTKEYS,
+            .hwndTarget  = nullptr
+        }
     };
 
-    if (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE)
-        return std::unique_ptr<WindowsRawInputFilter>(nullptr);
+    if (!hook_enabled) {
+        RegisterRawInputDevices(rid, 1, sizeof(rid[0]));
+    }
 
+    win_rawinput_data.done_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    win_rawinput_data.ready_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+
+    if (!win_rawinput_data.done_event || !win_rawinput_data.ready_event) {
+        warning("Failed to create RawInput events.");
+
+        goto conclude;
+    }
+
+    win_rawinput_data.thread = CreateThread(nullptr, 0, win_rawinput_thread, nullptr, 0, nullptr);
+    if (win_rawinput_data.thread) {
+        HANDLE handles[2] = { win_rawinput_data.ready_event, win_rawinput_data.thread };
+
+        WaitForMultipleObjects(2, handles, FALSE, INFINITE);
+    } else {
+        warning("Failed to create RawInput thread.");
+    }
+
+conclude:
     std::unique_ptr<WindowsRawInputFilter> inputfilter(new WindowsRawInputFilter(window));
 
     return inputfilter;
@@ -80,27 +243,120 @@ WindowsRawInputFilter::WindowsRawInputFilter(MainWindow *window)
         connect(menu, &QMenu::aboutToShow, this, [=]() { menus_open++; });
         connect(menu, &QMenu::aboutToHide, this, [=]() { menus_open--; });
     }
-
-    for (size_t i = 0; i < sizeof(scancode_map) / sizeof(scancode_map[0]); i++)
-        scancode_map[i] = i;
-
-    keyboard_getkeymap();
 }
 
 WindowsRawInputFilter::~WindowsRawInputFilter()
 {
-    RAWINPUTDEVICE rid[2] = {
-        {.usUsagePage = 0x01,
-         .usUsage     = 0x06,
-         .dwFlags     = RIDEV_REMOVE,
-         .hwndTarget  = NULL},
-        { .usUsagePage = 0x01,
-         .usUsage     = 0x02,
-         .dwFlags     = RIDEV_REMOVE,
-         .hwndTarget  = NULL}
-    };
+    win_rawinput_data.done = true;
+    if (win_rawinput_data.done_event)
+        SetEvent(win_rawinput_data.done_event);
+    if (win_rawinput_data.thread)
+        WaitForSingleObject(win_rawinput_data.thread, INFINITE);
+    RAWINPUTDEVICE rid =
+        {
+            .usUsagePage = 0x01,
+            .usUsage     = 0x06,
+            .dwFlags     = RIDEV_REMOVE,
+            .hwndTarget  = NULL
+        };
 
-    RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
+    if (!hook_enabled)
+        RegisterRawInputDevices(&rid, 1, sizeof(rid));
+
+    free(win_rawinput_data.rawinput);
+}
+
+static void
+notify_drives(ULONG unitmask, int empty)
+{
+    if (unitmask & cdrom_assigned_letters)  for (int i = 0; i < CDROM_NUM; i++) {
+        cdrom_t *dev = &(cdrom[i]);
+
+        if ((dev->host_letter != 0xff) &&
+            (unitmask & (1 << dev->host_letter))) {
+            if (empty)
+                cdrom_set_empty(dev);
+            else
+                cdrom_update_status(dev);
+        }
+    }
+}
+
+static void
+device_change(WPARAM wParam, LPARAM lParam)
+{
+    PDEV_BROADCAST_HDR lpdb      = (PDEV_BROADCAST_HDR) lParam;
+
+    switch(wParam) {
+        case DBT_DEVICEARRIVAL:
+        case DBT_DEVICEREMOVECOMPLETE:
+            /* Check whether a CD or DVD was inserted into a drive. */
+            if (lpdb->dbch_devicetype == DBT_DEVTYP_VOLUME) {
+                PDEV_BROADCAST_VOLUME lpdbv = (PDEV_BROADCAST_VOLUME) lpdb;
+
+                if (lpdbv->dbcv_flags & DBTF_MEDIA)
+                    notify_drives(lpdbv->dbcv_unitmask,
+                                  (wParam == DBT_DEVICEREMOVECOMPLETE));
+            }
+            break;
+
+        default:
+            /*
+               Process other WM_DEVICECHANGE notifications for other 
+               devices or reasons.
+             */ 
+            break;
+    }
+}
+
+void
+selectDarkMode()
+{
+    bool OldDarkMode = NewDarkMode;
+
+    if (!util::isWindowsLightTheme()) {
+        QFile f(":qdarkstyle/dark/darkstyle.qss");
+
+        if (!f.exists())
+            printf("Unable to set stylesheet, file not found\n");
+        else {
+            f.open(QFile::ReadOnly | QFile::Text);
+            QTextStream ts(&f);
+            qApp->setStyleSheet(ts.readAll());
+        }
+        QPalette palette(qApp->palette());
+        palette.setColor(QPalette::Link, Qt::white);
+        palette.setColor(QPalette::LinkVisited, Qt::lightGray);
+        qApp->setPalette(palette);
+        NewDarkMode = TRUE;
+    } else {
+        qApp->setStyleSheet("");
+        QPalette palette(qApp->palette());
+        palette.setColor(QPalette::Link, Qt::blue);
+        palette.setColor(QPalette::LinkVisited, Qt::magenta);
+        qApp->setPalette(palette);
+        NewDarkMode = FALSE;
+    }
+
+    if (NewDarkMode != OldDarkMode)
+        QTimer::singleShot(1000, []() {
+            BOOL DarkMode = NewDarkMode;
+            DwmSetWindowAttribute((HWND) main_window->winId(),
+                                  DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                  (LPCVOID) &DarkMode,
+                                  sizeof(DarkMode));
+
+            main_window->resizeContents(monitors[0].mon_scrnsz_x,
+                                        monitors[0].mon_scrnsz_y);
+
+            for (int i = 1; i < MONITORS_NUM; i++) {
+                auto mon = &(monitors[i]);
+
+                if ((main_window->renderers[i] != nullptr) && !main_window->renderers[i]->isHidden())
+                    main_window->resizeContentsMonitor(mon->mon_scrnsz_x,
+                                                       mon->mon_scrnsz_y, i);
+            }
+        });
 }
 
 bool
@@ -109,28 +365,93 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
     if (eventType == "windows_generic_MSG") {
         MSG *msg = static_cast<MSG *>(message);
 
-        if (msg->message == WM_INPUT) {
-
-            if (window->isActiveWindow() && menus_open == 0)
-                handle_input((HRAWINPUT) msg->lParam);
-            else
-            {
-                for (auto &w : window->renderers) {
-                    if (w && w->isActiveWindow()) {
-                        handle_input((HRAWINPUT) msg->lParam);
-                        break;
+        if (msg != nullptr)  switch(msg->message) {
+            case WM_INPUT:
+                if (window->isActiveWindow() && (menus_open == 0))
+                    handle_input((HRAWINPUT) msg->lParam);
+                else {
+                    for (auto &w : window->renderers) {
+                        if (w && w->isActiveWindow()) {
+                            handle_input((HRAWINPUT) msg->lParam);
+                            break;
+                        }
                     }
                 }
-            }
-
-            return true;
-        }
-
-        /* Stop processing of Alt-F4 */
-        if (msg->message == WM_SYSKEYDOWN) {
-            if (msg->wParam == 0x73) {
                 return true;
-            }
+            case WM_SETTINGCHANGE:
+                if ((((void *) msg->lParam) != nullptr) &&
+                    (wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0) &&
+                    color_scheme == 0) {
+
+                    bool OldDarkMode = NewDarkMode;
+#if 0
+                    if (do_auto_pause && !dopause) {
+                        auto_paused = 1;
+                        plat_pause(1);
+                    }
+#endif
+
+                    if (!util::isWindowsLightTheme()) {
+                        QFile f(":qdarkstyle/dark/darkstyle.qss");
+
+                        if (!f.exists())
+                            printf("Unable to set stylesheet, file not found\n");
+                        else {
+                            f.open(QFile::ReadOnly | QFile::Text);
+                            QTextStream ts(&f);
+                            qApp->setStyleSheet(ts.readAll());
+                        }
+                        QPalette palette(qApp->palette());
+                        palette.setColor(QPalette::Link, Qt::white);
+                        palette.setColor(QPalette::LinkVisited, Qt::lightGray);
+                        qApp->setPalette(palette);
+                        NewDarkMode = TRUE;
+                    } else {
+                        qApp->setStyleSheet("");
+                        QPalette palette(qApp->palette());
+                        palette.setColor(QPalette::Link, Qt::blue);
+                        palette.setColor(QPalette::LinkVisited, Qt::magenta);
+                        qApp->setPalette(palette);
+                        NewDarkMode = FALSE;
+                    }
+
+                    if (NewDarkMode != OldDarkMode)  QTimer::singleShot(1000, [this] () {
+                        BOOL DarkMode = NewDarkMode;
+                        DwmSetWindowAttribute((HWND) window->winId(),
+                                              DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                              (LPCVOID) &DarkMode,
+                                              sizeof(DarkMode));
+
+                        window->resizeContents(monitors[0].mon_scrnsz_x,
+                                               monitors[0].mon_scrnsz_y);
+
+                        for (int i = 1; i < MONITORS_NUM; i++) {
+                            auto           mon = &(monitors[i]);
+
+                            if ((window->renderers[i] != nullptr) &&
+                                !window->renderers[i]->isHidden())
+                                window->resizeContentsMonitor(mon->mon_scrnsz_x,
+                                mon->mon_scrnsz_y, i);
+                        }
+
+#if 0
+                        if (auto_paused) {
+                            plat_pause(0);
+                            auto_paused = 0;
+                        }
+#endif
+                    });
+                }
+                break;
+            case WM_SYSKEYDOWN:
+                /* Stop processing of Alt-F4 */
+                if (msg->wParam == 0x73)
+                    return true;
+                break;
+            case WM_DEVICECHANGE:
+                if (msg->hwnd == (HWND) window->winId())
+                    device_change(msg->wParam, msg->lParam);
+                break;
         }
     }
 
@@ -153,15 +474,9 @@ WindowsRawInputFilter::handle_input(HRAWINPUT input)
             case RIM_TYPEKEYBOARD:
                 keyboard_handle(raw);
                 break;
-            case RIM_TYPEMOUSE:
-                if (mouse_capture)
-                    mouse_handle(raw);
-                break;
             case RIM_TYPEHID:
-                {
-                    win_joystick_handle(raw);
-                    break;
-                }
+                win_joystick_handle(raw);
+                break;
         }
     }
 }
@@ -171,136 +486,20 @@ WindowsRawInputFilter::handle_input(HRAWINPUT input)
 void
 WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
 {
-    USHORT     scancode;
-
     RAWKEYBOARD rawKB = raw->data.keyboard;
-    scancode          = rawKB.MakeCode;
 
-    if (kbd_req_capture && !mouse_capture)
-        return;
-
-    /* If it's not a scan code that starts with 0xE1 */
-    if ((rawKB.Flags & RI_KEY_E1)) {
-        if (rawKB.MakeCode == 0x1D) {
-            scancode = scancode_map[0x100]; /* Translate E1 1D to 0x100 (which would
-                                               otherwise be E0 00 but that is invalid
-                                               anyway).
-                                               Also, take a potential mapping into
-                                               account. */
-        } else
-            scancode = 0xFFFF;
-        if (scancode != 0xFFFF)
-            keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
-    } else {
-        if (rawKB.Flags & RI_KEY_E0)
-            scancode |= 0x100;
-
-        /* Translate the scan code to 9-bit */
-        scancode = convert_scan_code(scancode);
-
-        /* Remap it according to the list from the Registry */
-        if (scancode != scancode_map[scancode])
-            pclog("Scan code remap: %03X -> %03X\n", scancode, scancode);
-        scancode = scancode_map[scancode];
-
-        /* If it's not 0xFFFF, send it to the emulated
-           keyboard.
-           We use scan code 0xFFFF to mean a mapping that
-           has a prefix other than E0 and that is not E1 1D,
-           which is, for our purposes, invalid. */
-
-        /* Translate right CTRL to left ALT if the user has so
-           chosen. */
-        if ((scancode == 0x11d) && rctrl_is_lalt)
-            scancode = 0x038;
-
-        /* Normal scan code pass through, pass it through as is if
-           it's not an invalid scan code. */
-        if (scancode != 0xFFFF)
-            keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
-
-        window->checkFullscreenHotkey();
-    }
-}
-
-/* This is so we can disambiguate scan codes that would otherwise conflict and get
-   passed on incorrectly. */
-UINT16
-WindowsRawInputFilter::convert_scan_code(UINT16 scan_code)
-{
-    if ((scan_code & 0xff00) == 0xe000)
-        scan_code = (scan_code & 0xff) | 0x0100;
-
-    if (scan_code == 0xE11D)
-        scan_code = 0x0100;
-    /* E0 00 is sent by some USB keyboards for their special keys, as it is an
-       invalid scan code (it has no untranslated set 2 equivalent), we mark it
-       appropriately so it does not get passed through. */
-    else if ((scan_code > 0x01FF) || (scan_code == 0x0100))
-        scan_code = 0xFFFF;
-
-    return scan_code;
+    win_keyboard_handle(rawKB.MakeCode, (rawKB.Flags & RI_KEY_BREAK),
+                        (rawKB.Flags & RI_KEY_E0), (rawKB.Flags & RI_KEY_E1));
 }
 
 void
-WindowsRawInputFilter::keyboard_getkeymap()
+WindowsRawInputFilter::mouse_handle(RAWMOUSE* raw)
 {
-    const LPCSTR  keyName   = "SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout";
-    const LPCSTR  valueName = "Scancode Map";
-    unsigned char buf[32768];
-    DWORD         bufSize;
-    HKEY          hKey;
-    int           j;
-    UINT32       *bufEx2;
-    int           scMapCount;
-    UINT16       *bufEx;
-    int           scancode_unmapped;
-    int           scancode_mapped;
-
-    /* First, prepare the default scan code map list which is 1:1.
-     * Remappings will be inserted directly into it.
-     * 512 bytes so this takes less memory, bit 9 set means E0
-     * prefix.
-     */
-    for (j = 0; j < 512; j++)
-        scancode_map[j] = j;
-
-    /* Get the scan code remappings from:
-    HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout */
-    bufSize = 32768;
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS) {
-        if (RegQueryValueExA(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS) {
-            bufEx2     = (UINT32 *) buf;
-            scMapCount = bufEx2[2];
-            if ((bufSize != 0) && (scMapCount != 0)) {
-                bufEx = (UINT16 *) (buf + 12);
-                for (j = 0; j < scMapCount * 2; j += 2) {
-                    /* Each scan code is 32-bit: 16 bits of remapped scan code,
-                    and 16 bits of original scan code. */
-                    scancode_unmapped = bufEx[j + 1];
-                    scancode_mapped   = bufEx[j];
-
-                    scancode_unmapped = convert_scan_code(scancode_unmapped);
-                    scancode_mapped   = convert_scan_code(scancode_mapped);
-
-                    /* Ignore source scan codes with prefixes other than E1
-                   that are not E1 1D. */
-                    if (scancode_unmapped != 0xFFFF)
-                        scancode_map[scancode_unmapped] = scancode_mapped;
-                }
-            }
-        }
-        RegCloseKey(hKey);
-    }
-}
-
-void
-WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
-{
-    RAWMOUSE   state = raw->data.mouse;
+    RAWMOUSE   state = *raw;
     static int x, delta_x;
     static int y, delta_y;
     static int b, delta_z;
+    static int delta_w;
 
     b = mouse_get_buttons_ex();
 
@@ -338,6 +537,12 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
     } else
         delta_z = 0;
 
+    if (state.usButtonFlags & RI_MOUSE_HWHEEL) {
+        delta_w = (SHORT) state.usButtonData / 120;
+        mouse_set_w(delta_w);
+    } else
+        delta_w = 0;
+
     if (state.usFlags & MOUSE_MOVE_ABSOLUTE) {
         /* absolute mouse, i.e. RDP or VNC
          * seems to work fine for RDP on Windows 10
@@ -355,7 +560,7 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
 
     mouse_scale(delta_x, delta_y);
 
-    HWND wnd = (HWND)window->winId();
+    /* HWND wnd = (HWND)window->winId();
 
     RECT rect;
 
@@ -364,5 +569,5 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
     int left = rect.left + (rect.right - rect.left) / 2;
     int top = rect.top + (rect.bottom - rect.top) / 2;
 
-    SetCursorPos(left, top);
+    SetCursorPos(left, top); */
 }

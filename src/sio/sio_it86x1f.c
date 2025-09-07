@@ -32,6 +32,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/gameport.h>
+#include <86box/keyboard.h>
 #include <86box/sio.h>
 #include <86box/isapnp.h>
 #include <86box/plat_fallthrough.h>
@@ -243,6 +244,7 @@ typedef struct it86x1f_t {
 
     fdc_t    *fdc;
     serial_t *uart[2];
+    lpt_t    *lpt;
     void     *gameport;
 } it86x1f_t;
 
@@ -290,11 +292,14 @@ it8661f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
             break;
 
         case 3:
-            lpt1_remove();
+            lpt_port_remove(dev->lpt);
 
             if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) {
                 it86x1f_log("IT86x1F: LPT enabled at port %04X IRQ %d\n", config->io[0].base, config->irq[0].irq);
-                lpt1_init(config->io[0].base);
+                lpt_port_setup(dev->lpt, config->io[0].base);
+
+                lpt_port_irq(dev->lpt, config->irq[0].irq);
+                lpt_port_dma(dev->lpt, (config->dma[0].dma == ISAPNP_DMA_DISABLED) ? -1 : config->dma[0].dma);
             } else {
                 it86x1f_log("IT86x1F: LPT disabled\n");
             }
@@ -414,8 +419,10 @@ it86x1f_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
         case 0x23:
             val &= (1 << dev->gpio_ldn) - 1;
             dev->global_regs[reg & 0x0f] = val;
+#ifdef ENABLE_IT86X1F_LOG
             if (val)
-                pclog("IT86x1F: Warning: ISAPnP mode enabled.\n");
+                it86x1f_log("IT86x1F: Warning: ISAPnP mode enabled.\n");
+#endif
             break;
 
         case 0x24:
@@ -463,6 +470,13 @@ it86x1f_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
                 case 0x0f0:
                     dev->ldn_regs[ld][reg & 0x0f] = val & 0x0f;
                     fdc_set_swwp(dev->fdc, !!(val & 0x01));
+                    if (val & 0x02) {
+                        for (int i = 0; i < 4; i++)
+                            fdc_update_drvrate(dev->fdc, i, 1);
+                    } else {
+                        for (int i = 0; i < 4; i++)
+                            fdc_update_drvrate(dev->fdc, i, 0);
+                    }
                     fdc_set_swap(dev->fdc, !!(val & 0x04));
                     break;
 
@@ -481,6 +495,8 @@ it86x1f_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
 
                 case 0x3f0:
                     dev->ldn_regs[ld][reg & 0x0f] = val & 0x07;
+                    lpt_set_epp(dev->lpt, val & 0x01);
+                    lpt_set_ecp(dev->lpt, val & 0x02);
                     break;
 
                 case 0x4f0:
@@ -600,7 +616,7 @@ it86x1f_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
 }
 
 static void
-it86x1f_write_addr(uint16_t port, uint8_t val, void *priv)
+it86x1f_write_addr(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
     it86x1f_t *dev = (it86x1f_t *) priv;
 
@@ -621,7 +637,7 @@ it86x1f_write_addr(uint16_t port, uint8_t val, void *priv)
 }
 
 static void
-it86x1f_write_data(uint16_t port, uint8_t val, void *priv)
+it86x1f_write_data(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
     it86x1f_t *dev = (it86x1f_t *) priv;
 
@@ -657,7 +673,7 @@ it86x1f_write_data(uint16_t port, uint8_t val, void *priv)
 }
 
 static uint8_t
-it86x1f_read_addr(uint16_t port, void *priv)
+it86x1f_read_addr(UNUSED(uint16_t port), void *priv)
 {
     it86x1f_t *dev = (it86x1f_t *) priv;
     uint8_t    ret = dev->locked ? 0xff : dev->cur_reg;
@@ -668,7 +684,7 @@ it86x1f_read_addr(uint16_t port, void *priv)
 }
 
 static uint8_t
-it86x1f_read_data(uint16_t port, void *priv)
+it86x1f_read_data(UNUSED(uint16_t port), void *priv)
 {
     it86x1f_t *dev = (it86x1f_t *) priv;
     uint8_t    ret = 0xff;
@@ -769,13 +785,19 @@ it86x1f_reset(it86x1f_t *dev)
 {
     it86x1f_log("IT86x1F: reset()\n");
 
+    for (int i = 0; i < 4; i++)
+        fdc_update_drvrate(dev->fdc, i, 0);
+
     fdc_reset(dev->fdc);
 
     serial_remove(dev->uart[0]);
 
     serial_remove(dev->uart[1]);
 
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
+
+    lpt_set_epp(dev->lpt, 0);
+    lpt_set_ecp(dev->lpt, 0);
 
     isapnp_enable_card(dev->pnp_card, ISAPNP_CARD_DISABLE);
 
@@ -797,8 +819,7 @@ it86x1f_close(void *priv)
 static void *
 it86x1f_init(UNUSED(const device_t *info))
 {
-    it86x1f_t *dev = (it86x1f_t *) malloc(sizeof(it86x1f_t));
-    memset(dev, 0, sizeof(it86x1f_t));
+    it86x1f_t *dev = (it86x1f_t *) calloc(1, sizeof(it86x1f_t));
 
     uint8_t i;
     for (i = 0; i < (sizeof(it86x1f_models) / sizeof(it86x1f_models[0])); i++) {
@@ -806,18 +827,10 @@ it86x1f_init(UNUSED(const device_t *info))
             break;
     }
     if (i >= (sizeof(it86x1f_models) / sizeof(it86x1f_models[0]))) {
-#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
-        fatal("IT86x1F: Unknown type %04" PRIX64 " selected\n", info->local);
-#else
-        fatal("IT86x1F: Unknown type %04X selected\n", info->local);
-#endif
+        fatal("IT86x1F: Unknown type %04" PRIXPTR " selected\n", info->local);
         return NULL;
     }
-#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
-    it86x1f_log("IT86x1F: init(%04" PRIX64 ")\n", info->local);
-#else
-    it86x1f_log("IT86x1F: init(%04X)\n", info->local);
-#endif
+    it86x1f_log("IT86x1F: init(%04" PRIXPTR ")\n", info->local);
 
     /* Let the resource data parser figure out the ROM size. */
     dev->pnp_card = isapnp_add_card(it86x1f_models[i].pnp_rom, -1, it86x1f_models[i].pnp_config_changed, NULL, it86x1f_pnp_read_vendor_reg, it86x1f_pnp_write_vendor_reg, dev);
@@ -829,6 +842,11 @@ it86x1f_init(UNUSED(const device_t *info))
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
+    dev->lpt = device_add_inst(&lpt_port_device, 1);
+
+    lpt_set_cnfgb_readout(dev->lpt, 0x00);
+    lpt_set_ext(dev->lpt, 1);
+
     dev->gameport = gameport_add(&gameport_sio_device);
 
     dev->instance = device_get_instance();
@@ -836,6 +854,9 @@ it86x1f_init(UNUSED(const device_t *info))
     CHIP_ID = it86x1f_models[i].chip_id;
     dev->unlock_id = it86x1f_models[i].unlock_id;
     io_sethandler(0x279, 1, NULL, NULL, NULL, it86x1f_write_unlock, NULL, NULL, dev);
+
+    if (info->local == ITE_IT8671F)
+        device_add_params(&kbc_at_device, (void *) (KBC_VEN_AMI | 0x00004800));
 
     it86x1f_reset(dev);
 
@@ -850,7 +871,7 @@ const device_t it8661f_device = {
     .init          = it86x1f_init,
     .close         = it86x1f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -864,7 +885,7 @@ const device_t it8671f_device = {
     .init          = it86x1f_init,
     .close         = it86x1f_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

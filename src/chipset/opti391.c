@@ -54,9 +54,33 @@ typedef struct mem_remapping_t {
 } mem_remapping_t;
 
 typedef struct opti391_t {
+    uint8_t type;
+    uint8_t reg_base;
+    uint8_t min_reg;
+    uint8_t max_reg;
+
+    uint16_t shadowed;
+    uint16_t old_start;
+
     uint8_t index;
     uint8_t regs[256];
 } opti391_t;
+
+static void
+opti391_recalcremap(opti391_t *dev)
+{
+    if (dev->type < 2) {
+        if ((mem_size > 8192) || (dev->shadowed & 0x0ff0) ||
+            !(dev->regs[0x01] & 0x0f) || !(dev->regs[0x01] & 0x10)) {
+            mem_remap_top_ex(0, dev->old_start);
+            dev->old_start = 1024;
+        } else {
+            mem_remap_top_ex(0, dev->old_start);
+            dev->old_start = (dev->regs[0x01] & 0x0f) * 1024;
+            mem_remap_top_ex(-256, dev->old_start);
+        }
+    }
+}
 
 static void
 opti391_shadow_recalc(opti391_t *dev)
@@ -70,24 +94,25 @@ opti391_shadow_recalc(opti391_t *dev)
     shadowbios = shadowbios_write = 0;
 
     /* F0000-FFFFF */
-    sh_enable = !(dev->regs[0x22] & 0x80);
+    sh_enable = (dev->regs[0x02] & 0x80);
     if (sh_enable)
         mem_set_mem_state_both(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
     else
         mem_set_mem_state_both(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+    dev->shadowed |= 0xf000;
 
-    sh_write_internal = (dev->regs[0x26] & 0x40);
+    sh_write_internal = (dev->regs[0x06] & 0x40);
     /* D0000-EFFFF */
     for (uint8_t i = 0; i < 8; i++) {
         base = 0xd0000 + (i << 14);
         if (base >= 0xe0000) {
-            sh_master = (dev->regs[0x22] & 0x40);
-            sh_wp     = (dev->regs[0x22] & 0x10);
+            sh_master = (dev->regs[0x02] & 0x20);
+            sh_wp     = (dev->regs[0x02] & 0x08);
         } else {
-            sh_master = (dev->regs[0x22] & 0x20);
-            sh_wp     = (dev->regs[0x22] & 0x08);
+            sh_master = (dev->regs[0x02] & 0x40);
+            sh_wp     = (dev->regs[0x02] & 0x10);
         }
-        sh_enable = dev->regs[0x23] & (1 << i);
+        sh_enable = dev->regs[0x03] & (1 << i);
 
         if (sh_master) {
             if (sh_enable) {
@@ -95,22 +120,29 @@ opti391_shadow_recalc(opti391_t *dev)
                     mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
                 else
                     mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-            } else if (sh_write_internal)
+                dev->shadowed |= (1 << (i + 4));
+            } else if (sh_write_internal) {
                 mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-            else
+                dev->shadowed |= (1 << (i + 4));
+            } else {
                 mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-        } else if (sh_write_internal)
+                dev->shadowed &= ~(1 << (i + 4));
+            }
+        } else if (sh_write_internal) {
             mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-        else
+            dev->shadowed |= (1 << (i + 4));
+        } else {
             mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+            dev->shadowed &= ~(1 << (i + 4));
+        }
     }
 
     /* C0000-CFFFF */
-    sh_master = !(dev->regs[0x26] & 0x10);
-    sh_wp     = (dev->regs[0x26] & 0x20);
+    sh_master = (dev->regs[0x06] & 0x10); /* OPTi 391 datasheet erratum! */
+    sh_wp     = (dev->regs[0x06] & 0x20);
     for (uint8_t i = 0; i < 4; i++) {
         base      = 0xc0000 + (i << 14);
-        sh_enable = dev->regs[0x26] & (1 << i);
+        sh_enable = dev->regs[0x06] & (1 << i);
 
         if (sh_master) {
             if (sh_enable) {
@@ -118,15 +150,24 @@ opti391_shadow_recalc(opti391_t *dev)
                     mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
                 else
                     mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-            } else if (sh_write_internal)
+                dev->shadowed |= (1 << i);
+            } else if (sh_write_internal) {
                 mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-            else
+                dev->shadowed |= (1 << i);
+            } else {
                 mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-        } else if (sh_write_internal)
+                dev->shadowed &= ~(1 << i);
+            }
+        } else if (sh_write_internal) {
             mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-        else
+            dev->shadowed |= (1 << i);
+        } else {
             mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+            dev->shadowed &= ~(1 << i);
+        }
     }
+
+    opti391_recalcremap(dev);
 }
 
 static void
@@ -134,7 +175,12 @@ opti391_write(uint16_t addr, uint8_t val, void *priv)
 {
     opti391_t *dev = (opti391_t *) priv;
 
+    opti391_log("[W] %04X = %02X\n", addr, val);
+
     switch (addr) {
+        default:
+            break;
+
         case 0x22:
             dev->index = val;
             break;
@@ -142,35 +188,92 @@ opti391_write(uint16_t addr, uint8_t val, void *priv)
         case 0x24:
             opti391_log("OPTi 391: dev->regs[%02x] = %02x\n", dev->index, val);
 
-            switch (dev->index) {
-                case 0x20:
-                    dev->regs[dev->index] = (dev->regs[dev->index] & 0xc0) | (val & 0x3f);
+            if ((dev->index <= 0x01) && (dev->type < 2))  switch (dev->index) {
+                case 0x00:
+                    if (!(dev->regs[0x10] & 0x20) && (val & 0x20)) {
+                        softresetx86(); /* Pulse reset! */
+                        cpu_set_edx();
+                        flushmmucache();
+                    }
+                    dev->regs[dev->index + 0x10] = val;
                     break;
 
-                case 0x21:
-                case 0x24:
-                case 0x25:
-                case 0x27:
-                case 0x28:
-                case 0x29:
-                case 0x2a:
-                case 0x2b:
-                    dev->regs[dev->index] = val;
+                case 0x01:
+                    dev->regs[dev->index + 0x10] = val;
+                    reset_on_hlt = !!(val & 0x02);
                     break;
-
-                case 0x22:
-                case 0x23:
-                case 0x26:
-                    dev->regs[dev->index] = val;
-                    opti391_shadow_recalc(dev);
-                    break;
-
+            } else  switch (dev->index - dev->reg_base) {
                 default:
                     break;
-            }
-            break;
 
-        default:
+                case 0x00:
+                    if (dev->type == 2) {
+                        reset_on_hlt = !!(val & 0x02);
+                        if (!(dev->regs[dev->index - dev->reg_base] & 0x01) && (val & 0x01)) {
+                            softresetx86(); /* Pulse reset! */
+                            cpu_set_edx();
+                            flushmmucache();
+                        }
+                        dev->regs[dev->index - dev->reg_base] =
+                            (dev->regs[dev->index - dev->reg_base] & 0xc0) | (val & 0x3f);
+                    }
+                    break;
+
+                case 0x01:
+                    dev->regs[dev->index - dev->reg_base] = val;
+                    if (dev->type == 2) {
+                        cpu_cache_ext_enabled = !!(dev->regs[0x01] & 0x10);
+                        cpu_update_waitstates();
+                    } else
+                        opti391_recalcremap(dev);
+                    break;
+
+                case 0x05:
+                    if (dev->type == 2)
+                        dev->regs[dev->index - dev->reg_base] = val & 0xf8;
+                    else
+                        dev->regs[dev->index - dev->reg_base] = val;
+                    break;
+
+                case 0x04:
+                case 0x09:
+                case 0x0a:
+                case 0x0b:
+                    dev->regs[dev->index - dev->reg_base] = val;
+                    break;
+
+                case 0x07:
+                    dev->regs[dev->index - dev->reg_base] = val;
+                    if (dev->type < 2) {
+                        mem_a20_alt = val & 0x08;
+                        mem_a20_recalc();
+                    }
+                    break;
+                case 0x08:
+                    if (dev->type == 2)
+                        dev->regs[dev->index - dev->reg_base] = val & 0xe3;
+                    else {
+                        dev->regs[dev->index - dev->reg_base] = val;
+                        cpu_cache_ext_enabled = !!(dev->regs[0x02] & 0x40);
+                        cpu_update_waitstates();
+                    }
+                    break;
+                case 0x0c:
+                case 0x0d:
+                    if (dev->type < 2)
+                        dev->regs[dev->index - dev->reg_base] = val;
+                    break;
+
+                case 0x02:
+                case 0x03:
+                case 0x06:
+                    opti391_log("Write %02X: %02X\n", dev->index - dev->reg_base, val);
+                    dev->regs[dev->index - dev->reg_base] = val;
+                    opti391_shadow_recalc(dev);
+                    break;
+            }
+
+            dev->index = 0xff;
             break;
     }
 }
@@ -178,11 +281,19 @@ opti391_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 opti391_read(uint16_t addr, void *priv)
 {
-    const opti391_t *dev = (opti391_t *) priv;
-    uint8_t          ret = 0xff;
+    opti391_t *dev = (opti391_t *) priv;
+    uint8_t    ret = 0xff;
 
-    if (addr == 0x24)
-        ret = dev->regs[dev->index];
+    if (addr == 0x24) {
+        if ((dev->index <= 0x01) && (dev->type < 2))
+            ret = dev->regs[dev->index + 0x10];
+        else if ((dev->index >= dev->min_reg) && (dev->index <= dev->max_reg))
+            ret = dev->regs[dev->index - dev->reg_base];
+
+        dev->index = 0xff;
+    }
+
+    opti391_log("[R] %04X = %02X\n", addr, ret);
 
     return ret;
 }
@@ -196,38 +307,102 @@ opti391_close(void *priv)
 }
 
 static void *
-opti391_init(UNUSED(const device_t *info))
+opti391_init(const device_t *info)
 {
-    opti391_t *dev = (opti391_t *) malloc(sizeof(opti391_t));
-    memset(dev, 0x00, sizeof(opti391_t));
+    opti391_t *dev = (opti391_t *) calloc(1, sizeof(opti391_t));
 
     io_sethandler(0x0022, 0x0001, opti391_read, NULL, NULL, opti391_write, NULL, NULL, dev);
     io_sethandler(0x0024, 0x0001, opti391_read, NULL, NULL, opti391_write, NULL, NULL, dev);
 
-    dev->regs[0x21] = 0x84;
-    dev->regs[0x24] = 0x07;
-    dev->regs[0x25] = 0xf0;
-    dev->regs[0x26] = 0x30;
-    dev->regs[0x27] = 0x91;
-    dev->regs[0x28] = 0x80;
-    dev->regs[0x29] = 0x10;
-    dev->regs[0x2a] = 0x80;
-    dev->regs[0x2b] = 0x10;
+    dev->type = info->local;
+
+    if (info->local == 2) {
+        dev->reg_base   = 0x20;
+        dev->min_reg    = 0x20;
+        dev->max_reg    = 0x2b;
+
+        dev->regs[0x02] = 0x84;
+        dev->regs[0x04] = 0x07;
+        dev->regs[0x05] = 0xf0;
+        dev->regs[0x06] = 0x30;
+        dev->regs[0x07] = 0x91;
+        dev->regs[0x08] = 0x80;
+        dev->regs[0x09] = 0x10;
+        dev->regs[0x0a] = 0x80;
+        dev->regs[0x0b] = 0x10;
+    } else {
+        dev->reg_base   = 0x0f;
+        dev->min_reg    = 0x10;
+        dev->max_reg    = 0x1c;
+
+        dev->regs[0x01] = 0x01;
+        dev->regs[0x02] = 0xe0;
+        if (info->local == 1)
+            /* Guess due to no OPTi 48x datasheet. */
+            dev->regs[0x04] = 0x07;
+        else
+            dev->regs[0x04] = 0x77;
+        dev->regs[0x05] = 0x60;
+        dev->regs[0x06] = 0x10;
+        dev->regs[0x07] = 0x50;
+        if (info->local == 1) {
+            /* Guess due to no OPTi 48x datasheet. */
+            dev->regs[0x09] = 0x80; /* Non-Cacheable Block 1 */
+            dev->regs[0x0b] = 0x80; /* Non-Cacheable Block 2 */
+            dev->regs[0x0d] = 0x91; /* Cacheable Area */
+        } else {
+            dev->regs[0x09] = 0xe0; /* Non-Cacheable Block 1 */
+            dev->regs[0x0b] = 0x10; /* Non-Cacheable Block 2 */
+            dev->regs[0x0d] = 0x80; /* Cacheable Area */
+        }
+        dev->regs[0x0a] = 0x10;
+        dev->regs[0x0c] = 0x10;
+    }
+
+    dev->old_start = 1024;
 
     opti391_shadow_recalc(dev);
 
     return dev;
 }
 
-const device_t opti391_device = {
-    .name          = "OPTi 82C391",
-    .internal_name = "opti391",
+const device_t opti381_device = {
+    .name          = "OPTi 82C381",
+    .internal_name = "opti381",
     .flags         = 0,
     .local         = 0,
     .init          = opti391_init,
     .close         = opti391_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t opti481_device = {
+    .name          = "OPTi 82C481",
+    .internal_name = "opti481",
+    .flags         = 0,
+    .local         = 1,
+    .init          = opti391_init,
+    .close         = opti391_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t opti391_device = {
+    .name          = "OPTi 82C391",
+    .internal_name = "opti391",
+    .flags         = 0,
+    .local         = 2,
+    .init          = opti391_init,
+    .close         = opti391_close,
+    .reset         = NULL,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

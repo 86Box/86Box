@@ -43,73 +43,75 @@ static const struct {
 } ac97_codecs[] = {
   // clang-format off
     {
-    .device = &ad1881_device,
-    .min_rate = 7000,
-    .max_rate = 48000,
-    .misc_flags = AC97_MASTER_6B | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
-    .reset_flags = (1 << AC97_3D_SHIFT), /* datasheet contradicts itself on AC97_HPOUT */
-    .extid_flags = AC97_VRA,
-    .pcsr_mask = 0xbf,
-    .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x74, 0x0000, 0xff07}, {0, 0x76, 0x0404, 0xdde5}, {0, 0x78, 48000, 0x0000}, {0, 0x7a, 48000, 0x0000}, {0}}
+        .device      = &ad1881_device,
+        .min_rate    = 7000,
+        .max_rate    = 48000,
+        .misc_flags  = AC97_MASTER_6B | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
+        .reset_flags = (1 << AC97_3D_SHIFT), /* datasheet contradicts itself on AC97_HPOUT */
+        .extid_flags = AC97_VRA,
+        .pcsr_mask   = 0xbf,
+        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x74, 0x0000, 0xff07}, {0, 0x76, 0x0404, 0xdde5}, {0, 0x78, 48000, 0x0000}, {0, 0x7a, 48000, 0x0000}, {0}}
     },
     {
-    .device = &ak4540_device,
-    .misc_flags = AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
-    .pcsr_mask = 0x1f
+        .device      = &ak4540_device,
+        .misc_flags  = AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .pcsr_mask   = 0x1f
     },
     {
-    .device = &alc100_device,
-    .misc_flags = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
-    .reset_flags = (22 << AC97_3D_SHIFT),
-    .extid_flags = AC97_AMAP,
-    .pcsr_mask = 0xbf
+        .device      = &alc100_device,
+        .misc_flags  = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
+        .reset_flags = (22 << AC97_3D_SHIFT),
+        .extid_flags = AC97_AMAP,
+        .pcsr_mask   = 0xbf
     },
     {
-    .device = &cs4297_device,
-    .misc_flags = AC97_MASTER_6B | AC97_AUXOUT | AC97_AUXOUT_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
-    .reset_flags = AC97_HPOUT | AC97_DAC_18B | AC97_ADC_18B,
-    .extid_flags = 0,
-    .pcsr_mask = 0x7f,
-    .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x5a, 0x0301, 0x0000}, {0}}
+        .device      = &cs4297_device,
+        .misc_flags  = AC97_MASTER_6B | AC97_AUXOUT | AC97_AUXOUT_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .reset_flags = AC97_HPOUT | AC97_DAC_18B | AC97_ADC_18B,
+        .pcsr_mask   = 0x7f,
+        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x5a, 0x0301, 0x0000}, {0}}
     },
     {
-    .device = &cs4297a_device,
-    .misc_flags = AC97_MASTER_6B | AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
-    .reset_flags = AC97_HPOUT | AC97_DAC_20B | AC97_ADC_18B | (6 << AC97_3D_SHIFT),
-    .extid_flags = AC97_AMAP,
-    .pcsr_mask = 0xff,
-    .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x5e, 0x0000, 0x01b0}, {0, 0x60, 0x0023, 0x0001}, {0, 0x68, 0x0000, 0xdfff}, {0}}
+        .device      = &cs4297a_device,
+        .misc_flags  = AC97_MASTER_6B | AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .reset_flags = AC97_HPOUT | AC97_DAC_20B | AC97_ADC_18B | (6 << AC97_3D_SHIFT),
+        .extid_flags = AC97_AMAP,
+        .pcsr_mask   = 0xff,
+        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x5e, 0x0000, 0x01b0}, {0, 0x60, 0x0023, 0x0001}, {0, 0x68, 0x0000, 0xdfff}, {0}}
     },
     {
-    .device = &stac9708_device,
-    .misc_flags = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
-    .reset_flags = (26 << AC97_3D_SHIFT) | AC97_DAC_18B | AC97_ADC_18B,
-    .extid_flags = AC97_SDAC,
-    .pcsr_mask = 0xff,
-    .eascr_mask = 0x02,
-    .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x6c, 0x0000, 0x0003}, {0, 0x74, 0x0000, 0x0003}, {0}}
+        .device      = &stac9708_device,
+        .misc_flags  = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .reset_flags = (26 << AC97_3D_SHIFT) | AC97_DAC_18B | AC97_ADC_18B,
+        .extid_flags = AC97_SDAC,
+        .pcsr_mask   = 0xff,
+        .eascr_mask  = 0x02,
+        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x6c, 0x0000, 0x0003}, {0, 0x74, 0x0000, 0x0003}, {0}}
     },
     {
-    .device = &stac9721_device,
-    .misc_flags = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
-    .reset_flags = (26 << AC97_3D_SHIFT) | AC97_DAC_18B | AC97_ADC_18B,
-    .extid_flags = AC97_AMAP,
-    .pcsr_mask = 0xff,
-    .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x6c, 0x0000, 0x0000}, {0, 0x6e, 0x0000, 0x0003}, {0, 0x70, 0x0000, 0xffff}, {0, 0x72, 0x0000, 0x0006}, {0, 0x74, 0x0000, 0x0003}, {0, 0x76, 0x0000, 0xffff}, {0, 0x78, 0x0000, 0x3802}, {0}}
+        .device      = &stac9721_device,
+        .misc_flags  = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .reset_flags = (26 << AC97_3D_SHIFT) | AC97_DAC_18B | AC97_ADC_18B,
+        .extid_flags = AC97_AMAP,
+        .pcsr_mask   = 0xff,
+        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x6c, 0x0000, 0x0000}, {0, 0x6e, 0x0000, 0x0003}, {0, 0x70, 0x0000, 0xffff}, {0, 0x72, 0x0000, 0x0006}, {0, 0x74, 0x0000, 0x0003}, {0, 0x76, 0x0000, 0xffff}, {0, 0x78, 0x0000, 0x3802}, {0}}
     },
     {
-    .device = &tr28023_device,
-    .misc_flags = AC97_MASTER_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_POP | AC97_MS | AC97_LPBK,
-    .reset_flags = 0,
-    .extid_flags = 0,
-    .pcsr_mask = 0x3f
+        .device      = &tr28023_device,
+        .misc_flags  = AC97_MASTER_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_POP | AC97_MS | AC97_LPBK,
+        .pcsr_mask   = 0x3f
     },
     {
-    .device = &wm9701a_device,
-    .misc_flags = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
-    .reset_flags = AC97_DAC_18B | AC97_ADC_18B,
-    .extid_flags = 0,
-    .pcsr_mask = 0x3f
+        .device      = &w83971d_device,
+        .misc_flags  = AC97_MASTER_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .reset_flags = (27 << AC97_3D_SHIFT),
+        .pcsr_mask   = 0x3f
+    },
+    {
+        .device      = &wm9701a_device,
+        .misc_flags  = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .reset_flags = AC97_DAC_18B | AC97_ADC_18B,
+        .pcsr_mask   = 0x3f
     }
   // clang-format on
 };
@@ -284,8 +286,9 @@ line_gain:
 
         case 0x22:      /* 3D Control */
             switch (ac97_codecs[dev->model].reset_flags >> AC97_3D_SHIFT) {
-                case 1: /* Analog Devices */
-                case 6: /* Crystal */
+                case 1:  /* Analog Devices */
+                case 6:  /* Crystal */
+                case 27: /* Winbond */
                     val &= 0x000f;
                     break;
 
@@ -316,7 +319,7 @@ line_gain:
             val = (val & i) | (prev & ~i);
 
             /* Update status bits to reflect powerdowns. */
-            val = (val & ~0x000f) | (~(val >> 8) & 0x000f);
+            val = (val & ~0x300f) | (~(val >> 8) & 0x000f); /* also clear write-only PR4 and PR5 */
             if (val & 0x0800) /* PR3 clears both ANL and REF */
                 val &= ~0x0004;
             break;
@@ -527,7 +530,7 @@ ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
     /* Apply full mute and powerdowns. */
     int full_mute = (reg < 0x36);
     if ((full_mute && (val & AC97_MUTE)) ||                     /* full mute */
-        (dev->regs[0x26 >> 1] & 0x3e00) ||                      /* DAC powerdown */
+        (dev->regs[0x26 >> 1] & 0x0e00) ||                      /* DAC powerdown */
         ((reg == 0x38) && (dev->regs[0x2a >> 1] & AC97_PRJ))) { /* surround DAC powerdown */
         *l = 0;
         *r = 0;
@@ -577,8 +580,7 @@ ac97_codec_getrate(void *priv, uint8_t reg)
 static void *
 ac97_codec_init(const device_t *info)
 {
-    ac97_codec_t *dev = malloc(sizeof(ac97_codec_t));
-    memset(dev, 0, sizeof(ac97_codec_t));
+    ac97_codec_t *dev = calloc(1, sizeof(ac97_codec_t));
 
     for (; dev->model < (sizeof(ac97_codecs) / sizeof(ac97_codecs[0])); dev->model++) {
         if (ac97_codecs[dev->model].device->local == info->local)
@@ -661,7 +663,7 @@ const device_t ad1881_device = {
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -675,7 +677,7 @@ const device_t ak4540_device = {
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -689,7 +691,7 @@ const device_t alc100_device = {
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -703,7 +705,7 @@ const device_t cs4297_device = {
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -717,7 +719,7 @@ const device_t cs4297a_device = {
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -731,7 +733,7 @@ const device_t stac9708_device = {
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -745,7 +747,7 @@ const device_t stac9721_device = {
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -759,7 +761,21 @@ const device_t tr28023_device = {
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,
-    { .available = NULL },
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t w83971d_device = {
+    .name          = "Winbond W83971D",
+    .internal_name = "w83971d",
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_W83971D,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -773,7 +789,7 @@ const device_t wm9701a_device = {
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

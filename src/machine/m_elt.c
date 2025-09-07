@@ -58,13 +58,13 @@ static void
 elt_vid_off_poll(void *priv)
 {
     cga_t  *cga   = priv;
-    uint8_t hdisp = cga->crtc[1];
+    uint8_t hdisp = cga->crtc[CGA_CRTC_HDISP];
 
     /* Don't display anything.
      * TODO: Do something less stupid to emulate backlight off. */
-    cga->crtc[1] = 0;
+    cga->crtc[CGA_CRTC_HDISP] = 0;
     cga_poll(cga);
-    cga->crtc[1] = hdisp;
+    cga->crtc[CGA_CRTC_HDISP] = hdisp;
 }
 
 static void
@@ -178,7 +178,7 @@ machine_elt_init(const machine_t *model)
 
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
-    if (fdc_type == FDC_INTERNAL)
+    if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_xt_device);
 
     if (gfxcard[0] == VID_INTERNAL) {
@@ -190,7 +190,7 @@ machine_elt_init(const machine_t *model)
     /* Keyboard goes after the video, because on XT compatibles it's dealt
      * with by the same PPI as the config switches and we need them to
      * indicate the correct display type */
-    device_add(&keyboard_xt_device);
+    device_add(&kbc_xt_device);
 
     device_add(&elt_nvr_device);
 

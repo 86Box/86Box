@@ -191,8 +191,8 @@ voodoo_triangle_setup(voodoo_t *voodoo)
         voodoo->params.dWdX          = (int64_t) (((verts[va].sWb - verts[vb].sWb) * dyBC - (verts[vb].sWb - verts[vc].sWb) * dyAB) * 4294967296.0f);
         voodoo->params.dWdY          = (int64_t) (((verts[vb].sWb - verts[vc].sWb) * dxAB - (verts[va].sWb - verts[vb].sWb) * dxBC) * 4294967296.0f);
         voodoo->params.tmu[0].startW = voodoo->params.tmu[1].startW = voodoo->params.startW;
-        voodoo->params.tmu[0].dWdX = voodoo->params.tmu[1].dWdX = voodoo->params.dWdX;
-        voodoo->params.tmu[0].dWdY = voodoo->params.tmu[1].dWdY = voodoo->params.dWdY;
+        voodoo->params.tmu[0].dWdX   = voodoo->params.tmu[1].dWdX = voodoo->params.dWdX;
+        voodoo->params.tmu[0].dWdY   = voodoo->params.tmu[1].dWdY = voodoo->params.dWdY;
     }
     if (voodoo->sSetupMode & SETUPMODE_W0) {
         voodoo->params.tmu[0].startW = (int64_t) (verts[va].sW0 * 4294967296.0f);

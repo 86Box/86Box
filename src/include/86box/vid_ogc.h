@@ -23,6 +23,7 @@
 
 typedef struct ogc_t {
     cga_t cga;
+    uint16_t ctrl_addr;
     /* unused in OGC, required for M19 video card structure idiom */
     uint8_t  ctrl_3dd;
     uint8_t  ctrl_3de;

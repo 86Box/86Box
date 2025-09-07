@@ -10,6 +10,7 @@
 #    include "x86.h"
 #    include "x86seg_common.h"
 #    include "x86seg.h"
+#    include "x87_sf.h"
 #    include "x87.h"
 #    include "386_common.h"
 #    include "codegen.h"
@@ -285,6 +286,7 @@ codegen_CALL_FUNC_RESULT(codeblock_t *block, uop_t *uop)
 static int
 codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
 {
+    host_arm_MOV_IMM(block, REG_ARG0, uop->imm_data);
     host_arm_call(block, uop->p);
     host_arm_TST_REG(block, REG_R0, REG_R0);
     host_arm_BNE(block, (uintptr_t) codegen_exit_rout);
@@ -718,9 +720,9 @@ codegen_FTST(codeblock_t *block, uop_t *uop)
         host_arm_VCMP_D(block, src_reg_a, REG_D_TEMP);
         host_arm_MOV_IMM(block, dest_reg, 0);
         host_arm_VMRS_APSR(block);
-        host_arm_ORREQ_IMM(block, dest_reg, dest_reg, C3);
-        host_arm_ORRCC_IMM(block, dest_reg, dest_reg, C0);
-        host_arm_ORRVS_IMM(block, dest_reg, dest_reg, C0 | C2 | C3);
+        host_arm_ORREQ_IMM(block, dest_reg, dest_reg, FPU_SW_C3);
+        host_arm_ORRCC_IMM(block, dest_reg, dest_reg, FPU_SW_C0);
+        host_arm_ORRVS_IMM(block, dest_reg, dest_reg, FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     } else
         fatal("codegen_FTST %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 
@@ -758,9 +760,9 @@ codegen_FCOM(codeblock_t *block, uop_t *uop)
         host_arm_VCMP_D(block, src_reg_a, src_reg_b);
         host_arm_MOV_IMM(block, dest_reg, 0);
         host_arm_VMRS_APSR(block);
-        host_arm_ORREQ_IMM(block, dest_reg, dest_reg, C3);
-        host_arm_ORRCC_IMM(block, dest_reg, dest_reg, C0);
-        host_arm_ORRVS_IMM(block, dest_reg, dest_reg, C0 | C2 | C3);
+        host_arm_ORREQ_IMM(block, dest_reg, dest_reg, FPU_SW_C3);
+        host_arm_ORRCC_IMM(block, dest_reg, dest_reg, FPU_SW_C0);
+        host_arm_ORRVS_IMM(block, dest_reg, dest_reg, FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     } else
         fatal("codegen_FCOM %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 
@@ -994,6 +996,8 @@ codegen_MEM_LOAD_REG(codeblock_t *block, uop_t *uop)
     host_arm_ADD_REG(block, REG_R0, seg_reg, addr_reg);
     if (uop->imm_data)
         host_arm_ADD_IMM(block, REG_R0, REG_R0, uop->imm_data);
+    if (uop->is_a16)
+        host_arm_AND_IMM(block, REG_R0, REG_R0, 0xffff);
     if (REG_IS_B(dest_size) || REG_IS_BH(dest_size)) {
         host_arm_BL(block, (uintptr_t) codegen_mem_load_byte);
     } else if (REG_IS_W(dest_size)) {

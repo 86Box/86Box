@@ -107,6 +107,11 @@ ega_render_overscan_right(ega_t *ega)
 void
 ega_render_text(ega_t *ega)
 {
+    if (ega->render_override) {
+        ega->render_override(ega->priv_parent);
+        return;
+    }
+
     if ((ega->displine + ega->y_add) < 0)
         return;
 
@@ -118,6 +123,7 @@ ega_render_text(ega_t *ega)
         const bool doublewidth   = ((ega->seqregs[1] & 8) != 0);
         const bool attrblink     = ((ega->attrregs[0x10] & 8) != 0);
         const bool attrlinechars = (ega->attrregs[0x10] & 4);
+        const bool monoattrs     = (ega->attrregs[0x10] & 2);
         const bool crtcreset     = ((ega->crtc[0x17] & 0x80) == 0);
         const bool seq9dot       = ((ega->seqregs[1] & 1) == 0);
         const int  dwshift       = doublewidth ? 1 : 0;
@@ -135,9 +141,9 @@ ega_render_text(ega_t *ega)
         }
 
         for (int x = 0; x < (ega->hdisp + ega->scrollcache); x += charwidth) {
-            uint32_t addr = ega->remap_func(ega, ega->ma) & ega->vrammask;
+            uint32_t addr = ega->remap_func(ega, ega->memaddr) & ega->vrammask;
 
-            int drawcursor = ((ega->ma == ega->ca) && ega->con && ega->cursoron);
+            int drawcursor = ((ega->memaddr == ega->cursoraddr) && ega->cursorvisible && ega->cursoron);
 
             uint32_t chr;
             uint32_t attr;
@@ -169,18 +175,30 @@ ega_render_text(ega_t *ega)
                 }
             }
 
-            uint32_t dat = ega->vram[charaddr + (ega->sc << 2)];
+            uint32_t dat = ega->vram[charaddr + (ega->scanline << 2)];
             dat <<= 1;
-            if ((chr & ~0x1F) == 0xC0 && attrlinechars)
+            if (((chr & ~0x1f) == 0xc0) && attrlinechars)
                 dat |= (dat >> 1) & 1;
 
-            for (int xx = 0; xx < charwidth; xx++)
-                p[xx] = (dat & (0x100 >> (xx >> dwshift))) ? fg : bg;
+            for (int xx = 0; xx < charwidth; xx++) {
+                if (monoattrs) {
+                    int bit   = (dat & (0x100 >> (xx >> dwshift))) ? 1 : 0;
+                    int blink = (!drawcursor && (attr & 0x80) && attrblink && blinked);
+                    if ((ega->scanline == ega->crtc[0x14]) && ((attr & 7) == 1))
+                        p[xx] = ega->mda_attr_to_color_table[attr][blink][1];
+                    else
+                        p[xx] = ega->mda_attr_to_color_table[attr][blink][bit];
+                    if (drawcursor)
+                        p[xx] ^= ega->mda_attr_to_color_table[attr][0][1];
+                    p[xx] = ega->pallook[ega->egapal[p[xx] & 0x0f]];
+                } else
+                    p[xx] = (dat & (0x100 >> (xx >> dwshift))) ? fg : bg;
+            }
 
-            ega->ma += 4;
+            ega->memaddr += 4;
             p += charwidth;
         }
-        ega->ma &= 0x3ffff;
+        ega->memaddr &= 0x3ffff;
     }
 }
 
@@ -201,7 +219,8 @@ ega_render_graphics(ega_t *ega)
     const bool    crtcreset   = ((ega->crtc[0x17] & 0x80) == 0);
     const bool    seq9dot       = ((ega->seqregs[1] & 1) == 0);
     const bool    seqoddeven  = ((ega->seqregs[1] & 4) != 0);
-    const uint8_t blinkmask   = (attrblink && blinked ? 0x8 : 0x0);
+    const uint8_t blinkmask   = (attrblink ? 0x8 : 0x0);
+    const uint8_t blinkval    = (attrblink && blinked ? 0x8 : 0x0);
     uint32_t     *p           = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
     const int     dwshift     = doublewidth ? 1 : 0;
     const int     dotwidth    = 1 << dwshift;
@@ -217,7 +236,7 @@ ega_render_graphics(ega_t *ega)
     }
 
     for (int x = 0; x <= (ega->hdisp + ega->scrollcache); x += charwidth) {
-        uint32_t addr = ega->remap_func(ega, ega->ma) & ega->vrammask;
+        uint32_t addr = ega->remap_func(ega, ega->memaddr) & ega->vrammask;
 
         uint8_t edat[4];
         if (seqoddeven) {
@@ -228,12 +247,12 @@ ega_render_graphics(ega_t *ega)
             edat[3]    = ega->vram[(addr | 3) ^ secondcclk];
             secondcclk = (secondcclk + 1) & 1;
             if (secondcclk == 0)
-                ega->ma += 4;
+                ega->memaddr += 4;
         } else {
             *(uint32_t *) (&edat[0]) = *(uint32_t *) (&ega->vram[addr]);
-            ega->ma += 4;
+            ega->memaddr += 4;
         }
-        ega->ma &= 0x3ffff;
+        ega->memaddr &= 0x3ffff;
 
         if (cga2bpp) {
             // Remap CGA 2bpp-chunky data into fully planar data
@@ -254,8 +273,14 @@ ega_render_graphics(ega_t *ega)
                 uint8_t   dat     = (edatlookup[(edat[0] >> inshift) & 3][(edat[1] >> inshift) & 3])
                     | (edatlookup[(edat[2] >> inshift) & 3][(edat[3] >> inshift) & 3] << 2);
                 // FIXME: Confirm blink behaviour is actually XOR on real hardware
-                uint32_t p0 = ega->pallook[ega->egapal[((dat >> 4) & ega->plane_mask) ^ blinkmask]];
-                uint32_t p1 = ega->pallook[ega->egapal[(dat & ega->plane_mask) ^ blinkmask]];
+                uint32_t c0 = (dat >> 4) & 0xF;
+                uint32_t c1 = dat & 0xF;
+                c0 = ((c0 & ega->plane_mask & ~blinkmask) |
+                     ((c0 | ~ega->plane_mask) & blinkmask & blinkval)) ^ blinkmask;
+                c1 = ((c1 & ega->plane_mask & ~blinkmask) |
+                     ((c1 | ~ega->plane_mask) & blinkmask & blinkval)) ^ blinkmask;
+                uint32_t p0 = ega->pallook[ega->egapal[c0]];
+                uint32_t p1 = ega->pallook[ega->egapal[c1]];
                 for (int subx = 0; subx < dotwidth; subx++)
                     p[outoffs + subx] = p0;
                 for (int subx = 0; subx < dotwidth; subx++)

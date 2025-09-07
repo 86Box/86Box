@@ -799,8 +799,8 @@ i450kx_close(void *priv)
 static void *
 i450kx_init(UNUSED(const device_t *info))
 {
-    i450kx_t *dev = (i450kx_t *) malloc(sizeof(i450kx_t));
-    memset(dev, 0, sizeof(i450kx_t));
+    i450kx_t *dev = (i450kx_t *) calloc(1, sizeof(i450kx_t));
+
     pci_add_card(PCI_ADD_NORTHBRIDGE, pb_read, pb_write, dev, &dev->pb_slot);        /* Device 19h: Intel 450KX PCI Bridge PB */
     pci_add_card(PCI_ADD_NORTHBRIDGE_SEC, mc_read, mc_write, dev, &dev->mc_slot);    /* Device 14h: Intel 450KX Memory Controller MC */
 
@@ -824,7 +824,7 @@ const device_t i450kx_device = {
     .init          = i450kx_init,
     .close         = i450kx_close,
     .reset         = i450kx_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

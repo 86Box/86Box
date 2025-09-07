@@ -625,7 +625,7 @@ europc_boot(UNUSED(const device_t *info))
         mouse_bus_set_irq(sys->mouse, 2);
         /* Configure the port for (Bus Mouse Compatible) Mouse. */
         b |= 0x01;
-    } else if (joystick_type)
+    } else if (joystick_type[0])
         b |= 0x02; /* enable port as joysticks */
     sys->nvr.regs[MRTC_CONF_C] = b;
 
@@ -646,11 +646,12 @@ europc_boot(UNUSED(const device_t *info))
      * (JS9) can be used to "move" it to 0x0350, to get it out of
      * the way of other cards that need this range.
      */
+    sys->jim = device_get_config_hex16("js9");
     io_sethandler(sys->jim, 16,
                   jim_read, NULL, NULL, jim_write, NULL, NULL, sys);
 
     /* Only after JIM has been initialized. */
-    (void) device_add(&keyboard_xt_device);
+    (void) device_add(&kbc_xt_device);
 
     /* Enable and set up the FDC. */
     (void) device_add(&fdc_xt_device);
@@ -660,7 +661,7 @@ europc_boot(UNUSED(const device_t *info))
      *
      * We only do this if we have not configured another one.
      */
-    if (hdc_current == 1)
+    if (hdc_current[0] == HDC_INTERNAL)
         (void) device_add(&xta_hd20_device);
 
     return sys;
@@ -680,14 +681,14 @@ static const device_config_t europc_config[] = {
     {
         .name = "js9",
         .description = "JS9 Jumper (JIM)",
-        .type = CONFIG_INT,
+        .type = CONFIG_HEX16,
         .default_string = "",
-        .default_int = 0,
+        .default_int = 0x0250,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
-            { .description = "Disabled (250h)", .value = 0 },
-            { .description = "Enabled (350h)",  .value = 1 },
+            { .description = "Disabled (250h)", .value = 0x0250 },
+            { .description = "Enabled (350h)",  .value = 0x0350 },
             { .description = ""                            }
         },
     },
@@ -703,7 +704,7 @@ const device_t europc_device = {
     .init          = europc_boot,
     .close         = europc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = europc_config

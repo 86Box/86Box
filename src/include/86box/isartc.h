@@ -42,7 +42,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 #ifndef EMU_ISARTC_H
 #define EMU_ISARTC_H
 
@@ -50,14 +49,13 @@
 extern "C" {
 #endif
 
-/* Global variables. */
-
 /* Functions. */
 extern void isartc_reset(void);
 
 extern const char     *isartc_get_internal_name(int t);
-extern int             isartc_get_from_internal_name(char *s);
+extern int             isartc_get_from_internal_name(const char *str);
 extern const device_t *isartc_get_device(int t);
+extern int             isartc_has_config(int board);
 
 #ifdef __cplusplus
 }

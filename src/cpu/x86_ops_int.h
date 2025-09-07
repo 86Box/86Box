@@ -1,5 +1,5 @@
 static int
-opINT3(uint32_t fetchdat)
+opINT3(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
@@ -18,7 +18,7 @@ opINT3(uint32_t fetchdat)
 }
 
 static int
-opINT1(uint32_t fetchdat)
+opINT1(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
@@ -75,7 +75,7 @@ opINT(uint32_t fetchdat)
 }
 
 static int
-opINTO(uint32_t fetchdat)
+opINTO(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);

@@ -278,7 +278,7 @@ pci_dummy_card_init(UNUSED(const device_t *info))
 {
     pci_dummy_t *dev = (pci_dummy_t *) calloc(1, sizeof(pci_dummy_t));
 
-    pci_add_card(PCI_ADD_NORMAL, pci_dummy_pci_read, pci_dummy_pci_write, dev,  &dev->pci_slot);
+    pci_add_card(PCI_ADD_NORMAL, pci_dummy_pci_read, pci_dummy_pci_write, dev, &dev->pci_slot);
 
     return dev;
 }
@@ -291,7 +291,7 @@ const device_t pci_dummy_device = {
     .init          = pci_dummy_card_init,
     .close         = pci_dummy_close,
     .reset         = pci_dummy_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -444,7 +444,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
                         apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 0);
                         break;
                 }
-            else
+            else if (dev->id == VIA_595)
                 switch (val & 0x03) {
                     case 0x00:
                         apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 0);
@@ -468,6 +468,12 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
                     default:
                         break;
                 }
+            else {
+                smram_enable(dev->smram, 0x000a0000, 0x000a0000, 0x00020000,
+                             (dev->pci_conf[0x6d] & 0x10) && (dev->pci_conf[0x63] & 0x01),
+                             dev->pci_conf[0x63] & 0x01);
+                flushmmucache();
+            }
             break;
         case 0x65:
             if (dev->id == VIA_585)
@@ -532,6 +538,13 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[0x6d] = (dev->pci_conf[0x6d] & ~0x7f) | (val & 0x7f);
             else
                 dev->pci_conf[0x6d] = val;
+            if (dev->id == VIA_585) {
+                smram_disable_all();
+                smram_enable(dev->smram, 0x000a0000, 0x000a0000, 0x00020000,
+                             (dev->pci_conf[0x6d] & 0x10) && (dev->pci_conf[0x63] & 0x01),
+                             dev->pci_conf[0x63] & 0x01);
+                flushmmucache();
+            }
             break;
         case 0x6e:
             if ((dev->id == VIA_595) || (dev->id == VIA_694))
@@ -712,8 +725,7 @@ via_apollo_reset(void *priv)
 static void *
 via_apollo_init(const device_t *info)
 {
-    via_apollo_t *dev = (via_apollo_t *) malloc(sizeof(via_apollo_t));
-    memset(dev, 0, sizeof(via_apollo_t));
+    via_apollo_t *dev = (via_apollo_t *) calloc(1, sizeof(via_apollo_t));
 
     dev->smram = smram_add();
     if (dev->id != VIA_8601)
@@ -780,7 +792,7 @@ const device_t via_vpx_device = {
     .init          = via_apollo_init,
     .close         = via_apollo_close,
     .reset         = via_apollo_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -794,7 +806,7 @@ const device_t amd640_device = {
     .init          = via_apollo_init,
     .close         = via_apollo_close,
     .reset         = via_apollo_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -808,7 +820,7 @@ const device_t via_vp3_device = {
     .init          = via_apollo_init,
     .close         = via_apollo_close,
     .reset         = via_apollo_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -822,7 +834,7 @@ const device_t via_mvp3_device = {
     .init          = via_apollo_init,
     .close         = via_apollo_close,
     .reset         = via_apollo_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -836,7 +848,7 @@ const device_t via_apro_device = {
     .init          = via_apollo_init,
     .close         = via_apollo_close,
     .reset         = via_apollo_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -850,7 +862,7 @@ const device_t via_apro133_device = {
     .init          = via_apollo_init,
     .close         = via_apollo_close,
     .reset         = via_apollo_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -864,7 +876,7 @@ const device_t via_apro133a_device = {
     .init          = via_apollo_init,
     .close         = via_apollo_close,
     .reset         = via_apollo_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -878,7 +890,7 @@ const device_t via_vt8601_device = {
     .init          = via_apollo_init,
     .close         = via_apollo_close,
     .reset         = via_apollo_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

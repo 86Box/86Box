@@ -193,8 +193,7 @@ pssj_get_buffer(int32_t *buffer, int len, void *priv)
 void *
 pssj_init(UNUSED(const device_t *info))
 {
-    pssj_t *pssj = malloc(sizeof(pssj_t));
-    memset(pssj, 0, sizeof(pssj_t));
+    pssj_t *pssj = calloc(1, sizeof(pssj_t));
 
     sn76489_init(&pssj->sn76489, 0x00c0, 0x0004, PSSJ, 3579545);
 
@@ -208,8 +207,7 @@ pssj_init(UNUSED(const device_t *info))
 void *
 pssj_1e0_init(UNUSED(const device_t *info))
 {
-    pssj_t *pssj = malloc(sizeof(pssj_t));
-    memset(pssj, 0, sizeof(pssj_t));
+    pssj_t *pssj = calloc(1, sizeof(pssj_t));
 
     sn76489_init(&pssj->sn76489, 0x01e0, 0x0004, PSSJ, 3579545);
 
@@ -223,8 +221,7 @@ pssj_1e0_init(UNUSED(const device_t *info))
 void *
 pssj_isa_init(UNUSED(const device_t *info))
 {
-    pssj_t *pssj = malloc(sizeof(pssj_t));
-    memset(pssj, 0, sizeof(pssj_t));
+    pssj_t *pssj = calloc(1, sizeof(pssj_t));
 
     uint16_t addr = device_get_config_hex16("base");
 
@@ -248,40 +245,23 @@ pssj_close(void *priv)
 static const device_config_t pssj_isa_config[] = {
   // clang-format off
     {
-        .name = "base",
-        .description = "Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x2C0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x0C0",
-                .value = 0x0C0
-            },
-            {
-                .description = "0x0E0",
-                .value = 0x0E0
-            },
-            {
-                .description = "0x1C0",
-                .value = 0x1C0
-            },
-            {
-                .description = "0x1E0",
-                .value = 0x1E0
-            },
-            {
-                .description = "0x2C0",
-                .value = 0x2C0
-            },
-            {
-                .description = "0x2E0",
-                .value = 0x2E0
-            },
-            { .description = "" }
-        }
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x2C0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x0C0", .value = 0x0C0 },
+            { .description = "0x0E0", .value = 0x0E0 },
+            { .description = "0x1C0", .value = 0x1C0 },
+            { .description = "0x1E0", .value = 0x1E0 },
+            { .description = "0x2C0", .value = 0x2C0 },
+            { .description = "0x2E0", .value = 0x2E0 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -295,7 +275,7 @@ const device_t pssj_device = {
     .init          = pssj_init,
     .close         = pssj_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -309,7 +289,7 @@ const device_t pssj_1e0_device = {
     .init          = pssj_1e0_init,
     .close         = pssj_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -323,7 +303,7 @@ const device_t pssj_isa_device = {
     .init          = pssj_isa_init,
     .close         = pssj_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pssj_isa_config

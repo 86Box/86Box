@@ -1,19 +1,19 @@
 static uint32_t
-ropMOV_rb_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_rb_imm(uint8_t opcode, uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     STORE_IMM_REG_B(opcode & 7, fetchdat & 0xff);
 
     return op_pc + 1;
 }
 static uint32_t
-ropMOV_rw_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_rw_imm(uint8_t opcode, uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     STORE_IMM_REG_W(opcode & 7, fetchdat & 0xffff);
 
     return op_pc + 2;
 }
 static uint32_t
-ropMOV_rl_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_rl_imm(uint8_t opcode, uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     fetchdat = fastreadl(cs + op_pc);
 
@@ -23,7 +23,7 @@ ropMOV_rl_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc,
 }
 
 static uint32_t
-ropMOV_b_r(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_b_r(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg = LOAD_REG_B((fetchdat >> 3) & 7);
 
@@ -44,7 +44,7 @@ ropMOV_b_r(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, co
     return op_pc + 1;
 }
 static uint32_t
-ropMOV_w_r(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_w_r(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg = LOAD_REG_W((fetchdat >> 3) & 7);
 
@@ -66,7 +66,7 @@ ropMOV_w_r(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, co
 }
 
 static uint32_t
-ropMOV_l_r(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_l_r(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg;
 
@@ -90,7 +90,7 @@ ropMOV_l_r(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, co
 }
 
 static uint32_t
-ropMOV_r_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_r_b(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if ((fetchdat & 0xc0) == 0xc0) {
         int host_reg = LOAD_REG_B(fetchdat & 7);
@@ -109,7 +109,7 @@ ropMOV_r_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, co
     return op_pc + 1;
 }
 static uint32_t
-ropMOV_r_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_r_w(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if ((fetchdat & 0xc0) == 0xc0) {
         int host_reg = LOAD_REG_W(fetchdat & 7);
@@ -128,7 +128,7 @@ ropMOV_r_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, co
     return op_pc + 1;
 }
 static uint32_t
-ropMOV_r_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_r_l(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if ((fetchdat & 0xc0) == 0xc0) {
         int host_reg = LOAD_REG_L(fetchdat & 7);
@@ -148,11 +148,17 @@ ropMOV_r_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, co
 }
 
 static uint32_t
-ropMOV_b_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_b_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if ((fetchdat & 0xc0) == 0xc0) {
         STORE_IMM_REG_B(fetchdat & 7, (fetchdat >> 8) & 0xff);
-    } else {
+    }
+/* TODO: Fix the recompilation of that specific case so it no longer breaks NT 3.x NTVDM. */
+#ifndef RECOMPILE_MOVB_IMM_MEM_ALWAYS
+    else if (((fetchdat & 0xfc) == 0x80) && (op_32 & 0x200))
+        return 0;
+#endif
+    else {
         x86seg  *target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
         uint32_t imm        = fastreadb(cs + op_pc + 1);
         int      host_reg   = LOAD_REG_IMM(imm);
@@ -167,7 +173,7 @@ ropMOV_b_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     return op_pc + 2;
 }
 static uint32_t
-ropMOV_w_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_w_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if ((fetchdat & 0xc0) == 0xc0) {
         STORE_IMM_REG_W(fetchdat & 7, (fetchdat >> 8) & 0xffff);
@@ -186,7 +192,7 @@ ropMOV_w_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     return op_pc + 3;
 }
 static uint32_t
-ropMOV_l_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_l_imm(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if ((fetchdat & 0xc0) == 0xc0) {
         uint32_t imm = fastreadl(cs + op_pc + 1);
@@ -208,7 +214,7 @@ ropMOV_l_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
 }
 
 static uint32_t
-ropMOV_AL_a(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_AL_a(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint32_t addr;
 
@@ -226,7 +232,7 @@ ropMOV_AL_a(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, c
     return op_pc + ((op_32 & 0x200) ? 4 : 2);
 }
 static uint32_t
-ropMOV_AX_a(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_AX_a(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint32_t addr;
 
@@ -244,7 +250,7 @@ ropMOV_AX_a(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, c
     return op_pc + ((op_32 & 0x200) ? 4 : 2);
 }
 static uint32_t
-ropMOV_EAX_a(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_EAX_a(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint32_t addr;
 
@@ -263,7 +269,7 @@ ropMOV_EAX_a(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
 }
 
 static uint32_t
-ropMOV_a_AL(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_a_AL(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint32_t addr;
     int      host_reg;
@@ -284,7 +290,7 @@ ropMOV_a_AL(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, c
     return op_pc + ((op_32 & 0x200) ? 4 : 2);
 }
 static uint32_t
-ropMOV_a_AX(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_a_AX(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint32_t addr;
     int      host_reg;
@@ -305,7 +311,7 @@ ropMOV_a_AX(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, c
     return op_pc + ((op_32 & 0x200) ? 4 : 2);
 }
 static uint32_t
-ropMOV_a_EAX(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_a_EAX(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     uint32_t addr;
     int      host_reg;
@@ -327,7 +333,7 @@ ropMOV_a_EAX(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
 }
 
 static uint32_t
-ropLEA_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropLEA_w(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -341,7 +347,7 @@ ropLEA_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return op_pc + 1;
 }
 static uint32_t
-ropLEA_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropLEA_l(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -356,7 +362,7 @@ ropLEA_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
 }
 
 static uint32_t
-ropMOVZX_w_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOVZX_w_b(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if ((fetchdat & 0xc0) == 0xc0) {
         int host_reg = LOAD_REG_B(fetchdat & 7);
@@ -377,7 +383,7 @@ ropMOVZX_w_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     return op_pc + 1;
 }
 static uint32_t
-ropMOVZX_l_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOVZX_l_b(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if ((fetchdat & 0xc0) == 0xc0) {
         int host_reg = LOAD_REG_B(fetchdat & 7);
@@ -398,7 +404,7 @@ ropMOVZX_l_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     return op_pc + 1;
 }
 static uint32_t
-ropMOVZX_l_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOVZX_l_w(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if ((fetchdat & 0xc0) == 0xc0) {
         int host_reg = LOAD_REG_W(fetchdat & 7);
@@ -420,7 +426,7 @@ ropMOVZX_l_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
 }
 
 static uint32_t
-ropMOVSX_w_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOVSX_w_b(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if ((fetchdat & 0xc0) == 0xc0) {
         int host_reg = LOAD_REG_B(fetchdat & 7);
@@ -441,7 +447,7 @@ ropMOVSX_w_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     return op_pc + 1;
 }
 static uint32_t
-ropMOVSX_l_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOVSX_l_b(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if ((fetchdat & 0xc0) == 0xc0) {
         int host_reg = LOAD_REG_B(fetchdat & 7);
@@ -462,7 +468,7 @@ ropMOVSX_l_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     return op_pc + 1;
 }
 static uint32_t
-ropMOVSX_l_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOVSX_l_w(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     if ((fetchdat & 0xc0) == 0xc0) {
         int host_reg = LOAD_REG_W(fetchdat & 7);
@@ -484,7 +490,7 @@ ropMOVSX_l_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
 }
 
 static uint32_t
-ropMOV_w_seg(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_w_seg(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg;
 
@@ -531,7 +537,7 @@ ropMOV_w_seg(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     return op_pc + 1;
 }
 static uint32_t
-ropMOV_seg_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+ropMOV_seg_w(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     int host_reg;
 
@@ -578,7 +584,7 @@ ropMOV_seg_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
 }
 
 #define ropLseg(seg, rseg)                                                                                           \
-    static uint32_t ropL##seg(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
+    static uint32_t ropL##seg(UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, UNUSED(codeblock_t *block)) \
     {                                                                                                                \
         int     dest_reg = (fetchdat >> 3) & 7;                                                                      \
         x86seg *target_seg;                                                                                          \
@@ -594,12 +600,12 @@ ropMOV_seg_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
             MEM_LOAD_ADDR_EA_L(target_seg);                                                                          \
             STORE_HOST_REG_ADDR((uintptr_t) &codegen_temp, 0);                                                       \
             LOAD_EA();                                                                                               \
-            MEM_LOAD_ADDR_EA_W_OFFSET(target_seg, 4);                                                                \
+            MEM_LOAD_ADDR_EA_W_OFFSET(target_seg, 4, op_32);                                                         \
         } else {                                                                                                     \
             MEM_LOAD_ADDR_EA_W(target_seg);                                                                          \
             STORE_HOST_REG_ADDR_W((uintptr_t) &codegen_temp, 0);                                                     \
             LOAD_EA();                                                                                               \
-            MEM_LOAD_ADDR_EA_W_OFFSET(target_seg, 2);                                                                \
+            MEM_LOAD_ADDR_EA_W_OFFSET(target_seg, 2, op_32);                                                         \
         }                                                                                                            \
         LOAD_SEG(0, &rseg);                                                                                          \
         if (op_32 & 0x100) {                                                                                         \

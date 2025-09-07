@@ -1181,8 +1181,7 @@ ics9xxx_find_bus_match(ics9xxx_t *dev, uint32_t bus, uint8_t preset_mask, uint8_
 static void *
 ics9xxx_init(const device_t *info)
 {
-    ics9xxx_t *dev = (ics9xxx_t *) malloc(sizeof(ics9xxx_t));
-    memset(dev, 0, sizeof(ics9xxx_t));
+    ics9xxx_t *dev = (ics9xxx_t *) calloc(1, sizeof(ics9xxx_t));
 
     dev->model_idx  = info->local;
     dev->model      = (ics9xxx_model_t *) &ics9xxx_models[dev->model_idx];
@@ -1267,8 +1266,7 @@ ics9xxx_close(void *priv)
 device_t *
 ics9xxx_get(uint8_t model)
 {
-    device_t *dev = (device_t *) malloc(sizeof(device_t));
-    memset(dev, 0, sizeof(device_t));
+    device_t *dev = (device_t *) calloc(1, sizeof(device_t));
 
     dev->name  = "ICS9xxx-xx Clock Generator";
     dev->local = model;

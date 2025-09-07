@@ -59,6 +59,7 @@ AppDir:
     - libqt5widgets5 # if QT:BOOL=ON
     - libsixel1 # if CLI:BOOL=ON
     - libslirp0
+    - libsndfile1
     - libsndio7.0 # if OPENAL:BOOL=ON
     - libvdeplug-dev # -dev also pulls in libvdeplug2. -dev is required to get the proper .so symlink to the library
     - libx11-6 # if QT:BOOL=ON
@@ -71,6 +72,7 @@ AppDir:
     - libxkbcommon-x11-0 # if QT:BOOL=ON
     - qtwayland5 # if QT:BOOL=ON
     - zlib1g
+    - libserialport0
   files:
     exclude:
     - etc
@@ -94,3 +96,4 @@ AppDir:
 AppImage:
   arch: !ENV '${arch_appimage}'
   file_name: !ENV '${appimage_path}'
+  comp: gzip

@@ -14,6 +14,7 @@
 #include <86box/timer.h>
 #include "x86.h"
 #include "x86seg_common.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include <86box/nmi.h>
 #include <86box/mem.h>
@@ -50,6 +51,8 @@ uint32_t dr[8];
 uint32_t use32;
 int      stack32;
 
+int      cpu_init = 0;
+
 uint32_t *eal_r;
 uint32_t *eal_w;
 
@@ -69,6 +72,7 @@ extern uint8_t *pccache2;
 extern int      optype;
 extern uint32_t pccache;
 
+int      new_ne            = 0;
 int      in_sys            = 0;
 int      unmask_a20_in_smm = 0;
 uint32_t old_rammask       = 0xffffffff;
@@ -103,6 +107,34 @@ uint32_t backupregs[16];
 
 x86seg _oldds;
 
+uint8_t rep_op = 0x00;
+uint8_t is_smint = 0;
+
+uint16_t io_port = 0x0000;
+uint32_t io_val  = 0x00000000;
+
+int opcode_has_modrm[256] = {
+    1, 1, 1, 1,  0, 0, 0, 0,  1, 1, 1, 1,  0, 0, 0, 0, /*00*/
+    1, 1, 1, 1,  0, 0, 0, 0,  1, 1, 1, 1,  0, 0, 0, 0, /*10*/
+    1, 1, 1, 1,  0, 0, 0, 0,  1, 1, 1, 1,  0, 0, 0, 0, /*20*/
+    1, 1, 1, 1,  0, 0, 0, 0,  1, 1, 1, 1,  0, 0, 0, 0, /*30*/
+
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*40*/
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*50*/
+    0, 0, 1, 1,  0, 0, 0, 0,  0, 1, 0, 1,  0, 0, 0, 0, /*60*/
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*70*/
+
+    1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*80*/
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*90*/
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*a0*/
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*b0*/
+
+    1, 1, 0, 0,  1, 1, 1, 1,  0, 0, 0, 0,  0, 0, 0, 0, /*c0*/
+    1, 1, 1, 1,  0, 0, 0, 0,  1, 1, 1, 1,  1, 1, 1, 1, /*d0*/
+    0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*e0*/
+    0, 0, 0, 0,  0, 0, 1, 1,  0, 0, 0, 0,  0, 0, 1, 1, /*f0*/
+};
+
 int opcode_length[256] = { 3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 3,   /* 0x0x */
                            3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,   /* 0x1x */
                            3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,   /* 0x2x */
@@ -120,6 +152,53 @@ int opcode_length[256] = { 3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 3,   /* 
                            2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 2, 1, 1, 1, 1,   /* 0xex */
                            1, 1, 1, 1, 1, 1, 3, 3, 1, 1, 1, 1, 1, 1, 3, 3 }; /* 0xfx */
 
+/* 0 = no, 1 = always, 2 = depends on second opcode, 3 = depends on mod/rm */
+int lock_legal[256]    = { 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 2,   /* 0x0x */
+                           1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0,   /* 0x1x */
+                           1, 1, 1, 1, 1, 1, 4, 0, 1, 1, 1, 1, 1, 1, 4, 0,   /* 0x2x */
+                           1, 1, 1, 1, 1, 1, 4, 0, 0, 0, 0, 0, 0, 0, 4, 0,   /* 0x3x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x4x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x5x */
+                           0, 0, 0, 0, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x6x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x7x */
+                           3, 3, 3, 3, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x8x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x9x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xax */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xbx */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xcx */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xdx */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xex */
+                           0, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 3, 3 }; /* 0xfx */
+
+int lock_legal_0f[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x0x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x1x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x2x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x3x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x4x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x5x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x6x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x7x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x8x */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0x9x */
+                           0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,   /* 0xax */
+                           0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 0, 0,   /* 0xbx */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xcx */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xdx */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,   /* 0xex */
+                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; /* 0xfx */
+
+/* (modrm >> 3) & 0x07 */
+int lock_legal_ba[8]   = { 0, 0, 0, 0, 1, 1, 1, 1 };
+
+/* Also applies to 81, 82, and 83 */
+int lock_legal_80[8]   = { 1, 1, 1, 1, 1, 1, 1, 0 };
+
+/* Also applies to F7 */
+int lock_legal_f6[8]   = { 0, 0, 1, 1, 0, 0, 0, 0 };
+
+/* Also applies to FF */
+int lock_legal_fe[8]   = { 1, 1, 0, 0, 0, 0, 0, 0 };
+
 uint32_t addr64;
 uint32_t addr64_2;
 uint32_t addr64a[8];
@@ -128,9 +207,9 @@ uint32_t addr64a_2[8];
 static pc_timer_t *cpu_fast_off_timer  = NULL;
 static double      cpu_fast_off_period = 0.0;
 
-#define AMD_SYSCALL_EIP (msr.star & 0xFFFFFFFF)
-#define AMD_SYSCALL_SB  ((msr.star >> 32) & 0xFFFF)
-#define AMD_SYSRET_SB   ((msr.star >> 48) & 0xFFFF)
+#define AMD_SYSCALL_EIP (msr.amd_star & 0xFFFFFFFF)
+#define AMD_SYSCALL_SB  ((msr.amd_star >> 32) & 0xFFFF)
+#define AMD_SYSRET_SB   ((msr.amd_star >> 48) & 0xFFFF)
 
 /* These #define's and enum have been borrowed from Bochs. */
 /* SMM feature masks */
@@ -375,6 +454,52 @@ x386_common_log(const char *fmt, ...)
 #else
 #    define x386_common_log(fmt, ...)
 #endif
+
+int
+is_lock_legal(uint32_t fetchdat)
+{
+    int legal = 1;
+
+    if (is386) {
+        fetch_dat_t fetch_dat;
+        fetch_dat.fd = fetchdat;
+
+        legal = lock_legal[fetch_dat.b[0]];
+        if (legal == 1)
+            legal = 1; // ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+        else if (legal == 2) {
+            legal = lock_legal_0f[fetch_dat.b[1]];
+            if (legal == 1)
+                legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,reg is illegal */
+            else if (legal == 3) {
+                legal = lock_legal_ba[(fetch_dat.b[2] >> 3) & 0x07];
+                if (legal == 1)
+                    legal = ((fetch_dat.b[2] >> 6) != 0x03);    /* reg,imm is illegal */
+            }
+        } else if (legal == 3)  switch(fetch_dat.b[0]) {
+            case 0x80 ... 0x83:
+                legal = lock_legal_80[(fetch_dat.b[1] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+            break;
+            case 0xf6 ... 0xf7:
+                legal = lock_legal_f6[(fetch_dat.b[1] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+            break;
+            case 0xfe ... 0xff:
+                legal = lock_legal_fe[(fetch_dat.b[1] >> 3) & 0x07];
+            if (legal == 1)
+                legal = ((fetch_dat.b[1] >> 6) != 0x03);    /* reg is illegal */
+            break;
+            default:
+                legal = 0;
+            break;
+        }
+    }
+
+    return legal;
+}
 
 /*Prefetch emulation is a fairly simplistic model:
   - All instruction bytes must be fetched before it starts.
@@ -898,9 +1023,14 @@ smram_restore_state_p6(uint32_t *saved_state)
     cpu_state.seg_gs.ar_high = (saved_state[SMRAM_FIELD_P6_GS_SELECTOR_AR] >> 24) & 0xff;
     smm_seg_load(&cpu_state.seg_gs);
 
-    mem_a20_alt = 0x00;
-    mem_a20_key = saved_state[SMRAM_FIELD_P6_A20M] ? 0x00 : 0x02;
-    mem_a20_recalc();
+    rammask     = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+    if (is6117)
+        rammask |= 0x3000000;
+
+    if (saved_state[SMRAM_FIELD_P6_A20M] & 0x01)
+        rammask &= 0xffefffff;
+
+    flushmmucache();
 
     if (SMM_REVISION_ID & SMM_SMBASE_RELOCATION)
         smbase = saved_state[SMRAM_FIELD_P6_SMBASE_OFFSET];
@@ -1091,7 +1221,7 @@ smram_restore_state_amd_k(uint32_t *saved_state)
 }
 
 static void
-smram_save_state_cyrix(uint32_t *saved_state, UNUSED(int in_hlt))
+smram_save_state_cyrix(uint32_t *saved_state, int in_hlt)
 {
     saved_state[0] = dr[7];
     saved_state[1] = cpu_state.flags | (cpu_state.eflags << 16);
@@ -1100,6 +1230,35 @@ smram_save_state_cyrix(uint32_t *saved_state, UNUSED(int in_hlt))
     saved_state[4] = cpu_state.pc;
     saved_state[5] = CS | (CPL << 21);
     saved_state[6] = 0x00000000;
+    saved_state[7] = 0x00010000;
+
+    if (((opcode >= 0x6e) && (opcode <= 0x6f)) || ((opcode >= 0xe6) && (opcode <= 0xe7)) ||
+        ((opcode >= 0xee) && (opcode <= 0xef))) {
+        saved_state[6] |= 0x00000002;
+        saved_state[7] = (opcode & 0x01) ? (cpu_state.op32 ? 0x000f0000 : 0x00030000) : 0x00010000;
+    } else if (((opcode == 0xf2) || (opcode == 0xf3)) && (rep_op >= 0x6e) && (rep_op <= 0x6f)) {
+        saved_state[6] |= 0x00000006;
+        saved_state[7] = (rep_op & 0x01) ? (cpu_state.op32 ? 0x000f0000 : 0x00030000) : 0x00010000;
+    } else if (((opcode == 0xf2) || (opcode == 0xf3)) && (rep_op >= 0x6e) && (rep_op <= 0x6f)) {
+        saved_state[6] |= 0x00000004;
+        saved_state[7] = (rep_op & 0x01) ? (cpu_state.op32 ? 0x000f0000 : 0x00030000) : 0x00010000;
+    }
+
+    if (is_smint) {
+        saved_state[6] |= 0x00000008;
+        is_smint = 0;
+    }
+
+    if (in_hlt)
+        saved_state[6] |= 0x00000010;
+
+    saved_state[7] |= io_port;
+    saved_state[8] = io_val;
+
+    if (saved_state[6] & 0x00000002)
+        saved_state[9] = ESI;
+    else
+        saved_state[9] = EDI;
 }
 
 static void
@@ -1110,6 +1269,13 @@ smram_restore_state_cyrix(uint32_t *saved_state)
     cpu_state.eflags = saved_state[1] >> 16;
     cr0              = saved_state[2];
     cpu_state.pc     = saved_state[4];
+    /* Restore CPL. */
+    cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x9f) | (((saved_state[5] >> 21) & 0x03) << 5);
+
+    if (saved_state[6] & 0x00000002)
+        ESI = saved_state[9];
+    else
+        EDI = saved_state[9];
 }
 
 void
@@ -1244,6 +1410,9 @@ enter_smm(int in_hlt)
         writememl(0, smram_state - 0x14, saved_state[4]);
         writememl(0, smram_state - 0x18, saved_state[5]);
         writememl(0, smram_state - 0x24, saved_state[6]);
+        writememl(0, smram_state - 0x28, saved_state[7]);
+        writememl(0, smram_state - 0x2c, saved_state[8]);
+        writememl(0, smram_state - 0x30, saved_state[9]);
     } else {
         for (uint8_t n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
             smram_state -= 4;
@@ -1280,26 +1449,44 @@ enter_smm(int in_hlt)
 void
 enter_smm_check(int in_hlt)
 {
-    if ((in_smm == 0) && smi_line) {
-#ifdef ENABLE_386_COMMON_LOG
-        x386_common_log("SMI while not in SMM\n");
-#endif
-        enter_smm(in_hlt);
-    } else if ((in_smm == 1) && smi_line) {
-        /* Mark this so that we don't latch more than one SMI. */
-#ifdef ENABLE_386_COMMON_LOG
-        x386_common_log("SMI while in unlatched SMM\n");
-#endif
-        smi_latched = 1;
-    } else if ((in_smm == 2) && smi_line) {
-        /* Mark this so that we don't latch more than one SMI. */
-#ifdef ENABLE_386_COMMON_LOG
-        x386_common_log("SMI while in latched SMM\n");
-#endif
-    }
+    uint8_t ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) ==
+                          (CCR1_USE_SMI | CCR1_SM3)) && (cyrix.arr[3].size > 0);
 
-    if (smi_line)
+    if (smi_line) {
+        if (!is_cxsmm || ccr1_check)  switch (in_smm) {
+            default:
+#ifdef ENABLE_386_COMMON_LOG
+                fatal("SMI while in_smm = %i\n", in_smm);
+                break;
+#endif
+            case 0:
+#ifdef ENABLE_386_COMMON_LOG
+                x386_common_log("SMI while not in SMM\n");
+#endif
+                enter_smm(in_hlt);
+                break;
+            case 1:
+                /* Mark this so that we don't latch more than one SMI. */
+#ifdef ENABLE_386_COMMON_LOG
+                x386_common_log("SMI while in unlatched SMM\n");
+#endif
+                smi_latched = 1;
+                break;
+            case 2:
+#ifdef ENABLE_386_COMMON_LOG
+                x386_common_log("SMI while in latched SMM\n");
+#endif
+                break;
+        }
+#ifdef ENABLE_386_COMMON_LOG
+        else {
+            x386_common_log("SMI while in Cyrix disabled mode\n");
+            x386_common_log("lol\n");
+        }
+#endif
+
         smi_line = 0;
+    }
 }
 
 void
@@ -1328,6 +1515,9 @@ leave_smm(void)
         else
             cyrix_load_seg_descriptor_2386(smram_state - 0x20, &cpu_state.seg_cs);
         saved_state[6] = readmeml(0, smram_state - 0x24);
+        saved_state[7] = readmeml(0, smram_state - 0x28);
+        saved_state[8] = readmeml(0, smram_state - 0x2c);
+        saved_state[9] = readmeml(0, smram_state - 0x30);
     } else {
         for (uint8_t n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
             smram_state -= 4;
@@ -1412,7 +1602,7 @@ x86_int(int num)
     cpu_state.pc = cpu_state.oldpc;
 
     if (msw & 1)
-        is486 ? pmodeint(num, 0) : pmodeint_2386(num, 0);
+        cpu_use_exec ? pmodeint(num, 0) : pmodeint_2386(num, 0);
     else {
         addr = (num << 2) + idt.base;
 
@@ -1445,7 +1635,7 @@ x86_int(int num)
             oxpc = cpu_state.pc;
 #endif
             cpu_state.pc = readmemw(0, addr);
-            is486 ? loadcs(readmemw(0, addr + 2)) : loadcs_2386(readmemw(0, addr + 2));
+            cpu_use_exec ? loadcs(readmemw(0, addr + 2)) : loadcs_2386(readmemw(0, addr + 2));
         }
     }
 
@@ -1462,7 +1652,7 @@ x86_int_sw(int num)
     cycles -= timing_int;
 
     if (msw & 1)
-        is486 ? pmodeint(num, 1) : pmodeint_2386(num, 1);
+        cpu_use_exec ? pmodeint(num, 1) : pmodeint_2386(num, 1);
     else {
         addr = (num << 2) + idt.base;
 
@@ -1487,12 +1677,15 @@ x86_int_sw(int num)
             oxpc = cpu_state.pc;
 #endif
             cpu_state.pc = readmemw(0, addr);
-            is486 ? loadcs(readmemw(0, addr + 2)) : loadcs_2386(readmemw(0, addr + 2));
+            cpu_use_exec ? loadcs(readmemw(0, addr + 2)) : loadcs_2386(readmemw(0, addr + 2));
             cycles -= timing_int_rm;
         }
     }
 
-    trap &= ~1;
+    if (cpu_use_exec)
+        trap = 0;
+    else
+        trap &= ~1;
     CPU_BLOCK_END();
 }
 
@@ -1529,13 +1722,16 @@ x86_int_sw_rm(int num)
     cpu_state.eflags &= ~VIF_FLAG;
     cpu_state.flags &= ~T_FLAG;
     cpu_state.pc = new_pc;
-    is486 ? loadcs(new_cs) : loadcs_2386(new_cs);
+    cpu_use_exec ? loadcs(new_cs) : loadcs_2386(new_cs);
 #ifndef USE_NEW_DYNAREC
     oxpc = cpu_state.pc;
 #endif
 
     cycles -= timing_int_rm;
-    trap &= ~1;
+    if (cpu_use_exec)
+        trap = 0;
+    else
+        trap &= ~1;
     CPU_BLOCK_END();
 
     return 0;
@@ -1551,6 +1747,13 @@ int
 checkio(uint32_t port, int mask)
 {
     uint32_t t;
+
+    if (!(tr.access & 0x08)) {
+        if ((CPL) > (IOPL))
+            return 1;
+
+        return 0;
+    }
 
     cpl_override = 1;
     t            = readmemw(tr.base, 0x66);
@@ -1688,7 +1891,7 @@ cpu_386_check_instruction_fault(void)
 }
 
 int
-sysenter(uint32_t fetchdat)
+sysenter(UNUSED(uint32_t fetchdat))
 {
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSENTER called\n");
@@ -1770,7 +1973,7 @@ sysenter(uint32_t fetchdat)
 }
 
 int
-sysexit(uint32_t fetchdat)
+sysexit(UNUSED(uint32_t fetchdat))
 {
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSEXIT called\n");
@@ -1857,7 +2060,7 @@ sysexit(uint32_t fetchdat)
 }
 
 int
-syscall_op(uint32_t fetchdat)
+syscall_op(UNUSED(uint32_t fetchdat))
 {
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSCALL called\n");
@@ -1909,7 +2112,7 @@ syscall_op(uint32_t fetchdat)
 }
 
 int
-sysret(uint32_t fetchdat)
+sysret(UNUSED(uint32_t fetchdat))
 {
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSRET called\n");
@@ -2001,6 +2204,12 @@ cpu_fast_off_reset(void)
 void
 smi_raise(void)
 {
+    uint8_t ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) ==
+                          (CCR1_USE_SMI | CCR1_SM3)) && (cyrix.arr[3].size > 0);
+
+    if (is_cxsmm && !ccr1_check)
+        return;
+
     if (is486 && (cpu_fast_off_flags & 0x80000000))
         cpu_fast_off_advance();
 

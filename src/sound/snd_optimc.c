@@ -391,7 +391,10 @@ optimc_init(const device_t *info)
     optimc->sb              = calloc(1, sizeof(sb_t));
     optimc->sb->opl_enabled = 1;
 
-    sb_dsp_init(&optimc->sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, optimc);
+    optimc->fm_type = (info->local & OPTIMC_OPL4) ? FM_YMF278B : FM_YMF262;
+
+    sb_dsp_set_real_opl(&optimc->sb->dsp, optimc->fm_type != FM_YMF278B);
+    sb_dsp_init(&optimc->sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, optimc);
     sb_dsp_setaddr(&optimc->sb->dsp, optimc->cur_addr);
     sb_dsp_setirq(&optimc->sb->dsp, optimc->cur_irq);
     sb_dsp_setdma8(&optimc->sb->dsp, optimc->cur_dma);
@@ -400,7 +403,6 @@ optimc_init(const device_t *info)
     optimc->sb->opl_mixer = optimc;
     optimc->sb->opl_mix   = optimc_filter_opl;
 
-    optimc->fm_type = (info->local & OPTIMC_OPL4) ? FM_YMF278B : FM_YMF262;
     fm_driver_get(optimc->fm_type, &optimc->sb->opl);
     io_sethandler(optimc->cur_addr + 0, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
     io_sethandler(optimc->cur_addr + 8, 0x0002, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
@@ -411,10 +413,13 @@ optimc_init(const device_t *info)
     io_sethandler(optimc->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, optimc->sb);
 
     sound_add_handler(optimc_get_buffer, optimc);
+    if (optimc->fm_type == FM_YMF278B)
+        wavetable_add_handler(sb_get_music_buffer_sbpro, optimc->sb);
+    else
+        music_add_handler(sb_get_music_buffer_sbpro, optimc->sb);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, optimc->sb); /* CD audio filter for the default context */
 
-    optimc->mpu = (mpu_t *) malloc(sizeof(mpu_t));
-    memset(optimc->mpu, 0, sizeof(mpu_t));
+    optimc->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(optimc->mpu, optimc->cur_mpu401_addr, optimc->cur_mpu401_irq, M_UART, device_get_config_int("receive_input401"));
 
     if (device_get_config_int("receive_input"))
@@ -451,18 +456,26 @@ mirosound_pcm10_available(void)
 static const device_config_t optimc_config[] = {
   // clang-format off
     {
-        .name = "receive_input",
-        .description = "Receive input (SB MIDI)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input401",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -471,12 +484,12 @@ static const device_config_t optimc_config[] = {
 const device_t acermagic_s20_device = {
     .name          = "AcerMagic S20",
     .internal_name = "acermagic_s20",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0xE3 | OPTIMC_CS4231,
     .init          = optimc_init,
     .close         = optimc_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = optimc_speed_changed,
     .force_redraw  = NULL,
     .config        = optimc_config
@@ -485,12 +498,12 @@ const device_t acermagic_s20_device = {
 const device_t mirosound_pcm10_device = {
     .name          = "miroSOUND PCM10",
     .internal_name = "mirosound_pcm10",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0xE3 | OPTIMC_OPL4,
     .init          = optimc_init,
     .close         = optimc_close,
     .reset         = NULL,
-    { .available = mirosound_pcm10_available },
+    .available     = mirosound_pcm10_available,
     .speed_changed = optimc_speed_changed,
     .force_redraw  = NULL,
     .config        = optimc_config

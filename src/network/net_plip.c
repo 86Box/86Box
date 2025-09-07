@@ -26,15 +26,13 @@
 #include <stdarg.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
-#include <86box/language.h>
+#include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
-#include <86box/device.h>
 #include <86box/thread.h>
-#include <86box/timer.h>
 #include <86box/network.h>
-#include <86box/net_plip.h>
 #include <86box/plat_unused.h>
 
 enum {
@@ -447,8 +445,7 @@ plip_rx(void *priv, uint8_t *buf, int io_len)
 static void *
 plip_lpt_init(void *lpt)
 {
-    plip_t *dev = (plip_t *) malloc(sizeof(plip_t));
-    memset(dev, 0, sizeof(plip_t));
+    plip_t *dev = (plip_t *) calloc(1, sizeof(plip_t));
 
     plip_log(1, "PLIP: lpt_init()\n");
 
@@ -491,15 +488,19 @@ plip_close(void *priv)
 }
 
 const lpt_device_t lpt_plip_device = {
-    .name          = "Parallel Line Internet Protocol",
-    .internal_name = "plip",
-    .init          = plip_lpt_init,
-    .close         = plip_close,
-    .write_data    = plip_write_data,
-    .write_ctrl    = plip_write_ctrl,
-    .read_data     = NULL,
-    .read_status   = plip_read_status,
-    .read_ctrl     = NULL
+    .name             = "Parallel Line Internet Protocol",
+    .internal_name    = "plip",
+    .init             = plip_lpt_init,
+    .close            = plip_close,
+    .write_data       = plip_write_data,
+    .write_ctrl       = plip_write_ctrl,
+    .strobe           = NULL,
+    .read_status      = plip_read_status,
+    .read_ctrl        = NULL,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL,
+    .priv             = NULL,
+    .lpt              = NULL
 };
 
 const device_t plip_device = {
@@ -510,7 +511,7 @@ const device_t plip_device = {
     .init          = plip_net_init,
     .close         = NULL,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

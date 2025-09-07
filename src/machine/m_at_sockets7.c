@@ -8,11 +8,9 @@
  *
  *          Implementation of Super Socket 7 machines.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -40,6 +38,7 @@
 #include <86box/snd_ac97.h>
 #include <86box/clock.h>
 
+/* ALi ALADDiN V */
 int
 machine_at_p5a_init(const machine_t *model)
 {
@@ -135,6 +134,11 @@ machine_at_gwlucas_init(const machine_t *model)
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
+    if (sound_card_current[0] == SOUND_INTERNAL) {
+        device_add(machine_get_snd_device(machine));
+        device_add(&cs4297_device);
+    }
+
     return ret;
 }
 
@@ -202,6 +206,7 @@ machine_at_5ax_init(const machine_t *model)
     return ret;
 }
 
+/* VIA MVP3 */
 int
 machine_at_ax59pro_init(const machine_t *model)
 {
@@ -226,10 +231,40 @@ machine_at_ax59pro_init(const machine_t *model)
 
     device_add(&via_mvp3_device);
     device_add(&via_vt82c586b_device);
-    device_add(&keyboard_ps2_pci_device);
-    device_add(&w83877tf_device);
+    device_add_params(&w83877_device, (void *) (W83877TF | W83877_250));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    return ret;
+}
+
+int
+machine_at_delhi3_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/delhi3/DELHI3.ROM",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
+
+    device_add(&via_mvp3_device);
+    device_add(&via_vt82c596a_device);
+    device_add_params(&w83877_device, (void *) (W83877TF | W83877_250));
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    if ((sound_card_current[0] == SOUND_INTERNAL) && machine_get_snd_device(machine))
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -257,8 +292,7 @@ machine_at_mvp3_init(const machine_t *model)
 
     device_add(&via_mvp3_device);
     device_add(&via_vt82c586b_device);
-    device_add(&keyboard_ps2_pci_device);
-    device_add(&w83877tf_device);
+    device_add_params(&w83877_device, (void *) (W83877TF | W83877_3F0));
     device_add(&sst_flash_39sf010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
@@ -289,7 +323,6 @@ machine_at_ficva503a_init(const machine_t *model)
 
     device_add(&via_mvp3_device);
     device_add(&via_vt82c686a_device); /* fans: CPU1, Chassis; temperatures: CPU, System, unused */
-    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
     hwm_values.temperatures[0] += 2; /* CPU offset */
@@ -327,13 +360,41 @@ machine_at_5emapro_init(const machine_t *model)
 
     device_add(&via_mvp3_device); /* Rebranded as EQ82C6638 */
     device_add(&via_vt82c686a_device);
-    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf010_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
     device_add(&via_vt82c686_hwm_device); /* fans: CPU1, Chassis; temperatures: CPU, System, unused */
     hwm_values.temperatures[0] += 2;      /* CPU offset */
     hwm_values.temperatures[1] += 2;      /* System offset */
     hwm_values.temperatures[2] = 0;       /* unused */
+
+    return ret;
+}
+
+/* SiS 5591 */
+int
+machine_at_5sg100_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/5sg100/5sg.20g",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   0, 0, 0, 0);
+    device_add(&sis_5591_1997_device);
+    device_add_params(&w83877_device, (void *) (W83877TF | W83877_3F0));
+    device_add(&sst_flash_29ee010_device);
 
     return ret;
 }

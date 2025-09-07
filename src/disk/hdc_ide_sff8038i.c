@@ -42,7 +42,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
-#include <86box/zip.h>
+#include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/plat_unused.h>
 
@@ -117,6 +117,9 @@ sff_bus_master_write(uint16_t port, uint8_t val, void *priv)
 #endif
 
     sff_log("SFF-8038i Bus master BYTE  write: %04X       %02X\n", port, val);
+
+    if (dev->ven_write != NULL)
+        val = dev->ven_write(port, val, dev->priv);
 
     switch (port & 7) {
         case 0:
@@ -255,6 +258,9 @@ sff_bus_master_read(uint16_t port, void *priv)
             break;
     }
 
+    if (dev->ven_read != NULL)
+        ret= dev->ven_read(port, ret, dev->priv);
+
     sff_log("SFF-8038i Bus master BYTE  read : %04X       %02X\n", port, ret);
 
     return ret;
@@ -316,14 +322,14 @@ sff_bus_master_readl(uint16_t port, void *priv)
 }
 
 int
-sff_bus_master_dma(uint8_t *data, int transfer_length, int out, void *priv)
+sff_bus_master_dma(uint8_t *data, int transfer_length, int total_length, int out, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
 #ifdef ENABLE_SFF_LOG
     char *sop;
 #endif
 
-    int force_end = 0;
+    int force_end  = 0;
     int buffer_pos = 0;
 
 #ifdef ENABLE_SFF_LOG
@@ -365,9 +371,15 @@ sff_bus_master_dma(uint8_t *data, int transfer_length, int out, void *priv)
             return 1; /* This block has exhausted the data to transfer and it was smaller than the count, break. */
         } else {
             if (!transfer_length && !dev->eot) {
-                sff_log("Total transfer length smaller than sum of all blocks, full block\n");
-                dev->status &= ~2;
-                return 1; /* We have exhausted the data to transfer but there's more blocks left, break. */
+                if (total_length) {
+                    sff_log("Total transfer length smaller than sum of all blocks, partial transfer\n");
+                    sff_bus_master_next_addr(dev);
+                    return 1; /* We have exhausted the data to transfer but there's more blocks left, break. */
+                } else {
+                    sff_log("Total transfer length smaller than sum of all blocks, full block\n");
+                    dev->status &= ~2;
+                    return 1; /* We have exhausted the data to transfer but there's more blocks left, break. */
+                }
             } else if (transfer_length && dev->eot) {
                 sff_log("Total transfer length greater than sum of all blocks\n");
                 dev->status |= 2;
@@ -375,7 +387,7 @@ sff_bus_master_dma(uint8_t *data, int transfer_length, int out, void *priv)
             } else if (dev->eot) {
                 sff_log("Regular EOT\n");
                 dev->status &= ~3;
-                return 1; /* We have regularly reached EOT - clear status and break. */
+                return 3; /* We have regularly reached EOT - clear status and break. */
             } else {
                 /* We have more to transfer and there are blocks left, get next block. */
                 sff_bus_master_next_addr(dev);
@@ -436,9 +448,9 @@ sff_bus_master_set_irq(uint8_t status, void *priv)
         case IRQ_MODE_SIS_551X:
             /* SiS 551x mode. */
             if (irq)
-                pci_set_mirq(2, 1, &dev->irq_state);
+                pci_set_mirq(dev->mirq, 1, &dev->irq_state);
             else
-                pci_clear_mirq(2, 1, &dev->irq_state);
+                pci_clear_mirq(dev->mirq, 1, &dev->irq_state);
             break;
     }
 }
@@ -475,19 +487,22 @@ sff_reset(void *priv)
 #endif
 
     for (uint8_t i = 0; i < HDD_NUM; i++) {
-        if ((hdd[i].bus == HDD_BUS_ATAPI) && (hdd[i].ide_channel < 4) && hdd[i].priv)
+        if ((hdd[i].bus_type == HDD_BUS_ATAPI) && (hdd[i].ide_channel < 4) && hdd[i].priv)
             scsi_disk_reset((scsi_common_t *) hdd[i].priv);
     }
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
-        if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && (cdrom[i].ide_channel < 4) && cdrom[i].priv)
+        if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && (cdrom[i].ide_channel < 4) &&
+            cdrom[i].priv)
             scsi_cdrom_reset((scsi_common_t *) cdrom[i].priv);
     }
-    for (uint8_t i = 0; i < ZIP_NUM; i++) {
-        if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && (zip_drives[i].ide_channel < 4) && zip_drives[i].priv)
-            zip_reset((scsi_common_t *) zip_drives[i].priv);
+    for (uint8_t i = 0; i < RDISK_NUM; i++) {
+        if ((rdisk_drives[i].bus_type == RDISK_BUS_ATAPI) && (rdisk_drives[i].ide_channel < 4) &&
+            rdisk_drives[i].priv)
+            rdisk_reset((scsi_common_t *) rdisk_drives[i].priv);
     }
     for (uint8_t i = 0; i < MO_NUM; i++) {
-        if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && (mo_drives[i].ide_channel < 4) && mo_drives[i].priv)
+        if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && (mo_drives[i].ide_channel < 4) &&
+            mo_drives[i].priv)
             mo_reset((scsi_common_t *) mo_drives[i].priv);
     }
 
@@ -554,6 +569,22 @@ sff_set_irq_pin(sff8038i_t *dev, int irq_pin)
     dev->irq_pin = irq_pin;
 }
 
+void
+sff_set_mirq(sff8038i_t *dev, uint8_t mirq)
+{
+    dev->mirq = mirq;
+}
+
+void
+sff_set_ven_handlers(sff8038i_t *dev, uint8_t (*ven_write)(uint16_t port, uint8_t val, void *priv),
+                     uint8_t (*ven_read)(uint16_t port, uint8_t val, void *priv), void *priv)
+{
+    dev->ven_write = ven_write;
+    dev->ven_read  = ven_read;
+
+    dev->priv      = priv;
+}
+
 static void
 sff_close(void *priv)
 {
@@ -569,8 +600,7 @@ sff_close(void *priv)
 static void *
 sff_init(UNUSED(const device_t *info))
 {
-    sff8038i_t *dev = (sff8038i_t *) malloc(sizeof(sff8038i_t));
-    memset(dev, 0, sizeof(sff8038i_t));
+    sff8038i_t *dev = (sff8038i_t *) calloc(1, sizeof(sff8038i_t));
 
     /* Make sure to only add IDE once. */
     if (next_id == 0)
@@ -586,6 +616,7 @@ sff_init(UNUSED(const device_t *info))
     dev->pci_irq_line = 14;
     dev->irq_level    = 0;
     dev->irq_state    = 0;
+    dev->mirq         = 2;
 
     dev->channel      = next_id;
     next_id++;
@@ -601,7 +632,7 @@ const device_t sff8038i_device = {
     .init          = sff_init,
     .close         = sff_close,
     .reset         = sff_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

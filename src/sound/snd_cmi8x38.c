@@ -497,7 +497,7 @@ cmi8x38_sb_mixer_write(uint16_t addr, uint8_t val, void *priv)
         /* Set TDMA channels if auto-detection is enabled. */
         if ((dev->io_regs[0x27] & 0x01) && (mixer->index == 0x81)) {
             dev->tdma_8 = dev->sb->dsp.sb_8_dmanum;
-            if (dev->sb->dsp.sb_type >= SB16)
+            if (dev->sb->dsp.sb_type >= SB16_DSP_404)
                 dev->tdma_16 = dev->sb->dsp.sb_16_dmanum;
         }
     } else {
@@ -706,11 +706,11 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
         case 0x02:
             /* Reset or start DMA channels if requested. */
-            dev->io_regs[addr] = val & 0x03;
+            dev->io_regs[addr] = val & 0x0f;
             for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
                 if (val & (0x04 << i)) {
                     /* Reset DMA channel. */
-                    val &= ~(0x01 << i);
+                    dev->io_regs[addr] &= ~(0x01 << i); /* clear enable */
                     dev->io_regs[0x10] &= ~(0x01 << i); /* clear interrupt */
 
                     /* Reset Sound Blaster as well when resetting channel 0. */
@@ -724,15 +724,11 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
                 }
             }
 
-            /* Clear reset bits. */
-            val &= 0x03;
-
             /* Start playback along with DMA channels. */
-            if (val & 0x03)
+            if (dev->io_regs[addr] & 0x03)
                 cmi8x38_start_playback(dev);
 
             /* Update interrupts. */
-            dev->io_regs[addr] = val;
             cmi8x38_update_irqs(dev);
             break;
 
@@ -864,7 +860,7 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
         case 0x1b:
             if (dev->type == CMEDIA_CMI8338)
-                val &= 0xf0;
+                val &= 0xf4; /* bit 2 reserved, mpxplay driver expects writable */
             else
                 val &= 0xd7;
             break;
@@ -883,7 +879,7 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
             dev->sb->dsp.sbleftright_default = !!(val & 0x02);
 
             /* Enable or disable SB16 mode. */
-            dev->sb->dsp.sb_type = (val & 0x01) ? SBPRO2 : SB16;
+            dev->sb->dsp.sb_type = (val & 0x01) ? SBPRO2_DSP_302 : SB16_DSP_405;
             break;
 
         case 0x22:
@@ -913,6 +909,24 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
                 dev->sb->opl.write(addr, val, dev->sb->opl.priv);
             return;
 
+        case 0x80 ... 0x83:
+        case 0x88 ... 0x8b:
+            dev->io_regs[addr]                      = val;
+            dev->dma[(addr & 0x78) >> 3].sample_ptr = *((uint32_t *) &dev->io_regs[addr & 0xfc]);
+            return;
+
+        case 0x84 ... 0x85:
+        case 0x8c ... 0x8d:
+            dev->io_regs[addr]                           = val;
+            dev->dma[(addr & 0x78) >> 3].frame_count_dma = dev->dma[(addr & 0x78) >> 3].sample_count_out = *((uint16_t *) &dev->io_regs[addr & 0xfe]) + 1;
+            return;
+
+        case 0x86 ... 0x87:
+        case 0x8e ... 0x8f:
+            dev->io_regs[addr]                                = val;
+            dev->dma[(addr & 0x78) >> 3].frame_count_fragment = *((uint16_t *) &dev->io_regs[addr & 0xfe]) + 1;
+            return;
+
         case 0x92:
             if (dev->type == CMEDIA_CMI8338)
                 return;
@@ -931,7 +945,6 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
         case 0x26:
         case 0x70:
         case 0x71:
-        case 0x80 ... 0x8f:
             break;
 
         default:
@@ -1421,8 +1434,7 @@ cmi8x38_reset(void *priv)
 static void *
 cmi8x38_init(const device_t *info)
 {
-    cmi8x38_t *dev = malloc(sizeof(cmi8x38_t));
-    memset(dev, 0, sizeof(cmi8x38_t));
+    cmi8x38_t *dev = calloc(1, sizeof(cmi8x38_t));
 
     /* Set the chip type. */
     if ((info->local == CMEDIA_CMI8738_6CH) && !device_get_config_int("six_channel"))
@@ -1496,11 +1508,15 @@ cmi8x38_close(void *priv)
 static const device_config_t cmi8x38_config[] = {
   // clang-format off
     {
-        .name = "receive_input",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -1509,18 +1525,26 @@ static const device_config_t cmi8x38_config[] = {
 static const device_config_t cmi8738_config[] = {
   // clang-format off
     {
-        .name = "six_channel",
-        .description = "6CH variant (6-channel)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "six_channel",
+        .description    = "6CH variant (6-channel)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "receive_input",
-        .description = "Receive input (MPU-401)",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -1534,7 +1558,7 @@ const device_t cmi8338_device = {
     .init          = cmi8x38_init,
     .close         = cmi8x38_close,
     .reset         = cmi8x38_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = cmi8x38_speed_changed,
     .force_redraw  = NULL,
     .config        = cmi8x38_config
@@ -1548,7 +1572,7 @@ const device_t cmi8338_onboard_device = {
     .init          = cmi8x38_init,
     .close         = cmi8x38_close,
     .reset         = cmi8x38_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = cmi8x38_speed_changed,
     .force_redraw  = NULL,
     .config        = cmi8x38_config
@@ -1562,7 +1586,7 @@ const device_t cmi8738_device = {
     .init          = cmi8x38_init,
     .close         = cmi8x38_close,
     .reset         = cmi8x38_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = cmi8x38_speed_changed,
     .force_redraw  = NULL,
     .config        = cmi8738_config
@@ -1576,7 +1600,7 @@ const device_t cmi8738_onboard_device = {
     .init          = cmi8x38_init,
     .close         = cmi8x38_close,
     .reset         = cmi8x38_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = cmi8x38_speed_changed,
     .force_redraw  = NULL,
     .config        = cmi8x38_config
@@ -1590,7 +1614,7 @@ const device_t cmi8738_6ch_onboard_device = {
     .init          = cmi8x38_init,
     .close         = cmi8x38_close,
     .reset         = cmi8x38_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = cmi8x38_speed_changed,
     .force_redraw  = NULL,
     .config        = cmi8x38_config

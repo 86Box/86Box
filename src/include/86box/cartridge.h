@@ -21,7 +21,10 @@
 extern "C" {
 #endif
 
+#define CART_IMAGE_HISTORY    10
+
 extern char cart_fns[2][512];
+extern char *cart_image_history[2][CART_IMAGE_HISTORY];
 
 extern void cart_load(int drive, char *fn);
 extern void cart_close(int drive);

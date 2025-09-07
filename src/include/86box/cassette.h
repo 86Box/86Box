@@ -75,7 +75,7 @@ void           pc_cas_del(pc_cassette_t *cas);
  * @short  Set the cassette file
  * @return True on error, false otherwise
  *****************************************************************************/
-int pc_cas_set_fname(pc_cassette_t *cas, const char *fname);
+int pc_cas_set_fname(pc_cassette_t *cas, char *fname);
 
 /*!***************************************************************************
  * @short  Get the cassette mode
@@ -153,10 +153,13 @@ void pc_cas_print_state(const pc_cassette_t *cas);
 void pc_cas_clock(pc_cassette_t *cas, unsigned long cnt);
 void pc_cas_advance(pc_cassette_t *cas);
 
+#define CASSETTE_IMAGE_HISTORY    10
+
 extern pc_cassette_t *cassette;
 
 extern char          cassette_fname[512];
 extern char          cassette_mode[512];
+extern char *        cassette_image_history[CASSETTE_IMAGE_HISTORY];
 extern unsigned long cassette_pos;
 extern unsigned long cassette_srate;
 extern int           cassette_enable;

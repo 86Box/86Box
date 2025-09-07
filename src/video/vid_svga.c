@@ -46,6 +46,7 @@
 #include <86box/vid_xga_device.h>
 
 void svga_doblit(int wx, int wy, svga_t *svga);
+void svga_poll(void *priv);
 
 svga_t *svga_8514;
 
@@ -57,7 +58,6 @@ uint8_t svga_rotate[8][256];
 /*Primary SVGA device. As multiple video cards are not yet supported this is the
   only SVGA device.*/
 static svga_t *svga_pri;
-int            vga_on;
 
 #ifdef ENABLE_SVGA_LOG
 int svga_do_log = ENABLE_SVGA_LOG;
@@ -84,12 +84,77 @@ svga_get_pri(void)
 }
 
 void
+svga_set_poll(svga_t *svga)
+{
+    svga_log("SVGA Timer activated, enabled?=%x.\n", timer_is_enabled(&svga->timer));
+    timer_set_callback(&svga->timer, svga_poll);
+    if (!timer_is_enabled(&svga->timer))
+        timer_enable(&svga->timer);
+}
+
+void
 svga_set_override(svga_t *svga, int val)
 {
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    xga_t     *xga = (xga_t *) svga->xga;
+    uint8_t    ret_poll = 0;
+
     if (svga->override && !val)
         svga->fullchange = svga->monitor->mon_changeframecount;
+
     svga->override = val;
 
+    svga_log("Override=%x.\n", val);
+    if (ibm8514_active && (svga->dev8514 != NULL))
+        ret_poll |= 1;
+
+    if (xga_active && (svga->xga != NULL))
+        ret_poll |= 2;
+
+    if (svga->override)
+        svga_set_poll(svga);
+    else {
+        switch (ret_poll) {
+            case 0:
+            default:
+                svga_set_poll(svga);
+                break;
+
+            case 1:
+                if (ibm8514_active && (svga->dev8514 != NULL)) {
+                    if (dev->on)
+                        ibm8514_set_poll(svga);
+                    else
+                        svga_set_poll(svga);
+                } else
+                    svga_set_poll(svga);
+                break;
+
+            case 2:
+                if (xga_active && (svga->xga != NULL)) {
+                    if (xga->on)
+                        xga_set_poll(svga);
+                    else
+                        svga_set_poll(svga);
+                } else
+                    svga_set_poll(svga);
+                break;
+
+            case 3:
+                if (ibm8514_active && (svga->dev8514 != NULL) && xga_active && (svga->xga != NULL))  {
+                    if (dev->on)
+                        ibm8514_set_poll(svga);
+                    else if (xga->on)
+                        xga_set_poll(svga);
+                    else
+                        svga_set_poll(svga);
+                } else
+                    svga_set_poll(svga);
+                break;
+        }
+    }
+
+#ifdef OVERRIDE_OVERSCAN
     if (!val) {
         /* Override turned off, restore overscan X and Y per the CRTC. */
         svga->monitor->mon_overscan_y = (svga->rowcount + 1) << 1;
@@ -104,6 +169,7 @@ svga_set_override(svga_t *svga, int val)
     } else
         svga->monitor->mon_overscan_x = svga->monitor->mon_overscan_y = 16;
     /* Override turned off, fix overcan X and Y to 16. */
+#endif
 }
 
 void
@@ -116,8 +182,10 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
     uint8_t    index;
     uint8_t    pal4to16[16] = { 0, 7, 0x38, 0x3f, 0, 3, 4, 0x3f, 0, 2, 4, 0x3e, 0, 3, 5, 0x3f };
 
-    if (!dev && (addr >= 0x2ea) && (addr <= 0x2ed))
-        return;
+    if ((addr >= 0x2ea) && (addr <= 0x2ed)) {
+        if (!dev)
+            return;
+    }
 
     switch (addr) {
         case 0x2ea:
@@ -143,13 +211,13 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 case 2:
                     index                 = dev->dac_addr & 0xff;
                     dev->dac_b = val;
-                    svga->vgapal[index].r = dev->dac_r;
-                    svga->vgapal[index].g = dev->dac_g;
-                    svga->vgapal[index].b = dev->dac_b;
+                    dev->_8514pal[index].r = dev->dac_r;
+                    dev->_8514pal[index].g = dev->dac_g;
+                    dev->_8514pal[index].b = dev->dac_b;
                     if (svga->ramdac_type == RAMDAC_8BIT)
-                        dev->pallook[index] = makecol32(svga->vgapal[index].r, svga->vgapal[index].g, svga->vgapal[index].b);
+                        dev->pallook[index] = makecol32(dev->_8514pal[index].r, dev->_8514pal[index].g, dev->_8514pal[index].b);
                     else
-                        dev->pallook[index] = makecol32(video_6to8[svga->vgapal[index].r & 0x3f], video_6to8[svga->vgapal[index].g & 0x3f], video_6to8[svga->vgapal[index].b & 0x3f]);
+                        dev->pallook[index] = makecol32(video_6to8[dev->_8514pal[index].r & 0x3f], video_6to8[dev->_8514pal[index].g & 0x3f], video_6to8[dev->_8514pal[index].b & 0x3f]);
                     dev->dac_pos  = 0;
                     dev->dac_addr = (dev->dac_addr + 1) & 0xff;
                     break;
@@ -166,6 +234,7 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 if ((val & 0x20) != svga->attr_palette_enable) {
                     svga->fullchange          = 3;
                     svga->attr_palette_enable = val & 0x20;
+                    svga_log("Write Port %03x palette enable=%02x.\n", addr, svga->attr_palette_enable);
                     svga_recalctimings(svga);
                 }
             } else {
@@ -190,12 +259,16 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 /* Recalculate timings on change of attribute register 0x11
                    (overscan border color) too. */
                 if (svga->attraddr == 0x10) {
-                    if (o != val)
+                    if (o != val) {
+                        svga_log("ATTR10.\n");
                         svga_recalctimings(svga);
+                    }
                 } else if (svga->attraddr == 0x11) {
                     svga->overscan_color = svga->pallook[svga->attrregs[0x11]];
-                    if (o != val)
+                    if (o != val) {
+                        svga_log("ATTR11.\n");
                         svga_recalctimings(svga);
+                    }
                 } else if (svga->attraddr == 0x12) {
                     if ((val & 0xf) != svga->plane_mask)
                         svga->fullchange = svga->monitor->mon_changeframecount;
@@ -207,21 +280,20 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3c2:
             svga->miscout  = val;
             svga->vidclock = val & 4;
-            io_removehandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->priv);
-            if (!(val & 1))
-                io_sethandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->priv);
+            if (svga->priv_parent == NULL) {
+                io_removehandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->priv);
+                if (!(val & 1))
+                    io_sethandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->priv);
+            }
             svga_recalctimings(svga);
             break;
         case 0x3c3:
             if (xga_active && xga)
                 xga->on = (val & 0x01) ? 0 : 1;
-            if (ibm8514_active && dev) {
-                dev->on[0] = (val & 0x01) ? 0 : 1;
-                dev->on[1] = dev->on[0];
-            }
+            if (ibm8514_active && dev)
+                dev->on = (val & 0x01) ? 0 : 1;
 
-            svga_log("3C3: VGA ON = %d.\n", val & 0x01);
-            vga_on = val & 0x01;
+            svga_log("Write Port 3C3=%x.\n", val & 0x01);
             svga_recalctimings(svga);
             break;
         case 0x3c4:
@@ -232,13 +304,16 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 return;
             o                                  = svga->seqregs[svga->seqaddr & 0xf];
             svga->seqregs[svga->seqaddr & 0xf] = val;
-            if (o != val && (svga->seqaddr & 0xf) == 1)
+            if (o != val && (svga->seqaddr & 0xf) == 1) {
+                svga_log("SEQADDR1 write1.\n");
                 svga_recalctimings(svga);
+            }
             switch (svga->seqaddr & 0xf) {
                 case 1:
                     if (svga->scrblank && !(val & 0x20))
                         svga->fullchange = 3;
                     svga->scrblank = (svga->scrblank & ~0x20) | (val & 0x20);
+                    svga_log("SEQADDR1 write2.\n");
                     svga_recalctimings(svga);
                     break;
                 case 2:
@@ -255,7 +330,9 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 case 4:
                     svga->chain2_write = !(val & 4);
                     svga->chain4       = (svga->chain4 & ~8) | (val & 8);
-                    svga->fast         = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) && ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) && !(svga->adv_flags & FLAG_ADDR_BY8);
+                    svga->fast         = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) &&
+                                        ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) &&
+                                        !(svga->adv_flags & FLAG_ADDR_BY8);
                     break;
 
                 default:
@@ -269,7 +346,7 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3c8:
             svga->dac_pos    = 0;
             svga->dac_status = addr & 0x03;
-            svga->dac_addr   = (val + (addr & 0x01)) & 255;
+            svga->dac_addr   = (val + (addr & 0x01)) & 0xff;
             break;
         case 0x3c9:
             if (svga->adv_flags & FLAG_RAMDAC_SHIFT)
@@ -285,7 +362,7 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                     svga->dac_pos++;
                     break;
                 case 2:
-                    index                 = svga->dac_addr & 255;
+                    index                 = svga->dac_addr & 0xff;
                     svga->dac_b           = val;
                     svga->vgapal[index].r = svga->dac_r;
                     svga->vgapal[index].g = svga->dac_g;
@@ -295,7 +372,7 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                     else
                         svga->pallook[index] = makecol32(video_6to8[svga->vgapal[index].r & 0x3f], video_6to8[svga->vgapal[index].g & 0x3f], video_6to8[svga->vgapal[index].b & 0x3f]);
                     svga->dac_pos  = 0;
-                    svga->dac_addr = (svga->dac_addr + 1) & 255;
+                    svga->dac_addr = (svga->dac_addr + 1) & 0xff;
                     break;
 
                 default:
@@ -329,6 +406,10 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                             case 0x4: /*64k at A0000*/
                                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
                                 svga->banked_mask = 0xffff;
+                                if (xga_active && (svga->xga != NULL)) {
+                                    xga->on = 0;
+                                    mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+                                }
                                 break;
                             case 0x8: /*32k at B0000*/
                                 mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
@@ -352,9 +433,13 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                     break;
             }
             svga->gdcreg[svga->gdcaddr & 15] = val;
-            svga->fast                       = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) && ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only);
-            if (((svga->gdcaddr & 15) == 5 && (val ^ o) & 0x70) || ((svga->gdcaddr & 15) == 6 && (val ^ o) & 1))
+            svga->fast                       = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) &&
+                                               ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) &&
+                                                !(svga->adv_flags & FLAG_ADDR_BY8);;
+            if (((svga->gdcaddr & 15) == 5 && (val ^ o) & 0x70) || ((svga->gdcaddr & 15) == 6 && (val ^ o) & 1)) {
+                svga_log("GDCADDR%02x recalc.\n", svga->gdcaddr & 0x0f);
                 svga_recalctimings(svga);
+            }
             break;
         case 0x3da:
             svga->fcr = val;
@@ -370,11 +455,14 @@ svga_in(uint16_t addr, void *priv)
 {
     svga_t    *svga = (svga_t *) priv;
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    xga_t     *xga = (xga_t *) svga->xga;
     uint8_t    index;
     uint8_t    ret = 0xff;
 
-    if (!dev && (addr >= 0x2ea) && (addr <= 0x2ed))
-        return ret;
+    if ((addr >= 0x2ea) && (addr <= 0x2ed)) {
+        if (!dev)
+            return ret;
+    }
 
     switch (addr) {
         case 0x2ea:
@@ -392,24 +480,24 @@ svga_in(uint16_t addr, void *priv)
                 case 0:
                     dev->dac_pos++;
                     if (svga->ramdac_type == RAMDAC_8BIT)
-                        ret = svga->vgapal[index].r;
+                        ret = dev->_8514pal[index].r;
                     else
-                        ret = svga->vgapal[index].r & 0x3f;
+                        ret = dev->_8514pal[index].r & 0x3f;
                     break;
                 case 1:
                     dev->dac_pos++;
                     if (svga->ramdac_type == RAMDAC_8BIT)
-                        ret = svga->vgapal[index].g;
+                        ret = dev->_8514pal[index].g;
                     else
-                        ret = svga->vgapal[index].g & 0x3f;
+                        ret = dev->_8514pal[index].g & 0x3f;
                     break;
                 case 2:
                     dev->dac_pos  = 0;
                     dev->dac_addr = (dev->dac_addr + 1) & 0xff;
                     if (svga->ramdac_type == RAMDAC_8BIT)
-                        ret = svga->vgapal[index].b;
+                        ret = dev->_8514pal[index].b;
                     else
-                        ret = svga->vgapal[index].b & 0x3f;
+                        ret = dev->_8514pal[index].b & 0x3f;
                     break;
 
                 default:
@@ -424,13 +512,37 @@ svga_in(uint16_t addr, void *priv)
             ret = svga->attrregs[svga->attraddr];
             break;
         case 0x3c2:
-            if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
-                ret = 0;
-            else
-                ret = 0x10;
+            if (svga->cable_connected) {
+                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
+                    ret = 0;
+                else
+                    ret = 0x10;
+            /* Monitor is not connected to the planar VGA if the PS/55 Display Adapter is installed. */
+            } else {
+                /*
+                   The IBM PS/55 Display Adapter has own Monitor Type Detection bit in the different I/O port (I/O 3E0h, 3E1h).
+                   When the monitor cable is connected to the Display Adapter, the port 3C2h returns the value as 'no cable connection'.
+                   The POST of PS/55 has an extra code. If the monitor is not detected on the planar VGA,
+                   it reads the POS data in NVRAM set by the reference diskette, and writes the BIOS Data Area (Mem 487h, 489h).
+                   MONCHK.EXE in the reference diskette uses both I/O ports to determine the monitor type, updates the NVRAM and BDA.
+                */
+                if (svga->vgapal[0].r >= 10 || svga->vgapal[0].g >= 10 || svga->vgapal[0].b >= 10)
+                    ret = 0;
+                else
+                    ret = 0x10;
+            }
             break;
         case 0x3c3:
-            ret = vga_on;
+            ret = 0x01;
+            if (xga_active && xga) {
+                if (xga->on)
+                    ret = 0x00;
+            }
+            if (ibm8514_active && dev) {
+                if (dev->on)
+                    ret = 0x00;
+            }
+            svga_log("VGA read: (0x%04x) ret=%02x.\n", addr, ret);
             break;
         case 0x3c4:
             ret = svga->seqaddr;
@@ -448,7 +560,7 @@ svga_in(uint16_t addr, void *priv)
             ret = svga->dac_addr;
             break;
         case 0x3c9:
-            index = (svga->dac_addr - 1) & 255;
+            index = (svga->dac_addr - 1) & 0xff;
             switch (svga->dac_pos) {
                 case 0:
                     svga->dac_pos++;
@@ -466,7 +578,7 @@ svga_in(uint16_t addr, void *priv)
                     break;
                 case 2:
                     svga->dac_pos  = 0;
-                    svga->dac_addr = (svga->dac_addr + 1) & 255;
+                    svga->dac_addr = (svga->dac_addr + 1) & 0xff;
                     if (svga->ramdac_type == RAMDAC_8BIT)
                         ret = svga->vgapal[index].b;
                     else
@@ -526,6 +638,11 @@ svga_in(uint16_t addr, void *priv)
             break;
     }
 
+    if ((addr >= 0x3c6) && (addr <= 0x3c9))
+        svga_log("VGA IN addr=%03x, temp=%02x.\n", addr, ret);
+    else if ((addr >= 0x2ea) && (addr <= 0x2ed))
+        svga_log("8514/A IN addr=%03x, temp=%02x.\n", addr, ret);
+
     return ret;
 }
 
@@ -541,19 +658,20 @@ svga_set_ramdac_type(svga_t *svga, int type)
         for (int c = 0; c < 256; c++) {
             if (ibm8514_active && dev) {
                 if (svga->ramdac_type == RAMDAC_8BIT)
-                    dev->pallook[c] = makecol32(svga->vgapal[c].r, svga->vgapal[c].g, svga->vgapal[c].b);
+                    dev->pallook[c] = makecol32(dev->_8514pal[c].r, dev->_8514pal[c].g, dev->_8514pal[c].b);
                 else
-                    dev->pallook[c] = makecol32((svga->vgapal[c].r & 0x3f) * 4,
-                                                 (svga->vgapal[c].g & 0x3f) * 4,
-                                                 (svga->vgapal[c].b & 0x3f) * 4);
+                    dev->pallook[c] = makecol32((dev->_8514pal[c].r & 0x3f) * 4,
+                                                 (dev->_8514pal[c].g & 0x3f) * 4,
+                                                 (dev->_8514pal[c].b & 0x3f) * 4);
             }
             if (xga_active && xga) {
                 if (svga->ramdac_type == RAMDAC_8BIT)
-                    xga->pallook[c] = makecol32(svga->vgapal[c].r, svga->vgapal[c].g, svga->vgapal[c].b);
-                else
-                    xga->pallook[c] = makecol32((svga->vgapal[c].r & 0x3f) * 4,
-                                                 (svga->vgapal[c].g & 0x3f) * 4,
-                                                 (svga->vgapal[c].b & 0x3f) * 4);
+                    xga->pallook[c] = makecol32(xga->xgapal[c].r, xga->xgapal[c].g, xga->xgapal[c].b);
+                else {
+                    xga->pallook[c] = makecol32((xga->xgapal[c].r & 0x3f) * 4,
+                                                 (xga->xgapal[c].g & 0x3f) * 4,
+                                                 (xga->xgapal[c].b & 0x3f) * 4);
+                }
             }
             if (svga->ramdac_type == RAMDAC_8BIT)
                 svga->pallook[c] = makecol32(svga->vgapal[c].r, svga->vgapal[c].g, svga->vgapal[c].b);
@@ -569,22 +687,36 @@ void
 svga_recalctimings(svga_t *svga)
 {
     ibm8514_t       *dev = (ibm8514_t *) svga->dev8514;
+    xga_t           *xga = (xga_t *) svga->xga;
+    uint8_t          set_timer = 0;
     double           crtcconst;
     double           _dispontime;
     double           _dispofftime;
     double           disptime;
-    double           crtcconst8514;
-    double           _dispontime8514;
-    double           _dispofftime8514;
-    double           disptime8514;
+    double           crtcconst8514 = 0.0;
+    double           _dispontime8514 = 0.0;
+    double           _dispofftime8514 = 0.0;
+    double           disptime8514 = 0.0;
+    double           crtcconst_xga = 0.0;
+    double           _dispontime_xga = 0.0;
+    double           _dispofftime_xga = 0.0;
+    double           disptime_xga = 0.0;
 #ifdef ENABLE_SVGA_LOG
     int              vsyncend;
-    int              vblankend;
-    int              hdispstart;
     int              hdispend;
+    int              hdispstart;
     int              hsyncstart;
     int              hsyncend;
 #endif
+    int              old_monitor_overscan_x = svga->monitor->mon_overscan_x;
+    int              old_monitor_overscan_y = svga->monitor->mon_overscan_y;
+
+    if (svga->adv_flags & FLAG_PRECISETIME) {
+#ifdef USE_DYNAREC
+        if (cpu_use_dynarec)
+            update_tsc();
+#endif
+    }
 
     svga->vtotal      = svga->crtc[6];
     svga->dispend     = svga->crtc[0x12];
@@ -623,7 +755,8 @@ svga_recalctimings(svga_t *svga)
     svga->vblankstart++;
 
     svga->hdisp = svga->crtc[1];
-    svga->hdisp++;
+    if (svga->crtc[1] & 1)
+        svga->hdisp++;
 
     svga->htotal = svga->crtc[0];
     /* +5 has been verified by Sergi to be correct - +6 must have been an off by one error. */
@@ -637,7 +770,7 @@ svga_recalctimings(svga_t *svga)
 
     svga->interlace = 0;
 
-    svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+    svga->memaddr_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
     svga->ca_adj   = 0;
 
     svga->rowcount = svga->crtc[9] & 0x1f;
@@ -659,31 +792,34 @@ svga_recalctimings(svga_t *svga)
         }
 
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-            if (svga->seqregs[1] & 8) {                              /*40 column*/
+            if (svga->seqregs[1] & 8)                               /*40 column*/
                 svga->render = svga_render_text_40;
-            } else {
+            else
                 svga->render = svga_render_text_80;
-            }
+
             svga->hdisp_old = svga->hdisp;
         } else {
             svga->hdisp_old = svga->hdisp;
 
             if ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20)) {
                 if ((svga->gdcreg[5] & 0x60) == 0x00) {
-                    if (svga->seqregs[1] & 8) /*Low res (320)*/
+                    if (svga->seqregs[1] & 8) { /*Low res (320)*/
                         svga->render = svga_render_4bpp_lowres;
-                    else
+                        svga_log("4 bpp low res.\n");
+                    } else
                         svga->render = svga_render_4bpp_highres;
                 } else if ((svga->gdcreg[5] & 0x60) == 0x20) {
-                    if (svga->seqregs[1] & 8) /*Low res (320)*/
+                    if (svga->seqregs[1] & 8) { /*Low res (320)*/
                         svga->render = svga_render_2bpp_lowres;
-                    else
+                        svga_log("2 bpp low res.\n");
+                    } else
                         svga->render = svga_render_2bpp_highres;
                 } else {
                     svga->map8 = svga->pallook;
-                    if (svga->lowres) /*Low res (320)*/
+                    if (svga->lowres) { /*Low res (320)*/
                         svga->render = svga_render_8bpp_lowres;
-                    else
+                        svga_log("8 bpp low res.\n");
+                    } else
                         svga->render = svga_render_8bpp_highres;
                 }
             } else {
@@ -750,7 +886,7 @@ svga_recalctimings(svga_t *svga)
     } else
         svga->monitor->mon_overscan_x = 16;
 
-    svga->hblankstart    = svga->crtc[2] + 1;
+    svga->hblankstart    = svga->crtc[2];
     svga->hblank_end_val = (svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00);
     svga->hblank_end_mask = 0x0000003f;
 
@@ -773,18 +909,30 @@ svga_recalctimings(svga_t *svga)
     } else
         svga->dots_per_clock = 1;
 
+    svga->multiplier = 1.0;
+
     if (svga->recalctimings_ex)
         svga->recalctimings_ex(svga);
 
     if (ibm8514_active && (svga->dev8514 != NULL)) {
-        if ((dev->local & 0xff) == 0x00)
+        if (IBM_8514A || ATI_8514A_ULTRA)
             ibm8514_recalctimings(svga);
     }
 
     if (xga_active && (svga->xga != NULL))
         xga_recalctimings(svga);
 
-    if (!svga->hoverride) {
+    svga->vblankend = (svga->vblankstart & 0xffffff80) | (svga->crtc[0x16] & 0x7f);
+    if (svga->vblankend <= svga->vblankstart)
+        svga->vblankend += 0x00000080;
+
+    if (svga->hoverride || svga->override) {
+        if (svga->hdisp >= 2048)
+            svga->monitor->mon_overscan_x = 0;
+
+        svga->y_add = (svga->monitor->mon_overscan_y >> 1);
+        svga->left_overscan = svga->x_add = (svga->monitor->mon_overscan_x >> 1);
+    } else {
         uint32_t dot = svga->hblankstart;
         uint32_t adj_dot = svga->hblankstart;
         /* Verified with both the Voodoo 3 and the S3 cards: compare 7 bits if bit 7 is set,
@@ -792,16 +940,22 @@ svga_recalctimings(svga_t *svga)
         uint32_t eff_mask = (svga->hblank_end_val & ~0x0000003f) ? svga->hblank_end_mask : 0x0000003f;
         svga->hblank_sub = 0;
 
-        svga_log("Blank: %04i-%04i, Total: %04i, Mask: %02X\n", svga->hblankstart, svga->hblank_end_val,
-                 svga->htotal, eff_mask);
+        svga_log("HDISP=%d, CRTC1+1=%d, Blank: %04i-%04i, Total: %04i, "
+                 "Mask: %02X, ADJ_DOT=%04i.\n", svga->hdisp, svga->crtc[1] + 1,
+                 svga->hblankstart, svga->hblank_end_val,
+                 svga->htotal, eff_mask, adj_dot);
 
-        while (1) {
+        while (adj_dot < (svga->htotal << 1)) {
             if (dot == svga->htotal)
                 dot = 0;
 
             if (adj_dot >= svga->htotal)
                 svga->hblank_sub++;
 
+            svga_log("Loop: adjdot=%d, htotal=%d, dotmask=%02x, "
+                     "hblankendvalmask=%02x, blankendval=%02x.\n", adj_dot,
+                     svga->htotal, dot & eff_mask, svga->hblank_end_val & eff_mask,
+                     svga->hblank_end_val);
             if ((dot & eff_mask) == (svga->hblank_end_val & eff_mask))
                 break;
 
@@ -809,59 +963,107 @@ svga_recalctimings(svga_t *svga)
             adj_dot++;
         }
 
+        uint32_t hd = svga->hdisp;
         svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
 
-        if (ibm8514_active && (svga->dev8514 != NULL)) {
-            if (dev->on[0] || dev->on[1]) {
-		        uint32_t dot8514 = dev->h_blankstart;
-		        uint32_t adj_dot8514 = dev->h_blankstart;
-		        uint32_t eff_mask8514 = 0x0000003f;
-		        dev->hblank_sub = 0;
+        svga->left_overscan = svga->x_add = (svga->htotal - adj_dot - 1) * svga->dots_per_clock;
+        svga->monitor->mon_overscan_x = svga->x_add + (svga->hblankstart * svga->dots_per_clock) - hd + svga->dots_per_clock;
+        /* Compensate for the HDISP code above. */
+        if (svga->crtc[1] & 1)
+            svga->monitor->mon_overscan_x++;
 
-		        while (1) {
-		            if (dot8514 == dev->h_total)
-		                dot = 0;
+        if ((svga->hdisp >= 2048) || (svga->left_overscan < 0)) {
+            svga->left_overscan = svga->x_add = 0;
+            svga->monitor->mon_overscan_x = 0;
+        }
 
-		            if (adj_dot8514 >= dev->h_total)
-		                dev->hblank_sub++;
+        /* - 1 because + 1 but also - 2 to compensate for the + 2 added to vtotal above. */
+        svga->y_add = svga->vtotal - svga->vblankend - 1;
+        svga->monitor->mon_overscan_y = svga->y_add + abs(svga->vblankstart - svga->dispend);
 
-		            if ((dot8514 & eff_mask8514) == (dev->h_blank_end_val & eff_mask8514))
-		                break;
-
-		            dot8514++;
-		            adj_dot8514++;
-		        }
-
-		        dev->h_disp -= dev->hblank_sub;
-            }
+        if ((svga->dispend >= 2048) || (svga->y_add < 0)) {
+            svga->y_add = 0;
+            svga->monitor->mon_overscan_y = 0;
         }
     }
 
-    if (svga->hdisp >= 2048)
-        svga->monitor->mon_overscan_x = 0;
+#if TBD
+    if (ibm8514_active && (svga->dev8514 != NULL)) {
+        if (dev->on) {
+            uint32_t _8514_dot = dev->h_sync_start;
+            uint32_t _8514_adj_dot = dev->h_sync_start;
+            uint32_t _8514_eff_mask = (dev->h_blank_end_val & ~0x0000001f) ? dev->h_blank_end_mask : 0x0000001f;
+            dev->h_blank_sub = 0;
 
-    svga->y_add = (svga->monitor->mon_overscan_y >> 1);
-    svga->x_add = (svga->monitor->mon_overscan_x >> 1);
+            mach_log("8514/A: HDISP=%d, HDISPED=%d, Blank: %04i-%04i, Total: %04i, "
+                     "Mask: %02X, ADJ_DOT=%04i.\n", dev->hdisp, (dev->hdisped + 1) << 3,
+                     dev->h_sync_start, dev->h_blank_end_val,
+                     dev->h_total, _8514_eff_mask, _8514_adj_dot);
 
-    if (svga->vblankstart < svga->dispend)
+            while (_8514_adj_dot < (dev->h_total << 1)) {
+                if (_8514_dot == dev->h_total)
+                    _8514_dot = 0;
+
+                if (_8514_adj_dot >= dev->h_total)
+                    dev->h_blank_sub++;
+
+                mach_log("8514/A: Loop: adjdot=%d, htotal=%d, dotmask=%02x, "
+                         "hblankendvalmask=%02x, blankendval=%02x.\n", adj_dot,
+                         dev->h_total, _8514_dot & _8514_eff_mask, dev->h_blank_end_val & _8514_eff_mask,
+                         dev->h_blank_end_val);
+                if ((_8514_dot & _8514_eff_mask) == (dev->h_blank_end_val & _8514_eff_mask))
+                    break;
+
+                _8514_dot++;
+                _8514_adj_dot++;
+            }
+
+            uint32_t _8514_hd = dev->hdisp;
+            dev->hdisp -= dev->h_blank_sub;
+
+            svga->left_overscan = svga->x_add = (dev->h_total - _8514_adj_dot - 1) << 3;
+            svga->monitor->mon_overscan_x = svga->x_add + (dev->h_sync_start << 3) - _8514_hd + 8;
+            svga->monitor->mon_overscan_x++;
+
+            if ((dev->hdisp >= 2048) || (svga->left_overscan < 0)) {
+                svga->left_overscan = svga->x_add = 0;
+                svga->monitor->mon_overscan_x = 0;
+            }
+
+            /* - 1 because + 1 but also - 2 to compensate for the + 2 added to vtotal above. */
+            svga->y_add = svga->vtotal - svga->vblankend - 1;
+            svga->monitor->mon_overscan_y = svga->y_add + abs(svga->vblankstart - svga->dispend);
+
+            if ((dev->dispend >= 2048) || (svga->y_add < 0)) {
+                svga->y_add = 0;
+                svga->monitor->mon_overscan_y = 0;
+            }
+        }
+    }
+#endif
+
+    if (svga->vblankstart < svga->dispend) {
+        svga_log("DISPEND > VBLANKSTART.\n");
         svga->dispend = svga->vblankstart;
+    }
 
     crtcconst = svga->clock * svga->char_width;
     if (ibm8514_active && (svga->dev8514 != NULL)) {
-        if (dev->on[0] || dev->on[1])
-            crtcconst8514 = svga->clock8514;
+        if (dev->on)
+            crtcconst8514 = svga->clock_8514 * 8;
+    }
+    if (xga_active && (svga->xga != NULL)) {
+        if (xga->on)
+            crtcconst_xga = svga->clock_xga * 8;
     }
 
 #ifdef ENABLE_SVGA_LOG
     vsyncend = (svga->vsyncstart & 0xfffffff0) | (svga->crtc[0x11] & 0x0f);
     if (vsyncend <= svga->vsyncstart)
         vsyncend += 0x00000010;
-    vblankend = (svga->vblankstart & 0xffffff80) | (svga->crtc[0x16] & 0x7f);
-    if (vblankend <= svga->vblankstart)
-        vblankend += 0x00000080;
 
-    hdispstart = ((svga->crtc[3] >> 5) & 3);
     hdispend   = svga->crtc[1] + 1;
+    hdispstart = ((svga->crtc[3] >> 5) & 3);
     hsyncstart = svga->crtc[4] + ((svga->crtc[5] >> 5) & 3) + 1;
     hsyncend   = (hsyncstart & 0xffffffe0) | (svga->crtc[5] & 0x1f);
     if (hsyncend <= hsyncstart)
@@ -885,17 +1087,24 @@ svga_recalctimings(svga_t *svga)
              "\n"
              "\n",
              svga->vtotal, svga->dispend, svga->vsyncstart, vsyncend,
-             svga->vblankstart, vblankend,
+             svga->vblankstart, svga->vblankend,
              svga->htotal, hdispstart, hdispend, hsyncstart, hsyncend,
              svga->hblankstart, svga->hblankend);
 
-    disptime    = svga->htotal;
+    disptime    = svga->htotal * svga->multiplier;
     _dispontime = svga->hdisp_time;
 
     if (ibm8514_active && (svga->dev8514 != NULL)) {
-        if (dev->on[0] || dev->on[1]) {
-            disptime8514 = dev->htotal;
-            _dispontime8514 = dev->hdisped;
+        if (dev->on) {
+            disptime8514 = dev->h_total;
+            _dispontime8514 = dev->h_disp_time;
+        }
+    }
+
+    if (xga_active && (svga->xga != NULL)) {
+        if (xga->on) {
+            disptime_xga = xga->h_total;
+            _dispontime_xga = xga->h_disp_time;
         }
     }
 
@@ -915,25 +1124,85 @@ svga_recalctimings(svga_t *svga)
     if (svga->dispofftime < TIMER_USEC)
         svga->dispofftime = TIMER_USEC;
 
-    if (ibm8514_active && (svga->dev8514 != NULL)) {
-        if (dev->on[0] || dev->on[1]) {
-            _dispofftime8514 = disptime8514 - _dispontime8514;
-            _dispontime8514 *= crtcconst8514;
-            _dispofftime8514 *= crtcconst8514;
+    if (ibm8514_active && (svga->dev8514 != NULL))
+        set_timer |= 1;
 
-            dev->dispontime  = (uint64_t) (_dispontime8514);
-            dev->dispofftime = (uint64_t) (_dispofftime8514);
-            if (dev->dispontime < TIMER_USEC)
-                dev->dispontime = TIMER_USEC;
-            if (dev->dispofftime < TIMER_USEC)
-                dev->dispofftime = TIMER_USEC;
+    if (xga_active && (svga->xga != NULL))
+        set_timer |= 2;
 
-            timer_disable(&svga->timer);
-            timer_enable(&svga->timer8514);
-        } else {
-            timer_disable(&svga->timer8514);
-            timer_enable(&svga->timer);
-        }
+    switch (set_timer) {
+        default:
+        case 0: /*VGA only*/
+            svga_set_poll(svga);
+            break;
+
+        case 1: /*Plus 8514/A*/
+            if (dev->on) {
+                _dispofftime8514 = disptime8514 - _dispontime8514;
+                svga_log("DISPTIME8514=%lf, off=%lf, DISPONTIME8514=%lf, CRTCCONST8514=%lf.\n", disptime8514, _dispofftime8514, _dispontime8514, crtcconst8514);
+                _dispontime8514 *= crtcconst8514;
+                _dispofftime8514 *= crtcconst8514;
+
+                dev->dispontime  = (uint64_t) (_dispontime8514);
+                dev->dispofftime = (uint64_t) (_dispofftime8514);
+                if (dev->dispontime < TIMER_USEC)
+                    dev->dispontime = TIMER_USEC;
+                if (dev->dispofftime < TIMER_USEC)
+                    dev->dispofftime = TIMER_USEC;
+
+                ibm8514_set_poll(svga);
+            } else
+                svga_set_poll(svga);
+            break;
+
+        case 2: /*Plus XGA*/
+            if (xga->on) {
+                _dispofftime_xga = disptime_xga - _dispontime_xga;
+                _dispontime_xga *= crtcconst_xga;
+                _dispofftime_xga *= crtcconst_xga;
+
+                xga->dispontime  = (uint64_t) (_dispontime_xga);
+                xga->dispofftime = (uint64_t) (_dispofftime_xga);
+                if (xga->dispontime < TIMER_USEC)
+                    xga->dispontime = TIMER_USEC;
+                if (xga->dispofftime < TIMER_USEC)
+                    xga->dispofftime = TIMER_USEC;
+
+                xga_set_poll(svga);
+            } else
+                svga_set_poll(svga);
+            break;
+
+        case 3: /*Plus 8514/A and XGA*/
+            if (dev->on) {
+                _dispofftime8514 = disptime8514 - _dispontime8514;
+                _dispontime8514 *= crtcconst8514;
+                _dispofftime8514 *= crtcconst8514;
+
+                dev->dispontime  = (uint64_t) (_dispontime8514);
+                dev->dispofftime = (uint64_t) (_dispofftime8514);
+                if (dev->dispontime < TIMER_USEC)
+                    dev->dispontime = TIMER_USEC;
+                if (dev->dispofftime < TIMER_USEC)
+                    dev->dispofftime = TIMER_USEC;
+
+                ibm8514_set_poll(svga);
+            } else if (xga->on) {
+                _dispofftime_xga = disptime_xga - _dispontime_xga;
+                _dispontime_xga *= crtcconst_xga;
+                _dispofftime_xga *= crtcconst_xga;
+
+                xga->dispontime  = (uint64_t) (_dispontime_xga);
+                xga->dispofftime = (uint64_t) (_dispofftime_xga);
+                if (xga->dispontime < TIMER_USEC)
+                    xga->dispontime = TIMER_USEC;
+                if (xga->dispofftime < TIMER_USEC)
+                    xga->dispofftime = TIMER_USEC;
+
+                xga_set_poll(svga);
+            } else
+                svga_set_poll(svga);
+            break;
     }
 
     if (!svga->force_old_addr)
@@ -942,12 +1211,75 @@ svga_recalctimings(svga_t *svga)
     /* Inform the user interface of any DPMS mode changes. */
     if (svga->dpms) {
         if (!svga->dpms_ui) {
+            /* Make sure to black out the entire screen to avoid lingering image. */
+            int y_add   = enable_overscan ? svga->monitor->mon_overscan_y : 0;
+            int x_add   = enable_overscan ? svga->monitor->mon_overscan_x : 0;
+            int y_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_y >> 1);
+            int x_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_x >> 1);
+            video_wait_for_buffer_monitor(svga->monitor_index);
+            memset(svga->monitor->target_buffer->dat, 0, (size_t) svga->monitor->target_buffer->w * svga->monitor->target_buffer->h * 4);
+            video_blit_memtoscreen_monitor(x_start, y_start, svga->monitor->mon_xsize + x_add, svga->monitor->mon_ysize + y_add, svga->monitor_index);
+            video_wait_for_buffer_monitor(svga->monitor_index);
             svga->dpms_ui = 1;
-            ui_sb_set_text_w(plat_get_string(IDS_2143));
+            ui_sb_set_text_w(plat_get_string(STRING_MONITOR_SLEEP));
         }
     } else if (svga->dpms_ui) {
         svga->dpms_ui = 0;
         ui_sb_set_text_w(NULL);
+    }
+
+    if (enable_overscan && (svga->monitor->mon_overscan_x != old_monitor_overscan_x || svga->monitor->mon_overscan_y != old_monitor_overscan_y))
+        video_force_resize_set_monitor(1, svga->monitor_index);
+
+    svga->force_shifter_bypass = 0;
+    if ((svga->hdisp == 320) && (svga->dispend >= 400) && !svga->override && (svga->render != svga_render_8bpp_clone_highres)) {
+        svga->hdisp <<= 1;
+        if (svga->render == svga_render_16bpp_highres)
+            svga->render = svga_render_16bpp_lowres;
+        else if (svga->render == svga_render_15bpp_highres)
+            svga->render = svga_render_15bpp_lowres;
+        else if (svga->render == svga_render_15bpp_mix_highres)
+            svga->render = svga_render_15bpp_mix_lowres;
+        else if (svga->render == svga_render_24bpp_highres)
+            svga->render = svga_render_24bpp_lowres;
+        else if (svga->render == svga_render_32bpp_highres)
+            svga->render = svga_render_32bpp_lowres;
+        else if (svga->render == svga_render_8bpp_highres) {
+            svga->render = svga_render_8bpp_lowres;
+            svga->force_shifter_bypass = 1;
+        }
+        else
+            svga->hdisp >>= 1;
+    }
+
+    svga->monitor->mon_interlace = 0;
+    if (!svga->override) {
+        switch (set_timer) {
+            default:
+            case 0: /*VGA only*/
+                svga->monitor->mon_interlace = !!svga->interlace;
+                break;
+            case 1: /*Plus 8514/A*/
+                if (dev->on)
+                    svga->monitor->mon_interlace = !!dev->interlace;
+                else
+                    svga->monitor->mon_interlace = !!svga->interlace;
+                break;
+            case 2: /*Plus XGA*/
+                if (xga->on)
+                    svga->monitor->mon_interlace = !!xga->interlace;
+                else
+                    svga->monitor->mon_interlace = !!svga->interlace;
+                break;
+            case 3: /*Plus 8514/A and XGA*/
+                if (dev->on)
+                    svga->monitor->mon_interlace = !!dev->interlace;
+                else if (xga->on)
+                    svga->monitor->mon_interlace = !!xga->interlace;
+                else
+                    svga->monitor->mon_interlace = !!svga->interlace;
+                break;
+        }
     }
 }
 
@@ -961,12 +1293,8 @@ svga_do_render(svga_t *svga)
     }
 
     if (!svga->override) {
+        svga->render_line_offset = svga->start_retrace_latch - svga->crtc[0x4];
         svga->render(svga);
-
-        svga->x_add = (svga->monitor->mon_overscan_x >> 1);
-        svga_render_overscan_left(svga);
-        svga_render_overscan_right(svga);
-        svga->x_add = (svga->monitor->mon_overscan_x >> 1) - svga->scrollcache;
     }
 
     if (svga->overlay_on) {
@@ -979,7 +1307,7 @@ svga_do_render(svga_t *svga)
 
     if (svga->dac_hwcursor_on) {
         if (!svga->override && svga->dac_hwcursor_draw)
-            svga->dac_hwcursor_draw(svga, svga->displine + svga->y_add);
+            svga->dac_hwcursor_draw(svga, (svga->displine + svga->y_add + ((svga->dac_hwcursor_latch.y >= 0) ? 0 : svga->dac_hwcursor_latch.y)) & 2047);
         svga->dac_hwcursor_on--;
         if (svga->dac_hwcursor_on && svga->interlace)
             svga->dac_hwcursor_on--;
@@ -987,10 +1315,18 @@ svga_do_render(svga_t *svga)
 
     if (svga->hwcursor_on) {
         if (!svga->override && svga->hwcursor_draw)
-            svga->hwcursor_draw(svga, svga->displine + svga->y_add);
+            svga->hwcursor_draw(svga, (svga->displine + svga->y_add + ((svga->hwcursor_latch.y >= 0) ? 0 : svga->hwcursor_latch.y)) & 2047);
+
         svga->hwcursor_on--;
         if (svga->hwcursor_on && svga->interlace)
             svga->hwcursor_on--;
+    }
+
+    if (!svga->override) {
+        svga->x_add = svga->left_overscan;
+        svga_render_overscan_left(svga);
+        svga_render_overscan_right(svga);
+        svga->x_add = svga->left_overscan - svga->scrollcache;
     }
 }
 
@@ -998,8 +1334,6 @@ void
 svga_poll(void *priv)
 {
     svga_t    *svga = (svga_t *) priv;
-    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
-    xga_t     *xga  = (xga_t *) svga->xga;
     uint32_t   x;
     uint32_t   blink_delay;
     int        wx;
@@ -1007,32 +1341,24 @@ svga_poll(void *priv)
     int        ret;
     int        old_ma;
 
-    if (!svga->override) {
-        if (xga_active && xga && xga->on) {
-            if ((xga->disp_cntl_2 & 7) >= 2) {
-                xga_poll(xga, svga);
-                return;
-            }
-        }
-    }
-
+    svga_log("SVGA Poll.\n");
     if (!svga->linepos) {
-        if (svga->displine == svga->hwcursor_latch.y && svga->hwcursor_latch.ena) {
+        if (svga->displine == ((svga->hwcursor_latch.y < 0) ? 0 : svga->hwcursor_latch.y) && svga->hwcursor_latch.ena) {
             svga->hwcursor_on      = svga->hwcursor_latch.cur_ysize - svga->hwcursor_latch.yoff;
             svga->hwcursor_oddeven = 0;
         }
 
-        if (svga->displine == (svga->hwcursor_latch.y + 1) && svga->hwcursor_latch.ena && svga->interlace) {
+        if (svga->displine == (((svga->hwcursor_latch.y < 0) ? 0 : svga->hwcursor_latch.y) + 1) && svga->hwcursor_latch.ena && svga->interlace) {
             svga->hwcursor_on      = svga->hwcursor_latch.cur_ysize - (svga->hwcursor_latch.yoff + 1);
             svga->hwcursor_oddeven = 1;
         }
 
-        if (svga->displine == svga->dac_hwcursor_latch.y && svga->dac_hwcursor_latch.ena) {
+        if (svga->displine == ((svga->dac_hwcursor_latch.y < 0) ? 0 : svga->dac_hwcursor_latch.y) && svga->dac_hwcursor_latch.ena) {
             svga->dac_hwcursor_on      = svga->dac_hwcursor_latch.cur_ysize - svga->dac_hwcursor_latch.yoff;
             svga->dac_hwcursor_oddeven = 0;
         }
 
-        if (svga->displine == (svga->dac_hwcursor_latch.y + 1) && svga->dac_hwcursor_latch.ena && svga->interlace) {
+        if (svga->displine == (((svga->dac_hwcursor_latch.y < 0) ? 0 : svga->dac_hwcursor_latch.y) + 1) && svga->dac_hwcursor_latch.ena && svga->interlace) {
             svga->dac_hwcursor_on      = svga->dac_hwcursor_latch.cur_ysize - (svga->dac_hwcursor_latch.yoff + 1);
             svga->dac_hwcursor_oddeven = 1;
         }
@@ -1054,18 +1380,17 @@ svga_poll(void *priv)
         if (svga->dispon) {
             svga->hdisp_on = 1;
 
-            svga->ma &= svga->vram_display_mask;
+            svga->memaddr &= svga->vram_display_mask;
             if (svga->firstline == 2000) {
                 svga->firstline = svga->displine;
                 video_wait_for_buffer_monitor(svga->monitor_index);
             }
 
-            if (svga->hwcursor_on || svga->dac_hwcursor_on || svga->overlay_on) {
-                svga->changedvram[svga->ma >> 12] = svga->changedvram[(svga->ma >> 12) + 1] = svga->interlace ? 3 : 2;
-            }
+            if (svga->hwcursor_on || svga->dac_hwcursor_on || svga->overlay_on)
+                svga->changedvram[svga->memaddr >> 12] = svga->changedvram[(svga->memaddr >> 12) + 1] = svga->interlace ? 3 : 2;
 
             if (svga->vertical_linedbl) {
-                old_ma = svga->ma;
+                old_ma = svga->memaddr;
 
                 svga->displine <<= 1;
                 svga->y_add <<= 1;
@@ -1074,7 +1399,7 @@ svga_poll(void *priv)
 
                 svga->displine++;
 
-                svga->ma = old_ma;
+                svga->memaddr = old_ma;
 
                 svga_do_render(svga);
 
@@ -1103,29 +1428,29 @@ svga_poll(void *priv)
         svga->hdisp_on = 0;
 
         svga->linepos = 0;
-        if ((svga->sc == (svga->crtc[11] & 31)) || (svga->sc == svga->rowcount))
-            svga->con = 0;
+        if ((svga->scanline == (svga->crtc[11] & 31)) || (svga->scanline == svga->rowcount))
+            svga->cursorvisible = 0;
         if (svga->dispon) {
             /* TODO: Verify real hardware behaviour for out-of-range fine vertical scroll
-               - S3 Trio64V2/DX: sc == rowcount, wrapping 5-bit counter. */
+               - S3 Trio64V2/DX: scanline == rowcount, wrapping 5-bit counter. */
             if (svga->linedbl && !svga->linecountff) {
                 svga->linecountff = 1;
-                svga->ma          = svga->maback;
-            } else if (svga->sc == svga->rowcount) {
+                svga->memaddr          = svga->memaddr_backup;
+            } else if (svga->scanline == svga->rowcount) {
                 svga->linecountff = 0;
-                svga->sc          = 0;
+                svga->scanline          = 0;
 
-                svga->maback += (svga->rowoffset << 3);
+                svga->memaddr_backup += (svga->adv_flags & FLAG_NO_SHIFT3) ? svga->rowoffset : (svga->rowoffset << 3);
                 if (svga->interlace)
-                    svga->maback += (svga->rowoffset << 3);
+                    svga->memaddr_backup += (svga->adv_flags & FLAG_NO_SHIFT3) ? svga->rowoffset : (svga->rowoffset << 3);
 
-                svga->maback &= svga->vram_display_mask;
-                svga->ma = svga->maback;
+                svga->memaddr_backup &= svga->vram_display_mask;
+                svga->memaddr = svga->memaddr_backup;
             } else {
                 svga->linecountff = 0;
-                svga->sc++;
-                svga->sc &= 0x1f;
-                svga->ma = svga->maback;
+                svga->scanline++;
+                svga->scanline &= 0x1f;
+                svga->memaddr = svga->memaddr_backup;
             }
         }
 
@@ -1145,16 +1470,17 @@ svga_poll(void *priv)
 
             if (ret) {
                 if (svga->interlace && svga->oddeven)
-                    svga->ma = svga->maback = (svga->rowoffset << 1) + ((svga->crtc[3] & 0x60) >> 5) + svga->hblank_sub;
+                    svga->memaddr = svga->memaddr_backup = (svga->rowoffset << 1) + svga->hblank_sub;
                 else
-                    svga->ma = svga->maback = ((svga->crtc[3] & 0x60) >> 5) + svga->hblank_sub;
-                svga->ma     = (svga->ma << 2);
-                svga->maback = (svga->maback << 2);
+                    svga->memaddr = svga->memaddr_backup = svga->hblank_sub;
 
-                svga->sc = 0;
+                svga->memaddr     = (svga->memaddr << 2);
+                svga->memaddr_backup = (svga->memaddr_backup << 2);
+
+                svga->scanline = 0;
                 if (svga->attrregs[0x10] & 0x20) {
-                    svga->scrollcache = 0;
-                    svga->x_add       = (svga->monitor->mon_overscan_x >> 1);
+                    svga->scrollcache   = 0;
+                    svga->x_add         = svga->left_overscan;
                 }
             }
         }
@@ -1180,6 +1506,7 @@ svga_poll(void *priv)
                 if (svga->changedvram[x])
                     svga->changedvram[x]--;
             }
+
             if (svga->fullchange)
                 svga->fullchange--;
         }
@@ -1198,9 +1525,11 @@ svga_poll(void *priv)
             if (!svga->override) {
                 if (svga->vertical_linedbl) {
                     wy = (svga->lastline - svga->firstline) << 1;
+                    svga->vdisp = wy + 1;
                     svga_doblit(wx, wy, svga);
                 } else {
                     wy = svga->lastline - svga->firstline;
+                    svga->vdisp = wy + 1;
                     svga_doblit(wx, wy, svga);
                 }
             }
@@ -1217,25 +1546,28 @@ svga_poll(void *priv)
             svga->vslines                       = 0;
 
             if (svga->interlace && svga->oddeven)
-                svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1) +
-                           ((svga->crtc[3] & 0x60) >> 5) + svga->hblank_sub;
+                svga->memaddr = svga->memaddr_backup = svga->memaddr_latch + (svga->rowoffset << 1) + svga->hblank_sub;
             else
-                svga->ma = svga->maback = svga->ma_latch + ((svga->crtc[3] & 0x60) >> 5) + svga->hblank_sub;
+                svga->memaddr = svga->memaddr_backup = svga->memaddr_latch + svga->hblank_sub;
 
-            svga->ca     = ((svga->crtc[0xe] << 8) | svga->crtc[0xf]) + ((svga->crtc[0xb] & 0x60) >> 5) + svga->ca_adj;
-            svga->ma     = (svga->ma << 2);
-            svga->maback = (svga->maback << 2);
-            svga->ca     = (svga->ca << 2);
+            svga->cursoraddr     = ((svga->crtc[0xe] << 8) | svga->crtc[0xf]) + ((svga->crtc[0xb] & 0x60) >> 5) + svga->ca_adj;
+            if (!(svga->adv_flags & FLAG_NO_SHIFT3)) {
+                svga->memaddr     = (svga->memaddr << 2);
+                svga->memaddr_backup = (svga->memaddr_backup << 2);
+            }
+            svga->cursoraddr     = (svga->cursoraddr << 2);
 
             if (svga->vsync_callback)
                 svga->vsync_callback(svga);
+
+            svga->start_retrace_latch = svga->crtc[0x4];
         }
 #if 0
         if (svga->vc == lines_num) {
 #endif
         if (svga->vc == svga->vtotal) {
             svga->vc       = 0;
-            svga->sc       = (svga->crtc[0x8] & 0x1f);
+            svga->scanline       = (svga->crtc[0x8] & 0x1f);
             svga->dispon   = 1;
             svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
 
@@ -1248,7 +1580,8 @@ svga_poll(void *priv)
                     if (svga->scrollcache > 8)
                         svga->scrollcache = 0;
                 }
-            } else if ((svga->render == svga_render_2bpp_lowres) || (svga->render == svga_render_2bpp_highres) || (svga->render == svga_render_4bpp_lowres) || (svga->render == svga_render_4bpp_highres))
+            } else if ((svga->render == svga_render_2bpp_lowres) || (svga->render == svga_render_2bpp_highres) ||
+                       (svga->render == svga_render_4bpp_lowres) || (svga->render == svga_render_4bpp_highres))
                 svga->scrollcache &= 0x07;
             else
                 svga->scrollcache = (svga->scrollcache & 0x06) >> 1;
@@ -1256,7 +1589,7 @@ svga_poll(void *priv)
             if ((svga->seqregs[1] & 8) || (svga->render == svga_render_8bpp_lowres))
                 svga->scrollcache <<= 1;
 
-            svga->x_add = (svga->monitor->mon_overscan_x >> 1) - svga->scrollcache;
+            svga->x_add = svga->left_overscan - svga->scrollcache;
 
             svga->linecountff = 0;
 
@@ -1269,13 +1602,13 @@ svga_poll(void *priv)
             svga->overlay_on    = 0;
             svga->overlay_latch = svga->overlay;
         }
-        if (svga->sc == (svga->crtc[10] & 31))
-            svga->con = 1;
+        if (svga->scanline == (svga->crtc[10] & 31))
+            svga->cursorvisible = 1;
     }
 }
 
 uint32_t
-svga_conv_16to32(struct svga_t *svga, uint16_t color, uint8_t bpp)
+svga_conv_16to32(UNUSED(struct svga_t *svga), uint16_t color, uint8_t bpp)
 {
     return (bpp == 15) ? video_15to32[color] : video_16to32[color];
 }
@@ -1306,48 +1639,74 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->attrregs[0x11] = 0;
     svga->overscan_color = 0x000000;
 
+    svga->left_overscan           = 8;
     svga->monitor->mon_overscan_x = 16;
     svga->monitor->mon_overscan_y = 32;
     svga->x_add                   = 8;
     svga->y_add                   = 16;
+    svga->force_shifter_bypass    = 1;
 
     svga->crtc[0]           = 63;
     svga->crtc[6]           = 255;
     svga->dispontime        = 1000ULL << 32;
     svga->dispofftime       = 1000ULL << 32;
     svga->bpp               = 8;
-    svga->vram              = calloc(memsize, 1);
+    svga->vram              = calloc(memsize + 8, 1);
     svga->vram_max          = memsize;
     svga->vram_display_mask = svga->vram_mask = memsize - 1;
     svga->decode_mask                         = 0x7fffff;
-    svga->changedvram                         = calloc(memsize >> 12, 1);
+    svga->changedvram                         = calloc((memsize >> 12) + 1, 1);
     svga->recalctimings_ex                    = recalctimings_ex;
     svga->video_in                            = video_in;
     svga->video_out                           = video_out;
     svga->hwcursor_draw                       = hwcursor_draw;
     svga->overlay_draw                        = overlay_draw;
     svga->conv_16to32                         = svga_conv_16to32;
+    svga->render                              = svga_render_blank;
 
     svga->hwcursor.cur_xsize = svga->hwcursor.cur_ysize = 32;
 
     svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 32;
 
     svga->translate_address         = NULL;
+
+    svga->cable_connected = 1;
     svga->ksc5601_english_font_type = 0;
 
-    vga_on = 1;
-
-    if ((info->flags & DEVICE_PCI) || (info->flags & DEVICE_VLB) || (info->flags & DEVICE_MCA)) {
+    /* TODO: Move DEVICE_MCA to 16-bit once the device flags have been appropriately corrected. */
+    if ((info->flags & DEVICE_MCA) || (info->flags & DEVICE_MCA32) ||
+        (info->flags & DEVICE_EISA) || (info->flags & DEVICE_AT32) ||
+        (info->flags & DEVICE_OLB) || (info->flags & DEVICE_VLB) ||
+        (info->flags & DEVICE_PCI) || (info->flags & DEVICE_AGP)) {
+        svga->read = svga_read;
+        svga->readw = svga_readw;
+        svga->readl = svga_readl;
+        svga->write = svga_write;
+        svga->writew = svga_writew;
+        svga->writel = svga_writel;
         mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
                         svga_read, svga_readw, svga_readl,
                         svga_write, svga_writew, svga_writel,
                         NULL, MEM_MAPPING_EXTERNAL, svga);
-    } else if ((info->flags & DEVICE_ISA) && (info->flags & DEVICE_AT)) {
+    /* The chances of ever seeing a C-BUS (S)VGA card are approximately zero, but you never know. */
+    } else if ((info->flags & DEVICE_CBUS) || (info->flags & DEVICE_ISA16)) {
+        svga->read = svga_read;
+        svga->readw = svga_readw;
+        svga->readl = NULL;
+        svga->write = svga_write;
+        svga->writew = svga_writew;
+        svga->writel = NULL;
         mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
                         svga_read, svga_readw, NULL,
                         svga_write, svga_writew, NULL,
                         NULL, MEM_MAPPING_EXTERNAL, svga);
     } else {
+        svga->read = svga_read;
+        svga->readw = NULL;
+        svga->readl = NULL;
+        svga->write = svga_write;
+        svga->writew = NULL;
+        svga->writel = NULL;
         mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
                         svga_read, NULL, NULL,
                         svga_write, NULL, NULL,
@@ -1377,7 +1736,7 @@ svga_close(svga_t *svga)
     svga_pri = NULL;
 }
 
-static uint32_t
+uint32_t
 svga_decode_addr(svga_t *svga, uint32_t addr, int write)
 {
     int memory_map_mode = (svga->gdcreg[6] >> 2) & 3;
@@ -1405,15 +1764,10 @@ svga_decode_addr(svga_t *svga, uint32_t addr, int write)
     }
 
     if (memory_map_mode <= 1) {
-        if (svga->adv_flags & FLAG_EXTRA_BANKS) {
-            if ((svga->gdcreg[5] & 0x40) || svga->packed_chain4)
-                addr = (addr & 0x17fff) + svga->extra_banks[(addr >> 15) & 1];
-        } else {
-            if (write)
-                addr += svga->write_bank;
-            else
-                addr += svga->read_bank;
-        }
+        if (write)
+            addr += svga->write_bank;
+        else
+            addr += svga->read_bank;
     }
 
     return addr;
@@ -1423,7 +1777,6 @@ static __inline void
 svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
 {
     svga_t *svga       = (svga_t *) priv;
-    xga_t  *xga        = (xga_t *) svga->xga;
     int     writemask2 = svga->writemask;
     int     reset_wm   = 0;
     latch_t vall;
@@ -1437,44 +1790,12 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
     cycles -= svga->monitor->mon_video_timing_write_b;
 
     if (!linear) {
-        if (xga_active && xga) {
-            if (((xga->op_mode & 7) >= 4) && (xga->aperture_cntl >= 1)) {
-                if (val == 0xa5) { /*Memory size test of XGA*/
-                    xga->test    = val;
-                    if (addr == 0xa0001)
-                        xga->a5_test = 1;
-                    else if (addr == 0xafffe)
-                        xga->a5_test = 2;
-
-                    xga->on = 0;
-                    vga_on = 1;
-                    xga->disp_cntl_2 = 0;
-                    svga_log("XGA test1 addr = %05x.\n", addr);
-                    return;
-                } else if (val == 0x5a) {
-                    xga->test = val;
-                    xga->on = 0;
-                    vga_on = 1;
-                    xga->disp_cntl_2 = 0;
-                    svga_log("XGA test2 addr = %05x.\n", addr);
-                    return;
-                } else if ((addr == 0xa0000) || (addr == 0xa0010)) {
-                    addr += xga->write_bank;
-                    xga->vram[addr & xga->vram_mask] = val;
-                    svga_log("XGA Linear endian reverse write, val = %02x, addr = %05x, banked mask = %04x.\n", val, addr, svga->banked_mask);
-                    if (!xga->a5_test)
-                        xga->linear_endian_reverse = 1;
-                    return;
-                }
-            } else {
-                xga->on = 0;
-                vga_on = 1;
-            }
-        }
+        xga_write_test(addr, val, svga);
         addr = svga_decode_addr(svga, addr, 1);
-
-        if (addr == 0xffffffff)
+        if (addr == 0xffffffff) {
+            svga_log("WriteCommon Over.\n");
             return;
+        }
     }
 
     if (!(svga->gdcreg[6] & 1))
@@ -1493,9 +1814,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
             addr &= ~3;
         addr = ((addr & 0xfffc) << 2) | ((addr & 0x30000) >> 14) | (addr & ~0x3ffff);
     } else if (svga->chain2_write) {
-        writemask2 &= ~0xa;
-        if (addr & 1)
-            writemask2 <<= 1;
+        writemask2 &= 0x5 << (addr & 1);
         addr &= ~1;
         addr <<= 2;
     } else
@@ -1506,8 +1825,10 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
     if (svga->translate_address)
         addr = svga->translate_address(addr, priv);
 
-    if (addr >= svga->vram_max)
+    if (addr >= svga->vram_max) {
+        svga_log("WriteBankedOver=%08x, val=%02x.\n", addr & svga->vram_mask, val);
         return;
+    }
 
     addr &= svga->vram_mask;
 
@@ -1645,12 +1966,11 @@ static __inline uint8_t
 svga_read_common(uint32_t addr, uint8_t linear, void *priv)
 {
     svga_t  *svga       = (svga_t *) priv;
-    xga_t   *xga        = (xga_t *) svga->xga;
     uint32_t latch_addr = 0;
     int      readplane  = svga->readplane;
     uint8_t  count;
     uint8_t  temp;
-    uint8_t  ret;
+    uint8_t  ret = 0x00;
 
     if (svga->adv_flags & FLAG_ADDR_BY8)
         readplane = svga->gdcreg[4] & 7;
@@ -1658,41 +1978,8 @@ svga_read_common(uint32_t addr, uint8_t linear, void *priv)
     cycles -= svga->monitor->mon_video_timing_read_b;
 
     if (!linear) {
-        if (xga_active && xga) {
-            if (((xga->op_mode & 7) >= 4) && (xga->aperture_cntl >= 1)) {
-                if (xga->test == 0xa5) { /*Memory size test of XGA*/
-                    if (addr == 0xa0001) {
-                        ret = xga->test;
-                        xga->on = 1;
-                        vga_on = 0;
-                    } else if ((addr == 0xa0000) && (xga->a5_test == 1)) { /*This is required by XGAKIT to pass the memory test*/
-                        svga_log("A5 test bank = %x.\n", addr);
-                        addr += xga->read_bank;
-                        ret = xga->vram[addr & xga->vram_mask];
-                    } else {
-                        ret = xga->test;
-                        xga->on = 1;
-                        vga_on = 0;
-                    }
-                    svga_log("A5 read: XGA ON = %d, addr = %05x, ret = %02x, test1 = %x.\n", xga->on, addr, ret, xga->a5_test);
-                    return ret;
-                } else if (xga->test == 0x5a) {
-                    ret = xga->test;
-                    xga->on = 1;
-                    vga_on = 0;
-                    svga_log("5A read: XGA ON = %d.\n", xga->on);
-                    return ret;
-                } else if ((addr == 0xa0000) || (addr == 0xa0010)) {
-                    addr += xga->read_bank;
-                    return xga->vram[addr & xga->vram_mask];
-                }
-            } else {
-                xga->on = 0;
-                vga_on = 1;
-            }
-        }
+        (void) xga_read_test(addr, svga);
         addr = svga_decode_addr(svga, addr, 0);
-
         if (addr == 0xffffffff)
             return 0xff;
     }
@@ -1811,9 +2098,15 @@ svga_doblit(int wx, int wy, svga_t *svga)
 
     y_add   = enable_overscan ? svga->monitor->mon_overscan_y : 0;
     x_add   = enable_overscan ? svga->monitor->mon_overscan_x : 0;
+#ifdef USE_OLD_CALCULATION
     y_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_y >> 1);
     x_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_x >> 1);
     bottom  = (svga->monitor->mon_overscan_y >> 1);
+#else
+    y_start = enable_overscan ? 0 : svga->y_add;
+    x_start = enable_overscan ? 0 : svga->left_overscan;
+    bottom  = svga->monitor->mon_overscan_y - svga->y_add;
+#endif
 
     if (svga->vertical_linedbl) {
         y_add <<= 1;
@@ -1865,14 +2158,14 @@ svga_doblit(int wx, int wy, svga_t *svga)
             p = &svga->monitor->target_buffer->line[i & 0x7ff][0];
 
             for (j = 0; j < (svga->monitor->mon_xsize + x_add); j++)
-                p[j] = svga->overscan_color;
+                p[j] = svga->dpms ? 0 : svga->overscan_color;
         }
 
         for (i = 0; i < bottom; i++) {
             p = &svga->monitor->target_buffer->line[(svga->monitor->mon_ysize + svga->y_add + i) & 0x7ff][0];
 
             for (j = 0; j < (svga->monitor->mon_xsize + x_add); j++)
-                p[j] = svga->overscan_color;
+                p[j] = svga->dpms ? 0 : svga->overscan_color;
         }
     }
 
@@ -1914,6 +2207,8 @@ svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *priv)
     cycles -= svga->monitor->mon_video_timing_write_w;
 
     if (!linear) {
+        xga_write_test(addr, val & 0xff, svga);
+        xga_write_test(addr + 1, val >> 8, svga);
         addr = svga_decode_addr(svga, addr, 1);
 
         if (addr == 0xffffffff)
@@ -1970,6 +2265,10 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *priv)
     cycles -= svga->monitor->mon_video_timing_write_l;
 
     if (!linear) {
+        xga_write_test(addr, val & 0xff, svga);
+        xga_write_test(addr + 1, (val >> 8) & 0xff, svga);
+        xga_write_test(addr + 2, (val >> 16) & 0xff, svga);
+        xga_write_test(addr + 3, (val >> 24) & 0xff, svga);
         addr = svga_decode_addr(svga, addr, 1);
 
         if (addr == 0xffffffff)
@@ -2002,6 +2301,7 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *priv)
     }
     if (addr >= svga->vram_max)
         return;
+
     addr &= svga->vram_mask;
 
     svga->changedvram[addr >> 12]   = svga->monitor->mon_changeframecount;
@@ -2046,8 +2346,9 @@ svga_readw_common(uint32_t addr, uint8_t linear, void *priv)
     cycles -= svga->monitor->mon_video_timing_read_w;
 
     if (!linear) {
+        (void) xga_read_test(addr, svga);
+        (void) xga_read_test(addr + 1, svga);
         addr = svga_decode_addr(svga, addr, 0);
-
         if (addr == 0xffffffff)
             return 0xffff;
     }
@@ -2093,8 +2394,11 @@ svga_readl_common(uint32_t addr, uint8_t linear, void *priv)
     cycles -= svga->monitor->mon_video_timing_read_l;
 
     if (!linear) {
+        (void) xga_read_test(addr, svga);
+        (void) xga_read_test(addr + 1, svga);
+        (void) xga_read_test(addr + 2, svga);
+        (void) xga_read_test(addr + 3, svga);
         addr = svga_decode_addr(svga, addr, 0);
-
         if (addr == 0xffffffff)
             return 0xffffffff;
     }

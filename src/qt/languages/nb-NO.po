@@ -1,0 +1,2983 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: nb_NO\n"
+"X-Source-Language: en_US\n"
+
+msgid "&Action"
+msgstr "&Handling"
+
+msgid "&Keyboard requires capture"
+msgstr "&Tastatur krever opptak"
+
+msgid "&Right CTRL is left ALT"
+msgstr "&Høyre CTRL er venstre ALT"
+
+msgid "&Hard Reset..."
+msgstr "&Hard tilbakestilling..."
+
+msgid "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Del"
+
+msgid "Ctrl+Alt+&Esc"
+msgstr "Ctrl+Alt+&Esc"
+
+msgid "&Pause"
+msgstr "&Pause"
+
+msgid "Pause"
+msgstr "&Pause"
+
+msgid "Re&sume"
+msgstr "Fo&rtsett"
+
+msgid "E&xit"
+msgstr "A&vslutt"
+
+msgid "&View"
+msgstr "&Vis"
+
+msgid "&Hide status bar"
+msgstr "&Skjul statuslinje"
+
+msgid "Hide &toolbar"
+msgstr "Skjul &verktøylinje"
+
+msgid "&Resizeable window"
+msgstr "&Justerbart vindu"
+
+msgid "R&emember size && position"
+msgstr "H&usk størrelse &og plassering"
+
+msgid "Re&nderer"
+msgstr "Re&nderer"
+
+msgid "&Qt (Software)"
+msgstr "&Qt (Programvare)"
+
+msgid "Open&GL (3.0 Core)"
+msgstr "Open&GL (3.0 Core)"
+
+msgid "&VNC"
+msgstr "&VNC"
+
+msgid "Specify &dimensions..."
+msgstr "Angi &dimensjoner..."
+
+msgid "Force &4:3 display ratio"
+msgstr "Tving &4:3-bildeforhold"
+
+msgid "&Window scale factor"
+msgstr "&Vinduets skaleringsfaktor"
+
+msgid "&0.5x"
+msgstr "&0,5x"
+
+msgid "&1x"
+msgstr "&1x"
+
+msgid "1.&5x"
+msgstr "1,&5x"
+
+msgid "&2x"
+msgstr "&2x"
+
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
+
+msgid "Fi&lter method"
+msgstr "Fi&ltreringsmetode"
+
+msgid "&Nearest"
+msgstr "&Nærmeste"
+
+msgid "&Linear"
+msgstr "&Lineær"
+
+msgid "Hi&DPI scaling"
+msgstr "Hi&DPI-skalert"
+
+msgid "&Fullscreen"
+msgstr "&Fullskjerm"
+
+msgid "Fullscreen &stretch mode"
+msgstr "Fullskjerm&strekkmodus"
+
+msgid "&Full screen stretch"
+msgstr "&Fullskjermstrekk"
+
+msgid "&4:3"
+msgstr "&4:3"
+
+msgid "&Square pixels (Keep ratio)"
+msgstr "&Kvadratiske piksler (Behold forhold)"
+
+msgid "&Integer scale"
+msgstr "Heltallsskala"
+
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Heltallsskala"
+
+msgid "EGA/(S)&VGA settings"
+msgstr "EGA/(S)&VGA-innstillinger"
+
+msgid "&Inverted VGA monitor"
+msgstr "&Invertert VGA-skjerm"
+
+msgid "VGA screen &type"
+msgstr "VGA-skjerm&type"
+
+msgid "RGB &Color"
+msgstr "RGB-&farger"
+
+msgid "RGB (no brown)"
+msgstr "RGB (uten brun)"
+
+msgid "&RGB Grayscale"
+msgstr "&RGB-gråskala"
+
+msgid "Generic RGBI color monitor"
+msgstr "Generisk RGBI-fargeskjerm"
+
+msgid "&Amber monitor"
+msgstr "&Amber-skjerm"
+
+msgid "&Green monitor"
+msgstr "&Grønn-skjerm"
+
+msgid "&White monitor"
+msgstr "&Hvit-skjerm"
+
+msgid "Grayscale &conversion type"
+msgstr "Gråskala-&konverteringsmetode"
+
+msgid "BT&601 (NTSC/PAL)"
+msgstr "BT&601 (NTSC/PAL)"
+
+msgid "BT&709 (HDTV)"
+msgstr "BT&709 (HDTV)"
+
+msgid "&Average"
+msgstr "&Gjennomsnitt"
+
+msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
+msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA-overscan"
+
+msgid "Change contrast for &monochrome display"
+msgstr "Endre kontrast for &monokrom skjerm"
+
+msgid "&Media"
+msgstr "&Medie"
+
+msgid "&Tools"
+msgstr "&Verktøy"
+
+msgid "&Settings..."
+msgstr "&Innstillinger..."
+
+msgid "Settings..."
+msgstr "Innstillinger..."
+
+msgid "&Update status bar icons"
+msgstr "&Oppdater statuslinjeikoner"
+
+msgid "Take s&creenshot"
+msgstr "Ta s&kjermbilde"
+
+msgid "S&ound"
+msgstr "L&yd"
+
+msgid "&Preferences..."
+msgstr "&Valg..."
+
+msgid "Enable &Discord integration"
+msgstr "Aktiver &Discord-integrasjon"
+
+msgid "Sound &gain..."
+msgstr "Lyd&forsterkning..."
+
+msgid "Begin trace"
+msgstr "Start sporing"
+
+msgid "End trace"
+msgstr "Stopp sporing"
+
+msgid "&Help"
+msgstr "&Hjelp"
+
+msgid "&Documentation..."
+msgstr "&Dokumentasjon..."
+
+msgid "&About 86Box..."
+msgstr "&Om 86Box..."
+
+msgid "&New image..."
+msgstr "&Ny diskfil..."
+
+msgid "&Existing image..."
+msgstr "&Eksisterende diskfil..."
+
+msgid "Existing image (&Write-protected)..."
+msgstr "Eksisterende diskfil (&skrivbeskyttet)..."
+
+msgid "&Record"
+msgstr "&Spill inn"
+
+msgid "&Play"
+msgstr "&Spill av"
+
+msgid "&Rewind to the beginning"
+msgstr "&Spol tilbake til starten"
+
+msgid "&Fast forward to the end"
+msgstr "&Spol frem til slutten"
+
+msgid "E&ject"
+msgstr "M&at ut"
+
+msgid "&Image..."
+msgstr "&Diskfil..."
+
+msgid "E&xport to 86F..."
+msgstr "E&ksporter til 86F..."
+
+msgid "&Mute"
+msgstr "&Demp"
+
+msgid "E&mpty"
+msgstr "T&øm"
+
+msgid "Reload previous image"
+msgstr "Last inn forrige diskfil"
+
+msgid "&Folder..."
+msgstr "&Mappe..."
+
+msgid "Target &framerate"
+msgstr "Mål-&bildefrekvens"
+
+msgid "&Sync with video"
+msgstr "&Synkroniser med video"
+
+msgid "&25 fps"
+msgstr "&25 fps"
+
+msgid "&30 fps"
+msgstr "&30 fps"
+
+msgid "&50 fps"
+msgstr "&50 fps"
+
+msgid "&60 fps"
+msgstr "&60 fps"
+
+msgid "&75 fps"
+msgstr "&75 fps"
+
+msgid "&VSync"
+msgstr "&VSync"
+
+msgid "&Select shader..."
+msgstr "&Velg shader..."
+
+msgid "&Remove shader"
+msgstr "&Fjern shader"
+
+msgid "Preferences"
+msgstr "Valg"
+
+msgid "Sound Gain"
+msgstr "Lydforsterkning"
+
+msgid "New Image"
+msgstr "Ny diskfil"
+
+msgid "Settings"
+msgstr "Innstillinger"
+
+msgid "Specify Main Window Dimensions"
+msgstr "Angi hovedvinduets dimensjoner"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Cancel"
+msgstr "Avbryt"
+
+msgid "&Default"
+msgstr "&Standard"
+
+msgid "Language:"
+msgstr "Språk"
+
+msgid "Gain"
+msgstr "Forsterkning"
+
+msgid "File name:"
+msgstr "Filnavn:"
+
+msgid "Disk size:"
+msgstr "Diskstørrelse:"
+
+msgid "RPM mode:"
+msgstr "RPM-modus:"
+
+msgid "Progress:"
+msgstr "Fremdrift:"
+
+msgid "Width:"
+msgstr "Bredde:"
+
+msgid "Height:"
+msgstr "Høyde:"
+
+msgid "Lock to this size"
+msgstr "Lås til denne størrelsen"
+
+msgid "Machine type:"
+msgstr "Maskintype:"
+
+msgid "Machine:"
+msgstr "Maskin:"
+
+msgid "Configure"
+msgstr "Konfigurer"
+
+msgid "CPU:"
+msgstr "CPU:"
+
+msgid "CPU type:"
+msgstr "CPU-type:"
+
+msgid "Speed:"
+msgstr "Hastighet:"
+
+msgid "Frequency:"
+msgstr "Frekvens:"
+
+msgid "FPU:"
+msgstr "FPU:"
+
+msgid "Wait states:"
+msgstr "Ventetilstander:"
+
+msgid "MB"
+msgstr "MB"
+
+msgid "Memory:"
+msgstr "Minne:"
+
+msgid "Time synchronization"
+msgstr "Tids-synkronisering"
+
+msgid "Disabled"
+msgstr "Deaktivert"
+
+msgid "Enabled (local time)"
+msgstr "Aktivert (lokal tid)"
+
+msgid "Enabled (UTC)"
+msgstr "Aktivert (UTC)"
+
+msgid "Dynamic Recompiler"
+msgstr "Dynamisk recompilator"
+
+msgid "CPU frame size"
+msgstr "CPU-rammestørrelse"
+
+msgid "Larger frames (less smooth)"
+msgstr "Større rammer (mindre jevn)"
+
+msgid "Smaller frames (smoother)"
+msgstr "Mindre rammer (jevnere)"
+
+msgid "Video:"
+msgstr "Video:"
+
+msgid "Video #2:"
+msgstr "Video #2:"
+
+msgid "Voodoo 1 or 2 Graphics"
+msgstr "Voodoo 1- eller 2-grafikk"
+
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/A-grafikk"
+
+msgid "XGA Graphics"
+msgstr "XGA-grafikk"
+
+msgid "IBM PS/55 Display Adapter Graphics"
+msgstr "IBM PS/55 skjermadapter-grafikk"
+
+msgid "Keyboard:"
+msgstr "Tastatur:"
+
+msgid "Keyboard"
+msgstr "Tastatur"
+
+msgid "Mouse:"
+msgstr "Mus:"
+
+msgid "Mouse"
+msgstr "Mus"
+
+msgid "Joystick:"
+msgstr "Styrespak:"
+
+msgid "Joystick"
+msgstr "Styrespak"
+
+msgid "Joystick 1..."
+msgstr "Styrespak 1..."
+
+msgid "Joystick 2..."
+msgstr "Styrespak 2..."
+
+msgid "Joystick 3..."
+msgstr "Styrespak 3..."
+
+msgid "Joystick 4..."
+msgstr "Styrespak 4..."
+
+msgid "Sound card #1:"
+msgstr "Lydkort #1:"
+
+msgid "Sound card #2:"
+msgstr "Lydkort #2:"
+
+msgid "Sound card #3:"
+msgstr "Lydkort #3:"
+
+msgid "Sound card #4:"
+msgstr "Lydkort #4:"
+
+msgid "MIDI Out Device:"
+msgstr "MIDI-ut-enhet:"
+
+msgid "MIDI In Device:"
+msgstr "MIDI-in-enhet:"
+
+msgid "MIDI Out:"
+msgstr "MIDI-ut:"
+
+msgid "Standalone MPU-401"
+msgstr "Selvstendig MPU-401"
+
+msgid "Use FLOAT32 sound"
+msgstr "Bruk FLOAT32-lyd"
+
+msgid "FM synth driver"
+msgstr "FM-synth-driver"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (mer nøyaktig)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (raskere)"
+
+msgid "COM1 Device:"
+msgstr "COM1-enhet:"
+
+msgid "COM2 Device:"
+msgstr "COM2-enhet:"
+
+msgid "COM3 Device:"
+msgstr "COM3-enhet:"
+
+msgid "COM4 Device:"
+msgstr "COM4-enhet:"
+
+msgid "LPT1 Device:"
+msgstr "LPT1-enhet:"
+
+msgid "LPT2 Device:"
+msgstr "LPT2-enhet:"
+
+msgid "LPT3 Device:"
+msgstr "LPT3-enhet:"
+
+msgid "LPT4 Device:"
+msgstr "LPT4-enhet:"
+
+msgid "Internal LPT ECP DMA:"
+msgstr "Intern LPT ECP DMA:"
+
+msgid "Serial port 1"
+msgstr "Seriell port 1"
+
+msgid "Serial port 2"
+msgstr "Seriell port 2"
+
+msgid "Serial port 3"
+msgstr "Seriell port 3"
+
+msgid "Serial port 4"
+msgstr "Seriell port 4"
+
+msgid "Parallel port 1"
+msgstr "Parallellport 1"
+
+msgid "Parallel port 2"
+msgstr "Parallellport 2"
+
+msgid "Parallel port 3"
+msgstr "Parallellport 3"
+
+msgid "Parallel port 4"
+msgstr "Parallellport 4"
+
+msgid "FD Controller:"
+msgstr "FD-kontroller:"
+
+msgid "CD-ROM Controller:"
+msgstr "CD-ROM-kontroller:"
+
+msgid "Tertiary IDE Controller"
+msgstr "Tertiær IDE-kontroller"
+
+msgid "Quaternary IDE Controller"
+msgstr "Kvartær IDE-kontroller"
+
+msgid "Hard disk"
+msgstr "Harddisk"
+
+msgid "SCSI"
+msgstr "SCSI"
+
+msgid "Controller 1:"
+msgstr "Kontroller 1:"
+
+msgid "Controller 2:"
+msgstr "Kontroller 2:"
+
+msgid "Controller 3:"
+msgstr "Kontroller 3:"
+
+msgid "Controller 4:"
+msgstr "Kontroller 4:"
+
+msgid "Cassette"
+msgstr "Kassett"
+
+msgid "Hard disks:"
+msgstr "Harddisker:"
+
+msgid "Firmware Version"
+msgstr "Firmware-versjon"
+
+msgid "&New..."
+msgstr "&Ny..."
+
+msgid "&Existing..."
+msgstr "&Eksisterende..."
+
+msgid "&Remove"
+msgstr "&Fjern"
+
+msgid "Bus:"
+msgstr "Buss:"
+
+msgid "Channel:"
+msgstr "Kanal:"
+
+msgid "ID:"
+msgstr "ID:"
+
+msgid "&Specify..."
+msgstr "&Angi..."
+
+msgid "Sectors:"
+msgstr "Sektorer:"
+
+msgid "Heads:"
+msgstr "Hoder:"
+
+msgid "Cylinders:"
+msgstr "Sylindre:"
+
+msgid "Size (MB):"
+msgstr "Størrelse (MB):"
+
+msgid "Type:"
+msgstr "Type:"
+
+msgid "Image Format:"
+msgstr "Image-format:"
+
+msgid "Block Size:"
+msgstr "Blokkstørrelse:"
+
+msgid "Floppy drives:"
+msgstr "Diskettstasjoner:"
+
+msgid "Turbo timings"
+msgstr "Turbo-timing"
+
+msgid "Check BPB"
+msgstr "Sjekk BPB"
+
+msgid "CD-ROM drives:"
+msgstr "CD-ROM-stasjoner:"
+
+msgid "MO drives:"
+msgstr "MO-stasjoner:"
+
+msgid "MO:"
+msgstr "MO:"
+
+msgid "Removable disks:"
+msgstr "Flyttbare disker:"
+
+msgid "Removable disk drives:"
+msgstr "Flyttbare stasjoner:"
+
+msgid "ZIP 250"
+msgstr "ZIP 250"
+
+msgid "ISA RTC:"
+msgstr "ISA RTC:"
+
+msgid "ISA Memory Expansion"
+msgstr "ISA-minneutvidelse"
+
+msgid "ISA ROM Cards"
+msgstr "ISA ROM-kort"
+
+msgid "Card 1:"
+msgstr "Kort 1:"
+
+msgid "Card 2:"
+msgstr "Kort 2:"
+
+msgid "Card 3:"
+msgstr "Kort 3:"
+
+msgid "Card 4:"
+msgstr "Kort 4:"
+
+msgid "Generic ISA ROM Board"
+msgstr "Generisk ISA ROM-kort"
+
+msgid "Generic Dual ISA ROM Board"
+msgstr "Generisk dobbel ISA ROM-kort"
+
+msgid "Generic Quad ISA ROM Board"
+msgstr "Generisk kvart ISA ROM-kort"
+
+msgid "ISABugger device"
+msgstr "ISABugger-enhet"
+
+msgid "POST card"
+msgstr "POST-kort"
+
+msgid "86Box"
+msgstr "86Box"
+
+msgid "Error"
+msgstr "Feil"
+
+msgid "Fatal error"
+msgstr "Kritisk feil"
+
+msgid " - PAUSED"
+msgstr " - PAUSERT"
+
+msgid "Speed"
+msgstr "Hastighet"
+
+msgid "Removable disk %1 (%2): %3"
+msgstr "Flyttbar disk %1 (%2): %3"
+
+msgid "&Removable disk %1 (%2): %3"
+msgstr "&Flyttbar disk %1 (%2): %3"
+
+msgid "Removable disk images"
+msgstr "Flyttbare diskfiler"
+
+msgid "Image %1"
+msgstr "Diskfil %1"
+
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Box fant ingen brukbare ROM-filer.\n\nVennligst <a href=\"https://github.com/86Box/roms/releases/latest\">last ned</a> et ROM-sett og pakk det ut i \"roms\"-mappen."
+
+msgid "(empty)"
+msgstr "(tom)"
+
+msgid "All files"
+msgstr "Alle filer"
+
+msgid "Turbo"
+msgstr "Turbo"
+
+msgid "On"
+msgstr "På"
+
+msgid "Off"
+msgstr "Av"
+
+msgid "All images"
+msgstr "Alle diskfiler"
+
+msgid "Basic sector images"
+msgstr "Basis sektorfiler"
+
+msgid "Surface images"
+msgstr "Surface-diskfiler"
+
+msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Maskin \"%hs\" er ikke tilgjengelig på grunn av manglende ROM-er i roms/machines-mappen. Bytter til en tilgjengelig maskin."
+
+msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Grafikkort \"%hs\" er ikke tilgjengelig på grunn av manglende ROM-er i roms/video-mappen. Bytter til et tilgjengelig grafikkort."
+
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Grafikkort #2 \"%hs\" er ikke tilgjengelig på grunn av manglende ROM-er i roms/video-mappen. Deaktiverer det andre grafikkortet."
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Enhet \"%hs\" er ikke tilgjengelig på grunn av manglende ROM-er. Ignorerer enheten."
+
+msgid "Machine"
+msgstr "Maskin"
+
+msgid "Display"
+msgstr "Skjerm"
+
+msgid "Input devices"
+msgstr "Inndataenheter"
+
+msgid "Sound"
+msgstr "Lyd"
+
+msgid "Network"
+msgstr "Nettverk"
+
+msgid "Ports (COM & LPT)"
+msgstr "Porter (COM & LPT)"
+
+msgid "Ports"
+msgstr "Porter"
+
+msgid "Serial ports:"
+msgstr "Seriellporter:"
+
+msgid "Parallel ports:"
+msgstr "Parallellporter:"
+
+msgid "Storage controllers"
+msgstr "Lagringskontrollere"
+
+msgid "Hard disks"
+msgstr "Harddisker"
+
+msgid "Disks:"
+msgstr "Disker:"
+
+msgid "Floppy:"
+msgstr "Diskett:"
+
+msgid "Controllers:"
+msgstr "Kontrollere:"
+
+msgid "Floppy & CD-ROM drives"
+msgstr "Diskett- og CD-ROM-stasjoner"
+
+msgid "Other removable devices"
+msgstr "Andre flyttbare enheter"
+
+msgid "Other peripherals"
+msgstr "Andre eksterne enheter"
+
+msgid "Other devices"
+msgstr "Andre enheter"
+
+msgid "Click to capture mouse"
+msgstr "Klikk for å fange mus"
+
+msgid "Press %1 to release mouse"
+msgstr "Trykk %1 for å slippe mus"
+
+msgid "Press %1 or middle button to release mouse"
+msgstr "Trykk %1 eller midtknappen for å slippe mus"
+
+msgid "Bus"
+msgstr "Buss"
+
+msgid "File"
+msgstr "Fil"
+
+msgid "C"
+msgstr "C"
+
+msgid "H"
+msgstr "H"
+
+msgid "S"
+msgstr "S"
+
+msgid "KB"
+msgstr "KB"
+
+msgid "Default"
+msgstr "Standard"
+
+msgid "%1 Wait state(s)"
+msgstr "%1 ventetilstand(er)"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "No PCap devices found"
+msgstr "Ingen PCap-enheter funnet"
+
+msgid "Invalid PCap device"
+msgstr "Ugyldig PCap-enhet"
+
+msgid "2-axis, 2-button joystick(s)"
+msgstr "2-akset, 2-knapps styrespak(er)"
+
+msgid "2-axis, 4-button joystick"
+msgstr "2-akset, 4-knapps styrespak"
+
+msgid "2-axis, 6-button joystick"
+msgstr "2-akset, 6-knapps styrespak"
+
+msgid "2-axis, 8-button joystick"
+msgstr "2-akset, 8-knapps styrespak"
+
+msgid "3-axis, 2-button joystick"
+msgstr "3-akset, 2-knapps styrespak"
+
+msgid "3-axis, 4-button joystick"
+msgstr "3-akset, 4-knapps styrespak"
+
+msgid "4-axis, 4-button joystick"
+msgstr "4-akset, 4-knapps styrespak"
+
+msgid "CH Flightstick Pro"
+msgstr "CH Flightstick Pro"
+
+msgid "CH Flightstick Pro + CH Pedals"
+msgstr "CH Flightstick Pro + CH Pedaler"
+
+msgid "Microsoft SideWinder Pad"
+msgstr "Microsoft SideWinder Pad"
+
+msgid "Thrustmaster Flight Control System"
+msgstr "Thrustmaster Flight Control System"
+
+msgid "Thrustmaster FCS + Rudder Control System"
+msgstr "Thrustmaster FCS + Ror-kontrollsystem"
+
+msgid "2-button gamepad(s)"
+msgstr "2-knapps gamepad(er)"
+
+msgid "2-button flight yoke"
+msgstr "2-knapps flystyre"
+
+msgid "4-button gamepad"
+msgstr "4-knapps gamepad"
+
+msgid "4-button flight yoke"
+msgstr "4-knapps flystyre"
+
+msgid "2-button flight yoke with throttle"
+msgstr "2-knapps flystyre med gass"
+
+msgid "4-button flight yoke with throttle"
+msgstr "4-knapps flystyre med gass"
+
+msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgstr "Win95 Ratt (3-akset, 4-knapps)"
+
+msgid "None"
+msgstr "Ingen"
+
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
+
+msgid "Floppy %1 (%2): %3"
+msgstr "Diskett %1 (%2): %3"
+
+msgid "&Floppy %1 (%2): %3"
+msgstr "&Diskett %1 (%2): %3"
+
+msgid "Advanced sector images"
+msgstr "Avanserte sektorfiler"
+
+msgid "Flux images"
+msgstr "Flux-diskfiler"
+
+msgid "Are you sure you want to hard reset the emulated machine?"
+msgstr "Er du sikker på at du vil utføre en hard tilbakestilling på den emulerte maskinen?"
+
+msgid "Are you sure you want to exit 86Box?"
+msgstr "Er du sikker på at du vil avslutte 86Box?"
+
+msgid "Unable to initialize Ghostscript"
+msgstr "Kan ikke initialisere Ghostscript"
+
+msgid "Unable to initialize GhostPCL"
+msgstr "Kan ikke initialisere GhostPCL"
+
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "&MO %1 (%2): %3"
+
+msgid "MO images"
+msgstr "MO-filer"
+
+msgid "Welcome to 86Box!"
+msgstr "Velkommen til 86Box!"
+
+msgid "Internal device"
+msgstr "Intern enhet"
+
+msgid "&File"
+msgstr "&Fil"
+
+msgid "&New machine..."
+msgstr "&Ny maskin..."
+
+msgid "&Check for updates..."
+msgstr "&Sjekk etter oppdateringer..."
+
+msgid "Exit"
+msgstr "Avslutt"
+
+msgid "No ROMs found"
+msgstr "Ingen ROM-er funnet"
+
+msgid "Do you want to save the settings?"
+msgstr "Vil du lagre innstillingene?"
+
+msgid "This will hard reset the emulated machine."
+msgstr "Dette vil hard-resette den emulerte maskinen."
+
+msgid "Save"
+msgstr "Lagre"
+
+msgid "About 86Box"
+msgstr "Om 86Box"
+
+msgid "86Box v"
+msgstr "86Box v"
+
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "En emulator for gamle datamaskiner\n\nForfattere: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne og andre.\n\nMed tidligere kjernebidrag fra Sarah Walker, leilei, JohnElliott, greatpsycho og andre.\n\nUtgitt under GNU General Public License versjon 2 eller senere. Se LICENSE for mer informasjon."
+
+msgid "Hardware not available"
+msgstr "Maskinvare ikke tilgjengelig"
+
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Sørg for at %1 er installert og at du er på en %1-kompatibel nettverkstilkobling."
+
+msgid "Invalid configuration"
+msgstr "Ugyldig konfigurasjon"
+
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 kreves for automatisk konvertering av PostScript-filer til PDF.\n\nDokumenter sendt til den generiske PostScript-skriveren vil lagres som PostScript (.ps)-filer."
+
+msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "%1 kreves for automatisk konvertering av PCL-filer til PDF.\n\nDokumenter sendt til den generiske PCL-skriveren vil lagres som Printer Command Language (.pcl)-filer."
+
+msgid "Don't show this message again"
+msgstr "Ikke vis denne meldingen igjen"
+
+msgid "Don't exit"
+msgstr "Ikke avslutt"
+
+msgid "Reset"
+msgstr "Nullstill"
+
+msgid "Don't reset"
+msgstr "Ikke nullstill"
+
+msgid "CD-ROM images"
+msgstr "CD-ROM-filer"
+
+msgid "%1 Device Configuration"
+msgstr "%1 Enhetskonfigurasjon"
+
+msgid "Monitor in sleep mode"
+msgstr "Skjerm i hvilemodus"
+
+msgid "GLSL shaders"
+msgstr "GLSL-shadere"
+
+msgid "You are loading an unsupported configuration"
+msgstr "Du laster en ikke-støttet konfigurasjon"
+
+msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
+msgstr "CPU-typefiltrering basert på valgt maskin er deaktivert for denne emulerte maskinen.\n\nDette gjør det mulig å velge en CPU som ellers er inkompatibel med den valgte maskinen. Du kan imidlertid støte på inkompatibilitet med maskinens BIOS eller annen programvare.\n\nAktivering av denne innstillingen er ikke offisielt støttet, og eventuelle innsendte feilrapporter kan bli avvist som ugyldige."
+
+msgid "Continue"
+msgstr "Fortsett"
+
+msgid "Cassette: %1"
+msgstr "Kassett: %1"
+
+msgid "C&assette: %1"
+msgstr "K&assett: %1"
+
+msgid "Cassette images"
+msgstr "Kassettfiler"
+
+msgid "Cartridge %1: %2"
+msgstr "Kassett %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "Kas&sett %1: %2"
+
+msgid "Cartridge images"
+msgstr "Kassettfiler"
+
+msgid "Resume execution"
+msgstr "Fortsett kjøring"
+
+msgid "Pause execution"
+msgstr "Pause kjøring"
+
+msgid "Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "Trykk Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "Trykk Ctrl+Alt+Esc"
+
+msgid "Hard reset"
+msgstr "Hard-tilbakestilling"
+
+msgid "Force shutdown"
+msgstr "Tvangsavslutt"
+
+msgid "Start"
+msgstr "Start"
+
+msgid "Not running"
+msgstr "Ikke kjørende"
+
+msgid "Running"
+msgstr "Kjører"
+
+msgid "Paused"
+msgstr "Satt på pause"
+
+msgid "Waiting"
+msgstr "Venter"
+
+msgid "Powered Off"
+msgstr "Slått av"
+
+msgid "%n running"
+msgstr "%n kjørende"
+
+msgid "%n paused"
+msgstr "%n satt på pause"
+
+msgid "%n waiting"
+msgstr "%n venter"
+
+msgid "%1 total"
+msgstr "%1 totalt"
+
+msgid "VMs: %1"
+msgstr "VM-er: %1"
+
+msgid "System Directory:"
+msgstr "Systemmappe:"
+
+msgid "Choose directory"
+msgstr "Velg mappe"
+
+msgid "Choose configuration file"
+msgstr "Velg konfigurasjonsfil"
+
+msgid "86Box configuration files (86box.cfg)"
+msgstr "86Box konfigurasjonsfiler (86box.cfg)"
+
+msgid "Configuration read failed"
+msgstr "Lesing av konfigurasjon mislyktes"
+
+msgid "Unable to open the selected configuration file for reading: %1"
+msgstr "Kan ikke åpne valgt konfigurasjonsfil for lesing: %1"
+
+msgid "Use regular expressions in search box"
+msgstr "Bruk regulære uttrykk i søkeboksen"
+
+msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%1 maskin(er) er for øyeblikket aktive. Er du sikker på at du vil avslutte VM-administratoren uansett?"
+
+msgid "Add new system wizard"
+msgstr "Legg til ny system-veiviser"
+
+msgid "Introduction"
+msgstr "Introduksjon"
+
+msgid "This will help you add a new system to 86Box."
+msgstr "Dette vil hjelpe deg med å legge til et nytt system i 86Box."
+
+msgid "New configuration"
+msgstr "Ny konfigurasjon"
+
+msgid "Complete"
+msgstr "Fullfør"
+
+msgid "The wizard will now launch the configuration for the new system."
+msgstr "Veiviseren vil nå starte konfigurasjonen for det nye systemet."
+
+msgid "Use existing configuration"
+msgstr "Bruk eksisterende konfigurasjon"
+
+msgid "Type some notes here"
+msgstr "Skriv noen notater her"
+
+msgid "Paste the contents of the existing configuration file into the box below."
+msgstr "Lim inn innholdet fra den eksisterende konfigurasjonsfilen i boksen nedenfor."
+
+msgid "Load configuration from file"
+msgstr "Last konfigurasjon fra fil"
+
+msgid "System name"
+msgstr "Systemnavn"
+
+msgid "System name:"
+msgstr "Systemnavn:"
+
+msgid "System name cannot contain certain characters"
+msgstr "Systemnavnet kan ikke inneholde visse tegn"
+
+msgid "System name already exists"
+msgstr "Systemnavnet finnes allerede"
+
+msgid "Please enter a directory for the system"
+msgstr "Vennligst skriv inn en mappe for systemet"
+
+msgid "Directory does not exist"
+msgstr "Mappen eksisterer ikke"
+
+msgid "A new directory for the system will be created in the selected directory above"
+msgstr "En ny mappe for systemet vil bli opprettet i den valgte mappen ovenfor"
+
+msgid "System location:"
+msgstr "Systemplassering:"
+
+msgid "System name and location"
+msgstr "Systemnavn og plassering"
+
+msgid "Enter the name of the system and choose the location"
+msgstr "Skriv inn systemets navn og velg plassering"
+
+msgid "Enter the name of the system"
+msgstr "Skriv inn systemnavnet"
+
+msgid "Please enter a system name"
+msgstr "Vennligst skriv inn et systemnavn"
+
+msgid "Display name (optional):"
+msgstr "Visningsnavn (valgfritt):"
+
+msgid "Display name:"
+msgstr "Visningsnavn:"
+
+msgid "Set display name"
+msgstr "Angi visningsnavn"
+
+msgid "Enter the new display name (blank to reset)"
+msgstr "Skriv inn nytt visningsnavn (tomt for å tilbakestille)"
+
+msgid "Change &display name..."
+msgstr "Endre &visningsnavn..."
+
+msgid "Context Menu"
+msgstr "Kontekstmeny"
+
+msgid "&Open folder..."
+msgstr "&Åpne mappe..."
+
+msgid "Open p&rinter tray..."
+msgstr "Åpne p&rinter-skuff..."
+
+msgid "Set &icon..."
+msgstr "Angi &ikon..."
+
+msgid "Select an icon"
+msgstr "Velg et ikon"
+
+msgid "C&lone..."
+msgstr "K&lon..."
+
+msgid "Virtual machine \"%1\" (%2) will be cloned into:"
+msgstr "Virtuell maskin \"%1\" (%2) vil bli klonet til:"
+
+msgid "Directory %1 already exists"
+msgstr "Mappen %1 finnes allerede"
+
+msgid "You cannot use the following characters in the name: %1"
+msgstr "Du kan ikke bruke følgende tegn i navnet: %1"
+
+msgid "Clone"
+msgstr "Klon"
+
+msgid "Failed to create directory for cloned VM"
+msgstr "Kunne ikke opprette mappe for klonet VM"
+
+msgid "Failed to clone VM."
+msgstr "Kloning av VM mislyktes."
+
+msgid "Directory in use"
+msgstr "Mappe i bruk"
+
+msgid "The selected directory is already in use. Please select a different directory."
+msgstr "Den valgte mappen er allerede i bruk. Vennligst velg en annen mappe."
+
+msgid "Create directory failed"
+msgstr "Oppretting av mappe mislyktes"
+
+msgid "Unable to create the directory for the new system"
+msgstr "Kunne ikke opprette mappe for det nye systemet"
+
+msgid "Configuration write failed"
+msgstr "Skriving av konfigurasjon mislyktes"
+
+msgid "Unable to open the configuration file at %1 for writing"
+msgstr "Kunne ikke åpne konfigurasjonsfilen på %1 for skriving"
+
+msgid "Error adding system"
+msgstr "Feil ved legg til system"
+
+msgid "Remove directory failed"
+msgstr "Fjerning av mappe mislyktes"
+
+msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
+msgstr "Noen filer i maskinens mappe kunne ikke slettes. Vennligst slett dem manuelt."
+
+msgid "Build"
+msgstr "Bygg"
+
+msgid "Version"
+msgstr "Versjon"
+
+msgid "An update to 86Box is available: %1 %2"
+msgstr "En oppdatering til 86Box er tilgjengelig: %1 %2"
+
+msgid "An error has occurred while checking for updates: %1"
+msgstr "En feil oppstod under sjekking av oppdateringer: %1"
+
+msgid "<b>An update to 86Box is available!</b>"
+msgstr "<b>En oppdatering til 86Box er tilgjengelig!</b>"
+
+msgid "Warning"
+msgstr "Advarsel"
+
+msgid "&Kill"
+msgstr "&Avslutt prosess"
+
+msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
+msgstr "Å avslutte en virtuell maskin kan føre til datatap. Gjør dette kun hvis 86Box-prosessen henger.\n\nVil du virkelig avslutte den virtuelle maskinen \"%1\"?"
+
+msgid "&Delete"
+msgstr "&Slett"
+
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
+msgstr "Vil du virkelig slette den virtuelle maskinen \"%1\" og alle dens filer? Denne handlingen kan ikke angres!"
+
+msgid "Show &config file"
+msgstr "Vis &konfigurasjonsfil"
+
+msgid "No screenshot"
+msgstr "Ingen skjermbilde"
+
+msgid "Search"
+msgstr "Søk"
+
+msgid "Searching for VMs..."
+msgstr "Søker etter VMer..."
+
+msgid "Found %1"
+msgstr "Fant %1"
+
+msgid "System"
+msgstr "System"
+
+msgid "Storage"
+msgstr "Lagring"
+
+msgid "Disk %1: "
+msgstr "Disk %1:"
+
+msgid "No disks"
+msgstr "Ingen disker"
+
+msgid "Audio"
+msgstr "Lyd"
+
+msgid "Audio:"
+msgstr "Lyd:"
+
+msgid "ACPI shutdown"
+msgstr "ACPI-avstenging"
+
+msgid "ACP&I shutdown"
+msgstr "ACP&I-avstenging"
+
+msgid "Hard disk (%1)"
+msgstr "Harddisk (%1)"
+
+msgid "MFM/RLL or ESDI CD-ROM drives never existed"
+msgstr "MFM/RLL eller ESDI CD-ROM-stasjoner eksisterte aldri"
+
+msgid "Custom..."
+msgstr "Tilpasset..."
+
+msgid "Custom (large)..."
+msgstr "Tilpasset (stor)..."
+
+msgid "Add New Hard Disk"
+msgstr "Legg til ny harddisk"
+
+msgid "Add Existing Hard Disk"
+msgstr "Legg til eksisterende harddisk"
+
+msgid "HDI disk images cannot be larger than 4 GB."
+msgstr "HDI-diskbilder kan ikke være større enn 4 GB."
+
+msgid "Disk images cannot be larger than 127 GB."
+msgstr "Diskbilder kan ikke være større enn 127 GB."
+
+msgid "Hard disk images"
+msgstr "Harddiskbilder"
+
+msgid "Unable to read file"
+msgstr "Kunne ikke lese fil"
+
+msgid "Unable to write file"
+msgstr "Kunne ikke skrive fil"
+
+msgid "HDI or HDX images with a sector size other than 512 are not supported."
+msgstr "HDI- eller HDX-bilder med en sektorstørrelse annen enn 512 støttes ikke."
+
+msgid "Disk image file already exists"
+msgstr "Diskbildefilen finnes allerede"
+
+msgid "Please specify a valid file name."
+msgstr "Vennligst spesifiser et gyldig filnavn."
+
+msgid "Disk image created"
+msgstr "Diskbilde opprettet"
+
+msgid "Make sure the file exists and is readable."
+msgstr "Sørg for at filen eksisterer og kan leses."
+
+msgid "Make sure the file is being saved to a writable directory."
+msgstr "Sørg for at filen lagres i en skrivbar mappe."
+
+msgid "Disk image too large"
+msgstr "Diskbilde for stort"
+
+msgid "Remember to partition and format the newly-created drive."
+msgstr "Husk å partisjonere og formatere den nyopprettede disken."
+
+msgid "The selected file will be overwritten. Are you sure you want to use it?"
+msgstr "Den valgte filen vil bli overskrevet. Er du sikker på at du vil bruke den?"
+
+msgid "Unsupported disk image"
+msgstr "Ustøttet diskbilde"
+
+msgid "Overwrite"
+msgstr "Overskriv"
+
+msgid "Don't overwrite"
+msgstr "Ikke overskriv"
+
+msgid "Raw image"
+msgstr "Råbilde"
+
+msgid "HDI image"
+msgstr "HDI-bilde"
+
+msgid "HDX image"
+msgstr "HDX-bilde"
+
+msgid "Fixed-size VHD"
+msgstr "VHD med fast størrelse"
+
+msgid "Dynamic-size VHD"
+msgstr "VHD med dynamisk størrelse"
+
+msgid "Differencing VHD"
+msgstr "Differensierende VHD"
+
+msgid "(N/A)"
+msgstr "(N/A)"
+
+msgid "Raw image (.img)"
+msgstr "Råbilde (.img)"
+
+msgid "HDI image (.hdi)"
+msgstr "HDI-bilde (.hdi)"
+
+msgid "HDX image (.hdx)"
+msgstr "HDX-bilde (.hdx)"
+
+msgid "Fixed-size VHD (.vhd)"
+msgstr "VHD med fast størrelse (.vhd)"
+
+msgid "Dynamic-size VHD (.vhd)"
+msgstr "VHD med dynamisk størrelse (.vhd)"
+
+msgid "Differencing VHD (.vhd)"
+msgstr "Differensierende VHD (.vhd)"
+
+msgid "Large blocks (2 MB)"
+msgstr "Store blokker (2 MB)"
+
+msgid "Small blocks (512 KB)"
+msgstr "Små blokker (512 KB)"
+
+msgid "VHD files"
+msgstr "VHD-filer"
+
+msgid "Select the parent VHD"
+msgstr "Velg overordnet VHD"
+
+msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Dette kan bety at det overordnede bildet ble endret etter at differansebildet ble opprettet.\n\nDet kan også skje hvis bildefilene ble flyttet eller kopiert, eller på grunn av en feil i programmet som opprettet denne disken.\n\nVil du rette tidsstemplene?"
+
+msgid "Parent and child disk timestamps do not match"
+msgstr "Tidsstemplene til overordnet og underordnet disk samsvarer ikke"
+
+msgid "Could not fix VHD timestamp."
+msgstr "Kunne ikke rette VHD-tidsstempel."
+
+msgid "MFM/RLL"
+msgstr "MFM/RLL"
+
+msgid "XTA"
+msgstr "XTA"
+
+msgid "ESDI"
+msgstr "ESDI"
+
+msgid "IDE"
+msgstr "IDE"
+
+msgid "ATAPI"
+msgstr "ATAPI"
+
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
+
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "&CD-ROM %1 (%2): %3"
+
+msgid "160 KB"
+msgstr "160 KB"
+
+msgid "180 KB"
+msgstr "180 KB"
+
+msgid "320 KB"
+msgstr "320 KB"
+
+msgid "360 KB"
+msgstr "360 KB"
+
+msgid "640 KB"
+msgstr "640 KB"
+
+msgid "720 KB"
+msgstr "720 KB"
+
+msgid "1.2 MB"
+msgstr "1,2 MB"
+
+msgid "1.25 MB"
+msgstr "1,25 MB"
+
+msgid "1.44 MB"
+msgstr "1,44 MB"
+
+msgid "DMF (cluster 1024)"
+msgstr "DMF (klynge 1024)"
+
+msgid "DMF (cluster 2048)"
+msgstr "DMF (klynge 2048)"
+
+msgid "2.88 MB"
+msgstr "2,88 MB"
+
+msgid "ZIP 100"
+msgstr "ZIP 100"
+
+msgid "3.5\" 128 MB (ISO 10090)"
+msgstr "3,5\" 128 MB (ISO 10090)"
+
+msgid "3.5\" 230 MB (ISO 13963)"
+msgstr "3,5\" 230 MB (ISO 13963)"
+
+msgid "3.5\" 540 MB (ISO 15498)"
+msgstr "3,5\" 540 MB (ISO 15498)"
+
+msgid "3.5\" 640 MB (ISO 15498)"
+msgstr "3,5\" 640 MB (ISO 15498)"
+
+msgid "3.5\" 1.3 GB (GigaMO)"
+msgstr "3,5\" 1,3 GB (GigaMO)"
+
+msgid "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3,5\" 2,3 GB (GigaMO 2)"
+
+msgid "5.25\" 600 MB"
+msgstr "5,25\" 600 MB"
+
+msgid "5.25\" 650 MB"
+msgstr "5,25\" 650 MB"
+
+msgid "5.25\" 1 GB"
+msgstr "5,25\" 1 GB"
+
+msgid "5.25\" 1.3 GB"
+msgstr "5,25\" 1,3 GB"
+
+msgid "Perfect RPM"
+msgstr "Perfekt RPM"
+
+msgid "1% below perfect RPM"
+msgstr "1 % under perfekt RPM"
+
+msgid "1.5% below perfect RPM"
+msgstr "1,5 % under perfekt RPM"
+
+msgid "2% below perfect RPM"
+msgstr "2 % under perfekt RPM"
+
+msgid "(System Default)"
+msgstr "(Systemstandard)"
+
+msgid "Failed to initialize network driver"
+msgstr "Kunne ikke initialisere nettverksdriver"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "Nettverkskonfigurasjonen vil bli byttet til null-driver"
+
+msgid "Mouse sensitivity:"
+msgstr "Musesensitivitet:"
+
+msgid "Select media images from program working directory"
+msgstr "Velg mediebilder fra programmets arbeidsmappe"
+
+msgid "PIT mode:"
+msgstr "PIT-modus:"
+
+msgid "Auto"
+msgstr "Auto"
+
+msgid "Slow"
+msgstr "Sakte"
+
+msgid "Fast"
+msgstr "Rask"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Automatisk pause ved tap av fokus"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBox støttes ikke lenger"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "Utviklingen av WinBox-behandleren ble stoppet i 2022 på grunn av mangel på vedlikeholdere. Siden vi fokuserer på å gjøre 86Box enda bedre, har vi besluttet å ikke lenger støtte WinBox som behandler.\n\nIngen flere oppdateringer vil bli gitt gjennom WinBox, og du kan oppleve feil oppførsel hvis du fortsetter å bruke den med nyere versjoner av 86Box. Feilrapporter relatert til WinBox vil bli lukket som ugyldige.\n\nGå til 86box.net for en liste over andre behandlere du kan bruke."
+
+msgid "Generate"
+msgstr "Generer"
+
+msgid "Joystick configuration"
+msgstr "Styrespak-konfigurasjon"
+
+msgid "Device"
+msgstr "Enhet"
+
+msgid "%1 (X axis)"
+msgstr "%1 (X-akse)"
+
+msgid "%1 (Y axis)"
+msgstr "%1 (Y-akse)"
+
+msgid "MCA devices"
+msgstr "MCA-enheter"
+
+msgid "List of MCA devices:"
+msgstr "Liste over MCA-enheter:"
+
+msgid "&Tablet tool"
+msgstr "&Tegnebrettverktøy"
+
+msgid "About &Qt"
+msgstr "Om &Qt"
+
+msgid "&MCA devices..."
+msgstr "&MCA-enheter..."
+
+msgid "Show non-&primary monitors"
+msgstr "Vis ikke-&primære skjermer"
+
+msgid "Open screenshots &folder..."
+msgstr "Åpne skjermbilde&mappe..."
+
+msgid "Appl&y fullscreen stretch mode when maximized"
+msgstr "Bruk fullskjerms&strekkmodus ved maksimering"
+
+msgid "&Cursor/Puck"
+msgstr "&Markør/pekeplate"
+
+msgid "&Pen"
+msgstr "&Penn"
+
+msgid "&Host CD/DVD Drive (%1:)"
+msgstr "&Vert CD/DVD-stasjon (%1:)"
+
+msgid "&Connected"
+msgstr "&Koblet til"
+
+msgid "Clear image &history"
+msgstr "Tøm bilde&historikk"
+
+msgid "Create..."
+msgstr "Opprett..."
+
+msgid "Host CD/DVD Drive (%1)"
+msgstr "Vert CD/DVD-stasjon (%1)"
+
+msgid "Unknown Bus"
+msgstr "Ukjent buss"
+
+msgid "Null Driver"
+msgstr "Null-driver"
+
+msgid "NIC:"
+msgstr "Nettverkskort:"
+
+msgid "NIC %1 (%2) %3"
+msgstr "Nettverkskort %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "&Nettverkskort %1 (%2) %3"
+
+msgid "Render behavior"
+msgstr "Gjengivelsesatferd"
+
+msgid "Use target framerate:"
+msgstr "Bruk mål-bilderate:"
+
+msgid " fps"
+msgstr " bps"
+
+msgid "VSync"
+msgstr "VSync"
+
+msgid "Synchronize with video"
+msgstr "Synkroniser med video"
+
+msgid "Shaders"
+msgstr "Shader-programmer"
+
+msgid "Remove"
+msgstr "Fjern"
+
+msgid "Browse..."
+msgstr "Bla gjennom..."
+
+msgid "Couldn't create OpenGL context."
+msgstr "Kunne ikke opprette OpenGL-kontekst."
+
+msgid "Couldn't switch to OpenGL context."
+msgstr "Kunne ikke bytte til OpenGL-kontekst."
+
+msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
+msgstr "OpenGL versjon 3.0 eller høyere kreves. Nåværende versjon er %1.%2"
+
+msgid "Error initializing OpenGL"
+msgstr "Feil ved initialisering av OpenGL"
+
+msgid "\nFalling back to software rendering."
+msgstr "\nFaller tilbake til programvaregjengivelse."
+
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>Når du velger mediebilder (CD-ROM, diskett osv.), vil åpningsdialogen starte i samme mappe som 86Box-konfigurasjonsfilen. Denne innstillingen vil sannsynligvis bare ha betydning på macOS.</p></body></html>"
+
+msgid "This machine might have been moved or copied."
+msgstr "Denne maskinen kan ha blitt flyttet eller kopiert."
+
+msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
+msgstr "For å sikre korrekt nettverksfunksjonalitet, må 86Box vite om denne maskinen ble flyttet eller kopiert.\n\nVelg \"Jeg kopierte den\" hvis du er usikker."
+
+msgid "I Moved It"
+msgstr "Jeg flyttet den"
+
+msgid "I Copied It"
+msgstr "Jeg kopierte den"
+
+msgid "86Box Monitor #"
+msgstr "86Box-skjerm #"
+
+msgid "No MCA devices."
+msgstr "Ingen MCA-enheter."
+
+msgid "MiB"
+msgstr "MiB"
+
+msgid "GiB"
+msgstr "GiB"
+
+msgid "Network Card #1"
+msgstr "Nettverkskort #1"
+
+msgid "Network Card #2"
+msgstr "Nettverkskort #2"
+
+msgid "Network Card #3"
+msgstr "Nettverkskort #3"
+
+msgid "Network Card #4"
+msgstr "Nettverkskort #4"
+
+msgid "Mode:"
+msgstr "Modus:"
+
+msgid "Interface:"
+msgstr "Grensesnitt:"
+
+msgid "Adapter:"
+msgstr "Adapter:"
+
+msgid "VDE Socket:"
+msgstr "VDE-kontakt:"
+
+msgid "86Box Unit Tester"
+msgstr "86Box-enhetstester"
+
+msgid "Novell NetWare 2.x Key Card"
+msgstr "Novell NetWare 2.x nøkkelkort"
+
+msgid "Serial port passthrough 1"
+msgstr "Seriell port-gjennomkobling 1"
+
+msgid "Serial port passthrough 2"
+msgstr "Seriell port-gjennomkobling 2"
+
+msgid "Serial port passthrough 3"
+msgstr "Seriell port-gjennomkobling 3"
+
+msgid "Serial port passthrough 4"
+msgstr "Seriell port-gjennomkobling 4"
+
+msgid "Renderer &options..."
+msgstr "Gjengivelses&alternativer..."
+
+msgid "PC/XT Keyboard"
+msgstr "PC/XT-tastatur"
+
+msgid "AT Keyboard"
+msgstr "AT-tastatur"
+
+msgid "AX Keyboard"
+msgstr "AX-tastatur"
+
+msgid "PS/2 Keyboard"
+msgstr "PS/2-tastatur"
+
+msgid "PS/55 Keyboard"
+msgstr "PS/55-tastatur"
+
+msgid "Keys"
+msgstr "Taster"
+
+msgid "Logitech/Microsoft Bus Mouse"
+msgstr "Logitech/Microsoft-bussmus"
+
+msgid "Microsoft Bus Mouse (InPort)"
+msgstr "Microsoft-bussmus (InPort)"
+
+msgid "Mouse Systems Serial Mouse"
+msgstr "Mouse Systems-seriell mus"
+
+msgid "Mouse Systems Bus Mouse"
+msgstr "Mouse Systems-bussmus"
+
+msgid "Microsoft Serial Mouse"
+msgstr "Microsoft-seriell mus"
+
+msgid "Microsoft Serial BallPoint"
+msgstr "Microsoft-seriell BallPoint"
+
+msgid "Logitech Serial Mouse"
+msgstr "Logitech-seriell mus"
+
+msgid "PS/2 Mouse"
+msgstr "PS/2-mus"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr "PS/2 QuickPort-mus"
+
+msgid "3M MicroTouch (Serial)"
+msgstr "3M MicroTouch (seriell)"
+
+msgid "Default Baud rate"
+msgstr "Standard baudrate"
+
+msgid "[COM] Standard Hayes-compliant Modem"
+msgstr "[COM] Standard Hayes-kompatibelt modem"
+
+msgid "Roland MT-32 Emulation"
+msgstr "Roland MT-32-emulering"
+
+msgid "Roland MT-32 (New) Emulation"
+msgstr "Roland MT-32 (Ny)-emulering"
+
+msgid "Roland CM-32L Emulation"
+msgstr "Roland CM-32L-emulering"
+
+msgid "Roland CM-32LN Emulation"
+msgstr "Roland CM-32LN-emulering"
+
+msgid "OPL4-ML Daughterboard"
+msgstr "OPL4-ML-tilleggskort"
+
+msgid "System MIDI"
+msgstr "System-MIDI"
+
+msgid "MIDI Input Device"
+msgstr "MIDI-inngangsenhet"
+
+msgid "BIOS file"
+msgstr "BIOS-fil"
+
+msgid "BIOS file (ROM #1)"
+msgstr "BIOS-fil (ROM #1)"
+
+msgid "BIOS file (ROM #2)"
+msgstr "BIOS-fil (ROM #2)"
+
+msgid "BIOS file (ROM #3)"
+msgstr "BIOS-fil (ROM #3)"
+
+msgid "BIOS file (ROM #4)"
+msgstr "BIOS-fil (ROM #4)"
+
+msgid "BIOS address"
+msgstr "BIOS-adresse"
+
+msgid "BIOS address (ROM #1)"
+msgstr "BIOS-adresse (ROM #1)"
+
+msgid "BIOS address (ROM #2)"
+msgstr "BIOS-adresse (ROM #2)"
+
+msgid "BIOS address (ROM #3)"
+msgstr "BIOS-adresse (ROM #3)"
+
+msgid "BIOS address (ROM #4)"
+msgstr "BIOS-adresse (ROM #4)"
+
+msgid "Enable BIOS extension ROM Writes"
+msgstr "Aktiver skriving til BIOS-utvidelses-ROM"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr "Aktiver skriving til BIOS-utvidelses-ROM (ROM #1)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr "Aktiver skriving til BIOS-utvidelses-ROM (ROM #2)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr "Aktiver skriving til BIOS-utvidelses-ROM (ROM #3)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr "Aktiver skriving til BIOS-utvidelses-ROM (ROM #4)"
+
+msgid "Linear framebuffer base"
+msgstr "Grunnadresse for lineært framebuffer"
+
+msgid "Address"
+msgstr "Adresse"
+
+msgid "IRQ"
+msgstr "IRQ"
+
+msgid "Serial port IRQ"
+msgstr "Serieport-IRQ"
+
+msgid "Parallel port IRQ"
+msgstr "Parallellport-IRQ"
+
+msgid "BIOS Revision"
+msgstr "BIOS-revisjon"
+
+msgid "BIOS Version"
+msgstr "BIOS-versjon"
+
+msgid "BIOS Language"
+msgstr "BIOS-språk"
+
+msgid "IBM 5161 Expansion Unit"
+msgstr "IBM 5161-utvidelsesenhet"
+
+msgid "IBM Cassette Basic"
+msgstr "IBM Kassett-Basic"
+
+msgid "Translate 26 -> 17"
+msgstr "Oversett 26 -> 17"
+
+msgid "Language"
+msgstr "Språk"
+
+msgid "Enable backlight"
+msgstr "Aktiver bakgrunnsbelysning"
+
+msgid "Invert colors"
+msgstr "Inverter farger"
+
+msgid "BIOS size"
+msgstr "BIOS-størrelse"
+
+msgid "BIOS size (ROM #1)"
+msgstr "BIOS-størrelse (ROM #1)"
+
+msgid "BIOS size (ROM #2)"
+msgstr "BIOS-størrelse (ROM #2)"
+
+msgid "BIOS size (ROM #3)"
+msgstr "BIOS-størrelse (ROM #3)"
+
+msgid "BIOS size (ROM #4)"
+msgstr "BIOS-størrelse (ROM #4)"
+
+msgid "Map C0000-C7FFF as UMB"
+msgstr "Kartlegg C0000-C7FFF som UMB"
+
+msgid "Map C8000-CFFFF as UMB"
+msgstr "Kartlegg C8000-CFFFF som UMB"
+
+msgid "Map D0000-D7FFF as UMB"
+msgstr "Kartlegg D0000-D7FFF som UMB"
+
+msgid "Map D8000-DFFFF as UMB"
+msgstr "Kartlegg D8000-DFFFF som UMB"
+
+msgid "Map E0000-E7FFF as UMB"
+msgstr "Kartlegg E0000-E7FFF som UMB"
+
+msgid "Map E8000-EFFFF as UMB"
+msgstr "Kartlegg E8000-EFFFF som UMB"
+
+msgid "JS9 Jumper (JIM)"
+msgstr "JS9-bygel (JIM)"
+
+msgid "MIDI Output Device"
+msgstr "MIDI-utgangsenhet"
+
+msgid "MIDI Real time"
+msgstr "MIDI sanntid"
+
+msgid "MIDI Thru"
+msgstr "MIDI gjennom"
+
+msgid "MIDI Clockout"
+msgstr "MIDI-klokkeutgang"
+
+msgid "SoundFont"
+msgstr "SoundFont"
+
+msgid "Output Gain"
+msgstr "Utgangsforsterkning"
+
+msgid "Chorus"
+msgstr "Chorus"
+
+msgid "Chorus Voices"
+msgstr "Chorus-stemmer"
+
+msgid "Chorus Level"
+msgstr "Chorus-nivå"
+
+msgid "Chorus Speed"
+msgstr "Chorus-hastighet"
+
+msgid "Chorus Depth"
+msgstr "Chorus-dybde"
+
+msgid "Chorus Waveform"
+msgstr "Chorus-bølgeform"
+
+msgid "Reverb"
+msgstr "Reverb"
+
+msgid "Reverb Room Size"
+msgstr "Reverb-romstørrelse"
+
+msgid "Reverb Damping"
+msgstr "Reverb-demping"
+
+msgid "Reverb Width"
+msgstr "Reverb-bredde"
+
+msgid "Reverb Level"
+msgstr "Reverb-nivå"
+
+msgid "Interpolation Method"
+msgstr "Interpolasjonsmetode"
+
+msgid "Dynamic Sample Loading"
+msgstr "Dynamisk sample-lasting"
+
+msgid "Reverb Output Gain"
+msgstr "Reverb-utgangsforsterkning"
+
+msgid "Reversed stereo"
+msgstr "Omvendt stereo"
+
+msgid "Nice ramp"
+msgstr "Myk overgang"
+
+msgid "Hz"
+msgstr "Hz"
+
+msgid "Buttons"
+msgstr "Knapper"
+
+msgid "Serial Port"
+msgstr "Serieport"
+
+msgid "RTS toggle"
+msgstr "RTS-veksling"
+
+msgid "Revision"
+msgstr "Revisjon"
+
+msgid "Controller"
+msgstr "Kontroller"
+
+msgid "Show Crosshair"
+msgstr "Vis siktekorn"
+
+msgid "DMA"
+msgstr "DMA"
+
+msgid "MAC Address"
+msgstr "MAC-adresse"
+
+msgid "MAC Address OUI"
+msgstr "MAC-adresse OUI"
+
+msgid "Enable BIOS"
+msgstr "Aktiver BIOS"
+
+msgid "Baud Rate"
+msgstr "Baudrate"
+
+msgid "TCP/IP listening port"
+msgstr "TCP/IP-lytteport"
+
+msgid "Phonebook File"
+msgstr "Telefonbokfil"
+
+msgid "Telnet emulation"
+msgstr "Telnet-emulering"
+
+msgid "RAM Address"
+msgstr "RAM-adresse"
+
+msgid "RAM size"
+msgstr "RAM-størrelse"
+
+msgid "Initial RAM size"
+msgstr "Opprinnelig RAM-størrelse"
+
+msgid "Serial Number"
+msgstr "Serienummer"
+
+msgid "Host ID"
+msgstr "Vert-ID"
+
+msgid "FDC Address"
+msgstr "FDC-adresse"
+
+msgid "MPU-401 Address"
+msgstr "MPU-401-adresse"
+
+msgid "MPU-401 IRQ"
+msgstr "MPU-401-IRQ"
+
+msgid "Receive MIDI input"
+msgstr "Motta MIDI-inngang"
+
+msgid "Low DMA"
+msgstr "Lav DMA"
+
+msgid "Enable Game port"
+msgstr "Aktiver spillport"
+
+msgid "SID Model"
+msgstr "SID-modell"
+
+msgid "SID Filter Strength"
+msgstr "SID-filterstyrke"
+
+msgid "Surround module"
+msgstr "Surround-modul"
+
+msgid "CODEC"
+msgstr "Kodek"
+
+msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
+msgstr "Generer kodek-avbrudd ved kodek-oppsett (nødvendig for noen drivere)"
+
+msgid "SB Address"
+msgstr "SB-adresse"
+
+msgid "Adlib Address"
+msgstr "Adlib-adresse"
+
+msgid "Use EEPROM setting"
+msgstr "Bruk EEPROM-innstilling"
+
+msgid "WSS IRQ"
+msgstr "WSS-IRQ"
+
+msgid "WSS DMA"
+msgstr "WSS-DMA"
+
+msgid "Enable OPL"
+msgstr "Aktiver OPL"
+
+msgid "Receive MIDI input (MPU-401)"
+msgstr "Motta MIDI-inngang (MPU-401)"
+
+msgid "SB low DMA"
+msgstr "SB lav DMA"
+
+msgid "6CH variant (6-channel)"
+msgstr "6CH-variant (6-kanals)"
+
+msgid "Enable CMS"
+msgstr "Aktiver CMS"
+
+msgid "Mixer"
+msgstr "Mikser"
+
+msgid "High DMA"
+msgstr "Høy DMA"
+
+msgid "Control PC speaker"
+msgstr "Kontroller PC-høyttaler"
+
+msgid "Memory size"
+msgstr "Minnestørrelse"
+
+msgid "EMU8000 Address"
+msgstr "EMU8000-adresse"
+
+msgid "IDE Controller"
+msgstr "IDE-kontroller"
+
+msgid "Codec"
+msgstr "Kodek"
+
+msgid "GUS type"
+msgstr "GUS-type"
+
+msgid "Enable 0x04 \"Exit 86Box\" command"
+msgstr "Aktiver 0x04-kommandoen \"Avslutt 86Box\""
+
+msgid "Display type"
+msgstr "Skjermtype"
+
+msgid "Composite type"
+msgstr "Kompositt-type"
+
+msgid "RGB type"
+msgstr "RGB-type"
+
+msgid "Line doubling type"
+msgstr "Linjefordoblingstype"
+
+msgid "Snow emulation"
+msgstr "Snøeffekt-emulering"
+
+msgid "Monitor type"
+msgstr "Skjermtype"
+
+msgid "Character set"
+msgstr "Tegnsett"
+
+msgid "XGA type"
+msgstr "XGA-type"
+
+msgid "Instance"
+msgstr "Forekomst"
+
+msgid "MMIO Address"
+msgstr "MMIO-adresse"
+
+msgid "RAMDAC type"
+msgstr "RAMDAC-type"
+
+msgid "Blend"
+msgstr "Blanding"
+
+msgid "Font"
+msgstr "Skrifttype"
+
+msgid "Bilinear filtering"
+msgstr "Bilineær filtrering"
+
+msgid "Video chroma-keying"
+msgstr "Video chroma-key"
+
+msgid "Dithering"
+msgstr "Dithering"
+
+msgid "Enable NMI for CGA emulation"
+msgstr "Aktiver NMI for CGA-emulering"
+
+msgid "Voodoo type"
+msgstr "Voodoo-type"
+
+msgid "Framebuffer memory size"
+msgstr "Framebuffer-minnestørrelse"
+
+msgid "Texture memory size"
+msgstr "Teksturminnestørrelse"
+
+msgid "Dither subtraction"
+msgstr "Dither-subtraksjon"
+
+msgid "Screen Filter"
+msgstr "Skjermfilter"
+
+msgid "Render threads"
+msgstr "Render-tråder"
+
+msgid "SLI"
+msgstr "SLI"
+
+msgid "Start Address"
+msgstr "Startadresse"
+
+msgid "Contiguous Size"
+msgstr "Sammenhengende størrelse"
+
+msgid "I/O Width"
+msgstr "I/U-bredde"
+
+msgid "Transfer Speed"
+msgstr "Overføringshastighet"
+
+msgid "EMS mode"
+msgstr "EMS-modus"
+
+msgid "EMS Address"
+msgstr "EMS-adresse"
+
+msgid "EMS 1 Address"
+msgstr "EMS 1-adresse"
+
+msgid "EMS 2 Address"
+msgstr "EMS 2-adresse"
+
+msgid "EMS Memory Size"
+msgstr "EMS-minnestørrelse"
+
+msgid "EMS 1 Memory Size"
+msgstr "EMS 1-minnestørrelse"
+
+msgid "EMS 2 Memory Size"
+msgstr "EMS 2-minnestørrelse"
+
+msgid "Enable EMS"
+msgstr "Aktiver EMS"
+
+msgid "Enable EMS 1"
+msgstr "Aktiver EMS 1"
+
+msgid "Enable EMS 2"
+msgstr "Aktiver EMS 2"
+
+msgid "Address for > 2 MB"
+msgstr "Adresse for > 2 MB"
+
+msgid "Frame Address"
+msgstr "Rammeadresse"
+
+msgid "USA"
+msgstr "USA"
+
+msgid "Danish"
+msgstr "Dansk"
+
+msgid "Always at selected speed"
+msgstr "Alltid på valgt hastighet"
+
+msgid "BIOS setting + Hotkeys (off during POST)"
+msgstr "BIOS-innstilling + hurtigtaster (av under POST)"
+
+msgid "64 KB starting from F0000"
+msgstr "64 KB fra F0000"
+
+msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
+msgstr "128 KB fra E0000 (adresse-MSB invertert, siste 64 KB først)"
+
+msgid "Sine"
+msgstr "Sinus"
+
+msgid "Triangle"
+msgstr "Trekant"
+
+msgid "Linear"
+msgstr "Lineær"
+
+msgid "4th Order"
+msgstr "4. orden"
+
+msgid "7th Order"
+msgstr "7. orden"
+
+msgid "Non-timed (original)"
+msgstr "Ikke-timet (original)"
+
+msgid "45 Hz (JMP2 not populated)"
+msgstr "45 Hz (JMP2 ikke koblet)"
+
+msgid "Two"
+msgstr "To"
+
+msgid "Three"
+msgstr "Tre"
+
+msgid "Wheel"
+msgstr "Hjul"
+
+msgid "Five + Wheel"
+msgstr "Fem + hjul"
+
+msgid "Five + 2 Wheels"
+msgstr "Fem + 2 hjul"
+
+msgid "A3 - SMT2 Serial / SMT3(R)V"
+msgstr "A3 - SMT2-seriell / SMT3(R)V"
+
+msgid "Q1 - SMT3(R) Serial"
+msgstr "Q1 - SMT3(R)-seriell"
+
+msgid "8 KB"
+msgstr "8 KB"
+
+msgid "32 KB"
+msgstr "32 KB"
+
+msgid "16 KB"
+msgstr "16 KB"
+
+msgid "64 KB"
+msgstr "64 KB"
+
+msgid "Disable BIOS"
+msgstr "Deaktiver BIOS"
+
+msgid "512 KB"
+msgstr "512 KB"
+
+msgid "2 MB"
+msgstr "2 MB"
+
+msgid "8 MB"
+msgstr "8 MB"
+
+msgid "28 MB"
+msgstr "28 MB"
+
+msgid "1 MB"
+msgstr "1 MB"
+
+msgid "4 MB"
+msgstr "4 MB"
+
+msgid "12 MB"
+msgstr "12 MB"
+
+msgid "16 MB"
+msgstr "16 MB"
+
+msgid "20 MB"
+msgstr "20 MB"
+
+msgid "24 MB"
+msgstr "24 MB"
+
+msgid "SigmaTel STAC9721T (stereo)"
+msgstr "SigmaTel STAC9721T (stereo)"
+
+msgid "Classic"
+msgstr "Klassisk"
+
+msgid "256 KB"
+msgstr "256 KB"
+
+msgid "Composite"
+msgstr "Kompositt"
+
+msgid "True color"
+msgstr "Ekte farger"
+
+msgid "Old"
+msgstr "Gammel"
+
+msgid "New"
+msgstr "Ny"
+
+msgid "Color (generic)"
+msgstr "Farge (generisk)"
+
+msgid "Green Monochrome"
+msgstr "Grønn monokrom"
+
+msgid "Amber Monochrome"
+msgstr "Ravgul monokrom"
+
+msgid "Gray Monochrome"
+msgstr "Grå monokrom"
+
+msgid "Color (no brown)"
+msgstr "Farge (ingen brun)"
+
+msgid "Color (IBM 5153)"
+msgstr "Farge (IBM 5153)"
+
+msgid "Simple doubling"
+msgstr "Enkel dobling"
+
+msgid "sRGB interpolation"
+msgstr "sRGB-interpolering"
+
+msgid "Linear interpolation"
+msgstr "Lineær interpolering"
+
+msgid "Has secondary 8x8 character set"
+msgstr "Har sekundært 8x8-tegnsett"
+
+msgid "Has Quadcolor II daughter board"
+msgstr "Har Quadcolor II-datterkort"
+
+msgid "Alternate monochrome contrast"
+msgstr "Alternativ monokrom kontrast"
+
+msgid "128 KB"
+msgstr "128 KB"
+
+msgid "Monochrome (5151/MDA) (white)"
+msgstr "Monokrom (5151/MDA) (hvit)"
+
+msgid "Monochrome (5151/MDA) (green)"
+msgstr "Monokrom (5151/MDA) (grønn)"
+
+msgid "Monochrome (5151/MDA) (amber)"
+msgstr "Monokrom (5151/MDA) (ravgul)"
+
+msgid "Color 40x25 (5153/CGA)"
+msgstr "Farge 40x25 (5153/CGA)"
+
+msgid "Color 80x25 (5153/CGA)"
+msgstr "Farge 80x25 (5153/CGA)"
+
+msgid "Enhanced Color - Normal Mode (5154/ECD)"
+msgstr "Forbedret farge – normalmodus (5154/ECD)"
+
+msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
+msgstr "Forbedret farge – forbedret modus (5154/ECD)"
+
+msgid "Green"
+msgstr "Grønn"
+
+msgid "Amber"
+msgstr "Ravgul"
+
+msgid "Gray"
+msgstr "Grå"
+
+msgid "Grayscale"
+msgstr "Gråtoner"
+
+msgid "Color"
+msgstr "Farge"
+
+msgid "U.S. English"
+msgstr "Amerikansk engelsk"
+
+msgid "Scandinavian"
+msgstr "Skandinavisk"
+
+msgid "Other languages"
+msgstr "Andre språk"
+
+msgid "Bochs latest"
+msgstr "Bochs nyeste"
+
+msgid "Apply overscan deltas"
+msgstr "Bruk overskann-endringer"
+
+msgid "Mono Interlaced"
+msgstr "Mono-flettet"
+
+msgid "Mono Non-Interlaced"
+msgstr "Mono-ikke-flettet"
+
+msgid "Color Interlaced"
+msgstr "Farge-flettet"
+
+msgid "Color Non-Interlaced"
+msgstr "Farge-ikke-flettet"
+
+msgid "3Dfx Voodoo Graphics"
+msgstr "3Dfx Voodoo-grafikk"
+
+msgid "3Dfx Voodoo 2"
+msgstr "3Dfx Voodoo 2"
+
+msgid "Obsidian SB50 + Amethyst (2 TMUs)"
+msgstr "Obsidian SB50 + Amethyst (2 TMU-er)"
+
+msgid "8-bit"
+msgstr "8-bit"
+
+msgid "16-bit"
+msgstr "16-bit"
+
+msgid "Standard (150ns)"
+msgstr "Standard (150 ns)"
+
+msgid "High-Speed (120ns)"
+msgstr "Høyhastighet (120 ns)"
+
+msgid "Enabled"
+msgstr "Aktivert"
+
+msgid "Standard"
+msgstr "Standard"
+
+msgid "High-Speed"
+msgstr "Høyhastighet"
+
+msgid "Stereo LPT DAC"
+msgstr "Stereo LPT-DAC"
+
+msgid "Generic Text Printer"
+msgstr "Generisk tekstskriver"
+
+msgid "Generic ESC/P 2 Dot-Matrix Printer"
+msgstr "Generisk ESC/P 2-matriseskriver"
+
+msgid "Generic PostScript Printer"
+msgstr "Generisk PostScript-skriver"
+
+msgid "Generic PCL5e Printer"
+msgstr "Generisk PCL5e-skriver"
+
+msgid "Parallel Line Internet Protocol"
+msgstr "Parallell linje-internettprotokoll"
+
+msgid "Protection Dongle for Savage Quest"
+msgstr "Beskyttelsesdongle for Savage Quest"
+
+msgid "Serial Passthrough Device"
+msgstr "Seriell gjennomkoblingsenhet"
+
+msgid "Passthrough Mode"
+msgstr "Gjennomkoblingsmodus"
+
+msgid "Host Serial Device"
+msgstr "Verts-seriellenhet"
+
+msgid "Name of pipe"
+msgstr "Navn på pipe"
+
+msgid "Data bits"
+msgstr "Databiter"
+
+msgid "Stop bits"
+msgstr "Stoppbiter"
+
+msgid "Baud Rate of Passthrough"
+msgstr "Baudrate for gjennomkobling"
+
+msgid "Named Pipe (Server)"
+msgstr "Navngitt pipe (server)"
+
+msgid "Named Pipe (Client)"
+msgstr "Navngitt pipe (klient)"
+
+msgid "Host Serial Passthrough"
+msgstr "Verts-seriell gjennomkobling"
+
+msgid "E&ject %1"
+msgstr "M&at ut %1"
+
+msgid "&Unmute"
+msgstr "&Slå på lyd"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat FPU"
+
+msgid "High performance impact"
+msgstr "Høy ytelsespåvirkning"
+
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[Generisk] RAM-disk (maks hastighet)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr "[Generisk] 1989 (3500 RPM)"
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr "[Generisk] 1992 (3600 RPM)"
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr "[Generisk] 1994 (4500 RPM)"
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr "[Generisk] 1996 (5400 RPM)"
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr "[Generisk] 1997 (5400 RPM)"
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr "[Generisk] 1998 (5400 RPM)"
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr "[Generisk] 2000 (7200 RPM)"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "IBM 8514/A-klone (ISA)"
+
+msgid "Vendor"
+msgstr "Leverandør"
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr "30 Hz (JMP2 = 1)"
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr "60 Hz (JMP2 = 2)"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "Generisk PC/XT-minneutvidelse"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "Generisk PC/AT-minneutvidelse"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "Kan ikke finne matriseskriver-fonter"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "TrueType-fonter i mappen \"roms/printer/fonts\" kreves for emulering av generisk ESC/P 2-matriseskriver."
+
+msgid "Inhibit multimedia keys"
+msgstr "Deaktiver multimedietaster"
+
+msgid "Ask for confirmation before saving settings"
+msgstr "Be om bekreftelse før innstillingene lagres"
+
+msgid "Ask for confirmation before hard resetting"
+msgstr "Be om bekreftelse før hard reset"
+
+msgid "Ask for confirmation before quitting"
+msgstr "Be om bekreftelse før avslutning"
+
+msgid "Options"
+msgstr "Alternativer"
+
+msgid "Model"
+msgstr "Modell"
+
+msgid "Model:"
+msgstr "Modell:"
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr "Kunne ikke initialisere Vulkan-gjengiver."
+
+msgid "GLSL Error"
+msgstr "GLSL-feil"
+
+msgid "Could not load shader: %1"
+msgstr "Kunne ikke laste shader: %1"
+
+msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
+msgstr "OpenGL versjon 3.0 eller høyere kreves. Nåværende GLSL-versjon er %1.%2"
+
+msgid "Could not load texture: %1"
+msgstr "Kunne ikke laste tekstur: %1"
+
+msgid "Could not compile shader:\n\n%1"
+msgstr "Kunne ikke kompilere shader:\n\n%1"
+
+msgid "Program not linked:\n\n%1"
+msgstr "Program ikke koblet:\n\n%1"
+
+msgid "Shader Manager"
+msgstr "Shader-håndtering"
+
+msgid "Shader Configuration"
+msgstr "Shader-konfigurasjon"
+
+msgid "Add"
+msgstr "Legg til"
+
+msgid "Move up"
+msgstr "Flytt opp"
+
+msgid "Move down"
+msgstr "Flytt ned"
+
+msgid "Could not load file %1"
+msgstr "Kunne ikke laste fil %1"
+
+msgid "Key Bindings:"
+msgstr "Tastebindinger:"
+
+msgid "Action"
+msgstr "Handling"
+
+msgid "Keybind"
+msgstr "Tastebinding"
+
+msgid "Clear binding"
+msgstr "Fjern binding"
+
+msgid "Bind"
+msgstr "Bind"
+
+msgid "Bind Key"
+msgstr "Bind tast"
+
+msgid "Enter key combo:"
+msgstr "Skriv inn tastekombinasjon:"
+
+msgid "Bind conflict"
+msgstr "Bindingkonflikt"
+
+msgid "This key combo is already in use."
+msgstr "Denne tastekombinasjonen er allerede i bruk."
+
+msgid "Send Control+Alt+Del"
+msgstr "Send Control+Alt+Del"
+
+msgid "Send Control+Alt+Escape"
+msgstr "Send Control+Alt+Escape"
+
+msgid "Toggle fullscreen"
+msgstr "Veksle fullskjerm"
+
+msgid "Screenshot"
+msgstr "Skjermbilde"
+
+msgid "Release mouse pointer"
+msgstr "Frigi musepeker"
+
+msgid "Toggle pause"
+msgstr "Veksle pause"
+
+msgid "Toggle mute"
+msgstr "Veksle lyd av/på"
+
+msgid "Text files"
+msgstr "Tekstfiler"
+
+msgid "ROM files"
+msgstr "ROM-filer"
+
+msgid "SoundFont files"
+msgstr "SoundFont-filer"
+
+msgid "Local Switch"
+msgstr "Lokal svitsj"
+
+msgid "Remote Switch"
+msgstr "Ekstern svitsj"
+
+msgid "Switch:"
+msgstr "Svitsj:"
+
+msgid "Hub Mode"
+msgstr "Hub-modus"
+
+msgid "Hostname:"
+msgstr "Vertsnavn:"
+
+msgid "ISA RAM:"
+msgstr "ISA-RAM:"
+
+msgid "ISA ROM:"
+msgstr "ISA-ROM:"
+
+msgid "&Wipe NVRAM"
+msgstr "&Tøm NVRAM"
+
+msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
+msgstr "Dette vil slette all NVRAM (og relaterte) filer for den virtuelle maskinen som ligger i undermappen «nvr». Du må konfigurere BIOS (og eventuelt andre enheter i VM-en) på nytt om nødvendig.\n\nEr du sikker på at du vil tømme alt innhold i NVRAM for den virtuelle maskinen «%1»?"
+
+msgid "Success"
+msgstr "Vellykket"
+
+msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
+msgstr "Tømming av NVRAM-innholdet for den virtuelle maskinen «%1» var vellykket"
+
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgstr "En feil oppstod under tømming av NVRAM-innholdet for den virtuelle maskinen «%1»"
+
+msgid "%1 VM Manager"
+msgstr "%1 VM-håndtering"
+
+msgid "%n disk(s)"
+msgstr "%n disk(er)"
+
+msgid "Unknown Status"
+msgstr "Ukjent status"
+
+msgid "No Machines Found!"
+msgstr "Ingen maskiner funnet!"
+
+msgid "Check for updates on startup"
+msgstr "Se etter oppdateringer ved oppstart"
+
+msgid "Unable to determine release information"
+msgstr "Kunne ikke fastslå versjonsinformasjon"
+
+msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
+msgstr "Det oppstod en feil ved søk etter oppdateringer:\n\n%1\n\nPrøv igjen senere."
+
+msgid "Update check complete"
+msgstr "Oppdateringssjekk fullført"
+
+msgid "stable"
+msgstr "stabil"
+
+msgid "beta"
+msgstr "beta"
+
+msgid "You are running the latest %1 version of 86Box: %2"
+msgstr "Du kjører den nyeste %1-versjonen av 86Box: %2"
+
+msgid "version"
+msgstr "versjon"
+
+msgid "build"
+msgstr "bygg"
+
+msgid "You are currently running version <b>%1</b>."
+msgstr "Du kjører for øyeblikket versjon <b>%1</b>."
+
+msgid "<b>Version %1</b> is now available."
+msgstr "<b>Versjon %1</b> er nå tilgjengelig."
+
+msgid "You are currently running build <b>%1</b>."
+msgstr "Du kjører for øyeblikket bygg <b>%1</b>."
+
+msgid "<b>Build %1</b> is now available."
+msgstr "<b>Bygg %1</b> er nå tilgjengelig."
+
+msgid "Would you like to visit the download page?"
+msgstr "Vil du besøke nedlastingssiden?"
+
+msgid "Visit download page"
+msgstr "Besøk nedlastingssiden"
+
+msgid "Update check"
+msgstr "Oppdateringssjekk"
+
+msgid "Checking for updates..."
+msgstr "Ser etter oppdateringer..."
+
+msgid "86Box Update"
+msgstr "86Box-oppdatering"
+
+msgid "Release notes:"
+msgstr "Versjonsnotater:"
+
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
+msgid "Virtual machine crash"
+msgstr "Virtuell maskin krasjet"
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr "Prosessen til den virtuelle maskinen «%1» ble uventet avsluttet med avslutningskode %2."
+
+msgid "The system will not be added."
+msgstr "Systemet vil ikke bli lagt til."
+
+msgid "&Update mouse every CPU frame"
+msgstr "&Oppdater musen for hver CPU-ramme"
+
+msgid "Hue"
+msgstr "Fargetone"
+
+msgid "Saturation"
+msgstr "Metning"
+
+msgid "Contrast"
+msgstr "Kontrast"
+
+msgid "Brightness"
+msgstr "Lysstyrke"
+
+msgid "Sharpness"
+msgstr "Skarphet"
+
+msgid "&CGA composite settings..."
+msgstr "&CGA-komposittinnstillinger..."
+
+msgid "CGA composite settings"
+msgstr "CGA-komposittinnstillinger"
+
+msgid "Monitor EDID"
+msgstr "EDID for skjerm"
+
+msgid "Export..."
+msgstr "Eksporter..."
+
+msgid "Export EDID"
+msgstr "Eksporter EDID"
+
+msgid "EDID file \"%ls\" is too large."
+msgstr "EDID-filen \"%ls\" er for stor."
+
+msgid "OpenGL input scale"
+msgstr "Inngangsskala for OpenGL"
+
+msgid "OpenGL input stretch mode"
+msgstr "Inngangsstrekkmodus for OpenGL"
+
+msgid "Color scheme"
+msgstr "Fargevalg"
+
+msgid "Light"
+msgstr "Lys"
+
+msgid "Dark"
+msgstr "Mørk"

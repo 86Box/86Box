@@ -179,6 +179,7 @@ typedef struct _mem_mapping_ {
     uint32_t base;
     uint32_t size;
 
+    uint32_t base_ignore;
     uint32_t mask;
 
     uint8_t (*read_b)(uint32_t addr, void *priv);
@@ -264,12 +265,16 @@ extern uint32_t biosmask;
 extern uint32_t biosaddr;
 
 extern int        readlookup[256];
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
 extern uintptr_t *readlookup2;
+#endif
 extern uintptr_t  old_rl2;
 extern uint8_t    uncached;
 extern int        readlnext;
 extern int        writelookup[256];
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
 extern uintptr_t *writelookup2;
+#endif
 extern int        writelnext;
 extern uint32_t   ram_mapped_addr[64];
 extern uint8_t    page_ff[4096];
@@ -287,7 +292,16 @@ extern mem_mapping_t bios_high_mapping;
 extern uint32_t mem_logical_addr;
 
 extern page_t  *pages;
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
 extern page_t **page_lookup;
+#endif
+
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+/* The lookup tables. */
+extern page_t *page_lookup[1048576];
+extern uintptr_t readlookup2[1048576];
+extern uintptr_t writelookup2[1048576];
+#endif
 
 extern uint32_t get_phys_virt;
 extern uint32_t get_phys_phys;
@@ -299,10 +313,12 @@ extern int writelnum;
 
 extern int memspeed[11];
 
-extern int     mmu_perm;
 extern uint8_t high_page; /* if a high (> 4 gb) page was detected */
 
+extern uint8_t *_mem_exec[MEM_MAPPINGS_NO];
+
 extern uint32_t pages_sz; /* #pages in table */
+extern int      read_type;
 
 extern int mem_a20_state;
 extern int mem_a20_alt;
@@ -388,10 +404,16 @@ extern void mem_mapping_set_handler(mem_mapping_t *,
                                     void (*write_w)(uint32_t addr, uint16_t val, void *priv),
                                     void (*write_l)(uint32_t addr, uint32_t val, void *priv));
 
+extern void mem_mapping_set_write_handler(mem_mapping_t *,
+                                          void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                                          void (*write_w)(uint32_t addr, uint16_t val, void *priv),
+                                          void (*write_l)(uint32_t addr, uint32_t val, void *priv));
+
 extern void mem_mapping_set_p(mem_mapping_t *, void *priv);
 
 extern void mem_mapping_set_addr(mem_mapping_t *,
                                  uint32_t base, uint32_t size);
+extern void mem_mapping_set_base_ignore(mem_mapping_t *, uint32_t base_ignore);
 extern void mem_mapping_set_exec(mem_mapping_t *, uint8_t *exec);
 extern void mem_mapping_set_mask(mem_mapping_t *, uint32_t mask);
 extern void mem_mapping_disable(mem_mapping_t *);
@@ -438,6 +460,8 @@ extern void mem_flush_write_page(uint32_t addr, uint32_t virt);
 extern void mem_reset_page_blocks(void);
 
 extern void flushmmucache(void);
+extern void flushmmucache_write(void);
+extern void flushmmucache_pc(void);
 extern void flushmmucache_nopc(void);
 
 extern void mem_debug_check_addr(uint32_t addr, int write);
@@ -446,11 +470,20 @@ extern void mem_a20_init(void);
 extern void mem_a20_recalc(void);
 
 extern void mem_init(void);
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+extern void mem_free(void);
+#endif
 extern void mem_close(void);
+extern void mem_zero(void);
 extern void mem_reset(void);
+extern void mem_remap_top_ex(int kb, uint32_t start);
+extern void mem_remap_top_ex_nomid(int kb, uint32_t start);
 extern void mem_remap_top(int kb);
+extern void mem_remap_top_nomid(int kb);
 
 extern void umc_smram_recalc(uint32_t start, int set);
+
+extern void pcjr_waitstates(void *);
 
 extern mem_mapping_t *read_mapping[MEM_MAPPINGS_NO];
 extern mem_mapping_t *write_mapping[MEM_MAPPINGS_NO];

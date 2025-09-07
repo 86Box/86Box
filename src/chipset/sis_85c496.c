@@ -388,8 +388,7 @@ sis_85c49x_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
         case 0x67: /* Miscellaneous Control */
             dev->pci_conf[addr] = val & 0xf9;
-            if (valxor & 0x60)
-                port_92_set_features(dev->port_92, !!(val & 0x20), !!(val & 0x40));
+            cpu_cpurst_on_sr = ((val & 0xa0) == 0x80) && !(dev->pci_conf[0xc6] & 0x08);
             break;
 
         /* 86C497 Specific Registers (80h ~ FFh) */
@@ -480,6 +479,8 @@ sis_85c49x_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
         case 0xc6: /* 85C497 Post / INIT Configuration */
             dev->pci_conf[addr] = val & 0x0f;
+            cpu_cpurst_on_sr = ((dev->pci_conf[0x67] & 0xa0) == 0x80) && !(val & 0x08);
+            soft_reset_pci = !!(val & 0x04);
             break;
         case 0xc8:
         case 0xc9:
@@ -608,12 +609,18 @@ sis_85c496_reset(void *priv)
     sis_85c49x_pci_write(0, 0xd0, 0x78, dev);
     sis_85c49x_pci_write(0, 0xd4, 0x00, dev);
 
+    dev->pci_conf[0x67] = 0x00;
+    dev->pci_conf[0xc6] = 0x00;
+
     ide_pri_disable();
     ide_sec_disable();
 
     nvr_bank_set(0, 0, dev->nvr);
 
     sis_85c497_isa_reset(dev);
+
+    cpu_cpurst_on_sr = 0;
+    soft_reset_pci = 0;
 }
 
 static void
@@ -630,8 +637,7 @@ static void
     *
     sis_85c496_init(const device_t *info)
 {
-    sis_85c496_t *dev = malloc(sizeof(sis_85c496_t));
-    memset(dev, 0x00, sizeof(sis_85c496_t));
+    sis_85c496_t *dev = calloc(1, sizeof(sis_85c496_t));
 
     dev->smram = smram_add();
 
@@ -695,7 +701,7 @@ const device_t sis_85c496_device = {
     .init          = sis_85c496_init,
     .close         = sis_85c496_close,
     .reset         = sis_85c496_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -709,7 +715,7 @@ const device_t sis_85c496_ls486e_device = {
     .init          = sis_85c496_init,
     .close         = sis_85c496_close,
     .reset         = sis_85c496_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -12,3 +12,6 @@ libslirp
 fluidsynth
 qt5-static
 qt5-translations
+vulkan-headers
+libsndfile
+libserialport

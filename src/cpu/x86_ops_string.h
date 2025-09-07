@@ -1,5 +1,5 @@
 static int
-opMOVSB_a16(uint32_t fetchdat)
+opMOVSB_a16(UNUSED(uint32_t fetchdat))
 {
     uint8_t temp;
 
@@ -35,7 +35,7 @@ opMOVSB_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opMOVSB_a32(uint32_t fetchdat)
+opMOVSB_a32(UNUSED(uint32_t fetchdat))
 {
     uint8_t temp;
 
@@ -71,7 +71,7 @@ opMOVSB_a32(uint32_t fetchdat)
 }
 
 static int
-opMOVSW_a16(uint32_t fetchdat)
+opMOVSW_a16(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp;
 
@@ -107,7 +107,7 @@ opMOVSW_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opMOVSW_a32(uint32_t fetchdat)
+opMOVSW_a32(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp;
 
@@ -144,7 +144,7 @@ opMOVSW_a32(uint32_t fetchdat)
 }
 
 static int
-opMOVSL_a16(uint32_t fetchdat)
+opMOVSL_a16(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp;
 
@@ -180,7 +180,7 @@ opMOVSL_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opMOVSL_a32(uint32_t fetchdat)
+opMOVSL_a32(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp;
 
@@ -217,7 +217,7 @@ opMOVSL_a32(uint32_t fetchdat)
 }
 
 static int
-opCMPSB_a16(uint32_t fetchdat)
+opCMPSB_a16(UNUSED(uint32_t fetchdat))
 {
     uint8_t src;
     uint8_t dst;
@@ -258,7 +258,7 @@ opCMPSB_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opCMPSB_a32(uint32_t fetchdat)
+opCMPSB_a32(UNUSED(uint32_t fetchdat))
 {
     uint8_t src;
     uint8_t dst;
@@ -300,7 +300,7 @@ opCMPSB_a32(uint32_t fetchdat)
 }
 
 static int
-opCMPSW_a16(uint32_t fetchdat)
+opCMPSW_a16(UNUSED(uint32_t fetchdat))
 {
     uint16_t src;
     uint16_t dst;
@@ -342,7 +342,7 @@ opCMPSW_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opCMPSW_a32(uint32_t fetchdat)
+opCMPSW_a32(UNUSED(uint32_t fetchdat))
 {
     uint16_t src;
     uint16_t dst;
@@ -385,7 +385,7 @@ opCMPSW_a32(uint32_t fetchdat)
 }
 
 static int
-opCMPSL_a16(uint32_t fetchdat)
+opCMPSL_a16(UNUSED(uint32_t fetchdat))
 {
     uint32_t src;
     uint32_t dst;
@@ -427,7 +427,7 @@ opCMPSL_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opCMPSL_a32(uint32_t fetchdat)
+opCMPSL_a32(UNUSED(uint32_t fetchdat))
 {
     uint32_t src;
     uint32_t dst;
@@ -470,7 +470,7 @@ opCMPSL_a32(uint32_t fetchdat)
 }
 
 static int
-opSTOSB_a16(uint32_t fetchdat)
+opSTOSB_a16(UNUSED(uint32_t fetchdat))
 {
     SEG_CHECK_WRITE(&cpu_state.seg_es);
     CHECK_WRITE(&cpu_state.seg_es, DI, DI);
@@ -486,7 +486,7 @@ opSTOSB_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opSTOSB_a32(uint32_t fetchdat)
+opSTOSB_a32(UNUSED(uint32_t fetchdat))
 {
     SEG_CHECK_WRITE(&cpu_state.seg_es);
     CHECK_WRITE(&cpu_state.seg_es, EDI, EDI);
@@ -503,7 +503,7 @@ opSTOSB_a32(uint32_t fetchdat)
 }
 
 static int
-opSTOSW_a16(uint32_t fetchdat)
+opSTOSW_a16(UNUSED(uint32_t fetchdat))
 {
     SEG_CHECK_WRITE(&cpu_state.seg_es);
     CHECK_WRITE(&cpu_state.seg_es, DI, DI + 1UL);
@@ -519,7 +519,7 @@ opSTOSW_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opSTOSW_a32(uint32_t fetchdat)
+opSTOSW_a32(UNUSED(uint32_t fetchdat))
 {
     SEG_CHECK_WRITE(&cpu_state.seg_es);
     CHECK_WRITE(&cpu_state.seg_es, EDI, EDI + 1UL);
@@ -536,7 +536,7 @@ opSTOSW_a32(uint32_t fetchdat)
 }
 
 static int
-opSTOSL_a16(uint32_t fetchdat)
+opSTOSL_a16(UNUSED(uint32_t fetchdat))
 {
     SEG_CHECK_WRITE(&cpu_state.seg_es);
     CHECK_WRITE(&cpu_state.seg_es, DI, DI + 3UL);
@@ -552,7 +552,7 @@ opSTOSL_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opSTOSL_a32(uint32_t fetchdat)
+opSTOSL_a32(UNUSED(uint32_t fetchdat))
 {
     SEG_CHECK_WRITE(&cpu_state.seg_es);
     CHECK_WRITE(&cpu_state.seg_es, EDI, EDI + 3UL);
@@ -569,7 +569,7 @@ opSTOSL_a32(uint32_t fetchdat)
 }
 
 static int
-opLODSB_a16(uint32_t fetchdat)
+opLODSB_a16(UNUSED(uint32_t fetchdat))
 {
     uint8_t temp;
 
@@ -588,7 +588,7 @@ opLODSB_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opLODSB_a32(uint32_t fetchdat)
+opLODSB_a32(UNUSED(uint32_t fetchdat))
 {
     uint8_t temp;
 
@@ -608,7 +608,7 @@ opLODSB_a32(uint32_t fetchdat)
 }
 
 static int
-opLODSW_a16(uint32_t fetchdat)
+opLODSW_a16(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp;
 
@@ -627,7 +627,7 @@ opLODSW_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opLODSW_a32(uint32_t fetchdat)
+opLODSW_a32(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp;
 
@@ -647,7 +647,7 @@ opLODSW_a32(uint32_t fetchdat)
 }
 
 static int
-opLODSL_a16(uint32_t fetchdat)
+opLODSL_a16(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp;
 
@@ -666,7 +666,7 @@ opLODSL_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opLODSL_a32(uint32_t fetchdat)
+opLODSL_a32(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp;
 
@@ -686,7 +686,7 @@ opLODSL_a32(uint32_t fetchdat)
 }
 
 static int
-opSCASB_a16(uint32_t fetchdat)
+opSCASB_a16(UNUSED(uint32_t fetchdat))
 {
     uint8_t temp;
 
@@ -705,7 +705,7 @@ opSCASB_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opSCASB_a32(uint32_t fetchdat)
+opSCASB_a32(UNUSED(uint32_t fetchdat))
 {
     uint8_t temp;
 
@@ -725,7 +725,7 @@ opSCASB_a32(uint32_t fetchdat)
 }
 
 static int
-opSCASW_a16(uint32_t fetchdat)
+opSCASW_a16(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp;
 
@@ -744,7 +744,7 @@ opSCASW_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opSCASW_a32(uint32_t fetchdat)
+opSCASW_a32(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp;
 
@@ -764,7 +764,7 @@ opSCASW_a32(uint32_t fetchdat)
 }
 
 static int
-opSCASL_a16(uint32_t fetchdat)
+opSCASL_a16(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp;
 
@@ -783,7 +783,7 @@ opSCASL_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opSCASL_a32(uint32_t fetchdat)
+opSCASL_a32(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp;
 
@@ -803,7 +803,7 @@ opSCASL_a32(uint32_t fetchdat)
 }
 
 static int
-opINSB_a16(uint32_t fetchdat)
+opINSB_a16(UNUSED(uint32_t fetchdat))
 {
     uint8_t temp;
 
@@ -829,7 +829,7 @@ opINSB_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opINSB_a32(uint32_t fetchdat)
+opINSB_a32(UNUSED(uint32_t fetchdat))
 {
     uint8_t temp;
 
@@ -856,7 +856,7 @@ opINSB_a32(uint32_t fetchdat)
 }
 
 static int
-opINSW_a16(uint32_t fetchdat)
+opINSW_a16(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp;
 
@@ -882,7 +882,7 @@ opINSW_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opINSW_a32(uint32_t fetchdat)
+opINSW_a32(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp;
 
@@ -909,7 +909,7 @@ opINSW_a32(uint32_t fetchdat)
 }
 
 static int
-opINSL_a16(uint32_t fetchdat)
+opINSL_a16(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp;
 
@@ -935,7 +935,7 @@ opINSL_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opINSL_a32(uint32_t fetchdat)
+opINSL_a32(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp;
 
@@ -962,7 +962,7 @@ opINSL_a32(uint32_t fetchdat)
 }
 
 static int
-opOUTSB_a16(uint32_t fetchdat)
+opOUTSB_a16(UNUSED(uint32_t fetchdat))
 {
     uint8_t temp;
 
@@ -982,7 +982,7 @@ opOUTSB_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opOUTSB_a32(uint32_t fetchdat)
+opOUTSB_a32(UNUSED(uint32_t fetchdat))
 {
     uint8_t temp;
 
@@ -1003,7 +1003,7 @@ opOUTSB_a32(uint32_t fetchdat)
 }
 
 static int
-opOUTSW_a16(uint32_t fetchdat)
+opOUTSW_a16(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp;
 
@@ -1023,7 +1023,7 @@ opOUTSW_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opOUTSW_a32(uint32_t fetchdat)
+opOUTSW_a32(UNUSED(uint32_t fetchdat))
 {
     uint16_t temp;
 
@@ -1044,7 +1044,7 @@ opOUTSW_a32(uint32_t fetchdat)
 }
 
 static int
-opOUTSL_a16(uint32_t fetchdat)
+opOUTSL_a16(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp;
 
@@ -1064,7 +1064,7 @@ opOUTSL_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opOUTSL_a32(uint32_t fetchdat)
+opOUTSL_a32(UNUSED(uint32_t fetchdat))
 {
     uint32_t temp;
 

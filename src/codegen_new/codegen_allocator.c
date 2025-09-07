@@ -13,6 +13,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat.h>
 #include <86box/plat_unused.h>
 
 #include "codegen.h"
@@ -33,15 +34,7 @@ int codegen_allocator_usage = 0;
 void
 codegen_allocator_init(void)
 {
-#if defined WIN32 || defined _WIN32 || defined _WIN32
-    mem_block_alloc = VirtualAlloc(NULL, MEM_BLOCK_NR * MEM_BLOCK_SIZE, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-    /* TODO: check deployment target: older Intel-based versions of macOS don't play
-       nice with MAP_JIT. */
-#elif defined(__APPLE__) && defined(MAP_JIT)
-    mem_block_alloc = mmap(0, MEM_BLOCK_NR * MEM_BLOCK_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE | MAP_JIT, -1, 0);
-#else
-    mem_block_alloc = mmap(0, MEM_BLOCK_NR * MEM_BLOCK_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, -1, 0);
-#endif
+    mem_block_alloc = plat_mmap(MEM_BLOCK_NR * MEM_BLOCK_SIZE, 1);
 
     for (uint32_t c = 0; c < MEM_BLOCK_NR; c++) {
         mem_blocks[c].offset     = c * MEM_BLOCK_SIZE;

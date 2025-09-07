@@ -7,10 +7,11 @@
 #include "cpu.h"
 #include <86box/86box.h>
 #include <86box/filters.h>
+#include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/machine.h>
 #include <86box/sound.h>
-#include <86box/timer.h>
 #include <86box/plat_unused.h>
 
 typedef struct dss_t {
@@ -115,8 +116,7 @@ dss_callback(void *priv)
 static void *
 dss_init(void *lpt)
 {
-    dss_t *dss = malloc(sizeof(dss_t));
-    memset(dss, 0, sizeof(dss_t));
+    dss_t *dss = calloc(1, sizeof(dss_t));
 
     dss->lpt = lpt;
 
@@ -134,13 +134,17 @@ dss_close(void *priv)
 }
 
 const lpt_device_t dss_device = {
-    .name          = "Disney Sound Source",
-    .internal_name = "dss",
-    .init          = dss_init,
-    .close         = dss_close,
-    .write_data    = dss_write_data,
-    .write_ctrl    = dss_write_ctrl,
-    .read_data     = NULL,
-    .read_status   = dss_read_status,
-    .read_ctrl     = NULL
+    .name             = "Disney Sound Source",
+    .internal_name    = "dss",
+    .init             = dss_init,
+    .close            = dss_close,
+    .write_data       = dss_write_data,
+    .strobe           = NULL,
+    .write_ctrl       = dss_write_ctrl,
+    .read_status      = dss_read_status,
+    .read_ctrl        = NULL,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL,
+    .priv             = NULL,
+    .lpt              = NULL
 };

@@ -45,6 +45,7 @@ pc_cassette_t *cassette;
 
 char          cassette_fname[512];
 char          cassette_mode[512];
+char *        cassette_image_history[CASSETTE_IMAGE_HISTORY];
 unsigned long cassette_pos;
 unsigned long cassette_srate;
 int           cassette_enable;
@@ -130,9 +131,7 @@ pc_cas_free(pc_cassette_t *cas)
 pc_cassette_t *
 pc_cas_new(void)
 {
-    pc_cassette_t *cas;
-
-    cas = malloc(sizeof(pc_cassette_t));
+    pc_cassette_t *cas = calloc(1, sizeof( pc_cassette_t));
 
     if (cas == NULL) {
         return (NULL);
@@ -153,10 +152,11 @@ pc_cas_del(pc_cassette_t *cas)
 }
 
 int
-pc_cas_set_fname(pc_cassette_t *cas, const char *fname)
+pc_cas_set_fname(pc_cassette_t *cas, char *fname)
 {
     unsigned    n;
     const char *ext;
+    int         offs = 0;
 
     if (cas->close)
         fclose(cas->fp);
@@ -176,6 +176,13 @@ pc_cas_set_fname(pc_cassette_t *cas, const char *fname)
         ui_sb_update_icon_state(SB_CASSETTE, 1);
         return 0;
     }
+
+    if (strstr(fname, "wp://") == fname) {
+        offs                  = 5;
+        cassette_ui_writeprot = 1;
+    }
+
+    fname += offs;
 
     cas->fp = plat_fopen(fname, "r+b");
 
@@ -198,10 +205,10 @@ pc_cas_set_fname(pc_cassette_t *cas, const char *fname)
 
     n = strlen(fname);
 
-    cas->fname = malloc((n + 1) * sizeof(char));
+    cas->fname = malloc((n + offs + 1) * sizeof(char));
 
     if (cas->fname != NULL)
-        memcpy(cas->fname, fname, (n + 1) * sizeof(char));
+        memcpy(cas->fname, fname - offs, (n + offs + 1) * sizeof(char));
 
     if (n > 4) {
         ext = fname + (n - 4);
@@ -216,6 +223,8 @@ pc_cas_set_fname(pc_cassette_t *cas, const char *fname)
         else if (stricmp(ext, ".cas") == 0)
             pc_cas_set_pcm(cas, 0);
     }
+
+    ui_sb_update_icon_wp(SB_CASSETTE, cassette_ui_writeprot);
 
     return 0;
 }
@@ -716,12 +725,12 @@ cassette_init(UNUSED(const device_t *info))
 const device_t cassette_device = {
     .name          = "IBM PC/PCjr Cassette Device",
     .internal_name = "cassette",
-    .flags         = 0,
+    .flags         = DEVICE_CASETTE,
     .local         = 0,
     .init          = cassette_init,
     .close         = cassette_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

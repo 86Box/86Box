@@ -28,8 +28,11 @@
 #include <86box/mem.h>
 #include <86box/vid_cga.h>
 #include <86box/vid_cga_comp.h>
+#include <86box/thread.h>
 
 int CGA_Composite_Table[1024];
+
+static mutex_t* cga_comp_mutex = NULL;
 
 static double brightness = 0;
 static double contrast   = 100;
@@ -44,22 +47,22 @@ static const double tau = 6.28318531; /* == 2*pi */
 
 static unsigned char chroma_multiplexer[256] = {
     // clang-format off
-      2,  2,  2,  2, 114,174,  4,  3,   2,  1,133,135,   2,113,150,  4,
-    133,  2,  1, 99, 151,152,  2,  1,   3,  2, 96,136, 151,152,151,152,
-      2, 56, 62,  4, 111,250,118,  4,   0, 51,207,137,   1,171,209,  5,
-    140, 50, 54,100, 133,202, 57,  4,   2, 50,153,149, 128,198,198,135,
-     32,  1, 36, 81, 147,158,  1, 42,  33,  1,210,254,  34,109,169, 77,
-    177,  2,  0,165, 189,154,  3, 44,  33,  0, 91,197, 178,142,144,192,
-      4,  2, 61, 67, 117,151,112, 83,   4,  0,249,255,   3,107,249,117,
-    147,  1, 50,162, 143,141, 52, 54,   3,  0,145,206, 124,123,192,193,
-     72, 78,  2,  0, 159,208,  4,  0,  53, 58,164,159,  37,159,171,  1,
-    248,117,  4, 98, 212,218,  5,  2,  54, 59, 93,121, 176,181,134,130,
-      1, 61, 31,  0, 160,255, 34,  1,   1, 58,197,166,   0,177,194,  2,
-    162,111, 34, 96, 205,253, 32,  1,   1, 57,123,125, 119,188,150,112,
-     78,  4,  0, 75, 166,180, 20, 38,  78,  1,143,246,  42,113,156, 37,
-    252,  4,  1,188, 175,129,  1, 37, 118,  4, 88,249, 202,150,145,200,
-     61, 59, 60, 60, 228,252,117, 77,  60, 58,248,251,  81,212,254,107,
-    198, 59, 58,169, 250,251, 81, 80, 100, 58,154,250, 251,252,252,252
+      2,   2,  2,   2, 114, 174,   4,  3,   2,  1, 133, 135,   2, 113, 150,   4,
+    133,   2,  1,  99, 151, 152,   2,  1,   3,  2,  96, 136, 151, 152, 151, 152,
+      2,  56, 62,   4, 111, 250, 118,  4,   0, 51, 207, 137,   1, 171, 209,   5,
+    140,  50, 54, 100, 133, 202,  57,  4,   2, 50, 153, 149, 128, 198, 198, 135,
+     32,   1, 36,  81, 147, 158,   1, 42,  33,  1, 210, 254,  34, 109, 169,  77,
+    177,   2,  0, 165, 189, 154,   3, 44,  33,  0,  91, 197, 178, 142, 144, 192,
+      4,   2, 61,  67, 117, 151, 112, 83,   4,  0, 249, 255,   3, 107, 249, 117,
+    147,   1, 50, 162, 143, 141,  52, 54,   3,  0, 145, 206, 124, 123, 192, 193,
+     72,  78,  2,   0, 159, 208,   4,  0,  53, 58, 164, 159,  37, 159, 171,   1,
+    248, 117,  4,  98, 212, 218,   5,  2,  54, 59,  93, 121, 176, 181, 134, 130,
+      1,  61, 31,   0, 160, 255,  34,  1,   1, 58, 197, 166,   0, 177, 194,   2,
+    162, 111, 34,  96, 205, 253,  32,  1,   1, 57, 123, 125, 119, 188, 150, 112,
+     78,   4,  0,  75, 166, 180,  20, 38,  78,  1, 143, 246,  42, 113, 156,  37,
+    252,   4,  1, 188, 175, 129,   1, 37, 118,  4,  88, 249, 202, 150, 145, 200,
+     61,  59, 60,  60, 228, 252, 117, 77,  60, 58, 248, 251,  81, 212, 254, 107,
+    198,  59, 58, 169, 250, 251,  81, 80, 100, 58, 154, 250, 251, 252, 252, 252
     // clang-format on
 };
 
@@ -69,22 +72,29 @@ static double intensity[4] = {
 
 #define NEW_CGA(c, i, r, g, b) (((c) / 0.72) * 0.29 + ((i) / 0.28) * 0.32 + ((r) / 0.28) * 0.1 + ((g) / 0.28) * 0.22 + ((b) / 0.28) * 0.07)
 
-double mode_brightness;
-double mode_contrast;
-double mode_hue;
-double min_v;
-double max_v;
+volatile double mode_brightness;
+volatile double mode_contrast;
+volatile double mode_hue;
+volatile double min_v;
+volatile double max_v;
 
-double video_ri;
-double video_rq;
-double video_gi;
-double video_gq;
-double video_bi;
-double video_bq;
-int    video_sharpness;
-int    tandy_mode_control = 0;
+volatile double video_ri;
+volatile double video_rq;
+volatile double video_gi;
+volatile double video_gq;
+volatile double video_bi;
+volatile double video_bq;
+volatile int    video_sharpness;
 
 static bool new_cga = 0;
+
+static uint8_t current_cgamode = 0;
+
+int vid_cga_comp_brightness = 0;
+int vid_cga_comp_sharpness = 0;
+int vid_cga_comp_hue = 0;
+int vid_cga_comp_saturation = 100;
+int vid_cga_comp_contrast = 100;
 
 void
 update_cga16_color(uint8_t cgamode)
@@ -108,6 +118,14 @@ update_cga16_color(uint8_t cgamode)
     static const double gq = -0.6474;
     static const double bi = -1.1069;
     static const double bq = 1.7046;
+
+    if (!cga_comp_mutex)
+        cga_comp_mutex = thread_create_mutex();
+
+    if (is_cpu_thread)
+        thread_wait_mutex(cga_comp_mutex);
+
+    current_cgamode = cgamode;
 
     if (!new_cga) {
         min_v = chroma_multiplexer[0] + intensity[0];
@@ -135,7 +153,7 @@ update_cga16_color(uint8_t cgamode)
         int left  = (x >> 6) & 15;
         int rc    = right;
         int lc    = left;
-        if ((cgamode & 4) != 0) {
+        if ((cgamode & CGA_MODE_FLAG_BW) != 0) {
             rc = (right & 8) | ((right & 7) != 0 ? 7 : 0);
             lc = (left & 8) | ((left & 7) != 0 ? 7 : 0);
         }
@@ -170,6 +188,9 @@ update_cga16_color(uint8_t cgamode)
     video_bi        = (int) (bi * iq_adjust_i + bq * iq_adjust_q);
     video_bq        = (int) (-bi * iq_adjust_q + bq * iq_adjust_i);
     video_sharpness = (int) (sharpness * 256 / 100);
+
+    if (is_cpu_thread)
+        thread_release_mutex(cga_comp_mutex);
 }
 
 static uint8_t
@@ -240,7 +261,7 @@ Composite_Process(uint8_t cgamode, uint8_t border, uint32_t blocks /*, bool doub
     for (uint8_t x = 0; x < 5; ++x)
         OUT(b[x & 3]);
 
-    if ((cgamode & 4) != 0) {
+    if ((cgamode & CGA_MODE_FLAG_BW) != 0) {
         /* Decode */
         i    = temp + 5;
         srgb = TempLine;
@@ -370,16 +391,40 @@ DecreaseSharpness(uint8_t cgamode)
 }
 
 void
+cga_comp_reload(int new_brightness, int new_saturation, int new_sharpness, int new_hue, int new_contrast)
+{
+    if (!cga_comp_mutex)
+        cga_comp_mutex = thread_create_mutex();
+
+    if (!is_cpu_thread)
+        thread_wait_mutex(cga_comp_mutex);
+
+    brightness = new_brightness;
+    contrast   = new_contrast;
+    saturation = new_saturation;
+    sharpness  = new_sharpness;
+    hue_offset = new_hue;
+
+    update_cga16_color(current_cgamode);
+
+    if (!is_cpu_thread)
+        thread_release_mutex(cga_comp_mutex);
+}
+
+void
 cga_comp_init(int revision)
 {
+    if (!cga_comp_mutex)
+        cga_comp_mutex = thread_create_mutex();
+
     new_cga = revision;
 
     /* Making sure this gets reset after reset. */
-    brightness = 0;
-    contrast   = 100;
-    saturation = 100;
-    sharpness  = 0;
-    hue_offset = 0;
+    brightness = vid_cga_comp_brightness;
+    contrast   = vid_cga_comp_contrast;
+    saturation = vid_cga_comp_saturation;
+    sharpness  = vid_cga_comp_sharpness;
+    hue_offset = vid_cga_comp_hue;
 
     update_cga16_color(0);
 }

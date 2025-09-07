@@ -12,9 +12,11 @@
  *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
- *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2024-2025 Jasmine Iwanek.
  */
 
 #ifndef EMU_SOUND_H
@@ -33,8 +35,14 @@ extern int sound_gain;
 #define SOUND_FREQ  FREQ_48000
 #define SOUNDBUFLEN (SOUND_FREQ / 50)
 
+#define MUSIC_FREQ  FREQ_49716
+#define MUSICBUFLEN (MUSIC_FREQ / 36)
+
 #define CD_FREQ     FREQ_44100
 #define CD_BUFLEN   (CD_FREQ / 10)
+
+#define WT_FREQ     FREQ_44100
+#define WTBUFLEN    (MUSIC_FREQ / 45)
 
 enum {
     SOUND_NONE = 0,
@@ -47,11 +55,23 @@ extern int speakval;
 extern int speakon;
 
 extern int sound_pos_global;
+
+extern int music_pos_global;
+extern int wavetable_pos_global;
+
 extern int sound_card_current[SOUND_CARD_MAX];
 
 extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  int len, void *priv),
                               void *priv);
+
+extern void music_add_handler(void (*get_buffer)(int32_t *buffer,
+                                                 int len, void *priv),
+                              void *priv);
+
+extern void wavetable_add_handler(void (*get_buffer)(int32_t *buffer,
+                                                     int len, void *priv),
+                                  void *priv);
 
 extern void sound_set_cd_audio_filter(void (*filter)(int     channel,
                                                      double *buffer, void *priv),
@@ -85,10 +105,14 @@ extern void sound_cd_thread_reset(void);
 
 extern void closeal(void);
 extern void inital(void);
-extern void givealbuffer(void *buf);
-extern void givealbuffer_cd(void *buf);
+extern void givealbuffer(const void *buf);
+extern void givealbuffer_music(const void *buf);
+extern void givealbuffer_wt(const void *buf);
+extern void givealbuffer_cd(const void *buf);
 
 #define sb_vibra16c_onboard_relocate_base sb_vibra16s_onboard_relocate_base
+#define sb_vibra16cl_onboard_relocate_base sb_vibra16s_onboard_relocate_base
+#define sb_vibra16xv_onboard_relocate_base sb_vibra16s_onboard_relocate_base
 extern void sb_vibra16s_onboard_relocate_base(uint16_t new_addr, void *priv);
 
 #ifdef EMU_DEVICE_H
@@ -103,30 +127,21 @@ extern const device_t acermagic_s20_device;
 extern const device_t mirosound_pcm10_device;
 extern const device_t azt1605_device;
 
-/* Ensoniq AudioPCI */
-extern const device_t es1371_device;
-extern const device_t es1371_onboard_device;
+/* C-Media CMI8x38 */
+extern const device_t cmi8338_device;
+extern const device_t cmi8338_onboard_device;
+extern const device_t cmi8738_device;
+extern const device_t cmi8738_onboard_device;
+extern const device_t cmi8738_6ch_onboard_device;
+
+/* Covox ISA */
+extern const device_t voicemasterkey_device;
+extern const device_t soundmasterplus_device;
+extern const device_t isadacr0_device;
+extern const device_t isadacr1_device;
 
 /* Creative Labs Game Blaster */
 extern const device_t cms_device;
-
-/* Gravis UltraSound and UltraSound Max */
-extern const device_t gus_device;
-
-#    if defined(DEV_BRANCH) && defined(USE_PAS16)
-/* Pro Audio Spectrum 16 */
-extern const device_t pas16_device;
-#    endif
-
-/* IBM PS/1 Audio Card */
-extern const device_t ps1snd_device;
-
-/* Tandy PSSJ */
-extern const device_t pssj_device;
-extern const device_t pssj_isa_device;
-
-/* Tandy PSG */
-extern const device_t tndy_device;
 
 /* Creative Labs Sound Blaster */
 extern const device_t sb_1_device;
@@ -138,42 +153,94 @@ extern const device_t sb_pro_v2_device;
 extern const device_t sb_pro_mcv_device;
 extern const device_t sb_pro_compat_device;
 extern const device_t sb_16_device;
-extern const device_t sb_vibra16s_onboard_device;
-extern const device_t sb_vibra16s_device;
-extern const device_t sb_vibra16xv_device;
 extern const device_t sb_vibra16c_onboard_device;
 extern const device_t sb_vibra16c_device;
+extern const device_t sb_vibra16cl_onboard_device;
+extern const device_t sb_vibra16cl_device;
+extern const device_t sb_vibra16s_onboard_device;
+extern const device_t sb_vibra16s_device;
+extern const device_t sb_vibra16xv_onboard_device;
+extern const device_t sb_vibra16xv_device;
 extern const device_t sb_16_pnp_device;
+extern const device_t sb_16_pnp_ide_device;
 extern const device_t sb_16_compat_device;
 extern const device_t sb_16_compat_nompu_device;
 extern const device_t sb_16_reply_mca_device;
+extern const device_t sb_goldfinch_device;
 extern const device_t sb_32_pnp_device;
 extern const device_t sb_awe32_device;
 extern const device_t sb_awe32_pnp_device;
 extern const device_t sb_awe64_value_device;
 extern const device_t sb_awe64_device;
+extern const device_t sb_awe64_ide_device;
 extern const device_t sb_awe64_gold_device;
+
+/* Crystal CS423x */
+extern const device_t cs4235_device;
+extern const device_t cs4235_onboard_device;
+extern const device_t cs4236_onboard_device;
+extern const device_t cs4236b_device;
+extern const device_t cs4236b_onboard_device;
+extern const device_t cs4237b_device;
+extern const device_t cs4238b_device;
+
+/* ESS Technology */
+extern const device_t ess_688_device;
+extern const device_t ess_ess0100_pnp_device;
+extern const device_t ess_1688_device;
+extern const device_t ess_ess0102_pnp_device;
+extern const device_t ess_ess0968_pnp_device;
+extern const device_t ess_soundpiper_16_mca_device;
+extern const device_t ess_soundpiper_32_mca_device;
+extern const device_t ess_chipchat_16_mca_device;
+
+/* Ensoniq AudioPCI */
+extern const device_t es1370_device;
+extern const device_t es1371_device;
+extern const device_t es1371_onboard_device;
+extern const device_t es1373_device;
+extern const device_t es1373_onboard_device;
+extern const device_t ct5880_device;
+extern const device_t ct5880_onboard_device;
+
+/* Gravis UltraSound and UltraSound Max */
+extern const device_t gus_device;
+extern const device_t gus_max_device;
+
+/* IBM PS/1 Audio Card */
+extern const device_t ps1snd_device;
 
 /* Innovation SSI-2001 */
 extern const device_t ssi2001_device;
+extern const device_t entertainer_device;
+
+/* Mindscape Music Board */
+extern const device_t mmb_device;
+
+/* Pro Audio Spectrum Plus, 16, and 16D */
+extern const device_t pasplus_device;
+extern const device_t pas16_device;
+extern const device_t pas16d_device;
+
+/* Rainbow Arts PC-Soundman */
+extern const device_t soundman_device;
+
+/* Tandy PSSJ */
+extern const device_t pssj_device;
+extern const device_t pssj_isa_device;
+
+/* Tandy PSG */
+extern const device_t tndy_device;
 
 /* Windows Sound System */
 extern const device_t wss_device;
 extern const device_t ncr_business_audio_device;
 
-/* Crystal CS423x */
-extern const device_t cs4235_device;
-extern const device_t cs4235_onboard_device;
-extern const device_t cs4236b_device;
-extern const device_t cs4237b_device;
-extern const device_t cs4238b_device;
+#ifdef USE_LIBSERIALPORT
+/* External Audio device OPL2Board (Host Connected hardware)*/
+extern const device_t opl2board_device;
+#endif 
 
-/* C-Media CMI8x38 */
-extern const device_t cmi8338_device;
-extern const device_t cmi8338_onboard_device;
-extern const device_t cmi8738_device;
-extern const device_t cmi8738_onboard_device;
-extern const device_t cmi8738_6ch_onboard_device;
 #endif
 
 #endif /*EMU_SOUND_H*/

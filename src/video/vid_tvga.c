@@ -37,6 +37,7 @@
 
 #define ROM_TVGA_8900B            "roms/video/tvga/tvga8900b.vbi"
 #define ROM_TVGA_8900CLD          "roms/video/tvga/trident.bin"
+#define ROM_TVGA_8900DR           "roms/video/tvga/8900DR.VBI"
 #define ROM_TVGA_9000B            "roms/video/tvga/tvga9000b.bin"
 #define ROM_TVGA_9000B_NEC_SV9000 "roms/video/tvga/SV9000.VBI"
 
@@ -59,6 +60,7 @@ typedef struct tvga_t {
 } tvga_t;
 
 video_timings_t timing_tvga8900 = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 8, .read_w = 8, .read_l = 12 };
+video_timings_t timing_tvga8900dr = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
 video_timings_t timing_tvga9000 = { .type = VIDEO_ISA, .write_b = 7, .write_w = 7, .write_l = 12, .read_b = 7, .read_w = 7, .read_l = 12 };
 
 static uint8_t crtc_mask[0x40] = {
@@ -166,7 +168,7 @@ tvga_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -291,15 +293,15 @@ tvga_recalctimings(svga_t *svga)
         svga->hdisp = (svga->crtc[1] + 1) * 8;
 
     if ((svga->crtc[0x1e] & 0xA0) == 0xA0)
-        svga->ma_latch |= 0x10000;
+        svga->memaddr_latch |= 0x10000;
     if ((svga->crtc[0x27] & 0x01) == 0x01)
-        svga->ma_latch |= 0x20000;
+        svga->memaddr_latch |= 0x20000;
     if ((svga->crtc[0x27] & 0x02) == 0x02)
-        svga->ma_latch |= 0x40000;
+        svga->memaddr_latch |= 0x40000;
 
     if (tvga->oldctrl2 & 0x10) {
         svga->rowoffset <<= 1;
-        svga->ma_latch <<= 1;
+        svga->memaddr_latch <<= 1;
     }
 
     if (svga->gdcreg[0xf] & 0x08) {
@@ -417,7 +419,10 @@ tvga_init(const device_t *info)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga9000);
         tvga->vram_size = 512 << 10;
     } else {
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900);
+        if (info->local & 0x0100)
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900dr);
+        else
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900);
         tvga->vram_size = device_get_config_int("memory") << 10;
     }
 
@@ -428,7 +433,10 @@ tvga_init(const device_t *info)
             bios_fn = ROM_TVGA_8900B;
             break;
         case TVGA8900CLD_ID:
-            bios_fn = ROM_TVGA_8900CLD;
+            if (info->local & 0x0100)
+                bios_fn = ROM_TVGA_8900DR;
+            else
+                bios_fn = ROM_TVGA_8900CLD;
             break;
         case TVGA9000B_ID:
             bios_fn = (info->local & 0x100) ? ROM_TVGA_9000B_NEC_SV9000 : ROM_TVGA_9000B;
@@ -464,6 +472,12 @@ static int
 tvga8900d_available(void)
 {
     return rom_present(ROM_TVGA_8900CLD);
+}
+
+static int
+tvga8900dr_available(void)
+{
+    return rom_present(ROM_TVGA_8900DR);
 }
 
 static int
@@ -507,87 +521,92 @@ tvga_force_redraw(void *priv)
 static const device_config_t tvga_config[] = {
     // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 1024,
-        .selection = {
-            {
-                .description = "256 kB",
-                .value = 256
-            },
-            {
-                .description = "512 kB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
             /*Chip supports 2mb, but drivers are buggy*/
-            {
-                .description = ""
-            }
-        }
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off
 };
 
 const device_t tvga8900b_device = {
-    .name = "Trident TVGA 8900B",
+    .name          = "Trident TVGA 8900B",
     .internal_name = "tvga8900b",
-    .flags = DEVICE_ISA,
-    .local = TVGA8900B_ID,
-    .init = tvga_init,
-    .close = tvga_close,
-    .reset = NULL,
-    { .available = tvga8900b_available },
+    .flags         = DEVICE_ISA,
+    .local         = TVGA8900B_ID,
+    .init          = tvga_init,
+    .close         = tvga_close,
+    .reset         = NULL,
+    .available     = tvga8900b_available,
     .speed_changed = tvga_speed_changed,
-    .force_redraw = tvga_force_redraw,
-    .config = tvga_config
+    .force_redraw  = tvga_force_redraw,
+    .config        = tvga_config
 };
 
 const device_t tvga8900d_device = {
-    .name = "Trident TVGA 8900D",
+    .name          = "Trident TVGA 8900D",
     .internal_name = "tvga8900d",
-    .flags = DEVICE_ISA,
-    .local = TVGA8900CLD_ID,
-    .init = tvga_init,
-    .close = tvga_close,
-    .reset = NULL,
-    { .available = tvga8900d_available },
+    .flags         = DEVICE_ISA,
+    .local         = TVGA8900CLD_ID,
+    .init          = tvga_init,
+    .close         = tvga_close,
+    .reset         = NULL,
+    .available     = tvga8900d_available,
     .speed_changed = tvga_speed_changed,
-    .force_redraw = tvga_force_redraw,
-    .config = tvga_config
+    .force_redraw  = tvga_force_redraw,
+    .config        = tvga_config
+};
+
+const device_t tvga8900dr_device = {
+    .name          = "Trident TVGA 8900D-R",
+    .internal_name = "tvga8900dr",
+    .flags         = DEVICE_ISA,
+    .local         = TVGA8900CLD_ID | 0x0100,
+    .init          = tvga_init,
+    .close         = tvga_close,
+    .reset         = NULL,
+    .available     = tvga8900dr_available,
+    .speed_changed = tvga_speed_changed,
+    .force_redraw  = tvga_force_redraw,
+    .config        = tvga_config
 };
 
 const device_t tvga9000b_device = {
-    .name = "Trident TVGA 9000B",
+    .name          = "Trident TVGA 9000B",
     .internal_name = "tvga9000b",
-    .flags = DEVICE_ISA,
-    .local = TVGA9000B_ID,
-    .init = tvga_init,
-    .close = tvga_close,
-    .reset = NULL,
-    { .available = tvga9000b_available },
+    .flags         = DEVICE_ISA,
+    .local         = TVGA9000B_ID,
+    .init          = tvga_init,
+    .close         = tvga_close,
+    .reset         = NULL,
+    .available     = tvga9000b_available,
     .speed_changed = tvga_speed_changed,
-    .force_redraw = tvga_force_redraw,
-    .config = NULL
+    .force_redraw  = tvga_force_redraw,
+    .config        = NULL
 };
 
 const device_t nec_sv9000_device = {
-    .name = "NEC SV9000 (Trident TVGA 9000B)",
+    .name          = "NEC SV9000 (Trident TVGA 9000B)",
     .internal_name = "nec_sv9000",
-    .flags = DEVICE_ISA,
-    .local = TVGA9000B_ID | 0x100,
-    .init = tvga_init,
-    .close = tvga_close,
-    .reset = NULL,
-    { .available = tvga9000b_nec_sv9000_available },
+    .flags         = DEVICE_ISA,
+    .local         = TVGA9000B_ID | 0x100,
+    .init          = tvga_init,
+    .close         = tvga_close,
+    .reset         = NULL,
+    .available     = tvga9000b_nec_sv9000_available,
     .speed_changed = tvga_speed_changed,
-    .force_redraw = tvga_force_redraw,
-    .config = NULL
+    .force_redraw  = tvga_force_redraw,
+    .config        = NULL
 };

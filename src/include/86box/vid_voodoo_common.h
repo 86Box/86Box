@@ -408,6 +408,7 @@ typedef struct voodoo_t {
     atomic_int   cmd_read;
     atomic_int   cmd_written;
     atomic_int   cmd_written_fifo;
+    atomic_int   cmd_written_fifo_2;
 
     voodoo_params_t params_buffer[PARAM_SIZE];
     atomic_int      params_read_idx[4];
@@ -419,6 +420,7 @@ typedef struct voodoo_t {
     int        cmdfifo_rp;
     int        cmdfifo_ret_addr;
     int        cmdfifo_in_sub;
+    int        cmdfifo_in_agp;
     atomic_int cmdfifo_depth_rd;
     atomic_int cmdfifo_depth_wr;
     atomic_int cmdfifo_enabled;
@@ -426,7 +428,21 @@ typedef struct voodoo_t {
     uint32_t   cmdfifo_amax;
     int        cmdfifo_holecount;
 
-    atomic_uint cmd_status;
+    uint32_t   cmdfifo_base_2;
+    uint32_t   cmdfifo_end_2;
+    uint32_t   cmdfifo_size_2;
+    int        cmdfifo_rp_2;
+    int        cmdfifo_ret_addr_2;
+    int        cmdfifo_in_sub_2;
+    int        cmdfifo_in_agp_2;
+    atomic_int cmdfifo_depth_rd_2;
+    atomic_int cmdfifo_depth_wr_2;
+    atomic_int cmdfifo_enabled_2;
+    uint32_t   cmdfifo_amin_2;
+    uint32_t   cmdfifo_amax_2;
+    int        cmdfifo_holecount_2;
+
+    atomic_uint cmd_status, cmd_status_2;
 
     uint32_t     sSetupMode;
     vert_t       verts[4];

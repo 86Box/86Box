@@ -9,19 +9,28 @@
 #          CMake build script.
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
+#          Jasmine Iwanek, <jriwanek@gmail.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
+#          Copyright 2024      Jasmine Iwanek.
 #
 
 if(DYNAREC)
-    add_library(dynarec OBJECT codegen.c codegen_ops.c)
+    add_library(dynarec OBJECT
+        codegen.c
+        codegen_ops.c
+    )
 
     if(ARCH STREQUAL "i386")
-        target_sources(dynarec PRIVATE codegen_x86.c
-            codegen_accumulate_x86.c)
+        target_sources(dynarec PRIVATE
+            codegen_x86.c
+            codegen_accumulate_x86.c
+        )
     elseif(ARCH STREQUAL "x86_64")
-        target_sources(dynarec PRIVATE codegen_x86-64.c
-            codegen_accumulate_x86-64.c)
+        target_sources(dynarec PRIVATE
+            codegen_x86-64.c
+            codegen_accumulate_x86-64.c
+        )
     else()
         message(SEND_ERROR
             "Dynarec is incompatible with target platform ${ARCH}")

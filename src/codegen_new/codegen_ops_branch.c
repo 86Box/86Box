@@ -815,43 +815,59 @@ ropJNLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t n
     }
 }
 
-#define ropJ(cond)                                                                                                                 \
-    uint32_t ropJ##cond##_8(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)  \
-    {                                                                                                                              \
-        uint32_t offset    = (int32_t) (int8_t) fastreadb(cs + op_pc);                                                             \
-        uint32_t dest_addr = op_pc + 1 + offset;                                                                                   \
-        int      ret;                                                                                                              \
-                                                                                                                                   \
-        if (!(op_32 & 0x100))                                                                                                      \
-            dest_addr &= 0xffff;                                                                                                   \
-        ret = ropJ##cond##_common(block, ir, dest_addr, op_pc + 1);                                                                \
-                                                                                                                                   \
-        codegen_mark_code_present(block, cs + op_pc, 1);                                                                           \
-        return ret ? dest_addr : (op_pc + 1);                                                                                      \
-    }                                                                                                                              \
-    uint32_t ropJ##cond##_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc) \
-    {                                                                                                                              \
-        uint32_t offset    = (int32_t) (int16_t) fastreadw(cs + op_pc);                                                            \
-        uint32_t dest_addr = (op_pc + 2 + offset) & 0xffff;                                                                        \
-        int      ret;                                                                                                              \
-                                                                                                                                   \
-        ret = ropJ##cond##_common(block, ir, dest_addr, op_pc + 2);                                                                \
-                                                                                                                                   \
-        codegen_mark_code_present(block, cs + op_pc, 2);                                                                           \
-        return ret ? dest_addr : (op_pc + 2);                                                                                      \
-    }                                                                                                                              \
-    uint32_t ropJ##cond##_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc) \
-    {                                                                                                                              \
-        uint32_t offset    = fastreadl(cs + op_pc);                                                                                \
-        uint32_t dest_addr = op_pc + 4 + offset;                                                                                   \
-        int      ret;                                                                                                              \
-                                                                                                                                   \
-        ret = ropJ##cond##_common(block, ir, dest_addr, op_pc + 4);                                                                \
-                                                                                                                                   \
-        codegen_mark_code_present(block, cs + op_pc, 4);                                                                           \
-        return ret ? dest_addr : (op_pc + 4);                                                                                      \
+#define ropJ(cond)                                                      \
+    uint32_t ropJ##cond##_8(codeblock_t *block,                         \
+                            ir_data_t *ir,                              \
+                            UNUSED(uint8_t opcode),                     \
+                            UNUSED(uint32_t fetchdat),                  \
+                            uint32_t op_32,                             \
+                            uint32_t op_pc)                             \
+    {                                                                   \
+        uint32_t offset    = (int32_t) (int8_t) fastreadb(cs + op_pc);  \
+        uint32_t dest_addr = op_pc + 1 + offset;                        \
+        int      ret;                                                   \
+                                                                        \
+        if (!(op_32 & 0x100))                                           \
+            dest_addr &= 0xffff;                                        \
+        ret = ropJ##cond##_common(block, ir, dest_addr, op_pc + 1);     \
+                                                                        \
+        codegen_mark_code_present(block, cs + op_pc, 1);                \
+        return ret ? dest_addr : (op_pc + 1);                           \
+    }                                                                   \
+    uint32_t ropJ##cond##_16(codeblock_t *block,                        \
+                             ir_data_t *ir,                             \
+                             UNUSED(uint8_t opcode),                    \
+                             UNUSED(uint32_t fetchdat),                 \
+                             UNUSED(uint32_t op_32),                    \
+                             uint32_t op_pc)                            \
+    {                                                                   \
+        uint32_t offset    = (int32_t) (int16_t) fastreadw(cs + op_pc); \
+        uint32_t dest_addr = (op_pc + 2 + offset) & 0xffff;             \
+        int      ret;                                                   \
+                                                                        \
+        ret = ropJ##cond##_common(block, ir, dest_addr, op_pc + 2);     \
+                                                                        \
+        codegen_mark_code_present(block, cs + op_pc, 2);                \
+        return ret ? dest_addr : (op_pc + 2);                           \
+    }                                                                   \
+    uint32_t ropJ##cond##_32(codeblock_t *block,                        \
+                             ir_data_t *ir,                             \
+                             UNUSED(uint8_t opcode),                    \
+                             UNUSED(uint32_t fetchdat),                 \
+                             UNUSED(uint32_t op_32),                    \
+                             uint32_t op_pc)                            \
+    {                                                                   \
+        uint32_t offset    = fastreadl(cs + op_pc);                     \
+        uint32_t dest_addr = op_pc + 4 + offset;                        \
+        int      ret;                                                   \
+                                                                        \
+        ret = ropJ##cond##_common(block, ir, dest_addr, op_pc + 4);     \
+                                                                        \
+        codegen_mark_code_present(block, cs + op_pc, 4);                \
+        return ret ? dest_addr : (op_pc + 4);                           \
     }
 
+// clang-format off
 ropJ(O)
 ropJ(NO)
 ropJ(B)
@@ -868,9 +884,10 @@ ropJ(L)
 ropJ(NL)
 ropJ(LE)
 ropJ(NLE)
+// clang-format on
 
 uint32_t
-ropJCXZ(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropJCXZ(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc)
 {
     uint32_t offset    = (int32_t) (int8_t) fastreadb(cs + op_pc);
     uint32_t dest_addr = op_pc + 1 + offset;
@@ -892,7 +909,7 @@ ropJCXZ(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
 }
 
 uint32_t
-ropLOOP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropLOOP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc)
 {
     uint32_t offset    = (int32_t) (int8_t) fastreadb(cs + op_pc);
     uint32_t dest_addr = op_pc + 1 + offset;
@@ -932,7 +949,7 @@ ropLOOP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
 }
 
 uint32_t
-ropLOOPE(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropLOOPE(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc)
 {
     uint32_t offset    = (int32_t) (int8_t) fastreadb(cs + op_pc);
     uint32_t dest_addr = op_pc + 1 + offset;
@@ -965,7 +982,7 @@ ropLOOPE(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     return op_pc + 1;
 }
 uint32_t
-ropLOOPNE(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropLOOPNE(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc)
 {
     uint32_t offset    = (int32_t) (int8_t) fastreadb(cs + op_pc);
     uint32_t dest_addr = op_pc + 1 + offset;

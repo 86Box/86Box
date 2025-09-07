@@ -66,15 +66,17 @@ typedef struct ems_page_t {
 } ems_page_t;
 
 typedef struct scat_t {
-    int type;
+    uint8_t  max_reg;
+    uint8_t  reg_2xA;
 
-    int     indx;
-    uint8_t regs[256];
-    uint8_t reg_2xA;
+    uint8_t  regs[256];
 
     uint32_t xms_bound;
 
-    int external_is_RAS;
+    int      type;
+    int      indx;
+
+    int      external_is_RAS;
 
     ems_page_t null_page;
     ems_page_t page[32];
@@ -1138,14 +1140,21 @@ scat_out(uint16_t port, uint8_t val, void *priv)
                 if (indx >= 24)
                     base_addr += 0x30000;
 
+                if ((base_addr >= 0x000a0000) && (base_addr < 0x00100000))
+                    mem_set_mem_state(base_addr, 0x00004000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+
                 if ((dev->regs[SCAT_EMS_CONTROL] & 0x80) && (dev->page[indx].regs_2x9 & 0x80)) {
                     virt_addr = get_addr(dev, base_addr, &dev->page[indx]);
                     if (virt_addr < ((uint32_t) mem_size << 10))
                         mem_mapping_set_exec(&dev->ems_mapping[indx], ram + virt_addr);
                     else
                         mem_mapping_set_exec(&dev->ems_mapping[indx], NULL);
-                    flushmmucache();
+
+                    if ((base_addr >= 0x000a0000) && (base_addr < 0x00100000))
+                        mem_set_mem_state(base_addr, 0x00004000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                 }
+
+                flushmmucache();
             }
             break;
 
@@ -1161,6 +1170,9 @@ scat_out(uint16_t port, uint8_t val, void *priv)
                 if (indx >= 24)
                     base_addr += 0x30000;
 
+                if ((base_addr >= 0x000a0000) && (base_addr < 0x00100000))
+                    mem_set_mem_state(base_addr, 0x00004000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+
                 if (dev->regs[SCAT_EMS_CONTROL] & 0x80) {
                     if (val & 0x80) {
                         virt_addr = get_addr(dev, base_addr, &dev->page[indx]);
@@ -1173,6 +1185,9 @@ scat_out(uint16_t port, uint8_t val, void *priv)
                         else
                             mem_mapping_set_exec(&dev->ems_mapping[indx], NULL);
                         mem_mapping_enable(&dev->ems_mapping[indx]);
+
+                        if ((base_addr >= 0x000a0000) && (base_addr < 0x00100000))
+                            mem_set_mem_state(base_addr, 0x00004000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                     } else {
                         mem_mapping_set_exec(&dev->ems_mapping[indx], ram + base_addr);
                         mem_mapping_disable(&dev->ems_mapping[indx]);
@@ -1233,7 +1248,8 @@ scat_in(uint16_t port, void *priv)
                     break;
 
                 default:
-                    ret = dev->regs[dev->indx];
+                    if (dev->indx <= dev->max_reg)
+                        ret = dev->regs[dev->indx];
                     break;
             }
             break;
@@ -1387,11 +1403,12 @@ scat_init(const device_t *info)
     uint32_t k;
     int      sx;
 
-    dev = (scat_t *) malloc(sizeof(scat_t));
-    memset(dev, 0x00, sizeof(scat_t));
+    dev = (scat_t *) calloc(1, sizeof(scat_t));
     dev->type = info->local;
 
     sx = (dev->type == 32) ? 1 : 0;
+
+    dev->max_reg = sx ? 0x64 : 0x4f;
 
     for (uint32_t i = 0; i < sizeof(dev->regs); i++)
         dev->regs[i] = 0xff;
@@ -1490,7 +1507,7 @@ scat_init(const device_t *info)
             mem_mapping_add(&dev->ems_mapping[i], (i + 28) << 14, 0x04000,
                             mem_read_scatb, mem_read_scatw, mem_read_scatl,
                             mem_write_scatb, mem_write_scatw, mem_write_scatl,
-                            ram + ((i + 28) << 14), 0, &dev->page[i]);
+                            ram + ((i + 28) << 14), MEM_MAPPING_INTERNAL, &dev->page[i]);
             mem_mapping_disable(&dev->ems_mapping[i]);
         }
     } else {
@@ -1503,7 +1520,7 @@ scat_init(const device_t *info)
                             mem_read_scatb, mem_read_scatw, mem_read_scatl,
                             mem_write_scatb, mem_write_scatw, mem_write_scatl,
                             ram + ((i + (i >= 24 ? 28 : 16)) << 14),
-                            0, &dev->page[i]);
+                            MEM_MAPPING_INTERNAL, &dev->page[i]);
         }
     }
 
@@ -1541,7 +1558,7 @@ const device_t scat_device = {
     .init          = scat_init,
     .close         = scat_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1555,7 +1572,7 @@ const device_t scat_4_device = {
     .init          = scat_init,
     .close         = scat_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1569,7 +1586,7 @@ const device_t scat_sx_device = {
     .init          = scat_init,
     .close         = scat_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

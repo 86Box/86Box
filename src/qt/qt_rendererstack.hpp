@@ -7,6 +7,7 @@
 #include <QStackedWidget>
 #include <QWidget>
 #include <QCursor>
+#include <QScreen>
 
 #include <atomic>
 #include <memory>
@@ -14,9 +15,17 @@
 #include <vector>
 
 #include "qt_renderercommon.hpp"
+#include "qt_util.hpp"
+
+#include <atomic>
 
 namespace Ui {
 class RendererStack;
+}
+
+extern "C"
+{
+    extern int vid_resize;
 }
 
 class RendererCommon;
@@ -41,6 +50,22 @@ public:
     void changeEvent(QEvent *event) override;
     void resizeEvent(QResizeEvent *event) override
     {
+        if (this->m_monitor_index != 0 && vid_resize != 1) {
+            int newX = pos().x();
+            int newY = pos().y();
+        
+            if (((frameGeometry().x() + event->size().width() + 1) > util::screenOfWidget(this)->availableGeometry().right())) {
+                //move(util::screenOfWidget(this)->availableGeometry().right() - size().width() - 1, pos().y());
+                newX = util::screenOfWidget(this)->availableGeometry().right() - frameGeometry().width() - 1;
+                if (newX < 1) newX = 1;
+            }
+        
+            if (((frameGeometry().y() + event->size().height() + 1) > util::screenOfWidget(this)->availableGeometry().bottom())) {
+                newY = util::screenOfWidget(this)->availableGeometry().bottom() - frameGeometry().height() - 1;
+                if (newY < 1) newY = 1;
+            }
+            move(newX, newY);
+        }
         onResize(event->size().width(), event->size().height());
     }
     void keyPressEvent(QKeyEvent *event) override
@@ -55,11 +80,8 @@ public:
 
     enum class Renderer {
         Software,
-        OpenGL,
-        OpenGLES,
         OpenGL3,
         Vulkan,
-        Direct3D9,
         None = -1
     };
     void switchRenderer(Renderer renderer);
@@ -70,6 +92,8 @@ public:
     void reloadOptions() const { return rendererWindow->reloadOptions(); }
     /* Returns options dialog for current renderer */
     QDialog *getOptions(QWidget *parent) { return rendererWindow ? rendererWindow->getOptions(parent) : nullptr; }
+    /* Reload the renderer itself */
+    bool reloadRendererOption() { return rendererWindow ? rendererWindow->reloadRendererOption() : false; }
 
     void setFocusRenderer();
     void onResize(int width, int height);
@@ -81,13 +105,10 @@ public:
 
 signals:
     void blitToRenderer(int buf_idx, int x, int y, int w, int h);
-    void blit(int x, int y, int w, int h);
     void rendererChanged();
 
 public slots:
-    void blitCommon(int x, int y, int w, int h);
-    void blitRenderer(int x, int y, int w, int h);
-    void blitDummy(int x, int y, int w, int h);
+    void blit(int x, int y, int w, int h);
 
 private:
     void createRenderer(Renderer renderer);
@@ -107,13 +128,15 @@ private:
     int isMouseDown     = 0;
     int m_monitor_index = 0;
 
-    Renderer current_vid_api = Renderer::None;
-
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> imagebufs;
 
     RendererCommon          *rendererWindow { nullptr };
     std::unique_ptr<QWidget> current;
-    std::atomic<bool>        directBlitting { false };
+
+    std::atomic_bool rendererTakesScreenshots;
+    std::atomic_bool switchInProgress{false};
+
+    char auto_mouse_type[16];
 };
 
 #endif // QT_RENDERERCONTAINER_HPP

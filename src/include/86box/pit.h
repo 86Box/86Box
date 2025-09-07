@@ -19,6 +19,8 @@
 #ifndef EMU_PIT_H
 #define EMU_PIT_H
 
+#define NUM_COUNTERS 3
+
 typedef struct ctr_t {
     uint8_t m;
     uint8_t ctrl;
@@ -42,6 +44,7 @@ typedef struct ctr_t {
     int state;
     int null_count;
     int do_read_status;
+    int enable;
 
     union {
         int32_t count;
@@ -55,9 +58,11 @@ typedef struct ctr_t {
     };
 
     uint32_t l;
+    uint32_t lback;
+    uint32_t lback2;
 
     void (*load_func)(uint8_t new_m, int new_count);
-    void (*out_func)(int new_out, int old_out);
+    void (*out_func)(int new_out, int old_out, void *priv);
 } ctr_t;
 
 typedef struct PIT {
@@ -65,10 +70,16 @@ typedef struct PIT {
     int        clock;
     pc_timer_t callback_timer;
 
-    ctr_t counters[3];
+    ctr_t counters[NUM_COUNTERS];
 
     uint8_t ctrl;
+
+    uint64_t   pit_const;
+
+    void *dev_priv;
 } pit_t;
+
+extern pit_t *ext_pit;
 
 enum {
     PIT_8253      = 0,
@@ -87,10 +98,11 @@ typedef struct pit_intf_t {
     /* Sets if a counter's CLOCK input is from the timer or not - used by PCjr. */
     void (*set_using_timer)(void *data, int counter_id, int using_timer);
     /* Sets a counter's OUT output handler. */
-    void (*set_out_func)(void *data, int counter_id, void (*func)(int new_out, int old_out));
+    void (*set_out_func)(void *data, int counter_id, void (*func)(int new_out, int old_out, void *priv));
     /* Sets a counter's load count handler. */
     void (*set_load_func)(void *data, int counter_id, void (*func)(uint8_t new_m, int new_count));
     void (*ctr_clock)(void *data, int counter_id);
+    void (*set_pit_const)(void *data, uint64_t pit_const);
     void *data;
 } pit_intf_t;
 
@@ -102,6 +114,9 @@ extern double PCICLK;
 extern double AGPCLK;
 
 extern uint64_t PITCONST;
+extern uint64_t PAS16CONST;
+extern uint64_t PAS16CONST2;
+extern uint64_t PASSCSICONST;
 extern uint64_t ISACONST;
 extern uint64_t CGACONST;
 extern uint64_t MDACONST;
@@ -112,21 +127,35 @@ extern uint64_t RTCCONST;
 
 extern int refresh_at_enable;
 
-/* Sets a counter's CLOCK input. */
-extern void pit_ctr_set_clock(ctr_t *ctr, int clock);
+extern void pit_device_reset(pit_t *dev);
 
-extern pit_t *pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(int new_out, int old_out));
+extern void pit_change_pas16_consts(double prescale);
+
+extern void pit_set_pit_const(void *data, uint64_t pit_const);
+
+extern void ctr_clock(void *data, int counter_id);
+
+/* Sets a counter's CLOCK input. */
+extern void pit_ctr_set_clock(ctr_t *ctr, int clock, void *priv);
+
+extern void pit_ctr_set_gate(void *data, int counter_id, int gate);
+
+extern void pit_ctr_set_out_func(void *data, int counter_id, void (*func)(int new_out, int old_out, void *priv));
+
+extern void pit_ctr_set_using_timer(void *data, int counter_id, int using_timer);
+
+extern pit_t *pit_common_init(int type, void (*out0)(int new_out, int old_out, void *priv), void (*out1)(int new_out, int old_out, void *priv));
 extern pit_t *pit_ps2_init(int type);
 extern void   pit_reset(pit_t *dev);
 
-extern void pit_irq0_timer_ps2(int new_out, int old_out);
+extern void pit_irq0_timer_ps2(int new_out, int old_out, void *priv);
 
-extern void pit_refresh_timer_xt(int new_out, int old_out);
-extern void pit_refresh_timer_at(int new_out, int old_out);
+extern void pit_refresh_timer_xt(int new_out, int old_out, void *priv);
+extern void pit_refresh_timer_at(int new_out, int old_out, void *priv);
 
-extern void pit_speaker_timer(int new_out, int old_out);
+extern void pit_speaker_timer(int new_out, int old_out, void *priv);
 
-extern void pit_nmi_timer_ps2(int new_out, int old_out);
+extern void pit_nmi_timer_ps2(int new_out, int old_out, void *priv);
 
 extern void pit_set_clock(uint32_t clock);
 extern void pit_handler(int set, uint16_t base, int size, void *priv);
@@ -136,6 +165,7 @@ extern uint8_t pit_read_reg(void *priv, uint8_t reg);
 #ifdef EMU_DEVICE_H
 extern const device_t i8253_device;
 extern const device_t i8253_pc98_device;
+extern const device_t i8253_ext_io_device;
 extern const device_t i8254_device;
 extern const device_t i8254_sec_device;
 extern const device_t i8254_ext_io_device;

@@ -15,7 +15,7 @@
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
- *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2016-2025 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -28,6 +28,7 @@
 #include <86box/io.h>
 #include <86box/timer.h>
 #include "cpu.h"
+#include "x86.h"
 #include <86box/m_amstrad.h>
 #include <86box/pci.h>
 
@@ -145,6 +146,8 @@ io_sethandler_common(uint16_t base, int size,
         q->next = NULL;
 
         io_last[base + c] = q;
+
+        q = NULL;
     }
 }
 
@@ -279,6 +282,58 @@ io_handler_interleaved(int set, uint16_t base, int size,
     io_handler_common(set, base, size, inb, inw, inl, outb, outw, outl, priv, 2);
 }
 
+#ifdef USE_DEBUG_REGS_486
+extern int trap;
+/* Set trap for I/O address breakpoints. */
+void
+io_debug_check_addr(uint16_t addr)
+{
+    int i = 0;
+    int set_trap = 0;
+
+    if (!(dr[7] & 0xFF))
+        return;
+    
+    if (!(cr4 & 0x8))
+        return; /* No I/O debug trap. */
+
+    for (i = 0; i < 4; i++) {
+        uint16_t dr_addr = dr[i] & 0xFFFF;
+        int breakpoint_enabled = !!(dr[7] & (0x3 << (2 * i)));
+        int len_type_pair = ((dr[7] >> 16) & (0xF << (4 * i))) >> (4 * i);
+        if (!breakpoint_enabled)
+            continue;
+        if ((len_type_pair & 3) != 2)
+            continue;
+        
+        switch ((len_type_pair >> 2) & 3)
+        {
+            case 0x00:
+                if (dr_addr == addr) {
+                    set_trap = 1;
+                    dr[6] |= (1 << i);
+                }
+                break;
+            case 0x01:
+                if ((dr_addr & ~1) == addr || ((dr_addr & ~1) + 1) == (addr + 1)) {
+                    set_trap = 1;
+                    dr[6] |= (1 << i);
+                }
+                break;
+            case 0x03:
+                dr_addr &= ~3;
+                if (addr >= dr_addr && addr < (dr_addr + 4)) {
+                    set_trap = 1;
+                    dr[6] |= (1 << i);
+                }
+                break;
+        }
+    }
+    if (set_trap)
+        trap |= 4;
+}
+#endif
+
 uint8_t
 inb(uint16_t port)
 {
@@ -288,6 +343,12 @@ inb(uint16_t port)
     int     found  = 0;
 #ifdef ENABLE_IO_LOG
     int     qfound = 0;
+#endif
+
+    io_port = port;
+
+#ifdef USE_DEBUG_REGS_486
+    io_debug_check_addr(port);
 #endif
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
@@ -350,6 +411,13 @@ outb(uint16_t port, uint8_t val)
     int   qfound = 0;
 #endif
 
+    io_port = port;
+    io_val  = val;
+
+#ifdef USE_DEBUG_REGS_486
+    io_debug_check_addr(port);
+#endif
+
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
         pci_write(port, val, NULL);
         found = 1;
@@ -377,10 +445,10 @@ outb(uint16_t port, uint8_t val)
         }
     }
 
-    if (!found) {
+    if (!found || (port == 0x84)) {
         cycles -= io_delay;
 #ifdef USE_DYNAREC
-        if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
+        if (cpu_use_dynarec && ((port == 0x84) || (port == 0xeb) || (port == 0xed)))
             update_tsc();
 #endif
     }
@@ -401,6 +469,12 @@ inw(uint16_t port)
     int      qfound = 0;
 #endif
     uint8_t  ret8[2];
+
+    io_port = port;
+
+#ifdef USE_DEBUG_REGS_486
+    io_debug_check_addr(port);
+#endif
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
         ret = pci_readw(port, NULL);
@@ -474,6 +548,13 @@ outw(uint16_t port, uint16_t val)
     int   qfound = 0;
 #endif
 
+    io_port = port;
+    io_val  = val;
+
+#ifdef USE_DEBUG_REGS_486
+    io_debug_check_addr(port);
+#endif
+
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
         pci_writew(port, val, NULL);
         found = 2;
@@ -540,6 +621,12 @@ inl(uint16_t port)
     int      found  = 0;
 #ifdef ENABLE_IO_LOG
     int      qfound = 0;
+#endif
+
+    io_port = port;
+
+#ifdef USE_DEBUG_REGS_486
+    io_debug_check_addr(port);
 #endif
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
@@ -645,6 +732,13 @@ outl(uint16_t port, uint32_t val)
     int   qfound = 0;
 #endif
     int   i      = 0;
+
+    io_port = port;
+    io_val  = val;
+
+#ifdef USE_DEBUG_REGS_486
+    io_debug_check_addr(port);
+#endif
 
     if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
         pci_writel(port, val, NULL);

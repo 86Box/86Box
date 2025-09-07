@@ -166,8 +166,7 @@ ps1snd_get_buffer(int32_t *buffer, int len, void *priv)
 static void *
 ps1snd_init(UNUSED(const device_t *info))
 {
-    ps1snd_t *ps1snd = malloc(sizeof(ps1snd_t));
-    memset(ps1snd, 0x00, sizeof(ps1snd_t));
+    ps1snd_t *ps1snd = calloc(1, sizeof(ps1snd_t));
 
     sn76489_init(&ps1snd->sn76489, 0x0205, 0x0001, SN76496, 4000000);
 
@@ -203,7 +202,7 @@ const device_t ps1snd_device = {
     .init          = ps1snd_init,
     .close         = ps1snd_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -22,12 +22,8 @@ opSYSCALL(uint32_t fetchdat)
 
     ret = syscall_op(fetchdat);
 
-    if (ret <= 1) {
-        CLOCK_CYCLES(20);
-        PREFETCH_RUN(20, 7, -1, 0, 0, 0, 0, 0);
-        PREFETCH_FLUSH();
+    if (ret <= 1)
         CPU_BLOCK_END();
-    }
 
     return ret;
 }
@@ -41,12 +37,8 @@ opSYSRET(uint32_t fetchdat)
 
     ret = sysret(fetchdat);
 
-    if (ret <= 1) {
-        CLOCK_CYCLES(20);
-        PREFETCH_RUN(20, 7, -1, 0, 0, 0, 0, 0);
-        PREFETCH_FLUSH();
+    if (ret <= 1)
         CPU_BLOCK_END();
-    }
 
     return ret;
 }

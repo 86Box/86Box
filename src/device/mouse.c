@@ -61,7 +61,7 @@ static const device_t mouse_none_device = {
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
-    { .poll = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -75,7 +75,7 @@ static const device_t mouse_internal_device = {
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
-    { .poll = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -83,34 +83,41 @@ static const device_t mouse_internal_device = {
 
 static mouse_t mouse_devices[] = {
     // clang-format off
-    { &mouse_none_device         },
-    { &mouse_internal_device     },
-    { &mouse_logibus_device      },
-    { &mouse_msinport_device     },
+    { &mouse_none_device               },
+    { &mouse_internal_device           },
+    { &mouse_logibus_device            },
+    { &mouse_msinport_device           },
 #ifdef USE_GENIBUS
-    { &mouse_genibus_device      },
+    { &mouse_genibus_device            },
 #endif
-    { &mouse_mssystems_device    },
-    { &mouse_msserial_device     },
-    { &mouse_ltserial_device     },
-    { &mouse_ps2_device          },
+
+    { &mouse_mssystems_device          },
+    { &mouse_mssystems_bus_device      },
+    { &mouse_msserial_device           },
+    { &mouse_msserial_ballpoint_device },
+    { &mouse_ltserial_device           },
+    { &mouse_ps2_device                },
+#ifdef USE_STANDALONE_QUICKPORT
+    { &mouse_upc_standalone_device     },
+#endif
 #ifdef USE_WACOM
-    { &mouse_wacom_device        },
-    { &mouse_wacom_artpad_device },
+    { &mouse_wacom_device              },
+    { &mouse_wacom_artpad_device       },
 #endif
-    { NULL                       }
+    { &mouse_mtouch_device             },
+    { NULL                             }
     // clang-format on
 };
 
 static _Atomic double  mouse_x;
 static _Atomic double  mouse_y;
 static atomic_int      mouse_z;
+static atomic_int      mouse_w;
 static atomic_int      mouse_buttons;
 
 static int             mouse_delta_b;
 static int             mouse_old_b;
 
-static const device_t *mouse_curr;
 static void           *mouse_priv;
 static int             mouse_nbut;
 static int             mouse_raw;
@@ -156,6 +163,7 @@ mouse_clear_coords(void)
     mouse_clear_y();
 
     mouse_z = 0;
+    mouse_w = 0;
 }
 
 void
@@ -356,6 +364,14 @@ mouse_wheel_moved(void)
 }
 
 int
+mouse_hwheel_moved(void)
+{
+    int ret = !!(atomic_load(&mouse_w));
+
+    return ret;
+}
+
+int
 mouse_moved(void)
 {
     int moved_x = !!((int) floor(ABSD(mouse_scale_coord_x(atomic_load(&mouse_x), 1))));
@@ -373,13 +389,14 @@ mouse_state_changed(void)
     int b;
     int b_mask    = (1 << mouse_nbut) - 1;
     int wheel     = (mouse_nbut >= 4);
+    int hwheel    = (mouse_nbut >= 6);
     int ret;
 
     b = atomic_load(&mouse_buttons);
     mouse_delta_b = (b ^ mouse_old_b);
     mouse_old_b   = b;
 
-    ret = mouse_moved() || ((atomic_load(&mouse_z) != 0) && wheel) || (mouse_delta_b & b_mask);
+    ret = mouse_moved() || ((atomic_load(&mouse_z) != 0) && wheel) || ((atomic_load(&mouse_w) != 0) && hwheel) || (mouse_delta_b & b_mask);
 
     return ret;
 }
@@ -476,15 +493,27 @@ mouse_clear_z(void)
 }
 
 void
+mouse_set_w(int w)
+{
+    atomic_fetch_add(&mouse_w, w);
+}
+
+void
+mouse_clear_w(void)
+{
+    atomic_store(&mouse_w, 0);
+}
+
+void
 mouse_subtract_z(int *delta_z, int min, int max, int invert)
 {
     int z = atomic_load(&mouse_z);
     int real_z = invert ? -z : z;
 
-    if (mouse_z > max) {
+    if (real_z > max) {
         *delta_z = max;
         real_z -= max;
-    } else if (mouse_z < min) {
+    } else if (real_z < min) {
         *delta_z = min;
         real_z += ABS(min);
     } else {
@@ -493,6 +522,26 @@ mouse_subtract_z(int *delta_z, int min, int max, int invert)
     }
 
     atomic_store(&mouse_z, invert ? -real_z : real_z);
+}
+
+void
+mouse_subtract_w(int *delta_w, int min, int max, int invert)
+{
+    int w = atomic_load(&mouse_w);
+    int real_w = invert ? -w : w;
+
+    if (real_w > max) {
+        *delta_w = max;
+        real_w -= max;
+    } else if (real_w < min) {
+        *delta_w = min;
+        real_w += ABS(min);
+    } else {
+        *delta_w = real_w;
+        real_w = 0;
+    }
+
+    atomic_store(&mouse_w, invert ? -real_w : real_w);
 }
 
 void
@@ -510,13 +559,19 @@ mouse_get_buttons_ex(void)
 void
 mouse_set_sample_rate(double new_rate)
 {
-    mouse_timed = (new_rate > 0.0);
+    mouse_timed = !force_constant_mouse && (new_rate > 0.0);
 
     timer_stop(&mouse_timer);
 
     sample_rate = new_rate;
     if (mouse_timed)
         timer_on_auto(&mouse_timer, 1000000.0 / sample_rate);
+}
+
+void
+mouse_update_sample_rate(void)
+{
+    mouse_set_sample_rate(sample_rate);
 }
 
 /* Callback from the hardware driver. */
@@ -536,17 +591,10 @@ mouse_get_abs_coords(double *x_abs, double *y_abs)
 void
 mouse_process(void)
 {
-    if (mouse_curr == NULL)
-        return;
-
     if ((mouse_input_mode >= 1) && mouse_poll_ex)
         mouse_poll_ex();
-    else if ((mouse_input_mode == 0) && ((mouse_dev_poll != NULL) || (mouse_curr->poll != NULL))) {
-        if (mouse_curr->poll != NULL)
-            mouse_curr->poll(mouse_priv);
-        else
-            mouse_dev_poll(mouse_priv);
-    }
+    else if ((mouse_input_mode == 0) && (mouse_dev_poll != NULL))
+        mouse_dev_poll(mouse_priv);
 }
 
 void
@@ -558,9 +606,6 @@ mouse_set_poll_ex(void (*poll_ex)(void))
 void
 mouse_set_poll(int (*func)(void *), void *arg)
 {
-    if (mouse_type != MOUSE_TYPE_INTERNAL)
-        return;
-
     mouse_dev_poll = func;
     mouse_priv     = arg;
 }
@@ -628,7 +673,7 @@ mouse_set_raw(int raw)
 void
 mouse_reset(void)
 {
-    if (mouse_curr != NULL)
+    if (mouse_priv != NULL)
         return; /* Mouse already initialized. */
 
     mouse_log("MOUSE: reset(type=%d, '%s')\n",
@@ -637,8 +682,7 @@ mouse_reset(void)
     /* Clear local data. */
     mouse_clear_coords();
     mouse_clear_buttons();
-    mouse_input_mode                  = 0;
-    mouse_timed                 = 1;
+    mouse_input_mode      = 0;
 
     /* If no mouse configured, we're done. */
     if (mouse_type == 0)
@@ -647,22 +691,15 @@ mouse_reset(void)
     timer_add(&mouse_timer, mouse_timer_poll, NULL, 0);
 
     /* Poll at 100 Hz, the default of a PS/2 mouse. */
-    sample_rate = 100.0;
-    timer_on_auto(&mouse_timer, 1000000.0 / sample_rate);
+    mouse_set_sample_rate(100.0);
 
-    mouse_curr = mouse_devices[mouse_type].device;
-
-    if ((mouse_type > 1) && (mouse_curr != NULL))
-        mouse_priv = device_add(mouse_curr);
+    if ((mouse_type > 1) && (mouse_devices[mouse_type].device != NULL))
+        mouse_priv = device_add(mouse_devices[mouse_type].device);
 }
 
 void
 mouse_close(void)
 {
-    if (mouse_curr == NULL)
-        return;
-
-    mouse_curr     = NULL;
     mouse_priv     = NULL;
     mouse_nbut     = 0;
     mouse_dev_poll = NULL;
@@ -679,7 +716,6 @@ mouse_init(void)
     mouse_clear_buttons();
 
     mouse_type     = MOUSE_TYPE_NONE;
-    mouse_curr     = NULL;
     mouse_priv     = NULL;
     mouse_nbut     = 0;
     mouse_dev_poll = NULL;

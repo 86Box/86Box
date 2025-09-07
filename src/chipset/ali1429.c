@@ -331,8 +331,7 @@ ali1429_defaults(ali1429_t *dev)
 static void *
 ali1429_init(const device_t *info)
 {
-    ali1429_t *dev = (ali1429_t *) malloc(sizeof(ali1429_t));
-    memset(dev, 0, sizeof(ali1429_t));
+    ali1429_t *dev = (ali1429_t *) calloc(1, sizeof(ali1429_t));
 
     dev->cfg_locked = 1;
     GREEN           = info->local;
@@ -358,7 +357,7 @@ const device_t ali1429_device = {
     .init          = ali1429_init,
     .close         = ali1429_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -372,7 +371,7 @@ const device_t ali1429g_device = {
     .init          = ali1429_init,
     .close         = ali1429_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

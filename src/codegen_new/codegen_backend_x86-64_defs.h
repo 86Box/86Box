@@ -1,5 +1,5 @@
 /*RBP = cpu_state + 128
-  R12 = ram (if block->flags & CODEBLOCK_NO_IMMEDIATES)*/
+  R12 = ram + 2147483648 (if block->flags & CODEBLOCK_NO_IMMEDIATES)*/
 #define REG_AX               0
 #define REG_CX               1
 #define REG_DX               2

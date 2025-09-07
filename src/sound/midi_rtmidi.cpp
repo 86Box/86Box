@@ -73,8 +73,7 @@ rtmidi_play_sysex(uint8_t *sysex, unsigned int len)
 void *
 rtmidi_output_init(UNUSED(const device_t *info))
 {
-    midi_device_t *dev = (midi_device_t *) malloc(sizeof(midi_device_t));
-    memset(dev, 0, sizeof(midi_device_t));
+    midi_device_t *dev = (midi_device_t *) calloc(1, sizeof(midi_device_t));
 
     dev->play_msg   = rtmidi_play_msg;
     dev->play_sysex = rtmidi_play_sysex;
@@ -156,8 +155,7 @@ rtmidi_input_callback(UNUSED(double timeStamp), std::vector<unsigned char> *mess
 void *
 rtmidi_input_init(UNUSED(const device_t *info))
 {
-    midi_device_t *dev = (midi_device_t *) malloc(sizeof(midi_device_t));
-    memset(dev, 0, sizeof(midi_device_t));
+    midi_device_t *dev = (midi_device_t *) calloc(1, sizeof(midi_device_t));
 
     try {
         if (!midiin)
@@ -233,11 +231,15 @@ rtmidi_in_get_dev_name(int num, char *s)
 static const device_config_t system_midi_config[] = {
   // clang-format off
     {
-        .name = "midi",
-        .description = "MIDI out device",
-        .type = CONFIG_MIDI_OUT,
-        .default_string = "",
-        .default_int = 0
+        .name           = "midi",
+        .description    = "MIDI Output Device",
+        .type           = CONFIG_MIDI_OUT,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -246,32 +248,48 @@ static const device_config_t system_midi_config[] = {
 static const device_config_t midi_input_config[] = {
   // clang-format off
     {
-        .name = "midi_input",
-        .description = "MIDI in device",
-        .type = CONFIG_MIDI_IN,
-        .default_string = "",
-        .default_int = 0
+        .name           = "midi_input",
+        .description    = "MIDI Input Device",
+        .type           = CONFIG_MIDI_IN,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "realtime",
-        .description = "MIDI Real time",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "realtime",
+        .description    = "MIDI Real time",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "thruchan",
-        .description = "MIDI Thru",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "thruchan",
+        .description    = "MIDI Thru",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "clockout",
-        .description = "MIDI Clockout",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "clockout",
+        .description    = "MIDI Clockout",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
@@ -285,7 +303,7 @@ const device_t rtmidi_output_device = {
     .init          = rtmidi_output_init,
     .close         = rtmidi_output_close,
     .reset         = NULL,
-    { .available = rtmidi_out_get_num_devs },
+    .available     = rtmidi_out_get_num_devs,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = system_midi_config
@@ -299,7 +317,7 @@ const device_t rtmidi_input_device = {
     .init          = rtmidi_input_init,
     .close         = rtmidi_input_close,
     .reset         = NULL,
-    { .available = rtmidi_in_get_num_devs },
+    .available     = rtmidi_in_get_num_devs,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = midi_input_config

@@ -45,6 +45,7 @@ typedef struct imd_track_t {
     uint32_t gap3_len;
     uint16_t side_flags;
     uint8_t  max_sector_size;
+    uint8_t  spt;
 } imd_track_t;
 
 typedef struct imd_t {
@@ -548,6 +549,8 @@ imd_writeback(int drive)
             }
         }
     }
+
+    fflush(dev->fp);
 }
 
 static uint8_t
@@ -632,8 +635,7 @@ imd_load(int drive, char *fn)
     writeprot[drive] = 0;
 
     /* Allocate a drive block. */
-    dev = (imd_t *) malloc(sizeof(imd_t));
-    memset(dev, 0x00, sizeof(imd_t));
+    dev = (imd_t *) calloc(1, sizeof(imd_t));
 
     dev->fp = plat_fopen(fn, "rb+");
     if (dev->fp == NULL) {
@@ -711,6 +713,9 @@ imd_load(int drive, char *fn)
     imd[drive] = dev;
 
     while (1) {
+        imd_log("In : %02X %02X %02X %02X %02X\n",
+                buffer2[0], buffer2[1], buffer2[2], buffer2[3], buffer2[4]);
+
         track = buffer2[1];
         side  = buffer2[2];
         if (side & 1)
@@ -718,16 +723,20 @@ imd_load(int drive, char *fn)
         extra = side & 0xC0;
         side &= 0x3F;
 
+        track_spt   = buffer2[3];
+        dev->tracks[track][side].spt = track_spt;
+        sector_size = buffer2[4];
+
         dev->tracks[track][side].side_flags = (buffer2[0] % 3);
-        if (!dev->tracks[track][side].side_flags)
+        if ((track_spt != 0x00) && (!dev->tracks[track][side].side_flags))
             dev->disk_flags |= 0x02;
-        dev->tracks[track][side].side_flags |= (!(buffer2[0] - dev->tracks[track][side].side_flags) ? 0 : 8);
+        dev->tracks[track][side].side_flags |=
+            (!(buffer2[0] - dev->tracks[track][side].side_flags) ? 0 : 8);
         mfm         = dev->tracks[track][side].side_flags & 8;
         track_total = mfm ? 146 : 73;
         pre_sector  = mfm ? 60 : 42;
 
-        track_spt   = buffer2[3];
-        sector_size = buffer2[4];
+        imd_log("Out : %02X %02X %02X %02X %02X\n", buffer2[0], track, side, track_spt, sector_size);
         if ((track_spt == 15) && (sector_size == 2))
             dev->tracks[track][side].side_flags |= 0x20;
         if ((track_spt == 16) && (sector_size == 2))
@@ -744,7 +753,7 @@ imd_load(int drive, char *fn)
             dev->tracks[track][side].max_sector_size = 5;
         if (!mfm)
             dev->tracks[track][side].max_sector_size--;
-        imd_log("Side flags for (%02i)(%01i): %02X\n", track, side, dev->tracks[track][side].side_flags);
+        imd_log("Side flags for (%02i)(%01i): %02X\n", track, side, dev->tracks[track] [side].side_flags);
         dev->tracks[track][side].is_present = 1;
         dev->tracks[track][side].file_offs  = (buffer2 - buffer);
         memcpy(dev->tracks[track][side].params, buffer2, 5);
@@ -762,7 +771,6 @@ imd_load(int drive, char *fn)
         }
 
         if (track_spt == 0x00) {
-            dev->tracks[track][side].n_map_offs = last_offset;
             buffer2                             = buffer + last_offset;
             last_offset += track_spt;
             dev->tracks[track][side].is_present = 0;
@@ -872,7 +880,7 @@ imd_load(int drive, char *fn)
             }
 
             dev->tracks[track][side].gap3_len = (size_diff - minimum_gap4) / track_spt;
-        } else if ((track_spt == 0x00) || (gap3_sizes[converted_rate][sector_size][track_spt] != 0x00))
+        } else
             dev->tracks[track][side].gap3_len = gap3_sizes[converted_rate][sector_size][track_spt];
 
         /* imd_log("GAP3 length for (%02i)(%01i): %i bytes\n", track, side, dev->tracks[track][side].gap3_len); */
@@ -886,6 +894,32 @@ imd_load(int drive, char *fn)
 
     /* If more than 43 tracks, then the tracks are thin (96 tpi). */
     dev->track_count++;
+    imd_log("In : dev->track_count = %i\n", dev->track_count);
+
+    int empty_tracks = 0;
+    for (int i = 0; i < dev->track_count; i++) {
+        if ((dev->sides == 2) && (dev->tracks[i][0].spt == 0x00) && (dev->tracks[i][1].spt == 0x00))
+            empty_tracks++;
+        else if ((dev->sides == 1) && (dev->tracks[i][0].spt == 0x00))
+            empty_tracks++;
+    }
+    imd_log("empty_tracks = %i\n", empty_tracks);
+
+    if (empty_tracks >= (dev->track_count >> 1)) {
+        for (int i = 0; i < dev->track_count; i += 2) {
+            imd_log("Thick %02X = Thin %02X\n", i >> 1, i);
+            dev->tracks[i >> 1][0] = dev->tracks[i][0];
+            dev->tracks[i >> 1][1] = dev->tracks[i][1];
+        }
+        for (int i = (dev->track_count >> 1); i < dev->track_count; i++) {
+            imd_log("Emptying %02X....\n", i);
+            memset(&(dev->tracks[i][0]), 1, sizeof(imd_track_t));
+            memset(&(dev->tracks[i][1]), 1, sizeof(imd_track_t));
+        }
+        dev->track_count >>= 1;
+    }
+    imd_log("Out: dev->track_count = %i\n", dev->track_count);
+
     dev->track_width = 0;
     if (dev->track_count > 43)
         dev->track_width = 1;

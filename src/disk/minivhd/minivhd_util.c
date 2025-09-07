@@ -462,7 +462,7 @@ mvhd_file_mod_timestamp(const char* path, int *err)
 {
     *err = 0;
 #ifdef _WIN32
-    struct _stat file_stat;
+    struct _stat file_stat = { 0 };
     size_t path_len = strlen(path);
     mvhd_utf16 new_path[260] = {0};
     int new_path_len = (sizeof new_path) - 2;
@@ -485,7 +485,7 @@ mvhd_file_mod_timestamp(const char* path, int *err)
         return 0;
     }
 #else
-    struct stat file_stat;
+    struct stat file_stat = { 0 };
     int stat_res = stat(path, &file_stat);
 
     if (stat_res != 0) {

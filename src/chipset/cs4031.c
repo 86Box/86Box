@@ -164,8 +164,7 @@ cs4031_close(void *priv)
 static void *
 cs4031_init(UNUSED(const device_t *info))
 {
-    cs4031_t *dev = (cs4031_t *) malloc(sizeof(cs4031_t));
-    memset(dev, 0, sizeof(cs4031_t));
+    cs4031_t *dev = (cs4031_t *) calloc(1, sizeof(cs4031_t));
 
     dev->port_92 = device_add(&port_92_device);
 
@@ -185,7 +184,7 @@ const device_t cs4031_device = {
     .init          = cs4031_init,
     .close         = cs4031_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

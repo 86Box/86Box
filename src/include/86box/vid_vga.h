@@ -25,12 +25,19 @@
 typedef struct vga_t {
     svga_t svga;
 
-    rom_t bios_rom;
+    rom_t  bios_rom;
 } vga_t;
 
-static video_timings_t timing_vga = { VIDEO_ISA, 8, 16, 32, 8, 16, 32 };
+extern void    vga_out(uint16_t addr, uint8_t val, void *priv);
+extern uint8_t vga_in(uint16_t addr, void *priv);
 
-void    vga_out(uint16_t addr, uint8_t val, void *priv);
-uint8_t vga_in(uint16_t addr, void *priv);
+extern void    vga_init(const device_t *info, vga_t *vga, int enabled);
+
+extern void    vga_disable(void* p);
+extern void    vga_enable(void* p);
+
+extern int     vga_isenabled(void* p);
+
+extern video_timings_t        timing_vga;
 
 #endif /*VIDEO_VGA_H*/

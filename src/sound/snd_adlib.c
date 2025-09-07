@@ -1,3 +1,21 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Adlib emulation.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2024-2025 Jasmine Iwanek.
+ */
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -33,7 +51,7 @@ adlib_log(const char *fmt, ...)
 #    define adlib_log(fmt, ...)
 #endif
 
-typedef struct adlib_t {
+typedef struct adlib_s {
     fm_drv_t opl;
 
     uint8_t pos_regs[8];
@@ -103,8 +121,7 @@ adlib_mca_feedb(void *priv)
 void *
 adlib_init(UNUSED(const device_t *info))
 {
-    adlib_t *adlib = malloc(sizeof(adlib_t));
-    memset(adlib, 0, sizeof(adlib_t));
+    adlib_t *adlib = calloc(1, sizeof(adlib_t));
 
     adlib_log("adlib_init\n");
     fm_driver_get(FM_YM3812, &adlib->opl);
@@ -112,7 +129,7 @@ adlib_init(UNUSED(const device_t *info))
                   adlib->opl.read, NULL, NULL,
                   adlib->opl.write, NULL, NULL,
                   adlib->opl.priv);
-    sound_add_handler(adlib_get_buffer, adlib);
+    music_add_handler(adlib_get_buffer, adlib);
     return adlib;
 }
 
@@ -146,12 +163,12 @@ adlib_close(void *priv)
 const device_t adlib_device = {
     .name          = "AdLib",
     .internal_name = "adlib",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA | DEVICE_SIDECAR,
     .local         = 0,
     .init          = adlib_init,
     .close         = adlib_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -165,7 +182,7 @@ const device_t adlib_mca_device = {
     .init          = adlib_mca_init,
     .close         = adlib_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

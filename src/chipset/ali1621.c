@@ -669,8 +669,7 @@ ali1621_close(void *priv)
 static void *
 ali1621_init(UNUSED(const device_t *info))
 {
-    ali1621_t *dev = (ali1621_t *) malloc(sizeof(ali1621_t));
-    memset(dev, 0, sizeof(ali1621_t));
+    ali1621_t *dev = (ali1621_t *) calloc(1, sizeof(ali1621_t));
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, ali1621_read, ali1621_write, dev, &dev->pci_slot);
 
@@ -692,7 +691,7 @@ const device_t ali1621_device = {
     .init          = ali1621_init,
     .close         = ali1621_close,
     .reset         = ali1621_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

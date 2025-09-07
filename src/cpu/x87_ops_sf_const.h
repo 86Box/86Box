@@ -3,18 +3,11 @@
    */
 #define DOWN_OR_CHOP() (fpu_state.cwd & FPU_CW_RC & FPU_RC_DOWN)
 
-static __inline floatx80
-FPU_round_const(const floatx80 a, int adj)
-{
-    floatx80 result = a;
-    result.fraction += adj;
-    return result;
-}
-
 static int
 sf_FLDL2T(uint32_t fetchdat)
 {
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (!IS_TAG_EMPTY(-1))
@@ -32,6 +25,7 @@ static int
 sf_FLDL2E(uint32_t fetchdat)
 {
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (!IS_TAG_EMPTY(-1))
@@ -49,6 +43,7 @@ static int
 sf_FLDPI(uint32_t fetchdat)
 {
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (!IS_TAG_EMPTY(-1))
@@ -66,6 +61,7 @@ static int
 sf_FLDEG2(uint32_t fetchdat)
 {
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (!IS_TAG_EMPTY(-1))
@@ -83,6 +79,7 @@ static int
 sf_FLDLN2(uint32_t fetchdat)
 {
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (!IS_TAG_EMPTY(-1))
@@ -100,6 +97,7 @@ static int
 sf_FLD1(uint32_t fetchdat)
 {
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (!IS_TAG_EMPTY(-1))
@@ -117,6 +115,7 @@ static int
 sf_FLDZ(uint32_t fetchdat)
 {
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (!IS_TAG_EMPTY(-1))

@@ -1,6 +1,8 @@
 #ifndef QT_MACHINESTATUS_HPP
 #define QT_MACHINESTATUS_HPP
 
+#include <QAction>
+#include <QMenu>
 #include <QWidget>
 #include <QLabel>
 #include <QMouseEvent>
@@ -26,8 +28,13 @@ signals:
     void dropped(QString);
 
 protected:
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    void mousePressEvent(QMouseEvent *event) override { emit clicked(event->globalPosition().toPoint()); }
+    void mouseDoubleClickEvent(QMouseEvent *event) override { emit doubleClicked(event->globalPosition().toPoint()); }
+#else
     void mousePressEvent(QMouseEvent *event) override { emit clicked(event->globalPos()); }
     void mouseDoubleClickEvent(QMouseEvent *event) override { emit doubleClicked(event->globalPos()); }
+#endif
     void dragEnterEvent(QDragEnterEvent *event) override
     {
         if (event->mimeData()->hasUrls() && event->mimeData()->urls().size() == 1) {
@@ -65,22 +72,26 @@ public:
     static bool hasSCSI();
     static void iterateFDD(const std::function<void(int i)> &cb);
     static void iterateCDROM(const std::function<void(int i)> &cb);
-    static void iterateZIP(const std::function<void(int i)> &cb);
+    static void iterateRDisk(const std::function<void(int i)> &cb);
     static void iterateMO(const std::function<void(int i)> &cb);
     static void iterateNIC(const std::function<void(int i)> &cb);
 
     QString getMessage();
     void    clearActivity();
+    void    setSoundMenu(QMenu* menu);
 public slots:
     void refresh(QStatusBar *sbar);
     void message(const QString &msg);
     void updateTip(int tag);
+    void refreshEmptyIcons();
     void refreshIcons();
+    void updateSoundIcon();
 
 private:
     struct States;
     std::unique_ptr<States> d;
     QTimer                 *refreshTimer;
+    QMenu                  *soundMenu;
 };
 
 #endif // QT_MACHINESTATUS_HPP

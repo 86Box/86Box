@@ -18,6 +18,7 @@
 
 #include "x86.h"
 #include "x86_ops.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include "codegen.h"
 #include "codegen_ops.h"
@@ -62,7 +63,7 @@
 
 #define INVALID                                     0
 
-static uint32_t opcode_timings[256] = {
+static uint32_t opcode_timings_winchip2[256] = {
     // clang-format off
 /*00*/  CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(1),      CYCLES(1),      CYCLES(2),      CYCLES(3),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(1),      CYCLES(1),      CYCLES(2),      INVALID,
 /*10*/  CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(1),      CYCLES(1),      CYCLES(2),      CYCLES(3),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(1),      CYCLES(1),      CYCLES(2),      CYCLES(3),
@@ -86,7 +87,7 @@ static uint32_t opcode_timings[256] = {
     // clang-format on
 };
 
-static uint32_t opcode_timings_mod3[256] = {
+static uint32_t opcode_timings_winchip2_mod3[256] = {
     // clang-format off
 /*00*/  CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(2),      CYCLES(3),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(2),      INVALID,
 /*10*/  CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(2),      CYCLES(3),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(1),      CYCLES(2),      CYCLES(3),
@@ -110,7 +111,7 @@ static uint32_t opcode_timings_mod3[256] = {
     // clang-format on
 };
 
-static uint32_t opcode_timings_0f[256] = {
+static uint32_t opcode_timings_winchip2_0f[256] = {
     // clang-format off
 /*00*/  CYCLES(20),          CYCLES(11),          CYCLES(11),          CYCLES(10),          INVALID,           CYCLES(195),       CYCLES(7),         INVALID,             CYCLES(1000),        CYCLES(10000),       INVALID,             INVALID,             INVALID,           CYCLES_3DNOW(1),   CYCLES(1),         CYCLES_3DNOW(1),
 /*10*/  INVALID,             INVALID,             INVALID,             INVALID,             INVALID,           INVALID,           INVALID,           INVALID,             INVALID,             INVALID,             INVALID,             INVALID,             INVALID,           INVALID,           INVALID,           INVALID,
@@ -133,7 +134,7 @@ static uint32_t opcode_timings_0f[256] = {
 /*f0*/  INVALID,             CYCLES_MMX_SHIFT(2), CYCLES_MMX_SHIFT(2), CYCLES_MMX_SHIFT(2), INVALID,           CYCLES_MMX_MUL(2), INVALID,           INVALID,             CYCLES_MMX_ANY(2),   CYCLES_MMX_ANY(2),   CYCLES_MMX_ANY(2),   INVALID,             CYCLES_MMX_ANY(2), CYCLES_MMX_ANY(2), CYCLES_MMX_ANY(2), INVALID,
     // clang-format on
 };
-static uint32_t opcode_timings_0f_mod3[256] = {
+static uint32_t opcode_timings_winchip2_0f_mod3[256] = {
     // clang-format off
 /*00*/  CYCLES(20),          CYCLES(11),          CYCLES(11),          CYCLES(10),          INVALID,           CYCLES(195),       CYCLES(7),         INVALID,             CYCLES(1000),        CYCLES(10000),       INVALID,             INVALID,             INVALID,           CYCLES_3DNOW(1),   CYCLES(1),         CYCLES_3DNOW(1),
 /*10*/  INVALID,             INVALID,             INVALID,             INVALID,             INVALID,           INVALID,           INVALID,           INVALID,             INVALID,             INVALID,             INVALID,             INVALID,             INVALID,           INVALID,           INVALID,           INVALID,
@@ -157,49 +158,49 @@ static uint32_t opcode_timings_0f_mod3[256] = {
     // clang-format on
 };
 
-static uint32_t opcode_timings_shift[8] = {
+static uint32_t opcode_timings_winchip2_shift[8] = {
     // clang-format off
         CYCLES(7),      CYCLES(7),      CYCLES(10),     CYCLES(10),     CYCLES(7),      CYCLES(7),      CYCLES(7),      CYCLES(7)
     // clang-format on
 };
-static uint32_t opcode_timings_shift_mod3[8] = {
+static uint32_t opcode_timings_winchip2_shift_mod3[8] = {
     // clang-format off
         CYCLES(3),      CYCLES(3),      CYCLES(9),      CYCLES(9),      CYCLES(3),      CYCLES(3),      CYCLES(3),      CYCLES(3)
     // clang-format on
 };
 
-static uint32_t opcode_timings_f6[8] = {
+static uint32_t opcode_timings_winchip2_f6[8] = {
     // clang-format off
         CYCLES(2),      INVALID,        CYCLES(2),      CYCLES(2),      CYCLES(13),     CYCLES(14),     CYCLES(16),     CYCLES(19)
     // clang-format on
 };
-static uint32_t opcode_timings_f6_mod3[8] = {
+static uint32_t opcode_timings_winchip2_f6_mod3[8] = {
     // clang-format off
         CYCLES(1),      INVALID,        CYCLES(1),      CYCLES(1),      CYCLES(13),     CYCLES(14),     CYCLES(16),     CYCLES(19)
     // clang-format on
 };
-static uint32_t opcode_timings_f7[8] = {
+static uint32_t opcode_timings_winchip2_f7[8] = {
     // clang-format off
         CYCLES(2),      INVALID,        CYCLES(2),      CYCLES(2),      CYCLES(21),     CYCLES2(22,38), CYCLES2(24,40), CYCLES2(27,43)
     // clang-format on
 };
-static uint32_t opcode_timings_f7_mod3[8] = {
+static uint32_t opcode_timings_winchip2_f7_mod3[8] = {
     // clang-format off
         CYCLES(1),      INVALID,        CYCLES(1),      CYCLES(1),      CYCLES(21),     CYCLES2(22,38), CYCLES2(24,40), CYCLES2(27,43)
     // clang-format on
 };
-static uint32_t opcode_timings_ff[8] = {
+static uint32_t opcode_timings_winchip2_ff[8] = {
     // clang-format off
         CYCLES(2),      CYCLES(2),      CYCLES(5),      CYCLES(0),      CYCLES(5),      CYCLES(0),      CYCLES(5),      INVALID
     // clang-format on
 };
-static uint32_t opcode_timings_ff_mod3[8] = {
+static uint32_t opcode_timings_winchip2_ff_mod3[8] = {
     // clang-format off
         CYCLES(1),      CYCLES(1),      CYCLES(5),      CYCLES(0),      CYCLES(5),      CYCLES(0),      CYCLES(5),      INVALID
     // clang-format on
 };
 
-static uint32_t opcode_timings_d8[8] = {
+static uint32_t opcode_timings_winchip2_d8[8] = {
     // clang-format off
 /*      FADDs               FMULs               FCOMs                 FCOMPs*/
         FPU_CYCLES(3,2,2),  FPU_CYCLES(3,2,2),  FPU_CYCLES(1,0,0),    FPU_CYCLES(1,0,0),
@@ -207,7 +208,7 @@ static uint32_t opcode_timings_d8[8] = {
         FPU_CYCLES(3,2,2),  FPU_CYCLES(3,2,2),  FPU_CYCLES(39,38,2),  FPU_CYCLES(39,38,2)
     // clang-format on
 };
-static uint32_t opcode_timings_d8_mod3[8] = {
+static uint32_t opcode_timings_winchip2_d8_mod3[8] = {
     // clang-format off
 /*      FADD                  FMUL                  FCOM                  FCOMP*/
         FPU_CYCLES(3,2,2),    FPU_CYCLES(3,2,2),    FPU_CYCLES(1,0,0),    FPU_CYCLES(1,0,0),
@@ -216,7 +217,7 @@ static uint32_t opcode_timings_d8_mod3[8] = {
     // clang-format on
 };
 
-static uint32_t opcode_timings_d9[8] = {
+static uint32_t opcode_timings_winchip2_d9[8] = {
     // clang-format off
 /*      FLDs                                     FSTs                 FSTPs*/
         FPU_CYCLES(1,0,0),   INVALID,            FPU_CYCLES(2,0,0),   FPU_CYCLES(2,0,0),
@@ -224,7 +225,7 @@ static uint32_t opcode_timings_d9[8] = {
         FPU_CYCLES(32,0,0),  FPU_CYCLES(8,0,0),  FPU_CYCLES(48,0,0),  FPU_CYCLES(2,0,0)
     // clang-format on
 };
-static uint32_t opcode_timings_d9_mod3[64] = {
+static uint32_t opcode_timings_winchip2_d9_mod3[64] = {
     // clang-format off
         /*FLD*/
         FPU_CYCLES(1,0,0),  FPU_CYCLES(1,0,0),  FPU_CYCLES(1,0,0),  FPU_CYCLES(1,0,0),
@@ -257,7 +258,7 @@ static uint32_t opcode_timings_d9_mod3[64] = {
     // clang-format on
 };
 
-static uint32_t opcode_timings_da[8] = {
+static uint32_t opcode_timings_winchip2_da[8] = {
     // clang-format off
 /*      FIADDl              FIMULl              FICOMl                FICOMPl*/
         FPU_CYCLES(6,2,2),  FPU_CYCLES(6,2,2),  FPU_CYCLES(4,0,0),    FPU_CYCLES(4,0,0),
@@ -265,7 +266,7 @@ static uint32_t opcode_timings_da[8] = {
         FPU_CYCLES(6,2,2),  FPU_CYCLES(6,2,2),  FPU_CYCLES(42,38,2),  FPU_CYCLES(42,38,2)
     // clang-format on
 };
-static uint32_t opcode_timings_da_mod3[8] = {
+static uint32_t opcode_timings_winchip2_da_mod3[8] = {
     // clang-format off
         INVALID,            INVALID,            INVALID,              INVALID,
 /*                          FCOMPP*/
@@ -273,7 +274,7 @@ static uint32_t opcode_timings_da_mod3[8] = {
     // clang-format on
 };
 
-static uint32_t opcode_timings_db[8] = {
+static uint32_t opcode_timings_winchip2_db[8] = {
     // clang-format off
 /*      FLDil                                   FSTil                 FSTPil*/
         FPU_CYCLES(3,2,2),  INVALID,            FPU_CYCLES(6,0,0),    FPU_CYCLES(6,0,0),
@@ -281,7 +282,7 @@ static uint32_t opcode_timings_db[8] = {
         INVALID,            FPU_CYCLES(3,0,0),  INVALID,              FPU_CYCLES(3,0,0)
     // clang-format on
 };
-static uint32_t opcode_timings_db_mod3[64] = {
+static uint32_t opcode_timings_winchip2_db_mod3[64] = {
     // clang-format off
         INVALID,            INVALID,            INVALID,              INVALID,
         INVALID,            INVALID,            INVALID,              INVALID,
@@ -311,7 +312,7 @@ static uint32_t opcode_timings_db_mod3[64] = {
     // clang-format on
 };
 
-static uint32_t opcode_timings_dc[8] = {
+static uint32_t opcode_timings_winchip2_dc[8] = {
     // clang-format off
 /*      FADDd               FMULd               FCOMd                 FCOMPd*/
         FPU_CYCLES(3,2,2),  FPU_CYCLES(3,2,2),  FPU_CYCLES(1,0,0),    FPU_CYCLES(1,0,0),
@@ -319,7 +320,7 @@ static uint32_t opcode_timings_dc[8] = {
         FPU_CYCLES(3,2,2),  FPU_CYCLES(3,2,2),  FPU_CYCLES(39,38,2),  FPU_CYCLES(39,38,2)
     // clang-format on
 };
-static uint32_t opcode_timings_dc_mod3[8] = {
+static uint32_t opcode_timings_winchip2_dc_mod3[8] = {
     // clang-format off
 /*      opFADDr               opFMULr*/
         FPU_CYCLES(3,2,2),    FPU_CYCLES(3,2,2),INVALID,              INVALID,
@@ -328,7 +329,7 @@ static uint32_t opcode_timings_dc_mod3[8] = {
     // clang-format on
 };
 
-static uint32_t opcode_timings_dd[8] = {
+static uint32_t opcode_timings_winchip2_dd[8] = {
     // clang-format off
 /*      FLDd                                    FSTd                  FSTPd*/
         FPU_CYCLES(1,0,0),    INVALID,          FPU_CYCLES(2,0,0),    FPU_CYCLES(2,0,0),
@@ -336,7 +337,7 @@ static uint32_t opcode_timings_dd[8] = {
         FPU_CYCLES(70,0,0),   INVALID,          FPU_CYCLES(127,0,0),  FPU_CYCLES(6,0,0)
     // clang-format on
 };
-static uint32_t opcode_timings_dd_mod3[8] = {
+static uint32_t opcode_timings_winchip2_dd_mod3[8] = {
     // clang-format off
 /*      FFFREE                                  FST                   FSTP*/
         FPU_CYCLES(2,0,0),    INVALID,          FPU_CYCLES(1,0,0),    FPU_CYCLES(1,0,0),
@@ -345,7 +346,7 @@ static uint32_t opcode_timings_dd_mod3[8] = {
     // clang-format on
 };
 
-static uint32_t opcode_timings_de[8] = {
+static uint32_t opcode_timings_winchip2_de[8] = {
     // clang-format off
 /*      FIADDw              FIMULw              FICOMw                FICOMPw*/
         FPU_CYCLES(6,2,2),  FPU_CYCLES(6,2,2),  FPU_CYCLES(4,0,0),    FPU_CYCLES(4,0,0),
@@ -353,7 +354,7 @@ static uint32_t opcode_timings_de[8] = {
         FPU_CYCLES(6,2,2),  FPU_CYCLES(6,2,2),  FPU_CYCLES(42,38,2),  FPU_CYCLES(42,38,2)
     // clang-format on
 };
-static uint32_t opcode_timings_de_mod3[8] = {
+static uint32_t opcode_timings_winchip2_de_mod3[8] = {
     // clang-format off
 /*      FADDP               FMULP                                     FCOMPP*/
         FPU_CYCLES(3,2,2),  FPU_CYCLES(3,2,2),  INVALID,              FPU_CYCLES(1,0,0),
@@ -362,7 +363,7 @@ static uint32_t opcode_timings_de_mod3[8] = {
     // clang-format on
 };
 
-static uint32_t opcode_timings_df[8] = {
+static uint32_t opcode_timings_winchip2_df[8] = {
     // clang-format off
 /*      FILDiw                                  FISTiw                FISTPiw*/
         FPU_CYCLES(3,2,2),  INVALID,            FPU_CYCLES(6,0,0),    FPU_CYCLES(6,0,0),
@@ -370,7 +371,7 @@ static uint32_t opcode_timings_df[8] = {
         INVALID,            FPU_CYCLES(3,2,2),  FPU_CYCLES(148,0,0),  FPU_CYCLES(6,0,0)
     // clang-format on
 };
-static uint32_t opcode_timings_df_mod3[8] = {
+static uint32_t opcode_timings_winchip2_df_mod3[8] = {
     // clang-format off
         INVALID,            INVALID,            INVALID,              INVALID,
 /*      FSTSW AX*/
@@ -378,22 +379,22 @@ static uint32_t opcode_timings_df_mod3[8] = {
     // clang-format on
 };
 
-static uint32_t opcode_timings_8x[8] = {
+static uint32_t opcode_timings_winchip2_8x[8] = {
     // clang-format off
         CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2)
     // clang-format on
 };
-static uint32_t opcode_timings_8x_mod3[8] = {
+static uint32_t opcode_timings_winchip2_8x_mod3[8] = {
     // clang-format off
         CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2)
     // clang-format on
 };
-static uint32_t opcode_timings_81[8] = {
+static uint32_t opcode_timings_winchip2_81[8] = {
     // clang-format off
         CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2)
     // clang-format on
 };
-static uint32_t opcode_timings_81_mod3[8] = {
+static uint32_t opcode_timings_winchip2_81_mod3[8] = {
     // clang-format off
         CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2),      CYCLES(2)
     // clang-format on
@@ -588,7 +589,7 @@ codegen_timing_winchip2_start(void)
 }
 
 static void
-codegen_timing_winchip2_prefix(uint8_t prefix, uint32_t fetchdat)
+codegen_timing_winchip2_prefix(uint8_t prefix, UNUSED(uint32_t fetchdat))
 {
     if (prefix == 0x0f) {
         /*0fh prefix is 'free'*/
@@ -612,47 +613,47 @@ codegen_timing_winchip2_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, UNU
 
     switch (last_prefix) {
         case 0x0f:
-            timings = mod3 ? opcode_timings_0f_mod3 : opcode_timings_0f;
+            timings = mod3 ? opcode_timings_winchip2_0f_mod3 : opcode_timings_winchip2_0f;
             deps    = mod3 ? opcode_deps_0f_mod3 : opcode_deps_0f;
             break;
 
         case 0xd8:
-            timings = mod3 ? opcode_timings_d8_mod3 : opcode_timings_d8;
+            timings = mod3 ? opcode_timings_winchip2_d8_mod3 : opcode_timings_winchip2_d8;
             deps    = mod3 ? opcode_deps_d8_mod3 : opcode_deps_d8;
             opcode  = (opcode >> 3) & 7;
             break;
         case 0xd9:
-            timings = mod3 ? opcode_timings_d9_mod3 : opcode_timings_d9;
+            timings = mod3 ? opcode_timings_winchip2_d9_mod3 : opcode_timings_winchip2_d9;
             deps    = mod3 ? opcode_deps_d9_mod3 : opcode_deps_d9;
             opcode  = mod3 ? opcode & 0x3f : (opcode >> 3) & 7;
             break;
         case 0xda:
-            timings = mod3 ? opcode_timings_da_mod3 : opcode_timings_da;
+            timings = mod3 ? opcode_timings_winchip2_da_mod3 : opcode_timings_winchip2_da;
             deps    = mod3 ? opcode_deps_da_mod3 : opcode_deps_da;
             opcode  = (opcode >> 3) & 7;
             break;
         case 0xdb:
-            timings = mod3 ? opcode_timings_db_mod3 : opcode_timings_db;
+            timings = mod3 ? opcode_timings_winchip2_db_mod3 : opcode_timings_winchip2_db;
             deps    = mod3 ? opcode_deps_db_mod3 : opcode_deps_db;
             opcode  = mod3 ? opcode & 0x3f : (opcode >> 3) & 7;
             break;
         case 0xdc:
-            timings = mod3 ? opcode_timings_dc_mod3 : opcode_timings_dc;
+            timings = mod3 ? opcode_timings_winchip2_dc_mod3 : opcode_timings_winchip2_dc;
             deps    = mod3 ? opcode_deps_dc_mod3 : opcode_deps_dc;
             opcode  = (opcode >> 3) & 7;
             break;
         case 0xdd:
-            timings = mod3 ? opcode_timings_dd_mod3 : opcode_timings_dd;
+            timings = mod3 ? opcode_timings_winchip2_dd_mod3 : opcode_timings_winchip2_dd;
             deps    = mod3 ? opcode_deps_dd_mod3 : opcode_deps_dd;
             opcode  = (opcode >> 3) & 7;
             break;
         case 0xde:
-            timings = mod3 ? opcode_timings_de_mod3 : opcode_timings_de;
+            timings = mod3 ? opcode_timings_winchip2_de_mod3 : opcode_timings_winchip2_de;
             deps    = mod3 ? opcode_deps_de_mod3 : opcode_deps_de;
             opcode  = (opcode >> 3) & 7;
             break;
         case 0xdf:
-            timings = mod3 ? opcode_timings_df_mod3 : opcode_timings_df;
+            timings = mod3 ? opcode_timings_winchip2_df_mod3 : opcode_timings_winchip2_df;
             deps    = mod3 ? opcode_deps_df_mod3 : opcode_deps_df;
             opcode  = (opcode >> 3) & 7;
             break;
@@ -662,12 +663,12 @@ codegen_timing_winchip2_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, UNU
                 case 0x80:
                 case 0x82:
                 case 0x83:
-                    timings = mod3 ? opcode_timings_8x_mod3 : opcode_timings_8x;
+                    timings = mod3 ? opcode_timings_winchip2_8x_mod3 : opcode_timings_winchip2_8x;
                     deps    = mod3 ? opcode_deps_8x_mod3 : opcode_deps_8x;
                     opcode  = (fetchdat >> 3) & 7;
                     break;
                 case 0x81:
-                    timings = mod3 ? opcode_timings_81_mod3 : opcode_timings_81;
+                    timings = mod3 ? opcode_timings_winchip2_81_mod3 : opcode_timings_winchip2_81;
                     deps    = mod3 ? opcode_deps_81_mod3 : opcode_deps_81;
                     opcode  = (fetchdat >> 3) & 7;
                     break;
@@ -678,29 +679,29 @@ codegen_timing_winchip2_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, UNU
                 case 0xd1:
                 case 0xd2:
                 case 0xd3:
-                    timings = mod3 ? opcode_timings_shift_mod3 : opcode_timings_shift;
+                    timings = mod3 ? opcode_timings_winchip2_shift_mod3 : opcode_timings_winchip2_shift;
                     deps    = mod3 ? opcode_deps_shift_mod3 : opcode_deps_shift;
                     opcode  = (fetchdat >> 3) & 7;
                     break;
 
                 case 0xf6:
-                    timings = mod3 ? opcode_timings_f6_mod3 : opcode_timings_f6;
+                    timings = mod3 ? opcode_timings_winchip2_f6_mod3 : opcode_timings_winchip2_f6;
                     deps    = mod3 ? opcode_deps_f6_mod3 : opcode_deps_f6;
                     opcode  = (fetchdat >> 3) & 7;
                     break;
                 case 0xf7:
-                    timings = mod3 ? opcode_timings_f7_mod3 : opcode_timings_f7;
+                    timings = mod3 ? opcode_timings_winchip2_f7_mod3 : opcode_timings_winchip2_f7;
                     deps    = mod3 ? opcode_deps_f7_mod3 : opcode_deps_f7;
                     opcode  = (fetchdat >> 3) & 7;
                     break;
                 case 0xff:
-                    timings = mod3 ? opcode_timings_ff_mod3 : opcode_timings_ff;
+                    timings = mod3 ? opcode_timings_winchip2_ff_mod3 : opcode_timings_winchip2_ff;
                     deps    = mod3 ? opcode_deps_ff_mod3 : opcode_deps_ff;
                     opcode  = (fetchdat >> 3) & 7;
                     break;
 
                 default:
-                    timings = mod3 ? opcode_timings_mod3 : opcode_timings;
+                    timings = mod3 ? opcode_timings_winchip2_mod3 : opcode_timings_winchip2;
                     deps    = mod3 ? opcode_deps_mod3 : opcode_deps;
                     break;
             }

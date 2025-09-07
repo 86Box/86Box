@@ -511,6 +511,8 @@ voodoo_callback(void *priv)
 {
     voodoo_t        *voodoo  = (voodoo_t *) priv;
     const monitor_t *monitor = &monitors[voodoo->monitor_index];
+    int              v_y_add = (monitor->mon_overscan_y >> 1);
+    int              v_x_add = (monitor->mon_overscan_x >> 1);
 
     if (voodoo->fbiInit0 & FBIINIT0_VGA_PASS) {
         if (voodoo->line < voodoo->v_disp) {
@@ -534,7 +536,7 @@ voodoo_callback(void *priv)
             }
 
             if (draw_voodoo->dirty_line[draw_line]) {
-                uint32_t *p   = &monitor->target_buffer->line[voodoo->line + 8][8];
+                uint32_t *p   = &monitor->target_buffer->line[voodoo->line + v_y_add][v_x_add];
                 uint16_t *src = (uint16_t *) &draw_voodoo->fb_mem[draw_voodoo->front_offset + draw_line * draw_voodoo->row_width];
                 int       x;
 
@@ -548,8 +550,8 @@ voodoo_callback(void *priv)
                     voodoo->dirty_line_high = voodoo->line;
 
                 /* Draw left overscan. */
-                for (x = 0; x < 8; x++)
-                    monitor->target_buffer->line[voodoo->line + 8][x] = 0x00000000;
+                for (x = 0; x < v_x_add; x++)
+                    monitor->target_buffer->line[voodoo->line + v_y_add][x] = 0x00000000;
 
                 if (voodoo->scrfilter && voodoo->scrfilterEnabled) {
                     uint8_t fil[4096 * 3]; /* interleaved 24-bit RGB */
@@ -570,8 +572,9 @@ voodoo_callback(void *priv)
                 }
 
                 /* Draw right overscan. */
-                for (x = 0; x < 8; x++)
-                    monitor->target_buffer->line[voodoo->line + 8][voodoo->h_disp + x + 8] = 0x00000000;
+                for (x = 0; x < v_x_add; x++)
+                    monitor->target_buffer->line[voodoo->line + v_y_add][voodoo->h_disp + x + v_x_add] =
+                    0x00000000;
             }
         }
     }

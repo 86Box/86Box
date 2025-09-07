@@ -10,8 +10,11 @@
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2023 Miran Grca.
+ *          Copyright 2023-2025 Miran Grca.
  */
+#ifndef FIFO_H
+#define FIFO_H
+
 #define FIFO(size)                      \
     typedef struct {                    \
         int     start;                  \
@@ -34,6 +37,7 @@
         void  (*d_full_evt)(void *);    \
         void  (*d_ready_evt)(void *);   \
                                         \
+        uint8_t tag[64];                \
         uint8_t buf[size];              \
     } fifo## size ##_t;
 
@@ -47,9 +51,13 @@ FIFO(64)
 
 extern int        fifo_get_count(void *priv);
 extern void       fifo_write(uint8_t val, void *priv);
+extern void       fifo_write_tagged(uint8_t tag, uint8_t val, void *priv);
 extern void       fifo_write_evt(uint8_t val, void *priv);
+extern void       fifo_write_evt_tagged(uint8_t tag, uint8_t val, void *priv);
 extern uint8_t    fifo_read(void *priv);
+extern uint8_t    fifo_read_tagged(uint8_t *tag, void *priv);
 extern uint8_t    fifo_read_evt(void *priv);
+extern uint8_t    fifo_read_evt_tagged(uint8_t *tag, void *priv);
 extern void       fifo_clear_overrun(void *priv);
 extern int        fifo_get_full(void *priv);
 extern int        fifo_get_d_full(void *priv);
@@ -71,3 +79,5 @@ extern void       fifo_reset(void *priv);
 extern void       fifo_reset_evt(void *priv);
 extern void       fifo_close(void *priv);
 extern void      *fifo_init(int len);
+
+#endif /*FIFO_H*/

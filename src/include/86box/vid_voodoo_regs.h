@@ -338,17 +338,22 @@ enum {
 };
 
 enum {
-    LFB_FORMAT_RGB565   = 0,
-    LFB_FORMAT_RGB555   = 1,
-    LFB_FORMAT_ARGB1555 = 2,
-    LFB_FORMAT_ARGB8888 = 5,
-    LFB_FORMAT_DEPTH    = 15,
-    LFB_FORMAT_MASK     = 15
+    LFB_FORMAT_RGB565         = 0,
+    LFB_FORMAT_RGB555         = 1,
+    LFB_FORMAT_ARGB1555       = 2,
+    LFB_FORMAT_XRGB8888       = 4,
+    LFB_FORMAT_ARGB8888       = 5,
+    LFB_FORMAT_DEPTH_RGB565   = 12,
+    LFB_FORMAT_DEPTH_RGB555   = 13,
+    LFB_FORMAT_DEPTH_ARGB1555 = 14,
+    LFB_FORMAT_DEPTH          = 15,
+    LFB_FORMAT_MASK           = 15
 };
 
 enum {
     LFB_WRITE_COLOUR = 1,
-    LFB_WRITE_DEPTH  = 2
+    LFB_WRITE_DEPTH  = 2,
+    LFB_WRITE_BOTH   = 4
 };
 
 enum {

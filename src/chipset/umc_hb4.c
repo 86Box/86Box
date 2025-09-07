@@ -14,13 +14,11 @@
  * Note 2:  Additional information were also used from all
  *          around the web.
  *
- *
- *
  * Authors: Tiseno100,
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2021 Tiseno100.
- *          Copyright 2021 Miran Grca.
+ *          Copyright 2021-2024 Miran Grca.
  */
 
 /*
@@ -75,14 +73,23 @@
    Bit 3: CC000-CFFFF Read Enable
    Bit 2: C8000-CBFFF Read Enable
    Bit 1: C0000-C7FFF Read Enable
-   Bit 0: Enable C0000-DFFFF Shadow Segment Bits
+   Bit 0: E0000-EFFFF Read Enable
 
    Register 55:
-   Bit 7: E0000-FFFF Read Enable
+   Bit 7: F0000-FFFF Read Enable
    Bit 6: Shadow Write Status (1: Write Protect/0: Write)
 
    Register 56h & 57h: DRAM Bank 0 Configuration
    Register 58h & 59h: DRAM Bank 1 Configuration
+
+   Register 5A:
+   Bit 2: Detrubo
+
+   Register 5C:
+   Bits 7-0: SMRAM base A27-A20
+
+   Register 5D:
+   Bits 3-0: SMRAM base A31-A28
 
    Register 60:
    Bit 5: If set and SMRAM is enabled, data cycles go to PCI and code cycles go to DRAM
@@ -129,14 +136,18 @@ hb4_log(const char *fmt, ...)
 #endif
 
 typedef struct hb4_t {
-    uint8_t  shadow;
-    uint8_t  shadow_read;
-    uint8_t  shadow_write;
+    uint8_t idx;
+    uint8_t access_data;
+
     uint8_t  pci_slot;
 
     uint8_t  pci_conf[256]; /* PCI Registers */
+
     int      mem_state[9];
-    smram_t *smram[3]; /* SMRAM Handlers */
+
+    uint32_t smram_base;
+
+    smram_t *smram;         /* SMRAM Handler */
 } hb4_t;
 
 static int shadow_bios[4]  = { (MEM_READ_EXTANY | MEM_WRITE_INTERNAL), (MEM_READ_EXTANY | MEM_WRITE_EXTANY),
@@ -167,7 +178,10 @@ hb4_shadow_bios_low(hb4_t *dev)
 {
     int state;
 
-    state = shadow_bios[(dev->pci_conf[0x55] >> 6) & (dev->shadow | 0x01)];
+    /* Erratum in Vogons' datasheet: Register 55h bit 7 in fact controls E0000-FFFFF. */
+    state  = (dev->pci_conf[0x55] & 0x80) ? shadow_read[dev->pci_conf[0x54] & 0x01] :
+                                            MEM_READ_EXTANY;
+    state |= shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
 
     if (state != dev->mem_state[7]) {
         mem_set_mem_state_both(0xe0000, 0x10000, state);
@@ -185,7 +199,9 @@ hb4_shadow_main(hb4_t *dev)
     int n = 0;
 
     for (uint8_t i = 0; i < 6; i++) {
-        state = shadow_read[dev->shadow && ((dev->pci_conf[0x54] >> (i + 2)) & 0x01)] | shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
+        state  = (dev->pci_conf[0x55] & 0x80) ? shadow_read[(dev->pci_conf[0x54] >> (i + 2)) & 0x01] :
+                                                MEM_READ_EXTANY;
+        state |= shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
 
         if (state != dev->mem_state[i + 1]) {
             n++;
@@ -202,7 +218,9 @@ hb4_shadow_video(hb4_t *dev)
 {
     int state;
 
-    state = shadow_read[dev->shadow && ((dev->pci_conf[0x54] >> 1) & 0x01)] | shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
+    state  = (dev->pci_conf[0x55] & 0x80) ? shadow_read[(dev->pci_conf[0x54] >> 1) & 0x01] :
+                                            MEM_READ_EXTANY;
+    state |= shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
 
     if (state != dev->mem_state[0]) {
         mem_set_mem_state_both(0xc0000, 0x8000, state);
@@ -232,22 +250,28 @@ static void
 hb4_smram(hb4_t *dev)
 {
     smram_disable_all();
+    if (dev->smram_base != 0x00000000)
+        umc_smram_recalc(dev->smram_base >> 12, 0);
+
+    dev->smram_base = ((uint32_t) dev->pci_conf[0x5c]) << 20;
+    dev->smram_base |= ((uint32_t) (dev->pci_conf[0x5d] & 0x0f)) << 28;
+    dev->smram_base |= 0x000a0000;
 
     /* Bit 0, if set, enables SMRAM access outside SMM. SMRAM appears to be always enabled
        in SMM, and is always set to A0000-BFFFF. */
-    smram_enable(dev->smram[0], 0x000a0000, 0x000a0000, 0x20000, dev->pci_conf[0x60] & 0x01, 1);
-    /* There's a mirror of the SMRAM at 0E0A0000, mapped to A0000. */
-    smram_enable(dev->smram[1], 0x0e0a0000, 0x000a0000, 0x20000, dev->pci_conf[0x60] & 0x01, 1);
-    /* There's another mirror of the SMRAM at 4E0A0000, mapped to A0000. */
-    smram_enable(dev->smram[2], 0x4e0a0000, 0x000a0000, 0x20000, dev->pci_conf[0x60] & 0x01, 1);
+    smram_enable(dev->smram, dev->smram_base, 0x000a0000, 0x20000, dev->pci_conf[0x60] & 0x01, 1);
 
     /* Bit 5 seems to set data to go to PCI and code to DRAM. The Samsung SPC7700P-LW uses
        this. */
     if (dev->pci_conf[0x60] & 0x20) {
         if (dev->pci_conf[0x60] & 0x01)
-            mem_set_mem_state_smram_ex(0, 0x000a0000, 0x20000, 0x02);
-        mem_set_mem_state_smram_ex(1, 0x000a0000, 0x20000, 0x02);
+            mem_set_mem_state_smram_ex(0, dev->smram_base, 0x20000, 0x02);
+        mem_set_mem_state_smram_ex(1, dev->smram_base, 0x20000, 0x02);
     }
+
+    umc_smram_recalc(dev->smram_base >> 12, 1);
+
+    flushmmucache();
 }
 
 static void
@@ -278,32 +302,21 @@ hb4_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             cpu_update_waitstates();
             break;
 
-        case 0x51:
-        case 0x52:
+        case 0x51 ... 0x53:
             dev->pci_conf[addr] = val;
             break;
 
-        case 0x53:
-            dev->pci_conf[addr] = val;
-            hb4_log("HB53: %02X\n", val);
-            break;
-
-        case 0x55:
-            dev->shadow_read    = (val & 0x80);
-            dev->shadow_write   = (val & 0x40);
-            dev->pci_conf[addr] = val;
-            hb4_shadow(dev);
-            break;
-        case 0x54:
-            dev->shadow         = (val & 0x01) << 1;
+        case 0x54 ... 0x55:
             dev->pci_conf[addr] = val;
             hb4_shadow(dev);
             break;
 
-        case 0x56 ... 0x5f:
+        case 0x56 ... 0x5a:
+        case 0x5e ... 0x5f:
             dev->pci_conf[addr] = val;
             break;
 
+        case 0x5c ... 0x5d:
         case 0x60:
             dev->pci_conf[addr] = val;
             hb4_smram(dev);
@@ -311,6 +324,10 @@ hb4_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 
         case 0x61:
             dev->pci_conf[addr] = val;
+            break;
+
+        case 0x62:
+            dev->pci_conf[addr] = val & 0x03;
             break;
 
         default:
@@ -336,30 +353,37 @@ hb4_reset(void *priv)
     hb4_t *dev = (hb4_t *) priv;
     memset(dev->pci_conf, 0x00, sizeof(dev->pci_conf));
 
-    dev->pci_conf[0] = 0x60; /* UMC */
-    dev->pci_conf[1] = 0x10;
-
-    dev->pci_conf[2] = 0x81; /* 8881x */
-    dev->pci_conf[3] = 0x88;
-
-    dev->pci_conf[7] = 2;
-
-    dev->pci_conf[8] = 4;
-
+    dev->pci_conf[0x00] = 0x60; /* UMC */
+    dev->pci_conf[0x01] = 0x10;
+    dev->pci_conf[0x02] = 0x81; /* 8881x */
+    dev->pci_conf[0x03] = 0x88;
+    dev->pci_conf[0x07] = 0x02;
+    dev->pci_conf[0x08] = 0x04;
     dev->pci_conf[0x09] = 0x00;
     dev->pci_conf[0x0a] = 0x00;
     dev->pci_conf[0x0b] = 0x06;
-
-    dev->pci_conf[0x51] = 1;
-    dev->pci_conf[0x52] = 1;
-    dev->pci_conf[0x5a] = 4;
-    dev->pci_conf[0x5c] = 0xc0;
-    dev->pci_conf[0x5d] = 0x20;
+    dev->pci_conf[0x50] = 0x00;
+    dev->pci_conf[0x51] = 0x00;
+    dev->pci_conf[0x52] = 0x01;
+    dev->pci_conf[0x53] = 0x00;
+    dev->pci_conf[0x54] = 0x00;
+    dev->pci_conf[0x55] = 0x40;
+    dev->pci_conf[0x56] = 0xff;
+    dev->pci_conf[0x57] = 0x0f;
+    dev->pci_conf[0x58] = 0xff;
+    dev->pci_conf[0x59] = 0x0f;
+    dev->pci_conf[0x5a] = 0x00;
+    dev->pci_conf[0x5b] = 0x2c;
+    dev->pci_conf[0x5c] = 0x00;
+    dev->pci_conf[0x5d] = 0x0f;
+    dev->pci_conf[0x5e] = 0x00;
     dev->pci_conf[0x5f] = 0xff;
+    dev->pci_conf[0x60] = 0x00;
+    dev->pci_conf[0x61] = 0x00;
+    dev->pci_conf[0x62] = 0x00;
 
-    hb4_write(0, 0x54, 0x00, dev);
-    hb4_write(0, 0x55, 0x00, dev);
-    hb4_write(0, 0x60, 0x80, dev);
+    hb4_shadow(dev);
+    hb4_smram(dev);
 
     cpu_cache_ext_enabled = 0;
     cpu_update_waitstates();
@@ -372,14 +396,14 @@ hb4_close(void *priv)
 {
     hb4_t *dev = (hb4_t *) priv;
 
+    smram_del(dev->smram);
     free(dev);
 }
 
 static void *
 hb4_init(UNUSED(const device_t *info))
 {
-    hb4_t *dev = (hb4_t *) malloc(sizeof(hb4_t));
-    memset(dev, 0, sizeof(hb4_t));
+    hb4_t *dev = (hb4_t *) calloc(1, sizeof(hb4_t));
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, hb4_read, hb4_write, dev, &dev->pci_slot); /* Device 10: UMC 8881x */
 
@@ -387,10 +411,9 @@ hb4_init(UNUSED(const device_t *info))
     device_add(&port_92_pci_device);
 
     /* SMRAM */
-    dev->smram[0] = smram_add();
-    dev->smram[1] = smram_add();
-    dev->smram[2] = smram_add();
+    dev->smram = smram_add();
 
+    dev->smram_base = 0x000a0000;
     hb4_reset(dev);
 
     return dev;
@@ -404,7 +427,7 @@ const device_t umc_hb4_device = {
     .init          = hb4_init,
     .close         = hb4_close,
     .reset         = hb4_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

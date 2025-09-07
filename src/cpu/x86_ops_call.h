@@ -209,7 +209,7 @@ opCALL_far_w(uint32_t fetchdat)
     return 0;
 }
 static int
-opCALL_far_l(uint32_t fetchdat)
+opCALL_far_l(UNUSED(uint32_t fetchdat))
 {
     uint32_t old_cs;
     uint32_t old_pc;

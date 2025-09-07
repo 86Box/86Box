@@ -69,28 +69,80 @@ extern uint8_t fifo8_pop(Fifo8 *fifo);
 /**
  * fifo8_pop_buf:
  * @fifo: FIFO to pop from
- * @max: maximum number of bytes to pop
- * @num: actual number of returned bytes
+ * @dest: the buffer to write the data into (can be NULL)
+ * @destlen: size of @dest and maximum number of bytes to pop
  *
- * Pop a number of elements from the FIFO up to a maximum of max. The buffer
+ * Pop a number of elements from the FIFO up to a maximum of @destlen.
+ * The popped data is copied into the @dest buffer.
+ * Care is taken when the data wraps around in the ring buffer.
+ *
+ * Returns: number of bytes popped.
+ */
+extern uint32_t fifo8_pop_buf(Fifo8 *fifo, uint8_t *dest, uint32_t destlen);
+
+/**
+ * fifo8_pop_bufptr:
+ * @fifo: FIFO to pop from
+ * @max: maximum number of bytes to pop
+ * @numptr: pointer filled with number of bytes returned (can be NULL)
+ *
+ * New code should prefer to use fifo8_pop_buf() instead of fifo8_pop_bufptr().
+ *
+ * Pop a number of elements from the FIFO up to a maximum of @max. The buffer
  * containing the popped data is returned. This buffer points directly into
- * the FIFO backing store and data is invalidated once any of the fifo8_* APIs
- * are called on the FIFO.
+ * the internal FIFO backing store and data (without checking for overflow!)
+ * and is invalidated once any of the fifo8_* APIs are called on the FIFO.
  *
  * The function may return fewer bytes than requested when the data wraps
  * around in the ring buffer; in this case only a contiguous part of the data
  * is returned.
  *
- * The number of valid bytes returned is populated in *num; will always return
- * at least 1 byte. max must not be 0 or greater than the number of bytes in
- * the FIFO.
+ * The number of valid bytes returned is populated in *@numptr; will always
+ * return at least 1 byte. max must not be 0 or greater than the number of
+ * bytes in the FIFO.
  *
  * Clients are responsible for checking the availability of requested data
  * using fifo8_num_used().
  *
  * Returns: A pointer to popped data.
  */
-extern const uint8_t *fifo8_pop_buf(Fifo8 *fifo, uint32_t max, uint32_t *num);
+extern const uint8_t *fifo8_pop_bufptr(Fifo8 *fifo, uint32_t max, uint32_t *numptr);
+
+/**
+ * fifo8_peek_bufptr: read upto max bytes from the fifo
+ * @fifo: FIFO to read from
+ * @max: maximum number of bytes to peek
+ * @numptr: pointer filled with number of bytes returned (can be NULL)
+ *
+ * Peek into a number of elements from the FIFO up to a maximum of @max.
+ * The buffer containing the data peeked into is returned. This buffer points
+ * directly into the FIFO backing store. Since data is invalidated once any
+ * of the fifo8_* APIs are called on the FIFO, it is the caller responsibility
+ * to access it before doing further API calls.
+ *
+ * The function may return fewer bytes than requested when the data wraps
+ * around in the ring buffer; in this case only a contiguous part of the data
+ * is returned.
+ *
+ * The number of valid bytes returned is populated in *@numptr; will always
+ * return at least 1 byte. max must not be 0 or greater than the number of
+ * bytes in the FIFO.
+ *
+ * Clients are responsible for checking the availability of requested data
+ * using fifo8_num_used().
+ *
+ * Returns: A pointer to peekable data.
+ */
+extern const uint8_t *fifo8_peek_bufptr(Fifo8 *fifo, uint32_t max, uint32_t *numptr);
+
+/**
+ * fifo8_drop:
+ * @fifo: FIFO to drop bytes
+ * @len: number of bytes to drop
+ *
+ * Drop (consume) bytes from a FIFO.
+ */
+extern void fifo8_drop(Fifo8 *fifo, uint32_t len);
 
 /**
  * fifo8_reset:

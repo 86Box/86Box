@@ -56,7 +56,7 @@ speaker_update(void)
     int32_t val;
     double  amplitude;
 
-    amplitude = ((speaker_count / 64.0) * 10240.0) - 5120.0;
+    amplitude = ((speaker_count / 256.0) * 10240.0) - 5120.0;
 
     if (amplitude > 5120.0)
         amplitude = 5120.0;

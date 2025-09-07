@@ -14,31 +14,35 @@
 #include "x86_flags.h"
 #include "x86_ops.h"
 #include "x86seg_common.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include "386_common.h"
-#include "softfloat/softfloat-specialize.h"
+#include "softfloat3e/config.h"
+#include "softfloat3e/fpu_trans.h"
+#include "softfloat3e/specialize.h"
+#include <86box/plat_unused.h>
 
 uint32_t x87_pc_off;
 uint32_t x87_op_off;
 uint16_t x87_pc_seg;
 uint16_t x87_op_seg;
 
-#ifdef ENABLE_FPU_LOG
-int fpu_do_log = ENABLE_FPU_LOG;
+#ifdef ENABLE_FPU_X87_LOG
+int fpu_x87_do_log = ENABLE_FPU_X87_LOG;
 
 void
-fpu_log(const char *fmt, ...)
+fpu_x87_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (fpu_do_log) {
+    if (fpu_x87_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define fpu_log(fmt, ...)
+#    define fpu_x87_log(fmt, ...)
 #endif
 
 #ifdef USE_NEW_DYNAREC
@@ -106,24 +110,24 @@ x87_settag(uint16_t new_tag)
 }
 #endif
 
-static floatx80
-FPU_handle_NaN32_Func(floatx80 a, int aIsNaN, float32 b32, int bIsNaN, struct float_status_t *status)
+static extFloat80_t
+FPU_handle_NaN32_Func(extFloat80_t a, int aIsNaN, float32 b32, int bIsNaN, struct softfloat_status_t *status)
 {
-    int aIsSignalingNaN = floatx80_is_signaling_nan(a);
-    int bIsSignalingNaN = float32_is_signaling_nan(b32);
+    int aIsSignalingNaN = extF80_isSignalingNaN(a);
+    int bIsSignalingNaN = f32_isSignalingNaN(b32);
 
     if (aIsSignalingNaN | bIsSignalingNaN)
-        float_raise(status, float_flag_invalid);
+        softfloat_raiseFlags(status, softfloat_flag_invalid);
 
     // propagate QNaN to SNaN
-    a = propagateFloatx80NaNOne(a, status);
+    a = softfloat_propagateNaNExtF80UI(a.signExp, a.signif, 0, 0, status);
 
     if (aIsNaN & !bIsNaN)
         return a;
 
     // float32 is NaN so conversion will propagate SNaN to QNaN and raise
     // appropriate exception flags
-    floatx80 b = float32_to_floatx80(b32, status);
+    extFloat80_t b = f32_to_extF80(b32, status);
 
     if (aIsSignalingNaN) {
         if (bIsSignalingNaN)
@@ -133,29 +137,33 @@ FPU_handle_NaN32_Func(floatx80 a, int aIsNaN, float32 b32, int bIsNaN, struct fl
         if (bIsSignalingNaN)
             return a;
 returnLargerSignificand:
-        if (a.fraction < b.fraction)
+        if (a.signif < b.signif)
             return b;
-        if (b.fraction < a.fraction)
+        if (b.signif < a.signif)
             return a;
-        return (a.exp < b.exp) ? a : b;
+        return (a.signExp < b.signExp) ? a : b;
     } else {
         return b;
     }
 }
 
 int
-FPU_handle_NaN32(floatx80 a, float32 b, floatx80 *r, struct float_status_t *status)
+FPU_handle_NaN32(extFloat80_t a, float32 b, extFloat80_t *r, struct softfloat_status_t *status)
 {
-    const floatx80 floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
+/*----------------------------------------------------------------------------
+| The pattern for a default generated extended double-precision NaN.
+*----------------------------------------------------------------------------*/
+    const floatx80 floatx80_default_nan =
+        packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
 
-    if (floatx80_is_unsupported(a)) {
-        float_raise(status, float_flag_invalid);
+    if (extF80_isUnsupported(a)) {
+        softfloat_raiseFlags(status, softfloat_flag_invalid);
         *r = floatx80_default_nan;
         return 1;
     }
 
-    int aIsNaN = floatx80_is_nan(a);
-    int bIsNaN = float32_is_nan(b);
+    int aIsNaN = extF80_isNaN(a);
+    int bIsNaN = f32_isNaN(b);
     if (aIsNaN | bIsNaN) {
         *r = FPU_handle_NaN32_Func(a, aIsNaN, b, bIsNaN, status);
         return 1;
@@ -163,24 +171,24 @@ FPU_handle_NaN32(floatx80 a, float32 b, floatx80 *r, struct float_status_t *stat
     return 0;
 }
 
-static floatx80
-FPU_handle_NaN64_Func(floatx80 a, int aIsNaN, float64 b64, int bIsNaN, struct float_status_t *status)
+static extFloat80_t
+FPU_handle_NaN64_Func(extFloat80_t a, int aIsNaN, float64 b64, int bIsNaN, struct softfloat_status_t *status)
 {
-    int aIsSignalingNaN = floatx80_is_signaling_nan(a);
-    int bIsSignalingNaN = float64_is_signaling_nan(b64);
+    int aIsSignalingNaN = extF80_isSignalingNaN(a);
+    int bIsSignalingNaN = f64_isSignalingNaN(b64);
 
     if (aIsSignalingNaN | bIsSignalingNaN)
-        float_raise(status, float_flag_invalid);
+        softfloat_raiseFlags(status, softfloat_flag_invalid);
 
     // propagate QNaN to SNaN
-    a = propagateFloatx80NaNOne(a, status);
+    a = softfloat_propagateNaNExtF80UI(a.signExp, a.signif, 0, 0, status);
 
     if (aIsNaN & !bIsNaN)
         return a;
 
     // float64 is NaN so conversion will propagate SNaN to QNaN and raise
     // appropriate exception flags
-    floatx80 b = float64_to_floatx80(b64, status);
+    extFloat80_t b = f64_to_extF80(b64, status);
 
     if (aIsSignalingNaN) {
         if (bIsSignalingNaN)
@@ -190,29 +198,33 @@ FPU_handle_NaN64_Func(floatx80 a, int aIsNaN, float64 b64, int bIsNaN, struct fl
         if (bIsSignalingNaN)
             return a;
 returnLargerSignificand:
-        if (a.fraction < b.fraction)
+        if (a.signif < b.signif)
             return b;
-        if (b.fraction < a.fraction)
+        if (b.signif < a.signif)
             return a;
-        return (a.exp < b.exp) ? a : b;
+        return (a.signExp < b.signExp) ? a : b;
     } else {
         return b;
     }
 }
 
 int
-FPU_handle_NaN64(floatx80 a, float64 b, floatx80 *r, struct float_status_t *status)
+FPU_handle_NaN64(extFloat80_t a, float64 b, extFloat80_t *r, struct softfloat_status_t *status)
 {
-    const floatx80 floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
+/*----------------------------------------------------------------------------
+| The pattern for a default generated extended double-precision NaN.
+*----------------------------------------------------------------------------*/
+    const extFloat80_t floatx80_default_nan =
+        packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
 
-    if (floatx80_is_unsupported(a)) {
-        float_raise(status, float_flag_invalid);
+    if (extF80_isUnsupported(a)) {
+        softfloat_raiseFlags(status, softfloat_flag_invalid);
         *r = floatx80_default_nan;
         return 1;
     }
 
-    int aIsNaN = floatx80_is_nan(a);
-    int bIsNaN = float64_is_nan(b);
+    int aIsNaN = extF80_isNaN(a);
+    int bIsNaN = f64_isNaN(b);
     if (aIsNaN | bIsNaN) {
         *r = FPU_handle_NaN64_Func(a, aIsNaN, b, bIsNaN, status);
         return 1;
@@ -220,37 +232,36 @@ FPU_handle_NaN64(floatx80 a, float64 b, floatx80 *r, struct float_status_t *stat
     return 0;
 }
 
-struct float_status_t
+struct softfloat_status_t
 i387cw_to_softfloat_status_word(uint16_t control_word)
 {
-    struct float_status_t status;
+    struct softfloat_status_t status;
     int                   precision = control_word & FPU_CW_PC;
 
     switch (precision) {
         case FPU_PR_32_BITS:
-            status.float_rounding_precision = 32;
+            status.extF80_roundingPrecision = 32;
             break;
         case FPU_PR_64_BITS:
-            status.float_rounding_precision = 64;
+            status.extF80_roundingPrecision = 64;
             break;
         case FPU_PR_80_BITS:
-            status.float_rounding_precision = 80;
+            status.extF80_roundingPrecision = 80;
             break;
         default:
             /* With the precision control bits set to 01 "(reserved)", a
                real CPU behaves as if the precision control bits were
                set to 11 "80 bits" */
-            status.float_rounding_precision = 80;
+            status.extF80_roundingPrecision = 80;
             break;
     }
 
-    status.float_exception_flags    = 0; // clear exceptions before execution
-    status.float_nan_handling_mode  = float_first_operand_nan;
-    status.float_rounding_mode      = (control_word & FPU_CW_RC) >> 10;
-    status.flush_underflow_to_zero  = 0;
-    status.float_suppress_exception = 0;
-    status.float_exception_masks    = control_word & FPU_CW_Exceptions_Mask;
-    status.denormals_are_zeros      = 0;
+    status.softfloat_exceptionFlags             = 0; // clear exceptions before execution
+    status.softfloat_roundingMode               = (control_word & FPU_CW_RC) >> 10;
+    status.softfloat_flush_underflow_to_zero    = 0;
+    status.softfloat_suppressException          = 0;
+    status.softfloat_exceptionMasks             = control_word & FPU_CW_Exceptions_Mask;
+    status.softfloat_denormals_are_zeros        = 0;
     return status;
 }
 
@@ -258,17 +269,20 @@ int
 FPU_status_word_flags_fpu_compare(int float_relation)
 {
     switch (float_relation) {
-        case float_relation_unordered:
-            return (C0 | C2 | C3);
+        case softfloat_relation_unordered:
+            return (FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
 
-        case float_relation_greater:
+        case softfloat_relation_greater:
             return 0;
 
-        case float_relation_less:
-            return C0;
+        case softfloat_relation_less:
+            return FPU_SW_C0;
 
-        case float_relation_equal:
-            return C3;
+        case softfloat_relation_equal:
+            return FPU_SW_C3;
+
+        default:
+            break;
     }
 
     return (-1); // should never get here
@@ -278,18 +292,18 @@ void
 FPU_write_eflags_fpu_compare(int float_relation)
 {
     switch (float_relation) {
-        case float_relation_unordered:
+        case softfloat_relation_unordered:
             cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
             break;
 
-        case float_relation_greater:
+        case softfloat_relation_greater:
             break;
 
-        case float_relation_less:
+        case softfloat_relation_less:
             cpu_state.flags |= C_FLAG;
             break;
 
-        case float_relation_equal:
+        case softfloat_relation_equal:
             cpu_state.flags |= Z_FLAG;
             break;
 
@@ -299,7 +313,7 @@ FPU_write_eflags_fpu_compare(int float_relation)
 }
 
 uint16_t
-FPU_exception(uint32_t fetchdat, uint16_t exceptions, int store)
+FPU_exception(UNUSED(uint32_t fetchdat), uint16_t exceptions, int store)
 {
     uint16_t status;
     uint16_t unmasked;
@@ -324,10 +338,10 @@ FPU_exception(uint32_t fetchdat, uint16_t exceptions, int store)
         // FPU_EX_Invalid cannot come with any other exception but x87 stack fault
         fpu_state.swd |= exceptions;
         if (exceptions & FPU_SW_Stack_Fault) {
-            if (!(exceptions & C1)) {
+            if (!(exceptions & FPU_SW_C1)) {
                 /* This bit distinguishes over- from underflow for a stack fault,
                    and roundup from round-down for precision loss. */
-                fpu_state.swd &= ~C1;
+                fpu_state.swd &= ~FPU_SW_C1;
             }
         }
         return unmasked;
@@ -342,7 +356,10 @@ FPU_exception(uint32_t fetchdat, uint16_t exceptions, int store)
                 nmi = 1;
             }
 #else
-            picint(1 << 13);
+           if (cr0 & 0x20)
+               new_ne = 1;
+           else
+               picint(1 << 13);
 #endif // FPU_8087
         }
         return unmasked;
@@ -359,10 +376,10 @@ FPU_exception(uint32_t fetchdat, uint16_t exceptions, int store)
     fpu_state.swd |= exceptions;
 
     if (exceptions & FPU_EX_Precision) {
-        if (!(exceptions & C1)) {
+        if (!(exceptions & FPU_SW_C1)) {
             /* This bit distinguishes over- from underflow for a stack fault,
                  and roundup from round-down for precision loss. */
-            fpu_state.swd &= ~C1;
+            fpu_state.swd &= ~FPU_SW_C1;
         }
     }
 
@@ -380,7 +397,7 @@ FPU_exception(uint32_t fetchdat, uint16_t exceptions, int store)
         if (!store)
             unmasked &= ~(FPU_EX_Underflow | FPU_EX_Overflow);
         else {
-            fpu_state.swd &= ~C1;
+            fpu_state.swd &= ~FPU_SW_C1;
             if (!(status & FPU_EX_Precision))
                 fpu_state.swd &= ~FPU_EX_Precision;
         }
@@ -391,7 +408,11 @@ FPU_exception(uint32_t fetchdat, uint16_t exceptions, int store)
 void
 FPU_stack_overflow(uint32_t fetchdat)
 {
-    const floatx80 floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
+/*----------------------------------------------------------------------------
+| The pattern for a default generated extended double-precision NaN.
+*----------------------------------------------------------------------------*/
+    const floatx80 floatx80_default_nan =
+        packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
 
     /* The masked response */
     if (is_IA_masked()) {
@@ -404,7 +425,11 @@ FPU_stack_overflow(uint32_t fetchdat)
 void
 FPU_stack_underflow(uint32_t fetchdat, int stnr, int pop_stack)
 {
-    const floatx80 floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
+/*----------------------------------------------------------------------------
+| The pattern for a default generated extended double-precision NaN.
+*----------------------------------------------------------------------------*/
+    const floatx80 floatx80_default_nan =
+        packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
 
     /* The masked response */
     if (is_IA_masked()) {
@@ -420,11 +445,11 @@ FPU_stack_underflow(uint32_t fetchdat, int stnr, int pop_stack)
  * rather than a kernel (ported by Kevin Lawton)
  * ------------------------------------------------------------ */
 int
-FPU_tagof(const floatx80 reg)
+FPU_tagof(const extFloat80_t reg)
 {
-    int32_t exp = floatx80_exp(reg);
+    int32_t exp = extF80_exp(reg);
     if (exp == 0) {
-        if (!floatx80_fraction(reg))
+        if (!extF80_fraction(reg))
             return X87_TAG_ZERO;
 
         /* The number is a de-normal or pseudodenormal. */
@@ -436,7 +461,7 @@ FPU_tagof(const floatx80 reg)
         return X87_TAG_INVALID;
     }
 
-    if (!(reg.fraction & BX_CONST64(0x8000000000000000))) {
+    if (!(reg.signif & BX_CONST64(0x8000000000000000))) {
         /* Unsupported data type. */
         /* Valid numbers have the ms bit set to 1. */
         return X87_TAG_INVALID;
@@ -516,28 +541,26 @@ unpack_FPU_TW(uint16_t tag_byte)
      */
 
     for (int index = 7; index >= 0; index--, twd <<= 2, tag_byte <<= 1) {
-        if (tag_byte & 0x80) {
-            const floatx80 *fpu_reg = &fpu_state.st_space[index & 7];
-            twd |= FPU_tagof(*fpu_reg);
-        } else {
+        if (tag_byte & 0x80)
+            twd |= FPU_tagof(fpu_state.st_space[index & 7]);
+        else
             twd |= X87_TAG_EMPTY;
-        }
     }
 
     return (twd >> 2);
 }
 
-#ifdef ENABLE_808X_LOG
+#ifdef ENABLE_FPU_X87_LOG
 void
 x87_dumpregs(void)
 {
     if (cpu_state.ismmx) {
-        fpu_log("MM0=%016llX\tMM1=%016llX\tMM2=%016llX\tMM3=%016llX\n", cpu_state.MM[0].q, cpu_state.MM[1].q, cpu_state.MM[2].q, cpu_state.MM[3].q);
-        fpu_log("MM4=%016llX\tMM5=%016llX\tMM6=%016llX\tMM7=%016llX\n", cpu_state.MM[4].q, cpu_state.MM[5].q, cpu_state.MM[6].q, cpu_state.MM[7].q);
+        fpu_x87_log("MM0=%016llX\tMM1=%016llX\tMM2=%016llX\tMM3=%016llX\n", cpu_state.MM[0].q, cpu_state.MM[1].q, cpu_state.MM[2].q, cpu_state.MM[3].q);
+        fpu_x87_log("MM4=%016llX\tMM5=%016llX\tMM6=%016llX\tMM7=%016llX\n", cpu_state.MM[4].q, cpu_state.MM[5].q, cpu_state.MM[6].q, cpu_state.MM[7].q);
     } else {
-        fpu_log("ST(0)=%f\tST(1)=%f\tST(2)=%f\tST(3)=%f\t\n", cpu_state.ST[cpu_state.TOP], cpu_state.ST[(cpu_state.TOP + 1) & 7], cpu_state.ST[(cpu_state.TOP + 2) & 7], cpu_state.ST[(cpu_state.TOP + 3) & 7]);
-        fpu_log("ST(4)=%f\tST(5)=%f\tST(6)=%f\tST(7)=%f\t\n", cpu_state.ST[(cpu_state.TOP + 4) & 7], cpu_state.ST[(cpu_state.TOP + 5) & 7], cpu_state.ST[(cpu_state.TOP + 6) & 7], cpu_state.ST[(cpu_state.TOP + 7) & 7]);
+        fpu_x87_log("ST(0)=%f\tST(1)=%f\tST(2)=%f\tST(3)=%f\t\n", cpu_state.ST[cpu_state.TOP], cpu_state.ST[(cpu_state.TOP + 1) & 7], cpu_state.ST[(cpu_state.TOP + 2) & 7], cpu_state.ST[(cpu_state.TOP + 3) & 7]);
+        fpu_x87_log("ST(4)=%f\tST(5)=%f\tST(6)=%f\tST(7)=%f\t\n", cpu_state.ST[(cpu_state.TOP + 4) & 7], cpu_state.ST[(cpu_state.TOP + 5) & 7], cpu_state.ST[(cpu_state.TOP + 6) & 7], cpu_state.ST[(cpu_state.TOP + 7) & 7]);
     }
-    fpu_log("Status = %04X  Control = %04X  Tag = %04X\n", cpu_state.npxs, cpu_state.npxc, x87_gettag());
+    fpu_x87_log("Status = %04X  Control = %04X  Tag = %04X\n", cpu_state.npxs, cpu_state.npxc, x87_gettag());
 }
 #endif

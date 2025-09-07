@@ -32,21 +32,14 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
-#    define BIOS_ROM_PATH_WONDER "roms/video/ati18800/VGA_Wonder_V3-1.02.bin"
-#endif
+#define BIOS_ROM_PATH_WONDER         "roms/video/ati18800/VGA_Wonder_V3-1.02.bin"
 #define BIOS_ROM_PATH_VGA88          "roms/video/ati18800/vga88.bin"
 #define BIOS_ROM_PATH_EDGE16         "roms/video/ati18800/vgaedge16.vbi"
 
 enum {
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
     ATI18800_WONDER = 0,
     ATI18800_VGA88,
     ATI18800_EDGE16
-#else
-    ATI18800_VGA88 = 0,
-    ATI18800_EDGE16
-#endif
 };
 
 typedef struct ati18800_t {
@@ -116,7 +109,7 @@ ati18800_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -230,7 +223,7 @@ ati18800_recalctimings(svga_t *svga)
                             else {
                                 svga->render = svga_render_8bpp_highres;
                                 if (!svga->packed_4bpp) {
-                                    svga->ma_latch <<= 1;
+                                    svga->memaddr_latch <<= 1;
                                     svga->rowoffset <<= 1;
                                 }
                             }
@@ -257,11 +250,10 @@ ati18800_init(const device_t *info)
 
     switch (info->local) {
         default:
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
         case ATI18800_WONDER:
             rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_WONDER, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+            ati18800->memory = device_get_config_int("memory");
             break;
-#endif
         case ATI18800_VGA88:
             rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_VGA88, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             ati18800->memory = 256;
@@ -277,7 +269,7 @@ ati18800_init(const device_t *info)
               ati18800_in, ati18800_out,
               NULL,
               NULL);
-    ati18800->svga.clock_gen = device_add(&ati18810_device);
+    ati18800->svga.clock_gen = device_add(&ati18810_28800_device);
     ati18800->svga.getclock  = ics2494_getclock;
 
     io_sethandler(0x01ce, 0x0002, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
@@ -291,13 +283,11 @@ ati18800_init(const device_t *info)
     return ati18800;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
 static int
 ati18800_wonder_available(void)
 {
     return rom_present(BIOS_ROM_PATH_WONDER);
 }
-#endif
 
 static int
 ati18800_vga88_available(void)
@@ -337,7 +327,25 @@ ati18800_force_redraw(void *priv)
     ati18800->svga.fullchange = changeframecount;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
+static const device_config_t ati18800_wonder_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection = {
+            { .description = "256 KB", .value = 256 },
+            { .description = "512 KB", .value = 512 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 const device_t ati18800_wonder_device = {
     .name          = "ATI-18800",
     .internal_name = "ati18800w",
@@ -346,12 +354,11 @@ const device_t ati18800_wonder_device = {
     .init          = ati18800_init,
     .close         = ati18800_close,
     .reset         = NULL,
-    { .available = ati18800_wonder_available },
+    .available     = ati18800_wonder_available,
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
-    .config        = NULL
+    .config        = ati18800_wonder_config
 };
-#endif
 
 const device_t ati18800_vga88_device = {
     .name          = "ATI 18800-1",
@@ -361,7 +368,7 @@ const device_t ati18800_vga88_device = {
     .init          = ati18800_init,
     .close         = ati18800_close,
     .reset         = NULL,
-    { .available = ati18800_vga88_available },
+    .available     = ati18800_vga88_available,
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
     .config        = NULL
@@ -375,7 +382,7 @@ const device_t ati18800_device = {
     .init          = ati18800_init,
     .close         = ati18800_close,
     .reset         = NULL,
-    { .available = ati18800_available },
+    .available     = ati18800_available,
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
     .config        = NULL

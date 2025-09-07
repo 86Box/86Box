@@ -8,8 +8,7 @@
 #include "codegen_accumulate.h"
 #include "codegen_ir.h"
 
-static struct
-{
+static struct {
     int count;
     int dest_reg;
 } acc_regs[] = {

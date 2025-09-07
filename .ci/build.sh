@@ -48,6 +48,13 @@
 #     architecture when invoking build.sh (either standalone or as part of an universal build)
 #   - port and sed are called through sudo to manage dependencies; make sure those are configured
 #     as NOPASSWD in /etc/sudoers if you're doing unattended builds
+#   - Binaries are ad-hoc signed by default; specify a keychain name in ~/86box-keychain-name.txt
+#     and password in ~/86box-keychain-password.txt to sign binaries with the first developer
+#     certificate found inside that keychain.
+#   - Notarization uses credentials stored in the same keychain used for signing. To save these
+#     credentials, you must find the keychain's file path, run notarytool store-credentials with
+#     --keychain pointed at that path, and specify the profile name you passed to notarytool in
+#     ~/86box-keychain-notarytool.txt
 #
 
 # Define common functions.
@@ -124,6 +131,70 @@ save_buildtag() {
 	[ -n "$2" ] && local contents="$2"
 	echo "$contents" > "$cache_dir/buildtag.$1"
 	return $?
+}
+
+mac_keychain() {
+	keychain_name=$(cat ~/86box-keychain-name.txt)
+	if [ -n "$keychain_name" ]
+	then
+		echo $keychain_name
+		security list-keychains -d user -s $(security list-keychains -d user | grep -Fv "/$keychain_name" | sed -e s/\ \*\"//g) "$keychain_name"
+		security unlock-keychain -p "$(cat ~/86box-keychain-password.txt)" "$keychain_name"
+		return $?
+	fi
+}
+mac_signidentity() {
+	if keychain_name=$(mac_keychain)
+	then
+		if [ -n "$keychain_name" ]
+		then
+			cert_name=$(security find-identity -v -p codesigning "$keychain_name" | perl -nle 'print for /([0-9A-F]+) "Developer ID Application: /')
+			if [ -n "$cert_name" ]
+			then
+				echo [-] Using signing certificate [$cert_name] in keychain [$keychain_name] >&2
+				echo "--keychain $keychain_name -s $cert_name"
+				return 0
+			else
+				err="Keychain [$keychain_name] has no developer certificate"
+			fi
+		else
+			err="No keychain specified"
+		fi
+	else
+		err="Keychain [$keychain_name] failed to unlock"
+	fi
+	echo [!] $err, falling back to ad-hoc signing >&2
+	echo "-s -"
+}
+mac_notarize() {
+	if keychain_name=$(mac_keychain)
+	then
+		if [ -n "$keychain_name" ]
+		then
+			keychain_profile=$(cat ~/86box-keychain-notarytool.txt)
+			if [ -n "$keychain_profile" ]
+			then
+				keychain_path=$(security list-keychains -d user | grep -F "/$keychain_name" | sed -e s/\ \*\"//g)
+				if [ -n "$keychain_path" ]
+				then
+					echo [-] Notarizing with profile [$keychain_profile] in keychain [$keychain_name]
+					# FIXME: needs a stapling system
+					xcrun notarytool submit "$1" --keychain-profile "$keychain_profile" --keychain "$keychain_path" --no-wait
+					return $?
+				else
+					err="File path for keychain [$keychain_name] not found"
+				fi
+			else
+				err="No keychain profile specified"
+			fi
+		else
+			err="No keychain specified"
+		fi
+	else
+		err="Keychain [$keychain_name] failed to unlock"
+	fi
+	echo [!] $err, skipping notarization
+	return 1
 }
 
 # Set common variables.
@@ -208,7 +279,7 @@ cmake_flags_extra=
 if [ -z "$package_name" -a -z "$tarball_name" ] || [ -n "$package_name" -a -z "$arch" ]
 then
 	echo '[!] Usage: build.sh -b {package_name} {architecture} [-t] [cmake_flags...]'
-	echo '           build.sh -s {source_tarball_name}'
+	echo '           build.sh -s {source_tarball_name} [-t]'
 	echo 'Dep. tree: build.sh -p [archive_tmp/path/to/binary]'
 	exit 100
 fi
@@ -228,7 +299,10 @@ then
 	[ ! -d "$cwd" ] && mkdir -p "$cwd"
 
 	# Save current HEAD commit to VERSION.
-	git log --stat -1 > VERSION || rm -f VERSION
+	if [ $strip -eq 0 ]
+	then
+		git log --stat -1 > VERSION || rm -f VERSION
+	fi
 
 	# Archive source.
 	make_tar "$cwd/$tarball_name.tar"
@@ -469,12 +543,13 @@ then
 		mv "archive_tmp_universal/$merge_src.app" "$app_bundle_name"
 
 		# Sign final app bundle.
-		arch -"$(uname -m)" codesign --force --deep -s - "$app_bundle_name"
+		arch -"$(uname -m)" codesign --force --deep $(mac_signidentity) -o runtime --entitlements src/mac/entitlements.plist --timestamp "$app_bundle_name"
 
 		# Create zip.
 		echo [-] Creating artifact archive
 		cd archive_tmp
-		zip --symlinks -r "$cwd/$package_name.zip" .
+		zip_name="$cwd/$package_name.zip"
+		zip --symlinks -r "$zip_name" .
 		status=$?
 
 		# Check if the archival succeeded.
@@ -483,6 +558,9 @@ then
 			echo [!] Artifact archive creation failed with status [$status]
 			exit 7
 		fi
+
+		# Notarize the compressed app bundle.
+		mac_notarize "$zip_name"
 
 		# All good.
 		echo [-] Universal build of [$package_name] for [$arch] with flags [$cmake_flags] successful
@@ -522,6 +600,9 @@ then
 		cmake_flags_extra="$cmake_flags_extra -D MOLTENVK=ON -D \"MOLTENVK_INCLUDE_DIR=$macports\""
 	fi
 
+	# Enable Libserialport 
+		cmake_flags_extra="$cmake_flags_extra -D \"LIBSERIALPORT_ROOT=$macports\""
+
 	# Install dependencies only if we're in a new build and/or MacPorts prefix.
 	if check_buildtag "$(basename "$macports")"
 	then
@@ -535,6 +616,21 @@ then
 			sudo sed -i -e 's/-no-feature-vulkan/-feature-vulkan/g' "$qt5_portfile"
 			sudo sed -i -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$qt5_portfile"
 		fi
+
+		# Patch openal-soft to use 1.23.1 on all targets instead of 1.24.2 on >=10.13 only,
+		# to prevent a symlink mismatch from having different versions on x86_64 and arm64.
+		# See: https://github.com/macports/macports-ports/commit/9b4903fc9c76769d476079e404c9a3b8a225f8aa
+		#      https://github.com/macports/macports-ports/commit/788deb64dc0695e8d04afb32ed904947f2a7591b
+		openal_portfile="$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/audio/openal-soft/Portfile"
+		sudo sed -i -e 's/if {${os.platform} ne "darwin" ||/if {0 \&\&/g' "$openal_portfile"
+
+		# Patch wget to remove libproxy support, as it depends on shared-mime-info which
+		# fails to build for a 10.13 target, which we have to do despite wget only being
+		# a host dependency. MacPorts issue 69406 strongly implies this will not be fixed.
+		wget_portfile="$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/net/wget/Portfile"
+		sudo sed -i -e 's/--enable-libproxy/--disable-libproxy/g' "$wget_portfile"
+		sudo sed -i -e 's/port:libproxy//g' "$wget_portfile"
+
 		while :
 		do
 			# Attempt to install dependencies.
@@ -582,7 +678,7 @@ else
         grep -q " bullseye " /etc/apt/sources.list || echo [!] WARNING: System not running the expected Debian version
 
 	# Establish general dependencies.
-	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream"
+	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -605,7 +701,7 @@ else
 	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libserialport-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/qtdeclarative/qt/" | wc -c)
@@ -884,7 +980,7 @@ then
 		fi
 
 		# Sign app bundle, unless we're in an universal build.
-		[ $skip_archive -eq 0 ] && codesign --force --deep -s - "archive_tmp/"*".app"
+		[ $skip_archive -eq 0 ] && codesign --force --deep $(mac_signidentity) -o runtime --entitlements src/mac/entitlements.plist --timestamp "archive_tmp/"*".app"
 	elif [ "$BUILD_TAG" = "precondition" ]
 	then
 		# Continue with no app bundle on a dry build.
@@ -1083,7 +1179,8 @@ elif is_mac
 then
 	# Create zip.
 	cd archive_tmp
-	zip --symlinks -r "$cwd/$package_name.zip" .
+	zip_name="$cwd/$package_name.zip"
+	zip --symlinks -r "$zip_name" .
 	status=$?
 else
 	# Determine AppImage runtime architecture.
@@ -1120,55 +1217,32 @@ EOF
 
 		# Copy line.
 		echo "$line" >> AppImageBuilder-generated.yml
-
-		# Workaround for appimage-builder issues 272 and 283 (i686 and armhf are also missing)
-		if [ "$arch_appimage" != "x86_64" -a "$line" = "  files:" ]
-		then
-			# Some mild arbitrary code execution with a dummy package...
-			[ ! -d /runtime ] && sudo apt-get -y -o 'DPkg::Post-Invoke::=mkdir -p /runtime; chmod 777 /runtime' install libsixel1 > /dev/null 2>&1
-
-			echo "    include:" >> AppImageBuilder-generated.yml
-			for loader in "/lib/$libdir/ld-linux"*.so.*
-			do
-				for loader_copy in "$loader" "/lib/$(basename "$loader")"
-				do
-					if [ ! -e "/runtime/compat$loader_copy" ]
-					then
-						mkdir -p "/runtime/compat$(dirname "$loader_copy")"
-						ln -s "$loader" "/runtime/compat$loader_copy"
-					fi
-					echo "    - /runtime/compat$loader_copy" >> AppImageBuilder-generated.yml
-				done
-			done
-		fi
 	done < .ci/AppImageBuilder.yml
 
 	# Download appimage-builder if necessary.
-	appimage_builder_url="https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-$(uname -m).AppImage"
-	appimage_builder_binary="$cache_dir/$(basename "$appimage_builder_url")"
-	if [ ! -e "$appimage_builder_binary" ]
+	appimage_builder_commit=22fefa298f9cee922a651a6f65a46fe0ccbfa34e # from issue 376
+	appimage_builder_dir="$cache_dir/appimage-builder-$appimage_builder_commit"
+	if [ ! -x "$appimage_builder_dir/bin/appimage-builder" ]
 	then
-		rm -rf "$cache_dir/"*".AppImage" # remove old versions
-		wget -qO "$appimage_builder_binary" "$appimage_builder_url"
+		rm -rf "$cache_dir/appimage-builder-"* # remove old versions
+		python3 -m venv "$appimage_builder_dir" # venv to solve some Debian setuptools headaches
+		"$appimage_builder_dir/bin/pip" install -U "git+https://github.com/AppImageCrafters/appimage-builder.git@$appimage_builder_commit"
 	fi
 
-	# Symlink appimage-builder binary and global cache directory.
+	# Symlink appimage-builder global cache directory.
 	rm -rf appimage-builder.AppImage appimage-builder-cache "$project-"*".AppImage" # also remove any dangling AppImages which may interfere with the renaming process
-	ln -s "$appimage_builder_binary" appimage-builder.AppImage
-	chmod u+x appimage-builder.AppImage
 	mkdir -p "$cache_dir/appimage-builder-cache"
 	ln -s "$cache_dir/appimage-builder-cache" appimage-builder-cache
 
-	# Run appimage-builder in extract-and-run mode for Docker compatibility.
+	# Run appimage-builder from the virtual environment created above.
 	# --appdir is a workaround for appimage-builder issue 270 reported by us.
 	for retry in 1 2 3 4 5
 	do
 		project="$project" project_id="$project_id" project_version="$project_version" project_icon="$project_icon" arch_deb="$arch_deb" \
-			arch_appimage="$arch_appimage" appimage_path="$cwd/$package_name.AppImage" APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage \
+			arch_appimage="$arch_appimage" appimage_path="$cwd/$package_name.AppImage" "$appimage_builder_dir/bin/appimage-builder" \
 			--recipe AppImageBuilder-generated.yml --appdir "$(grep -oP '^\s+path: \K(.+)' AppImageBuilder-generated.yml)"
 		status=$?
 		[ $status -eq 0 ] && break
-		[ $status -eq 127 ] && rm -rf /tmp/appimage_extracted_*
 	done
 
 	# Remove appimage-builder binary on failure, just in case it's corrupted.
@@ -1181,6 +1255,9 @@ then
 	echo [!] Artifact archive creation failed with status [$status]
 	exit 7
 fi
+
+# Notarize the compressed app bundle if we're on macOS.
+is_mac && mac_notarize "$zip_name"
 
 # All good.
 echo [-] Build of [$package_name] for [$arch] with flags [$cmake_flags] successful

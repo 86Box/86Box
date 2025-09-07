@@ -33,8 +33,12 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/video.h>
+#include <86box/vid_8514a.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/vid_ati_eeprom.h>
+#include <86box/vid_ati_mach8.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
@@ -313,7 +317,8 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                         break;
 
                     case 0xca:
-                        svga_recalctimings(svga);
+                        if (ht216->id == 0x7861)
+                            svga_recalctimings(svga);
                         break;
 
                     case 0xc9:
@@ -423,9 +428,8 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                     svga->banked_mask = 0xffff;
             }
 
-            if (svga->gdcaddr <= 8) {
+            if (svga->gdcaddr <= 8)
                 svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) && svga->chain4 && svga->packed_chain4;
-            }
             break;
 
         case 0x3D4:
@@ -444,7 +448,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -481,12 +485,14 @@ ht216_in(uint16_t addr, void *priv)
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
         addr ^= 0x60;
 
-    if ((ht216->id == 0x7152) && ht216->isabus) {
-        if (addr == 0x105)
-            return ht216->extensions;
-    }
-
     switch (addr) {
+        case 0x105:
+            if (ht216->isabus && (ht216->id == 0x7152)) {
+                ret &= ~0x03;
+                return ret;
+            }
+            break;
+
         case 0x3c4:
             return svga->seqaddr;
 
@@ -621,8 +627,20 @@ ht216_remap(ht216_t *ht216)
 void
 ht216_recalctimings(svga_t *svga)
 {
-    ht216_t *ht216        = (ht216_t *) svga->priv;
+    ht216_t   *ht216      = (ht216_t *) svga->priv;
+    ibm8514_t *dev        = (ibm8514_t *) svga->dev8514;
+    mach_t    *mach       = (mach_t *) svga->ext8514;
     int      high_res_256 = 0;
+
+
+    if (ht216->id == 0x7861) {
+        if (ht216->ht_regs[0xe0] & 0x20) {
+            if (ht216->ht_regs[0xca] & 0x01)
+                svga->htotal |= 0x200;
+            if (ht216->ht_regs[0xca] & 0x04)
+                svga->hblankstart |= 0x200;
+        }
+    }
 
     switch ((((((svga->miscout >> 2) & 3) || ((ht216->ht_regs[0xa4] >> 2) & 3)) | ((ht216->ht_regs[0xa4] >> 2) & 4)) || ((ht216->ht_regs[0xf8] >> 5) & 0x0f)) | ((ht216->ht_regs[0xf8] << 1) & 8)) {
         case 0:
@@ -642,23 +660,32 @@ ht216_recalctimings(svga_t *svga)
             break;
     }
 
-    svga->ma_latch |= ((ht216->ht_regs[0xf6] & 0x30) << 12);
+    svga->memaddr_latch |= ((ht216->ht_regs[0xf6] & 0x30) << 12);
 
-    svga->interlace = ht216->ht_regs[0xe0] & 1;
+    if (ht216->ht_regs[0xf6] & 0x80)
+        svga->memaddr_latch = ((ht216->ht_regs[0xf6] & 0x30) << 12);
+
+    svga->interlace = ht216->ht_regs[0xe0] & 0x01;
 
     if (svga->interlace)
-        high_res_256 = (svga->htotal * 8) > (svga->vtotal * 4);
+        high_res_256 = (svga->htotal << 3) > (svga->vtotal << 2);
     else
-        high_res_256 = (svga->htotal * 8) > (svga->vtotal * 2);
+        high_res_256 = (svga->htotal << 3) > (svga->vtotal << 1);
 
     ht216->adjust_cursor = 0;
 
     if (!svga->scrblank && svga->attr_palette_enable) {
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-            if (svga->seqregs[1] & 8) /*40 column*/ {
+            if (svga->seqregs[1] & 8) /*40 column*/
                 svga->render = svga_render_text_40;
-            } else {
+            else
                 svga->render = svga_render_text_80;
+
+            if (ibm8514_active && (svga->dev8514 != NULL)) {
+                if (svga->ext8514 != NULL) {
+                    if (!(dev->accel.advfunc_cntl & 0x01) && !(mach->accel.clock_sel & 0x01)) /*FIXME: Possibly a BIOS bug within the V7 chips when it's used with a 8514/A card?*/
+                        dev->on &= ~0x01;
+                }
             }
         } else {
             if (svga->crtc[0x17] == 0xeb) {
@@ -671,12 +698,16 @@ ht216_recalctimings(svga_t *svga)
                 if (((ht216->ht_regs[0xc8] & HT_REG_C8_E256) || (svga->gdcreg[5] & 0x40)) && (!svga->lowres || (ht216->ht_regs[0xf6] & 0x80))) {
                     if (high_res_256) {
                         svga->hdisp >>= 1;
+                        svga->dots_per_clock >>= 1;
+                        svga->clock /= 2;
                         ht216->adjust_cursor = 1;
                     }
                     svga->render = svga_render_8bpp_highres;
                 } else if (svga->lowres) {
                     if (high_res_256) {
                         svga->hdisp >>= 1;
+                        svga->dots_per_clock >>= 1;
+                        svga->clock /= 2;
                         ht216->adjust_cursor = 1;
                         svga->render         = svga_render_8bpp_highres;
                     } else {
@@ -699,6 +730,8 @@ ht216_recalctimings(svga_t *svga)
             } else if (svga->bpp == 15) {
                 svga->rowoffset <<= 1;
                 svga->hdisp >>= 1;
+                svga->dots_per_clock >>= 1;
+                svga->clock /= 2;
                 if ((svga->crtc[0x17] & 0x60) == 0x20) /*Would result in a garbled screen with trailing cursor glitches*/
                     svga->crtc[0x17] |= 0x40;
                 svga->render = svga_render_15bpp_highres;
@@ -706,15 +739,10 @@ ht216_recalctimings(svga_t *svga)
         }
     }
 
-    svga->ma_latch |= ((ht216->ht_regs[0xf6] & 0x30) << 14);
-
     if (svga->crtc[0x17] == 0xeb) /*Looks like 1024x768 mono mode expects 512K of video memory*/
         svga->vram_display_mask = 0x7ffff;
     else
         svga->vram_display_mask = (ht216->ht_regs[0xf6] & 0x40) ? ht216->vram_mask : 0x3ffff;
-
-    if (ht216->ht_regs[0xe0] & 0x20)
-        svga->hblankstart    = ((ht216->ht_regs[0xca] >> 2) << 8) + svga->crtc[4] + 1;
 }
 
 static void
@@ -737,9 +765,9 @@ ht216_hwcursor_draw(svga_t *svga, int displine)
 
     for (int x = 0; x < width; x++) {
         if (!(dat[0] & 0x80000000))
-            (buffer32->line[displine])[svga->x_add + offset + x] = 0;
+            svga->monitor->target_buffer->line[displine][svga->x_add + offset + x] = 0;
         if (dat[1] & 0x80000000)
-            (buffer32->line[displine])[svga->x_add + offset + x] ^= 0xffffff;
+            svga->monitor->target_buffer->line[displine][svga->x_add + offset + x] ^= 0xffffff;
 
         dat[0] <<= shift;
         dat[1] <<= shift;
@@ -1206,6 +1234,8 @@ ht216_write(uint32_t addr, uint8_t val, void *priv)
     svga_t  *svga      = &ht216->svga;
     uint32_t prev_addr = addr;
 
+    xga_write_test(addr, val, svga);
+
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + ht216->write_banks[(addr >> 15) & 1];
 
@@ -1226,6 +1256,9 @@ ht216_writew(uint32_t addr, uint16_t val, void *priv)
     ht216_t *ht216     = (ht216_t *) priv;
     svga_t  *svga      = &ht216->svga;
     uint32_t prev_addr = addr;
+
+    xga_write_test(addr, val, svga);
+    xga_write_test(addr + 1, val >> 8, svga);
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + ht216->write_banks[(addr >> 15) & 1];
@@ -1249,6 +1282,11 @@ ht216_writel(uint32_t addr, uint32_t val, void *priv)
     ht216_t *ht216     = (ht216_t *) priv;
     svga_t  *svga      = &ht216->svga;
     uint32_t prev_addr = addr;
+
+    xga_write_test(addr, val, svga);
+    xga_write_test(addr + 1, val >> 8, svga);
+    xga_write_test(addr + 2, val >> 16, svga);
+    xga_write_test(addr + 3, val >> 24, svga);
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + ht216->write_banks[(addr >> 15) & 1];
@@ -1411,8 +1449,10 @@ static uint8_t
 ht216_read(uint32_t addr, void *priv)
 {
     ht216_t      *ht216     = (ht216_t *) priv;
-    const svga_t *svga      = &ht216->svga;
+    svga_t       *svga      = &ht216->svga;
     uint32_t      prev_addr = addr;
+
+    (void) xga_read_test(addr, svga);
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + ht216->read_banks[(addr >> 15) & 1];
@@ -1530,12 +1570,13 @@ ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
             }
             break;
         case 4:
-            if ((info->local == 0x7152) && (info->flags & DEVICE_ISA))
-                ht216->extensions = device_get_config_int("extensions");
-            else if ((info->local == 0x7152) && (info->flags & DEVICE_MCA)) {
-                ht216->pos_regs[0] = 0xb7;
-                ht216->pos_regs[1] = 0x80;
-                mca_add(radius_mca_read, radius_mca_write, radius_mca_feedb, NULL, ht216);
+            if (info->local == 0x7152) {
+                if (info->flags & DEVICE_MCA) {
+                    ht216->pos_regs[0] = 0xb7;
+                    ht216->pos_regs[1] = 0x80;
+                    mca_add(radius_mca_read, radius_mca_write, radius_mca_feedb, NULL, ht216);
+                } else
+                    io_sethandler(0x0105, 0x0001, ht216_in, NULL, NULL, NULL, NULL, NULL, ht216);
             }
             rom_init(&ht216->bios_rom, BIOS_RADIUS_SVGA_MULTIVIEW_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             break;
@@ -1551,10 +1592,17 @@ ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
     if (has_rom == 4)
         svga->ramdac = device_add(&sc11484_nors2_ramdac_device);
 
+    svga->read = ht216_read;
+    svga->readw = NULL;
+    svga->readl = NULL;
+    svga->write = ht216_write;
+    svga->writew = ht216_writew;
     if ((info->flags & DEVICE_VLB) || (info->flags & DEVICE_MCA)) {
+        svga->writel = ht216_writel;
         mem_mapping_set_handler(&svga->mapping, ht216_read, NULL, NULL, ht216_write, ht216_writew, ht216_writel);
         mem_mapping_add(&ht216->linear_mapping, 0, 0, ht216_read_linear, NULL, NULL, ht216_write_linear, ht216_writew_linear, ht216_writel_linear, NULL, MEM_MAPPING_EXTERNAL, svga);
     } else {
+        svga->writel = NULL;
         mem_mapping_set_handler(&svga->mapping, ht216_read, NULL, NULL, ht216_write, ht216_writew, NULL);
         mem_mapping_add(&ht216->linear_mapping, 0, 0, ht216_read_linear, NULL, NULL, ht216_write_linear, ht216_writew_linear, NULL, NULL, MEM_MAPPING_EXTERNAL, svga);
     }
@@ -1562,7 +1610,7 @@ ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
     mem_mapping_disable(&ht216->linear_mapping);
 
     ht216->id     = info->local;
-    ht216->isabus = (info->flags & DEVICE_ISA);
+    ht216->isabus = (info->flags & DEVICE_ISA) || (info->flags & DEVICE_ISA16);
     ht216->mca    = (info->flags & DEVICE_MCA);
 
     io_sethandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
@@ -1676,77 +1724,45 @@ ht216_force_redraw(void *priv)
     ht216->svga.fullchange = changeframecount;
 }
 
+// clang-format off
 static const device_config_t v7_vga_1024i_config[] = {
-    { .name        = "memory",
-     .description = "Memory size",
-     .type        = CONFIG_SELECTION,
-     .default_int = 512,
-     .selection   = {
-          { .description = "256 kB",
-              .value       = 256 },
-          { .description = "512 kB",
-              .value       = 512 },
-          { .description = "" } } },
-    { .type = CONFIG_END }
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value = 256 },
+            { .description = "512 KB", .value = 512 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-// clang-format off
 static const device_config_t ht216_32_standalone_config[] = {
     {
-        .name = "monitor_type",
-        .description = "Monitor type",
-        .type = CONFIG_SELECTION,
-        .default_int = 0x18,
-        .selection = {
-            {
-                .description = "Mono Interlaced",
-                .value = 0x00
-            },
-            {
-                .description = "Mono Non-Interlaced",
-                .value = 0x08
-            },
-            {
-                .description = "Color Interlaced",
-                .value = 0x10
-            },
-            {
-                .description = "Color Non-Interlaced",
-                .value = 0x18
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "monitor_type",
+        .description    = "Monitor type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0x18,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Mono Interlaced",      .value = 0x00 },
+            { .description = "Mono Non-Interlaced",  .value = 0x08 },
+            { .description = "Color Interlaced",     .value = 0x10 },
+            { .description = "Color Non-Interlaced", .value = 0x18 },
+            { .description = ""                                    }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
-};
-
-static const device_config_t radius_svga_multiview_config[] = {
-    {
-        .name = "extensions",
-        .description = "Extensions",
-        .type = CONFIG_SELECTION,
-        .default_int = 0x00,
-        .selection = {
-            {
-                .description = "Extensions Enabled",
-                .value = 0x00
-            },
-            {
-                .description = "Extensions Disabled",
-                .value = 0x02
-            },
-            {
-                .description = ""
-            }
-        }
-    },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 
@@ -1758,7 +1774,7 @@ const device_t g2_gc205_device = {
     .init          = g2_gc205_init,
     .close         = ht216_close,
     .reset         = NULL,
-    { .available = g2_gc205_available },
+    .available     = g2_gc205_available,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
     .config        = NULL
@@ -1772,7 +1788,7 @@ const device_t v7_vga_1024i_device = {
     .init          = v7_vga_1024i_init,
     .close         = ht216_close,
     .reset         = NULL,
-    { .available = v7_vga_1024i_available },
+    .available     = v7_vga_1024i_available,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
     .config        = v7_vga_1024i_config
@@ -1786,7 +1802,7 @@ const device_t ht216_32_pb410a_device = {
     .init          = ht216_pb410a_init,
     .close         = ht216_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
     .config        = NULL
@@ -1800,7 +1816,7 @@ const device_t ht216_32_standalone_device = {
     .init          = ht216_standalone_init,
     .close         = ht216_close,
     .reset         = NULL,
-    { .available = ht216_standalone_available },
+    .available     = ht216_standalone_available,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
     .config        = ht216_32_standalone_config
@@ -1809,15 +1825,15 @@ const device_t ht216_32_standalone_device = {
 const device_t radius_svga_multiview_isa_device = {
     .name          = "Radius SVGA Multiview ISA (HT209)",
     .internal_name = "radius_isa",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0x7152, /*HT209*/
     .init          = radius_svga_multiview_init,
     .close         = ht216_close,
     .reset         = NULL,
-    { .available = radius_svga_multiview_available },
+    .available     = radius_svga_multiview_available,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
-    .config        = radius_svga_multiview_config
+    .config        = NULL
 };
 
 const device_t radius_svga_multiview_mca_device = {
@@ -1828,7 +1844,7 @@ const device_t radius_svga_multiview_mca_device = {
     .init          = radius_svga_multiview_init,
     .close         = ht216_close,
     .reset         = NULL,
-    { .available = radius_svga_multiview_available },
+    .available     = radius_svga_multiview_available,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
     .config        = NULL

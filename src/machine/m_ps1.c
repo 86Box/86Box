@@ -82,6 +82,7 @@ typedef struct {
     uint8_t ps1_e0_regs[256];
 
     serial_t *uart;
+    lpt_t    *lpt;
 } ps1_t;
 
 static void
@@ -135,7 +136,7 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x0102:
             if (!(ps->ps1_94 & 0x80)) {
-                lpt1_remove();
+                lpt_port_remove(ps->lpt);
                 serial_remove(ps->uart);
                 if (val & 0x04) {
                     if (val & 0x08)
@@ -146,13 +147,13 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
                 if (val & 0x10) {
                     switch ((val >> 5) & 3) {
                         case 0:
-                            lpt1_init(LPT_MDA_ADDR);
+                            lpt_port_setup(ps->lpt, LPT_MDA_ADDR);
                             break;
                         case 1:
-                            lpt1_init(LPT1_ADDR);
+                            lpt_port_setup(ps->lpt, LPT1_ADDR);
                             break;
                         case 2:
-                            lpt1_init(LPT2_ADDR);
+                            lpt_port_setup(ps->lpt, LPT2_ADDR);
                             break;
 
                         default:
@@ -252,7 +253,7 @@ static const device_config_t ps1_2011_config[] = {
         .default_string = "english_us",
         .default_int = 0,
         .file_filter = "",
-        .spinner = { 0 }, /*W1*/
+        .spinner = { 0 },
         .bios = {
             { .name = "English (US)", .internal_name = "english_us", .bios_type = BIOS_NORMAL,
               .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ibmps1es/FC0000_US.BIN", "" } },
@@ -287,10 +288,10 @@ const device_t ps1_2011_device = {
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = &ps1_2011_config[0]
+    .config        = ps1_2011_config
 };
 
 static void
@@ -299,8 +300,7 @@ ps1_setup(int model)
     ps1_t *ps;
     void  *priv;
 
-    ps = (ps1_t *) malloc(sizeof(ps1_t));
-    memset(ps, 0x00, sizeof(ps1_t));
+    ps = (ps1_t *) calloc(1, sizeof(ps1_t));
     ps->model = model;
 
     io_sethandler(0x0091, 1,
@@ -315,45 +315,43 @@ ps1_setup(int model)
                   ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
 
     ps->uart = device_add_inst(&ns16450_device, 1);
-
-    lpt1_remove();
-    lpt1_init(LPT_MDA_ADDR);
+    ps->lpt  = device_add_inst(&lpt_port_device, 1);
+    lpt_port_remove(ps->lpt);
+    lpt_port_setup(ps->lpt, LPT_MDA_ADDR);
 
     mem_remap_top(384);
 
-    device_add(&ps_nvr_device);
+    device_add(&fdc_ps2_device);
 
     if (model == 2011) {
-        if (!strcmp("english_us", device_get_config_bios("bios_language"))) {
-            /* US English */
-            rom_init(&ps->high_rom,
-                    device_get_bios_file(device_context_get_device(), device_get_config_bios("bios_language"), 0),
-                    0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
+        const device_t *d      = device_context_get_device();
+        const char *    bios   = device_get_config_bios("bios_language");
+        const char *    first  = device_get_bios_file(d, bios, 0);
+        const char *    second = device_get_bios_file(d, bios, 1);
 
-        } else if ((device_get_bios_file(device_context_get_device(), device_get_config_bios("bios_language"), 1)) == NULL) {
+        if (!strcmp(bios, "english_us")) {
+            /* US English */
+            rom_init(&ps->high_rom, first,
+                    0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
+        } else if (second == NULL) {
             /* Combined ROM. */
-            rom_init(&ps->high_rom,
-                        device_get_bios_file(device_context_get_device(), device_get_config_bios("bios_language"), 0),
+            rom_init(&ps->high_rom, first,
                         0xf80000, 0x80000, 0x7ffff, 0, MEM_MAPPING_EXTERNAL);
         } else {
             /* Split ROM. */
-            rom_init(&ps->mid_rom,
-                    device_get_bios_file(device_context_get_device(), device_get_config_bios("bios_language"), 0),
+            rom_init(&ps->mid_rom, first,
                     0xf80000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
 
-            rom_init(&ps->high_rom,
-                    device_get_bios_file(device_context_get_device(), device_get_config_bios("bios_language"), 1),
+            rom_init(&ps->high_rom, second,
                     0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
         }
 
-        lpt2_remove();
+        lpt_set_next_inst(255);
 
         device_add(&ps1snd_device);
 
-        device_add(&fdc_at_ps1_device);
-
         /* Enable the builtin HDC. */
-        if (hdc_current == 1) {
+        if (hdc_current[0] == HDC_INTERNAL) {
             priv = device_add(&ps1_hdc_device);
 
             ps1_hdc_inform(priv, &ps->ps1_91);
@@ -378,12 +376,12 @@ ps1_setup(int model)
         if (gfxcard[0] == VID_INTERNAL)
             device_add(&ibm_ps1_2121_device);
 
-        device_add(&fdc_at_ps1_device);
-
         device_add(&ide_isa_device);
 
         device_add(&ps1snd_device);
     }
+
+    device_add(&ps_nvr_device);
 }
 
 static void
@@ -397,11 +395,20 @@ ps1_common_init(const machine_t *model)
     dma16_init();
     pic2_init();
 
-    device_add(&keyboard_ps2_ps1_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&port_6x_device);
 
     /* Audio uses ports 200h and 202-207h, so only initialize gameport on 201h. */
     standalone_gameport_type = &gameport_201_device;
+}
+
+uint8_t
+machine_ps1_p1_handler(void)
+{
+    const uint8_t current_drive = fdc_get_current_drive();
+
+    /* (B0 or F0) | (fdd_is_525(current_drive) on bit 6) */
+    return 0xb0 | (fdd_is_525(current_drive) ? 0x40 : 0x00);
 }
 
 int

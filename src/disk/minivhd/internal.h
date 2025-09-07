@@ -115,6 +115,7 @@ typedef struct MVHDSparseHeader {
 struct MVHDMeta {
     FILE*            f;
     bool             readonly;
+    bool             error;
     char             filename[MVHD_MAX_PATH_BYTES];
     struct MVHDMeta* parent;
     MVHDFooter       footer;
@@ -271,7 +272,7 @@ struct MVHDMeta* mvhd_create_fixed_raw(const char* path, FILE* raw_img, uint64_t
  * \param [in] f File to write sectors to
  * \param [in] sector_count The number of sectors to write
  */
-void mvhd_write_empty_sectors(FILE* f, int sector_count);
+bool mvhd_write_empty_sectors(FILE* f, int sector_count);
 
 /**
  * \brief Read a fixed VHD image

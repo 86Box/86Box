@@ -493,16 +493,40 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
             case 0x52: /* Cache Control Register */
                 switch (dev->type) {
                     default:
+                    /*
+                       420TX/ZX:
+                       Bit 7-6: 0, 0 = 64 kB,
+                                0, 1 = 128 kB,
+                                1, 0 = 256 kB,
+                                1, 1 = 512 kB.
+                       Bit 5: 1 = L2 cache present, 0 = L2 cache absent.
+                       Bit 1: 1 = Write back cache, 0 = write through cache.
+                       Bit 0: 1 = L2 cache enable, 0 = L2 cache disable.
+                     */
                     case INTEL_420TX:
                     case INTEL_420ZX:
+                    case INTEL_430NX:
+                        regs[0x52] = (regs[0x52] & 0xe0) | (val & 0x1f);
+                        cpu_cache_ext_enabled = val & 0x01;
+                        cpu_update_waitstates();
+                        break;
                     case INTEL_430LX:
+                        regs[0x52] = (regs[0x52] & 0xe0) | (val & 0x1b);
+                        cpu_cache_ext_enabled = val & 0x01;
+                        cpu_update_waitstates();
+                        break;
                     case INTEL_430FX:
                     case INTEL_430VX:
                     case INTEL_430TX:
-                        regs[0x52] = (val & 0xfb);
+                        regs[0x52] = (regs[0x52] & 0x04) | (val & 0xfb);
+                        cpu_cache_ext_enabled = ((val & 0x03) == 0x01);
+                        cpu_update_waitstates();
                         break;
-                    case INTEL_430NX:
                     case INTEL_430HX:
+                        regs[0x52] = val;
+                        cpu_cache_ext_enabled = ((val & 0x03) == 0x01);
+                        cpu_update_waitstates();
+                        break;
                     case INTEL_440FX:
                         regs[0x52] = val;
                         break;
@@ -989,7 +1013,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_430TX:
                         if (!dev->smram_locked) {
                             i4x0_smram_handler_phase0(dev);
-                            regs[0x71] = (regs[0x71] & 0x20) | (val & 0xdf);
+                            regs[0x71] = (regs[0x71] & 0x60) | (val & 0x9f);
+                            regs[0x71] &= (val & 0x40);
                             i4x0_smram_handler_phase1(dev);
                         }
                         break;
@@ -1017,9 +1042,11 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                             regs[0x72] = (val & 0x7f);
                         else
                             regs[0x72] = (regs[0x72] & 0x87) | (val & 0x78);
-                        dev->smram_locked = (val & 0x10);
-                        if (dev->smram_locked)
-                            regs[0x72] &= 0xbf;
+                        if (val & 0x08) {
+                            dev->smram_locked = (val & 0x10);
+                            if (dev->smram_locked)
+                                regs[0x72] &= 0xbf;
+                        }
                     }
                 } else {
                     if (dev->smram_locked)
@@ -1553,6 +1580,8 @@ i4x0_reset(void *priv)
             dev->regs[0x68 + i] = 0x00;
     }
 
+    dev->smram_locked = 0;
+
     if (dev->type >= INTEL_430FX) {
         dev->regs[0x72] &= 0xef; /* Forcibly unlock the SMRAM register. */
         i4x0_write(0, 0x72, 0x02, priv);
@@ -1584,10 +1613,8 @@ i4x0_close(void *priv)
 static void *
 i4x0_init(const device_t *info)
 {
-    i4x0_t  *dev = (i4x0_t *) malloc(sizeof(i4x0_t));
+    i4x0_t  *dev = (i4x0_t *) calloc(1, sizeof(i4x0_t));
     uint8_t *regs;
-
-    memset(dev, 0, sizeof(i4x0_t));
 
     dev->smram_low  = smram_add();
     dev->smram_high = smram_add();
@@ -1630,11 +1657,16 @@ i4x0_init(const device_t *info)
                     0x00 = None, 0x01 = 64 kB, 0x41 = 128 kB, 0x81 = 256 kB, 0xc1 = 512 kB,
                     If bit 0 is set, then if bit 2 is also set, the cache is write back,
                     otherwise it's write through. */
-            regs[0x52] = 0xc3; /* 512 kB writeback cache */
+            regs[0x52] = 0xe0; /* 512 kB writeback cache */
             regs[0x57] = 0x31;
             regs[0x59] = 0x0f;
             regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = 0x02;
-            dev->max_drb                                      = 3;
+            /* At the very least the 420ZX seems to read to 0x64, per the SB486PV. */
+            if (dev->type == INTEL_420ZX) {
+                regs[0x64]   = 0x02;
+                dev->max_drb = 4;
+            } else
+                dev->max_drb                                      = 3;
             dev->drb_unit                                     = 1;
             dev->drb_default                                  = 0x02;
             break;
@@ -1943,7 +1975,7 @@ const device_t i420tx_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1957,7 +1989,7 @@ const device_t i420zx_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1971,7 +2003,7 @@ const device_t i430lx_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1985,7 +2017,7 @@ const device_t i430nx_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -1999,7 +2031,7 @@ const device_t i430fx_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2013,7 +2045,7 @@ const device_t i430fx_rev02_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2027,7 +2059,7 @@ const device_t i430hx_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2041,7 +2073,7 @@ const device_t i430vx_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2055,7 +2087,7 @@ const device_t i430tx_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2069,7 +2101,7 @@ const device_t i440fx_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2083,7 +2115,7 @@ const device_t i440lx_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2097,7 +2129,7 @@ const device_t i440ex_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2111,7 +2143,7 @@ const device_t i440bx_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2125,7 +2157,7 @@ const device_t i440bx_no_agp_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2139,7 +2171,7 @@ const device_t i440gx_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -2153,7 +2185,7 @@ const device_t i440zx_device = {
     .init          = i4x0_init,
     .close         = i4x0_close,
     .reset         = i4x0_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

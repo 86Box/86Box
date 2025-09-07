@@ -26,6 +26,7 @@
 #include <86box/io.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/device.h>
@@ -466,12 +467,12 @@ ali6117_init(const device_t *info)
 
     ali6117_log("ALI6117: init()\n");
 
-    ali6117_t *dev = (ali6117_t *) malloc(sizeof(ali6117_t));
-    memset(dev, 0, sizeof(ali6117_t));
+    ali6117_t *dev = (ali6117_t *) calloc(1, sizeof(ali6117_t));
 
     dev->local = info->local;
 
-    device_add(&ide_isa_device);
+    if (!(dev->local & 0x08))
+        device_add(&ide_isa_device);
 
     ali6117_setup(dev);
 
@@ -493,12 +494,12 @@ ali6117_init(const device_t *info)
 const device_t ali1217_device = {
     .name          = "ALi M1217",
     .internal_name = "ali1217",
-    .flags         = DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0x8,
     .init          = ali6117_init,
     .close         = ali6117_close,
     .reset         = ali6117_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -507,12 +508,12 @@ const device_t ali1217_device = {
 const device_t ali6117d_device = {
     .name          = "ALi M6117D",
     .internal_name = "ali6117d",
-    .flags         = DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0x2,
     .init          = ali6117_init,
     .close         = ali6117_close,
     .reset         = ali6117_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

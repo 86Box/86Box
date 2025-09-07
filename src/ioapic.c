@@ -117,12 +117,12 @@ ioapic_init(UNUSED(const device_t *info))
 const device_t ioapic_device = {
     .name          = "I/O Advanced Programmable Interrupt Controller",
     .internal_name = "ioapic",
-    .flags         = DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = ioapic_init,
     .close         = ioapic_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

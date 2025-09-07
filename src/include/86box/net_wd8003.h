@@ -54,11 +54,4 @@ enum {
     WD8013EPA = 6
 };
 
-extern const device_t wd8003e_device;
-extern const device_t wd8003eb_device;
-extern const device_t wd8013ebt_device;
-extern const device_t wd8003eta_device;
-extern const device_t wd8003ea_device;
-extern const device_t wd8013epa_device;
-
 #endif /*NET_WD8003_H*/

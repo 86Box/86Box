@@ -14,75 +14,51 @@
 //
 //  You should have received a copy of the GNU General Public License
 //  along with this program; if not, write to the Free Software
-//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //  ---------------------------------------------------------------------------
 
-#ifndef __SIDDEFS_FP_H__
-#define __SIDDEFS_FP_H__
+#ifndef SIDDEFS_FP_H
+#define SIDDEFS_FP_H
 
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#define M_PI_f  3.14159265358979323846f
+// Compilation configuration.
+#define RESID_BRANCH_HINTS true
+
+// Compiler specifics.
+#ifndef _MSC_VER
+#define HAVE_BUILTIN_EXPECT true
 #else
-#define M_PI_f  ((float) M_PI)
+#define HAVE_BUILTIN_EXPECT false
 #endif
 
-#ifndef M_LN2
-#define M_LN2   0.69314718055994530942
-#define M_LN2_f 0.69314718055994530942f
+// Branch prediction macros, lifted off the Linux kernel.
+#if RESID_BRANCH_HINTS && HAVE_BUILTIN_EXPECT
+#  define likely(x)      __builtin_expect(!!(x), 1)
+#  define unlikely(x)    __builtin_expect(!!(x), 0)
 #else
-#define M_LN2_f ((float) M_LN2)
+#  define likely(x)      (x)
+#  define unlikely(x)    (x)
 #endif
 
-// Define bool, true, and false for C++ compilers that lack these keywords.
-#define RESID_HAVE_BOOL 1
+namespace reSIDfp {
 
-#if !RESID_HAVE_BOOL
-typedef int bool;
-const bool true = 1;
-const bool false = 0;
-#endif
+typedef enum { MOS6581=1, MOS8580 } ChipModel;
 
-// We could have used the smallest possible data type for each SID register,
-// however this would give a slower engine because of data type conversions.
-// An int is assumed to be at least 32 bits (necessary in the types reg24,
-// cycle_count, and sound_sample). GNU does not support 16-bit machines
-// (GNU Coding Standards: Portability between CPUs), so this should be
-// a valid assumption.
+typedef enum { AVERAGE=1, WEAK, STRONG } CombinedWaveforms;
 
-typedef unsigned int reg4;
-typedef unsigned int reg8;
-typedef unsigned int reg12;
-typedef unsigned int reg16;
-typedef unsigned int reg24;
-
-typedef int cycle_count;
-
-enum chip_model { MOS6581FP=1, MOS8580FP };
-
-enum sampling_method { SAMPLE_INTERPOLATE=1, SAMPLE_RESAMPLE_INTERPOLATE };
+typedef enum { DECIMATE=1, RESAMPLE } SamplingMethod;
+}
 
 extern "C"
 {
 #ifndef __VERSION_CC__
-extern const char* resid_version_string;
+extern const char* residfp_version_string;
 #else
-const char* resid_version_string = VERSION;
+const char* residfp_version_string = VERSION;
 #endif
 }
 
 // Inlining on/off.
+#define RESID_INLINING true
 #define RESID_INLINE inline
 
-#if defined(__SSE__) || (defined(_M_IX86_FP ) && _M_IX86_FP >= 1) || defined(_M_X64)
-#define RESID_USE_SSE 1
-#else
-#define RESID_USE_SSE 0
-#endif
-
-#define HAVE_LOGF
-#define HAVE_EXPF
-#define HAVE_LOGF_PROTOTYPE
-#define HAVE_EXPF_PROTOTYPE
-
-#endif // not __SIDDEFS_H__
+#endif // SIDDEFS_FP_H

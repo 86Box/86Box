@@ -20,6 +20,9 @@ typedef struct sn76489_t {
     int      freqhi[4];
     int      vol[4];
     uint32_t shift;
+    uint32_t white_noise_tap_1;
+    uint32_t white_noise_tap_2;
+    uint32_t feedback_mask;
     uint8_t  noise;
     int      lasttone;
     uint8_t  firstdat;

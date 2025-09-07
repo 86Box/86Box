@@ -1,11 +1,12 @@
 #define cmp_FPU(name, optype, a_size, load_var, rw, use_var, is_nan, cycle_postfix)                                                                \
     static int sf_FCOM##name##_a##a_size(uint32_t fetchdat)                                                                                        \
     {                                                                                                                                              \
-        floatx80              a;                                                                                                                   \
-        int                   rc;                                                                                                                  \
-        struct float_status_t status;                                                                                                              \
-        optype                temp;                                                                                                                \
+        floatx80                  a;                                                                                                               \
+        int                       rc;                                                                                                              \
+        struct softfloat_status_t status;                                                                                                          \
+        optype                    temp;                                                                                                            \
         FP_ENTER();                                                                                                                                \
+        FPU_check_pending_exceptions();                                                                                                            \
         fetch_ea_##a_size(fetchdat);                                                                                                               \
         SEG_CHECK_READ(cpu_state.ea_seg);                                                                                                          \
         load_var = rw;                                                                                                                             \
@@ -14,19 +15,19 @@
         clear_C1();                                                                                                                                \
         if (IS_TAG_EMPTY(0)) {                                                                                                                     \
             FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);                                                                                    \
-            setcc(C0 | C2 | C3);                                                                                                                   \
+            setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);                                                                                              \
             goto next_ins;                                                                                                                         \
         }                                                                                                                                          \
         status = i387cw_to_softfloat_status_word(i387_get_control_word());                                                                         \
         a      = FPU_read_regi(0);                                                                                                                 \
         if (is_nan) {                                                                                                                              \
-            rc = float_relation_unordered;                                                                                                         \
-            float_raise(&status, float_flag_invalid);                                                                                              \
+            rc = softfloat_relation_unordered;                                                                                                     \
+            softfloat_raiseFlags(&status, softfloat_flag_invalid);                                                                                 \
         } else {                                                                                                                                   \
-            rc = floatx80_compare_two(a, use_var, &status);                                                                                        \
+            rc = extF80_compare_normal(a, use_var, &status);                                                                                       \
         }                                                                                                                                          \
         setcc(FPU_status_word_flags_fpu_compare(rc));                                                                                              \
-        FPU_exception(fetchdat, status.float_exception_flags, 0);                                                                                  \
+        FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);                                                                               \
                                                                                                                                                    \
 next_ins:                                                                                                                                          \
         CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fcom##cycle_postfix) : ((x87_timings.fcom##cycle_postfix) * cpu_multi));           \
@@ -35,11 +36,12 @@ next_ins:                                                                       
     }                                                                                                                                              \
     static int sf_FCOMP##name##_a##a_size(uint32_t fetchdat)                                                                                       \
     {                                                                                                                                              \
-        floatx80              a;                                                                                                                   \
-        int                   rc;                                                                                                                  \
-        struct float_status_t status;                                                                                                              \
-        optype                temp;                                                                                                                \
+        floatx80                  a;                                                                                                               \
+        int                       rc;                                                                                                              \
+        struct softfloat_status_t status;                                                                                                          \
+        optype                    temp;                                                                                                            \
         FP_ENTER();                                                                                                                                \
+        FPU_check_pending_exceptions();                                                                                                            \
         fetch_ea_##a_size(fetchdat);                                                                                                               \
         SEG_CHECK_READ(cpu_state.ea_seg);                                                                                                          \
         load_var = rw;                                                                                                                             \
@@ -48,7 +50,7 @@ next_ins:                                                                       
         clear_C1();                                                                                                                                \
         if (IS_TAG_EMPTY(0)) {                                                                                                                     \
             FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);                                                                                    \
-            setcc(C0 | C2 | C3);                                                                                                                   \
+            setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);                                                                                              \
             if (is_IA_masked())                                                                                                                    \
                 FPU_pop();                                                                                                                         \
                                                                                                                                                    \
@@ -57,13 +59,13 @@ next_ins:                                                                       
         status = i387cw_to_softfloat_status_word(i387_get_control_word());                                                                         \
         a      = FPU_read_regi(0);                                                                                                                 \
         if (is_nan) {                                                                                                                              \
-            rc = float_relation_unordered;                                                                                                         \
-            float_raise(&status, float_flag_invalid);                                                                                              \
+            rc = softfloat_relation_unordered;                                                                                                     \
+            softfloat_raiseFlags(&status, softfloat_flag_invalid);                                                                                 \
         } else {                                                                                                                                   \
-            rc = floatx80_compare_two(a, use_var, &status);                                                                                        \
+            rc = extF80_compare_normal(a, use_var, &status);                                                                                       \
         }                                                                                                                                          \
         setcc(FPU_status_word_flags_fpu_compare(rc));                                                                                              \
-        if (!FPU_exception(fetchdat, status.float_exception_flags, 0))                                                                             \
+        if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0))                                                                          \
             FPU_pop();                                                                                                                             \
                                                                                                                                                    \
 next_ins:                                                                                                                                          \
@@ -73,46 +75,48 @@ next_ins:                                                                       
     }
 
 // clang-format off
-cmp_FPU(s, float32, 16, temp, geteal(), float32_to_floatx80(temp, &status), floatx80_is_nan(a) || floatx80_is_unsupported(a) || float32_is_nan(temp), _32)
+cmp_FPU(s, float32, 16, temp, geteal(), f32_to_extF80(temp, &status), extF80_isNaN(a) || extF80_isUnsupported(a) || f32_isNaN(temp), _32)
 #ifndef FPU_8087
-cmp_FPU(s, float32, 32, temp, geteal(), float32_to_floatx80(temp, &status), floatx80_is_nan(a) || floatx80_is_unsupported(a) || float32_is_nan(temp), _32)
+cmp_FPU(s, float32, 32, temp, geteal(), f32_to_extF80(temp, &status), extF80_isNaN(a) || extF80_isUnsupported(a) || f32_isNaN(temp), _32)
 #endif
-cmp_FPU(d, float64, 16, temp, geteaq(), float64_to_floatx80(temp, &status), floatx80_is_nan(a) || floatx80_is_unsupported(a) || float64_is_nan(temp), _64)
+cmp_FPU(d, float64, 16, temp, geteaq(), f64_to_extF80(temp, &status), extF80_isNaN(a) || extF80_isUnsupported(a) || f64_isNaN(temp), _64)
 #ifndef FPU_8087
-cmp_FPU(d, float64, 32, temp, geteaq(), float64_to_floatx80(temp, &status), floatx80_is_nan(a) || floatx80_is_unsupported(a) || float64_is_nan(temp), _64)
+cmp_FPU(d, float64, 32, temp, geteaq(), f64_to_extF80(temp, &status), extF80_isNaN(a) || extF80_isUnsupported(a) || f64_isNaN(temp), _64)
 #endif
 
-cmp_FPU(iw, int16_t, 16, temp, (int16_t)geteaw(), int32_to_floatx80((int32_t)temp), 0, _i16)
+cmp_FPU(iw, int16_t, 16, temp, (int16_t)geteaw(), i32_to_extF80((int32_t)temp), 0, _i16)
 #ifndef FPU_8087
-cmp_FPU(iw, int16_t, 32, temp, (int16_t)geteaw(), int32_to_floatx80((int32_t)temp), 0, _i16)
+cmp_FPU(iw, int16_t, 32, temp, (int16_t)geteaw(), i32_to_extF80((int32_t)temp), 0, _i16)
 #endif
-cmp_FPU(il, int32_t, 16, temp, (int32_t)geteal(), int32_to_floatx80(temp), 0, _i32)
+cmp_FPU(il, int32_t, 16, temp, (int32_t)geteal(), i32_to_extF80(temp), 0, _i32)
 #ifndef FPU_8087
-cmp_FPU(il, int32_t, 32, temp, (int32_t)geteal(), int32_to_floatx80(temp), 0, _i32)
+cmp_FPU(il, int32_t, 32, temp, (int32_t)geteal(), i32_to_extF80(temp), 0, _i32)
 #endif
-    // clang-format on
+// clang-format on
 
-    static int sf_FCOM_sti(uint32_t fetchdat)
+static int
+sf_FCOM_sti(uint32_t fetchdat)
 {
-    floatx80              a;
-    floatx80              b;
-    struct float_status_t status;
-    int                   rc;
+    floatx80                  a;
+    floatx80                  b;
+    struct softfloat_status_t status;
+    int                       rc;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        setcc(C0 | C2 | C3);
+        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         goto next_ins;
     }
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
-    rc     = floatx80_compare_two(a, b, &status);
+    rc     = extF80_compare_normal(a, b, &status);
     setcc(FPU_status_word_flags_fpu_compare(rc));
-    FPU_exception(fetchdat, status.float_exception_flags, 0);
+    FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);
 
 next_ins:
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fcom) : (x87_timings.fcom * cpu_multi));
@@ -123,17 +127,18 @@ next_ins:
 static int
 sf_FCOMP_sti(uint32_t fetchdat)
 {
-    floatx80              a;
-    floatx80              b;
-    struct float_status_t status;
-    int                   rc;
+    floatx80                  a;
+    floatx80                  b;
+    struct softfloat_status_t status;
+    int                       rc;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        setcc(C0 | C2 | C3);
+        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         if (is_IA_masked()) {
             FPU_pop();
         }
@@ -142,9 +147,9 @@ sf_FCOMP_sti(uint32_t fetchdat)
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
-    rc     = floatx80_compare_two(a, b, &status);
+    rc     = extF80_compare_normal(a, b, &status);
     setcc(FPU_status_word_flags_fpu_compare(rc));
-    if (!FPU_exception(fetchdat, status.float_exception_flags, 0)) {
+    if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0)) {
         FPU_pop();
     }
 
@@ -157,17 +162,18 @@ next_ins:
 static int
 sf_FCOMPP(uint32_t fetchdat)
 {
-    floatx80              a;
-    floatx80              b;
-    struct float_status_t status;
-    int                   rc;
+    floatx80                  a;
+    floatx80                  b;
+    struct softfloat_status_t status;
+    int                       rc;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(1)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        setcc(C0 | C2 | C3);
+        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         if (is_IA_masked()) {
             FPU_pop();
             FPU_pop();
@@ -177,9 +183,9 @@ sf_FCOMPP(uint32_t fetchdat)
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(1);
-    rc     = floatx80_compare_two(a, b, &status);
+    rc     = extF80_compare_normal(a, b, &status);
     setcc(FPU_status_word_flags_fpu_compare(rc));
-    if (!FPU_exception(fetchdat, status.float_exception_flags, 0)) {
+    if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0)) {
         FPU_pop();
         FPU_pop();
     }
@@ -194,17 +200,18 @@ next_ins:
 static int
 sf_FUCOMPP(uint32_t fetchdat)
 {
-    floatx80              a;
-    floatx80              b;
-    struct float_status_t status;
-    int                   rc;
+    floatx80                  a;
+    floatx80                  b;
+    struct softfloat_status_t status;
+    int                       rc;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(1)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        setcc(C0 | C2 | C3);
+        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         if (is_IA_masked()) {
             FPU_pop();
             FPU_pop();
@@ -214,9 +221,9 @@ sf_FUCOMPP(uint32_t fetchdat)
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(1);
-    rc     = floatx80_compare_quiet(a, b, &status);
+    rc     = extF80_compare_quiet(a, b, &status);
     setcc(FPU_status_word_flags_fpu_compare(rc));
-    if (!FPU_exception(fetchdat, status.float_exception_flags, 0)) {
+    if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0)) {
         FPU_pop();
         FPU_pop();
     }
@@ -227,16 +234,17 @@ next_ins:
     return 0;
 }
 
-#    ifndef OPS_286_386
+#ifndef OPS_286_386
 static int
 sf_FCOMI_st0_stj(uint32_t fetchdat)
 {
-    floatx80              a;
-    floatx80              b;
-    struct float_status_t status;
-    int                   rc;
+    floatx80                  a;
+    floatx80                  b;
+    struct softfloat_status_t status;
+    int                       rc;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     flags_rebuild();
     clear_C1();
@@ -248,9 +256,9 @@ sf_FCOMI_st0_stj(uint32_t fetchdat)
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
-    rc     = floatx80_compare_two(a, b, &status);
+    rc     = extF80_compare_normal(a, b, &status);
     FPU_write_eflags_fpu_compare(rc);
-    FPU_exception(fetchdat, status.float_exception_flags, 0);
+    FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);
 
 next_ins:
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fcom) : (x87_timings.fcom * cpu_multi));
@@ -260,12 +268,13 @@ next_ins:
 static int
 sf_FCOMIP_st0_stj(uint32_t fetchdat)
 {
-    floatx80              a;
-    floatx80              b;
-    struct float_status_t status;
-    int                   rc;
+    floatx80                  a;
+    floatx80                  b;
+    struct softfloat_status_t status;
+    int                       rc;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     flags_rebuild();
     clear_C1();
@@ -280,9 +289,9 @@ sf_FCOMIP_st0_stj(uint32_t fetchdat)
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
-    rc     = floatx80_compare_two(a, b, &status);
+    rc     = extF80_compare_normal(a, b, &status);
     FPU_write_eflags_fpu_compare(rc);
-    if (!FPU_exception(fetchdat, status.float_exception_flags, 0)) {
+    if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0)) {
         FPU_pop();
     }
 
@@ -291,30 +300,31 @@ next_ins:
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fcom) : (x87_concurrency.fcom * cpu_multi));
     return 0;
 }
-#    endif
+#endif
 
 static int
 sf_FUCOM_sti(uint32_t fetchdat)
 {
-    floatx80              a;
-    floatx80              b;
-    struct float_status_t status;
-    int                   rc;
+    floatx80                  a;
+    floatx80                  b;
+    struct softfloat_status_t status;
+    int                       rc;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        setcc(C0 | C2 | C3);
+        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         goto next_ins;
     }
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
-    rc     = floatx80_compare_quiet(a, b, &status);
+    rc     = extF80_compare_quiet(a, b, &status);
     setcc(FPU_status_word_flags_fpu_compare(rc));
-    FPU_exception(fetchdat, status.float_exception_flags, 0);
+    FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);
 
 next_ins:
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fucom) : (x87_timings.fucom * cpu_multi));
@@ -325,17 +335,18 @@ next_ins:
 static int
 sf_FUCOMP_sti(uint32_t fetchdat)
 {
-    floatx80              a;
-    floatx80              b;
-    struct float_status_t status;
-    int                   rc;
+    floatx80                  a;
+    floatx80                  b;
+    struct softfloat_status_t status;
+    int                       rc;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        setcc(C0 | C2 | C3);
+        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
         if (is_IA_masked())
             FPU_pop();
 
@@ -344,9 +355,9 @@ sf_FUCOMP_sti(uint32_t fetchdat)
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
-    rc     = floatx80_compare_quiet(a, b, &status);
+    rc     = extF80_compare_quiet(a, b, &status);
     setcc(FPU_status_word_flags_fpu_compare(rc));
-    if (!FPU_exception(fetchdat, status.float_exception_flags, 0))
+    if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0))
         FPU_pop();
 
 next_ins:
@@ -359,12 +370,13 @@ next_ins:
 static int
 sf_FUCOMI_st0_stj(uint32_t fetchdat)
 {
-    floatx80              a;
-    floatx80              b;
-    struct float_status_t status;
-    int                   rc;
+    floatx80                  a;
+    floatx80                  b;
+    struct softfloat_status_t status;
+    int                       rc;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     flags_rebuild();
     clear_C1();
@@ -376,9 +388,9 @@ sf_FUCOMI_st0_stj(uint32_t fetchdat)
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
-    rc     = floatx80_compare_quiet(a, b, &status);
+    rc     = extF80_compare_quiet(a, b, &status);
     FPU_write_eflags_fpu_compare(rc);
-    FPU_exception(fetchdat, status.float_exception_flags, 0);
+    FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);
 
 next_ins:
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fucom) : (x87_timings.fucom * cpu_multi));
@@ -388,12 +400,13 @@ next_ins:
 static int
 sf_FUCOMIP_st0_stj(uint32_t fetchdat)
 {
-    floatx80              a;
-    floatx80              b;
-    struct float_status_t status;
-    int                   rc;
+    floatx80                  a;
+    floatx80                  b;
+    struct softfloat_status_t status;
+    int                       rc;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     flags_rebuild();
     clear_C1();
@@ -408,9 +421,9 @@ sf_FUCOMIP_st0_stj(uint32_t fetchdat)
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
     b      = FPU_read_regi(fetchdat & 7);
-    rc     = floatx80_compare_quiet(a, b, &status);
+    rc     = extF80_compare_quiet(a, b, &status);
     FPU_write_eflags_fpu_compare(rc);
-    if (!FPU_exception(fetchdat, status.float_exception_flags, 0))
+    if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0))
         FPU_pop();
 
 next_ins:
@@ -418,74 +431,104 @@ next_ins:
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fucom) : (x87_concurrency.fucom * cpu_multi));
     return 0;
 }
-#    endif
+#endif
 #endif
 
 static int
 sf_FTST(uint32_t fetchdat)
 {
-    int                   rc;
-    struct float_status_t status;
+    const floatx80            Const_Z = packFloatx80(0, 0x0000, 0);
+    struct softfloat_status_t status;
+    int                       rc;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
     if (IS_TAG_EMPTY(0)) {
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
-        setcc(C0 | C2 | C3);
+        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     } else {
         status = i387cw_to_softfloat_status_word(i387_get_control_word());
-        rc     = floatx80_compare_two(FPU_read_regi(0), Const_Z, &status);
+        rc     = extF80_compare_normal(FPU_read_regi(0), Const_Z, &status);
         setcc(FPU_status_word_flags_fpu_compare(rc));
-        FPU_exception(fetchdat, status.float_exception_flags, 0);
+        FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);
     }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.ftst) : (x87_timings.ftst * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.ftst) : (x87_concurrency.ftst * cpu_multi));
     return 0;
 }
 
+#ifndef FPU_8087
 static int
-sf_FXAM(uint32_t fetchdat)
+sf_FTSTP(uint32_t fetchdat)
 {
-    floatx80      reg;
-    int           sign;
-    float_class_t aClass;
+    const floatx80            Const_Z = packFloatx80(0, 0x0000, 0);
+    struct softfloat_status_t status;
+    int                       rc;
 
     FP_ENTER();
+    FPU_check_pending_exceptions();
+    cpu_state.pc++;
+    clear_C1();
+    if (IS_TAG_EMPTY(0)) {
+        FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
+        setcc(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
+    } else {
+        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        rc     = extF80_compare_normal(FPU_read_regi(0), Const_Z, &status);
+        setcc(FPU_status_word_flags_fpu_compare(rc));
+        FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0);
+        FPU_pop();
+    }
+    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.ftst) : (x87_timings.ftst * cpu_multi));
+    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.ftst) : (x87_concurrency.ftst * cpu_multi));
+    return 0;
+}
+#endif
+
+static int
+sf_FXAM(UNUSED(uint32_t fetchdat))
+{
+    floatx80            reg;
+    int                 sign;
+    softfloat_class_t   aClass;
+
+    FP_ENTER();
+    FPU_check_pending_exceptions();
     cpu_state.pc++;
     reg  = FPU_read_regi(0);
-    sign = floatx80_sign(reg);
+    sign = extF80_sign(reg);
     /*
      * Examine the contents of the ST(0) register and sets the condition
      * code flags C0, C2 and C3 in the FPU status word to indicate the
      * class of value or number in the register.
      */
     if (IS_TAG_EMPTY(0)) {
-        setcc(C3 | C1 | C0);
+        setcc(FPU_SW_C0 | FPU_SW_C1 | FPU_SW_C3);
     } else {
-        aClass = floatx80_class(reg);
+        aClass = extF80_class(reg);
         switch (aClass) {
-            case float_zero:
-                setcc(C3 | C1);
+            case softfloat_zero:
+                setcc(FPU_SW_C1 | FPU_SW_C3);
                 break;
-            case float_SNaN:
-            case float_QNaN:
+            case softfloat_SNaN:
+            case softfloat_QNaN:
                 // unsupported handled as NaNs
-                if (floatx80_is_unsupported(reg)) {
-                    setcc(C1);
-                } else {
-                    setcc(C1 | C0);
-                }
+                if (extF80_isUnsupported(reg))
+                    setcc(FPU_SW_C1);
+                else
+                    setcc(FPU_SW_C0 | FPU_SW_C1);
                 break;
-            case float_negative_inf:
-            case float_positive_inf:
-                setcc(C2 | C1 | C0);
+            case softfloat_negative_inf:
+            case softfloat_positive_inf:
+                setcc(FPU_SW_C0 | FPU_SW_C1 | FPU_SW_C2);
                 break;
-            case float_denormal:
-                setcc(C3 | C2 | C1);
+            case softfloat_denormal:
+                setcc(FPU_SW_C1 | FPU_SW_C2 | FPU_SW_C3);
                 break;
-            case float_normalized:
-                setcc(C2 | C1);
+            case softfloat_normalized:
+                setcc(FPU_SW_C1 | FPU_SW_C2);
                 break;
         }
     }

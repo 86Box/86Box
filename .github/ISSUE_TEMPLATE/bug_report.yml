@@ -6,7 +6,15 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report!
+        ## Thanks for taking the time to fill out this bug report!
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      options:
+        - label: I **have searched** the issue tracker and **was unable** to find an [open](../issues?q=is%3Aissue+is%3Aopen) or [closed](../issues?q=is%3Aissue+is%3Aclosed) issue matching what I'm seeing. 
+          required: true
+        - label: I **have verified** that the issue is happening in the **[latest nightly build](https://ci.86box.net/job/86Box/lastSuccessfulBuild/artifact/)**, or the latest commit, if building from source.
+          required: true
   - type: textarea
     attributes:
       label: What happened?
@@ -25,20 +33,13 @@ body:
     attributes:
       label: Operating system
       description: What is your host operating system?
-      placeholder: e.g. Windows 10
-    validations:
-      required: true
-  - type: input
-    attributes:
-      label: CPU
-      description: What is your host CPU?
-      placeholder: e.g. AMD Ryzen 5 5600G
+      placeholder: e.g. Windows 11 24H2
     validations:
       required: true
   - type: input
     attributes:
       label: 86Box version
-      description: What version of 86Box are you running? (Saying "Latest from Jenkins" is not helpful.)
+      description: What version of 86Box are you running? (Please ensure you have updated to the [latest build](https://ci.86box.net/job/86Box/lastSuccessfulBuild/artifact/) before reporting. Merely saying "Latest from Jenkins" is not helpful.)
       placeholder: e.g. v4.0 build 5000
     validations:
       required: true
@@ -47,13 +48,13 @@ body:
       label: Build architecture
       description: 86Box for what architecture are you using?
       options: 
-        - Linux - ARM (32-bit) 
-        - Linux - ARM (64-bit) 
-        - Linux - x64 (64-bit) 
-        - Linux - x86 (32-bit) 
-        - macOS - Universal (Intel and Apple Silicon) 
         - Windows - x64 (64-bit) 
+        - macOS - Universal (Intel and Apple Silicon) 
+        - Linux - x64 (64-bit) 
+        - Linux - ARM (64-bit) 
         - Windows - x86 (32-bit)
+        - Linux - ARM (32-bit) 
+        - Linux - x86 (32-bit) 
     validations:
       required: true
   - type: checkboxes
@@ -63,18 +64,7 @@ body:
       options:
         - label: New recompiler
         - label: Debug build
-  - type: dropdown
-    attributes:
-      label: Download source
-      description: Where did you download 86Box from?
-      options:
-        - Official website (Jenkins, GitHub)
-        - Manager auto-update
-        - I built 86Box myself (please tell us more about your build configuration)
-        - I got 86Box from a third party repository (please tell us where)
-    validations:
-      required: true
   - type: textarea
     attributes:
       label: Additional context
-      description: Is there anything else you want to tell us?
+      description: Is there anything else you want to tell us? If you build 86Box from source, please post your build configuration here.

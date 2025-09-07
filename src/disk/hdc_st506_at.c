@@ -134,26 +134,27 @@ st506_at_log(const char *fmt, ...)
 #    define st506_at_log(fmt, ...)
 #endif
 
-static inline void
+static __inline void
 irq_raise(mfm_t *mfm)
 {
-    if (!(mfm->fdisk & 2))
-        picint(1 << 14);
-
     mfm->irqstat = 1;
+    if (!(mfm->fdisk & 2))
+        picint_common(1 << 14, PIC_IRQ_EDGE, 1, NULL);
 }
 
-static inline void
-irq_lower(UNUSED(mfm_t *mfm))
+static __inline void
+irq_lower(mfm_t *mfm)
 {
-    picintc(1 << 14);
+    mfm->irqstat = 0;
+    if (!(mfm->fdisk & 2))
+        picint_common(1 << 14, PIC_IRQ_EDGE, 0, NULL);
 }
 
-static void
+static __inline void
 irq_update(mfm_t *mfm)
 {
-    if (mfm->irqstat && !((pic2.irr | pic2.isr) & 0x40) && !(mfm->fdisk & 2))
-        picint(1 << 14);
+    uint8_t set = !(mfm->fdisk & 2) && mfm->irqstat;
+    picint_common(1 << 14, PIC_IRQ_EDGE, set, NULL);
 }
 
 /*
@@ -186,7 +187,7 @@ get_sector(mfm_t *mfm, off64_t *addr)
         return 1;
     }
 
-    if (mfm->sector >= drive->cfg_spt + 1) {
+    if (mfm->sector >= (drive->cfg_spt + 1)) {
         st506_at_log("WD1003(%d) get_sector: past end of configured sectors\n",
                      mfm->drvsel);
         return 1;
@@ -198,12 +199,41 @@ get_sector(mfm_t *mfm, off64_t *addr)
         return 1;
     }
 
-    if (mfm->sector >= drive->spt + 1) {
+    if (mfm->sector >= (drive->spt + 1)) {
         st506_at_log("WD1003(%d) get_sector: past end of sectors\n", mfm->drvsel);
         return 1;
     }
 
     *addr = ((((off64_t) mfm->cylinder * drive->cfg_hpc) + mfm->head) * drive->cfg_spt) + (mfm->sector - 1);
+
+    return 0;
+}
+
+static int
+get_sector_format(mfm_t *mfm, off64_t *addr)
+{
+    const drive_t *drive = &mfm->drives[mfm->drvsel];
+
+    /* FIXME: See if this is even needed - if the code is present, IBM AT
+              diagnostics v2.07 will error with: ERROR 152 - SYSTEM BOARD. */
+    if (drive->curcyl != mfm->cylinder) {
+        st506_at_log("WD1003(%d) sector: wrong cylinder\n");
+        return 1;
+    }
+
+    if (mfm->head > drive->cfg_hpc) {
+        st506_at_log("WD1003(%d) get_sector: past end of configured heads\n",
+                     mfm->drvsel);
+        return 1;
+    }
+
+    /* We should check this in the SET_DRIVE_PARAMETERS command!  --FvK */
+    if (mfm->head > drive->hpc) {
+        st506_at_log("WD1003(%d) get_sector: past end of heads\n", mfm->drvsel);
+        return 1;
+    }
+
+    *addr = ((((off64_t) mfm->cylinder * drive->cfg_hpc) + mfm->head) * drive->cfg_spt);
 
     return 0;
 }
@@ -247,13 +277,9 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
     switch (val & 0xf0) {
         case CMD_RESTORE:
             drive->steprate = (val & 0x0f);
-            st506_at_log("WD1003(%d) restore, step=%d\n",
-                         mfm->drvsel, drive->steprate);
-            drive->curcyl = 0;
-            mfm->cylinder = 0;
-            mfm->status   = STAT_READY | STAT_DSC;
             mfm->command &= 0xf0;
-            irq_raise(mfm);
+            mfm->status = STAT_BUSY;
+            timer_set_delay_u64(&mfm->callback_timer, 200 * MFM_TIME);
             break;
 
         case CMD_SEEK:
@@ -310,38 +336,8 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
                     break;
 
                 case CMD_SET_PARAMETERS:
-                    /*
-                     * NOTE:
-                     *
-                     * We currently just set these parameters, and
-                     * never bother to check if they "fit within"
-                     * the actual parameters, as determined by the
-                     * image loader.
-                     *
-                     * The difference in parameters is OK, and
-                     * occurs when the BIOS or operating system
-                     * decides to use a different translation
-                     * scheme, but either way, it SHOULD always
-                     * fit within the actual parameters!
-                     *
-                     * We SHOULD check that here!! --FvK
-                     */
-                    if (drive->cfg_spt == 0) {
-                        /* Only accept after RESET or DIAG. */
-                        drive->cfg_spt = mfm->secount;
-                        drive->cfg_hpc = mfm->head + 1;
-                        st506_at_log("WD1003(%d) parameters: tracks=%d, spt=%i, hpc=%i\n",
-                                     mfm->drvsel, drive->tracks,
-                                     drive->cfg_spt, drive->cfg_hpc);
-                    } else {
-                        st506_at_log("WD1003(%d) parameters: tracks=%d,spt=%i,hpc=%i (IGNORED)\n",
-                                     mfm->drvsel, drive->tracks,
-                                     drive->cfg_spt, drive->cfg_hpc);
-                    }
-                    mfm->command = 0x00;
-                    mfm->status  = STAT_READY | STAT_DSC;
-                    mfm->error   = 1;
-                    irq_raise(mfm);
+                    mfm->status = STAT_BUSY;
+                    timer_set_delay_u64(&mfm->callback_timer, 200 * MFM_TIME);
                     break;
 
                 default:
@@ -378,6 +374,7 @@ static void
 mfm_write(uint16_t port, uint8_t val, void *priv)
 {
     mfm_t *mfm = (mfm_t *) priv;
+    uint8_t old;
 
     st506_at_log("WD1003 write(%04x, %02x)\n", port, val);
 
@@ -408,7 +405,7 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x01f6: /* drive/head */
             mfm->head   = val & 0xF;
-            mfm->drvsel = (val & 0x10) ? 1 : 0;
+            mfm->drvsel = !!(val & 0x10);
             if (mfm->drives[mfm->drvsel].present)
                 mfm->status = STAT_READY | STAT_DSC;
             else
@@ -425,15 +422,15 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
                 timer_set_delay_u64(&mfm->callback_timer, 500 * MFM_TIME);
                 mfm->reset  = 1;
                 mfm->status = STAT_BUSY;
-            }
-
-            if (val & 0x04) {
+            } else if (!(mfm->fdisk & 0x04) && (val & 0x04)) {
                 /* Drive held in reset. */
                 timer_disable(&mfm->callback_timer);
                 mfm->status = STAT_BUSY;
             }
+            old = mfm->fdisk;
             mfm->fdisk = val;
-            irq_update(mfm);
+            if (!(val & 0x02) && (old & 0x02))
+                irq_update(mfm);
             break;
 
         default:
@@ -560,11 +557,21 @@ do_callback(void *priv)
         mfm->reset = 0;
 
         ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+        ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
 
         return;
     }
 
     switch (mfm->command) {
+        case CMD_RESTORE:
+            st506_at_log("WD1003(%d) restore, step=%d\n",
+                         mfm->drvsel, drive->steprate);
+            drive->curcyl = 0;
+            mfm->cylinder = 0;
+            mfm->status   = STAT_READY | STAT_DSC;
+            irq_raise(mfm);
+            break;
+
         case CMD_SEEK:
             st506_at_log("WD1003(%d) seek, step=%d\n",
                          mfm->drvsel, drive->steprate);
@@ -579,12 +586,16 @@ do_callback(void *priv)
             do_seek(mfm);
             if (get_sector(mfm, &addr)) {
                 mfm->error  = ERR_ID_NOT_FOUND;
+read_error:
                 mfm->status = STAT_READY | STAT_DSC | STAT_ERR;
                 irq_raise(mfm);
                 break;
             }
 
-            hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) mfm->buffer);
+            if (hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *) mfm->buffer) < 0) {
+                mfm->error = ERR_BAD_BLOCK;
+                goto read_error;
+            }
 
             mfm->pos    = 0;
             mfm->status = STAT_DRQ | STAT_READY | STAT_DSC;
@@ -598,12 +609,16 @@ do_callback(void *priv)
             do_seek(mfm);
             if (get_sector(mfm, &addr)) {
                 mfm->error  = ERR_ID_NOT_FOUND;
+write_error:
                 mfm->status = STAT_READY | STAT_DSC | STAT_ERR;
                 irq_raise(mfm);
                 break;
             }
 
-            hdd_image_write(drive->hdd_num, addr, 1, (uint8_t *) mfm->buffer);
+            if (hdd_image_write(drive->hdd_num, addr, 1, (uint8_t *) mfm->buffer) < 0) {
+                mfm->error = ERR_BAD_BLOCK;
+                goto write_error;
+            }
             irq_raise(mfm);
             mfm->secount = (mfm->secount - 1) & 0xff;
 
@@ -613,9 +628,9 @@ do_callback(void *priv)
                 mfm->status |= STAT_DRQ;
                 mfm->pos = 0;
                 next_sector(mfm);
-                ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
+                ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 1);
             } else
-                ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+                ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
             break;
 
         case CMD_VERIFY:
@@ -632,7 +647,7 @@ do_callback(void *priv)
             st506_at_log("WD1003(%d) format(%d,%d)\n",
                          mfm->drvsel, mfm->cylinder, mfm->head);
             do_seek(mfm);
-            if (get_sector(mfm, &addr)) {
+            if (get_sector_format(mfm, &addr)) {
                 mfm->error  = ERR_ID_NOT_FOUND;
                 mfm->status = STAT_READY | STAT_DSC | STAT_ERR;
                 irq_raise(mfm);
@@ -643,7 +658,7 @@ do_callback(void *priv)
 
             mfm->status = STAT_READY | STAT_DSC;
             irq_raise(mfm);
-            ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
+            ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 1);
             break;
 
         case CMD_DIAGNOSE:
@@ -657,6 +672,41 @@ do_callback(void *priv)
             drive->steprate = 0x0f;
             mfm->error      = 1;
             mfm->status     = STAT_READY | STAT_DSC;
+            irq_raise(mfm);
+            break;
+
+        case CMD_SET_PARAMETERS:
+            /*
+             * NOTE:
+             *
+             * We currently just set these parameters, and
+             * never bother to check if they "fit within"
+             * the actual parameters, as determined by the
+             * image loader.
+             *
+             * The difference in parameters is OK, and
+             * occurs when the BIOS or operating system
+             * decides to use a different translation
+             * scheme, but either way, it SHOULD always
+             * fit within the actual parameters!
+             *
+             * We SHOULD check that here!! --FvK
+             */
+            if (drive->cfg_spt == 0) {
+                /* Only accept after RESET or DIAG. */
+                drive->cfg_spt = mfm->secount;
+                drive->cfg_hpc = mfm->head + 1;
+                st506_at_log("WD1003(%d) parameters: tracks=%d, spt=%i, hpc=%i\n",
+                             mfm->drvsel, drive->tracks,
+                             drive->cfg_spt, drive->cfg_hpc);
+            } else {
+                st506_at_log("WD1003(%d) parameters: tracks=%d,spt=%i,hpc=%i (IGNORED)\n",
+                             mfm->drvsel, drive->tracks,
+                             drive->cfg_spt, drive->cfg_hpc);
+            }
+            mfm->command = 0x00;
+            mfm->status  = STAT_READY | STAT_DSC;
+            mfm->error   = 1;
             irq_raise(mfm);
             break;
 
@@ -695,12 +745,11 @@ mfm_init(UNUSED(const device_t *info))
     int    c;
 
     st506_at_log("WD1003: ISA MFM/RLL Fixed Disk Adapter initializing ...\n");
-    mfm = malloc(sizeof(mfm_t));
-    memset(mfm, 0x00, sizeof(mfm_t));
+    mfm = calloc(1, sizeof(mfm_t));
 
     c = 0;
     for (uint8_t d = 0; d < HDD_NUM; d++) {
-        if ((hdd[d].bus == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
+        if ((hdd[d].bus_type == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
             loadhd(mfm, hdd[d].mfm_channel, d, hdd[d].fn);
 
             st506_at_log("WD1003(%d): (%s) geometry %d/%d/%d\n", c, hdd[d].fn,
@@ -724,6 +773,7 @@ mfm_init(UNUSED(const device_t *info))
     timer_add(&mfm->callback_timer, do_callback, mfm, 0);
 
     ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
 
     return mfm;
 }
@@ -742,17 +792,18 @@ mfm_close(void *priv)
     free(mfm);
 
     ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
 }
 
 const device_t st506_at_wd1003_device = {
     .name          = "WD1003 AT MFM/RLL Controller",
     .internal_name = "st506_at",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = mfm_init,
     .close         = mfm_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

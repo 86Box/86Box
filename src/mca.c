@@ -101,3 +101,19 @@ mca_add(uint8_t (*read)(int addr, void *priv), void (*write)(int addr, uint8_t v
         }
     }
 }
+
+void
+mca_add_to_slot(uint8_t (*read)(int addr, void* priv), void (*write)(int addr, uint8_t val, void* priv), uint8_t(*feedb)(void* priv), void (*reset)(void* priv), void* priv, int c)
+{
+    if (mca_card_read[c] || mca_card_write[c])
+    {
+        //pclog("cannot add the device to slot %d\n", num);
+        return;
+    }
+    mca_card_read[c] = read;
+    mca_card_write[c] = write;
+    mca_card_feedb[c] = feedb;
+    mca_card_reset[c] = reset;
+    mca_priv[c] = priv;
+    return;
+}

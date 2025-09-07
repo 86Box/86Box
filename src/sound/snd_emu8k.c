@@ -328,7 +328,7 @@ emu8k_log(const char *fmt, ...)
 static inline int16_t
 EMU8K_READ(emu8k_t *emu8k, uint32_t addr)
 {
-    const register emu8k_mem_pointers_t addrmem = { { addr } };
+    register const emu8k_mem_pointers_t addrmem = { { addr } };
     return emu8k->ram_pointers[addrmem.hb_address][addrmem.lw_address];
 }
 
@@ -1758,8 +1758,7 @@ int32_t old_vol[32]   = { 0 };
 void
 emu8k_update(emu8k_t *emu8k)
 {
-    int new_pos = (sound_pos_global * FREQ_44100) / SOUND_FREQ;
-    if (emu8k->pos >= new_pos)
+    if (emu8k->pos >= wavetable_pos_global)
         return;
 
     int32_t       *buf;
@@ -1768,16 +1767,16 @@ emu8k_update(emu8k_t *emu8k)
 
     /* Clean the buffers since we will accumulate into them. */
     buf = &emu8k->buffer[emu8k->pos * 2];
-    memset(buf, 0, 2 * (new_pos - emu8k->pos) * sizeof(emu8k->buffer[0]));
-    memset(&emu8k->chorus_in_buffer[emu8k->pos], 0, (new_pos - emu8k->pos) * sizeof(emu8k->chorus_in_buffer[0]));
-    memset(&emu8k->reverb_in_buffer[emu8k->pos], 0, (new_pos - emu8k->pos) * sizeof(emu8k->reverb_in_buffer[0]));
+    memset(buf, 0, 2 * (wavetable_pos_global - emu8k->pos) * sizeof(emu8k->buffer[0]));
+    memset(&emu8k->chorus_in_buffer[emu8k->pos], 0, (wavetable_pos_global - emu8k->pos) * sizeof(emu8k->chorus_in_buffer[0]));
+    memset(&emu8k->reverb_in_buffer[emu8k->pos], 0, (wavetable_pos_global - emu8k->pos) * sizeof(emu8k->reverb_in_buffer[0]));
 
     /* Voices section  */
     for (uint8_t c = 0; c < 32; c++) {
         emu_voice = &emu8k->voice[c];
         buf       = &emu8k->buffer[emu8k->pos * 2];
 
-        for (pos = emu8k->pos; pos < new_pos; pos++) {
+        for (pos = emu8k->pos; pos < wavetable_pos_global; pos++) {
             int32_t dat;
 
             if (emu_voice->cvcf_curr_volume) {
@@ -2121,29 +2120,14 @@ emu8k_update(emu8k_t *emu8k)
     }
 
     buf = &emu8k->buffer[emu8k->pos * 2];
-    emu8k_work_reverb(&emu8k->reverb_in_buffer[emu8k->pos], buf, &emu8k->reverb_engine, new_pos - emu8k->pos);
-    emu8k_work_chorus(&emu8k->chorus_in_buffer[emu8k->pos], buf, &emu8k->chorus_engine, new_pos - emu8k->pos);
-    emu8k_work_eq(buf, new_pos - emu8k->pos);
-
-    // Clip signal
-    for (pos = emu8k->pos; pos < new_pos; pos++) {
-        if (buf[0] < -32768)
-            buf[0] = -32768;
-        else if (buf[0] > 32767)
-            buf[0] = 32767;
-
-        if (buf[1] < -32768)
-            buf[1] = -32768;
-        else if (buf[1] > 32767)
-            buf[1] = 32767;
-
-        buf += 2;
-    }
+    emu8k_work_reverb(&emu8k->reverb_in_buffer[emu8k->pos], buf, &emu8k->reverb_engine, wavetable_pos_global - emu8k->pos);
+    emu8k_work_chorus(&emu8k->chorus_in_buffer[emu8k->pos], buf, &emu8k->chorus_engine, wavetable_pos_global - emu8k->pos);
+    emu8k_work_eq(buf, wavetable_pos_global - emu8k->pos);
 
     /* Update EMU clock. */
-    emu8k->wc += (new_pos - emu8k->pos);
+    emu8k->wc += (wavetable_pos_global - emu8k->pos);
 
-    emu8k->pos = new_pos;
+    emu8k->pos = wavetable_pos_global;
 }
 
 void
@@ -2172,7 +2156,7 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
     int            c;
     double         out;
 
-    fp = rom_fopen("roms/sound/creative/awe32.raw", "rb");
+    fp = rom_fopen(EMU8K_ROM_PATH, "rb");
     if (!fp)
         fatal("AWE32.RAW not found\n");
 
@@ -2187,8 +2171,7 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
         emu8k->rom[0x7ffff] = 0;
     }
 
-    emu8k->empty = malloc(2 * BLOCK_SIZE_WORDS);
-    memset(emu8k->empty, 0, 2 * BLOCK_SIZE_WORDS);
+    emu8k->empty = calloc(2, BLOCK_SIZE_WORDS);
 
     int j = 0;
     for (; j < 0x8; j++) {
@@ -2202,8 +2185,7 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
         /*Clip to 28MB, since that's the max that we can address. */
         if (onboard_ram > 0x7000)
             onboard_ram = 0x7000;
-        emu8k->ram = malloc(onboard_ram * 1024);
-        memset(emu8k->ram, 0, onboard_ram * 1024);
+        emu8k->ram = calloc(1024, onboard_ram);
         const int i_end = onboard_ram >> 7;
         int       i     = 0;
         for (; i < i_end; i++, j++) {

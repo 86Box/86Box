@@ -92,7 +92,7 @@ read_footer(MVHDMeta* vhdm)
 static void
 read_sparse_header(MVHDMeta* vhdm)
 {
-    uint8_t buffer[MVHD_SPARSE_SIZE];
+    uint8_t buffer[MVHD_SPARSE_SIZE] = { 0 };
 
     mvhd_fseeko64(vhdm->f, vhdm->footer.data_offset, SEEK_SET);
     (void) !fread(buffer, sizeof buffer, 1, vhdm->f);
@@ -438,17 +438,15 @@ mvhd_version_id(void)
 MVHDAPI int
 mvhd_file_is_vhd(FILE* f)
 {
-    uint8_t con_str[8];
+    uint8_t con_str[8] = { 0 };
 
-    if (f == NULL) {
+    if (f == NULL)
         return 0;
-    }
 
     mvhd_fseeko64(f, -MVHD_FOOTER_SIZE, SEEK_END);
     (void) !fread(con_str, sizeof con_str, 1, f);
-    if (mvhd_is_conectix_str(con_str)) {
+    if (mvhd_is_conectix_str(con_str))
         return 1;
-    }
 
     return 0;
 }
@@ -457,13 +455,12 @@ mvhd_file_is_vhd(FILE* f)
 MVHDAPI MVHDGeom
 mvhd_calculate_geometry(uint64_t size)
 {
-    MVHDGeom chs;
+    MVHDGeom chs = { 0 };
     uint32_t ts = (uint32_t)(size / MVHD_SECTOR_SIZE);
     uint32_t spt, heads, cyl, cth;
 
-    if (ts > 65535 * 16 * 255) {
+    if (ts > 65535 * 16 * 255)
         ts = 65535 * 16 * 255;
-    }
 
     if (ts >= 65535 * 16 * 63) {
         spt = 255;
@@ -473,9 +470,8 @@ mvhd_calculate_geometry(uint64_t size)
         spt = 17;
         cth = ts / spt;
         heads = (cth + 1023) / 1024;
-        if (heads < 4) {
+        if (heads < 4)
             heads = 4;
-        }
         if (cth >= (heads * 1024) || heads > 16) {
             spt = 31;
             heads = 16;
@@ -500,7 +496,7 @@ mvhd_calculate_geometry(uint64_t size)
 MVHDAPI MVHDMeta*
 mvhd_open(const char* path, int readonly, int* err)
 {
-    MVHDError open_err;
+    MVHDError open_err = { 0 };
 
     MVHDMeta *vhdm = calloc(sizeof *vhdm, 1);
     if (vhdm == NULL) {
@@ -516,11 +512,10 @@ mvhd_open(const char* path, int readonly, int* err)
     //This is safe, as we've just checked for potential overflow above
     strcpy(vhdm->filename, path);
 
-    if (readonly) {
+    if (readonly)
         vhdm->f = mvhd_fopen((const char*)vhdm->filename, "rb", err);
-    } else {
+    else
         vhdm->f = mvhd_fopen((const char*)vhdm->filename, "rb+", err);
-    }
     if (vhdm->f == NULL) {
         /* note, mvhd_fopen sets err for us */
         goto cleanup_vhdm;
@@ -567,14 +562,12 @@ mvhd_open(const char* path, int readonly, int* err)
     vhdm->format_buffer.sector_count = 64;
     if (vhdm->footer.disk_type == MVHD_TYPE_DIFF) {
         char* par_path = get_diff_parent_path(vhdm, err);
-        if (par_path == NULL) {
+        if (par_path == NULL)
             goto cleanup_format_buff;
-        }
 
         uint32_t par_mod_ts = mvhd_file_mod_timestamp(par_path, err);
-        if (*err != 0) {
+        if (*err != 0)
             goto cleanup_format_buff;
-        }
 
         if (vhdm->sparse.par_timestamp != par_mod_ts) {
             /* The last-modified timestamp is to fragile to make this a fatal error.
@@ -582,9 +575,8 @@ mvhd_open(const char* path, int readonly, int* err)
             *err = MVHD_ERR_TIMESTAMP;
         }
         vhdm->parent = mvhd_open(par_path, true, err);
-        if (vhdm->parent == NULL) {
+        if (vhdm->parent == NULL)
             goto cleanup_format_buff;
-        }
 
         if (memcmp(vhdm->sparse.par_uuid, vhdm->parent->footer.uuid, sizeof vhdm->sparse.par_uuid) != 0) {
             *err = MVHD_ERR_INVALID_PAR_UUID;
@@ -629,9 +621,8 @@ mvhd_close(MVHDMeta* vhdm)
     if (vhdm == NULL)
         return;
 
-    if (vhdm->parent != NULL) {
+    if (vhdm->parent != NULL)
         mvhd_close(vhdm->parent);
-    }
 
     fclose(vhdm->f);
 
@@ -655,7 +646,7 @@ mvhd_close(MVHDMeta* vhdm)
 MVHDAPI int
 mvhd_diff_update_par_timestamp(MVHDMeta* vhdm, int* err)
 {
-    uint8_t sparse_buff[1024];
+    uint8_t sparse_buff[1024] = { 0 };
 
     if (vhdm == NULL || err == NULL) {
         *err = MVHD_ERR_INVALID_PARAMS;

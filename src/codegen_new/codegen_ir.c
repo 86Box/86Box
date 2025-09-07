@@ -2,6 +2,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "codegen.h"
 #include "codegen_allocator.h"
@@ -37,7 +38,7 @@ codegen_ir_set_unroll(int count, int start, int first_instruction)
 static void
 duplicate_uop(ir_data_t *ir, uop_t *uop, int offset)
 {
-    uop_t *new_uop = uop_alloc(ir, uop->type);
+    uop_t *new_uop = uop_alloc_unroll(ir, uop->type);
 
     if (!ir_reg_is_invalid(uop->src_reg_a))
         new_uop->src_reg_a = codegen_reg_read(uop->src_reg_a.reg);

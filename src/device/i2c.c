@@ -67,8 +67,7 @@ i2c_log(const char *fmt, ...)
 void *
 i2c_addbus(char *name)
 {
-    i2c_bus_t *bus = (i2c_bus_t *) malloc(sizeof(i2c_bus_t));
-    memset(bus, 0, sizeof(i2c_bus_t));
+    i2c_bus_t *bus = (i2c_bus_t *) calloc(1, sizeof(i2c_bus_t));
 
     bus->name = name;
 
@@ -127,8 +126,7 @@ i2c_sethandler(void *bus_handle, uint8_t base, int size,
 
     for (int c = 0; c < size; c++) {
         p = bus->last[base + c];
-        q = (i2c_t *) malloc(sizeof(i2c_t));
-        memset(q, 0, sizeof(i2c_t));
+        q = (i2c_t *) calloc(1, sizeof(i2c_t));
         if (p) {
             p->next = q;
             q->prev = p;

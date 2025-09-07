@@ -21,11 +21,21 @@
 #include <QStringBuilder>
 #include <utility>
 #include "qt_mediahistorymanager.hpp"
+#ifdef Q_OS_WINDOWS
+#include <windows.h>
+#endif
 
 extern "C" {
 #include <86box/timer.h>
-#include <86box/cdrom.h>
+#include <86box/device.h>
+#include <86box/cassette.h>
+#include <86box/cartridge.h>
 #include <86box/fdd.h>
+#include <86box/cdrom.h>
+#include <86box/scsi_device.h>
+#include <86box/rdisk.h>
+#include <86box/mo.h>
+#include <86box/path.h>
 }
 
 namespace ui {
@@ -94,13 +104,25 @@ MediaHistoryManager::getImageForSlot(int index, int slot, ui::MediaType type)
     return image_name;
 }
 
-// These are hardcoded since we can't include the various
-// header files where they are defined (e.g., fdd.h, mo.h).
-// However, all in ui::MediaType support 4 except cassette.
 int
 MediaHistoryManager::maxDevicesSupported(ui::MediaType type)
 {
-    return type == ui::MediaType::Cassette ? 1 : 4;
+    switch (type) {
+        default:
+            return 4;
+        case ui::MediaType::Optical:
+            return CDROM_NUM;
+        case ui::MediaType::Floppy:
+            return FDD_NUM;
+        case ui::MediaType::RDisk:
+            return RDISK_NUM;
+        case ui::MediaType::Mo:
+            return MO_NUM;
+        case ui::MediaType::Cassette:
+            return 1;
+        case ui::MediaType::Cartridge:
+            return 2;
+    }
 }
 
 void
@@ -163,17 +185,31 @@ MediaHistoryManager::initialDeduplication()
         for (int device_index = 0; device_index < maxDevicesSupported(device_type); device_index++) {
             device_index_list_t device_history = getHistoryListForDeviceIndex(device_index, device_type);
             switch (device_type) {
-                case ui::MediaType::Optical:
-                    current_image = cdrom[device_index].image_path;
+                default:
+                    continue;
+                    break;
+                case ui::MediaType::Cassette:
+                    current_image = cassette_fname;
+                    break;
+                case ui::MediaType::Cartridge:
+                    current_image = cart_fns[device_index];
                     break;
                 case ui::MediaType::Floppy:
                     current_image = floppyfns[device_index];
                     break;
-                default:
-                    continue;
+                case ui::MediaType::Optical:
+                    current_image = cdrom[device_index].image_path;
+                    break;
+                case ui::MediaType::RDisk:
+                    current_image = rdisk_drives[device_index].image_path;
+                    break;
+                case ui::MediaType::Mo:
+                    current_image = mo_drives[device_index].image_path;
                     break;
             }
             deduplicateList(device_history, QVector<QString>(1, current_image));
+            device_history = removeMissingImages(device_history);
+            device_history = pathAdjustFull(device_history);
             // Fill in missing, if any
             int missing = MAX_PREV_IMAGES - device_history.size();
             if (missing) {
@@ -182,6 +218,7 @@ MediaHistoryManager::initialDeduplication()
                 }
             }
             setHistoryListForDeviceIndex(device_index, device_type, device_history);
+            serializeImageHistoryType(device_type);
         }
     }
 }
@@ -190,12 +227,20 @@ char **
 MediaHistoryManager::getEmuHistoryVarForType(ui::MediaType type, int index)
 {
     switch (type) {
-        case ui::MediaType::Optical:
-            return &cdrom[index].image_history[0];
-        case ui::MediaType::Floppy:
-            return &fdd_image_history[index][0];
         default:
             return nullptr;
+        case ui::MediaType::Cassette:
+            return &cassette_image_history[0];
+        case ui::MediaType::Cartridge:
+            return &cart_image_history[index][0];
+        case ui::MediaType::Floppy:
+            return &fdd_image_history[index][0];
+        case ui::MediaType::Optical:
+            return &cdrom[index].image_history[0];
+        case ui::MediaType::RDisk:
+            return &rdisk_drives[index].image_history[0];
+        case ui::MediaType::Mo:
+            return &mo_drives[index].image_history[0];
     }
 }
 
@@ -275,9 +320,6 @@ MediaHistoryManager::pathAdjustSingle(QString checked_path)
     if (file_info.filePath().isEmpty() || current_usr_path.isEmpty() || file_info.isRelative()) {
         return checked_path;
     }
-    if (file_info.filePath().startsWith(current_usr_path)) {
-        checked_path = file_info.filePath().remove(current_usr_path);
-    }
     return checked_path;
 }
 
@@ -304,10 +346,46 @@ MediaHistoryManager::removeMissingImages(device_index_list_t &device_history)
         if (file_info.filePath().isEmpty()) {
             continue;
         }
-        // For this check, explicitly prepend `usr_path` to relative paths to account for $CWD platform variances
-        QFileInfo absolute_path = file_info.isRelative() ? QFileInfo(getUsrPath().append(file_info.filePath())) : file_info;
-        if (!absolute_path.exists()) {
-            qWarning("Image file %s does not exist - removing from history", qPrintable(file_info.filePath()));
+
+        char temp[MAX_IMAGE_PATH_LEN * 2] = { 0 };
+
+        if (checked_path.left(8) == "ioctl://") {
+            strncpy(temp, checked_path.toUtf8().data(), sizeof(temp) - 10);
+            temp[sizeof(temp) - 1] = '\0';
+        } else {
+            QString path_only;
+            if (checked_path.left(5) == "wp://")
+                path_only = checked_path.right(checked_path.length() - 5);
+            else
+                path_only = checked_path;
+
+            if (path_abs(path_only.toUtf8().data())) {
+                if (path_only.length() > (MAX_IMAGE_PATH_LEN - 1))
+                    fatal("removeMissingImages(): path_only.length() > %i\n", MAX_IMAGE_PATH_LEN - 1);
+                else
+                    snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s", path_only.toUtf8().constData());
+            } else {
+                if ((strlen(usr_path) + strlen(path_get_slash(usr_path)) + path_only.length()) > (MAX_IMAGE_PATH_LEN - 1))
+                    fatal("removeMissingImages(): Combined absolute path length > %i\n", MAX_IMAGE_PATH_LEN - 1);
+                else
+                    snprintf(temp, (MAX_IMAGE_PATH_LEN - 1), "%s%s%s", usr_path,
+                             path_get_slash(usr_path), path_only.toUtf8().constData());
+            }
+            path_normalize(temp);
+        }
+
+        QString qstr = QString::fromUtf8(temp);
+        QFileInfo new_fi(qstr);
+
+        bool file_exists = new_fi.exists();
+
+#ifdef Q_OS_WINDOWS
+        if (new_fi.filePath().left(8) == "ioctl://")
+            file_exists = (GetDriveTypeA(new_fi.filePath().right(2).toUtf8().data()) == DRIVE_CDROM);
+#endif
+
+        if (!file_exists) {
+            qWarning("Image file %s does not exist - removing from history", qPrintable(new_fi.filePath()));
             checked_path = "";
         }
     }

@@ -26,6 +26,10 @@
 #include <QDir>
 #include <QFile>
 #include <QLibraryInfo>
+#ifdef Q_OS_WINDOWS
+#    include <QSysInfo>
+#    include <QVersionNumber>
+#endif
 
 extern "C" {
 #include <86box/86box.h>
@@ -36,92 +40,88 @@ extern "C" {
 #include <86box/rom.h>
 }
 
-static QMap<QString, QString> iconset_to_qt;
 extern MainWindow            *main_window;
 
 ProgSettings::CustomTranslator *ProgSettings::translator   = nullptr;
 QTranslator                    *ProgSettings::qtTranslator = nullptr;
-QString
-ProgSettings::getIconSetPath()
-{
-    if (iconset_to_qt.isEmpty()) {
-        // Always include default bundled icons
-        iconset_to_qt.insert("", ":/settings/win/icons");
-        // Walk rom_paths to get the candidates
-        for (rom_path_t *emu_rom_path = &rom_paths; emu_rom_path != nullptr; emu_rom_path = emu_rom_path->next) {
-            // Check for icons subdir in each candidate
-            QDir roms_icons_dir(QString(emu_rom_path->path) + "/icons");
-            if (roms_icons_dir.isReadable()) {
-                auto dirList = roms_icons_dir.entryList(QDir::AllDirs | QDir::Executable | QDir::Readable);
-                for (auto &curIconSet : dirList) {
-                    if (curIconSet == "." || curIconSet == "..") {
-                        continue;
-                    }
-                    iconset_to_qt.insert(curIconSet, (roms_icons_dir.canonicalPath() + '/') + curIconSet);
-                }
-            }
-        }
-    }
-    return iconset_to_qt[icon_set];
-}
 
-QIcon
-ProgSettings::loadIcon(QString file)
-{
-    (void) getIconSetPath();
-    if (!QFile::exists(iconset_to_qt[icon_set] + file))
-        return QIcon(iconset_to_qt[""] + file);
-    return QIcon(iconset_to_qt[icon_set] + file);
-}
+QVector<QPair<QString, QString>> ProgSettings::languages = {
+    { "system", "(System Default)"         },
+    { "zh-CN",  "Chinese (Simplified)"     },
+    { "zh-TW",  "Chinese (Traditional)"    },
+    { "hr-HR",  "Croatian (Croatia)"       },
+    { "cs-CZ",  "Czech (Czech Republic)"   },
+    { "de-DE",  "German (Germany)"         },
+    { "en-GB",  "English (United Kingdom)" },
+    { "en-US",  "English (United States)"  },
+    { "fi-FI",  "Finnish (Finland)"        },
+    { "fr-FR",  "French (France)"          },
+    { "it-IT",  "Italian (Italy)"          },
+    { "ja-JP",  "Japanese (Japan)"         },
+    { "ko-KR",  "Korean (Korea)"           },
+    { "nl-NL",  "Dutch (Netherlands)"      },
+    { "nb-NO",  "Norwegian (Bokmål)"       },
+    { "pl-PL",  "Polish (Poland)"          },
+    { "pt-BR",  "Portuguese (Brazil)"      },
+    { "pt-PT",  "Portuguese (Portugal)"    },
+    { "ru-RU",  "Russian (Russia)"         },
+    { "sk-SK",  "Slovak (Slovakia)"        },
+    { "sl-SI",  "Slovenian (Slovenia)"     },
+    { "sv-SE",  "Swedish (Sweden)"         },
+    { "es-ES",  "Spanish (Spain)"          },
+    { "tr-TR",  "Turkish (Turkey)"         },
+    { "uk-UA",  "Ukrainian (Ukraine)"      },
+    { "vi-VN",  "Vietnamese (Vietnam)"     },
+};
 
 ProgSettings::ProgSettings(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::ProgSettings)
 {
     ui->setupUi(this);
-    (void) getIconSetPath();
-    ui->comboBox->setItemData(0, "");
-    ui->comboBox->setCurrentIndex(0);
-    for (auto i = iconset_to_qt.begin(); i != iconset_to_qt.end(); i++) {
-        if (i.key() == "")
-            continue;
-        QFile iconfile(i.value() + "/iconinfo.txt");
-        iconfile.open(QFile::ReadOnly);
-        QString friendlyName;
-        QString iconsetinfo(iconfile.readAll());
-        iconfile.close();
-        if (iconsetinfo.isEmpty())
-            friendlyName = i.key();
-        else
-            friendlyName = iconsetinfo.split('\n')[0];
-        ui->comboBox->addItem(friendlyName, i.key());
-        if (strcmp(icon_set, i.key().toUtf8().data()) == 0) {
-            ui->comboBox->setCurrentIndex(ui->comboBox->findData(i.key()));
+    ui->comboBoxLanguage->setItemData(0, 0);
+    for (int i = 1; i < languages.length(); i++) {
+        ui->comboBoxLanguage->addItem(languages[i].second, i);
+        if (i == lang_id) {
+            ui->comboBoxLanguage->setCurrentIndex(ui->comboBoxLanguage->findData(i));
         }
     }
-    ui->comboBox->setItemData(0, '(' + tr("Default") + ')', Qt::DisplayRole);
-
-    ui->comboBoxLanguage->setItemData(0, 0xFFFF);
-    for (auto i = lcid_langcode.begin(); i != lcid_langcode.end(); i++) {
-        if (i.key() == 0xFFFF)
-            continue;
-        ui->comboBoxLanguage->addItem(lcid_langcode[i.key()].second, i.key());
-        if (i.key() == lang_id) {
-            ui->comboBoxLanguage->setCurrentIndex(ui->comboBoxLanguage->findData(i.key()));
-        }
-    }
+    ui->comboBoxLanguage->model()->sort(Qt::AscendingOrder);
 
     mouseSensitivity = mouse_sensitivity;
     ui->horizontalSlider->setValue(mouseSensitivity * 100.);
     ui->openDirUsrPath->setChecked(open_dir_usr_path > 0);
+    ui->checkBoxMultimediaKeys->setChecked(inhibit_multimedia_keys);
+    ui->checkBoxConfirmExit->setChecked(confirm_exit);
+    ui->checkBoxConfirmSave->setChecked(confirm_save);
+    ui->checkBoxConfirmHardReset->setChecked(confirm_reset);
+
+    ui->radioButtonSystem->setChecked(color_scheme == 0);
+    ui->radioButtonLight->setChecked(color_scheme == 1);
+    ui->radioButtonDark->setChecked(color_scheme == 2);
+
+#ifndef Q_OS_WINDOWS
+    ui->checkBoxMultimediaKeys->setHidden(true);
+    ui->groupBox->setHidden(true);
+#endif
 }
 
 void
 ProgSettings::accept()
 {
-    strcpy(icon_set, ui->comboBox->currentData().toString().toUtf8().data());
-    lang_id           = ui->comboBoxLanguage->currentData().toUInt();
-    open_dir_usr_path = ui->openDirUsrPath->isChecked() ? 1 : 0;
+    lang_id                 = ui->comboBoxLanguage->currentData().toInt();
+    open_dir_usr_path       = ui->openDirUsrPath->isChecked() ? 1 : 0;
+    confirm_exit            = ui->checkBoxConfirmExit->isChecked() ? 1 : 0;
+    confirm_save            = ui->checkBoxConfirmSave->isChecked() ? 1 : 0;
+    confirm_reset           = ui->checkBoxConfirmHardReset->isChecked() ? 1 : 0;
+    inhibit_multimedia_keys = ui->checkBoxMultimediaKeys->isChecked() ? 1 : 0;
+
+    color_scheme = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
+
+#ifdef Q_OS_WINDOWS
+    extern void selectDarkMode();
+    selectDarkMode();
+#endif
 
     loadTranslators(QCoreApplication::instance());
     reloadStrings();
@@ -138,6 +138,7 @@ ProgSettings::accept()
     connect(main_window, &MainWindow::updateStatusBarTip, main_window->status.get(), &MachineStatus::updateTip);
     connect(main_window, &MainWindow::statusBarMessage, main_window->status.get(), &MachineStatus::message, Qt::QueuedConnection);
     mouse_sensitivity = mouseSensitivity;
+    config_save_global();
     QDialog::accept();
 }
 
@@ -146,10 +147,48 @@ ProgSettings::~ProgSettings()
     delete ui;
 }
 
-void
-ProgSettings::on_pushButton_released()
+#ifdef Q_OS_WINDOWS
+/* Return the standard font name on Windows, which is overridden per-language
+   to prevent CJK fonts with embedded bitmaps being chosen as a fallback. */
+QString
+ProgSettings::getFontName(int langId)
 {
-    ui->comboBox->setCurrentIndex(0);
+    QString langCode = languageIdToCode(lang_id);
+    if (langCode == "ja-JP") {
+        /* Check for Windows 10 or later to choose the appropriate system font */
+        if (QVersionNumber::fromString(QSysInfo::kernelVersion()).majorVersion() >= 10)
+            return "Yu Gothic UI";
+        else
+            return "Meiryo UI";
+    } else if (langCode == "ko-KR")
+        return "Malgun Gothic";
+    else if (langCode == "zh-CN")
+        return "Microsoft YaHei";
+    else if (langCode == "zh-TW")
+        return "Microsoft JhengHei";
+    else
+        return "Segoe UI";
+}
+#endif
+
+int
+ProgSettings::languageCodeToId(QString langCode)
+{
+    for (int i = 0; i < languages.length(); i++) {
+        if (languages[i].first == langCode) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+QString
+ProgSettings::languageIdToCode(int id)
+{
+    if ((id <= 0) || (id >= languages.length())) {
+        return "system";
+    }
+    return languages[id].first;
 }
 
 void
@@ -166,28 +205,66 @@ ProgSettings::loadTranslators(QObject *parent)
     qtTranslator             = new QTranslator(parent);
     translator               = new CustomTranslator(parent);
     QString localetofilename = "";
-    if (lang_id == 0xFFFF || lcid_langcode.contains(lang_id) == false) {
+    if (lang_id == 0 || lang_id >= languages.length()) {
         for (int i = 0; i < QLocale::system().uiLanguages().size(); i++) {
             localetofilename = QLocale::system().uiLanguages()[i];
             if (translator->load(QLatin1String("86box_") + localetofilename, QLatin1String(":/"))) {
-                qDebug() << "Translations loaded.\n";
+                qDebug() << "Translations loaded.";
                 QCoreApplication::installTranslator(translator);
-                if (!qtTranslator->load(QLatin1String("qtbase_") + localetofilename.replace('-', '_'), QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
-                    qtTranslator->load(QLatin1String("qt_") + localetofilename.replace('-', '_'), QApplication::applicationDirPath() + "/./translations/");
-                if (QApplication::installTranslator(qtTranslator)) {
-                    qDebug() << "Qt translations loaded."
-                             << "\n";
-                }
+                /* First try qtbase */
+                if (!loadQtTranslations(QLatin1String("qtbase_") + localetofilename.replace('-', '_')))
+                    /* If that fails, try legacy qt_* translations */
+                    if (!loadQtTranslations(QLatin1String("qt_") + localetofilename.replace('-', '_')))
+                        qDebug() << "Failed to find Qt translations!";
+                if (QCoreApplication::installTranslator(qtTranslator))
+                    qDebug() << "Qt translations loaded.";
                 break;
             }
         }
     } else {
-        translator->load(QLatin1String("86box_") + lcid_langcode[lang_id].first, QLatin1String(":/"));
+        if (translator->load(QLatin1String("86box_") + languages[lang_id].first, QLatin1String(":/")))
+            qDebug() << "Translations loaded.";
         QCoreApplication::installTranslator(translator);
-        if (!qtTranslator->load(QLatin1String("qtbase_") + QString(lcid_langcode[lang_id].first).replace('-', '_'), QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
-            qtTranslator->load(QLatin1String("qt_") + QString(lcid_langcode[lang_id].first).replace('-', '_'), QApplication::applicationDirPath() + "/./translations/");
-        QCoreApplication::installTranslator(qtTranslator);
+        /* First try qtbase */
+        if (!loadQtTranslations(QLatin1String("qtbase_") + QString(languages[lang_id].first).replace('-', '_')))
+            /* If that fails, try legacy qt_* translations */
+            if (!loadQtTranslations(QLatin1String("qt_") + QString(languages[lang_id].first).replace('-', '_')))
+                qDebug() << "Failed to find Qt translations!";
+
+        if (QCoreApplication::installTranslator(qtTranslator))
+            qDebug() << "Qt translations loaded.";
     }
+}
+
+bool
+ProgSettings::loadQtTranslations(const QString name)
+{
+    QString name_lang_only = name.left(name.indexOf('_'));
+    /* System-wide translations */
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    if (qtTranslator->load(name, QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
+#else
+    if (qtTranslator->load(name, QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+#endif
+        return true;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    else if (qtTranslator->load(name_lang_only, QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
+#else
+    else if (qtTranslator->load(name_lang_only, QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+#endif
+        return true;
+    /* Bundled translations (embedded) */
+    else if (qtTranslator->load(name, QLatin1String(":/")))
+        return true;
+    else if (qtTranslator->load(name_lang_only, QLatin1String(":/")))
+        return true;
+    /* Bundled translations (external) */
+    else if (qtTranslator->load(name, QApplication::applicationDirPath() + "/./translations/"))
+        return true;
+    else if (qtTranslator->load(name_lang_only, QApplication::applicationDirPath() + "/./translations/"))
+        return true;
+    else
+        return false;
 }
 
 void

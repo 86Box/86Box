@@ -27,21 +27,22 @@ extern "C" {
 #include <QDialogButtonBox>
 #include "qt_models_common.hpp"
 
-JoystickConfiguration::JoystickConfiguration(int type, int joystick_nr, QWidget *parent)
+JoystickConfiguration::JoystickConfiguration(int type, uint8_t gameport_nr, int joystick_nr, QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::JoystickConfiguration)
     , type(type)
+    , gameport_nr(gameport_nr)
     , joystick_nr(joystick_nr)
 {
     ui->setupUi(this);
 
     auto model = ui->comboBoxDevice->model();
-    Models::AddEntry(model, "None", 0);
+    Models::AddEntry(model, tr("None"), 0);
     for (int c = 0; c < joysticks_present; c++) {
         Models::AddEntry(model, plat_joystick_state[c].name, c + 1);
     }
 
-    ui->comboBoxDevice->setCurrentIndex(joystick_state[joystick_nr].plat_joystick_nr);
+    ui->comboBoxDevice->setCurrentIndex(joystick_state[gameport_nr][joystick_nr].plat_joystick_nr);
     layout()->setSizeConstraint(QLayout::SetFixedSize);
 }
 
@@ -114,23 +115,16 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
         }
 
         for (int d = 0; d < plat_joystick_state[joystick].nr_povs; d++) {
-            Models::AddEntry(model, QString("%1 (X axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
-            Models::AddEntry(model, QString("%1 (Y axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
-        }
-
-        for (int d = 0; d < plat_joystick_state[joystick].nr_sliders; d++) {
-            Models::AddEntry(model, plat_joystick_state[joystick].slider[d].name, 0);
+            Models::AddEntry(model, tr("%1 (X axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
+            Models::AddEntry(model, tr("%1 (Y axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
         }
 
         int nr_axes = plat_joystick_state[joystick].nr_axes;
-        int nr_povs = plat_joystick_state[joystick].nr_povs;
-        int mapping = joystick_state[joystick_nr].axis_mapping[c];
+        int mapping = joystick_state[gameport_nr][joystick_nr].axis_mapping[c];
         if (mapping & POV_X)
             cbox->setCurrentIndex(nr_axes + (mapping & 3) * 2);
         else if (mapping & POV_Y)
             cbox->setCurrentIndex(nr_axes + (mapping & 3) * 2 + 1);
-        else if (mapping & SLIDER)
-            cbox->setCurrentIndex(nr_axes + nr_povs * 2 + (mapping & 3));
         else
             cbox->setCurrentIndex(mapping);
 
@@ -154,7 +148,7 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
             Models::AddEntry(model, plat_joystick_state[joystick].button[d].name, 0);
         }
 
-        cbox->setCurrentIndex(joystick_state[joystick_nr].button_mapping[c]);
+        cbox->setCurrentIndex(joystick_state[gameport_nr][joystick_nr].button_mapping[c]);
 
         ui->ct->addWidget(label, row, 0);
         ui->ct->addWidget(cbox, row, 1);
@@ -168,9 +162,9 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
     for (int c = 0; c < joystick_get_pov_count(type) * 2; c++) {
         QLabel *label;
         if (c & 1) {
-            label = new QLabel(QString("%1 (Y axis)").arg(joystick_get_pov_name(type, c / 2)), this);
+            label = new QLabel(tr("%1 (Y axis)").arg(joystick_get_pov_name(type, c / 2)), this);
         } else {
-            label = new QLabel(QString("%1 (X axis)").arg(joystick_get_pov_name(type, c / 2)), this);
+            label = new QLabel(tr("%1 (X axis)").arg(joystick_get_pov_name(type, c / 2)), this);
         }
         auto cbox = new QComboBox(this);
         cbox->setObjectName(QString("cboxPov%1").arg(QString::number(c)));
@@ -178,15 +172,15 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
         auto model = cbox->model();
 
         for (int d = 0; d < plat_joystick_state[joystick].nr_povs; d++) {
-            Models::AddEntry(model, QString("%1 (X axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
-            Models::AddEntry(model, QString("%1 (Y axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
+            Models::AddEntry(model, tr("%1 (X axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
+            Models::AddEntry(model, tr("%1 (Y axis)").arg(plat_joystick_state[joystick].pov[d].name), 0);
         }
 
         for (int d = 0; d < plat_joystick_state[joystick].nr_axes; d++) {
             Models::AddEntry(model, plat_joystick_state[joystick].axis[d].name, 0);
         }
 
-        int mapping = joystick_state[joystick_nr].pov_mapping[c / 2][c & 1];
+        int mapping = joystick_state[gameport_nr][joystick_nr].pov_mapping[c / 2][c & 1];
         int nr_povs = plat_joystick_state[joystick].nr_povs;
         if (mapping & POV_X)
             cbox->setCurrentIndex((mapping & 3) * 2);

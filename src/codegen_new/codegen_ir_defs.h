@@ -41,8 +41,8 @@
 #define UOP_LOAD_FUNC_ARG_2_IMM (UOP_TYPE_PARAMS_IMM | 0x0a | UOP_TYPE_BARRIER)
 #define UOP_LOAD_FUNC_ARG_3_IMM (UOP_TYPE_PARAMS_IMM | 0x0b | UOP_TYPE_BARRIER)
 #define UOP_CALL_FUNC           (UOP_TYPE_PARAMS_POINTER | 0x10 | UOP_TYPE_BARRIER)
-/*UOP_CALL_INSTRUCTION_FUNC - call instruction handler at p, check return value and exit block if non-zero*/
-#define UOP_CALL_INSTRUCTION_FUNC (UOP_TYPE_PARAMS_POINTER | 0x11 | UOP_TYPE_BARRIER)
+/*UOP_CALL_INSTRUCTION_FUNC - call instruction handler at p with fetchdat, check return value and exit block if non-zero*/
+#define UOP_CALL_INSTRUCTION_FUNC (UOP_TYPE_PARAMS_POINTER | UOP_TYPE_PARAMS_IMM | 0x11 | UOP_TYPE_BARRIER)
 #define UOP_STORE_P_IMM           (UOP_TYPE_PARAMS_IMM | 0x12)
 #define UOP_STORE_P_IMM_8         (UOP_TYPE_PARAMS_IMM | 0x13)
 /*UOP_LOAD_SEG - load segment in src_reg_a to segment p via loadseg(), check return value and exit block if non-zero*/
@@ -340,6 +340,7 @@ typedef struct uop_t {
     void         *p;
     ir_host_reg_t dest_reg_a_real;
     ir_host_reg_t src_reg_a_real, src_reg_b_real, src_reg_c_real;
+    int           is_a16;
     int           jump_dest_uop;
     int           jump_list_next;
     void         *jump_dest;
@@ -363,6 +364,36 @@ uop_alloc(ir_data_t *ir, uint32_t uop_type)
         fatal("Exceeded uOP max\n");
 
     uop = &ir->uops[ir->wr_pos++];
+
+    uop->is_a16     = 0;
+
+    uop->dest_reg_a = invalid_ir_reg;
+    uop->src_reg_a  = invalid_ir_reg;
+    uop->src_reg_b  = invalid_ir_reg;
+    uop->src_reg_c  = invalid_ir_reg;
+
+    uop->pc = cpu_state.oldpc;
+
+    uop->jump_dest_uop  = -1;
+    uop->jump_list_next = -1;
+
+    if (uop_type & (UOP_TYPE_BARRIER | UOP_TYPE_ORDER_BARRIER))
+        dirty_ir_regs[0] = dirty_ir_regs[1] = ~0ULL;
+
+    return uop;
+}
+
+static inline uop_t *
+uop_alloc_unroll(ir_data_t *ir, uint32_t uop_type)
+{
+    uop_t *uop;
+
+    if (ir->wr_pos >= UOP_NR_MAX)
+        fatal("Exceeded uOP max\n");
+
+    uop = &ir->uops[ir->wr_pos++];
+
+    uop->is_a16     = 0;
 
     uop->dest_reg_a = invalid_ir_reg;
     uop->src_reg_a  = invalid_ir_reg;
@@ -410,7 +441,7 @@ uop_gen_reg_src1(uint32_t uop_type, ir_data_t *ir, int src_reg_a)
 }
 
 static inline void
-uop_gen_reg_src1_arg(uint32_t uop_type, ir_data_t *ir, int arg, int src_reg_a)
+uop_gen_reg_src1_arg(uint32_t uop_type, ir_data_t *ir, UNUSED(int arg), int src_reg_a)
 {
     uop_t *uop = uop_alloc(ir, uop_type);
 
@@ -488,8 +519,14 @@ uop_gen_reg_dst_src2_imm(uint32_t uop_type, ir_data_t *ir, int dest_reg, int src
     uop_t *uop = uop_alloc(ir, uop_type);
 
     uop->type       = uop_type;
+    uop->is_a16     = 0;    
     uop->src_reg_a  = codegen_reg_read(src_reg_a);
-    uop->src_reg_b  = codegen_reg_read(src_reg_b);
+    if (src_reg_b == IREG_eaa16) {
+        uop->src_reg_b  = codegen_reg_read(IREG_eaaddr);
+        uop->is_a16     = 1;
+    } else
+        uop->src_reg_b  = codegen_reg_read(src_reg_b);
+    uop->is_a16     = 0;    
     uop->dest_reg_a = codegen_reg_write(dest_reg, ir->wr_pos - 1);
     uop->imm_data   = imm;
 }
@@ -653,7 +690,7 @@ uop_gen_reg_src2_pointer(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int sr
 
 #define uop_CALL_FUNC(ir, p)                                     uop_gen_pointer(UOP_CALL_FUNC, ir, p)
 #define uop_CALL_FUNC_RESULT(ir, dst_reg, p)                     uop_gen_reg_dst_pointer(UOP_CALL_FUNC_RESULT, ir, dst_reg, p)
-#define uop_CALL_INSTRUCTION_FUNC(ir, p)                         uop_gen_pointer(UOP_CALL_INSTRUCTION_FUNC, ir, p)
+#define uop_CALL_INSTRUCTION_FUNC(ir, p, imm)                    uop_gen_pointer_imm(UOP_CALL_INSTRUCTION_FUNC, ir, p, imm)
 
 #define uop_CMP_IMM_JZ(ir, src_reg, imm, p)                      uop_gen_reg_src_pointer_imm(UOP_CMP_IMM_JZ, ir, src_reg, p, imm)
 

@@ -20,6 +20,7 @@
 #ifndef EMU_FLASH_H
 #define EMU_FLASH_H
 
+extern const device_t amd_am28f010_flash_device;
 extern const device_t catalyst_flash_device;
 
 extern const device_t intel_flash_bxt_ami_device;

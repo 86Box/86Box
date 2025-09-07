@@ -80,8 +80,12 @@ int hlt_reset_pending;
 
 int fpu_cycles = 0;
 
+int in_lock = 0;
+
 #ifdef ENABLE_X86_LOG
+#if 0
 void dumpregs(int);
+#endif
 
 int x86_do_log = ENABLE_X86_LOG;
 int indump     = 0;
@@ -91,13 +95,14 @@ x86_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (x808x_do_log) {
+    if (x86_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 
+#if 0
 void
 dumpregs(int force)
 {
@@ -142,6 +147,7 @@ dumpregs(int force)
     x87_dumpregs();
     indump = 0;
 }
+#endif
 #else
 #    define x86_log(fmt, ...)
 #endif
@@ -238,7 +244,6 @@ reset_common(int hard)
 
     if (!hard && reset_on_hlt) {
         hlt_reset_pending++;
-        pclog("hlt_reset_pending = %i\n", hlt_reset_pending);
         if (hlt_reset_pending == 2)
             hlt_reset_pending = 0;
         else
@@ -266,15 +271,35 @@ reset_common(int hard)
     stack32        = 0;
     msr.fcr        = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
     msw            = 0;
+    new_ne         = 0;
+    x87_op         = 0;
+
+    ccr0 = ccr1 = ccr2 = ccr3 = ccr4 = ccr5 = ccr6 = ccr7 = 0;
+    ccr4 = 0x85;
+    cyrix.arr[3].base = 0x30000;
+    cyrix.arr[3].size = 65536;
+
     if (hascache)
         cr0 = 1 << 30;
     else
         cr0 = 0;
-    cpu_cache_int_enabled = 0;
+    if (is386 && !is486 && ((fpu_type == FPU_387) || (fpu_type == FPU_NONE)))
+        cr0 |= 0x10;
+    cpu_cache_int_enabled = 0;  
     cpu_update_waitstates();
     cr4              = 0;
     cpu_state.eflags = 0;
     cgate32          = 0;
+#ifdef USE_DEBUG_REGS_486
+    if (is386) {
+#else
+    if (is386 && !is486) {
+#endif
+        for (uint8_t i = 0; i < 4; i++)
+            dr[i] = 0x00000000;
+        dr[6] = 0xffff1ff0;
+        dr[7] = 0x00000400;
+    }
     if (is286) {
         if (is486)
             loadcs(0xF000);
@@ -301,13 +326,14 @@ reset_common(int hard)
         resetreadlookup();
         makemod1table();
         cpu_set_edx();
-        mmu_perm = 4;
     }
     x86seg_reset();
 #ifdef USE_DYNAREC
     if (hard)
         codegen_reset();
 #endif
+    cpu_flush_pending = 0;
+    cpu_old_paging = 0;
     if (!hard)
         flushmmucache();
     x86_was_reset = 1;
@@ -338,10 +364,13 @@ reset_common(int hard)
         /* If we have an AT or PS/2 keyboard controller, make sure the A20 state
            is correct. */
         device_reset_all(DEVICE_KBC);
-    }
+    } else
+        device_reset_all(DEVICE_SOFTRESET);
 
     if (!is286)
         reset_808x(hard);
+
+    in_lock    = 0;
 
     cpu_cpurst_on_sr = 0;
 }
@@ -361,9 +390,6 @@ softresetx86(void)
 {
     if (soft_reset_mask)
         return;
-
-    if (ibm8514_active || xga_active)
-        vga_on = 1;
 
     reset_common(0);
 }

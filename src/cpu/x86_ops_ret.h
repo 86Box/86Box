@@ -15,7 +15,7 @@
         op_loadcs(readmemw(ss, ESP + 2));             \
     } else {                                          \
         cpu_state.pc = readmemw(ss, SP);              \
-        op_loadcs(readmemw(ss, SP + 2));              \
+        op_loadcs(readmemw(ss, (SP + 2) & 0xffff));   \
     }                                                 \
     if (cpu_state.abrt)                               \
         return 1;                                     \
@@ -47,7 +47,7 @@
     cycles -= timing_retf_rm;
 
 static int
-opRETF_a16(uint32_t fetchdat)
+opRETF_a16(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
@@ -60,7 +60,7 @@ opRETF_a16(uint32_t fetchdat)
     return 0;
 }
 static int
-opRETF_a32(uint32_t fetchdat)
+opRETF_a32(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
@@ -103,7 +103,7 @@ opRETF_a32_imm(uint32_t fetchdat)
 }
 
 static int
-opIRET_186(uint32_t fetchdat)
+opIRET_186(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
@@ -135,6 +135,9 @@ opIRET_186(uint32_t fetchdat)
     }
     flags_extract();
     nmi_enable = 1;
+#ifdef USE_DEBUG_REGS_486
+    rf_flag_no_clear = 1;
+#endif
     CPU_BLOCK_END();
 
     PREFETCH_RUN(cycles_old - cycles, 1, -1, 2, 0, 0, 0, 0);
@@ -143,7 +146,7 @@ opIRET_186(uint32_t fetchdat)
 }
 
 static int
-opIRET_286(uint32_t fetchdat)
+opIRET_286(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
@@ -175,6 +178,9 @@ opIRET_286(uint32_t fetchdat)
     }
     flags_extract();
     nmi_enable = 1;
+#ifdef USE_DEBUG_REGS_486
+    rf_flag_no_clear = 1;
+#endif
     CPU_BLOCK_END();
 
     PREFETCH_RUN(cycles_old - cycles, 1, -1, 2, 0, 0, 0, 0);
@@ -183,7 +189,7 @@ opIRET_286(uint32_t fetchdat)
 }
 
 static int
-opIRET(uint32_t fetchdat)
+opIRET(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
@@ -243,6 +249,9 @@ opIRET(uint32_t fetchdat)
     }
     flags_extract();
     nmi_enable = 1;
+#ifdef USE_DEBUG_REGS_486
+    rf_flag_no_clear = 1;
+#endif
     CPU_BLOCK_END();
 
     PREFETCH_RUN(cycles_old - cycles, 1, -1, 2, 0, 0, 0, 0);
@@ -251,7 +260,7 @@ opIRET(uint32_t fetchdat)
 }
 
 static int
-opIRETD(uint32_t fetchdat)
+opIRETD(UNUSED(uint32_t fetchdat))
 {
     int cycles_old = cycles;
     UN_USED(cycles_old);
@@ -285,6 +294,9 @@ opIRETD(uint32_t fetchdat)
     }
     flags_extract();
     nmi_enable = 1;
+#ifdef USE_DEBUG_REGS_486
+    rf_flag_no_clear = 1;
+#endif
     CPU_BLOCK_END();
 
     PREFETCH_RUN(cycles_old - cycles, 1, -1, 0, 2, 0, 0, 1);

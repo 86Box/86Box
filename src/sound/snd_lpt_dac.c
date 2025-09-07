@@ -7,10 +7,11 @@
 #include "cpu.h"
 #include <86box/86box.h>
 #include <86box/filters.h>
+#include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/machine.h>
 #include <86box/sound.h>
-#include <86box/timer.h>
 #include <86box/plat_unused.h>
 
 typedef struct lpt_dac_t {
@@ -51,6 +52,14 @@ dac_write_data(uint8_t val, void *priv)
 }
 
 static void
+dac_strobe(uint8_t old, uint8_t val, void *priv)
+{
+    lpt_dac_t *lpt_dac = (lpt_dac_t *) priv;
+
+    lpt_dac->channel = val;
+}
+
+static void
 dac_write_ctrl(uint8_t val, void *priv)
 {
     lpt_dac_t *lpt_dac = (lpt_dac_t *) priv;
@@ -82,8 +91,7 @@ dac_get_buffer(int32_t *buffer, int len, void *priv)
 static void *
 dac_init(void *lpt)
 {
-    lpt_dac_t *lpt_dac = malloc(sizeof(lpt_dac_t));
-    memset(lpt_dac, 0, sizeof(lpt_dac_t));
+    lpt_dac_t *lpt_dac = calloc(1, sizeof(lpt_dac_t));
 
     lpt_dac->lpt = lpt;
 
@@ -110,25 +118,33 @@ dac_close(void *priv)
 }
 
 const lpt_device_t lpt_dac_device = {
-    .name          = "LPT DAC / Covox Speech Thing",
-    .internal_name = "lpt_dac",
-    .init          = dac_init,
-    .close         = dac_close,
-    .write_data    = dac_write_data,
-    .write_ctrl    = dac_write_ctrl,
-    .read_data     = NULL,
-    .read_status   = dac_read_status,
-    .read_ctrl     = NULL
+    .name             = "LPT DAC / Covox Speech Thing",
+    .internal_name    = "lpt_dac",
+    .init             = dac_init,
+    .close            = dac_close,
+    .write_data       = dac_write_data,
+    .write_ctrl       = dac_write_ctrl,
+    .strobe           = dac_strobe,
+    .read_status      = dac_read_status,
+    .read_ctrl        = NULL,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL,
+    .priv             = NULL,
+    .lpt              = NULL
 };
 
 const lpt_device_t lpt_dac_stereo_device = {
-    .name          = "Stereo LPT DAC",
-    .internal_name = "lpt_dac_stereo",
-    .init          = dac_stereo_init,
-    .close         = dac_close,
-    .write_data    = dac_write_data,
-    .write_ctrl    = dac_write_ctrl,
-    .read_data     = NULL,
-    .read_status   = dac_read_status,
-    .read_ctrl     = NULL
+    .name             = "Stereo LPT DAC",
+    .internal_name    = "lpt_dac_stereo",
+    .init             = dac_stereo_init,
+    .close            = dac_close,
+    .write_data       = dac_write_data,
+    .write_ctrl       = dac_write_ctrl,
+    .strobe           = dac_strobe,
+    .read_status      = dac_read_status,
+    .read_ctrl        = NULL,
+    .epp_write_data   = NULL,
+    .epp_request_read = NULL,
+    .priv             = NULL,
+    .lpt              = NULL
 };

@@ -18,6 +18,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -30,6 +31,7 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/mem.h>
+#include <86box/dma.h>
 #include <86box/pci.h>
 #include <86box/rom.h>
 #include <86box/timer.h>
@@ -39,16 +41,20 @@
 #include <86box/video.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/vid_voodoo_common.h>
 #include <86box/vid_voodoo_display.h>
+#include <86box/vid_voodoo_fb.h>
 #include <86box/vid_voodoo_fifo.h>
 #include <86box/vid_voodoo_regs.h>
 #include <86box/vid_voodoo_render.h>
+#include <86box/vid_voodoo_texture.h>
 
 #define ROM_BANSHEE                 "roms/video/voodoo/Pci_sg.rom"
 #define ROM_CREATIVE_BANSHEE        "roms/video/voodoo/BlasterPCI.rom"
+#define ROM_QUANTUM3D_RAVEN         "roms/video/voodoo/RVPD0224.rom"
 #define ROM_VOODOO3_1000            "roms/video/voodoo/1k11sg.rom"
 #define ROM_VOODOO3_2000            "roms/video/voodoo/2k11sd.rom"
 #define ROM_VOODOO3_3000            "roms/video/voodoo/3k12sd.rom"
@@ -75,6 +81,7 @@ static uint8_t vb_filter_bx_g[256][256];
 
 enum {
     TYPE_BANSHEE = 0,
+    TYPE_QUANTUM3D_RAVEN,
     TYPE_V3_1000,
     TYPE_V3_2000,
     TYPE_V3_3000,
@@ -116,6 +123,8 @@ typedef struct banshee_t {
     uint32_t vidProcCfg;
     uint32_t vidScreenSize;
     uint32_t vidSerialParallelPort;
+    uint32_t vidChromaKeyMin;
+    uint32_t vidChromaKeyMax;
 
     uint32_t agpReqSize;
     uint32_t agpHostAddressHigh;
@@ -147,6 +156,8 @@ typedef struct banshee_t {
 
     uint8_t pci_slot;
     uint8_t irq_state;
+
+    bool chroma_key_enabled;
 
     void *i2c, *i2c_ddc, *ddc;
 } banshee_t;
@@ -181,6 +192,8 @@ enum {
     Video_hwCurC0                      = 0x68,
     Video_hwCurC1                      = 0x6c,
     Video_vidSerialParallelPort        = 0x78,
+    Video_vidChromaKeyMin              = 0x8c,
+    Video_vidChromaKeyMax              = 0x90,
     Video_vidScreenSize                = 0x98,
     Video_vidOverlayStartCoords        = 0x9c,
     Video_vidOverlayEndScreenCoords    = 0xa0,
@@ -204,11 +217,23 @@ enum {
     cmdFifoDepth0 = 0x44,
     cmdHoleCnt0   = 0x48,
 
+    cmdBaseAddr1  = 0x50,
+    cmdBaseSize1  = 0x50 + 0x4,
+    cmdBump1      = 0x50 + 0x8,
+    cmdRdPtrL1    = 0x50 + 0xc,
+    cmdRdPtrH1    = 0x50 + 0x10,
+    cmdAMin1      = 0x50 + 0x14,
+    cmdAMax1      = 0x50 + 0x1c,
+    cmdStatus1    = 0x50 + 0x20,
+    cmdFifoDepth1 = 0x50 + 0x24,
+    cmdHoleCnt1   = 0x50 + 0x28,
+
     Agp_agpReqSize         = 0x00,
     Agp_agpHostAddressLow  = 0x04,
     Agp_agpHostAddressHigh = 0x08,
     Agp_agpGraphicsAddress = 0x0C,
     Agp_agpGraphicsStride  = 0x10,
+    Agp_agpMoveCMD         = 0x14,
 };
 
 #define VGAINIT0_RAMDAC_8BIT                (1 << 2)
@@ -368,7 +393,7 @@ banshee_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x11 || (svga->crtcreg == 0x11 && old != val)) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -428,9 +453,12 @@ static void
 banshee_updatemapping(banshee_t *banshee)
 {
     svga_t *svga = &banshee->svga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     if (!(banshee->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)) {
-        //                banshee_log("Update mapping - PCI disabled\n");
+#if 0
+        banshee_log("Update mapping - PCI disabled\n");
+#endif
         mem_mapping_disable(&svga->mapping);
         mem_mapping_disable(&banshee->linear_mapping);
         mem_mapping_disable(&banshee->reg_mapping_low);
@@ -447,6 +475,10 @@ banshee_updatemapping(banshee_t *banshee)
         case 0x4: /*64k at A0000*/
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
             svga->banked_mask = 0xffff;
+            if (xga_active && (svga->xga != NULL)) {
+                xga->on = 0;
+                mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+            }
             break;
         case 0x8: /*32k at B0000*/
             mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
@@ -469,7 +501,7 @@ banshee_updatemapping(banshee_t *banshee)
 }
 
 uint32_t
-banshee_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
+banshee_conv_16to32(svga_t* svga, uint16_t color, UNUSED(uint8_t bpp))
 {
     banshee_t *banshee = (banshee_t *) svga->priv;
     uint32_t ret = 0x00000000;
@@ -510,7 +542,10 @@ banshee_render_16bpp_tiled(svga_t *svga)
     else
         addr = banshee->desktop_addr + (banshee->desktop_y & 31) * 128 + ((banshee->desktop_y >> 5) * banshee->desktop_stride_tiled);
 
-    for (int x = 0; x <= svga->hdisp; x += 64) {
+    if (addr >= svga->vram_max)
+        return;
+
+    for (int x = 0; x < svga->hdisp; x += 64) {
         if (svga->hwcursor_on || svga->overlay_on)
             svga->changedvram[addr >> 12] = 2;
         if (svga->changedvram[addr >> 12] || svga->fullchange) {
@@ -557,14 +592,14 @@ banshee_recalctimings(svga_t *svga)
         /* Video processing mode - assume timings akin to Cirrus' special blanking mode,
            that is, no overscan and relying on display end to blank. */
         if (banshee->vgaInit0 & 0x40) {
-            svga->hblankstart     = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) +
-                                   (((svga->crtc[0x1a] & 0x04) >> 2) << 8) + 1;
+            svga->hblankstart     = svga->crtc[1]/* + ((svga->crtc[3] >> 5) & 3)*/ +
+                                   (((svga->crtc[0x1a] & 0x04) >> 2) << 8);
             svga->hblank_end_mask = 0x0000007f;
         } else {
-            svga->hblankstart     = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) + 1;
+            svga->hblankstart     = svga->crtc[1]/* + ((svga->crtc[3] >> 5) & 3)*/;
             svga->hblank_end_mask = 0x0000003f;
         }
-        svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
+        svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
         /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
         if (!svga->scrblank && svga->attr_palette_enable)
@@ -579,12 +614,12 @@ banshee_recalctimings(svga_t *svga)
         svga->linedbl     = 0;
      } else {
         if (banshee->vgaInit0 & 0x40) {
-            svga->hblankstart     = (((svga->crtc[0x1a] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+            svga->hblankstart     = (((svga->crtc[0x1a] & 0x10) >> 4) << 8) + svga->crtc[2];
             svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
                                     (((svga->crtc[0x1a] & 0x20) >> 5) << 6);
             svga->hblank_end_mask = 0x0000007f;
         } else {
-            svga->hblankstart     =  svga->crtc[2] + 1;
+            svga->hblankstart     =  svga->crtc[2];
             svga->hblank_end_val  =  (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5);
             svga->hblank_end_mask =  0x0000003f;
         }
@@ -641,7 +676,7 @@ banshee_recalctimings(svga_t *svga)
             svga->rowoffset = ((banshee->vidDesktopOverlayStride & 0x3fff) * 128) >> 3;
         else
             svga->rowoffset = (banshee->vidDesktopOverlayStride & 0x3fff) >> 3;
-        svga->ma_latch                = banshee->vidDesktopStartAddr >> 2;
+        svga->memaddr_latch                = banshee->vidDesktopStartAddr >> 2;
         banshee->desktop_stride_tiled = (banshee->vidDesktopOverlayStride & 0x3fff) * 128 * 32;
 #if 0
         banshee_log("Extended shift out %i rowoffset=%i %02x\n", VIDPROCCFG_DESKTOP_PIX_FORMAT, svga->rowoffset, svga->crtc[1]);
@@ -652,9 +687,6 @@ banshee_recalctimings(svga_t *svga)
 
         if (banshee->vidProcCfg & VIDPROCCFG_2X_MODE) {
             svga->hdisp *= 2;
-            // svga->htotal *= 2;
-            // svga->hblankstart *= 2;
-            // svga->hblank_end_val *= 2;
             svga->dots_per_clock *= 2;
         }
 
@@ -844,6 +876,9 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
             svga->write_bank    = (val & 0x3ff) << 15;
             svga->read_bank     = ((val >> 10) & 0x3ff) << 15;
             svga->packed_chain4 = !!(val & 0x00100000);
+            svga->fast          = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) &&
+                                  ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) &&
+                                  !(svga->adv_flags & FLAG_ADDR_BY8);;
             break;
 
         case PLL_pllCtrl0:
@@ -925,6 +960,14 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
 #endif
             i2c_gpio_set(banshee->i2c_ddc, !!(val & VIDSERIAL_DDC_DCK_W), !!(val & VIDSERIAL_DDC_DDA_W));
             i2c_gpio_set(banshee->i2c, !!(val & VIDSERIAL_I2C_SCK_W), !!(val & VIDSERIAL_I2C_SDA_W));
+            break;
+
+        case Video_vidChromaKeyMin:
+            banshee->vidChromaKeyMin = val;
+            break;
+
+        case Video_vidChromaKeyMax:
+            banshee->vidChromaKeyMax = val;
             break;
 
         case Video_vidScreenSize:
@@ -1071,7 +1114,9 @@ banshee_ext_in(uint16_t addr, void *priv)
             break;
     }
 
-    //        banshee_log("banshee_ext_in: addr=%04x val=%02x\n", addr, ret);
+#if 0
+    banshee_log("banshee_ext_in: addr=%04x val=%02x\n", addr, ret);
+#endif
 
     return ret;
 }
@@ -1084,7 +1129,7 @@ banshee_status(banshee_t *banshee)
     int           fifo_entries = FIFO_ENTRIES;
     int           swap_count   = voodoo->swap_count;
     int           written      = voodoo->cmd_written + voodoo->cmd_written_fifo;
-    int           busy         = (written - voodoo->cmd_read) || (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr) || voodoo->render_voodoo_busy[0] || voodoo->render_voodoo_busy[1] || voodoo->render_voodoo_busy[2] || voodoo->render_voodoo_busy[3] || voodoo->voodoo_busy;
+    int           busy         = (written - voodoo->cmd_read) || (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr) || (voodoo->cmdfifo_depth_rd_2 != voodoo->cmdfifo_depth_wr_2) || voodoo->render_voodoo_busy[0] || voodoo->render_voodoo_busy[1] || voodoo->render_voodoo_busy[2] || voodoo->render_voodoo_busy[3] || voodoo->voodoo_busy;
     uint32_t      ret          = 0;
 
     if (fifo_entries < 0x20)
@@ -1105,6 +1150,9 @@ banshee_status(banshee_t *banshee)
 
     if (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr)
         ret |= (1 << 11);
+
+    if (voodoo->cmdfifo_depth_rd_2 != voodoo->cmdfifo_depth_wr_2)
+        ret |= (1 << 12);
 
     if (!voodoo->voodoo_busy)
         voodoo_wake_fifo_thread(voodoo);
@@ -1229,6 +1277,12 @@ banshee_ext_inl(uint16_t addr, void *priv)
 #endif
             break;
 
+        case Video_vidChromaKeyMin:
+            ret = banshee->vidChromaKeyMin;
+            break;
+        case Video_vidChromaKeyMax:
+            ret = banshee->vidChromaKeyMax;
+            break;
         case Video_vidScreenSize:
             ret = banshee->vidScreenSize;
             break;
@@ -1259,7 +1313,9 @@ banshee_ext_inl(uint16_t addr, void *priv)
             break;
 
         default:
-            //                fatal("bad banshee_ext_inl: addr=%04x\n", addr);
+#if 0
+            fatal("bad banshee_ext_inl: addr=%04x\n", addr);
+#endif
             break;
     }
 
@@ -1320,17 +1376,23 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
 
         case cmdBaseAddr0:
             ret = voodoo->cmdfifo_base >> 12;
-            //                banshee_log("Read cmdfifo_base %08x\n", ret);
+#if 0
+            banshee_log("Read cmdfifo_base %08x\n", ret);
+#endif
             break;
 
         case cmdRdPtrL0:
             ret = voodoo->cmdfifo_rp;
-            //                banshee_log("Read cmdfifo_rp %08x\n", ret);
+#if 0
+            banshee_log("Read cmdfifo_rp %08x\n", ret);
+#endif
             break;
 
         case cmdFifoDepth0:
             ret = voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd;
-            //                banshee_log("Read cmdfifo_depth %08x\n", ret);
+#if 0
+            banshee_log("Read cmdfifo_depth %08x\n", ret);
+#endif
             break;
 
         case cmdStatus0:
@@ -1339,6 +1401,43 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
 
         case cmdBaseSize0:
             ret = voodoo->cmdfifo_size;
+            if (voodoo->cmdfifo_enabled)
+                ret |= 0x100;
+            if (voodoo->cmdfifo_in_agp)
+                ret |= 0x200;
+            break;
+
+        case cmdBaseAddr1:
+            ret = voodoo->cmdfifo_base_2 >> 12;
+#if 0
+            banshee_log("Read cmdfifo_base %08x\n", ret);
+#endif
+            break;
+
+        case cmdRdPtrL1:
+            ret = voodoo->cmdfifo_rp_2;
+#if 0
+            banshee_log("Read cmdfifo_rp %08x\n", ret);
+#endif
+            break;
+
+        case cmdFifoDepth1:
+            ret = voodoo->cmdfifo_depth_wr_2 - voodoo->cmdfifo_depth_rd_2;
+#if 0
+            banshee_log("Read cmdfifo_depth %08x\n", ret);
+#endif
+            break;
+
+        case cmdStatus1:
+            ret = voodoo->cmd_status_2;
+            break;
+
+        case cmdBaseSize1:
+            ret = voodoo->cmdfifo_size_2;
+            if (voodoo->cmdfifo_enabled_2)
+                ret |= 0x100;
+            if (voodoo->cmdfifo_in_agp_2)
+                ret |= 0x200;
             break;
 
         case 0x108:
@@ -1558,10 +1657,11 @@ banshee_reg_writew(uint32_t addr, uint16_t val, void *priv)
     }
 }
 
-static void
-banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
+void
+banshee_cmd_write(void *priv, uint32_t addr, uint32_t val)
 {
-    voodoo_t *voodoo = banshee->voodoo;
+    banshee_t *banshee = (banshee_t *) priv;
+    voodoo_t *voodoo   = banshee->voodoo;
 #if 0
     banshee_log("banshee_cmd_write: addr=%03x val=%08x\n", addr & 0x1fc, val);
 #endif
@@ -1586,6 +1686,62 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
             banshee->agpReqSize = val;
             break;
 
+        case Agp_agpMoveCMD: {
+            uint32_t src_addr = banshee->agpHostAddressLow;
+            uint32_t src_width = banshee->agpHostAddressHigh & 0x3fff;
+            uint32_t src_stride = (banshee->agpHostAddressHigh >> 14) & 0x3fff;
+            uint32_t src_end = src_addr + (banshee->agpReqSize & 0xfffff); /* don't know whether or not stride is accounted for! */
+            uint32_t dest_addr = banshee->agpGraphicsAddress & 0x3ffffff;
+            uint32_t dest_stride = banshee->agpGraphicsStride & 0x7fff;
+#if 0
+            banshee_log("AGP: %d bytes W%d from %08x S%d to %d:%08x S%d\n", src_end - src_addr, src_width, src_addr, src_stride, (val >> 3) & 3, dest_addr, dest_stride);
+#endif
+            switch ((val >> 3) & 3) {
+                case 0: /*Linear framebuffer (Banshee)*/
+                case 1: /*Planar YUV*/
+                    if (voodoo->texture_present[0][(dest_addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT]) {
+#if 0
+                        banshee_log("texture_present at %08x %i\n", dest_addr, (dest_addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT);
+#endif
+                        flush_texture_cache(voodoo, dest_addr & voodoo->texture_mask, 0);
+                    }
+                    if (voodoo->texture_present[1][(dest_addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT]) {
+#if 0
+                        banshee_log("texture_present at %08x %i\n", dest_addr, (dest_addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT);
+#endif
+                        flush_texture_cache(voodoo, dest_addr & voodoo->texture_mask, 1);
+                    }
+                    while ((src_addr < src_end) && (dest_addr <= voodoo->fb_mask)) {
+                        dma_bm_read(src_addr, &voodoo->fb_mem[dest_addr], MIN(src_width, voodoo->fb_mask - dest_addr), 4);
+                        src_addr += src_stride;
+                        dest_addr += dest_stride;
+                    }
+                    break;
+                case 2: /*Framebuffer*/
+                    src_width &= ~3;
+                    while (src_addr < src_end) {
+                        for (uint32_t i = 0; i < src_width; i += 4)
+                            voodoo_fb_writel(dest_addr + i, mem_readl_phys(src_addr + i), voodoo);
+                        src_addr += src_stride;
+                        dest_addr += dest_stride;
+                    }
+                    break;
+                case 3: /*Texture*/
+                    src_width &= ~3;
+                    while (src_addr < src_end) {
+                        for (uint32_t i = 0; i < src_width; i += 4)
+                            voodoo_tex_writel(dest_addr + i, mem_readl_phys(src_addr + i), voodoo);
+                        src_addr += src_stride;
+                        dest_addr += dest_stride;
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+            break;
+        }
+
         case cmdBaseAddr0:
             voodoo->cmdfifo_base = (val & 0xfff) << 12;
             voodoo->cmdfifo_end  = voodoo->cmdfifo_base + (((voodoo->cmdfifo_size & 0xff) + 1) << 12);
@@ -1600,6 +1756,7 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
             voodoo->cmdfifo_enabled = val & 0x100;
             if (!voodoo->cmdfifo_enabled)
                 voodoo->cmdfifo_in_sub = 0; /*Not sure exactly when this should be reset*/
+            voodoo->cmdfifo_in_agp = val & 0x200;
 #if 0
             banshee_log("cmdfifo_base=%08x  cmdfifo_end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
 #endif
@@ -1623,6 +1780,46 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
         case cmdFifoDepth0:
             voodoo->cmdfifo_depth_rd = 0;
             voodoo->cmdfifo_depth_wr = val & 0xffff;
+            break;
+
+        case cmdBaseAddr1:
+            voodoo->cmdfifo_base_2 = (val & 0xfff) << 12;
+            voodoo->cmdfifo_end_2  = voodoo->cmdfifo_base_2 + (((voodoo->cmdfifo_size_2 & 0xff) + 1) << 12);
+#if 0
+            banshee_log("cmdfifo_base=%08x  cmdfifo_end=%08x %08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end, val);
+#endif
+            break;
+
+        case cmdBaseSize1:
+            voodoo->cmdfifo_size_2    = val;
+            voodoo->cmdfifo_end_2     = voodoo->cmdfifo_base_2 + (((voodoo->cmdfifo_size_2 & 0xff) + 1) << 12);
+            voodoo->cmdfifo_enabled_2 = val & 0x100;
+            if (!voodoo->cmdfifo_enabled_2)
+                voodoo->cmdfifo_in_sub_2 = 0; /*Not sure exactly when this should be reset*/
+            voodoo->cmdfifo_in_agp_2 = val & 0x200;
+#if 0
+            banshee_log("cmdfifo_base=%08x  cmdfifo_end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
+#endif
+            break;
+
+#if 0
+            voodoo->cmdfifo_end = ((val >> 16) & 0x3ff) << 12;
+            banshee_log("CMDFIFO base=%08x end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
+            break;
+#endif
+
+        case cmdRdPtrL1:
+            voodoo->cmdfifo_rp_2 = val;
+            break;
+        case cmdAMin1:
+            voodoo->cmdfifo_amin_2 = val;
+            break;
+        case cmdAMax1:
+            voodoo->cmdfifo_amax_2 = val;
+            break;
+        case cmdFifoDepth1:
+            voodoo->cmdfifo_depth_rd_2 = 0;
+            voodoo->cmdfifo_depth_wr_2 = val & 0xffff;
             break;
 
         default:
@@ -2067,6 +2264,60 @@ banshee_write_linear_l(uint32_t addr, uint32_t val, void *priv)
 #endif
         }
     }
+
+    if (voodoo->cmdfifo_enabled_2 && addr >= voodoo->cmdfifo_base_2 && addr < voodoo->cmdfifo_end_2) {
+#if 0
+        banshee_log("CMDFIFO write %08x %08x  old amin=%08x amax=%08x hlcnt=%i depth_wr=%i rp=%08x\n", addr, val, voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, voodoo->cmdfifo_holecount, voodoo->cmdfifo_depth_wr, voodoo->cmdfifo_rp);
+#endif
+        if (addr == voodoo->cmdfifo_base_2 && !voodoo->cmdfifo_holecount_2) {
+#if 0
+            if (voodoo->cmdfifo_holecount)
+                fatal("CMDFIFO reset pointers while outstanding holes\n");
+#endif
+            /*Reset pointers*/
+            voodoo->cmdfifo_amin_2 = voodoo->cmdfifo_base_2;
+            voodoo->cmdfifo_amax_2 = voodoo->cmdfifo_base_2;
+            voodoo->cmdfifo_depth_wr_2++;
+            voodoo_wake_fifo_thread(voodoo);
+        } else if (voodoo->cmdfifo_holecount_2) {
+#if 0
+            if ((addr <= voodoo->cmdfifo_amin && voodoo->cmdfifo_amin != -4) || addr >= voodoo->cmdfifo_amax)
+                fatal("CMDFIFO holecount write outside of amin/amax - amin=%08x amax=%08x holecount=%i\n", voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, voodoo->cmdfifo_holecount);
+            banshee_log("holecount %i\n", voodoo->cmdfifo_holecount);
+#endif
+            voodoo->cmdfifo_holecount_2--;
+            if (!voodoo->cmdfifo_holecount_2) {
+                /*Filled in holes, resume normal operation*/
+                voodoo->cmdfifo_depth_wr_2 += ((voodoo->cmdfifo_amax_2 - voodoo->cmdfifo_amin_2) >> 2);
+                voodoo->cmdfifo_amin_2 = voodoo->cmdfifo_amax_2;
+                voodoo_wake_fifo_thread(voodoo);
+#if 0
+                banshee_log("hole filled! amin=%08x amax=%08x added %i words\n", voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, words_to_add);
+#endif
+            }
+        } else if (addr == voodoo->cmdfifo_amax_2 + 4) {
+            /*In-order write*/
+            voodoo->cmdfifo_amin_2 = addr;
+            voodoo->cmdfifo_amax_2 = addr;
+            voodoo->cmdfifo_depth_wr_2++;
+            voodoo_wake_fifo_thread(voodoo);
+        } else {
+            /*Out-of-order write*/
+            if (addr < voodoo->cmdfifo_amin_2) {
+                /*Reset back to start. Note that write is still out of order!*/
+                voodoo->cmdfifo_amin_2 = voodoo->cmdfifo_base_2 - 4;
+            }
+#if 0
+            else if (addr < voodoo->cmdfifo_amax)
+                fatal("Out-of-order write really out of order\n");
+#endif
+            voodoo->cmdfifo_amax_2      = addr;
+            voodoo->cmdfifo_holecount_2 = ((voodoo->cmdfifo_amax_2 - voodoo->cmdfifo_amin_2) >> 2) - 1;
+#if 0
+            banshee_log("CMDFIFO out of order: amin=%08x amax=%08x holecount=%i\n", voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, voodoo->cmdfifo_holecount);
+#endif
+        }
+    }
 }
 
 void
@@ -2109,10 +2360,12 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
         for (x = 0; x < 64; x += 8) {
             if (x_off > -8) {
                 for (xx = 0; xx < 8; xx++) {
-                    if (!(plane0[x >> 3] & (1 << 7)))
-                        (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
-                    else if (plane1[x >> 3] & (1 << 7))
-                        (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] ^= 0xffffff;
+                    if (((x_off + xx + svga->x_add) >= 0) && ((x_off + xx + svga->x_add) <= 2047)) {
+                        if (!(plane0[x >> 3] & (1 << 7)))
+                            (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
+                        else if (plane1[x >> 3] & (1 << 7))
+                            (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] ^= 0xffffff;
+                    }
 
                     plane0[x >> 3] <<= 1;
                     plane1[x >> 3] <<= 1;
@@ -2411,12 +2664,97 @@ voodoo_generate_vb_filters(voodoo_t *voodoo, int fcr, int fcg)
     }
 }
 
+/* 1 = render overlay, 0 = render desktop */
+static bool
+banshee_chroma_key(banshee_t* banshee, uint32_t x, uint32_t y)
+{
+    uint32_t src_addr_desktop = banshee->desktop_addr + y * (banshee->vidDesktopOverlayStride & 0x3fff);
+    bool res = true;
+    uint8_t chromaKeyMaxIndex = banshee->vidChromaKeyMax & 0xff;
+    uint8_t chromaKeyMinIndex = banshee->vidChromaKeyMin & 0xff;
+    uint32_t desktop_pixel = 0;
+    uint8_t desktop_r = 0;
+    uint8_t desktop_g = 0;
+    uint8_t desktop_b = 0;
+    uint32_t prev_desktop_y = banshee->desktop_y - 1;
+
+    if (!banshee->chroma_key_enabled)
+        return true;
+
+    if (y > 2048)
+        return true;
+
+    if (!(banshee->vidProcCfg & (1 << 5))) {
+        return true;
+    }
+
+    switch (VIDPROCCFG_DESKTOP_PIX_FORMAT) {
+        case PIX_FORMAT_8:
+        {
+            desktop_pixel = banshee->svga.vram[src_addr_desktop + x];
+            res = (desktop_pixel & 0xFF) >= chromaKeyMinIndex && (desktop_pixel & 0xFF) <= chromaKeyMaxIndex;
+            break;
+        }
+        case PIX_FORMAT_RGB565:
+        {
+            if (banshee->vidProcCfg & VIDPROCCFG_DESKTOP_TILE) {
+                uint32_t addr = 0;
+                if (prev_desktop_y & 0x80000000)
+                    return false;
+                if (banshee->vidProcCfg & VIDPROCCFG_HALF_MODE)
+                    addr = banshee->desktop_addr + ((prev_desktop_y >> 1) & 31) * 128 + ((prev_desktop_y >> 6) * banshee->desktop_stride_tiled);
+                else
+                    addr = banshee->desktop_addr + (prev_desktop_y & 31) * 128 + ((prev_desktop_y >> 5) * banshee->desktop_stride_tiled);
+
+                addr += 128 * 32 * (x >> 6);
+                addr += (x & 63) * 2;
+                desktop_pixel = *(uint16_t*)&banshee->svga.vram[addr & banshee->svga.vram_mask];
+            } else {
+                desktop_pixel = *(uint16_t*)&banshee->svga.vram[(src_addr_desktop + x * 2) & banshee->svga.vram_mask];
+            }
+
+            desktop_r = (desktop_pixel & 0x1f);
+            desktop_g = (desktop_pixel & 0x7e0) >> 5;
+            desktop_b = (desktop_pixel & 0xf800) >> 11;
+
+            res = (desktop_r >= ((banshee->vidChromaKeyMin >> 11) & 0x1F) && desktop_r <= ((banshee->vidChromaKeyMax >> 11) & 0x1F)) &&
+                (desktop_g >= ((banshee->vidChromaKeyMin >> 5) & 0x3F) && desktop_g <= ((banshee->vidChromaKeyMax >> 5) & 0x3F)) &&
+                (desktop_b >= ((banshee->vidChromaKeyMin) & 0x1F) && desktop_b <= ((banshee->vidChromaKeyMax) & 0x1F));
+            break;
+        }
+        case PIX_FORMAT_RGB24:
+        {
+            desktop_r = banshee->svga.vram[(src_addr_desktop + x * 3) & banshee->svga.vram_mask];
+            desktop_g = banshee->svga.vram[(src_addr_desktop + x * 3 + 1) & banshee->svga.vram_mask];
+            desktop_b = banshee->svga.vram[(src_addr_desktop + x * 3 + 2) & banshee->svga.vram_mask];
+            res = (desktop_r >= ((banshee->vidChromaKeyMin >> 16) & 0xFF) && desktop_r <= ((banshee->vidChromaKeyMax >> 16) & 0xFF)) &&
+                (desktop_g >= ((banshee->vidChromaKeyMin >> 8) & 0xFF) && desktop_g <= ((banshee->vidChromaKeyMax >> 8) & 0xFF)) &&
+                (desktop_b >= ((banshee->vidChromaKeyMin) & 0xFF) && desktop_b <= ((banshee->vidChromaKeyMax) & 0xFF));
+            break;
+        }
+        case PIX_FORMAT_RGB32:
+        {
+            desktop_r = banshee->svga.vram[(src_addr_desktop + x * 4) & banshee->svga.vram_mask];
+            desktop_g = banshee->svga.vram[(src_addr_desktop + x * 4 + 1) & banshee->svga.vram_mask];
+            desktop_b = banshee->svga.vram[(src_addr_desktop + x * 4 + 2) & banshee->svga.vram_mask];
+            res = (desktop_r >= ((banshee->vidChromaKeyMin >> 16) & 0xFF) && desktop_r <= ((banshee->vidChromaKeyMax >> 16) & 0xFF)) &&
+                (desktop_g >= ((banshee->vidChromaKeyMin >> 8) & 0xFF) && desktop_g <= ((banshee->vidChromaKeyMax >> 8) & 0xFF)) &&
+                (desktop_b >= ((banshee->vidChromaKeyMin) & 0xFF) && desktop_b <= ((banshee->vidChromaKeyMax) & 0xFF));
+            break;
+        }
+    }
+
+    res ^= !!(banshee->vidProcCfg & (1 << 6));
+    return res;
+}
+
 static void
 banshee_overlay_draw(svga_t *svga, int displine)
 {
     banshee_t      *banshee = (banshee_t *) svga->priv;
     voodoo_t       *voodoo  = banshee->voodoo;
     uint32_t       *p;
+    bool            chroma_test_passed = true;
     int             x;
     int             y         = voodoo->overlay.src_y >> 20;
     uint32_t        src_addr  = svga->overlay_latch.addr + ((banshee->vidProcCfg & VIDPROCCFG_OVERLAY_TILE) ? ((y & 31) * 128 + (y >> 5) * svga->overlay_latch.pitch) : y * svga->overlay_latch.pitch);
@@ -2431,6 +2769,8 @@ banshee_overlay_draw(svga_t *svga, int displine)
         voodoo->overlay.src_y += (1 << 20);
         return;
     }
+
+    chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x, displine - svga->y_add);
 
     if ((voodoo->overlay.src_y >> 20) < 2048)
         voodoo->dirty_line[voodoo->overlay.src_y >> 20] = 0;
@@ -2448,7 +2788,8 @@ banshee_overlay_draw(svga_t *svga, int displine)
 
     if (skip_filtering) {
         /*No scaling or filtering required, just write straight to output buffer*/
-        OVERLAY_SAMPLE(p);
+        if (chroma_test_passed)
+            OVERLAY_SAMPLE(p);
     } else {
         OVERLAY_SAMPLE(banshee->overlay_buffer[0]);
 
@@ -2465,25 +2806,31 @@ banshee_overlay_draw(svga_t *svga, int displine)
                             ((0x10000 - x_coeff) * y_coeff) >> 16,
                             (x_coeff * y_coeff) >> 16
                         };
-                        uint32_t samp0 = banshee->overlay_buffer[0][src_x >> 20];
-                        uint32_t samp1 = banshee->overlay_buffer[0][(src_x >> 20) + 1];
-                        uint32_t samp2 = banshee->overlay_buffer[1][src_x >> 20];
-                        uint32_t samp3 = banshee->overlay_buffer[1][(src_x >> 20) + 1];
-                        int      r     = (((samp0 >> 16) & 0xff) * coeffs[0] + ((samp1 >> 16) & 0xff) * coeffs[1] + ((samp2 >> 16) & 0xff) * coeffs[2] + ((samp3 >> 16) & 0xff) * coeffs[3]) >> 16;
-                        int      g     = (((samp0 >> 8) & 0xff) * coeffs[0] + ((samp1 >> 8) & 0xff) * coeffs[1] + ((samp2 >> 8) & 0xff) * coeffs[2] + ((samp3 >> 8) & 0xff) * coeffs[3]) >> 16;
-                        int      b     = ((samp0 & 0xff) * coeffs[0] + (samp1 & 0xff) * coeffs[1] + (samp2 & 0xff) * coeffs[2] + (samp3 & 0xff) * coeffs[3]) >> 16;
-                        p[x]           = (r << 16) | (g << 8) | b;
+                        uint32_t samp0     = banshee->overlay_buffer[0][src_x >> 20];
+                        uint32_t samp1     = banshee->overlay_buffer[0][(src_x >> 20) + 1];
+                        uint32_t samp2     = banshee->overlay_buffer[1][src_x >> 20];
+                        uint32_t samp3     = banshee->overlay_buffer[1][(src_x >> 20) + 1];
+                        int      r         = (((samp0 >> 16) & 0xff) * coeffs[0] + ((samp1 >> 16) & 0xff) * coeffs[1] + ((samp2 >> 16) & 0xff) * coeffs[2] + ((samp3 >> 16) & 0xff) * coeffs[3]) >> 16;
+                        int      g         = (((samp0 >> 8) & 0xff) * coeffs[0] + ((samp1 >> 8) & 0xff) * coeffs[1] + ((samp2 >> 8) & 0xff) * coeffs[2] + ((samp3 >> 8) & 0xff) * coeffs[3]) >> 16;
+                        int      b         = ((samp0 & 0xff) * coeffs[0] + (samp1 & 0xff) * coeffs[1] + (samp2 & 0xff) * coeffs[2] + (samp3 & 0xff) * coeffs[3]) >> 16;
+                        chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x + x, displine - svga->y_add);
+
+                        if (chroma_test_passed)
+                            p[x] = (r << 16) | (g << 8) | b;
 
                         src_x += voodoo->overlay.vidOverlayDudx;
                     }
                 } else {
                     for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
-                        uint32_t samp0 = banshee->overlay_buffer[0][src_x >> 20];
-                        uint32_t samp1 = banshee->overlay_buffer[1][src_x >> 20];
-                        int      r     = (((samp0 >> 16) & 0xff) * (0x10000 - y_coeff) + ((samp1 >> 16) & 0xff) * y_coeff) >> 16;
-                        int      g     = (((samp0 >> 8) & 0xff) * (0x10000 - y_coeff) + ((samp1 >> 8) & 0xff) * y_coeff) >> 16;
-                        int      b     = ((samp0 & 0xff) * (0x10000 - y_coeff) + (samp1 & 0xff) * y_coeff) >> 16;
-                        p[x]           = (r << 16) | (g << 8) | b;
+                        uint32_t samp0     = banshee->overlay_buffer[0][src_x >> 20];
+                        uint32_t samp1     = banshee->overlay_buffer[1][src_x >> 20];
+                        int      r         = (((samp0 >> 16) & 0xff) * (0x10000 - y_coeff) + ((samp1 >> 16) & 0xff) * y_coeff) >> 16;
+                        int      g         = (((samp0 >> 8) & 0xff) * (0x10000 - y_coeff) + ((samp1 >> 8) & 0xff) * y_coeff) >> 16;
+                        int      b         = ((samp0 & 0xff) * (0x10000 - y_coeff) + (samp1 & 0xff) * y_coeff) >> 16;
+                        chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x + x, displine - svga->y_add);
+
+                        if (chroma_test_passed)
+                            p[x] = (r << 16) | (g << 8) | b;
                     }
                 }
                 break;
@@ -2538,21 +2885,30 @@ banshee_overlay_draw(svga_t *svga, int displine)
                         fil3[x * 3 + 2] = vb_filter_v1_rb[fil[x * 3 + 2]][fil[(x - 1) * 3 + 2]];
                     }
                     for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
-                        fil[x * 3]     = vb_filter_v1_rb[fil[x * 3]][fil3[(x + 1) * 3]];
-                        fil[x * 3 + 1] = vb_filter_v1_g[fil[x * 3 + 1]][fil3[(x + 1) * 3 + 1]];
-                        fil[x * 3 + 2] = vb_filter_v1_rb[fil[x * 3 + 2]][fil3[(x + 1) * 3 + 2]];
-                        p[x]            = (fil[x * 3 + 2] << 16) | (fil[x * 3 + 1] << 8) | fil[x * 3];
+                        fil[x * 3]         = vb_filter_v1_rb[fil[x * 3]][fil3[(x + 1) * 3]];
+                        fil[x * 3 + 1]     = vb_filter_v1_g[fil[x * 3 + 1]][fil3[(x + 1) * 3 + 1]];
+                        fil[x * 3 + 2]     = vb_filter_v1_rb[fil[x * 3 + 2]][fil3[(x + 1) * 3 + 2]];
+                        chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x + x, displine - svga->y_add);
+
+                        if (chroma_test_passed)
+                            p[x] = (fil[x * 3 + 2] << 16) | (fil[x * 3 + 1] << 8) | fil[x * 3];
                     }
                 } else /* filter disabled by emulator option */
                 {
                     if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) {
                         for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
-                            p[x] = banshee->overlay_buffer[0][src_x >> 20];
+                            chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x + x, displine - svga->y_add);
+                            if (chroma_test_passed)
+                                p[x] = banshee->overlay_buffer[0][src_x >> 20];
+
                             src_x += voodoo->overlay.vidOverlayDudx;
                         }
                     } else {
-                        for (x = 0; x < svga->overlay_latch.cur_xsize; x++)
-                            p[x] = banshee->overlay_buffer[0][x];
+                        for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
+                            chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x + x, displine - svga->y_add);
+                            if (chroma_test_passed)
+                                p[x] = banshee->overlay_buffer[0][x];
+                        }
                     }
                 }
                 break;
@@ -2607,25 +2963,35 @@ banshee_overlay_draw(svga_t *svga, int displine)
                     if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) /* 2x2 on a scaled low res */
                     {
                         for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
-                            p[x] = (fil[(src_x >> 20) * 3 + 2] << 16) | (fil[(src_x >> 20) * 3 + 1] << 8) | fil[(src_x >> 20) * 3];
+                            chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x + x, displine - svga->y_add);
+                            if (chroma_test_passed)
+                                p[x] = (fil[(src_x >> 20) * 3 + 2] << 16) | (fil[(src_x >> 20) * 3 + 1] << 8) | fil[(src_x >> 20) * 3];
+
                             src_x += voodoo->overlay.vidOverlayDudx;
                         }
                     } else {
                         for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
-                            p[x] = (fil[x * 3 + 2] << 16) | (fil[x * 3 + 1] << 8) | fil[x * 3];
+                            chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x + x, displine - svga->y_add);
+                            if (chroma_test_passed)
+                                p[x] = (fil[x * 3 + 2] << 16) | (fil[x * 3 + 1] << 8) | fil[x * 3];
                         }
                     }
                 } else /* filter disabled by emulator option */
                 {
                     if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) {
                         for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
-                            p[x] = banshee->overlay_buffer[0][src_x >> 20];
+                            chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x + x, displine - svga->y_add);
+                            if (chroma_test_passed)
+                                p[x] = banshee->overlay_buffer[0][src_x >> 20];
 
                             src_x += voodoo->overlay.vidOverlayDudx;
                         }
                     } else {
-                        for (x = 0; x < svga->overlay_latch.cur_xsize; x++)
-                            p[x] = banshee->overlay_buffer[0][x];
+                        for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
+                            chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x + x, displine - svga->y_add);
+                            if (chroma_test_passed)
+                                p[x] = banshee->overlay_buffer[0][x];
+                        }
                     }
                 }
                 break;
@@ -2634,13 +3000,18 @@ banshee_overlay_draw(svga_t *svga, int displine)
             default:
                 if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) {
                     for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
-                        p[x] = banshee->overlay_buffer[0][src_x >> 20];
+                        chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x + x, displine - svga->y_add);
+                        if (chroma_test_passed)
+                            p[x] = banshee->overlay_buffer[0][src_x >> 20];
 
                         src_x += voodoo->overlay.vidOverlayDudx;
                     }
                 } else {
-                    for (x = 0; x < svga->overlay_latch.cur_xsize; x++)
-                        p[x] = banshee->overlay_buffer[0][x];
+                    for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
+                        chroma_test_passed = banshee_chroma_key(banshee, svga->overlay_latch.x + x, displine - svga->y_add);
+                        if (chroma_test_passed)
+                            p[x] = banshee->overlay_buffer[0][x];
+                    }
                 }
                 break;
         }
@@ -2701,7 +3072,9 @@ banshee_pci_read(int func, int addr, void *priv)
 
     if (func)
         return 0xff;
-    //        banshee_log("Banshee PCI read %08X  ", addr);
+#if 0
+    banshee_log("Banshee PCI read %08X  ", addr);
+#endif
     switch (addr) {
         case 0x00:
             ret = 0x1a;
@@ -3026,137 +3399,6 @@ banshee_pci_write(int func, int addr, uint8_t val, void *priv)
     }
 }
 
-// clang-format off
-static const device_config_t banshee_sgram_config[] = {
-    {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "8 MB",
-                .value = 8
-            },
-            {
-                .description = "16 MB",
-                .value = 16
-            },
-            {
-                .description = ""
-            }
-        },
-        .default_int = 16
-    },
-    {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-    {
-        .name = "dithersub",
-        .description = "Dither subtraction",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-    {
-        .name = "dacfilter",
-        .description = "Screen Filter",
-        .type = CONFIG_BINARY,
-        .default_int = 0
-    },
-    {
-        .name = "render_threads",
-        .description = "Render threads",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "1",
-                .value = 1
-            },
-            {
-                .description = "2",
-                .value = 2
-            },
-            {
-                .description = "4",
-                .value = 4
-            },
-            {
-                .description = ""
-            }
-        },
-        .default_int = 2
-    },
-#ifndef NO_CODEGEN
-    {
-        .name = "recompiler",
-        .description = "Recompiler",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-#endif
-    {
-        .type = CONFIG_END
-    }
-};
-
-static const device_config_t banshee_sdram_config[] = {
-    {
-        .name = "bilinear",
-        .description = "Bilinear filtering",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-    {
-        .name = "dithersub",
-        .description = "Dither subtraction",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-    {
-        .name = "dacfilter",
-        .description = "Screen Filter",
-        .type = CONFIG_BINARY,
-        .default_int = 0
-    },
-    {
-        .name = "render_threads",
-        .description = "Render threads",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "1",
-                .value = 1
-            },
-            {
-                .description = "2",
-                .value = 2
-            },
-            {
-                .description = "4",
-                .value = 4
-            },
-            {
-                .description = ""
-            }
-        },
-        .default_int = 2
-    },
-#ifndef NO_CODEGEN
-    {
-        .name = "recompiler",
-        .description = "Recompiler",
-        .type = CONFIG_BINARY,
-        .default_int = 1
-    },
-#endif
-    {
-        .type = CONFIG_END
-    }
-};
-// clang-format on
-
 static void *
 banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int voodoo_type, int agp)
 {
@@ -3167,6 +3409,8 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
     banshee->type     = type;
     banshee->agp      = agp;
     banshee->has_bios = !!fn;
+
+    banshee->chroma_key_enabled = device_get_config_int("chromakey");
 
     if (banshee->has_bios) {
         rom_init(&banshee->bios_rom, fn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
@@ -3179,7 +3423,9 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
 #endif
         mem_size = device_get_config_int("memory"); /* MS-6168 / Bora Pro can do both 8 and 16 MB. */
     else if (has_sgram) {
-        if (banshee->type == TYPE_VELOCITY100)
+        if ((banshee->type == TYPE_V3_1000) || (banshee->type == TYPE_VELOCITY200))
+            mem_size = 16; /* Our Voodoo 3 1000 and Velocity 200 bios'es are hardcoded to 16 MB. */
+        else if (banshee->type == TYPE_VELOCITY100)
             mem_size = 8; /* Velocity 100 only supports 8 MB */
         else
             mem_size = device_get_config_int("memory");
@@ -3254,6 +3500,7 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
     banshee->voodoo->tex_mem_w[1] = (uint16_t *) banshee->svga.vram;
     banshee->voodoo->texture_mask = banshee->svga.vram_mask;
     banshee->voodoo->cmd_status   = (1 << 28);
+    banshee->voodoo->cmd_status_2 = (1 << 28);
     voodoo_generate_filter_v1(banshee->voodoo);
 
     banshee->vidSerialParallelPort = VIDSERIAL_DDC_DCK_W | VIDSERIAL_DDC_DDA_W;
@@ -3277,6 +3524,16 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
                 banshee->pci_regs[0x2e] = 0x17;
                 banshee->pci_regs[0x2f] = 0x10;
             }
+            break;
+
+        case TYPE_QUANTUM3D_RAVEN:
+            /* This case basically exists only to set the subsystem ID correctly for SF: Rush, a vendor-locked game. */
+            /*  We set the type back to TYPE_BANSHEE so the card behaves as a regular Banshee (no 3D glasses emulation). */
+            banshee->pci_regs[0x2c] = 0x9c;
+            banshee->pci_regs[0x2d] = 0x13;
+            banshee->pci_regs[0x2e] = banshee->agp ? 0x16 : 0x17;
+            banshee->pci_regs[0x2f] = 0x00;
+            banshee->type = TYPE_BANSHEE;
             break;
 
         case TYPE_V3_1000:
@@ -3354,6 +3611,12 @@ static void *
 creative_banshee_init(const device_t *info)
 {
     return banshee_init_common(info, ROM_CREATIVE_BANSHEE, 0, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
+}
+
+static void *
+quantum3d_raven_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_QUANTUM3D_RAVEN, 0, TYPE_QUANTUM3D_RAVEN, VOODOO_BANSHEE, 0);
 }
 
 static void *
@@ -3453,6 +3716,12 @@ creative_banshee_available(void)
 }
 
 static int
+quantum3d_raven_available(void)
+{
+    return rom_present(ROM_QUANTUM3D_RAVEN);
+}
+
+static int
 v3_1000_available(void)
 {
     return rom_present(ROM_VOODOO3_1000);
@@ -3545,6 +3814,254 @@ banshee_force_redraw(void *priv)
     banshee->svga.fullchange = changeframecount;
 }
 
+// clang-format off
+static const device_config_t banshee_sgram_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 16,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "8 MB", .value =  8 },
+            { .description = "16 MB", .value = 16 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "chromakey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dithersub",
+        .description    = "Dither subtraction",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dacfilter",
+        .description    = "Screen Filter",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+#ifndef NO_CODEGEN
+    {
+        .name           = "recompiler",
+        .description    = "Dynamic Recompiler",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+#endif
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t banshee_sgram_16mbonly_config[] = {
+    {
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "chromakey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dithersub",
+        .description    = "Dither subtraction",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dacfilter",
+        .description    = "Screen Filter",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+#ifndef NO_CODEGEN
+    {
+        .name           = "recompiler",
+        .description    = "Dynamic Recompiler",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+#endif
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t banshee_sdram_config[] = {
+    {
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "chromakey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dithersub",
+        .description    = "Dither subtraction",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dacfilter",
+        .description    = "Screen Filter",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+#ifndef NO_CODEGEN
+    {
+        .name           = "recompiler",
+        .description    = "Dynamic Recompiler",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+#endif
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+// clang-format on
+
 const device_t voodoo_banshee_device = {
     .name          = "3Dfx Voodoo Banshee",
     .internal_name = "voodoo_banshee_pci",
@@ -3553,7 +4070,7 @@ const device_t voodoo_banshee_device = {
     .init          = banshee_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = banshee_available },
+    .available     = banshee_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sgram_config
@@ -3567,7 +4084,21 @@ const device_t creative_voodoo_banshee_device = {
     .init          = creative_banshee_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = creative_banshee_available },
+    .available     = creative_banshee_available,
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    .config        = banshee_sdram_config
+};
+
+const device_t quantum3d_raven_device = {
+    .name          = "Quantum3D Raven",
+    .internal_name = "q3d_raven_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = quantum3d_raven_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    .available     = quantum3d_raven_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sdram_config
@@ -3581,7 +4112,7 @@ const device_t voodoo_3_1000_device = {
     .init          = v3_1000_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = v3_1000_available },
+    .available     = v3_1000_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sgram_config
@@ -3595,10 +4126,10 @@ const device_t voodoo_3_1000_agp_device = {
     .init          = v3_1000_agp_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = v3_1000_agp_available },
+    .available     = v3_1000_agp_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sgram_config
+    .config        = banshee_sgram_16mbonly_config
 };
 
 const device_t voodoo_3_2000_device = {
@@ -3609,7 +4140,7 @@ const device_t voodoo_3_2000_device = {
     .init          = v3_2000_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = v3_2000_available },
+    .available     = v3_2000_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sdram_config
@@ -3623,7 +4154,7 @@ const device_t voodoo_3_2000_agp_device = {
     .init          = v3_2000_agp_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = v3_2000_agp_available },
+    .available     = v3_2000_agp_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sdram_config
@@ -3637,7 +4168,7 @@ const device_t voodoo_3_2000_agp_onboard_8m_device = {
     .init          = v3_2000_agp_onboard_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sgram_config
@@ -3651,7 +4182,7 @@ const device_t voodoo_3_3000_device = {
     .init          = v3_3000_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = v3_3000_available },
+    .available     = v3_3000_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sdram_config
@@ -3665,7 +4196,7 @@ const device_t voodoo_3_3000_agp_device = {
     .init          = v3_3000_agp_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = v3_3000_agp_available },
+    .available     = v3_3000_agp_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sdram_config
@@ -3679,7 +4210,7 @@ const device_t voodoo_3_3500_agp_ntsc_device = {
     .init          = v3_3500_agp_ntsc_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = v3_3500_agp_ntsc_available },
+    .available     = v3_3500_agp_ntsc_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sdram_config
@@ -3693,7 +4224,7 @@ const device_t voodoo_3_3500_agp_pal_device = {
     .init          = v3_3500_agp_pal_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = v3_3500_agp_pal_available },
+    .available     = v3_3500_agp_pal_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sdram_config
@@ -3707,7 +4238,7 @@ const device_t compaq_voodoo_3_3500_agp_device = {
     .init          = compaq_v3_3500_agp_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = compaq_v3_3500_agp_available },
+    .available     = compaq_v3_3500_agp_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sdram_config
@@ -3721,7 +4252,7 @@ const device_t voodoo_3_3500_se_agp_device = {
     .init          = v3_3500_se_agp_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = v3_3500_se_agp_available },
+    .available     = v3_3500_se_agp_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sdram_config
@@ -3735,7 +4266,7 @@ const device_t voodoo_3_3500_si_agp_device = {
     .init          = v3_3500_si_agp_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = v3_3500_si_agp_available },
+    .available     = v3_3500_si_agp_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sdram_config
@@ -3749,7 +4280,7 @@ const device_t velocity_100_agp_device = {
     .init          = velocity_100_agp_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = velocity_100_available },
+    .available     = velocity_100_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = banshee_sdram_config
@@ -3763,8 +4294,8 @@ const device_t velocity_200_agp_device = {
     .init          = velocity_200_agp_init,
     .close         = banshee_close,
     .reset         = NULL,
-    { .available = velocity_200_available },
+    .available     = velocity_200_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sgram_config
+    .config        = banshee_sgram_16mbonly_config
 };

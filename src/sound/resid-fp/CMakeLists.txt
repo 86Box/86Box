@@ -13,7 +13,10 @@
 #          Copyright 2020-2021 David Hrdlička.
 #
 
-add_library(resid-fp STATIC convolve-sse.cc convolve.cc envelope.cc extfilt.cc
-    filter.cc pot.cc sid.cc voice.cc wave.cc wave6581_PST.cc
-    wave6581_PS_.cc wave6581_P_T.cc wave6581__ST.cc wave8580_PST.cc
-    wave8580_PS_.cc wave8580_P_T.cc wave8580__ST.cc)
+set(CMAKE_CXX_STANDARD 17)
+
+add_library(resid-fp STATIC Dac.cpp EnvelopeGenerator.cpp ExternalFilter.cpp
+    Filter.cpp Filter6581.cpp Filter8580.cpp FilterModelConfig.cpp
+    FilterModelConfig6581.cpp FilterModelConfig8580.cpp
+    Integrator6581.cpp Integrator8580.cpp OpAmp.cpp SID.cpp
+    Spline.cpp WaveformCalculator.cpp WaveformGenerator.cpp resample/SincResampler.cpp)

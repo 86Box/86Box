@@ -42,6 +42,7 @@
 #include <86box/fdd_86f.h>
 #include <86box/fdd_td0.h>
 #include <86box/fdc.h>
+#include "lzw/lzw.h"
 
 #define BUFSZ         512 /* new input buffer */
 #define TD0_MAX_BUFSZ (1024UL * 1024UL * 4UL)
@@ -124,7 +125,9 @@ typedef struct td0_t {
     uint8_t      xdf_ordered_pos[256][2];
     uint8_t      interleave_ordered_pos[256][2];
 
+    uint8_t *lzw_buf;
     uint8_t *imagebuf;
+
     uint8_t *processed_buf;
 } td0_t;
 
@@ -650,11 +653,20 @@ td0_initialize(int drive)
     head_count = header[9];
 
     if (header[0] == 't') {
-        td0_log("TD0: File is compressed\n");
-        disk_decode.fdd_file = dev->fp;
-        state_init_Decode(&disk_decode);
-        disk_decode.fdd_file_offset = 12;
-        state_Decode(&disk_decode, dev->imagebuf, TD0_MAX_BUFSZ);
+        if (((header[4] / 10) % 10) == 2) {
+            td0_log("TD0: File is compressed (TeleDisk 2.x, LZHUF)\n");
+            disk_decode.fdd_file = dev->fp;
+            state_init_Decode(&disk_decode);
+            disk_decode.fdd_file_offset = 12;
+            state_Decode(&disk_decode, dev->imagebuf, TD0_MAX_BUFSZ);
+        } else {
+            td0_log("TD0: File is compressed (TeleDisk 1.x, LZW)\n");
+            if (fseek(dev->fp, 12, SEEK_SET) == -1)
+                fatal("td0_initialize(): Error seeking to offet 12\n");
+            if (fread(dev->lzw_buf, 1, file_size - 12, dev->fp) != (file_size - 12))
+                fatal("td0_initialize(): Error reading LZW-encoded buffer\n");
+            LZWDecodeFile((char *) dev->imagebuf, (char *) dev->lzw_buf, NULL, file_size - 12);
+        }
     } else {
         td0_log("TD0: File is uncompressed\n");
         if (fseek(dev->fp, 12, SEEK_SET) == -1)
@@ -1202,8 +1214,7 @@ td0_load(int drive, char *fn)
 
     writeprot[drive] = 1;
 
-    dev = (td0_t *) malloc(sizeof(td0_t));
-    memset(dev, 0x00, sizeof(td0_t));
+    dev = (td0_t *) calloc(1, sizeof(td0_t));
     td0[drive] = dev;
 
     dev->fp = plat_fopen(fn, "rb");
@@ -1224,10 +1235,9 @@ td0_load(int drive, char *fn)
 
     /* Allocate the processing buffers. */
     i             = 1024UL * 1024UL * 4UL;
-    dev->imagebuf = (uint8_t *) malloc(i);
-    memset(dev->imagebuf, 0x00, i);
-    dev->processed_buf = (uint8_t *) malloc(i);
-    memset(dev->processed_buf, 0x00, i);
+    dev->lzw_buf = (uint8_t *) calloc(1, i);
+    dev->imagebuf = (uint8_t *) calloc(1, i);
+    dev->processed_buf = (uint8_t *) calloc(1, i);
 
     if (!td0_initialize(drive)) {
         td0_log("TD0: Failed to initialize\n");
@@ -1268,6 +1278,8 @@ td0_close(int drive)
 
     d86f_unregister(drive);
 
+    if (dev->lzw_buf)
+        free(dev->lzw_buf);
     if (dev->imagebuf)
         free(dev->imagebuf);
     if (dev->processed_buf)

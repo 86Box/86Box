@@ -1,16 +1,17 @@
 #
-# 86Box     A hypervisor and IBM PC system emulator that specializes in
-#           running old operating systems and software designed for IBM
-#           PC systems and compatibles from 1981 through fairly recent
-#           system designs based on the PCI bus.
+# 86Box    A hypervisor and IBM PC system emulator that specializes in
+#          running old operating systems and software designed for IBM
+#          PC systems and compatibles from 1981 through fairly recent
+#          system designs based on the PCI bus.
 #
-#           This file is part of the 86Box distribution.
+#          This file is part of the 86Box distribution.
 #
-#           CMake build script.
+#          CMake build script.
 #
-# Authors:  David Hrdlička, <hrdlickadavid@outlook.com>
+# Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#           Copyright 2020-2021 David Hrdlička.
+#          Copyright 2020-2021 David Hrdlička.
+#          Copyright 2021-2025 Jasmine Iwanek.
 #
 
 cmake_minimum_required(VERSION 3.16)
@@ -35,7 +36,7 @@ if(MUNT_EXTERNAL)
 endif()
 
 project(86Box
-    VERSION 4.1
+    VERSION 5.1
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
@@ -122,43 +123,68 @@ set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 
 # Optional features
 #
-#      Option       Description                                                     Def.
-#      ------       -----------                                                     ----
-option(RELEASE      "Release build"                                                 OFF)
-option(DYNAREC      "Dynamic recompiler"                                            ON)
-option(OPENAL       "OpenAL"                                                        ON)
-option(RTMIDI       "RtMidi"                                                        ON)
-option(FLUIDSYNTH   "FluidSynth"                                                    ON)
-option(MUNT         "MUNT"                                                          ON)
-option(VNC          "VNC renderer"                                                  OFF)
-option(DINPUT       "DirectInput"                                                   OFF)
-option(CPPTHREADS   "C++11 threads"                                                 ON)
-option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
-option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
-option(GDBSTUB      "Enable GDB stub server for debugging"                          OFF)
-option(DEV_BRANCH   "Development branch"                                            OFF)
-option(QT           "Qt GUI"                                                        ON)
-option(DISCORD      "Discord Rich Presence support"                                 ON)
+#      Option       Description                                                  Def.
+#      ------       -----------                                                  ----
+option(RELEASE      "Release build"                                              OFF)
+option(DYNAREC      "Dynamic recompiler"                                         ON)
+option(OPENAL       "OpenAL"                                                     ON)
+option(RTMIDI       "RtMidi"                                                     ON)
+option(FLUIDSYNTH   "FluidSynth"                                                 ON)
+option(MUNT         "MUNT"                                                       ON)
+option(VNC          "VNC renderer"                                               OFF)
+option(MINITRACE    "Enable Chrome tracing using the modified minitrace library" OFF)
+option(GDBSTUB      "Enable GDB stub server for debugging"                       OFF)
+option(DEV_BRANCH   "Development branch"                                         OFF)
+option(DISCORD      "Discord Rich Presence support"                              ON)
+option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
+option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
+
+if((ARCH STREQUAL "arm64") OR (ARCH STREQUAL "arm"))
+    set(NEW_DYNAREC ON)
+else()
+    option(NEW_DYNAREC "Use the PCem v15 (\"new\") dynamic recompiler" OFF)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
+    option(AUDIO4 "Use audio(4) as sound backend" ON)
+else()
+    set(AUDIO4 OFF)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+    option(SNDIO "Use sndio as sound backend" ON)
+else()
+    set(SNDIO OFF)
+endif()
+
+if(WIN32)
+    set(QT ON)
+    option(CPPTHREADS "C++11 threads" OFF)
+else()
+    option(QT "Qt GUI" ON)
+    option(CPPTHREADS "C++11 threads" ON)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+    SET(CMAKE_EXE_LINKER_FLAGS "-Wl,-z,wxneeded")
+endif()
 
 # Development branch features
 #
-#                      Option         Description                                   Def.    Condition       Otherwise
-#                      ------         -----------                                   ----    ---------       ---------
-cmake_dependent_option(AMD_K5         "AMD K5"                                      ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(AN430TX        "Intel AN430TX"                               ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(CYRIX_6X86     "Cyrix 6x86"                                  ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(DESKPRO386     "Compaq Deskpro 386"                          ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(GUSMAX         "Gravis UltraSound MAX"                       ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                                 ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                           ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(ISAMEM_BRAT    "BocaRAM/AT"                                  ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(LASERXT        "VTech Laser XT"                              ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(OLIVETTI       "Olivetti M290"                               ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(OPEN_AT        "OpenAT"                                      ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(PAS16          "Pro Audio Spectrum 16"                       ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"                  ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(VGAWONDER      "ATI VGA Wonder (ATI-18800)"                  ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"           ON      "DEV_BRANCH"    OFF)
+#                      Option         Description                                Def.  Condition     Otherwise
+#                      ------         -----------                                ----  ------------  ---------
+cmake_dependent_option(AMD_K5         "AMD K5"                                   ON    "DEV_BRANCH"  OFF)
+cmake_dependent_option(CDROM_MITSUMI  "Mitsumi CDROM"                            ON    "DEV_BRANCH"  OFF)
+cmake_dependent_option(G100           "Matrox Productiva G100"                   ON    "DEV_BRANCH"  OFF)
+cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                              ON    "DEV_BRANCH"  OFF)
+cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                        ON    "DEV_BRANCH"  OFF)
+cmake_dependent_option(ISAMEM_BRAT    "BocaRAM/AT"                               ON    "DEV_BRANCH"  OFF)
+cmake_dependent_option(OPL4ML         "OPL4-ML daughterboard"                    ON    "DEV_BRANCH"  OFF)
+cmake_dependent_option(PCL            "Generic PCL5e Printer"                    ON    "DEV_BRANCH"  OFF)
+cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"               ON    "DEV_BRANCH"  OFF)
+cmake_dependent_option(WACOM          "Wacom Input Devices"                      ON    "DEV_BRANCH"  OFF)
+cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"        ON    "DEV_BRANCH"  OFF)
+cmake_dependent_option(NETSWITCH      "Network Switch Support"                   ON    "DEV_BRANCH"  OFF)
 
 # Ditto but for Qt
 if(QT)
@@ -196,7 +222,15 @@ if(NOT EMU_BUILD_NUM)
     set(EMU_BUILD_NUM 0)
 endif()
 if(NOT EMU_COPYRIGHT_YEAR)
-    set(EMU_COPYRIGHT_YEAR 2024)
+    set(EMU_COPYRIGHT_YEAR 2025)
 endif()
+
+# Libasan
+if(LIBASAN)
+    add_compile_options(-fsanitize=address)
+    add_link_options(-fsanitize=address)
+endif()
+
+set(CMAKE_TOP_LEVEL_PROCESSED TRUE)
 
 add_subdirectory(src)

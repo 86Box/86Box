@@ -13,6 +13,7 @@
 #include "x86.h"
 #include "x86_ops.h"
 #include "x86seg_common.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include "386_common.h"
 #include "codegen.h"
@@ -786,7 +787,7 @@ static const macro_op_t wbinvd_op = {
 };
 #define INVALID NULL
 
-static const macro_op_t *opcode_timings[256] = {
+static const macro_op_t *opcode_timings_p6[256] = {
     // clang-format off
 /*      ADD                    ADD                    ADD                   ADD*/
 /*00*/  &alup0_store_op,       &alu_store_op,         &load_alup0_op,       &load_alu_op,
@@ -923,7 +924,7 @@ static const macro_op_t *opcode_timings[256] = {
     // clang-format on
 };
 
-static const macro_op_t *opcode_timings_mod3[256] = {
+static const macro_op_t *opcode_timings_p6_mod3[256] = {
     // clang-format off
 /*      ADD                       ADD                       ADD                       ADD*/
 /*00*/  &alup0_op,                &alu_op,                  &alup0_op,                &alu_op,
@@ -1061,7 +1062,7 @@ static const macro_op_t *opcode_timings_mod3[256] = {
     // clang-format on
 };
 
-static const macro_op_t *opcode_timings_0f[256] = {
+static const macro_op_t *opcode_timings_p6_0f[256] = {
     // clang-format off
 /*00*/  &alu6_op,               &alu6_op,               &alu6_op,               &alu6_op,
         INVALID,                &alu6_op,               &alu6_op,               INVALID,
@@ -1144,7 +1145,7 @@ static const macro_op_t *opcode_timings_0f[256] = {
         &load_mmx_op,            &load_mmx_op,           &load_mmx_op,           INVALID,
     // clang-format on
 };
-static const macro_op_t *opcode_timings_0f_mod3[256] = {
+static const macro_op_t *opcode_timings_p6_0f_mod3[256] = {
     // clang-format off
 /*00*/  &alu6_op,                &alu6_op,               &alu6_op,               &alu6_op,
         INVALID,                 &alu6_op,               &alu6_op,               INVALID,
@@ -1227,58 +1228,58 @@ static const macro_op_t *opcode_timings_0f_mod3[256] = {
         &mmx_op,                 &mmx_op,                &mmx_op,                INVALID,
 };
 
-static const macro_op_t *opcode_timings_shift[8] =
+static const macro_op_t *opcode_timings_p6_shift[8] =
 {
     // clang-format off
         &alu_store_op,   &alu_store_op,   &alu_store_op,   &alu_store_op,
         &alu_store_op,   &alu_store_op,   &alu_store_op,   &alu_store_op
     // clang-format on
 };
-static const macro_op_t *opcode_timings_shift_b[8] = {
+static const macro_op_t *opcode_timings_p6_shift_b[8] = {
     // clang-format off
         &alup0_store_op,  &alup0_store_op,  &alup0_store_op,  &alup0_store_op,
         &alup0_store_op,  &alup0_store_op,  &alup0_store_op,  &alup0_store_op
     // clang-format on
 };
-static const macro_op_t *opcode_timings_shift_mod3[8] = {
+static const macro_op_t *opcode_timings_p6_shift_mod3[8] = {
     // clang-format off
         &complex_alu1_op,   &complex_alu1_op,   &complex_alu1_op,   &complex_alu1_op,
         &alu_op,            &alu_op,            &alu_op,            &alu_op
     // clang-format on
 };
-static const macro_op_t *opcode_timings_shift_b_mod3[8] = {
+static const macro_op_t *opcode_timings_p6_shift_b_mod3[8] = {
     // clang-format off
         &complex_alup0_1_op,  &complex_alup0_1_op,  &complex_alup0_1_op,  &complex_alup0_1_op,
         &alup0_op,            &alup0_op,            &alup0_op,            &alup0_op
     // clang-format on
 };
 
-static const macro_op_t *opcode_timings_80[8] = {
+static const macro_op_t *opcode_timings_p6_80[8] = {
     // clang-format off
         &alup0_store_op, &alup0_store_op, &alup0_store_op,  &alup0_store_op,
         &alup0_store_op, &alup0_store_op, &alup0_store_op,  &alup0_store_op,
     // clang-format on
 };
-static const macro_op_t *opcode_timings_80_mod3[8] = {
+static const macro_op_t *opcode_timings_p6_80_mod3[8] = {
     // clang-format off
         &alup0_op,       &alup0_op,       &alup0_store_op,  &alup0_store_op,
         &alup0_op,       &alup0_op,       &alup0_op,        &alup0_op,
     // clang-format on
 };
-static const macro_op_t *opcode_timings_8x[8] = {
+static const macro_op_t *opcode_timings_p6_8x[8] = {
     // clang-format off
         &alu_store_op,  &alu_store_op,    &alu_store_op,    &alu_store_op,
         &alu_store_op,  &alu_store_op,    &alu_store_op,    &alu_store_op,
     // clang-format on
 };
-static const macro_op_t *opcode_timings_8x_mod3[8] = {
+static const macro_op_t *opcode_timings_p6_8x_mod3[8] = {
     // clang-format off
         &alu_op,        &alu_op,          &alu_store_op,    &alu_store_op,
         &alu_op,        &alu_op,          &alu_op,          &alu_op,
     // clang-format on
 };
 
-static const macro_op_t *opcode_timings_f6[8] = {
+static const macro_op_t *opcode_timings_p6_f6[8] = {
     // clang-format off
 /*      TST                                             NOT                     NEG*/
         &test_mem_imm_b_op,     INVALID,                &alup0_store_op,        &alup0_store_op,
@@ -1286,7 +1287,7 @@ static const macro_op_t *opcode_timings_f6[8] = {
         &mul_mem_op,            &mul_mem_op,            &div16_mem_op,          &div16_mem_op,
     // clang-format on
 };
-static const macro_op_t *opcode_timings_f6_mod3[8] = {
+static const macro_op_t *opcode_timings_p6_f6_mod3[8] = {
     // clang-format off
 /*      TST                                             NOT                     NEG*/
         &test_reg_b_op,         INVALID,                &alup0_op,              &alup0_op,
@@ -1294,7 +1295,7 @@ static const macro_op_t *opcode_timings_f6_mod3[8] = {
         &mul_op,                &mul_op,                &div16_op,              &div16_op,
     // clang-format on
 };
-static const macro_op_t *opcode_timings_f7[8] = {
+static const macro_op_t *opcode_timings_p6_f7[8] = {
     // clang-format off
 /*      TST                                             NOT                     NEG*/
         &test_mem_imm_op,       INVALID,                &alu_store_op,          &alu_store_op,
@@ -1302,7 +1303,7 @@ static const macro_op_t *opcode_timings_f7[8] = {
         &mul64_mem_op,          &mul64_mem_op,          &div32_mem_op,          &div32_mem_op,
     // clang-format on
 };
-static const macro_op_t *opcode_timings_f7_mod3[8] = {
+static const macro_op_t *opcode_timings_p6_f7_mod3[8] = {
     // clang-format off
 /*      TST                                             NOT                     NEG*/
         &test_reg_op,           INVALID,                &alu_op,                &alu_op,
@@ -1310,7 +1311,7 @@ static const macro_op_t *opcode_timings_f7_mod3[8] = {
         &mul64_op,              &mul64_op,              &div32_op,              &div32_op,
     // clang-format on
 };
-static const macro_op_t *opcode_timings_ff[8] = {
+static const macro_op_t *opcode_timings_p6_ff[8] = {
     // clang-format off
 /*      INC                     DEC                     CALL                    CALL far*/
         &alu_store_op,          &alu_store_op,          &store_op,              &call_far_op,
@@ -1318,7 +1319,7 @@ static const macro_op_t *opcode_timings_ff[8] = {
         &branch_op,             &jmp_far_op,            &push_mem_op,           INVALID
     // clang-format on
 };
-static const macro_op_t *opcode_timings_ff_mod3[8] = {
+static const macro_op_t *opcode_timings_p6_ff_mod3[8] = {
     // clang-format off
 /*      INC                     DEC                     CALL                    CALL far*/
         &complex_alu1_op,       &complex_alu1_op,       &store_op,              &call_far_op,
@@ -1327,7 +1328,7 @@ static const macro_op_t *opcode_timings_ff_mod3[8] = {
     // clang-format on
 };
 
-static const macro_op_t *opcode_timings_d8[8] = {
+static const macro_op_t *opcode_timings_p6_d8[8] = {
     // clang-format off
 /*      FADDs            FMULs            FCOMs            FCOMPs*/
         &load_fadd_op,   &load_fmul_op,   &load_float_op,  &load_float_op,
@@ -1335,7 +1336,7 @@ static const macro_op_t *opcode_timings_d8[8] = {
         &load_float_op,  &load_float_op,  &fdiv_mem_op,    &fdiv_mem_op,
     // clang-format on
 };
-static const macro_op_t *opcode_timings_d8_mod3[8] = {
+static const macro_op_t *opcode_timings_p6_d8_mod3[8] = {
     // clang-format off
 /*      FADD             FMUL             FCOM             FCOMP*/
         &fadd_op,        &fmul_op,        &float_op,       &float_op,
@@ -1344,7 +1345,7 @@ static const macro_op_t *opcode_timings_d8_mod3[8] = {
     // clang-format on
 };
 
-static const macro_op_t *opcode_timings_d9[8] = {
+static const macro_op_t *opcode_timings_p6_d9[8] = {
     // clang-format off
 /*      FLDs                                    FSTs                 FSTPs*/
         &load_float_op,      INVALID,           &fstore_op,          &fstore_op,
@@ -1352,7 +1353,7 @@ static const macro_op_t *opcode_timings_d9[8] = {
         &complex_float_l_op, &fldcw_op,         &complex_float_l_op, &complex_float_op
     // clang-format on
 };
-static const macro_op_t *opcode_timings_d9_mod3[64] = {
+static const macro_op_t *opcode_timings_p6_d9_mod3[64] = {
     // clang-format off
         /*FLD*/
         &float_op,    &float_op,    &float_op,    &float_op,
@@ -1385,7 +1386,7 @@ static const macro_op_t *opcode_timings_d9_mod3[64] = {
     // clang-format on
 };
 
-static const macro_op_t *opcode_timings_da[8] = {
+static const macro_op_t *opcode_timings_p6_da[8] = {
     // clang-format off
 /*      FIADDl            FIMULl            FICOMl            FICOMPl*/
         &load_fadd_op,    &load_fmul_op,    &load_float_op,   &load_float_op,
@@ -1393,7 +1394,7 @@ static const macro_op_t *opcode_timings_da[8] = {
         &load_float_op,   &load_float_op,   &fdiv_mem_op,     &fdiv_mem_op,
     // clang-format on
 };
-static const macro_op_t *opcode_timings_da_mod3[8] = {
+static const macro_op_t *opcode_timings_p6_da_mod3[8] = {
     // clang-format off
         INVALID,          INVALID,          INVALID,          INVALID,
 /*                        FCOMPP*/
@@ -1401,7 +1402,7 @@ static const macro_op_t *opcode_timings_da_mod3[8] = {
     // clang-format on
 };
 
-static const macro_op_t *opcode_timings_db[8] = {
+static const macro_op_t *opcode_timings_p6_db[8] = {
     // clang-format off
 /*      FLDil                               FSTil         FSTPil*/
         &load_float_op,   INVALID,          &fstore_op,   &fstore_op,
@@ -1409,7 +1410,7 @@ static const macro_op_t *opcode_timings_db[8] = {
         INVALID,          &flde_op,         INVALID,      &fste_op
     // clang-format on
 };
-static const macro_op_t *opcode_timings_db_mod3[64] = {
+static const macro_op_t *opcode_timings_p6_db_mod3[64] = {
     // clang-format off
         INVALID,          INVALID,          INVALID,      INVALID,
         INVALID,          INVALID,          INVALID,      INVALID,
@@ -1439,7 +1440,7 @@ static const macro_op_t *opcode_timings_db_mod3[64] = {
     // clang-format on
 };
 
-static const macro_op_t *opcode_timings_dc[8] = {
+static const macro_op_t *opcode_timings_p6_dc[8] = {
     // clang-format off
 /*      FADDd             FMULd             FCOMd             FCOMPd*/
         &load_fadd_op,    &load_fmul_op,    &load_float_op,   &load_float_op,
@@ -1447,7 +1448,7 @@ static const macro_op_t *opcode_timings_dc[8] = {
         &load_float_op,   &load_float_op,   &fdiv_mem_op,     &fdiv_mem_op,
     // clang-format on
 };
-static const macro_op_t *opcode_timings_dc_mod3[8] = {
+static const macro_op_t *opcode_timings_p6_dc_mod3[8] = {
     // clang-format off
 /*      opFADDr           opFMULr*/
         &fadd_op,         &fmul_op,         INVALID,          INVALID,
@@ -1456,7 +1457,7 @@ static const macro_op_t *opcode_timings_dc_mod3[8] = {
     // clang-format on
 };
 
-static const macro_op_t *opcode_timings_dd[8] = {
+static const macro_op_t *opcode_timings_p6_dd[8] = {
     // clang-format off
 /*      FLDd                                    FSTd                 FSTPd*/
         &load_float_op,      INVALID,           &fstore_op,          &fstore_op,
@@ -1464,7 +1465,7 @@ static const macro_op_t *opcode_timings_dd[8] = {
         &complex_float_l_op, INVALID,           &complex_float_l_op, &complex_float_l_op
     // clang-format on
 };
-static const macro_op_t *opcode_timings_dd_mod3[8] = {
+static const macro_op_t *opcode_timings_p6_dd_mod3[8] = {
     // clang-format off
 /*      FFFREE                            FST                FSTP*/
         &float_op,       INVALID,         &float_op,         &float_op,
@@ -1473,7 +1474,7 @@ static const macro_op_t *opcode_timings_dd_mod3[8] = {
     // clang-format on
 };
 
-static const macro_op_t *opcode_timings_de[8] = {
+static const macro_op_t *opcode_timings_p6_de[8] = {
     // clang-format off
 /*      FIADDw            FIMULw            FICOMw            FICOMPw*/
         &load_fiadd_op,   &load_fiadd_op,   &load_fiadd_op,   &load_fiadd_op,
@@ -1481,7 +1482,7 @@ static const macro_op_t *opcode_timings_de[8] = {
         &load_fiadd_op,   &load_fiadd_op,   &load_fiadd_op,   &load_fiadd_op,
     // clang-format on
 };
-static const macro_op_t *opcode_timings_de_mod3[8] = {
+static const macro_op_t *opcode_timings_p6_de_mod3[8] = {
     // clang-format off
 /*      FADDP            FMULP                          FCOMPP*/
         &fadd_op,        &fmul_op,        INVALID,      &float_op,
@@ -1490,7 +1491,7 @@ static const macro_op_t *opcode_timings_de_mod3[8] = {
     // clang-format on
 };
 
-static const macro_op_t *opcode_timings_df[8] = {
+static const macro_op_t *opcode_timings_p6_df[8] = {
     // clang-format off
 /*      FILDiw                              FISTiw               FISTPiw*/
         &load_float_op,   INVALID,          &fstore_op,          &fstore_op,
@@ -1498,7 +1499,7 @@ static const macro_op_t *opcode_timings_df[8] = {
         INVALID,          &load_float_op,   &complex_float_l_op, &fstore_op,
     // clang-format on
 };
-static const macro_op_t *opcode_timings_df_mod3[8] = {
+static const macro_op_t *opcode_timings_p6_df_mod3[8] = {
     // clang-format off
         INVALID,      INVALID,      INVALID,      INVALID,
 /*      FSTSW AX*/
@@ -1844,7 +1845,7 @@ codegen_timing_p6_start(void)
 }
 
 void
-codegen_timing_p6_prefix(uint8_t prefix, uint32_t fetchdat)
+codegen_timing_p6_prefix(uint8_t prefix, UNUSED(uint32_t fetchdat))
 {
     if (prefix != 0x0f)
         decode_timestamp++;
@@ -1854,7 +1855,7 @@ codegen_timing_p6_prefix(uint8_t prefix, uint32_t fetchdat)
 }
 
 void
-codegen_timing_p6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, UNUSED(uint32_t op_pc))
+codegen_timing_p6_opcode(uint8_t opcode, UNUSED(uint32_t fetchdat), int op_32, UNUSED(uint32_t op_pc))
 {
     const macro_op_t **ins_table;
     const uint64_t    *deps;
@@ -1864,47 +1865,47 @@ codegen_timing_p6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, UNUSED(ui
 
     switch (last_prefix) {
         case 0x0f:
-            ins_table = mod3 ? opcode_timings_0f_mod3 : opcode_timings_0f;
+            ins_table = mod3 ? opcode_timings_p6_0f_mod3 : opcode_timings_p6_0f;
             deps      = mod3 ? opcode_deps_0f_mod3 : opcode_deps_0f;
             break;
 
         case 0xd8:
-            ins_table = mod3 ? opcode_timings_d8_mod3 : opcode_timings_d8;
+            ins_table = mod3 ? opcode_timings_p6_d8_mod3 : opcode_timings_p6_d8;
             deps      = mod3 ? opcode_deps_d8_mod3 : opcode_deps_d8;
             opcode    = (opcode >> 3) & 7;
             break;
         case 0xd9:
-            ins_table = mod3 ? opcode_timings_d9_mod3 : opcode_timings_d9;
+            ins_table = mod3 ? opcode_timings_p6_d9_mod3 : opcode_timings_p6_d9;
             deps      = mod3 ? opcode_deps_d9_mod3 : opcode_deps_d9;
             opcode    = mod3 ? opcode & 0x3f : (opcode >> 3) & 7;
             break;
         case 0xda:
-            ins_table = mod3 ? opcode_timings_da_mod3 : opcode_timings_da;
+            ins_table = mod3 ? opcode_timings_p6_da_mod3 : opcode_timings_p6_da;
             deps      = mod3 ? opcode_deps_da_mod3 : opcode_deps_da;
             opcode    = (opcode >> 3) & 7;
             break;
         case 0xdb:
-            ins_table = mod3 ? opcode_timings_db_mod3 : opcode_timings_db;
+            ins_table = mod3 ? opcode_timings_p6_db_mod3 : opcode_timings_p6_db;
             deps      = mod3 ? opcode_deps_db_mod3 : opcode_deps_db;
             opcode    = mod3 ? opcode & 0x3f : (opcode >> 3) & 7;
             break;
         case 0xdc:
-            ins_table = mod3 ? opcode_timings_dc_mod3 : opcode_timings_dc;
+            ins_table = mod3 ? opcode_timings_p6_dc_mod3 : opcode_timings_p6_dc;
             deps      = mod3 ? opcode_deps_dc_mod3 : opcode_deps_dc;
             opcode    = (opcode >> 3) & 7;
             break;
         case 0xdd:
-            ins_table = mod3 ? opcode_timings_dd_mod3 : opcode_timings_dd;
+            ins_table = mod3 ? opcode_timings_p6_dd_mod3 : opcode_timings_p6_dd;
             deps      = mod3 ? opcode_deps_dd_mod3 : opcode_deps_dd;
             opcode    = (opcode >> 3) & 7;
             break;
         case 0xde:
-            ins_table = mod3 ? opcode_timings_de_mod3 : opcode_timings_de;
+            ins_table = mod3 ? opcode_timings_p6_de_mod3 : opcode_timings_p6_de;
             deps      = mod3 ? opcode_deps_de_mod3 : opcode_deps_de;
             opcode    = (opcode >> 3) & 7;
             break;
         case 0xdf:
-            ins_table = mod3 ? opcode_timings_df_mod3 : opcode_timings_df;
+            ins_table = mod3 ? opcode_timings_p6_df_mod3 : opcode_timings_p6_df;
             deps      = mod3 ? opcode_deps_df_mod3 : opcode_deps_df;
             opcode    = (opcode >> 3) & 7;
             break;
@@ -1913,13 +1914,13 @@ codegen_timing_p6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, UNUSED(ui
             switch (opcode) {
                 case 0x80:
                 case 0x82:
-                    ins_table = mod3 ? opcode_timings_80_mod3 : opcode_timings_80;
+                    ins_table = mod3 ? opcode_timings_p6_80_mod3 : opcode_timings_p6_80;
                     deps      = mod3 ? opcode_deps_8x_mod3 : opcode_deps_8x;
                     opcode    = (fetchdat >> 3) & 7;
                     break;
                 case 0x81:
                 case 0x83:
-                    ins_table = mod3 ? opcode_timings_8x_mod3 : opcode_timings_8x;
+                    ins_table = mod3 ? opcode_timings_p6_8x_mod3 : opcode_timings_p6_8x;
                     deps      = mod3 ? opcode_deps_8x_mod3 : opcode_deps_8x;
                     opcode    = (fetchdat >> 3) & 7;
                     break;
@@ -1927,7 +1928,7 @@ codegen_timing_p6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, UNUSED(ui
                 case 0xc0:
                 case 0xd0:
                 case 0xd2:
-                    ins_table = mod3 ? opcode_timings_shift_b_mod3 : opcode_timings_shift_b;
+                    ins_table = mod3 ? opcode_timings_p6_shift_b_mod3 : opcode_timings_p6_shift_b;
                     deps      = mod3 ? opcode_deps_shift_mod3 : opcode_deps_shift;
                     opcode    = (fetchdat >> 3) & 7;
                     break;
@@ -1935,29 +1936,29 @@ codegen_timing_p6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, UNUSED(ui
                 case 0xc1:
                 case 0xd1:
                 case 0xd3:
-                    ins_table = mod3 ? opcode_timings_shift_mod3 : opcode_timings_shift;
+                    ins_table = mod3 ? opcode_timings_p6_shift_mod3 : opcode_timings_p6_shift;
                     deps      = mod3 ? opcode_deps_shift_mod3 : opcode_deps_shift;
                     opcode    = (fetchdat >> 3) & 7;
                     break;
 
                 case 0xf6:
-                    ins_table = mod3 ? opcode_timings_f6_mod3 : opcode_timings_f6;
+                    ins_table = mod3 ? opcode_timings_p6_f6_mod3 : opcode_timings_p6_f6;
                     deps      = mod3 ? opcode_deps_f6_mod3 : opcode_deps_f6;
                     opcode    = (fetchdat >> 3) & 7;
                     break;
                 case 0xf7:
-                    ins_table = mod3 ? opcode_timings_f7_mod3 : opcode_timings_f7;
+                    ins_table = mod3 ? opcode_timings_p6_f7_mod3 : opcode_timings_p6_f7;
                     deps      = mod3 ? opcode_deps_f7_mod3 : opcode_deps_f7;
                     opcode    = (fetchdat >> 3) & 7;
                     break;
                 case 0xff:
-                    ins_table = mod3 ? opcode_timings_ff_mod3 : opcode_timings_ff;
+                    ins_table = mod3 ? opcode_timings_p6_ff_mod3 : opcode_timings_p6_ff;
                     deps      = mod3 ? opcode_deps_ff_mod3 : opcode_deps_ff;
                     opcode    = (fetchdat >> 3) & 7;
                     break;
 
                 default:
-                    ins_table = mod3 ? opcode_timings_mod3 : opcode_timings;
+                    ins_table = mod3 ? opcode_timings_p6_mod3 : opcode_timings_p6;
                     deps      = mod3 ? opcode_deps_mod3 : opcode_deps;
                     break;
             }

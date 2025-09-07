@@ -63,7 +63,9 @@
 #define ET4000_TYPE_KASAN    5 /* Kasan ET4000 */
 
 #define BIOS_ROM_PATH          "roms/video/et4000/ET4000.BIN"
+#define V8_06_BIOS_ROM_PATH    "roms/video/et4000/ET4000_V8_06.BIN"
 #define TC6058AF_BIOS_ROM_PATH "roms/video/et4000/Tseng_Labs_VGA-4000_BIOS_V1.1.bin"
+#define V1_21_BIOS_ROM_PATH    "roms/video/et4000/Tseng_Labs_VGA-4000_BIOS_V1.21.bin"
 #define KOREAN_BIOS_ROM_PATH   "roms/video/et4000/tgkorvga.bin"
 #define KOREAN_FONT_ROM_PATH   "roms/video/et4000/tg_ksc5601.rom"
 #define KASAN_BIOS_ROM_PATH    "roms/video/et4000/et4000_kasan16.bin"
@@ -80,8 +82,8 @@ typedef struct {
     rom_t bios_rom;
 
     uint8_t  banking;
-    uint32_t vram_size,
-        vram_mask;
+    uint32_t vram_size;
+    uint32_t vram_mask;
 
     uint8_t  port_22cb_val;
     uint8_t  port_32cb_val;
@@ -123,15 +125,6 @@ et4000_in(uint16_t addr, void *priv)
         addr ^= 0x60;
 
     switch (addr) {
-        case 0x3c2:
-            if (dev->type == ET4000_TYPE_MCA) {
-                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
-                    return 0;
-                else
-                    return 0x10;
-            }
-            break;
-
         case 0x3c5:
             if ((svga->seqaddr & 0xf) == 7)
                 return svga->seqregs[svga->seqaddr & 0xf] | 4;
@@ -143,6 +136,7 @@ et4000_in(uint16_t addr, void *priv)
         case 0x3c9:
             if (dev->type >= ET4000_TYPE_ISA)
                 return sc1502x_ramdac_in(addr, svga->ramdac, svga);
+            break;
 
         case 0x3cd: /*Banking*/
             return dev->banking;
@@ -384,7 +378,7 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -648,24 +642,26 @@ et4000_recalctimings(svga_t *svga)
 {
     const et4000_t *dev = (et4000_t *) svga->priv;
 
-    svga->ma_latch |= (svga->crtc[0x33] & 3) << 16;
+    svga->memaddr_latch |= (svga->crtc[0x33] & 3) << 16;
 
-    svga->hblankstart    = (((svga->crtc[0x3f] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+    svga->hblankstart = (((svga->crtc[0x3f] & 0x4) >> 2) << 8) + svga->crtc[2];
+
+    svga->ps_bit_bug = (dev->type == ET4000_TYPE_TC6058AF) && svga->lowres && ((svga->gdcreg[5] & 0x60) >= 0x40);
 
     if (svga->crtc[0x35] & 1)
-        svga->vblankstart += 0x400;
+        svga->vblankstart |= 0x400;
     if (svga->crtc[0x35] & 2)
-        svga->vtotal += 0x400;
+        svga->vtotal |= 0x400;
     if (svga->crtc[0x35] & 4)
-        svga->dispend += 0x400;
+        svga->dispend |= 0x400;
     if (svga->crtc[0x35] & 8)
-        svga->vsyncstart += 0x400;
+        svga->vsyncstart |= 0x400;
     if (svga->crtc[0x35] & 0x10)
-        svga->split += 0x400;
-    if (!svga->rowoffset)
+        svga->split |= 0x400;
+    if (!svga->rowoffset && !svga->ps_bit_bug)
         svga->rowoffset = 0x100;
     if (svga->crtc[0x3f] & 1)
-        svga->htotal += 256;
+        svga->htotal |= 0x100;
     if (svga->attrregs[0x16] & 0x20) {
         svga->hdisp <<= 1;
         svga->dots_per_clock <<= 1;
@@ -690,14 +686,12 @@ et4000_recalctimings(svga_t *svga)
         case 15:
         case 16:
             svga->hdisp /= 2;
-            svga->hblankstart /= 2;
-            svga->hblank_end_val /= 2;
+            svga->dots_per_clock /= 2;
             break;
 
         case 24:
             svga->hdisp /= 3;
-            svga->hblankstart /= 3;
-            svga->hblank_end_val /= 3;
+            svga->dots_per_clock /= 3;
             break;
 
         default:
@@ -707,7 +701,7 @@ et4000_recalctimings(svga_t *svga)
     if (dev->type == ET4000_TYPE_KOREAN || dev->type == ET4000_TYPE_TRIGEM || dev->type == ET4000_TYPE_KASAN) {
         if ((svga->render == svga_render_text_80) && ((svga->crtc[0x37] & 0x0A) == 0x0A)) {
             if (dev->port_32cb_val & 0x80) {
-                svga->ma_latch -= 2;
+                svga->memaddr_latch -= 2;
                 svga->ca_adj = -2;
             }
             if ((dev->port_32cb_val & 0xB4) == ((svga->crtc[0x37] & 3) == 2 ? 0xB4 : 0xB0)) {
@@ -725,14 +719,18 @@ et4000_recalctimings(svga_t *svga)
     }
 
     if ((svga->seqregs[0x0e] & 0x02) && ((svga->gdcreg[5] & 0x60) >= 0x40) && svga->lowres) {
-        svga->ma_latch <<= 1;
+        svga->memaddr_latch <<= 1;
         svga->rowoffset <<= 1;
         svga->render = svga_render_8bpp_highres;
     }
 
+    if (svga->render == svga_render_4bpp_highres)
+        svga->render = svga_render_4bpp_tseng_highres;
+
     if (dev->type == ET4000_TYPE_TC6058AF) {
         if (svga->render == svga_render_8bpp_lowres)
             svga->render = svga_render_8bpp_tseng_lowres;
+
         else if (svga->render == svga_render_8bpp_highres)
             svga->render = svga_render_8bpp_tseng_highres;
     }
@@ -747,7 +745,7 @@ et4000_kasan_recalctimings(svga_t *svga)
 
     if (svga->render == svga_render_text_80 && (et4000->kasan_cfg_regs[0] & 8)) {
         svga->hdisp             += svga->dots_per_clock;
-        svga->ma_latch          -= 5;
+        svga->memaddr_latch          -= 4;
         svga->ca_adj             = (et4000->kasan_cfg_regs[0] >> 6) - 3;
         svga->ksc5601_sbyte_mask = (et4000->kasan_cfg_regs[0] & 4) << 5;
         if ((et4000->kasan_cfg_regs[0] & 0x23) == 0x20 && (et4000->kasan_cfg_regs[4] & 0x80) && ((svga->crtc[0x37] & 0x0B) == 0x0A))
@@ -774,17 +772,33 @@ et4000_mca_write(int port, uint8_t val, void *priv)
 
     /* Save the MCA register value. */
     et4000->pos_regs[port & 7] = val;
+    mem_mapping_disable(&et4000->bios_rom.mapping);
+    if (et4000->pos_regs[2] & 1)
+        mem_mapping_enable(&et4000->bios_rom.mapping);
 }
 
 static uint8_t
 et4000_mca_feedb(UNUSED(void *priv))
 {
+    et4000_t *et4000 = (et4000_t *) priv;
+    return et4000->pos_regs[2] & 1;
+}
+
+static int
+et4000_line_compare(svga_t* svga)
+{
+    if (svga->split > svga->vsyncstart) {
+        /* Don't do line compare if we're already in vertical retrace. */
+        /* This makes picture bouncing effect work on Copper demo. */
+        return 0;
+    }
     return 1;
 }
 
 static void *
 et4000_init(const device_t *info)
 {
+    const char *bios_ver = NULL;
     const char *fn;
     et4000_t   *dev;
     int         i;
@@ -805,8 +819,8 @@ et4000_init(const device_t *info)
                       NULL, NULL);
             io_sethandler(0x03c0, 32,
                           et4000_in, NULL, NULL, et4000_out, NULL, NULL, dev);
-            if (dev->type == ET4000_TYPE_TC6058AF)
-                fn = TC6058AF_BIOS_ROM_PATH;
+            bios_ver      = (char *) device_get_config_bios("bios_ver");
+            fn            = (char *) device_get_bios_file(info, bios_ver, 0);
             break;
 
         case ET4000_TYPE_MCA: /* MCA ET4000AX */
@@ -889,10 +903,18 @@ et4000_init(const device_t *info)
     if (dev->type >= ET4000_TYPE_ISA)
         dev->svga.ramdac = device_add(&sc1502x_ramdac_device);
 
+    if (dev->type == ET4000_TYPE_TC6058AF)
+        dev->svga.adv_flags |= FLAG_PRECISETIME;
+
     dev->vram_mask = dev->vram_size - 1;
 
+    dev->svga.line_compare = et4000_line_compare;
+
     rom_init(&dev->bios_rom, fn,
-             0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+    if (dev->type == ET4000_TYPE_MCA)
+        mem_mapping_disable(&dev->bios_rom.mapping);
 
     dev->svga.translate_address = get_et4000_addr;
 
@@ -928,12 +950,6 @@ et4000_force_redraw(void *priv)
 }
 
 static int
-et4000_tc6058af_available(void)
-{
-    return rom_present(TC6058AF_BIOS_ROM_PATH);
-}
-
-static int
 et4000_available(void)
 {
     return rom_present(BIOS_ROM_PATH);
@@ -954,58 +970,128 @@ et4000_kasan_available(void)
 static const device_config_t et4000_tc6058af_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 512,
-        .selection = {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "v1_10",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
             {
-                .description = "256 KB",
-                .value = 256
+                .name          = "Version 1.10",
+                .internal_name = "v1_10",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { TC6058AF_BIOS_ROM_PATH, "" }
             },
             {
-                .description = "512 KB",
-                .value = 512
+                .name          = "Version 1.21",
+                .internal_name = "v1_21",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { V1_21_BIOS_ROM_PATH, "" }
             },
-            {
-                .description = ""
-            }
+            { .files_no = 0 }
         }
     },
     {
-        .type = CONFIG_END
-    }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
+};
+
+static const device_config_t et4000_bios_config[] = {
+  // clang-format off
+    {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "v8_01",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Version 8.01",
+                .internal_name = "v8_01",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_ROM_PATH, "" }
+            },
+            {
+                .name          = "Version 8.06",
+                .internal_name = "v8_06",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { V8_06_BIOS_ROM_PATH, "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
 };
 
 static const device_config_t et4000_config[] = {
   // clang-format off
     {
-        .name = "memory",
-        .description = "Memory size",
-        .type = CONFIG_SELECTION,
-        .default_int = 1024,
-        .selection = {
-            {
-                .description = "256 KB",
-                .value = 256
-            },
-            {
-                .description = "512 KB",
-                .value = 512
-            },
-            {
-                .description = "1 MB",
-                .value = 1024
-            },
-            {
-                .description = ""
-            }
-        }
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
     },
-    {
-        .type = CONFIG_END
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
@@ -1013,11 +1099,11 @@ const device_t et4000_tc6058af_isa_device = {
     .name          = "Tseng Labs ET4000AX (TC6058AF) (ISA)",
     .internal_name = "et4000ax_tc6058af",
     .flags         = DEVICE_ISA,
-    .local         = 0,
+    .local         = ET4000_TYPE_TC6058AF,
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000_tc6058af_available },
+    .available     = NULL,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_tc6058af_config
@@ -1031,10 +1117,10 @@ const device_t et4000_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000_available },
+    .available     = NULL,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
-    .config        = et4000_config
+    .config        = et4000_bios_config
 };
 
 const device_t et4000_mca_device = {
@@ -1045,7 +1131,7 @@ const device_t et4000_mca_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000_available },
+    .available     = et4000_available,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_config
@@ -1059,7 +1145,7 @@ const device_t et4000k_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000k_available },
+    .available     = et4000k_available,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_config
@@ -1073,7 +1159,7 @@ const device_t et4000k_tg286_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000k_available },
+    .available     = et4000k_available,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_config
@@ -1087,7 +1173,7 @@ const device_t et4000_kasan_isa_device = {
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
-    { .available = et4000_kasan_available },
+    .available     = et4000_kasan_available,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_config

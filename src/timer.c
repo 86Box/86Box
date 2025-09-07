@@ -3,7 +3,9 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/timer.h>
+#include <86box/nv/vid_nv_rivatimer.h>
 
 uint64_t TIMER_USEC;
 uint32_t timer_target;
@@ -30,7 +32,8 @@ timer_enable(pc_timer_t *timer)
         timer_disable(timer);
 
     if (timer->next || timer->prev)
-        fatal("timer_enable - timer->next\n");
+        fatal("timer_disable(): Attempting to enable a non-isolated "
+              "timer incorrectly marked as disabled\n");
 
     /*List currently empty - add to head*/
     if (!timer_head) {
@@ -91,9 +94,11 @@ timer_disable(pc_timer_t *timer)
         return;
 
     if (!timer->next && !timer->prev && timer != timer_head)
-        fatal("timer_disable - !timer->next\n");
+        fatal("timer_disable(): Attempting to disable an isolated "
+              "non-head timer incorrectly marked as enabled\n");
 
     timer->flags &= ~TIMER_ENABLED;
+    timer->in_callback = 0;
 
     if (timer->prev)
         timer->prev->next = timer->next;
@@ -127,11 +132,15 @@ timer_process(void)
 
         if (timer->flags & TIMER_SPLIT)
             timer_advance_ex(timer, 0);   /* We're splitting a > 1 s period into
-                                             multiple <= 1 s periods. */
-        else if (timer->callback != NULL) /* Make sure it's not NULL, so that we can
-                                             have a NULL callback when no operation
-                                             is needed. */
+                                                 multiple <= 1 s periods. */
+        else if (timer->callback != NULL) {
+            /* Make sure it's not NULL, so that we can
+               have a NULL callback when no operation
+               is needed. */
+            timer->in_callback = 1;
             timer->callback(timer->priv);
+            timer->in_callback = 0;
+        }
     }
 
     timer_target = timer_head->ts.ts32.integer;
@@ -163,6 +172,9 @@ timer_init(void)
     timer_target = 0ULL;
     tsc          = 0;
 
+    /* Initialise the CPU-independent timer */
+    rivatimer_init();
+
     timer_inited = 1;
 }
 
@@ -171,10 +183,11 @@ timer_add(pc_timer_t *timer, void (*callback)(void *priv), void *priv, int start
 {
     memset(timer, 0, sizeof(pc_timer_t));
 
-    timer->callback = callback;
-    timer->priv     = priv;
-    timer->flags    = 0;
-    timer->prev = timer->next = NULL;
+    timer->callback    = callback;
+    timer->in_callback = 0;
+    timer->priv        = priv;
+    timer->flags       = 0;
+    timer->prev        = timer->next = NULL;
     if (start_timer)
         timer_set_delay_u64(timer, 0);
 }
@@ -189,6 +202,7 @@ timer_stop(pc_timer_t *timer)
     timer->period = 0.0;
     timer_disable(timer);
     timer->flags &= ~TIMER_SPLIT;
+    timer->in_callback = 0;
 }
 
 static void
@@ -240,7 +254,37 @@ timer_on_auto(pc_timer_t *timer, double period)
         return;
 
     if (period > 0.0)
-        timer_on(timer, period, timer->period <= 0.0);
+        /* If the timer is in the callback, signal that, so that timer_advance_u64()
+           is used instead of timer_set_delay_u64(). */
+        timer_on(timer, period, (timer->period <= 0.0) && !timer->in_callback);
     else
         timer_stop(timer);
+}
+
+void
+timer_set_new_tsc(uint64_t new_tsc)
+{
+    pc_timer_t *timer = NULL;
+    /* Run timers already expired. */
+#ifdef USE_DYNAREC
+    if (cpu_use_dynarec)
+        update_tsc();
+#endif
+
+    if (!timer_head) {
+        tsc = new_tsc;
+        return;
+    }
+
+    timer = timer_head;
+    timer_target = new_tsc + (int32_t)(timer_get_ts_int(timer_head) - (uint32_t)tsc);
+
+    while (timer) {
+        int32_t offset_from_current_tsc = (int32_t)(timer_get_ts_int(timer) - (uint32_t)tsc);
+        timer->ts.ts32.integer = new_tsc + offset_from_current_tsc;
+
+        timer = timer->next;
+    }
+
+    tsc = new_tsc;
 }

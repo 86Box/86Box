@@ -37,6 +37,7 @@
 #include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/video.h>
+#include <86box/bswap.h>
 
 #define _SSIZE_T_DEFINED
 #include <slirp/libslirp.h>
@@ -59,22 +60,48 @@ enum {
 };
 
 typedef struct net_slirp_t {
-    Slirp     *slirp;
-    uint8_t    mac_addr[6];
-    netcard_t *card; /* netcard attached to us */
-    thread_t  *poll_tid;
-    net_evt_t  tx_event;
-    net_evt_t  stop_event;
-    netpkt_t   pkt;
-    netpkt_t   pkt_tx_v[SLIRP_PKT_BATCH];
+    Slirp *        slirp;
+    uint8_t        mac_addr[6];
+    netcard_t *    card; /* netcard attached to us */
+    thread_t *     poll_tid;
+    net_evt_t      rx_event;
+    net_evt_t      tx_event;
+    net_evt_t      stop_event;
+    netpkt_t       pkt;
+    netpkt_t       pkt_tx_v[SLIRP_PKT_BATCH];
+    int            during_tx;
+    int            recv_on_tx;
 #ifdef _WIN32
-    HANDLE     sock_event;
+    HANDLE         sock_event;
 #else
     uint32_t       pfd_len;
     uint32_t       pfd_size;
     struct pollfd *pfd;
 #endif
 } net_slirp_t;
+
+/* Pulled off from libslirp code. This is only needed for modem. */
+#pragma pack(push, 1)
+struct arphdr_local {
+    unsigned char h_dest[6]; /* destination eth addr */
+    unsigned char h_source[6]; /* source ether addr    */
+    unsigned short h_proto; /* packet type ID field */
+
+    unsigned short ar_hrd; /* format of hardware address */
+    unsigned short ar_pro; /* format of protocol address */
+    unsigned char ar_hln; /* length of hardware address */
+    unsigned char ar_pln; /* length of protocol address */
+    unsigned short ar_op; /* ARP opcode (command)       */
+
+    /*
+     *  Ethernet looks like this : This bit is variable sized however...
+     */
+    uint8_t ar_sha[6]; /* sender hardware address */
+    uint32_t ar_sip; /* sender IP address       */
+    uint8_t ar_tha[6]; /* target hardware address */
+    uint32_t ar_tip; /* target IP address       */
+};
+#pragma pack(pop)
 
 #ifdef ENABLE_SLIRP_LOG
 int slirp_do_log = ENABLE_SLIRP_LOG;
@@ -109,7 +136,7 @@ net_slirp_clock_get_ns(UNUSED(void *opaque))
 static void *
 net_slirp_timer_new(SlirpTimerCb cb, void *cb_opaque, UNUSED(void *opaque))
 {
-    pc_timer_t *timer = malloc(sizeof(pc_timer_t));
+    pc_timer_t *timer = calloc(1, sizeof(pc_timer_t));
     timer_add(timer, cb, cb_opaque, 0);
     return timer;
 }
@@ -128,14 +155,22 @@ net_slirp_timer_mod(void *timer, int64_t expire_timer, UNUSED(void *opaque))
 }
 
 static void
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+net_slirp_register_poll_socket(slirp_os_socket fd, void *opaque)
+#else
 net_slirp_register_poll_fd(int fd, void *opaque)
+#endif
 {
     (void) fd;
     (void) opaque;
 }
 
 static void
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+net_slirp_unregister_poll_socket(slirp_os_socket fd, void *opaque)
+#else
 net_slirp_unregister_poll_fd(int fd, void *opaque)
+#endif
 {
     (void) fd;
     (void) opaque;
@@ -147,7 +182,11 @@ net_slirp_notify(void *opaque)
     (void) opaque;
 }
 
+#if SLIRP_CHECK_VERSION(4, 8, 0)
+slirp_ssize_t
+#else
 ssize_t
+#endif
 net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
 {
     net_slirp_t *slirp = (net_slirp_t *) opaque;
@@ -156,14 +195,22 @@ net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
 
     memcpy(slirp->pkt.data, (uint8_t *) qp, pkt_len);
     slirp->pkt.len = pkt_len;
-    network_rx_put_pkt(slirp->card, &slirp->pkt);
+    if (slirp->during_tx) {
+        network_rx_on_tx_put_pkt(slirp->card, &slirp->pkt);
+        slirp->recv_on_tx = 1;
+    } else
+        network_rx_put_pkt(slirp->card, &slirp->pkt);
 
     return pkt_len;
 }
 
 #ifdef _WIN32
 static int
+#    if SLIRP_CHECK_VERSION(4, 9, 0)
+net_slirp_add_poll(slirp_os_socket fd, int events, void *opaque)
+#    else
 net_slirp_add_poll(int fd, int events, void *opaque)
+#    endif
 {
     net_slirp_t *slirp   = (net_slirp_t *) opaque;
     long         bitmask = 0;
@@ -181,7 +228,11 @@ net_slirp_add_poll(int fd, int events, void *opaque)
 }
 #else
 static int
+#    if SLIRP_CHECK_VERSION(4, 9, 0)
+net_slirp_add_poll(slirp_os_socket fd, int events, void *opaque)
+#    else
 net_slirp_add_poll(int fd, int events, void *opaque)
+#    endif
 {
     net_slirp_t *slirp = (net_slirp_t *) opaque;
 
@@ -240,7 +291,11 @@ net_slirp_get_revents(int idx, void *opaque)
     WSA_TO_POLL(FD_WRITE, SLIRP_POLL_OUT);
     WSA_TO_POLL(FD_CONNECT, SLIRP_POLL_OUT);
     WSA_TO_POLL(FD_OOB, SLIRP_POLL_PRI);
+    WSA_TO_POLL(FD_CLOSE, SLIRP_POLL_IN);
     WSA_TO_POLL(FD_CLOSE, SLIRP_POLL_HUP);
+
+    if (ret == 0)
+        ret |= SLIRP_POLL_IN;
 
     return ret;
 }
@@ -272,8 +327,13 @@ static const SlirpCb slirp_cb = {
     .timer_new          = net_slirp_timer_new,
     .timer_free         = net_slirp_timer_free,
     .timer_mod          = net_slirp_timer_mod,
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+    .register_poll_socket   = net_slirp_register_poll_socket,
+    .unregister_poll_socket = net_slirp_unregister_poll_socket,
+#else
     .register_poll_fd   = net_slirp_register_poll_fd,
     .unregister_poll_fd = net_slirp_unregister_poll_fd,
+#endif
     .notify             = net_slirp_notify
 };
 
@@ -296,6 +356,21 @@ net_slirp_in_available(void *priv)
     net_event_set(&slirp->tx_event);
 }
 
+static void
+net_slirp_rx_deferred_packets(net_slirp_t *slirp)
+{
+    int packets = 0;
+
+    if (slirp->recv_on_tx) {
+        do {
+            packets = network_rx_on_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
+            for (int i = 0; i < packets; i++)
+                 network_rx_put_pkt(slirp->card, &(slirp->pkt_tx_v[i]));
+        } while (packets > 0);
+        slirp->recv_on_tx = 0;
+    }
+}
+
 #ifdef _WIN32
 static void
 net_slirp_thread(void *priv)
@@ -312,7 +387,11 @@ net_slirp_thread(void *priv)
     bool run               = true;
     while (run) {
         uint32_t timeout = -1;
+#    if SLIRP_CHECK_VERSION(4, 9, 0)
+        slirp_pollfds_fill_socket(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
+#    else
         slirp_pollfds_fill(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
+#    endif
         if (timeout < 0)
             timeout = INFINITE;
 
@@ -324,10 +403,13 @@ net_slirp_thread(void *priv)
 
             case NET_EVENT_TX:
                 {
+                    slirp->during_tx = 1;
                     int packets = network_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
-                    for (int i = 0; i < packets; i++) {
+                    for (int i = 0; i < packets; i++)
                         net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
-                    }
+                    slirp->during_tx = 0;
+
+                    net_slirp_rx_deferred_packets(slirp);
                 }
                 break;
 
@@ -356,7 +438,11 @@ net_slirp_thread(void *priv)
         net_slirp_add_poll(net_event_get_fd(&slirp->stop_event), SLIRP_POLL_IN, slirp);
         net_slirp_add_poll(net_event_get_fd(&slirp->tx_event), SLIRP_POLL_IN, slirp);
 
+#    if SLIRP_CHECK_VERSION(4, 9, 0)
+        slirp_pollfds_fill_socket(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
+#    else
         slirp_pollfds_fill(slirp->slirp, &timeout, net_slirp_add_poll, slirp);
+#    endif
 
         int ret = poll(slirp->pfd, slirp->pfd_len, timeout);
 
@@ -370,10 +456,13 @@ net_slirp_thread(void *priv)
         if (slirp->pfd[NET_EVENT_TX].revents & POLLIN) {
             net_event_clear(&slirp->tx_event);
 
+            slirp->during_tx = 1;
             int packets = network_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
-            for (int i = 0; i < packets; i++) {
+            for (int i = 0; i < packets; i++)
                 net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
-            }
+            slirp->during_tx = 0;
+
+            net_slirp_rx_deferred_packets(slirp);
         }
     }
 
@@ -381,21 +470,20 @@ net_slirp_thread(void *priv)
 }
 #endif
 
-static int slirp_card_num = 2;
+int slirp_card_num = 2;
 
 /* Initialize SLiRP for use. */
 void *
 net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv), char *netdrv_errbuf)
 {
-    slirp_log("SLiRP: initializing...\n");
+    slirp_log("SLiRP: initializing with range %d...\n", slirp_card_num);
     net_slirp_t *slirp = calloc(1, sizeof(net_slirp_t));
     memcpy(slirp->mac_addr, mac_addr, sizeof(slirp->mac_addr));
     slirp->card = (netcard_t *) card;
 
 #ifndef _WIN32
     slirp->pfd_size = 16 * sizeof(struct pollfd);
-    slirp->pfd      = malloc(slirp->pfd_size);
-    memset(slirp->pfd, 0, slirp->pfd_size);
+    slirp->pfd      = calloc(1, slirp->pfd_size);
 #endif
 
     /* Set the IP addresses to use. */
@@ -405,10 +493,47 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
     struct in_addr  dhcp       = { .s_addr = htonl(0x0a00000f | (slirp_card_num << 8)) }; /* 10.0.x.15 */
     struct in_addr  dns        = { .s_addr = htonl(0x0a000003 | (slirp_card_num << 8)) }; /* 10.0.x.3 */
     struct in_addr  bind       = { .s_addr = htonl(0x00000000) };                         /* 0.0.0.0 */
-    struct in6_addr ipv6_dummy = { 0 };                                                   /* contents don't matter; we're not using IPv6 */
+
+    const SlirpConfig slirp_config = {
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+        .version = 6,
+#else
+        .version = 1,
+#endif
+        .restricted            = 0,
+        .in_enabled            = 1,
+        .vnetwork              = net,
+        .vnetmask              = mask,
+        .vhost                 = host,
+        .in6_enabled           = 0,
+        .vprefix_addr6         = { .s6_addr = { 0xfe, 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } }, /* fec0:: - unused */
+        .vprefix_len           = 64,
+        .vhost6                = { .s6_addr = { 0xfe, 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x02 } }, /* fec0::2 - unused */
+        .vhostname             = "86Box",
+        .tftp_server_name      = NULL,
+        .tftp_path             = NULL,
+        .bootfile              = NULL,
+        .vdhcp_start           = dhcp,
+        .vnameserver           = dns,
+        .vnameserver6          = { .s6_addr = { 0xfe, 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x03 } }, /* fec0::3 - unused */
+        .vdnssearch            = NULL,
+        .vdomainname           = NULL,
+        .if_mtu                = 0,
+        .if_mru                = 0,
+        .disable_host_loopback = 0,
+        .enable_emu            = 0,
+#if SLIRP_CHECK_VERSION(4, 9, 0)
+        .outbound_addr         = NULL,
+        .outbound_addr6        = NULL,
+        .disable_dns           = 0,
+        .disable_dhcp          = 0,
+        .mfr_id                = 0,
+        .oob_eth_addr          = { 0, 0, 0, 0, 0, 0 }
+#endif
+    };
 
     /* Initialize SLiRP. */
-    slirp->slirp = slirp_init(0, 1, net, mask, host, 0, ipv6_dummy, 0, ipv6_dummy, NULL, NULL, NULL, NULL, dhcp, dns, ipv6_dummy, NULL, NULL, &slirp_cb, slirp);
+    slirp->slirp = slirp_new(&slirp_config, &slirp_cb, slirp);
     if (!slirp->slirp) {
         slirp_log("SLiRP: initialization failed\n");
         snprintf(netdrv_errbuf, NET_DRV_ERRBUF_SIZE, "SLiRP initialization failed");
@@ -450,11 +575,38 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
         slirp->pkt_tx_v[i].data = calloc(1, NET_MAX_FRAME);
     }
     slirp->pkt.data = calloc(1, NET_MAX_FRAME);
+    net_event_init(&slirp->rx_event);
     net_event_init(&slirp->tx_event);
     net_event_init(&slirp->stop_event);
 #ifdef _WIN32
     slirp->sock_event = CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
+
+    if (!strcmp(network_card_get_internal_name(net_cards_conf[net_card_current].device_num), "modem")) {
+        /* Send a gratuitous ARP here to make SLiRP work properly with SLIP connections. */
+        struct arphdr_local arphdr;
+        /* ARP part. */
+        arphdr.ar_hrd      = bswap16(1);
+        arphdr.ar_pro      = bswap16(0x0800);
+        arphdr.ar_hln      = 6;
+        arphdr.ar_pln      = 4;
+        arphdr.ar_op       = bswap16(1);
+        memcpy(&arphdr.ar_sha, mac_addr, 6);
+        memcpy(&arphdr.ar_tha, mac_addr, 6);
+        arphdr.ar_sip      = dhcp.s_addr;
+        arphdr.ar_tip      = dhcp.s_addr;
+
+        /* Ethernet header part. */
+        arphdr.h_proto     = bswap16(0x0806);
+        memset(arphdr.h_dest, 0xff, 6);
+        memset(arphdr.h_source, 0x52, 6);
+        arphdr.h_source[2] = 0x0a;
+        arphdr.h_source[3] = 0x00;
+        arphdr.h_source[4] = slirp_card_num;
+        arphdr.h_source[5] = 2;
+        slirp_input(slirp->slirp, (const uint8_t *)&arphdr, sizeof(struct arphdr_local));
+    }
+
     slirp_log("SLiRP: creating thread...\n");
     slirp->poll_tid = thread_create(net_slirp_thread, slirp);
 
@@ -478,19 +630,20 @@ net_slirp_close(void *priv)
     slirp_log("SLiRP: waiting for thread to end...\n");
     thread_wait(slirp->poll_tid);
 
-    net_event_close(&slirp->tx_event);
     net_event_close(&slirp->stop_event);
+    net_event_close(&slirp->tx_event);
+    net_event_close(&slirp->rx_event);
     slirp_cleanup(slirp->slirp);
     for (int i = 0; i < SLIRP_PKT_BATCH; i++) {
         free(slirp->pkt_tx_v[i].data);
     }
     free(slirp->pkt.data);
     free(slirp);
-    slirp_card_num--;
 }
 
 const netdrv_t net_slirp_drv = {
-    &net_slirp_in_available,
-    &net_slirp_init,
-    &net_slirp_close
+    .notify_in = &net_slirp_in_available,
+    .init      = &net_slirp_init,
+    .close     = &net_slirp_close,
+	.priv      = NULL
 };

@@ -1,5 +1,5 @@
 static int
-opCMC(uint32_t fetchdat)
+opCMC(UNUSED(uint32_t fetchdat))
 {
     flags_rebuild();
     cpu_state.flags ^= C_FLAG;
@@ -9,7 +9,7 @@ opCMC(uint32_t fetchdat)
 }
 
 static int
-opCLC(uint32_t fetchdat)
+opCLC(UNUSED(uint32_t fetchdat))
 {
     flags_rebuild();
     cpu_state.flags &= ~C_FLAG;
@@ -18,7 +18,7 @@ opCLC(uint32_t fetchdat)
     return 0;
 }
 static int
-opCLD(uint32_t fetchdat)
+opCLD(UNUSED(uint32_t fetchdat))
 {
     cpu_state.flags &= ~D_FLAG;
     CLOCK_CYCLES(2);
@@ -26,7 +26,7 @@ opCLD(uint32_t fetchdat)
     return 0;
 }
 static int
-opCLI(uint32_t fetchdat)
+opCLI(UNUSED(uint32_t fetchdat))
 {
     if (!IOPLp) {
         if ((!(cpu_state.eflags & VM_FLAG) && (cr4 & CR4_PVI)) || ((cpu_state.eflags & VM_FLAG) && (cr4 & CR4_VME))) {
@@ -44,7 +44,7 @@ opCLI(uint32_t fetchdat)
 }
 
 static int
-opSTC(uint32_t fetchdat)
+opSTC(UNUSED(uint32_t fetchdat))
 {
     flags_rebuild();
     cpu_state.flags |= C_FLAG;
@@ -53,7 +53,7 @@ opSTC(uint32_t fetchdat)
     return 0;
 }
 static int
-opSTD(uint32_t fetchdat)
+opSTD(UNUSED(uint32_t fetchdat))
 {
     cpu_state.flags |= D_FLAG;
     CLOCK_CYCLES(2);
@@ -61,7 +61,7 @@ opSTD(uint32_t fetchdat)
     return 0;
 }
 static int
-opSTI(uint32_t fetchdat)
+opSTI(UNUSED(uint32_t fetchdat))
 {
     if (!IOPLp) {
         if ((!(cpu_state.eflags & VM_FLAG) && (cr4 & CR4_PVI)) || ((cpu_state.eflags & VM_FLAG) && (cr4 & CR4_VME))) {
@@ -87,7 +87,7 @@ opSTI(uint32_t fetchdat)
 }
 
 static int
-opSAHF(uint32_t fetchdat)
+opSAHF(UNUSED(uint32_t fetchdat))
 {
     flags_rebuild();
     cpu_state.flags = (cpu_state.flags & 0xff00) | (AH & 0xd5) | 2;
@@ -101,7 +101,7 @@ opSAHF(uint32_t fetchdat)
     return 0;
 }
 static int
-opLAHF(uint32_t fetchdat)
+opLAHF(UNUSED(uint32_t fetchdat))
 {
     flags_rebuild();
     AH = cpu_state.flags & 0xff;
@@ -111,7 +111,7 @@ opLAHF(uint32_t fetchdat)
 }
 
 static int
-opPUSHF(uint32_t fetchdat)
+opPUSHF(UNUSED(uint32_t fetchdat))
 {
     if ((cpu_state.eflags & VM_FLAG) && (IOPL < 3)) {
         if (cr4 & CR4_VME) {
@@ -121,6 +121,7 @@ opPUSHF(uint32_t fetchdat)
             temp = (cpu_state.flags & ~I_FLAG) | 0x3000;
             if (cpu_state.eflags & VIF_FLAG)
                 temp |= I_FLAG;
+            temp = (temp & 0x7fd5) | 2;
             PUSH_W(temp);
         } else {
             x86gpf(NULL, 0);
@@ -128,6 +129,7 @@ opPUSHF(uint32_t fetchdat)
         }
     } else {
         flags_rebuild();
+        cpu_state.flags = (cpu_state.flags & 0x7fd5) | 2;
         PUSH_W(cpu_state.flags);
     }
     CLOCK_CYCLES(4);
@@ -135,7 +137,7 @@ opPUSHF(uint32_t fetchdat)
     return cpu_state.abrt;
 }
 static int
-opPUSHFD(uint32_t fetchdat)
+opPUSHFD(UNUSED(uint32_t fetchdat))
 {
     uint16_t tempw;
     if ((cpu_state.eflags & VM_FLAG) && (IOPL < 3)) {
@@ -149,6 +151,7 @@ opPUSHFD(uint32_t fetchdat)
     else
         tempw = cpu_state.eflags & 4;
     flags_rebuild();
+    cpu_state.flags = (cpu_state.flags & 0x7fd5) | 2;
     PUSH_L(cpu_state.flags | (tempw << 16));
     CLOCK_CYCLES(4);
     PREFETCH_RUN(4, 1, -1, 0, 0, 0, 1, 0);
@@ -156,7 +159,31 @@ opPUSHFD(uint32_t fetchdat)
 }
 
 static int
-opPOPF_186(uint32_t fetchdat)
+opPOPF_186(UNUSED(uint32_t fetchdat))
+{
+    uint16_t tempw;
+
+    tempw = POP_W();
+    if (cpu_state.abrt)
+        return 1;
+
+    cpu_state.flags = (cpu_state.flags & 0x7000) | (tempw & 0x0fd5) | 2;
+    flags_extract();
+#ifdef USE_DEBUG_REGS_486
+    rf_flag_no_clear = 1;
+#endif
+
+    CLOCK_CYCLES(5);
+    PREFETCH_RUN(5, 1, -1, 1, 0, 0, 0, 0);
+
+#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
+    codegen_flags_changed = 0;
+#endif
+
+    return 0;
+}
+static int
+opPOPF_286(UNUSED(uint32_t fetchdat))
 {
     uint16_t tempw;
 
@@ -178,6 +205,9 @@ opPOPF_186(uint32_t fetchdat)
     else
         cpu_state.flags = (cpu_state.flags & 0x3200) | (tempw & 0x4dd5) | 2;
     flags_extract();
+#ifdef USE_DEBUG_REGS_486
+    rf_flag_no_clear = 1;
+#endif
 
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 1, 0, 0, 0, 0);
@@ -189,40 +219,7 @@ opPOPF_186(uint32_t fetchdat)
     return 0;
 }
 static int
-opPOPF_286(uint32_t fetchdat)
-{
-    uint16_t tempw;
-
-    if ((cpu_state.eflags & VM_FLAG) && (IOPL < 3)) {
-        x86gpf(NULL, 0);
-        return 1;
-    }
-
-    tempw = POP_W();
-    if (cpu_state.abrt)
-        return 1;
-
-    if (!(msw & 1))
-        cpu_state.flags = (cpu_state.flags & 0x7000) | (tempw & 0x0fd5) | 2;
-    else if (!(CPL))
-        cpu_state.flags = (tempw & 0x7fd5) | 2;
-    else if (IOPLp)
-        cpu_state.flags = (cpu_state.flags & 0x3000) | (tempw & 0x4fd5) | 2;
-    else
-        cpu_state.flags = (cpu_state.flags & 0x3200) | (tempw & 0x4dd5) | 2;
-    flags_extract();
-
-    CLOCK_CYCLES(5);
-    PREFETCH_RUN(5, 1, -1, 1, 0, 0, 0, 0);
-
-#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
-    codegen_flags_changed = 0;
-#endif
-
-    return 0;
-}
-static int
-opPOPF(uint32_t fetchdat)
+opPOPF(UNUSED(uint32_t fetchdat))
 {
     uint16_t tempw;
 
@@ -264,6 +261,9 @@ opPOPF(uint32_t fetchdat)
             cpu_state.flags = (cpu_state.flags & 0x3200) | (tempw & 0x4dd5) | 2;
     }
     flags_extract();
+#ifdef USE_DEBUG_REGS_486
+    rf_flag_no_clear = 1;
+#endif
 
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 1, 0, 0, 0, 0);
@@ -275,7 +275,7 @@ opPOPF(uint32_t fetchdat)
     return 0;
 }
 static int
-opPOPFD(uint32_t fetchdat)
+opPOPFD(UNUSED(uint32_t fetchdat))
 {
     uint32_t templ;
 
@@ -307,6 +307,9 @@ opPOPFD(uint32_t fetchdat)
         cpu_state.eflags = (templ >> 16) & 3;
 
     flags_extract();
+#ifdef USE_DEBUG_REGS_486
+    rf_flag_no_clear = 1;
+#endif
 
     CLOCK_CYCLES(5);
     PREFETCH_RUN(5, 1, -1, 0, 1, 0, 0, 0);

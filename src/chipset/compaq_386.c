@@ -37,6 +37,7 @@
 #include <86box/vid_cga.h>
 #include <86box/vid_cga_comp.h>
 #include <86box/plat_unused.h>
+#include <86box/chipset.h>
 
 #define RAM_DIAG_L_BASE_MEM_640KB    0x00
 #define RAM_DIAG_L_BASE_MEM_INV      0x10
@@ -746,6 +747,23 @@ compaq_386_init(UNUSED(const device_t *info))
     return dev;
 }
 
+static void
+compaq_genoa_outw(uint16_t port, uint16_t val, void *priv)
+{
+     if (port == 0x0c02)
+        cpq_write_regs(0x80c00000, val, priv);
+}
+
+static void *
+compaq_genoa_init(UNUSED(const device_t *info))
+{
+    void *cpq = device_add(&compaq_386_device);
+
+    io_sethandler(0x0c02, 2, NULL, NULL, NULL, NULL, compaq_genoa_outw, NULL, cpq);
+
+    return ram;
+}
+
 const device_t compaq_386_device = {
     .name          = "Compaq 386 Memory Control",
     .internal_name = "compaq_386",
@@ -754,7 +772,21 @@ const device_t compaq_386_device = {
     .init          = compaq_386_init,
     .close         = compaq_386_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t compaq_genoa_device = {
+    .name          = "Compaq Genoa Memory Control",
+    .internal_name = "compaq_genoa",
+    .flags         = 0,
+    .local         = 0,
+    .init          = compaq_genoa_init,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

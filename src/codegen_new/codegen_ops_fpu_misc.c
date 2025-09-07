@@ -9,6 +9,7 @@
 #include "x86seg_common.h"
 #include "x86seg.h"
 #include "386_common.h"
+#include "x87_sf.h"
 #include "x87.h"
 #include "codegen.h"
 #include "codegen_accumulate.h"
@@ -97,7 +98,7 @@ ropFSTSW(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     return op_pc + 1;
 }
 uint32_t
-ropFSTSW_AX(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropFSTSW_AX(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uop_FP_ENTER(ir);
     uop_MOV(ir, IREG_AX, IREG_NPXS);

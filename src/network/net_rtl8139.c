@@ -22,13 +22,17 @@
  *          Copyright 2011-2023 Benjamin Poirier.
  *          Copyright 2023 Cacodemon345.
  */
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
+#ifdef _MVC_VER
+#include <stddef.h>
+#endif
 #include <time.h>
-
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/pci.h>
@@ -39,12 +43,11 @@
 #include <86box/device.h>
 #include <86box/thread.h>
 #include <86box/network.h>
-#include <86box/net_eeprom_nmc93cxx.h>
-#include <86box/bswap.h>
+#include <86box/nmc93cxx.h>
 #include <86box/nvr.h>
 #include "cpu.h"
-#include <86box/net_rtl8139.h>
 #include <86box/plat_unused.h>
+#include <86box/bswap.h>
 
 #define PCI_PERIOD 30 /* 30 ns period = 33.333333 Mhz frequency */
 
@@ -352,7 +355,8 @@ enum chip_flags {
 #define RTL8139_PCI_REVID_8139      0x10
 #define RTL8139_PCI_REVID_8139CPLUS 0x20
 
-#define RTL8139_PCI_REVID           RTL8139_PCI_REVID_8139CPLUS
+/* Return 0x10 - the RTL8139C+ datasheet and Windows 2000 driver both confirm this. */
+#define RTL8139_PCI_REVID           RTL8139_PCI_REVID_8139
 
 #pragma pack(push, 1)
 typedef struct RTL8139TallyCounters {
@@ -530,14 +534,14 @@ rtl8139_write_buffer(RTL8139State *s, const void *buf, int size)
 
             if (size > wrapped) {
                 dma_bm_write(s->RxBuf + s->RxBufAddr,
-                             buf, size - wrapped, 1);
+                             (uint8_t *) buf, size - wrapped, 1);
             }
 
             /* reset buffer pointer */
             s->RxBufAddr = 0;
 
             dma_bm_write(s->RxBuf + s->RxBufAddr,
-                         buf + (size - wrapped), wrapped, 1);
+                         (uint8_t *) buf + (size - wrapped), wrapped, 1);
 
             s->RxBufAddr = wrapped;
 
@@ -1075,10 +1079,11 @@ rtl8139_reset(void *priv)
     s->cplus_enabled = 0;
 
 #if 0
-    s->BasicModeCtrl = 0x3100; // 100Mbps, full duplex, autonegotiation
     s->BasicModeCtrl = 0x2100; // 100Mbps, full duplex
-#endif
+    s->BasicModeCtrl = 0x3100; // 100Mbps, full duplex, autonegotiation
     s->BasicModeCtrl = 0x1000; // autonegotiation
+#endif
+    s->BasicModeCtrl = 0x1100; // full duplex, autonegotiation
 
     rtl8139_reset_phy(s);
 
@@ -1205,7 +1210,7 @@ rtl8139_CpCmd_read(RTL8139State *s)
 }
 
 static void
-rtl8139_IntrMitigate_write(UNUSED(RTL8139State *s), uint32_t val)
+rtl8139_IntrMitigate_write(UNUSED(RTL8139State *s), UNUSED(uint32_t val))
 {
     rtl8139_log("C+ IntrMitigate register write(w) val=0x%04x\n", val);
 }
@@ -2544,6 +2549,12 @@ rtl8139_io_writeb(uint32_t addr, uint8_t val, void *priv)
 
             break;
 
+        case RxConfig:
+            rtl8139_log("RxConfig write(b) val=0x%02x\n", val);
+            rtl8139_RxConfig_write(s,
+                (rtl8139_RxConfig_read(s) & 0xFFFFFF00) | val);
+            break;
+
         default:
             rtl8139_log("not implemented write(b) addr=0x%x val=0x%02x\n", addr, val);
             break;
@@ -3111,7 +3122,7 @@ rtl8139_pci_read(UNUSED(int func), int addr, void *priv)
         case 0x05:
             return s->pci_conf[addr & 0xFF] & 1;
         case 0x08:
-            return 0x20;
+            return RTL8139_PCI_REVID;
         case 0x09:
             return 0x0;
         case 0x0a:
@@ -3146,7 +3157,7 @@ rtl8139_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-rtl8139_pci_write(int func, int addr, uint8_t val, void *priv)
+rtl8139_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     RTL8139State *s = (RTL8139State *) priv;
 
@@ -3283,9 +3294,9 @@ nic_init(const device_t *info)
     params.nwords          = 64;
     params.default_content = (uint16_t *) s->eeprom_data;
     params.filename        = filename;
-    snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, device_get_instance());
-    s->eeprom = device_add_parameters(&nmc93cxx_device, &params);
-    if (!s->eeprom) {
+    snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, s->inst);
+    s->eeprom = device_add_inst_params(&nmc93cxx_device, s->inst, &params);
+    if (s->eeprom == NULL) {
         free(s);
         return NULL;
     }
@@ -3310,11 +3321,15 @@ nic_close(void *priv)
 // clang-format off
 static const device_config_t rtl8139c_config[] = {
     {
-        .name = "mac",
-        .description = "MAC Address",
-        .type = CONFIG_MAC,
-        .default_string = "",
-        .default_int = -1
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -3328,7 +3343,7 @@ const device_t rtl8139c_plus_device = {
     .init          = nic_init,
     .close         = nic_close,
     .reset         = rtl8139_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = rtl8139c_config

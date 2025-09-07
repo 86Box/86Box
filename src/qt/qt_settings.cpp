@@ -50,6 +50,11 @@ public:
     SettingsModel(QObject *parent)
         : QAbstractListModel(parent)
     {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        fontHeight = QFontMetrics(qApp->font()).height();
+#else
+        fontHeight = QApplication::fontMetrics().height();
+#endif
     }
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
@@ -82,6 +87,7 @@ private:
         "other_removable_devices",
         "other_peripherals",
     };
+    int fontHeight;
 };
 
 QVariant
@@ -93,7 +99,9 @@ SettingsModel::data(const QModelIndex &index, int role) const
         case Qt::DisplayRole:
             return tr(pages.at(index.row()).toUtf8().data());
         case Qt::DecorationRole:
-            return QIcon(QString("%1/%2.ico").arg(ProgSettings::getIconSetPath(), page_icons[index.row()]));
+            return QIcon(QString(":/settings/qt/icons/%1.ico").arg(page_icons[index.row()]));
+        case Qt::SizeHintRole:
+            return QSize(-1, fontHeight * 2);
         default:
             return {};
     }
@@ -149,17 +157,40 @@ Settings::Settings(QWidget *parent)
             &SettingsSound::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, network,
             &SettingsNetwork::onCurrentMachineChanged);
+    connect(machine, &SettingsMachine::currentMachineChanged, ports,
+            &SettingsPorts::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, storageControllers,
             &SettingsStorageControllers::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, otherPeripherals,
             &SettingsOtherPeripherals::onCurrentMachineChanged);
+    connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, harddisks,
+            &SettingsHarddisks::reloadBusChannels);
+    connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_MO);
+    connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_RDisk);
+    connect(harddisks, &SettingsHarddisks::driveChannelChanged, floppyCdrom,
+            &SettingsFloppyCDROM::reloadBusChannels);
+    connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_MO);
+    connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_RDisk);
+    connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, harddisks,
+            &SettingsHarddisks::reloadBusChannels);
+    connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, floppyCdrom,
+            &SettingsFloppyCDROM::reloadBusChannels);
+    connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_RDisk);
+    connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, harddisks,
+            &SettingsHarddisks::reloadBusChannels);
+    connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, floppyCdrom,
+            &SettingsFloppyCDROM::reloadBusChannels);
+    connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_MO);
 
     connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
            [this](const QModelIndex &current, const QModelIndex &previous) {
                   ui->stackedWidget->setCurrentIndex(current.row()); });
-
-    ui->listView->setMinimumWidth(ui->listView->sizeHintForColumn(0) +
-                                  qApp->style()->pixelMetric(QStyle::PM_ScrollBarExtent));
 
     ui->listView->setCurrentIndex(model->index(0, 0));
 

@@ -8,14 +8,13 @@
  *
  *          Implementation of the OPTi 82C493/82C495 chipset.
  *
- *
- *
  * Authors: Tiseno100,
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2020 Tiseno100.
  *          Copyright 2016-2020 Miran Grca.
  */
+#include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -28,10 +27,13 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/mem.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
 typedef struct opti495_t {
+    uint8_t type;
+    uint8_t max;
     uint8_t idx;
     uint8_t regs[256];
     uint8_t scratch[2];
@@ -54,6 +56,22 @@ opti495_log(const char *fmt, ...)
 #else
 #    define opti495_log(fmt, ...)
 #endif
+
+enum {
+    OPTI493 = 0,
+    OPTI495,
+    OPTI495SLC,
+    OPTI495SX,
+    OPTI495XLC,
+    TMAX
+};
+
+/* OPTi 82C493: According to The Last Byte, bit 1 of register 22h, while unused, must still be writable. */
+static uint8_t masks[TMAX][0x1c] = { { 0x3f, 0xff, 0xff, 0xff, 0xf7, 0xfb, 0x7f, 0x9f, 0xe3, 0xff, 0xe3, 0xff },
+                                     { 0x3a, 0x7f, 0xff, 0xff, 0xf0, 0xfb, 0x7f, 0xbf, 0xe3, 0xff, 0x00, 0x00 },
+                                     { 0x3a, 0x7f, 0xfc, 0xff, 0xf0, 0xfb, 0xff, 0xbf, 0xe3, 0xff, 0x00, 0x00 },
+                                     { 0x3a, 0xff, 0xfd, 0xff, 0xf0, 0xfb, 0x7f, 0xbf, 0xe3, 0xff, 0x00, 0x00 },
+                                     { 0x3a, 0xff, 0xfc, 0xff, 0xf0, 0xfb, 0xff, 0xbf, 0xe3, 0xff, 0x00, 0x00 } };
 
 static void
 opti495_recalc(opti495_t *dev)
@@ -119,16 +137,25 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
     opti495_t *dev = (opti495_t *) priv;
 
     switch (addr) {
+        default:
+            break;
+
         case 0x22:
             opti495_log("[%04X:%08X] [W] dev->idx = %02X\n", CS, cpu_state.pc, val);
             dev->idx = val;
             break;
         case 0x24:
-            if ((dev->idx >= 0x20) && (dev->idx <= 0x2d)) {
-                dev->regs[dev->idx] = val;
+            if ((dev->idx >= 0x20) && (dev->idx <= dev->max)) {
                 opti495_log("[%04X:%08X] [W] dev->regs[%04X] = %02X\n", CS, cpu_state.pc, dev->idx, val);
 
+                dev->regs[dev->idx] = val & masks[dev->type][dev->idx - 0x20];
+                if ((dev->type == OPTI493) && (dev->idx == 0x20))
+                    val |= 0x40;
+
                 switch (dev->idx) {
+                    default:
+                        break;
+
                     case 0x21:
                         cpu_cache_ext_enabled = !!(dev->regs[0x21] & 0x10);
                         cpu_update_waitstates();
@@ -139,17 +166,36 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x26:
                         opti495_recalc(dev);
                         break;
-                    default:
+
+                    case 0x25: {
+                        double bus_clk;
+                        switch (val & 0x03) {
+                            default:
+                            case 0x00:
+                                 bus_clk = cpu_busspeed / 6.0;
+                                 break;
+                            case 0x01:
+                                 bus_clk = cpu_busspeed / 4.0;
+                                 break;
+                            case 0x02:
+                                 bus_clk = cpu_busspeed / 3.0;
+                                 break;
+                            case 0x03:
+                                 bus_clk = (cpu_busspeed * 2.0) / 5.0;
+                                 break;
+                        }
+                        cpu_set_isa_speed((int) round(bus_clk));
                         break;
+                    }
                 }
             }
+
+            dev->idx = 0xff;
             break;
 
         case 0xe1:
         case 0xe2:
             dev->scratch[~addr & 0x01] = val;
-            break;
-        default:
             break;
     }
 }
@@ -157,18 +203,20 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 opti495_read(uint16_t addr, void *priv)
 {
-    uint8_t          ret = 0xff;
-    const opti495_t *dev = (opti495_t *) priv;
+    uint8_t    ret = 0xff;
+    opti495_t *dev = (opti495_t *) priv;
 
     switch (addr) {
         case 0x22:
             opti495_log("[%04X:%08X] [R] dev->idx = %02X\n", CS, cpu_state.pc, ret);
             break;
         case 0x24:
-            if ((dev->idx >= 0x20) && (dev->idx <= 0x2d)) {
+            if ((dev->idx >= 0x20) && (dev->idx <= dev->max)) {
                 ret = dev->regs[dev->idx];
                 opti495_log("[%04X:%08X] [R] dev->regs[%04X] = %02X\n", CS, cpu_state.pc, dev->idx, ret);
             }
+
+            dev->idx = 0xff;
             break;
         case 0xe1:
         case 0xe2:
@@ -192,8 +240,7 @@ opti495_close(void *priv)
 static void *
 opti495_init(const device_t *info)
 {
-    opti495_t *dev = (opti495_t *) malloc(sizeof(opti495_t));
-    memset(dev, 0, sizeof(opti495_t));
+    opti495_t *dev = (opti495_t *) calloc(1, sizeof(opti495_t));
 
     device_add(&port_92_device);
 
@@ -202,8 +249,11 @@ opti495_init(const device_t *info)
 
     dev->scratch[0] = dev->scratch[1] = 0xff;
 
-    if (info->local == 1) {
+    dev->type = info->local;
+
+    if (info->local >= OPTI495) {
         /* 85C495 */
+        dev->max = 0x29;
         dev->regs[0x20] = 0x02;
         dev->regs[0x21] = 0x20;
         dev->regs[0x22] = 0xe4;
@@ -214,6 +264,7 @@ opti495_init(const device_t *info)
         dev->regs[0x29] = 0x10;
     } else {
         /* 85C493 */
+        dev->max = 0x2b;
         dev->regs[0x20] = 0x40;
         dev->regs[0x22] = 0x84;
         dev->regs[0x24] = 0x87;
@@ -229,6 +280,8 @@ opti495_init(const device_t *info)
 
     io_sethandler(0x00e1, 0x0002, opti495_read, NULL, NULL, opti495_write, NULL, NULL, dev);
 
+    cpu_set_isa_speed((int) round(cpu_busspeed / 6.0));
+
     return dev;
 }
 
@@ -236,25 +289,39 @@ const device_t opti493_device = {
     .name          = "OPTi 82C493",
     .internal_name = "opti493",
     .flags         = 0,
-    .local         = 0,
+    .local         = OPTI493,
     .init          = opti495_init,
     .close         = opti495_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
 };
 
-const device_t opti495_device = {
+const device_t opti495slc_device = {
     .name          = "OPTi 82C495",
-    .internal_name = "opti495",
+    .internal_name = "opti495slc",
     .flags         = 0,
-    .local         = 1,
+    .local         = OPTI495SLC,
     .init          = opti495_init,
     .close         = opti495_close,
     .reset         = NULL,
-    { .available = NULL },
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t opti495sx_device = {
+    .name          = "OPTi 82C495SX",
+    .internal_name = "opti495sx",
+    .flags         = 0,
+    .local         = OPTI495SX,
+    .init          = opti495_init,
+    .close         = opti495_close,
+    .reset         = NULL,
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

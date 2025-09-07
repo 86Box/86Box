@@ -128,8 +128,7 @@ log2i(uint32_t i)
 void *
 i2c_eeprom_init(void *i2c, uint8_t addr, uint8_t *data, uint32_t size, uint8_t writable)
 {
-    i2c_eeprom_t *dev = (i2c_eeprom_t *) malloc(sizeof(i2c_eeprom_t));
-    memset(dev, 0, sizeof(i2c_eeprom_t));
+    i2c_eeprom_t *dev = (i2c_eeprom_t *) calloc(1, sizeof(i2c_eeprom_t));
 
     /* Round size up to the next power of 2. */
     uint32_t pow_size = 1 << log2i(size);
