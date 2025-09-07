@@ -550,6 +550,8 @@ fdd_set_motor_enable(int drive, int motor_enable)
     
     if (motor_enable && !motoron[drive]) {
         timer_set_delay_u64(&fdd_poll_time[drive], fdd_byteperiod(drive));
+    } else if (!motor_enable && motoron[drive]) {
+        timer_disable(&fdd_poll_time[drive]);
     }
     motoron[drive] = motor_enable;
 }
