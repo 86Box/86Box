@@ -3598,6 +3598,12 @@ dither_24_to_8(int r, int g, int b)
     return ((b >> 6) & 3) | (((g >> 5) & 7) << 2) | (((r >> 5) & 7) << 5);
 }
 
+#define CLAMP(x)                      \
+    do {                              \
+        if ((x) & ~0xff)              \
+            x = ((x) < 0) ? 0 : 0xff; \
+    } while (0)
+
 static void
 blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
 {
@@ -3613,7 +3619,50 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
     const int            trans_sel = (mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANS_MASK) >> DWGCTRL_TRANS_SHIFT;
     uint8_t const *const trans     = &trans_masks[trans_sel][(mystique->dwgreg.selline & 3) * 4];
     uint32_t             data_mask = 1;
+    /* YUV stuff */
+    int                  y0;
+    int                  y1;
+    int                  u;
+    int                  v;
+    int                  dR;
+    int                  dG;
+    int                  dB;
+    int                  r0;
+    int                  g0;
+    int                  b0;
+    int                  r1;
+    int                  g1;
+    int                  b1;
+    switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK) {
+        case DWGCTRL_BLTMOD_BUYUV:
+            y0 = (298 * ((int) (data & 0xff) - 16)) >> 8;
+            u  = ((data >> 8) & 0xff) - 0x80;
+            y1 = (298 * ((int) ((data >> 16) & 0xff) - 16)) >> 8;
+            v  = ((data >> 24) & 0xff) - 0x80;
 
+            dR = (309 * v) >> 8;
+            dG = (100 * u + 208 * v) >> 8;
+            dB = (516 * u) >> 8;
+
+            r0 = y0 + dR;
+            CLAMP(r0);
+            g0 = y0 - dG;
+            CLAMP(g0);
+            b0 = y0 + dB;
+            CLAMP(b0);
+            r1 = y1 + dR;
+            CLAMP(r1);
+            g1 = y1 - dG;
+            CLAMP(g1);
+            b1 = y1 + dB;
+            CLAMP(b1);
+
+            data64 = b0 | (g0 << 8) | (r0 << 16);
+            data64 |= ((uint64_t) b1 << 32) | ((uint64_t) g1 << 40) | ((uint64_t) r1 << 48);
+            size = 64;
+
+            break;
+    }
     switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
         case MACCESS_PWIDTH_8:
             bltckey &= 0xff;
@@ -3947,6 +3996,65 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
                     mystique->dwgreg.iload_rem_data  = data64;
                     break;
 
+                case DWGCTRL_BLTMOD_BUYUV:
+                    while (size >= 32) {
+                        int draw = (!transc || (data & bltcmsk) != bltckey) && trans[mystique->dwgreg.xdst & 3];
+                        if (mystique->dwgreg.xdst >= mystique->dwgreg.cxleft && mystique->dwgreg.xdst <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot && draw) {
+                            switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
+                                case MACCESS_PWIDTH_16:
+                                {
+                                    dst = ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_w];
+
+                                    dst = bitop(dither(mystique, (data64 >> 16) & 0xFF, (data64 >> 8) & 0xFF, data64 & 0xFF, mystique->dwgreg.xdst & 1, mystique->dwgreg.selline & 1), dst, mystique->dwgreg.dwgctrl_running);
+
+                                    ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_w] = dst;
+                                    svga->changedvram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_w) >> 11] = changeframecount;
+                                    break;
+                                }
+                                case MACCESS_PWIDTH_8:
+                                {
+                                    dst = ((uint8_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask];
+
+                                    dst = bitop(dither_24_to_8((data64 >> 16) & 0xFF, (data64 >> 8) & 0xFF, data64 & 0xFF), dst, mystique->dwgreg.dwgctrl_running);
+
+                                    ((uint8_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask] = dst;
+                                    svga->changedvram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask) >> 12] = changeframecount;
+                                    break;
+                                }
+                                default: {
+                                    dst = ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l];
+
+                                    dst                                                                                                    = bitop(data, dst, mystique->dwgreg.dwgctrl_running);
+                                    ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l] = dst;
+                                    svga->changedvram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l) >> 10] = changeframecount;
+                                    break;
+                                }
+                            }
+                        }
+
+                        size -= 32;
+                        data64 >>= 32ULL;
+
+                        if (mystique->dwgreg.xdst == mystique->dwgreg.fxright) {
+                            mystique->dwgreg.xdst = mystique->dwgreg.fxleft;
+                            mystique->dwgreg.ydst_lin += (mystique->dwgreg.pitch & PITCH_MASK);
+                            mystique->dwgreg.selline = (mystique->dwgreg.selline + 1) & 7;
+                            mystique->dwgreg.length_cur--;
+                            if (!mystique->dwgreg.length_cur) {
+                                mystique->busy = 0;
+                                mystique->blitter_complete_refcount++;
+                                break;
+                            }
+                            data64 = 0;
+                            size   = 0;
+                            break;
+                        } else
+                            mystique->dwgreg.xdst = (mystique->dwgreg.xdst + 1) & 0xffff;
+                    }
+                    mystique->dwgreg.iload_rem_count = size;
+                    mystique->dwgreg.iload_rem_data  = data64;
+                    break;
+
                 case DWGCTRL_BLTMOD_BU32BGR:
                     size += mystique->dwgreg.iload_rem_count;
                     while (size >= 32) {
@@ -3995,12 +4103,6 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
             fatal("Unknown ILOAD iload atype %03x %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK, mystique->dwgreg.dwgctrl_running);
     }
 }
-
-#define CLAMP(x)                      \
-    do {                              \
-        if ((x) & ~0xff)              \
-            x = ((x) < 0) ? 0 : 0xff; \
-    } while (0)
 
 static void
 blit_iload_iload_scale(mystique_t *mystique, uint32_t data, int size)
@@ -4053,7 +4155,7 @@ blit_iload_iload_scale(mystique_t *mystique, uint32_t data, int size)
                     break;
                 case MACCESS_PWIDTH_32:
                     data64 = b0 | (g0 << 8) | (r0 << 16);
-                    data64 |= ((uint64_t) b0 << 32) | ((uint64_t) g0 << 40) | ((uint64_t) r0 << 48);
+                    data64 |= ((uint64_t) b1 << 32) | ((uint64_t) g1 << 40) | ((uint64_t) r1 << 48);
                     size = 64;
                     break;
 
@@ -5925,6 +6027,7 @@ blit_iload(mystique_t *mystique)
                 case DWGCTRL_BLTMOD_BMONOWF:
                 case DWGCTRL_BLTMOD_BU24RGB:
                 case DWGCTRL_BLTMOD_BU32RGB:
+                case DWGCTRL_BLTMOD_BUYUV:
                     mystique->dwgreg.length_cur      = mystique->dwgreg.length;
                     mystique->dwgreg.xdst            = mystique->dwgreg.fxleft;
                     mystique->dwgreg.iload_rem_data  = 0;
