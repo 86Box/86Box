@@ -265,9 +265,14 @@ fdd_seek(int drive, int track_diff)
 
     fdd_changed[drive] = 0;
 
-    /* Trigger single step audio for single sector movements */
-    if (abs(track_diff) == 1) {
+    /* Trigger appropriate audio for track movements */
+    int actual_track_diff = abs(old_track - fdd[drive].track);
+    if (actual_track_diff == 1) {
+        /* Single track movement */
         fdd_audio_play_single_track_step(drive, old_track, fdd[drive].track);
+    } else if (actual_track_diff > 1) {
+        /* Multi-track seek */
+        fdd_audio_play_multi_track_seek(drive, old_track, fdd[drive].track);
     }
 
     fdd_do_seek(drive, fdd[drive].track);

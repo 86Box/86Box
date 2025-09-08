@@ -30,7 +30,7 @@
 // OK 2. Move audio emulation to separate code file
 // OK 3. Implement sound support for all drives (not only for drive 0)
 // OK 4. Single sector read/write sound emulation
-// 5. Multi-track seek sound emulation
+// OK 5. Multi-track seek sound emulation
 // 6. Limit sound emulation only for 3,5" 300 rpm drives, until we have sound samples for other rpm drives
 // 7. Volume control for drive sounds
 // 8. Configuration option to enable/disable drive sounds
@@ -47,6 +47,15 @@ typedef struct {
     int             position;
     int             active;
 } single_step_state_t;
+
+/* Multi-track seek audio state */
+typedef struct {
+    int             position;
+    int             active;
+    int             duration_samples;
+    int             from_track;
+    int             to_track;
+} multi_seek_state_t;
 
 /* Static audio sample definitions */
 static audio_sample_t spindlemotor_start = {
@@ -73,6 +82,11 @@ static audio_sample_t single_track_step = {
     .samples  = 0
 };
 
+static audio_sample_t multi_track_seek = {
+    .filename = "mitsumi_seek_80_tracks_495ms_48000_16_1_PCM.wav",
+    .buffer   = NULL,
+    .samples  = 0
+};
 
 /* Audio state for each drive */
 static int           spindlemotor_pos[FDD_NUM]                    = {};
@@ -83,8 +97,9 @@ static int           spindlemotor_fade_samples_remaining[FDD_NUM] = {};
 /* Single step audio state for each drive */
 static single_step_state_t single_step_state[FDD_NUM] = {};
 
-/* External references to FDD timer and motoron state */
-extern pc_timer_t fdd_poll_time[FDD_NUM];
+/* Multi-track seek audio state for each drive */
+static multi_seek_state_t multi_seek_state[FDD_NUM] = {};
+
 extern uint64_t   motoron[FDD_NUM];
 
 /* Forward declaration */
@@ -186,6 +201,7 @@ fdd_audio_init(void)
     spindlemotor_loop.buffer  = load_wav(spindlemotor_loop.filename, &spindlemotor_loop.samples);
     spindlemotor_stop.buffer  = load_wav(spindlemotor_stop.filename, &spindlemotor_stop.samples);
     single_track_step.buffer  = load_wav(single_track_step.filename, &single_track_step.samples);
+    multi_track_seek.buffer   = load_wav(multi_track_seek.filename, &multi_track_seek.samples);
 
     /* Initialize audio state for all drives */
     for (i = 0; i < FDD_NUM; i++) {
@@ -197,6 +213,13 @@ fdd_audio_init(void)
         /* Initialize single step state */
         single_step_state[i].position = 0;
         single_step_state[i].active   = 0;
+        
+        /* Initialize multi-track seek state */
+        multi_seek_state[i].position        = 0;
+        multi_seek_state[i].active          = 0;
+        multi_seek_state[i].duration_samples = 0;
+        multi_seek_state[i].from_track       = -1;
+        multi_seek_state[i].to_track         = -1;
     }
 
     /* Initialize sound thread */
@@ -225,6 +248,11 @@ fdd_audio_close(void)
         free(single_track_step.buffer);
         single_track_step.buffer = NULL;
         single_track_step.samples = 0;
+    }
+    if (multi_track_seek.buffer) {
+        free(multi_track_seek.buffer);
+        multi_track_seek.buffer = NULL;
+        multi_track_seek.samples = 0;
     }
 
     /* End sound thread */
@@ -271,15 +299,53 @@ fdd_audio_play_single_track_step(int drive, int from_track, int to_track)
 }
 
 void
+fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track)
+{
+    if (drive < 0 || drive >= FDD_NUM)
+        return;
+
+    int track_diff = abs(from_track - to_track);
+    if (track_diff <= 1)
+        return; /* Use single step for 1 track movements */
+
+    if (!multi_track_seek.buffer || multi_track_seek.samples == 0)
+        return; /* No multi-track seek sample loaded */
+
+    /* Check if a seek is already active */
+    if (multi_seek_state[drive].active && 
+        multi_seek_state[drive].from_track == from_track && 
+        multi_seek_state[drive].to_track == to_track) {
+        return;
+    }
+
+    /* Calculate duration: 495ms for 80 tracks = 6.1875ms per track at 48kHz sample rate */
+    /* 6.1875ms = 0.0061875s, at 48000 Hz = 297 samples per track */
+    int duration_samples = track_diff * 297; /* 6.1875ms * track_diff * 48kHz */
+
+    /* Clamp to maximum available sample length */
+    if (duration_samples > multi_track_seek.samples)
+        duration_samples = multi_track_seek.samples;
+
+    /* Start new seek (or restart interrupted seek) */
+    multi_seek_state[drive].position         = 0;
+    multi_seek_state[drive].active           = 1;
+    multi_seek_state[drive].duration_samples = duration_samples;
+    multi_seek_state[drive].from_track       = from_track;
+    multi_seek_state[drive].to_track         = to_track;
+}
+
+void
 fdd_audio_callback(int16_t *buffer, int length)
 {
     /* Clear buffer */
     memset(buffer, 0, length * sizeof(int16_t));
 
-    /* Check if any motor is running or transitioning, or any single step is active */
+    /* Check if any motor is running or transitioning, or any audio is active */
     int any_audio_active = 0;
     for (int drive = 0; drive < FDD_NUM; drive++) {
-        if (spindlemotor_state[drive] != MOTOR_STATE_STOPPED || single_step_state[drive].active) {
+        if (spindlemotor_state[drive] != MOTOR_STATE_STOPPED || 
+            single_step_state[drive].active || 
+            multi_seek_state[drive].active) {
             any_audio_active = 1;
             break;
         }
@@ -392,6 +458,29 @@ fdd_audio_callback(int16_t *buffer, int length)
                     /* Step sound finished */
                     single_step_state[drive].active = 0;
                     single_step_state[drive].position = 0;
+                }
+            }
+
+            /* Process multi-track seek audio */
+            if (multi_seek_state[drive].active) {
+                if (multi_track_seek.buffer && 
+                    multi_seek_state[drive].position < multi_seek_state[drive].duration_samples &&
+                    multi_seek_state[drive].position < multi_track_seek.samples) {
+                    /* Mix seek sound with motor sound */
+                    float seek_left  = (float) multi_track_seek.buffer[multi_seek_state[drive].position * 2] / 32768.0f;
+                    float seek_right = (float) multi_track_seek.buffer[multi_seek_state[drive].position * 2 + 1] / 32768.0f;
+                    
+                    left_sample  += seek_left;
+                    right_sample += seek_right;
+                    
+                    multi_seek_state[drive].position++;
+                } else {
+                    /* Seek sound finished */
+                    multi_seek_state[drive].active = 0;
+                    multi_seek_state[drive].position = 0;
+                    multi_seek_state[drive].duration_samples = 0;
+                    multi_seek_state[drive].from_track       = -1;
+                    multi_seek_state[drive].to_track         = -1;
                 }
             }
 
