@@ -243,6 +243,8 @@ svga_render_text_80(svga_t *svga)
         p    = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
         xinc = (svga->seqregs[1] & 1) ? 8 : 9;
 
+        uint32_t col = 0x00000000;
+
         for (int x = 0; x < (svga->hdisp + svga->scrollcache); x += xinc) {
             if (!svga->force_old_addr)
                 addr = svga->remap_func(svga, svga->memaddr) & svga->vram_display_mask;
@@ -263,30 +265,70 @@ svga_render_text_80(svga_t *svga)
                 charaddr = svga->charseta + (chr * 128);
 
             if (drawcursor) {
-                bg = svga->pallook[svga->egapal[attr & 15] & svga->dac_mask];
-                fg = svga->pallook[svga->egapal[attr >> 4] & svga->dac_mask];
+                bg = attr & 15;
+                fg = attr >> 4;
             } else {
-                fg = svga->pallook[svga->egapal[attr & 15] & svga->dac_mask];
-                bg = svga->pallook[svga->egapal[attr >> 4] & svga->dac_mask];
+                fg = attr & 15;
+                bg = attr >> 4;
                 if (attr & 0x80 && svga->attrregs[0x10] & 8) {
-                    bg = svga->pallook[svga->egapal[(attr >> 4) & 7] & svga->dac_mask];
+                    bg = (attr >> 4) & 7;
                     if (svga->blink & 16)
                         fg = bg;
                 }
             }
 
             dat = svga->vram[charaddr + (svga->scanline << 2)];
-            if (svga->seqregs[1] & 1) {
-                for (xx = 0; xx < 8; xx++)
-                    p[xx] = (dat & (0x80 >> xx)) ? fg : bg;
+
+            if (svga->attrregs[0x10] & 0x40) {
+                pclog("256-color text mode\n");
+                if (svga->seqregs[1] & 1) {
+                    for (xx = 0; xx < 8; xx++) {
+                        uint32_t col16 = (dat & (0x80 >> xx)) ? fg : bg;
+                        if ((x + xx - svga->scrollcache) & 1) {
+                            col |= col16;
+                            if ((x + xx - 1) >= 0)
+                                p[xx - 1] = svga->pallook[col & svga->dac_mask];
+                            if ((x + xx) >= 0)
+                                p[xx] = svga->pallook[col & svga->dac_mask];
+                        } else
+                           col = col16 << 4;
+                    }
+                } else {
+                    for (xx = 0; xx < 9; xx++) {
+                        uint32_t col16;
+                        if (xx < 8)
+                            col16 = (dat & (0x80 >> xx)) ? fg : bg;
+                        else if ((chr & ~0x1F) != 0xC0 || !(svga->attrregs[0x10] & 4))
+                            col16 = bg;
+                        else
+                            col16 = (dat & 1) ? fg : bg;
+                        if ((x + xx - svga->scrollcache) & 1) {
+                            col |= col16;
+                            if ((x + xx - 1) >= 0)
+                                p[xx - 1] = svga->pallook[col & svga->dac_mask];
+                            if ((x + xx) >= 0)
+                                p[xx] = svga->pallook[col & svga->dac_mask];
+                        } else
+                           col = col16 << 4;
+                    }
+                }
             } else {
-                for (xx = 0; xx < 8; xx++)
-                    p[xx] = (dat & (0x80 >> xx)) ? fg : bg;
-                if ((chr & ~0x1F) != 0xC0 || !(svga->attrregs[0x10] & 4))
-                    p[8] = bg;
-                else
-                    p[8] = (dat & 1) ? fg : bg;
+                fg = svga->pallook[svga->egapal[fg] & svga->dac_mask];
+                bg = svga->pallook[svga->egapal[bg] & svga->dac_mask];
+
+                if (svga->seqregs[1] & 1) {
+                    for (xx = 0; xx < 8; xx++)
+                        p[xx] = (dat & (0x80 >> xx)) ? fg : bg;
+                } else {
+                    for (xx = 0; xx < 8; xx++)
+                        p[xx] = (dat & (0x80 >> xx)) ? fg : bg;
+                    if ((chr & ~0x1F) != 0xC0 || !(svga->attrregs[0x10] & 4))
+                        p[8] = bg;
+                    else
+                        p[8] = (dat & 1) ? fg : bg;
+                }
             }
+
             svga->memaddr += 4;
             p += xinc;
         }
