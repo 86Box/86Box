@@ -8,7 +8,7 @@ Immersive86Box
 Features
 --------
 
-* Typical 3,5" 1,44MB 300RPM FDD motor sound starting, running and stopping. FDD single track step sound an multi-track seek sound (not merged yet)
+* Typical 3,5" 1,44MB 300RPM FDD motor sound starting, running and stopping. FDD single track step sound an multi-track seek sound
 
 Future plans
 ------------
