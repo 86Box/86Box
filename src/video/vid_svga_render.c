@@ -280,7 +280,6 @@ svga_render_text_80(svga_t *svga)
             dat = svga->vram[charaddr + (svga->scanline << 2)];
 
             if (svga->attrregs[0x10] & 0x40) {
-                pclog("256-color text mode\n");
                 if (svga->seqregs[1] & 1) {
                     for (xx = 0; xx < 8; xx++) {
                         uint32_t col16 = (dat & (0x80 >> xx)) ? fg : bg;
