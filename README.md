@@ -39,6 +39,11 @@ Building
 ---------
 For instructions on how to build 86Box from source, see the [build guide](https://86box.readthedocs.io/en/latest/dev/buildguide.html).
 
+## Audio emulation installation
+
+Build 86box executable for your target system + roms
+Copy all .wav files from samples directory to the same directory with the 86box executable and you're good to go.
+
 Licensing
 ---------
 
