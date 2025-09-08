@@ -13,9 +13,9 @@ Features
 Future plans
 ------------
 
+* Typical system fan sounds
 * Typical 5400 RPM 3,5" HDD motor and seeking sounds
 * Typical CD/DVD motor and seekings sounds
-* Typical system fan sounds
 * IBM PS/1 Model 2121 front-bezel with working leds
 * IBM PS/1 Model 2121 VGA-display front-bezel that displays the emulator output in CRT-fashion
 
