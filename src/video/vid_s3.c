@@ -830,6 +830,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 {
     svga_t *svga = &s3->svga;
 
+    s3_log("OUTB FIFO=%04x, val=%02x.\n", port, val);
     switch (port) {
         case 0x8148:
         case 0x82e8:
@@ -8807,6 +8808,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
                 if ((s3->bpp == 0) && s3->color_16bit) {
                     s3->accel.rd_mask_16bit_check = ((rd_mask & 0xff00) != 0xff00) && rd_mask;
+                    s3_log("CMD2: RDMASK16CHECK=%d, rdmask=%04x.\n", s3->accel.rd_mask_16bit_check, rd_mask);
                     if (s3->accel.rd_mask_16bit_check) {
                         if (s3->accel.cmd == 0x41b3) {
                             if (frgd_mix == 0) {
@@ -9211,6 +9213,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
                 if ((s3->bpp == 0) && s3->color_16bit) {
                     s3->accel.rd_mask_16bit_check = ((rd_mask & 0xff00) != 0xff00) && rd_mask;
+                    s3_log("CMD6: RDMASK16CHECK=%d.\n", s3->accel.rd_mask_16bit_check);
                     if (s3->accel.rd_mask_16bit_check) {
                         if (!(clip_r & 0x400))
                             s3->accel.start = 1;
@@ -10778,6 +10781,7 @@ s3_init(const device_t *info)
             s3->id_ext        = stepping;
             s3->id_ext_pci    = 0;
             s3->packed_mmio   = 0;
+            s3->accel.rd_mask = 0xff;
 
             svga->ramdac    = device_add(&sc11483_ramdac_device);
             s3->ramdac_type = SC1148X;
@@ -10799,6 +10803,7 @@ s3_init(const device_t *info)
             s3->id_ext        = stepping;
             s3->id_ext_pci    = 0;
             s3->packed_mmio   = 0;
+            s3->accel.rd_mask = 0xff;
 
             svga->ramdac    = device_add(&sc11483_ramdac_device);
             s3->ramdac_type = SC1148X;
