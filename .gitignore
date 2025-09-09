@@ -15,6 +15,7 @@ Makefile
 /src/*.res
 /src/*.dll
 /src/NUL
+/src/.vs
 
 # State
 /src/*.cfg

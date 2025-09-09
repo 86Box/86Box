@@ -10,9 +10,12 @@
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #          Jasmine Iwanek, <jriwanek@gmail.com>
+#          Toni Riikonen, <riikonen.toni@gmail.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
 #          Copyright 2024      Jasmine Iwanek.
+#          Copyright 2025      Toni Riikonen.
+#          All rights reserved.
 #
 
 add_library(fdd OBJECT
@@ -31,6 +34,7 @@ add_library(fdd OBJECT
     fdd_pcjs.c
     fdd_mfm.c
     fdd_td0.c
+    fdd_audio.c
 )
 
 add_subdirectory(lzw)
