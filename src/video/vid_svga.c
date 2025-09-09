@@ -1587,6 +1587,8 @@ svga_poll(void *priv)
                 svga->half_pixel  = 0;
                 svga->scrollcache &= 0x07;
             } else {
+                if (svga->scrollcache > 7)
+                    svga->scrollcache = 7;
                 svga->half_pixel  = svga->scrollcache & 0x01;
                 svga->scrollcache = (svga->scrollcache & 0x06) >> 1;
             }
