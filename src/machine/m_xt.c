@@ -975,12 +975,12 @@ machine_xt_micoms_xl7turbo_init(const machine_t *model)
 }
 
 int
-machine_xt_pc500_init(const machine_t *model)
+machine_xt_pc500plus_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/pc500/rom404.bin",
-                           0x000f8000, 32768, 0);
+                           0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
         return ret;

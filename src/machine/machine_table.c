@@ -1095,11 +1095,11 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
-        .name = "[8088] Multitech PC-500",
-        .internal_name = "pc500",
+        .name = "[8088] Multitech PC-500 plus",
+        .internal_name = "pc500plus",
         .type = MACHINE_TYPE_8088,
         .chipset = MACHINE_CHIPSET_DISCRETE,
-        .init = machine_xt_pc500_init,
+        .init = machine_xt_pc500plus_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
