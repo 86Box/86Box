@@ -50,7 +50,7 @@ joystick_init(void)
     SDL_SetHint(SDL_HINT_JOYSTICK_THREAD, "1");
 #endif
 
-    if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) != 0) {
+    if (SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) != 0) {
         return;
     }
     joysticks_present = SDL_NumJoysticks();
