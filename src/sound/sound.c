@@ -55,7 +55,6 @@ int wavetable_pos_global               = 0;
 int sound_gain                         = 0;
 
 static sound_handler_t sound_handlers[8];
-
 static sound_handler_t music_handlers[8];
 static sound_handler_t wavetable_handlers[8];
 
