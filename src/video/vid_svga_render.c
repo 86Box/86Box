@@ -805,6 +805,8 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     uint32_t incr_counter = 0;
     uint32_t load_counter = 0;
     uint32_t edat         = 0;
+    uint32_t col          = 0;
+    uint32_t col2         = 0;
     for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += charwidth) {
         if (load_counter == 0) {
             /* Find our address */
@@ -923,8 +925,19 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
                 }
             } else if (combine8bits) {
                 if (svga->packed_4bpp) {
-                    uint32_t  p0      = svga->map8[c0 & svga->dac_mask];
-                    uint32_t  p1      = svga->map8[c1 & svga->dac_mask];
+                    uint32_t  p0;
+                    uint32_t  p1;
+                    if (svga->half_pixel) {
+                        col                 |= (c0 >> 4) & 0xff;
+                        col2                 = (c0 << 4) & 0xff;
+                        col2                |= (c1 >> 4) & 0xff;
+                        p0                  = svga->map8[col & svga->dac_mask];
+                        p1                  = svga->map8[col2 & svga->dac_mask];
+                        col                 = (c1 << 4) & 0xff;
+                    } else {
+                        p0                = svga->map8[c0 & svga->dac_mask];
+                        p1                = svga->map8[c1 & svga->dac_mask];
+                    }
                     const int outoffs = i << dwshift;
                     for (int subx = 0; subx < dotwidth; subx++)
                         p[outoffs + subx] = p0;
@@ -932,7 +945,13 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
                         p[outoffs + subx + dotwidth] = p1;
                 } else {
                     uint32_t  ccombined = (c0 << 4) | c1;
-                    uint32_t  p0        = svga->map8[ccombined & svga->dac_mask];
+                    uint32_t  p0;
+                    if (svga->half_pixel) {
+                        col                 |= (ccombined >> 4) & 0xff;
+                        p0                  = svga->map8[col & svga->dac_mask];
+                        col                 = (ccombined << 4) & 0xff;
+                    } else
+                        p0                  = svga->map8[ccombined & svga->dac_mask];
                     const int outoffs   = (i >> 1) << dwshift;
                     for (int subx = 0; subx < dotwidth; subx++)
                         p[outoffs + subx] = p0;
