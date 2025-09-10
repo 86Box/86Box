@@ -105,39 +105,39 @@ static const struct
     void        (*close)(int drive);
     int         size;
 } loaders[] = {
-    { "001",  img_load,  img_close,  -1},
-    { "002",  img_load,  img_close,  -1},
-    { "003",  img_load,  img_close,  -1},
-    { "004",  img_load,  img_close,  -1},
-    { "005",  img_load,  img_close,  -1},
-    { "006",  img_load,  img_close,  -1},
-    { "007",  img_load,  img_close,  -1},
-    { "008",  img_load,  img_close,  -1},
-    { "009",  img_load,  img_close,  -1},
-    { "010",  img_load,  img_close,  -1},
-    { "12",   img_load,  img_close,  -1},
-    { "144",  img_load,  img_close,  -1},
-    { "360",  img_load,  img_close,  -1},
-    { "720",  img_load,  img_close,  -1},
-    { "86F",  d86f_load, d86f_close, -1},
-    { "BIN",  img_load,  img_close,  -1},
-    { "CQ",   img_load,  img_close,  -1},
-    { "CQM",  img_load,  img_close,  -1},
-    { "DDI",  img_load,  img_close,  -1},
-    { "DSK",  img_load,  img_close,  -1},
-    { "FDI",  fdi_load,  fdi_close,  -1},
-    { "FDF",  img_load,  img_close,  -1},
-    { "FLP",  img_load,  img_close,  -1},
-    { "HDM",  img_load,  img_close,  -1},
-    { "IMA",  img_load,  img_close,  -1},
-    { "IMD",  imd_load,  imd_close,  -1},
-    { "IMG",  img_load,  img_close,  -1},
-    { "JSON", pcjs_load, pcjs_close, -1},
-    { "MFM",  mfm_load,  mfm_close,  -1},
-    { "TD0",  td0_load,  td0_close,  -1},
-    { "VFD",  img_load,  img_close,  -1},
-    { "XDF",  img_load,  img_close,  -1},
-    { 0,      0,         0,          0 }
+    { "001",  img_load,  img_close,  -1 },
+    { "002",  img_load,  img_close,  -1 },
+    { "003",  img_load,  img_close,  -1 },
+    { "004",  img_load,  img_close,  -1 },
+    { "005",  img_load,  img_close,  -1 },
+    { "006",  img_load,  img_close,  -1 },
+    { "007",  img_load,  img_close,  -1 },
+    { "008",  img_load,  img_close,  -1 },
+    { "009",  img_load,  img_close,  -1 },
+    { "010",  img_load,  img_close,  -1 },
+    { "12",   img_load,  img_close,  -1 },
+    { "144",  img_load,  img_close,  -1 },
+    { "360",  img_load,  img_close,  -1 },
+    { "720",  img_load,  img_close,  -1 },
+    { "86F",  d86f_load, d86f_close, -1 },
+    { "BIN",  img_load,  img_close,  -1 },
+    { "CQ",   img_load,  img_close,  -1 },
+    { "CQM",  img_load,  img_close,  -1 },
+    { "DDI",  img_load,  img_close,  -1 },
+    { "DSK",  img_load,  img_close,  -1 },
+    { "FDI",  fdi_load,  fdi_close,  -1 },
+    { "FDF",  img_load,  img_close,  -1 },
+    { "FLP",  img_load,  img_close,  -1 },
+    { "HDM",  img_load,  img_close,  -1 },
+    { "IMA",  img_load,  img_close,  -1 },
+    { "IMD",  imd_load,  imd_close,  -1 },
+    { "IMG",  img_load,  img_close,  -1 },
+    { "JSON", pcjs_load, pcjs_close, -1 },
+    { "MFM",  mfm_load,  mfm_close,  -1 },
+    { "TD0",  td0_load,  td0_close,  -1 },
+    { "VFD",  img_load,  img_close,  -1 },
+    { "XDF",  img_load,  img_close,  -1 },
+    { 0,      0,         0,          0  }
 };
 
 static const struct {
@@ -211,7 +211,7 @@ fdd_get_internal_name(int type)
 int
 fdd_get_from_internal_name(char *s)
 {
-    int   c = 0;
+    int c = 0;
 
     while (strlen(drive_types[c].internal_name)) {
         if (!strcmp((char *) drive_types[c].internal_name, s))
@@ -466,7 +466,7 @@ fdd_load(int drive, char *fn)
     if (!fn)
         return;
     if (strstr(fn, "wp://") == fn) {
-        offs = 5;
+        offs                = 5;
         ui_writeprot[drive] = 1;
     }
     fn += offs;

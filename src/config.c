@@ -211,7 +211,7 @@ load_general(void)
     rctrl_is_lalt = ini_section_get_int(cat, "rctrl_is_lalt", 0);
     update_icons  = ini_section_get_int(cat, "update_icons", 1);
 
-    start_in_fullscreen = ini_section_get_int(cat, "start_in_fullscreen", 0);
+    start_in_fullscreen |= ini_section_get_int(cat, "start_in_fullscreen", 0);
 
     window_remember = ini_section_get_int(cat, "window_remember", 0);
 

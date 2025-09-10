@@ -388,6 +388,7 @@ typedef struct scsi_common_s {
     void *             log;
 
     uint8_t *          temp_buffer;
+    size_t             temp_buffer_sz;
     /*
        This is atapi_cdb in ATAPI-supporting devices,
        and pad in SCSI-only devices.
