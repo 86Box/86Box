@@ -205,6 +205,7 @@ extern const device_t ct5880_onboard_device;
 
 /* Gravis UltraSound family */
 extern const device_t gus_device;
+extern const device_t gus_v37_device;
 extern const device_t gus_max_device;
 extern const device_t gus_ace_device;
 

@@ -44,10 +44,32 @@ enum {
 };
 
 enum {
-    GUS_CLASSIC = 0,
-    GUS_MAX     = 1,
-    GUS_ACE     = 2,
+    GUS_CLASSIC    = 0,
+    GUS_CLASSIC_37 = 1,
+    GUS_MAX        = 2,
+    GUS_ACE        = 3
 };
+
+enum {
+    GUS_ICS2101_MIC_IN  = 0,
+    GUS_ICS2101_LINE_IN = 1,
+    GUS_ICS2101_CD_IN   = 2,
+    GUS_ICS2101_GF1_OUT = 3,
+    GUS_ICS2101_UNUSED  = 4,
+    GUS_ICS2101_MASTER  = 5,
+    GUS_ICS2101_MAX     = 6
+};
+
+typedef struct ics2101_chan_t {
+    uint8_t ctrl[2];
+    double level[2];
+    uint8_t pan;
+} ics2101_chan_t;
+
+typedef struct ics2101_t {
+    uint8_t        addr;
+    ics2101_chan_t channels[GUS_ICS2101_MAX];
+} ics2101_t;
 
 typedef struct gus_t {
     int reset;
@@ -152,6 +174,8 @@ typedef struct gus_t {
     uint8_t max_ctrl;
 
     ad1848_t ad1848;
+
+    ics2101_t ics2101;
 } gus_t;
 
 static int gus_gf1_irqs[8]  = { -1, 2, 5, 3, 7, 11, 12, 15 };
@@ -164,6 +188,12 @@ int gusfreqs[] = {
 };
 
 double vol16bit[4096];
+
+double ics2101_att[128];
+
+double ics2101_pan[] = { 0.35481, 0.35481, 0.35481, 0.37584, 0.47315, 0.53088, 0.59566, 0.66834,
+                         0.70795,
+                         0.74989, 0.79433, 0.84140, 0.89125, 0.94406, 1.00000, 1.00000, 1.00000 };
 
 void    gus_write(uint16_t addr, uint8_t val, void *priv);
 uint8_t gus_read(uint16_t addr, void *priv);
@@ -263,6 +293,10 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
     int      old;
     uint16_t port;
     uint16_t csioport;
+
+    ics2101_t *ics2101 = &gus->ics2101;
+    uint8_t    mixer_ch;
+    uint8_t    mixer_lr;
 
     if ((addr == 0x388) || (addr == 0x389))
         port = addr;
@@ -705,8 +739,43 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                gus->reg_ctrl = val;
             break;
         case 0x306:
+            if (gus->type == GUS_CLASSIC_37) {
+                mixer_ch = (ics2101->addr >> 3) & 0x7; /* current attenuator */
+                mixer_lr = ics2101->addr & 1; /* left or right channel */
+                switch (ics2101->addr & 0x6) {
+                    case 0: /* Set control */
+                        ics2101->channels[mixer_ch].ctrl[mixer_lr] = val & 0xF;
+                        if ((mixer_lr == 0) && (val & 0xC)) /* copy to right channel if not normal mode */
+                            ics2101->channels[mixer_ch].ctrl[1] = val & 0xF;
+                        break;
+                    case 2: /* Set attenuator */
+                        switch (ics2101->channels[mixer_ch].ctrl[mixer_lr] & 0xC) {
+                            case 0: /* Normal mode */
+                                ics2101->channels[mixer_ch].level[mixer_lr] = ics2101_att[val & 0x7F];
+                                break;
+                            case 4: /* Stereo mode */
+                                ics2101->channels[mixer_ch].level[0] = ics2101_att[val & 0x7F];
+                                ics2101->channels[mixer_ch].level[1] = ics2101_att[val & 0x7F];
+                                break;
+                            case 8: /* Balance/Pan mode */
+                                ics2101->channels[mixer_ch].level[0] = ics2101_att[val & 0x7F] * ics2101_pan[ics2101->channels[mixer_ch].pan + 1];
+                                ics2101->channels[mixer_ch].level[1] = ics2101_att[val & 0x7F] * ics2101_pan[16 - ics2101->channels[mixer_ch].pan];
+                                break;
+                        }
+                        break;
+                    case 4: /* Set panning */
+                        ics2101->channels[mixer_ch].pan = val & 0xF;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+            fallthrough;
         case 0x706:
-            if (gus->type == GUS_MAX) {
+            if (gus->type == GUS_CLASSIC_37) {
+                gus->ics2101.addr = val & 0x3F;
+            } else if (gus->type == GUS_MAX) {
                 if (gus->dma >= 4)
                     val |= 0x10;
                 if (gus->dma2 >= 4)
@@ -900,12 +969,14 @@ gus_read(uint16_t addr, void *priv)
             break;
         case 0x306:
         case 0x706:
-            if (gus->type == GUS_MAX)
+            if (gus->type == GUS_CLASSIC_37)
+                val = 0x06; /* 3.7x - mixer, no reverse channels bug */
+            else if (gus->type == GUS_MAX)
                 val = 0x0a; /* GUS MAX */
             else if (gus->type == GUS_ACE)
                 val = 0x30; /* GUS ACE */
             else
-                val = 0xff; /*Pre 3.7 - no mixer*/
+                val = 0xff; /* Pre 3.7 - no mixer */
             break;
 
         case 0x307: /*DRAM access*/
@@ -1215,17 +1286,70 @@ gus_get_buffer(int32_t *buffer, int len, void *priv)
         ad1848_update(&gus->ad1848);
 
     gus_update(gus);
-
-    for (int c = 0; c < len * 2; c++) {
-        if ((gus->type == GUS_MAX) && (gus->max_ctrl))
-            buffer[c] += (int32_t) (gus->ad1848.buffer[c] / 2);
-        buffer[c] += (int32_t) gus->buffer[c & 1][c >> 1];
-    }
+    if (gus->type == GUS_CLASSIC_37)
+        for (int c = 0; c < len * 2; c += 2) {
+            double temp_l = 0.0;
+            double temp_r = 0.0;
+            /* GF1 out */
+            uint8_t ctrl_l = gus->ics2101.channels[GUS_ICS2101_GF1_OUT].ctrl[0];
+            uint8_t ctrl_r = gus->ics2101.channels[GUS_ICS2101_GF1_OUT].ctrl[1];
+            if (!(ctrl_l & 0xC)) { /* Normal mode */
+                if (ctrl_l & 1)
+                    temp_l += (double) gus->buffer[0][c >> 1] * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[0];
+                if (ctrl_l & 2)
+                    temp_r += (double) gus->buffer[0][c >> 1] * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[0];
+                if (ctrl_r & 1)
+                    temp_l += (double) gus->buffer[1][c >> 1] * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[1];
+                if (ctrl_r & 2)
+                    temp_r += (double) gus->buffer[1][c >> 1] * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[1];
+            } else { /* Stereo or Balance/Pan mode */
+                if (ctrl_l & 2) { /* Mono/Pan */
+                    temp_l += ((double) gus->buffer[0][c >> 1] + (double) gus->buffer[1][c >> 1]) * 0.5 * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[(ctrl_l & 1)];
+                    temp_r += ((double) gus->buffer[0][c >> 1] + (double) gus->buffer[1][c >> 1]) * 0.5 * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[!(ctrl_l & 1)];
+                } else { /* Stereo/Balance */
+                    temp_l += (double) gus->buffer[(ctrl_l & 1)][c >> 1] * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[(ctrl_l & 1)];
+                    temp_r += (double) gus->buffer[!(ctrl_l & 1)][c >> 1] * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[!(ctrl_l & 1)];
+                }
+            }
+            /* Master */
+            ctrl_l = gus->ics2101.channels[GUS_ICS2101_MASTER].ctrl[0];
+            ctrl_r = gus->ics2101.channels[GUS_ICS2101_MASTER].ctrl[1];
+            if (!(ctrl_l & 0xC)) { /* Normal mode */
+                if (ctrl_l & 1)
+                    buffer[c] += (int32_t) (temp_l * gus->ics2101.channels[GUS_ICS2101_MASTER].level[0]);
+                if (ctrl_l & 2)
+                    buffer[c + 1] += (int32_t) (temp_r * gus->ics2101.channels[GUS_ICS2101_MASTER].level[0]);
+                if (ctrl_r & 1)
+                    buffer[c] += (int32_t) (temp_l * gus->ics2101.channels[GUS_ICS2101_MASTER].level[1]);
+                if (ctrl_r & 2)
+                    buffer[c + 1] += (int32_t) (temp_r * gus->ics2101.channels[GUS_ICS2101_MASTER].level[1]);
+            } else { /* Stereo or Balance mode - no mono/pan for master */
+                buffer[c]     += (int32_t) (((ctrl_l & 1) ? temp_l : temp_r) * gus->ics2101.channels[GUS_ICS2101_MASTER].level[(ctrl_l & 1)]);
+                buffer[c + 1] += (int32_t) (((ctrl_l & 1) ? temp_r : temp_l) * gus->ics2101.channels[GUS_ICS2101_MASTER].level[!(ctrl_l & 1)]);
+            }
+        }
+    else
+        for (int c = 0; c < len * 2; c++) {
+            if ((gus->type == GUS_MAX) && (gus->max_ctrl))
+                buffer[c] += (int32_t) (gus->ad1848.buffer[c] / 2);
+            buffer[c] += (int32_t) gus->buffer[c & 1][c >> 1];
+        }
 
     if ((gus->type == GUS_MAX) && (gus->max_ctrl))
         gus->ad1848.pos = 0;
 
     gus->pos = 0;
+}
+
+void
+gus_filter_cd_audio(int channel, double *buffer, void *priv)
+{
+    const gus_t *gus = (gus_t *) priv;
+    /* FIXME: No channel remapping possible with the current architecture */
+    if (gus->ics2101.channels[GUS_ICS2101_CD_IN].ctrl[channel] && gus->ics2101.channels[GUS_ICS2101_MASTER].ctrl[channel])
+        *buffer *= gus->ics2101.channels[GUS_ICS2101_CD_IN].level[channel] * gus->ics2101.channels[GUS_ICS2101_MASTER].level[channel];
+    else
+        *buffer *= 0.0;
 }
 
 static void
@@ -1363,6 +1487,13 @@ gus_reset(void *priv)
     gus->irq_state = 0;
     gus->midi_irq_state = 0;
 
+    for (int i = 0; i < GUS_ICS2101_MAX; i++) {
+        gus->ics2101.channels[i].level[0] = gus->ics2101.channels[i].level[1] = 1.0;
+        gus->ics2101.channels[i].ctrl[0] = 1;
+        gus->ics2101.channels[i].ctrl[1] = 2;
+        gus->ics2101.channels[i].pan = 7;
+    }
+
     gus_update_int_status(gus);
 }
 
@@ -1371,6 +1502,7 @@ gus_init(UNUSED(const device_t *info))
 {
     int     c;
     double  out     = 1.0;
+    double  gain;
     uint8_t gus_ram = device_get_config_int("gus_ram");
     gus_t  *gus     = calloc(1, sizeof(gus_t));
 
@@ -1400,6 +1532,13 @@ gus_init(UNUSED(const device_t *info))
 
     gus->jumper = 0x06;
 
+    for (int i = 0; i < GUS_ICS2101_MAX; i++) {
+        gus->ics2101.channels[i].level[0] = gus->ics2101.channels[i].level[1] = 1.0;
+        gus->ics2101.channels[i].ctrl[0] = 1;
+        gus->ics2101.channels[i].ctrl[1] = 2;
+        gus->ics2101.channels[i].pan = 7;
+    }
+
     gus->base = device_get_config_hex16("base");
 
     io_sethandler(gus->base, 0x0010, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
@@ -1413,6 +1552,19 @@ gus_init(UNUSED(const device_t *info))
     else if (gus->type != GUS_ACE) {
         gus->gameport = gameport_add(&gameport_pnp_1io_device);
         gameport_remap(gus->gameport, 0x201);
+    }
+
+    if (gus->type == GUS_CLASSIC_37) {
+        /* Precalculate the attenuation table for ICS2101 */
+        for (int i = 0; i < 128; i++) {
+            gain = (127 - i) * -0.5;
+            if (i < 16)
+                for (int j = 0; j < (16 - i); j++)
+                    gain += -0.5 - 0.13603 * (j + 1);
+            ics2101_att[i] = pow(10.0, gain / 20.0);
+        }
+
+        sound_set_cd_audio_filter(gus_filter_cd_audio, gus);
     }
 
     if (gus->type == GUS_MAX) {
@@ -1504,6 +1656,58 @@ static const device_config_t gus_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format off
+};
+
+static const device_config_t gus_v37_config[] = {
+    // clang-format off
+    {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "210H", .value = 0x210 },
+            { .description = "220H", .value = 0x220 },
+            { .description = "230H", .value = 0x230 },
+            { .description = "240H", .value = 0x240 },
+            { .description = "250H", .value = 0x250 },
+            { .description = "260H", .value = 0x260 },
+            { NULL                                  }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gus_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value = 0 },
+            { .description = "512 KB", .value = 1 },
+            { .description = "1 MB",   .value = 2 },
+            { NULL                                }
+        },
         .bios           = { { 0 } }
     },
     {
@@ -1635,6 +1839,20 @@ const device_t gus_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_config
+};
+
+const device_t gus_v37_device = {
+    .name          = "Gravis UltraSound (rev 3.7)",
+    .internal_name = "gusv37",
+    .flags         = DEVICE_ISA16,
+    .local         = GUS_CLASSIC_37,
+    .init          = gus_init,
+    .close         = gus_close,
+    .reset         = gus_reset,
+    .available     = NULL,
+    .speed_changed = gus_speed_changed,
+    .force_redraw  = NULL,
+    .config        = gus_v37_config
 };
 
 const device_t gus_max_device = {
