@@ -8317,7 +8317,7 @@ const machine_t machines[] = {
     },
     /* Uses a ???? KBC. */
     {
-        .name = "[SiS 461] Dell 466/NP",
+        .name = "[SiS 461] Dell 4xx/NP",
         .internal_name = "dell466np",
         .type = MACHINE_TYPE_486_S2,
         .chipset = MACHINE_CHIPSET_SIS_461,
