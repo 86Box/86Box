@@ -1937,7 +1937,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 64,
             .max = 1024,
-            .step = 128
+            .step = 64
         },
         .nvrmask = 127,
         .jumpered_ecp_dma = 0,
@@ -3831,7 +3831,7 @@ const machine_t machines[] = {
     /* AMI BIOS for a chipset-less machine, most likely has AMI 'F' KBC firmware. */
     {
         .name = "[ISA] Trangg Bow Unknown 286",
-        .internal_name = "ibmatami",
+        .internal_name = "tbunk286",
         .type = MACHINE_TYPE_286,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_at_tbunk286_init,
@@ -3853,8 +3853,8 @@ const machine_t machines[] = {
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
-            .max = 512,
-            .step = 256
+            .max = 1024,
+            .step = 128
         },
         .nvrmask = 63,
         .jumpered_ecp_dma = 0,
@@ -3910,49 +3910,6 @@ const machine_t machines[] = {
         .gpio_acpi = 0xffffffff,
         .device = NULL,
         .kbd_device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    /* has an Award-branded KBC controller */
-    {
-        .name = "[NEAT] Hyundai Super-286C",
-        .internal_name = "super286c",
-        .type = MACHINE_TYPE_286,
-        .chipset = MACHINE_CHIPSET_NEAT,
-        .init = machine_at_super286c_init,
-        .p1_handler = machine_generic_p1_handler,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_286,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
-        .ram = {
-            .min = 512,
-            .max = 1024,
-            .step = 128
-        },
-        .nvrmask = 127,
-        .jumpered_ecp_dma = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device = &kbc_at_device,
-        .kbc_params = KBC_VEN_AWARD | 0x00424600,
-        .kbc_p1 = 0x000004f0,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
@@ -4181,6 +4138,50 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Has Phoenix MultiKey/42 KBC firmware. */
+    {
+        .name = "[NEAT] Arche AMA-2010",
+        .internal_name = "px286",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_NEAT,
+        .init = machine_at_px286_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 8192,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .jumpered_ecp_dma = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device = &kbc_at_device,
+        /* The version number is a guess - we have no probe of this machine's controller. */
+        .kbc_params = KBC_VEN_PHOENIX | 0x00010500,
+        .kbc_p1 = 0x000004f0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Most likely has Chips & Technologies KBC firmware. */
     {
         .name = "[NEAT] Atari PC 4",
@@ -4269,6 +4270,49 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* has an Award-branded KBC controller */
+    {
+        .name = "[NEAT] Hyundai Super-286C",
+        .internal_name = "super286c",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_NEAT,
+        .init = machine_at_super286c_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 1024,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .jumpered_ecp_dma = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device = &kbc_at_device,
+        .kbc_params = KBC_VEN_AWARD | 0x00424600,
+        .kbc_p1 = 0x000004f0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has NCR KBC firmware. */
     {
         .name = "[NEAT] NCR 3302",
@@ -4310,50 +4354,6 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &paradise_pvga1a_ncr3302_device,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    /* Has Phoenix MultiKey/42 KBC firmware. */
-    {
-        .name = "[NEAT] Arche AMA-2010",
-        .internal_name = "px286",
-        .type = MACHINE_TYPE_286,
-        .chipset = MACHINE_CHIPSET_NEAT,
-        .init = machine_at_px286_init,
-        .p1_handler = machine_generic_p1_handler,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_286,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
-        .ram = {
-            .min = 512,
-            .max = 8192,
-            .step = 128
-        },
-        .nvrmask = 127,
-        .jumpered_ecp_dma = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device = &kbc_at_device,
-        /* The version number is a guess - we have no probe of this machine's controller. */
-        .kbc_params = KBC_VEN_PHOENIX | 0x00010500,
-        .kbc_p1 = 0x000004f0,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -4867,9 +4867,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
-            .min = 1024,
+            .min = 512,
             .max = 4096,
-            .step = 1024
+            .step = 128
         },
         .nvrmask = 127,
         .jumpered_ecp_dma = 0,
@@ -8742,7 +8742,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE | MACHINE_APM, /* Machine has internal SCSI: Adaptec AIC-6360 */
         .ram = {
             .min = 1024,
-            .max = 32768,
+            .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
@@ -9480,94 +9480,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has IBM PS/2 Type 1 KBC firmware. */
-    {
-        .name = "[OPTi 802G] IBM PC 330 (type 6573)",
-        .internal_name = "pc330_6573",
-        .type = MACHINE_TYPE_486_S3_PCI,
-        .chipset = MACHINE_CHIPSET_OPTI_895_802G,
-        .init = machine_at_pc330_6573_init,
-        .p1_handler = machine_generic_p1_handler,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_SOCKET3_PC330,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 25000000,
-            .max_bus = 33333333,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 2.0,
-            .max_multi = 3.0
-        },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
-        .ram = {
-            .min = 1024,
-            .max = 65536,
-            .step = 1024
-        },
-        .nvrmask = 255,
-        .jumpered_ecp_dma = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device = &kbc_at_device,
-        .kbc_params = 0x00000000,
-        .kbc_p1 = 0x00000cf0,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = &pc330_6573_device,
-        .kbd_device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = &gd5430_onboard_vlb_device,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    /* has a Phoenix PLCC Multikey copyrighted 1993, version unknown. */
-    {
-        .name = "[OPTi 895] Packard Bell PB450",
-        .internal_name = "pb450",
-        .type = MACHINE_TYPE_486_S3_PCI,
-        .chipset = MACHINE_CHIPSET_OPTI_895_802G,
-        .init = machine_at_pb450_init,
-        .p1_handler = machine_generic_p1_handler,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_SOCKET3,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_VIDEO,
-        .ram = {
-            .min = 1024,
-            .max = 65536,
-            .step = 1024
-        },
-        .nvrmask = 255,
-        .jumpered_ecp_dma = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device = &kbc_at_device,
-        .kbc_params = KBC_VEN_PHOENIX | 0x00021400, /* Guess. */
-        .kbc_p1 = 0x00000cf0,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = &pb450_device,
-        .kbd_device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = &gd5428_vlb_onboard_device,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
         .name = "[i420EX] Advanced Integration Research 486PI",
@@ -10054,6 +9966,94 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    {
+        .name = "[OPTi 802G] IBM PC 330 (type 6573)",
+        .internal_name = "pc330_6573",
+        .type = MACHINE_TYPE_486_S3_PCI,
+        .chipset = MACHINE_CHIPSET_OPTI_895_802G,
+        .init = machine_at_pc330_6573_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3_PC330,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 25000000,
+            .max_bus = 33333333,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 2.0,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .jumpered_ecp_dma = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device = &kbc_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = &pc330_6573_device,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5430_onboard_vlb_device,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* has a Phoenix PLCC Multikey copyrighted 1993, version unknown. */
+    {
+        .name = "[OPTi 895] Packard Bell PB450",
+        .internal_name = "pb450",
+        .type = MACHINE_TYPE_486_S3_PCI,
+        .chipset = MACHINE_CHIPSET_OPTI_895_802G,
+        .init = machine_at_pb450_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .jumpered_ecp_dma = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device = &kbc_at_device,
+        .kbc_params = KBC_VEN_PHOENIX | 0x00021400, /* Guess. */
+        .kbc_p1 = 0x00000cf0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = &pb450_device,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5428_vlb_onboard_device,
         .snd_device = NULL,
         .net_device = NULL
     },
