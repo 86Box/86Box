@@ -380,6 +380,7 @@ optimc_init(const device_t *info)
     else
         ad1848_init(&optimc->ad1848, AD1848_TYPE_DEFAULT);
 
+    ad1848_set_cd_audio_channel(&optimc->ad1848, (info->local & 0x100) ? AD1848_LINE_IN : AD1848_AUX1);
     ad1848_setirq(&optimc->ad1848, optimc->cur_wss_irq);
     ad1848_setdma(&optimc->ad1848, optimc->cur_wss_dma);
 

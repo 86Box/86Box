@@ -501,16 +501,16 @@ readonly_x:
             if (updatefreq)
                 ad1848_updatefreq(ad1848);
 
-            temp = (ad1848->type < AD1848_TYPE_CS4231) ? 2 : ((ad1848->type == AD1848_TYPE_CS4231) ? 18 : 4);
-            if (ad1848->regs[temp] & 0x80)
-                ad1848->cd_vol_l = 0;
-            else
-                ad1848->cd_vol_l = ad1848_vols_5bits_aux_gain[ad1848->regs[temp] & 0x1f];
-            temp++;
-            if (ad1848->regs[temp] & 0x80)
-                ad1848->cd_vol_r = 0;
-            else
-                ad1848->cd_vol_r = ad1848_vols_5bits_aux_gain[ad1848->regs[temp] & 0x1f];
+            if (ad1848->cd_vol_reg > -1) {
+                if (ad1848->regs[ad1848->cd_vol_reg] & 0x80)
+                    ad1848->cd_vol_l = 0;
+                else
+                    ad1848->cd_vol_l = ad1848_vols_5bits_aux_gain[ad1848->regs[ad1848->cd_vol_reg] & 0x1f];
+                if (ad1848->regs[ad1848->cd_vol_reg + 1] & 0x80)
+                    ad1848->cd_vol_r = 0;
+                else
+                    ad1848->cd_vol_r = ad1848_vols_5bits_aux_gain[ad1848->regs[ad1848->cd_vol_reg + 1] & 0x1f];
+            }
 
 readonly_i:
             ad1848_log("AD1848: write(I%d, %02X)\n", ad1848->index, val);
@@ -747,6 +747,18 @@ ad1848_poll(void *priv)
 }
 
 void
+ad1848_set_cd_audio_channel(void *priv, int channel)
+{
+    ad1848_t *ad1848 = (ad1848_t *) priv;
+
+    const int max_channel = (ad1848->type >= AD1848_TYPE_CS4231) ? 31 : 15;
+    if (channel > max_channel)
+        channel = max_channel;
+
+    ad1848->cd_vol_reg = channel;
+}
+
+void
 ad1848_filter_cd_audio(int channel, double *buffer, void *priv)
 {
     const ad1848_t *ad1848 = (ad1848_t *) priv;
@@ -837,6 +849,8 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
 
     ad1848->out_l = ad1848->out_r = 0;
     ad1848->fm_vol_l = ad1848->fm_vol_r = 65536;
+    ad1848->cd_vol_l = ad1848->cd_vol_r = 65536;
+    ad1848->cd_vol_reg = -1;
     ad1848_updatevolmask(ad1848);
     if (type >= AD1848_TYPE_CS4235)
         ad1848->fmt_mask = 0x50;
