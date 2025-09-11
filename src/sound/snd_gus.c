@@ -1277,6 +1277,58 @@ gus_poll_wave(void *priv)
         gus_update_int_status(gus);
 }
 
+void
+gus_ics2101_filter(void *priv, int channel, double *out_l, double *out_r)
+{
+    ics2101_t *ics2101 = (ics2101_t *) priv;
+
+    double temp_l = 0.0;
+    double temp_r = 0.0;
+    double master_l = 0.0;
+    double master_r = 0.0;
+
+    uint8_t ctrl_l = ics2101->channels[channel].ctrl[0];
+    uint8_t ctrl_r = ics2101->channels[channel].ctrl[1];
+    if (!(ctrl_l & 0xC)) { /* Normal mode */
+        if (ctrl_l & 1)
+            temp_l += *out_l * ics2101->channels[channel].level[0];
+        if (ctrl_l & 2)
+            temp_r += *out_l * ics2101->channels[channel].level[0];
+        if (ctrl_r & 1)
+            temp_l += *out_r * ics2101->channels[channel].level[1];
+        if (ctrl_r & 2)
+            temp_r += *out_r * ics2101->channels[channel].level[1];
+    } else { /* Stereo or Balance/Pan mode */
+        if (ctrl_l & 2) { /* Mono/Pan */
+            temp_l = (*out_l + *out_r) * 0.5 * ics2101->channels[channel].level[(ctrl_l & 1)];
+            temp_r = (*out_r + *out_l) * 0.5 * ics2101->channels[channel].level[!(ctrl_l & 1)];
+        } else { /* Stereo/Balance */
+            temp_l = ((ctrl_l & 1) ? *out_l : *out_r) * ics2101->channels[channel].level[(ctrl_l & 1)];
+            temp_r = ((ctrl_l & 1) ? *out_r : *out_l) * ics2101->channels[channel].level[!(ctrl_l & 1)];
+        }
+    }
+
+    /* Master */
+    ctrl_l = ics2101->channels[GUS_ICS2101_MASTER].ctrl[0];
+    ctrl_r = ics2101->channels[GUS_ICS2101_MASTER].ctrl[1];
+    if (!(ctrl_l & 0xC)) { /* Normal mode */
+        if (ctrl_l & 1)
+            master_l += temp_l * ics2101->channels[GUS_ICS2101_MASTER].level[0];
+        if (ctrl_l & 2)
+            master_r += temp_l * ics2101->channels[GUS_ICS2101_MASTER].level[0];
+        if (ctrl_r & 1)
+            master_l += temp_r * ics2101->channels[GUS_ICS2101_MASTER].level[1];
+        if (ctrl_r & 2)
+            master_r += temp_r * ics2101->channels[GUS_ICS2101_MASTER].level[1];
+    } else { /* Stereo or Balance mode - no mono/pan for master */
+        master_l = ((ctrl_l & 1) ? temp_l : temp_r) * ics2101->channels[GUS_ICS2101_MASTER].level[(ctrl_l & 1)];
+        master_r = ((ctrl_l & 1) ? temp_r : temp_l) * ics2101->channels[GUS_ICS2101_MASTER].level[!(ctrl_l & 1)];
+    }
+
+    *out_l = master_l;
+    *out_r = master_r;
+}
+
 static void
 gus_get_buffer(int32_t *buffer, int len, void *priv)
 {
@@ -1286,54 +1338,27 @@ gus_get_buffer(int32_t *buffer, int len, void *priv)
         ad1848_update(&gus->ad1848);
 
     gus_update(gus);
-    if (gus->type == GUS_CLASSIC_37)
-        for (int c = 0; c < len * 2; c += 2) {
-            double temp_l = 0.0;
-            double temp_r = 0.0;
-            /* GF1 out */
-            uint8_t ctrl_l = gus->ics2101.channels[GUS_ICS2101_GF1_OUT].ctrl[0];
-            uint8_t ctrl_r = gus->ics2101.channels[GUS_ICS2101_GF1_OUT].ctrl[1];
-            if (!(ctrl_l & 0xC)) { /* Normal mode */
-                if (ctrl_l & 1)
-                    temp_l += (double) gus->buffer[0][c >> 1] * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[0];
-                if (ctrl_l & 2)
-                    temp_r += (double) gus->buffer[0][c >> 1] * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[0];
-                if (ctrl_r & 1)
-                    temp_l += (double) gus->buffer[1][c >> 1] * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[1];
-                if (ctrl_r & 2)
-                    temp_r += (double) gus->buffer[1][c >> 1] * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[1];
-            } else { /* Stereo or Balance/Pan mode */
-                if (ctrl_l & 2) { /* Mono/Pan */
-                    temp_l += ((double) gus->buffer[0][c >> 1] + (double) gus->buffer[1][c >> 1]) * 0.5 * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[(ctrl_l & 1)];
-                    temp_r += ((double) gus->buffer[0][c >> 1] + (double) gus->buffer[1][c >> 1]) * 0.5 * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[!(ctrl_l & 1)];
-                } else { /* Stereo/Balance */
-                    temp_l += (double) gus->buffer[(ctrl_l & 1)][c >> 1] * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[(ctrl_l & 1)];
-                    temp_r += (double) gus->buffer[!(ctrl_l & 1)][c >> 1] * gus->ics2101.channels[GUS_ICS2101_GF1_OUT].level[!(ctrl_l & 1)];
+    for (int c = 0; c < len * 2; c += 2) {
+        double temp_l = 0.0;
+        double temp_r = 0.0;
+        if ((gus->type == GUS_CLASSIC_37) || (gus->type == GUS_MAX)) {
+            temp_l = (double) gus->buffer[0][c >> 1];
+            temp_r = (double) gus->buffer[1][c >> 1];
+            if (gus->type == GUS_MAX) {
+                if (gus->max_ctrl) {
+                    buffer[c]     += (int32_t) (gus->ad1848.buffer[c] / 2);
+                    buffer[c + 1] += (int32_t) (gus->ad1848.buffer[c + 1] / 2);
                 }
-            }
-            /* Master */
-            ctrl_l = gus->ics2101.channels[GUS_ICS2101_MASTER].ctrl[0];
-            ctrl_r = gus->ics2101.channels[GUS_ICS2101_MASTER].ctrl[1];
-            if (!(ctrl_l & 0xC)) { /* Normal mode */
-                if (ctrl_l & 1)
-                    buffer[c] += (int32_t) (temp_l * gus->ics2101.channels[GUS_ICS2101_MASTER].level[0]);
-                if (ctrl_l & 2)
-                    buffer[c + 1] += (int32_t) (temp_r * gus->ics2101.channels[GUS_ICS2101_MASTER].level[0]);
-                if (ctrl_r & 1)
-                    buffer[c] += (int32_t) (temp_l * gus->ics2101.channels[GUS_ICS2101_MASTER].level[1]);
-                if (ctrl_r & 2)
-                    buffer[c + 1] += (int32_t) (temp_r * gus->ics2101.channels[GUS_ICS2101_MASTER].level[1]);
-            } else { /* Stereo or Balance mode - no mono/pan for master */
-                buffer[c]     += (int32_t) (((ctrl_l & 1) ? temp_l : temp_r) * gus->ics2101.channels[GUS_ICS2101_MASTER].level[(ctrl_l & 1)]);
-                buffer[c + 1] += (int32_t) (((ctrl_l & 1) ? temp_r : temp_l) * gus->ics2101.channels[GUS_ICS2101_MASTER].level[!(ctrl_l & 1)]);
-            }
+                ad1848_filter_channel(&gus->ad1848, AD1848_AUX1, &temp_l, &temp_r);
+            } else
+                gus_ics2101_filter(&gus->ics2101, GUS_ICS2101_GF1_OUT, &temp_l, &temp_r);
+            buffer[c]     += (int32_t) temp_l;
+            buffer[c + 1] += (int32_t) temp_r;
+        } else {
+            buffer[c]     += (int32_t) gus->buffer[0][c >> 1];
+            buffer[c + 1] += (int32_t) gus->buffer[1][c >> 1];
         }
-    else
-        for (int c = 0; c < len * 2; c++) {
-            if ((gus->type == GUS_MAX) && (gus->max_ctrl))
-                buffer[c] += (int32_t) (gus->ad1848.buffer[c] / 2);
-            buffer[c] += (int32_t) gus->buffer[c & 1][c >> 1];
-        }
+    }
 
     if ((gus->type == GUS_MAX) && (gus->max_ctrl))
         gus->ad1848.pos = 0;
