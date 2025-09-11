@@ -97,7 +97,7 @@ extern void ad1848_update(ad1848_t *ad1848);
 extern void ad1848_speed_changed(ad1848_t *ad1848);
 extern void ad1848_set_cd_audio_channel(void *priv, int channel);
 extern void ad1848_filter_cd_audio(int channel, double *buffer, void *priv);
-extern void ad1848_filter_aux2(void* priv, double* out_l, double* out_r);
+extern void ad1848_filter_channel(void* priv, int channel, double* out_l, double* out_r);
 
 extern void ad1848_init(ad1848_t *ad1848, uint8_t type);
 

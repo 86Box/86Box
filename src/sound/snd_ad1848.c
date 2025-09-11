@@ -770,20 +770,24 @@ ad1848_filter_cd_audio(int channel, double *buffer, void *priv)
 }
 
 void
-ad1848_filter_aux2(void *priv, double *out_l, double *out_r)
+ad1848_filter_channel(void *priv, int channel, double *out_l, double *out_r)
 {
     const ad1848_t *ad1848 = (ad1848_t *) priv;
 
-    if (ad1848->regs[4] & 0x80) {
+    const int max_channel = (ad1848->type >= AD1848_TYPE_CS4231) ? 31 : 15;
+    if (channel > max_channel)
+        channel = max_channel;
+
+    if (ad1848->regs[channel] & 0x80) {
         *out_l = 0.0;
     } else {
-        *out_l = ((*out_l) * ad1848_vols_5bits_aux_gain[ad1848->regs[4] & 0x1f]) / 65536.0;
+        *out_l = ((*out_l) * ad1848_vols_5bits_aux_gain[ad1848->regs[channel] & 0x1f]) / 65536.0;
     }
 
-    if (ad1848->regs[5] & 0x80) {
+    if (ad1848->regs[channel + 1] & 0x80) {
         *out_r = 0.0;
     } else {
-        *out_r = ((*out_r) * ad1848_vols_5bits_aux_gain[ad1848->regs[5] & 0x1f]) / 65536.0;
+        *out_r = ((*out_r) * ad1848_vols_5bits_aux_gain[ad1848->regs[channel + 1] & 0x1f]) / 65536.0;
     }
 }
 

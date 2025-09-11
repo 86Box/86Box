@@ -85,7 +85,7 @@ optimc_filter_opl(void *priv, double *out_l, double *out_r)
     if (optimc->cur_wss_enabled) {
         *out_l /= optimc->sb->mixer_sbpro.fm_l;
         *out_r /= optimc->sb->mixer_sbpro.fm_r;
-        ad1848_filter_aux2((void *) &optimc->ad1848, out_l, out_r);
+        ad1848_filter_channel((void *) &optimc->ad1848, AD1848_AUX2, out_l, out_r);
     }
 }
 
