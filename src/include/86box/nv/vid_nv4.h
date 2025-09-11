@@ -18,12 +18,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <86Box/nv/vid_nv.h>
 #include <86Box/nv/vid_nv4_defines.h>
-
-extern const device_config_t nv4_config[];                              
-
-extern nv4_t* nv4;                                                      // Allocated at device startup
 
 // Structures
 typedef struct nv4_s
@@ -45,6 +40,13 @@ typedef struct nv4_ptimer_s
     uint32_t alarm;                     // The value of time when there should be an alarm
 } nv4_ptimer_t; 
 
+
+//
+// Globals
+//
+extern const device_config_t nv4_config[];                              
+
+extern nv4_t* nv4;                                                      // Allocated at device startup
 
 //
 // Functions

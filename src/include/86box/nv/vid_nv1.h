@@ -17,7 +17,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <86Box/nv/vid_nv.h>
 
 extern const device_config_t nv1_config[];                              // Config for RIVA 128 (revision A/B)
 
