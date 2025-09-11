@@ -3588,8 +3588,8 @@ const machine_t machines[] = {
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
-            .max = 512,
-            .step = 256
+            .max = 1024, /* assumed; more can be added via memory expansions */
+            .step = 128
         },
         .nvrmask = 63,
         .jumpered_ecp_dma = 0,
@@ -3632,8 +3632,8 @@ const machine_t machines[] = {
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
-            .max = 512,
-            .step = 256
+            .max = 1024, /* assumed; more can be added via memory expansions */
+            .step = 128
         },
         .nvrmask = 63,
         .jumpered_ecp_dma = 0,
@@ -3853,8 +3853,8 @@ const machine_t machines[] = {
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
-            .max = 512,
-            .step = 256
+            .max = 1024, /* assumed; more can be added via memory expansions */
+            .step = 128
         },
         .nvrmask = 63,
         .jumpered_ecp_dma = 0,
