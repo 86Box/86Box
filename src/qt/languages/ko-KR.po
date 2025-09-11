@@ -2136,6 +2136,9 @@ msgstr "낮은 DMA"
 msgid "Enable Game port"
 msgstr "게임 포트 사용"
 
+msgid "Enable Adlib ports"
+msgstr "Adlib 포트 활성화"
+
 msgid "SID Model"
 msgstr "SID 모델"
 

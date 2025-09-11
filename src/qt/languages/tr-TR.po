@@ -2136,6 +2136,9 @@ msgstr "Düşük DMA"
 msgid "Enable Game port"
 msgstr "Gameport'ı etkinleştir"
 
+msgid "Enable Adlib ports"
+msgstr "Adlib bağlantı noktalarını etkinleştir"
+
 msgid "SID Model"
 msgstr "SID Modeli"
 

@@ -1211,6 +1211,7 @@ azt_init(const device_t *info)
 
     /* wss part */
     ad1848_init(&azt2316a->ad1848, device_get_config_int("codec"));
+    ad1848_set_cd_audio_channel(&azt2316a->ad1848, (device_get_config_int("codec") == AD1848_TYPE_CS4248) ? AD1848_AUX1 : AD1848_LINE_IN);
 
     ad1848_setirq(&azt2316a->ad1848, azt2316a->cur_wss_irq);
     ad1848_setdma(&azt2316a->ad1848, azt2316a->cur_wss_dma);

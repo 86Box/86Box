@@ -2136,6 +2136,9 @@ msgstr "低 DMA"
 msgid "Enable Game port"
 msgstr "啟用遊戲埠"
 
+msgid "Enable Adlib ports"
+msgstr "啟用 Adlib 連接埠"
+
 msgid "SID Model"
 msgstr "SID 型號"
 

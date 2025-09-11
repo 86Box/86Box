@@ -2136,6 +2136,9 @@ msgstr "Matala DMA"
 msgid "Enable Game port"
 msgstr "Peliportti"
 
+msgid "Enable Adlib ports"
+msgstr "Adlib-portit"
+
 msgid "SID Model"
 msgstr "SID-malli"
 

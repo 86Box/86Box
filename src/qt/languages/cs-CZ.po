@@ -2136,6 +2136,9 @@ msgstr "Nízký DMA kanál"
 msgid "Enable Game port"
 msgstr "Povolit herní port"
 
+msgid "Enable Adlib ports"
+msgstr "Povolit porty Adlib"
+
 msgid "SID Model"
 msgstr "Model SID"
 
