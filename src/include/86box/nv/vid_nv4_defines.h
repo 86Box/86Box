@@ -2745,7 +2745,7 @@
 #define NV4_PGRAPH_COMBINE0COLOR_ALPHA_0                           1 
 #define NV4_PGRAPH_COMBINE0COLOR_ALPHA_0_COLOR            		 0x0 
 #define NV4_PGRAPH_COMBINE0COLOR_ALPHA_0_ALPHA            		 0x1 
-#define NV4_PGRAPH_COMBINE0COLOR_ARGUMENT_0                      4:2 
+#define NV4_PGRAPH_COMBINE0COLOR_ARGUMENT_0                        2 
 #define NV4_PGRAPH_COMBINE0COLOR_ARGUMENT_0_ZERO          		 0x1 
 #define NV4_PGRAPH_COMBINE0COLOR_ARGUMENT_0_FACTOR        		 0x2 
 #define NV4_PGRAPH_COMBINE0COLOR_ARGUMENT_0_DIFFUSE       		 0x3 
@@ -2807,7 +2807,7 @@
 #define NV4_PGRAPH_COMBINE1ALPHA_INVERSE_0                         0 
 #define NV4_PGRAPH_COMBINE1ALPHA_INVERSE_0_NORMAL         		 0x0 
 #define NV4_PGRAPH_COMBINE1ALPHA_INVERSE_0_INVERSE        		 0x1 
-#define NV4_PGRAPH_COMBINE1ALPHA_ARGUMENT_0                      4:2 
+#define NV4_PGRAPH_COMBINE1ALPHA_ARGUMENT_0                        2  
 #define NV4_PGRAPH_COMBINE1ALPHA_ARGUMENT_0_ZERO          		 0x1 
 #define NV4_PGRAPH_COMBINE1ALPHA_ARGUMENT_0_FACTOR        		 0x2 
 #define NV4_PGRAPH_COMBINE1ALPHA_ARGUMENT_0_DIFFUSE       		 0x3 
@@ -4177,14 +4177,14 @@
 #define NV4_PTIMER_START                                      0x9000 
 #define NV4_PTIMER_END                                        0x9FFF
 
-#define NV4_PTIMER_INTR_0                                     0x9100 
-#define NV4_PTIMER_INTR_0_ALARM                                    0 
-#define NV4_PTIMER_INTR_0_ALARM_NOT_PENDING               		 0x0 
-#define NV4_PTIMER_INTR_0_ALARM_PENDING                   		 0x1 
-#define NV4_PTIMER_INTR_0_ALARM_RESET                     		 0x1 
-#define NV4_PTIMER_INTR_EN_0                                  0x9140 
-#define NV4_PTIMER_INTR_EN_0_ALARM                                 0 
-#define NV4_PTIMER_INTR_EN_0_ALARM_ENABLED                		 0x1  // 0 = disabled
+#define NV4_PTIMER_INTR                                       0x9100 
+#define NV4_PTIMER_INTR_ALARM                                    0 
+#define NV4_PTIMER_INTR_ALARM_NOT_PENDING               		 0x0 
+#define NV4_PTIMER_INTR_ALARM_PENDING                   		 0x1 
+#define NV4_PTIMER_INTR_ALARM_RESET                     		 0x1 
+#define NV4_PTIMER_INTR_EN                                    0x9140 
+#define NV4_PTIMER_INTR_EN_ALARM                                   0 
+#define NV4_PTIMER_INTR_EN_ALARM_ENABLED                		 0x1  // 0 = disabled
 #define NV4_PTIMER_NUMERATOR                                  0x9200 
 #define NV4_PTIMER_NUMERATOR_VALUE                                 0 
 #define NV4_PTIMER_NUMERATOR_VALUE_0                      		 0x0 
@@ -4192,11 +4192,11 @@
 #define NV4_PTIMER_DENOMINATOR_VALUE                               0 
 #define NV4_PTIMER_DENOMINATOR_VALUE_0                    		 0x0 
 #define NV4_PTIMER_TIME_0                                     0x9400 
-#define NV4_PTIMER_TIME_0_NSEC                                  31:5 
+#define NV4_PTIMER_TIME_0_NSEC                                     5 
 #define NV4_PTIMER_TIME_1                                     0x9410 
 #define NV4_PTIMER_TIME_1_NSEC                                     0 
-#define NV4_PTIMER_ALARM_0                                    0x9420 
-#define NV4_PTIMER_ALARM_0_NSEC                                 31:5 
+#define NV4_PTIMER_ALARM                                      0x9420 
+#define NV4_PTIMER_ALARM_NSEC                                      5 
 
 #define NV4_TRACE                                  0xFFFF:		 0x0 
 #define NV4_TRACE_DATA                         ( 0*32+ 7):( 0*32+ 0) 

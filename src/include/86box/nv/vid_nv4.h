@@ -20,15 +20,35 @@
 #include <stdint.h>
 #include <86Box/nv/vid_nv.h>
 #include <86Box/nv/vid_nv4_defines.h>
-extern const device_config_t nv4_config[];                              // Config for RIVA 128 (revision A/B)
 
+extern const device_config_t nv4_config[];                              
 
+extern nv4_t* nv4;                                                      // Allocated at device startup
 
 // Structures
 typedef struct nv4_s
 {
     nv_base_t nvbase;   // Base Nvidia structure
 } nv4_t;
+
+//
+// PTIMER
+//
+
+typedef struct nv4_ptimer_s
+{
+    uint32_t interrupt_status;          // PTIMER Interrupt status
+    uint32_t interrupt_enable;          // PTIMER Interrupt enable
+    uint32_t clock_numerator;           // PTIMER (tick?) numerator
+    uint32_t clock_denominator;         // PTIMER (tick?) denominator
+    uint64_t time;                      // time
+    uint32_t alarm;                     // The value of time when there should be an alarm
+} nv4_ptimer_t; 
+
+
+//
+// Functions
+//
 
 // Device Core
 void        nv4_init();

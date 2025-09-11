@@ -27,19 +27,22 @@
 #include <86box/nv/vid_nv.h>
 #include <86box/nv/vid_nv4.h>
 
+nv4_t* nv4;
+
 void nv4_init()
 {
-
+    nv4 = calloc(1, sizeof(nv4_t));
 }
 
 void* nv4_init_stb4400(const device_t *info)
 {
-    
+    nv4_init();
+    return nv4;   
 }
 
 void nv4_close(void* priv)
 {
-    
+    free(nv4);
 }
 
 void nv4_speed_changed(void *priv)
