@@ -351,7 +351,7 @@ plat_put_backslash(char *s)
 
 /* Return the last element of a pathname. */
 char *
-plat_get_basename(const char *path)
+path_get_basename(const char *path)
 {
     int c = (int) strlen(path);
 
@@ -1420,6 +1420,7 @@ main(int argc, char **argv)
         f_rl_callback_handler_remove();
     return 0;
 }
+
 char *
 plat_vidapi_name(UNUSED(int i))
 {

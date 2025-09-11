@@ -329,6 +329,27 @@ machine_at_grid1520_init(const machine_t *model) {
 }
 
 int
+machine_at_mpfpc900_init(const machine_t *model) {
+    int ret = 0;
+
+    ret = bios_load_linear("roms/machines/pc900/mpf_pc900_v207a.bin",
+                           0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    mem_remap_top(384);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
 machine_at_mr286_init(const machine_t *model)
 {
     int ret;
