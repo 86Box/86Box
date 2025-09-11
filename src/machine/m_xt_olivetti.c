@@ -2426,7 +2426,7 @@ machine_xt_m19_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/m19/BIOS.BIN",
+    ret = bios_load_linear("roms/machines/m19/Olivetti M19 Resident Diagnostics Rev 3.71.BIN",
                            0x000fc000, 16384, 0);
     ret &= rom_present("roms/machines/m19/MBM2764-30 8514 107 AB PCF3.BIN");
 
