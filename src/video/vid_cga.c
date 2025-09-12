@@ -546,34 +546,6 @@ cga_do_blit(int vid_xsize, int firstline, int lastline, int double_type)
 }
 
 void
-cga_do_blit_tandy(int vid_xsize, int firstline, int lastline, int double_type, int hsync_offset, int vsync_offset)
-{
-    if (double_type > DOUBLE_NONE) {
-        if (enable_overscan) {
-            cga_blit_memtoscreen(0 + hsync_offset, ((firstline - 8) << 1) + (vsync_offset << 1),
-                                 vid_xsize, ((lastline - firstline) + 16) << 1,
-                                 double_type
-            );
-        } else {
-            cga_blit_memtoscreen(16 + hsync_offset, (firstline << 1) + (vsync_offset << 1),
-                                 vid_xsize, (lastline - firstline) << 1,
-                                 double_type
-            );
-        }
-    } else {
-        if (enable_overscan) {
-            video_blit_memtoscreen(0 + hsync_offset, (firstline - 8) + vsync_offset,
-                                   vid_xsize, (lastline - firstline) + 8
-            );
-        } else {
-            video_blit_memtoscreen(16 + hsync_offset, firstline + vsync_offset,
-                                   vid_xsize, lastline - firstline
-            );
-        }
-    }
-}
-
-void
 cga_poll(void *priv)
 {
     cga_t   *cga = (cga_t *) priv;

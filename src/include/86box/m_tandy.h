@@ -38,9 +38,6 @@ typedef struct t1kvid_t {
 
     uint8_t  baseline_hsyncpos;
     uint8_t  baseline_vsyncpos;
-    uint8_t  last_hdisp;
-    uint8_t  last_vdisp;
-    int      calib_countdown;
     int      baseline_ready;
     int      hsync_offset;
     int      vsync_offset;
@@ -63,6 +60,7 @@ typedef struct t1kvid_t {
     uint64_t   dispontime;
     uint64_t   dispofftime;
     pc_timer_t timer;
+    pc_timer_t calib_timer;
     int        firstline;
     int        lastline;
 
