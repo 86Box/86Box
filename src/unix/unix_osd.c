@@ -322,8 +322,14 @@ int osd_handle(SDL_Event event)
                             case 9 : // "moeject - eject image from MO drive",
                                 break;
                             case 10 : // "hardreset - hard reset the emulated system",
+                                unix_executeLine(strdup("hardreset"));
+                                // directly close the OSD
+                                return 0;
                                 break;
                             case 11 : // "pause - pause the the emulated system",
+                                unix_executeLine(strdup("pause"));
+                                // directly close the OSD
+                                return 0;
                                 break;
                             case 12 : // "fullscreen - toggle fullscreen",
                                 unix_executeLine(strdup("fullscreen"));
@@ -331,11 +337,18 @@ int osd_handle(SDL_Event event)
                                 return 0;
                                 break;
                             case 13 : // "version - print version and license information",
+                                unix_executeLine(strdup("version"));
+                                // directly close the OSD
+                                return 0;
                                 break;
                             case 14 : // "exit - exit 86Box",
+                                unix_executeLine(strdup("exit"));
+                                // directly close the OSD
+                                return 0;
                                 break;
                             case 15 : // "close OSD"
-                                break;
+                                // directly close the OSD
+                                return 0;
                         }
 
                         printf("Hai scelto: %s\n", menu_items[selected]);
