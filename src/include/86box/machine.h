@@ -1135,6 +1135,7 @@ extern int             machine_at_p2bls_init(const machine_t *);
 extern int             machine_at_p3bf_init(const machine_t *);
 extern int             machine_at_686bx_init(const machine_t *);
 extern int             machine_at_lgibmx7g_init(const machine_t *);
+extern int             machine_at_tacoma_init(const machine_t *);
 extern int             machine_at_p6sba_init(const machine_t *);
 extern int             machine_at_s1846_init(const machine_t *);
 
