@@ -22,7 +22,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifndef __USE_LARGEFILE64
 #define __USE_LARGEFILE64
+#endif
+
 #include <sys/types.h>
 
 #if (defined(__HAIKU__) || defined(__unix__) || defined(__APPLE__)) && !defined(__linux__)

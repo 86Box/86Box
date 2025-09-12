@@ -41,6 +41,7 @@
 #include <86box/device.h>
 #include <86box/gameport.h>
 #include <86box/unix_sdl.h>
+#include <86box/unix_osd.h>
 #include "cpu.h"
 #include <86box/timer.h>
 #include <86box/nvr.h>
@@ -291,7 +292,7 @@ plat_get_string(int i)
         case STRING_MONITOR_SLEEP:
             return L"Monitor in sleep mode";
         case STRING_EDID_TOO_LARGE:
-            return "EDID file \"%ls\" is too large.";
+            return L"EDID file \"%ls\" is too large.";
     }
     return L"";
 }
@@ -1287,98 +1288,30 @@ main(int argc, char **argv)
     SDL_AddTimer(1000, timer_onesec, NULL);
     while (!is_quit) {
         static int mouse_inside = 0;
+        static int r_alt_pressed = 0;
+        static int flag_osd_open = 0;
 
-        while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-                case SDL_QUIT:
-                    exit_event = 1;
-                    break;
-                case SDL_MOUSEWHEEL:
+        while (SDL_PollEvent(&event))
+        {
+            if (flag_osd_open == 1)
+            {
+                // route almost everything to the OSD
+                switch (event.type)
+                {
+                    case SDL_QUIT:
                     {
-                        if (mouse_capture || video_fullscreen) {
-                            if (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) {
-                                event.wheel.x *= -1;
-                                event.wheel.y *= -1;
-                            }
-                            SDL_LockMutex(mousemutex);
-                            mouse_set_z(event.wheel.y);
-                            SDL_UnlockMutex(mousemutex);
-                        }
+                        exit_event = 1;
                         break;
                     }
-                case SDL_MOUSEMOTION:
-                    {
-                        if (mouse_capture || video_fullscreen) {
-                            SDL_LockMutex(mousemutex);
-                            mouse_scale(event.motion.xrel, event.motion.yrel);
-                            SDL_UnlockMutex(mousemutex);
-                        }
-                        break;
-                    }
-                case SDL_MOUSEBUTTONDOWN:
-                case SDL_MOUSEBUTTONUP:
-                    {
-                        if ((event.button.button == SDL_BUTTON_LEFT)
-                            && !(mouse_capture || video_fullscreen)
-                            && event.button.state == SDL_RELEASED
-                            && mouse_inside) {
-                            plat_mouse_capture(1);
-                            break;
-                        }
-                        if (mouse_get_buttons() < 3 && event.button.button == SDL_BUTTON_MIDDLE && !video_fullscreen) {
-                            plat_mouse_capture(0);
-                            break;
-                        }
-                        if (mouse_capture || video_fullscreen) {
-                            int buttonmask = 0;
-
-                            switch (event.button.button) {
-                                case SDL_BUTTON_LEFT:
-                                    buttonmask = 1;
-                                    break;
-                                case SDL_BUTTON_RIGHT:
-                                    buttonmask = 2;
-                                    break;
-                                case SDL_BUTTON_MIDDLE:
-                                    buttonmask = 4;
-                                    break;
-                                case SDL_BUTTON_X1:
-                                    buttonmask = 8;
-                                    break;
-                                case SDL_BUTTON_X2:
-                                    buttonmask = 16;
-                                    break;
-                            }
-                            SDL_LockMutex(mousemutex);
-                            if (event.button.state == SDL_PRESSED)
-                                mouse_set_buttons_ex(mouse_get_buttons_ex() | buttonmask);
-                            else
-                                mouse_set_buttons_ex(mouse_get_buttons_ex() & ~buttonmask);
-                            SDL_UnlockMutex(mousemutex);
-                        }
-                        break;
-                    }
-                case SDL_RENDER_DEVICE_RESET:
-                case SDL_RENDER_TARGETS_RESET:
+                    case SDL_RENDER_DEVICE_RESET:
+                    case SDL_RENDER_TARGETS_RESET:
                     {
                         extern void sdl_reinit_texture(void);
 
                         sdl_reinit_texture();
                         break;
                     }
-                case SDL_KEYDOWN:
-                case SDL_KEYUP:
-                    {
-                        uint16_t xtkey = 0;
-
-                        switch (event.key.keysym.scancode) {
-                            default:
-                                xtkey = sdl_to_xt[event.key.keysym.scancode];
-                                break;
-                        }
-                        keyboard_input(event.key.state == SDL_PRESSED, xtkey);
-                    }
-                case SDL_WINDOWEVENT:
+                    case SDL_WINDOWEVENT:
                     {
                         switch (event.window.event) {
                             case SDL_WINDOWEVENT_ENTER:
@@ -1389,9 +1322,146 @@ main(int argc, char **argv)
                                 break;
                         }
                     }
+                    default:
+                        // route everything else
+                        flag_osd_open = osd_handle(event);
+
+                        if (flag_osd_open == 0)
+                        {
+                            // close it
+                            osd_close(event);
+                        }
+
+                        break;
+                }
+            }
+            else
+            {
+                switch (event.type)
+                {
+                    case SDL_QUIT:
+                        exit_event = 1;
+                        break;
+                    case SDL_MOUSEWHEEL:
+                        {
+                            if (mouse_capture || video_fullscreen) {
+                                if (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) {
+                                    event.wheel.x *= -1;
+                                    event.wheel.y *= -1;
+                                }
+                                SDL_LockMutex(mousemutex);
+                                mouse_set_z(event.wheel.y);
+                                SDL_UnlockMutex(mousemutex);
+                            }
+                            break;
+                        }
+                    case SDL_MOUSEMOTION:
+                        {
+                            if (mouse_capture || video_fullscreen) {
+                                SDL_LockMutex(mousemutex);
+                                mouse_scale(event.motion.xrel, event.motion.yrel);
+                                SDL_UnlockMutex(mousemutex);
+                            }
+                            break;
+                        }
+                    case SDL_MOUSEBUTTONDOWN:
+                    case SDL_MOUSEBUTTONUP:
+                        {
+                            if ((event.button.button == SDL_BUTTON_LEFT)
+                                && !(mouse_capture || video_fullscreen)
+                                && event.button.state == SDL_RELEASED
+                                && mouse_inside) {
+                                plat_mouse_capture(1);
+                                break;
+                            }
+                            if (mouse_get_buttons() < 3 && event.button.button == SDL_BUTTON_MIDDLE && !video_fullscreen) {
+                                plat_mouse_capture(0);
+                                break;
+                            }
+                            if (mouse_capture || video_fullscreen) {
+                                int buttonmask = 0;
+
+                                switch (event.button.button) {
+                                    case SDL_BUTTON_LEFT:
+                                        buttonmask = 1;
+                                        break;
+                                    case SDL_BUTTON_RIGHT:
+                                        buttonmask = 2;
+                                        break;
+                                    case SDL_BUTTON_MIDDLE:
+                                        buttonmask = 4;
+                                        break;
+                                    case SDL_BUTTON_X1:
+                                        buttonmask = 8;
+                                        break;
+                                    case SDL_BUTTON_X2:
+                                        buttonmask = 16;
+                                        break;
+                                }
+                                SDL_LockMutex(mousemutex);
+                                if (event.button.state == SDL_PRESSED)
+                                    mouse_set_buttons_ex(mouse_get_buttons_ex() | buttonmask);
+                                else
+                                    mouse_set_buttons_ex(mouse_get_buttons_ex() & ~buttonmask);
+                                SDL_UnlockMutex(mousemutex);
+                            }
+                            break;
+                        }
+                    case SDL_RENDER_DEVICE_RESET:
+                    case SDL_RENDER_TARGETS_RESET:
+                        {
+                            extern void sdl_reinit_texture(void);
+
+                            sdl_reinit_texture();
+                            break;
+                        }
+                    case SDL_KEYDOWN:
+                    case SDL_KEYUP:
+                        {
+                            uint16_t xtkey = 0;
+
+                            if (event.key.keysym.scancode == SDL_SCANCODE_RALT)
+                            {
+                                if (event.type == SDL_KEYDOWN)
+                                    r_alt_pressed = 1;
+                                else
+                                    r_alt_pressed = 0;
+                            }
+
+                            if (r_alt_pressed && event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_G)
+                            {
+                                // open OSD!
+                                flag_osd_open = osd_open(event);
+                                // we can assume alt-gr has been released
+                                r_alt_pressed = 0;
+                                break;
+                            }
+
+                            switch (event.key.keysym.scancode) {
+                                default:
+                                    xtkey = sdl_to_xt[event.key.keysym.scancode];
+                                    break;
+                            }
+
+                            keyboard_input(event.key.state == SDL_PRESSED, xtkey);
+                        }
+                    case SDL_WINDOWEVENT:
+                        {
+                            switch (event.window.event) {
+                                case SDL_WINDOWEVENT_ENTER:
+                                    mouse_inside = 1;
+                                    break;
+                                case SDL_WINDOWEVENT_LEAVE:
+                                    mouse_inside = 0;
+                                    break;
+                            }
+                        }
+                }
             }
         }
-        if (blitreq) {
+
+        // blit only if the OSD is closed
+        if (blitreq && !flag_osd_open) {
             extern void sdl_blit(int x, int y, int w, int h);
             sdl_blit(params.x, params.y, params.w, params.h);
         }
