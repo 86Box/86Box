@@ -1318,7 +1318,7 @@ msgid "Found %1"
 msgstr "%1 löydetty"
 
 msgid "System"
-msgstr "Kone"
+msgstr "Järjestelmä"
 
 msgid "Storage"
 msgstr "Tallennus"
@@ -2959,10 +2959,10 @@ msgid "CGA composite settings"
 msgstr "CGA:n komposiittiasetukset"
 
 msgid "Monitor EDID"
-msgstr "Monitorin EDID"
+msgstr "Näytön EDID"
 
 msgid "Export..."
-msgstr "Viedä..."
+msgstr "Vie..."
 
 msgid "Export EDID"
 msgstr "Vie EDID"
@@ -2971,16 +2971,16 @@ msgid "EDID file \"%ls\" is too large."
 msgstr "EDID-tiedosto \"%ls\" on liian suuri."
 
 msgid "OpenGL input scale"
-msgstr "OpenGL:n syöttöasteikko"
+msgstr "OpenGL-syötteen skaalaus"
 
 msgid "OpenGL input stretch mode"
-msgstr "OpenGL:n syötteen venytystila"
+msgstr "OpenGL-syötteen venytystila"
 
 msgid "Color scheme"
-msgstr "Värimaailma"
+msgstr "Väriteema"
 
 msgid "Light"
-msgstr "Valo"
+msgstr "Vaalea"
 
 msgid "Dark"
 msgstr "Tumma"
