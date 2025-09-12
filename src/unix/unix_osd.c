@@ -5,7 +5,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <dirent.h>
+#include <string.h>
 #include <sys/param.h>
+
 /* This #undef is needed because a SDL include header redefines HAVE_STDARG_H. */
 #undef HAVE_STDARG_H
 #define HAVE_STDARG_H
@@ -18,10 +21,7 @@
 #include <86box/version.h>
 #include <86box/unix_sdl.h>
 #include <86box/unix_osd.h>
-
-#include <stdio.h>
-#include <dirent.h>
-#include <string.h>
+#include <86box/unix_osd_font.h>
 
 static int SCREEN_W = 640;
 static int SCREEN_H = 480;
@@ -33,8 +33,12 @@ static int BOX_H = 160;
 #define CHAR_W 8
 #define CHAR_H 8
 
+// interface to SDL environment
 extern SDL_Window         *sdl_win;
 extern SDL_Renderer       *sdl_render;
+
+// interface back to main unix monitor implementation
+extern void unix_executeLine(char *line);
 
 typedef enum {
     STATE_MENU,
@@ -219,11 +223,20 @@ int osd_open(SDL_Event event)
     max_visible = (BOX_H - TITLE_HEIGHT) / LINE_HEIGHT;
 
     // Carica font bitmap (font.bmp 128x128, 16x16 caratteri, 8x8 ciascuno)
-    SDL_Surface *font_surface = SDL_LoadBMP("font.bmp");
-    if (!font_surface) {
-        printf("Errore caricamento font.bmp: %s\n", SDL_GetError());
-        return 1;
+    SDL_RWops *rwop  = SDL_RWFromConstMem(_________font_bmp, _________font_bmp_len);
+    if (!rwop)
+    {
+        fprintf(stderr, "Cannot create a new SDL RW stream: %s\n", SDL_GetError());
+        return 0;
     }
+
+    // auto-closes the stream
+    SDL_Surface *font_surface = SDL_LoadBMP_RW(rwop, 1);
+    if (!font_surface) {
+        fprintf(stderr, "Cannot create a surface using RW stream: %s\n", SDL_GetError());
+        return 0;
+    }
+
     // Imposta trasparenza sul nero puro
     SDL_SetColorKey(font_surface, SDL_TRUE, SDL_MapRGB(font_surface->format, 0, 0, 0));
     font_texture = SDL_CreateTextureFromSurface(sdl_render, font_surface);

@@ -974,67 +974,48 @@ timer_onesec(uint32_t interval, UNUSED(void *param))
 }
 
 void
-monitor_thread(UNUSED(void *param))
+unix_executeLine(char *line)
 {
-#ifndef USE_CLI
-    if (isatty(fileno(stdin)) && isatty(fileno(stdout))) {
-        char  *line = NULL;
-        size_t n;
+    if (line) {
+        int   cmdargc = 0;
+        char *linecpy;
 
-        printf("86Box monitor console.\n");
-        while (!exit_event) {
-            if (feof(stdin))
+        line[strcspn(line, "\r\n")] = '\0';
+        linecpy                     = strdup(line);
+        if (!linecpy) {
+            free(line);
+            line = NULL;
+            return;
+        }
+        if (f_add_history)
+            f_add_history(line);
+        memset(xargv, 0, sizeof(xargv));
+        while (1) {
+            xargv[cmdargc++] = local_strsep(&linecpy, " ");
+            if (xargv[cmdargc - 1] == NULL || cmdargc >= 512)
                 break;
-#ifdef ENABLE_READLINE
-            if (f_readline)
-                line = f_readline("(86Box) ");
-            else {
-#endif
-                printf("(86Box) ");
-                (void) !getline(&line, &n, stdin);
-#ifdef ENABLE_READLINE
-            }
-#endif
-            if (line) {
-                int   cmdargc = 0;
-                char *linecpy;
-
-                line[strcspn(line, "\r\n")] = '\0';
-                linecpy                     = strdup(line);
-                if (!linecpy) {
-                    free(line);
-                    line = NULL;
-                    continue;
-                }
-                if (f_add_history)
-                    f_add_history(line);
-                memset(xargv, 0, sizeof(xargv));
-                while (1) {
-                    xargv[cmdargc++] = local_strsep(&linecpy, " ");
-                    if (xargv[cmdargc - 1] == NULL || cmdargc >= 512)
-                        break;
-                }
-                cmdargc--;
-                if (strncasecmp(xargv[0], "help", 4) == 0) {
-                    printf(
-                        "fddload <id> <filename> <wp> - Load floppy disk image into drive <id>.\n"
-                        "cdload <id> <filename> - Load CD-ROM image into drive <id>.\n"
-                        "rdiskload <id> <filename> <wp> - Load removable disk image into removable disk drive <id>.\n"
-                        "cartload <id> <filename> <wp> - Load cartridge image into cartridge drive <id>.\n"
-                        "moload <id> <filename> <wp> - Load MO image into MO drive <id>.\n\n"
-                        "fddeject <id> - eject disk from floppy drive <id>.\n"
-                        "cdeject <id> - eject disc from CD-ROM drive <id>.\n"
-                        "rdiskeject <id> - eject removable disk image from removable disk drive <id>.\n"
-                        "carteject <id> - eject cartridge from drive <id>.\n"
-                        "moeject <id> - eject image from MO drive <id>.\n\n"
-                        "hardreset - hard reset the emulated system.\n"
-                        "pause - pause the the emulated system.\n"
-                        "fullscreen - toggle fullscreen.\n"
-                        "version - print version and license information.\n"
-                        "exit - exit 86Box.\n");
-                } else if (strncasecmp(xargv[0], "exit", 4) == 0) {
-                    exit_event = 1;
-                } else if (strncasecmp(xargv[0], "version", 7) == 0) {
+        }
+        cmdargc--;
+        if (strncasecmp(xargv[0], "help", 4) == 0) {
+            printf(
+                "fddload <id> <filename> <wp> - Load floppy disk image into drive <id>.\n"
+                "cdload <id> <filename> - Load CD-ROM image into drive <id>.\n"
+                "rdiskload <id> <filename> <wp> - Load removable disk image into removable disk drive <id>.\n"
+                "cartload <id> <filename> <wp> - Load cartridge image into cartridge drive <id>.\n"
+                "moload <id> <filename> <wp> - Load MO image into MO drive <id>.\n\n"
+                "fddeject <id> - eject disk from floppy drive <id>.\n"
+                "cdeject <id> - eject disc from CD-ROM drive <id>.\n"
+                "rdiskeject <id> - eject removable disk image from removable disk drive <id>.\n"
+                "carteject <id> - eject cartridge from drive <id>.\n"
+                "moeject <id> - eject image from MO drive <id>.\n\n"
+                "hardreset - hard reset the emulated system.\n"
+                "pause - pause the the emulated system.\n"
+                "fullscreen - toggle fullscreen.\n"
+                "version - print version and license information.\n"
+                "exit - exit 86Box.\n");
+        } else if (strncasecmp(xargv[0], "exit", 4) == 0) {
+            exit_event = 1;
+        } else if (strncasecmp(xargv[0], "version", 7) == 0) {
 #    ifndef EMU_GIT_HASH
 #        define EMU_GIT_HASH "0000000"
 #    endif
@@ -1061,169 +1042,194 @@ monitor_thread(UNUSED(void *param))
 #        define DYNAREC_STR "no dynarec"
 #    endif
 
-                    printf(
-                        "%s v%s [%s] [%s, %s]\n\n"
-                        "An emulator of old computers\n"
-                        "Authors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), "
-                        "Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), "
-                        "Tiseno100, reenigne, and others.\n"
-                        "With previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\n"
-                        "Released under the GNU General Public License version 2 or later. See LICENSE for more information.\n",
-                        EMU_NAME, EMU_VERSION_FULL, EMU_GIT_HASH, ARCH_STR, DYNAREC_STR);
-                } else if (strncasecmp(xargv[0], "fullscreen", 10) == 0) {
-                    video_fullscreen   = video_fullscreen ? 0 : 1;
-                    fullscreen_pending = 1;
-                } else if (strncasecmp(xargv[0], "pause", 5) == 0) {
-                    plat_pause(dopause ^ 1);
-                    printf("%s", dopause ? "Paused.\n" : "Unpaused.\n");
-                } else if (strncasecmp(xargv[0], "hardreset", 9) == 0) {
-                    pc_reset_hard();
-                } else if (strncasecmp(xargv[0], "cdload", 6) == 0 && cmdargc >= 3) {
-                    uint8_t id;
-                    bool    err = false;
-                    char    fn[PATH_MAX];
+            printf(
+                "%s v%s [%s] [%s, %s]\n\n"
+                "An emulator of old computers\n"
+                "Authors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), "
+                "Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), "
+                "Tiseno100, reenigne, and others.\n"
+                "With previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\n"
+                "Released under the GNU General Public License version 2 or later. See LICENSE for more information.\n",
+                EMU_NAME, EMU_VERSION_FULL, EMU_GIT_HASH, ARCH_STR, DYNAREC_STR);
+        } else if (strncasecmp(xargv[0], "fullscreen", 10) == 0) {
+            video_fullscreen   = video_fullscreen ? 0 : 1;
+            fullscreen_pending = 1;
+        } else if (strncasecmp(xargv[0], "pause", 5) == 0) {
+            plat_pause(dopause ^ 1);
+            printf("%s", dopause ? "Paused.\n" : "Unpaused.\n");
+        } else if (strncasecmp(xargv[0], "hardreset", 9) == 0) {
+            pc_reset_hard();
+        } else if (strncasecmp(xargv[0], "cdload", 6) == 0 && cmdargc >= 3) {
+            uint8_t id;
+            bool    err = false;
+            char    fn[PATH_MAX];
 
-                    if (!xargv[2] || !xargv[1]) {
-                        free(line);
-                        free(linecpy);
-                        line = NULL;
-                        continue;
-                    }
-                    id = atoi(xargv[1]);
-                    memset(fn, 0, sizeof(fn));
-                    if (xargv[2][0] == '\'' || xargv[2][0] == '"') {
-                        int curarg = 2;
-
-                        for (curarg = 2; curarg < cmdargc; curarg++) {
-                            if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX) {
-                                err = true;
-                                fprintf(stderr, "Path name too long.\n");
-                            }
-                            strcat(fn, xargv[curarg] + (xargv[curarg][0] == '\'' || xargv[curarg][0] == '"'));
-                            if (fn[strlen(fn) - 1] == '\''
-                                || fn[strlen(fn) - 1] == '"') {
-                                break;
-                            }
-                            strcat(fn, " ");
-                        }
-                    } else {
-                        if (strlen(xargv[2]) < PATH_MAX) {
-                            strcpy(fn, xargv[2]);
-                        } else {
-                            fprintf(stderr, "Path name too long.\n");
-                        }
-                    }
-                    if (!err) {
-
-                        if (fn[strlen(fn) - 1] == '\''
-                            || fn[strlen(fn) - 1] == '"')
-                            fn[strlen(fn) - 1] = '\0';
-                        printf("Inserting disc into CD-ROM drive %hhu: %s\n", id, fn);
-                        cdrom_mount(id, fn);
-                    }
-                } else if (strncasecmp(xargv[0], "fddeject", 8) == 0 && cmdargc >= 2) {
-                    floppy_eject(atoi(xargv[1]));
-                } else if (strncasecmp(xargv[0], "cdeject", 8) == 0 && cmdargc >= 2) {
-                    cdrom_mount(atoi(xargv[1]), "");
-                } else if (strncasecmp(xargv[0], "moeject", 8) == 0 && cmdargc >= 2) {
-                    mo_eject(atoi(xargv[1]));
-                } else if (strncasecmp(xargv[0], "carteject", 8) == 0 && cmdargc >= 2) {
-                    cartridge_eject(atoi(xargv[1]));
-                } else if (strncasecmp(xargv[0], "rdiskeject", 8) == 0 && cmdargc >= 2) {
-                    rdisk_eject(atoi(xargv[1]));
-                } else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4) {
-                    uint8_t id;
-                    uint8_t wp;
-                    bool    err = false;
-                    char    fn[PATH_MAX];
-
-                    memset(fn, 0, sizeof(fn));
-
-                    if (!xargv[2] || !xargv[1]) {
-                        free(line);
-                        free(linecpy);
-                        line = NULL;
-                        continue;
-                    }
-                    err = process_media_commands_3(&id, fn, &wp, cmdargc);
-                    if (!err) {
-                        if (fn[strlen(fn) - 1] == '\''
-                            || fn[strlen(fn) - 1] == '"')
-                            fn[strlen(fn) - 1] = '\0';
-                        printf("Inserting disk into floppy drive %c: %s\n", id + 'A', fn);
-                        floppy_mount(id, fn, wp);
-                    }
-                } else if (strncasecmp(xargv[0], "moload", 7) == 0 && cmdargc >= 4) {
-                    uint8_t id;
-                    uint8_t wp;
-                    bool    err = false;
-                    char    fn[PATH_MAX];
-
-                    memset(fn, 0, sizeof(fn));
-
-                    if (!xargv[2] || !xargv[1]) {
-                        free(line);
-                        free(linecpy);
-                        line = NULL;
-                        continue;
-                    }
-                    err = process_media_commands_3(&id, fn, &wp, cmdargc);
-                    if (!err) {
-                        if (fn[strlen(fn) - 1] == '\''
-                            || fn[strlen(fn) - 1] == '"')
-                            fn[strlen(fn) - 1] = '\0';
-                        printf("Inserting into mo drive %hhu: %s\n", id, fn);
-                        mo_mount(id, fn, wp);
-                    }
-                } else if (strncasecmp(xargv[0], "cartload", 7) == 0 && cmdargc >= 4) {
-                    uint8_t id;
-                    uint8_t wp;
-                    bool    err = false;
-                    char    fn[PATH_MAX];
-
-                    memset(fn, 0, sizeof(fn));
-
-                    if (!xargv[2] || !xargv[1]) {
-                        free(line);
-                        free(linecpy);
-                        line = NULL;
-                        continue;
-                    }
-                    err = process_media_commands_3(&id, fn, &wp, cmdargc);
-                    if (!err) {
-                        if (fn[strlen(fn) - 1] == '\''
-                            || fn[strlen(fn) - 1] == '"')
-                            fn[strlen(fn) - 1] = '\0';
-                        printf("Inserting tape into cartridge holder %hhu: %s\n", id, fn);
-                        cartridge_mount(id, fn, wp);
-                    }
-                } else if (strncasecmp(xargv[0], "rdiskload", 7) == 0 && cmdargc >= 4) {
-                    uint8_t id;
-                    uint8_t wp;
-                    bool    err = false;
-                    char    fn[PATH_MAX];
-
-                    memset(fn, 0, sizeof(fn));
-
-                    if (!xargv[2] || !xargv[1]) {
-                        free(line);
-                        free(linecpy);
-                        line = NULL;
-                        continue;
-                    }
-                    err = process_media_commands_3(&id, fn, &wp, cmdargc);
-                    if (!err) {
-                        if (fn[strlen(fn) - 1] == '\''
-                            || fn[strlen(fn) - 1] == '"')
-                            fn[strlen(fn) - 1] = '\0';
-                        printf("Inserting disk into removable disk drive %c: %s\n", id + 'A', fn);
-                        rdisk_mount(id, fn, wp);
-                    }
-                }
+            if (!xargv[2] || !xargv[1]) {
                 free(line);
                 free(linecpy);
                 line = NULL;
+                return;
             }
+            id = atoi(xargv[1]);
+            memset(fn, 0, sizeof(fn));
+            if (xargv[2][0] == '\'' || xargv[2][0] == '"') {
+                int curarg = 2;
+
+                for (curarg = 2; curarg < cmdargc; curarg++) {
+                    if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX) {
+                        err = true;
+                        fprintf(stderr, "Path name too long.\n");
+                    }
+                    strcat(fn, xargv[curarg] + (xargv[curarg][0] == '\'' || xargv[curarg][0] == '"'));
+                    if (fn[strlen(fn) - 1] == '\''
+                        || fn[strlen(fn) - 1] == '"') {
+                        break;
+                    }
+                    strcat(fn, " ");
+                }
+            } else {
+                if (strlen(xargv[2]) < PATH_MAX) {
+                    strcpy(fn, xargv[2]);
+                } else {
+                    fprintf(stderr, "Path name too long.\n");
+                }
+            }
+            if (!err) {
+
+                if (fn[strlen(fn) - 1] == '\''
+                    || fn[strlen(fn) - 1] == '"')
+                    fn[strlen(fn) - 1] = '\0';
+                printf("Inserting disc into CD-ROM drive %hhu: %s\n", id, fn);
+                cdrom_mount(id, fn);
+            }
+        } else if (strncasecmp(xargv[0], "fddeject", 8) == 0 && cmdargc >= 2) {
+            floppy_eject(atoi(xargv[1]));
+        } else if (strncasecmp(xargv[0], "cdeject", 8) == 0 && cmdargc >= 2) {
+            cdrom_mount(atoi(xargv[1]), "");
+        } else if (strncasecmp(xargv[0], "moeject", 8) == 0 && cmdargc >= 2) {
+            mo_eject(atoi(xargv[1]));
+        } else if (strncasecmp(xargv[0], "carteject", 8) == 0 && cmdargc >= 2) {
+            cartridge_eject(atoi(xargv[1]));
+        } else if (strncasecmp(xargv[0], "rdiskeject", 8) == 0 && cmdargc >= 2) {
+            rdisk_eject(atoi(xargv[1]));
+        } else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4) {
+            uint8_t id;
+            uint8_t wp;
+            bool    err = false;
+            char    fn[PATH_MAX];
+
+            memset(fn, 0, sizeof(fn));
+
+            if (!xargv[2] || !xargv[1]) {
+                free(line);
+                free(linecpy);
+                line = NULL;
+                return;
+            }
+            err = process_media_commands_3(&id, fn, &wp, cmdargc);
+            if (!err) {
+                if (fn[strlen(fn) - 1] == '\''
+                    || fn[strlen(fn) - 1] == '"')
+                    fn[strlen(fn) - 1] = '\0';
+                printf("Inserting disk into floppy drive %c: %s\n", id + 'A', fn);
+                floppy_mount(id, fn, wp);
+            }
+        } else if (strncasecmp(xargv[0], "moload", 7) == 0 && cmdargc >= 4) {
+            uint8_t id;
+            uint8_t wp;
+            bool    err = false;
+            char    fn[PATH_MAX];
+
+            memset(fn, 0, sizeof(fn));
+
+            if (!xargv[2] || !xargv[1]) {
+                free(line);
+                free(linecpy);
+                line = NULL;
+                return;
+            }
+            err = process_media_commands_3(&id, fn, &wp, cmdargc);
+            if (!err) {
+                if (fn[strlen(fn) - 1] == '\''
+                    || fn[strlen(fn) - 1] == '"')
+                    fn[strlen(fn) - 1] = '\0';
+                printf("Inserting into mo drive %hhu: %s\n", id, fn);
+                mo_mount(id, fn, wp);
+            }
+        } else if (strncasecmp(xargv[0], "cartload", 7) == 0 && cmdargc >= 4) {
+            uint8_t id;
+            uint8_t wp;
+            bool    err = false;
+            char    fn[PATH_MAX];
+
+            memset(fn, 0, sizeof(fn));
+
+            if (!xargv[2] || !xargv[1]) {
+                free(line);
+                free(linecpy);
+                line = NULL;
+                return;
+            }
+            err = process_media_commands_3(&id, fn, &wp, cmdargc);
+            if (!err) {
+                if (fn[strlen(fn) - 1] == '\''
+                    || fn[strlen(fn) - 1] == '"')
+                    fn[strlen(fn) - 1] = '\0';
+                printf("Inserting tape into cartridge holder %hhu: %s\n", id, fn);
+                cartridge_mount(id, fn, wp);
+            }
+        } else if (strncasecmp(xargv[0], "rdiskload", 7) == 0 && cmdargc >= 4) {
+            uint8_t id;
+            uint8_t wp;
+            bool    err = false;
+            char    fn[PATH_MAX];
+
+            memset(fn, 0, sizeof(fn));
+
+            if (!xargv[2] || !xargv[1]) {
+                free(line);
+                free(linecpy);
+                line = NULL;
+                return;
+            }
+            err = process_media_commands_3(&id, fn, &wp, cmdargc);
+            if (!err) {
+                if (fn[strlen(fn) - 1] == '\''
+                    || fn[strlen(fn) - 1] == '"')
+                    fn[strlen(fn) - 1] = '\0';
+                printf("Inserting disk into removable disk drive %c: %s\n", id + 'A', fn);
+                rdisk_mount(id, fn, wp);
+            }
+        }
+        free(line);
+        free(linecpy);
+        line = NULL;
+    }
+}
+
+void
+monitor_thread(UNUSED(void *param))
+{
+#ifndef USE_CLI
+    if (isatty(fileno(stdin)) && isatty(fileno(stdout))) {
+        char  *line = NULL;
+        size_t n;
+
+        printf("86Box monitor console.\n");
+        while (!exit_event) {
+            if (feof(stdin))
+                break;
+#ifdef ENABLE_READLINE
+            if (f_readline)
+                line = f_readline("(86Box) ");
+            else {
+#endif
+                printf("(86Box) ");
+                (void) !getline(&line, &n, stdin);
+#ifdef ENABLE_READLINE
+            }
+#endif
+            unix_executeLine(line);
         }
     }
 #endif
