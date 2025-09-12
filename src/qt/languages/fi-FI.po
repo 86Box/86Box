@@ -1318,7 +1318,7 @@ msgid "Found %1"
 msgstr "%1 löydetty"
 
 msgid "System"
-msgstr "Kone"
+msgstr "Järjestelmä"
 
 msgid "Storage"
 msgstr "Tallennus"
