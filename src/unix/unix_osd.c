@@ -326,6 +326,9 @@ int osd_handle(SDL_Event event)
                             case 11 : // "pause - pause the the emulated system",
                                 break;
                             case 12 : // "fullscreen - toggle fullscreen",
+                                unix_executeLine(strdup("fullscreen"));
+                                // directly close the OSD
+                                return 0;
                                 break;
                             case 13 : // "version - print version and license information",
                                 break;

@@ -1327,8 +1327,10 @@ main(int argc, char **argv)
                                 mouse_inside = 0;
                                 break;
                         }
+                        break;
                     }
                     default:
+                    {
                         // route everything else
                         flag_osd_open = osd_handle(event);
 
@@ -1339,6 +1341,7 @@ main(int argc, char **argv)
                         }
 
                         break;
+                    }
                 }
             }
             else
