@@ -2136,6 +2136,9 @@ msgstr "DMA bajo"
 msgid "Enable Game port"
 msgstr "Habilitar puerto de juegos"
 
+msgid "Enable Adlib ports"
+msgstr "Habilitar puertos Adlib"
+
 msgid "SID Model"
 msgstr "Modelo de SID"
 
