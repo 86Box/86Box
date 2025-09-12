@@ -519,17 +519,9 @@ machine_at_686bx_init(const machine_t *model)
     return ret;
 }
 
-int
+static void
 machine_at_lgibmx7g_init(const machine_t *model)
 {
-    int ret;
-
-    ret = bios_load_linear("roms/machines/lgibmx7g/ms6119.331",
-                           0x000c0000, 262144, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
     machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
@@ -545,6 +537,36 @@ machine_at_lgibmx7g_init(const machine_t *model)
     device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
     device_add(&winbond_flash_w29c020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+}
+
+int
+machine_at_lgibmx7g_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/lgibmx7g/ms6119.331",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_lgibmx7g_common_init(model);
+
+    return ret;
+}
+
+int
+machine_at_tacoma_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tacoma/A19P2190.ROM",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_lgibmx7g_common_init(model);
 
     return ret;
 }
