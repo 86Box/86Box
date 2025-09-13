@@ -8,7 +8,7 @@ Immersive86Box
 Features
 --------
 
-* Typical 3,5" 1,44MB 300RPM FDD motor sound starting, running and stopping. FDD single track step sound an multi-track seek sound (not merged yet)
+* Typical 3,5" 1,44MB 300RPM FDD motor sound starting, running and stopping. FDD single track step sound an multi-track seek sound
 
 Future plans
 ------------
@@ -38,6 +38,10 @@ See [our documentation](https://86box.readthedocs.io/en/latest/index.html) for a
 Building
 ---------
 For instructions on how to build 86Box from source, see the [build guide](https://86box.readthedocs.io/en/latest/dev/buildguide.html).
+
+## Audio emulation installation
+
+Build 86box executable for your target system + roms. Copy all .wav files from samples directory to the same directory with the 86box executable and you're good to go.
 
 Licensing
 ---------
