@@ -536,7 +536,7 @@ static const device_config_t ms6119_config[] = {
               .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/vig69m.212", "" } },
             { .name = "Award Modular BIOS v4.51PG - Version 2.10", .internal_name = "ms6119", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/w6119ims.2a0", "" } },
-            { .name = "AMIBIOS 071595 - Version 1.90 (Packard Bell Tacoma)", .internal_name = "ms6119", .bios_type = BIOS_NORMAL, 
+            { .name = "AMIBIOS 071595 - Version 1.90 (Packard Bell Tacoma)", .internal_name = "tacoma", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/A19P2190.ROM", "" } },
             { .files_no = 0 }
         },
