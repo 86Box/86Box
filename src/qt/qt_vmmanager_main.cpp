@@ -390,7 +390,7 @@ illegal_chars:
         } else {
             QMenu contextMenu(tr("Context Menu"), ui->listView);
 
-            QAction newMachineAction(tr("New machine..."));
+            QAction newMachineAction(tr("&New machine..."));
             contextMenu.addAction(&newMachineAction);
             connect(&newMachineAction, &QAction::triggered, this, &VMManagerMain::newMachineWizard);
 
