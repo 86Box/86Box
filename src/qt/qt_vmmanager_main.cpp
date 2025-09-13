@@ -740,6 +740,18 @@ VMManagerMain::machineCountString(QString states) const
     return tr("VMs: %1").arg(states);
 }
 
+QList<int>
+VMManagerMain::getPaneSizes() const
+{
+    return ui->splitter->sizes();
+}
+
+void
+VMManagerMain::setPaneSizes(const QList<int> &sizes)
+{
+    ui->splitter->setSizes(sizes);
+}
+
 void
 VMManagerMain::modelDataChange()
 {

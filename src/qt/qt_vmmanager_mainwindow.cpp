@@ -151,10 +151,20 @@ VMManagerMainWindow(QWidget *parent)
             if (!!config->getStringValue("window_maximized").toInt()) {
                 setWindowState(windowState() | Qt::WindowMaximized);
             }
+
+            list = config->getStringValue("window_splitter").split(',');
+            for (auto& cur : list) {
+                cur = cur.trimmed();
+            }
+            QList<int> paneSizes;
+            paneSizes.append(list[0].toInt());
+            paneSizes.append(list[1].toInt());
+            vmm->setPaneSizes(paneSizes);
         } else {
             config->setStringValue("window_remember", "");
             config->setStringValue("window_coordinates", "");
             config->setStringValue("window_maximized", "");
+            config->setStringValue("window_splitter", "");
         }
         delete config;
     }
@@ -218,10 +228,12 @@ VMManagerMainWindow::saveSettings() const
     if (ui->actionRemember_size_and_position->isChecked()) {
         config->setStringValue("window_coordinates", QString::asprintf("%i, %i, %i, %i", this->geometry().x(), this->geometry().y(), this->geometry().width(), this->geometry().height()));
         config->setStringValue("window_maximized", this->isMaximized() ? "1" : "");
+        config->setStringValue("window_splitter", QString::asprintf("%i, %i", vmm->getPaneSizes()[0], vmm->getPaneSizes()[1]));
     } else {
         config->setStringValue("window_remember", "");
         config->setStringValue("window_coordinates", "");
         config->setStringValue("window_maximized", "");
+        config->setStringValue("window_splitter", "");
     }
     // Sometimes required to ensure the settings save before the app exits
     config->sync();
