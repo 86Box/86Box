@@ -16,6 +16,7 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/version.h>
+#include <86box/unix_osd.h>
 #include <86box/unix_sdl.h>
 
 #define RENDERER_FULL_SCREEN 1
@@ -45,7 +46,7 @@ static int          cur_wy      = 0;
 static int          cur_ww      = 0;
 static int          cur_wh      = 0;
 static volatile int sdl_enabled = 1;
-static SDL_mutex   *sdl_mutex   = NULL;
+SDL_mutex          *sdl_mutex   = NULL;
 int                 mouse_capture;
 int                 title_set         = 0;
 int                 resize_pending    = 0;
@@ -314,6 +315,7 @@ sdl_select_best_hw_driver(void)
 void
 sdl_reinit_texture(void)
 {
+    osd_deinit();
     sdl_destroy_texture();
 
     if (sdl_flags & RENDERER_HARDWARE) {
@@ -324,6 +326,7 @@ sdl_reinit_texture(void)
 
     sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
                                 SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
+    osd_init();
 }
 
 void

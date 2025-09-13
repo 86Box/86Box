@@ -753,7 +753,6 @@ ui_sb_set_ready(UNUSED(int ready))
     /* No-op. */
 }
 
-char *xargv[512];
 
 // From musl.
 char *
@@ -915,7 +914,7 @@ plat_get_vmm_dir(char *outbuf, const size_t len)
 }
 
 bool
-process_media_commands_3(uint8_t *id, char *fn, uint8_t *wp, int cmdargc)
+process_media_commands_3(uint8_t *id, char *fn, uint8_t *wp, char **xargv, int cmdargc)
 {
     bool err = false;
 
@@ -951,6 +950,7 @@ process_media_commands_3(uint8_t *id, char *fn, uint8_t *wp, int cmdargc)
         fn[strlen(fn) - 1] = '\0';
     return err;
 }
+
 char *(*f_readline)(const char *)          = NULL;
 int (*f_add_history)(const char *)         = NULL;
 void (*f_rl_callback_handler_remove)(void) = NULL;
@@ -977,21 +977,23 @@ void
 unix_executeLine(char *line)
 {
     if (line) {
+        char *xargv[512];
         int   cmdargc = 0;
-        char *linecpy;
+        char *linecpy, *linespn;
 
-        line[strcspn(line, "\r\n")] = '\0';
-        linecpy                     = strdup(line);
+        linecpy = linespn = strdup(line);
+        linecpy[strcspn(linecpy, "\r\n")] = 0;
+
         if (!linecpy) {
-            free(line);
-            line = NULL;
             return;
         }
+
         if (f_add_history)
-            f_add_history(line);
+            f_add_history(linecpy);
+
         memset(xargv, 0, sizeof(xargv));
         while (1) {
-            xargv[cmdargc++] = local_strsep(&linecpy, " ");
+            xargv[cmdargc++] = local_strsep(&linespn, " ");
             if (xargv[cmdargc - 1] == NULL || cmdargc >= 512)
                 break;
         }
@@ -1065,9 +1067,7 @@ unix_executeLine(char *line)
             char    fn[PATH_MAX];
 
             if (!xargv[2] || !xargv[1]) {
-                free(line);
                 free(linecpy);
-                line = NULL;
                 return;
             }
             id = atoi(xargv[1]);
@@ -1121,12 +1121,10 @@ unix_executeLine(char *line)
             memset(fn, 0, sizeof(fn));
 
             if (!xargv[2] || !xargv[1]) {
-                free(line);
                 free(linecpy);
-                line = NULL;
                 return;
             }
-            err = process_media_commands_3(&id, fn, &wp, cmdargc);
+            err = process_media_commands_3(&id, fn, &wp, xargv, cmdargc);
             if (!err) {
                 if (fn[strlen(fn) - 1] == '\''
                     || fn[strlen(fn) - 1] == '"')
@@ -1143,12 +1141,10 @@ unix_executeLine(char *line)
             memset(fn, 0, sizeof(fn));
 
             if (!xargv[2] || !xargv[1]) {
-                free(line);
                 free(linecpy);
-                line = NULL;
                 return;
             }
-            err = process_media_commands_3(&id, fn, &wp, cmdargc);
+            err = process_media_commands_3(&id, fn, &wp, xargv, cmdargc);
             if (!err) {
                 if (fn[strlen(fn) - 1] == '\''
                     || fn[strlen(fn) - 1] == '"')
@@ -1165,12 +1161,10 @@ unix_executeLine(char *line)
             memset(fn, 0, sizeof(fn));
 
             if (!xargv[2] || !xargv[1]) {
-                free(line);
                 free(linecpy);
-                line = NULL;
                 return;
             }
-            err = process_media_commands_3(&id, fn, &wp, cmdargc);
+            err = process_media_commands_3(&id, fn, &wp, xargv, cmdargc);
             if (!err) {
                 if (fn[strlen(fn) - 1] == '\''
                     || fn[strlen(fn) - 1] == '"')
@@ -1187,12 +1181,10 @@ unix_executeLine(char *line)
             memset(fn, 0, sizeof(fn));
 
             if (!xargv[2] || !xargv[1]) {
-                free(line);
                 free(linecpy);
-                line = NULL;
                 return;
             }
-            err = process_media_commands_3(&id, fn, &wp, cmdargc);
+            err = process_media_commands_3(&id, fn, &wp, xargv, cmdargc);
             if (!err) {
                 if (fn[strlen(fn) - 1] == '\''
                     || fn[strlen(fn) - 1] == '"')
@@ -1201,9 +1193,7 @@ unix_executeLine(char *line)
                 rdisk_mount(id, fn, wp);
             }
         }
-        free(line);
         free(linecpy);
-        line = NULL;
     }
 }
 
@@ -1230,6 +1220,9 @@ monitor_thread(UNUSED(void *param))
             }
 #endif
             unix_executeLine(line);
+
+            free(line);
+            line = NULL;
         }
     }
 #endif
@@ -1286,13 +1279,15 @@ main(int argc, char **argv)
     plat_pause(0);
 
     /* Initialize the rendering window, or fullscreen. */
-
     do_start();
+
 #ifndef USE_CLI
     thread_create(monitor_thread, NULL);
 #endif
+
     SDL_AddTimer(1000, timer_onesec, NULL);
-    while (!is_quit) {
+    while (!is_quit)
+    {
         static int mouse_inside = 0;
         static int r_alt_pressed = 0;
         static int flag_osd_open = 0;
@@ -1314,6 +1309,7 @@ main(int argc, char **argv)
                     {
                         extern void sdl_reinit_texture(void);
 
+                        printf("reinit tex\n");
                         sdl_reinit_texture();
                         break;
                     }
