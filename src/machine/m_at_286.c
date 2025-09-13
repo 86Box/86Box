@@ -305,7 +305,8 @@ machine_at_portableiii_init(const machine_t *model)
 }
 
 int
-machine_at_grid1520_init(const machine_t *model) {
+machine_at_grid1520_init(const machine_t *model)
+{
     int ret = 0;
 
     ret = bios_load_linear("roms/machines/grid1520/grid1520_891025.rom",
@@ -329,7 +330,8 @@ machine_at_grid1520_init(const machine_t *model) {
 }
 
 int
-machine_at_mpfpc900_init(const machine_t *model) {
+machine_at_pc900_init(const machine_t *model)
+{
     int ret = 0;
 
     ret = bios_load_linear("roms/machines/pc900/mpf_pc900_v207a.bin",
