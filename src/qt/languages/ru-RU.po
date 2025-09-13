@@ -51,6 +51,9 @@ msgstr "&Изменяемый размер окна"
 msgid "R&emember size && position"
 msgstr "&Запомнить размер и положение"
 
+msgid "Remember size && position"
+msgstr "Запомнить размер и положение"
+
 msgid "Re&nderer"
 msgstr "&Рендеринг"
 

@@ -51,6 +51,9 @@ msgstr "Tùy chỉnh cỡ cử&a sổ"
 msgid "R&emember size && position"
 msgstr "Ghi nhớ vị trí và kíc&h thước cửa sổ"
 
+msgid "Remember size && position"
+msgstr "Ghi nhớ vị trí và kích thước cửa sổ"
+
 msgid "Re&nderer"
 msgstr "Re&nderer"
 

@@ -93,6 +93,13 @@
     </layout>
    </item>
    <item>
+    <widget class="QCheckBox" name="rememberSizePositionCheckBox">
+     <property name="text">
+      <string>Remember size &amp;&amp; position</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QCheckBox" name="updateCheckBox">
      <property name="text">
       <string>Check for updates on startup</string>
@@ -165,6 +172,7 @@
   <tabstop>dirSelectButton</tabstop>
   <tabstop>comboBoxLanguage</tabstop>
   <tabstop>pushButtonLanguage</tabstop>
+  <tabstop>rememberSizePositionCheckBox</tabstop>
   <tabstop>updateCheckBox</tabstop>
   <tabstop>regexSearchCheckBox</tabstop>
  </tabstops>

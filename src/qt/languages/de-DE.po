@@ -51,6 +51,9 @@ msgstr "G&rößenverstellbares Fenster"
 msgid "R&emember size && position"
 msgstr "Größe && &Position merken"
 
+msgid "Remember size && position"
+msgstr "Größe && Position merken"
+
 msgid "Re&nderer"
 msgstr "Re&nderer"
 

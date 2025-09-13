@@ -51,6 +51,9 @@ msgstr "&Prozor s promjenjivim veličinama"
 msgid "R&emember size && position"
 msgstr "&Zapamtite veličinu i položaj"
 
+msgid "Remember size && position"
+msgstr "Zapamtite veličinu i položaj"
+
 msgid "Re&nderer"
 msgstr "&Renderer"
 

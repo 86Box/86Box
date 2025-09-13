@@ -51,6 +51,9 @@ msgstr "ウィンドウのサイズを変更可能(&R)"
 msgid "R&emember size && position"
 msgstr "ウィンドウのサイズと位置を保存(&E)"
 
+msgid "Remember size && position"
+msgstr "ウィンドウのサイズと位置を保存"
+
 msgid "Re&nderer"
 msgstr "レンダラー(&N)"
 

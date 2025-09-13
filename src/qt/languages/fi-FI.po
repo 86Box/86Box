@@ -51,6 +51,9 @@ msgstr "&Salli koon muuttaminen"
 msgid "R&emember size && position"
 msgstr "&Muista koko ja sijainti"
 
+msgid "Remember size && position"
+msgstr "Muista koko ja sijainti"
+
 msgid "Re&nderer"
 msgstr "&Renderöijä"
 

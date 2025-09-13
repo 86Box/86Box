@@ -51,6 +51,9 @@ msgstr "&Justerbart vindu"
 msgid "R&emember size && position"
 msgstr "H&usk størrelse &og plassering"
 
+msgid "Remember size && position"
+msgstr "Husk størrelse og plassering"
+
 msgid "Re&nderer"
 msgstr "Re&nderer"
 

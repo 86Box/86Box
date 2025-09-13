@@ -51,6 +51,9 @@ msgstr "&Janela redimensionável"
 msgid "R&emember size && position"
 msgstr "&Lembrar tamanho e posição"
 
+msgid "Remember size && position"
+msgstr "Lembrar tamanho e posição"
+
 msgid "Re&nderer"
 msgstr "&Renderizador"
 

@@ -51,6 +51,9 @@ msgstr "창 크기 조절 가능하게 하기(&R)"
 msgid "R&emember size && position"
 msgstr "창 크기와 위치를 기억하기(&E)"
 
+msgid "Remember size && position"
+msgstr "창 크기와 위치를 기억하기"
+
 msgid "Re&nderer"
 msgstr "렌더러(&N)"
 

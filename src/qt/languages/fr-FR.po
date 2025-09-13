@@ -51,6 +51,9 @@ msgstr "Fenêtre &redimensionnable"
 msgid "R&emember size && position"
 msgstr "S&auvegarder taille && position"
 
+msgid "Remember size && position"
+msgstr "Sauvegarder taille && position"
+
 msgid "Re&nderer"
 msgstr "Moteur de re&ndu vidéo"
 

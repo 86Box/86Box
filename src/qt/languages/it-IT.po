@@ -51,6 +51,9 @@ msgstr "&Finestra ridimensionabile"
 msgid "R&emember size && position"
 msgstr "R&icorda dimensioni e posizione"
 
+msgid "Remember size && position"
+msgstr "Ricorda dimensioni e posizione"
+
 msgid "Re&nderer"
 msgstr "Re&nderizzatore"
 

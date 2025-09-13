@@ -51,6 +51,9 @@ msgstr "&Okno o zmiennym rozmiarze"
 msgid "R&emember size && position"
 msgstr "P&amiętaj rozmiar i pozycję"
 
+msgid "Remember size && position"
+msgstr "Pamiętaj rozmiar i pozycję"
+
 msgid "Re&nderer"
 msgstr "Re&nderer"
 

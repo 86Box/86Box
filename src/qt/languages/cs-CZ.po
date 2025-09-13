@@ -51,6 +51,9 @@ msgstr "&Měnitelná velikost okna"
 msgid "R&emember size && position"
 msgstr "&Pamatovat velikost a pozici"
 
+msgid "Remember size && position"
+msgstr "Pamatovat velikost a pozici"
+
 msgid "Re&nderer"
 msgstr "&Renderer"
 

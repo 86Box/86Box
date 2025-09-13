@@ -51,6 +51,9 @@ msgstr "&Ändringsbar fönsterstorlek"
 msgid "R&emember size && position"
 msgstr "K&om ihåg storlek && position"
 
+msgid "Remember size && position"
+msgstr "Kom ihåg storlek && position"
+
 msgid "Re&nderer"
 msgstr "Re&nderare"
 

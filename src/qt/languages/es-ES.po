@@ -51,6 +51,9 @@ msgstr "Ven&tana redimensionable"
 msgid "R&emember size && position"
 msgstr "&Recordar tamaño y posición"
 
+msgid "Remember size && position"
+msgstr "Recordar tamaño y posición"
+
 msgid "Re&nderer"
 msgstr "Re&nderizador"
 

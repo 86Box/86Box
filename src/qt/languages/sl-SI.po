@@ -51,6 +51,9 @@ msgstr "S&premenljiva velikost okna"
 msgid "R&emember size && position"
 msgstr "&Zapomni si velikost in položaj"
 
+msgid "Remember size && position"
+msgstr "Zapomni si velikost in položaj"
+
 msgid "Re&nderer"
 msgstr "&Upodabljanje"
 

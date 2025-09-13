@@ -51,6 +51,9 @@ msgstr "&Boyutlandırılabilir pencere"
 msgid "R&emember size && position"
 msgstr "&Pencere boyut ve pozisyonunu kaydet"
 
+msgid "Remember size && position"
+msgstr "Pencere boyut ve pozisyonunu kaydet"
+
 msgid "Re&nderer"
 msgstr "Derley&ici"
 

@@ -51,6 +51,9 @@ msgstr "&Venster met aanpasbare grootte"
 msgid "R&emember size && position"
 msgstr "&Onthoud grootte && positie"
 
+msgid "Remember size && position"
+msgstr "Onthoud grootte && positie"
+
 msgid "Re&nderer"
 msgstr "Re&nderer"
 

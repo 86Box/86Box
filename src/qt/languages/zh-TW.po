@@ -51,6 +51,9 @@ msgstr "視窗大小可調(&R)"
 msgid "R&emember size && position"
 msgstr "記住視窗大小和位置(&E)"
 
+msgid "Remember size && position"
+msgstr "記住視窗大小和位置"
+
 msgid "Re&nderer"
 msgstr "渲染器(&N)"
 

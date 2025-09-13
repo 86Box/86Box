@@ -51,6 +51,9 @@ msgstr ""
 msgid "R&emember size && position"
 msgstr ""
 
+msgid "Remember size && position"
+msgstr ""
+
 msgid "Re&nderer"
 msgstr ""
 
