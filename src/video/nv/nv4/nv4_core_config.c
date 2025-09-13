@@ -55,11 +55,7 @@ const device_config_t nv4_config[] =
     {
 
         .name = "pgraph_threads",
-#ifndef RELEASE_BUILD
-        .description = "PFIFO/PGRAPH - Number of threads to split large object method execution into",
-#else
         .description = "Render threads",
-#endif 
         .type = CONFIG_SELECTION,
         .default_int = 1, // todo: change later
         .selection = 

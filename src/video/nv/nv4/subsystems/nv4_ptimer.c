@@ -52,7 +52,8 @@ void nv4_ptimer_interrupt(uint32_t num)
 {
     nv4->ptimer.interrupt_status |= (1 << num);
 
-    nv4_pmc_handle_interrupts(true);
+    //todo
+    //nv4_pmc_handle_interrupts(true);
 }
 
 // Ticks the timer.
@@ -128,14 +129,14 @@ uint32_t nv4_ptimer_read(uint32_t address)
                     break;
                 // 64-bit value
                 // High part
-                case NV4_PTIMER_TIME_0_NSEC:
+                case NV4_PTIMER_TIME_0:
                     ret = nv4->ptimer.time & 0xFFFFFFFF; //28:0
                     break;
                 // Low part
-                case NV4_PTIMER_TIME_1_NSEC:
+                case NV4_PTIMER_TIME_1:
                     ret = nv4->ptimer.time >> 32; // 31:5
                     break;
-                case NV4_PTIMER_ALARM_NSEC: 
+                case NV4_PTIMER_ALARM: 
                     ret = nv4->ptimer.alarm; // 31:5
                     break;
             }
@@ -186,7 +187,7 @@ void nv4_ptimer_write(uint32_t address, uint32_t value)
 
                 case NV4_PTIMER_INTR:
                     nv4->ptimer.interrupt_status &= ~value;
-                    nv4_pmc_clear_interrupts();
+                    //TODO nv4_pmc_clear_interrupts();
                     break;
 
                 // Interrupt enablement state
@@ -206,11 +207,11 @@ void nv4_ptimer_write(uint32_t address, uint32_t value)
                     break;
                 // 64-bit value
                 // High part
-                case NV4_PTIMER_TIME_0_NSEC:
+                case NV4_PTIMER_TIME_0:
                     nv4->ptimer.time |= (value) & 0xFFFFFFE0; //28:0
                     break;
                 // Low part
-                case NV4_PTIMER_TIME_1_NSEC:
+                case NV4_PTIMER_TIME_1:
                     nv4->ptimer.time |= ((uint64_t)(value & 0xFFFFFFE0) << 32); // 31:5
                     break;
                 case NV4_PTIMER_ALARM: 

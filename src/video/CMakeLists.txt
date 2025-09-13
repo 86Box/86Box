@@ -201,6 +201,7 @@ add_library(vid OBJECT
     nv/nv4/nv4_core.c
     nv/nv4/nv4_core_io.c
     nv/nv4/nv4_core_config.c
+    nv/nv4/subsystems/nv4_ptimer.c
 
     # Generic
     vid_bochs_vbe.c

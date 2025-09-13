@@ -91,7 +91,10 @@ extern nv4_t* nv4;                                                      // Alloc
 //
 
 // Device Core
-void        nv4_init();
+bool        nv4_init();
+
+void*       nv4_init_stb4400(const device_t* info);
+
 void        nv4_close(void* priv);
 void        nv4_speed_changed(void *priv);
 void        nv4_draw_cursor(svga_t* svga, int32_t drawline);
@@ -117,6 +120,8 @@ uint32_t    nv4_ramin_read32(uint32_t addr, void* priv);
 void        nv4_ramin_write8(uint32_t addr, uint8_t val, void* priv);
 void        nv4_ramin_write16(uint32_t addr, uint16_t val, void* priv);
 void        nv4_ramin_write32(uint32_t addr, uint32_t val, void* priv);
+uint8_t     nv4_pci_read(int32_t func, int32_t addr, void* priv);
+void        nv4_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv);
 
 
 uint8_t     nv4_svga_read(uint16_t addr, void* priv);

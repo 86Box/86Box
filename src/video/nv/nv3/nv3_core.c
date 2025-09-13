@@ -138,10 +138,7 @@ uint32_t nv3_mmio_read32(uint32_t addr, void* priv)
         return ret; 
     }
 
-
     ret = nv3_mmio_arbitrate_read(addr);
-
-
     return ret; 
 
 }

@@ -29,6 +29,9 @@
 
 nv4_t* nv4;
 
+// Stolen from Voodoo 3
+static video_timings_t timing_nv4_agp = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+
 // Initialise the MMIO mappings
 void nv4_init_mappings_mmio(void)
 {
@@ -185,7 +188,7 @@ void nv4_update_mappings(void)
 }
 
 
-void nv4_init()
+bool nv4_init()
 {
     nv4 = calloc(1, sizeof(nv4_t));
  
@@ -200,13 +203,46 @@ void nv4_init()
     else
         nv4->nvbase.log = log_open_cyclic("NV4");
 
+    nv4->nvbase.bus_generation = nv_bus_agp_2x;
+
     nv_log_set_device(nv4->nvbase.log);
+    // Figure out which vbios the user selected
+    // This depends on the bus we are using and if the gpu is rev a/b or rev c
+
+    const char* vbios_file = NV4_VBIOS_STB_REVA;
+
+    int32_t err = rom_init(&nv4->nvbase.vbios, vbios_file, 0xC0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    
+    if (err)
+    {
+        nv_log("NV4 FATAL: failed to load VBIOS err=%d\n", err);
+        fatal("Nvidia NV4 init failed: Somehow selected a nonexistent VBIOS? err=%d\n", err);
+        return false;
+    }
+    else    
+        nv_log("Successfully loaded VBIOS located at %s\n", vbios_file);
+
+    pci_add_card(PCI_ADD_AGP, nv4_pci_read, nv4_pci_write, NULL, &nv4->nvbase.pci_slot);
+
+    svga_init(&nv4_device_agp, &nv4->nvbase.svga, nv4, nv4->nvbase.vram_amount, 
+            nv4_recalc_timings, nv4_svga_read, nv4_svga_write, nv4_draw_cursor, NULL);
+
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_nv4_agp);
+
+    nv4_init_mappings();
+    //nv4_update_mappings();
+
+    return true; 
 }
 
 void* nv4_init_stb4400(const device_t *info)
 {
-    nv4_init();
-    return nv4;   
+    bool successful = nv4_init();
+
+    if (successful)
+        return nv4;
+    else
+        return NULL;
 }
 
 void nv4_close(void* priv)
