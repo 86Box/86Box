@@ -84,6 +84,10 @@ if(DEBUGREGS486)
     add_compile_definitions(USE_DEBUG_REGS_486)
 endif()
 
+if(SCREENSHOT_MODE)
+    add_compile_definitions(SCREENSHOT_MODE)
+endif()
+
 if(VNC)
     find_package(LibVNCServer)
     if(LibVNCServer_FOUND)
