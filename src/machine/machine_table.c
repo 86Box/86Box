@@ -3916,6 +3916,49 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* has an Award-branded KBC controller */
+    {
+        .name = "[C&T PC/AT] Hyundai Super-286C",
+        .internal_name = "super286c",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_CT_AT,
+        .init = machine_at_super286c_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 1024,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .jumpered_ecp_dma = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device = &kbc_at_device,
+        .kbc_params = KBC_VEN_AWARD | 0x00424600,
+        .kbc_p1 = 0x000004f0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* No proper pictures of the KBC exist, though it seems to have the IBM AT KBC
        firmware. */
     {
@@ -4264,49 +4307,6 @@ const machine_t machines[] = {
         .gpio_acpi = 0xffffffff,
         .device = NULL,
         .kbd_device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    /* has an Award-branded KBC controller */
-    {
-        .name = "[NEAT] Hyundai Super-286C",
-        .internal_name = "super286c",
-        .type = MACHINE_TYPE_286,
-        .chipset = MACHINE_CHIPSET_NEAT,
-        .init = machine_at_super286c_init,
-        .p1_handler = machine_generic_p1_handler,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_286,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
-        .ram = {
-            .min = 512,
-            .max = 1024,
-            .step = 128
-        },
-        .nvrmask = 127,
-        .jumpered_ecp_dma = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device = &kbc_at_device,
-        .kbc_params = KBC_VEN_AWARD | 0x00424600,
-        .kbc_p1 = 0x000004f0,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
