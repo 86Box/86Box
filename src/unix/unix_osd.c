@@ -331,13 +331,13 @@ int osd_handle(SDL_Event event)
                     switch (selected)
                     {
                         case 0 : // "fddload - Load floppy disk image",
-                            file_count = load_iso_files(files, 100, "*.img");
+                            file_count = load_iso_files(files, 100, ".img");
                             file_selected = 0;
                             scroll_offset = 0;
                             state = STATE_FILESELECT_FLOPPY;
                             break;
                         case 1 : // "cdload - Load CD-ROM image",
-                            file_count = load_iso_files(files, 100, "*.iso");
+                            file_count = load_iso_files(files, 100, ".iso");
                             file_selected = 0;
                             scroll_offset = 0;
                             state = STATE_FILESELECT_CD;
