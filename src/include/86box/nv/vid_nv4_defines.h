@@ -7,12 +7,12 @@
 // General
 //
 #define NV4_VRAM_SIZE_2MB                                   0x200000 // 2MB (never used; NV4 only)
-#define NV4_VRAM_SIZE_4MB                                     0x400000 // 4MB (never used)
-#define NV4_VRAM_SIZE_8MB                                     0x800000 // 8MB
-#define NV4_VRAM_SIZE_16MB                                    0x1000000 // 16MB
-#define NV5_VRAM_SIZE_32MB                                    0x2000000 // NV5 only
+#define NV4_VRAM_SIZE_4MB                                   0x400000 // 4MB (never used)
+#define NV4_VRAM_SIZE_8MB                                   0x800000 // 8MB
+#define NV4_VRAM_SIZE_16MB                                 0x1000000 // 16MB
+#define NV5_VRAM_SIZE_32MB                                 0x2000000 // NV5 only
 
-#define NV4_MMIO_SIZE                                         0x1000000 // not sure. May be larger!!!!
+#define NV4_MMIO_SIZE                                      0x1000000 // not sure. May be larger!!!!
 
 //
 // VBIOS
@@ -21,6 +21,12 @@
 
 #define NV4_PRMIO_START                                       0x7000 
 #define NV4_PRMIO_END                                         0x7FFF 
+
+// NV4 Legacy I/O space
+#define NV4_RMA_REGISTER_START                                 0x3D0
+#define NV4_RMA_REGISTER_END                                   0x3D3
+#define NV4_RMA_NUM_REGS                                           4
+
 #define NV4_PRMIO_RMA_ID                                      0x7100 
 #define NV4_PRMIO_RMA_ID_CODE                                      0 
 #define NV4_PRMIO_RMA_ID_CODE_VALID                       0x2B16D065 
@@ -32,6 +38,7 @@
 #define NV4_PRMIO_RMA_DATA32_BYTE2                                16 
 #define NV4_PRMIO_RMA_DATA32_BYTE1                                 8 
 #define NV4_PRMIO_RMA_DATA32_BYTE0                                 0
+#define NV4_PRMIO_RMA_MODE_MAX                                  0x0F
 
 #define NV4_PRAMDAC_START                                   0x680300
 #define NV4_PRAMDAC_END                                     0x680FFF
@@ -261,6 +268,8 @@
 
 #define NV4_USER_DAC_START                                  0x681200 
 #define NV4_USER_DAC_END                                    0x681FFF
+#define NV4_USER_DAC_PALETTE_START                          0x6813C6
+#define NV4_USER_DAC_PALETTE_END                            0x6813C9
 
 #define NV4_USER_DAC_PIXEL_MASK                             0x6813C6 
 #define NV4_USER_DAC_PIXEL_MASK_VALUE                              0 
@@ -486,223 +495,181 @@
 #define NV4_PBUS_INTR_EN_0_PCI_BUS_ERROR_ENABLED          		 0x1 
 #define NV4_PBUS_ROM_CONFIG                                   0x1200 
 #define NV4_PBUS_ROM_CONFIG_TW1                                    0 
-#define NV4_PBUS_ROM_CONFIG_TW1_DEFAULT                   		 0xF 
-#define NV4_PBUS_ROM_CONFIG_TW0                                    4 
-#define NV4_PBUS_ROM_CONFIG_TW0_DEFAULT                   		 0x3 
-#define NV4_PBUS_PCI_NV_0                                     0x1800 
-#define NV4_PBUS_PCI_NV_0_VENDOR_ID                                0 
-#define NV4_PBUS_PCI_NV_0_VENDOR_ID_NVIDIA_SGS                0x12D2 
-#define NV4_PBUS_PCI_NV_0_VENDOR_ID_NVIDIA                    0x10DE 
-#define NV4_PBUS_PCI_NV_0_DEVICE_ID_FUNC                          16 
-#define NV4_PBUS_PCI_NV_0_DEVICE_ID_FUNC_VGA              		 0x0 
-#define NV4_PBUS_PCI_NV_0_DEVICE_ID_CHIP                       3  19 
-#define NV4_PBUS_PCI_NV_0_DEVICE_ID_CHIP_NV0              		 0x0 
-#define NV4_PBUS_PCI_NV_0_DEVICE_ID_CHIP_NV1              		 0x1 
-#define NV4_PBUS_PCI_NV_0_DEVICE_ID_CHIP_NV2              		 0x2 
-#define NV4_PBUS_PCI_NV_0_DEVICE_ID_CHIP_NV3              		 0x3 
-#define NV4_PBUS_PCI_NV_0_DEVICE_ID_CHIP_NV4              		 0x4 
-#define NV4_PBUS_PCI_NV_1                                     0x1804 
-#define NV4_PBUS_PCI_NV_1_IO_SPACE                                 0 
-#define NV4_PBUS_PCI_NV_1_IO_SPACE_ENABLED                		 0x1 
-#define NV4_PBUS_PCI_NV_1_MEMORY_SPACE                             1 
-#define NV4_PBUS_PCI_NV_1_MEMORY_SPACE_ENABLED            		 0x1 
-#define NV4_PBUS_PCI_NV_1_BUS_MASTER                               2 
-#define NV4_PBUS_PCI_NV_1_BUS_MASTER_ENABLED              		 0x1 
-#define NV4_PBUS_PCI_NV_1_WRITE_AND_INVAL                          4 
-#define NV4_PBUS_PCI_NV_1_WRITE_AND_INVAL_ENABLED         		 0x1 
-#define NV4_PBUS_PCI_NV_1_PALETTE_SNOOP                            5 
-#define NV4_PBUS_PCI_NV_1_PALETTE_SNOOP_ENABLED           		 0x1 
-#define NV4_PBUS_PCI_NV_1_CAPLIST                                 20 
-#define NV4_PBUS_PCI_NV_1_CAPLIST_NOT_PRESENT             		 0x0 
-#define NV4_PBUS_PCI_NV_1_CAPLIST_PRESENT                 		 0x1 
-#define NV4_PBUS_PCI_NV_1_66MHZ                                   21 
-#define NV4_PBUS_PCI_NV_1_66MHZ_INCAPABLE                 		 0x0 
-#define NV4_PBUS_PCI_NV_1_66MHZ_CAPABLE                   		 0x1 
-#define NV4_PBUS_PCI_NV_1_FAST_BACK2BACK                          23 
-#define NV4_PBUS_PCI_NV_1_FAST_BACK2BACK_INCAPABLE        		 0x0 
-#define NV4_PBUS_PCI_NV_1_FAST_BACK2BACK_CAPABLE          		 0x1 
-#define NV4_PBUS_PCI_NV_1_DEVSEL_TIMING                           25 
-#define NV4_PBUS_PCI_NV_1_DEVSEL_TIMING_FAST              		 0x0 
-#define NV4_PBUS_PCI_NV_1_DEVSEL_TIMING_MEDIUM            		 0x1 
-#define NV4_PBUS_PCI_NV_1_DEVSEL_TIMING_SLOW              		 0x2 
-#define NV4_PBUS_PCI_NV_1_SIGNALED_TARGET                         27 
-#define NV4_PBUS_PCI_NV_1_SIGNALED_TARGET_NO_ABORT        		 0x0 
-#define NV4_PBUS_PCI_NV_1_SIGNALED_TARGET_ABORT           		 0x1 
-#define NV4_PBUS_PCI_NV_1_SIGNALED_TARGET_CLEAR           		 0x1 
-#define NV4_PBUS_PCI_NV_1_RECEIVED_TARGET                         28 
-#define NV4_PBUS_PCI_NV_1_RECEIVED_TARGET_NO_ABORT        		 0x0 
-#define NV4_PBUS_PCI_NV_1_RECEIVED_TARGET_ABORT           		 0x1 
-#define NV4_PBUS_PCI_NV_1_RECEIVED_TARGET_CLEAR           		 0x1 
-#define NV4_PBUS_PCI_NV_1_RECEIVED_MASTER                         29 
-#define NV4_PBUS_PCI_NV_1_RECEIVED_MASTER_NO_ABORT        		 0x0 
-#define NV4_PBUS_PCI_NV_1_RECEIVED_MASTER_ABORT           		 0x1 
-#define NV4_PBUS_PCI_NV_1_RECEIVED_MASTER_CLEAR           		 0x1 
-#define NV4_PBUS_PCI_NV_2                                     0x1808 
-#define NV4_PBUS_PCI_NV_2_REVISION_ID                              0 
-#define NV4_PBUS_PCI_NV_2_REVISION_ID_A01                 		 0x0 
-#define NV4_PBUS_PCI_NV_2_REVISION_ID_B01                       0x10 
-#define NV4_PBUS_PCI_NV_2_CLASS_CODE                               8 
-#define NV4_PBUS_PCI_NV_2_CLASS_CODE_VGA                     0x30000 
-#define NV4_PBUS_PCI_NV_2_CLASS_CODE_MULTIMEDIA              0x48000 
-#define NV4_PBUS_PCI_NV_3                                     0x180C 
-#define NV4_PBUS_PCI_NV_3_LATENCY_TIMER                           11 
-#define NV4_PBUS_PCI_NV_3_LATENCY_TIMER_0_CLOCKS          		 0x0 
-#define NV4_PBUS_PCI_NV_3_LATENCY_TIMER_8_CLOCKS          		 0x1 
-#define NV4_PBUS_PCI_NV_3_LATENCY_TIMER_240_CLOCKS              0x1E 
-#define NV4_PBUS_PCI_NV_3_LATENCY_TIMER_248_CLOCKS              0x1F 
-#define NV4_PBUS_PCI_NV_3_HEADER_TYPE                             16 
-#define NV4_PBUS_PCI_NV_3_HEADER_TYPE_SINGLEFUNC          		 0x0 
-#define NV4_PBUS_PCI_NV_3_HEADER_TYPE_MULTIFUNC                 0x80 
-#define NV4_PBUS_PCI_NV_4                                     0x1810 
-#define NV4_PBUS_PCI_NV_4_SPACE_TYPE                               0 
-#define NV4_PBUS_PCI_NV_4_SPACE_TYPE_MEMORY               		 0x0 
-#define NV4_PBUS_PCI_NV_4_SPACE_TYPE_IO                   		 0x1 
-#define NV4_PBUS_PCI_NV_4_ADDRESS_TYPE                             1 
-#define NV4_PBUS_PCI_NV_4_ADDRESS_TYPE_32_BIT             		 0x0 
-#define NV4_PBUS_PCI_NV_4_ADDRESS_TYPE_20_BIT             		 0x1 
-#define NV4_PBUS_PCI_NV_4_ADDRESS_TYPE_64_BIT             		 0x2 
-#define NV4_PBUS_PCI_NV_4_PREFETCHABLE                             3 
-#define NV4_PBUS_PCI_NV_4_PREFETCHABLE_NOT                		 0x0 
-#define NV4_PBUS_PCI_NV_4_PREFETCHABLE_MERGABLE           		 0x1 
-#define NV4_PBUS_PCI_NV_4_BASE_ADDRESS                            24 
-#define NV4_PBUS_PCI_NV_5                                     0x1814 
-#define NV4_PBUS_PCI_NV_5_SPACE_TYPE                               0 
-#define NV4_PBUS_PCI_NV_5_SPACE_TYPE_MEMORY               		 0x0 
-#define NV4_PBUS_PCI_NV_5_SPACE_TYPE_IO                   		 0x1 
-#define NV4_PBUS_PCI_NV_5_ADDRESS_TYPE                           2:1 
-#define NV4_PBUS_PCI_NV_5_ADDRESS_TYPE_32_BIT             		 0x0 
-#define NV4_PBUS_PCI_NV_5_ADDRESS_TYPE_20_BIT             		 0x1 
-#define NV4_PBUS_PCI_NV_5_ADDRESS_TYPE_64_BIT             		 0x2 
-#define NV4_PBUS_PCI_NV_5_PREFETCHABLE                             3 
-#define NV4_PBUS_PCI_NV_5_PREFETCHABLE_NOT                		 0x0 
-#define NV4_PBUS_PCI_NV_5_PREFETCHABLE_MERGABLE           		 0x1 
-#define NV4_PBUS_PCI_NV_5_BASE_ADDRESS                            24 
-#define NV4_PBUS_PCI_NV_6(i)                          (0x1818+(i)*4) 
-#define NV4_PBUS_PCI_NV_6_SIZE_1                                  5 
-#define NV4_PBUS_PCI_NV_6_RESERVED                                 0 
-#define NV4_PBUS_PCI_NV_6_RESERVED_0                      		 0x0 
-#define NV4_PBUS_PCI_NV_11                                    0x182C 
-#define NV4_PBUS_PCI_NV_11_SUBSYSTEM_VENDOR_ID                     0 
-#define NV4_PBUS_PCI_NV_11_SUBSYSTEM_VENDOR_ID_NONE       		 0x0 
-#define NV4_PBUS_PCI_NV_11_SUBSYSTEM_ID                           16 
-#define NV4_PBUS_PCI_NV_11_SUBSYSTEM_ID_NONE              		 0x0 
-#define NV4_PBUS_PCI_NV_12                                    0x1830 
-#define NV4_PBUS_PCI_NV_12_ROM_DECODE                              0 
-#define NV4_PBUS_PCI_NV_12_ROM_DECODE_ENABLED             		 0x1 
-#define NV4_PBUS_PCI_NV_12_ROM_BASE                               16 
-#define NV4_PBUS_PCI_NV_13                                    0x1834 
-#define NV4_PBUS_PCI_NV_13_CAP_PTR                                 0 
-#define NV4_PBUS_PCI_NV_13_CAP_PTR_AGP                          0x44 
-#define NV4_PBUS_PCI_NV_13_CAP_PTR_POWER_MGMT                   0x60 
-#define NV4_PBUS_PCI_NV_14                                    0x1838 
-#define NV4_PBUS_PCI_NV_14_RESERVED                                0 
-#define NV4_PBUS_PCI_NV_14_RESERVED_0                     		 0x0 
-#define NV4_PBUS_PCI_NV_15                                    0x183C 
-#define NV4_PBUS_PCI_NV_15_INTR_LINE                               0 
-#define NV4_PBUS_PCI_NV_15_INTR_LINE_IRQ0                 		 0x0 
-#define NV4_PBUS_PCI_NV_15_INTR_LINE_IRQ1                 		 0x1 
-#define NV4_PBUS_PCI_NV_15_INTR_LINE_IRQ15                		 0xF 
-#define NV4_PBUS_PCI_NV_15_INTR_LINE_UNKNOWN                    0xFF 
-#define NV4_PBUS_PCI_NV_15_INTR_PIN                                8 
-#define NV4_PBUS_PCI_NV_15_INTR_PIN_INTA                  		 0x1 
-#define NV4_PBUS_PCI_NV_15_MIN_GNT                                16 
-#define NV4_PBUS_PCI_NV_15_MIN_GNT_NO_REQUIREMENTS        		 0x0 
-#define NV4_PBUS_PCI_NV_15_MIN_GNT_750NS                  		 0x3 
-#define NV4_PBUS_PCI_NV_15_MIN_GNT_1250NS                 		 0x5 
-#define NV4_PBUS_PCI_NV_15_MAX_LAT                                24 
-#define NV4_PBUS_PCI_NV_15_MAX_LAT_NO_REQUIREMENTS        		 0x0 
-#define NV4_PBUS_PCI_NV_15_MAX_LAT_250NS                  		 0x1 
-#define NV4_PBUS_PCI_NV_16                                    0x1840 
-#define NV4_PBUS_PCI_NV_16_SUBSYSTEM_VENDOR_ID                     0 
-#define NV4_PBUS_PCI_NV_16_SUBSYSTEM_VENDOR_ID_NONE       		 0x0 
-#define NV4_PBUS_PCI_NV_16_SUBSYSTEM_ID                           16 
-#define NV4_PBUS_PCI_NV_16_SUBSYSTEM_ID_NONE              		 0x0 
-#define NV4_PBUS_PCI_NV_17                                    0x1844 
-#define NV4_PBUS_PCI_NV_17_AGP_REV_MAJOR                          20 
-#define NV4_PBUS_PCI_NV_17_AGP_REV_MAJOR_1                		 0x1 
-#define NV4_PBUS_PCI_NV_17_AGP_REV_MINOR                          16 
-#define NV4_PBUS_PCI_NV_17_AGP_REV_MINOR_0                		 0x0 
-#define NV4_PBUS_PCI_NV_17_NEXT_PTR                                8 
-#define NV4_PBUS_PCI_NV_17_NEXT_PTR_NULL                  		 0x0 
-#define NV4_PBUS_PCI_NV_17_CAP_ID                                  0 
-#define NV4_PBUS_PCI_NV_17_CAP_ID_AGP                     		 0x2 
-#define NV4_PBUS_PCI_NV_18                                    0x1848 
-#define NV4_PBUS_PCI_NV_18_AGP_STATUS_RQ                          24 
-#define NV4_PBUS_PCI_NV_18_AGP_STATUS_RQ_16               		 0xF 
-#define NV4_PBUS_PCI_NV_18_AGP_STATUS_SBA                          9 
-#define NV4_PBUS_PCI_NV_18_AGP_STATUS_SBA_NONE            		 0x0 
-#define NV4_PBUS_PCI_NV_18_AGP_STATUS_SBA_CAPABLE         		 0x1 
-#define NV4_PBUS_PCI_NV_18_AGP_STATUS_RATE                         0 
-#define NV4_PBUS_PCI_NV_18_AGP_STATUS_RATE_1X             		 0x1 
-#define NV4_PBUS_PCI_NV_18_AGP_STATUS_RATE_2X             		 0x2 
-#define NV4_PBUS_PCI_NV_18_AGP_STATUS_RATE_1X_AND_2X      		 0x3 
-#define NV4_PBUS_PCI_NV_19                                    0x184C 
-#define NV4_PBUS_PCI_NV_19_AGP_COMMAND_RQ_DEPTH                   24 
-#define NV4_PBUS_PCI_NV_19_AGP_COMMAND_RQ_DEPTH_0         		 0x0 
-#define NV4_PBUS_PCI_NV_19_AGP_COMMAND_SBA_ENABLE                  9 
-#define NV4_PBUS_PCI_NV_19_AGP_COMMAND_SBA_ENABLE_OFF     		 0x0 
-#define NV4_PBUS_PCI_NV_19_AGP_COMMAND_SBA_ENABLE_ON      		 0x1 
-#define NV4_PBUS_PCI_NV_19_AGP_COMMAND_AGP_ENABLE                  8 
-#define NV4_PBUS_PCI_NV_19_AGP_COMMAND_AGP_ENABLE_OFF     		 0x0 
-#define NV4_PBUS_PCI_NV_19_AGP_COMMAND_AGP_ENABLE_ON      		 0x1 
-#define NV4_PBUS_PCI_NV_19_AGP_COMMAND_DATA_RATE                   0 
-#define NV4_PBUS_PCI_NV_19_AGP_COMMAND_DATA_RATE_OFF      		 0x0 
-#define NV4_PBUS_PCI_NV_19_AGP_COMMAND_DATA_RATE_1X       		 0x1 
-#define NV4_PBUS_PCI_NV_19_AGP_COMMAND_DATA_RATE_2X       		 0x2 
-#define NV4_PBUS_PCI_NV_20                                    0x1850 
-#define NV4_PBUS_PCI_NV_20_ROM_SHADOW                              0 
-#define NV4_PBUS_PCI_NV_20_ROM_SHADOW_ENABLED             		 0x1 
-#define NV4_PBUS_PCI_NV_21                                    0x1854 
-#define NV4_PBUS_PCI_NV_21_VGA                                     0 
-#define NV4_PBUS_PCI_NV_21_VGA_ENABLED                    		 0x1 
-#define NV4_PBUS_PCI_NV_22                                    0x1858 
-#define NV4_PBUS_PCI_NV_22_SCRATCH                                 0 
-#define NV4_PBUS_PCI_NV_22_SCRATCH_DEFAULT                  0x23D6CE 
-#define NV4_PBUS_PCI_NV_23                                    0x185C 
-#define NV4_PBUS_PCI_NV_23_DT_TIMEOUT                              0 
-#define NV4_PBUS_PCI_NV_23_DT_TIMEOUT_16                  		 0xF 
-#define NV4_PBUS_PCI_NV_24                                    0x1860 
-#define NV4_PBUS_PCI_NV_24_PME_D3_COLD                            31 
-#define NV4_PBUS_PCI_NV_24_PME_D3_COLD_SUPPORTED          		 0x1 
-#define NV4_PBUS_PCI_NV_24_PME_D3_HOT                             30 
-#define NV4_PBUS_PCI_NV_24_PME_D3_HOT_SUPPORTED           		 0x1 
-#define NV4_PBUS_PCI_NV_24_PME_D2                                 29 
-#define NV4_PBUS_PCI_NV_24_PME_D2_SUPPORTED               		 0x1 
-#define NV4_PBUS_PCI_NV_24_PME_D1                                 28 
-#define NV4_PBUS_PCI_NV_24_PME_D1_SUPPORTED               		 0x1 
-#define NV4_PBUS_PCI_NV_24_PME_D0                                 27 
-#define NV4_PBUS_PCI_NV_24_PME_D0_SUPPORTED               		 0x1 
-#define NV4_PBUS_PCI_NV_24_D2                                     26 
-#define NV4_PBUS_PCI_NV_24_D2_SUPPORTED                   		 0x1 
-#define NV4_PBUS_PCI_NV_24_D2_NOT_SUPPORTED               		 0x0 
-#define NV4_PBUS_PCI_NV_24_D1                                     25 
-#define NV4_PBUS_PCI_NV_24_D1_SUPPORTED                   		 0x1 
-#define NV4_PBUS_PCI_NV_24_D1_NOT_SUPPORTED               		 0x0 
-#define NV4_PBUS_PCI_NV_24_DSI                                    21 
-#define NV4_PBUS_PCI_NV_24_DSI_NOT_REQUIRED               		 0x0 
-#define NV4_PBUS_PCI_NV_24_PME_CLOCK                              19 
-#define NV4_PBUS_PCI_NV_24_PME_CLOCK_NOT_REQUIRED         		 0x0 
-#define NV4_PBUS_PCI_NV_24_VERSION                                16 
-#define NV4_PBUS_PCI_NV_24_VERSION_1                      		 0x1 
-#define NV4_PBUS_PCI_NV_24_NEXT_PTR                                8 
-#define NV4_PBUS_PCI_NV_24_NEXT_PTR_NULL                  		 0x0 
-#define NV4_PBUS_PCI_NV_24_NEXT_PTR_AGP                         0x44 
-#define NV4_PBUS_PCI_NV_24_CAP_ID                                  0 
-#define NV4_PBUS_PCI_NV_24_CAP_ID_POWER_MGMT              		 0x1 
-#define NV4_PBUS_PCI_NV_25                                    0x1864 
-#define NV4_PBUS_PCI_NV_25_POWER_STATE                             0 
-#define NV4_PBUS_PCI_NV_25_POWER_STATE_D3_HOT             		 0x3 
-#define NV4_PBUS_PCI_NV_25_POWER_STATE_D2                 		 0x2 
-#define NV4_PBUS_PCI_NV_25_POWER_STATE_D1                 		 0x1 
-#define NV4_PBUS_PCI_NV_25_POWER_STATE_D0                 		 0x0 
-#define NV4_PBUS_PCI_NV_26(i)                         (0x1868+(i)*4) 
-#define NV4_PBUS_PCI_NV_26_SIZE_1                                 38 
-#define NV4_PBUS_PCI_NV_26_RESERVED                                0 
-#define NV4_PBUS_PCI_NV_26_RESERVED_0                     		 0x0 
+#define NV4_PBUS_ROM_CONFIG_TW1_DEFAULT                   		 0xF
+#define NV4_PBUS_ROM_CONFIG_TW0                                    4
+#define NV4_PBUS_ROM_CONFIG_TW0_DEFAULT                   		 0x3
 
+// 86Box uses 8-bit PCI registers so this section was rewritten
+#define NV4_PBUS_PCI_VENDOR_ID                                0x1800
+#define NV4_PBUS_PCI_DEVICE_VENDOR_NVIDIA                     0x10DE
+#define NV4_PBUS_PCI_DEVICE_ID                                0x1802
+#define NV4_PBUS_PCI_DEVICE_ID_NV4                            0x0020 // Chip (19:17)= NV4, Func = VGA
+#define NV4_PBUS_PCI_COMMAND                                  0x1804
+#define NV4_PBUS_PCI_COMMAND_IO_SPACE                              0
+#define NV4_PBUS_PCI_COMMAND_IO_SPACE_ENABLED                    0x1
+#define NV4_PBUS_PCI_COMMAND_MEMORY_SPACE                          1
+#define NV4_PBUS_PCI_COMMAND_MEMORY_SPACE_ENABLED                0x1
+#define NV4_PBUS_PCI_COMMAND_BUS_MASTER                            2
+#define NV4_PBUS_PCI_COMMAND_BUS_MASTER_ENABLED                  0x1
+#define NV4_PBUS_PCI_COMMAND_WRITE_AND_INVAL                       4
+#define NV4_PBUS_PCI_COMMAND_WRITE_AND_INVAL_ENABLED             0x1 
+#define NV4_PBUS_PCI_COMMAND_PALETTE_SNOOP                         5 
+#define NV4_PBUS_PCI_COMMAND_PALETTE_SNOOP_ENABLED               0x1 
+#define NV4_PBUS_PCI_STATUS                                   0x1806
+#define NV4_PBUS_PCI_STATUS_CAPLIST                                4 
+#define NV4_PBUS_PCI_STATUS_CAPLIST_NOT_PRESENT                  0x0 
+#define NV4_PBUS_PCI_STATUS_CAPLIST_PRESENT                      0x1 
+#define NV4_PBUS_PCI_STATUS_66MHZ                                  5 
+#define NV4_PBUS_PCI_STATUS_66MHZ_INCAPABLE                      0x0 
+#define NV4_PBUS_PCI_STATUS_66MHZ_CAPABLE                        0x1 
+#define NV4_PBUS_PCI_STATUS_FAST_BACK2BACK                         7 
+#define NV4_PBUS_PCI_STATUS_FAST_BACK2BACK_INCAPABLE             0x0 
+#define NV4_PBUS_PCI_STATUS_FAST_BACK2BACK_CAPABLE               0x1 
+#define NV4_PBUS_PCI_STATUS_2                                 0x1807
+#define NV4_PBUS_PCI_STATUS_2_DEVSEL_TIMING                        1 
+#define NV4_PBUS_PCI_STATUS_2_DEVSEL_TIMING_FAST                 0x0 
+#define NV4_PBUS_PCI_STATUS_2_DEVSEL_TIMING_MEDIUM               0x1 
+#define NV4_PBUS_PCI_STATUS_2_DEVSEL_TIMING_SLOW                 0x2 
+#define NV4_PBUS_PCI_STATUS_2_SIGNALED_TARGET                      3 
+#define NV4_PBUS_PCI_STATUS_2_SIGNALED_TARGET_NO_ABORT           0x0 
+#define NV4_PBUS_PCI_STATUS_2_SIGNALED_TARGET_ABORT              0x1 
+#define NV4_PBUS_PCI_STATUS_2_SIGNALED_TARGET_CLEAR              0x1 
+#define NV4_PBUS_PCI_STATUS_2_RECEIVED_TARGET                      4 
+#define NV4_PBUS_PCI_STATUS_2_RECEIVED_TARGET_NO_ABORT           0x0 
+#define NV4_PBUS_PCI_STATUS_2_RECEIVED_TARGET_ABORT              0x1 
+#define NV4_PBUS_PCI_STATUS_2_RECEIVED_TARGET_CLEAR              0x1 
+#define NV4_PBUS_PCI_STATUS_2_RECEIVED_MASTER                      5 
+#define NV4_PBUS_PCI_STATUS_2_RECEIVED_MASTER_NO_ABORT           0x0 
+#define NV4_PBUS_PCI_STATUS_2_RECEIVED_MASTER_ABORT              0x1 
+#define NV4_PBUS_PCI_STATUS_2_RECEIVED_MASTER_CLEAR   	         0x1 
+#define NV4_PBUS_PCI_REVISION_ID                              0x1808
+#define NV4_PBUS_PCI_REVISION_ID_A01                             0x0
+#define NV4_PBUS_PCI_REVISION_ID_B01                             0x1
+#define NV4_PBUS_PCI_CLASS_CODE                               0x180B
+#define NV4_PBUS_PCI_CLASS_CODE_VGA                          0x30000
+#define NV4_PBUS_PCI_LATENCY_TIMER                            0x180D
+// Shift left by 3 to get the real value in clocks. 0x0 = 0, 0x1 = 8, 0x1E = 240, 0x1F = 248 are values used.
+#define NV4_PBUS_PCI_LATENCY_TIMER_VALUE                           3
+// 0x0 = single function (only value that matters) 
+#define NV4_PBUS_PCI_HEADER_TYPE                              0x180E
+#define NV4_PBUS_PCI_BAR_SPACE_TYPE                                0
+#define NV4_PBUS_PCI_BAR_SPACE_TYPE_MEMORY               		 0x0
+#define NV4_PBUS_PCI_BAR_SPACE_TYPE_IO                   		 0x1
+#define NV4_PBUS_PCI_BAR_ADDRESS_TYPE                              1
+#define NV4_PBUS_PCI_BAR_ADDRESS_TYPE_32_BIT             		 0x0
+#define NV4_PBUS_PCI_BAR_ADDRESS_TYPE_20_BIT             		 0x1
+#define NV4_PBUS_PCI_BAR_ADDRESS_TYPE_64_BIT             		 0x2
+#define NV4_PBUS_PCI_BAR_PREFETCHABLE                              3
+#define NV4_PBUS_PCI_BAR_PREFETCHABLE_NOT                		 0x0
+#define NV4_PBUS_PCI_BAR_PREFETCHABLE_MERGABLE           		 0x1
+// Bits 23:4 are resedrved
+#define NV4_PBUS_PCI_BAR0_INFO                                0x1810
+#define NV4_PBUS_PCI_BAR0_UNUSED1                             0x1811
+#define NV4_PBUS_PCI_BAR0_UNUSED2                             0x1812
+#define NV4_PBUS_PCI_BAR0_BASE_31_TO_24                       0x1813 // Must align to 16MByte 
+#define NV4_PBUS_PCI_BAR1_INFO                                0x1814
+#define NV4_PBUS_PCI_BAR1_UNUSED1                             0x1814
+#define NV4_PBUS_PCI_BAR1_UNUSED2                             0x1815
+#define NV4_PBUS_PCI_BAR1_BASE_31_TO_24                       0x1816 // Must align to 16MByte 
+//BAR2-5 reserved
+#define NV4_PBUS_PCI_SUBSYSTEM_VENDOR_ID                      0x182C
+#define NV4_PBUS_PCI_SUBSYSTEM_ID                             0x182E
+#define NV4_PBUS_PCI_ROM                                      0x1830 
+#define NV4_PBUS_PCI_ROM_DECODE                                    0 
+#define NV4_PBUS_PCI_ROM_DECODE_ENABLED             		     0x1 
+#define NV4_PBUS_PCI_ROM_BASE                                 0x1832
+#define NV4_PBUS_PCI_NEXT_PTR                                 0x1834 
+#define NV4_PBUS_PCI_CAP_PTR_AGP                                0x44 
+#define NV4_PBUS_PCI_CAP_PTR_POWER_MGMT                         0x60 
+// 0xFF = unknown, otherwise 0x0-0xF = IRQ0-15
+#define NV4_PBUS_PCI_INTR_LINE                                0x183C 
+#define NV4_PBUS_PCI_INTR_LINE_IRQ_NUM                             0 
+#define NV4_PBUS_PCI_INTR_LINE_IRQ_NUM_UNKNOWN                  0xFF 
+#define NV4_PBUS_PCI_INTR_PIN                                 0x183D
+#define NV4_PBUS_PCI_INTR_PIN_INTA                  		     0x1 
+#define NV4_PBUS_PCI_MIN_GNT                                  0x183E
+#define NV4_PBUS_PCI_MIN_GNT_NO_REQUIREMENTS        		     0x0 
+#define NV4_PBUS_PCI_MIN_GNT_750NS                  		     0x3 
+#define NV4_PBUS_PCI_MIN_GNT_1250NS                 		     0x5 
+#define NV4_PBUS_PCI_MAX_LAT                                  0x183F 
+#define NV4_PBUS_PCI_MAX_LAT_NO_REQUIREMENTS        		     0x0 
+#define NV4_PBUS_PCI_MAX_LAT_250NS                  		     0x1 
+#define NV4_PBUS_PCI_SUBSYSTEM_VENDOR_ID_WRITABLE             0x1840
+#define NV4_PBUS_PCI_SUBSYSTEM_ID_WRITABLE                    0x1842
+#define NV4_PBUS_AGP                                            0x44
+#define NV4_PBUS_AGP_CAPABILITIES                             0x1844 
+#define NV4_PBUS_AGP_CAPABILITY_AGP                       		 0x2 
+// Should be null!
+
+#define NV4_PBUS_AGP_NEXT_PTR                                 0x1845
+#define NV4_PBUS_AGP_REV                                      0x1846
+#define NV4_PBUS_AGP_REV_MINOR                                     0
+#define NV4_PBUS_AGP_REV_MINOR_0                		         0x0 
+#define NV4_PBUS_AGP_REV_MAJOR                                     4
+#define NV4_PBUS_AGP_REV_MAJOR_1                		         0x1
+#define NV4_PBUS_AGP_STATUS_RATE                              0x1848
+#define NV4_PBUS_AGP_STATUS_RATE_1X             		         0x1 
+#define NV4_PBUS_AGP_STATUS_RATE_2X             		         0x2 
+#define NV4_PBUS_AGP_STATUS_RATE_1X_AND_2X      		         0x3 
+#define NV4_PBUS_AGP_STATUS_RQ                                0x184B 
+#define NV4_PBUS_AGP_STATUS_RQ_16               		         0xF 
+#define NV4_PBUS_AGP_STATUS_SBA                               0x1849
+#define NV4_PBUS_AGP_STATUS_SBA_STATUS                             1
+#define NV4_PBUS_AGP_STATUS_SBA_STATUS_NONE            		     0x0 
+#define NV4_PBUS_AGP_STATUS_SBA_STATUS_CAPABLE         		     0x1 
+#define NV4_PBUS_AGP_COMMAND                                  0x184C
+#define NV4_PBUS_AGP_COMMAND_DATA_RATE                             0 
+#define NV4_PBUS_AGP_COMMAND_DATA_RATE_OFF      		         0x0 
+#define NV4_PBUS_AGP_COMMAND_DATA_RATE_1X       		         0x1 
+#define NV4_PBUS_AGP_COMMAND_DATA_RATE_2X       		         0x2 
+#define NV4_PBUS_AGP_COMMAND_2                                0x184D
+#define NV4_PBUS_AGP_COMMAND_2_AGP_ENABLED                         0 // 1 = enabled, 0 = disabled
+#define NV4_PBUS_AGP_COMMAND_2_SBA_ENABLED                         1 // 1 = enabled, 0 = disabled
+#define NV4_PBUS_AGP_COMMAND_RQ_DEPTH                         0x184F //DEFAUlt 0
+#define NV4_PBUS_PCI_ROM_SHADOW                               0x1850 
+#define NV4_PBUS_PCI_ROM_SHADOW_IS_ENABLED                         0  // 1 = enabled, 0 = disabled
+#define NV4_PBUS_PCI_VGA                                      0x1854 
+#define NV4_PBUS_PCI_VGA_IS_ENABLED                                0  // 1 = enabled, 0 = disabled
+#define NV4_PBUS_PCI_SCRATCH                                  0x1858 
+#define NV4_PBUS_PCI_SCRATCH_DEFAULT                        0x23D6CE 
+#define NV4_PBUS_PCI_DT                                       0x185C 
+#define NV4_PBUS_PCI_DT_TIMEOUT                                    0 
+#define NV4_PBUS_PCI_DT_TIMEOUT_16                  		     0xF 
+//TODO: Implement
+#define NV4_PBUS_PCIPOWER                                     0x1860
+#define NV4_PBUS_PCIPOWER_CAP_ID                                   0 
+#define NV4_PBUS_PCIPOWER_CAP_ID_POWER_MGMT              		 0x1 
+#define NV4_PBUS_PCIPOWER_NEXT_PTR                            0x1861    // should be 0x44=AGP
+#define NV4_PBUS_PCIPOWER_2                                   0x1862
+#define NV4_PBUS_PCIPOWER_2_VERSION                                0
+#define NV4_PBUS_PCIPOWER_2_VERSION_1                      		 0x1
+#define NV4_PBUS_PCIPOWER_2_CLOCK                                  3
+#define NV4_PBUS_PCIPOWER_2_CLOCK_NOT_REQUIRED         		     0x0
+#define NV4_PBUS_PCIPOWER_2_DSI                                    5
+#define NV4_PBUS_PCIPOWER_2_DSI_NOT_REQUIRED               		 0x0
+#define NV4_PBUS_PCIPOWER_SUPPORTED_STATES                    0x1863
+#define NV4_PBUS_PCIPOWER_D1                                       1
+#define NV4_PBUS_PCIPOWER_D1_SUPPORTED                   		 0x1  // 1 = supported
+#define NV4_PBUS_PCIPOWER_D2                                       2
+#define NV4_PBUS_PCIPOWER_D2_SUPPORTED                   		 0x1  // 0 = not supported
+#define NV4_PBUS_PCIPOWER_PME_D0                                   3
+#define NV4_PBUS_PCIPOWER_PME_D0_SUPPORTED               	     0x1
+#define NV4_PBUS_PCIPOWER_PME_D1                                   4
+#define NV4_PBUS_PCIPOWER_PME_D1_SUPPORTED               	     0x1
+#define NV4_PBUS_PCIPOWER_PME_D2                                   5
+#define NV4_PBUS_PCIPOWER_PME_D2_SUPPORTED                       0x1
+#define NV4_PBUS_PCIPOWER_PME_D3_HOT                               6
+#define NV4_PBUS_PCIPOWER_PME_D3_HOT_SUPPORTED           		 0x1
+#define NV4_PBUS_PCIPOWER_PME_D3_COLD                              7
+#define NV4_PBUS_PCIPOWER_PME_D3_COLD_SUPPORTED          		 0x1
+#define NV4_PBUS_PCIPOWER_STATE_CURRENT                       0x1864 
+#define NV4_PBUS_PCIPOWER_STATE                                    0 
+#define NV4_PBUS_PCIPOWER_STATE_D3_HOT             		         0x3 
+#define NV4_PBUS_PCIPOWER_STATE_D2                 		         0x2 
+#define NV4_PBUS_PCIPOWER_STATE_D1                 		         0x1 
+#define NV4_PBUS_PCIPOWER_STATE_D0                 		         0x0 
 #define NV4_PFIFO_START                                       0x2000 
 #define NV4_PFIFO_END                                         0x3FFF
-
 #define NV4_PFIFO_DELAY_0                                     0x2040 
 #define NV4_PFIFO_DELAY_0_WAIT_RETRY                               0 
 #define NV4_PFIFO_DELAY_0_WAIT_RETRY_0                    		 0x0 
@@ -3249,6 +3216,7 @@
 
 #define NV4_CIO_START                                          0x3B0 
 #define NV4_CIO_END                                            0x3DF 
+#define NV4_CIO_SIZE                                           NV4_CIO_END - NV4_CIO_START
 
 
 #define NV4_CIO_INP0                                           0x3c2 
@@ -3403,7 +3371,7 @@
 #define NV4_CIO_CRE_TREG_VCNTA_INDEX                      		 0x6 
 #define NV4_CIO_CRE_TREG_VCNTB_INDEX                      		 0x7 
 #define NV4_CIO_CRE_DDC_STATUS_INDEX                            0x3E 
-#define NV4_CIO_CRE_DDC_WR_INDEX                                0x3F 
+#define NV4_CIO_CRE_DDC_WR_INDEX                                0x3F   // Write to i2c for EDID/DDC
 #define NV4_CIO_CRE_PCI_TO_INDEX                                0x40 
 #define NV4_CIO_CRE_PCI_TO_DELAY                                   0 
 
@@ -3456,6 +3424,10 @@
 #define NV4_PRMVIO_GX_READ_MAP_INDEX                      		 0x4 
 #define NV4_PRMVIO_GX_MODE_INDEX                          		 0x5 
 #define NV4_PRMVIO_GX_MISC_INDEX                          		 0x6 
+#define NV4_PRMVIO_GX_MISC_BANKED_128K_A0000                    0x00
+#define NV4_PRMVIO_GX_MISC_BANKED_64K_A0000                     0x04
+#define NV4_PRMVIO_GX_MISC_BANKED_32K_B0000                     0x08
+#define NV4_PRMVIO_GX_MISC_BANKED_32K_B8000                     0x0C
 #define NV4_PRMVIO_GX_DONT_CARE_INDEX                     		 0x7 
 #define NV4_PRMVIO_GX_BIT_MASK_INDEX                      		 0x8 
 
@@ -3922,6 +3894,7 @@
 // But this part may not work
 #define NV4_PRAMIN_START                                    0x700000
 #define NV4_PRAMIN_END                                      0x7FFFFF
+#define NV4_PRAMIN_SIZE                                      0xFFFFF
 
 #define NV4_PRAMIN_CONTEXT_0                   ( 0*32+31):( 0*32+ 0) 
 #define NV4_PRAMIN_CONTEXT_1                   ( 1*32+31):( 1*32+ 0) 
@@ -4002,35 +3975,35 @@
 
 // DFB is in BAR1. Access it as VRAM
 
-#define NV4_PEXTDEV_BOOT_0                                  0x101000 
-#define NV4_PEXTDEV_BOOT_0_STRAP_BUS_SPEED                         0 
-#define NV4_PEXTDEV_BOOT_0_STRAP_BUS_SPEED_33MHZ          		 0x0 
-#define NV4_PEXTDEV_BOOT_0_STRAP_BUS_SPEED_66MHZ          		 0x1 
-#define NV4_PEXTDEV_BOOT_0_STRAP_SUB_VENDOR                        1 
-#define NV4_PEXTDEV_BOOT_0_STRAP_SUB_VENDOR_NO_BIOS       		 0x0 
-#define NV4_PEXTDEV_BOOT_0_STRAP_SUB_VENDOR_BIOS          		 0x1 
-#define NV4_PEXTDEV_BOOT_0_STRAP_RAM_TYPE                          2 
-#define NV4_PEXTDEV_BOOT_0_STRAP_RAM_TYPE_SGRAM_256K      		 0x0 
-#define NV4_PEXTDEV_BOOT_0_STRAP_RAM_TYPE_SGRAM_512K_2BANK 		 0x1 
-#define NV4_PEXTDEV_BOOT_0_STRAP_RAM_TYPE_SGRAM_512K_4BANK 		 0x2 
-#define NV4_PEXTDEV_BOOT_0_STRAP_RAM_TYPE_1024K_2BANK     		 0x3 
-#define NV4_PEXTDEV_BOOT_0_STRAP_RAM_WIDTH                         4 
-#define NV4_PEXTDEV_BOOT_0_STRAP_RAM_WIDTH_64             		 0x0 
-#define NV4_PEXTDEV_BOOT_0_STRAP_RAM_WIDTH_128            		 0x1 
-#define NV4_PEXTDEV_BOOT_0_STRAP_BUS_TYPE                          5 
-#define NV4_PEXTDEV_BOOT_0_STRAP_BUS_TYPE_PCI             		 0x0 
-#define NV4_PEXTDEV_BOOT_0_STRAP_BUS_TYPE_AGP             		 0x1 
-#define NV4_PEXTDEV_BOOT_0_STRAP_CRYSTAL                           6 
-#define NV4_PEXTDEV_BOOT_0_STRAP_CRYSTAL_13500K           		 0x0 
-#define NV4_PEXTDEV_BOOT_0_STRAP_CRYSTAL_14318180         		 0x1 
-#define NV4_PEXTDEV_BOOT_0_STRAP_TVMODE                            7 
-#define NV4_PEXTDEV_BOOT_0_STRAP_TVMODE_SECAM             		 0x0 
-#define NV4_PEXTDEV_BOOT_0_STRAP_TVMODE_NTSC              		 0x1 
-#define NV4_PEXTDEV_BOOT_0_STRAP_TVMODE_PAL               		 0x2 
-#define NV4_PEXTDEV_BOOT_0_STRAP_TVMODE_DISABLED          		 0x3 
-#define NV4_PEXTDEV_BOOT_0_STRAP_OVERWRITE                        11 
-#define NV4_PEXTDEV_BOOT_0_STRAP_OVERWRITE_DISABLED       		 0x0 
-#define NV4_PEXTDEV_BOOT_0_STRAP_OVERWRITE_ENABLED        		 0x1 
+#define NV4_PEXTDEV_BOOT_0                                  0x101000
+#define NV4_STRAP_BUS_SPEED                                        0
+#define NV4_STRAP_BUS_SPEED_33MHZ          		                 0x0
+#define NV4_STRAP_BUS_SPEED_66MHZ          		                 0x1
+#define NV4_STRAP_SUB_VENDOR                                       1 
+#define NV4_STRAP_SUB_VENDOR_NO_BIOS       		                 0x0 
+#define NV4_STRAP_SUB_VENDOR_BIOS          		                 0x1 
+#define NV4_STRAP_RAM_TYPE                                         2 
+#define NV4_STRAP_RAM_TYPE_SGRAM_256K      		                 0x0 
+#define NV4_STRAP_RAM_TYPE_SGRAM_512K_2BANK 		             0x1 
+#define NV4_STRAP_RAM_TYPE_SGRAM_512K_4BANK 		             0x2 
+#define NV4_STRAP_RAM_TYPE_1024K_2BANK     		                 0x3 
+#define NV4_STRAP_RAM_WIDTH                                        4 
+#define NV4_STRAP_RAM_WIDTH_64             		                 0x0 
+#define NV4_STRAP_RAM_WIDTH_128            		                 0x1 
+#define NV4_STRAP_BUS_TYPE                                         5 
+#define NV4_STRAP_BUS_TYPE_PCI             		                 0x0 
+#define NV4_STRAP_BUS_TYPE_AGP             		                 0x1 
+#define NV4_STRAP_CRYSTAL                                          6 
+#define NV4_STRAP_CRYSTAL_13500K           		                 0x0 
+#define NV4_STRAP_CRYSTAL_14318180         		                 0x1 
+#define NV4_STRAP_TVMODE                                           7 
+#define NV4_STRAP_TVMODE_SECAM             		                 0x0 
+#define NV4_STRAP_TVMODE_NTSC              		                 0x1 
+#define NV4_STRAP_TVMODE_PAL               		                 0x2 
+#define NV4_STRAP_TVMODE_DISABLED          		                 0x3 
+#define NV4_STRAP_OVERWRITE                                       11 
+#define NV4_STRAP_OVERWRITE_DISABLED       		                 0x0 
+#define NV4_STRAP_OVERWRITE_ENABLED        		                 0x1 
 
 #define NV4_PDAC_START                                      0x680000 
 #define NV4_PDAC_END                                        0x680FFF 

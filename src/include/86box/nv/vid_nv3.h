@@ -1013,15 +1013,7 @@ typedef struct nv3_pmc_s
 
 } nv3_pmc_t;
 
-typedef struct nv3_pci_config_s
-{
-    uint8_t pci_regs[NV_PCI_NUM_CFG_REGS];  // The actual pci register values (not really used, just so they can be stored - they aren't very good for code readability)
-    bool    vbios_enabled;                  // is the vbios enabled?
-    uint8_t int_line;
-} nv3_pci_config_t;
-
-
-// add enums for eac
+// add enums for eac    
 // Chip configuration
 typedef struct nv3_straps_s
 {
@@ -1546,7 +1538,6 @@ typedef struct nv3_s
     
     // Config
     nv3_straps_t straps;            // OEM Configuration
-    nv3_pci_config_t pci_config;    // PCI Configuration
 
     // Subsystems
     nv3_pmc_t pmc;                  // Master Control

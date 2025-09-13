@@ -197,9 +197,7 @@ void nv3_mmio_write16(uint32_t addr, uint16_t val, void* priv)
         nv_log_verbose_only("Redirected MMIO write16 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
 
         nv3_svga_write(real_address, val & 0xFF, nv3);
-
-        if (val > 0xFF) 
-            nv3_svga_write(real_address + 1, (val >> 8) & 0xFF, nv3);
+        nv3_svga_write(real_address + 1, (val >> 8) & 0xFF, nv3);
         
         return; 
     }
@@ -227,15 +225,9 @@ void nv3_mmio_write32(uint32_t addr, uint32_t val, void* priv)
         nv_log_verbose_only("Redirected MMIO write32 to SVGA: addr=0x%04x val=0x%02x\n", addr, val);
 
         nv3_svga_write(real_address, val & 0xFF, nv3);
-
-        if (val > 0xFF) 
-            nv3_svga_write(real_address + 1, (val >> 8) & 0xFF, nv3);
-
-        if (val > 0xFFFF)
-            nv3_svga_write(real_address + 2, (val >> 16) & 0xFF, nv3);
-
-        if (val > 0xFFFFFF)
-            nv3_svga_write(real_address + 3, (val >> 24) & 0xFF, nv3);
+        nv3_svga_write(real_address + 1, (val >> 8) & 0xFF, nv3);
+        nv3_svga_write(real_address + 2, (val >> 16) & 0xFF, nv3);
+        nv3_svga_write(real_address + 3, (val >> 24) & 0xFF, nv3);
         
         return; 
     }
@@ -276,7 +268,7 @@ uint8_t nv3_agp_read(int32_t func, int32_t addr)
             ret = nv3->nvbase.agp_enabled;
             break;
         default:
-            ret = nv3->pci_config.pci_regs[addr];
+            ret = nv3->nvbase.pci_config.pci_regs[addr];
             break; 
     }
 
@@ -329,25 +321,25 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
         // 66Mhz FSB        capable
 
         case PCI_REG_COMMAND_L:
-            ret = nv3->pci_config.pci_regs[PCI_REG_COMMAND_L]; 
+            ret = nv3->nvbase.pci_config.pci_regs[PCI_REG_COMMAND_L]; 
             break;
         
         case PCI_REG_COMMAND_H:
-            ret = nv3->pci_config.pci_regs[PCI_REG_COMMAND_H] & NV3_PCI_COMMAND_H_FAST_BACK2BACK; // always enable fast back2back
+            ret = nv3->nvbase.pci_config.pci_regs[PCI_REG_COMMAND_H] & NV3_PCI_COMMAND_H_FAST_BACK2BACK; // always enable fast back2back
             break;
 
         // pci status register
         case PCI_REG_STATUS_L:
             if (nv3->pextdev.straps 
             & NV3_PSTRAPS_BUS_SPEED_66MHZ)
-                ret = (nv3->pci_config.pci_regs[PCI_REG_STATUS_L] | NV3_PCI_STATUS_L_66MHZ_CAPABLE);
+                ret = (nv3->nvbase.pci_config.pci_regs[PCI_REG_STATUS_L] | NV3_PCI_STATUS_L_66MHZ_CAPABLE);
             else
-                ret = nv3->pci_config.pci_regs[PCI_REG_STATUS_L];
+                ret = nv3->nvbase.pci_config.pci_regs[PCI_REG_STATUS_L];
 
             break;
 
         case PCI_REG_STATUS_H:
-            ret = (nv3->pci_config.pci_regs[PCI_REG_STATUS_H]) & (NV3_PCI_STATUS_H_FAST_DEVSEL_TIMING << NV3_PCI_STATUS_H_DEVSEL_TIMING);
+            ret = (nv3->nvbase.pci_config.pci_regs[PCI_REG_STATUS_H]) & (NV3_PCI_STATUS_H_FAST_DEVSEL_TIMING << NV3_PCI_STATUS_H_DEVSEL_TIMING);
             break;
         
         case NV3_PCI_CFG_REVISION:
@@ -400,7 +392,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
             break;
 
         case NV3_PCI_CFG_ENABLE_VBIOS:
-            ret = nv3->pci_config.vbios_enabled;
+            ret = nv3->nvbase.pci_config.vbios_enabled;
             break;
         
         case NV3_AGP_CAPABILITIES_POINTER:
@@ -411,7 +403,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
             break; 
 
         case NV3_PCI_CFG_INT_LINE:
-            ret = nv3->pci_config.int_line;
+            ret = nv3->nvbase.pci_config.int_line;
             break;
         
         case NV3_PCI_CFG_INT_PIN:
@@ -433,7 +425,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
             
         case NV3_PCI_CFG_SUBSYSTEM_ID_MIRROR_START:
         case NV3_PCI_CFG_SUBSYSTEM_ID_MIRROR_END:
-            ret = nv3->pci_config.pci_regs[NV3_PCI_CFG_SUBSYSTEM_ID + (addr & 0x03)];
+            ret = nv3->nvbase.pci_config.pci_regs[NV3_PCI_CFG_SUBSYSTEM_ID + (addr & 0x03)];
             break;
 
         case NV3_AGP_START ... NV3_AGP_END:
@@ -446,7 +438,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
         
 
         default: // by default just return pci_config.pci_regs
-            ret = nv3->pci_config.pci_regs[addr];
+            ret = nv3->nvbase.pci_config.pci_regs[addr];
             break;
         
     }
@@ -457,7 +449,7 @@ uint8_t nv3_pci_read(int32_t func, int32_t addr, void* priv)
 
 void nv3_agp_write(int32_t func, int32_t addr, uint8_t val)
 {
-    nv3->pci_config.pci_regs[addr] = val;
+    nv3->nvbase.pci_config.pci_regs[addr] = val;
 
     switch (addr)
     {
@@ -471,7 +463,6 @@ void nv3_agp_write(int32_t func, int32_t addr, uint8_t val)
 
 void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
 {
-
     // sanity check
     if (!nv3)
         return; 
@@ -484,29 +475,28 @@ void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
 
     nv_log("nv3_pci_write func=0x%04x addr=0x%04x val=0x%04x\n", func, addr, val);
 
-    nv3->pci_config.pci_regs[addr] = val;
+    nv3->nvbase.pci_config.pci_regs[addr] = val;
 
     switch (addr)
     {
         // standard pci command stuff
         case PCI_REG_COMMAND_L:
-            nv3->pci_config.pci_regs[PCI_REG_COMMAND_L] = val;
+            nv3->nvbase.pci_config.pci_regs[PCI_REG_COMMAND_L] = val;
             // actually update the mappings
             nv3_update_mappings();
             break;
         case PCI_REG_COMMAND_H:
-            nv3->pci_config.pci_regs[PCI_REG_COMMAND_H] = val;
+            nv3->nvbase.pci_config.pci_regs[PCI_REG_COMMAND_H] = val;
             // actually update the mappings
             nv3_update_mappings();          
             break;
         // pci status register
         case PCI_REG_STATUS_L:
-            nv3->pci_config.pci_regs[PCI_REG_STATUS_L] = val | (NV3_PCI_STATUS_L_66MHZ_CAPABLE);
+            nv3->nvbase.pci_config.pci_regs[PCI_REG_STATUS_L] = val | (NV3_PCI_STATUS_L_66MHZ_CAPABLE);
             break;
         case PCI_REG_STATUS_H:
-            nv3->pci_config.pci_regs[PCI_REG_STATUS_H] = val | (NV3_PCI_STATUS_H_FAST_DEVSEL_TIMING << NV3_PCI_STATUS_H_DEVSEL_TIMING);
+            nv3->nvbase.pci_config.pci_regs[PCI_REG_STATUS_H] = val | (NV3_PCI_STATUS_H_FAST_DEVSEL_TIMING << NV3_PCI_STATUS_H_DEVSEL_TIMING);
             break;
-        //TODO: ACTUALLY REMAP THE MMIO AND NV_USER
         case NV3_PCI_CFG_BAR0_BASE_ADDRESS:
             nv3->nvbase.bar0_mmio_base = val << 24;
             nv3_update_mappings();
@@ -520,9 +510,9 @@ void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
             
             // make sure we are actually toggling the vbios, not the rom base
             if (addr == NV3_PCI_CFG_ENABLE_VBIOS)
-                nv3->pci_config.vbios_enabled = (val & 0x01);
+                nv3->nvbase.pci_config.vbios_enabled = (val & 0x01);
 
-            if (nv3->pci_config.vbios_enabled)
+            if (nv3->nvbase.pci_config.vbios_enabled)
             {
                 // First see if we simply wanted to change the VBIOS location
 
@@ -533,8 +523,8 @@ void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
                 {
                     uint32_t old_addr = nv3->nvbase.vbios.mapping.base;
                     // 9bit register
-                    uint32_t new_addr = nv3->pci_config.pci_regs[NV3_PCI_CFG_VBIOS_BASE_H] << 24 |
-                    nv3->pci_config.pci_regs[NV3_PCI_CFG_VBIOS_BASE_L] << 16;
+                    uint32_t new_addr = nv3->nvbase.pci_config.pci_regs[NV3_PCI_CFG_VBIOS_BASE_H] << 24 |
+                    nv3->nvbase.pci_config.pci_regs[NV3_PCI_CFG_VBIOS_BASE_L] << 16;
 
                     // move it
                     mem_mapping_set_addr(&nv3->nvbase.vbios.mapping, new_addr, 0x8000);
@@ -555,7 +545,7 @@ void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
             }
             break;
         case NV3_PCI_CFG_INT_LINE:
-            nv3->pci_config.int_line = val;
+            nv3->nvbase.pci_config.int_line = val;
             break;
         //bar2-5 are not used and can't be written to
         case NV3_PCI_CFG_BAR_INVALID_START ... NV3_PCI_CFG_BAR_INVALID_END:
@@ -564,7 +554,7 @@ void nv3_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
         // these are mirrored to the subsystem id and also stored in the ROMBIOS
         case NV3_PCI_CFG_SUBSYSTEM_ID_MIRROR_START:
         case NV3_PCI_CFG_SUBSYSTEM_ID_MIRROR_END:
-            nv3->pci_config.pci_regs[NV3_PCI_CFG_SUBSYSTEM_ID + (addr & 0x03)] = val;
+            nv3->nvbase.pci_config.pci_regs[NV3_PCI_CFG_SUBSYSTEM_ID + (addr & 0x03)] = val;
             break;
 
         case NV3_AGP_START ... NV3_AGP_END:
@@ -855,16 +845,14 @@ void nv3_svga_write(uint16_t addr, uint8_t val, void* priv)
                     i2c_gpio_set(nv3->nvbase.i2c, scl, sda);
                     break;
                 }
-                /* [6:0] contains cursorAddr [23:17] */
+                /* [6:0] contains cursorAddr [22:16] */
                 case NV3_CRTC_REGISTER_CURSOR_ADDR0:
-                    nv3->pramdac.cursor_address |= val << 17; //bit7 technically ignored, but nv don't care, so neither do we
+                    nv3->pramdac.cursor_address |= ((val & 0x7F) << 12); //bit7 technically ignored, but nv don't care, so neither do we
                     break;
                 /* [7:2] contains cursorAddr [16:11] */
                 case NV3_CRTC_REGISTER_CURSOR_ADDR1:
-                    nv3->pramdac.cursor_address |= (val >> 2) << 13; // bit0 and 1 aren't part of the address 
+                    nv3->pramdac.cursor_address |= ((val & 0xF8) << 4); // bit0 and 1 aren't part of the address 
                     break;
-
-
             }
 
             /* Recalculate the timings if we actually changed them 
@@ -1130,7 +1118,6 @@ void nv3_init_mappings_mmio(void)
         nv3_ramin_write32,
         NULL, MEM_MAPPING_EXTERNAL, nv3);
 
-    
     mem_mapping_add(&nv3->nvbase.ramin_mapping_mirror, 0, 0,
         nv3_ramin_read8,
         nv3_ramin_read16,
@@ -1140,14 +1127,11 @@ void nv3_init_mappings_mmio(void)
         nv3_ramin_write32,
         NULL, MEM_MAPPING_EXTERNAL, nv3);
 
-
 }
 
 void nv3_init_mappings_svga(void)
 {
     nv_log("Initialising SVGA core memory mapping\n");
-
-    
     // setup the svga mappings
     mem_mapping_add(&nv3->nvbase.framebuffer_mapping, 0, 0,
         nv3_dfb_read8,
@@ -1191,20 +1175,20 @@ void nv3_update_mappings(void)
 
     nv_log("\nMemory Mapping Config Change:\n");
 
-    (nv3->pci_config.pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO) ? nv_log("Enable I/O\n") : nv_log("Disable I/O\n");
+    (nv3->nvbase.pci_config.pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO) ? nv_log("Enable I/O\n") : nv_log("Disable I/O\n");
 
     io_removehandler(0x03c0, 0x0020, 
         nv3_svga_read, NULL, NULL, 
         nv3_svga_write, NULL, NULL, 
         nv3);
 
-    if (nv3->pci_config.pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
+    if (nv3->nvbase.pci_config.pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
         io_sethandler(0x03c0, 0x0020, 
         nv3_svga_read, NULL, NULL, 
         nv3_svga_write, NULL, NULL, 
         nv3);   
     
-    if (!(nv3->pci_config.pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))
+    if (!(nv3->nvbase.pci_config.pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))
     {
         nv_log("The memory was turned off, not much is going to happen.\n");
         return;
@@ -1412,8 +1396,8 @@ void* nv3_init(const device_t *info)
     nv3_init_mappings();
 
     // make us actually exist
-    nv3->pci_config.int_line = 0xFF; // per datasheet
-    nv3->pci_config.pci_regs[PCI_REG_COMMAND] = PCI_COMMAND_IO | PCI_COMMAND_MEM;
+    nv3->nvbase.pci_config.int_line = 0xFF; // per datasheet
+    nv3->nvbase.pci_config.pci_regs[PCI_REG_COMMAND] = PCI_COMMAND_IO | PCI_COMMAND_MEM;
 
     // svga is done, so now initialise the real gpu
 

@@ -97,10 +97,19 @@ typedef enum nv_bus_generation_e
 
 } nv_bus_generation;
 
+// PCI configuration
+typedef struct nv_pci_config_s
+{
+    uint8_t pci_regs[NV_PCI_NUM_CFG_REGS];  // The actual pci register values (not really used, just so they can be stored - they aren't very good for code readability)
+    bool    vbios_enabled;                  // is the vbios enabled?
+    uint8_t int_line;
+} nv_pci_config_t;
+
 // NV Base
 typedef struct nv_base_s
 {
     rom_t vbios;                                // NVIDIA/OEm VBIOS
+    nv_pci_config_t pci_config;                 // PCI configuration
     // move to nv3_cio_t?
     svga_t svga;                                // SVGA core (separate to nv3) - Weitek licensed
     uint32_t vram_amount;                       // The amount of VRAM
@@ -113,7 +122,7 @@ typedef struct nv_base_s
     mem_mapping_t mmio_mapping;                 // mmio mapping (32MB unified MMIO) 
     mem_mapping_t framebuffer_mapping_mirror;   // Mirror of LFB mapping
     mem_mapping_t ramin_mapping;                // RAM INput area mapping
-    mem_mapping_t ramin_mapping_mirror;         // RAM INput area mapping (mirrored)
+    mem_mapping_t ramin_mapping_mirror;         // RAM INput area mapping (mirrored) - NV3 ONLY
     uint8_t pci_slot;                           // pci slot number
     uint8_t pci_irq_state;                      // current PCI irq state
     uint32_t bar0_mmio_base;                    // PCI Base Address Register 0 - MMIO Base
@@ -131,6 +140,7 @@ typedef struct nv_base_s
     void* i2c;                                  // I2C for monitor EDID
     void* ddc;                                  // Display Data Channel for EDID
     bool agp_enabled;                           // AGP Enabled (for debugging)
+    bool agp_sba_enabled;                       // AGP Sideband Addressing enabled
 
     //
     // DEBUG UI STUFF

@@ -199,6 +199,7 @@ add_library(vid OBJECT
 
     # NVidia RIVA TNT/TNT2 - Core
     nv/nv4/nv4_core.c
+    nv/nv4/nv4_core_io.c
     nv/nv4/nv4_core_config.c
 
     # Generic
