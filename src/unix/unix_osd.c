@@ -350,19 +350,24 @@ int osd_handle(SDL_Event event)
                             break;
                         case 5 : // "fddeject - eject disk from floppy drive",
                             osd_cmd_run("fddeject 0");
-                            break;
+                            return 0;
+
                         case 6 : // "cdeject - eject disc from CD-ROM drive",
                             osd_cmd_run("cdeject 0");
-                            break;
+                            return 0;
+
                         case 7 : // "rdiskeject - eject removable disk",
                             osd_cmd_run("rdiskeject 0");
-                            break;
+                            return 0;
+
                         case 8 : // "carteject - eject cartridge",
                             osd_cmd_run("carteject 0");
-                            break;
+                            return 0;
+
                         case 9 : // "moeject - eject image from MO drive",
                             osd_cmd_run("moeject 0");
-                            break;
+                            return 0;
+
                         case 10 : // "hardreset - hard reset the emulated system",
                             osd_cmd_run("hardreset");
                             return 0;
@@ -423,7 +428,8 @@ int osd_handle(SDL_Event event)
 
                         unix_executeLine(cmd);
                         state = STATE_MENU;
-                        break;
+                        return 0;
+
                     case SDLK_ESCAPE:
                         state = STATE_MENU;
                         break;
