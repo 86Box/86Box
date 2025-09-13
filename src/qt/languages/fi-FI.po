@@ -15,8 +15,8 @@ msgstr "&Vaadi näppäimistön kaappaus"
 msgid "&Right CTRL is left ALT"
 msgstr "&Oikea CTRL on vasen ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Uudelleenkäynnistys (kylmä)..."
+msgid "&Hard reset"
+msgstr "&Uudelleenkäynnistys (kylmä)"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "&Salli koon muuttaminen"
 
 msgid "R&emember size && position"
 msgstr "&Muista koko ja sijainti"
+
+msgid "Remember size && position"
+msgstr "Muista koko ja sijainti"
 
 msgid "Re&nderer"
 msgstr "&Renderöijä"
@@ -1073,6 +1076,12 @@ msgstr "Pakota sammutus"
 
 msgid "Start"
 msgstr "Käynnistä"
+
+msgid "&Force shutdown"
+msgstr "&Pakota sammutus"
+
+msgid "&Start"
+msgstr "&Käynnistä"
 
 msgid "Not running"
 msgstr "Ei käynnissä"

@@ -15,7 +15,7 @@ msgstr "&Klávesnice vyžaduje záběr myši"
 msgid "&Right CTRL is left ALT"
 msgstr "&Pravý Ctrl je levý Alt"
 
-msgid "&Hard Reset..."
+msgid "&Hard reset"
 msgstr "&Resetovat"
 
 msgid "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "&Měnitelná velikost okna"
 
 msgid "R&emember size && position"
 msgstr "&Pamatovat velikost a pozici"
+
+msgid "Remember size && position"
+msgstr "Pamatovat velikost a pozici"
 
 msgid "Re&nderer"
 msgstr "&Renderer"
@@ -1073,6 +1076,12 @@ msgstr "Vynutit vypnutí"
 
 msgid "Start"
 msgstr "Spustit"
+
+msgid "&Force shutdown"
+msgstr "&Vynutit vypnutí"
+
+msgid "&Start"
+msgstr "&Spustit"
 
 msgid "Not running"
 msgstr "Neběží"
