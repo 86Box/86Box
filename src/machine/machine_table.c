@@ -17681,11 +17681,11 @@ const machine_t machines[] = {
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 (updated 'H') KBC firmware. */
     {
-        .name = "[i440BX] LG IBM Multinet i x7G (MSI MS-6119)",
-        .internal_name = "lgibmx7g",
+        .name = "[i440BX] MSI MS-6119",
+        .internal_name = "ms6119",
         .type = MACHINE_TYPE_SLOT1,
         .chipset = MACHINE_CHIPSET_INTEL_440BX,
-        .init = machine_at_lgibmx7g_init,
+        .init = machine_at_ms6119_init,
         .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -17715,7 +17715,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &ms6119_device,
         .kbd_device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
