@@ -2980,16 +2980,16 @@ msgid "EDID file \"%ls\" is too large."
 msgstr "Soubor EDID \"%ls\" je příliš velký."
 
 msgid "OpenGL input scale"
-msgstr "Vstupní měřítko OpenGL"
+msgstr "Měřítko vstupu OpenGL"
 
 msgid "OpenGL input stretch mode"
-msgstr "režim roztažení vstupu OpenGL"
+msgstr "Režim roztažení vstupu OpenGL"
 
 msgid "Color scheme"
 msgstr "Barevné schéma"
 
 msgid "Light"
-msgstr "Světlo"
+msgstr "Světlé"
 
 msgid "Dark"
-msgstr "Tmavá"
+msgstr "Tmavé"
