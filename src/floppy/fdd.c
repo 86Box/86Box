@@ -83,6 +83,7 @@ char  floppyfns[FDD_NUM][512];
 char *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 
 pc_timer_t fdd_poll_time[FDD_NUM];
+pc_timer_t fdd_seek_timer[FDD_NUM];
 
 static int fdd_notfound = 0;
 static int driveloaders[FDD_NUM];
@@ -187,11 +188,32 @@ int fdd_do_log = ENABLE_FDD_LOG;
 static void
 fdd_log(const char *fmt, ...)
 {
-    va_list ap;
+    va_list ap, ap_copy;
+    char    timebuf[32];
+    char    fullbuf[1056]; // 32 + 1024 bytes for timestamp + message
 
     if (fdd_do_log) {
+        uint32_t ticks        = plat_get_ticks();
+        uint32_t seconds      = ticks / 1000;
+        uint32_t milliseconds = ticks % 1000;
+
+        snprintf(timebuf, sizeof(timebuf), "[%07u.%03u] ", seconds, milliseconds);
+
         va_start(ap, fmt);
-        pclog_ex(fmt, ap);
+        va_copy(ap_copy, ap);
+
+        strcpy(fullbuf, timebuf);
+        vsnprintf(fullbuf + strlen(timebuf), sizeof(fullbuf) - strlen(timebuf), fmt, ap_copy);
+
+        va_end(ap_copy);
+        va_end(ap);
+
+        va_start(ap, fmt);
+        va_end(ap);
+
+        char *msg = fullbuf;
+        va_start(ap, fmt);
+        pclog_ex("%s", (va_list) &msg);
         va_end(ap);
     }
 }
@@ -247,9 +269,21 @@ fdd_forced_seek(int drive, int track_diff)
     fdd_do_seek(drive, fdd[drive].track);
 }
 
+static void
+fdd_seek_complete_callback(void *priv)
+{
+    DRIVE *drive = (DRIVE *) priv;
+
+    fdd_log("fdd_seek_complete_callback(drive=%d) - TIMER FIRED! seek_in_progress=1\n", drive->id);
+    fdd_log("Notifying FDC of seek completion\n");
+
+    fdc_seek_complete_interrupt(fdd_fdc, drive->id);
+}
+
 void
 fdd_seek(int drive, int track_diff)
 {
+    fdd_log("fdd_seek(drive=%d, track_diff=%d)\n", drive, track_diff);
     if (!track_diff)
         return;
 
@@ -274,13 +308,23 @@ fdd_seek(int drive, int track_diff)
         /* Multi-track seek */
         fdd_audio_play_multi_track_seek(drive, old_track, fdd[drive].track);
     }
-
+    
+    // Count actual seek time (6ms per track + 50ms base)
+    // 80 tracks -> 50 + 6 * 80 = 530ms
+    uint64_t seek_time_us = (50000 + (abs(track_diff) * 6000)) * TIMER_USEC;
+    if (!fdd_seek_timer[drive].callback) {
+        timer_add(&(fdd_seek_timer[drive]), fdd_seek_complete_callback, &drives[drive], 0);
+    }    
+    
+    timer_set_delay_u64(&fdd_seek_timer[drive], seek_time_us);
     fdd_do_seek(drive, fdd[drive].track);
 }
 
 int
 fdd_track0(int drive)
 {
+    fdd_log("fdd_track0(drive=%d)\n", drive);
+
     /* If drive is disabled, TRK0 never gets set. */
     if (!drive_types[fdd[drive].type].max_track)
         return 0;
@@ -423,6 +467,7 @@ fdd_is_double_sided(int drive)
 void
 fdd_set_head(int drive, int head)
 {
+    fdd_log("fdd_set_head(%d, %d)\n", drive, head);
     if (head && !fdd_is_double_sided(drive))
         fdd[drive].head = 0;
     else
@@ -470,6 +515,7 @@ fdd_get_densel(int drive)
 void
 fdd_load(int drive, char *fn)
 {
+    fdd_log("fdd_load(%d, %s)\n", drive, fn);
     int         c = 0;
     int         size;
     const char *p;
@@ -558,6 +604,7 @@ fdd_byteperiod(int drive)
 void
 fdd_set_motor_enable(int drive, int motor_enable)
 {
+    fdd_log("fdd_set_motor_enable(%d, %d)\n", drive, motor_enable);
     fdd_audio_set_motor_enable(drive, motor_enable);
     
     if (motor_enable && !motoron[drive]) {
@@ -629,6 +676,7 @@ fdd_reset(void)
 void
 fdd_readsector(int drive, int sector, int track, int side, int density, int sector_size)
 {
+    fdd_log("fdd_readsector(%d, %d, %d, %d, %d, %d)\n", drive, sector, track, side, density, sector_size);
     if (drives[drive].readsector)
         drives[drive].readsector(drive, sector, track, side, density, sector_size);
     else
@@ -638,6 +686,7 @@ fdd_readsector(int drive, int sector, int track, int side, int density, int sect
 void
 fdd_writesector(int drive, int sector, int track, int side, int density, int sector_size)
 {
+    fdd_log("fdd_writesector(%d, %d, %d, %d, %d, %d)\n", drive, sector, track, side, density, sector_size);
     if (drives[drive].writesector)
         drives[drive].writesector(drive, sector, track, side, density, sector_size);
     else

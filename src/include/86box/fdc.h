@@ -251,6 +251,7 @@ extern uint8_t fdc_read(uint16_t addr, void *priv);
 extern void    fdc_reset(void *priv);
 
 extern uint8_t fdc_get_current_drive(void);
+extern void    fdc_seek_complete_interrupt(fdc_t *fdc, int drive);
 
 #ifdef EMU_DEVICE_H
 extern const device_t fdc_xt_device;
