@@ -1153,11 +1153,13 @@ usage:
         start_vmm = 1;
     } else {
         strncpy(vmm_path, vmm_path_cfg, sizeof(vmm_path) - 1);
+        vmm_path[sizeof(vmm_path) - 1] = '\0';
     }
 
     if (start_vmm) {
         pclog("# VM Manager enabled. Path: %s\n", vmm_path);
         strncpy(usr_path, vmm_path, sizeof(usr_path) - 1);
+        usr_path[sizeof(usr_path) - 1] = '\0';
     } else
 #endif
     {
