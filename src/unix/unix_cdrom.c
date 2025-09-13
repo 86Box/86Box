@@ -140,6 +140,9 @@ plat_cdrom_ui_update(uint8_t id, UNUSED(uint8_t reload))
 void
 cdrom_mount(uint8_t id, char *fn)
 {
+    int ret = cdrom_load( &(cdrom[id]), fn, 0);
+
+    /*
     strcpy(cdrom[id].prev_image_path, cdrom[id].image_path);
     if (cdrom[id].ops && cdrom[id].ops->close)
         cdrom[id].ops->close(cdrom[id].local);
@@ -148,13 +151,17 @@ cdrom_mount(uint8_t id, char *fn)
     if ((fn != NULL) && (strlen(fn) >= 1) && (fn[strlen(fn) - 1] == '\\'))
             fn[strlen(fn) - 1] = '/';
     image_open(&(cdrom[id]), fn);
-    /* Signal media change to the emulated machine. */
+    // Signal media change to the emulated machine.
     if (cdrom[id].insert)
         cdrom[id].insert(cdrom[id].priv);
+
     if (cdrom[id].image_path[0] == 0x00)
         ui_sb_update_icon_state(SB_CDROM | id, 0);
     else
         ui_sb_update_icon_state(SB_CDROM | id, 1);
+    */
+
+    ui_sb_update_icon_state(SB_CDROM | id, ret == 0 ? 1 : 0);
 #if 0
     media_menu_update_cdrom(id);
 #endif

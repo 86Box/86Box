@@ -441,3 +441,17 @@ int osd_handle(SDL_Event event)
     // Keep it open
     return 1;
 }
+
+void osd_ui_sb_update_icon_state(UNUSED(int tag), UNUSED(int state))
+{
+}
+
+void
+osd_ui_sb_update_icon(UNUSED(int tag), UNUSED(int active))
+{
+}
+
+void
+osd_ui_sb_update_icon_write(UNUSED(int tag), UNUSED(int active))
+{
+}

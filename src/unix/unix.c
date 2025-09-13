@@ -476,19 +476,19 @@ plat_remove(char *path)
 void
 ui_sb_update_icon_state(UNUSED(int tag), UNUSED(int state))
 {
-    /* No-op. */
+    osd_ui_sb_update_icon_state(tag, state);
 }
 
 void
 ui_sb_update_icon(UNUSED(int tag), UNUSED(int active))
 {
-    /* No-op. */
+    osd_ui_sb_update_icon(tag, active);
 }
 
 void
 ui_sb_update_icon_write(UNUSED(int tag), UNUSED(int active))
 {
-    /* No-op. */
+    osd_ui_sb_update_icon_write(tag, active);
 }
 
 void
