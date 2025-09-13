@@ -15,8 +15,8 @@ msgstr "&Tastiera richiede la cattura"
 msgid "&Right CTRL is left ALT"
 msgstr "CTRL &destro è ALT sinistro"
 
-msgid "&Hard Reset..."
-msgstr "&Riavvia..."
+msgid "&Hard reset"
+msgstr "&Riavvia"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Canc"
@@ -1076,6 +1076,12 @@ msgstr "Forza arresto"
 
 msgid "Start"
 msgstr "Avvia"
+
+msgid "&Force shutdown"
+msgstr "&Forza arresto"
+
+msgid "&Start"
+msgstr "&Avvia"
 
 msgid "Not running"
 msgstr "Inattivo"

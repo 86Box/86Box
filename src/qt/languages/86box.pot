@@ -15,7 +15,7 @@ msgstr ""
 msgid "&Right CTRL is left ALT"
 msgstr ""
 
-msgid "&Hard Reset..."
+msgid "&Hard reset"
 msgstr ""
 
 msgid "&Ctrl+Alt+Del"
@@ -1075,6 +1075,12 @@ msgid "Force shutdown"
 msgstr ""
 
 msgid "Start"
+msgstr ""
+
+msgid "&Force shutdown"
+msgstr ""
+
+msgid "&Start"
 msgstr ""
 
 msgid "Not running"

@@ -15,8 +15,8 @@ msgstr "&Клавіатура потребує захвату"
 msgid "&Right CTRL is left ALT"
 msgstr "&Правий CTRL - це лівий ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Холодне перезавантаження..."
+msgid "&Hard reset"
+msgstr "&Холодне перезавантаження"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -1076,6 +1076,12 @@ msgstr "Примусове завершення роботи"
 
 msgid "Start"
 msgstr "Пуск"
+
+msgid "&Force shutdown"
+msgstr "Примусове &завершення роботи"
+
+msgid "&Start"
+msgstr "&Пуск"
 
 msgid "Not running"
 msgstr "Не працює"

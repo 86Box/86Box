@@ -15,8 +15,8 @@ msgstr "キーボードはキャプチャが必要(&K)"
 msgid "&Right CTRL is left ALT"
 msgstr "右CTRLを左ALTへ変換(&R)"
 
-msgid "&Hard Reset..."
-msgstr "ハード リセット(&H)..."
+msgid "&Hard reset"
+msgstr "ハード リセット(&H)"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del(&C)"
@@ -1076,6 +1076,12 @@ msgstr "強制終了"
 
 msgid "Start"
 msgstr "スタート"
+
+msgid "&Force shutdown"
+msgstr "強制終了(&F)"
+
+msgid "&Start"
+msgstr "スタート(&S)"
 
 msgid "Not running"
 msgstr "停止した"

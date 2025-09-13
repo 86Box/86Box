@@ -15,8 +15,8 @@ msgstr "&Tastatur krever opptak"
 msgid "&Right CTRL is left ALT"
 msgstr "&Høyre CTRL er venstre ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Hard tilbakestilling..."
+msgid "&Hard reset"
+msgstr "&Hard tilbakestilling"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -1076,6 +1076,12 @@ msgstr "Tvangsavslutt"
 
 msgid "Start"
 msgstr "Start"
+
+msgid "&Force shutdown"
+msgstr "&Tvangsavslutt"
+
+msgid "&Start"
+msgstr "&Start"
 
 msgid "Not running"
 msgstr "Ikke kjørende"

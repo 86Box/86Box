@@ -15,7 +15,7 @@ msgstr "Bàn phím &hoạt động cần 'bắt' chuột"
 msgid "&Right CTRL is left ALT"
 msgstr "Gắn ALT trái vào CTRL ph&ải"
 
-msgid "&Hard Reset..."
+msgid "&Hard reset"
 msgstr "Buộc khởi độn&g lại"
 
 msgid "&Ctrl+Alt+Del"
@@ -1076,6 +1076,12 @@ msgstr "Buộc tắt nguồn máy"
 
 msgid "Start"
 msgstr "Khởi động"
+
+msgid "&Force shutdown"
+msgstr "&Buộc tắt nguồn máy"
+
+msgid "&Start"
+msgstr "&Khởi động"
 
 msgid "Not running"
 msgstr "Đang không chạy"

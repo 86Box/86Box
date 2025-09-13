@@ -98,6 +98,9 @@
    <property name="text">
     <string>&amp;Start</string>
    </property>
+   <property name="toolTip">
+    <string>Start</string>
+   </property>
    <property name="iconVisibleInMenu">
     <bool>false</bool>
    </property>
@@ -108,7 +111,10 @@
      <normaloff>:/menuicons/qt/icons/hard_reset.ico</normaloff>:/menuicons/qt/icons/hard_reset.ico</iconset>
    </property>
    <property name="text">
-    <string>&amp;Hard Reset...</string>
+    <string>&amp;Hard reset</string>
+   </property>
+   <property name="toolTip">
+    <string>Hard reset</string>
    </property>
    <property name="iconVisibleInMenu">
     <bool>false</bool>
@@ -166,6 +172,9 @@
    </property>
    <property name="text">
     <string>&amp;Settings...</string>
+   </property>
+   <property name="toolTip">
+    <string>Settings...</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>

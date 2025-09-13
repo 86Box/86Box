@@ -15,8 +15,8 @@ msgstr "&Tastatur benötigt das Einfangen des Mauszeigers"
 msgid "&Right CTRL is left ALT"
 msgstr "&Die rechte Strg-Taste ist die linke Alt-Taste"
 
-msgid "&Hard Reset..."
-msgstr "&Kaltstart..."
+msgid "&Hard reset"
+msgstr "&Kaltstart"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Strg+Alt+Entf"
@@ -1076,6 +1076,12 @@ msgstr "Abschaltung erzwingen"
 
 msgid "Start"
 msgstr "Einschalten"
+
+msgid "&Force shutdown"
+msgstr "&Abschaltung erzwingen"
+
+msgid "&Start"
+msgstr "&Einschalten"
 
 msgid "Not running"
 msgstr "Läuft nicht"

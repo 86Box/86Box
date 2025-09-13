@@ -15,8 +15,8 @@ msgstr "&Tipkovnica potrebuje zajem"
 msgid "&Right CTRL is left ALT"
 msgstr "&Desni CTRL je levi ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Ponovni zagon..."
+msgid "&Hard reset"
+msgstr "&Ponovni zagon"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -1076,6 +1076,12 @@ msgstr "Prisilno prekini"
 
 msgid "Start"
 msgstr "Zaženi"
+
+msgid "&Force shutdown"
+msgstr "&Prisilno prekini"
+
+msgid "&Start"
+msgstr "&Zaženi"
 
 msgid "Not running"
 msgstr "Se ne izvaja"

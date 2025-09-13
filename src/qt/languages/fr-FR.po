@@ -15,8 +15,8 @@ msgstr "C&apturer le clavier"
 msgid "&Right CTRL is left ALT"
 msgstr "CTRL &Droite devient ALT Gauche"
 
-msgid "&Hard Reset..."
-msgstr "&Hard Reset..."
+msgid "&Hard reset"
+msgstr "&Hard reset"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Suppr"
@@ -1076,6 +1076,12 @@ msgstr "Arrêt forcé"
 
 msgid "Start"
 msgstr "Démarrer"
+
+msgid "&Force shutdown"
+msgstr "&Arrêt forcé"
+
+msgid "&Start"
+msgstr "&Démarrer"
 
 msgid "Not running"
 msgstr "Inactive"

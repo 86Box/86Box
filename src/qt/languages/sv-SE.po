@@ -15,8 +15,8 @@ msgstr "&Tangentbord behöver uppfångas"
 msgid "&Right CTRL is left ALT"
 msgstr "&Höger CTRL är vänster ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Hård omstart..."
+msgid "&Hard reset"
+msgstr "&Hård omstart"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -1076,6 +1076,12 @@ msgstr "Tvinga avstängning"
 
 msgid "Start"
 msgstr "Starta"
+
+msgid "&Force shutdown"
+msgstr "&Tvinga avstängning"
+
+msgid "&Start"
+msgstr "&Starta"
 
 msgid "Not running"
 msgstr "Körs ej"

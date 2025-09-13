@@ -15,8 +15,8 @@ msgstr "&Keyboard vereist vastleggen"
 msgid "&Right CTRL is left ALT"
 msgstr "&Rechtse CTRL is linkse ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Harde Reset..."
+msgid "&Hard reset"
+msgstr "&Harde reset"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -1076,6 +1076,12 @@ msgstr "Forceer afsluiten"
 
 msgid "Start"
 msgstr "Start"
+
+msgid "&Force shutdown"
+msgstr "&Forceer afsluiten"
+
+msgid "&Start"
+msgstr "&Start"
 
 msgid "Not running"
 msgstr "Niet actied"

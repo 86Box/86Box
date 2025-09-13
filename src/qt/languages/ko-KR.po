@@ -15,8 +15,8 @@ msgstr "키보드는 캡쳐가 필요함(&K)"
 msgid "&Right CTRL is left ALT"
 msgstr "우측CTRL로 좌측ALT 입력(&R)"
 
-msgid "&Hard Reset..."
-msgstr "재시작(&H)..."
+msgid "&Hard reset"
+msgstr "재시작(&H)"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del(&C)"
@@ -1076,6 +1076,12 @@ msgstr "강제 종료"
 
 msgid "Start"
 msgstr "시작"
+
+msgid "&Force shutdown"
+msgstr "강제 종료(&F)"
+
+msgid "&Start"
+msgstr "시작(&S)"
 
 msgid "Not running"
 msgstr "실행 중이 아닙니다"

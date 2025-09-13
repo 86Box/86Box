@@ -15,8 +15,8 @@ msgstr "&Klawiatura wymaga przechwytu myszy"
 msgid "&Right CTRL is left ALT"
 msgstr "Prawy C&TRL to lewy ALT"
 
-msgid "&Hard Reset..."
-msgstr "Twardy &reset..."
+msgid "&Hard reset"
+msgstr "Twardy &reset"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -1076,6 +1076,12 @@ msgstr "Wymuś zamknięcie"
 
 msgid "Start"
 msgstr "Uruchom"
+
+msgid "&Force shutdown"
+msgstr "&Wymuś zamknięcie"
+
+msgid "&Start"
+msgstr "&Uruchom"
 
 msgid "Not running"
 msgstr "Wyłączona"

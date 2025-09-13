@@ -15,8 +15,8 @@ msgstr "&Teclado requere captura"
 msgid "&Right CTRL is left ALT"
 msgstr "CTRL &direito é ALT esquerdo"
 
-msgid "&Hard Reset..."
-msgstr "&Reinicialização completa..."
+msgid "&Hard reset"
+msgstr "&Reinicialização completa"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -1076,6 +1076,12 @@ msgstr "Desligamento forçado"
 
 msgid "Start"
 msgstr "Iniciar"
+
+msgid "&Force shutdown"
+msgstr "&Desligamento forçado"
+
+msgid "&Start"
+msgstr "&Iniciar"
 
 msgid "Not running"
 msgstr "Não em execução"

@@ -15,8 +15,8 @@ msgstr "鍵盤需要捕捉(&K)"
 msgid "&Right CTRL is left ALT"
 msgstr "將右 CTRL 鍵映射為左 ALT 鍵(&R)"
 
-msgid "&Hard Reset..."
-msgstr "硬重設(&H)..."
+msgid "&Hard reset"
+msgstr "硬重設(&H)"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del(&C)"
@@ -1076,6 +1076,12 @@ msgstr "強制關機"
 
 msgid "Start"
 msgstr "開始"
+
+msgid "&Force shutdown"
+msgstr "強制關機(&F)"
+
+msgid "&Start"
+msgstr "開始(&S)"
 
 msgid "Not running"
 msgstr "未執行"

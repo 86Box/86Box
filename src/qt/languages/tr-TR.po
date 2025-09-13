@@ -15,8 +15,8 @@ msgstr "&Klavye sadece fare yakalandığında çalışsın"
 msgid "&Right CTRL is left ALT"
 msgstr "&Sağ CTRL tuşunu sol ALT tuşu olarak ayarla"
 
-msgid "&Hard Reset..."
-msgstr "Yeniden başlamaya &zorla..."
+msgid "&Hard reset"
+msgstr "Yeniden başlamaya &zorla"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -1076,6 +1076,12 @@ msgstr "Kapatmaya zorla"
 
 msgid "Start"
 msgstr "Başlat"
+
+msgid "&Force shutdown"
+msgstr "&Kapatmaya zorla"
+
+msgid "&Start"
+msgstr "&Başlat"
 
 msgid "Not running"
 msgstr "Çalışmıyor"
