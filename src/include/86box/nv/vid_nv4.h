@@ -20,12 +20,13 @@
 #include <stdint.h>
 #include <86Box/nv/vid_nv4_defines.h>
 
-
 //
-// PBUS/RMA
+// Structures
 //
 
-// Access the GPU from real-mode
+
+// PBUS
+// RMA: Access the GPU from real-mode
 typedef struct nv4_pbus_rma_s
 {
     uint32_t addr;                      // Address to RMA to
@@ -43,10 +44,8 @@ typedef struct nv4_pbus_s
     nv4_pbus_rma_t rma;
 } nv4_pbus_t;
 
-//
-// PTIMER
-//
 
+// PTIMER
 typedef struct nv4_ptimer_s
 {
     uint32_t interrupt_status;          // PTIMER Interrupt status
@@ -57,9 +56,7 @@ typedef struct nv4_ptimer_s
     uint32_t alarm;                     // The value of time when there should be an alarm
 } nv4_ptimer_t; 
 
-//
 // PRAMDAC
-//
 typedef struct nv4_pramdac_s
 {
     uint32_t mclk;
@@ -68,7 +65,7 @@ typedef struct nv4_pramdac_s
     uint32_t cursor_address;
 } nv4_pramdac_t;
 
-// Structures
+// Device Core
 typedef struct nv4_s
 {
     nv_base_t nvbase;   // Base Nvidia structure
@@ -78,10 +75,10 @@ typedef struct nv4_s
     nv4_pramdac_t pramdac;
 } nv4_t;
 
-
 //
 // Globals
 //
+
 extern const device_config_t nv4_config[];                              
 
 extern nv4_t* nv4;                                                      // Allocated at device startup
@@ -101,7 +98,7 @@ void        nv4_draw_cursor(svga_t* svga, int32_t drawline);
 void        nv4_recalc_timings(svga_t* svga);
 void        nv4_force_redraw(void* priv);
 
-// I/o
+// I/O
 uint8_t     nv4_mmio_read8(uint32_t addr, void* priv);
 uint16_t    nv4_mmio_read16(uint32_t addr, void* priv);
 uint32_t    nv4_mmio_read32(uint32_t addr, void* priv);
@@ -123,6 +120,7 @@ void        nv4_ramin_write32(uint32_t addr, uint32_t val, void* priv);
 uint8_t     nv4_pci_read(int32_t func, int32_t addr, void* priv);
 void        nv4_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv);
 
+// PRAMDAC  
 
 uint8_t     nv4_svga_read(uint16_t addr, void* priv);
 void        nv4_svga_write(uint16_t addr, uint8_t val, void* priv);

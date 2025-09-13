@@ -884,7 +884,6 @@ uint8_t nv4_svga_read(uint16_t addr, void* priv)
             break;
     }
 
-    nv_log("SVGA read 0x%04x value 0x%02x\n", addr, ret);
 
     return ret; //TEMP
 }
@@ -1029,7 +1028,6 @@ void nv4_svga_write(uint16_t addr, uint8_t val, void* priv)
             break;
     }
 
-    nv_log("SVGA write 0x%04x value 0x%02x\n", addr, val);
 }
 
 /* DFB, sets up a dumb framebuffer */

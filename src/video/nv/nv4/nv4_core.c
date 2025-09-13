@@ -341,11 +341,6 @@ void nv4_recalc_timings(svga_t* svga)
 }
 
 
-void nv4_force_redraw(void* priv)
-{
-
-}
-
 // See if the bios rom is available.
 int32_t nv4_available(void)
 {
