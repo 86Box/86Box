@@ -438,7 +438,7 @@ uint8_t nv4_pci_read(int32_t func, int32_t addr, void* priv)
 
         // We only need to return 0x30 since the VGA class code is 0x30000
         case NV4_PBUS_PCI_CLASS_CODE:
-            ret = (NV4_PBUS_PCI_CLASS_CODE_VGA) >> 12; // CLASS_CODE_VGA 
+            ret = (NV4_PBUS_PCI_CLASS_CODE_VGA) >> 16; // CLASS_CODE_VGA 
             break;
 
         
@@ -461,6 +461,15 @@ uint8_t nv4_pci_read(int32_t func, int32_t addr, void* priv)
 
         case NV4_PBUS_PCI_BAR1_BASE_31_TO_24:
             ret = nv4->nvbase.bar1_lfb_base >> 24; //8bit value
+            break;
+        
+        case NV4_PBUS_PCI_BAR_RESERVED_START ... NV4_PBUS_PCI_BAR_RESERVED_END:
+        case NV4_PBUS_PCI_BAR0_UNUSED1:
+        case NV4_PBUS_PCI_BAR0_UNUSED2:
+        case NV4_PBUS_PCI_BAR1_UNUSED1:
+        case NV4_PBUS_PCI_BAR1_UNUSED2:
+        
+            ret = 0x00; // hard lock
             break;
 
         case NV4_PBUS_PCI_ROM:
@@ -504,6 +513,7 @@ uint8_t nv4_pci_read(int32_t func, int32_t addr, void* priv)
         case NV4_PBUS_PCI_SUBSYSTEM_ID_WRITABLE + 1:
             ret = nv4->nvbase.pci_config.pci_regs[NV4_PBUS_PCI_SUBSYSTEM_ID + (addr & 0x03)];
             break;
+
         case NV4_PBUS_AGP_CAPABILITIES:
             ret = NV4_PBUS_AGP_CAPABILITY_AGP;               // AGP capable device
             break;
@@ -529,7 +539,7 @@ uint8_t nv4_pci_read(int32_t func, int32_t addr, void* priv)
         
     }
 
-    nv_log("nv4_pci_read func=0x%04x addr=0x%04x ret=0x%04x\n", func, addr, ret);
+    nv_log("nv4_pci_read func=0x%04x addr=0x%04x ret=0x%04x\n", func, addr & 0xFF, ret);
     return ret; 
 }
 
@@ -550,28 +560,28 @@ void nv4_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
     && addr == NV4_PBUS_PCI_BAR1_UNUSED1 || addr == NV4_PBUS_PCI_BAR1_UNUSED2)
         return;
 
-    nv_log("nv4_pci_write func=0x%04x addr=0x%04x val=0x%04x\n", func, addr, val);
+    nv_log("nv4_pci_write func=0x%04x addr=0x%04x val=0x%04x\n", func, addr & 0xFF, val);
 
     nv4->nvbase.pci_config.pci_regs[addr] = val;
 
     switch (addr)
     {
         // standard pci command stuff
-        case PCI_REG_COMMAND_L:
+        case NV4_PBUS_PCI_COMMAND:
             nv4->nvbase.pci_config.pci_regs[PCI_REG_COMMAND_L] = val;
             // actually update the mappings
             nv4_update_mappings();
             break;
-        case PCI_REG_COMMAND_H:
+        case NV4_PBUS_PCI_COMMAND_H:
             nv4->nvbase.pci_config.pci_regs[PCI_REG_COMMAND_H] = val;
             // actually update the mappings
             nv4_update_mappings();          
             break;
         // pci status register
-        case PCI_REG_STATUS_L:
+        case NV4_PBUS_PCI_STATUS:
             nv4->nvbase.pci_config.pci_regs[PCI_REG_STATUS_L] = val | (NV4_PBUS_PCI_STATUS_66MHZ_CAPABLE << NV4_PBUS_PCI_STATUS_66MHZ);
             break;
-        case PCI_REG_STATUS_H:
+        case NV4_PBUS_PCI_STATUS_2:
             nv4->nvbase.pci_config.pci_regs[PCI_REG_STATUS_H] = val | (NV4_PBUS_PCI_STATUS_2_DEVSEL_TIMING_FAST << NV4_PBUS_PCI_STATUS_2_DEVSEL_TIMING);
             break;
         //TODO: ACTUALLY REMAP THE MMIO AND NV_USER
@@ -583,6 +593,7 @@ void nv4_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
             nv4->nvbase.bar1_lfb_base = val << 24;
             nv4_update_mappings();
             break;
+        
         case NV4_PBUS_PCI_ROM:
         case NV4_PBUS_PCI_ROM_BASE:
             
@@ -601,13 +612,16 @@ void nv4_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
                 {
                     uint32_t old_addr = nv4->nvbase.vbios.mapping.base;
                     // 9bit register
-                    uint32_t new_addr = nv4->nvbase.pci_config.pci_regs[NV4_PBUS_PCI_ROM + 1] << 24 |
-                    nv4->nvbase.pci_config.pci_regs[NV4_PBUS_PCI_ROM] << 16;
+                    uint32_t new_addr = nv4->nvbase.pci_config.pci_regs[NV4_PBUS_PCI_ROM + 3] << 24 |
+                    nv4->nvbase.pci_config.pci_regs[NV4_PBUS_PCI_ROM + 2] << 16;
+
+                    // only bits 31;22 matter
+                    //new_addr &= 0xFFC00000;
 
                     // move it
                     mem_mapping_set_addr(&nv4->nvbase.vbios.mapping, new_addr, 0x8000);
 
-                    nv_log("...i like to move it move it (VBIOS Relocation) 0x%04x -> 0x%04x\n", old_addr, new_addr);
+                    nv_log("...i like to move it move it (VBIOS Relocation) 0x%x -> 0x%x\n", old_addr, new_addr);
 
                 }
                 else
@@ -642,80 +656,6 @@ void nv4_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv)
     }
 }
 
-
-//
-// SVGA functions
-//
-void nv4_recalc_timings(svga_t* svga)
-{    
-    // sanity check
-    if (!nv4)
-        return; 
-
- 
-    nv4_t* nv4 = (nv4_t*)svga->priv;
- 
-    // TODO: Everything, this code sucks, incl. NV4_PRAMDAC_GENERAL_CONTROL_BPC and the OFFSET register 
-    uint32_t pixel_mode = svga->crtc[NV4_CIO_CRE_PIXEL_INDEX] & 0x03;
-
-    svga->memaddr_latch += (svga->crtc[NV4_CIO_CRE_RPC0_INDEX] & 0x1F) << 16;
-
-    /* Turn off override if we are in VGA mode */
-    svga->override = !(pixel_mode == NV4_CIO_CRE_PIXEL_FORMAT_VGA);
-
-    /* NOTE: The RIVA 128 draws in a way almost completely separate to any other 86Box GPU.
-    
-    Basically, we only blit to buffer32 when something changes and we don't even bother using a timer. We only render when there is something to actually render.
-
-    This is because there is no linear relationship between the contents of VRAM and the contents of the display which 86box's SVGA subsystem cannot tolerate.
-    In fact, the position in VRAM and pitch can be changed at any time via an NV_IMAGE_IN_MEMORY object.
-
-    Therefore, we need to completely bypass it using svga->override and draw our own rendering functions. This allows us to use a neat optimisation trick
-    to only ever actually draw when we need to do something. This shouldn't be a problem in games, because the drivers will read the current refresh rate from 
-    the Windows settings, and then, just submit objects at that pace for anything that changes on the screen.
-    */
-
-    // Set the pixel mode
-    switch (pixel_mode)
-    {
-        case NV4_CIO_CRE_PIXEL_FORMAT_8BPP:
-            svga->rowoffset += (svga->crtc[NV4_CIO_CRE_RPC0_INDEX] & 0xE0) << 1; // ?????
-            svga->bpp = 8;
-            svga->lowres = 0;
-            svga->map8 = svga->pallook;
-            break;
-        case NV4_CIO_CRE_PIXEL_FORMAT_16BPP:
-            /* This is some sketchy shit that is an attempt at an educated guess
-            at pixel clock differences between 9x and NT only in 16bpp. If there is ever an error on 9x with "interlaced" looking graphics,
-            this is what's causing it. Possibly fucking up the drivers under *ReactOS* of all things */
-            if ((svga->crtc[NV4_CIO_CR_VRS_INDEX] >> 1) & 0x01)
-                svga->rowoffset += (svga->crtc[NV4_CIO_CRE_RPC0_INDEX] & 0xE0) << 2;
-            else 
-                svga->rowoffset += (svga->crtc[NV4_CIO_CRE_RPC0_INDEX] & 0xE0) << 3;
-
-            // 15bpp mode is removed on NV4
-            // TODO: Not svga
-            svga->bpp = 16;
-            svga->lowres = 0;
-        
-            break;
-        case NV4_CIO_CRE_PIXEL_FORMAT_32BPP:
-            svga->rowoffset += (svga->crtc[NV4_CIO_CRE_RPC0_INDEX] & 0xE0) << 3;
-            
-            svga->bpp = 32;
-            svga->lowres = 0;
-            //svga->render = nv4_render_32bpp;
-            break;
-    }
-
-
-    if (((svga->miscout >> 2) & 2) == 2)
-    {
-        // set clocks
-        //nv4_pramdac_set_pixel_clock();
-        //nv4_pramdac_set_vram_clock();
-    }
-}
 
 void nv4_speed_changed(void* priv)
 {
@@ -888,9 +828,6 @@ uint8_t nv4_svga_read(uint16_t addr, void* priv)
 {
     // CR = CRTC Controller
     // CRE = CRTC Controller Extended (weitek)
-
-    nv4_t* nv4 = (nv4_t*)priv;
-
     uint8_t ret = 0x00;
 
     // sanity check
@@ -946,6 +883,8 @@ uint8_t nv4_svga_read(uint16_t addr, void* priv)
             ret = svga_in(addr, &nv4->nvbase.svga);
             break;
     }
+
+    nv_log("SVGA read 0x%04x value 0x%02x\n", addr, ret);
 
     return ret; //TEMP
 }
@@ -1090,6 +1029,7 @@ void nv4_svga_write(uint16_t addr, uint8_t val, void* priv)
             break;
     }
 
+    nv_log("SVGA write 0x%04x value 0x%02x\n", addr, val);
 }
 
 /* DFB, sets up a dumb framebuffer */

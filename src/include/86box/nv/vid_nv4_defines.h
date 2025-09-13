@@ -505,6 +505,7 @@
 #define NV4_PBUS_PCI_DEVICE_ID                                0x1802
 #define NV4_PBUS_PCI_DEVICE_ID_NV4                            0x0020 // Chip (19:17)= NV4, Func = VGA
 #define NV4_PBUS_PCI_COMMAND                                  0x1804
+#define NV4_PBUS_PCI_COMMAND_H                                0x1805
 #define NV4_PBUS_PCI_COMMAND_IO_SPACE                              0
 #define NV4_PBUS_PCI_COMMAND_IO_SPACE_ENABLED                    0x1
 #define NV4_PBUS_PCI_COMMAND_MEMORY_SPACE                          1
@@ -568,9 +569,12 @@
 #define NV4_PBUS_PCI_BAR0_UNUSED2                             0x1812
 #define NV4_PBUS_PCI_BAR0_BASE_31_TO_24                       0x1813 // Must align to 16MByte 
 #define NV4_PBUS_PCI_BAR1_INFO                                0x1814
-#define NV4_PBUS_PCI_BAR1_UNUSED1                             0x1814
-#define NV4_PBUS_PCI_BAR1_UNUSED2                             0x1815
-#define NV4_PBUS_PCI_BAR1_BASE_31_TO_24                       0x1816 // Must align to 16MByte 
+#define NV4_PBUS_PCI_BAR1_UNUSED1                             0x1815
+#define NV4_PBUS_PCI_BAR1_UNUSED2                             0x1816
+#define NV4_PBUS_PCI_BAR1_BASE_31_TO_24                       0x1817 // Must align to 16MByte 
+#define NV4_PBUS_PCI_BAR_RESERVED_START                       0x1818
+#define NV4_PBUS_PCI_BAR_RESERVED_END                         0x182B
+
 //BAR2-5 reserved
 #define NV4_PBUS_PCI_SUBSYSTEM_VENDOR_ID                      0x182C
 #define NV4_PBUS_PCI_SUBSYSTEM_ID                             0x182E

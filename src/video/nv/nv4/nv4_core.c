@@ -66,6 +66,7 @@ void nv4_init_mappings_svga(void)
 {
     nv_log("Initialising SVGA core memory mapping\n");
     // setup the svga mappings
+
     mem_mapping_add(&nv4->nvbase.framebuffer_mapping, 0, 0,
         nv4_dfb_read8,
         nv4_dfb_read16,
@@ -198,14 +199,18 @@ bool nv4_init()
     /* Set log device name based on card model */
     const char* log_device_name = "NV4";
 
+
+    /* Just hardcode full logging */
+
     if (device_get_config_int("nv_debug_fulllog"))
-        nv4->nvbase.log = log_open("NV4");
+        nv4->nvbase.log = log_open(log_device_name);
     else
-        nv4->nvbase.log = log_open_cyclic("NV4");
+        nv4->nvbase.log = log_open_cyclic(log_device_name);
+
+    nv_log_set_device(nv4->nvbase.log);
 
     nv4->nvbase.bus_generation = nv_bus_agp_2x;
 
-    nv_log_set_device(nv4->nvbase.log);
     // Figure out which vbios the user selected
     // This depends on the bus we are using and if the gpu is rev a/b or rev c
 
@@ -260,10 +265,81 @@ void nv4_draw_cursor(svga_t* svga, int32_t drawline)
 
 }
 
-void nv4_recalc_timings(svga_t* svga)
-{
 
+//
+// SVGA functions
+//
+void nv4_recalc_timings(svga_t* svga)
+{    
+    // sanity check
+    if (!nv4)
+        return; 
+
+ 
+    nv4_t* nv4 = (nv4_t*)svga->priv;
+ 
+    // TODO: Everything, this code sucks, incl. NV4_PRAMDAC_GENERAL_CONTROL_BPC and the OFFSET register 
+    uint32_t pixel_mode = svga->crtc[NV4_CIO_CRE_PIXEL_INDEX] & 0x03;
+
+    svga->memaddr_latch += (svga->crtc[NV4_CIO_CRE_RPC0_INDEX] & 0x1F) << 16;
+
+    /* Turn off override if we are in VGA mode */
+    svga->override = !(pixel_mode == NV4_CIO_CRE_PIXEL_FORMAT_VGA);
+
+    /* NOTE: The RIVA 128 draws in a way almost completely separate to any other 86Box GPU.
+    
+    Basically, we only blit to buffer32 when something changes and we don't even bother using a timer. We only render when there is something to actually render.
+
+    This is because there is no linear relationship between the contents of VRAM and the contents of the display which 86box's SVGA subsystem cannot tolerate.
+    In fact, the position in VRAM and pitch can be changed at any time via an NV_IMAGE_IN_MEMORY object.
+
+    Therefore, we need to completely bypass it using svga->override and draw our own rendering functions. This allows us to use a neat optimisation trick
+    to only ever actually draw when we need to do something. This shouldn't be a problem in games, because the drivers will read the current refresh rate from 
+    the Windows settings, and then, just submit objects at that pace for anything that changes on the screen.
+    */
+
+    // Set the pixel mode
+    switch (pixel_mode)
+    {
+        case NV4_CIO_CRE_PIXEL_FORMAT_8BPP:
+            svga->rowoffset += (svga->crtc[NV4_CIO_CRE_RPC0_INDEX] & 0xE0) << 1; // ?????
+            svga->bpp = 8;
+            svga->lowres = 0;
+            svga->map8 = svga->pallook;
+            break;
+        case NV4_CIO_CRE_PIXEL_FORMAT_16BPP:
+            /* This is some sketchy shit that is an attempt at an educated guess
+            at pixel clock differences between 9x and NT only in 16bpp. If there is ever an error on 9x with "interlaced" looking graphics,
+            this is what's causing it. Possibly fucking up the drivers under *ReactOS* of all things */
+            if ((svga->crtc[NV4_CIO_CR_VRS_INDEX] >> 1) & 0x01)
+                svga->rowoffset += (svga->crtc[NV4_CIO_CRE_RPC0_INDEX] & 0xE0) << 2;
+            else 
+                svga->rowoffset += (svga->crtc[NV4_CIO_CRE_RPC0_INDEX] & 0xE0) << 3;
+
+            // 15bpp mode is removed on NV4
+            // TODO: Not svga
+            svga->bpp = 16;
+            svga->lowres = 0;
+        
+            break;
+        case NV4_CIO_CRE_PIXEL_FORMAT_32BPP:
+            svga->rowoffset += (svga->crtc[NV4_CIO_CRE_RPC0_INDEX] & 0xE0) << 3;
+            
+            svga->bpp = 32;
+            svga->lowres = 0;
+            //svga->render = nv4_render_32bpp;
+            break;
+    }
+
+
+    if (((svga->miscout >> 2) & 2) == 2)
+    {
+        // set clocks
+        //nv4_pramdac_set_pixel_clock();
+        //nv4_pramdac_set_vram_clock();
+    }
 }
+
 
 void nv4_force_redraw(void* priv)
 {
@@ -281,7 +357,7 @@ int32_t nv4_available(void)
 // 8MB or 16MB VRAM
 const device_t nv4_device_agp = 
 {
-    .name = "nVIDIA RIVA TNT [STB Velocity 4400]",
+    .name = "nVIDIA RIVA TNT (STB Velocity 4400)",
     .internal_name = "nv4_stb4400",
     .flags = DEVICE_AGP,
     .local = 0,
