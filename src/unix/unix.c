@@ -1440,8 +1440,7 @@ main(int argc, char **argv)
                                 else
                                     r_alt_pressed = 0;
                             }
-
-                            if (r_alt_pressed && event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_G)
+                            else if (r_alt_pressed && event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_G)
                             {
                                 // open OSD!
                                 flag_osd_open = osd_open(event);

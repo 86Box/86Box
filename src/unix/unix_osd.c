@@ -100,7 +100,9 @@ int reset_iso_files()
 
 static int endswith(char *s1, char *mask)
 {
-    return strlen(s1) >= strlen(mask) && strncasecmp(s1+strlen(s1)-strlen(mask), mask, strlen(mask));
+    int ss = strlen(s1);
+    int sm = strlen(mask);
+    return ss >= sm && strncasecmp(s1+ss-sm, mask, sm) == 0;
 }
 
 int load_iso_files(char *basedir, char files[][1024], int max_files, char *mask)
