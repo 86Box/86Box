@@ -186,8 +186,6 @@ static void
 ymf701_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
     ymf701_t      *ymf701           = (ymf701_t *) priv;
-    uint16_t       idx;
-    uint8_t        old              = ymf701->regs[idx];
     static uint8_t reg_enable_phase = 0;
 
     if (ymf701->reg_enabled) {
