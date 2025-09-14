@@ -104,7 +104,7 @@ ymf701_filter_opl(void *priv, double *out_l, double *out_r)
     ymf701_t *ymf701 = (ymf701_t *) priv;
 
     if (ymf701->cur_wss_enabled) {
-        ad1848_filter_aux2((void *) &ymf701->ad1848, out_l, out_r);
+        ad1848_filter_channel((void *) &ymf701->ad1848, AD1848_AUX2, out_l, out_r);
     }
 }
 
@@ -447,6 +447,7 @@ ymf701_init(const device_t *info)
 
     sound_add_handler(ymf701_get_buffer, ymf701);
     music_add_handler(sb_get_music_buffer_sbpro, ymf701->sb);
+    ad1848_set_cd_audio_channel(&ymf701->ad1848, AD1848_AUX1);
     //sound_set_cd_audio_filter(sbpro_filter_cd_audio, ymf701->sb); /* CD audio filter for the default context */
     sound_set_cd_audio_filter(ad1848_filter_cd_audio, &ymf701->ad1848);
 
