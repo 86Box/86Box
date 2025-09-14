@@ -190,6 +190,9 @@ sdl_real_blit(SDL_Rect *r_src)
     if (ret)
         fprintf(stderr, "SDL: unable to copy texture to renderer (%s)\n", SDL_GetError());
 
+    // give the osd an opportunity to draw itself
+    osd_present();
+
     SDL_RenderPresent(sdl_render);
 }
 
@@ -215,6 +218,7 @@ sdl_blit(int x, int y, int w, int h)
             sdl_resize(resize_w, resize_h);
         resize_pending = 0;
     }
+
     r_src.x = x;
     r_src.y = y;
     r_src.w = w;

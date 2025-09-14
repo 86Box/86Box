@@ -473,22 +473,24 @@ plat_remove(char *path)
     remove(path);
 }
 
-void
-ui_sb_update_icon_state(UNUSED(int tag), UNUSED(int state))
+void ui_sb_update_icon_state(int tag, int state)
 {
     osd_ui_sb_update_icon_state(tag, state);
 }
 
-void
-ui_sb_update_icon(UNUSED(int tag), UNUSED(int active))
+void ui_sb_update_icon(int tag, int active)
 {
     osd_ui_sb_update_icon(tag, active);
 }
 
-void
-ui_sb_update_icon_write(UNUSED(int tag), UNUSED(int active))
+void ui_sb_update_icon_write(int tag, int active)
 {
     osd_ui_sb_update_icon_write(tag, active);
+}
+
+void ui_sb_update_icon_wp(int tag, int state)
+{
+    osd_ui_sb_update_icon_wp(tag, state);
 }
 
 void
@@ -534,7 +536,6 @@ path_get_dirname(char *dest, const char *path)
         *dest++ = *path++;
     *dest = '\0';
 }
-volatile int cpu_thread_run = 1;
 
 void
 ui_sb_set_text_w(UNUSED(wchar_t *wstr))
@@ -554,6 +555,8 @@ strnicmp(const char *s1, const char *s2, size_t n)
     return strncasecmp(s1, s2, n);
 }
 
+volatile int cpu_thread_run = 1;
+
 void
 main_thread(UNUSED(void *param))
 {
@@ -567,15 +570,20 @@ main_thread(UNUSED(void *param))
     // title_update = 1;
     old_time = SDL_GetTicks();
     drawits = frames = 0;
-    while (!is_quit && cpu_thread_run) {
+    while (!is_quit && cpu_thread_run)
+    {
         /* See if it is time to run a frame of code. */
         new_time = SDL_GetTicks();
+
 #ifdef USE_GDBSTUB
         if (gdbstub_next_asap && (drawits <= 0))
             drawits = 10;
         else
-#endif
             drawits += (new_time - old_time);
+#else
+        drawits += (new_time - old_time);
+#endif
+
         old_time = new_time;
         if (drawits > 0 && !dopause) {
             /* Yes, so do one frame now. */
@@ -592,15 +600,18 @@ main_thread(UNUSED(void *param))
                 nvr_dosave = 0;
                 frames     = 0;
             }
-        } else /* Just so we dont overload the host OS. */
+        }
+        else /* Just so we dont overload the host OS. */
             SDL_Delay(1);
 
         /* If needed, handle a screen resize. */
         if (atomic_load(&doresize_monitors[0]) && !video_fullscreen && !is_quit) {
+
             if (vid_resize & 2)
                 plat_resize(fixed_size_x, fixed_size_y, 0);
             else
                 plat_resize(scrnsz_x, scrnsz_y, 0);
+
             atomic_store(&doresize_monitors[0], 1);
         }
     }
@@ -752,7 +763,6 @@ ui_sb_set_ready(UNUSED(int ready))
 {
     /* No-op. */
 }
-
 
 // From musl.
 char *
@@ -960,11 +970,6 @@ void (*f_rl_callback_handler_remove)(void) = NULL;
 #else
 #    define LIBEDIT_LIBRARY "libedit.so"
 #endif
-
-void ui_sb_update_icon_wp(int tag, int state)
-{
-    /* No-op */
-}
 
 uint32_t
 timer_onesec(uint32_t interval, UNUSED(void *param))
@@ -1206,9 +1211,11 @@ monitor_thread(UNUSED(void *param))
         size_t n;
 
         printf("86Box monitor console.\n");
-        while (!exit_event) {
+        while (!exit_event)
+        {
             if (feof(stdin))
                 break;
+
 #ifdef ENABLE_READLINE
             if (f_readline)
                 line = f_readline("(86Box) ");
@@ -1219,6 +1226,7 @@ monitor_thread(UNUSED(void *param))
 #ifdef ENABLE_READLINE
             }
 #endif
+
             unix_executeLine(line);
 
             free(line);
@@ -1437,9 +1445,16 @@ main(int argc, char **argv)
                             {
                                 // open OSD!
                                 flag_osd_open = osd_open(event);
-                                // we can assume alt-gr has been released
+
+                                // we can assume alt-gr has been released, tell this also to the virtual machine
                                 r_alt_pressed = 0;
+                                keyboard_input(0, sdl_to_xt[SDL_SCANCODE_RALT]);
                                 break;
+                            }
+                            else
+                            {
+                                // invalidate r_alt_pressed is something happens between its keydown and keydown for G
+                                r_alt_pressed = 0;
                             }
 
                             switch (event.key.keysym.scancode) {
@@ -1465,8 +1480,7 @@ main(int argc, char **argv)
             }
         }
 
-        // blit only if the OSD is closed
-        if (blitreq && !flag_osd_open) {
+        if (blitreq) {
             extern void sdl_blit(int x, int y, int w, int h);
             sdl_blit(params.x, params.y, params.w, params.h);
         }

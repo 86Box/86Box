@@ -32,6 +32,9 @@ static int BOX_H = 160;
 #define CHAR_W 8
 #define CHAR_H 8
 
+// this makes the osd embeddable in the 86box main sdl loop
+#define OSD_INSIDE_MAIN_LOOP
+
 // interface to SDL environment
 extern SDL_Window         *sdl_win;
 extern SDL_Renderer       *sdl_render;
@@ -70,32 +73,53 @@ static const char *menu_items[] = {
 
 static char selected_file[256] = ""; // memoria della selezione
 
-static int font_cols = 16; // numero colonne nella bitmap font (16x16 caratteri)
+// chars per cols and rows
+static int font_cols = 16;
 static int font_rows = 16;
 
 static int selected = 0;
 static int file_selected = 0;
 static int scroll_offset = 0;
+
+static int osd_is_open = 0;
 static AppState state = STATE_MENU;
 
-static char files[100][256];
+static char files[100][1024];
 static int file_count = 0;
 
 static int max_visible = 0;
 
-int load_iso_files(char files[][256], int max_files, char *mask)
+int reset_iso_files()
+{
+    file_selected = 0;
+    scroll_offset = 0;
+
+    file_count = 0;
+    memzero(files, sizeof(files));
+}
+
+static int endswith(char *s1, char *mask)
+{
+    return strlen(s1) >= strlen(mask) && strncasecmp(s1+strlen(s1)-strlen(mask), mask, strlen(mask));
+}
+
+int load_iso_files(char *basedir, char files[][1024], int max_files, char *mask)
 {
     DIR *d;
     struct dirent *dir;
-    int count = 0;
-    d = opendir(".");
+    int count = file_count;
+    d = opendir(basedir);
     if (!d)
-        return 0;
+        return file_count;
 
-    while ((dir = readdir(d)) != NULL && count < max_files) {
-        if (strstr(dir->d_name, mask)) {
-            strncpy(files[count], dir->d_name, 255);
-            files[count][255] = '\0';
+    while ((dir = readdir(d)) != NULL && count < max_files)
+    {
+        if (endswith(dir->d_name, mask))
+        {
+            strcpy(files[count], basedir);
+            strcat(files[count], "/");
+            strcat(files[count], dir->d_name);
+
             count++;
         }
     }
@@ -141,9 +165,6 @@ void draw_box_with_border(SDL_Renderer *renderer, SDL_Rect box)
 
 void draw_menu(SDL_Renderer *renderer, int selected)
 {
-    // SDL_SetRenderDrawColor(renderer, 0, 0, 128, 255);
-    // SDL_RenderClear(renderer);
-
     int x0 = (SCREEN_W - BOX_W) / 2;
     int y0 = (SCREEN_H - BOX_H) / 2;
     SDL_Rect box = {x0, y0, BOX_W, BOX_H};
@@ -170,7 +191,9 @@ void draw_menu(SDL_Renderer *renderer, int selected)
         draw_text(renderer, menu_items[i], tx, ty, textColor);
     }
 
+#ifndef OSD_INSIDE_MAIN_LOOP
     SDL_RenderPresent(renderer);
+#endif
 }
 
 // ------------------- Disegna selezione file -------------------
@@ -179,9 +202,6 @@ void draw_file_selector(SDL_Renderer *renderer,
                         char files[][256], int file_count,
                         int selected, int scroll_offset, int max_visible)
 {
-    // SDL_SetRenderDrawColor(renderer, 0, 0, 128, 255);
-    // SDL_RenderClear(renderer);
-
     int x0 = (SCREEN_W - BOX_W) / 2;
     int y0 = (SCREEN_H - BOX_H) / 2;
     SDL_Rect box = {x0, y0, BOX_W, BOX_H};
@@ -214,16 +234,18 @@ void draw_file_selector(SDL_Renderer *renderer,
         }
     }
 
+#ifndef OSD_INSIDE_MAIN_LOOP
     SDL_RenderPresent(renderer);
+#endif
 }
 
 void osd_init()
 {
-    fprintf(stderr, "OSD INIT\n");
+    // debug: fprintf(stderr, "OSD INIT\n");
 
     if (font_texture == NULL)
     {
-        fprintf(stderr, "OSD INIT FONT\n");
+        // debug: fprintf(stderr, "OSD INIT FONT\n");
 
         // Carica font bitmap (font.bmp 128x128, 16x16 caratteri, 8x8 ciascuno)
         SDL_RWops *rwop  = SDL_RWFromConstMem(_________font_bmp, _________font_bmp_len);
@@ -250,7 +272,7 @@ void osd_init()
 void osd_deinit()
 {
     // nothing to do
-    fprintf(stderr, "OSD DEINIT\n");
+    // debug: fprintf(stderr, "OSD DEINIT\n");
 
     // will be implicitly freed on exit
     // SDL_DestroyTexture(font_texture);
@@ -261,7 +283,7 @@ void osd_deinit()
 int osd_open(SDL_Event event)
 {
     // ok opened
-    fprintf(stderr, "OSD OPEN\n");
+    // debug: fprintf(stderr, "OSD OPEN\n");
 
     SDL_GetWindowSize(sdl_win, &SCREEN_W, &SCREEN_H);
     BOX_W = (SCREEN_W / 4) * 3;
@@ -269,13 +291,17 @@ int osd_open(SDL_Event event)
 
     max_visible = (BOX_H - TITLE_HEIGHT) / LINE_HEIGHT;
 
+    osd_is_open = 1;
+
     return 1;
 }
 
 int osd_close(SDL_Event event)
 {
     // ok closed
-    fprintf(stderr, "OSD CLOSE\n");
+    // debug: fprintf(stderr, "OSD CLOSE\n");
+
+    osd_is_open = 0;
 
     return 1;
 }
@@ -288,12 +314,15 @@ static void osd_cmd_run(char *c)
     free(l);
 }
 
-
-int osd_handle(SDL_Event event)
+void osd_present()
 {
-    fprintf(stderr, "OSD HANDLE\n");
+    // shortcut
+    if (!osd_is_open)
+        return;
 
+#ifndef OSD_INSIDE_MAIN_LOOP
     SDL_LockMutex(sdl_mutex);
+#endif
 
     if (state == STATE_MENU) {
         draw_menu(sdl_render, selected);
@@ -305,49 +334,71 @@ int osd_handle(SDL_Event event)
         draw_file_selector(sdl_render, "SELECT CD ISO IMAGE", files, file_count, file_selected, scroll_offset, max_visible);
     }
 
+#ifndef OSD_INSIDE_MAIN_LOOP
     SDL_UnlockMutex(sdl_mutex);
+#endif
+}
+
+int osd_handle(SDL_Event event)
+{
+    // debug: fprintf(stderr, "OSD HANDLE\n");
 
     if (event.type == SDL_KEYUP)
     {
         if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
         {
             // Close the OSD
-            fprintf(stderr, "OSD HANDLE: escape\n");
+            // debug: fprintf(stderr, "OSD HANDLE: escape\n");
             return 0;
         }
     }
 
-    if (event.type == SDL_KEYDOWN) {
-        if (state == STATE_MENU) {
-            switch (event.key.keysym.sym) {
+    if (event.type == SDL_KEYDOWN)
+    {
+        if (state == STATE_MENU)
+        {
+            switch (event.key.keysym.sym)
+            {
                 case SDLK_UP:
                     selected = (selected - 1 + MENU_ITEMS) % MENU_ITEMS;
                     break;
+
                 case SDLK_DOWN:
                     selected = (selected + 1) % MENU_ITEMS;
                     break;
+
                 case SDLK_RETURN:
                 case SDLK_KP_ENTER:
                     switch (selected)
                     {
                         case 0 : // "fddload - Load floppy disk image",
-                            file_count = load_iso_files(files, 100, ".img");
-                            file_selected = 0;
-                            scroll_offset = 0;
+                            reset_iso_files();
+                            file_count = load_iso_files(".", files, 100, ".img");
+                            file_count = load_iso_files("/mnt", files, 100, ".img");
+                            file_count = load_iso_files("/mnt/usbkey", files, 100, ".img");
                             state = STATE_FILESELECT_FLOPPY;
                             break;
+
                         case 1 : // "cdload - Load CD-ROM image",
-                            file_count = load_iso_files(files, 100, ".iso");
-                            file_selected = 0;
-                            scroll_offset = 0;
+                            reset_iso_files();
+                            file_count = load_iso_files(".", files, 100, ".iso");
+                            file_count = load_iso_files("/mnt", files, 100, ".iso");
+                            file_count = load_iso_files("/mnt/usbkey", files, 100, ".iso");
                             state = STATE_FILESELECT_CD;
                             break;
+
                         case 2 : // "rdiskload - Load removable disk image",
+                            reset_iso_files();
                             break;
+
                         case 3 : // "cartload - Load cartridge image",
+                            reset_iso_files();
                             break;
+
                         case 4 : // "moload - Load MO image",
+                            reset_iso_files();
                             break;
+
                         case 5 : // "fddeject - eject disk from floppy drive",
                             osd_cmd_run("fddeject 0");
                             return 0;
@@ -394,12 +445,18 @@ int osd_handle(SDL_Event event)
                     }
                     break;
             }
-        } else if (state == STATE_FILESELECT_FLOPPY || state == STATE_FILESELECT_CD) {
-            if (file_count == 0) {
+        }
+        else if (state == STATE_FILESELECT_FLOPPY || state == STATE_FILESELECT_CD)
+        {
+            if (file_count == 0)
+            {
+                // no files, there is nothing else to do
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     state = STATE_MENU;
                 }
-            } else {
+            }
+            else
+            {
                 switch (event.key.keysym.sym) {
                     case SDLK_UP:
                         if (file_selected > 0) {
@@ -417,6 +474,7 @@ int osd_handle(SDL_Event event)
                             }
                         }
                         break;
+
                     case SDLK_RETURN:
                     case SDLK_KP_ENTER:
                         char cmd[1024] = "";
@@ -446,12 +504,14 @@ void osd_ui_sb_update_icon_state(UNUSED(int tag), UNUSED(int state))
 {
 }
 
-void
-osd_ui_sb_update_icon(UNUSED(int tag), UNUSED(int active))
+void osd_ui_sb_update_icon(UNUSED(int tag), UNUSED(int active))
 {
 }
 
-void
-osd_ui_sb_update_icon_write(UNUSED(int tag), UNUSED(int active))
+void osd_ui_sb_update_icon_write(UNUSED(int tag), UNUSED(int active))
+{
+}
+
+void osd_ui_sb_update_icon_wp(UNUSED(int tag), UNUSED(int state))
 {
 }
