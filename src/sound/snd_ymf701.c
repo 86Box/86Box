@@ -69,12 +69,12 @@ typedef struct ymf701_t {
     uint8_t wss_config;
     uint8_t reg_enabled;
 
-    uint16_t cur_addr;
+    uint16_t cur_sb_addr;
     uint16_t cur_wss_addr;
     uint16_t cur_mpu401_addr;
 
-    int   cur_irq;
-    int   cur_dma;
+    int   cur_sb_irq;
+    int   cur_sb_dma;
     int   cur_wss_enabled;
     int   cur_wss_irq;
     int   cur_wss_dma;
@@ -168,8 +168,8 @@ ymf701_get_buffer(int32_t *buffer, int len, void *priv)
 static void
 ymf701_remove_opl(ymf701_t *ymf701)
 {
-    io_removehandler(ymf701->cur_addr + 0, 0x0004, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
-    io_removehandler(ymf701->cur_addr + 8, 0x0002, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
+    io_removehandler(ymf701->cur_sb_addr + 0, 0x0004, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
+    io_removehandler(ymf701->cur_sb_addr + 8, 0x0002, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
     io_removehandler(0x0388, 0x0004, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
 }
 
@@ -177,8 +177,8 @@ static void
 ymf701_add_opl(ymf701_t *ymf701)
 {
     /* DSP I/O handler is activated in sb_dsp_setaddr */
-    io_sethandler(ymf701->cur_addr + 0, 0x0004, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
-    io_sethandler(ymf701->cur_addr + 8, 0x0002, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
+    io_sethandler(ymf701->cur_sb_addr + 0, 0x0004, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
+    io_sethandler(ymf701->cur_sb_addr + 8, 0x0002, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
     io_sethandler(0x0388, 0x0004, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
 }
 
@@ -238,51 +238,51 @@ ymf701_reg_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                     case 0x02: /* SB Config */
                         ymf701->regs[0x02] = val;
-                        io_removehandler(ymf701->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ymf701->sb);
+                        io_removehandler(ymf701->cur_sb_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ymf701->sb);
                         ymf701_remove_opl(ymf701);
-                        ymf701->cur_addr = (val & 0x20) ? 0x240 : 0x220;
+                        ymf701->cur_sb_addr = (val & 0x20) ? 0x240 : 0x220;
                         switch (val & 0x3) {
                             case 0:
-                                ymf701->cur_dma = -1;
+                                ymf701->cur_sb_dma = -1;
                                 break;
                             case 1:
-                                ymf701->cur_dma = 0;
+                                ymf701->cur_sb_dma = 0;
                                 break;
                             case 2:
-                                ymf701->cur_dma = 1;
+                                ymf701->cur_sb_dma = 1;
                                 break;
                             case 3:
-                                ymf701->cur_dma = 3;
+                                ymf701->cur_sb_dma = 3;
                                 break;
                         }
                         switch ((val >> 2) & 0x7) {
                             case 0:
-                                ymf701->cur_irq = -1;
+                                ymf701->cur_sb_irq = -1;
                                 break;
                             case 1:
-                                ymf701->cur_irq = 5;
+                                ymf701->cur_sb_irq = 5;
                                 break;
                             case 2:
-                                ymf701->cur_irq = 7;
+                                ymf701->cur_sb_irq = 7;
                                 break;
                             case 3:
-                                ymf701->cur_irq = 9;
+                                ymf701->cur_sb_irq = 9;
                                 break;
                             case 4:
-                                ymf701->cur_irq = 10;
+                                ymf701->cur_sb_irq = 10;
                                 break;
                             case 5:
-                                ymf701->cur_irq = 11;
+                                ymf701->cur_sb_irq = 11;
                                 break;
                             default:
                                 break;
                         }
-                        sb_dsp_setaddr(&ymf701->sb->dsp, ymf701->cur_addr);
-                        sb_dsp_setirq(&ymf701->sb->dsp, ymf701->cur_irq);
-                        sb_dsp_setdma8(&ymf701->sb->dsp, ymf701->cur_dma);
+                        sb_dsp_setaddr(&ymf701->sb->dsp, ymf701->cur_sb_addr);
+                        sb_dsp_setirq(&ymf701->sb->dsp, ymf701->cur_sb_irq);
+                        sb_dsp_setdma8(&ymf701->sb->dsp, ymf701->cur_sb_dma);
                         ymf701_add_opl(ymf701);
-                        if (ymf701->cur_addr != 0x00)
-                            io_sethandler(ymf701->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ymf701->sb);
+                        if (ymf701->cur_sb_addr != 0x00)
+                            io_sethandler(ymf701->cur_sb_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ymf701->sb);
                         break;
                     case 0x03: /* MPU/OPL/Gameport Config */
                         ymf701->regs[0x03] = val;
@@ -388,11 +388,11 @@ ymf701_init(const device_t *info)
     ymf701->type = info->local & 0xFF;
 
     ymf701->cur_wss_addr       = 0x530;
-    ymf701->cur_mode           = 0;
-    ymf701->cur_addr           = 0x220;
-    ymf701->cur_irq            = 5;
-    ymf701->cur_wss_enabled    = 0;
-    ymf701->cur_dma            = 1;
+    ymf701->cur_mode           = 1;
+    ymf701->cur_sb_addr        = 0x220;
+    ymf701->cur_sb_irq         = 5;
+    ymf701->cur_wss_enabled    = 1;
+    ymf701->cur_sb_dma         = 1;
     ymf701->cur_mpu401_irq     = 9;
     ymf701->cur_mpu401_addr    = 0x330;
     ymf701->cur_mpu401_enabled = 1;
@@ -426,20 +426,20 @@ ymf701_init(const device_t *info)
 
     sb_dsp_set_real_opl(&ymf701->sb->dsp, 1);
     sb_dsp_init(&ymf701->sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, ymf701);
-    sb_dsp_setaddr(&ymf701->sb->dsp, ymf701->cur_addr);
-    sb_dsp_setirq(&ymf701->sb->dsp, ymf701->cur_irq);
-    sb_dsp_setdma8(&ymf701->sb->dsp, ymf701->cur_dma);
+    sb_dsp_setaddr(&ymf701->sb->dsp, ymf701->cur_sb_addr);
+    sb_dsp_setirq(&ymf701->sb->dsp, ymf701->cur_sb_irq);
+    sb_dsp_setdma8(&ymf701->sb->dsp, ymf701->cur_sb_dma);
     sb_ct1345_mixer_reset(ymf701->sb);
 
     ymf701->sb->opl_mixer = ymf701;
     ymf701->sb->opl_mix   = ymf701_filter_opl;
 
     fm_driver_get(FM_YMF262, &ymf701->sb->opl);
-    io_sethandler(ymf701->cur_addr + 0, 0x0004, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
-    io_sethandler(ymf701->cur_addr + 8, 0x0002, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
+    io_sethandler(ymf701->cur_sb_addr + 0, 0x0004, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
+    io_sethandler(ymf701->cur_sb_addr + 8, 0x0002, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
     io_sethandler(0x0388, 0x0004, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
 
-    io_sethandler(ymf701->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ymf701->sb);
+    io_sethandler(ymf701->cur_sb_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ymf701->sb);
 
     sound_add_handler(ymf701_get_buffer, ymf701);
     music_add_handler(sb_get_music_buffer_sbpro, ymf701->sb);
