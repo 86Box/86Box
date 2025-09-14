@@ -30,6 +30,7 @@
 #define HDC_MAX      4
 
 extern int hdc_current[HDC_MAX];
+extern int hdc_onboard_enabled;
 
 extern const device_t st506_xt_xebec_device;              /* st506_xt_xebec */
 extern const device_t st506_xt_wdxt_gen_device;           /* st506_xt_wdxt_gen */
