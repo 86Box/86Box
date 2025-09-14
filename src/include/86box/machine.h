@@ -174,11 +174,7 @@
 #define CPU_BLOCK_NONE           0
 
 /* Make sure it's always an invalid value to avoid misdetections. */
-#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
-#    define MACHINE_AVAILABLE 0xffffffffffffffffULL
-#else
-#    define MACHINE_AVAILABLE 0xffffffff
-#endif
+#define MACHINE_AVAILABLE 0xffffffffffffffffULL
 
 enum {
     MACHINE_TYPE_NONE       = 0,
