@@ -65,7 +65,6 @@ static int ymf701_wss_irq[8] = { 0, 7, 9, 10, 11, 0, 0, 0 };
 
 typedef struct ymf701_t {
     uint8_t type;
-    uint8_t fm_type;
 
     uint8_t wss_config;
     uint8_t reg_enabled;
@@ -93,8 +92,6 @@ typedef struct ymf701_t {
     uint8_t regs[6];
     uint8_t passwd_phase;
 
-    uint8_t oldreadback;
-
     void *    log;  /* New logging system */
 } ymf701_t;
 
@@ -114,8 +111,6 @@ ymf701_wss_read(uint16_t addr, void *priv)
     ymf701_t *ymf701 = (ymf701_t *) priv;
     uint8_t ret = 0x00;
     uint8_t port = addr - ymf701->cur_wss_addr;
-
-    ymf701_log(ymf701->log, "WSS Read port = %04X\n", port);
 
     switch (port) {
         case 0:
@@ -404,11 +399,12 @@ ymf701_init(const device_t *info)
     ymf701->cur_wss_dma        = 0;
     ymf701->cur_wss_irq        = 11;
 
-    ymf701->regs[0] = 0xFF;
+    /* Power-on default values are unknown, using BIOS-initialized values from an Intel Ruby board */
+    ymf701->regs[0] = 0xFF; /* Index 0 is unused, return 0xFF */
     ymf701->regs[1] = 0x24;
     ymf701->regs[2] = 0x46;
     ymf701->regs[3] = 0x87;
-    ymf701->regs[4] = 0x00;
+    ymf701->regs[4] = 0x00; /* LSI version register, always returns 0 */
 
     ymf701->log = log_open("YMF701");
 
@@ -448,7 +444,6 @@ ymf701_init(const device_t *info)
     sound_add_handler(ymf701_get_buffer, ymf701);
     music_add_handler(sb_get_music_buffer_sbpro, ymf701->sb);
     ad1848_set_cd_audio_channel(&ymf701->ad1848, AD1848_AUX1);
-    //sound_set_cd_audio_filter(sbpro_filter_cd_audio, ymf701->sb); /* CD audio filter for the default context */
     sound_set_cd_audio_filter(ad1848_filter_cd_audio, &ymf701->ad1848);
 
     ymf701->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
