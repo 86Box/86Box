@@ -472,7 +472,7 @@ scsi_cdrom_mode_sense_read(const scsi_cdrom_t *dev, const uint8_t pgctl,
 
         default:
              break;
-    }      
+    }
 
     return ret;
 }
@@ -1579,7 +1579,7 @@ scsi_cdrom_read(scsi_common_t *sc)
     dev->drv->seek_diff = 0;
 
     if (ret > 0) {
-        if (osl > 0)        
+        if (osl > 0)
             scsi_cdrom_set_period(dev);
 
         ui_sb_update_icon(SB_CDROM | dev->id,
@@ -2626,7 +2626,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                                              dev->sector_type, 0x00)) {
                         scsi_cdrom_illegal_mode(dev);
                         ret = 0;
-                    }                        
+                    }
                     scsi_cdrom_log(dev->log, "READ (6):  Length: %i, LBA: %i\n",
                                    dev->sector_len, dev->sector_pos);
                     break;
@@ -2639,7 +2639,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                                              (cdb[9] & 0xc0) : 0x00)) {
                         scsi_cdrom_illegal_mode(dev);
                         ret = 0;
-                    }                        
+                    }
                     scsi_cdrom_log(dev->log, "READ (10): Length: %i, LBA: %i\n",
                                    dev->sector_len, dev->sector_pos);
                     break;
@@ -2655,7 +2655,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                                              (cdb[9] & 0xc0) : 0x00)) {
                         scsi_cdrom_illegal_mode(dev);
                         ret = 0;
-                    }                        
+                    }
                     scsi_cdrom_log(dev->log, "READ (12): Length: %i, LBA: %i\n",
                                    dev->sector_len, dev->sector_pos);
                     break;
@@ -2706,7 +2706,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     scsi_cdrom_buf_alloc(dev, dev->packet_len);
 
                     dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
-                    dev->drv->seek_pos  = dev->sector_pos;                   
+                    dev->drv->seek_pos  = dev->sector_pos;
 
                     /* Any of these commands stop the audio playing. */
                     cdrom_stop(dev->drv);
@@ -3524,6 +3524,7 @@ atapi_out:
             break;
 
         case GPCMD_PAUSE_RESUME:
+        case GPCMD_PAUSE_RESUME_ALT:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             cdrom_audio_pause_resume(dev->drv, cdb[8] & 0x01);
             scsi_cdrom_command_complete(dev);

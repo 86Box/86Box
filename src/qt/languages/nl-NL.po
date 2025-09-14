@@ -15,8 +15,8 @@ msgstr "&Keyboard vereist vastleggen"
 msgid "&Right CTRL is left ALT"
 msgstr "&Rechtse CTRL is linkse ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Harde Reset..."
+msgid "&Hard reset"
+msgstr "&Harde reset"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "&Venster met aanpasbare grootte"
 
 msgid "R&emember size && position"
 msgstr "&Onthoud grootte && positie"
+
+msgid "Remember size && position"
+msgstr "Onthoud grootte && positie"
 
 msgid "Re&nderer"
 msgstr "Re&nderer"
@@ -1073,6 +1076,12 @@ msgstr "Forceer afsluiten"
 
 msgid "Start"
 msgstr "Start"
+
+msgid "&Force shutdown"
+msgstr "&Forceer afsluiten"
+
+msgid "&Start"
+msgstr "&Start"
 
 msgid "Not running"
 msgstr "Niet actied"
@@ -2135,6 +2144,9 @@ msgstr "Lage DMA"
 
 msgid "Enable Game port"
 msgstr "Game-poort inschakelen"
+
+msgid "Enable Adlib ports"
+msgstr "Adlib-poorten inschakelen"
 
 msgid "SID Model"
 msgstr "SID-model"

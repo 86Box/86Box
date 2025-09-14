@@ -15,8 +15,8 @@ msgstr "&Vaadi näppäimistön kaappaus"
 msgid "&Right CTRL is left ALT"
 msgstr "&Oikea CTRL on vasen ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Uudelleenkäynnistys (kylmä)..."
+msgid "&Hard reset"
+msgstr "&Uudelleenkäynnistys (kylmä)"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "&Salli koon muuttaminen"
 
 msgid "R&emember size && position"
 msgstr "&Muista koko ja sijainti"
+
+msgid "Remember size && position"
+msgstr "Muista koko ja sijainti"
 
 msgid "Re&nderer"
 msgstr "&Renderöijä"
@@ -1074,6 +1077,12 @@ msgstr "Pakota sammutus"
 msgid "Start"
 msgstr "Käynnistä"
 
+msgid "&Force shutdown"
+msgstr "&Pakota sammutus"
+
+msgid "&Start"
+msgstr "&Käynnistä"
+
 msgid "Not running"
 msgstr "Ei käynnissä"
 
@@ -1318,7 +1327,7 @@ msgid "Found %1"
 msgstr "%1 löydetty"
 
 msgid "System"
-msgstr "Kone"
+msgstr "Järjestelmä"
 
 msgid "Storage"
 msgstr "Tallennus"
@@ -2135,6 +2144,9 @@ msgstr "Matala DMA"
 
 msgid "Enable Game port"
 msgstr "Peliportti"
+
+msgid "Enable Adlib ports"
+msgstr "Adlib-portit"
 
 msgid "SID Model"
 msgstr "SID-malli"
@@ -2956,10 +2968,10 @@ msgid "CGA composite settings"
 msgstr "CGA:n komposiittiasetukset"
 
 msgid "Monitor EDID"
-msgstr "Monitorin EDID"
+msgstr "Näytön EDID"
 
 msgid "Export..."
-msgstr "Viedä..."
+msgstr "Vie..."
 
 msgid "Export EDID"
 msgstr "Vie EDID"
@@ -2968,16 +2980,16 @@ msgid "EDID file \"%ls\" is too large."
 msgstr "EDID-tiedosto \"%ls\" on liian suuri."
 
 msgid "OpenGL input scale"
-msgstr "OpenGL:n syöttöasteikko"
+msgstr "OpenGL-syötteen skaalaus"
 
 msgid "OpenGL input stretch mode"
-msgstr "OpenGL:n syötteen venytystila"
+msgstr "OpenGL-syötteen venytystila"
 
 msgid "Color scheme"
-msgstr "Värimaailma"
+msgstr "Väriteema"
 
 msgid "Light"
-msgstr "Valo"
+msgstr "Vaalea"
 
 msgid "Dark"
 msgstr "Tumma"

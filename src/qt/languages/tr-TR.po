@@ -15,8 +15,8 @@ msgstr "&Klavye sadece fare yakalandığında çalışsın"
 msgid "&Right CTRL is left ALT"
 msgstr "&Sağ CTRL tuşunu sol ALT tuşu olarak ayarla"
 
-msgid "&Hard Reset..."
-msgstr "Yeniden başlamaya &zorla..."
+msgid "&Hard reset"
+msgstr "Yeniden başlamaya &zorla"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "&Boyutlandırılabilir pencere"
 
 msgid "R&emember size && position"
 msgstr "&Pencere boyut ve pozisyonunu kaydet"
+
+msgid "Remember size && position"
+msgstr "Pencere boyut ve pozisyonunu kaydet"
 
 msgid "Re&nderer"
 msgstr "Derley&ici"
@@ -1073,6 +1076,12 @@ msgstr "Kapatmaya zorla"
 
 msgid "Start"
 msgstr "Başlat"
+
+msgid "&Force shutdown"
+msgstr "&Kapatmaya zorla"
+
+msgid "&Start"
+msgstr "&Başlat"
 
 msgid "Not running"
 msgstr "Çalışmıyor"
@@ -2135,6 +2144,9 @@ msgstr "Düşük DMA"
 
 msgid "Enable Game port"
 msgstr "Gameport'ı etkinleştir"
+
+msgid "Enable Adlib ports"
+msgstr "Adlib bağlantı noktalarını etkinleştir"
 
 msgid "SID Model"
 msgstr "SID Modeli"

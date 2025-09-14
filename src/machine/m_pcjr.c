@@ -774,14 +774,14 @@ pit_irq0_timer_pcjr(int new_out, int old_out, UNUSED(void *priv))
 static const device_config_t pcjr_config[] = {
   // clang-format off
     {
-        .name = "display_type",
-        .description = "Display type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = PCJR_RGB,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "display_type",
+        .description    = "Display type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = PCJR_RGB,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "RGB",            .value = PCJR_RGB          },
             { .description = "Composite",      .value = PCJR_COMPOSITE    },
             { .description = "RGB (no brown)", .value = PCJR_RGB_NO_BROWN },
@@ -807,11 +807,11 @@ static const device_config_t pcjr_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name = "apply_hd",
-        .description = "Apply overscan deltas",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
+        .name           = "apply_hd",
+        .description    = "Apply overscan deltas",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on

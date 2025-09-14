@@ -340,7 +340,7 @@
      <normaloff>:/menuicons/qt/icons/hard_reset.ico</normaloff>:/menuicons/qt/icons/hard_reset.ico</iconset>
    </property>
    <property name="text">
-    <string>&amp;Hard Reset...</string>
+    <string>&amp;Hard reset</string>
    </property>
    <property name="iconVisibleInMenu">
     <bool>false</bool>
