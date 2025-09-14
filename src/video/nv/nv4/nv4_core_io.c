@@ -44,12 +44,12 @@ void nv4_svga_write(uint16_t addr, uint8_t val, void* priv);
 
 uint32_t nv4_mmio_arbitrate_read(uint32_t addr)
 {
-    nv_log_verbose_only("MMIO read from address=0x%08x", addr);
+    nv_log_verbose_only("MMIO read from address=0x%08x\n", addr);
 }
 
 void nv4_mmio_arbitrate_write(uint32_t addr, uint32_t val)
 {
-    nv_log_verbose_only("MMIO write to address=0x%08x value %08x", addr, val);
+    nv_log_verbose_only("MMIO write to address=0x%08x value %08x\n", addr, val);
 }
 
 // Determine if this address needs to be redirected to the SVGA subsystem.
@@ -95,7 +95,7 @@ uint8_t nv4_rma_read(uint16_t addr)
             }
 
             // log current location for vbios RE
-            nv_log_verbose_only("MMIO Real Mode Access read, initial address=0x%04x final RMA MMIO address=0x%08x data=0x%08x\n",
+            nv_log_verbose_only("MMIO Real Mode Access read, initial address=0x%08x final RMA MMIO address=0x%08x data=0x%08x\n",
                 addr, real_final_address, ret);
 
             break;

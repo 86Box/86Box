@@ -156,8 +156,6 @@ void nv3_pramdac_set_pixel_clock(void)
     // frequency divider algorithm from old varcem/86box/pcbox riva driver,
     // verified by reversing NT drivers v1.50e CalcMNP [symbols] function
 
-    // todo: actually implement it
-
     // missing section
     // not really needed.
     // if (nv3->pfb.boot.clock_crystal == CLOCK_CRYSTAL_13500)

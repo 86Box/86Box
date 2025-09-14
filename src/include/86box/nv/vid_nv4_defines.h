@@ -49,15 +49,15 @@
 #define NV4_PRAMDAC_NVPLL_COEFF                             0x680500 
 #define NV4_PRAMDAC_NVPLL_COEFF_MDIV                               0 
 #define NV4_PRAMDAC_NVPLL_COEFF_NDIV                               8 
-#define NV4_PRAMDAC_NVPLL_COEFF_PDIV                              16 
+#define NV4_PRAMDAC_NVPLL_COEFF_PDIV                              16 // 18:16
 #define NV4_PRAMDAC_MPLL_COEFF                              0x680504 
 #define NV4_PRAMDAC_MPLL_COEFF_MDIV                                0 
 #define NV4_PRAMDAC_MPLL_COEFF_NDIV                                8 
-#define NV4_PRAMDAC_MPLL_COEFF_PDIV                               16 
+#define NV4_PRAMDAC_MPLL_COEFF_PDIV                               16 // 18:16
 #define NV4_PRAMDAC_VPLL_COEFF                              0x680508 
 #define NV4_PRAMDAC_VPLL_COEFF_MDIV                                0 
 #define NV4_PRAMDAC_VPLL_COEFF_NDIV                                8 
-#define NV4_PRAMDAC_VPLL_COEFF_PDIV                               16 
+#define NV4_PRAMDAC_VPLL_COEFF_PDIV                               16 // 18:16
 #define NV4_PRAMDAC_PLL_COEFF_SELECT                        0x68050C 
 #define NV4_PRAMDAC_PLL_COEFF_SELECT_VPLL_SOURCE                   0 
 #define NV4_PRAMDAC_PLL_COEFF_SELECT_VPLL_SOURCE_XTAL     		 0x0 
