@@ -792,12 +792,6 @@ sound_cd_thread_reset(void)
 }
 
 static void
-sound_fdd_clean_buffers(void)
-{
-    memset(fdd_out_buffer, 0, SOUNDBUFLEN * 2);
-}
-
-static void
 sound_fdd_thread(UNUSED(void *param))
 {
     thread_set_event(sound_fdd_start_event);

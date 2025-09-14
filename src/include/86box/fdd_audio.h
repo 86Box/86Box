@@ -21,6 +21,8 @@
 extern "C" {
 #endif
 
+#ifndef DISABLE_FDD_AUDIO
+
 /* Motor sound states */
 typedef enum {
     MOTOR_STATE_STOPPED = 0,
@@ -49,6 +51,14 @@ typedef struct {
 /* Fade duration: 75ms at 48kHz = 3600 samples */
 #define FADE_DURATION_MS 75
 #define FADE_SAMPLES     (48000 * FADE_DURATION_MS / 1000)
+
+#else
+
+typedef enum {
+    MOTOR_STATE_STOPPED = 0
+} motor_state_t;
+
+#endif /* DISABLE_FDD_AUDIO */
 
 /* FDD audio initialization and cleanup */
 extern void fdd_audio_init(void);

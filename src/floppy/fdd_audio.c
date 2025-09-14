@@ -32,8 +32,10 @@
 // OK 4. Single sector read/write sound emulation
 // OK 5. Multi-track seek sound emulation
 // OK 6. Volume control for drive sounds
-// 7. Limit sound emulation only for 3,5" 300 rpm drives, until we have sound samples for other rpm drives
-// 8. Configuration option to enable/disable drive sounds
+// OK 7. Multi drive support
+// OK 8. Configuration option to enable/disable drive sounds
+
+#ifndef DISABLE_FDD_AUDIO
 
 /* Audio sample structure */
 typedef struct {
@@ -110,23 +112,6 @@ extern uint64_t   motoron[FDD_NUM];
 
 /* Forward declaration */
 static int16_t *load_wav(const char *filename, int *sample_count);
-
-const char *
-fdd_audio_motor_state_name(motor_state_t state)
-{
-    switch (state) {
-        case MOTOR_STATE_STOPPED:
-            return "STOPPED";
-        case MOTOR_STATE_STARTING:
-            return "STARTING";
-        case MOTOR_STATE_RUNNING:
-            return "RUNNING";
-        case MOTOR_STATE_STOPPING:
-            return "STOPPING";
-        default:
-            return "UNKNOWN";
-    }
-}
 
 static int16_t *
 load_wav(const char *filename, int *sample_count)
@@ -268,6 +253,9 @@ fdd_audio_close(void)
 void
 fdd_audio_set_motor_enable(int drive, int motor_enable)
 {
+    if (!fdd_sounds_enabled)
+        return;
+
     if (motor_enable && !motoron[drive]) {
         /* Motor starting up */
         if (spindlemotor_state[drive] == MOTOR_STATE_STOPPING) {
@@ -295,6 +283,9 @@ fdd_audio_set_motor_enable(int drive, int motor_enable)
 void
 fdd_audio_play_single_track_step(int drive, int from_track, int to_track)
 {
+    if (!fdd_sounds_enabled)
+        return;
+
     if (drive < 0 || drive >= FDD_NUM)
         return;
     if (abs(from_track - to_track) != 1)
@@ -307,6 +298,9 @@ fdd_audio_play_single_track_step(int drive, int from_track, int to_track)
 void
 fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track)
 {
+    if (!fdd_sounds_enabled)
+        return;
+
     if (drive < 0 || drive >= FDD_NUM)
         return;
 
@@ -345,7 +339,6 @@ fdd_audio_callback(int16_t *buffer, int length)
 {
     /* Clear buffer */
     memset(buffer, 0, length * sizeof(int16_t));
-
     /* Check if any motor is running or transitioning, or any audio is active */
     int any_audio_active = 0;
     for (int drive = 0; drive < FDD_NUM; drive++) {
@@ -496,3 +489,13 @@ fdd_audio_callback(int16_t *buffer, int length)
         }
     }
 }
+#else 
+
+void fdd_audio_init(void) {}
+void fdd_audio_close(void) {}
+void fdd_audio_set_motor_enable(int drive, int motor_enable) { (void) drive; (void) motor_enable; }
+void fdd_audio_play_single_track_step(int drive, int from_track, int to_track) { (void) drive; (void) from_track; (void) to_track; }
+void fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track) { (void) drive; (void) from_track; (void) to_track; }
+void fdd_audio_callback(int16_t *buffer, int length) { memset(buffer, 0, length * sizeof(int16_t)); }
+
+#endif /* DISABLE_FDD_AUDIO */

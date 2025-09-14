@@ -13,10 +13,12 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Toni Riikonen, <riikonen.toni@gmail.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2018-2019 Fred N. van Kempen.
+ *          Copyright 2025 Toni Riikonen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -752,7 +754,9 @@ fdd_init(void)
         fdd_load(i, floppyfns[i]);
     }
 
-    fdd_audio_init();
+    if (fdd_sounds_enabled) {
+        fdd_audio_init();
+    }    
 }
 
 void

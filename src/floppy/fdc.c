@@ -13,9 +13,11 @@
  *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
+ *          Toni Riikonen, <riikonen.toni@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2025 Toni Riikonen.
  */
 #include <stdio.h>
 #include <stdint.h>

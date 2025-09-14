@@ -14,10 +14,12 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Toni Riikonen, <riikonen.toni@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2018-2020 Fred N. van Kempen.
+ *          Copyright 2025 Toni Riikonen.
  */
 #ifndef EMU_FDC_H
 #define EMU_FDC_H
